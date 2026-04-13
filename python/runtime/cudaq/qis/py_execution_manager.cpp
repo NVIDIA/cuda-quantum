@@ -12,11 +12,9 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 
-namespace nb = nanobind;
-
 namespace cudaq {
 
-void bindExecutionManager(nb::module_ &mod) {
+void bindExecutionManager(nanobind::module_ &mod) {
 
   mod.def(
       "applyQuantumOperation",
@@ -30,9 +28,9 @@ void bindExecutionManager(nb::module_ &mod) {
                        [](auto &&el) { return cudaq::QuditInfo(2, el); });
         cudaq::getExecutionManager()->apply(name, params, c, t, isAdjoint, op);
       },
-      nb::arg("name"), nb::arg("params"), nb::arg("controls"),
-      nb::arg("targets"), nb::arg("isAdjoint") = false,
-      nb::arg("op") = cudaq::spin_op::identity());
+      nanobind::arg("name"), nanobind::arg("params"), nanobind::arg("controls"),
+      nanobind::arg("targets"), nanobind::arg("isAdjoint") = false,
+      nanobind::arg("op") = cudaq::spin_op::identity());
 
   mod.def("startAdjointRegion",
           []() { cudaq::getExecutionManager()->startAdjointRegion(); });
@@ -51,6 +49,6 @@ void bindExecutionManager(nb::module_ &mod) {
         return cudaq::getExecutionManager()->measure(cudaq::QuditInfo(2, id),
                                                      regName);
       },
-      nb::arg("qubit"), nb::arg("register_name") = "");
+      nanobind::arg("qubit"), nanobind::arg("register_name") = "");
 }
 } // namespace cudaq

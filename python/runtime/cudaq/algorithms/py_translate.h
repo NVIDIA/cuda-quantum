@@ -10,8 +10,6 @@
 
 #include <nanobind/nanobind.h>
 
-namespace nb = nanobind;
-
 namespace cudaq {
-void bindPyTranslate(nb::module_ &mod);
+void bindPyTranslate(nanobind::module_ &mod);
 } // namespace cudaq

@@ -17,16 +17,15 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 
-namespace nb = nanobind;
-
 namespace cudaq {
 
 /// @brief Extract the array data from a 2-d ndarray into our
 /// own allocated data pointer.
 /// This supports 2-d array in either row or column major.
-void extractKrausData(
-    nb::ndarray<std::complex<double>, nb::ndim<2>, nb::c_contig> arr,
-    complex *data) {
+void extractKrausData(nanobind::ndarray<std::complex<double>, nanobind::ndim<2>,
+                                        nanobind::c_contig>
+                          arr,
+                      complex *data) {
   auto rows = arr.shape(0);
   auto cols = arr.shape(1);
   auto *srcData = static_cast<const std::complex<double> *>(arr.data());
@@ -45,7 +44,7 @@ void extractKrausData(
 }
 
 /// @brief Bind the cudaq::noise_model, kraus_op, and kraus_channel.
-void bindNoiseModel(nb::module_ &mod) {
+void bindNoiseModel(nanobind::module_ &mod) {
 
   mod.def("set_noise", &set_noise, "Set the underlying noise model.");
   mod.def("unset_noise", &unset_noise,
@@ -53,7 +52,7 @@ void bindNoiseModel(nb::module_ &mod) {
   mod.def(
       "get_noise", []() { return cudaq::get_platform().get_noise(); },
       "Get the underlying noise model.");
-  nb::class_<noise_model>(
+  nanobind::class_<noise_model>(
       mod, "NoiseModel",
       "The `NoiseModel` defines a set of :class:`KrausChannel`'s applied to "
       "specific qubits after the invocation of specified quantum operations.")
@@ -117,10 +116,11 @@ void bindNoiseModel(nb::module_ &mod) {
 
             // Register each channel generator
             for (const auto &[name, generator] : channelGenerators) {
-              if (nb::hasattr(mod, name.c_str())) {
-                nb::type_object channelType =
-                    nb::borrow<nb::type_object>(nb::getattr(mod, name.c_str()));
-                auto key = nb::hash(channelType);
+              if (nanobind::hasattr(mod, name.c_str())) {
+                nanobind::type_object channelType =
+                    nanobind::borrow<nanobind::type_object>(
+                        nanobind::getattr(mod, name.c_str()));
+                auto key = nanobind::hash(channelType);
                 self->register_channel(key, generator);
               }
             }
@@ -128,11 +128,11 @@ void bindNoiseModel(nb::module_ &mod) {
           "Construct a noise model with all built-in channels pre-registered.")
       .def(
           "register_channel",
-          [](noise_model &self, const nb::type_object krausT) {
-            auto key = nb::hash(krausT);
+          [](noise_model &self, const nanobind::type_object krausT) {
+            auto key = nanobind::hash(krausT);
             std::function<kraus_channel(const std::vector<double> &)> lambda =
                 [krausT](const std::vector<double> &p) -> kraus_channel {
-              return nb::cast<kraus_channel>(krausT(p));
+              return nanobind::cast<kraus_channel>(krausT(p));
             };
             self.register_channel(key, lambda);
           },
@@ -143,7 +143,8 @@ void bindNoiseModel(nb::module_ &mod) {
              std::vector<std::size_t> &qubits, kraus_channel &channel) {
             self.add_channel(opName, qubits, channel);
           },
-          nb::arg("operator"), nb::arg("qubits"), nb::arg("channel"),
+          nanobind::arg("operator"), nanobind::arg("qubits"),
+          nanobind::arg("channel"),
           R"#(Add the given :class:`KrausChannel` to be applied after invocation
 of the specified quantum operation.
 
@@ -158,7 +159,7 @@ Args:
              const noise_model::PredicateFuncTy &pre) {
             self.add_channel(opName, pre);
           },
-          nb::arg("operator"), nb::arg("pre"),
+          nanobind::arg("operator"), nanobind::arg("pre"),
           R"#(Add the given :class:`KrausChannel` generator callback to be applied after invocation
 of the specified quantum operation.
 
@@ -172,7 +173,8 @@ Args:
              std::size_t num_controls = 0) {
             self.add_all_qubit_channel(opName, channel, num_controls);
           },
-          nb::arg("operator"), nb::arg("channel"), nb::arg("num_controls") = 0,
+          nanobind::arg("operator"), nanobind::arg("channel"),
+          nanobind::arg("num_controls") = 0,
 
           R"#(Add the given :class:`KrausChannel` to be applied after invocation
 of the specified quantum operation on arbitrary qubits.
@@ -188,7 +190,7 @@ Args:
              const std::vector<std::size_t> &qubits) {
             return self.get_channels(op, qubits);
           },
-          nb::arg("operator"), nb::arg("qubits"),
+          nanobind::arg("operator"), nanobind::arg("qubits"),
           "Return the :class:`KrausChannel`'s that make up this noise model.")
       .def(
           "get_channels",
@@ -197,25 +199,28 @@ Args:
              const std::vector<std::size_t> &controls) {
             return self.get_channels(op, qubits, controls);
           },
-          nb::arg("operator"), nb::arg("qubits"), nb::arg("controls"),
+          nanobind::arg("operator"), nanobind::arg("qubits"),
+          nanobind::arg("controls"),
           "Return the :class:`KrausChannel`'s that make up this noise model.");
 }
 
-void bindKrausOp(nb::module_ &mod) {
-  nb::class_<kraus_op>(
+void bindKrausOp(nanobind::module_ &mod) {
+  nanobind::class_<kraus_op>(
       mod, "KrausOperator",
       "The `KrausOperator` is represented by a matrix and serves as an element "
       "of a quantum channel such that :code:`Sum Ki Ki^dag = I.`")
       .def("__array__",
            [](kraus_op &op) {
              size_t shape[2] = {op.nRows, op.nCols};
-             return nb::ndarray<nb::numpy, std::complex<double>>(
-                 op.data.data(), 2, shape, nb::handle());
+             return nanobind::ndarray<nanobind::numpy, std::complex<double>>(
+                 op.data.data(), 2, shape, nanobind::handle());
            })
       .def(
           "__init__",
           [](kraus_op *self,
-             nb::ndarray<std::complex<double>, nb::ndim<2>, nb::c_contig> arr) {
+             nanobind::ndarray<std::complex<double>, nanobind::ndim<2>,
+                               nanobind::c_contig>
+                 arr) {
             std::vector<complex> v(arr.shape(0) * arr.shape(1));
             extractKrausData(arr, v.data());
             new (self) kraus_op(v);
@@ -236,8 +241,8 @@ public:
   using kraus_channel::kraus_channel;
 };
 
-void bindNoiseChannels(nb::module_ &mod) {
-  nb::enum_<cudaq::noise_model_type>(mod, "NoiseModelType")
+void bindNoiseChannels(nanobind::module_ &mod) {
+  nanobind::enum_<cudaq::noise_model_type>(mod, "NoiseModelType")
       .value("Unknown", cudaq::noise_model_type::unknown)
       .value("DepolarizationChannel",
              cudaq::noise_model_type::depolarization_channel)
@@ -255,22 +260,22 @@ void bindNoiseChannels(nb::module_ &mod) {
       .value("Depolarization1", cudaq::noise_model_type::depolarization1)
       .value("Depolarization2", cudaq::noise_model_type::depolarization2);
 
-  nb::class_<kraus_channel, PyKrausChannel>(
+  nanobind::class_<kraus_channel, PyKrausChannel>(
       mod, "KrausChannel",
       "The `KrausChannel` is composed of a list of "
       ":class:`KrausOperator`'s and "
       "is applied to a specific qubit or set of qubits.")
-      .def(nb::init<>(), "Create an empty :class:`KrausChannel`")
-      .def(nb::init<const std::vector<kraus_op> &>(),
+      .def(nanobind::init<>(), "Create an empty :class:`KrausChannel`")
+      .def(nanobind::init<const std::vector<kraus_op> &>(),
            "Create a :class:`KrausChannel` composed of a list of "
            ":class:`KrausOperator`'s.")
       .def(
           "__init__",
-          [](kraus_channel *self, nb::list ops) {
+          [](kraus_channel *self, nanobind::list ops) {
             std::vector<kraus_op> kops;
             for (std::size_t i = 0; i < ops.size(); i++) {
-              auto arr = nb::cast<
-                  nb::ndarray<std::complex<double>, nb::ndim<2>, nb::c_contig>>(
+              auto arr = nanobind::cast<nanobind::ndarray<
+                  std::complex<double>, nanobind::ndim<2>, nanobind::c_contig>>(
                   ops[i]);
               auto rows = arr.shape(0);
               auto cols = arr.shape(1);
@@ -289,16 +294,16 @@ void bindNoiseChannels(nb::module_ &mod) {
       .def(
           "__getitem__",
           [](kraus_channel &self, std::size_t idx) { return self[idx]; },
-          nb::arg("index"),
+          nanobind::arg("index"),
           "Return the :class:`KrausOperator` at the given index in this "
           ":class:`KrausChannel`.")
       .def(
           "append",
           [](kraus_channel &self, kraus_op op) { self.push_back(op); },
-          nb::arg("operator"),
+          nanobind::arg("operator"),
           "Add a :class:`KrausOperator` to this :class:`KrausChannel`.");
 
-  nb::class_<depolarization_channel, kraus_channel>(
+  nanobind::class_<depolarization_channel, kraus_channel>(
       mod, "DepolarizationChannel",
       R"#(Models the decoherence of the qubit state and phase into a mixture "
       of the computational basis states, `|0>` and `|1>`.
@@ -323,15 +328,15 @@ void bindNoiseChannels(nb::module_ &mod) {
       For `probability = 0.0`, the channel will behave noise-free.
       For `probability = 0.75`, the channel will fully depolarize the state.
       For `probability = 1.0`, the channel will be uniform.)#")
-      .def(nb::init<std::vector<double>>())
-      .def(nb::init<double>(), nb::arg("probability"),
+      .def(nanobind::init<std::vector<double>>())
+      .def(nanobind::init<double>(), nanobind::arg("probability"),
            "Initialize the `DepolarizationChannel` with the provided "
            "`probability`.")
       .def_ro_static(
           "num_parameters", &depolarization_channel::num_parameters,
           "The number of parameters this channel requires at construction.");
 
-  nb::class_<amplitude_damping_channel, kraus_channel>(
+  nanobind::class_<amplitude_damping_channel, kraus_channel>(
       mod, "AmplitudeDampingChannel",
       R"#(Models the dissipation of energy due to system interactions with the
       environment.
@@ -346,15 +351,15 @@ void bindNoiseChannels(nb::module_ &mod) {
       representing the probability that the qubit will decay to its ground
       state. The probability of the qubit remaining in the same state is
       therefore `1 - probability`.)#")
-      .def(nb::init<std::vector<double>>())
-      .def(nb::init<double>(), nb::arg("probability"),
+      .def(nanobind::init<std::vector<double>>())
+      .def(nanobind::init<double>(), nanobind::arg("probability"),
            "Initialize the `AmplitudeDampingChannel` with the provided "
            "`probability`.")
       .def_ro_static(
           "num_parameters", &amplitude_damping_channel::num_parameters,
           "The number of parameters this channel requires at construction.");
 
-  nb::class_<bit_flip_channel, kraus_channel>(
+  nanobind::class_<bit_flip_channel, kraus_channel>(
       mod, "BitFlipChannel",
       R"#(Models the decoherence of the qubit state. Its constructor expects a
       float value, `probability`, representing the probability that the qubit
@@ -369,14 +374,14 @@ void bindNoiseChannels(nb::module_ &mod) {
 
       The probability of the qubit remaining in the same state is therefore `1 -
       probability`.)#")
-      .def(nb::init<std::vector<double>>())
-      .def(nb::init<double>(), nb::arg("probability"),
+      .def(nanobind::init<std::vector<double>>())
+      .def(nanobind::init<double>(), nanobind::arg("probability"),
            "Initialize the `BitFlipChannel` with the provided `probability`.")
       .def_ro_static(
           "num_parameters", &bit_flip_channel::num_parameters,
           "The number of parameters this channel requires at construction.");
 
-  nb::class_<phase_flip_channel, kraus_channel>(
+  nanobind::class_<phase_flip_channel, kraus_channel>(
       mod, "PhaseFlipChannel",
       R"#(Models the decoherence of the qubit phase. Its constructor expects a
       float value, `probability`, representing the probability of a random
@@ -390,95 +395,95 @@ void bindNoiseChannels(nb::module_ &mod) {
 
       The probability of the qubit phase remaining untouched is therefore
       `1 - probability`.)#")
-      .def(nb::init<std::vector<double>>())
-      .def(nb::init<double>(), nb::arg("probability"),
+      .def(nanobind::init<std::vector<double>>())
+      .def(nanobind::init<double>(), nanobind::arg("probability"),
            "Initialize the `PhaseFlipChannel` with the provided `probability`.")
       .def_ro_static(
           "num_parameters", &phase_flip_channel::num_parameters,
           "The number of parameters this channel requires at construction.");
 
-  nb::class_<phase_damping, kraus_channel>(
+  nanobind::class_<phase_damping, kraus_channel>(
       mod, "PhaseDamping",
       R"#(A Kraus channel that models the single-qubit phase damping error. This
       is similar to AmplitudeDamping, but for phase.)#")
-      .def(nb::init<std::vector<double>>())
-      .def(nb::init<double>())
+      .def(nanobind::init<std::vector<double>>())
+      .def(nanobind::init<double>())
       .def_ro_static(
           "num_parameters", &phase_damping::num_parameters,
           "The number of parameters this channel requires at construction.");
 
-  nb::class_<z_error, kraus_channel>(
+  nanobind::class_<z_error, kraus_channel>(
       mod, "ZError",
       R"#(A Pauli error that applies the Z operator when an error
       occurs. It is the same as PhaseFlipChannel.)#")
-      .def(nb::init<std::vector<double>>())
-      .def(nb::init<double>())
+      .def(nanobind::init<std::vector<double>>())
+      .def(nanobind::init<double>())
       .def_ro_static(
           "num_parameters", &z_error::num_parameters,
           "The number of parameters this channel requires at construction.");
 
-  nb::class_<x_error, kraus_channel>(
+  nanobind::class_<x_error, kraus_channel>(
       mod, "XError",
       R"#(A Pauli error that applies the X operator when an error
       occurs. It is the same as BitFlipChannel.)#")
-      .def(nb::init<std::vector<double>>())
-      .def(nb::init<double>())
+      .def(nanobind::init<std::vector<double>>())
+      .def(nanobind::init<double>())
       .def_ro_static(
           "num_parameters", &x_error::num_parameters,
           "The number of parameters this channel requires at construction.");
 
-  nb::class_<y_error, kraus_channel>(
+  nanobind::class_<y_error, kraus_channel>(
       mod, "YError",
       R"#(A Pauli error that applies the Y operator when an error
       occurs.)#")
-      .def(nb::init<std::vector<double>>())
-      .def(nb::init<double>())
+      .def(nanobind::init<std::vector<double>>())
+      .def(nanobind::init<double>())
       .def_ro_static(
           "num_parameters", &y_error::num_parameters,
           "The number of parameters this channel requires at construction.");
 
-  nb::class_<pauli1, kraus_channel>(
+  nanobind::class_<pauli1, kraus_channel>(
       mod, "Pauli1",
       R"#(A single-qubit Pauli error that applies either an X error, Y error,
       or Z error. The probability of each X, Y, or Z error is supplied as a
       parameter.)#")
-      .def(nb::init<std::vector<double>>())
+      .def(nanobind::init<std::vector<double>>())
       .def_ro_static(
           "num_parameters", &pauli1::num_parameters,
           "The number of parameters this channel requires at construction.");
 
-  nb::class_<pauli2, kraus_channel>(
+  nanobind::class_<pauli2, kraus_channel>(
       mod, "Pauli2",
       R"#(A 2-qubit Pauli error that applies one of the following errors, with
       the probabilities specified as a vector. Possible errors: IX, IY, IZ, XI, XX,
       XY, XZ, YI, YX, YY, YZ, ZI, ZX, ZY, and ZZ.)#")
-      .def(nb::init<std::vector<double>>())
+      .def(nanobind::init<std::vector<double>>())
       .def_ro_static(
           "num_parameters", &pauli2::num_parameters,
           "The number of parameters this channel requires at construction.");
 
-  nb::class_<depolarization1, kraus_channel>(
+  nanobind::class_<depolarization1, kraus_channel>(
       mod, "Depolarization1",
       R"#(The same as DepolarizationChannel (single qubit depolarization))#")
-      .def(nb::init<std::vector<double>>())
-      .def(nb::init<double>())
+      .def(nanobind::init<std::vector<double>>())
+      .def(nanobind::init<double>())
       .def_ro_static(
           "num_parameters", &depolarization1::num_parameters,
           "The number of parameters this channel requires at construction.");
 
-  nb::class_<depolarization2, kraus_channel>(
+  nanobind::class_<depolarization2, kraus_channel>(
       mod, "Depolarization2",
       R"#(A 2-qubit depolarization error that applies one of the following
       errors. Possible errors: IX, IY, IZ, XI, XX, XY, XZ, YI, YX, YY, YZ, ZI, ZX,
       ZY, and ZZ.)#")
-      .def(nb::init<std::vector<double>>())
-      .def(nb::init<double>())
+      .def(nanobind::init<std::vector<double>>())
+      .def(nanobind::init<double>())
       .def_ro_static(
           "num_parameters", &depolarization2::num_parameters,
           "The number of parameters this channel requires at construction.");
 }
 
-void bindNoise(nb::module_ &mod) {
+void bindNoise(nanobind::module_ &mod) {
   bindNoiseModel(mod);
   bindKrausOp(mod);
   bindNoiseChannels(mod);

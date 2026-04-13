@@ -58,8 +58,6 @@
 #include <nanobind/stl/tuple.h>
 #include <nanobind/stl/vector.h>
 
-namespace nb = nanobind;
-
 using namespace cudaq;
 
 static std::unique_ptr<LinkedLibraryHolder> holder;
@@ -96,8 +94,10 @@ NB_MODULE(_quakeDialects, m) {
           holder->setTarget(*target, extraConfig);
         }
       },
-      nb::arg("option") = nb::none(), nb::arg("emulate") = nb::none(),
-      nb::arg("target") = nb::none(), "Initialize the CUDA-Q environment.");
+      nanobind::arg("option") = nanobind::none(),
+      nanobind::arg("emulate") = nanobind::none(),
+      nanobind::arg("target") = nanobind::none(),
+      "Initialize the CUDA-Q environment.");
 
   bindRuntimeTarget(cudaqRuntime, *holder.get());
   bindMeasureCounts(cudaqRuntime);
@@ -201,41 +201,46 @@ NB_MODULE(_quakeDialects, m) {
   auto orcaSubmodule = cudaqRuntime.def_submodule("orca");
   orcaSubmodule.def(
       "sample",
-      nb::overload_cast<std::vector<std::size_t> &, std::vector<std::size_t> &,
-                        std::vector<double> &, std::vector<double> &, int,
-                        std::size_t>(&orca::sample),
+      nanobind::overload_cast<std::vector<std::size_t> &,
+                              std::vector<std::size_t> &, std::vector<double> &,
+                              std::vector<double> &, int, std::size_t>(
+          &orca::sample),
       "Performs Time Bin Interferometer (TBI) boson sampling experiments on "
       "ORCA's backends",
-      nb::arg("input_state"), nb::arg("loop_lengths"), nb::arg("bs_angles"),
-      nb::arg("ps_angles"), nb::arg("n_samples") = 10000,
-      nb::arg("qpu_id") = 0);
+      nanobind::arg("input_state"), nanobind::arg("loop_lengths"),
+      nanobind::arg("bs_angles"), nanobind::arg("ps_angles"),
+      nanobind::arg("n_samples") = 10000, nanobind::arg("qpu_id") = 0);
   orcaSubmodule.def(
       "sample",
-      nb::overload_cast<std::vector<std::size_t> &, std::vector<std::size_t> &,
-                        std::vector<double> &, int, std::size_t>(&orca::sample),
+      nanobind::overload_cast<std::vector<std::size_t> &,
+                              std::vector<std::size_t> &, std::vector<double> &,
+                              int, std::size_t>(&orca::sample),
       "Performs Time Bin Interferometer (TBI) boson sampling experiments on "
       "ORCA's backends",
-      nb::arg("input_state"), nb::arg("loop_lengths"), nb::arg("bs_angles"),
-      nb::arg("n_samples") = 10000, nb::arg("qpu_id") = 0);
+      nanobind::arg("input_state"), nanobind::arg("loop_lengths"),
+      nanobind::arg("bs_angles"), nanobind::arg("n_samples") = 10000,
+      nanobind::arg("qpu_id") = 0);
   orcaSubmodule.def(
       "sample_async",
-      nb::overload_cast<std::vector<std::size_t> &, std::vector<std::size_t> &,
-                        std::vector<double> &, std::vector<double> &, int,
-                        std::size_t>(&orca::sample_async),
-      "Performs Time Bin Interferometer (TBI) boson sampling experiments on "
-      "ORCA's backends",
-      nb::arg("input_state"), nb::arg("loop_lengths"), nb::arg("bs_angles"),
-      nb::arg("ps_angles"), nb::arg("n_samples") = 10000,
-      nb::arg("qpu_id") = 0);
-  orcaSubmodule.def(
-      "sample_async",
-      nb::overload_cast<std::vector<std::size_t> &, std::vector<std::size_t> &,
-                        std::vector<double> &, int, std::size_t>(
+      nanobind::overload_cast<std::vector<std::size_t> &,
+                              std::vector<std::size_t> &, std::vector<double> &,
+                              std::vector<double> &, int, std::size_t>(
           &orca::sample_async),
       "Performs Time Bin Interferometer (TBI) boson sampling experiments on "
       "ORCA's backends",
-      nb::arg("input_state"), nb::arg("loop_lengths"), nb::arg("bs_angles"),
-      nb::arg("n_samples") = 10000, nb::arg("qpu_id") = 0);
+      nanobind::arg("input_state"), nanobind::arg("loop_lengths"),
+      nanobind::arg("bs_angles"), nanobind::arg("ps_angles"),
+      nanobind::arg("n_samples") = 10000, nanobind::arg("qpu_id") = 0);
+  orcaSubmodule.def(
+      "sample_async",
+      nanobind::overload_cast<std::vector<std::size_t> &,
+                              std::vector<std::size_t> &, std::vector<double> &,
+                              int, std::size_t>(&orca::sample_async),
+      "Performs Time Bin Interferometer (TBI) boson sampling experiments on "
+      "ORCA's backends",
+      nanobind::arg("input_state"), nanobind::arg("loop_lengths"),
+      nanobind::arg("bs_angles"), nanobind::arg("n_samples") = 10000,
+      nanobind::arg("qpu_id") = 0);
 
   auto photonicsSubmodule = cudaqRuntime.def_submodule("photonics");
   photonicsSubmodule.def(
@@ -243,7 +248,7 @@ NB_MODULE(_quakeDialects, m) {
       [](std::size_t &level) {
         return getExecutionManager()->allocateQudit(level);
       },
-      "Allocate a qudit of given level.", nb::arg("level"));
+      "Allocate a qudit of given level.", nanobind::arg("level"));
   photonicsSubmodule.def(
       "apply_operation",
       [](const std::string &name, std::vector<double> &params,
@@ -258,20 +263,21 @@ NB_MODULE(_quakeDialects, m) {
                                      spin_op::identity());
       },
       "Apply the input photonics operation on the target qudits.",
-      nb::arg("name"), nb::arg("params"), nb::arg("targets"));
+      nanobind::arg("name"), nanobind::arg("params"), nanobind::arg("targets"));
   photonicsSubmodule.def(
       "measure",
       [](std::size_t level, std::size_t id, const std::string &regName) {
         return getExecutionManager()->measure(QuditInfo(level, id), regName);
       },
-      "Measure the input qudit(s).", nb::arg("level"), nb::arg("qudit"),
-      nb::arg("register_name") = "");
+      "Measure the input qudit(s).", nanobind::arg("level"),
+      nanobind::arg("qudit"), nanobind::arg("register_name") = "");
   photonicsSubmodule.def(
       "release_qudit",
       [](std::size_t level, std::size_t id) {
         getExecutionManager()->returnQudit(QuditInfo(level, id));
       },
-      "Release a qudit of given id.", nb::arg("level"), nb::arg("id"));
+      "Release a qudit of given id.", nanobind::arg("level"),
+      nanobind::arg("id"));
   cudaqRuntime.def("cloneModule",
                    [](MlirModule mod) { return wrap(unwrap(mod).clone()); });
   cudaqRuntime.def("isTerminator", [](MlirOperation op) {

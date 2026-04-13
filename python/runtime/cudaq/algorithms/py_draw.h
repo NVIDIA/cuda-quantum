@@ -11,8 +11,6 @@
 #include "utils/OpaqueArguments.h"
 #include <nanobind/nanobind.h>
 
-namespace nb = nanobind;
-
 namespace cudaq {
-void bindPyDraw(nb::module_ &mod);
+void bindPyDraw(nanobind::module_ &mod);
 }

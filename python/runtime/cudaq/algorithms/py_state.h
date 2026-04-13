@@ -11,10 +11,8 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/ndarray.h>
 
-namespace nb = nanobind;
-
 namespace cudaq {
 class LinkedLibraryHolder;
 
-void bindPyState(nb::module_ &mod, LinkedLibraryHolder &holder);
+void bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder);
 } // namespace cudaq

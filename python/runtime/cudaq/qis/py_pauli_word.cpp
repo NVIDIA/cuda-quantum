@@ -11,16 +11,15 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 
-namespace nb = nanobind;
-
 namespace cudaq {
 
-void bindPauliWord(nb::module_ &mod) {
+void bindPauliWord(nanobind::module_ &mod) {
 
-  nb::class_<pauli_word>(mod, "pauli_word",
-                         "The `pauli_word` is a thin wrapper on a Pauli tensor "
-                         "product string, e.g. `XXYZ` on 4 qubits.")
-      .def(nb::init<>())
-      .def(nb::init<const std::string>());
+  nanobind::class_<pauli_word>(
+      mod, "pauli_word",
+      "The `pauli_word` is a thin wrapper on a Pauli tensor "
+      "product string, e.g. `XXYZ` on 4 qubits.")
+      .def(nanobind::init<>())
+      .def(nanobind::init<const std::string>());
 }
 } // namespace cudaq

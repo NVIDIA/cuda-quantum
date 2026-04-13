@@ -21,16 +21,16 @@
 
 namespace cudaq {
 
-void bindComplexMatrix(nb::module_ &mod) {
-  nb::class_<complex_matrix>(
+void bindComplexMatrix(nanobind::module_ &mod) {
+  nanobind::class_<complex_matrix>(
       mod, "ComplexMatrix",
       "The :class:`ComplexMatrix` is a thin wrapper around a "
       "matrix of complex<double> elements.")
       .def(
           "__init__",
           [](complex_matrix *self,
-             nb::ndarray<std::complex<double>, nb::ndim<2>, nb::c_contig,
-                         nb::numpy>
+             nanobind::ndarray<std::complex<double>, nanobind::ndim<2>,
+                               nanobind::c_contig, nanobind::numpy>
                  arr) {
             auto rows = arr.shape(0);
             auto cols = arr.shape(1);
@@ -68,7 +68,7 @@ void bindComplexMatrix(nb::module_ &mod) {
           [](const complex_matrix &lhs, const complex_matrix &rhs) {
             return lhs == rhs;
           },
-          nb::is_operator())
+          nanobind::is_operator())
       .def("__str__", &complex_matrix::to_string,
            "Returns the string representation of the matrix.")
       .def(

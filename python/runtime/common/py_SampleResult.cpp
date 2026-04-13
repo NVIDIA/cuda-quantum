@@ -20,12 +20,12 @@
 
 namespace cudaq {
 
-void bindMeasureCounts(nb::module_ &mod) {
+void bindMeasureCounts(nanobind::module_ &mod) {
   using namespace cudaq;
 
   // TODO Bind the variants of this functions that take the register name
   // as input.
-  nb::class_<sample_result>(
+  nanobind::class_<sample_result>(
       mod, "SampleResult",
       R"#(A data-type containing the results of a call to :func:`sample`.
 This includes all measurement counts data from both mid-circuit and
@@ -39,7 +39,7 @@ Attributes:
 	register_names (List[str]): A list of the names of each measurement
 		register that are stored in `self`.)#")
       .def_prop_ro("register_names", &sample_result::register_names)
-      .def(nb::init<>())
+      .def(nanobind::init<>())
       .def(
           "dump", [](sample_result &self) { self.dump(); },
           "Print a string of the raw measurement counts data to the "
@@ -66,12 +66,12 @@ Attributes:
             auto map = self.to_map();
             auto iter = map.find(bitstring);
             if (iter == map.end())
-              throw nb::key_error(
+              throw nanobind::key_error(
                   ("bitstring '" + bitstring + "' does not exist").c_str());
 
             return iter->second;
           },
-          nb::arg("bitstring"),
+          nanobind::arg("bitstring"),
           R"#(Return the measurement counts for the given `bitstring`.
 
 Args:
@@ -87,14 +87,14 @@ Returns:
       .def(
           "__iter__",
           [](sample_result &self) {
-            return nb::make_key_iterator(nb::type<sample_result>(),
-                                         "key_iterator", self.begin(),
-                                         self.end());
+            return nanobind::make_key_iterator(nanobind::type<sample_result>(),
+                                               "key_iterator", self.begin(),
+                                               self.end());
           },
-          nb::keep_alive<0, 1>(),
+          nanobind::keep_alive<0, 1>(),
           "Iterate through the :class:`SampleResult` dictionary.\n")
       .def("expectation", &sample_result::expectation,
-           nb::arg("register_name") = GlobalRegisterName,
+           nanobind::arg("register_name") = GlobalRegisterName,
            "Return the expectation value in the Z-basis of the :class:`Kernel` "
            "that was sampled.\n")
       .def(
@@ -107,12 +107,13 @@ Returns:
                          1);
             return self.expectation();
           },
-          nb::arg("register_name") = GlobalRegisterName,
+          nanobind::arg("register_name") = GlobalRegisterName,
           "Return the expectation value in the Z-basis of the :class:`Kernel` "
           "that was sampled.\n")
       .def("probability", &sample_result::probability,
            "Return the probability of observing the given bit string.\n",
-           nb::arg("bitstring"), nb::arg("register_name") = GlobalRegisterName,
+           nanobind::arg("bitstring"),
+           nanobind::arg("register_name") = GlobalRegisterName,
            R"#(Return the probability of measuring the given `bitstring`.
 
 Args:
@@ -128,7 +129,7 @@ Returns:
 	to the proportion of the total times the bitstring was measured
 	vs. the number of experiments (`shots_count`).)#")
       .def("most_probable", &sample_result::most_probable,
-           nb::arg("register_name") = GlobalRegisterName,
+           nanobind::arg("register_name") = GlobalRegisterName,
            R"#(Return the bitstring that was measured most frequently in the
 experiment.
 
@@ -139,8 +140,8 @@ Args:
 
 Returns:
   str: The most frequently measured binary string during the experiment.)#")
-      .def("count", &sample_result::count, nb::arg("bitstring"),
-           nb::arg("register_name") = GlobalRegisterName,
+      .def("count", &sample_result::count, nanobind::arg("bitstring"),
+           nanobind::arg("register_name") = GlobalRegisterName,
            R"#(Return the number of times the given bitstring was observed.
 
 Args:
@@ -154,8 +155,8 @@ Returns:
            static_cast<sample_result (sample_result::*)(
                const std::vector<std::size_t> &, const std::string_view) const>(
                &sample_result::get_marginal),
-           nb::arg("marginal_indices"), nb::kw_only(),
-           nb::arg("register_name") = GlobalRegisterName,
+           nanobind::arg("marginal_indices"), nanobind::kw_only(),
+           nanobind::arg("register_name") = GlobalRegisterName,
            R"#(Extract the measurement counts data for the provided subset of
 qubits (`marginal_indices`).
 
@@ -168,7 +169,7 @@ Returns:
   :class:`SampleResult`:
 	A new `SampleResult` dictionary containing the extracted measurement data.)#")
       .def("get_sequential_data", &sample_result::sequential_data,
-           nb::arg("register_name") = GlobalRegisterName,
+           nanobind::arg("register_name") = GlobalRegisterName,
            "Return the data from the given register (`register_name`) as it "
            "was collected sequentially. A list of measurement results, not "
            "collated into a map.\n")
@@ -179,29 +180,30 @@ Returns:
             ExecutionResult res(cd);
             return sample_result(res);
           },
-          nb::arg("register_name"),
+          nanobind::arg("register_name"),
           "Extract the provided sub-register (`register_name`) as a new "
           ":class:`SampleResult`.\n")
       .def(
           "items",
           [](sample_result &self) {
-            return nb::make_iterator(nb::type<sample_result>(), "item_iterator",
-                                     self.begin(), self.end());
+            return nanobind::make_iterator(nanobind::type<sample_result>(),
+                                           "item_iterator", self.begin(),
+                                           self.end());
           },
-          nb::keep_alive<0, 1>(),
+          nanobind::keep_alive<0, 1>(),
           "Return the key/value pairs in this :class:`SampleResult` "
           "dictionary.\n")
       .def(
           "values",
           [](sample_result &self) {
-            return nb::make_value_iterator(nb::type<sample_result>(),
-                                           "value_iterator", self.begin(),
-                                           self.end());
+            return nanobind::make_value_iterator(
+                nanobind::type<sample_result>(), "value_iterator", self.begin(),
+                self.end());
           },
-          nb::keep_alive<0, 1>(),
+          nanobind::keep_alive<0, 1>(),
           "Return all values (the counts) in this :class:`SampleResult` "
           "dictionary.\n")
-      .def(nb::self += nb::self)
+      .def(nanobind::self += nanobind::self)
       .def("clear", &sample_result::clear,
            "Clear out all metadata from `self`.\n");
 }

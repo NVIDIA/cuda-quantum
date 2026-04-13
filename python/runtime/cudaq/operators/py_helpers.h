@@ -10,12 +10,10 @@
 #include <nanobind/nanobind.h>
 #include <nanobind/ndarray.h>
 
-namespace nb = nanobind;
-
 namespace cudaq::details {
-cudaq::parameter_map kwargs_to_param_map(const nb::kwargs &kwargs);
+cudaq::parameter_map kwargs_to_param_map(const nanobind::kwargs &kwargs);
 std::unordered_map<std::string, std::string>
-kwargs_to_param_description(const nb::kwargs &kwargs);
-nb::ndarray<nb::numpy, std::complex<double>>
+kwargs_to_param_description(const nanobind::kwargs &kwargs);
+nanobind::ndarray<nanobind::numpy, std::complex<double>>
 cmat_to_numpy(complex_matrix &cmat);
 } // namespace cudaq::details

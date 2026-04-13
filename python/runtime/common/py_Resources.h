@@ -7,9 +7,7 @@
  ******************************************************************************/
 #include <nanobind/nanobind.h>
 
-namespace nb = nanobind;
-
 namespace cudaq {
 /// @brief Bind `cudaq.Resources` to python.
-void bindResources(nb::module_ &mod);
+void bindResources(nanobind::module_ &mod);
 } // namespace cudaq

@@ -27,11 +27,11 @@
 
 namespace cudaq {
 
-void bindScalarOperator(nb::module_ &mod) {
+void bindScalarOperator(nanobind::module_ &mod) {
   using scalar_callback =
       std::function<std::complex<double>(const parameter_map &)>;
 
-  nb::class_<scalar_operator>(mod, "ScalarOperator")
+  nanobind::class_<scalar_operator>(mod, "ScalarOperator")
 
       // properties
 
@@ -41,35 +41,36 @@ void bindScalarOperator(nb::module_ &mod) {
 
       // constructors
 
-      .def(nb::init<>(), "Creates a scalar operator with constant value 1.")
-      .def(nb::init<double>(),
+      .def(nanobind::init<>(),
+           "Creates a scalar operator with constant value 1.")
+      .def(nanobind::init<double>(),
            "Creates a scalar operator with the given constant value.")
-      .def(nb::init<std::complex<double>>(),
+      .def(nanobind::init<std::complex<double>>(),
            "Creates a scalar operator with the given constant value.")
       .def(
           "__init__",
           [](scalar_operator *self, const scalar_callback &func,
-             const nb::kwargs &kwargs) {
+             const nanobind::kwargs &kwargs) {
             new (self) scalar_operator(
                 func, details::kwargs_to_param_description(kwargs));
           },
-          nb::arg("callback"), nb::arg("kwargs"),
+          nanobind::arg("callback"), nanobind::arg("kwargs"),
           "Creates a scalar operator where the given callback function is "
           "invoked during evaluation.")
-      .def(nb::init<const scalar_operator &>(), "Copy constructor.")
+      .def(nanobind::init<const scalar_operator &>(), "Copy constructor.")
 
       // evaluations
 
       .def(
           "evaluate",
-          [](const scalar_operator &self, const nb::kwargs &kwargs) {
+          [](const scalar_operator &self, const nanobind::kwargs &kwargs) {
             return self.evaluate(details::kwargs_to_param_map(kwargs));
           },
           "Evaluated value of the operator.")
 
       // comparisons
 
-      .def("__eq__", &scalar_operator::operator==, nb::is_operator())
+      .def("__eq__", &scalar_operator::operator==, nanobind::is_operator())
 
       // general utility functions
 
@@ -79,10 +80,10 @@ void bindScalarOperator(nb::module_ &mod) {
            "Returns the string representation of the operator.");
 }
 
-void bindScalarWrapper(nb::module_ &mod) {
+void bindScalarWrapper(nanobind::module_ &mod) {
   bindScalarOperator(mod);
-  nb::implicitly_convertible<double, scalar_operator>();
-  nb::implicitly_convertible<std::complex<double>, scalar_operator>();
+  nanobind::implicitly_convertible<double, scalar_operator>();
+  nanobind::implicitly_convertible<std::complex<double>, scalar_operator>();
 }
 
 } // namespace cudaq

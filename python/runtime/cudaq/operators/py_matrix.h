@@ -8,10 +8,8 @@
 
 #include <nanobind/nanobind.h>
 
-namespace nb = nanobind;
-
 namespace cudaq {
 /// @brief Wrapper function for exposing the bindings of `cudaq::complex_matrix`
 /// to python.
-void bindComplexMatrix(nb::module_ &mod);
+void bindComplexMatrix(nanobind::module_ &mod);
 } // namespace cudaq

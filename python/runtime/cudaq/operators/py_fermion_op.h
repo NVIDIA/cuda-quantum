@@ -8,10 +8,8 @@
 
 #include <nanobind/nanobind.h>
 
-namespace nb = nanobind;
-
 namespace cudaq {
 /// @brief Wrapper function for exposing the bindings of fermionic
 /// operators to python.
-void bindFermionWrapper(nb::module_ &mod);
+void bindFermionWrapper(nanobind::module_ &mod);
 } // namespace cudaq

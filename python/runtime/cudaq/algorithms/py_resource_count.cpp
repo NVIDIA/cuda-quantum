@@ -14,14 +14,12 @@
 #include <nanobind/stl/function.h>
 #include <nanobind/stl/optional.h>
 
-namespace nb = nanobind;
-
 using namespace cudaq;
 
 static Resources
 estimate_resources_impl(const std::string &kernelName, MlirModule kernelMod,
                         std::optional<std::function<bool()>> choice,
-                        nb::args args) {
+                        nanobind::args args) {
   auto &platform = cudaq::get_platform();
   args = simplifiedValidateInputArguments(args);
 
@@ -61,7 +59,7 @@ estimate_resources_impl(const std::string &kernelName, MlirModule kernelMod,
   return counts;
 }
 
-void cudaq::bindCountResources(nb::module_ &mod) {
+void cudaq::bindCountResources(nanobind::module_ &mod) {
   mod.def("estimate_resources_impl", estimate_resources_impl,
           "See python documentation for estimate_resources.");
 }

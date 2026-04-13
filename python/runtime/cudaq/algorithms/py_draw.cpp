@@ -11,14 +11,12 @@
 #include "cudaq/platform/nvqpp_interface.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 
-namespace nb = nanobind;
-
 /// @brief Run `cudaq::contrib::draw`'s string overload on the provided kernel.
 /// \p kernel is a kernel decorator object and \p args are the arguments to
 /// launch \p kernel.
 static std::string pyDraw(const std::string &format,
                           const std::string &shortName, MlirModule mod,
-                          nb::args runtimeArgs) {
+                          nanobind::args runtimeArgs) {
   if (format != "ascii" && format != "latex")
     throw std::runtime_error("format argument must be \"ascii\" or \"latex\".");
 
@@ -31,11 +29,11 @@ static std::string pyDraw(const std::string &format,
 }
 
 /// @brief Bind the draw cudaq function
-void cudaq::bindPyDraw(nb::module_ &mod) {
+void cudaq::bindPyDraw(nanobind::module_ &mod) {
   mod.def(
       "draw_impl",
       [](const std::string &format, const std::string &shortName,
-         MlirModule mod, nb::args runtimeArgs) {
+         MlirModule mod, nanobind::args runtimeArgs) {
         return pyDraw(format, shortName, mod, runtimeArgs);
       },
       R"#(

@@ -10,8 +10,6 @@
 
 #include <nanobind/nanobind.h>
 
-namespace nb = nanobind;
-
 namespace cudaq {
-void bindCountResources(nb::module_ &mod);
+void bindCountResources(nanobind::module_ &mod);
 }

@@ -10,8 +10,6 @@
 
 #include <nanobind/nanobind.h>
 
-namespace nb = nanobind;
-
 namespace cudaq {
-void bindRegisterDialects(nb::module_ &mod);
+void bindRegisterDialects(nanobind::module_ &mod);
 } // namespace cudaq

@@ -15,15 +15,13 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 
-namespace nb = nanobind;
-
 namespace nvqir {
 void toggleDynamicQubitManagement();
 } // namespace nvqir
 
 namespace cudaq {
 
-void bindTestUtils(nb::module_ &mod, LinkedLibraryHolder &holder) {
+void bindTestUtils(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
   auto testingSubmodule = mod.def_submodule("testing");
 
   testingSubmodule.def(
@@ -36,7 +34,7 @@ void bindTestUtils(nb::module_ &mod, LinkedLibraryHolder &holder) {
         auto simName = holder.getTarget().simulatorName;
         return holder.getSimulator(simName)->allocateQubits(numQubits);
       },
-      nb::arg("numQubits"));
+      nanobind::arg("numQubits"));
 
   testingSubmodule.def("deallocateQubits",
                        [&](const std::vector<std::size_t> &qubits) {

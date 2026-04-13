@@ -8,10 +8,8 @@
 
 #include <nanobind/nanobind.h>
 
-namespace nb = nanobind;
-
 namespace cudaq {
 /// @brief Wrapper function for exposing the bindings of super-operator to
 /// python.
-void bindSuperOperatorWrapper(nb::module_ &mod);
+void bindSuperOperatorWrapper(nanobind::module_ &mod);
 } // namespace cudaq

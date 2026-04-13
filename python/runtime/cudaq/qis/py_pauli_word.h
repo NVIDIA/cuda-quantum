@@ -10,9 +10,7 @@
 
 #include <nanobind/nanobind.h>
 
-namespace nb = nanobind;
-
 namespace cudaq {
 /// @brief Bind the Quantum Instruction Set.
-void bindPauliWord(nb::module_ &mod);
+void bindPauliWord(nanobind::module_ &mod);
 } // namespace cudaq

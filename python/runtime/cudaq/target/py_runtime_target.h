@@ -10,12 +10,10 @@
 
 #include <nanobind/nanobind.h>
 
-namespace nb = nanobind;
-
 namespace cudaq {
 
 class LinkedLibraryHolder;
 
-void bindRuntimeTarget(nb::module_ &mod, LinkedLibraryHolder &holder);
+void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder);
 
 } // namespace cudaq

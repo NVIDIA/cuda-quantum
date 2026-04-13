@@ -20,8 +20,6 @@
 #include <nanobind/stl/vector.h>
 #include <shared_mutex>
 
-namespace nb = nanobind;
-
 namespace {
 using SetTargetCallbackFnTy = std::function<void(const cudaq::RuntimeTarget &)>;
 // List of `set_target` callbacks to be executed during target changes.
@@ -56,7 +54,7 @@ void onTargetChange(const cudaq::RuntimeTarget &newTarget) {
 namespace cudaq {
 
 std::map<std::string, std::string>
-parseTargetKwArgs(const nb::kwargs &extraConfig) {
+parseTargetKwArgs(const nanobind::kwargs &extraConfig) {
   if (extraConfig.contains("options"))
     throw std::runtime_error("The keyword `options` argument is not supported "
                              "in cudaq.set_target(). Please use the keyword "
@@ -64,32 +62,32 @@ parseTargetKwArgs(const nb::kwargs &extraConfig) {
   std::map<std::string, std::string> config;
   for (auto [key, value] : extraConfig) {
     std::string strValue = "";
-    if (nb::isinstance<nb::bool_>(value))
-      strValue = nb::cast<bool>(value) ? "true" : "false";
-    else if (nb::isinstance<nb::str>(value))
-      strValue = nb::cast<std::string>(value);
-    else if (nb::isinstance<nb::int_>(value))
-      strValue = std::to_string(nb::cast<int>(value));
+    if (nanobind::isinstance<nanobind::bool_>(value))
+      strValue = nanobind::cast<bool>(value) ? "true" : "false";
+    else if (nanobind::isinstance<nanobind::str>(value))
+      strValue = nanobind::cast<std::string>(value);
+    else if (nanobind::isinstance<nanobind::int_>(value))
+      strValue = std::to_string(nanobind::cast<int>(value));
     else
       throw std::runtime_error(
           "QPU kwargs config value must be cast-able to a string.");
 
     // Ignore empty parameter values
     if (!strValue.empty())
-      config.emplace(nb::cast<std::string>(key), strValue);
+      config.emplace(nanobind::cast<std::string>(key), strValue);
   }
   return config;
 }
 
-void bindRuntimeTarget(nb::module_ &mod, LinkedLibraryHolder &holder) {
+void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
 
-  nb::enum_<simulation_precision>(
+  nanobind::enum_<simulation_precision>(
       mod, "SimulationPrecision",
       "Enumeration describing the precision of the underlying simulation.")
       .value("fp32", simulation_precision::fp32)
       .value("fp64", simulation_precision::fp64);
 
-  nb::class_<cudaq::RuntimeTarget>(
+  nanobind::class_<cudaq::RuntimeTarget>(
       mod, "Target",
       "The `cudaq.Target` represents the underlying infrastructure that "
       "CUDA-Q kernels will execute on. Instances of `cudaq.Target` describe "
@@ -169,7 +167,7 @@ void bindRuntimeTarget(nb::module_ &mod, LinkedLibraryHolder &holder) {
       "Return all available `cudaq.Target` instances on the current system.");
   mod.def(
       "set_target",
-      [&](const cudaq::RuntimeTarget &target, nb::kwargs extraConfig) {
+      [&](const cudaq::RuntimeTarget &target, nanobind::kwargs extraConfig) {
         auto config = parseTargetKwArgs(extraConfig);
         holder.setTarget(target.name, config);
         onTargetChange(target);
@@ -179,7 +177,7 @@ void bindRuntimeTarget(nb::module_ &mod, LinkedLibraryHolder &holder) {
       "kwargs.");
   mod.def(
       "set_target",
-      [&](const std::string &name, nb::kwargs extraConfig) {
+      [&](const std::string &name, nanobind::kwargs extraConfig) {
         auto config = parseTargetKwArgs(extraConfig);
         holder.setTarget(name, config);
         onTargetChange(holder.getTarget());
@@ -213,10 +211,12 @@ void bindRuntimeTarget(nb::module_ &mod, LinkedLibraryHolder &holder) {
       },
       "Unregister a callback identified by the input identifier.");
 
-  nb::module_::import_("atexit").attr("register")(nb::cpp_function([]() {
-    // Perform cleanup of registered callbacks, which might be Python objects.
-    g_callbacks.clear();
-  }));
+  nanobind::module_::import_("atexit").attr("register")(
+      nanobind::cpp_function([]() {
+        // Perform cleanup of registered callbacks, which might be Python
+        // objects.
+        g_callbacks.clear();
+      }));
 }
 
 } // namespace cudaq

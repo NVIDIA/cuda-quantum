@@ -23,7 +23,7 @@ struct py_unitary_operation : public unitary_operation {
   }
 };
 
-void bindCustomOpRegistry(nb::module_ &mod) {
+void bindCustomOpRegistry(nanobind::module_ &mod) {
   mod.def(
       "register_custom_operation",
       [&](const std::string &opName) {

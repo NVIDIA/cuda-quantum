@@ -14,22 +14,20 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 
-namespace nb = nanobind;
-
 namespace {
 // FIXME(OperatorCpp): Remove this when the operator class is implemented in
 // C++
-cudaq::spin_op to_spin_op(nb::object &obj) {
-  if (nb::hasattr(obj, "_to_spinop"))
-    return nb::cast<cudaq::spin_op>(obj.attr("_to_spinop")());
-  return nb::cast<cudaq::spin_op>(obj);
+cudaq::spin_op to_spin_op(nanobind::object &obj) {
+  if (nanobind::hasattr(obj, "_to_spinop"))
+    return nanobind::cast<cudaq::spin_op>(obj.attr("_to_spinop")());
+  return nanobind::cast<cudaq::spin_op>(obj);
 }
-cudaq::spin_op to_spin_op_term(nb::object &obj) {
+cudaq::spin_op to_spin_op_term(nanobind::object &obj) {
   auto op = cudaq::spin_op::empty();
-  if (nb::hasattr(obj, "_to_spinop"))
-    op = nb::cast<cudaq::spin_op>(obj.attr("_to_spinop")());
+  if (nanobind::hasattr(obj, "_to_spinop"))
+    op = nanobind::cast<cudaq::spin_op>(obj.attr("_to_spinop")());
   else
-    op = nb::cast<cudaq::spin_op>(obj);
+    op = nanobind::cast<cudaq::spin_op>(obj);
   if (op.num_terms() != 1)
     throw std::invalid_argument("expecting a spin op with a single term");
   return *op.begin();
@@ -50,20 +48,20 @@ namespace cudaq {
 /// @brief Bind the `cudaq::observe_result` and `cudaq::async_observe_result`
 /// data classes to python as `cudaq.ObserveResult` and
 /// `cudaq.AsyncObserveResult`.
-void bindObserveResult(nb::module_ &mod) {
-  nb::class_<observe_result>(
+void bindObserveResult(nanobind::module_ &mod) {
+  nanobind::class_<observe_result>(
       mod, "ObserveResult",
       "A data-type containing the results of a call to :func:`observe`. "
       "This includes any measurement counts data, as well as the global "
       "expectation value of the user-defined `spin_operator`.\n")
-      .def(nb::init<double, spin_op, sample_result>())
+      .def(nanobind::init<double, spin_op, sample_result>())
       .def("__init__",
            [](observe_result *self, double exp_val, const spin_op &spin_op,
               sample_result result) {
              new (self) observe_result(exp_val, spin_op, result);
            })
       .def("__init__",
-           [](observe_result *self, double exp_val, nb::object spin_op,
+           [](observe_result *self, double exp_val, nanobind::object spin_op,
               sample_result result) {
              new (self) observe_result(exp_val, to_spin_op(spin_op), result);
            })
@@ -85,13 +83,13 @@ void bindObserveResult(nb::module_ &mod) {
           [](observe_result &self, const spin_op_term &sub_term) {
             return self.counts(sub_term);
           },
-          nb::arg("sub_term"), "")
+          nanobind::arg("sub_term"), "")
       .def(
           "counts",
-          [](observe_result &self, nb::object sub_term) {
+          [](observe_result &self, nanobind::object sub_term) {
             return self.counts(to_spin_op_term(sub_term));
           },
-          nb::arg("sub_term"),
+          nanobind::arg("sub_term"),
           R"#(Given a `sub_term` of the global `spin_operator` that was passed
 to :func:`observe`, return its measurement counts.
 
@@ -110,7 +108,7 @@ Returns:
                 1);
             return self.counts(sub_term);
           },
-          nb::arg("sub_term"),
+          nanobind::arg("sub_term"),
           "Deprecated - ensure to pass a SpinOperatorTerm instead of a "
           "SpinOperator")
       .def(
@@ -123,13 +121,13 @@ Returns:
           [](observe_result &self, const spin_op_term &spin_term) {
             return self.expectation(spin_term);
           },
-          nb::arg("sub_term"), "")
+          nanobind::arg("sub_term"), "")
       .def(
           "expectation",
-          [](observe_result &self, nb::object spin_term) {
+          [](observe_result &self, nanobind::object spin_term) {
             return self.expectation(to_spin_op_term(spin_term));
           },
-          nb::arg("sub_term"),
+          nanobind::arg("sub_term"),
           R"#(Return the expectation value of an individual `sub_term` of the
 global `spin_operator` that was passed to :func:`observe`.
 
@@ -150,11 +148,11 @@ Returns:
 
             return self.expectation(spin_term);
           },
-          nb::arg("sub_term"),
+          nanobind::arg("sub_term"),
           "Deprecated - ensure to pass a SpinOperatorTerm instead of a "
           "SpinOperator");
 
-  nb::class_<async_observe_result>(
+  nanobind::class_<async_observe_result>(
       mod, "AsyncObserveResult",
       R"#(A data-type containing the results of a call to :func:`observe_async`.
 
@@ -172,14 +170,15 @@ for more information on this programming pattern.)#")
              is >> *self;
            })
       .def("__init__",
-           [](async_observe_result *self, std::string inJson, nb::object op) {
+           [](async_observe_result *self, std::string inJson,
+              nanobind::object op) {
              auto as_spin_op = to_spin_op(op);
              new (self) async_observe_result(&as_spin_op);
              std::istringstream is(inJson);
              is >> *self;
            })
       .def("get", &async_observe_result::get,
-           nb::call_guard<nb::gil_scoped_release>(),
+           nanobind::call_guard<nanobind::gil_scoped_release>(),
            "Returns the :class:`ObserveResult` from the asynchronous observe "
            "execution.")
       .def("__str__", [](async_observe_result &self) {

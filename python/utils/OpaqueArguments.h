@@ -31,9 +31,6 @@
 #include <nanobind/stl/complex.h>
 #include <nanobind/stl/string.h>
 
-namespace py = nanobind;
-namespace nb = nanobind;
-
 namespace cudaq {
 
 // NB: The OpaqueArguments class was moved out of Python and into the general
@@ -44,7 +41,7 @@ class OpaqueArguments;
 /// argument types. Future work should make this function perform more checks,
 /// we probably want to take the kernel MLIR argument types as input and use
 /// that to validate that the passed arguments are good to go.
-py::args simplifiedValidateInputArguments(py::args &args);
+nanobind::args simplifiedValidateInputArguments(nanobind::args &args);
 
 /// @brief Search the given Module for the function with provided name.
 template <bool noThrow = false>
@@ -78,24 +75,26 @@ mlir::func::FuncOp getKernelFuncOp(MlirModule module,
 }
 
 template <typename T>
-void checkArgumentType(py::handle arg, int index, const std::string &word) {
+void checkArgumentType(nanobind::handle arg, int index,
+                       const std::string &word) {
   if (!py_ext::isConvertible<T>(arg)) {
     throw std::runtime_error(
         "kernel argument" + word + " type is '" +
         std::string(py_ext::typeName<T>()) + "'" +
         " but argument provided is not (argument " + std::to_string(index) +
-        ", value=" + nb::cast<std::string>(nb::str(arg)) +
-        ", type=" + nb::cast<std::string>(nb::str(arg.type())) + ").");
+        ", value=" + nanobind::cast<std::string>(nanobind::str(arg)) +
+        ", type=" + nanobind::cast<std::string>(nanobind::str(arg.type())) +
+        ").");
   }
 }
 
 template <typename T>
-void checkArgumentType(py::handle arg, int index) {
+void checkArgumentType(nanobind::handle arg, int index) {
   checkArgumentType<T>(arg, index, "");
 }
 
 template <typename T>
-void checkListElementType(py::handle arg, int index) {
+void checkListElementType(nanobind::handle arg, int index) {
   checkArgumentType<T>(arg, index, "'s element");
 }
 
@@ -116,33 +115,34 @@ std::string mlirTypeToString(mlir::Type ty);
 /// For the current struct member variable type, insert the value into the
 /// dynamically constructed struct.
 void handleStructMemberVariable(void *data, std::size_t offset,
-                                mlir::Type memberType, py::object value);
+                                mlir::Type memberType, nanobind::object value);
 
 /// For the current vector element type, insert the value into the dynamically
 /// constructed vector.
-void *handleVectorElements(mlir::Type eleTy, py::list list);
+void *handleVectorElements(mlir::Type eleTy, nanobind::list list);
 
 /// Take a list of python objects (the arguments) and convert them to C++
 /// objects on the heap. The results are returned in \p argData and include
 /// special `deletors` so that the argument data is cleaned up correctly.
-void packArgs(OpaqueArguments &argData, py::list args,
+void packArgs(OpaqueArguments &argData, nanobind::list args,
               mlir::ArrayRef<mlir::Type> mlirTys,
-              const std::function<bool(OpaqueArguments &, py::object &,
+              const std::function<bool(OpaqueArguments &, nanobind::object &,
                                        unsigned)> &backupHandler,
               mlir::func::FuncOp kernelFuncOp);
 
 /// This overload handles dropping the front \p startingArgIdx arguments on the
 /// floor. They are not packed in \p argData and are simply ignored.
-void packArgs(OpaqueArguments &argData, py::args args,
+void packArgs(OpaqueArguments &argData, nanobind::args args,
               mlir::func::FuncOp kernelFuncOp,
-              const std::function<bool(OpaqueArguments &, py::object &,
+              const std::function<bool(OpaqueArguments &, nanobind::object &,
                                        unsigned)> &backupHandler,
               std::size_t startingArgIdx = 0);
 
 /// Return `true` if the given \p args represents a request for broadcasting
 /// sample or observe over all argument sets. \p args types can be `int`,
 /// `float`, `list`, so must check if `args[i]` is a `list` or `ndarray`.
-inline bool isBroadcastRequest(kernel_builder<> &builder, py::args &args) {
+inline bool isBroadcastRequest(kernel_builder<> &builder,
+                               nanobind::args &args) {
   // FIXME: The use of isArgStdVec in this function inhibits moving this code
   // out of the header file.
   if (args.empty())
@@ -150,14 +150,14 @@ inline bool isBroadcastRequest(kernel_builder<> &builder, py::args &args) {
 
   auto arg = args[0];
   // Just need to check the leading argument
-  if (py::isinstance<py::list>(arg) && !builder.isArgStdVec(0))
+  if (nanobind::isinstance<nanobind::list>(arg) && !builder.isArgStdVec(0))
     return true;
 
-  if (py::hasattr(arg, "tolist")) {
-    if (!py::hasattr(arg, "shape"))
+  if (nanobind::hasattr(arg, "tolist")) {
+    if (!nanobind::hasattr(arg, "shape"))
       return false;
 
-    auto shape = nb::cast<nb::tuple>(arg.attr("shape"));
+    auto shape = nanobind::cast<nanobind::tuple>(arg.attr("shape"));
     if (shape.size() == 1 && !builder.isArgStdVec(0))
       return true;
 

@@ -10,8 +10,6 @@
 
 #include <nanobind/nanobind.h>
 
-namespace nb = nanobind;
-
 namespace cudaq {
-void bindObserveAsync(nb::module_ &mod);
+void bindObserveAsync(nanobind::module_ &mod);
 } // namespace cudaq

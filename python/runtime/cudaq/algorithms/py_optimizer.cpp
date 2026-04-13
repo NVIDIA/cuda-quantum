@@ -26,23 +26,23 @@ namespace cudaq {
 /// @brief optimization_result is a typedef for std::tuple<double,
 /// std::vector<double>> which is automatically converted by nanobind's
 /// stl/tuple type caster.
-void bindOptimizationResult(nb::module_ &mod) {
+void bindOptimizationResult(nanobind::module_ &mod) {
   mod.attr("OptimizationResult") =
-      nb::handle(reinterpret_cast<PyObject *>(&PyTuple_Type));
+      nanobind::handle(reinterpret_cast<PyObject *>(&PyTuple_Type));
 }
 
-void bindGradientStrategies(nb::module_ &mod) {
+void bindGradientStrategies(nanobind::module_ &mod) {
   // Binding under the `cudaq.gradients` namespace in python.
   auto gradients_submodule = mod.def_submodule("gradients");
   // Have to bind the parent class, `cudaq::gradient`, to allow
   // for the passing of arbitrary `cudaq::gradients::` around.
   // Note: this class lives under `cudaq.gradients.gradient`
   // in python.
-  nb::class_<gradient>(gradients_submodule, "gradient");
+  nanobind::class_<gradient>(gradients_submodule, "gradient");
   // Gradient strategies derive from the `cudaq::gradient` class.
-  nb::class_<gradients::central_difference, gradient>(gradients_submodule,
-                                                      "CentralDifference")
-      .def(nb::init<>())
+  nanobind::class_<gradients::central_difference, gradient>(gradients_submodule,
+                                                            "CentralDifference")
+      .def(nanobind::init<>())
       .def(
           "to_json",
           [](const gradients::central_difference &p) { return json(p).dump(); },
@@ -58,18 +58,20 @@ void bindGradientStrategies(nb::module_ &mod) {
       .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
-             nb::callable &func, double funcAtX) {
+             nanobind::callable &func, double funcAtX) {
             auto function =
-                nb::cast<std::function<double(std::vector<double>)>>(func);
+                nanobind::cast<std::function<double(std::vector<double>)>>(
+                    func);
             return grad.compute(x, function, funcAtX);
           },
-          nb::arg("parameter_vector"), nb::arg("function"), nb::arg("funcAtX"),
+          nanobind::arg("parameter_vector"), nanobind::arg("function"),
+          nanobind::arg("funcAtX"),
           "Compute the gradient of the provided `parameter_vector` with "
           "respect to "
           "its loss function, using the `CentralDifference` method.\n");
-  nb::class_<gradients::forward_difference, gradient>(gradients_submodule,
-                                                      "ForwardDifference")
-      .def(nb::init<>())
+  nanobind::class_<gradients::forward_difference, gradient>(gradients_submodule,
+                                                            "ForwardDifference")
+      .def(nanobind::init<>())
       .def(
           "to_json",
           [](const gradients::forward_difference &p) { return json(p).dump(); },
@@ -85,18 +87,20 @@ void bindGradientStrategies(nb::module_ &mod) {
       .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
-             nb::callable &func, double funcAtX) {
+             nanobind::callable &func, double funcAtX) {
             auto function =
-                nb::cast<std::function<double(std::vector<double>)>>(func);
+                nanobind::cast<std::function<double(std::vector<double>)>>(
+                    func);
             return grad.compute(x, function, funcAtX);
           },
-          nb::arg("parameter_vector"), nb::arg("function"), nb::arg("funcAtX"),
+          nanobind::arg("parameter_vector"), nanobind::arg("function"),
+          nanobind::arg("funcAtX"),
           "Compute the gradient of the provided `parameter_vector` with "
           "respect to "
           "its loss function, using the `ForwardDifference` method.\n");
-  nb::class_<gradients::parameter_shift, gradient>(gradients_submodule,
-                                                   "ParameterShift")
-      .def(nb::init<>())
+  nanobind::class_<gradients::parameter_shift, gradient>(gradients_submodule,
+                                                         "ParameterShift")
+      .def(nanobind::init<>())
       .def(
           "to_json",
           [](const gradients::parameter_shift &p) { return json(p).dump(); },
@@ -112,12 +116,14 @@ void bindGradientStrategies(nb::module_ &mod) {
       .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
-             nb::callable &func, double funcAtX) {
+             nanobind::callable &func, double funcAtX) {
             auto function =
-                nb::cast<std::function<double(std::vector<double>)>>(func);
+                nanobind::cast<std::function<double(std::vector<double>)>>(
+                    func);
             return grad.compute(x, function, funcAtX);
           },
-          nb::arg("parameter_vector"), nb::arg("function"), nb::arg("funcAtX"),
+          nanobind::arg("parameter_vector"), nanobind::arg("function"),
+          nanobind::arg("funcAtX"),
           "Compute the gradient of the provided `parameter_vector` with "
           "respect to "
           "its loss function, using the `ParameterShift` method.\n");
@@ -128,10 +134,10 @@ void bindGradientStrategies(nb::module_ &mod) {
 /// Can now define its member functions on
 /// that submodule.
 template <typename OptimizerT>
-nb::class_<OptimizerT, optimizer> addPyOptimizer(nb::module_ &mod,
-                                                 std::string &&name) {
-  return nb::class_<OptimizerT, optimizer>(mod, name.c_str())
-      .def(nb::init<>())
+nanobind::class_<OptimizerT, optimizer> addPyOptimizer(nanobind::module_ &mod,
+                                                       std::string &&name) {
+  return nanobind::class_<OptimizerT, optimizer>(mod, name.c_str())
+      .def(nanobind::init<>())
       .def(
           "to_json", [](const OptimizerT &p) { return json(p).dump(); },
           "Convert optimizer to JSON string")
@@ -205,21 +211,22 @@ nb::class_<OptimizerT, optimizer> addPyOptimizer(nb::module_ &mod,
           )doc")
       .def(
           "optimize",
-          [](OptimizerT &opt, const int dim, nb::callable &func) {
+          [](OptimizerT &opt, const int dim, nanobind::callable &func) {
             return opt.optimize(dim, [&](std::vector<double> x,
                                          std::vector<double> &grad) {
               // Call the function.
               auto ret = func(x);
               // Does it return a tuple?
-              auto isTupleReturn = nb::isinstance<nb::tuple>(ret);
+              auto isTupleReturn = nanobind::isinstance<nanobind::tuple>(ret);
               // If we don't need gradients, and it does, just grab the value
               // and return.
               if (!opt.requiresGradients() && isTupleReturn)
-                return nb::cast<double>(nb::cast<nb::tuple>(ret)[0]);
+                return nanobind::cast<double>(
+                    nanobind::cast<nanobind::tuple>(ret)[0]);
               // If we don't need gradients and it doesn't return tuple, then
               // just pass what we got.
               if (!opt.requiresGradients() && !isTupleReturn)
-                return nb::cast<double>(ret);
+                return nanobind::cast<double>(ret);
 
               // Throw an error if we need gradients and they weren't provided.
               if (opt.requiresGradients() && !isTupleReturn)
@@ -228,16 +235,16 @@ nb::class_<OptimizerT, optimizer> addPyOptimizer(nb::module_ &mod,
                     "(float, list[float]) for gradient-based optimizers");
 
               // If here, we require gradients, and the signature is right.
-              auto tuple = nb::cast<nb::tuple>(ret);
+              auto tuple = nanobind::cast<nanobind::tuple>(ret);
               auto val = tuple[0];
-              auto gradIn = nb::cast<nb::list>(tuple[1]);
+              auto gradIn = nanobind::cast<nanobind::list>(tuple[1]);
               for (std::size_t i = 0; i < gradIn.size(); i++)
-                grad[i] = nb::cast<double>(gradIn[i]);
+                grad[i] = nanobind::cast<double>(gradIn[i]);
 
-              return nb::cast<double>(val);
+              return nanobind::cast<double>(val);
             });
           },
-          nb::arg("dimensions"), nb::arg("function"), R"doc(
+          nanobind::arg("dimensions"), nanobind::arg("function"), R"doc(
 Run the optimization procedure.
 
 Args:
@@ -275,14 +282,14 @@ Example:
 )doc");
 }
 
-void bindOptimizers(nb::module_ &mod) {
+void bindOptimizers(nanobind::module_ &mod) {
   // Binding the `cudaq::optimizers` class to `_pycudaq` as a submodule
   // so it's accessible directly in the cudaq namespace.
   auto optimizers_submodule = mod.def_submodule("optimizers");
-  nb::class_<optimizer>(optimizers_submodule, "optimizer");
+  nanobind::class_<optimizer>(optimizers_submodule, "optimizer");
 
   addPyOptimizer<optimizers::cobyla>(optimizers_submodule, "COBYLA")
-      .def(nb::init<>(), R"doc(
+      .def(nanobind::init<>(), R"doc(
 Constrained Optimization BY Linear Approximations (COBYLA).
 
 COBYLA is a gradient-free derivative-free optimization algorithm that uses 
@@ -305,7 +312,7 @@ Example:
 )doc");
 
   addPyOptimizer<optimizers::neldermead>(optimizers_submodule, "NelderMead")
-      .def(nb::init<>(), R"doc(
+      .def(nanobind::init<>(), R"doc(
 Nelder-Mead simplex optimization algorithm.
 
 The Nelder-Mead method is a gradient-free simplex-based optimization algorithm 
@@ -328,7 +335,7 @@ Example:
 )doc");
 
   addPyOptimizer<optimizers::lbfgs>(optimizers_submodule, "LBFGS")
-      .def(nb::init<>(), R"doc(
+      .def(nanobind::init<>(), R"doc(
 Limited-memory Broyden-Fletcher-Goldfarb-Shanno (L-BFGS) optimizer.
 
 L-BFGS is a quasi-Newton method that approximates the Hessian matrix using 
@@ -354,7 +361,7 @@ Example:
 
   addPyOptimizer<optimizers::gradient_descent>(optimizers_submodule,
                                                "GradientDescent")
-      .def(nb::init<>(), R"doc(
+      .def(nanobind::init<>(), R"doc(
 Basic gradient descent optimization algorithm.
 
 Gradient descent iteratively moves in the direction of steepest descent 
@@ -381,7 +388,7 @@ Example:
 
   // Have to bind extra optimizer parameters to the following manually:
   auto py_spsa = addPyOptimizer<optimizers::spsa>(optimizers_submodule, "SPSA")
-                     .def(nb::init<>(), R"doc(
+                     .def(nanobind::init<>(), R"doc(
 Simultaneous Perturbation Stochastic Approximation (SPSA) optimizer.
 
 SPSA is a gradient-free optimization algorithm that uses simultaneous 
@@ -429,7 +436,7 @@ to noise. Typical values range from 0.1 to 0.5.
 )doc");
 
   auto py_adam = addPyOptimizer<optimizers::adam>(optimizers_submodule, "Adam")
-                     .def(nb::init<>(), R"doc(
+                     .def(nanobind::init<>(), R"doc(
 Adaptive Moment Estimation (Adam) optimizer.
 
 Adam is an adaptive learning rate optimization algorithm that computes 
@@ -513,7 +520,7 @@ convergence but may require more iterations.
 )doc");
 
   auto py_sgd = addPyOptimizer<optimizers::sgd>(optimizers_submodule, "SGD")
-                    .def(nb::init<>(), R"doc(
+                    .def(nanobind::init<>(), R"doc(
 Stochastic Gradient Descent (SGD) optimizer.
 
 SGD is a fundamental optimization algorithm that updates parameters by taking 
@@ -574,7 +581,7 @@ gradients, convergence may be noisy.
 )doc");
 }
 
-void bindOptimizerWrapper(nb::module_ &mod) {
+void bindOptimizerWrapper(nanobind::module_ &mod) {
   bindOptimizationResult(mod);
   bindGradientStrategies(mod);
   bindOptimizers(mod);

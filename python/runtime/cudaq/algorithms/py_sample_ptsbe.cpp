@@ -29,8 +29,6 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 
-namespace nb = nanobind;
-
 using namespace cudaq;
 
 /// @brief Run PTSBE sampling from Python.
@@ -41,9 +39,9 @@ static ptsbe::sample_result
 pySamplePTSBE(const std::string &shortName, MlirModule module,
               std::size_t shots_count, noise_model noiseModel,
               std::optional<std::size_t> max_trajectories,
-              nb::object sampling_strategy, nb::object shot_allocation_obj,
-              bool return_execution_data, bool include_sequential_data,
-              nb::args runtimeArgs) {
+              nanobind::object sampling_strategy,
+              nanobind::object shot_allocation_obj, bool return_execution_data,
+              bool include_sequential_data, nanobind::args runtimeArgs) {
   if (shots_count == 0)
     return ptsbe::sample_result();
 
@@ -54,12 +52,12 @@ pySamplePTSBE(const std::string &shortName, MlirModule module,
 
   if (!sampling_strategy.is_none())
     ptsbe_options.strategy =
-        nb::cast<std::shared_ptr<ptsbe::PTSSamplingStrategy>>(
+        nanobind::cast<std::shared_ptr<ptsbe::PTSSamplingStrategy>>(
             sampling_strategy);
 
   if (!shot_allocation_obj.is_none())
     ptsbe_options.shot_allocation =
-        nb::cast<ptsbe::ShotAllocationStrategy>(shot_allocation_obj);
+        nanobind::cast<ptsbe::ShotAllocationStrategy>(shot_allocation_obj);
 
   auto mod = unwrap(module);
   runtimeArgs = simplifiedValidateInputArguments(runtimeArgs);
@@ -108,13 +106,12 @@ struct AsyncPTSBESampleResultImpl {
 } // namespace
 
 /// @brief Run PTSBE sampling asynchronously from Python.
-static AsyncPTSBESampleResultImpl
-pySampleAsyncPTSBE(const std::string &shortName, MlirModule module,
-                   std::size_t shots_count, noise_model &noiseModel,
-                   std::optional<std::size_t> max_trajectories,
-                   nb::object sampling_strategy, nb::object shot_allocation_obj,
-                   bool return_execution_data, bool include_sequential_data,
-                   nb::args runtimeArgs) {
+static AsyncPTSBESampleResultImpl pySampleAsyncPTSBE(
+    const std::string &shortName, MlirModule module, std::size_t shots_count,
+    noise_model &noiseModel, std::optional<std::size_t> max_trajectories,
+    nanobind::object sampling_strategy, nanobind::object shot_allocation_obj,
+    bool return_execution_data, bool include_sequential_data,
+    nanobind::args runtimeArgs) {
 
   ptsbe::PTSBEOptions ptsbe_options;
   ptsbe_options.return_execution_data = return_execution_data;
@@ -123,12 +120,12 @@ pySampleAsyncPTSBE(const std::string &shortName, MlirModule module,
 
   if (!sampling_strategy.is_none())
     ptsbe_options.strategy =
-        nb::cast<std::shared_ptr<ptsbe::PTSSamplingStrategy>>(
+        nanobind::cast<std::shared_ptr<ptsbe::PTSSamplingStrategy>>(
             sampling_strategy);
 
   if (!shot_allocation_obj.is_none())
     ptsbe_options.shot_allocation =
-        nb::cast<ptsbe::ShotAllocationStrategy>(shot_allocation_obj);
+        nanobind::cast<ptsbe::ShotAllocationStrategy>(shot_allocation_obj);
 
   auto mod = unwrap(module);
   runtimeArgs = simplifiedValidateInputArguments(runtimeArgs);
@@ -140,7 +137,7 @@ pySampleAsyncPTSBE(const std::string &shortName, MlirModule module,
   std::string kernelName = shortName;
 
   // Release GIL before launching async C++ work
-  nb::gil_scoped_release release;
+  nanobind::gil_scoped_release release;
   return AsyncPTSBESampleResultImpl(ptsbe::detail::runSamplingAsyncPTSBE(
       [opaques = std::move(opaques), kernelName, mod = mod.clone()]() mutable {
         [[maybe_unused]] auto result =
@@ -150,19 +147,19 @@ pySampleAsyncPTSBE(const std::string &shortName, MlirModule module,
       noiseModel));
 }
 
-void cudaq::bindSamplePTSBE(nb::module_ &mod) {
+void cudaq::bindSamplePTSBE(nanobind::module_ &mod) {
   auto ptsbe = mod.def_submodule(
       "ptsbe", "PTSBE (Pre-Trajectory Sampling with Batch Execution)");
 
   // Base strategy class (abstract, not directly constructible)
-  nb::class_<ptsbe::PTSSamplingStrategy>(
+  nanobind::class_<ptsbe::PTSSamplingStrategy>(
       ptsbe, "PTSSamplingStrategy",
       "Base class for trajectory sampling strategies.")
       .def("name", &ptsbe::PTSSamplingStrategy::name,
            "Get the name of this strategy.");
 
   // Shot allocation strategy
-  nb::enum_<ptsbe::ShotAllocationStrategy::Type>(
+  nanobind::enum_<ptsbe::ShotAllocationStrategy::Type>(
       ptsbe, "ShotAllocationType",
       "Strategy type for allocating shots across trajectories.")
       .value("PROPORTIONAL", ptsbe::ShotAllocationStrategy::Type::PROPORTIONAL,
@@ -176,10 +173,10 @@ void cudaq::bindSamplePTSBE(nb::module_ &mod) {
              ptsbe::ShotAllocationStrategy::Type::HIGH_WEIGHT_BIAS,
              "Bias toward high-weight error trajectories.");
 
-  nb::class_<ptsbe::ShotAllocationStrategy>(
+  nanobind::class_<ptsbe::ShotAllocationStrategy>(
       ptsbe, "ShotAllocationStrategy",
       "Strategy for allocating shots across selected trajectories.")
-      .def(nb::init<>(), "Create a default (PROPORTIONAL) strategy.")
+      .def(nanobind::init<>(), "Create a default (PROPORTIONAL) strategy.")
       .def(
           "__init__",
           [](ptsbe::ShotAllocationStrategy *self,
@@ -187,8 +184,8 @@ void cudaq::bindSamplePTSBE(nb::module_ &mod) {
              std::optional<std::uint64_t> seed) {
             new (self) ptsbe::ShotAllocationStrategy(t, bias, seed);
           },
-          nb::arg("type"), nb::arg("bias_strength") = 2.0,
-          nb::arg("seed") = nb::none(),
+          nanobind::arg("type"), nanobind::arg("bias_strength") = 2.0,
+          nanobind::arg("seed") = nanobind::none(),
           "Create a strategy with specified type, optional bias strength, "
           "and optional random seed. When seed is None (default), uses "
           "CUDA-Q's global random seed.")
@@ -198,12 +195,14 @@ void cudaq::bindSamplePTSBE(nb::module_ &mod) {
               "Bias factor for weighted strategies. Default value is 2.0.");
 
   // Concrete strategies
-  nb::class_<ptsbe::ProbabilisticSamplingStrategy, ptsbe::PTSSamplingStrategy>(
+  nanobind::class_<ptsbe::ProbabilisticSamplingStrategy,
+                   ptsbe::PTSSamplingStrategy>(
       ptsbe, "ProbabilisticSamplingStrategy",
       "Sample trajectories randomly based on their occurrence probabilities.")
-      .def(nb::init<std::optional<std::uint64_t>, std::optional<std::size_t>>(),
-           nb::arg("seed") = nb::none(),
-           nb::arg("max_trajectory_samples") = nb::none(),
+      .def(nanobind::init<std::optional<std::uint64_t>,
+                          std::optional<std::size_t>>(),
+           nanobind::arg("seed") = nanobind::none(),
+           nanobind::arg("max_trajectory_samples") = nanobind::none(),
            "Create a probabilistic strategy with optional random seed and "
            "max trajectory sample count. When seed is None (default), uses "
            "CUDA-Q's global random seed. "
@@ -211,18 +210,19 @@ void cudaq::bindSamplePTSBE(nb::module_ &mod) {
            "The loop stops early once max_trajectories unique patterns are "
            "found. When None (default), a budget is auto-calculated.");
 
-  nb::class_<ptsbe::OrderedSamplingStrategy, ptsbe::PTSSamplingStrategy>(
+  nanobind::class_<ptsbe::OrderedSamplingStrategy, ptsbe::PTSSamplingStrategy>(
       ptsbe, "OrderedSamplingStrategy",
       "Sample trajectories sorted by probability in descending order.")
-      .def(nb::init<>(), "Create an ordered strategy.");
+      .def(nanobind::init<>(), "Create an ordered strategy.");
 
-  nb::class_<ptsbe::ExhaustiveSamplingStrategy, ptsbe::PTSSamplingStrategy>(
+  nanobind::class_<ptsbe::ExhaustiveSamplingStrategy,
+                   ptsbe::PTSSamplingStrategy>(
       ptsbe, "ExhaustiveSamplingStrategy",
       "Enumerate all possible trajectories in lexicographic order.")
-      .def(nb::init<>(), "Create an exhaustive strategy.");
+      .def(nanobind::init<>(), "Create an exhaustive strategy.");
 
   // Trace instruction type enum
-  nb::enum_<ptsbe::TraceInstructionType>(
+  nanobind::enum_<ptsbe::TraceInstructionType>(
       ptsbe, "TraceInstructionType",
       "Type discriminator for trace instructions.")
       .value("Gate", ptsbe::TraceInstructionType::Gate)
@@ -231,7 +231,7 @@ void cudaq::bindSamplePTSBE(nb::module_ &mod) {
       .export_values();
 
   // Trace instruction
-  nb::class_<ptsbe::TraceInstruction>(
+  nanobind::class_<ptsbe::TraceInstruction>(
       ptsbe, "TraceInstruction", "Single operation in the execution trace.")
       .def_prop_ro(
           "type", [](const ptsbe::TraceInstruction &self) { return self.type; })
@@ -258,8 +258,9 @@ void cudaq::bindSamplePTSBE(nb::module_ &mod) {
       });
 
   // Kraus selection (cudaq:: namespace)
-  nb::class_<KrausSelection>(ptsbe, "KrausSelection",
-                             "Reference to a single Kraus operator selection.")
+  nanobind::class_<KrausSelection>(
+      ptsbe, "KrausSelection",
+      "Reference to a single Kraus operator selection.")
       .def_prop_ro(
           "circuit_location",
           [](const KrausSelection &self) { return self.circuit_location; })
@@ -279,7 +280,7 @@ void cudaq::bindSamplePTSBE(nb::module_ &mod) {
       });
 
   // Kraus trajectory (cudaq:: namespace)
-  nb::class_<KrausTrajectory>(
+  nanobind::class_<KrausTrajectory>(
       ptsbe, "KrausTrajectory",
       "Complete specification of one noise trajectory with outcomes.")
       .def_prop_ro(
@@ -296,7 +297,7 @@ void cudaq::bindSamplePTSBE(nb::module_ &mod) {
       .def_prop_ro(
           "kraus_selections",
           [](const KrausTrajectory &self) { return self.kraus_selections; },
-          nb::rv_policy::reference_internal)
+          nanobind::rv_policy::reference_internal)
       .def_prop_ro(
           "measurement_counts",
           [](const KrausTrajectory &self) { return self.measurement_counts; })
@@ -307,7 +308,7 @@ void cudaq::bindSamplePTSBE(nb::module_ &mod) {
       });
 
   // PTSBE execution data container
-  nb::class_<ptsbe::PTSBEExecutionData>(
+  nanobind::class_<ptsbe::PTSBEExecutionData>(
       ptsbe, "PTSBEExecutionData",
       "Container for PTSBE execution data including circuit structure, "
       "trajectory specifications, and per-trajectory measurement outcomes.")
@@ -317,24 +318,25 @@ void cudaq::bindSamplePTSBE(nb::module_ &mod) {
               -> const std::vector<ptsbe::TraceInstruction> & {
             return self.instructions;
           },
-          nb::rv_policy::reference_internal)
+          nanobind::rv_policy::reference_internal)
       .def_prop_ro(
           "trajectories",
           [](const ptsbe::PTSBEExecutionData &self)
               -> const std::vector<cudaq::KrausTrajectory> & {
             return self.trajectories;
           },
-          nb::rv_policy::reference_internal)
+          nanobind::rv_policy::reference_internal)
       .def(
           "count_instructions",
           [](const ptsbe::PTSBEExecutionData &self,
-             ptsbe::TraceInstructionType type, nb::object name) -> std::size_t {
+             ptsbe::TraceInstructionType type,
+             nanobind::object name) -> std::size_t {
             std::optional<std::string> nameOpt;
             if (!name.is_none())
-              nameOpt = nb::cast<std::string>(name);
+              nameOpt = nanobind::cast<std::string>(name);
             return self.count_instructions(type, nameOpt);
           },
-          nb::arg("type"), nb::arg("name") = nb::none(),
+          nanobind::arg("type"), nanobind::arg("name") = nanobind::none(),
           "Count instructions of a given type.")
       .def(
           "get_trajectory",
@@ -345,7 +347,8 @@ void cudaq::bindSamplePTSBE(nb::module_ &mod) {
               return nullptr;
             return &result.value().get();
           },
-          nb::rv_policy::reference_internal, nb::arg("trajectory_id"),
+          nanobind::rv_policy::reference_internal,
+          nanobind::arg("trajectory_id"),
           "Look up a trajectory by its ID. Returns None if not found.")
       .def("__repr__",
            [](const ptsbe::PTSBEExecutionData &self) {
@@ -359,7 +362,7 @@ void cudaq::bindSamplePTSBE(nb::module_ &mod) {
       });
 
   // PTSBE sample result (subclass of sample_result)
-  nb::class_<ptsbe::sample_result, sample_result>(
+  nanobind::class_<ptsbe::sample_result, sample_result>(
       ptsbe, "PTSBESampleResult",
       "PTSBE sample result with optional execution data.")
       .def_prop_ro(
@@ -372,18 +375,18 @@ void cudaq::bindSamplePTSBE(nb::module_ &mod) {
           },
           // reference_internal ties the returned object's lifetime to self,
           // so the pointer into internal data stays valid.
-          nb::rv_policy::reference_internal,
+          nanobind::rv_policy::reference_internal,
           "PTSBE execution data if return_execution_data was True, None "
           "otherwise.")
       .def("has_execution_data", &ptsbe::sample_result::has_execution_data,
            "Check if execution data is available.");
 
   // Async PTSBE sample result wrapper
-  nb::class_<AsyncPTSBESampleResultImpl>(
+  nanobind::class_<AsyncPTSBESampleResultImpl>(
       ptsbe, "AsyncSampleResultImpl",
       "Future-like wrapper for asynchronous PTSBE sampling.")
       .def("get", &AsyncPTSBESampleResultImpl::get,
-           nb::call_guard<nb::gil_scoped_release>(),
+           nanobind::call_guard<nanobind::gil_scoped_release>(),
            "Block until the PTSBE sampling result is available and return it.");
 
   // PTSBE sample implementation

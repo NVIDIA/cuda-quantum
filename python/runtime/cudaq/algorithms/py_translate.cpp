@@ -23,7 +23,7 @@ using namespace mlir;
 /// @brief Run `cudaq::translate` on the provided kernel.
 static std::string translate_impl(const std::string &shortName,
                                   MlirModule module, const std::string &format,
-                                  nb::args runtimeArguments) {
+                                  nanobind::args runtimeArguments) {
   StringRef format_ = format;
   auto formatPair = format_.split(':');
   auto mod = unwrap(module);
@@ -66,7 +66,7 @@ static std::string translate_impl(const std::string &shortName,
 }
 
 /// @brief Bind the translate cudaq function
-void cudaq::bindPyTranslate(nb::module_ &mod) {
+void cudaq::bindPyTranslate(nanobind::module_ &mod) {
   mod.def("translate_impl", translate_impl,
           "See python documentation for translate.");
   // Internal translation to QIR for testing and internal use. Not intended to

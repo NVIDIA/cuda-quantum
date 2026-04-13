@@ -8,9 +8,7 @@
 
 #include <nanobind/nanobind.h>
 
-namespace nb = nanobind;
-
 namespace cudaq {
 /// @brief Binds `cudaq.ObserveResult` and `cudaq.AsyncObserveResult`.
-void bindObserveResult(nb::module_ &mod);
+void bindObserveResult(nanobind::module_ &mod);
 } // namespace cudaq

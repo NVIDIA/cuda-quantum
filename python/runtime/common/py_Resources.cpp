@@ -19,14 +19,14 @@
 
 namespace cudaq {
 
-void bindResources(nb::module_ &mod) {
+void bindResources(nanobind::module_ &mod) {
   using namespace cudaq;
 
-  nb::class_<Resources>(
+  nanobind::class_<Resources>(
       mod, "Resources",
       R"#(A data-type containing the results of a call to :func:`estimate_resources`.
 This includes all gate counts.)#")
-      .def(nb::init<>())
+      .def(nanobind::init<>())
       .def(
           "dump", [](Resources &self) { self.dump(); },
           "Print a string of the raw resource counts data to the "
@@ -73,11 +73,12 @@ This includes all gate counts.)#")
           [](Resources &self) { return self.getGateCountsByArity(); },
           "Gate counts by qubit arity, as a dict mapping arity to count.\n")
       .def("gate_count_for_arity", &Resources::getGateCountByArity,
-           nb::arg("arity"),
+           nanobind::arg("arity"),
            "Get gate count for a specific qubit arity (total qubits "
            "including controls and targets). Returns 0 if no gates of "
            "that arity exist.")
-      .def("depth_for_arity", &Resources::getDepthByArity, nb::arg("arity"),
+      .def("depth_for_arity", &Resources::getDepthByArity,
+           nanobind::arg("arity"),
            "Get circuit depth considering only gates of a specific qubit "
            "arity. Returns 0 if no gates of that arity exist.")
       .def_prop_ro("multi_qubit_gate_count", &Resources::getMultiQubitGateCount,

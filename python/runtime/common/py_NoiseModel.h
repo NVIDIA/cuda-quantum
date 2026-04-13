@@ -8,9 +8,7 @@
 
 #include <nanobind/nanobind.h>
 
-namespace nb = nanobind;
-
 namespace cudaq {
 /// @brief Bind the cudaq::noise_model data-type to Python.
-void bindNoise(nb::module_ &mod);
+void bindNoise(nanobind::module_ &mod);
 } // namespace cudaq

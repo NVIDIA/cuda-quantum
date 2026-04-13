@@ -10,8 +10,6 @@
 
 #include <nanobind/nanobind.h>
 
-namespace nb = nanobind;
-
 namespace cudaq {
-void bindExecutionContext(nb::module_ &mod);
+void bindExecutionContext(nanobind::module_ &mod);
 } // namespace cudaq

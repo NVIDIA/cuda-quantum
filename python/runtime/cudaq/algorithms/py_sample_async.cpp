@@ -19,14 +19,12 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 
-namespace nb = nanobind;
-
 using namespace cudaq;
 
 static async_sample_result sample_async_impl(
     const std::string &shortName, MlirModule module, std::size_t shots_count,
     std::optional<noise_model> noise_model, bool explicit_measurements,
-    std::size_t qpu_id, nb::args runtimeArgs) {
+    std::size_t qpu_id, nanobind::args runtimeArgs) {
   mlir::ModuleOp mod = unwrap(module);
   runtimeArgs = simplifiedValidateInputArguments(runtimeArgs);
 
@@ -42,7 +40,7 @@ static async_sample_result sample_async_impl(
   auto opaques = marshal_arguments_for_module_launch(mod, runtimeArgs, fnOp);
 
   // Should only have C++ going on here, safe to release the GIL
-  nb::gil_scoped_release release;
+  nanobind::gil_scoped_release release;
 
   // Use runSamplingAsync with noise model support.
   // The noise_model is passed by value to runSamplingAsync, which captures
@@ -62,7 +60,7 @@ static async_sample_result sample_async_impl(
       std::move(noise_model));
 }
 
-void cudaq::bindSampleAsync(nb::module_ &mod) {
+void cudaq::bindSampleAsync(nanobind::module_ &mod) {
   // Async. result wrapper for Python kernels, which also holds the Python MLIR
   // context.
   //
@@ -76,8 +74,8 @@ void cudaq::bindSampleAsync(nb::module_ &mod) {
   // then track a reference (ref count) to the context of the temporary (rval)
   // kernel.
 
-  nb::class_<async_sample_result>(mod, "AsyncSampleResultImpl",
-                                  R"#(
+  nanobind::class_<async_sample_result>(mod, "AsyncSampleResultImpl",
+                                        R"#(
 A data-type containing the results of a call to :func:`sample_async`.  The
 `AsyncSampleResult` models a future-like type, whose :class:`SampleResult` may
 be returned via an invocation of the `get` method.  This kicks off a wait on the
@@ -93,7 +91,7 @@ programming pattern.
              new (self) async_sample_result(std::move(f));
            })
       .def("get", &async_sample_result::get,
-           nb::call_guard<nb::gil_scoped_release>(),
+           nanobind::call_guard<nanobind::gil_scoped_release>(),
            "Return the :class:`SampleResult` from the asynchronous sample "
            "execution.\n")
       .def(

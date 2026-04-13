@@ -8,9 +8,7 @@
 
 #include <nanobind/nanobind.h>
 
-namespace nb = nanobind;
-
 namespace cudaq {
 /// @brief Binds `cudaq.EvolveResult` and `cudaq.AsyncEvolveResult`.
-void bindEvolveResult(nb::module_ &mod);
+void bindEvolveResult(nanobind::module_ &mod);
 } // namespace cudaq

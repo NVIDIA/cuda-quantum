@@ -12,31 +12,31 @@
 #include <tuple>
 #include <unordered_map>
 
-namespace nb = nanobind;
-
 namespace cudaq {
 
 /// @brief Get a JSON-encoded dictionary of a combination of all local
 /// and global variables that are JSON compatible
-nb::dict get_serializable_var_dict();
+nanobind::dict get_serializable_var_dict();
 
-/// @brief Fetch the Python source code from a `nb::callable`
-std::string get_source_code(const nb::callable &func);
+/// @brief Fetch the Python source code from a `nanobind::callable`
+std::string get_source_code(const nanobind::callable &func);
 
 /// @brief Find the variable name for a given Python object handle. It searches
 /// locally first, walks up the call stack, and finally checks the global
 /// namespace. If not found, it returns an empty string.
-std::string get_var_name_for_handle(const nb::handle &h);
+std::string get_var_name_for_handle(const nanobind::handle &h);
 
 /// @brief Registry for python data classes used in kernels
 class DataClassRegistry {
 public:
-  static std::unordered_map<std::string, std::tuple<nb::object, nb::dict>>
+  static std::unordered_map<std::string,
+                            std::tuple<nanobind::object, nanobind::dict>>
       classes;
 
   /// @brief Register class object
-  static void registerClass(std::string &name, nb::object cls) {
-    classes[name] = {cls, nb::cast<nb::dict>(cls.attr("__annotations__"))};
+  static void registerClass(std::string &name, nanobind::object cls) {
+    classes[name] = {
+        cls, nanobind::cast<nanobind::dict>(cls.attr("__annotations__"))};
   }
 
   /// @brief Is data class name registered
@@ -45,12 +45,12 @@ public:
   }
 
   /// @brief Find registered data class object and its attributes
-  static std::tuple<nb::object, nb::dict>
+  static std::tuple<nanobind::object, nanobind::dict>
   getClassAttributes(std::string &name) {
     return classes[name];
   }
 };
 
-void bindPyDataClassRegistry(nb::module_ &mod);
+void bindPyDataClassRegistry(nanobind::module_ &mod);
 
 } // namespace cudaq

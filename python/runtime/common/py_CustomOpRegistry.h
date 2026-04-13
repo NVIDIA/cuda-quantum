@@ -8,9 +8,7 @@
 
 #include <nanobind/nanobind.h>
 
-namespace nb = nanobind;
-
 namespace cudaq {
 /// @brief Bind the custom operation registry to Python.
-void bindCustomOpRegistry(nb::module_ &mod);
+void bindCustomOpRegistry(nanobind::module_ &mod);
 } // namespace cudaq

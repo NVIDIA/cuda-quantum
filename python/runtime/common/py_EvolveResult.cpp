@@ -13,33 +13,32 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 
-namespace nb = nanobind;
-
 namespace cudaq {
 /// @brief Bind the `cudaq::evolve_result` and `cudaq::async_evolve_result`
 /// data classes to python as `cudaq.EvolveResult` and
 /// `cudaq.AsyncEvolveResult`.
-void bindEvolveResult(nb::module_ &mod) {
-  nb::class_<evolve_result>(
+void bindEvolveResult(nanobind::module_ &mod) {
+  nanobind::class_<evolve_result>(
       mod, "EvolveResult",
       "Stores the execution data from an invocation of :func:`evolve`.\n")
       // IMPORTANT: state overloads must be provided before vector<state>
       // overloads. Otherwise, Python might try to access the __len__ of state
       // during overload resolution. __len__ is not always well-defined for all
       // state types and may raise an exception.
-      .def(nb::init<state>())
-      .def(nb::init<state, std::vector<observe_result>>())
-      .def(nb::init<state, std::vector<double>>())
-      .def(nb::init<std::vector<state>>())
-      .def(nb::init<std::vector<state>,
-                    std::vector<std::vector<observe_result>>>())
-      .def(nb::init<std::vector<state>, std::vector<std::vector<double>>>())
+      .def(nanobind::init<state>())
+      .def(nanobind::init<state, std::vector<observe_result>>())
+      .def(nanobind::init<state, std::vector<double>>())
+      .def(nanobind::init<std::vector<state>>())
+      .def(nanobind::init<std::vector<state>,
+                          std::vector<std::vector<observe_result>>>())
+      .def(nanobind::init<std::vector<state>,
+                          std::vector<std::vector<double>>>())
       .def(
           "final_state",
-          [](evolve_result &self) -> nb::object {
+          [](evolve_result &self) -> nanobind::object {
             if (!self.states.has_value() || self.states->empty())
-              return nb::none();
-            return nb::cast(self.states->back());
+              return nanobind::none();
+            return nanobind::cast(self.states->back());
           },
           "Stores the final state produced by a call to :func:`evolve`. "
           "Represent the state of a quantum system after time evolution under "
@@ -55,11 +54,11 @@ void bindEvolveResult(nb::module_ &mod) {
           ":func:`evolve`.\n")
       .def(
           "final_expectation_values",
-          [](evolve_result &self) -> nb::object {
+          [](evolve_result &self) -> nanobind::object {
             if (!self.expectation_values.has_value() ||
                 self.expectation_values->empty())
-              return nb::none();
-            return nb::cast(self.expectation_values->back());
+              return nanobind::none();
+            return nanobind::cast(self.expectation_values->back());
           },
           "Stores the final expectation values, that is the results produced "
           "by "
@@ -82,12 +81,12 @@ void bindEvolveResult(nb::module_ &mod) {
           "if no intermediate results were requested, or if no observables "
           "were specified in the call.\n");
 
-  nb::class_<async_evolve_result>(
+  nanobind::class_<async_evolve_result>(
       mod, "AsyncEvolveResult",
       "Stores the execution data from an invocation of :func:`evolve_async`.\n")
       .def(
           "get", [](async_evolve_result &self) { return self.get(); },
-          nb::call_guard<nb::gil_scoped_release>(),
+          nanobind::call_guard<nanobind::gil_scoped_release>(),
           "Retrieve the evolution result from the asynchronous evolve "
           "execution\n.");
 }
