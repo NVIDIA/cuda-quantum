@@ -11,8 +11,11 @@
 module {
   func.func @test_complex_constant_array() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
     %0 = cc.address_of @test_complex_constant_array.rodata_0 : !cc.ptr<!cc.array<complex<f32> x 4>>
+    %c4_i64 = arith.constant 4 : i64
+    %st = quake.create_state %0, %c4_i64 : (!cc.ptr<!cc.array<complex<f32> x 4>>, i64) -> !cc.ptr<!quake.state>
     %1 = quake.alloca !quake.veq<2>
-    %2 = quake.init_state %1, %0 : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<2>
+    %2 = quake.init_state %1, %st : (!quake.veq<2>, !cc.ptr<!quake.state>) -> !quake.veq<2>
+    quake.delete_state %st : !cc.ptr<!quake.state>
     return
   }
   cc.global constant private @test_complex_constant_array.rodata_0 (dense<[(0.707106769,0.000000e+00), (0.707106769,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f32>>) : !cc.array<complex<f32> x 4>
@@ -33,8 +36,11 @@ module {
 
  func.func @test_real_constant_array() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
     %0 = cc.address_of @test_real_constant_array.rodata_0 : !cc.ptr<!cc.array<f64 x 4>>
+    %c4_i64 = arith.constant 4 : i64
+    %st = quake.create_state %0, %c4_i64 : (!cc.ptr<!cc.array<f64 x 4>>, i64) -> !cc.ptr<!quake.state>
     %1 = quake.alloca !quake.veq<2>
-    %2 = quake.init_state %1, %0 : (!quake.veq<2>, !cc.ptr<!cc.array<f64 x 4>>) -> !quake.veq<2>
+    %2 = quake.init_state %1, %st : (!quake.veq<2>, !cc.ptr<!quake.state>) -> !quake.veq<2>
+    quake.delete_state %st : !cc.ptr<!quake.state>
     return
   }
   cc.global constant private @test_real_constant_array.rodata_0 (dense<[0.70710678118654757, 0.70710678118654757, 0.000000e+00, 0.000000e+00]> : tensor<4xf64>) : !cc.array<f64 x 4>
@@ -55,9 +61,12 @@ module {
 
   func.func @test_complex_array_param() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
     %0 = cc.address_of @test_complex_array_param.rodata_init_state.0 : !cc.ptr<!cc.array<complex<f32> x 4>>
+    %c4_i64 = arith.constant 4 : i64
+    %st = quake.create_state %0, %c4_i64 : (!cc.ptr<!cc.array<complex<f32> x 4>>, i64) -> !cc.ptr<!quake.state>
     %1 = cc.cast %0 : (!cc.ptr<!cc.array<complex<f32> x 4>>) -> !cc.ptr<!cc.array<complex<f32> x ?>>
     %2 = quake.alloca !quake.veq<2>
-    %3 = quake.init_state %2, %1 : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f32> x ?>>) -> !quake.veq<2>
+    %3 = quake.init_state %2, %st : (!quake.veq<2>, !cc.ptr<!quake.state>) -> !quake.veq<2>
+    quake.delete_state %st : !cc.ptr<!quake.state>
     return
   }
   cc.global constant private @test_complex_array_param.rodata_init_state.0 (dense<[(0.707106769,0.000000e+00), (0.707106769,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f32>>) : !cc.array<complex<f32> x 4>
@@ -78,9 +87,12 @@ module {
 
   func.func @test_real_array_param() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
     %0 = cc.address_of @test_real_array_param.rodata_init_state.1 : !cc.ptr<!cc.array<f32 x 4>>
+    %c4_i64 = arith.constant 4 : i64
+    %st = quake.create_state %0, %c4_i64 : (!cc.ptr<!cc.array<f32 x 4>>, i64) -> !cc.ptr<!quake.state>
     %1 = cc.cast %0 : (!cc.ptr<!cc.array<f32 x 4>>) -> !cc.ptr<!cc.array<f32 x ?>>
     %2 = quake.alloca !quake.veq<2>
-    %3 = quake.init_state %2, %1 : (!quake.veq<2>, !cc.ptr<!cc.array<f32 x ?>>) -> !quake.veq<2>
+    %3 = quake.init_state %2, %st : (!quake.veq<2>, !cc.ptr<!quake.state>) -> !quake.veq<2>
+    quake.delete_state %st : !cc.ptr<!quake.state>
     return
   }
   cc.global constant private @test_real_array_param.rodata_init_state.1 (dense<[0.707106769, 0.707106769, 0.000000e+00, 0.000000e+00]> : tensor<4xf32>) : !cc.array<f32 x 4>

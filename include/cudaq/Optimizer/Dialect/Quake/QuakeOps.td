@@ -1896,7 +1896,7 @@ def quake_CreateStateOp : QuakeOp<"create_state", [Pure]> {
   }];
 }
 
-def QuakeOp_DeleteStateOp : QuakeOp<"delete_state", [] > {
+def QuakeOp_DeleteStateOp : QuakeOp<"delete_state"> {
   let summary = "Delete quantum state";
   let description =  [{
     This operation takes a pointer to the state and deletes the state object.
