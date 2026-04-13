@@ -158,10 +158,7 @@ void cudaq::opt::createPipelineTransformsForPythonToOpenQASM(
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addNestedPass<func::FuncOp>(createMultiControlDecomposition());
   pm.addPass(createDecomposition(
-      {.enabledPatterns = {"SToR1", "TToR1", "R1ToU3", "U3ToRotations",
-                           "CHToCX", "CCZToCX", "CRzToCX", "CRyToCX", "CRxToCX",
-                           "CR1ToCX", "CCZToCX", "RxAdjToRx", "RyAdjToRy",
-                           "RzAdjToRz"}}));
+      {.basis = {"h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)"}}));
   pm.addPass(createQuakeToCCPrep());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createExpandControlVeqs());

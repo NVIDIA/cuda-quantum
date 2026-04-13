@@ -14,8 +14,6 @@
 
 using namespace mlir;
 
-static SmallVector<std::string> z_disabledPatterns = {"R1ToU3"};
-
 static void addAnyonPPipeline(OpPassManager &pm) {
   using namespace cudaq::opt;
   std::string basis[] = {
@@ -23,7 +21,6 @@ static void addAnyonPPipeline(OpPassManager &pm) {
   };
   BasisConversionOptions options;
   options.basis = basis;
-  options.disabledPatterns = z_disabledPatterns;
   pm.addPass(createBasisConversion(options));
 }
 
@@ -34,7 +31,6 @@ static void addAnyonCPipeline(OpPassManager &pm) {
   };
   BasisConversionOptions options;
   options.basis = basis;
-  options.disabledPatterns = z_disabledPatterns;
   pm.addPass(createBasisConversion(options));
 }
 
@@ -46,7 +42,6 @@ static void addOQCPipeline(OpPassManager &pm) {
   };
   BasisConversionOptions options;
   options.basis = basis;
-  options.disabledPatterns = z_disabledPatterns;
   pm.addPass(createBasisConversion(options));
 }
 
@@ -60,7 +55,6 @@ static void addQCIPipeline(OpPassManager &pm) {
   };
   BasisConversionOptions options;
   options.basis = basis;
-  options.disabledPatterns = z_disabledPatterns;
   pm.addPass(createBasisConversion(options));
 }
 
@@ -71,7 +65,6 @@ static void addQuantinuumPipeline(OpPassManager &pm) {
   };
   BasisConversionOptions options;
   options.basis = basis;
-  options.disabledPatterns = z_disabledPatterns;
   pm.addPass(createBasisConversion(options));
 }
 
@@ -83,7 +76,6 @@ static void addIQMPipeline(OpPassManager &pm) {
   };
   BasisConversionOptions options;
   options.basis = basis;
-  options.disabledPatterns = z_disabledPatterns;
   pm.addPass(createBasisConversion(options));
 }
 
@@ -95,7 +87,6 @@ static void addIonQPipeline(OpPassManager &pm) {
   };
   BasisConversionOptions options;
   options.basis = basis;
-  options.disabledPatterns = z_disabledPatterns;
   pm.addPass(createBasisConversion(options));
 }
 
@@ -106,7 +97,6 @@ static void addFermioniqPipeline(OpPassManager &pm) {
   };
   BasisConversionOptions options;
   options.basis = basis;
-  options.disabledPatterns = z_disabledPatterns;
   pm.addPass(createBasisConversion(options));
 }
 
