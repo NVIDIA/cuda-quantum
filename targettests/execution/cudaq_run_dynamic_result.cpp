@@ -85,4 +85,4 @@ int main() {
 // QTM: Bool arg: 1 1 1
 // QTM: Int arg: 1 1 1
 // QTM: Float arg: 1 1 1
-// QTM: Could not successfully translate to qir-adaptive
+// QTM: error: 'quake.alloca' op must have a constant size
