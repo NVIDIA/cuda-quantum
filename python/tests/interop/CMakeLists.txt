@@ -29,6 +29,10 @@ target_link_libraries(cudaq_test_cpp_algo
     cudaq-python-interop
 )
 
+if(APPLE)
+  target_link_options(cudaq_test_cpp_algo PRIVATE -Wl,-undefined,dynamic_lookup)
+endif()
+
 target_include_directories(cudaq_test_cpp_algo
   PRIVATE
     ${CMAKE_SOURCE_DIR}/python
