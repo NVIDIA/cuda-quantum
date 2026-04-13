@@ -80,8 +80,7 @@ This includes all gate counts.)#")
       .def("depth_for_arity", &Resources::getDepthByArity, nb::arg("arity"),
            "Get circuit depth considering only gates of a specific qubit "
            "arity. Returns 0 if no gates of that arity exist.")
-      .def_prop_ro("multi_qubit_gate_count",
-                   &Resources::getMultiQubitGateCount,
+      .def_prop_ro("multi_qubit_gate_count", &Resources::getMultiQubitGateCount,
                    "Total count of gates with 2 or more qubits.\n")
       .def_prop_ro("multi_qubit_depth", &Resources::getMultiQubitDepth,
                    "Max depth across all gate widths >= 2.\n")
