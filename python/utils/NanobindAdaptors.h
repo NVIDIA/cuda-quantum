@@ -32,11 +32,10 @@ static nb::object mlirApiObjectToCapsule(nb::handle apiObject) {
     return nb::borrow<nb::object>(apiObject);
   if (!nb::hasattr(apiObject, MLIR_PYTHON_CAPI_PTR_ATTR)) {
     auto repr = nb::repr(apiObject);
-    throw nb::type_error(
-        (llvm::Twine("Expected an MLIR object (got ") +
-         std::string(nb::str(repr).c_str()) + ").")
-            .str()
-            .c_str());
+    throw nb::type_error((llvm::Twine("Expected an MLIR object (got ") +
+                          std::string(nb::str(repr).c_str()) + ").")
+                             .str()
+                             .c_str());
   }
   return apiObject.attr(MLIR_PYTHON_CAPI_PTR_ATTR);
 }
@@ -129,10 +128,10 @@ struct type_caster<MlirDialectRegistry> {
     }
   }
   static handle from_cpp(MlirDialectRegistry v, rv_policy,
-                          cleanup_list *) noexcept {
+                         cleanup_list *) noexcept {
     try {
-      nb::object capsule = nb::steal<nb::object>(
-          mlirPythonDialectRegistryToCapsule(v));
+      nb::object capsule =
+          nb::steal<nb::object>(mlirPythonDialectRegistryToCapsule(v));
       return nb::module_::import_(MAKE_MLIR_PYTHON_QUALNAME("ir"))
           .attr("DialectRegistry")
           .attr(MLIR_PYTHON_CAPI_FACTORY_ATTR)(capsule)
@@ -190,8 +189,7 @@ struct type_caster<MlirModule> {
   }
   static handle from_cpp(MlirModule v, rv_policy, cleanup_list *) noexcept {
     try {
-      nb::object capsule =
-          nb::steal<nb::object>(mlirPythonModuleToCapsule(v));
+      nb::object capsule = nb::steal<nb::object>(mlirPythonModuleToCapsule(v));
       return nb::module_::import_(MAKE_MLIR_PYTHON_QUALNAME("ir"))
           .attr("Module")
           .attr(MLIR_PYTHON_CAPI_FACTORY_ATTR)(capsule)
@@ -248,8 +246,7 @@ struct type_caster<MlirValue> {
     if (v.ptr == nullptr)
       return nb::none().release();
     try {
-      nb::object capsule =
-          nb::steal<nb::object>(mlirPythonValueToCapsule(v));
+      nb::object capsule = nb::steal<nb::object>(mlirPythonValueToCapsule(v));
       return nb::module_::import_(MAKE_MLIR_PYTHON_QUALNAME("ir"))
           .attr("Value")
           .attr(MLIR_PYTHON_CAPI_FACTORY_ATTR)(capsule)
@@ -290,8 +287,7 @@ struct type_caster<MlirType> {
   }
   static handle from_cpp(MlirType t, rv_policy, cleanup_list *) noexcept {
     try {
-      nb::object capsule =
-          nb::steal<nb::object>(mlirPythonTypeToCapsule(t));
+      nb::object capsule = nb::steal<nb::object>(mlirPythonTypeToCapsule(t));
       return nb::module_::import_(MAKE_MLIR_PYTHON_QUALNAME("ir"))
           .attr("Type")
           .attr(MLIR_PYTHON_CAPI_FACTORY_ATTR)(capsule)
@@ -317,8 +313,7 @@ class pure_subclass {
 public:
   pure_subclass(nb::handle scope, const char *derivedClassName,
                 const nb::object &superClass) {
-    nb::object pyType =
-        nb::borrow<nb::object>((PyObject *)&PyType_Type);
+    nb::object pyType = nb::borrow<nb::object>((PyObject *)&PyType_Type);
     nb::object metaclass = pyType(superClass);
     nb::dict attributes;
 
@@ -340,8 +335,7 @@ public:
                                        const Extra &...extra) {
     nb::object cf(nb::cpp_function(std::forward<Func>(f), nb::name(name),
                                    nb::arg("self"), extra...));
-    auto builtinProperty =
-        nb::borrow<nb::object>((PyObject *)&PyProperty_Type);
+    auto builtinProperty = nb::borrow<nb::object>((PyObject *)&PyProperty_Type);
     thisClass.attr(name) = builtinProperty(cf);
     return *this;
   }
@@ -360,8 +354,7 @@ public:
                                  const Extra &...extra) {
     nb::object cf(nb::cpp_function(std::forward<Func>(f), nb::name(name),
                                    nb::scope(thisClass), extra...));
-    thisClass.attr(name) =
-        nb::steal<nb::object>(PyClassMethod_New(cf.ptr()));
+    thisClass.attr(name) = nb::steal<nb::object>(PyClassMethod_New(cf.ptr()));
     return *this;
   }
 
@@ -381,10 +374,9 @@ public:
   /// Subclasses by looking up the super-class dynamically.
   mlir_type_subclass(nb::handle scope, const char *typeClassName,
                      IsAFunctionTy isaFunction)
-      : mlir_type_subclass(
-            scope, typeClassName, isaFunction,
-            nb::module_::import_(MAKE_MLIR_PYTHON_QUALNAME("ir"))
-                .attr("Type")) {}
+      : mlir_type_subclass(scope, typeClassName, isaFunction,
+                           nb::module_::import_(MAKE_MLIR_PYTHON_QUALNAME("ir"))
+                               .attr("Type")) {}
 
   /// Subclasses with a provided mlir.ir.Type super-class.
   mlir_type_subclass(nb::handle scope, const char *typeClassName,
@@ -396,12 +388,11 @@ public:
                                                  nb::object otherType) {
           MlirType rawType = nb::cast<MlirType>(otherType);
           if (!isaFunction(rawType)) {
-            auto origRepr =
-                std::string(nb::str(nb::repr(otherType)).c_str());
-            throw std::invalid_argument(
-                (llvm::Twine("Cannot cast type to ") + captureTypeName +
-                 " (from " + origRepr + ")")
-                    .str());
+            auto origRepr = std::string(nb::str(nb::repr(otherType)).c_str());
+            throw std::invalid_argument((llvm::Twine("Cannot cast type to ") +
+                                         captureTypeName + " (from " +
+                                         origRepr + ")")
+                                            .str());
           }
           nb::object self = superCls.attr("__new__")(cls, otherType);
           return self;
@@ -433,15 +424,13 @@ public:
 
   /// Subclasses with a provided mlir.ir.Attribute super-class.
   mlir_attribute_subclass(nb::handle scope, const char *typeClassName,
-                          IsAFunctionTy isaFunction,
-                          const nb::object &superCls)
+                          IsAFunctionTy isaFunction, const nb::object &superCls)
       : pure_subclass(scope, typeClassName, superCls) {
     std::string captureTypeName(typeClassName);
     nb::object newCf(nb::cpp_function(
         [superCls, isaFunction, captureTypeName](nb::object cls,
                                                  nb::object otherAttribute) {
-          MlirAttribute rawAttribute =
-              nb::cast<MlirAttribute>(otherAttribute);
+          MlirAttribute rawAttribute = nb::cast<MlirAttribute>(otherAttribute);
           if (!isaFunction(rawAttribute)) {
             auto origRepr =
                 std::string(nb::str(nb::repr(otherAttribute)).c_str());
