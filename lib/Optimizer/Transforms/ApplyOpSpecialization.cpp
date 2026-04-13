@@ -100,8 +100,10 @@ private:
               LLVM_DEBUG(llvm::dbgs() << "apply has constant arguments.\n");
             } else {
               if (auto relax = v.getDefiningOp<quake::RelaxSizeOp>()) {
+                // Also, specialize any relaxed veq types.
                 v = relax.getInputVec();
                 updateSignature = true;
+                specializedPositions.push_back(preservedArgs.size());
                 LLVM_DEBUG(llvm::dbgs() << "specializing apply veq argument ("
                                         << v.getType() << ")\n");
               }
@@ -121,28 +123,18 @@ private:
             if (updateSignature) {
               newFunc.setFunctionType(
                   FunctionType::get(ctx, inputTys, newFunc.getResultTypes()));
-              SmallVector<BlockArgument> specializedVeqArgs;
               for (auto [arg, ty] :
-                   llvm::zip(newFunc.front().getArguments(), inputTys)) {
-                if (arg.getType() != ty) {
-                  arg.setType(ty);
-                  if (auto veqTy = dyn_cast<quake::VeqType>(ty))
-                    if (veqTy.hasSpecifiedSize())
-                      specializedVeqArgs.push_back(arg);
-                }
-              }
-              if (!specializedVeqArgs.empty()) {
-                auto unsizedVeqTy = quake::VeqType::getUnsized(ctx);
-                OpBuilder fixupBuilder(&newFunc.front(),
-                                       newFunc.front().begin());
-                for (auto arg : specializedVeqArgs) {
-                  auto relaxed = fixupBuilder.create<quake::RelaxSizeOp>(
-                      newFunc.getLoc(), unsizedVeqTy, arg);
-                  arg.replaceUsesWithIf(
-                      relaxed.getResult(), [&](OpOperand &use) {
-                        return use.getOwner() != relaxed.getOperation();
-                      });
-                }
+                   llvm::zip(newFunc.front().getArguments(), inputTys))
+                arg.setType(ty);
+              for (unsigned pos : specializedPositions) {
+                auto *ctx = newFunc.getContext();
+                OpBuilder builder(ctx);
+                builder.setInsertionPoint(&newFunc.front().front());
+                auto relax = builder.create<quake::RelaxSizeOp>(
+                    newFunc.getLoc(), quake::VeqType::getUnsized(ctx),
+                    newFunc.front().getArgument(pos));
+                newFunc.front().getArgument(pos).replaceAllUsesExcept(
+                    relax.getResult(), relax.getOperation());
               }
             }
             newFunc.setPrivate();
