@@ -7,13 +7,16 @@
  ******************************************************************************/
 #pragma once
 
+#include "common/Resources.h"
 #include "common/ThunkInterface.h"
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 // This header file and the types defined within are designed to have no
@@ -98,57 +101,78 @@ public:
 
 /// @brief A compiled, ready-to-execute kernel.
 ///
-/// Bundles one or more representations of a compiled kernel (JIT binary, MLIR
-/// module) along with metadata needed for execution and result extraction.
+/// Contains a map of named compiled artifacts (JIT binaries or MLIR modules)
+/// along with metadata needed for execution and result extraction.
 ///
-/// This type does not have a dependency on MLIR (or LLVM) as it only keeps
-/// type-erased / opaque pointers. Use `attachJit` (defined in
-/// `cudaq_internal/compiler/JIT.h`) to attach a compiled JIT representation
-/// after construction.
+/// For non-observe kernels, the map has a single entry keyed by the kernel
+/// name. For observe mode, there is one entry per Pauli term, keyed by the
+/// term ID.
+///
+/// This type does not depend on MLIR/LLVM — it only keeps type-erased / opaque
+/// pointers. Use the `attachJit` member function to attach a JIT-compiled
+/// artifact after construction.
 class CompiledKernel {
 public:
+  // --- Compiled artifact types ---
+
+  /// JIT-compiled artifact, ready for local execution.
+  class JitArtifact {
+    JitEngine engine;
+    void (*entryPoint)() = nullptr;
+    int64_t (*argsCreator)(const void *, void **) = nullptr;
+    std::optional<Resources> resourceCounts;
+
+    JitArtifact(JitEngine engine, void (*entryPoint)(),
+                int64_t (*argsCreator)(const void *, void **),
+                std::optional<Resources> resourceCounts)
+        : engine(engine), entryPoint(entryPoint), argsCreator(argsCreator),
+          resourceCounts(std::move(resourceCounts)) {}
+
+    friend class CompiledKernel;
+
+  public:
+    // TODO: remove the following two methods once the `CompiledKernel` instance
+    // is returned to Python.
+
+    /// @brief Get the entry point of the kernel as a function pointer.
+    ///
+    /// Assumes that there is (exactly one) compiled JIT artifact.
+    ///
+    /// The returned function pointer will expect different arguments depending
+    /// on the kernel:
+    ///  - if the kernel returns a value and/or is not fully specialized, the
+    ///    entry point will expect a pointer to a buffer storing the packed
+    ///    arguments and result.
+    ///  - otherwise, the entry point will not expect any arguments.
+    ///
+    /// Prefer using `CompiledKernel::execute` instead of calling this function
+    /// as it will handle the buffer and argument packing automatically.
+    void (*getEntryPoint() const)();
+    JitEngine getEngine() const;
+  };
+
+  /// Optimized MLIR module artifact, for deferred code generation or
+  /// re-targeting.
+  /// Type-erased to keep this header MLIR-free.
+  class MlirArtifact {
+    /// Opaque ModuleOp pointer (via `ModuleOp::getAsOpaquePointer()`).
+    ///
+    /// Lifetime: the caller must ensure that the `MLIRContext` that owns
+    /// this ModuleOp outlives this object.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wattributes"
+    [[maybe_unused]] const void *modulePtr = nullptr;
+#pragma GCC diagnostic pop
+
+    friend class CompiledKernel;
+  };
+
+  /// A compiled artifact is either a JIT binary or an MLIR module.
+  using CompiledArtifact = std::variant<JitArtifact, MlirArtifact>;
+
   // --- Construction ---
 
   CompiledKernel(std::string kernelName, ResultInfo resultInfo);
-
-  // --- Queries ---
-
-  bool hasJit() const { return jitRepr.has_value(); }
-  bool hasMlir() const { return mlirRepr.has_value(); }
-
-  /// Whether the kernel is fully specialized (all arguments inlined). For JIT
-  /// kernels this means `argsCreator` is null.
-  /// Currently, MLIR-only kernels are always considered fully specialized.
-  bool isFullySpecialized() const {
-    return !jitRepr || jitRepr->argsCreator == nullptr;
-  }
-
-  const std::string &getName() const { return name; }
-
-  // --- Execution (local JIT path) ---
-
-  /// @brief Execute a fully specialized kernel (no external arguments needed).
-  KernelThunkResultType execute() const;
-
-  /// @brief Execute the JIT-ed kernel with caller-provided arguments.
-  KernelThunkResultType execute(const std::vector<void *> &rawArgs) const;
-
-  // TODO: remove the following two methods once the `CompiledKernel` is
-  // returned to Python.
-
-  /// @brief Get the entry point of the kernel as a function pointer.
-  ///
-  /// The returned function pointer will expect different arguments depending
-  /// on the kernel:
-  ///  - if the kernel returns a value and/or is not fully specialized, the
-  ///    entry point will expect a pointer to a buffer storing the packed
-  ///    arguments and result.
-  ///  - otherwise, the entry point will not expect any arguments.
-  ///
-  /// Prefer using `CompiledKernel::execute` instead of calling this function as
-  /// it will handle the buffer and argument packing automatically.
-  void (*getEntryPoint() const)();
-  JitEngine getEngine() const;
 
   /// @brief Populate the JIT representation of a `CompiledKernel`.
   ///
@@ -157,32 +181,58 @@ public:
   /// correct mangled symbol names.
   void attachJit(JitEngine engine, bool isFullySpecialized);
 
+  // --- Queries ---
+
+  /// Whether any artifact in the map is a JitArtifact.
+  bool hasJit() const;
+
+  /// Whether any artifact in the map is an MlirArtifact.
+  bool hasMlir() const;
+
+  /// Get the compiled JIT artifact. Returns the first one found.
+  ///
+  /// Throws if none exists.
+  const JitArtifact &getJit() const;
+
+  /// Get the optimized MLIR artifact. Returns the first one found.
+  ///
+  /// Throws if none exists.
+  const MlirArtifact &getMlir() const;
+
+  /// Get all compiled artifacts.
+  const std::map<std::string, CompiledArtifact> &getArtifacts() const {
+    return artifacts;
+  }
+
+  /// Whether the kernel is fully specialized (all arguments inlined). For JIT
+  /// kernels this means `argsCreator` is null.
+  /// Kernels without a JIT artifact are considered fully specialized.
+  bool isFullySpecialized() const;
+
+  const std::string &getName() const { return name; }
+  const ResultInfo &getResultInfo() const { return resultInfo; }
+
+  // --- Execution (local JIT path) ---
+
+  /// @brief Execute a fully specialized kernel (no external arguments needed).
+  ///
+  /// Assumes that there is (exactly one) compiled JIT artifact.
+  KernelThunkResultType execute() const;
+
+  /// @brief Execute the JIT-ed kernel with caller-provided arguments.
+  ///
+  /// Assumes that there is (exactly one) compiled JIT artifact.
+  KernelThunkResultType execute(const std::vector<void *> &rawArgs) const;
+
 private:
-  // --- Compiled representation formats ---
-
-  /// JIT-compiled representation of a kernel, used for local execution.
-  struct JitRepr {
-    JitEngine engine;
-    void (*entryPoint)() = nullptr;
-    int64_t (*argsCreator)(const void *, void **) = nullptr;
-  };
-
-  /// MLIR module representation for remote code generation or re-targeting.
-  /// The opaque pointer is obtained via `ModuleOp::getAsOpaquePointer()`.
-  /// Lifetime: the `MLIRContext` that owns the module must outlive this object.
-  struct MlirRepr {
-    const void *modulePtr = nullptr;
-  };
-
-  const JitRepr &getJit() const;
-  const MlirRepr &getMlir() const;
+  /// Add a compiled artifact to the kernel.
+  void addArtifact(std::string name, CompiledArtifact artifact);
 
   std::string name;
   ResultInfo resultInfo; // TODO: we might want to store the entire kernel
                          // signature here. Though I'm not sure what MLIR
                          // agnostic information is worth storing.
-  std::optional<JitRepr> jitRepr;
-  std::optional<MlirRepr> mlirRepr;
+  std::map<std::string, CompiledArtifact> artifacts;
 };
 
 } // namespace cudaq
