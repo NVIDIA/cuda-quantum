@@ -3627,777 +3627,774 @@ pr-4290
 | nguages/cpp_api.html#_CPPv4N5cuda |     [\[2\]](api                   |
 | q15KrausTrajectory11probabilityE) | /languages/cpp_api.html#_CPPv4N5c |
 | -   [cuda                         | udaq7qvector7qvectorERK7qvector), |
-| q::KrausTrajectory::trajectory_id |     [\[3\]](api/languages/cpp     |
-|     (C++                          | _api.html#_CPPv4N5cudaq7qvector7q |
-|     member)](api/lang             | vectorERKNSt6vectorI7complexEEb), |
-| uages/cpp_api.html#_CPPv4N5cudaq1 |     [\[4\]](ap                    |
-| 5KrausTrajectory13trajectory_idE) | i/languages/cpp_api.html#_CPPv4N5 |
-| -                                 | cudaq7qvector7qvectorERR7qvector) |
-|   [cudaq::KrausTrajectory::weight | -   [cudaq::qvector::size (C++    |
-|     (C++                          |     fu                            |
-|     member)](                     | nction)](api/languages/cpp_api.ht |
-| api/languages/cpp_api.html#_CPPv4 | ml#_CPPv4NK5cudaq7qvector4sizeEv) |
-| N5cudaq15KrausTrajectory6weightE) | -   [cudaq::qvector::slice (C++   |
-| -                                 |     function)](api/language       |
-|    [cudaq::KrausTrajectoryBuilder | s/cpp_api.html#_CPPv4N5cudaq7qvec |
-|     (C++                          | tor5sliceENSt6size_tENSt6size_tE) |
-|     class)](                      | -   [cudaq::qvector::value_type   |
-| api/languages/cpp_api.html#_CPPv4 |     (C++                          |
-| N5cudaq22KrausTrajectoryBuilderE) |     typ                           |
-| -   [cud                          | e)](api/languages/cpp_api.html#_C |
-| aq::KrausTrajectoryBuilder::build | PPv4N5cudaq7qvector10value_typeE) |
-|     (C++                          | -   [cudaq::qview (C++            |
-|     function)](api/lang           |     clas                          |
-| uages/cpp_api.html#_CPPv4NK5cudaq | s)](api/languages/cpp_api.html#_C |
-| 22KrausTrajectoryBuilder5buildEv) | PPv4I_NSt6size_tEEN5cudaq5qviewE) |
-| -   [cud                          | -   [cudaq::qview::back (C++      |
-| aq::KrausTrajectoryBuilder::setId |     function)                     |
-|     (C++                          | ](api/languages/cpp_api.html#_CPP |
-|     function)](api/languages/cpp  | v4N5cudaq5qview4backENSt6size_tE) |
-| _api.html#_CPPv4N5cudaq22KrausTra | -   [cudaq::qview::begin (C++     |
-| jectoryBuilder5setIdENSt6size_tE) |                                   |
-| -   [cudaq::Kraus                 | function)](api/languages/cpp_api. |
-| TrajectoryBuilder::setProbability | html#_CPPv4N5cudaq5qview5beginEv) |
-|     (C++                          | -   [cudaq::qview::end (C++       |
-|     function)](api/languages/cpp  |                                   |
-| _api.html#_CPPv4N5cudaq22KrausTra |   function)](api/languages/cpp_ap |
-| jectoryBuilder14setProbabilityEd) | i.html#_CPPv4N5cudaq5qview3endEv) |
-| -   [cudaq::Krau                  | -   [cudaq::qview::front (C++     |
-| sTrajectoryBuilder::setSelections |     function)](                   |
-|     (C++                          | api/languages/cpp_api.html#_CPPv4 |
-|     function)](api/languag        | N5cudaq5qview5frontENSt6size_tE), |
-| es/cpp_api.html#_CPPv4N5cudaq22Kr |                                   |
-| ausTrajectoryBuilder13setSelectio |    [\[1\]](api/languages/cpp_api. |
-| nsENSt6vectorI14KrausSelectionEE) | html#_CPPv4N5cudaq5qview5frontEv) |
-| -   [cudaq::matrix_callback (C++  | -   [cudaq::qview::operator\[\]   |
-|     c                             |     (C++                          |
-| lass)](api/languages/cpp_api.html |     functio                       |
-| #_CPPv4N5cudaq15matrix_callbackE) | n)](api/languages/cpp_api.html#_C |
-| -   [cudaq::matrix_handler (C++   | PPv4N5cudaq5qviewixEKNSt6size_tE) |
-|                                   | -   [cudaq::qview::qview (C++     |
-| class)](api/languages/cpp_api.htm |     functio                       |
-| l#_CPPv4N5cudaq14matrix_handlerE) | n)](api/languages/cpp_api.html#_C |
-| -   [cudaq::mat                   | PPv4I0EN5cudaq5qview5qviewERR1R), |
-| rix_handler::commutation_behavior |     [\[1                          |
-|     (C++                          | \]](api/languages/cpp_api.html#_C |
-|     struct)](api/languages/       | PPv4N5cudaq5qview5qviewERK5qview) |
-| cpp_api.html#_CPPv4N5cudaq14matri | -   [cudaq::qview::size (C++      |
-| x_handler20commutation_behaviorE) |                                   |
-| -                                 | function)](api/languages/cpp_api. |
-|    [cudaq::matrix_handler::define | html#_CPPv4NK5cudaq5qview4sizeEv) |
-|     (C++                          | -   [cudaq::qview::slice (C++     |
-|     function)](a                  |     function)](api/langua         |
-| pi/languages/cpp_api.html#_CPPv4N | ges/cpp_api.html#_CPPv4N5cudaq5qv |
-| 5cudaq14matrix_handler6defineENSt | iew5sliceENSt6size_tENSt6size_tE) |
-| 6stringENSt6vectorINSt7int64_tEEE | -   [cudaq::qview::value_type     |
-| RR15matrix_callbackRKNSt13unorder |     (C++                          |
-| ed_mapINSt6stringENSt6stringEEE), |     t                             |
-|                                   | ype)](api/languages/cpp_api.html# |
-| [\[1\]](api/languages/cpp_api.htm | _CPPv4N5cudaq5qview10value_typeE) |
-| l#_CPPv4N5cudaq14matrix_handler6d | -   [cudaq::range (C++            |
-| efineENSt6stringENSt6vectorINSt7i |     fun                           |
-| nt64_tEEERR15matrix_callbackRR20d | ction)](api/languages/cpp_api.htm |
-| iag_matrix_callbackRKNSt13unorder | l#_CPPv4I0EN5cudaq5rangeENSt6vect |
-| ed_mapINSt6stringENSt6stringEEE), | orI11ElementTypeEE11ElementType), |
-|     [\[2\]](                      |     [\[1\]](api/languages/cpp_    |
-| api/languages/cpp_api.html#_CPPv4 | api.html#_CPPv4I0EN5cudaq5rangeEN |
-| N5cudaq14matrix_handler6defineENS | St6vectorI11ElementTypeEE11Elemen |
-| t6stringENSt6vectorINSt7int64_tEE | tType11ElementType11ElementType), |
-| ERR15matrix_callbackRRNSt13unorde |     [                             |
-| red_mapINSt6stringENSt6stringEEE) | \[2\]](api/languages/cpp_api.html |
-| -                                 | #_CPPv4N5cudaq5rangeENSt6size_tE) |
-|   [cudaq::matrix_handler::degrees | -   [cudaq::real (C++             |
-|     (C++                          |     type)](api/languages/         |
-|     function)](ap                 | cpp_api.html#_CPPv4N5cudaq4realE) |
-| i/languages/cpp_api.html#_CPPv4NK | -   [cudaq::registry (C++         |
-| 5cudaq14matrix_handler7degreesEv) |     type)](api/languages/cpp_     |
-| -                                 | api.html#_CPPv4N5cudaq8registryE) |
-|  [cudaq::matrix_handler::displace | -                                 |
-|     (C++                          |  [cudaq::registry::RegisteredType |
-|     function)](api/language       |     (C++                          |
-| s/cpp_api.html#_CPPv4N5cudaq14mat |     class)](api/                  |
-| rix_handler8displaceENSt6size_tE) | languages/cpp_api.html#_CPPv4I0EN |
-| -   [cudaq::matrix                | 5cudaq8registry14RegisteredTypeE) |
-| _handler::get_expected_dimensions | -   [cudaq::RemoteCapabilities    |
-|     (C++                          |     (C++                          |
-|                                   |     struc                         |
-|    function)](api/languages/cpp_a | t)](api/languages/cpp_api.html#_C |
-| pi.html#_CPPv4NK5cudaq14matrix_ha | PPv4N5cudaq18RemoteCapabilitiesE) |
-| ndler23get_expected_dimensionsEv) | -   [cudaq::Remo                  |
-| -   [cudaq::matrix_ha             | teCapabilities::isRemoteSimulator |
-| ndler::get_parameter_descriptions |     (C++                          |
-|     (C++                          |     member)](api/languages/c      |
-|                                   | pp_api.html#_CPPv4N5cudaq18Remote |
-| function)](api/languages/cpp_api. | Capabilities17isRemoteSimulatorE) |
-| html#_CPPv4NK5cudaq14matrix_handl | -   [cudaq::Remot                 |
-| er26get_parameter_descriptionsEv) | eCapabilities::RemoteCapabilities |
-| -   [c                            |     (C++                          |
-| udaq::matrix_handler::instantiate |     function)](api/languages/cpp  |
-|     (C++                          | _api.html#_CPPv4N5cudaq18RemoteCa |
-|     function)](a                  | pabilities18RemoteCapabilitiesEb) |
-| pi/languages/cpp_api.html#_CPPv4N | -   [cudaq:                       |
-| 5cudaq14matrix_handler11instantia | :RemoteCapabilities::stateOverlap |
-| teENSt6stringERKNSt6vectorINSt6si |     (C++                          |
-| ze_tEEERK20commutation_behavior), |     member)](api/langua           |
-|     [\[1\]](                      | ges/cpp_api.html#_CPPv4N5cudaq18R |
-| api/languages/cpp_api.html#_CPPv4 | emoteCapabilities12stateOverlapE) |
-| N5cudaq14matrix_handler11instanti | -                                 |
-| ateENSt6stringERRNSt6vectorINSt6s |   [cudaq::RemoteCapabilities::vqe |
-| ize_tEEERK20commutation_behavior) |     (C++                          |
-| -   [cuda                         |     member)](                     |
-| q::matrix_handler::matrix_handler | api/languages/cpp_api.html#_CPPv4 |
-|     (C++                          | N5cudaq18RemoteCapabilities3vqeE) |
-|     function)](api/languag        | -   [cudaq::RemoteSimulationState |
-| es/cpp_api.html#_CPPv4I0_NSt11ena |     (C++                          |
-| ble_if_tINSt12is_base_of_vI16oper |     class)]                       |
-| ator_handler1TEEbEEEN5cudaq14matr | (api/languages/cpp_api.html#_CPPv |
-| ix_handler14matrix_handlerERK1T), | 4N5cudaq21RemoteSimulationStateE) |
-|     [\[1\]](ap                    | -   [cudaq::Resources (C++        |
-| i/languages/cpp_api.html#_CPPv4I0 |     class)](api/languages/cpp_a   |
-| _NSt11enable_if_tINSt12is_base_of | pi.html#_CPPv4N5cudaq9ResourcesE) |
-| _vI16operator_handler1TEEbEEEN5cu | -   [cudaq::run (C++              |
-| daq14matrix_handler14matrix_handl |     function)]                    |
-| erERK1TRK20commutation_behavior), | (api/languages/cpp_api.html#_CPPv |
-|     [\[2\]](api/languages/cpp_ap  | 4I0DpEN5cudaq3runENSt6vectorINSt1 |
-| i.html#_CPPv4N5cudaq14matrix_hand | 5invoke_result_tINSt7decay_tI13Qu |
-| ler14matrix_handlerENSt6size_tE), | antumKernelEEDpNSt7decay_tI4ARGSE |
-|     [\[3\]](api/                  | EEEEENSt6size_tERN5cudaq11noise_m |
-| languages/cpp_api.html#_CPPv4N5cu | odelERR13QuantumKernelDpRR4ARGS), |
-| daq14matrix_handler14matrix_handl |     [\[1\]](api/langu             |
-| erENSt6stringERKNSt6vectorINSt6si | ages/cpp_api.html#_CPPv4I0DpEN5cu |
-| ze_tEEERK20commutation_behavior), | daq3runENSt6vectorINSt15invoke_re |
-|     [\[4\]](api/                  | sult_tINSt7decay_tI13QuantumKerne |
-| languages/cpp_api.html#_CPPv4N5cu | lEEDpNSt7decay_tI4ARGSEEEEEENSt6s |
-| daq14matrix_handler14matrix_handl | ize_tERR13QuantumKernelDpRR4ARGS) |
-| erENSt6stringERRNSt6vectorINSt6si | -   [cudaq::run_async (C++        |
-| ze_tEEERK20commutation_behavior), |     functio                       |
-|     [\                            | n)](api/languages/cpp_api.html#_C |
-| [5\]](api/languages/cpp_api.html# | PPv4I0DpEN5cudaq9run_asyncENSt6fu |
-| _CPPv4N5cudaq14matrix_handler14ma | tureINSt6vectorINSt15invoke_resul |
-| trix_handlerERK14matrix_handler), | t_tINSt7decay_tI13QuantumKernelEE |
-|     [                             | DpNSt7decay_tI4ARGSEEEEEEEENSt6si |
-| \[6\]](api/languages/cpp_api.html | ze_tENSt6size_tERN5cudaq11noise_m |
-| #_CPPv4N5cudaq14matrix_handler14m | odelERR13QuantumKernelDpRR4ARGS), |
-| atrix_handlerERR14matrix_handler) |     [\[1\]](api/la                |
-| -                                 | nguages/cpp_api.html#_CPPv4I0DpEN |
-|  [cudaq::matrix_handler::momentum | 5cudaq9run_asyncENSt6futureINSt6v |
-|     (C++                          | ectorINSt15invoke_result_tINSt7de |
-|     function)](api/language       | cay_tI13QuantumKernelEEDpNSt7deca |
-| s/cpp_api.html#_CPPv4N5cudaq14mat | y_tI4ARGSEEEEEEEENSt6size_tENSt6s |
-| rix_handler8momentumENSt6size_tE) | ize_tERR13QuantumKernelDpRR4ARGS) |
-| -                                 | -   [cudaq::RuntimeTarget (C++    |
-|    [cudaq::matrix_handler::number |                                   |
-|     (C++                          | struct)](api/languages/cpp_api.ht |
-|     function)](api/langua         | ml#_CPPv4N5cudaq13RuntimeTargetE) |
-| ges/cpp_api.html#_CPPv4N5cudaq14m | -   [cudaq::sample (C++           |
-| atrix_handler6numberENSt6size_tE) |     function)](api/languages/c    |
-| -                                 | pp_api.html#_CPPv4I0DpEN5cudaq6sa |
-| [cudaq::matrix_handler::operator= | mpleE13sample_resultRK14sample_op |
-|     (C++                          | tionsRR13QuantumKernelDpRR4Args), |
-|     fun                           |     [\[1\                         |
-| ction)](api/languages/cpp_api.htm | ]](api/languages/cpp_api.html#_CP |
-| l#_CPPv4I0_NSt11enable_if_tIXaant | Pv4I0DpEN5cudaq6sampleE13sample_r |
-| NSt7is_sameI1T14matrix_handlerE5v | esultRR13QuantumKernelDpRR4Args), |
-| alueENSt12is_base_of_vI16operator |     [\                            |
-| _handler1TEEEbEEEN5cudaq14matrix_ | [2\]](api/languages/cpp_api.html# |
-| handleraSER14matrix_handlerRK1T), | _CPPv4I0DpEN5cudaq6sampleEDaNSt6s |
-|     [\[1\]](api/languages         | ize_tERR13QuantumKernelDpRR4Args) |
-| /cpp_api.html#_CPPv4N5cudaq14matr | -   [cudaq::sample_options (C++   |
-| ix_handleraSERK14matrix_handler), |     s                             |
-|     [\[2\]](api/language          | truct)](api/languages/cpp_api.htm |
-| s/cpp_api.html#_CPPv4N5cudaq14mat | l#_CPPv4N5cudaq14sample_optionsE) |
-| rix_handleraSERR14matrix_handler) | -   [cudaq::sample_result (C++    |
-| -   [                             |                                   |
-| cudaq::matrix_handler::operator== |  class)](api/languages/cpp_api.ht |
-|     (C++                          | ml#_CPPv4N5cudaq13sample_resultE) |
-|     function)](api/languages      | -   [cudaq::sample_result::append |
-| /cpp_api.html#_CPPv4NK5cudaq14mat |     (C++                          |
-| rix_handlereqERK14matrix_handler) |     function)](api/languages/cpp_ |
-| -                                 | api.html#_CPPv4N5cudaq13sample_re |
-|    [cudaq::matrix_handler::parity | sult6appendERK15ExecutionResultb) |
-|     (C++                          | -   [cudaq::sample_result::begin  |
-|     function)](api/langua         |     (C++                          |
-| ges/cpp_api.html#_CPPv4N5cudaq14m |     function)]                    |
-| atrix_handler6parityENSt6size_tE) | (api/languages/cpp_api.html#_CPPv |
-| -                                 | 4N5cudaq13sample_result5beginEv), |
-|  [cudaq::matrix_handler::position |     [\[1\]]                       |
-|     (C++                          | (api/languages/cpp_api.html#_CPPv |
-|     function)](api/language       | 4NK5cudaq13sample_result5beginEv) |
-| s/cpp_api.html#_CPPv4N5cudaq14mat | -   [cudaq::sample_result::cbegin |
-| rix_handler8positionENSt6size_tE) |     (C++                          |
-| -   [cudaq::                      |     function)](                   |
-| matrix_handler::remove_definition | api/languages/cpp_api.html#_CPPv4 |
-|     (C++                          | NK5cudaq13sample_result6cbeginEv) |
-|     fu                            | -   [cudaq::sample_result::cend   |
-| nction)](api/languages/cpp_api.ht |     (C++                          |
-| ml#_CPPv4N5cudaq14matrix_handler1 |     function)                     |
-| 7remove_definitionERKNSt6stringE) | ](api/languages/cpp_api.html#_CPP |
-| -                                 | v4NK5cudaq13sample_result4cendEv) |
-|   [cudaq::matrix_handler::squeeze | -   [cudaq::sample_result::clear  |
-|     (C++                          |     (C++                          |
-|     function)](api/languag        |     function)                     |
-| es/cpp_api.html#_CPPv4N5cudaq14ma | ](api/languages/cpp_api.html#_CPP |
-| trix_handler7squeezeENSt6size_tE) | v4N5cudaq13sample_result5clearEv) |
-| -   [cudaq::m                     | -   [cudaq::sample_result::count  |
-| atrix_handler::to_diagonal_matrix |     (C++                          |
-|     (C++                          |     function)](                   |
-|     function)](api/lang           | api/languages/cpp_api.html#_CPPv4 |
-| uages/cpp_api.html#_CPPv4NK5cudaq | NK5cudaq13sample_result5countENSt |
-| 14matrix_handler18to_diagonal_mat | 11string_viewEKNSt11string_viewE) |
-| rixERNSt13unordered_mapINSt6size_ | -   [                             |
-| tENSt7int64_tEEERKNSt13unordered_ | cudaq::sample_result::deserialize |
-| mapINSt6stringENSt7complexIdEEEE) |     (C++                          |
-| -                                 |     functio                       |
-| [cudaq::matrix_handler::to_matrix | n)](api/languages/cpp_api.html#_C |
-|     (C++                          | PPv4N5cudaq13sample_result11deser |
-|     function)                     | ializeERNSt6vectorINSt6size_tEEE) |
-| ](api/languages/cpp_api.html#_CPP | -   [cudaq::sample_result::dump   |
-| v4NK5cudaq14matrix_handler9to_mat |     (C++                          |
-| rixERNSt13unordered_mapINSt6size_ |     function)](api/languag        |
-| tENSt7int64_tEEERKNSt13unordered_ | es/cpp_api.html#_CPPv4NK5cudaq13s |
-| mapINSt6stringENSt7complexIdEEEE) | ample_result4dumpERNSt7ostreamE), |
-| -                                 |     [\[1\]                        |
-| [cudaq::matrix_handler::to_string | ](api/languages/cpp_api.html#_CPP |
-|     (C++                          | v4NK5cudaq13sample_result4dumpEv) |
-|     function)](api/               | -   [cudaq::sample_result::end    |
-| languages/cpp_api.html#_CPPv4NK5c |     (C++                          |
-| udaq14matrix_handler9to_stringEb) |     function                      |
-| -                                 | )](api/languages/cpp_api.html#_CP |
-| [cudaq::matrix_handler::unique_id | Pv4N5cudaq13sample_result3endEv), |
-|     (C++                          |     [\[1\                         |
-|     function)](api/               | ]](api/languages/cpp_api.html#_CP |
-| languages/cpp_api.html#_CPPv4NK5c | Pv4NK5cudaq13sample_result3endEv) |
-| udaq14matrix_handler9unique_idEv) | -   [                             |
-| -   [cudaq:                       | cudaq::sample_result::expectation |
-| :matrix_handler::\~matrix_handler |     (C++                          |
-|     (C++                          |     f                             |
-|     functi                        | unction)](api/languages/cpp_api.h |
-| on)](api/languages/cpp_api.html#_ | tml#_CPPv4NK5cudaq13sample_result |
-| CPPv4N5cudaq14matrix_handlerD0Ev) | 11expectationEKNSt11string_viewE) |
-| -   [cudaq::matrix_op (C++        | -   [c                            |
-|     type)](api/languages/cpp_a    | udaq::sample_result::get_marginal |
-| pi.html#_CPPv4N5cudaq9matrix_opE) |     (C++                          |
-| -   [cudaq::matrix_op_term (C++   |     function)](api/languages/cpp_ |
-|                                   | api.html#_CPPv4NK5cudaq13sample_r |
-|  type)](api/languages/cpp_api.htm | esult12get_marginalERKNSt6vectorI |
-| l#_CPPv4N5cudaq14matrix_op_termE) | NSt6size_tEEEKNSt11string_viewE), |
-| -                                 |     [\[1\]](api/languages/cpp_    |
-|    [cudaq::mdiag_operator_handler | api.html#_CPPv4NK5cudaq13sample_r |
-|     (C++                          | esult12get_marginalERRKNSt6vector |
-|     class)](                      | INSt6size_tEEEKNSt11string_viewE) |
-| api/languages/cpp_api.html#_CPPv4 | -   [cuda                         |
-| N5cudaq22mdiag_operator_handlerE) | q::sample_result::get_total_shots |
-| -   [cudaq::mpi (C++              |     (C++                          |
-|     type)](api/languages          |     function)](api/langua         |
-| /cpp_api.html#_CPPv4N5cudaq3mpiE) | ges/cpp_api.html#_CPPv4NK5cudaq13 |
-| -   [cudaq::mpi::all_gather (C++  | sample_result15get_total_shotsEv) |
-|     fu                            | -   [cuda                         |
-| nction)](api/languages/cpp_api.ht | q::sample_result::has_even_parity |
-| ml#_CPPv4N5cudaq3mpi10all_gatherE |     (C++                          |
-| RNSt6vectorIdEERKNSt6vectorIdEE), |     fun                           |
-|                                   | ction)](api/languages/cpp_api.htm |
-|   [\[1\]](api/languages/cpp_api.h | l#_CPPv4N5cudaq13sample_result15h |
-| tml#_CPPv4N5cudaq3mpi10all_gather | as_even_parityENSt11string_viewE) |
-| ERNSt6vectorIiEERKNSt6vectorIiEE) | -   [cuda                         |
-| -   [cudaq::mpi::all_reduce (C++  | q::sample_result::has_expectation |
-|                                   |     (C++                          |
-|  function)](api/languages/cpp_api |     funct                         |
-| .html#_CPPv4I00EN5cudaq3mpi10all_ | ion)](api/languages/cpp_api.html# |
-| reduceE1TRK1TRK14BinaryFunction), | _CPPv4NK5cudaq13sample_result15ha |
-|     [\[1\]](api/langu             | s_expectationEKNSt11string_viewE) |
-| ages/cpp_api.html#_CPPv4I00EN5cud | -   [cu                           |
-| aq3mpi10all_reduceE1TRK1TRK4Func) | daq::sample_result::most_probable |
-| -   [cudaq::mpi::broadcast (C++   |     (C++                          |
-|     function)](api/               |     fun                           |
-| languages/cpp_api.html#_CPPv4N5cu | ction)](api/languages/cpp_api.htm |
-| daq3mpi9broadcastERNSt6stringEi), | l#_CPPv4NK5cudaq13sample_result13 |
-|     [\[1\]](api/la                | most_probableEKNSt11string_viewE) |
-| nguages/cpp_api.html#_CPPv4N5cuda | -                                 |
-| q3mpi9broadcastERNSt6vectorIdEEi) | [cudaq::sample_result::operator+= |
-| -   [cudaq::mpi::finalize (C++    |     (C++                          |
-|     f                             |     function)](api/langua         |
-| unction)](api/languages/cpp_api.h | ges/cpp_api.html#_CPPv4N5cudaq13s |
-| tml#_CPPv4N5cudaq3mpi8finalizeEv) | ample_resultpLERK13sample_result) |
-| -   [cudaq::mpi::initialize (C++  | -                                 |
-|     function                      |  [cudaq::sample_result::operator= |
-| )](api/languages/cpp_api.html#_CP |     (C++                          |
-| Pv4N5cudaq3mpi10initializeEiPPc), |     function)](api/langua         |
-|     [                             | ges/cpp_api.html#_CPPv4N5cudaq13s |
-| \[1\]](api/languages/cpp_api.html | ample_resultaSERR13sample_result) |
-| #_CPPv4N5cudaq3mpi10initializeEv) | -                                 |
-| -   [cudaq::mpi::is_initialized   | [cudaq::sample_result::operator== |
-|     (C++                          |     (C++                          |
-|     function                      |     function)](api/languag        |
-| )](api/languages/cpp_api.html#_CP | es/cpp_api.html#_CPPv4NK5cudaq13s |
-| Pv4N5cudaq3mpi14is_initializedEv) | ample_resulteqERK13sample_result) |
-| -   [cudaq::mpi::num_ranks (C++   | -   [                             |
-|     fu                            | cudaq::sample_result::probability |
-| nction)](api/languages/cpp_api.ht |     (C++                          |
-| ml#_CPPv4N5cudaq3mpi9num_ranksEv) |     function)](api/lan            |
-| -   [cudaq::mpi::rank (C++        | guages/cpp_api.html#_CPPv4NK5cuda |
-|                                   | q13sample_result11probabilityENSt |
-|    function)](api/languages/cpp_a | 11string_viewEKNSt11string_viewE) |
-| pi.html#_CPPv4N5cudaq3mpi4rankEv) | -   [cud                          |
-| -   [cudaq::noise_model (C++      | aq::sample_result::register_names |
-|                                   |     (C++                          |
-|    class)](api/languages/cpp_api. |     function)](api/langu          |
-| html#_CPPv4N5cudaq11noise_modelE) | ages/cpp_api.html#_CPPv4NK5cudaq1 |
-| -   [cudaq::n                     | 3sample_result14register_namesEv) |
-| oise_model::add_all_qubit_channel | -                                 |
-|     (C++                          |    [cudaq::sample_result::reorder |
-|     function)](api                |     (C++                          |
-| /languages/cpp_api.html#_CPPv4IDp |     function)](api/langua         |
-| EN5cudaq11noise_model21add_all_qu | ges/cpp_api.html#_CPPv4N5cudaq13s |
-| bit_channelEvRK13kraus_channeli), | ample_result7reorderERKNSt6vector |
-|     [\[1\]](api/langua            | INSt6size_tEEEKNSt11string_viewE) |
-| ges/cpp_api.html#_CPPv4N5cudaq11n | -   [cu                           |
-| oise_model21add_all_qubit_channel | daq::sample_result::sample_result |
-| ERKNSt6stringERK13kraus_channeli) |     (C++                          |
-| -                                 |     func                          |
-|  [cudaq::noise_model::add_channel | tion)](api/languages/cpp_api.html |
-|     (C++                          | #_CPPv4N5cudaq13sample_result13sa |
-|     funct                         | mple_resultERK15ExecutionResult), |
-| ion)](api/languages/cpp_api.html# |     [\[1\]](api/la                |
-| _CPPv4IDpEN5cudaq11noise_model11a | nguages/cpp_api.html#_CPPv4N5cuda |
-| dd_channelEvRK15PredicateFuncTy), | q13sample_result13sample_resultER |
-|     [\[1\]](api/languages/cpp_    | KNSt6vectorI15ExecutionResultEE), |
-| api.html#_CPPv4IDpEN5cudaq11noise |                                   |
-| _model11add_channelEvRKNSt6vector |  [\[2\]](api/languages/cpp_api.ht |
-| INSt6size_tEEERK13kraus_channel), | ml#_CPPv4N5cudaq13sample_result13 |
-|     [\[2\]](ap                    | sample_resultERR13sample_result), |
-| i/languages/cpp_api.html#_CPPv4N5 |     [                             |
-| cudaq11noise_model11add_channelER | \[3\]](api/languages/cpp_api.html |
-| KNSt6stringERK15PredicateFuncTy), | #_CPPv4N5cudaq13sample_result13sa |
-|                                   | mple_resultERR15ExecutionResult), |
-| [\[3\]](api/languages/cpp_api.htm |     [\[4\]](api/lan               |
-| l#_CPPv4N5cudaq11noise_model11add | guages/cpp_api.html#_CPPv4N5cudaq |
-| _channelERKNSt6stringERKNSt6vecto | 13sample_result13sample_resultEdR |
-| rINSt6size_tEEERK13kraus_channel) | KNSt6vectorI15ExecutionResultEE), |
-| -   [cudaq::noise_model::empty    |     [\[5\]](api/lan               |
-|     (C++                          | guages/cpp_api.html#_CPPv4N5cudaq |
-|     function                      | 13sample_result13sample_resultEv) |
-| )](api/languages/cpp_api.html#_CP | -                                 |
-| Pv4NK5cudaq11noise_model5emptyEv) |  [cudaq::sample_result::serialize |
+| q::KrausTrajectory::trajectory_id |     [\[3\]](ap                    |
+|     (C++                          | i/languages/cpp_api.html#_CPPv4N5 |
+|     member)](api/lang             | cudaq7qvector7qvectorERR7qvector) |
+| uages/cpp_api.html#_CPPv4N5cudaq1 | -   [cudaq::qvector::size (C++    |
+| 5KrausTrajectory13trajectory_idE) |     fu                            |
+| -                                 | nction)](api/languages/cpp_api.ht |
+|   [cudaq::KrausTrajectory::weight | ml#_CPPv4NK5cudaq7qvector4sizeEv) |
+|     (C++                          | -   [cudaq::qvector::slice (C++   |
+|     member)](                     |     function)](api/language       |
+| api/languages/cpp_api.html#_CPPv4 | s/cpp_api.html#_CPPv4N5cudaq7qvec |
+| N5cudaq15KrausTrajectory6weightE) | tor5sliceENSt6size_tENSt6size_tE) |
+| -                                 | -   [cudaq::qvector::value_type   |
+|    [cudaq::KrausTrajectoryBuilder |     (C++                          |
+|     (C++                          |     typ                           |
+|     class)](                      | e)](api/languages/cpp_api.html#_C |
+| api/languages/cpp_api.html#_CPPv4 | PPv4N5cudaq7qvector10value_typeE) |
+| N5cudaq22KrausTrajectoryBuilderE) | -   [cudaq::qview (C++            |
+| -   [cud                          |     clas                          |
+| aq::KrausTrajectoryBuilder::build | s)](api/languages/cpp_api.html#_C |
+|     (C++                          | PPv4I_NSt6size_tEEN5cudaq5qviewE) |
+|     function)](api/lang           | -   [cudaq::qview::back (C++      |
+| uages/cpp_api.html#_CPPv4NK5cudaq |     function)                     |
+| 22KrausTrajectoryBuilder5buildEv) | ](api/languages/cpp_api.html#_CPP |
+| -   [cud                          | v4N5cudaq5qview4backENSt6size_tE) |
+| aq::KrausTrajectoryBuilder::setId | -   [cudaq::qview::begin (C++     |
+|     (C++                          |                                   |
+|     function)](api/languages/cpp  | function)](api/languages/cpp_api. |
+| _api.html#_CPPv4N5cudaq22KrausTra | html#_CPPv4N5cudaq5qview5beginEv) |
+| jectoryBuilder5setIdENSt6size_tE) | -   [cudaq::qview::end (C++       |
+| -   [cudaq::Kraus                 |                                   |
+| TrajectoryBuilder::setProbability |   function)](api/languages/cpp_ap |
+|     (C++                          | i.html#_CPPv4N5cudaq5qview3endEv) |
+|     function)](api/languages/cpp  | -   [cudaq::qview::front (C++     |
+| _api.html#_CPPv4N5cudaq22KrausTra |     function)](                   |
+| jectoryBuilder14setProbabilityEd) | api/languages/cpp_api.html#_CPPv4 |
+| -   [cudaq::Krau                  | N5cudaq5qview5frontENSt6size_tE), |
+| sTrajectoryBuilder::setSelections |                                   |
+|     (C++                          |    [\[1\]](api/languages/cpp_api. |
+|     function)](api/languag        | html#_CPPv4N5cudaq5qview5frontEv) |
+| es/cpp_api.html#_CPPv4N5cudaq22Kr | -   [cudaq::qview::operator\[\]   |
+| ausTrajectoryBuilder13setSelectio |     (C++                          |
+| nsENSt6vectorI14KrausSelectionEE) |     functio                       |
+| -   [cudaq::matrix_callback (C++  | n)](api/languages/cpp_api.html#_C |
+|     c                             | PPv4N5cudaq5qviewixEKNSt6size_tE) |
+| lass)](api/languages/cpp_api.html | -   [cudaq::qview::qview (C++     |
+| #_CPPv4N5cudaq15matrix_callbackE) |     functio                       |
+| -   [cudaq::matrix_handler (C++   | n)](api/languages/cpp_api.html#_C |
+|                                   | PPv4I0EN5cudaq5qview5qviewERR1R), |
+| class)](api/languages/cpp_api.htm |     [\[1                          |
+| l#_CPPv4N5cudaq14matrix_handlerE) | \]](api/languages/cpp_api.html#_C |
+| -   [cudaq::mat                   | PPv4N5cudaq5qview5qviewERK5qview) |
+| rix_handler::commutation_behavior | -   [cudaq::qview::size (C++      |
+|     (C++                          |                                   |
+|     struct)](api/languages/       | function)](api/languages/cpp_api. |
+| cpp_api.html#_CPPv4N5cudaq14matri | html#_CPPv4NK5cudaq5qview4sizeEv) |
+| x_handler20commutation_behaviorE) | -   [cudaq::qview::slice (C++     |
+| -                                 |     function)](api/langua         |
+|    [cudaq::matrix_handler::define | ges/cpp_api.html#_CPPv4N5cudaq5qv |
+|     (C++                          | iew5sliceENSt6size_tENSt6size_tE) |
+|     function)](a                  | -   [cudaq::qview::value_type     |
+| pi/languages/cpp_api.html#_CPPv4N |     (C++                          |
+| 5cudaq14matrix_handler6defineENSt |     t                             |
+| 6stringENSt6vectorINSt7int64_tEEE | ype)](api/languages/cpp_api.html# |
+| RR15matrix_callbackRKNSt13unorder | _CPPv4N5cudaq5qview10value_typeE) |
+| ed_mapINSt6stringENSt6stringEEE), | -   [cudaq::range (C++            |
+|                                   |     fun                           |
+| [\[1\]](api/languages/cpp_api.htm | ction)](api/languages/cpp_api.htm |
+| l#_CPPv4N5cudaq14matrix_handler6d | l#_CPPv4I0EN5cudaq5rangeENSt6vect |
+| efineENSt6stringENSt6vectorINSt7i | orI11ElementTypeEE11ElementType), |
+| nt64_tEEERR15matrix_callbackRR20d |     [\[1\]](api/languages/cpp_    |
+| iag_matrix_callbackRKNSt13unorder | api.html#_CPPv4I0EN5cudaq5rangeEN |
+| ed_mapINSt6stringENSt6stringEEE), | St6vectorI11ElementTypeEE11Elemen |
+|     [\[2\]](                      | tType11ElementType11ElementType), |
+| api/languages/cpp_api.html#_CPPv4 |     [                             |
+| N5cudaq14matrix_handler6defineENS | \[2\]](api/languages/cpp_api.html |
+| t6stringENSt6vectorINSt7int64_tEE | #_CPPv4N5cudaq5rangeENSt6size_tE) |
+| ERR15matrix_callbackRRNSt13unorde | -   [cudaq::real (C++             |
+| red_mapINSt6stringENSt6stringEEE) |     type)](api/languages/         |
+| -                                 | cpp_api.html#_CPPv4N5cudaq4realE) |
+|   [cudaq::matrix_handler::degrees | -   [cudaq::registry (C++         |
+|     (C++                          |     type)](api/languages/cpp_     |
+|     function)](ap                 | api.html#_CPPv4N5cudaq8registryE) |
+| i/languages/cpp_api.html#_CPPv4NK | -                                 |
+| 5cudaq14matrix_handler7degreesEv) |  [cudaq::registry::RegisteredType |
 | -                                 |     (C++                          |
-| [cudaq::noise_model::get_channels |     function)](api                |
-|     (C++                          | /languages/cpp_api.html#_CPPv4NK5 |
-|     function)](api/l              | cudaq13sample_result9serializeEv) |
-| anguages/cpp_api.html#_CPPv4I0ENK | -   [cudaq::sample_result::size   |
-| 5cudaq11noise_model12get_channels |     (C++                          |
-| ENSt6vectorI13kraus_channelEERKNS |     function)](api/languages/c    |
-| t6vectorINSt6size_tEEERKNSt6vecto | pp_api.html#_CPPv4NK5cudaq13sampl |
-| rINSt6size_tEEERKNSt6vectorIdEE), | e_result4sizeEKNSt11string_viewE) |
-|     [\[1\]](api/languages/cpp_a   | -   [cudaq::sample_result::to_map |
-| pi.html#_CPPv4NK5cudaq11noise_mod |     (C++                          |
-| el12get_channelsERKNSt6stringERKN |     function)](api/languages/cpp  |
-| St6vectorINSt6size_tEEERKNSt6vect | _api.html#_CPPv4NK5cudaq13sample_ |
-| orINSt6size_tEEERKNSt6vectorIdEE) | result6to_mapEKNSt11string_viewE) |
-| -                                 | -   [cuda                         |
-|  [cudaq::noise_model::noise_model | q::sample_result::\~sample_result |
-|     (C++                          |     (C++                          |
-|     function)](api                |     funct                         |
-| /languages/cpp_api.html#_CPPv4N5c | ion)](api/languages/cpp_api.html# |
-| udaq11noise_model11noise_modelEv) | _CPPv4N5cudaq13sample_resultD0Ev) |
-| -   [cu                           | -   [cudaq::scalar_callback (C++  |
-| daq::noise_model::PredicateFuncTy |     c                             |
-|     (C++                          | lass)](api/languages/cpp_api.html |
-|     type)](api/la                 | #_CPPv4N5cudaq15scalar_callbackE) |
-| nguages/cpp_api.html#_CPPv4N5cuda | -   [c                            |
-| q11noise_model15PredicateFuncTyE) | udaq::scalar_callback::operator() |
-| -   [cud                          |     (C++                          |
-| aq::noise_model::register_channel |     function)](api/language       |
-|     (C++                          | s/cpp_api.html#_CPPv4NK5cudaq15sc |
-|     function)](api/languages      | alar_callbackclERKNSt13unordered_ |
-| /cpp_api.html#_CPPv4I00EN5cudaq11 | mapINSt6stringENSt7complexIdEEEE) |
-| noise_model16register_channelEvv) | -   [                             |
-| -   [cudaq::                      | cudaq::scalar_callback::operator= |
-| noise_model::requires_constructor |     (C++                          |
+|  [cudaq::matrix_handler::displace |     class)](api/                  |
+|     (C++                          | languages/cpp_api.html#_CPPv4I0EN |
+|     function)](api/language       | 5cudaq8registry14RegisteredTypeE) |
+| s/cpp_api.html#_CPPv4N5cudaq14mat | -   [cudaq::RemoteCapabilities    |
+| rix_handler8displaceENSt6size_tE) |     (C++                          |
+| -   [cudaq::matrix                |     struc                         |
+| _handler::get_expected_dimensions | t)](api/languages/cpp_api.html#_C |
+|     (C++                          | PPv4N5cudaq18RemoteCapabilitiesE) |
+|                                   | -   [cudaq::Remo                  |
+|    function)](api/languages/cpp_a | teCapabilities::isRemoteSimulator |
+| pi.html#_CPPv4NK5cudaq14matrix_ha |     (C++                          |
+| ndler23get_expected_dimensionsEv) |     member)](api/languages/c      |
+| -   [cudaq::matrix_ha             | pp_api.html#_CPPv4N5cudaq18Remote |
+| ndler::get_parameter_descriptions | Capabilities17isRemoteSimulatorE) |
+|     (C++                          | -   [cudaq::Remot                 |
+|                                   | eCapabilities::RemoteCapabilities |
+| function)](api/languages/cpp_api. |     (C++                          |
+| html#_CPPv4NK5cudaq14matrix_handl |     function)](api/languages/cpp  |
+| er26get_parameter_descriptionsEv) | _api.html#_CPPv4N5cudaq18RemoteCa |
+| -   [c                            | pabilities18RemoteCapabilitiesEb) |
+| udaq::matrix_handler::instantiate | -   [cudaq:                       |
+|     (C++                          | :RemoteCapabilities::stateOverlap |
+|     function)](a                  |     (C++                          |
+| pi/languages/cpp_api.html#_CPPv4N |     member)](api/langua           |
+| 5cudaq14matrix_handler11instantia | ges/cpp_api.html#_CPPv4N5cudaq18R |
+| teENSt6stringERKNSt6vectorINSt6si | emoteCapabilities12stateOverlapE) |
+| ze_tEEERK20commutation_behavior), | -                                 |
+|     [\[1\]](                      |   [cudaq::RemoteCapabilities::vqe |
+| api/languages/cpp_api.html#_CPPv4 |     (C++                          |
+| N5cudaq14matrix_handler11instanti |     member)](                     |
+| ateENSt6stringERRNSt6vectorINSt6s | api/languages/cpp_api.html#_CPPv4 |
+| ize_tEEERK20commutation_behavior) | N5cudaq18RemoteCapabilities3vqeE) |
+| -   [cuda                         | -   [cudaq::RemoteSimulationState |
+| q::matrix_handler::matrix_handler |     (C++                          |
+|     (C++                          |     class)]                       |
+|     function)](api/languag        | (api/languages/cpp_api.html#_CPPv |
+| es/cpp_api.html#_CPPv4I0_NSt11ena | 4N5cudaq21RemoteSimulationStateE) |
+| ble_if_tINSt12is_base_of_vI16oper | -   [cudaq::Resources (C++        |
+| ator_handler1TEEbEEEN5cudaq14matr |     class)](api/languages/cpp_a   |
+| ix_handler14matrix_handlerERK1T), | pi.html#_CPPv4N5cudaq9ResourcesE) |
+|     [\[1\]](ap                    | -   [cudaq::run (C++              |
+| i/languages/cpp_api.html#_CPPv4I0 |     function)]                    |
+| _NSt11enable_if_tINSt12is_base_of | (api/languages/cpp_api.html#_CPPv |
+| _vI16operator_handler1TEEbEEEN5cu | 4I0DpEN5cudaq3runENSt6vectorINSt1 |
+| daq14matrix_handler14matrix_handl | 5invoke_result_tINSt7decay_tI13Qu |
+| erERK1TRK20commutation_behavior), | antumKernelEEDpNSt7decay_tI4ARGSE |
+|     [\[2\]](api/languages/cpp_ap  | EEEEENSt6size_tERN5cudaq11noise_m |
+| i.html#_CPPv4N5cudaq14matrix_hand | odelERR13QuantumKernelDpRR4ARGS), |
+| ler14matrix_handlerENSt6size_tE), |     [\[1\]](api/langu             |
+|     [\[3\]](api/                  | ages/cpp_api.html#_CPPv4I0DpEN5cu |
+| languages/cpp_api.html#_CPPv4N5cu | daq3runENSt6vectorINSt15invoke_re |
+| daq14matrix_handler14matrix_handl | sult_tINSt7decay_tI13QuantumKerne |
+| erENSt6stringERKNSt6vectorINSt6si | lEEDpNSt7decay_tI4ARGSEEEEEENSt6s |
+| ze_tEEERK20commutation_behavior), | ize_tERR13QuantumKernelDpRR4ARGS) |
+|     [\[4\]](api/                  | -   [cudaq::run_async (C++        |
+| languages/cpp_api.html#_CPPv4N5cu |     functio                       |
+| daq14matrix_handler14matrix_handl | n)](api/languages/cpp_api.html#_C |
+| erENSt6stringERRNSt6vectorINSt6si | PPv4I0DpEN5cudaq9run_asyncENSt6fu |
+| ze_tEEERK20commutation_behavior), | tureINSt6vectorINSt15invoke_resul |
+|     [\                            | t_tINSt7decay_tI13QuantumKernelEE |
+| [5\]](api/languages/cpp_api.html# | DpNSt7decay_tI4ARGSEEEEEEEENSt6si |
+| _CPPv4N5cudaq14matrix_handler14ma | ze_tENSt6size_tERN5cudaq11noise_m |
+| trix_handlerERK14matrix_handler), | odelERR13QuantumKernelDpRR4ARGS), |
+|     [                             |     [\[1\]](api/la                |
+| \[6\]](api/languages/cpp_api.html | nguages/cpp_api.html#_CPPv4I0DpEN |
+| #_CPPv4N5cudaq14matrix_handler14m | 5cudaq9run_asyncENSt6futureINSt6v |
+| atrix_handlerERR14matrix_handler) | ectorINSt15invoke_result_tINSt7de |
+| -                                 | cay_tI13QuantumKernelEEDpNSt7deca |
+|  [cudaq::matrix_handler::momentum | y_tI4ARGSEEEEEEEENSt6size_tENSt6s |
+|     (C++                          | ize_tERR13QuantumKernelDpRR4ARGS) |
+|     function)](api/language       | -   [cudaq::RuntimeTarget (C++    |
+| s/cpp_api.html#_CPPv4N5cudaq14mat |                                   |
+| rix_handler8momentumENSt6size_tE) | struct)](api/languages/cpp_api.ht |
+| -                                 | ml#_CPPv4N5cudaq13RuntimeTargetE) |
+|    [cudaq::matrix_handler::number | -   [cudaq::sample (C++           |
 |     (C++                          |     function)](api/languages/c    |
-|     type)](api/languages/cp       | pp_api.html#_CPPv4N5cudaq15scalar |
-| p_api.html#_CPPv4I0DpEN5cudaq11no | _callbackaSERK15scalar_callback), |
-| ise_model20requires_constructorE) |     [\[1\]](api/languages/        |
-| -   [cudaq::noise_model_type (C++ | cpp_api.html#_CPPv4N5cudaq15scala |
-|     e                             | r_callbackaSERR15scalar_callback) |
-| num)](api/languages/cpp_api.html# | -   [cudaq:                       |
-| _CPPv4N5cudaq16noise_model_typeE) | :scalar_callback::scalar_callback |
-| -   [cudaq::no                    |     (C++                          |
-| ise_model_type::amplitude_damping |     function)](api/languag        |
-|     (C++                          | es/cpp_api.html#_CPPv4I0_NSt11ena |
-|     enumerator)](api/languages    | ble_if_tINSt16is_invocable_r_vINS |
-| /cpp_api.html#_CPPv4N5cudaq16nois | t7complexIdEE8CallableRKNSt13unor |
-| e_model_type17amplitude_dampingE) | dered_mapINSt6stringENSt7complexI |
-| -   [cudaq::noise_mode            | dEEEEEEbEEEN5cudaq15scalar_callba |
-| l_type::amplitude_damping_channel | ck15scalar_callbackERR8Callable), |
-|     (C++                          |     [\[1\                         |
-|     e                             | ]](api/languages/cpp_api.html#_CP |
-| numerator)](api/languages/cpp_api | Pv4N5cudaq15scalar_callback15scal |
-| .html#_CPPv4N5cudaq16noise_model_ | ar_callbackERK15scalar_callback), |
-| type25amplitude_damping_channelE) |     [\[2                          |
-| -   [cudaq::n                     | \]](api/languages/cpp_api.html#_C |
-| oise_model_type::bit_flip_channel | PPv4N5cudaq15scalar_callback15sca |
-|     (C++                          | lar_callbackERR15scalar_callback) |
-|     enumerator)](api/language     | -   [cudaq::scalar_operator (C++  |
-| s/cpp_api.html#_CPPv4N5cudaq16noi |     c                             |
-| se_model_type16bit_flip_channelE) | lass)](api/languages/cpp_api.html |
-| -   [cudaq::                      | #_CPPv4N5cudaq15scalar_operatorE) |
-| noise_model_type::depolarization1 | -                                 |
-|     (C++                          | [cudaq::scalar_operator::evaluate |
-|     enumerator)](api/languag      |     (C++                          |
-| es/cpp_api.html#_CPPv4N5cudaq16no |                                   |
-| ise_model_type15depolarization1E) |    function)](api/languages/cpp_a |
-| -   [cudaq::                      | pi.html#_CPPv4NK5cudaq15scalar_op |
-| noise_model_type::depolarization2 | erator8evaluateERKNSt13unordered_ |
-|     (C++                          | mapINSt6stringENSt7complexIdEEEE) |
-|     enumerator)](api/languag      | -   [cudaq::scalar_ope            |
-| es/cpp_api.html#_CPPv4N5cudaq16no | rator::get_parameter_descriptions |
-| ise_model_type15depolarization2E) |     (C++                          |
-| -   [cudaq::noise_m               |     f                             |
-| odel_type::depolarization_channel | unction)](api/languages/cpp_api.h |
-|     (C++                          | tml#_CPPv4NK5cudaq15scalar_operat |
-|                                   | or26get_parameter_descriptionsEv) |
-|   enumerator)](api/languages/cpp_ | -   [cu                           |
-| api.html#_CPPv4N5cudaq16noise_mod | daq::scalar_operator::is_constant |
-| el_type22depolarization_channelE) |     (C++                          |
-| -                                 |     function)](api/lang           |
-|  [cudaq::noise_model_type::pauli1 | uages/cpp_api.html#_CPPv4NK5cudaq |
-|     (C++                          | 15scalar_operator11is_constantEv) |
-|     enumerator)](a                | -   [c                            |
-| pi/languages/cpp_api.html#_CPPv4N | udaq::scalar_operator::operator\* |
-| 5cudaq16noise_model_type6pauli1E) |     (C++                          |
-| -                                 |     function                      |
-|  [cudaq::noise_model_type::pauli2 | )](api/languages/cpp_api.html#_CP |
-|     (C++                          | Pv4N5cudaq15scalar_operatormlENSt |
-|     enumerator)](a                | 7complexIdEERK15scalar_operator), |
-| pi/languages/cpp_api.html#_CPPv4N |     [\[1\                         |
-| 5cudaq16noise_model_type6pauli2E) | ]](api/languages/cpp_api.html#_CP |
-| -   [cudaq                        | Pv4N5cudaq15scalar_operatormlENSt |
-| ::noise_model_type::phase_damping | 7complexIdEERR15scalar_operator), |
-|     (C++                          |     [\[2\]](api/languages/cp      |
-|     enumerator)](api/langu        | p_api.html#_CPPv4N5cudaq15scalar_ |
-| ages/cpp_api.html#_CPPv4N5cudaq16 | operatormlEdRK15scalar_operator), |
-| noise_model_type13phase_dampingE) |     [\[3\]](api/languages/cp      |
-| -   [cudaq::noi                   | p_api.html#_CPPv4N5cudaq15scalar_ |
-| se_model_type::phase_flip_channel | operatormlEdRR15scalar_operator), |
-|     (C++                          |     [\[4\]](api/languages         |
-|     enumerator)](api/languages/   | /cpp_api.html#_CPPv4NKR5cudaq15sc |
-| cpp_api.html#_CPPv4N5cudaq16noise | alar_operatormlENSt7complexIdEE), |
-| _model_type18phase_flip_channelE) |     [\[5\]](api/languages/cpp     |
-| -                                 | _api.html#_CPPv4NKR5cudaq15scalar |
-| [cudaq::noise_model_type::unknown | _operatormlERK15scalar_operator), |
-|     (C++                          |     [\[6\]]                       |
-|     enumerator)](ap               | (api/languages/cpp_api.html#_CPPv |
-| i/languages/cpp_api.html#_CPPv4N5 | 4NKR5cudaq15scalar_operatormlEd), |
-| cudaq16noise_model_type7unknownE) |     [\[7\]](api/language          |
-| -                                 | s/cpp_api.html#_CPPv4NO5cudaq15sc |
-| [cudaq::noise_model_type::x_error | alar_operatormlENSt7complexIdEE), |
-|     (C++                          |     [\[8\]](api/languages/cp      |
-|     enumerator)](ap               | p_api.html#_CPPv4NO5cudaq15scalar |
-| i/languages/cpp_api.html#_CPPv4N5 | _operatormlERK15scalar_operator), |
-| cudaq16noise_model_type7x_errorE) |     [\[9\                         |
+|     function)](api/langua         | pp_api.html#_CPPv4I0DpEN5cudaq6sa |
+| ges/cpp_api.html#_CPPv4N5cudaq14m | mpleE13sample_resultRK14sample_op |
+| atrix_handler6numberENSt6size_tE) | tionsRR13QuantumKernelDpRR4Args), |
+| -                                 |     [\[1\                         |
+| [cudaq::matrix_handler::operator= | ]](api/languages/cpp_api.html#_CP |
+|     (C++                          | Pv4I0DpEN5cudaq6sampleE13sample_r |
+|     fun                           | esultRR13QuantumKernelDpRR4Args), |
+| ction)](api/languages/cpp_api.htm |     [\                            |
+| l#_CPPv4I0_NSt11enable_if_tIXaant | [2\]](api/languages/cpp_api.html# |
+| NSt7is_sameI1T14matrix_handlerE5v | _CPPv4I0DpEN5cudaq6sampleEDaNSt6s |
+| alueENSt12is_base_of_vI16operator | ize_tERR13QuantumKernelDpRR4Args) |
+| _handler1TEEEbEEEN5cudaq14matrix_ | -   [cudaq::sample_options (C++   |
+| handleraSER14matrix_handlerRK1T), |     s                             |
+|     [\[1\]](api/languages         | truct)](api/languages/cpp_api.htm |
+| /cpp_api.html#_CPPv4N5cudaq14matr | l#_CPPv4N5cudaq14sample_optionsE) |
+| ix_handleraSERK14matrix_handler), | -   [cudaq::sample_result (C++    |
+|     [\[2\]](api/language          |                                   |
+| s/cpp_api.html#_CPPv4N5cudaq14mat |  class)](api/languages/cpp_api.ht |
+| rix_handleraSERR14matrix_handler) | ml#_CPPv4N5cudaq13sample_resultE) |
+| -   [                             | -   [cudaq::sample_result::append |
+| cudaq::matrix_handler::operator== |     (C++                          |
+|     (C++                          |     function)](api/languages/cpp_ |
+|     function)](api/languages      | api.html#_CPPv4N5cudaq13sample_re |
+| /cpp_api.html#_CPPv4NK5cudaq14mat | sult6appendERK15ExecutionResultb) |
+| rix_handlereqERK14matrix_handler) | -   [cudaq::sample_result::begin  |
+| -                                 |     (C++                          |
+|    [cudaq::matrix_handler::parity |     function)]                    |
+|     (C++                          | (api/languages/cpp_api.html#_CPPv |
+|     function)](api/langua         | 4N5cudaq13sample_result5beginEv), |
+| ges/cpp_api.html#_CPPv4N5cudaq14m |     [\[1\]]                       |
+| atrix_handler6parityENSt6size_tE) | (api/languages/cpp_api.html#_CPPv |
+| -                                 | 4NK5cudaq13sample_result5beginEv) |
+|  [cudaq::matrix_handler::position | -   [cudaq::sample_result::cbegin |
+|     (C++                          |     (C++                          |
+|     function)](api/language       |     function)](                   |
+| s/cpp_api.html#_CPPv4N5cudaq14mat | api/languages/cpp_api.html#_CPPv4 |
+| rix_handler8positionENSt6size_tE) | NK5cudaq13sample_result6cbeginEv) |
+| -   [cudaq::                      | -   [cudaq::sample_result::cend   |
+| matrix_handler::remove_definition |     (C++                          |
+|     (C++                          |     function)                     |
+|     fu                            | ](api/languages/cpp_api.html#_CPP |
+| nction)](api/languages/cpp_api.ht | v4NK5cudaq13sample_result4cendEv) |
+| ml#_CPPv4N5cudaq14matrix_handler1 | -   [cudaq::sample_result::clear  |
+| 7remove_definitionERKNSt6stringE) |     (C++                          |
+| -                                 |     function)                     |
+|   [cudaq::matrix_handler::squeeze | ](api/languages/cpp_api.html#_CPP |
+|     (C++                          | v4N5cudaq13sample_result5clearEv) |
+|     function)](api/languag        | -   [cudaq::sample_result::count  |
+| es/cpp_api.html#_CPPv4N5cudaq14ma |     (C++                          |
+| trix_handler7squeezeENSt6size_tE) |     function)](                   |
+| -   [cudaq::m                     | api/languages/cpp_api.html#_CPPv4 |
+| atrix_handler::to_diagonal_matrix | NK5cudaq13sample_result5countENSt |
+|     (C++                          | 11string_viewEKNSt11string_viewE) |
+|     function)](api/lang           | -   [                             |
+| uages/cpp_api.html#_CPPv4NK5cudaq | cudaq::sample_result::deserialize |
+| 14matrix_handler18to_diagonal_mat |     (C++                          |
+| rixERNSt13unordered_mapINSt6size_ |     functio                       |
+| tENSt7int64_tEEERKNSt13unordered_ | n)](api/languages/cpp_api.html#_C |
+| mapINSt6stringENSt7complexIdEEEE) | PPv4N5cudaq13sample_result11deser |
+| -                                 | ializeERNSt6vectorINSt6size_tEEE) |
+| [cudaq::matrix_handler::to_matrix | -   [cudaq::sample_result::dump   |
+|     (C++                          |     (C++                          |
+|     function)                     |     function)](api/languag        |
+| ](api/languages/cpp_api.html#_CPP | es/cpp_api.html#_CPPv4NK5cudaq13s |
+| v4NK5cudaq14matrix_handler9to_mat | ample_result4dumpERNSt7ostreamE), |
+| rixERNSt13unordered_mapINSt6size_ |     [\[1\]                        |
+| tENSt7int64_tEEERKNSt13unordered_ | ](api/languages/cpp_api.html#_CPP |
+| mapINSt6stringENSt7complexIdEEEE) | v4NK5cudaq13sample_result4dumpEv) |
+| -                                 | -   [cudaq::sample_result::end    |
+| [cudaq::matrix_handler::to_string |     (C++                          |
+|     (C++                          |     function                      |
+|     function)](api/               | )](api/languages/cpp_api.html#_CP |
+| languages/cpp_api.html#_CPPv4NK5c | Pv4N5cudaq13sample_result3endEv), |
+| udaq14matrix_handler9to_stringEb) |     [\[1\                         |
 | -                                 | ]](api/languages/cpp_api.html#_CP |
-| [cudaq::noise_model_type::y_error | Pv4NO5cudaq15scalar_operatormlEd) |
-|     (C++                          | -   [cu                           |
-|     enumerator)](ap               | daq::scalar_operator::operator\*= |
-| i/languages/cpp_api.html#_CPPv4N5 |     (C++                          |
-| cudaq16noise_model_type7y_errorE) |     function)](api/languag        |
-| -                                 | es/cpp_api.html#_CPPv4N5cudaq15sc |
-| [cudaq::noise_model_type::z_error | alar_operatormLENSt7complexIdEE), |
-|     (C++                          |     [\[1\]](api/languages/c       |
-|     enumerator)](ap               | pp_api.html#_CPPv4N5cudaq15scalar |
-| i/languages/cpp_api.html#_CPPv4N5 | _operatormLERK15scalar_operator), |
-| cudaq16noise_model_type7z_errorE) |     [\[2                          |
-| -   [cudaq::num_available_gpus    | \]](api/languages/cpp_api.html#_C |
-|     (C++                          | PPv4N5cudaq15scalar_operatormLEd) |
-|     function                      | -   [                             |
-| )](api/languages/cpp_api.html#_CP | cudaq::scalar_operator::operator+ |
-| Pv4N5cudaq18num_available_gpusEv) |     (C++                          |
-| -   [cudaq::observe (C++          |     function                      |
-|     function)]                    | )](api/languages/cpp_api.html#_CP |
-| (api/languages/cpp_api.html#_CPPv | Pv4N5cudaq15scalar_operatorplENSt |
-| 4I00DpEN5cudaq7observeENSt6vector | 7complexIdEERK15scalar_operator), |
-| I14observe_resultEERR13QuantumKer |     [\[1\                         |
-| nelRK15SpinOpContainerDpRR4Args), | ]](api/languages/cpp_api.html#_CP |
-|     [\[1\]](api/languages/cpp_ap  | Pv4N5cudaq15scalar_operatorplENSt |
-| i.html#_CPPv4I0DpEN5cudaq7observe | 7complexIdEERR15scalar_operator), |
-| E14observe_resultNSt6size_tERR13Q |     [\[2\]](api/languages/cp      |
-| uantumKernelRK7spin_opDpRR4Args), | p_api.html#_CPPv4N5cudaq15scalar_ |
-|     [\[                           | operatorplEdRK15scalar_operator), |
-| 2\]](api/languages/cpp_api.html#_ |     [\[3\]](api/languages/cp      |
-| CPPv4I0DpEN5cudaq7observeE14obser | p_api.html#_CPPv4N5cudaq15scalar_ |
-| ve_resultRK15observe_optionsRR13Q | operatorplEdRR15scalar_operator), |
-| uantumKernelRK7spin_opDpRR4Args), |     [\[4\]](api/languages         |
-|     [\[3\]](api/lang              | /cpp_api.html#_CPPv4NKR5cudaq15sc |
-| uages/cpp_api.html#_CPPv4I0DpEN5c | alar_operatorplENSt7complexIdEE), |
-| udaq7observeE14observe_resultRR13 |     [\[5\]](api/languages/cpp     |
-| QuantumKernelRK7spin_opDpRR4Args) | _api.html#_CPPv4NKR5cudaq15scalar |
-| -   [cudaq::observe_options (C++  | _operatorplERK15scalar_operator), |
-|     st                            |     [\[6\]]                       |
-| ruct)](api/languages/cpp_api.html | (api/languages/cpp_api.html#_CPPv |
-| #_CPPv4N5cudaq15observe_optionsE) | 4NKR5cudaq15scalar_operatorplEd), |
-| -   [cudaq::observe_result (C++   |     [\[7\]]                       |
-|                                   | (api/languages/cpp_api.html#_CPPv |
-| class)](api/languages/cpp_api.htm | 4NKR5cudaq15scalar_operatorplEv), |
-| l#_CPPv4N5cudaq14observe_resultE) |     [\[8\]](api/language          |
-| -                                 | s/cpp_api.html#_CPPv4NO5cudaq15sc |
-|    [cudaq::observe_result::counts | alar_operatorplENSt7complexIdEE), |
-|     (C++                          |     [\[9\]](api/languages/cp      |
-|     function)](api/languages/c    | p_api.html#_CPPv4NO5cudaq15scalar |
-| pp_api.html#_CPPv4N5cudaq14observ | _operatorplERK15scalar_operator), |
-| e_result6countsERK12spin_op_term) |     [\[10\]                       |
-| -   [cudaq::observe_result::dump  | ](api/languages/cpp_api.html#_CPP |
-|     (C++                          | v4NO5cudaq15scalar_operatorplEd), |
-|     function)                     |     [\[11\                        |
-| ](api/languages/cpp_api.html#_CPP | ]](api/languages/cpp_api.html#_CP |
-| v4N5cudaq14observe_result4dumpEv) | Pv4NO5cudaq15scalar_operatorplEv) |
-| -   [c                            | -   [c                            |
-| udaq::observe_result::expectation | udaq::scalar_operator::operator+= |
-|     (C++                          |     (C++                          |
-|                                   |     function)](api/languag        |
-| function)](api/languages/cpp_api. | es/cpp_api.html#_CPPv4N5cudaq15sc |
-| html#_CPPv4N5cudaq14observe_resul | alar_operatorpLENSt7complexIdEE), |
-| t11expectationERK12spin_op_term), |     [\[1\]](api/languages/c       |
-|     [\[1\]](api/la                | pp_api.html#_CPPv4N5cudaq15scalar |
-| nguages/cpp_api.html#_CPPv4N5cuda | _operatorpLERK15scalar_operator), |
-| q14observe_result11expectationEv) |     [\[2                          |
-| -   [cuda                         | \]](api/languages/cpp_api.html#_C |
-| q::observe_result::id_coefficient | PPv4N5cudaq15scalar_operatorpLEd) |
+| [cudaq::matrix_handler::unique_id | Pv4NK5cudaq13sample_result3endEv) |
 |     (C++                          | -   [                             |
-|     function)](api/langu          | cudaq::scalar_operator::operator- |
-| ages/cpp_api.html#_CPPv4N5cudaq14 |     (C++                          |
-| observe_result14id_coefficientEv) |     function                      |
-| -   [cuda                         | )](api/languages/cpp_api.html#_CP |
-| q::observe_result::observe_result | Pv4N5cudaq15scalar_operatormiENSt |
-|     (C++                          | 7complexIdEERK15scalar_operator), |
-|                                   |     [\[1\                         |
-|   function)](api/languages/cpp_ap | ]](api/languages/cpp_api.html#_CP |
-| i.html#_CPPv4N5cudaq14observe_res | Pv4N5cudaq15scalar_operatormiENSt |
-| ult14observe_resultEdRK7spin_op), | 7complexIdEERR15scalar_operator), |
-|     [\[1\]](a                     |     [\[2\]](api/languages/cp      |
-| pi/languages/cpp_api.html#_CPPv4N | p_api.html#_CPPv4N5cudaq15scalar_ |
-| 5cudaq14observe_result14observe_r | operatormiEdRK15scalar_operator), |
-| esultEdRK7spin_op13sample_result) |     [\[3\]](api/languages/cp      |
-| -                                 | p_api.html#_CPPv4N5cudaq15scalar_ |
-|  [cudaq::observe_result::operator | operatormiEdRR15scalar_operator), |
-|     double (C++                   |     [\[4\]](api/languages         |
-|     functio                       | /cpp_api.html#_CPPv4NKR5cudaq15sc |
-| n)](api/languages/cpp_api.html#_C | alar_operatormiENSt7complexIdEE), |
-| PPv4N5cudaq14observe_resultcvdEv) |     [\[5\]](api/languages/cpp     |
-| -                                 | _api.html#_CPPv4NKR5cudaq15scalar |
-|  [cudaq::observe_result::raw_data | _operatormiERK15scalar_operator), |
-|     (C++                          |     [\[6\]]                       |
-|     function)](ap                 | (api/languages/cpp_api.html#_CPPv |
-| i/languages/cpp_api.html#_CPPv4N5 | 4NKR5cudaq15scalar_operatormiEd), |
-| cudaq14observe_result8raw_dataEv) |     [\[7\]]                       |
-| -   [cudaq::operator_handler (C++ | (api/languages/cpp_api.html#_CPPv |
-|     cl                            | 4NKR5cudaq15scalar_operatormiEv), |
-| ass)](api/languages/cpp_api.html# |     [\[8\]](api/language          |
-| _CPPv4N5cudaq16operator_handlerE) | s/cpp_api.html#_CPPv4NO5cudaq15sc |
-| -   [cudaq::optimizable_function  | alar_operatormiENSt7complexIdEE), |
-|     (C++                          |     [\[9\]](api/languages/cp      |
-|     class)                        | p_api.html#_CPPv4NO5cudaq15scalar |
-| ](api/languages/cpp_api.html#_CPP | _operatormiERK15scalar_operator), |
-| v4N5cudaq20optimizable_functionE) |     [\[10\]                       |
-| -   [cudaq::optimization_result   | ](api/languages/cpp_api.html#_CPP |
-|     (C++                          | v4NO5cudaq15scalar_operatormiEd), |
-|     type                          |     [\[11\                        |
-| )](api/languages/cpp_api.html#_CP | ]](api/languages/cpp_api.html#_CP |
-| Pv4N5cudaq19optimization_resultE) | Pv4NO5cudaq15scalar_operatormiEv) |
-| -   [cudaq::optimizer (C++        | -   [c                            |
-|     class)](api/languages/cpp_a   | udaq::scalar_operator::operator-= |
-| pi.html#_CPPv4N5cudaq9optimizerE) |     (C++                          |
-| -   [cudaq::optimizer::optimize   |     function)](api/languag        |
-|     (C++                          | es/cpp_api.html#_CPPv4N5cudaq15sc |
-|                                   | alar_operatormIENSt7complexIdEE), |
-|  function)](api/languages/cpp_api |     [\[1\]](api/languages/c       |
-| .html#_CPPv4N5cudaq9optimizer8opt | pp_api.html#_CPPv4N5cudaq15scalar |
-| imizeEKiRR20optimizable_function) | _operatormIERK15scalar_operator), |
-| -   [cu                           |     [\[2                          |
-| daq::optimizer::requiresGradients | \]](api/languages/cpp_api.html#_C |
-|     (C++                          | PPv4N5cudaq15scalar_operatormIEd) |
-|     function)](api/la             | -   [                             |
-| nguages/cpp_api.html#_CPPv4N5cuda | cudaq::scalar_operator::operator/ |
-| q9optimizer17requiresGradientsEv) |     (C++                          |
-| -   [cudaq::orca (C++             |     function                      |
-|     type)](api/languages/         | )](api/languages/cpp_api.html#_CP |
-| cpp_api.html#_CPPv4N5cudaq4orcaE) | Pv4N5cudaq15scalar_operatordvENSt |
-| -   [cudaq::orca::sample (C++     | 7complexIdEERK15scalar_operator), |
-|     function)](api/languages/c    |     [\[1\                         |
-| pp_api.html#_CPPv4N5cudaq4orca6sa | ]](api/languages/cpp_api.html#_CP |
-| mpleERNSt6vectorINSt6size_tEEERNS | Pv4N5cudaq15scalar_operatordvENSt |
-| t6vectorINSt6size_tEEERNSt6vector | 7complexIdEERR15scalar_operator), |
-| IdEERNSt6vectorIdEEiNSt6size_tE), |     [\[2\]](api/languages/cp      |
-|     [\[1\]]                       | p_api.html#_CPPv4N5cudaq15scalar_ |
-| (api/languages/cpp_api.html#_CPPv | operatordvEdRK15scalar_operator), |
-| 4N5cudaq4orca6sampleERNSt6vectorI |     [\[3\]](api/languages/cp      |
-| NSt6size_tEEERNSt6vectorINSt6size | p_api.html#_CPPv4N5cudaq15scalar_ |
-| _tEEERNSt6vectorIdEEiNSt6size_tE) | operatordvEdRR15scalar_operator), |
-| -   [cudaq::orca::sample_async    |     [\[4\]](api/languages         |
-|     (C++                          | /cpp_api.html#_CPPv4NKR5cudaq15sc |
-|                                   | alar_operatordvENSt7complexIdEE), |
-| function)](api/languages/cpp_api. |     [\[5\]](api/languages/cpp     |
-| html#_CPPv4N5cudaq4orca12sample_a | _api.html#_CPPv4NKR5cudaq15scalar |
-| syncERNSt6vectorINSt6size_tEEERNS | _operatordvERK15scalar_operator), |
-| t6vectorINSt6size_tEEERNSt6vector |     [\[6\]]                       |
-| IdEERNSt6vectorIdEEiNSt6size_tE), | (api/languages/cpp_api.html#_CPPv |
-|     [\[1\]](api/la                | 4NKR5cudaq15scalar_operatordvEd), |
-| nguages/cpp_api.html#_CPPv4N5cuda |     [\[7\]](api/language          |
-| q4orca12sample_asyncERNSt6vectorI | s/cpp_api.html#_CPPv4NO5cudaq15sc |
-| NSt6size_tEEERNSt6vectorINSt6size | alar_operatordvENSt7complexIdEE), |
-| _tEEERNSt6vectorIdEEiNSt6size_tE) |     [\[8\]](api/languages/cp      |
-| -   [cudaq::OrcaRemoteRESTQPU     | p_api.html#_CPPv4NO5cudaq15scalar |
-|     (C++                          | _operatordvERK15scalar_operator), |
-|     cla                           |     [\[9\                         |
-| ss)](api/languages/cpp_api.html#_ | ]](api/languages/cpp_api.html#_CP |
-| CPPv4N5cudaq17OrcaRemoteRESTQPUE) | Pv4NO5cudaq15scalar_operatordvEd) |
-| -   [cudaq::pauli1 (C++           | -   [c                            |
-|     class)](api/languages/cp      | udaq::scalar_operator::operator/= |
-| p_api.html#_CPPv4N5cudaq6pauli1E) |     (C++                          |
-| -                                 |     function)](api/languag        |
-|    [cudaq::pauli1::num_parameters | es/cpp_api.html#_CPPv4N5cudaq15sc |
-|     (C++                          | alar_operatordVENSt7complexIdEE), |
-|     member)]                      |     [\[1\]](api/languages/c       |
-| (api/languages/cpp_api.html#_CPPv | pp_api.html#_CPPv4N5cudaq15scalar |
-| 4N5cudaq6pauli114num_parametersE) | _operatordVERK15scalar_operator), |
-| -   [cudaq::pauli1::num_targets   |     [\[2                          |
-|     (C++                          | \]](api/languages/cpp_api.html#_C |
-|     membe                         | PPv4N5cudaq15scalar_operatordVEd) |
-| r)](api/languages/cpp_api.html#_C | -   [                             |
-| PPv4N5cudaq6pauli111num_targetsE) | cudaq::scalar_operator::operator= |
-| -   [cudaq::pauli1::pauli1 (C++   |     (C++                          |
-|     function)](api/languages/cpp_ |     function)](api/languages/c    |
-| api.html#_CPPv4N5cudaq6pauli16pau | pp_api.html#_CPPv4N5cudaq15scalar |
-| li1ERKNSt6vectorIN5cudaq4realEEE) | _operatoraSERK15scalar_operator), |
-| -   [cudaq::pauli2 (C++           |     [\[1\]](api/languages/        |
-|     class)](api/languages/cp      | cpp_api.html#_CPPv4N5cudaq15scala |
-| p_api.html#_CPPv4N5cudaq6pauli2E) | r_operatoraSERR15scalar_operator) |
+|     function)](api/               | cudaq::sample_result::expectation |
+| languages/cpp_api.html#_CPPv4NK5c |     (C++                          |
+| udaq14matrix_handler9unique_idEv) |     f                             |
+| -   [cudaq:                       | unction)](api/languages/cpp_api.h |
+| :matrix_handler::\~matrix_handler | tml#_CPPv4NK5cudaq13sample_result |
+|     (C++                          | 11expectationEKNSt11string_viewE) |
+|     functi                        | -   [c                            |
+| on)](api/languages/cpp_api.html#_ | udaq::sample_result::get_marginal |
+| CPPv4N5cudaq14matrix_handlerD0Ev) |     (C++                          |
+| -   [cudaq::matrix_op (C++        |     function)](api/languages/cpp_ |
+|     type)](api/languages/cpp_a    | api.html#_CPPv4NK5cudaq13sample_r |
+| pi.html#_CPPv4N5cudaq9matrix_opE) | esult12get_marginalERKNSt6vectorI |
+| -   [cudaq::matrix_op_term (C++   | NSt6size_tEEEKNSt11string_viewE), |
+|                                   |     [\[1\]](api/languages/cpp_    |
+|  type)](api/languages/cpp_api.htm | api.html#_CPPv4NK5cudaq13sample_r |
+| l#_CPPv4N5cudaq14matrix_op_termE) | esult12get_marginalERRKNSt6vector |
+| -                                 | INSt6size_tEEEKNSt11string_viewE) |
+|    [cudaq::mdiag_operator_handler | -   [cuda                         |
+|     (C++                          | q::sample_result::get_total_shots |
+|     class)](                      |     (C++                          |
+| api/languages/cpp_api.html#_CPPv4 |     function)](api/langua         |
+| N5cudaq22mdiag_operator_handlerE) | ges/cpp_api.html#_CPPv4NK5cudaq13 |
+| -   [cudaq::mpi (C++              | sample_result15get_total_shotsEv) |
+|     type)](api/languages          | -   [cuda                         |
+| /cpp_api.html#_CPPv4N5cudaq3mpiE) | q::sample_result::has_even_parity |
+| -   [cudaq::mpi::all_gather (C++  |     (C++                          |
+|     fu                            |     fun                           |
+| nction)](api/languages/cpp_api.ht | ction)](api/languages/cpp_api.htm |
+| ml#_CPPv4N5cudaq3mpi10all_gatherE | l#_CPPv4N5cudaq13sample_result15h |
+| RNSt6vectorIdEERKNSt6vectorIdEE), | as_even_parityENSt11string_viewE) |
+|                                   | -   [cuda                         |
+|   [\[1\]](api/languages/cpp_api.h | q::sample_result::has_expectation |
+| tml#_CPPv4N5cudaq3mpi10all_gather |     (C++                          |
+| ERNSt6vectorIiEERKNSt6vectorIiEE) |     funct                         |
+| -   [cudaq::mpi::all_reduce (C++  | ion)](api/languages/cpp_api.html# |
+|                                   | _CPPv4NK5cudaq13sample_result15ha |
+|  function)](api/languages/cpp_api | s_expectationEKNSt11string_viewE) |
+| .html#_CPPv4I00EN5cudaq3mpi10all_ | -   [cu                           |
+| reduceE1TRK1TRK14BinaryFunction), | daq::sample_result::most_probable |
+|     [\[1\]](api/langu             |     (C++                          |
+| ages/cpp_api.html#_CPPv4I00EN5cud |     fun                           |
+| aq3mpi10all_reduceE1TRK1TRK4Func) | ction)](api/languages/cpp_api.htm |
+| -   [cudaq::mpi::broadcast (C++   | l#_CPPv4NK5cudaq13sample_result13 |
+|     function)](api/               | most_probableEKNSt11string_viewE) |
+| languages/cpp_api.html#_CPPv4N5cu | -                                 |
+| daq3mpi9broadcastERNSt6stringEi), | [cudaq::sample_result::operator+= |
+|     [\[1\]](api/la                |     (C++                          |
+| nguages/cpp_api.html#_CPPv4N5cuda |     function)](api/langua         |
+| q3mpi9broadcastERNSt6vectorIdEEi) | ges/cpp_api.html#_CPPv4N5cudaq13s |
+| -   [cudaq::mpi::finalize (C++    | ample_resultpLERK13sample_result) |
+|     f                             | -                                 |
+| unction)](api/languages/cpp_api.h |  [cudaq::sample_result::operator= |
+| tml#_CPPv4N5cudaq3mpi8finalizeEv) |     (C++                          |
+| -   [cudaq::mpi::initialize (C++  |     function)](api/langua         |
+|     function                      | ges/cpp_api.html#_CPPv4N5cudaq13s |
+| )](api/languages/cpp_api.html#_CP | ample_resultaSERR13sample_result) |
+| Pv4N5cudaq3mpi10initializeEiPPc), | -                                 |
+|     [                             | [cudaq::sample_result::operator== |
+| \[1\]](api/languages/cpp_api.html |     (C++                          |
+| #_CPPv4N5cudaq3mpi10initializeEv) |     function)](api/languag        |
+| -   [cudaq::mpi::is_initialized   | es/cpp_api.html#_CPPv4NK5cudaq13s |
+|     (C++                          | ample_resulteqERK13sample_result) |
+|     function                      | -   [                             |
+| )](api/languages/cpp_api.html#_CP | cudaq::sample_result::probability |
+| Pv4N5cudaq3mpi14is_initializedEv) |     (C++                          |
+| -   [cudaq::mpi::num_ranks (C++   |     function)](api/lan            |
+|     fu                            | guages/cpp_api.html#_CPPv4NK5cuda |
+| nction)](api/languages/cpp_api.ht | q13sample_result11probabilityENSt |
+| ml#_CPPv4N5cudaq3mpi9num_ranksEv) | 11string_viewEKNSt11string_viewE) |
+| -   [cudaq::mpi::rank (C++        | -   [cud                          |
+|                                   | aq::sample_result::register_names |
+|    function)](api/languages/cpp_a |     (C++                          |
+| pi.html#_CPPv4N5cudaq3mpi4rankEv) |     function)](api/langu          |
+| -   [cudaq::noise_model (C++      | ages/cpp_api.html#_CPPv4NK5cudaq1 |
+|                                   | 3sample_result14register_namesEv) |
+|    class)](api/languages/cpp_api. | -                                 |
+| html#_CPPv4N5cudaq11noise_modelE) |    [cudaq::sample_result::reorder |
+| -   [cudaq::n                     |     (C++                          |
+| oise_model::add_all_qubit_channel |     function)](api/langua         |
+|     (C++                          | ges/cpp_api.html#_CPPv4N5cudaq13s |
+|     function)](api                | ample_result7reorderERKNSt6vector |
+| /languages/cpp_api.html#_CPPv4IDp | INSt6size_tEEEKNSt11string_viewE) |
+| EN5cudaq11noise_model21add_all_qu | -   [cu                           |
+| bit_channelEvRK13kraus_channeli), | daq::sample_result::sample_result |
+|     [\[1\]](api/langua            |     (C++                          |
+| ges/cpp_api.html#_CPPv4N5cudaq11n |     func                          |
+| oise_model21add_all_qubit_channel | tion)](api/languages/cpp_api.html |
+| ERKNSt6stringERK13kraus_channeli) | #_CPPv4N5cudaq13sample_result13sa |
+| -                                 | mple_resultERK15ExecutionResult), |
+|  [cudaq::noise_model::add_channel |     [\[1\]](api/la                |
+|     (C++                          | nguages/cpp_api.html#_CPPv4N5cuda |
+|     funct                         | q13sample_result13sample_resultER |
+| ion)](api/languages/cpp_api.html# | KNSt6vectorI15ExecutionResultEE), |
+| _CPPv4IDpEN5cudaq11noise_model11a |                                   |
+| dd_channelEvRK15PredicateFuncTy), |  [\[2\]](api/languages/cpp_api.ht |
+|     [\[1\]](api/languages/cpp_    | ml#_CPPv4N5cudaq13sample_result13 |
+| api.html#_CPPv4IDpEN5cudaq11noise | sample_resultERR13sample_result), |
+| _model11add_channelEvRKNSt6vector |     [                             |
+| INSt6size_tEEERK13kraus_channel), | \[3\]](api/languages/cpp_api.html |
+|     [\[2\]](ap                    | #_CPPv4N5cudaq13sample_result13sa |
+| i/languages/cpp_api.html#_CPPv4N5 | mple_resultERR15ExecutionResult), |
+| cudaq11noise_model11add_channelER |     [\[4\]](api/lan               |
+| KNSt6stringERK15PredicateFuncTy), | guages/cpp_api.html#_CPPv4N5cudaq |
+|                                   | 13sample_result13sample_resultEdR |
+| [\[3\]](api/languages/cpp_api.htm | KNSt6vectorI15ExecutionResultEE), |
+| l#_CPPv4N5cudaq11noise_model11add |     [\[5\]](api/lan               |
+| _channelERKNSt6stringERKNSt6vecto | guages/cpp_api.html#_CPPv4N5cudaq |
+| rINSt6size_tEEERK13kraus_channel) | 13sample_result13sample_resultEv) |
+| -   [cudaq::noise_model::empty    | -                                 |
+|     (C++                          |  [cudaq::sample_result::serialize |
+|     function                      |     (C++                          |
+| )](api/languages/cpp_api.html#_CP |     function)](api                |
+| Pv4NK5cudaq11noise_model5emptyEv) | /languages/cpp_api.html#_CPPv4NK5 |
+| -                                 | cudaq13sample_result9serializeEv) |
+| [cudaq::noise_model::get_channels | -   [cudaq::sample_result::size   |
+|     (C++                          |     (C++                          |
+|     function)](api/l              |     function)](api/languages/c    |
+| anguages/cpp_api.html#_CPPv4I0ENK | pp_api.html#_CPPv4NK5cudaq13sampl |
+| 5cudaq11noise_model12get_channels | e_result4sizeEKNSt11string_viewE) |
+| ENSt6vectorI13kraus_channelEERKNS | -   [cudaq::sample_result::to_map |
+| t6vectorINSt6size_tEEERKNSt6vecto |     (C++                          |
+| rINSt6size_tEEERKNSt6vectorIdEE), |     function)](api/languages/cpp  |
+|     [\[1\]](api/languages/cpp_a   | _api.html#_CPPv4NK5cudaq13sample_ |
+| pi.html#_CPPv4NK5cudaq11noise_mod | result6to_mapEKNSt11string_viewE) |
+| el12get_channelsERKNSt6stringERKN | -   [cuda                         |
+| St6vectorINSt6size_tEEERKNSt6vect | q::sample_result::\~sample_result |
+| orINSt6size_tEEERKNSt6vectorIdEE) |     (C++                          |
+| -                                 |     funct                         |
+|  [cudaq::noise_model::noise_model | ion)](api/languages/cpp_api.html# |
+|     (C++                          | _CPPv4N5cudaq13sample_resultD0Ev) |
+|     function)](api                | -   [cudaq::scalar_callback (C++  |
+| /languages/cpp_api.html#_CPPv4N5c |     c                             |
+| udaq11noise_model11noise_modelEv) | lass)](api/languages/cpp_api.html |
+| -   [cu                           | #_CPPv4N5cudaq15scalar_callbackE) |
+| daq::noise_model::PredicateFuncTy | -   [c                            |
+|     (C++                          | udaq::scalar_callback::operator() |
+|     type)](api/la                 |     (C++                          |
+| nguages/cpp_api.html#_CPPv4N5cuda |     function)](api/language       |
+| q11noise_model15PredicateFuncTyE) | s/cpp_api.html#_CPPv4NK5cudaq15sc |
+| -   [cud                          | alar_callbackclERKNSt13unordered_ |
+| aq::noise_model::register_channel | mapINSt6stringENSt7complexIdEEEE) |
+|     (C++                          | -   [                             |
+|     function)](api/languages      | cudaq::scalar_callback::operator= |
+| /cpp_api.html#_CPPv4I00EN5cudaq11 |     (C++                          |
+| noise_model16register_channelEvv) |     function)](api/languages/c    |
+| -   [cudaq::                      | pp_api.html#_CPPv4N5cudaq15scalar |
+| noise_model::requires_constructor | _callbackaSERK15scalar_callback), |
+|     (C++                          |     [\[1\]](api/languages/        |
+|     type)](api/languages/cp       | cpp_api.html#_CPPv4N5cudaq15scala |
+| p_api.html#_CPPv4I0DpEN5cudaq11no | r_callbackaSERR15scalar_callback) |
+| ise_model20requires_constructorE) | -   [cudaq:                       |
+| -   [cudaq::noise_model_type (C++ | :scalar_callback::scalar_callback |
+|     e                             |     (C++                          |
+| num)](api/languages/cpp_api.html# |     function)](api/languag        |
+| _CPPv4N5cudaq16noise_model_typeE) | es/cpp_api.html#_CPPv4I0_NSt11ena |
+| -   [cudaq::no                    | ble_if_tINSt16is_invocable_r_vINS |
+| ise_model_type::amplitude_damping | t7complexIdEE8CallableRKNSt13unor |
+|     (C++                          | dered_mapINSt6stringENSt7complexI |
+|     enumerator)](api/languages    | dEEEEEEbEEEN5cudaq15scalar_callba |
+| /cpp_api.html#_CPPv4N5cudaq16nois | ck15scalar_callbackERR8Callable), |
+| e_model_type17amplitude_dampingE) |     [\[1\                         |
+| -   [cudaq::noise_mode            | ]](api/languages/cpp_api.html#_CP |
+| l_type::amplitude_damping_channel | Pv4N5cudaq15scalar_callback15scal |
+|     (C++                          | ar_callbackERK15scalar_callback), |
+|     e                             |     [\[2                          |
+| numerator)](api/languages/cpp_api | \]](api/languages/cpp_api.html#_C |
+| .html#_CPPv4N5cudaq16noise_model_ | PPv4N5cudaq15scalar_callback15sca |
+| type25amplitude_damping_channelE) | lar_callbackERR15scalar_callback) |
+| -   [cudaq::n                     | -   [cudaq::scalar_operator (C++  |
+| oise_model_type::bit_flip_channel |     c                             |
+|     (C++                          | lass)](api/languages/cpp_api.html |
+|     enumerator)](api/language     | #_CPPv4N5cudaq15scalar_operatorE) |
+| s/cpp_api.html#_CPPv4N5cudaq16noi | -                                 |
+| se_model_type16bit_flip_channelE) | [cudaq::scalar_operator::evaluate |
+| -   [cudaq::                      |     (C++                          |
+| noise_model_type::depolarization1 |                                   |
+|     (C++                          |    function)](api/languages/cpp_a |
+|     enumerator)](api/languag      | pi.html#_CPPv4NK5cudaq15scalar_op |
+| es/cpp_api.html#_CPPv4N5cudaq16no | erator8evaluateERKNSt13unordered_ |
+| ise_model_type15depolarization1E) | mapINSt6stringENSt7complexIdEEEE) |
+| -   [cudaq::                      | -   [cudaq::scalar_ope            |
+| noise_model_type::depolarization2 | rator::get_parameter_descriptions |
+|     (C++                          |     (C++                          |
+|     enumerator)](api/languag      |     f                             |
+| es/cpp_api.html#_CPPv4N5cudaq16no | unction)](api/languages/cpp_api.h |
+| ise_model_type15depolarization2E) | tml#_CPPv4NK5cudaq15scalar_operat |
+| -   [cudaq::noise_m               | or26get_parameter_descriptionsEv) |
+| odel_type::depolarization_channel | -   [cu                           |
+|     (C++                          | daq::scalar_operator::is_constant |
+|                                   |     (C++                          |
+|   enumerator)](api/languages/cpp_ |     function)](api/lang           |
+| api.html#_CPPv4N5cudaq16noise_mod | uages/cpp_api.html#_CPPv4NK5cudaq |
+| el_type22depolarization_channelE) | 15scalar_operator11is_constantEv) |
 | -                                 | -   [c                            |
-|    [cudaq::pauli2::num_parameters | udaq::scalar_operator::operator== |
+|  [cudaq::noise_model_type::pauli1 | udaq::scalar_operator::operator\* |
 |     (C++                          |     (C++                          |
-|     member)]                      |     function)](api/languages/c    |
-| (api/languages/cpp_api.html#_CPPv | pp_api.html#_CPPv4NK5cudaq15scala |
-| 4N5cudaq6pauli214num_parametersE) | r_operatoreqERK15scalar_operator) |
-| -   [cudaq::pauli2::num_targets   | -   [cudaq:                       |
-|     (C++                          | :scalar_operator::scalar_operator |
+|     enumerator)](a                |     function                      |
+| pi/languages/cpp_api.html#_CPPv4N | )](api/languages/cpp_api.html#_CP |
+| 5cudaq16noise_model_type6pauli1E) | Pv4N5cudaq15scalar_operatormlENSt |
+| -                                 | 7complexIdEERK15scalar_operator), |
+|  [cudaq::noise_model_type::pauli2 |     [\[1\                         |
+|     (C++                          | ]](api/languages/cpp_api.html#_CP |
+|     enumerator)](a                | Pv4N5cudaq15scalar_operatormlENSt |
+| pi/languages/cpp_api.html#_CPPv4N | 7complexIdEERR15scalar_operator), |
+| 5cudaq16noise_model_type6pauli2E) |     [\[2\]](api/languages/cp      |
+| -   [cudaq                        | p_api.html#_CPPv4N5cudaq15scalar_ |
+| ::noise_model_type::phase_damping | operatormlEdRK15scalar_operator), |
+|     (C++                          |     [\[3\]](api/languages/cp      |
+|     enumerator)](api/langu        | p_api.html#_CPPv4N5cudaq15scalar_ |
+| ages/cpp_api.html#_CPPv4N5cudaq16 | operatormlEdRR15scalar_operator), |
+| noise_model_type13phase_dampingE) |     [\[4\]](api/languages         |
+| -   [cudaq::noi                   | /cpp_api.html#_CPPv4NKR5cudaq15sc |
+| se_model_type::phase_flip_channel | alar_operatormlENSt7complexIdEE), |
+|     (C++                          |     [\[5\]](api/languages/cpp     |
+|     enumerator)](api/languages/   | _api.html#_CPPv4NKR5cudaq15scalar |
+| cpp_api.html#_CPPv4N5cudaq16noise | _operatormlERK15scalar_operator), |
+| _model_type18phase_flip_channelE) |     [\[6\]]                       |
+| -                                 | (api/languages/cpp_api.html#_CPPv |
+| [cudaq::noise_model_type::unknown | 4NKR5cudaq15scalar_operatormlEd), |
+|     (C++                          |     [\[7\]](api/language          |
+|     enumerator)](ap               | s/cpp_api.html#_CPPv4NO5cudaq15sc |
+| i/languages/cpp_api.html#_CPPv4N5 | alar_operatormlENSt7complexIdEE), |
+| cudaq16noise_model_type7unknownE) |     [\[8\]](api/languages/cp      |
+| -                                 | p_api.html#_CPPv4NO5cudaq15scalar |
+| [cudaq::noise_model_type::x_error | _operatormlERK15scalar_operator), |
+|     (C++                          |     [\[9\                         |
+|     enumerator)](ap               | ]](api/languages/cpp_api.html#_CP |
+| i/languages/cpp_api.html#_CPPv4N5 | Pv4NO5cudaq15scalar_operatormlEd) |
+| cudaq16noise_model_type7x_errorE) | -   [cu                           |
+| -                                 | daq::scalar_operator::operator\*= |
+| [cudaq::noise_model_type::y_error |     (C++                          |
+|     (C++                          |     function)](api/languag        |
+|     enumerator)](ap               | es/cpp_api.html#_CPPv4N5cudaq15sc |
+| i/languages/cpp_api.html#_CPPv4N5 | alar_operatormLENSt7complexIdEE), |
+| cudaq16noise_model_type7y_errorE) |     [\[1\]](api/languages/c       |
+| -                                 | pp_api.html#_CPPv4N5cudaq15scalar |
+| [cudaq::noise_model_type::z_error | _operatormLERK15scalar_operator), |
+|     (C++                          |     [\[2                          |
+|     enumerator)](ap               | \]](api/languages/cpp_api.html#_C |
+| i/languages/cpp_api.html#_CPPv4N5 | PPv4N5cudaq15scalar_operatormLEd) |
+| cudaq16noise_model_type7z_errorE) | -   [                             |
+| -   [cudaq::num_available_gpus    | cudaq::scalar_operator::operator+ |
+|     (C++                          |     (C++                          |
+|     function                      |     function                      |
+| )](api/languages/cpp_api.html#_CP | )](api/languages/cpp_api.html#_CP |
+| Pv4N5cudaq18num_available_gpusEv) | Pv4N5cudaq15scalar_operatorplENSt |
+| -   [cudaq::observe (C++          | 7complexIdEERK15scalar_operator), |
+|     function)]                    |     [\[1\                         |
+| (api/languages/cpp_api.html#_CPPv | ]](api/languages/cpp_api.html#_CP |
+| 4I00DpEN5cudaq7observeENSt6vector | Pv4N5cudaq15scalar_operatorplENSt |
+| I14observe_resultEERR13QuantumKer | 7complexIdEERR15scalar_operator), |
+| nelRK15SpinOpContainerDpRR4Args), |     [\[2\]](api/languages/cp      |
+|     [\[1\]](api/languages/cpp_ap  | p_api.html#_CPPv4N5cudaq15scalar_ |
+| i.html#_CPPv4I0DpEN5cudaq7observe | operatorplEdRK15scalar_operator), |
+| E14observe_resultNSt6size_tERR13Q |     [\[3\]](api/languages/cp      |
+| uantumKernelRK7spin_opDpRR4Args), | p_api.html#_CPPv4N5cudaq15scalar_ |
+|     [\[                           | operatorplEdRR15scalar_operator), |
+| 2\]](api/languages/cpp_api.html#_ |     [\[4\]](api/languages         |
+| CPPv4I0DpEN5cudaq7observeE14obser | /cpp_api.html#_CPPv4NKR5cudaq15sc |
+| ve_resultRK15observe_optionsRR13Q | alar_operatorplENSt7complexIdEE), |
+| uantumKernelRK7spin_opDpRR4Args), |     [\[5\]](api/languages/cpp     |
+|     [\[3\]](api/lang              | _api.html#_CPPv4NKR5cudaq15scalar |
+| uages/cpp_api.html#_CPPv4I0DpEN5c | _operatorplERK15scalar_operator), |
+| udaq7observeE14observe_resultRR13 |     [\[6\]]                       |
+| QuantumKernelRK7spin_opDpRR4Args) | (api/languages/cpp_api.html#_CPPv |
+| -   [cudaq::observe_options (C++  | 4NKR5cudaq15scalar_operatorplEd), |
+|     st                            |     [\[7\]]                       |
+| ruct)](api/languages/cpp_api.html | (api/languages/cpp_api.html#_CPPv |
+| #_CPPv4N5cudaq15observe_optionsE) | 4NKR5cudaq15scalar_operatorplEv), |
+| -   [cudaq::observe_result (C++   |     [\[8\]](api/language          |
+|                                   | s/cpp_api.html#_CPPv4NO5cudaq15sc |
+| class)](api/languages/cpp_api.htm | alar_operatorplENSt7complexIdEE), |
+| l#_CPPv4N5cudaq14observe_resultE) |     [\[9\]](api/languages/cp      |
+| -                                 | p_api.html#_CPPv4NO5cudaq15scalar |
+|    [cudaq::observe_result::counts | _operatorplERK15scalar_operator), |
+|     (C++                          |     [\[10\]                       |
+|     function)](api/languages/c    | ](api/languages/cpp_api.html#_CPP |
+| pp_api.html#_CPPv4N5cudaq14observ | v4NO5cudaq15scalar_operatorplEd), |
+| e_result6countsERK12spin_op_term) |     [\[11\                        |
+| -   [cudaq::observe_result::dump  | ]](api/languages/cpp_api.html#_CP |
+|     (C++                          | Pv4NO5cudaq15scalar_operatorplEv) |
+|     function)                     | -   [c                            |
+| ](api/languages/cpp_api.html#_CPP | udaq::scalar_operator::operator+= |
+| v4N5cudaq14observe_result4dumpEv) |     (C++                          |
+| -   [c                            |     function)](api/languag        |
+| udaq::observe_result::expectation | es/cpp_api.html#_CPPv4N5cudaq15sc |
+|     (C++                          | alar_operatorpLENSt7complexIdEE), |
+|                                   |     [\[1\]](api/languages/c       |
+| function)](api/languages/cpp_api. | pp_api.html#_CPPv4N5cudaq15scalar |
+| html#_CPPv4N5cudaq14observe_resul | _operatorpLERK15scalar_operator), |
+| t11expectationERK12spin_op_term), |     [\[2                          |
+|     [\[1\]](api/la                | \]](api/languages/cpp_api.html#_C |
+| nguages/cpp_api.html#_CPPv4N5cuda | PPv4N5cudaq15scalar_operatorpLEd) |
+| q14observe_result11expectationEv) | -   [                             |
+| -   [cuda                         | cudaq::scalar_operator::operator- |
+| q::observe_result::id_coefficient |     (C++                          |
+|     (C++                          |     function                      |
+|     function)](api/langu          | )](api/languages/cpp_api.html#_CP |
+| ages/cpp_api.html#_CPPv4N5cudaq14 | Pv4N5cudaq15scalar_operatormiENSt |
+| observe_result14id_coefficientEv) | 7complexIdEERK15scalar_operator), |
+| -   [cuda                         |     [\[1\                         |
+| q::observe_result::observe_result | ]](api/languages/cpp_api.html#_CP |
+|     (C++                          | Pv4N5cudaq15scalar_operatormiENSt |
+|                                   | 7complexIdEERR15scalar_operator), |
+|   function)](api/languages/cpp_ap |     [\[2\]](api/languages/cp      |
+| i.html#_CPPv4N5cudaq14observe_res | p_api.html#_CPPv4N5cudaq15scalar_ |
+| ult14observe_resultEdRK7spin_op), | operatormiEdRK15scalar_operator), |
+|     [\[1\]](a                     |     [\[3\]](api/languages/cp      |
+| pi/languages/cpp_api.html#_CPPv4N | p_api.html#_CPPv4N5cudaq15scalar_ |
+| 5cudaq14observe_result14observe_r | operatormiEdRR15scalar_operator), |
+| esultEdRK7spin_op13sample_result) |     [\[4\]](api/languages         |
+| -                                 | /cpp_api.html#_CPPv4NKR5cudaq15sc |
+|  [cudaq::observe_result::operator | alar_operatormiENSt7complexIdEE), |
+|     double (C++                   |     [\[5\]](api/languages/cpp     |
+|     functio                       | _api.html#_CPPv4NKR5cudaq15scalar |
+| n)](api/languages/cpp_api.html#_C | _operatormiERK15scalar_operator), |
+| PPv4N5cudaq14observe_resultcvdEv) |     [\[6\]]                       |
+| -                                 | (api/languages/cpp_api.html#_CPPv |
+|  [cudaq::observe_result::raw_data | 4NKR5cudaq15scalar_operatormiEd), |
+|     (C++                          |     [\[7\]]                       |
+|     function)](ap                 | (api/languages/cpp_api.html#_CPPv |
+| i/languages/cpp_api.html#_CPPv4N5 | 4NKR5cudaq15scalar_operatormiEv), |
+| cudaq14observe_result8raw_dataEv) |     [\[8\]](api/language          |
+| -   [cudaq::operator_handler (C++ | s/cpp_api.html#_CPPv4NO5cudaq15sc |
+|     cl                            | alar_operatormiENSt7complexIdEE), |
+| ass)](api/languages/cpp_api.html# |     [\[9\]](api/languages/cp      |
+| _CPPv4N5cudaq16operator_handlerE) | p_api.html#_CPPv4NO5cudaq15scalar |
+| -   [cudaq::optimizable_function  | _operatormiERK15scalar_operator), |
+|     (C++                          |     [\[10\]                       |
+|     class)                        | ](api/languages/cpp_api.html#_CPP |
+| ](api/languages/cpp_api.html#_CPP | v4NO5cudaq15scalar_operatormiEd), |
+| v4N5cudaq20optimizable_functionE) |     [\[11\                        |
+| -   [cudaq::optimization_result   | ]](api/languages/cpp_api.html#_CP |
+|     (C++                          | Pv4NO5cudaq15scalar_operatormiEv) |
+|     type                          | -   [c                            |
+| )](api/languages/cpp_api.html#_CP | udaq::scalar_operator::operator-= |
+| Pv4N5cudaq19optimization_resultE) |     (C++                          |
+| -   [cudaq::optimizer (C++        |     function)](api/languag        |
+|     class)](api/languages/cpp_a   | es/cpp_api.html#_CPPv4N5cudaq15sc |
+| pi.html#_CPPv4N5cudaq9optimizerE) | alar_operatormIENSt7complexIdEE), |
+| -   [cudaq::optimizer::optimize   |     [\[1\]](api/languages/c       |
+|     (C++                          | pp_api.html#_CPPv4N5cudaq15scalar |
+|                                   | _operatormIERK15scalar_operator), |
+|  function)](api/languages/cpp_api |     [\[2                          |
+| .html#_CPPv4N5cudaq9optimizer8opt | \]](api/languages/cpp_api.html#_C |
+| imizeEKiRR20optimizable_function) | PPv4N5cudaq15scalar_operatormIEd) |
+| -   [cu                           | -   [                             |
+| daq::optimizer::requiresGradients | cudaq::scalar_operator::operator/ |
+|     (C++                          |     (C++                          |
+|     function)](api/la             |     function                      |
+| nguages/cpp_api.html#_CPPv4N5cuda | )](api/languages/cpp_api.html#_CP |
+| q9optimizer17requiresGradientsEv) | Pv4N5cudaq15scalar_operatordvENSt |
+| -   [cudaq::orca (C++             | 7complexIdEERK15scalar_operator), |
+|     type)](api/languages/         |     [\[1\                         |
+| cpp_api.html#_CPPv4N5cudaq4orcaE) | ]](api/languages/cpp_api.html#_CP |
+| -   [cudaq::orca::sample (C++     | Pv4N5cudaq15scalar_operatordvENSt |
+|     function)](api/languages/c    | 7complexIdEERR15scalar_operator), |
+| pp_api.html#_CPPv4N5cudaq4orca6sa |     [\[2\]](api/languages/cp      |
+| mpleERNSt6vectorINSt6size_tEEERNS | p_api.html#_CPPv4N5cudaq15scalar_ |
+| t6vectorINSt6size_tEEERNSt6vector | operatordvEdRK15scalar_operator), |
+| IdEERNSt6vectorIdEEiNSt6size_tE), |     [\[3\]](api/languages/cp      |
+|     [\[1\]]                       | p_api.html#_CPPv4N5cudaq15scalar_ |
+| (api/languages/cpp_api.html#_CPPv | operatordvEdRR15scalar_operator), |
+| 4N5cudaq4orca6sampleERNSt6vectorI |     [\[4\]](api/languages         |
+| NSt6size_tEEERNSt6vectorINSt6size | /cpp_api.html#_CPPv4NKR5cudaq15sc |
+| _tEEERNSt6vectorIdEEiNSt6size_tE) | alar_operatordvENSt7complexIdEE), |
+| -   [cudaq::orca::sample_async    |     [\[5\]](api/languages/cpp     |
+|     (C++                          | _api.html#_CPPv4NKR5cudaq15scalar |
+|                                   | _operatordvERK15scalar_operator), |
+| function)](api/languages/cpp_api. |     [\[6\]]                       |
+| html#_CPPv4N5cudaq4orca12sample_a | (api/languages/cpp_api.html#_CPPv |
+| syncERNSt6vectorINSt6size_tEEERNS | 4NKR5cudaq15scalar_operatordvEd), |
+| t6vectorINSt6size_tEEERNSt6vector |     [\[7\]](api/language          |
+| IdEERNSt6vectorIdEEiNSt6size_tE), | s/cpp_api.html#_CPPv4NO5cudaq15sc |
+|     [\[1\]](api/la                | alar_operatordvENSt7complexIdEE), |
+| nguages/cpp_api.html#_CPPv4N5cuda |     [\[8\]](api/languages/cp      |
+| q4orca12sample_asyncERNSt6vectorI | p_api.html#_CPPv4NO5cudaq15scalar |
+| NSt6size_tEEERNSt6vectorINSt6size | _operatordvERK15scalar_operator), |
+| _tEEERNSt6vectorIdEEiNSt6size_tE) |     [\[9\                         |
+| -   [cudaq::OrcaRemoteRESTQPU     | ]](api/languages/cpp_api.html#_CP |
+|     (C++                          | Pv4NO5cudaq15scalar_operatordvEd) |
+|     cla                           | -   [c                            |
+| ss)](api/languages/cpp_api.html#_ | udaq::scalar_operator::operator/= |
+| CPPv4N5cudaq17OrcaRemoteRESTQPUE) |     (C++                          |
+| -   [cudaq::pauli1 (C++           |     function)](api/languag        |
+|     class)](api/languages/cp      | es/cpp_api.html#_CPPv4N5cudaq15sc |
+| p_api.html#_CPPv4N5cudaq6pauli1E) | alar_operatordVENSt7complexIdEE), |
+| -                                 |     [\[1\]](api/languages/c       |
+|    [cudaq::pauli1::num_parameters | pp_api.html#_CPPv4N5cudaq15scalar |
+|     (C++                          | _operatordVERK15scalar_operator), |
+|     member)]                      |     [\[2                          |
+| (api/languages/cpp_api.html#_CPPv | \]](api/languages/cpp_api.html#_C |
+| 4N5cudaq6pauli114num_parametersE) | PPv4N5cudaq15scalar_operatordVEd) |
+| -   [cudaq::pauli1::num_targets   | -   [                             |
+|     (C++                          | cudaq::scalar_operator::operator= |
 |     membe                         |     (C++                          |
-| r)](api/languages/cpp_api.html#_C |     func                          |
-| PPv4N5cudaq6pauli211num_targetsE) | tion)](api/languages/cpp_api.html |
-| -   [cudaq::pauli2::pauli2 (C++   | #_CPPv4N5cudaq15scalar_operator15 |
-|     function)](api/languages/cpp_ | scalar_operatorENSt7complexIdEE), |
-| api.html#_CPPv4N5cudaq6pauli26pau |     [\[1\]](api/langu             |
-| li2ERKNSt6vectorIN5cudaq4realEEE) | ages/cpp_api.html#_CPPv4N5cudaq15 |
-| -   [cudaq::phase_damping (C++    | scalar_operator15scalar_operatorE |
-|                                   | RK15scalar_callbackRRNSt13unorder |
-|  class)](api/languages/cpp_api.ht | ed_mapINSt6stringENSt6stringEEE), |
-| ml#_CPPv4N5cudaq13phase_dampingE) |     [\[2\                         |
-| -   [cud                          | ]](api/languages/cpp_api.html#_CP |
-| aq::phase_damping::num_parameters | Pv4N5cudaq15scalar_operator15scal |
-|     (C++                          | ar_operatorERK15scalar_operator), |
-|     member)](api/lan              |     [\[3\]](api/langu             |
-| guages/cpp_api.html#_CPPv4N5cudaq | ages/cpp_api.html#_CPPv4N5cudaq15 |
-| 13phase_damping14num_parametersE) | scalar_operator15scalar_operatorE |
-| -   [                             | RR15scalar_callbackRRNSt13unorder |
-| cudaq::phase_damping::num_targets | ed_mapINSt6stringENSt6stringEEE), |
-|     (C++                          |     [\[4\                         |
-|     member)](api/                 | ]](api/languages/cpp_api.html#_CP |
-| languages/cpp_api.html#_CPPv4N5cu | Pv4N5cudaq15scalar_operator15scal |
-| daq13phase_damping11num_targetsE) | ar_operatorERR15scalar_operator), |
-| -   [cudaq::phase_flip_channel    |     [\[5\]](api/language          |
-|     (C++                          | s/cpp_api.html#_CPPv4N5cudaq15sca |
-|     clas                          | lar_operator15scalar_operatorEd), |
-| s)](api/languages/cpp_api.html#_C |     [\[6\]](api/languag           |
-| PPv4N5cudaq18phase_flip_channelE) | es/cpp_api.html#_CPPv4N5cudaq15sc |
-| -   [cudaq::p                     | alar_operator15scalar_operatorEv) |
-| hase_flip_channel::num_parameters | -   [                             |
-|     (C++                          | cudaq::scalar_operator::to_matrix |
-|     member)](api/language         |     (C++                          |
-| s/cpp_api.html#_CPPv4N5cudaq18pha |                                   |
-| se_flip_channel14num_parametersE) |   function)](api/languages/cpp_ap |
-| -   [cudaq                        | i.html#_CPPv4NK5cudaq15scalar_ope |
-| ::phase_flip_channel::num_targets | rator9to_matrixERKNSt13unordered_ |
-|     (C++                          | mapINSt6stringENSt7complexIdEEEE) |
-|     member)](api/langu            | -   [                             |
-| ages/cpp_api.html#_CPPv4N5cudaq18 | cudaq::scalar_operator::to_string |
-| phase_flip_channel11num_targetsE) |     (C++                          |
-| -   [cudaq::product_op (C++       |     function)](api/l              |
-|                                   | anguages/cpp_api.html#_CPPv4NK5cu |
-|  class)](api/languages/cpp_api.ht | daq15scalar_operator9to_stringEv) |
-| ml#_CPPv4I0EN5cudaq10product_opE) | -   [cudaq::s                     |
-| -   [cudaq::product_op::begin     | calar_operator::\~scalar_operator |
+| r)](api/languages/cpp_api.html#_C |     function)](api/languages/c    |
+| PPv4N5cudaq6pauli111num_targetsE) | pp_api.html#_CPPv4N5cudaq15scalar |
+| -   [cudaq::pauli1::pauli1 (C++   | _operatoraSERK15scalar_operator), |
+|     function)](api/languages/cpp_ |     [\[1\]](api/languages/        |
+| api.html#_CPPv4N5cudaq6pauli16pau | cpp_api.html#_CPPv4N5cudaq15scala |
+| li1ERKNSt6vectorIN5cudaq4realEEE) | r_operatoraSERR15scalar_operator) |
+| -   [cudaq::pauli2 (C++           | -   [c                            |
+|     class)](api/languages/cp      | udaq::scalar_operator::operator== |
+| p_api.html#_CPPv4N5cudaq6pauli2E) |     (C++                          |
+| -                                 |     function)](api/languages/c    |
+|    [cudaq::pauli2::num_parameters | pp_api.html#_CPPv4NK5cudaq15scala |
+|     (C++                          | r_operatoreqERK15scalar_operator) |
+|     member)]                      | -   [cudaq:                       |
+| (api/languages/cpp_api.html#_CPPv | :scalar_operator::scalar_operator |
+| 4N5cudaq6pauli214num_parametersE) |     (C++                          |
+| -   [cudaq::pauli2::num_targets   |     func                          |
+|     (C++                          | tion)](api/languages/cpp_api.html |
+|     membe                         | #_CPPv4N5cudaq15scalar_operator15 |
+| r)](api/languages/cpp_api.html#_C | scalar_operatorENSt7complexIdEE), |
+| PPv4N5cudaq6pauli211num_targetsE) |     [\[1\]](api/langu             |
+| -   [cudaq::pauli2::pauli2 (C++   | ages/cpp_api.html#_CPPv4N5cudaq15 |
+|     function)](api/languages/cpp_ | scalar_operator15scalar_operatorE |
+| api.html#_CPPv4N5cudaq6pauli26pau | RK15scalar_callbackRRNSt13unorder |
+| li2ERKNSt6vectorIN5cudaq4realEEE) | ed_mapINSt6stringENSt6stringEEE), |
+| -   [cudaq::phase_damping (C++    |     [\[2\                         |
+|                                   | ]](api/languages/cpp_api.html#_CP |
+|  class)](api/languages/cpp_api.ht | Pv4N5cudaq15scalar_operator15scal |
+| ml#_CPPv4N5cudaq13phase_dampingE) | ar_operatorERK15scalar_operator), |
+| -   [cud                          |     [\[3\]](api/langu             |
+| aq::phase_damping::num_parameters | ages/cpp_api.html#_CPPv4N5cudaq15 |
+|     (C++                          | scalar_operator15scalar_operatorE |
+|     member)](api/lan              | RR15scalar_callbackRRNSt13unorder |
+| guages/cpp_api.html#_CPPv4N5cudaq | ed_mapINSt6stringENSt6stringEEE), |
+| 13phase_damping14num_parametersE) |     [\[4\                         |
+| -   [                             | ]](api/languages/cpp_api.html#_CP |
+| cudaq::phase_damping::num_targets | Pv4N5cudaq15scalar_operator15scal |
+|     (C++                          | ar_operatorERR15scalar_operator), |
+|     member)](api/                 |     [\[5\]](api/language          |
+| languages/cpp_api.html#_CPPv4N5cu | s/cpp_api.html#_CPPv4N5cudaq15sca |
+| daq13phase_damping11num_targetsE) | lar_operator15scalar_operatorEd), |
+| -   [cudaq::phase_flip_channel    |     [\[6\]](api/languag           |
+|     (C++                          | es/cpp_api.html#_CPPv4N5cudaq15sc |
+|     clas                          | alar_operator15scalar_operatorEv) |
+| s)](api/languages/cpp_api.html#_C | -   [                             |
+| PPv4N5cudaq18phase_flip_channelE) | cudaq::scalar_operator::to_matrix |
+| -   [cudaq::p                     |     (C++                          |
+| hase_flip_channel::num_parameters |                                   |
+|     (C++                          |   function)](api/languages/cpp_ap |
+|     member)](api/language         | i.html#_CPPv4NK5cudaq15scalar_ope |
+| s/cpp_api.html#_CPPv4N5cudaq18pha | rator9to_matrixERKNSt13unordered_ |
+| se_flip_channel14num_parametersE) | mapINSt6stringENSt7complexIdEEEE) |
+| -   [cudaq                        | -   [                             |
+| ::phase_flip_channel::num_targets | cudaq::scalar_operator::to_string |
 |     (C++                          |     (C++                          |
-|     functio                       |     functio                       |
-| n)](api/languages/cpp_api.html#_C | n)](api/languages/cpp_api.html#_C |
-| PPv4NK5cudaq10product_op5beginEv) | PPv4N5cudaq15scalar_operatorD0Ev) |
-| -                                 | -   [cudaq::set_noise (C++        |
-|  [cudaq::product_op::canonicalize |     function)](api/langu          |
-|     (C++                          | ages/cpp_api.html#_CPPv4N5cudaq9s |
-|     func                          | et_noiseERKN5cudaq11noise_modelE) |
-| tion)](api/languages/cpp_api.html | -   [cudaq::set_random_seed (C++  |
-| #_CPPv4N5cudaq10product_op12canon |     function)](api/               |
-| icalizeERKNSt3setINSt6size_tEEE), | languages/cpp_api.html#_CPPv4N5cu |
-|     [\[1\]](api                   | daq15set_random_seedENSt6size_tE) |
-| /languages/cpp_api.html#_CPPv4N5c | -   [cudaq::simulation_precision  |
-| udaq10product_op12canonicalizeEv) |     (C++                          |
-| -   [                             |     enum)                         |
-| cudaq::product_op::const_iterator | ](api/languages/cpp_api.html#_CPP |
-|     (C++                          | v4N5cudaq20simulation_precisionE) |
-|     struct)](api/                 | -   [                             |
-| languages/cpp_api.html#_CPPv4N5cu | cudaq::simulation_precision::fp32 |
-| daq10product_op14const_iteratorE) |     (C++                          |
-| -   [cudaq::product_o             |     enumerator)](api              |
-| p::const_iterator::const_iterator | /languages/cpp_api.html#_CPPv4N5c |
-|     (C++                          | udaq20simulation_precision4fp32E) |
-|     fu                            | -   [                             |
-| nction)](api/languages/cpp_api.ht | cudaq::simulation_precision::fp64 |
-| ml#_CPPv4N5cudaq10product_op14con |     (C++                          |
-| st_iterator14const_iteratorEPK10p |     enumerator)](api              |
-| roduct_opI9HandlerTyENSt6size_tE) | /languages/cpp_api.html#_CPPv4N5c |
-| -   [cudaq::produ                 | udaq20simulation_precision4fp64E) |
-| ct_op::const_iterator::operator!= | -   [cudaq::SimulationState (C++  |
-|     (C++                          |     c                             |
-|     fun                           | lass)](api/languages/cpp_api.html |
-| ction)](api/languages/cpp_api.htm | #_CPPv4N5cudaq15SimulationStateE) |
-| l#_CPPv4NK5cudaq10product_op14con | -   [c                            |
-| st_iteratorneERK14const_iterator) | udaq::SimulationState::HostBuffer |
-| -   [cudaq::produ                 |     (C++                          |
-| ct_op::const_iterator::operator\* |     struct)](api/l                |
-|     (C++                          | anguages/cpp_api.html#_CPPv4N5cud |
-|     function)](api/lang           | aq15SimulationState10HostBufferE) |
-| uages/cpp_api.html#_CPPv4NK5cudaq | -   [                             |
-| 10product_op14const_iteratormlEv) | cudaq::SimulationState::precision |
-| -   [cudaq::produ                 |     (C++                          |
-| ct_op::const_iterator::operator++ |     enum)](api                    |
-|     (C++                          | /languages/cpp_api.html#_CPPv4N5c |
-|     function)](api/lang           | udaq15SimulationState9precisionE) |
-| uages/cpp_api.html#_CPPv4N5cudaq1 | -   [cudaq:                       |
-| 0product_op14const_iteratorppEi), | :SimulationState::precision::fp32 |
-|     [\[1\]](api/lan               |     (C++                          |
-| guages/cpp_api.html#_CPPv4N5cudaq |     enumerator)](api/lang         |
-| 10product_op14const_iteratorppEv) | uages/cpp_api.html#_CPPv4N5cudaq1 |
-| -   [cudaq::produc                | 5SimulationState9precision4fp32E) |
-| t_op::const_iterator::operator\-- | -   [cudaq:                       |
-|     (C++                          | :SimulationState::precision::fp64 |
+|     member)](api/langu            |     function)](api/l              |
+| ages/cpp_api.html#_CPPv4N5cudaq18 | anguages/cpp_api.html#_CPPv4NK5cu |
+| phase_flip_channel11num_targetsE) | daq15scalar_operator9to_stringEv) |
+| -   [cudaq::product_op (C++       | -   [cudaq::s                     |
+|                                   | calar_operator::\~scalar_operator |
+|  class)](api/languages/cpp_api.ht |     (C++                          |
+| ml#_CPPv4I0EN5cudaq10product_opE) |     functio                       |
+| -   [cudaq::product_op::begin     | n)](api/languages/cpp_api.html#_C |
+|     (C++                          | PPv4N5cudaq15scalar_operatorD0Ev) |
+|     functio                       | -   [cudaq::set_noise (C++        |
+| n)](api/languages/cpp_api.html#_C |     function)](api/langu          |
+| PPv4NK5cudaq10product_op5beginEv) | ages/cpp_api.html#_CPPv4N5cudaq9s |
+| -                                 | et_noiseERKN5cudaq11noise_modelE) |
+|  [cudaq::product_op::canonicalize | -   [cudaq::set_random_seed (C++  |
+|     (C++                          |     function)](api/               |
+|     func                          | languages/cpp_api.html#_CPPv4N5cu |
+| tion)](api/languages/cpp_api.html | daq15set_random_seedENSt6size_tE) |
+| #_CPPv4N5cudaq10product_op12canon | -   [cudaq::simulation_precision  |
+| icalizeERKNSt3setINSt6size_tEEE), |     (C++                          |
+|     [\[1\]](api                   |     enum)                         |
+| /languages/cpp_api.html#_CPPv4N5c | ](api/languages/cpp_api.html#_CPP |
+| udaq10product_op12canonicalizeEv) | v4N5cudaq20simulation_precisionE) |
+| -   [                             | -   [                             |
+| cudaq::product_op::const_iterator | cudaq::simulation_precision::fp32 |
+|     (C++                          |     (C++                          |
+|     struct)](api/                 |     enumerator)](api              |
+| languages/cpp_api.html#_CPPv4N5cu | /languages/cpp_api.html#_CPPv4N5c |
+| daq10product_op14const_iteratorE) | udaq20simulation_precision4fp32E) |
+| -   [cudaq::product_o             | -   [                             |
+| p::const_iterator::const_iterator | cudaq::simulation_precision::fp64 |
+|     (C++                          |     (C++                          |
+|     fu                            |     enumerator)](api              |
+| nction)](api/languages/cpp_api.ht | /languages/cpp_api.html#_CPPv4N5c |
+| ml#_CPPv4N5cudaq10product_op14con | udaq20simulation_precision4fp64E) |
+| st_iterator14const_iteratorEPK10p | -   [cudaq::SimulationState (C++  |
+| roduct_opI9HandlerTyENSt6size_tE) |     c                             |
+| -   [cudaq::produ                 | lass)](api/languages/cpp_api.html |
+| ct_op::const_iterator::operator!= | #_CPPv4N5cudaq15SimulationStateE) |
+|     (C++                          | -   [c                            |
+|     fun                           | udaq::SimulationState::HostBuffer |
+| ction)](api/languages/cpp_api.htm |     (C++                          |
+| l#_CPPv4NK5cudaq10product_op14con |     struct)](api/l                |
+| st_iteratorneERK14const_iterator) | anguages/cpp_api.html#_CPPv4N5cud |
+| -   [cudaq::produ                 | aq15SimulationState10HostBufferE) |
+| ct_op::const_iterator::operator\* | -   [                             |
+|     (C++                          | cudaq::SimulationState::precision |
+|     function)](api/lang           |     (C++                          |
+| uages/cpp_api.html#_CPPv4NK5cudaq |     enum)](api                    |
+| 10product_op14const_iteratormlEv) | /languages/cpp_api.html#_CPPv4N5c |
+| -   [cudaq::produ                 | udaq15SimulationState9precisionE) |
+| ct_op::const_iterator::operator++ | -   [cudaq:                       |
+|     (C++                          | :SimulationState::precision::fp32 |
 |     function)](api/lang           |     (C++                          |
 | uages/cpp_api.html#_CPPv4N5cudaq1 |     enumerator)](api/lang         |
-| 0product_op14const_iteratormmEi), | uages/cpp_api.html#_CPPv4N5cudaq1 |
-|     [\[1\]](api/lan               | 5SimulationState9precision4fp64E) |
-| guages/cpp_api.html#_CPPv4N5cudaq | -                                 |
-| 10product_op14const_iteratormmEv) |   [cudaq::SimulationState::Tensor |
+| 0product_op14const_iteratorppEi), | uages/cpp_api.html#_CPPv4N5cudaq1 |
+|     [\[1\]](api/lan               | 5SimulationState9precision4fp32E) |
+| guages/cpp_api.html#_CPPv4N5cudaq | -   [cudaq:                       |
+| 10product_op14const_iteratorppEv) | :SimulationState::precision::fp64 |
 | -   [cudaq::produc                |     (C++                          |
-| t_op::const_iterator::operator-\> |     struct)](                     |
-|     (C++                          | api/languages/cpp_api.html#_CPPv4 |
-|     function)](api/lan            | N5cudaq15SimulationState6TensorE) |
-| guages/cpp_api.html#_CPPv4N5cudaq | -   [cudaq::spin_handler (C++     |
-| 10product_op14const_iteratorptEv) |                                   |
-| -   [cudaq::produ                 |   class)](api/languages/cpp_api.h |
-| ct_op::const_iterator::operator== | tml#_CPPv4N5cudaq12spin_handlerE) |
-|     (C++                          | -   [cudaq:                       |
-|     fun                           | :spin_handler::to_diagonal_matrix |
-| ction)](api/languages/cpp_api.htm |     (C++                          |
-| l#_CPPv4NK5cudaq10product_op14con |     function)](api/la             |
-| st_iteratoreqERK14const_iterator) | nguages/cpp_api.html#_CPPv4NK5cud |
-|                                   | aq12spin_handler18to_diagonal_mat |
-|                                   | rixERNSt13unordered_mapINSt6size_ |
-|                                   | tENSt7int64_tEEERKNSt13unordered_ |
+| t_op::const_iterator::operator\-- |     enumerator)](api/lang         |
+|     (C++                          | uages/cpp_api.html#_CPPv4N5cudaq1 |
+|     function)](api/lang           | 5SimulationState9precision4fp64E) |
+| uages/cpp_api.html#_CPPv4N5cudaq1 | -                                 |
+| 0product_op14const_iteratormmEi), |   [cudaq::SimulationState::Tensor |
+|     [\[1\]](api/lan               |     (C++                          |
+| guages/cpp_api.html#_CPPv4N5cudaq |     struct)](                     |
+| 10product_op14const_iteratormmEv) | api/languages/cpp_api.html#_CPPv4 |
+| -   [cudaq::produc                | N5cudaq15SimulationState6TensorE) |
+| t_op::const_iterator::operator-\> | -   [cudaq::spin_handler (C++     |
+|     (C++                          |                                   |
+|     function)](api/lan            |   class)](api/languages/cpp_api.h |
+| guages/cpp_api.html#_CPPv4N5cudaq | tml#_CPPv4N5cudaq12spin_handlerE) |
+| 10product_op14const_iteratorptEv) | -   [cudaq:                       |
+| -   [cudaq::produ                 | :spin_handler::to_diagonal_matrix |
+| ct_op::const_iterator::operator== |     (C++                          |
+|     (C++                          |     function)](api/la             |
+|     fun                           | nguages/cpp_api.html#_CPPv4NK5cud |
+| ction)](api/languages/cpp_api.htm | aq12spin_handler18to_diagonal_mat |
+| l#_CPPv4NK5cudaq10product_op14con | rixERNSt13unordered_mapINSt6size_ |
+| st_iteratoreqERK14const_iterator) | tENSt7int64_tEEERKNSt13unordered_ |
 |                                   | mapINSt6stringENSt7complexIdEEEE) |
 |                                   | -                                 |
 |                                   |   [cudaq::spin_handler::to_matrix |

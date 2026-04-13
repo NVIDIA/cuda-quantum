@@ -2168,10 +2168,36 @@ C++
 ::: {.tab-content .docutils}
 ::: {.highlight-cpp .notranslate}
 ::: highlight
-    Bitstring counts:
-    {
-      10: 771
-      11: 229
+    __qpu__ auto kernel2() {
+      cudaq::qvector q(2);
+      h(q[0]);
+      auto b0 = mz(q[0]);
+      cudaq::reset(q[0]);
+      x(q[0]);
+
+      if (b0) {
+        h(q[1]);
+      }
+      return mz(q);
+    }
+
+    int main() {
+      auto results = cudaq::run(1000, kernel2);
+      // Count occurrences of each bitstring
+      std::map<std::string, std::size_t> bitstring_counts;
+      for (const auto &result : results) {
+        std::string bits = std::to_string(static_cast<int>(result[0])) +
+                           std::to_string(static_cast<int>(result[1]));
+        bitstring_counts[bits]++;
+      }
+
+      printf("Bitstring counts:\n{\n");
+      for (const auto &[bits, count] : bitstring_counts) {
+        printf("  %s: %zu\n", bits.c_str(), count);
+      }
+      printf("}\n");
+
+      return 0;
     }
 :::
 :::
