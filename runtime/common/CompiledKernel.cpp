@@ -48,10 +48,9 @@ bool cudaq::CompiledKernel::hasMlir() const {
 }
 
 bool cudaq::CompiledKernel::isFullySpecialized() const {
-  for (auto &[key, artifact] : artifacts)
-    if (auto *jit = std::get_if<JitArtifact>(&artifact))
-      return jit->argsCreator == nullptr;
-  return true; // No JIT artifact → fully specialized.
+  if (!hasJit())
+    return true; // No JIT artifact → fully specialized.
+  return getJit().argsCreator == nullptr;
 }
 
 void cudaq::CompiledKernel::addArtifact(std::string name,
@@ -88,7 +87,7 @@ cudaq::KernelThunkResultType cudaq::CompiledKernel::execute() const {
     throw std::runtime_error(
         "Kernel has unspecialized parameters; call execute(rawArgs) instead.");
   if (!resultInfo.hasResult()) {
-    getEntryPoint()();
+    getJit().entryPoint();
     return {nullptr, 0};
   }
   // Allocate a result buffer on-the-fly.
@@ -98,12 +97,12 @@ cudaq::KernelThunkResultType cudaq::CompiledKernel::execute() const {
   return {buf.release(), resultInfo.bufferSize};
 }
 
-void (*cudaq::CompiledKernel::getEntryPoint() const)() {
-  return getJit().entryPoint;
+void (*cudaq::CompiledKernel::JitArtifact::getEntryPoint() const)() {
+  return entryPoint;
 }
 
-cudaq::JitEngine cudaq::CompiledKernel::getEngine() const {
-  return getJit().engine;
+cudaq::JitEngine cudaq::CompiledKernel::JitArtifact::getEngine() const {
+  return engine;
 }
 
 void cudaq::CompiledKernel::attachJit(JitEngine engine,
