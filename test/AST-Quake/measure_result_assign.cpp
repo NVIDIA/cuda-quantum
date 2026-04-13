@@ -1,18 +1,21 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/platform.h"
-#include "measure_result.h"
+// RUN: not cudaq-quake %s 2>&1 | FileCheck %s
 
-bool cudaq::__nvqpp__MeasureResultBoolConversion(int result) {
-  auto &platform = get_platform();
-  auto *ctx = getExecutionContext();
-  if (ctx && ctx->name == "tracer")
-    ctx->registerNames.push_back("");
-  return result == 1;
+#include <cudaq.h>
+
+__qpu__ bool assign_kernel() {
+  cudaq::qvector q(2);
+  auto results = mz(q);
+  results[0] = mz(q[1]);
+  return static_cast<bool>(results[0]);
 }
+
+// CHECK: error:{{.*}}deleted operator '='
+// CHECK: error: C++ source has errors
