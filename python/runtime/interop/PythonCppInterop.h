@@ -7,10 +7,7 @@
  ******************************************************************************/
 #pragma once
 
-#include "common/CompiledKernel.h"
 #include "cudaq/qis/qkernel.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"
-#include <optional>
 #include <pybind11/pybind11.h>
 
 namespace py = pybind11;
@@ -56,19 +53,19 @@ public:
 
 private:
   py::object kernel;
-  std::optional<cudaq::CompiledKernel> cachedKernel;
+  // Hold on to the CompiledKernel, it keeps the JIT engine alive.
+  py::object compiledKernel;
 
   template <typename... As>
   void *getKernelHelper(bool isEntryPoint, As... as) {
     // Perform beta reduction on the kernel decorator.
-    cachedKernel =
-        kernel.attr("beta_reduction")(isEntryPoint, std::forward<As>(as)...)
-            .template cast<cudaq::CompiledKernel>();
+    compiledKernel =
+        kernel.attr("beta_reduction")(isEntryPoint, std::forward<As>(as)...);
+    auto entryPointAddr =
+        compiledKernel.attr("entry_point").cast<std::uintptr_t>();
     // Set lsb to 1 to denote this is NOT a C++ kernel.
-    auto *p =
-        reinterpret_cast<void *>(reinterpret_cast<std::intptr_t>(
-                                     cachedKernel->getJit().getEntryPoint()) |
-                                 1);
+    auto *p = reinterpret_cast<void *>(
+        static_cast<std::intptr_t>(entryPointAddr) | 1);
     // Translate the pointer to the entry point code buffer to a `qkernel`.
     return p;
   }
