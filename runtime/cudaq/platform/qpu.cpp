@@ -40,6 +40,6 @@ void *cudaq::QPU::specializeModule(const std::string &name,
   auto compiled = launcher->compileModule(name, module, rawArgs, isEntryPoint);
   if (cachedEngine)
     throw std::runtime_error("cache must not be populated");
-  cachedEngine = compiled.getEngine();
-  return reinterpret_cast<void *>(compiled.getEntryPoint());
+  cachedEngine = compiled.getJit().getEngine();
+  return reinterpret_cast<void *>(compiled.getJit().getEntryPoint());
 }
