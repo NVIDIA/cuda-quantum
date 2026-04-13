@@ -1,5 +1,5 @@
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s -check-prefix=FAIL
+// RUN: not nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t 2>&1 | FileCheck %s -check-prefix=FAIL
 
 #include <cudaq.h>
 
