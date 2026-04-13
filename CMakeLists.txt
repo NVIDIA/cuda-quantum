@@ -144,6 +144,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
 if(NOT LLVM_VERSION_MAJOR)
   set(LLVM_VERSION_MAJOR 22)
+  set(LLVM_VERSION_MINOR 0)
 endif()
 
 find_package(Git QUIET)
@@ -340,10 +341,10 @@ endif()
 # using `LLVM_VERSION_MAJOR`, e.g. "-LLVM_VERSION_MAJOR=16".  Note that this
 # version variable is set to the latest LLVM version by default, and setting it
 # to an older version might break the project.
-find_package(LLVM ${LLVM_VERSION_MAJOR} CONFIG QUIET)
+find_package(LLVM ${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR} CONFIG QUIET)
 
 if(NOT LLVM_DIR)
-  message(STATUS "LLVM_DIR not found, will try with llvm-config executable.")
+  message(STATUS "LLVM_DIR not found for ${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR}, will try with llvm-config executable.")
 
   macro(find_llvm_config name version_major)
     set(extra_args ${ARGN})
@@ -401,7 +402,7 @@ if(NOT LLVM_DIR)
       "Could not find suitable llvm-config(-${LLVM_VERSION_MAJOR}).\
       \nTry providing valid -DLLVM_DIR=/path/to/llvm/lib/cmake/llvm.")
   else()
-    find_package(LLVM ${LLVM_VERSION_MAJOR} REQUIRED CONFIG
+    find_package(LLVM ${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR} REQUIRED CONFIG
       HINTS ${LLVM_CONFIG_CMAKE_DIR} NO_DEFAULT_PATH)
   endif()
 endif()

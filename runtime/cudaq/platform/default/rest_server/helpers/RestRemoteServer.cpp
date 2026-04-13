@@ -195,7 +195,7 @@ public:
         [&](const std::string &reqBody,
             const std::unordered_multimap<std::string, std::string> &headers) {
           requestStart = std::chrono::high_resolution_clock::now();
-          auto shutdownAfterHandlingRequest = llvm::make_scope_exit([&] {
+          llvm::make_scope_exit([&] {
             if (this->exitAfterJob)
               m_server->stop();
           });
@@ -478,8 +478,7 @@ protected:
         llvm::errs() << "Failed to emit LLVM IR\n";
         return nullptr;
       }
-      auto tmBuilderOrError =
-          llvm::orc::JITTargetMachineBuilder::detectHost();
+      auto tmBuilderOrError = llvm::orc::JITTargetMachineBuilder::detectHost();
       if (tmBuilderOrError) {
         auto tmOrError = tmBuilderOrError->createTargetMachine();
         if (tmOrError)
@@ -620,7 +619,7 @@ protected:
     });
 
     // Notify watchdog thread of graceful completion at scope exit
-    auto notifyWatchdog = llvm::make_scope_exit([&] {
+    llvm::make_scope_exit([&] {
       std::unique_lock<std::mutex> lock(watchdogMutex);
       processingComplete = true;
       lock.unlock();
