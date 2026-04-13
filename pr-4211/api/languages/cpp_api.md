@@ -8143,18 +8143,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1qvector_1a1207f490dab570c43527a9563d29d57a .target}[[inline]{.pre}]{.k}[ ]{.w}[[explicit]{.pre}]{.k}[ ]{.w}[[[qvector]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[complex]{.pre}]{.n}](#_CPPv4N5cudaq7complexE "cudaq::complex"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[vector]{.pre}]{.n .sig-param}, [[bool]{.pre}]{.kt}[ ]{.w}[[validate]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq7qvector7qvectorERKNSt6vectorI7complexEEb "Permalink to this definition"){.headerlink}\
-
-    :   Construct a [`qvector`{.docutils .literal .notranslate}]{.pre}
-        from an input state vector. The number of qubits is determined
-        by the size of the input vector. If [`validate`{.docutils
-        .literal .notranslate}]{.pre} is set, it will check the norm of
-        input state vector.
-
-    ```{=html}
-    <!-- -->
-    ```
-
     []{#classcudaq_1_1qvector_1a0fd2545386af75c0d1aed18c8b3b50ef .target}[[inline]{.pre}]{.k}[ ]{.w}[[[qvector]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[state]{.pre}]{.n}](#_CPPv4N5cudaq7qvector7qvectorERK5state "cudaq::qvector::qvector::state"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[state]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq7qvector7qvectorERK5state "Permalink to this definition"){.headerlink}\
 
     :   Construct a [`qvector`{.docutils .literal .notranslate}]{.pre}
@@ -13451,7 +13439,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[]{#cudaq_8h_1a9d165737129a8ca7423ce1e0b0c9ca7e .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[initialize]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi10initializeEv "Permalink to this definition"){.headerlink}\
+[]{#cudaq__mpi_8h_1a9d165737129a8ca7423ce1e0b0c9ca7e .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[initialize]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi10initializeEv "Permalink to this definition"){.headerlink}\
 
 :   Initialize MPI if available. This function is a no-op if there
     CUDA-Q has not been built against MPI.
@@ -13460,7 +13448,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[]{#cudaq_8h_1a6c944ecd26dfb16504034fb023a04a99 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[initialize]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[int]{.pre}]{.kt}[ ]{.w}[[argc]{.pre}]{.n .sig-param}, [[char]{.pre}]{.kt}[ ]{.w}[[\*]{.pre}]{.p}[[\*]{.pre}]{.p}[[argv]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi10initializeEiPPc "Permalink to this definition"){.headerlink}\
+[]{#cudaq__mpi_8h_1a6c944ecd26dfb16504034fb023a04a99 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[initialize]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[int]{.pre}]{.kt}[ ]{.w}[[argc]{.pre}]{.n .sig-param}, [[char]{.pre}]{.kt}[ ]{.w}[[\*]{.pre}]{.p}[[\*]{.pre}]{.p}[[argv]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi10initializeEiPPc "Permalink to this definition"){.headerlink}\
 
 :   Initialize MPI if available. This function is a no-op if there
     CUDA-Q has not been built against MPI. Takes program arguments as
@@ -13470,7 +13458,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[]{#cudaq_8h_1a2c7d083e6db96bf244206e1da6f44774 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[is_initialized]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi14is_initializedEv "Permalink to this definition"){.headerlink}\
+[]{#observe_8h_1a2c7d083e6db96bf244206e1da6f44774 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[is_initialized]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi14is_initializedEv "Permalink to this definition"){.headerlink}\
 
 :   Return true if MPI is already initialized, false otherwise.
 
@@ -13478,7 +13466,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[]{#cudaq_8h_1adbce8f0a621b7c6073e3f358d452b5ed .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[finalize]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi8finalizeEv "Permalink to this definition"){.headerlink}\
+[]{#cudaq__mpi_8h_1adbce8f0a621b7c6073e3f358d452b5ed .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[finalize]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi8finalizeEv "Permalink to this definition"){.headerlink}\
 
 :   Finalize MPI. This function is a no-op if there CUDA-Q has not been
     built against MPI.
@@ -13487,7 +13475,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[]{#cudaq_8h_1ae314e6dc9f293eebe6b9dcb44efef7c3 .target}[[int]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[rank]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi4rankEv "Permalink to this definition"){.headerlink}\
+[]{#observe_8h_1ae314e6dc9f293eebe6b9dcb44efef7c3 .target}[[int]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[rank]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi4rankEv "Permalink to this definition"){.headerlink}\
 
 :   Return the rank of the calling process.
 
@@ -13495,7 +13483,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[]{#cudaq_8h_1ae3a3c06ca899063fbabb0f0c936d3c41 .target}[[int]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[num_ranks]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi9num_ranksEv "Permalink to this definition"){.headerlink}\
+[]{#observe_8h_1ae3a3c06ca899063fbabb0f0c936d3c41 .target}[[int]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[num_ranks]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi9num_ranksEv "Permalink to this definition"){.headerlink}\
 
 :   Return the number of MPI ranks.
 
@@ -13503,7 +13491,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[]{#cudaq_8h_1aaa5aebe9903c057fa3f1ae8fce98a50b .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[all_gather]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[global]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[local]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi10all_gatherERNSt6vectorIdEERKNSt6vectorIdEE "Permalink to this definition"){.headerlink}\
+[]{#cudaq__mpi_8h_1aaa5aebe9903c057fa3f1ae8fce98a50b .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[all_gather]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[global]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[local]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi10all_gatherERNSt6vectorIdEERKNSt6vectorIdEE "Permalink to this definition"){.headerlink}\
 
 :   Gather all vector data (floating point numbers) locally into the
     provided global vector.
@@ -13515,7 +13503,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[]{#cudaq_8h_1ac382bb3637b38312a88615b20a4f8b3f .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[all_gather]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[int]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[global]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[int]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[local]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi10all_gatherERNSt6vectorIiEERKNSt6vectorIiEE "Permalink to this definition"){.headerlink}\
+[]{#cudaq__mpi_8h_1ac382bb3637b38312a88615b20a4f8b3f .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[all_gather]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[int]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[global]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[int]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[local]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi10all_gatherERNSt6vectorIiEERKNSt6vectorIiEE "Permalink to this definition"){.headerlink}\
 
 :   Gather all vector data (integers) locally into the provided global
     vector.
@@ -13537,7 +13525,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 ```
 
 [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[T]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[[BinaryFunction]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
-[]{#cudaq_8h_1acf510f9fe029c39b4d475c75fb876dc3 .target}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK14BinaryFunction "cudaq::mpi::all_reduce::T"){.reference .internal}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[all_reduce]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK14BinaryFunction "cudaq::mpi::all_reduce::T"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[localValue]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[BinaryFunction]{.pre}]{.n}](#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK14BinaryFunction "cudaq::mpi::all_reduce::BinaryFunction"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[function]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK14BinaryFunction "Permalink to this definition"){.headerlink}\
+[]{#cudaq__mpi_8h_1acf510f9fe029c39b4d475c75fb876dc3 .target}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK14BinaryFunction "cudaq::mpi::all_reduce::T"){.reference .internal}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[all_reduce]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK14BinaryFunction "cudaq::mpi::all_reduce::T"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[localValue]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[BinaryFunction]{.pre}]{.n}](#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK14BinaryFunction "cudaq::mpi::all_reduce::BinaryFunction"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[function]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I00EN5cudaq3mpi10all_reduceE1TRK1TRK14BinaryFunction "Permalink to this definition"){.headerlink}\
 
 :   Reduce all values across ranks with the specified binary function.
 
@@ -13545,7 +13533,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[]{#cudaq_8h_1a16e7663348b7ff4e38d5a2177881c232 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[broadcast]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[data]{.pre}]{.n .sig-param}, [[int]{.pre}]{.kt}[ ]{.w}[[rootRank]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi9broadcastERNSt6vectorIdEEi "Permalink to this definition"){.headerlink}\
+[]{#cudaq__mpi_8h_1a16e7663348b7ff4e38d5a2177881c232 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[broadcast]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[data]{.pre}]{.n .sig-param}, [[int]{.pre}]{.kt}[ ]{.w}[[rootRank]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi9broadcastERNSt6vectorIdEEi "Permalink to this definition"){.headerlink}\
 
 :   Broadcast a vector from a process (rootRank) to all other processes.
 
@@ -13553,7 +13541,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[]{#cudaq_8h_1abf82bc930287d1b8f8411c98bb38a384 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[broadcast]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[data]{.pre}]{.n .sig-param}, [[int]{.pre}]{.kt}[ ]{.w}[[rootRank]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi9broadcastERNSt6stringEi "Permalink to this definition"){.headerlink}\
+[]{#cudaq__mpi_8h_1abf82bc930287d1b8f8411c98bb38a384 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[mpi]{.pre}]{.n}](#_CPPv4N5cudaq3mpiE "cudaq::mpi"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[broadcast]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[data]{.pre}]{.n .sig-param}, [[int]{.pre}]{.kt}[ ]{.w}[[rootRank]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3mpi9broadcastERNSt6stringEi "Permalink to this definition"){.headerlink}\
 
 :   Broadcast a string from a process (rootRank) to all other processes.
 

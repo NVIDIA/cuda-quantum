@@ -2107,7 +2107,7 @@ explained above.
 
 <div>
 
-![bd39179ae8c14be9bf04f4ebc0b535d8](../../_images/adapt-qaoa.png){.no-scaled-link
+![5721da1ce74040f18668e5e7797d87f5](../../_images/adapt-qaoa.png){.no-scaled-link
 style="width: 1000px;"}
 
 </div>
