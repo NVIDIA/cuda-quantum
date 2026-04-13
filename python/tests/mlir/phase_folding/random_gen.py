@@ -160,7 +160,7 @@ gates = [
 
 
 def generate_indent(indent):
-    return ''.join(['  ' for _ in range(indent)])
+    return ''.join(['    ' for _ in range(indent)])
 
 
 def generate_instruction(qubits,
@@ -207,12 +207,11 @@ def generate_instruction(qubits,
     operands = continuous + controlstrs + targets
     operandstr = ", ".join(operands)
     if ncontrols > 0:
-        gatestr += "<cudaq::ctrl>"
+        gatestr += ".ctrl"
     elif gate["hasAdj"]:
         if random.choice([True, False]):
-            gatestr += "<cudaq::adj>"
-
-    return generate_indent(indent) + gatestr + "(" + operandstr + ");"
+            gatestr += ".adj"
+    return generate_indent(indent) + gatestr + "(" + operandstr + ")"
 
 
 def generate_qubit_choices(name, newQubits):
@@ -226,7 +225,7 @@ def generate_qvector(nQubits, indent=0):
     global idx
     qvector = "q" + str(idx)
     idx += 1
-    decl = generate_indent(indent) + "cudaq::qvector {}({});\n".format(
+    decl = generate_indent(indent) + "{} = cudaq.qvector({})\n".format(
         qvector, str(nQubits))
     choices = generate_qubit_choices(qvector, nQubits)
     return [qvector, decl, choices]
@@ -264,7 +263,7 @@ def generate_inst_list(qubits, nGates, nBlocks):
 
 def generate_measures(qubits, indent=0):
     measures = [
-        generate_indent(indent) + "mz({});".format(qubit) for qubit in qubits
+        generate_indent(indent) + "mz({})".format(qubit) for qubit in qubits
     ]
     return "\n".join(measures) + "\n"
 
@@ -306,10 +305,14 @@ with open(args.template, 'r') as file:
     for raw in file:
         line = raw.strip()
 
-        if '}' in line:
-            indent -= 1
-            working_qubits = qubit_stack.pop()
-            qvectors = qvector_stack.pop()
+        # Detect when indentation decreases
+        if line and not line.startswith('GEN-') and not line.startswith('#'):
+            raw_indent = len(raw) - len(raw.lstrip())
+            raw_level = raw_indent // 4
+            while raw_level < indent and qubit_stack:
+                indent -= 1
+                working_qubits = qubit_stack.pop()
+                qvectors = qvector_stack.pop()
 
         if line.startswith("GEN-QALLOC: "):
             match = re.search(r"GEN-QALLOC: nqubits=(\d+)", line)
@@ -343,7 +346,7 @@ with open(args.template, 'r') as file:
                 line = line.replace("GEN:<qvector>", random.choice(qvectors))
             program += generate_indent(indent) + line + "\n"
 
-        if '{' in line:
+        if line.endswith(':'):
             indent += 1
             qubit_stack.append(working_qubits)
             qvector_stack.append(qvectors)
