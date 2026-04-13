@@ -9,10 +9,12 @@
 
 #include "PythonCppInteropDecls.h"
 #include "cudaq/qis/qkernel.h"
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/string.h>
 #include <optional>
-#include <pybind11/pybind11.h>
 
-namespace py = pybind11;
+namespace nb = nanobind;
 
 namespace cudaq::python {
 
@@ -22,8 +24,8 @@ public:
   /// The constructor.
   /// @param obj A kernel decorator Python object.
   /// @throw std::runtime_error if the object is not a valid kernel decorator.
-  CppPyKernelDecorator(py::object obj) : kernel(obj) {
-    if (!py::hasattr(obj, "qkeModule"))
+  CppPyKernelDecorator(nb::object obj) : kernel(obj) {
+    if (!nb::hasattr(obj, "qkeModule"))
       throw std::runtime_error("Invalid python kernel object passed, must be "
                                "annotated with cudaq.kernel");
   }
@@ -54,20 +56,18 @@ public:
   }
 
 private:
-  py::object kernel;
-  // Hold on to the CompiledModule, it keeps the JIT engine alive.
-  py::object compiledKernel;
+  nb::object kernel;
+  std::optional<std::size_t> cachedEngineKey;
 
   template <typename... As>
   void *getKernelHelper(bool isEntryPoint, As... as) {
     // Perform beta reduction on the kernel decorator.
-    compiledKernel =
-        kernel.attr("beta_reduction")(isEntryPoint, std::forward<As>(as)...);
-    auto entryPointAddr =
-        compiledKernel.attr("entry_point").cast<std::uintptr_t>();
+    auto [ptr, cachedEngineHandle] = nb::cast<std::pair<void *, std::size_t>>(
+        kernel.attr("beta_reduction")(isEntryPoint, std::forward<As>(as)...));
+    cachedEngineKey = cachedEngineHandle;
     // Set lsb to 1 to denote this is NOT a C++ kernel.
     auto *p = reinterpret_cast<void *>(
-        static_cast<std::intptr_t>(entryPointAddr) | 1);
+        reinterpret_cast<std::intptr_t>(ptr) | 1);
     // Translate the pointer to the entry point code buffer to a `qkernel`.
     return p;
   }
@@ -78,7 +78,7 @@ private:
 /// (synthesized) into the kernel and cannot be changed by the algorithm.
 template <typename KT, typename ALGO, typename... As>
   requires QKernelType<KT> && std::invocable<ALGO, KT>
-auto launch_specialized_py_decorator(py::object qern, ALGO algo, As... as) {
+auto launch_specialized_py_decorator(nb::object qern, ALGO algo, As... as) {
   cudaq::python::CppPyKernelDecorator decorator(qern);
   auto entryPoint = decorator.getDirectKernelCall<KT>(std::forward<As>(as)...);
   return algo(std::move(entryPoint));
@@ -91,7 +91,7 @@ auto launch_specialized_py_decorator(py::object qern, ALGO algo, As... as) {
 /// @param kernelName The name of the kernel
 /// @param docstring The documentation string for the kernel
 template <typename... Signature>
-void addDeviceKernelInterop(py::module_ &m, const std::string &modName,
+void addDeviceKernelInterop(nb::module_ &m, const std::string &modName,
                             const std::string &kernelName,
                             const std::string &docstring) {
 
@@ -99,16 +99,14 @@ void addDeviceKernelInterop(py::module_ &m, const std::string &modName,
 
   // FIXME Maybe Add replacement options (i.e., _pycudaq -> cudaq)
 
-  py::module_ sub;
-  if (py::hasattr(m, modName.c_str()))
-    sub = m.attr(modName.c_str()).cast<py::module_>();
-  else
-    sub = m.def_submodule(modName.c_str());
+  nb::module_ sub = nb::hasattr(m, modName.c_str())
+                        ? nb::cast<nb::module_>(m.attr(modName.c_str()))
+                        : m.def_submodule(modName.c_str());
 
   sub.def(
       kernelName.c_str(), [](Signature...) {}, docstring.c_str());
-  cudaq::python::registerDeviceKernel(sub.attr("__name__").cast<std::string>(),
-                                      kernelName, mangledArgs);
+  cudaq::python::registerDeviceKernel(
+      nb::cast<std::string>(sub.attr("__name__")), kernelName, mangledArgs);
   return;
 }
 } // namespace cudaq::python
