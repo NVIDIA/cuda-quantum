@@ -27,6 +27,7 @@
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/string.h>
+#include <nanobind/stl/unordered_map.h>
 #include <nanobind/stl/vector.h>
 
 using namespace cudaq;
@@ -390,16 +391,21 @@ void cudaq::bindSamplePTSBE(nanobind::module_ &mod) {
            "Block until the PTSBE sampling result is available and return it.");
 
   // PTSBE sample implementation
-  ptsbe.def("sample_impl", pySamplePTSBE,
+  ptsbe.def("sample_impl", pySamplePTSBE, nanobind::arg("kernel_name"),
+            nanobind::arg("module"), nanobind::arg("shots_count"),
+            nanobind::arg("noise_model"), nanobind::arg("max_trajectories"),
+            nanobind::arg("sampling_strategy").none(),
+            nanobind::arg("shot_allocation").none(),
+            nanobind::arg("return_execution_data"),
+            nanobind::arg("include_sequential_data"),
             R"pbdoc(
 Run PTSBE sampling on the provided kernel.
 
 Args:
   kernel_name: The kernel name.
   module: The MLIR module.
-  return_type: The MLIR return type.
   shots_count: The number of shots.
-  noise_model: Optional noise model for gate-based noise; may be None.
+  noise_model: The noise model.
   max_trajectories: Maximum unique trajectories, or None to use shots.
   sampling_strategy: Sampling strategy or None for default (probabilistic).
   shot_allocation: Shot allocation strategy or None for default (proportional).
@@ -413,6 +419,13 @@ Returns:
 
   // PTSBE async sample implementation
   ptsbe.def("sample_async_impl", pySampleAsyncPTSBE,
+            nanobind::arg("kernel_name"), nanobind::arg("module"),
+            nanobind::arg("shots_count"), nanobind::arg("noise_model"),
+            nanobind::arg("max_trajectories"),
+            nanobind::arg("sampling_strategy").none(),
+            nanobind::arg("shot_allocation").none(),
+            nanobind::arg("return_execution_data"),
+            nanobind::arg("include_sequential_data"),
             "Run PTSBE sampling asynchronously. Returns an "
             "AsyncSampleResultImpl.");
 }

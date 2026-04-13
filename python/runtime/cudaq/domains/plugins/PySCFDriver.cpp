@@ -62,8 +62,7 @@ public:
       std::optional<std::size_t> nActiveElectrons = std::nullopt,
       std::optional<std::size_t> nActiveOrbitals = std::nullopt) override {
     if (!Py_IsInitialized())
-      throw std::runtime_error(
-          "PySCF driver requires a running Python interpreter.");
+      Py_Initialize();
 
     // Convert the molecular_geometry to a list[tuple(str,tuple)]
     nanobind::list pyGeometry;

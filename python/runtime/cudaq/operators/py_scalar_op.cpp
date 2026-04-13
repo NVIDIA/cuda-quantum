@@ -54,7 +54,6 @@ void bindScalarOperator(nanobind::module_ &mod) {
             new (self) scalar_operator(
                 func, details::kwargs_to_param_description(kwargs));
           },
-          nanobind::arg("callback"), nanobind::arg("kwargs"),
           "Creates a scalar operator where the given callback function is "
           "invoked during evaluation.")
       .def(nanobind::init<const scalar_operator &>(), "Copy constructor.")
