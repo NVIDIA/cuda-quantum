@@ -43,7 +43,7 @@
 #include "runtime/cudaq/qis/py_pauli_word.h"
 #include "runtime/cudaq/target/py_runtime_target.h"
 #include "runtime/cudaq/target/py_testing_utils.h"
-#include "runtime/interop/PythonCppInterop.h"
+#include "runtime/interop/PythonCppInteropDecls.h"
 #include "runtime/mlir/py_register_dialects.h"
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/OpaqueArguments.h"
