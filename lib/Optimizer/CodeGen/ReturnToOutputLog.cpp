@@ -170,15 +170,18 @@ public:
           Value rawData =
               rewriter.create<cudaq::cc::StdvecDataOp>(loc, i8PtrTy, val);
           if (auto intTy = dyn_cast<IntegerType>(eleTy)) {
-            auto logging_fun = eleTy == rewriter.getI1Type()
-                                   ? cudaq::opt::QIRBoolSpanRecordOutput
-                                   : cudaq::opt::QIRIntSpanRecordOutput;
-            std::int32_t byteSize = (intTy.getWidth() + 7) / 8;
-            Value elemSize =
-                rewriter.create<arith::ConstantIntOp>(loc, byteSize, 32);
-            rewriter.create<func::CallOp>(
-                loc, TypeRange{}, logging_fun,
-                ArrayRef<Value>{rawData, size, elemSize});
+            if (eleTy == rewriter.getI1Type()) {
+              rewriter.create<func::CallOp>(loc, TypeRange{},
+                                            cudaq::opt::QIRBoolSpanRecordOutput,
+                                            ArrayRef<Value>{rawData, size});
+            } else {
+              std::int32_t byteSize = (intTy.getWidth() + 7) / 8;
+              Value elemSize =
+                  rewriter.create<arith::ConstantIntOp>(loc, byteSize, 32);
+              rewriter.create<func::CallOp>(
+                  loc, TypeRange{}, cudaq::opt::QIRIntSpanRecordOutput,
+                  ArrayRef<Value>{rawData, size, elemSize});
+            }
           } else if (isa<FloatType>(eleTy)) {
             auto floatTy = cast<FloatType>(eleTy);
             std::int32_t byteSize = floatTy.getWidth() / 8;
