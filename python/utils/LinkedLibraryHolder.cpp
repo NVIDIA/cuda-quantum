@@ -185,10 +185,13 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
 
   CUDAQ_INFO("Init: Library Path is {}.", cudaqLibPath.string());
 
-  // We have to ensure that nvqir and cudaq are loaded
+  // Load nvqir, cudaq, and the default execution manager. The em cannot
+  // be a needed dep of libcudaq.so (circular dependency), but downstream
+  // libraries like cuda-qx reference its symbols at dlopen time.
   std::vector<std::filesystem::path> libPaths{
       cudaqLibPath / fmt::format("libnvqir.{}", libSuffix),
-      cudaqLibPath / fmt::format("libcudaq.{}", libSuffix)};
+      cudaqLibPath / fmt::format("libcudaq.{}", libSuffix),
+      cudaqLibPath / fmt::format("libcudaq-em-default.{}", libSuffix)};
 
   const char *dynlibs_var = std::getenv("CUDAQ_DYNLIBS");
   if (dynlibs_var != nullptr) {

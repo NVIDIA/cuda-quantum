@@ -172,9 +172,12 @@ cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
 
     auto enablePrintMLIREachPass =
         cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
-    if (enablePrintMLIREachPass) {
+    auto disableThreading =
+        cudaq::getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", false);
+    if (enablePrintMLIREachPass || disableThreading) {
       module->getContext()->disableMultithreading();
-      pm.enableIRPrinting();
+      if (enablePrintMLIREachPass)
+        pm.enableIRPrinting();
     }
 
     std::string error_msg;

@@ -128,7 +128,7 @@ available_backends=`\
           continue
         fi 
         # Skip optimization test targets
-        if [[ $file == *"opt-test.yml" ]]; then
+        if [[ $file == *"opt-test.yml" ]] || [[ $file == *"circuit-opt-bench.yml" ]]; then
           continue
         fi
         if grep -q "nvqir-simulation-backend: stim" $file ; then 

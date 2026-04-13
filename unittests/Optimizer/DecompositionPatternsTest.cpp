@@ -44,30 +44,43 @@ protected:
   std::unique_ptr<MLIRContext> context;
 };
 
-// Helper to parse control count from gate string like "x(1)" or "z(2)"
-std::pair<std::string, size_t> parseGateSpec(StringRef gateSpec) {
-  auto pos = gateSpec.find('(');
-  if (pos == StringRef::npos) {
-    return {gateSpec.str(), 0};
-  }
+struct GateSpec {
+  std::string gateName;
+  size_t numControls;
+  bool isAdj;
+};
 
-  std::string gateName = gateSpec.substr(0, pos).str();
-  StringRef numStr = gateSpec.substr(pos + 1);
+// Helper to parse gate string like "x(1)", "z(2)", "rx<adj>", "rx<adj>(1)"
+GateSpec parseGateSpec(StringRef gateSpec) {
+  // Find the end of the gate name (before '<' or '(')
+  auto nameEnd = gateSpec.find_first_of("(<");
+  std::string gateName;
+  if (nameEnd == StringRef::npos) {
+    return {gateSpec.str(), 0, false};
+  }
+  gateName = gateSpec.substr(0, nameEnd).str();
+  gateSpec = gateSpec.drop_front(nameEnd);
+
+  // Check for <adj>
+  bool isAdj = gateSpec.consume_front("<adj>");
+
+  // Check for (N) control count
   size_t numControls = 0;
-
-  if (numStr.startswith("n")) {
-    // Arbitrary number of controls - use a reasonable test value
-    numControls = std::numeric_limits<size_t>::max();
-  } else {
-    numStr.consumeInteger(10, numControls);
+  if (gateSpec.consume_front("(")) {
+    gateSpec = gateSpec.ltrim();
+    if (gateSpec.startswith("n")) {
+      numControls = std::numeric_limits<size_t>::max();
+    } else {
+      gateSpec.consumeInteger(10, numControls);
+    }
   }
 
-  return {gateName, numControls};
+  return {gateName, numControls, isAdj};
 }
 
 // Helper function to create a test module with a single gate operation
-ModuleOp createTestModule(MLIRContext *context, StringRef gateSpec) {
-  auto [gateName, numControls] = parseGateSpec(gateSpec);
+ModuleOp createTestModule(MLIRContext *context, StringRef gateSpecStr) {
+  auto [gateName, numControls, isAdj] = parseGateSpec(gateSpecStr);
 
   // Limit the number of controls to 2
   numControls = std::min<size_t>(numControls, 2);
@@ -113,31 +126,31 @@ ModuleOp createTestModule(MLIRContext *context, StringRef gateSpec) {
                                                         builder.getF64Type());
 
   if (gateName == "h") {
-    builder.create<quake::HOp>(loc, controls, target);
+    builder.create<quake::HOp>(loc, isAdj, controls, target);
   } else if (gateName == "s") {
-    builder.create<quake::SOp>(loc, controls, target);
+    builder.create<quake::SOp>(loc, isAdj, controls, target);
   } else if (gateName == "t") {
-    builder.create<quake::TOp>(loc, controls, target);
+    builder.create<quake::TOp>(loc, isAdj, controls, target);
   } else if (gateName == "x") {
-    builder.create<quake::XOp>(loc, controls, target);
+    builder.create<quake::XOp>(loc, isAdj, controls, target);
   } else if (gateName == "y") {
-    builder.create<quake::YOp>(loc, controls, target);
+    builder.create<quake::YOp>(loc, isAdj, controls, target);
   } else if (gateName == "z") {
-    builder.create<quake::ZOp>(loc, controls, target);
+    builder.create<quake::ZOp>(loc, isAdj, controls, target);
   } else if (gateName == "rx") {
-    builder.create<quake::RxOp>(loc, ValueRange{pi_2}, controls, target);
+    builder.create<quake::RxOp>(loc, isAdj, ValueRange{pi_2}, controls, target);
   } else if (gateName == "ry") {
-    builder.create<quake::RyOp>(loc, ValueRange{pi_2}, controls, target);
+    builder.create<quake::RyOp>(loc, isAdj, ValueRange{pi_2}, controls, target);
   } else if (gateName == "rz") {
-    builder.create<quake::RzOp>(loc, ValueRange{pi_2}, controls, target);
+    builder.create<quake::RzOp>(loc, isAdj, ValueRange{pi_2}, controls, target);
   } else if (gateName == "r1") {
-    builder.create<quake::R1Op>(loc, ValueRange{pi_2}, controls, target);
+    builder.create<quake::R1Op>(loc, isAdj, ValueRange{pi_2}, controls, target);
   } else if (gateName == "u3") {
-    builder.create<quake::U3Op>(loc, ValueRange{pi_2, pi_2, pi_2}, controls,
-                                target);
+    builder.create<quake::U3Op>(loc, isAdj, ValueRange{pi_2, pi_2, pi_2},
+                                controls, target);
   } else if (gateName == "phased_rx") {
-    builder.create<quake::PhasedRxOp>(loc, ValueRange{{pi_2, pi_2}}, controls,
-                                      target);
+    builder.create<quake::PhasedRxOp>(loc, isAdj, ValueRange{{pi_2, pi_2}},
+                                      controls, target);
   } else if (gateName == "swap") {
     // Swap needs 2 targets
     Value target = entry->getArgument(0);

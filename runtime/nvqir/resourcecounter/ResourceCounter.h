@@ -18,9 +18,13 @@ class ResourceCounter : public nvqir::CircuitSimulatorBase<double> {
 protected:
   cudaq::Resources resourceCounts;
   std::function<bool()> choice;
+  bool prepopulated = false;
 
   /// @brief Grow the state vector by one qubit.
-  void addQubitToState() override { resourceCounts.addQubit(); }
+  void addQubitToState() override {
+    if (!prepopulated)
+      resourceCounts.addQubit();
+  }
 
   void applyGate(const GateApplicationTask &task) override {
     CUDAQ_INFO("Applying {} with {} controls", task.operationName,
@@ -72,7 +76,10 @@ public:
 
   void deallocateStateImpl() override {}
 
-  void setToZeroState() override { resourceCounts.clear(); }
+  void setToZeroState() override {
+    resourceCounts.clear();
+    prepopulated = false;
+  }
 
   void configureExecutionContext(cudaq::ExecutionContext &context) override {
     if (context.name != "resource-count")
@@ -85,6 +92,7 @@ public:
   cudaq::Resources *getResourceCounts() { return &this->resourceCounts; }
   void setResourceCounts(cudaq::Resources &&rc) {
     this->resourceCounts = std::move(rc);
+    this->prepopulated = true;
   }
 
   void setChoiceFunction(std::function<bool()> choice) {

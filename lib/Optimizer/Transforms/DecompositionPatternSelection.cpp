@@ -38,12 +38,16 @@ namespace {
 struct OperatorInfo {
   StringRef name;
   std::size_t numControls;
+  bool isAdj;
 
-  OperatorInfo(StringRef infoStr) : name(), numControls(0) {
-    auto nameEnd = infoStr.find_first_of('(');
+  OperatorInfo(StringRef infoStr) : name(), numControls(0), isAdj(false) {
+    auto nameEnd = infoStr.find_first_of("(<");
     name = infoStr.take_front(nameEnd);
     if (nameEnd < infoStr.size())
       infoStr = infoStr.drop_front(nameEnd);
+
+    if (infoStr.consume_front("<adj>"))
+      isAdj = true;
 
     if (infoStr.consume_front("(")) {
       infoStr = infoStr.ltrim();
@@ -56,7 +60,8 @@ struct OperatorInfo {
   }
 
   bool operator==(const OperatorInfo &other) const {
-    return name == other.name && numControls == other.numControls;
+    return name == other.name && numControls == other.numControls &&
+           isAdj == other.isAdj;
   }
 };
 
@@ -111,7 +116,7 @@ namespace std {
 template <>
 struct hash<OperatorInfo> {
   std::size_t operator()(const OperatorInfo &info) const {
-    return llvm::hash_combine(info.name, info.numControls);
+    return llvm::hash_combine(info.name, info.numControls, info.isAdj);
   }
 };
 } // namespace std
