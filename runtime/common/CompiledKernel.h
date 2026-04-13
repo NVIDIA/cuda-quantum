@@ -159,7 +159,10 @@ public:
     ///
     /// Lifetime: the caller must ensure that the `MLIRContext` that owns
     /// this ModuleOp outlives this object.
-    const void *modulePtr = nullptr;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wattributes"
+    [[maybe_unused]] const void *modulePtr = nullptr;
+#pragma GCC diagnostic pop
 
     friend class CompiledKernel;
   };
