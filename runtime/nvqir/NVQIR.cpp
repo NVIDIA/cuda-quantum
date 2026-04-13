@@ -520,6 +520,8 @@ void __quantum__rt__int_span_record_output(int8_t *data, int64_t count,
     case 8:
       val = *reinterpret_cast<int64_t *>(data + i * 8);
       break;
+    default:
+      throw std::runtime_error("int_span_record_output: unknown data kind.");
     }
     __quantum__rt__int_record_output(val, elemLabel.c_str());
   }
@@ -541,6 +543,8 @@ void __quantum__rt__float_span_record_output(int8_t *data, int64_t count,
     case 8:
       val = *reinterpret_cast<double *>(data + i * 8);
       break;
+    default:
+      throw std::runtime_error("float_span_record_output: unknown data kind.");
     }
     __quantum__rt__double_record_output(val, elemLabel.c_str());
   }
