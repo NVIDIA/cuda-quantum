@@ -571,27 +571,28 @@ def test_decrementing_range():
 
 
 def test_dbg_ast_strict_path():
-    """Only the exact cudaq.dbg.ast.print_i64/f64 form is valid.
+    """Only cudaq.dbg.ast.print_i64/f64 is valid inside a kernel.
 
-    Lazy module aliases (cudaq.ast resolves to cudaq.dbg.ast via
-    _LAZY_SUBMODULES) and component reorderings must all be rejected
-    with a compile-time RuntimeError.
+    cudaq.ast is a lazy alias for cudaq.dbg.ast (via _LAZY_SUBMODULES), so
+    without an explicit AST structure check it would pass the devKey guard.
+    Component reorderings like dbg.cudaq.ast are also rejected.
 
     See https://github.com/NVIDIA/cuda-quantum/issues/2342
     """
 
     @cudaq.kernel
-    def valid_kernel(n: int):
+    def valid_kernel(n: int, f: float):
         q = cudaq.qvector(n)
         h(q[0])
         cudaq.dbg.ast.print_i64(n)
+        cudaq.dbg.ast.print_f64(f)
         mz(q)
 
-    counts = cudaq.sample(valid_kernel, 2)
+    counts = cudaq.sample(valid_kernel, 2, 2.0)
     assert len(counts) > 0
 
-    # https://github.com/NVIDIA/cuda-quantum/issues/2342 - cudaq.ast is a lazy
-    # alias for cudaq.dbg.ast but must not be accepted as a debug call
+    # cudaq.ast resolves to cudaq.dbg.ast at runtime via _LAZY_SUBMODULES;
+    # isExactCudaqDbgAstCall rejects it because the AST node chain is wrong.
     with pytest.raises(RuntimeError):
 
         @cudaq.kernel
@@ -603,7 +604,8 @@ def test_dbg_ast_strict_path():
 
         cudaq.sample(invalid_cudaq_ast, 2)
 
-    # https://github.com/NVIDIA/cuda-quantum/issues/2342 - wrong component order
+    # dbg.cudaq.ast - resolveQualifiedName returns 'dbg.cudaq.ast', which
+    # never matches the devKey guard.
     with pytest.raises(RuntimeError):
 
         @cudaq.kernel
@@ -615,7 +617,7 @@ def test_dbg_ast_strict_path():
 
         cudaq.sample(invalid_dbg_cudaq_ast, 2)
 
-    # https://github.com/NVIDIA/cuda-quantum/issues/2342 - wrong component order
+    # ast.cudaq.dbg - same: resolveQualifiedName returns 'ast.cudaq.dbg'.
     with pytest.raises(RuntimeError):
 
         @cudaq.kernel

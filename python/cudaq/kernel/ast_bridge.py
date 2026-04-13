@@ -2672,13 +2672,14 @@ class PyASTBridge(ast.NodeVisitor):
                     node.func.value.id) and node.func.attr == 'kernel':
                 return
 
-            def isExactCudaqDbgAstCall(func_node):
-                """Return True iff `func_node` is exactly ``<cudaq_alias>.dbg.ast.<name>``.
+            def isExactCudaqDbgAstCall(func_node: ast.AST) -> bool:
+                """Return True iff `func_node` is the exact AST shape for
+                ``<cudaq_alias>.dbg.ast.<name>``.
 
-                Module resolution can follow lazy aliases (e.g. ``cudaq.ast``
+                Runtime attribute lookup follows lazy aliases (e.g. ``cudaq.ast``
                 resolves to ``cudaq.dbg.ast`` via ``_LAZY_SUBMODULES``), so
-                `devKey` alone is not a reliable guard. This check validates
-                the literal AST structure."""
+                `devKey` is not a sufficient check. Walk the literal node
+                structure instead."""
                 if not isinstance(func_node, ast.Attribute):
                     return False
                 if not isinstance(
