@@ -199,7 +199,7 @@ add_mlir_python_modules(CUDAQuantumPythonModules
   )
 
 if(TARGET nanobind-static)
-  target_compile_options(nanobind-static PRIVATE -Wno-cast-qual)
+  target_compile_options(nanobind-static PRIVATE -Wno-cast-qual -Wno-covered-switch-default)
 endif()
 
 ## The Python bindings module for Quake dialect depends on CUDAQ libraries 
