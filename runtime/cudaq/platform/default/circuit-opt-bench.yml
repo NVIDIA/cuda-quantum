@@ -22,9 +22,9 @@ config:
   # Decompose to CX basis, route via SABRE, then convert CX to CZ to match
   # the Benchpress target basis {id, sx, x, rz, cz}.
   # %DEVICE:bypass% defaults to bypass (no routing) when device is not set.
-  # Post-routing SwapToCX decomposes router-inserted SWAPs into 3 CX each,
-  # then CXToCZ converts all CX to CZ as the final 2Q gate.
-  jit-mid-level-pipeline: "func.func(expand-control-veqs,multicontrol-decomposition),decomposition{enable-patterns=SToR1,TToR1,R1ToU3,U3ToRotations,CHToCX,CCXToCCZ,CCZToCX,CRzToCX,CRyToCX,CRxToCX,CR1ToCX,RxAdjToRx,RyAdjToRy,RzAdjToRz,R1AdjToR1,SwapToCX,ExpPauliDecomposition},func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=%DEVICE:bypass%},func.func(delay-measurements,regtomem),decomposition{enable-patterns=SwapToCX,CXToCZ}"
+  # Post-routing decomposition converts router-inserted SWAPs and remaining
+  # CX gates to CZ as the final 2Q gate.
+  jit-mid-level-pipeline: "func.func(expand-control-veqs,multicontrol-decomposition),decomposition{basis=h,rx,ry,rz,x,x(1)},func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=%DEVICE:bypass%},func.func(delay-measurements,regtomem),decomposition{basis=h,rx,ry,rz,x,z(1)}"
   # Cleanup: symbol-dce removes wire_set ops left by add-wireset (prevents
   # the JIT from taking the wireset-to-profile QIR path).
   jit-low-level-pipeline: "func.func(apply-control-negations,canonicalize,cse),symbol-dce"
