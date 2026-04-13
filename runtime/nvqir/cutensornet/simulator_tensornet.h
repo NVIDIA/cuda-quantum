@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #pragma once
-#include "cudaq.h"
+#include "cudaq/cudaq_mpi.h"
 #include "simulator_cutensornet.h"
 #include "tn_simulation_state.h"
 

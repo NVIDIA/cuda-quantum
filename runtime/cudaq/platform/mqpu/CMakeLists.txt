@@ -38,7 +38,7 @@ target_link_libraries(${LIBRARY_NAME} PRIVATE qpu-mpi-process-group)
 
 add_target_config(nvidia-mqpu)
 
-if (CUDA_FOUND AND CUSTATEVEC_ROOT)
+if (cuStateVec_FOUND)
   add_target_config(nvidia-mqpu-mps)
   add_target_config(nvidia-mqpu-fp64)
 endif()
