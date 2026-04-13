@@ -79,6 +79,6 @@ endif()
 
 add_subdirectory(runtime/interop)
 
-if (CUDENSITYMAT_ROOT AND CUDA_FOUND)
+if (cuDensityMat_FOUND)
   add_subdirectory(runtime/cudaq/dynamics)
 endif()

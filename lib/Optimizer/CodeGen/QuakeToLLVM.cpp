@@ -1182,7 +1182,6 @@ public:
   LogicalResult
   matchAndRewrite(quake::MeasurementsSizeOp msize, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-    auto loc = msize->getLoc();
     auto parentModule = msize->getParentOfType<ModuleOp>();
     auto context = parentModule->getContext();
     auto qFunctionName = cudaq::opt::QIRArrayGetSize;
@@ -1191,10 +1190,8 @@ public:
         qFunctionName, rewriter.getI64Type(),
         {cudaq::opt::getArrayType(context)}, parentModule);
 
-    auto c = rewriter.create<LLVM::CallOp>(loc, rewriter.getI64Type(),
-                                           symbolRef, adaptor.getOperands());
-    msize->getResult(0).replaceAllUsesWith(c->getResult(0));
-    rewriter.eraseOp(msize);
+    rewriter.replaceOpWithNewOp<LLVM::CallOp>(msize, rewriter.getI64Type(),
+                                              symbolRef, adaptor.getOperands());
     return success();
   }
 };

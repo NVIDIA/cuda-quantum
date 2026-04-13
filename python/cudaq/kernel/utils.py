@@ -291,12 +291,16 @@ def mlirTryCreateStructType(mlirEleTypes, name=None, context=None):
     return quake.StruqType.getNamed(name, mlirEleTypes, context=context)
 
 
-def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
+def mlirTypeFromAnnotation(annotation,
+                           ctx,
+                           raiseError=False,
+                           cudaqAliases=None):
     """
     Return the MLIR Type corresponding to the given kernel function argument
     type annotation.  Throws an exception if the programmer did not annotate
     function argument types.
     """
+    _cudaq_names = cudaqAliases if cudaqAliases else {'cudaq'}
 
     localEmitFatalError = emitFatalError
     if raiseError:
@@ -313,7 +317,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
     with ctx:
 
         if hasattr(annotation, 'attr') and hasattr(annotation.value, 'id'):
-            if annotation.value.id == 'cudaq':
+            if annotation.value.id in _cudaq_names:
                 if annotation.attr in ['qview', 'qvector']:
                     return quake.VeqType.get()
                 if annotation.attr in ['State']:
