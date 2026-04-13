@@ -784,7 +784,7 @@ def quake_SplitCableOp : QuakeOp<"split_cable", [Pure]> {
   let hasVerifier = 1;
 }
 
-def quake_LeftTeeOp : QuakeOp<"left_tee", [Pure]> {
+def quake_DetachWireOp : QuakeOp<"detach_wire", [Pure]> {
   let summary = "Split a cable exposing a single wire and a new cable.";
   let description = [{
     This operation can be used as syntactic sugar for extracting a single wire
@@ -800,13 +800,13 @@ def quake_LeftTeeOp : QuakeOp<"left_tee", [Pure]> {
     ```mlir
       // create a cable with 3 wires: 0, 1, and 2
       %20 = quake.null_cable !quake.cable<3>
-      %21:2 = quake.left_tee %20[1] : (!quake.cable<3>) -> (!quake.wire,
+      %21:2 = quake.detach_wire %20[1] : (!quake.cable<3>) -> (!quake.wire,
                                                             !quake.cable<2>)
       // %21#0 contains wire 1 previously at position 1 in %20
       // %21#1 contains wire 0 at position 0, and wire 2 at position 1
     ```
 
-    See also `quake.right_tee`.
+    See also `quake.attach_wire`.
   }];
 
   let arguments = (ins
@@ -824,7 +824,7 @@ def quake_LeftTeeOp : QuakeOp<"left_tee", [Pure]> {
   let hasVerifier = 1;
 }
 
-def quake_RightTeeOp : QuakeOp<"right_tee", [Pure]> {
+def quake_AttachWireOp : QuakeOp<"attach_wire", [Pure]> {
   let summary = "Compose a cable from a single wire and an existing cable.";
   let description = [{
     This operation can be used as syntactic sugar for inserting a single wire
@@ -842,15 +842,15 @@ def quake_RightTeeOp : QuakeOp<"right_tee", [Pure]> {
     ```mlir
       // create a cable with 3 wires: 0, 1, and 2
       %20 = quake.null_cable !quake.cable<3>
-      %21:2 = quake.left_tee %20[1] : (!cable<3>) -> (!wire, !cable<2>)
+      %21:2 = quake.detach_wire %20[1] : (!cable<3>) -> (!wire, !cable<2>)
       // %21#0 contains wire 1 previous at position 1 in %20
       // %21#1 contains wire 0 at position 0, and wire 2 at position 1
-      %22 = quake.right_tee %21#0, %21#1[2] : (!wire, !cable<2>) -> (!cable<3>)
+      %22 = quake.attach_wire %21#0, %21#1[2] : (!wire, !cable<2>) -> (!cable<3>)
       // %22 contains wire 0 at position 0, wire 2 at position 1,
       // and wire 1 at position 2 as they were originally created in %20
     ```
 
-    See also `quake.left_tee`.
+    See also `quake.detach_wire`.
   }];
 
   let arguments = (ins
