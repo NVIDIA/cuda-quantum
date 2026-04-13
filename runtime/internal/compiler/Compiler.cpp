@@ -19,6 +19,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.h"
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/Optimizer/Transforms/ResourceCount.h"
 #include "cudaq/Support/TargetConfig.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
@@ -362,26 +363,13 @@ std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
   // We need to run resource counting preprocessing after the pass pipeline as
   // the pre-processing might change the IR structure (may interfere with
   // other passes).
-  std::unique_ptr<cudaq::Resources> resourceCounts;
+  std::optional<cudaq::Resources> resourceCounts;
   if (executionContext && executionContext->name == "resource-count") {
-    resourceCounts = std::make_unique<cudaq::Resources>();
-    // Each pass may run in a separate thread, so we have to make sure to
-    // grab this reference in this thread
-    std::function<void(std::string, size_t, size_t)> f =
-        [&resourceCounts](std::string gate, size_t nControls, size_t count) {
-          CUDAQ_INFO("Appending: {}", gate);
-          resourceCounts->appendInstruction(gate, nControls, count);
-        };
-    cudaq::opt::ResourceCountPreprocessOptions opt{f};
-    mlir::PassManager pm(moduleOp.getContext());
-    pm.addNestedPass<mlir::func::FuncOp>(
-        cudaq::opt::createResourceCountPreprocess(opt));
-    pm.addPass(mlir::createCanonicalizerPass());
-    if (enablePrintMLIREachPass)
-      pm.enableIRPrinting();
-    if (failed(pm.run(moduleOp)))
+    auto result = cudaq::opt::countResourcesFromIR(moduleOp);
+    if (failed(result))
       throw std::runtime_error(
           "Could not successfully apply resource count preprocess.");
+    resourceCounts = std::move(*result);
   }
 
   assert(moduleOp.template lookupSymbol<mlir::func::FuncOp>(epFunc.getName()) &&
@@ -524,9 +512,7 @@ std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
     auto optionalJit = jitEngines.size() > iter.index()
                            ? std::optional(jitEngines[iter.index()])
                            : std::nullopt;
-    auto optionalResourceCounts = resourceCounts
-                                      ? std::optional(*resourceCounts.release())
-                                      : std::nullopt;
+    auto optionalResourceCounts = resourceCounts;
     codes.emplace_back(name, codeStr, optionalJit, optionalResourceCounts, j,
                        mapping_reorder_idx);
   }
