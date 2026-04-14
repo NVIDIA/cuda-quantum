@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq_internal/compiler/JIT.h"
-#include "common/CompiledKernel.h"
+#include "common/CompiledModule.h"
 #include "common/Environment.h"
 #include "common/Timing.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"

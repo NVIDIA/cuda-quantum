@@ -53,7 +53,7 @@ public:
 
 private:
   py::object kernel;
-  // Hold on to the CompiledKernel, it keeps the JIT engine alive.
+  // Hold on to the CompiledModule, it keeps the JIT engine alive.
   py::object compiledKernel;
 
   template <typename... As>

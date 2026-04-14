@@ -231,7 +231,7 @@ KernelThunkResultType quantum_platform::launchModule(
   return qpu->launchModule(kernelName, module, rawArgs);
 }
 
-CompiledKernel quantum_platform::specializeModule(
+CompiledModule quantum_platform::specializeModule(
     const std::string &kernelName, mlir::ModuleOp module,
     const std::vector<void *> &rawArgs, std::size_t qpu_id, bool isEntryPoint) {
   validateQpuId(qpu_id);
@@ -332,7 +332,7 @@ cudaq::streamlinedLaunchModule(const std::string &kernelName,
   return platform.launchModule(kernelName, moduleOp, rawArgs, qpu_id);
 }
 
-cudaq::CompiledKernel cudaq::streamlinedSpecializeModule(
+cudaq::CompiledModule cudaq::streamlinedSpecializeModule(
     const std::string &kernelName, mlir::ModuleOp moduleOp,
     const std::vector<void *> &rawArgs, bool isEntryPoint) {
   ScopedTraceWithContext("streamlinedSpecializeModule", kernelName,

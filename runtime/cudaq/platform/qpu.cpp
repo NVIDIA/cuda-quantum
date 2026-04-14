@@ -26,7 +26,7 @@ cudaq::QPU::launchModule(const std::string &name, mlir::ModuleOp module,
   return compiled.execute(rawArgs);
 }
 
-cudaq::CompiledKernel
+cudaq::CompiledModule
 cudaq::QPU::specializeModule(const std::string &name, mlir::ModuleOp module,
                              const std::vector<void *> &rawArgs,
                              bool isEntryPoint) {
