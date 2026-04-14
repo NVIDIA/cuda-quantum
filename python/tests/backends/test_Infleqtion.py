@@ -188,8 +188,8 @@ def test_state_preparation():
     state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
     counts = cudaq.sample(kernel, state, shots_count=shots)
     counts.dump()
-    assert assert_close(counts["00"], shots / 2, 10)
-    assert assert_close(counts["10"], shots / 2, 10)
+    assert assert_close(shots / 2, counts["00"], 5)
+    assert assert_close(shots / 2, counts["10"], 5)
 
 
 def test_state_preparation_builder():
@@ -199,8 +199,8 @@ def test_state_preparation_builder():
 
     state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
     counts = cudaq.sample(kernel, state, shots_count=shots)
-    assert assert_close(counts["00"], shots / 2, 10)
-    assert assert_close(counts["10"], shots / 2, 10)
+    assert assert_close(shots / 2, counts["00"], 5)
+    assert assert_close(shots / 2, counts["10"], 5)
 
 
 def test_exp_pauli():
