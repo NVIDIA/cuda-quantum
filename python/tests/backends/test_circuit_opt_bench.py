@@ -10,6 +10,7 @@
 # optional SABRE routing on a specified device topology.
 
 import cudaq
+import numpy as np
 import pytest
 
 
@@ -44,6 +45,35 @@ def test_swap_no_decomposition_default_target():
     resources = cudaq.estimate_resources(kernel)
     assert resources.gate_count_for_arity(2) == 1
     assert resources.depth_for_arity(2) == 1
+
+
+def test_custom_unitary_produces_2q_gates():
+    """Custom SU(4) unitary must produce entangling gates after synthesis.
+
+    The pipeline must inline the KAK-decomposed helper function into the
+    main kernel (apply-op-specialization + aggressive-inlining). Without
+    these passes, the helper is removed by symbol-dce and 0 2Q gates
+    appear in the output.
+    """
+    cudaq.set_target('circuit-opt-bench')
+
+    rng = np.random.default_rng(42)
+    z = rng.standard_normal((4, 4)) + 1j * rng.standard_normal((4, 4))
+    q_mat, r = np.linalg.qr(z)
+    d = np.diag(r)
+    mat = q_mat * (d / np.abs(d))
+
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(2)
+    cudaq.register_operation("test_su4_pipeline", mat.flatten().tolist())
+    kernel.test_su4_pipeline(q[0], q[1])
+
+    resources = cudaq.estimate_resources(kernel)
+    two_q = resources.gate_count_for_arity(2)
+    assert two_q >= 1, (
+        f"Random SU(4) produced 0 2Q gates. Gates: {resources.to_dict()}")
+    assert two_q <= 6, (
+        f"KAK produces at most 3 CX (6 CZ after basis change), got {two_q}")
 
 
 def _make_nonlocal_cx_kernel():
