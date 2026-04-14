@@ -10,13 +10,11 @@
       
       
       
-        <link rel="canonical" href="http://www.example.com/blog/2026/03/16/cudaq-0.14/">
+        <link rel="canonical" href="http://www.example.com/blog/2026/04/14/cudaq-qec-0.6/">
       
       
-        <link rel="prev" href="../cudaq-GTC-26/">
+        <link rel="prev" href="../../../03/16/cudaq-0.14/">
       
-      
-        <link rel="next" href="../../../04/14/cudaq-qec-0.6/">
       
       
         
@@ -27,7 +25,7 @@
     
     
       
-        <title>CUDA-Q 0.14 Simplifies Application Development and Brings macOS Support - NVIDIA Quantum</title>
+        <title>CUDA-Q QEC 0.6 Enables Real-Time QEC with NVQLink - NVIDIA Quantum</title>
       
     
     
@@ -84,7 +82,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#cuda-q-014-simplifies-application-development-and-brings-macos-support" class="md-skip">
+        <a href="#cuda-q-qec-06-enables-real-time-qec-with-nvqlink" class="md-skip">
           Skip to content
         </a>
       
@@ -118,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              CUDA-Q 0.14 Simplifies Application Development and Brings macOS Support
+              CUDA-Q QEC 0.6 Enables Real-Time QEC with NVQLink
             
           </span>
         </div>
@@ -1361,10 +1359,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#application-hub-launchable" class="md-nav__link">
+  <a href="#why-real-time-qec-matters" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Application Hub Launchable
+        Why real-time QEC matters
       
     </span>
   </a>
@@ -1372,10 +1370,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#macos-installation" class="md-nav__link">
+  <a href="#running-qec-in-real-time-on-nvqlink" class="md-nav__link">
     <span class="md-ellipsis">
       
-        macOS Installation
+        Running QEC in real time on NVQLink
       
     </span>
   </a>
@@ -1383,10 +1381,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#pre-trajectory-sampling-with-batch-execution" class="md-nav__link">
+  <a href="#ai-pre-decoding-with-nvidia-ising" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Pre-Trajectory Sampling with Batch Execution
+        AI pre-decoding with NVIDIA Ising
       
     </span>
   </a>
@@ -1394,60 +1392,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#cuda-q-backend-updates" class="md-nav__link">
+  <a href="#getting-started-with-cuda-q-qec" class="md-nav__link">
     <span class="md-ellipsis">
       
-        CUDA-Q Backend Updates
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="CUDA-Q Backend Updates">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#scaleway-quantum-as-a-service-qaas" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Scaleway Quantum as a Service (QaaS)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#pasqal-qrmi" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Pasqal QRMI
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#tii-qibo" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        TII / Qibo
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#get-started-with-cuda-q" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Get Started with CUDA-Q
+        Getting started with CUDA-Q QEC
       
     </span>
   </a>
@@ -1483,31 +1431,76 @@
                 
                   <div class="md-profile md-post__profile">
                     <span class="md-author md-author--long">
-                      <img src="../../../../../author-images/efrat_headshot.jpg" alt="Efrat Shabtai">
+                      <img src="../../../../../author-images/grace_headshot.jpg" alt="Grace Johnson">
                     </span>
                     <span class="md-profile__description">
                       <strong>
                         
-                          <a href="../../../../author/efrat-shabtai/">Efrat Shabtai</a>
+                          <a href="../../../../author/grace-johnson/">Grace Johnson</a>
                         
                       </strong>
                       <br>
-                      Product Manager, CUDA-Q
+                      Product Manager, CUDA-Q Libraries
                     </span>
                   </div>
                 
                   <div class="md-profile md-post__profile">
                     <span class="md-author md-author--long">
-                      <img src="../../../../../author-images/bettina_headshot.jpg" alt="Bettina Heim">
+                      <img src="../../../../../author-images/ben_headshot.jpg" alt="Ben Howe">
                     </span>
                     <span class="md-profile__description">
                       <strong>
                         
-                          <a href="../../../../author/bettina-heim/">Bettina Heim</a>
+                          <a href="../../../../author/ben-howe/">Ben Howe</a>
                         
                       </strong>
                       <br>
-                      Systems Software Engineering Manager
+                      Senior Manager, CUDA-Q Libraries Engineering
+                    </span>
+                  </div>
+                
+                  <div class="md-profile md-post__profile">
+                    <span class="md-author md-author--long">
+                      <img src="../../../../../author-images/scott_headshot.jpg" alt="Scott Thornton">
+                    </span>
+                    <span class="md-profile__description">
+                      <strong>
+                        
+                          <a href="../../../../author/scott-thornton/">Scott Thornton</a>
+                        
+                      </strong>
+                      <br>
+                      Senior Software Engineer, CUDA-Q Libraries
+                    </span>
+                  </div>
+                
+                  <div class="md-profile md-post__profile">
+                    <span class="md-author md-author--long">
+                      <img src="../../../../../author-images/chuck_headshot.jpg" alt="Chuck Ketcham">
+                    </span>
+                    <span class="md-profile__description">
+                      <strong>
+                        
+                          <a href="../../../../author/chuck-ketcham/">Chuck Ketcham</a>
+                        
+                      </strong>
+                      <br>
+                      Senior Software Engineer, CUDA-Q Libraries
+                    </span>
+                  </div>
+                
+                  <div class="md-profile md-post__profile">
+                    <span class="md-author md-author--long">
+                      <img src="../../../../../author-images/tom_headshot.jpg" alt="Tom Lubowe">
+                    </span>
+                    <span class="md-profile__description">
+                      <strong>
+                        
+                          <a href="../../../../author/tom-lubowe/">Tom Lubowe</a>
+                        
+                      </strong>
+                      <br>
+                      Product Manager, NVIDIA Ising, cuQuantum, and cuTENSOR
                     </span>
                   </div>
                 
@@ -1525,14 +1518,14 @@
                     <li class="md-nav__item">
                       <div class="md-nav__link">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 19H5V8h14m-3-7v2H8V1H6v2H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-1V1m-1 11h-5v5h5z"/></svg>
-                        <time datetime="2026-03-16 00:00:00+00:00" class="md-ellipsis">March 16, 2026</time>
+                        <time datetime="2026-04-14 00:00:00+00:00" class="md-ellipsis">April 14, 2026</time>
                       </div>
                     </li>
                     
                       <li class="md-nav__item">
                         <div class="md-nav__link">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15 13h1.5v2.82l2.44 1.41-.75 1.3L15 16.69zm4-5H5v11h4.67c-.43-.91-.67-1.93-.67-3a7 7 0 0 1 7-7c1.07 0 2.09.24 3 .67zM5 21a2 2 0 0 1-2-2V5c0-1.11.89-2 2-2h1V1h2v2h8V1h2v2h1a2 2 0 0 1 2 2v6.1c1.24 1.26 2 2.99 2 4.9a7 7 0 0 1-7 7c-1.91 0-3.64-.76-4.9-2zm11-9.85A4.85 4.85 0 0 0 11.15 16c0 2.68 2.17 4.85 4.85 4.85A4.85 4.85 0 0 0 20.85 16c0-2.68-2.17-4.85-4.85-4.85"/></svg>
-                          <time datetime="2026-03-16 00:00:00+00:00" class="md-ellipsis">March 16, 2026</time>
+                          <time datetime="2026-04-14 00:00:00+00:00" class="md-ellipsis">April 14, 2026</time>
                         </div>
                       </li>
                     
@@ -1544,7 +1537,8 @@
                             in
                             
                               <a href="../../../../category/cuda-q/">CUDA-Q</a>, 
-                              <a href="../../../../category/releases/">Releases</a></span>
+                              <a href="../../../../category/releases/">Releases</a>, 
+                              <a href="../../../../category/nvqlink/">NVQLink</a></span>
                         </div>
                       </li>
                     
@@ -1555,7 +1549,7 @@
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20a8 8 0 0 0 8-8 8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8m0-18a10 10 0 0 1 10 10 10 10 0 0 1-10 10C6.47 22 2 17.5 2 12A10 10 0 0 1 12 2m.5 5v5.25l4.5 2.67-.75 1.23L11 13V7z"/></svg>
                           <span class="md-ellipsis">
                             
-                              20 min read
+                              8 min read
                             
                           </span>
                         </div>
@@ -1712,14 +1706,14 @@
   
   
     <li class="md-nav__item">
-      <a href="https://nvidia.github.io/cuda-quantum/latest/index.html" class="md-nav__link">
+      <a href="https://nvidia.github.io/cuda-quantum/0.14.0/using/realtime.html" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    CUDA-Q Documentation
+    cudaq-realtime Documentation
   
 
     
@@ -1740,14 +1734,14 @@
   
   
     <li class="md-nav__item">
-      <a href="https://developer.nvidia.com/cuda-q" class="md-nav__link">
+      <a href="https://nvidia.github.io/cudaqx/components/qec/introduction.html" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    CUDA-Q Developer Page
+    CUDA-Q QEC Documentation
   
 
     
@@ -1797,7 +1791,21 @@
       
       
       
-        <a href="../../../../tags/#tag:release" class="md-tag">Release</a>
+        <a href="../../../../tags/#tag:nvqlink" class="md-tag">NVQLink</a>
+      
+    
+      
+      
+      
+      
+        <a href="../../../../tags/#tag:qec" class="md-tag">QEC</a>
+      
+    
+      
+      
+      
+      
+        <a href="../../../../tags/#tag:realtime" class="md-tag">Realtime</a>
       
     
   </nav>
@@ -1807,50 +1815,56 @@
   
 
 
-<h1 id="cuda-q-014-simplifies-application-development-and-brings-macos-support">CUDA-Q 0.14 Simplifies Application Development and Brings macOS Support</h1>
-<p>GTC26 sees the release of CUDA-Q 0.14 - delivering several important advancements for developers and researchers. Notably, it introduces the CUDA-Q Application Hub as a Brev Launchable, providing easy access and streamlined experimentation with sample applications across domains like quantum chemistry, AI, and optimization. </p>
-<p>In addition, this release adds long-awaited macOS support, enabling efficient local development and prototyping through Python using a local CPU. Furthermore, CUDA-Q provides options to scale experiments by connecting to more supported quantum processing units (QPUs) and cloud simulators, allowing users to seamlessly transition from local testing to more advanced deployments. </p>
-<p><img alt="CUDA-Q Application Hub Launchable" src="../../../../../images/cudaq-0.14-blog/cudaq_app_hub_launchable.png" /></p>
-<p><em>Fig 1: CUDA-Q Application Hub Launchable</em></p>
+<h1 id="cuda-q-qec-06-enables-real-time-qec-with-nvqlink">CUDA-Q QEC 0.6 Enables Real-Time QEC with NVQLink</h1>
+<p>At GTC 2026, NVIDIA introduced <a href="https://nvidia.github.io/cuda-quantum/blogs/blog/2026/03/16/launching-cudaq-realtime/"><code>cudaq-realtime</code></a>, a new library built on <a href="https://www.nvidia.com/en-us/solutions/quantum-computing/nvqlink/">NVQLink</a> that provides a runtime API for microsecond-latency callbacks between GPUs and quantum controllers. CUDA-Q QEC 0.6 integrates directly with <code>cudaq-realtime</code> to bring GPU-accelerated decoding into the real-time quantum control loop. Now any quantum hardware vendor using NVQLink is able to draw on the power of the CUDA-Q QEC library for real-time decoding.</p>
+<p>CUDA-Q QEC 0.6 ships with two new real-time-capable decoder pipelines: the RelayBP belief-propagation decoder for qLDPC codes and an <a href="https://developer.nvidia.com/blog/nvidia-ising-introduces-ai-powered-workflows-to-build-fault-tolerant-quantum-systems">NVIDIA Ising</a> convolutional neural network (CNN) pre-decoder paired with a global decoder (PyMatching) for the surface code. These pipelines enable quantum vendors and QEC researchers to deploy real-time GPU decoding for two popular code families via NVQLink.</p>
+<p>This blog describes in detail how CUDA-Q QEC 0.6 interacts with NVQLink, allowing developers to see how they can begin to build highly optimized quantum error correction workflows.</p>
 <!-- more -->
 
-<p>We also introduce a new library, <code>cudaq-realtime</code>, that builds on NVQLink by giving developers a runtime API for microsecond-latency callbacks between GPUs and quantum controllers. See more details in this <a href="https://nvidia.github.io/cuda-quantum/blogs/blog/2026/03/16/launching-cudaq-realtime/">blog</a>. </p>
-<p>Let's review what's new in the 0.14 release. For more details, check out the <a href="https://github.com/NVIDIA/cuda-quantum/releases/tag/0.14.0">release notes</a>.</p>
 <hr />
-<h2 id="application-hub-launchable">Application Hub Launchable</h2>
-<p>CUDA-Q's <a href="https://nvidia.github.io/cuda-quantum/latest/using/applications.html">Application Hub</a> serves as a research-focused platform, offering users easy access to a collection of CUDA-Q applications grounded in real-world projects and scientific papers. This curated set enables rapid exploration and testing of advanced features, allowing users to study various sample projects in domains such as chemistry, AI for quantum, optimization and more. </p>
-<p>The application hub is <a href="https://brev.nvidia.com/launchable/deploy/now?launchableID=env-3ASCdpJnxCh2ltr45E21Bp5PCZF">now available as a Brev Launchable</a>, which makes it significantly easier to use. Users can access and run applications directly in the cloud without the need for any installation or complex setup. </p>
-<p>This streamlined approach enables researchers and developers to concentrate on experimentation, while also providing flexibility to choose their preferred GPU or CPU and configure their environment. The platform remains affordable and retains key benefits of Brev launchables, including easy setup and workflow adaptability.</p>
-<p>The Application Hub launchable can be found <a href="https://brev.nvidia.com/launchable/deploy/now?launchableID=env-3ASCdpJnxCh2ltr45E21Bp5PCZF">here</a>.</p>
-<hr />
-<h2 id="macos-installation">macOS Installation</h2>
-<p>CUDA-Q now offers macOS support, addressing a frequent developer request. The Python installation allows for efficient development and testing on a local CPU, making it ideal for prototyping. Additionally, developers can leverage supported QPUs and cloud simulators to scale their applications and experiments.</p>
-<p>To install CUDA-Q on macOS, follow the instructions on <a href="https://pypi.org/project/cudaq/">PyPI</a> or the <a href="https://nvidia.github.io/cuda-quantum/latest/using/quick_start.html">quick start</a>.</p>
-<hr />
-<h2 id="pre-trajectory-sampling-with-batch-execution">Pre-Trajectory Sampling with Batch Execution</h2>
-<p>Pre-Trajectory Sampling with Batch Execution (PTSBE) is an efficient method for sampling from noisy quantum circuits. Rather than simulating the full density matrix, PTSBE pre-samples unique noise trajectories and batches many shots across them, yielding orders-of-magnitude speedups for large shot counts.</p>
-<p>PTSBE can be used to capture millions of times more noisy shot data, which can then be used as training data in ML tasks such as AI decoders, or it can be deployed proportionally, capturing the exact statistics of the problem while still offering a considerable speedup. In particular, PTSBE achieves traditional trajectory simulation accuracy at a fraction of the computational cost when the number of unique trajectories (errors) is much smaller than the total shot count.</p>
-<p>To learn more, see the PTSBE <a href="https://nvidia.github.io/cuda-quantum/latest/using/examples/ptsbe.html">documentation</a> and the application <a href="https://nvidia.github.io/cuda-quantum/latest/applications/python/ptsbe_end_to_end_workflow.html">notebook</a>. </p>
-<hr />
-<h2 id="cuda-q-backend-updates">CUDA-Q Backend Updates</h2>
-<p>In CUDA-Q you can write your application once and run it on multiple backends with one line of code change. In this release we added more backend options.</p>
-<h3 id="scaleway-quantum-as-a-service-qaas">Scaleway Quantum as a Service (QaaS)</h3>
-<p><a href="https://www.scaleway.com/en/quantum-as-a-service/">Scaleway Quantum as a Service</a> is a managed cloud service providing on-demand access to quantum computing resources, including quantum processing units (QPUs) and quantum emulators, through a unified API.
-Scaleway QaaS allows users to submit quantum workloads programmatically and integrate them into hybrid classical–quantum workflows. The service is now integrated as a backend in CUDA-Q.</p>
-<p>To get started, follow the Scaleway <a href="https://nvidia.github.io/cuda-quantum/latest/using/backends/cloud/scaleway.html">documentation</a>.</p>
-<h3 id="pasqal-qrmi">Pasqal QRMI</h3>
-<p>The Pasqal CUDA-Q backend now has an option to run via the Quantum Resource Management Interface (<a href="https://github.com/qiskit-community/qrmi">QRMI</a>), a vendor agnostic library to control state, run tasks and monitor behavior of quantum computing resources.</p>
-<p>In CUDA-Q 0.14 this option is available in the Linux Python wheels and when building CUDA-Q from source. Users can find out more information in the Pasqal <a href="https://nvidia.github.io/cuda-quantum/latest/using/backends/hardware/neutralatom.html#pasqal">documentation</a>. </p>
-<h3 id="tii-qibo">TII / Qibo</h3>
-<p>TII enables execution of CUDA-Q programs on a cloud-based simulator and superconducting quantum hardware, via infrastructure managed by <a href="https://qibo.science/">Qibo</a>.</p>
-<p>More details can be found in the TII <a href="https://nvidia.github.io/cuda-quantum/latest/using/backends/hardware/superconducting.html#tii">documentation</a></p>
-<hr />
-<h2 id="get-started-with-cuda-q">Get Started with CUDA-Q</h2>
-<p>CUDA-Q can be used without any local installation, by deploying the application hub <a href="https://brev.nvidia.com/launchable/deploy/now?launchableID=env-3ASCdpJnxCh2ltr45E21Bp5PCZF">launchable</a>. This hub provides a streamlined environment for running CUDA-Q programs in the cloud, making it easy to immediately start experimenting with quantum computing.</p>
-<p>When you’re ready to write your first program, follow the step-by-step <a href="https://nvidia.github.io/cuda-quantum/latest/using/quick_start.html">quick start</a> guide in the CUDA-Q documentation. The documentation also includes a variety of <a href="https://nvidia.github.io/cuda-quantum/latest/using/examples/examples.html">examples</a> and code snippets to help users learn about different features and use cases, and to explore and build their skills as they progress.</p>
-<p><a class="md-button" href="https://twitter.com/intent/tweet?text=CUDA-Q%200.14%20Simplifies%20Application%20Development%20and%20Brings%20macOS%20Support%0A&amp;url=http://www.example.com/blog/2026/03/16/cudaq-0.14/">Share on <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z"/></svg></span></a>
-<a class="md-button" href="https://www.facebook.com/sharer/sharer.php?u=http://www.example.com/blog/2026/03/16/cudaq-0.14/">Share on <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a9 9 0 0 1 1.141.195v3.325a9 9 0 0 0-.653-.036 27 27 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.7 1.7 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647"/></svg></span></a>
-<a class="md-button" href="https://www.linkedin.com/sharing/share-offsite/?text=CUDA-Q%200.14%20Simplifies%20Application%20Development%20and%20Brings%20macOS%20Support%0A&amp;url=http://www.example.com/blog/2026/03/16/cudaq-0.14/">Share on LinkedIn</a></p>
+<h2 id="why-real-time-qec-matters">Why real-time QEC matters</h2>
+<p>For state-of-the-art quantum processors, the decoding window can be just a few microseconds per QEC round. Meeting this deadline requires decoding hardware and software that can process syndrome data at the clock rate of the QPU, with classical compute tightly coupled to the quantum control system. GPUs can be well-suited for this problem, delivering high-throughput for both algorithmic decoders and inference for neural network-based decoders. GPUs also have the advantage of being  programmable, meaning that GPU-based control hardware can easily keep pace with the rapid process in error correction research. For real-time QEC, however, GPU acceleration must be connected to the quantum control loop with minimal overhead.</p>
+<h2 id="running-qec-in-real-time-on-nvqlink">Running QEC in real time on NVQLink</h2>
+<p><strong>Figure 1</strong> illustrates the architecture for real-time decoding with CUDA-Q QEC. As the quantum processor runs QEC rounds, syndrome data is captured by the FPGA quantum controller and transmitted to the host GPU. Each syndrome arrives as an individual RPC message in a GPU-visible ring buffer. The <code>cudaq-realtime</code> dispatch layer detects the new message, routes it to a registered CUDA-Q QEC decoder, and places the correction back in the ring buffer for transmission to the controller.</p>
+<p><img alt="Real-time decoding workflow" src="../../../../../images/cudaq-qec-0.6-blog/fig1.png" />
+<em><strong>Figure 1:</strong> Real-time decoding with <code>cudaq-realtime</code> and a GPU-accelerated decoder in CUDA-Q QEC. Syndrome data flows from the QPU through the FPGA controller to a GPU ring buffer. The <code>cudaq-realtime</code> host dispatcher launches the decoder as a CUDA graph, and corrections are returned through the same ring buffer back to the FPGA controller.</em></p>
+<p>The <code>cudaq-realtime</code> library is transport-agnostic: it operates on GPU-visible ring buffers and an RPC dispatch protocol without assuming a specific interconnect. The physical transport layer maps syndrome and correction data into these ring buffers. On the GPU side, a CPU-side host dispatcher thread monitors the ring buffer flags, launches the decoder's pre-captured <a href="https://docs.nvidia.com/cuda/cuda-programming-guide/04-special-topics/cuda-graphs.html">CUDA graph</a> for each incoming syndrome, and signals the correction slot for return transmission.</p>
+<p>Integrating a CUDA-Q QEC decoder with <code>cudaq-realtime</code> is done in C++ using the <code>decoder.h</code> plugin interface and the <code>libcudaq-realtime</code> C API. There is no Python binding for the real-time dispatch path — this latency-critical data plane is entirely in C/C++ and CUDA.</p>
+<p>A decoder plugin that supports real-time graph dispatch implements three virtual methods on <code>cudaq::qec::decoder</code>:</p>
+<div class="language-cpp highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1">// From cudaq/qec/decoder.h</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">virtual</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">supports_graph_dispatch</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="nf">capture_decode_graph</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">reserved_sms</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="k">virtual</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">release_decode_graph</span><span class="p">(</span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">graph_resources</span><span class="p">)</span><span class="w"> </span><span class="p">{}</span>
+</span></code></pre></div>
+<p>All decoder-specific internals (e.g., BP context, relay iteration parameters, shared memory configuration) are encapsulated inside the decoder plugin's <code>capture_decode_graph()</code> implementation. The caller never sees them.</p>
+<p>Details on the complete real-time integration for the RelayBP decoder are available as an <a href="https://nvidia.github.io/cudaqx/examples_rst/qec/realtime_relay_bp.html">example</a> in the CUDA-Q QEC repository. This capability builds on previous qLDPC decoding efforts with our partners; Quantinuum recently <a href="https://www.quantinuum.com/blog/real-time-error-correction-at-increased-scale">demonstrated real-time QEC</a> on their Helios system using GPU-accelerated decoding via a custom integration with CUDA-Q QEC. That work showed that GPU decoding can meet the timing requirements of a real trapped-ion processor. With CUDA-Q QEC 0.6, we provide a standard interface that any quantum hardware vendor supporting NVQLink can adopt, making real-time GPU decoding accessible across the quantum computing ecosystem.</p>
+<h2 id="ai-pre-decoding-with-nvidia-ising">AI pre-decoding with NVIDIA Ising</h2>
+<p>Global decoders such as PyMatching can be a bottleneck for real-time QEC at scale. <a href="https://developer.nvidia.com/blog/nvidia-ising-introduces-ai-powered-workflows-to-build-fault-tolerant-quantum-systems">NVIDIA Ising</a>, an open source model family, includes pre-decoders for accelerating QEC. Pre-decoders help address the bottleneck of global decoding by performing a fast, approximate first pass that resolves the majority of syndromes before forwarding residual cases to the global decoder, reducing the fraction of syndromes that require full decoding. The pre-decoder is trained as a convolutional neural network (CNN) that maps syndrome patterns to approximate corrections.</p>
+<p>CUDA-Q QEC 0.6 enables real-time QEC workflows with the NVIDIA Ising pre-decoder: the trained model is exported to ONNX format for deployment via NVIDIA TensorRT, enabling low-latency FP8 or FP16 inference on NVIDIA GPUs. Syndrome data arriving over NVQLink is batched and dispatched to a pool of CUDA graphs generated by TensorRT for pre-decoding on the GPU. Syndromes not fully resolved by the pre-decoder are forwarded to a minimum-weight perfect matching (MWPM) global decoder on the CPU (PyMatching), which can be parallelized across threads for high throughput over many shots. This processing timeline is shown in <strong>Figure 2</strong>.</p>
+<p><img alt="Real-time decoding timeline" src="../../../../../images/cudaq-qec-0.6-blog/fig2.png" />
+<em><strong>Figure 2:</strong> Timeline for real-time decoding of 104 rounds of surface code QEC with a CNN pre-decoder (NVIDIA Ising Fast Model) plus global decoder (PyMatching). QEC is batched with several rounds in a single shot. With pre-decoding, latency per round is reduced to just over 2 microseconds—See Figure 3 for timing details.</em></p>
+<p><strong>Figure 3</strong> shows timing results for decoding the <span class="arithmatex">\(d=13\)</span> surface code running 104 QEC rounds (with 8 batches), comparing MWPM alone with MWPM plus two distinct pre-decoder models: <code>Ising-decoder-surfacecode-1-fast</code> and <code>Ising-decoder-surfacecode-1-accurate</code> (see <a href="https://developer.nvidia.com/blog/nvidia-ising-introduces-ai-powered-workflows-to-build-fault-tolerant-quantum-systems">this post</a> for more details on these models). Adding the fast pre-decoder delivers a 2.5x reduction in total decoding time compared to PyMatching alone, bringing the latency per round down to 2.1 microseconds. The accurate pre-decoder + PyMatching  is only slightly slower with a latency per round of 2.3 microseconds, but provides a logical error rate improvement over PyMatching alone of 1.5x as compared to the fast decoder’s 1.1x LER improvement.</p>
+<p><img alt="Pre-decoder latency" src="../../../../../images/cudaq-qec-0.6-blog/fig3.png" />
+<em><strong>Figure 3:</strong> Average decoding latency per QEC round (d=13, p=0.003, 104 rounds per shot) for MWPM (PyMatching) alone and CNN pre-decoders + MWPM. Pymatching was deployed on an NVIDIA Grace Neoverse-V2 CPU, and pre-decoders on an NVIDIA B300 GPU with FP16 precision.</em></p>
+<p>Latencies per QEC round that approach 2 microseconds are a compelling indication of the significant role GPU-acceleration can play in real-time decoding, not only for atom-based QPUs but also for higher clock rate modalities like superconducting QPUs. We expect further performance gains can be achieved by the QEC community; running GPU inference in low precision, parallelizing pre-decoding across multiple GPUs, and pairing pre-decoders with fast CPU or FPGA implementations of global decoders are all promising areas of exploration. NVIDIA Ising has been released as a <a href="https://www.nvidia.com/en-us/solutions/quantum-computing/ising/">family of open models</a> for community research, and documentation and an <a href="https://nvidia.github.io/cudaqx/examples_rst/qec/realtime_predecoder_pymatching.html">example</a> for setting up pre-decoders with <code>cudaq-realtime</code> are available in the CUDA-Q QEC Github repository.</p>
+<h2 id="getting-started-with-cuda-q-qec">Getting started with CUDA-Q QEC</h2>
+<p>CUDA-Q QEC 0.6 provides two GPU-accelerated decoder pipelines for real-time use via NVQLink: RelayBP for qLDPC codes and NVIDIA Ising pre-decoders plus PyMatching for the surface code. By connecting GPU-accelerated decoders to NVQLink through <code>cudaq-realtime</code>, CUDA-Q QEC 0.6 provides a production-ready bridge between quantum hardware and classical decoding infrastructure that any quantum hardware vendor or QEC researcher can adopt.</p>
+<p>To get started, explore the following resources:</p>
+<ul>
+<li>
+<p><a href="https://nvidia.github.io/cudaqx/components/qec/introduction.html">CUDA-Q QEC Documentation</a>--full API reference, decoder catalog, and QEC examples</p>
+</li>
+<li>
+<p><a href="https://github.com/NVIDIA/cudaqx">CUDA-Q QEC GitHub</a>--source code, real-time examples for RelayBP and the CNN pre-decoder</p>
+</li>
+<li>
+<p><a href="https://nvidia.github.io/cuda-quantum/blogs/blog/2026/03/16/launching-cudaq-realtime/">cudaq-realtime Launch Post</a>--overview of NVQLink, <code>cudaq-realtime</code> architecture, and latency benchmarks</p>
+</li>
+<li><a href="https://developer.nvidia.com/blog/nvidia-ising-introduces-ai-powered-workflows-to-build-fault-tolerant-quantum-systems">NVIDIA Ising Launch Post</a>--deep dive on the Ising CNN pre-decoder, training, and deployment</li>
+</ul>
+<p><a class="md-button" href="https://twitter.com/intent/tweet?text=CUDA-Q%20QEC%200.6%20Enables%20Real-Time%20QEC%20with%20NVQLink%0A&amp;url=http://www.example.com/blog/2026/04/14/cudaq-qec-0.6/">Share on <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z"/></svg></span></a>
+<a class="md-button" href="https://www.facebook.com/sharer/sharer.php?u=http://www.example.com/blog/2026/04/14/cudaq-qec-0.6/">Share on <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a9 9 0 0 1 1.141.195v3.325a9 9 0 0 0-.653-.036 27 27 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.7 1.7 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647"/></svg></span></a>
+<a class="md-button" href="https://www.linkedin.com/sharing/share-offsite/?text=CUDA-Q%20QEC%200.6%20Enables%20Real-Time%20QEC%20with%20NVQLink%0A&amp;url=http://www.example.com/blog/2026/04/14/cudaq-qec-0.6/">Share on LinkedIn</a></p>
 
 
 
