@@ -84,7 +84,7 @@ RUN cd /cuda-quantum && git init && \
             echo -e "url_key: $url_key" && \
             echo "git config -f .gitmodules --get $url_key" && \
             url=$(git config -f .gitmodules --get "$url_key") && \
-            echo "url: $url" \
+            echo "url: $url" && \
             git update-index --add --cacheinfo 160000 \
             $(cat /.git_modules/$local_path/HEAD) $local_path; \
         fi; \
