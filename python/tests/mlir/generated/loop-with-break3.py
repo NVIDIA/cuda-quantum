@@ -17,8 +17,8 @@ def assert_states_match(state1, state2, tolerance=1e-5):
     print(f"Real: {overlap.real}, imag: {overlap.imag}")
     assert abs(overlap.real - 1.0) < tolerance
     assert abs(overlap.imag) < tolerance
-    
-    
+
+
 @cudaq.kernel
 def kernel():
     q0 = cudaq.qvector(5)
@@ -50,7 +50,7 @@ def kernel():
         x(q0[0])
         if mz(q0[0]):
             break
-            
+
             swap(q0[2], q0[4])
             rz(5.63, q0[1])
             rz(5.47, q0[3])
@@ -95,16 +95,15 @@ def kernel():
             t.adj(q0[1])
             ry(0.31, q0[4])
             t(q0[1])
-            
-            
+
+
 def test_phase_folding():
     cudaq.set_target('qpp-cpu')
     cudaq.set_random_seed(1)
     state1 = cudaq.get_state(kernel)
-    
+
     cudaq.set_target('phase-folding-bench')
     cudaq.set_random_seed(1)
     state2 = cudaq.get_state(kernel)
-    
-    assert_states_match(state1, state2)
 
+    assert_states_match(state1, state2)
