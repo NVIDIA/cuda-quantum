@@ -72,6 +72,7 @@ ADD tpls/customizations/llvm /cuda-quantum/tpls/customizations/llvm
 ADD .gitmodules /cuda-quantum/.gitmodules
 ADD .git/modules/tpls/pybind11/HEAD /.git_modules/tpls/pybind11/HEAD
 ADD .git/modules/tpls/llvm/HEAD /.git_modules/tpls/llvm/HEAD
+ADD .git/modules/tpls/nanobind/HEAD /.git_modules/tpls/nanobind/HEAD
 
 # This is initializing the .git index sufficiently so that we can 
 # check out the correct commits based on the submodule commit. 
