@@ -12,6 +12,7 @@
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
 #include "cudaq/platform.h"
+#include "cudaq/qis/measure_result.h"
 #include "cudaq/qis/modifiers.h"
 #include "cudaq/qis/pauli_word.h"
 #include "cudaq/qis/qarray.h"
@@ -420,29 +421,33 @@ void exp_pauli(QuantumRegister &ctrls, double theta, const char *pauliWord,
                                false, spin_op::from_word(pauliWord));
 }
 
-/// @brief Measure an individual qubit, return 0,1 as `bool`
+/// @brief Measure an individual qubit, return as `measure_result`
 inline measure_result mz(qubit &q) {
-  return getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
+  return measure_result(
+      getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()}));
 }
 
-/// @brief Measure an individual qubit in `x` basis, return 0,1 as `bool`
+/// @brief Measure an individual qubit in `x` basis, return as `measure_result`
 inline measure_result mx(qubit &q) {
   h(q);
-  return getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
+  return measure_result(
+      getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()}));
 }
 
-// Measure an individual qubit in `y` basis, return 0,1 as `bool`
+// Measure an individual qubit in `y` basis, return as `measure_result`
 inline measure_result my(qubit &q) {
   r1(-M_PI_2, q);
   h(q);
-  return getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
+  return measure_result(
+      getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()}));
 }
 
 inline void reset(qubit &q) {
   getExecutionManager()->reset({q.n_levels(), q.id()});
 }
 
-// Measure all qubits in the range, return vector of 0,1
+// Measure all qubits in the range.
+// TODO: return type will change to cudaq::measure_vector (see spec).
 template <typename QubitRange>
   requires std::ranges::range<QubitRange>
 std::vector<measure_result> mz(QubitRange &q) {
@@ -473,7 +478,8 @@ std::vector<measure_result> mz(QubitRange &qr, Qs &&...qs) {
   if constexpr (std::is_same_v<decltype(rest), measure_result>) {
     result.push_back(rest);
   } else {
-    result.insert(result.end(), rest.begin(), rest.end());
+    for (const auto &r : rest)
+      result.push_back(r);
   }
   return result;
 }
@@ -485,7 +491,8 @@ std::vector<measure_result> mz(qubit &q, Qs &&...qs) {
   if constexpr (std::is_same_v<decltype(rest), measure_result>) {
     result.push_back(rest);
   } else {
-    result.insert(result.end(), rest.begin(), rest.end());
+    for (const auto &r : rest)
+      result.push_back(r);
   }
   return result;
 }
@@ -506,9 +513,18 @@ inline SpinMeasureResult measure(const cudaq::spin_op &term) {
   return getExecutionManager()->measure(term);
 }
 
-// Cast a measure register to an int64_t.
-// This function is classic control code that may run on a QPU.
+// TODO: will become measure_vector::operator std::int64_t() (see spec).
 inline std::int64_t to_integer(const std::vector<measure_result> &bits) {
+  std::int64_t ret = 0;
+  for (std::size_t i = 0; i < bits.size(); i++) {
+    if (bits[i]) {
+      ret |= 1UL << i;
+    }
+  }
+  return ret;
+}
+
+inline std::int64_t to_integer(const std::vector<bool> &bits) {
   std::int64_t ret = 0;
   for (std::size_t i = 0; i < bits.size(); i++) {
     if (bits[i]) {
@@ -522,6 +538,17 @@ inline std::int64_t to_integer(const std::string &arg) {
   std::string bitString{arg};
   std::reverse(bitString.begin(), bitString.end());
   return std::stoull(bitString, nullptr, 2);
+}
+
+// TODO: will be replaced by measure_vector::operator std::vector<bool>() (see
+// spec).
+inline std::vector<bool>
+to_bool_vector(const std::vector<measure_result> &results) {
+  std::vector<bool> out;
+  out.reserve(results.size());
+  for (const auto &r : results)
+    out.push_back(static_cast<bool>(r));
+  return out;
 }
 
 // This concept tests if `Kernel` is a `Callable` that takes the arguments,

@@ -79,10 +79,7 @@ void reuse2() __qpu__ {
 // CHECK:           cc.if(%[[VAL_2]]) {
 // CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           }
-// CHECK:           %[[VAL_3:.*]] = cc.alloca i1
-// CHECK:           cc.store %[[VAL_2]], %[[VAL_3]] : !cc.ptr<i1>
-// CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_3]] : !cc.ptr<i1>
-// CHECK:           cc.if(%[[VAL_4]]) {
+// CHECK:           cc.if(%[[VAL_2]]) {
 // CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           }
 // clang-format on
@@ -112,10 +109,7 @@ void reuse3() __qpu__ {
 // CHECK:           cc.if(%[[VAL_3]]) {
 // CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:           }
-// CHECK:           %[[VAL_4:.*]] = cc.alloca i1
-// CHECK:           cc.store %[[VAL_3]], %[[VAL_4]] : !cc.ptr<i1>
-// CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i1>
-// CHECK:           cc.if(%[[VAL_5]]) {
+// CHECK:           cc.if(%[[VAL_3]]) {
 // CHECK:             quake.x %[[VAL_0]] : (!quake.ref) -> ()
 // CHECK:             quake.x %[[VAL_1]] : (!quake.ref) -> ()
 // CHECK:           }

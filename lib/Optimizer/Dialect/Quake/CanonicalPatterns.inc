@@ -766,6 +766,42 @@ struct FuseSizeToMeasurementPattern : public OpRewritePattern<MeasOp> {
 
     auto newMeasTy =
         quake::MeasurementsType::get(rewriter.getContext(), totalSize);
+
+    // If any user expects unsized measurements (return-like ops where the
+    // function returns unsized, or call ops where the callee parameter is
+    // unsized), insert a quake.relax_size to bridge the sized-to-unsized gap.
+    auto needsCastForUser = [&](OpOperand &use) -> bool {
+      auto *user = use.getOwner();
+      if (isa<cudaq::cc::ReturnOp, cudaq::cc::UnwindReturnOp>(user)) {
+        if (auto funcOp = user->getParentOfType<func::FuncOp>())
+          if (funcOp.getFunctionType().getNumResults() == 1)
+            if (auto fnResMeasTy = dyn_cast<quake::MeasurementsType>(
+                    funcOp.getFunctionType().getResult(0)))
+              return !fnResMeasTy.hasSpecifiedSize();
+        return false;
+      }
+      auto checkCalleeArgType = [&](mlir::FunctionType calleeType,
+                                    unsigned argIdx) -> bool {
+        if (argIdx < calleeType.getNumInputs())
+          if (auto paramMeasTy = dyn_cast<quake::MeasurementsType>(
+                  calleeType.getInput(argIdx)))
+            return !paramMeasTy.hasSpecifiedSize();
+        return false;
+      };
+      if (auto callOp = dyn_cast<func::CallOp>(user))
+        return checkCalleeArgType(callOp.getCalleeType(),
+                                  use.getOperandNumber());
+      if (auto callOp = dyn_cast<func::CallIndirectOp>(user)) {
+        unsigned opIdx = use.getOperandNumber();
+        if (opIdx == 0)
+          return false; // operand 0 is the callee value itself
+        auto calleeFnTy = cast<mlir::FunctionType>(
+            callOp.getCallee().getType());
+        return checkCalleeArgType(calleeFnTy, opIdx - 1);
+      }
+      return false;
+    };
+
     SmallVector<Type> resultTypes;
     resultTypes.push_back(newMeasTy);
     for (unsigned i = 1; i < measOp->getNumResults(); ++i)
@@ -779,6 +815,16 @@ struct FuseSizeToMeasurementPattern : public OpRewritePattern<MeasOp> {
     for (auto &attr : oldAttrs)
       if (!newOp->getAttr(attr.getName()))
         newOp->setAttr(attr.getName(), attr.getValue());
+
+    for (auto &use :
+         llvm::make_early_inc_range(newOp.getMeasOut().getUses())) {
+      if (needsCastForUser(use)) {
+        rewriter.setInsertionPoint(use.getOwner());
+        auto relax = rewriter.create<quake::RelaxSizeOp>(
+            use.getOwner()->getLoc(), measTy, newOp.getMeasOut());
+        use.set(relax);
+      }
+    }
     return success();
   }
 };

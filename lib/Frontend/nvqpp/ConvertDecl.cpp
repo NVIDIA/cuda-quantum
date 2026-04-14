@@ -93,8 +93,9 @@ void QuakeBridgeVisitor::addArgumentSymbols(
       auto parmTy = entryBlock->getArgument(index).getType();
       if (isa<FunctionType, cc::CallableType, cc::IndirectCallableType,
               cc::PointerType, cc::SpanLikeType, LLVM::LLVMStructType,
-              quake::ControlType, quake::RefType, quake::StruqType,
-              quake::VeqType, quake::WireType>(parmTy)) {
+              quake::ControlType, quake::MeasureType, quake::MeasurementsType,
+              quake::RefType, quake::StruqType, quake::VeqType,
+              quake::WireType>(parmTy)) {
         symbolTable.insert(name, entryBlock->getArgument(index));
       } else {
         auto stackSlot = builder.create<cc::AllocaOp>(loc, parmTy);
@@ -169,6 +170,9 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       auto fnTy = cast<FunctionType>(popType());
       return pushType(cc::IndirectCallableType::get(fnTy));
     }
+    // Measurement result type.
+    if (name == "measure_result")
+      return pushType(quake::MeasureType::get(ctx));
     if (!isInNamespace(x, "solvers") && !isInNamespace(x, "qec")) {
       auto loc = toLocation(x);
       TODO_loc(loc, "unhandled type, " + name + ", in cudaq namespace");
@@ -188,6 +192,10 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
                               "std::vector element type is not supported");
         return false;
       }
+      // TODO: std::vector<measure_result> will be replaced by
+      // cudaq::measure_vector, recognized directly by class name (see spec).
+      if (isa<quake::MeasureType>(ty))
+        return pushType(quake::MeasurementsType::getUnsized(ctx));
       return pushType(cc::StdvecType::get(ctx, ty));
     }
     // std::vector<bool>   =>   cc.stdvec<i1>
@@ -732,7 +740,14 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
     return true;
   }
 
-  // Here we maybe have something like auto var = mz(qreg)
+  if (isa<quake::MeasureType, quake::MeasurementsType>(type)) {
+    assert(x->getInit() && "`measure_result` has no default constructor");
+    auto initVal = popValue();
+    symbolTable.insert(x->getName(), initVal);
+    if (auto meas = initVal.getDefiningOp<quake::MeasurementInterface>())
+      meas.setRegisterName(builder.getStringAttr(x->getName()));
+    return true;
+  }
   if (auto vecType = dyn_cast<cc::StdvecType>(type)) {
     // Variable is of !cc.stdvec type.
     if (x->getInit()) {
@@ -743,6 +758,11 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
       // Let's try to see if this was a auto var = mz(qreg)
       // and if so, find the mz and tag it with the variable name
       auto elementType = vecType.getElementType();
+
+      if (auto meas = initVec.getDefiningOp<quake::MeasurementInterface>()) {
+        meas.setRegisterName(builder.getStringAttr(x->getName()));
+        return true;
+      }
 
       // Drop out if this is not an i1
       if (!elementType.isIntOrFloat() ||
@@ -781,6 +801,11 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
         auto firstGepUser = *gepOp->getResult(0).getUsers().begin();
         if (auto storeOp = dyn_cast<cc::StoreOp>(firstGepUser)) {
           auto result = storeOp->getOperand(0);
+          if (auto measureOp =
+                  result.getDefiningOp<quake::MeasurementInterface>()) {
+            measureOp.setRegisterName(builder.getStringAttr(x->getName()));
+            break;
+          }
           if (auto discr = result.getDefiningOp<quake::DiscriminateOp>())
             if (auto mzOp =
                     discr.getMeasurement().getDefiningOp<quake::MzOp>()) {
@@ -817,9 +842,8 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
 
   // If this was an auto var = mz(q), then we want to know the
   // var name, as it will serve as the classical bit register name
-  if (auto discr = initValue.getDefiningOp<quake::DiscriminateOp>())
-    if (auto mz = discr.getMeasurement().getDefiningOp<quake::MzOp>())
-      mz.setRegisterName(builder.getStringAttr(x->getName()));
+  if (auto meas = initValue.getDefiningOp<quake::MeasurementInterface>())
+    meas.setRegisterName(builder.getStringAttr(x->getName()));
 
   assert(initValue && "initializer value must be lowered");
   if (isa<IntegerType>(initValue.getType()) && isa<IntegerType>(type)) {

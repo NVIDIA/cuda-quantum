@@ -62,8 +62,8 @@ static bool isQubitType(Type ty) {
 }
 
 // Check the builtin type FunctionType to see if it has any references to Quake
-// qubit types in its arguments and/or results.
-static bool hasAnyQubitTypes(FunctionType funcTy) {
+// types (including measurement) in its arguments and/or results.
+static bool hasAnyQuakeTypes(FunctionType funcTy) {
   for (auto ty : funcTy.getInputs())
     if (isQubitType(ty))
       return true;
@@ -639,7 +639,7 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
       auto unitAttr = UnitAttr::get(ctx);
       // Flag func as a quantum kernel.
       func->setAttr(kernelAttrName, unitAttr);
-      if ((!hasAnyQubitTypes(func.getFunctionType())) &&
+      if ((!hasAnyQuakeTypes(func.getFunctionType())) &&
           (!cudaq::ASTBridgeAction::ASTBridgeConsumer::isCustomOpGenerator(
               fdPair.second))) {
         // Flag func as an entry point to a quantum kernel.

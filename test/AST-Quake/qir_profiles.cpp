@@ -175,6 +175,7 @@ struct adapt_mz_read {
 // ADAPT:         tail call void @__quantum__qis__z__body(%Qubit* nonnull inttoptr (i64 4 to %Qubit*))
 // ADAPT:         tail call void @__quantum__qis__z__body(%Qubit* nonnull inttoptr (i64 5 to %Qubit*))
 // ADAPT:         tail call void @__quantum__qis__z__body(%Qubit* nonnull inttoptr (i64 6 to %Qubit*))
+// ADAPT:         tail call void @__quantum__qis__cz__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*), %Qubit* nonnull inttoptr (i64 4 to %Qubit*))
 // ADAPT:         tail call void @__quantum__qis__t__body(%Qubit* null)
 // ADAPT:         tail call void @__quantum__qis__t__body(%Qubit* nonnull inttoptr (i64 4 to %Qubit*))
 // ADAPT:         tail call void @__quantum__qis__t__body(%Qubit* nonnull inttoptr (i64 5 to %Qubit*))
