@@ -27,9 +27,65 @@
 
 namespace cudaq {
 
+namespace {
+
+std::pair<std::unordered_map<std::string, std::string>, bool>
+introspectCallable(const nanobind::callable &func) {
+  nanobind::module_ inspect = nanobind::module_::import_("inspect");
+  nanobind::object argSpec = inspect.attr("getfullargspec")(func);
+
+  if (!argSpec.attr("varargs").is_none())
+    throw std::invalid_argument(
+        "the function defining a scalar operator must not take *args");
+
+  nanobind::module_ helpers =
+      nanobind::module_::import_("cudaq.operators.helpers");
+  nanobind::object paramDocsFn = helpers.attr("_parameter_docs");
+  nanobind::object docstring = func.attr("__doc__");
+
+  std::unordered_map<std::string, std::string> paramDesc;
+  for (nanobind::handle name : argSpec.attr("args")) {
+    std::string n = nanobind::cast<std::string>(name);
+    std::string doc = nanobind::cast<std::string>(
+        paramDocsFn(nanobind::str(n.c_str()), docstring));
+    paramDesc[n] = doc;
+  }
+  for (nanobind::handle name : argSpec.attr("kwonlyargs")) {
+    std::string n = nanobind::cast<std::string>(name);
+    std::string doc = nanobind::cast<std::string>(
+        paramDocsFn(nanobind::str(n.c_str()), docstring));
+    paramDesc[n] = doc;
+  }
+
+  bool acceptsKwargs = !argSpec.attr("varkw").is_none();
+  return {std::move(paramDesc), acceptsKwargs};
+}
+
+scalar_callback wrapPythonCallable(nanobind::callable func,
+                                   const std::vector<std::string> &paramNames,
+                                   bool acceptsKwargs) {
+  return [func = std::move(func), paramNames,
+          acceptsKwargs](const parameter_map &params) -> std::complex<double> {
+    nanobind::gil_scoped_acquire guard;
+    nanobind::dict pyKwargs;
+    if (acceptsKwargs) {
+      for (const auto &[k, v] : params)
+        pyKwargs[k.c_str()] = nanobind::cast(v);
+    } else {
+      for (const auto &name : paramNames) {
+        auto it = params.find(name);
+        if (it != params.end())
+          pyKwargs[name.c_str()] = nanobind::cast(it->second);
+      }
+    }
+    nanobind::object result = func(**pyKwargs);
+    return nanobind::cast<std::complex<double>>(result);
+  };
+}
+
+} // anonymous namespace
+
 void bindScalarOperator(nanobind::module_ &mod) {
-  using scalar_callback =
-      std::function<std::complex<double>(const parameter_map &)>;
 
   nanobind::class_<scalar_operator>(mod, "ScalarOperator")
 
@@ -49,13 +105,35 @@ void bindScalarOperator(nanobind::module_ &mod) {
            "Creates a scalar operator with the given constant value.")
       .def(
           "__init__",
-          [](scalar_operator *self, const scalar_callback &func,
-             const nanobind::kwargs &kwargs) {
-            new (self) scalar_operator(
-                func, details::kwargs_to_param_description(kwargs));
+          [](scalar_operator *self, nanobind::callable func) {
+            auto [paramDesc, acceptsKwargs] = introspectCallable(func);
+            std::vector<std::string> paramNames;
+            for (const auto &[k, v] : paramDesc)
+              paramNames.push_back(k);
+            auto callback =
+                wrapPythonCallable(std::move(func), paramNames, acceptsKwargs);
+            new (self)
+                scalar_operator(std::move(callback), std::move(paramDesc));
           },
-          "Creates a scalar operator where the given callback function is "
-          "invoked during evaluation.")
+          nanobind::arg("generator"),
+          "Creates a scalar operator from a callable. Parameter names are "
+          "introspected from the function signature.")
+      .def(
+          "__init__",
+          [](scalar_operator *self, nanobind::callable func,
+             const nanobind::kwargs &kwargs) {
+            auto [introspected, acceptsKwargs] = introspectCallable(func);
+            auto paramDesc = details::kwargs_to_param_description(kwargs);
+            std::vector<std::string> paramNames;
+            for (const auto &[k, v] : paramDesc)
+              paramNames.push_back(k);
+            auto callback =
+                wrapPythonCallable(std::move(func), paramNames, acceptsKwargs);
+            new (self)
+                scalar_operator(std::move(callback), std::move(paramDesc));
+          },
+          "Creates a scalar operator from a callable with keyword argument "
+          "parameter descriptions.")
       .def(nanobind::init<const scalar_operator &>(), "Copy constructor.")
 
       // evaluations
