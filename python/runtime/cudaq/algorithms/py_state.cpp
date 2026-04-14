@@ -282,7 +282,7 @@ static BufferInfo getCupyBufferInfo(nanobind::object cupy_buffer) {
 static BufferInfo getNumpyBufferInfo(nanobind::object numpy_array) {
   nanobind::module_ np = nanobind::module_::import_("numpy");
   auto dtype = numpy_array.attr("dtype");
-  std::string dtypeStr = nanobind::cast<std::string>(nanobind::str(dtype));
+  std::string dtypeStr = nanobind::cast<std::string>(dtype.attr("name"));
 
   BufferInfo info;
   if (dtypeStr == "complex64") {
@@ -295,7 +295,6 @@ static BufferInfo getNumpyBufferInfo(nanobind::object numpy_array) {
     info.format = dtypeStr;
     info.itemsize = nanobind::cast<std::size_t>(dtype.attr("itemsize"));
   }
-
   auto shapeTuple = nanobind::cast<nanobind::tuple>(numpy_array.attr("shape"));
   info.ndim = shapeTuple.size();
   info.size = 1;
@@ -304,13 +303,11 @@ static BufferInfo getNumpyBufferInfo(nanobind::object numpy_array) {
     info.shape.push_back(ext);
     info.size *= ext;
   }
-
   auto stridesTuple =
       nanobind::cast<nanobind::tuple>(numpy_array.attr("strides"));
   for (std::size_t i = 0; i < stridesTuple.size(); i++) {
     info.strides.push_back(nanobind::cast<ssize_t>(stridesTuple[i]));
   }
-
   // Get the raw data pointer via numpy's ctypes interface
   info.ptr = reinterpret_cast<void *>(
       nanobind::cast<intptr_t>(numpy_array.attr("ctypes").attr("data")));
@@ -588,7 +585,7 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
               // We know this is a cupy device pointer. Start by ensuring it is
               // of proper complex type
               auto typeStr = nanobind::cast<std::string>(
-                  nanobind::str(tensor.attr("dtype")));
+                  tensor.attr("dtype").attr("name"));
               if (typeStr != "complex128")
                 throw std::runtime_error(
                     "invalid from_data operation on nanobind::object tensors - "
@@ -626,7 +623,7 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
             // We know this is a cupy device pointer. Start by ensuring it is of
             // complex type
             auto typeStr = nanobind::cast<std::string>(
-                nanobind::str(opaqueData.attr("dtype")));
+                opaqueData.attr("dtype").attr("name"));
             if (typeStr.find("float") != std::string::npos)
               throw std::runtime_error(
                   "CuPy array with only floating point elements passed to "
@@ -835,7 +832,7 @@ index pair.
 
             // Start by ensuring it is of complex type
             auto typeStr =
-                nanobind::cast<std::string>(nanobind::str(other.attr("dtype")));
+                nanobind::cast<std::string>(other.attr("dtype").attr("name"));
             if (typeStr.find("float") != std::string::npos)
               throw std::runtime_error(
                   "CuPy array with only floating point elements passed to "

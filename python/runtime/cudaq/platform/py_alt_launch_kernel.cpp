@@ -371,7 +371,8 @@ void cudaq::packArgs(
           } else {
             throw std::runtime_error(
                 "Invalid complex type argument: " +
-                nanobind::cast<std::string>(nanobind::str(args)) +
+                nanobind::cast<std::string>(
+                    nanobind::steal(PyObject_Str(args.ptr()))) +
                 " Type: " + mlirTypeToString(ty));
           }
         })
@@ -426,7 +427,8 @@ void cudaq::packArgs(
           } else {
             throw std::runtime_error(
                 "Invalid pointer type argument: " +
-                nanobind::cast<std::string>(nanobind::str(arg)) +
+                nanobind::cast<std::string>(
+                    nanobind::steal(PyObject_Str(arg.ptr()))) +
                 " Type: " + mlirTypeToString(ty));
           }
         })
@@ -532,7 +534,8 @@ void cudaq::packArgs(
           if (!success)
             throw std::runtime_error(
                 "Could not pack argument: " +
-                nanobind::cast<std::string>(nanobind::str(arg)) +
+                nanobind::cast<std::string>(
+                    nanobind::steal(PyObject_Str(arg.ptr()))) +
                 " Type: " + mlirTypeToString(ty));
         });
   }

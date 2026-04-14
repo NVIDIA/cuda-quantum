@@ -170,7 +170,7 @@ static observe_result observe_parallel_impl(const std::string &shortName,
                                             std::optional<noise_model> noise,
                                             nanobind::args arguments) {
   std::string applicatorKey =
-      nanobind::cast<std::string>(nanobind::str(execution.attr("__name__")));
+      nanobind::cast<std::string>(execution.attr("__name__"));
   auto mod = unwrap(module);
   if (applicatorKey == "thread")
     return pyObservePar(PyParType::thread, shortName, mod, spin_operator, shots,
