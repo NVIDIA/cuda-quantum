@@ -347,6 +347,16 @@ class PyStack(object):
         return 0
 
 
+def _containsMeasureType(ty):
+    if quake.MeasureType.isinstance(ty):
+        return True
+    if quake.MeasurementsType.isinstance(ty):
+        return True
+    if cc.StructType.isinstance(ty):
+        return any(_containsMeasureType(t) for t in cc.StructType.getTypes(ty))
+    return False
+
+
 class PyASTBridge(ast.NodeVisitor):
     """The `PyASTBridge` class implements the `ast.NodeVisitor` type to convert
     a python function definition (annotated with cudaq.kernel) to an MLIR
@@ -1907,17 +1917,6 @@ class PyASTBridge(ast.NodeVisitor):
             containerFuncArg = (not self.buildingFunctionBody and
                                 (cc.StructType.isinstance(varTy) or
                                  cc.StdvecType.isinstance(varTy)))
-
-            def _containsMeasureType(ty):
-                if quake.MeasureType.isinstance(ty):
-                    return True
-                if quake.MeasurementsType.isinstance(ty):
-                    return True
-                if cc.StructType.isinstance(ty):
-                    return any(
-                        _containsMeasureType(t)
-                        for t in cc.StructType.getTypes(ty))
-                return False
 
             measurementResult = _containsMeasureType(varTy)
             # FIXME: Consider storing vectors and callables as pointers like

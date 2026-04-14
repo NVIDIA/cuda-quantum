@@ -852,9 +852,6 @@ cudaq::marshal_arguments_for_module_launch(ModuleOp mod, py::args runtimeArgs,
 static bool containsMeasureResult(Type ty) {
   if (isa<quake::MeasureType>(ty) || isa<quake::MeasurementsType>(ty))
     return true;
-  if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(ty))
-    if (isa<quake::MeasureType>(vecTy.getElementType()))
-      return true;
   if (auto structTy = dyn_cast<cudaq::cc::StructType>(ty))
     for (auto memberTy : structTy.getMembers())
       if (containsMeasureResult(memberTy))
