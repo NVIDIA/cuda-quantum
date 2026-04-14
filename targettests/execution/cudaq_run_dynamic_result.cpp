@@ -23,7 +23,7 @@ __qpu__ std::vector<bool> arg_size_bool(int n) {
 __qpu__ std::vector<int> arg_size_int(int n) {
   cudaq::qvector qs(n);
   x(qs);
-  auto bits = mz(qs);
+  auto bits = cudaq::to_bool_vector(mz(qs));
   std::vector<int> result(n);
   for (int i = 0; i < n; i++)
     result[i] = bits[i] ? 1 : 0;
@@ -33,7 +33,7 @@ __qpu__ std::vector<int> arg_size_int(int n) {
 __qpu__ std::vector<float> arg_size_float(int n) {
   cudaq::qvector qs(n);
   x(qs);
-  auto bits = mz(qs);
+  auto bits = cudaq::to_bool_vector(mz(qs));
   std::vector<float> result(n);
   for (int i = 0; i < n; i++)
     result[i] = bits[i] ? 1.0f : 0.0f;
