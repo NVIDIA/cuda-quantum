@@ -68,9 +68,8 @@ streamlinedLaunchModule(const char *kernelName, mlir::ModuleOp moduleOp,
 streamlinedLaunchModule(const std::string &kernelName, mlir::ModuleOp moduleOp,
                         const std::vector<void *> &rawArgs);
 
-[[nodiscard]] void *streamlinedSpecializeModule(
+[[nodiscard]] CompiledKernel streamlinedSpecializeModule(
     const std::string &kernelName, mlir::ModuleOp moduleOp,
-    const std::vector<void *> &rawArgs,
-    std::optional<cudaq::JitEngine> &cachedEngine, bool isEntryPoint);
+    const std::vector<void *> &rawArgs, bool isEntryPoint);
 
 } // namespace cudaq
