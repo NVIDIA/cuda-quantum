@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-name: phase-folding-bench
+name: phase-folding-bench-mins
 description: "Phase folding optimization pass for compiler benchmarking/testing with minimum block length and Rz weight thresholds."
 
 config:
