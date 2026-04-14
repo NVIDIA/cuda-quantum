@@ -79,7 +79,7 @@ class ResultInfo {
   // Friend factory function, to be used for construction.
   friend cudaq::ResultInfo cudaq_internal::compiler::createResultInfo(
       mlir::Type resultType, bool isEntryPoint, mlir::ModuleOp module);
-  friend class CompiledKernel;
+  friend class CompiledModule;
 
   /// Opaque pointer to the `mlir::Type` of the result. Obtained via
   /// `mlir::Type::getAsOpaquePointer()`.
@@ -99,19 +99,16 @@ public:
   bool hasResult() const { return typeOpaquePtr != nullptr; }
 };
 
-/// @brief A compiled, ready-to-execute kernel.
+/// @brief A compiled MLIR module, ready for execution or codegen.
 ///
-/// Contains a map of named compiled artifacts (JIT binaries or MLIR modules)
-/// along with metadata needed for execution and result extraction.
-///
-/// For non-observe kernels, the map has a single entry keyed by the kernel
-/// name. For observe mode, there is one entry per Pauli term, keyed by the
-/// term ID.
+/// Contains any number of named compilation artifacts (we currently support
+/// JIT binaries and optimized MLIR modules) that result from the compilation
+/// of a Quake MLIR module.
 ///
 /// This type does not depend on MLIR/LLVM — it only keeps type-erased / opaque
-/// pointers. Use the `attachJit` member function to attach a JIT-compiled
-/// artifact after construction.
-class CompiledKernel {
+/// pointers. Use the `attachJit` member function to attach JIT-compiled
+/// artifacts after construction.
+class CompiledModule {
 public:
   // --- Compiled artifact types ---
 
@@ -128,7 +125,7 @@ public:
         : engine(engine), entryPoint(entryPoint), argsCreator(argsCreator),
           resourceCounts(std::move(resourceCounts)) {}
 
-    friend class CompiledKernel;
+    friend class CompiledModule;
 
   public:
     // TODO: remove the following two methods once the `CompiledKernel` instance
@@ -164,7 +161,7 @@ public:
     [[maybe_unused]] const void *modulePtr = nullptr;
 #pragma GCC diagnostic pop
 
-    friend class CompiledKernel;
+    friend class CompiledModule;
   };
 
   /// A compiled artifact is either a JIT binary or an MLIR module.
@@ -172,7 +169,7 @@ public:
 
   // --- Construction ---
 
-  CompiledKernel(std::string kernelName, ResultInfo resultInfo);
+  CompiledModule(std::string kernelName, ResultInfo resultInfo);
 
   /// @brief Populate the JIT representation of a `CompiledKernel`.
   ///

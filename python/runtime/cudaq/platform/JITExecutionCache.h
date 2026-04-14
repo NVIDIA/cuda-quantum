@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "common/CompiledKernel.h"
+#include "common/CompiledModule.h"
 #include <list>
 #include <mutex>
 #include <unordered_map>

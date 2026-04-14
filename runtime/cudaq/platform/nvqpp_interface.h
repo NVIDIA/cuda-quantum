@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "common/CompiledKernel.h"
+#include "common/CompiledModule.h"
 #include "common/ThunkInterface.h"
 #include <optional>
 #include <string>
