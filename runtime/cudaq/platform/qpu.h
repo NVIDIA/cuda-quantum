@@ -197,11 +197,9 @@ public:
   launchModule(const std::string &name, mlir::ModuleOp module,
                const std::vector<void *> &rawArgs);
 
-  [[nodiscard]] virtual void *
+  [[nodiscard]] virtual CompiledKernel
   specializeModule(const std::string &name, mlir::ModuleOp module,
-                   const std::vector<void *> &rawArgs,
-                   std::optional<cudaq::JitEngine> &cachedEngine,
-                   bool isEntryPoint);
+                   const std::vector<void *> &rawArgs, bool isEntryPoint);
 
   /// @brief Notify the QPU that a new random seed value is set.
   /// By default do nothing, let subclasses override.
