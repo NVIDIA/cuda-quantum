@@ -406,7 +406,8 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
       "`cudaq.State.from_data()` method.\n")
       .def(
           "__array__",
-          [](const state &self, nanobind::object dtype_obj) {
+          [](const state &self, nanobind::object dtype_obj,
+             nanobind::object copy_obj) {
             if (self.get_num_tensors() != 1)
               throw std::runtime_error(
                   "Numpy interop is only supported for vector "
@@ -496,7 +497,8 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
             std::memcpy(destPtr, dataPtr, numElements * dataTypeSize);
             return arr;
           },
-          nanobind::arg("dtype") = nanobind::none())
+          nanobind::arg("dtype") = nanobind::none(),
+          nanobind::arg("copy") = nanobind::none())
       .def(
           "__len__",
           [](state &self) {

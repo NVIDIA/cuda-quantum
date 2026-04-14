@@ -209,12 +209,16 @@ void bindKrausOp(nanobind::module_ &mod) {
       mod, "KrausOperator",
       "The `KrausOperator` is represented by a matrix and serves as an element "
       "of a quantum channel such that :code:`Sum Ki Ki^dag = I.`")
-      .def("__array__",
-           [](kraus_op &op) {
-             size_t shape[2] = {op.nRows, op.nCols};
-             return nanobind::ndarray<nanobind::numpy, std::complex<double>>(
-                 op.data.data(), 2, shape, nanobind::handle());
-           })
+      .def(
+          "__array__",
+          [](kraus_op &op, nanobind::object dtype_obj,
+             nanobind::object copy_obj) {
+            size_t shape[2] = {op.nRows, op.nCols};
+            return nanobind::ndarray<nanobind::numpy, std::complex<double>>(
+                op.data.data(), 2, shape, nanobind::handle());
+          },
+          nanobind::arg("dtype") = nanobind::none(),
+          nanobind::arg("copy") = nanobind::none())
       .def(
           "__init__",
           [](kraus_op *self,
