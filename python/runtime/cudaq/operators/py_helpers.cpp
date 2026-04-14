@@ -8,6 +8,7 @@
 
 #include "py_helpers.h"
 #include "cudaq/operators.h"
+#include <algorithm>
 #include <complex>
 #include <nanobind/nanobind.h>
 #include <nanobind/ndarray.h>
@@ -42,10 +43,19 @@ nanobind::ndarray<nanobind::numpy, std::complex<double>>
 cmat_to_numpy(complex_matrix &cmat) {
   auto rows = cmat.rows();
   auto cols = cmat.cols();
-  auto data = cmat.get_data(complex_matrix::order::row_major);
-  size_t shape[2] = {rows, cols};
-  return nanobind::ndarray<nanobind::numpy, std::complex<double>>(
-      data, 2, shape, nanobind::handle());
-};
+  auto *src = cmat.get_data(complex_matrix::order::row_major);
+  std::size_t n = rows * cols;
+  std::size_t shape[2] = {rows, cols};
+
+  auto *copy = new std::complex<double>[n];
+  std::copy(src, src + n, copy);
+
+  nanobind::capsule owner(copy, [](void *p) noexcept {
+    delete[] static_cast<std::complex<double> *>(p);
+  });
+
+  return nanobind::ndarray<nanobind::numpy, std::complex<double>>(copy, 2,
+                                                                  shape, owner);
+}
 
 } // namespace cudaq::details
