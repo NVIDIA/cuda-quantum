@@ -63,6 +63,21 @@ struct OperatorInfo {
     return name == other.name && numControls == other.numControls &&
            isAdj == other.isAdj;
   }
+
+  bool isUnbounded() const {
+    return numControls == std::numeric_limits<std::size_t>::max();
+  }
+
+  /// Check if this gate matches another, treating unbounded (n) control
+  /// count as a wildcard that matches any concrete count.
+  bool matches(const OperatorInfo &other) const {
+    if (name != other.name || isAdj != other.isAdj)
+      return false;
+    constexpr auto unbounded = std::numeric_limits<std::size_t>::max();
+    if (numControls == unbounded || other.numControls == unbounded)
+      return true;
+    return numControls == other.numControls;
+  }
 };
 
 struct BasisTarget : public ConversionTarget {
@@ -175,14 +190,15 @@ public:
   }
 
   /// Return all patterns that have the given gate as one of their targets.
-  ///
-  /// @param gate The gate to find incoming patterns for
-  /// @return A vector of pattern names (StringRef) whose targets include the
-  /// given gate
-  llvm::ArrayRef<std::string> incomingPatterns(const OperatorInfo &gate) const {
-    static const llvm::SmallVector<std::string> empty;
-    auto it = targetToPatterns.find(gate);
-    return it == targetToPatterns.end() ? empty : it->second;
+  /// Uses OperatorInfo::matches() to handle unbounded (n) control counts.
+  llvm::SmallVector<std::string>
+  incomingPatterns(const OperatorInfo &gate) const {
+    llvm::SmallVector<std::string> result;
+    for (const auto &[key, patterns] : targetToPatterns) {
+      if (key.matches(gate))
+        result.append(patterns.begin(), patterns.end());
+    }
+    return result;
   }
 
   /// Select subset of patterns relevant to decomposing to the given basis
@@ -207,7 +223,12 @@ public:
 
     for (const auto &patternName : patternSelectionCache[hashVal]) {
       const auto &pattern = getPatternType(patternName);
-      patterns.add(pattern->create(patterns.getContext()));
+      // Patterns with unbounded (n) control counts get lower benefit so
+      // that specific patterns (e.g., CR1ToCX for r1(1)) are preferred
+      // when both match the same op.
+      OperatorInfo sourceInfo(pattern->getSourceOp());
+      PatternBenefit benefit = sourceInfo.isUnbounded() ? 1 : 2;
+      patterns.add(pattern->create(patterns.getContext(), benefit));
     }
   }
 
@@ -260,18 +281,29 @@ private:
       gatesToVisit.push({gate, 0, std::nullopt});
     }
 
+    /// Find the distance for a gate, handling unbounded (n) control counts.
+    /// Exact hash lookup first for the common case, then a scan when the
+    /// query or any visited entry uses unbounded controls.
+    auto findGateDist = [&](const OperatorInfo &gate) -> std::size_t {
+      auto it = visitedGates.find(gate);
+      if (it != visitedGates.end())
+        return it->second;
+      // Scan for wildcard matches (either side could be unbounded).
+      std::size_t best = std::numeric_limits<std::size_t>::max();
+      for (const auto &[visited, dist] : visitedGates) {
+        if (visited.matches(gate))
+          best = std::min(best, dist);
+      }
+      return best;
+    };
+
     /// Compute the maximum distance from a pattern's targets to the basis
     /// gates.
     auto getPatternDist = [&](const auto &pattern) {
       auto targetGates = pattern->getTargetOps();
       std::vector<std::size_t> targetDistances;
-      for (const auto &targetGate : targetGates) {
-        if (visitedGates.count(targetGate)) {
-          targetDistances.push_back(visitedGates.at(targetGate));
-        } else {
-          targetDistances.push_back(std::numeric_limits<std::size_t>::max());
-        }
-      }
+      for (const auto &targetGate : targetGates)
+        targetDistances.push_back(findGateDist(targetGate));
       return *std::max_element(targetDistances.begin(), targetDistances.end());
     };
 
