@@ -33,11 +33,7 @@ terminal measurements.
 
 Note:
 	Conditional logic on mid-circuit measurements is no longer supported with
-  `sample`. Use `run` instead.
-
-Attributes:
-	register_names (List[str]): A list of the names of each measurement
-		register that are stored in `self`.)#")
+  `sample`. Use `run` instead.)#")
       .def_prop_ro("register_names", &sample_result::register_names)
       .def(nanobind::init<>())
       .def(

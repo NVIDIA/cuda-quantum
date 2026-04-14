@@ -633,8 +633,8 @@ void bindFermionOperator(nanobind::module_ &mod) {
 
       .def("is_identity", &fermion_op_term::is_identity,
            "Checks if all operators in the product are the identity. "
-           "Note: this function returns true regardless of the value of the "
-           "coefficient.")
+           "Note that this function returns true regardless of the value of "
+           "the coefficient.")
       .def(
           "__str__",
           [](const fermion_op_term &self) { return self.to_string(); },

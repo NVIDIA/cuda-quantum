@@ -443,7 +443,7 @@ void bindSpinOperator(nanobind::module_ &mod) {
             auto data = self.get_data_representation();
             return json.attr("dumps")(data);
           },
-          "Convert spin_op to JSON string: '[d1, d2, d3, ...]'")
+          "Convert spin_op to a JSON string, e.g., '[d1, d2, d3, ...]'.")
       .def("trim", &spin_op::trim, nanobind::arg("tol") = 0.0,
            nanobind::arg("parameters") = parameter_map(),
            "Removes all terms from the sum for which the absolute value of the "
@@ -909,8 +909,8 @@ void bindSpinOperator(nanobind::module_ &mod) {
 
       .def("is_identity", &spin_op_term::is_identity,
            "Checks if all operators in the product are the identity. "
-           "Note: this function returns true regardless of the value of the "
-           "coefficient.")
+           "Note that this function returns true regardless of the value of "
+           "the coefficient.")
       .def(
           "__str__", [](const spin_op_term &self) { return self.to_string(); },
           "Returns the string representation of the operator.")
@@ -932,7 +932,7 @@ void bindSpinOperator(nanobind::module_ &mod) {
             auto data = spin_op(self).get_data_representation();
             return json.attr("dumps")(data);
           },
-          "Convert spin_op to JSON string: '[d1, d2, d3, ...]'")
+          "Convert spin_op to a JSON string, e.g., '[d1, d2, d3, ...]'.")
       // only exists for spin operators
       .def(
           "get_pauli_word",
