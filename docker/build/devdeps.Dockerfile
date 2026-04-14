@@ -70,7 +70,7 @@ ADD scripts/build_llvm.sh /cuda-quantum/scripts/build_llvm.sh
 ADD cmake/caches/LLVM.cmake /cuda-quantum/cmake/caches/LLVM.cmake
 ADD tpls/customizations/llvm /cuda-quantum/tpls/customizations/llvm
 ADD .gitmodules /cuda-quantum/.gitmodules
-ADD .git/modules/tpls/pybind11/HEAD /.git_modules/tpls/pybind11/HEAD
+ADD .git/modules/tpls/nanobind/HEAD /.git_modules/tpls/nanobind/HEAD
 ADD .git/modules/tpls/llvm/HEAD /.git_modules/tpls/llvm/HEAD
 
 # This is initializing the .git index sufficiently so that we can 
@@ -79,8 +79,12 @@ RUN cd /cuda-quantum && git init && \
     git config -f .gitmodules --get-regexp '^submodule\..*\.path$' | \
     while read path_key local_path; do \
         if [ -f "/.git_modules/$local_path/HEAD" ]; then \
+            echo -e "path_key: $path_key" && \
             url_key=$(echo $path_key | sed 's/\.path/.url/') && \
+            echo -e "url_key: $url_key" && \
+            echo "git config -f .gitmodules --get $url_key" && \
             url=$(git config -f .gitmodules --get "$url_key") && \
+            echo "url: $url" \
             git update-index --add --cacheinfo 160000 \
             $(cat /.git_modules/$local_path/HEAD) $local_path; \
         fi; \
