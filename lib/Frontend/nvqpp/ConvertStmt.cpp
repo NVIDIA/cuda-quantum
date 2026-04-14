@@ -12,7 +12,6 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/IR/Builders.h"
-#include "mlir/IR/BuiltinOps.h"
 
 #define DEBUG_TYPE "lower-ast-stmt"
 

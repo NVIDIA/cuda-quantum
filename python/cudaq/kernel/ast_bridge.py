@@ -5092,8 +5092,9 @@ class PyASTBridge(ast.NodeVisitor):
             self.__validate_container_entry(value, node.elts[idx])
 
         expectedTypes = None
-        if self.signature.return_type is not None and cc.StructType.isinstance(
-                self.signature.return_type):
+        if self.walkingReturnNode and \
+                self.signature.return_type is not None and \
+                cc.StructType.isinstance(self.signature.return_type):
             expectedTypes = cc.StructType.getTypes(self.signature.return_type)
             if len(expectedTypes) != len(elementValues):
                 expectedTypes = None
