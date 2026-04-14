@@ -71,7 +71,7 @@ __qpu__ std::vector<bool> dyn_vec_test(int n) {
   cudaq::qvector qs(n);
   for (int i = 0; i < n; i++)
     FlipQubit{}(qs[i]);
-  return mz(qs);
+  return cudaq::to_bool_vector(mz(qs));
 }
 
 // A kernel with a measurement-branch-dependent result size
@@ -81,7 +81,7 @@ __qpu__ std::vector<bool> branch_vec_test() {
   bool b = mz(ctrl);
   int sz = b ? 2 : 4;
   cudaq::qvector data(sz);
-  return mz(data);
+  return cudaq::to_bool_vector(mz(data));
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__K9.run()
