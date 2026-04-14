@@ -2168,7 +2168,7 @@ C++
 ::: {.tab-content .docutils}
 ::: {.highlight-cpp .notranslate}
 ::: highlight
-    __qpu__ auto kernel2() {
+    __qpu__ std::vector<bool> kernel2() {
       cudaq::qvector q(2);
       h(q[0]);
       auto b0 = mz(q[0]);
@@ -2178,7 +2178,7 @@ C++
       if (b0) {
         h(q[1]);
       }
-      return mz(q);
+      return cudaq::to_bool_vector(mz(q));
     }
 
     int main() {
