@@ -27,22 +27,6 @@ void tearDownBeforeMPIFinalize();
 void setRandomSeed(std::size_t);
 } // namespace nvqir
 
-namespace cudaq::__internal__ {
-std::map<std::string, std::string> runtime_registered_mlir;
-std::string demangle_kernel(const char *name) {
-  return quantum_platform::demangle(name);
-}
-bool globalFalse = false;
-
-std::string targetConfigString;
-
-TargetSetter::TargetSetter(const char *backend) {
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(std::string(backend));
-  targetConfigString = backend;
-}
-} // namespace cudaq::__internal__
-
 namespace cudaq::mpi {
 cudaq::MPIPlugin *getMpiPlugin(bool unsafe) {
   // Locate and load the MPI comm plugin.
@@ -119,8 +103,6 @@ bool available() { return getMpiPlugin(/*unsafe=*/true); }
 void initialize() {
   auto *commPlugin = getMpiPlugin();
   commPlugin->initialize();
-  cudaq::__internal__::TargetSetter targetSetter(
-      cudaq::__internal__::targetConfigString.c_str());
 }
 
 void initialize(int argc, char **argv) {
@@ -130,8 +112,6 @@ void initialize(int argc, char **argv) {
   const auto np = commPlugin->num_ranks();
   if (pid == 0)
     CUDAQ_INFO("MPI Initialized, nRanks = {}", np);
-  cudaq::__internal__::TargetSetter targetSetter(
-      cudaq::__internal__::targetConfigString.c_str());
 }
 
 int rank() { return getMpiPlugin()->rank(); }
@@ -212,6 +192,19 @@ void finalize() {
 }
 
 } // namespace cudaq::mpi
+
+namespace cudaq::__internal__ {
+std::map<std::string, std::string> runtime_registered_mlir;
+std::string demangle_kernel(const char *name) {
+  return quantum_platform::demangle(name);
+}
+bool globalFalse = false;
+
+TargetSetter::TargetSetter(const char *backend) {
+  auto &platform = cudaq::get_platform();
+  platform.setTargetBackend(std::string(backend));
+}
+} // namespace cudaq::__internal__
 
 //===----------------------------------------------------------------------===//
 

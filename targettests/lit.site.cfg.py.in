@@ -12,7 +12,7 @@ import sys
 
 # Helper function to convert cmake variable boolean definitions to True/False.
 def cmake_boolvar_to_bool(s):
-  return s == "1" or s == "TRUE"
+  return s == "1"
 
 config.llvm_tools_dir = lit_config.substitute("@LLVM_TOOLS_BINARY_DIR@")
 config.llvm_shlib_dir = lit_config.substitute(path(r"@SHLIBDIR@"))
@@ -39,10 +39,9 @@ config.cuda_found = "@CUDA_FOUND@"
 if cmake_boolvar_to_bool(config.cuda_found):
   config.available_features.add('nvcc')
 
-# Is MPI available?
-config.mpi_found = "@MPI_FOUND@"
-if cmake_boolvar_to_bool(config.mpi_found):
-  config.available_features.add('mpi')
+config.test_remote_sim = "@CUDAQ_TEST_REMOTE_SIM@"
+if cmake_boolvar_to_bool(config.test_remote_sim):
+  config.available_features.add('remote-sim')
 
 config.cudaq_backends_braket = "@CUDAQ_ENABLE_BRAKET_BACKEND@"
 if cmake_boolvar_to_bool(config.cudaq_backends_braket):

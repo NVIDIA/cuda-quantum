@@ -7,7 +7,6 @@
 # ============================================================================ #
 
 add_subdirectory(helpers)
-add_subdirectory(MPI)
 
 set(LIBRARY_NAME cudaq-platform-mqpu)
 add_library(${LIBRARY_NAME}
@@ -33,8 +32,6 @@ target_link_libraries(${LIBRARY_NAME}
     cudaq-qpu-default
     pthread
 )
-
-target_link_libraries(${LIBRARY_NAME} PRIVATE qpu-mpi-process-group)
 
 add_target_config(nvidia-mqpu)
 

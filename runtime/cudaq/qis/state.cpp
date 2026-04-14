@@ -37,8 +37,7 @@ state &state::initialize(const state_data &data) {
 }
 
 state::state(SimulationState *ptrToOwn)
-    : internal(ptrToOwn ? makeSharedSimulationState(ptrToOwn)
-                        : std::make_shared<EmptySimulationState>()) {}
+    : internal(makeSharedSimulationState(ptrToOwn)) {}
 
 SimulationState::precision state::get_precision() const {
   return internal->getPrecision();

@@ -30,10 +30,6 @@ typedef struct {
   std::size_t commSize;
 } cudaqDistributedCommunicator_t;
 
-/// @brief Type-erasure representation of a MPI group (MPI_Group)
-// Use void* to encapsulate the MPI_Group pointer
-typedef void *cudaqDistributedGroup_t;
-
 #define CUDAQ_DISTRIBUTED_INTERFACE_VERSION 1
 
 /// @brief Data type that we support
@@ -137,19 +133,5 @@ typedef struct {
   /// @brief MPI_Recv
   int (*Recv)(const cudaqDistributedCommunicator_t *, void *, int, DataType,
               int, int32_t);
-  /// @brief MPI_Comm_group
-  int (*CommGroup)(const cudaqDistributedCommunicator_t *,
-                   cudaqDistributedGroup_t *);
-  /// @brief MPI_Group_incl
-  int (*GroupIncl)(const cudaqDistributedGroup_t, int32_t, const int32_t *,
-                   cudaqDistributedGroup_t *);
-  /// @brief MPI_Comm_create_group
-  int (*CommCreateGroup)(const cudaqDistributedCommunicator_t *,
-                         const cudaqDistributedGroup_t, int32_t,
-                         cudaqDistributedCommunicator_t **);
-  /// @brief MPI_Group_free
-  int (*GroupFree)(cudaqDistributedGroup_t *);
-  /// @brief MPI_Comm_free
-  int (*CommFree)(cudaqDistributedCommunicator_t **);
 } cudaqDistributedInterface_t;
 }

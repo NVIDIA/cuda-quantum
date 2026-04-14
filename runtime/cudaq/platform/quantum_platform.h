@@ -121,20 +121,10 @@ public:
     };
 
     if constexpr (std::is_void_v<std::invoke_result_t<Callable, Args...>>) {
-      detail::try_finally(
-          [&] {
-            if (filterExecutionContext(ctx))
-              f(std::forward<Args>(args)...);
-          },
-          cleanup);
+      detail::try_finally([&] { f(std::forward<Args>(args)...); }, cleanup);
     } else {
-      return detail::try_finally(
-          [&] {
-            if (filterExecutionContext(ctx))
-              return f(std::forward<Args>(args)...);
-            return std::invoke_result_t<Callable, Args...>{};
-          },
-          cleanup);
+      return detail::try_finally([&] { return f(std::forward<Args>(args)...); },
+                                 cleanup);
     }
   }
 
@@ -192,12 +182,11 @@ public:
   virtual void endExecution();
 
   /// Enqueue an asynchronous sampling task.
-  virtual std::future<sample_result> enqueueAsyncTask(const std::size_t qpu_id,
-                                                      KernelExecutionTask &t);
+  std::future<sample_result> enqueueAsyncTask(const std::size_t qpu_id,
+                                              KernelExecutionTask &t);
 
   /// @brief Enqueue a general task that runs on the specified QPU
-  virtual void enqueueAsyncTask(const std::size_t qpu_id,
-                                std::function<void()> &f);
+  void enqueueAsyncTask(const std::size_t qpu_id, std::function<void()> &f);
 
   /// @brief Launch a VQE operation on the platform.
   void launchVQE(const std::string kernelName, const void *kernelArgs,
@@ -237,9 +226,6 @@ public:
   /// set.
   virtual void onRandomSeedSet(std::size_t seed);
 
-  /// @brief Called by the runtime to notify that MPI is about to be finalized.
-  virtual void tearDownBeforeMPIFinalize(){};
-
 protected:
   friend class cudaq::LinkedLibraryHolder;
   friend class cudaq::__internal__::TargetSetter;
@@ -247,13 +233,6 @@ protected:
   /// override
   /// @param name
   virtual void setTargetBackend(const std::string &name) {}
-
-  /// @brief Filter the execution context before execution.
-  /// @param ctx The execution context to filter.
-  /// @return True if the execution context should be executed, false otherwise.
-  virtual bool filterExecutionContext(const ExecutionContext &ctx) const {
-    return true;
-  }
 
   /// The runtime target settings
   std::unique_ptr<RuntimeTarget> runtimeTarget;

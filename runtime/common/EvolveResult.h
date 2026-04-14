@@ -71,9 +71,6 @@ public:
   // The result of sampling of an analog Hamiltonian simulation on a QPU
   std::optional<sample_result> sampling_result = std::nullopt;
 
-  // Default constructor (empty result) for evolve_result.
-  evolve_result() = default;
-
   // Construct from single final state.
   evolve_result(state state)
       : states(std::make_optional<std::vector<cudaq::state>>(

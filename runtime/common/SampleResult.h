@@ -71,12 +71,6 @@ struct ExecutionResult {
   ExecutionResult(CountsDictionary c, std::string name);
   ExecutionResult(CountsDictionary c, std::string name, double exp);
 
-  /// @brief Construct from a `CountsDictionary`, register name, (optional)
-  /// expected value, and sequential data
-  ExecutionResult(CountsDictionary c, std::string name,
-                  std::optional<double> exp,
-                  const std::vector<std::string> &sequentialData);
-
   /// @brief Construct from a `CountsDictionary` and expected value
   /// @param c The counts
   /// @param e The precomputed expected value
