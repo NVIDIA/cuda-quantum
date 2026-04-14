@@ -731,6 +731,10 @@ def test_backwards_compatibility():
     scalar = const(3)
     assert type(scalar) == ScalarOperator
     assert scalar.evaluate() == 3
+    assert type(zero()) == ScalarOperator
+    assert zero().evaluate() == 0
+    assert type(identity()) == ScalarOperator
+    assert identity().evaluate() == 1
     with pytest.raises(ValueError):
         const(lambda: 5)
     with pytest.raises(ValueError):
