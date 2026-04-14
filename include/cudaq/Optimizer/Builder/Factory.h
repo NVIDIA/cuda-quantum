@@ -225,7 +225,7 @@ inline mlir::Block *addEntryBlock(mlir::LLVM::GlobalOp initVar) {
 /// Return an i64 array where element `k` is `N` if the
 /// operand `k` is `veq<N>` and 0 otherwise.
 /// \p originalControls contains the pre-conversion quake control values,
-/// used to distinguish veq from ref types (necessary with opaque pointers
+/// used to distinguish `veq` from ref types (necessary with opaque pointers
 /// where both convert to the same !llvm.ptr type).
 mlir::Value packIsArrayAndLengthArray(mlir::Location loc,
                                       mlir::ConversionPatternRewriter &rewriter,

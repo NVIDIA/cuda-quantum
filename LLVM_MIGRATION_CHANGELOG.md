@@ -1,5 +1,3 @@
-.. |:spellcheck-disable:| replace:: \
-
 # CUDA-Q LLVM 16 → LLVM 22 Migration Changelog
 
 > **154 files changed, ~7,300 lines modified**
@@ -37,7 +35,7 @@
 - 10.5 [`test/AST-Quake/` — Frontend-to-QIR Pipeline Test Updates](#105-testast-quake--frontend-to-qir-pipeline-test-updates)
 - 10.6 [`test/AST-error/` — Clang Diagnostic Verification Updates](#106-testast-error--clang-diagnostic-verification-updates)
 
-11. [Runtime and Unit Test Changes](#11-runtime-and-unit-test-changes)
+1. [Runtime and Unit Test Changes](#11-runtime-and-unit-test-changes)
 
 - 11.1 [Header Relocations](#111-header-relocations)
 - 11.2 [JIT Compilation Infrastructure Overhaul](#112-jit-compilation-infrastructure-overhaul)
@@ -49,7 +47,7 @@
 - 11.8 [Unit Test Changes](#118-unit-test-changes)
 - 11.9 [Runtime File Index](#119-runtime-file-index)
 
-12. [Python Bindings (pybind11 → nanobind and Runtime Fixes)](#12-python-bindings-pybind11--nanobind-and-runtime-fixes)
+1. [Python Bindings (pybind11 → nanobind and Runtime Fixes)](#12-python-bindings-pybind11--nanobind-and-runtime-fixes)
 
 - 12.1 [Build: pybind11 → nanobind](#121-build-pybind11--nanobind)
 - 12.2 [C++ Binding API Migration (pybind11 → nanobind)](#122-c-binding-api-migration-pybind11--nanobind)
@@ -78,7 +76,7 @@
 - 12.25 [Mock QPU Backend Test `startServer` Refactor](#1225-mock-qpu-backend-test-startserver-refactor)
 - 12.26 [Missing `nanobind/stl/string.h` in `py_ObserveResult.cpp`](#1226-missing-nanobindstlstringh-in-py_observeresultcpp)
 
-13. [Complete File Index](#13-complete-file-index)
+1. [Complete File Index](#13-complete-file-index)
 
 ---
 
@@ -2192,5 +2190,3 @@ Below is every file changed in this migration, grouped by directory, with a brie
 ---
 
 *Document generated for the cudaq-main LLVM 16 → 22 migration.*
-
-.. |:spellcheck-enable:| replace:: \
