@@ -5085,13 +5085,14 @@ pr-4199
 |                                   |                                   |
 |    property)](api/languages/pytho |       method)](api/languages/pyth |
 | n_api.html#cudaq.Resources.depth) | on_api.html#cudaq.Resources.dump) |
-| -   [depth_2q (cudaq.Resources    |     -   [(cudaq.SampleResult      |
-|                                   |                                   |
-| property)](api/languages/python_a |    method)](api/languages/python_ |
-| pi.html#cudaq.Resources.depth_2q) | api.html#cudaq.SampleResult.dump) |
-| -   [description (cudaq.Target    |     -   [(cudaq.State             |
-|                                   |         method)](api/languages/   |
-| property)](api/languages/python_a | python_api.html#cudaq.State.dump) |
+| -   [depth_for_arity()            |     -   [(cudaq.SampleResult      |
+|     (cudaq.Resources              |                                   |
+|     metho                         |    method)](api/languages/python_ |
+| d)](api/languages/python_api.html | api.html#cudaq.SampleResult.dump) |
+| #cudaq.Resources.depth_for_arity) |     -   [(cudaq.State             |
+| -   [description (cudaq.Target    |         method)](api/languages/   |
+|                                   | python_api.html#cudaq.State.dump) |
+| property)](api/languages/python_a |                                   |
 | pi.html#cudaq.Target.description) |                                   |
 +-----------------------------------+-----------------------------------+
 
@@ -5259,70 +5260,80 @@ pr-4199
 ## G {#G}
 
 +-----------------------------------+-----------------------------------+
-| -   [gamma (cudaq.optimizers.SPSA | -   [get_register_counts()        |
-|     pro                           |     (cudaq.SampleResult           |
-| perty)](api/languages/python_api. |     method)](api                  |
-| html#cudaq.optimizers.SPSA.gamma) | /languages/python_api.html#cudaq. |
-| -   [get()                        | SampleResult.get_register_counts) |
-|     (cudaq.AsyncEvolveResult      | -   [get_sequential_data()        |
-|     m                             |     (cudaq.SampleResult           |
-| ethod)](api/languages/python_api. |     method)](api                  |
-| html#cudaq.AsyncEvolveResult.get) | /languages/python_api.html#cudaq. |
-|                                   | SampleResult.get_sequential_data) |
-|    -   [(cudaq.AsyncObserveResult | -   [get_spin()                   |
-|         me                        |     (cudaq.ObserveResult          |
-| thod)](api/languages/python_api.h |     me                            |
-| tml#cudaq.AsyncObserveResult.get) | thod)](api/languages/python_api.h |
-|     -   [(cudaq.AsyncStateResult  | tml#cudaq.ObserveResult.get_spin) |
-|                                   | -   [get_state() (in module       |
-| method)](api/languages/python_api |     cudaq)](api/languages         |
-| .html#cudaq.AsyncStateResult.get) | /python_api.html#cudaq.get_state) |
-| -   [get_binary_symplectic_form() | -   [get_state_async() (in module |
-|     (cuda                         |     cudaq)](api/languages/pytho   |
-| q.operators.spin.SpinOperatorTerm | n_api.html#cudaq.get_state_async) |
-|     metho                         | -   [get_state_refval()           |
-| d)](api/languages/python_api.html |     (cudaq.State                  |
-| #cudaq.operators.spin.SpinOperato |     me                            |
-| rTerm.get_binary_symplectic_form) | thod)](api/languages/python_api.h |
-| -   [get_channels()               | tml#cudaq.State.get_state_refval) |
-|     (cudaq.NoiseModel             | -   [get_target() (in module      |
-|     met                           |     cudaq)](api/languages/        |
-| hod)](api/languages/python_api.ht | python_api.html#cudaq.get_target) |
-| ml#cudaq.NoiseModel.get_channels) | -   [get_targets() (in module     |
-| -   [get_coefficient()            |     cudaq)](api/languages/p       |
-|     (                             | ython_api.html#cudaq.get_targets) |
-| cudaq.operators.spin.SpinOperator | -   [get_term_count()             |
-|     method)](api/languages/       |     (                             |
-| python_api.html#cudaq.operators.s | cudaq.operators.spin.SpinOperator |
-| pin.SpinOperator.get_coefficient) |     method)](api/languages        |
-|     -   [(cuda                    | /python_api.html#cudaq.operators. |
-| q.operators.spin.SpinOperatorTerm | spin.SpinOperator.get_term_count) |
-|                                   | -   [get_total_shots()            |
-|       method)](api/languages/pyth |     (cudaq.SampleResult           |
-| on_api.html#cudaq.operators.spin. |     method)]                      |
-| SpinOperatorTerm.get_coefficient) | (api/languages/python_api.html#cu |
-| -   [get_marginal_counts()        | daq.SampleResult.get_total_shots) |
-|     (cudaq.SampleResult           | -   [get_trajectory()             |
-|     method)](api                  |                                   |
-| /languages/python_api.html#cudaq. |   (cudaq.ptsbe.PTSBEExecutionData |
-| SampleResult.get_marginal_counts) |     method)](api/langua           |
-| -   [get_ops()                    | ges/python_api.html#cudaq.ptsbe.P |
-|     (cudaq.KrausChannel           | TSBEExecutionData.get_trajectory) |
-|                                   | -   [getTensor() (cudaq.State     |
-| method)](api/languages/python_api |     method)](api/languages/pytho  |
-| .html#cudaq.KrausChannel.get_ops) | n_api.html#cudaq.State.getTensor) |
-| -   [get_pauli_word()             | -   [getTensors() (cudaq.State    |
-|     (cuda                         |     method)](api/languages/python |
-| q.operators.spin.SpinOperatorTerm | _api.html#cudaq.State.getTensors) |
-|     method)](api/languages/pyt    | -   [gradient (class in           |
-| hon_api.html#cudaq.operators.spin |     cudaq.g                       |
-| .SpinOperatorTerm.get_pauli_word) | radients)](api/languages/python_a |
-| -   [get_precision()              | pi.html#cudaq.gradients.gradient) |
-|     (cudaq.Target                 | -   [GradientDescent (class in    |
-|                                   |     cudaq.optimizers              |
-| method)](api/languages/python_api | )](api/languages/python_api.html# |
-| .html#cudaq.Target.get_precision) | cudaq.optimizers.GradientDescent) |
-| -   [get_qubit_count()            |                                   |
+| -   [gamma (cudaq.optimizers.SPSA | -   [get_raw_data()               |
+|     pro                           |     (                             |
+| perty)](api/languages/python_api. | cudaq.operators.spin.SpinOperator |
+| html#cudaq.optimizers.SPSA.gamma) |     method)](api/languag          |
+| -   [gate_count_by_arity          | es/python_api.html#cudaq.operator |
+|     (cudaq.Resources              | s.spin.SpinOperator.get_raw_data) |
+|     property)](                   |     -   [(cuda                    |
+| api/languages/python_api.html#cud | q.operators.spin.SpinOperatorTerm |
+| aq.Resources.gate_count_by_arity) |         method)](api/languages/p  |
+| -   [gate_count_for_arity()       | ython_api.html#cudaq.operators.sp |
+|     (cudaq.Resources              | in.SpinOperatorTerm.get_raw_data) |
+|     method)](a                    | -   [get_register_counts()        |
+| pi/languages/python_api.html#cuda |     (cudaq.SampleResult           |
+| q.Resources.gate_count_for_arity) |     method)](api                  |
+| -   [get()                        | /languages/python_api.html#cudaq. |
+|     (cudaq.AsyncEvolveResult      | SampleResult.get_register_counts) |
+|     m                             | -   [get_sequential_data()        |
+| ethod)](api/languages/python_api. |     (cudaq.SampleResult           |
+| html#cudaq.AsyncEvolveResult.get) |     method)](api                  |
+|                                   | /languages/python_api.html#cudaq. |
+|    -   [(cudaq.AsyncObserveResult | SampleResult.get_sequential_data) |
+|         me                        | -   [get_spin()                   |
+| thod)](api/languages/python_api.h |     (cudaq.ObserveResult          |
+| tml#cudaq.AsyncObserveResult.get) |     me                            |
+|     -   [(cudaq.AsyncStateResult  | thod)](api/languages/python_api.h |
+|                                   | tml#cudaq.ObserveResult.get_spin) |
+| method)](api/languages/python_api | -   [get_state() (in module       |
+| .html#cudaq.AsyncStateResult.get) |     cudaq)](api/languages         |
+| -   [get_binary_symplectic_form() | /python_api.html#cudaq.get_state) |
+|     (cuda                         | -   [get_state_async() (in module |
+| q.operators.spin.SpinOperatorTerm |     cudaq)](api/languages/pytho   |
+|     metho                         | n_api.html#cudaq.get_state_async) |
+| d)](api/languages/python_api.html | -   [get_state_refval()           |
+| #cudaq.operators.spin.SpinOperato |     (cudaq.State                  |
+| rTerm.get_binary_symplectic_form) |     me                            |
+| -   [get_channels()               | thod)](api/languages/python_api.h |
+|     (cudaq.NoiseModel             | tml#cudaq.State.get_state_refval) |
+|     met                           | -   [get_target() (in module      |
+| hod)](api/languages/python_api.ht |     cudaq)](api/languages/        |
+| ml#cudaq.NoiseModel.get_channels) | python_api.html#cudaq.get_target) |
+| -   [get_coefficient()            | -   [get_targets() (in module     |
+|     (                             |     cudaq)](api/languages/p       |
+| cudaq.operators.spin.SpinOperator | ython_api.html#cudaq.get_targets) |
+|     method)](api/languages/       | -   [get_term_count()             |
+| python_api.html#cudaq.operators.s |     (                             |
+| pin.SpinOperator.get_coefficient) | cudaq.operators.spin.SpinOperator |
+|     -   [(cuda                    |     method)](api/languages        |
+| q.operators.spin.SpinOperatorTerm | /python_api.html#cudaq.operators. |
+|                                   | spin.SpinOperator.get_term_count) |
+|       method)](api/languages/pyth | -   [get_total_shots()            |
+| on_api.html#cudaq.operators.spin. |     (cudaq.SampleResult           |
+| SpinOperatorTerm.get_coefficient) |     method)]                      |
+| -   [get_marginal_counts()        | (api/languages/python_api.html#cu |
+|     (cudaq.SampleResult           | daq.SampleResult.get_total_shots) |
+|     method)](api                  | -   [get_trajectory()             |
+| /languages/python_api.html#cudaq. |                                   |
+| SampleResult.get_marginal_counts) |   (cudaq.ptsbe.PTSBEExecutionData |
+| -   [get_ops()                    |     method)](api/langua           |
+|     (cudaq.KrausChannel           | ges/python_api.html#cudaq.ptsbe.P |
+|                                   | TSBEExecutionData.get_trajectory) |
+| method)](api/languages/python_api | -   [getTensor() (cudaq.State     |
+| .html#cudaq.KrausChannel.get_ops) |     method)](api/languages/pytho  |
+| -   [get_pauli_word()             | n_api.html#cudaq.State.getTensor) |
+|     (cuda                         | -   [getTensors() (cudaq.State    |
+| q.operators.spin.SpinOperatorTerm |     method)](api/languages/python |
+|     method)](api/languages/pyt    | _api.html#cudaq.State.getTensors) |
+| hon_api.html#cudaq.operators.spin | -   [gradient (class in           |
+| .SpinOperatorTerm.get_pauli_word) |     cudaq.g                       |
+| -   [get_precision()              | radients)](api/languages/python_a |
+|     (cudaq.Target                 | pi.html#cudaq.gradients.gradient) |
+|                                   | -   [GradientDescent (class in    |
+| method)](api/languages/python_api |     cudaq.optimizers              |
+| .html#cudaq.Target.get_precision) | )](api/languages/python_api.html# |
+| -   [get_qubit_count()            | cudaq.optimizers.GradientDescent) |
 |     (                             |                                   |
 | cudaq.operators.spin.SpinOperator |                                   |
 |     method)](api/languages/       |                                   |
@@ -5334,17 +5345,6 @@ pr-4199
 |       method)](api/languages/pyth |                                   |
 | on_api.html#cudaq.operators.spin. |                                   |
 | SpinOperatorTerm.get_qubit_count) |                                   |
-| -   [get_raw_data()               |                                   |
-|     (                             |                                   |
-| cudaq.operators.spin.SpinOperator |                                   |
-|     method)](api/languag          |                                   |
-| es/python_api.html#cudaq.operator |                                   |
-| s.spin.SpinOperator.get_raw_data) |                                   |
-|     -   [(cuda                    |                                   |
-| q.operators.spin.SpinOperatorTerm |                                   |
-|         method)](api/languages/p  |                                   |
-| ython_api.html#cudaq.operators.sp |                                   |
-| in.SpinOperatorTerm.get_raw_data) |                                   |
 +-----------------------------------+-----------------------------------+
 
 ## H {#H}
@@ -5515,133 +5515,138 @@ pr-4199
 ## M {#M}
 
 +-----------------------------------+-----------------------------------+
-| -   [make_kernel() (in module     | -   [merge_quake_source()         |
-|     cudaq)](api/languages/p       |     (cudaq.PyKernelDecorator      |
-| ython_api.html#cudaq.make_kernel) |     method)](api/lan              |
-| -   [MatrixOperator (class in     | guages/python_api.html#cudaq.PyKe |
-|     cudaq.operato                 | rnelDecorator.merge_quake_source) |
-| rs)](api/languages/python_api.htm | -   [min_degree                   |
-| l#cudaq.operators.MatrixOperator) |     (cu                           |
-| -   [MatrixOperatorElement (class | daq.operators.boson.BosonOperator |
-|     in                            |     property)](api/languag        |
-|     cudaq.operators)](ap          | es/python_api.html#cudaq.operator |
-| i/languages/python_api.html#cudaq | s.boson.BosonOperator.min_degree) |
-| .operators.MatrixOperatorElement) |     -   [(cudaq.                  |
-| -   [MatrixOperatorTerm (class in | operators.boson.BosonOperatorTerm |
-|     cudaq.operators)]             |                                   |
-| (api/languages/python_api.html#cu |        property)](api/languages/p |
-| daq.operators.MatrixOperatorTerm) | ython_api.html#cudaq.operators.bo |
-| -   [max_degree                   | son.BosonOperatorTerm.min_degree) |
-|     (cu                           |     -   [(cudaq.                  |
-| daq.operators.boson.BosonOperator | operators.fermion.FermionOperator |
-|     property)](api/languag        |                                   |
-| es/python_api.html#cudaq.operator |        property)](api/languages/p |
-| s.boson.BosonOperator.max_degree) | ython_api.html#cudaq.operators.fe |
-|     -   [(cudaq.                  | rmion.FermionOperator.min_degree) |
-| operators.boson.BosonOperatorTerm |     -   [(cudaq.oper              |
-|                                   | ators.fermion.FermionOperatorTerm |
-|        property)](api/languages/p |                                   |
-| ython_api.html#cudaq.operators.bo |    property)](api/languages/pytho |
-| son.BosonOperatorTerm.max_degree) | n_api.html#cudaq.operators.fermio |
-|     -   [(cudaq.                  | n.FermionOperatorTerm.min_degree) |
-| operators.fermion.FermionOperator |     -                             |
-|                                   |  [(cudaq.operators.MatrixOperator |
-|        property)](api/languages/p |         property)](api/la         |
-| ython_api.html#cudaq.operators.fe | nguages/python_api.html#cudaq.ope |
-| rmion.FermionOperator.max_degree) | rators.MatrixOperator.min_degree) |
-|     -   [(cudaq.oper              |     -   [(c                       |
-| ators.fermion.FermionOperatorTerm | udaq.operators.MatrixOperatorTerm |
-|                                   |         property)](api/langua     |
-|    property)](api/languages/pytho | ges/python_api.html#cudaq.operato |
-| n_api.html#cudaq.operators.fermio | rs.MatrixOperatorTerm.min_degree) |
-| n.FermionOperatorTerm.max_degree) |     -   [(                        |
-|     -                             | cudaq.operators.spin.SpinOperator |
-|  [(cudaq.operators.MatrixOperator |         property)](api/langu      |
-|         property)](api/la         | ages/python_api.html#cudaq.operat |
-| nguages/python_api.html#cudaq.ope | ors.spin.SpinOperator.min_degree) |
-| rators.MatrixOperator.max_degree) |     -   [(cuda                    |
-|     -   [(c                       | q.operators.spin.SpinOperatorTerm |
-| udaq.operators.MatrixOperatorTerm |         property)](api/languages  |
-|         property)](api/langua     | /python_api.html#cudaq.operators. |
-| ges/python_api.html#cudaq.operato | spin.SpinOperatorTerm.min_degree) |
-| rs.MatrixOperatorTerm.max_degree) | -   [minimal_eigenvalue()         |
-|     -   [(                        |     (cudaq.ComplexMatrix          |
-| cudaq.operators.spin.SpinOperator |     method)](api                  |
-|         property)](api/langu      | /languages/python_api.html#cudaq. |
-| ages/python_api.html#cudaq.operat | ComplexMatrix.minimal_eigenvalue) |
-| ors.spin.SpinOperator.max_degree) | -   [minus() (in module           |
-|     -   [(cuda                    |     cudaq.spin)](api/languages/   |
-| q.operators.spin.SpinOperatorTerm | python_api.html#cudaq.spin.minus) |
-|         property)](api/languages  | -   module                        |
-| /python_api.html#cudaq.operators. |     -   [cudaq](api/langua        |
-| spin.SpinOperatorTerm.max_degree) | ges/python_api.html#module-cudaq) |
-| -   [max_iterations               |     -                             |
-|     (cudaq.optimizers.Adam        |    [cudaq.boson](api/languages/py |
-|     property)](a                  | thon_api.html#module-cudaq.boson) |
-| pi/languages/python_api.html#cuda |     -   [                         |
-| q.optimizers.Adam.max_iterations) | cudaq.fermion](api/languages/pyth |
-|     -   [(cudaq.optimizers.COBYLA | on_api.html#module-cudaq.fermion) |
-|         property)](api            |     -   [cudaq.operators.cu       |
-| /languages/python_api.html#cudaq. | stom](api/languages/python_api.ht |
-| optimizers.COBYLA.max_iterations) | ml#module-cudaq.operators.custom) |
-|     -   [                         |                                   |
-| (cudaq.optimizers.GradientDescent |  -   [cudaq.spin](api/languages/p |
-|         property)](api/language   | ython_api.html#module-cudaq.spin) |
-| s/python_api.html#cudaq.optimizer | -   [momentum() (in module        |
-| s.GradientDescent.max_iterations) |                                   |
-|     -   [(cudaq.optimizers.LBFGS  |  cudaq.boson)](api/languages/pyth |
-|         property)](ap             | on_api.html#cudaq.boson.momentum) |
-| i/languages/python_api.html#cudaq |     -   [(in module               |
-| .optimizers.LBFGS.max_iterations) |         cudaq.operators.custo     |
-|                                   | m)](api/languages/python_api.html |
-| -   [(cudaq.optimizers.NelderMead | #cudaq.operators.custom.momentum) |
-|         property)](api/lan        | -   [most_probable()              |
-| guages/python_api.html#cudaq.opti |     (cudaq.SampleResult           |
-| mizers.NelderMead.max_iterations) |     method                        |
-|     -   [(cudaq.optimizers.SGD    | )](api/languages/python_api.html# |
-|         property)](               | cudaq.SampleResult.most_probable) |
-| api/languages/python_api.html#cud | -   [multiplicity                 |
-| aq.optimizers.SGD.max_iterations) |     (cudaq.ptsbe.KrausTrajectory  |
-|     -   [(cudaq.optimizers.SPSA   |     property)](api/l              |
-|         property)](a              | anguages/python_api.html#cudaq.pt |
-| pi/languages/python_api.html#cuda | sbe.KrausTrajectory.multiplicity) |
-| q.optimizers.SPSA.max_iterations) |                                   |
-| -   [mdiag_sparse_matrix (C++     |                                   |
-|     type)](api/languages/cpp_api. |                                   |
-| html#_CPPv419mdiag_sparse_matrix) |                                   |
-| -   [merge_kernel()               |                                   |
+| -   [make_kernel() (in module     | -   [min_degree                   |
+|     cudaq)](api/languages/p       |     (cu                           |
+| ython_api.html#cudaq.make_kernel) | daq.operators.boson.BosonOperator |
+| -   [MatrixOperator (class in     |     property)](api/languag        |
+|     cudaq.operato                 | es/python_api.html#cudaq.operator |
+| rs)](api/languages/python_api.htm | s.boson.BosonOperator.min_degree) |
+| l#cudaq.operators.MatrixOperator) |     -   [(cudaq.                  |
+| -   [MatrixOperatorElement (class | operators.boson.BosonOperatorTerm |
+|     in                            |                                   |
+|     cudaq.operators)](ap          |        property)](api/languages/p |
+| i/languages/python_api.html#cudaq | ython_api.html#cudaq.operators.bo |
+| .operators.MatrixOperatorElement) | son.BosonOperatorTerm.min_degree) |
+| -   [MatrixOperatorTerm (class in |     -   [(cudaq.                  |
+|     cudaq.operators)]             | operators.fermion.FermionOperator |
+| (api/languages/python_api.html#cu |                                   |
+| daq.operators.MatrixOperatorTerm) |        property)](api/languages/p |
+| -   [max_degree                   | ython_api.html#cudaq.operators.fe |
+|     (cu                           | rmion.FermionOperator.min_degree) |
+| daq.operators.boson.BosonOperator |     -   [(cudaq.oper              |
+|     property)](api/languag        | ators.fermion.FermionOperatorTerm |
+| es/python_api.html#cudaq.operator |                                   |
+| s.boson.BosonOperator.max_degree) |    property)](api/languages/pytho |
+|     -   [(cudaq.                  | n_api.html#cudaq.operators.fermio |
+| operators.boson.BosonOperatorTerm | n.FermionOperatorTerm.min_degree) |
+|                                   |     -                             |
+|        property)](api/languages/p |  [(cudaq.operators.MatrixOperator |
+| ython_api.html#cudaq.operators.bo |         property)](api/la         |
+| son.BosonOperatorTerm.max_degree) | nguages/python_api.html#cudaq.ope |
+|     -   [(cudaq.                  | rators.MatrixOperator.min_degree) |
+| operators.fermion.FermionOperator |     -   [(c                       |
+|                                   | udaq.operators.MatrixOperatorTerm |
+|        property)](api/languages/p |         property)](api/langua     |
+| ython_api.html#cudaq.operators.fe | ges/python_api.html#cudaq.operato |
+| rmion.FermionOperator.max_degree) | rs.MatrixOperatorTerm.min_degree) |
+|     -   [(cudaq.oper              |     -   [(                        |
+| ators.fermion.FermionOperatorTerm | cudaq.operators.spin.SpinOperator |
+|                                   |         property)](api/langu      |
+|    property)](api/languages/pytho | ages/python_api.html#cudaq.operat |
+| n_api.html#cudaq.operators.fermio | ors.spin.SpinOperator.min_degree) |
+| n.FermionOperatorTerm.max_degree) |     -   [(cuda                    |
+|     -                             | q.operators.spin.SpinOperatorTerm |
+|  [(cudaq.operators.MatrixOperator |         property)](api/languages  |
+|         property)](api/la         | /python_api.html#cudaq.operators. |
+| nguages/python_api.html#cudaq.ope | spin.SpinOperatorTerm.min_degree) |
+| rators.MatrixOperator.max_degree) | -   [minimal_eigenvalue()         |
+|     -   [(c                       |     (cudaq.ComplexMatrix          |
+| udaq.operators.MatrixOperatorTerm |     method)](api                  |
+|         property)](api/langua     | /languages/python_api.html#cudaq. |
+| ges/python_api.html#cudaq.operato | ComplexMatrix.minimal_eigenvalue) |
+| rs.MatrixOperatorTerm.max_degree) | -   [minus() (in module           |
+|     -   [(                        |     cudaq.spin)](api/languages/   |
+| cudaq.operators.spin.SpinOperator | python_api.html#cudaq.spin.minus) |
+|         property)](api/langu      | -   module                        |
+| ages/python_api.html#cudaq.operat |     -   [cudaq](api/langua        |
+| ors.spin.SpinOperator.max_degree) | ges/python_api.html#module-cudaq) |
+|     -   [(cuda                    |     -                             |
+| q.operators.spin.SpinOperatorTerm |    [cudaq.boson](api/languages/py |
+|         property)](api/languages  | thon_api.html#module-cudaq.boson) |
+| /python_api.html#cudaq.operators. |     -   [                         |
+| spin.SpinOperatorTerm.max_degree) | cudaq.fermion](api/languages/pyth |
+| -   [max_iterations               | on_api.html#module-cudaq.fermion) |
+|     (cudaq.optimizers.Adam        |     -   [cudaq.operators.cu       |
+|     property)](a                  | stom](api/languages/python_api.ht |
+| pi/languages/python_api.html#cuda | ml#module-cudaq.operators.custom) |
+| q.optimizers.Adam.max_iterations) |                                   |
+|     -   [(cudaq.optimizers.COBYLA |  -   [cudaq.spin](api/languages/p |
+|         property)](api            | ython_api.html#module-cudaq.spin) |
+| /languages/python_api.html#cudaq. | -   [momentum() (in module        |
+| optimizers.COBYLA.max_iterations) |                                   |
+|     -   [                         |  cudaq.boson)](api/languages/pyth |
+| (cudaq.optimizers.GradientDescent | on_api.html#cudaq.boson.momentum) |
+|         property)](api/language   |     -   [(in module               |
+| s/python_api.html#cudaq.optimizer |         cudaq.operators.custo     |
+| s.GradientDescent.max_iterations) | m)](api/languages/python_api.html |
+|     -   [(cudaq.optimizers.LBFGS  | #cudaq.operators.custom.momentum) |
+|         property)](ap             | -   [most_probable()              |
+| i/languages/python_api.html#cudaq |     (cudaq.SampleResult           |
+| .optimizers.LBFGS.max_iterations) |     method                        |
+|                                   | )](api/languages/python_api.html# |
+| -   [(cudaq.optimizers.NelderMead | cudaq.SampleResult.most_probable) |
+|         property)](api/lan        | -   [multi_qubit_depth            |
+| guages/python_api.html#cudaq.opti |     (cudaq.Resources              |
+| mizers.NelderMead.max_iterations) |     property)                     |
+|     -   [(cudaq.optimizers.SGD    | ](api/languages/python_api.html#c |
+|         property)](               | udaq.Resources.multi_qubit_depth) |
+| api/languages/python_api.html#cud | -   [multi_qubit_gate_count       |
+| aq.optimizers.SGD.max_iterations) |     (cudaq.Resources              |
+|     -   [(cudaq.optimizers.SPSA   |     property)](api                |
+|         property)](a              | /languages/python_api.html#cudaq. |
+| pi/languages/python_api.html#cuda | Resources.multi_qubit_gate_count) |
+| q.optimizers.SPSA.max_iterations) | -   [multiplicity                 |
+| -   [mdiag_sparse_matrix (C++     |     (cudaq.ptsbe.KrausTrajectory  |
+|     type)](api/languages/cpp_api. |     property)](api/l              |
+| html#_CPPv419mdiag_sparse_matrix) | anguages/python_api.html#cudaq.pt |
+| -   [merge_kernel()               | sbe.KrausTrajectory.multiplicity) |
 |     (cudaq.PyKernelDecorator      |                                   |
 |     method)](a                    |                                   |
 | pi/languages/python_api.html#cuda |                                   |
 | q.PyKernelDecorator.merge_kernel) |                                   |
+| -   [merge_quake_source()         |                                   |
+|     (cudaq.PyKernelDecorator      |                                   |
+|     method)](api/lan              |                                   |
+| guages/python_api.html#cudaq.PyKe |                                   |
+| rnelDecorator.merge_quake_source) |                                   |
 +-----------------------------------+-----------------------------------+
 
 ## N {#N}
 
 +-----------------------------------+-----------------------------------+
-| -   [name                         | -   [num_columns()                |
-|                                   |     (cudaq.ComplexMatrix          |
-|   (cudaq.ptsbe.ShotAllocationType |     metho                         |
-|     property)](                   | d)](api/languages/python_api.html |
-| api/languages/python_api.html#cud | #cudaq.ComplexMatrix.num_columns) |
-| aq.ptsbe.ShotAllocationType.name) | -   [num_qpus() (cudaq.Target     |
-|     -   [                         |     method)](api/languages/pytho  |
-| (cudaq.ptsbe.TraceInstructionType | n_api.html#cudaq.Target.num_qpus) |
-|         property)](ap             | -   [num_qubits (cudaq.Resources  |
-| i/languages/python_api.html#cudaq |     pr                            |
-| .ptsbe.TraceInstructionType.name) | operty)](api/languages/python_api |
-|     -   [(cudaq.PyKernel          | .html#cudaq.Resources.num_qubits) |
-|                                   | -   [num_qubits() (cudaq.State    |
-|     attribute)](api/languages/pyt |     method)](api/languages/python |
-| hon_api.html#cudaq.PyKernel.name) | _api.html#cudaq.State.num_qubits) |
-|                                   | -   [num_ranks() (in module       |
-|   -   [(cudaq.SimulationPrecision |     cudaq.mpi)](api/languages/pyt |
-|         proper                    | hon_api.html#cudaq.mpi.num_ranks) |
-| ty)](api/languages/python_api.htm | -   [num_rows()                   |
-| l#cudaq.SimulationPrecision.name) |     (cudaq.ComplexMatrix          |
-|     -   [(cudaq.spin.Pauli        |     me                            |
-|                                   | thod)](api/languages/python_api.h |
-|    property)](api/languages/pytho | tml#cudaq.ComplexMatrix.num_rows) |
+| -   [name                         | -   [num_qpus() (cudaq.Target     |
+|                                   |     method)](api/languages/pytho  |
+|   (cudaq.ptsbe.ShotAllocationType | n_api.html#cudaq.Target.num_qpus) |
+|     property)](                   | -   [num_qubits (cudaq.Resources  |
+| api/languages/python_api.html#cud |     pr                            |
+| aq.ptsbe.ShotAllocationType.name) | operty)](api/languages/python_api |
+|     -   [                         | .html#cudaq.Resources.num_qubits) |
+| (cudaq.ptsbe.TraceInstructionType | -   [num_qubits() (cudaq.State    |
+|         property)](ap             |     method)](api/languages/python |
+| i/languages/python_api.html#cudaq | _api.html#cudaq.State.num_qubits) |
+| .ptsbe.TraceInstructionType.name) | -   [num_ranks() (in module       |
+|     -   [(cudaq.PyKernel          |     cudaq.mpi)](api/languages/pyt |
+|                                   | hon_api.html#cudaq.mpi.num_ranks) |
+|     attribute)](api/languages/pyt | -   [num_rows()                   |
+| hon_api.html#cudaq.PyKernel.name) |     (cudaq.ComplexMatrix          |
+|                                   |     me                            |
+|   -   [(cudaq.SimulationPrecision | thod)](api/languages/python_api.h |
+|         proper                    | tml#cudaq.ComplexMatrix.num_rows) |
+| ty)](api/languages/python_api.htm | -   [num_used_qubits              |
+| l#cudaq.SimulationPrecision.name) |     (cudaq.Resources              |
+|     -   [(cudaq.spin.Pauli        |     propert                       |
+|                                   | y)](api/languages/python_api.html |
+|    property)](api/languages/pytho | #cudaq.Resources.num_used_qubits) |
 | n_api.html#cudaq.spin.Pauli.name) | -   [number() (in module          |
 |     -   [(cudaq.Target            |                                   |
 |                                   |    cudaq.boson)](api/languages/py |
@@ -5665,6 +5670,11 @@ pr-4199
 |                                   |     class)](api/l                 |
 |    cudaq)](api/languages/python_a | anguages/cpp_api.html#_CPPv4I0EN5 |
 | pi.html#cudaq.num_available_gpus) | nvqir24TensorNetSimulationStateE) |
+| -   [num_columns()                |                                   |
+|     (cudaq.ComplexMatrix          |                                   |
+|     metho                         |                                   |
+| d)](api/languages/python_api.html |                                   |
+| #cudaq.ComplexMatrix.num_columns) |                                   |
 +-----------------------------------+-----------------------------------+
 
 ## O {#O}
@@ -5786,11 +5796,6 @@ pr-4199
 |     propert                       |                                   |
 | y)](api/languages/python_api.html |                                   |
 | #cudaq.Resources.per_qubit_depth) |                                   |
-| -   [per_qubit_depth_2q           |                                   |
-|     (cudaq.Resources              |                                   |
-|     property)]                    |                                   |
-| (api/languages/python_api.html#cu |                                   |
-| daq.Resources.per_qubit_depth_2q) |                                   |
 +-----------------------------------+-----------------------------------+
 
 ## Q {#Q}
@@ -6028,23 +6033,23 @@ pr-4199
 |     -   [(cudaq.optimizers.Adam   |         method)](api              |
 |         met                       | /languages/python_api.html#cudaq. |
 | hod)](api/languages/python_api.ht | operators.spin.SpinOperator.trim) |
-| ml#cudaq.optimizers.Adam.to_json) | -   [two_qubit_gate_count         |
-|     -   [(cudaq.optimizers.COBYLA |     (cudaq.Resources              |
-|         metho                     |     property)](a                  |
-| d)](api/languages/python_api.html | pi/languages/python_api.html#cuda |
-| #cudaq.optimizers.COBYLA.to_json) | q.Resources.two_qubit_gate_count) |
-|     -   [                         | -   [type                         |
-| (cudaq.optimizers.GradientDescent |     (c                            |
-|         method)](api/l            | udaq.ptsbe.ShotAllocationStrategy |
-| anguages/python_api.html#cudaq.op |     property)](api/               |
-| timizers.GradientDescent.to_json) | languages/python_api.html#cudaq.p |
-|     -   [(cudaq.optimizers.LBFGS  | tsbe.ShotAllocationStrategy.type) |
-|         meth                      | -   [type_to_str()                |
-| od)](api/languages/python_api.htm |     (cudaq.PyKernelDecorator      |
-| l#cudaq.optimizers.LBFGS.to_json) |     static                        |
-|                                   |     method)](                     |
-| -   [(cudaq.optimizers.NelderMead | api/languages/python_api.html#cud |
-|         method)](                 | aq.PyKernelDecorator.type_to_str) |
+| ml#cudaq.optimizers.Adam.to_json) | -   [type                         |
+|     -   [(cudaq.optimizers.COBYLA |     (c                            |
+|         metho                     | udaq.ptsbe.ShotAllocationStrategy |
+| d)](api/languages/python_api.html |     property)](api/               |
+| #cudaq.optimizers.COBYLA.to_json) | languages/python_api.html#cudaq.p |
+|     -   [                         | tsbe.ShotAllocationStrategy.type) |
+| (cudaq.optimizers.GradientDescent | -   [type_to_str()                |
+|         method)](api/l            |     (cudaq.PyKernelDecorator      |
+| anguages/python_api.html#cudaq.op |     static                        |
+| timizers.GradientDescent.to_json) |     method)](                     |
+|     -   [(cudaq.optimizers.LBFGS  | api/languages/python_api.html#cud |
+|         meth                      | aq.PyKernelDecorator.type_to_str) |
+| od)](api/languages/python_api.htm |                                   |
+| l#cudaq.optimizers.LBFGS.to_json) |                                   |
+|                                   |                                   |
+| -   [(cudaq.optimizers.NelderMead |                                   |
+|         method)](                 |                                   |
 | api/languages/python_api.html#cud |                                   |
 | aq.optimizers.NelderMead.to_json) |                                   |
 |     -   [(cudaq.optimizers.SGD    |                                   |
