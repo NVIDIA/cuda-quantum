@@ -360,7 +360,7 @@ protected:
 public:
   DependencyNode() : successors(), dependencies({}), qids({}), height(0) {}
 
-  virtual ~DependencyNode(){};
+  virtual ~DependencyNode() {};
 
   /// Returns true if \p this is a graph root (has no successors, e.g., a wire
   /// de-alloc)
@@ -653,8 +653,8 @@ protected:
     assert(qubit.has_value() && "Trying to codeGen a virtual allocation "
                                 "without a physical qubit assigned!");
     auto wirety = quake::WireType::get(builder.getContext());
-    auto alloc = quake::BorrowWireOp::create(builder, 
-        builder.getUnknownLoc(), wirety,
+    auto alloc = quake::BorrowWireOp::create(
+        builder, builder.getUnknownLoc(), wirety,
         cudaq::opt::topologyAgnosticWiresetName, qubit.value());
     wire = alloc.getResult();
     hasCodeGen = true;
@@ -1772,7 +1772,7 @@ protected:
     return std::to_string(barg.getArgNumber()).append("arg");
   };
 
-  void codeGen(OpBuilder &builder) override{};
+  void codeGen(OpBuilder &builder) override {};
 
 public:
   ArgDependencyNode(BlockArgument arg)
@@ -1902,7 +1902,7 @@ protected:
 
   // If the terminator is not a quantum operation, this could be called
   // by dependencies, so do nothing.
-  void codeGen(OpBuilder &builder) override{};
+  void codeGen(OpBuilder &builder) override {};
 
 public:
   TerminatorDependencyNode(Operation *terminator,
@@ -3054,8 +3054,7 @@ public:
     // Adam: I think this could be done in a silly way by placing the root
     //       in a new graph, and then deleting the graph should clean up all
     //       the nodes for the wire.
-    LLVM_DEBUG(for (auto [root, op]
-                    : roots) {
+    LLVM_DEBUG(for (auto [root, op] : roots) {
       if (!included.contains(root)) {
         llvm::dbgs()
             << "DependencyAnalysisPass: Wire is dead code and its "

@@ -52,12 +52,12 @@
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include <nanobind/stl/complex.h>
 // nanobind pytypes are in nanobind/nanobind.h
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/vector.h>
+#include <nanobind/stl/map.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/pair.h>
+#include <nanobind/stl/string.h>
 #include <nanobind/stl/tuple.h>
-#include <nanobind/stl/map.h>
+#include <nanobind/stl/vector.h>
 
 namespace py = nanobind;
 
@@ -193,8 +193,7 @@ NB_MODULE(_quakeDialects, m) {
   mpiSubmodule.def(
       "is_initialized", []() { return mpi::is_initialized(); },
       "Returns true if MPI has already been initialized.");
-  mpiSubmodule.def(
-      "finalize", []() { mpi::finalize(); }, "Finalize MPI.");
+  mpiSubmodule.def("finalize", []() { mpi::finalize(); }, "Finalize MPI.");
   mpiSubmodule.def(
       "comm_dup",
       []() {

@@ -183,7 +183,8 @@ private:
   }
 
   mlir::Value createAngleValue(double angle) {
-    return arith::ConstantFloatOp::create(rewriter, loc, rewriter.getF64Type(), llvm::APFloat{angle});
+    return arith::ConstantFloatOp::create(rewriter, loc, rewriter.getF64Type(),
+                                          llvm::APFloat{angle});
   }
 
   PatternRewriter &rewriter;

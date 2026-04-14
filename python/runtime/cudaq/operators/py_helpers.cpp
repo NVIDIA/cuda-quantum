@@ -9,9 +9,9 @@
 #include "py_helpers.h"
 #include "cudaq/operators.h"
 #include <complex>
-#include <nanobind/stl/complex.h>
-#include <nanobind/ndarray.h>
 #include <nanobind/nanobind.h>
+#include <nanobind/ndarray.h>
+#include <nanobind/stl/complex.h>
 
 namespace cudaq::details {
 

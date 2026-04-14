@@ -29,7 +29,6 @@ namespace cudaq::opt {
 
 #define DEBUG_TYPE "convert-to-cc"
 
-
 using namespace mlir;
 
 namespace {

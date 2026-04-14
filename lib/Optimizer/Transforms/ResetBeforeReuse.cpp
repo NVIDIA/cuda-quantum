@@ -137,8 +137,8 @@ public:
             }
           }
           // No discriminate exists - create the discriminate Op
-          auto discOp = quake::DiscriminateOp::create(rewriter, 
-              loc, rewriter.getI1Type(), measOut);
+          auto discOp = quake::DiscriminateOp::create(
+              rewriter, loc, rewriter.getI1Type(), measOut);
           return discOp.getResult();
         }();
         cudaq::cc::IfOp::create(
@@ -240,7 +240,7 @@ public:
     RewritePatternSet patterns(ctx);
     patterns.insert<ResetAfterMeasurePattern>(ctx, tracker);
     if (failed(applyPatternsGreedily(funcOp.getOperation(),
-                                            std::move(patterns)))) {
+                                     std::move(patterns)))) {
       funcOp.emitOpError("Adding qubit reset before reuse pass failed");
       signalPassFailure();
     }

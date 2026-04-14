@@ -95,10 +95,10 @@ public:
       SmallVector<Value> memAllocs;
       for (auto memTy : stqTy.getMembers())
         memAllocs.emplace_back(
-            rewriter.create<quake::AllocaOp>(loc, memTy).getResult());
+            quake::AllocaOp::create(rewriter, loc, memTy).getResult());
       // 2. Create a value of the original struq type using quake.make_struq.
       auto aggregate =
-          rewriter.create<quake::MakeStruqOp>(loc, stqTy, memAllocs);
+          quake::MakeStruqOp::create(rewriter, loc, stqTy, memAllocs);
       // 3. Walk all the uses. If they are quake.get_member operations, replace
       // them with direct uses.
       for (auto *user : llvm::make_early_inc_range(allocOp->getUsers()))
@@ -240,8 +240,8 @@ public:
     std::size_t size = veqTy.getSize();
 
     for (std::size_t i = 0; i < size; ++i) {
-      Value r = rewriter.create<quake::ExtractRefOp>(loc, alloc, i);
-      rewriter.create<quake::DeallocOp>(loc, r);
+      Value r = quake::ExtractRefOp::create(rewriter, loc, alloc, i);
+      quake::DeallocOp::create(rewriter, loc, r);
     }
   };
 };
@@ -281,7 +281,7 @@ public:
     func::FuncOp func = getOperation();
     RewritePatternSet patterns(ctx);
     patterns.insert<DeallocPattern>(ctx);
-    if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns))))
+    if (failed(applyPatternsGreedily(func, std::move(patterns))))
       return failure();
     return success();
   }
@@ -291,7 +291,7 @@ public:
     func::FuncOp func = getOperation();
     RewritePatternSet patterns(ctx);
     patterns.insert<AllocaPattern>(ctx);
-    if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns))))
+    if (failed(applyPatternsGreedily(func, std::move(patterns))))
       return failure();
     return success();
   }

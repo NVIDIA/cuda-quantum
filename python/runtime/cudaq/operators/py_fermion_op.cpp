@@ -7,17 +7,17 @@
  ******************************************************************************/
 
 #include <complex>
-#include <nanobind/stl/complex.h>
 #include <nanobind/ndarray.h>
 #include <nanobind/operators.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/vector.h>
+#include <nanobind/stl/complex.h>
+#include <nanobind/stl/map.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/pair.h>
-#include <nanobind/stl/tuple.h>
-#include <nanobind/stl/map.h>
 #include <nanobind/stl/set.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/tuple.h>
 #include <nanobind/stl/unordered_map.h>
+#include <nanobind/stl/vector.h>
 
 #include "cudaq/operators.h"
 #include "cudaq/operators/serialization.h"
@@ -111,30 +111,29 @@ void bindFermionOperator(py::module_ &mod) {
 
       // properties
 
-      .def_prop_ro("parameters",
-                             &fermion_op::get_parameter_descriptions,
-                             "Returns a dictionary that maps each parameter "
-                             "name to its description.")
+      .def_prop_ro("parameters", &fermion_op::get_parameter_descriptions,
+                   "Returns a dictionary that maps each parameter "
+                   "name to its description.")
       .def_prop_ro("degrees", &fermion_op::degrees,
-                             "Returns a vector that lists all degrees of "
-                             "freedom that the operator targets. "
-                             "The order of degrees is from smallest to largest "
-                             "and reflects the ordering of "
-                             "the matrix returned by `to_matrix`. "
-                             "Specifically, the indices of a statevector "
-                             "with two qubits are {00, 01, 10, 11}. An "
-                             "ordering of degrees {0, 1} then indicates "
-                             "that a state where the qubit with index 0 equals "
-                             "1 with probability 1 is given by "
-                             "the vector {0., 1., 0., 0.}.")
+                   "Returns a vector that lists all degrees of "
+                   "freedom that the operator targets. "
+                   "The order of degrees is from smallest to largest "
+                   "and reflects the ordering of "
+                   "the matrix returned by `to_matrix`. "
+                   "Specifically, the indices of a statevector "
+                   "with two qubits are {00, 01, 10, 11}. An "
+                   "ordering of degrees {0, 1} then indicates "
+                   "that a state where the qubit with index 0 equals "
+                   "1 with probability 1 is given by "
+                   "the vector {0., 1., 0., 0.}.")
       .def_prop_ro("min_degree", &fermion_op::min_degree,
-                             "Returns the smallest index of the degrees of "
-                             "freedom that the operator targets.")
+                   "Returns the smallest index of the degrees of "
+                   "freedom that the operator targets.")
       .def_prop_ro("max_degree", &fermion_op::max_degree,
-                             "Returns the smallest index of the degrees of "
-                             "freedom that the operator targets.")
+                   "Returns the smallest index of the degrees of "
+                   "freedom that the operator targets.")
       .def_prop_ro("term_count", &fermion_op::num_terms,
-                             "Returns the number of terms in the operator.")
+                   "Returns the number of terms in the operator.")
 
       // constructors
 
@@ -197,8 +196,7 @@ void bindFermionOperator(py::module_ &mod) {
           [](const fermion_op &self, py::kwargs kwargs) {
             bool invert_order;
             auto pm = details::kwargs_to_param_map(kwargs, invert_order);
-            auto cmat =
-                self.to_matrix(dimension_map(), pm, invert_order);
+            auto cmat = self.to_matrix(dimension_map(), pm, invert_order);
             return details::cmat_to_numpy(cmat);
           },
           "Returns the matrix representation of the operator, passing "
@@ -371,14 +369,14 @@ void bindFermionOperator(py::module_ &mod) {
            "output.")
       .def(
           "trim",
-          [](fermion_op &self, double tol, std::optional<parameter_map> params) {
+          [](fermion_op &self, double tol,
+             std::optional<parameter_map> params) {
             return self.trim(tol, params.value_or(parameter_map()));
           },
-          py::arg("tol") = 0.0,
-          py::arg("parameters").none() = py::none(),
+          py::arg("tol") = 0.0, py::arg("parameters").none() = py::none(),
           "Removes all terms from the sum for which the absolute value of the "
-           "coefficient is below "
-           "the given tolerance.")
+          "coefficient is below "
+          "the given tolerance.")
       .def(
           "trim",
           [](fermion_op &self, double tol, py::kwargs kwargs) {
@@ -417,30 +415,29 @@ void bindFermionOperator(py::module_ &mod) {
 
       // properties
 
-      .def_prop_ro("parameters",
-                             &fermion_op_term::get_parameter_descriptions,
-                             "Returns a dictionary that maps each parameter "
-                             "name to its description.")
+      .def_prop_ro("parameters", &fermion_op_term::get_parameter_descriptions,
+                   "Returns a dictionary that maps each parameter "
+                   "name to its description.")
       .def_prop_ro("degrees", &fermion_op_term::degrees,
-                             "Returns a vector that lists all degrees of "
-                             "freedom that the operator targets. "
-                             "The order of degrees is from smallest to largest "
-                             "and reflects the ordering of "
-                             "the matrix returned by `to_matrix`. "
-                             "Specifically, the indices of a statevector "
-                             "with two qubits are {00, 01, 10, 11}. An "
-                             "ordering of degrees {0, 1} then indicates "
-                             "that a state where the qubit with index 0 equals "
-                             "1 with probability 1 is given by "
-                             "the vector {0., 1., 0., 0.}.")
+                   "Returns a vector that lists all degrees of "
+                   "freedom that the operator targets. "
+                   "The order of degrees is from smallest to largest "
+                   "and reflects the ordering of "
+                   "the matrix returned by `to_matrix`. "
+                   "Specifically, the indices of a statevector "
+                   "with two qubits are {00, 01, 10, 11}. An "
+                   "ordering of degrees {0, 1} then indicates "
+                   "that a state where the qubit with index 0 equals "
+                   "1 with probability 1 is given by "
+                   "the vector {0., 1., 0., 0.}.")
       .def_prop_ro("min_degree", &fermion_op_term::min_degree,
-                             "Returns the smallest index of the degrees of "
-                             "freedom that the operator targets.")
+                   "Returns the smallest index of the degrees of "
+                   "freedom that the operator targets.")
       .def_prop_ro("max_degree", &fermion_op_term::max_degree,
-                             "Returns the smallest index of the degrees of "
-                             "freedom that the operator targets.")
+                   "Returns the smallest index of the degrees of "
+                   "freedom that the operator targets.")
       .def_prop_ro("ops_count", &fermion_op_term::num_ops,
-                             "Returns the number of operators in the product.")
+                   "Returns the number of operators in the product.")
       .def_prop_ro(
           "term_id", &fermion_op_term::get_term_id,
           "The term id uniquely identifies the operators and targets (degrees) "
@@ -470,11 +467,12 @@ void bindFermionOperator(py::module_ &mod) {
            "Creates a product operator with the given "
            "constant value. The returned operator does not target any degrees "
            "of freedom.")
-      .def("__init__",
-           [](fermion_op_term *self, const scalar_operator &scalar) {
-             new (self) fermion_op_term(fermion_op_term() * scalar);
-           },
-           "Creates a product operator with non-constant scalar value.")
+      .def(
+          "__init__",
+          [](fermion_op_term *self, const scalar_operator &scalar) {
+            new (self) fermion_op_term(fermion_op_term() * scalar);
+          },
+          "Creates a product operator with non-constant scalar value.")
       .def(py::init<fermion_handler>(),
            "Creates a product operator with the given elementary operator.")
       .def(py::init<const fermion_op_term &, std::size_t>(),
@@ -496,11 +494,12 @@ void bindFermionOperator(py::module_ &mod) {
           },
           py::arg("parameters").none() = py::none(),
           "Returns the evaluated coefficient of the product operator. The "
-           "parameters is a map of parameter names to their concrete, complex "
-           "values.")
+          "parameters is a map of parameter names to their concrete, complex "
+          "values.")
       .def(
           "to_matrix",
-          [](const fermion_op_term &self, std::optional<dimension_map> dimensions,
+          [](const fermion_op_term &self,
+             std::optional<dimension_map> dimensions,
              std::optional<parameter_map> params, bool invert_order) {
             dimension_map dims = dimensions.value_or(dimension_map());
             parameter_map pm = params.value_or(parameter_map());
@@ -536,15 +535,15 @@ void bindFermionOperator(py::module_ &mod) {
           [](const fermion_op_term &self, py::kwargs kwargs) {
             bool invert_order;
             auto pm = details::kwargs_to_param_map(kwargs, invert_order);
-            auto cmat =
-                self.to_matrix(dimension_map(), pm, invert_order);
+            auto cmat = self.to_matrix(dimension_map(), pm, invert_order);
             return details::cmat_to_numpy(cmat);
           },
           "Returns the matrix representation of the operator, passing "
           "parameters as keyword arguments.")
       .def(
           "to_sparse_matrix",
-          [](const fermion_op_term &self, std::optional<dimension_map> dimensions,
+          [](const fermion_op_term &self,
+             std::optional<dimension_map> dimensions,
              std::optional<parameter_map> params, bool invert_order) {
             dimension_map dims = dimensions.value_or(dimension_map());
             parameter_map pm = params.value_or(parameter_map());
