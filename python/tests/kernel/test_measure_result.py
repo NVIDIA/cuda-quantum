@@ -91,7 +91,7 @@ def test_unsupported_return_types():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(kernel, shots_count=10)
-    assert "Unsupported data type" in str(e.value)
+    assert "cannot be used with cudaq.run" in str(e.value)
 
     @cudaq.kernel
     def kernel() -> tuple[cudaq.measure_result, cudaq.measure_result]:
@@ -101,7 +101,7 @@ def test_unsupported_return_types():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(kernel, shots_count=10)
-    assert "Unsupported data type" in str(e.value)
+    assert "cannot be used with cudaq.run" in str(e.value)
 
     @dataclasses.dataclass(slots=True)
     class Result:
@@ -116,7 +116,7 @@ def test_unsupported_return_types():
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(kernel, shots_count=10)
-    assert "Unsupported data type" in str(e.value)
+    assert "cannot be used with cudaq.run" in str(e.value)
 
 
 def test_list_from_measure():
@@ -169,10 +169,7 @@ def test_tuple_from_measure():
         assert r == (True, False)
 
 
-@pytest.mark.xfail(
-    reason="QIR lowering does not yet handle !quake.measure inside cc.StructType"
-)
-def test_tuple_measure_result_intermediate_var():
+def test_tuple_measure_result():
 
     @cudaq.kernel
     def device_kernel(

@@ -11,7 +11,7 @@ import inspect
 import json
 import types
 from functools import wraps
-from cudaq.kernel.utils import emitWarning
+from cudaq.kernel.utils import emitWarning, check_no_measure_result_return
 import numpy as np
 import sys
 import typing
@@ -606,34 +606,6 @@ class PyKernelDecorator(object):
         shortName = self.uniqName
         return cudaq_runtime.get_launch_args_required(self.qkeModule, shortName)
 
-    def _check_measure_result_return(self):
-        """Raise if this kernel returns a measurement type and therefore
-        cannot be invoked directly from the host. Mirrors the guard in the
-        C++ ``marshal_and_launch_module`` but runs before compilation so
-        the user gets a clear message instead of a pipeline error."""
-        fn = self.kernelFunction
-        if fn is None:
-            return
-        try:
-            hints = typing.get_type_hints(fn)
-        except Exception:
-            return
-        ret = hints.get('return')
-        if ret is None:
-            return
-        mr = cudaq_runtime.measure_result
-        if ret is mr:
-            raise RuntimeError(
-                "Kernels returning `measure_result` cannot be invoked "
-                "directly. Use them as device-only kernels called from "
-                "other kernels.")
-        origin = typing.get_origin(ret)
-        if origin is list and mr in typing.get_args(ret):
-            raise RuntimeError(
-                "Kernels returning `list[measure_result]` cannot be invoked "
-                "directly. Use them as device-only kernels called from "
-                "other kernels.")
-
     def __call__(self, *args):
         """
         Invoke the CUDA-Q kernel. JIT compilation of the kernel AOT Quake module
@@ -649,7 +621,7 @@ class PyKernelDecorator(object):
         if args and self.formal_arity() != len(args):
             emitFatalError("wrong number of arguments provided")
 
-        self._check_measure_result_return()
+        check_no_measure_result_return(self.kernelFunction)
 
         processed_args, module = self.prepare_call(*args)
 

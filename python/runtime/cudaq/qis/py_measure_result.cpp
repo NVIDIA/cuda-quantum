@@ -19,15 +19,10 @@ void bindMeasureResult(py::module &mod) {
   py::class_<measure_result>(mod, "measure_result",
                              R"#(A quantum measurement result.
 This type represents the outcome of a quantum measurement operation.
-It carries the measurement value and an optional unique identifier
-for backend-specific metadata correlation.)#")
-      .def(py::init<int64_t>(), py::arg("value"))
-      .def(py::init<int64_t, int64_t>(), py::arg("value"), py::arg("unique_id"))
+It is not user-constructible; instances originate from mz/mx/my calls
+within quantum kernels.)#")
       .def_readonly("value", &measure_result::value,
                     "The integer measurement value (0 or 1).")
-      .def_readonly("unique_id", &measure_result::unique_id,
-                    "The unique identifier for this measurement "
-                    "result (INT64_MAX if unassigned).")
       .def("__bool__",
            [](const measure_result &self) { return static_cast<bool>(self); })
       .def("__int__", [](const measure_result &self) { return self.value; })
@@ -45,8 +40,7 @@ for backend-specific metadata correlation.)#")
            })
       .def("__repr__", [](const measure_result &self) {
         std::ostringstream os;
-        os << "measure_result(value=" << self.value << ", id=" << self.unique_id
-           << ")";
+        os << "measure_result(value=" << self.value << ")";
         return os.str();
       });
 }

@@ -8,11 +8,13 @@
 
 from __future__ import annotations
 import ast
+import dataclasses
 import inspect
 import re
 import sys
 import traceback
 import importlib
+import typing
 import numpy as np
 from typing import get_origin, get_args, Callable, List
 import types
@@ -37,6 +39,46 @@ ahkPrefix = '__analog_hamiltonian_kernel__'
 
 # Keep a global registry of all registered custom operations.
 globalRegisteredOperations = {}
+
+
+def check_no_measure_result_return(fn, *, context="direct invocation"):
+    """Raises if function's return annotation contains measure_result."""
+    if fn is None:
+        return
+    try:
+        hints = typing.get_type_hints(fn)
+    except Exception:
+        return
+    ret = hints.get('return')
+    if ret is None:
+        return
+
+    mr = measure_result
+
+    def _describe_measure_return(ret):
+        if ret is mr:
+            return "`measure_result`"
+        origin = typing.get_origin(ret)
+        if origin is list and mr in typing.get_args(ret):
+            return "`list[measure_result]`"
+        if origin is tuple and mr in typing.get_args(ret):
+            return "a tuple containing `measure_result`"
+        if dataclasses.is_dataclass(ret) and isinstance(ret, type):
+            if mr in typing.get_type_hints(ret).values():
+                return "a dataclass containing `measure_result`"
+        return None
+
+    desc = _describe_measure_return(ret)
+    if desc is None:
+        return
+
+    if context == "direct invocation":
+        raise RuntimeError(
+            f"Kernels returning {desc} cannot be invoked directly.")
+    raise RuntimeError(
+        f"Kernels returning {desc} cannot be used with cudaq.{context}. "
+        "Use them as device-only kernels called from other kernels.")
+
 
 # Keep a global registry of any custom data types
 globalRegisteredTypes = cudaq_runtime.DataClassRegistry

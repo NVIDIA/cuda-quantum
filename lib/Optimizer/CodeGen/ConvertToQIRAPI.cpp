@@ -2131,6 +2131,8 @@ struct OpInterfacePattern : public OpConversionPattern<OP> {
 
 using FuncConstantPattern = OpInterfacePattern<func::ConstantOp>;
 using FuncToPtrPattern = OpInterfacePattern<cudaq::cc::FuncToPtrOp>;
+using InsertValuePattern = OpInterfacePattern<cudaq::cc::InsertValueOp>;
+using ExtractValuePattern = OpInterfacePattern<cudaq::cc::ExtractValueOp>;
 using LoadOpPattern = OpInterfacePattern<cudaq::cc::LoadOp>;
 using UndefOpPattern = OpInterfacePattern<cudaq::cc::UndefOp>;
 using PoisonOpPattern = OpInterfacePattern<cudaq::cc::PoisonOp>;
@@ -2245,16 +2247,16 @@ struct CallableClosurePattern
 static void commonClassicalHandlingPatterns(RewritePatternSet &patterns,
                                             TypeConverter &typeConverter,
                                             MLIRContext *ctx) {
-  patterns
-      .insert<AllocaOpPattern, BranchOpPattern, CallableClosurePattern,
-              CallableFuncPattern, CallCallableOpPattern,
-              CallIndirectCallableOpPattern, CallIndirectOpPattern,
-              CallOpPattern, CallNoInlineOpPattern, CallVarargOpPattern,
-              CastOpPattern, CondBranchOpPattern, CreateLambdaPattern,
-              FuncConstantPattern, FuncSignaturePattern, FuncToPtrPattern,
-              InstantiateCallablePattern, LoadOpPattern, LogOutputOpPattern,
-              PoisonOpPattern, SelectOpPattern, StoreOpPattern, UndefOpPattern>(
-          typeConverter, ctx);
+  patterns.insert<
+      AllocaOpPattern, BranchOpPattern, CallableClosurePattern,
+      CallableFuncPattern, CallCallableOpPattern, CallIndirectCallableOpPattern,
+      CallIndirectOpPattern, CallOpPattern, CallNoInlineOpPattern,
+      CallVarargOpPattern, CastOpPattern, CondBranchOpPattern,
+      CreateLambdaPattern, ExtractValuePattern, FuncConstantPattern,
+      FuncSignaturePattern, FuncToPtrPattern, InsertValuePattern,
+      InstantiateCallablePattern, LoadOpPattern, LogOutputOpPattern,
+      PoisonOpPattern, SelectOpPattern, StoreOpPattern, UndefOpPattern>(
+      typeConverter, ctx);
 }
 
 static void commonQuakeHandlingPatterns(RewritePatternSet &patterns,
@@ -2530,7 +2532,8 @@ struct QuakeToQIRAPIPass
         cudaq::cc::NoInlineCallOp, cudaq::cc::VarargCallOp,
         cudaq::cc::CallCallableOp, cudaq::cc::CallIndirectCallableOp,
         cudaq::cc::CastOp, cudaq::cc::FuncToPtrOp, cudaq::cc::StoreOp,
-        cudaq::cc::LoadOp, cudaq::cc::ComputePtrOp, cudaq::cc::StdvecInitOp,
+        cudaq::cc::LoadOp, cudaq::cc::ComputePtrOp, cudaq::cc::InsertValueOp,
+        cudaq::cc::ExtractValueOp, cudaq::cc::StdvecInitOp,
         cudaq::cc::StdvecDataOp, cudaq::cc::LogOutputOp>([&](Operation *op) {
       for (auto opnd : op->getOperands())
         if (hasQuakeType(opnd.getType()))

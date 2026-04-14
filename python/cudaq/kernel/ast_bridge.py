@@ -594,8 +594,9 @@ class PyASTBridge(ast.NodeVisitor):
         if quake.MeasureType.isinstance(value.type):
             return quake.DiscriminateOp(self.getIntegerType(1), value).result
         if quake.MeasurementsType.isinstance(value.type):
-            vecTy = cc.StdvecType.get(self.getIntegerType(1))
-            return quake.DiscriminateOp(vecTy, value).result
+            self.emitFatalError(
+                "a measurement collection cannot be used as a boolean; "
+                "index into the collection first", self.currentNode)
         if IntegerType.isinstance(value.type):
             zero = self.getConstantInt(0, width=IntegerType(value.type).width)
             condPred = IntegerAttr.get(self.getIntegerType(), 1)
@@ -641,6 +642,8 @@ class PyASTBridge(ast.NodeVisitor):
                 if IntegerType.isinstance(targetEleTy):
                     resTy = cc.StdvecType.get(targetEleTy)
                     return quake.DiscriminateOp(resTy, operand).result
+            self.emitFatalError(f"cannot convert measurements to {ty}",
+                                self.currentNode)
 
         if cc.CallableType.isinstance(ty):
             fctTy = cc.CallableType.getFunctionType(ty)
@@ -1249,11 +1252,12 @@ class PyASTBridge(ast.NodeVisitor):
         Returns:
             MLIR Type representing the superior type
         """
-        if quake.MeasureType.isinstance(
-                t1) or quake.MeasurementsType.isinstance(t1):
+        if quake.MeasurementsType.isinstance(
+                t1) or quake.MeasurementsType.isinstance(t2):
+            return None
+        if quake.MeasureType.isinstance(t1):
             t1 = self.getIntegerType(1)
-        if quake.MeasureType.isinstance(
-                t2) or quake.MeasurementsType.isinstance(t2):
+        if quake.MeasureType.isinstance(t2):
             t2 = self.getIntegerType(1)
 
         def fp_type(fpt, ot):
@@ -4258,8 +4262,9 @@ class PyASTBridge(ast.NodeVisitor):
                 ]
             else:
                 self.emitFatalError(
-                    "cannot create a list from individual measurement "
-                    "results; use mz(qvector) to measure multiple qubits", node)
+                    "cannot create a list of measurement results outside "
+                    "of a return statement; assign individual measurements "
+                    "to variables and return them in a list[bool]", node)
 
         # not a list of quantum types
         # Get the first element
