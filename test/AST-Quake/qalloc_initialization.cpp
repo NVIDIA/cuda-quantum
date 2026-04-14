@@ -19,7 +19,7 @@ struct Vanilla {
   std::vector<bool> operator()() __qpu__ {
     cudaq::qvector v{cudaq::state{0., 1., 1., 0.}};
     h(v);
-    return mz(v);
+    return cudaq::to_bool_vector(mz(v));
   }
 };
 
@@ -54,7 +54,7 @@ struct VanillaBean {
   std::vector<bool> operator()() __qpu__ {
     cudaq::qvector v = cudaq::state{0., 1., 1., 0.};
     h(v);
-    return mz(v);
+    return cudaq::to_bool_vector(mz(v));
   }
 };
 
@@ -91,7 +91,7 @@ struct Cherry {
     cudaq::qvector v{{std::initializer_list<std::complex<double>>{
         {0.0, 1.0}, {0.6, 0.4}, {1.0, 0.0}, {0.0, 0.0}}}};
     h(v);
-    return mz(v);
+    return cudaq::to_bool_vector(mz(v));
   }
 };
 
@@ -131,7 +131,7 @@ struct MooseTracks {
         {std::complex<double>{0.0, 1.0}, std::complex<double>{0.75, 0.25},
          std::complex<double>{1.0, 0.0}, std::complex<double>{0.0, 0.0}}};
     h(v);
-    return mz(v);
+    return cudaq::to_bool_vector(mz(v));
   }
 };
 
@@ -170,7 +170,7 @@ struct RockyRoad {
     cudaq::qvector v{cudaq::state{0.0 + 1.0i, std::complex<double>{0.8, 0.2},
                                   1.0 + 0.0i, std::complex<double>{0.0, 0.0}}};
     h(v);
-    return mz(v);
+    return cudaq::to_bool_vector(mz(v));
   }
 };
 
@@ -285,7 +285,7 @@ struct Neapolitan {
   std::vector<bool> operator()() __qpu__ {
     cudaq::qvector v{getComplexInit()};
     h(v);
-    return mz(v);
+    return cudaq::to_bool_vector(mz(v));
   }
 };
 
@@ -317,7 +317,7 @@ struct ButterPecan {
   std::vector<bool> operator()() __qpu__ {
     cudaq::qvector v(getComplexInit());
     h(v);
-    return mz(v);
+    return cudaq::to_bool_vector(mz(v));
   }
 };
 
@@ -347,7 +347,7 @@ struct ButterPecan {
 
 __qpu__ auto Strawberry() {
   cudaq::qubit q(cudaq::state{0., 1.});
-  return mz(q);
+  return static_cast<bool>(mz(q));
 }
 
 // clang-format off
@@ -382,7 +382,7 @@ __qpu__ auto GoldRibbon() {
 
 __qpu__ bool Peppermint() {
   cudaq::qubit q{{M_SQRT1_2, M_SQRT1_2}};
-  return mz(q);
+  return static_cast<bool>(mz(q));
 }
 
 // clang-format off
@@ -877,4 +877,3 @@ __qpu__ bool Peppermint() {
 // QIR:         call void @__quantum__rt__qubit_release_array(%[[VAL_6]]* %[[VAL_5]])
 // QIR:         ret i1 %[[VAL_13]]
 // QIR:       }
-
