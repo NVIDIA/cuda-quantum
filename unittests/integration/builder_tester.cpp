@@ -1382,7 +1382,7 @@ TEST(BuilderTester, checkFromStateVector) {
   }
 
   {
-    auto [kernel, initState] = cudaq::make_kernel<cudaq::state*>();
+    auto [kernel, initState] = cudaq::make_kernel<cudaq::state *>();
     auto qubits = kernel.qalloc(initState);
     std::cout << kernel << "\n";
     auto counts = cudaq::sample(kernel, &st0);
@@ -1400,7 +1400,7 @@ TEST(BuilderTester, checkFromStateVector) {
     // 2 qubit 11 state
     std::vector<cudaq::complex> vec{0., 0., 0., 1.};
     cudaq::state st1{vec};
-    auto [kernel, initState] = cudaq::make_kernel<cudaq::state*>();
+    auto [kernel, initState] = cudaq::make_kernel<cudaq::state *>();
     auto qubits = kernel.qalloc(initState);
     // induce the need for a kron prod between [0,0,0,1] and [1, 0, 0, 0]
     auto anotherOne = kernel.qalloc(2);
@@ -1415,7 +1415,7 @@ TEST(BuilderTester, checkFromStateVector) {
     // 2 qubit 11 state
     std::vector<cudaq::complex> vec{0., 0., 0., 1.};
     cudaq::state st2{std::move(vec)};
-    auto [kernel, initState] = cudaq::make_kernel<cudaq::state*>();
+    auto [kernel, initState] = cudaq::make_kernel<cudaq::state *>();
     auto qubits = kernel.qalloc(initState);
     // induce the need for a kron prod between [0,0,0,1] and [1, 0]
     auto anotherOne = kernel.qalloc();
