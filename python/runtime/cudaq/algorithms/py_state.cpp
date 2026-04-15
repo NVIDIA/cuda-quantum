@@ -357,28 +357,13 @@ void cudaq::bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
         auto stateVector = self.get_tensor();
         auto precision = self.get_precision();
         if (self.is_on_gpu()) {
-          // This is device data, transfer to host, which gives us
-          // ownership of a new data pointer on host. Store it globally
+          // This is device data, transfer to host. GPU backends use pinned
+          // host memory for faster DMA transfers. Store the buffer globally
           // here so we ensure that it gets cleaned up.
           auto numElements = stateVector.get_num_elements();
-          if (precision == SimulationState::precision::fp32) {
-            auto *hostData = new std::complex<float>[numElements];
-            self.to_host(hostData, numElements);
-            dataPtr = reinterpret_cast<void *>(hostData);
-          } else {
-            auto *hostData = new std::complex<double>[numElements];
-            self.to_host(hostData, numElements);
-            dataPtr = reinterpret_cast<void *>(hostData);
-          }
-          hostDataFromDevice.emplace_back(dataPtr, [precision](void *data) {
-            CUDAQ_INFO("freeing data that was copied from GPU device for "
-                       "compatibility with NumPy");
-            // Use delete[] to match new[] allocation (not free())
-            if (precision == SimulationState::precision::fp32)
-              delete[] static_cast<std::complex<float> *>(data);
-            else
-              delete[] static_cast<std::complex<double> *>(data);
-          });
+          auto hostBuf = self.toHostBuffer(numElements);
+          dataPtr = hostBuf.data;
+          hostDataFromDevice.emplace_back(dataPtr, std::move(hostBuf.deleter));
         } else {
           dataPtr = self.get_tensor().data;
         }

@@ -56,6 +56,12 @@ private:
   /// @brief Flag indicating ownership of the state data.
   bool ownsDevicePtr = true;
 
+  /// @brief Cached pinned host buffer for device-to-host transfers.
+  /// Allocated once on the first toHostBuffer call and reused on subsequent
+  /// calls, avoiding repeated cudaMallocHost/cudaFreeHost overhead that
+  /// dominates for large state vectors (>= 64 MiB).
+  mutable void *cachedPinnedPtr = nullptr;
+
   /// @brief Check that we are currently
   /// using the correct CUDA device, set it
   /// to the correct one if not
@@ -284,8 +290,46 @@ public:
     return;
   }
 
-  /// @brief Free the device data.
+  /// @brief Copy state data into a pinned host buffer and return it.
+  ///
+  /// The pinned buffer is allocated once on the first call and reused on
+  /// subsequent calls. This eliminates repeated cudaMallocHost/cudaFreeHost
+  /// overhead, which dominates transfer time for large state vectors (>= 64
+  /// MiB) and negates the DMA bandwidth benefit of pinned memory.
+  ///
+  /// The returned HostBuffer uses a no-op deleter because this object owns
+  /// the pinned allocation and frees it in destroyState(). np.array() copies
+  /// the data synchronously, so the buffer is never in use across two
+  /// concurrent calls on the same state object.
+  HostBuffer toHostBuffer(std::size_t numElements) const override {
+    if (numElements != size)
+      throw std::runtime_error(
+          "[custatevec-state] toHostBuffer: invalid number of elements.");
+    checkAndSetDevice();
+    const std::size_t numBytes = numElements * sizeof(std::complex<ScalarType>);
+    // Allocate pinned buffer on first call; reuse it on all subsequent calls.
+    if (cachedPinnedPtr == nullptr) {
+      auto err = cudaMallocHost(&cachedPinnedPtr, numBytes);
+      if (err != cudaSuccess) {
+        // Fallback to pageable allocation if pinning fails (e.g., the OS
+        // pinned-memory limit is exhausted).
+        return SimulationState::toHostBuffer(numElements);
+      }
+    }
+    auto cpyErr = cudaMemcpy(cachedPinnedPtr, devicePtr, numBytes,
+                             cudaMemcpyDeviceToHost);
+    if (cpyErr != cudaSuccess)
+      HANDLE_CUDA_ERROR(cpyErr);
+    // No-op deleter: this state object owns the pinned buffer.
+    return {cachedPinnedPtr, [](void *) {}};
+  }
+
+  /// @brief Free the device data and the cached pinned host buffer.
   void destroyState() override {
+    if (cachedPinnedPtr) {
+      cudaFreeHost(cachedPinnedPtr);
+      cachedPinnedPtr = nullptr;
+    }
     if (!ownsDevicePtr)
       return;
 
@@ -301,6 +345,13 @@ public:
                device, currentDev);
 
     HANDLE_CUDA_ERROR(cudaFree(devicePtr));
+  }
+
+  ~CusvState() override {
+    if (cachedPinnedPtr) {
+      cudaFreeHost(cachedPinnedPtr);
+      cachedPinnedPtr = nullptr;
+    }
   }
 };
 

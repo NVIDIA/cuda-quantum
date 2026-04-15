@@ -228,6 +228,28 @@ void CuDensityMatState::toHost(std::complex<float> *userData,
       "double-precision array.");
 }
 
+// Allocate a pinned host buffer and copy state data into it.
+SimulationState::HostBuffer
+CuDensityMatState::toHostBuffer(std::size_t numElements) const {
+  if (numElements != dimension)
+    throw std::runtime_error(
+        fmt::format("toHostBuffer: element count mismatch: provided {}, "
+                    "expected {}.",
+                    numElements, dimension));
+  std::size_t numBytes = numElements * sizeof(std::complex<double>);
+  void *pinnedPtr = nullptr;
+  auto err = cudaMallocHost(&pinnedPtr, numBytes);
+  if (err != cudaSuccess)
+    return SimulationState::toHostBuffer(numElements);
+  auto cpyErr =
+      cudaMemcpy(pinnedPtr, devicePtr, numBytes, cudaMemcpyDeviceToHost);
+  if (cpyErr != cudaSuccess) {
+    cudaFreeHost(pinnedPtr);
+    HANDLE_CUDA_ERROR(cpyErr);
+  }
+  return {pinnedPtr, [](void *p) { cudaFreeHost(p); }};
+}
+
 // Free the device data.
 void CuDensityMatState::destroyState() {
   if (cudmState) {
