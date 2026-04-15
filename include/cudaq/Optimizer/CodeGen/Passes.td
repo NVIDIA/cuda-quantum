@@ -266,7 +266,16 @@ def ReturnToOutputLog : Pass<"return-to-output-log", "mlir::ModuleOp"> {
     of executions and eliminating the overhead of executing the kernel one at
     a time with all the interprocessor overhead.
   }];
-  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect",
+                           "mlir::LLVM::LLVMDialect",
+                           "mlir::arith::ArithDialect"];
+  let options = [
+    Option<"allowDynamicResult", "allow-dynamic-result", "bool",
+           /*default=*/"true",
+           "Allow dynamic-size vector result logging. Set to false for targets"
+           "that require statically-known output record counts (e.g., targets"
+           "that don't support full QIR).">,
+  ];
 }
 
 
