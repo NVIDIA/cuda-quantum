@@ -64,7 +64,8 @@ public:
   bool setMpiCommunicator(void *comm, int commSizeBytes) override {
     mpiCommPtr = comm;
     mpiCommSizeBytes = commSizeBytes;
-    m_cutnMpiInitialized = false;
+    initCuTensornetComm(m_cutnHandle, mpiCommPtr, mpiCommSizeBytes);
+    m_cutnMpiInitialized = true;
     return true;
   }
 

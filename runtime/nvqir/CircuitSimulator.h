@@ -1410,7 +1410,11 @@ private:
 // distributed simulation.
 struct MpiCircuitSimulator {
   // Set the MPI communicator for the simulator
-  virtual bool setMpiCommunicator(void *comm, int commSize) = 0;
+  // Note: we provide the communicator size (as bytes) for validation, e.g.,
+  // prevent a mismatch whereby the simulator may have been compiled with a
+  // different MPI implementation or different settings than the one used at
+  // runtime.
+  virtual bool setMpiCommunicator(void *comm, int commSizeBytes) = 0;
 
   virtual ~MpiCircuitSimulator() = default;
 };

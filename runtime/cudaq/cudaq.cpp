@@ -15,6 +15,7 @@
 #include "cuda_runtime_api.h"
 #endif
 #include "cudaq/platform.h"
+#include "cudaq/simulators.h"
 #include "distributed/mpi_plugin.h"
 #include <dlfcn.h>
 #include <filesystem>
@@ -177,6 +178,32 @@ std::pair<void *, std::size_t> comm_dup() {
   if (dupStatus != 0 || dupComm == nullptr)
     throw std::runtime_error("Failed to duplicate the MPI communicator.");
   return std::make_pair(dupComm->commPtr, dupComm->commSize);
+}
+
+void *split_communicator(int color, const std::optional<int> &key) {
+  auto *commPlugin = getMpiPlugin();
+  cudaqDistributedCommunicator_t *newComm = nullptr;
+  cudaqDistributedCommunicator_t *comm = commPlugin->getComm();
+  const auto splitStatus =
+      commPlugin->get()->CommSplit(comm, color, key.value_or(rank()), &newComm);
+  if (splitStatus != 0 || newComm == nullptr)
+    throw std::runtime_error("Failed to split the MPI communicator.");
+  return newComm->commPtr;
+}
+
+void set_communicator(void *comm) {
+  auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
+  auto *asMpiSim = dynamic_cast<nvqir::MpiCircuitSimulator *>(circuitSimulator);
+  if (!asMpiSim) {
+    // Output a warning and return if the current simulator doesn't support
+    // MPI-based distributed simulation.
+    CUDAQ_WARN("The current circuit simulator '{}' does not support MPI-based "
+               "distributed simulation. Ignoring the set_communicator call.",
+               circuitSimulator->name());
+    return;
+  }
+
+  asMpiSim->setMpiCommunicator(comm, getMpiPlugin()->getComm()->commSize);
 }
 
 void finalize() {

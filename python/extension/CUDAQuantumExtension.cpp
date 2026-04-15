@@ -193,6 +193,23 @@ PYBIND11_MODULE(_quakeDialects, m) {
       },
       "Duplicates the communicator. Return the new communicator address (as an "
       "integer) and its size in bytes");
+  mpiSubmodule.def(
+      "split_communicator",
+      [](int color, std::optional<int> key) {
+        return reinterpret_cast<intptr_t>(mpi::split_communicator(color, key));
+      },
+      "Splits the communicator based on the input color and key. Return the "
+      "new communicator address (as an integer).",
+      py::arg("color"), py::arg("key") = std::nullopt);
+
+  mpiSubmodule.def(
+      "set_communicator",
+      [](intptr_t commPtr) {
+        mpi::set_communicator(reinterpret_cast<void *>(commPtr));
+      },
+      "Sets the communicator based on the input communicator address (as an "
+      "integer).",
+      py::arg("commPtr"));
 
   auto orcaSubmodule = cudaqRuntime.def_submodule("orca");
   orcaSubmodule.def(

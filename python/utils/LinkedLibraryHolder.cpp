@@ -28,6 +28,10 @@ void __nvqir__setSimulatorInitCallback(void (*)());
 // Our hook into configuring the quantum platform.
 extern "C" void setQuantumPlatformInitCallback(void (*)());
 
+namespace cudaq::mpi {
+void set_communicator(void *comm);
+}
+
 namespace cudaq {
 
 // File-scoped pointer for the NVQIR/platform lazy init callbacks.
@@ -500,6 +504,15 @@ void LinkedLibraryHolder::setTarget(
   } else {
     resetExecutionManagerInternal();
   }
+
+  // If the config (kwargs) contains communicator, set it.
+  if (extraConfig.contains("communicator")) {
+    intptr_t commPtr = std::stoll(extraConfig["communicator"]);
+    CUDAQ_INFO("Setting communicator for target {} with pointer value {}",
+               targetName, commPtr);
+    cudaq::mpi::set_communicator(reinterpret_cast<void *>(commPtr));
+  }
+
   targetInitialized = true;
   // Deregister lazy init callbacks now that a target is configured.
   __nvqir__setSimulatorInitCallback(nullptr);
