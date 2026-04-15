@@ -2436,7 +2436,7 @@ C++
 ::: {.highlight-cpp .notranslate}
 ::: highlight
     struct simple_conditional {
-      auto operator()() __qpu__ {
+      bool operator()() __qpu__ {
         cudaq::qvector q(2);
         h(q[0]);
         auto r = mz(q[0]);
