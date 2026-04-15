@@ -488,7 +488,7 @@ void __quantum__rt__array_record_output(std::uint64_t len, const char *label) {
 // Runtime helpers for logging a dynamic-size span of primitive values. These
 // are called from kernels whose return type is a vector with a size that is
 // only known at runtime (i.e. not a compile-time constant).
-void __nvqpp_log_bool_span(int8_t *data, int64_t count) {
+void __quantum__rt__bool_span_record_output(int8_t *data, int64_t count) {
   std::string arrLabel =
       std::string("array<i1 x ") + std::to_string(count) + ">";
   __quantum__rt__array_record_output(count, arrLabel.c_str());
@@ -498,7 +498,8 @@ void __nvqpp_log_bool_span(int8_t *data, int64_t count) {
   }
 }
 
-void __nvqpp_log_int_span(int8_t *data, int64_t count, int32_t elemSizeBytes) {
+void __quantum__rt__int_span_record_output(int8_t *data, int64_t count,
+                                           int32_t elemSizeBytes) {
   std::string typeStr = std::string("i") + std::to_string(elemSizeBytes * 8);
   std::string arrLabel =
       std::string("array<") + typeStr + " x " + std::to_string(count) + ">";
@@ -519,13 +520,15 @@ void __nvqpp_log_int_span(int8_t *data, int64_t count, int32_t elemSizeBytes) {
     case 8:
       val = *reinterpret_cast<int64_t *>(data + i * 8);
       break;
+    default:
+      throw std::runtime_error("int_span_record_output: unknown data kind.");
     }
     __quantum__rt__int_record_output(val, elemLabel.c_str());
   }
 }
 
-void __nvqpp_log_float_span(int8_t *data, int64_t count,
-                            int32_t elemSizeBytes) {
+void __quantum__rt__float_span_record_output(int8_t *data, int64_t count,
+                                             int32_t elemSizeBytes) {
   std::string typeStr = std::string("f") + std::to_string(elemSizeBytes * 8);
   std::string arrLabel =
       std::string("array<") + typeStr + " x " + std::to_string(count) + ">";
@@ -540,6 +543,8 @@ void __nvqpp_log_float_span(int8_t *data, int64_t count,
     case 8:
       val = *reinterpret_cast<double *>(data + i * 8);
       break;
+    default:
+      throw std::runtime_error("float_span_record_output: unknown data kind.");
     }
     __quantum__rt__double_record_output(val, elemLabel.c_str());
   }

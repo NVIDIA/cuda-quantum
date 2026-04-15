@@ -500,15 +500,19 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &sizeOrVec) {
 
   if (auto stdvecTy = dyn_cast<cc::StdvecType>(type)) {
     // get the size
-    Value size = builder.create<cc::StdvecSizeOp>(builder.getI64Type(), value);
-    Value numQubits = builder.create<math::CountTrailingZerosOp>(size);
-    auto veqTy = quake::VeqType::getUnsized(context);
-    // allocate the number of qubits we need
-    Value qubits = builder.create<quake::AllocaOp>(veqTy, numQubits);
-
     auto ptrTy = cc::PointerType::get(stdvecTy.getElementType());
     Value initials = builder.create<cc::StdvecDataOp>(ptrTy, value);
-    qubits = builder.create<quake::InitializeStateOp>(veqTy, qubits, initials);
+    auto i64Ty = builder.getI64Type();
+    Value size = builder.create<cc::StdvecSizeOp>(i64Ty, value);
+    auto stateTy = cc::PointerType::get(quake::StateType::get(context));
+    auto state = builder.create<quake::CreateStateOp>(stateTy, initials, size);
+    Value numQubits = builder.create<quake::GetNumberOfQubitsOp>(i64Ty, state);
+    // allocate the number of qubits we need
+    auto veqTy = quake::VeqType::getUnsized(context);
+    Value qubits = builder.create<quake::AllocaOp>(veqTy, numQubits);
+
+    qubits = builder.create<quake::InitializeStateOp>(veqTy, qubits, state);
+    builder.create<quake::DeleteStateOp>(state);
     return QuakeValue(builder, qubits);
   }
 
@@ -780,10 +784,8 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
   if (!regName.empty())
     strAttr = builder.getStringAttr(regName);
 
-  Type resTy = builder.getI1Type();
   Type measTy = quake::MeasureType::get(builder.getContext());
   if (!isa<quake::RefType>(type)) {
-    resTy = cc::StdvecType::get(resTy);
     if (auto veqTy = dyn_cast<quake::VeqType>(type);
         veqTy && veqTy.hasSpecifiedSize())
       measTy =
@@ -800,8 +802,7 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
     measureResult =
         builder.template create<QuakeMeasureOp>(measTy, value).getMeasOut();
 
-  Value bits = builder.create<quake::DiscriminateOp>(resTy, measureResult);
-  return QuakeValue(builder, bits);
+  return QuakeValue(builder, measureResult);
 }
 
 QuakeValue mx(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,

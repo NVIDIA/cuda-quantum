@@ -16,7 +16,7 @@ struct K9 {
   std::vector<bool> operator()() __qpu__ {
     cudaq::qvector q(5);
     cudaq::qubit p;
-    return mz(q);
+    return cudaq::to_bool_vector(mz(q));
   }
 };
 
@@ -62,9 +62,7 @@ __qpu__ std::vector<bool> unary_test_list2(int count) {
 }
 
 // A kernel whose result vector size is determined entirely at runtime (depends
-// on the argument `n`). This exercises the dynamic-size span logging path in
-// ReturnToOutputLogPass, which uses cc.stdvec_size / cc.stdvec_data and calls
-// __nvqpp_log_bool_span rather than unrolling recording statically.
+// on the argument `n`).
 struct FlipQubit {
   void operator()(cudaq::qubit &q) __qpu__ { x(q); }
 };
@@ -73,14 +71,24 @@ __qpu__ std::vector<bool> dyn_vec_test(int n) {
   cudaq::qvector qs(n);
   for (int i = 0; i < n; i++)
     FlipQubit{}(qs[i]);
-  return mz(qs);
+  return cudaq::to_bool_vector(mz(qs));
+}
+
+// A kernel with a measurement-branch-dependent result size
+__qpu__ std::vector<bool> branch_vec_test() {
+  cudaq::qubit ctrl;
+  h(ctrl);
+  bool b = mz(ctrl);
+  int sz = b ? 2 : 4;
+  cudaq::qvector data(sz);
+  return cudaq::to_bool_vector(mz(data));
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__K9.run()
 // CHECK:           %[[VAL_0:.*]] = call @__nvqpp__mlirgen__K9() : () -> !cc.stdvec<i1>
 // CHECK:           %[[VAL_1:.*]] = cc.stdvec_size %[[VAL_0]] : (!cc.stdvec<i1>) -> i64
 // CHECK:           %[[VAL_2:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<i1>) -> !cc.ptr<i8>
-// CHECK:           call @__nvqpp_log_bool_span(%[[VAL_2]], %[[VAL_1]]) : (!cc.ptr<i8>, i64) -> ()
+// CHECK:           call @__quantum__rt__bool_span_record_output(%[[VAL_2]], %[[VAL_1]]) : (!cc.ptr<i8>, i64) -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -204,7 +212,7 @@ __qpu__ std::vector<bool> dyn_vec_test(int n) {
 // CHECK:           %[[VAL_1:.*]] = call @__nvqpp__mlirgen__function_unary_test_list._Z15unary_test_listi(%[[VAL_0]]) : (i32) -> !cc.stdvec<f32>
 // CHECK:           %[[VAL_2:.*]] = cc.stdvec_size %[[VAL_1]] : (!cc.stdvec<f32>) -> i64
 // CHECK:           %[[VAL_3:.*]] = cc.stdvec_data %[[VAL_1]] : (!cc.stdvec<f32>) -> !cc.ptr<i8>
-// CHECK:           call @__nvqpp_log_float_span(%[[VAL_3]], %[[VAL_2]], %[[VAL_C4]]) : (!cc.ptr<i8>, i64, i32) -> ()
+// CHECK:           call @__quantum__rt__float_span_record_output(%[[VAL_3]], %[[VAL_2]], %[[VAL_C4]]) : (!cc.ptr<i8>, i64, i32) -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -217,7 +225,7 @@ __qpu__ std::vector<bool> dyn_vec_test(int n) {
 // CHECK:           %[[VAL_1:.*]] = call @__nvqpp__mlirgen__function_unary_test_list2._Z16unary_test_list2i(%[[VAL_0]]) : (i32) -> !cc.stdvec<i1>
 // CHECK:           %[[VAL_2:.*]] = cc.stdvec_size %[[VAL_1]] : (!cc.stdvec<i1>) -> i64
 // CHECK:           %[[VAL_3:.*]] = cc.stdvec_data %[[VAL_1]] : (!cc.stdvec<i1>) -> !cc.ptr<i8>
-// CHECK:           call @__nvqpp_log_bool_span(%[[VAL_3]], %[[VAL_2]]) : (!cc.ptr<i8>, i64) -> ()
+// CHECK:           call @__quantum__rt__bool_span_record_output(%[[VAL_3]], %[[VAL_2]]) : (!cc.ptr<i8>, i64) -> ()
 // CHECK:           return
 // CHECK:         }
 
@@ -230,10 +238,21 @@ __qpu__ std::vector<bool> dyn_vec_test(int n) {
 // CHECK:           %[[VAL_1:.*]] = call @__nvqpp__mlirgen__function_dyn_vec_test._Z12dyn_vec_testi(%[[VAL_0]]) : (i32) -> !cc.stdvec<i1>
 // CHECK:           %[[VAL_2:.*]] = cc.stdvec_size %[[VAL_1]] : (!cc.stdvec<i1>) -> i64
 // CHECK:           %[[VAL_3:.*]] = cc.stdvec_data %[[VAL_1]] : (!cc.stdvec<i1>) -> !cc.ptr<i8>
-// CHECK:           call @__nvqpp_log_bool_span(%[[VAL_3]], %[[VAL_2]]) : (!cc.ptr<i8>, i64) -> ()
+// CHECK:           call @__quantum__rt__bool_span_record_output(%[[VAL_3]], %[[VAL_2]]) : (!cc.ptr<i8>, i64) -> ()
 // CHECK:           return
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_dyn_vec_test._Z12dyn_vec_testi.run.entry(
 // CHECK:           %[[VAL_3:.*]] = constant @function_dyn_vec_test._Z12dyn_vec_testi.run.thunk : (!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:           %[[VAL_23:.*]] = llvm.mlir.addressof @function_dyn_vec_test._Z12dyn_vec_testi.run.kernelName : !llvm.ptr<array<44 x i8>>
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_branch_vec_test._Z15branch_vec_testv.run()
+// CHECK:           %[[V0:.*]] = call @__nvqpp__mlirgen__function_branch_vec_test._Z15branch_vec_testv() : () -> !cc.stdvec<i1>
+// CHECK:           %[[V1:.*]] = cc.stdvec_size %[[V0]] : (!cc.stdvec<i1>) -> i64
+// CHECK:           %[[V2:.*]] = cc.stdvec_data %[[V0]] : (!cc.stdvec<i1>) -> !cc.ptr<i8>
+// CHECK:           call @__quantum__rt__bool_span_record_output(%[[V2]], %[[V1]]) : (!cc.ptr<i8>, i64) -> ()
+// CHECK:           return
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_branch_vec_test._Z15branch_vec_testv.run.entry()
+// CHECK:           %{{.*}} = constant @function_branch_vec_test._Z15branch_vec_testv.run.thunk : (!cc.ptr<i8>, i1) -> !cc.struct<{!cc.ptr<i8>, i64}>

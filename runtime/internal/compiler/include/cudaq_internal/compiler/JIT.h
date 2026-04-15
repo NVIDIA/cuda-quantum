@@ -7,7 +7,7 @@
  ******************************************************************************/
 #pragma once
 
-#include "common/CompiledKernel.h"
+#include "common/CompiledModule.h"
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -27,7 +27,7 @@ class Type;
 } // namespace mlir
 
 namespace cudaq {
-class CompiledKernel;
+class CompiledModule;
 class ResultInfo;
 } // namespace cudaq
 

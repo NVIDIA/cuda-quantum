@@ -7,9 +7,9 @@
  ******************************************************************************/
 
 #include "py_alt_launch_kernel.h"
-#include "JITExecutionCache.h"
 #include "common/AnalogHamiltonian.h"
 #include "common/ArgumentWrapper.h"
+#include "common/CompiledModule.h"
 #include "common/Environment.h"
 #include "cudaq/Optimizer/Builder/Marshal.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
@@ -909,16 +909,14 @@ py::object cudaq::marshal_and_launch_module(const std::string &name,
                               reinterpret_cast<char *>(args.getArgs().back()));
 }
 
-// Return the pointer to the JITted LLVM code for the entry point function, and
-// a cache key for the JIT engine that was used to JIT the module. The engine is
-// cached and cleaned up automatically. The caller can use the cache key to
-// manually clean up the engine as well by calling
-// `delete_cache_execution_engine` with the cache key.
-static std::pair<void *, std::size_t>
-marshal_and_retain_module(const std::string &name, MlirModule module,
-                          bool isEntryPoint, py::args runtimeArgs) {
+// Compile (specialize + JIT) the kernel module and return a CompiledModule.
+// The returned instance owns the JIT engine and manages its lifetime using
+// RAII.
+static cudaq::CompiledModule marshal_and_retain_module(const std::string &name,
+                                                       MlirModule module,
+                                                       bool isEntryPoint,
+                                                       py::args runtimeArgs) {
   ScopedTraceWithContext("marshal_and_retain_module", name);
-  std::optional<JitEngine> cachedEngine;
 
   auto kernelFunc = cudaq::getKernelFuncOp(module, name);
   auto mod = unwrap(module);
@@ -928,24 +926,10 @@ marshal_and_retain_module(const std::string &name, MlirModule module,
   // Append space for a result, as needed, to the vector of arguments.
   auto rawArgs = appendResultToArgsVector(args, retTy, mod, name);
   auto clone = mod.clone();
-  // Returns the pointer to the JITted LLVM code for the entry point function.
-  void *funcPtr = cudaq::streamlinedSpecializeModule(
-      name, clone, rawArgs, cachedEngine, isEntryPoint);
+  auto compiled =
+      cudaq::streamlinedSpecializeModule(name, clone, rawArgs, isEntryPoint);
   clone.erase();
-  // `streamlinedSpecializeModule` should always set the cached engine pointer
-  if (!cachedEngine)
-    throw std::runtime_error("Failed to retrieve the JIT engine pointer when "
-                             "specializing the module.");
-  // Use address of the allocated `ExecutionEngine` as the hash key to cache the
-  // JITted engine, and store the engine pointer in the cache
-  const size_t cacheKey = cachedEngine->getKey();
-  cudaq::JITExecutionCache::getJITCache().cache(cacheKey, cachedEngine.value());
-  return std::make_pair(funcPtr, cacheKey);
-}
-
-// Clean up the cached JIT engine corresponding to the given cache key.
-static void delete_cache_execution_engine(std::size_t cacheKey) {
-  cudaq::JITExecutionCache::getJITCache().deleteJITEngine(cacheKey);
+  return compiled;
 }
 
 static MlirModule synthesizeKernel(py::object kernel, py::args runtimeArgs) {
@@ -1137,6 +1121,18 @@ void cudaq::bindAltLaunchKernel(py::module &mod,
                                 std::function<std::string()> &&getTL) {
   getTransportLayer = std::move(getTL);
 
+  py::class_<cudaq::CompiledModule>(mod, "CompiledModule")
+      .def_property_readonly(
+          "entry_point",
+          [](const cudaq::CompiledModule &ck) {
+            return reinterpret_cast<std::uintptr_t>(
+                ck.getJit().getEntryPoint());
+          },
+          "The address of the JIT-compiled entry point.")
+      .def_property_readonly("is_fully_specialized",
+                             &cudaq::CompiledModule::isFullySpecialized,
+                             "Whether all arguments have been specialized.");
+
   mod.def("lower_to_codegen", lower_to_codegen,
           "Lower a kernel module to CC dialect. Never launches the kernel.");
 
@@ -1146,13 +1142,8 @@ void cudaq::bindAltLaunchKernel(py::module &mod,
           "Launch a kernel. Marshaling of arguments and unmarshalling of "
           "results is performed.");
   mod.def("marshal_and_retain_module", marshal_and_retain_module,
-          "Marshaling of arguments and unmarshalling of results is performed. "
-          "The kernel undergoes argument synthesis and final code generation. "
-          "The kernel is NOT executed, but rather cached to a location managed "
-          "by the calling code. This allows the calling code to invoke the "
-          "entry point with a regular C++ call.");
-  mod.def("delete_cache_execution_engine", delete_cache_execution_engine,
-          "Delete a cached JIT execution engine with the given cache key.");
+          "Compile (specialize + JIT) a kernel module. Returns a "
+          "CompiledModule object that owns the JIT engine.");
   mod.def("pyAltLaunchAnalogKernel", pyAltLaunchAnalogKernel,
           "Launch an analog Hamiltonian simulation kernel with given JSON "
           "payload.");

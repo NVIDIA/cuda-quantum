@@ -308,9 +308,9 @@ def ResourceCountPreprocess :
 
   let options = [
     Option<"countGate", "count-gate",
-      "std::function<void(std::string,size_t,size_t)>",
-      /*default=*/"[](std::string str,size_t nControls, size_t count){}",
-      "Closure that will handle gate counts">,
+      "std::function<void(std::string,std::vector<std::size_t>,std::vector<std::size_t>,size_t)>",
+      /*default=*/"[](std::string,std::vector<std::size_t>,std::vector<std::size_t>,size_t){}",
+      "Closure that receives gate name, control qubit indices, target qubit indices, and multiplicity">,
     Option<"dumpPreprocessed", "dump-preprocessed", "bool", /*default=*/"false",
       "Dump preprocessed gates instead of counting them (useful for testing)">,
   ];

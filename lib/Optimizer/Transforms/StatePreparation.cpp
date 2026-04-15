@@ -339,64 +339,99 @@ public:
                                 PatternRewriter &rewriter) const override {
     auto loc = init.getLoc();
     auto qubits = init.getTargets();
-    if (auto alloc = qubits.getDefiningOp<quake::AllocaOp>()) {
+    auto alloc = qubits.getDefiningOp<quake::AllocaOp>();
+    if (!alloc)
+      return init.emitOpError("failed to replace op (alloca expected)");
 
-      // Find vector data.
-      Value data = init.getState();
+    // Find vector data.
+    Value data = init.getState();
 
-      // Check that this is a state pointer coming from an argument;
-      // i.e., user constructed a state outside the kernel with
-      // `state::from_data`. This is not supported for state preparation
-      // synthesis, which is intended for quantum hardware. The state
-      // constructed outside the kernel with `state::from_data` is bound to the
-      // local quantum simulator, not the underlying hardware target.
-      auto statePtrTy = cudaq::cc::PointerType::get(
-          quake::StateType::get(rewriter.getContext()));
-      if (data.getType() == statePtrTy)
-        return init.emitOpError(
-            "cannot perform state preparation synthesis on states "
-            "constructed outside the kernel with `state::from_data`");
-      if (auto cast = data.getDefiningOp<cudaq::cc::CastOp>())
-        data = cast.getValue();
+    // Check that this is a state pointer coming from an argument.
+    auto createState = data.getDefiningOp<quake::CreateStateOp>();
+    if (!createState)
+      return init.emitOpError("cannot perform state preparation synthesis on "
+                              "arguments to the kernel");
+    data = createState.getData();
+    if (auto cast = data.getDefiningOp<cudaq::cc::CastOp>())
+      data = cast.getValue();
 
-      if (auto addr = data.getDefiningOp<cudaq::cc::AddressOfOp>()) {
-        auto globalName = addr.getGlobalName();
-        auto module = init->getParentOfType<mlir::ModuleOp>();
-        auto symbol = module.lookupSymbol(globalName);
-        if (auto global = dyn_cast<cudaq::cc::GlobalOp>(symbol)) {
+    auto addr = data.getDefiningOp<cudaq::cc::AddressOfOp>();
+    if (!addr)
+      return init.emitOpError("failed to replace op (address_of expected)");
 
-          // Read state initialization data from the global array.
-          auto vec = cudaq::opt::factory::readGlobalConstantArray(global);
+    auto globalName = addr.getGlobalName();
+    auto module = init->getParentOfType<mlir::ModuleOp>();
+    auto symbol = module.lookupSymbol(globalName);
+    auto global = dyn_cast<cudaq::cc::GlobalOp>(symbol);
+    if (!global)
+      return init.emitOpError("failed to replace op (global expected)");
 
-          if (vec.empty())
-            return init.emitOpError("Invalid initialization data for state "
-                                    "preparation: empty array.");
-          const int64_t vecSize = vec.size();
-          // Check that the size of the vector is a power of two.
-          if ((vecSize & (vecSize - 1)) != 0)
-            return init.emitOpError(
-                "Invalid initialization data for state preparation: size "
-                "must be a power of two.");
+    // Read state initialization data from the global array.
+    auto vec = cudaq::opt::factory::readGlobalConstantArray(global);
 
-          // Prepare state from vector data.
-          auto gateBuilder = StateGateBuilder(rewriter, loc, qubits);
-          auto decomposer = StateDecomposer(gateBuilder, vec, phaseThreshold);
-          decomposer.decompose();
+    if (vec.empty())
+      return init.emitOpError("Invalid initialization data for state "
+                              "preparation: empty array.");
+    const int64_t vecSize = vec.size();
+    // Check that the size of the vector is a power of two.
+    if ((vecSize & (vecSize - 1)) != 0)
+      return init.emitOpError(
+          "Invalid initialization data for state preparation: size "
+          "must be a power of two.");
 
-          // Use prepared qubits instead of the initialized state.
-          init.replaceAllUsesWith(qubits);
+    // Prepare state from vector data.
+    auto gateBuilder = StateGateBuilder(rewriter, loc, qubits);
+    auto decomposer = StateDecomposer(gateBuilder, vec, phaseThreshold);
+    decomposer.decompose();
 
-          // Erase the init so we don't try to replace it again.
-          rewriter.eraseOp(init);
-          return success();
-        }
-      }
-    }
-    return init.emitOpError("failed to replace op");
+    // Use prepared qubits instead of the initialized state.
+    init.replaceAllUsesWith(qubits);
+
+    // Erase the init so we don't try to replace it again.
+    rewriter.eraseOp(init);
+    return success();
   }
 
 private:
   double phaseThreshold;
+};
+
+class FoldQubitsPattern : public OpRewritePattern<quake::GetNumberOfQubitsOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::GetNumberOfQubitsOp getnum,
+                                PatternRewriter &rewriter) const override {
+    auto create = getnum.getState().getDefiningOp<quake::CreateStateOp>();
+    if (!create)
+      return failure();
+    auto len = cudaq::opt::factory::maybeValueOfIntConstant(create.getLength());
+    if (!len)
+      return failure();
+    // Verify this is a power of 2.
+    if (*len & (*len - 1))
+      return failure();
+    // Translate the length to number of qubits: log2(len)
+    std::size_t num = std::countr_zero(*len);
+    rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(getnum, num, 64);
+    return success();
+  }
+};
+
+class KillDeleteStatePattern : public OpRewritePattern<quake::DeleteStateOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::DeleteStateOp delstate,
+                                PatternRewriter &rewriter) const override {
+    auto create = delstate.getState().getDefiningOp<quake::CreateStateOp>();
+    if (!create)
+      return failure();
+    if (!create->hasOneUse())
+      return failure();
+    rewriter.eraseOp(delstate);
+    return success();
+  }
 };
 
 class StatePreparationPass
@@ -414,6 +449,7 @@ public:
 
     RewritePatternSet patterns(ctx);
     patterns.insert<StatePrepPattern>(ctx, phaseThreshold);
+    patterns.insert<FoldQubitsPattern, KillDeleteStatePattern>(ctx);
 
     if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns)))) {
       func.emitOpError("State preparation failed");
