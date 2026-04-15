@@ -7,7 +7,8 @@
 # ============================================================================ #
 
 set(LIBRARY_NAME cudaq-platform-default)
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
+set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 set(CUDAQ_DEFAULTPLATFORM_SRC
   DefaultQuantumPlatform.cpp
@@ -41,9 +42,8 @@ if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
 endif()
   
 add_target_config(opt-test)
-add_target_config(circuit-opt-bench)
 
-if (cuStateVec_FOUND)
+if (CUSTATEVEC_ROOT AND CUDA_FOUND)
   add_target_config(nvidia)
   add_target_config(nvidia-fp64)
 endif()

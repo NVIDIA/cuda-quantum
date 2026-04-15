@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
 add_library(cudaq-remote-simulator-qpu SHARED RemoteSimulatorQPU.cpp)
 target_link_libraries(cudaq-remote-simulator-qpu
   PUBLIC
@@ -18,4 +19,4 @@ target_link_libraries(cudaq-remote-simulator-qpu
 )
                     
 install(TARGETS cudaq-remote-simulator-qpu DESTINATION lib)
-
+endif()
