@@ -26,6 +26,7 @@ FROM ${base_image}
 ARG distro=rhel8
 ARG llvm_commit
 ARG pybind11_commit
+ARG nanobind_commit
 ARG toolchain=gcc11
 
 # When a dialogue box would be needed during install, assume default configurations.
@@ -66,19 +67,20 @@ RUN if [ "${toolchain#gcc}" != "$toolchain" ]; then \
 ENV CC="$LLVM_INSTALL_PREFIX/bootstrap/cc"
 ENV CXX="$LLVM_INSTALL_PREFIX/bootstrap/cxx"
 
-# Build pybind11 - 
-# we should be able to use the same pybind version independent on what Python version we generate bindings for.
-ENV PYBIND11_INSTALL_PREFIX=/usr/local/pybind11
+# Build nanobind -
+# we should be able to use the same nanobind version independent on what Python version we generate bindings for.
+ENV NANOBIND_INSTALL_PREFIX=/usr/local/nanobind
 # Using releasever=8.9: cmake packages missing from 8.10 mirrors for aarch64
 RUN dnf install -y --nobest --setopt=install_weak_deps=False --releasever=8.9\
         ninja-build cmake python3-devel \
-    && mkdir /pybind11-project && cd /pybind11-project && git init \
-    && git remote add origin https://github.com/pybind/pybind11 \
-    && git fetch origin --depth=1 $pybind11_commit && git reset --hard FETCH_HEAD \
-    && mkdir -p /pybind11-project/build && cd /pybind11-project/build \
-    && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" -DPYTHON_EXECUTABLE="$(which python3)" -DPYBIND11_TEST=False \
+    && mkdir /nanobind-project && cd /nanobind-project && git init \
+    && git remote add origin https://github.com/wjakob/nanobind \
+    && git fetch origin --depth=1 $nanobind_commit && git reset --hard FETCH_HEAD \
+    && git submodule update --init --recursive \
+    && mkdir -p /nanobind-project/build && cd /nanobind-project/build \
+    && cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$NANOBIND_INSTALL_PREFIX" -DNB_TEST=False \
     && cmake --build . --target install --config Release \
-    && cd / && rm -rf /pybind11-project
+    && cd / && rm -rf /nanobind-project
 
 RUN curl -L https://github.com/Kitware/CMake/releases/download/v3.28.4/cmake-3.28.4-linux-$(uname -m).sh -o cmake-install.sh \
     && bash cmake-install.sh --skip-licence --exclude-subdir --prefix=/usr/local \
