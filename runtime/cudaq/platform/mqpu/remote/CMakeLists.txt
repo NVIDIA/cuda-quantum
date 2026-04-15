@@ -7,14 +7,15 @@
 # ============================================================================ #
 
 add_library(cudaq-remote-simulator-qpu SHARED RemoteSimulatorQPU.cpp)
-target_link_libraries(cudaq-remote-simulator-qpu PUBLIC 
-                        cudaq
-                        cudaq-common 
-                        cudaq-logger
-                        cudaq-mlir-runtime
-                        rest-remote-platform-client
-                        cudaq-platform-mqpu
-                    )
+target_link_libraries(cudaq-remote-simulator-qpu
+  PUBLIC
+    cudaq
+    cudaq-common
+    cudaq-logger
+    cudaq-mlir-runtime
+    rest-remote-platform-client
+    cudaq-platform-mqpu
+)
                     
 install(TARGETS cudaq-remote-simulator-qpu DESTINATION lib)
 
