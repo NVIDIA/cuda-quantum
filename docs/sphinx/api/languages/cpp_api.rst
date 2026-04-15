@@ -322,8 +322,6 @@ Platform
 
 .. doxygenclass:: cudaq::BaseRemoteRESTQPU
 
-.. doxygenclass:: cudaq::BaseRemoteSimulatorQPU
-
 .. doxygenclass:: cudaq::AnalogRemoteRESTQPU    
 
 .. doxygenclass:: cudaq::FermioniqBaseQPU
