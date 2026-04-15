@@ -26,7 +26,8 @@ using namespace mlir;
 
 template <typename A>
 Value genIntegerConstant(OpBuilder &builder, A v, unsigned bits) {
-  return arith::ConstantIntOp::create(builder, builder.getUnknownLoc(), v, bits);
+  return arith::ConstantIntOp::create(builder, builder.getUnknownLoc(), v,
+                                      bits);
 }
 
 static Value genConstant(OpBuilder &builder, bool v) {
@@ -342,8 +343,8 @@ createNumQubitsFunc(OpBuilder &builder, ModuleOp moduleOp,
 }
 
 [[maybe_unused]] static Value
-genConstant(OpBuilder &builder, const cudaq::state *v,
-            llvm::DataLayout &layout, StringRef kernelName, ModuleOp substMod,
+genConstant(OpBuilder &builder, const cudaq::state *v, llvm::DataLayout &layout,
+            StringRef kernelName, ModuleOp substMod,
             cudaq::opt::ArgumentConverter &converter) {
   auto ctx = builder.getContext();
   auto loc = builder.getUnknownLoc();
@@ -722,7 +723,8 @@ Value genConstant(OpBuilder &builder, cudaq::cc::StdvecType vecTy, void *p,
             builder, eleTy, static_cast<void *>(const_cast<char *>(cursor)),
             substMod, layout)) {
       auto atLoc = cudaq::cc::ComputePtrOp::create(
-          builder, loc, elePtrTy, buffer, ArrayRef<cudaq::cc::ComputePtrArg>{i});
+          builder, loc, elePtrTy, buffer,
+          ArrayRef<cudaq::cc::ComputePtrArg>{i});
       cudaq::cc::StoreOp::create(builder, loc, val, atLoc);
     }
     cursor += eleSize;
@@ -745,7 +747,8 @@ Value genConstant(OpBuilder &builder, cudaq::cc::StructType strTy, void *p,
             static_cast<void *>(const_cast<char *>(
                 cursor + cudaq::opt::getDataOffset(layout, strTy, i))),
             substMod, layout))
-      aggie = cudaq::cc::InsertValueOp::create(builder, loc, strTy, aggie, v, i);
+      aggie =
+          cudaq::cc::InsertValueOp::create(builder, loc, strTy, aggie, v, i);
   }
   return aggie;
 }
@@ -810,7 +813,8 @@ Value genConstant(OpBuilder &builder, cudaq::cc::ArrayType arrTy, void *p,
     if (Value v = dispatchSubtype(
             builder, eleTy, static_cast<void *>(const_cast<char *>(cursor)),
             substMod, layout))
-      aggie = cudaq::cc::InsertValueOp::create(builder, loc, arrTy, aggie, v, i);
+      aggie =
+          cudaq::cc::InsertValueOp::create(builder, loc, arrTy, aggie, v, i);
     cursor += eleSize;
   }
   return aggie;

@@ -59,8 +59,8 @@ public:
     Value stacksave;
     auto ptrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
     if (scopeOp.hasAllocation(/*quantumAllocs=*/false)) {
-      auto call = func::CallOp::create(
-          rewriter, loc, ptrTy, cudaq::llvmStackSave, ArrayRef<Value>{});
+      auto call = func::CallOp::create(rewriter, loc, ptrTy,
+                                       cudaq::llvmStackSave, ArrayRef<Value>{});
       stacksave = call.getResult(0);
     }
     auto initPos = rewriter.getInsertionPoint();
@@ -90,8 +90,7 @@ public:
     if (stacksave) {
       rewriter.setInsertionPointToStart(endBlock);
       func::CallOp::create(rewriter, loc, ArrayRef<Type>{},
-                           cudaq::llvmStackRestore,
-                                    ArrayRef<Value>{stacksave});
+                           cudaq::llvmStackRestore, ArrayRef<Value>{stacksave});
     }
     rewriter.replaceOp(scopeOp, scopeResults);
     return success();
@@ -213,7 +212,7 @@ public:
       rewriter.setInsertionPointToEnd(whileBlock);
       cf::CondBranchOp::create(rewriter, loc, comparison, bodyBlock,
                                whileCond.getResults(), endBlock,
-                                        whileCond.getResults());
+                               whileCond.getResults());
       rewriter.eraseOp(whileCond);
       // Move the while region between the body and end block.
       rewriter.inlineRegionBefore(loopOp.getWhileRegion(), endBlock);

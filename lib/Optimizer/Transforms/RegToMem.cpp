@@ -260,7 +260,8 @@ private:
       if (!(*i)->isLeader())
         continue;
       llvm::errs() << "Set {\n";
-      for (auto e = eqClasses.member_begin(**i); e != eqClasses.member_end(); ++e)
+      for (auto e = eqClasses.member_begin(**i); e != eqClasses.member_end();
+           ++e)
         llvm::errs() << "  " << Value::getFromOpaquePointer(*e) << '\n';
       llvm::errs() << "}\n";
     }
@@ -308,8 +309,9 @@ public:
       auto args = collect(op.getOperands());
       auto nameAttr = op.getRegisterNameAttr();
       eraseWrapUsers(op);
-      auto newOp = OP::create(rewriter,
-          loc, ArrayRef<Type>{op.getMeasOut().getType()}, args, nameAttr);
+      auto newOp =
+          OP::create(rewriter, loc, ArrayRef<Type>{op.getMeasOut().getType()},
+                     args, nameAttr);
       op.getResult(0).replaceAllUsesWith(newOp.getResult(0));
       rewriter.eraseOp(op);
     } else if constexpr (std::is_same_v<OP, quake::ResetOp>) {
@@ -327,8 +329,8 @@ public:
       auto ctrls = collect(op.getControls());
       auto targs = collect(op.getTargets());
       eraseWrapUsers(op);
-      OP::create(rewriter,loc, op.getIsAdj(), op.getParameters(), ctrls, targs,
-                          op.getNegatedQubitControlsAttr());
+      OP::create(rewriter, loc, op.getIsAdj(), op.getParameters(), ctrls, targs,
+                 op.getNegatedQubitControlsAttr());
       rewriter.eraseOp(op);
     }
     return success();
@@ -410,8 +412,8 @@ struct EraseWiresIf : public OpRewritePattern<cudaq::cc::IfOp> {
         newIfTy.push_back(ty);
     auto origThenArgs = ifOp.getThenRegion().front().getArguments();
     auto origElseArgs = ifOp.getElseRegion().front().getArguments();
-    auto newIf = cudaq::cc::IfOp::create(rewriter,
-        ifOp.getLoc(), newIfTy, ifOp.getCondition(),
+    auto newIf = cudaq::cc::IfOp::create(
+        rewriter, ifOp.getLoc(), newIfTy, ifOp.getCondition(),
         [&](OpBuilder &, Location, Region &region) {
           rewriter.inlineRegionBefore(ifOp.getThenRegion(), region,
                                       region.end());
@@ -433,7 +435,7 @@ struct EraseWiresIf : public OpRewritePattern<cudaq::cc::IfOp> {
           auto id = analysis.idFromValue(from);
           assert(id);
           auto unwrap = quake::UnwrapOp::create(builder, ifOp.getLoc(), wireTy,
-                                                        allocas[*id]);
+                                                allocas[*id]);
           arg.replaceAllUsesWith(unwrap);
         }
       }
@@ -446,7 +448,7 @@ struct EraseWiresIf : public OpRewritePattern<cudaq::cc::IfOp> {
             for (auto v : cont.getOperands())
               if (!quake::isLinearType(v.getType()))
                 newOpnds.push_back(v);
-            cudaq::cc::ContinueOp::create(builder,cont.getLoc(), newOpnds);
+            cudaq::cc::ContinueOp::create(builder, cont.getLoc(), newOpnds);
             rewriter.eraseOp(cont);
           }
     };
@@ -462,7 +464,7 @@ struct EraseWiresIf : public OpRewritePattern<cudaq::cc::IfOp> {
         auto id = analysis.idFromValue(v);
         assert(id);
         auto unwrap = quake::UnwrapOp::create(rewriter, ifOp.getLoc(), wireTy,
-                                                       allocas[*id]);
+                                              allocas[*id]);
         unwraps.push_back(unwrap);
       } else {
         unwraps.push_back(newIf.getResult(i++));

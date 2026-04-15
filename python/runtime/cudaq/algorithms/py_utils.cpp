@@ -9,13 +9,13 @@
 #include "py_utils.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <nanobind/stl/function.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/vector.h>
+#include <nanobind/stl/map.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/pair.h>
+#include <nanobind/stl/string.h>
 #include <nanobind/stl/tuple.h>
-#include <nanobind/stl/map.h>
 #include <nanobind/stl/unordered_map.h>
+#include <nanobind/stl/vector.h>
 
 namespace cudaq {
 
@@ -32,12 +32,12 @@ py::dict get_serializable_var_dict() {
       if (keyStr.starts_with("__")) {
         // Ignore items that start with "__" (like Python __builtins__, etc.)
       } else if (py::hasattr(value, "to_json")) {
-        auto type = py::handle(reinterpret_cast<PyObject *>(Py_TYPE(value.ptr())));
+        auto type =
+            py::handle(reinterpret_cast<PyObject *>(Py_TYPE(value.ptr())));
         std::string module(py::str(type.attr("__module__")).c_str());
         std::string name(py::str(type.attr("__name__")).c_str());
         auto type_name = py::str((module + "." + name).c_str());
-        py::str json_key_name(
-            (keyStr + "/" + module + "." + name).c_str());
+        py::str json_key_name((keyStr + "/" + module + "." + name).c_str());
         serialized_dict[json_key_name] =
             json.attr("loads")(value.attr("to_json")());
       } else if (py::hasattr(value, "tolist")) {
@@ -148,17 +148,17 @@ void bindPyDataClassRegistry(py::module_ &mod) {
                   "Is class registered\n")
       .def_static("getClassAttributes", &DataClassRegistry::getClassAttributes,
                   "Find registered class and its attributes\n")
-      .def_static("get_classes",
-                  []() -> decltype(DataClassRegistry::classes) & {
-                    return DataClassRegistry::classes;
-                  },
-                  py::rv_policy::reference,
-                  "Get all registered classes.")
-      .def_prop_ro_static("classes",
-                  [](py::handle /*cls*/) -> decltype(DataClassRegistry::classes) & {
-                    return DataClassRegistry::classes;
-                  },
-                  py::rv_policy::reference,
-                  "Get all registered classes.");
+      .def_static(
+          "get_classes",
+          []() -> decltype(DataClassRegistry::classes) & {
+            return DataClassRegistry::classes;
+          },
+          py::rv_policy::reference, "Get all registered classes.")
+      .def_prop_ro_static(
+          "classes",
+          [](py::handle /*cls*/) -> decltype(DataClassRegistry::classes) & {
+            return DataClassRegistry::classes;
+          },
+          py::rv_policy::reference, "Get all registered classes.");
 }
 } // namespace cudaq

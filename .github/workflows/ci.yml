@@ -39,6 +39,7 @@ jobs:
       cache_base: ${{ steps.pr_info.outputs.pr_base }}
       llvm_commit: ${{ steps.repo_info.outputs.llvm_commit }}
       pybind11_commit: ${{ steps.repo_info.outputs.pybind11_commit }}
+      nanobind_commit: ${{ steps.repo_info.outputs.nanobind_commit }}
       platform_config: ${{ steps.config.outputs.platforms }}
 
     steps:
@@ -75,6 +76,7 @@ jobs:
         run: |
           echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
           echo "pybind11_commit=$(git rev-parse @:./tpls/pybind11)" >> $GITHUB_OUTPUT
+          echo "nanobind_commit=$(git rev-parse @:./tpls/nanobind)" >> $GITHUB_OUTPUT
 
   devdeps:
     name: Load dependencies
@@ -124,6 +126,7 @@ jobs:
         distro=rhel8
         llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
         pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
+        nanobind_commit=${{ needs.metadata.outputs.nanobind_commit }}
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       environment: ghcr-ci
       # needed only for the cloudposse GitHub action

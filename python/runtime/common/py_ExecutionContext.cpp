@@ -13,13 +13,13 @@
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include <fmt/core.h>
 #include <nanobind/stl/complex.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/string_view.h>
-#include <nanobind/stl/vector.h>
+#include <nanobind/stl/map.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/pair.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/string_view.h>
 #include <nanobind/stl/tuple.h>
-#include <nanobind/stl/map.h>
+#include <nanobind/stl/vector.h>
 
 namespace py = nanobind;
 
@@ -44,20 +44,18 @@ void bindExecutionContext(py::module_ &mod) {
       .def_rw("asyncExec", &cudaq::ExecutionContext::asyncExec)
       .def_ro("asyncResult", &cudaq::ExecutionContext::asyncResult)
       .def_rw("hasConditionalsOnMeasureResults",
-                     &cudaq::ExecutionContext::hasConditionalsOnMeasureResults)
-      .def_rw("totalIterations",
-                     &cudaq::ExecutionContext::totalIterations)
+              &cudaq::ExecutionContext::hasConditionalsOnMeasureResults)
+      .def_rw("totalIterations", &cudaq::ExecutionContext::totalIterations)
       .def_rw("batchIteration", &cudaq::ExecutionContext::batchIteration)
       .def_rw("numberTrajectories",
-                     &cudaq::ExecutionContext::numberTrajectories)
+              &cudaq::ExecutionContext::numberTrajectories)
       .def_rw("explicitMeasurements",
-                     &cudaq::ExecutionContext::explicitMeasurements)
+              &cudaq::ExecutionContext::explicitMeasurements)
       .def_rw("allowJitEngineCaching",
-                     &cudaq::ExecutionContext::allowJitEngineCaching)
-      .def_rw("useParametricJit",
-              &cudaq::ExecutionContext::useParametricJit)
+              &cudaq::ExecutionContext::allowJitEngineCaching)
+      .def_rw("useParametricJit", &cudaq::ExecutionContext::useParametricJit)
       .def_ro("invocationResultBuffer",
-                    &cudaq::ExecutionContext::invocationResultBuffer)
+              &cudaq::ExecutionContext::invocationResultBuffer)
       .def("unset_jit_engine",
            [&](cudaq::ExecutionContext &execCtx) {
              if (execCtx.jitEng) {
@@ -74,49 +72,52 @@ void bindExecutionContext(py::module_ &mod) {
            [](cudaq::ExecutionContext &ctx) { return ctx.expectationValue; })
       // ----- Context management using with blocks -----
       // Unlike in C++, we do not support nested execution contexts in Python.
-      .def("__enter__",
-           [](cudaq::ExecutionContext &ctx) -> ExecutionContext & {
-             if (cudaq::getExecutionContext()) {
-               throw std::runtime_error("Context already set. Nested execution "
-                                        "contexts are not supported in Python");
-             }
-             auto &platform = cudaq::get_platform();
-             platform.configureExecutionContext(ctx);
-             cudaq::detail::setExecutionContext(&ctx);
-             platform.beginExecution();
-             return ctx;
-           },
-           py::rv_policy::reference)
-      .def("__exit__", [](cudaq::ExecutionContext &ctx, py::handle type,
-                          py::handle value, py::handle traceback) {
-        if (type.is_none()) {
-          // Normal exit: finalize results, clean up the simulator,
-          // and reset the context (guaranteed even if finalize throws).
-          auto &platform = cudaq::get_platform();
-          detail::try_finally(
-              [&] {
+      .def(
+          "__enter__",
+          [](cudaq::ExecutionContext &ctx) -> ExecutionContext & {
+            if (cudaq::getExecutionContext()) {
+              throw std::runtime_error("Context already set. Nested execution "
+                                       "contexts are not supported in Python");
+            }
+            auto &platform = cudaq::get_platform();
+            platform.configureExecutionContext(ctx);
+            cudaq::detail::setExecutionContext(&ctx);
+            platform.beginExecution();
+            return ctx;
+          },
+          py::rv_policy::reference)
+      .def(
+          "__exit__",
+          [](cudaq::ExecutionContext &ctx, py::handle type, py::handle value,
+             py::handle traceback) {
+            if (type.is_none()) {
+              // Normal exit: finalize results, clean up the simulator,
+              // and reset the context (guaranteed even if finalize throws).
+              auto &platform = cudaq::get_platform();
+              detail::try_finally(
+                  [&] {
+                    platform.finalizeExecutionContext(ctx);
+                    platform.endExecution();
+                  },
+                  detail::resetExecutionContext);
+            } else {
+              // The kernel threw. Still need to tear down the platform so
+              // the simulator doesn't carry stale state into the next run.
+              // Separate invoke_no_throw so the context reset always runs.
+              detail::invoke_no_throw([&] {
+                auto &platform = cudaq::get_platform();
                 platform.finalizeExecutionContext(ctx);
                 platform.endExecution();
-              },
-              detail::resetExecutionContext);
-        } else {
-          // The kernel threw. Still need to tear down the platform so
-          // the simulator doesn't carry stale state into the next run.
-          // Separate invoke_no_throw so the context reset always runs.
-          detail::invoke_no_throw([&] {
-            auto &platform = cudaq::get_platform();
-            platform.finalizeExecutionContext(ctx);
-            platform.endExecution();
-          });
-          // Always reset context, even if the above cleanup failed.
-          detail::invoke_no_throw(detail::resetExecutionContext);
-        }
-        // Return false so exceptions are not suppressed
-        return false;
-      },
-      // nanobind rejects None args by default (unlike pybind11);
-      // mark each __exit__ parameter as accepting None.
-      py::arg().none(), py::arg().none(), py::arg().none());
+              });
+              // Always reset context, even if the above cleanup failed.
+              detail::invoke_no_throw(detail::resetExecutionContext);
+            }
+            // Return false so exceptions are not suppressed
+            return false;
+          },
+          // nanobind rejects None args by default (unlike pybind11);
+          // mark each __exit__ parameter as accepting None.
+          py::arg().none(), py::arg().none(), py::arg().none());
   mod.def("supportsExplicitMeasurements", []() {
     auto &platform = cudaq::get_platform();
     return platform.supports_explicit_measurements();
@@ -135,20 +136,19 @@ void bindExecutionContext(py::module_ &mod) {
       py::arg("qpuId") = 0);
   mod.def("getQirOutputLog", []() { return nvqir::getQirOutputLog(); });
   mod.def("clearQirOutputLog", []() { nvqir::clearQirOutputLog(); });
-  mod.def("decodeQirOutputLog",
-          [](const std::string &outputLog, py::object decodedResults) {
-            cudaq::RecordLogParser parser;
-            parser.parse(outputLog);
-            Py_buffer view;
-            if (PyObject_GetBuffer(decodedResults.ptr(), &view,
-                                   PyBUF_WRITABLE) != 0)
-              throw py::python_error();
-            // Get the buffer and length of buffer (in bytes) from the parser.
-            auto *origBuffer = parser.getBufferPtr();
-            const std::size_t bufferSize = parser.getBufferSize();
-            std::memcpy(view.buf, origBuffer, bufferSize);
-            PyBuffer_Release(&view);
-          });
+  mod.def("decodeQirOutputLog", [](const std::string &outputLog,
+                                   py::object decodedResults) {
+    cudaq::RecordLogParser parser;
+    parser.parse(outputLog);
+    Py_buffer view;
+    if (PyObject_GetBuffer(decodedResults.ptr(), &view, PyBUF_WRITABLE) != 0)
+      throw py::python_error();
+    // Get the buffer and length of buffer (in bytes) from the parser.
+    auto *origBuffer = parser.getBufferPtr();
+    const std::size_t bufferSize = parser.getBufferSize();
+    std::memcpy(view.buf, origBuffer, bufferSize);
+    PyBuffer_Release(&view);
+  });
 
   py::class_<PersistJITEngine>(
       mod, "reuse_compiler_artifacts",
@@ -160,10 +160,12 @@ void bindExecutionContext(py::module_ &mod) {
            [](PersistJITEngine &ctx) -> void {
              cudaq::compiler_artifact::enablePersistentJITEngine();
            })
-      .def("__exit__", [](PersistJITEngine &ctx, py::object type,
-                          py::object value, py::object traceback) {
-        cudaq::compiler_artifact::disablePersistentJITEngine();
-      },
-      py::arg().none(), py::arg().none(), py::arg().none());
+      .def(
+          "__exit__",
+          [](PersistJITEngine &ctx, py::object type, py::object value,
+             py::object traceback) {
+            cudaq::compiler_artifact::disablePersistentJITEngine();
+          },
+          py::arg().none(), py::arg().none(), py::arg().none());
 }
 } // namespace cudaq

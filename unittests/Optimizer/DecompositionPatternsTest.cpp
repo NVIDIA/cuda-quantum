@@ -94,8 +94,8 @@ ModuleOp createTestModule(MLIRContext *context, StringRef gateSpec) {
   auto funcType = builder.getFunctionType(inputTypes, {});
 
   // Create function
-  auto func = func::FuncOp::create(builder.getUnknownLoc(), "test_func",
-                                   funcType);
+  auto func =
+      func::FuncOp::create(builder.getUnknownLoc(), "test_func", funcType);
   auto *entry = func.addEntryBlock();
   builder.setInsertionPointToStart(entry);
 
@@ -142,14 +142,16 @@ ModuleOp createTestModule(MLIRContext *context, StringRef gateSpec) {
     // Swap needs 2 targets
     Value target = entry->getArgument(0);
     Value target2 = entry->getArgument(1);
-    quake::SwapOp::create(builder, loc, ValueRange{}, ValueRange{target, target2});
+    quake::SwapOp::create(builder, loc, ValueRange{},
+                          ValueRange{target, target2});
   } else if (gateName == "exp_pauli") {
     Value target = entry->getArgument(0);
     Value target2 = entry->getArgument(1);
     // Create a veq from the two target qubits using ConcatOp
     SmallVector<Value> targetValues = {target, target2};
     Value qubitsVal = quake::ConcatOp::create(
-        builder, loc, quake::VeqType::get(builder.getContext(), 2), targetValues);
+        builder, loc, quake::VeqType::get(builder.getContext(), 2),
+        targetValues);
 
     quake::ExpPauliOp::create(builder, loc,
                               /* parameters = */ ValueRange{pi_2},

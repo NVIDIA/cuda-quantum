@@ -319,7 +319,7 @@ public:
       auto wireTy = quake::WireType::get(builder.getContext());
       return quake::UnwrapOp::create(builder, mr.getLoc(), wireTy, mr);
     }
-    return cudaq::cc::LoadOp::create(builder,mr.getLoc(), mr);
+    return cudaq::cc::LoadOp::create(builder, mr.getLoc(), mr);
   }
 
   SSAReg unsafeAddLiveInToBlock(Block *block, MemRef mr) {
@@ -622,7 +622,7 @@ public:
         auto offset = i.index() + addend;
         if (opndTy == qrefTy) {
           quake::WrapOp::create(rewriter, loc, newOp.getResult(offset),
-                                         i.value());
+                                i.value());
         } else if (opndTy == wireTy) {
           op.getResult(count++).replaceAllUsesWith(newOp.getResult(offset));
         }
@@ -646,9 +646,9 @@ public:
       // propagated to wrap operations.
       auto numberOfWires = unwrapCtrls.size() + unwrapTargs.size();
       SmallVector<Type> wireTys{numberOfWires, wireTy};
-      auto newOp = OP::create(
-          rewriter, loc, wireTys, op.getIsAdjAttr(), op.getParameters(), unwrapCtrls,
-          unwrapTargs, op.getNegatedQubitControlsAttr());
+      auto newOp = OP::create(rewriter, loc, wireTys, op.getIsAdjAttr(),
+                              op.getParameters(), unwrapCtrls, unwrapTargs,
+                              op.getNegatedQubitControlsAttr());
       SmallVector<Value> wireOperands = op.getControls();
       wireOperands.append(op.getTargets().begin(), op.getTargets().end());
       threadWires(wireOperands, newOp, 0);
@@ -705,8 +705,8 @@ public:
       // llvm::cast<TypedValue<T>> which crashes on null operands. After
       // erasing other ops above (with dropAllUses), WrapOp operands may be
       // null. Use raw getOperand() to safely check for null.
-      Value ref = wrap->getOperand(1);   // ref_value is operand 1
-      Value wire = wrap->getOperand(0);  // wire_value is operand 0
+      Value ref = wrap->getOperand(1);  // ref_value is operand 1
+      Value wire = wrap->getOperand(0); // wire_value is operand 0
       if (!ref || !wire.hasOneUse()) {
         LLVM_DEBUG(llvm::dbgs() << "erasing: "; wrap->dump();
                    llvm::dbgs() << '\n');
@@ -750,7 +750,7 @@ public:
         elseRegion.push_back(block);
         OpBuilder builder(ctx);
         builder.setInsertionPointToEnd(block);
-        cudaq::cc::ContinueOp::create(builder,ifOp.getLoc());
+        cudaq::cc::ContinueOp::create(builder, ifOp.getLoc());
       }
     }
 
@@ -824,8 +824,8 @@ public:
             if (memAnalysis.isMember(alloc)) {
               if (classicalValues && !dataFlow.hasBinding(block, alloc)) {
                 OpBuilder builder(alloc);
-                Value v = cudaq::cc::UndefOp::create(builder,
-                    alloc.getLoc(), alloc.getElementType());
+                Value v = cudaq::cc::UndefOp::create(builder, alloc.getLoc(),
+                                                     alloc.getElementType());
                 cleanUps.insert(alloc);
                 dataFlow.addBinding(block, alloc, v);
               }
@@ -1086,10 +1086,10 @@ public:
         auto i = iter.index() + parent->getNumResults();
         if (np->getResult(i).getType() == wireTy)
           quake::WrapOp::create(builder, np->getLoc(), np->getResult(i),
-                                        iter.value());
+                                iter.value());
         else
-          cudaq::cc::StoreOp::create(builder,np->getLoc(), np->getResult(i),
-                                             iter.value());
+          cudaq::cc::StoreOp::create(builder, np->getLoc(), np->getResult(i),
+                                     iter.value());
       }
       cleanUps.insert(parent);
       parent = np;

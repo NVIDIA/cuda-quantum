@@ -7,14 +7,14 @@
  ******************************************************************************/
 
 #include "cudaq/operators.h"
-#include <nanobind/ndarray.h>
 #include <nanobind/nanobind.h>
+#include <nanobind/ndarray.h>
 
 namespace py = nanobind;
 
 namespace cudaq::details {
 cudaq::parameter_map kwargs_to_param_map(const py::kwargs &kwargs);
-/// Extracts parameter map from kwargs, also extracting an optional
+/// Extracts parameter map from `kwargs`, also extracting an optional
 /// "invert_order" boolean (defaults to false if not present).
 cudaq::parameter_map kwargs_to_param_map(py::kwargs &kwargs,
                                          bool &invert_order);

@@ -93,7 +93,8 @@ public:
                                 PatternRewriter &rewriter) const override {
     auto loc = resolve.getLoc();
     auto call = func::CallOp::create(
-        rewriter, loc, TypeRange{cudaq::cc::PointerType::get(rewriter.getI8Type())},
+        rewriter, loc,
+        TypeRange{cudaq::cc::PointerType::get(rewriter.getI8Type())},
         cudaq::runtime::extractDevPtr, ValueRange{resolve.getDevicePtr()});
     rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(
         resolve, resolve.getResult().getType(), call.getResult(0));

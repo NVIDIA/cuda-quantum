@@ -47,32 +47,31 @@ public:
     for (auto v : measureOp.getTargets())
       if (isa<quake::RefType>(v.getType()))
         ++numQubits;
-    Value totalToRead =
-        arith::ConstantIntOp::create(rewriter, loc, rewriter.getIntegerType(64), numQubits);
+    Value totalToRead = arith::ConstantIntOp::create(
+        rewriter, loc, rewriter.getIntegerType(64), numQubits);
     auto i64Ty = rewriter.getI64Type();
     for (auto v : measureOp.getTargets())
       if (isa<quake::VeqType>(v.getType())) {
         Value vecSz = quake::VeqSizeOp::create(rewriter, loc, i64Ty, v);
-        totalToRead =
-            arith::AddIOp::create(rewriter, loc, totalToRead, vecSz);
+        totalToRead = arith::AddIOp::create(rewriter, loc, totalToRead, vecSz);
       }
 
     // 2. Create the buffer.
     auto i1Ty = rewriter.getI1Type();
     auto i8Ty = rewriter.getI8Type();
-    Value buff =
-        cudaq::cc::AllocaOp::create(rewriter, loc, i8Ty, totalToRead);
+    Value buff = cudaq::cc::AllocaOp::create(rewriter, loc, i8Ty, totalToRead);
 
     // 3. Measure each individual qubit and insert the result, in order, into
     // the buffer. For registers/vectors, loop over the entire set of qubits.
-    Value buffOff = arith::ConstantIntOp::create(rewriter, loc, rewriter.getIntegerType(64), 0);
-    Value one = arith::ConstantIntOp::create(rewriter, loc, rewriter.getIntegerType(64), 1);
+    Value buffOff = arith::ConstantIntOp::create(
+        rewriter, loc, rewriter.getIntegerType(64), 0);
+    Value one = arith::ConstantIntOp::create(rewriter, loc,
+                                             rewriter.getIntegerType(64), 1);
     auto measTy = quake::MeasureType::get(rewriter.getContext());
     for (auto v : measureOp.getTargets()) {
       if (isa<quake::RefType>(v.getType())) {
         auto meas = A::create(rewriter, loc, measTy, v).getMeasOut();
-        auto bit =
-            quake::DiscriminateOp::create(rewriter, loc, i1Ty, meas);
+        auto bit = quake::DiscriminateOp::create(rewriter, loc, i1Ty, meas);
         Value addr = cudaq::cc::ComputePtrOp::create(
             rewriter, loc, cudaq::cc::PointerType::get(i8Ty), buff, buffOff);
         auto bitByte = cudaq::cc::CastOp::create(
@@ -86,17 +85,16 @@ public:
             rewriter, loc, vecSz,
             [&](OpBuilder &builder, Location loc, Region &, Block &block) {
               Value iv = block.getArgument(0);
-              Value qv =
-                  quake::ExtractRefOp::create(builder, loc, v, iv);
+              Value qv = quake::ExtractRefOp::create(builder, loc, v, iv);
               auto meas = A::create(builder, loc, measTy, qv);
-              auto bit = quake::DiscriminateOp::create(
-                  builder, loc, i1Ty, meas.getMeasOut());
+              auto bit = quake::DiscriminateOp::create(builder, loc, i1Ty,
+                                                       meas.getMeasOut());
               if (auto registerName = measureOp.getRegisterNameAttr())
                 meas.setRegisterName(registerName);
-              Value offset =
-                  arith::AddIOp::create(builder, loc, iv, buffOff);
+              Value offset = arith::AddIOp::create(builder, loc, iv, buffOff);
               auto addr = cudaq::cc::ComputePtrOp::create(
-                  builder, loc, cudaq::cc::PointerType::get(i8Ty), buff, offset);
+                  builder, loc, cudaq::cc::PointerType::get(i8Ty), buff,
+                  offset);
               auto bitByte = cudaq::cc::CastOp::create(
                   rewriter, loc, i8Ty, bit, cudaq::cc::CastOpMode::Unsigned);
               cudaq::cc::StoreOp::create(builder, loc, bitByte, addr);

@@ -54,7 +54,6 @@
 # (specifically also CUDA_SEPARABLE_COMPILATION)
 
 CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$HOME/.cudaq"}
-NANOBIND_INSTALL_PREFIX=${NANOBIND_INSTALL_PREFIX:-/usr/local/nanobind}
 
 # Process command line arguments
 build_configuration=${CMAKE_BUILD_TYPE:-Release}

@@ -162,7 +162,8 @@ initializeBuilder(MLIRContext *context,
   CUDAQ_INFO("kernel_builder name set to {}", kernelName);
 
   FunctionType funcTy = opBuilder->getFunctionType(types, {});
-  auto kernel = func::FuncOp::create(*opBuilder, opBuilder->getLoc(), kernelName, funcTy);
+  auto kernel =
+      func::FuncOp::create(*opBuilder, opBuilder->getLoc(), kernelName, funcTy);
   auto *entryBlock = kernel.addEntryBlock();
 
   for (auto arg : entryBlock->getArguments())
@@ -195,8 +196,9 @@ void exp_pauli(ImplicitLocOpBuilder &builder, const QuakeValue &theta,
     for (auto &v : qubits)
       values.push_back(v.getValue());
 
-    qubitsVal = quake::ConcatOp::create(builder,
-        quake::VeqType::get(builder.getContext(), qubits.size()), values);
+    qubitsVal = quake::ConcatOp::create(
+        builder, quake::VeqType::get(builder.getContext(), qubits.size()),
+        values);
   }
 
   auto thetaVal = theta.getValue();
@@ -391,9 +393,9 @@ void applyControlOrAdjoint(ImplicitLocOpBuilder &builder, std::string &name,
   }
 
   auto realName = std::string(cudaq::runtime::cudaqGenPrefixName) + name;
-  quake::ApplyOp::create(builder,
-      TypeRange{}, SymbolRefAttr::get(builder.getContext(), realName),
-      isAdjoint, controls, mlirValues);
+  quake::ApplyOp::create(builder, TypeRange{},
+                         SymbolRefAttr::get(builder.getContext(), realName),
+                         isAdjoint, controls, mlirValues);
 }
 
 void control(ImplicitLocOpBuilder &builder, std::string &name,
@@ -423,10 +425,10 @@ void adjoint(ImplicitLocOpBuilder &builder, std::string &name,
 void forLoop(ImplicitLocOpBuilder &builder, Value &startVal, Value &end,
              std::function<void(QuakeValue &)> &body) {
   auto i64Ty = builder.getI64Type();
-  Value castEnd = cudaq::cc::CastOp::create(builder,
-      i64Ty, end, cudaq::cc::CastOpMode::Unsigned);
-  Value castStart = cudaq::cc::CastOp::create(builder,
-      i64Ty, startVal, cudaq::cc::CastOpMode::Unsigned);
+  Value castEnd = cudaq::cc::CastOp::create(builder, i64Ty, end,
+                                            cudaq::cc::CastOpMode::Unsigned);
+  Value castStart = cudaq::cc::CastOp::create(builder, i64Ty, startVal,
+                                              cudaq::cc::CastOpMode::Unsigned);
   Value totalIters = arith::SubIOp::create(builder, i64Ty, castEnd, castStart);
   cudaq::opt::factory::createInvariantLoop(
       builder, builder.getLoc(), totalIters,
@@ -515,8 +517,8 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &sizeOrVec) {
     auto eleTy = statePtrTy.getElementType();
     if (auto stateTy = dyn_cast<quake::StateType>(eleTy)) {
       // get the number of qubits
-      auto numQubits = quake::GetNumberOfQubitsOp::create(builder,
-          builder.getI64Type(), value);
+      auto numQubits = quake::GetNumberOfQubitsOp::create(
+          builder, builder.getI64Type(), value);
       // allocate the number of qubits we need
       auto veqTy = quake::VeqType::getUnsized(context);
       Value qubits = quake::AllocaOp::create(builder, veqTy, numQubits);
@@ -531,8 +533,8 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &sizeOrVec) {
     throw std::runtime_error(
         "Invalid parameter passed to qalloc (must be integer type).");
 
-  Value qubits = quake::AllocaOp::create(builder,
-      quake::VeqType::getUnsized(context), value);
+  Value qubits = quake::AllocaOp::create(
+      builder, quake::VeqType::getUnsized(context), value);
 
   return QuakeValue(builder, qubits);
 }
@@ -632,8 +634,8 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder,
                                    ValueRange{vecPtr, idxOp});
 
   // Allocate the qubits
-  Value qubits = quake::AllocaOp::create(builder,
-      quake::VeqType::getUnsized(context), size.getResult(0));
+  Value qubits = quake::AllocaOp::create(
+      builder, quake::VeqType::getUnsized(context), size.getResult(0));
 
   // Use callback to retrieve the data pointer of the captured vector `state` at
   // runtime.
@@ -652,13 +654,13 @@ QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder, cudaq::state *state,
                   StateVectorStorage &stateVectorStorage) {
   auto *context = builder.getContext();
   auto statePtrTy = cudaq::cc::PointerType::get(quake::StateType::get(context));
-  auto statePtr = cc::CastOp::create(builder,
-      builder.getLoc(), statePtrTy,
+  auto statePtr = cc::CastOp::create(
+      builder, builder.getLoc(), statePtrTy,
       arith::ConstantIntOp::create(builder,
-          reinterpret_cast<std::intptr_t>(state), 64));
+                                   reinterpret_cast<std::intptr_t>(state), 64));
   // Add the initialize state op
-  Value qubits = quake::AllocaOp::create(builder,
-      quake::VeqType::get(context, state->get_num_qubits()));
+  Value qubits = quake::AllocaOp::create(
+      builder, quake::VeqType::get(context, state->get_num_qubits()));
   qubits = quake::InitializeStateOp::create(builder, qubits.getType(), qubits,
                                             statePtr);
   return QuakeValue(builder, qubits);
@@ -788,11 +790,9 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
   Value measureResult;
   if (strAttr)
     measureResult =
-        QuakeMeasureOp::create(builder, measTy, value, strAttr)
-            .getMeasOut();
+        QuakeMeasureOp::create(builder, measTy, value, strAttr).getMeasOut();
   else
-    measureResult =
-        QuakeMeasureOp::create(builder, measTy, value).getMeasOut();
+    measureResult = QuakeMeasureOp::create(builder, measTy, value).getMeasOut();
 
   Value bits = quake::DiscriminateOp::create(builder, resTy, measureResult);
   return QuakeValue(builder, bits);
@@ -826,7 +826,8 @@ void swap(ImplicitLocOpBuilder &builder, const std::vector<QuakeValue> &ctrls,
                  [](auto &el) { return el.getValue(); });
   std::transform(qubits.begin(), qubits.end(), std::back_inserter(qubitValues),
                  [](auto &el) { return el.getValue(); });
-  quake::SwapOp::create(builder, adjoint, ValueRange(), ctrlValues, qubitValues);
+  quake::SwapOp::create(builder, adjoint, ValueRange(), ctrlValues,
+                        qubitValues);
 }
 
 void checkAndUpdateRegName(quake::MeasurementInterface &measure) {
@@ -1007,13 +1008,12 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
       llvm::errs() << "Failed to emit LLVM IR\n";
       return nullptr;
     }
-    auto tmBuilderOrError =
-        llvm::orc::JITTargetMachineBuilder::detectHost();
+    auto tmBuilderOrError = llvm::orc::JITTargetMachineBuilder::detectHost();
     if (tmBuilderOrError) {
       auto tmOrError = tmBuilderOrError->createTargetMachine();
       if (tmOrError)
-        ExecutionEngine::setupTargetTripleAndDataLayout(
-            llvmModule.get(), tmOrError.get().get());
+        ExecutionEngine::setupTargetTripleAndDataLayout(llvmModule.get(),
+                                                        tmOrError.get().get());
     }
     return llvmModule;
   };
