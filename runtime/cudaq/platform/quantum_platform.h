@@ -207,7 +207,7 @@ public:
   launchModule(const std::string &kernelName, mlir::ModuleOp module,
                const std::vector<void *> &rawArgs, std::size_t qpu_id);
 
-  [[nodiscard]] CompiledKernel
+  [[nodiscard]] CompiledModule
   specializeModule(const std::string &kernelName, mlir::ModuleOp module,
                    const std::vector<void *> &rawArgs, std::size_t qpu_id,
                    bool isEntryPoint);

@@ -9,7 +9,7 @@
 #include "py_alt_launch_kernel.h"
 #include "common/AnalogHamiltonian.h"
 #include "common/ArgumentWrapper.h"
-#include "common/CompiledKernel.h"
+#include "common/CompiledModule.h"
 #include "common/Environment.h"
 #include "cudaq/Optimizer/Builder/Marshal.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
@@ -858,10 +858,10 @@ py::object cudaq::marshal_and_launch_module(const std::string &name,
                               reinterpret_cast<char *>(args.getArgs().back()));
 }
 
-// Compile (specialize + JIT) the kernel module and return a CompiledKernel.
+// Compile (specialize + JIT) the kernel module and return a CompiledModule.
 // The returned instance owns the JIT engine and manages its lifetime using
 // RAII.
-static cudaq::CompiledKernel marshal_and_retain_module(const std::string &name,
+static cudaq::CompiledModule marshal_and_retain_module(const std::string &name,
                                                        MlirModule module,
                                                        bool isEntryPoint,
                                                        py::args runtimeArgs) {
@@ -1069,16 +1069,16 @@ void cudaq::bindAltLaunchKernel(py::module &mod,
                                 std::function<std::string()> &&getTL) {
   getTransportLayer = std::move(getTL);
 
-  py::class_<cudaq::CompiledKernel>(mod, "CompiledKernel")
+  py::class_<cudaq::CompiledModule>(mod, "CompiledModule")
       .def_property_readonly(
           "entry_point",
-          [](const cudaq::CompiledKernel &ck) {
+          [](const cudaq::CompiledModule &ck) {
             return reinterpret_cast<std::uintptr_t>(
                 ck.getJit().getEntryPoint());
           },
           "The address of the JIT-compiled entry point.")
       .def_property_readonly("is_fully_specialized",
-                             &cudaq::CompiledKernel::isFullySpecialized,
+                             &cudaq::CompiledModule::isFullySpecialized,
                              "Whether all arguments have been specialized.");
 
   mod.def("lower_to_codegen", lower_to_codegen,
@@ -1091,7 +1091,7 @@ void cudaq::bindAltLaunchKernel(py::module &mod,
           "results is performed.");
   mod.def("marshal_and_retain_module", marshal_and_retain_module,
           "Compile (specialize + JIT) a kernel module. Returns a "
-          "CompiledKernel object that owns the JIT engine.");
+          "CompiledModule object that owns the JIT engine.");
   mod.def("pyAltLaunchAnalogKernel", pyAltLaunchAnalogKernel,
           "Launch an analog Hamiltonian simulation kernel with given JSON "
           "payload.");
