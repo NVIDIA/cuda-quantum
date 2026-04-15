@@ -197,7 +197,7 @@ if (cuStateVec_FOUND)
   )
   target_include_directories(test_custatevec_observe_from_sampling PRIVATE .)
   target_compile_definitions(test_custatevec_observe_from_sampling
-                             PRIVATE -DNVQIR_BACKEND_NAME=custatevec_fp32)
+    PRIVATE -DNVQIR_BACKEND_NAME=custatevec_fp32 -DCUDAQ_SIMULATION_SCALAR_FP32)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
     target_link_options(test_custatevec_observe_from_sampling PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
   endif()
