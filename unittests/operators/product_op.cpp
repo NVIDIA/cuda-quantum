@@ -70,256 +70,260 @@ TEST(OperatorExpressions, checkProductOperatorBasics) {
   std::complex<double> value_2 = 2.0 + 0.1;
   std::complex<double> value_3 = 2.0 + 1.0;
 
-  {// Same degrees of freedom.
-   {auto spin0 = cudaq::spin_op::x(5);
-  auto spin1 = cudaq::spin_op::z(5);
-  auto spin_prod = spin0 * spin1;
+  { // Same degrees of freedom.
+    {
+      auto spin0 = cudaq::spin_op::x(5);
+      auto spin1 = cudaq::spin_op::z(5);
+      auto spin_prod = spin0 * spin1;
 
-  std::vector<std::size_t> want_degrees = {5};
-  auto spin_matrix = utils::PauliX_matrix() * utils::PauliZ_matrix();
+      std::vector<std::size_t> want_degrees = {5};
+      auto spin_matrix = utils::PauliX_matrix() * utils::PauliZ_matrix();
 
-  ASSERT_TRUE(spin_prod.degrees() == want_degrees);
-  ASSERT_EQ(spin_prod.min_degree(), 5);
-  ASSERT_EQ(spin_prod.max_degree(), 5);
-  utils::checkEqual(spin_matrix, spin_prod.to_matrix());
+      ASSERT_TRUE(spin_prod.degrees() == want_degrees);
+      ASSERT_EQ(spin_prod.min_degree(), 5);
+      ASSERT_EQ(spin_prod.max_degree(), 5);
+      utils::checkEqual(spin_matrix, spin_prod.to_matrix());
 
-  for (auto level_count : levels) {
-    auto op0 = cudaq::matrix_op::position(5);
-    auto op1 = cudaq::matrix_op::momentum(5);
+      for (auto level_count : levels) {
+        auto op0 = cudaq::matrix_op::position(5);
+        auto op1 = cudaq::matrix_op::momentum(5);
 
-    auto got = op0 * op1;
-    utils::assert_product_equal(got, 1., {*op0.begin(), *op1.begin()});
-    ASSERT_TRUE(got.degrees() == want_degrees);
-    ASSERT_EQ(got.min_degree(), 5);
-    ASSERT_EQ(got.max_degree(), 5);
+        auto got = op0 * op1;
+        utils::assert_product_equal(got, 1., {*op0.begin(), *op1.begin()});
+        ASSERT_TRUE(got.degrees() == want_degrees);
+        ASSERT_EQ(got.min_degree(), 5);
+        ASSERT_EQ(got.max_degree(), 5);
 
-    auto got_matrix = got.to_matrix({{5, level_count}});
-    auto matrix0 = utils::position_matrix(level_count);
-    auto matrix1 = utils::momentum_matrix(level_count);
-    auto want_matrix = matrix0 * matrix1;
-    utils::checkEqual(want_matrix, got_matrix);
+        auto got_matrix = got.to_matrix({{5, level_count}});
+        auto matrix0 = utils::position_matrix(level_count);
+        auto matrix1 = utils::momentum_matrix(level_count);
+        auto want_matrix = matrix0 * matrix1;
+        utils::checkEqual(want_matrix, got_matrix);
+      }
+    }
+
+    // Different degrees of freedom.
+    {
+      auto spin0 = cudaq::spin_op::x(0);
+      auto spin1 = cudaq::spin_op::z(1);
+      auto spin_prod = spin0 * spin1;
+
+      std::vector<std::size_t> want_degrees = {0, 1};
+      auto spin_matrix =
+          cudaq::kronecker(utils::PauliZ_matrix(), utils::PauliX_matrix());
+
+      ASSERT_TRUE(spin_prod.degrees() == want_degrees);
+      ASSERT_EQ(spin_prod.min_degree(), 0);
+      ASSERT_EQ(spin_prod.max_degree(), 1);
+      utils::checkEqual(spin_matrix, spin_prod.to_matrix());
+
+      for (auto level_count : levels) {
+        auto op0 = cudaq::matrix_op::position(0);
+        auto op1 = cudaq::matrix_op::momentum(1);
+
+        cudaq::product_op got = op0 * op1;
+        cudaq::product_op got_reverse = op1 * op0;
+
+        ASSERT_TRUE(got.degrees() == want_degrees);
+        ASSERT_TRUE(got_reverse.degrees() == want_degrees);
+        ASSERT_EQ(got.min_degree(), 0);
+        ASSERT_EQ(got.max_degree(), 1);
+
+        auto got_matrix = got.to_matrix({{0, level_count}, {1, level_count}});
+        auto got_matrix_reverse =
+            got_reverse.to_matrix({{0, level_count}, {1, level_count}});
+
+        auto identity = utils::id_matrix(level_count);
+        auto matrix0 = utils::position_matrix(level_count);
+        auto matrix1 = utils::momentum_matrix(level_count);
+
+        auto fullHilbert0 = cudaq::kronecker(identity, matrix0);
+        auto fullHilbert1 = cudaq::kronecker(matrix1, identity);
+        auto want_matrix = fullHilbert0 * fullHilbert1;
+        auto want_matrix_reverse = fullHilbert1 * fullHilbert0;
+
+        utils::checkEqual(want_matrix, got_matrix);
+        utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+      }
+    }
+
+    // Different degrees of freedom, non-consecutive.
+    // Should produce the same matrices as the above test.
+    {
+      auto spin0 = cudaq::spin_op::x(0);
+      auto spin1 = cudaq::spin_op::z(2);
+      auto spin_prod = spin0 * spin1;
+
+      std::vector<std::size_t> want_degrees = {0, 2};
+      auto spin_matrix =
+          cudaq::kronecker(utils::PauliZ_matrix(), utils::PauliX_matrix());
+
+      ASSERT_TRUE(spin_prod.degrees() == want_degrees);
+      ASSERT_EQ(spin_prod.min_degree(), 0);
+      ASSERT_EQ(spin_prod.max_degree(), 2);
+      utils::checkEqual(spin_matrix, spin_prod.to_matrix());
+
+      for (auto level_count : levels) {
+        auto op0 = cudaq::matrix_op::position(0);
+        auto op1 = cudaq::matrix_op::momentum(2);
+
+        cudaq::product_op got = op0 * op1;
+        cudaq::product_op got_reverse = op1 * op0;
+
+        ASSERT_TRUE(got.degrees() == want_degrees);
+        ASSERT_TRUE(got_reverse.degrees() == want_degrees);
+        ASSERT_EQ(got.min_degree(), 0);
+        ASSERT_EQ(got.max_degree(), 2);
+
+        auto got_matrix = got.to_matrix({{0, level_count}, {2, level_count}});
+        auto got_matrix_reverse =
+            got_reverse.to_matrix({{0, level_count}, {2, level_count}});
+
+        auto identity = utils::id_matrix(level_count);
+        auto matrix0 = utils::position_matrix(level_count);
+        auto matrix1 = utils::momentum_matrix(level_count);
+
+        auto fullHilbert0 = cudaq::kronecker(identity, matrix0);
+        auto fullHilbert1 = cudaq::kronecker(matrix1, identity);
+        auto want_matrix = fullHilbert0 * fullHilbert1;
+        auto want_matrix_reverse = fullHilbert1 * fullHilbert0;
+
+        utils::checkEqual(want_matrix, got_matrix);
+        utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
+      }
+    }
+
+    // Different degrees of freedom, non-consecutive but all dimensions
+    // provided.
+    {
+      auto spin0 = cudaq::spin_op::x(0);
+      auto spin1 = cudaq::spin_op::z(2);
+      auto spin_prod = spin0 * spin1;
+
+      std::vector<std::size_t> want_degrees = {0, 2};
+      auto spin_matrix =
+          cudaq::kronecker(utils::PauliZ_matrix(), utils::PauliX_matrix());
+      cudaq::dimension_map dimensions = {{0, 2}, {1, 2}, {2, 2}};
+
+      ASSERT_TRUE(spin_prod.degrees() == want_degrees);
+      utils::checkEqual(spin_matrix, spin_prod.to_matrix(dimensions));
+
+      for (auto level_count : levels) {
+        auto op0 = cudaq::matrix_op::position(0);
+        auto op1 = cudaq::matrix_op::momentum(2);
+
+        cudaq::product_op got = op0 * op1;
+        cudaq::product_op got_reverse = op1 * op0;
+
+        std::vector<std::size_t> want_degrees = {0, 2};
+        ASSERT_TRUE(got.degrees() == want_degrees);
+        ASSERT_TRUE(got_reverse.degrees() == want_degrees);
+
+        dimensions = {{0, level_count}, {1, level_count}, {2, level_count}};
+        auto got_matrix = got.to_matrix(dimensions);
+        auto got_matrix_reverse = got_reverse.to_matrix(dimensions);
+
+        auto identity = utils::id_matrix(level_count);
+        auto matrix0 = utils::position_matrix(level_count);
+        auto matrix1 = utils::momentum_matrix(level_count);
+
+        std::vector<cudaq::complex_matrix> matrices_0;
+        std::vector<cudaq::complex_matrix> matrices_1;
+        matrices_0 = {identity, matrix0};
+        matrices_1 = {matrix1, identity};
+
+        auto fullHilbert0 =
+            cudaq::kronecker(matrices_0.begin(), matrices_0.end());
+        auto fullHilbert1 =
+            cudaq::kronecker(matrices_1.begin(), matrices_1.end());
+        auto want_matrix = fullHilbert0 * fullHilbert1;
+        auto want_matrix_reverse = fullHilbert1 * fullHilbert0;
+
+        utils::checkEqual(want_matrix, got_matrix);
+        utils::checkEqual(got_matrix, want_matrix);
+      }
+    }
   }
-}
 
-// Different degrees of freedom.
-{
-  auto spin0 = cudaq::spin_op::x(0);
-  auto spin1 = cudaq::spin_op::z(1);
-  auto spin_prod = spin0 * spin1;
-
-  std::vector<std::size_t> want_degrees = {0, 1};
-  auto spin_matrix =
-      cudaq::kronecker(utils::PauliZ_matrix(), utils::PauliX_matrix());
-
-  ASSERT_TRUE(spin_prod.degrees() == want_degrees);
-  ASSERT_EQ(spin_prod.min_degree(), 0);
-  ASSERT_EQ(spin_prod.max_degree(), 1);
-  utils::checkEqual(spin_matrix, spin_prod.to_matrix());
-
-  for (auto level_count : levels) {
-    auto op0 = cudaq::matrix_op::position(0);
-    auto op1 = cudaq::matrix_op::momentum(1);
-
-    cudaq::product_op got = op0 * op1;
-    cudaq::product_op got_reverse = op1 * op0;
-
-    ASSERT_TRUE(got.degrees() == want_degrees);
-    ASSERT_TRUE(got_reverse.degrees() == want_degrees);
-    ASSERT_EQ(got.min_degree(), 0);
-    ASSERT_EQ(got.max_degree(), 1);
-
-    auto got_matrix = got.to_matrix({{0, level_count}, {1, level_count}});
-    auto got_matrix_reverse =
-        got_reverse.to_matrix({{0, level_count}, {1, level_count}});
-
-    auto identity = utils::id_matrix(level_count);
-    auto matrix0 = utils::position_matrix(level_count);
-    auto matrix1 = utils::momentum_matrix(level_count);
-
-    auto fullHilbert0 = cudaq::kronecker(identity, matrix0);
-    auto fullHilbert1 = cudaq::kronecker(matrix1, identity);
-    auto want_matrix = fullHilbert0 * fullHilbert1;
-    auto want_matrix_reverse = fullHilbert1 * fullHilbert0;
-
-    utils::checkEqual(want_matrix, got_matrix);
-    utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
-  }
-}
-
-// Different degrees of freedom, non-consecutive.
-// Should produce the same matrices as the above test.
-{
-  auto spin0 = cudaq::spin_op::x(0);
-  auto spin1 = cudaq::spin_op::z(2);
-  auto spin_prod = spin0 * spin1;
-
-  std::vector<std::size_t> want_degrees = {0, 2};
-  auto spin_matrix =
-      cudaq::kronecker(utils::PauliZ_matrix(), utils::PauliX_matrix());
-
-  ASSERT_TRUE(spin_prod.degrees() == want_degrees);
-  ASSERT_EQ(spin_prod.min_degree(), 0);
-  ASSERT_EQ(spin_prod.max_degree(), 2);
-  utils::checkEqual(spin_matrix, spin_prod.to_matrix());
-
-  for (auto level_count : levels) {
-    auto op0 = cudaq::matrix_op::position(0);
-    auto op1 = cudaq::matrix_op::momentum(2);
-
-    cudaq::product_op got = op0 * op1;
-    cudaq::product_op got_reverse = op1 * op0;
-
-    ASSERT_TRUE(got.degrees() == want_degrees);
-    ASSERT_TRUE(got_reverse.degrees() == want_degrees);
-    ASSERT_EQ(got.min_degree(), 0);
-    ASSERT_EQ(got.max_degree(), 2);
-
-    auto got_matrix = got.to_matrix({{0, level_count}, {2, level_count}});
-    auto got_matrix_reverse =
-        got_reverse.to_matrix({{0, level_count}, {2, level_count}});
-
-    auto identity = utils::id_matrix(level_count);
-    auto matrix0 = utils::position_matrix(level_count);
-    auto matrix1 = utils::momentum_matrix(level_count);
-
-    auto fullHilbert0 = cudaq::kronecker(identity, matrix0);
-    auto fullHilbert1 = cudaq::kronecker(matrix1, identity);
-    auto want_matrix = fullHilbert0 * fullHilbert1;
-    auto want_matrix_reverse = fullHilbert1 * fullHilbert0;
-
-    utils::checkEqual(want_matrix, got_matrix);
-    utils::checkEqual(want_matrix_reverse, got_matrix_reverse);
-  }
-}
-
-// Different degrees of freedom, non-consecutive but all dimensions
-// provided.
-{
-  auto spin0 = cudaq::spin_op::x(0);
-  auto spin1 = cudaq::spin_op::z(2);
-  auto spin_prod = spin0 * spin1;
-
-  std::vector<std::size_t> want_degrees = {0, 2};
-  auto spin_matrix =
-      cudaq::kronecker(utils::PauliZ_matrix(), utils::PauliX_matrix());
-  cudaq::dimension_map dimensions = {{0, 2}, {1, 2}, {2, 2}};
-
-  ASSERT_TRUE(spin_prod.degrees() == want_degrees);
-  utils::checkEqual(spin_matrix, spin_prod.to_matrix(dimensions));
-
-  for (auto level_count : levels) {
-    auto op0 = cudaq::matrix_op::position(0);
-    auto op1 = cudaq::matrix_op::momentum(2);
-
-    cudaq::product_op got = op0 * op1;
-    cudaq::product_op got_reverse = op1 * op0;
-
-    std::vector<std::size_t> want_degrees = {0, 2};
-    ASSERT_TRUE(got.degrees() == want_degrees);
-    ASSERT_TRUE(got_reverse.degrees() == want_degrees);
-
-    dimensions = {{0, level_count}, {1, level_count}, {2, level_count}};
-    auto got_matrix = got.to_matrix(dimensions);
-    auto got_matrix_reverse = got_reverse.to_matrix(dimensions);
-
-    auto identity = utils::id_matrix(level_count);
-    auto matrix0 = utils::position_matrix(level_count);
-    auto matrix1 = utils::momentum_matrix(level_count);
-
-    std::vector<cudaq::complex_matrix> matrices_0;
-    std::vector<cudaq::complex_matrix> matrices_1;
-    matrices_0 = {identity, matrix0};
-    matrices_1 = {matrix1, identity};
-
-    auto fullHilbert0 = cudaq::kronecker(matrices_0.begin(), matrices_0.end());
-    auto fullHilbert1 = cudaq::kronecker(matrices_1.begin(), matrices_1.end());
-    auto want_matrix = fullHilbert0 * fullHilbert1;
-    auto want_matrix_reverse = fullHilbert1 * fullHilbert0;
-
-    utils::checkEqual(want_matrix, got_matrix);
-    utils::checkEqual(got_matrix, want_matrix);
-  }
-}
-}
-
-// Scalar Ops against Elementary Ops
-{
-  auto function = [](const std::unordered_map<std::string, std::complex<double>>
-                         &parameters) {
-    auto entry = parameters.find("value");
-    if (entry == parameters.end())
-      throw std::runtime_error("value not defined in parameters");
-    return entry->second;
-  };
-
-  // matrix operator against constant
+  // Scalar Ops against Elementary Ops
   {
-    auto op = cudaq::matrix_op::position(0);
-    auto scalar_op = cudaq::scalar_operator(value_0);
-    auto product = scalar_op * op;
-    auto reverse = op * scalar_op;
+    auto function =
+        [](const std::unordered_map<std::string, std::complex<double>>
+               &parameters) {
+          auto entry = parameters.find("value");
+          if (entry == parameters.end())
+            throw std::runtime_error("value not defined in parameters");
+          return entry->second;
+        };
 
-    std::vector<std::size_t> want_degrees = {0};
-    auto op_matrix = utils::position_matrix(2);
+    // matrix operator against constant
+    {
+      auto op = cudaq::matrix_op::position(0);
+      auto scalar_op = cudaq::scalar_operator(value_0);
+      auto product = scalar_op * op;
+      auto reverse = op * scalar_op;
 
-    ASSERT_TRUE(product.degrees() == want_degrees);
-    ASSERT_TRUE(reverse.degrees() == want_degrees);
-    utils::checkEqual(value_0 * op_matrix, product.to_matrix({{0, 2}}));
-    utils::checkEqual(value_0 * op_matrix, reverse.to_matrix({{0, 2}}));
+      std::vector<std::size_t> want_degrees = {0};
+      auto op_matrix = utils::position_matrix(2);
+
+      ASSERT_TRUE(product.degrees() == want_degrees);
+      ASSERT_TRUE(reverse.degrees() == want_degrees);
+      utils::checkEqual(value_0 * op_matrix, product.to_matrix({{0, 2}}));
+      utils::checkEqual(value_0 * op_matrix, reverse.to_matrix({{0, 2}}));
+    }
+
+    // spin operator against constant
+    {
+      auto op = cudaq::spin_op::x(0);
+      auto scalar_op = cudaq::scalar_operator(value_0);
+      auto product = scalar_op * op;
+      auto reverse = op * scalar_op;
+
+      std::vector<std::size_t> want_degrees = {0};
+      auto op_matrix = utils::PauliX_matrix();
+
+      ASSERT_TRUE(product.degrees() == want_degrees);
+      ASSERT_TRUE(reverse.degrees() == want_degrees);
+      utils::checkEqual(value_0 * op_matrix, product.to_matrix());
+      utils::checkEqual(value_0 * op_matrix, reverse.to_matrix());
+    }
+
+    // matrix operator against constant from lambda
+    {
+      auto op = cudaq::matrix_op::position(1);
+      auto scalar_op = cudaq::scalar_operator(function);
+      auto product = scalar_op * op;
+      auto reverse = op * scalar_op;
+
+      std::vector<std::size_t> want_degrees = {1};
+      auto op_matrix = utils::position_matrix(2);
+
+      ASSERT_TRUE(product.degrees() == want_degrees);
+      ASSERT_TRUE(reverse.degrees() == want_degrees);
+      utils::checkEqual(scalar_op.evaluate({{"value", 0.3}}) * op_matrix,
+                        product.to_matrix({{1, 2}}, {{"value", 0.3}}));
+      utils::checkEqual(scalar_op.evaluate({{"value", 0.3}}) * op_matrix,
+                        reverse.to_matrix({{1, 2}}, {{"value", 0.3}}));
+    }
+
+    // spin operator against constant from lambda
+    {
+      auto op = cudaq::spin_op::x(1);
+      auto scalar_op = cudaq::scalar_operator(function);
+      auto product = scalar_op * op;
+      auto reverse = op * scalar_op;
+
+      std::vector<std::size_t> want_degrees = {1};
+      auto op_matrix = utils::PauliX_matrix();
+
+      ASSERT_TRUE(product.degrees() == want_degrees);
+      ASSERT_TRUE(reverse.degrees() == want_degrees);
+      utils::checkEqual(scalar_op.evaluate({{"value", 0.3}}) * op_matrix,
+                        product.to_matrix({}, {{"value", 0.3}}));
+      utils::checkEqual(scalar_op.evaluate({{"value", 0.3}}) * op_matrix,
+                        reverse.to_matrix({}, {{"value", 0.3}}));
+    }
   }
-
-  // spin operator against constant
-  {
-    auto op = cudaq::spin_op::x(0);
-    auto scalar_op = cudaq::scalar_operator(value_0);
-    auto product = scalar_op * op;
-    auto reverse = op * scalar_op;
-
-    std::vector<std::size_t> want_degrees = {0};
-    auto op_matrix = utils::PauliX_matrix();
-
-    ASSERT_TRUE(product.degrees() == want_degrees);
-    ASSERT_TRUE(reverse.degrees() == want_degrees);
-    utils::checkEqual(value_0 * op_matrix, product.to_matrix());
-    utils::checkEqual(value_0 * op_matrix, reverse.to_matrix());
-  }
-
-  // matrix operator against constant from lambda
-  {
-    auto op = cudaq::matrix_op::position(1);
-    auto scalar_op = cudaq::scalar_operator(function);
-    auto product = scalar_op * op;
-    auto reverse = op * scalar_op;
-
-    std::vector<std::size_t> want_degrees = {1};
-    auto op_matrix = utils::position_matrix(2);
-
-    ASSERT_TRUE(product.degrees() == want_degrees);
-    ASSERT_TRUE(reverse.degrees() == want_degrees);
-    utils::checkEqual(scalar_op.evaluate({{"value", 0.3}}) * op_matrix,
-                      product.to_matrix({{1, 2}}, {{"value", 0.3}}));
-    utils::checkEqual(scalar_op.evaluate({{"value", 0.3}}) * op_matrix,
-                      reverse.to_matrix({{1, 2}}, {{"value", 0.3}}));
-  }
-
-  // spin operator against constant from lambda
-  {
-    auto op = cudaq::spin_op::x(1);
-    auto scalar_op = cudaq::scalar_operator(function);
-    auto product = scalar_op * op;
-    auto reverse = op * scalar_op;
-
-    std::vector<std::size_t> want_degrees = {1};
-    auto op_matrix = utils::PauliX_matrix();
-
-    ASSERT_TRUE(product.degrees() == want_degrees);
-    ASSERT_TRUE(reverse.degrees() == want_degrees);
-    utils::checkEqual(scalar_op.evaluate({{"value", 0.3}}) * op_matrix,
-                      product.to_matrix({}, {{"value", 0.3}}));
-    utils::checkEqual(scalar_op.evaluate({{"value", 0.3}}) * op_matrix,
-                      reverse.to_matrix({}, {{"value", 0.3}}));
-  }
-}
 }
 
 TEST(OperatorExpressions, checkProductOperatorAgainstScalars) {

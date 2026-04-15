@@ -181,8 +181,7 @@ void addDeviceKernelInterop(py::module_ &m, const std::string &modName,
                         ? py::cast<py::module_>(m.attr(modName.c_str()))
                         : m.def_submodule(modName.c_str());
 
-  sub.def(
-      kernelName.c_str(), [](Signature...) {}, docstring.c_str());
+  sub.def(kernelName.c_str(), [](Signature...) {}, docstring.c_str());
   cudaq::python::registerDeviceKernel(
       py::cast<std::string>(sub.attr("__name__")), kernelName, mangledArgs);
   return;

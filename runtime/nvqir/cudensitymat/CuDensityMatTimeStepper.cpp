@@ -15,7 +15,7 @@
 namespace cudaq {
 CuDensityMatTimeStepper::CuDensityMatTimeStepper(
     cudensitymatHandle_t handle, cudensitymatOperator_t liouvillian)
-    : m_handle(handle), m_liouvillian(liouvillian){};
+    : m_handle(handle), m_liouvillian(liouvillian) {};
 
 state CuDensityMatTimeStepper::compute(
     const state &inputState, double t,

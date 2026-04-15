@@ -96,7 +96,6 @@ uint64_t cc::StructType::getABIAlignment(const DataLayout &dataLayout,
   return getAlignment();
 }
 
-
 LogicalResult
 cc::StructType::verify(llvm::function_ref<mlir::InFlightDiagnostic()> emitError,
                        mlir::StringAttr, llvm::ArrayRef<mlir::Type> members,
