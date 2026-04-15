@@ -16,6 +16,25 @@ using namespace mlir;
 
 mlir::FailureOr<cudaq::Resources>
 cudaq::opt::countResourcesFromIR(ModuleOp module) {
+  // Check upfront whether all qubit allocations have statically known sizes.
+  // If any veq has a dynamic size we cannot count qubits statically, so bail
+  // out before running the gate-erasing pass manager.
+  std::size_t allocated = 0;
+  bool unresolvedVeq = false;
+  module.walk([&](quake::AllocaOp alloc) {
+    if (isa<quake::RefType>(alloc.getType())) {
+      allocated++;
+    } else if (auto size = quake::getVeqSize(alloc.getResult())) {
+      allocated += *size;
+    } else {
+      unresolvedVeq = true;
+    }
+  });
+  if (unresolvedVeq)
+    return failure();
+
+  // All qubit sizes are statically known — proceed to count gates and erase
+  // them from the IR so the subsequent JIT compiles a near-empty module.
   cudaq::Resources counts;
   auto countGate = [&counts](std::string gate,
                              std::vector<std::size_t> controls,
@@ -40,21 +59,6 @@ cudaq::opt::countResourcesFromIR(ModuleOp module) {
   if (failed(pmResult))
     return failure();
 
-  // Count allocated qubits from the IR.
-  std::size_t allocated = 0;
-  bool unresolvedVeq = false;
-  module.walk([&](quake::AllocaOp alloc) {
-    if (isa<quake::RefType>(alloc.getType())) {
-      allocated++;
-    } else if (auto size = quake::getVeqSize(alloc.getResult())) {
-      allocated += *size;
-    } else {
-      unresolvedVeq = true;
-    }
-  });
-  if (unresolvedVeq)
-    return failure();
   counts.setNumQubits(allocated);
-
   return counts;
 }
