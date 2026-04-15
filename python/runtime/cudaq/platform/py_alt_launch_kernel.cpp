@@ -474,7 +474,7 @@ void cudaq::packArgs(OpaqueArguments &argData, py::list args,
             for (std::size_t i = 0;
                  const auto &[attr_name, unused] : attributes) {
               py::object attr_value =
-                  arg.attr(attr_name.cast<std::string>().c_str());
+                  arg.attr(attr_name.template cast<std::string>().c_str());
               handleStructMemberVariable<forSynthesis>(
                   allocatedArg, offsets[i], memberTys[i], attr_value);
               i++;
