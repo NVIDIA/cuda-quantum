@@ -105,10 +105,9 @@ static void addQbraidPipeline(OpPassManager &pm) {
   std::string basis[] = {
       "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)",
   };
-  BasisConversionPassOptions options;
+  BasisConversionOptions options;
   options.basis = basis;
-  options.disabledPatterns = z_disabledPatterns;
-  pm.addPass(createBasisConversionPass(options));
+  pm.addPass(createBasisConversion(options));
 }
 
 void cudaq::opt::registerTargetPipelines() {

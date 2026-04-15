@@ -33,6 +33,10 @@ while ! checkServerConnection; do
     exit 99
   fi
 done
+# api_key is passed via the backend config (see CMakeLists BACKEND_CONFIG),
+# so we unset QBRAID_API_KEY to force the helper to use the config value.
+# checkApiKeyFromTarget asserts the env var is null.
+unset QBRAID_API_KEY
 # Run the tests
 ./test_qbraid
 # Did they fail?

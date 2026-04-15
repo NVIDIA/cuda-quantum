@@ -1,8 +1,10 @@
-#include "common/Logger.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
 #include "cudaq/Support/Version.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include <map>
+#include <regex>
 #include <thread>
 
 namespace cudaq {
@@ -40,9 +42,6 @@ public:
     }
     backendConfig["job_path"] = backendConfig["url"] + "/jobs";
 
-    backendConfig["results_output_dir"] = getValueOrDefault(config, "results_output_dir", "./qbraid_results");
-    backendConfig["results_file_prefix"] = getValueOrDefault(config, "results_file_prefix", "qbraid_job_");
-
     if (!config["shots"].empty()) {
       backendConfig["shots"] = config["shots"];
       this->setShots(std::stoul(config["shots"]));
@@ -57,10 +56,6 @@ public:
     for (const auto &[key, value] : backendConfig) {
       cudaq::info("  {} = {}", key, value);
     }
-
-    std::string resultsDir = backendConfig["results_output_dir"];
-    std::filesystem::create_directories(resultsDir);
-    cudaq::info("Created results directory: {}", resultsDir);
   }
 
   ServerJobPayload
@@ -73,12 +68,13 @@ public:
     for (auto &circuitCode : circuitCodes) {
       ServerMessage job;
       job["deviceQrn"] = backendConfig.at("device_id");
-      job["shots"] = std::stoi(backendConfig.at("shots"));
+      // Use the per-call shots (set via cudaq::sample(..., shots_count=N))
+      job["shots"] = shots;
 
       // v2 API: program is a structured object with format and data
       nlohmann::json program;
       program["format"] = "qasm2";
-      program["data"] = circuitCode.code;
+      program["data"] = normalizeClassicalRegisters(circuitCode.code);
       job["program"] = program;
 
       // v2 API: name is a top-level field (not nested under tags)
@@ -118,11 +114,6 @@ public:
     return backendConfig.at("job_path") + "/" + jobId + "/result";
   }
 
-  std::string constructGetProgramPath(const std::string &jobId) {
-    // v2 API: /jobs/{jobQrn}/program
-    return backendConfig.at("job_path") + "/" + jobId + "/program";
-  }
-
   bool jobIsDone(ServerMessage &getJobResponse) override {
     std::string status;
 
@@ -140,37 +131,25 @@ public:
     }
 
     if (status == "FAILED" || status == "COMPLETED" || status == "CANCELLED") {
-      saveResponseToFile(getJobResponse);
       return true;
     }
 
     return false;
   }
 
-  // Fetch the original program from v2 endpoint
-  std::string getJobProgram(const ServerMessage &response, const std::string &jobId) override {
-    auto programPath = constructGetProgramPath(jobId);
-    auto headers = getHeaders();
-
-    cudaq::info("Fetching job program from v2 endpoint: {}", programPath);
-    RestClient client;
-    auto programJson = client.get("", programPath, headers, true);
-
-    // v2 API: program content at data.data, format at data.format
-    if (programJson.contains("data") && programJson["data"].contains("data")) {
-      cudaq::info("Retrieved program (format: {})",
-                  programJson["data"].value("format", "unknown"));
-      return programJson["data"]["data"].get<std::string>();
-    }
-
-    throw std::runtime_error("Invalid program response format: " + programJson.dump());
-  }
-
-  // Fetch results from v2 results endpoint with retry logic
+  // Fetch results from v2 results endpoint with retry logic.
+  //
+  // Rationale: qbraid's v2 API has a window where status transitions to
+  // COMPLETED before the result payload is queryable on /result, so /result
+  // returns {success: false, data: {message: "not yet available"}}. The retry
+  // with backoff absorbs that race.
+  //
+  // Exercised deterministically via the mock's POST /test/delay_next_results
+  // endpoint (see checkResultRetry / checkResultRetryExhaustion tests).
   cudaq::sample_result processResults(ServerMessage &getJobResponse, std::string &jobId) override {
-    int maxRetries = 5;
-    int waitTime = 2;
-    float backoffFactor = 2.0;
+    const int maxRetries = 3;
+    const int waitTime = 2;
+    const float backoffFactor = 2.0;
 
     for (int attempt = 0; attempt < maxRetries; ++attempt) {
       try {
@@ -242,34 +221,68 @@ public:
   }
 
 private:
-  void saveResponseToFile(const ServerMessage &response, const std::string &identifier = "") {
-    try {
-      std::string outputDir = backendConfig.at("results_output_dir");
-      std::string filePrefix = backendConfig.at("results_file_prefix");
+  // Merge multiple single-bit classical registers emitted by nvq++'s QASM 2
+  // codegen into a single multi-bit `creg c[N]`. This is required to unblock
+  // qBraid-routed hardware backends.
+  //
+  // Context: nvq++ emits one `creg varK[1];` per measurement. AWS Braket's
+  // classical simulators (SV1, DM1, TN1) tolerate that via lenient register
+  // concatenation, but stricter hardware transpilers reject it:
+  //   - IQM (Garnet etc.): returns only the first register -> 1-bit results
+  //   - Rigetti: collapses all registers onto b[0] -> "bit already in use"
+  //   - IonQ-via-Braket: similar strict behavior
+  // Normalizing to a single register is the canonical QASM 2 form and is
+  // accepted uniformly by every qBraid-reachable backend.
+  std::string normalizeClassicalRegisters(const std::string &qasm) const {
+    static const std::regex cregDeclRx(
+        R"(creg\s+(\w+)\s*\[\s*(\d+)\s*\]\s*;)");
 
-      // Create a unique filename using timestamp if no identifier is provided
-      std::string filename;
-      if (identifier.empty()) {
-        auto now = std::chrono::system_clock::now();
-        auto timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-        filename = outputDir + "/" + filePrefix + std::to_string(timestamp) + ".json";
-      } else {
-        filename = outputDir + "/" + filePrefix + identifier + ".json";
-      }
-
-      std::ofstream outputFile(filename);
-      if (!outputFile.is_open()) {
-        cudaq::info("Failed to open file for writing: {}", filename);
-        return;
-      }
-
-      outputFile << response.dump(2);
-      outputFile.close();
-
-      cudaq::info("Response saved to file: {}", filename);
-    } catch (const std::exception &e) {
-      cudaq::info("Error saving response to file: {}", e.what());
+    std::vector<std::pair<std::string, int>> cregs;
+    for (auto it = std::sregex_iterator(qasm.begin(), qasm.end(), cregDeclRx);
+         it != std::sregex_iterator(); ++it) {
+      cregs.emplace_back((*it)[1].str(), std::stoi((*it)[2].str()));
     }
+
+    // Nothing to do if the QASM already has a single classical register.
+    if (cregs.size() <= 1)
+      return qasm;
+
+    std::map<std::string, int> offsetByName;
+    int totalBits = 0;
+    for (auto &[name, size] : cregs) {
+      offsetByName[name] = totalBits;
+      totalBits += size;
+    }
+
+    std::string out = qasm;
+
+    // Rewrite every `-> NAME[i]` target BEFORE we mutate the creg declarations.
+    for (auto &[name, size] : cregs) {
+      int base = offsetByName[name];
+      for (int i = 0; i < size; ++i) {
+        std::regex measureTargetRx("->\\s*" + name + "\\s*\\[\\s*" +
+                                   std::to_string(i) + "\\s*\\]");
+        out = std::regex_replace(out, measureTargetRx,
+                                 "-> qbraid__creg__[" + std::to_string(base + i) + "]");
+      }
+    }
+
+    // Replace the first declaration with the merged register.
+    out = std::regex_replace(out, cregDeclRx,
+                             "creg qbraid__creg__[" +
+                                 std::to_string(totalBits) + "];",
+                             std::regex_constants::format_first_only);
+
+    // Remove the remaining original declarations.
+    for (size_t i = 1; i < cregs.size(); ++i) {
+      std::regex toRemove("creg\\s+" + cregs[i].first +
+                          "\\s*\\[\\s*\\d+\\s*\\]\\s*;\\s*");
+      out = std::regex_replace(out, toRemove, "");
+    }
+
+    cudaq::info("Normalized {} classical registers into single qbraid__creg__[{}]",
+                cregs.size(), totalBits);
+    return out;
   }
 
   RestHeaders getHeaders() override {

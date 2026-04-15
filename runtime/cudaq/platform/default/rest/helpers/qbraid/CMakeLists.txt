@@ -10,8 +10,8 @@ add_target_config(qbraid)
 
 add_library(cudaq-serverhelper-qbraid SHARED QbraidServerHelper.cpp )
 target_link_libraries(cudaq-serverhelper-qbraid
-  PUBLIC 
-    cudaq-common 
-    fmt::fmt-header-only 
+  PUBLIC
+    cudaq-common
+    cudaq-logger
 )
 install(TARGETS cudaq-serverhelper-qbraid DESTINATION lib)

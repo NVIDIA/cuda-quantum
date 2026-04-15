@@ -38,6 +38,13 @@ class Job(BaseModel):
 
 JOBS_MOCK_DB = {}
 JOBS_MOCK_RESULTS = {}
+# Testing toggle: when True, the next job submitted via POST /jobs is created
+# with status FAILED. Consumed (reset to False) after use.
+FAIL_NEXT_JOB = {"enabled": False}
+# Testing counter: how many upcoming GET /jobs/{id}/result calls should return
+# success=false (simulating the qbraid v2 race where status=COMPLETED before
+# results are queryable). Decrements on each /result call until 0.
+DELAY_RESULTS_COUNT = {"remaining": 0}
 
 
 def count_qubits(qasm: str) -> int:
@@ -163,6 +170,17 @@ async def postJob(job: Job, x_api_key: Optional[str] = Header(None, alias="X-API
 
     newId = str(uuid.uuid4())
 
+    # Test hook: fail this job immediately if the toggle was armed.
+    if FAIL_NEXT_JOB["enabled"]:
+        FAIL_NEXT_JOB["enabled"] = False
+        job_data = {
+            "status": "FAILED",
+            "statusText": "Triggered failure for testing",
+            **job.model_dump(),
+        }
+        JOBS_MOCK_DB[newId] = job_data
+        return {"success": True, "data": {"jobQrn": newId, "status": "FAILED"}}
+
     # Extract QASM from the structured program payload
     counts = simulate_job(job.program.data, job.shots)
 
@@ -173,6 +191,20 @@ async def postJob(job: Job, x_api_key: Optional[str] = Header(None, alias="X-API
 
     # v2 response: wrapped in success/data envelope
     return {"success": True, "data": {"jobQrn": newId, "status": "INITIALIZING"}}
+
+
+# Test-only: arm a failure for the next submitted job.
+@app.post("/test/fail_next")
+async def armFailNext():
+    FAIL_NEXT_JOB["enabled"] = True
+    return {"armed": True}
+
+
+# Test-only: force the next N /result calls to return success=false.
+@app.post("/test/delay_next_results/{count}")
+async def armDelayResults(count: int = Path(...)):
+    DELAY_RESULTS_COUNT["remaining"] = count
+    return {"remaining": count}
 
 
 # v2 API: GET /jobs/{job_qrn}
@@ -244,7 +276,10 @@ async def getJobResult(
     if job_id not in JOBS_MOCK_RESULTS:
         raise HTTPException(status_code=500, detail="Job results not found")
 
-    if random.random() < 0.2:
+    # Test hook: return "not yet available" for the next N /result calls if
+    # the delay counter is armed. Decrements on each call.
+    if DELAY_RESULTS_COUNT["remaining"] > 0:
+        DELAY_RESULTS_COUNT["remaining"] -= 1
         return {
             "success": False,
             "data": {
