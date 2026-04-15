@@ -15,15 +15,156 @@
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
+#include <numeric>
 
 using namespace cudaq;
 
-// FIXME: This is using a thread unsafe global?
+namespace {
 
+// FIXME: This is using a thread unsafe global?
 /// If we have any implicit device-to-host data transfers we will store that
 /// data here and ensure it is deleted properly.
-static std::vector<std::unique_ptr<void, std::function<void(void *)>>>
+// Keep implicit host copies alive for Python buffer interop.
+std::vector<std::unique_ptr<void, std::function<void(void *)>>>
     hostDataFromDevice;
+
+// CuPy interop helpers.
+struct CuPyArrayMetadata {
+  void *dataPtr;
+  bool readOnly;
+  std::string typeStr;
+  ssize_t dataTypeSize;
+  std::string formatDescriptor;
+  std::vector<ssize_t> shape;
+  std::vector<ssize_t> strides;
+
+  py::buffer_info asBufferInfo() const {
+    return py::buffer_info(dataPtr, dataTypeSize, /* itemsize */
+                           formatDescriptor,      /* format */
+                           static_cast<py::ssize_t>(shape.size()), /* ndim */
+                           shape,                                  /* shape */
+                           strides,                                /* strides */
+                           readOnly /* readonly */);
+  }
+
+  std::vector<std::size_t> getExtents() const {
+    return std::vector<std::size_t>(shape.begin(), shape.end());
+  }
+
+  std::size_t getNumElements() const {
+    return std::accumulate(shape.begin(), shape.end(), std::size_t{1},
+                           std::multiplies<std::size_t>());
+  }
+};
+
+py::dict getCupyArrayInterface(py::handle cupyArray) {
+  if (!py::hasattr(cupyArray, "__cuda_array_interface__"))
+    throw std::runtime_error("Buffer is not a CuPy array");
+
+  return py::reinterpret_borrow<py::object>(cupyArray)
+      .attr("__cuda_array_interface__")
+      .cast<py::dict>();
+}
+
+std::vector<ssize_t> getCContiguousStrides(const std::vector<ssize_t> &shape,
+                                           ssize_t itemsize) {
+  std::vector<ssize_t> strides(shape.size(), itemsize);
+  if (shape.empty())
+    return strides;
+
+  for (int i = static_cast<int>(shape.size()) - 2; i >= 0; --i)
+    strides[i] = strides[i + 1] * shape[i + 1];
+
+  return strides;
+}
+
+std::vector<ssize_t> getCupyArrayStrides(const py::dict &cupyArrayInfo,
+                                         const std::vector<ssize_t> &shape,
+                                         ssize_t itemsize) {
+  auto stridesObj = cupyArrayInfo["strides"];
+  if (stridesObj.is_none())
+    return getCContiguousStrides(shape, itemsize);
+
+  auto stridesTuple = stridesObj.cast<py::tuple>();
+  std::vector<ssize_t> strides;
+  strides.reserve(stridesTuple.size());
+  for (auto stride : stridesTuple)
+    strides.push_back(stride.cast<ssize_t>());
+
+  return strides;
+}
+
+std::pair<ssize_t, std::string>
+getCupyComplexTypeInfo(const std::string &typeStr) {
+  if (typeStr == "<c8")
+    return {sizeof(std::complex<float>),
+            py::format_descriptor<std::complex<float>>::format()};
+  if (typeStr == "<c16")
+    return {sizeof(std::complex<double>),
+            py::format_descriptor<std::complex<double>>::format()};
+
+  throw std::runtime_error("Unsupported typestr in CuPy array: " + typeStr +
+                           ". Supported types are: <c16 and <c8.");
+}
+
+CuPyArrayMetadata getCupyArrayMetadata(py::handle cupyArray) {
+  py::dict cupyArrayInfo = getCupyArrayInterface(cupyArray);
+  py::tuple dataInfo = cupyArrayInfo["data"].cast<py::tuple>();
+  auto shapeTuple = cupyArrayInfo["shape"].cast<py::tuple>();
+  std::vector<ssize_t> shape;
+  shape.reserve(shapeTuple.size());
+  for (auto dim : shapeTuple)
+    shape.push_back(dim.cast<ssize_t>());
+
+  const std::string typeStr = cupyArrayInfo["typestr"].cast<std::string>();
+  auto [dataTypeSize, formatDescriptor] = getCupyComplexTypeInfo(typeStr);
+  auto strides = getCupyArrayStrides(cupyArrayInfo, shape, dataTypeSize);
+
+  return CuPyArrayMetadata{
+      /*dataPtr=*/reinterpret_cast<void *>(dataInfo[0].cast<int64_t>()),
+      /*readOnly=*/dataInfo[1].cast<bool>(),
+      /*typeStr=*/typeStr,
+      /*dataTypeSize=*/dataTypeSize,
+      /*formatDescriptor=*/formatDescriptor,
+      /*shape=*/std::move(shape),
+      /*strides=*/std::move(strides)};
+}
+
+bool isCContiguous(const std::vector<ssize_t> &shape,
+                   const std::vector<ssize_t> &strides, ssize_t itemsize) {
+  if (shape.empty())
+    return true;
+
+  ssize_t expectedStride = itemsize;
+  for (int i = static_cast<int>(shape.size()) - 1; i >= 0; --i) {
+    if (shape[i] > 1 && strides[i] != expectedStride)
+      return false;
+    expectedStride *= shape[i];
+  }
+
+  return true;
+}
+
+bool shouldCanonicalizeCupyArray(const py::buffer_info &info,
+                                 const std::string &targetName) {
+  if (info.shape.empty())
+    return false;
+
+  // Only 2D arrays for the dynamics target or non-contiguous 1D arrays
+  // need canonicalization.
+  bool needsCanon = (info.shape.size() == 1) ||
+                    (info.shape.size() == 2 && targetName == "dynamics");
+  return needsCanon && !isCContiguous(info.shape, info.strides, info.itemsize);
+}
+
+py::object canonicalizeCupyArrayToNumpy(py::handle cupyArray) {
+  auto cupy = py::module_::import("cupy");
+  auto contiguous = cupy.attr("ascontiguousarray")(
+      py::reinterpret_borrow<py::object>(cupyArray));
+  return cupy.attr("asnumpy")(contiguous);
+}
+
+} // namespace
 
 static std::vector<int> bitStringToIntVec(const std::string &bitString) {
   // Check that this is a valid bit string.
@@ -202,51 +343,11 @@ static py::buffer_info getCupyBufferInfo(py::buffer cupy_buffer) {
   // type. However, we cannot access the underlying buffer info via a
   // `.request()` as it will throw unless that is managed memory. Here, we
   // retrieve and construct buffer_info from the CuPy array interface.
-
-  if (!py::hasattr(cupy_buffer, "__cuda_array_interface__")) {
-    throw std::runtime_error("Buffer is not a CuPy array");
-  }
-
-  py::dict cupy_array_info = cupy_buffer.attr("__cuda_array_interface__");
   // Ref: https://numba.readthedocs.io/en/stable/cuda/cuda_array_interface.html
   // example: {'shape': (2, 2), 'typestr': '<c16', 'descr': [('', '<c16')],
   // 'stream': 1, 'version': 3, 'strides': None, 'data': (140222144708608,
   // False)}
-  py::tuple dataInfo = cupy_array_info["data"].cast<py::tuple>();
-  void *dataPtr = (void *)dataInfo[0].cast<int64_t>();
-  const bool readOnly = dataInfo[1].cast<bool>();
-  auto shapeTuple = cupy_array_info["shape"].cast<py::tuple>();
-  std::vector<std::size_t> extents;
-  for (std::size_t i = 0; i < shapeTuple.size(); i++) {
-    extents.push_back(shapeTuple[i].cast<std::size_t>());
-  }
-  const std::string typeStr = cupy_array_info["typestr"].cast<std::string>();
-  if (typeStr != "<c16" && typeStr != "<c8") {
-    throw std::runtime_error("Unsupported typestr in CuPy array: " + typeStr +
-                             ". Supported types are: <c16 and <c8.");
-  }
-
-  const bool isDoublePrecision = typeStr == "<c16";
-
-  auto [dataTypeSize, desc] =
-      !isDoublePrecision
-          ? std::make_tuple(
-                sizeof(std::complex<float>),
-                py::format_descriptor<std::complex<float>>::format())
-          : std::make_tuple(
-                sizeof(std::complex<double>),
-                py::format_descriptor<std::complex<double>>::format());
-
-  std::vector<ssize_t> strides(extents.size(), dataTypeSize);
-  for (size_t i = 1; i < extents.size(); ++i)
-    strides[i] = strides[i - 1] * extents[i - 1];
-
-  return py::buffer_info(dataPtr, dataTypeSize, /*itemsize */
-                         desc, extents.size(),  /* ndim */
-                         extents,               /* shape */
-                         strides,               /* strides */
-                         readOnly               /* readonly */
-  );
+  return getCupyArrayMetadata(cupy_buffer).asBufferInfo();
 }
 
 static cudaq::state createStateFromPyBuffer(py::buffer data,
@@ -271,6 +372,10 @@ static cudaq::state createStateFromPyBuffer(py::buffer data,
         "your array creation `dtype=numpy.complex64` if simulation is FP32 and "
         "`dtype=numpy.complex128` if simulation is FP64, or "
         "`dtype=cudaq.complex()` for precision-agnostic code.");
+
+  if (!isHostData && shouldCanonicalizeCupyArray(info, holder.getTarget().name))
+    return createStateFromPyBuffer(
+        canonicalizeCupyArrayToNumpy(data).cast<py::buffer>(), holder);
 
   if (!isHostData || info.shape.size() == 1) {
     if (info.format == py::format_descriptor<std::complex<float>>::format())
@@ -543,25 +648,22 @@ void cudaq::bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
                   "`dtype=cupy.complex64` if simulation is FP32 and "
                   "`dtype=cupy.complex128` if simulation if FP64.");
 
-            // Compute the number of elements in the array
-            std::vector<std::size_t> extents;
-            auto numElements = [&]() {
-              auto shape = opaqueData.attr("shape").cast<py::tuple>();
-              std::size_t numElements = 1;
-              for (auto el : shape) {
-                numElements *= el.cast<std::size_t>();
-                extents.emplace_back(el.cast<std::size_t>());
-              }
-              return numElements;
-            }();
+            auto cupyArrayInfo = getCupyArrayMetadata(opaqueData);
+            auto info = cupyArrayInfo.asBufferInfo();
 
-            long ptr = data.attr("ptr").cast<long>();
+            if (shouldCanonicalizeCupyArray(info, holder.getTarget().name))
+              return createStateFromPyBuffer(
+                  canonicalizeCupyArrayToNumpy(opaqueData).cast<py::buffer>(),
+                  holder);
+
+            void *ptr = cupyArrayInfo.dataPtr;
             if (holder.getTarget().name == "dynamics") {
               // For dynamics, we need to send on the extents to distinguish
               // state vector vs density matrix.
               TensorStateData tensorData{
                   std::pair<const void *, std::vector<std::size_t>>{
-                      reinterpret_cast<std::complex<double> *>(ptr), extents}};
+                      reinterpret_cast<std::complex<double> *>(ptr),
+                      cupyArrayInfo.getExtents()}};
               return state::from_data(tensorData);
             }
 
@@ -573,11 +675,13 @@ void cudaq::bindPyState(py::module &mod, LinkedLibraryHolder &holder) {
                   holder.getTarget().name));
 
             if (typeStr == "complex64")
-              return state::from_data(std::make_pair(
-                  reinterpret_cast<std::complex<float> *>(ptr), numElements));
+              return state::from_data(
+                  std::make_pair(reinterpret_cast<std::complex<float> *>(ptr),
+                                 cupyArrayInfo.getNumElements()));
             else if (typeStr == "complex128")
-              return state::from_data(std::make_pair(
-                  reinterpret_cast<std::complex<double> *>(ptr), numElements));
+              return state::from_data(
+                  std::make_pair(reinterpret_cast<std::complex<double> *>(ptr),
+                                 cupyArrayInfo.getNumElements()));
             else
               throw std::runtime_error("invalid cupy element type " + typeStr);
           },

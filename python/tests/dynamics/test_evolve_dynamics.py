@@ -217,6 +217,53 @@ def test_evolve_density_matrix_numpy_layout_cudm():
     )
 
 
+def test_evolve_density_matrix_cupy_strided_layout_cudm():
+    base = cp.array([[1.0 + 0.0j, 2.0 + 0.0j], [3.0 + 0.0j, 4.0 + 0.0j]],
+                    dtype=cp.complex128)
+    cases = [
+        ("c_order", base, cp.asnumpy(base)),  # Already C-contiguous, no copy
+        ("fortran_order", cp.asfortranarray(base), cp.asnumpy(base)),
+        ("transpose_view", base.T, cp.asnumpy(base.T)),
+    ]
+
+    for _, rho, expected in cases:
+        state = cudaq.State.from_data(rho)
+        evolution_result = cudaq.evolve(
+            0.0 * boson.number(0),
+            {0: 2},
+            Schedule([0.0], ["t"]),
+            state,
+            observables=[],
+            collapse_operators=[],
+            store_intermediate_results=cudaq.IntermediateResultSave.NONE,
+        )
+
+        final_arr = np.array(evolution_result.final_state())
+        np.testing.assert_allclose(final_arr, expected, atol=1e-12)
+
+
+def test_evolve_density_matrix_cupy_contiguous_no_regression_cudm():
+    """C-contiguous 2D CuPy array should go through the GPU path directly
+    without being copied back to host."""
+    rho = cp.array([[1.0 + 0.0j, 0.0j], [0.0j, 0.0j]], dtype=cp.complex128)
+    assert rho.flags["C_CONTIGUOUS"]
+    expected = cp.asnumpy(rho)
+
+    state = cudaq.State.from_data(rho)
+    evolution_result = cudaq.evolve(
+        0.0 * boson.number(0),
+        {0: 2},
+        Schedule([0.0], ["t"]),
+        state,
+        observables=[],
+        collapse_operators=[],
+        store_intermediate_results=cudaq.IntermediateResultSave.NONE,
+    )
+
+    final_arr = np.array(evolution_result.final_state())
+    np.testing.assert_allclose(final_arr, expected, atol=1e-12)
+
+
 def test_evolve_from_data_random_density_matrix_preserved_cudm():
     np.random.seed(42)
     N = 64

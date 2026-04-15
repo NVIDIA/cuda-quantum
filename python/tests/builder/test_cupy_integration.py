@@ -130,6 +130,18 @@ def test_cupy_to_state_without_dtype():
     cudaq.reset_target()
 
 
+def test_cupy_to_state_strided_1d():
+    cudaq.set_target('nvidia', option='fp64')
+    base = cp.array([.707107, 0, 0, .707107], dtype=cp.complex128)
+    # Every-other element: creates a non-contiguous 1D view [.707107, 0]
+    strided = base[::2]
+    state_from_cupy = cudaq.State.from_data(strided)
+    np.testing.assert_allclose(np.array(state_from_cupy),
+                               cp.asnumpy(strided),
+                               atol=1e-6)
+    cudaq.reset_target()
+
+
 @pytest.mark.parametrize("target", ["qpp-cpu", "density-matrix-cpu"])
 def test_cupy_to_state_cpu_sim(target):
     cudaq.set_target(target)
