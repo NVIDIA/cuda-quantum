@@ -231,6 +231,7 @@ jobs:
 
     environment:
       name: ${{ inputs.environment || 'default' }}
+      deployment: ${{ inputs.environment != '' }}
 
     steps:
       - name: Checkout repository

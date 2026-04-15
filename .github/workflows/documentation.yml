@@ -47,6 +47,7 @@ jobs:
     environment:
       name: ${{ (github.event.workflow_run.name == 'CI' && 'default') || 'github-pages' }}
       url: ${{ vars.deployment_url || format('https://github.com/{0}', github.repository) }}
+      deployment: ${{ github.event.workflow_run.name != 'CI' }}
   
     steps:
       - name: Checkout repository
