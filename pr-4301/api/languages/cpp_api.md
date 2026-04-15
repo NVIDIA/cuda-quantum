@@ -8143,18 +8143,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1qvector_1a1207f490dab570c43527a9563d29d57a .target}[[inline]{.pre}]{.k}[ ]{.w}[[explicit]{.pre}]{.k}[ ]{.w}[[[qvector]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[complex]{.pre}]{.n}](#_CPPv4N5cudaq7complexE "cudaq::complex"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[vector]{.pre}]{.n .sig-param}, [[bool]{.pre}]{.kt}[ ]{.w}[[validate]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq7qvector7qvectorERKNSt6vectorI7complexEEb "Permalink to this definition"){.headerlink}\
-
-    :   Construct a [`qvector`{.docutils .literal .notranslate}]{.pre}
-        from an input state vector. The number of qubits is determined
-        by the size of the input vector. If [`validate`{.docutils
-        .literal .notranslate}]{.pre} is set, it will check the norm of
-        input state vector.
-
-    ```{=html}
-    <!-- -->
-    ```
-
     []{#classcudaq_1_1qvector_1a0fd2545386af75c0d1aed18c8b3b50ef .target}[[inline]{.pre}]{.k}[ ]{.w}[[[qvector]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[state]{.pre}]{.n}](#_CPPv4N5cudaq7qvector7qvectorERK5state "cudaq::qvector::qvector::state"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[state]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq7qvector7qvectorERK5state "Permalink to this definition"){.headerlink}\
 
     :   Construct a [`qvector`{.docutils .literal .notranslate}]{.pre}

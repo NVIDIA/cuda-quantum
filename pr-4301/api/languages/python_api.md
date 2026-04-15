@@ -2168,11 +2168,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     :   Compile the Python AST to portable Quake.
 
-    [[delete_cache_execution_engine]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[key]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.delete_cache_execution_engine "Permalink to this definition"){.headerlink}
-
-    :   Delete the [`ExecutionEngine`{.code .docutils .literal
-        .notranslate}]{.pre} cache given by a cache key.
-
     [[enable_return_to_log]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.enable_return_to_log "Permalink to this definition"){.headerlink}
 
     :   Enable translation from [`return`{.code .docutils .literal
@@ -3889,7 +3884,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     :   
 
-        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[term_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[1284263822]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+        [[random]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[qubit_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[term_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[2071327802]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.operators.spin.SpinOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
         :   
 
@@ -8148,10 +8143,16 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     :   The circuit depth (longest gate chain on any qubit).
 
-    *[property]{.pre}[ ]{.w}*[[depth_2q]{.pre}]{.sig-name .descname}[¶](#cudaq.Resources.depth_2q "Permalink to this definition"){.headerlink}
+    [[depth_for_arity]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.Resources.depth_for_arity "Permalink to this definition"){.headerlink}
 
-    :   The 2-qubit circuit depth (longest chain of 2-qubit gates on any
-        qubit path).
+    :   
+
+        [[depth_for_arity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Resources]{.pre}](#cudaq.Resources "cudaq.Resources"){.reference .internal}]{.n}*, *[[arity]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+
+        :   
+
+        Get circuit depth considering only gates of a specific qubit
+        arity. Returns 0 if no gates of that arity exist.
 
     [[dump]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.Resources.dump "Permalink to this definition"){.headerlink}
 
@@ -8163,19 +8164,42 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
         Print a string of the raw resource counts data to the terminal.
 
+    *[property]{.pre}[ ]{.w}*[[gate_count_by_arity]{.pre}]{.sig-name .descname}[¶](#cudaq.Resources.gate_count_by_arity "Permalink to this definition"){.headerlink}
+
+    :   Gate counts by qubit arity, as a dict mapping arity to count.
+
+    [[gate_count_for_arity]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.Resources.gate_count_for_arity "Permalink to this definition"){.headerlink}
+
+    :   
+
+        [[gate_count_for_arity]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[self]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Resources]{.pre}](#cudaq.Resources "cudaq.Resources"){.reference .internal}]{.n}*, *[[arity]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+
+        :   
+
+        Get gate count for a specific qubit arity (total qubits
+        including controls and targets). Returns 0 if no gates of that
+        arity exist.
+
+    *[property]{.pre}[ ]{.w}*[[multi_qubit_depth]{.pre}]{.sig-name .descname}[¶](#cudaq.Resources.multi_qubit_depth "Permalink to this definition"){.headerlink}
+
+    :   Max depth across all gate widths \>= 2.
+
+    *[property]{.pre}[ ]{.w}*[[multi_qubit_gate_count]{.pre}]{.sig-name .descname}[¶](#cudaq.Resources.multi_qubit_gate_count "Permalink to this definition"){.headerlink}
+
+    :   Total count of gates with 2 or more qubits.
+
     *[property]{.pre}[ ]{.w}*[[num_qubits]{.pre}]{.sig-name .descname}[¶](#cudaq.Resources.num_qubits "Permalink to this definition"){.headerlink}
 
-    :   The total number of qubits used in the kernel.
+    :   The total number of qubits allocated in the kernel.
+
+    *[property]{.pre}[ ]{.w}*[[num_used_qubits]{.pre}]{.sig-name .descname}[¶](#cudaq.Resources.num_used_qubits "Permalink to this definition"){.headerlink}
+
+    :   The number of qubits touched by at least one quantum operation.
 
     *[property]{.pre}[ ]{.w}*[[per_qubit_depth]{.pre}]{.sig-name .descname}[¶](#cudaq.Resources.per_qubit_depth "Permalink to this definition"){.headerlink}
 
     :   Per-qubit circuit depth (all gates), as a dict mapping qubit
         index to depth.
-
-    *[property]{.pre}[ ]{.w}*[[per_qubit_depth_2q]{.pre}]{.sig-name .descname}[¶](#cudaq.Resources.per_qubit_depth_2q "Permalink to this definition"){.headerlink}
-
-    :   Per-qubit 2-qubit depth, as a dict mapping qubit index to 2Q
-        depth.
 
     [[to_dict]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.Resources.to_dict "Permalink to this definition"){.headerlink}
 
@@ -8187,10 +8211,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
         Return a dictionary of the raw resource counts that are stored
         in [`self`{.code .docutils .literal .notranslate}]{.pre}.
-
-    *[property]{.pre}[ ]{.w}*[[two_qubit_gate_count]{.pre}]{.sig-name .descname}[¶](#cudaq.Resources.two_qubit_gate_count "Permalink to this definition"){.headerlink}
-
-    :   The total number of 2-qubit gates.
 
 ::: {#optimizers .section}
 ### Optimizers[¶](#optimizers "Permalink to this heading"){.headerlink}

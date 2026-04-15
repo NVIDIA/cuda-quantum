@@ -2427,7 +2427,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvectorixEKNSt6size_tE">cudaq::qvector::operator[] (C++ function)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector7qvectorENSt6size_tE">cudaq::qvector::qvector (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector7qvectorERK5state">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector7qvectorERK7qvector">[2]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector7qvectorERKNSt6vectorI7complexEEb">[3]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector7qvectorERR7qvector">[4]</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector7qvectorENSt6size_tE">cudaq::qvector::qvector (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector7qvectorERK5state">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector7qvectorERK7qvector">[2]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq7qvector7qvectorERR7qvector">[3]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq7qvector4sizeEv">cudaq::qvector::size (C++ function)</a>
 </li>
@@ -2785,8 +2785,6 @@
         <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperatorTerm.degrees">(cudaq.operators.spin.SpinOperatorTerm property)</a>
 </li>
       </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.delete_cache_execution_engine">delete_cache_execution_engine() (cudaq.PyKernelDecorator method)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.Depolarization1">Depolarization1 (class in cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.Depolarization2">Depolarization2 (class in cudaq)</a>
@@ -2795,12 +2793,12 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.Resources.depth">depth (cudaq.Resources property)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.Resources.depth_2q">depth_2q (cudaq.Resources property)</a>
+      <li><a href="api/languages/python_api.html#cudaq.Resources.depth_for_arity">depth_for_arity() (cudaq.Resources method)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.Target.description">description (cudaq.Target property)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/languages/python_api.html#cudaq.Target.description">description (cudaq.Target property)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult.deserialize">deserialize() (cudaq.SampleResult method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.custom.displace">displace() (in module cudaq.operators.custom)</a>
@@ -2991,6 +2989,10 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.optimizers.SPSA.gamma">gamma (cudaq.optimizers.SPSA property)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.Resources.gate_count_by_arity">gate_count_by_arity (cudaq.Resources property)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.Resources.gate_count_for_arity">gate_count_for_arity() (cudaq.Resources method)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.AsyncEvolveResult.get">get() (cudaq.AsyncEvolveResult method)</a>
 
       <ul>
@@ -3023,14 +3025,14 @@
         <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperatorTerm.get_qubit_count">(cudaq.operators.spin.SpinOperatorTerm method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperator.get_raw_data">get_raw_data() (cudaq.operators.spin.SpinOperator method)</a>
 
       <ul>
         <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperatorTerm.get_raw_data">(cudaq.operators.spin.SpinOperatorTerm method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult.get_register_counts">get_register_counts() (cudaq.SampleResult method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult.get_sequential_data">get_sequential_data() (cudaq.SampleResult method)</a>
@@ -3275,10 +3277,10 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.merge_kernel">merge_kernel() (cudaq.PyKernelDecorator method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.merge_quake_source">merge_quake_source() (cudaq.PyKernelDecorator method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.operators.boson.BosonOperator.min_degree">min_degree (cudaq.operators.boson.BosonOperator property)</a>
 
       <ul>
@@ -3324,6 +3326,10 @@
       </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult.most_probable">most_probable() (cudaq.SampleResult method)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.Resources.multi_qubit_depth">multi_qubit_depth (cudaq.Resources property)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.Resources.multi_qubit_gate_count">multi_qubit_gate_count (cudaq.Resources property)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.ptsbe.KrausTrajectory.multiplicity">multiplicity (cudaq.ptsbe.KrausTrajectory property)</a>
 </li>
   </ul></td>
@@ -3354,10 +3360,10 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.num_available_gpus">num_available_gpus() (in module cudaq)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.ComplexMatrix.num_columns">num_columns() (cudaq.ComplexMatrix method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.Target.num_qpus">num_qpus() (cudaq.Target method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.Resources.num_qubits">num_qubits (cudaq.Resources property)</a>
@@ -3367,6 +3373,8 @@
       <li><a href="api/languages/python_api.html#cudaq.mpi.num_ranks">num_ranks() (in module cudaq.mpi)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.ComplexMatrix.num_rows">num_rows() (cudaq.ComplexMatrix method)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.Resources.num_used_qubits">num_used_qubits (cudaq.Resources property)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.boson.number">number() (in module cudaq.boson)</a>
 
@@ -3451,8 +3459,6 @@
       <li><a href="api/languages/python_api.html#cudaq.Pauli2">Pauli2 (class in cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.Resources.per_qubit_depth">per_qubit_depth (cudaq.Resources property)</a>
-</li>
-      <li><a href="api/languages/python_api.html#cudaq.Resources.per_qubit_depth_2q">per_qubit_depth_2q (cudaq.Resources property)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -3774,8 +3780,6 @@
         <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperator.trim">(cudaq.operators.spin.SpinOperator method)</a>
 </li>
       </ul></li>
-      <li><a href="api/languages/python_api.html#cudaq.Resources.two_qubit_gate_count">two_qubit_gate_count (cudaq.Resources property)</a>
-</li>
       <li><a href="api/languages/python_api.html#cudaq.ptsbe.ShotAllocationStrategy.type">type (cudaq.ptsbe.ShotAllocationStrategy property)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.type_to_str">type_to_str() (cudaq.PyKernelDecorator static method)</a>
