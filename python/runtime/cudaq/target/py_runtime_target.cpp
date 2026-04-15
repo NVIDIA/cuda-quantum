@@ -13,14 +13,14 @@
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/target_control.h"
 #include <functional>
-#include <nanobind/stl/function.h>
 #include <nanobind/nanobind.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/vector.h>
+#include <nanobind/stl/function.h>
+#include <nanobind/stl/map.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/pair.h>
+#include <nanobind/stl/string.h>
 #include <nanobind/stl/tuple.h>
-#include <nanobind/stl/map.h>
+#include <nanobind/stl/vector.h>
 #include <shared_mutex>
 
 namespace {
@@ -97,15 +97,15 @@ void bindRuntimeTarget(py::module_ &mod, LinkedLibraryHolder &holder) {
       "what simulator they may leverage, the quantum_platform required for "
       "execution, and a description for the target.")
       .def_ro("name", &cudaq::RuntimeTarget::name,
-                    "The name of the `cudaq.Target`.")
+              "The name of the `cudaq.Target`.")
       .def_ro("simulator", &cudaq::RuntimeTarget::simulatorName,
-                    "The name of the simulator this `cudaq.Target` leverages. "
-                    "This will be empty for physical QPUs.")
+              "The name of the simulator this `cudaq.Target` leverages. "
+              "This will be empty for physical QPUs.")
       .def_ro("platform", &cudaq::RuntimeTarget::platformName,
-                    "The name of the quantum_platform implementation this "
-                    "`cudaq.Target` leverages.")
+              "The name of the quantum_platform implementation this "
+              "`cudaq.Target` leverages.")
       .def_ro("description", &cudaq::RuntimeTarget::description,
-                    "A string describing the features for this `cudaq.Target`.")
+              "A string describing the features for this `cudaq.Target`.")
       .def(
           "num_qpus",
           [](cudaq::RuntimeTarget &_) { return cudaq::platform_num_qpus(); },

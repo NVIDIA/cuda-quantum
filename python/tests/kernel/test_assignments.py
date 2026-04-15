@@ -173,6 +173,7 @@ def test_list_update():
 
     assert test9() == 15
 
+
 def test_list_update_failures():
 
     @dataclass(slots=True)

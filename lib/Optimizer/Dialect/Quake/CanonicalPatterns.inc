@@ -237,8 +237,8 @@ static Value createCast(PatternRewriter &rewriter, Location loc, Value inVal) {
   auto i64Ty = rewriter.getI64Type();
   assert(inVal.getType() != rewriter.getIndexType() &&
          "use of index type is deprecated");
-  return rewriter.create<cudaq::cc::CastOp>(loc, i64Ty, inVal,
-                                            cudaq::cc::CastOpMode::Unsigned);
+  return cudaq::cc::CastOp::create(rewriter, loc, i64Ty, inVal,
+                                    cudaq::cc::CastOpMode::Unsigned);
 }
 
 class ExtractRefFromSubVeqPattern
@@ -272,18 +272,18 @@ public:
     auto loc = extract.getLoc();
     auto low = [&]() -> Value {
       if (subveq.hasConstantLowerBound())
-        return rewriter.create<arith::ConstantIntOp>(
-            loc, subveq.getConstantLowerBound(), 64);
+        return arith::ConstantIntOp::create(
+            rewriter, loc, subveq.getConstantLowerBound(), 64);
       return subveq.getLower();
     }();
     if (extract.hasConstantIndex()) {
-      Value cv = rewriter.create<arith::ConstantIntOp>(
-          loc, low.getType(), extract.getConstantIndex());
-      offset = rewriter.create<arith::AddIOp>(loc, cv, low);
+      Value cv = arith::ConstantIntOp::create(
+          rewriter, loc, low.getType(), extract.getConstantIndex());
+      offset = arith::AddIOp::create(rewriter, loc, cv, low);
     } else {
       auto cast1 = createCast(rewriter, loc, extract.getIndex());
       auto cast2 = createCast(rewriter, loc, low);
-      offset = rewriter.create<arith::AddIOp>(loc, cast1, cast2);
+      offset = arith::AddIOp::create(rewriter, loc, cast1, cast2);
     }
     rewriter.replaceOpWithNewOp<quake::ExtractRefOp>(extract, subveq.getVeq(),
                                                      offset);
@@ -625,8 +625,8 @@ public:
     // Lambda to create a Value for the lower bound of `s`.
     auto lofunc = [&](quake::SubVeqOp s) -> Value {
       if (s.hasConstantLowerBound())
-        return rewriter.create<arith::ConstantIntOp>(
-            loc, s.getConstantLowerBound(), 64);
+        return arith::ConstantIntOp::create(
+            rewriter, loc, s.getConstantLowerBound(), 64);
       return s.getLower();
     };
     auto priorlo = lofunc(prior);
@@ -635,15 +635,15 @@ public:
     // Lambda for creating the upper bound Value.
     auto svup = [&]() -> Value {
       if (subveq.hasConstantUpperBound())
-        return rewriter.create<arith::ConstantIntOp>(
-            loc, subveq.getConstantUpperBound(), 64);
+        return arith::ConstantIntOp::create(
+            rewriter, loc, subveq.getConstantUpperBound(), 64);
       return subveq.getUpper();
     }();
     auto cast1 = createCast(rewriter, loc, priorlo);
     auto cast2 = createCast(rewriter, loc, svlo);
     auto cast3 = createCast(rewriter, loc, svup);
-    Value sum1 = rewriter.create<arith::AddIOp>(loc, cast1, cast2);
-    Value sum2 = rewriter.create<arith::AddIOp>(loc, cast1, cast3);
+    Value sum1 = arith::AddIOp::create(rewriter, loc, cast1, cast2);
+    Value sum2 = arith::AddIOp::create(rewriter, loc, cast1, cast3);
     auto veqTy = subveq.getType();
     rewriter.replaceOpWithNewOp<quake::SubVeqOp>(subveq, veqTy, prior.getVeq(),
                                                  sum1, sum2);

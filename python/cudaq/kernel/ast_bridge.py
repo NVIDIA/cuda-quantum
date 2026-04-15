@@ -2801,7 +2801,8 @@ class PyASTBridge(ast.NodeVisitor):
                         DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                               context=self.ctx))
                     cc.StoreOp(iterVar, eleAddr)
-                    incrementedCounter = arith.AddIOp(loadedCounter, one.result).result
+                    incrementedCounter = arith.AddIOp(loadedCounter,
+                                                      one.result).result
                     cc.StoreOp(incrementedCounter, counter)
 
                 self.createMonotonicForLoop(bodyBuilder,
@@ -3597,10 +3598,10 @@ class PyASTBridge(ast.NodeVisitor):
                             cudaq_module = importlib.import_module('cudaq')
                             channel_class = getattr(cudaq_module,
                                                     node.args[0].attr)
-                            numParams = (
-                                channel_class.num_parameters
-                                if hasattr(channel_class, 'num_parameters')
-                                else channel_class.get_num_parameters())
+                            numParams = (channel_class.num_parameters
+                                         if hasattr(channel_class,
+                                                    'num_parameters') else
+                                         channel_class.get_num_parameters())
                             key = self.getConstantInt(hash(channel_class))
                         elif isinstance(node.args[0], ast.Name):
                             arg = recover_value_of_or_none(
@@ -3608,16 +3609,14 @@ class PyASTBridge(ast.NodeVisitor):
                             if (arg and isinstance(arg, type) and issubclass(
                                     arg, cudaq_runtime.KrausChannel)):
                                 if (not hasattr(arg, 'num_parameters') and
-                                        not hasattr(arg,
-                                                    'get_num_parameters')):
+                                        not hasattr(arg, 'get_num_parameters')):
                                     self.emitFatalError(
                                         'apply_noise kraus channels must have '
                                         '`num_parameters` constant class '
                                         'attribute specified.')
-                                numParams = (
-                                    arg.num_parameters
-                                    if hasattr(arg, 'num_parameters')
-                                    else arg.get_num_parameters())
+                                numParams = (arg.num_parameters if hasattr(
+                                    arg, 'num_parameters') else
+                                             arg.get_num_parameters())
                                 key = self.getConstantInt(hash(arg))
                         if key is None:
                             self.emitFatalError(

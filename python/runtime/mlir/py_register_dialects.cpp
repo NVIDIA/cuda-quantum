@@ -20,12 +20,12 @@
 #include "mlir/InitAllDialects.h"
 #include <fmt/core.h>
 #include <nanobind/stl/complex.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/vector.h>
+#include <nanobind/stl/map.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/pair.h>
+#include <nanobind/stl/string.h>
 #include <nanobind/stl/tuple.h>
-#include <nanobind/stl/map.h>
+#include <nanobind/stl/vector.h>
 
 namespace py = nanobind;
 using namespace mlir::python::nanobind_adaptors;
@@ -170,9 +170,10 @@ void registerCCDialectAndTypes(py::module_ &m) {
       },
       py::arg("load") = true, py::arg("context") = py::none());
 
-  mlir_type_subclass(
-      ccMod, "CharspanType",
-      [](MlirType type) { return mlir::isa<cudaq::cc::CharspanType>(unwrap(type)); })
+  mlir_type_subclass(ccMod, "CharspanType",
+                     [](MlirType type) {
+                       return mlir::isa<cudaq::cc::CharspanType>(unwrap(type));
+                     })
       .def_classmethod(
           "get",
           [](py::object cls, MlirContext context) {
@@ -190,9 +191,10 @@ void registerCCDialectAndTypes(py::module_ &m) {
           },
           py::arg("cls"), py::arg("context") = py::none());
 
-  mlir_type_subclass(
-      ccMod, "PointerType",
-      [](MlirType type) { return mlir::isa<cudaq::cc::PointerType>(unwrap(type)); })
+  mlir_type_subclass(ccMod, "PointerType",
+                     [](MlirType type) {
+                       return mlir::isa<cudaq::cc::PointerType>(unwrap(type));
+                     })
       .def_classmethod(
           "getElementType",
           [](py::object cls, MlirType type) {
@@ -213,9 +215,10 @@ void registerCCDialectAndTypes(py::module_ &m) {
           py::arg("cls"), py::arg("elementType"),
           py::arg("context") = py::none());
 
-  mlir_type_subclass(
-      ccMod, "ArrayType",
-      [](MlirType type) { return mlir::isa<cudaq::cc::ArrayType>(unwrap(type)); })
+  mlir_type_subclass(ccMod, "ArrayType",
+                     [](MlirType type) {
+                       return mlir::isa<cudaq::cc::ArrayType>(unwrap(type));
+                     })
       .def_classmethod(
           "getElementType",
           [](py::object cls, MlirType type) {
@@ -238,9 +241,10 @@ void registerCCDialectAndTypes(py::module_ &m) {
           py::arg("size") = std::numeric_limits<std::int64_t>::min(),
           py::arg("context") = py::none());
 
-  mlir_type_subclass(
-      ccMod, "StructType",
-      [](MlirType type) { return mlir::isa<cudaq::cc::StructType>(unwrap(type)); })
+  mlir_type_subclass(ccMod, "StructType",
+                     [](MlirType type) {
+                       return mlir::isa<cudaq::cc::StructType>(unwrap(type));
+                     })
       .def_classmethod(
           "get",
           [](py::object cls, py::list aggregateTypes, MlirContext context) {
@@ -287,9 +291,10 @@ void registerCCDialectAndTypes(py::module_ &m) {
         return ty.getName().getValue().str();
       });
 
-  mlir_type_subclass(
-      ccMod, "CallableType",
-      [](MlirType type) { return mlir::isa<cudaq::cc::CallableType>(unwrap(type)); })
+  mlir_type_subclass(ccMod, "CallableType",
+                     [](MlirType type) {
+                       return mlir::isa<cudaq::cc::CallableType>(unwrap(type));
+                     })
       .def_classmethod("get",
                        [](py::object cls, MlirContext context, py::list inTypes,
                           py::list resTypes) {
@@ -313,9 +318,10 @@ void registerCCDialectAndTypes(py::module_ &m) {
         return wrap(callTy.getSignature());
       });
 
-  mlir_type_subclass(
-      ccMod, "StdvecType",
-      [](MlirType type) { return mlir::isa<cudaq::cc::StdvecType>(unwrap(type)); })
+  mlir_type_subclass(ccMod, "StdvecType",
+                     [](MlirType type) {
+                       return mlir::isa<cudaq::cc::StdvecType>(unwrap(type));
+                     })
       .def_classmethod(
           "getElementType",
           [](py::object cls, MlirType type) {

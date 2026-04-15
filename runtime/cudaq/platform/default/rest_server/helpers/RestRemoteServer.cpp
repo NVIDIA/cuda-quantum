@@ -195,7 +195,7 @@ public:
         [&](const std::string &reqBody,
             const std::unordered_multimap<std::string, std::string> &headers) {
           requestStart = std::chrono::high_resolution_clock::now();
-          llvm::make_scope_exit([&] {
+          auto stopGuard = llvm::make_scope_exit([&] {
             if (this->exitAfterJob)
               m_server->stop();
           });
@@ -619,7 +619,7 @@ protected:
     });
 
     // Notify watchdog thread of graceful completion at scope exit
-    llvm::make_scope_exit([&] {
+    auto watchdogGuard = llvm::make_scope_exit([&] {
       std::unique_lock<std::mutex> lock(watchdogMutex);
       processingComplete = true;
       lock.unlock();

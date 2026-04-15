@@ -72,6 +72,7 @@ ADD tpls/customizations/llvm /cuda-quantum/tpls/customizations/llvm
 ADD .gitmodules /cuda-quantum/.gitmodules
 ADD .git/modules/tpls/pybind11/HEAD /.git_modules/tpls/pybind11/HEAD
 ADD .git/modules/tpls/llvm/HEAD /.git_modules/tpls/llvm/HEAD
+ADD .git/modules/tpls/nanobind/HEAD /.git_modules/tpls/nanobind/HEAD
 
 # This is initializing the .git index sufficiently so that we can 
 # check out the correct commits based on the submodule commit. 
@@ -139,6 +140,8 @@ ENV ZLIB_INSTALL_PREFIX=/usr/local/zlib
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
 ENV CURL_INSTALL_PREFIX=/usr/local/curl
 ENV AWS_INSTALL_PREFIX=/usr/local/aws
+ENV NANOBIND_INSTALL_PREFIX=/usr/local/nanobind
+COPY --from=prereqs /usr/local/nanobind "$NANOBIND_INSTALL_PREFIX"
 COPY --from=prereqs /usr/local/blas "$BLAS_INSTALL_PREFIX"
 COPY --from=prereqs /usr/local/zlib "$ZLIB_INSTALL_PREFIX"
 COPY --from=prereqs /usr/local/openssl "$OPENSSL_INSTALL_PREFIX"

@@ -361,10 +361,8 @@ void cudaq::bindPyState(py::module_ &mod, LinkedLibraryHolder &holder) {
             }
           },
           "Convert to a NumPy array.")
-      .def("__array__",
-           [](py::object self, py::args, py::kwargs) {
-             return self.attr("to_numpy")();
-           })
+      .def("__array__", [](py::object self, py::args,
+                           py::kwargs) { return self.attr("to_numpy")(); })
       .def(
           "__len__",
           [](state &self) {
@@ -419,8 +417,7 @@ void cudaq::bindPyState(py::module_ &mod, LinkedLibraryHolder &holder) {
       .def_static(
           "from_data",
           [&holder](const std::vector<py::object> &tensors) {
-            const bool isHostData =
-                tensors.empty() || !isCupyArray(tensors[0]);
+            const bool isHostData = tensors.empty() || !isCupyArray(tensors[0]);
             if (!holder.getTarget().config.GpuRequired && !isHostData)
               throw std::runtime_error(fmt::format(
                   "Current target '{}' does not support CuPy arrays.",

@@ -158,8 +158,7 @@ public:
     CUDAQ_INFO("{}: Launch module named '{}' remote QPU {} (simulator = {})",
                Derived::class_name, name, this->qpu_id, this->m_simName);
 
-    cudaq::ExecutionContext *executionContextPtr =
-        cudaq::getExecutionContext();
+    cudaq::ExecutionContext *executionContextPtr = cudaq::getExecutionContext();
 
     if (executionContextPtr && executionContextPtr->name == "tracer")
       return {};
@@ -181,8 +180,7 @@ public:
         /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr,
         /*vqe_n_params=*/0, this->m_simName, name,
         /*kernelFunc=*/nullptr, /*kernelArgs=*/nullptr,
-        /*argsSize=*/0, &errorMsg, &rawArgs,
-        module.getOperation());
+        /*argsSize=*/0, &errorMsg, &rawArgs, module.getOperation());
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
     return {};
@@ -214,8 +212,7 @@ struct PyRemoteSimQPURegistration {
   llvm::SimpleRegistryEntry<cudaq::QPU> entry;
   llvm::Registry<cudaq::QPU>::node node;
   PyRemoteSimQPURegistration()
-      : entry("RemoteSimulatorQPU", "",
-              &PyRemoteSimQPURegistration::ctorFn),
+      : entry("RemoteSimulatorQPU", "", &PyRemoteSimQPURegistration::ctorFn),
         node(entry) {
     cudaq_add_qpu_node(&node);
   }

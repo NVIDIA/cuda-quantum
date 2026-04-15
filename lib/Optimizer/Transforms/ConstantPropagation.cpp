@@ -195,22 +195,22 @@ public:
       auto stringAttr = cast<StringAttr>(attr);
       auto lit = cudaq::cc::CreateStringLiteralOp::create(
           rewriter, loc, cudaq::cc::PointerType::get(ty), stringAttr);
-      auto len = arith::ConstantIntOp::create(rewriter, 
-          loc, stringAttr.getValue().size() + 1, 64);
+      auto len = arith::ConstantIntOp::create(
+          rewriter, loc, stringAttr.getValue().size() + 1, 64);
       rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(loadSpanEle, loadTy,
                                                            lit, len);
       return success();
     }
     if (auto intTy = dyn_cast<IntegerType>(loadTy)) {
       auto intAttr = cast<IntegerAttr>(attr);
-      rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(
-          loadSpanEle, intTy, intAttr.getInt());
+      rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(loadSpanEle, intTy,
+                                                        intAttr.getInt());
       return success();
     }
     if (auto floatTy = dyn_cast<FloatType>(loadTy)) {
       auto floatAttr = cast<FloatAttr>(attr);
-      rewriter.replaceOpWithNewOp<arith::ConstantFloatOp>(
-          loadSpanEle, floatTy, floatAttr.getValue());
+      rewriter.replaceOpWithNewOp<arith::ConstantFloatOp>(loadSpanEle, floatTy,
+                                                          floatAttr.getValue());
       return success();
     }
     return failure();
@@ -231,8 +231,8 @@ public:
 
     LLVM_DEBUG(llvm::dbgs() << "Before constant prop:\n" << func << '\n');
 
-    if (failed(applyPatternsGreedily(func.getOperation(),
-                                            std::move(patterns)))) {
+    if (failed(
+            applyPatternsGreedily(func.getOperation(), std::move(patterns)))) {
       signalPassFailure();
       return;
     }

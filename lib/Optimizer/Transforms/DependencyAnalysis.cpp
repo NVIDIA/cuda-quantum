@@ -653,8 +653,8 @@ protected:
     assert(qubit.has_value() && "Trying to codeGen a virtual allocation "
                                 "without a physical qubit assigned!");
     auto wirety = quake::WireType::get(builder.getContext());
-    auto alloc = quake::BorrowWireOp::create(builder, 
-        builder.getUnknownLoc(), wirety,
+    auto alloc = quake::BorrowWireOp::create(
+        builder, builder.getUnknownLoc(), wirety,
         cudaq::opt::topologyAgnosticWiresetName, qubit.value());
     wire = alloc.getResult();
     hasCodeGen = true;

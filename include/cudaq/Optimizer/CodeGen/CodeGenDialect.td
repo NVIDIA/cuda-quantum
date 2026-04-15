@@ -24,7 +24,6 @@ def CodeGenDialect : Dialect {
 
   let cppNamespace = "cudaq::codegen";
   let useDefaultTypePrinterParser = 1;
-  // useFoldAPI removed in LLVM 22
 
   let extraClassDeclaration = [{
     void registerTypes(); // register at least a bogo type.

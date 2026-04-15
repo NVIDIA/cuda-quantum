@@ -182,21 +182,21 @@ void cudaq::bindSamplePTSBE(py::module_ &mod) {
       ptsbe, "ShotAllocationStrategy",
       "Strategy for allocating shots across selected trajectories.")
       .def(py::init<>(), "Create a default (PROPORTIONAL) strategy.")
-      .def("__init__",
-           [](ptsbe::ShotAllocationStrategy *self,
-              ptsbe::ShotAllocationStrategy::Type t, double bias,
-              std::optional<std::uint64_t> seed) {
-             new (self) ptsbe::ShotAllocationStrategy(t, bias, seed);
-           },
-           py::arg("type"), py::arg("bias_strength") = 2.0,
-           py::arg("seed") = py::none(),
-           "Create a strategy with specified type, optional bias strength, "
-           "and optional random seed. When seed is None (default), uses "
-           "CUDA-Q's global random seed.")
+      .def(
+          "__init__",
+          [](ptsbe::ShotAllocationStrategy *self,
+             ptsbe::ShotAllocationStrategy::Type t, double bias,
+             std::optional<std::uint64_t> seed) {
+            new (self) ptsbe::ShotAllocationStrategy(t, bias, seed);
+          },
+          py::arg("type"), py::arg("bias_strength") = 2.0,
+          py::arg("seed") = py::none(),
+          "Create a strategy with specified type, optional bias strength, "
+          "and optional random seed. When seed is None (default), uses "
+          "CUDA-Q's global random seed.")
       .def_rw("type", &ptsbe::ShotAllocationStrategy::type,
               "The allocation strategy type.")
-      .def_rw("bias_strength",
-              &ptsbe::ShotAllocationStrategy::bias_strength,
+      .def_rw("bias_strength", &ptsbe::ShotAllocationStrategy::bias_strength,
               "Bias factor for weighted strategies. Default value is 2.0.");
 
   // Concrete strategies
@@ -240,20 +240,20 @@ void cudaq::bindSamplePTSBE(py::module_ &mod) {
       .def_prop_ro(
           "name", [](const ptsbe::TraceInstruction &self) { return self.name; })
       .def_prop_ro("targets",
-                             [](const ptsbe::TraceInstruction &self) {
-                               return std::vector<std::size_t>(
-                                   self.targets.begin(), self.targets.end());
-                             })
+                   [](const ptsbe::TraceInstruction &self) {
+                     return std::vector<std::size_t>(self.targets.begin(),
+                                                     self.targets.end());
+                   })
       .def_prop_ro("controls",
-                             [](const ptsbe::TraceInstruction &self) {
-                               return std::vector<std::size_t>(
-                                   self.controls.begin(), self.controls.end());
-                             })
+                   [](const ptsbe::TraceInstruction &self) {
+                     return std::vector<std::size_t>(self.controls.begin(),
+                                                     self.controls.end());
+                   })
       .def_prop_ro("params",
-                             [](const ptsbe::TraceInstruction &self) {
-                               return std::vector<double>(self.params.begin(),
-                                                          self.params.end());
-                             })
+                   [](const ptsbe::TraceInstruction &self) {
+                     return std::vector<double>(self.params.begin(),
+                                                self.params.end());
+                   })
       .def("__repr__", [](const ptsbe::TraceInstruction &self) {
         return "TraceInstruction(" + self.name + " on " +
                std::to_string(self.targets.size()) + " qubits)";
@@ -268,12 +268,12 @@ void cudaq::bindSamplePTSBE(py::module_ &mod) {
       .def_prop_ro(
           "kraus_operator_index",
           [](const KrausSelection &self) { return self.kraus_operator_index; })
-      .def_prop_ro(
-          "is_error", [](const KrausSelection &self) { return self.is_error; })
-      .def_prop_ro(
-          "qubits", [](const KrausSelection &self) { return self.qubits; })
-      .def_prop_ro(
-          "op_name", [](const KrausSelection &self) { return self.op_name; })
+      .def_prop_ro("is_error",
+                   [](const KrausSelection &self) { return self.is_error; })
+      .def_prop_ro("qubits",
+                   [](const KrausSelection &self) { return self.qubits; })
+      .def_prop_ro("op_name",
+                   [](const KrausSelection &self) { return self.op_name; })
       .def("__repr__", [](const KrausSelection &self) {
         return "KrausSelection(loc=" + std::to_string(self.circuit_location) +
                ", idx=" + std::to_string(self.kraus_operator_index) +
@@ -287,12 +287,10 @@ void cudaq::bindSamplePTSBE(py::module_ &mod) {
       .def_prop_ro(
           "trajectory_id",
           [](const KrausTrajectory &self) { return self.trajectory_id; })
-      .def_prop_ro(
-          "probability",
-          [](const KrausTrajectory &self) { return self.probability; })
-      .def_prop_ro(
-          "num_shots",
-          [](const KrausTrajectory &self) { return self.num_shots; })
+      .def_prop_ro("probability",
+                   [](const KrausTrajectory &self) { return self.probability; })
+      .def_prop_ro("num_shots",
+                   [](const KrausTrajectory &self) { return self.num_shots; })
       .def_ro("multiplicity", &KrausTrajectory::multiplicity,
               "Number of times this trajectory was sampled.")
       .def_ro("weight", &KrausTrajectory::weight,

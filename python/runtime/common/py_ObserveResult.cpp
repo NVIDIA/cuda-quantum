@@ -56,10 +56,10 @@ void bindObserveResult(py::module_ &mod) {
       "expectation value of the user-defined `spin_operator`.\n")
       .def(py::init<double, spin_op, sample_result>())
       .def("__init__",
-          [](observe_result *self, double exp_val, py::object spin_op,
-             sample_result result) {
-            new (self) observe_result(exp_val, to_spin_op(spin_op), result);
-          })
+           [](observe_result *self, double exp_val, py::object spin_op,
+              sample_result result) {
+             new (self) observe_result(exp_val, to_spin_op(spin_op), result);
+           })
       /// @brief Bind the member functions of `cudaq.ObserveResult`.
       .def("dump", &observe_result::dump,
            "Dump the raw data from the :class:`SampleResult` that are stored "

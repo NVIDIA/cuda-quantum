@@ -103,16 +103,18 @@ public:
         Value result = cudaq::cc::UndefOp::create(rewriter, loc, loadTy);
         if (auto strTy = dyn_cast<cudaq::cc::StructType>(loadTy)) {
           for (auto [i, mTy] : llvm::enumerate(strTy.getMembers())) {
-            Value loadEle = cudaq::cc::LoadOp::create(rewriter, loc, scalars[i]);
-            result = cudaq::cc::InsertValueOp::create(
-                rewriter, loc, loadTy, result, loadEle, i);
+            Value loadEle =
+                cudaq::cc::LoadOp::create(rewriter, loc, scalars[i]);
+            result = cudaq::cc::InsertValueOp::create(rewriter, loc, loadTy,
+                                                      result, loadEle, i);
           }
         } else {
           auto arrTy = cast<cudaq::cc::ArrayType>(loadTy);
           for (cudaq::cc::ArrayType::SizeType i = 0; i < arrTy.getSize(); ++i) {
-            Value loadEle = cudaq::cc::LoadOp::create(rewriter, loc, scalars[i]);
-            result = cudaq::cc::InsertValueOp::create(
-                rewriter, loc, loadTy, result, loadEle, i);
+            Value loadEle =
+                cudaq::cc::LoadOp::create(rewriter, loc, scalars[i]);
+            result = cudaq::cc::InsertValueOp::create(rewriter, loc, loadTy,
+                                                      result, loadEle, i);
           }
         }
         updates.emplace_back(loadOp, result);

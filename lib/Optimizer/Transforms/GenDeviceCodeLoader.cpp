@@ -161,12 +161,14 @@ public:
       strOut << "\n}\n" << '\0';
 
       auto devCode = LLVM::GlobalOp::create(
-          builder, loc, cudaq::opt::factory::getStringType(ctx, funcCode.size()),
+          builder, loc,
+          cudaq::opt::factory::getStringType(ctx, funcCode.size()),
           /*isConstant=*/true, LLVM::Linkage::Private,
           className.str() + "CodeHolder.extract_device_code",
           builder.getStringAttr(funcCode), /*alignment=*/0);
       auto devName = LLVM::GlobalOp::create(
-          builder, loc, cudaq::opt::factory::getStringType(ctx, className.size() + 1),
+          builder, loc,
+          cudaq::opt::factory::getStringType(ctx, className.size() + 1),
           /*isConstant=*/true, LLVM::Linkage::Private,
           className.str() + "CodeHolder.extract_device_name",
           builder.getStringAttr(className.str() + '\0'), /*alignment=*/0);
@@ -200,7 +202,8 @@ public:
           auto hostFuncName = hostFuncNameAttr.getValue();
           if (hostFuncName.ends_with("_PyKernelEntryPointRewrite")) {
             // This is a Python module, so there is no kernel host entry point.
-            auto zero = arith::ConstantIntOp::create(builder, loc, builder.getIntegerType(64), 0);
+            auto zero = arith::ConstantIntOp::create(
+                builder, loc, builder.getIntegerType(64), 0);
             return cudaq::cc::CastOp::create(builder, loc, ptrTy, zero);
           }
           auto hostFuncOp = module.lookupSymbol<func::FuncOp>(hostFuncName);
@@ -211,8 +214,9 @@ public:
                                                              {}, module);
             hostFuncOp.setPrivate();
           }
-          auto entryRef = func::ConstantOp::create(
-              builder, loc, hostFuncOp.getFunctionType(), hostFuncOp.getSymName());
+          auto entryRef = func::ConstantOp::create(builder, loc,
+                                                   hostFuncOp.getFunctionType(),
+                                                   hostFuncOp.getSymName());
           return cudaq::cc::FuncToPtrOp::create(builder, loc, ptrTy, entryRef);
         };
         auto castEntryRef = getEntryRef(kernName);
@@ -237,8 +241,8 @@ public:
               cudaq::cc::FuncToPtrOp::create(builder, loc, ptrTy, deviceRef);
           auto castKernNameRef =
               cudaq::cc::CastOp::create(builder, loc, ptrTy, devRef);
-          func::CallOp::create(builder,
-              loc, TypeRange{}, cudaq::runtime::registerLinkableKernel,
+          func::CallOp::create(
+              builder, loc, TypeRange{}, cudaq::runtime::registerLinkableKernel,
               ValueRange{castEntryRef, castKernNameRef, castDeviceRef});
         }
       }

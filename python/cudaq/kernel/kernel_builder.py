@@ -1559,7 +1559,7 @@ class PyKernel(object):
 
     @staticmethod
     def _get_num_parameters(noise_channel):
-        """Return the num_parameters for a noise channel class,
+        """Return the `num_parameters` for a noise channel class,
         supporting both the attribute (custom channels) and the
         method (nanobind-bound built-in channels)."""
         if hasattr(noise_channel, 'num_parameters'):

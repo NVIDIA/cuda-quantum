@@ -27,49 +27,55 @@
 8. [Tool Driver Changes](#8-tool-driver-changes)
 9. [Miscellaneous Code Changes](#9-miscellaneous-code-changes)
 10. [Test File Changes](#10-test-file-changes)
-   - 10.1 [Opaque Pointer `CHECK` Updates](#101-opaque-pointer-check-updates)
-   - 10.2 [`llvm.mlir.global_ctors` Attribute Format](#102-llvmmlirglobal_ctors-attribute-format)
-   - 10.3 [`lit.cfg.py` Updates](#103-litcfgpy-updates)
-   - 10.4 [`test/Translate/` — QIR and Translation Output CHECK Updates](#104-testtranslate--qir-and-translation-output-check-updates)
-   - 10.5 [`test/AST-Quake/` — Frontend-to-QIR Pipeline Test Updates](#105-testast-quake--frontend-to-qir-pipeline-test-updates)
-   - 10.6 [`test/AST-error/` — Clang Diagnostic Verification Updates](#106-testast-error--clang-diagnostic-verification-updates)
+
+- 10.1 [Opaque Pointer `CHECK` Updates](#101-opaque-pointer-check-updates)
+- 10.2 [`llvm.mlir.global_ctors` Attribute Format](#102-llvmmlirglobal_ctors-attribute-format)
+- 10.3 [`lit.cfg.py` Updates](#103-litcfgpy-updates)
+- 10.4 [`test/Translate/` — QIR and Translation Output CHECK Updates](#104-testtranslate--qir-and-translation-output-check-updates)
+- 10.5 [`test/AST-Quake/` — Frontend-to-QIR Pipeline Test Updates](#105-testast-quake--frontend-to-qir-pipeline-test-updates)
+- 10.6 [`test/AST-error/` — Clang Diagnostic Verification Updates](#106-testast-error--clang-diagnostic-verification-updates)
+
 11. [Runtime and Unit Test Changes](#11-runtime-and-unit-test-changes)
-   - 11.1 [Header Relocations](#111-header-relocations)
-   - 11.2 [JIT Compilation Infrastructure Overhaul](#112-jit-compilation-infrastructure-overhaul)
-   - 11.3 [LLVM Target and Host API Changes](#113-llvm-target-and-host-api-changes)
-   - 11.4 [Opaque Pointer Impact on Codegen](#114-opaque-pointer-impact-on-codegen)
-   - 11.5 [MLIR Context Initialization for JIT](#115-mlir-context-initialization-for-jit)
-   - 11.6 [Runtime Op Creation and Type Casting API Updates](#116-runtime-op-creation-and-type-casting-api-updates)
-   - 11.7 [`ArgumentConversion.cpp` Specific Fixes](#117-argumentconversioncpp-specific-fixes)
-   - 11.8 [Unit Test Changes](#118-unit-test-changes)
-   - 11.9 [Runtime File Index](#119-runtime-file-index)
+
+- 11.1 [Header Relocations](#111-header-relocations)
+- 11.2 [JIT Compilation Infrastructure Overhaul](#112-jit-compilation-infrastructure-overhaul)
+- 11.3 [LLVM Target and Host API Changes](#113-llvm-target-and-host-api-changes)
+- 11.4 [Opaque Pointer Impact on Codegen](#114-opaque-pointer-impact-on-codegen)
+- 11.5 [MLIR Context Initialization for JIT](#115-mlir-context-initialization-for-jit)
+- 11.6 [Runtime Op Creation and Type Casting API Updates](#116-runtime-op-creation-and-type-casting-api-updates)
+- 11.7 [`ArgumentConversion.cpp` Specific Fixes](#117-argumentconversioncpp-specific-fixes)
+- 11.8 [Unit Test Changes](#118-unit-test-changes)
+- 11.9 [Runtime File Index](#119-runtime-file-index)
+
 12. [Python Bindings (pybind11 → nanobind and Runtime Fixes)](#12-python-bindings-pybind11--nanobind-and-runtime-fixes)
-   - 12.1 [Build: pybind11 → nanobind](#121-build-pybind11--nanobind)
-   - 12.2 [C++ Binding API Migration (pybind11 → nanobind)](#122-c-binding-api-migration-pybind11--nanobind)
-   - 12.3 [Python-Side MLIR 22 Adjustments](#123-python-side-mlir-22-adjustments)
-   - 12.4 [ModuleLauncher Registry Fix (Cross-DSO Registration)](#124-modulelauncher-registry-fix-cross-dso-registration)
-   - 12.5 [Return Value Policy for `__enter__` (non-copyable types)](#125-return-value-policy-for-__enter__-non-copyable-types)
-   - 12.6 [nanobind Rejects `None` Arguments by Default](#126-nanobind-rejects-none-arguments-by-default)
-   - 12.7 [MLIR LLVM Dialect C API Symbols in Common CAPI Library](#127-mlir-llvm-dialect-c-api-symbols-in-common-capi-library)
-   - 12.8 [MLIR 22 Operation Name API Change](#128-mlir-22-operation-name-api-change)
-   - 12.9 [nanobind `std::string_view` Type Caster](#129-nanobind-stdstring_view-type-caster)
-   - 12.10 [Static Property Binding for `DataClassRegistry.classes`](#1210-static-property-binding-for-dataclassregistryclasses)
-   - 12.11 [`std::optional` Dereference Guard in `ReturnToOutputLog`](#1211-stdoptional-dereference-guard-in-returntooutputlog)
-   - 12.12 [QPU Registry Cross-DSO Registration](#1212-qpu-registry-cross-dso-registration)
-   - 12.13 [ServerHelper / Executor Cross-DSO Lookup](#1213-serverhelper--executor-cross-dso-lookup)
-   - 12.14 [nanobind `ndarray` Migration for Array/Matrix Interop](#1214-nanobind-ndarray-migration-for-arraymatrix-interop)
-   - 12.15 [nanobind Strict Type Coercion for `std::vector<double>` Properties](#1215-nanobind-strict-type-coercion-for-stdvectordouble-properties)
-   - 12.16 [`num_parameters` Attribute Access for Noise Channels](#1216-num_parameters-attribute-access-for-noise-channels)
-   - 12.17 [nanobind `tp_init` Bypasses Python `__init__` Override on ScalarOperator](#1217-nanobind-tp_init-bypasses-python-__init__-override-on-scalaroperator)
-   - 12.18 [Missing `to_matrix(**kwargs)` Overloads on Spin/Boson/Fermion Operators](#1218-missing-to_matrixkwargs-overloads-on-spinbosonfermion-operators)
-   - 12.19 [`cc.sizeof` Emits Poison for Structs Containing `stdvec` Members](#1219-ccsizeof-emits-poison-for-structs-containing-stdvec-members)
-   - 12.20 [Error Message Change for `cudaq.run` with Dynamic Struct Returns](#1220-error-message-change-for-cudaqrun-with-dynamic-struct-returns)
-   - 12.21 [`InstantiateCallableOp` Closure Buffer Overflow (Inner Function Float Capture)](#1221-instantiatecallableop-closure-buffer-overflow-inner-function-float-capture)
-   - 12.22 [`callable.qke` FileCheck Test Update for Closure Alloca Fix](#1222-callableqke-filecheck-test-update-for-closure-alloca-fix)
-   - 12.23 [`PyRemoteSimulatorQPU` Missing `launchModule` Override (Null `m_mlirContext` Abort)](#1223-pyremotesimulatorqpu-missing-launchmodule-override-null-m_mlircontext-abort)
-   - 12.24 [Mock QPU `llvmlite` Initialization Update for LLVM 20+](#1224-mock-qpu-llvmlite-initialization-update-for-llvm-20)
-   - 12.25 [Mock QPU Backend Test `startServer` Refactor](#1225-mock-qpu-backend-test-startserver-refactor)
-   - 12.26 [Missing `nanobind/stl/string.h` in `py_ObserveResult.cpp`](#1226-missing-nanobindstlstringh-in-py_observeresultcpp)
+
+- 12.1 [Build: pybind11 → nanobind](#121-build-pybind11--nanobind)
+- 12.2 [C++ Binding API Migration (pybind11 → nanobind)](#122-c-binding-api-migration-pybind11--nanobind)
+- 12.3 [Python-Side MLIR 22 Adjustments](#123-python-side-mlir-22-adjustments)
+- 12.4 [ModuleLauncher Registry Fix (Cross-DSO Registration)](#124-modulelauncher-registry-fix-cross-dso-registration)
+- 12.5 [Return Value Policy for `__enter__` (non-copyable types)](#125-return-value-policy-for-__enter__-non-copyable-types)
+- 12.6 [nanobind Rejects `None` Arguments by Default](#126-nanobind-rejects-none-arguments-by-default)
+- 12.7 [MLIR LLVM Dialect C API Symbols in Common CAPI Library](#127-mlir-llvm-dialect-c-api-symbols-in-common-capi-library)
+- 12.8 [MLIR 22 Operation Name API Change](#128-mlir-22-operation-name-api-change)
+- 12.9 [nanobind `std::string_view` Type Caster](#129-nanobind-stdstring_view-type-caster)
+- 12.10 [Static Property Binding for `DataClassRegistry.classes`](#1210-static-property-binding-for-dataclassregistryclasses)
+- 12.11 [`std::optional` Dereference Guard in `ReturnToOutputLog`](#1211-stdoptional-dereference-guard-in-returntooutputlog)
+- 12.12 [QPU Registry Cross-DSO Registration](#1212-qpu-registry-cross-dso-registration)
+- 12.13 [ServerHelper / Executor Cross-DSO Lookup](#1213-serverhelper--executor-cross-dso-lookup)
+- 12.14 [nanobind `ndarray` Migration for Array/Matrix Interop](#1214-nanobind-ndarray-migration-for-arraymatrix-interop)
+- 12.15 [nanobind Strict Type Coercion for `std::vector<double>` Properties](#1215-nanobind-strict-type-coercion-for-stdvectordouble-properties)
+- 12.16 [`num_parameters` Attribute Access for Noise Channels](#1216-num_parameters-attribute-access-for-noise-channels)
+- 12.17 [nanobind `tp_init` Bypasses Python `__init__` Override on ScalarOperator](#1217-nanobind-tp_init-bypasses-python-__init__-override-on-scalaroperator)
+- 12.18 [Missing `to_matrix(**kwargs)` Overloads on Spin/Boson/Fermion Operators](#1218-missing-to_matrixkwargs-overloads-on-spinbosonfermion-operators)
+- 12.19 [`cc.sizeof` Emits Poison for Structs Containing `stdvec` Members](#1219-ccsizeof-emits-poison-for-structs-containing-stdvec-members)
+- 12.20 [Error Message Change for `cudaq.run` with Dynamic Struct Returns](#1220-error-message-change-for-cudaqrun-with-dynamic-struct-returns)
+- 12.21 [`InstantiateCallableOp` Closure Buffer Overflow (Inner Function Float Capture)](#1221-instantiatecallableop-closure-buffer-overflow-inner-function-float-capture)
+- 12.22 [`callable.qke` FileCheck Test Update for Closure Alloca Fix](#1222-callableqke-filecheck-test-update-for-closure-alloca-fix)
+- 12.23 [`PyRemoteSimulatorQPU` Missing `launchModule` Override (Null `m_mlirContext` Abort)](#1223-pyremotesimulatorqpu-missing-launchmodule-override-null-m_mlircontext-abort)
+- 12.24 [Mock QPU `llvmlite` Initialization Update for LLVM 20+](#1224-mock-qpu-llvmlite-initialization-update-for-llvm-20)
+- 12.25 [Mock QPU Backend Test `startServer` Refactor](#1225-mock-qpu-backend-test-startserver-refactor)
+- 12.26 [Missing `nanobind/stl/string.h` in `py_ObserveResult.cpp`](#1226-missing-nanobindstlstringh-in-py_observeresultcpp)
+
 13. [Complete File Index](#13-complete-file-index)
 
 ---
@@ -99,6 +105,7 @@ These changes appear repeatedly throughout the codebase and stem from fundamenta
 | `lib/Optimizer/Transforms/` | `AddDeallocs.cpp`, `AddMeasurements.cpp`, `AggressiveInlining.cpp`, `ApplyControlNegations.cpp`, `ApplyOpSpecialization.cpp`, `ArgumentSynthesis.cpp`, `ClassicalOptimization.cpp`, `CombineMeasurements.cpp`, `CombineQuantumAlloc.cpp`, `ConstantPropagation.cpp`, `DeadStoreRemoval.cpp`, `Decomposition.cpp`, `DecompositionPatterns.cpp`, `DelayMeasurements.cpp`, `DependencyAnalysis.cpp`, `DistributedDeviceCall.cpp`, `EraseNoise.cpp`, `EraseNopCalls.cpp`, `EraseVectorCopyCtor.cpp`, `ExpandControlVeqs.cpp`, `ExpandMeasurements.cpp`, `FactorQuantumAlloc.cpp`, `GenDeviceCodeLoader.cpp`, `GenKernelExecution.cpp`, `GetConcreteMatrix.cpp`, `GlobalizeArrayValues.cpp`, `LambdaLifting.cpp`, `LiftArrayAlloc.cpp`, `LinearCtrlRelations.cpp`, `LoopNormalize.cpp`, `LoopPeeling.cpp`, `LoopUnroll.cpp`, `LowerToCFG.cpp`, `LowerUnwind.cpp`, `Mapping.cpp`, `MemToReg.cpp`, `MultiControlDecomposition.cpp`, `ObserveAnsatz.cpp`, `PhaseFolding.cpp`, `PruneCtrlRelations.cpp`, `PySynthCallableBlockArgs.cpp`, `QuakeSimplify.cpp`, `QuakeSynthesizer.cpp`, `RefToVeqAlloc.cpp`, `RegToMem.cpp`, `ReplaceStateWithKernel.cpp`, `ResetBeforeReuse.cpp`, `SROA.cpp`, `StatePreparation.cpp`, `UnitarySynthesis.cpp`, `VariableCoalesce.cpp`, `WiresToWiresets.cpp` |
 
 **Example:**
+
 ```diff
 -  auto alloca = builder.create<cc::AllocaOp>(loc, ptrTy, size);
 +  auto alloca = cc::AllocaOp::create(builder, loc, ptrTy, size);
@@ -119,12 +126,14 @@ These changes appear repeatedly throughout the codebase and stem from fundamenta
 All calls to `LLVM::LLVMPointerType::get(someElementType)` changed to `LLVM::LLVMPointerType::get(context)`.
 
 **Files affected:**
+
 - `include/cudaq/Optimizer/Builder/Factory.h` — `getPointerType()` helper functions
 - `include/cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h` — `getQubitType()`, `getArrayType()`, `getResultType()`, `getCharPointerType()`
 - `lib/Optimizer/CodeGen/CCToLLVM.cpp`, `ConvertCCToLLVM.cpp`, `ConvertToExecMgr.cpp`, `ConvertToQIR.cpp`, `ConvertToQIRAPI.cpp`, `ConvertToQIRProfile.cpp`, `QuakeToCodegen.cpp`, `QuakeToExecMgr.cpp`, `QuakeToLLVM.cpp`, `WireSetsToProfileQIR.cpp`
 - `lib/Optimizer/Transforms/GenDeviceCodeLoader.cpp`, `GenKernelExecution.cpp`
 
 **Example (`QIROpaqueStructTypes.h`):**
+
 ```diff
 -inline mlir::Type getQubitType(mlir::MLIRContext *context) {
 -  return mlir::LLVM::LLVMPointerType::get(
@@ -140,6 +149,7 @@ All calls to `LLVM::LLVMPointerType::get(someElementType)` changed to `LLVM::LLV
 Intrinsic mangled names no longer embed element types in pointer arguments.
 
 **Files affected:**
+
 - `include/cudaq/Optimizer/Builder/Intrinsics.h`
 - `lib/Optimizer/Transforms/EraseVectorCopyCtor.cpp`
 
@@ -175,6 +185,7 @@ In the AST bridge, loading from an opaque LLVM pointer now requires explicitly p
 **Why:** MLIR 22 renamed this method to better reflect its semantics—it modifies an operation in-place within the rewriter's tracking framework.
 
 **Files affected:**
+
 - `lib/Optimizer/CodeGen/ConvertToQIRAPI.cpp`
 - `lib/Optimizer/CodeGen/ConvertToQIRProfile.cpp`
 - `lib/Optimizer/CodeGen/WireSetsToProfileQIR.cpp`
@@ -207,6 +218,7 @@ In the AST bridge, loading from an opaque LLVM pointer now requires explicitly p
 ### 1.5 `StringRef` Method Renames
 
 **Change:**
+
 - `StringRef::equals(x)` → `== x`
 - `StringRef::startswith(x)` → `starts_with(x)`
 - `StringRef::endswith(x)` → `ends_with(x)`
@@ -214,6 +226,7 @@ In the AST bridge, loading from an opaque LLVM pointer now requires explicitly p
 **Why:** LLVM 22 deprecated the old camelCase methods in favor of C++20-aligned `starts_with`/`ends_with` and standard `operator==`.
 
 **Files affected:**
+
 - `include/cudaq/Frontend/nvqpp/ASTBridge.h`
 - `include/cudaq/Optimizer/CodeGen/Peephole.h`
 - `lib/Frontend/nvqpp/ASTBridge.cpp`
@@ -240,6 +253,7 @@ In the AST bridge, loading from an opaque LLVM pointer now requires explicitly p
 **Why:** MLIR 22 removed the implicit construction of range types from `std::nullopt`. An empty initializer list `{}` is the correct way to express "no values."
 
 **Files affected:**
+
 - `lib/Optimizer/CodeGen/QuakeToCodegen.cpp`
 - `lib/Optimizer/CodeGen/QuakeToExecMgr.cpp`
 - `lib/Optimizer/CodeGen/QuakeToLLVM.cpp`
@@ -263,6 +277,7 @@ In the AST bridge, loading from an opaque LLVM pointer now requires explicitly p
 **Why:** LLVM 22 renamed this function to better express its semantics: it returns `nullptr`/failure if the input is null rather than crashing.
 
 **Files affected:**
+
 - `lib/Optimizer/CodeGen/ConvertToQIRProfile.cpp`
 - `lib/Optimizer/CodeGen/WireSetsToProfileQIR.cpp`
 - `lib/Optimizer/Transforms/QuakePropagateMetadata.cpp`
@@ -282,11 +297,13 @@ In the AST bridge, loading from an opaque LLVM pointer now requires explicitly p
 **Why:** MLIR 22 changed the pass tablegen code generation to emit per-pass definition guards, giving finer control over which pass base classes are instantiated and avoiding ODR issues.
 
 **Files affected:**
+
 - `lib/Optimizer/CodeGen/PassDetails.h` (removed global `GEN_PASS_CLASSES`)
 - `lib/Optimizer/Transforms/PassDetails.h` (removed global `GEN_PASS_CLASSES`)
 - Individual pass `.cpp` files now each define their own `GEN_PASS_DEF_*` before including the `.h.inc`.
 
 **Example (in a pass `.cpp` file):**
+
 ```diff
 +#define GEN_PASS_DEF_CONVERTTOQIRPROFILE
  #include "cudaq/Optimizer/CodeGen/Passes.h.inc"
@@ -318,6 +335,7 @@ In the AST bridge, loading from an opaque LLVM pointer now requires explicitly p
 **Why:** LLVM 22 removed the `useFoldAPI` knob; the fold-adaptor-folder behavior is now the default and only mode.
 
 **Files affected:**
+
 - `include/cudaq/Optimizer/CodeGen/CodeGenDialect.td`
 - `include/cudaq/Optimizer/Dialect/CC/CCDialect.td`
 - `include/cudaq/Optimizer/Dialect/Quake/QuakeDialect.td`
@@ -329,6 +347,7 @@ In the AST bridge, loading from an opaque LLVM pointer now requires explicitly p
 **Why:** MLIR 22 enforces stricter dialect loading—passes must declare all dialects they may create operations for. Failure to do so causes runtime errors during pass execution.
 
 **Files affected:**
+
 - `include/cudaq/Optimizer/CodeGen/Passes.td`
 - `include/cudaq/Optimizer/Transforms/Passes.td`
 - Related header/include files: `include/cudaq/Optimizer/CodeGen/Passes.h`, `include/cudaq/Optimizer/Transforms/Passes.h`, `lib/Optimizer/CodeGen/PassDetails.h`, `lib/Optimizer/Transforms/PassDetails.h`
@@ -351,6 +370,7 @@ In the AST bridge, loading from an opaque LLVM pointer now requires explicitly p
 ## 3. Region Branching Interface Overhaul
 
 **Change:** The `RegionBranchOpInterface` saw sweeping API changes:
+
 - `getSuccessorEntryOperands(std::optional<unsigned>)` → `getEntrySuccessorOperands(RegionBranchPoint)`
 - `getSuccessorRegions(std::optional<unsigned>, SmallVectorImpl<RegionSuccessor>&)` → `getSuccessorRegions(RegionBranchPoint, SmallVectorImpl<RegionSuccessor>&)` and new `getEntrySuccessorRegions(SmallVectorImpl<RegionSuccessor>&)` method
 - Uses of raw region indices replaced by `RegionBranchPoint` objects
@@ -359,6 +379,7 @@ In the AST bridge, loading from an opaque LLVM pointer now requires explicitly p
 **Why:** MLIR 22 introduced `RegionBranchPoint` as a type-safe replacement for raw `std::optional<unsigned>` region indices, improving clarity and preventing errors when reasoning about control-flow between regions.
 
 **Files affected:**
+
 - `include/cudaq/Optimizer/Dialect/CC/CCOps.td` — `cc_LoopOp`, `cc_IfOp` interface declarations
 - `lib/Optimizer/Dialect/CC/CCOps.cpp` — `cc::LoopOp` and `cc::IfOp` implementations of `getEntrySuccessorOperands`, `getSuccessorRegions`, `getEntrySuccessorRegions`
 - `lib/Optimizer/Transforms/LowerToCFG.cpp` — Consumes the updated interface
@@ -370,6 +391,7 @@ In the AST bridge, loading from an opaque LLVM pointer now requires explicitly p
 ## 4. Call-like Op Interface Updates
 
 **Change:** All call-like operations in the CC and Quake dialects gained:
+
 - Optional `arg_attrs` and `res_attrs` attributes for argument/result attributes
 - `getArgOperandsMutable()` method returning `MutableOperandRange`
 - `setCalleeFromCallable(CallInterfaceCallable)` method
@@ -378,6 +400,7 @@ In the AST bridge, loading from an opaque LLVM pointer now requires explicitly p
 **Why:** MLIR 22 expanded the `CallOpInterface` requirements. Conforming call operations must support argument/result attributes (for ABI-related metadata like `signext`, `zeroext`, etc.) and provide mutable access to argument operands for pass transformations like inlining.
 
 **Files affected:**
+
 - `include/cudaq/Optimizer/Dialect/CC/CCOps.td` — `cc_CallCallableOp`, `cc_CallIndirectCallableOp`, `cc_NoInlineCallOp`, `cc_DeviceCallOp`, `cc_VarargCallOp`
 - `include/cudaq/Optimizer/Dialect/Quake/QuakeOps.td` — `quake_ApplyOp` (also added `SymbolUserOpInterface`)
 - `lib/Optimizer/Dialect/Quake/QuakeOps.cpp` — `quake::ApplyOp::verifySymbolUses` implementation
@@ -387,6 +410,7 @@ In the AST bridge, loading from an opaque LLVM pointer now requires explicitly p
 ## 5. Memory Effects Interface Updates
 
 **Change:** The memory effects helpers for Quake operations changed their parameter types:
+
 - `mlir::ValueRange` → `llvm::MutableArrayRef<mlir::OpOperand>` for target/control operand lists
 - Individual `mlir::Value` → `mlir::OpOperand&`
 - Operations now call `get...Mutable()` accessors (e.g., `getTargetsMutable()`) instead of `getTargets()`
@@ -394,6 +418,7 @@ In the AST bridge, loading from an opaque LLVM pointer now requires explicitly p
 **Why:** MLIR 22 changed the `MemoryEffects` interface to require `OpOperand&` references instead of `Value`, enabling the framework to track which specific operands are read/written for more precise alias analysis.
 
 **Files affected:**
+
 - `include/cudaq/Optimizer/Dialect/Quake/QuakeOps.h` — `getResetEffectsImpl`, `getMeasurementEffectsImpl`, `getOperatorEffectsImpl` signatures
 - `include/cudaq/Optimizer/Dialect/Quake/QuakeOps.td` — `ResetOp`, `MxOp`/`MyOp`/`MzOp` (Measurement), `HOp`/`XOp`/... (QuakeOperator), `ExpPauliOp`
 - `lib/Optimizer/Dialect/Quake/QuakeOps.cpp` — All effects implementation functions
@@ -526,6 +551,7 @@ Multiple changes:
 **Why:** MLIR 22 changed `FuncOp::eraseArguments` to return `void`; compilers with `-Werror=unused-result` would fail without the cast (or the code previously used the return value).
 
 **Files affected:**
+
 - `lib/Optimizer/Transforms/ArgumentSynthesis.cpp`
 - `lib/Optimizer/Transforms/PySynthCallableBlockArgs.cpp`
 - `lib/Optimizer/Transforms/QuakeSynthesizer.cpp`
@@ -601,6 +627,7 @@ Multiple changes:
 **Why:** MLIR 22 requires operations that reference symbols to implement `SymbolUserOpInterface` for proper verification.
 
 **Files affected:**
+
 - `include/cudaq/Optimizer/Dialect/Quake/QuakeOps.td`
 - `lib/Optimizer/Dialect/Quake/QuakeOps.cpp`
 
@@ -647,6 +674,7 @@ Test files (`.qke` format) were updated to match the new IR output produced afte
 All `CHECK`/`CHECK-DAG` directives that matched typed LLVM pointers were updated to match opaque pointers.
 
 **Files affected:**
+
 - `test/Transforms/cc_execution_manager.qke`
 - `test/Transforms/kernel_exec-1.qke`
 - `test/Transforms/return_vector.qke`
@@ -655,6 +683,7 @@ All `CHECK`/`CHECK-DAG` directives that matched typed LLVM pointers were updated
 - `test/Transforms/wireset_codegen.qke`
 
 **Example (`state_prep.qke`):**
+
 ```diff
 -// CHECK: !llvm.ptr<struct<"Qubit", opaque>>
 +// CHECK: !llvm.ptr
@@ -692,6 +721,7 @@ The `test/Translate/` directory contains FileCheck-based tests for `cudaq-transl
 **Files affected:** `alloca_no_operand.qke`, `apply_noise.qke`, `argument.qke`, `base_profile-1.qke`, `base_profile-2.qke`, `base_profile-3.qke`, `base_profile-4.qke`, `basic.qke`, `callable.qke`, `callable_closure.qke`, `cast.qke`, `const_array.qke`, `custom_operation.qke`, `emit-mlir.qke`, `exp_pauli-1.qke`, `exp_pauli-3.qke`, `ghz.qke`, `init_state.cpp`, `issue_1703.qke`, `measure.qke`, `qalloc_initfloat.qke`, `qalloc_initialization.qke`, `return_values.qke`, `select.qke`, `veq_or_qubit_control_args.qke`
 
 **Example (`const_array.qke`):**
+
 ```diff
 -// CHECK: tail call void @g({ i32*, i64 } { i32* getelementptr inbounds ([3 x i32], [3 x i32]* @f.rodata_0, i32 0, i32 0), i64 3 })
 +// CHECK: tail call void @g({ ptr, i64 } { ptr @f.rodata_0, i64 3 })
@@ -706,6 +736,7 @@ The `test/Translate/` directory contains FileCheck-based tests for `cudaq-transl
 **Files affected:** `IQM/basic.qke`, `IQM/extractOnConstant.qke`, `nvqir-errors.qke`, `issue_1703.qke`
 
 **Example (`IQM/basic.qke`):**
+
 ```diff
 -%8 = llvm.alloca %c2_i64 x i1 : (i64) -> !llvm.ptr<i1>
 +%8 = llvm.alloca %c2_i64 x i1 : (i64) -> !llvm.ptr
@@ -792,6 +823,7 @@ The `test/AST-Quake/` directory contains end-to-end tests that compile C++ kerne
 **Files affected:** `apply_noise.cpp`, `base_profile-0.cpp`, `base_profile-1.cpp`, `negated_control.cpp`, `pure_quantum_struct.cpp`, `qalloc_initialization.cpp`, `to_qir.cpp`
 
 **Example (`qalloc_initialization.cpp`):**
+
 ```diff
 -// QIR-LABEL: define { i1*, i64 } @__nvqpp__mlirgen__Vanilla() local_unnamed_addr {
 -// QIR:         %[[VAL_1:.*]] = getelementptr inbounds [4 x double], [4 x double]* %[[VAL_0]], i64 0, i64 0
@@ -873,6 +905,7 @@ The runtime libraries (`runtime/`) and unit tests (`unittests/`) depend on LLVM/
 **Files affected:** `runtime/common/RuntimeCppMLIR.cpp`, `runtime/common/RuntimeMLIR.cpp`
 
 Additional missing includes added:
+
 - `llvm/IR/LLVMContext.h` in `runtime/common/LayoutInfo.cpp` (previously pulled in transitively)
 - `llvm/IR/DataLayout.h` in `runtime/common/ArgumentConversion.cpp`
 - `llvm/ExecutionEngine/Orc/JITTargetMachineBuilder.h` in `runtime/common/RuntimeMLIRCommonImpl.h`
@@ -968,6 +1001,7 @@ LLVM 22 significantly changed the JIT execution engine setup APIs. These changes
 ### 11.5 MLIR Context Initialization for JIT
 
 **Change:** Added explicit registration of dialect inliner extensions and builtin dialect translation in `createMLIRContext()`:
+
 - `mlir::func::registerInlinerExtension(registry)`
 - `mlir::LLVM::registerInlinerInterface(registry)`
 - `registerBuiltinDialectTranslation(registry)`
@@ -978,6 +1012,7 @@ LLVM 22 significantly changed the JIT execution engine setup APIs. These changes
 **Files affected:** `runtime/common/RuntimeMLIR.cpp`
 
 **New includes added:**
+
 - `mlir/Dialect/Func/Extensions/InlinerExtension.h`
 - `mlir/Dialect/LLVMIR/Transforms/InlinerInterfaceImpl.h`
 - `mlir/Target/LLVMIR/Dialect/Builtin/BuiltinToLLVMIRTranslation.h`
@@ -1020,6 +1055,7 @@ Corrected argument order from `(builder, value, type)` to `(builder, type, value
 **Why:** LLVM 22's `TypeSwitch` implementation changed how `function_traits` deduces lambda argument types, causing compilation failures for lambdas with auto-deduced parameters when their argument type is a complex MLIR type.
 
 **Additional fixes:**
+
 - `auto allocSize` → `Value allocSize` to resolve `TypedValue<IntegerType>` assignment mismatch from `arith::ConstantIntOp::create()`.
 - `(void)initFunc.insertArgument(...)` to handle `[[nodiscard]]` on the new `LogicalResult` return type.
 - `[[maybe_unused]]` on `genConstant` to suppress unused-function warning.
@@ -1039,6 +1075,7 @@ Corrected argument order from `(builder, value, type)` to `(builder, type, value
 #### 11.8.3 `unittests/Optimizer/DecompositionPatternSelectionTest.cpp`
 
 **Changes:**
+
 - All `builder.create<Op>` → `Op::create(builder, ...)`.
 - Added `LogicalResult matchAndRewrite(Operation *op, PatternRewriter &rewriter) const override { return failure(); }` to the `PatternTest` class.
 
@@ -1080,6 +1117,7 @@ The migration to LLVM/MLIR 22 coincided with a switch from **pybind11** to **nan
 **Why:** MLIR 22 adopts nanobind for its Python bindings; CUDA-Q’s extension is built as an MLIR Python extension and must use the same stack. Pybind11 subdirectory/patches were removed in favor of nanobind and `mlir_configure_python_dev_packages`.
 
 **Files affected:**
+
 - **Root `CMakeLists.txt`:** Removed pybind11 subdirectory/patches; added use of MLIR’s Python/nanobind detection (e.g. `mlir_configure_python_dev_packages` or equivalent) so Python3 and nanobind are found consistently with MLIR.
 - **`python/CMakeLists.txt`:** Adjusted to use nanobind and the MLIR-configured Python/nanobind.
 - **`python/extension/CMakeLists.txt`:** Removed all pybind11 references; extension targets use nanobind and MLIR’s `declare_mlir_python_extension` (or equivalent) for building the `_quakeDialects` (and related) DSOs. The extension links **libcudaq** (and optionally uses a force-link flag such as `-Wl,--no-as-needed`) so that `cudaq_add_module_launcher_node` and other symbols are resolved and registration runs in the correct DSO.
@@ -1121,6 +1159,7 @@ The migration to LLVM/MLIR 22 coincided with a switch from **pybind11** to **nan
 **Why:** MLIR 22 changed PassManager and other APIs; the Python bridge must call the correct methods and handle Values vs Ops where required.
 
 **Details:**
+
 - **PassManager.run:** `pm.run(module)` was replaced with `pm.run(module.operation)` (or equivalent) so that the pass manager receives an `Operation` as in MLIR 22. **Files affected:** `python/cudaq/kernel/ast_bridge.py`, `python/cudaq/kernel/kernel_builder.py` (or equivalent paths).
 - **Context clear:** Safe use of `_clear_live_operations` / `clear_live_operations` via `getattr` in **`ast_bridge.py`** to avoid attribute errors if the symbol is missing or renamed.
 - **Arith ops:** In **`ast_bridge.py`**, code that builds or inspects Arith ops was updated to use MLIR `Value`s (e.g. `.result`) in range loops so that Arith ops receive values, not raw ops, where the API expects values.
@@ -1385,9 +1424,11 @@ Replaced `PyObject_GetBuffer` in `ComplexMatrix.__init__` and `KrausOperator.__i
 #### 12.14.3 `ctypes` Removal from `to_numpy` Methods
 
 All `to_numpy` methods that used the pattern:
+
 ```python
 ctypes.c_char * bufSize).from_address(intptr) → np.frombuffer(...).reshape(...)
 ```
+
 were replaced with `nb::ndarray<py::numpy, T>(data, ndim, shape, owner).cast()` or equivalent. This applies to `ComplexMatrix.to_numpy`, `state_view.to_numpy`, and related methods.
 
 For GPU data that must be copied to host, `nb::capsule` is now used to manage the lifetime of the host-side allocation, replacing the unsafe global `hostDataFromDevice` vector.
@@ -1399,6 +1440,7 @@ For GPU data that must be copied to host, `nb::capsule` is now used to manage th
 Added `__array__` method bindings to `KrausOperator` and `StateMemoryView`. Without `__array__`, NumPy falls back to slow/broken iteration via `__getitem__`/`__len__` when encountering these objects in expressions like `np.array(obj)` or `obj == numpy_array`. This replaces pybind11's `def_buffer` which is not available in nanobind.
 
 The `__array__` method simply delegates to the object's `to_numpy()` method:
+
 ```cpp
 .def("__array__",
      [](py::object self, py::args, py::kwargs) {
@@ -1460,6 +1502,7 @@ The dead Python-side `__init__` override and its unused imports (`inspect`, `_ar
 **Key pattern:** When migrating from pybind11 to nanobind, any Python-side `__init__`/`__new__` overrides on C++ extension classes must be moved into the C++ binding definition. nanobind's `tp_init` dispatch is not interceptable from Python.
 
 **Files affected:**
+
 - `python/runtime/cudaq/operators/py_scalar_op.cpp` — Replaced `scalar_callback` `__init__` overload with two `py::object` overloads
 - `python/cudaq/operators/scalar/scalar_op.py` — Removed dead `__init__` override and unused imports
 - `python/cudaq/operators/helpers.py` — Added `_evaluate_generator` helper function
@@ -1473,6 +1516,7 @@ The dead Python-side `__init__` override and its unused imports (`inspect`, `_ar
 **Solution:** Added a `to_matrix(py::kwargs)` overload to each of the six operator types. The implementation calls the operator's `to_matrix` with an empty `dimension_map()` and the parameter map extracted from kwargs via `details::kwargs_to_param_map`.
 
 **Files affected:**
+
 - `python/runtime/cudaq/operators/py_spin_op.cpp` — Added overload to `spin_op` and `spin_op_term`
 - `python/runtime/cudaq/operators/py_boson_op.cpp` — Added overload to `boson_op` and `boson_op_term`
 - `python/runtime/cudaq/operators/py_fermion_op.cpp` — Added overload to `fermion_op` and `fermion_op_term`
@@ -1503,6 +1547,7 @@ def populate(t: MyTuple, size: int) -> list[MyTuple]:
 ```
 
 **Root cause chain:**
+
 1. `cc.sizeof !cc.struct<"MyTuple" {!cc.stdvec<i64>, !cc.stdvec<i64>}>` emitted during codegen
 2. `isDynamicType(struct_with_stdvec)` → `true` (because stdvec is a `SpanLikeType`)
 3. `cc.sizeof` replaced with `cc.poison` → lowered to `llvm.mlir.undef`
@@ -1511,6 +1556,7 @@ def populate(t: MyTuple, size: int) -> list[MyTuple]:
 6. Subsequent `free()` on corrupted pointers → crash
 
 **Files affected:**
+
 - `lib/Optimizer/CodeGen/CCToLLVM.cpp` — `SizeOfOpPattern::matchAndRewrite`: `isDynamicType` → `isDynamicallySizedType`
 
 ---
@@ -1522,6 +1568,7 @@ def populate(t: MyTuple, size: int) -> list[MyTuple]:
 **Why:** The error message for calling `cudaq.run` with a kernel that returns a struct containing dynamically-sized members changed from `'Tuple size mismatch'` to `'Unsupported element type in struct type.'` as a result of the LLVM 22 migration. The test expectation needed to match the new wording.
 
 **Files affected:**
+
 - `python/tests/kernel/test_assignments.py` — Updated assertion string at line 207
 
 ---
@@ -1550,6 +1597,7 @@ def test4a():
 ```
 
 **Root cause chain:**
+
 1. `cc.instantiate_callable @thunk(%angle_ptr, %qubit_ref)` captures 2 values
 2. `InstantiateCallableOpPattern` builds tuple struct `!llvm.struct<(ptr, ptr)>` (16 bytes)
 3. Allocates closure buffer: `alloca 1 x !llvm.ptr` (8 bytes) — **too small!**
@@ -1558,6 +1606,7 @@ def test4a():
 6. `cc.load` of captured float reads the corrupted memory → 0
 
 **Files affected:**
+
 - `lib/Optimizer/CodeGen/CCToLLVM.cpp` — `InstantiateCallableOpPattern::matchAndRewrite`: alloca type changed from `tuplePtrTy` (`getPtrType()`) to `tupleTy` (the closure struct type)
 
 ---
@@ -1581,6 +1630,7 @@ def test4a():
 In these specific test cases the tuples are all ≤ 8 bytes, so `alloca ptr` happened to allocate enough space. The bug only causes incorrect behavior for tuples > 8 bytes (e.g., inner functions capturing multiple pointer-sized values).
 
 **Files affected:**
+
 - `test/Translate/callable.qke` — 3 CHECK pattern updates
 
 ### 12.23 `PyRemoteSimulatorQPU` Missing `launchModule` Override (Null `m_mlirContext` Abort)
@@ -1596,6 +1646,7 @@ The `constructKernelPayload` function inside the REST client already handles the
 **Symptom:** All `python/tests/remote/test_remote_platform.py` tests crash with `Fatal Python error: Aborted` on the first test that executes a kernel (e.g., `test_sample`). The `test_setup` test passes because it only calls `cudaq.set_target("remote-mqpu", auto_launch=...)`, which succeeds — the QPU is found and the REST servers are launched. The crash happens on the first actual kernel execution.
 
 **Root cause chain:**
+
 1. `cudaq.sample(kernel)` → `kernel.__call__()` → `cudaq_runtime.marshal_and_launch_module(name, module, retTy, *args)`
 2. → `cudaq::streamlinedLaunchModule` → `platform.launchModule(name, module, rawArgs, resTy, qpu_id)`
 3. → `BaseRemoteSimulatorQPU::launchModule` (inherited, not overridden)
@@ -1609,6 +1660,7 @@ The `constructKernelPayload` function inside the REST client already handles the
 2. **`runtime/cudaq/platform/mqpu/MultiQPUPlatform.cpp`:** Removed the duplicate `LLVM_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)`. The canonical QPU registry instance lives in `quantum_platform.cpp` (`libcudaq`). With LLVM 22's `static inline` Head/Tail pointers in `llvm::Registry`, having the instantiation in multiple DSOs can cause registry fragmentation — nodes added via `cudaq_add_qpu_node` (which targets `libcudaq`'s registry) would be invisible to code in the mqpu platform DSO if the linker maintained separate copies.
 
 **Files affected:**
+
 - `python/runtime/utils/PyRemoteSimulatorQPU.cpp` — Added `launchModule` override to `PyRemoteSimulatorCommonBase`
 - `runtime/cudaq/platform/mqpu/MultiQPUPlatform.cpp` — Removed duplicate `LLVM_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)`
 
@@ -1625,11 +1677,13 @@ These mock QPU tests were not running before the LLVM upgrade because the `CUDAQ
 Additionally, the updated LLVM 20 backend in `llvmlite` produces slightly different numerical results for JIT-compiled quantum circuits. The `assert_close` tolerance in several backend test files used a tight lower bound of `-1.9` for the VQE expectation value, which the mock QPU now slightly exceeds (e.g., `-1.916...`). The bounds were widened to `-2.0` to accommodate this numerical drift while still validating correctness.
 
 **Symptom:**
+
 - `RuntimeError: llvmlite.binding.initialize() is deprecated and will be removed.` — from `llvm.initialize()`
 - `RuntimeError: Unable to find target for this triple (no targets are registered)` — if `initialize_native_target()` is also removed
 - `AssertionError: assert_close(-1.9164...)` returned `False` — tight tolerance on expectation values
 
 **Files affected (mock QPU initialization):**
+
 - `utils/mock_qpu/quantinuum/__init__.py` — Removed `llvm.initialize()`
 - `utils/mock_qpu/qci/__init__.py` — Removed `llvm.initialize()`
 - `utils/mock_qpu/ionq/__init__.py` — Removed `llvm.initialize()`
@@ -1638,6 +1692,7 @@ Additionally, the updated LLVM 20 backend in `llvmlite` produces slightly differ
 - `utils/mock_qpu/anyon/__init__.py` — Removed `llvm.initialize()`
 
 **Files affected (test tolerance):**
+
 - `python/tests/backends/test_Quantinuum_kernel.py` — Widened `assert_close` lower bound from `-1.9` to `-2.0`
 - `python/tests/backends/test_Quantinuum_ng_kernel.py` — Same
 - `python/tests/backends/test_Quantinuum_builder.py` — Same
@@ -1659,6 +1714,7 @@ These tests were not running before the LLVM upgrade because the `CUDAQ_ENABLE_R
 **Symptom:** All backend mock QPU tests (Quantinuum, IonQ, OQC, QCI, IQM, etc.) were silently skipped with `pytest.skip("Mock qpu not available.", allow_module_level=True)`.
 
 **Fix pattern (applied to each test file):**
+
 ```python
 # Before:
 try:
@@ -1679,6 +1735,7 @@ except:
 ```
 
 **Files affected:**
+
 - `python/tests/backends/test_Quantinuum_kernel.py`
 - `python/tests/backends/test_Quantinuum_builder.py`
 - `python/tests/backends/test_Quantinuum_ng_kernel.py`
@@ -1696,6 +1753,7 @@ except:
 **Why:** Unlike pybind11, nanobind requires explicit opt-in for each STL type caster. The `__str__` method on `AsyncObserveResult` returns `std::string` (via `std::stringstream::str()`), but without the `nanobind/stl/string.h` header, nanobind has no registered type caster for `std::string` → Python `str`. Every other `py_*.cpp` file in `python/runtime/common/` already included this header; it was simply missed in `py_ObserveResult.cpp` during the pybind11 → nanobind migration.
 
 **Symptom:** `print(future)` or `str(future)` on an `AsyncObserveResult` raises:
+
 ```
 TypeError: Unable to convert function return value to a Python type! The signature was
     __str__(self) -> std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >
@@ -1704,6 +1762,7 @@ TypeError: Unable to convert function return value to a Python type! The signatu
 This caused `test_quantinuum_observe` to fail at `print(future)` (line 157 of `test_Quantinuum_kernel.py`), which tests the future serialization/deserialization round-trip.
 
 **Files affected:**
+
 - `python/runtime/common/py_ObserveResult.cpp` — Added `#include <nanobind/stl/string.h>`
 
 ---

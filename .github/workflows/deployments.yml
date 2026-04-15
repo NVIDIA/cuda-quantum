@@ -77,6 +77,7 @@ jobs:
       pull_request_commit: ${{ steps.pr_info.outputs.merge_commit }}
       llvm_commit: ${{ steps.build_config.outputs.llvm_commit }}
       pybind11_commit: ${{ steps.build_config.outputs.pybind11_commit }}
+      nanobind_commit: ${{ steps.build_config.outputs.nanobind_commit }}
       cache_base: ${{ steps.build_info.outputs.cache_base }}
       cache_target: ${{ steps.build_info.outputs.cache_target }}
       multi_platform: ${{ steps.build_info.outputs.multi_platform }}
@@ -188,6 +189,7 @@ jobs:
         run: |
           echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
           echo "pybind11_commit=$(git rev-parse @:./tpls/pybind11)" >> $GITHUB_OUTPUT
+          echo "nanobind_commit=$(git rev-parse @:./tpls/nanobind)" >> $GITHUB_OUTPUT
 
           if ${{ github.event_name != 'workflow_run' || steps.pr_info.outputs.pr_number != '' }}; then
             echo "build_dependencies=true" >> $GITHUB_OUTPUT
@@ -250,6 +252,7 @@ jobs:
         distro=rhel8
         llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
         pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
+        nanobind_commit=${{ needs.metadata.outputs.nanobind_commit }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}

@@ -110,8 +110,8 @@ struct OneQubitOpZYZ : public Decomposer {
         FunctionType::get(parentModule.getContext(), targets[0].getType(), {});
     auto insPt = rewriter.saveInsertionPoint();
     rewriter.setInsertionPointToStart(parentModule.getBody());
-    auto func =
-        func::FuncOp::create(rewriter, parentModule->getLoc(), funcName, funcTy);
+    auto func = func::FuncOp::create(rewriter, parentModule->getLoc(), funcName,
+                                     funcTy);
     func.setPrivate();
     auto *block = func.addEntryBlock();
     rewriter.setInsertionPointToStart(block);
@@ -355,8 +355,8 @@ struct TwoQubitOpKAK : public Decomposer {
         FunctionType::get(parentModule.getContext(), targets.getTypes(), {});
     auto insPt = rewriter.saveInsertionPoint();
     rewriter.setInsertionPointToStart(parentModule.getBody());
-    auto func =
-        func::FuncOp::create(rewriter, parentModule->getLoc(), funcName, funcTy);
+    auto func = func::FuncOp::create(rewriter, parentModule->getLoc(), funcName,
+                                     funcTy);
     func.setPrivate();
     auto *block = func.addEntryBlock();
     rewriter.setInsertionPointToStart(block);
@@ -364,12 +364,12 @@ struct TwoQubitOpKAK : public Decomposer {
     FloatType floatTy = rewriter.getF64Type();
     /// NOTE: Operator notation is right-to-left, whereas circuit notation is
     /// left-to-right. Hence, operations are applied in reverse order.
-    quake::ApplyOp::create(rewriter, 
-        loc, TypeRange{},
+    quake::ApplyOp::create(
+        rewriter, loc, TypeRange{},
         SymbolRefAttr::get(rewriter.getContext(), funcName + "b0"), false,
         ValueRange{}, ValueRange{arguments[1]});
-    quake::ApplyOp::create(rewriter, 
-        loc, TypeRange{},
+    quake::ApplyOp::create(
+        rewriter, loc, TypeRange{},
         SymbolRefAttr::get(rewriter.getContext(), funcName + "b1"), false,
         ValueRange{}, ValueRange{arguments[0]});
     /// TODO: Refactor to use a transformation pass for `quake.exp_pauli`
@@ -408,12 +408,12 @@ struct TwoQubitOpKAK : public Decomposer {
       quake::RzOp::create(rewriter, loc, zAngle, ValueRange{}, arguments[0]);
       quake::XOp::create(rewriter, loc, arguments[1], arguments[0]);
     }
-    quake::ApplyOp::create(rewriter, 
-        loc, TypeRange{},
+    quake::ApplyOp::create(
+        rewriter, loc, TypeRange{},
         SymbolRefAttr::get(rewriter.getContext(), funcName + "a0"), false,
         ValueRange{}, ValueRange{arguments[1]});
-    quake::ApplyOp::create(rewriter, 
-        loc, TypeRange{},
+    quake::ApplyOp::create(
+        rewriter, loc, TypeRange{},
         SymbolRefAttr::get(rewriter.getContext(), funcName + "a1"), false,
         ValueRange{}, ValueRange{arguments[0]});
     auto globalPhase = 2.0 * std::arg(phase);
@@ -499,8 +499,8 @@ public:
       RewritePatternSet patterns(ctx);
       patterns.insert<CustomUnitaryPattern>(ctx);
       LLVM_DEBUG(llvm::dbgs() << "Before unitary synthesis: " << func << '\n');
-      if (failed(applyPatternsGreedily(func.getOperation(),
-                                              std::move(patterns))))
+      if (failed(
+              applyPatternsGreedily(func.getOperation(), std::move(patterns))))
         signalPassFailure();
       LLVM_DEBUG(llvm::dbgs() << "After unitary synthesis: " << func << '\n');
     }

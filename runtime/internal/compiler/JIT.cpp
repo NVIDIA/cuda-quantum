@@ -132,11 +132,10 @@ cudaq_internal::compiler::createWrappedKernel(std::string_view irString,
 
   // Create the object layer
   auto objectLinkingLayerCreator = [&](llvm::orc::ExecutionSession &session) {
-    auto objectLayer =
-        std::make_unique<llvm::orc::RTDyldObjectLinkingLayer>(
-            session, [](const llvm::MemoryBuffer &) {
-              return std::make_unique<llvm::SectionMemoryManager>();
-            });
+    auto objectLayer = std::make_unique<llvm::orc::RTDyldObjectLinkingLayer>(
+        session, [](const llvm::MemoryBuffer &) {
+          return std::make_unique<llvm::SectionMemoryManager>();
+        });
     return objectLayer;
   };
 
@@ -220,9 +219,9 @@ void insertSetupAndCleanupOperations(Operation *module) {
     OpBuilder builder(&block, block.begin());
     auto loc = builder.getUnknownLoc();
 
-    auto origMode = mlir::LLVM::CallOp::create(
-        builder, loc, mlir::TypeRange{boolTy}, isDynamicSymbol,
-        mlir::ValueRange{});
+    auto origMode =
+        mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{boolTy},
+                                   isDynamicSymbol, mlir::ValueRange{});
 
     auto numQubitsVal =
         cudaq::opt::factory::genLlvmI64Constant(loc, builder, num_qubits);
@@ -239,9 +238,9 @@ void insertSetupAndCleanupOperations(Operation *module) {
     // At the end of the function, deallocate the qubits and restore the
     // simulator state.
     builder.setInsertionPoint(std::prev(blocks.end())->getTerminator());
-    mlir::LLVM::CallOp::create(
-        builder, loc, mlir::TypeRange{voidTy}, releaseSymbol,
-        mlir::ValueRange{qubitAlloc.getResult()});
+    mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{voidTy},
+                               releaseSymbol,
+                               mlir::ValueRange{qubitAlloc.getResult()});
     mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{voidTy},
                                setDynamicSymbol,
                                mlir::ValueRange{origMode.getResult()});
@@ -339,8 +338,7 @@ cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
     if (!llvmModule)
       throw std::runtime_error("[createJITEngine] Lowering to LLVM IR failed.");
 
-    auto tmBuilderOrError =
-        llvm::orc::JITTargetMachineBuilder::detectHost();
+    auto tmBuilderOrError = llvm::orc::JITTargetMachineBuilder::detectHost();
     if (tmBuilderOrError) {
       auto tmOrError = tmBuilderOrError->createTargetMachine();
       if (tmOrError)

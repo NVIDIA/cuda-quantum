@@ -13,9 +13,9 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Todo.h"
 #include "clang/AST/ASTConsumer.h"
-#include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/AST/GlobalDecl.h"
 #include "clang/AST/Mangle.h"
+#include "clang/AST/RecursiveASTVisitor.h"
 #include "clang/Analysis/CallGraph.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/FrontendAction.h"
@@ -372,8 +372,7 @@ public:
   // Type nodes to lower to Quake.
   //===--------------------------------------------------------------------===//
 
-  bool TraverseTypedefType(clang::TypedefType *t,
-                           bool &ShouldVisitChildren) {
+  bool TraverseTypedefType(clang::TypedefType *t, bool &ShouldVisitChildren) {
     ShouldVisitChildren = false;
     return TraverseType(t->desugar());
   }
@@ -386,13 +385,12 @@ public:
     ShouldVisitChildren = false;
     return TraverseType(t->desugar());
   }
-  bool TraverseUsingTypeLoc(clang::UsingTypeLoc tl,
-                            bool &ShouldVisitChildren) {
+  bool TraverseUsingTypeLoc(clang::UsingTypeLoc tl, bool &ShouldVisitChildren) {
     ShouldVisitChildren = false;
     return TraverseType(tl.getType());
   }
-  bool TraverseTemplateSpecializationType(
-      clang::TemplateSpecializationType *t, bool &ShouldVisitChildren) {
+  bool TraverseTemplateSpecializationType(clang::TemplateSpecializationType *t,
+                                          bool &ShouldVisitChildren) {
     ShouldVisitChildren = false;
     return TraverseType(t->desugar());
   }
@@ -403,11 +401,8 @@ public:
     ShouldVisitChildren = false;
     return TraverseType(t->desugar());
   }
-  bool TraverseNestedNameSpecifier(clang::NestedNameSpecifier) {
-    return true;
-  }
-  bool TraverseDecltypeType(clang::DecltypeType *t,
-                            bool &ShouldVisitChildren) {
+  bool TraverseNestedNameSpecifier(clang::NestedNameSpecifier) { return true; }
+  bool TraverseDecltypeType(clang::DecltypeType *t, bool &ShouldVisitChildren) {
     ShouldVisitChildren = false;
     return TraverseType(t->desugar());
   }

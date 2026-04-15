@@ -219,29 +219,28 @@ static void throwNoRest [[noreturn]] () {
 RestClient::RestClient() : sslOptions(std::make_unique<cpr::SslOptions>()) {}
 RestClient::~RestClient() = default;
 
-nlohmann::json
-RestClient::post(const std::string_view, const std::string_view,
-                 nlohmann::json &, std::map<std::string, std::string> &, bool,
-                 bool, const std::map<std::string, std::string> &,
-                 std::map<std::string, std::string> *) {
+nlohmann::json RestClient::post(const std::string_view, const std::string_view,
+                                nlohmann::json &,
+                                std::map<std::string, std::string> &, bool,
+                                bool,
+                                const std::map<std::string, std::string> &,
+                                std::map<std::string, std::string> *) {
   throwNoRest();
 }
 void RestClient::put(const std::string_view, const std::string_view,
                      nlohmann::json &, std::map<std::string, std::string> &,
-                     bool, bool,
-                     const std::map<std::string, std::string> &) {
+                     bool, bool, const std::map<std::string, std::string> &) {
   throwNoRest();
 }
-std::string
-RestClient::getRawText(const std::string_view, const std::string_view,
-                       std::map<std::string, std::string> &, bool,
-                       const std::map<std::string, std::string> &) {
+std::string RestClient::getRawText(const std::string_view,
+                                   const std::string_view,
+                                   std::map<std::string, std::string> &, bool,
+                                   const std::map<std::string, std::string> &) {
   throwNoRest();
 }
-nlohmann::json
-RestClient::get(const std::string_view, const std::string_view,
-                std::map<std::string, std::string> &, bool,
-                const std::map<std::string, std::string> &) {
+nlohmann::json RestClient::get(const std::string_view, const std::string_view,
+                               std::map<std::string, std::string> &, bool,
+                               const std::map<std::string, std::string> &) {
   throwNoRest();
 }
 void RestClient::del(const std::string_view, const std::string_view,
@@ -250,8 +249,7 @@ void RestClient::del(const std::string_view, const std::string_view,
   throwNoRest();
 }
 void RestClient::download(const std::string_view, const std::string &, bool,
-                          bool,
-                          const std::map<std::string, std::string> &) {
+                          bool, const std::map<std::string, std::string> &) {
   throwNoRest();
 }
 } // namespace cudaq
