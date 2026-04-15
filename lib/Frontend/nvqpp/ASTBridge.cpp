@@ -91,9 +91,6 @@ trimmedMangledTypeName(clang::QualType ty,
   return s;
 }
 
-// Removed: trimmedMangledTypeName(const clang::Type*, ...) - getTypeForDecl()
-// is deleted in clang 22. Use ASTContext::getRecordType() to get the QualType.
-
 std::string
 cudaq::details::getTagNameOfFunctionDecl(const clang::FunctionDecl *func,
                                          clang::ItaniumMangleContext *mangler) {
