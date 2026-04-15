@@ -23,6 +23,7 @@
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
 #include "cudaq/platform.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
+#include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq_internal/compiler/JIT.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
@@ -359,12 +360,12 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
         varArgIndices.clear();
     }
     const bool isFullySpecialized = varArgIndices.empty();
-    auto resultInfo = createResultInfo(resultTy, isEntryPoint, module);
 
     if (auto jit = alreadyBuiltJITCode(name, rawArgs)) {
-      cudaq::CompiledModule ck(name, resultInfo);
-      ck.attachJit(*jit, isFullySpecialized);
-      return ck;
+      CompiledModuleBuilder factory(name);
+      factory.setResultInfo(resultTy, isEntryPoint, module);
+      factory.attachJit(*jit, isFullySpecialized);
+      return factory.finish();
     }
 
     // 1. Check that this call is sane.
@@ -404,9 +405,10 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     cudaq::compiler_artifact::saveArtifact(name, rawArgs, jit,
                                            argsCreatorThunk);
 
-    cudaq::CompiledModule ck(name, resultInfo);
-    ck.attachJit(jit, isFullySpecialized);
-    return ck;
+    CompiledModuleBuilder factory(name);
+    factory.setResultInfo(resultTy, isEntryPoint, module);
+    factory.attachJit(jit, isFullySpecialized);
+    return factory.finish();
   }
 };
 } // namespace
