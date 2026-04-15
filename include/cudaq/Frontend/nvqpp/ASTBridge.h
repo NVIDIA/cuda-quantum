@@ -372,38 +372,31 @@ public:
   // Type nodes to lower to Quake.
   //===--------------------------------------------------------------------===//
 
-  bool TraverseTypedefType(clang::TypedefType *t, bool &ShouldVisitChildren) {
-    ShouldVisitChildren = false;
+  bool TraverseTypedefType(clang::TypedefType *t, bool &visitChildren) {
     return TraverseType(t->desugar());
   }
   bool TraverseTypedefTypeLoc(clang::TypedefTypeLoc tl,
-                              bool &ShouldVisitChildren) {
-    ShouldVisitChildren = false;
+                              bool &visitChildren) {
     return TraverseType(tl.getType());
   }
-  bool TraverseUsingType(clang::UsingType *t, bool &ShouldVisitChildren) {
-    ShouldVisitChildren = false;
+  bool TraverseUsingType(clang::UsingType *t, bool &visitChildren) {
     return TraverseType(t->desugar());
   }
-  bool TraverseUsingTypeLoc(clang::UsingTypeLoc tl, bool &ShouldVisitChildren) {
-    ShouldVisitChildren = false;
+  bool TraverseUsingTypeLoc(clang::UsingTypeLoc tl, bool &visitChildren) {
     return TraverseType(tl.getType());
   }
   bool TraverseTemplateSpecializationType(clang::TemplateSpecializationType *t,
-                                          bool &ShouldVisitChildren) {
-    ShouldVisitChildren = false;
+                                          bool &visitChildren) {
     return TraverseType(t->desugar());
   }
   bool TraverseTypeOfExprType(clang::TypeOfExprType *t,
-                              bool &ShouldVisitChildren) {
+                              bool &visitChildren) {
     // Do not visit the expression as it is has no semantics other than for
     // inferring a type.
-    ShouldVisitChildren = false;
     return TraverseType(t->desugar());
   }
   bool TraverseNestedNameSpecifier(clang::NestedNameSpecifier) { return true; }
-  bool TraverseDecltypeType(clang::DecltypeType *t, bool &ShouldVisitChildren) {
-    ShouldVisitChildren = false;
+  bool TraverseDecltypeType(clang::DecltypeType *t, bool &visitChildren) {
     return TraverseType(t->desugar());
   }
 
@@ -421,7 +414,7 @@ public:
     return Base::WalkUpFromFieldDecl(x);
   }
 
-  bool TraverseRecordType(clang::RecordType *t, bool &ShouldVisitChildren);
+  bool TraverseRecordType(clang::RecordType *t, bool &visitChildren);
   bool interceptRecordDecl(clang::RecordDecl *x);
   std::pair<std::uint64_t, unsigned> getWidthAndAlignment(clang::RecordDecl *x);
   bool VisitRecordDecl(clang::RecordDecl *x);

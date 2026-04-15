@@ -184,8 +184,7 @@ QuakeBridgeVisitor::findCallOperator(const clang::CXXRecordDecl *decl) {
 }
 
 bool QuakeBridgeVisitor::TraverseRecordType(clang::RecordType *t,
-                                            bool &ShouldVisitChildren) {
-  ShouldVisitChildren = false;
+                                            bool &visitChildren) {
   auto *recDecl = t->getDecl();
 
   if (ignoredClass(recDecl))
@@ -535,7 +534,7 @@ bool QuakeBridgeVisitor::doSyntaxChecks(const clang::FunctionDecl *x) {
   auto astTy = x->getType();
   // Verify the argument and return types are valid for a kernel.
   auto *protoTy = dyn_cast<clang::FunctionProtoType>(astTy.getTypePtr());
-  auto syntaxError = [&]<unsigned N>(const char(&msg)[N]) -> bool {
+  auto syntaxError = [&]<unsigned N>(const char (&msg)[N]) -> bool {
     reportClangError(x, mangler, msg);
     [[maybe_unused]] auto ty = popType();
     LLVM_DEBUG(llvm::dbgs() << "invalid type: " << ty << '\n');
