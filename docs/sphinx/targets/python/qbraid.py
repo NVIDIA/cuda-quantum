@@ -15,7 +15,6 @@ def kernel():
     x.ctrl(qvector[0], qvector[1])
 
 
-
 # Execute on Qbraid and print out the results.
 
 # Option A:

@@ -113,23 +113,17 @@ def simulate_job(qasm: str, num_shots: int) -> dict[str, int]:
     distribution = random.choices(possible_states, k=num_shots)
     result = {state: distribution.count(state) for state in set(distribution)}
 
-    if (
-        num_qubits == 2
-        and len(measured_qubits) == 1
-        and measured_qubits[0] == 0
-        and 0 in superposition_qubits
-    ):
+    if (num_qubits == 2 and len(measured_qubits) == 1 and
+            measured_qubits[0] == 0 and 0 in superposition_qubits):
         new_result = {}
         total_shots = num_shots
         half_shots = total_shots // 2
 
-        new_result["00"] = random.randint(
-            half_shots - half_shots // 4, half_shots + half_shots // 4
-        )
+        new_result["00"] = random.randint(half_shots - half_shots // 4,
+                                          half_shots + half_shots // 4)
         new_result["01"] = 0
-        new_result["10"] = random.randint(
-            half_shots - half_shots // 4, half_shots + half_shots // 4
-        )
+        new_result["10"] = random.randint(half_shots - half_shots // 4,
+                                          half_shots + half_shots // 4)
         new_result["11"] = 0
 
         remaining = total_shots - (new_result["00"] + new_result["10"])
@@ -163,7 +157,8 @@ def poll_job_status(job_id: str) -> dict[str, Any]:
 
 # v2 API: POST /jobs
 @app.post("/jobs")
-async def postJob(job: Job, x_api_key: Optional[str] = Header(None, alias="X-API-KEY")):
+async def postJob(job: Job,
+                  x_api_key: Optional[str] = Header(None, alias="X-API-KEY")):
     """Submit a quantum job for execution (v2 API)."""
     if x_api_key is None:
         raise HTTPException(status_code=401, detail="API key is required")
@@ -190,7 +185,13 @@ async def postJob(job: Job, x_api_key: Optional[str] = Header(None, alias="X-API
     JOBS_MOCK_RESULTS[newId] = counts
 
     # v2 response: wrapped in success/data envelope
-    return {"success": True, "data": {"jobQrn": newId, "status": "INITIALIZING"}}
+    return {
+        "success": True,
+        "data": {
+            "jobQrn": newId,
+            "status": "INITIALIZING"
+        }
+    }
 
 
 # Test-only: arm a failure for the next submitted job.
@@ -210,8 +211,8 @@ async def armDelayResults(count: int = Path(...)):
 # v2 API: GET /jobs/{job_qrn}
 @app.get("/jobs/{job_id}")
 async def getJob(
-    job_id: str = Path(...),
-    x_api_key: Optional[str] = Header(None, alias="X-API-KEY"),
+        job_id: str = Path(...),
+        x_api_key: Optional[str] = Header(None, alias="X-API-KEY"),
 ):
     """Retrieve the status of a quantum job (v2 API)."""
     if x_api_key is None:
@@ -226,8 +227,8 @@ async def getJob(
 # v2 API: GET /jobs/{job_qrn}/program
 @app.get("/jobs/{job_id}/program")
 async def getJobProgram(
-    job_id: str = Path(...),
-    x_api_key: Optional[str] = Header(None, alias="X-API-KEY"),
+        job_id: str = Path(...),
+        x_api_key: Optional[str] = Header(None, alias="X-API-KEY"),
 ):
     """Retrieve the program of a quantum job (v2 API)."""
     if x_api_key is None:
@@ -251,8 +252,8 @@ async def getJobProgram(
 # v2 API: GET /jobs/{job_qrn}/result
 @app.get("/jobs/{job_id}/result")
 async def getJobResult(
-    job_id: str = Path(...),
-    x_api_key: Optional[str] = Header(None, alias="X-API-KEY"),
+        job_id: str = Path(...),
+        x_api_key: Optional[str] = Header(None, alias="X-API-KEY"),
 ):
     """Retrieve the results of a quantum job (v2 API)."""
     if x_api_key is None:
@@ -263,14 +264,16 @@ async def getJobResult(
 
     if JOBS_MOCK_DB[job_id]["status"] in {"FAILED", "CANCELLED"}:
         raise HTTPException(
-            status_code=409, detail="Results unavailable. Job failed or was cancelled."
-        )
+            status_code=409,
+            detail="Results unavailable. Job failed or was cancelled.")
 
     if JOBS_MOCK_DB[job_id]["status"] != "COMPLETED":
         # v2: use success=false instead of "error" field
         return {
             "success": False,
-            "data": {"status": JOBS_MOCK_DB[job_id]["status"]},
+            "data": {
+                "status": JOBS_MOCK_DB[job_id]["status"]
+            },
         }
 
     if job_id not in JOBS_MOCK_RESULTS:
@@ -283,8 +286,10 @@ async def getJobResult(
         return {
             "success": False,
             "data": {
-                "status": "COMPLETED",
-                "message": "Failed to retrieve job results. Please wait, and try again.",
+                "status":
+                    "COMPLETED",
+                "message":
+                    "Failed to retrieve job results. Please wait, and try again.",
             },
         }
 
@@ -294,7 +299,9 @@ async def getJobResult(
     return {
         "success": True,
         "data": {
-            "resultData": {"measurementCounts": counts},
+            "resultData": {
+                "measurementCounts": counts
+            },
             "status": "COMPLETED",
             "cost": 0,
             "timeStamps": {},

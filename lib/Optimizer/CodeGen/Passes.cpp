@@ -136,8 +136,8 @@ void cudaq::opt::registerTargetPipelines() {
                              "Convert kernels to Fermioniq gate set.",
                              addFermioniqPipeline);
   PassPipelineRegistration<>("qbraid-gate-set-mapping",
-                              "Convert kernels to qBraid gate set.",
-                              addQbraidPipeline);
+                             "Convert kernels to qBraid gate set.",
+                             addQbraidPipeline);
 }
 
 void cudaq::opt::registerCodeGenDialect(DialectRegistry &registry) {

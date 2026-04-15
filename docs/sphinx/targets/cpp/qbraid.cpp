@@ -4,7 +4,6 @@
 // ```
 // This will submit the job to the Qbraid ideal simulator target (default).
 
-
 #include <cudaq.h>
 #include <fstream>
 

@@ -1,3 +1,11 @@
+/*******************************************************************************
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
 #include "cudaq/Support/Version.h"
@@ -30,7 +38,8 @@ public:
     if (!config["machine"].empty()) {
       backendConfig["device_id"] = config["machine"];
     } else {
-      backendConfig["device_id"] = getValueOrDefault(config, "device_id", DEFAULT_DEVICE);
+      backendConfig["device_id"] =
+          getValueOrDefault(config, "device_id", DEFAULT_DEVICE);
     }
 
     // Accept api_key from target arguments, fall back to QBRAID_API_KEY env var
@@ -61,7 +70,8 @@ public:
   ServerJobPayload
   createJob(std::vector<KernelExecution> &circuitCodes) override {
     if (backendConfig.find("job_path") == backendConfig.end()) {
-      throw std::runtime_error("job_path not found in config. Was initialize() called?");
+      throw std::runtime_error(
+          "job_path not found in config. Was initialize() called?");
     }
 
     std::vector<ServerMessage> jobs;
@@ -90,18 +100,23 @@ public:
 
   std::string extractJobId(ServerMessage &postResponse) override {
     // v2 API: jobQrn is nested under data envelope
-    if (postResponse.contains("data") && postResponse["data"].contains("jobQrn")) {
+    if (postResponse.contains("data") &&
+        postResponse["data"].contains("jobQrn")) {
       return postResponse["data"]["jobQrn"].get<std::string>();
     }
-    throw std::runtime_error("ServerMessage doesn't contain 'data.jobQrn' key.");
+    throw std::runtime_error(
+        "ServerMessage doesn't contain 'data.jobQrn' key.");
   }
 
   std::string constructGetJobPath(ServerMessage &postResponse) override {
     // v2 API: use path parameter instead of query parameter
-    if (postResponse.contains("data") && postResponse["data"].contains("jobQrn")) {
-      return backendConfig.at("job_path") + "/" + postResponse["data"]["jobQrn"].get<std::string>();
+    if (postResponse.contains("data") &&
+        postResponse["data"].contains("jobQrn")) {
+      return backendConfig.at("job_path") + "/" +
+             postResponse["data"]["jobQrn"].get<std::string>();
     }
-    throw std::runtime_error("ServerMessage doesn't contain 'data.jobQrn' key.");
+    throw std::runtime_error(
+        "ServerMessage doesn't contain 'data.jobQrn' key.");
   }
 
   std::string constructGetJobPath(std::string &jobId) override {
@@ -118,7 +133,8 @@ public:
     std::string status;
 
     // v2 API: status is nested under data envelope
-    if (getJobResponse.contains("data") && getJobResponse["data"].contains("status")) {
+    if (getJobResponse.contains("data") &&
+        getJobResponse["data"].contains("status")) {
       status = getJobResponse["data"]["status"].get<std::string>();
       cudaq::info("Job status from v2 data envelope: {}", status);
     } else if (getJobResponse.contains("status")) {
@@ -146,7 +162,8 @@ public:
   //
   // Exercised deterministically via the mock's POST /test/delay_next_results
   // endpoint (see checkResultRetry / checkResultRetryExhaustion tests).
-  cudaq::sample_result processResults(ServerMessage &getJobResponse, std::string &jobId) override {
+  cudaq::sample_result processResults(ServerMessage &getJobResponse,
+                                      std::string &jobId) override {
     const int maxRetries = 3;
     const int waitTime = 2;
     const float backoffFactor = 2.0;
@@ -156,15 +173,18 @@ public:
         auto resultsPath = constructGetResultsPath(jobId);
         auto headers = getHeaders();
 
-        cudaq::info("Fetching results from v2 endpoint (attempt {}/{}): {}", attempt + 1, maxRetries, resultsPath);
+        cudaq::info("Fetching results from v2 endpoint (attempt {}/{}): {}",
+                    attempt + 1, maxRetries, resultsPath);
         RestClient client;
         auto resultJson = client.get("", resultsPath, headers, true);
 
         // v2 API: error indicated by success=false
-        if (resultJson.contains("success") && resultJson["success"].is_boolean()
-            && !resultJson["success"].get<bool>()) {
+        if (resultJson.contains("success") &&
+            resultJson["success"].is_boolean() &&
+            !resultJson["success"].get<bool>()) {
           std::string errorMsg = "Results not yet available";
-          if (resultJson.contains("data") && resultJson["data"].contains("message")) {
+          if (resultJson.contains("data") &&
+              resultJson["data"].contains("message")) {
             errorMsg = resultJson["data"]["message"].get<std::string>();
           }
           cudaq::info("Results endpoint returned success=false: {}", errorMsg);
@@ -174,12 +194,14 @@ public:
           }
         }
         // v2 API: measurementCounts nested under data.resultData
-        else if (resultJson.contains("data")
-                 && resultJson["data"].contains("resultData")
-                 && resultJson["data"]["resultData"].contains("measurementCounts")) {
+        else if (resultJson.contains("data") &&
+                 resultJson["data"].contains("resultData") &&
+                 resultJson["data"]["resultData"].contains(
+                     "measurementCounts")) {
           cudaq::info("Processing results from v2 endpoint");
           CountsDictionary counts;
-          auto &measurements = resultJson["data"]["resultData"]["measurementCounts"];
+          auto &measurements =
+              resultJson["data"]["resultData"]["measurementCounts"];
 
           for (const auto &[bitstring, count] : measurements.items()) {
             counts[bitstring] =
@@ -195,15 +217,20 @@ public:
 
         // No valid data yet and no explicit error - retry
         if (attempt < maxRetries - 1) {
-          int sleepTime = (attempt == 0) ? waitTime : waitTime * std::pow(backoffFactor, attempt);
-          cudaq::info("No valid results yet, retrying in {} seconds", sleepTime);
+          int sleepTime = (attempt == 0)
+                              ? waitTime
+                              : waitTime * std::pow(backoffFactor, attempt);
+          cudaq::info("No valid results yet, retrying in {} seconds",
+                      sleepTime);
           std::this_thread::sleep_for(std::chrono::seconds(sleepTime));
         }
 
       } catch (const std::exception &e) {
         cudaq::info("Exception when fetching results: {}", e.what());
         if (attempt < maxRetries - 1) {
-          int sleepTime = (attempt == 0) ? waitTime : waitTime * std::pow(backoffFactor, attempt);
+          int sleepTime = (attempt == 0)
+                              ? waitTime
+                              : waitTime * std::pow(backoffFactor, attempt);
           cudaq::info("Retrying in {} seconds", sleepTime);
           std::this_thread::sleep_for(std::chrono::seconds(sleepTime));
         }
@@ -234,8 +261,7 @@ private:
   // Normalizing to a single register is the canonical QASM 2 form and is
   // accepted uniformly by every qBraid-reachable backend.
   std::string normalizeClassicalRegisters(const std::string &qasm) const {
-    static const std::regex cregDeclRx(
-        R"(creg\s+(\w+)\s*\[\s*(\d+)\s*\]\s*;)");
+    static const std::regex cregDeclRx(R"(creg\s+(\w+)\s*\[\s*(\d+)\s*\]\s*;)");
 
     std::vector<std::pair<std::string, int>> cregs;
     for (auto it = std::sregex_iterator(qasm.begin(), qasm.end(), cregDeclRx);
@@ -263,7 +289,8 @@ private:
         std::regex measureTargetRx("->\\s*" + name + "\\s*\\[\\s*" +
                                    std::to_string(i) + "\\s*\\]");
         out = std::regex_replace(out, measureTargetRx,
-                                 "-> qbraid__creg__[" + std::to_string(base + i) + "]");
+                                 "-> qbraid__creg__[" +
+                                     std::to_string(base + i) + "]");
       }
     }
 
@@ -280,14 +307,16 @@ private:
       out = std::regex_replace(out, toRemove, "");
     }
 
-    cudaq::info("Normalized {} classical registers into single qbraid__creg__[{}]",
-                cregs.size(), totalBits);
+    cudaq::info(
+        "Normalized {} classical registers into single qbraid__creg__[{}]",
+        cregs.size(), totalBits);
     return out;
   }
 
   RestHeaders getHeaders() override {
     if (backendConfig.find("api_key") == backendConfig.end()) {
-      throw std::runtime_error("API key not found in config. Was initialize() called?");
+      throw std::runtime_error(
+          "API key not found in config. Was initialize() called?");
     }
 
     RestHeaders headers;
@@ -297,7 +326,8 @@ private:
     return headers;
   }
 
-  std::string getEnvVar(const std::string &key, const std::string &defaultVal, const bool isRequired) const {
+  std::string getEnvVar(const std::string &key, const std::string &defaultVal,
+                        const bool isRequired) const {
     const char *env_var = std::getenv(key.c_str());
     if (env_var == nullptr) {
       if (isRequired) {

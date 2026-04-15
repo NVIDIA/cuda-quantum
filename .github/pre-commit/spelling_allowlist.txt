@@ -1,6 +1,7 @@
 ABI
 AFQMC
 API
+api
 APIs
 AST
 Aer
@@ -108,6 +109,8 @@ Photonics
 PyPI
 Pygments
 QAOA
+QASM
+QBRAID
 QCI
 QCaaS
 QEC
@@ -122,6 +125,7 @@ QRMI
 QTX
 QX
 QaaS
+Qbraid
 Qiskit
 QuEra
 QuTiP
@@ -300,6 +304,7 @@ lossy
 lvalue
 macOS
 makefiles
+measurementCounts
 merchantability
 mps
 multinomial
@@ -311,6 +316,7 @@ natively
 normalization
 nullary
 nvcc
+nvq
 observables
 optimizer
 optimizers
@@ -333,20 +339,24 @@ probability
 programmatically
 pybind
 qaoa
+qbraid
 qed
 qio
+qrn
 quantize
 quantized
 qubit
 qubits
 qudit
 qudits
+queryable
 qumode
 qumodes
 reStructuredText
 realtime
 reconfigurable
 reproducibility
+resultData
 reusability
 runtime
 runtimes
