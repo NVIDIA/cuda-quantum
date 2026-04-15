@@ -101,8 +101,11 @@ public:
     if (!postResponse.contains("id"))
       return "";
 
+    // Extract the job ID from the response
+    std::string id = postResponse.at("id");
+
     // Return the job ID from the response
-    return postResponse.at("id");
+    return id;
   }
 
   /// @brief Constructs the URL for retrieving a job based on the server's
@@ -153,6 +156,14 @@ public:
     CUDAQ_INFO("nextResultPollingInterval");
     return std::chrono::seconds(1);
   }
+
+  std::string extractOutputLog(ServerMessage &jobResponse,
+                                                       std::string &jobId) {
+    CUDAQ_INFO("extractOutputLog: {}, {}", jobId, jobResponse.dump());
+    //TODO: implement
+    return "";
+  }
+
 };
 
 } // namespace cudaq
