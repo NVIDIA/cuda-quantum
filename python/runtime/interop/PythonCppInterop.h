@@ -54,15 +54,18 @@ public:
   }
 
 private:
+  // Hold on to the CompiledModule, it keeps the JIT engine alive.
+  nanobind::object compiledKernel;
   nanobind::object kernel;
   std::optional<std::size_t> cachedEngineKey;
 
   template <typename... As>
   void *getKernelHelper(bool isEntryPoint, As... as) {
     // Perform beta reduction on the kernel decorator.
+    compiledKernel =
+        kernel.attr("beta_reduction")(isEntryPoint, std::forward<As>(as)...);
     auto [p, cachedEngineHandle] =
-        nanobind::cast<std::pair<void *, std::size_t>>(kernel.attr(
-            "beta_reduction")(isEntryPoint, std::forward<As>(as)...));
+        nanobind::cast<std::pair<void *, std::size_t>>(compiledKernel);
     // Set lsb to 1 to denote this is NOT a C++ kernel.
     p = reinterpret_cast<void *>(reinterpret_cast<std::intptr_t>(p) | 1);
     cachedEngineKey = cachedEngineHandle;
