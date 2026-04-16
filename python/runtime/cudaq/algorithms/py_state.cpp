@@ -15,6 +15,7 @@
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/PybindAdaptors.h"
+#include <cstdint>
 #include <numeric>
 
 using namespace cudaq;
@@ -48,11 +49,19 @@ struct CuPyArrayMetadata {
   }
 
   std::vector<std::size_t> getExtents() const {
-    return std::vector<std::size_t>(shape.begin(), shape.end());
+    std::vector<std::size_t> extents;
+    extents.reserve(shape.size());
+    for (auto extent : shape) {
+      if (extent < 0)
+        throw std::runtime_error("CuPy array shape cannot contain negatives.");
+      extents.push_back(static_cast<std::size_t>(extent));
+    }
+    return extents;
   }
 
   std::size_t getNumElements() const {
-    return std::accumulate(shape.begin(), shape.end(), std::size_t{1},
+    auto extents = getExtents();
+    return std::accumulate(extents.begin(), extents.end(), std::size_t{1},
                            std::multiplies<std::size_t>());
   }
 };
@@ -121,7 +130,7 @@ CuPyArrayMetadata getCupyArrayMetadata(py::handle cupyArray) {
   auto strides = getCupyArrayStrides(cupyArrayInfo, shape, dataTypeSize);
 
   return CuPyArrayMetadata{
-      /*dataPtr=*/reinterpret_cast<void *>(dataInfo[0].cast<int64_t>()),
+      /*dataPtr=*/reinterpret_cast<void *>(dataInfo[0].cast<std::uintptr_t>()),
       /*readOnly=*/dataInfo[1].cast<bool>(),
       /*typeStr=*/typeStr,
       /*dataTypeSize=*/dataTypeSize,
@@ -132,6 +141,11 @@ CuPyArrayMetadata getCupyArrayMetadata(py::handle cupyArray) {
 
 bool isCContiguous(const std::vector<ssize_t> &shape,
                    const std::vector<ssize_t> &strides, ssize_t itemsize) {
+  // Treat inconsistent metadata as non-contiguous so callers fall back to
+  // canonicalization instead of taking an unsafe fast path.
+  if (shape.size() != strides.size())
+    return false;
+
   if (shape.empty())
     return true;
 
@@ -158,10 +172,8 @@ bool shouldCanonicalizeCupyArray(const py::buffer_info &info,
 }
 
 py::object canonicalizeCupyArrayToNumpy(py::handle cupyArray) {
-  auto cupy = py::module_::import("cupy");
-  auto contiguous = cupy.attr("ascontiguousarray")(
+  return py::module_::import("cupy").attr("asnumpy")(
       py::reinterpret_borrow<py::object>(cupyArray));
-  return cupy.attr("asnumpy")(contiguous);
 }
 
 } // namespace
