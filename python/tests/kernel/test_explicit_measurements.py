@@ -251,7 +251,9 @@ def test_mixed_basis_measurement_order_and_preservation():
 
     assert total_counts == 100
 
-    counts = cudaq.sample(mixed_basis_kernel, explicit_measurements=True, shots_count=100)
+    counts = cudaq.sample(mixed_basis_kernel,
+                          explicit_measurements=True,
+                          shots_count=100)
 
     # Execution order was q4, q2, q3, q0, q5, q6, q1 => 01?0011.
     total_counts = 0
