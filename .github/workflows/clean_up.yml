@@ -157,6 +157,7 @@ jobs:
       - uses: actions/github-script@v7
         with:
           script: |
+            const BATCH = 100;
             for (const environment of ['default', 'ghcr-ci']) {
               const deployments = await github.paginate(
                 github.rest.repos.listDeployments,
@@ -167,21 +168,28 @@ jobs:
                   per_page: 100
                 }
               );
-              await Promise.all(
-                deployments.map(async (deployment) => {
-                  await github.rest.repos.createDeploymentStatus({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  deployment_id: deployment.id,
-                  state: 'inactive'
-                  });
-                  return github.rest.repos.deleteDeployment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  deployment_id: deployment.id
-                  });
-                })
-              );
+              console.log(`${environment}: ${deployments.length} deployments to delete`);
+              let deleted = 0;
+              for (let i = 0; i < deployments.length; i += BATCH) {
+                const batch = deployments.slice(i, i + BATCH);
+                await Promise.all(
+                  batch.map(async (deployment) => {
+                    await github.rest.repos.createDeploymentStatus({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    deployment_id: deployment.id,
+                    state: 'inactive'
+                    });
+                    return github.rest.repos.deleteDeployment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    deployment_id: deployment.id
+                    });
+                  })
+                );
+                deleted += batch.length;
+                console.log(`${environment}: deleted ${deleted}/${deployments.length}`);
+              }
             }
 
   pr_cleanup:
