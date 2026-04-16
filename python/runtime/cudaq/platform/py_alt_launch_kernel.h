@@ -58,9 +58,8 @@ KernelThunkResultType clean_launch_module(const std::string &kernelName,
                                           OpaqueArguments &args);
 
 /// Marshal python arguments into an OpaqueArguments for kernel launch.
-/// \p specialize = false encodes arguments in the runtime ABI layout for
-/// direct local simulation; true uses the synthesis-pass layout for all
-/// other targets. `marshal_and_launch_module` derives this from the platform.
+/// Encodes arguments in the runtime ABI layout for direct local simulation,
+/// and the synthesis-pass layout for all other targets.
 OpaqueArguments
 marshal_arguments_for_module_launch(mlir::ModuleOp mod,
                                     nanobind::args runtimeArgs,

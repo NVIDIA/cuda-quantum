@@ -120,11 +120,6 @@ static constexpr const char QIRFloatSpanRecordOutput[] =
 static constexpr const char QIRIntSpanRecordOutput[] =
     "__quantum__rt__int_span_record_output";
 
-// NVQPP span logging helpers for dynamic-size vector return types.
-static constexpr const char NVQPPLogBoolSpan[] = "__nvqpp_log_bool_span";
-static constexpr const char NVQPPLogFloatSpan[] = "__nvqpp_log_float_span";
-static constexpr const char NVQPPLogIntSpan[] = "__nvqpp_log_int_span";
-
 /// Used to specify the type of the data elements in the `QISApplyKrausChannel`
 /// call. (`float` or `double`)
 enum class KrausChannelDataKind { FloatKind, DoubleKind };
