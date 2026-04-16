@@ -296,7 +296,7 @@ public:
     return {};
   }
 
-  CompiledKernel specializeModule(const std::string &kernelName,
+  CompiledModule specializeModule(const std::string &kernelName,
                                   mlir::ModuleOp module,
                                   const std::vector<void *> &rawArgs,
                                   bool isEntryPoint) override {

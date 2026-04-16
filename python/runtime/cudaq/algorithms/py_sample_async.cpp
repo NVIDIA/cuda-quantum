@@ -10,21 +10,21 @@
 #include "common/DeviceCodeRegistry.h"
 #include "cudaq/algorithms/sample.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
+#include "utils/NanobindAdaptors.h"
 #include "utils/OpaqueArguments.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include <fmt/core.h>
-#include <pybind11/stl.h>
-
-namespace py = pybind11;
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
 
 using namespace cudaq;
 
 static async_sample_result sample_async_impl(
     const std::string &shortName, MlirModule module, std::size_t shots_count,
     std::optional<noise_model> noise_model, bool explicit_measurements,
-    std::size_t qpu_id, py::args runtimeArgs) {
+    std::size_t qpu_id, nanobind::args runtimeArgs) {
   mlir::ModuleOp mod = unwrap(module);
   runtimeArgs = simplifiedValidateInputArguments(runtimeArgs);
 
@@ -40,7 +40,7 @@ static async_sample_result sample_async_impl(
   auto opaques = marshal_arguments_for_module_launch(mod, runtimeArgs, fnOp);
 
   // Should only have C++ going on here, safe to release the GIL
-  py::gil_scoped_release release;
+  nanobind::gil_scoped_release release;
 
   // Use runSamplingAsync with noise model support.
   // The noise_model is passed by value to runSamplingAsync, which captures
@@ -60,7 +60,7 @@ static async_sample_result sample_async_impl(
       std::move(noise_model));
 }
 
-void cudaq::bindSampleAsync(py::module &mod) {
+void cudaq::bindSampleAsync(nanobind::module_ &mod) {
   // Async. result wrapper for Python kernels, which also holds the Python MLIR
   // context.
   //
@@ -74,8 +74,8 @@ void cudaq::bindSampleAsync(py::module &mod) {
   // then track a reference (ref count) to the context of the temporary (rval)
   // kernel.
 
-  py::class_<async_sample_result>(mod, "AsyncSampleResultImpl",
-                                  R"#(
+  nanobind::class_<async_sample_result>(mod, "AsyncSampleResultImpl",
+                                        R"#(
 A data-type containing the results of a call to :func:`sample_async`.  The
 `AsyncSampleResult` models a future-like type, whose :class:`SampleResult` may
 be returned via an invocation of the `get` method.  This kicks off a wait on the
@@ -83,14 +83,15 @@ current thread until the results are available.  See `future
 <https://en.cppreference.com/w/cpp/thread/future>`_ for more information on this
 programming pattern.
 )#")
-      .def(py::init([](std::string inJson) {
-        async_sample_result f;
-        std::istringstream is(inJson);
-        is >> f;
-        return f;
-      }))
+      .def("__init__",
+           [](async_sample_result *self, std::string inJson) {
+             async_sample_result f;
+             std::istringstream is(inJson);
+             is >> f;
+             new (self) async_sample_result(std::move(f));
+           })
       .def("get", &async_sample_result::get,
-           py::call_guard<py::gil_scoped_release>(),
+           nanobind::call_guard<nanobind::gil_scoped_release>(),
            "Return the :class:`SampleResult` from the asynchronous sample "
            "execution.\n")
       .def(

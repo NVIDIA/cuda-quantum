@@ -7,22 +7,20 @@
  ******************************************************************************/
 
 #include "cudaq/qis/measure_result.h"
-#include <pybind11/operators.h>
-#include <pybind11/pybind11.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/operators.h>
 #include <sstream>
-
-namespace py = pybind11;
 
 namespace cudaq {
 
-void bindMeasureResult(py::module &mod) {
-  py::class_<measure_result>(mod, "measure_result",
-                             R"#(A quantum measurement result.
+void bindMeasureResult(nanobind::module_ &mod) {
+  nanobind::class_<measure_result>(mod, "measure_result",
+                                   R"#(A quantum measurement result.
 This type represents the outcome of a quantum measurement operation.
 It is not user-constructible; instances originate from mz/mx/my calls
 within quantum kernels.)#")
-      .def_readonly("value", &measure_result::value,
-                    "The integer measurement value (0 or 1).")
+      .def_ro("value", &measure_result::value,
+              "The integer measurement value (0 or 1).")
       .def("__bool__",
            [](const measure_result &self) { return static_cast<bool>(self); })
       .def("__int__", [](const measure_result &self) { return self.value; })
