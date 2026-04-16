@@ -294,7 +294,7 @@ static void precountResources(ModuleOp module) {
     return;
   auto counts = cudaq::opt::countResourcesFromIR(module);
   if (failed(counts))
-    throw std::runtime_error("Resource count preprocessing failed.");
+    return;
   nvqir::setResourceCounts(std::move(*counts));
 }
 
