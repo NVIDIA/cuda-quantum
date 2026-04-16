@@ -158,13 +158,17 @@ jobs:
         with:
           script: |
             for (const environment of ['default', 'ghcr-ci']) {
-              const deployments = await github.rest.repos.listDeployments({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                environment: environment
-              });
+              const deployments = await github.paginate(
+                github.rest.repos.listDeployments,
+                {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  environment: environment,
+                  per_page: 100
+                }
+              );
               await Promise.all(
-                deployments.data.map(async (deployment) => {
+                deployments.map(async (deployment) => {
                   await github.rest.repos.createDeploymentStatus({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
