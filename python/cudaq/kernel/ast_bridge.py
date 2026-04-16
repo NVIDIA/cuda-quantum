@@ -607,8 +607,7 @@ class PyASTBridge(ast.NodeVisitor):
             i1Ty = self.getIntegerType(1)
             resTy = cc.StdvecType.get(i1Ty)
             discriminated = quake.DiscriminateOp(resTy, value).result
-            size = cc.StdvecSizeOp(self.getIntegerType(),
-                                   discriminated).result
+            size = cc.StdvecSizeOp(self.getIntegerType(), discriminated).result
             accumulator = cc.AllocaOp(cc.PointerType.get(i1Ty),
                                       TypeAttr.get(i1Ty)).result
             cc.StoreOp(self.getConstantInt(1, 1), accumulator)
