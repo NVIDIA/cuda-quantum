@@ -879,12 +879,8 @@ nanobind::object cudaq::marshal_and_launch_module(const std::string &name,
                               reinterpret_cast<char *>(args.getArgs().back()));
 }
 
-// Return the pointer to the JITted LLVM code for the entry point function, and
-// a cache key for the JIT engine that was used to JIT the module. The engine is
-// cached and cleaned up automatically. The caller can use the cache key to
-// manually clean up the engine as well by calling
-// `delete_cache_execution_engine` with the cache key.
-static std::pair<void *, std::size_t>
+// Compile (specialize + JIT) the kernel module and return a CompiledModule.
+static cudaq::CompiledModule
 marshal_and_retain_module(const std::string &name, MlirModule module,
                           bool isEntryPoint, nanobind::args runtimeArgs) {
   ScopedTraceWithContext("marshal_and_retain_module", name);
@@ -1094,6 +1090,18 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
                                 std::function<std::string()> &&getTL) {
   getTransportLayer = std::move(getTL);
 
+  nanobind::class_<cudaq::CompiledModule>(mod, "CompiledModule")
+      .def_prop_ro(
+          "entry_point",
+          [](const cudaq::CompiledModule &ck) {
+            return reinterpret_cast<std::uintptr_t>(
+                ck.getJit().getEntryPoint());
+          },
+          "The address of the JIT-compiled entry point.")
+      .def_prop_ro("is_fully_specialized",
+                   &cudaq::CompiledModule::isFullySpecialized,
+                   "Whether all arguments have been specialized.");
+
   mod.def("lower_to_codegen", lower_to_codegen,
           "Lower a kernel module to CC dialect. Never launches the kernel.");
 
@@ -1103,8 +1111,8 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
           "Launch a kernel. Marshaling of arguments and unmarshalling of "
           "results is performed.");
   mod.def("marshal_and_retain_module", marshal_and_retain_module,
-          "Compile (specialize + JIT) a kernel module. Returns a pair of "
-          "the entry point pointer and a cache key for the JIT engine.");
+          "Compile (specialize + JIT) a kernel module. Returns a "
+          "CompiledModule object that owns the JIT engine.");
   mod.def("pyAltLaunchAnalogKernel", pyAltLaunchAnalogKernel,
           "Launch an analog Hamiltonian simulation kernel with given JSON "
           "payload.");

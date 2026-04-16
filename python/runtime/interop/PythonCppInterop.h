@@ -10,9 +10,7 @@
 #include "PythonCppInteropDecls.h"
 #include "cudaq/qis/qkernel.h"
 #include <nanobind/nanobind.h>
-#include <nanobind/stl/pair.h>
 #include <nanobind/stl/string.h>
-#include <optional>
 
 namespace cudaq::python {
 
@@ -54,21 +52,20 @@ public:
   }
 
 private:
+  nanobind::object kernel;
   // Hold on to the CompiledModule, it keeps the JIT engine alive.
   nanobind::object compiledKernel;
-  nanobind::object kernel;
-  std::optional<std::size_t> cachedEngineKey;
 
   template <typename... As>
   void *getKernelHelper(bool isEntryPoint, As... as) {
     // Perform beta reduction on the kernel decorator.
     compiledKernel =
         kernel.attr("beta_reduction")(isEntryPoint, std::forward<As>(as)...);
-    auto [p, cachedEngineHandle] =
-        nanobind::cast<std::pair<void *, std::size_t>>(compiledKernel);
+    auto entryPointAddr =
+        nanobind::cast<std::uintptr_t>(compiledKernel.attr("entry_point"));
     // Set lsb to 1 to denote this is NOT a C++ kernel.
-    p = reinterpret_cast<void *>(reinterpret_cast<std::intptr_t>(p) | 1);
-    cachedEngineKey = cachedEngineHandle;
+    auto *p = reinterpret_cast<void *>(
+        static_cast<std::intptr_t>(entryPointAddr) | 1);
     // Translate the pointer to the entry point code buffer to a `qkernel`.
     return p;
   }
