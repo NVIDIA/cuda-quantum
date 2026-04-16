@@ -8,11 +8,9 @@
 
 #pragma once
 
-#include <pybind11/pybind11.h>
-
-namespace py = pybind11;
+#include <nanobind/nanobind.h>
 
 namespace cudaq {
 /// @brief Bind the `cudaq::optimizers::` to python.
-void bindOptimizerWrapper(py::module &mod);
+void bindOptimizerWrapper(nanobind::module_ &mod);
 } // namespace cudaq

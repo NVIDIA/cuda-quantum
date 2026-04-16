@@ -7,7 +7,7 @@
  ******************************************************************************/
 #pragma once
 
-#include "common/CompiledKernel.h"
+#include "common/CompiledModule.h"
 #include <map>
 #include <memory>
 #include <string>

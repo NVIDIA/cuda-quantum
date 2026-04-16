@@ -76,6 +76,26 @@ def test_custom_unitary_produces_2q_gates():
         f"KAK produces at most 3 CX (6 CZ after basis change), got {two_q}")
 
 
+def test_ccx_fully_decomposed():
+    """CCX (Toffoli) must decompose to CZ basis, not remain as ccx.
+
+    The decomposition pass must select CCXToCCZ and CCZToCX patterns
+    even when t and s are not directly in the basis. Requires unbounded
+    (n) registration for SToR1/TToR1 and wildcard matching in the
+    pattern selection graph.
+    """
+    cudaq.set_target('circuit-opt-bench')
+
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(4)
+    kernel.cx([q[0], q[1]], q[2])
+
+    resources = cudaq.estimate_resources(kernel)
+    ops = resources.to_dict()
+    assert 'ccx' not in ops, f"CCX not decomposed: {ops}"
+    assert resources.gate_count_for_arity(2) > 0
+
+
 def _make_nonlocal_cx_kernel():
     """Build a 5-qubit kernel with CX between non-adjacent qubits (q0, q4).
     On a path topology, q0 and q4 are 4 hops apart, forcing SWAP insertion."""

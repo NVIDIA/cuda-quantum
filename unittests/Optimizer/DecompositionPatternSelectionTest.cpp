@@ -364,6 +364,26 @@ TEST_F(FullDecompositionPatternSelectionTest, DecomposeCCXToCZ) {
   EXPECT_EQ(selectedPatterns, exp);
 }
 
+// Regression: multi-hop chain where intermediate gates (t, z(2)) are not
+// in the basis but are reachable through further patterns.
+// Chain: x(2) -> CCXToCCZ -> {h,z(2)} -> CCZToCX -> {t,x(1)}
+//        t -> TToR1 -> {r1(1)} -> CR1ToCX -> {r1,x(1)}
+//        r1 -> R1ToU3 -> {u3} -> U3ToRotations -> {rz,rx}
+TEST_F(FullDecompositionPatternSelectionTest, DecomposeCCXDeepChain) {
+  std::vector<std::string> targetBasis{"h", "rx", "ry", "rz", "x", "x(1)"};
+  auto selectedPatterns = selectPatterns(targetBasis);
+
+  EXPECT_TRUE(std::find(selectedPatterns.begin(), selectedPatterns.end(),
+                        "CCXToCCZ") != selectedPatterns.end())
+      << "CCXToCCZ not selected";
+  EXPECT_TRUE(std::find(selectedPatterns.begin(), selectedPatterns.end(),
+                        "CCZToCX") != selectedPatterns.end())
+      << "CCZToCX not selected";
+  EXPECT_TRUE(std::find(selectedPatterns.begin(), selectedPatterns.end(),
+                        "TToR1") != selectedPatterns.end())
+      << "TToR1 not selected";
+}
+
 //===----------------------------------------------------------------------===//
 // Test OperatorInfo adjoint parsing
 //===----------------------------------------------------------------------===//
