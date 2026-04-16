@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/qis/measure_result.h"
+#include <functional>
 #include <nanobind/nanobind.h>
 #include <nanobind/operators.h>
 #include <sstream>
@@ -35,6 +36,13 @@ within quantum kernels.)#")
       .def("__ne__",
            [](const measure_result &self, bool other) {
              return static_cast<bool>(self) != other;
+           })
+      .def("__hash__",
+           [](const measure_result &self) {
+             std::size_t h = std::hash<int64_t>{}(self.value);
+             h ^= std::hash<int64_t>{}(self.unique_id) + 0x9e3779b9 +
+                  (h << 6) + (h >> 2);
+             return h;
            })
       .def("__repr__", [](const measure_result &self) {
         std::ostringstream os;

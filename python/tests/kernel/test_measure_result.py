@@ -247,6 +247,49 @@ def test_if_mz_qvector():
         assert r == False
 
 
+def test_equality_operator():
+
+    @cudaq.kernel
+    def device_kernel(
+            q: cudaq.qview
+    ) -> tuple[cudaq.measure_result, cudaq.measure_result]:
+        x(q[0])
+        x(q[1])
+        return mz(q[0]), mz(q[1])
+
+    @cudaq.kernel
+    def entry_same_value() -> bool:
+        q = cudaq.qvector(2)
+        r = device_kernel(q)
+        return r[0] == r[1]
+
+    results = cudaq.run(entry_same_value, shots_count=10)
+    for r in results:
+        assert r == True
+
+    @cudaq.kernel
+    def entry_diff_value() -> bool:
+        q = cudaq.qvector(2)
+        x(q[0])
+        r0 = mz(q[0])
+        r1 = mz(q[1])
+        return r0 == r1
+
+    results = cudaq.run(entry_diff_value, shots_count=10)
+    for r in results:
+        assert r == False
+
+    @cudaq.kernel
+    def entry_bool_compare() -> bool:
+        q = cudaq.qvector(2)
+        x(q[0])
+        return mz(q[0]) == True
+
+    results = cudaq.run(entry_bool_compare, shots_count=10)
+    for r in results:
+        assert r == True
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
