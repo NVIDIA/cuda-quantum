@@ -218,6 +218,35 @@ def test_list_comprehension():
     assert "only supported when iterating" in str(e.value)
 
 
+def test_if_mz_qvector():
+    """mz(qvector) in boolean context should auto-discriminate with AND/all
+    semantics: True only when every measurement is 1."""
+
+    @cudaq.kernel
+    def kernel_all_ones() -> bool:
+        q = cudaq.qvector(2)
+        x(q)
+        if mz(q):
+            return True
+        return False
+
+    results = cudaq.run(kernel_all_ones, shots_count=10)
+    for r in results:
+        assert r == True
+
+    @cudaq.kernel
+    def kernel_mixed() -> bool:
+        q = cudaq.qvector(2)
+        x(q[0])
+        if mz(q):
+            return True
+        return False
+
+    results = cudaq.run(kernel_mixed, shots_count=10)
+    for r in results:
+        assert r == False
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

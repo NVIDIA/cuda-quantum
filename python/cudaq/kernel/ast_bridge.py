@@ -604,9 +604,22 @@ class PyASTBridge(ast.NodeVisitor):
         if quake.MeasureType.isinstance(value.type):
             return quake.DiscriminateOp(self.getIntegerType(1), value).result
         if quake.MeasurementsType.isinstance(value.type):
-            self.emitFatalError(
-                "a measurement collection cannot be used as a boolean; "
-                "index into the collection first", self.currentNode)
+            i1Ty = self.getIntegerType(1)
+            resTy = cc.StdvecType.get(i1Ty)
+            discriminated = quake.DiscriminateOp(resTy, value).result
+            size = cc.StdvecSizeOp(self.getIntegerType(),
+                                   discriminated).result
+            accumulator = cc.AllocaOp(cc.PointerType.get(i1Ty),
+                                      TypeAttr.get(i1Ty)).result
+            cc.StoreOp(self.getConstantInt(1, 1), accumulator)
+
+            def bodyBuilder(iterVar):
+                elem = self.__load_vector_element(discriminated, iterVar)
+                current = cc.LoadOp(accumulator).result
+                cc.StoreOp(arith.AndIOp(current, elem).result, accumulator)
+
+            self.createInvariantForLoop(bodyBuilder, size)
+            return cc.LoadOp(accumulator).result
         if IntegerType.isinstance(value.type):
             zero = self.getConstantInt(0, width=IntegerType(value.type).width)
             condPred = IntegerAttr.get(self.getIntegerType(), 1)
