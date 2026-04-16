@@ -698,6 +698,12 @@ if (CUDAQ_ENABLE_PYTHON)
   # Python bindings generated as part of the CUDA-Q build and bindings generated for
   # third party CUDA-Q libraries; see also https://github.com/pybind/pybind11/issues/1262
   add_subdirectory(tpls/pybind11)
+
+  # nanobind is used for all CUDA-Q Python bindings. pybind11 is retained only
+  # for upstream MLIR Python extensions (e.g., _mlirAsyncPasses) which use
+  # mlir/Bindings/Python/PybindAdaptors.h.
+  add_subdirectory(tpls/nanobind)
+
   add_subdirectory(python)
 endif()
 

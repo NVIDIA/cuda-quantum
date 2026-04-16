@@ -15,10 +15,12 @@ else()
 endif()
 add_library(cudaq-pyscf SHARED PySCFDriver.cpp)
 
+target_compile_options(cudaq-pyscf PRIVATE -Wno-cast-qual)
+
 if (SKBUILD)
   target_link_libraries(cudaq-pyscf
     PRIVATE
-      pybind11::pybind11 Python::Module
+      nanobind-static Python::Module
       cudaq-chemistry cudaq-operator cudaq cudaq-py-utils cudaq-platform-default)
   # Apple's linker (ld64) doesn't support --unresolved-symbols flag
   if (NOT APPLE)
@@ -31,7 +33,7 @@ else()
   endif()
   target_link_libraries(cudaq-pyscf
     PRIVATE
-      Python::Python pybind11::pybind11
+      nanobind-static Python::Python
       cudaq-chemistry cudaq-operator cudaq cudaq-py-utils cudaq-platform-default)
 endif()
 

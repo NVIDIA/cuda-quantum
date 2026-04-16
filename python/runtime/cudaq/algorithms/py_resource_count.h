@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include <pybind11/pybind11.h>
+#include <nanobind/nanobind.h>
 
 namespace cudaq {
-void bindCountResources(pybind11::module &mod);
+void bindCountResources(nanobind::module_ &mod);
 }
