@@ -158,38 +158,43 @@ jobs:
         with:
           script: |
             const BATCH = 50;
-            const MAX_PER_RUN = 200;
+            const MAX_PER_RUN = 500;
             for (const environment of ['default', 'ghcr-ci']) {
               let deleted = 0;
-              while (deleted < MAX_PER_RUN) {
-                const {data: deployments} = await github.rest.repos.listDeployments({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  environment: environment,
-                  per_page: Math.min(BATCH, MAX_PER_RUN - deleted)
-                });
-                if (deployments.length === 0) break;
+              try {
+                while (deleted < MAX_PER_RUN) {
+                  const {data: deployments} = await github.rest.repos.listDeployments({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    environment: environment,
+                    per_page: Math.min(BATCH, MAX_PER_RUN - deleted)
+                  });
+                  if (deployments.length === 0) break;
 
-                const results = await Promise.allSettled(
-                  deployments.map(async (deployment) => {
-                    await github.rest.repos.createDeploymentStatus({
-                      owner: context.repo.owner,
-                      repo: context.repo.repo,
-                      deployment_id: deployment.id,
-                      state: 'inactive'
-                    });
-                    return github.rest.repos.deleteDeployment({
-                      owner: context.repo.owner,
-                      repo: context.repo.repo,
-                      deployment_id: deployment.id
-                    });
-                  })
-                );
-                const fulfilled = results.filter(r => r.status === 'fulfilled').length;
-                deleted += fulfilled;
-                if (fulfilled < deployments.length) {
-                  console.log(`${environment}: ${deployments.length - fulfilled} failures, stopping.`);
-                  break;
+                  const results = await Promise.allSettled(
+                    deployments.map(async (deployment) => {
+                      await github.rest.repos.createDeploymentStatus({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        deployment_id: deployment.id,
+                        state: 'inactive'
+                      });
+                      return github.rest.repos.deleteDeployment({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        deployment_id: deployment.id
+                      });
+                    })
+                  );
+                  const fulfilled = results.filter(r => r.status === 'fulfilled').length;
+                  deleted += fulfilled;
+                  if (fulfilled < deployments.length) break;
+                }
+              } catch (e) {
+                if (e.status === 403) {
+                  console.log(`${environment}: rate limited, will continue next run.`);
+                } else {
+                  throw e;
                 }
               }
               console.log(`${environment}: deleted ${deleted} deployments this run`);
