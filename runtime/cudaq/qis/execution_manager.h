@@ -12,6 +12,7 @@
 #include "common/NoiseModel.h"
 #include "common/QuditIdTracker.h"
 #include "common/SampleResult.h"
+#include "cudaq/algorithms/policies.h"
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
 #include <deque>
@@ -97,6 +98,11 @@ protected:
   /// Internal - At qudit deallocation, return the qudit index
   void returnIndex(std::size_t idx) { tracker.returnIndex(idx); }
 
+  virtual void finalizeExecutionContext(const any_policy &policy,
+                                        ExecutionContext &ctx) {}
+  virtual sample_result finalizeExecutionContext(const sample_policy &policy,
+                                                 ExecutionContext &ctx) = 0;
+
 public:
   ExecutionManager() = default;
 
@@ -114,7 +120,7 @@ public:
   virtual void configureExecutionContext(ExecutionContext &ctx) {}
 
   /// Finalize the execution context after an execution.
-  virtual void finalizeExecutionContext(ExecutionContext &ctx) {}
+  void finalizeExecutionContext(ExecutionContext &ctx);
 
   /// Set up the execution manager for a new execution.
   virtual void beginExecution() {}
