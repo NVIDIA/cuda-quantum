@@ -17,8 +17,6 @@
 # Feedback: post impressions in the dedicated Slack thread. You can also
 # reply directly to CodeRabbit's PR comments (it learns from corrections).
 #
-# See coderabbit-trial.md at the project root for full trial guidelines.
-#
 # TODO: Migrate coding-knowledge path_instructions into per-directory
 #       AGENTS.md files (with a ## Reviewing section). Keep only
 #       review-specific directives (breaking-change flags, etc.) here.
