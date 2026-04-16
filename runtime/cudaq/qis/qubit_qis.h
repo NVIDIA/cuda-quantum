@@ -429,17 +429,29 @@ inline measure_result mz(qubit &q) {
 
 /// @brief Measure an individual qubit in `x` basis, return as `measure_result`
 inline measure_result mx(qubit &q) {
+  auto *ctx = cudaq::getExecutionContext();
+  if (ctx)
+    ctx->deferSamplingFlush = true;
   h(q);
-  return measure_result(
+  auto result = measure_result(
       getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()}));
+  if (ctx)
+    ctx->deferSamplingFlush = false;
+  return result;
 }
 
 // Measure an individual qubit in `y` basis, return as `measure_result`
 inline measure_result my(qubit &q) {
+  auto *ctx = cudaq::getExecutionContext();
+  if (ctx)
+    ctx->deferSamplingFlush = true;
   r1(-M_PI_2, q);
   h(q);
-  return measure_result(
+  auto result = measure_result(
       getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()}));
+  if (ctx)
+    ctx->deferSamplingFlush = false;
+  return result;
 }
 
 inline void reset(qubit &q) {
