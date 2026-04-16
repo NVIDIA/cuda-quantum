@@ -67,19 +67,22 @@ try:
     res = cudaq.run(all_zeros)
     assert len(res) > 0
     for shot in res:
-        assert list(shot) == [0, 0, 0, 0], f"expected [0,0,0,0], got {list(shot)}"
+        assert list(shot) == [0, 0, 0,
+                              0], f"expected [0,0,0,0], got {list(shot)}"
 
     # Deterministic: X on all qubits -> all |1>.
     res = cudaq.run(all_ones)
     assert len(res) > 0
     for shot in res:
-        assert list(shot) == [1, 1, 1, 1], f"expected [1,1,1,1], got {list(shot)}"
+        assert list(shot) == [1, 1, 1,
+                              1], f"expected [1,1,1,1], got {list(shot)}"
 
     # Deterministic: X on qubits 1 and 3 -> [0,1,0,1].
     res = cudaq.run(alternating_01)
     assert len(res) > 0
     for shot in res:
-        assert list(shot) == [0, 1, 0, 1], f"expected [0,1,0,1], got {list(shot)}"
+        assert list(shot) == [0, 1, 0,
+                              1], f"expected [0,1,0,1], got {list(shot)}"
 
     # Deterministic: single qubit X -> [1].
     res = cudaq.run(single_qubit_flip)
