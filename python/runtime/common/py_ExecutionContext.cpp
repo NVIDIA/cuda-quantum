@@ -130,14 +130,12 @@ void bindExecutionContext(nanobind::module_ &mod) {
   mod.def("getQirOutputLog", []() { return nvqir::getQirOutputLog(); });
   mod.def("clearQirOutputLog", []() { nvqir::clearQirOutputLog(); });
   mod.def("decodeQirOutputLog",
-          [](const std::string &outputLog, nanobind::bytes decodedResults) {
+          [](const std::string &outputLog, nanobind::bytearray decodedResults) {
             cudaq::RecordLogParser parser;
             parser.parse(outputLog);
             auto *origBuffer = parser.getBufferPtr();
             const std::size_t bufferSize = parser.getBufferSize();
-            std::memcpy(const_cast<void *>(
-                            static_cast<const void *>(decodedResults.c_str())),
-                        origBuffer, bufferSize);
+            std::memcpy(decodedResults.data(), origBuffer, bufferSize);
           });
 
   nanobind::class_<PersistJITEngine>(
