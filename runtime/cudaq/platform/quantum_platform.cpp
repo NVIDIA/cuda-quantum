@@ -231,16 +231,12 @@ KernelThunkResultType quantum_platform::launchModule(
   return qpu->launchModule(kernelName, module, rawArgs);
 }
 
-void *quantum_platform::specializeModule(const std::string &kernelName,
-                                         mlir::ModuleOp module,
-                                         const std::vector<void *> &rawArgs,
-                                         std::optional<JitEngine> &cachedEngine,
-                                         std::size_t qpu_id,
-                                         bool isEntryPoint) {
+CompiledModule quantum_platform::specializeModule(
+    const std::string &kernelName, mlir::ModuleOp module,
+    const std::vector<void *> &rawArgs, std::size_t qpu_id, bool isEntryPoint) {
   validateQpuId(qpu_id);
   auto &qpu = platformQPUs[qpu_id];
-  return qpu->specializeModule(kernelName, module, rawArgs, cachedEngine,
-                               isEntryPoint);
+  return qpu->specializeModule(kernelName, module, rawArgs, isEntryPoint);
 }
 
 void quantum_platform::onRandomSeedSet(std::size_t seed) {
@@ -336,18 +332,16 @@ cudaq::streamlinedLaunchModule(const std::string &kernelName,
   return platform.launchModule(kernelName, moduleOp, rawArgs, qpu_id);
 }
 
-void *cudaq::streamlinedSpecializeModule(const std::string &kernelName,
-                                         mlir::ModuleOp moduleOp,
-                                         const std::vector<void *> &rawArgs,
-                                         std::optional<JitEngine> &cachedEngine,
-                                         bool isEntryPoint) {
+cudaq::CompiledModule cudaq::streamlinedSpecializeModule(
+    const std::string &kernelName, mlir::ModuleOp moduleOp,
+    const std::vector<void *> &rawArgs, bool isEntryPoint) {
   ScopedTraceWithContext("streamlinedSpecializeModule", kernelName,
                          rawArgs.size());
 
   auto &platform = *getQuantumPlatformInternal();
   std::size_t qpu_id = getCurrentQpuId();
-  return platform.specializeModule(kernelName, moduleOp, rawArgs, cachedEngine,
-                                   qpu_id, isEntryPoint);
+  return platform.specializeModule(kernelName, moduleOp, rawArgs, qpu_id,
+                                   isEntryPoint);
 }
 
 cudaq::KernelThunkResultType

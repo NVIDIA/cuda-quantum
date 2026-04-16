@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "CompiledKernel.h"
+#include "CompiledModule.h"
 #include "ExecutionContext.h"
 #include "Future.h"
 #include "Registry.h"

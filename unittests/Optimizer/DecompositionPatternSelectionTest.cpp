@@ -108,6 +108,10 @@ DecompositionGraph createTestGraph() {
   auto pattern_zh2 = std::make_unique<PatternTypeTest>(
       "pattern_zh2", "h", std::vector<llvm::StringRef>{"z(1)"});
 
+  // An adjoint pattern: x<adj> -> x (like RxAdjToRx)
+  auto pattern_x_adj = std::make_unique<PatternTypeTest>(
+      "pattern_x_adj", "x<adj>", std::vector<llvm::StringRef>{"x"});
+
   llvm::StringMap<std::unique_ptr<cudaq::DecompositionPatternType>> patterns;
   patterns.insert({pattern_x1->getPatternName(), std::move(pattern_x1)});
   patterns.insert({pattern_x2->getPatternName(), std::move(pattern_x2)});
@@ -120,6 +124,7 @@ DecompositionGraph createTestGraph() {
   patterns.insert({pattern_z3->getPatternName(), std::move(pattern_z3)});
   patterns.insert({pattern_zh1->getPatternName(), std::move(pattern_zh1)});
   patterns.insert({pattern_zh2->getPatternName(), std::move(pattern_zh2)});
+  patterns.insert({pattern_x_adj->getPatternName(), std::move(pattern_x_adj)});
   return DecompositionGraph(std::move(patterns));
 }
 
@@ -278,7 +283,9 @@ TEST_F(DummyDecompositionPatternSelectionTest, SelectXPatterns) {
   // - pattern_x1: decompose x into x(1)
   // - pattern_x2: decompose x(1) into x(2)
   // - pattern_x3: decompose x(2) into x(3)
-  std::vector<std::string> exp{"pattern_x1", "pattern_x2", "pattern_x3"};
+  // - pattern_x_adj: decompose x<adj> into x
+  std::vector<std::string> exp{"pattern_x1", "pattern_x2", "pattern_x3",
+                               "pattern_x_adj"};
   EXPECT_EQ(selectedPatterns, exp);
 }
 
@@ -305,13 +312,15 @@ TEST_F(DummyDecompositionPatternSelectionTest, SelectZOverXPatterns) {
   // - pattern_x1: decompose x into x(1)
   // - pattern_x2: decompose x(1) into x(2)
   // - pattern_x3: decompose x(2) into x(3)
+  // - pattern_x_adj: decompose x<adj> into x
   // - pattern_z1: decompose z into z(1)+x(1)
   // - pattern_z2: decompose z(1) into z(2)+x(2)
   // - pattern_zh2: decompose h into z(1)
   // Pattern pattern_zh1 cannot be used, as z is already decomposed by
   // pattern_z1.
-  std::vector<std::string> exp{"pattern_x1", "pattern_x2", "pattern_x3",
-                               "pattern_z1", "pattern_z2", "pattern_zh2"};
+  std::vector<std::string> exp{"pattern_x1",    "pattern_x2", "pattern_x3",
+                               "pattern_x_adj", "pattern_z1", "pattern_z2",
+                               "pattern_zh2"};
   EXPECT_EQ(selectedPatterns, exp);
 }
 
@@ -338,7 +347,8 @@ TEST_F(DummyDecompositionPatternSelectionTest,
   // z -> z(1)+x(1)
   // would be selected. However, by disabling it we force the selection of the
   // pattern_zh1 instead.
-  std::vector<std::string> exp{"pattern_x1", "pattern_zh1", "pattern_zh2"};
+  std::vector<std::string> exp{"pattern_x1", "pattern_x_adj", "pattern_zh1",
+                               "pattern_zh2"};
   EXPECT_EQ(selectedPatterns, exp);
 }
 
@@ -352,6 +362,85 @@ TEST_F(FullDecompositionPatternSelectionTest, DecomposeCCXToCZ) {
 
   std::vector<std::string> exp{"CCXToCCZ", "CCZToCX", "CXToCZ", "SwapToCX"};
   EXPECT_EQ(selectedPatterns, exp);
+}
+
+// Regression: multi-hop chain where intermediate gates (t, z(2)) are not
+// in the basis but are reachable through further patterns.
+// Chain: x(2) -> CCXToCCZ -> {h,z(2)} -> CCZToCX -> {t,x(1)}
+//        t -> TToR1 -> {r1(1)} -> CR1ToCX -> {r1,x(1)}
+//        r1 -> R1ToU3 -> {u3} -> U3ToRotations -> {rz,rx}
+TEST_F(FullDecompositionPatternSelectionTest, DecomposeCCXDeepChain) {
+  std::vector<std::string> targetBasis{"h", "rx", "ry", "rz", "x", "x(1)"};
+  auto selectedPatterns = selectPatterns(targetBasis);
+
+  EXPECT_TRUE(std::find(selectedPatterns.begin(), selectedPatterns.end(),
+                        "CCXToCCZ") != selectedPatterns.end())
+      << "CCXToCCZ not selected";
+  EXPECT_TRUE(std::find(selectedPatterns.begin(), selectedPatterns.end(),
+                        "CCZToCX") != selectedPatterns.end())
+      << "CCZToCX not selected";
+  EXPECT_TRUE(std::find(selectedPatterns.begin(), selectedPatterns.end(),
+                        "TToR1") != selectedPatterns.end())
+      << "TToR1 not selected";
+}
+
+//===----------------------------------------------------------------------===//
+// Test OperatorInfo adjoint parsing
+//===----------------------------------------------------------------------===//
+
+TEST_F(BaseDecompositionPatternSelectionTest, OperatorInfoParsesAdj) {
+  OperatorInfo rx("rx");
+  EXPECT_EQ(rx.name, "rx");
+  EXPECT_FALSE(rx.isAdj);
+  EXPECT_EQ(rx.numControls, 0u);
+
+  OperatorInfo rxAdj("rx<adj>");
+  EXPECT_EQ(rxAdj.name, "rx");
+  EXPECT_TRUE(rxAdj.isAdj);
+  EXPECT_EQ(rxAdj.numControls, 0u);
+
+  // rx and rx<adj> are different
+  EXPECT_FALSE(rx == rxAdj);
+
+  // <adj> combined with controls
+  OperatorInfo rxAdjCtrl("rx<adj>(1)");
+  EXPECT_EQ(rxAdjCtrl.name, "rx");
+  EXPECT_TRUE(rxAdjCtrl.isAdj);
+  EXPECT_EQ(rxAdjCtrl.numControls, 1u);
+}
+
+//===----------------------------------------------------------------------===//
+// Test adjoint pattern selection on dummy graph
+//===----------------------------------------------------------------------===//
+
+TEST_F(DummyDecompositionPatternSelectionTest, SelectAdjointPattern) {
+  // When x is in the basis, x<adj> should be decomposable via pattern_x_adj
+  std::vector<std::string> targetBasis{"x"};
+  auto selectedPatterns = selectPatterns(targetBasis);
+
+  std::vector<std::string> exp{"pattern_x_adj"};
+  EXPECT_EQ(selectedPatterns, exp);
+}
+
+//===----------------------------------------------------------------------===//
+// Test adjoint pattern selection on the registered decomposition graph
+//===----------------------------------------------------------------------===//
+
+TEST_F(FullDecompositionPatternSelectionTest, SelectAdjointRotationPatterns) {
+  std::vector<std::string> targetBasis{"h",  "s", "t", "rx", "ry",
+                                       "rz", "x", "y", "z",  "x(1)"};
+  auto selectedPatterns = selectPatterns(targetBasis);
+
+  // Verify that the adjoint rotation patterns are selected
+  EXPECT_NE(
+      std::find(selectedPatterns.begin(), selectedPatterns.end(), "RxAdjToRx"),
+      selectedPatterns.end());
+  EXPECT_NE(
+      std::find(selectedPatterns.begin(), selectedPatterns.end(), "RyAdjToRy"),
+      selectedPatterns.end());
+  EXPECT_NE(
+      std::find(selectedPatterns.begin(), selectedPatterns.end(), "RzAdjToRz"),
+      selectedPatterns.end());
 }
 
 } // namespace

@@ -86,7 +86,7 @@ docs/sphinx/_mdgen
 _version.py
 
 # Generated files
-targettests/generated
+python/tests/mlir/generated
 
 # third party integrations
 simulators/
