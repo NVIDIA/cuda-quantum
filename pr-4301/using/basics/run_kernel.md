@@ -2676,17 +2676,12 @@ a [[`cudaq.operators.spin.SpinOperator`{.xref .py .py-class .docutils
 
 Using the [`cudaq.spin`{.code .docutils .literal .notranslate}]{.pre}
 module, operators may be defined as a linear combination of Pauli
-strings. Functions, such as [[`cudaq.spin.i()`{.xref .py .py-func
-.docutils .literal
-.notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.spin.i "cudaq.spin.i"){.reference
-.internal}, [[`cudaq.spin.x()`{.xref .py .py-func .docutils .literal
-.notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.spin.x "cudaq.spin.x"){.reference
-.internal}, [[`cudaq.spin.y()`{.xref .py .py-func .docutils .literal
-.notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.spin.y "cudaq.spin.y"){.reference
-.internal}, [[`cudaq.spin.z()`{.xref .py .py-func .docutils .literal
-.notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.spin.z "cudaq.spin.z"){.reference
-.internal} may be used to construct more complex spin Hamiltonians on
-multiple qubits.
+strings. Functions, such as [`cudaq.spin.i`{.code .docutils .literal
+.notranslate}]{.pre}, [`cudaq.spin.x`{.code .docutils .literal
+.notranslate}]{.pre}, [`cudaq.spin.y`{.code .docutils .literal
+.notranslate}]{.pre}, [`cudaq.spin.z`{.code .docutils .literal
+.notranslate}]{.pre} may be used to construct more complex spin
+Hamiltonians on multiple qubits.
 :::
 
 C++
