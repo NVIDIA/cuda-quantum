@@ -87,6 +87,7 @@ _version.py
 
 # Generated files
 python/tests/mlir/generated
+Testing
 
 # third party integrations
 simulators/

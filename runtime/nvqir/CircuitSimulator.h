@@ -644,6 +644,15 @@ protected:
   void flushAnySamplingTasks(bool force = false) {
     auto executionContext = cudaq::getExecutionContext();
 
+    // In sampling mode without conditionals, don't flush on gate application.
+    // Gates between measurements (e.g. basis-change gates in mx/my) are part
+    // of the circuit and will be applied before the final sample() call.
+    // Flushing here would prematurely sample a subset of qubits.
+    if (!force && executionContext && executionContext->name == "sample" &&
+        !executionContext->hasConditionalsOnMeasureResults &&
+        !sampleQubits.empty())
+      return;
+
     if (force && supportsBufferedSample &&
         executionContext->explicitMeasurements) {
       int nShots = getNumShotsToExec();
