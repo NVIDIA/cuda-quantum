@@ -92,6 +92,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../../runtime/cudaq/platform/default/rest/RemoteRESTQPU.cpp
     ../../runtime/cudaq/platform/default/python/QPU.cpp
     ../../runtime/internal/compiler/ArgumentConversion.cpp
+    ../../runtime/internal/compiler/CompiledModuleHelper.cpp
     ../../runtime/internal/compiler/LayoutInfo.cpp
     ../../runtime/internal/compiler/RuntimeMLIR.cpp
     ../../runtime/internal/compiler/RuntimePyMLIR.cpp
