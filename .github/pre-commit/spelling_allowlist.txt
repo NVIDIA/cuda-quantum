@@ -1,7 +1,6 @@
 ABI
 AFQMC
 API
-api
 APIs
 AST
 Aer
@@ -125,7 +124,6 @@ QRMI
 QTX
 QX
 QaaS
-Qbraid
 Qiskit
 QuEra
 QuTiP
@@ -172,6 +170,7 @@ amongst
 ancilla
 ansatz
 ansatzes
+api
 archiver
 arity
 auxillary
@@ -338,6 +337,7 @@ preprocessor
 probability
 programmatically
 pybind
+qBraid
 qaoa
 qbraid
 qed

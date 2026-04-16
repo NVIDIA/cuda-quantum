@@ -23,9 +23,8 @@ except ImportError:
 port = 62452
 
 # Default machine for tests. Mirrors the real qBraid device string format.
-TEST_MACHINE = "ionq:ionq:sim:simulator"
+TEST_MACHINE = "qbraid:qbraid:sim:qir-sv"
 TEST_API_KEY = "00000000000000000000000000000000"
-
 
 # The qbraid mock server in utils/mock_qpu/qbraid/__init__.py doesn't simulate
 # quantum mechanics - it only inspects the QASM for `h` and `measure` ops and

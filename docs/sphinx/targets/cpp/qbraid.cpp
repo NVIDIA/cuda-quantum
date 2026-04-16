@@ -2,12 +2,12 @@
 // ```
 // nvq++ --target qbraid qbraid.cpp -o out.x && ./out.x
 // ```
-// This will submit the job to the Qbraid ideal simulator target (default).
+// This will submit the job to the qBraid ideal simulator target (default).
 
 #include <cudaq.h>
 #include <fstream>
 
-// Define a simple quantum kernel to execute on Qbraid.
+// Define a simple quantum kernel to execute on qBraid.
 struct ghz {
   // Maximally entangled state between 5 qubits.
   auto operator()() __qpu__ {
@@ -21,7 +21,7 @@ struct ghz {
 };
 
 int main() {
-  // Submit to Qbraid asynchronously (e.g., continue executing
+  // Submit to qBraid asynchronously (e.g., continue executing
   // code in the file until the job has been returned).
   auto future = cudaq::sample_async(ghz{});
   // ... classical code to execute in the meantime ...
@@ -41,7 +41,7 @@ int main() {
   auto async_counts = readIn.get();
   async_counts.dump();
 
-  // OR: Submit to Qbraid synchronously (e.g., wait for the job
+  // OR: Submit to qBraid synchronously (e.g., wait for the job
   // result to be returned before proceeding).
   auto counts = cudaq::sample(ghz{});
   counts.dump();

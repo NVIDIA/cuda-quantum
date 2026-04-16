@@ -7,7 +7,7 @@ import cudaq
 cudaq.set_target("qbraid")
 
 
-# Create the kernel we'd like to execute on Qbraid.
+# Create the kernel we'd like to execute on qBraid.
 @cudaq.kernel
 def kernel():
     qvector = cudaq.qvector(2)
@@ -15,12 +15,12 @@ def kernel():
     x.ctrl(qvector[0], qvector[1])
 
 
-# Execute on Qbraid and print out the results.
+# Execute on qBraid and print out the results.
 
 # Option A:
 # By using the asynchronous `cudaq.sample_async`, the remaining
 # classical code will be executed while the job is being handled
-# by IonQ. This is ideal when submitting via a queue over
+# by qBraid. This is ideal when submitting via a queue over
 # the cloud.
 async_results = cudaq.sample_async(kernel)
 # ... more classical code to run ...
@@ -46,6 +46,6 @@ print(counts)
 # Option B:
 # By using the synchronous `cudaq.sample`, the execution of
 # any remaining classical code in the file will occur only
-# after the job has been returned from Qbraid.
+# after the job has been returned from qBraid.
 counts = cudaq.sample(kernel)
 print(counts)

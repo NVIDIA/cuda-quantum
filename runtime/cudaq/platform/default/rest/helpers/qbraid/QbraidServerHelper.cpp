@@ -19,14 +19,14 @@ namespace cudaq {
 
 class QbraidServerHelper : public ServerHelper {
   static constexpr const char *DEFAULT_URL = "https://api-v2.qbraid.com/api/v1";
-  static constexpr const char *DEFAULT_DEVICE = "ionq:ionq:sim:simulator";
+  static constexpr const char *DEFAULT_DEVICE = "qbraid:qbraid:sim:qir-sv";
   static constexpr int DEFAULT_QUBITS = 29;
 
 public:
   const std::string name() const override { return "qbraid"; }
 
   void initialize(BackendConfig config) override {
-    cudaq::info("Initializing Qbraid Backend.");
+    cudaq::info("Initializing qBraid Backend.");
 
     backendConfig.clear();
     backendConfig["url"] = getValueOrDefault(config, "url", DEFAULT_URL);
@@ -34,7 +34,7 @@ public:
     backendConfig["qubits"] = std::to_string(DEFAULT_QUBITS);
 
     // Accept "machine" as a user-friendly alias for device_id
-    // Usage: cudaq.set_target("qbraid", machine="ionq:ionq:sim:simulator")
+    // Usage: cudaq.set_target("qbraid", machine="qbraid:qbraid:sim:qir-sv")
     if (!config["machine"].empty()) {
       backendConfig["device_id"] = config["machine"];
     } else {
@@ -61,7 +61,7 @@ public:
 
     parseConfigForCommonParams(config);
 
-    cudaq::info("Qbraid configuration initialized:");
+    cudaq::info("qBraid configuration initialized:");
     for (const auto &[key, value] : backendConfig) {
       cudaq::info("  {} = {}", key, value);
     }

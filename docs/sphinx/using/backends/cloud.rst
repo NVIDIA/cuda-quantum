@@ -8,4 +8,4 @@ CUDA-Q provides a number of options to access hardware resources (GPUs and QPUs)
 
         Amazon Braket (braket) <cloud/braket.rst>
         Scaleway QaaS (scaleway) <cloud/scaleway.rst>
-        Qbraid <cloud/qbraid.rst>
+        qBraid <cloud/qbraid.rst>

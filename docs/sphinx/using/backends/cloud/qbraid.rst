@@ -1,61 +1,101 @@
-QBRAID
-+++++++
+qBraid
+++++++
 
 .. _qbraid-backend:
 
-Setting Credentials
-`````````````````````````
+`qBraid <https://www.qbraid.com/>`__ is a cloud platform that brokers access to
+quantum simulators and hardware from multiple vendors through a single API.
+CUDA-Q can submit OpenQASM 2 jobs to any device exposed by the qBraid service.
+See the `qBraid device catalog <https://account.qbraid.com/devices>`__ for the
+set of simulators and QPUs currently available.
 
-Programmers of CUDA-Q may access the `Qbraid Devices
-<https://account.qbraid.com//>`__ from either C++ or Python. Generate
-an API key from your `Qbraid account <https://account.qbraid.com//>`__ and export
-it as an environment variable:
+Setting Credentials
+```````````````````
+
+Generate an API key from your `qBraid account <https://account.qbraid.com/>`__
+and export it as an environment variable:
 
 .. code:: bash
 
-  export QBRAID_API_KEY="qbraid_generated_api_key"
+    export QBRAID_API_KEY="qbraid_generated_api_key"
 
+Alternatively, the API key can be passed directly to ``cudaq.set_target`` via
+the ``api_key`` argument (see below).
 
-Submission from Python
-`````````````````````````
+Submitting
+``````````
 
-    First, set the :code:`qbraid` backend.
+.. tab:: Python
+
+    The target to which quantum kernels are submitted can be controlled with
+    the ``cudaq.set_target()`` function.
 
     .. code:: python
 
-        cudaq.set_target('qbraid')
+        cudaq.set_target("qbraid")
 
-    By default, quantum kernel code will be submitted to the IonQ simulator on qBraid.
+    By default, jobs are submitted to the qBraid state vector simulator
+    (``qbraid:qbraid:sim:qir-sv``).
 
-   To emulate the qbraid's simulator locally, without submitting through the cloud, you can also set the ``emulate`` flag to ``True``. This will emit any target specific compiler diagnostics.
+    To specify a different qBraid device, set the ``machine`` parameter to its
+    qBraid device ID.
 
-   .. code:: python
+    .. code:: python
 
-       cudaq.set_target('qbraid', emulate=True)
+        cudaq.set_target("qbraid", machine="qbraid:qbraid:sim:qir-sv")
 
-   The number of shots for a kernel execution can be set through the ``shots_count`` argument to ``cudaq.sample`` or ``cudaq.observe``. By default, the ``shots_count`` is set to 1000.
+    The API key can also be supplied inline instead of through the
+    ``QBRAID_API_KEY`` environment variable.
 
-   .. code:: python
+    .. code:: python
 
-       cudaq.sample(kernel, shots_count=10000)
+        cudaq.set_target("qbraid", api_key="qbraid_generated_api_key")
 
-   To see a complete example for using Qbraid's backends, take a look at our :doc:`Python examples <../../examples/examples>`.
+    qBraid devices are cloud-hosted, so local emulation via the ``emulate``
+    flag is not supported — all jobs are executed on the qBraid service.
+    To run without submitting to real hardware, select one of the qBraid
+    simulator devices (for example, ``qbraid:qbraid:sim:qir-sv``) via the
+    ``machine`` argument.
 
-Submission from C++
-`````````````````````````
-        To target quantum kernel code for execution using qbraid,
-        pass the flag ``--target qbraid`` to the ``nvq++`` compiler.
+    The number of shots for a kernel execution can be set through the
+    ``shots_count`` argument to ``cudaq.sample`` or ``cudaq.observe``. The
+    default is 1000.
 
-        .. code:: bash
+    .. code:: python
 
-                nvq++ --target qbraid src.cpp
+        cudaq.sample(kernel, shots_count=10000)
 
-        This will take the API key and handle all authentication with, and submission to, the Qbraid device. By default, quantum kernel code will be submitted to the Qbraidsimulator.
+.. tab:: C++
 
-        To emulate the qbraid's machine locally, without submitting through the cloud, you can also pass the ``--emulate`` flag to ``nvq++``. This will emit any target  specific compiler diagnostics, before running a noise free emulation.
+    To target quantum kernel code for execution on qBraid, pass the flag
+    ``--target qbraid`` to the ``nvq++`` compiler. By default jobs are
+    submitted to the qBraid state vector simulator
+    (``qbraid:qbraid:sim:qir-sv``).
 
-        .. code:: bash
+    .. code:: bash
 
-                nvq++ --emulate --target qbraid src.cpp
+        nvq++ --target qbraid src.cpp
 
-        To see a complete example for using IonQ's backends, take a look at our :doc:`C++ examples <../../examples/examples>`.
+    To execute kernels on a different device, pass ``--qbraid-machine`` with
+    the qBraid device ID:
+
+    .. code:: bash
+
+        nvq++ --target qbraid --qbraid-machine "qbraid:qbraid:sim:qir-sv" src.cpp
+
+    The API key can be passed explicitly with ``--qbraid-api_key`` instead of
+    being read from ``QBRAID_API_KEY``:
+
+    .. code:: bash
+
+        nvq++ --target qbraid --qbraid-api_key "qbraid_generated_api_key" src.cpp
+
+    qBraid devices are cloud-hosted, so the ``--emulate`` flag is not
+    supported for this target — all jobs are executed on the qBraid
+    service. To run without submitting to real hardware, pass
+    ``--qbraid-machine`` with a qBraid simulator device ID (for example,
+    ``qbraid:qbraid:sim:qir-sv``).
+
+To see a complete example for using qBraid's backends, take a look at our
+:doc:`Python examples <../../examples/examples>` and
+:doc:`C++ examples <../../examples/examples>`.
