@@ -158,40 +158,38 @@ jobs:
         with:
           script: |
             const BATCH = 50;
+            const MAX_PER_RUN = 200;
             for (const environment of ['default', 'ghcr-ci']) {
               let deleted = 0;
-              for await (const response of github.paginate.iterator(
-                github.rest.repos.listDeployments,
-                {
+              while (deleted < MAX_PER_RUN) {
+                const {data: deployments} = await github.rest.repos.listDeployments({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   environment: environment,
-                  per_page: 100
-                }
-              )) {
-                for (let i = 0; i < response.data.length; i += BATCH) {
-                  const batch = response.data.slice(i, i + BATCH);
-                  const results = await Promise.allSettled(
-                    batch.map(async (deployment) => {
-                      await github.rest.repos.createDeploymentStatus({
-                        owner: context.repo.owner,
-                        repo: context.repo.repo,
-                        deployment_id: deployment.id,
-                        state: 'inactive'
-                      });
-                      return github.rest.repos.deleteDeployment({
-                        owner: context.repo.owner,
-                        repo: context.repo.repo,
-                        deployment_id: deployment.id
-                      });
-                    })
-                  );
-                  const fulfilled = results.filter(r => r.status === 'fulfilled').length;
-                  deleted += fulfilled;
-                  if (fulfilled < batch.length) {
-                    console.log(`${environment}: ${batch.length - fulfilled} failures in batch, stopping.`);
-                    break;
-                  }
+                  per_page: Math.min(BATCH, MAX_PER_RUN - deleted)
+                });
+                if (deployments.length === 0) break;
+
+                const results = await Promise.allSettled(
+                  deployments.map(async (deployment) => {
+                    await github.rest.repos.createDeploymentStatus({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      deployment_id: deployment.id,
+                      state: 'inactive'
+                    });
+                    return github.rest.repos.deleteDeployment({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      deployment_id: deployment.id
+                    });
+                  })
+                );
+                const fulfilled = results.filter(r => r.status === 'fulfilled').length;
+                deleted += fulfilled;
+                if (fulfilled < deployments.length) {
+                  console.log(`${environment}: ${deployments.length - fulfilled} failures, stopping.`);
+                  break;
                 }
               }
               console.log(`${environment}: deleted ${deleted} deployments this run`);
