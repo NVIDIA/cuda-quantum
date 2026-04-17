@@ -254,7 +254,7 @@ private:
   //
   // Context: nvq++ emits one `creg varK[1];` per measurement. AWS Braket's
   // classical simulators (SV1, DM1, TN1) tolerate that via lenient register
-  // concatenation, but stricter hardware transpilers reject it:
+  // concatenation, but stricter hardware transpilers below reject it:
   //   - IQM (Garnet etc.): returns only the first register -> 1-bit results
   //   - Rigetti: collapses all registers onto b[0] -> "bit already in use"
   //   - IonQ-via-Braket: similar strict behavior
