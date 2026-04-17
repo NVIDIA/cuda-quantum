@@ -99,9 +99,9 @@ addMeasurements(func::FuncOp funcOp, SmallVector<Operation *> &allocations,
           return quake::MeasurementsType::get(ctx, veqTy.getSize());
         return quake::MeasurementsType::getUnsized(ctx);
       }();
-      builder.create<quake::MzOp>(loc, measurementsTy, alloca->getResult(0));
+      quake::MzOp::create(builder, loc, measurementsTy, alloca->getResult(0));
     } else {
-      builder.create<quake::MzOp>(loc, measTy, alloca->getResult(0));
+      quake::MzOp::create(builder, loc, measTy, alloca->getResult(0));
     }
   }
 
