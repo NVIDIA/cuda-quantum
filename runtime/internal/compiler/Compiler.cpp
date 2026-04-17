@@ -470,17 +470,20 @@ cudaq::CompiledModule Compiler::runPassPipeline(
 
   // For emulation or resource counting: create JIT artifacts before
   // applying combine-measurements (so the JIT sees un-combined measurements).
-  std::vector<CompiledModuleHelper::NamedJitArtifact> jitArtifacts;
+  std::vector<CompiledModuleHelper::NamedCompiledArtifact> artifacts;
   if (emulate ||
       (executionContext && executionContext->name == "resource-count")) {
     for (auto &[name, module] : modules) {
       auto clonedModule = module.clone();
-      auto artifacts = CompiledModuleHelper::createJitArtifacts(
+      auto jitArtifacts = CompiledModuleHelper::createJitArtifacts(
           kernelName, createJITEngine(clonedModule, codegenTranslation), {},
-          /*isFullySpecialized=*/true, std::move(resourceCounts));
-      assert(artifacts.size() == 1);
-      artifacts[0].first = name;
-      jitArtifacts.push_back(std::move(artifacts[0]));
+          /*isFullySpecialized=*/true);
+      assert(jitArtifacts.size() == 1);
+      jitArtifacts[0].first = name;
+      artifacts.push_back(std::move(jitArtifacts[0]));
+      if (resourceCounts)
+        artifacts.push_back(CompiledModuleHelper::createResourcesArtifact(
+            name + ".resources", std::move(*resourceCounts)));
     }
   }
 
@@ -488,15 +491,14 @@ cudaq::CompiledModule Compiler::runPassPipeline(
     for (auto &[name, module] : modules)
       runPassPipeline("func.func(combine-measurements)", module);
 
-  std::vector<CompiledModuleHelper::NamedMlirArtifact> mlirArtifacts;
   for (auto &[name, module] : modules) {
     auto mlirName = name + ".mlir"; // distinguish MLIR and JIT artifacts
-    mlirArtifacts.push_back(
+    artifacts.push_back(
         CompiledModuleHelper::createMlirArtifact(mlirName, module, context));
   }
 
   return CompiledModuleHelper::createCompiledModule(
-      kernelName, {}, std::move(jitArtifacts), std::move(mlirArtifacts),
+      kernelName, {}, std::move(artifacts),
       {.reorderIdx = mapping_reorder_idx});
 }
 
@@ -538,13 +540,12 @@ Compiler::emitKernelExecutions(const cudaq::CompiledModule &compiled) {
     std::optional<cudaq::JitEngine> optionalJit;
     std::optional<cudaq::Resources> optionalResourceCounts;
     auto kernelName = name.substr(0, name.length() - 5);
-    auto it = compiled.getArtifacts().find(kernelName);
-    if (it != compiled.getArtifacts().end()) {
-      const auto &jit =
-          std::get<cudaq::CompiledModule::JitArtifact>(it->second);
-      optionalJit = jit.getEngine();
-      optionalResourceCounts = jit.getResourceCounts();
-    }
+    auto jit = compiled.getJit(kernelName);
+    if (jit)
+      optionalJit = jit->getEngine();
+    auto resourceCounts = compiled.getResources(kernelName + ".resources");
+    if (resourceCounts)
+      optionalResourceCounts = *resourceCounts;
 
     auto mapping_reorder_idx = compiled.getMetadata().reorderIdx;
     codes.emplace_back(kernelName, codeStr, optionalJit, optionalResourceCounts,
