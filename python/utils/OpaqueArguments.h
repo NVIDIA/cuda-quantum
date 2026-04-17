@@ -114,10 +114,6 @@ void valueArgument(OpaqueArguments &argData, T *arg) {
 
 std::string mlirTypeToString(mlir::Type ty);
 
-/// @brief Return the size and member variable offsets for the input struct.
-std::pair<std::size_t, std::vector<std::size_t>>
-getTargetLayout(mlir::ModuleOp mod, cudaq::cc::StructType structTy);
-
 /// For the current struct member variable type, insert the value into the
 /// dynamically constructed struct.
 void handleStructMemberVariable(void *data, std::size_t offset,
