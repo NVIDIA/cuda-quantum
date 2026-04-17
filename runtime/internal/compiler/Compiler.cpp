@@ -478,8 +478,9 @@ cudaq::CompiledModule Compiler::runPassPipeline(
       auto artifacts = CompiledModuleHelper::createJitArtifacts(
           kernelName, createJITEngine(clonedModule, codegenTranslation), {},
           /*isFullySpecialized=*/true, std::move(resourceCounts));
-      jitArtifacts.insert(jitArtifacts.end(), artifacts.begin(),
-                          artifacts.end());
+      assert(artifacts.size() == 1);
+      artifacts[0].first = name;
+      jitArtifacts.push_back(std::move(artifacts[0]));
     }
   }
 
