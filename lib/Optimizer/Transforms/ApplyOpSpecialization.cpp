@@ -130,8 +130,8 @@ private:
                 auto *ctx = newFunc.getContext();
                 OpBuilder builder(ctx);
                 builder.setInsertionPoint(&newFunc.front().front());
-                auto relax = builder.create<quake::RelaxSizeOp>(
-                    newFunc.getLoc(), quake::VeqType::getUnsized(ctx),
+                auto relax = quake::RelaxSizeOp::create(
+                    builder, newFunc.getLoc(), quake::VeqType::getUnsized(ctx),
                     newFunc.front().getArgument(pos));
                 newFunc.front().getArgument(pos).replaceAllUsesExcept(
                     relax.getResult(), relax.getOperation());
@@ -318,8 +318,8 @@ struct ApplyOpPattern : public OpRewritePattern<quake::ApplyOp> {
     auto unsizedVeqTy = quake::VeqType::getUnsized(ctx);
     SmallVector<Value> newArgs;
     if (!apply.getControls().empty()) {
-      auto consOp = rewriter.create<quake::ConcatOp>(
-          apply.getLoc(), unsizedVeqTy, apply.getControls());
+      auto consOp = quake::ConcatOp::create(rewriter, apply.getLoc(),
+                                            unsizedVeqTy, apply.getControls());
       newArgs.push_back(consOp);
     }
     for (auto [v, toTy] :
@@ -328,8 +328,8 @@ struct ApplyOpPattern : public OpRewritePattern<quake::ApplyOp> {
         continue;
       Value arg = v;
       if (arg.getType() != toTy)
-        arg =
-            rewriter.create<quake::ConcatOp>(apply.getLoc(), unsizedVeqTy, arg);
+        arg = quake::ConcatOp::create(rewriter, apply.getLoc(), unsizedVeqTy,
+                                      arg);
       newArgs.emplace_back(arg);
     }
     LLVM_DEBUG(llvm::dbgs() << "replacing: " << apply << '\n');
