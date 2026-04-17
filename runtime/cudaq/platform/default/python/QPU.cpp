@@ -23,6 +23,7 @@
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
 #include "cudaq/platform.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
+#include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq_internal/compiler/JIT.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
@@ -317,7 +318,8 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     Type resultTy = cudaq::runtime::getReturnType(funcOp);
 
     const bool hasResult = !!resultTy;
-    auto resultInfo = createResultInfo(resultTy, isEntryPoint, module);
+    auto resultInfo =
+        CompiledModuleHelper::createResultInfo(resultTy, isEntryPoint, module);
 
     // Determine whether the kernel needs argument packing (argsCreator) by
     // checking if any non-callable arguments are present. This must be done
@@ -350,9 +352,10 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     }
 
     if (auto jit = alreadyBuiltJITCode(name, rawArgs)) {
-      cudaq::CompiledModule ck(name, resultInfo);
-      ck.attachJit(*jit, isFullySpecialized);
-      return ck;
+      auto jitArtifacts = CompiledModuleHelper::createJitArtifacts(
+          name, *jit, resultInfo, isFullySpecialized);
+      return CompiledModuleHelper::createCompiledModule(name, resultInfo,
+                                                        jitArtifacts);
     }
 
     // 1. Check that this call is sane.
@@ -389,9 +392,10 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     cacheJITForPerformance(jit);
     cudaq::compiler_artifact::saveArtifact(name, jit);
 
-    cudaq::CompiledModule ck(name, resultInfo);
-    ck.attachJit(jit, isFullySpecialized);
-    return ck;
+    auto jitArtifacts = CompiledModuleHelper::createJitArtifacts(
+        name, jit, resultInfo, isFullySpecialized);
+    return CompiledModuleHelper::createCompiledModule(
+        name, std::move(resultInfo), jitArtifacts);
   }
 };
 } // namespace
