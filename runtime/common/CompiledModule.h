@@ -105,11 +105,11 @@ public:
   class JitArtifact {
     JitEngine engine;
     void (*entryPoint)() = nullptr;
-    int64_t (*argsCreator)(const void *, void **) = nullptr;
+    std::int64_t (*argsCreator)(const void *, void **) = nullptr;
     /// Offset (in bytes) of the result field within the argsCreator-packed
     /// buffer. Only valid when argsCreator is non-null and the kernel has a
     /// result. Use resultInfo.bufferSize to know how many bytes to copy.
-    int64_t (*returnOffset)() = nullptr;
+    std::int64_t (*returnOffset)() = nullptr;
     std::optional<Resources> resourceCounts;
 
     JitArtifact(JitEngine engine, void (*entryPoint)(),

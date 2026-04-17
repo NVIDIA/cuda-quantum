@@ -56,6 +56,24 @@ def test_reuse():
     assert (res.count("000000") == 1)
 
 
+def test_reuse_different_kernel_raises():
+    """Calling a different kernel inside reuse_compiler_artifacts should raise."""
+
+    @cudaq.kernel
+    def kernel_a(numQubits: int):
+        qubits = cudaq.qvector(numQubits)
+        x(qubits.front())
+
+    @cudaq.kernel
+    def kernel_b(numQubits: int):
+        qubits = cudaq.qvector(numQubits)
+
+    with cudaq.cudaq_runtime.reuse_compiler_artifacts():
+        cudaq.sample(kernel_a, 2, shots_count=1)
+        with pytest.raises(RuntimeError):
+            cudaq.sample(kernel_b, 2, shots_count=1)
+
+
 def test_reuse_no_arguments():
     """A no-arg kernel should be reusable in artifact-reuse mode."""
 
