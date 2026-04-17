@@ -158,7 +158,7 @@ public:
                 auto v = cudaq::cc::ComputePtrOp::create(
                     rewriter, loc, buffTy, buffer,
                     ArrayRef<cudaq::cc::ComputePtrArg>{i});
-                Value w = rewriter.create<cudaq::cc::LoadOp>(loc, v);
+                Value w = cudaq::cc::LoadOp::create(rewriter, loc, v);
                 genOutputLog(loc, rewriter, w, offset, allowDynamic);
               }
               return;
@@ -168,39 +168,39 @@ public:
             return;
           auto eleTy = vecTy.getElementType();
           auto i8PtrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
-          Value size = rewriter.create<cudaq::cc::StdvecSizeOp>(
-              loc, rewriter.getI64Type(), val);
+          Value size = cudaq::cc::StdvecSizeOp::create(
+              rewriter, loc, rewriter.getI64Type(), val);
           Value rawData =
-              rewriter.create<cudaq::cc::StdvecDataOp>(loc, i8PtrTy, val);
+              cudaq::cc::StdvecDataOp::create(rewriter, loc, i8PtrTy, val);
           if (auto intTy = dyn_cast<IntegerType>(eleTy)) {
             if (eleTy == rewriter.getI1Type()) {
-              rewriter.create<func::CallOp>(loc, TypeRange{},
-                                            cudaq::opt::QIRBoolSpanRecordOutput,
-                                            ArrayRef<Value>{rawData, size});
+              func::CallOp::create(rewriter, loc, TypeRange{},
+                                   cudaq::opt::QIRBoolSpanRecordOutput,
+                                   ArrayRef<Value>{rawData, size});
             } else {
               std::int32_t byteSize = (intTy.getWidth() + 7) / 8;
               Value elemSize =
-                  rewriter.create<arith::ConstantIntOp>(loc, byteSize, 32);
-              rewriter.create<func::CallOp>(
-                  loc, TypeRange{}, cudaq::opt::QIRIntSpanRecordOutput,
-                  ArrayRef<Value>{rawData, size, elemSize});
+                  arith::ConstantIntOp::create(rewriter, loc, byteSize, 32);
+              func::CallOp::create(rewriter, loc, TypeRange{},
+                                   cudaq::opt::QIRIntSpanRecordOutput,
+                                   ArrayRef<Value>{rawData, size, elemSize});
             }
           } else if (isa<FloatType>(eleTy)) {
             auto floatTy = cast<FloatType>(eleTy);
             std::int32_t byteSize = floatTy.getWidth() / 8;
             Value elemSize =
-                rewriter.create<arith::ConstantIntOp>(loc, byteSize, 32);
-            rewriter.create<func::CallOp>(
-                loc, TypeRange{}, cudaq::opt::QIRFloatSpanRecordOutput,
-                ArrayRef<Value>{rawData, size, elemSize});
+                arith::ConstantIntOp::create(rewriter, loc, byteSize, 32);
+            func::CallOp::create(rewriter, loc, TypeRange{},
+                                 cudaq::opt::QIRFloatSpanRecordOutput,
+                                 ArrayRef<Value>{rawData, size, elemSize});
           } else {
             // Unsupported element type — trap.
             LLVM_DEBUG(llvm::dbgs()
                        << "ReturnToOutputLog -- unsupported element type: "
                        << eleTy << "\n");
-            Value one = rewriter.create<arith::ConstantIntOp>(loc, 1, 64);
-            rewriter.create<func::CallOp>(loc, TypeRange{}, cudaq::opt::QISTrap,
-                                          ValueRange{one});
+            Value one = arith::ConstantIntOp::create(rewriter, loc, 1, 64);
+            func::CallOp::create(rewriter, loc, TypeRange{},
+                                 cudaq::opt::QISTrap, ValueRange{one});
           }
         })
         .Default([&](Type) {

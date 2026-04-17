@@ -847,14 +847,14 @@ public:
               for (auto v : op->getOperands())
                 if (v.getType() == qrefTy && dataFlow.hasBinding(block, v))
                   if (auto vBinding = dataFlow.getBinding(block, v)) {
-                    builder.create<quake::WrapOp>(op->getLoc(), vBinding, v);
+                    quake::WrapOp::create(builder, op->getLoc(), vBinding, v);
                     dataFlow.cancelBinding(block, v);
                   }
               builder.setInsertionPointAfter(op);
               for (auto r : op->getResults())
                 if (r.getType() == qrefTy) {
                   Value v =
-                      builder.create<quake::UnwrapOp>(op->getLoc(), wireTy, r);
+                      quake::UnwrapOp::create(builder, op->getLoc(), wireTy, r);
                   dataFlow.addBinding(block, r, v);
                 }
             }
@@ -995,8 +995,8 @@ public:
               }
 
         } // end loop over ops
-      }   // end loop over blocks
-    }     // end loop over regions
+      } // end loop over blocks
+    } // end loop over regions
 
     LLVM_DEBUG(llvm::dbgs() << "After threading intra-block:\n"
                             << *parent << "\n\n");
@@ -1060,9 +1060,9 @@ public:
           auto oldVal = dataFlow.getBinding(block, liveOut);
           if (!oldVal) {
             OpBuilder builder(term);
-            oldVal = builder.create<quake::UnwrapOp>(
-                term->getLoc(), quake::WireType::get(builder.getContext()),
-                liveOut);
+            oldVal = quake::UnwrapOp::create(
+                builder, term->getLoc(),
+                quake::WireType::get(builder.getContext()), liveOut);
           }
           addTerminatorArgument(term, target, oldVal);
         } else if ((usePromo ||

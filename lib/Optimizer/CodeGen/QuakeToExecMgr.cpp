@@ -473,8 +473,8 @@ public:
     auto loc = msize->getLoc();
     auto i64Ty = rewriter.getI64Type();
     auto ptrI64Ty = cudaq::cc::PointerType::get(i64Ty);
-    auto sizeptr = rewriter.create<cudaq::cc::ComputePtrOp>(
-        loc, ptrI64Ty, adaptor.getMeasurements(),
+    auto sizeptr = cudaq::cc::ComputePtrOp::create(
+        rewriter, loc, ptrI64Ty, adaptor.getMeasurements(),
         ArrayRef<cudaq::cc::ComputePtrArg>{1});
     rewriter.replaceOpWithNewOp<cudaq::cc::LoadOp>(msize, sizeptr);
     return success();
