@@ -7,7 +7,7 @@ notifications:
       nvidia:
         channels:
           - id: C0AT93CK1B9 # nvqpp-cudaq-notifications
-    match: workflow_run.name = "Publishing" and workflow_run.conclusion = "failure" and workflow_run.event in ["push", "schedule", "workflow_dispatch"]
+    match: workflow_run.name = "Publishing" and workflow_run.conclusion = "failure"
     message:
       body: |
         <{{url}}|Publishing workflow> failed on `{{branch}}` (commit <{{commitUrl}}|{{sha}}>)
@@ -24,7 +24,7 @@ notifications:
       nvidia:
         channels:
           - id: C0AT93CK1B9 # nvqpp-cudaq-notifications
-    match: workflow_run.name = "Push stable release" and workflow_run.conclusion = "failure" and workflow_run.event in ["push", "schedule", "workflow_dispatch"]
+    match: workflow_run.name = "Push stable release" and workflow_run.conclusion = "failure"
     message:
       body: |
         <{{url}}|Push stable release workflow> failed on `{{branch}}` (commit <{{commitUrl}}|{{sha}}>)
@@ -41,7 +41,7 @@ notifications:
       nvidia:
         channels:
           - id: C0AT93CK1B9 # nvqpp-cudaq-notifications
-    match: workflow_run.name = "Deployments" and workflow_run.conclusion = "failure" and workflow_run.event in ["push", "schedule", "workflow_dispatch"]
+    match: workflow_run.name = "Deployments" and workflow_run.conclusion = "failure"
     message:
       body: |
         <{{url}}|Deployments workflow> failed on `{{branch}}` (commit <{{commitUrl}}|{{sha}}>)
