@@ -202,7 +202,7 @@ The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/r
 
 The 0.6.0 release contains improved support for various HPC scenarios. We have added a
 :ref:`plugin infrastructure <distributed-computing-with-mpi>` for connecting CUDA-Q 
-with an existing MPI installation, and we've added a :ref:`new platform target <remote-mqpu-platform>` that distributes workloads across multiple virtual QPUs, 
+with an existing MPI installation, and we've added a `new platform target <https://nvidia.github.io/cuda-quantum/0.6.0/using/cudaq/platform.html#remote-mqpu-platform>`__ that distributes workloads across multiple virtual QPUs,
 each simulated by one or more GPUs.
 
 Starting with 0.6.0, we are now also distributing 

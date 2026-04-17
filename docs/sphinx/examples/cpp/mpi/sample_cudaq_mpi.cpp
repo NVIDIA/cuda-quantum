@@ -6,18 +6,18 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// Demonstrates multi-node multi-GPU simulation by partitioning MPI ranks into
-// independent QPU groups, each backed by a multi-GPU simulator (e.g.
-// tensornet). Every group simulates a different circuit in parallel.
+// Demonstrates multi-node multi-GPU simulation using the cudaq::mpi API to
+// partition ranks into independent QPU groups, each backed by a multi-GPU
+// simulator (e.g. tensornet). Every group simulates a different circuit.
 //
 // Build and run (4 ranks → 2 QPUs of 2 ranks/GPUs each):
-//   nvq++ --target tensornet -o sample sample.cpp \
-//       -I$(mpicc -showme:incdirs) -L$(mpicc -showme:libdirs) -lmpi
-//   mpirun -n 4 ./sample
+//   nvq++ --target tensornet -o sample_cudaq_mpi sample_cudaq_mpi.cpp
+//   mpirun -n 4 ./sample_cudaq_mpi
+//
+// Note: no explicit MPI flags needed; nvq++ links MPI automatically.
 
 // [Begin Documentation]
 #include <cudaq.h>
-#include <mpi.h>
 
 __qpu__ void ghz(int n) {
   cudaq::qvector q(n);
@@ -26,19 +26,18 @@ __qpu__ void ghz(int n) {
     cx(q[i], q[i + 1]);
 }
 
-int main(int argc, char **argv) {
-  MPI_Init(&argc, &argv);
+int main() {
+  cudaq::mpi::initialize();
 
-  int world_rank, world_size;
-  MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+  const int world_rank = cudaq::mpi::rank();
+  const int world_size = cudaq::mpi::num_ranks();
 
   // Each QPU is backed by ranks_per_qpu MPI ranks / GPUs.
   const int ranks_per_qpu = 2;
   if (world_size % ranks_per_qpu != 0) {
     if (world_rank == 0)
       fprintf(stderr, "World size must be a multiple of %d.\n", ranks_per_qpu);
-    MPI_Finalize();
+    cudaq::mpi::finalize();
     return 1;
   }
 
@@ -53,11 +52,10 @@ int main(int argc, char **argv) {
   //  +---------------------+---------------------+
   //
   const int qpu_id = world_rank / ranks_per_qpu;
-  MPI_Comm qpu_comm;
-  MPI_Comm_split(MPI_COMM_WORLD, qpu_id, world_rank, &qpu_comm);
+  void *qpu_comm = cudaq::mpi::split_communicator(qpu_id);
 
   // Inform CUDA-Q which sub-communicator this QPU group should use.
-  cudaq::mpi::set_communicator(reinterpret_cast<void *>(&qpu_comm));
+  cudaq::mpi::set_communicator(qpu_comm);
 
   // Run an independent circuit on each QPU group.
   // The tensornet backend can handle a large number of qubits via multi-GPU
@@ -66,15 +64,12 @@ int main(int argc, char **argv) {
   const int num_qubits = 40 + 5 * qpu_id;
   auto result = cudaq::sample(ghz, num_qubits);
 
-  int qpu_rank;
-  MPI_Comm_rank(qpu_comm, &qpu_rank);
-  if (qpu_rank == 0) {
+  if (world_rank % ranks_per_qpu == 0) {
     printf("QPU %d (%d qubits):\n", qpu_id, num_qubits);
     result.dump();
   }
 
-  MPI_Comm_free(&qpu_comm);
-  MPI_Finalize();
+  cudaq::mpi::finalize();
   return 0;
 }
 // [End Documentation]

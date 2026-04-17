@@ -13,6 +13,7 @@
 namespace cudaq {
 namespace details {
 
+/// \cond
 // The DefaultQPU models a simulated QPU by specifically
 // targeting the QIS ExecutionManager.
 class DefaultQPU : public cudaq::QPU {
@@ -35,5 +36,6 @@ public:
   void
   finalizeExecutionContext(cudaq::ExecutionContext &context) const override;
 };
+/// \endcond
 } // namespace details
 } // namespace cudaq

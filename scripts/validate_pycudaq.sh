@@ -412,6 +412,8 @@ fi
 example_list=$(mktemp)
 for ex in $(find "$root_folder/examples" -name '*.py'); do
     if requires_unavailable_gpu_target "$ex"; then continue; fi
+    # MPI examples need mpirun and are tested in their own section below
+    if [[ "$ex" == */mpi/* ]]; then continue; fi
     skip_example=false
     explicit_targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$ex")
     for t in $explicit_targets; do
@@ -442,6 +444,40 @@ example_count=$(find "$root_folder/examples" -name '*.py' 2>/dev/null | wc -l)
 if [ "$snippet_count" -eq 0 ] && [ "$example_count" -eq 0 ]; then
     echo -e "\e[01;31mNo snippets or examples found in $root_folder. Check staging setup.\e[0m" >&2
     status_sum=$((status_sum + 1))
+fi
+
+# Run MPI examples (Linux only, requires >= 4 GPUs)
+if $is_macos; then
+    echo "Skipping MPI examples on macOS (requires MPI)"
+else
+    gpu_count=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | wc -l)
+    if [ "$gpu_count" -lt 4 ]; then
+        echo "Skipping MPI examples: found $gpu_count GPU(s), need at least 4"
+    else
+        echo "Running MPI examples with $gpu_count GPUs."
+        mpi_examples_dir="$root_folder/examples/mpi"
+
+        has_mpi4py=false
+        if python3 -c "import mpi4py" 2>/dev/null; then
+            has_mpi4py=true
+        fi
+
+        for mpi_ex in "$mpi_examples_dir"/*.py; do
+            [ -f "$mpi_ex" ] || continue
+            if grep -q "import mpi4py" "$mpi_ex"; then
+                if ! $has_mpi4py; then
+                    echo "Skipping $mpi_ex (mpi4py not installed)"
+                    continue
+                fi
+            fi
+            echo "Executing $mpi_ex"
+            mpiexec --allow-run-as-root -np 4 python3 "$mpi_ex"
+            if [ $? -ne 0 ]; then
+                echo -e "\e[01;31mMPI example $mpi_ex failed.\e[0m" >&2
+                status_sum=$((status_sum + 1))
+            fi
+        done
+    fi
 fi
 
 # Run target tests if target folder exists (pre-filter, execute in parallel).
