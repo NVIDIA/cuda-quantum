@@ -13,7 +13,9 @@ target_include_directories(cudaq-python-interop PRIVATE
     ${Python3_INCLUDE_DIRS}
     ${nanobind_INCLUDE_DIR}
 )
-target_link_libraries(cudaq-python-interop PRIVATE nanobind-static Python3::Module cudaq)
+target_link_libraries(cudaq-python-interop
+    PRIVATE nanobind-static Python3::Module cudaq
+    PUBLIC cudaq-mlir-runtime-headers)
 install (FILES PythonCppInterop.h DESTINATION include/cudaq/python/)
 
 install(TARGETS cudaq-python-interop EXPORT cudaq-python-interop-targets DESTINATION lib)

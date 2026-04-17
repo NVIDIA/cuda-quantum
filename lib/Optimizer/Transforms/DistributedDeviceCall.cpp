@@ -124,7 +124,7 @@ public:
       // weak_odr linkage.
       rewriter.replaceOpWithNewOp<cudaq::cc::NoInlineCallOp>(
           devcall, devFunc.getFunctionType().getResults(), devFuncName,
-          devcall.getArgs());
+          devcall.getArgs(), ArrayAttr{}, ArrayAttr{});
 
       return success();
     }

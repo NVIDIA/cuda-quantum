@@ -267,8 +267,8 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
                  dyn_cast<quake::MeasurementsType>(buffer.getType())) {
     Value iters;
     if (measTy.hasSpecifiedSize()) {
-      iters =
-          builder.create<arith::ConstantIntOp>(loc, measTy.getSize(), i64Ty);
+      iters = builder.create<arith::ConstantIntOp>(
+          loc, i64Ty, static_cast<int64_t>(measTy.getSize()));
     } else if (auto measIface = dyn_cast_or_null<quake::MeasurementInterface>(
                    buffer.getDefiningOp())) {
       // Derive the iteration count from the measurement op's qubit targets.
@@ -276,12 +276,13 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
         Value count;
         if (auto veqTy = dyn_cast<quake::VeqType>(target.getType())) {
           if (veqTy.hasSpecifiedSize())
-            count = builder.create<arith::ConstantIntOp>(loc, veqTy.getSize(),
-                                                         i64Ty);
+            count = builder.create<arith::ConstantIntOp>(
+                loc, i64Ty, static_cast<int64_t>(veqTy.getSize()));
           else
             count = builder.create<quake::VeqSizeOp>(loc, i64Ty, target);
         } else {
-          count = builder.create<arith::ConstantIntOp>(loc, 1, i64Ty);
+          count = builder.create<arith::ConstantIntOp>(loc, i64Ty,
+                                                       static_cast<int64_t>(1));
         }
         iters =
             iters ? builder.create<arith::AddIOp>(loc, iters, count).getResult()

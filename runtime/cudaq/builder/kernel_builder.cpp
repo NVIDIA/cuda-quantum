@@ -162,7 +162,7 @@ initializeBuilder(MLIRContext *context,
   kernelName += fmt::format("_{}", os.str());
   CUDAQ_INFO("kernel_builder name set to {}", kernelName);
 
-  FunctionType funcTy = opBuilder->getFunctionType(types, std::nullopt);
+  FunctionType funcTy = opBuilder->getFunctionType(types, {});
   auto kernel = opBuilder->create<func::FuncOp>(kernelName, funcTy);
   auto *entryBlock = kernel.addEntryBlock();
 
@@ -672,7 +672,7 @@ QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder, cudaq::state *state,
 QuakeValue constantVal(ImplicitLocOpBuilder &builder, double val) {
   llvm::APFloat d(val);
   Value constant =
-      builder.create<arith::ConstantFloatOp>(d, builder.getF64Type());
+      builder.create<arith::ConstantFloatOp>(builder.getF64Type(), d);
   return QuakeValue(builder, constant);
 }
 
@@ -888,7 +888,7 @@ void tagEntryPoint(ImplicitLocOpBuilder &builder, ModuleOp &module,
       function->setAttr(cudaq::kernelAttrName, builder.getUnitAttr());
     if (!function->hasAttr(cudaq::entryPointAttrName) &&
         !hasAnyQubitTypes(function.getFunctionType()) &&
-        (symbolName.empty() || function.getSymName().equals(symbolName)))
+        (symbolName.empty() || function.getSymName() == symbolName))
       function->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
 
     return WalkResult::advance();
@@ -999,7 +999,7 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   CUDAQ_INFO("- Pass manager was applied.");
   ExecutionEngineOptions opts;
   opts.transformer = [](llvm::Module *m) { return llvm::ErrorSuccess(); };
-  opts.jitCodeGenOptLevel = llvm::CodeGenOpt::None;
+  opts.jitCodeGenOptLevel = llvm::CodeGenOptLevel::None;
   SmallVector<StringRef, 4> sharedLibs;
   for (auto &lib : extraLibPaths) {
     CUDAQ_INFO("Extra library loaded: {}", lib);
@@ -1009,13 +1009,11 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   opts.llvmModuleBuilder =
       [](Operation *module,
          llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
-    llvmContext.setOpaquePointers(false);
     auto llvmModule = translateModuleToLLVMIR(module, llvmContext);
     if (!llvmModule) {
       llvm::errs() << "Failed to emit LLVM IR\n";
       return nullptr;
     }
-    ExecutionEngine::setupTargetTriple(llvmModule.get());
     return llvmModule;
   };
 

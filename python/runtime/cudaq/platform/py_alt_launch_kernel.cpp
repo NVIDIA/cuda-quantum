@@ -7,9 +7,7 @@
  ******************************************************************************/
 
 #include "py_alt_launch_kernel.h"
-#include "JITExecutionCache.h"
 #include "common/AnalogHamiltonian.h"
-#include "common/ArgumentConversion.h"
 #include "common/ArgumentWrapper.h"
 #include "common/Environment.h"
 #include "cudaq/Optimizer/Builder/Marshal.h"
@@ -21,6 +19,8 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
+#include "cudaq_internal/compiler/ArgumentConversion.h"
+#include "cudaq_internal/compiler/LayoutInfo.h"
 #include "runtime/cudaq/algorithms/py_utils.h"
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/OpaqueArguments.h"
@@ -30,7 +30,6 @@
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/TargetParser/Host.h"
 #include "llvm/TargetParser/SubtargetFeature.h"
-#include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/CAPI/ExecutionEngine.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/ExecutionEngine/OptUtils.h"
@@ -41,16 +40,19 @@
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Transforms/Passes.h"
 #include <fmt/core.h>
+#include <nanobind/nanobind.h>
 #include <nanobind/ndarray.h>
+#include <nanobind/stl/complex.h>
+#include <nanobind/stl/function.h>
 #include <nanobind/stl/map.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/pair.h>
 #include <nanobind/stl/string.h>
-#include <nanobind/stl/tuple.h>
 #include <nanobind/stl/vector.h>
 
-namespace py = nanobind;
 using namespace mlir;
+using namespace cudaq_internal::compiler;
+using cudaq::JitEngine;
 
 static std::function<std::string()> getTransportLayer = []() -> std::string {
   throw std::runtime_error("binding for kernel launch is incomplete");
@@ -128,81 +130,54 @@ void cudaq::setDataLayout(MlirModule module) {
 // The section is the implementation of functions declared in OpaqueArguments.h
 //===----------------------------------------------------------------------===//
 
-py::args cudaq::simplifiedValidateInputArguments(py::args &args) {
-  py::list processed;
+nanobind::args cudaq::simplifiedValidateInputArguments(nanobind::args &args) {
+  nanobind::args processed =
+      nanobind::steal<nanobind::args>(PyTuple_New((Py_ssize_t)args.size()));
   for (std::size_t i = 0; i < args.size(); ++i) {
-    py::object arg = py::borrow<py::object>(args[i]);
+    nanobind::object arg = nanobind::borrow(args[i]);
     // Check if it has tolist, so it might be a 1d buffer (array / numpy
     // ndarray)
-    if (py::hasattr(args[i], "tolist")) {
+    if (nanobind::hasattr(args[i], "tolist")) {
       // This is a valid ndarray if it has tolist and shape
-      if (!py::hasattr(args[i], "shape"))
+      if (!nanobind::hasattr(args[i], "shape"))
         throw std::runtime_error(
             "Invalid input argument type, could not get shape of array.");
 
       // This is an ndarray with tolist() and shape attributes
       // get the shape and check its size
-      auto shape = py::cast<py::tuple>(args[i].attr("shape"));
+      auto shape = nanobind::cast<nanobind::tuple>(args[i].attr("shape"));
       if (shape.size() != 1)
         throw std::runtime_error("Cannot pass ndarray with shape != (N,).");
 
-      arg = py::borrow<py::object>(args[i].attr("tolist")());
-    } else if (py::isinstance<py::str>(arg)) {
-      // pass through
-    } else if (py::isinstance<py::list>(arg)) {
-      py::list arg_list = py::cast<py::list>(arg);
+      arg = args[i].attr("tolist")();
+    } else if (nanobind::isinstance<nanobind::str>(arg)) {
+      arg = nanobind::cast(nanobind::cast<std::string>(arg));
+    } else if (nanobind::isinstance<nanobind::list>(arg)) {
+      nanobind::list arg_list = nanobind::cast<nanobind::list>(arg);
       const bool all_strings = [&]() {
-        for (py::handle item : arg_list)
-          if (!py::isinstance<py::str>(item))
+        for (auto item : arg_list)
+          if (!nanobind::isinstance<nanobind::str>(item))
             return false;
         return true;
       }();
       if (all_strings) {
         std::vector<cudaq::pauli_word> pw_list;
         pw_list.reserve(arg_list.size());
-        for (py::handle item : arg_list)
-          pw_list.emplace_back(py::cast<std::string>(item));
-        arg = py::cast(std::move(pw_list));
+        for (auto item : arg_list)
+          pw_list.emplace_back(nanobind::cast<std::string>(item));
+        arg = nanobind::cast(std::move(pw_list));
       }
     }
 
-    processed.append(arg);
+    PyTuple_SET_ITEM(processed.ptr(), (Py_ssize_t)i, arg.inc_ref().ptr());
   }
 
-  PyObject *tuple_obj = PyList_AsTuple(processed.ptr());
-  if (!tuple_obj)
-    throw py::python_error();
-  return py::steal<py::args>(tuple_obj);
-}
-
-std::pair<std::size_t, std::vector<std::size_t>>
-cudaq::getTargetLayout(mlir::ModuleOp mod, cudaq::cc::StructType structTy) {
-  mlir::StringRef dataLayoutSpec = "";
-  if (auto attr = mod->getAttr(cudaq::opt::factory::targetDataLayoutAttrName))
-    dataLayoutSpec = mlir::cast<mlir::StringAttr>(attr);
-  else
-    throw std::runtime_error("No data layout attribute is set on the module.");
-
-  auto dataLayout = llvm::DataLayout(dataLayoutSpec);
-  // Convert bufferTy to llvm.
-  llvm::LLVMContext context;
-  mlir::LLVMTypeConverter converter(structTy.getContext());
-  cudaq::opt::initializeTypeConversions(converter);
-  auto llvmDialectTy = converter.convertType(structTy);
-  mlir::LLVM::TypeToLLVMIRTranslator translator(context);
-  auto *llvmStructTy =
-      mlir::cast<llvm::StructType>(translator.translateType(llvmDialectTy));
-  auto *layout = dataLayout.getStructLayout(llvmStructTy);
-  auto strSize = layout->getSizeInBytes();
-  std::vector<std::size_t> fieldOffsets;
-  for (std::size_t i = 0, I = structTy.getMembers().size(); i != I; ++i)
-    fieldOffsets.emplace_back(layout->getElementOffset(i));
-  return {strSize, fieldOffsets};
+  return processed;
 }
 
 void cudaq::handleStructMemberVariable(void *data, std::size_t offset,
                                        mlir::Type memberType,
-                                       py::object value) {
+                                       nanobind::object value) {
   auto appendValue = [](void *data, auto &&value, std::size_t offset) {
     std::memcpy(((char *)data) + offset, &value,
                 sizeof(std::remove_cvref_t<decltype(value)>));
@@ -210,22 +185,23 @@ void cudaq::handleStructMemberVariable(void *data, std::size_t offset,
   llvm::TypeSwitch<mlir::Type, void>(memberType)
       .Case([&](mlir::IntegerType ty) {
         if (ty.isInteger(1)) {
-          appendValue(data, (bool)py::cast<bool>(value), offset);
+          appendValue(data, nanobind::cast<bool>(value), offset);
           return;
         }
-        appendValue(data, (std::int64_t)py::cast<long>(value), offset);
+        appendValue(data, nanobind::cast<std::int64_t>(value), offset);
       })
       .Case([&](mlir::Float64Type ty) {
-        appendValue(data, (double)py::cast<double>(value), offset);
+        appendValue(data, nanobind::cast<double>(value), offset);
       })
       .Case([&](cudaq::cc::StdvecType ty) {
-        auto appendVectorValue = []<typename T>(py::object value, void *data,
-                                                std::size_t offset, T) {
-          auto asList = py::cast<py::list>(value);
+        auto appendVectorValue = []<typename T>(nanobind::object value,
+                                                void *data, std::size_t offset,
+                                                T) {
+          auto asList = nanobind::cast<nanobind::list>(value);
           // Use the correct element type T (not always double).
           auto *values = new std::vector<T>(asList.size());
-          for (std::size_t i = 0; i < asList.size(); ++i)
-            (*values)[i] = py::cast<T>(asList[i]);
+          for (std::size_t i = 0; auto v : asList)
+            (*values)[i++] = nanobind::cast<T>(v);
 
           std::memcpy(((char *)data) + offset, values, 16);
         };
@@ -253,12 +229,13 @@ void cudaq::handleStructMemberVariable(void *data, std::size_t offset,
       });
 }
 
-void *cudaq::handleVectorElements(mlir::Type eleTy, py::list list) {
-  auto appendValue = []<typename T>(py::list list, auto &&converter) -> void * {
+void *cudaq::handleVectorElements(mlir::Type eleTy, nanobind::list list) {
+  auto appendValue = []<typename T>(nanobind::list list,
+                                    auto &&converter) -> void * {
     std::vector<T> *values = new std::vector<T>(list.size());
-    for (std::size_t i = 0; i < list.size(); ++i) {
-      auto converted = converter(list[i], i);
-      (*values)[i] = converted;
+    for (std::size_t i = 0; auto v : list) {
+      auto converted = converter(v, i);
+      (*values)[i++] = converted;
     }
     return values;
   };
@@ -267,70 +244,70 @@ void *cudaq::handleVectorElements(mlir::Type eleTy, py::list list) {
       .Case([&](mlir::IntegerType ty) {
         if (ty.getIntOrFloatBitWidth() == 1)
           return appendValue.template operator()<char>(
-              list, [](py::handle v, std::size_t i) {
-                checkListElementType<py::bool_>(v, i);
-                return py::cast<bool>(v);
+              list, [](nanobind::handle v, std::size_t i) {
+                checkListElementType<nanobind::bool_>(v, i);
+                return nanobind::cast<bool>(v);
               });
         if (ty.getIntOrFloatBitWidth() == 8)
           return appendValue.template operator()<std::int8_t>(
-              list, [](py::handle v, std::size_t i) {
+              list, [](nanobind::handle v, std::size_t i) {
                 checkListElementType<py_ext::Int>(v, i);
-                return py::cast<std::int8_t>(v);
+                return nanobind::cast<std::int8_t>(v);
               });
         if (ty.getIntOrFloatBitWidth() == 16)
           return appendValue.template operator()<std::int16_t>(
-              list, [](py::handle v, std::size_t i) {
+              list, [](nanobind::handle v, std::size_t i) {
                 checkListElementType<py_ext::Int>(v, i);
-                return py::cast<std::int16_t>(v);
+                return nanobind::cast<std::int16_t>(v);
               });
         if (ty.getIntOrFloatBitWidth() == 32)
           return appendValue.template operator()<std::int32_t>(
-              list, [](py::handle v, std::size_t i) {
+              list, [](nanobind::handle v, std::size_t i) {
                 checkListElementType<py_ext::Int>(v, i);
-                return py::cast<std::int32_t>(v);
+                return nanobind::cast<std::int32_t>(v);
               });
         return appendValue.template operator()<std::int64_t>(
-            list, [](py::handle v, std::size_t i) {
+            list, [](nanobind::handle v, std::size_t i) {
               checkListElementType<py_ext::Int>(v, i);
-              return py::cast<std::int64_t>(v);
+              return nanobind::cast<std::int64_t>(v);
             });
       })
       .Case([&](mlir::Float32Type ty) {
         return appendValue.template operator()<float>(
-            list, [](py::handle v, std::size_t i) {
+            list, [](nanobind::handle v, std::size_t i) {
               checkListElementType<py_ext::Float>(v, i);
-              return py::cast<float>(v);
+              return nanobind::cast<float>(v);
             });
       })
       .Case([&](mlir::Float64Type ty) {
         return appendValue.template operator()<double>(
-            list, [](py::handle v, std::size_t i) {
+            list, [](nanobind::handle v, std::size_t i) {
               checkListElementType<py_ext::Float>(v, i);
-              return py::cast<double>(v);
+              return nanobind::cast<double>(v);
             });
       })
       .Case([&](cudaq::cc::CharspanType type) {
         return appendValue.template operator()<std::string>(
-            list, [](py::handle v, std::size_t i) {
-              return py::cast<cudaq::pauli_word>(v).str();
+            list, [](nanobind::handle v, std::size_t i) {
+              return nanobind::cast<cudaq::pauli_word>(v).str();
             });
       })
       .Case([&](mlir::ComplexType type) {
         if (mlir::isa<mlir::Float64Type>(type.getElementType()))
           return appendValue.template operator()<std::complex<double>>(
-              list, [](py::handle v, std::size_t i) {
+              list, [](nanobind::handle v, std::size_t i) {
                 checkListElementType<py_ext::Complex>(v, i);
-                return py::cast<std::complex<double>>(v);
+                return nanobind::cast<std::complex<double>>(v);
               });
         return appendValue.template operator()<std::complex<float>>(
-            list, [](py::handle v, std::size_t i) {
+            list, [](nanobind::handle v, std::size_t i) {
               checkListElementType<py_ext::Complex>(v, i);
-              return py::cast<std::complex<float>>(v);
+              return nanobind::cast<std::complex<float>>(v);
             });
       })
       .Case([&](cudaq::cc::StdvecType ty) {
         auto appendVectorValue = []<typename T>(mlir::Type eleTy,
-                                                py::list list) -> void * {
+                                                nanobind::list list) -> void * {
           auto *values = new std::vector<std::vector<T>>();
           for (std::size_t i = 0; i < list.size(); i++) {
             auto ptr = handleVectorElements(eleTy, list[i]);
@@ -364,16 +341,18 @@ std::string cudaq::mlirTypeToString(mlir::Type ty) {
   return msg;
 }
 
-void cudaq::packArgs(OpaqueArguments &argData, py::list args,
-                     mlir::ArrayRef<mlir::Type> mlirTys,
-                     const std::function<bool(OpaqueArguments &, py::object &,
-                                              unsigned)> &backupHandler,
-                     mlir::func::FuncOp kernelFuncOp) {
+void cudaq::packArgs(
+    OpaqueArguments &argData, nanobind::list args,
+    mlir::ArrayRef<mlir::Type> mlirTys,
+    const std::function<bool(OpaqueArguments &, nanobind::object &, unsigned)>
+        &backupHandler,
+    mlir::func::FuncOp kernelFuncOp) {
   if (args.size() == 0)
     return;
 
   for (auto [i, zippy] : llvm::enumerate(llvm::zip(args, mlirTys))) {
-    py::object arg = py::borrow<py::object>(std::get<0>(zippy));
+    nanobind::object arg =
+        nanobind::borrow<nanobind::object>(std::get<0>(zippy));
     Type kernelArgTy = std::get<1>(zippy);
     if (arg.is_none()) {
       argData.emplace_back(nullptr, [](void *ptr) {});
@@ -383,39 +362,41 @@ void cudaq::packArgs(OpaqueArguments &argData, py::list args,
         .Case([&](ComplexType ty) {
           checkArgumentType<py_ext::Complex>(arg, i);
           if (isa<Float64Type>(ty.getElementType())) {
-            addArgument(argData, py::cast<std::complex<double>>(arg));
+            addArgument(argData, nanobind::cast<std::complex<double>>(arg));
           } else if (isa<Float32Type>(ty.getElementType())) {
-            addArgument(argData, py::cast<std::complex<float>>(arg));
+            addArgument(argData, nanobind::cast<std::complex<float>>(arg));
           } else {
-            throw std::runtime_error("Invalid complex type argument: " +
-                                     std::string(py::str(args).c_str()) +
-                                     " Type: " + mlirTypeToString(ty));
+            throw std::runtime_error(
+                "Invalid complex type argument: " +
+                nanobind::cast<std::string>(
+                    nanobind::steal(PyObject_Str(args.ptr()))) +
+                " Type: " + mlirTypeToString(ty));
           }
         })
         .Case([&](Float64Type ty) {
           checkArgumentType<py_ext::Float>(arg, i);
-          addArgument(argData, py::cast<double>(arg));
+          addArgument(argData, nanobind::cast<double>(arg));
         })
         .Case([&](Float32Type ty) {
           checkArgumentType<py_ext::Float>(arg, i);
-          addArgument(argData, py::cast<float>(arg));
+          addArgument(argData, nanobind::cast<float>(arg));
         })
         .Case([&](IntegerType ty) {
           if (ty.getIntOrFloatBitWidth() == 1) {
-            checkArgumentType<py::bool_>(arg, i);
-            addArgument(argData, static_cast<char>(py::cast<bool>(arg)));
+            checkArgumentType<nanobind::bool_>(arg, i);
+            addArgument(argData, static_cast<char>(nanobind::cast<bool>(arg)));
             return;
           }
 
           checkArgumentType<py_ext::Int>(arg, i);
-          addArgument(argData, py::cast<std::int64_t>(arg));
+          addArgument(argData, nanobind::cast<std::int64_t>(arg));
         })
         .Case([&](cc::CharspanType ty) {
-          addArgument(argData, py::cast<pauli_word>(arg).str());
+          addArgument(argData, nanobind::cast<pauli_word>(arg).str());
         })
         .Case([&](cc::PointerType ty) {
           if (isa<quake::StateType>(ty.getElementType())) {
-            auto *stateArg = py::cast<state *>(arg);
+            auto *stateArg = nanobind::cast<state *>(arg);
 
             if (stateArg == nullptr)
               throw std::runtime_error("Null cudaq::state* argument passed.");
@@ -441,9 +422,11 @@ void cudaq::packArgs(OpaqueArguments &argData, py::list args,
                   [](void *ptr) { /* do nothing, we don't own the state */ });
             }
           } else {
-            throw std::runtime_error("Invalid pointer type argument: " +
-                                     std::string(py::str(arg).c_str()) +
-                                     " Type: " + mlirTypeToString(ty));
+            throw std::runtime_error(
+                "Invalid pointer type argument: " +
+                nanobind::cast<std::string>(
+                    nanobind::steal(PyObject_Str(arg.ptr()))) +
+                " Type: " + mlirTypeToString(ty));
           }
         })
         .Case([&](cc::StructType ty) {
@@ -452,17 +435,17 @@ void cudaq::packArgs(OpaqueArguments &argData, py::list args,
           auto memberTys = ty.getMembers();
           auto allocatedArg = std::malloc(size);
           if (ty.getName() == "tuple") {
-            auto elements = py::cast<py::tuple>(arg);
+            auto elements = nanobind::cast<nanobind::tuple>(arg);
             for (std::size_t i = 0; i < offsets.size(); i++)
               handleStructMemberVariable(allocatedArg, offsets[i], memberTys[i],
                                          elements[i]);
           } else {
-            py::dict attributes =
-                py::cast<py::dict>(arg.attr("__annotations__"));
+            nanobind::dict attributes =
+                nanobind::cast<nanobind::dict>(arg.attr("__annotations__"));
             for (std::size_t i = 0;
                  const auto &[attr_name, unused] : attributes) {
-              py::object attr_value =
-                  arg.attr(py::cast<std::string>(attr_name).c_str());
+              nanobind::object attr_value =
+                  arg.attr(nanobind::cast<std::string>(attr_name).c_str());
               handleStructMemberVariable(allocatedArg, offsets[i], memberTys[i],
                                          attr_value);
               i++;
@@ -472,15 +455,15 @@ void cudaq::packArgs(OpaqueArguments &argData, py::list args,
         })
         .Case([&](cc::StdvecType ty) {
           auto appendVectorValue = [&argData]<typename T>(Type eleTy,
-                                                          py::list list) {
+                                                          nanobind::list list) {
             auto allocatedArg = handleVectorElements(eleTy, list);
             argData.emplace_back(allocatedArg, [](void *ptr) {
               delete static_cast<std::vector<T> *>(ptr);
             });
           };
 
-          checkArgumentType<py::list>(arg, i);
-          auto list = py::cast<py::list>(arg);
+          checkArgumentType<nanobind::list>(arg, i);
+          auto list = nanobind::cast<nanobind::list>(arg);
           auto eleTy = ty.getElementType();
           if (eleTy.isInteger(1)) {
             // Special case for a `std::vector<bool>`.
@@ -492,14 +475,15 @@ void cudaq::packArgs(OpaqueArguments &argData, py::list args,
         })
         .Case([&](cc::CallableType ty) {
           // arg must be a DecoratorCapture object.
-          checkArgumentType<py::object>(arg, i);
-          if (py::hasattr(arg, "linkedKernel")) {
-            auto kernelName = py::cast<std::string>(arg.attr("linkedKernel"));
+          checkArgumentType<nanobind::object>(arg, i);
+          if (nanobind::hasattr(arg, "linkedKernel")) {
+            auto kernelName =
+                nanobind::cast<std::string>(arg.attr("linkedKernel"));
             // TODO: This is kinda yucky to have to remove because it's already
             // present
             kernelName.erase(0, strlen(cudaq::runtime::cudaqGenPrefixName));
             auto kernelModule =
-                unwrap(py::cast<MlirModule>(arg.attr("qkeModule")));
+                unwrap(nanobind::cast<MlirModule>(arg.attr("qkeModule")));
             OpaqueArguments resolvedArgs;
             argData.emplace_back(
                 new runtime::CallableClosureArgument(kernelName, kernelModule,
@@ -509,16 +493,18 @@ void cudaq::packArgs(OpaqueArguments &argData, py::list args,
                   delete static_cast<runtime::CallableClosureArgument *>(that);
                 });
           } else {
-            py::object decorator = arg.attr("decorator");
-            auto kernelName = py::cast<std::string>(decorator.attr("uniqName"));
+            nanobind::object decorator = arg.attr("decorator");
+            auto kernelName =
+                nanobind::cast<std::string>(decorator.attr("uniqName"));
             auto kernelModule =
-                unwrap(py::cast<MlirModule>(decorator.attr("qkeModule")));
+                unwrap(nanobind::cast<MlirModule>(decorator.attr("qkeModule")));
             auto calledFuncOp = kernelModule.lookupSymbol<func::FuncOp>(
                 cudaq::runtime::cudaqGenPrefixName + kernelName);
-            py::list arguments = arg.attr("resolved");
+            nanobind::list arguments = arg.attr("resolved");
             auto startLiftedArgs = [&]() -> std::optional<unsigned> {
               if (!arguments.empty())
-                return py::cast<unsigned>(decorator.attr("formal_arity")());
+                return nanobind::cast<unsigned>(
+                    decorator.attr("formal_arity")());
               return std::nullopt;
             }();
             // build the recursive closure in a C++ object
@@ -543,18 +529,21 @@ void cudaq::packArgs(OpaqueArguments &argData, py::list args,
           // See if we have a backup type handler.
           bool success = backupHandler(argData, arg, i);
           if (!success)
-            throw std::runtime_error("Could not pack argument: " +
-                                     std::string(py::str(arg).c_str()) +
-                                     " Type: " + mlirTypeToString(ty));
+            throw std::runtime_error(
+                "Could not pack argument: " +
+                nanobind::cast<std::string>(
+                    nanobind::steal(PyObject_Str(arg.ptr()))) +
+                " Type: " + mlirTypeToString(ty));
         });
   }
 }
 
-void cudaq::packArgs(OpaqueArguments &argData, py::args args,
-                     mlir::func::FuncOp kernelFuncOp,
-                     const std::function<bool(OpaqueArguments &, py::object &,
-                                              unsigned)> &backupHandler,
-                     std::size_t startingArgIdx) {
+void cudaq::packArgs(
+    OpaqueArguments &argData, nanobind::args args,
+    mlir::func::FuncOp kernelFuncOp,
+    const std::function<bool(OpaqueArguments &, nanobind::object &, unsigned)>
+        &backupHandler,
+    std::size_t startingArgIdx) {
   if (args.size() == 0) {
     // Nothing to pack. This may be a full QIR pre-compile, which is perfectly
     // legit. At any rate, there is nothing to pack so return.
@@ -568,7 +557,7 @@ void cudaq::packArgs(OpaqueArguments &argData, py::args args,
                              std::to_string(args.size()) + " arguments.");
 
   // Move the args to a list, lopping off startingArgIdx args from the front.
-  py::list pyList;
+  nanobind::list pyList;
   for (auto [i, h] : llvm::enumerate(args)) {
     if (i < startingArgIdx)
       continue;
@@ -585,11 +574,11 @@ void cudaq::packArgs(OpaqueArguments &argData, py::args args,
 /// Mechanical merge of a callable argument (captured in a python decorator)
 /// when the call site is executed.
 static bool linkResolvedCallable(ModuleOp currMod, func::FuncOp entryPoint,
-                                 unsigned argPos, py::object arg) {
-  if (!py::hasattr(arg, "qkeModule"))
+                                 unsigned argPos, nanobind::object arg) {
+  if (!nanobind::hasattr(arg, "qkeModule"))
     return false;
-  auto uniqName = py::cast<std::string>(arg.attr("uniqName"));
-  auto otherModule = py::cast<MlirModule>(arg.attr("qkeModule"));
+  auto uniqName = nanobind::cast<std::string>(arg.attr("uniqName"));
+  auto otherModule = nanobind::cast<MlirModule>(arg.attr("qkeModule"));
   ModuleOp otherMod = unwrap(otherModule);
   std::string calleeName = cudaq::runtime::cudaqGenPrefixName + uniqName;
   auto callee = cudaq::getKernelFuncOp(otherModule, calleeName);
@@ -615,7 +604,8 @@ static bool linkResolvedCallable(ModuleOp currMod, func::FuncOp entryPoint,
 
 /// @brief Create a new OpaqueArguments pointer and pack the python arguments
 /// in it. Clients must delete the memory.
-cudaq::OpaqueArguments *cudaq::toOpaqueArgs(py::args &args, MlirModule mod,
+cudaq::OpaqueArguments *cudaq::toOpaqueArgs(nanobind::args &args,
+                                            MlirModule mod,
                                             const std::string &name) {
   auto kernelFunc = getKernelFuncOp(mod, name);
   auto *argData = new cudaq::OpaqueArguments();
@@ -623,7 +613,7 @@ cudaq::OpaqueArguments *cudaq::toOpaqueArgs(py::args &args, MlirModule mod,
   setDataLayout(mod);
   cudaq::packArgs(
       *argData, args, kernelFunc,
-      [](OpaqueArguments &, py::object &, unsigned) { return false; });
+      [](OpaqueArguments &, nanobind::object &, unsigned) { return false; });
   return argData;
 }
 
@@ -633,75 +623,11 @@ cudaq::OpaqueArguments *cudaq::toOpaqueArgs(py::args &args, MlirModule mod,
 static void appendTheResultValue(ModuleOp module, const std::string &name,
                                  cudaq::OpaqueArguments &runtimeArgs,
                                  Type returnType) {
-  TypeSwitch<Type, void>(returnType)
-      .Case([&](IntegerType type) {
-        if (type.getIntOrFloatBitWidth() == 1) {
-          bool *ourAllocatedArg = new bool();
-          *ourAllocatedArg = 0;
-          runtimeArgs.emplace_back(ourAllocatedArg, [](void *ptr) {
-            delete static_cast<bool *>(ptr);
-          });
-          return;
-        }
-
-        long *ourAllocatedArg = new long();
-        *ourAllocatedArg = 0;
-        runtimeArgs.emplace_back(ourAllocatedArg, [](void *ptr) {
-          delete static_cast<long *>(ptr);
-        });
-      })
-      .Case([&](ComplexType type) {
-        Py_complex *ourAllocatedArg = new Py_complex();
-        ourAllocatedArg->real = 0.0;
-        ourAllocatedArg->imag = 0.0;
-        runtimeArgs.emplace_back(ourAllocatedArg, [](void *ptr) {
-          delete static_cast<Py_complex *>(ptr);
-        });
-      })
-      .Case([&](Float64Type type) {
-        double *ourAllocatedArg = new double();
-        *ourAllocatedArg = 0.;
-        runtimeArgs.emplace_back(ourAllocatedArg, [](void *ptr) {
-          delete static_cast<double *>(ptr);
-        });
-      })
-      .Case([&](Float32Type type) {
-        float *ourAllocatedArg = new float();
-        *ourAllocatedArg = 0.;
-        runtimeArgs.emplace_back(ourAllocatedArg, [](void *ptr) {
-          delete static_cast<float *>(ptr);
-        });
-      })
-      .Case([&](cudaq::cc::StdvecType ty) {
-        // Vector is a span: `{ data, length }`.
-        struct vec {
-          char *data;
-          std::size_t length;
-        };
-        vec *ourAllocatedArg = new vec{nullptr, 0};
-        runtimeArgs.emplace_back(
-            ourAllocatedArg, [](void *ptr) { delete static_cast<vec *>(ptr); });
-      })
-      .Case([&](cudaq::cc::StructType ty) {
-        auto [size, offsets] = cudaq::getTargetLayout(module, ty);
-        auto ourAllocatedArg = std::malloc(size);
-        runtimeArgs.emplace_back(ourAllocatedArg,
-                                 [](void *ptr) { std::free(ptr); });
-      })
-      .Case([&](cudaq::cc::CallableType ty) {
-        // Callables may not be returned from entry-point kernels. Append a
-        // dummy value as a placeholder.
-        runtimeArgs.emplace_back(nullptr, [](void *) {});
-      })
-      .Default([](Type ty) {
-        std::string msg;
-        {
-          llvm::raw_string_ostream os(msg);
-          ty.print(os);
-        }
-        throw std::runtime_error("Unsupported CUDA-Q kernel return type - " +
-                                 msg + ".\n");
-      });
+  auto [bufferSize, offsets] = getResultBufferLayout(module, returnType);
+  if (bufferSize == 0)
+    return;
+  auto *buf = std::calloc(1, bufferSize);
+  runtimeArgs.emplace_back(buf, [](void *ptr) { std::free(ptr); });
 }
 
 // Launching the module \p mod will modify its content, such as by argument
@@ -735,7 +661,7 @@ static void pyAltLaunchAnalogKernel(const std::string &name,
 }
 
 template <typename T>
-py::object readPyObject(Type ty, char *arg) {
+nanobind::object readPyObject(Type ty, char *arg) {
   std::size_t bytes = cudaq::byteSize(ty);
   if (sizeof(T) != bytes) {
     ty.dump();
@@ -751,11 +677,11 @@ py::object readPyObject(Type ty, char *arg) {
 
 /// Convert bytes in buffer, \p data, which are the result of the kernel
 /// launched to python object.
-py::object cudaq::convertResult(ModuleOp module, Type ty, char *data) {
+nanobind::object cudaq::convertResult(ModuleOp module, Type ty, char *data) {
   auto isRunContext = module->hasAttr(runtime::enableCudaqRun);
 
-  return TypeSwitch<Type, py::object>(ty)
-      .Case([&](IntegerType ty) -> py::object {
+  return TypeSwitch<Type, nanobind::object>(ty)
+      .Case([&](IntegerType ty) -> nanobind::object {
         if (ty.getIntOrFloatBitWidth() == 1)
           return readPyObject<bool>(ty, data);
         if (ty.getIntOrFloatBitWidth() == 8)
@@ -766,28 +692,28 @@ py::object cudaq::convertResult(ModuleOp module, Type ty, char *data) {
           return readPyObject<std::int32_t>(ty, data);
         return readPyObject<std::int64_t>(ty, data);
       })
-      .Case([&](ComplexType ty) -> py::object {
+      .Case([&](ComplexType ty) -> nanobind::object {
         auto eleTy = ty.getElementType();
-        return TypeSwitch<Type, py::object>(eleTy)
-            .Case([&](Float64Type eTy) -> py::object {
+        return TypeSwitch<Type, nanobind::object>(eleTy)
+            .Case([&](Float64Type eTy) -> nanobind::object {
               return readPyObject<std::complex<double>>(ty, data);
             })
-            .Case([&](Float32Type eTy) -> py::object {
+            .Case([&](Float32Type eTy) -> nanobind::object {
               return readPyObject<std::complex<float>>(ty, data);
             })
-            .Default([](Type eTy) -> py::object {
+            .Default([](Type eTy) -> nanobind::object {
               eTy.dump();
               throw std::runtime_error(
                   "Unsupported float element type for complex type return.");
             });
       })
-      .Case([&](Float64Type ty) -> py::object {
+      .Case([&](Float64Type ty) -> nanobind::object {
         return readPyObject<double>(ty, data);
       })
-      .Case([&](Float32Type ty) -> py::object {
+      .Case([&](Float32Type ty) -> nanobind::object {
         return readPyObject<float>(ty, data);
       })
-      .Case([&](cudaq::cc::StdvecType ty) -> py::object {
+      .Case([&](cudaq::cc::StdvecType ty) -> nanobind::object {
         if (isRunContext) {
           // cudaq.run return.
           auto eleTy = ty.getElementType();
@@ -800,9 +726,9 @@ py::object cudaq::convertResult(ModuleOp module, Type ty, char *data) {
           // `std::vector<bool>`.
           if (eleTy.getIntOrFloatBitWidth() == 1) {
             auto v = reinterpret_cast<std::vector<bool> *>(data);
-            py::list list;
+            nanobind::list list;
             for (auto const bit : *v)
-              list.append(py::bool_(bit));
+              list.append(nanobind::bool_(bit));
             return list;
           }
 
@@ -816,7 +742,7 @@ py::object cudaq::convertResult(ModuleOp module, Type ty, char *data) {
           auto v = reinterpret_cast<vec *>(data);
 
           // Read vector elements.
-          py::list list;
+          nanobind::list list;
           for (char *i = v->begin; i < v->end; i += eleByteSize)
             list.append(convertResult(module, eleTy, i));
           return list;
@@ -835,19 +761,19 @@ py::object cudaq::convertResult(ModuleOp module, Type ty, char *data) {
         auto v = reinterpret_cast<vec *>(data);
 
         // Read vector elements.
-        py::list list;
+        nanobind::list list;
         std::size_t byteLength = v->length * eleByteSize;
         for (std::size_t i = 0; i < byteLength; i += eleByteSize)
           list.append(convertResult(module, eleTy, v->data + i));
         return list;
       })
-      .Case([&](cudaq::cc::StructType ty) -> py::object {
+      .Case([&](cudaq::cc::StructType ty) -> nanobind::object {
         auto name = ty.getName().str();
         // Handle tuples.
         if (name == "tuple") {
           auto [size, offsets] = getTargetLayout(module, ty);
           auto memberTys = ty.getMembers();
-          py::list list;
+          nanobind::list list;
           for (std::size_t i = 0; i < offsets.size(); i++) {
             auto eleTy = memberTys[i];
             if (!eleTy.isIntOrFloat()) {
@@ -858,7 +784,7 @@ py::object cudaq::convertResult(ModuleOp module, Type ty, char *data) {
             }
             list.append(convertResult(module, eleTy, data + offsets[i]));
           }
-          return py::tuple(list);
+          return nanobind::tuple(list);
         }
 
         // Handle data class objects.
@@ -869,14 +795,14 @@ py::object cudaq::convertResult(ModuleOp module, Type ty, char *data) {
         auto [cls, attributes] = DataClassRegistry::getClassAttributes(name);
 
         // Collect field names.
-        std::vector<py::str> fieldNames;
+        std::vector<nanobind::str> fieldNames;
         for (const auto &[attr_name, unused] : attributes)
-          fieldNames.emplace_back(py::str(attr_name));
+          fieldNames.emplace_back(nanobind::str(attr_name));
 
         // Read field values and create the constructor `kwargs`
         auto [size, offsets] = getTargetLayout(module, ty);
         auto memberTys = ty.getMembers();
-        py::dict kwargs;
+        nanobind::dict kwargs;
         for (std::size_t i = 0; i < offsets.size(); i++) {
           auto eleTy = memberTys[i];
           if (!eleTy.isIntOrFloat()) {
@@ -897,7 +823,7 @@ py::object cudaq::convertResult(ModuleOp module, Type ty, char *data) {
         // Create python object of class `cls` with the collected args.
         return cls(**kwargs);
       })
-      .Default([](Type ty) -> py::object {
+      .Default([](Type ty) -> nanobind::object {
         ty.dump();
         throw std::runtime_error("Unsupported return type.");
       });
@@ -921,22 +847,21 @@ cudaq::clean_launch_module(const std::string &name, ModuleOp mod,
   return pyLaunchModule(name, mod, rawArgs);
 }
 
-cudaq::OpaqueArguments
-cudaq::marshal_arguments_for_module_launch(ModuleOp mod, py::args runtimeArgs,
-                                           func::FuncOp kernelFunc) {
+cudaq::OpaqueArguments cudaq::marshal_arguments_for_module_launch(
+    ModuleOp mod, nanobind::args runtimeArgs, func::FuncOp kernelFunc) {
   // Convert python arguments to opaque form.
   cudaq::OpaqueArguments args;
   cudaq::packArgs(
       args, runtimeArgs, kernelFunc,
-      [&](cudaq::OpaqueArguments &args, py::object &pyArg, unsigned pos) {
+      [&](cudaq::OpaqueArguments &args, nanobind::object &pyArg, unsigned pos) {
         return linkResolvedCallable(mod, kernelFunc, pos, pyArg);
       });
   return args;
 }
 
-py::object cudaq::marshal_and_launch_module(const std::string &name,
-                                            MlirModule module,
-                                            py::args runtimeArgs) {
+nanobind::object cudaq::marshal_and_launch_module(const std::string &name,
+                                                  MlirModule module,
+                                                  nanobind::args runtimeArgs) {
   ScopedTraceWithContext("marshal_and_launch_module", name);
   auto kernelFunc = getKernelFuncOp(module, name);
   auto mod = unwrap(module);
@@ -946,21 +871,16 @@ py::object cudaq::marshal_and_launch_module(const std::string &name,
   // FIXME: handle dynamic sized results!
 
   if (!retTy)
-    return py::none();
+    return nanobind::none();
   return cudaq::convertResult(mod, retTy,
                               reinterpret_cast<char *>(args.getArgs().back()));
 }
 
-// Return the pointer to the JITted LLVM code for the entry point function, and
-// a cache key for the JIT engine that was used to JIT the module. The engine is
-// cached and cleaned up automatically. The caller can use the cache key to
-// manually clean up the engine as well by calling
-// `delete_cache_execution_engine` with the cache key.
-static std::pair<void *, std::size_t>
+// Compile (specialize + JIT) the kernel module and return a CompiledModule.
+static cudaq::CompiledModule
 marshal_and_retain_module(const std::string &name, MlirModule module,
-                          bool isEntryPoint, py::args runtimeArgs) {
+                          bool isEntryPoint, nanobind::args runtimeArgs) {
   ScopedTraceWithContext("marshal_and_retain_module", name);
-  std::optional<cudaq::JitEngine> cachedEngine;
 
   auto kernelFunc = cudaq::getKernelFuncOp(module, name);
   auto mod = unwrap(module);
@@ -970,30 +890,17 @@ marshal_and_retain_module(const std::string &name, MlirModule module,
   // Append space for a result, as needed, to the vector of arguments.
   auto rawArgs = appendResultToArgsVector(args, retTy, mod, name);
   auto clone = mod.clone();
-  // Returns the pointer to the JITted LLVM code for the entry point function.
-  void *funcPtr = cudaq::streamlinedSpecializeModule(
-      name, clone, rawArgs, cachedEngine, isEntryPoint);
+  auto compiled =
+      cudaq::streamlinedSpecializeModule(name, clone, rawArgs, isEntryPoint);
   clone.erase();
-  // `streamlinedSpecializeModule` should always set the cached engine pointer
-  if (!cachedEngine)
-    throw std::runtime_error("Failed to retrieve the JIT engine pointer when "
-                             "specializing the module.");
-  // Use address of the allocated `ExecutionEngine` as the hash key to cache the
-  // JITted engine, and store the engine pointer in the cache
-  const size_t cacheKey = cachedEngine->getKey();
-  cudaq::JITExecutionCache::getJITCache().cache(cacheKey, cachedEngine.value());
-  return std::make_pair(funcPtr, cacheKey);
+  return compiled;
 }
 
-// Clean up the cached JIT engine corresponding to the given cache key.
-static void delete_cache_execution_engine(std::size_t cacheKey) {
-  cudaq::JITExecutionCache::getJITCache().deleteJITEngine(cacheKey);
-}
-
-static MlirModule synthesizeKernel(py::object kernel, py::args runtimeArgs) {
-  auto module = py::cast<MlirModule>(kernel.attr("qkeModule"));
+static MlirModule synthesizeKernel(nanobind::object kernel,
+                                   nanobind::args runtimeArgs) {
+  auto module = nanobind::cast<MlirModule>(kernel.attr("qkeModule"));
   auto mod = unwrap(module);
-  auto name = py::cast<std::string>(kernel.attr("uniqName"));
+  auto name = nanobind::cast<std::string>(kernel.attr("uniqName"));
   if (mod->hasAttr(cudaq::runtime::pythonUniqueAttrName)) {
     StringRef n =
         cast<StringAttr>(mod->getAttr(cudaq::runtime::pythonUniqueAttrName));
@@ -1002,9 +909,10 @@ static MlirModule synthesizeKernel(py::object kernel, py::args runtimeArgs) {
   auto kernelFuncOp = cudaq::getKernelFuncOp(module, name);
   cudaq::OpaqueArguments args;
   cudaq::setDataLayout(module);
-  cudaq::packArgs(
-      args, runtimeArgs, kernelFuncOp,
-      [](cudaq::OpaqueArguments &, py::object &, unsigned) { return false; });
+  cudaq::packArgs(args, runtimeArgs, kernelFuncOp,
+                  [](cudaq::OpaqueArguments &, nanobind::object &, unsigned) {
+                    return false;
+                  });
 
   ScopedTraceWithContext(cudaq::TIMING_JIT, "synthesizeKernel", name);
   auto rawArgs = appendResultToArgsVector(args, {}, mod, name);
@@ -1023,7 +931,7 @@ static MlirModule synthesizeKernel(py::object kernel, py::args runtimeArgs) {
   auto isLocalSimulator = platform.is_simulator() && !platform.is_emulated();
   auto isSimulator = isLocalSimulator || isRemoteSimulator;
 
-  cudaq::opt::ArgumentConverter argCon(name, mod);
+  ArgumentConverter argCon(name, mod);
   argCon.gen(args.getArgs());
 
   // Store kernel and substitution strings on the stack.
@@ -1148,13 +1056,14 @@ static ModuleOp cleanLowerToCodegenKernel(ModuleOp mod,
 }
 
 static MlirModule lower_to_codegen(const std::string &kernelName,
-                                   MlirModule module, py::args runtimeArgs) {
+                                   MlirModule module,
+                                   nanobind::args runtimeArgs) {
   auto kernelFunc = cudaq::getKernelFuncOp(module, kernelName);
   cudaq::OpaqueArguments args;
   auto mod = unwrap(module);
   cudaq::packArgs(
       args, runtimeArgs, kernelFunc,
-      [&](cudaq::OpaqueArguments &args, py::object &pyArg, unsigned pos) {
+      [&](cudaq::OpaqueArguments &args, nanobind::object &pyArg, unsigned pos) {
         return linkResolvedCallable(mod, kernelFunc, pos, pyArg);
       });
   return wrap(cleanLowerToCodegenKernel(mod, args));
@@ -1174,9 +1083,21 @@ static std::size_t get_launch_args_required(MlirModule module,
   return result;
 }
 
-void cudaq::bindAltLaunchKernel(py::module_ &mod,
+void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
                                 std::function<std::string()> &&getTL) {
   getTransportLayer = std::move(getTL);
+
+  nanobind::class_<cudaq::CompiledModule>(mod, "CompiledModule")
+      .def_prop_ro(
+          "entry_point",
+          [](const cudaq::CompiledModule &ck) {
+            return reinterpret_cast<std::uintptr_t>(
+                ck.getJit().getEntryPoint());
+          },
+          "The address of the JIT-compiled entry point.")
+      .def_prop_ro("is_fully_specialized",
+                   &cudaq::CompiledModule::isFullySpecialized,
+                   "Whether all arguments have been specialized.");
 
   mod.def("lower_to_codegen", lower_to_codegen,
           "Lower a kernel module to CC dialect. Never launches the kernel.");
@@ -1187,13 +1108,8 @@ void cudaq::bindAltLaunchKernel(py::module_ &mod,
           "Launch a kernel. Marshaling of arguments and unmarshalling of "
           "results is performed.");
   mod.def("marshal_and_retain_module", marshal_and_retain_module,
-          "Marshaling of arguments and unmarshalling of results is performed. "
-          "The kernel undergoes argument synthesis and final code generation. "
-          "The kernel is NOT executed, but rather cached to a location managed "
-          "by the calling code. This allows the calling code to invoke the "
-          "entry point with a regular C++ call.");
-  mod.def("delete_cache_execution_engine", delete_cache_execution_engine,
-          "Delete a cached JIT execution engine with the given cache key.");
+          "Compile (specialize + JIT) a kernel module. Returns a "
+          "CompiledModule object that owns the JIT engine.");
   mod.def("pyAltLaunchAnalogKernel", pyAltLaunchAnalogKernel,
           "Launch an analog Hamiltonian simulation kernel with given JSON "
           "payload.");
@@ -1202,8 +1118,8 @@ void cudaq::bindAltLaunchKernel(py::module_ &mod,
 
   mod.def(
       "storePointerToStateData",
-      [](const std::string &name, const std::string &hash, py::ndarray<> data,
-         simulation_precision precision) {
+      [](const std::string &name, const std::string &hash,
+         nanobind::ndarray<> data, simulation_precision precision) {
         auto ptr = data.data();
         stateStorage->insert({hash, PyStateVectorData{ptr, precision, name}});
       },
@@ -1226,8 +1142,9 @@ void cudaq::bindAltLaunchKernel(py::module_ &mod,
 
   mod.def(
       "storePointerToCudaqState",
-      [](const std::string &name, const std::string &hash, py::object data) {
-        auto state = py::cast<cudaq::state>(data);
+      [](const std::string &name, const std::string &hash,
+         nanobind::object data) {
+        auto state = nanobind::cast<cudaq::state>(data);
         cudaqStateStorage->insert({hash, PyStateData{state, name}});
       },
       "Store qalloc state initialization states.");

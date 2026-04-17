@@ -95,8 +95,10 @@ public:
       auto args = argsData->getArgs();
       args.insert(args.begin(),
                   const_cast<void *>(static_cast<const void *>(&kernelMod)));
-      platform.with_execution_context(
-          context, [&]() { platform.launchKernel(kernelName, args); });
+      platform.with_execution_context(context, [&]() {
+        [[maybe_unused]] auto r =
+            platform.launchKernel(kernelName, nullptr, nullptr, 0, 0, args);
+      });
       state = std::move(context.simulationState);
     }
   }
@@ -113,8 +115,10 @@ public:
     args.insert(args.begin(),
                 const_cast<void *>(static_cast<const void *>(&kernelMod)));
 
-    platform.with_execution_context(
-        context, [&]() { platform.launchKernel(kernelName, args); });
+    platform.with_execution_context(context, [&]() {
+      [[maybe_unused]] auto r =
+          platform.launchKernel(kernelName, nullptr, nullptr, 0, 0, args);
+    });
     assert(context.overlapResult.has_value());
     return context.overlapResult.value();
   }

@@ -375,8 +375,7 @@ public:
   bool TraverseTypedefType(clang::TypedefType *t, bool &visitChildren) {
     return TraverseType(t->desugar());
   }
-  bool TraverseTypedefTypeLoc(clang::TypedefTypeLoc tl,
-                              bool &visitChildren) {
+  bool TraverseTypedefTypeLoc(clang::TypedefTypeLoc tl, bool &visitChildren) {
     return TraverseType(tl.getType());
   }
   bool TraverseUsingType(clang::UsingType *t, bool &visitChildren) {
@@ -389,8 +388,7 @@ public:
                                           bool &visitChildren) {
     return TraverseType(t->desugar());
   }
-  bool TraverseTypeOfExprType(clang::TypeOfExprType *t,
-                              bool &visitChildren) {
+  bool TraverseTypeOfExprType(clang::TypeOfExprType *t, bool &visitChildren) {
     // Do not visit the expression as it is has no semantics other than for
     // inferring a type.
     return TraverseType(t->desugar());

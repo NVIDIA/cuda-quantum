@@ -16,6 +16,7 @@
 #include "cudaq/Todo.h"
 #include "cudaq/qis/pauli_word.h"
 #include "llvm/ADT/TypeSwitch.h"
+#include "llvm/IR/DataLayout.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/IR/BuiltinAttributes.h"
@@ -26,7 +27,9 @@ using namespace cudaq_internal::compiler;
 
 template <typename A>
 Value genIntegerConstant(OpBuilder &builder, A v, unsigned bits) {
-  return builder.create<arith::ConstantIntOp>(builder.getUnknownLoc(), v, bits);
+  return builder.create<arith::ConstantIntOp>(builder.getUnknownLoc(),
+                                              builder.getIntegerType(bits),
+                                              static_cast<int64_t>(v));
 }
 
 static Value genConstant(OpBuilder &builder, bool v) {
@@ -47,11 +50,11 @@ static Value genConstant(OpBuilder &builder, std::int64_t v) {
 
 static Value genConstant(OpBuilder &builder, float v) {
   return builder.create<arith::ConstantFloatOp>(
-      builder.getUnknownLoc(), APFloat{v}, builder.getF32Type());
+      builder.getUnknownLoc(), builder.getF32Type(), APFloat{v});
 }
 static Value genConstant(OpBuilder &builder, double v) {
   return builder.create<arith::ConstantFloatOp>(
-      builder.getUnknownLoc(), APFloat{v}, builder.getF64Type());
+      builder.getUnknownLoc(), builder.getF64Type(), APFloat{v});
 }
 
 template <typename A>
@@ -73,8 +76,8 @@ static Value genConstant(OpBuilder &builder, std::complex<double> v) {
 }
 static Value genConstant(OpBuilder &builder, FloatType fltTy, long double *v) {
   return builder.create<arith::ConstantFloatOp>(
-      builder.getUnknownLoc(),
-      APFloat{fltTy.getFloatSemantics(), std::to_string(*v)}, fltTy);
+      builder.getUnknownLoc(), fltTy,
+      APFloat{fltTy.getFloatSemantics(), std::to_string(*v)});
 }
 
 static Value genConstant(OpBuilder &builder, const std::string &v,
@@ -186,14 +189,15 @@ static Value genConstant(OpBuilder &, cudaq::cc::CallableType, void *, ModuleOp,
         newBuilder.setInsertionPointAfter(alloc);
 
         if (!arg) {
-          initFunc.insertArgument(argPos, retTy, {}, loc);
+          (void)initFunc.insertArgument(argPos, retTy, {}, loc);
           arg = initFunc.getArgument(argPos);
         }
 
-        auto allocSize = alloc.getSize();
+        Value allocSize = alloc.getSize();
         if (!allocSize)
           allocSize = newBuilder.create<arith::ConstantIntOp>(
-              loc, quake::getAllocationSize(alloc.getType()), 64);
+              loc, newBuilder.getI64Type(),
+              quake::getAllocationSize(alloc.getType()));
 
         auto offset = newBuilder.create<arith::SubIOp>(loc, allocSize, one);
         subArg =
@@ -271,7 +275,8 @@ createNumQubitsFunc(OpBuilder &builder, ModuleOp moduleOp,
 
   auto *entryBlock = &numQubitsFunc.getRegion().front();
   newBuilder.setInsertionPointToStart(entryBlock);
-  Value size = newBuilder.create<arith::ConstantIntOp>(loc, 0, retType);
+  Value size = newBuilder.create<arith::ConstantIntOp>(loc, retType,
+                                                       static_cast<int64_t>(0));
 
   // Process block recursively to calculate and return allocation size
   // and remove everything else.
@@ -282,10 +287,11 @@ createNumQubitsFunc(OpBuilder &builder, ModuleOp moduleOp,
     for (auto &op : block) {
       // Calculate allocation size (existing allocation size plus new one)
       if (auto alloc = dyn_cast<quake::AllocaOp>(&op)) {
-        auto allocSize = alloc.getSize();
+        Value allocSize = alloc.getSize();
         if (!allocSize)
           allocSize = newBuilder.create<arith::ConstantIntOp>(
-              loc, quake::getAllocationSize(alloc.getType()), 64);
+              loc, newBuilder.getI64Type(),
+              quake::getAllocationSize(alloc.getType()));
         newBuilder.setInsertionPointAfter(alloc);
         size = newBuilder.create<arith::AddIOp>(loc, size, allocSize);
       }

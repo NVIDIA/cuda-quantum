@@ -7,9 +7,9 @@
  ******************************************************************************/
 
 #include "py_run.h"
-#include "common/LayoutInfo.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/algorithms/run.h"
+#include "cudaq_internal/compiler/LayoutInfo.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
@@ -84,7 +84,8 @@ pyRunTheKernel(const std::string &name, quantum_platform &platform,
                                "`list` of `dataclass`/`tuple` from "
                                "entry-point kernels.");
   }
-  auto layoutInfo = getLayoutInfo(name, mod.getOperation());
+  auto layoutInfo =
+      cudaq_internal::compiler::getLayoutInfo(name, mod.getOperation());
   auto results = details::runTheKernel(
       [&]() mutable {
         [[maybe_unused]] auto result = clean_launch_module(name, mod, opaques);

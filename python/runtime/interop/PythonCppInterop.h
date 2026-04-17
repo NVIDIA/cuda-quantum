@@ -7,16 +7,10 @@
  ******************************************************************************/
 #pragma once
 
-#include "common/JIT.h"
+#include "PythonCppInteropDecls.h"
 #include "cudaq/qis/qkernel.h"
-#include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include <nanobind/nanobind.h>
-#include <nanobind/stl/pair.h>
 #include <nanobind/stl/string.h>
-#include <nanobind/stl/tuple.h>
-#include <optional>
-
-namespace py = nanobind;
 
 namespace cudaq::python {
 
@@ -26,13 +20,13 @@ public:
   /// The constructor.
   /// @param obj A kernel decorator Python object.
   /// @throw std::runtime_error if the object is not a valid kernel decorator.
-  CppPyKernelDecorator(py::object obj) : kernel(obj) {
-    if (!py::hasattr(obj, "qkeModule"))
+  CppPyKernelDecorator(nanobind::object obj) : kernel(obj) {
+    if (!nanobind::hasattr(obj, "qkeModule"))
       throw std::runtime_error("Invalid python kernel object passed, must be "
                                "annotated with cudaq.kernel");
   }
 
-  ~CppPyKernelDecorator();
+  ~CppPyKernelDecorator() = default;
 
   /// Fully compiles this python kernel, returning a `qkernel` that can
   /// be directly invoked by host code. Do not pass the returned `qkernel`
@@ -58,21 +52,21 @@ public:
   }
 
 private:
-  py::object kernel;
-  std::optional<std::size_t> cachedEngineKey;
+  nanobind::object kernel;
+  // Hold on to the CompiledModule, it keeps the JIT engine alive.
+  nanobind::object compiledKernel;
 
   template <typename... As>
   void *getKernelHelper(bool isEntryPoint, As... as) {
     // Perform beta reduction on the kernel decorator.
-    // Returns a tuple (pointer_as_int, cached_engine_handle).
-    py::object result =
+    compiledKernel =
         kernel.attr("beta_reduction")(isEntryPoint, std::forward<As>(as)...);
-    // Cast to intptr_t to avoid nanobind's "cannot return pointer to temporary"
-    void *p = reinterpret_cast<void *>(py::cast<intptr_t>(result[0]));
-    auto cachedEngineHandle = py::cast<std::size_t>(result[1]);
+    auto entryPointAddr =
+        nanobind::cast<std::uintptr_t>(compiledKernel.attr("entry_point"));
     // Set lsb to 1 to denote this is NOT a C++ kernel.
-    p = reinterpret_cast<void *>(reinterpret_cast<std::intptr_t>(p) | 1);
-    cachedEngineKey = cachedEngineHandle;
+    auto *p = reinterpret_cast<void *>(
+        static_cast<std::intptr_t>(entryPointAddr) | 1);
+    // Translate the pointer to the entry point code buffer to a `qkernel`.
     return p;
   }
 };
@@ -82,84 +76,11 @@ private:
 /// (synthesized) into the kernel and cannot be changed by the algorithm.
 template <typename KT, typename ALGO, typename... As>
   requires QKernelType<KT> && std::invocable<ALGO, KT>
-auto launch_specialized_py_decorator(py::object qern, ALGO algo, As... as) {
+auto launch_specialized_py_decorator(nanobind::object qern, ALGO algo,
+                                     As... as) {
   cudaq::python::CppPyKernelDecorator decorator(qern);
   auto entryPoint = decorator.getDirectKernelCall<KT>(std::forward<As>(as)...);
   return algo(std::move(entryPoint));
-}
-
-/// @brief Extracts the kernel name from an input MLIR string.
-/// @param input The input string containing the kernel name.
-/// @return The extracted kernel name.
-std::string getKernelName(const std::string &input);
-
-/// @brief Extracts a sub-string from an input string based on start and end
-/// delimiters.
-/// @param input The input string to extract from.
-/// @param startStr The starting delimiter.
-/// @param endStr The ending delimiter.
-/// @return The extracted sub-string.
-std::string extractSubstring(const std::string &input,
-                             const std::string &startStr,
-                             const std::string &endStr);
-
-/// @brief Retrieves the MLIR code and mangled kernel name for a given
-/// user-level kernel name.
-/// @param name The name of the kernel.
-/// @return A tuple containing the MLIR code and the kernel name.
-std::tuple<std::string, std::string>
-getMLIRCodeAndName(const std::string &name, const std::string mangled = "");
-
-/// @brief Register a C++ device kernel with the given module and name
-/// @param module The name of the module containing the kernel
-/// @param name The name of the kernel to register
-void registerDeviceKernel(const std::string &module, const std::string &name,
-                          const std::string &mangled);
-
-/// @brief Retrieve the module and name of a registered device kernel
-/// @param compositeName The composite name of the kernel (module.name)
-/// @return A tuple containing the module name and kernel name
-std::tuple<std::string, std::string>
-getDeviceKernel(const std::string &compositeName);
-
-bool isRegisteredDeviceModule(const std::string &compositeName);
-
-template <typename T>
-constexpr bool is_const_reference_v =
-    std::is_reference_v<T> && std::is_const_v<std::remove_reference_t<T>>;
-
-template <typename T>
-struct TypeMangler {
-  static std::string mangle() {
-    std::string mangledName = typeid(T).name();
-    if constexpr (is_const_reference_v<T>) {
-      mangledName = "RK" + mangledName;
-    }
-    return mangledName;
-  }
-};
-
-template <typename... Args>
-inline std::string getMangledArgsString() {
-  std::string result;
-  (result += ... += TypeMangler<Args>::mangle());
-
-  // Remove any namespace cudaq text
-  std::string search = "N5cudaq";
-  std::string replace = "";
-
-  size_t pos = result.find(search);
-  while (pos != std::string::npos) {
-    result.replace(pos, search.length(), replace);
-    pos = result.find(search, pos + replace.length());
-  }
-
-  return result;
-}
-
-template <>
-inline std::string getMangledArgsString<>() {
-  return {};
 }
 
 /// @brief Add a C++ device kernel that is usable from CUDA-Q Python.
@@ -169,7 +90,7 @@ inline std::string getMangledArgsString<>() {
 /// @param kernelName The name of the kernel
 /// @param docstring The documentation string for the kernel
 template <typename... Signature>
-void addDeviceKernelInterop(py::module_ &m, const std::string &modName,
+void addDeviceKernelInterop(nanobind::module_ &m, const std::string &modName,
                             const std::string &kernelName,
                             const std::string &docstring) {
 
@@ -177,14 +98,16 @@ void addDeviceKernelInterop(py::module_ &m, const std::string &modName,
 
   // FIXME Maybe Add replacement options (i.e., _pycudaq -> cudaq)
 
-  py::module_ sub = py::hasattr(m, modName.c_str())
-                        ? py::cast<py::module_>(m.attr(modName.c_str()))
-                        : m.def_submodule(modName.c_str());
+  nanobind::module_ sub =
+      nanobind::hasattr(m, modName.c_str())
+          ? nanobind::cast<nanobind::module_>(m.attr(modName.c_str()))
+          : m.def_submodule(modName.c_str());
 
   sub.def(
       kernelName.c_str(), [](Signature...) {}, docstring.c_str());
   cudaq::python::registerDeviceKernel(
-      py::cast<std::string>(sub.attr("__name__")), kernelName, mangledArgs);
+      nanobind::cast<std::string>(sub.attr("__name__")), kernelName,
+      mangledArgs);
   return;
 }
 } // namespace cudaq::python

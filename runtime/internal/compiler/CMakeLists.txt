@@ -50,6 +50,7 @@ target_link_libraries(cudaq-mlir-runtime
     MLIRTargetLLVMIRExport
     MLIRLLVMCommonConversion
     MLIRLLVMToLLVMIRTranslation
+    MLIRFuncInlinerExtension
     cudaq-common
     cudaq-qir-verifier
     CUDAQTargetConfigUtil

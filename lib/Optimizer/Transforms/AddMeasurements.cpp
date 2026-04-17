@@ -91,7 +91,7 @@ addMeasurements(func::FuncOp funcOp, SmallVector<Operation *> &allocations,
   // Set insertion point to the new block and add measurements
   builder.setInsertionPointToEnd(newBlock);
   auto measTy = quake::MeasureType::get(builder.getContext());
-  for (auto &[index, alloca] : llvm::enumerate(allocations)) {
+  for (auto [index, alloca] : llvm::enumerate(allocations)) {
     if (auto veqTy = dyn_cast<quake::VeqType>(alloca->getResult(0).getType())) {
       Type measurementsTy = [&]() {
         auto *ctx = builder.getContext();

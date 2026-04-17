@@ -186,6 +186,8 @@ if (${CUDAQ_FORCE_COLORED_OUTPUT})
     endif ()
 endif ()
 
+add_compile_options(-Wno-error=deprecated-declarations)
+
 # Certain build configurations may be set directly in the environment.
 # This facilitates some of the packaging (e.g. python packages built based on the pyproject.toml).
 # These are cached so they persist across cmake runs without needing the env vars set again.
@@ -453,7 +455,7 @@ set(MLIR_BINARY_DIR ${CMAKE_BINARY_DIR})
 
 list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
 
 include(TableGen)
 include(AddLLVM)
@@ -532,8 +534,8 @@ execute_process(COMMAND git rev-parse --verify HEAD
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE CUDA_QUANTUM_COMMIT_SHA OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-configure_file("${CMAKE_SOURCE_DIR}/include/cudaq/Support/Version.h.in"
-               "${CUDAQ_BINARY_DIR}/include/cudaq/Support/Version.h" @ONLY)
+configure_file("${CMAKE_SOURCE_DIR}/runtime/common/Version.cpp.in"
+               "${CMAKE_BINARY_DIR}/runtime/common/Version.cpp" @ONLY)
 
 # Check optional dependencies
 # ==============================================================================

@@ -144,7 +144,7 @@ public:
   }
 
   void launchKernel(const std::string &name,
-                    const std::vector<void *> &rawArgs) override {
+                    const std::vector<void *> &rawArgs) {
     CUDAQ_INFO("{}: Streamline launch kernel named '{}' remote QPU {} "
                "(simulator = {})",
                Derived::class_name, name, this->qpu_id, this->m_simName);

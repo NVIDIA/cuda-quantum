@@ -68,7 +68,7 @@ GateSpec parseGateSpec(StringRef gateSpec) {
   size_t numControls = 0;
   if (gateSpec.consume_front("(")) {
     gateSpec = gateSpec.ltrim();
-    if (gateSpec.startswith("n")) {
+    if (gateSpec.starts_with("n")) {
       numControls = std::numeric_limits<size_t>::max();
     } else {
       gateSpec.consumeInteger(10, numControls);
@@ -313,8 +313,7 @@ TEST_F(DecompositionPatternsTest, DecompositionProducesOnlyTargetGates) {
     // Apply the decomposition pass with only this pattern enabled
     PassManager pm(context.get());
     cudaq::opt::DecompositionOptions options;
-    std::string ownedEnabledPatterns[]{patternName};
-    options.enabledPatterns = ownedEnabledPatterns;
+    options.enabledPatterns = llvm::SmallVector<std::string>{patternName};
     pm.addPass(cudaq::opt::createDecomposition(options));
 
     // Run the pass

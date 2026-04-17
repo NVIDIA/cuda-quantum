@@ -69,7 +69,6 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/algorithms/py_translate.cpp
     ../runtime/cudaq/algorithms/py_unitary.cpp
     ../runtime/cudaq/algorithms/py_utils.cpp
-    ../runtime/cudaq/platform/JITExecutionCache.cpp
     ../runtime/cudaq/platform/py_alt_launch_kernel.cpp
     ../runtime/cudaq/qis/py_execution_manager.cpp
     ../runtime/cudaq/qis/py_pauli_word.cpp
@@ -88,13 +87,13 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/utils/PyRemoteSimulatorQPU.cpp
     ../runtime/utils/PyRestRemoteClient.cpp
     ../utils/LinkedLibraryHolder.cpp
-    ../../runtime/common/ArgumentConversion.cpp
+    ../../runtime/internal/compiler/ArgumentConversion.cpp
     ../../runtime/common/CodeGenConfig.cpp
-    ../../runtime/common/LayoutInfo.cpp
-    ../../runtime/common/RuntimeMLIR.cpp
-    ../../runtime/common/RuntimePyMLIR.cpp
-    ../../runtime/common/JIT.cpp
-    ../../runtime/common/Compiler.cpp
+    ../../runtime/internal/compiler/LayoutInfo.cpp
+    ../../runtime/internal/compiler/RuntimeMLIR.cpp
+    ../../runtime/internal/compiler/RuntimePyMLIR.cpp
+    ../../runtime/internal/compiler/JIT.cpp
+    ../../runtime/internal/compiler/Compiler.cpp
     ../../runtime/cudaq/platform/default/rest_server/RemoteRuntimeClient.cpp
     ../../runtime/cudaq/platform/orca/OrcaExecutor.cpp
     ../../runtime/cudaq/platform/orca/OrcaQPU.cpp
@@ -120,10 +119,11 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
    cudaq-qir-verifier
 )
 
-target_include_directories(CUDAQuantumPythonSources.Extension INTERFACE 
-    ${CMAKE_SOURCE_DIR}/python 
+target_include_directories(CUDAQuantumPythonSources.Extension INTERFACE
+    ${CMAKE_SOURCE_DIR}/python
     ${CMAKE_SOURCE_DIR}/python/utils
     ${CMAKE_SOURCE_DIR}/runtime
+    ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/include
 )
 target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE 
     cudaq 

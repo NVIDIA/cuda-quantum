@@ -604,6 +604,11 @@ if (CUDAQ_ENABLE_PYTHON)
     return()
   endif()
 
+  if(NOT TARGET cudaq-pyscf)
+    message(STATUS "cudaq-pyscf plugin not enabled; skipping chemistry tests.")
+    return()
+  endif()
+
   message(STATUS "OpenFermion PySCF found, enabling chemistry tests.")
   add_executable(test_domains main.cpp domains/ChemistryTester.cpp)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)

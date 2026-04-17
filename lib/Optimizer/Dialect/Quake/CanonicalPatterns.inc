@@ -115,8 +115,8 @@ struct ForwardConstantMeasurementsSizePattern
     if (!msTy.hasSpecifiedSize())
       return failure();
     auto resTy = msSize.getType();
-    rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(msSize, msTy.getSize(),
-                                                      resTy);
+    rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(msSize, resTy,
+                                                      msTy.getSize());
     return success();
   }
 };

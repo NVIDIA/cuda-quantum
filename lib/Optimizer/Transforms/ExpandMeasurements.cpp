@@ -16,6 +16,11 @@
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 
+namespace cudaq::opt {
+#define GEN_PASS_DEF_EXPANDMEASUREMENTS
+#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+} // namespace cudaq::opt
+
 using namespace mlir;
 
 namespace {
@@ -77,12 +82,12 @@ public:
 
       unsigned numQubits = 0u;
       for (auto v : measureOp.getTargets())
-        if (v.getType().template isa<quake::RefType>())
+        if (isa<quake::RefType>(v.getType()))
           ++numQubits;
-      totalToRead =
-          rewriter.template create<arith::ConstantIntOp>(loc, numQubits, 64);
+      totalToRead = rewriter.template create<arith::ConstantIntOp>(
+          loc, rewriter.getI64Type(), numQubits);
       for (auto v : measureOp.getTargets())
-        if (v.getType().template isa<quake::VeqType>()) {
+        if (isa<quake::VeqType>(v.getType())) {
           Value vecSz =
               rewriter.template create<quake::VeqSizeOp>(loc, i64Ty, v);
           totalToRead =
@@ -92,8 +97,10 @@ public:
       // 2. Create the buffer.
       buff = rewriter.template create<cudaq::cc::AllocaOp>(loc, bufElemTy,
                                                            totalToRead);
-      buffOff = rewriter.template create<arith::ConstantIntOp>(loc, 0, 64);
-      one = rewriter.template create<arith::ConstantIntOp>(loc, 1, 64);
+      buffOff = rewriter.template create<arith::ConstantIntOp>(
+          loc, rewriter.getI64Type(), 0);
+      one = rewriter.template create<arith::ConstantIntOp>(
+          loc, rewriter.getI64Type(), 1);
     }
 
     // 3. Measure each individual qubit and insert the result, in order, into
@@ -238,8 +245,8 @@ public:
       } else {
         auto veqTy = cast<quake::VeqType>(v.getType());
         for (std::size_t i = 0; i < veqTy.getSize(); ++i) {
-          Value idx =
-              rewriter.template create<arith::ConstantIntOp>(loc, i, 64);
+          Value idx = rewriter.template create<arith::ConstantIntOp>(
+              loc, rewriter.getI64Type(), i);
           Value qv = rewriter.template create<quake::ExtractRefOp>(loc, v, idx);
           auto meas = rewriter.template create<A>(loc, measTy, qv);
           if (auto registerName = measureOp.getRegisterNameAttr())
@@ -314,8 +321,8 @@ public:
     unsigned elemWidth = cast<IntegerType>(elemTy).getWidth();
     Type bufElemTy = elemWidth > 8 ? elemTy : rewriter.getI8Type();
 
-    Value totalToRead =
-        rewriter.create<arith::ConstantIntOp>(loc, measTy.getSize(), 64);
+    Value totalToRead = rewriter.create<arith::ConstantIntOp>(
+        loc, rewriter.getI64Type(), measTy.getSize());
     Value buff =
         rewriter.create<cudaq::cc::AllocaOp>(loc, bufElemTy, totalToRead);
 
@@ -324,7 +331,8 @@ public:
     for (std::size_t i = 0; i < n; ++i) {
       Value getMeas = rewriter.create<quake::GetMeasureOp>(loc, measVal, i);
       Value bit = rewriter.create<quake::DiscriminateOp>(loc, elemTy, getMeas);
-      Value idx = rewriter.create<arith::ConstantIntOp>(loc, i, 64);
+      Value idx =
+          rewriter.create<arith::ConstantIntOp>(loc, rewriter.getI64Type(), i);
       Value addr = rewriter.create<cudaq::cc::ComputePtrOp>(
           loc, cudaq::cc::PointerType::get(bufElemTy), buff, idx);
       Value stored =
@@ -347,8 +355,9 @@ public:
 };
 
 class ExpandMeasurementsPass
-    : public cudaq::opt::ExpandMeasurementsBase<ExpandMeasurementsPass> {
+    : public cudaq::opt::impl::ExpandMeasurementsBase<ExpandMeasurementsPass> {
 public:
+  using Base::Base;
   void runOnOperation() override {
     auto *op = getOperation();
     auto *ctx = &getContext();

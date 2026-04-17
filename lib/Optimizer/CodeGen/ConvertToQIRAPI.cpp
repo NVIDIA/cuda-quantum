@@ -241,7 +241,7 @@ struct AllocaOpToCallsRewrite : public OpConversionPattern<quake::AllocaOp> {
     Value sizeOperand;
     auto loc = alloc.getLoc();
     if (adaptor.getOperands().empty()) {
-      auto type = alloc.getType().cast<quake::VeqType>();
+      auto type = cast<quake::VeqType>(alloc.getType());
       if (!type.hasSpecifiedSize())
         return failure();
       auto constantSize = type.getSize();
@@ -1174,8 +1174,8 @@ struct SubveqOpRewrite : public OpConversionPattern<quake::SubVeqOp> {
     highArg = extend(highArg);
     Value inArr = adaptor.getVeq();
     auto i32Ty = rewriter.getI32Type();
-    Value one32 = rewriter.create<arith::ConstantIntOp>(loc, 1, i32Ty);
-    Value one64 = rewriter.create<arith::ConstantIntOp>(loc, 1, i64Ty);
+    Value one32 = rewriter.create<arith::ConstantIntOp>(loc, i32Ty, 1);
+    Value one64 = rewriter.create<arith::ConstantIntOp>(loc, i64Ty, 1);
     auto arrayTy = M::getArrayType(rewriter.getContext());
     rewriter.replaceOpWithNewOp<func::CallOp>(
         subveq, arrayTy, cudaq::opt::QIRArraySlice,
@@ -1847,7 +1847,7 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
           std::swap(opParams[0], opParams[1]);
           auto fltTy = cast<FloatType>(opParams[0].getType());
           Value pi = rewriter.create<arith::ConstantFloatOp>(
-              loc, llvm::APFloat{M_PI}, fltTy);
+              loc, fltTy, llvm::APFloat{M_PI});
           opParams[0] = rewriter.create<arith::SubFOp>(loc, opParams[0], pi);
           opParams[1] = rewriter.create<arith::AddFOp>(loc, opParams[1], pi);
         } else if constexpr (std::is_same_v<OP, quake::U3Op>) {
@@ -2063,7 +2063,7 @@ struct FuncSignaturePattern : public OpConversionPattern<func::FuncOp> {
         blockArg.setType(newTy);
     }
     // Replace the signature.
-    rewriter.updateRootInPlace(func, [&]() {
+    rewriter.modifyOpInPlace(func, [&]() {
       func.setFunctionType(newFuncTy);
       func->setAttr(FuncIsQIRAPI, rewriter.getUnitAttr());
     });
@@ -2091,8 +2091,8 @@ struct CreateLambdaPattern
         blockArg.setType(argTy);
     }
     // Replace the signature.
-    rewriter.updateRootInPlace(op,
-                               [&]() { op.getSignature().setType(newSigTy); });
+    rewriter.modifyOpInPlace(op,
+                             [&]() { op.getSignature().setType(newSigTy); });
     return success();
   }
 };
@@ -2217,7 +2217,8 @@ struct CondBranchOpPattern : public OpConversionPattern<cf::CondBranchOp> {
                   ConversionPatternRewriter &rewriter) const override {
     rewriter.replaceOpWithNewOp<cf::CondBranchOp>(
         op, adaptor.getCondition(), adaptor.getTrueDestOperands(),
-        adaptor.getFalseDestOperands(), op.getTrueDest(), op.getFalseDest());
+        adaptor.getFalseDestOperands(), DenseI32ArrayAttr(), op.getTrueDest(),
+        op.getFalseDest());
     return success();
   }
 };
@@ -2273,11 +2274,7 @@ static void commonQuakeHandlingPatterns(RewritePatternSet &patterns,
 
 template <bool opaquePtr>
 Type GetLLVMPointerType(MLIRContext *ctx) {
-  if constexpr (opaquePtr) {
-    return LLVM::LLVMPointerType::get(ctx);
-  } else {
-    return LLVM::LLVMPointerType::get(IntegerType::get(ctx, 8));
-  }
+  return LLVM::LLVMPointerType::get(ctx);
 }
 
 /// The modifier class for the "full QIR" API.
