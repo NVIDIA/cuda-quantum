@@ -203,7 +203,7 @@ echo "============================="
 
 # Note: piping the `find` results through `sort` guarantees repeatable ordering.
 tmpFile=$(mktemp)
-for ex in `find examples/ applications/ targets/ -name '*.cpp' | sort`;
+for ex in `find examples/ applications/ targets/ -name '*.cpp' -not -path 'examples/mpi/*' | sort`;
 do
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
@@ -320,6 +320,55 @@ do
     echo "============================="
 done
 
+# Run MPI C++ examples (requires MPI and at least 4 GPUs)
+if ! $mpi_available; then
+    echo "Skipping MPI C++ examples: MPI not available."
+else
+    gpu_count=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | wc -l)
+    if [ "$gpu_count" -lt 4 ]; then
+        echo "Skipping MPI C++ examples: found $gpu_count GPU(s), need at least 4."
+    else
+        echo "Running MPI C++ examples with $gpu_count GPUs."
+        for mpi_ex in $(find examples/mpi -name '*.cpp' | sort); do
+            filename=$(basename -- "$mpi_ex")
+            filename="${filename%.*}"
+            let "samples+=1"
+            echo "Testing $filename (MPI C++):"
+            echo "Source: $mpi_ex"
+            intended_target=$(sed -n 's|^//[[:space:]]*nvq++.*--target[[:space:]]\{1,\}\([^[:space:]]\{1,\}\).*|\1|p' "$mpi_ex" | head -1)
+            if [ -n "$intended_target" ]; then
+                target_flag="--target $intended_target"
+            else
+                target_flag=""
+            fi
+            mpi_link_flags=""
+            if grep -q '#include <mpi.h>' "$mpi_ex"; then
+                mpi_link_flags="-I$(mpicc -showme:incdirs) -L$(mpicc -showme:libdirs) -lmpi"
+            fi
+            nvq++ $mpi_ex $target_flag $mpi_link_flags
+            if [ ! $? -eq 0 ]; then
+                let "failed+=1"
+                echo ":x: Compilation failed for $filename." >> "${tmpFile}"
+                echo "============================="
+                continue
+            fi
+            mpiexec --allow-run-as-root -np 4 ./a.out &> /tmp/cudaq_validation.out
+            status=$?
+            echo "Exited with code $status"
+            if [ "$status" -eq "0" ]; then
+                let "passed+=1"
+                echo ":white_check_mark: Successfully ran $filename." >> "${tmpFile}"
+            else
+                cat /tmp/cudaq_validation.out
+                let "failed+=1"
+                echo ":x: Failed to execute $filename." >> "${tmpFile}"
+            fi
+            rm -f a.out /tmp/cudaq_validation.out
+            echo "============================="
+        done
+    fi
+fi
+
 echo "============================="
 echo "== CMake Integration Test  =="
 echo "============================="
@@ -373,7 +422,7 @@ dynamics_backend_skipped_examples=(\
 # files are used by the Divisive_clustering.ipynb notebook, so they are tested
 # elsewhere and should be excluded from this test.
 # Note: piping the `find` results through `sort` guarantees repeatable ordering.
-for ex in `find examples/ targets/ -name '*.py' | sort`;
+for ex in `find examples/ targets/ -name '*.py' -not -path 'examples/mpi/*' | sort`;
 do 
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
@@ -425,6 +474,46 @@ do
     fi
     echo "============================="
 done
+
+# Run MPI examples (requires MPI and at least 4 GPUs)
+if ! $mpi_available; then
+    echo "Skipping MPI examples: MPI not available."
+else
+    gpu_count=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | wc -l)
+    if [ "$gpu_count" -lt 4 ]; then
+        echo "Skipping MPI examples: found $gpu_count GPU(s), need at least 4."
+    else
+        echo "Running MPI examples with $gpu_count GPUs."
+        has_mpi4py=false
+        if python3 -c "import mpi4py" 2>/dev/null; then
+            has_mpi4py=true
+        fi
+        for mpi_ex in $(find examples/mpi -name '*.py' | sort); do
+            filename=$(basename -- "$mpi_ex")
+            filename="${filename%.*}"
+            let "samples+=1"
+            echo "Testing $filename (MPI):"
+            echo "Source: $mpi_ex"
+            if grep -q "import mpi4py" "$mpi_ex" && ! $has_mpi4py; then
+                echo "Skipping: requires mpi4py."
+                let "skipped+=1"
+                echo ":white_flag: $filename: mpi4py not installed. Test skipped." >> "${tmpFile}"
+                continue
+            fi
+            mpiexec --allow-run-as-root -np 4 python3 "$mpi_ex" 1> /dev/null
+            status=$?
+            echo "Exited with code $status"
+            if [ "$status" -eq "0" ]; then
+                let "passed+=1"
+                echo ":white_check_mark: Successfully ran $filename." >> "${tmpFile}"
+            else
+                let "failed+=1"
+                echo ":x: Failed to run $filename." >> "${tmpFile}"
+            fi
+            echo "============================="
+        done
+    fi
+fi
 
 if [ -n "$(find examples/ applications/ -name '*.ipynb')" ]; then
     let "samples+=1"
