@@ -67,7 +67,7 @@ parseTargetKwArgs(const nanobind::kwargs &extraConfig) {
     else if (nanobind::isinstance<nanobind::str>(value))
       strValue = nanobind::cast<std::string>(value);
     else if (nanobind::isinstance<nanobind::int_>(value))
-      strValue = std::to_string(nanobind::cast<int>(value));
+      strValue = std::to_string(nanobind::cast<int64_t>(value));
     else
       throw std::runtime_error(
           "QPU kwargs config value must be cast-able to a string.");

@@ -54,7 +54,7 @@ primitive functions like :code:`sample`, :code:`observe`, and :code:`get_state`
 (e.g., :code:`sample_async` function in the above code snippets).
 
 Depending on the number of GPUs available on the system, the :code:`nvidia` multi-QPU platform will create the same number of virtual QPU instances.
-For example, on a system with 4 GPUs, the above code will distribute the four sampling tasks among those :code:`GPUEmulatedQPU` instances.
+For example, on a system with 4 GPUs, the above code will distribute the four sampling tasks among those virtual QPU instances.
 
 The results might look like the following 4 different random samplings:
 
@@ -72,7 +72,7 @@ The results might look like the following 4 different random samplings:
   To specify the number QPUs to be instantiated, one can set the :code:`CUDAQ_MQPU_NGPUS` environment variable.
   For example, use :code:`export CUDAQ_MQPU_NGPUS=2` to specify that only 2 QPUs (GPUs) are needed.
 
-Since the underlying :code:`GPUEmulatedQPU` is a simulator backend, we can also retrieve the state vector from each
+Since the underlying virtual QPU is a simulator backend, we can also retrieve the state vector from each
 QPU via the :code:`cudaq::get_state_async` (C++) or :code:`cudaq.get_state_async` (Python) as shown in the bellow code snippets.
 
 .. tab:: Python

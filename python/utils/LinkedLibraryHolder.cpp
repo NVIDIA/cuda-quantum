@@ -505,9 +505,9 @@ void LinkedLibraryHolder::setTarget(
     resetExecutionManagerInternal();
   }
 
-  // If the config (kwargs) contains communicator, set it.
-  if (extraConfig.contains("communicator")) {
-    intptr_t commPtr = std::stoll(extraConfig["communicator"]);
+  // If the config (kwargs) contains comm_handle, set it.
+  if (extraConfig.contains("comm_handle")) {
+    intptr_t commPtr = std::stoll(extraConfig["comm_handle"]);
     CUDAQ_INFO("Setting communicator for target {} with pointer value {}",
                targetName, commPtr);
     cudaq::mpi::set_communicator(reinterpret_cast<void *>(commPtr));

@@ -32,35 +32,32 @@ public:
   }
 
   MultiQPUQuantumPlatform() {
-    if (cudaq::registry::isRegistered<cudaq::QPU>("GPUEmulatedQPU")) {
-      int nDevices = cudaq::getCudaDeviceCount();
-      // Skipped if CUDA-Q was built with CUDA but no devices present at
-      // runtime.
-      if (nDevices > 0) {
-        const char *envVal = std::getenv("CUDAQ_MQPU_NGPUS");
-        if (envVal != nullptr) {
-          int specifiedNDevices = 0;
-          try {
-            specifiedNDevices = std::stoi(envVal);
-          } catch (...) {
-            throw std::runtime_error("Invalid CUDAQ_MQPU_NGPUS environment "
-                                     "variable, must be integer.");
-          }
-
-          if (specifiedNDevices < nDevices)
-            nDevices = specifiedNDevices;
+    int nDevices = cudaq::getCudaDeviceCount();
+    // Skipped if CUDA-Q was built with CUDA but no devices present at
+    // runtime.
+    if (nDevices > 0) {
+      const char *envVal = std::getenv("CUDAQ_MQPU_NGPUS");
+      if (envVal != nullptr) {
+        int specifiedNDevices = 0;
+        try {
+          specifiedNDevices = std::stoi(envVal);
+        } catch (...) {
+          throw std::runtime_error("Invalid CUDAQ_MQPU_NGPUS environment "
+                                   "variable, must be integer.");
         }
 
-        if (nDevices == 0)
-          throw std::runtime_error(
-              "No GPUs available to instantiate platform.");
+        if (specifiedNDevices < nDevices)
+          nDevices = specifiedNDevices;
+      }
 
-        // Add a QPU for each GPU.
-        for (int i = 0; i < nDevices; i++) {
-          platformQPUs.emplace_back(
-              std::make_unique<cudaq::details::DefaultQPU>());
-          platformQPUs.back()->setId(i);
-        }
+      if (nDevices == 0)
+        throw std::runtime_error("No GPUs available to instantiate platform.");
+
+      // Add a QPU for each GPU.
+      for (int i = 0; i < nDevices; i++) {
+        platformQPUs.emplace_back(
+            std::make_unique<cudaq::details::DefaultQPU>());
+        platformQPUs.back()->setId(i);
       }
     }
   }

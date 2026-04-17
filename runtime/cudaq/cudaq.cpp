@@ -181,6 +181,9 @@ std::pair<void *, std::size_t> comm_dup() {
 }
 
 void *split_communicator(int color, const std::optional<int> &key) {
+  if (!is_initialized())
+    throw std::runtime_error(
+        "MPI must be initialized before calling split_communicator.");
   auto *commPlugin = getMpiPlugin();
   cudaqDistributedCommunicator_t *newComm = nullptr;
   cudaqDistributedCommunicator_t *comm = commPlugin->getComm();
@@ -192,6 +195,9 @@ void *split_communicator(int color, const std::optional<int> &key) {
 }
 
 void set_communicator(void *comm) {
+  if (!is_initialized())
+    throw std::runtime_error(
+        "MPI must be initialized before calling set_communicator.");
   auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
   auto *asMpiSim = dynamic_cast<nvqir::MpiCircuitSimulator *>(circuitSimulator);
   if (!asMpiSim) {
@@ -203,7 +209,8 @@ void set_communicator(void *comm) {
     return;
   }
 
-  asMpiSim->setMpiCommunicator(comm, getMpiPlugin()->getComm()->commSize);
+  asMpiSim->setMpiCommunicator(
+      comm, static_cast<int>(getMpiPlugin()->getComm()->commSize));
 }
 
 void finalize() {
