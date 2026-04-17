@@ -61,13 +61,12 @@ notifications:
     match: workflow_run.name = "CI" and workflow_run.event = "merge_group" and workflow_run.conclusion = "failure"
     message:
       body: |
-        {{mention}} <{{url}}|Merge queue CI> failed on `{{branch}}` (commit <{{commitUrl}}|{{sha}}>)
+        <{{url}}|Merge queue CI> failed on `{{branch}}` (commit <{{commitUrl}}|{{sha}}>)
       vars:
         url: workflow_run.html_url
         branch: workflow_run.head_branch
         sha: $substring(workflow_run.head_sha, 0, 7)
         commitUrl: workflow_run.head_repository.html_url & "/commit/" & workflow_run.head_sha
-        mention: '$contains(workflow_run.head_commit.author.email, "@nvidia.com") ? $slackMention(workflow_run.head_commit.author.email) : ""'
     show_webhook_payload_on_error: false
 
   - name: "Issue opened"
