@@ -73,6 +73,7 @@ launchKernelImpl(cudaq::ExecutionContext *executionContextPtr,
     throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
 }
 
+[[clang::suppress]]
 static void launchKernelStreamlineImpl(
     cudaq::ExecutionContext *executionContextPtr,
     std::unique_ptr<cudaq::RemoteRuntimeClient> &remote_client,
