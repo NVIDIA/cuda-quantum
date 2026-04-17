@@ -8,7 +8,7 @@
 
 #include "QPU.h"
 #include "common/ArgumentWrapper.h"
-#include "common/CompiledKernel.h"
+#include "common/CompiledModule.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "common/RuntimeTarget.h"
@@ -23,6 +23,7 @@
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
 #include "cudaq/platform.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
+#include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq_internal/compiler/JIT.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
@@ -313,13 +314,13 @@ static void precountResources(ModuleOp module) {
     return;
   auto counts = cudaq::opt::countResourcesFromIR(module);
   if (failed(counts))
-    throw std::runtime_error("Resource count preprocessing failed.");
+    return;
   nvqir::setResourceCounts(std::move(*counts));
 }
 
 namespace {
 struct PythonLauncher : public cudaq::ModuleLauncher {
-  cudaq::CompiledKernel compileModule(const std::string &name, ModuleOp module,
+  cudaq::CompiledModule compileModule(const std::string &name, ModuleOp module,
                                       const std::vector<void *> &rawArgs,
                                       bool isEntryPoint) override {
 
@@ -359,12 +360,14 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
         varArgIndices.clear();
     }
     const bool isFullySpecialized = varArgIndices.empty();
-    auto resultInfo = createResultInfo(resultTy, isEntryPoint, module);
+    auto resultInfo =
+        CompiledModuleHelper::createResultInfo(resultTy, isEntryPoint, module);
 
     if (auto jit = alreadyBuiltJITCode(name, rawArgs)) {
-      cudaq::CompiledKernel ck(name, resultInfo);
-      ck.attachJit(*jit, isFullySpecialized);
-      return ck;
+      auto jitArtifacts = CompiledModuleHelper::createJitArtifacts(
+          name, *jit, resultInfo, isFullySpecialized);
+      return CompiledModuleHelper::createCompiledModule(name, resultInfo,
+                                                        jitArtifacts);
     }
 
     // 1. Check that this call is sane.
@@ -404,9 +407,10 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     cudaq::compiler_artifact::saveArtifact(name, rawArgs, jit,
                                            argsCreatorThunk);
 
-    cudaq::CompiledKernel ck(name, resultInfo);
-    ck.attachJit(jit, isFullySpecialized);
-    return ck;
+    auto jitArtifacts = CompiledModuleHelper::createJitArtifacts(
+        name, jit, resultInfo, isFullySpecialized);
+    return CompiledModuleHelper::createCompiledModule(
+        name, std::move(resultInfo), jitArtifacts);
   }
 };
 } // namespace

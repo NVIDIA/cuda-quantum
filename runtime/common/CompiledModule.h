@@ -20,25 +20,17 @@
 #include <vector>
 
 // This header file and the types defined within are designed to have no
-// dependencies and be useable across the compiler and runtime. However,
-// constructing instances of these types is easiest done within compilation
-// units that do link against MLIR. We provide this functionality via free
-// functions, defined as friends of the types defined here and implemented in
-// the `cudaq-mlir-runtime` library.
+// dependencies and be useable across the compiler and runtime. Constructing
+// `CompiledModule` is supported through
+// `cudaq_internal::compiler::CompiledModuleHelper`, available in
+// `CompiledModuleHelper.h` from `cudaq-mlir-runtime`.
 
 namespace mlir {
-class Type;
-class ModuleOp;
 class ExecutionEngine;
 } // namespace mlir
 
-namespace cudaq {
-class ResultInfo;
-} // namespace cudaq
-
 namespace cudaq_internal::compiler {
-cudaq::ResultInfo createResultInfo(mlir::Type resultType, bool isEntryPoint,
-                                   mlir::ModuleOp module);
+class CompiledModuleHelper;
 } // namespace cudaq_internal::compiler
 
 namespace cudaq {
@@ -73,13 +65,10 @@ private:
 };
 
 /// Pre-computed result metadata, set at build time. Used at execution time
-/// for result buffer allocation and type conversion. Construct via
-/// `createResultInfo` (implemented in `cudaq-mlir-runtime`).
+/// for result buffer allocation and type conversion.
 class ResultInfo {
-  // Friend factory function, to be used for construction.
-  friend cudaq::ResultInfo cudaq_internal::compiler::createResultInfo(
-      mlir::Type resultType, bool isEntryPoint, mlir::ModuleOp module);
-  friend class CompiledKernel;
+  friend class cudaq_internal::compiler::CompiledModuleHelper;
+  friend class CompiledModule;
 
   /// Opaque pointer to the `mlir::Type` of the result. Obtained via
   /// `mlir::Type::getAsOpaquePointer()`.
@@ -99,19 +88,16 @@ public:
   bool hasResult() const { return typeOpaquePtr != nullptr; }
 };
 
-/// @brief A compiled, ready-to-execute kernel.
+/// @brief A compiled MLIR module, ready for execution or code generation.
 ///
-/// Contains a map of named compiled artifacts (JIT binaries or MLIR modules)
-/// along with metadata needed for execution and result extraction.
-///
-/// For non-observe kernels, the map has a single entry keyed by the kernel
-/// name. For observe mode, there is one entry per Pauli term, keyed by the
-/// term ID.
+/// Contains any number of named compilation artifacts (we currently support
+/// JIT binaries and optimized MLIR modules) that result from the compilation
+/// of a Quake MLIR module.
 ///
 /// This type does not depend on MLIR/LLVM — it only keeps type-erased / opaque
-/// pointers. Use the `attachJit` member function to attach a JIT-compiled
-/// artifact after construction.
-class CompiledKernel {
+/// pointers. Build instances with
+/// `cudaq_internal::compiler::CompiledModuleHelper`.
+class CompiledModule {
 public:
   // --- Compiled artifact types ---
 
@@ -128,10 +114,11 @@ public:
         : engine(engine), entryPoint(entryPoint), argsCreator(argsCreator),
           resourceCounts(std::move(resourceCounts)) {}
 
-    friend class CompiledKernel;
+    friend class CompiledModule;
+    friend class cudaq_internal::compiler::CompiledModuleHelper;
 
   public:
-    // TODO: remove the following two methods once the `CompiledKernel` instance
+    // TODO: remove the following two methods once the `CompiledModule` instance
     // is returned to Python.
 
     /// @brief Get the entry point of the kernel as a function pointer.
@@ -145,7 +132,7 @@ public:
     ///    arguments and result.
     ///  - otherwise, the entry point will not expect any arguments.
     ///
-    /// Prefer using `CompiledKernel::execute` instead of calling this function
+    /// Prefer using `CompiledModule::execute` instead of calling this function
     /// as it will handle the buffer and argument packing automatically.
     void (*getEntryPoint() const)();
     JitEngine getEngine() const;
@@ -164,22 +151,11 @@ public:
     [[maybe_unused]] const void *modulePtr = nullptr;
 #pragma GCC diagnostic pop
 
-    friend class CompiledKernel;
+    friend class CompiledModule;
   };
 
   /// A compiled artifact is either a JIT binary or an MLIR module.
   using CompiledArtifact = std::variant<JitArtifact, MlirArtifact>;
-
-  // --- Construction ---
-
-  CompiledKernel(std::string kernelName, ResultInfo resultInfo);
-
-  /// @brief Populate the JIT representation of a `CompiledKernel`.
-  ///
-  /// Resolves the entry point and (optionally) `argsCreator` symbols from the
-  /// engine, using the kernel's name and result metadata to determine the
-  /// correct mangled symbol names.
-  void attachJit(JitEngine engine, bool isFullySpecialized);
 
   // --- Queries ---
 
@@ -225,7 +201,11 @@ public:
   KernelThunkResultType execute(const std::vector<void *> &rawArgs) const;
 
 private:
-  /// Add a compiled artifact to the kernel.
+  friend class cudaq_internal::compiler::CompiledModuleHelper;
+
+  CompiledModule(std::string kernelName);
+
+  /// Add a compiled artifact to the module under the given name.
   void addArtifact(std::string name, CompiledArtifact artifact);
 
   std::string name;

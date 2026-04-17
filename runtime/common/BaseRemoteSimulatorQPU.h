@@ -143,7 +143,7 @@ public:
     return launchKernelImpl(name, nullptr, nullptr, 0, 0, &rawArgs, module);
   }
 
-  CompiledKernel specializeModule(const std::string &kernelName,
+  CompiledModule specializeModule(const std::string &kernelName,
                                   mlir::ModuleOp module,
                                   const std::vector<void *> &rawArgs,
                                   bool isEntryPoint) override {

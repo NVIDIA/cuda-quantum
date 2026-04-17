@@ -7,7 +7,7 @@
  ******************************************************************************/
 #pragma once
 
-#include "common/CompiledKernel.h"
+#include "common/CompiledModule.h"
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -27,8 +27,7 @@ class Type;
 } // namespace mlir
 
 namespace cudaq {
-class CompiledKernel;
-class ResultInfo;
+class CompiledModule;
 } // namespace cudaq
 
 namespace cudaq_internal::compiler {
@@ -45,12 +44,5 @@ createWrappedKernel(std::string_view llvmIr, const std::string &kernelName,
 /// Lower ModuleOp to QIR/LLVM IR and create a JIT execution engine.
 cudaq::JitEngine createJITEngine(mlir::ModuleOp &moduleOp,
                                  llvm::StringRef convertTo);
-
-/// @brief Create a `ResultInfo` from MLIR type and module.
-///
-/// When `resultType` is null or `isEntryPoint` is false, returns an empty
-/// `ResultInfo`.
-cudaq::ResultInfo createResultInfo(mlir::Type resultType, bool isEntryPoint,
-                                   mlir::ModuleOp module);
 
 } // namespace cudaq_internal::compiler

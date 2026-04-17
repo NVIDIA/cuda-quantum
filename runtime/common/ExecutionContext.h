@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "CompiledKernel.h"
+#include "CompiledModule.h"
 #include "Future.h"
 #include "NoiseModel.h"
 #include "SampleResult.h"
