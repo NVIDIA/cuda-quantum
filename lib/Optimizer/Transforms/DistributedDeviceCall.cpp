@@ -79,10 +79,9 @@ public:
         // Error code 2 is used to indicate illegal execution of unreachable
         // code.
         Value errorCodeTwo =
-            rewriter.create<arith::ConstantIntOp>(devcall.getLoc(), 2, 64);
-        rewriter.create<func::CallOp>(devcall.getLoc(), TypeRange{},
-                                      cudaq::opt::QISTrap,
-                                      ValueRange{errorCodeTwo});
+            arith::ConstantIntOp::create(rewriter, devcall.getLoc(), 2, 64);
+        func::CallOp::create(rewriter, devcall.getLoc(), TypeRange{},
+                             cudaq::opt::QISTrap, ValueRange{errorCodeTwo});
         // For return (after the trap), load from nullptr to create return value
         // of the same type as the device function, i.e., `return *(T*)nullptr;`
         // for return type `T`.
@@ -91,18 +90,18 @@ public:
         // function.
         SmallVector<Value> trapResults;
         for (Type resTy : devFunc.getFunctionType().getResults()) {
-          auto nullPtr = rewriter.create<arith::ConstantOp>(
-              devcall.getLoc(),
+          auto nullPtr = arith::ConstantOp::create(
+              rewriter, devcall.getLoc(),
               rewriter.getZeroAttr(rewriter.getIntegerType(64)));
           auto ptrTy = cudaq::cc::PointerType::get(resTy);
-          auto castedNullPtr = rewriter.create<cudaq::cc::CastOp>(
-              devcall.getLoc(), ptrTy, nullPtr);
-          auto loadedVal = rewriter.create<cudaq::cc::LoadOp>(devcall.getLoc(),
-                                                              castedNullPtr);
+          auto castedNullPtr = cudaq::cc::CastOp::create(
+              rewriter, devcall.getLoc(), ptrTy, nullPtr);
+          auto loadedVal = cudaq::cc::LoadOp::create(rewriter, devcall.getLoc(),
+                                                     castedNullPtr);
           trapResults.push_back(loadedVal);
         }
 
-        rewriter.create<func::ReturnOp>(devcall.getLoc(), trapResults);
+        func::ReturnOp::create(rewriter, devcall.getLoc(), trapResults);
       }
       // (2) Set this trap function as private and weak_odr linkage, to allow
       // multiple definitions across translation units without linker errors.
