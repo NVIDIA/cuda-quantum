@@ -203,7 +203,7 @@ echo "============================="
 
 # Note: piping the `find` results through `sort` guarantees repeatable ordering.
 tmpFile=$(mktemp)
-for ex in `find examples/ applications/ targets/ -name '*.cpp' -not -path 'examples/mpi/*' | sort`;
+for ex in `find examples/ applications/ targets/ -name '*.cpp' -not -path '*/mpi/*' | sort`;
 do
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
@@ -329,7 +329,7 @@ else
         echo "Skipping MPI C++ examples: found $gpu_count GPU(s), need at least 4."
     else
         echo "Running MPI C++ examples with $gpu_count GPUs."
-        for mpi_ex in $(find examples/mpi -name '*.cpp' | sort); do
+        for mpi_ex in $(find examples/cpp/mpi -name '*.cpp' | sort); do
             filename=$(basename -- "$mpi_ex")
             filename="${filename%.*}"
             let "samples+=1"
@@ -422,7 +422,7 @@ dynamics_backend_skipped_examples=(\
 # files are used by the Divisive_clustering.ipynb notebook, so they are tested
 # elsewhere and should be excluded from this test.
 # Note: piping the `find` results through `sort` guarantees repeatable ordering.
-for ex in `find examples/ targets/ -name '*.py' -not -path 'examples/mpi/*' | sort`;
+for ex in `find examples/ targets/ -name '*.py' -not -path '*/mpi/*' | sort`;
 do 
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
@@ -488,7 +488,7 @@ else
         if python3 -c "import mpi4py" 2>/dev/null; then
             has_mpi4py=true
         fi
-        for mpi_ex in $(find examples/mpi -name '*.py' | sort); do
+        for mpi_ex in $(find examples/python/mpi -name '*.py' | sort); do
             filename=$(basename -- "$mpi_ex")
             filename="${filename%.*}"
             let "samples+=1"
