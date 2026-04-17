@@ -14421,7 +14421,7 @@ See [[Shot Allocation Strategies]{.std
 
     Stores gate, noise channel, or measurement info with plain qubit
     indices. This is the user-facing trace type exposed to Python via
-    pybind11.
+    nanobind.
 
     ::: {.breathe-sectiondef .docutils .container}
     Public Functions
