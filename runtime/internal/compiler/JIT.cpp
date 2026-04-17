@@ -260,9 +260,10 @@ cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
   llvm::cl::ParseCommandLineOptions(2, argv);
 
   ExecutionEngineOptions opts;
-  opts.transformer = [](llvm::Module *m) { return llvm::ErrorSuccess(); };
+  auto transformerTemp = [](llvm::Module *m) { return llvm::ErrorSuccess(); };
+  opts.transformer = std::move(transformerTemp);
   opts.jitCodeGenOptLevel = llvm::CodeGenOptLevel::None;
-  opts.llvmModuleBuilder =
+  auto llvmModuleBuilderTemp =
       [convertTo = convertTo.str()](
           Operation *module,
           llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
@@ -347,6 +348,7 @@ cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
     }
     return llvmModule;
   };
+  opts.llvmModuleBuilder = std::move(llvmModuleBuilderTemp);
 
   auto jitOrError = ExecutionEngine::create(moduleOp, opts);
   assert(!!jitOrError && "ExecutionEngine creation failed.");

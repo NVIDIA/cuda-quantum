@@ -27,9 +27,9 @@ using namespace cudaq_internal::compiler;
 
 template <typename A>
 Value genIntegerConstant(OpBuilder &builder, A v, unsigned bits) {
-  return builder.create<arith::ConstantIntOp>(builder.getUnknownLoc(),
-                                              builder.getIntegerType(bits),
-                                              static_cast<int64_t>(v));
+  return arith::ConstantIntOp::create(builder, builder.getUnknownLoc(),
+                                      builder.getIntegerType(bits),
+                                      static_cast<int64_t>(v));
 }
 
 static Value genConstant(OpBuilder &builder, bool v) {
@@ -49,12 +49,12 @@ static Value genConstant(OpBuilder &builder, std::int64_t v) {
 }
 
 static Value genConstant(OpBuilder &builder, float v) {
-  return builder.create<arith::ConstantFloatOp>(
-      builder.getUnknownLoc(), builder.getF32Type(), APFloat{v});
+  return arith::ConstantFloatOp::create(builder, builder.getUnknownLoc(),
+                                        builder.getF32Type(), APFloat{v});
 }
 static Value genConstant(OpBuilder &builder, double v) {
-  return builder.create<arith::ConstantFloatOp>(
-      builder.getUnknownLoc(), builder.getF64Type(), APFloat{v});
+  return arith::ConstantFloatOp::create(builder, builder.getUnknownLoc(),
+                                        builder.getF64Type(), APFloat{v});
 }
 
 template <typename A>
@@ -65,7 +65,7 @@ Value genComplexConstant(OpBuilder &builder, const std::complex<A> &v,
   auto complexAttr = builder.getArrayAttr({rePart, imPart});
   auto loc = builder.getUnknownLoc();
   auto ty = ComplexType::get(fTy);
-  return builder.create<complex::ConstantOp>(loc, ty, complexAttr).getResult();
+  return complex::ConstantOp::create(builder, loc, ty, complexAttr).getResult();
 }
 
 static Value genConstant(OpBuilder &builder, std::complex<float> v) {
@@ -75,8 +75,8 @@ static Value genConstant(OpBuilder &builder, std::complex<double> v) {
   return genComplexConstant(builder, v, builder.getF64Type());
 }
 static Value genConstant(OpBuilder &builder, FloatType fltTy, long double *v) {
-  return builder.create<arith::ConstantFloatOp>(
-      builder.getUnknownLoc(), fltTy,
+  return arith::ConstantFloatOp::create(
+      builder, builder.getUnknownLoc(), fltTy,
       APFloat{fltTy.getFloatSemantics(), std::to_string(*v)});
 }
 
@@ -88,12 +88,12 @@ static Value genConstant(OpBuilder &builder, const std::string &v,
   auto strLitTy = cudaq::cc::PointerType::get(
       cudaq::cc::ArrayType::get(ctx, i8Ty, v.size() + 1));
   auto strLit =
-      builder.create<cudaq::cc::CreateStringLiteralOp>(loc, strLitTy, v);
+      cudaq::cc::CreateStringLiteralOp::create(builder, loc, strLitTy, v);
   auto i8PtrTy = cudaq::cc::PointerType::get(i8Ty);
-  auto cast = builder.create<cudaq::cc::CastOp>(loc, i8PtrTy, strLit);
-  auto size = builder.create<arith::ConstantIntOp>(loc, v.size(), 64);
+  auto cast = cudaq::cc::CastOp::create(builder, loc, i8PtrTy, strLit);
+  auto size = arith::ConstantIntOp::create(builder, loc, v.size(), 64);
   auto chSpanTy = cudaq::cc::CharspanType::get(ctx);
-  return builder.create<cudaq::cc::StdvecInitOp>(loc, chSpanTy, cast, size);
+  return cudaq::cc::StdvecInitOp::create(builder, loc, chSpanTy, cast, size);
 }
 
 // Forward declare aggregate type builder as they can be recursive.
@@ -150,8 +150,8 @@ static Value genConstant(OpBuilder &, cudaq::cc::CallableType, void *, ModuleOp,
 
   auto *entryBlock = &initFunc.getRegion().front();
   newBuilder.setInsertionPointToStart(entryBlock);
-  Value zero = newBuilder.create<arith::ConstantIntOp>(loc, 0, 64);
-  Value one = newBuilder.create<arith::ConstantIntOp>(loc, 1, 64);
+  Value zero = arith::ConstantIntOp::create(newBuilder, loc, 0, 64);
+  Value one = arith::ConstantIntOp::create(newBuilder, loc, 1, 64);
   Value begin = zero;
 
   auto argPos = initFunc.getArguments().size();
@@ -195,18 +195,18 @@ static Value genConstant(OpBuilder &, cudaq::cc::CallableType, void *, ModuleOp,
 
         Value allocSize = alloc.getSize();
         if (!allocSize)
-          allocSize = newBuilder.create<arith::ConstantIntOp>(
-              loc, newBuilder.getI64Type(),
+          allocSize = arith::ConstantIntOp::create(
+              newBuilder, loc, newBuilder.getI64Type(),
               quake::getAllocationSize(alloc.getType()));
 
-        auto offset = newBuilder.create<arith::SubIOp>(loc, allocSize, one);
+        auto offset = arith::SubIOp::create(newBuilder, loc, allocSize, one);
         subArg =
-            newBuilder.create<quake::SubVeqOp>(loc, retTy, arg, begin, offset);
+            quake::SubVeqOp::create(newBuilder, loc, retTy, arg, begin, offset);
         alloc.replaceAllUsesWith(subArg);
         cleanUps.push_back(alloc);
-        begin = newBuilder.create<arith::AddIOp>(loc, begin, allocSize);
+        begin = arith::AddIOp::create(newBuilder, loc, begin, allocSize);
         blockAllocSize =
-            newBuilder.create<arith::AddIOp>(loc, blockAllocSize, allocSize);
+            arith::AddIOp::create(newBuilder, loc, blockAllocSize, allocSize);
       }
 
       if (auto retOp = dyn_cast<func::ReturnOp>(&op)) {
@@ -214,12 +214,12 @@ static Value genConstant(OpBuilder &, cudaq::cc::CallableType, void *, ModuleOp,
           newBuilder.setInsertionPointAfter(retOp);
 
           auto offset =
-              newBuilder.create<arith::SubIOp>(loc, blockAllocSize, one);
-          Value ret = newBuilder.create<quake::SubVeqOp>(loc, retTy, arg,
-                                                         blockBegin, offset);
+              arith::SubIOp::create(newBuilder, loc, blockAllocSize, one);
+          Value ret = quake::SubVeqOp::create(newBuilder, loc, retTy, arg,
+                                              blockBegin, offset);
 
           assert(arg && "No veq allocations found");
-          replacedReturn = newBuilder.create<func::ReturnOp>(loc, ret);
+          replacedReturn = func::ReturnOp::create(newBuilder, loc, ret);
           cleanUps.push_back(retOp);
         }
       }
@@ -275,8 +275,8 @@ createNumQubitsFunc(OpBuilder &builder, ModuleOp moduleOp,
 
   auto *entryBlock = &numQubitsFunc.getRegion().front();
   newBuilder.setInsertionPointToStart(entryBlock);
-  Value size = newBuilder.create<arith::ConstantIntOp>(loc, retType,
-                                                       static_cast<int64_t>(0));
+  Value size = arith::ConstantIntOp::create(newBuilder, loc, retType,
+                                            static_cast<int64_t>(0));
 
   // Process block recursively to calculate and return allocation size
   // and remove everything else.
@@ -289,11 +289,11 @@ createNumQubitsFunc(OpBuilder &builder, ModuleOp moduleOp,
       if (auto alloc = dyn_cast<quake::AllocaOp>(&op)) {
         Value allocSize = alloc.getSize();
         if (!allocSize)
-          allocSize = newBuilder.create<arith::ConstantIntOp>(
-              loc, newBuilder.getI64Type(),
+          allocSize = arith::ConstantIntOp::create(
+              newBuilder, loc, newBuilder.getI64Type(),
               quake::getAllocationSize(alloc.getType()));
         newBuilder.setInsertionPointAfter(alloc);
-        size = newBuilder.create<arith::AddIOp>(loc, size, allocSize);
+        size = arith::AddIOp::create(newBuilder, loc, size, allocSize);
       }
 
       // Return allocation size
@@ -301,7 +301,7 @@ createNumQubitsFunc(OpBuilder &builder, ModuleOp moduleOp,
         if (retOp != replacedReturn) {
 
           newBuilder.setInsertionPointAfter(retOp);
-          auto newRet = newBuilder.create<func::ReturnOp>(loc, size);
+          auto newRet = func::ReturnOp::create(newBuilder, loc, size);
           replacedReturn = newRet;
           used.push_back(newRet);
         }
@@ -365,7 +365,7 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
     // Cast int value to state ptr
     auto statePtrTy = cudaq::cc::PointerType::get(quake::StateType::get(ctx));
     Value statePtrVal =
-        builder.create<cudaq::cc::CastOp>(loc, statePtrTy, ptrInt);
+        cudaq::cc::CastOp::create(builder, loc, statePtrTy, ptrInt);
     return statePtrVal;
   }
 
@@ -504,8 +504,8 @@ static Value genConstant(OpBuilder &builder, const cudaq::state *v,
 
     // Create a substitution for the state pointer.
     auto statePtrTy = cudaq::cc::PointerType::get(quake::StateType::get(ctx));
-    return builder.create<quake::MaterializeStateOp>(
-        loc, statePtrTy, builder.getStringAttr(numQubitsKernelName),
+    return quake::MaterializeStateOp::create(
+        builder, loc, statePtrTy, builder.getStringAttr(numQubitsKernelName),
         builder.getStringAttr(initKernelName));
   }
 
@@ -691,15 +691,15 @@ Value genRecursiveSpan(OpBuilder &builder, cudaq::cc::StdvecType ty, void *p,
   auto loc = builder.getUnknownLoc();
   if (!constants) {
     // Empty vector. Not much to contemplate here.
-    auto zero = builder.create<arith::ConstantIntOp>(loc, 0, 64);
-    auto ptr = builder.create<cudaq::cc::CastOp>(
-        loc, cudaq::cc::PointerType::get(ty.getElementType()), zero);
-    return builder.create<cudaq::cc::StdvecInitOp>(loc, ty, ptr, zero);
+    auto zero = arith::ConstantIntOp::create(builder, loc, 0, 64);
+    auto ptr = cudaq::cc::CastOp::create(
+        builder, loc, cudaq::cc::PointerType::get(ty.getElementType()), zero);
+    return cudaq::cc::StdvecInitOp::create(builder, loc, ty, ptr, zero);
   }
   auto arrTy = convertRecursiveSpanType(ty);
   auto conArr =
-      builder.create<cudaq::cc::ConstantArrayOp>(loc, arrTy, constants);
-  return builder.create<cudaq::cc::ReifySpanOp>(loc, ty, conArr);
+      cudaq::cc::ConstantArrayOp::create(builder, loc, arrTy, constants);
+  return cudaq::cc::ReifySpanOp::create(builder, loc, ty, conArr);
 }
 
 Value genConstant(OpBuilder &builder, cudaq::cc::StdvecType vecTy, void *p,
@@ -720,20 +720,21 @@ Value genConstant(OpBuilder &builder, cudaq::cc::StdvecType vecTy, void *p,
   std::int32_t vecSize = delta / eleSize;
   auto eleArrTy =
       cudaq::cc::ArrayType::get(builder.getContext(), eleTy, vecSize);
-  auto buffer = builder.create<cudaq::cc::AllocaOp>(loc, eleArrTy);
+  auto buffer = cudaq::cc::AllocaOp::create(builder, loc, eleArrTy);
   const char *cursor = (*vecPtr)[0];
   for (std::int32_t i = 0; i < vecSize; ++i) {
     if (Value val = dispatchSubtype(
             builder, eleTy, static_cast<void *>(const_cast<char *>(cursor)),
             substMod, layout)) {
-      auto atLoc = builder.create<cudaq::cc::ComputePtrOp>(
-          loc, elePtrTy, buffer, ArrayRef<cudaq::cc::ComputePtrArg>{i});
-      builder.create<cudaq::cc::StoreOp>(loc, val, atLoc);
+      auto atLoc = cudaq::cc::ComputePtrOp::create(
+          builder, loc, elePtrTy, buffer,
+          ArrayRef<cudaq::cc::ComputePtrArg>{i});
+      cudaq::cc::StoreOp::create(builder, loc, val, atLoc);
     }
     cursor += eleSize;
   }
-  auto size = builder.create<arith::ConstantIntOp>(loc, vecSize, 64);
-  return builder.create<cudaq::cc::StdvecInitOp>(loc, vecTy, buffer, size);
+  auto size = arith::ConstantIntOp::create(builder, loc, vecSize, 64);
+  return cudaq::cc::StdvecInitOp::create(builder, loc, vecTy, buffer, size);
 }
 
 Value genConstant(OpBuilder &builder, cudaq::cc::StructType strTy, void *p,
@@ -742,7 +743,7 @@ Value genConstant(OpBuilder &builder, cudaq::cc::StructType strTy, void *p,
     return {};
   const char *cursor = static_cast<const char *>(p);
   auto loc = builder.getUnknownLoc();
-  Value aggie = builder.create<cudaq::cc::UndefOp>(loc, strTy);
+  Value aggie = cudaq::cc::UndefOp::create(builder, loc, strTy);
   for (auto iter : llvm::enumerate(strTy.getMembers())) {
     auto i = iter.index();
     if (Value v = dispatchSubtype(
@@ -750,7 +751,8 @@ Value genConstant(OpBuilder &builder, cudaq::cc::StructType strTy, void *p,
             static_cast<void *>(const_cast<char *>(
                 cursor + cudaq::opt::getDataOffset(layout, strTy, i))),
             substMod, layout))
-      aggie = builder.create<cudaq::cc::InsertValueOp>(loc, strTy, aggie, v, i);
+      aggie =
+          cudaq::cc::InsertValueOp::create(builder, loc, strTy, aggie, v, i);
   }
   return aggie;
 }
@@ -775,8 +777,8 @@ Value genConstant(OpBuilder &builder, cudaq::cc::CallableType callTy, void *p,
   unsigned liftedPos =
       hasLiftedArgs ? *closure->getStartLiftedPos() : inpTys.size();
   assert(liftedPos == inpTys.size() && "formal arity must be equal");
-  Value lamb = builder.create<cudaq::cc::CreateLambdaOp>(
-      loc, callTy, [&](OpBuilder &builder, Location loc) {
+  Value lamb = cudaq::cc::CreateLambdaOp::create(
+      builder, loc, callTy, [&](OpBuilder &builder, Location loc) {
         Block *entryBlock = builder.getInsertionBlock();
         SmallVector<Value> args{entryBlock->getArguments().begin(),
                                 entryBlock->getArguments().end()};
@@ -788,14 +790,14 @@ Value genConstant(OpBuilder &builder, cudaq::cc::CallableType callTy, void *p,
             args.push_back(v);
           }
         }
-        auto result = builder.create<func::CallOp>(loc, resTy, longName, args);
-        builder.create<cudaq::cc::ReturnOp>(loc, result.getResults());
+        auto result = func::CallOp::create(builder, loc, resTy, longName, args);
+        cudaq::cc::ReturnOp::create(builder, loc, result.getResults());
       });
   auto decl = substMod.lookupSymbol<func::FuncOp>(longName);
   if (!decl) {
     OpBuilder::InsertionGuard guard(builder);
     builder.setInsertionPointToEnd(substMod.getBody());
-    auto fd = builder.create<func::FuncOp>(loc, longName, calleeTy);
+    auto fd = func::FuncOp::create(builder, loc, longName, calleeTy);
     fd.setPrivate();
   }
   return lamb;
@@ -808,14 +810,15 @@ Value genConstant(OpBuilder &builder, cudaq::cc::ArrayType arrTy, void *p,
   auto eleTy = arrTy.getElementType();
   auto loc = builder.getUnknownLoc();
   auto eleSize = cudaq::opt::getDataSize(layout, eleTy);
-  Value aggie = builder.create<cudaq::cc::UndefOp>(loc, arrTy);
+  Value aggie = cudaq::cc::UndefOp::create(builder, loc, arrTy);
   std::size_t arrSize = arrTy.getSize();
   const char *cursor = static_cast<const char *>(p);
   for (std::size_t i = 0; i < arrSize; ++i) {
     if (Value v = dispatchSubtype(
             builder, eleTy, static_cast<void *>(const_cast<char *>(cursor)),
             substMod, layout))
-      aggie = builder.create<cudaq::cc::InsertValueOp>(loc, arrTy, aggie, v, i);
+      aggie =
+          cudaq::cc::InsertValueOp::create(builder, loc, arrTy, aggie, v, i);
     cursor += eleSize;
   }
   return aggie;
@@ -840,10 +843,10 @@ Value genConstant(OpBuilder &builder, cudaq::cc::IndirectCallableType indCallTy,
     cast<SymbolOpInterface>(clone).setPrivate();
   }
   auto loc = builder.getUnknownLoc();
-  auto func = builder.create<func::ConstantOp>(
-      loc, indCallTy.getSignature(),
+  auto func = func::ConstantOp::create(
+      builder, loc, indCallTy.getSignature(),
       std::string{cudaq::runtime::cudaqGenPrefixName} + name);
-  return builder.create<cudaq::cc::CastOp>(loc, indCallTy, func);
+  return cudaq::cc::CastOp::create(builder, loc, indCallTy, func);
 }
 
 //===----------------------------------------------------------------------===//
@@ -861,7 +864,7 @@ void ArgumentConverter::gen(StringRef kernelName, ModuleOp sourceModule,
   auto *ctx = sourceModule.getContext();
   OpBuilder builder(ctx);
   ModuleOp substModule =
-      builder.create<mlir::ModuleOp>(builder.getUnknownLoc());
+      mlir::ModuleOp::create(builder, builder.getUnknownLoc());
   auto *kernelInfo = addKernelInfo(kernelName, substModule);
 
   // Find the kernel in the module.
@@ -883,7 +886,7 @@ void ArgumentConverter::gen(StringRef kernelName, ModuleOp sourceModule,
     auto buildSubst = [&, i = i]<typename... Ts>(Ts &&...ts) {
       builder.setInsertionPointToEnd(substModule.getBody());
       auto loc = builder.getUnknownLoc();
-      auto result = builder.create<cudaq::cc::ArgumentSubstitutionOp>(loc, i);
+      auto result = cudaq::cc::ArgumentSubstitutionOp::create(builder, loc, i);
       auto *block = new Block();
       result.getBody().push_back(block);
       builder.setInsertionPointToEnd(block);
