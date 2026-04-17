@@ -49,7 +49,7 @@ static void specializeKernel(const std::string &name, ModuleOp module,
                              bool isEntryPoint = true,
                              bool isFullySpecialized = true) {
   PassManager pm(module.getContext());
-  cudaq_internal::compiler::ArgumentConverter argCon(name, module);
+  ArgumentConverter argCon(name, module);
   // Look up the kernel's type signature.
   argCon.gen(name, module, rawArgs);
   SmallVector<std::string> kernels;
@@ -334,11 +334,9 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     std::vector<void *> closureArgs;
 
     // Special handling in case the arguments were already synthesized
-    // TODO: should ensure args have no uses if this is the case?
     size_t numArgs = rawArgs.size() - (hasResult ? 1 : 0);
     if (isEntryPoint && isLocalSimulator &&
         numArgs == fromFuncTy.getNumInputs()) {
-      // TODO: is copying even necessary here? Or can we just overwrite?
       closureArgs = rawArgs;
       for (auto [i, ty] : llvm::enumerate(fromFuncTy.getInputs())) {
         if (!isa<cudaq::cc::CallableType>(ty)) {
