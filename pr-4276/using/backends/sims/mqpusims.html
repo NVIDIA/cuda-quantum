@@ -1461,7 +1461,7 @@ simulation).</p>
 <span class="n">world_rank</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">rank</span><span class="p">()</span>
 <span class="n">world_size</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">num_ranks</span><span class="p">()</span>
 
-<span class="c1"># Each QPU is backed by ranks_per_qpu MPI ranks / GPUs.</span>
+<span class="c1"># Each QPU is backed by `ranks_per_qpu` MPI ranks / GPUs.</span>
 <span class="n">ranks_per_qpu</span> <span class="o">=</span> <span class="mi">2</span>
 <span class="k">if</span> <span class="n">world_size</span> <span class="o">%</span> <span class="n">ranks_per_qpu</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">world_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -1470,7 +1470,7 @@ simulation).</p>
     <span class="k">raise</span> <span class="ne">SystemExit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
 <span class="c1"># Assign each rank to a QPU group and split the communicator accordingly.</span>
-<span class="c1">#</span>
+<span class="c1"># ```</span>
 <span class="c1">#  MPI_COMM_WORLD</span>
 <span class="c1">#  +----------+----------+----------+----------+</span>
 <span class="c1">#  |  rank 0  |  rank 1  |  rank 2  |  rank 3  |</span>
@@ -1478,7 +1478,7 @@ simulation).</p>
 <span class="c1">#  |        QPU 0        |        QPU 1        |</span>
 <span class="c1">#  |    (qpu_id = 0)     |    (qpu_id = 1)     |</span>
 <span class="c1">#  +---------------------+---------------------+</span>
-<span class="c1">#</span>
+<span class="c1"># ```</span>
 <span class="n">qpu_id</span> <span class="o">=</span> <span class="n">world_rank</span> <span class="o">//</span> <span class="n">ranks_per_qpu</span>
 <span class="n">qpu_comm</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">split_communicator</span><span class="p">(</span><span class="n">qpu_id</span><span class="p">)</span>
 
@@ -1486,7 +1486,7 @@ simulation).</p>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;tensornet&quot;</span><span class="p">,</span> <span class="n">comm_handle</span><span class="o">=</span><span class="n">qpu_comm</span><span class="p">)</span>
 
 <span class="c1"># Run an independent circuit on each QPU group.</span>
-<span class="c1"># The tensornet backend can handle a large number of qubits via multi-GPU</span>
+<span class="c1"># The `tensornet` backend can handle a large number of qubits via multi-GPU</span>
 <span class="c1"># tensor network contraction, well beyond what state vector simulators support.</span>
 <span class="n">num_qubits</span> <span class="o">=</span> <span class="mi">40</span> <span class="o">+</span> <span class="mi">5</span> <span class="o">*</span> <span class="n">qpu_id</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">ghz</span><span class="p">,</span> <span class="n">num_qubits</span><span class="p">)</span>
@@ -1522,7 +1522,7 @@ simulation).</p>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">world_rank</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">mpi</span><span class="o">::</span><span class="n">rank</span><span class="p">();</span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">world_size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">mpi</span><span class="o">::</span><span class="n">num_ranks</span><span class="p">();</span>
 
-<span class="w">  </span><span class="c1">// Each QPU is backed by ranks_per_qpu MPI ranks / GPUs.</span>
+<span class="w">  </span><span class="c1">// Each `QPU` is backed by `ranks_per_qpu` MPI ranks / GPUs.</span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
 <span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">world_size</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">world_rank</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
@@ -1531,8 +1531,8 @@ simulation).</p>
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
 <span class="w">  </span><span class="p">}</span>
 
-<span class="w">  </span><span class="c1">// Assign each rank to a QPU group and split the communicator accordingly.</span>
-<span class="w">  </span><span class="c1">//</span>
+<span class="w">  </span><span class="c1">// Assign each rank to a `QPU` group and split the communicator accordingly.</span>
+<span class="w">  </span><span class="c1">// ```</span>
 <span class="w">  </span><span class="c1">//  MPI_COMM_WORLD</span>
 <span class="w">  </span><span class="c1">//  +----------+----------+----------+----------+</span>
 <span class="w">  </span><span class="c1">//  |  rank 0  |  rank 1  |  rank 2  |  rank 3  |</span>
@@ -1540,15 +1540,15 @@ simulation).</p>
 <span class="w">  </span><span class="c1">//  |        QPU 0        |        QPU 1        |</span>
 <span class="w">  </span><span class="c1">//  |    (qpu_id = 0)     |    (qpu_id = 1)     |</span>
 <span class="w">  </span><span class="c1">//  +---------------------+---------------------+</span>
-<span class="w">  </span><span class="c1">//</span>
+<span class="w">  </span><span class="c1">// ```</span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">qpu_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">world_rank</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="p">;</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">qpu_comm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">mpi</span><span class="o">::</span><span class="n">split_communicator</span><span class="p">(</span><span class="n">qpu_id</span><span class="p">);</span>
 
-<span class="w">  </span><span class="c1">// Inform CUDA-Q which sub-communicator this QPU group should use.</span>
+<span class="w">  </span><span class="c1">// Inform CUDA-Q which sub-communicator this `QPU` group should use.</span>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">mpi</span><span class="o">::</span><span class="n">set_communicator</span><span class="p">(</span><span class="n">qpu_comm</span><span class="p">);</span>
 
-<span class="w">  </span><span class="c1">// Run an independent circuit on each QPU group.</span>
-<span class="w">  </span><span class="c1">// The tensornet backend can handle a large number of qubits via multi-GPU</span>
+<span class="w">  </span><span class="c1">// Run an independent circuit on each `QPU` group.</span>
+<span class="w">  </span><span class="c1">// The `tensornet` backend can handle a large number of qubits via multi-GPU</span>
 <span class="w">  </span><span class="c1">// tensor network contraction, well beyond what state vector simulators</span>
 <span class="w">  </span><span class="c1">// support.</span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">num_qubits</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">40</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">5</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">qpu_id</span><span class="p">;</span>
@@ -1607,7 +1607,7 @@ of <code class="code docutils literal notranslate"><span class="pre">cudaq.set_t
 <span class="n">world_rank</span> <span class="o">=</span> <span class="n">world_comm</span><span class="o">.</span><span class="n">Get_rank</span><span class="p">()</span>
 <span class="n">world_size</span> <span class="o">=</span> <span class="n">world_comm</span><span class="o">.</span><span class="n">Get_size</span><span class="p">()</span>
 
-<span class="c1"># Each QPU is backed by ranks_per_qpu MPI ranks / GPUs.</span>
+<span class="c1"># Each QPU is backed by `ranks_per_qpu` MPI ranks / GPUs.</span>
 <span class="n">ranks_per_qpu</span> <span class="o">=</span> <span class="mi">2</span>
 <span class="k">if</span> <span class="n">world_size</span> <span class="o">%</span> <span class="n">ranks_per_qpu</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">world_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -1616,7 +1616,7 @@ of <code class="code docutils literal notranslate"><span class="pre">cudaq.set_t
     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
 <span class="c1"># Assign each rank to a QPU group and split the communicator accordingly.</span>
-<span class="c1">#</span>
+<span class="c1"># ```</span>
 <span class="c1">#  MPI_COMM_WORLD</span>
 <span class="c1">#  +----------+----------+----------+----------+</span>
 <span class="c1">#  |  rank 0  |  rank 1  |  rank 2  |  rank 3  |</span>
@@ -1624,7 +1624,7 @@ of <code class="code docutils literal notranslate"><span class="pre">cudaq.set_t
 <span class="c1">#  |        QPU 0        |        QPU 1        |</span>
 <span class="c1">#  |    (qpu_id = 0)     |    (qpu_id = 1)     |</span>
 <span class="c1">#  +---------------------+---------------------+</span>
-<span class="c1">#</span>
+<span class="c1"># ```</span>
 <span class="n">qpu_id</span> <span class="o">=</span> <span class="n">world_rank</span> <span class="o">//</span> <span class="n">ranks_per_qpu</span>
 <span class="n">qpu_comm</span> <span class="o">=</span> <span class="n">world_comm</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">qpu_id</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">world_rank</span><span class="p">)</span>
 
@@ -1632,7 +1632,7 @@ of <code class="code docutils literal notranslate"><span class="pre">cudaq.set_t
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;tensornet&quot;</span><span class="p">,</span> <span class="n">comm_handle</span><span class="o">=</span><span class="n">mpi_comm_handle</span><span class="p">(</span><span class="n">qpu_comm</span><span class="p">))</span>
 
 <span class="c1"># Run an independent circuit on each QPU group.</span>
-<span class="c1"># The tensornet backend can handle a large number of qubits via multi-GPU</span>
+<span class="c1"># The `tensornet` backend can handle a large number of qubits via multi-GPU</span>
 <span class="c1"># tensor network contraction, well beyond what state vector simulators support.</span>
 <span class="n">num_qubits</span> <span class="o">=</span> <span class="mi">40</span> <span class="o">+</span> <span class="mi">5</span> <span class="o">*</span> <span class="n">qpu_id</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">ghz</span><span class="p">,</span> <span class="n">num_qubits</span><span class="p">)</span>
@@ -1669,7 +1669,7 @@ of <code class="code docutils literal notranslate"><span class="pre">cudaq.set_t
 <span class="w">  </span><span class="n">MPI_Comm_rank</span><span class="p">(</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">world_rank</span><span class="p">);</span>
 <span class="w">  </span><span class="n">MPI_Comm_size</span><span class="p">(</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">world_size</span><span class="p">);</span>
 
-<span class="w">  </span><span class="c1">// Each QPU is backed by ranks_per_qpu MPI ranks / GPUs.</span>
+<span class="w">  </span><span class="c1">// Each `QPU` is backed by `ranks_per_qpu` MPI ranks / GPUs.</span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
 <span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">world_size</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">world_rank</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span>
@@ -1678,8 +1678,8 @@ of <code class="code docutils literal notranslate"><span class="pre">cudaq.set_t
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
 <span class="w">  </span><span class="p">}</span>
 
-<span class="w">  </span><span class="c1">// Assign each rank to a QPU group and split the communicator accordingly.</span>
-<span class="w">  </span><span class="c1">//</span>
+<span class="w">  </span><span class="c1">// Assign each rank to a `QPU` group and split the communicator accordingly.</span>
+<span class="w">  </span><span class="c1">// ```</span>
 <span class="w">  </span><span class="c1">//  MPI_COMM_WORLD</span>
 <span class="w">  </span><span class="c1">//  +----------+----------+----------+----------+</span>
 <span class="w">  </span><span class="c1">//  |  rank 0  |  rank 1  |  rank 2  |  rank 3  |</span>
@@ -1687,16 +1687,16 @@ of <code class="code docutils literal notranslate"><span class="pre">cudaq.set_t
 <span class="w">  </span><span class="c1">//  |        QPU 0        |        QPU 1        |</span>
 <span class="w">  </span><span class="c1">//  |    (qpu_id = 0)     |    (qpu_id = 1)     |</span>
 <span class="w">  </span><span class="c1">//  +---------------------+---------------------+</span>
-<span class="w">  </span><span class="c1">//</span>
+<span class="w">  </span><span class="c1">// ```</span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">qpu_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">world_rank</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="p">;</span>
 <span class="w">  </span><span class="n">MPI_Comm</span><span class="w"> </span><span class="n">qpu_comm</span><span class="p">;</span>
 <span class="w">  </span><span class="n">MPI_Comm_split</span><span class="p">(</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="w"> </span><span class="n">qpu_id</span><span class="p">,</span><span class="w"> </span><span class="n">world_rank</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">qpu_comm</span><span class="p">);</span>
 
-<span class="w">  </span><span class="c1">// Inform CUDA-Q which sub-communicator this QPU group should use.</span>
+<span class="w">  </span><span class="c1">// Inform CUDA-Q which sub-communicator this `QPU` group should use.</span>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">mpi</span><span class="o">::</span><span class="n">set_communicator</span><span class="p">(</span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="kt">void</span><span class="w"> </span><span class="o">*&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="n">qpu_comm</span><span class="p">));</span>
 
-<span class="w">  </span><span class="c1">// Run an independent circuit on each QPU group.</span>
-<span class="w">  </span><span class="c1">// The tensornet backend can handle a large number of qubits via multi-GPU</span>
+<span class="w">  </span><span class="c1">// Run an independent circuit on each `QPU` group.</span>
+<span class="w">  </span><span class="c1">// The `tensornet` backend can handle a large number of qubits via multi-GPU</span>
 <span class="w">  </span><span class="c1">// tensor network contraction, well beyond what state vector simulators</span>
 <span class="w">  </span><span class="c1">// support.</span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">num_qubits</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">40</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">5</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">qpu_id</span><span class="p">;</span>
@@ -1768,7 +1768,7 @@ not by the number of GPUs on a single node.</p></li>
 <p>The examples below use a 40-qubit placeholder ansatz and Hamiltonian to
 illustrate the distribution pattern. To use this in a real VQE workflow,
 substitute your application-specific ansatz and physical Hamiltonian (e.g.
-generated from a chemistry package such as PySCF), wrap the gradient evaluation
+generated from a chemistry package such as <code class="docutils literal notranslate"><span class="pre">PySCF</span></code>), wrap the gradient evaluation
 in an optimization loop (e.g. using <code class="code docutils literal notranslate"><span class="pre">cudaq.optimizers</span></code>), and feed the
 gathered gradient back to the optimizer at each iteration.</p>
 <div class="tab-set docutils">
@@ -1811,8 +1811,8 @@ gathered gradient back to the optimizer at each iteration.</p>
 <span class="c1"># QPU group g computes the gradient for parameter theta_g.</span>
 <span class="c1">#</span>
 <span class="c1"># This example uses 2 parameters and 2 QPU groups. To scale to N parameters,</span>
-<span class="c1"># launch with N * ranks_per_qpu total MPI ranks and provide N initial params.</span>
-<span class="c1"># Each additional QPU group adds ranks_per_qpu ranks and handles one more</span>
+<span class="c1"># launch with N * `ranks_per_qpu` total MPI ranks and provide N initial `params`.</span>
+<span class="c1"># Each additional QPU group adds `ranks_per_qpu` ranks and handles one more</span>
 <span class="c1"># gradient component in parallel — no other code changes required.</span>
 <span class="c1">#</span>
 <span class="c1">#  MPI_COMM_WORLD</span>
@@ -1826,7 +1826,7 @@ gathered gradient back to the optimizer at each iteration.</p>
 <span class="n">qpu_id</span> <span class="o">=</span> <span class="n">world_rank</span> <span class="o">//</span> <span class="n">ranks_per_qpu</span>
 <span class="n">qpu_comm</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">split_communicator</span><span class="p">(</span><span class="n">qpu_id</span><span class="p">)</span>
 
-<span class="c1"># Each QPU group uses ranks_per_qpu GPUs for every cudaq.observe() call.</span>
+<span class="c1"># Each QPU group uses `ranks_per_qpu` GPUs for every cudaq.observe() call.</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;tensornet&quot;</span><span class="p">,</span> <span class="n">comm_handle</span><span class="o">=</span><span class="n">qpu_comm</span><span class="p">)</span>
 
 <span class="c1"># Dummy Hamiltonian (sum of Z on all qubits) for demonstration:</span>
@@ -1839,11 +1839,11 @@ gathered gradient back to the optimizer at each iteration.</p>
 <span class="n">shift</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">2.0</span>
 
 <span class="c1"># Each QPU group applies +/-shift to its assigned parameter and runs two</span>
-<span class="c1"># observe() calls. Both calls use all ranks_per_qpu GPUs via the</span>
+<span class="c1"># observe() calls. Both calls use all `ranks_per_qpu` GPUs via the</span>
 <span class="c1"># sub-communicator, enabling multi-GPU tensor-network contraction.</span>
 <span class="c1">#</span>
 <span class="c1"># In a VQE optimization loop, this block executes every iteration:</span>
-<span class="c1"># the optimizer supplies updated params, each QPU group re-evaluates its</span>
+<span class="c1"># the optimizer supplies updated `params`, each QPU group re-evaluates its</span>
 <span class="c1"># two shifted energies, and the gathered gradient drives the next step.</span>
 <span class="n">p_plus</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 <span class="n">p_plus</span><span class="p">[</span><span class="n">qpu_id</span><span class="p">]</span> <span class="o">+=</span> <span class="n">shift</span>
@@ -1856,7 +1856,7 @@ gathered gradient back to the optimizer at each iteration.</p>
 <span class="n">local_grad</span> <span class="o">=</span> <span class="p">(</span><span class="n">e_plus</span> <span class="o">-</span> <span class="n">e_minus</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span>
 
 <span class="c1"># Gather local_grad from every world rank. All ranks within a QPU group</span>
-<span class="c1"># hold the same value (collective result), so sample every ranks_per_qpu-th</span>
+<span class="c1"># hold the same value (collective result), so sample every `ranks_per_qpu-th`</span>
 <span class="c1"># entry to reconstruct the full gradient vector.</span>
 <span class="n">all_grads</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">all_gather</span><span class="p">(</span><span class="n">world_size</span><span class="p">,</span> <span class="p">[</span><span class="n">local_grad</span><span class="p">])</span>
 
@@ -1917,8 +1917,8 @@ gathered gradient back to the optimizer at each iteration.</p>
 <span class="c1"># QPU group g computes the gradient for parameter theta_g.</span>
 <span class="c1">#</span>
 <span class="c1"># This example uses 2 parameters and 2 QPU groups. To scale to N parameters,</span>
-<span class="c1"># launch with N * ranks_per_qpu total MPI ranks and provide N initial params.</span>
-<span class="c1"># Each additional QPU group adds ranks_per_qpu ranks and handles one more</span>
+<span class="c1"># launch with N * `ranks_per_qpu` total MPI ranks and provide N initial `params`.</span>
+<span class="c1"># Each additional QPU group adds `ranks_per_qpu` ranks and handles one more</span>
 <span class="c1"># gradient component in parallel — no other code changes required.</span>
 <span class="c1">#</span>
 <span class="c1">#  MPI_COMM_WORLD</span>
@@ -1932,7 +1932,7 @@ gathered gradient back to the optimizer at each iteration.</p>
 <span class="n">qpu_id</span> <span class="o">=</span> <span class="n">world_rank</span> <span class="o">//</span> <span class="n">ranks_per_qpu</span>
 <span class="n">qpu_comm</span> <span class="o">=</span> <span class="n">world_comm</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">qpu_id</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">world_rank</span><span class="p">)</span>
 
-<span class="c1"># Each QPU group uses ranks_per_qpu GPUs for every cudaq.observe() call.</span>
+<span class="c1"># Each QPU group uses `ranks_per_qpu` GPUs for every cudaq.observe() call.</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;tensornet&quot;</span><span class="p">,</span> <span class="n">comm_handle</span><span class="o">=</span><span class="n">mpi_comm_handle</span><span class="p">(</span><span class="n">qpu_comm</span><span class="p">))</span>
 
 <span class="c1"># Dummy Hamiltonian (sum of Z on all qubits) for demonstration:</span>
@@ -1945,11 +1945,11 @@ gathered gradient back to the optimizer at each iteration.</p>
 <span class="n">shift</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mf">2.0</span>
 
 <span class="c1"># Each QPU group applies +/-shift to its assigned parameter and runs two</span>
-<span class="c1"># observe() calls. Both calls use all ranks_per_qpu GPUs via the</span>
+<span class="c1"># observe() calls. Both calls use all `ranks_per_qpu` GPUs via the</span>
 <span class="c1"># sub-communicator, enabling multi-GPU tensor-network contraction.</span>
 <span class="c1">#</span>
 <span class="c1"># In a VQE optimization loop, this block executes every iteration:</span>
-<span class="c1"># the optimizer supplies updated params, each QPU group re-evaluates its</span>
+<span class="c1"># the optimizer supplies updated `params`, each QPU group re-evaluates its</span>
 <span class="c1"># two shifted energies, and the gathered gradient drives the next step.</span>
 <span class="n">p_plus</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 <span class="n">p_plus</span><span class="p">[</span><span class="n">qpu_id</span><span class="p">]</span> <span class="o">+=</span> <span class="n">shift</span>
@@ -1962,7 +1962,7 @@ gathered gradient back to the optimizer at each iteration.</p>
 <span class="n">local_grad</span> <span class="o">=</span> <span class="p">(</span><span class="n">e_plus</span> <span class="o">-</span> <span class="n">e_minus</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span>
 
 <span class="c1"># Gather local_grad from every world rank. All ranks within a QPU group</span>
-<span class="c1"># hold the same value (collective result), so sample every ranks_per_qpu-th</span>
+<span class="c1"># hold the same value (collective result), so sample every `ranks_per_qpu-th`</span>
 <span class="c1"># entry to reconstruct the gradient vector.</span>
 <span class="n">all_grads</span> <span class="o">=</span> <span class="n">world_comm</span><span class="o">.</span><span class="n">allgather</span><span class="p">(</span><span class="n">local_grad</span><span class="p">)</span>
 
@@ -2013,14 +2013,15 @@ gathered gradient back to the optimizer at each iteration.</p>
 <span class="w">  </span><span class="p">}</span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">num_qpus</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">world_size</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="p">;</span>
 
-<span class="w">  </span><span class="c1">// Assign each rank to a QPU group and split the communicator.</span>
-<span class="w">  </span><span class="c1">// QPU group g computes the gradient for parameter theta_g.</span>
+<span class="w">  </span><span class="c1">// Assign each rank to a `QPU` group and split the communicator.</span>
+<span class="w">  </span><span class="c1">// `QPU` group g computes the gradient for parameter theta_g.</span>
 <span class="w">  </span><span class="c1">//</span>
 <span class="w">  </span><span class="c1">// This example uses 2 parameters and 2 QPU groups. To scale to N parameters,</span>
-<span class="w">  </span><span class="c1">// launch with N * ranks_per_qpu total MPI ranks and provide N initial params.</span>
-<span class="w">  </span><span class="c1">// Each additional QPU group adds ranks_per_qpu ranks and handles one more</span>
-<span class="w">  </span><span class="c1">// gradient component in parallel — no other code changes required.</span>
+<span class="w">  </span><span class="c1">// launch with N * `ranks_per_qpu` total MPI ranks and provide N initial</span>
+<span class="w">  </span><span class="c1">// `params`. Each additional QPU group adds `ranks_per_qpu` ranks and handles</span>
+<span class="w">  </span><span class="c1">// one more gradient component in parallel — no other code changes required.</span>
 <span class="w">  </span><span class="c1">//</span>
+<span class="w">  </span><span class="c1">// ```</span>
 <span class="w">  </span><span class="c1">//  MPI_COMM_WORLD</span>
 <span class="w">  </span><span class="c1">//  +----------+----------+----------+----------+</span>
 <span class="w">  </span><span class="c1">//  |  rank 0  |  rank 1  |  rank 2  |  rank 3  |</span>
@@ -2028,15 +2029,15 @@ gathered gradient back to the optimizer at each iteration.</p>
 <span class="w">  </span><span class="c1">//  |        QPU 0        |        QPU 1        |</span>
 <span class="w">  </span><span class="c1">//  | grad[0]=(E+-E-)/2   | grad[1]=(E+-E-)/2   |</span>
 <span class="w">  </span><span class="c1">//  +---------------------+---------------------+</span>
-<span class="w">  </span><span class="c1">//</span>
+<span class="w">  </span><span class="c1">// ```</span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">qpu_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">world_rank</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="p">;</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">qpu_comm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">mpi</span><span class="o">::</span><span class="n">split_communicator</span><span class="p">(</span><span class="n">qpu_id</span><span class="p">);</span>
 
-<span class="w">  </span><span class="c1">// Each QPU group uses ranks_per_qpu GPUs for every cudaq::observe() call.</span>
+<span class="w">  </span><span class="c1">// Each `QPU` group uses `ranks_per_qpu` GPUs for every cudaq::observe() call.</span>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">mpi</span><span class="o">::</span><span class="n">set_communicator</span><span class="p">(</span><span class="n">qpu_comm</span><span class="p">);</span>
 
 <span class="w">  </span><span class="c1">// Dummy Hamiltonian (sum of Z on all qubits) for demonstration:</span>
-<span class="w">  </span><span class="c1">// replace with your physical Hamiltonian, e.g. generated from PySCF.</span>
+<span class="w">  </span><span class="c1">// replace with your physical Hamiltonian, e.g. generated from `PySCF`.</span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">n_qubits</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">40</span><span class="p">;</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">H</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin</span><span class="o">::</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin</span><span class="o">::</span><span class="n">z</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
 <span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n_qubits</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span>
@@ -2044,12 +2045,12 @@ gathered gradient back to the optimizer at each iteration.</p>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">params</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mf">0.5</span><span class="p">,</span><span class="w"> </span><span class="mf">0.3</span><span class="p">};</span><span class="w"> </span><span class="c1">// theta_0, theta_1</span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">shift</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">M_PI</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">2.0</span><span class="p">;</span>
 
-<span class="w">  </span><span class="c1">// Each QPU group applies +/-shift to its assigned parameter and runs two</span>
-<span class="w">  </span><span class="c1">// observe() calls. Both calls use all ranks_per_qpu GPUs via the</span>
+<span class="w">  </span><span class="c1">// Each `QPU` group applies +/-shift to its assigned parameter and runs two</span>
+<span class="w">  </span><span class="c1">// observe() calls. Both calls use all `ranks_per_qpu` GPUs via the</span>
 <span class="w">  </span><span class="c1">// sub-communicator, enabling multi-GPU tensor-network contraction.</span>
 <span class="w">  </span><span class="c1">//</span>
 <span class="w">  </span><span class="c1">// In a VQE optimization loop, this block executes every iteration:</span>
-<span class="w">  </span><span class="c1">// the optimizer supplies updated params, each QPU group re-evaluates its</span>
+<span class="w">  </span><span class="c1">// the optimizer supplies updated `params`, each `QPU` group re-evaluates its</span>
 <span class="w">  </span><span class="c1">// two shifted energies, and the gathered gradient drives the next step.</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">p_plus</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">params</span><span class="p">,</span><span class="w"> </span><span class="n">p_minus</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">params</span><span class="p">;</span>
 <span class="w">  </span><span class="n">p_plus</span><span class="p">[</span><span class="n">qpu_id</span><span class="p">]</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">shift</span><span class="p">;</span>
@@ -2061,8 +2062,8 @@ gathered gradient back to the optimizer at each iteration.</p>
 <span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">observe</span><span class="p">(</span><span class="n">ansatz</span><span class="p">,</span><span class="w"> </span><span class="n">H</span><span class="p">,</span><span class="w"> </span><span class="n">n_qubits</span><span class="p">,</span><span class="w"> </span><span class="n">p_minus</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">p_minus</span><span class="p">[</span><span class="mi">1</span><span class="p">]).</span><span class="n">expectation</span><span class="p">();</span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">local_grad</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">e_plus</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">e_minus</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">2.0</span><span class="p">;</span>
 
-<span class="w">  </span><span class="c1">// Gather local_grad from every world rank. All ranks within a QPU group</span>
-<span class="w">  </span><span class="c1">// hold the same value (collective result), so sample every ranks_per_qpu-th</span>
+<span class="w">  </span><span class="c1">// Gather local_grad from every world rank. All ranks within a `QPU` group</span>
+<span class="w">  </span><span class="c1">// hold the same value (collective result), so sample every `ranks_per_qpu-th`</span>
 <span class="w">  </span><span class="c1">// entry to reconstruct the full gradient vector.</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">all_grads</span><span class="p">(</span><span class="n">world_size</span><span class="p">);</span>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">mpi</span><span class="o">::</span><span class="n">all_gather</span><span class="p">(</span><span class="n">all_grads</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">{</span><span class="n">local_grad</span><span class="p">});</span>
@@ -2122,14 +2123,15 @@ gathered gradient back to the optimizer at each iteration.</p>
 <span class="w">  </span><span class="p">}</span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">num_qpus</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">world_size</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="p">;</span>
 
-<span class="w">  </span><span class="c1">// Assign each rank to a QPU group and split the communicator.</span>
-<span class="w">  </span><span class="c1">// QPU group g computes the gradient for parameter theta_g.</span>
+<span class="w">  </span><span class="c1">// Assign each rank to a `QPU` group and split the communicator.</span>
+<span class="w">  </span><span class="c1">// `QPU` group g computes the gradient for parameter theta_g.</span>
 <span class="w">  </span><span class="c1">//</span>
 <span class="w">  </span><span class="c1">// This example uses 2 parameters and 2 QPU groups. To scale to N parameters,</span>
-<span class="w">  </span><span class="c1">// launch with N * ranks_per_qpu total MPI ranks and provide N initial params.</span>
-<span class="w">  </span><span class="c1">// Each additional QPU group adds ranks_per_qpu ranks and handles one more</span>
-<span class="w">  </span><span class="c1">// gradient component in parallel — no other code changes required.</span>
+<span class="w">  </span><span class="c1">// launch with N * `ranks_per_qpu` total MPI ranks and provide N initial</span>
+<span class="w">  </span><span class="c1">// `params`. Each additional QPU group adds `ranks_per_qpu` ranks and handles</span>
+<span class="w">  </span><span class="c1">// one more gradient component in parallel — no other code changes required.</span>
 <span class="w">  </span><span class="c1">//</span>
+<span class="w">  </span><span class="c1">// ```</span>
 <span class="w">  </span><span class="c1">//  MPI_COMM_WORLD</span>
 <span class="w">  </span><span class="c1">//  +----------+----------+----------+----------+</span>
 <span class="w">  </span><span class="c1">//  |  rank 0  |  rank 1  |  rank 2  |  rank 3  |</span>
@@ -2137,16 +2139,16 @@ gathered gradient back to the optimizer at each iteration.</p>
 <span class="w">  </span><span class="c1">//  |        QPU 0        |        QPU 1        |</span>
 <span class="w">  </span><span class="c1">//  | grad[0]=(E+-E-)/2   | grad[1]=(E+-E-)/2   |</span>
 <span class="w">  </span><span class="c1">//  +---------------------+---------------------+</span>
-<span class="w">  </span><span class="c1">//</span>
+<span class="w">  </span><span class="c1">// ```</span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">qpu_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">world_rank</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">ranks_per_qpu</span><span class="p">;</span>
 <span class="w">  </span><span class="n">MPI_Comm</span><span class="w"> </span><span class="n">qpu_comm</span><span class="p">;</span>
 <span class="w">  </span><span class="n">MPI_Comm_split</span><span class="p">(</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="w"> </span><span class="n">qpu_id</span><span class="p">,</span><span class="w"> </span><span class="n">world_rank</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">qpu_comm</span><span class="p">);</span>
 
-<span class="w">  </span><span class="c1">// Each QPU group uses ranks_per_qpu GPUs for every cudaq::observe() call.</span>
+<span class="w">  </span><span class="c1">// Each `QPU` group uses `ranks_per_qpu` GPUs for every cudaq::observe() call.</span>
 <span class="w">  </span><span class="n">cudaq</span><span class="o">::</span><span class="n">mpi</span><span class="o">::</span><span class="n">set_communicator</span><span class="p">(</span><span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="kt">void</span><span class="w"> </span><span class="o">*&gt;</span><span class="p">(</span><span class="o">&amp;</span><span class="n">qpu_comm</span><span class="p">));</span>
 
 <span class="w">  </span><span class="c1">// Dummy Hamiltonian (sum of Z on all qubits) for demonstration:</span>
-<span class="w">  </span><span class="c1">// replace with your physical Hamiltonian, e.g. generated from PySCF.</span>
+<span class="w">  </span><span class="c1">// replace with your physical Hamiltonian, e.g. generated from `PySCF`.</span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">n_qubits</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">40</span><span class="p">;</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">H</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin</span><span class="o">::</span><span class="n">z</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">spin</span><span class="o">::</span><span class="n">z</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
 <span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">n_qubits</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span>
@@ -2154,12 +2156,12 @@ gathered gradient back to the optimizer at each iteration.</p>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">params</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mf">0.5</span><span class="p">,</span><span class="w"> </span><span class="mf">0.3</span><span class="p">};</span><span class="w"> </span><span class="c1">// theta_0, theta_1</span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">shift</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">M_PI</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">2.0</span><span class="p">;</span>
 
-<span class="w">  </span><span class="c1">// Each QPU group applies +/-shift to its assigned parameter and runs two</span>
-<span class="w">  </span><span class="c1">// observe() calls. Both calls use all ranks_per_qpu GPUs via the</span>
+<span class="w">  </span><span class="c1">// Each `QPU` group applies +/-shift to its assigned parameter and runs two</span>
+<span class="w">  </span><span class="c1">// observe() calls. Both calls use all `ranks_per_qpu` GPUs via the</span>
 <span class="w">  </span><span class="c1">// sub-communicator, enabling multi-GPU tensor-network contraction.</span>
 <span class="w">  </span><span class="c1">//</span>
 <span class="w">  </span><span class="c1">// In a VQE optimization loop, this block executes every iteration:</span>
-<span class="w">  </span><span class="c1">// the optimizer supplies updated params, each QPU group re-evaluates its</span>
+<span class="w">  </span><span class="c1">// the optimizer supplies updated `params`, each `QPU` group re-evaluates its</span>
 <span class="w">  </span><span class="c1">// two shifted energies, and the gathered gradient drives the next step.</span>
 <span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">p_plus</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">params</span><span class="p">,</span><span class="w"> </span><span class="n">p_minus</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">params</span><span class="p">;</span>
 <span class="w">  </span><span class="n">p_plus</span><span class="p">[</span><span class="n">qpu_id</span><span class="p">]</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">shift</span><span class="p">;</span>
@@ -2171,8 +2173,8 @@ gathered gradient back to the optimizer at each iteration.</p>
 <span class="w">      </span><span class="n">cudaq</span><span class="o">::</span><span class="n">observe</span><span class="p">(</span><span class="n">ansatz</span><span class="p">,</span><span class="w"> </span><span class="n">H</span><span class="p">,</span><span class="w"> </span><span class="n">n_qubits</span><span class="p">,</span><span class="w"> </span><span class="n">p_minus</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">p_minus</span><span class="p">[</span><span class="mi">1</span><span class="p">]).</span><span class="n">expectation</span><span class="p">();</span>
 <span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">local_grad</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">e_plus</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">e_minus</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">2.0</span><span class="p">;</span>
 
-<span class="w">  </span><span class="c1">// Gather local_grad from every world rank. All ranks within a QPU group</span>
-<span class="w">  </span><span class="c1">// hold the same value (collective result), so sample every ranks_per_qpu-th</span>
+<span class="w">  </span><span class="c1">// Gather local_grad from every world rank. All ranks within a `QPU` group</span>
+<span class="w">  </span><span class="c1">// hold the same value (collective result), so sample every `ranks_per_qpu-th`</span>
 <span class="w">  </span><span class="c1">// entry to reconstruct the gradient vector.</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">all_grads</span><span class="p">(</span><span class="n">world_size</span><span class="p">);</span>
 <span class="w">  </span><span class="n">MPI_Allgather</span><span class="p">(</span><span class="o">&amp;</span><span class="n">local_grad</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">MPI_DOUBLE</span><span class="p">,</span><span class="w"> </span><span class="n">all_grads</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">MPI_DOUBLE</span><span class="p">,</span>

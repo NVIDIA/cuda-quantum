@@ -294,7 +294,7 @@ initial parameters.
 The examples below use a 40-qubit placeholder ansatz and Hamiltonian to
 illustrate the distribution pattern. To use this in a real VQE workflow,
 substitute your application-specific ansatz and physical Hamiltonian (e.g.
-generated from a chemistry package such as PySCF), wrap the gradient evaluation
+generated from a chemistry package such as ``PySCF``), wrap the gradient evaluation
 in an optimization loop (e.g. using :code:`cudaq.optimizers`), and feed the
 gathered gradient back to the optimizer at each iteration.
 

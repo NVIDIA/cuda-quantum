@@ -8,11 +8,13 @@
 
 # Demonstrates gradient computation (parameter-shift rule) where each QPU
 # group runs a multi-GPU observe() call for its assigned gradient component.
-# Each observe() is distributed across ranks_per_qpu GPUs via the MPI
+# Each observe() is distributed across `ranks_per_qpu` GPUs via the MPI
 # sub-communicator, enabling circuits too large for one GPU.
 #
 # Run (4 ranks → 2 QPUs of 2 ranks/GPUs each):
+# ```
 #   mpirun -n 4 python3 observe_gradient_cudaq_mpi.py
+# ```
 
 # [Begin Documentation]
 import math
@@ -53,8 +55,8 @@ num_qpus = world_size // ranks_per_qpu
 # QPU group g computes the gradient for parameter theta_g.
 #
 # This example uses 2 parameters and 2 QPU groups. To scale to N parameters,
-# launch with N * ranks_per_qpu total MPI ranks and provide N initial params.
-# Each additional QPU group adds ranks_per_qpu ranks and handles one more
+# launch with N * `ranks_per_qpu` total MPI ranks and provide N initial `params`.
+# Each additional QPU group adds `ranks_per_qpu` ranks and handles one more
 # gradient component in parallel — no other code changes required.
 #
 #  MPI_COMM_WORLD
@@ -68,7 +70,7 @@ num_qpus = world_size // ranks_per_qpu
 qpu_id = world_rank // ranks_per_qpu
 qpu_comm = cudaq.mpi.split_communicator(qpu_id)
 
-# Each QPU group uses ranks_per_qpu GPUs for every cudaq.observe() call.
+# Each QPU group uses `ranks_per_qpu` GPUs for every cudaq.observe() call.
 cudaq.set_target("tensornet", comm_handle=qpu_comm)
 
 # Dummy Hamiltonian (sum of Z on all qubits) for demonstration:
@@ -81,11 +83,11 @@ params = [0.5, 0.3]  # theta_0, theta_1
 shift = math.pi / 2.0
 
 # Each QPU group applies +/-shift to its assigned parameter and runs two
-# observe() calls. Both calls use all ranks_per_qpu GPUs via the
+# observe() calls. Both calls use all `ranks_per_qpu` GPUs via the
 # sub-communicator, enabling multi-GPU tensor-network contraction.
 #
 # In a VQE optimization loop, this block executes every iteration:
-# the optimizer supplies updated params, each QPU group re-evaluates its
+# the optimizer supplies updated `params`, each QPU group re-evaluates its
 # two shifted energies, and the gathered gradient drives the next step.
 p_plus = params.copy()
 p_plus[qpu_id] += shift
@@ -98,7 +100,7 @@ e_minus = cudaq.observe(ansatz, H, n_qubits, p_minus[0],
 local_grad = (e_plus - e_minus) / 2.0
 
 # Gather local_grad from every world rank. All ranks within a QPU group
-# hold the same value (collective result), so sample every ranks_per_qpu-th
+# hold the same value (collective result), so sample every `ranks_per_qpu-th`
 # entry to reconstruct the full gradient vector.
 all_grads = cudaq.mpi.all_gather(world_size, [local_grad])
 

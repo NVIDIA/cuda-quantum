@@ -6,16 +6,18 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// Demonstrates gradient computation (parameter-shift rule) where each QPU
+// Demonstrates gradient computation (parameter-shift rule) where each `QPU`
 // group runs a multi-GPU observe() call for its assigned gradient component.
 //
-// Each observe() is distributed across ranks_per_qpu GPUs via the MPI
+// Each observe() is distributed across `ranks_per_qpu` GPUs via the MPI
 // sub-communicator, enabling circuits too large for one GPU.
 //
 // Build and run (4 ranks → 2 QPUs of 2 ranks/GPUs each):
 // clang-format off
-//   nvq++ --target tensornet -o observe_gradient_cudaq_mpi observe_gradient_cudaq_mpi.cpp 
+// ```
+//   nvq++ --target tensornet -o observe_gradient_cudaq_mpi observe_gradient_cudaq_mpi.cpp
 //   mpirun -n 4 ./observe_gradient_cudaq_mpi
+// ```
 // clang-format on
 
 // [Begin Documentation]
@@ -53,14 +55,15 @@ int main() {
   }
   const int num_qpus = world_size / ranks_per_qpu;
 
-  // Assign each rank to a QPU group and split the communicator.
-  // QPU group g computes the gradient for parameter theta_g.
+  // Assign each rank to a `QPU` group and split the communicator.
+  // `QPU` group g computes the gradient for parameter theta_g.
   //
   // This example uses 2 parameters and 2 QPU groups. To scale to N parameters,
-  // launch with N * ranks_per_qpu total MPI ranks and provide N initial params.
-  // Each additional QPU group adds ranks_per_qpu ranks and handles one more
-  // gradient component in parallel — no other code changes required.
+  // launch with N * `ranks_per_qpu` total MPI ranks and provide N initial
+  // `params`. Each additional QPU group adds `ranks_per_qpu` ranks and handles
+  // one more gradient component in parallel — no other code changes required.
   //
+  // ```
   //  MPI_COMM_WORLD
   //  +----------+----------+----------+----------+
   //  |  rank 0  |  rank 1  |  rank 2  |  rank 3  |
@@ -68,15 +71,15 @@ int main() {
   //  |        QPU 0        |        QPU 1        |
   //  | grad[0]=(E+-E-)/2   | grad[1]=(E+-E-)/2   |
   //  +---------------------+---------------------+
-  //
+  // ```
   const int qpu_id = world_rank / ranks_per_qpu;
   void *qpu_comm = cudaq::mpi::split_communicator(qpu_id);
 
-  // Each QPU group uses ranks_per_qpu GPUs for every cudaq::observe() call.
+  // Each `QPU` group uses `ranks_per_qpu` GPUs for every cudaq::observe() call.
   cudaq::mpi::set_communicator(qpu_comm);
 
   // Dummy Hamiltonian (sum of Z on all qubits) for demonstration:
-  // replace with your physical Hamiltonian, e.g. generated from PySCF.
+  // replace with your physical Hamiltonian, e.g. generated from `PySCF`.
   const int n_qubits = 40;
   auto H = cudaq::spin::z(0) + cudaq::spin::z(1);
   for (int i = 2; i < n_qubits; i++)
@@ -84,12 +87,12 @@ int main() {
   const std::vector<double> params = {0.5, 0.3}; // theta_0, theta_1
   const double shift = M_PI / 2.0;
 
-  // Each QPU group applies +/-shift to its assigned parameter and runs two
-  // observe() calls. Both calls use all ranks_per_qpu GPUs via the
+  // Each `QPU` group applies +/-shift to its assigned parameter and runs two
+  // observe() calls. Both calls use all `ranks_per_qpu` GPUs via the
   // sub-communicator, enabling multi-GPU tensor-network contraction.
   //
   // In a VQE optimization loop, this block executes every iteration:
-  // the optimizer supplies updated params, each QPU group re-evaluates its
+  // the optimizer supplies updated `params`, each `QPU` group re-evaluates its
   // two shifted energies, and the gathered gradient drives the next step.
   auto p_plus = params, p_minus = params;
   p_plus[qpu_id] += shift;
@@ -101,8 +104,8 @@ int main() {
       cudaq::observe(ansatz, H, n_qubits, p_minus[0], p_minus[1]).expectation();
   const double local_grad = (e_plus - e_minus) / 2.0;
 
-  // Gather local_grad from every world rank. All ranks within a QPU group
-  // hold the same value (collective result), so sample every ranks_per_qpu-th
+  // Gather local_grad from every world rank. All ranks within a `QPU` group
+  // hold the same value (collective result), so sample every `ranks_per_qpu-th`
   // entry to reconstruct the full gradient vector.
   std::vector<double> all_grads(world_size);
   cudaq::mpi::all_gather(all_grads, std::vector<double>{local_grad});

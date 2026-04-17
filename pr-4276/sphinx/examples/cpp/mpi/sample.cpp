@@ -8,12 +8,15 @@
 
 // Demonstrates multi-node multi-GPU simulation by partitioning MPI ranks into
 // independent QPU groups, each backed by a multi-GPU simulator (e.g.
-// tensornet). Every group simulates a different circuit in parallel.
+// `tensornet`). Every group simulates a different circuit in parallel.
 //
 // Build and run (4 ranks → 2 QPUs of 2 ranks/GPUs each):
-//   nvq++ --target tensornet -o sample sample.cpp \
-//       -I$(mpicc -showme:incdirs) -L$(mpicc -showme:libdirs) -lmpi
-//   mpirun -n 4 ./sample
+// clang-format off
+// ```
+// nvq++ --target tensornet -o sample sample.cpp -I$(mpicc -showme:incdirs) -L$(mpicc -showme:libdirs) -lmpi
+// mpirun -n 4 ./sample
+// ```
+// clang-format on
 
 // [Begin Documentation]
 #include <cudaq.h>
@@ -33,7 +36,7 @@ int main(int argc, char **argv) {
   MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
   MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
-  // Each QPU is backed by ranks_per_qpu MPI ranks / GPUs.
+  // Each `QPU` is backed by `ranks_per_qpu` MPI ranks / GPUs.
   const int ranks_per_qpu = 2;
   if (world_size % ranks_per_qpu != 0) {
     if (world_rank == 0)
@@ -42,8 +45,8 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  // Assign each rank to a QPU group and split the communicator accordingly.
-  //
+  // Assign each rank to a `QPU` group and split the communicator accordingly.
+  // ```
   //  MPI_COMM_WORLD
   //  +----------+----------+----------+----------+
   //  |  rank 0  |  rank 1  |  rank 2  |  rank 3  |
@@ -51,16 +54,16 @@ int main(int argc, char **argv) {
   //  |        QPU 0        |        QPU 1        |
   //  |    (qpu_id = 0)     |    (qpu_id = 1)     |
   //  +---------------------+---------------------+
-  //
+  // ```
   const int qpu_id = world_rank / ranks_per_qpu;
   MPI_Comm qpu_comm;
   MPI_Comm_split(MPI_COMM_WORLD, qpu_id, world_rank, &qpu_comm);
 
-  // Inform CUDA-Q which sub-communicator this QPU group should use.
+  // Inform CUDA-Q which sub-communicator this `QPU` group should use.
   cudaq::mpi::set_communicator(reinterpret_cast<void *>(&qpu_comm));
 
-  // Run an independent circuit on each QPU group.
-  // The tensornet backend can handle a large number of qubits via multi-GPU
+  // Run an independent circuit on each `QPU` group.
+  // The `tensornet` backend can handle a large number of qubits via multi-GPU
   // tensor network contraction, well beyond what state vector simulators
   // support.
   const int num_qubits = 40 + 5 * qpu_id;

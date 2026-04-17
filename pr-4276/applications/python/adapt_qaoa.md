@@ -2103,7 +2103,7 @@ explained above.
 
 <div>
 
-![b3b911a83c954bc4874bb3b77d840c38](../../_images/adapt-qaoa.png){.no-scaled-link
+![5f7cbe38b95641cf80b14677091a7fc1](../../_images/adapt-qaoa.png){.no-scaled-link
 style="width: 1000px;"}
 
 </div>

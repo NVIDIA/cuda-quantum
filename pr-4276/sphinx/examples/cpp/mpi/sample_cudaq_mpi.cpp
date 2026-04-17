@@ -6,15 +6,17 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// Demonstrates multi-node multi-GPU simulation using the cudaq::mpi API to
+// Demonstrates multi-node multi-GPU simulation using the `cudaq::mpi` API to
 // partition ranks into independent QPU groups, each backed by a multi-GPU
-// simulator (e.g. tensornet). Every group simulates a different circuit.
+// simulator (e.g. `tensornet`). Every group simulates a different circuit.
 //
 // Build and run (4 ranks → 2 QPUs of 2 ranks/GPUs each):
+// ```
 //   nvq++ --target tensornet -o sample_cudaq_mpi sample_cudaq_mpi.cpp
 //   mpirun -n 4 ./sample_cudaq_mpi
+// ```
 //
-// Note: no explicit MPI flags needed; nvq++ links MPI automatically.
+// Note: no explicit MPI flags needed; `nvq++` links MPI automatically.
 
 // [Begin Documentation]
 #include <cudaq.h>
@@ -32,7 +34,7 @@ int main() {
   const int world_rank = cudaq::mpi::rank();
   const int world_size = cudaq::mpi::num_ranks();
 
-  // Each QPU is backed by ranks_per_qpu MPI ranks / GPUs.
+  // Each `QPU` is backed by `ranks_per_qpu` MPI ranks / GPUs.
   const int ranks_per_qpu = 2;
   if (world_size % ranks_per_qpu != 0) {
     if (world_rank == 0)
@@ -41,8 +43,8 @@ int main() {
     return 1;
   }
 
-  // Assign each rank to a QPU group and split the communicator accordingly.
-  //
+  // Assign each rank to a `QPU` group and split the communicator accordingly.
+  // ```
   //  MPI_COMM_WORLD
   //  +----------+----------+----------+----------+
   //  |  rank 0  |  rank 1  |  rank 2  |  rank 3  |
@@ -50,15 +52,15 @@ int main() {
   //  |        QPU 0        |        QPU 1        |
   //  |    (qpu_id = 0)     |    (qpu_id = 1)     |
   //  +---------------------+---------------------+
-  //
+  // ```
   const int qpu_id = world_rank / ranks_per_qpu;
   void *qpu_comm = cudaq::mpi::split_communicator(qpu_id);
 
-  // Inform CUDA-Q which sub-communicator this QPU group should use.
+  // Inform CUDA-Q which sub-communicator this `QPU` group should use.
   cudaq::mpi::set_communicator(qpu_comm);
 
-  // Run an independent circuit on each QPU group.
-  // The tensornet backend can handle a large number of qubits via multi-GPU
+  // Run an independent circuit on each `QPU` group.
+  // The `tensornet` backend can handle a large number of qubits via multi-GPU
   // tensor network contraction, well beyond what state vector simulators
   // support.
   const int num_qubits = 40 + 5 * qpu_id;
