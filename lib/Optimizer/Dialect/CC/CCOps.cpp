@@ -2703,8 +2703,8 @@ struct ConstArrayConvertToKnownSize
     std::size_t size = connie.getConstantValuesAttr().size();
     auto *ctx = rewriter.getContext();
     auto newTy = cudaq::cc::ArrayType::get(ctx, arrTy.getElementType(), size);
-    auto ca = rewriter.create<cudaq::cc::ConstantArrayOp>(
-        connie.getLoc(), newTy, connie.getConstantValuesAttr());
+    auto ca = cudaq::cc::ConstantArrayOp::create(
+        rewriter, connie.getLoc(), newTy, connie.getConstantValuesAttr());
     rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(connie, arrTy, ca);
     return success();
   }
