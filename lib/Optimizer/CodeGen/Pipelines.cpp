@@ -171,7 +171,6 @@ void cudaq::opt::createPipelineTransformsForPythonToOpenQASM(
 }
 
 void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {
-  createCommonTargetCodegenPipeline</*isJIT=*/true>(pm, {});
   pm.addNestedPass<func::FuncOp>(createClassicalMemToReg());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createDeadStoreRemoval());
