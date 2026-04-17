@@ -19,7 +19,6 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
 #include "cudaq/runtime/logger/logger.h"
-#include "cudaq_internal/compiler/LayoutInfo.h"
 #include "llvm/ExecutionEngine/Orc/ExecutionUtils.h"
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h"
@@ -338,23 +337,6 @@ cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
   auto jitOrError = ExecutionEngine::create(moduleOp, opts);
   assert(!!jitOrError && "ExecutionEngine creation failed.");
   return JitEngine(std::move(jitOrError.get()));
-}
-
-/// Build a `ResultInfo` from an MLIR return type.
-/// \p resultTy may be null (no return value). When \p isEntryPoint is false,
-/// the result is not marshaled — returns an empty `ResultInfo`.
-cudaq::ResultInfo cudaq_internal::compiler::createResultInfo(Type resultTy,
-                                                             bool isEntryPoint,
-                                                             ModuleOp module) {
-  cudaq::ResultInfo info;
-  if (!resultTy || !isEntryPoint)
-    return info;
-
-  info.typeOpaquePtr = resultTy.getAsOpaquePointer();
-  auto [size, offsets] = getResultBufferLayout(module, resultTy);
-  info.bufferSize = size;
-  info.fieldOffsets = std::move(offsets);
-  return info;
 }
 
 class cudaq::JitEngine::Impl : public cudaq::JitEngine::Base {

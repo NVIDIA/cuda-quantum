@@ -7,15 +7,11 @@
  ******************************************************************************/
 
 #include "CompiledModule.h"
-#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include <memory>
 #include <stdexcept>
 
-using namespace cudaq_internal::compiler;
-
-cudaq::CompiledModule::CompiledModule(std::string kernelName,
-                                      ResultInfo resultInfo)
-    : name(std::move(kernelName)), resultInfo(std::move(resultInfo)) {}
+cudaq::CompiledModule::CompiledModule(std::string kernelName)
+    : name(std::move(kernelName)) {}
 
 const cudaq::CompiledModule::JitArtifact &
 cudaq::CompiledModule::getJit() const {
@@ -103,20 +99,4 @@ void (*cudaq::CompiledModule::JitArtifact::getEntryPoint() const)() {
 
 cudaq::JitEngine cudaq::CompiledModule::JitArtifact::getEngine() const {
   return engine;
-}
-
-void cudaq::CompiledModule::attachJit(JitEngine engine,
-                                      bool isFullySpecialized) {
-  bool hasResult = resultInfo.hasResult();
-  std::string fullName = cudaq::runtime::cudaqGenPrefixName + name;
-  std::string entryName =
-      (hasResult || !isFullySpecialized) ? name + ".thunk" : fullName;
-  void (*entryPoint)() = engine.lookupRawNameOrFail(entryName);
-  int64_t (*argsCreator)(const void *, void **) = nullptr;
-  if (!isFullySpecialized)
-    argsCreator = reinterpret_cast<int64_t (*)(const void *, void **)>(
-        engine.lookupRawNameOrFail(name + ".argsCreator"));
-
-  addArtifact(name, JitArtifact{std::move(engine), entryPoint, argsCreator,
-                                std::nullopt});
 }
