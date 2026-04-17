@@ -33,7 +33,7 @@ public:
     backendConfig["user_agent"] = "cudaq/" + std::string(cudaq::getVersion());
     backendConfig["qubits"] = std::to_string(DEFAULT_QUBITS);
 
-    // Accept "machine" as a user-friendly alias for device_id
+    // Accept "machine" as a user-friendly alias for qBraid's device_id
     // Usage: cudaq.set_target("qbraid", machine="qbraid:qbraid:sim:qir-sv")
     if (!config["machine"].empty()) {
       backendConfig["device_id"] = config["machine"];
