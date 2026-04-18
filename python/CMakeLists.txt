@@ -8,10 +8,6 @@
 
 add_subdirectory(utils)
 
-if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
-  set(CMAKE_BUILD_TYPE "Debug")
-endif()
-
 # [RFC]:
 # Check how to solve this better than just disable the warning for the whole directory.
 # If this is better addressed after updating to a newer LLVM version, track as an issue on GitHub.

@@ -6,10 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
-  set(CMAKE_BUILD_TYPE "Debug")
-endif()
-
 include(HandleLLVMOptions)
 include(AddMLIRPython)
 

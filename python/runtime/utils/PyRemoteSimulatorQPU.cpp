@@ -73,7 +73,8 @@ launchKernelImpl(cudaq::ExecutionContext *executionContextPtr,
     throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
 }
 
-[[clang::suppress]]
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunneeded-internal-declaration"
 static void launchKernelStreamlineImpl(
     cudaq::ExecutionContext *executionContextPtr,
     std::unique_ptr<cudaq::RemoteRuntimeClient> &remote_client,
@@ -107,6 +108,7 @@ static void launchKernelStreamlineImpl(
   if (!requestOkay)
     throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
 }
+#pragma clang diagnostic pop
 
 template <typename Derived, typename Base>
 class PyRemoteSimulatorCommonBase : public Base {
