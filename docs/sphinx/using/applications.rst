@@ -25,6 +25,7 @@ This page contains a number of different applications implemented using CUDA-Q. 
    /applications/python/divisive_clustering_coresets
    /applications/python/hybrid_quantum_neural_networks
    /applications/python/hadamard_test
+   /applications/python/logical_aim_sqale
    /applications/python/hamiltonian_simulation
    /applications/python/quantum_fourier_transform
    /applications/python/quantum_teleportation
@@ -169,6 +170,14 @@ This page contains a number of different applications implemented using CUDA-Q. 
             Learn about the Hadamard test and how it can be used to estimate expectation values. This notebook also explores how the Hadamard test can be used for Krylov subspace method and accelerated with the <code>mqpu</code> backend to evaluate execution on multiple simulated QPUs in parallel.
         </div>
         <img src="../_static/app_title_images/hadamard_preview.png" alt="Hadamard Preview" class="notebook-image">
+    </div>
+
+    <div class="notebook-entry" data-tags="chemistry,qec,qpu,neutral,collab">
+        <a href="../applications/python/logical_aim_sqale.html" class="notebook-title">The Anderson Impurity Model With Logical Qubits</a>
+        <div class="notebook-content">
+            A collaboration between NVIDIA and Infleqtion demonstrated a logical qubit workflow built in CUDA-Q and executed on the Infleqtion's neutral atom QPU. (https://arxiv.org/abs/2412.07670)
+        </div>
+        <img src="../_static/app_title_images/aim_preview.png" alt="AIM Preview" class="notebook-image">
     </div>
 
     <div class="notebook-entry" data-tags="fundamental,noiseless,gpu">

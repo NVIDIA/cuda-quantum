@@ -121,6 +121,8 @@ Submitting
 
 
 To see a complete example, take a look at :ref:`Infleqtion examples <infleqtion-examples>`.
+Moreover, for an end-to-end application workflow example executed on the Infleqtion QPU, take a look at the
+:doc:`Anderson Impurity Model ground state solver <../../../applications/python/logical_aim_sqale>` notebook.
 
 .. note:: 
 
