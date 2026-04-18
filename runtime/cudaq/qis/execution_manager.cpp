@@ -9,6 +9,7 @@
 #include "execution_manager.h"
 #include "common/ExecutionContext.h"
 #include "common/PluginUtils.h"
+#include "cudaq/algorithms/policy_cpos.h"
 #include "cudaq/algorithms/policy_dispatch.h"
 
 using namespace cudaq;
@@ -39,7 +40,7 @@ ExecutionManager *cudaq::detail::getExecutionManagerFromContext() {
 void ExecutionManager::finalizeExecutionContext(ExecutionContext &ctx) {
   policies::withPolicy(ctx.name, [&](auto policy) {
     policies::visitResult(
-        [&]() { return finalizeExecutionContext(policy, ctx); },
+        [&]() { return cudaq::finalize_execution_manager(*this, policy, ctx); },
         [&](sample_result &&r) { ctx.result = std::move(r); },
         [&](policies::void_result &&r) {});
   });

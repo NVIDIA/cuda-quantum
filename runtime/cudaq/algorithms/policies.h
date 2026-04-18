@@ -10,3 +10,10 @@
 
 #include "cudaq/algorithms/observe/policy.h"
 #include "cudaq/algorithms/sample/policy.h"
+
+namespace cudaq {
+
+/// @brief Fallback policy tag used when no specific policy matches.
+struct other_policies {};
+
+} // namespace cudaq

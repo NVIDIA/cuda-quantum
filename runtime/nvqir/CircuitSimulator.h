@@ -16,6 +16,7 @@
 #include "common/SampleResult.h"
 #include "common/Timing.h"
 #include "cudaq/algorithms/policies.h"
+#include "cudaq/algorithms/policy_cpos.h"
 #include "cudaq/algorithms/policy_dispatch.h"
 #include "cudaq/host_config.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -256,13 +257,13 @@ public:
   void finalizeExecutionContext(cudaq::ExecutionContext &ctx) {
     cudaq::policies::withPolicy(ctx.name, [&](auto policy) {
       cudaq::policies::visitResult(
-          [&]() { return finalizeExecutionContext(policy, ctx); },
+          [&]() { return finalize_simulation_circuit(*this, policy, ctx); },
           [&](cudaq::sample_result &&r) { ctx.result = std::move(r); },
           [&](cudaq::policies::void_result &&r) {});
     });
   }
 
-  virtual void finalizeExecutionContext(const cudaq::any_policy &policy,
+  virtual void finalizeExecutionContext(const cudaq::other_policies &policy,
                                         cudaq::ExecutionContext &ctx) {}
   virtual cudaq::sample_result
   finalizeExecutionContext(const cudaq::sample_policy &policy,
@@ -1048,7 +1049,7 @@ protected:
     return internalResult;
   }
 
-  void finalizeExecutionContext(const cudaq::any_policy &policy,
+  void finalizeExecutionContext(const cudaq::other_policies &policy,
                                 cudaq::ExecutionContext &context) override {
     if (nQubitsAllocated == 0)
       return;
@@ -1321,8 +1322,7 @@ public:
     auto executionContext = cudaq::getExecutionContext();
 
     if (nQubitsAllocated == 0) {
-      if (executionContext)
-        return cudaq::SpinMeasureResult(0.0, {});
+      return cudaq::SpinMeasureResult(0.0, {});
     }
 
     flushGateQueue();
@@ -1429,6 +1429,27 @@ private:
     return qubits;
   }
 };
+
+} // namespace nvqir
+
+namespace cudaq {
+
+inline sample_result
+finalize_simulation_circuit_impl(nvqir::CircuitSimulator &sim,
+                                 const sample_policy &policy,
+                                 ExecutionContext &ctx) {
+  return sim.finalizeExecutionContext(policy, ctx);
+}
+
+} // namespace cudaq
+
+namespace nvqir {
+
+inline void finalize_simulation_circuit_impl(CircuitSimulator &sim,
+                                             cudaq::ExecutionContext &ctx) {
+  sim.finalizeExecutionContext(cudaq::other_policies{}, ctx);
+}
+
 } // namespace nvqir
 
 #define CONCAT(a, b) CONCAT_INNER(a, b)

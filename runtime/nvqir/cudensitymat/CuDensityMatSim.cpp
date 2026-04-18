@@ -150,7 +150,7 @@ protected:
     return cudaq::sample_result();
   }
 
-  void finalizeExecutionContext(const cudaq::any_policy &policy,
+  void finalizeExecutionContext(const cudaq::other_policies &policy,
                                 cudaq::ExecutionContext &ctx) override {
     finalizeExecutionContextImpl(ctx);
   }

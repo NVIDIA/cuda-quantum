@@ -200,7 +200,7 @@ protected:
     return result;
   }
 
-  void finalizeExecutionContext(const any_policy &policy,
+  void finalizeExecutionContext(const other_policies &policy,
                                 ExecutionContext &ctx) override {
     std::vector<std::size_t> ids;
     finalizeExecutionContextImpl(ids, ctx);

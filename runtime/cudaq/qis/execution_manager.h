@@ -98,11 +98,6 @@ protected:
   /// Internal - At qudit deallocation, return the qudit index
   void returnIndex(std::size_t idx) { tracker.returnIndex(idx); }
 
-  virtual void finalizeExecutionContext(const any_policy &policy,
-                                        ExecutionContext &ctx) {}
-  virtual sample_result finalizeExecutionContext(const sample_policy &policy,
-                                                 ExecutionContext &ctx) = 0;
-
 public:
   ExecutionManager() = default;
 
@@ -121,6 +116,11 @@ public:
 
   /// Finalize the execution context after an execution.
   void finalizeExecutionContext(ExecutionContext &ctx);
+
+  virtual void finalizeExecutionContext(const other_policies &policy,
+                                        ExecutionContext &ctx) {}
+  virtual sample_result finalizeExecutionContext(const sample_policy &policy,
+                                                 ExecutionContext &ctx) = 0;
 
   /// Set up the execution manager for a new execution.
   virtual void beginExecution() {}
@@ -204,6 +204,16 @@ public:
 
   virtual ~ExecutionManager() = default;
 };
+
+inline sample_result finalize_execution_manager_impl(
+    ExecutionManager &mgr, const sample_policy &policy, ExecutionContext &ctx) {
+  return mgr.finalizeExecutionContext(policy, ctx);
+}
+
+inline void finalize_execution_manager_impl(ExecutionManager &mgr,
+                                            ExecutionContext &ctx) {
+  mgr.finalizeExecutionContext(other_policies{}, ctx);
+}
 
 // Function declaration, implemented by the macro expansion below
 ExecutionManager *getRegisteredExecutionManager();

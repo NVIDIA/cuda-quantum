@@ -173,7 +173,7 @@ protected:
     return simulator()->finalizeExecutionContext(policy, ctx);
   }
 
-  void finalizeExecutionContext(const any_policy &policy,
+  void finalizeExecutionContext(const other_policies &policy,
                                 ExecutionContext &ctx) override {
     finalizeExecutionContextImpl(ctx);
     simulator()->finalizeExecutionContext(ctx);

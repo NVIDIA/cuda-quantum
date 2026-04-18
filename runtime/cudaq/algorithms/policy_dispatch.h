@@ -47,12 +47,11 @@ namespace cudaq::policies {
 /// Performs a linear search over a static registry of known policy names.
 /// On a match, the callable is invoked with the corresponding concrete policy
 /// type, enabling compile-time overload resolution. If no match is found, the
-/// callable is invoked with @c any_policy{} as a fallback.
+/// callable is invoked with @c other_policies{} as a fallback.
 ///
 /// Overload resolution follows standard C++ rules: the most derived policy type
 /// is preferred. If no specific overload exists for a given policy, the
-/// compiler implicitly converts to @c any_policy and calls the fallback
-/// overload.
+/// compiler uses the @c other_policies fallback.
 ///
 /// @note A linear search over a static array is used rather than a hash map.
 ///       For ~10 short string keys, all entries fit in a few cache lines,
@@ -92,7 +91,7 @@ void withPolicy(std::string_view name, Func &&func) {
     }
   }
 
-  func(any_policy{});
+  func(other_policies{});
 }
 
 // =============================================================================
@@ -195,5 +194,4 @@ void visitResult(Func &&func, Handlers &&...handlers) {
   detail::invokeVisitor(detail::overloaded{std::forward<Handlers>(handlers)...},
                         std::forward<Func>(func));
 }
-
 } // namespace cudaq::policies
