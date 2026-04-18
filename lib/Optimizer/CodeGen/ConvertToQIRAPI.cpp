@@ -2661,6 +2661,10 @@ struct QuakeToQIRAPIPrepPass
         signalPassFailure();
         return;
       }
+      module.walk([](func::FuncOp func) {
+        for (auto &block : func.getBlocks())
+          cudaq::opt::delayMeasurementsInBlock(block);
+      });
     }
 
     auto irBuilder = cudaq::IRBuilder::atBlockEnd(module.getBody());

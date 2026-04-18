@@ -104,6 +104,14 @@ struct QuakeToCCPrepPass
 
     if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns))))
       signalPassFailure();
+
+    // After mx/my → h;mz / s†;h;mz decomposition, move measurements to the
+    // end of each block to avoid premature sampling flushes at runtime.
+    op.walk([](func::FuncOp func) {
+      for (auto &block : func.getBlocks())
+        cudaq::opt::delayMeasurementsInBlock(block);
+    });
+
     LLVM_DEBUG(llvm::dbgs() << "Module after prep:\n"; op->dump());
   }
 };
