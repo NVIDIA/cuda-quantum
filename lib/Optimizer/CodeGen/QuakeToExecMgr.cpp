@@ -417,7 +417,7 @@ public:
   }
 };
 
-/// Convert a MY operation to a sequence S†; H; MZ.
+/// Convert a MY operation to a sequence S; H; MZ.
 class MyToMzRewrite : public OpRewritePattern<quake::MyOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
@@ -490,53 +490,4 @@ void cudaq::opt::populateQuakeToCCPatterns(TypeConverter &converter,
 
 void cudaq::opt::populateQuakeToCCPrepPatterns(RewritePatternSet &patterns) {
   patterns.insert<MxToMzRewrite, MyToMzRewrite>(patterns.getContext());
-}
-
-void cudaq::opt::delayMeasurementsInBlock(Block &block) {
-  // Collect all measurement ops in block order.
-  SmallVector<Operation *> measOps;
-  for (auto &op : block)
-    if (op.hasTrait<cudaq::QuantumMeasure>())
-      measOps.push_back(&op);
-
-  if (measOps.size() <= 1)
-    return;
-
-  // Build a set of qubits that appear in more than one measurement to detect
-  // repeated-measurement patterns (e.g. mid-circuit measurement followed by
-  // reset and re-measurement). Those must keep their original position.
-  DenseSet<Value> seenQubits;
-  DenseSet<Value> duplicateQubits;
-  for (auto *op : measOps) {
-    for (auto operand : op->getOperands()) {
-      if (!seenQubits.insert(operand).second)
-        duplicateQubits.insert(operand);
-    }
-  }
-
-  // Move each safe measurement to right after the last measurement in the
-  // block. This clusters all measurements together so that no gate operation
-  // (from mx/my basis-change decomposition) appears between them, which
-  // would otherwise trigger a premature sampling flush at runtime.
-  Operation *lastMeas = measOps.back();
-  for (auto *op : measOps) {
-    if (op == lastMeas)
-      continue;
-
-    // Skip measurements on qubits that are measured more than once.
-    bool hasDuplicate = false;
-    for (auto operand : op->getOperands()) {
-      if (duplicateQubits.contains(operand)) {
-        hasDuplicate = true;
-        break;
-      }
-    }
-    if (hasDuplicate)
-      continue;
-
-    // Move this measurement to just before the last measurement. This
-    // preserves the relative order among moved measurements while clustering
-    // them just before the last one.
-    op->moveBefore(lastMeas);
-  }
 }
