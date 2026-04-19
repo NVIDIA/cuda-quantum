@@ -68,18 +68,6 @@ void registerQuakeDialectAndTypes(nanobind::module_ &m) {
           nanobind::arg("cls"), nanobind::arg("context") = nanobind::none());
 
   mlir::python::nanobind_adaptors::mlir_type_subclass(
-      quakeMod, "MeasurementsType",
-      [](MlirType type) { return unwrap(type).isa<quake::MeasurementsType>(); })
-      .def_classmethod(
-          "get",
-          [](nanobind::object cls, std::size_t size, MlirContext context) {
-            return wrap(quake::MeasurementsType::get(unwrap(context), size));
-          },
-          nanobind::arg("cls"),
-          nanobind::arg("size") = quake::MeasurementsType::kDynamicSize,
-          nanobind::arg("context") = nanobind::none());
-
-  mlir::python::nanobind_adaptors::mlir_type_subclass(
       quakeMod, "VeqType",
       [](MlirType type) { return unwrap(type).isa<quake::VeqType>(); })
       .def_classmethod(

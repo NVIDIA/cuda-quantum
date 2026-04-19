@@ -23,7 +23,7 @@ struct ArithmeticTupleQernel {
 // CHECK:           %[[VAL_1:.*]] = cc.alloca !cc.struct<{[[TUP]]}{{.*}}>
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<!cc.struct<{[[TUP]]}{{.*}}>>
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<1>
-// CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_2]] : (!quake.veq<1>) -> !quake.measurements<1>
+// CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_2]] : (!quake.veq<1>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 // clang-format on
@@ -41,7 +41,7 @@ struct ArithmeticPairQernel {
 // CHECK:           %[[VAL_1:.*]] = cc.alloca !cc.struct<{f32, i32} [64,4]>
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_1]] : !cc.ptr<!cc.struct<{f32, i32} [64,4]>>
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<1>
-// CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_2]] : (!quake.veq<1>) -> !quake.measurements<1>
+// CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_2]] : (!quake.veq<1>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 // clang-format on
@@ -79,7 +79,7 @@ struct ArithmeticTupleQernelWithUse {
 // CHECK:             %[[VAL_15:.*]] = arith.addi %[[VAL_14]], %[[VAL_1]] : i64
 // CHECK:             cc.continue %[[VAL_15]] : i64
 // CHECK:           } {invariant}
-// CHECK:           %[[VAL_16:.*]] = quake.mz %[[VAL_7]] : (!quake.veq<?>) -> !quake.measurements<?>
+// CHECK:           %[[VAL_16:.*]] = quake.mz %[[VAL_7]] : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 // clang-format on
@@ -117,7 +117,7 @@ struct ArithmeticTupleQernelWithUse0 {
 // CHECK:             %[[VAL_15:.*]] = arith.addi %[[VAL_14]], %[[VAL_1]] : i64
 // CHECK:             cc.continue %[[VAL_15]] : i64
 // CHECK:           } {invariant}
-// CHECK:           %[[VAL_16:.*]] = quake.mz %[[VAL_7]] : (!quake.veq<?>) -> !quake.measurements<?>
+// CHECK:           %[[VAL_16:.*]] = quake.mz %[[VAL_7]] : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 // clang-format on
@@ -138,7 +138,7 @@ struct ArithmeticPairQernelWithUse {
 // CHECK:           %[[VAL_3:.*]] = cc.load %[[VAL_2]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_4:.*]] = cc.cast signed %[[VAL_3]] : (i32) -> i64
 // CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.veq<?>[%[[VAL_4]] : i64]
-// CHECK:           %[[VAL_6:.*]] = quake.mz %[[VAL_5]] : (!quake.veq<?>) -> !quake.measurements<?>
+// CHECK:           %[[VAL_6:.*]] = quake.mz %[[VAL_5]] : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 // clang-format on

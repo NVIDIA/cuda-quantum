@@ -1144,7 +1144,11 @@ public:
         loc, cudaq::opt::getResultType(context), symbolRef, ValueRange{args});
     if (regName)
       callOp->setAttr("registerName", regName);
-    rewriter.replaceOp(measure, callOp.getResult());
+    auto i1Ty = rewriter.getI1Type();
+    auto i1PtrTy = LLVM::LLVMPointerType::get(i1Ty);
+    auto cast =
+        rewriter.create<LLVM::BitcastOp>(loc, i1PtrTy, callOp.getResult());
+    rewriter.replaceOpWithNewOp<LLVM::LoadOp>(measure, i1Ty, cast);
 
     return success();
   }
@@ -1170,28 +1174,6 @@ public:
                                            symbolRef, adaptor.getOperands());
     vecsize->getResult(0).replaceAllUsesWith(c->getResult(0));
     rewriter.eraseOp(vecsize);
-    return success();
-  }
-};
-
-class GetMeasurementsSizeOpRewrite
-    : public OpConversionPattern<quake::MeasurementsSizeOp> {
-public:
-  using OpConversionPattern::OpConversionPattern;
-
-  LogicalResult
-  matchAndRewrite(quake::MeasurementsSizeOp msize, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-    auto parentModule = msize->getParentOfType<ModuleOp>();
-    auto context = parentModule->getContext();
-    auto qFunctionName = cudaq::opt::QIRArrayGetSize;
-
-    auto symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
-        qFunctionName, rewriter.getI64Type(),
-        {cudaq::opt::getArrayType(context)}, parentModule);
-
-    rewriter.replaceOpWithNewOp<LLVM::CallOp>(msize, rewriter.getI64Type(),
-                                              symbolRef, adaptor.getOperands());
     return success();
   }
 };
@@ -1429,8 +1411,9 @@ void cudaq::opt::populateQuakeToLLVMPatterns(LLVMTypeConverter &typeConverter,
                                              unsigned &measureCounter) {
   auto *context = patterns.getContext();
   cudaq::opt::populateQuakeToCCPrepPatterns(patterns);
-  patterns.insert<GetMeasurementsSizeOpRewrite, GetVeqSizeOpRewrite,
-                  RemoveRelaxSizeRewrite, ReturnBitRewrite>(context);
+  patterns
+      .insert<GetVeqSizeOpRewrite, RemoveRelaxSizeRewrite, ReturnBitRewrite>(
+          context);
   patterns
       .insert<AllocaOpRewrite, ConcatOpRewrite, CustomUnitaryOpRewrite,
               DeallocOpRewrite, DiscriminateOpPattern, ExtractQubitOpRewrite,

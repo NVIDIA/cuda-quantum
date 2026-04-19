@@ -32,10 +32,8 @@ struct bell {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__bell(
 // CHECK-SAME:      %[[VAL_0:.*]]: i32) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK-DAG:       %[[VAL_C1I64:.*]] = arith.constant 1 : i64
-// CHECK-DAG:       %[[VAL_C0I64:.*]] = arith.constant 0 : i64
-// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i32
-// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i32
+// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i32
+// CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_3:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<2>
@@ -50,31 +48,33 @@ struct bell {
 // CHECK:               %[[VAL_9:.*]] = arith.cmpi slt, %[[VAL_7]], %[[VAL_8]] : i32
 // CHECK:               cc.condition %[[VAL_9]]
 // CHECK:             } do {
-// CHECK:               cc.scope {
-// CHECK:                 %[[VAL_10:.*]] = quake.extract_ref %[[VAL_4]][0] : (!quake.veq<2>) -> !quake.ref
-// CHECK:                 quake.h %[[VAL_10]] : (!quake.ref) -> ()
-// CHECK:                 %[[VAL_11:.*]] = quake.extract_ref %[[VAL_4]][1] : (!quake.veq<2>) -> !quake.ref
-// CHECK:                 quake.x {{\[}}%[[VAL_10]]] %[[VAL_11]] : (!quake.ref, !quake.ref) -> ()
-// CHECK:                 %[[VAL_12:.*]] = quake.mz %[[VAL_4]] name "results" : (!quake.veq<2>) -> !quake.measurements<2>
-// CHECK:                 %[[VAL_13:.*]] = quake.get_measure %[[VAL_12]][%[[VAL_C0I64]]] : (!quake.measurements<2>, i64) -> !quake.measure
-// CHECK:                 %[[VAL_14:.*]] = quake.discriminate %[[VAL_13]] : (!quake.measure) -> i1
-// CHECK:                 %[[VAL_15:.*]] = cc.alloca i1
-// CHECK:                 cc.store %[[VAL_14]], %[[VAL_15]] : !cc.ptr<i1>
-// CHECK:                 %[[VAL_16:.*]] = cc.load %[[VAL_15]] : !cc.ptr<i1>
-// CHECK:                 %[[VAL_17:.*]] = quake.get_measure %[[VAL_12]][%[[VAL_C1I64]]] : (!quake.measurements<2>, i64) -> !quake.measure
-// CHECK:                 %[[VAL_18:.*]] = quake.discriminate %[[VAL_17]] : (!quake.measure) -> i1
-// CHECK:                 %[[VAL_19:.*]] = arith.cmpi eq, %[[VAL_16]], %[[VAL_18]] : i1
-// CHECK:                 cc.if(%[[VAL_19]]) {
-// CHECK:                   %[[VAL_20:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
-// CHECK:                   %[[VAL_21:.*]] = arith.addi %[[VAL_20]], %[[VAL_1]] : i32
-// CHECK:                   cc.store %[[VAL_21]], %[[VAL_5]] : !cc.ptr<i32>
-// CHECK:                 }
+// CHECK:               %[[VAL_10:.*]] = quake.extract_ref %[[VAL_4]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:               quake.h %[[VAL_10]] : (!quake.ref) -> ()
+// CHECK:               %[[VAL_11:.*]] = quake.extract_ref %[[VAL_4]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:               quake.x {{\[}}%[[VAL_10]]] %[[VAL_11]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:               %[[VAL_112:.*]] = quake.mz %[[VAL_4]] name "results" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+// CHECK:               %[[VAL_12:.*]] = quake.discriminate %[[VAL_112]] :
+// CHECK:               %[[VAL_13:.*]] = cc.stdvec_data %[[VAL_12]] : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
+// CHECK:               %[[VAL_14:.*]] = cc.cast %[[VAL_13]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+// CHECK:               %[[VAL_15:.*]] = cc.load %[[VAL_14]] : !cc.ptr<i8>
+// CHECK:               %[[VAL_35:.*]] = cc.cast %[[VAL_15]] : (i8) -> i1
+// CHECK:               %[[VAL_16:.*]] = cc.alloca i1
+// CHECK:               cc.store %[[VAL_35]], %[[VAL_16]] : !cc.ptr<i1>
+// CHECK:               %[[VAL_17:.*]] = cc.load %[[VAL_16]] : !cc.ptr<i1>
+// CHECK:               %[[VAL_18:.*]] = cc.compute_ptr %[[VAL_13]][1] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+// CHECK:               %[[VAL_19:.*]] = cc.load %[[VAL_18]] : !cc.ptr<i8>
+// CHECK:               %[[VAL_39:.*]] = cc.cast %[[VAL_19]] : (i8) -> i1
+// CHECK:               %[[VAL_20:.*]] = arith.cmpi eq, %[[VAL_17]], %[[VAL_39]] : i1
+// CHECK:               cc.if(%[[VAL_20]]) {
+// CHECK:                 %[[VAL_21:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
+// CHECK:                 %[[VAL_22:.*]] = arith.addi %[[VAL_21]], %[[VAL_1]] : i32
+// CHECK:                 cc.store %[[VAL_22]], %[[VAL_5]] : !cc.ptr<i32>
 // CHECK:               }
 // CHECK:               cc.continue
 // CHECK:             } step {
-// CHECK:               %[[VAL_22:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i32>
-// CHECK:               %[[VAL_23:.*]] = arith.addi %[[VAL_22]], %[[VAL_1]] : i32
-// CHECK:               cc.store %[[VAL_23]], %[[VAL_6]] : !cc.ptr<i32>
+// CHECK:               %[[VAL_23:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i32>
+// CHECK:               %[[VAL_24:.*]] = arith.addi %[[VAL_23]], %[[VAL_1]] : i32
+// CHECK:               cc.store %[[VAL_24]], %[[VAL_6]] : !cc.ptr<i32>
 // CHECK:             }
 // CHECK:           }
 // CHECK:           return
@@ -99,10 +99,8 @@ struct libertybell {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__libertybell(
 // CHECK-SAME:      %[[VAL_0:.*]]: i32) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK-DAG:       %[[VAL_C1I64:.*]] = arith.constant 1 : i64
-// CHECK-DAG:       %[[VAL_C0I64:.*]] = arith.constant 0 : i64
-// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i32
-// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i32
+// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i32
+// CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_3:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<2>
@@ -121,22 +119,24 @@ struct libertybell {
 // CHECK:               quake.h %[[VAL_10]] : (!quake.ref) -> ()
 // CHECK:               %[[VAL_11:.*]] = quake.extract_ref %[[VAL_4]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:               quake.x {{\[}}%[[VAL_10]]] %[[VAL_11]] : (!quake.ref, !quake.ref) -> ()
-// CHECK:               %[[VAL_12:.*]] = quake.mz %[[VAL_4]] name "results" : (!quake.veq<2>) -> !quake.measurements<2>
-// CHECK:               %[[VAL_13:.*]] = quake.get_measure %[[VAL_12]][%[[VAL_C0I64]]] : (!quake.measurements<2>, i64) -> !quake.measure
-// CHECK:               %[[VAL_14:.*]] = quake.get_measure %[[VAL_12]][%[[VAL_C1I64]]] : (!quake.measurements<2>, i64) -> !quake.measure
-// CHECK:               %[[VAL_15:.*]] = quake.discriminate %[[VAL_13]] : (!quake.measure) -> i1
-// CHECK:               %[[VAL_16:.*]] = quake.discriminate %[[VAL_14]] : (!quake.measure) -> i1
-// CHECK:               %[[VAL_17:.*]] = arith.cmpi eq, %[[VAL_15]], %[[VAL_16]] : i1
-// CHECK:               cc.if(%[[VAL_17]]) {
-// CHECK:                 %[[VAL_18:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
-// CHECK:                 %[[VAL_19:.*]] = arith.addi %[[VAL_18]], %[[VAL_1]] : i32
-// CHECK:                 cc.store %[[VAL_19]], %[[VAL_5]] : !cc.ptr<i32>
+// CHECK:               %[[VAL_112:.*]] = quake.mz %[[VAL_4]] name "results" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+// CHECK:               %[[VAL_12:.*]] = quake.discriminate %[[VAL_112]] :
+// CHECK:               %[[VAL_13:.*]] = cc.stdvec_data %[[VAL_12]] : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
+// CHECK:               %[[VAL_14:.*]] = cc.cast %[[VAL_13]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+// CHECK-DAG:           %[[VAL_15:.*]] = cc.compute_ptr %[[VAL_13]][1] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+// CHECK-DAG:           %[[VAL_16:.*]] = cc.load %[[VAL_15]] : !cc.ptr<i8>
+// CHECK-DAG:           %[[VAL_17:.*]] = cc.load %[[VAL_14]] : !cc.ptr<i8>
+// CHECK:               %[[VAL_18:.*]] = arith.cmpi eq, %[[VAL_17]], %[[VAL_16]] : i8
+// CHECK:               cc.if(%[[VAL_18]]) {
+// CHECK:                 %[[VAL_19:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
+// CHECK:                 %[[VAL_20:.*]] = arith.addi %[[VAL_19]], %[[VAL_1]] : i32
+// CHECK:                 cc.store %[[VAL_20]], %[[VAL_5]] : !cc.ptr<i32>
 // CHECK:               }
 // CHECK:               cc.continue
 // CHECK:             } step {
-// CHECK:               %[[VAL_20:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i32>
-// CHECK:               %[[VAL_21:.*]] = arith.addi %[[VAL_20]], %[[VAL_1]] : i32
-// CHECK:               cc.store %[[VAL_21]], %[[VAL_6]] : !cc.ptr<i32>
+// CHECK:               %[[VAL_21:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i32>
+// CHECK:               %[[VAL_22:.*]] = arith.addi %[[VAL_21]], %[[VAL_1]] : i32
+// CHECK:               cc.store %[[VAL_22]], %[[VAL_6]] : !cc.ptr<i32>
 // CHECK:             }
 // CHECK:           }
 // CHECK:           return
@@ -163,10 +163,8 @@ struct tinkerbell {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__tinkerbell(
 // CHECK-SAME:      %[[VAL_0:.*]]: i32) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-// CHECK-DAG:       %[[VAL_C1I64:.*]] = arith.constant 1 : i64
-// CHECK-DAG:       %[[VAL_C0I64:.*]] = arith.constant 0 : i64
-// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i32
-// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i32
+// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i32
+// CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_3:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_3]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<2>
@@ -185,22 +183,24 @@ struct tinkerbell {
 // CHECK:               quake.h %[[VAL_10]] : (!quake.ref) -> ()
 // CHECK:               %[[VAL_11:.*]] = quake.extract_ref %[[VAL_4]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:               quake.x {{\[}}%[[VAL_10]]] %[[VAL_11]] : (!quake.ref, !quake.ref) -> ()
-// CHECK:               %[[VAL_12:.*]] = quake.mz %[[VAL_4]] name "results" : (!quake.veq<2>) -> !quake.measurements<2>
-// CHECK:               %[[VAL_13:.*]] = quake.get_measure %[[VAL_12]][%[[VAL_C0I64]]] : (!quake.measurements<2>, i64) -> !quake.measure
-// CHECK:               %[[VAL_14:.*]] = quake.get_measure %[[VAL_12]][%[[VAL_C1I64]]] : (!quake.measurements<2>, i64) -> !quake.measure
-// CHECK:               %[[VAL_15:.*]] = quake.discriminate %[[VAL_13]] : (!quake.measure) -> i1
-// CHECK:               %[[VAL_16:.*]] = quake.discriminate %[[VAL_14]] : (!quake.measure) -> i1
-// CHECK:               %[[VAL_17:.*]] = arith.cmpi eq, %[[VAL_15]], %[[VAL_16]] : i1
-// CHECK:               cc.if(%[[VAL_17]]) {
-// CHECK:                 %[[VAL_18:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
-// CHECK:                 %[[VAL_19:.*]] = arith.addi %[[VAL_18]], %[[VAL_1]] : i32
-// CHECK:                 cc.store %[[VAL_19]], %[[VAL_5]] : !cc.ptr<i32>
+// CHECK:               %[[VAL_112:.*]] = quake.mz %[[VAL_4]] name "results" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+// CHECK:               %[[VAL_12:.*]] = quake.discriminate %[[VAL_112]] :
+// CHECK:               %[[VAL_13:.*]] = cc.stdvec_data %[[VAL_12]] : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
+// CHECK:               %[[VAL_14:.*]] = cc.cast %[[VAL_13]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+// CHECK-DAG:           %[[VAL_15:.*]] = cc.compute_ptr %[[VAL_13]][1] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+// CHECK-DAG:           %[[VAL_16:.*]] = cc.load %[[VAL_15]] : !cc.ptr<i8>
+// CHECK-DAG:           %[[VAL_17:.*]] = cc.load %[[VAL_14]] : !cc.ptr<i8>
+// CHECK:               %[[VAL_18:.*]] = arith.cmpi eq, %[[VAL_17]], %[[VAL_16]] : i8
+// CHECK:               cc.if(%[[VAL_18]]) {
+// CHECK:                 %[[VAL_19:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
+// CHECK:                 %[[VAL_20:.*]] = arith.addi %[[VAL_19]], %[[VAL_1]] : i32
+// CHECK:                 cc.store %[[VAL_20]], %[[VAL_5]] : !cc.ptr<i32>
 // CHECK:               }
 // CHECK:               cc.continue
 // CHECK:             } step {
-// CHECK:               %[[VAL_20:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i32>
-// CHECK:               %[[VAL_21:.*]] = arith.addi %[[VAL_20]], %[[VAL_1]] : i32
-// CHECK:               cc.store %[[VAL_21]], %[[VAL_6]] : !cc.ptr<i32>
+// CHECK:               %[[VAL_21:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i32>
+// CHECK:               %[[VAL_22:.*]] = arith.addi %[[VAL_21]], %[[VAL_1]] : i32
+// CHECK:               cc.store %[[VAL_22]], %[[VAL_6]] : !cc.ptr<i32>
 // CHECK:             }
 // CHECK:           }
 // CHECK:           return

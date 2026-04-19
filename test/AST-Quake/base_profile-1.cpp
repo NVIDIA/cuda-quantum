@@ -89,13 +89,6 @@ struct comprehensive {
   }
 };
 
-struct adapt_mz_read {
-  bool operator()() __qpu__ {
-    cudaq::qubit q;
-    return static_cast<bool>(mz(q));
-  }
-};
-
 // clang-format off
 
 // BASE-LABEL: define void @__nvqpp__mlirgen__comprehensive()
@@ -175,7 +168,6 @@ struct adapt_mz_read {
 // ADAPT:         tail call void @__quantum__qis__z__body(%Qubit* nonnull inttoptr (i64 4 to %Qubit*))
 // ADAPT:         tail call void @__quantum__qis__z__body(%Qubit* nonnull inttoptr (i64 5 to %Qubit*))
 // ADAPT:         tail call void @__quantum__qis__z__body(%Qubit* nonnull inttoptr (i64 6 to %Qubit*))
-// ADAPT:         tail call void @__quantum__qis__cz__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*), %Qubit* nonnull inttoptr (i64 4 to %Qubit*))
 // ADAPT:         tail call void @__quantum__qis__t__body(%Qubit* null)
 // ADAPT:         tail call void @__quantum__qis__t__body(%Qubit* nonnull inttoptr (i64 4 to %Qubit*))
 // ADAPT:         tail call void @__quantum__qis__t__body(%Qubit* nonnull inttoptr (i64 5 to %Qubit*))
@@ -201,29 +193,26 @@ struct adapt_mz_read {
 // ADAPT:         tail call void @__quantum__qis__swap__body(%Qubit* null, %Qubit* nonnull inttoptr (i64 6 to %Qubit*))
 // ADAPT:         tail call void @__quantum__qis__u3__body(double 8.000000e-01, double 5.000000e-01, double -1.000000e+00, %Qubit* nonnull inttoptr (i64 3 to %Qubit*))
 // ADAPT:         tail call void @__quantum__qis__mz__body(%Qubit* null, %Result* null)
-// ADAPT:         tail call void @__quantum__rt__array_record_output(i64 7, i8* nonnull getelementptr inbounds ([14 x i8], [14 x i8]* @cstr.61727261793C6931207820373E00, i64 0, i64 0))
 // ADAPT:         tail call void @__quantum__rt__result_record_output(%Result* null, i8* nonnull getelementptr inbounds ([10 x i8], [10 x i8]* @cstr.73696E676C65746F6E00, i64 0, i64 0))
 // ADAPT:         tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Result* nonnull inttoptr (i64 1 to %Result*))
 // ADAPT:         tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 1 to %Result*), i8* nonnull getelementptr inbounds ([5 x i8], [5 x i8]* @cstr.65696E7300, i64 0, i64 0))
+// ADAPT:         %[[VAL_2:.*]] = tail call i1 @__quantum__qis__read_result__body(%Result* nonnull inttoptr (i64 1 to %Result*))
 // ADAPT:         tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*), %Result* nonnull inttoptr (i64 2 to %Result*))
 // ADAPT:         tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 2 to %Result*), i8* nonnull getelementptr inbounds ([4 x i8], [4 x i8]* @cstr.64756200, i64 0, i64 0))
+// ADAPT:         %[[VAL_3:.*]] = tail call i1 @__quantum__qis__read_result__body(%Result* nonnull inttoptr (i64 2 to %Result*))
 // ADAPT:         tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 3 to %Qubit*), %Result* nonnull inttoptr (i64 3 to %Result*))
 // ADAPT:         tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 3 to %Result*), i8* nonnull getelementptr inbounds ([4 x i8], [4 x i8]* @cstr.64756200, i64 0, i64 0))
+// ADAPT:         %[[VAL_4:.*]] = tail call i1 @__quantum__qis__read_result__body(%Result* nonnull inttoptr (i64 3 to %Result*))
 // ADAPT:         tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 4 to %Qubit*), %Result* nonnull inttoptr (i64 4 to %Result*))
 // ADAPT:         tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 4 to %Result*), i8* nonnull getelementptr inbounds ([5 x i8], [5 x i8]* @cstr.7472697000, i64 0, i64 0))
+// ADAPT:         %[[VAL_5:.*]] = tail call i1 @__quantum__qis__read_result__body(%Result* nonnull inttoptr (i64 4 to %Result*))
 // ADAPT:         tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 5 to %Qubit*), %Result* nonnull inttoptr (i64 5 to %Result*))
 // ADAPT:         tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 5 to %Result*), i8* nonnull getelementptr inbounds ([5 x i8], [5 x i8]* @cstr.7472697000, i64 0, i64 0))
+// ADAPT:         %[[VAL_6:.*]] = tail call i1 @__quantum__qis__read_result__body(%Result* nonnull inttoptr (i64 5 to %Result*))
 // ADAPT:         tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 6 to %Qubit*), %Result* nonnull inttoptr (i64 6 to %Result*))
 // ADAPT:         tail call void @__quantum__rt__result_record_output(%Result* nonnull inttoptr (i64 6 to %Result*), i8* nonnull getelementptr inbounds ([5 x i8], [5 x i8]* @cstr.7472697000, i64 0, i64 0))
+// ADAPT:         %[[VAL_7:.*]] = tail call i1 @__quantum__qis__read_result__body(%Result* nonnull inttoptr (i64 6 to %Result*))
 // ADAPT:         ret void
-// ADAPT:       }
-
-// ADAPT-LABEL: define i1 @__nvqpp__mlirgen__adapt_mz_read()
-// ADAPT:         tail call void @__quantum__qis__mz__body(%[[VAL_2:.*]]* null, %[[VAL_3:.*]]* null)
-// ADAPT:         tail call void @__quantum__rt__array_record_output(i64 1, i8* nonnull getelementptr inbounds ([14 x i8], [14 x i8]* @cstr.{{.*}}, i64 0, i64 0))
-// ADAPT:         tail call void @__quantum__rt__result_record_output(%[[VAL_3]]* null, i8* nonnull getelementptr inbounds ([7 x i8], [7 x i8]* @cstr.{{.*}}, i64 0, i64 0))
-// ADAPT:         %[[VAL_4:.*]] = tail call i1 @__quantum__qis__read_result__body(%[[VAL_3]]* null)
-// ADAPT:         ret i1 %[[VAL_4]]
 // ADAPT:       }
 
 // FULL-LABEL: define void @__nvqpp__mlirgen__comprehensive()
