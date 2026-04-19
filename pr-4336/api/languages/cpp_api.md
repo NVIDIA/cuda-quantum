@@ -8711,18 +8711,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1ExecutionContext_1af54ccb097a1610d9a8fe207d1b855188 .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[deferSamplingFlush]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq16ExecutionContext18deferSamplingFlushE "Permalink to this definition"){.headerlink}\
-
-    :   When true, suppress mid-circuit sampling flushes. Used by
-        measurement basis-change operations ([`mx`{.docutils .literal
-        .notranslate}]{.pre}/[`my`{.docutils .literal
-        .notranslate}]{.pre}) to prevent their internal gate
-        decomposition from prematurely flushing the sample qubit buffer.
-
-    ```{=html}
-    <!-- -->
-    ```
-
     []{#classcudaq_1_1ExecutionContext_1aae5795038c44595b2af0b3297b2ef7c7 .target}[[const]{.pre}]{.k}[ ]{.w}[[[noise_model]{.pre}]{.n}](#_CPPv4N5cudaq11noise_modelE "cudaq::noise_model"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[[noiseModel]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[nullptr]{.pre}]{.k}[¶](#_CPPv4N5cudaq16ExecutionContext10noiseModelE "Permalink to this definition"){.headerlink}\
 
     :   Noise model to apply to the current execution.
