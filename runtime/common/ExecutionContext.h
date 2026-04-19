@@ -63,11 +63,6 @@ public:
   /// statements on measure results.
   bool hasConditionalsOnMeasureResults = false;
 
-  /// @brief When true, suppress mid-circuit sampling flushes. Used by
-  /// measurement basis-change operations (`mx`/`my`) to prevent their internal
-  /// gate decomposition from prematurely flushing the sample qubit buffer.
-  bool deferSamplingFlush = false;
-
   /// @brief Noise model to apply to the current execution.
   const noise_model *noiseModel = nullptr;
 
