@@ -83,34 +83,34 @@ int main() {
 // qubits appears before `quake.create_state`, i.e., `createStateFromData` call
 // while the simulator already owns live qubits.
 
+// The mangled suffix after the dot is compiler-dependent (GCC vs Clang libc++),
+// so the LABEL stops at the common prefix.
 // clang-format off
-// MLIR-LABEL:   func.func @__nvqpp__mlirgen__function_test_single_then_state._Z22test_single_then_stateSt6vectorISt7complexIdESaIS1_EE(
-// MLIR-SAME:                                                                                                                           %[[VAL_0:.*]]: !cc.stdvec<complex<f64>>) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-// MLIR:           %[[VAL_1:.*]] = quake.alloca !quake.ref
-// MLIR:           %[[VAL_2:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<complex<f64>>) -> !cc.ptr<complex<f64>>
-// MLIR:           %[[VAL_3:.*]] = cc.stdvec_size %[[VAL_0]] : (!cc.stdvec<complex<f64>>) -> i64
-// MLIR:           %[[VAL_4:.*]] = quake.create_state %[[VAL_2]], %[[VAL_3]] : (!cc.ptr<complex<f64>>, i64) -> !cc.ptr<!quake.state>
-// MLIR:           %[[VAL_5:.*]] = quake.get_number_of_qubits %[[VAL_4]] : (!cc.ptr<!quake.state>) -> i64
-// MLIR:           %[[VAL_6:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_5]] : i64]
-// MLIR:           %[[VAL_7:.*]] = quake.init_state %[[VAL_6]], %[[VAL_4]] : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
-// MLIR:           quake.delete_state %[[VAL_4]] : !cc.ptr<!quake.state>
-// MLIR:           %[[VAL_8:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> !quake.measure
-// MLIR:           %[[VAL_9:.*]] = quake.mz %[[VAL_7]] : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
-// MLIR:           return
-// MLIR:         }
+// MLIR-LABEL: func.func @__nvqpp__mlirgen__function_test_single_then_state.
+// MLIR:         %[[VAL_1:.*]] = quake.alloca !quake.ref
+// MLIR:         %[[VAL_2:.*]] = cc.stdvec_data %[[VAL_0:.*]] : (!cc.stdvec<complex<f64>>) -> !cc.ptr<complex<f64>>
+// MLIR:         %[[VAL_3:.*]] = cc.stdvec_size %[[VAL_0]] : (!cc.stdvec<complex<f64>>) -> i64
+// MLIR:         %[[VAL_4:.*]] = quake.create_state %[[VAL_2]], %[[VAL_3]] : (!cc.ptr<complex<f64>>, i64) -> !cc.ptr<!quake.state>
+// MLIR:         %[[VAL_5:.*]] = quake.get_number_of_qubits %[[VAL_4]] : (!cc.ptr<!quake.state>) -> i64
+// MLIR:         %[[VAL_6:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_5]] : i64]
+// MLIR:         %[[VAL_7:.*]] = quake.init_state %[[VAL_6]], %[[VAL_4]] : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
+// MLIR:         quake.delete_state %[[VAL_4]] : !cc.ptr<!quake.state>
+// MLIR:         %[[VAL_8:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> !quake.measure
+// MLIR:         %[[VAL_9:.*]] = quake.mz %[[VAL_7]] : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
+// MLIR:         return
+// MLIR:       }
 
-// MLIR-LABEL:   func.func @__nvqpp__mlirgen__function_test_multi_then_state._Z21test_multi_then_stateSt6vectorISt7complexIdESaIS1_EE(
-// MLIR-SAME:                                                                                                                         %[[VAL_0:.*]]: !cc.stdvec<complex<f64>>) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-// MLIR:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
-// MLIR:           %[[VAL_2:.*]] = cc.stdvec_data %[[VAL_0]] : (!cc.stdvec<complex<f64>>) -> !cc.ptr<complex<f64>>
-// MLIR:           %[[VAL_3:.*]] = cc.stdvec_size %[[VAL_0]] : (!cc.stdvec<complex<f64>>) -> i64
-// MLIR:           %[[VAL_4:.*]] = quake.create_state %[[VAL_2]], %[[VAL_3]] : (!cc.ptr<complex<f64>>, i64) -> !cc.ptr<!quake.state>
-// MLIR:           %[[VAL_5:.*]] = quake.get_number_of_qubits %[[VAL_4]] : (!cc.ptr<!quake.state>) -> i64
-// MLIR:           %[[VAL_6:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_5]] : i64]
-// MLIR:           %[[VAL_7:.*]] = quake.init_state %[[VAL_6]], %[[VAL_4]] : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
-// MLIR:           quake.delete_state %[[VAL_4]] : !cc.ptr<!quake.state>
-// MLIR:           %[[VAL_8:.*]] = quake.mz %[[VAL_1]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
-// MLIR:           %[[VAL_9:.*]] = quake.mz %[[VAL_7]] : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
-// MLIR:           return
-// MLIR:         }
+// MLIR-LABEL: func.func @__nvqpp__mlirgen__function_test_multi_then_state.
+// MLIR:         %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
+// MLIR:         %[[VAL_2:.*]] = cc.stdvec_data %[[VAL_0:.*]] : (!cc.stdvec<complex<f64>>) -> !cc.ptr<complex<f64>>
+// MLIR:         %[[VAL_3:.*]] = cc.stdvec_size %[[VAL_0]] : (!cc.stdvec<complex<f64>>) -> i64
+// MLIR:         %[[VAL_4:.*]] = quake.create_state %[[VAL_2]], %[[VAL_3]] : (!cc.ptr<complex<f64>>, i64) -> !cc.ptr<!quake.state>
+// MLIR:         %[[VAL_5:.*]] = quake.get_number_of_qubits %[[VAL_4]] : (!cc.ptr<!quake.state>) -> i64
+// MLIR:         %[[VAL_6:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_5]] : i64]
+// MLIR:         %[[VAL_7:.*]] = quake.init_state %[[VAL_6]], %[[VAL_4]] : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
+// MLIR:         quake.delete_state %[[VAL_4]] : !cc.ptr<!quake.state>
+// MLIR:         %[[VAL_8:.*]] = quake.mz %[[VAL_1]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+// MLIR:         %[[VAL_9:.*]] = quake.mz %[[VAL_7]] : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
+// MLIR:         return
+// MLIR:       }
 // clang-format on
