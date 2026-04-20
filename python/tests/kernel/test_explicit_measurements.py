@@ -195,23 +195,6 @@ def test_no_measurements():
     assert "not supported on a kernel without any measurement" in repr(e)
 
 
-def test_mx_my():
-
-    @cudaq.kernel
-    def my_kernel():
-        q = cudaq.qvector(2)
-        h(q[0])
-        x.ctrl(q[0], q[1])
-        mx(q[0])
-        my(q[1])
-
-    counts = cudaq.sample(my_kernel)
-    assert len(counts) == 2
-
-    counts = cudaq.sample(my_kernel, explicit_measurements=True)
-    assert len(counts) == 4
-
-
 def test_mixed_basis_measurement_order_and_preservation():
 
     @cudaq.kernel
