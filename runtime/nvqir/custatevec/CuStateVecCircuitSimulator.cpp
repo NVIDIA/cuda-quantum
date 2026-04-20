@@ -750,8 +750,10 @@ public:
                                                           deviceStateVector);
   }
 
-  std::unique_ptr<cudaq::SimulationState> createSimulationState() override {
-    return std::make_unique<cudaq::CusvState<ScalarType>>(0, nullptr);
+  std::unique_ptr<cudaq::SimulationState>
+  createStateFromData(const cudaq::state_data &data) override {
+    return std::make_unique<cudaq::CusvState<ScalarType>>(0, nullptr)
+        ->createFromData(data);
   }
 
   bool isStateVectorSimulator() const override { return true; }

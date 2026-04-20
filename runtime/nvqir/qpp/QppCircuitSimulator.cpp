@@ -407,8 +407,9 @@ public:
     return std::make_unique<QppState>(std::move(state));
   }
 
-  std::unique_ptr<cudaq::SimulationState> createSimulationState() override {
-    return std::make_unique<QppState>(qpp::ket{});
+  std::unique_ptr<cudaq::SimulationState>
+  createStateFromData(const cudaq::state_data &data) override {
+    return std::make_unique<QppState>(qpp::ket{})->createFromData(data);
   }
 
   bool isStateVectorSimulator() const override {

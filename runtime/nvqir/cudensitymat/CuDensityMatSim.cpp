@@ -128,8 +128,9 @@ public:
     return std::make_unique<cudaq::CuDensityMatState>();
   }
 
-  std::unique_ptr<cudaq::SimulationState> createSimulationState() override {
-    return std::make_unique<cudaq::CuDensityMatState>();
+  std::unique_ptr<cudaq::SimulationState>
+  createStateFromData(const cudaq::state_data &data) override {
+    return std::make_unique<cudaq::CuDensityMatState>()->createFromData(data);
   }
 
   void finalizeExecutionContext(cudaq::ExecutionContext &context) override {

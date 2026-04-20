@@ -611,7 +611,8 @@ public:
 
   std::string name() const override { return "stim"; }
 
-  std::unique_ptr<cudaq::SimulationState> createSimulationState() override {
+  std::unique_ptr<cudaq::SimulationState>
+  createStateFromData(const cudaq::state_data &) override {
     throw std::runtime_error(
         "Simulation data not available for the stim simulator backend.");
   }

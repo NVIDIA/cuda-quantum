@@ -461,10 +461,12 @@ public:
         m_cutnHandle, m_randomEngine);
   }
 
-  std::unique_ptr<cudaq::SimulationState> createSimulationState() override {
+  std::unique_ptr<cudaq::SimulationState>
+  createStateFromData(const cudaq::state_data &data) override {
     return std::make_unique<MPSSimulationState<ScalarType>>(
-        nullptr, std::vector<MPSTensor>{}, scratchPad, m_cutnHandle,
-        m_randomEngine);
+               nullptr, std::vector<MPSTensor>{}, scratchPad, m_cutnHandle,
+               m_randomEngine)
+        ->createFromData(data);
   }
 
   bool requireCacheWorkspace() const override { return false; }

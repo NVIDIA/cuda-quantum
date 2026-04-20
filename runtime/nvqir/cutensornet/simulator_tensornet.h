@@ -86,9 +86,11 @@ public:
         std::move(m_state), scratchPad, m_cutnHandle, m_randomEngine);
   }
 
-  std::unique_ptr<cudaq::SimulationState> createSimulationState() override {
+  std::unique_ptr<cudaq::SimulationState>
+  createStateFromData(const cudaq::state_data &data) override {
     return std::make_unique<TensorNetSimulationState<ScalarType>>(
-        nullptr, scratchPad, m_cutnHandle, m_randomEngine);
+               nullptr, scratchPad, m_cutnHandle, m_randomEngine)
+        ->createFromData(data);
   }
 
   void addQubitsToState(std::size_t numQubits, const void *ptr) override {
