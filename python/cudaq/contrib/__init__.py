@@ -7,4 +7,4 @@
 # ============================================================================ #
 
 from .qiskit_convert import from_qiskit
-from .qasm_convert import from_qasm
+from .qasm_convert import from_qasm, from_qasm_str
