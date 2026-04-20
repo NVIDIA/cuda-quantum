@@ -8,6 +8,7 @@
 #pragma once
 
 #include "common/CompiledModule.h"
+#include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include <map>
 #include <memory>
 #include <string>
@@ -62,25 +63,14 @@ class Compiler {
   /// to be printed. This is similar to `-mlir-pass-statistics` in `cudaq-opt`
   bool enablePassStatistics = false;
 
-  /// @brief If we are emulating locally, keep track
-  /// of JIT engines for invoking the kernels.
-  std::vector<cudaq::JitEngine> jitEngines;
-
   /// @brief Flag indicating whether we should emulate execution locally.
   bool emulate = false;
 
   /// @brief Flag indicating whether we should print the IR.
   bool printIR = false;
 
-  std::vector<cudaq::KernelExecution>
-  lowerQuakeCodePart2(cudaq::ExecutionContext *executionContext,
-                      const std::string &kernelName, void *kernelArgs,
-                      const std::vector<void *> &rawArgs,
-                      mlir::ModuleOp m_module, mlir::MLIRContext *contextPtr,
-                      void *updatedArgs);
-
-  std::tuple<mlir::ModuleOp, std::unique_ptr<mlir::MLIRContext>, void *>
-  extractQuakeCodeAndContext(const std::string &kernelName, void *data);
+  std::pair<mlir::ModuleOp, std::unique_ptr<mlir::MLIRContext>>
+  extractQuakeCodeAndContext(const std::string &kernelName);
 
   mlir::ModuleOp lowerQuakeCodeBuildModule(const std::string &,
                                            mlir::ModuleOp module,
@@ -93,6 +83,27 @@ public:
            cudaq::config::TargetConfig &config,
            const cudaq::noise_model *noiseModel, bool emulate);
   ~Compiler();
+
+  /// @brief Compile the given module and return a `CompiledModule`.
+  ///
+  /// Performs argument synthesis, the full pass pipeline, and observation
+  /// splitting (for observe mode).
+  ///
+  /// If \p context is provided, `module.getContext() == context.get()` must
+  /// be true. In that case, the MLIR artifacts will keep a `shared_ptr` to
+  /// the context, guaranteeing it outlives the artifacts. Otherwise the
+  /// context lifetime must be managed by the caller.
+  cudaq::CompiledModule
+  runPassPipeline(cudaq::ExecutionContext *executionContext,
+                  const std::string &kernelName, mlir::ModuleOp module,
+                  const std::vector<void *> &rawArgs,
+                  void *kernelArgs = nullptr,
+                  std::shared_ptr<mlir::MLIRContext> context = nullptr);
+
+  /// @brief Emit target-specific code for each `MlirArtifact` in the
+  /// `CompiledModule` and produce `KernelExecution` objects.
+  std::vector<cudaq::KernelExecution>
+  emitKernelExecutions(const cudaq::CompiledModule &compiled);
 
   /// @brief Extract the Quake representation for the given kernel name and
   /// lower it to the code format required for the specific backend. The

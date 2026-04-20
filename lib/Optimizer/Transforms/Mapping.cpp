@@ -823,8 +823,6 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
           auto measureOp = builder.create<quake::MzOp>(
               finalQubitWire[i].getLoc(), TypeRange{measTy, wireTy},
               finalQubitWire[i]);
-          /// NOTE: Eagerly discriminate here since these are terminal
-          /// measurements and would need classical readout.
           builder.create<quake::DiscriminateOp>(finalQubitWire[i].getLoc(),
                                                 resTy, measureOp.getMeasOut());
 
