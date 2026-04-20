@@ -302,7 +302,7 @@ class PyKernelDecorator(object):
         for op in newMod.body:
             if isinstance(op, func.FuncOp):
                 for attr in op.attributes:
-                    if 'cudaq-entrypoint' == attr.name:
+                    if 'cudaq-entrypoint' == attr:
                         name = op.name.value.removeprefix(nvqppPrefix)
                         break
 
@@ -324,7 +324,7 @@ class PyKernelDecorator(object):
         for op in newMod.body:
             if isinstance(op, func.FuncOp):
                 for attr in op.attributes:
-                    if 'cudaq-entrypoint' == attr.name:
+                    if 'cudaq-entrypoint' == attr:
                         name = op.name.value.removeprefix(nvqppPrefix)
                         break
 
