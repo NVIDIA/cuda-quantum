@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "CompiledModule.h"
+#include <cstring>
 #include <memory>
 #include <stdexcept>
 
@@ -60,21 +61,31 @@ cudaq::KernelThunkResultType
 cudaq::CompiledModule::execute(const std::vector<void *> &rawArgs) const {
   auto &jit = getJit();
   auto funcPtr = jit.entryPoint;
-  if (resultInfo.hasResult()) {
-    void *buff = const_cast<void *>(rawArgs.back());
-    return reinterpret_cast<KernelThunkResultType (*)(void *, bool)>(funcPtr)(
-        buff, /*client_server=*/false);
-  }
   if (!isFullySpecialized()) {
+    // Pack args at runtime via argsCreator, then call the thunk.
     void *buff = nullptr;
     jit.argsCreator(static_cast<const void *>(rawArgs.data()), &buff);
     reinterpret_cast<KernelThunkResultType (*)(void *, bool)>(funcPtr)(
         buff, /*client_server=*/false);
+    // If the kernel has a result, copy it from the packed buffer into
+    // rawArgs.back() (where the caller expects to find it).
+    if (resultInfo.hasResult()) {
+      auto offset = jit.returnOffset();
+      std::memcpy(rawArgs.back(), static_cast<char *>(buff) + offset,
+                  resultInfo.bufferSize);
+    }
     std::free(buff);
     return {nullptr, 0};
   }
-
-  funcPtr();
+  if (resultInfo.hasResult()) {
+    // Fully specialized with result: rawArgs.back() is the pre-allocated
+    // result buffer; pass it directly to the thunk.
+    void *buff = const_cast<void *>(rawArgs.back());
+    return reinterpret_cast<KernelThunkResultType (*)(void *, bool)>(funcPtr)(
+        buff, /*client_server=*/false);
+  }
+  // Fully specialized, no result.
+  jit.entryPoint();
   return {nullptr, 0};
 }
 
@@ -99,4 +110,9 @@ void (*cudaq::CompiledModule::JitArtifact::getEntryPoint() const)() {
 
 cudaq::JitEngine cudaq::CompiledModule::JitArtifact::getEngine() const {
   return engine;
+}
+
+std::optional<cudaq::Resources>
+cudaq::CompiledModule::JitArtifact::getResourceCounts() const {
+  return resourceCounts;
 }

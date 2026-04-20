@@ -92,9 +92,8 @@ nlohmann::json formOutputNames(const std::string &codegenTranslation,
 }
 } // namespace
 
-std::tuple<mlir::ModuleOp, std::unique_ptr<mlir::MLIRContext>, void *>
-Compiler::extractQuakeCodeAndContext(const std::string &kernelName,
-                                     void *data) {
+std::pair<mlir::ModuleOp, std::unique_ptr<mlir::MLIRContext>>
+Compiler::extractQuakeCodeAndContext(const std::string &kernelName) {
   auto context = getOwningMLIRContext();
 
   // Get the quake representation of the kernel
@@ -103,7 +102,7 @@ Compiler::extractQuakeCodeAndContext(const std::string &kernelName,
   if (!m_module)
     throw std::runtime_error("module cannot be parsed");
 
-  return std::make_tuple(m_module.release(), std::move(context), data);
+  return std::make_pair(m_module.release(), std::move(context));
 }
 
 Compiler::Compiler(cudaq::ServerHelper *serverHelper,
@@ -225,10 +224,13 @@ Compiler::Compiler(cudaq::ServerHelper *serverHelper,
 
 Compiler::~Compiler() = default;
 
-std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
+cudaq::CompiledModule Compiler::runPassPipeline(
     cudaq::ExecutionContext *executionContext, const std::string &kernelName,
-    void *kernelArgs, const std::vector<void *> &rawArgs,
-    mlir::ModuleOp m_module, mlir::MLIRContext *contextPtr, void *updatedArgs) {
+    mlir::ModuleOp m_module, const std::vector<void *> &rawArgs,
+    void *kernelArgs, std::shared_ptr<mlir::MLIRContext> context) {
+  auto contextPtr = m_module.getContext();
+  assert(!context || context.get() == contextPtr);
+
   // Extract the kernel name
   auto origFn = m_module.template lookupSymbol<mlir::func::FuncOp>(
       std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
@@ -258,7 +260,7 @@ std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
   auto epFunc =
       moduleOp.template lookupSymbol<mlir::func::FuncOp>(origFn.getName());
   const bool isPython = moduleOp->hasAttr(cudaq::runtime::pythonUniqueAttrName);
-  if (!rawArgs.empty() || updatedArgs) {
+  if (!rawArgs.empty() || kernelArgs) {
     mlir::PassManager pm(contextPtr);
     if (isPython)
       mergeAllCallableClosures(moduleOp, kernelName, rawArgs);
@@ -312,9 +314,9 @@ std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
           cudaq::opt::createReplaceStateWithKernel());
       cudaq::opt::addAggressiveInlining(pm);
       pm.addPass(mlir::createSymbolDCEPass());
-    } else if (updatedArgs) {
+    } else if (kernelArgs) {
       CUDAQ_INFO("Run Quake Synth.\n");
-      pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, updatedArgs));
+      pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, kernelArgs));
     }
     pm.addPass(mlir::createCanonicalizerPass());
     if (disableMLIRthreading || enablePrintMLIREachPass)
@@ -466,15 +468,19 @@ std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
     modules.emplace_back(kernelName, moduleOp);
   }
 
+  // For emulation or resource counting: create JIT artifacts before
+  // applying combine-measurements (so the JIT sees un-combined measurements).
+  std::vector<CompiledModuleHelper::NamedJitArtifact> jitArtifacts;
   if (emulate ||
       (executionContext && executionContext->name == "resource-count")) {
-    // If we are in emulation mode, we need to first get a full QIR
-    // representation of the code. Then we'll map to an LLVM Module, create a
-    // JIT ExecutionEngine pointer and use that for execution
     for (auto &[name, module] : modules) {
       auto clonedModule = module.clone();
-      jitEngines.emplace_back(
-          createJITEngine(clonedModule, codegenTranslation));
+      auto artifacts = CompiledModuleHelper::createJitArtifacts(
+          kernelName, createJITEngine(clonedModule, codegenTranslation), {},
+          /*isFullySpecialized=*/true, std::move(resourceCounts));
+      assert(artifacts.size() == 1);
+      artifacts[0].first = name;
+      jitArtifacts.push_back(std::move(artifacts[0]));
     }
   }
 
@@ -482,13 +488,32 @@ std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
     for (auto &[name, module] : modules)
       runPassPipeline("func.func(combine-measurements)", module);
 
+  std::vector<CompiledModuleHelper::NamedMlirArtifact> mlirArtifacts;
+  for (auto &[name, module] : modules) {
+    auto mlirName = name + ".mlir"; // distinguish MLIR and JIT artifacts
+    mlirArtifacts.push_back(
+        CompiledModuleHelper::createMlirArtifact(mlirName, module, context));
+  }
+
+  return CompiledModuleHelper::createCompiledModule(
+      kernelName, {}, std::move(jitArtifacts), std::move(mlirArtifacts),
+      {.reorderIdx = mapping_reorder_idx});
+}
+
+std::vector<cudaq::KernelExecution>
+Compiler::emitKernelExecutions(const cudaq::CompiledModule &compiled) {
   // Get the code gen translation
   auto translation = getTranslation(codegenTranslation);
 
   // Apply user-specified codegen
   std::vector<cudaq::KernelExecution> codes;
-  for (auto iter : llvm::enumerate(modules)) {
-    auto &[name, moduleOpI] = iter.value();
+  for (auto &[name, artifact] : compiled.getArtifacts()) {
+    if (!name.ends_with(".mlir"))
+      continue;
+    auto &mlirArtifact =
+        std::get<cudaq::CompiledModule::MlirArtifact>(artifact);
+    auto moduleOpI = CompiledModuleHelper::getMlirModuleOp(mlirArtifact);
+
     std::string codeStr;
     llvm::raw_string_ostream outStr(codeStr);
     if (disableMLIRthreading)
@@ -509,12 +534,21 @@ std::vector<cudaq::KernelExecution> Compiler::lowerQuakeCodePart2(
     // Form an output_names mapping from codeStr
     nlohmann::json j = formOutputNames(codegenTranslation, moduleOpI, codeStr);
 
-    auto optionalJit = jitEngines.size() > iter.index()
-                           ? std::optional(jitEngines[iter.index()])
-                           : std::nullopt;
-    auto optionalResourceCounts = resourceCounts;
-    codes.emplace_back(name, codeStr, optionalJit, optionalResourceCounts, j,
-                       mapping_reorder_idx);
+    // Retrieve pre-computed JIT engine and resource counts (if any).
+    std::optional<cudaq::JitEngine> optionalJit;
+    std::optional<cudaq::Resources> optionalResourceCounts;
+    auto kernelName = name.substr(0, name.length() - 5);
+    auto it = compiled.getArtifacts().find(kernelName);
+    if (it != compiled.getArtifacts().end()) {
+      const auto &jit =
+          std::get<cudaq::CompiledModule::JitArtifact>(it->second);
+      optionalJit = jit.getEngine();
+      optionalResourceCounts = jit.getResourceCounts();
+    }
+
+    auto mapping_reorder_idx = compiled.getMetadata().reorderIdx;
+    codes.emplace_back(kernelName, codeStr, optionalJit, optionalResourceCounts,
+                       j, mapping_reorder_idx);
   }
 
   return codes;
@@ -528,19 +562,19 @@ std::vector<cudaq::KernelExecution>
 Compiler::lowerQuakeCode(cudaq::ExecutionContext *executionContext,
                          const std::string &kernelName, void *kernelArgs,
                          const std::vector<void *> &rawArgs) {
-
-  auto [m_module, contextPtr, updatedArgs] =
-      extractQuakeCodeAndContext(kernelName, kernelArgs);
-  return lowerQuakeCodePart2(executionContext, kernelName, kernelArgs, rawArgs,
-                             m_module, contextPtr.get(), updatedArgs);
+  auto [m_module, context] = extractQuakeCodeAndContext(kernelName);
+  auto compiled = runPassPipeline(executionContext, kernelName, m_module,
+                                  rawArgs, kernelArgs, std::move(context));
+  return emitKernelExecutions(compiled);
 }
 
 std::vector<cudaq::KernelExecution>
 Compiler::lowerQuakeCode(cudaq::ExecutionContext *executionContext,
                          const std::string &kernelName, mlir::ModuleOp module,
                          const std::vector<void *> &rawArgs) {
-  return lowerQuakeCodePart2(executionContext, kernelName, nullptr, rawArgs,
-                             module, module.getContext(), nullptr);
+  auto compiled =
+      runPassPipeline(executionContext, kernelName, module, rawArgs);
+  return emitKernelExecutions(compiled);
 }
 
 mlir::ModuleOp Compiler::lowerQuakeCodeBuildModule(

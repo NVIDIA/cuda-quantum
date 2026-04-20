@@ -8,9 +8,11 @@
 #pragma once
 
 #include "common/CompiledModule.h"
+#include <memory>
 
 namespace mlir {
 class Type;
+class MLIRContext;
 class ModuleOp;
 } // namespace mlir
 
@@ -46,29 +48,45 @@ public:
   /// engine.
   ///
   /// Uses the kernel's name and result metadata to determine the correct
-  /// mangled symbol names. Returns one named artifact per resolved symbol.
-  static std::vector<NamedJitArtifact>
-  createJitArtifacts(const std::string &kernelName, cudaq::JitEngine engine,
-                     const cudaq::ResultInfo &resultInfo,
-                     bool isFullySpecialized);
+  /// mangled symbol names. Currently returns one artifact.
+  ///
+  /// Optionally, a \p resourceCounts can be attached to the returned artifact.
+  static std::vector<NamedJitArtifact> createJitArtifacts(
+      const std::string &kernelName, cudaq::JitEngine engine,
+      const cudaq::ResultInfo &resultInfo, bool isFullySpecialized,
+      std::optional<cudaq::Resources> resourceCounts = std::nullopt);
+
+  // --- MlirArtifact construction and access ---
+
+  /// Construct a named `MlirArtifact` from a `ModuleOp`.
+  static NamedMlirArtifact
+  createMlirArtifact(std::string name, mlir::ModuleOp module,
+                     std::shared_ptr<mlir::MLIRContext> context = nullptr);
+
+  /// Extract the `ModuleOp` from a `MlirArtifact`.
+  static mlir::ModuleOp
+  getMlirModuleOp(const cudaq::CompiledModule::MlirArtifact &artifact);
 
   // --- CompiledModule construction ---
 
   /// Create a `CompiledModule` containing only JIT artifacts.
-  static cudaq::CompiledModule
-  createCompiledModule(std::string name, cudaq::ResultInfo resultInfo,
-                       std::vector<NamedJitArtifact> jitArtifacts);
+  static cudaq::CompiledModule createCompiledModule(
+      std::string name, cudaq::ResultInfo resultInfo,
+      std::vector<NamedJitArtifact> jitArtifacts,
+      cudaq::CompiledModule::CompilationMetadata metadata = {});
 
   /// Create a `CompiledModule` containing only MLIR artifacts.
-  static cudaq::CompiledModule
-  createCompiledModule(std::string name, cudaq::ResultInfo resultInfo,
-                       std::vector<NamedMlirArtifact> mlirArtifacts);
+  static cudaq::CompiledModule createCompiledModule(
+      std::string name, cudaq::ResultInfo resultInfo,
+      std::vector<NamedMlirArtifact> mlirArtifacts,
+      cudaq::CompiledModule::CompilationMetadata metadata = {});
 
   /// Create a `CompiledModule` containing both JIT and MLIR artifacts.
-  static cudaq::CompiledModule
-  createCompiledModule(std::string name, cudaq::ResultInfo resultInfo,
-                       std::vector<NamedJitArtifact> jitArtifacts,
-                       std::vector<NamedMlirArtifact> mlirArtifacts);
+  static cudaq::CompiledModule createCompiledModule(
+      std::string name, cudaq::ResultInfo resultInfo,
+      std::vector<NamedJitArtifact> jitArtifacts,
+      std::vector<NamedMlirArtifact> mlirArtifacts,
+      cudaq::CompiledModule::CompilationMetadata metadata = {});
 };
 
 } // namespace cudaq_internal::compiler
