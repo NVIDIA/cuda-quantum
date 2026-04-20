@@ -190,6 +190,55 @@ def test_kernel_complex_force_kron():
     assert '01111111111' in counts
 
 
+# Regression test for https://github.com/NVIDIA/cuda-quantum/issues/4350:
+# allocating qubits before a state-initialized `qalloc` triggered
+# `createStateFromData` mid-execution, corrupting the live simulator state.
+# Parametrized to cover all available simulator backends and precisions.
+@pytest.mark.parametrize('target,option', [
+    ('qpp-cpu', None),
+    ('density-matrix-cpu', None),
+    ('nvidia', 'fp32'),
+    ('nvidia', 'fp64'),
+    ('tensornet', 'fp32'),
+    ('tensornet', 'fp64'),
+    ('tensornet-mps', 'fp32'),
+    ('tensornet-mps', 'fp64'),
+])
+def test_kernel_complex_force_kron_simulators(target, option):
+
+    gpu_targets = {'nvidia', 'tensornet', 'tensornet-mps'}
+
+    def can_set_target(name, opt):
+        if name in gpu_targets and cudaq.num_available_gpus() == 0:
+            return False
+        try:
+            if opt is not None:
+                cudaq.set_target(name, option=opt)
+            else:
+                cudaq.set_target(name)
+            return True
+        except RuntimeError:
+            return False
+
+    if not can_set_target(target, option):
+        pytest.skip('target not available')
+
+    c = [0. + 0j] * 4
+    c[3] = 1. + 0j  # |11>
+
+    kernel, vec = cudaq.make_kernel(list[complex])
+    p = kernel.qalloc(1)  # live qubit allocated before state init
+    q = kernel.qalloc(vec)  # state-initialized mid-execution
+    kernel.mz(p)
+    kernel.mz(q)
+
+    counts = cudaq.sample(kernel, c)
+    assert len(counts) == 1
+    assert '011' in counts
+
+    cudaq.reset_target()
+
+
 @skipIfNvidiaNotInstalled
 def test_kernel_complex_params_rotate_f32():
     cudaq.reset_target()
