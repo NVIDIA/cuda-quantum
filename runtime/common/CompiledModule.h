@@ -27,6 +27,7 @@
 
 namespace mlir {
 class ExecutionEngine;
+class MLIRContext;
 } // namespace mlir
 
 namespace cudaq_internal::compiler {
@@ -142,26 +143,38 @@ public:
     /// as it will handle the buffer and argument packing automatically.
     void (*getEntryPoint() const)();
     JitEngine getEngine() const;
+
+    std::optional<Resources> getResourceCounts() const;
   };
 
   /// Optimized MLIR module artifact, for deferred code generation or
   /// re-targeting.
   /// Type-erased to keep this header MLIR-free.
   class MlirArtifact {
-    /// Opaque ModuleOp pointer (via `ModuleOp::getAsOpaquePointer()`).
-    ///
-    /// Lifetime: the caller must ensure that the `MLIRContext` that owns
-    /// this ModuleOp outlives this object.
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wattributes"
-    [[maybe_unused]] const void *modulePtr = nullptr;
-#pragma GCC diagnostic pop
+    /// Opaque ModuleOp pointer (via `module.getAsOpaquePointer()`).
+    const void *modulePtr = nullptr;
+
+    /// Optional owning reference to the containing `MLIRContext`.
+    std::shared_ptr<mlir::MLIRContext> context;
+
+    MlirArtifact(const void *modulePtr,
+                 std::shared_ptr<mlir::MLIRContext> context)
+        : modulePtr(modulePtr), context(std::move(context)) {}
 
     friend class CompiledModule;
+    friend class cudaq_internal::compiler::CompiledModuleHelper;
   };
 
   /// A compiled artifact is either a JIT binary or an MLIR module.
   using CompiledArtifact = std::variant<JitArtifact, MlirArtifact>;
+
+  // --- Compilation metadata ---
+
+  /// Metadata on the compilation artifacts.
+  struct CompilationMetadata {
+    /// Qubit reorder indices emitted by the qubit-mapping pass.
+    std::vector<std::size_t> reorderIdx;
+  };
 
   // --- Queries ---
 
@@ -193,6 +206,7 @@ public:
 
   const std::string &getName() const { return name; }
   const ResultInfo &getResultInfo() const { return resultInfo; }
+  const CompilationMetadata &getMetadata() const { return metadata; }
 
   // --- Execution (local JIT path) ---
 
@@ -218,6 +232,7 @@ private:
   ResultInfo resultInfo; // TODO: we might want to store the entire kernel
                          // signature here. Though I'm not sure what MLIR
                          // agnostic information is worth storing.
+  CompilationMetadata metadata;
   std::map<std::string, CompiledArtifact> artifacts;
 };
 
