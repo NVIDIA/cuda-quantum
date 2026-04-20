@@ -45,13 +45,13 @@ func.func @test_unsized(%ms : !quake.measurements<?>) -> i64 {
 // QIR:         }
 
 // LLVM-LABEL:   llvm.func @test_sized(
-// LLVM-SAME:                          %[[VAL_0:.*]]: !llvm.ptr<struct<"Array", opaque>>) -> i64 {
-// LLVM:           %[[VAL_1:.*]] = llvm.call @__quantum__rt__array_get_size_1d(%[[VAL_0]]) : (!llvm.ptr<struct<"Array", opaque>>) -> i64
+// LLVM-SAME:                          %[[VAL_0:.*]]: !llvm.ptr) -> i64 {
+// LLVM:           %[[VAL_1:.*]] = llvm.call @__quantum__rt__array_get_size_1d(%[[VAL_0]]) : (!llvm.ptr) -> i64
 // LLVM:           llvm.return %[[VAL_1]] : i64
 // LLVM:         }
 
 // LLVM-LABEL:   llvm.func @test_unsized(
-// LLVM-SAME:                            %[[VAL_0:.*]]: !llvm.ptr<struct<"Array", opaque>>) -> i64 {
-// LLVM:           %[[VAL_1:.*]] = llvm.call @__quantum__rt__array_get_size_1d(%[[VAL_0]]) : (!llvm.ptr<struct<"Array", opaque>>) -> i64
+// LLVM-SAME:                            %[[VAL_0:.*]]: !llvm.ptr) -> i64 {
+// LLVM:           %[[VAL_1:.*]] = llvm.call @__quantum__rt__array_get_size_1d(%[[VAL_0]]) : (!llvm.ptr) -> i64
 // LLVM:           llvm.return %[[VAL_1]] : i64
 // LLVM:         }
