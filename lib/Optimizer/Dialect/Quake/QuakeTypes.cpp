@@ -50,34 +50,6 @@ Type quake::VeqType::parse(AsmParser &parser) {
 }
 
 //===----------------------------------------------------------------------===//
-// Measurements' custom parser and pretty printing.
-//
-// measurements `<` (`?` | int) `>`
-//===----------------------------------------------------------------------===//
-
-void quake::MeasurementsType::print(AsmPrinter &os) const {
-  os << '<';
-  if (hasSpecifiedSize())
-    os << getSize();
-  else
-    os << '?';
-  os << '>';
-}
-
-Type quake::MeasurementsType::parse(AsmParser &parser) {
-  if (parser.parseLess())
-    return {};
-  std::size_t size = kDynamicSize;
-  if (succeeded(parser.parseOptionalQuestion()))
-    size = kDynamicSize;
-  else if (parser.parseInteger(size))
-    return {};
-  if (parser.parseGreater())
-    return {};
-  return get(parser.getContext(), size);
-}
-
-//===----------------------------------------------------------------------===//
 
 Type quake::StruqType::parse(AsmParser &parser) {
   if (parser.parseLess())
@@ -185,6 +157,6 @@ std::size_t quake::getAllocationSize(Type ty) {
 //===----------------------------------------------------------------------===//
 
 void quake::QuakeDialect::registerTypes() {
-  addTypes<CableType, ControlType, MeasureType, MeasurementsType, RefType,
-           StateType, StruqType, VeqType, WireType>();
+  addTypes<CableType, ControlType, MeasureType, RefType, StateType, StruqType,
+           VeqType, WireType>();
 }

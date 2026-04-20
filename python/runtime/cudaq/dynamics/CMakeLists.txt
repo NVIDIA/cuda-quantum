@@ -7,13 +7,9 @@
 # ============================================================================ #
 
 find_package(Python COMPONENTS Interpreter Development)
-find_package(pybind11 CONFIG)
 
-pybind11_add_module(nvqir_dynamics_bindings pyDynamics.cpp)
-target_include_directories(nvqir_dynamics_bindings PRIVATE
-    ${PYTHON_INCLUDE_DIRS}
-    ${pybind11_INCLUDE_DIRS}
-)
+nanobind_add_module(nvqir_dynamics_bindings NB_STATIC pyDynamics.cpp)
+
 target_include_directories(nvqir_dynamics_bindings 
     PRIVATE 
         ${CMAKE_SOURCE_DIR}/runtime

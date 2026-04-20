@@ -20,25 +20,17 @@
 #include <vector>
 
 // This header file and the types defined within are designed to have no
-// dependencies and be useable across the compiler and runtime. However,
-// constructing instances of these types is easiest done within compilation
-// units that do link against MLIR. We provide this functionality via free
-// functions, defined as friends of the types defined here and implemented in
-// the `cudaq-mlir-runtime` library.
+// dependencies and be useable across the compiler and runtime. Constructing
+// `CompiledModule` is supported through
+// `cudaq_internal::compiler::CompiledModuleHelper`, available in
+// `CompiledModuleHelper.h` from `cudaq-mlir-runtime`.
 
 namespace mlir {
-class Type;
-class ModuleOp;
 class ExecutionEngine;
 } // namespace mlir
 
-namespace cudaq {
-class ResultInfo;
-} // namespace cudaq
-
 namespace cudaq_internal::compiler {
-cudaq::ResultInfo createResultInfo(mlir::Type resultType, bool isEntryPoint,
-                                   mlir::ModuleOp module);
+class CompiledModuleHelper;
 } // namespace cudaq_internal::compiler
 
 namespace cudaq {
@@ -73,12 +65,9 @@ private:
 };
 
 /// Pre-computed result metadata, set at build time. Used at execution time
-/// for result buffer allocation and type conversion. Construct via
-/// `createResultInfo` (implemented in `cudaq-mlir-runtime`).
+/// for result buffer allocation and type conversion.
 class ResultInfo {
-  // Friend factory function, to be used for construction.
-  friend cudaq::ResultInfo cudaq_internal::compiler::createResultInfo(
-      mlir::Type resultType, bool isEntryPoint, mlir::ModuleOp module);
+  friend class cudaq_internal::compiler::CompiledModuleHelper;
   friend class CompiledModule;
 
   /// Opaque pointer to the `mlir::Type` of the result. Obtained via
@@ -106,8 +95,8 @@ public:
 /// of a Quake MLIR module.
 ///
 /// This type does not depend on MLIR/LLVM — it only keeps type-erased / opaque
-/// pointers. Use the `attachJit` member function to attach JIT-compiled
-/// artifacts after construction.
+/// pointers. Build instances with
+/// `cudaq_internal::compiler::CompiledModuleHelper`.
 class CompiledModule {
 public:
   // --- Compiled artifact types ---
@@ -116,16 +105,23 @@ public:
   class JitArtifact {
     JitEngine engine;
     void (*entryPoint)() = nullptr;
-    int64_t (*argsCreator)(const void *, void **) = nullptr;
+    std::int64_t (*argsCreator)(const void *, void **) = nullptr;
+    /// Offset (in bytes) of the result field within the argsCreator-packed
+    /// buffer. Only valid when argsCreator is non-null and the kernel has a
+    /// result. Use resultInfo.bufferSize to know how many bytes to copy.
+    std::int64_t (*returnOffset)() = nullptr;
     std::optional<Resources> resourceCounts;
 
     JitArtifact(JitEngine engine, void (*entryPoint)(),
                 int64_t (*argsCreator)(const void *, void **),
+                int64_t (*returnOffset)(),
                 std::optional<Resources> resourceCounts)
         : engine(engine), entryPoint(entryPoint), argsCreator(argsCreator),
+          returnOffset(returnOffset),
           resourceCounts(std::move(resourceCounts)) {}
 
     friend class CompiledModule;
+    friend class cudaq_internal::compiler::CompiledModuleHelper;
 
   public:
     // TODO: remove the following two methods once the `CompiledModule` instance
@@ -166,17 +162,6 @@ public:
 
   /// A compiled artifact is either a JIT binary or an MLIR module.
   using CompiledArtifact = std::variant<JitArtifact, MlirArtifact>;
-
-  // --- Construction ---
-
-  CompiledModule(std::string kernelName, ResultInfo resultInfo);
-
-  /// @brief Populate the JIT representation of a `CompiledModule`.
-  ///
-  /// Resolves the entry point and (optionally) `argsCreator` symbols from the
-  /// engine, using the kernel's name and result metadata to determine the
-  /// correct mangled symbol names.
-  void attachJit(JitEngine engine, bool isFullySpecialized);
 
   // --- Queries ---
 
@@ -222,7 +207,11 @@ public:
   KernelThunkResultType execute(const std::vector<void *> &rawArgs) const;
 
 private:
-  /// Add a compiled artifact to the kernel.
+  friend class cudaq_internal::compiler::CompiledModuleHelper;
+
+  CompiledModule(std::string kernelName);
+
+  /// Add a compiled artifact to the module under the given name.
   void addArtifact(std::string name, CompiledArtifact artifact);
 
   std::string name;

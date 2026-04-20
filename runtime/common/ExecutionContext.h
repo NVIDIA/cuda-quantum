@@ -218,17 +218,16 @@ void enablePersistentJITEngine();
 void disablePersistentJITEngine();
 bool isPersistingJITEngine();
 
-/// Checks that the compiler artifact (if present) can be reused
-/// for the given explicit launch arguments.
-///
-/// `argsCreatorPtr` must point to the `.argsCreator` function from `jit`
+/// Checks that the compiler artifact (if present) can be reused for the
+/// given kernel. Throws if a different kernel name was previously saved.
 void checkArtifactReuse(const std::string kernelName,
-                        const std::vector<void *> &args,
-                        const cudaq::JitEngine jit,
-                        std::function<void *()> argsCreatorThunk);
+                        const cudaq::JitEngine jit);
 
-void saveArtifact(const std::string kernelName, const std::vector<void *> &args,
-                  const cudaq::JitEngine jit,
-                  std::function<void *()> argsCreatorThunk);
+void saveArtifact(const std::string kernelName, const cudaq::JitEngine jit);
+
+/// Returns the saved JIT engine if one is present for \p kernelName.
+/// Throws if a different kernel name was previously saved.
+/// Returns std::nullopt if no artifact has been saved yet.
+std::optional<JitEngine> getArtifactJit(const std::string &kernelName);
 }; // namespace compiler_artifact
 } // namespace cudaq
