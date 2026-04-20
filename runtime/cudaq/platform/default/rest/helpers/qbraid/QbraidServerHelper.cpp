@@ -20,7 +20,7 @@ namespace cudaq {
 class QbraidServerHelper : public ServerHelper {
   static constexpr const char *DEFAULT_URL = "https://api-v2.qbraid.com/api/v1";
   static constexpr const char *DEFAULT_DEVICE = "qbraid:qbraid:sim:qir-sv";
-  static constexpr int DEFAULT_QUBITS = 29;
+  static constexpr int DEFAULT_QUBITS = 30;
 
 public:
   const std::string name() const override { return "qbraid"; }
@@ -63,7 +63,11 @@ public:
 
     cudaq::info("qBraid configuration initialized:");
     for (const auto &[key, value] : backendConfig) {
-      cudaq::info("  {} = {}", key, value);
+      if (key == "api_key") {
+        cudaq::info("  api_key = <redacted, {} chars>", value.size());
+      } else {
+        cudaq::info("  {} = {}", key, value);
+      }
     }
   }
 

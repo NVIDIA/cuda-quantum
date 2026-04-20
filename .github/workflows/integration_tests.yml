@@ -10,9 +10,9 @@ on:
   workflow_dispatch:
     inputs:
       target:
-        description: "Target (choose nightly to run like nightly tests)"
+        description: 'Target (choose nightly to run like nightly tests)'
         required: true
-        default: "nightly"
+        default: 'nightly'
         type: choice
         options:
           - nightly
@@ -32,38 +32,38 @@ on:
       single_test_name:
         type: string
         required: false
-        description: "Single test (e.g., targettests/quantinuum/load_value.cpp). Runs default tests if left blank"
+        description: 'Single test (e.g., targettests/quantinuum/load_value.cpp). Runs default tests if left blank'
       target_machine:
         type: string
         required: false
-        description: "Target machine (e.g., H2-1E)."
+        description: 'Target machine (e.g., H2-1E).'
       cudaq_test_image:
         type: string
         required: false
-        default: "" # picked up from repo variable if not provided
-        description: "CUDA Quantum image to run the tests in. Default to the latest CUDA Quantum nightly image"
+        default: '' # picked up from repo variable if not provided
+        description: 'CUDA Quantum image to run the tests in. Default to the latest CUDA Quantum nightly image'
       commit_sha:
         type: string
         required: false
-        description: "Commit SHA to pull the code (examples/tests) for testing. Default to the commit associated with the CUDA Quantum docker image if left blank"
+        description: 'Commit SHA to pull the code (examples/tests) for testing. Default to the commit associated with the CUDA Quantum docker image if left blank'
       workflow_id:
         type: string
         required: false
-        description: "Workflow Id to retrieve the Python wheel for testing. Default to the wheels produced by the Publishing workflow associated with the latest nightly CUDA Quantum Docker image if left blank"
+        description: 'Workflow Id to retrieve the Python wheel for testing. Default to the wheels produced by the Publishing workflow associated with the latest nightly CUDA Quantum Docker image if left blank'
       python_version:
         type: choice
         required: true
-        description: "Python version to run wheel test"
+        description: 'Python version to run wheel test'
         options:
-          - "3.11"
-          - "3.12"
-          - "3.13"
+        - '3.11'
+        - '3.12'
+        - '3.13'
 
   schedule:
     - cron: 0 3 * * *
 
 env:
-  python_version: "3.12"
+  python_version: '3.12'
 
 jobs:
   # Run a daily check of all links in the docs to find any newly broken links
