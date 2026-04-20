@@ -317,10 +317,8 @@ public:
     return std::make_unique<QppDmState>(std::move(state));
   }
 
-  std::unique_ptr<cudaq::SimulationState>
-  createStateFromData(const cudaq::state_data &data) override {
-    qpp::cmat dummy;
-    return QppDmState(std::move(dummy)).createFromData(data);
+  std::unique_ptr<cudaq::SimulationState> createSimulationState() override {
+    return std::make_unique<QppDmState>(qpp::cmat{});
   }
 
   NVQIR_SIMULATOR_CLONE_IMPL(QppNoiseCircuitSimulator)

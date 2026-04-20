@@ -610,6 +610,12 @@ public:
   bool isStateVectorSimulator() const override { return false; }
 
   std::string name() const override { return "stim"; }
+
+  std::unique_ptr<cudaq::SimulationState> createSimulationState() override {
+    throw std::runtime_error(
+        "Simulation data not available for the stim simulator backend.");
+  }
+
   NVQIR_SIMULATOR_CLONE_IMPL(StimCircuitSimulator)
 };
 

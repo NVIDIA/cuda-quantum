@@ -128,6 +128,10 @@ public:
     return std::make_unique<cudaq::CuDensityMatState>();
   }
 
+  std::unique_ptr<cudaq::SimulationState> createSimulationState() override {
+    return std::make_unique<cudaq::CuDensityMatState>();
+  }
+
   void finalizeExecutionContext(cudaq::ExecutionContext &context) override {
     // Just check that the dynamics target was not invoked in gate simulation
     // contexts.

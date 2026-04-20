@@ -86,6 +86,11 @@ public:
         std::move(m_state), scratchPad, m_cutnHandle, m_randomEngine);
   }
 
+  std::unique_ptr<cudaq::SimulationState> createSimulationState() override {
+    return std::make_unique<TensorNetSimulationState<ScalarType>>(
+        nullptr, scratchPad, m_cutnHandle, m_randomEngine);
+  }
+
   void addQubitsToState(std::size_t numQubits, const void *ptr) override {
     LOG_API_TIME();
     if (!m_state) {

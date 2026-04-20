@@ -126,6 +126,13 @@ public:
   virtual std::unique_ptr<cudaq::SimulationState>
   createStateFromData(const cudaq::state_data &) = 0;
 
+  /// @brief Return a new, empty `SimulationState` of this simulator's concrete
+  /// subtype.
+  // Note: this is used as a factory by `createStateFromData` to dispatch
+  /// `createFromData` to the right implementation without interfering with the
+  /// live simulation state.
+  virtual std::unique_ptr<cudaq::SimulationState> createSimulationState() = 0;
+
   /// @brief Set the current noise model to consider when
   /// simulating the state. This should be overridden by
   /// simulation strategies that support noise modeling.
@@ -849,7 +856,10 @@ public:
   /// instance from a user-provided data set.
   std::unique_ptr<cudaq::SimulationState>
   createStateFromData(const cudaq::state_data &data) override {
-    return getSimulationState()->createFromData(data);
+    // Note: this method may be called in a middle of a circuit execution
+    // (`CreateStateOp` in the IR), hence, we must not use getSimulationState()
+    // to get the current state of the simulator.
+    return createSimulationState()->createFromData(data);
   }
 
   /// @brief Set the current noise model to consider when
