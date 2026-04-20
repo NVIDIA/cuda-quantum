@@ -856,7 +856,7 @@ public:
   /// instance from a user-provided data set.
   std::unique_ptr<cudaq::SimulationState>
   createStateFromData(const cudaq::state_data &data) override {
-    // Note: this method may be called in a middle of a circuit execution
+    // Note: this method may be called in the middle of a circuit execution
     // (`CreateStateOp` in the IR), hence, we must not use getSimulationState()
     // to get the current state of the simulator.
     return createSimulationState()->createFromData(data);
