@@ -263,46 +263,6 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
     auto idxIters = builder.create<cudaq::cc::CastOp>(
         loc, i64Ty, iters, cudaq::cc::CastOpMode::Unsigned);
     opt::factory::createInvariantLoop(builder, loc, idxIters, bodyBuilder);
-  } else if (auto measTy =
-                 dyn_cast<quake::MeasurementsType>(buffer.getType())) {
-    Value iters;
-    if (measTy.hasSpecifiedSize()) {
-      iters =
-          builder.create<arith::ConstantIntOp>(loc, measTy.getSize(), i64Ty);
-    } else if (auto measIface = dyn_cast_or_null<quake::MeasurementInterface>(
-                   buffer.getDefiningOp())) {
-      // Derive the iteration count from the measurement op's qubit targets.
-      for (auto target : measIface.getTargets()) {
-        Value count;
-        if (auto veqTy = dyn_cast<quake::VeqType>(target.getType())) {
-          if (veqTy.hasSpecifiedSize())
-            count = builder.create<arith::ConstantIntOp>(loc, veqTy.getSize(),
-                                                         i64Ty);
-          else
-            count = builder.create<quake::VeqSizeOp>(loc, i64Ty, target);
-        } else {
-          count = builder.create<arith::ConstantIntOp>(loc, 1, i64Ty);
-        }
-        iters =
-            iters ? builder.create<arith::AddIOp>(loc, iters, count).getResult()
-                  : count;
-      }
-    } else {
-      iters = builder.create<quake::MeasurementsSizeOp>(loc, i64Ty, buffer);
-    }
-    auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &region,
-                           Block &block) {
-      OpBuilder::InsertionGuard guard(builder);
-      builder.setInsertionPointToStart(&block);
-      Value index = block.getArgument(0);
-      Value measure = builder.create<quake::GetMeasureOp>(loc, buffer, index);
-      symbolTable.insert(loopVar->getName(), measure);
-      if (!TraverseStmt(static_cast<clang::Stmt *>(body)))
-        result = false;
-    };
-    auto idxIters = builder.create<cudaq::cc::CastOp>(
-        loc, i64Ty, iters, cudaq::cc::CastOpMode::Unsigned);
-    opt::factory::createInvariantLoop(builder, loc, idxIters, bodyBuilder);
   } else {
     TODO_x(toLocation(x), x, mangler, "ranged for statement");
   }
@@ -374,22 +334,6 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *x) {
         auto i1Ty = builder.getI1Type();
         if (fnTy.getNumResults() == 1 && fnTy.getResult(0) == i1Ty)
           result = builder.create<cc::CastOp>(loc, i1Ty, result);
-      }
-    }
-    // Relax sized measurements to unsized when the function expects unsized.
-    if (auto measTy = dyn_cast<quake::MeasurementsType>(result.getType())) {
-      auto *parentOp = builder.getBlock()->getParentOp();
-      auto funcOp = dyn_cast<func::FuncOp>(parentOp);
-      if (!funcOp)
-        funcOp = parentOp->getParentOfType<func::FuncOp>();
-      if (funcOp) {
-        auto fnTy = funcOp.getFunctionType();
-        if (fnTy.getNumResults() == 1)
-          if (auto fnResMeasTy =
-                  dyn_cast<quake::MeasurementsType>(fnTy.getResult(0)))
-            if (measTy != fnResMeasTy)
-              result =
-                  builder.create<quake::RelaxSizeOp>(loc, fnResMeasTy, result);
       }
     }
     if (auto vecTy = dyn_cast<cc::SpanLikeType>(resTy)) {

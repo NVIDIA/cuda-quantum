@@ -626,30 +626,6 @@ void quake::GetMemberOp::getCanonicalizationPatterns(
 }
 
 //===----------------------------------------------------------------------===//
-// GetMeasureOp
-//===----------------------------------------------------------------------===//
-
-LogicalResult quake::GetMeasureOp::verify() {
-  if (getIndex()) {
-    if (getRawIndex() != kDynamicIndex)
-      return emitOpError(
-          "must not have both a constant index and an index argument.");
-  } else {
-    if (getRawIndex() == kDynamicIndex) {
-      return emitOpError("invalid constant index value");
-    } else {
-      auto msSize = getMeasurements().getType().getSize();
-      if (getMeasurements().getType().hasSpecifiedSize() &&
-          getRawIndex() >= msSize)
-        return emitOpError("invalid index [" + std::to_string(getRawIndex()) +
-                           "] because >= size [" + std::to_string(msSize) +
-                           "]");
-    }
-  }
-  return success();
-}
-
-//===----------------------------------------------------------------------===//
 // InitializeStateOp
 //===----------------------------------------------------------------------===//
 
@@ -702,19 +678,8 @@ LogicalResult quake::MakeStruqOp::verify() {
 //===----------------------------------------------------------------------===//
 
 LogicalResult quake::RelaxSizeOp::verify() {
-  auto inTy = getInputVec().getType();
-  auto resTy = getType();
-  if (auto veqTy = dyn_cast<quake::VeqType>(resTy)) {
-    if (veqTy.hasSpecifiedSize())
-      return emitOpError("result veq type must not specify a size");
-    if (!isa<quake::VeqType>(inTy))
-      return emitOpError("input and result must both be veq types");
-  } else if (auto measTy = dyn_cast<quake::MeasurementsType>(resTy)) {
-    if (measTy.hasSpecifiedSize())
-      return emitOpError("result measurements type must not specify a size");
-    if (!isa<quake::MeasurementsType>(inTy))
-      return emitOpError("input and result must both be measurements types");
-  }
+  if (cast<quake::VeqType>(getType()).hasSpecifiedSize())
+    emitOpError("return veq type must not specify a size");
   return success();
 }
 
@@ -765,15 +730,6 @@ void quake::VeqSizeOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                    MLIRContext *context) {
   patterns.add<FoldInitStateSizePattern, ForwardConstantVeqSizePattern>(
       context);
-}
-
-//===----------------------------------------------------------------------===//
-// MeasurementsSizeOp
-//===----------------------------------------------------------------------===//
-
-void quake::MeasurementsSizeOp::getCanonicalizationPatterns(
-    RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<ForwardConstantMeasurementsSizePattern>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -868,12 +824,12 @@ LogicalResult verifyMeasurements(MEAS op, TypeRange targetsType,
                                  const Type bitsType) {
   if (failed(verifyWireResultsAreLinear(op)))
     return failure();
-  bool mustBeCollection =
+  bool mustBeStdvec =
       targetsType.size() > 1 ||
       (targetsType.size() == 1 && isa<quake::VeqType>(targetsType[0]));
-  if (mustBeCollection) {
-    if (!isa<quake::MeasurementsType>(op.getMeasOut().getType()))
-      return op.emitOpError("must return `!quake.measurements`, when "
+  if (mustBeStdvec) {
+    if (!isa<cudaq::cc::StdvecType>(op.getMeasOut().getType()))
+      return op.emitOpError("must return `!cc.stdvec<!quake.measure>`, when "
                             "measuring a qreg, a series of qubits, or both");
   } else {
     if (!isa<quake::MeasureType>(op.getMeasOut().getType()))
@@ -901,34 +857,19 @@ LogicalResult quake::MzOp::verify() {
                             getMeasOut().getType());
 }
 
-void quake::MxOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
-                                              MLIRContext *context) {
-  patterns.add<FuseSizeToMeasurementPattern<quake::MxOp>>(context);
-}
-
-void quake::MyOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
-                                              MLIRContext *context) {
-  patterns.add<FuseSizeToMeasurementPattern<quake::MyOp>>(context);
-}
-
-void quake::MzOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
-                                              MLIRContext *context) {
-  patterns.add<FuseSizeToMeasurementPattern<quake::MzOp>>(context);
-}
-
 //===----------------------------------------------------------------------===//
 // Discriminate
 //===----------------------------------------------------------------------===//
 
 LogicalResult quake::DiscriminateOp::verify() {
-  if (isa<quake::MeasurementsType>(getMeasurement().getType())) {
+  if (isa<cudaq::cc::StdvecType>(getMeasurement().getType())) {
     auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(getResult().getType());
     if (!stdvecTy || !isa<IntegerType>(stdvecTy.getElementType()))
       return emitOpError("must return a !cc.stdvec<integral> type, when "
-                         "discriminating a measurements collection");
+                         "discriminating a qreg, a series of qubits, or both");
   } else {
-    if (!isa<quake::MeasureType>(getMeasurement().getType()) ||
-        !isa<IntegerType>(getResult().getType()))
+    auto measTy = isa<quake::MeasureType>(getMeasurement().getType());
+    if (!measTy || !isa<IntegerType>(getResult().getType()))
       return emitOpError(
           "must return integral type when discriminating exactly one qubit");
   }

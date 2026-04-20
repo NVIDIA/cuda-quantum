@@ -30,7 +30,7 @@
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Transforms/Passes.h"
-#include <unordered_set>
+#include <cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h>
 
 // Declared in runtime/cudaq/algorithms/resource_estimation.h (not included
 // here to avoid pulling in cudaq/platform.h which creates circular deps).
@@ -42,17 +42,16 @@ using namespace mlir;
 using namespace cudaq_internal::compiler;
 using cudaq::JitEngine;
 
-static void
-specializeKernel(const std::string &name, ModuleOp module,
-                 const std::vector<void *> &rawArgs, Type resultTy = {},
-                 bool enablePythonCodegenDump = false, bool isEntryPoint = true,
-                 const std::unordered_set<unsigned> &varArgIndices = {}) {
+static void specializeKernel(const std::string &name, ModuleOp module,
+                             const std::vector<void *> &rawArgs,
+                             Type resultTy = {},
+                             bool enablePythonCodegenDump = false,
+                             bool isEntryPoint = true,
+                             bool isFullySpecialized = true) {
   PassManager pm(module.getContext());
   ArgumentConverter argCon(name, module);
-  if (varArgIndices.empty())
-    argCon.gen(name, module, rawArgs);
-  else
-    argCon.gen(rawArgs, varArgIndices);
+  // Look up the kernel's type signature.
+  argCon.gen(name, module, rawArgs);
   SmallVector<std::string> kernels;
   SmallVector<std::string> substs;
   for (auto *kInfo : argCon.getKernelSubstitutions()) {
@@ -82,25 +81,11 @@ specializeKernel(const std::string &name, ModuleOp module,
   cudaq::opt::addAggressiveInlining(pm);
   pm.addPass(cudaq::opt::createDistributedDeviceCall());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  // If we're persisting the jit cache we need to run GKE to have access
-  // to `.argsCreator` to serialize the arguments.
-  if (!varArgIndices.empty()) {
-    pm.addPass(
-        cudaq::opt::createGenerateKernelExecution({.positNullary = false}));
-  } else if ((resultTy && isEntryPoint) ||
-             cudaq::compiler_artifact::isPersistingJITEngine()) {
-    // If we're expecting a result, then we want to call the .thunk function so
-    // that the result is properly marshaled. Add the GKE pass to generate the
-    // .thunk. At this point, the kernel should have been specialized so it has
-    // an arity of 0.
-    auto nullary = true;
-    for (auto arg : rawArgs)
-      if (!arg) {
-        nullary = false;
-        break;
-      }
+  // Run GKE to generate `.thunk` / `.argsCreator` when the kernel has a result
+  // or any unspecialized arguments so they can be properly marshaled
+  if (isEntryPoint && (resultTy || !isFullySpecialized)) {
     pm.addPass(cudaq::opt::createGenerateKernelExecution(
-        {.positNullary = nullary, .ignoreHostFunction = true}));
+        {.positNullary = isFullySpecialized, .ignoreHostFunction = true}));
   }
   pm.addPass(createSymbolDCEPass());
   if (enablePythonCodegenDump) {
@@ -272,25 +257,21 @@ static std::optional<JitEngine>
 alreadyBuiltJITCode(const std::string &name,
                     const std::vector<void *> &rawArgs) {
   auto *currentExecCtx = cudaq::getExecutionContext();
-  if (!currentExecCtx || !currentExecCtx->allowJitEngineCaching)
-    return std::nullopt;
-
-  auto jit = currentExecCtx->jitEng;
-  if (jit && cudaq::compiler_artifact::isPersistingJITEngine()) {
-    CUDAQ_INFO("Loading previously compiled JIT engine for {}. This will "
-               "re-run the previous job, discarding any changes to the kernel, "
-               "arguments or launch configuration.",
-               currentExecCtx->kernelName);
-
-    // Ensure the arguments are the same as the previous launch.
-    auto argsCreatorThunk = [&jit, &name]() {
-      return (void *)jit->lookupRawNameOrFail(name + ".argsCreator");
-    };
-    cudaq::compiler_artifact::checkArtifactReuse(name, rawArgs, jit.value(),
-                                                 argsCreatorThunk);
+  if (currentExecCtx && currentExecCtx->allowJitEngineCaching) {
+    auto jit = currentExecCtx->jitEng;
+    if (jit && cudaq::compiler_artifact::isPersistingJITEngine()) {
+      CUDAQ_INFO("Loading previously compiled JIT engine for {}. This will "
+                 "re-run the previous job, discarding any changes to the "
+                 "kernel, arguments or launch configuration.",
+                 currentExecCtx->kernelName);
+      cudaq::compiler_artifact::checkArtifactReuse(name, jit.value());
+    }
+    return jit;
   }
 
-  return jit;
+  // Fallback for callers without an ExecutionContext (e.g. direct kernel
+  // calls): look up the artifact saved by a previous compilation.
+  return cudaq::compiler_artifact::getArtifactJit(name);
 }
 
 /// In a sample launch context, the (`JIT` compiled) execution engine may be
@@ -336,32 +317,37 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
       throw std::runtime_error("no kernel named " + name + " found in module");
     Type resultTy = cudaq::runtime::getReturnType(funcOp);
 
-    std::unordered_set<unsigned> varArgIndices;
-    {
-      auto mangledNameMap = module->getAttrOfType<mlir::DictionaryAttr>(
-          cudaq::runtime::mangledNameMap);
-      bool parametricCompatible = false;
-      if (mangledNameMap)
-        if (auto attr = mangledNameMap.getAs<mlir::StringAttr>(fullName)) {
-          mlir::StringRef mn = attr.getValue();
-          parametricCompatible = mn != "BuilderKernel.EntryPoint" &&
-                                 !mn.contains("PyKernelFakeEntryPoint");
-        }
-      if (parametricCompatible)
-        for (auto [idx, argTy] :
-             llvm::enumerate(funcOp.getFunctionType().getInputs()))
-          if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(argTy))
-            if (isa<mlir::FloatType>(vecTy.getElementType()))
-              varArgIndices.insert(idx);
-    }
-    {
-      auto *execCtx = cudaq::getExecutionContext();
-      if (!execCtx || !execCtx->useParametricJit)
-        varArgIndices.clear();
-    }
-    const bool isFullySpecialized = varArgIndices.empty();
+    const bool hasResult = !!resultTy;
     auto resultInfo =
         CompiledModuleHelper::createResultInfo(resultTy, isEntryPoint, module);
+
+    // Determine whether the kernel needs argument packing (argsCreator) by
+    // checking if any non-callable arguments are present. This must be done
+    // before the cache lookup so the cached path uses the correct value.
+    bool isFullySpecialized = true;
+    FunctionType fromFuncTy = funcOp.getFunctionType();
+    // Specialization for direct calls will take care of partial specialization
+    // separately
+    bool isLocalSimulator =
+        !(cudaq::is_remote_platform() || cudaq::is_emulated_platform());
+
+    std::vector<void *> closureArgs;
+
+    // Special handling in case the arguments were already synthesized
+    size_t numArgs = rawArgs.size() - (hasResult ? 1 : 0);
+    if (isEntryPoint && isLocalSimulator &&
+        numArgs == fromFuncTy.getNumInputs()) {
+      closureArgs = rawArgs;
+      for (auto [i, ty] : llvm::enumerate(fromFuncTy.getInputs())) {
+        if (!isa<cudaq::cc::CallableType>(ty)) {
+          isFullySpecialized = false;
+          closureArgs[i] = nullptr;
+        }
+      }
+    } else {
+      // Avoid copying
+      closureArgs = std::move(rawArgs);
+    }
 
     if (auto jit = alreadyBuiltJITCode(name, rawArgs)) {
       auto jitArtifacts = CompiledModuleHelper::createJitArtifacts(
@@ -389,8 +375,9 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     CUDAQ_INFO("Run Argument Synth.\n");
     if (enablePythonCodegenDump)
       module.dump();
-    specializeKernel(name, module, rawArgs, resultTy, enablePythonCodegenDump,
-                     isEntryPoint, varArgIndices);
+
+    specializeKernel(name, module, closureArgs, resultTy,
+                     enablePythonCodegenDump, isEntryPoint, isFullySpecialized);
 
     // 3b. Run target-specific passes if configured.
     runTargetPassPipeline(module);
@@ -401,11 +388,7 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     // 4. Lower to QIR and JIT compile.
     auto jit = createJITEngine(module, "qir:");
     cacheJITForPerformance(jit);
-    auto argsCreatorThunk = [&jit, &name]() {
-      return (void *)jit.lookupRawNameOrFail(name + ".argsCreator");
-    };
-    cudaq::compiler_artifact::saveArtifact(name, rawArgs, jit,
-                                           argsCreatorThunk);
+    cudaq::compiler_artifact::saveArtifact(name, jit);
 
     auto jitArtifacts = CompiledModuleHelper::createJitArtifacts(
         name, jit, resultInfo, isFullySpecialized);
