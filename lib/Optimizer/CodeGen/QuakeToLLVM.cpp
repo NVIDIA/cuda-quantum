@@ -507,8 +507,8 @@ public:
       auto structTy = LLVM::LLVMStructType::getLiteral(context, structTys);
 
       // Allocate the char span struct
-      Value alloca = cudaq::opt::factory::createLLVMTemporary(
-          loc, rewriter, cudaq::opt::factory::getPointerType(context));
+      Value alloca =
+          cudaq::opt::factory::createLLVMTemporary(loc, rewriter, structTy);
 
       // We'll need these constants
       auto zero = cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, 0);
