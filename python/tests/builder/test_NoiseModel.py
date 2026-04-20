@@ -44,7 +44,14 @@ def test_depolarization_channel(target: str):
     assert ('1' in counts)
 
 
-@pytest.mark.parametrize('target', ['density-matrix-cpu', 'stim'])
+_skip_stim_p1 = pytest.mark.skip(
+    reason="https://github.com/NVIDIA/cuda-quantum/issues/4026")
+
+
+@pytest.mark.parametrize('target', [
+    'density-matrix-cpu',
+    pytest.param('stim', marks=_skip_stim_p1)
+])
 def test_depolarization_channel_simple(target: str):
     """Tests the depolarization channel in the case of `probability = 1.0`"""
     cudaq.set_target(target)
@@ -116,7 +123,10 @@ def test_amplitude_damping_simple():
     cudaq.reset_target()
 
 
-@pytest.mark.parametrize('target', ['density-matrix-cpu', 'stim'])
+@pytest.mark.parametrize('target', [
+    'density-matrix-cpu',
+    pytest.param('stim', marks=_skip_stim_p1)
+])
 def test_phase_flip_simple(target: str):
     """Tests the phase flip channel in the case of `probability = 1.0`"""
     cudaq.set_target(target)
@@ -153,7 +163,10 @@ def test_phase_flip_simple(target: str):
     cudaq.reset_target()
 
 
-@pytest.mark.parametrize('target', ['density-matrix-cpu', 'stim'])
+@pytest.mark.parametrize('target', [
+    'density-matrix-cpu',
+    pytest.param('stim', marks=_skip_stim_p1)
+])
 def test_bit_flip_simple(target: str):
     """
     Tests the bit flip channel with the probability at `0.0` on qubit 0, 
@@ -313,7 +326,10 @@ def test_noise_u3():
     cudaq.reset_target()
 
 
-@pytest.mark.parametrize('target', ['density-matrix-cpu', 'stim'])
+@pytest.mark.parametrize('target', [
+    'density-matrix-cpu',
+    pytest.param('stim', marks=_skip_stim_p1)
+])
 def test_all_qubit_channel(target: str):
     cudaq.set_target(target)
     cudaq.set_random_seed(13)
