@@ -61,19 +61,15 @@ __qpu__ int compare_with_bool_kernel() {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_compare_with_bool_kernel._Z24compare_with_bool_kernelv() -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i32
 // CHECK:           %[[VAL_1:.*]] = arith.constant 2 : i32
-// CHECK:           %[[VAL_2:.*]] = arith.constant false
 // CHECK:           %[[VAL_3:.*]] = arith.constant 1 : i32
-// CHECK:           %[[VAL_4:.*]] = arith.constant true
 // CHECK:           %[[VAL_5:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_6:.*]] = quake.mz %[[VAL_5]] name "a" : (!quake.ref) -> !quake.measure
 // CHECK:           %[[VAL_7:.*]] = quake.discriminate %[[VAL_6]] : (!quake.measure) -> i1
-// CHECK:           %[[VAL_8:.*]] = arith.cmpi eq, %[[VAL_7]], %[[VAL_4]] : i1
-// CHECK:           cc.if(%[[VAL_8]]) {
+// CHECK:           cc.if(%[[VAL_7]]) {
 // CHECK:             cc.unwind_return %[[VAL_3]] : i32
 // CHECK:           }
 // CHECK:           %[[VAL_9:.*]] = quake.discriminate %[[VAL_6]] : (!quake.measure) -> i1
-// CHECK:           %[[VAL_10:.*]] = arith.cmpi ne, %[[VAL_9]], %[[VAL_2]] : i1
-// CHECK:           cc.if(%[[VAL_10]]) {
+// CHECK:           cc.if(%[[VAL_9]]) {
 // CHECK:             cc.unwind_return %[[VAL_1]] : i32
 // CHECK:           }
 // CHECK:           return %[[VAL_0]] : i32

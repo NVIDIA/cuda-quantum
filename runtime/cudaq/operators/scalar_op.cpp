@@ -156,7 +156,7 @@ ARITHMETIC_OPERATIONS_SCALAR_OPS(+);
 ARITHMETIC_OPERATIONS_SCALAR_OPS(-);
 
 #define ARITHMETIC_OPERATIONS_ASSIGNMENT(op, otherTy)                          \
-  scalar_operator &scalar_operator::operator op##=(otherTy other) {            \
+  scalar_operator &scalar_operator::operator op## = (otherTy other) {          \
     if (std::holds_alternative<std::complex<double>>(this->value)) {           \
       this->value = std::get<std::complex<double>>(this->value) op other;      \
       return *this;                                                            \
@@ -180,8 +180,8 @@ ARITHMETIC_OPERATIONS_ASSIGNMENT(+, std::complex<double>);
 ARITHMETIC_OPERATIONS_ASSIGNMENT(-, std::complex<double>);
 
 #define ARITHMETIC_OPERATIONS_SCALAR_OPS_ASSIGNMENT(op)                        \
-  scalar_operator &scalar_operator::operator op##=(                            \
-      const scalar_operator &other) {                                          \
+  scalar_operator &scalar_operator::operator op## =                            \
+      (const scalar_operator &other) {                                         \
     if (std::holds_alternative<std::complex<double>>(this->value) &&           \
         std::holds_alternative<std::complex<double>>(other.value)) {           \
       this->value = std::get<std::complex<double>>(this->value)                \

@@ -143,7 +143,7 @@ public:
   virtual void synchronize() = 0;
 
   /// Flush the gate queue (needed for accurate timing information)
-  virtual void flushGateQueue(){};
+  virtual void flushGateQueue() {};
 
   /// @brief Register a new custom unitary operation under the
   /// provided operation name.

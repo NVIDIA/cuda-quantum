@@ -95,7 +95,7 @@ ModuleOp createTestModule(MLIRContext *context, StringRef gateSpecStr) {
   }
 
   OpBuilder builder(context);
-  auto module = ModuleOp::create(builder,builder.getUnknownLoc());
+  auto module = ModuleOp::create(builder, builder.getUnknownLoc());
   builder.setInsertionPointToEnd(module.getBody());
 
   // Create function type: (qubits...) -> ()
@@ -107,8 +107,8 @@ ModuleOp createTestModule(MLIRContext *context, StringRef gateSpecStr) {
   auto funcType = builder.getFunctionType(inputTypes, {});
 
   // Create function
-  auto func = func::FuncOp::create(builder,builder.getUnknownLoc(), "test_func",
-                                           funcType);
+  auto func = func::FuncOp::create(builder, builder.getUnknownLoc(),
+                                   "test_func", funcType);
   auto *entry = func.addEntryBlock();
   builder.setInsertionPointToStart(entry);
 
@@ -126,55 +126,60 @@ ModuleOp createTestModule(MLIRContext *context, StringRef gateSpecStr) {
                                                         builder.getF64Type());
 
   if (gateName == "h") {
-    quake::HOp::create(builder,loc, isAdj, controls, target);
+    quake::HOp::create(builder, loc, isAdj, controls, target);
   } else if (gateName == "s") {
-    quake::SOp::create(builder,loc, isAdj, controls, target);
+    quake::SOp::create(builder, loc, isAdj, controls, target);
   } else if (gateName == "t") {
-    quake::TOp::create(builder,loc, isAdj, controls, target);
+    quake::TOp::create(builder, loc, isAdj, controls, target);
   } else if (gateName == "x") {
-    quake::XOp::create(builder,loc, isAdj, controls, target);
+    quake::XOp::create(builder, loc, isAdj, controls, target);
   } else if (gateName == "y") {
-    quake::YOp::create(builder,loc, isAdj, controls, target);
+    quake::YOp::create(builder, loc, isAdj, controls, target);
   } else if (gateName == "z") {
-    quake::ZOp::create(builder,loc, isAdj, controls, target);
+    quake::ZOp::create(builder, loc, isAdj, controls, target);
   } else if (gateName == "rx") {
-    quake::RxOp::create(builder,loc, isAdj, ValueRange{pi_2}, controls, target);
+    quake::RxOp::create(builder, loc, isAdj, ValueRange{pi_2}, controls,
+                        target);
   } else if (gateName == "ry") {
-    quake::RyOp::create(builder,loc, isAdj, ValueRange{pi_2}, controls, target);
+    quake::RyOp::create(builder, loc, isAdj, ValueRange{pi_2}, controls,
+                        target);
   } else if (gateName == "rz") {
-    quake::RzOp::create(builder,loc, isAdj, ValueRange{pi_2}, controls, target);
+    quake::RzOp::create(builder, loc, isAdj, ValueRange{pi_2}, controls,
+                        target);
   } else if (gateName == "r1") {
-    quake::R1Op::create(builder,loc, isAdj, ValueRange{pi_2}, controls, target);
+    quake::R1Op::create(builder, loc, isAdj, ValueRange{pi_2}, controls,
+                        target);
   } else if (gateName == "u3") {
-    quake::U3Op::create(builder,loc, isAdj, ValueRange{pi_2, pi_2, pi_2},
-                                controls, target);
+    quake::U3Op::create(builder, loc, isAdj, ValueRange{pi_2, pi_2, pi_2},
+                        controls, target);
   } else if (gateName == "phased_rx") {
-    quake::PhasedRxOp::create(builder,loc, isAdj, ValueRange{{pi_2, pi_2}},
-                                      controls, target);
+    quake::PhasedRxOp::create(builder, loc, isAdj, ValueRange{{pi_2, pi_2}},
+                              controls, target);
   } else if (gateName == "swap") {
     // Swap needs 2 targets
     Value target = entry->getArgument(0);
     Value target2 = entry->getArgument(1);
-    quake::SwapOp::create(builder,loc, ValueRange{target, target2});
+    quake::SwapOp::create(builder, loc, ValueRange{target, target2});
   } else if (gateName == "exp_pauli") {
     Value target = entry->getArgument(0);
     Value target2 = entry->getArgument(1);
     // Create a veq from the two target qubits using ConcatOp
     SmallVector<Value> targetValues = {target, target2};
-    Value qubitsVal = quake::ConcatOp::create(builder,
-        loc, quake::VeqType::get(builder.getContext(), 2), targetValues);
+    Value qubitsVal = quake::ConcatOp::create(
+        builder, loc, quake::VeqType::get(builder.getContext(), 2),
+        targetValues);
 
-    quake::ExpPauliOp::create(builder,loc,
-                                      /* parameters = */ ValueRange{pi_2},
-                                      /* controls = */ ValueRange{},
-                                      /* targets = */ qubitsVal,
-                                      /* pauliLiteral = */ "XX");
+    quake::ExpPauliOp::create(builder, loc,
+                              /* parameters = */ ValueRange{pi_2},
+                              /* controls = */ ValueRange{},
+                              /* targets = */ qubitsVal,
+                              /* pauliLiteral = */ "XX");
   } else {
     // Unsupported gate for this test
     ADD_FAILURE() << "unknown gate: " << gateName;
   }
 
-  func::ReturnOp::create(builder,loc);
+  func::ReturnOp::create(builder, loc);
   return module;
 }
 

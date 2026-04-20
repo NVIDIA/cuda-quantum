@@ -410,4 +410,29 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
 };
 } // namespace
 
-CUDAQ_REGISTER_TYPE(cudaq::ModuleLauncher, PythonLauncher, default)
+// PythonLauncher registration. This TU only builds into the Python extension
+// (_quakeDialects.so), but `launchModule` / `specializeModule` live in
+// libcudaq.so. LLVM's Registry uses `static inline Head/Tail`, so each DSO
+// that instantiates the template gets its own copy — `CUDAQ_REGISTER_TYPE`
+// would add the node to the extension's (unseen-by-libcudaq) registry. We
+// instead call the `cudaq_add_module_launcher_node` bridge defined in
+// libcudaq.so so the registration lands in the registry that `launchModule`
+// actually reads. Mirrors the `cudaq_add_qpu_node` pattern used for QPUs.
+extern "C" void cudaq_add_module_launcher_node(void *node_ptr);
+
+namespace {
+struct PythonLauncherRegistration {
+  llvm::SimpleRegistryEntry<cudaq::ModuleLauncher> entry;
+  llvm::Registry<cudaq::ModuleLauncher>::node node;
+  PythonLauncherRegistration()
+      : entry("default", "", &PythonLauncherRegistration::ctorFn), node(entry) {
+    cudaq_add_module_launcher_node(&node);
+  }
+  static std::unique_ptr<cudaq::ModuleLauncher> ctorFn() {
+    return std::make_unique<PythonLauncher>();
+  }
+};
+static PythonLauncherRegistration s_pythonLauncherRegistration;
+} // namespace
+
+extern "C" void cudaq_ensure_default_launcher_linked(void) {}

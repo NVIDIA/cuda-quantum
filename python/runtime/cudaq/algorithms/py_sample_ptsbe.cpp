@@ -388,7 +388,9 @@ void cudaq::bindSamplePTSBE(py::module_ &mod) {
            py::call_guard<py::gil_scoped_release>(),
            "Block until the PTSBE sampling result is available and return it.");
 
-  ptsbe.def("sample_impl", pySamplePTSBE,
+  ptsbe.def("sample_impl", pySamplePTSBE, py::arg(), py::arg(), py::arg(),
+            py::arg(), py::arg().none(), py::arg().none(), py::arg().none(),
+            py::arg(), py::arg(), py::arg(),
             R"pbdoc(
 Run PTSBE sampling on the provided kernel.
 
@@ -408,7 +410,9 @@ Returns:
   PTSBESampleResult with optional PTSBE execution data.
 )pbdoc");
 
-  ptsbe.def("sample_async_impl", pySampleAsyncPTSBE,
+  ptsbe.def("sample_async_impl", pySampleAsyncPTSBE, py::arg(), py::arg(),
+            py::arg(), py::arg(), py::arg().none(), py::arg().none(),
+            py::arg().none(), py::arg(), py::arg(), py::arg(),
             "Run PTSBE sampling asynchronously. Returns an "
             "AsyncSampleResultImpl.");
 }

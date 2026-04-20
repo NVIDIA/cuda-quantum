@@ -101,7 +101,7 @@ private:
     std::vector<std::string> paramNames;
     ScalarCallBackContext(const std::vector<scalar_operator> &scalar_ops,
                           const std::vector<std::string> &paramNames)
-        : scalarOps(scalar_ops), paramNames(paramNames){};
+        : scalarOps(scalar_ops), paramNames(paramNames) {};
   };
 
   struct TensorCallBackContext {
@@ -112,7 +112,7 @@ private:
     TensorCallBackContext(const std::vector<matrix_handler> &tensor_ops,
                           const std::vector<std::string> &param_names,
                           const cudaq::dimension_map &dims)
-        : tensorOps(tensor_ops), paramNames(param_names), dimensions(dims){};
+        : tensorOps(tensor_ops), paramNames(param_names), dimensions(dims) {};
   };
 
   cudensitymatWrappedScalarCallback_t

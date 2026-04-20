@@ -8,6 +8,7 @@
 
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
+#include "cudaq/Optimizer/CodeGen/CodeGenDialect.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
@@ -72,6 +73,19 @@ void registerQuakeDialectAndTypes(py::module_ &m) {
           },
           py::arg("cls"), py::arg("context") = py::none());
 
+  mlir_type_subclass(quakeMod, "MeasurementsType",
+                     [](MlirType type) {
+                       return mlir::isa<quake::MeasurementsType>(unwrap(type));
+                     })
+      .def_classmethod(
+          "get",
+          [](py::object cls, std::size_t size, MlirContext context) {
+            return wrap(quake::MeasurementsType::get(unwrap(context), size));
+          },
+          py::arg("cls"),
+          py::arg("size") = quake::MeasurementsType::kDynamicSize,
+          py::arg("context") = py::none());
+
   mlir_type_subclass(
       quakeMod, "VeqType",
       [](MlirType type) { return mlir::isa<quake::VeqType>(unwrap(type)); })
@@ -105,6 +119,18 @@ void registerQuakeDialectAndTypes(py::module_ &m) {
             return veqTy.getSize();
           },
           py::arg("veqTypeInstance"));
+
+  quakeMod.def(
+      "isConstantQuantumRefType",
+      [](MlirType type) {
+        return quake::isConstantQuantumRefType(unwrap(type));
+      },
+      py::arg("type"));
+
+  quakeMod.def(
+      "getAllocationSize",
+      [](MlirType type) { return quake::getAllocationSize(unwrap(type)); },
+      py::arg("type"));
 
   mlir_type_subclass(
       quakeMod, "StruqType",
@@ -355,24 +381,19 @@ void bindRegisterDialects(py::module_ &mod) {
   });
 
   mod.def("register_all_dialects", [](MlirContext context) {
-    DialectRegistry registry;
-    registry.insert<quake::QuakeDialect, cudaq::cc::CCDialect>();
-    cudaq::opt::registerCodeGenDialect(registry);
-    registerAllDialects(registry);
+    ::cudaqRegisterAllDialects(context);
     auto *mlirContext = unwrap(context);
-    mlirContext->appendDialectRegistry(registry);
-    mlirContext->loadAllAvailableDialects();
+    mlirContext->getOrLoadDialect<cudaq::codegen::CodeGenDialect>();
   });
 
-  mod.def("gen_vector_of_complex_constant", [](MlirLocation loc,
-                                               MlirModule module,
-                                               std::string name,
-                                               const std::vector<std::complex<
-                                                   double>> &values) {
-    ModuleOp modOp = unwrap(module);
-    cudaq::IRBuilder builder = IRBuilder::atBlockEnd(modOp.getBody());
-    SmallVector<std::complex<double>> newValues{values.begin(), values.end()};
-    builder.genVectorOfConstants(unwrap(loc), modOp, name, newValues);
-  });
+  mod.def("gen_vector_of_complex_constant",
+          [](MlirLocation loc, MlirModule module, std::string name,
+             const std::vector<std::complex<double>> &values) {
+            ModuleOp modOp = unwrap(module);
+            cudaq::IRBuilder builder = IRBuilder::atBlockEnd(modOp.getBody());
+            SmallVector<std::complex<double>> newValues{values.begin(),
+                                                        values.end()};
+            builder.genVectorOfConstants(unwrap(loc), modOp, name, newValues);
+          });
 }
 } // namespace cudaq

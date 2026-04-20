@@ -185,6 +185,50 @@ if(TARGET CUDAQuantumPythonModules.extension._mlir.dso)
     -Wno-error=address -Wno-error=parentheses)
 endif()
 
+# Upstream MLIR's add_mlir_python_extension sets `-Wl,--exclude-libs,ALL` on
+# every extension, which hides the symbols pulled in from the static MLIR
+# archives from the extension's dynamic symbol table. For upstream extensions
+# that only use CAPI functions this is fine, but CUDA-Q's _quakeDialects.so
+# calls MLIR C++ APIs directly (e.g. StringAttr::get in py_register_dialects
+# and CUDAQuantumExtension). Those calls reference template statics like
+# `mlir::detail::TypeIDResolver<T>::id` which are GNU UNIQUE symbols with
+# default visibility. When `--exclude-libs,ALL` hides them, each DSO ends up
+# with its own private copy, and the TypeID used inside _quakeDialects.so no
+# longer matches CAPI's — tripping "storage uniquer isn't initialized" and
+# "different dialects for the same namespace" errors at runtime.
+#
+# Strip that option so the UNIQUE statics stay in the dynamic symbol table
+# and the runtime linker unifies them with libCUDAQuantumPythonCAPI.so's
+# copy at load time.
+if(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso)
+  # 1) Strip --exclude-libs,ALL so the MLIR template statics (e.g.
+  #    mlir::detail::TypeIDResolver<T>::id) that come in via the MLIR static
+  #    archives stay in the dynamic symbol table. These are STB_GLOBAL
+  #    (default visibility) COMDAT symbols; with --exclude-libs,ALL they are
+  #    demoted to local and each DSO ends up with its own private copy.
+  get_target_property(_qd_link_options
+    CUDAQuantumPythonModules.extension._quakeDialects.dso LINK_OPTIONS)
+  if(_qd_link_options)
+    list(REMOVE_ITEM _qd_link_options
+      "$<$<PLATFORM_ID:Linux>:LINKER:--exclude-libs,ALL>"
+      "LINKER:--exclude-libs,ALL")
+    set_target_properties(CUDAQuantumPythonModules.extension._quakeDialects.dso
+      PROPERTIES LINK_OPTIONS "${_qd_link_options}")
+  endif()
+
+  # 2) Prepend libCUDAQuantumPythonCAPI.so to the link line so ld's archive
+  #    extraction finds MLIR symbols in the (shared) CAPI before scanning the
+  #    static archives. When CAPI already defines `mlir::StringAttr::get`,
+  #    `mlir::detail::TypeIDResolver<T>::id`, etc., the matching .o files in
+  #    libMLIRIR.a are not pulled in, so _quakeDialects.so has no private
+  #    copies and its references resolve to CAPI at runtime — keeping the
+  #    TypeID addresses consistent with the ones CAPI used when constructing
+  #    the MLIRContext.
+  target_link_options(CUDAQuantumPythonModules.extension._quakeDialects.dso
+    BEFORE PRIVATE
+      "$<TARGET_FILE:CUDAQuantumPythonCAPI>")
+endif()
+
 ## The Python bindings module for Quake dialect depends on CUDAQ libraries 
 ## which it can't locate since they are in "../../lib" and the 'rpath' is set
 ## to '$ORIGIN' by default.

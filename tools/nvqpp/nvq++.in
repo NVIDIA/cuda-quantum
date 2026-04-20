@@ -414,6 +414,7 @@ LIST_TARGETS=false
 DISABLE_QUBIT_MAPPING=false
 NVQIR_LIBS="-lnvqir -lnvqir-"
 CPPSTD=-std=c++20
+CLANG_ABI_COMPAT=-fclang-abi-compat=17
 CUDAQ_OPT_EXTRA_PASSES=
 SET_TARGET_BACKEND=true
 
@@ -683,7 +684,7 @@ function delete_temp_files {
 }
 trap delete_temp_files EXIT
 
-COMPILER_FLAGS="${CPPSTD} ${COMPILER_FLAGS}"
+COMPILER_FLAGS="${CPPSTD} ${CLANG_ABI_COMPAT} ${COMPILER_FLAGS}"
 
 # Goal here is to parse the backend config file, get the
 # platform library name, and any boolean flags, and setup

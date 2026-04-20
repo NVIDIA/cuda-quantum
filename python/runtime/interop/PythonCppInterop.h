@@ -103,8 +103,7 @@ void addDeviceKernelInterop(nanobind::module_ &m, const std::string &modName,
           ? nanobind::cast<nanobind::module_>(m.attr(modName.c_str()))
           : m.def_submodule(modName.c_str());
 
-  sub.def(
-      kernelName.c_str(), [](Signature...) {}, docstring.c_str());
+  sub.def(kernelName.c_str(), [](Signature...) {}, docstring.c_str());
   cudaq::python::registerDeviceKernel(
       nanobind::cast<std::string>(sub.attr("__name__")), kernelName,
       mangledArgs);

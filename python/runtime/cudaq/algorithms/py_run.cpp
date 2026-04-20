@@ -243,7 +243,8 @@ run_async_impl(const std::string &shortName, MlirModule module,
 
 /// @brief Bind the run cudaq function.
 void cudaq::bindPyRun(py::module_ &mod) {
-  mod.def("run_impl", run_impl,
+  mod.def("run_impl", run_impl, py::arg(), py::arg(), py::arg(),
+          py::arg().none(), py::arg(), py::arg(),
           R"#(
 Run the provided `kernel` with the given kernel arguments over the specified
 number of circuit executions (`shots_count`).
@@ -277,7 +278,8 @@ void cudaq::bindPyRunAsync(py::module_ &mod) {
           },
           "FIXME: documentation goes here");
 
-  mod.def("run_async_impl", run_async_impl,
+  mod.def("run_async_impl", run_async_impl, py::arg(), py::arg(), py::arg(),
+          py::arg().none(), py::arg(), py::arg(),
           R"#(
 Run the provided `kernel` with the given kernel arguments over the specified
 number of circuit executions (`shots_count`) asynchronously on the specified

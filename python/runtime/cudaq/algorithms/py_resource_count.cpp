@@ -61,6 +61,7 @@ estimate_resources_impl(const std::string &kernelName, MlirModule kernelMod,
 }
 
 void cudaq::bindCountResources(py::module_ &mod) {
-  mod.def("estimate_resources_impl", estimate_resources_impl,
+  mod.def("estimate_resources_impl", estimate_resources_impl, py::arg(),
+          py::arg(), py::arg().none(), py::arg(),
           "See python documentation for estimate_resources.");
 }
