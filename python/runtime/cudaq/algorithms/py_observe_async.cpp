@@ -204,6 +204,8 @@ void cudaq::bindObserveAsync(py::module_ &mod) {
   mod.def("isValidObserveKernel_impl", isValidObserveKernel_impl,
           "Test to see if the kernel is suited for use with observe.");
 
-  mod.def("observe_parallel_impl", observe_parallel_impl,
+  mod.def("observe_parallel_impl", observe_parallel_impl, py::arg("shortName"),
+          py::arg("module"), py::arg("execution"), py::arg("spin_operator"),
+          py::arg("shots"), py::arg("noise").none(), py::arg("arguments"),
           "See the python documentation for observe_parallel.");
 }

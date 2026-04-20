@@ -14,7 +14,11 @@
 #include "cudaq/runtime/logger/logger.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
+#include "mlir/Pass/PassManager.h"
+#include "mlir/Target/LLVMIR/Export.h"
 
 using namespace mlir;
 
@@ -67,4 +71,25 @@ static std::string translate_impl(const std::string &shortName,
 void cudaq::bindPyTranslate(py::module_ &mod) {
   mod.def("translate_impl", translate_impl,
           "See python documentation for translate.");
+  mod.def(
+      "_lower_to_qir",
+      [](MlirModule module) -> std::string {
+        const std::string format = "qir";
+        auto mod = unwrap(module);
+        mlir::PassManager pm(mod.getContext());
+        cudaq::opt::addAOTPipelineConvertToQIR(pm, format);
+        if (mlir::failed(pm.run(mod)))
+          throw std::runtime_error("Conversion to " + format + " failed.");
+        llvm::LLVMContext llvmContext;
+        std::unique_ptr<llvm::Module> llvmModule =
+            mlir::translateModuleToLLVMIR(mod, llvmContext);
+        if (!llvmModule)
+          return "{translation failed}";
+        std::string result;
+        llvm::raw_string_ostream os(result);
+        llvmModule->print(os, nullptr);
+        os.flush();
+        return result;
+      },
+      "[Internal] Lower to QIR.");
 }

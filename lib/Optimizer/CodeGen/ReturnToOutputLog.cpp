@@ -146,6 +146,23 @@ public:
                                    ArrayRef<Value>{size, label});
               std::string preStr = prefix ? prefix->str() : std::string{};
               Value rawBuffer = vecInit.getBuffer();
+              if (auto callOp = rawBuffer.getDefiningOp<func::CallOp>()) {
+                if (callOp.getCallee() == "__nvqpp_vectorCopyCtor" &&
+                    callOp.getNumOperands() >= 1) {
+                  rawBuffer = callOp.getOperand(0);
+                } else if (callOp.getCallee() == "malloc") {
+                  for (auto *user : rawBuffer.getUsers()) {
+                    auto memcpy = dyn_cast<func::CallOp>(user);
+                    if (memcpy &&
+                        memcpy.getCallee().starts_with("llvm.memcpy") &&
+                        memcpy.getNumOperands() >= 2 &&
+                        memcpy.getOperand(0) == rawBuffer) {
+                      rawBuffer = memcpy.getOperand(1);
+                      break;
+                    }
+                  }
+                }
+              }
               auto eleTy = vecTy.getElementType();
               auto buffTy = cudaq::cc::PointerType::get(eleTy);
               auto ptrArrTy =
