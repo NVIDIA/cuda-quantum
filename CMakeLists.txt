@@ -663,6 +663,13 @@ if(CMAKE_CUDA_COMPILER)
   message(STATUS "Cuda language found.")
 endif()
 
+if (CUDA_FOUND)
+  find_package(cuStateVec)
+  find_package(cuTensor)
+  find_package(cuTensorNet)
+  find_package(cuDensityMat)
+endif()
+
 # Code coverage setup
 # ==============================================================================
 if(CUDAQ_ENABLE_CC)
