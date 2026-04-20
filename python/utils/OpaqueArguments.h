@@ -112,18 +112,41 @@ void valueArgument(OpaqueArguments &argData, T *arg) {
 
 std::string mlirTypeToString(mlir::Type ty);
 
+/// Controls how `packArgs` and its helpers lay out argument data in memory.
+enum class PackingStyle : bool {
+  /// Direct-launch path: values are placed into a message buffer passed
+  /// directly to the generated `.thunk` at runtime. The encoding must match
+  /// the ABI the thunk expects exactly.
+  argsCreator = false,
+  /// Synthesis path (default): values are consumed by the MLIR
+  /// argument-synthesis pass (`ArgumentConverter`), which substitutes them as
+  /// constants into the kernel IR before JIT compilation. The exact in-memory
+  /// layout is not observable at runtime, so a simpler encoding is used.
+  synthesis = true,
+};
+
+/// Maps a PackingStyle to the element type used to store boolean values in
+/// vectors: synthesis uses `char` (span-compatible), argsCreator uses `bool`.
+template <PackingStyle style>
+using BoolVecElem =
+    std::conditional_t<style == PackingStyle::synthesis, char, bool>;
+
 /// For the current struct member variable type, insert the value into the
 /// dynamically constructed struct.
+template <PackingStyle style = PackingStyle::synthesis>
 void handleStructMemberVariable(void *data, std::size_t offset,
                                 mlir::Type memberType, nanobind::object value);
 
 /// For the current vector element type, insert the value into the dynamically
 /// constructed vector.
+template <PackingStyle style = PackingStyle::synthesis>
 void *handleVectorElements(mlir::Type eleTy, nanobind::list list);
 
 /// Take a list of python objects (the arguments) and convert them to C++
 /// objects on the heap. The results are returned in \p argData and include
 /// special `deletors` so that the argument data is cleaned up correctly.
+/// See \p PackingStyle for the two encoding modes.
+template <PackingStyle style = PackingStyle::synthesis>
 void packArgs(OpaqueArguments &argData, nanobind::list args,
               mlir::ArrayRef<mlir::Type> mlirTys,
               const std::function<bool(OpaqueArguments &, nanobind::object &,
@@ -132,6 +155,7 @@ void packArgs(OpaqueArguments &argData, nanobind::list args,
 
 /// This overload handles dropping the front \p startingArgIdx arguments on the
 /// floor. They are not packed in \p argData and are simply ignored.
+template <PackingStyle style = PackingStyle::synthesis>
 void packArgs(OpaqueArguments &argData, nanobind::args args,
               mlir::func::FuncOp kernelFuncOp,
               const std::function<bool(OpaqueArguments &, nanobind::object &,

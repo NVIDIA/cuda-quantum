@@ -42,14 +42,20 @@ CompiledModuleHelper::createJitArtifacts(const std::string &kernelName,
       (hasResult || !isFullySpecialized) ? kernelName + ".thunk" : fullName;
   void (*entryPoint)() = engine.lookupRawNameOrFail(entryName);
   int64_t (*argsCreator)(const void *, void **) = nullptr;
-  if (!isFullySpecialized)
+  int64_t (*returnOffset)() = nullptr;
+  if (!isFullySpecialized) {
     argsCreator = reinterpret_cast<int64_t (*)(const void *, void **)>(
         engine.lookupRawNameOrFail(kernelName + ".argsCreator"));
+    if (hasResult)
+      returnOffset = reinterpret_cast<int64_t (*)()>(
+          engine.lookupRawNameOrFail(kernelName + ".returnOffset"));
+  }
 
   std::vector<NamedJitArtifact> artifacts;
-  artifacts.emplace_back(kernelName, cudaq::CompiledModule::JitArtifact{
-                                         std::move(engine), entryPoint,
-                                         argsCreator, std::nullopt});
+  artifacts.emplace_back(kernelName,
+                         cudaq::CompiledModule::JitArtifact{
+                             std::move(engine), entryPoint, argsCreator,
+                             returnOffset, std::nullopt});
   return artifacts;
 }
 
