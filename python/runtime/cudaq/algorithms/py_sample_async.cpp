@@ -107,5 +107,9 @@ programming pattern.
           },
           "FIXME: document");
 
-  mod.def("sample_async_impl", sample_async_impl, "FIXME: document");
+  mod.def("sample_async_impl", sample_async_impl, "FIXME: document",
+          py::arg("short_name"), py::arg("module"), py::arg("shots_count"),
+          py::arg("noise_model") = std::nullopt,
+          py::arg("explicit_measurements"), py::arg("qpu_id"),
+          py::arg("runtime_args"));
 }
