@@ -241,10 +241,20 @@ if(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso)
 endif()
 
 if(APPLE AND TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso)
+  set(_darwin_typeid_diag_script
+    "${CMAKE_CURRENT_BINARY_DIR}/darwin_typeid_diag.sh")
+  file(GENERATE OUTPUT "${_darwin_typeid_diag_script}" CONTENT
+"#!/bin/sh
+echo '--- CAPI: TypeIDResolver BuiltinDialect symbol ---'
+nm -g '$<TARGET_FILE:CUDAQuantumPythonCAPI>' | grep TypeIDResolverINS_14BuiltinDialect || echo '(no match in CAPI)'
+echo '--- _quakeDialects: TypeIDResolver BuiltinDialect symbol ---'
+nm -gm '$<TARGET_FILE:CUDAQuantumPythonModules.extension._quakeDialects.dso>' | grep TypeIDResolverINS_14BuiltinDialect || echo '(no match in _quakeDialects)'
+exit 0
+")
   add_custom_command(
     TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso POST_BUILD
     COMMENT "Darwin diag: BuiltinDialect TypeID symbol distribution"
-    COMMAND sh -c "echo '--- CAPI: nm -g | grep TypeIDResolver<BuiltinDialect> ---'; nm -g '$<TARGET_FILE:CUDAQuantumPythonCAPI>' | grep TypeIDResolverINS_14BuiltinDialect || echo '(no match in CAPI)'; echo '--- _quakeDialects: nm -gm | grep TypeIDResolver<BuiltinDialect> ---'; nm -gm '$<TARGET_FILE:CUDAQuantumPythonModules.extension._quakeDialects.dso>' | grep TypeIDResolverINS_14BuiltinDialect || echo '(no match in _quakeDialects)'"
+    COMMAND sh "${_darwin_typeid_diag_script}"
   )
 endif()
 
