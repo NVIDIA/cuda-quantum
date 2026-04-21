@@ -162,6 +162,12 @@ add_mlir_python_common_capi_library(CUDAQuantumPythonCAPI
     MLIRPythonSources
 )
 
+if(APPLE)
+  target_link_options(CUDAQuantumPythonCAPI PRIVATE
+    "LINKER:-flat_namespace"
+    "LINKER:-undefined,dynamic_lookup")
+endif()
+
 ################################################################################
 # Instantiation of Python module
 ################################################################################

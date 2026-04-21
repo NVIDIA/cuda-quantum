@@ -59,6 +59,12 @@ target_link_libraries(cudaq-mlir-runtime
     fmt::fmt-header-only
 )
 
+if(APPLE)
+  target_link_options(cudaq-mlir-runtime PRIVATE
+    "LINKER:-flat_namespace"
+    "LINKER:-undefined,dynamic_lookup")
+endif()
+
 install(TARGETS cudaq-mlir-runtime-headers
         EXPORT cudaq-mlir-runtime-targets)
 
