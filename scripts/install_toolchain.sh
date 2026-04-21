@@ -103,7 +103,7 @@ elif [ "$toolchain" = "clang16" ]; then
 
         wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
         add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main"
-        apt-get update && apt-get install -y --no-install-recommends clang-16
+        apt-get update && apt-get install -y --no-install-recommends clang-16 libstdc++-13-dev
     elif [ -x "$(command -v dnf)" ]; then
         dnf install -y --nobest --setopt=install_weak_deps=False clang-16.0.6
     else
