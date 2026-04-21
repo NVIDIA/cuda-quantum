@@ -26,10 +26,10 @@ namespace cudaq {
 class ExecutionManager;
 class ExecutionContext;
 
-/// CPO anchor required so that the name exists in cudaq:: before
-/// the concept and CPO below are parsed.
-void finalize_execution_manager_impl(ExecutionManager &mgr,
-                                     ExecutionContext &ctx);
+/// @brief Default finalization — called when no policy-specific overload
+///        exists. Defined in execution_manager.h.
+void finalize_execution_manager_impl(cudaq::ExecutionManager &mgr,
+                                     cudaq::ExecutionContext &ctx);
 
 namespace detail {
 
@@ -39,7 +39,7 @@ template <class T>
 concept has_em_custom_finalize =
     requires(cudaq::ExecutionManager &mgr, const T &policy,
              cudaq::ExecutionContext &ctx) {
-      cudaq::finalize_execution_manager_impl(mgr, policy, ctx);
+      finalize_execution_manager_impl(mgr, policy, ctx);
     };
 
 /// @brief CPO function object for ExecutionManager finalization.
@@ -51,9 +51,9 @@ struct finalize_execution_manager_fn {
   decltype(auto) operator()(cudaq::ExecutionManager &mgr, const Policy &policy,
                             cudaq::ExecutionContext &ctx) const {
     if constexpr (has_em_custom_finalize<Policy>) {
-      return cudaq::finalize_execution_manager_impl(mgr, policy, ctx);
+      return finalize_execution_manager_impl(mgr, policy, ctx);
     } else {
-      return cudaq::finalize_execution_manager_impl(mgr, ctx);
+      return finalize_execution_manager_impl(mgr, ctx);
     }
   }
 };
@@ -68,9 +68,9 @@ inline constexpr detail::finalize_execution_manager_fn
 
 namespace nvqir {
 
-/// CPO anchor required so that the name exists in nvqir:: before
-/// the concept and CPO below are parsed.
-void finalize_simulation_circuit_impl(CircuitSimulator &sim,
+/// @brief Default finalization — called when no policy-specific overload
+///        exists. Defined in CircuitSimulator.h.
+void finalize_simulation_circuit_impl(nvqir::CircuitSimulator &sim,
                                       cudaq::ExecutionContext &ctx);
 
 namespace detail {
@@ -81,7 +81,7 @@ template <class T>
 concept has_sim_custom_finalize =
     requires(nvqir::CircuitSimulator &sim, const T &policy,
              cudaq::ExecutionContext &ctx) {
-      nvqir::finalize_simulation_circuit_impl(sim, policy, ctx);
+      finalize_simulation_circuit_impl(sim, policy, ctx);
     };
 
 /// @brief CPO function object for CircuitSimulator finalization.
@@ -93,9 +93,9 @@ struct finalize_simulation_circuit_fn {
   decltype(auto) operator()(nvqir::CircuitSimulator &sim, const Policy &policy,
                             cudaq::ExecutionContext &ctx) const {
     if constexpr (has_sim_custom_finalize<Policy>) {
-      return nvqir::finalize_simulation_circuit_impl(sim, policy, ctx);
+      return finalize_simulation_circuit_impl(sim, policy, ctx);
     } else {
-      return nvqir::finalize_simulation_circuit_impl(sim, ctx);
+      return finalize_simulation_circuit_impl(sim, ctx);
     }
   }
 };

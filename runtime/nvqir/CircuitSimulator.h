@@ -1430,12 +1430,20 @@ private:
   }
 };
 
-inline cudaq::sample_result
+} // namespace nvqir
+
+namespace cudaq {
+
+inline sample_result
 finalize_simulation_circuit_impl(nvqir::CircuitSimulator &sim,
-                                 const cudaq::sample_policy &policy,
-                                 cudaq::ExecutionContext &ctx) {
+                                 const sample_policy &policy,
+                                 ExecutionContext &ctx) {
   return sim.finalizeExecutionContext(policy, ctx);
 }
+
+} // namespace cudaq
+
+namespace nvqir {
 
 inline void finalize_simulation_circuit_impl(CircuitSimulator &sim,
                                              cudaq::ExecutionContext &ctx) {

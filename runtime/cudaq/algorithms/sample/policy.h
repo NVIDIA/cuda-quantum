@@ -27,6 +27,15 @@ struct sample_policy {
 
   /// Sampling  options.
   sample_options options;
+
+  friend sample_result
+  finalize_execution_manager_impl(ExecutionManager &mgr,
+                                  const sample_policy &policy,
+                                  ExecutionContext &ctx);
+  friend sample_result
+  finalize_simulation_circuit_impl(nvqir::CircuitSimulator &sim,
+                                   const sample_policy &policy,
+                                   ExecutionContext &ctx);
 };
 
 } // namespace cudaq
