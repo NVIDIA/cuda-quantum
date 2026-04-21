@@ -9,6 +9,7 @@
 #pragma once
 
 #include <nanobind/nanobind.h>
+#include <string>
 #include <tuple>
 #include <unordered_map>
 
