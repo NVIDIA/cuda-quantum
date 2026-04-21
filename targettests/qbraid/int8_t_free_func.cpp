@@ -7,4 +7,4 @@
  ******************************************************************************/
 
 // RUN: echo skipping
-#include "../execution/bug_qubit.cpp"
+#include "../execution/int8_t_free_func.cpp"

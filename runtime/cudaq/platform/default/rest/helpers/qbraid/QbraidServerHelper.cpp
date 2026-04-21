@@ -17,14 +17,20 @@
 
 namespace cudaq {
 
+/// @brief The QbraidServerHelper class extends the ServerHelper class to
+/// handle interactions with the qBraid server for submitting and retrieving
+/// quantum computation jobs to various qBraid supported devices.
 class QbraidServerHelper : public ServerHelper {
   static constexpr const char *DEFAULT_URL = "https://api-v2.qbraid.com/api/v1";
   static constexpr const char *DEFAULT_DEVICE = "qbraid:qbraid:sim:qir-sv";
   static constexpr int DEFAULT_QUBITS = 30;
 
 public:
+  /// @brief Returns the name of the server helper.
   const std::string name() const override { return "qbraid"; }
 
+  /// @brief Initializes the server helper with the provided backend
+  /// configuration.
   void initialize(BackendConfig config) override {
     cudaq::info("Initializing qBraid Backend.");
 
@@ -44,10 +50,17 @@ public:
 
     // Accept api_key from target arguments, fall back to QBRAID_API_KEY env var
     // Usage: cudaq.set_target("qbraid", api_key="my-key")
+    bool isApiKeyRequired = [&]() {
+      auto it = config.find("emulate");
+      if (it != config.end() && it->second == "true")
+        return false;
+      return true;
+    }();
     if (!config["api_key"].empty()) {
       backendConfig["api_key"] = config["api_key"];
     } else {
-      backendConfig["api_key"] = getEnvVar("QBRAID_API_KEY", "", true);
+      backendConfig["api_key"] =
+          getEnvVar("QBRAID_API_KEY", "", isApiKeyRequired);
     }
     backendConfig["job_path"] = backendConfig["url"] + "/jobs";
 
@@ -71,6 +84,8 @@ public:
     }
   }
 
+  /// @brief Creates a quantum computation job using the provided kernel
+  /// executions and returns the corresponding payload.
   ServerJobPayload
   createJob(std::vector<KernelExecution> &circuitCodes) override {
     if (backendConfig.find("job_path") == backendConfig.end()) {
@@ -102,6 +117,7 @@ public:
     return std::make_tuple(backendConfig.at("job_path"), getHeaders(), jobs);
   }
 
+  /// @brief Extracts the job ID from the server's response to a job submission.
   std::string extractJobId(ServerMessage &postResponse) override {
     // v2 API: jobQrn is nested under data envelope
     if (postResponse.contains("data") &&
@@ -112,6 +128,8 @@ public:
         "ServerMessage doesn't contain 'data.jobQrn' key.");
   }
 
+  /// @brief Constructs the URL for retrieving a job based on the server's
+  /// response to a job submission.
   std::string constructGetJobPath(ServerMessage &postResponse) override {
     // v2 API: use path parameter instead of query parameter
     if (postResponse.contains("data") &&
@@ -123,16 +141,21 @@ public:
         "ServerMessage doesn't contain 'data.jobQrn' key.");
   }
 
+  /// @brief Constructs the URL for retrieving a job based on a job ID.
   std::string constructGetJobPath(std::string &jobId) override {
     // v2 API: /jobs/{jobQrn}
     return backendConfig.at("job_path") + "/" + jobId;
   }
 
+  /// @brief Constructs the URL for retrieving the measurement results of a
+  /// completed job based on a job ID.
   std::string constructGetResultsPath(const std::string &jobId) {
     // v2 API: /jobs/{jobQrn}/result
     return backendConfig.at("job_path") + "/" + jobId + "/result";
   }
 
+  /// @brief Checks if a job is done based on the server's response to a job
+  /// retrieval request.
   bool jobIsDone(ServerMessage &getJobResponse) override {
     std::string status;
 
@@ -157,17 +180,16 @@ public:
     return false;
   }
 
-  // Fetch results from v2 results endpoint with retry logic.
-  //
-  // Rationale: qbraid's v2 API has a window where status transitions to
-  // COMPLETED before the result payload is queryable on /result, so /result
-  // returns {success: false, data: {message: "not yet available"}}. The retry
-  // with backoff absorbs that race.
-  //
-  // Exercised deterministically via the mock's POST /test/delay_next_results
-  // endpoint (see checkResultRetry / checkResultRetryExhaustion tests).
+  /// @brief Processes the server's response to a job retrieval request and
+  /// maps the results back to sample results.
   cudaq::sample_result processResults(ServerMessage &getJobResponse,
                                       std::string &jobId) override {
+    // qbraid's v2 API has a window where status transitions to COMPLETED
+    // before the result payload is queryable on /result, so /result returns
+    // {success: false, data: {message: "not yet available"}}. Retry with
+    // backoff absorbs that race. Exercised deterministically via the mock's
+    // POST /test/delay_next_results endpoint (see checkResultRetry /
+    // checkResultRetryExhaustion tests).
     const int maxRetries = 3;
     const int waitTime = 2;
     const float backoffFactor = 2.0;
@@ -252,19 +274,18 @@ public:
   }
 
 private:
-  // Merge multiple single-bit classical registers emitted by nvq++'s QASM 2
-  // codegen into a single multi-bit `creg c[N]`. This is required to unblock
-  // qBraid-routed hardware backends.
-  //
-  // Context: nvq++ emits one `creg varK[1];` per measurement. AWS Braket's
-  // classical simulators (SV1, DM1, TN1) tolerate that via lenient register
-  // concatenation, but stricter hardware transpilers below reject it:
-  //   - IQM (Garnet etc.): returns only the first register -> 1-bit results
-  //   - Rigetti: collapses all registers onto b[0] -> "bit already in use"
-  //   - IonQ-via-Braket: similar strict behavior
-  // Normalizing to a single register is the canonical QASM 2 form and is
-  // accepted uniformly by every qBraid-reachable backend.
+  /// @brief Merges multiple single-bit classical registers emitted by nvq++'s
+  /// QASM 2 codegen into a single multi-bit `creg c[N]`.
   std::string normalizeClassicalRegisters(const std::string &qasm) const {
+    // Required to unblock qBraid-routed hardware backends. nvq++ emits one
+    // `creg varK[1];` per measurement. AWS Braket's classical simulators
+    // (SV1, DM1, TN1) tolerate that via lenient register concatenation, but
+    // stricter hardware transpilers below reject it:
+    //   - IQM (Garnet etc.): returns only the first register -> 1-bit results
+    //   - Rigetti: collapses all registers onto b[0] -> "bit already in use"
+    //   - IonQ-via-Braket: similar strict behavior
+    // Normalizing to a single register is the canonical QASM 2 form and is
+    // accepted uniformly by every qBraid-reachable backend.
     static const std::regex cregDeclRx(R"(creg\s+(\w+)\s*\[\s*(\d+)\s*\]\s*;)");
 
     std::vector<std::pair<std::string, int>> cregs;
@@ -317,6 +338,7 @@ private:
     return out;
   }
 
+  /// @brief Returns the headers for the server requests.
   RestHeaders getHeaders() override {
     if (backendConfig.find("api_key") == backendConfig.end()) {
       throw std::runtime_error(
@@ -330,6 +352,7 @@ private:
     return headers;
   }
 
+  /// @brief Helper method to retrieve the value of an environment variable.
   std::string getEnvVar(const std::string &key, const std::string &defaultVal,
                         const bool isRequired) const {
     const char *env_var = std::getenv(key.c_str());
@@ -343,6 +366,8 @@ private:
     return std::string(env_var);
   }
 
+  /// @brief Helper function to get a value from config or return a default
+  /// value.
   std::string getValueOrDefault(const BackendConfig &config,
                                 const std::string &key,
                                 const std::string &defaultValue) const {
@@ -351,4 +376,6 @@ private:
 };
 } // namespace cudaq
 
+// Register the QbraidServerHelper with the name "qbraid" in the ServerHelper
+// factory
 CUDAQ_REGISTER_TYPE(cudaq::ServerHelper, cudaq::QbraidServerHelper, qbraid)
