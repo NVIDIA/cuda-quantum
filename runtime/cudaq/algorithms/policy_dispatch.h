@@ -9,8 +9,6 @@
 #pragma once
 
 #include "cudaq/algorithms/policies.h"
-#include <array>
-#include <functional>
 #include <string_view>
 #include <type_traits>
 #include <utility>

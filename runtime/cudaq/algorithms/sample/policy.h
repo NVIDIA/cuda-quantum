@@ -8,7 +8,6 @@
 
 #pragma once
 
-#include "common/Future.h"
 #include "common/SampleResult.h"
 #include "cudaq/algorithms/sample/options.h"
 
