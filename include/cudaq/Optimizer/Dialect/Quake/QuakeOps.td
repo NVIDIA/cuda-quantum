@@ -261,21 +261,21 @@ def quake_ExtractRefOp : QuakeOp<"extract_ref", [Pure]> {
 }
 
 def quake_RelaxSizeOp : QuakeOp<"relax_size", [Pure]> {
-  let summary = "Relax the constant size on a sized type to be unknown.";
+  let summary = "Relax the constant size on a !veq to be unknown.";
   let description = [{
-    Demotes a sized `!quake.veq<N>` to `!quake.veq<?>`, or a sized
-    `!quake.measurements<N>` to `!quake.measurements<?>`. Required to preserve
-    strongly-typed IR at function call/return boundaries.
+    At times, the IR needs to forget the length of an SSA-value of type
+    `!quake.veq<N>` and demote it to type `!quake.veq<?>` where the size is
+    said to be unknown. This demotion is required to preserve a valid,
+    strongly-typed IR.
 
-    Examples:
+    Example:
     ```mlir
       %uqv = quake.relax_size %qv : (!quake.veq<4>) -> !quake.veq<?>
-      %ums = quake.relax_size %ms : (!quake.measurements<4>) -> !quake.measurements<?>
     ```
   }];
 
-  let arguments = (ins AnyTypeOf<[VeqType, MeasurementsType]>:$inputVec);
-  let results = (outs AnyTypeOf<[VeqType, MeasurementsType]>);
+  let arguments = (ins VeqType:$inputVec);
+  let results = (outs VeqType);
 
   let assemblyFormat = [{
     $inputVec `:` functional-type(operands, results) attr-dict
@@ -372,34 +372,6 @@ def quake_VeqSizeOp : QuakeOp<"veq_size", [Pure]> {
 
   let assemblyFormat = [{
     $veq `:` functional-type(operands, results) attr-dict
-  }];
-
-  let hasCanonicalizer = 1;
-}
-
-def quake_MeasurementsSizeOp : QuakeOp<"measurements_size", [Pure]> {
-  let summary = "Return the size of a measurements collection.";
-  let description = [{
-    Returns the number of individual measurements in a `!quake.measurements<N>`
-    collection. If the collection has a static size, the static size is returned
-    (effectively as a constant). If the size is dynamic, the value will be an
-    SSA-value.
-
-    Examples:
-    ```mlir
-      %ms = quake.mz %qubits : (!quake.veq<4>) -> !quake.measurements<4>
-      %n = quake.measurements_size %ms : (!quake.measurements<4>) -> i64
-      
-      %ms2 = quake.mz %dyn_veq : (!quake.veq<?>) -> !quake.measurements<?>
-      %n2 = quake.measurements_size %ms2 : (!quake.measurements<?>) -> i64
-    ```
-  }];
-
-  let arguments = (ins MeasurementsType:$measurements);
-  let results = (outs AnySignlessIntegerOrIndex:$size);
-
-  let assemblyFormat = [{
-    $measurements `:` functional-type(operands, results) attr-dict
   }];
 
   let hasCanonicalizer = 1;
@@ -1130,7 +1102,7 @@ class Measurement<string mnemonic> : QuakeOp<mnemonic, [MeasurementInterface,
     OptionalAttr<StrAttr>:$registerName
   );
   let results = (outs
-    AnyTypeOf<[MeasureType, MeasurementsType]>:$measOut,
+    AnyTypeOf<[MeasureType, StdvecOf<[MeasureType]>]>:$measOut,
     Variadic<WireType>:$wires
   );
 
@@ -1147,15 +1119,13 @@ class Measurement<string mnemonic> : QuakeOp<mnemonic, [MeasurementInterface,
   }];
 
   let hasVerifier = 1;
-  let hasCanonicalizer = 1;
 }
 
 def MxOp : Measurement<"mx"> {
   let summary = "Measurement along the x-axis";
   let description = [{
-    The `mx` operation measures the state of qubits along the x-axis. For a
-    single qubit the result is `!quake.measure`; for multiple qubits the result
-    is `!quake.measurements<N>` (or `!quake.measurements<?>` when unsized).
+    The `mx` operation measures the state of qubits into classical bits
+    represented by a `i1` (or a vector of `i1`), along the x-axis.
 
     The state of the qubits is collapsed into one of the computational basis
     states, i.e., either |0> or |1>. A `reset` operation can guarantee that the
@@ -1168,9 +1138,8 @@ def MxOp : Measurement<"mx"> {
 def MyOp : Measurement<"my"> {
   let summary = "Measurement along the y-axis";
   let description = [{
-    The `my` operation measures the state of qubits along the y-axis. For a
-    single qubit the result is `!quake.measure`; for multiple qubits the result
-    is `!quake.measurements<N>` (or `!quake.measurements<?>` when unsized).
+    The `my` operation measures the state of qubits into classical bits
+    represented by a `i1` (or a vector of `i1`), along the y-axis.
 
     The state of the qubit is collapsed into one of the computational basis
     states, i.e., either |0> or |1>. A `reset` operation can guarantee that the
@@ -1183,10 +1152,9 @@ def MyOp : Measurement<"my"> {
 def MzOp : Measurement<"mz"> {
   let summary = "Measurement along the z-axis";
   let description = [{
-    The `mz` operation measures the state of qubits along the z-axis---the
-    so-called computational basis. For a single qubit the result is
-    `!quake.measure`; for multiple qubits the result is
-    `!quake.measurements<N>` (or `!quake.measurements<?>` when unsized).
+    The `mz` operation measures the state of qubits into a classical bits
+    represented by a `i1` (or a vector of `i1`), along the z-axis---the
+    so-called computational basis.
 
     The state of the qubit is collapsed into one of the computational basis
     states, i.e., either |0> or |1>. A `reset` operation can guarantee that the
@@ -1211,7 +1179,7 @@ def quake_DiscriminateOp : QuakeOp<"discriminate", [Pure]> {
   }];
 
   let arguments = (ins
-    AnyTypeOf<[MeasureType, MeasurementsType]>:$measurement
+    AnyTypeOf<[MeasureType, StdvecOf<[MeasureType]>]>:$measurement
   );
   let results = (outs
     AnyTypeOf<[AnySignlessInteger, StdvecOf<[AnySignlessInteger]>]>
@@ -1222,64 +1190,6 @@ def quake_DiscriminateOp : QuakeOp<"discriminate", [Pure]> {
   }];
 
   let hasVerifier = 1;
-}
-
-//===----------------------------------------------------------------------===//
-// GetMeasureOp
-//===----------------------------------------------------------------------===//
-
-def quake_GetMeasureOp : QuakeOp<"get_measure", [Pure]> {
-  let summary =
-    "Extract a single measurement from a measurements collection.";
-  let description = [{
-    Extracts a single `!quake.measure` value from a `!quake.measurements<N>`
-    collection by index. This is analogous to `quake.extract_ref` for qubits.
-
-    Example:
-    ```mlir
-      %m = quake.get_measure %ms[0] : (!quake.measurements<4>) -> !quake.measure
-    ```
-  }];
-
-  let arguments = (ins
-    MeasurementsType:$measurements,
-    Optional<AnySignlessIntegerOrIndex>:$index,
-    I64Attr:$rawIndex
-  );
-  let results = (outs MeasureType:$measure);
-
-  let builders = [
-    OpBuilder<(ins "mlir::Value":$measurements, "mlir::Value":$index,
-                   "mlir::IntegerAttr":$rawIndex), [{
-      return build($_builder, $_state, $_builder.getType<MeasureType>(),
-                   measurements, index, rawIndex);
-    }]>,
-    OpBuilder<(ins "mlir::Value":$measurements, "mlir::Value":$index), [{
-      return build($_builder, $_state, $_builder.getType<MeasureType>(),
-                   measurements, index, GetMeasureOp::kDynamicIndex);
-    }]>,
-    OpBuilder<(ins "mlir::Value":$measurements, "std::size_t":$rawIndex), [{
-      auto i64Ty = $_builder.getI64Type();
-      return build($_builder, $_state, $_builder.getType<MeasureType>(),
-                   measurements, mlir::Value{},
-                   mlir::IntegerAttr::get(i64Ty, rawIndex));
-    }]>
-  ];
-
-  let assemblyFormat = [{
-    $measurements `[` custom<RawIndex>($index, $rawIndex) `]` `:`
-      functional-type(operands, results) attr-dict
-  }];
-
-  let hasVerifier = 1;
-
-  let extraClassDeclaration = [{
-    static constexpr std::size_t kDynamicIndex =
-      std::numeric_limits<std::size_t>::max();
-
-    bool hasConstantIndex() { return !getIndex(); }
-    std::size_t getConstantIndex() { return getRawIndex(); }
-  }];
 }
 
 //===----------------------------------------------------------------------===//

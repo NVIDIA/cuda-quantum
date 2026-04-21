@@ -18,14 +18,6 @@ __qpu__ uint64_t test_entry_point() {
   return otherKernel(results);
 }
 
-// clang-format off
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test_entry_point._Z16test_entry_pointv() -> i64
-// CHECK-SAME:      attributes {"cudaq-entrypoint", "cudaq-kernel", no_this}
-// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<5>
-// CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "results" : (!quake.veq<5>) -> !quake.measurements<5>
-// CHECK:           %[[VAL_2:.*]] = quake.relax_size %[[VAL_1]] : (!quake.measurements<5>) -> !quake.measurements<?>
-// CHECK:           %[[VAL_3:.*]] = call @{{.*otherKernel.*}}(%[[VAL_2]]) : (!quake.measurements<?>) -> i64
-// CHECK:           return %[[VAL_3]] : i64
-// CHECK:         }
-// CHECK:         func.func private @{{.*otherKernel.*}}(!quake.measurements<?>) -> i64
-// clang-format on
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test_entry_point.
+// CHECK-SAME:      () -> i64 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[VAL_3:.*]] = call @__nvqpp__mlirgen__function_otherKernel.{{.*}}(%{{.*}}) : (!cc.stdvec<i1>) -> i64

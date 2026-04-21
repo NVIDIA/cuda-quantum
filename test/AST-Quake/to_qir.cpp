@@ -61,3 +61,4 @@ struct kernel {
 // CHECK:         tail call void @__quantum__rt__qubit_release_array(ptr %[[VAL_0]])
 // CHECK:         ret void
 // CHECK:       }
+

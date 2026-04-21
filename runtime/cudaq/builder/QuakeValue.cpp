@@ -102,7 +102,7 @@ std::size_t QuakeValue::getRequiredElements() {
 QuakeValue QuakeValue::operator[](const std::size_t idx) {
   Value vectorValue = value->asMLIR();
   Type type = vectorValue.getType();
-  if (!isa<cc::StdvecType, quake::VeqType, quake::MeasurementsType>(type)) {
+  if (!isa<cc::StdvecType, quake::VeqType>(type)) {
     std::string typeName;
     {
       llvm::raw_string_ostream os(typeName);
@@ -111,11 +111,6 @@ QuakeValue QuakeValue::operator[](const std::size_t idx) {
 
     throw std::runtime_error("This QuakeValue is not subscriptable (" +
                              typeName + ").");
-  }
-
-  if (isa<quake::MeasurementsType>(type)) {
-    Value measure = opBuilder.create<quake::GetMeasureOp>(vectorValue, idx);
-    return QuakeValue(opBuilder, measure);
   }
 
   Value indexVar = opBuilder.create<arith::ConstantIntOp>(idx, 32);
@@ -145,7 +140,7 @@ QuakeValue QuakeValue::operator[](const std::size_t idx) {
 QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
   Value vectorValue = value->asMLIR();
   Type type = vectorValue.getType();
-  if (!isa<cc::StdvecType, quake::VeqType, quake::MeasurementsType>(type)) {
+  if (!isa<cc::StdvecType, quake::VeqType>(type)) {
     std::string typeName;
     {
       llvm::raw_string_ostream os(typeName);
@@ -157,12 +152,6 @@ QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
   }
 
   Value indexVar = idx.getValue();
-
-  if (isa<quake::MeasurementsType>(type)) {
-    Value measure =
-        opBuilder.create<quake::GetMeasureOp>(vectorValue, indexVar);
-    return QuakeValue(opBuilder, measure);
-  }
 
   if (isa<quake::VeqType>(type)) {
     Value extractedQubit =
@@ -188,15 +177,13 @@ QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
 QuakeValue QuakeValue::size() {
   Value vectorValue = value->asMLIR();
   Type type = vectorValue.getType();
-  if (!isa<cc::StdvecType, quake::VeqType, quake::MeasurementsType>(type))
+  if (!isa<cc::StdvecType, quake::VeqType>(type))
     throw std::runtime_error("This QuakeValue does not expose .size().");
 
   Type i64Ty = opBuilder.getI64Type();
   Value ret;
   if (isa<cc::StdvecType>(type))
     ret = opBuilder.create<cc::StdvecSizeOp>(i64Ty, vectorValue);
-  else if (isa<quake::MeasurementsType>(type))
-    ret = opBuilder.create<quake::MeasurementsSizeOp>(i64Ty, vectorValue);
   else
     ret = quake::VeqSizeOp::create(opBuilder, i64Ty, vectorValue);
 

@@ -101,6 +101,13 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../../runtime/cudaq/platform/fermioniq/FermioniqQPU.cpp
     ../../runtime/cudaq/platform/default/rest/RemoteRESTQPU.cpp
     ../../runtime/cudaq/platform/default/python/QPU.cpp
+    ../../runtime/internal/compiler/ArgumentConversion.cpp
+    ../../runtime/internal/compiler/CompiledModuleHelper.cpp
+    ../../runtime/internal/compiler/LayoutInfo.cpp
+    ../../runtime/internal/compiler/RuntimeMLIR.cpp
+    ../../runtime/internal/compiler/RuntimePyMLIR.cpp
+    ../../runtime/internal/compiler/JIT.cpp
+    ../../runtime/internal/compiler/Compiler.cpp
 
   EMBED_CAPI_LINK_LIBS
    CUDAQuantumMLIRCAPI

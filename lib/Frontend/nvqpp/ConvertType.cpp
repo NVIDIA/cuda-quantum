@@ -124,21 +124,13 @@ static bool isFunctionCallable(Type t) {
   return false;
 }
 
-static bool isMeasureType(Type t) {
-  if (isa<quake::MeasureType, quake::MeasurementsType>(t))
-    return true;
-  if (auto vec = dyn_cast<cudaq::cc::SpanLikeType>(t))
-    return isMeasureType(vec.getElementType());
-  return false;
-}
-
 /// Return true if and only if \p t is a (simple) arithmetic type, an arithmetic
 /// sequence type (possibly dynamic in length), or a static product type of
 /// arithmetic types. Note that this means a product type with a dynamic
 /// sequence of arithmetic types is \em disallowed.
 static bool isKernelResultType(Type t) {
   return isArithmeticType(t) || isArithmeticSequenceType(t) ||
-         isStaticArithmeticProductType(t) || isMeasureType(t);
+         isStaticArithmeticProductType(t);
 }
 
 /// Return true if and only if \p t is a (simple) arithmetic type, an possibly
@@ -147,7 +139,7 @@ static bool isKernelResultType(Type t) {
 static bool isKernelArgumentType(Type t) {
   return isArithmeticType(t) || isComposedArithmeticType(t) ||
          quake::isQuantumReferenceType(t) || isKernelCallable(t) ||
-         isFunctionCallable(t) || isMeasureType(t) ||
+         isFunctionCallable(t) ||
          // TODO: move from pointers to a builtin string type.
          cudaq::isCharPointerType(t);
 }
@@ -458,8 +450,7 @@ bool QuakeBridgeVisitor::VisitLValueReferenceType(
     return pushType(cc::PointerType::get(builder.getContext()));
   auto eleTy = popType();
   if (isa<cc::CallableType, cc::IndirectCallableType, cc::SpanLikeType,
-          quake::VeqType, quake::RefType, quake::StruqType, quake::MeasureType,
-          quake::MeasurementsType>(eleTy))
+          quake::VeqType, quake::RefType, quake::StruqType>(eleTy))
     return pushType(eleTy);
   return pushType(cc::PointerType::get(eleTy));
 }
@@ -472,8 +463,7 @@ bool QuakeBridgeVisitor::VisitRValueReferenceType(
   // FIXME: LLVMStructType is promoted as a temporary workaround.
   if (isa<cc::ArrayType, cc::CallableType, cc::IndirectCallableType,
           cc::SpanLikeType, cc::StructType, quake::VeqType, quake::RefType,
-          quake::StruqType, quake::MeasureType, quake::MeasurementsType,
-          LLVM::LLVMStructType>(eleTy))
+          quake::StruqType, LLVM::LLVMStructType>(eleTy))
     return pushType(eleTy);
   return pushType(cc::PointerType::get(eleTy));
 }

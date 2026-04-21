@@ -559,13 +559,6 @@ SmallVector<Value> QuakeBridgeVisitor::convertKernelArgs(
           continue;
         }
       }
-    if (auto vMeasTy = dyn_cast<quake::MeasurementsType>(vTy))
-      if (auto kMeasTy = dyn_cast<quake::MeasurementsType>(kTy))
-        if (vMeasTy.hasSpecifiedSize() && !kMeasTy.hasSpecifiedSize()) {
-          auto relax = quake::RelaxSizeOp::create(builder, loc, kMeasTy, v);
-          result.push_back(relax);
-          continue;
-        }
 
     LLVM_DEBUG(llvm::dbgs() << "convert: " << v << "\nto:" << kTy << '\n');
     TODO_loc(loc, "argument type conversion");
@@ -669,7 +662,7 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
   }
   case clang::CastKind::CK_UserDefinedConversion: {
     auto sub = popValue();
-    // castToTy is the conversion function signature.
+    // castToTy is the converion function signature.
     castToTy = popType();
     if (isa<IntegerType>(castToTy) && isa<IntegerType>(sub.getType())) {
       auto locSub = toLocation(x->getSubExpr());
@@ -677,29 +670,6 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
       assert(result && "integer conversion failed");
       return result;
     }
-    auto i1Type = builder.getI1Type();
-    // Handle conversion of `measure_result`
-    auto measTy = quake::MeasureType::get(builder.getContext());
-    if (sub.getType() == measTy) {
-      auto i1Val = quake::DiscriminateOp::create(builder, loc, i1Type, sub);
-      // Convert to `int`
-      if (isa<IntegerType>(castToTy))
-        return pushValue(cudaq::cc::CastOp::create(
-            builder, loc, castToTy, i1Val, cudaq::cc::CastOpMode::Unsigned));
-      // Convert to `float`
-      if (isa<FloatType>(castToTy))
-        return pushValue(cudaq::cc::CastOp::create(
-            builder, loc, castToTy, i1Val, cudaq::cc::CastOpMode::Unsigned));
-      // Otherwise, just return the `i1` value
-      return pushValue(i1Val);
-    }
-
-    // Handle conversion of measurement collection to std::vector<bool>.
-    // TODO: will become measure_vector::operator std::vector<bool>().
-    if (isa<quake::MeasurementsType>(sub.getType()))
-      return pushValue(quake::DiscriminateOp::create(
-          builder, loc, cc::StdvecType::get(i1Type), sub));
-
     TODO_loc(loc, "unhandled user-defined implicit conversion");
   }
   case clang::CastKind::CK_ConstructorConversion: {
@@ -1049,7 +1019,7 @@ bool QuakeBridgeVisitor::VisitMaterializeTemporaryExpr(
   // In those cases, there is nothing to materialize, so we can just pass the
   // Value on the top of the stack.
   if (isa<cc::CallableType, quake::VeqType, quake::RefType, cc::SpanLikeType,
-          quake::StateType, quake::MeasureType, quake::MeasurementsType>(ty))
+          quake::StateType>(ty))
     return true;
 
   // If not one of the above special cases, then materialize the value to a
@@ -1315,14 +1285,6 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     auto svec = popValue();
     if (isa<cc::PointerType>(svec.getType()))
       svec = cc::LoadOp::create(builder, loc, svec);
-    if (isa<quake::MeasurementsType>(svec.getType()) && funcName == "size")
-      if (auto memberCall = dyn_cast<clang::CXXMemberCallExpr>(x))
-        if (memberCall->getImplicitObjectArgument()) {
-          [[maybe_unused]] auto calleeTy = popType();
-          assert(isa<FunctionType>(calleeTy));
-          return pushValue(quake::MeasurementsSizeOp::create(
-              builder, loc, builder.getI64Type(), svec));
-        }
     auto ext =
         cc::StdvecSizeOp::create(builder, loc, builder.getI64Type(), svec);
     if (funcName == "size")
@@ -1562,37 +1524,9 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
   auto funcArity = func->getNumParams();
   SmallVector<Value> args = lastValues(funcArity);
   if (isa<clang::CXXMethodDecl>(func)) {
-    auto thisPtrValue = popValue();
-
-    // For `measure_result`, the implicit "this" value is the `!quake.measure`
-    // SSA value; forward it unchanged
-    if (isa<clang::CXXConversionDecl>(func) &&
-        isInClassInNamespace(func, "measure_result", "cudaq"))
-      return pushValue(thisPtrValue);
+    [[maybe_unused]] auto thisPtrValue = popValue();
   }
   auto calleeOp = popValue();
-
-  // Handle operator== and operator!= for measure_result (friend functions)
-  if (func->isOverloadedOperator() && isInNamespace(func, "cudaq")) {
-    auto opKind = func->getOverloadedOperator();
-    if ((opKind == clang::OO_EqualEqual || opKind == clang::OO_ExclaimEqual) &&
-        args.size() == 2) {
-      auto lhs = args[0];
-      auto rhs = args[1];
-      auto measTy = quake::MeasureType::get(builder.getContext());
-      if (lhs.getType() == measTy || rhs.getType() == measTy) {
-        auto i1Type = builder.getI1Type();
-        if (lhs.getType() == measTy)
-          lhs = quake::DiscriminateOp::create(builder, loc, i1Type, lhs);
-        if (rhs.getType() == measTy)
-          rhs = quake::DiscriminateOp::create(builder, loc, i1Type, rhs);
-        // Choose predicate based on operator
-        auto pred = (opKind == clang::OO_EqualEqual) ? arith::CmpIPredicate::eq
-                                                     : arith::CmpIPredicate::ne;
-        return pushValue(arith::CmpIOp::create(builder, loc, pred, lhs, rhs));
-      }
-    }
-  }
 
   if (isInNamespace(func, "cudaq")) {
     // Check and see if this quantum operation is adjoint
@@ -1717,33 +1651,25 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     }
 
     if (funcName == "mx" || funcName == "my" || funcName == "mz") {
-      bool useMeasurements =
+      // Measurements always return a bool or a std::vector<bool>.
+      bool useStdvec =
           (args.size() > 1) ||
           (args.size() == 1 && isa<quake::VeqType>(args[0].getType()));
       auto measure = [&]() -> Value {
         Type measTy = quake::MeasureType::get(builder.getContext());
-        if (useMeasurements) {
-          std::size_t totalSize = 0;
-          bool allKnown = true;
-          for (auto a : args) {
-            if (quake::isConstantQuantumRefType(a.getType()))
-              totalSize += quake::getAllocationSize(a.getType());
-            else
-              allKnown = false;
-          }
-          if (allKnown && totalSize > 0)
-            measTy =
-                quake::MeasurementsType::get(builder.getContext(), totalSize);
-          else
-            measTy = quake::MeasurementsType::getUnsized(builder.getContext());
-        }
+        if (useStdvec)
+          measTy = cc::StdvecType::get(measTy);
         if (funcName == "mx")
           return quake::MxOp::create(builder, loc, measTy, args).getMeasOut();
         if (funcName == "my")
           return quake::MyOp::create(builder, loc, measTy, args).getMeasOut();
         return quake::MzOp::create(builder, loc, measTy, args).getMeasOut();
       }();
-      return pushValue(measure);
+      Type resTy = builder.getI1Type();
+      if (useStdvec)
+        resTy = cc::StdvecType::get(resTy);
+      return pushValue(
+          builder.create<quake::DiscriminateOp>(loc, resTy, measure));
     }
 
     // Handle the quantum gate set.
@@ -2201,38 +2127,16 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       return true;
     }
 
-    // TODO: will be replaced by measure_vector::operator std::int64_t().
     if (funcName == "toInteger" || funcName == "to_integer") {
-      auto arg = args[0];
-      auto i1Ty = builder.getI1Type();
-      auto boolVecTy = cc::StdvecType::get(i1Ty);
-      if (isa<quake::MeasurementsType>(arg.getType()))
-        arg = quake::DiscriminateOp::create(builder, loc, boolVecTy, arg);
-      else if (arg.getType() != boolVecTy)
-        reportClangError(x, mangler,
-                         "`to_integer` requires measurements or "
-                         "std::vector<bool> argument");
       IRBuilder irBuilder(builder.getContext());
       if (failed(irBuilder.loadIntrinsic(module, cudaqConvertToInteger))) {
         reportClangError(x, mangler, "cannot load cudaqConvertToInteger");
         return false;
       }
       auto i64Ty = builder.getI64Type();
-      return pushValue(func::CallOp::create(builder, loc, i64Ty,
-                                            cudaqConvertToInteger,
-                                            ValueRange{arg})
-                           .getResult(0));
-    }
-
-    // TODO: will be replaced by measure_vector::operator std::vector<bool>().
-    if (funcName == "to_bool_vector") {
-      auto arg = args[0];
-      assert(isa<quake::MeasurementsType>(arg.getType()) &&
-             "to_bool_vector requires measurements type argument");
-      auto i1Ty = builder.getI1Type();
-      arg = quake::DiscriminateOp::create(builder, loc,
-                                          cc::StdvecType::get(i1Ty), arg);
-      return pushValue(arg);
+      return pushValue(
+          func::CallOp::create(builder, loc, i64Ty, cudaqConvertToInteger, args)
+              .getResult(0));
     }
 
     if (funcName == "slice_vector") {
@@ -2636,11 +2540,6 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
       auto svec = popValue();
       if (isa<cc::PointerType>(svec.getType()))
         svec = cc::LoadOp::create(builder, loc, svec);
-      if (isa<quake::MeasurementsType>(svec.getType())) {
-        auto getMeas =
-            quake::GetMeasureOp::create(builder, loc, svec, indexVar);
-        return replaceTOSValue(getMeas);
-      }
       if (!isa<cc::StdvecType>(svec.getType())) {
         TODO_x(loc, x, mangler, "vector dereference");
         return false;
@@ -3363,20 +3262,6 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     auto fromVal = cc::LoadOp::create(builder, loc, fromStruct);
     cc::StoreOp::create(builder, loc, fromVal, copyObj);
     return pushValue(cc::LoadOp::create(builder, loc, copyObj));
-  }
-
-  // For `measure_result`, the implicit "this" value is the `!quake.measure`
-  // SSA value; forward it unchanged.
-  // Note: Copy support is a temporary concession while
-  // `std::vector<measure_result>` exists (its `operator[]` returns by
-  // reference, forcing copies). Once replaced, it becomes move-only.
-  if ((ctor->isCopyConstructor() || ctor->isMoveConstructor()) &&
-      isInClassInNamespace(ctor, "measure_result", "cudaq")) {
-    assert(x->getNumArgs() == 1);
-    auto src = popValue();
-    assert(isa<quake::MeasureType>(src.getType()) &&
-           "`measure_result` copy/move source must be `!quake.measure`");
-    return pushValue(src);
   }
 
   // TODO: remove this when we can handle ctors more generally.
