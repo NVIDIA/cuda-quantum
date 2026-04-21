@@ -32,7 +32,6 @@ set(_pasqal_public_link_libs
   cudaq-operator
   cudaq-common)
 set(_pasqal_private_link_libs
-  pthread
   cudaq-mlir-runtime
   fmt::fmt-header-only
   cudaq

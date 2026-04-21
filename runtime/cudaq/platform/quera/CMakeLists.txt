@@ -22,8 +22,7 @@ target_link_libraries(${LIBRARY_NAME}
     cudaq-operator
     cudaq-common 
   PRIVATE
-    pthread
-    cudaq-mlir-runtime 
+    cudaq-mlir-runtime
     cudaq-logger
     cudaq
     cudaq-platform-default
