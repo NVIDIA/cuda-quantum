@@ -58,6 +58,7 @@ ADD tpls/customizations/llvm /cuda-quantum/tpls/customizations/llvm
 ADD .gitmodules /cuda-quantum/.gitmodules
 ADD .git/modules/tpls/pybind11/HEAD /.git_modules/tpls/pybind11/HEAD
 ADD .git/modules/tpls/llvm/HEAD /.git_modules/tpls/llvm/HEAD
+ADD .git/modules/tpls/nanobind/HEAD /.git_modules/tpls/nanobind/HEAD
 
 # This is a hack so that we do not need to rebuild the prerequisites 
 # whenever we pick up a new CUDA-Q commit (which is always in CI).
