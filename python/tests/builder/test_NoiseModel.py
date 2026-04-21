@@ -44,7 +44,10 @@ def test_depolarization_channel(target: str):
     assert ('1' in counts)
 
 
-_skip_stim_p1 = pytest.mark.skip(
+from cudaq._metadata import assertions_enabled as _cudaq_assertions_enabled
+
+_skip_stim_p1 = pytest.mark.skipif(
+    _cudaq_assertions_enabled,
     reason="https://github.com/NVIDIA/cuda-quantum/issues/4026")
 
 
