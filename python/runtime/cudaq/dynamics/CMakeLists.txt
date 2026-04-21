@@ -46,12 +46,12 @@ endif()
 
 if(NOT SKBUILD)
   set_target_properties(nvqir_dynamics_bindings PROPERTIES
-    INSTALL_RPATH "${_origin_prefix}/../../lib;${_origin_prefix}/../../lib/plugins"
+    INSTALL_RPATH "${_origin_prefix}/../../lib;${_origin_prefix}/../../lib/plugins;${_origin_prefix}/../mlir/_mlir_libs"
     BUILD_RPATH   "${CMAKE_BINARY_DIR}/lib"
   )
 else()
   set_target_properties(nvqir_dynamics_bindings PROPERTIES
-    INSTALL_RPATH "${_origin_prefix}/../../lib;${_origin_prefix}/../../cuda_quantum.libs"
+    INSTALL_RPATH "${_origin_prefix}/../../lib;${_origin_prefix}/../../cuda_quantum.libs;${_origin_prefix}/../mlir/_mlir_libs"
     BUILD_RPATH   "${CMAKE_BINARY_DIR}/lib"
   )
 endif()
