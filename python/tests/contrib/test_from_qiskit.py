@@ -6,23 +6,35 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# This file tests the from_qiskit and from_qasm conversion functions.
+# This file tests the `from_qiskit` conversion function.
+# Tests for `from_qasm` live in `test_from_qasm.py`.
 
 import pytest
 import numpy as np
-import os
-import tempfile
 
 import cudaq
 from cudaq import contrib
 
-# Skip all tests if qiskit is not installed
+# Skip all tests if `qiskit` is not installed
 qiskit = pytest.importorskip("qiskit")
 from qiskit import QuantumCircuit
+from qiskit.circuit import Parameter
+from qiskit.circuit.library import (
+    U1Gate,
+    U2Gate,
+    CU1Gate,
+    CU3Gate,
+    CUGate,
+    XXPlusYYGate,
+    XXMinusYYGate,
+    C3XGate,
+    C4XGate,
+    GlobalPhaseGate,
+)
 
 
 class TestFromQiskit:
-    """Tests for cudaq.contrib.from_qiskit()."""
+    """Tests for the `cudaq.contrib.from_qiskit` helper."""
 
     def test_single_qubit_h_gate(self):
         """Test conversion of a single H gate."""
@@ -104,7 +116,7 @@ class TestFromQiskit:
         kernel = cudaq.contrib.from_qiskit(qc)
         counts = cudaq.sample(kernel)
 
-        # H-Sdg-Sdg-H = H-Z-H = X, result should be |1>
+        # H-`Sdg`-`Sdg`-H = H-Z-H = X, result should be |1>
         assert counts['1'] == 1000
 
     def test_single_qubit_tdg_gate(self):
@@ -211,7 +223,7 @@ class TestFromQiskit:
         kernel = cudaq.contrib.from_qiskit(qc)
         counts = cudaq.sample(kernel)
 
-        # H-RZ(pi)-H = X, result should be |1>
+        # H-`RZ(pi)`-H = X, result should be |1>
         assert counts['1'] == 1000
 
     def test_crx_gate(self):
@@ -249,7 +261,7 @@ class TestFromQiskit:
         kernel = cudaq.contrib.from_qiskit(qc)
         counts = cudaq.sample(kernel)
 
-        # Control is 1, H-RZ(pi)-H = X applied to target
+        # Control is 1, H-`RZ(pi)`-H = X applied to target
         assert counts['11'] == 1000
 
     def test_u3_gate(self):
@@ -276,7 +288,7 @@ class TestFromQiskit:
         assert counts['1'] == 1000
 
     def test_sx_gate(self):
-        """Test conversion of SX (sqrt-X) gate."""
+        """Test conversion of SX (`sqrt-X`) gate."""
         qc = QuantumCircuit(1)
         qc.sx(0)
         qc.sx(0)
@@ -390,7 +402,7 @@ class TestFromQiskit:
         assert len(counts) > 0
 
     def test_sxdg_gate(self):
-        """Test conversion of SXdg (sqrt-X dagger) gate."""
+        """Test conversion of SXdg (square-root-X dagger) gate."""
         qc = QuantumCircuit(1)
         qc.sx(0)
         qc.sxdg(0)
@@ -401,10 +413,373 @@ class TestFromQiskit:
         # SX followed by SXdg should return to |0>
         assert counts['0'] == 1000
 
-    def test_unsupported_gate_raises_error(self):
-        """Test that unsupported gates raise ValueError."""
+    # ------------------------------------------------------------------ #
+    # Phase / universal 1-qubit                                          #
+    # ------------------------------------------------------------------ #
+
+    def test_u1_gate(self):
+        """Test conversion of U1 gate."""
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        qc.append(U1Gate(np.pi), [0])
+        qc.h(0)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        # U1(π) applies a Z phase, so H·U1(π)·H = X
+        assert counts['1'] == 1000
+
+    def test_u2_gate(self):
+        """Test conversion of U2 gate."""
+        qc = QuantumCircuit(1)
+        qc.append(U2Gate(0, np.pi), [0])
+        qc.append(U2Gate(0, np.pi), [0])
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        # U2(0, π) = H, applied twice returns |0>
+        assert counts['0'] == 1000
+
+    def test_r_gate(self):
+        """Test conversion of R gate."""
+        qc = QuantumCircuit(1)
+        qc.r(np.pi, 0, 0)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        # R(π, 0) = -i·X up to global phase, so |0> → |1>
+        assert counts['1'] == 1000
+
+    # ------------------------------------------------------------------ #
+    # Controlled 1-qubit                                                 #
+    # ------------------------------------------------------------------ #
+
+    def test_cs_gate(self):
+        """Test conversion of CS gate."""
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.h(1)
+        qc.cs(0, 1)
+        qc.cs(0, 1)
+        qc.h(1)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        # CS² = CZ, so H·CS·CS·H on |1+> yields |11>
+        assert counts['11'] == 1000
+
+    def test_csdg_gate(self):
+        """Test conversion of CSdg gate."""
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.cs(0, 1)
+        qc.csdg(0, 1)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        # CS · CS† = I, so we stay at |10>
+        assert counts['10'] == 1000
+
+    def test_csx_gate(self):
+        """Test conversion of CSX gate."""
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.csx(0, 1)
+        qc.csx(0, 1)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        # CSX² = CX, so |10> → |11>
+        assert counts['11'] == 1000
+
+    # ------------------------------------------------------------------ #
+    # Controlled phase / universal                                       #
+    # ------------------------------------------------------------------ #
+
+    def test_cphase_gate(self):
+        """Test conversion of CPhase gate."""
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.h(1)
+        qc.cp(np.pi, 0, 1)
+        qc.h(1)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        # CP(π) = CZ, so H·CP(π)·H on |1+> yields |11>
+        assert counts['11'] == 1000
+
+    def test_cu1_gate(self):
+        """Test conversion of CU1 gate."""
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.h(1)
+        qc.append(CU1Gate(np.pi), [0, 1])
+        qc.h(1)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        # CU1(π) = CZ, same behavior as CPhase(π)
+        assert counts['11'] == 1000
+
+    def test_cu3_gate(self):
+        """Test conversion of CU3 gate."""
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.append(CU3Gate(np.pi, 0, np.pi), [0, 1])
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        # CU3(π, 0, π) acts as CX on control=1
+        assert counts['11'] == 1000
+
+    def test_cu_gate(self):
+        """Test conversion of CU gate with γ=0."""
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.cu(np.pi, 0, np.pi, 0, 0, 1)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        # CU(π, 0, π, 0) reduces to CX
+        assert counts['11'] == 1000
+
+    # ------------------------------------------------------------------ #
+    # Swap family                                                        #
+    # ------------------------------------------------------------------ #
+
+    def test_iswap_gate(self):
+        """Test conversion of `iswap` (`iSWAP`) gate."""
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.iswap(0, 1)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        # `iswap` on |10> = i|01>, sampling ignores phase
+        assert counts['01'] == 1000
+
+    def test_dcx_gate(self):
+        """Test conversion of DCX gate."""
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.dcx(0, 1)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        # DCX = CX(0,1)·CX(1,0): |10> → |11> → |01>
+        assert counts['01'] == 1000
+
+    def test_ecr_gate(self):
+        """Test conversion of ECR gate."""
+        qc = QuantumCircuit(2)
+        qc.ecr(0, 1)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        # ECR|00> = (1/√2)|q0=1,q1=0> - (i/√2)|q0=1,q1=1>.
+        # In CUDA-Q big-endian counts (q0 leftmost): outcomes '10' and '11'.
+        assert '00' not in counts
+        assert '01' not in counts
+        assert '10' in counts
+        assert '11' in counts
+
+    # ------------------------------------------------------------------ #
+    # Two-qubit parametric                                               #
+    # ------------------------------------------------------------------ #
+
+    def test_ryy_gate(self):
+        """Test conversion of RYY gate."""
+        qc = QuantumCircuit(2)
+        qc.ryy(2 * np.pi, 0, 1)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        # RYY(2π) = -I, |00> stays |00> up to a global sign
+        assert counts['00'] == 1000
+
+    def test_rzx_gate(self):
+        """Test conversion of RZX gate."""
+        qc = QuantumCircuit(2)
+        qc.rzx(np.pi, 0, 1)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        # RZX(π)|00> = -i·(Z_0⊗X_1)|00> = -i|0,1>
+        assert counts['01'] == 1000
+
+    def test_xx_plus_yy_gate(self):
+        """Test conversion of XXPlusYY gate."""
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.append(XXPlusYYGate(np.pi, 0), [0, 1])
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        # At θ=π the gate swaps |01> ↔ |10> in Qiskit's basis;
+        # starting from q0=1 the result is q0=0, q1=1.
+        assert counts['01'] == 1000
+
+    def test_xx_minus_yy_gate(self):
+        """Test conversion of XXMinusYY gate."""
+        qc = QuantumCircuit(2)
+        qc.append(XXMinusYYGate(np.pi, 0), [0, 1])
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        # At θ=π the gate swaps |00> ↔ |11>; from |00> we land on |11>.
+        assert counts['11'] == 1000
+
+    # ------------------------------------------------------------------ #
+    # Multi-qubit                                                        #
+    # ------------------------------------------------------------------ #
+
+    def test_rccx_gate(self):
+        """Test conversion of RCCX (relative-phase Toffoli) gate."""
+        qc = QuantumCircuit(3)
+        qc.x(0)
+        qc.x(1)
+        qc.rccx(0, 1, 2)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        # RCCX flips the target when both controls are 1, up to a phase
+        assert counts['111'] == 1000
+
+    def test_ccz_gate(self):
+        """Test conversion of CCZ gate."""
+        qc = QuantumCircuit(3)
+        qc.x(0)
+        qc.x(1)
+        qc.ccz(0, 1, 2)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        # CCZ only adds a phase to |111>; the target stays |0>
+        assert counts['110'] == 1000
+
+    def test_c3x_gate(self):
+        """Test conversion of C3X gate."""
         qc = QuantumCircuit(4)
-        qc.mcx([0, 1, 2], 3)  # Multi-controlled X not supported
+        qc.x(0)
+        qc.x(1)
+        qc.x(2)
+        qc.append(C3XGate(), [0, 1, 2, 3])
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        assert counts['1111'] == 1000
+
+    def test_c4x_gate(self):
+        """Test conversion of C4X gate."""
+        qc = QuantumCircuit(5)
+        qc.x(0)
+        qc.x(1)
+        qc.x(2)
+        qc.x(3)
+        qc.append(C4XGate(), [0, 1, 2, 3, 4])
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        assert counts['11111'] == 1000
+
+    def test_mcx_gate(self):
+        """Test conversion of MCX gate with 5 controls."""
+        qc = QuantumCircuit(6)
+        for i in range(5):
+            qc.x(i)
+        qc.mcx([0, 1, 2, 3, 4], 5)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        assert counts['111111'] == 1000
+
+    def test_mcphase_gate(self):
+        """Test conversion of MCPhase gate."""
+        qc = QuantumCircuit(4)
+        qc.x(0)
+        qc.x(1)
+        qc.x(2)
+        qc.h(3)
+        qc.mcp(np.pi, [0, 1, 2], 3)
+        qc.h(3)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        # With all controls = 1, `mcp(π)` flips the phase of the |1> component
+        # of the target |+>, turning it into |->. H brings it to |1>.
+        assert counts['1111'] == 1000
+
+    # ------------------------------------------------------------------ #
+    # Other operators                                                    #
+    # ------------------------------------------------------------------ #
+
+    def test_reset(self):
+        """Test conversion of reset."""
+        qc = QuantumCircuit(1)
+        qc.x(0)
+        qc.reset(0)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        assert counts['0'] == 1000
+
+    def test_delay_gate(self):
+        """Test that delay is converted as a no-op."""
+        qc = QuantumCircuit(1)
+        qc.x(0)
+        qc.delay(100, 0)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        assert counts['1'] == 1000
+
+    def test_global_phase_gate(self):
+        """Test that GlobalPhaseGate is converted as a no-op."""
+        qc = QuantumCircuit(1)
+        qc.x(0)
+        qc.append(GlobalPhaseGate(np.pi), [])
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        # Global phase has no effect on sampling.
+        assert counts['1'] == 1000
+
+    def test_unbound_parameter_raises_error(self):
+        """Test that unbound parameter expressions raise ValueError.
+
+        Gates whose parameters are not concrete floats (e.g., an unbound
+        `Parameter`) cannot be converted and should raise.
+        """
+        theta = Parameter('theta')
+        qc = QuantumCircuit(1)
+        qc.rx(theta, 0)
 
         with pytest.raises(ValueError, match="not supported"):
             cudaq.contrib.from_qiskit(qc)
@@ -417,72 +792,3 @@ class TestFromQiskit:
         counts = cudaq.sample(kernel)
 
         assert counts['00'] == 1000
-
-
-class TestFromQasm:
-    """Tests for cudaq.contrib.from_qasm()."""
-
-    def test_simple_qasm_file(self):
-        """Test loading a simple QASM file."""
-        qasm_content = """
-        OPENQASM 2.0;
-        include "qelib1.inc";
-        qreg q[2];
-        h q[0];
-        cx q[0], q[1];
-        """
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.qasm',
-                                         delete=False) as f:
-            f.write(qasm_content)
-            temp_path = f.name
-
-        try:
-            kernel = cudaq.contrib.from_qasm(temp_path)
-            counts = cudaq.sample(kernel)
-
-            # Bell state
-            assert '00' in counts
-            assert '11' in counts
-        finally:
-            os.unlink(temp_path)
-
-    def test_qasm_with_rotations(self):
-        """Test QASM file with parametric rotations."""
-        qasm_content = """
-        OPENQASM 2.0;
-        include "qelib1.inc";
-        qreg q[1];
-        rx(3.14159265359) q[0];
-        """
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.qasm',
-                                         delete=False) as f:
-            f.write(qasm_content)
-            temp_path = f.name
-
-        try:
-            kernel = cudaq.contrib.from_qasm(temp_path)
-            counts = cudaq.sample(kernel)
-
-            # RX(pi) should flip the qubit
-            assert counts['1'] == 1000
-        finally:
-            os.unlink(temp_path)
-
-    def test_nonexistent_file_raises_error(self):
-        """Test that nonexistent file raises FileNotFoundError."""
-        with pytest.raises(FileNotFoundError):
-            cudaq.contrib.from_qasm('/nonexistent/path/to/file.qasm')
-
-    def test_invalid_qasm_raises_error(self):
-        """Test that invalid QASM content raises RuntimeError."""
-        qasm_content = "this is not valid qasm"
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.qasm',
-                                         delete=False) as f:
-            f.write(qasm_content)
-            temp_path = f.name
-
-        try:
-            with pytest.raises(RuntimeError, match="Could not parse"):
-                cudaq.contrib.from_qasm(temp_path)
-        finally:
-            os.unlink(temp_path)

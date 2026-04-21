@@ -7,8 +7,9 @@
 # ============================================================================ #
 """Functions to convert OpenQASM files to CUDA-Q kernels.
 
-This module provides native OpenQASM 2.0 and 3.0 parsers with no Qiskit
-dependency. `from_qasm_str` dispatches on the `OPENQASM <version>;` header:
+This module provides native OpenQASM 2.0 and 3.0 parser implementations
+with no Qiskit dependency. `from_qasm_str` dispatches on the
+`OPENQASM <version>;` header:
 version `2.x` is handled by `_QASM2Translator`, version `3.x` by the
 `_QASM3Translator` subclass.
 
@@ -24,11 +25,6 @@ import re
 
 from ..kernel.kernel_builder import make_kernel
 from .qiskit_convert import _GATE_HANDLERS
-
-
-# --------------------------------------------------------------------------- #
-# Expression evaluator (for gate parameters: pi/2, sin(theta), 2*x, ...)
-# --------------------------------------------------------------------------- #
 
 _ALLOWED_FUNCS = {
     'sin': math.sin,
@@ -55,7 +51,7 @@ _BINOPS = {
     ast.Mult: operator.mul,
     ast.Div: operator.truediv,
     ast.Pow: operator.pow,
-    ast.BitXor: operator.pow,  # QASM `^` is exponentiation (Python parses as BitXor)
+    ast.BitXor: operator.pow,
 }
 
 _UNARYOPS = {
@@ -79,7 +75,7 @@ def _eval_expr(expr_str, env=None):
 def _eval_node(node, env):
     if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
         return float(node.value)
-    if isinstance(node, ast.Constant):  # py<3.8 compat
+    if isinstance(node, ast.Constant):
         return float(node.n)
     if isinstance(node, ast.Name):
         if node.id in env:
@@ -90,26 +86,25 @@ def _eval_node(node, env):
     if isinstance(node, ast.BinOp):
         op = _BINOPS.get(type(node.op))
         if op is None:
-            raise ValueError(f"Unsupported binary operator: {type(node.op).__name__}")
+            raise ValueError(
+                f"Unsupported binary operator: {type(node.op).__name__}")
         return op(_eval_node(node.left, env), _eval_node(node.right, env))
     if isinstance(node, ast.UnaryOp):
         op = _UNARYOPS.get(type(node.op))
         if op is None:
-            raise ValueError(f"Unsupported unary operator: {type(node.op).__name__}")
+            raise ValueError(
+                f"Unsupported unary operator: {type(node.op).__name__}")
         return op(_eval_node(node.operand, env))
     if isinstance(node, ast.Call):
         if not isinstance(node.func, ast.Name):
-            raise ValueError("Only direct function calls are allowed in expressions")
+            raise ValueError(
+                "Only direct function calls are allowed in expressions")
         fn = _ALLOWED_FUNCS.get(node.func.id)
         if fn is None:
-            raise ValueError(f"Unknown function in expression: {node.func.id!r}")
+            raise ValueError(
+                f"Unknown function in expression: {node.func.id!r}")
         return fn(*[_eval_node(a, env) for a in node.args])
     raise ValueError(f"Unsupported expression node: {type(node).__name__}")
-
-
-# --------------------------------------------------------------------------- #
-# Tokenization / parsing helpers
-# --------------------------------------------------------------------------- #
 
 
 def _strip_comments(source):
@@ -140,7 +135,7 @@ def _split_top_level(s, sep):
 
 
 def _parse_op_statement(stmt):
-    """Parse `NAME[(PARAMS)] Q0, Q1, ...` → (name, param_exprs, qubit_refs)."""
+    """Parse `NAME[(PARAMS)] Q0, Q1, ...` → `(name, param_exprs, qubit_refs)`."""
     stmt = stmt.strip()
     m = re.match(r'([A-Za-z_]\w*)', stmt)
     if not m:
@@ -168,7 +163,7 @@ def _parse_op_statement(stmt):
 
 
 def _extract_gate_defs(source):
-    """Pull out `gate ... { ... }` definitions; return (stripped_src, defs)."""
+    """Pull out `gate ... { ... }` definitions; return `(stripped_source, definitions)`."""
     gate_defs = {}
     out = []
     i = 0
@@ -223,11 +218,6 @@ def _extract_gate_defs(source):
         }
         i = j
     return ''.join(out), gate_defs
-
-
-# --------------------------------------------------------------------------- #
-# Translator
-# --------------------------------------------------------------------------- #
 
 
 class _QASM2Translator:
@@ -287,6 +277,11 @@ class _QASM2Translator:
         if re.match(r'barrier\b', stmt):
             return
 
+        # `opaque NAME[(params)] args;` — forward declaration only, the
+        # backend supplies semantics; nothing to do at translation time.
+        if re.match(r'opaque\b', stmt):
+            return
+
         # measure Q -> C
         m = re.match(r'measure\s+(.+?)\s*->\s*(.+)$', stmt)
         if m:
@@ -329,16 +324,16 @@ class _QASM2Translator:
             name = m.group(1)
             if name not in self.qregs:
                 raise ValueError(f"Unknown qreg: {name!r}")
-            # self.qregs[name] is already a list of individual qubits.
+            # `self.qregs[name]` is already a list of individual qubits.
             return list(self.qregs[name])
         raise ValueError(f"Cannot parse qubit reference: {ref!r}")
 
     def _apply_broadcasted(self, name, qubit_lists, params):
         """QASM 2.0 register broadcasting.
 
-        `h q;` → apply h to every qubit in q. If some args are single qubits
-        and others are registers, broadcast the single qubits across all
-        iterations; registers of differing lengths are rejected.
+        `h q;` → apply h to every qubit in q. If some arguments are single
+        qubits and others are registers, broadcast the single qubits across
+        all iterations; registers of differing lengths are rejected.
         """
         if not qubit_lists:
             raise ValueError(f"Gate '{name}' has no qubit arguments")
@@ -356,6 +351,15 @@ class _QASM2Translator:
         handler = _GATE_HANDLERS.get(name)
         if handler is not None:
             handler(self.kernel, qs, params)
+            return
+        if name == 'U':
+            if len(params) != 3:
+                raise ValueError(
+                    f"'U' expects 3 parameters in QASM 2.0, got {len(params)}")
+            _GATE_HANDLERS['u3'](self.kernel, qs, params)
+            return
+        if name == 'CX':
+            _GATE_HANDLERS['cx'](self.kernel, qs, params)
             return
         # u0(gamma) is idle / duration-only → no-op
         if name == 'u0':
@@ -390,27 +394,9 @@ class _QASM2Translator:
 
 
 class _QASM3Translator(_QASM2Translator):
-    """Parses OpenQASM 3.0 source and builds a CUDA-Q kernel.
+    """Parses OpenQASM 3.0 source and builds a CUDA-Q kernel."""
 
-    Inherits statement handling from `_QASM2Translator`, overriding only the
-    pieces that differ in 3.0:
-
-      - `_consume_header` accepts a ``OPENQASM 3.x;`` header and strips
-        ``include "stdgates.inc";`` (our handler table already covers every
-        gate in ``stdgates.inc``).
-      - `_execute` understands the new declarations (``qubit[N] name;``,
-        ``qubit name;``, ``bit[N] name;``, ``bit name;``), the measurement
-        assignment syntax (``c = measure q;``), and the built-in
-        ``gphase(γ);`` (global phase, no-op for sampling). It rejects gate
-        modifiers (``ctrl @`` / ``inv @`` / ``pow(n) @``) and classical
-        constructs (``def``, ``for``, ``while``, ``input``/``output``, etc.)
-        with `NotImplementedError`.
-      - `_apply_one` dispatches the 3.0 built-ins ``U(θ,φ,λ[,γ])`` (the
-        4-argument form drops the global-phase γ) and the legacy ``CX``.
-    """
-
-    _MODIFIER_RE = re.compile(
-        r'^(?:ctrl|negctrl|inv|pow)(?:\s*\([^)]*\))?\s*@')
+    _MODIFIER_RE = re.compile(r'^(?:ctrl|negctrl|inv|pow)(?:\s*\([^)]*\))?\s*@')
 
     _CLASSICAL_FEATURES_RE = re.compile(
         r'^(?:def|for|while|let|const|input|output|extern|return|'
@@ -446,7 +432,7 @@ class _QASM3Translator(_QASM2Translator):
             self.qregs[m.group(1)] = [reg[0]]
             return
 
-        # `bit[N] name;` / `bit name;` — classical regs, tracked but unused.
+        # `bit[N] name;` / `bit name;` — classical registers, tracked but unused.
         m = re.match(r'bit\s*\[\s*(\d+)\s*\]\s+([A-Za-z_]\w*)\s*$', stmt)
         if m:
             self.cregs[m.group(2)] = int(m.group(1))
@@ -457,8 +443,8 @@ class _QASM3Translator(_QASM2Translator):
             return
 
         # `c = measure q;` or `c[i] = measure q[i];` — classical LHS ignored.
-        m = re.match(
-            r'[A-Za-z_]\w*(?:\s*\[\s*\d+\s*\])?\s*=\s*measure\s+(.+)$', stmt)
+        m = re.match(r'[A-Za-z_]\w*(?:\s*\[\s*\d+\s*\])?\s*=\s*measure\s+(.+)$',
+                     stmt)
         if m:
             for q_ref in _split_top_level(m.group(1), ','):
                 for q in self._resolve_qubits(q_ref):
@@ -484,25 +470,20 @@ class _QASM3Translator(_QASM2Translator):
         super()._execute(stmt)
 
     def _apply_one(self, name, qs, params):
-        # Built-in `U(θ, φ, λ)` — or `U(θ, φ, λ, γ)` with an unobservable γ.
+        # Built-in `U(θ, φ, λ)` — or `U(θ, φ, λ, γ)` where γ is a global phase.
         if name == 'U':
             if len(params) not in (3, 4):
                 raise ValueError(
                     f"'U' expects 3 or 4 parameters, got {len(params)}")
             return super()._apply_one('u3', qs, params[:3])
-        # Legacy uppercase CX (3.0 stdgates.inc uses lowercase `cx`).
+        # Legacy uppercase CX (3.0 `stdgates.inc` uses lowercase `cx`).
         if name == 'CX':
             return super()._apply_one('cx', qs, params)
         # Uppercase `I` identity (the 3.0 tables commonly spell it this way;
-        # Qiskit's stdgates.inc exports `id` lowercase, so support both).
+        # `stdgates.inc` as used by Qiskit exports `id` lowercase, so support both).
         if name == 'I':
             return super()._apply_one('id', qs, params)
         return super()._apply_one(name, qs, params)
-
-
-# --------------------------------------------------------------------------- #
-# Public API
-# --------------------------------------------------------------------------- #
 
 
 def from_qasm_str(qasm_source):
@@ -544,7 +525,7 @@ def from_qasm_str(qasm_source):
     Supported OpenQASM 3.0 features (on top of the 2.0 gate set):
         - Declarations: ``qubit[N] q;``, ``qubit q;``, ``bit[N] c;``, ``bit c;``
         - Measurement assignment: ``c = measure q;`` / ``c[i] = measure q[i];``
-        - Built-in gates: ``U(θ,φ,λ)`` (and 4-param form ``U(θ,φ,λ,γ)``),
+        - Built-in gates: ``U(θ,φ,λ)`` (and 4-parameter form ``U(θ,φ,λ,γ)``),
           ``gphase(γ)`` (no-op for sampling), ``CX`` (legacy uppercase)
         - ``include "stdgates.inc";`` (handled by our gate table)
 
