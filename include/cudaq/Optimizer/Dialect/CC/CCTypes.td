@@ -283,6 +283,27 @@ def cc_CharSpanType
   }];
 }
 
+//===----------------------------------------------------------------------===//
+// MeasureHandleType - opaque, word-sized classical value
+//===----------------------------------------------------------------------===//
+
+def cc_MeasureHandleType : CCType<"MeasureHandle", "measure_handle"> {
+  let summary = "An opaque word-sized handle for a measurement event.";
+  let description = [{
+    The IR alias of the C++ `cudaq::measure_handle` class. Semantically an
+    opaque, word-sized classical value (an `i64` payload) whose only meaningful
+    consumer is `quake.discriminate`. The bridge emits this type so that
+    verification passes can reject entry-point kernels that leak handles across
+    the host-device boundary; a late lowering pass replaces it with `i64`
+    before QIR emission.
+
+    ```mlir
+      %mh = quake.mz %q name "mh" : (!quake.ref) -> !cc.measure_handle
+      %b  = quake.discriminate %mh : (!cc.measure_handle) -> i1
+    ```
+  }];
+}
+
 def IsSpanLikePred : CPred<"isa<cudaq::cc::SpanLikeType>($_self)">;
 def SpanningType : Type<IsSpanLikePred, "dynamic length type">;
 

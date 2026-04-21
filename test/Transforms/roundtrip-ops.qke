@@ -975,3 +975,29 @@ func.func @integrated_device() {
 // CHECK:           %[[VAL_14:.*]] = cc.device_call @integrated_device_callback<%[[VAL_2]], %[[VAL_10]], %[[VAL_11]] * %[[VAL_3]], %[[VAL_12]], %[[VAL_13]]> on %[[VAL_5]](%[[VAL_0]]) : (i64, i64, i64, i64, i64, i64, i64, i64) -> i64
 // CHECK:           return
 // CHECK:         }
+
+// !cc.measure_handle is the IR alias of `cudaq::measure_handle`: an opaque
+// word-sized classical value (i64 payload) that survives passes until the
+// late `lower-cc-measure-handle` pass replaces it with i64 before QIR.
+func.func @measure_handle_passthrough(%h : !cc.measure_handle)
+    -> !cc.measure_handle {
+  return %h : !cc.measure_handle
+}
+
+// CHECK-LABEL: func.func @measure_handle_passthrough(
+// CHECK-SAME:    %[[VAL_0:.*]]: !cc.measure_handle) -> !cc.measure_handle {
+// CHECK:         return %[[VAL_0]] : !cc.measure_handle
+// CHECK:       }
+
+func.func @measure_handle_cast_roundtrip(%i : i64) -> i64 {
+  %h = cc.cast %i : (i64) -> !cc.measure_handle
+  %r = cc.cast %h : (!cc.measure_handle) -> i64
+  return %r : i64
+}
+
+// CHECK-LABEL: func.func @measure_handle_cast_roundtrip(
+// CHECK-SAME:    %[[VAL_0:.*]]: i64) -> i64 {
+// CHECK:         %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (i64) -> !cc.measure_handle
+// CHECK:         %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (!cc.measure_handle) -> i64
+// CHECK:         return %[[VAL_2]] : i64
+// CHECK:       }
