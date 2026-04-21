@@ -222,7 +222,8 @@ if(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso)
   if(_qd_link_options)
     list(REMOVE_ITEM _qd_link_options
       "$<$<PLATFORM_ID:Linux>:LINKER:--exclude-libs,ALL>"
-      "LINKER:--exclude-libs,ALL")
+      "LINKER:--exclude-libs,ALL"
+      "LINKER:-twolevel_namespace")
     set_target_properties(CUDAQuantumPythonModules.extension._quakeDialects.dso
       PROPERTIES LINK_OPTIONS "${_qd_link_options}")
   endif()
@@ -238,6 +239,13 @@ if(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso)
   target_link_options(CUDAQuantumPythonModules.extension._quakeDialects.dso
     BEFORE PRIVATE
       "$<TARGET_FILE:CUDAQuantumPythonCAPI>")
+
+  if(APPLE)
+    target_link_options(CUDAQuantumPythonModules.extension._quakeDialects.dso
+      PRIVATE
+        "LINKER:-flat_namespace"
+        "LINKER:-undefined,dynamic_lookup")
+  endif()
 endif()
 
 if(APPLE AND TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso)
@@ -249,6 +257,10 @@ echo '--- CAPI: TypeIDResolver BuiltinDialect symbol ---'
 nm -g '$<TARGET_FILE:CUDAQuantumPythonCAPI>' | grep TypeIDResolverINS_14BuiltinDialect || echo '(no match in CAPI)'
 echo '--- _quakeDialects: TypeIDResolver BuiltinDialect symbol ---'
 nm -gm '$<TARGET_FILE:CUDAQuantumPythonModules.extension._quakeDialects.dso>' | grep TypeIDResolverINS_14BuiltinDialect || echo '(no match in _quakeDialects)'
+echo '--- cudaq-mlir-runtime: TypeIDResolver BuiltinDialect symbol ---'
+nm -g '$<TARGET_FILE:cudaq-mlir-runtime>' | grep TypeIDResolverINS_14BuiltinDialect || echo '(no match in cudaq-mlir-runtime)'
+echo '--- _quakeDialects: namespace flag (should be flat) ---'
+otool -hv '$<TARGET_FILE:CUDAQuantumPythonModules.extension._quakeDialects.dso>' 2>/dev/null | grep -E 'TWOLEVEL|flags' || echo '(otool unavailable)'
 exit 0
 ")
   add_custom_command(
