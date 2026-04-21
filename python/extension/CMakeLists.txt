@@ -240,7 +240,15 @@ if(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso)
       "$<TARGET_FILE:CUDAQuantumPythonCAPI>")
 endif()
 
-## The Python bindings module for Quake dialect depends on CUDAQ libraries 
+if(APPLE AND TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso)
+  add_custom_command(
+    TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso POST_BUILD
+    COMMENT "Darwin diag: BuiltinDialect TypeID symbol distribution"
+    COMMAND sh -c "echo '--- CAPI: nm -g | grep TypeIDResolver<BuiltinDialect> ---'; nm -g '$<TARGET_FILE:CUDAQuantumPythonCAPI>' | grep TypeIDResolverINS_14BuiltinDialect || echo '(no match in CAPI)'; echo '--- _quakeDialects: nm -gm | grep TypeIDResolver<BuiltinDialect> ---'; nm -gm '$<TARGET_FILE:CUDAQuantumPythonModules.extension._quakeDialects.dso>' | grep TypeIDResolverINS_14BuiltinDialect || echo '(no match in _quakeDialects)'"
+  )
+endif()
+
+## The Python bindings module for Quake dialect depends on CUDAQ libraries
 ## which it can't locate since they are in "../../lib" and the 'rpath' is set
 ## to '$ORIGIN' by default.
 ## macOS uses @loader_path instead of $ORIGIN for RPATH.
