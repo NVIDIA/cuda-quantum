@@ -398,7 +398,7 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
     #rm -rf "$llvm_stage1_tmpdir"
     export CC="$LLVM_INSTALL_PREFIX/bin/clang" 
     export CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
-    export FC="$LLVM_INSTALL_PREFIX/bin/flang-new"
+    export FC="$LLVM_INSTALL_PREFIX/bin/flang"
     echo "Configured C compiler: $CC"
     echo "Configured C++ compiler: $CXX"
     echo "Configured Fortran compiler: $FC"

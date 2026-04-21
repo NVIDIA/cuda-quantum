@@ -251,7 +251,7 @@ RUN cd /cuda-quantum && \
     bash scripts/install_prerequisites.sh -t llvm -e qrmi && \
     CC="$LLVM_INSTALL_PREFIX/bin/clang" \
     CXX="$LLVM_INSTALL_PREFIX/bin/clang++" \
-    FC="$LLVM_INSTALL_PREFIX/bin/flang-new" \
+    FC="$LLVM_INSTALL_PREFIX/bin/flang" \
     python3 -m build --wheel && \
     echo "=== ccache stats (python_build) ===" && (ccache -s 2>/dev/null || true)
     ## [<CUDAQuantumPythonBuild]

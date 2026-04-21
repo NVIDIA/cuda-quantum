@@ -155,18 +155,14 @@ if [ -z "${llvm_projects##*clang;*}" ]; then
 fi
 if [ -z "${llvm_projects##*flang;*}" ]; then
   echo "- including Flang components"
-  llvm_components+="flang-new;"
+  llvm_components+="flang;"
   projects=("${projects[@]/flang}")
 fi
 if [ -z "${llvm_projects##*openmp;*}" ]; then
   echo "- including OpenMP components"
-  # There are no suitable distribution components for libomp. 
+  # There are no suitable distribution components for libomp.
   # We instead manually build suitable targets.
   install_targets+=" omp"
-  # omptarget (GPU offloading) is only available on Linux with CUDA
-  if [ "$(uname)" != "Darwin" ]; then
-    llvm_components+="omptarget;"
-  fi
   llvm_components+="openmp-resource-headers;"
   projects=("${projects[@]/openmp}")
 fi

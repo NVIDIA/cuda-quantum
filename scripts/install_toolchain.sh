@@ -152,7 +152,7 @@ elif [ "$toolchain" = "llvm" ]; then
 
     CC="$LLVM_INSTALL_PREFIX/bin/clang"
     CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
-    FC="$LLVM_INSTALL_PREFIX/bin/flang-new"
+    FC="$LLVM_INSTALL_PREFIX/bin/flang"
 
 else
 
