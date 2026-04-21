@@ -397,6 +397,14 @@ public:
   bool TraverseDecltypeType(clang::DecltypeType *t, bool &visitChildren) {
     return TraverseType(t->desugar());
   }
+  bool TraversePredefinedSugarType(clang::PredefinedSugarType *t,
+                                   bool &visitChildren) {
+    return TraverseType(t->desugar());
+  }
+  bool TraversePredefinedSugarTypeLoc(clang::PredefinedSugarTypeLoc tl,
+                                      bool &visitChildren) {
+    return TraverseType(tl.getType());
+  }
 
   // When processing a record type, visit the type of all the field decls. This
   // will push 1 new type on the stack for each field. These types will be the

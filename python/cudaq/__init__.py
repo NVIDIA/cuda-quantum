@@ -127,6 +127,7 @@ except Exception:
         print("Could not find a suitable cuQuantum Python package.")
     pass
 
+
 def _patch_mlir_isinstance() -> None:
     import builtins
 
@@ -144,6 +145,7 @@ def _patch_mlir_isinstance() -> None:
         except Exception:
             pass
         if static_typeid is not None:
+
             def _isinstance(other, _tid=static_typeid):
                 try:
                     return other.typeid == _tid
@@ -151,6 +153,7 @@ def _patch_mlir_isinstance() -> None:
                     return False
         elif value_base is not None and cls is not value_base and \
                 issubclass(cls, value_base):
+
             def _isinstance(other, _cls=cls, _isinst=py_isinstance):
                 try:
                     return _isinst(other.maybe_downcast(), _cls)
