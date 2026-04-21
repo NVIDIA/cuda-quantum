@@ -390,22 +390,47 @@ void cudaq::bindPyState(py::module_ &mod, LinkedLibraryHolder &holder) {
           "Convert the address of the state object to an integer.")
       .def_static(
           "from_data",
-          [&holder](py::object data) {
-            // If data is a list/tuple of tensors, let the vector overload
-            // handle it. Without this guard, py::object greedily matches
-            // lists before the std::vector<py::object> overload is tried.
-            // (nanobind migration: replaces pybind11's py::buffer which
-            // naturally rejected non-buffer types)
-            if (py::isinstance<py::list>(data) ||
-                py::isinstance<py::tuple>(data))
-              throw py::next_overload();
+          [&](nanobind::object data) {
+            // Reject Python sequences (list/tuple) overload — they should be
+            // dispatched to the vector overload below. In pybind11, py::buffer
+            // excluded lists; nanobind::object accepts anything, so we must
+            // guard explicitly.
+            if (nanobind::isinstance<nanobind::list>(data) ||
+                nanobind::isinstance<nanobind::tuple>(data))
+              throw nanobind::next_overload();
             return createStateFromPyBuffer(data, holder);
           },
           "Return a state from data.")
-      // Note: The SimulationState::Tensor overload MUST come before the
-      // py::object overload because nanobind tries overloads in declaration
-      // order. std::vector<py::object> would greedily match lists of Tensor
-      // objects and then fail when trying to cast them to ndarray.
+      .def_static(
+          "from_data",
+          [&holder](const std::vector<nanobind::object> &tensors) {
+            // Reject SimulationState::Tensor objects overload — they're handled
+            // by the next overload and don't have numpy/cupy buffer attributes.
+            if (!tensors.empty() &&
+                nanobind::isinstance<SimulationState::Tensor>(tensors[0]))
+              throw nanobind::next_overload();
+            const bool isHostData =
+                tensors.empty() ||
+                !nanobind::hasattr(tensors[0], "__cuda_array_interface__");
+            // Check that the target is GPU-based, i.e., can handle device
+            // pointer.
+            if (!holder.getTarget().config.GpuRequired && !isHostData)
+              throw std::runtime_error(fmt::format(
+                  "Current target '{}' does not support CuPy arrays.",
+                  holder.getTarget().name));
+            TensorStateData tensorData;
+            for (auto &tensor : tensors) {
+              auto info = isHostData ? getNumpyBufferInfo(tensor)
+                                     : getCupyBufferInfo(tensor);
+              const std::vector<std::size_t> extents(info.shape.begin(),
+                                                     info.shape.end());
+              tensorData.emplace_back(
+                  std::pair<const void *, std::vector<std::size_t>>{info.ptr,
+                                                                    extents});
+            }
+            return state::from_data(tensorData);
+          },
+          "Return a state from matrix product state tensor data.")
       .def_static(
           "from_data",
           [](const std::vector<SimulationState::Tensor> &tensors) {

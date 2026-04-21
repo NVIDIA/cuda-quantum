@@ -92,14 +92,10 @@ addMeasurements(func::FuncOp funcOp, SmallVector<Operation *> &allocations,
   builder.setInsertionPointToEnd(newBlock);
   auto measTy = quake::MeasureType::get(builder.getContext());
   for (auto [index, alloca] : llvm::enumerate(allocations)) {
-    if (auto veqTy = dyn_cast<quake::VeqType>(alloca->getResult(0).getType())) {
-      Type measurementsTy = [&]() {
-        auto *ctx = builder.getContext();
-        if (veqTy.hasSpecifiedSize())
-          return quake::MeasurementsType::get(ctx, veqTy.getSize());
-        return quake::MeasurementsType::getUnsized(ctx);
-      }();
-      quake::MzOp::create(builder, loc, measurementsTy, alloca->getResult(0));
+    if (isa<quake::VeqType>(alloca->getResult(0).getType())) {
+      auto stdvecTy = cudaq::cc::StdvecType::get(measTy);
+      quake::MzOp::create(builder, loc, stdvecTy,
+                          ValueRange{alloca->getResult(0)});
     } else {
       quake::MzOp::create(builder, loc, measTy, alloca->getResult(0));
     }

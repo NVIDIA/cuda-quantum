@@ -23,6 +23,7 @@ add_library(cudaq-mlir-runtime
   SHARED
     ArgumentConversion.cpp
     Compiler.cpp
+    CompiledModuleHelper.cpp
     JIT.cpp
     RuntimeMLIR.cpp
     RuntimeCppMLIR.cpp

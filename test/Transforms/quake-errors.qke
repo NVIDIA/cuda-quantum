@@ -493,11 +493,3 @@ func.func @test(%0: !quake.veq<3>, %1: !quake.veq<2>, %2: !quake.ref) {
   %4 = quake.concat %0, %1, %2 : (!quake.veq<3>, !quake.veq<2>, !quake.ref) -> !quake.veq<34>
   return
 }
-
-// -----
-
-func.func @test(%ms : !quake.measurements<4>) -> !quake.measure {
-  // expected-error @+1 {{'quake.get_measure' op invalid index [4] because >= size [4]}}
-  %m = quake.get_measure %ms[4] : (!quake.measurements<4>) -> !quake.measure
-  return %m : !quake.measure
-}

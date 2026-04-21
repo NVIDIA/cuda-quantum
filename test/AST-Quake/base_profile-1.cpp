@@ -89,13 +89,6 @@ struct comprehensive {
   }
 };
 
-struct adapt_mz_read {
-  bool operator()() __qpu__ {
-    cudaq::qubit q;
-    return static_cast<bool>(mz(q));
-  }
-};
-
 // clang-format off
 
 // BASE-LABEL: define void @__nvqpp__mlirgen__comprehensive()

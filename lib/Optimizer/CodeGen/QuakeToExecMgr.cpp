@@ -462,25 +462,6 @@ public:
   }
 };
 
-class MeasurementsSizeOpRewrite
-    : public OpConversionPattern<quake::MeasurementsSizeOp> {
-public:
-  using OpConversionPattern::OpConversionPattern;
-
-  LogicalResult
-  matchAndRewrite(quake::MeasurementsSizeOp msize, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-    auto loc = msize->getLoc();
-    auto i64Ty = rewriter.getI64Type();
-    auto ptrI64Ty = cudaq::cc::PointerType::get(i64Ty);
-    auto sizeptr = cudaq::cc::ComputePtrOp::create(
-        rewriter, loc, ptrI64Ty, adaptor.getMeasurements(),
-        ArrayRef<cudaq::cc::ComputePtrArg>{1});
-    rewriter.replaceOpWithNewOp<cudaq::cc::LoadOp>(msize, sizeptr);
-    return success();
-  }
-};
-
 } // namespace
 
 void cudaq::opt::populateQuakeToCCPatterns(TypeConverter &converter,
@@ -488,9 +469,8 @@ void cudaq::opt::populateQuakeToCCPatterns(TypeConverter &converter,
   auto *context = patterns.getContext();
   patterns.insert<AllocaOpRewrite, ConcatOpRewrite, DeallocOpRewrite,
                   DiscriminateOpRewrite, ExtractRefOpRewrite, VeqSizeOpRewrite,
-                  MeasurementsSizeOpRewrite, MzOpRewrite, ResetRewrite,
-                  SubveqOpRewrite, GenericRewrite<quake::HOp>,
-                  GenericRewrite<quake::PhasedRxOp>,
+                  MzOpRewrite, ResetRewrite, SubveqOpRewrite,
+                  GenericRewrite<quake::HOp>, GenericRewrite<quake::PhasedRxOp>,
                   GenericRewrite<quake::R1Op>, GenericRewrite<quake::RxOp>,
                   GenericRewrite<quake::RyOp>, GenericRewrite<quake::RzOp>,
                   GenericRewrite<quake::SOp>, GenericRewrite<quake::SwapOp>,

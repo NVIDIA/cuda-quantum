@@ -19,6 +19,7 @@ config:
   # Add preprocessor defines to compilation
   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
   # Define the JIT lowering pipeline
+  jit-high-level-pipeline: "expand-measurements"
   jit-mid-level-pipeline: "lower-to-cfg,decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,x(1)},quake-to-cc-prep,func.func(memtoreg{quantum=0})"
   # Tell the rest-qpu that we are generating OpenQASM 2.0.
   codegen-emission: qasm2

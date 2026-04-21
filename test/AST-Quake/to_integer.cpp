@@ -23,17 +23,7 @@ struct kernel {
   }
 };
 
-struct kernel_via_bool_vector {
-  void operator()() __qpu__ {
-    cudaq::qvector q(4);
-    int64_t results_int =
-        cudaq::to_integer(cudaq::to_bool_vector(mz(q)));
-    external_call_to_keep_result(results_int);
-  }
-};
-
 // clang-format off
 // CHECK-LABEL: define void @__nvqpp__mlirgen__kernel()
 // CHECK-NOT: llvm.vector
-// CHECK-LABEL: define void @__nvqpp__mlirgen__kernel_via_bool_vector()
-// CHECK-NOT: llvm.vector
+
