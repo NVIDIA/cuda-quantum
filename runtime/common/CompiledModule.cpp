@@ -111,3 +111,8 @@ void (*cudaq::CompiledModule::JitArtifact::getEntryPoint() const)() {
 cudaq::JitEngine cudaq::CompiledModule::JitArtifact::getEngine() const {
   return engine;
 }
+
+std::optional<cudaq::Resources>
+cudaq::CompiledModule::JitArtifact::getResourceCounts() const {
+  return resourceCounts;
+}
