@@ -180,10 +180,14 @@ add_mlir_python_modules(CUDAQuantumPythonModules
 
 # Suppress warnings-as-errors for upstream MLIR Python extension sources
 # that have minor GCC warnings (address-of-function, parentheses) in LLVM 22.
-if(TARGET CUDAQuantumPythonModules.extension._mlir.dso)
-  target_compile_options(CUDAQuantumPythonModules.extension._mlir.dso PRIVATE
-    -Wno-error=address -Wno-error=parentheses)
-endif()
+foreach(_cudaq_py_ext_target
+    CUDAQuantumPythonModules.extension._mlir.dso
+    CUDAQuantumPythonModules.extension.MLIRPythonSupport-cudaq.so)
+  if(TARGET ${_cudaq_py_ext_target})
+    target_compile_options(${_cudaq_py_ext_target} PRIVATE
+      -Wno-error=address -Wno-error=parentheses)
+  endif()
+endforeach()
 
 # Upstream MLIR's add_mlir_python_extension sets `-Wl,--exclude-libs,ALL` on
 # every extension, which hides the symbols pulled in from the static MLIR
