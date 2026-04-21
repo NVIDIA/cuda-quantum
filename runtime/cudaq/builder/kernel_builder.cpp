@@ -796,8 +796,7 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
     measureResult =
         QuakeMeasureOp::create(builder, measTy, value, strAttr).getMeasOut();
   else
-    measureResult =
-        QuakeMeasureOp::create(builder, measTy, value).getMeasOut();
+    measureResult = QuakeMeasureOp::create(builder, measTy, value).getMeasOut();
 
   Value bits = quake::DiscriminateOp::create(builder, resTy, measureResult);
   return QuakeValue(builder, bits);
