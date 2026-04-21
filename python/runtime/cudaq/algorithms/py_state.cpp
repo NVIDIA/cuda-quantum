@@ -208,6 +208,100 @@ static bool isCupyArray(py::object obj) {
   return py::hasattr(obj, "__cuda_array_interface__");
 }
 
+/// @brief Helper struct to hold buffer metadata, analogous to Python's
+/// buffer_info.
+struct BufferInfo {
+  void *ptr = nullptr;
+  std::size_t itemsize = 0;
+  std::string format;
+  std::size_t ndim = 0;
+  std::vector<std::size_t> shape;
+  std::vector<ssize_t> strides;
+  bool readonly = false;
+  std::size_t size = 0; // total number of elements
+};
+
+static BufferInfo getCupyBufferInfo(py::object cupy_buffer) {
+  // Note: cupy 13.5+ arrays will bind (overload resolution) to a
+  // py::object type. We cannot access the underlying buffer info via a
+  // `.request()` as it will throw unless that is managed memory. Here, we
+  // retrieve and construct BufferInfo from the CuPy array interface.
+  if (!py::hasattr(cupy_buffer, "__cuda_array_interface__"))
+    throw std::runtime_error("Buffer is not a CuPy array");
+
+  py::dict cupy_array_info =
+      py::cast<py::dict>(cupy_buffer.attr("__cuda_array_interface__"));
+  py::tuple dataInfo = py::cast<py::tuple>(cupy_array_info["data"]);
+  void *dataPtr = (void *)py::cast<int64_t>(dataInfo[0]);
+  const bool readOnly = py::cast<bool>(dataInfo[1]);
+  auto shapeTuple = py::cast<py::tuple>(cupy_array_info["shape"]);
+  std::vector<std::size_t> extents;
+  for (std::size_t i = 0; i < shapeTuple.size(); i++)
+    extents.push_back(py::cast<std::size_t>(shapeTuple[i]));
+  const std::string typeStr = py::cast<std::string>(cupy_array_info["typestr"]);
+  if (typeStr != "<c16" && typeStr != "<c8")
+    throw std::runtime_error("Unsupported typestr in CuPy array: " + typeStr +
+                             ". Supported types are: <c16 and <c8.");
+
+  const bool isDoublePrecision = typeStr == "<c16";
+  std::size_t dataTypeSize = isDoublePrecision ? sizeof(std::complex<double>)
+                                               : sizeof(std::complex<float>);
+  std::string desc = isDoublePrecision ? "Zd" : "Zf";
+
+  std::vector<ssize_t> strides(extents.size(), dataTypeSize);
+  for (size_t i = 1; i < extents.size(); ++i)
+    strides[i] = strides[i - 1] * extents[i - 1];
+
+  std::size_t totalSize = 1;
+  for (auto e : extents)
+    totalSize *= e;
+
+  BufferInfo info;
+  info.ptr = dataPtr;
+  info.itemsize = dataTypeSize;
+  info.format = desc;
+  info.ndim = extents.size();
+  info.shape = extents;
+  info.strides = strides;
+  info.readonly = readOnly;
+  info.size = totalSize;
+  return info;
+}
+
+/// @brief Helper to get BufferInfo from a numpy array via Python buffer
+/// protocol.
+static BufferInfo getNumpyBufferInfo(py::object numpy_array) {
+  auto dtype = numpy_array.attr("dtype");
+  std::string dtypeStr = py::cast<std::string>(dtype.attr("name"));
+
+  BufferInfo info;
+  if (dtypeStr == "complex64") {
+    info.itemsize = sizeof(std::complex<float>);
+    info.format = "Zf";
+  } else if (dtypeStr == "complex128") {
+    info.itemsize = sizeof(std::complex<double>);
+    info.format = "Zd";
+  } else {
+    info.format = dtypeStr;
+    info.itemsize = py::cast<std::size_t>(dtype.attr("itemsize"));
+  }
+  auto shapeTuple = py::cast<py::tuple>(numpy_array.attr("shape"));
+  info.ndim = shapeTuple.size();
+  info.size = 1;
+  for (std::size_t i = 0; i < shapeTuple.size(); i++) {
+    auto ext = py::cast<std::size_t>(shapeTuple[i]);
+    info.shape.push_back(ext);
+    info.size *= ext;
+  }
+  auto stridesTuple = py::cast<py::tuple>(numpy_array.attr("strides"));
+  for (std::size_t i = 0; i < stridesTuple.size(); i++)
+    info.strides.push_back(py::cast<ssize_t>(stridesTuple[i]));
+  info.ptr = reinterpret_cast<void *>(
+      py::cast<intptr_t>(numpy_array.attr("ctypes").attr("data")));
+  info.readonly = false;
+  return info;
+}
+
 static cudaq::state createStateFromPyBuffer(py::object data,
                                             LinkedLibraryHolder &holder) {
   // If the object isn't directly ndarray-compatible (no buffer protocol or
