@@ -11,17 +11,18 @@ import os
 
 torch = pytest.importorskip("torch")
 
-# Note: the test model may create state, hence need to set the target to "dynamics"
-cudaq.set_target("dynamics")
-
 if cudaq.num_available_gpus() == 0:
     pytest.skip("Skipping GPU tests", allow_module_level=True)
 else:
-    from system_models import *
+    cudaq.set_target("dynamics")
+    try:
+        from system_models import *
+    finally:
+        cudaq.reset_target()
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def set_up_target():
     cudaq.set_target("dynamics")
     yield
     cudaq.reset_target()

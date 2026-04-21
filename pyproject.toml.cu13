@@ -15,16 +15,17 @@ authors = [{name = "NVIDIA Corporation & Affiliates"}]
 maintainers = [{name = "NVIDIA Corporation & Affiliates"}]
 readme = { file="python/README.md.in", content-type = "text/markdown"}
 requires-python = ">=3.11"
-license = { file="LICENSE" }
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE", "CITATION.cff"]
 dependencies = [
   'astpretty ~= 3.0',
   'numpy >= 1.24',
   'scipy >= 1.10.1',
-  'requests >= 2.31',
+  'requests >= 2.32.4',
   # CUDA dependencies - excluded on macOS (CPU-only support)
-  'custatevec-cu13 ~= 1.12; sys_platform != "darwin"',
-  'cutensornet-cu13 ~= 2.11; sys_platform != "darwin"',
-  'cudensitymat-cu13 ~= 0.4; sys_platform != "darwin"',
+  'custatevec-cu13 ~= 1.13.1; sys_platform != "darwin"',
+  'cutensornet-cu13 ~= 2.12.1; sys_platform != "darwin"',
+  'cudensitymat-cu13 ~= 0.5.1; sys_platform != "darwin"',
   'nvidia-cublas ~= 13.0; sys_platform != "darwin"',
   'nvidia-curand ~= 10.4; sys_platform != "darwin"',
   'nvidia-cusparse ~= 12.6; sys_platform != "darwin"',
@@ -63,12 +64,11 @@ visualization = [ "qutip>5" , "matplotlib>=3.5" ]
 integrators = [ "torchdiffeq" ]
 
 [build-system]
-requires = ["scikit-build-core==0.9.10", "cmake>=3.27,<3.29", "numpy>=1.24", "pytest==8.3.0"]
+requires = ["scikit-build-core==0.11.6", "cmake>=3.27,<3.29", "numpy>=1.24", "pytest==9.0.3"]
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
 wheel.packages = ["python/cudaq"]
-wheel.license-files = [ "LICENSE", "NOTICE", "CITATION.cff" ]
 build-dir = "_skbuild"
 metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
 cmake.minimum-version = "3.27"
@@ -78,8 +78,16 @@ cmake.args = [
     "-DCUDAQ_ENABLE_PYTHON=TRUE",
     "-DCUDAQ_DISABLE_CPP_FRONTEND=TRUE",
     "-DCUDAQ_DISABLE_TOOLS=TRUE",
-    "-DCUDAQ_BUILD_TESTS=TRUE"
+    "-DCUDAQ_BUILD_TESTS=TRUE",
+    "-DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=OFF"
 ]
+
+# Linux x86_64: enable Pasqal QRMI connector
+[[tool.scikit-build.overrides]]
+if.platform-system = "linux"
+if.platform-machine = "x86_64"
+inherit.cmake.args = "append"
+cmake.args = ["-DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=ON"]
 
 # macOS: Disable symbol stripping. LLVM's JIT relies on local symbols for
 # internal data structures (eg., PassRegistry). On macOS

@@ -8,11 +8,9 @@
 
 #pragma once
 
-#include "common/ArgumentConversion.h"
 #include "common/ExecutionContext.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/Resources.h"
-#include "common/RuntimeMLIR.h"
 #include "cudaq.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -22,6 +20,9 @@
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "cudaq_internal/compiler/ArgumentConversion.h"
+#include "cudaq_internal/compiler/JIT.h"
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/Passes.h"
@@ -48,9 +49,6 @@ public:
   std::thread::id getExecutionThreadId() const {
     return execution_queue->getExecutionThreadId();
   }
-
-  // Conditional feedback is handled by the server side.
-  virtual bool supportsConditionalFeedback() override { return true; }
 
   // Get the capabilities from the client.
   virtual RemoteCapabilities getRemoteCapabilities() const override {
@@ -122,25 +120,20 @@ public:
       throw std::runtime_error("Failed to launch VQE. Error: " + errorMsg);
   }
 
-  void launchKernel(const std::string &name,
-                    const std::vector<void *> &rawArgs) override {
-    [[maybe_unused]] auto dynamicResult = launchKernelImpl(
-        name, nullptr, nullptr, 0, 0, &rawArgs, mlir::ModuleOp{});
-  }
-
   KernelThunkResultType
   launchKernel(const std::string &name, KernelThunkType kernelFunc, void *args,
                std::uint64_t voidStarSize, std::uint64_t resultOffset,
                const std::vector<void *> &rawArgs) override {
-    // Remote simulation cannot deal with rawArgs. Drop them on the floor.
     return launchKernelImpl(name, kernelFunc, args, voidStarSize, resultOffset,
-                            nullptr, mlir::ModuleOp{});
+                            kernelFunc ? nullptr : &rawArgs, mlir::ModuleOp{});
   }
 
-  KernelThunkResultType launchModule(const std::string &name,
-                                     mlir::ModuleOp module,
-                                     const std::vector<void *> &rawArgs,
-                                     mlir::Type resTy) override {
+  KernelThunkResultType
+  launchModule(const std::string &name, mlir::ModuleOp module,
+               const std::vector<void *> &rawArgs) override {
+    std::string fullName = cudaq::runtime::cudaqGenPrefixName + name;
+    auto funcOp = module.lookupSymbol<mlir::func::FuncOp>(fullName);
+    auto resTy = cudaq::runtime::getReturnType(funcOp);
     if (resTy) {
       // Looks very much like launchKernel(string, vector<ptr>*).
       return launchKernelImpl(name, nullptr, rawArgs.back(), 0, 0, &rawArgs,
@@ -150,14 +143,14 @@ public:
     return launchKernelImpl(name, nullptr, nullptr, 0, 0, &rawArgs, module);
   }
 
-  void *specializeModule(const std::string &kernelName, mlir::ModuleOp module,
-                         const std::vector<void *> &rawArgs, mlir::Type resTy,
-                         void *cachedEngine) override {
+  CompiledModule specializeModule(const std::string &kernelName,
+                                  mlir::ModuleOp module,
+                                  const std::vector<void *> &rawArgs,
+                                  bool isEntryPoint) override {
     CUDAQ_INFO("specializing remote simulator kernel via module ({})",
                kernelName);
     throw std::runtime_error(
         "NYI: Remote simulator execution via Python/C++ interop.");
-    return nullptr;
   }
 
   [[nodiscard]] KernelThunkResultType launchKernelImpl(
@@ -187,21 +180,16 @@ public:
           if (!rawArgs)
             throw std::runtime_error(
                 "must provide launch arguments (got nullptr)");
-          detail::mergeAllCallableClosures(prefabMod, name, *rawArgs);
+          cudaq_internal::compiler::mergeAllCallableClosures(prefabMod, name,
+                                                             *rawArgs);
           return m_client->lowerKernelInPlace(prefabMod, name, *rawArgs);
         }
         return m_client->lowerKernel(*m_mlirContext, name, args, voidStarSize,
                                      0, rawArgs);
       }();
 
-      auto jit = std::unique_ptr<mlir::ExecutionEngine>(
-          createQIRJITEngine(moduleOp, "qir-adaptive"));
-
-      auto funcPtr =
-          jit->lookup(std::string(runtime::cudaqGenPrefixName) + name);
-      if (!funcPtr)
-        throw std::runtime_error(
-            "cudaq::builder failed to get kernelReg function.");
+      auto jit =
+          cudaq_internal::compiler::createJITEngine(moduleOp, "qir-adaptive");
 
       ExecutionContext ctx(executionContextPtr->name,
                            executionContextPtr->shots,
@@ -209,7 +197,7 @@ public:
       ctx.kernelName = executionContextPtr->kernelName;
       ctx.executionManager = cudaq::getDefaultExecutionManager();
       cudaq::get_platform().with_execution_context(
-          ctx, [&]() { reinterpret_cast<void (*)()>(*funcPtr)(); });
+          ctx, [jit, name]() { jit.run(name); });
       in_resource_estimation = false;
       return {};
     }

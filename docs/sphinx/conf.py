@@ -241,6 +241,8 @@ nitpick_ignore = [
     ('py:class', 'SpinOperatorTerm'),
     ('cpp:identifier', 'cudaq::detail'),
     ('cpp:identifier', 'cudaq::detail::EigenSparseMatrix'),
+    ('cpp:identifier', 'detail'),
+    ('cpp:identifier', 'detail::NoisePoint'),
 ]
 
 napoleon_google_docstring = True

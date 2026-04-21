@@ -26,6 +26,8 @@ set(COMMON_RUNTIME_SRC
   SampleResult.cpp
   ServerHelper.cpp
   Trace.cpp
+  CompiledModule.cpp
+  "${CMAKE_BINARY_DIR}/runtime/common/Version.cpp"
 )
 
 # Create the cudaq-common library
@@ -39,7 +41,9 @@ target_include_directories(${LIBRARY_NAME}
     PRIVATE .
         $<BUILD_INTERFACE:${LLVM_INCLUDE_DIRS}>
         ${CMAKE_SOURCE_DIR}/tpls/eigen
-        ${CMAKE_SOURCE_DIR}/runtime)
+        ${CMAKE_SOURCE_DIR}/runtime
+	${CMAKE_SOURCE_DIR}/include
+)
 
 target_link_libraries(${LIBRARY_NAME}
   PUBLIC
@@ -97,59 +101,3 @@ if(EXISTS "$ENV{CURL_INSTALL_PREFIX}/cacert.pem")
   install(FILES "$ENV{CURL_INSTALL_PREFIX}/cacert.pem" DESTINATION .)
 endif()
 
-## ----- Runtime MLIR Library -----
-## We need support in the runtime for compiler-level things,
-## but we have to collate this functionality in one place to avoid
-## LLVM starting up static Options more than once. Create a library
-## here called cudaq-mlir-runtime that cudaq-builder and cudaq-rest-qpu
-## can link to and get MLIR/LLVM things uniformly
-
-add_library(cudaq-mlir-runtime
-  SHARED
-    ArgumentConversion.cpp
-    CodeGenConfig.cpp
-    Environment.cpp
-    JIT.cpp
-    RuntimeMLIR.cpp
-    RuntimeCppMLIR.cpp
-    LayoutInfo.cpp
-)
-set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-mlir-runtime)
-
-set_source_files_properties(
-  CodeGenConfig.cpp
-  Environment.cpp
-  JIT.cpp
-  RuntimeMLIR.cpp
-)
-
-target_include_directories(cudaq-mlir-runtime
-  PRIVATE .
-    ${CMAKE_SOURCE_DIR}/tpls/spdlog/include
-    ${CMAKE_SOURCE_DIR}/tpls/fmt/include
-    ${CMAKE_SOURCE_DIR}/runtime)
-
-target_link_libraries(cudaq-mlir-runtime
-  PUBLIC
-    nvqir
-    CCDialect
-    QuakeDialect
-    OptCodeGen
-    OptTransforms
-    MLIRTranslateLib
-    MLIRIR
-    MLIRParser
-    MLIRPass
-    MLIRTranslateLib
-    MLIRSupport
-    MLIROptLib
-    MLIRExecutionEngine
-    MLIRTransforms
-    MLIRTargetLLVMIRExport
-    MLIRLLVMCommonConversion
-    MLIRLLVMToLLVMIRTranslation
-  PRIVATE
-    cudaq-logger
-)
-
-install(TARGETS cudaq-mlir-runtime DESTINATION lib)

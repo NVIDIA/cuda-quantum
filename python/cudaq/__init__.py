@@ -27,7 +27,7 @@ if multiprocessing.get_start_method(allow_none=True) is None:
 # CUDA Library Path Configuration
 # ============================================================================ #
 def _configure_cuda_library_paths() -> None:
-    """    
+    """
     Sets the `CUDAQ_DYNLIBS` environment variable with paths to required
     CUDA libraries based on the detected CUDA version.
     """
@@ -141,6 +141,7 @@ from .runtime.observe import observe
 from .runtime.observe import observe_async
 from .runtime.run import run
 from .runtime.run import run_async
+from .runtime import ptsbe
 from .runtime.translate import translate
 from .runtime.state import (get_state, get_state_async, to_cupy)
 from .runtime.draw import draw
@@ -169,7 +170,6 @@ Pauli = cudaq_runtime.Pauli
 Kernel = PyKernel
 Target = cudaq_runtime.Target
 State = cudaq_runtime.State
-StateMemoryView = cudaq_runtime.StateMemoryView
 pauli_word = cudaq_runtime.pauli_word
 Tensor = cudaq_runtime.Tensor
 SimulationPrecision = cudaq_runtime.SimulationPrecision
@@ -188,12 +188,6 @@ from .operators.manipulation import OperatorArithmetics
 # needs to be imported, since otherwise e.g. evaluate is not defined
 import cudaq.operators.expressions
 from .operators.super_op import SuperOperator
-
-# Time evolution API
-from .dynamics.schedule import Schedule
-from .dynamics.evolution import evolve, evolve_async
-from .dynamics.integrators import *
-from .dynamics.helpers import IntermediateResultSave
 
 InitialStateType = cudaq_runtime.InitialStateType
 
@@ -267,7 +261,7 @@ def synthesize(kernel, *args):
 
 def complex():
     """
-    Return the data type for the current simulation backend, 
+    Return the data type for the current simulation backend,
     either `numpy.complex128` or `numpy.complex64`.
     """
     target = get_target()
@@ -279,8 +273,8 @@ def complex():
 
 def amplitudes(array_data):
     """
-    Create a state array with the appropriate data type for the 
-    current simulation backend target. 
+    Create a state array with the appropriate data type for the
+    current simulation backend target.
     """
     return numpy.array(array_data, dtype=complex())
 
@@ -290,10 +284,85 @@ def __clearKernelRegistries():
     globalRegisteredOperations.clear()
 
 
-# Expose chemistry domain functions
-from .domains import chemistry
-from .kernels import uccsd
-from .dbg import ast
+# Lazy-loaded modules. The `dynamics`, `kernels`, and `domains` packages pull
+# in heavy dependencies that most users don't need on every import. Rather
+# than importing them eagerly, we defer them until first access via
+# `__getattr__` (PEP 562). Known names are mapped explicitly below;
+# star-import names (like integrator classes) fall through to
+# `_DEFERRED_STAR_MODULES` so new exports are picked up automatically.
+
+_LAZY_ATTRS = {
+    'Schedule': '.dynamics.schedule',
+    'evolve': '.dynamics.evolution',
+    'evolve_async': '.dynamics.evolution',
+    'IntermediateResultSave': '.dynamics.helpers',
+}
+
+_LAZY_SUBMODULES = {
+    'chemistry': '.domains.chemistry',
+    'uccsd': '.kernels.uccsd',
+    'ast': '.dbg.ast',
+}
+
+_DEFERRED_STAR_MODULES = [
+    '.dynamics.integrators',
+]
+
+
+def __getattr__(name):
+    import importlib
+
+    if name in _LAZY_ATTRS:
+        mod = importlib.import_module(_LAZY_ATTRS[name], __name__)
+        val = getattr(mod, name)
+        globals()[name] = val
+        return val
+
+    if name in _LAZY_SUBMODULES:
+        mod = importlib.import_module(_LAZY_SUBMODULES[name], __name__)
+        globals()[name] = mod
+        return mod
+
+    # Fallback: try deferred star-import modules.
+    for mod_path in _DEFERRED_STAR_MODULES:
+        mod = importlib.import_module(mod_path, __name__)
+        if hasattr(mod, name):
+            val = getattr(mod, name)
+            globals()[name] = val
+            return val
+
+    # Fallback: try importing as a cudaq submodule (e.g., `cudaq.kernels`,
+    # `cudaq.dynamics`). This handles sub-packages that were previously
+    # accessible as side effects of eager imports.
+    try:
+        mod = importlib.import_module(f'.{name}', __name__)
+        globals()[name] = mod
+        return mod
+    except ImportError:
+        pass
+
+    raise AttributeError(f"module 'cudaq' has no attribute {name!r}")
+
+
+def __dir__():
+    """Includes lazy-loaded names so tab-completion matches pre-lazy behavior.
+
+    This triggers the deferred star-module imports (e.g.
+    ``dynamics.integrators``) on first tab-completion, so there is a one-time
+    performance cost in interactive sessions.
+    """
+    import importlib
+    names = list(globals().keys())
+    names.extend(_LAZY_ATTRS.keys())
+    names.extend(_LAZY_SUBMODULES.keys())
+    for mod_path in _DEFERRED_STAR_MODULES:
+        try:
+            mod = importlib.import_module(mod_path, __name__)
+            names.extend(getattr(mod, '__all__', dir(mod)))
+        except ImportError:
+            pass
+    return names
+
 
 # ============================================================================ #
 # Command Line Argument Parsing

@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "CompiledModule.h"
 #include "Future.h"
 #include "NoiseModel.h"
 #include "SampleResult.h"
@@ -135,6 +136,10 @@ public:
   /// order.
   bool explicitMeasurements = false;
 
+  /// @brief Flag to indicate that a warning about named measurement registers
+  /// in sampling context has already been emitted.
+  bool warnedNamedMeasurements = false;
+
   /// @brief Probability of occurrence of each error mechanism (column) in
   /// Measurement Syndrome Matrix (0-1 range).
   std::optional<std::vector<double>> msm_probabilities;
@@ -152,16 +157,17 @@ public:
 
   bool allowJitEngineCaching = false;
 
-  /// For performance, a launcher may cache the JIT execution engine and use it
-  /// for multiple discrete calls. This is actually a pointer to a
-  /// `mlir::ExecutionEngine` object, but we hide that because of problems with
-  /// the structure and organization of the runtime libraries.
-  void *jitEng = nullptr;
+  bool useParametricJit = false;
 
   /// @cond HIDDEN_MEMBERS
   /// @brief Pointer to the execution manager for the current execution context,
   /// if it exists.
   ExecutionManager *executionManager = nullptr;
+
+  /// @brief For performance, a launcher may cache the JIT execution engine and
+  /// use it for multiple discrete calls.
+  std::optional<cudaq::JitEngine> jitEng = std::nullopt;
+
   /// @endcond
 };
 
@@ -203,4 +209,25 @@ void setExecutionContext(ExecutionContext *ctx);
 void resetExecutionContext();
 } // namespace detail
 
+namespace compiler_artifact {
+/// Saves and reuses the JITEngine across launches
+///
+/// This will exhibit undefined behavior if the launch arguments/context
+/// in any way differs from the saved launch.
+void enablePersistentJITEngine();
+void disablePersistentJITEngine();
+bool isPersistingJITEngine();
+
+/// Checks that the compiler artifact (if present) can be reused for the
+/// given kernel. Throws if a different kernel name was previously saved.
+void checkArtifactReuse(const std::string kernelName,
+                        const cudaq::JitEngine jit);
+
+void saveArtifact(const std::string kernelName, const cudaq::JitEngine jit);
+
+/// Returns the saved JIT engine if one is present for \p kernelName.
+/// Throws if a different kernel name was previously saved.
+/// Returns std::nullopt if no artifact has been saved yet.
+std::optional<JitEngine> getArtifactJit(const std::string &kernelName);
+}; // namespace compiler_artifact
 } // namespace cudaq

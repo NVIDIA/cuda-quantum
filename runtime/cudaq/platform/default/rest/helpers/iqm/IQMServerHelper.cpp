@@ -498,7 +498,7 @@ std::string IQMServerHelper::writeQuantumArchitectureFile(void) {
         std::string(P_tmpdir) + "/qpu-architecture-XXXXXX";
     fd = mkstemp(quantumArchitectureFilePath.data());
   } else {
-    fd = open(quantumArchitectureFilePath.data(), O_WRONLY | O_CREAT | O_EXCL,
+    fd = open(quantumArchitectureFilePath.data(), O_WRONLY | O_CREAT,
               S_IRUSR | S_IRGRP | S_IROTH);
   }
   if (fd < 0) {

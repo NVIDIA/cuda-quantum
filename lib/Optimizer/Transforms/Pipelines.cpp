@@ -50,6 +50,14 @@ struct PythonAOTOptions : public PassPipelineOptions<PythonAOTOptions> {
       *this, "codegen-kind", llvm::cl::desc("GKE launch codegen kind."),
       llvm::cl::init(0)};
 };
+struct TargetFinalizationJitPipelineOptions
+    : public PassPipelineOptions<TargetFinalizationJitPipelineOptions> {
+  PassOptions::Option<bool> lowerDeviceCalls{
+      *this, "lower-device-calls",
+      llvm::cl::desc(
+          "Lower device calls (to normal function calls) in JIT pipeline."),
+      llvm::cl::init(true)};
+};
 } // namespace
 
 static void createTargetPrepPipeline(OpPassManager &pm,
@@ -110,23 +118,22 @@ static void registerEmulationTargetPrepPipeline() {
       });
 }
 
-void cudaq::opt::addDecompositionPass(OpPassManager &pm,
-                                      ArrayRef<std::string> enabledPats,
-                                      ArrayRef<std::string> disabledPats) {
+void cudaq::opt::addDecomposition(OpPassManager &pm,
+                                  ArrayRef<std::string> enabledPats,
+                                  ArrayRef<std::string> disabledPats) {
   // NB: Both of these ListOption *must* be set here or they may contain garbage
   // and the compiler may crash.
-  cudaq::opt::DecompositionPassOptions opts;
+  cudaq::opt::DecompositionOptions opts;
   opts.disabledPatterns = disabledPats;
   opts.enabledPatterns = enabledPats;
-  pm.addPass(cudaq::opt::createDecompositionPass(opts));
+  pm.addPass(cudaq::opt::createDecomposition(opts));
 }
 
 static void createTargetDeployPipeline(OpPassManager &pm) {
   cudaq::opt::createClassicalOptimizationPipeline(pm);
-  cudaq::opt::addDecompositionPass(pm, {std::string("U3ToRotations")});
+  cudaq::opt::addDecomposition(pm, {std::string("U3ToRotations")});
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(
-      cudaq::opt::createMultiControlDecompositionPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createMultiControlDecomposition());
 }
 
 /// Register the standard deployment pipeline run for ALL target machines. This
@@ -144,8 +151,10 @@ void cudaq::opt::createTargetFinalizePipeline(OpPassManager &pm) {
   pm.addPass(createSymbolDCEPass());
 }
 
-static void createJITTargetFinalizePipeline(OpPassManager &pm) {
-  pm.addPass(cudaq::opt::createDistributedDeviceCall());
+static void createJITTargetFinalizePipeline(
+    OpPassManager &pm, const TargetFinalizationJitPipelineOptions &options) {
+  if (options.lowerDeviceCalls)
+    pm.addPass(cudaq::opt::createDistributedDeviceCall());
   cudaq::opt::addAggressiveInlining(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createApplyControlNegations());
   cudaq::opt::createTargetFinalizePipeline(pm);
@@ -154,10 +163,13 @@ static void createJITTargetFinalizePipeline(OpPassManager &pm) {
 /// Register the standard finalization pipeline run for ALL target machines.
 /// This pipeline is run after the low-level target-specific pipelines.
 static void registerTargetFinalizePipeline() {
-  PassPipelineRegistration<>(
+  PassPipelineRegistration<TargetFinalizationJitPipelineOptions>(
       "jit-finalize-pipeline",
       "Standard JIT finalization pipeline for all targets.",
-      [](OpPassManager &pm) { createJITTargetFinalizePipeline(pm); });
+      [](OpPassManager &pm,
+         const TargetFinalizationJitPipelineOptions &options) {
+        createJITTargetFinalizePipeline(pm, options);
+      });
 }
 
 void cudaq::opt::registerJITPipelines() {

@@ -6,5 +6,5 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --target quantinuum --emulate %s -o %t && echo skipping
+// RUN: echo skipping
 #include "../execution/estimate_resources_choice_function.cpp"

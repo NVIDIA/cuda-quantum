@@ -57,7 +57,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
@@ -88,8 +88,8 @@ jobs:
       with:
         category: "/language:${{matrix.language}}"
 
-  # The CodeQL action status is not reported in merge queues. See https://github.com/github/codeql-action/issues/1537.
-  # This is a workaround to check the status of the CodeQL analysis in the PR but not in the merge queue. See https://github.com/orgs/community/discussions/46757#discussioncomment-7768838
+  # CodeQL status is not reported in merge queues. See https://github.com/github/codeql-action/issues/1537.
+  # Workaround: verify CodeQL passed via API keyed by pull_request.number so the PR gets a required status.
   check_codeql_status:
       name: Check CodeQL Status
       needs: analyze
@@ -105,21 +105,29 @@ jobs:
                 gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
           - name: Check CodeQL Status
             run: |
-                response=$(gh api graphql -f query='
-                  {
-                    repository(owner: "${{ github.event.repository.owner.login }}", name: "${{ github.event.repository.name }}") {
-                      pullRequest(number: ${{ github.event.pull_request.number }}) {
-                        commits(last: 1) {
-                          nodes {
-                            commit {
-                              checkSuites(first: 1, filterBy: {checkName: "CodeQL"}) {
-                                nodes {
-                                  checkRuns(first: 1) {
-                                    nodes {
-                                      name
-                                      status
-                                      conclusion
-                                    }
+              # Query by pull_request.number so the check is tied to the PR (required for merge-queue workaround).
+              # Find the "Analyze (language)" check run (the one that completes); filterBy "CodeQL" returns a different check that stays QUEUED.
+              pr_number="${{ github.event.pull_request.number }}"
+              owner="${{ github.event.repository.owner.login }}"
+              repo="${{ github.event.repository.name }}"
+              max_attempts=24
+              attempt=0
+              conclusion=""
+              while [ $attempt -lt $max_attempts ]; do
+                # Inline pr_number in the query so we only pass string variables (gh -f sends all as strings otherwise).
+                response=$(gh api graphql -f query="query(\$owner: String!, \$repo: String!) {
+                  repository(owner: \$owner, name: \$repo) {
+                    pullRequest(number: $pr_number) {
+                      commits(last: 1) {
+                        nodes {
+                          commit {
+                            checkSuites(first: 20) {
+                              nodes {
+                                checkRuns(first: 20) {
+                                  nodes {
+                                    name
+                                    status
+                                    conclusion
                                   }
                                 }
                               }
@@ -129,10 +137,26 @@ jobs:
                       }
                     }
                   }
-                ')
-                conclusion=$(echo $response | jq -r '.data.repository.pullRequest.commits.nodes[0].commit.checkSuites.nodes[0].checkRuns.nodes[0].conclusion')
-                  if [ "$conclusion" != "SUCCESS" ]; then
-                    echo "$response"
-                    echo "CodeQL check failed"
-                    exit 1
-                  fi
+                }" -f owner="$owner" -f repo="$repo")
+                # Find the check run whose name starts with "Analyze (" (the CodeQL matrix job)
+                conclusion=$(echo "$response" | jq -r '
+                  .data.repository.pullRequest.commits.nodes[0].commit.checkSuites.nodes[]
+                  | .checkRuns.nodes[] | select(.name | startswith("Analyze (")) | .conclusion
+                ' | head -1)
+                status=$(echo "$response" | jq -r '
+                  .data.repository.pullRequest.commits.nodes[0].commit.checkSuites.nodes[]
+                  | .checkRuns.nodes[] | select(.name | startswith("Analyze (")) | .status
+                ' | head -1)
+                if [ "$conclusion" != "null" ] && [ -n "$conclusion" ]; then
+                  break
+                fi
+                attempt=$((attempt + 1))
+                echo "CodeQL check (PR #$pr_number) status=$status conclusion=$conclusion (attempt $attempt/$max_attempts), waiting 10s..."
+                sleep 10
+              done
+              if [ "$conclusion" != "SUCCESS" ]; then
+                echo "$response" | jq .
+                echo "CodeQL check failed (conclusion=$conclusion)"
+                exit 1
+              fi
+              echo "CodeQL check passed."

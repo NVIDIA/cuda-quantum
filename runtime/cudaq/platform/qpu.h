@@ -9,6 +9,7 @@
 #pragma once
 
 #include "QuantumExecutionQueue.h"
+#include "common/CompiledModule.h"
 #include "common/Registry.h"
 #include "common/ThunkInterface.h"
 #include "common/Timing.h"
@@ -136,9 +137,6 @@ public:
   /// Is this QPU a simulator ?
   virtual bool isSimulator() { return true; }
 
-  /// @brief Return whether this QPU has conditional feedback support
-  virtual bool supportsConditionalFeedback() { return false; }
-
   /// @brief Return whether this QPU supports explicit measurements
   virtual bool supportsExplicitMeasurements() { return true; }
 
@@ -195,25 +193,13 @@ public:
                std::uint64_t, std::uint64_t,
                const std::vector<void *> &rawArgs) = 0;
 
-  /// Launch the kernel with given name and argument arrays.
-  // This is intended for any QPUs whereby we need to JIT-compile the kernel
-  // with argument synthesis. The QPU implementation must override this.
-  virtual void launchKernel(const std::string &name,
-                            const std::vector<void *> &rawArgs) {
-    if (!isRemote())
-      throw std::runtime_error("Wrong kernel launch point: Attempt to launch "
-                               "kernel in streamlined for JIT mode on local "
-                               "simulated QPU. This is not supported.");
-  }
-
   [[nodiscard]] virtual KernelThunkResultType
   launchModule(const std::string &name, mlir::ModuleOp module,
-               const std::vector<void *> &rawArgs, mlir::Type resultTy);
+               const std::vector<void *> &rawArgs);
 
-  [[nodiscard]] virtual void *
+  [[nodiscard]] virtual CompiledModule
   specializeModule(const std::string &name, mlir::ModuleOp module,
-                   const std::vector<void *> &rawArgs, mlir::Type resultTy,
-                   void *cachedEngine);
+                   const std::vector<void *> &rawArgs, bool isEntryPoint);
 
   /// @brief Notify the QPU that a new random seed value is set.
   /// By default do nothing, let subclasses override.
@@ -223,13 +209,12 @@ public:
 struct ModuleLauncher : public registry::RegisteredType<ModuleLauncher> {
   virtual ~ModuleLauncher() = default;
 
-  virtual KernelThunkResultType launchModule(const std::string &name,
-                                             mlir::ModuleOp module,
-                                             const std::vector<void *> &rawArgs,
-                                             mlir::Type resultTy) = 0;
-  virtual void *specializeModule(const std::string &name, mlir::ModuleOp module,
-                                 const std::vector<void *> &rawArgs,
-                                 mlir::Type resultTy, void *cachedEngine) = 0;
+  /// Compile (specialize + JIT) a kernel module and return a ready-to-execute
+  /// CompiledModule.
+  virtual CompiledModule compileModule(const std::string &name,
+                                       mlir::ModuleOp module,
+                                       const std::vector<void *> &rawArgs,
+                                       bool isEntryPoint) = 0;
 };
 
 } // namespace cudaq

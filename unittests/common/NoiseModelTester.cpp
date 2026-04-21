@@ -75,6 +75,40 @@ CUDAQ_TEST(NoiseModelTester, checkConstruction) {
   EXPECT_ANY_THROW({ noise.add_channel("invalid_op", {0}, simpleChannel); });
 }
 
+CUDAQ_TEST(NoiseModelTester, checkOpNames) {
+  // Standard channel gets explicit names.
+  auto depol = depolarization_channel(0.1);
+  ASSERT_EQ(depol.op_names.size(), depol.size());
+  EXPECT_EQ(depol.op_names[0], "id");
+  EXPECT_EQ(depol.op_names[1], "x");
+  EXPECT_EQ(depol.op_names[2], "y");
+  EXPECT_EQ(depol.op_names[3], "z");
+
+  // Non-unitary channel gets auto-generated default names.
+  auto ad = amplitude_damping(0.5);
+  ASSERT_EQ(ad.op_names.size(), ad.size());
+  EXPECT_EQ(ad.op_names[0], "amplitude_damping[0]");
+  EXPECT_EQ(ad.op_names[1], "amplitude_damping[1]");
+
+  // Custom channel from raw kraus_ops gets "unknown[k]" defaults.
+  cudaq::kraus_channel custom{{1., 0., 0., .8660254037844386},
+                              {0., 0.5, 0., 0.}};
+  ASSERT_EQ(custom.op_names.size(), 2u);
+  EXPECT_EQ(custom.op_names[0], "unknown[0]");
+  EXPECT_EQ(custom.op_names[1], "unknown[1]");
+
+  // Copy preserves op_names.
+  kraus_channel copy(depol);
+  EXPECT_EQ(copy.op_names, depol.op_names);
+
+  // push_back appends default name; explicit name overrides.
+  auto channel = bit_flip_channel(0.1);
+  channel.push_back(kraus_op({1., 0., 0., 1.}));
+  EXPECT_EQ(channel.op_names.back(), "bit_flip_channel[2]");
+  channel.push_back(kraus_op({1., 0., 0., 1.}), "custom_op");
+  EXPECT_EQ(channel.op_names.back(), "custom_op");
+}
+
 #if defined(CUDAQ_SIMULATION_SCALAR_FP64)
 CUDAQ_TEST(NoiseModelTester, checkUnitaryDetection) {
   EXPECT_TRUE(amplitude_damping(0.5).unitary_ops.empty());

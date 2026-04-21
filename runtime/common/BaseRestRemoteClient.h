@@ -8,12 +8,10 @@
 
 #pragma once
 
-#include "common/ArgumentConversion.h"
 #include "common/Environment.h"
 #include "common/JsonConvert.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/RestClient.h"
-#include "common/RuntimeMLIR.h"
 #include "common/UnzipUtils.h"
 #include "cudaq.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
@@ -25,6 +23,8 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "cudaq_internal/compiler/ArgumentConversion.h"
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Module.h"
@@ -123,7 +123,8 @@ public:
 
     // Merge other modules (e.g., if there are device kernel calls).
     if (rawArgs && !rawArgs->empty())
-      cudaq::detail::mergeAllCallableClosures(module, name, *rawArgs);
+      cudaq_internal::compiler::mergeAllCallableClosures(module, name,
+                                                         *rawArgs);
 
     // Create a new Module to clone the function into
     auto location = mlir::FileLineColLoc::get(&mlirContext, "<builder>", 1, 1);
@@ -159,7 +160,7 @@ public:
       mlir::PassManager pm(&mlirContext);
       if (rawArgs && !rawArgs->empty()) {
         CUDAQ_INFO("Run Argument Synth.\n");
-        opt::ArgumentConverter argCon(name, moduleOp);
+        cudaq_internal::compiler::ArgumentConverter argCon(name, moduleOp);
         argCon.gen_drop_front(*rawArgs, startingArgIdx);
 
         // Store kernel and substitution strings on the stack.

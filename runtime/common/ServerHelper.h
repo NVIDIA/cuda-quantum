@@ -8,9 +8,11 @@
 
 #pragma once
 
+#include "CompiledModule.h"
 #include "ExecutionContext.h"
 #include "Future.h"
 #include "Registry.h"
+#include "Resources.h"
 #include "RuntimeTarget.h"
 #include "SampleResult.h"
 #include "common/RecordLogParser.h"
@@ -29,16 +31,23 @@ using BackendConfig = std::map<std::string, std::string>;
 struct KernelExecution {
   std::string name;
   std::string code;
+  std::optional<cudaq::JitEngine> jit;
+  std::optional<Resources> resourceCounts;
   nlohmann::json output_names;
   std::vector<std::size_t> mapping_reorder_idx;
   nlohmann::json user_data;
-  KernelExecution(std::string &n, std::string &c, nlohmann::json &o,
+  KernelExecution(std::string &n, std::string &c,
+                  std::optional<cudaq::JitEngine> jit,
+                  std::optional<Resources> rc, nlohmann::json &o,
                   std::vector<std::size_t> &m)
-      : name(n), code(c), output_names(o), mapping_reorder_idx(m) {}
-  KernelExecution(std::string &n, std::string &c, nlohmann::json &o,
+      : name(n), code(c), jit(jit), resourceCounts(rc), output_names(o),
+        mapping_reorder_idx(m) {}
+  KernelExecution(std::string &n, std::string &c,
+                  std::optional<cudaq::JitEngine> jit,
+                  std::optional<Resources> rc, nlohmann::json &o,
                   std::vector<std::size_t> &m, nlohmann::json &ud)
-      : name(n), code(c), output_names(o), mapping_reorder_idx(m),
-        user_data(ud) {}
+      : name(n), code(c), jit(jit), resourceCounts(rc), output_names(o),
+        mapping_reorder_idx(m), user_data(ud) {}
 };
 
 /// @brief Responses / Submissions to the Server are modeled via JSON

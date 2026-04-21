@@ -168,7 +168,8 @@ cudaq::complex_matrix::operator*=(const cudaq::complex_matrix &right) {
   if (cols() != right.rows())
     throw std::runtime_error("matrix dimensions mismatch in operator*=");
 
-  auto new_data = new cudaq::complex_matrix::value_type[rows() * right.cols()];
+  auto new_data =
+      new cudaq::complex_matrix::value_type[rows() * right.cols()]();
   cudaq::complex_matrix::Dimensions new_dims = {rows(), right.cols()};
   for (std::size_t i = 0; i < rows(); i++)
     for (std::size_t j = 0; j < right.cols(); j++)
@@ -364,7 +365,7 @@ cudaq::complex_matrix cudaq::complex_matrix::exponential() {
   std::size_t columns = this->cols();
   if (rows != columns)
     throw std::runtime_error("Matrix exponential expects a square matrix.");
-  auto result = cudaq::complex_matrix(rows, columns, false);
+  auto result = cudaq::complex_matrix(rows, columns);
   // Taylor Series Approximation, fixed at 20 steps.
   std::size_t taylor_steps = 20;
   for (std::size_t step = 0; step < taylor_steps; step++) {

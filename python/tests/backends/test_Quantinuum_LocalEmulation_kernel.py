@@ -8,10 +8,11 @@
 
 import cudaq
 import pytest
-import os
 from cudaq import spin
 import numpy as np
 from typing import List
+
+pytestmark = pytest.mark.xdist_group("quantinuum_emulation")
 
 
 def requires_openfermion():
@@ -29,20 +30,11 @@ def assert_close(want, got, tolerance=1.0e-1) -> bool:
 
 
 @pytest.fixture(scope="function", autouse=True)
-def configureTarget():
-    # We need a Fake Credentials Config file
-    credsName = '{}/FakeConfig2.config'.format(os.environ["HOME"])
-    f = open(credsName, 'w')
-    f.write('key: {}\nrefresh: {}\ntime: 0'.format("hello", "rtoken"))
-    f.close()
-
-    # Set the targeted QPU
+def configureTarget(quantinuum_emulation_creds):
     cudaq.set_target('quantinuum', emulate='true')
 
     yield "Running the tests."
 
-    # remove the file
-    os.remove(credsName)
     cudaq.reset_target()
 
 
@@ -394,6 +386,22 @@ def test_run():
             non_zero_count += 1
     assert non_zero_count > 0
 
+    @cudaq.kernel
+    def kernel_with_conditional() -> list[bool]:
+        var = [True, True]
+        q0 = cudaq.qubit()
+        q1 = cudaq.qubit()
+        var[0] = mz(q0)
+        var[1] = mz(q1)
+        return var
+
+    results = cudaq.run(kernel_with_conditional, shots_count=2)
+    assert len(results) == 2
+    for res in results:
+        assert len(res) == 2
+        assert res[0] is False
+        assert res[1] is False
+
 
 def test_quantinuum_state_preparation():
 
@@ -418,6 +426,34 @@ def test_quantinuum_state_preparation():
     assert not '101' in counts
     assert not '110' in counts
     assert not '111' in counts
+
+
+def test_named_reg_in_sample(capfd):
+
+    @cudaq.kernel
+    def foo():
+        q = cudaq.qubit()
+        x(q)
+        var = mz(q)
+
+    cudaq.sample(foo).dump()
+    captured = capfd.readouterr()
+    assert "WARNING" in captured.err
+
+
+def test_sample_with_conditional():
+
+    @cudaq.kernel
+    def foo():
+        q = cudaq.qvector(2)
+        h(q[0])
+        if (mz(q[0])):
+            x(q[1])
+        mz(q)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.sample(foo)
+    assert "no longer support" in repr(e)
 
 
 # leave for gdb debugging

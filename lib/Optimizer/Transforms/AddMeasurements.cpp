@@ -36,16 +36,22 @@ struct Analysis {
         hasMeasurement = true;
         return WalkResult::interrupt();
       }
-      if (isa<quake::AllocaOp>(op))
+      if (auto alloc = dyn_cast<quake::AllocaOp>(op)) {
+        if (alloc->hasOneUse()) {
+          Operation *user = *alloc->getUsers().begin();
+          if (isa<quake::InitializeStateOp>(user))
+            op = user;
+        }
         allocations.emplace_back(op);
-      else if (isa<func::ReturnOp>(op))
+      } else if (isa<func::ReturnOp>(op)) {
         returns.emplace_back(op);
+      }
       return WalkResult::advance();
     });
   }
 
   bool hasMeasurement = false;
-  SmallVector<quake::AllocaOp> allocations;
+  SmallVector<Operation *> allocations;
   SmallVector<func::ReturnOp> returns;
 
   bool hasQubitAlloca() const { return !allocations.empty(); }
@@ -58,7 +64,7 @@ struct Analysis {
 /// For vector allocations, the measurements are collected into a vector of
 /// measurement results.
 LogicalResult
-addMeasurements(func::FuncOp funcOp, SmallVector<quake::AllocaOp> &allocations,
+addMeasurements(func::FuncOp funcOp, SmallVector<Operation *> &allocations,
                 const SmallVector<func::ReturnOp> &returnsToReplace) {
   auto loc = funcOp.getLoc();
   auto ctx = funcOp.getContext();
@@ -86,12 +92,12 @@ addMeasurements(func::FuncOp funcOp, SmallVector<quake::AllocaOp> &allocations,
   builder.setInsertionPointToEnd(newBlock);
   auto measTy = quake::MeasureType::get(builder.getContext());
   for (auto &[index, alloca] : llvm::enumerate(allocations)) {
-    if (isa<quake::VeqType>(alloca.getType())) {
+    if (isa<quake::VeqType>(alloca->getResult(0).getType())) {
       auto stdvecTy = cudaq::cc::StdvecType::get(measTy);
       builder.create<quake::MzOp>(loc, stdvecTy,
-                                  ValueRange{alloca.getResult()});
+                                  ValueRange{alloca->getResult(0)});
     } else {
-      builder.create<quake::MzOp>(loc, measTy, alloca.getResult());
+      builder.create<quake::MzOp>(loc, measTy, alloca->getResult(0));
     }
   }
 

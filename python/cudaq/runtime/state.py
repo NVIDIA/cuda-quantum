@@ -43,10 +43,8 @@ def get_state(kernel, *args):
         decorator = kernel
     else:
         decorator = mk_decorator(kernel)
-    specMod, processedArgs = decorator.handle_call_arguments(*args)
-    returnTy = (decorator.returnType
-                if decorator.returnType else decorator.get_none_type())
-    return cudaq_runtime.get_state_impl(decorator.uniqName, specMod, returnTy,
+    processedArgs, module = decorator.prepare_call(*args)
+    return cudaq_runtime.get_state_impl(decorator.uniqName, module,
                                         *processedArgs)
 
 
@@ -72,11 +70,9 @@ def get_state_async(kernel, *args, qpu_id=0):
         decorator = kernel
     else:
         decorator = mk_decorator(kernel)
-    specMod, processedArgs = decorator.handle_call_arguments(*args)
-    returnTy = (decorator.returnType
-                if decorator.returnType else decorator.get_none_type())
-    return cudaq_runtime.get_state_async_impl(decorator.uniqName, specMod,
-                                              returnTy, qpu_id, *processedArgs)
+    processedArgs, module = decorator.prepare_call(*args)
+    return cudaq_runtime.get_state_async_impl(decorator.uniqName, module,
+                                              qpu_id, *processedArgs)
 
 
 def to_cupy(state, dtype=None):

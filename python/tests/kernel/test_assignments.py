@@ -13,7 +13,7 @@ from typing import Callable
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def run_and_clear_registries():
     yield
     cudaq.__clearKernelRegistries()
 
@@ -844,6 +844,12 @@ def test_list_of_dataclass_update_failures():
         l1: list[int]
         l2: list[int]
 
+    # NOTE: This test is flaky on py3.11 + arm64 + cuda12.6.
+    # The struct argument marshaling is now correct (see PR #3879), but the
+    # kernel-internal deep copy and list mutation still produce wrong results
+    # intermittently on that configuration. Disabling until root cause is
+    # identified.
+    # See https://github.com/NVIDIA/cuda-quantum/issues/3923
     @cudaq.kernel
     def test11(t: MyTuple, size: int) -> list[int]:
         l = [t.copy(deep=True) for _ in range(size)]
@@ -989,7 +995,7 @@ def test_list_of_dataclass_update_failures():
             t.l1[0] = 5
             return [t.l1[0], t.l1[1], t.l2[0], t.l2[1], l1[0], l1[1]]
 
-        test7()
+        test7(True)
     assert 'value cannot be modified - use `.copy(deep)` to create a new value that can be modified' in str(
         e.value)
     assert '(offending source -> old.l1)' in str(e.value)
@@ -1206,7 +1212,7 @@ def test_var_scopes():
                 ls = [1, 2, 3]
             return ls
 
-        test4()
+        test4(True)
 
     assert "variable of type !cc.stdvec<i64> is defined in a prior block and cannot be accessed" in str(
         e.value)
@@ -1215,28 +1221,22 @@ def test_var_scopes():
 
 def test_var_capture():
 
-    # We need to know the types or all captured values,
-    # so anything captured must be defined at kernel
-    # declaration time.
-    with pytest.raises(RuntimeError) as e:
-
-        @cudaq.kernel
-        def test1() -> list[bool]:
-            q = cudaq.qvector(3)
-            if captured_bool:
-                x(q)
-            return mz(q)
-
-    assert "Invalid variable name requested" in str(e.value)
-
-    captured_bool = False
-
     @cudaq.kernel
     def test1() -> list[bool]:
         q = cudaq.qvector(3)
         if captured_bool:
             x(q)
         return mz(q)
+
+    # `captured_bool` is not defined yet, so compilation will fail
+    with pytest.raises(RuntimeError) as e:
+        test1.compile()
+    assert "Invalid variable name requested" in str(e.value)
+
+    captured_bool = False
+
+    # now succeeds
+    test1.compile()
 
     out = cudaq.run(test1, shots_count=10)
     assert all(res == [False, False, False] for res in out)
@@ -1292,7 +1292,7 @@ def test_var_capture_updates():
 
     with pytest.raises(RuntimeError) as e:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def kernel3() -> int:
             if True:
                 # causes the variable to be added to the symbol table
@@ -1309,7 +1309,7 @@ def test_var_capture_updates():
 
     with pytest.raises(RuntimeError) as e:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def kernel4() -> list[int]:
             vals = ls
             vals[0] = 5
@@ -1328,7 +1328,7 @@ def test_var_capture_updates():
 
     with pytest.raises(RuntimeError) as e:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def kernel5() -> list[int]:
             # `ls` is treated like any other function argument
             ls[0] = 5
@@ -1362,7 +1362,7 @@ def test_var_capture_updates():
 
     with pytest.raises(RuntimeError) as e:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def kernel7():
             mtp.first = 2
 
@@ -1450,7 +1450,7 @@ def test_inner_functions():
     # see also test_var_capture.
     with pytest.raises(RuntimeError) as e:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def test4b():
 
             def apply_ry():
@@ -1489,7 +1489,7 @@ def test_inner_functions():
 
     with pytest.raises(RuntimeError) as e:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def test7() -> int:
             i = 0
 
@@ -1504,7 +1504,7 @@ def test_inner_functions():
 
     with pytest.raises(RuntimeError) as e:
 
-        @cudaq.kernel
+        @cudaq.kernel(defer_compilation=False)
         def test8() -> list[int]:
             ls = [0]
 

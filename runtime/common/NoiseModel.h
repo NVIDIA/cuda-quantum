@@ -14,6 +14,8 @@
 #include <cstdint>
 #include <functional>
 #include <math.h>
+#include <optional>
+#include <string>
 #include <unordered_map>
 #include <variant>
 #include <vector>
@@ -99,6 +101,31 @@ static constexpr const char *noise_model_strings[] = {
 
 std::string get_noise_model_type_name(noise_model_type type);
 
+/// @brief Check whether a matrix is a scaled unitary matrix, i.e., `k * U`
+/// where U is a unitary matrix. If so, returns the `k` factor.
+/// Otherwise, returns `nullopt`.
+///
+/// @param mat Flattened row-major matrix
+/// @param eps Numerical tolerance for comparisons
+/// @return Scale factor k if matrix is k*U where U is unitary, `nullopt`
+/// otherwise
+std::optional<double>
+isScaledUnitary(const std::vector<std::complex<double>> &mat,
+                double eps = 1e-6);
+
+/// @brief Determine if a vector of Kraus operators forms a valid unitary
+/// mixture. If so, returns the unitaries and their probabilities.
+///
+/// @param krausOps Vector of Kraus operator matrices
+/// @param tol Numerical tolerance for validation
+/// @return Pair of (probabilities, unitary_matrices) if valid, `nullopt`
+/// otherwise
+std::optional<std::pair<std::vector<double>,
+                        std::vector<std::vector<std::complex<double>>>>>
+computeUnitaryMixture(
+    const std::vector<std::vector<std::complex<double>>> &krausOps,
+    double tol = 1e-6);
+
 /// @brief A kraus_op represents a single Kraus operation,
 /// described as a complex matrix of specific size. The matrix
 /// is represented here as a 1d array (specifically a std::vector).
@@ -173,10 +200,12 @@ void validateCompletenessRelation_fp32(const std::vector<kraus_op> &ops);
 void validateCompletenessRelation_fp64(const std::vector<kraus_op> &ops);
 void generateUnitaryParameters_fp32(
     const std::vector<kraus_op> &ops,
-    std::vector<std::vector<std::complex<double>>> &, std::vector<double> &);
+    std::vector<std::vector<std::complex<double>>> &, std::vector<double> &,
+    std::vector<bool> &);
 void generateUnitaryParameters_fp64(
     const std::vector<kraus_op> &ops,
-    std::vector<std::vector<std::complex<double>>> &, std::vector<double> &);
+    std::vector<std::vector<std::complex<double>>> &, std::vector<double> &,
+    std::vector<bool> &);
 
 /// @brief A kraus_channel represents a quantum noise channel
 /// on specific qubits. The action of the noise channel is
@@ -228,6 +257,17 @@ public:
   /// of whether cudaq::real is float or double.
   std::vector<double> probabilities;
 
+  /// @brief For unitary mixture channels, flags indicating which operators are
+  /// identity (or global-phase-times-identity). Populated during
+  /// generateUnitaryParameters(). Empty for non-unitary channels.
+  std::vector<bool> identity_flags;
+
+  /// @brief Names for each Kraus operator, parallel to ops.
+  /// For standard Pauli channels these are gate names (e.g., "id", "x").
+  /// For other channels, defaults are generated as type_name[index].
+  /// Always has the same size as ops.
+  std::vector<std::string> op_names;
+
   virtual ~kraus_channel() = default;
 
   /// @brief The nullary constructor
@@ -244,6 +284,7 @@ public:
     (ops.emplace_back(std::move(inputLists)), ...);
     validateCompleteness();
     generateUnitaryParameters();
+    populateDefaultOpNames();
   }
 
   /// @brief The constructor, take qubits and channel kraus_ops as lvalue
@@ -251,6 +292,7 @@ public:
   kraus_channel(const std::vector<kraus_op> &inOps) : ops(inOps) {
     validateCompleteness();
     generateUnitaryParameters();
+    populateDefaultOpNames();
   }
 
   /// @brief The constructor, take qubits and channel kraus_ops as rvalue
@@ -275,7 +317,8 @@ public:
   std::vector<kraus_op> get_ops() const;
 
   /// @brief Add a kraus_op to this channel.
-  void push_back(kraus_op op);
+  /// If name is not provided, a default name is generated from get_type_name().
+  void push_back(kraus_op op, std::optional<std::string> name = std::nullopt);
 
   std::string get_type_name() const {
     return get_noise_model_type_name(noise_type);
@@ -290,12 +333,31 @@ public:
   void generateUnitaryParameters() {
     unitary_ops.clear();
     probabilities.clear();
+    identity_flags.clear();
     if constexpr (std::is_same_v<cudaq::complex::value_type, float>) {
       generateUnitaryParameters_fp32(ops, this->unitary_ops,
-                                     this->probabilities);
+                                     this->probabilities, this->identity_flags);
       return;
     }
-    generateUnitaryParameters_fp64(ops, this->unitary_ops, this->probabilities);
+    generateUnitaryParameters_fp64(ops, this->unitary_ops, this->probabilities,
+                                   this->identity_flags);
+  }
+
+  /// @brief Check whether the operator at the given index is an identity.
+  /// Determined from the unitary matrix data during channel construction,
+  /// recognizing both exact identity and global-phase-times-identity.
+  bool is_identity_op(std::size_t index) const {
+    return index < identity_flags.size() && identity_flags[index];
+  }
+
+  /// @brief Populate op_names with default names of the form type_name[index].
+  /// Called by constructors that do not set explicit op_names.
+  void populateDefaultOpNames() {
+    op_names.clear();
+    auto typeName = get_type_name();
+    op_names.reserve(ops.size());
+    for (std::size_t i = 0; i < ops.size(); ++i)
+      op_names.push_back(typeName + "[" + std::to_string(i) + "]");
   }
 };
 
@@ -394,7 +456,7 @@ public:
   /// @return
   bool empty() const {
     return noiseModel.empty() && defaultNoiseModel.empty() &&
-           gatePredicates.empty();
+           gatePredicates.empty() && registeredChannels.empty();
   }
 
   /// @brief Add the Kraus channel to the specified one-qubit quantum
@@ -611,6 +673,7 @@ public:
     noise_type = noise_model_type::depolarization_channel;
     validateCompleteness();
     generateUnitaryParameters();
+    op_names = {"id", "x", "y", "z"};
   }
   depolarization_channel(const real probability)
       : depolarization_channel(std::vector<cudaq::real>{probability}) {}
@@ -644,6 +707,7 @@ public:
     validateCompleteness();
     // Note: amplitude damping is non-unitary, so there is no value in calling
     // generateUnitaryParameters().
+    populateDefaultOpNames();
   }
   amplitude_damping_channel(const real probability)
       : amplitude_damping_channel(std::vector<cudaq::real>{probability}) {}
@@ -677,6 +741,7 @@ public:
     noise_type = noise_model_type::bit_flip_channel;
     validateCompleteness();
     generateUnitaryParameters();
+    op_names = {"id", "x"};
   }
   bit_flip_channel(const real probability)
       : bit_flip_channel(std::vector<cudaq::real>{probability}) {}
@@ -711,6 +776,7 @@ public:
     noise_type = noise_model_type::phase_flip_channel;
     validateCompleteness();
     generateUnitaryParameters();
+    op_names = {"id", "z"};
   }
   phase_flip_channel(const real probability)
       : phase_flip_channel(std::vector<cudaq::real>{probability}) {}
@@ -724,10 +790,12 @@ public:
   amplitude_damping(const std::vector<cudaq::real> &p)
       : amplitude_damping_channel(p) {
     noise_type = noise_model_type::amplitude_damping;
+    populateDefaultOpNames();
   }
   amplitude_damping(const real probability)
       : amplitude_damping_channel(probability) {
     noise_type = noise_model_type::amplitude_damping;
+    populateDefaultOpNames();
   }
   REGISTER_KRAUS_CHANNEL(
       noise_model_strings[(int)noise_model_type::amplitude_damping])
@@ -759,6 +827,7 @@ public:
     validateCompleteness();
     // Note: phase damping is non-unitary, so there is no value in calling
     // generateUnitaryParameters().
+    populateDefaultOpNames();
   }
   phase_damping(const real probability)
       : phase_damping(std::vector<cudaq::real>{probability}) {}
@@ -772,9 +841,11 @@ class z_error : public phase_flip_channel {
 public:
   z_error(const std::vector<cudaq::real> &p) : phase_flip_channel(p) {
     noise_type = noise_model_type::z_error;
+    op_names = {"id", "z"};
   }
   z_error(const real probability) : phase_flip_channel(probability) {
     noise_type = noise_model_type::z_error;
+    op_names = {"id", "z"};
   }
   REGISTER_KRAUS_CHANNEL(noise_model_strings[(int)noise_model_type::z_error])
 };
@@ -785,9 +856,11 @@ class x_error : public bit_flip_channel {
 public:
   x_error(const std::vector<cudaq::real> &p) : bit_flip_channel(p) {
     noise_type = noise_model_type::x_error;
+    op_names = {"id", "x"};
   }
   x_error(const real probability) : bit_flip_channel(probability) {
     noise_type = noise_model_type::x_error;
+    op_names = {"id", "x"};
   }
   REGISTER_KRAUS_CHANNEL(noise_model_strings[(int)noise_model_type::x_error])
 };
@@ -818,6 +891,7 @@ public:
     noise_type = noise_model_type::y_error;
     validateCompleteness();
     generateUnitaryParameters();
+    op_names = {"id", "y"};
   }
   y_error(const real probability)
       : y_error(std::vector<cudaq::real>{probability}) {}
@@ -874,6 +948,7 @@ public:
     noise_type = cudaq::noise_model_type::pauli1;
     validateCompleteness();
     generateUnitaryParameters();
+    op_names = {"id", "x", "y", "z"};
   }
   REGISTER_KRAUS_CHANNEL(noise_model_strings[(int)noise_model_type::pauli1])
 };
@@ -949,6 +1024,8 @@ public:
     noise_type = cudaq::noise_model_type::pauli2;
     validateCompleteness();
     generateUnitaryParameters();
+    op_names = {"ii", "ix", "iy", "iz", "xi", "xx", "xy", "xz",
+                "yi", "yx", "yy", "yz", "zi", "zx", "zy", "zz"};
   }
   REGISTER_KRAUS_CHANNEL(noise_model_strings[(int)noise_model_type::pauli2])
 };
@@ -959,10 +1036,12 @@ public:
   depolarization1(const std::vector<cudaq::real> &p)
       : depolarization_channel(p) {
     noise_type = noise_model_type::depolarization1;
+    op_names = {"id", "x", "y", "z"};
   }
   depolarization1(const real probability)
       : depolarization_channel(probability) {
     noise_type = noise_model_type::depolarization1;
+    op_names = {"id", "x", "y", "z"};
   }
   REGISTER_KRAUS_CHANNEL(
       noise_model_strings[(int)noise_model_type::depolarization1])
@@ -984,7 +1063,7 @@ public:
   constexpr static std::size_t num_parameters = 1;
   /// @brief Number of targets
   constexpr static std::size_t num_targets = 2;
-  depolarization2(const std::vector<cudaq::real> p) : kraus_channel() {
+  depolarization2(const std::vector<cudaq::real> &p) : kraus_channel() {
     auto probability = p[0];
     if (probability < 0.0 || probability > 1.0)
       throw std::runtime_error(
@@ -1027,6 +1106,8 @@ public:
     noise_type = cudaq::noise_model_type::depolarization2;
     validateCompleteness();
     generateUnitaryParameters();
+    op_names = {"ii", "ix", "iy", "iz", "xi", "xx", "xy", "xz",
+                "yi", "yx", "yy", "yz", "zi", "zx", "zy", "zz"};
   }
 
   /// @brief Construct a two qubit depolarization channel.

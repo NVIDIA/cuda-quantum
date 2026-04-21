@@ -61,7 +61,7 @@ def trotter():
         def termCoefficients(op: cudaq.SpinOperator) -> list[complex]:
             result = []
             for term in op:
-                result.append(term.get_coefficient())
+                result.append(term.evaluate_coefficient())
             return result
 
         def termWords(op: cudaq.SpinOperator) -> list[str]:

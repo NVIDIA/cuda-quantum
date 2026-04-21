@@ -7,11 +7,9 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2> %t.txt | FileCheck %s &&  FileCheck --check-prefix=QUAKE %s < %t.txt
-// RUN: nvq++ %s -o %t --target iqm --emulate --mapping-file "%iqm_test_src_dir/Crystal_5.txt" && %t | FileCheck %s
+// RUN: nvq++ %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2> %t.txt | FileCheck %s &&  FileCheck --check-prefix=QUAKE %s < %t.txt; status=$?; rm -f %t.txt; exit "$status"
+// RUN: nvq++ %s -o %t --target iqm --emulate --mapping-file "%iqm_tests_dir/Crystal_5.txt" && %t | FileCheck %s
 // clang-format on
-// RUN: nvq++ --enable-mlir %s -o %t
-// RUN: rm -f %t.txt
 
 #include <cudaq.h>
 #include <iostream>
@@ -38,6 +36,7 @@ int main() {
   return 0;
 }
 
+// clang-format off
 // QUAKE-LABEL: tail call void @__quantum__qis__x__body(%Qubit* null)
 // QUAKE:       tail call void @__quantum__qis__x__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*))
 // QUAKE:       tail call void @__quantum__qis__cnot__body(%Qubit* null, %Qubit* nonnull inttoptr (i64 1 to %Qubit*))
@@ -52,3 +51,4 @@ int main() {
 // QUAKE:       ret void
 
 // CHECK-LABEL: most_probable "101"
+// clang-format on

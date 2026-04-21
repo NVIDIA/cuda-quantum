@@ -11,8 +11,9 @@
 #include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatState.h"
 #include "common/FmtCore.h"
-#include "cudaq.h"
+#include "cudaq/cudaq_mpi.h"
 #include "cudaq/distributed/mpi_plugin.h"
+#include <dlfcn.h>
 
 namespace {
 // Hook to query this shared lib file location at runtime.
@@ -162,7 +163,8 @@ public:
         "[dynamics target] Quantum gate simulation is not supported.");
   }
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &qubitIdxs,
-                                const int shots) override {
+                                const int shots,
+                                bool includeSequentialData = true) override {
     throw std::runtime_error("[dynamics target] Quantum gate simulation is not "
                              "supported.");
     return cudaq::ExecutionResult();

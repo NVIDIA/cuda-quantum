@@ -192,7 +192,7 @@ def test_kernel_complex128_capture_f64():
 
 
 @skipIfNvidiaFP64NotInstalled
-def test_kernel_complex128_capture_f64():
+def test_kernel_complex64_invalid_precision_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia', option='fp64')
 
@@ -354,17 +354,16 @@ def test_init_from_other_kernel_state_f64():
     bell.h(qubits[0])
     bell.cx(qubits[0], qubits[1])
 
-    state_ = cudaq.get_state(bell)
-    state = cudaq.StateMemoryView(state_)
+    state = cudaq.get_state(bell)
     state.dump()
 
     kernel, initialState = cudaq.make_kernel(cudaq.State)
     qubits = kernel.qalloc(initialState)
 
-    state2 = cudaq.StateMemoryView(cudaq.get_state(kernel, state_))
+    state2 = cudaq.get_state(kernel, state)
     state2.dump()
 
-    counts = cudaq.sample(kernel, state_)
+    counts = cudaq.sample(kernel, state)
     print(counts)
     assert '11' in counts
     assert '00' in counts
@@ -382,17 +381,16 @@ def test_init_from_other_kernel_state_f32():
     bell.h(qubits[0])
     bell.cx(qubits[0], qubits[1])
 
-    state_ = cudaq.get_state(bell)
-    state = cudaq.StateMemoryView(state_)
+    state = cudaq.get_state(bell)
     state.dump()
 
     kernel, initialState = cudaq.make_kernel(cudaq.State)
     qubits = kernel.qalloc(initialState)
 
-    state2 = cudaq.StateMemoryView(cudaq.get_state(kernel, state_))
+    state2 = cudaq.get_state(kernel, state)
     state2.dump()
 
-    counts = cudaq.sample(kernel, state_)
+    counts = cudaq.sample(kernel, state)
     print(counts)
     assert '11' in counts
     assert '00' in counts

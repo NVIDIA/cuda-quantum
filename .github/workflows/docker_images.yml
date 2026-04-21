@@ -101,7 +101,7 @@ jobs:
   
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -166,7 +166,13 @@ jobs:
           driver-opts: |
             network=host
             image=moby/buildkit:v0.19.0
-   
+
+      - name: Setup proxy cache
+        if: needs.metadata.outputs.runner != 'ubuntu-latest'
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: true
+
       - name: Build Open MPI
         id: docker_build
         uses: docker/build-push-action@v5
@@ -232,7 +238,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -318,6 +324,21 @@ jobs:
             network=host
             image=moby/buildkit:v0.19.0
 
+      - name: Setup proxy cache
+        if: needs.metadata.outputs.runner != 'ubuntu-latest'
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: true
+
+      - name: Set up ccache and ORAS
+        uses: ./.github/actions/ccache-setup
+
+      - name: Restore ccache from GHCR
+        uses: ./.github/actions/ccache-restore
+        with:
+          cache-key: ${{ needs.metadata.outputs.platform_tag }}-cudaqdev
+          registry-token: ${{ github.token }}
+
       - name: Extract metadata
         id: metadata
         uses: docker/metadata-action@v5
@@ -335,6 +356,8 @@ jobs:
         with:
           context: .
           file: ./docker/build/cudaq.dev.Dockerfile
+          build-contexts: |
+            ccache-data=/tmp/ccache-data
           build-args: |
             base_image=${{ steps.prereqs.outputs.base_image }}
             install="CMAKE_BUILD_TYPE=Debug"
@@ -344,6 +367,33 @@ jobs:
           platforms: ${{ inputs.platforms }}
           push: ${{ inputs.environment != '' }}
           outputs: ${{ steps.prereqs.outputs.docker_output }}
+
+      - name: Extract ccache from build
+        timeout-minutes: 15
+        continue-on-error: true
+        run: |
+          mkdir -p /tmp/ccache-export
+          docker buildx build \
+            -f ./docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-arg base_image=${{ steps.prereqs.outputs.base_image }} \
+            --build-arg install="CMAKE_BUILD_TYPE=Debug" \
+            --build-arg git_source_sha=${{ github.sha }} \
+            --target ccache-export \
+            --output type=local,dest=/tmp/ccache-export \
+            2>&1 | tail -20
+          if [ -f /tmp/ccache-export/ccache.tar ]; then
+            mkdir -p /tmp/ccache-export/ccache
+            tar xf /tmp/ccache-export/ccache.tar -C /tmp/ccache-export/ccache
+            rm -f /tmp/ccache-export/ccache.tar
+          fi
+
+      - name: Push ccache to GHCR
+        uses: ./.github/actions/ccache-push
+        with:
+          cache-key: ${{ needs.metadata.outputs.platform_tag }}-cudaqdev
+          cache-path: /tmp/ccache-export/ccache
+          registry-token: ${{ github.token }}
 
       - name: Write matrix outputs
         uses: cloudposse/github-action-matrix-outputs-write@1.0.0
@@ -404,7 +454,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -496,9 +546,13 @@ jobs:
           cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
           deprecation_notice=""
           image_tag=${platform_tag:+$platform_tag-}${cuda_major:+cu${cuda_major}-}
-          if ${{ github.event.pull_request.number != '' }} || [ -n "$(echo ${{ github.ref_name }} | grep pull-request/)" ]; then
-            pr_number=`echo ${{ github.ref_name }} | grep -o [0-9]*`
-            image_tag+=pr-${pr_number:-${{ github.event.pull_request.number }}}
+          pr_number="${{ github.event.pull_request.number }}"
+          if [ -z "$pr_number" ] && \
+             [[ "${{ github.ref_name }}" =~ (pull-request/|.*/pr-)([0-9]+) ]]; then
+            pr_number="${BASH_REMATCH[2]}"
+          fi
+          if [ -n "$pr_number" ]; then
+            image_tag+=pr-${pr_number}
           elif ${{ github.ref_type == 'branch' && github.ref_name == 'main' }}; then
             image_tag+=latest
           elif ${{ needs.metadata.outputs.is_versioned == 'true' }}; then
@@ -537,6 +591,21 @@ jobs:
             network=host
             image=moby/buildkit:v0.19.0
 
+      - name: Setup proxy cache
+        if: needs.metadata.outputs.runner != 'ubuntu-latest'
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: true
+
+      - name: Set up ccache and ORAS
+        uses: ./.github/actions/ccache-setup
+
+      - name: Restore ccache from GHCR
+        uses: ./.github/actions/ccache-restore
+        with:
+          cache-key: ${{ needs.metadata.outputs.platform_tag }}-cudaq-release
+          registry-token: ${{ github.token }}
+
       - name: Extract cuda-quantum-dev metadata
         id: cudaqdev_metadata
         uses: docker/metadata-action@v5
@@ -557,6 +626,8 @@ jobs:
         with:
           context: .
           file: ./docker/build/cudaq.dev.Dockerfile
+          build-contexts: |
+            ccache-data=/tmp/ccache-data
           build-args: |
             base_image=${{ steps.prereqs.outputs.devdeps_image }}
             install="CMAKE_BUILD_TYPE=Release CUDA_QUANTUM_VERSION=${{ steps.prereqs.outputs.image_tag }}"
@@ -565,6 +636,33 @@ jobs:
           labels: ${{ steps.cudaqdev_metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}
           push: true
+
+      - name: Extract ccache from release build
+        timeout-minutes: 15
+        continue-on-error: true
+        run: |
+          mkdir -p /tmp/ccache-export
+          docker buildx build \
+            -f ./docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-arg base_image=${{ steps.prereqs.outputs.devdeps_image }} \
+            --build-arg install="CMAKE_BUILD_TYPE=Release CUDA_QUANTUM_VERSION=${{ steps.prereqs.outputs.image_tag }}" \
+            --build-arg git_source_sha=${{ github.sha }} \
+            --target ccache-export \
+            --output type=local,dest=/tmp/ccache-export \
+            2>&1 | tail -20
+          if [ -f /tmp/ccache-export/ccache.tar ]; then
+            mkdir -p /tmp/ccache-export/ccache
+            tar xf /tmp/ccache-export/ccache.tar -C /tmp/ccache-export/ccache
+            rm -f /tmp/ccache-export/ccache.tar
+          fi
+
+      - name: Push ccache to GHCR
+        uses: ./.github/actions/ccache-push
+        with:
+          cache-key: ${{ needs.metadata.outputs.platform_tag }}-cudaq-release
+          cache-path: /tmp/ccache-export/ccache
+          registry-token: ${{ github.token }}
 
       - name: Install Cosign
         if: inputs.environment
@@ -678,7 +776,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -797,7 +895,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -894,7 +992,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 

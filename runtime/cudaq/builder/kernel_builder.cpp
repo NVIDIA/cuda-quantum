@@ -8,7 +8,6 @@
 
 #include "kernel_builder.h"
 #include "common/FmtCore.h"
-#include "common/RuntimeMLIR.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -19,6 +18,7 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/platform/nvqpp_interface.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
@@ -35,6 +35,7 @@
 #include <numeric>
 
 using namespace mlir;
+using namespace cudaq_internal::compiler;
 
 namespace cudaq::details {
 
@@ -128,7 +129,7 @@ KernelBuilderType convertArgumentTypeToMLIR(cudaq::state *&) {
 
 MLIRContext *initializeContext() {
   CUDAQ_INFO("Initializing the MLIR infrastructure.");
-  return cudaq::getOwningMLIRContext().release();
+  return getOwningMLIRContext().release();
 }
 void deleteContext(MLIRContext *context) { delete context; }
 void deleteJitEngine(ExecutionEngine *jit) { delete jit; }
@@ -499,15 +500,19 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &sizeOrVec) {
 
   if (auto stdvecTy = dyn_cast<cc::StdvecType>(type)) {
     // get the size
-    Value size = builder.create<cc::StdvecSizeOp>(builder.getI64Type(), value);
-    Value numQubits = builder.create<math::CountTrailingZerosOp>(size);
-    auto veqTy = quake::VeqType::getUnsized(context);
-    // allocate the number of qubits we need
-    Value qubits = builder.create<quake::AllocaOp>(veqTy, numQubits);
-
     auto ptrTy = cc::PointerType::get(stdvecTy.getElementType());
     Value initials = builder.create<cc::StdvecDataOp>(ptrTy, value);
-    qubits = builder.create<quake::InitializeStateOp>(veqTy, qubits, initials);
+    auto i64Ty = builder.getI64Type();
+    Value size = builder.create<cc::StdvecSizeOp>(i64Ty, value);
+    auto stateTy = cc::PointerType::get(quake::StateType::get(context));
+    auto state = builder.create<quake::CreateStateOp>(stateTy, initials, size);
+    Value numQubits = builder.create<quake::GetNumberOfQubitsOp>(i64Ty, state);
+    // allocate the number of qubits we need
+    auto veqTy = quake::VeqType::getUnsized(context);
+    Value qubits = builder.create<quake::AllocaOp>(veqTy, numQubits);
+
+    qubits = builder.create<quake::InitializeStateOp>(veqTy, qubits, state);
+    builder.create<quake::DeleteStateOp>(state);
     return QuakeValue(builder, qubits);
   }
 

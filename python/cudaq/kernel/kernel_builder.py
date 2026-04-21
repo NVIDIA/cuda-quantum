@@ -14,6 +14,7 @@ import weakref
 from functools import partialmethod
 from typing import get_origin
 
+from .kernel_signature import KernelSignature
 import numpy as np
 from cudaq.mlir.ir import (BoolAttr, Block, Context, Module, TypeAttr, UnitAttr,
                            FunctionType, DictAttr, F32Type, F64Type, NoneType,
@@ -27,16 +28,14 @@ from cudaq.mlir.dialects import (complex as complexDialect, arith, quake, cc,
 from cudaq.mlir._mlir_libs._quakeDialects import (
     cudaq_runtime, gen_vector_of_complex_constant, load_intrinsic)
 from cudaq.kernel_types import qubit, qvector
-from .captured_data import CapturedDataStorage
 from .common.fermionic_swap import fermionic_swap_builder
 from .common.givens import givens_builder
-from .kernel_decorator import isa_kernel_decorator
+from .kernel_decorator import DecoratorCapture, LinkedKernelCapture, isa_kernel_decorator
 from .quake_value import QuakeValue
 from .utils import (emitFatalError, emitWarning, nvqppPrefix, getMLIRContext,
                     recover_func_op, mlirTypeToPyType, cudaq__unique_attr_name,
                     mlirTypeFromPyType, emitErrorIfInvalidPauli,
-                    recover_value_of, globalRegisteredOperations,
-                    recover_calling_module)
+                    globalRegisteredOperations)
 
 kDynamicPtrIndex: int = -2147483648
 
@@ -263,10 +262,6 @@ class PyKernel(object):
         self.module.operation.attributes.__setitem__('quake.mangled_name_map',
                                                      attr)
 
-        self.capturedDataStorage = CapturedDataStorage(ctx=self.ctx,
-                                                       loc=self.loc,
-                                                       name=self.name,
-                                                       module=self.module)
         # List of in-place applied noise channels (rather than pre-registered
         # noise classes)
         self.appliedNoiseChannels = []
@@ -291,22 +286,6 @@ class PyKernel(object):
                 func.ReturnOp([])
 
             self.insertPoint = InsertionPoint.at_block_begin(e)
-
-        self._finalizer = weakref.finalize(self, PyKernel._cleanup,
-                                           self.capturedDataStorage)
-
-    @staticmethod
-    def _cleanup(capturedDataStorage):
-        """
-        Cleanup function to be called when the `PyKernel` instance is garbage
-        collected. This resource management method is used with
-        `weakref.finalize()` to ensure proper cleanup of resources. Note that
-        this method is intentionally empty since `CapturedDataStorage` has its
-        own `finalizer`. However, it is still included for maintaining the
-        reference to `CapturedDataStorage` until the `PyKernel` instance is
-        garbage collected ensuring proper cleanup order.
-        """
-        pass
 
     def __processArgType(self, ty):
         """
@@ -504,7 +483,7 @@ class PyKernel(object):
 
         return operand
 
-    def __getMLIRValueFromPythonArg(self, arg, argTy):
+    def __getMLIRValueFromPythonArg(self, arg, argTy=None):
         """
         Given a python runtime argument, create and return an equivalent
         constant MLIR Value.
@@ -887,15 +866,18 @@ class PyKernel(object):
                                        size=initializer.mlirValue).result)
 
                 if cc.StdvecType.isinstance(initializer.mlirValue.type):
-                    size = cc.StdvecSizeOp(self.getIntegerType(),
-                                           initializer.mlirValue).result
                     value = initializer.mlirValue
                     eleTy = cc.StdvecType.getElementType(value.type)
-                    numQubits = math.CountTrailingZerosOp(size).result
-                    qubits = quake.AllocaOp(veqTy, size=numQubits).result
                     ptrTy = cc.PointerType.get(eleTy)
                     data = cc.StdvecDataOp(ptrTy, value).result
-                    init = quake.InitializeStateOp(veqTy, qubits, data).result
+                    intTy = self.getIntegerType()
+                    size = cc.StdvecSizeOp(intTy, value).result
+                    stateTy = cc.PointerType.get(cc.StateType.get())
+                    state = quake.CreateStateOp(stateTy, data, size).result
+                    numQubits = quake.GetNumberOfQubitsOp(intTy, state).result
+                    qubits = quake.AllocaOp(veqTy, size=numQubits).result
+                    init = quake.InitializeStateOp(veqTy, qubits, state).result
+                    deleteState = quake.DeleteStateOp(state)
                     return self.__createQuakeValue(init)
 
                 # State pointer
@@ -978,7 +960,7 @@ class PyKernel(object):
             if len(qubitsList) > 0:
                 quantumVal = quake.ConcatOp(
                     quake.VeqType.get(),
-                    [quantumVal] if quantumVal is not None else [] +
+                    ([quantumVal] if quantumVal is not None else []) +
                     qubitsList).result
             quake.ExpPauliOp([], [thetaVal], [], [quantumVal],
                              pauli=pauliWordVal)
@@ -1370,10 +1352,20 @@ class PyKernel(object):
         ```
         """
         if isa_kernel_decorator(target):
-            target = self.resolve_callable_arg(self.insertPoint, target)
+            if not target.is_compiled():
+                name = target.name
+                emitFatalError(
+                    f"Kernel '{name}' must be compiled to be used in the kernel builder. "
+                    f"Call `{name}.compile()` before initializing the kernel builder, "
+                    f"or deactivate deferred compilation:\n\n"
+                    f"    @cudaq.kernel(defer_compilation=False)\n"
+                    f"    def {name}(...): ...\n")
+            target = self.resolve_callable_arg(self.insertPoint,
+                                               DecoratorCapture(target))
         self.__applyControlOrAdjoint(target, False, [], *target_arguments)
 
-    def resolve_callable_arg(self, insPt, target):
+    def resolve_callable_arg(self, insPt,
+                             target: DecoratorCapture | LinkedKernelCapture):
         """
         `target` must be a callable. For a simple callable (a `func.FuncOp`),
         resolution is trivial. If the callable is a decorator with lambda lifted
@@ -1381,39 +1373,43 @@ class PyKernel(object):
         closure here.
         Returns a `CreateLambdaOp` closure.
         """
-        cudaq_runtime.updateModule(self.uniqName, self.module, target.qkeModule)
+        match target:
+            case DecoratorCapture(decorator=decorator, resolved=resolved_args):
+                kernel_name = nvqppPrefix + decorator.uniqName
+                merge_module = decorator.qkeModule
+                signature = decorator.signature
+            case LinkedKernelCapture(linkedKernel=kernel_name,
+                                     qkeModule=merge_module):
+                signature = KernelSignature.parse_from_mlir(
+                    merge_module, kernel_name)
+                resolved_args = []
+            case _:
+                raise ValueError(f"Invalid callable arg: {target}")
+
+        # Add the target kernel to the current module.
+        cudaq_runtime.updateModule(kernel_name, self.module, merge_module)
+        fn = recover_func_op(self.module, kernel_name)
+        funcTy = signature.get_lifted_type()
+        callableTy = signature.get_callable_type()
+        arg_types = signature.arg_types
+
         # build the closure to capture the lifted `args`
-        thisPyMod = recover_calling_module()
-        if target.defModule != thisPyMod:
-            m = target.defModule
-        else:
-            m = None
-        fulluniq = nvqppPrefix + target.uniqName
-        fn = recover_func_op(self.module, fulluniq)
-        funcTy = fn.type
-        if target.firstLiftedPos:
-            moduloInTys = funcTy.inputs[:target.firstLiftedPos]
-        else:
-            moduloInTys = funcTy.inputs
-        callableTy = cc.CallableType.get(self.ctx, moduloInTys, funcTy.results)
         with insPt, self.loc:
             lamb = cc.CreateLambdaOp(callableTy, loc=self.loc)
             lamb.attributes.__setitem__('function_type', TypeAttr.get(funcTy))
             initRegion = lamb.initRegion
-            initBlock = Block.create_at_start(initRegion, moduloInTys)
+            initBlock = Block.create_at_start(initRegion, arg_types)
             inner = InsertionPoint(initBlock)
             with inner:
                 vs = []
                 for ba in initBlock.arguments:
                     vs.append(ba)
-                for i, a in enumerate(target.liftedArgs):
-                    v = recover_value_of(a, m)
-                    if isa_kernel_decorator(v):
+                for arg in resolved_args:
+                    if isinstance(arg, (DecoratorCapture, LinkedKernelCapture)):
                         # The recursive step
-                        v = self.resolve_callable_arg(inner, v)
+                        v = self.resolve_callable_arg(inner, arg)
                     else:
-                        argTy = funcTy.inputs[target.firstLiftedPos + i]
-                        v = self.__getMLIRValueFromPythonArg(v, argTy)
+                        v = self.__getMLIRValueFromPythonArg(arg)
                     vs.append(v)
                 if funcTy.results:
                     call = func.CallOp(fn, vs).result
@@ -1757,10 +1753,9 @@ class PyKernel(object):
             else:
                 processedArgs.append(arg)
 
-        retTy = NoneType.get(self.module.context)
         self.compile()
         specialized = cudaq_runtime.cloneModule(self.qkeModule)
-        cudaq_runtime.marshal_and_launch_module(self.name, specialized, retTy,
+        cudaq_runtime.marshal_and_launch_module(self.name, specialized,
                                                 *processedArgs)
 
     def __getattr__(self, attr_name):

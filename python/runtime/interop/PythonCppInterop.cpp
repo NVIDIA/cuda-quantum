@@ -7,17 +7,8 @@
  ******************************************************************************/
 
 #include "PythonCppInterop.h"
-#include "cudaq.h" // unfortunately, cudaq::get_quake is here at top level
+#include "common/DeviceCodeRegistry.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "mlir/ExecutionEngine/ExecutionEngine.h"
-
-cudaq::python::CppPyKernelDecorator::~CppPyKernelDecorator() {
-  if (execution_engine) {
-    auto *ee = reinterpret_cast<mlir::ExecutionEngine *>(execution_engine);
-    delete ee;
-    execution_engine = nullptr;
-  }
-}
 
 std::string cudaq::python::getKernelName(const std::string &input) {
   size_t pos = 0;

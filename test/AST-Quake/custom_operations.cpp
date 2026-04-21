@@ -83,13 +83,12 @@ __qpu__ void kernel_4() {
 // CHECK:           %[[VAL_2:.*]] = arith.constant 1 : i64
 // CHECK:           %[[VAL_3:.*]] = arith.constant 0 : i64
 // CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.veq<4>
-// CHECK:           %[[VAL_5:.*]] = quake.subveq %[[VAL_4]], 0, 2 : (!quake.veq<4>) -> !quake.veq<3>
 // CHECK:           %[[VAL_6:.*]] = cc.loop while ((%[[VAL_7:.*]] = %[[VAL_3]]) -> (i64)) {
 // CHECK:             %[[VAL_8:.*]] = arith.cmpi slt, %[[VAL_7]], %[[VAL_0]] : i64
 // CHECK:             cc.condition %[[VAL_8]](%[[VAL_7]] : i64)
 // CHECK:           } do {
 // CHECK:           ^bb0(%[[VAL_9:.*]]: i64):
-// CHECK:             %[[VAL_10:.*]] = quake.extract_ref %[[VAL_5]]{{\[}}%[[VAL_9]]] : (!quake.veq<3>, i64) -> !quake.ref
+// CHECK:             %[[VAL_10:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_9]]] : (!quake.veq<4>, i64) -> !quake.ref
 // CHECK:             quake.x %[[VAL_10]] : (!quake.ref) -> ()
 // CHECK:             cc.continue %[[VAL_9]] : i64
 // CHECK:           } step {
