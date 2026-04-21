@@ -107,6 +107,6 @@ struct Qernel {
 // CHECK:           quake.x %[[VAL_2]] : (!quake.ref) -> ()
 // CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<1>) -> !quake.ref
 // CHECK:           quake.x %[[VAL_3]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<1>) -> !quake.measurements<1>
+// CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<1>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }

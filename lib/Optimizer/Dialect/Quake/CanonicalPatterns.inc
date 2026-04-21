@@ -100,28 +100,6 @@ struct ForwardConstantVeqSizePattern
   }
 };
 
-// %4 = quake.measurements_size %3 : (!quake.measurements<10>) -> i64
-// ─────────────────────────────────────────────────────────────────
-// %4 = constant 10 : i64
-struct ForwardConstantMeasurementsSizePattern
-    : public OpRewritePattern<quake::MeasurementsSizeOp> {
-  using OpRewritePattern::OpRewritePattern;
-
-  LogicalResult matchAndRewrite(quake::MeasurementsSizeOp msSize,
-                                PatternRewriter &rewriter) const override {
-    auto msTy =
-        dyn_cast<quake::MeasurementsType>(msSize.getMeasurements().getType());
-    if (!msTy)
-      return failure();
-    if (!msTy.hasSpecifiedSize())
-      return failure();
-    auto resTy = msSize.getType();
-    rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(msSize, msTy.getSize(),
-                                                      resTy);
-    return success();
-  }
-};
-
 // %2 = constant 10 : i32
 // %3 = quake.alloca !quake.veq<?>[%2 : i32]
 // ─────────────────────────────────────────
@@ -733,98 +711,6 @@ struct MergeRotationPattern : public OpRewritePattern<OP> {
                                     ValueRange{newAngle}, ValueRange{},
                                     ValueRange{input.getTarget(0)},
                                     rotate.getNegatedQubitControlsAttr());
-    return success();
-  }
-};
-
-// %0 = quake.alloca !quake.veq<2>
-// %1 = quake.mz %0 : (!quake.veq<2>) -> !quake.measurements<?>
-// ────────────────────────────────────────────────────────────
-// %0 = quake.alloca !quake.veq<2>
-// %1 = quake.mz %0 : (!quake.veq<2>) -> !quake.measurements<2>
-template <typename MeasOp>
-struct FuseSizeToMeasurementPattern : public OpRewritePattern<MeasOp> {
-  using OpRewritePattern<MeasOp>::OpRewritePattern;
-
-  LogicalResult matchAndRewrite(MeasOp measOp,
-                                PatternRewriter &rewriter) const override {
-    auto measTy =
-        dyn_cast<quake::MeasurementsType>(measOp.getMeasOut().getType());
-    if (!measTy || measTy.hasSpecifiedSize())
-      return failure();
-
-    std::size_t totalSize = 0;
-    for (auto target : measOp.getTargets()) {
-      if (quake::isConstantQuantumRefType(target.getType())) {
-        totalSize += quake::getAllocationSize(target.getType());
-        continue;
-      }
-      return failure();
-    }
-    if (totalSize == 0)
-      return failure();
-
-    auto newMeasTy =
-        quake::MeasurementsType::get(rewriter.getContext(), totalSize);
-
-    // If any user expects unsized measurements (return-like ops where the
-    // function returns unsized, or call ops where the callee parameter is
-    // unsized), insert a quake.relax_size to bridge the sized-to-unsized gap.
-    auto needsCastForUser = [&](OpOperand &use) -> bool {
-      auto *user = use.getOwner();
-      if (isa<cudaq::cc::ReturnOp, cudaq::cc::UnwindReturnOp>(user)) {
-        if (auto funcOp = user->getParentOfType<func::FuncOp>())
-          if (funcOp.getFunctionType().getNumResults() == 1)
-            if (auto fnResMeasTy = dyn_cast<quake::MeasurementsType>(
-                    funcOp.getFunctionType().getResult(0)))
-              return !fnResMeasTy.hasSpecifiedSize();
-        return false;
-      }
-      auto checkCalleeArgType = [&](mlir::FunctionType calleeType,
-                                    unsigned argIdx) -> bool {
-        if (argIdx < calleeType.getNumInputs())
-          if (auto paramMeasTy = dyn_cast<quake::MeasurementsType>(
-                  calleeType.getInput(argIdx)))
-            return !paramMeasTy.hasSpecifiedSize();
-        return false;
-      };
-      if (auto callOp = dyn_cast<func::CallOp>(user))
-        return checkCalleeArgType(callOp.getCalleeType(),
-                                  use.getOperandNumber());
-      if (auto callOp = dyn_cast<func::CallIndirectOp>(user)) {
-        unsigned opIdx = use.getOperandNumber();
-        if (opIdx == 0)
-          return false; // operand 0 is the callee value itself
-        auto calleeFnTy = cast<mlir::FunctionType>(
-            callOp.getCallee().getType());
-        return checkCalleeArgType(calleeFnTy, opIdx - 1);
-      }
-      return false;
-    };
-
-    SmallVector<Type> resultTypes;
-    resultTypes.push_back(newMeasTy);
-    for (unsigned i = 1; i < measOp->getNumResults(); ++i)
-      resultTypes.push_back(measOp->getResult(i).getType());
-
-    auto oldAttrs = measOp->getAttrs();
-    auto newOp = rewriter.replaceOpWithNewOp<MeasOp>(measOp,
-                                                     TypeRange{resultTypes},
-                                                     measOp.getTargets(),
-                                                     measOp.getRegisterNameAttr());
-    for (auto &attr : oldAttrs)
-      if (!newOp->getAttr(attr.getName()))
-        newOp->setAttr(attr.getName(), attr.getValue());
-
-    for (auto &use :
-         llvm::make_early_inc_range(newOp.getMeasOut().getUses())) {
-      if (needsCastForUser(use)) {
-        rewriter.setInsertionPoint(use.getOwner());
-        auto relax = rewriter.create<quake::RelaxSizeOp>(
-            use.getOwner()->getLoc(), measTy, newOp.getMeasOut());
-        use.set(relax);
-      }
-    }
     return success();
   }
 };
