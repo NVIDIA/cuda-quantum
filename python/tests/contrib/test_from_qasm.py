@@ -21,8 +21,7 @@ import cudaq
 from cudaq.contrib import from_qasm, from_qasm_str
 from cudaq.contrib.qasm_convert import _eval_expr
 
-
-HEADER = 'OPENQASM 2.0;\ninclude "qelib1.inc";\n'
+HEADER_2 = 'OPENQASM 2.0;\ninclude "qelib1.inc";\n'
 
 
 def _run(qasm_src, shots=1000):
@@ -66,7 +65,7 @@ class TestExpressionEvaluator:
 
     def test_power_operators(self):
         assert _eval_expr("2 ** 3") == pytest.approx(8.0)
-        # QASM `^` is exponentiation (Python's ast parses as BitXor, handled).
+        # QASM `^` is exponentiation (Python's `ast` parses as BitXor, handled).
         assert _eval_expr("2 ^ 3") == pytest.approx(8.0)
 
     def test_env_variables(self):
@@ -90,75 +89,75 @@ class TestExpressionEvaluator:
 class TestBasicGates:
 
     def test_identity(self):
-        src = HEADER + "qreg q[1];\nid q[0];\n"
+        src = HEADER_2 + "qreg q[1];\nid q[0];\n"
         counts = _run(src)
         assert counts['0'] == 1000
 
     def test_x(self):
-        src = HEADER + "qreg q[1];\nx q[0];\n"
+        src = HEADER_2 + "qreg q[1];\nx q[0];\n"
         counts = _run(src)
         assert counts['1'] == 1000
 
     def test_y(self):
-        src = HEADER + "qreg q[1];\ny q[0];\n"
+        src = HEADER_2 + "qreg q[1];\ny q[0];\n"
         counts = _run(src)
         assert counts['1'] == 1000
 
     def test_z_on_zero_is_identity(self):
-        src = HEADER + "qreg q[1];\nz q[0];\n"
+        src = HEADER_2 + "qreg q[1];\nz q[0];\n"
         counts = _run(src)
         assert counts['0'] == 1000
 
     def test_h_superposition(self):
-        src = HEADER + "qreg q[1];\nh q[0];\n"
+        src = HEADER_2 + "qreg q[1];\nh q[0];\n"
         counts = _run(src)
         assert '0' in counts
         assert '1' in counts
 
     def test_s_then_sdg_is_identity(self):
-        src = HEADER + "qreg q[1];\nh q[0];\ns q[0];\nsdg q[0];\nh q[0];\n"
+        src = HEADER_2 + "qreg q[1];\nh q[0];\ns q[0];\nsdg q[0];\nh q[0];\n"
         counts = _run(src)
         assert counts['0'] == 1000
 
     def test_t_then_tdg_is_identity(self):
-        src = HEADER + "qreg q[1];\nh q[0];\nt q[0];\ntdg q[0];\nh q[0];\n"
+        src = HEADER_2 + "qreg q[1];\nh q[0];\nt q[0];\ntdg q[0];\nh q[0];\n"
         counts = _run(src)
         assert counts['0'] == 1000
 
     def test_sx_twice_is_x(self):
-        src = HEADER + "qreg q[1];\nsx q[0];\nsx q[0];\n"
+        src = HEADER_2 + "qreg q[1];\nsx q[0];\nsx q[0];\n"
         counts = _run(src)
         assert counts['1'] == 1000
 
     def test_rx_pi(self):
-        src = HEADER + "qreg q[1];\nrx(pi) q[0];\n"
+        src = HEADER_2 + "qreg q[1];\nrx(pi) q[0];\n"
         counts = _run(src)
         assert counts['1'] == 1000
 
     def test_ry_pi(self):
-        src = HEADER + "qreg q[1];\nry(pi) q[0];\n"
+        src = HEADER_2 + "qreg q[1];\nry(pi) q[0];\n"
         counts = _run(src)
         assert counts['1'] == 1000
 
     def test_rz_does_not_flip(self):
-        src = HEADER + "qreg q[1];\nrz(pi) q[0];\n"
+        src = HEADER_2 + "qreg q[1];\nrz(pi) q[0];\n"
         counts = _run(src)
         assert counts['0'] == 1000
 
     def test_u3(self):
         # u3(pi, 0, pi) ≡ X up to a global phase
-        src = HEADER + "qreg q[1];\nu3(pi, 0, pi) q[0];\n"
+        src = HEADER_2 + "qreg q[1];\nu3(pi, 0, pi) q[0];\n"
         counts = _run(src)
         assert counts['1'] == 1000
 
     def test_u2(self):
         # u2(0, pi) ≡ H up to a global phase
-        src = HEADER + "qreg q[1];\nu2(0, pi) q[0];\n"
+        src = HEADER_2 + "qreg q[1];\nu2(0, pi) q[0];\n"
         counts = _run(src)
         assert '0' in counts and '1' in counts
 
     def test_u1_phase_on_zero_is_noop(self):
-        src = HEADER + "qreg q[1];\nu1(pi/3) q[0];\n"
+        src = HEADER_2 + "qreg q[1];\nu1(pi/3) q[0];\n"
         counts = _run(src)
         assert counts['0'] == 1000
 
@@ -171,7 +170,7 @@ class TestBasicGates:
 class TestMultiQubit:
 
     def test_cx_bell(self):
-        src = HEADER + "qreg q[2];\nh q[0];\ncx q[0], q[1];\n"
+        src = HEADER_2 + "qreg q[2];\nh q[0];\ncx q[0], q[1];\n"
         counts = _run(src)
         assert '00' in counts
         assert '11' in counts
@@ -180,18 +179,18 @@ class TestMultiQubit:
 
     def test_cz_on_11(self):
         # CZ acts as phase on |11>; not observable in Z-basis.
-        src = HEADER + "qreg q[2];\nx q[0];\nx q[1];\ncz q[0], q[1];\n"
+        src = HEADER_2 + "qreg q[2];\nx q[0];\nx q[1];\ncz q[0], q[1];\n"
         counts = _run(src)
         assert counts['11'] == 1000
 
     def test_swap(self):
-        src = HEADER + "qreg q[2];\nx q[0];\nswap q[0], q[1];\n"
+        src = HEADER_2 + "qreg q[2];\nx q[0];\nswap q[0], q[1];\n"
         counts = _run(src)
         # q0 had |1>, after swap q1 holds |1>. CUDA-Q big-endian: '01'.
         assert counts['01'] == 1000
 
     def test_ccx_toffoli(self):
-        src = HEADER + "qreg q[3];\nx q[0];\nx q[1];\nccx q[0], q[1], q[2];\n"
+        src = HEADER_2 + "qreg q[3];\nx q[0];\nx q[1];\nccx q[0], q[1], q[2];\n"
         counts = _run(src)
         assert counts['111'] == 1000
 
@@ -209,49 +208,49 @@ class TestMultiQubit:
         assert counts['101'] == 1000
 
     def test_rxx(self):
-        src = HEADER + "qreg q[2];\nrxx(pi) q[0], q[1];\n"
+        src = HEADER_2 + "qreg q[2];\nrxx(pi) q[0], q[1];\n"
         counts = _run(src)
         # RXX(pi) |00> = -i|11>; measurement gives '11'
         assert counts['11'] == 1000
 
     def test_rzz_on_zero_is_phase_only(self):
-        src = HEADER + "qreg q[2];\nrzz(pi/2) q[0], q[1];\n"
+        src = HEADER_2 + "qreg q[2];\nrzz(pi/2) q[0], q[1];\n"
         counts = _run(src)
         assert counts['00'] == 1000
 
     def test_crx(self):
         # Control=|0>: no effect.
-        src = HEADER + "qreg q[2];\ncrx(pi) q[0], q[1];\n"
+        src = HEADER_2 + "qreg q[2];\ncrx(pi) q[0], q[1];\n"
         counts = _run(src)
         assert counts['00'] == 1000
 
         # Control=|1>: target flips.
-        src = (HEADER + "qreg q[2];\nx q[0];\ncrx(pi) q[0], q[1];\n")
+        src = (HEADER_2 + "qreg q[2];\nx q[0];\ncrx(pi) q[0], q[1];\n")
         counts = _run(src)
         assert counts['11'] == 1000
 
     def test_cy(self):
         # CY with control=|1> flips the target (up to a phase in Z-basis).
-        src = HEADER + "qreg q[2];\nx q[0];\ncy q[0], q[1];\n"
+        src = HEADER_2 + "qreg q[2];\nx q[0];\ncy q[0], q[1];\n"
         counts = _run(src)
         assert counts['11'] == 1000
 
     def test_ch(self):
         # CH with control=|1> puts target in superposition.
-        src = HEADER + "qreg q[2];\nx q[0];\nch q[0], q[1];\n"
+        src = HEADER_2 + "qreg q[2];\nx q[0];\nch q[0], q[1];\n"
         counts = _run(src)
         assert '10' in counts
         assert '11' in counts
 
     def test_cu1_noop_on_zero(self):
         # cu1(λ) only applies a phase on |11>; on |00> it is a no-op.
-        src = HEADER + "qreg q[2];\ncu1(pi/3) q[0], q[1];\n"
+        src = HEADER_2 + "qreg q[2];\ncu1(pi/3) q[0], q[1];\n"
         counts = _run(src)
         assert counts['00'] == 1000
 
     def test_cu1_phase_on_11_still_measures_11(self):
-        # Phase is unobservable in the Z-basis, so the outcome is still |11>.
-        src = (HEADER + "qreg q[2];\nx q[0];\nx q[1];\n"
+        # Phase has no effect on Z-basis measurement, so the outcome is still |11>.
+        src = (HEADER_2 + "qreg q[2];\nx q[0];\nx q[1];\n"
                "cu1(pi) q[0], q[1];\n")
         counts = _run(src)
         assert counts['11'] == 1000
@@ -259,21 +258,21 @@ class TestMultiQubit:
     def test_cu3(self):
         # cu3(pi, 0, pi) with control=|1> behaves like X on the target
         # (u3(pi, 0, pi) ≡ X up to a global phase).
-        src = (HEADER + "qreg q[2];\nx q[0];\n"
+        src = (HEADER_2 + "qreg q[2];\nx q[0];\n"
                "cu3(pi, 0, pi) q[0], q[1];\n")
         counts = _run(src)
         assert counts['11'] == 1000
 
     def test_ryy_full_period(self):
-        # RYY(2π) = -I, unobservable in Z-basis: state stays |00>.
-        src = HEADER + "qreg q[2];\nryy(2*pi) q[0], q[1];\n"
+        # RYY(2π) = -I, a global phase in the Z-basis: state stays |00>.
+        src = HEADER_2 + "qreg q[2];\nryy(2*pi) q[0], q[1];\n"
         counts = _run(src)
         assert counts['00'] == 1000
 
     def test_ryy_pi_flips_both(self):
         # RYY(π) = exp(-iπ/2 Y⊗Y) = cos(π/2)·I - i sin(π/2)·Y⊗Y = -i Y⊗Y.
         # Applied to |00>: Y⊗Y|00> = -|11>, so RYY(π)|00> = i|11> → '11'.
-        src = HEADER + "qreg q[2];\nryy(pi) q[0], q[1];\n"
+        src = HEADER_2 + "qreg q[2];\nryy(pi) q[0], q[1];\n"
         counts = _run(src)
         assert counts['11'] == 1000
 
@@ -286,18 +285,18 @@ class TestMultiQubit:
 class TestBroadcasting:
 
     def test_h_broadcast_across_register(self):
-        src = HEADER + "qreg q[3];\nh q;\n"
+        src = HEADER_2 + "qreg q[3];\nh q;\n"
         counts = _run(src)
         # 2^3 = 8 distinct outcomes expected, all sampled at least once usually
         assert len(counts) >= 4  # not deterministic but very likely
 
     def test_x_broadcast(self):
-        src = HEADER + "qreg q[3];\nx q;\n"
+        src = HEADER_2 + "qreg q[3];\nx q;\n"
         counts = _run(src)
         assert counts['111'] == 1000
 
     def test_cx_parallel_registers(self):
-        # cx applied parallel element-wise.
+        # `cx` applied parallel element-wise.
         src = textwrap.dedent("""\
             OPENQASM 2.0;
             include "qelib1.inc";
@@ -308,7 +307,7 @@ class TestBroadcasting:
             cx a, b;
         """)
         counts = _run(src)
-        # a=|11>, after broadcast cx: b=|11>, so state |a=11, b=11> = '1111'
+        # a=|11>, after broadcast `cx`: b=|11>, so state |a=11, b=11> = '1111'
         assert counts['1111'] == 1000
 
     def test_mismatched_register_sizes_raises(self):
@@ -385,7 +384,7 @@ class TestCustomGates:
             half_ry(2*pi) q[0];
         """)
         counts = _run(src)
-        # ry(pi) on |0> → |1>
+        # `ry(pi)` on |0> → |1>
         assert counts['1'] == 1000
 
     def test_custom_gate_wrong_arity_raises(self):
@@ -475,7 +474,8 @@ class TestFromQasmFile:
 
     def test_reads_file(self, tmp_path):
         qasm_path = tmp_path / "bell.qasm"
-        qasm_path.write_text(textwrap.dedent("""\
+        qasm_path.write_text(
+            textwrap.dedent("""\
             OPENQASM 2.0;
             include "qelib1.inc";
             qreg q[2];
@@ -509,7 +509,7 @@ class TestErrors:
             from_qasm_str(src)
 
     def test_unsupported_gate_raises(self):
-        src = HEADER + "qreg q[1];\nmagic_gate q[0];\n"
+        src = HEADER_2 + "qreg q[1];\nmagic_gate q[0];\n"
         with pytest.raises(ValueError, match="magic_gate"):
             from_qasm_str(src)
 
@@ -526,7 +526,7 @@ class TestErrors:
             from_qasm_str(src)
 
     def test_unknown_qreg_raises(self):
-        src = HEADER + "qreg q[1];\nh r[0];\n"
+        src = HEADER_2 + "qreg q[1];\nh r[0];\n"
         with pytest.raises(ValueError, match="Unknown qreg"):
             from_qasm_str(src)
 
@@ -534,7 +534,6 @@ class TestErrors:
 # --------------------------------------------------------------------------- #
 # OpenQASM 3.0
 # --------------------------------------------------------------------------- #
-
 
 HEADER_3 = 'OPENQASM 3.0;\ninclude "stdgates.inc";\n'
 
@@ -619,7 +618,7 @@ class TestQASM3Measurement:
             c[0] = measure q[0];
         """)
         counts = _run(src)
-        # Only q[0] is explicitly measured (q[1] never enters the mz list), so
+        # Only q[0] is explicitly measured (q[1] never enters the `mz` list), so
         # the sample bitstring has length 1: q[0] = |1> → '1'.
         assert counts['1'] == 1000
 
@@ -639,7 +638,7 @@ class TestQASM3Builtins:
         assert '0' in counts and '1' in counts
 
     def test_U_four_params_gamma_unobservable(self):
-        # 4-param U(θ, φ, λ, γ): γ is a global phase; ignored for sampling.
+        # 4-parameter U(θ, φ, λ, γ): γ is a global phase; ignored for sampling.
         src = HEADER_3 + "qubit[1] q;\nU(pi, 0, pi, 1.234) q[0];\n"
         counts = _run(src)
         assert counts['1'] == 1000
@@ -699,23 +698,23 @@ class TestQASM3GateCoverage:
         assert counts['0'] == 1000
 
     def test_id_lowercase_identity(self):
-        # Qiskit's stdgates.inc spells identity as `id`; both must work.
+        # The `stdgates.inc` file used by Qiskit spells identity as `id`; both must work.
         src = HEADER_3 + "qubit[1] q;\nid q[0];\n"
         counts = _run(src)
         assert counts['0'] == 1000
 
     def test_sx_and_sxdg(self):
-        # sx ∘ sx = X.
+        # `sx` ∘ `sx` = X.
         src = HEADER_3 + "qubit[1] q;\nsx q[0];\nsx q[0];\n"
         counts = _run(src)
         assert counts['1'] == 1000
-        # sx ∘ sxdg = I.
+        # `sx` ∘ `sxdg` = I.
         src2 = HEADER_3 + "qubit[1] q;\nx q[0];\nsx q[0];\nsxdg q[0];\n"
         counts2 = _run(src2)
         assert counts2['1'] == 1000
 
     def test_s_sdg_t_tdg(self):
-        # Full round-trip: s t tdg sdg on |+> leaves |+>.
+        # Full round-trip: `s` `t` `tdg` `sdg` on |+> leaves |+>.
         src = HEADER_3 + textwrap.dedent("""\
             qubit[1] q;
             h q[0];
@@ -737,7 +736,7 @@ class TestQASM3GateCoverage:
         assert counts['0'] == 1000
 
     def test_rx_ry_rz(self):
-        # rx(pi) ≡ X (up to global phase); ry(pi) ≡ Y; rz does not flip.
+        # `rx(pi)` ≡ X (up to global phase); `ry(pi)` ≡ Y; `rz` does not flip.
         assert _run(HEADER_3 + "qubit[1] q;\nrx(pi) q[0];\n")['1'] == 1000
         assert _run(HEADER_3 + "qubit[1] q;\nry(pi) q[0];\n")['1'] == 1000
         assert _run(HEADER_3 + "qubit[1] q;\nrz(pi) q[0];\n")['0'] == 1000
@@ -745,15 +744,15 @@ class TestQASM3GateCoverage:
     # --- Two-qubit controlled ---------------------------------------------
 
     def test_cx_cy_cz_ch(self):
-        # cx / cy on |10>: flip the target. cz / ch: phase or superposition.
+        # `cx` / `cy` on |10>: flip the target. `cz` / `ch`: phase or superposition.
         for gate, expected in [('cx', '11'), ('cy', '11')]:
             src = HEADER_3 + f"qubit[2] q;\nx q[0];\n{gate} q[0], q[1];\n"
             counts = _run(src)
             assert counts[expected] == 1000
-        # cz on |11> leaves phase only → measurement stays '11'.
+        # `cz` on |11> leaves phase only → measurement stays '11'.
         src = HEADER_3 + "qubit[2] q;\nx q[0];\nx q[1];\ncz q[0], q[1];\n"
         assert _run(src)['11'] == 1000
-        # ch on |10>: control=|1> → target gets H → 50/50 '10' vs '11'.
+        # `ch` on |10>: control=|1> → target gets H → 50/50 '10' vs '11'.
         src = HEADER_3 + "qubit[2] q;\nx q[0];\nch q[0], q[1];\n"
         counts = _run(src)
         assert '10' in counts and '11' in counts
@@ -771,7 +770,7 @@ class TestQASM3GateCoverage:
         assert counts['11'] == 1000
 
     def test_cp_phase(self):
-        # cp(θ) on |11> → phase only, measurement stays '11'.
+        # `cp(θ)` on |11> → phase only, measurement stays '11'.
         src = HEADER_3 + textwrap.dedent("""\
             qubit[2] q;
             x q[0];
@@ -782,13 +781,13 @@ class TestQASM3GateCoverage:
         assert counts['11'] == 1000
 
     def test_crx_cry_crz(self):
-        # crx(pi) with control=|1> flips the target (q1: |0> → |1>).
+        # `crx(pi)` with control=|1> flips the target (q1: |0> → |1>).
         src = HEADER_3 + "qubit[2] q;\nx q[0];\ncrx(pi) q[0], q[1];\n"
         assert _run(src)['11'] == 1000
-        # cry(pi) with control=|1> flips the target as well.
+        # `cry(pi)` with control=|1> flips the target as well.
         src2 = HEADER_3 + "qubit[2] q;\nx q[0];\ncry(pi) q[0], q[1];\n"
         assert _run(src2)['11'] == 1000
-        # crz(pi) with control=|1> is phase-only on target.
+        # `crz(pi)` with control=|1> is phase-only on target.
         src3 = HEADER_3 + "qubit[2] q;\nx q[0];\ncrz(pi) q[0], q[1];\n"
         assert _run(src3)['10'] == 1000
 
@@ -801,7 +800,7 @@ class TestQASM3GateCoverage:
         assert counts['01'] == 1000
 
     def test_iswap(self):
-        # iswap on |01> → i|10>; measurement gives '10'.
+        # `iswap` on |01> → i|10>; measurement gives '10'.
         src = HEADER_3 + "qubit[2] q;\nx q[1];\niswap q[0], q[1];\n"
         counts = _run(src)
         assert counts['10'] == 1000
@@ -812,7 +811,7 @@ class TestQASM3GateCoverage:
         counts = _run(src)
         assert len(counts) >= 1  # reaches the simulator, produces some bits
 
-    # --- Two-qubit parametric (Ising-like) --------------------------------
+    # --- Two-qubit parametric (two-body Pauli rotations) -------------------
 
     def test_rxx_pi(self):
         # RXX(pi) |00> = -i|11>; measurement → '11'.
