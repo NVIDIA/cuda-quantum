@@ -113,7 +113,7 @@ QuakeValue QuakeValue::operator[](const std::size_t idx) {
                              typeName + ").");
   }
 
-  Value indexVar = opBuilder.create<arith::ConstantIntOp>(idx, 32);
+  Value indexVar = arith::ConstantIntOp::create(opBuilder, idx, 32);
 
   if (isa<quake::VeqType>(type)) {
     Value extractedQubit =
@@ -183,7 +183,7 @@ QuakeValue QuakeValue::size() {
   Type i64Ty = opBuilder.getI64Type();
   Value ret;
   if (isa<cc::StdvecType>(type))
-    ret = opBuilder.create<cc::StdvecSizeOp>(i64Ty, vectorValue);
+    ret = cc::StdvecSizeOp::create(opBuilder, i64Ty, vectorValue);
   else
     ret = quake::VeqSizeOp::create(opBuilder, i64Ty, vectorValue);
 

@@ -1669,7 +1669,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       if (useStdvec)
         resTy = cc::StdvecType::get(resTy);
       return pushValue(
-          builder.create<quake::DiscriminateOp>(loc, resTy, measure));
+          quake::DiscriminateOp::create(builder, loc, resTy, measure));
     }
 
     // Handle the quantum gate set.

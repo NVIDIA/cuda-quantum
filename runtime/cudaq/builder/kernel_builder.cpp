@@ -794,13 +794,12 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
   Value measureResult;
   if (strAttr)
     measureResult =
-        builder.template create<QuakeMeasureOp>(measTy, value, strAttr)
-            .getMeasOut();
+        QuakeMeasureOp::create(builder, measTy, value, strAttr).getMeasOut();
   else
     measureResult =
-        builder.template create<QuakeMeasureOp>(measTy, value).getMeasOut();
+        QuakeMeasureOp::create(builder, measTy, value).getMeasOut();
 
-  Value bits = builder.create<quake::DiscriminateOp>(resTy, measureResult);
+  Value bits = quake::DiscriminateOp::create(builder, resTy, measureResult);
   return QuakeValue(builder, bits);
 }
 
