@@ -214,7 +214,8 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
 
         # Cache whether the stepper provides `compute_inplace` to dispatch proper call in `compute_rhs`.
         self._use_compute_inplace = hasattr(self.stepper, 'compute_inplace')
-        self._dimensions_list = list(self.dimensions)
+        if self._dimensions_list is None:
+            self._dimensions_list = list(self.dimensions)
 
         if t <= self.t:
             raise ValueError(
