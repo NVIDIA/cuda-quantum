@@ -74,13 +74,23 @@ public:
   bool operator!=(const measure_handle &) const = delete;
 
 private:
-  // `[[maybe_unused]]` silences host-compilation `-Wunused-private-field`
-  // warnings in library mode: `index` is only ever read from the IR (via
-  // `!cc.measure_handle`), never from the host class surface. Once a future
-  // host-side accessor surfaces backend-assigned indices, the attribute can
-  // drop.
-  [[maybe_unused]] std::int64_t index =
-      std::numeric_limits<std::int64_t>::max();
+  // The `index` field is only ever read from the IR (via
+  // `!cc.measure_handle`), never from the host class surface. Clang fires
+  // `-Wunused-private-field` on the host build (it trips
+  // `test/AST-error/wall.cpp`); GCC has no equivalent diagnostic but rejects
+  // `[[maybe_unused]]` on non-static data members under `-Werror=attributes`
+  // in this configuration. A clang-scoped pragma keeps the diagnostic
+  // suppressed for both compilers without leaning on the attribute. The
+  // pragma can be dropped once a host-side accessor surfaces
+  // backend-assigned indices.
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-private-field"
+#endif
+  std::int64_t index = std::numeric_limits<std::int64_t>::max();
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 };
 
 } // namespace cudaq
