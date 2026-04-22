@@ -93,10 +93,6 @@ class Compiler {
   bool executeMainPipeline(mlir::ModuleOp moduleOp,
                            const std::string &kernelName);
 
-  /// Extract qubit-mapping reorder indices from the entry-point attributes.
-  std::vector<std::size_t> extractMappingReorderIdx(mlir::ModuleOp moduleOp,
-                                                    mlir::func::FuncOp epFunc);
-
   /// Create JIT and MLIR artifacts and assemble a CompiledModule.
   cudaq::CompiledModule assembleCompiledModule(
       const std::string &kernelName,

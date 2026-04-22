@@ -90,6 +90,22 @@ nlohmann::json formOutputNames(const std::string &codegenTranslation,
   }
   return output_names;
 }
+/// Extract qubit-mapping reorder indices from the entry-point attributes.
+std::vector<std::size_t> extractMappingReorderIdx(mlir::ModuleOp moduleOp,
+                                                  mlir::func::FuncOp epFunc) {
+  assert(moduleOp.template lookupSymbol<mlir::func::FuncOp>(epFunc.getName()) &&
+         "Entry point function must survive the lowering pipeline.");
+  std::vector<std::size_t> mapping_reorder_idx;
+  if (auto mappingAttr = dyn_cast_if_present<mlir::ArrayAttr>(
+          epFunc->getAttr("mapping_reorder_idx"))) {
+    mapping_reorder_idx.resize(mappingAttr.size());
+    std::transform(mappingAttr.begin(), mappingAttr.end(),
+                   mapping_reorder_idx.begin(), [](mlir::Attribute attr) {
+                     return mlir::cast<mlir::IntegerAttr>(attr).getInt();
+                   });
+  }
+  return mapping_reorder_idx;
+}
 } // namespace
 
 std::pair<mlir::ModuleOp, std::unique_ptr<mlir::MLIRContext>>
@@ -337,23 +353,6 @@ bool Compiler::executeMainPipeline(mlir::ModuleOp moduleOp,
   }
   applyPipeline(passPipelineConfig, moduleOp, kernelName);
   return combineMeasurements;
-}
-
-std::vector<std::size_t>
-Compiler::extractMappingReorderIdx(mlir::ModuleOp moduleOp,
-                                   mlir::func::FuncOp epFunc) {
-  assert(moduleOp.template lookupSymbol<mlir::func::FuncOp>(epFunc.getName()) &&
-         "Entry point function must survive the lowering pipeline.");
-  std::vector<std::size_t> mapping_reorder_idx;
-  if (auto mappingAttr = dyn_cast_if_present<mlir::ArrayAttr>(
-          epFunc->getAttr("mapping_reorder_idx"))) {
-    mapping_reorder_idx.resize(mappingAttr.size());
-    std::transform(mappingAttr.begin(), mappingAttr.end(),
-                   mapping_reorder_idx.begin(), [](mlir::Attribute attr) {
-                     return mlir::cast<mlir::IntegerAttr>(attr).getInt();
-                   });
-  }
-  return mapping_reorder_idx;
 }
 
 cudaq::CompiledModule Compiler::assembleCompiledModule(
