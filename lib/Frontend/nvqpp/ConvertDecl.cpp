@@ -161,6 +161,10 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       return pushType(quake::StateType::get(ctx));
     if (name == "pauli_word")
       return pushType(cc::CharspanType::get(ctx));
+    // cudaq::measure_handle -> !cc.measure_handle (the IR alias of the
+    // handle; lowered to i64 by `lower-cc-measure-handle` before QIR).
+    if (name == "measure_handle")
+      return pushType(cc::MeasureHandleType::get(ctx));
     if (name == "qkernel") {
       auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
       // Traverse template argument 0 to get the function's signature.

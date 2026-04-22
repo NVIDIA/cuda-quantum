@@ -1667,6 +1667,103 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           builder.create<quake::DiscriminateOp>(loc, resTy, measure));
     }
 
+    if (funcName == "mx_handle" || funcName == "my_handle" ||
+        funcName == "mz_handle") {
+      // Handle-returning measurement family: the spec's `mz_handle` /
+      // `mx_handle` / `my_handle` overloads are MLIR-only and must emit
+      // `quake.{mz,mx,my}` producing `!cc.measure_handle` (or
+      // `!cc.stdvec<!cc.measure_handle>` for register forms) with *no*
+      // inlined `quake.discriminate`; the user must call
+      // `cudaq::discriminate(h)` explicitly.
+      //
+      // The declared API takes either a single qubit or a single qubit
+      // range, so vector form is decided solely by the argument type.
+      if (args.size() != 1) {
+        reportClangError(x, mangler,
+                         "measure_handle overload takes a single qubit "
+                         "or qubit range");
+        return false;
+      }
+      bool useStdvec = isa<quake::VeqType>(args[0].getType());
+      Type measTy = cc::MeasureHandleType::get(builder.getContext());
+      if (useStdvec)
+        measTy = cc::StdvecType::get(measTy);
+      Value handle;
+      if (funcName == "mx_handle")
+        handle = builder.create<quake::MxOp>(loc, measTy, args).getMeasOut();
+      else if (funcName == "my_handle")
+        handle = builder.create<quake::MyOp>(loc, measTy, args).getMeasOut();
+      else
+        handle = builder.create<quake::MzOp>(loc, measTy, args).getMeasOut();
+      return pushValue(handle);
+    }
+
+    if (funcName == "discriminate") {
+      // `cudaq::discriminate(h)` and its vector form. The bridge lowers
+      // the call to `quake.discriminate`, which is the only sanctioned
+      // path from a `!cc.measure_handle` to a classical bit. See the
+      // measure_handle spec section "IR Representation".
+      if (args.size() != 1) {
+        reportClangError(x, mangler,
+                         "cudaq::discriminate expects a single argument");
+        return false;
+      }
+      // The C++ overloads take `const measure_handle &` (or
+      // `const std::vector<measure_handle> &`), so the bridge may hand us
+      // a pointer-to-handle or pointer-to-vector. Load through the
+      // pointer before type-checking so the rest of this block works in
+      // SSA terms.
+      Value handleArg = args[0];
+      if (auto ptrTy = dyn_cast<cc::PointerType>(handleArg.getType())) {
+        auto inner = ptrTy.getElementType();
+        if (isa<cc::MeasureHandleType>(inner) ||
+            (isa<cc::StdvecType>(inner) &&
+             isa<cc::MeasureHandleType>(
+                 cast<cc::StdvecType>(inner).getElementType())))
+          handleArg = builder.create<cc::LoadOp>(loc, handleArg);
+      }
+      auto handleTy = handleArg.getType();
+      Type resTy;
+      if (isa<cc::MeasureHandleType>(handleTy)) {
+        resTy = builder.getI1Type();
+      } else if (auto sv = dyn_cast<cc::StdvecType>(handleTy);
+                 sv && isa<cc::MeasureHandleType>(sv.getElementType())) {
+        resTy = cc::StdvecType::get(builder.getI1Type());
+      } else {
+        reportClangError(x, mangler,
+                         "cudaq::discriminate expects a cudaq::measure_handle "
+                         "or std::vector<cudaq::measure_handle> argument");
+        return false;
+      }
+      // Unbound-handle diagnostic: the spec requires rejecting calls to
+      // `cudaq::discriminate` on a handle that was never produced by an
+      // `*_handle` call. The spec asks for a full every-path analysis; we
+      // implement the conservative "syntactically obvious" variant
+      // instead (limitation flagged in the PR summary). A scalar handle
+      // value materialized as `cc.load %p` where `%p` is an uninitialized
+      // `cc.alloca !cc.measure_handle` (no dominating `cc.store`) is the
+      // canonical `measure_handle h; discriminate(h);` pattern.
+      if (isa<cc::MeasureHandleType>(handleTy)) {
+        if (auto load = handleArg.getDefiningOp<cc::LoadOp>())
+          if (auto alloca = load.getPtrvalue().getDefiningOp<cc::AllocaOp>())
+            if (isa<cc::MeasureHandleType>(alloca.getElementType())) {
+              bool hasStore = false;
+              for (Operation *user : alloca->getUsers())
+                if (isa<cc::StoreOp>(user)) {
+                  hasStore = true;
+                  break;
+                }
+              if (!hasStore) {
+                reportClangError(x, mangler,
+                                 "discriminating an unbound measure_handle");
+                return false;
+              }
+            }
+      }
+      return pushValue(
+          builder.create<quake::DiscriminateOp>(loc, resTy, handleArg));
+    }
+
     // Handle the quantum gate set.
     auto reportNegateError = [&]() {
       reportClangError(x, mangler, "target qubit cannot be negated");
@@ -2130,9 +2227,23 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         reportClangError(x, mangler, "cannot load cudaqConvertToInteger");
         return false;
       }
+      SmallVector<Value> packArgs(args.begin(), args.end());
+      // `to_integer(std::vector<cudaq::measure_handle>)` is spec-equivalent
+      // to `to_integer(discriminate(handles))`. Lower it by inserting a
+      // `quake.discriminate` first so the existing bit-packing intrinsic
+      // (which expects `!cc.stdvec<i1>`) can consume the result.
+      if (packArgs.size() == 1) {
+        if (auto sv = dyn_cast<cc::StdvecType>(packArgs[0].getType());
+            sv && isa<cc::MeasureHandleType>(sv.getElementType())) {
+          auto bitsTy = cc::StdvecType::get(builder.getI1Type());
+          packArgs[0] =
+              builder.create<quake::DiscriminateOp>(loc, bitsTy, packArgs[0]);
+        }
+      }
       auto i64Ty = builder.getI64Type();
       return pushValue(
-          builder.create<func::CallOp>(loc, i64Ty, cudaqConvertToInteger, args)
+          builder
+              .create<func::CallOp>(loc, i64Ty, cudaqConvertToInteger, packArgs)
               .getResult(0));
     }
 
