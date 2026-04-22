@@ -283,6 +283,7 @@ Compiler::prepareModule(const std::string &kernelName, mlir::ModuleOp m_module,
     if (isPython)
       mergeAllCallableClosures(moduleOp, kernelName, rawArgs);
 
+    // Mark all newly merged kernels private, and leave the entry point alone.
     for (auto &op : moduleOp)
       if (auto f = dyn_cast<mlir::func::FuncOp>(op))
         if (f != epFunc)
@@ -290,9 +291,14 @@ Compiler::prepareModule(const std::string &kernelName, mlir::ModuleOp m_module,
 
     if (!rawArgs.empty()) {
       CUDAQ_INFO("Run Argument Synth.\n");
+      // For quantum devices, we generate a collection of `init` and
+      // `num_qubits` functions and their substitutions created
+      // from a kernel and arguments that generated a state argument.
       ArgumentConverter argCon(kernelName, moduleOp);
       argCon.gen(rawArgs);
 
+      // Store kernel and substitution strings on the stack.
+      // We pass string references to the `createArgumentSynthesisPass`.
       mlir::SmallVector<std::string> kernels;
       mlir::SmallVector<std::string> substs;
       for (auto *kInfo : argCon.getKernelSubstitutions()) {
@@ -305,6 +311,7 @@ Compiler::prepareModule(const std::string &kernelName, mlir::ModuleOp m_module,
         substs.emplace_back(substBuff);
       }
 
+      // Collect references for the argument synthesis.
       mlir::SmallVector<mlir::StringRef> kernelRefs{kernels.begin(),
                                                     kernels.end()};
       mlir::SmallVector<mlir::StringRef> substRefs{substs.begin(),
@@ -314,6 +321,9 @@ Compiler::prepareModule(const std::string &kernelName, mlir::ModuleOp m_module,
       pm.addNestedPass<mlir::func::FuncOp>(mlir::createCanonicalizerPass());
       pm.addPass(
           cudaq::opt::createLambdaLifting({.constantPropagation = true}));
+      // We must inline these lambda calls before apply specialization as it
+      // does not perform control/adjoint specialization across function call
+      // boundary.
       cudaq::opt::addAggressiveInlining(pm);
       pm.addPass(
           cudaq::opt::createApplySpecialization({.constantPropagation = true}));
@@ -399,6 +409,7 @@ cudaq::CompiledModule Compiler::runPassPipeline(
   auto [moduleOp, epFunc] =
       prepareModule(kernelName, m_module, rawArgs, kernelArgs);
 
+  // Populate conditional measurement flag in the context.
   if (emulate && executionContext && executionContext->name == "sample") {
     for (auto &artifact : moduleOp) {
       quake::detail::QuakeFunctionAnalysis analysis{&artifact};
@@ -421,6 +432,9 @@ cudaq::CompiledModule Compiler::runPassPipeline(
 
   bool combineMeasurements = executeMainPipeline(moduleOp, kernelName);
 
+  // We need to run resource counting preprocessing after the pass pipeline as
+  // the pre-processing might change the IR structure (may interfere with
+  // other passes).
   std::optional<cudaq::Resources> resourceCounts;
   if (executionContext && executionContext->name == "resource-count") {
     auto result = cudaq::opt::countResourcesFromIR(moduleOp);
@@ -435,6 +449,7 @@ cudaq::CompiledModule Compiler::runPassPipeline(
   if (executionContext) {
     if (executionContext->name == "sample") {
       executionContext->reorderIdx = mapping_reorder_idx;
+      // Warn if kernel has named measurement registers (sub-registers).
       if (!executionContext->warnedNamedMeasurements) {
         auto funcOp = moduleOp.template lookupSymbol<mlir::func::FuncOp>(
             std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
@@ -459,6 +474,7 @@ cudaq::CompiledModule Compiler::runPassPipeline(
           }
         }
       }
+      // No need to add measurements only to remove them eventually
       if (postCodeGenPasses.find("remove-measurements") == std::string::npos)
         applyPipeline("func.func(add-measurements)", moduleOp, kernelName);
     } else {
@@ -466,6 +482,7 @@ cudaq::CompiledModule Compiler::runPassPipeline(
     }
   }
 
+  // Apply observations if necessary
   std::vector<std::pair<std::string, mlir::ModuleOp>> modules;
   if (executionContext && executionContext->name == "observe") {
     mapping_reorder_idx.clear();
@@ -475,13 +492,17 @@ cudaq::CompiledModule Compiler::runPassPipeline(
       if (term.is_identity())
         continue;
 
+      // Get the ansatz
       [[maybe_unused]] auto ansatz =
           moduleOp.template lookupSymbol<mlir::func::FuncOp>(
               cudaq::runtime::cudaqGenPrefixName + kernelName);
       assert(ansatz && "could not find the ansatz kernel");
 
+      // Create a new Module to clone the ansatz into it
       auto tmpModuleOp = moduleOp.clone();
 
+      // Create the pass manager, add the quake observe ansatz pass and run it
+      // followed by the canonicalizer
       auto *contextPtr = moduleOp.getContext();
       mlir::PassManager pm(contextPtr);
       pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createObserveAnsatzPass(
@@ -492,6 +513,10 @@ cudaq::CompiledModule Compiler::runPassPipeline(
         pm.enableIRPrinting();
       if (failed(pm.run(tmpModuleOp)))
         throw std::runtime_error("Could not apply measurements to ansatz.");
+      // The full pass pipeline was run above, but the ansatz pass can
+      // introduce gates that aren't supported by the backend, so we need to
+      // re-run the gate set mapping if that existed in the original pass
+      // pipeline.
       auto csvSplit = cudaq::split(passPipelineConfig, ',');
       for (auto &pass : csvSplit)
         if (pass.ends_with("-gate-set-mapping"))
