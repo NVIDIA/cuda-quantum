@@ -15,6 +15,7 @@
 #include "mlir/IR/Types.h"
 
 using namespace mlir;
+using cudaq::CompiledModule;
 
 namespace cudaq_internal::compiler {
 
@@ -32,75 +33,64 @@ cudaq::ResultInfo CompiledModuleHelper::createResultInfo(Type resultTy,
   return info;
 }
 
-std::vector<CompiledModuleHelper::NamedJitArtifact>
-CompiledModuleHelper::createJitArtifacts(
-    const std::string &kernelName, cudaq::JitEngine engine,
-    const cudaq::ResultInfo &resultInfo, bool isFullySpecialized,
-    std::optional<cudaq::Resources> resourceCounts) {
+std::vector<CompiledModuleHelper::NamedCompiledArtifact>
+CompiledModuleHelper::createJitArtifacts(const std::string &kernelName,
+                                         cudaq::JitEngine engine,
+                                         const cudaq::ResultInfo &resultInfo,
+                                         bool isFullySpecialized) {
   bool hasResult = resultInfo.hasResult();
   std::string fullName =
       std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName;
   std::string entryName =
       (hasResult || !isFullySpecialized) ? kernelName + ".thunk" : fullName;
   void (*entryPoint)() = engine.lookupRawNameOrFail(entryName);
-  int64_t (*argsCreator)(const void *, void **) = nullptr;
-  int64_t (*returnOffset)() = nullptr;
-  if (!isFullySpecialized) {
-    argsCreator = reinterpret_cast<int64_t (*)(const void *, void **)>(
-        engine.lookupRawNameOrFail(kernelName + ".argsCreator"));
-    if (hasResult)
-      returnOffset = reinterpret_cast<int64_t (*)()>(
-          engine.lookupRawNameOrFail(kernelName + ".returnOffset"));
-  }
 
-  std::vector<NamedJitArtifact> artifacts;
+  std::vector<NamedCompiledArtifact> artifacts;
   artifacts.emplace_back(kernelName,
-                         cudaq::CompiledModule::JitArtifact{
-                             std::move(engine), entryPoint, argsCreator,
-                             returnOffset, std::move(resourceCounts)});
+                         CompiledModule::JitArtifact{engine, entryPoint});
+  if (!isFullySpecialized) {
+    void (*argsCreatorFn)() =
+        engine.lookupRawNameOrFail(kernelName + ".argsCreator");
+    artifacts.emplace_back(kernelName + ".argsCreator",
+                           CompiledModule::JitArtifact{engine, argsCreatorFn});
+    if (hasResult) {
+      void (*returnOffsetFn)() =
+          engine.lookupRawNameOrFail(kernelName + ".returnOffset");
+      artifacts.emplace_back(
+          kernelName + ".returnOffset",
+          CompiledModule::JitArtifact{engine, returnOffsetFn});
+    }
+  }
   return artifacts;
 }
 
-CompiledModuleHelper::NamedMlirArtifact
+CompiledModuleHelper::NamedCompiledArtifact
+CompiledModuleHelper::createResourcesArtifact(std::string name,
+                                              cudaq::Resources rc) {
+  return {std::move(name), CompiledModule::ResourcesArtifact{std::move(rc)}};
+}
+
+CompiledModuleHelper::NamedCompiledArtifact
 CompiledModuleHelper::createMlirArtifact(std::string name, ModuleOp module,
                                          std::shared_ptr<MLIRContext> context) {
   const void *ptr = module.getAsOpaquePointer();
   return {std::move(name),
-          cudaq::CompiledModule::MlirArtifact{ptr, std::move(context)}};
+          CompiledModule::MlirArtifact{ptr, std::move(context)}};
 }
 
 ModuleOp CompiledModuleHelper::getMlirModuleOp(
-    const cudaq::CompiledModule::MlirArtifact &artifact) {
+    const CompiledModule::MlirArtifact &artifact) {
   return ModuleOp::getFromOpaquePointer(artifact.modulePtr);
 }
 
-cudaq::CompiledModule CompiledModuleHelper::createCompiledModule(
+CompiledModule CompiledModuleHelper::createCompiledModule(
     std::string name, cudaq::ResultInfo resultInfo,
-    std::vector<NamedJitArtifact> jitArtifacts,
-    cudaq::CompiledModule::CompilationMetadata metadata) {
-  return createCompiledModule(std::move(name), std::move(resultInfo),
-                              std::move(jitArtifacts), {}, std::move(metadata));
-}
-
-cudaq::CompiledModule CompiledModuleHelper::createCompiledModule(
-    std::string name, cudaq::ResultInfo resultInfo,
-    std::vector<NamedMlirArtifact> mlirArtifacts,
-    cudaq::CompiledModule::CompilationMetadata metadata) {
-  return createCompiledModule(std::move(name), std::move(resultInfo), {},
-                              std::move(mlirArtifacts), std::move(metadata));
-}
-
-cudaq::CompiledModule CompiledModuleHelper::createCompiledModule(
-    std::string name, cudaq::ResultInfo resultInfo,
-    std::vector<NamedJitArtifact> jitArtifacts,
-    std::vector<NamedMlirArtifact> mlirArtifacts,
-    cudaq::CompiledModule::CompilationMetadata metadata) {
-  cudaq::CompiledModule compiled(std::move(name));
+    std::vector<NamedCompiledArtifact> compiledArtifacts,
+    CompiledModule::CompilationMetadata metadata) {
+  CompiledModule compiled(std::move(name));
   compiled.resultInfo = std::move(resultInfo);
   compiled.metadata = std::move(metadata);
-  for (auto &[artName, artifact] : jitArtifacts)
-    compiled.addArtifact(std::move(artName), std::move(artifact));
-  for (auto &[artName, artifact] : mlirArtifacts)
+  for (auto &[artName, artifact] : compiledArtifacts)
     compiled.addArtifact(std::move(artName), std::move(artifact));
   return compiled;
 }
