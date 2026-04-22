@@ -15,7 +15,7 @@ authors = [{name = "NVIDIA Corporation & Affiliates"}]
 maintainers = [{name = "NVIDIA Corporation & Affiliates"}]
 readme = { file="README.md.in", content-type = "text/markdown"}
 requires-python = ">=3.10"
-license = { file="LICENSE" }
+license-files = ["LICENSE", "NOTICE", "CITATION.cff"]
 classifiers = [
     'Intended Audience :: Science/Research',
     'Intended Audience :: Developers',
@@ -30,6 +30,7 @@ classifiers = [
     'Topic :: Software Development',
     'Topic :: Scientific/Engineering',
 ]
+
 
 [project.urls]
 Homepage = "https://developer.nvidia.com/cuda-q"
