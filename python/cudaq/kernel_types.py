@@ -35,6 +35,27 @@ class KernelType:
         raise KernelTypeError(cls)
 
 
+class measure_handle(KernelType):
+    """
+    A handle to a measurement event recorded inside a CUDA-Q kernel.
+
+    Returned by ``mz_handle`` / ``mx_handle`` / ``my_handle`` inside an
+    ``@cudaq.kernel`` body. The classical bit is read explicitly via
+    ``cudaq.discriminate(handle)``; there is no implicit ``bool`` conversion
+    in either direction. See the ``measure_handle`` proposal for the full
+    semantics.
+
+    Instantiating ``cudaq.measure_handle()`` at host scope raises
+    ``RuntimeError`` (it is device-only).
+    """
+
+    def __new__(cls, *args, **kwargs):
+        raise RuntimeError("device-only; usable only inside @cudaq.kernel")
+
+    def __init__(self) -> None:
+        ...
+
+
 class qubit(KernelType):
     """
     The qubit is the primary unit of information in a quantum computer.

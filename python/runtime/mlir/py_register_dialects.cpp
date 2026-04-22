@@ -191,6 +191,18 @@ void registerCCDialectAndTypes(nanobind::module_ &m) {
           nanobind::arg("cls"), nanobind::arg("context") = nanobind::none());
 
   mlir::python::nanobind_adaptors::mlir_type_subclass(
+      ccMod, "MeasureHandleType",
+      [](MlirType type) {
+        return unwrap(type).isa<cudaq::cc::MeasureHandleType>();
+      })
+      .def_classmethod(
+          "get",
+          [](nanobind::object cls, MlirContext context) {
+            return wrap(cudaq::cc::MeasureHandleType::get(unwrap(context)));
+          },
+          nanobind::arg("cls"), nanobind::arg("context") = nanobind::none());
+
+  mlir::python::nanobind_adaptors::mlir_type_subclass(
       ccMod, "StateType",
       [](MlirType type) { return unwrap(type).isa<quake::StateType>(); })
       .def_classmethod(

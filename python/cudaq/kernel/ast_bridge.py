@@ -589,6 +589,10 @@ class PyASTBridge(ast.NodeVisitor):
     def __arithmetic_to_bool(self, value):
         """Converts an integer or floating point value to a bool by comparing it
         to zero."""
+        # The spec rejects implicit bool coercion of `!cc.measure_handle`
+        # values; this catches `if`/`while`/`not`/`and`/`or` truthiness tests
+        # whose operand is a handle.
+        self.__rejectMeasureHandleAsBool(value, self.currentNode)
         if self.getIntegerType(1) == value.type:
             return value
         if IntegerType.isinstance(value.type):
@@ -816,6 +820,28 @@ class PyASTBridge(ast.NodeVisitor):
 
     def __isMeasurementGate(self, id):
         return id in ['mx', 'my', 'mz']
+
+    def __isMeasureHandleGate(self, id):
+        return id in ['mx_handle', 'my_handle', 'mz_handle']
+
+    # Spec-mandated diagnostic for any implicit `bool` coercion of a
+    # `!cc.measure_handle` value inside a kernel body. Mirrored verbatim from
+    # the `measure_handle` proposal Python API section.
+    measureHandleBoolDiag = (
+        "measure_handle does not convert to bool implicitly inside a kernel; "
+        "call cudaq.discriminate(h) to read the outcome")
+
+    def __rejectMeasureHandleAsBool(self, value, node):
+        """Emit the spec-mandated diagnostic if `value` is a
+        `!cc.measure_handle` (or stdvec thereof) being coerced to bool."""
+        if value is None:
+            return
+        ty = value.type
+        if cc.MeasureHandleType.isinstance(ty):
+            self.emitFatalError(self.measureHandleBoolDiag, node)
+        if cc.StdvecType.isinstance(ty) and cc.MeasureHandleType.isinstance(
+                cc.StdvecType.getElementType(ty)):
+            self.emitFatalError(self.measureHandleBoolDiag, node)
 
     def __isUnitaryGate(self, id):
         return (self.__isSimpleGate(id) or self.__isRotationGate(id) or
@@ -2993,6 +3019,34 @@ class PyASTBridge(ast.NodeVisitor):
                         quake.DiscriminateOp(resTy, measureResult).result)
                 return
 
+            if self.__isMeasureHandleGate(node.func.id):
+                # Handle-returning measurement family from the `measure_handle`
+                # spec. These mirror `mz`/`mx`/`my` but produce a
+                # `!cc.measure_handle` (or `!cc.stdvec<!cc.measure_handle>`)
+                # SSA value with NO inlined `quake.discriminate` -- only
+                # `cudaq.discriminate(h)` may convert to a classical bit.
+                if node.keywords:
+                    self.emitFatalError(
+                        f"{node.func.id} does not accept keyword arguments",
+                        node)
+                qubits = self.__groupValues(node.args, [(1, -1)])
+                if len(qubits) != 1:
+                    self.emitFatalError(
+                        f"{node.func.id} takes a single qubit or qubit range",
+                        node)
+                useStdvec = not quake.RefType.isinstance(qubits[0].type)
+                handleEleTy = cc.MeasureHandleType.get()
+                measTy = (cc.StdvecType.get(handleEleTy)
+                          if useStdvec else handleEleTy)
+                # The base op name is `Mx` / `My` / `Mz` (strip `_handle`).
+                opName = node.func.id[:2].title()
+                handle = processQuantumOperation(opName, [],
+                                                 qubits,
+                                                 measTy,
+                                                 broadcast=False).result
+                self.pushValue(handle)
+                return
+
             if node.func.id == 'swap':
                 processQuakeCtor(node.func.id.title(),
                                  node.args,
@@ -3059,6 +3113,17 @@ class PyASTBridge(ast.NodeVisitor):
                                                   allowDemotion=True)
                 self.pushValue(casted)
                 return
+
+            elif node.func.id == 'bool':
+                # Spec §Python API: implicit `bool` coercion of a
+                # `!cc.measure_handle` is rejected at parse time. The cast
+                # otherwise has no other use inside kernels today, so we only
+                # surface the diagnostic rather than introduce a general
+                # bool-cast lowering.
+                value = self.__groupValues(node.args, [1])
+                self.__rejectMeasureHandleAsBool(value, node)
+                self.emitFatalError(f"unhandled function call - {node.func.id}",
+                                    node)
 
             elif node.func.id == 'list':
                 # The expected Python behavior is that a constructor call
@@ -3492,6 +3557,66 @@ class PyASTBridge(ast.NodeVisitor):
                         self.pushValue(quake.AllocaOp(self.getRefType()).result)
                         return
 
+                    if node.func.attr == "measure_handle":
+                        # `cudaq.measure_handle()` (default constructor)
+                        # produces an unbound handle. Materialize a fresh
+                        # `!cc.measure_handle` SSA value via `cc.undef` -- the
+                        # spec leaves the underlying bits implementation-
+                        # defined for the unbound case (see spec
+                        # §`measure_handle` class) and `cudaq.discriminate`
+                        # rejects this pattern syntactically.
+                        if len(node.args) != 0 or node.keywords:
+                            self.emitFatalError(
+                                'cudaq.measure_handle() takes no arguments',
+                                node)
+                        self.pushValue(
+                            cc.UndefOp(cc.MeasureHandleType.get()).result)
+                        return
+
+                    if node.func.attr == "discriminate":
+                        # Spec §IR Representation: `cudaq.discriminate(h)` is
+                        # the only sanctioned path from a handle to a bit.
+                        # The bridge intercepts the call and emits
+                        # `quake.discriminate`, mirroring the C++ bridge in
+                        # `ConvertExpr.cpp`.
+                        if len(node.args) != 1 or node.keywords:
+                            self.emitFatalError(
+                                'cudaq.discriminate expects a single argument',
+                                node)
+                        # Reject the syntactically-obvious unbound-handle
+                        # pattern `cudaq.discriminate(cudaq.measure_handle())`
+                        # at parse time, mirroring the C++ bridge's
+                        # `discriminating an unbound measure_handle`
+                        # diagnostic. Indirectly-bound cases (locals, vector
+                        # elements, conditional binding) are not caught here;
+                        # see the spec §`measure_handle` class for the
+                        # `MAY`/`MUST` boundary.
+                        argNode = node.args[0]
+                        if (isinstance(argNode, ast.Call) and
+                                isinstance(argNode.func, ast.Attribute) and
+                                isinstance(argNode.func.value, ast.Name) and
+                                self.isCudaqName(argNode.func.value.id) and
+                                argNode.func.attr == 'measure_handle'):
+                            self.emitFatalError(
+                                'discriminating an unbound measure_handle',
+                                node)
+                        handle = self.__groupValues(node.args, [1])
+                        ty = handle.type
+                        if cc.MeasureHandleType.isinstance(ty):
+                            resTy = self.getIntegerType(1)
+                        elif (cc.StdvecType.isinstance(ty) and
+                              cc.MeasureHandleType.isinstance(
+                                  cc.StdvecType.getElementType(ty))):
+                            resTy = cc.StdvecType.get(self.getIntegerType(1))
+                        else:
+                            self.emitFatalError(
+                                'cudaq.discriminate expects a '
+                                'cudaq.measure_handle or list[measure_handle] '
+                                'argument', node)
+                        self.pushValue(
+                            quake.DiscriminateOp(resTy, handle).result)
+                        return
+
                     if node.func.attr == 'adjoint' or node.func.attr == 'control':
 
                         # NOTE: We currently generally don't have the means in
@@ -3665,6 +3790,19 @@ class PyASTBridge(ast.NodeVisitor):
 
                     if node.func.attr == 'to_integer':
                         boolVec = self.__groupValues(node.args, [1])
+                        # Spec §C++ to_integer / Python API: accept both
+                        # list[bool] and list[measure_handle]; the latter is
+                        # equivalent to `to_integer(discriminate(handles))`,
+                        # so the bridge inserts a vectorized
+                        # `quake.discriminate` ahead of the existing bit-
+                        # packing intrinsic.
+                        if (cc.StdvecType.isinstance(boolVec.type) and
+                                cc.MeasureHandleType.isinstance(
+                                    cc.StdvecType.getElementType(
+                                        boolVec.type))):
+                            bitsTy = cc.StdvecType.get(self.getIntegerType(1))
+                            boolVec = quake.DiscriminateOp(bitsTy,
+                                                           boolVec).result
                         args = convertArguments(
                             [cc.StdvecType.get(self.getIntegerType(1))],
                             [boolVec])
@@ -4943,6 +5081,31 @@ class PyASTBridge(ast.NodeVisitor):
             self.pushValue(final_result)
 
             return
+
+    def visit_IfExp(self, node):
+        """Reject ternary `a if cond else b` whose condition is a
+        `!cc.measure_handle` (spec §Python API), and otherwise fall back to
+        the generic-visit unsupported-construct diagnostic."""
+        # Pre-check the test: if it's a `measure_handle`, surface the
+        # spec-mandated diagnostic before the unsupported-IfExp error.
+        self.visit(node.test)
+        if self.valueStack.currentNumValues > 0:
+            test = self.popValue()
+            self.__rejectMeasureHandleAsBool(test, node)
+        self.emitFatalError(
+            "CUDA-Q does not currently support ternary IfExp expressions",
+            node)
+
+    def visit_Assert(self, node):
+        """Reject `assert h` whose test is a `!cc.measure_handle` (spec
+        §Python API), and otherwise fall back to the generic-visit
+        unsupported-construct diagnostic."""
+        self.visit(node.test)
+        if self.valueStack.currentNumValues > 0:
+            test = self.popValue()
+            self.__rejectMeasureHandleAsBool(test, node)
+        self.emitFatalError(
+            "CUDA-Q does not currently support Assert expressions", node)
 
     def visit_If(self, node):
         """Map a Python `ast.If` node to an if statement operation in the CC

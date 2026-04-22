@@ -164,7 +164,7 @@ else:
 parallel = cudaq_runtime.parallel
 
 # Primitive Types (stubs; used only in kernels, parsed to MLIR)
-from .kernel_types import qubit, qvector, qview
+from .kernel_types import measure_handle, qubit, qvector, qview
 
 Pauli = cudaq_runtime.Pauli
 Kernel = PyKernel
