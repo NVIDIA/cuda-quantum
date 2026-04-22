@@ -113,7 +113,7 @@ struct kernel_short_circuit_or {
 // CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_2]][0] : (!quake.veq<3>) -> !quake.ref
 // CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_3]] : (!quake.ref) -> !quake.measure
 // CHECK:           %[[VAL_5:.*]] = quake.discriminate %[[VAL_4]] : (!quake.measure) -> i1
-// CHECK:           %[[VAL_7:.*]] = cc.if(%[[VAL_5]]) -> i1 {
+// CHECK:           %[[VAL_6:.*]] = cc.if(%[[VAL_5]]) -> i1 {
 // CHECK:             cc.continue %[[VAL_5]] : i1
 // CHECK:           } else {
 // CHECK:             %[[VAL_7:.*]] = quake.extract_ref %[[VAL_2]][1] : (!quake.veq<3>) -> !quake.ref

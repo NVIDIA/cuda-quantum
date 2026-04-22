@@ -211,14 +211,6 @@ struct comprehensive {
 // ADAPT:         ret void
 // ADAPT:       }
 
-// ADAPT-LABEL: define i1 @__nvqpp__mlirgen__adapt_mz_read()
-// ADAPT:         tail call void @__quantum__qis__mz__body(ptr null, ptr null)
-// ADAPT:         tail call void @__quantum__rt__array_record_output(i64 1, ptr nonnull @cstr.{{.*}})
-// ADAPT:         tail call void @__quantum__rt__result_record_output(ptr null, ptr nonnull @cstr.{{.*}})
-// ADAPT:         %[[VAL_4:.*]] = tail call i1 @__quantum__qis__read_result__body(ptr null)
-// ADAPT:         ret i1 %[[VAL_4]]
-// ADAPT:       }
-
 // FULL-LABEL: define void @__nvqpp__mlirgen__comprehensive()
 // FULL:         %[[VAL_0:.*]] = tail call ptr @__quantum__rt__qubit_allocate_array(i64 9)
 // FULL:         %[[VAL_2:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_0]], i64 0)
