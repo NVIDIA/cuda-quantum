@@ -104,6 +104,22 @@ cudaq::CompiledModule cudaq::QPU::compileModule(sample_policy &,
   return compileModule(src, args, isEntryPoint);
 }
 
+std::unique_ptr<cudaq::CompileTarget> cudaq::QPU::getCompileTarget() {
+  return getCompileTarget(getExecutionContext());
+}
+std::unique_ptr<cudaq::CompileTarget>
+cudaq::QPU::getCompileTarget(ExecutionContext *context) {
+  throw std::runtime_error("no CompileTarget defined for this QPU");
+}
+std::unique_ptr<cudaq::CompileTarget>
+cudaq::QPU::getCompileTarget(sample_policy &) {
+  return getCompileTarget();
+}
+std::unique_ptr<cudaq::CompileTarget>
+cudaq::QPU::getCompileTarget(async_sample_policy &) {
+  return getCompileTarget();
+}
+
 cudaq::CompiledModule cudaq::QPU::compileModule(const SourceModule &src,
                                                 KernelArgs args,
                                                 bool isEntryPoint) {
