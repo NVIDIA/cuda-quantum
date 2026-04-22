@@ -781,56 +781,66 @@ void cudaq::cc::ComputePtrOp::build(OpBuilder &builder, OperationState &result,
   result.addOperands(dynamicIndices);
 }
 
-// FIXME: This fold mutates the op in-place (updating indices and operands)
-// then returns Value{*this}. MLIR fold semantics say returning the op's own
-// result signals in-place modification, but mutating operands while also
-// returning a non-empty result is fragile. Consider moving this logic to a
-// canonicalization RewritePattern instead.
-OpFoldResult cudaq::cc::ComputePtrOp::fold(FoldAdaptor adaptor) {
-  if (getDynamicIndices().empty())
-    return nullptr;
-  // Params is a list of possible substitutions (Attributes) the length of the
-  // SSA arguments. Skip the first one, which is the base pointer argument.
-  auto paramIter = adaptor.getOperands().begin();
-  ++paramIter;
-
-  auto dynamicIndexIter = getDynamicIndices().begin();
-  SmallVector<std::int32_t> newConstantIndices;
-  SmallVector<Value> newIndices;
-  bool changed = false;
-
-  // Build lists of raw constants and SSA values with the SSA values that have
-  // substituions omitted and properly interleaved in as constants in the first
-  // list.
-  for (auto index : getRawConstantIndices()) {
-    if (index != kDynamicIndex) {
-      newConstantIndices.push_back(index);
-      continue;
-    }
-    if (auto newVal = dyn_cast_if_present<IntegerAttr>(*paramIter)) {
-      newConstantIndices.push_back(newVal.getInt());
-      changed = true;
-    } else {
-      newConstantIndices.push_back(kDynamicIndex);
-      newIndices.push_back(*dynamicIndexIter);
-    }
-    ++dynamicIndexIter;
-    ++paramIter;
-  }
-
-  // If any new constants were found, update the cc.compute_ptr in place, adding
-  // the new constants and dropping any unneeded SSA arguments on the floor.
-  if (changed) {
-    assert(newConstantIndices.size() == getRawConstantIndices().size());
-    assert(newIndices.size() < getDynamicIndices().size());
-    getDynamicIndicesMutable().assign(newIndices);
-    setRawConstantIndices(newConstantIndices);
-    return Value{*this};
-  }
-  return nullptr;
-}
-
 namespace {
+struct FoldComputePtrOp : public OpRewritePattern<cudaq::cc::ComputePtrOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::cc::ComputePtrOp ptrOp,
+                                PatternRewriter &rewriter) const override {
+    if (ptrOp.getDynamicIndices().empty())
+      return failure();
+
+    // Params is a list of possible substitutions (Attributes) the length of the
+    // SSA arguments. Skip the first one, which is the base pointer argument.
+    auto paramIter = ptrOp.getOperands().begin();
+    ++paramIter;
+
+    auto dynamicIndexIter = ptrOp.getDynamicIndices().begin();
+    SmallVector<std::int32_t> newConstantIndices;
+    SmallVector<Value> newIndices;
+    bool changed = false;
+
+    // Build lists of raw constants and SSA values with the SSA values that have
+    // substituions omitted and properly interleaved in as constants in the
+    // first list.
+    for (auto index : ptrOp.getRawConstantIndices()) {
+      if (index != cudaq::cc::ComputePtrOp::kDynamicIndex) {
+        newConstantIndices.push_back(index);
+        continue;
+      }
+
+      Attribute konstant;
+      bool handleNonConstant = true;
+      if (matchPattern(*paramIter, m_Constant(&konstant)))
+        if (auto newVal = dyn_cast_if_present<IntegerAttr>(konstant)) {
+          newConstantIndices.push_back(newVal.getInt());
+          changed = true;
+          handleNonConstant = false;
+        }
+      if (handleNonConstant) {
+        newConstantIndices.push_back(cudaq::cc::ComputePtrOp::kDynamicIndex);
+        newIndices.push_back(*dynamicIndexIter);
+      }
+      ++dynamicIndexIter;
+      ++paramIter;
+    }
+
+    // If any new constants were found, update the cc.compute_ptr in place,
+    // adding the new constants and dropping any unneeded SSA arguments on the
+    // floor.
+    if (!changed)
+      return failure();
+
+    assert(newConstantIndices.size() == ptrOp.getRawConstantIndices().size());
+    assert(newIndices.size() < ptrOp.getDynamicIndices().size());
+    rewriter.modifyOpInPlace(ptrOp, [&]() {
+      ptrOp.getDynamicIndicesMutable().assign(newIndices);
+      ptrOp.setRawConstantIndices(newConstantIndices);
+    });
+    return success();
+  }
+};
+
 /// If two (or more) `cc.compute_ptr` are chained then they can be fused into a
 /// single `cc.compute_ptr`.
 struct FuseAddressArithmetic
@@ -950,7 +960,7 @@ struct FuseAddressArithmetic
 
 void cudaq::cc::ComputePtrOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<FuseAddressArithmetic>(context);
+  patterns.add<FuseAddressArithmetic, FoldComputePtrOp>(context);
 }
 
 std::optional<std::int32_t>
@@ -1018,52 +1028,66 @@ LogicalResult cudaq::cc::ExtractValueOp::verify() {
   return success();
 }
 
-// FIXME: Same issue as ComputePtrOp::fold -- mutates in-place then returns
-// Value{*this}. Should be a canonicalization RewritePattern instead.
-OpFoldResult cudaq::cc::ExtractValueOp::fold(FoldAdaptor adaptor) {
-  if (indicesAreConstant())
-    return nullptr;
+namespace {
+struct FoldExtractOp : public OpRewritePattern<cudaq::cc::ExtractValueOp> {
+  using OpRewritePattern::OpRewritePattern;
 
-  // Params is a list of possible substitutions (Attributes) the length of the
-  // SSA arguments. Skip the first one, which is the base pointer argument.
-  auto paramIter = adaptor.getOperands().begin();
-  ++paramIter;
+  LogicalResult matchAndRewrite(cudaq::cc::ExtractValueOp extval,
+                                PatternRewriter &rewriter) const override {
+    if (extval.indicesAreConstant())
+      return failure();
 
-  auto dynamicIndexIter = getDynamicIndices().begin();
-  SmallVector<std::int32_t> newConstantIndices;
-  SmallVector<Value> newIndices;
-  bool changed = false;
-
-  // Build lists of raw constants and SSA values with the SSA values that have
-  // substituions omitted and properly interleaved in as constants in the first
-  // list.
-  for (auto index : getRawConstantIndices()) {
-    if (index != kDynamicIndex) {
-      newConstantIndices.push_back(index);
-      continue;
-    }
-    if (auto newVal = dyn_cast_if_present<IntegerAttr>(*paramIter)) {
-      newConstantIndices.push_back(newVal.getInt());
-      changed = true;
-    } else {
-      newConstantIndices.push_back(kDynamicIndex);
-      newIndices.push_back(*dynamicIndexIter);
-    }
-    ++dynamicIndexIter;
+    // Params is a list of possible substitutions (Attributes) the length of the
+    // SSA arguments. Skip the first one, which is the base pointer argument.
+    auto paramIter = extval.getOperands().begin();
     ++paramIter;
-  }
 
-  // If any new constants were found, update the cc.compute_ptr in place, adding
-  // the new constants and dropping any unneeded SSA arguments on the floor.
-  if (changed) {
-    assert(newConstantIndices.size() == getRawConstantIndices().size());
-    assert(newIndices.size() < getDynamicIndices().size());
-    getDynamicIndicesMutable().assign(newIndices);
-    setRawConstantIndices(newConstantIndices);
-    return Value{*this};
+    auto dynamicIndexIter = extval.getDynamicIndices().begin();
+    SmallVector<std::int32_t> newConstantIndices;
+    SmallVector<Value> newIndices;
+    bool changed = false;
+
+    // Build lists of raw constants and SSA values with the SSA values that have
+    // substituions omitted and properly interleaved in as constants in the
+    // first list.
+    for (auto index : extval.getRawConstantIndices()) {
+      if (index != cudaq::cc::ExtractValueOp::kDynamicIndex) {
+        newConstantIndices.push_back(index);
+        continue;
+      }
+
+      Attribute konstant;
+      bool handleNonConstant = true;
+      if (matchPattern(*paramIter, m_Constant(&konstant)))
+        if (auto newVal = dyn_cast_if_present<IntegerAttr>(konstant)) {
+          newConstantIndices.push_back(newVal.getInt());
+          changed = true;
+          handleNonConstant = false;
+        }
+      if (handleNonConstant) {
+        newConstantIndices.push_back(cudaq::cc::ExtractValueOp::kDynamicIndex);
+        newIndices.push_back(*dynamicIndexIter);
+      }
+      ++dynamicIndexIter;
+      ++paramIter;
+    }
+
+    // If any new constants were found, update the cc.compute_ptr in place,
+    // adding the new constants and dropping any unneeded SSA arguments on the
+    // floor.
+    if (!changed)
+      return failure();
+
+    assert(newConstantIndices.size() == extval.getRawConstantIndices().size());
+    assert(newIndices.size() < extval.getDynamicIndices().size());
+    rewriter.modifyOpInPlace(extval, [&]() {
+      extval.getDynamicIndicesMutable().assign(newIndices);
+      extval.setRawConstantIndices(newConstantIndices);
+    });
+    return success();
   }
-  return nullptr;
-}
+};
+} // namespace
 
 static ParseResult parseExtractValueIndices(
     OpAsmParser &parser,
@@ -1162,7 +1186,7 @@ struct FuseWithConstantArray
 
 void cudaq::cc::ExtractValueOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<FuseWithConstantArray>(context);
+  patterns.add<FuseWithConstantArray, FoldExtractOp>(context);
 }
 
 //===----------------------------------------------------------------------===//
