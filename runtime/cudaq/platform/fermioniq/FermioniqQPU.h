@@ -50,8 +50,11 @@ public:
       auto [quakeModule, context] = Compiler::loadQuakeCodeByName(kernelName);
       auto compiled = compileImpl(
           kernelName, [&](Compiler &compiler, ExecutionContext *ctx) {
+            cudaq_internal::compiler::CompileOptions options =
+                cudaq_internal::compiler::CompileOptions::fromExecutionContext(
+                    ctx, emulate);
             return compiler.runPassPipeline(ctx, kernelName, quakeModule, args,
-                                            std::move(context));
+                                            options, std::move(context));
           });
       launchImpl(compiled);
     } else {
@@ -76,7 +79,11 @@ public:
     CUDAQ_INFO("FermioniqBaseQPU compiling kernel via module ({})", kernelName);
     return compileImpl(
         kernelName, [&](Compiler &compiler, ExecutionContext *ctx) {
-          return compiler.runPassPipeline(ctx, kernelName, modulePtr, args);
+          cudaq_internal::compiler::CompileOptions options =
+              cudaq_internal::compiler::CompileOptions::fromExecutionContext(
+                  ctx, emulate);
+          return compiler.runPassPipeline(ctx, kernelName, modulePtr, args,
+                                          options);
         });
   }
 

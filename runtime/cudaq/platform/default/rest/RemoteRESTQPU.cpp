@@ -34,8 +34,11 @@ RemoteRESTQPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
     auto [moduleOp, context] = Compiler::loadQuakeCodeByName(kernelName);
 
     // Get the Quake code, lowered according to config file.
-    codes =
-        compiler.lowerQuakeCode(executionContext, kernelName, moduleOp, args);
+    cudaq_internal::compiler::CompileOptions options =
+        cudaq_internal::compiler::CompileOptions::fromExecutionContext(
+            executionContext, emulate);
+    codes = compiler.lowerQuakeCode(executionContext, kernelName, moduleOp,
+                                    args, options);
   } else {
     const auto &compiled = std::get<CompiledModule>(module);
     kernelName = compiled.getName();

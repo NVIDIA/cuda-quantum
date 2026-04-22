@@ -388,8 +388,7 @@ cudaq_internal::compiler::Compiler::assembleCompiledModule(
 cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
     cudaq::ExecutionContext *executionContext, const std::string &kernelName,
     const void *modulePtr, cudaq::KernelArgs args,
-    std::shared_ptr<mlir::MLIRContext> context,
-    const CompileOptions &options) {
+    const CompileOptions &options, std::shared_ptr<mlir::MLIRContext> context) {
   mlir::ModuleOp m_module = mlir::ModuleOp::getFromOpaquePointer(modulePtr);
   assert(!context || context.get() == m_module.getContext());
   auto [moduleOp, epFunc] = prepareModule(kernelName, m_module, args);
@@ -421,7 +420,7 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
   // the pre-processing might change the IR structure (may interfere with
   // other passes).
   std::optional<cudaq::Resources> resourceCounts;
-  if (executionContext && executionContext->name == "resource-count") {
+  if (options.generateResourceCounts) {
     auto result = cudaq::opt::countResourcesFromIR(moduleOp);
     if (failed(result))
       throw std::runtime_error(
@@ -582,9 +581,10 @@ cudaq_internal::compiler::Compiler::emitKernelExecutions(
 std::vector<cudaq::KernelExecution>
 cudaq_internal::compiler::Compiler::lowerQuakeCode(
     cudaq::ExecutionContext *executionContext, const std::string &kernelName,
-    const void *modulePtr, cudaq::KernelArgs args, const CompileOptions &options) {
+    const void *modulePtr, cudaq::KernelArgs args,
+    const CompileOptions &options) {
   auto compiled =
-      runPassPipeline(executionContext, kernelName, modulePtr, args, nullptr, options);
+      runPassPipeline(executionContext, kernelName, modulePtr, args, options);
   return emitKernelExecutions(compiled);
 }
 

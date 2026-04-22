@@ -10,7 +10,9 @@
 cudaq_internal::compiler::CompileOptions
 cudaq_internal::compiler::CompileOptions::fromExecutionContext(
     const cudaq::ExecutionContext *ctx, bool emulate) {
-  (void)ctx;
   (void)emulate;
+  if (ctx && ctx->name == "resource-count") {
+    return {.generateResourceCounts = true};
+  }
   return {};
 }

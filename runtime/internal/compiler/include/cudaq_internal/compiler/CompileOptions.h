@@ -13,7 +13,14 @@ namespace cudaq_internal::compiler {
 
 /// Options for `Compiler::runPassPipeline` and `Compiler::lowerQuakeCode`.
 struct CompileOptions {
-  /// Build options from an execution context.
+  /// Whether to generate resource counts.
+  ///
+  /// When true, the compiler will generate resource counts during compilation
+  /// and simplify the IR to remove all quantum operations already accounted
+  /// for in the counts.
+  bool generateResourceCounts = false;
+
+  /// Configure compilation options from an execution context.
   static CompileOptions fromExecutionContext(const cudaq::ExecutionContext *ctx,
                                              bool emulate = false);
 };

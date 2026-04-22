@@ -234,8 +234,11 @@ public:
 
     Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
                       noiseModel, emulate);
+    cudaq_internal::compiler::CompileOptions options =
+        cudaq_internal::compiler::CompileOptions::fromExecutionContext(
+            executionContext, emulate);
     return compiler.runPassPipeline(executionContext, kernelName, modulePtr,
-                                    args);
+                                    args, options);
   }
 
   void completeLaunchKernel(const std::string &kernelName,
