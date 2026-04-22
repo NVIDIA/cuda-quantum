@@ -76,6 +76,9 @@ launchKernelImpl(cudaq::ExecutionContext *executionContextPtr,
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunneeded-internal-declaration"
+#elif defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
 #endif
 static void launchKernelStreamlineImpl(
     cudaq::ExecutionContext *executionContextPtr,
@@ -112,6 +115,8 @@ static void launchKernelStreamlineImpl(
 }
 #ifdef __clang__
 #pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#pragma GCC diagnostic pop
 #endif
 
 template <typename Derived, typename Base>
