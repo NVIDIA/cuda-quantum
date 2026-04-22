@@ -40,11 +40,14 @@ Python3_EXECUTABLE=${Python3_EXECUTABLE:-python3}
 # Process command line arguments.
 build_configuration=Release
 verbose=false
+bootstrap=false
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:j:k:v" opt; do
+while getopts ":bc:j:k:v" opt; do
   case $opt in
+    b) bootstrap=true
+    ;;
     c) build_configuration="$OPTARG"
     ;;
     j) build_concurrency="-j $OPTARG"
@@ -120,6 +123,30 @@ if [ -d "$LLVM_CMAKE_PATCHES" ]; then
 else
   echo "LLVM patch directory not found. You must apply LLVM patches via the LLVM_CMAKE_PATCHES environment variable."
   (return 0 2>/dev/null) && return 1 || exit 1
+fi
+
+if $bootstrap; then
+  stage1_prefix="${LLVM_INSTALL_PREFIX}-stage1"
+  stage1_build_dir="${LLVM_SOURCE}/build-stage1"
+  if [ ! -x "$stage1_prefix/bin/clang" ]; then
+    echo "Bootstrap stage 1: building minimal LLVM with ${CXX:-c++}..."
+    mkdir -p "$stage1_prefix" "$stage1_build_dir" && cd "$stage1_build_dir"
+    stage1_cmake_args="-DLLVM_TARGETS_TO_BUILD=host \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_INSTALL_PREFIX='$stage1_prefix' \
+      -DLLVM_ENABLE_PROJECTS='clang;lld' \
+      -DCMAKE_CXX_FLAGS='-w'"
+    if [ -n "$CC" ]; then stage1_cmake_args="$stage1_cmake_args -DCMAKE_C_COMPILER='$CC'"; fi
+    if [ -n "$CXX" ]; then stage1_cmake_args="$stage1_cmake_args -DCMAKE_CXX_COMPILER='$CXX'"; fi
+    echo $stage1_cmake_args | xargs cmake -G Ninja "$LLVM_SOURCE/llvm"
+    ninja install-clang install-lld install-clang-resource-headers
+    echo "Bootstrap stage 1 done."
+  else
+    echo "Bootstrap stage 1 already present at $stage1_prefix, skipping."
+  fi
+  export CC="$stage1_prefix/bin/clang"
+  export CXX="$stage1_prefix/bin/clang++"
+  echo "Bootstrap stage 2: building full LLVM with $CXX..."
 fi
 
 llvm_build_dir="$LLVM_SOURCE/${LLVM_BUILD_FOLDER:-build}"
@@ -219,6 +246,9 @@ cmake_args=" \
   -DCMAKE_CXX_FLAGS='-w' \
   -Dnanobind_DIR=$NANOBIND_INSTALL_PREFIX/nanobind/cmake"
 
+if [ -n "$CC" ]; then cmake_args="$cmake_args -DCMAKE_C_COMPILER='$CC'"; fi
+if [ -n "$CXX" ]; then cmake_args="$cmake_args -DCMAKE_CXX_COMPILER='$CXX'"; fi
+
 if [ -z "$LLVM_CMAKE_CACHE" ]; then 
   LLVM_CMAKE_CACHE=`find "$this_file_dir/.." -path '*/cmake/caches/*' -name LLVM.cmake`
 fi
@@ -299,6 +329,10 @@ if [ -n "$llvm_runtimes" ]; then
       cmake -P runtimes/builtins-bins/cmake_install.cmake \
         2>> "$llvm_log_dir/ninja_error.txt" 1>> "$llvm_log_dir/ninja_output.txt"
     fi
+    if $bootstrap; then
+      echo "Cleaning up bootstrap stage 1..."
+      rm -rf "${LLVM_INSTALL_PREFIX}-stage1" "${LLVM_SOURCE}/build-stage1"
+    fi
     echo "Successfully added runtime components $(echo ${llvm_runtimes%;} | sed 's/;/, /g')."
 
     # We can use a default config file to set specific clang configurations.
@@ -313,6 +347,11 @@ if [ -n "$llvm_runtimes" ]; then
     done
     echo "Added default configuration $clang_config_file."
   fi
+fi
+
+if $bootstrap && [ -z "$llvm_runtimes" ]; then
+  echo "Cleaning up bootstrap stage 1..."
+  rm -rf "${LLVM_INSTALL_PREFIX}-stage1" "${LLVM_SOURCE}/build-stage1"
 fi
 
 cd "$working_dir" && echo "Installed llvm build in directory: $LLVM_INSTALL_PREFIX"

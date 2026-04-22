@@ -389,7 +389,7 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
     PYBIND11_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" \
     NANOBIND_INSTALL_PREFIX="$NANOBIND_INSTALL_PREFIX" \
     Python3_EXECUTABLE="$Python3_EXECUTABLE" \
-    bash "$this_file_dir/build_llvm.sh" -v
+    bash "$this_file_dir/build_llvm.sh" -v ${BOOTSTRAP_LLVM:+-b}
   else
     echo "LLVM already installed in $LLVM_INSTALL_PREFIX."
   fi

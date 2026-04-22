@@ -88,6 +88,7 @@ RUN cd /cuda-quantum && git init && \
     done && git submodule init && git submodule
 # Build compiler-rt (only) since it is needed for code coverage tools
 RUN LLVM_PROJECTS='clang;lld;mlir;python-bindings;compiler-rt' \
+    BOOTSTRAP_LLVM=true \
     bash /cuda-quantum/scripts/install_prerequisites.sh -t ${toolchain}
 
 ## [Dev Dependencies]
@@ -121,18 +122,9 @@ COPY --from=prereqs /usr/local/llvm /usr/local/llvm
 ENV LLVM_INSTALL_PREFIX=/usr/local/llvm
 ENV PATH="$PATH:$LLVM_INSTALL_PREFIX/bin/"
 
-# Install the C/C++ compiler toolchain with which the LLVM dependencies have
-# been built. CUDA-Q needs to be built with that same toolchain. We use
-# a wrapper script so that the path that we set CC and CXX to is independent 
-# on the installed toolchain. Unfortunately, a symbolic link won't work.
-# Using update-alternatives for c++ and cc could maybe be a better option.
-RUN source "$LLVM_INSTALL_PREFIX/bootstrap/init_command.sh" \
-    && echo -e '#!/bin/bash\n"'$CC'" "$@"' > "$LLVM_INSTALL_PREFIX/bootstrap/cc" \
-    && echo -e '#!/bin/bash\n"'$CXX'" "$@"' > "$LLVM_INSTALL_PREFIX/bootstrap/cxx" \
-    && chmod +x "$LLVM_INSTALL_PREFIX/bootstrap/cc" \
-    && chmod +x "$LLVM_INSTALL_PREFIX/bootstrap/cxx"
-ENV CC="$LLVM_INSTALL_PREFIX/bootstrap/cc"
-ENV CXX="$LLVM_INSTALL_PREFIX/bootstrap/cxx"
+# LLVM was built via bootstrap with its own clang; use it directly.
+ENV CC="$LLVM_INSTALL_PREFIX/bin/clang"
+ENV CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
 
 # Copy over additional prerequisites.
 ENV BLAS_INSTALL_PREFIX=/usr/local/blas
@@ -160,6 +152,7 @@ COPY requirements-dev.txt /cuda-quantum/requirements-dev.txt
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git gdb ninja-build file lldb ccache \
         python3 python3-pip libpython3-dev \
+        libstdc++-14-dev \
     && python3 -m pip install --no-cache-dir --break-system-packages \
         -r /cuda-quantum/requirements-dev.txt \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
