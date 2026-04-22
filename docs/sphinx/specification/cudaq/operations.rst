@@ -97,6 +97,15 @@ The default set of quantum intrinsic operations for the cudaq::qubit type is as 
       bool MEASURE_OP(qubit &q) noexcept;
       std::vector<bool> MEASURE_OP(qvector &q) noexcept;
       double measure(const cudaq::spin_op & term) noexcept { ... }
+
+      // Deferred-discrimination measurement (see `measure_handle` proposal).
+      class measure_handle;
+      measure_handle MEASURE_OP_HANDLE(qubit &q) noexcept;
+      template <typename QubitRange>
+      std::vector<measure_handle> MEASURE_OP_HANDLE(QubitRange &q) noexcept;
+      bool discriminate(const measure_handle &h) noexcept;
+      std::vector<bool> discriminate(const std::vector<measure_handle> &h) noexcept;
+      std::int64_t to_integer(const std::vector<measure_handle> &h) noexcept;
   }
 
 **[1]** For the default implementation of the :code:`cudaq::qubit` intrinsic operations, we let 
@@ -125,3 +134,14 @@ qubit
     x.ctrl(~q, r)
   
 The set of gates that the official CUDA-Q implementation supports can be found in the :doc:`API documentation </api/api>`.
+
+**[3]** :code:`MEASURE_OP_HANDLE` denotes the handle-returning measurement family
+(:code:`mz_handle`, :code:`mx_handle`, :code:`my_handle`) introduced by the
+:code:`measure_handle` proposal. Each call records a measurement event and
+returns an opaque :code:`cudaq::measure_handle` (a vector thereof for range
+overloads); the classical bit is read explicitly via :code:`cudaq::discriminate`
+(or :code:`cudaq::to_integer` for the vector case). Handles must not cross the
+host-device boundary -- the compiler rejects :code:`measure_handle` in
+entry-point parameter or return position. Implicit conversion to :code:`bool`
+is forbidden in both C++ and Python; see the proposal for the full normative
+requirements (including the spec-mandated frontend diagnostics).
