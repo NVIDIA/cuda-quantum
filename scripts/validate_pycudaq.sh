@@ -331,9 +331,14 @@ else
     done
 fi
 
+xdist_flags=""
+if $is_macos; then
+    xdist_flags="--dist=loadgroup"
+fi
+
 # Run core tests
 echo "Running core tests."
-python3 -m pytest -v -n auto "$root_folder/tests" \
+python3 -m pytest -v -n auto $xdist_flags "$root_folder/tests" \
     --ignore "$root_folder/tests/backends" \
     --ignore "$root_folder/tests/dynamics/integrators" \
     --ignore "$root_folder/tests/parallel" \
@@ -353,7 +358,7 @@ fi
 
 # Run backend tests (single invocation with xdist; --rootdir matches upstream import layout)
 echo "Running backend tests."
-python3 -m pytest -v -n auto --rootdir "$root_folder/tests" "$root_folder/tests/backends"
+python3 -m pytest -v -n auto $xdist_flags --rootdir "$root_folder/tests" "$root_folder/tests/backends"
 status=$?
 # Exit code 5 indicates that no tests were collected.
 if [ ! $status -eq 0 ] && [ ! $status -eq 5 ]; then
