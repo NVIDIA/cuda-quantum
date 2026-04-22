@@ -80,8 +80,8 @@ jobs:
             pr_number=${{ inputs.pull_request_number }}
           elif ${{ github.event.pull_request.number != '' }}; then
             pr_number=${{ github.event.pull_request.number }}
-          elif ${{ startsWith(github.ref_name, 'pull-request/') }}; then
-            pr_number=$(echo ${{ github.ref_name }} | cut -d / -f2)
+          elif [[ "${{ github.ref_name }}" =~ (pull-request/|.*/pr-)([0-9]+) ]]; then
+            pr_number="${BASH_REMATCH[2]}"
           fi
           echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
 
@@ -89,11 +89,12 @@ jobs:
           # Unlike Linux CI which uses Docker layer caching (automatically invalidates
           # when the copied files change), macOS uses ORAS artifact caching with no
           # content-based invalidation. This hash ensures cache is rebuilt when
-          # build scripts change. Update this list if new files affect the build.
+          # build scripts or the devdeps workflow itself change (e.g. LLVM_PROJECTS).
           scripts_hash=$(cat \
             scripts/install_prerequisites.sh \
             scripts/build_llvm.sh \
             scripts/set_env_defaults.sh \
+            .github/workflows/dev_environment_macos.yml \
             | sha256sum | cut -c1-8)
           echo "scripts_hash=$scripts_hash" >> $GITHUB_OUTPUT
 
@@ -116,6 +117,9 @@ jobs:
       contents: read
       packages: write
       id-token: write
+    env:
+      CC: clang
+      CXX: clang++
 
     outputs:
       image_hash: ${{ steps.image_hash.outputs.image_hash }}
@@ -170,10 +174,15 @@ jobs:
           brew unlink gcc 2>/dev/null || true
           brew link gcc --overwrite 2>/dev/null || true
           
-          # Build prerequisites without Python bindings
-          # Python bindings are rebuilt per-Python-version in wheel jobs
+          # NumPy is required by MLIR's find_package(Python3 ... NumPy)
+          pip3 install numpy --break-system-packages
+          
+          # Build prerequisites with Python bindings enabled so the cmake
+          # cache already has MLIR_ENABLE_BINDINGS_PYTHON=ON.  Downstream
+          # wheel jobs only change Python3_EXECUTABLE, which keeps ninja's
+          # incremental rebuild scoped to the binding targets.
           source scripts/set_env_defaults.sh
-          export LLVM_PROJECTS='clang;lld;mlir;openmp'
+          export LLVM_PROJECTS='clang;lld;mlir;openmp;python-bindings'
           
           echo "Building prerequisites..."
           echo "LLVM_INSTALL_PREFIX=$LLVM_INSTALL_PREFIX"

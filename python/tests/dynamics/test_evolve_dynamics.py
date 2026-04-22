@@ -14,11 +14,14 @@ if cudaq.num_available_gpus() == 0:
 else:
     # Note: the test model may create state, hence need to set the target to "dynamics"
     cudaq.set_target("dynamics")
-    from system_models import *
+    try:
+        from system_models import *
+    finally:
+        cudaq.reset_target()
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def set_up_target():
     cudaq.set_target("dynamics")
     yield
     cudaq.reset_target()

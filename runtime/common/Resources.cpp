@@ -69,9 +69,98 @@ void Resources::appendInstruction(const std::string &name,
   totalGates += count;
 }
 
+void Resources::appendInstruction(const std::string &name,
+                                  const std::vector<std::size_t> &controls,
+                                  const std::vector<std::size_t> &targets) {
+  appendInstruction(name, controls.size());
+
+  // Collect all qubit indices touched by this gate.
+  std::vector<std::size_t> allQubits;
+  allQubits.insert(allQubits.end(), controls.begin(), controls.end());
+  allQubits.insert(allQubits.end(), targets.begin(), targets.end());
+
+  // Update total depth: each qubit advances to max(touched depths) + 1.
+  std::size_t maxDepth = 0;
+  for (auto q : allQubits)
+    maxDepth = std::max(maxDepth, perQubitDepth[q]);
+  std::size_t newDepth = maxDepth + 1;
+  for (auto q : allQubits)
+    perQubitDepth[q] = newDepth;
+
+  // Track gate count and depth by arity (total qubit count = controls +
+  // targets, distinct from nControls used in the Instruction key).
+  auto arity = allQubits.size();
+  gateCountByArity[arity]++;
+  auto &arityDepthMap = perQubitDepthByArity[arity];
+  std::size_t maxArityDepth = 0;
+  for (auto q : allQubits)
+    maxArityDepth = std::max(maxArityDepth, arityDepthMap[q]);
+  std::size_t newArityDepth = maxArityDepth + 1;
+  for (auto q : allQubits)
+    arityDepthMap[q] = newArityDepth;
+}
+
+std::size_t Resources::getNumQubits() const { return numQubits; }
+
+void Resources::setNumQubits(std::size_t n) { numQubits = n; }
+
+std::size_t Resources::getNumUsedQubits() const { return perQubitDepth.size(); }
+
+std::size_t Resources::getCircuitDepth() const {
+  std::size_t maxDepth = 0;
+  for (auto &[qubit, depth] : perQubitDepth)
+    maxDepth = std::max(maxDepth, depth);
+  return maxDepth;
+}
+
+std::size_t Resources::getGateCountByArity(std::size_t arity) const {
+  auto it = gateCountByArity.find(arity);
+  return it != gateCountByArity.end() ? it->second : 0;
+}
+
+std::size_t Resources::getDepthByArity(std::size_t arity) const {
+  auto it = perQubitDepthByArity.find(arity);
+  if (it == perQubitDepthByArity.end())
+    return 0;
+  std::size_t maxDepth = 0;
+  for (auto &[qubit, depth] : it->second)
+    maxDepth = std::max(maxDepth, depth);
+  return maxDepth;
+}
+
+std::size_t Resources::getMultiQubitGateCount() const {
+  std::size_t total = 0;
+  for (auto &[arity, count] : gateCountByArity)
+    if (arity >= 2)
+      total += count;
+  return total;
+}
+
+std::size_t Resources::getMultiQubitDepth() const {
+  std::size_t maxDepth = 0;
+  for (auto &[arity, depthMap] : perQubitDepthByArity)
+    if (arity >= 2)
+      for (auto &[qubit, depth] : depthMap)
+        maxDepth = std::max(maxDepth, depth);
+  return maxDepth;
+}
+
+const std::map<std::size_t, std::size_t> &
+Resources::getGateCountsByArity() const {
+  return gateCountByArity;
+}
+
+const std::unordered_map<std::size_t, std::size_t> &
+Resources::getPerQubitDepth() const {
+  return perQubitDepth;
+}
+
 void Resources::dump(std::ostream &os) const {
   os << "Total # of gates: " << totalGates;
   os << ", total # of qubits: " << numQubits;
+  os << ", circuit depth: " << getCircuitDepth();
+  os << ", multi-Q gate count: " << getMultiQubitGateCount();
+  os << ", multi-Q depth: " << getMultiQubitDepth();
   os << "\n";
   os << "{ ";
   os << "\n  ";
@@ -93,6 +182,9 @@ void Resources::clear() {
   instructions.clear();
   numQubits = 0;
   totalGates = 0;
+  perQubitDepth.clear();
+  gateCountByArity.clear();
+  perQubitDepthByArity.clear();
 }
 
 void Resources::addQubit() { numQubits++; }

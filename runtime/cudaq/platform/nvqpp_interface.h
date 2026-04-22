@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "common/JIT.h"
+#include "common/CompiledModule.h"
 #include "common/ThunkInterface.h"
 #include <optional>
 #include <string>
@@ -59,20 +59,17 @@ hybridLaunchKernel(const char *kernelName, KernelThunkType kernel, void *args,
 // called,
 [[nodiscard]] KernelThunkResultType
 streamlinedLaunchModule(const char *kernelName, mlir::ModuleOp moduleOp,
-                        const std::vector<void *> &rawArgs,
-                        mlir::Type resultTy);
+                        const std::vector<void *> &rawArgs);
 
 } // extern "C"
 
 // Convenience overload.
 [[nodiscard]] KernelThunkResultType
 streamlinedLaunchModule(const std::string &kernelName, mlir::ModuleOp moduleOp,
-                        const std::vector<void *> &rawArgs,
-                        mlir::Type resultTy);
+                        const std::vector<void *> &rawArgs);
 
-[[nodiscard]] void *streamlinedSpecializeModule(
+[[nodiscard]] CompiledModule streamlinedSpecializeModule(
     const std::string &kernelName, mlir::ModuleOp moduleOp,
-    const std::vector<void *> &rawArgs, mlir::Type resultTy,
-    std::optional<cudaq::JitEngine> &cachedEngine, bool isEntryPoint);
+    const std::vector<void *> &rawArgs, bool isEntryPoint);
 
 } // namespace cudaq

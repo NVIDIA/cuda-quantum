@@ -229,6 +229,10 @@ pushd "$assets_parent" >/dev/null
 mkdir -p cuda_quantum_assets
 cp -a "${CUDAQ_INSTALL_PREFIX}" cuda_quantum_assets/cudaq
 
+# Remove Python-dependent plugins from the C++ installer. The pyscf plugin
+# requires a Python runtime and is not used for the C++ workflows.
+rm -f cuda_quantum_assets/cudaq/lib/plugins/libcudaq-pyscf*
+
 # Bundle the complete LLVM installation in its own subtree so clang's
 # internal path resolution (resource dir, C++ headers, runtime libs) works
 # without custom fallbacks. Preserving the full install also keeps LLVM
@@ -308,9 +312,11 @@ mkdir -p "$output_dir"
 
 echo "Creating self-extracting archive..."
 if $verbose; then
-  makeself_args="--gzip --sha256"
+  compress_flag=$(command -v pigz &>/dev/null && echo "--pigz" || echo "--gzip")
+  makeself_args="$compress_flag --sha256"
 else
-  makeself_args="--gzip --sha256 --quiet"
+  compress_flag=$(command -v pigz &>/dev/null && echo "--pigz" || echo "--gzip")
+  makeself_args="$compress_flag --sha256 --quiet"
 fi
 
 # Add license if available

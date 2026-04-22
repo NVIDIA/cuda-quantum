@@ -9,7 +9,6 @@
 #pragma once
 
 #include "common/SimulationState.h"
-#include "cudaq.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <type_traits>
 #include <utility>
@@ -64,7 +63,7 @@ public:
   template <typename... Args>
   QPUState(const std::string &name, std::string &&quake, Args &&...args) {
     kernelName = name;
-    kernelQuake = quake;
+    kernelQuake = std::move(quake);
     (addArgument(args), ...);
   }
 

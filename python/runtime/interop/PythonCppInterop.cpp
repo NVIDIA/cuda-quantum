@@ -7,14 +7,8 @@
  ******************************************************************************/
 
 #include "PythonCppInterop.h"
-#include "cudaq.h" // unfortunately, cudaq::get_quake is here at top level
+#include "common/DeviceCodeRegistry.h"
 #include "cudaq/utils/cudaq_utils.h"
-
-cudaq::python::CppPyKernelDecorator::~CppPyKernelDecorator() {
-  if (cachedEngineKey.has_value()) {
-    kernel.attr("delete_cache_execution_engine")(cachedEngineKey.value());
-  }
-}
 
 std::string cudaq::python::getKernelName(const std::string &input) {
   size_t pos = 0;

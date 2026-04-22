@@ -19,9 +19,9 @@ license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE", "CITATION.cff"]
 dependencies = [
   'astpretty ~= 3.0',
-  'custatevec-cu12 ~= 1.12',
-  'cutensornet-cu12 ~= 2.11',
-  'cudensitymat-cu12 ~= 0.4',
+  'custatevec-cu12 ~= 1.13.1',
+  'cutensornet-cu12 ~= 2.12.1',
+  'cudensitymat-cu12 ~= 0.5.1',
   'numpy >= 1.24',
   'scipy >= 1.10.1',
   'requests >= 2.32.4',
@@ -62,7 +62,7 @@ visualization = [ "qutip>5" , "matplotlib>=3.5" ]
 integrators = [ "torchdiffeq" ]
 
 [build-system]
-requires = ["scikit-build-core==0.11.6", "cmake>=3.27,<3.29", "numpy>=1.24", "pytest==8.3.0"]
+requires = ["scikit-build-core==0.11.6", "cmake>=3.27,<3.29", "numpy>=1.24", "pytest==9.0.3"]
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
@@ -76,8 +76,16 @@ cmake.args = [
     "-DCUDAQ_ENABLE_PYTHON=TRUE",
     "-DCUDAQ_DISABLE_CPP_FRONTEND=TRUE",
     "-DCUDAQ_DISABLE_TOOLS=TRUE",
-    "-DCUDAQ_BUILD_TESTS=TRUE"
+    "-DCUDAQ_BUILD_TESTS=TRUE",
+    "-DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=OFF"
 ]
+
+# Linux x86_64: enable Pasqal QRMI connector
+[[tool.scikit-build.overrides]]
+if.platform-system = "linux"
+if.platform-machine = "x86_64"
+inherit.cmake.args = "append"
+cmake.args = ["-DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=ON"]
 
 [tool.setuptools_scm]
 write_to = "_version.py"

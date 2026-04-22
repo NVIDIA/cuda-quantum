@@ -18,6 +18,10 @@ from cudaq import spin
 
 num_qpus = 3
 
+# Keep this module on one xdist worker to avoid multiple auto-launched
+# remote-mqpu clusters competing in parallel.
+pytestmark = pytest.mark.xdist_group("remote_mqpu_platform")
+
 
 def retry_on_flaky_connection(platform="darwin", max_attempts=3, delay=0.5):
     """Retry decorator for tests that hit transient localhost HTTP
@@ -70,7 +74,7 @@ def startUpMockServer():
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def run_and_clear_registries():
     yield
     cudaq.__clearKernelRegistries()
 

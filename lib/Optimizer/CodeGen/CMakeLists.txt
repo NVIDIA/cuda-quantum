@@ -20,6 +20,8 @@ add_cudaq_library(OptCodeGen
   ConvertToQIRProfile.cpp
   ConvertToQIR.cpp
   ConvertToQIRAPI.cpp
+  DelayMeasurements.cpp
+  EliminateDeadHeapCopy.cpp
   OptUtils.cpp
   Passes.cpp
   Pipelines.cpp

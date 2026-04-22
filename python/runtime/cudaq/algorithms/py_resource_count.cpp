@@ -10,16 +10,16 @@
 #include "common/Resources.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/LinkedLibraryHolder.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"
-#include <pybind11/functional.h>
-
-namespace py = pybind11;
+#include "utils/NanobindAdaptors.h"
+#include <nanobind/stl/function.h>
+#include <nanobind/stl/optional.h>
 
 using namespace cudaq;
 
-static Resources estimate_resources_impl(
-    const std::string &kernelName, MlirModule kernelMod, MlirType returnTy,
-    std::optional<std::function<bool()>> choice, py::args args) {
+static Resources
+estimate_resources_impl(const std::string &kernelName, MlirModule kernelMod,
+                        std::optional<std::function<bool()>> choice,
+                        nanobind::args args) {
   auto &platform = cudaq::get_platform();
   args = simplifiedValidateInputArguments(args);
 
@@ -44,8 +44,8 @@ static Resources estimate_resources_impl(
 
   try {
     platform.with_execution_context(ctx, [&]() {
-      [[maybe_unused]] auto result = cudaq::marshal_and_launch_module(
-          kernelName, kernelMod, returnTy, args);
+      [[maybe_unused]] auto result =
+          cudaq::marshal_and_launch_module(kernelName, kernelMod, args);
     });
   } catch (...) {
     python::detail::stopUsingResourceCounterSimulator();
@@ -59,7 +59,7 @@ static Resources estimate_resources_impl(
   return counts;
 }
 
-void cudaq::bindCountResources(py::module &mod) {
+void cudaq::bindCountResources(nanobind::module_ &mod) {
   mod.def("estimate_resources_impl", estimate_resources_impl,
           "See python documentation for estimate_resources.");
 }

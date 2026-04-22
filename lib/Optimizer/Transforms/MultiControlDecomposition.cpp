@@ -20,7 +20,7 @@ using namespace cudaq;
 //===----------------------------------------------------------------------===//
 
 namespace cudaq::opt {
-#define GEN_PASS_DEF_MULTICONTROLDECOMPOSITIONPASS
+#define GEN_PASS_DEF_MULTICONTROLDECOMPOSITION
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
@@ -174,8 +174,8 @@ LogicalResult Decomposer::v_decomposition(quake::OperatorInterface op) {
 //===----------------------------------------------------------------------===//
 namespace {
 struct Decomposition
-    : public opt::impl::MultiControlDecompositionPassBase<Decomposition> {
-  using MultiControlDecompositionPassBase::MultiControlDecompositionPassBase;
+    : public opt::impl::MultiControlDecompositionBase<Decomposition> {
+  using MultiControlDecompositionBase::MultiControlDecompositionBase;
 
   void runOnOperation() override {
     func::FuncOp func = getOperation();

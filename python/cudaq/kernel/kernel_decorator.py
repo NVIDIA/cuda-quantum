@@ -9,6 +9,7 @@
 import ast
 import inspect
 import json
+import types
 from functools import wraps
 from cudaq.kernel.utils import emitWarning
 import numpy as np
@@ -72,9 +73,9 @@ def ensure_not_recursive(method):
 
 class DecoratorCapture:
 
-    def __init__(self, decorator, values):
+    def __init__(self, decorator):
         self.decorator = decorator
-        self.resolved = values
+        self.resolved = decorator.resolve_captured_arguments()
 
     def __str__(self):
         self.decorator.name + " -> " + str(self.resolved)
@@ -179,9 +180,21 @@ class PyKernelDecorator(object):
             for name, var in parentVars.items():
                 self._add_global_scoped_var(name, var)
 
+            # Detect aliases for the cudaq module (e.g. `import cudaq as cq`).
+            # Collect all names that refer to the cudaq module so the AST
+            # bridge can recognize them alongside the canonical 'cudaq' name.
+            # Check both local and global scope since the alias may be at
+            # module level while the kernel is defined inside a function.
+            self.cudaqAliases = {'cudaq'}
+            for scope in (parentVars, self.parentFrame.f_globals):
+                for vname, var in scope.items():
+                    if (isinstance(var, types.ModuleType) and
+                            getattr(var, '__name__', None) == 'cudaq'):
+                        self.cudaqAliases.add(vname)
+
             self.astModule = _parse_ast(self.funcSrc, self.verbose)
             self.signature = KernelSignature.parse_from_ast(
-                self.astModule, self.name)
+                self.astModule, self.name, cudaqAliases=self.cudaqAliases)
             self.uniqueId = id(self)
             self.uniqName = self.name + ".." + hex(self.uniqueId)
 
@@ -263,7 +276,8 @@ class PyKernelDecorator(object):
             verbose=self.verbose,
             location=self.location,
             kernelName=self.name,
-            kernelModuleName=self.kernelModuleName)
+            kernelModuleName=self.kernelModuleName,
+            cudaqAliases=getattr(self, 'cudaqAliases', None))
 
         # recursively compile any captured kernels if required
         for captured_arg in self.signature.captured_args:
@@ -608,9 +622,8 @@ class PyKernelDecorator(object):
 
         processed_args, module = self.prepare_call(*args)
 
-        mlirTy = self.handle_call_results()
         result = cudaq_runtime.marshal_and_launch_module(
-            self.uniqName, module, mlirTy, *processed_args)
+            self.uniqName, module, *processed_args)
         return result
 
     def beta_reduction(self, isEntryPoint, *args):
@@ -626,24 +639,13 @@ class PyKernelDecorator(object):
         kernels in a functional composition.
         """
         processed_args, module = self.prepare_call(*args, allow_no_args=True)
-        mlirTy = self.handle_call_results()
         return cudaq_runtime.marshal_and_retain_module(self.uniqName, module,
-                                                       mlirTy, isEntryPoint,
+                                                       isEntryPoint,
                                                        *processed_args)
-
-    def delete_cache_execution_engine(self, key):
-        """
-        Delete the `ExecutionEngine` cache given by a cache key.
-        """
-        # Make sure this hasn't already been cleaned up as we're winding down
-        if (cudaq_runtime is not None and
-                cudaq_runtime.delete_cache_execution_engine is not None):
-            cudaq_runtime.delete_cache_execution_engine(key)
 
     def process_argument(self, arg, arg_type):
         if isa_kernel_decorator(arg):
-            captured_args = arg.resolve_captured_arguments()
-            return DecoratorCapture(arg, captured_args)
+            return DecoratorCapture(arg)
 
         arg = self.convertStringsToPauli(arg)
         mlirType = mlirTypeFromPyType(type(arg),
@@ -656,6 +658,17 @@ class PyKernelDecorator(object):
             emitFatalError(
                 f"Argument has callable type but the argument ({arg}) is not "
                 f"a kernel decorator.")
+
+        # Validate size limit for list[complex] arguments used for `qvector`
+        # state initialization.
+        if cc.StdvecType.isinstance(arg_type):
+            eleTy = cc.StdvecType.getElementType(arg_type)
+            if ComplexType.isinstance(eleTy) and hasattr(
+                    arg, '__len__') and len(arg) > 2**10:
+                num_qubits = int(np.log2(len(arg)))
+                emitFatalError(
+                    f"State vector initialization with more than 10 qubits is"
+                    f" not supported. Requested {num_qubits} qubits.")
 
         if self.isCastablePyType(mlirType, arg_type):
             return self.castPyType(mlirType, arg_type, arg)
@@ -689,8 +702,9 @@ def mk_decorator(builder):
     Make a kernel decorator object from a kernel builder object to make any code
     that handles both CUDA-Q kernel object classes more unified.
     """
+    builder.compile()
     return PyKernelDecorator(None,
-                             module=builder.module,
+                             module=builder.qkeModule,
                              kernelName=builder.uniqName)
 
 

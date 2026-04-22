@@ -11,8 +11,9 @@
 #include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatState.h"
 #include "common/FmtCore.h"
-#include "cudaq.h"
+#include "cudaq/cudaq_mpi.h"
 #include "cudaq/distributed/mpi_plugin.h"
+#include <dlfcn.h>
 
 namespace {
 // Hook to query this shared lib file location at runtime.
@@ -127,7 +128,13 @@ public:
     return std::make_unique<cudaq::CuDensityMatState>();
   }
 
-  void finalizeExecutionContext(cudaq::ExecutionContext &context) override {
+  std::unique_ptr<cudaq::SimulationState>
+  createStateFromData(const cudaq::state_data &data) override {
+    return std::make_unique<cudaq::CuDensityMatState>()->createFromData(data);
+  }
+
+protected:
+  void finalizeExecutionContextImpl(cudaq::ExecutionContext &context) {
     // Just check that the dynamics target was not invoked in gate simulation
     // contexts.
     if (context.name != "evolve")
@@ -136,6 +143,19 @@ public:
           context.name));
   }
 
+  cudaq::sample_result
+  finalizeExecutionContext(const cudaq::sample_policy &policy,
+                           cudaq::ExecutionContext &ctx) override {
+    finalizeExecutionContextImpl(ctx);
+    return cudaq::sample_result();
+  }
+
+  void finalizeExecutionContext(const cudaq::other_policies &policy,
+                                cudaq::ExecutionContext &ctx) override {
+    finalizeExecutionContextImpl(ctx);
+  }
+
+public:
   void addQubitToState() override {
     throw std::runtime_error(
         "[dynamics target] Quantum gate simulation is not supported.");
@@ -162,7 +182,8 @@ public:
         "[dynamics target] Quantum gate simulation is not supported.");
   }
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &qubitIdxs,
-                                const int shots) override {
+                                const int shots,
+                                bool includeSequentialData = true) override {
     throw std::runtime_error("[dynamics target] Quantum gate simulation is not "
                              "supported.");
     return cudaq::ExecutionResult();

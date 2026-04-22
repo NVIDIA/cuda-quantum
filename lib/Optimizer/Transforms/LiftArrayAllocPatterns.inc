@@ -165,7 +165,7 @@ public:
           }
           continue;
         }
-        if (isa<quake::InitializeStateOp>(u)) {
+        if (isa<quake::InitializeStateOp, quake::CreateStateOp>(u)) {
           toGlobalUses.push_back(u);
           continue;
         }
@@ -214,13 +214,15 @@ public:
             }
           return false;
         }
-        // Process casts that are used in quake.init_state.
+        // Process casts that are used in quake.init_state or
+        // quake.create_state.
         if (cast.getType() == ptrUnsizedArrTy) {
           if (cast->hasOneUse()) {
             auto &use = *cast->getUses().begin();
             Operation *u = use.getOwner();
-            if (isa_and_present<quake::InitializeStateOp>(u)) {
-              toGlobalUses.push_back(op);
+            if (isa_and_present<quake::InitializeStateOp, quake::CreateStateOp>(
+                    u)) {
+              toGlobalUses.push_back(u);
               continue;
             }
           }
@@ -230,7 +232,7 @@ public:
         toGlobalUses.push_back(op);
         continue;
       }
-      if (isa<quake::InitializeStateOp>(op)) {
+      if (isa<quake::InitializeStateOp, quake::CreateStateOp>(op)) {
         toGlobalUses.push_back(op);
         continue;
       }

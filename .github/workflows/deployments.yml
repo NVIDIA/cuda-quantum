@@ -30,6 +30,16 @@ on:
         description: Create a GitHub release with the given version number (e.g. 0.3.0). A GitHub release with that version must not exist already.
         required: false
         default: ''
+      include_macos:
+        type: boolean
+        description: Build and include macOS wheels and installer.
+        required: false
+        default: true
+      run_publishing_after:
+        type: boolean
+        description: When this deployment completes successfully, automatically trigger the Publishing workflow.
+        required: false
+        default: false
   workflow_run:
     workflows:
       - PR merged
@@ -156,6 +166,17 @@ jobs:
           path: deployment_info.txt
           retention-days: 30
           if-no-files-found: error
+
+      - name: Upload publishing flag
+        if: github.event_name == 'workflow_dispatch'
+        run: echo '${{ inputs.run_publishing_after }}' > publishing_requested.txt
+      - name: Upload publishing_requested artifact
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: publishing_requested
+          path: publishing_requested.txt
+          retention-days: 1
 
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -295,7 +316,7 @@ jobs:
 
   dispatch:
     name: Dispatch deployments
-    needs: [metadata, devdeps, wheeldeps, openmpi]
+    needs: [metadata, devdeps, wheeldeps, source_build, openmpi]
     if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
 
@@ -640,9 +661,13 @@ jobs:
           fi
 
           image_tag="cu${cuda_major}-"
-          if ${{ github.event.pull_request.number != '' }} || [ -n "$(echo ${{ github.ref_name }} | grep pull-request/)" ]; then
-            pr_number=`echo ${{ github.ref_name }} | grep -o [0-9]*`
-            image_tag+=pr-${pr_number:-${{ github.event.pull_request.number }}}
+          pr_number="${{ github.event.pull_request.number }}"
+          if [ -z "$pr_number" ] && \
+             [[ "${{ github.ref_name }}" =~ (pull-request/|.*/pr-)([0-9]+) ]]; then
+            pr_number="${BASH_REMATCH[2]}"
+          fi
+          if [ -n "$pr_number" ]; then
+            image_tag+=pr-${pr_number}
           elif ${{ github.ref_type == 'branch' && github.ref_name == 'main' }}; then
             image_tag+="latest"
           elif "$is_versioned" == "true"; then
@@ -809,3 +834,37 @@ jobs:
       cuda_version: ${{ matrix.cuda_version }}
       build_cache: ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-cu{1}-installer', matrix.platform, matrix.cuda_version)] }}
       environment: ghcr-deployment
+
+  macos_ci:
+    name: macOS CI
+    needs: metadata
+    if: >-
+      needs.metadata.outputs.create_packages == 'true'
+      && (github.event_name != 'workflow_dispatch' || inputs.include_macos != false)
+    uses: ./.github/workflows/ci_macos.yml
+    with:
+      cache_base: ${{ needs.metadata.outputs.cache_base }}
+      cudaq_version: ${{ inputs.create_release }}
+
+  trigger_publishing:
+    name: Trigger Publishing
+    needs: [summary, python_wheels, binaries]
+    if: inputs.run_publishing_after
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Trigger Publishing workflow
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'publishing.yml',
+              ref: context.ref.replace('refs/heads/', ''),
+              inputs: {
+                deployment_id: context.runId.toString(),
+              },
+            });

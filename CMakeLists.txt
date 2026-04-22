@@ -95,7 +95,7 @@ endif()
 
 # Enable Amazon Braket backends by default.
 if (NOT DEFINED CUDAQ_ENABLE_BRAKET_BACKEND)
-  set(CUDAQ_ENABLE_BRAKET_BACKEND ON CACHE BOOL "Enable building AWS SDK for Amazon Bracket backends.")
+  set(CUDAQ_ENABLE_BRAKET_BACKEND ON CACHE BOOL "Enable building AWS SDK for Amazon Braket backends.")
 endif()
 
 # Enable Pasqal target by default.
@@ -103,9 +103,26 @@ if (NOT DEFINED CUDAQ_ENABLE_PASQAL_BACKEND)
   set(CUDAQ_ENABLE_PASQAL_BACKEND ON CACHE BOOL "Enable building the Pasqal target.")
 endif()
 
+# Enable Pasqal QRMI connector by default only on Linux builds.
+if (NOT DEFINED CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR)
+  if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR ON CACHE BOOL "Enable building the Pasqal QRMI connector.")
+  else()
+    set(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR OFF CACHE BOOL "Enable building the Pasqal QRMI connector.")
+  endif()
+elseif (CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR AND NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  message(WARNING "CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=ON is supported only on Linux; forcing OFF.")
+  set(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR OFF CACHE BOOL "Enable building the Pasqal QRMI connector." FORCE)
+endif()
+
 # Enable Quantum Circuits, Inc. (QCI) target by default.
 if (NOT DEFINED CUDAQ_ENABLE_QCI_BACKEND)
   set(CUDAQ_ENABLE_QCI_BACKEND ON CACHE BOOL "Enable building the Quantum Circuits, Inc. target.")
+endif()
+
+# Enable TII target by default.
+if (NOT DEFINED CUDAQ_ENABLE_TII_BACKEND)
+  set(CUDAQ_ENABLE_TII_BACKEND ON CACHE BOOL "Enable building the TII target.")
 endif()
 
 # Enable Quantum Machines target by default.
@@ -175,18 +192,6 @@ if(NOT BLAS_LIBRARIES AND EXISTS "$ENV{BLAS_INSTALL_PREFIX}/libblas.a")
   # CACHE INTERNAL is needed due to how FindBLAS.cmake works...
   SET(BLAS_LIBRARIES "$ENV{BLAS_INSTALL_PREFIX}/libblas.a" CACHE INTERNAL "")
 endif()
-if(NOT CUSTATEVEC_ROOT)
-  SET(CUSTATEVEC_ROOT "$ENV{CUQUANTUM_INSTALL_PREFIX}" CACHE PATH "Path to cuStateVec installation")
-endif()
-if(NOT CUTENSORNET_ROOT)
-  SET(CUTENSORNET_ROOT "$ENV{CUQUANTUM_INSTALL_PREFIX}" CACHE PATH "Path to cuTensorNet installation")
-endif()
-if(NOT CUDENSITYMAT_ROOT)
-  SET(CUDENSITYMAT_ROOT "$ENV{CUQUANTUM_INSTALL_PREFIX}" CACHE PATH "Path to cuDensityMat installation")
-endif()
-if(NOT CUTENSOR_ROOT)
-  SET(CUTENSOR_ROOT "$ENV{CUTENSOR_INSTALL_PREFIX}" CACHE PATH "Path to cuTensor installation")
-endif()
 if(NOT ZLIB_ROOT)
   SET(ZLIB_ROOT "$ENV{ZLIB_INSTALL_PREFIX}" CACHE PATH "Path to zlib installation")
 endif()
@@ -208,6 +213,9 @@ if(NOT CURL_ROOT AND EXISTS "$ENV{CURL_INSTALL_PREFIX}/lib/cmake/CURL/CURLConfig
 endif()
 if(NOT AWSSDK_ROOT AND CUDAQ_ENABLE_BRAKET_BACKEND)
   SET(AWSSDK_ROOT "$ENV{AWS_INSTALL_PREFIX}" CACHE PATH "Path to AWS SDK installation")
+endif()
+if(NOT QRMI_INSTALL_PREFIX AND CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR)
+  SET(QRMI_INSTALL_PREFIX "$ENV{QRMI_INSTALL_PREFIX}" CACHE PATH "Path to QRMI installation")
 endif()
 if(NOT CUDAQ_EXTERNAL_NVQIR_SIMS)
   SET(CUDAQ_EXTERNAL_NVQIR_SIMS $ENV{CUDAQ_EXTERNAL_NVQIR_SIMS})
@@ -429,7 +437,7 @@ set(MLIR_BINARY_DIR ${CMAKE_BINARY_DIR})
 
 list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
 
 include(TableGen)
 include(AddLLVM)
@@ -508,8 +516,8 @@ execute_process(COMMAND git rev-parse --verify HEAD
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE CUDA_QUANTUM_COMMIT_SHA OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-configure_file("${CMAKE_SOURCE_DIR}/include/cudaq/Support/Version.h.in"
-               "${CUDAQ_BINARY_DIR}/include/cudaq/Support/Version.h" @ONLY)
+configure_file("${CMAKE_SOURCE_DIR}/runtime/common/Version.cpp.in"
+               "${CMAKE_BINARY_DIR}/runtime/common/Version.cpp" @ONLY)
 
 # Check optional dependencies
 # ==============================================================================
@@ -635,6 +643,14 @@ if(CMAKE_CUDA_COMPILER)
   message(STATUS "Cuda language found.")
 endif()
 
+# cuQuantum / cuTensor component discovery
+if (CUDA_FOUND)
+  find_package(cuStateVec)
+  find_package(cuTensor)
+  find_package(cuTensorNet)
+  find_package(cuDensityMat)
+endif()
+
 # Code coverage setup
 # ==============================================================================
 if(CUDAQ_ENABLE_CC)
@@ -697,6 +713,12 @@ if (CUDAQ_ENABLE_PYTHON)
   # Python bindings generated as part of the CUDA-Q build and bindings generated for
   # third party CUDA-Q libraries; see also https://github.com/pybind/pybind11/issues/1262
   add_subdirectory(tpls/pybind11)
+
+  # nanobind is used for all CUDA-Q Python bindings. pybind11 is retained only
+  # for upstream MLIR Python extensions (e.g., _mlirAsyncPasses) which use
+  # mlir/Bindings/Python/PybindAdaptors.h.
+  add_subdirectory(tpls/nanobind)
+
   add_subdirectory(python)
 endif()
 

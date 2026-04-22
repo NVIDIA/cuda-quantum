@@ -303,6 +303,16 @@ CMAKE_ARGS="$CMAKE_ARGS ${OpenMP_FLAGS:+-DOpenMP_CXX_FLAGS=\"$OpenMP_FLAGS\"}"
 if $verbose && [ -n "$OpenMP_libomp_LIBRARY_PATH" ]; then
     echo "OpenMP CMAKE_ARGS: $CMAKE_ARGS"
 fi
+# Check for ccache and add compiler launcher to CMAKE_ARGS
+if [ -x "$(command -v ccache)" ]; then
+    echo "ccache detected enabling in cmake"
+    CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_C_COMPILER_LAUNCHER=ccache"
+    CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
+    if [ -n "$CUDACXX" ]; then
+        CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache"
+    fi
+fi
+
 export CMAKE_ARGS
 
 # Build the wheel
@@ -404,6 +414,13 @@ else
 
     # Move repaired wheel to output
     repaired_wheel=$(ls "${auditwheel_tmp:?}"/*manylinux*.whl 2>/dev/null | head -1)
+    if [ "$(uname -m)" = "x86_64" ] && [ -n "$repaired_wheel" ]; then
+        if ! unzip -l "$repaired_wheel" 2>/dev/null | grep -q 'libqrmi'; then
+            echo "WARNING: libqrmi.so not bundled in x86_64 wheel"
+        else
+            echo "Verified libqrmi.so is bundled in x86_64 wheel"
+        fi
+    fi
     if [ -n "$repaired_wheel" ]; then
         mv "$repaired_wheel" "$output_dir/"
         echo "Repaired wheel: $output_dir/$(basename "$repaired_wheel")"

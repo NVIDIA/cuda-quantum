@@ -263,7 +263,7 @@ matrix:
   sources:
   # Exclude test directories, third-party code (tpls/), build artifacts, sphinx config,
   # and files with f-string syntax that pyspelling's parser can't handle
-  - '**/*.py|!python/tests/**/*.py|!test/**/*.py|!targettests/**/*.py|!tpls/**/*.py|!_skbuild/**/*.py|!build/**/*.py|!build_*/**/*.py|!_version.py|!docs/sphinx/conf.py|!utils/mock_qpu/qci/__init__.py|!docs/sphinx/applications/python/quantum_transformer_src/train.py'
+  - '**/*.py|!python/tests/**/*.py|!test/**/*.py|!targettests/**/*.py|!tpls/**/*.py|!_skbuild/**/*.py|!build/**/*.py|!build_*/**/*.py|!_version.py|!docs/sphinx/conf.py|!utils/mock_qpu/qci/__init__.py'
   glob_flags: N|G|B
   expect_match: false
   aspell:

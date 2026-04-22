@@ -9,6 +9,7 @@
 #include "common/FmtCore.h"
 #include "nvqir/CircuitSimulator.h"
 #include "stim.h"
+#include <cmath>
 #include <numeric>
 
 using namespace cudaq;
@@ -400,6 +401,11 @@ protected:
            paulis.find(gateName[1]) != std::string::npos;
   }
 
+  static bool isApproxAngle(double value, double target) {
+    constexpr double tolerance = 1e-12;
+    return std::abs(value - target) < tolerance;
+  }
+
   void applyGate(const GateApplicationTask &task) override {
     std::string gateName(task.operationName);
     std::transform(gateName.begin(), gateName.end(), gateName.begin(),
@@ -430,7 +436,26 @@ protected:
           fmt::format("Gate not supported by Stim simulator: {}. Note that "
                       "Stim can only simulate Clifford gates.",
                       task.operationName));
-    else if (gateName == "SDG")
+    else if (gateName == "R1") {
+      if (task.parameters.size() != 1)
+        throw std::runtime_error(
+            fmt::format("Gate not supported by Stim simulator: {}. Note that "
+                        "Stim can only simulate Clifford gates.",
+                        task.operationName));
+
+      auto angle = task.parameters.front();
+      if (isApproxAngle(angle, M_PI_2))
+        gateName = "S";
+      else if (isApproxAngle(angle, -M_PI_2))
+        gateName = "S_DAG";
+      else if (isApproxAngle(angle, M_PI) || isApproxAngle(angle, -M_PI))
+        gateName = "Z";
+      else
+        throw std::runtime_error(
+            fmt::format("Gate not supported by Stim simulator: {}({}). Note "
+                        "that Stim can only simulate Clifford gates.",
+                        task.operationName, angle));
+    } else if (gateName == "SDG")
       gateName = "S_DAG";
     else if (gateName == "ID")
       gateName = "I";
@@ -536,7 +561,8 @@ public:
   /// explicitMeasurements is set, this returns all previously saved
   /// measurements.
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &qubits,
-                                const int shots) override {
+                                const int shots,
+                                bool includeSequentialData = true) override {
     auto executionContext = getExecutionContext();
 
     if (executionContext->explicitMeasurements && qubits.empty() &&
@@ -590,22 +616,32 @@ public:
                                         ? 0
                                         : bits_per_sample - qubits.size();
     CountsDictionary counts;
-    sequentialData.reserve(shots);
+    if (includeSequentialData)
+      sequentialData.reserve(shots);
     for (std::size_t shot = 0; shot < shots; shot++) {
       std::string aShot(bits_per_sample - first_bit_to_save, '0');
       for (std::size_t b = first_bit_to_save; b < bits_per_sample; b++)
         aShot[b - first_bit_to_save] = sample[shot][b] ? '1' : '0';
       counts[aShot]++;
-      sequentialData.push_back(std::move(aShot));
+      if (includeSequentialData)
+        sequentialData.push_back(std::move(aShot));
     }
     ExecutionResult result(counts);
-    result.sequentialData = std::move(sequentialData);
+    if (includeSequentialData)
+      result.sequentialData = std::move(sequentialData);
     return result;
   }
 
   bool isStateVectorSimulator() const override { return false; }
 
   std::string name() const override { return "stim"; }
+
+  std::unique_ptr<cudaq::SimulationState>
+  createStateFromData(const cudaq::state_data &) override {
+    throw std::runtime_error(
+        "Simulation data not available for the stim simulator backend.");
+  }
+
   NVQIR_SIMULATOR_CLONE_IMPL(StimCircuitSimulator)
 };
 

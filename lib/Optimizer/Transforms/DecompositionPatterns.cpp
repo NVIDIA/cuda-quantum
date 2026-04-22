@@ -334,10 +334,9 @@ LogicalResult checkAndExtractControls(quake::OperatorInterface op,
   };                                                                           \
   CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, PATTERN##Type, PATTERN)
 
-// TODO: The decomposition patterns "SToR1", "TToR1", "R1ToU3", "U3ToRotations"
-// can handle arbitrary number of controls, but currently metadata cannot
-// capture this. The pattern types therefore only advertise them for a fixed
-// number of controls (1 for "SToR1" and "TToR1", 0 for the rest).
+// NOTE: The patterns SToR1, TToR1, R1ToU3, and U3ToRotations handle arbitrary
+// control counts and are registered with (n) metadata. R1ToRz explicitly
+// rejects controlled ops and uses bare metadata.
 
 //===----------------------------------------------------------------------===//
 // HOp decompositions
@@ -608,7 +607,7 @@ struct R1ToU3 : public cudaq::DecompositionPattern<R1ToU3Type, quake::R1Op> {
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(R1ToU3, "r1", "u3");
+REGISTER_DECOMPOSITION_PATTERN(R1ToU3, "r1(n)", "u3(n)");
 
 // quake.r1<adj> (θ) target
 // ─────────────────────────────────
@@ -645,7 +644,7 @@ struct R1AdjToR1
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(R1AdjToR1, "r1", "r1");
+REGISTER_DECOMPOSITION_PATTERN(R1AdjToR1, "r1<adj>", "r1");
 
 // quake.swap a, b
 // ───────────────────────────────────
@@ -717,6 +716,8 @@ struct CHToCX : public cudaq::DecompositionPattern<CHToCXType, quake::HOp> {
     return success();
   }
 };
+// TODO: Technically, this pattern also produces s<adj> and t<adj> ops, but we
+// currently don't treat them as distinct from their non-adjoint counterparts.
 REGISTER_DECOMPOSITION_PATTERN(CHToCX, "h(1)", "s", "h", "t", "x(1)");
 
 //===----------------------------------------------------------------------===//
@@ -798,7 +799,7 @@ struct SToR1 : public cudaq::DecompositionPattern<SToR1Type, quake::SOp> {
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(SToR1, "s(1)", "r1(1)");
+REGISTER_DECOMPOSITION_PATTERN(SToR1, "s(n)", "r1(n)");
 
 //===----------------------------------------------------------------------===//
 // TOp decompositions
@@ -879,7 +880,7 @@ struct TToR1 : public cudaq::DecompositionPattern<TToR1Type, quake::TOp> {
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(TToR1, "t(1)", "r1(1)");
+REGISTER_DECOMPOSITION_PATTERN(TToR1, "t(n)", "r1(n)");
 
 //===----------------------------------------------------------------------===//
 // XOp decompositions
@@ -1075,6 +1076,8 @@ struct CYToCX : public cudaq::DecompositionPattern<CYToCXType, quake::YOp> {
     return success();
   }
 };
+// TODO: Technically, this pattern also produces s<adj> ops, but we currently
+// don't treat it as distinct from their non-adjoint counterparts.
 REGISTER_DECOMPOSITION_PATTERN(CYToCX, "y(1)", "s", "x(1)");
 
 //===----------------------------------------------------------------------===//
@@ -1152,6 +1155,8 @@ struct CCZToCX : public cudaq::DecompositionPattern<CCZToCXType, quake::ZOp> {
     return success();
   }
 };
+// TODO: Technically, this pattern also produces t<adj> ops, but we currently
+// don't treat it as distinct from their non-adjoint counterparts.
 REGISTER_DECOMPOSITION_PATTERN(CCZToCX, "z(2)", "t", "x(1)");
 
 // quake.z [control] target
@@ -1488,7 +1493,7 @@ struct RxAdjToRx
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(RxAdjToRx, "rx", "rx");
+REGISTER_DECOMPOSITION_PATTERN(RxAdjToRx, "rx<adj>", "rx");
 
 //===----------------------------------------------------------------------===//
 // RyOp decompositions
@@ -1617,7 +1622,7 @@ struct RyAdjToRy
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(RyAdjToRy, "ry", "ry");
+REGISTER_DECOMPOSITION_PATTERN(RyAdjToRy, "ry<adj>", "ry");
 
 //===----------------------------------------------------------------------===//
 // RzOp decompositions
@@ -1757,7 +1762,7 @@ struct RzAdjToRz
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(RzAdjToRz, "rz", "rz");
+REGISTER_DECOMPOSITION_PATTERN(RzAdjToRz, "rz<adj>", "rz");
 
 //===----------------------------------------------------------------------===//
 // U3Op decompositions
@@ -1812,7 +1817,7 @@ struct U3ToRotations
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(U3ToRotations, "u3", "rz", "rx");
+REGISTER_DECOMPOSITION_PATTERN(U3ToRotations, "u3(n)", "rz(n)", "rx(n)");
 
 } // namespace
 

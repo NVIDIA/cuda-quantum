@@ -103,32 +103,36 @@ private:
         configMap.insert({keyVals[i], keyVals[i + 1]});
     }
 
-    std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
-    auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
-    std::string fileName = mutableBackend + std::string(".yml");
-
-    /// Once we know the backend, we should search for the config file from
-    /// there we can get the URL/PORT and the required MLIR pass pipeline.
-    auto configFilePath = platformPath / fileName;
-    CUDAQ_INFO("Config file path = {}", configFilePath.string());
-
-    // Don't try to load something that doesn't exist.
-    if (!std::filesystem::exists(configFilePath)) {
-      platformQPUs.front()->setTargetBackend(backend);
-      return;
-    }
-
-    std::ifstream configFile(configFilePath.string());
-    std::string configContents((std::istreambuf_iterator<char>(configFile)),
-                               std::istreambuf_iterator<char>());
+    // If runtimeTarget was pre-populated (e.g., by the Python
+    // LinkedLibraryHolder), use its already-parsed config to avoid re-reading
+    // the YAML file from disk.
     cudaq::config::TargetConfig config;
-    llvm::yaml::Input Input(configContents.c_str());
-    Input >> config;
-    runtimeTarget = std::make_unique<cudaq::RuntimeTarget>();
-    runtimeTarget->config = config;
-    runtimeTarget->name = mutableBackend;
-    runtimeTarget->description = config.Description;
-    runtimeTarget->runtimeConfig = configMap;
+    if (runtimeTarget) {
+      config = runtimeTarget->config;
+      runtimeTarget->runtimeConfig = configMap;
+    } else {
+      std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
+      auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
+      std::string fileName = mutableBackend + std::string(".yml");
+      auto configFilePath = platformPath / fileName;
+      CUDAQ_INFO("Config file path = {}", configFilePath.string());
+
+      if (!std::filesystem::exists(configFilePath)) {
+        platformQPUs.front()->setTargetBackend(backend);
+        return;
+      }
+
+      std::ifstream configFile(configFilePath.string());
+      std::string configContents((std::istreambuf_iterator<char>(configFile)),
+                                 std::istreambuf_iterator<char>());
+      llvm::yaml::Input Input(configContents.c_str());
+      Input >> config;
+      runtimeTarget = std::make_unique<cudaq::RuntimeTarget>();
+      runtimeTarget->config = config;
+      runtimeTarget->name = mutableBackend;
+      runtimeTarget->description = config.Description;
+      runtimeTarget->runtimeConfig = configMap;
+    }
 
     if (config.BackendConfig.has_value() &&
         !config.BackendConfig->PlatformQpu.empty()) {
