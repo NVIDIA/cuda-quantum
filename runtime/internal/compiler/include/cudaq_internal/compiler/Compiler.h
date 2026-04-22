@@ -9,6 +9,7 @@
 
 #include "common/CompiledModule.h"
 #include "common/KernelArgs.h"
+#include "cudaq_internal/compiler/CompileOptions.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include <map>
 #include <memory>
@@ -123,7 +124,8 @@ public:
   runPassPipeline(cudaq::ExecutionContext *executionContext,
                   const std::string &kernelName, const void *modulePtr,
                   cudaq::KernelArgs args,
-                  std::shared_ptr<mlir::MLIRContext> context = nullptr);
+                  std::shared_ptr<mlir::MLIRContext> context = nullptr,
+                  const CompileOptions &options = {});
 
   /// @brief Emit target-specific code for each `MlirArtifact` in the
   /// `CompiledModule` and produce `KernelExecution` objects.
@@ -142,6 +144,7 @@ public:
   std::vector<cudaq::KernelExecution>
   lowerQuakeCode(cudaq::ExecutionContext *executionContext,
                  const std::string &kernelName, const void *modulePtr,
-                 cudaq::KernelArgs args);
+                 cudaq::KernelArgs args,
+                 const CompileOptions &options = {});
 };
 } // namespace cudaq_internal::compiler
