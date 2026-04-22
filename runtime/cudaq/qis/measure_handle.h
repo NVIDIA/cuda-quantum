@@ -74,7 +74,13 @@ public:
   bool operator!=(const measure_handle &) const = delete;
 
 private:
-  std::int64_t index = std::numeric_limits<std::int64_t>::max();
+  // `[[maybe_unused]]` silences host-compilation `-Wunused-private-field`
+  // warnings in library mode: `index` is only ever read from the IR (via
+  // `!cc.measure_handle`), never from the host class surface. Once a future
+  // host-side accessor surfaces backend-assigned indices, the attribute can
+  // drop.
+  [[maybe_unused]] std::int64_t index =
+      std::numeric_limits<std::int64_t>::max();
 };
 
 } // namespace cudaq
