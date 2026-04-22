@@ -12,6 +12,7 @@
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
 #include "cudaq/platform.h"
+#include "cudaq/qis/measure_handle.h"
 #include "cudaq/qis/modifiers.h"
 #include "cudaq/qis/pauli_word.h"
 #include "cudaq/qis/qarray.h"
@@ -490,6 +491,32 @@ std::vector<measure_result> mz(qubit &q, Qs &&...qs) {
   return result;
 }
 
+// Handle-returning measurement family: opaque, deferred-discrimination
+// counterparts of `mz` / `mx` / `my`. See the `measure_handle` Bikeshed
+// specification, sections "C++ API" and "IR Representation".
+//
+// These overloads emit `quake.mz` (or `quake.mx`/`quake.my`) producing
+// `!cc.measure_handle` (or `!cc.stdvec<!cc.measure_handle>`) and, unlike
+// `mz` / `mx` / `my`, do *not* inline a `quake.discriminate` at the call
+// site. The C++ AST bridge intercepts these calls by name; the declarations
+// below are intentionally undefined so non-MLIR builds get an unresolved-
+// symbol error if the handle API leaks out of a `__qpu__` region.
+measure_handle mz_handle(qubit &q);
+measure_handle mx_handle(qubit &q);
+measure_handle my_handle(qubit &q);
+
+template <typename QubitRange>
+  requires std::ranges::range<QubitRange>
+std::vector<measure_handle> mz_handle(QubitRange &q);
+
+template <typename QubitRange>
+  requires std::ranges::range<QubitRange>
+std::vector<measure_handle> mx_handle(QubitRange &q);
+
+template <typename QubitRange>
+  requires std::ranges::range<QubitRange>
+std::vector<measure_handle> my_handle(QubitRange &q);
+
 namespace support {
 // Helpers to deal with the `vector<bool>` specialized template type.
 extern "C" {
@@ -523,6 +550,22 @@ inline std::int64_t to_integer(const std::string &arg) {
   std::reverse(bitString.begin(), bitString.end());
   return std::stoull(bitString, nullptr, 2);
 }
+
+// Discriminate a measurement handle into a classical bit. Lowers to
+// `quake.discriminate %h : (!cc.measure_handle) -> i1` (or the vector form
+// `(!cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<i1>`) via the AST bridge;
+// this is the only sanctioned way to read a bit from a `measure_handle`.
+// Like the `*_handle` measurement family, both overloads are declared but
+// undefined: the bridge intercepts the calls in MLIR mode, and library-mode
+// uses fail at link time.
+bool discriminate(const measure_handle &h);
+std::vector<bool> discriminate(const std::vector<measure_handle> &handles);
+
+// Cast a vector of measurement handles to an `int64_t`, with `handles[0]`
+// as the LSB. Equivalent to `to_integer(discriminate(handles))`; provided
+// as a single call to mirror `to_integer(const std::vector<measure_result>&)`
+// above. Same library-mode behavior as `discriminate`.
+std::int64_t to_integer(const std::vector<measure_handle> &handles);
 
 // This concept tests if `Kernel` is a `Callable` that takes the arguments,
 // `Args`, and returns `void`.
