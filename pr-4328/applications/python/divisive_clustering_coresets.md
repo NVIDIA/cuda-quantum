@@ -2783,7 +2783,7 @@ figure below shows the clusters that are formed at threshold height of
 ::: highlight
     threshold_height = 1
     clusters = dendo.get_clusters_using_height(threshold_height)
-    colors = ["red", "blue", "green", "black", "purple", "orange", "yellow"]
+    colors = ["red", "blue", "green", "black", "purple", "orange", "yellow", "cyan", "magenta", "brown"]
     dendo.plot_dendrogram(
         plot_title="Dendrogram of Coreset using VQE",
         colors=colors,
