@@ -846,7 +846,7 @@ RELOCATABLE_EXTRA_FLAGS=""
 if ${CUDAQ_IS_APPLE}; then
 	NOSTDLIB_FLAG="-nostdlib"
 	RELOCATABLE_EXTRA_FLAGS="--no-default-config"
-	probe_obj=$(mktemp "${TMPDIR:-/tmp}/cudaq_probe.XXXXXX.o")
+	probe_obj=$(mktemp "${TMPDIR:-/tmp}/cudaq_probe.XXXXXX")
 	echo "" | ${CXX} --no-default-config -x c -c - -o "$probe_obj" 2>/dev/null
 	if ! ${CXX} --no-default-config ${LINKER_PATH} -nostdlib -r -o /dev/null "$probe_obj" 2>/dev/null; then
 		RELOCATABLE_LINKER_PATH="--ld-path=/usr/bin/ld"
