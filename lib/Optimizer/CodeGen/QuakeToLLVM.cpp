@@ -69,14 +69,13 @@ public:
     if (adaptor.getOperands().empty()) {
       auto type = cast<quake::VeqType>(alloca.getResult().getType());
       auto constantSize = type.getSize();
-      sizeOperand = arith::ConstantIntOp::create(
-          rewriter, loc, rewriter.getI64Type(), constantSize);
+      sizeOperand =
+          arith::ConstantIntOp::create(rewriter, loc, constantSize, 64);
     } else {
       sizeOperand = adaptor.getOperands().front();
-      if (cast<IntegerType>(sizeOperand.getType()).getWidth() < 64) {
+      if (cast<IntegerType>(sizeOperand.getType()).getWidth() < 64)
         sizeOperand = LLVM::ZExtOp::create(rewriter, loc, rewriter.getI64Type(),
                                            sizeOperand);
-      }
     }
 
     // Replace the AllocaOp with the QIR call.
@@ -145,8 +144,8 @@ public:
     } else {
       auto type = cast<quake::VeqType>(allocTy);
       auto constantSize = type.getSize();
-      sizeOperand = arith::ConstantIntOp::create(
-          rewriter, loc, rewriter.getI64Type(), constantSize);
+      sizeOperand =
+          arith::ConstantIntOp::create(rewriter, loc, constantSize, 64);
     }
 
     // Create QIR allocation with initializer function.
@@ -242,13 +241,10 @@ public:
         cudaq::opt::factory::createLLVMFunctionSymbol(
             cudaq::opt::QIRArrayGetElementPtr1d, i8PtrTy,
             {qirArrayTy, rewriter.getIntegerType(64)}, parentModule);
-    Value zero =
-        arith::ConstantIntOp::create(rewriter, loc, rewriter.getI64Type(), 0);
-    Value one =
-        arith::ConstantIntOp::create(rewriter, loc, rewriter.getI64Type(), 1);
+    Value zero = arith::ConstantIntOp::create(rewriter, loc, 0, 64);
+    Value one = arith::ConstantIntOp::create(rewriter, loc, 1, 64);
     // FIXME: 8 bytes is assumed to be the sizeof(char*) on the target machine.
-    Value eight =
-        arith::ConstantIntOp::create(rewriter, loc, rewriter.getI32Type(), 8);
+    Value eight = arith::ConstantIntOp::create(rewriter, loc, 8, 32);
     // Function to convert a QIR Qubit value to an Array value.
     auto wrapQubitInArray = [&](Value v) -> Value {
       if (v.getType() != cudaq::opt::getQubitType(context))
@@ -319,8 +315,8 @@ public:
     Value idx_operand;
     auto i64Ty = rewriter.getI64Type();
     if (extract.hasConstantIndex()) {
-      idx_operand = arith::ConstantIntOp::create(rewriter, loc, i64Ty,
-                                                 extract.getConstantIndex());
+      idx_operand = arith::ConstantIntOp::create(
+          rewriter, loc, extract.getConstantIndex(), 64);
     } else {
       idx_operand = adaptor.getOperands()[1];
 
@@ -402,14 +398,14 @@ public:
 
     auto lowArg = [&]() -> Value {
       if (!adaptor.getLower())
-        return arith::ConstantIntOp::create(
-            rewriter, loc, rewriter.getI64Type(), adaptor.getRawLower());
+        return arith::ConstantIntOp::create(rewriter, loc,
+                                            adaptor.getRawLower(), 64);
       return adaptor.getLower();
     }();
     auto highArg = [&]() -> Value {
       if (!adaptor.getUpper())
-        return arith::ConstantIntOp::create(
-            rewriter, loc, rewriter.getI64Type(), adaptor.getRawUpper());
+        return arith::ConstantIntOp::create(rewriter, loc,
+                                            adaptor.getRawUpper(), 64);
       return adaptor.getUpper();
     }();
     auto extend = [&](Value &v) -> Value {
@@ -421,8 +417,8 @@ public:
     lowArg = extend(lowArg);
     highArg = extend(highArg);
     Value inArr = adaptor.getOperands()[0];
-    auto one32 = arith::ConstantIntOp::create(rewriter, loc, i32Ty, 1);
-    auto one64 = arith::ConstantIntOp::create(rewriter, loc, i64Ty, 1);
+    auto one32 = arith::ConstantIntOp::create(rewriter, loc, 1, 32);
+    auto one64 = arith::ConstantIntOp::create(rewriter, loc, 1, 64);
     rewriter.replaceOpWithNewOp<LLVM::CallOp>(
         subveq, resultTy, symbolRef,
         ValueRange{inArr, one32, lowArg, one64, highArg});
@@ -618,7 +614,7 @@ public:
         rewriter, loc, cudaq::opt::factory::getPointerType(context),
         qirFunctionSymbolRef);
     Value numControlOperands =
-        arith::ConstantIntOp::create(rewriter, loc, i64Type, numControls);
+        arith::ConstantIntOp::create(rewriter, loc, numControls, 64);
     args.push_back(numControlOperands);
 
     // Check if all controls are qubit types, if so retain existing
@@ -664,8 +660,8 @@ public:
               loc, rewriter, parentModule, numControls, adaptor.getControls(),
               instOp.getControls());
       args.push_back(isArrayAndLengthArr);
-      args.push_back(arith::ConstantIntOp::create(rewriter, loc, i64Type,
-                                                  numTargetOperands));
+      args.push_back(
+          arith::ConstantIntOp::create(rewriter, loc, numTargetOperands, 64));
     }
     args.push_back(ctrlOpPointer);
     args.append(instOperands.begin(), instOperands.end());
@@ -1281,13 +1277,10 @@ public:
         cudaq::opt::factory::createLLVMFunctionSymbol(
             cudaq::opt::QIRArrayGetElementPtr1d, ptrTy,
             {qirArrayTy, rewriter.getIntegerType(64)}, parentModule);
-    Value zero =
-        arith::ConstantIntOp::create(rewriter, loc, rewriter.getI64Type(), 0);
-    Value one =
-        arith::ConstantIntOp::create(rewriter, loc, rewriter.getI64Type(), 1);
+    Value zero = arith::ConstantIntOp::create(rewriter, loc, 0, 64);
+    Value one = arith::ConstantIntOp::create(rewriter, loc, 1, 64);
     // FIXME: 8 bytes is assumed to be the sizeof(char*) on the target machine.
-    Value eight =
-        arith::ConstantIntOp::create(rewriter, loc, rewriter.getI32Type(), 8);
+    Value eight = arith::ConstantIntOp::create(rewriter, loc, 8, 32);
     if (v.getType() != cudaq::opt::getQubitType(context))
       return v;
     auto createCall = LLVM::CallOp::create(rewriter, loc, qirArrayTy, symbolRef,

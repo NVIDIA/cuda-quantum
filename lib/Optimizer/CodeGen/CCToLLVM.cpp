@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -57,8 +57,9 @@ public:
     if (!size)
       size =
           cudaq::opt::factory::genLlvmI32Constant(alloc.getLoc(), rewriter, 1);
-    rewriter.replaceOpWithNewOp<LLVM::AllocaOp>(alloc, getPtrType(), type,
-                                                size);
+    rewriter.replaceOpWithNewOp<LLVM::AllocaOp>(
+        alloc, cudaq::opt::factory::getPointerType(rewriter.getContext()), type,
+        size);
     return success();
   }
 };
@@ -78,7 +79,7 @@ public:
       resTy.push_back(getTypeConverter()->convertType(callable.getType(i)));
     auto *ctx = rewriter.getContext();
     auto tupleTy = LLVM::LLVMStructType::getLiteral(ctx, resTy);
-    auto tuplePtrTy = getPtrType();
+    auto tuplePtrTy = cudaq::opt::factory::getPointerType(ctx);
     auto structTy = dyn_cast<LLVM::LLVMStructType>(operands[0].getType());
     if (!structTy)
       return failure();
@@ -239,7 +240,7 @@ public:
         cast<cudaq::cc::IndirectCallableType>(call.getCallee().getType());
     mlir::FunctionType calleeFuncTy = indirectTy.getSignature();
     auto funcPtrTy = getTypeConverter()->convertType(calleeFuncTy);
-    auto ptrTy = getPtrType();
+    auto ptrTy = cudaq::opt::factory::getPointerType(ctx);
     SmallVector<Type> llvmArgTys;
     for (Type argTy : calleeFuncTy.getInputs())
       llvmArgTys.push_back(getTypeConverter()->convertType(argTy));
@@ -380,8 +381,9 @@ public:
       // Convert to LLVM type after extracting the element type
       Type eleTy = getTypeConverter()->convertType(ccEleTy);
       // Rewrite the ComputePtrOp as a LLVM::GEPOp.
-      rewriter.replaceOpWithNewOp<LLVM::GEPOp>(cpOp, getPtrType(), eleTy,
-                                               adaptor.getBase(), newOpnds);
+      rewriter.replaceOpWithNewOp<LLVM::GEPOp>(
+          cpOp, cudaq::opt::factory::getPointerType(rewriter.getContext()),
+          eleTy, adaptor.getBase(), newOpnds);
     } else {
       // If the `cc.compute_ptr` operation has a base argument that is not in
       // LLVM normal form, we implicitly assume that pointer's element type
@@ -397,8 +399,9 @@ public:
           adaptor.getDynamicIndices(), constIndices);
       // Convert to LLVM type
       Type eleTy = getTypeConverter()->convertType(ccEleTy);
-      rewriter.replaceOpWithNewOp<LLVM::GEPOp>(cpOp, getPtrType(), eleTy,
-                                               adaptor.getBase(), newOpnds);
+      rewriter.replaceOpWithNewOp<LLVM::GEPOp>(
+          cpOp, cudaq::opt::factory::getPointerType(rewriter.getContext()),
+          eleTy, adaptor.getBase(), newOpnds);
     }
     return success();
   }
@@ -530,7 +533,7 @@ public:
       LLVM::StoreOp::create(rewriter, loc, tupleVal, tmp);
     }
     Value tupleArg = LLVM::UndefOp::create(rewriter, loc, tupleArgTy);
-    auto sigTy = getPtrType();
+    auto sigTy = cudaq::opt::factory::getPointerType(ctx);
     auto tramp = LLVM::AddressOfOp::create(
         rewriter, loc, sigTy, cast<FlatSymbolRefAttr>(callable.getCallee()));
     auto trampoline =
@@ -654,17 +657,17 @@ public:
     auto structTy = dyn_cast<LLVM::LLVMStructType>(resTy);
     if (!structTy)
       return init.emitError("stdvec_init must have a struct as argument.");
-    auto cast = LLVM::BitcastOp::create(rewriter, loc, structTy.getBody()[0],
+    auto yolo = LLVM::BitcastOp::create(rewriter, loc, structTy.getBody()[0],
                                         operands[0]);
-    val = LLVM::InsertValueOp::create(rewriter, loc, val, cast, zero);
+    val = LLVM::InsertValueOp::create(rewriter, loc, val, yolo, zero);
     auto one = DenseI64ArrayAttr::get(ctx, ArrayRef<std::int64_t>{1});
     if (operands.size() == 2) {
       rewriter.replaceOpWithNewOp<LLVM::InsertValueOp>(init, val, operands[1],
                                                        one);
     } else {
       std::int64_t arrSize =
-          llvm::cast<cudaq::cc::ArrayType>(
-              llvm::cast<cudaq::cc::PointerType>(init.getBuffer().getType())
+          cast<cudaq::cc::ArrayType>(
+              cast<cudaq::cc::PointerType>(init.getBuffer().getType())
                   .getElementType())
               .getSize();
       auto i64Ty = rewriter.getI64Type();
@@ -722,7 +725,9 @@ public:
 
     // Get the string address
     rewriter.replaceOpWithNewOp<LLVM::AddressOfOp>(
-        stringLiteralOp, getPtrType(), slGlobal.getSymName());
+        stringLiteralOp,
+        cudaq::opt::factory::getPointerType(rewriter.getContext()),
+        slGlobal.getSymName());
 
     return success();
   }
@@ -780,14 +785,13 @@ class VarargCallPattern
     for (auto ty : vcall.getResultTypes())
       types.push_back(getTypeConverter()->convertType(ty));
 
-    // For vararg calls, we need to set the var_callee_type attribute.
-    // Look up the callee function to get its type.
-    auto module = vcall->getParentOfType<ModuleOp>();
-    auto calleeName = vcall.getCallee();
+    // For vararg calls, we need to set the var_callee_type attribute. Look up
+    // the callee function to get its type.
+    auto calleeName = vcall.getCalleeAttr();
     TypeAttr varCalleeType;
-    if (auto func = module.lookupSymbol<LLVM::LLVMFuncOp>(calleeName)) {
+    if (auto func = SymbolTable::lookupNearestSymbolFrom<LLVM::LLVMFuncOp>(
+            vcall, calleeName))
       varCalleeType = TypeAttr::get(func.getFunctionType());
-    }
 
     auto callOp = rewriter.replaceOpWithNewOp<LLVM::CallOp>(
         vcall, types, calleeName, adaptor.getArgs());
