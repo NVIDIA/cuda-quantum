@@ -1140,8 +1140,7 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
       .def_prop_ro(
           "entry_point",
           [](const cudaq::CompiledModule &ck) {
-            return reinterpret_cast<std::uintptr_t>(
-                ck.getJit().getEntryPoint());
+            return reinterpret_cast<std::uintptr_t>(ck.getJit()->getFn());
           },
           "The address of the JIT-compiled entry point.")
       .def_prop_ro("is_fully_specialized",
