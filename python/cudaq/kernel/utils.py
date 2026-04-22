@@ -315,7 +315,7 @@ def get_function_source_or_raise(function):
         filename = inspect.getfile(function)
         first_line = inspect.getsourcelines(function)[1]
         src = inspect.getsource(function)
-    except (OSError, TypeError) as e:
+    except OSError as e:
         raise RuntimeError(_format_missing_source_error(function,
                                                         filename)) from e
     leadingSpaces = len(src) - len(src.lstrip())
