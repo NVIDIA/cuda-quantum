@@ -9,6 +9,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/DialectImplementation.h"
@@ -227,6 +228,34 @@ bool isDynamicallySizedType(Type ty) {
            isDynamicallySizedType(arrTy.getElementType());
   // Note: this isn't considering quake, builtin, etc. types.
   return false;
+}
+
+static bool containsMeasureHandleImpl(Type ty,
+                                      llvm::SmallPtrSetImpl<Type> &seen) {
+  if (!ty || !seen.insert(ty).second)
+    return false;
+  if (isa<MeasureHandleType>(ty))
+    return true;
+  if (auto p = dyn_cast<PointerType>(ty))
+    return containsMeasureHandleImpl(p.getElementType(), seen);
+  if (auto a = dyn_cast<ArrayType>(ty))
+    return containsMeasureHandleImpl(a.getElementType(), seen);
+  if (auto v = dyn_cast<StdvecType>(ty))
+    return containsMeasureHandleImpl(v.getElementType(), seen);
+  if (auto s = dyn_cast<StructType>(ty)) {
+    for (auto m : s.getMembers())
+      if (containsMeasureHandleImpl(m, seen))
+        return true;
+  }
+  // Note: callable / indirect-callable wrap function types; their inner
+  // signatures are inspected by the kernel-signature validator, not by this
+  // boundary walk.
+  return false;
+}
+
+bool containsMeasureHandle(Type ty) {
+  llvm::SmallPtrSet<Type, 8> seen;
+  return containsMeasureHandleImpl(ty, seen);
 }
 
 void CCDialect::registerTypes() {

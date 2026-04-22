@@ -73,6 +73,26 @@ static bool hasAnyQubitTypes(FunctionType funcTy) {
   return false;
 }
 
+// Returns true if any input or result type of `funcTy` transitively contains
+// `!cc.measure_handle`. Implements the value-representation walk specified
+// in the measure_handle proposal's Kernel Signature Rule: every C++
+// container shape the spec calls out -- `std::vector<measure_handle>`,
+// `std::array<measure_handle, N>`, `std::optional<measure_handle>`,
+// `std::tuple<..., measure_handle, ...>`, `std::pair<..., measure_handle>`,
+// nested combinations, and pointer / reference forms -- reduces to a
+// `cc.stdvec` / `cc.array` / `cc.struct` / `cc.ptr` aggregate after the
+// bridge maps it, so this single recursive walk catches them uniformly via
+// `cudaq::cc::containsMeasureHandle` (defined in CCTypes.cpp).
+static bool hasMeasureHandleInSignature(FunctionType funcTy) {
+  for (auto ty : funcTy.getInputs())
+    if (cudaq::cc::containsMeasureHandle(ty))
+      return true;
+  for (auto ty : funcTy.getResults())
+    if (cudaq::cc::containsMeasureHandle(ty))
+      return true;
+  return false;
+}
+
 // Remove the Itanium mangling "_ZTS" prefix. This is to match the name returned
 // by `typeid(TYPE).name()`.
 static std::string
@@ -644,6 +664,25 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
               fdPair.second))) {
         // Flag func as an entry point to a quantum kernel.
         func->setAttr(entryPointAttrName, unitAttr);
+        // Spec §Kernel Signature Rule: an entry-point kernel may not name
+        // `measure_handle` -- directly or via any container -- in any
+        // parameter or return position. The recursive walk above covers
+        // `std::vector<measure_handle>`, `std::array<measure_handle, N>`,
+        // `std::optional<measure_handle>`, `std::tuple<..., measure_handle,
+        // ...>`, `std::pair<..., measure_handle>`, pointer / reference
+        // forms, and any nested combination, since each reduces to a
+        // `cc.stdvec` / `cc.array` / `cc.struct` / `cc.ptr` aggregate after
+        // bridge lowering.
+        if (hasMeasureHandleInSignature(func.getFunctionType())) {
+          cudaq::details::reportClangError(
+              fdPair.second, mangler,
+              "measure_handle cannot cross the host-device boundary; "
+              "entry-point kernels must discriminate first");
+          // The diagnostic is recorded with clang's DiagnosticsEngine so
+          // the bridge driver returns non-zero; we still emit the host
+          // declaration below so unrelated kernels in the same TU keep
+          // lowering for richer error reporting.
+        }
         // Generate a declaration for the CPU C++ function.
         addFunctionDecl(fdPair.second, visitor, func.getFunctionType(),
                         entryName, func.empty());

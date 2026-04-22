@@ -48,6 +48,13 @@ bool isDynamicType(mlir::Type ty);
 /// known even if it contains pointers that may point to memory of dynamic size.
 bool isDynamicallySizedType(mlir::Type ty);
 
+/// Returns true if and only if \p ty transitively contains
+/// `!cc.measure_handle` in its value representation. Walks aggregate CC
+/// types (struct, array, stdvec, ptr) generically so any new container
+/// shape is covered for free. Used by the bridge to enforce the
+/// measure_handle host-device boundary rule.
+bool containsMeasureHandle(mlir::Type ty);
+
 /// Determine the number of hidden arguments, which is 0, 1, or 2.
 inline unsigned numberOfHiddenArgs(bool thisPtr, bool sret) {
   return (thisPtr ? 1 : 0) + (sret ? 1 : 0);

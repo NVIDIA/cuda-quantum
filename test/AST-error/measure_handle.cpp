@@ -18,8 +18,20 @@
 //      rejected by the frontend with the spec-mandated message
 //      "discriminating an unbound measure_handle" (spec §`measure_handle`
 //      class, unbound-handle concept).
+//
+//   3. Entry-point kernels may not name `measure_handle` -- directly or via
+//      any container (`std::vector`, `std::tuple`, `std::pair`, pointers, ...)
+//      -- in any parameter or return position. The diagnostic is the spec's
+//      exact message "measure_handle cannot cross the host-device boundary;
+//      entry-point kernels must discriminate first" (spec §Kernel Signature
+//      Rule). Pure-device kernels (those whose signatures already include a
+//      qubit-typed argument and so are not classified as entry points) are
+//      unrestricted; that case is exercised in the AST-Quake tests.
 
 #include <cudaq.h>
+#include <tuple>
+#include <utility>
+#include <vector>
 
 // expected-note@* 0+ {{}}
 
@@ -56,4 +68,47 @@ struct DiscriminateUnbound {
     // expected-error@+1{{statement not supported in qpu kernel}}
     return cudaq::discriminate(h);
   }
+};
+
+// Host-device boundary diagnostics. Each kernel below classifies as an
+// entry point (no qubit-typed argument) and must therefore be rejected.
+// The recursive type walk in `ASTBridge.cpp::hasMeasureHandleInSignature`
+// covers each container shape generically; one diagnostic per kernel is
+// emitted by `cudaq::details::reportClangError`.
+
+struct BoundaryDirectParam {
+  // expected-error@+1{{measure_handle cannot cross the host-device boundary; entry-point kernels must discriminate first}}
+  void operator()(cudaq::measure_handle h) __qpu__ { (void)h; }
+};
+
+struct BoundaryDirectReturn {
+  // expected-error@+1{{measure_handle cannot cross the host-device boundary; entry-point kernels must discriminate first}}
+  cudaq::measure_handle operator()() __qpu__ {
+    cudaq::qubit q;
+    return mz_handle(q);
+  }
+};
+
+struct BoundaryVectorParam {
+  // expected-error@+1{{measure_handle cannot cross the host-device boundary; entry-point kernels must discriminate first}}
+  void operator()(std::vector<cudaq::measure_handle> h) __qpu__ { (void)h; }
+};
+
+struct BoundaryTupleParam {
+  // expected-error@+1{{measure_handle cannot cross the host-device boundary; entry-point kernels must discriminate first}}
+  void operator()(std::tuple<int, cudaq::measure_handle> h) __qpu__ {
+    (void)h;
+  }
+};
+
+struct BoundaryPairParam {
+  // expected-error@+1{{measure_handle cannot cross the host-device boundary; entry-point kernels must discriminate first}}
+  void operator()(std::pair<bool, cudaq::measure_handle> h) __qpu__ {
+    (void)h;
+  }
+};
+
+struct BoundaryPointerParam {
+  // expected-error@+1{{measure_handle cannot cross the host-device boundary; entry-point kernels must discriminate first}}
+  void operator()(cudaq::measure_handle *h) __qpu__ { (void)h; }
 };

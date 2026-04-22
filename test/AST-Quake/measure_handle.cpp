@@ -127,3 +127,36 @@ struct MxMyHandles {
 // CHECK:           quake.my %{{.*}} : (!quake.ref) -> !cc.measure_handle
 // CHECK:           return
 // CHECK:         }
+
+// 7. Cross-function passage: a pure-device `__qpu__` function that takes a
+//    qubit and a `cudaq::measure_handle` (by reference) is permitted by the
+//    Kernel Signature Rule because the qubit-typed argument keeps it from
+//    being classified as an entry point. The handle reaching the callee
+//    must round-trip via `cc.alloca` / `cc.store` / `cc.load` and the
+//    discriminate must consume the `!cc.measure_handle` value.
+__qpu__ bool consume_handle(cudaq::qubit &q, const cudaq::measure_handle &h) {
+  return cudaq::discriminate(h);
+}
+
+struct CrossFunctionCaller {
+  bool operator()() __qpu__ {
+    cudaq::qubit q;
+    auto h = mz_handle(q);
+    return consume_handle(q, h);
+  }
+};
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_consume_handle.
+// CHECK:           %[[VAL_H:.*]] = cc.load %{{.*}} : !cc.ptr<!cc.measure_handle>
+// CHECK:           %[[VAL_B:.*]] = quake.discriminate %[[VAL_H]] : (!cc.measure_handle) -> i1
+// CHECK:           return %[[VAL_B]] : i1
+// CHECK:         }
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__CrossFunctionCaller() -> i1
+// CHECK:           %[[VAL_Q:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_M:.*]] = quake.mz %[[VAL_Q]] : (!quake.ref) -> !cc.measure_handle
+// CHECK:           %[[VAL_S:.*]] = cc.alloca !cc.measure_handle
+// CHECK:           cc.store %[[VAL_M]], %[[VAL_S]] : !cc.ptr<!cc.measure_handle>
+// CHECK:           %[[VAL_R:.*]] = call @__nvqpp__mlirgen__function_consume_handle.{{.*}}(%[[VAL_Q]], %[[VAL_S]]) : (!quake.ref, !cc.ptr<!cc.measure_handle>) -> i1
+// CHECK:           return %[[VAL_R]] : i1
+// CHECK:         }
