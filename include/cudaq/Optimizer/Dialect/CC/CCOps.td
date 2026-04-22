@@ -1411,7 +1411,6 @@ def cc_CastOp : CCOp<"cast", [Pure]> {
   );
   let results = (outs AnyType:$result);
 
-  let hasFolder = 1;
   let hasCanonicalizer = 1;
   let hasVerifier = 1;
   

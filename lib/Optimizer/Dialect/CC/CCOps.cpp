@@ -206,27 +206,38 @@ LogicalResult cudaq::cc::AllocaOp::verify() {
 // CastOp
 //===----------------------------------------------------------------------===//
 
-// FIXME: This fold creates new operations (arith::ConstantIntOp, etc.) and
-// returns their Values. MLIR's fold contract forbids creating new ops:
-// "fold has the restriction that no new operations may be created" and
-// "returned Values must correspond to existing values." The correct fix is
-// to return Attribute values and implement materializeConstant in the CC
-// dialect so the canonicalizer can create the constants itself. This
-// currently works because the greedy driver tolerates it, but it violates
-// the contract and may break with future MLIR changes.
-OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
-  // If cast is a nop, just forward the argument to the uses.
-  if (getType() == getValue().getType())
-    return getValue();
-  if (auto optConst = adaptor.getValue()) {
+namespace {
+/// This pattern folds casts of (some) constants into new constant ops. This is
+/// meant to eliminate cast operations when result values are clearly
+/// computable.
+struct FoldCastOp : public OpRewritePattern<cudaq::cc::CastOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::cc::CastOp kast,
+                                PatternRewriter &rewriter) const override {
+    // If cast is a nop, just forward the argument to the uses.
+    auto ty = kast.getType();
+    if (ty == kast.getValue().getType()) {
+      Value val = kast.getValue();
+      rewriter.replaceOp(kast, val);
+      return success();
+    }
+
+    Operation *defOp = kast.getValue().getDefiningOp();
+    if (!defOp)
+      return failure();
+
+    Attribute optConst;
+    if (!matchPattern(kast.getValue(), m_Constant(&optConst)))
+      return failure();
+
     // Replace a constant + cast with a new constant of an updated type.
-    auto ty = getType();
-    OpBuilder builder(*this);
-    auto fltTy = builder.getF32Type();
-    auto dblTy = builder.getF64Type();
-    auto loc = getLoc();
+    auto fltTy = rewriter.getF32Type();
+    auto dblTy = rewriter.getF64Type();
+    auto loc = kast.getLoc();
+
     auto truncate = [&](std::int64_t val) -> std::int64_t {
-      auto srcTy = getValue().getType();
+      auto srcTy = kast.getValue().getType();
       if (!srcTy.isIntOrFloat())
         return val;
       auto srcWidth = srcTy.getIntOrFloatBitWidth();
@@ -241,42 +252,51 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
       if (isa<IntegerType>(ty)) {
         auto width = ty.getIntOrFloatBitWidth();
 
-        if (getZint())
+        if (kast.getZint())
           val = truncate(val);
 
         if (width == 1) {
+          // C++ semantics. 0 is false. All other values are true.
           bool v = val != 0;
-          return arith::ConstantIntOp::create(builder, loc, v, width)
-              .getResult();
+          auto c = arith::ConstantIntOp::create(rewriter, loc, v, width);
+          rewriter.replaceOp(kast, c);
+          return success();
         }
-        return arith::ConstantIntOp::create(builder, loc, val, width)
-            .getResult();
-
-      } else if (ty == fltTy) {
-        if (getZint()) {
+        auto c = arith::ConstantIntOp::create(rewriter, loc, val, width);
+        rewriter.replaceOp(kast, c);
+        return success();
+      }
+      if (ty == fltTy) {
+        if (kast.getZint()) {
           val = truncate(val);
           APFloat fval(static_cast<float>(static_cast<std::uint64_t>(val)));
-          return arith::ConstantFloatOp::create(builder, loc, fltTy, fval)
-              .getResult();
+          auto c = arith::ConstantFloatOp::create(rewriter, loc, fltTy, fval);
+          rewriter.replaceOp(kast, c);
+          return success();
         }
-        if (getSint()) {
+        if (kast.getSint()) {
           APFloat fval(static_cast<float>(val));
-          return arith::ConstantFloatOp::create(builder, loc, fltTy, fval)
-              .getResult();
-        }
-      } else if (ty == dblTy) {
-        if (getZint()) {
-          val = truncate(val);
-          APFloat fval(static_cast<double>(static_cast<std::uint64_t>(val)));
-          return arith::ConstantFloatOp::create(builder, loc, dblTy, fval)
-              .getResult();
-        }
-        if (getSint()) {
-          APFloat fval(static_cast<double>(val));
-          return arith::ConstantFloatOp::create(builder, loc, dblTy, fval)
-              .getResult();
+          auto c = arith::ConstantFloatOp::create(rewriter, loc, fltTy, fval);
+          rewriter.replaceOp(kast, c);
+          return success();
         }
       }
+      if (ty == dblTy) {
+        if (kast.getZint()) {
+          val = truncate(val);
+          APFloat fval(static_cast<double>(static_cast<std::uint64_t>(val)));
+          auto c = arith::ConstantFloatOp::create(rewriter, loc, dblTy, fval);
+          rewriter.replaceOp(kast, c);
+          return success();
+        }
+        if (kast.getSint()) {
+          APFloat fval(static_cast<double>(val));
+          auto c = arith::ConstantFloatOp::create(rewriter, loc, dblTy, fval);
+          rewriter.replaceOp(kast, c);
+          return success();
+        }
+      }
+      return failure();
     }
 
     // %5 = arith.constant ... : F1
@@ -288,27 +308,32 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
       if (ty == fltTy) {
         float f = val.convertToDouble();
         APFloat fval(f);
-        return arith::ConstantFloatOp::create(builder, loc, fltTy, fval)
-            .getResult();
+        auto c = arith::ConstantFloatOp::create(rewriter, loc, fltTy, fval);
+        rewriter.replaceOp(kast, c);
+        return success();
       }
       if (ty == dblTy) {
         APFloat fval{val.convertToDouble()};
-        return arith::ConstantFloatOp::create(builder, loc, dblTy, fval)
-            .getResult();
+        auto c = arith::ConstantFloatOp::create(rewriter, loc, dblTy, fval);
+        rewriter.replaceOp(kast, c);
+        return success();
       }
       if (isa<IntegerType>(ty)) {
         auto width = ty.getIntOrFloatBitWidth();
-        if (getZint()) {
+        if (kast.getZint()) {
           std::uint64_t v = val.convertToDouble();
-          return arith::ConstantIntOp::create(builder, loc, v, width)
-              .getResult();
+          auto c = arith::ConstantIntOp::create(rewriter, loc, v, width);
+          rewriter.replaceOp(kast, c);
+          return success();
         }
-        if (getSint()) {
+        if (kast.getSint()) {
           std::int64_t v = val.convertToDouble();
-          return arith::ConstantIntOp::create(builder, loc, v, width)
-              .getResult();
+          auto c = arith::ConstantIntOp::create(rewriter, loc, v, width);
+          rewriter.replaceOp(kast, c);
+          return success();
         }
       }
+      return failure();
     }
 
     // %5 = complex.constant ... : complex<T>
@@ -317,7 +342,7 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
     // %6 = complex.constant ... : complex<U>
     if (auto attr = dyn_cast<ArrayAttr>(optConst)) {
       if (!isa<ComplexType>(ty))
-        return nullptr;
+        return failure();
       auto eleTy = cast<ComplexType>(ty).getElementType();
       auto reFp = dyn_cast<FloatAttr>(attr[0]);
       auto imFp = dyn_cast<FloatAttr>(attr[1]);
@@ -325,24 +350,35 @@ OpFoldResult cudaq::cc::CastOp::fold(FoldAdaptor adaptor) {
         if (eleTy == fltTy) {
           float reVal = reFp.getValue().convertToDouble();
           float imVal = imFp.getValue().convertToDouble();
-          auto rePart = builder.getFloatAttr(eleTy, APFloat{reVal});
-          auto imPart = builder.getFloatAttr(eleTy, APFloat{imVal});
-          auto cv = builder.getArrayAttr({rePart, imPart});
-          return complex::ConstantOp::create(builder, loc, ty, cv).getResult();
+          auto rePart = rewriter.getFloatAttr(eleTy, APFloat{reVal});
+          auto imPart = rewriter.getFloatAttr(eleTy, APFloat{imVal});
+          auto cv = rewriter.getArrayAttr({rePart, imPart});
+          auto c =
+              complex::ConstantOp::create(rewriter, loc, ty, cv).getResult();
+          rewriter.replaceOp(kast, c);
+          return success();
         }
         if (eleTy == dblTy) {
           double reVal = reFp.getValue().convertToDouble();
           double imVal = imFp.getValue().convertToDouble();
-          auto rePart = builder.getFloatAttr(eleTy, APFloat{reVal});
-          auto imPart = builder.getFloatAttr(eleTy, APFloat{imVal});
-          auto cv = builder.getArrayAttr({rePart, imPart});
-          return complex::ConstantOp::create(builder, loc, ty, cv).getResult();
+          auto rePart = rewriter.getFloatAttr(eleTy, APFloat{reVal});
+          auto imPart = rewriter.getFloatAttr(eleTy, APFloat{imVal});
+          auto cv = rewriter.getArrayAttr({rePart, imPart});
+          auto c =
+              complex::ConstantOp::create(rewriter, loc, ty, cv).getResult();
+          rewriter.replaceOp(kast, c);
+          return success();
         }
       }
+      // Might be a complex integer? Ignore for now.
+      return failure();
     }
+
+    // this is not a constant we try to fold.
+    return failure();
   }
-  return nullptr;
-}
+};
+} // namespace
 
 LogicalResult cudaq::cc::CastOp::verify() {
   auto inTy = getValue().getType();
@@ -574,7 +610,7 @@ getArbitraryCustomCanonicalizationPatterns(RewritePatternSet &patterns,
 
 void cudaq::cc::CastOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                     MLIRContext *context) {
-  patterns.add<FuseCastCascade, SimplifyIntegerCompare>(context);
+  patterns.add<FuseCastCascade, SimplifyIntegerCompare, FoldCastOp>(context);
   getArbitraryCustomCanonicalizationPatterns(patterns, context);
 }
 
