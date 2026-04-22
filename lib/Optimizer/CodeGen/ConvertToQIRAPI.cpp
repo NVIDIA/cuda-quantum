@@ -743,22 +743,32 @@ struct DiscriminateOpToCallRewrite
   LogicalResult
   matchAndRewrite(quake::DiscriminateOp disc, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
+    auto loc = disc.getLoc();
+    // After `lower-cc-measure-handle`, the discriminate operand may be an
+    // integer payload instead of `Result*`. Restore the `Result*` view so the
+    // remainder of the QIR conversion is unchanged.
+    SmallVector<Value> operands{adaptor.getOperands().begin(),
+                                adaptor.getOperands().end()};
+    if (operands.size() == 1 &&
+        isa<IntegerType>(operands.front().getType())) {
+      auto resultTy = M::getResultType(rewriter.getContext());
+      operands.front() =
+          rewriter.create<cudaq::cc::CastOp>(loc, resultTy, operands.front());
+    }
     if constexpr (M::discriminateToClassical) {
       if constexpr (M::qirVersion == QirVersion::version_1_0) {
         rewriter.replaceOpWithNewOp<func::CallOp>(
             disc, rewriter.getI1Type(), cudaq::opt::qir1_0::ReadResult,
-            adaptor.getOperands());
+            operands);
       } else {
         rewriter.replaceOpWithNewOp<func::CallOp>(
             disc, rewriter.getI1Type(), cudaq::opt::qir0_1::ReadResultBody,
-            adaptor.getOperands());
+            operands);
       }
     } else {
-      auto loc = disc.getLoc();
       // NB: the double cast here is to avoid folding the pointer casts.
       auto i64Ty = rewriter.getI64Type();
-      auto unu =
-          rewriter.create<cudaq::cc::CastOp>(loc, i64Ty, adaptor.getOperands());
+      auto unu = rewriter.create<cudaq::cc::CastOp>(loc, i64Ty, operands);
       auto ptrI1Ty = cudaq::cc::PointerType::get(rewriter.getI1Type());
       auto du = rewriter.create<cudaq::cc::CastOp>(loc, ptrI1Ty, unu);
       rewriter.replaceOpWithNewOp<cudaq::cc::LoadOp>(disc, du);
@@ -1301,6 +1311,12 @@ struct MeasurementOpPattern : public OpConversionPattern<quake::MzOp> {
                             adaptor.getTargets().end()};
     auto functionName = M::getQIRMeasure();
 
+    // After `lower-cc-measure-handle`, an mz that originated from
+    // `mz_handle`/`mx_handle`/`my_handle` has an integer result type instead
+    // of `Result*`. We still call the same QIR measurement function (which
+    // returns `Result*`) but cast its result to the integer payload that the
+    // rest of the kernel sees.
+    const bool measOutIsInteger = isa<IntegerType>(mz.getMeasOut().getType());
     // Are we using the measurement that returns a result?
     if constexpr (M::mzReturnsResultType) {
       // Yes, the measurement results the result, so we can use a
@@ -1317,9 +1333,14 @@ struct MeasurementOpPattern : public OpConversionPattern<quake::MzOp> {
       auto resultTy = M::getResultType(rewriter.getContext());
       auto call =
           rewriter.create<func::CallOp>(loc, resultTy, functionName, args);
+      SmallVector<Value> replaceVals;
+      if (measOutIsInteger) {
+        replaceVals.push_back(rewriter.create<cudaq::cc::CastOp>(
+            loc, mz.getMeasOut().getType(), call.getResult(0)));
+      } else {
+        replaceVals.append(call.getResults().begin(), call.getResults().end());
+      }
       auto assundry = filterArgs(mz, adaptor.getTargets());
-      SmallVector<Value> replaceVals{call.getResults().begin(),
-                                     call.getResults().end()};
       replaceVals.append(assundry.begin(), assundry.end());
       rewriter.replaceOp(mz, replaceVals);
       call->setAttr(cudaq::opt::QIRRegisterNameAttr, regNameAttr);
@@ -1342,6 +1363,15 @@ struct MeasurementOpPattern : public OpConversionPattern<quake::MzOp> {
       auto call =
           rewriter.create<func::CallOp>(loc, TypeRange{}, functionName, args);
       call->setAttr(cudaq::opt::QIRRegisterNameAttr, regNameAttr);
+      // If the original mz produced an integer payload (post-`lower-cc-
+      // measure-handle`), emit the back-cast here so it remains in the same
+      // block as the mz call and dominates downstream discriminate uses --
+      // the !discriminateToClassical branch below moves the insertion point
+      // to the block terminator for the record-output call.
+      Value intRes;
+      if (measOutIsInteger)
+        intRes = rewriter.create<cudaq::cc::CastOp>(
+            loc, mz.getMeasOut().getType(), res);
       auto cstringGlobal =
           createGlobalCString(mz, loc, rewriter, regNameAttr.getValue());
       if constexpr (!M::discriminateToClassical) {
@@ -1359,7 +1389,8 @@ struct MeasurementOpPattern : public OpConversionPattern<quake::MzOp> {
         recOut->setAttr(cudaq::opt::ResultIndexAttrName, resultAttr);
         recOut->setAttr(cudaq::opt::QIRRegisterNameAttr, regNameAttr);
       }
-      SmallVector<Value> results = {res};
+      SmallVector<Value> results;
+      results.push_back(measOutIsInteger ? intRes : res);
       auto assundry = filterArgs(mz, adaptor.getTargets());
       results.append(assundry.begin(), assundry.end());
       rewriter.replaceOp(mz, results);

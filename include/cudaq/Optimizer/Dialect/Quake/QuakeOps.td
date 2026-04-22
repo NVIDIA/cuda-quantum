@@ -1068,14 +1068,16 @@ class Measurement<string mnemonic> : QuakeOp<mnemonic, [MeasurementInterface,
   // The classical result of a measurement is one of:
   //   - !quake.measure                   (the legacy SSA result),
   //   - !cc.measure_handle               (the cudaq::measure_handle alias),
-  //   - !cc.stdvec<!quake.measure>       (vector of legacy results),
-  //   - !cc.stdvec<!cc.measure_handle>   (vector of handles).
-  // The handle forms are only emitted by the bridge for `mz_handle`/`mx_handle`
-  // /`my_handle` and are erased to `i64` by `lower-cc-measure-handle` before
-  // QIR emission.
+  //   - <integer>                        (post-lowering form of the handle),
+  //   - !cc.stdvec of any of the above   (the corresponding register form).
+  // The handle and integer forms are only produced through the
+  // `cudaq::measure_handle` API. The bridge emits the handle form; the late
+  // pass `lower-cc-measure-handle` rewrites it to an integer of the same
+  // bit-width before QIR emission.
   let results = (outs
-    AnyTypeOf<[MeasureType, cc_MeasureHandleType, StdvecOf<[MeasureType]>,
-               StdvecOf<[cc_MeasureHandleType]>]>:$measOut,
+    AnyTypeOf<[MeasureType, cc_MeasureHandleType, AnySignlessInteger,
+               StdvecOf<[MeasureType]>, StdvecOf<[cc_MeasureHandleType]>,
+               StdvecOf<[AnySignlessInteger]>]>:$measOut,
     Variadic<WireType>:$wires
   );
 
@@ -1153,8 +1155,9 @@ def quake_DiscriminateOp : QuakeOp<"discriminate", [Pure]> {
   }];
 
   let arguments = (ins
-    AnyTypeOf<[MeasureType, cc_MeasureHandleType, StdvecOf<[MeasureType]>,
-               StdvecOf<[cc_MeasureHandleType]>]>:$measurement
+    AnyTypeOf<[MeasureType, cc_MeasureHandleType, AnySignlessInteger,
+               StdvecOf<[MeasureType]>, StdvecOf<[cc_MeasureHandleType]>,
+               StdvecOf<[AnySignlessInteger]>]>:$measurement
   );
   let results = (outs
     AnyTypeOf<[AnySignlessInteger, StdvecOf<[AnySignlessInteger]>]>

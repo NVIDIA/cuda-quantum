@@ -830,14 +830,14 @@ LogicalResult verifyMeasurements(MEAS op, TypeRange targetsType,
   if (mustBeStdvec) {
     auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(op.getMeasOut().getType());
     if (!stdvecTy ||
-        !isa<quake::MeasureType, cudaq::cc::MeasureHandleType>(
+        !isa<quake::MeasureType, cudaq::cc::MeasureHandleType, IntegerType>(
             stdvecTy.getElementType()))
       return op.emitOpError(
           "must return `!cc.stdvec<!quake.measure>` or "
           "`!cc.stdvec<!cc.measure_handle>` when measuring a qreg, a series "
           "of qubits, or both");
   } else {
-    if (!isa<quake::MeasureType, cudaq::cc::MeasureHandleType>(
+    if (!isa<quake::MeasureType, cudaq::cc::MeasureHandleType, IntegerType>(
             op.getMeasOut().getType()))
       return op->emitOpError(
           "must return `!quake.measure` or `!cc.measure_handle` when "
@@ -875,7 +875,7 @@ LogicalResult quake::DiscriminateOp::verify() {
       return emitOpError("must return a !cc.stdvec<integral> type, when "
                          "discriminating a qreg, a series of qubits, or both");
   } else {
-    if (!isa<quake::MeasureType, cudaq::cc::MeasureHandleType>(
+    if (!isa<quake::MeasureType, cudaq::cc::MeasureHandleType, IntegerType>(
             getMeasurement().getType()) ||
         !isa<IntegerType>(getResult().getType()))
       return emitOpError(

@@ -46,6 +46,7 @@ add_cudaq_library(OptTransforms
   LoopNormalize.cpp
   LoopPeeling.cpp
   LoopUnroll.cpp
+  LowerCCMeasureHandle.cpp
   LowerToCFG.cpp
   LowerUnwind.cpp
   Mapping.cpp

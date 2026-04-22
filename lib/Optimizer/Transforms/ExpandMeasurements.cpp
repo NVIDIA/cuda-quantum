@@ -9,6 +9,7 @@
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
+#include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Todo.h"
@@ -18,10 +19,13 @@
 
 using namespace mlir;
 
-// Only an individual qubit measurement returns a bool.
+// Only an individual qubit measurement returns a scalar classical token. This
+// covers both the legacy `!quake.measure` SSA result and the
+// `!cc.measure_handle` form used by `cudaq::measure_handle` callers; the
+// stdvec forms model register measurements.
 template <typename A>
 bool usesIndividualQubit(A x) {
-  return x.getType() == quake::MeasureType::get(x.getContext());
+  return isa<quake::MeasureType, cudaq::cc::MeasureHandleType>(x.getType());
 }
 
 // Generalized pattern for expanding a multiple qubit measurement (whether it is

@@ -768,6 +768,24 @@ def LinearCtrlRelations : Pass<"linear-ctrl-form", "mlir::func::FuncOp"> {
   }];
 }
 
+def LowerCCMeasureHandle : Pass<"lower-cc-measure-handle", "mlir::ModuleOp"> {
+  let summary = "Lower !cc.measure_handle to i64 before QIR conversion.";
+  let description = [{
+    Replace every occurrence of `!cc.measure_handle` (the IR alias of
+    `cudaq::measure_handle`) with the integer payload it carries (`i64`),
+    including occurrences inside `!cc.stdvec`, `!cc.ptr`, `!cc.array`, and
+    function signatures. After this pass `quake.mz`/`mx`/`my` and
+    `quake.discriminate` produce/consume `i64` (or `!cc.stdvec<i64>`) for
+    handle-typed callers; downstream QIR conversion bridges those to the
+    `Result*` type.
+
+    This pass is intentionally simple: the substitution preserves bit-width
+    and never reorders operations, so it does not require the partial
+    conversion framework.
+  }];
+  let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
+}
+
 def LoopNormalize : Pass<"cc-loop-normalize"> {
   let summary = "Normalize classical compute (C++) loops.";
   let description = [{

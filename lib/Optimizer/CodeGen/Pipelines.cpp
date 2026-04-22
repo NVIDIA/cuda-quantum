@@ -106,6 +106,9 @@ void createTargetCodegenPipeline(PassManager &pm,
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createMemToReg());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   }
+  // Lower `!cc.measure_handle` to its `i64` payload so the QIR conversion
+  // patterns only see legacy quake/cc types.
+  pm.addPass(cudaq::opt::createLowerCCMeasureHandle());
   ::addQIRConversionPipeline(pm, options.target);
   // QIR conversion may introduce cc.loop, lower to cf.
   cudaq::opt::addLowerToCFG(pm);
