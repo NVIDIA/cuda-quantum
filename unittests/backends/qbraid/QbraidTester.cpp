@@ -15,7 +15,7 @@
 #include <stdlib.h>
 
 // Update the backend string to match the QBraid format
-std::string mockPort = "62452";
+std::string mockPort = "62454";
 std::string backendStringTemplate =
     "qbraid;emulate;false;url;http://localhost:{}";
 
@@ -161,7 +161,7 @@ CUDAQ_TEST(QbraidTester, checkJobFailure) {
   cudaq::RestClient client;
   nlohmann::json body = nlohmann::json::object();
   std::map<std::string, std::string> headers;
-  auto armed = client.post("http://localhost:62452/", "test/fail_next", body,
+  auto armed = client.post("http://localhost:62454/", "test/fail_next", body,
                            headers, /*enableLogging=*/false);
   ASSERT_TRUE(armed.value("armed", false));
 
@@ -180,7 +180,7 @@ CUDAQ_TEST(QbraidTester, checkResultRetry) {
   nlohmann::json body = nlohmann::json::object();
   std::map<std::string, std::string> headers;
   auto armed =
-      client.post("http://localhost:62452/", "test/delay_next_results/2", body,
+      client.post("http://localhost:62454/", "test/delay_next_results/2", body,
                   headers, /*enableLogging=*/false);
   ASSERT_EQ(armed.value("remaining", -1), 2);
 
@@ -200,7 +200,7 @@ CUDAQ_TEST(QbraidTester, checkResultRetryExhaustion) {
   nlohmann::json body = nlohmann::json::object();
   std::map<std::string, std::string> headers;
   auto armed =
-      client.post("http://localhost:62452/", "test/delay_next_results/10", body,
+      client.post("http://localhost:62454/", "test/delay_next_results/10", body,
                   headers, /*enableLogging=*/false);
   ASSERT_EQ(armed.value("remaining", -1), 10);
 
