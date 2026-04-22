@@ -269,8 +269,8 @@ def _format_missing_source_error(function, filename):
     """
     Build a user-facing diagnostic explaining why source for `function` could
     not be retrieved. Distinguishes between three buckets:
-      - REPL-defined (`<stdin>` or `<python-input-...>`).
-      - Other synthetic filenames (eval, exec with custom name).
+      - Interactive interpreter-defined (`<stdin>` or `<python-input-...>`).
+      - Other synthetic filenames (code compiled with a non-file name).
       - Real paths that failed to read (missing file, frozen module,
         compiled extension).
     """
@@ -306,7 +306,8 @@ def get_function_source_or_raise(function):
     Return `(dedented_source, (filename, first_lineno))` for `function`.
     Wraps `inspect.getfile`, `inspect.getsourcelines`, and
     `inspect.getsource`. If any fail (most commonly because `function` was
-    defined in the Python REPL), raise `RuntimeError` with a diagnostic
+    defined in the interactive Python interpreter), raise `RuntimeError`
+    with a diagnostic
     tailored to the failure mode, chained from the underlying exception.
     """
     filename = None
