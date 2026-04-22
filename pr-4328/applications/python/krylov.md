@@ -2136,7 +2136,7 @@ This cell installs the necessary packages.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [1]:
 :::
 :::
 
@@ -2226,7 +2226,7 @@ good results for this demonstration.
     [pyscf] Total number of orbitals =  2
     [pyscf] Total number of electrons =  2
     [pyscf] HF energy =  -1.116325564486115
-    [pyscf] Total R-CCSD energy =  -1.1371758844013342
+    [pyscf] Total R-CCSD energy =  -1.1371758844013327
     Ground state energy (classical simulation)=  (-1.1371757102406845+0j) , index=  3
 :::
 :::
@@ -2245,10 +2245,14 @@ will be uses later.
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    # Collect coefficients from a spin operator so we can pass them to a kernel
+    # Collect coefficients from a spin operator so we can pass them to a kernel.
+    # The identity term is excluded. Its contribution is added back to the
+    # Hamiltonian matrix classically below.
     def term_coefficients(ham: cudaq.SpinOperator) -> list[complex]:
         result = []
         for term in ham:
+            if term.is_identity():
+                continue
             result.append(term.evaluate_coefficient())
         return result
 
@@ -2256,15 +2260,23 @@ will be uses later.
     def term_words(ham: cudaq.SpinOperator) -> list[str]:
         # Our kernel uses these words to apply exp_pauli to the entire state.
         # we hence ensure that each pauli word covers the entire space.
-
         result = []
         for term in ham:
+            if term.is_identity():
+                continue
             result.append(term.get_pauli_word(qubits_num))
         return result
 
     # Build the lists of coefficients and Pauli Words from the H2 Hamiltonian
     coefficient = term_coefficients(hamiltonian)
     pauli_string = term_words(hamiltonian)
+
+    # Sum of identity-term coefficients
+    # The identity contributes `identity_coef * S` to the Hamiltonian matrix.
+    identity_coef = sum(
+        term.evaluate_coefficient().real
+        for term in hamiltonian
+        if term.is_identity())
 
     print(coefficient)
     print(pauli_string)
@@ -2278,8 +2290,8 @@ will be uses later.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    [(-0.10647701149300526+0j), (0.17028010135220517+0j), (0.17028010135220514+0j), (-0.22004130022421745+0j), (-0.22004130022421745+0j), (0.1683359862516207+0j), (0.12020049071260122+0j), (0.1656068235817425+0j), (0.1656068235817425+0j), (0.12020049071260122+0j), (0.17407289249680213+0j), (-0.04540633286914128+0j), (0.04540633286914128+0j), (0.04540633286914128+0j), (-0.04540633286914128+0j)]
-    ['IIII', 'ZIII', 'IZII', 'IIZI', 'IIIZ', 'ZZII', 'ZIZI', 'ZIIZ', 'IZZI', 'IZIZ', 'IIZZ', 'XXYY', 'XYYX', 'YXXY', 'YYXX']
+    [(0.17028010135220506+0j), (0.17028010135220503+0j), (-0.2200413002242175+0j), (-0.2200413002242175+0j), (0.1683359862516207+0j), (0.12020049071260122+0j), (0.1656068235817425+0j), (0.1656068235817425+0j), (0.12020049071260122+0j), (0.17407289249680213+0j), (-0.04540633286914128+0j), (0.04540633286914128+0j), (0.04540633286914128+0j), (-0.04540633286914128+0j)]
+    ['ZIII', 'IZII', 'IIZI', 'IIIZ', 'ZZII', 'ZIZI', 'ZIIZ', 'IZZI', 'IZIZ', 'IIZZ', 'XXYY', 'XYYX', 'YXXY', 'YYXX']
 :::
 :::
 :::
@@ -2533,7 +2545,7 @@ summing the results to produce one matrix element.
             # 2 entry array that stores real and imaginary part of matrix element
             tot_e = np.zeros(2)
 
-            # Loops over the terms in the Hamiltonian, computing expectation values
+            # Loops over the (non-identity) terms in the Hamiltonian, computing expectation values
             for coef, word in zip(coefficient, pauli_string):
                 pauli_list = pauli_str(word, qubits_num)
 
@@ -2551,8 +2563,8 @@ summing the results to produce one matrix element.
                 tot_e[0] += temp[0]
                 tot_e[1] += temp[1]
 
-            # Sums real and imaginary totals to specify Hamiltonian entry
-            ham_matrx[m, n] = tot_e[0] + tot_e[1] * 1j
+            # Adds back the identity-term contribution.
+            ham_matrx[m, n] = tot_e[0] + tot_e[1] * 1j + identity_coef * wf_overlap[m, n]
             if n != m:
                 ham_matrx[n, m] = np.conj(ham_matrx[m, n])
 :::
@@ -2655,7 +2667,7 @@ original eigenvectors to the problem can be found by left multiplying by
 ::: {.output_area .docutils .container}
 ::: highlight
     Energy from QFD:
-    (-1.137176660753775-1.6945689273261445e-07j)
+    (-1.1359686811350462-4.497484607599205e-09j)
 :::
 :::
 :::
