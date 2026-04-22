@@ -107,7 +107,14 @@ void createTargetCodegenPipeline(PassManager &pm,
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   }
   // Lower `!cc.measure_handle` to its `i64` payload so the QIR conversion
-  // patterns only see legacy quake/cc types.
+  // patterns only see legacy quake/cc types. Per the `measure_handle` spec
+  // (IR Representation section), this pass must run **after** any
+  // identity-preserving analysis that binds per-event information to the
+  // handle type -- for example the QEC extension's detector and
+  // logical-observable registration passes and Stim-based DEM passes, which
+  // live downstream of cuda-quantum -- and **before** QIR emission.
+  // Running the substitution earlier would erase the handle type
+  // information those analyses depend on.
   pm.addPass(cudaq::opt::createLowerCCMeasureHandle());
   ::addQIRConversionPipeline(pm, options.target);
   // QIR conversion may introduce cc.loop, lower to cf.
