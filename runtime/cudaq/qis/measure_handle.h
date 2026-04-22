@@ -8,7 +8,23 @@
 
 #pragma once
 
+#include <cstdint>
+#include <limits>
+
 namespace cudaq {
+
+namespace details {
+/// Tag type used to dispatch the index-taking `measure_handle` constructor,
+/// keeping `measure_handle{42}` uncompilable in user code. The tag surface is
+/// reserved for internal runtime use (e.g. a future shot-level
+/// result-reporting path that surfaces backend-assigned indices back to host
+/// code, or a remote-QPU adapter reconstructing a handle from its
+/// over-the-wire index); the bridge never calls this constructor because
+/// inside kernels `mz_handle` produces a `!cc.measure_handle` SSA value
+/// directly, not a C++ object.
+struct handle_index_t {};
+inline constexpr handle_index_t handle_index{};
+} // namespace details
 
 /// @brief Opaque, device-only handle for a measurement event.
 ///
@@ -27,11 +43,21 @@ namespace cudaq {
 /// during AST -> Quake conversion and is replaced with the bare `i64`
 /// payload by `lower-cc-measure-handle` immediately before QIR conversion.
 ///
+/// A default-constructed `measure_handle` is *unbound*: it has not been
+/// produced by any `mz_handle` / `mx_handle` / `my_handle` call, and its
+/// `index` carries the sentinel `std::numeric_limits<std::int64_t>::max()`.
+/// Passing an unbound handle to `cudaq::discriminate` (directly or via
+/// `cudaq::to_integer` on a vector containing one) is a frontend diagnostic:
+/// `discriminating an unbound measure_handle`. The tag-dispatched
+/// constructor `measure_handle(details::handle_index, idx)` is reserved for
+/// internal use; `measure_handle{42}` does not compile.
+///
 /// The handle API is MLIR-only: the operations declared here have no
 /// definitions in library mode. A non-MLIR call resolves to an unresolved
 /// symbol at link time, which is the intended device-only signal. The class
-/// itself is constructible on the host so that container code (e.g.
-/// `std::vector<measure_handle>`) compiles outside of `__qpu__` regions.
+/// itself is trivially copyable and constructible on the host so that
+/// container code (e.g. `std::vector<measure_handle>`) compiles outside of
+/// `__qpu__` regions.
 ///
 /// `operator==` and `operator!=` are deleted: comparing two handles would
 /// require a classical readout, and silently inserting two `discriminate`
@@ -41,13 +67,14 @@ namespace cudaq {
 class measure_handle {
 public:
   measure_handle() = default;
-  explicit measure_handle(int idx) : index(idx) {}
+  explicit measure_handle(details::handle_index_t, std::int64_t idx)
+      : index(idx) {}
 
   bool operator==(const measure_handle &) const = delete;
   bool operator!=(const measure_handle &) const = delete;
 
 private:
-  int index = 0;
+  std::int64_t index = std::numeric_limits<std::int64_t>::max();
 };
 
 } // namespace cudaq
