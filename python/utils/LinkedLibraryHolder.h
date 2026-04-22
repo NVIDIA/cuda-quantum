@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -13,6 +13,7 @@
 #include "cudaq/Support/TargetConfig.h"
 #include "cudaq/host_config.h"
 #include <filesystem>
+#include <functional>
 #include <map>
 #include <string>
 #include <unordered_map>
@@ -50,6 +51,12 @@ protected:
   /// @brief Vector of available platforms
   std::vector<std::string> availablePlatforms;
 
+  /// @brief Map simulator names to their library paths (for on-demand loading)
+  std::unordered_map<std::string, std::filesystem::path> simulatorLibPaths;
+
+  /// @brief Map platform names to their library paths (for on-demand loading)
+  std::unordered_map<std::string, std::filesystem::path> platformLibPaths;
+
   /// @brief Map of available targets.
   std::unordered_map<std::string, RuntimeTarget> targets;
 
@@ -62,9 +69,25 @@ protected:
   /// @brief Store the name of the current target
   std::string currentTarget;
 
+  /// @brief Whether the full target setup (resetTarget) has run
+  bool targetInitialized = false;
+
+  /// @brief CUDAQ_DEFAULT_SIMULATOR captured at import time
+  std::string cachedDefaultSimulatorEnv;
+
+  /// @brief Load a library on demand if not already loaded.
+  void ensureLibLoaded(const std::filesystem::path &path);
+
+  /// @brief Determine the default target based on available GPUs and
+  /// simulators.
+  std::string resolveDefaultTarget();
+
 public:
   LinkedLibraryHolder();
   ~LinkedLibraryHolder();
+
+  /// @brief Whether the full target setup has completed.
+  bool isTargetInitialized() const { return targetInitialized; }
 
   /// @brief Return the registered simulator with the given name.
   nvqir::CircuitSimulator *getSimulator(const std::string &name);
@@ -74,10 +97,10 @@ public:
 
   /// @brief Return the available runtime target with given name.
   /// Throws an exception if no target available with that name.
-  RuntimeTarget getTarget(const std::string &name) const;
+  RuntimeTarget getTarget(const std::string &name);
 
   /// @brief Return the current target.
-  RuntimeTarget getTarget() const;
+  RuntimeTarget getTarget();
 
   /// @brief Return all available runtime targets
   std::vector<RuntimeTarget> getTargets() const;

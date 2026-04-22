@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -7,14 +7,13 @@
 # ============================================================================ #
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
-set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 macro (AddQppBackend LIBRARY_NAME SOURCE_FILE)
   add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILE})
   set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 
   set (QPP_DEPENDENCIES "")
-  list(APPEND QPP_DEPENDENCIES fmt::fmt-header-only cudaq-common)
+  list(APPEND QPP_DEPENDENCIES fmt::fmt-header-only cudaq-common cudaq-logger)
   add_openmp_configurations(${LIBRARY_NAME} QPP_DEPENDENCIES)
 
   target_include_directories(${LIBRARY_NAME}

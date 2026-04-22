@@ -35,7 +35,7 @@ name: Pre-built binaries
 jobs:
   build_installer:
     name: Build CUDA Quantum assets
-    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu32') || 'linux-amd64-cpu32' }}
     permissions:
       contents: read
       packages: write
@@ -59,7 +59,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           submodules: true
 
@@ -96,18 +96,20 @@ jobs:
           if ${{ github.event.pull_request.merged == true }}; then
             tag_name=`echo ${{ github.event.pull_request.base.ref }} | tr / -`
             custom_tags="type=raw,value=${tag_name},priority=1000"
-          elif ${{ startsWith(github.ref_name, 'pull-request/') }}; then
-            pr_number=`echo ${{ github.ref_name }} | cut -d / -f2`
-            custom_tags="type=raw,value=pr-${pr_number},priority=1000"
+          elif [[ "${{ github.ref_name }}" =~ (pull-request/|.*/pr-)([0-9]+) ]]; then
+            custom_tags="type=raw,value=pr-${BASH_REMATCH[2]},priority=1000"
           fi
 
           registry_cache=`echo "${{ inputs.build_cache }}" | (egrep -o 'type=registry,ref=[a-zA-Z0-9_:/\.-]*' || echo)`
           registry_cache_image=`echo $registry_cache | rev | cut -d : -f2- | rev`
 
+          ccache_key=${platform_tag}-${build_config_id:+$build_config_id-}assets
+
           echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
           echo "tag_prefix=$tag_prefix" >> $GITHUB_OUTPUT
           echo "custom_tags=$custom_tags" >> $GITHUB_OUTPUT
+          echo "ccache_key=$ccache_key" >> $GITHUB_OUTPUT
           echo "artifact_name=cudaq-${tag_prefix}installer-${{ github.run_id }}" >> $GITHUB_OUTPUT
           {
             echo 'additional_build_caches<<multiline'
@@ -133,6 +135,20 @@ jobs:
             network=host
             image=moby/buildkit:v0.19.0
 
+      - name: Setup proxy cache
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: true
+
+      - name: Set up ccache and ORAS
+        uses: ./.github/actions/ccache-setup
+
+      - name: Restore ccache from GHCR
+        uses: ./.github/actions/ccache-restore
+        with:
+          cache-key: ${{ steps.config.outputs.ccache_key }}
+          registry-token: ${{ github.token }}
+
       - name: Extract metadata
         id: metadata
         uses: docker/metadata-action@v5
@@ -156,6 +172,8 @@ jobs:
         with:
           context: .
           file: ./docker/build/assets.Dockerfile
+          build-contexts: |
+            ccache-data=/tmp/ccache-data
           build-args: |
             release_version=${{ steps.config.outputs.cudaq_version }}
             base_image=${{ inputs.platform_base_image }}
@@ -167,6 +185,33 @@ jobs:
             ${{ inputs.build_cache }}
             ${{ steps.config.outputs.additional_build_caches }}
           push: true
+
+      - name: Extract ccache from build
+        timeout-minutes: 15
+        continue-on-error: true
+        run: |
+          mkdir -p /tmp/ccache-export
+          docker buildx build \
+            -f ./docker/build/assets.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-arg release_version=${{ steps.config.outputs.cudaq_version }} \
+            --build-arg base_image=${{ inputs.platform_base_image }} \
+            --build-arg cuda_version=${{ inputs.cuda_version }} \
+            --target ccache-export \
+            --output type=local,dest=/tmp/ccache-export \
+            2>&1 | tail -20
+          if [ -f /tmp/ccache-export/ccache.tar ]; then
+            mkdir -p /tmp/ccache-export/ccache
+            tar xf /tmp/ccache-export/ccache.tar -C /tmp/ccache-export/ccache
+            rm -f /tmp/ccache-export/ccache.tar
+          fi
+
+      - name: Push ccache to GHCR
+        uses: ./.github/actions/ccache-push
+        with:
+          cache-key: ${{ steps.config.outputs.ccache_key }}
+          cache-path: /tmp/ccache-export/ccache
+          registry-token: ${{ github.token }}
 
       - name: Install Cosign
         if: inputs.environment
@@ -211,13 +256,13 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Configure build
         id: cache
         run: |
           build_cache=`echo "${{ inputs.build_cache }}" | sed 's/prereqs/openmpi/g'`
-          cache_to="${build_cache},mode=max,ignore-error=false"
+          cache_to="${build_cache},mode=max,ignore-error=false,compression=zstd"
           echo "cache_to=$cache_to" >> $GITHUB_OUTPUT
           echo "build_cache=$build_cache" >> $GITHUB_OUTPUT
 
@@ -233,6 +278,11 @@ jobs:
           buildkitd-config: /etc/buildkit/buildkitd.toml # hard-coded to run on our runners
           driver-opts: |
             image=moby/buildkit:v0.19.0
+
+      - name: Setup proxy cache
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: true
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
@@ -273,7 +323,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - id: config
         run: |
@@ -301,7 +351,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
@@ -413,15 +463,16 @@ jobs:
               exit 101
             fi
 
-            # Re-install CUDA Quantum
+            # Re-install CUDA Quantum to a custom location (no sudo, tests --installpath)
+            custom_install=/home/cudaq/cudaq-custom
             MPI_PATH=/usr/local/openmpi \
-            sudo -E bash install_cuda_quantum_cu$(echo ${{ inputs.cuda_version }} | cut -d . -f1).$(uname -m) --accept | tee install_log.txt
+            bash install_cuda_quantum_cu$(echo ${{ inputs.cuda_version }} | cut -d . -f1).$(uname -m) --accept -- --installpath $custom_install | tee install_log.txt
             if [ -n "$(cat install_log.txt | grep -i 'Warning:')" ]; then
               echo "::error::Re-installation produced a warning. Check the log for more detail."
               exit 102
             fi
 
-            . /etc/profile
+            source $HOME/.bashrc
             set +e # Allow script to keep going through errors
             sudo bash /install_sshclient.sh
             status_sum=0
@@ -459,7 +510,7 @@ jobs:
             done
             
             # Execute simple remote simulator tests with the installer 
-            # because this target was skipped in validate.sh due to 
+            # because this target was skipped in validate_installation.sh due to 
             # incomplete MPI installation (need install_sshclient.sh).
             for ex in `find examples/other/remote_sim/ -name '*.cpp'`; do
               nvq++ --target remote-mqpu $ex
@@ -526,7 +577,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Create build info
         id: staging

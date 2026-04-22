@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -77,20 +77,21 @@ private:
   void performAnalysis(Operation *op) {
     op->walk([&](quake::ApplyOp apply) {
       if (constProp) {
-        // If some of the arguments in getArgs() are constants, then materialize
-        // those constants in a clone of the variant. The specialized variant
-        // will then be able to perform better constant propagation even if not
-        // inlined.
+        // If some of the arguments in getActuals() are constants, then
+        // materialize those constants in a clone of the variant. The
+        // specialized variant will then be able to perform better constant
+        // propagation even if not inlined.
         auto calleeName = apply.getCallee()->getRootReference().str();
         if (func::FuncOp genericFunc =
                 module.lookupSymbol<func::FuncOp>(calleeName)) {
-          SmallVector<Value> newArgs;
-          newArgs.append(apply.getArgs().begin(), apply.getArgs().end());
+          SmallVector<Value> newArgs{apply.getActuals().begin(),
+                                     apply.getActuals().end()};
           IRMapping mapper;
           SmallVector<Value> preservedArgs;
           SmallVector<Type> inputTys;
           SmallVector<arith::ConstantOp> moveConsts;
           bool updateSignature = false;
+          SmallVector<unsigned> specializedPositions;
           for (auto [idx, v] : llvm::enumerate(newArgs)) {
             if (auto c = v.getDefiningOp<arith::ConstantOp>()) {
               auto newConst = c.clone();
@@ -102,6 +103,7 @@ private:
                 // Also, specialize any relaxed veq types.
                 v = relax.getInputVec();
                 updateSignature = true;
+                specializedPositions.push_back(preservedArgs.size());
                 LLVM_DEBUG(llvm::dbgs() << "specializing apply veq argument ("
                                         << v.getType() << ")\n");
               }
@@ -124,6 +126,16 @@ private:
               for (auto [arg, ty] :
                    llvm::zip(newFunc.front().getArguments(), inputTys))
                 arg.setType(ty);
+              for (unsigned pos : specializedPositions) {
+                auto *ctx = newFunc.getContext();
+                OpBuilder builder(ctx);
+                builder.setInsertionPoint(&newFunc.front().front());
+                auto relax = builder.create<quake::RelaxSizeOp>(
+                    newFunc.getLoc(), quake::VeqType::getUnsized(ctx),
+                    newFunc.front().getArgument(pos));
+                newFunc.front().getArgument(pos).replaceAllUsesExcept(
+                    relax.getResult(), relax.getOperation());
+              }
             }
             newFunc.setPrivate();
             Block &entry = newFunc.front();
@@ -189,7 +201,9 @@ private:
 
   func::FuncOp lookupCallee(quake::ApplyOp apply) {
     auto callee = apply.getCallee();
-    return module.lookupSymbol<func::FuncOp>(*callee);
+    if (callee)
+      return module.lookupSymbol<func::FuncOp>(*callee);
+    return {};
   }
 
   ModuleOp module;
@@ -242,6 +256,27 @@ static bool regionHasUnstructuredControlFlow(Region &region) {
     if (!isa<cudaq::cc::IfOp>(op) && !cudaq::opt::isaMonotonicLoop(&op) &&
         op.getNumRegions() > 1)
       return true; // Op has multiple regions but is not a known Op.
+    if (auto loop = dyn_cast<cudaq::cc::LoopOp>(op)) {
+      auto contOp =
+          cast<cudaq::cc::ContinueOp>(loop.getStepBlock()->getTerminator());
+      if (!contOp.getOperand(0).getDefiningOp())
+        return true; // TODO: Currently, cloneReversedLoop requires that the
+                     // first operand is the induction variable
+                     // See https://github.com/NVIDIA/cuda-quantum/issues/3818
+      for (size_t i = 0; i < loop.getNumResults(); i++) {
+        if (!loop.getResult(i).getUses().empty()) {
+          auto res = loop.getResult(i);
+          auto users = SmallVector<Operation *>(res.getUsers().begin(),
+                                                res.getUsers().end());
+          if (users.size() == 1 && users[0]->hasTrait<OpTrait::IsTerminator>())
+            continue;  // Exception, threading variables through nested loops is
+                       // acceptable
+          return true; // TODO: Threading variables through loops as
+                       // arguments/returns is not handled properly
+                       // See https://github.com/NVIDIA/cuda-quantum/issues/3818
+        }
+      }
+    }
     for (auto &reg : op.getRegions())
       if (regionHasUnstructuredControlFlow(reg))
         return true;
@@ -259,31 +294,77 @@ struct ApplyOpPattern : public OpRewritePattern<quake::ApplyOp> {
 
   LogicalResult matchAndRewrite(quake::ApplyOp apply,
                                 PatternRewriter &rewriter) const override {
-    auto calleeName = getVariantFunctionName(
-        apply, apply.getCallee()->getRootReference().str());
+    std::string calleeOrigName;
+    FunctionType calleeSignature;
+    if (auto callee = apply.getCallee()) {
+      calleeOrigName = callee->getRootReference().str();
+      auto fn =
+          SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(apply, *callee);
+      calleeSignature = fn.getFunctionType();
+    } else {
+      // Check if the first argument is a func.ConstantOp.
+      auto calleeVals = apply.getIndirectCallee();
+      if (calleeVals.empty())
+        return failure();
+      Value calleeVal = calleeVals.front();
+      auto fc = calleeVal.getDefiningOp<func::ConstantOp>();
+      if (!fc)
+        return failure();
+      calleeOrigName = fc.getValue().str();
+      calleeSignature = dyn_cast<FunctionType>(fc.getResult().getType());
+    }
+    auto calleeName = getVariantFunctionName(apply, calleeOrigName);
     auto *ctx = apply.getContext();
-    auto consTy = quake::VeqType::getUnsized(ctx);
+    auto unsizedVeqTy = quake::VeqType::getUnsized(ctx);
     SmallVector<Value> newArgs;
     if (!apply.getControls().empty()) {
-      auto consOp = rewriter.create<quake::ConcatOp>(apply.getLoc(), consTy,
-                                                     apply.getControls());
+      auto consOp = rewriter.create<quake::ConcatOp>(
+          apply.getLoc(), unsizedVeqTy, apply.getControls());
       newArgs.push_back(consOp);
     }
-    if (constProp) {
-      for (auto v : apply.getArgs()) {
-        if (auto c = v.getDefiningOp<arith::ConstantOp>())
-          continue;
-        newArgs.emplace_back(v);
-      }
-    } else {
-      newArgs.append(apply.getArgs().begin(), apply.getArgs().end());
+    for (auto [v, toTy] :
+         llvm::zip(apply.getActuals(), calleeSignature.getInputs())) {
+      if (constProp && v.getDefiningOp<arith::ConstantOp>())
+        continue;
+      Value arg = v;
+      if (arg.getType() != toTy)
+        arg =
+            rewriter.create<quake::ConcatOp>(apply.getLoc(), unsizedVeqTy, arg);
+      newArgs.emplace_back(arg);
     }
-    rewriter.replaceOpWithNewOp<func::CallOp>(apply, apply.getResultTypes(),
-                                              calleeName, newArgs);
+    LLVM_DEBUG(llvm::dbgs() << "replacing: " << apply << '\n');
+    [[maybe_unused]] auto result = rewriter.replaceOpWithNewOp<func::CallOp>(
+        apply, apply.getResultTypes(), calleeName, newArgs);
+    LLVM_DEBUG(llvm::dbgs() << "with " << result << '\n');
     return success();
   }
 
   const bool constProp;
+};
+
+struct FoldCallable : public OpRewritePattern<quake::ApplyOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::ApplyOp apply,
+                                PatternRewriter &rewriter) const override {
+    // If we already know the callee function, there's nothing to do.
+    if (apply.getCallee())
+      return failure();
+
+    Value ind = apply.getIndirectCallee()[0];
+    auto callee = ind.getDefiningOp<cudaq::cc::InstantiateCallableOp>();
+    if (!callee)
+      return failure();
+    auto sym = callee.getCallee();
+    SmallVector<Value> newArguments = {ind};
+    newArguments.append(apply.getActuals().begin(), apply.getActuals().end());
+    LLVM_DEBUG(llvm::dbgs() << "replacing " << apply << '\n');
+    [[maybe_unused]] auto result = rewriter.replaceOpWithNewOp<quake::ApplyOp>(
+        apply, apply.getResultTypes(), sym, apply.getIsAdj(),
+        apply.getControls(), newArguments);
+    LLVM_DEBUG(llvm::dbgs() << "as " << result << '\n');
+    return success();
+  }
 };
 
 class ApplySpecializationPass
@@ -293,7 +374,14 @@ public:
   using ApplySpecializationBase::ApplySpecializationBase;
 
   void runOnOperation() override {
-    ApplyOpAnalysis analysis(getOperation(), constantPropagation);
+    ModuleOp module = getOperation();
+    auto *ctx = module.getContext();
+    RewritePatternSet patterns(ctx);
+    patterns.insert<FoldCallable>(ctx);
+    if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
+      signalPassFailure();
+
+    ApplyOpAnalysis analysis(module, constantPropagation);
     const auto &applyVariants = analysis.getAnalysisInfo();
     if (succeeded(step1(applyVariants)))
       step2();
@@ -389,6 +477,13 @@ public:
     func.getBody().cloneInto(&newFunc.getBody(), mapping);
     auto controlNotNeeded = computeActionAnalysis(newFunc);
     auto newCond = newFunc.getBody().front().insertArgument(0u, veqTy, loc);
+    // Helper to check if this is a call to a function taking quantum arguments.
+    const auto isQuantumKernelCall = [](Operation *op) -> bool {
+      if (auto callOp = dyn_cast<func::CallOp>(op))
+        return !quake::getQuantumOperands(op).empty();
+      return false;
+    };
+
     newFunc.walk([&](Operation *op) {
       OpBuilder builder(op);
       if (op->hasTrait<cudaq::QuantumGate>()) {
@@ -425,9 +520,14 @@ public:
                            apply.getControls().end());
         auto newApply = builder.create<quake::ApplyOp>(
             apply.getLoc(), apply.getResultTypes(), apply.getCalleeAttr(),
-            apply.getIsAdjAttr(), newControls, apply.getArgs());
+            apply.getIsAdjAttr(), newControls, apply.getActuals());
         apply->replaceAllUsesWith(newApply.getResults());
         apply->erase();
+      } else if (isQuantumKernelCall(op)) {
+        op->emitError("Unhandled controlled quantum kernel call in control "
+                      "variant generation. This could be a result of not "
+                      "calling inlining before the apply specialization pass.");
+        signalPassFailure();
       }
     });
     return newFunc;

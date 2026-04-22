@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -16,7 +16,7 @@ import pytest
 
 
 @pytest.fixture(scope="session", autouse=True)
-def do_something():
+def set_up_target():
     cudaq.set_target("quera")
     yield "Running the tests."
     cudaq.reset_target()

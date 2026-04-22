@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -193,6 +193,13 @@ struct FuseAllocLength : public OpRewritePattern<cudaq::cc::AllocaOp> {
 void cudaq::cc::AllocaOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
   patterns.add<FuseAllocLength>(context);
+}
+
+LogicalResult cudaq::cc::AllocaOp::verify() {
+  // It is deeply incorrect to allocate storage for quake abstract types.
+  if (quake::isQuakeType(getElementType()))
+    return emitOpError("cannot classically allocate quake abstract type");
+  return success();
 }
 
 //===----------------------------------------------------------------------===//
@@ -1974,6 +1981,20 @@ void cudaq::cc::IfOp::build(OpBuilder &builder, OperationState &result,
   result.addTypes(resultTypes);
 }
 
+void cudaq::cc::IfOp::build(OpBuilder &builder, OperationState &result,
+                            TypeRange resultTypes, Value cond,
+                            ValueRange linearVals, RegionBuilderFn thenBuilder,
+                            RegionBuilderFn elseBuilder) {
+  auto *thenRegion = result.addRegion();
+  auto *elseRegion = result.addRegion();
+  thenBuilder(builder, result.location, *thenRegion);
+  if (elseBuilder)
+    elseBuilder(builder, result.location, *elseRegion);
+  result.addOperands(cond);
+  result.addOperands(linearVals);
+  result.addTypes(resultTypes);
+}
+
 LogicalResult cudaq::cc::IfOp::verify() {
   if (getNumResults() != 0 && getElseRegion().empty())
     return emitOpError("must have an else block if defining values");
@@ -2210,11 +2231,9 @@ void cudaq::cc::CreateLambdaOp::build(OpBuilder &builder,
 
 void cudaq::cc::CreateLambdaOp::print(OpAsmPrinter &p) {
   p << ' ';
-  bool hasArgs = getRegion().getNumArguments() != 0;
-  bool hasRes =
-      getType().cast<cudaq::cc::CallableType>().getSignature().getNumResults();
+  const bool hasArgs = getRegion().getNumArguments() != 0;
   p.printRegion(getRegion(), /*printEntryBlockArgs=*/hasArgs,
-                /*printBlockTerminators=*/hasRes);
+                /*printBlockTerminators=*/true);
   p << " : " << getType();
   p.printOptionalAttrDict((*this)->getAttrs(), {"signature"});
 }
@@ -2229,8 +2248,36 @@ ParseResult cudaq::cc::CreateLambdaOp::parse(OpAsmParser &parser,
     return failure();
   result.addAttribute("signature", TypeAttr::get(lambdaTy));
   result.addTypes(lambdaTy);
-  CreateLambdaOp::ensureTerminator(*body, parser.getBuilder(), result.location);
   return success();
+}
+
+//===----------------------------------------------------------------------===//
+// CallableFuncOp
+//===----------------------------------------------------------------------===//
+
+namespace {
+// FIXME: Same rewrite pattern as appears in LambdaLifting.cpp. Share it!
+struct CallableFuncOpPattern
+    : public OpRewritePattern<cudaq::cc::CallableFuncOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::cc::CallableFuncOp callFunc,
+                                PatternRewriter &rewriter) const override {
+    auto instance = callFunc.getCallable()
+                        .getDefiningOp<cudaq::cc::InstantiateCallableOp>();
+    if (!instance)
+      return failure();
+    rewriter.replaceOpWithNewOp<func::ConstantOp>(
+        callFunc, callFunc.getType(),
+        instance.getCallee().getRootReference().getValue());
+    return success();
+  }
+};
+} // namespace
+
+void cudaq::cc::CallableFuncOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<CallableFuncOpPattern>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -2498,6 +2545,25 @@ void cudaq::cc::OffsetOfOp::getCanonicalizationPatterns(
 // ReifySpanOp
 //===----------------------------------------------------------------------===//
 
+namespace {
+struct FoldCastToReifySpan : public OpRewritePattern<cudaq::cc::ReifySpanOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::cc::ReifySpanOp reify,
+                                PatternRewriter &rewriter) const override {
+    auto qast = reify.getElements().getDefiningOp<cudaq::cc::CastOp>();
+    if (!qast)
+      return failure();
+    auto arrTy = cast<cudaq::cc::ArrayType>(qast.getType());
+    if (!arrTy.isUnknownSize())
+      return failure();
+    rewriter.replaceOpWithNewOp<cudaq::cc::ReifySpanOp>(reify, reify.getType(),
+                                                        qast.getValue());
+    return success();
+  }
+};
+} // namespace
+
 LogicalResult cudaq::cc::ReifySpanOp::verify() {
   auto conArr = getElements().getDefiningOp<cudaq::cc::ConstantArrayOp>();
   if (!conArr && !isa<BlockArgument>(getElements()))
@@ -2505,6 +2571,41 @@ LogicalResult cudaq::cc::ReifySpanOp::verify() {
   if (conArr.arrayDimension() != spanDimension())
     return emitOpError("input array dimension must be same as span dimension.");
   return success();
+}
+
+void cudaq::cc::ReifySpanOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<FoldCastToReifySpan>(context);
+}
+
+//===----------------------------------------------------------------------===//
+// ConstantArrayOp
+//===----------------------------------------------------------------------===//
+
+namespace {
+struct ConstArrayConvertToKnownSize
+    : public OpRewritePattern<cudaq::cc::ConstantArrayOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::cc::ConstantArrayOp connie,
+                                PatternRewriter &rewriter) const override {
+    auto arrTy = cast<cudaq::cc::ArrayType>(connie.getArrayType().getType());
+    if (!arrTy.isUnknownSize())
+      return failure();
+    std::size_t size = connie.getConstantValuesAttr().size();
+    auto *ctx = rewriter.getContext();
+    auto newTy = cudaq::cc::ArrayType::get(ctx, arrTy.getElementType(), size);
+    auto ca = rewriter.create<cudaq::cc::ConstantArrayOp>(
+        connie.getLoc(), newTy, connie.getConstantValuesAttr());
+    rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(connie, arrTy, ca);
+    return success();
+  }
+};
+} // namespace
+
+void cudaq::cc::ConstantArrayOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<ConstArrayConvertToKnownSize>(context);
 }
 
 //===----------------------------------------------------------------------===//

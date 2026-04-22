@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -10,9 +10,12 @@ import pytest
 import numpy as np
 import cudaq
 
+swap_matrix = np.array([1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1],
+                       dtype=complex)
+
 
 @pytest.fixture(autouse=True)
-def do_something():
+def reset_and_run():
     cudaq.reset_target()
     yield
     ## Ref: https://github.com/NVIDIA/cuda-quantum/issues/1954
@@ -179,13 +182,14 @@ def test_bad_attribute():
 
     cudaq.register_operation("custom_s", np.array([1, 0, 0, 1j]))
 
-    @cudaq.kernel
-    def kernel():
-        q = cudaq.qubit()
-        custom_s.foo(q)
-        mz(q)
-
     with pytest.raises(Exception) as error:
+
+        @cudaq.kernel
+        def kernel():
+            q = cudaq.qubit()
+            custom_s.foo(q)
+            mz(q)
+
         cudaq.sample(kernel)
 
 
@@ -219,53 +223,151 @@ def test_builder_mode_control():
 def test_invalid_ctrl():
     cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
 
+    with pytest.raises(RuntimeError) as error:
+
+        @cudaq.kernel
+        def bell():
+            q = cudaq.qubit()
+            custom_x.ctrl(q)
+
+        bell.compile()
+    assert 'missing value' in repr(error)
+
+
+def test_individual_qubit_refs():
+    """custom_swap(q0, q1)"""
+    cudaq.register_operation("custom_swap", swap_matrix)
+
     @cudaq.kernel
-    def bell():
-        q = cudaq.qubit()
-        custom_x.ctrl(q)
+    def kernel():
+        qvec = cudaq.qvector(2)
+        x(qvec[0])
+        custom_swap(qvec[0], qvec[1])
+
+    counts = cudaq.sample(kernel)
+    assert counts.most_probable() == "01"
+
+
+def test_qvector_direct():
+    """custom_swap(qvec)"""
+    cudaq.register_operation("custom_swap", swap_matrix)
+
+    @cudaq.kernel
+    def kernel():
+        qvec = cudaq.qvector(2)
+        x(qvec[0])
+        custom_swap(qvec)
+
+    counts = cudaq.sample(kernel)
+    assert counts.most_probable() == "01"
+
+
+def test_starred_qvector():
+    """custom_swap(*qvec)"""
+    cudaq.register_operation("custom_swap", swap_matrix)
+
+    @cudaq.kernel
+    def kernel():
+        qvec = cudaq.qvector(2)
+        x(qvec[0])
+        custom_swap(*qvec)
+
+    counts = cudaq.sample(kernel)
+    assert counts.most_probable() == "01"
+
+
+def test_mixed_starred_qvec_and_qref():
+    """custom_swap(*qvec, qbit)"""
+    cudaq.register_operation("custom_swap", swap_matrix)
+
+    @cudaq.kernel
+    def kernel():
+        qvec = cudaq.qvector(1)
+        qbit = cudaq.qubit()
+        x(qvec[0])
+        custom_swap(*qvec, qbit)
+
+    counts = cudaq.sample(kernel)
+    assert counts.most_probable() == "01"
+
+
+def test_unstarred_qvec_and_qref():
+    """custom_swap(qvec, qbit)"""
+    cudaq.register_operation("custom_swap", swap_matrix)
+
+    @cudaq.kernel
+    def kernel():
+        qvec = cudaq.qvector(1)
+        qbit = cudaq.qubit()
+        x(qvec[0])
+        custom_swap(qvec, qbit)
+
+    counts = cudaq.sample(kernel)
+    assert counts.most_probable() == "01"
+
+
+def test_too_few_qubits_raises_error():
+    """custom_swap with only 1 qubit when 2 are required"""
+    cudaq.register_operation("custom_swap", swap_matrix)
 
     with pytest.raises(RuntimeError) as error:
-        bell.compile()
-    assert 'controlled operation requested without any control argument(s)' in repr(
+
+        @cudaq.kernel
+        def kernel():
+            qbit = cudaq.qubit()
+            custom_swap(qbit)
+
+        kernel.compile()
+    assert 'custom operation requires 2 qubit target(s), but 1 were provided' in repr(
         error)
 
 
-def test_bug_2452():
-    cudaq.register_operation("custom_i", np.array([1, 0, 0, 1]))
-
-    @cudaq.kernel
-    def kernel1():
-        qubits = cudaq.qvector(2)
-        custom_i(qubits)
+def test_too_many_qubits_raises_error():
+    """custom_swap with 3 qubits when 2 are required"""
+    cudaq.register_operation("custom_swap", swap_matrix)
 
     with pytest.raises(RuntimeError) as error:
-        kernel1.compile()
-    assert 'broadcasting is not supported on custom operations' in repr(error)
 
-    cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
+        @cudaq.kernel
+        def kernel():
+            q1 = cudaq.qubit()
+            q2 = cudaq.qubit()
+            q3 = cudaq.qubit()
+            custom_swap(q1, q2, q3)
 
-    @cudaq.kernel
-    def kernel2():
-        qubit = cudaq.qubit()
-        ancilla = cudaq.qvector(2)
-        x(ancilla)
-        custom_x.ctrl(ancilla, qubit)  # `controls` can be `qvector`
+        kernel.compile()
+    assert 'custom operation requires 2 qubit target(s), but 3 were provided' in repr(
+        error)
 
-    counts = cudaq.sample(kernel2)
-    assert len(counts) == 1 and '111' in counts
 
-    cudaq.register_operation(
-        "custom_cz", np.array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0,
-                               -1]))
+def test_unknown_veq_size_correct_count():
+    """custom_swap(*qvec), qvec size is a runtime parameter"""
+    cudaq.register_operation("custom_swap", swap_matrix)
 
     @cudaq.kernel
-    def kernel3():
-        qubits = cudaq.qvector(2)
-        custom_cz(qubits)
+    def kernel(n: int):
+        qvec = cudaq.qvector(n)
+        x(qvec[0])
+        custom_swap(*qvec)
+
+    counts = cudaq.sample(kernel, 2)
+    assert counts.most_probable() == "01"
+
+
+@pytest.mark.skip_macos_arm64_jit
+def test_unknown_veq_size_incorrect_count():
+    """custom_swap(*qvec), qvec has more qubits than the operation requires."""
+    cudaq.register_operation("custom_swap", swap_matrix)
+
+    @cudaq.kernel
+    def kernel(n: int):
+        qvec = cudaq.qvector(n)
+        x(qvec[0])
+        custom_swap(*qvec)
 
     with pytest.raises(RuntimeError) as error:
-        cudaq.sample(kernel3)
-    assert 'invalid number of arguments (1) passed to custom_cz (requires 2 arguments)' in repr(
+        cudaq.sample(kernel, 3)
+    assert 'custom operation requires 2 qubit target(s), but 3 were provided' in repr(
         error)
 
 

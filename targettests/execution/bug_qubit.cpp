@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates and Contributors. *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates and Contributors. *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,16 +9,19 @@
 // This code is from Issue 251.
 
 // clang-format off
-// RUN: nvq++ %cpp_std --target anyon                    --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target infleqtion               --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target ionq                     --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target iqm --iqm-machine Crystal_5 --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target oqc                      --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --target quantinuum               --emulate %s -o %t && %t | FileCheck %s
-// RUN: if %braket_avail; then nvq++ %cpp_std --target braket --emulate %s -o %t && %t | FileCheck %s; fi
-// RUN: if %qci_avail; then nvq++ %cpp_std --target qci --emulate %s -o %t && %t | FileCheck %s; fi
-// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t
-// RUN: cudaq-quake %cpp_std %s | cudaq-opt --promote-qubit-allocation | FileCheck --check-prefixes=MLIR %s
+// RUN: nvq++ --target anyon      --emulate %s -o %t && %t
+// RUN: nvq++ --target infleqtion --emulate %s -o %t && %t
+// RUN: nvq++ --target ionq       --emulate %s -o %t && %t
+// RUN: nvq++ --target iqm        --emulate %s -o %t
+// RUN: IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t
+// RUN: IQM_QPU_QA=%iqm_tests_dir/Crystal_20.txt %t
+// RUN: IQM_QPU_QA=%iqm_tests_dir/Crystal_54.txt %t
+// RUN: nvq++ --target oqc        --emulate %s -o %t && %t
+// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t
+// RUN: if %braket_avail; then nvq++ --target braket --emulate %s -o %t && %t; fi
+// RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t; fi
+// RUN: cudaq-quake %s | cudaq-opt --promote-qubit-allocation | FileCheck --check-prefixes=MLIR %s
+// clang-format on
 
 #include <cudaq.h>
 #include <iostream>
@@ -31,20 +34,21 @@ struct simple_x {
   }
 };
 
+// clang-format on
 // MLIR-LABEL:   func.func @__nvqpp__mlirgen__simple_x()
 // MLIR-NOT:       quake.alloca !quake.ref
 // MLIR:           %[[VAL_0:.*]] = quake.alloca !quake.veq<1>
 // MLIR-NEXT:      %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<1>) -> !quake.ref
+// clang-format off
 
 int main() {
   auto result = cudaq::sample(simple_x{});
 
 #ifndef SYNTAX_CHECK
   std::cout << result.most_probable() << '\n';
-  assert("1" == result.most_probable());
+  // Success is "1".
+  return std::string{"1"} != result.most_probable();
 #endif
 
   return 0;
 }
-
-// CHECK: 1

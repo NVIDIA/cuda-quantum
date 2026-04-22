@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -170,10 +170,11 @@ CUDAQ_TEST(GetStateTester, checkOverlapFromHostVector) {
 #endif
 
 CUDAQ_TEST(GetStateTester, checkKron) {
-  auto force_kron = [](std::vector<std::complex<cudaq::real>> vec) __qpu__ {
-    cudaq::qubit a;
-    cudaq::qvector qvec(vec);
-  };
+  auto force_kron = [](const std::vector<std::complex<cudaq::real>> &vec)
+                        __qpu__ {
+                          cudaq::qubit a;
+                          cudaq::qvector qvec(cudaq::state{vec});
+                        };
   // Construct a 6-qubit |111111> state
   const int num_qubits_input_state = 6;
   std::vector<std::complex<cudaq::real>> hostStateData(

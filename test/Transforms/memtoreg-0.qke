@@ -1,0 +1,150 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -factor-quantum-alloc -cable-rough-in -memtoreg %s | FileCheck %s
+
+func.func private @callee(!quake.veq<?>, f32)
+
+func.func @test() {
+  %0 = quake.alloca !quake.veq<2>
+  %1 = arith.constant 1.0 : f32
+  %2 = quake.relax_size %0 : (!quake.veq<2>) -> !quake.veq<?>
+  call @callee(%2, %1) : (!quake.veq<?>, f32) -> ()
+  quake.dealloc %0 : !quake.veq<2>
+  return
+}
+
+// CHECK-LABEL:   func.func @test() {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 1.000000e+00 : f32
+// CHECK:           %[[VAL_1:.*]] = quake.null_wire
+// CHECK:           %[[VAL_2:.*]] = quake.null_wire
+// CHECK:           %[[VAL_3:.*]] = quake.bundle_cable %[[VAL_1]], %[[VAL_2]] : (!quake.wire, !quake.wire) -> !quake.cable<2>
+// CHECK:           %[[VAL_4:.*]] = quake.call_by_ref @callee(%[[VAL_3]], %[[VAL_0]]) : (!quake.cable<2>, f32) -> !quake.cable<2>
+// CHECK:           %[[VAL_5:.*]]:2 = quake.split_cable %[[VAL_4]] : (!quake.cable<2>) -> (!quake.wire, !quake.wire)
+// CHECK:           quake.sink %[[VAL_5]]#0 : !quake.wire
+// CHECK:           quake.sink %[[VAL_5]]#1 : !quake.wire
+// CHECK:           return
+// CHECK:         }
+
+func.func private @callee_a(!quake.veq<?>, !quake.veq<?>)
+
+func.func @test_a() {
+  %0 = quake.alloca !quake.veq<2>
+  %1 = quake.alloca !quake.veq<3>
+  %2 = quake.relax_size %0 : (!quake.veq<2>) -> !quake.veq<?>
+  %3 = quake.relax_size %1 : (!quake.veq<3>) -> !quake.veq<?>
+  call @callee_a(%2, %3) : (!quake.veq<?>, !quake.veq<?>) -> ()
+  quake.dealloc %0 : !quake.veq<2>
+  quake.dealloc %1 : !quake.veq<3>
+  return
+}
+
+// CHECK-LABEL:   func.func @test_a() {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK:           %[[VAL_1:.*]] = quake.null_wire
+// CHECK:           %[[VAL_2:.*]] = quake.null_wire
+// CHECK:           %[[VAL_3:.*]] = quake.null_wire
+// CHECK:           %[[VAL_4:.*]] = quake.null_wire
+// CHECK:           %[[VAL_5:.*]] = quake.bundle_cable %[[VAL_0]], %[[VAL_1]] : (!quake.wire, !quake.wire) -> !quake.cable<2>
+// CHECK:           %[[VAL_6:.*]] = quake.bundle_cable %[[VAL_2]], %[[VAL_3]], %[[VAL_4]] : (!quake.wire, !quake.wire, !quake.wire) -> !quake.cable<3>
+// CHECK:           %[[VAL_7:.*]]:2 = quake.call_by_ref @callee_a(%[[VAL_5]], %[[VAL_6]]) : (!quake.cable<2>, !quake.cable<3>) -> (!quake.cable<2>, !quake.cable<3>)
+// CHECK:           %[[VAL_8:.*]]:2 = quake.split_cable %[[VAL_7]]#0 : (!quake.cable<2>) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[VAL_9:.*]]:3 = quake.split_cable %[[VAL_7]]#1 : (!quake.cable<3>) -> (!quake.wire, !quake.wire, !quake.wire)
+// CHECK:           quake.sink %[[VAL_8]]#0 : !quake.wire
+// CHECK:           quake.sink %[[VAL_8]]#1 : !quake.wire
+// CHECK:           quake.sink %[[VAL_9]]#0 : !quake.wire
+// CHECK:           quake.sink %[[VAL_9]]#1 : !quake.wire
+// CHECK:           quake.sink %[[VAL_9]]#2 : !quake.wire
+// CHECK:           return
+// CHECK:         }
+
+func.func private @callee_b(!quake.veq<2>, !quake.ref, !quake.veq<?>)
+
+func.func @test_b() {
+  %0 = quake.alloca !quake.veq<2>
+  %1 = quake.alloca !quake.veq<3>
+  %2 = quake.alloca !quake.ref
+  %3 = quake.relax_size %1 : (!quake.veq<3>) -> !quake.veq<?>
+  call @callee_b(%0, %2, %3) : (!quake.veq<2>, !quake.ref, !quake.veq<?>) -> ()
+  quake.dealloc %0 : !quake.veq<2>
+  quake.dealloc %1 : !quake.veq<3>
+  quake.dealloc %2 : !quake.ref
+  return
+}
+
+// CHECK-LABEL:   func.func @test_b() {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK:           %[[VAL_1:.*]] = quake.null_wire
+// CHECK:           %[[VAL_2:.*]] = quake.null_wire
+// CHECK:           %[[VAL_3:.*]] = quake.null_wire
+// CHECK:           %[[VAL_4:.*]] = quake.null_wire
+// CHECK:           %[[VAL_5:.*]] = quake.null_wire
+// CHECK:           %[[VAL_6:.*]] = quake.bundle_cable %[[VAL_0]], %[[VAL_1]] : (!quake.wire, !quake.wire) -> !quake.cable<2>
+// CHECK:           %[[VAL_7:.*]] = quake.bundle_cable %[[VAL_2]], %[[VAL_3]], %[[VAL_4]] : (!quake.wire, !quake.wire, !quake.wire) -> !quake.cable<3>
+// CHECK:           %[[VAL_8:.*]]:3 = quake.call_by_ref @callee_b(%[[VAL_6]], %[[VAL_5]], %[[VAL_7]]) : (!quake.cable<2>, !quake.wire, !quake.cable<3>) -> (!quake.cable<2>, !quake.wire, !quake.cable<3>)
+// CHECK:           %[[VAL_9:.*]]:2 = quake.split_cable %[[VAL_8]]#0 : (!quake.cable<2>) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[VAL_10:.*]]:3 = quake.split_cable %[[VAL_8]]#2 : (!quake.cable<3>) -> (!quake.wire, !quake.wire, !quake.wire)
+// CHECK:           quake.sink %[[VAL_9]]#0 : !quake.wire
+// CHECK:           quake.sink %[[VAL_9]]#1 : !quake.wire
+// CHECK:           quake.sink %[[VAL_10]]#0 : !quake.wire
+// CHECK:           quake.sink %[[VAL_10]]#1 : !quake.wire
+// CHECK:           quake.sink %[[VAL_10]]#2 : !quake.wire
+// CHECK:           quake.sink %[[VAL_8]]#1 : !quake.wire
+// CHECK:           return
+// CHECK:         }
+
+func.func private @callee_d(!quake.struq<!quake.veq<2>, !quake.ref>, !quake.veq<5>)
+
+func.func @test_d() {
+  %0 = quake.alloca !quake.struq<!quake.veq<2>, !quake.ref>
+  %1 = quake.alloca !quake.veq<5>
+  call @callee_d(%0, %1) : (!quake.struq<!quake.veq<2>, !quake.ref>, !quake.veq<5>) -> ()
+  quake.dealloc %1 : !quake.veq<5>
+  quake.dealloc %0 : !quake.struq<!quake.veq<2>, !quake.ref>
+  return
+}
+
+// CHECK-LABEL:   func.func @test_d() {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK:           %[[VAL_1:.*]] = quake.null_wire
+// CHECK:           %[[VAL_2:.*]] = quake.null_wire
+// CHECK:           %[[VAL_3:.*]] = quake.null_wire
+// CHECK:           %[[VAL_4:.*]] = quake.null_wire
+// CHECK:           %[[VAL_5:.*]] = quake.null_wire
+// CHECK:           %[[VAL_6:.*]] = quake.null_wire
+// CHECK:           %[[VAL_7:.*]] = quake.null_wire
+// CHECK:           %[[VAL_8:.*]] = quake.bundle_cable %[[VAL_0]], %[[VAL_1]], %[[VAL_2]] : (!quake.wire, !quake.wire, !quake.wire) -> !quake.cable<3>
+// CHECK:           %[[VAL_9:.*]] = quake.bundle_cable %[[VAL_3]], %[[VAL_4]], %[[VAL_5]], %[[VAL_6]], %[[VAL_7]] : (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire) -> !quake.cable<5>
+// CHECK:           %[[VAL_10:.*]]:2 = quake.call_by_ref @callee_d(%[[VAL_8]], %[[VAL_9]]) : (!quake.cable<3>, !quake.cable<5>) -> (!quake.cable<3>, !quake.cable<5>)
+// CHECK:           %[[VAL_11:.*]]:3 = quake.split_cable %[[VAL_10]]#0 : (!quake.cable<3>) -> (!quake.wire, !quake.wire, !quake.wire)
+// CHECK:           %[[VAL_12:.*]]:5 = quake.split_cable %[[VAL_10]]#1 : (!quake.cable<5>) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire)
+// CHECK:           quake.sink %[[VAL_12]]#0 : !quake.wire
+// CHECK:           quake.sink %[[VAL_12]]#1 : !quake.wire
+// CHECK:           quake.sink %[[VAL_12]]#2 : !quake.wire
+// CHECK:           quake.sink %[[VAL_12]]#3 : !quake.wire
+// CHECK:           quake.sink %[[VAL_12]]#4 : !quake.wire
+// CHECK:           quake.sink %[[VAL_11]]#0 : !quake.wire
+// CHECK:           quake.sink %[[VAL_11]]#1 : !quake.wire
+// CHECK:           quake.sink %[[VAL_11]]#2 : !quake.wire
+// CHECK:           return
+// CHECK:         }
+
+func.func private @callee_e(!quake.ref) -> i1
+
+func.func @test_e() -> i1 {
+  %4 = quake.alloca !quake.ref
+  %5 = call @callee_e(%4) : (!quake.ref) -> i1
+  quake.dealloc %4 : !quake.ref
+  return %5 : i1
+}
+
+// CHECK-LABEL:   func.func @test_e() -> i1 {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK:           %[[VAL_1:.*]]:2 = quake.call_by_ref @callee_e(%[[VAL_0]]) : (!quake.wire) -> (i1, !quake.wire)
+// CHECK:           return %[[VAL_1]]#0 : i1
+// CHECK:         }

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -10,9 +10,9 @@ add_library(cudaq-remote-simulator-qpu SHARED RemoteSimulatorQPU.cpp)
 target_link_libraries(cudaq-remote-simulator-qpu PUBLIC 
                         cudaq
                         cudaq-common 
+                        cudaq-logger
                         cudaq-mlir-runtime
                         rest-remote-platform-client
-                        fmt::fmt-header-only
                         cudaq-platform-mqpu
                     )
                     

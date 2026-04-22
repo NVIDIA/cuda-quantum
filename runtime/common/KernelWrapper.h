@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,9 +8,9 @@
 
 #pragma once
 
+#include "common/DeviceCodeRegistry.h"
 #include "cudaq/platform.h"
 #include "cudaq/qis/pauli_word.h"
-#include "cudaq/utils/registry.h"
 #include <cstdint>
 #include <cstring>
 #include <string>

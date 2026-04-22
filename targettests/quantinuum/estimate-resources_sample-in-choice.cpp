@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 NVIDIA Corporation & Affiliates.                         *
+ * Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,4 +7,4 @@
  ******************************************************************************/
 
 // RUN: echo skipping
-#include "../execution/estimate-resources_sample-in-choice.cpp"
+#include "../execution/estimate_resources_sample_in_choice.cpp"

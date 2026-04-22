@@ -1,4 +1,0 @@
-clang
-gcc
-nullary
-typedef

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,33 +7,38 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
-#include "common/FmtCore.h"
+#include "common/ExtraPayloadProvider.h"
 #include "cudaq/algorithm.h"
-#include <fstream>
 #include <gtest/gtest.h>
-#include <regex>
 
 namespace {
-std::string mockPort = "62440";
-// Helios NG device
-std::string backendStringTemplate =
-    "quantinuum;emulate;false;url;http://"
-    "localhost:{};credentials;{};project;mock_project_id;machine;Helios-SC";
 
 bool isValidExpVal(double value) {
   // give us some wiggle room while keep the tests fast
   return value < -1.1 && value > -2.3;
 }
+namespace {
+class DummyDecoderConfig : public cudaq::ExtraPayloadProvider {
+
+  std::string m_configStr;
+
+public:
+  DummyDecoderConfig(const std::string &configStr) : m_configStr(configStr) {}
+  virtual ~DummyDecoderConfig() = default;
+  virtual std::string name() const override { return "dummy"; }
+  virtual std::string getPayloadType() const override {
+    return "gpu_decoder_config";
+  }
+  virtual std::string
+  getExtraPayload(const cudaq::RuntimeTarget &target) override {
+    return m_configStr;
+  }
+};
+} // namespace
+
 } // namespace
 
 CUDAQ_TEST(QuantinuumNGTester, checkSampleSync) {
-  std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppQuantinuum.config";
-  auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
-
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
 
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
@@ -46,13 +51,6 @@ CUDAQ_TEST(QuantinuumNGTester, checkSampleSync) {
 }
 
 CUDAQ_TEST(QuantinuumNGTester, checkObserveAsync) {
-  std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppQuantinuum.config";
-  auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
-
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
 
   auto [kernel, theta] = cudaq::make_kernel<double>();
   auto qubit = kernel.qalloc(2);
@@ -74,13 +72,6 @@ CUDAQ_TEST(QuantinuumNGTester, checkObserveAsync) {
 }
 
 CUDAQ_TEST(QuantinuumNGTester, checkControlledRotations) {
-  std::string home = std::getenv("HOME");
-  std::string fileName = home + "/FakeCppQuantinuum.config";
-  auto backendString =
-      fmt::format(fmt::runtime(backendStringTemplate), mockPort, fileName);
-
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(backendString);
   // Small number of shots as NG device mock always
   // runs in shot-shot mode for QIR output.
   constexpr int numShots = 10;
@@ -211,4 +202,10 @@ CUDAQ_TEST(QuantinuumNGTester, checkControlledRotations) {
     counts.dump();
     EXPECT_EQ(counts.count("11111111"), numShots);
   }
+}
+
+int main(int argc, char **argv) {
+  ::testing::InitGoogleTest(&argc, argv);
+  auto ret = RUN_ALL_TESTS();
+  return ret;
 }

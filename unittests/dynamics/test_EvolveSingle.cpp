@@ -1,5 +1,5 @@
 // /*******************************************************************************
-//  * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates. *
+//  * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates. *
 //  * All rights reserved. *
 //  * *
 //  * This source code and the accompanying materials are made available under *
@@ -275,4 +275,64 @@ TEST(EvolveTester, checkScalarTd) {
     EXPECT_NEAR((double)expVals[0], theoryResults[count], 1e-3);
     count++;
   }
+}
+
+TEST(EvolveTester, checkSimpleNoIntermediateResults) {
+  const cudaq::dimension_map dims = {{0, 2}};
+  cudaq::product_op<cudaq::matrix_handler> ham1 =
+      (2.0 * M_PI * 0.1 * cudaq::spin_op::x(0));
+  cudaq::sum_op<cudaq::matrix_handler> ham(ham1);
+
+  constexpr int numSteps = 10;
+  std::vector<double> steps = cudaq::linspace(0.0, 1.0, numSteps);
+  cudaq::schedule schedule(steps, {"t"});
+
+  cudaq::product_op<cudaq::matrix_handler> pauliZ_t = cudaq::spin_op::z(0);
+  cudaq::sum_op<cudaq::matrix_handler> pauliZ(pauliZ_t);
+  auto initialState =
+      cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
+
+  cudaq::integrators::runge_kutta integrator(1, 0.001);
+  auto result = cudaq::__internal__::evolveSingle(
+      ham, dims, schedule, initialState, integrator, {}, {pauliZ},
+      cudaq::IntermediateResultSave::None);
+
+  // Verify final expectation value only (no intermediate results)
+  EXPECT_TRUE(result.expectation_values.has_value());
+  EXPECT_EQ(result.expectation_values.value().size(), 1);
+  EXPECT_EQ(result.expectation_values.value()[0].size(), 1);
+
+  const double finalTime = steps.back();
+  const double expected = std::cos(2 * 2.0 * M_PI * 0.1 * finalTime);
+  EXPECT_NEAR(result.expectation_values.value()[0][0], expected, 1e-3);
+}
+
+TEST(EvolveTester, checkDensityMatrixNoIntermediateResults) {
+  const cudaq::dimension_map dims = {{0, 2}};
+  cudaq::product_op<cudaq::matrix_handler> ham1 =
+      (2.0 * M_PI * 0.1 * cudaq::spin_op::x(0));
+  cudaq::sum_op<cudaq::matrix_handler> ham(ham1);
+
+  constexpr int numSteps = 10;
+  std::vector<double> steps = cudaq::linspace(0.0, 1.0, numSteps);
+  cudaq::schedule schedule(steps, {"t"});
+
+  cudaq::product_op<cudaq::matrix_handler> pauliZ_t = cudaq::spin_op::z(0);
+  cudaq::sum_op<cudaq::matrix_handler> pauliZ(pauliZ_t);
+  auto initialState = cudaq::state::from_data(
+      std::vector<std::complex<double>>{1.0, 0.0, 0.0, 0.0});
+
+  cudaq::integrators::runge_kutta integrator(1, 0.001);
+  auto result = cudaq::__internal__::evolveSingle(
+      ham, dims, schedule, initialState, integrator, {}, {pauliZ},
+      cudaq::IntermediateResultSave::None);
+
+  // Verify final expectation value only (no intermediate results)
+  EXPECT_TRUE(result.expectation_values.has_value());
+  EXPECT_EQ(result.expectation_values.value().size(), 1);
+  EXPECT_EQ(result.expectation_values.value()[0].size(), 1);
+
+  const double finalTime = steps.back();
+  const double expected = std::cos(2 * 2.0 * M_PI * 0.1 * finalTime);
+  EXPECT_NEAR(result.expectation_values.value()[0][0], expected, 1e-3);
 }

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -21,7 +21,7 @@ def test_qir_profile():
         mz(q)
 
     # This device requires qir:0.1
-    cudaq.set_target('quantinuum', emulate=True, machine='H1-2E')
+    cudaq.set_target('quantinuum', emulate=True, machine='H2-2E')
     result = cudaq.sample(my_kernel)
 
 
@@ -33,7 +33,7 @@ def test_ng_qir_profile():
         x(q)
         mz(q)
 
-    # This device requires qir:0.2
+    # This device requires qir:1.0
     cudaq.set_target('quantinuum', emulate=True, machine='Helios-1E')
     result = cudaq.sample(my_kernel)
 

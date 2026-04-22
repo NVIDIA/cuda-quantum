@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -38,16 +38,23 @@ public:
 
     // Search through the controls for veqs with known sizes
     for (auto [index, control] : llvm::enumerate(op.getControls())) {
-      if (auto veq = dyn_cast<quake::VeqType>(control.getType())) {
-        if (!veq.hasSpecifiedSize())
+      if (isa<quake::VeqType>(control.getType())) {
+        auto size = quake::getVeqSize(control);
+        if (!size)
           return failure();
+
+        // Use the inner sized veq for extract_ref when looking through
+        // RelaxSizeOp (extract_ref needs a sized veq operand).
+        Value veqVal = control;
+        if (auto relaxOp = control.template getDefiningOp<quake::RelaxSizeOp>())
+          veqVal = relaxOp.getInputVec();
 
         // For each of the qubits in the veq, create an extraction instruction
         // The result of the extraction will be a new control
         // The veq is not added the newControls, so it will be dropped
-        for (size_t i = 0; i < veq.getSize(); ++i) {
+        for (size_t i = 0; i < *size; ++i) {
           auto ext =
-              rewriter.create<quake::ExtractRefOp>(op.getLoc(), control, i);
+              rewriter.create<quake::ExtractRefOp>(op.getLoc(), veqVal, i);
           newControls.push_back(ext);
           update = true;
         }
@@ -83,9 +90,10 @@ private:
   template <typename OP>
   static bool checkLegal(OP op) {
     for (auto control : op.getControls()) {
-      // Valid ops have no control veqs with a known size
-      if (auto veq = dyn_cast<quake::VeqType>(control.getType()))
-        if (veq.hasSpecifiedSize())
+      // Valid ops have no control veqs with a resolvable size (including
+      // veq<?> whose size can be determined through RelaxSizeOp).
+      if (isa<quake::VeqType>(control.getType()))
+        if (quake::getVeqSize(control))
           return false;
     }
 

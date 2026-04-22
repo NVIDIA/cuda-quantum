@@ -1,35 +1,22 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-enable_language(CUDA)
-find_package(CUDAToolkit REQUIRED)
+message (STATUS "cuStateVec_FOUND - building custatevec NVQIR backend.")
 
-set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
-message (STATUS "CUSTATEVEC_ROOT and CUDA_FOUND - building custatevec NVQIR backend.")
+# Ensure the cuStateVec library directory is on the install RPATH.
+get_target_property(_cusv_loc cuStateVec::cuStateVec IMPORTED_LOCATION)
+if(_cusv_loc)
+  get_filename_component(_cusv_dir "${_cusv_loc}" DIRECTORY)
+  set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${_cusv_dir}")
+endif()
 
 add_library(nvqir-custatevec-kernels SHARED CuStateVecCircuitSimulator.cu)
 install(TARGETS nvqir-custatevec-kernels DESTINATION lib)
-
-find_library(CUSTATEVEC_LIB
-    NAMES custatevec libcustatevec.so.1
-    HINTS
-    ${CUSTATEVEC_ROOT}/lib64
-    ${CUSTATEVEC_ROOT}/lib
-    ${CUSTATEVEC_ROOT}/lib64/${CUDAToolkit_VERSION_MAJOR}
-    ${CUSTATEVEC_ROOT}/lib/${CUDAToolkit_VERSION_MAJOR})
-
-if(NOT CUSTATEVEC_LIB)
-  message(FATAL_ERROR "\nUnable to find custatevec installation. Please ensure it is correctly installed and set and define CUSTATEVEC_ROOT if necessary (currently set to: ${CUSTATEVEC_ROOT}).")
-endif()
-message(STATUS "CUSTATEVEC_LIB: ${CUSTATEVEC_LIB}")
-
-get_filename_component(CUSTATEVEC_LIB_DIR ${CUSTATEVEC_LIB} DIRECTORY)
-SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${CUSTATEVEC_LIB_DIR}")
 
 macro (nvqir_create_cusv_plugin LIBRARY_NAME SOURCE_FILENAME)
   add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILENAME})
@@ -38,15 +25,25 @@ macro (nvqir_create_cusv_plugin LIBRARY_NAME SOURCE_FILENAME)
     PRIVATE 
       . .. 
       ${CUDAToolkit_INCLUDE_DIRS} 
-      ${CMAKE_SOURCE_DIR}/runtime/common
-      ${CUSTATEVEC_ROOT}/include)
+      ${CUDAToolkit_INCLUDE_DIRS}/cccl
+      ${CMAKE_SOURCE_DIR}/runtime/common)
+
+  # Prevent libc++ from defining the conflicting new/delete helpers
+  target_compile_definitions(${LIBRARY_NAME} PRIVATE
+    _LIBCPP_DISABLE_NEW_DELETE_DEFINITIONS
+  )
+
+  # Tell clang not to emit aligned new/delete operators
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    target_compile_options(${LIBRARY_NAME} PRIVATE -fno-aligned-allocation)
+  endif()
 
   target_link_libraries(${LIBRARY_NAME} 
                         PRIVATE
-                          fmt::fmt-header-only
+                          cudaq-logger
                           cudaq-common
                           nvqir-custatevec-kernels
-                          ${CUSTATEVEC_LIB}
+                          cuStateVec::cuStateVec
                           CUDA::cudart_static
                           CUDA::cublas)
   install(TARGETS ${LIBRARY_NAME} DESTINATION lib)

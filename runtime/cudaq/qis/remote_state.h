@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,9 +9,8 @@
 #pragma once
 
 #include "common/SimulationState.h"
-#include "cudaq.h"
+#include "cudaq/builder/kernel_builder.h"
 #include "cudaq/utils/cudaq_utils.h"
-
 namespace cudaq {
 /// Implementation of `SimulationState` for remote simulator backends.
 // The state is represented by a quantum kernel.
@@ -83,7 +82,8 @@ public:
   virtual void execute() const;
 
   /// @brief Helper to retrieve (kernel name, `args` pointers)
-  virtual std::optional<std::pair<std::string, std::vector<void *>>>
+  virtual std::optional<
+      std::tuple<std::string, std::string, std::vector<void *>>>
   getKernelInfo() const override;
 
   /// @brief Return the number of qubits this state represents.

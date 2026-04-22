@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,6 +10,7 @@
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Marshal.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
+#include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/IR/PatternMatch.h"
@@ -30,8 +31,13 @@ namespace {
 
 class QIRVendorDeviceCallPat
     : public OpRewritePattern<cudaq::cc::DeviceCallOp> {
+  bool insertTrapImplementation;
+
 public:
   using OpRewritePattern::OpRewritePattern;
+
+  QIRVendorDeviceCallPat(MLIRContext *context, bool insertTrapImpl)
+      : OpRewritePattern(context), insertTrapImplementation(insertTrapImpl) {}
 
   LogicalResult matchAndRewrite(cudaq::cc::DeviceCallOp devcall,
                                 PatternRewriter &rewriter) const override {
@@ -51,6 +57,76 @@ public:
     llvm::MD5::MD5Result result;
     hash.final(result);
     std::uint32_t callbackCode = result.low();
+
+    if (insertTrapImplementation && devFunc.isDeclaration()) {
+      // If `insertTrapImplementation` is enabled (e.g., AOT compilation for
+      // remote hardware providers), we want to insert a trap implementation for
+      // any unresolved device function (declaration only), so that we can
+      // perform AOT compilation without needing the actual device function
+      // definitions. This trap function will never be executed as the remote
+      // JIT pipeline would not be using the `device_call` functions anyway.
+      // Rather, these functions will only be resolved at runtime by the remote
+      // provider's runtime library.
+
+      // (1) Add a trap implementation for this device function declaration.
+      {
+        OpBuilder::InsertionGuard guard(rewriter);
+        // Add an entry block
+        auto &entryBlock = *devFunc.addEntryBlock();
+        rewriter.setInsertionPointToStart(&entryBlock);
+        // Create a call to the trap intrinsic.
+        // Error code 2 is used to indicate illegal execution of unreachable
+        // code.
+        Value errorCodeTwo =
+            rewriter.create<arith::ConstantIntOp>(devcall.getLoc(), 2, 64);
+        rewriter.create<func::CallOp>(devcall.getLoc(), TypeRange{},
+                                      cudaq::opt::QISTrap,
+                                      ValueRange{errorCodeTwo});
+        // For return (after the trap), load from nullptr to create return value
+        // of the same type as the device function, i.e., `return *(T*)nullptr;`
+        // for return type `T`.
+        // Note: this will never be executed because of the trap above. It's
+        // only to create a valid IR with the correct return type for the
+        // function.
+        SmallVector<Value> trapResults;
+        for (Type resTy : devFunc.getFunctionType().getResults()) {
+          auto nullPtr = rewriter.create<arith::ConstantOp>(
+              devcall.getLoc(),
+              rewriter.getZeroAttr(rewriter.getIntegerType(64)));
+          auto ptrTy = cudaq::cc::PointerType::get(resTy);
+          auto castedNullPtr = rewriter.create<cudaq::cc::CastOp>(
+              devcall.getLoc(), ptrTy, nullPtr);
+          auto loadedVal = rewriter.create<cudaq::cc::LoadOp>(devcall.getLoc(),
+                                                              castedNullPtr);
+          trapResults.push_back(loadedVal);
+        }
+
+        rewriter.create<func::ReturnOp>(devcall.getLoc(), trapResults);
+      }
+      // (2) Set this trap function as private and weak_odr linkage, to allow
+      // multiple definitions across translation units without linker errors.
+      // For example, compiling for a remote hardware provider with the actual
+      // device call library linkage (even though unused) should not cause any
+      // problems.
+      devFunc.setPrivate();
+      auto weakOdrLinkage = mlir::LLVM::linkage::Linkage::WeakODR;
+      auto linkage =
+          mlir::LLVM::LinkageAttr::get(rewriter.getContext(), weakOdrLinkage);
+      devFunc->setAttr("llvm.linkage", linkage);
+
+      // (3) Replace the device call with a no-inline call to prevent inlining
+      // of the trap function.
+      // We use a no-inline call here to ensure that the call to the device
+      // function is preserved as a call in the IR (even in the presence of the
+      // trap implementation). If the actual implementation is provided at link
+      // time, it will be used instead of the trap implementation due to the
+      // weak_odr linkage.
+      rewriter.replaceOpWithNewOp<cudaq::cc::NoInlineCallOp>(
+          devcall, devFunc.getFunctionType().getResults(), devFuncName,
+          devcall.getArgs());
+
+      return success();
+    }
 
     bool needToAddIt = true;
     SmallVector<Attribute> funcIdAttr;
@@ -118,8 +194,14 @@ public:
       return;
     }
 
+    if (failed(irBuilder.loadIntrinsic(module, cudaq::opt::QISTrap))) {
+      module.emitError("could not load QIR trap function.");
+      signalPassFailure();
+      return;
+    }
+
     patterns.add<ResolveDevicePtrOpPat>(ctx);
-    patterns.insert<QIRVendorDeviceCallPat>(ctx);
+    patterns.insert<QIRVendorDeviceCallPat>(ctx, insertTrapImplementation);
     if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
       signalPassFailure();
     return;

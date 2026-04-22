@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,7 +9,8 @@
 #include "cudaq.h"
 #define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
 
-#include "common/Logger.h"
+#include "common/FmtCore.h"
+#include "cudaq/runtime/logger/logger.h"
 #ifdef CUDAQ_HAS_CUDA
 #include "cuda_runtime_api.h"
 #endif
@@ -198,6 +199,11 @@ std::string demangle_kernel(const char *name) {
   return quantum_platform::demangle(name);
 }
 bool globalFalse = false;
+
+TargetSetter::TargetSetter(const char *backend) {
+  auto &platform = cudaq::get_platform();
+  platform.setTargetBackend(std::string(backend));
+}
 } // namespace cudaq::__internal__
 
 //===----------------------------------------------------------------------===//
@@ -207,31 +213,6 @@ void setRandomSeed(std::size_t);
 }
 
 namespace cudaq {
-
-void set_target_backend(const char *backend) {
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(std::string(backend));
-}
-
-// Ignore warnings about deprecations in platform.set_shots and
-// platform.clear_shots because the functions that are using them here
-// (cudaq::set_shots and cudaq::clear_shots are also deprecated and will be
-// removed at the same time.)
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-void set_shots(const std::size_t nShots) {
-  auto &platform = cudaq::get_platform();
-  platform.set_shots(nShots);
-}
-void clear_shots(const std::size_t nShots) {
-  auto &platform = cudaq::get_platform();
-  platform.clear_shots();
-}
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
 
 void set_noise(const cudaq::noise_model &model) {
   auto &platform = cudaq::get_platform();
@@ -344,5 +325,15 @@ void __nvqpp_vector_bool_free_temporary_initlists(
 /// should not be a compatibility issue.
 const char *__nvqpp_getStringData(const std::string &s) { return s.data(); }
 std::uint64_t __nvqpp_getStringSize(const std::string &s) { return s.size(); }
+
+/// Runtime error helper. This is called from JIT-compiled kernels when a custom
+/// operation is invoked with a qvector and its runtime size does not match the
+/// number of qubits the operation requires.
+void __nvqpp_customop_size_error(std::int64_t expected, std::int64_t actual) {
+  throw std::runtime_error(
+      fmt::format("custom operation requires {} qubit target(s), but {} were "
+                  "provided",
+                  expected, actual));
+}
 }
 } // namespace cudaq::support

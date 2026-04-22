@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -10,9 +10,10 @@ import cudaq
 from fastapi import FastAPI, HTTPException, Header, Query
 from fastapi.responses import JSONResponse
 from typing import Union
-import uvicorn, uuid, base64, ctypes
+import uuid, base64, ctypes
 from pydantic import BaseModel
 from llvmlite import binding as llvm
+from .. import PreallocatedQubitsContext
 
 # Define the REST Server App
 app = FastAPI()
@@ -36,6 +37,9 @@ createdResults = {}
 
 # Could how many times the client has requested the Job
 countJobGetRequests = 0
+
+# Keep track of created decoder configurations
+createdDecoderConfigs = {}
 
 llvm.initialize()
 llvm.initialize_native_target()
@@ -157,11 +161,13 @@ async def create_job(job: dict):
     items = job.get("data", {}).get("attributes", {}).get("definition",
                                                           {}).get("items", [])
 
-    device_name = job.get("data",
-                          {}).get("attributes",
-                                  {}).get("definition",
-                                          {}).get("backend_config",
-                                                  {}).get("device_name", "")
+    backend_config = job.get("data",
+                             {}).get("attributes",
+                                     {}).get("definition",
+                                             {}).get("backend_config", {})
+    # `QuantinuumConfig` uses "device_name"; `HeliosConfig` uses "system_name"
+    device_name = backend_config.get("device_name", "") or backend_config.get(
+        "system_name", "")
     if verbose:
         print("Job data =", job)
         print("Device name =", device_name)
@@ -181,6 +187,19 @@ async def create_job(job: dict):
     if verbose:
         print("Code")
         print(mstr)
+
+    # If any decoder configuration ID is provided, check it exists
+    decoder_config_id = job.get("data",
+                                {}).get("attributes",
+                                        {}).get("definition",
+                                                {}).get("gpu_decoder_config_id",
+                                                        None)
+    if decoder_config_id is not None:
+        if verbose:
+            print("Decoder config ID provided:", decoder_config_id)
+        if decoder_config_id not in createdDecoderConfigs:
+            raise HTTPException(status_code=400,
+                                detail="Invalid decoder configuration ID")
 
     # Get the function, number of qubits, and kernel name
     function = getKernelFunction(m)
@@ -202,17 +221,16 @@ async def create_job(job: dict):
     funcPtr = engine.get_function_address(kernelFunctionName)
     kernel = ctypes.CFUNCTYPE(None)(funcPtr)
 
+    # Clear any leftover log from previous jobs
+    cudaq.testing.getAndClearOutputLog()
+
     # Invoke the Kernel
     if is_ng_device:
         qir_log = f"HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1.0\nSTART\nMETADATA\tentry_point\nMETADATA\tqir_profiles\tadaptive_profile\nMETADATA\trequired_num_qubits\t{numQubitsRequired}\nMETADATA\trequired_num_results\t{numResultsRequired}\n"
 
         for i in range(shots):
-            cudaq.testing.toggleDynamicQubitManagement()
-            qubits, context = cudaq.testing.initialize(numQubitsRequired, 1,
-                                                       "run")
-            kernel()
-            _ = cudaq.testing.finalize(qubits, context)
-
+            with PreallocatedQubitsContext(numQubitsRequired, 1, "run"):
+                kernel()
             shot_log = cudaq.testing.getAndClearOutputLog()
             if i > 0:
                 qir_log += "START\n"
@@ -221,12 +239,10 @@ async def create_job(job: dict):
 
         createdJobs[job_id] = (job_name, qir_log)
     else:
-        cudaq.testing.toggleDynamicQubitManagement()
-        qubits, context = cudaq.testing.initialize(numQubitsRequired, shots)
-        kernel()
-        results = cudaq.testing.finalize(qubits, context)
+        with PreallocatedQubitsContext(numQubitsRequired, shots) as context:
+            kernel()
+        results = context.result
         results.dump()
-
         createdJobs[job_id] = (job_name, results)
 
     engine.remove_module(m)
@@ -344,7 +360,7 @@ async def get_results(result_id: str):
 
 
 # NG device results retrieval endpoint (`qsys_results`)
-@app.get("/api/qsys_results/v1beta/{result_id}")
+@app.get("/api/qsys_results/v1beta2/partial/{result_id}")
 async def get_results(result_id: str, version: int):
     # Version can only be 3 (default)
     if version not in [3]:
@@ -379,9 +395,42 @@ async def get_results(result_id: str, version: int):
     }
 
 
+# Endpoint to upload decoder configuration
+@app.post("/api/gpu_decoder_configs/v1beta/")
+async def create_decoder_config(job: dict):
+    global createdDecoderConfigs
+    config_id = str(uuid.uuid4())
+    config_base64 = job.get("data", {}).get("attributes",
+                                            {}).get("contents", "")
+    # Decode the base64 string
+    try:
+        config_str = base64.b64decode(config_base64,
+                                      validate=True).decode('utf-8')
+    except Exception as e:
+        raise HTTPException(status_code=400,
+                            detail="Invalid base64 encoding") from e
+
+    # Check that the configuration is valid YAML
+    import yaml
+    try:
+        yaml.safe_load(config_str)
+    except yaml.YAMLError as e:
+        raise HTTPException(status_code=400,
+                            detail="Invalid YAML format") from e
+
+    createdDecoderConfigs[config_id] = config_str
+    # Return response with module ID
+    return {
+        "data": {
+            "id": config_id,
+            "type": "gpu_decoder_config",
+            "attributes": {
+                "contents": config_base64
+            }
+        }
+    }
+
+
 def startServer(port):
+    import uvicorn
     uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")
-
-
-if __name__ == '__main__':
-    startServer(62440)

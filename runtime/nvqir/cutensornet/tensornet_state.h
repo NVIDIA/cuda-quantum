@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,6 +9,7 @@
 #pragma once
 #include "common/EigenDense.h"
 #include "common/SimulationState.h"
+#include "common/Timing.h"
 #include "cudaq/operators.h"
 #include "cutensornet.h"
 #include "tensornet_utils.h"
@@ -46,8 +47,10 @@ struct AppliedTensorOp {
   std::optional<NoiseChannelData> noiseChannel;
   std::vector<int32_t> targetQubitIds;
   std::vector<int32_t> controlQubitIds;
-  bool isAdjoint;
-  bool isUnitary;
+  bool isAdjoint = false;
+  bool isUnitary = false;
+
+  /// Constructor for gate/projector operations.
   AppliedTensorOp(void *dataPtr, const std::vector<int32_t> &targetQubits,
                   const std::vector<int32_t> &controlQubits, bool adjoint,
                   bool unitary)
@@ -55,6 +58,10 @@ struct AppliedTensorOp {
         controlQubitIds(controlQubits), isAdjoint(adjoint), isUnitary(unitary) {
   }
 
+  /// Constructor for noise channel operations.
+  /// Note: isAdjoint and isUnitary use default initialization (false) and
+  /// should not be read for noise channel ops - check noiseChannel.has_value()
+  /// first.
   AppliedTensorOp(const std::vector<int32_t> &qubits,
                   const std::vector<void *> &krausOps,
                   const std::vector<double> &probabilities)
@@ -76,8 +83,15 @@ protected:
   cutensornetState_t m_quantumState;
   /// Track id of gate tensors that are applied to the state tensors.
   std::int64_t m_tensorId = InvalidTensorIndexValue;
+  struct TempDevicePtrDeleter {
+    void operator()(void *ptr) const {
+      if (ptr)
+        cudaFree(ptr);
+    }
+  };
+
   // Device memory pointers to be cleaned up.
-  std::vector<void *> m_tempDevicePtrs;
+  std::vector<std::shared_ptr<void>> m_tempDevicePtrs;
   // Tensor ops that have been applied to the state.
   std::vector<AppliedTensorOp> m_tensorOps;
   ScratchDeviceMem &scratchPad;
@@ -85,6 +99,8 @@ protected:
   // This is a reference to the backend random number generator, which can be
   // reseeded by users.
   std::mt19937 &m_randomEngine;
+  // True if deterministic path-finding is to be used
+  static bool m_deterministic;
   bool m_hasNoiseChannel = false;
 
 public:
@@ -229,6 +245,8 @@ public:
 private:
   template <typename ScalarTy>
   friend class SimulatorMPS;
+  template <typename ScalarTy>
+  friend class SimulatorTensorNet;
   template <typename ScalarTy>
   friend class TensorNetSimulationState;
   /// Internal method to contract the tensor network.

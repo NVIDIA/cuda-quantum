@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -15,10 +15,14 @@
 #include "cudaq/algorithms/base_integrator.h"
 #include "cudaq/algorithms/integrator.h"
 #include "cudaq/schedule.h"
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/complex.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/unordered_map.h>
+#include <nanobind/stl/vector.h>
 
-namespace py = pybind11;
 namespace {
 cudaq::CuDensityMatState *asCudmState(cudaq::state &cudaqState) {
   auto *simState = cudaq::state_helper::getSimulationState(&cudaqState);
@@ -30,7 +34,7 @@ cudaq::CuDensityMatState *asCudmState(cudaq::state &cudaqState) {
 } // namespace
 
 // Internal dynamics bindings
-PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
+NB_MODULE(nvqir_dynamics_bindings, m) {
   class PyCuDensityMatTimeStepper : public cudaq::CuDensityMatTimeStepper {
   public:
     PyCuDensityMatTimeStepper(cudensitymatHandle_t handle,
@@ -42,104 +46,138 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
   };
 
   // Time stepper bindings
-  py::class_<PyCuDensityMatTimeStepper>(m, "TimeStepper")
-      .def(py::init(
-          [](cudaq::schedule schedule, std::vector<int64_t> modeExtents,
-             cudaq::sum_op<cudaq::matrix_handler> hamiltonian,
-             std::vector<cudaq::sum_op<cudaq::matrix_handler>> collapse_ops,
-             bool is_master_equation) {
-            std::unordered_map<std::string, std::complex<double>> params;
-            for (const auto &param : schedule.get_parameters()) {
-              params[param] = schedule.get_value_function()(param, 0.0);
-            }
-            auto liouvillian = cudaq::dynamics::Context::getCurrentContext()
-                                   ->getOpConverter()
-                                   .constructLiouvillian(
-                                       {hamiltonian}, {collapse_ops},
-                                       modeExtents, params, is_master_equation);
-            return PyCuDensityMatTimeStepper(
-                cudaq::dynamics::Context::getCurrentContext()->getHandle(),
-                liouvillian, schedule);
-          }))
-      .def(py::init([](cudaq::schedule schedule,
-                       std::vector<int64_t> modeExtents,
-                       cudaq::super_op superOp) {
-        std::unordered_map<std::string, std::complex<double>> params;
-        for (const auto &param : schedule.get_parameters()) {
-          params[param] = schedule.get_value_function()(param, 0.0);
-        }
-        auto liouvillian =
-            cudaq::dynamics::Context::getCurrentContext()
-                ->getOpConverter()
-                .constructLiouvillian({superOp}, modeExtents, params);
-        return PyCuDensityMatTimeStepper(
-            cudaq::dynamics::Context::getCurrentContext()->getHandle(),
-            liouvillian, schedule);
-      }))
-      .def(py::init([](cudaq::schedule schedule,
-                       std::vector<int64_t> modeExtents,
-                       const std::vector<cudaq::sum_op<cudaq::matrix_handler>>
-                           &hamiltonians,
-                       const std::vector<
-                           std::vector<cudaq::sum_op<cudaq::matrix_handler>>>
-                           &list_collapse_ops,
-                       bool is_master_equation) {
-        std::unordered_map<std::string, std::complex<double>> params;
-        for (const auto &param : schedule.get_parameters()) {
-          params[param] = schedule.get_value_function()(param, 0.0);
-        }
-        auto liouvillian =
-            cudaq::dynamics::Context::getCurrentContext()
-                ->getOpConverter()
-                .constructLiouvillian(hamiltonians, list_collapse_ops,
-                                      modeExtents, params, is_master_equation);
-        return PyCuDensityMatTimeStepper(
-            cudaq::dynamics::Context::getCurrentContext()->getHandle(),
-            liouvillian, schedule);
-      }))
-      .def(py::init([](cudaq::schedule schedule,
-                       std::vector<int64_t> modeExtents,
-                       const std::vector<cudaq::super_op> &superOps) {
-        std::unordered_map<std::string, std::complex<double>> params;
-        for (const auto &param : schedule.get_parameters()) {
-          params[param] = schedule.get_value_function()(param, 0.0);
-        }
-        auto liouvillian =
-            cudaq::dynamics::Context::getCurrentContext()
-                ->getOpConverter()
-                .constructLiouvillian(superOps, modeExtents, params);
-        return PyCuDensityMatTimeStepper(
-            cudaq::dynamics::Context::getCurrentContext()->getHandle(),
-            liouvillian, schedule);
-      }))
-      .def("compute", [](PyCuDensityMatTimeStepper &self,
-                         cudaq::state &inputState, double t) {
-        std::unordered_map<std::string, std::complex<double>> params;
-        for (const auto &param : self.m_schedule.get_parameters()) {
-          params[param] = self.m_schedule.get_value_function()(param, t);
-        }
-        return self.compute(inputState, t, params);
-      });
+  nanobind::class_<PyCuDensityMatTimeStepper>(m, "TimeStepper")
+      .def("__init__",
+           [](PyCuDensityMatTimeStepper *self, cudaq::schedule schedule,
+              std::vector<int64_t> modeExtents,
+              cudaq::sum_op<cudaq::matrix_handler> hamiltonian,
+              std::vector<cudaq::sum_op<cudaq::matrix_handler>> collapse_ops,
+              bool is_master_equation) {
+             std::unordered_map<std::string, std::complex<double>> params;
+             for (const auto &param : schedule.get_parameters()) {
+               params[param] = schedule.get_value_function()(param, 0.0);
+             }
+             auto liouvillian =
+                 cudaq::dynamics::Context::getCurrentContext()
+                     ->getOpConverter()
+                     .constructLiouvillian({hamiltonian}, {collapse_ops},
+                                           modeExtents, params,
+                                           is_master_equation);
+             new (self) PyCuDensityMatTimeStepper(
+                 cudaq::dynamics::Context::getCurrentContext()->getHandle(),
+                 liouvillian, schedule);
+           })
+      .def("__init__",
+           [](PyCuDensityMatTimeStepper *self, cudaq::schedule schedule,
+              std::vector<int64_t> modeExtents, cudaq::super_op superOp) {
+             std::unordered_map<std::string, std::complex<double>> params;
+             for (const auto &param : schedule.get_parameters()) {
+               params[param] = schedule.get_value_function()(param, 0.0);
+             }
+             auto liouvillian =
+                 cudaq::dynamics::Context::getCurrentContext()
+                     ->getOpConverter()
+                     .constructLiouvillian({superOp}, modeExtents, params);
+             new (self) PyCuDensityMatTimeStepper(
+                 cudaq::dynamics::Context::getCurrentContext()->getHandle(),
+                 liouvillian, schedule);
+           })
+      .def("__init__",
+           [](PyCuDensityMatTimeStepper *self, cudaq::schedule schedule,
+              std::vector<int64_t> modeExtents,
+              const std::vector<cudaq::sum_op<cudaq::matrix_handler>>
+                  &hamiltonians,
+              const std::vector<std::vector<
+                  cudaq::sum_op<cudaq::matrix_handler>>> &list_collapse_ops,
+              bool is_master_equation) {
+             std::unordered_map<std::string, std::complex<double>> params;
+             for (const auto &param : schedule.get_parameters()) {
+               params[param] = schedule.get_value_function()(param, 0.0);
+             }
+             auto liouvillian =
+                 cudaq::dynamics::Context::getCurrentContext()
+                     ->getOpConverter()
+                     .constructLiouvillian(hamiltonians, list_collapse_ops,
+                                           modeExtents, params,
+                                           is_master_equation);
+             new (self) PyCuDensityMatTimeStepper(
+                 cudaq::dynamics::Context::getCurrentContext()->getHandle(),
+                 liouvillian, schedule);
+           })
+      .def("__init__",
+           [](PyCuDensityMatTimeStepper *self, cudaq::schedule schedule,
+              std::vector<int64_t> modeExtents,
+              const std::vector<cudaq::super_op> &superOps) {
+             std::unordered_map<std::string, std::complex<double>> params;
+             for (const auto &param : schedule.get_parameters()) {
+               params[param] = schedule.get_value_function()(param, 0.0);
+             }
+             auto liouvillian =
+                 cudaq::dynamics::Context::getCurrentContext()
+                     ->getOpConverter()
+                     .constructLiouvillian(superOps, modeExtents, params);
+             new (self) PyCuDensityMatTimeStepper(
+                 cudaq::dynamics::Context::getCurrentContext()->getHandle(),
+                 liouvillian, schedule);
+           })
+      .def("compute",
+           [](PyCuDensityMatTimeStepper &self, cudaq::state &inputState,
+              double t) {
+             std::unordered_map<std::string, std::complex<double>> params;
+             for (const auto &param : self.m_schedule.get_parameters()) {
+               params[param] = self.m_schedule.get_value_function()(param, t);
+             }
+             return self.compute(inputState, t, params);
+           })
+      .def("compute",
+           [](PyCuDensityMatTimeStepper &self, cudaq::state &inputState,
+              double t, cudaq::state &outputState) {
+             std::unordered_map<std::string, std::complex<double>> params;
+             for (const auto &param : self.m_schedule.get_parameters()) {
+               params[param] = self.m_schedule.get_value_function()(param, t);
+             }
+
+             auto *inputSimState =
+                 cudaq::state_helper::getSimulationState(&inputState);
+             auto *castInputSimState =
+                 dynamic_cast<cudaq::CuDensityMatState *>(inputSimState);
+
+             auto *outputSimState =
+                 cudaq::state_helper::getSimulationState(&outputState);
+             auto *castOutputSimState =
+                 dynamic_cast<cudaq::CuDensityMatState *>(outputSimState);
+
+             if (!castInputSimState || !castOutputSimState)
+               throw std::runtime_error("Invalid input or output state.");
+
+             assert(castInputSimState->getBatchSize() ==
+                    castOutputSimState->getBatchSize());
+             self.computeImpl(castInputSimState->get_impl(),
+                              castOutputSimState->get_impl(), t, params,
+                              castInputSimState->getBatchSize());
+           });
 
   // System dynamics data class
-  py::class_<cudaq::SystemDynamics>(m, "SystemDynamics")
-      .def(py::init<>())
-      .def_readwrite("modeExtents", &cudaq::SystemDynamics::modeExtents)
-      .def_readwrite("hamiltonian", &cudaq::SystemDynamics::hamiltonian)
-      .def_readwrite("collapseOps", &cudaq::SystemDynamics::collapseOps)
-      .def_readwrite("parameters", &cudaq::SystemDynamics::parameters)
-      .def_readwrite("superOp", &cudaq::SystemDynamics::superOp);
+  nanobind::class_<cudaq::SystemDynamics>(m, "SystemDynamics")
+      .def(nanobind::init<>())
+      .def_rw("modeExtents", &cudaq::SystemDynamics::modeExtents)
+      .def_rw("hamiltonian", &cudaq::SystemDynamics::hamiltonian)
+      .def_rw("collapseOps", &cudaq::SystemDynamics::collapseOps)
+      .def_rw("parameters", &cudaq::SystemDynamics::parameters)
+      .def_rw("superOp", &cudaq::SystemDynamics::superOp);
 
   // Expectation calculation
-  py::class_<cudaq::CuDensityMatExpectation>(m, "CuDensityMatExpectation")
-      .def(py::init([](cudaq::sum_op<cudaq::matrix_handler> &obs,
-                       const std::vector<int64_t> &modeExtents) {
-        return cudaq::CuDensityMatExpectation(
-            cudaq::dynamics::Context::getCurrentContext()->getHandle(),
-            cudaq::dynamics::Context::getCurrentContext()
-                ->getOpConverter()
-                .convertToCudensitymatOperator({}, obs, modeExtents));
-      }))
+  nanobind::class_<cudaq::CuDensityMatExpectation>(m, "CuDensityMatExpectation")
+      .def("__init__",
+           [](cudaq::CuDensityMatExpectation *self,
+              cudaq::sum_op<cudaq::matrix_handler> &obs,
+              const std::vector<int64_t> &modeExtents) {
+             new (self) cudaq::CuDensityMatExpectation(
+                 cudaq::dynamics::Context::getCurrentContext()->getHandle(),
+                 cudaq::dynamics::Context::getCurrentContext()
+                     ->getOpConverter()
+                     .convertToCudensitymatOperator({}, obs, modeExtents));
+           })
       .def("prepare",
            [](cudaq::CuDensityMatExpectation &self, cudaq::state &state) {
              auto *cudmState = asCudmState(state);
@@ -158,9 +196,9 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
       });
 
   // Schedule class
-  py::class_<cudaq::schedule>(m, "Schedule")
-      .def(py::init<const std::vector<double> &,
-                    const std::vector<std::string> &>());
+  nanobind::class_<cudaq::schedule>(m, "Schedule")
+      .def(nanobind::init<const std::vector<double> &,
+                          const std::vector<std::string> &>());
 
   // Helper to initialize a data buffer state
   m.def("initializeState",
@@ -176,6 +214,18 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
                 new cudaq::CuDensityMatState(castSimState.to_density_matrix()));
           }
           return state;
+        });
+  // Helper to initialize a data buffer state from an unowned device pointer.
+  // We wrap the device pointer as a `CuDensityMatState` without copying data.
+  m.def("initializeState",
+        [](int64_t deviceDataPtr, std::size_t size,
+           const std::vector<int64_t> &modeExtents, int64_t batchSize) {
+          auto *cudmState = new cudaq::CuDensityMatState(
+              size, reinterpret_cast<void *>(deviceDataPtr), /*borrowed=*/true);
+          cudmState->initialize_cudm(
+              cudaq::dynamics::Context::getCurrentContext()->getHandle(),
+              modeExtents, batchSize);
+          return cudaq::state(cudmState);
         });
 
   // Helper to create an initial state
@@ -246,23 +296,24 @@ PYBIND11_MODULE(nvqir_dynamics_bindings, m) {
         return cudaq::__internal__::checkBatchingCompatibility(hamOps,
                                                                listCollapseOps);
       },
-      py::arg("hamiltonians"), py::arg("collapse_operators"));
+      nanobind::arg("hamiltonians"), nanobind::arg("collapse_operators"));
 
   m.def(
       "checkSuperOpBatchingCompatibility",
       [](const std::vector<cudaq::super_op> &super_operators) {
         return cudaq::__internal__::checkBatchingCompatibility(super_operators);
       },
-      py::arg("super_operators"));
+      nanobind::arg("super_operators"));
 
   auto integratorsSubmodule = m.def_submodule("integrators");
 
   // Runge-Kutta integrator
-  py::class_<cudaq::integrators::runge_kutta>(integratorsSubmodule,
-                                              "runge_kutta")
-      .def(py::init<int, std::optional<double>>(), py::kw_only(),
-           py::arg("order") = cudaq::integrators::runge_kutta::default_order,
-           py::arg("max_step_size") = py::none())
+  nanobind::class_<cudaq::integrators::runge_kutta>(integratorsSubmodule,
+                                                    "runge_kutta")
+      .def(nanobind::init<int, std::optional<double>>(), nanobind::kw_only(),
+           nanobind::arg("order") =
+               cudaq::integrators::runge_kutta::default_order,
+           nanobind::arg("max_step_size") = nanobind::none())
       .def("setState",
            [](cudaq::integrators::runge_kutta &self, cudaq::state &state,
               double t) { self.setState(state, t); })

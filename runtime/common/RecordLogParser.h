@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -41,9 +41,9 @@ public:
 class BooleanConverter : public TypeConverterBase<bool> {
 public:
   bool convert(const std::string &value) const override {
-    if (value == "true" || value == "1")
+    if (value == "true" || value == "True" || value == "1")
       return true;
-    if (value == "false" || value == "0")
+    if (value == "false" || value == "False" || value == "0")
       return false;
     throw std::runtime_error("Invalid boolean value");
   }
@@ -280,6 +280,12 @@ public:
 
 } // namespace details
 
+namespace {
+// Simplify look up of the required number of results by using a common
+// identifier instead of different QIR versions (0.1 and 1.0)
+constexpr char ResultCountMetadataName[] = "required_results";
+} // namespace
+
 //===----------------------------------------------------------------------===//
 // Main record log parser and decoder class
 //===----------------------------------------------------------------------===//
@@ -309,11 +315,8 @@ public:
 
 private:
   /// Process different types of records
-  void handleRecord(const std::vector<std::string> &);
   void handleHeader(const std::vector<std::string> &);
   void handleMetadata(const std::vector<std::string> &);
-  void handleStart(const std::vector<std::string> &);
-  void handleEnd(const std::vector<std::string> &);
   /// Central dispatcher that handles different output types including scalar
   /// values, arrays, and tuples.
   void handleOutput(const std::vector<std::string> &);
@@ -340,6 +343,7 @@ private:
   std::pair<std::optional<std::size_t>, std::vector<std::size_t>>
       dataLayoutInfo = {std::nullopt, {}};
   /// Metadata information extracted from the log
-  std::unordered_map<std::string, std::string> metadata;
+  std::unordered_map<std::string, std::string> metadata = {
+      {ResultCountMetadataName, "1"}};
 };
 } // namespace cudaq

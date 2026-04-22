@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -23,7 +23,7 @@ def mpi_init_finalize():
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def set_up_target():
     cudaq.set_target('nvidia-mqpu')
     yield
     cudaq.__clearKernelRegistries()

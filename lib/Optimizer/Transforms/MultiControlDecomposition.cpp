@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -20,7 +20,7 @@ using namespace cudaq;
 //===----------------------------------------------------------------------===//
 
 namespace cudaq::opt {
-#define GEN_PASS_DEF_MULTICONTROLDECOMPOSITIONPASS
+#define GEN_PASS_DEF_MULTICONTROLDECOMPOSITION
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
@@ -174,8 +174,8 @@ LogicalResult Decomposer::v_decomposition(quake::OperatorInterface op) {
 //===----------------------------------------------------------------------===//
 namespace {
 struct Decomposition
-    : public opt::impl::MultiControlDecompositionPassBase<Decomposition> {
-  using MultiControlDecompositionPassBase::MultiControlDecompositionPassBase;
+    : public opt::impl::MultiControlDecompositionBase<Decomposition> {
+  using MultiControlDecompositionBase::MultiControlDecompositionBase;
 
   void runOnOperation() override {
     func::FuncOp func = getOperation();

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -33,7 +33,8 @@ public:
                                 PatternRewriter &rewriter) const override {
     if (auto callee = call.getCallee()) {
       if (callee->equals(cudaq::opt::QIRMeasureBody) ||
-          callee->equals(cudaq::opt::QIRRecordOutput)) {
+          callee->equals(cudaq::opt::QIRRecordOutput) ||
+          callee->equals(cudaq::opt::QIRArrayRecordOutput)) {
         rewriter.eraseOp(call);
         return success();
       }

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -97,7 +97,6 @@ struct BackendEndConfigEntry {
   /// Enable/disable the library mode if provide.
   std::optional<bool> LibraryMode;
   /// IR lowering configuration (hardware REST QPU)
-  std::string PlatformLoweringConfig; // deprecated
   std::string JITHighLevelPipeline;
   std::string JITMidLevelPipeline;
   std::string JITLowLevelPipeline;
@@ -127,6 +126,18 @@ struct BackendEndConfigEntry {
   SimulationBackendSetting SimulationBackend;
   /// Any conditional compile/link flags configurations.
   std::vector<ConditionalBuildConfig> ConditionalBuildConfigs;
+
+  /// Returns true if any pass pipeline fields are configured.
+  bool hasPassPipeline() const;
+
+  /// Build the target pass pipeline string from configuration fields.
+  /// If TargetPassPipeline is set, returns it directly (full override,
+  /// interleave stages are ignored).
+  /// Otherwise builds: [high] [,deployStage] [,mid] [,finalizeStage] [,low]
+  /// where deployStage and finalizeStage are fixed stages interleaved
+  /// between the config-provided stages. Pass empty strings to skip them.
+  std::string getPassPipeline(std::string_view deployStage = {},
+                              std::string_view finalizeStage = {}) const;
 };
 
 /// Feature option mapping for NVIDIA target.
@@ -173,6 +184,6 @@ public:
 /// Process the target configuration into a `nvq++` compatible script according
 /// to the provided compile time (C++)/runtime (Python) target arguments.
 std::string processRuntimeArgs(const TargetConfig &config,
-                               const std::vector<std::string> &targetArgv);
+                               const std::map<std::string, std::string> &args);
 
 } // namespace cudaq::config

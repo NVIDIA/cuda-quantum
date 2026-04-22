@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -25,7 +25,7 @@ void initializeDeviceStateVector(uint32_t n_blocks, int32_t threads_per_block,
                                  size_t stateDimension);
 
 template <typename CudaDataType>
-void kronprod(uint32_t n_blocks, int32_t threads_per_block, size_t tsize1,
+void kronprod(uint32_t maxGridDimY, int32_t threads_per_block, size_t tsize1,
               const void *arr1, size_t tsize2, const void *arr2, void *arr0);
 
 #pragma pack(push, 4)

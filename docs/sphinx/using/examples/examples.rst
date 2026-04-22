@@ -19,7 +19,9 @@ Examples that illustrate how to use CUDA-Q for application development are avail
       Multi-GPU Workflows <multi_gpu_workflows.rst>
       Optimizers & Gradients  <../../examples/python/optimizers_gradients.ipynb>
       Noisy Simulations <../../examples/python/noisy_simulations.ipynb>
+      Pre-Trajectory Sampling with Batch Execution <ptsbe.rst>
       Constructing Operators <operators.rst>
       Performance Optimizations <../../examples/python/performance_optimizations.ipynb>
       Using Quantum Hardware Providers <hardware_providers.rst>
+      When to Use sample vs. run <sample_vs_run.rst>
       Dynamics Examples <dynamics_examples.rst>

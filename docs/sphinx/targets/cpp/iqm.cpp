@@ -1,6 +1,6 @@
 // Compile and run with:
 // ```
-// nvq++ --target iqm iqm.cpp --iqm-machine Crystal_5 -o out.x && ./out.x
+// nvq++ --target iqm iqm.cpp -o out.x && ./out.x
 // ```
 // Assumes a valid set of credentials have been stored.
 
@@ -31,7 +31,7 @@ struct crystal_5_ghz {
     for (int i = 0; i < 4; i++) {
       x<cudaq::ctrl>(q[i], q[i + 1]);
     }
-    auto result = mz(q);
+    mz(q);
   }
 };
 

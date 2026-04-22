@@ -1,17 +1,19 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <pybind11/complex.h>
-#include <pybind11/numpy.h>
-#include <pybind11/operators.h>
-#include <pybind11/stl.h>
+#include <nanobind/ndarray.h>
+#include <nanobind/operators.h>
+#include <nanobind/stl/complex.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/vector.h>
 
-#include "cudaq/utils/matrix.h"
+#include "cudaq/operators/matrix.h"
 #include "py_helpers.h"
 #include "py_matrix.h"
 
@@ -19,44 +21,25 @@
 
 namespace cudaq {
 
-/// @brief Extract the array data from a buffer_info into our
-/// own allocated data pointer.
-void extractMatrixData(py::buffer_info &info, std::complex<double> *data) {
-  if (info.format != py::format_descriptor<std::complex<double>>::format())
-    throw std::runtime_error(
-        "Incompatible buffer format, must be np.complex128.");
-
-  if (info.ndim != 2)
-    throw std::runtime_error("Incompatible buffer shape.");
-
-  memcpy(data, info.ptr,
-         sizeof(std::complex<double>) * (info.shape[0] * info.shape[1]));
-}
-
-void bindComplexMatrix(py::module &mod) {
-  py::class_<complex_matrix>(
-      mod, "ComplexMatrix", py::buffer_protocol(),
+void bindComplexMatrix(nanobind::module_ &mod) {
+  nanobind::class_<complex_matrix>(
+      mod, "ComplexMatrix",
       "The :class:`ComplexMatrix` is a thin wrapper around a "
       "matrix of complex<double> elements.")
-      /// The following makes this fully compatible with NumPy
-      .def_buffer([](complex_matrix &op) -> py::buffer_info {
-        return py::buffer_info(
-            op.get_data(complex_matrix::order::row_major),
-            sizeof(std::complex<double>),
-            py::format_descriptor<std::complex<double>>::format(), 2,
-            {op.rows(), op.cols()},
-            {sizeof(std::complex<double>) * op.cols(),
-             sizeof(std::complex<double>)});
-      })
-      .def(py::init([](const py::buffer &b) {
-             py::buffer_info info = b.request();
-             complex_matrix m(info.shape[0], info.shape[1]);
-             extractMatrixData(info,
-                               m.get_data(complex_matrix::order::row_major));
-             return m;
-           }),
-           "Create a :class:`ComplexMatrix` from a buffer of data, such as a "
-           "numpy.ndarray.")
+      .def(
+          "__init__",
+          [](complex_matrix *self,
+             nanobind::ndarray<std::complex<double>, nanobind::ndim<2>,
+                               nanobind::c_contig, nanobind::numpy>
+                 arr) {
+            auto rows = arr.shape(0);
+            auto cols = arr.shape(1);
+            new (self) complex_matrix(rows, cols);
+            memcpy(self->get_data(complex_matrix::order::row_major), arr.data(),
+                   sizeof(std::complex<double>) * rows * cols);
+          },
+          "Create a :class:`ComplexMatrix` from a buffer of data, such as a "
+          "numpy.ndarray.")
       .def(
           "num_rows", [](complex_matrix &m) { return m.rows(); },
           "Returns the number of rows in the matrix.")
@@ -85,7 +68,7 @@ void bindComplexMatrix(py::module &mod) {
           [](const complex_matrix &lhs, const complex_matrix &rhs) {
             return lhs == rhs;
           },
-          py::is_operator())
+          nanobind::is_operator())
       .def("__str__", &complex_matrix::to_string,
            "Returns the string representation of the matrix.")
       .def(

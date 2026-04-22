@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/Threading.h"
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
@@ -22,7 +23,7 @@ using namespace mlir;
 // Generated logic
 //===----------------------------------------------------------------------===//
 namespace cudaq::opt {
-#define GEN_PASS_DEF_DECOMPOSITIONPASS
+#define GEN_PASS_DEF_DECOMPOSITION
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
@@ -33,16 +34,31 @@ namespace {
 //===----------------------------------------------------------------------===//
 
 struct Decomposition
-    : public cudaq::opt::impl::DecompositionPassBase<Decomposition> {
-  using DecompositionPassBase::DecompositionPassBase;
+    : public cudaq::opt::impl::DecompositionBase<Decomposition> {
+  using DecompositionBase::DecompositionBase;
 
   /// Initialize the decomposer by building the set of patterns used during
   /// execution.
   LogicalResult initialize(MLIRContext *context) override {
     RewritePatternSet owningPatterns(context);
-    cudaq::populateWithAllDecompositionPatterns(owningPatterns);
-    patterns = FrozenRewritePatternSet(std::move(owningPatterns),
-                                       disabledPatterns, enabledPatterns);
+
+    if (!basis.empty() && !enabledPatterns.empty()) {
+      mlir::emitWarning(
+          mlir::UnknownLoc::get(context),
+          "Decomposition: basis is ignored when enabledPatterns is specified");
+    }
+
+    if (!basis.empty() && enabledPatterns.empty()) {
+      // Restrict to patterns useful for the target basis
+      cudaq::selectDecompositionPatterns(owningPatterns, basis,
+                                         disabledPatterns);
+      patterns = FrozenRewritePatternSet(std::move(owningPatterns));
+    } else {
+      cudaq::populateWithAllDecompositionPatterns(owningPatterns);
+      patterns = FrozenRewritePatternSet(std::move(owningPatterns),
+                                         disabledPatterns, enabledPatterns);
+    }
+
     return success();
   }
 

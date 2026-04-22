@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -18,7 +18,21 @@
 # CUDAQ_INSTALL_PREFIX=/path/for/installing/cudaq LLVM_INSTALL_PREFIX=/path/to/dir bash scripts/build_cudaq.sh
 # -or-
 # CUQUANTUM_INSTALL_PREFIX=/path/to/dir bash scripts/build_cudaq.sh
+# -or-
+# bash scripts/build_cudaq.sh -- -DCUDAQ_LIT_JOBS=2 
 #
+# Options:
+# -c <build_configuration>: The build configuration to use. Defaults to Release.
+# -t <install_toolchain>: The toolchain to use. Defaults to None.
+# -j <num_jobs>: The number of jobs to use. Defaults to None.
+# -v: Whether to print verbose output. Defaults to False.
+# -B <build_dir>: The build directory to use. Defaults to build.
+# -i: Whether to build incrementally. Defaults to False.
+# -s: Enable sanitizers (ASan, UBSan) for memory error detection. Defaults to False.
+# -p: Install prerequisites before building.
+# -I: Install only (skip configure and build, just run ninja install + post-install).
+# --: Arguments after -- are passed directly to cmake (e.g., -DVAR=value).
+# 
 # Prerequisites:
 # - glibc including development headers (available via package manager)
 # - git, ninja-build, python3, libpython3-dev (all available via apt install)
@@ -44,12 +58,40 @@ CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$HOME/.cudaq"}
 # Process command line arguments
 build_configuration=${CMAKE_BUILD_TYPE:-Release}
 verbose=false
+clean_build=true
+install_prereqs=false
 install_toolchain=""
+install_only=false
 num_jobs=""
+enable_sanitizers=false
+extra_cmake_args=""
+
+# Extract extra cmake args after -- separator
+args_before_sep=()
+found_sep=false
+for arg in "$@"; do
+  if [ "$arg" = "--" ]; then
+    found_sep=true
+  elif $found_sep; then
+    extra_cmake_args="$extra_cmake_args $arg"
+  else
+    args_before_sep+=("$arg")
+  fi
+done
+set -- "${args_before_sep[@]}"
+
+# Run the script from the top-level of the repo
+working_dir=`pwd`
+this_file_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+repo_root=$(cd "$this_file_dir" && git rev-parse --show-toplevel)
+build_dir="$working_dir/build"
+
+# Set default environment variables (won't override if already set)
+source "$this_file_dir/set_env_defaults.sh"
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:t:j:v" opt; do
+while getopts ":c:t:j:vB:ispI" opt; do
   case $opt in
     c) build_configuration="$OPTARG"
     ;;
@@ -59,6 +101,16 @@ while getopts ":c:t:j:v" opt; do
     ;;
     v) verbose=true
     ;;
+    B) build_dir="$OPTARG"
+    ;;
+    i) clean_build=false
+    ;;
+    s) enable_sanitizers=true
+    ;;
+    p) install_prereqs=true
+    ;;
+    I) install_only=true
+    ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
     (return 0 2>/dev/null) && return 1 || exit 1
     ;;
@@ -66,29 +118,41 @@ while getopts ":c:t:j:v" opt; do
 done
 OPTIND=$__optind__
 
-# Run the script from the top-level of the repo
-working_dir=`pwd`
-this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
-repo_root=$(cd "$this_file_dir" && git rev-parse --show-toplevel)
-
 # Prepare the build directory
-build_dir="$working_dir/build"
 echo "Build directory: $build_dir"
 mkdir -p "$CUDAQ_INSTALL_PREFIX/bin"
-mkdir -p "$build_dir" && cd "$build_dir" && rm -rf * 
+mkdir -p "$build_dir" && cd "$build_dir"
+if ! $install_only && $clean_build; then
+  rm -rf *
+fi
 mkdir -p logs && rm -rf logs/*
 
-if [ -n "$install_toolchain" ]; then
-  echo "Installing pre-requisites..."
+# Skip configure/build if install-only mode
+if $install_only; then
+  echo "Install-only mode: skipping configure and build..."
+else
+
+# Install prerequisites (opt-in with -p or -t)
+if $install_prereqs || [ -n "$install_toolchain" ]; then
+  echo "Installing prerequisites..."
+  # Save and clear positional parameters to avoid passing them to sourced script
+  saved_args=("$@")
+  if [ -n "$install_toolchain" ]; then
+    set -- -t "$install_toolchain"
+  else
+    set --
+  fi
   if $verbose; then
-    source "$this_file_dir/install_prerequisites.sh" -t "$install_toolchain"
+    source "$this_file_dir/install_prerequisites.sh" "$@"
     status=$?
   else
     echo "The install log can be found in `pwd`/logs/prereqs_output.txt."
-    source "$this_file_dir/install_prerequisites.sh" -t "$install_toolchain" \
+    source "$this_file_dir/install_prerequisites.sh" "$@" \
       2> logs/prereqs_error.txt 1> logs/prereqs_output.txt
     status=$?
   fi
+  # Restore positional parameters
+  set -- "${saved_args[@]}"
 
   if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
     echo -e "\e[01;31mError: Failed to install prerequisites.\e[0m" >&2
@@ -101,11 +165,11 @@ cuda_driver=${CUDACXX:-${CUDA_HOME:-/usr/local/cuda}/bin/nvcc}
 cuda_version=`"$cuda_driver" --version 2>/dev/null | grep -o 'release [0-9]*\.[0-9]*' | cut -d ' ' -f 2`
 cuda_major=`echo $cuda_version | cut -d '.' -f 1`
 cuda_minor=`echo $cuda_version | cut -d '.' -f 2`
-if [ "$cuda_version" = "" ] || [ "$cuda_major" -lt "11" ] || ([ "$cuda_minor" -lt "8" ] && [ "$cuda_major" -eq "11" ]); then
-  echo "CUDA version requirement not satisfied (required: >= 11.8, got: $cuda_version)."
+if [ "$cuda_version" = "" ] || [ "$cuda_major" -lt "12" ]; then
+  echo "CUDA version requirement not satisfied (required: >= 12.0, got: $cuda_version)."
   echo "GPU-accelerated components will be omitted from the build."
   unset cuda_driver
-else 
+else
   echo "CUDA version $cuda_version detected."
   if [ -z "$CUQUANTUM_INSTALL_PREFIX" ] && [ -x "$(command -v pip)" ] && [ -n "$(pip list | grep -o cuquantum-python-cu$cuda_major)" ]; then
     CUQUANTUM_INSTALL_PREFIX="$(pip show cuquantum-python-cu$cuda_major | sed -nE 's/Location: (.*)$/\1/p')/cuquantum"
@@ -129,7 +193,8 @@ else
 fi
 
 # Determine linker and linker flags
-if [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
+# On macOS, always use the system linker (Apple's ld) as we haven't yet added building with lld on MacOS.
+if [ "$(uname)" != "Darwin" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
   echo "Configuring nvq++ and local build to use the lld linker by default."
   NVQPP_LD_PATH="$LLVM_INSTALL_PREFIX/bin/ld.lld"
   LINKER_TO_USE="lld"
@@ -139,7 +204,7 @@ if [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
     -DCMAKE_EXE_LINKER_FLAGS='"$LINKER_FLAGS"' \
     -DLLVM_USE_LINKER='"$LINKER_TO_USE"'"
 else
-  echo "No lld linker detected. Using the system linker."
+  echo "Using the system linker."
   LINKER_FLAG_LIST=""
 fi
 
@@ -155,11 +220,39 @@ if [ -z "$CUDAHOSTCXX" ] && [ -z "$CUDAFLAGS" ]; then
   fi
 fi
 
-# Determine OpenMP flags
-if [ -n "$(find "$LLVM_INSTALL_PREFIX" -name 'libomp.so')" ]; then
-  OMP_LIBRARY=${OMP_LIBRARY:-libomp}
-  OpenMP_libomp_LIBRARY=${OMP_LIBRARY#lib}
-  OpenMP_FLAGS="${OpenMP_FLAGS:-'-fopenmp'}"
+# Determine OpenMP flags (check for .so on Linux, .dylib on macOS)
+OpenMP_libomp_LIBRARY_PATH=$(find "$LLVM_INSTALL_PREFIX" \( -name 'libomp.so' -o -name 'libomp.dylib' \) 2>/dev/null | head -1)
+if [ -n "$OpenMP_libomp_LIBRARY_PATH" ]; then
+  omp_header_dir=$(find "$LLVM_INSTALL_PREFIX" -name 'omp.h' -print -quit 2>/dev/null | xargs dirname)
+  # Apple Clang requires -Xpreprocessor -fopenmp; LLVM Clang/GCC use -fopenmp directly
+  # Use -idirafter to add omp.h path AFTER system headers (avoids conflicts with clang's stdint.h)
+  if ${CXX:-c++} --version 2>&1 | grep -q "Apple clang"; then
+    OpenMP_FLAGS="${OpenMP_FLAGS:--Xpreprocessor -fopenmp -idirafter $omp_header_dir}"
+  else
+    OpenMP_FLAGS="${OpenMP_FLAGS:--fopenmp -idirafter $omp_header_dir}"
+  fi
+fi
+
+# Check for ccache and configure compiler launcher
+CCACHE_FLAGS=""
+if [ -x "$(command -v ccache)" ]; then
+  echo "ccache detected. Configuring build to use ccache for faster recompilation."
+  CCACHE_FLAGS="\
+    -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
+  # Also enable ccache for CUDA if CUDA compiler is available
+  if [ -n "$cuda_driver" ]; then
+    CCACHE_FLAGS+=" -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache"
+  fi
+else
+  echo "ccache not found. To speed up recompilation, consider installing ccache."
+fi
+
+# Configure sanitizer option for CMake
+SANITIZER_FLAGS=""
+if $enable_sanitizers; then
+  echo "Enabling Address Sanitizer (ASan) and Undefined Behavior Sanitizer (UBSan)..."
+  SANITIZER_FLAGS="-DCUDAQ_ENABLE_SANITIZERS=ON"
 fi
 
 # Generate CMake files 
@@ -169,20 +262,28 @@ cmake_args="-G Ninja '"$repo_root"' \
   -DCMAKE_INSTALL_PREFIX='"$CUDAQ_INSTALL_PREFIX"' \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DNVQPP_LD_PATH='"$NVQPP_LD_PATH"' \
-  -DCMAKE_CUDA_COMPILER='"$cuda_driver"' \
-  -DCMAKE_CUDA_FLAGS='"$CUDAFLAGS"' \
-  -DCMAKE_CUDA_HOST_COMPILER='"${CUDAHOSTCXX:-$CXX}"' \
   ${LINKER_FLAG_LIST} \
-  ${OpenMP_libomp_LIBRARY:+-DOpenMP_C_LIB_NAMES=lib$OpenMP_libomp_LIBRARY} \
-  ${OpenMP_libomp_LIBRARY:+-DOpenMP_CXX_LIB_NAMES=lib$OpenMP_libomp_LIBRARY} \
-  ${OpenMP_libomp_LIBRARY:+-DOpenMP_libomp_LIBRARY=$OpenMP_libomp_LIBRARY} \
+  ${CCACHE_FLAGS} \
+  ${SANITIZER_FLAGS} \
+  ${OpenMP_libomp_LIBRARY_PATH:+-DOpenMP_C_LIB_NAMES=omp} \
+  ${OpenMP_libomp_LIBRARY_PATH:+-DOpenMP_CXX_LIB_NAMES=omp} \
+  ${OpenMP_libomp_LIBRARY_PATH:+-DOpenMP_omp_LIBRARY='"$OpenMP_libomp_LIBRARY_PATH"'} \
   ${OpenMP_FLAGS:+"-DOpenMP_C_FLAGS='"$OpenMP_FLAGS"'"} \
   ${OpenMP_FLAGS:+"-DOpenMP_CXX_FLAGS='"$OpenMP_FLAGS"'"} \
   -DCUDAQ_REQUIRE_OPENMP=${CUDAQ_REQUIRE_OPENMP:-FALSE} \
   -DCUDAQ_ENABLE_PYTHON=${CUDAQ_PYTHON_SUPPORT:-TRUE} \
   -DCUDAQ_BUILD_TESTS=${CUDAQ_BUILD_TESTS:-TRUE} \
   -DCUDAQ_TEST_MOCK_SERVERS=${CUDAQ_BUILD_TESTS:-TRUE} \
-  -DCMAKE_COMPILE_WARNING_AS_ERROR=${CUDAQ_WERROR:-ON}"
+  -DCMAKE_COMPILE_WARNING_AS_ERROR=${CUDAQ_WERROR:-ON} \
+  $extra_cmake_args"
+
+# Add CUDA-specific flags only on non-macOS systems
+if [ "$(uname)" != "Darwin" ]; then
+  cmake_args="$cmake_args \
+  -DCMAKE_CUDA_COMPILER='"$cuda_driver"' \
+  -DCMAKE_CUDA_FLAGS='"$CUDAFLAGS"' \
+  -DCMAKE_CUDA_HOST_COMPILER='"${CUDAHOSTCXX:-$CXX}"'"
+fi
 # Note that even though we specify CMAKE_CUDA_HOST_COMPILER above, it looks like the 
 # CMAKE_CUDA_COMPILER_WORKS checks do *not* use that host compiler unless the CUDAHOSTCXX 
 # environment variable is specified. Setting this variable may hence be necessary in 
@@ -190,10 +291,10 @@ cmake_args="-G Ninja '"$repo_root"' \
 # the set host compiler is not officially supported. We hence don't set that variable 
 # here, but keep the definition for CMAKE_CUDA_HOST_COMPILER.
 if $verbose; then 
-  echo $cmake_args | xargs cmake
+  echo "$cmake_args" | xargs cmake
   status=$?
 else
-  echo $cmake_args | xargs cmake \
+  echo "$cmake_args" | xargs cmake \
     2> logs/cmake_error.txt 1> logs/cmake_output.txt
   status=$?
 fi
@@ -205,8 +306,14 @@ if [ "$status" -ne 0 ]; then
   cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
 fi
 
-# Build and install CUDA-Q
-echo "Building CUDA-Q with configuration $build_configuration..."
+fi # end of skip for install-only mode
+
+# Install CUDA-Q (and build if not install-only)
+if $install_only; then
+  echo "Running ninja install..."
+else
+  echo "Building CUDA-Q with configuration $build_configuration..."
+fi
 logs_dir=`pwd`/logs
 if $verbose; then 
   ninja ${num_jobs} install

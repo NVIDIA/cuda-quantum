@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -24,5 +24,3 @@ install(FILES ${CMAKE_BINARY_DIR}/include/nvqpp_config.h
         DESTINATION include/nvqpp)
 install(PROGRAMS ${CUDAQ_BINARY_DIR}/bin/nvq++
         DESTINATION bin)
-install(FILES backendConfig.cpp DESTINATION targets/)
-file(COPY backendConfig.cpp DESTINATION ${CMAKE_BINARY_DIR}/targets/)

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 NVIDIA Corporation & Affiliates.                         *
+ * Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -37,11 +37,25 @@ struct TargetFinalizationPipelineOptions
       llvm::cl::init(true)};
 };
 
-struct PreDeviceCodeLoaderOptions
-    : public PassPipelineOptions<PreDeviceCodeLoaderOptions> {
+struct PythonAOTOptions : public PassPipelineOptions<PythonAOTOptions> {
   PassOptions::Option<bool> autoGenRunStack{
       *this, "gen-run-stack",
       llvm::cl::desc("Autogenerate the cudaq::run dispatch stack."),
+      llvm::cl::init(true)};
+  PassOptions::Option<bool> deferGKEToJIT{
+      *this, "defer-gke-to-jit",
+      llvm::cl::desc("Defer running GKE until JIT time."),
+      llvm::cl::init(true)};
+  PassOptions::Option<std::size_t> codegenKind{
+      *this, "codegen-kind", llvm::cl::desc("GKE launch codegen kind."),
+      llvm::cl::init(0)};
+};
+struct TargetFinalizationJitPipelineOptions
+    : public PassPipelineOptions<TargetFinalizationJitPipelineOptions> {
+  PassOptions::Option<bool> lowerDeviceCalls{
+      *this, "lower-device-calls",
+      llvm::cl::desc(
+          "Lower device calls (to normal function calls) in JIT pipeline."),
       llvm::cl::init(true)};
 };
 } // namespace
@@ -58,7 +72,6 @@ static void createTargetPrepPipeline(OpPassManager &pm,
                                                   {options.allowEarlyExit});
   pm.addPass(cudaq::opt::createGlobalizeArrayValues());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createStatePreparation());
   pm.addPass(cudaq::opt::createUnitarySynthesis());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createApplySpecialization(
@@ -71,6 +84,7 @@ createHardwareTargetPrepPipeline(OpPassManager &pm,
                                  const TargetPrepPipelineOptions &options) {
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseNoise());
   createTargetPrepPipeline(pm, options);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createStatePreparation());
 }
 
 /// Register the standard initial pipeline run for ALL target machines when
@@ -91,6 +105,7 @@ createEmulationTargetPrepPipeline(OpPassManager &pm,
   if (options.eraseNoise)
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseNoise());
   createTargetPrepPipeline(pm, options);
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createStatePreparation());
 }
 
 /// Register the standard initial pipeline run for ALL target machines when
@@ -103,23 +118,22 @@ static void registerEmulationTargetPrepPipeline() {
       });
 }
 
-void cudaq::opt::addDecompositionPass(OpPassManager &pm,
-                                      ArrayRef<std::string> enabledPats,
-                                      ArrayRef<std::string> disabledPats) {
+void cudaq::opt::addDecomposition(OpPassManager &pm,
+                                  ArrayRef<std::string> enabledPats,
+                                  ArrayRef<std::string> disabledPats) {
   // NB: Both of these ListOption *must* be set here or they may contain garbage
   // and the compiler may crash.
-  cudaq::opt::DecompositionPassOptions opts;
+  cudaq::opt::DecompositionOptions opts;
   opts.disabledPatterns = disabledPats;
   opts.enabledPatterns = enabledPats;
-  pm.addPass(cudaq::opt::createDecompositionPass(opts));
+  pm.addPass(cudaq::opt::createDecomposition(opts));
 }
 
 static void createTargetDeployPipeline(OpPassManager &pm) {
   cudaq::opt::createClassicalOptimizationPipeline(pm);
-  cudaq::opt::addDecompositionPass(pm, {std::string("U3ToRotations")});
+  cudaq::opt::addDecomposition(pm, {std::string("U3ToRotations")});
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(
-      cudaq::opt::createMultiControlDecompositionPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createMultiControlDecomposition());
 }
 
 /// Register the standard deployment pipeline run for ALL target machines. This
@@ -137,8 +151,10 @@ void cudaq::opt::createTargetFinalizePipeline(OpPassManager &pm) {
   pm.addPass(createSymbolDCEPass());
 }
 
-static void createJITTargetFinalizePipeline(OpPassManager &pm) {
-  pm.addPass(cudaq::opt::createDistributedDeviceCall());
+static void createJITTargetFinalizePipeline(
+    OpPassManager &pm, const TargetFinalizationJitPipelineOptions &options) {
+  if (options.lowerDeviceCalls)
+    pm.addPass(cudaq::opt::createDistributedDeviceCall());
   cudaq::opt::addAggressiveInlining(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createApplyControlNegations());
   cudaq::opt::createTargetFinalizePipeline(pm);
@@ -147,10 +163,13 @@ static void createJITTargetFinalizePipeline(OpPassManager &pm) {
 /// Register the standard finalization pipeline run for ALL target machines.
 /// This pipeline is run after the low-level target-specific pipelines.
 static void registerTargetFinalizePipeline() {
-  PassPipelineRegistration<>(
+  PassPipelineRegistration<TargetFinalizationJitPipelineOptions>(
       "jit-finalize-pipeline",
       "Standard JIT finalization pipeline for all targets.",
-      [](OpPassManager &pm) { createJITTargetFinalizePipeline(pm); });
+      [](OpPassManager &pm,
+         const TargetFinalizationJitPipelineOptions &options) {
+        createJITTargetFinalizePipeline(pm, options);
+      });
 }
 
 void cudaq::opt::registerJITPipelines() {
@@ -160,22 +179,24 @@ void cudaq::opt::registerJITPipelines() {
   registerTargetFinalizePipeline();
 }
 
-/// This pipeline is defined to mirror the nvq++ driver's pipeline up to and
-/// including generation of the device code loader. It can be used post
-/// front-end bridge to lower the Quake IR to the same GDCL level.
-static void
-createPreDeviceCodeLoaderPipeline(OpPassManager &pm,
-                                  const PreDeviceCodeLoaderOptions &options) {
+/// This pipeline is defined to mirror the nvq++ driver's pipeline. It can be
+/// used post front-end bridge to lower the Quake IR to a target agnostic
+/// version of Quake code.
+static void createPythonAOTPipeline(OpPassManager &pm,
+                                    const PythonAOTOptions &options) {
   // NB: This pipeline should be kept in synch with the pipeline in nvq++.
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createVariableCoalesce());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addPass(cudaq::opt::createLambdaLiftingPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
+  pm.addPass(cudaq::opt::createLambdaLifting());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createApplySpecialization());
+  pm.addPass(cudaq::opt::createApplySpecialization());
   cudaq::opt::GenerateKernelExecutionOptions gkeOpts;
   gkeOpts.genRunStack = options.autoGenRunStack;
+  gkeOpts.deferToJIT = options.deferGKEToJIT;
+  gkeOpts.codegenKind = options.codegenKind;
   pm.addPass(cudaq::opt::createGenerateKernelExecution(gkeOpts));
   cudaq::opt::addAggressiveInlining(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
@@ -185,25 +206,22 @@ createPreDeviceCodeLoaderPipeline(OpPassManager &pm,
   pm.addPass(cudaq::opt::createGlobalizeArrayValues());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createGetConcreteMatrix());
-  pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader());
 }
 
-void cudaq::opt::createPreDeviceCodeLoaderPipeline(OpPassManager &pm,
-                                                   bool autoGenRunStack) {
-  PreDeviceCodeLoaderOptions opts;
+void cudaq::opt::createPythonAOTPipeline(OpPassManager &pm,
+                                         bool autoGenRunStack) {
+  PythonAOTOptions opts;
   opts.autoGenRunStack = autoGenRunStack;
-  ::createPreDeviceCodeLoaderPipeline(pm, opts);
+  ::createPythonAOTPipeline(pm, opts);
 }
 
-static void registerPreDeviceCodeLoaderPipeline() {
-  PassPipelineRegistration<PreDeviceCodeLoaderOptions>(
+static void registerPythonAOTPipeline() {
+  PassPipelineRegistration<PythonAOTOptions>(
       "aot-prep-pipeline",
       "Pipeline to lower code for simulation or JIT compilation.",
-      [](OpPassManager &pm, const PreDeviceCodeLoaderOptions &options) {
-        ::createPreDeviceCodeLoaderPipeline(pm, options);
+      [](OpPassManager &pm, const PythonAOTOptions &options) {
+        ::createPythonAOTPipeline(pm, options);
       });
 }
 
-void cudaq::opt::registerAOTPipelines() {
-  registerPreDeviceCodeLoaderPipeline();
-}
+void cudaq::opt::registerAOTPipelines() { registerPythonAOTPipeline(); }

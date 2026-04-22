@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -17,14 +17,6 @@ public:
   RemoteRestRuntimeClient() : BaseRemoteRestRuntimeClient() {}
 };
 
-/// REST client submitting jobs to NVCF-hosted `cudaq-qpud` service.
-class NvcfRuntimeClient : public cudaq::BaseNvcfRuntimeClient {
-public:
-  /// @brief The constructor
-  NvcfRuntimeClient() : BaseNvcfRuntimeClient() {}
-};
-
 } // namespace
 
 CUDAQ_REGISTER_TYPE(cudaq::RemoteRuntimeClient, RemoteRestRuntimeClient, rest)
-CUDAQ_REGISTER_TYPE(cudaq::RemoteRuntimeClient, NvcfRuntimeClient, NVCF)

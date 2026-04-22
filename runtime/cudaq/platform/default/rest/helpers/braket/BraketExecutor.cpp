@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,6 +8,7 @@
 
 #include "common/BraketExecutor.h"
 #include "common/BraketServerHelper.h"
+#include "common/FmtCore.h"
 
 #include <aws/braket/model/Association.h>
 #include <aws/braket/model/AssociationType.h>
@@ -17,8 +18,6 @@
 
 #include <aws/s3-crt/model/CreateBucketRequest.h>
 #include <aws/s3-crt/model/GetObjectRequest.h>
-#include <aws/s3-crt/model/PutBucketPolicyRequest.h>
-#include <aws/s3-crt/model/PutPublicAccessBlockRequest.h>
 
 #include <aws/core/utils/ARN.h>
 
@@ -51,53 +50,7 @@ void tryCreateBucket(Aws::S3Crt::S3CrtClient &client, std::string const &region,
       throw std::runtime_error(error.GetMessage());
     }
   }
-
-  Aws::S3Crt::Model::PutPublicAccessBlockRequest publicReq;
-  publicReq.SetBucket(bucketName);
-  Aws::S3Crt::Model::PublicAccessBlockConfiguration publicConfig;
-  publicConfig.SetBlockPublicAcls(true);
-  publicConfig.SetIgnorePublicAcls(true);
-  publicConfig.SetBlockPublicPolicy(true);
-  publicConfig.SetRestrictPublicBuckets(true);
-  publicReq.SetPublicAccessBlockConfiguration(publicConfig);
-
-  auto publicResponse = client.PutPublicAccessBlock(publicReq);
-  if (!publicResponse.IsSuccess()) {
-    auto error = publicResponse.GetError();
-    throw std::runtime_error(error.GetMessage());
-  }
-
-  std::string policy = fmt::format(R"({{
-    "Version": "2012-10-17",
-    "Statement": [
-        {{
-            "Effect": "Allow",
-            "Principal": {{
-                "Service": [
-                    "braket.amazonaws.com"
-                ]
-            }},
-            "Action": "s3:*",
-            "Resource": [
-                "arn:aws:s3:::{0}",
-                "arn:aws:s3:::{0}/*"
-            ]
-        }}
-    ]
-}})",
-                                   bucketName);
-
-  Aws::S3Crt::Model::PutBucketPolicyRequest policyReq;
-  policyReq.SetBucket(bucketName);
-  policyReq.SetBody(std::make_shared<Aws::StringStream>(policy));
-
-  auto policyResponse = client.PutBucketPolicy(policyReq);
-  if (!policyResponse.IsSuccess()) {
-    auto error = policyResponse.GetError();
-    throw std::runtime_error(error.GetMessage());
-  }
 }
-
 } // namespace
 
 namespace cudaq {

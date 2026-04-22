@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2025 NVIDIA Corporation & Affiliates.                         *
+ * Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,9 +8,9 @@
 
 #pragma once
 
+#include "common/DeviceCodeRegistry.h"
 #include "common/ExecutionContext.h"
 #include "cudaq/concepts.h"
-#include "cudaq/utils/registry.h"
 #include "qkernel.h"
 
 namespace cudaq::details {
@@ -22,13 +22,8 @@ QuantumKernel createQKernel(QuantumKernel &&kernel) {
 }
 #else
 
-#if CUDAQ_USE_STD20
 template <typename T>
 using remove_cvref_t = typename std::remove_cvref_t<T>;
-#else
-template <typename T>
-using remove_cvref_t = typename std::remove_cv_t<std::remove_reference_t<T>>;
-#endif
 
 template <typename QuantumKernel, typename Q = remove_cvref_t<QuantumKernel>,
           typename Operator = typename cudaq::qkernel_deduction_guide_helper<

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -80,6 +80,24 @@ inline bool hasReference(mlir::Operation *op) {
     if (isQuantumReferenceType(opnd.getType()))
       return true;
   return false;
+}
+
+/// Return the static size of a `!quake.veq` Value. Looks through RelaxSizeOp
+/// when the surface type is dynamically sized but the inner value has a known
+/// size.
+inline std::optional<std::size_t> getVeqSize(mlir::Value v) {
+  auto veqTy = mlir::dyn_cast<quake::VeqType>(v.getType());
+  if (!veqTy)
+    return std::nullopt;
+  if (veqTy.hasSpecifiedSize())
+    return veqTy.getSize();
+  if (auto relaxOp = v.getDefiningOp<quake::RelaxSizeOp>()) {
+    // RelaxSizeOp verifier guarantees input is VeqType when result is VeqType.
+    auto innerTy = mlir::cast<quake::VeqType>(relaxOp.getInputVec().getType());
+    if (innerTy.hasSpecifiedSize())
+      return innerTy.getSize();
+  }
+  return std::nullopt;
 }
 
 /// Returns true if and only if any quantum operand has type `!quake.ref`.

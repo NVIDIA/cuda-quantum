@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -165,7 +165,10 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
           }
           return {i, {}, {}, {}};
         } else if (call.getCallee().equals(setCudaqRangeVectorTriple)) {
+          // Save operands before erasing the call.
+          Value initial = call.getOperand(1);
           Value i = call.getOperand(2);
+          Value stepBy = call.getOperand(3);
           if (auto alloc = call.getOperand(0).getDefiningOp<cc::AllocaOp>()) {
             Operation *callGetSizeOp = nullptr;
             if (auto seqSize = alloc.getSeqSize()) {
@@ -181,7 +184,7 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
             // shouldn't get here, but we can erase the call at minimum
             call->erase();
           }
-          return {i, {}, call.getOperand(1), call.getOperand(3)};
+          return {i, {}, initial, stepBy};
         }
       }
       Value i = builder.create<cc::StdvecSizeOp>(loc, i64Ty, buffer);
@@ -359,6 +362,9 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *x) {
       if (!cudaq::cc::isDynamicType(eleTy))
         tySize = irb.getByteSizeOfType(loc, eleTy);
       if (!tySize) {
+        // TODO: we need to recursively create copies of all
+        // dynamic memory used within the type. See the
+        // implementation of `visit_Return` in the Python bridge.
         TODO_x(toLocation(x), x, mangler, "unhandled vector element type");
         return false;
       }

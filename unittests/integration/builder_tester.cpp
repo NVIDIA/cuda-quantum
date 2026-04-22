@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -654,53 +654,6 @@ CUDAQ_TEST(BuilderTester, checkSwap) {
 #endif
 }
 
-// Conditional execution on the tensornet backend is slow for a large number of
-// shots.
-#if !defined(CUDAQ_BACKEND_TENSORNET)
-CUDAQ_TEST(BuilderTester, checkConditional) {
-  {
-    cudaq::set_random_seed(13);
-    auto kernel = cudaq::make_kernel();
-    auto q = kernel.qalloc(2);
-    kernel.h(q[0]);
-    auto mres = kernel.mz(q[0], "res0");
-    kernel.c_if(mres, [&]() { kernel.x(q[1]); });
-    kernel.mz(q);
-
-    printf("%s\n", kernel.to_quake().c_str());
-
-    auto counts = cudaq::sample(kernel);
-    counts.dump();
-    EXPECT_EQ(counts.register_names().size(), 2);
-    EXPECT_EQ(counts.size("res0"), 2);
-    EXPECT_NEAR(counts.count("11") / 1000., 0.5, 1e-1);
-    EXPECT_NEAR(counts.count("00") / 1000., 0.5, 1e-1);
-    EXPECT_NEAR(counts.count("1", "res0") / 1000., 0.5, 1e-1);
-    EXPECT_NEAR(counts.count("0", "res0") / 1000., 0.5, 1e-1);
-  }
-
-  //  Tests a previous bug where the `extract_ref` for a qubit
-  //  would get hidden within a conditional. This would result in
-  //  the runtime error "operator #0 does not dominate this use".
-  {
-    auto kernel = cudaq::make_kernel();
-    auto qreg = kernel.qalloc(3);
-
-    kernel.x(qreg[1]);
-    auto measure0 = kernel.mz(qreg[1]);
-
-    kernel.c_if(measure0, [&]() { kernel.x(qreg[0]); });
-
-    // Now we try to use `qreg[0]` again.
-    kernel.x(qreg[0]);
-
-    auto counts = cudaq::sample(kernel);
-    counts.dump();
-    EXPECT_EQ(counts.count("010"), 1000);
-  }
-}
-#endif
-
 CUDAQ_TEST(BuilderTester, checkQubitArg) {
   auto [kernel, qubitArg] = cudaq::make_kernel<cudaq::qubit>();
   kernel.h(qubitArg);
@@ -1116,19 +1069,7 @@ CUDAQ_TEST(BuilderTester, checkMidCircuitMeasure) {
     auto q = entryPoint.qalloc(2);
     entryPoint.h(q[0]);
     auto mres = entryPoint.mz(q[0], "res0");
-    entryPoint.c_if(mres, [&]() { entryPoint.x(q[1]); });
-    entryPoint.mz(q, "final");
-
-    printf("%s\n", entryPoint.to_quake().c_str());
-    auto counts = cudaq::sample(entryPoint);
-    counts.dump();
-
-    EXPECT_GT(counts.count("0", "res0"), 0);
-    EXPECT_GT(counts.count("1", "res0"), 0);
-    EXPECT_GT(counts.count("00", "final"), 0);
-    EXPECT_EQ(counts.count("01", "final"), 0);
-    EXPECT_EQ(counts.count("10", "final"), 0);
-    EXPECT_GT(counts.count("11", "final"), 0);
+    EXPECT_ANY_THROW(entryPoint.c_if(mres, [&]() { entryPoint.x(q[1]); }););
   }
 }
 #endif
@@ -1424,9 +1365,10 @@ CUDAQ_TEST(BuilderTester, checkControlledRotations) {
 
 TEST(BuilderTester, checkFromStateVector) {
   std::vector<cudaq::complex> vec{M_SQRT1_2, 0., 0., M_SQRT1_2};
+  cudaq::state st0{vec};
   {
     auto kernel = cudaq::make_kernel();
-    auto qubits = kernel.qalloc(vec);
+    auto qubits = kernel.qalloc(st0);
     std::cout << kernel << "\n";
     auto counts = cudaq::sample(kernel);
     counts.dump();
@@ -1440,11 +1382,10 @@ TEST(BuilderTester, checkFromStateVector) {
   }
 
   {
-    auto [kernel, initState] =
-        cudaq::make_kernel<std::vector<cudaq::complex>>();
+    auto [kernel, initState] = cudaq::make_kernel<cudaq::state *>();
     auto qubits = kernel.qalloc(initState);
     std::cout << kernel << "\n";
-    auto counts = cudaq::sample(kernel, vec);
+    auto counts = cudaq::sample(kernel, &st0);
     counts.dump();
     EXPECT_EQ(counts.size(), 2);
     std::size_t counter = 0;
@@ -1458,14 +1399,13 @@ TEST(BuilderTester, checkFromStateVector) {
   {
     // 2 qubit 11 state
     std::vector<cudaq::complex> vec{0., 0., 0., 1.};
-    auto [kernel, initState] =
-        cudaq::make_kernel<std::vector<cudaq::complex>>();
+    cudaq::state st1{vec};
+    auto [kernel, initState] = cudaq::make_kernel<cudaq::state *>();
     auto qubits = kernel.qalloc(initState);
-    // induce the need for a kron prod between
-    // [0,0,0,1] and [1, 0, 0, 0]
+    // induce the need for a kron prod between [0,0,0,1] and [1, 0, 0, 0]
     auto anotherOne = kernel.qalloc(2);
     std::cout << kernel << "\n";
-    auto counts = cudaq::sample(kernel, vec);
+    auto counts = cudaq::sample(kernel, &st1);
     counts.dump();
     EXPECT_EQ(counts.size(), 1);
     EXPECT_EQ(counts.count("1100"), 1000);
@@ -1474,14 +1414,13 @@ TEST(BuilderTester, checkFromStateVector) {
   {
     // 2 qubit 11 state
     std::vector<cudaq::complex> vec{0., 0., 0., 1.};
-    auto [kernel, initState] =
-        cudaq::make_kernel<std::vector<cudaq::complex>>();
+    cudaq::state st2{std::move(vec)};
+    auto [kernel, initState] = cudaq::make_kernel<cudaq::state *>();
     auto qubits = kernel.qalloc(initState);
-    // induce the need for a kron prod between
-    // [0,0,0,1] and [1, 0]
+    // induce the need for a kron prod between [0,0,0,1] and [1, 0]
     auto anotherOne = kernel.qalloc();
     std::cout << kernel << "\n";
-    auto counts = cudaq::sample(kernel, vec);
+    auto counts = cudaq::sample(kernel, &st2);
     counts.dump();
     EXPECT_EQ(counts.size(), 1);
     EXPECT_EQ(counts.count("110"), 1000);

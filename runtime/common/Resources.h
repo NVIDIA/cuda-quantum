@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "Trace.h"
+#include <map>
 #include <ostream>
 #include <unordered_map>
 #include <vector>
@@ -39,7 +39,7 @@ public:
     /// @brief The number of controls
     std::size_t nControls;
 
-    Instruction(const std::string &n) : name(n) {}
+    Instruction(const std::string &n) : name(n), nControls(0) {}
 
     /// @brief The constructor
     Instruction(const std::string &n, const size_t c) : name(n), nControls(c) {}
@@ -47,10 +47,6 @@ public:
     /// @brief Return true if this Instruction is equal to the given one.
     bool operator==(const Instruction &other) const;
   };
-
-  Resources() = default;
-  Resources(Resources &) = default;
-  Resources(Resources &&) = default;
 
   /// @brief Return the number of times the given Instruction is
   /// used in the current kernel execution
@@ -67,10 +63,18 @@ public:
   /// @brief Return the total number of operations
   std::size_t count() const;
 
-  /// @brief Append the instruction with the given name and number of controls
-  /// to the resource estimate.
+  /// @brief Append instruction by name and control count. Updates gate
+  /// counts but not depth metrics (no qubit index information). Used by
+  /// MLIR-level resource counting (ResourceCountPreprocess pass).
   void appendInstruction(const std::string &name, std::size_t nControls,
                          std::size_t count = 1);
+
+  /// @brief Append instruction with qubit indices. Updates gate counts
+  /// and depth metrics (total depth, per-arity depth and gate counts).
+  /// Used by ResourceCounter and IR-level resource counting.
+  void appendInstruction(const std::string &name,
+                         const std::vector<std::size_t> &controls,
+                         const std::vector<std::size_t> &targets);
 
   /// @brief Dump resource count to the given output stream
   void dump(std::ostream &os) const;
@@ -81,6 +85,40 @@ public:
 
   /// @brief Register the usage of an additional qubit
   void addQubit();
+
+  /// @brief Returns a dictionary mapping gate names to counts
+  std::unordered_map<std::string, std::size_t> gateCounts() const;
+
+  /// @brief Return the total number of qubits allocated.
+  std::size_t getNumQubits() const;
+
+  /// @brief Set the total number of qubits allocated.
+  void setNumQubits(std::size_t n);
+
+  /// @brief Return the number of qubits touched by at least one quantum
+  /// operation.
+  std::size_t getNumUsedQubits() const;
+
+  /// @brief Return the circuit depth (longest gate chain on any qubit).
+  std::size_t getCircuitDepth() const;
+
+  /// @brief Return gate count for a specific qubit arity.
+  std::size_t getGateCountByArity(std::size_t arity) const;
+
+  /// @brief Return circuit depth for a specific qubit arity.
+  std::size_t getDepthByArity(std::size_t arity) const;
+
+  /// @brief Return total gate count for all multi-qubit gates (arity >= 2).
+  std::size_t getMultiQubitGateCount() const;
+
+  /// @brief Return max depth across all gate widths >= 2.
+  std::size_t getMultiQubitDepth() const;
+
+  /// @brief Return gate counts by arity: {arity -> count}.
+  const std::map<std::size_t, std::size_t> &getGateCountsByArity() const;
+
+  /// @brief Return the per-qubit depth map (all gates).
+  const std::unordered_map<std::size_t, std::size_t> &getPerQubitDepth() const;
 
 private:
   /// @brief Map of Instructions in the current kernel to the
@@ -93,6 +131,16 @@ private:
 
   /// @brief Keep track of the total number of qubits used.
   std::size_t numQubits = 0;
+
+  /// @brief Per-qubit depth map for all gates.
+  std::unordered_map<std::size_t, std::size_t> perQubitDepth;
+
+  /// @brief Gate counts by qubit arity: {arity -> count}.
+  std::map<std::size_t, std::size_t> gateCountByArity;
+
+  /// @brief Per-qubit depth maps by arity: {arity -> {qubit -> depth}}.
+  std::map<std::size_t, std::unordered_map<std::size_t, std::size_t>>
+      perQubitDepthByArity;
 };
 
 } // namespace cudaq

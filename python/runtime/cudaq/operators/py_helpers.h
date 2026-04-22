@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,14 +7,13 @@
  ******************************************************************************/
 
 #include "cudaq/operators.h"
-#include <pybind11/numpy.h>
-#include <pybind11/pybind11.h>
-
-namespace py = pybind11;
+#include <nanobind/nanobind.h>
+#include <nanobind/ndarray.h>
 
 namespace cudaq::details {
-cudaq::parameter_map kwargs_to_param_map(const py::kwargs &kwargs);
+cudaq::parameter_map kwargs_to_param_map(const nanobind::kwargs &kwargs);
 std::unordered_map<std::string, std::string>
-kwargs_to_param_description(const py::kwargs &kwargs);
-py::array_t<std::complex<double>> cmat_to_numpy(complex_matrix &cmat);
+kwargs_to_param_description(const nanobind::kwargs &kwargs);
+nanobind::ndarray<nanobind::numpy, std::complex<double>>
+cmat_to_numpy(complex_matrix &cmat);
 } // namespace cudaq::details

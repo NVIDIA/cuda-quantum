@@ -403,7 +403,7 @@ backend target.
     In this case, you need to install a CUDA-enabled Torch package via other mechanisms, e.g., building Torch from source or
     using their Docker images.
 
-For C++, CUDA-Q provides Runge-Kutta integrator, to be used with the ``dynamics``
+For C++, CUDA-Q provides the following integrators, to be used with the ``dynamics``
 backend target.
 
 .. list-table:: Numerical Integrators
@@ -413,7 +413,11 @@ backend target.
         *   - Name
             - Description
         *   - `runge_kutta`
-            - 1st-order (Euler method), 2nd-order (Midpoint method), and 4th-order (classical Runge-Kutta method).
+            - 1st-order (Euler method), 2nd-order (Midpoint method), and 4th-order (classical Runge-Kutta method). Good general-purpose choice.
+        *   - `crank_nicolson`
+            - Implicit predictor-corrector method. Well-suited for stiff systems or when energy conservation is important. Configurable number of corrector iterations.
+        *   - `magnus_expansion`
+            - Approximates the matrix exponential via a finite Taylor series truncation, approximating unitary evolution. Suitable for smooth, oscillatory Hamiltonians. Configurable number of Taylor terms.
 
 Batch simulation
 ^^^^^^^^^^^^^^^^^
@@ -598,6 +602,13 @@ Specifically, it will detect the number of processes (GPUs) and distribute the c
 .. note::
     Not all integrators are capable of handling distributed state. Errors will be raised if parallel execution is activated 
     but the selected integrator does not support distributed state. 
+
+.. note::
+    When running batched simulations in a multi-GPU multi-node environment, the batch size will be automatically divided by the number of MPI processes.
+    Hence, the batch size needs to be divisible by the number of processes. For example, if the original batch size is 8 and there are 4 MPI processes, 
+    then each process (GPU) will simulate a batch size of 2. Errors will be raised if the batch size is not divisible by the number of processes.
+
+    Each process will return its own set of results. The user is responsible for gathering the results from all processes if needed.
 
 Examples
 ^^^^^^^^^^^^^

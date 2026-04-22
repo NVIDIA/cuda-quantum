@@ -1,5 +1,5 @@
 /********************************************************** -*- tablegen -*- ***
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -390,7 +390,13 @@ def cc_IfOp : CCOp<"if",
       "llvm::function_ref<void(mlir::OpBuilder &, mlir::Location, "
                               "mlir::Region &)>":$thenBuilder,
       CArg<"llvm::function_ref<void(mlir::OpBuilder &, mlir::Location, "
-           "mlir::Region &)>", "nullptr">:$elseBuilder)>
+           "mlir::Region &)>", "nullptr">:$elseBuilder)>,
+    OpBuilder<(ins "mlir::TypeRange":$resultTypes, "mlir::Value":$cond,
+      "mlir::ValueRange":$linearVals,
+      "llvm::function_ref<void(mlir::OpBuilder &, mlir::Location, "
+                              "mlir::Region &)>":$thenBuilder,
+      CArg<"llvm::function_ref<void(mlir::OpBuilder &, mlir::Location, "
+           "mlir::Region &)>", "nullptr">:$elseBuilder)>,
   ];
 
   let hasCustomAssemblyFormat = 1;
@@ -812,6 +818,8 @@ def cc_AllocaOp : CCOp<"alloca", [
 
   let hasCanonicalizer = 1;
   let hasCustomAssemblyFormat = 1;
+  let hasVerifier = 1;
+
   let builders = [
     OpBuilder<(ins "mlir::Type":$elementType, "mlir::Value":$seqSize), [{
       auto resTy = cudaq::cc::PointerType::get(seqSize ?
@@ -1170,11 +1178,13 @@ def cc_ConstantArrayOp : CCOp<"const_array", [Pure]> {
       %arrCon = cc.const_array [1.0, 2.0] : !cc.array<f64 x 2>
     ```
   }];
+
   let arguments = (ins ArrayAttr:$constantValues);
   let results = (outs cc_ArrayType:$arrayType);
   let assemblyFormat = [{
     $constantValues `:` qualified(type($arrayType)) attr-dict
   }];
+  let hasCanonicalizer = 1;
 
   let extraClassDeclaration = [{
     // The total number of array dimensions.
@@ -1254,6 +1264,7 @@ def cc_ReifySpanOp : CCOp<"reify_span", [Pure]> {
   }];
 
   let hasVerifier = 1;
+  let hasCanonicalizer = 1;
 
   let extraClassDeclaration = [{
     // The total number span dimensions. The total is the number of outer
@@ -1450,8 +1461,7 @@ def cc_FuncToPtrOp : CCOp<"func_ptr", [Pure]> {
 //===----------------------------------------------------------------------===//
 
 def cc_CreateLambdaOp : CCOp<"create_lambda",
-        [AutomaticAllocationScope, RecursiveMemoryEffects,
-         SingleBlockImplicitTerminator<"cudaq::cc::ReturnOp">]> {
+        [AutomaticAllocationScope, RecursiveMemoryEffects]> {
   let summary = "Create a lambda expression as an abstract callable.";
   let description = [{
     A CreateLambdaOp creates a λ expression. A λ expression is a Callable
@@ -1473,7 +1483,7 @@ def cc_CreateLambdaOp : CCOp<"create_lambda",
   }];
 
   let results = (outs cc_CallableType:$signature);
-  let regions = (region SizedRegion<1>:$initRegion);
+  let regions = (region AnyRegion:$initRegion);
   let hasCustomAssemblyFormat = 1;
 
   let builders = [
@@ -1644,8 +1654,8 @@ def cc_InstantiateCallableOp : CCOp<"instantiate_callable", [Pure]> {
     Since this λ expression captures the value %88 from the parent, we have to
     instantiate a closure that includes this %88 value when we lift the λ.
     The lifted λ is given the name `@lifted_lambda.54` in the following. A
-    second function, `@stub.54`, unpacks the closure into arguments to the new
-    outlined λ function in the following example.
+    second function, `@trampoline.54`, unpacks the closure into arguments to the
+    new outlined λ function in the following example.
 
     ```mlir
       %lambda = cc.instantiate_callable @trampoline.54(%88) : (f64) ->
@@ -1718,6 +1728,8 @@ def cc_CallableFuncOp : CCOp<"callable_func", [Pure]> {
 
   let arguments = (ins cc_CallableType:$callable);
   let results = (outs FunctionType:$function);
+
+  let hasCanonicalizer = 1;
 
   let assemblyFormat = [{
     $callable `:` functional-type(operands, results) attr-dict

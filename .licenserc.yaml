@@ -5,7 +5,7 @@ header:
     software-name: CUDA-Q
 
     content: |
-      Copyright (c) 2023 - 2025 NVIDIA Corporation & Affiliates.
+      Copyright (c) 2023 - 2026 NVIDIA Corporation & Affiliates.
       All rights reserved.
 
       This source code and the accompanying materials are made available under
@@ -22,12 +22,18 @@ header:
     - '**/*.rst'
     - '**/*.patch'
     - '**/*.config'
+    - '**/*.svg'
     - '**/.*'
     - '**/.*/**'
     - '**/Doxyfile.in'
     - 'CITATION.cff'
     - 'LICENSE'
     - 'NOTICE'
+    - 'llms.txt'
+    - 'test/README.txt'
+    - 'runtime/cudaq/platform/default/rest/helpers/anyon/*.txt'
+    - 'targettests/Target/IQM/*.txt'
+    - 'unittests/backends/iqm/*.txt'
     - 'build'
     - 'examples'
     - 'tpls'
@@ -41,6 +47,7 @@ header:
     - 'include/cudaq/Optimizer/CodeGen/OptUtils.h'
     - 'lib/Optimizer/CodeGen/OptUtils.cpp'
     - 'runtime/cudaq/algorithms/optimizers/nlopt/nlopt-src'
+    - 'python/metapackages/MANIFEST.in'
 
   comment: on-failure
 

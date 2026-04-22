@@ -1,18 +1,15 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
 // clang-format off
-// RUN: nvq++ %cpp_std %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2> %t.txt | FileCheck %s &&  FileCheck --check-prefix=QUAKE %s < %t.txt
-// RUN: mkdir -p %t.dir && cp "%iqm_test_src_dir/Crystal_5.txt" "%t.dir/Crystal_5_Variant.txt" && nvq++ %cpp_std %s -o %t --target iqm --iqm-machine Crystal_5 --mapping-file "%t.dir/Crystal_5_Variant.txt" --emulate && %t
+// RUN: nvq++ %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2> %t.txt | FileCheck %s &&  FileCheck --check-prefix=QUAKE %s < %t.txt; status=$?; rm -f %t.txt; exit "$status"
+// RUN: nvq++ %s -o %t --target iqm --emulate --mapping-file "%iqm_tests_dir/Crystal_5.txt" && %t | FileCheck %s
 // clang-format on
-// RUN: nvq++ %cpp_std --enable-mlir %s -o %t
-// RUN: rm -rf %t.txt %t.dir
 
 #include <cudaq.h>
 #include <iostream>
@@ -39,6 +36,7 @@ int main() {
   return 0;
 }
 
+// clang-format off
 // QUAKE-LABEL: tail call void @__quantum__qis__x__body(%Qubit* null)
 // QUAKE:       tail call void @__quantum__qis__x__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*))
 // QUAKE:       tail call void @__quantum__qis__cnot__body(%Qubit* null, %Qubit* nonnull inttoptr (i64 1 to %Qubit*))
@@ -53,3 +51,4 @@ int main() {
 // QUAKE:       ret void
 
 // CHECK-LABEL: most_probable "101"
+// clang-format on

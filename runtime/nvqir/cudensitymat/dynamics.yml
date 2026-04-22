@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -12,5 +12,5 @@ gpu-requirements: true
 config:
   nvqir-simulation-backend: dynamics
   platform-library: mqpu
-  preprocessor-defines: ["-D CUDAQ_ANALOG_TARGET"]
+  preprocessor-defines: ["-D CUDAQ_ANALOG_TARGET", "-D CUDAQ_SIMULATION_SCALAR_FP64"]
   library-mode: true

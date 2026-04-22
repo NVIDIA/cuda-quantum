@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -35,16 +35,9 @@ namespace cudaq::opt {
 /// \deprecated Replaced by the convert to QIR API pipeline.
 void addQIRProfilePipeline(mlir::OpPassManager &pm, llvm::StringRef convertTo);
 
-void addQIRProfileVerify(mlir::OpPassManager &pm, llvm::StringRef convertTo);
-
 void addLowerToCCPipeline(mlir::OpPassManager &pm);
 void addWiresetToProfileQIRPipeline(mlir::OpPassManager &pm,
                                     llvm::StringRef profile);
-
-/// Verify that all `CallOp` targets are QIR- or NVQIR-defined functions or in
-/// the provided allowed list.
-std::unique_ptr<mlir::Pass>
-createVerifyNVQIRCallOpsPass(const std::vector<llvm::StringRef> &allowedFuncs);
 
 // Use the addQIRProfilePipeline() for the following passes.
 std::unique_ptr<mlir::Pass>
@@ -107,6 +100,14 @@ void addPipelineTranslateToOpenQASM(mlir::PassManager &pm);
 
 /// Pipeline builder to convert Quake to IQM `Json`.
 void addPipelineTranslateToIQMJson(mlir::PassManager &pm);
+
+/// This pipeline specifies some extra bonus passes that are needed to lower
+/// Python kernel decorators to `Open QASM` format. While this pipeline is
+/// almost exclusively Quake transformations, there is one pass
+/// (`createQaukeToCCPrep`) that uses patterns from here in `codegen`. Therefore
+/// this pipeline is defined in `codegen` to avoid circular dependences. (Note:
+/// this pipeline is not registered.)
+void createPipelineTransformsForPythonToOpenQASM(mlir::OpPassManager &pm);
 
 // declarative passes
 #define GEN_PASS_DECL

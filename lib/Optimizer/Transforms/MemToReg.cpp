@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -123,7 +123,7 @@ private:
       if (isMemoryAlloc(op)) {
         // Make sure this is stack here. Can we make use of an Interface?
         if (auto alloc = dyn_cast<quake::AllocaOp>(op)) {
-          if (alloc.getType() == qrefTy)
+          if (!alloc.hasInitializedState() && alloc.getType() == qrefTy)
             allocations.push_back(op);
         } else if (auto alloc = dyn_cast<cudaq::cc::AllocaOp>(op)) {
           if (!alloc.getSeqSize()) {
@@ -138,11 +138,14 @@ private:
       Value v;
       if (auto alloc = dyn_cast<cudaq::cc::AllocaOp>(a))
         v = alloc.getResult();
-      for (auto *u : a->getUsers())
-        if (!isMemoryUse(u) && !nonEscapingDef(u, v)) {
+      for (auto *u : a->getUsers()) {
+        // Don't convert quake.custom_op as it has ambiguous semantics.
+        if (isa<quake::CustomUnitarySymbolOp>(u) ||
+            (!isMemoryUse(u) && !nonEscapingDef(u, v))) {
           add = nullptr;
           break;
         }
+      }
       if (add)
         allocSet.insert(add);
     }
@@ -639,16 +642,39 @@ public:
       // Scan the control and target positions. Any that were not wires
       // originally are now placed in the result vector. Those new results are
       // propagated to wrap operations.
-      auto numberOfWires = unwrapCtrls.size() + unwrapTargs.size();
+      auto numberOfWires = wireCount(unwrapCtrls, unwrapTargs);
       SmallVector<Type> wireTys{numberOfWires, wireTy};
       auto newOp = rewriter.create<OP>(
           loc, wireTys, op.getIsAdjAttr(), op.getParameters(), unwrapCtrls,
           unwrapTargs, op.getNegatedQubitControlsAttr());
-      SmallVector<Value> wireOperands = op.getControls();
-      wireOperands.append(op.getTargets().begin(), op.getTargets().end());
+      auto wireOperands =
+          filteredByType(qrefTy, op.getControls(), op.getTargets());
       threadWires(wireOperands, newOp, 0);
     }
     return success();
+  }
+
+  static SmallVector<Value> filteredByType(Type qrefTy, ValueRange ctls,
+                                           ValueRange trgs) {
+    SmallVector<Value> result;
+    for (Value v : ctls)
+      if (v.getType() == qrefTy)
+        result.push_back(v);
+    for (Value v : trgs)
+      if (v.getType() == qrefTy)
+        result.push_back(v);
+    return result;
+  }
+
+  static std::size_t wireCount(ArrayRef<Value> ctls, ArrayRef<Value> trgs) {
+    std::size_t result = 0;
+    for (Value v : ctls)
+      if (quake::isQuantumValueType(v.getType()))
+        result++;
+    for (Value v : trgs)
+      if (quake::isQuantumValueType(v.getType()))
+        result++;
+    return result;
   }
 };
 
@@ -673,6 +699,10 @@ public:
                                  "transformations are disabled.\n");
       return;
     }
+
+    // 0) Check that the IR doesn't have high-level control flow present.
+    if (failed(preconditionChecks()))
+      return;
 
     // 1) Rewrite the quantum operations into the intermediate QLS form.
     if (failed(convertToQLS()))
@@ -797,14 +827,27 @@ public:
                 cleanUps.insert(alloc);
                 dataFlow.addBinding(block, alloc, v);
               }
+            } else if (auto alloc = dyn_cast<quake::AllocaOp>(op);
+                       alloc && alloc.hasInitializedState()) {
+              // If this is an quake.alloca followed by a quake.init_state, just
+              // skip this op. It has to remain in reference form and there
+              // can't be any other ops between this pairing.
             } else {
               OpBuilder builder(ctx);
+              builder.setInsertionPoint(op);
+              for (auto v : op->getOperands())
+                if (v.getType() == qrefTy && dataFlow.hasBinding(block, v))
+                  if (auto vBinding = dataFlow.getBinding(block, v)) {
+                    builder.create<quake::WrapOp>(op->getLoc(), vBinding, v);
+                    dataFlow.cancelBinding(block, v);
+                  }
               builder.setInsertionPointAfter(op);
-              for (auto r : op->getResults()) {
-                Value v =
-                    builder.create<quake::UnwrapOp>(op->getLoc(), wireTy, r);
-                dataFlow.addBinding(block, r, v);
-              }
+              for (auto r : op->getResults())
+                if (r.getType() == qrefTy) {
+                  Value v =
+                      builder.create<quake::UnwrapOp>(op->getLoc(), wireTy, r);
+                  dataFlow.addBinding(block, r, v);
+                }
             }
             continue;
           }
@@ -1006,6 +1049,12 @@ public:
           if (!isFunctionBlock(block) && !usePromo && !onlyLinear)
             dataFlow.maybeAddBalancedLiveInToBlock(block, liveOut);
           auto oldVal = dataFlow.getBinding(block, liveOut);
+          if (!oldVal) {
+            OpBuilder builder(term);
+            oldVal = builder.create<quake::UnwrapOp>(
+                term->getLoc(), quake::WireType::get(builder.getContext()),
+                liveOut);
+          }
           addTerminatorArgument(term, target, oldVal);
         } else if ((usePromo ||
                     (onlyLinear && !isa<quake::RefType>(liveOut.getType()))) &&
@@ -1087,6 +1136,20 @@ public:
 
     LLVM_DEBUG(llvm::dbgs() << "After threading inter-block:\n"
                             << *parent << "\n\n");
+  }
+
+  LogicalResult preconditionChecks() {
+    if (getOperation()
+            .walk([](Operation *op) {
+              if (isa<cudaq::cc::CreateLambdaOp, cudaq::cc::UnwindBreakOp,
+                      cudaq::cc::UnwindContinueOp, cudaq::cc::UnwindReturnOp>(
+                      op))
+                return WalkResult::interrupt();
+              return WalkResult::advance();
+            })
+            .wasInterrupted())
+      return failure();
+    return success();
   }
 
   // Convert the function to "quantum load/store" (QLS) format.

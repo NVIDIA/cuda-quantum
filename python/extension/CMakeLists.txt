@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -12,6 +12,43 @@ endif()
 
 include(HandleLLVMOptions)
 include(AddMLIRPython)
+
+function(add_mlir_python_extension libname extname)
+  cmake_parse_arguments(ARG
+    ""
+    "INSTALL_COMPONENT;INSTALL_DIR;OUTPUT_DIRECTORY"
+    "SOURCES;LINK_LIBS"
+    ${ARGN})
+
+  # Use nanobind for CUDA-Q's own extension (_quakeDialects) and pybind11
+  # for upstream MLIR extensions (AsyncPasses, RegisterEverything, etc.).
+  if(libname MATCHES "_quakeDialects")
+    nanobind_add_module(${libname} NB_STATIC ${ARG_SOURCES})
+    target_compile_options(${libname} PRIVATE -frtti -fexceptions -Wno-cast-qual)
+  else()
+    pybind11_add_module(${libname} MODULE ${ARG_SOURCES})
+    target_compile_options(${libname} PRIVATE -frtti -fexceptions)
+  endif()
+
+  set_target_properties(${libname} PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY ${ARG_OUTPUT_DIRECTORY}
+    OUTPUT_NAME "${extname}"
+    NO_SONAME ON
+  )
+
+  target_link_libraries(${libname} PRIVATE ${ARG_LINK_LIBS})
+  target_link_options(${libname} PRIVATE
+    $<$<PLATFORM_ID:Linux>:LINKER:--exclude-libs,ALL>
+  )
+
+  if(ARG_INSTALL_DIR)
+    install(TARGETS ${libname}
+      COMPONENT ${ARG_INSTALL_COMPONENT}
+      LIBRARY DESTINATION "${ARG_INSTALL_DIR}"
+      RUNTIME DESTINATION "${ARG_INSTALL_DIR}"
+    )
+  endif()
+endfunction()
 
 # Specifies that all MLIR packages are co-located under the cudaq
 # top level package (the API has been embedded in a relocatable way).
@@ -27,16 +64,12 @@ declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT CUDAQuantumPythonSources
   ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../cudaq/mlir"
   TD_FILE dialects/QuakeOps.td
-  SOURCES
-    dialects/quake.py
   DIALECT_NAME quake)
 
 declare_mlir_dialect_python_bindings(
   ADD_TO_PARENT CUDAQuantumPythonSources
   ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../cudaq/mlir"
   TD_FILE dialects/CCOps.td
-  SOURCES
-    dialects/cc.py
   DIALECT_NAME cc)
 
 declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
@@ -53,22 +86,22 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/common/py_CustomOpRegistry.cpp
     ../runtime/common/py_AnalogHamiltonian.cpp
     ../runtime/cudaq/algorithms/py_draw.cpp
+    ../runtime/cudaq/algorithms/py_evolve.cpp
     ../runtime/cudaq/algorithms/py_observe_async.cpp
     ../runtime/cudaq/algorithms/py_optimizer.cpp
     ../runtime/cudaq/algorithms/py_sample_async.cpp
+    ../runtime/cudaq/algorithms/py_sample_ptsbe.cpp
     ../runtime/cudaq/algorithms/py_resource_count.cpp
     ../runtime/cudaq/algorithms/py_run.cpp
+    ../../runtime/cudaq/algorithms/run.cpp      # Common Python and C++ implementation of run
     ../runtime/cudaq/algorithms/py_state.cpp
-    ../runtime/cudaq/algorithms/py_evolve.cpp
     ../runtime/cudaq/algorithms/py_translate.cpp
     ../runtime/cudaq/algorithms/py_unitary.cpp
     ../runtime/cudaq/algorithms/py_utils.cpp
-    ../runtime/cudaq/algorithms/py_vqe.cpp
-    ../runtime/cudaq/platform/JITExecutionCache.cpp
     ../runtime/cudaq/platform/py_alt_launch_kernel.cpp
     ../runtime/cudaq/qis/py_execution_manager.cpp
-    ../runtime/cudaq/qis/py_qubit_qis.cpp
-    ../runtime/cudaq/operators/py_helpers.cpp  
+    ../runtime/cudaq/qis/py_pauli_word.cpp
+    ../runtime/cudaq/operators/py_helpers.cpp
     ../runtime/cudaq/operators/py_matrix.cpp
     ../runtime/cudaq/operators/py_scalar_op.cpp
     ../runtime/cudaq/operators/py_spin_op.cpp
@@ -80,14 +113,10 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/target/py_runtime_target.cpp
     ../runtime/cudaq/target/py_testing_utils.cpp
     ../runtime/mlir/py_register_dialects.cpp
-    ../runtime/utils/PyRemoteRESTQPU.cpp
-    ../runtime/utils/PyFermioniqRESTQPU.cpp
     ../runtime/utils/PyRemoteSimulatorQPU.cpp
     ../runtime/utils/PyRestRemoteClient.cpp
     ../utils/LinkedLibraryHolder.cpp
-    ../../runtime/common/ArgumentConversion.cpp
-    ../../runtime/common/RunTheKernel.cpp
-    ../../runtime/cudaq/platform/common/QuantumExecutionQueue.cpp
+    ../../runtime/common/CodeGenConfig.cpp
     ../../runtime/cudaq/platform/default/rest_server/RemoteRuntimeClient.cpp
     ../../runtime/cudaq/platform/orca/OrcaExecutor.cpp
     ../../runtime/cudaq/platform/orca/OrcaQPU.cpp
@@ -96,6 +125,16 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../../runtime/cudaq/platform/pasqal/PasqalRemoteRESTQPU.cpp
     ../../runtime/cudaq/platform/pasqal/PasqalServerHelper.cpp
     ../../runtime/cudaq/platform/quera/QuEraRemoteRESTQPU.cpp
+    ../../runtime/cudaq/platform/fermioniq/FermioniqQPU.cpp
+    ../../runtime/cudaq/platform/default/rest/RemoteRESTQPU.cpp
+    ../../runtime/cudaq/platform/default/python/QPU.cpp
+    ../../runtime/internal/compiler/ArgumentConversion.cpp
+    ../../runtime/internal/compiler/CompiledModuleHelper.cpp
+    ../../runtime/internal/compiler/LayoutInfo.cpp
+    ../../runtime/internal/compiler/RuntimeMLIR.cpp
+    ../../runtime/internal/compiler/RuntimePyMLIR.cpp
+    ../../runtime/internal/compiler/JIT.cpp
+    ../../runtime/internal/compiler/Compiler.cpp
 
   EMBED_CAPI_LINK_LIBS
    CUDAQuantumMLIRCAPI
@@ -106,15 +145,19 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
    MLIRPass
    CUDAQTargetConfigUtil
    cudaq-python-interop
+   cudaq-platform-default
+   cudaq-qir-verifier
+   cudaq-mlir-runtime-headers
 )
 
-target_include_directories(CUDAQuantumPythonSources.Extension INTERFACE 
-    ${CMAKE_SOURCE_DIR}/python 
+target_include_directories(CUDAQuantumPythonSources.Extension INTERFACE
+    ${CMAKE_SOURCE_DIR}/python
     ${CMAKE_SOURCE_DIR}/python/utils
     ${CMAKE_SOURCE_DIR}/runtime
 )
 target_link_libraries(CUDAQuantumPythonSources.Extension INTERFACE 
     cudaq 
+    cudaq-logger 
     cudaq-common 
     cudaq-em-default
     cudaq-em-photonics
@@ -156,21 +199,26 @@ add_mlir_python_modules(CUDAQuantumPythonModules
     CUDAQuantumPythonCAPI
   )
 
+if(TARGET nanobind-static)
+  target_compile_options(nanobind-static PRIVATE -Wno-cast-qual -Wno-covered-switch-default)
+endif()
+
 ## The Python bindings module for Quake dialect depends on CUDAQ libraries 
 ## which it can't locate since they are in "../../lib" and the 'rpath' is set
 ## to '$ORIGIN' by default.
-set(_origin_prefix "\$ORIGIN")
+## macOS uses @loader_path instead of $ORIGIN for RPATH.
 if(APPLE)
   set(_origin_prefix "@loader_path")
+else()
+  set(_origin_prefix "$ORIGIN")
 endif()
 
 if (NOT SKBUILD)
-  SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../../lib:$ORIGIN/../../lib/plugins")
-  set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso 
-    APPEND PROPERTY INSTALL_RPATH "${_origin_prefix}/../../../lib:${_origin_prefix}/../../../lib/plugins")
+  list(APPEND CMAKE_INSTALL_RPATH "${_origin_prefix}/../../lib" "${_origin_prefix}/../../lib/plugins")
+  set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso
+    APPEND PROPERTY INSTALL_RPATH "${_origin_prefix}/../../../lib" "${_origin_prefix}/../../../lib/plugins")
 else()
-  SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:$ORIGIN/../cuda_quantum.libs")
-  set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso 
-    APPEND PROPERTY INSTALL_RPATH "${_origin_prefix}/../../../lib:${_origin_prefix}/../../../cuda_quantum.libs")
+  list(APPEND CMAKE_INSTALL_RPATH "${_origin_prefix}/../cuda_quantum.libs")
+  set_property(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso
+    APPEND PROPERTY INSTALL_RPATH "${_origin_prefix}/../../../lib" "${_origin_prefix}/../../../cuda_quantum.libs")
 endif()
-

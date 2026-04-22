@@ -1,12 +1,12 @@
 // ========================================================================== //
-// Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                 //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
 // All rights reserved.                                                       //
 //                                                                            //
 // This source code and the accompanying materials are made available under   //
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --basis-conversion="basis=h,s,t,rx,ry,rz,x,y,z,x(1) disable-patterns=R1ToU3" %s | FileCheck %s
+// RUN: cudaq-opt --basis-conversion="basis=h,s,t,rx,ry,rz,x,y,z,x(1)" %s | FileCheck %s
 
 /// This test covers all the supported CUDA-Q gates along with control and
 /// adjoint modifiers, similar to the test in `python/tests/backends/test_Infleqtion.py::test_all_gates`
@@ -304,8 +304,8 @@ module {
 // CHECK:           %[[VAL_87:.*]] = cc.cast unsigned %[[VAL_85]] : (i1) -> i8
 // CHECK:           cc.store %[[VAL_87]], %[[VAL_86]] : !cc.ptr<i8>
 // CHECK:           %[[VAL_88:.*]] = quake.alloca !quake.ref
-// CHECK:           %[[VAL_89:.*]] = arith.negf %[[VAL_4]] : f64
-// CHECK:           quake.rz (%[[VAL_89]]) %[[VAL_88]] : (f64, !quake.ref) -> ()
+// CHECK:           %[[NEG_PI:.*]] = arith.negf %[[VAL_4]] : f64
+// CHECK:           quake.rz (%[[NEG_PI]]) %[[VAL_88]] : (f64, !quake.ref) -> ()
 // CHECK:           quake.rx<adj> (%[[VAL_0]]) %[[VAL_88]] : (f64, !quake.ref) -> ()
 // CHECK:           quake.ry<adj> (%[[VAL_3]]) %[[VAL_88]] : (f64, !quake.ref) -> ()
 // CHECK:           quake.rz<adj> (%[[VAL_2]]) %[[VAL_88]] : (f64, !quake.ref) -> ()

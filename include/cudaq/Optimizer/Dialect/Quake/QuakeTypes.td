@@ -1,5 +1,5 @@
 /***********************************************************-*- tablegen -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -27,7 +27,7 @@ class QuakeType<string name, string typeMnemonic, list<Trait> traits = [],
 //===----------------------------------------------------------------------===//
 
 def WireType : QuakeType<"Wire", "wire"> {
-  let summary = "A quantum value. Wires are a linear type.";
+  let summary = "a linear type for a quantum value";
   let description = [{
     A `wire` is a primitive quantum "SSA-value" that differs from a traditional
     SSA-value in that it can and will be modified when used in any target
@@ -66,7 +66,7 @@ def WireType : QuakeType<"Wire", "wire"> {
 //===----------------------------------------------------------------------===//
 
 def ControlType : QuakeType<"Control", "control"> {
-  let summary = "A quantum control value.";
+  let summary = "an SSA type for a quantum control value";
   let description = [{
     A value having type `control` is quite similar to a value of type `wire`.
     The distinction is that a value of type `control` must be used in a control
@@ -92,7 +92,7 @@ def ControlType : QuakeType<"Control", "control"> {
 //===----------------------------------------------------------------------===//
 
 def RefType : QuakeType<"Ref", "ref"> {
-  let summary = "reference to a quantum wire";
+  let summary = "a reference to a quantum wire";
   let description = [{
     A `ref` represents a reference to a value of `wire` type.  One can view the
     values of this type as the horizontal lines in the following quantum circuit
@@ -138,7 +138,7 @@ def RefType : QuakeType<"Ref", "ref"> {
 //===----------------------------------------------------------------------===//
 
 def VeqType : QuakeType<"Veq", "veq"> {
-  let summary = "an aggregate of quantum references";
+  let summary = "an sequence of quantum references";
   let description = [{
     A value of type `veq` is a (linear) collection of values of type `ref`.
     These aggregates are a convenience for referring to an entire group of
@@ -157,6 +157,9 @@ def VeqType : QuakeType<"Veq", "veq"> {
       std::numeric_limits<std::size_t>::max();
 
     bool hasSpecifiedSize() const { return getSize() != kDynamicSize; }
+    bool hasNonZeroSpecifiedSize() const {
+      return hasSpecifiedSize() && getSize();
+    }
     static VeqType getUnsized(mlir::MLIRContext *ctx) {
       return VeqType::get(ctx, kDynamicSize);
     }
@@ -168,7 +171,7 @@ def VeqType : QuakeType<"Veq", "veq"> {
 //===----------------------------------------------------------------------===//
 
 def StruqType : QuakeType<"Struq", "struq"> {
-  let summary = "a product type of quantum references";
+  let summary = "a flattened product type of quantum references";
   let description = [{
     This type allows one to group veqs of quantum references together in a
     single product type.
@@ -187,6 +190,12 @@ def StruqType : QuakeType<"Struq", "struq"> {
 
   let extraClassDeclaration = [{
     std::size_t getNumMembers() const { return getMembers().size(); }
+    std::optional<std::size_t> getArity() const;
+    bool hasSpecifiedSize() const;
+    bool hasNonZeroSpecifiedSize() const {
+      auto arity = getArity();
+      return arity && *arity;
+    }
   }];
 
   let builders = [
@@ -201,11 +210,18 @@ def StruqType : QuakeType<"Struq", "struq"> {
 }
 
 def CableType : QuakeType<"Cable", "cable"> {
-  let summary = "the type of a sequence of wires bound together";
+  let summary = "a sequence type for an aggregate of wires";
   let description = [{
     This is the type of an aggregate of wire types. It is simply syntactic
     sugar that allows a group of wires to be passed around as a single cable
     value.
+
+    There is a mapping from any constant sized quantum reference type to a cable
+    type. A `!quake.ref` can map to a `!quake.cable<1>`. A `!quake.veq<n>` can
+    be mapped to a `!quake.cable<n>` retaining relative position and indices. A
+    `!quake.struq<{m0, ...}>` can be mapped left-to-right in member order. Each
+    member must be a `!quake.ref` or a `!quake.veq<n>` and will be mapped as
+    above with each member concatenating to the previous member.
   }];
 
   let parameters = (ins "std::uint64_t":$size);
@@ -221,9 +237,10 @@ def MeasureType : QuakeType<"Measure", "measure"> {
   let summary = "a classical result produced by a quantum measurement";
   let description = [{
     A quantum measurement captures the state of a qubit and returns a classical
-    regular (not linear) value from the measurement. Depending on the target
-    system this value may have two or more logical states. Typically, a value of
-    type `measure` will be discriminated into a binary bit.
+    regular (not linear) SSA value from the measurement. Note that, a value of
+    type `measure` is not volatile. Depending on the target system this value
+    may have two or more logical states. Typically, a value of type `measure`
+    will be discriminated into a binary bit (or small integer).
 
     ```mlir
       %m = quake.mz %0 : (!quake.ref) -> !quake.measure
@@ -271,8 +288,12 @@ def NonStruqRefTypeLike : TypeConstraint<Or<[VeqType.predicate,
 def NonStruqRefType : Type<NonStruqRefTypeLike.predicate,
         "non-struct quantum reference type">;
 def AnyQValueTypeLike : TypeConstraint<Or<[WireType.predicate,
-        ControlType.predicate]>, "quake quantum value types">;
-def AnyQValueType : Type<AnyQValueTypeLike.predicate, "quantum value type">;
-def AnyQLinearType : Type<WireType.predicate, "linear quantum value type">;
+        ControlType.predicate, CableType.predicate]>,
+        "quake quantum value types">;
+def AnyQValueType : Type<AnyQValueTypeLike.predicate, "any quantum value type">;
+def AnyQLinearTypeLike : TypeConstraint<Or<[WireType.predicate,
+        CableType.predicate]>, "quake linear quantum value types">;
+def AnyQLinearType : Type<AnyQLinearTypeLike.predicate,
+        "any linear quantum value type">;
 
 #endif // CUDAQ_OPTIMIZER_DIALECT_QUAKE_TYPES

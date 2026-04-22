@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,8 +7,7 @@
  ******************************************************************************/
 
 #include "kernel_builder.h"
-#include "common/Logger.h"
-#include "common/RuntimeMLIR.h"
+#include "common/FmtCore.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -17,6 +16,9 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/platform/nvqpp_interface.h"
+#include "cudaq/runtime/logger/logger.h"
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
@@ -30,15 +32,10 @@
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
 #include "mlir/Transforms/Passes.h"
-
 #include <numeric>
 
 using namespace mlir;
-
-extern "C" {
-void altLaunchKernel(const char *kernelName, void (*kernelFunc)(void *),
-                     void *kernelArgs, std::uint64_t argsSize);
-}
+using namespace cudaq_internal::compiler;
 
 namespace cudaq::details {
 
@@ -132,7 +129,7 @@ KernelBuilderType convertArgumentTypeToMLIR(cudaq::state *&) {
 
 MLIRContext *initializeContext() {
   CUDAQ_INFO("Initializing the MLIR infrastructure.");
-  return cudaq::initializeMLIR().release();
+  return getOwningMLIRContext().release();
 }
 void deleteContext(MLIRContext *context) { delete context; }
 void deleteJitEngine(ExecutionEngine *jit) { delete jit; }
@@ -503,15 +500,19 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &sizeOrVec) {
 
   if (auto stdvecTy = dyn_cast<cc::StdvecType>(type)) {
     // get the size
-    Value size = builder.create<cc::StdvecSizeOp>(builder.getI64Type(), value);
-    Value numQubits = builder.create<math::CountTrailingZerosOp>(size);
-    auto veqTy = quake::VeqType::getUnsized(context);
-    // allocate the number of qubits we need
-    Value qubits = builder.create<quake::AllocaOp>(veqTy, numQubits);
-
     auto ptrTy = cc::PointerType::get(stdvecTy.getElementType());
     Value initials = builder.create<cc::StdvecDataOp>(ptrTy, value);
-    qubits = builder.create<quake::InitializeStateOp>(veqTy, qubits, initials);
+    auto i64Ty = builder.getI64Type();
+    Value size = builder.create<cc::StdvecSizeOp>(i64Ty, value);
+    auto stateTy = cc::PointerType::get(quake::StateType::get(context));
+    auto state = builder.create<quake::CreateStateOp>(stateTy, initials, size);
+    Value numQubits = builder.create<quake::GetNumberOfQubitsOp>(i64Ty, state);
+    // allocate the number of qubits we need
+    auto veqTy = quake::VeqType::getUnsized(context);
+    Value qubits = builder.create<quake::AllocaOp>(veqTy, numQubits);
+
+    qubits = builder.create<quake::InitializeStateOp>(veqTy, qubits, state);
+    builder.create<quake::DeleteStateOp>(state);
     return QuakeValue(builder, qubits);
   }
 
@@ -843,26 +844,8 @@ void checkAndUpdateRegName(quake::MeasurementInterface &measure) {
 
 void c_if(ImplicitLocOpBuilder &builder, QuakeValue &conditional,
           std::function<void()> &thenFunctor) {
-  auto value = conditional.getValue();
-
-  if (auto discrOp = value.getDefiningOp<quake::DiscriminateOp>())
-    if (auto measureOp = discrOp.getMeasurement()
-                             .getDefiningOp<quake::MeasurementInterface>())
-      checkAndUpdateRegName(measureOp);
-
-  auto type = value.getType();
-  if (!isa<mlir::IntegerType>(type) || type.getIntOrFloatBitWidth() != 1)
-    throw std::runtime_error("Invalid result type passed to c_if.");
-
-  builder.create<cc::IfOp>(TypeRange{}, value,
-                           [&](OpBuilder &builder, Location l, Region &region) {
-                             region.push_back(new Block());
-                             auto &bodyBlock = region.front();
-                             OpBuilder::InsertionGuard guard(builder);
-                             builder.setInsertionPointToStart(&bodyBlock);
-                             thenFunctor();
-                             builder.create<cc::ContinueOp>(l);
-                           });
+  throw std::runtime_error(
+      "`c_if` is no longer supported. Use kernel mode with `run` API.");
 }
 
 /// Trims off the cudaq generated prefix and the mangled suffix, if any.
@@ -1105,9 +1088,20 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   }
 
   // Invoke and free the args memory.
-  auto thunk = reinterpret_cast<void (*)(void *)>(*thunkPtr);
+  auto thunk = reinterpret_cast<KernelThunkType>(*thunkPtr);
 
-  altLaunchKernel(properName.data(), thunk, rawArgs, size);
+  //  Extract the result offset, which we named.
+  auto roName = properName + ".returnOffset";
+  auto roPtr = jit->lookup(roName);
+  if (!roPtr)
+    throw std::runtime_error(
+        "cudaq::builder failed to get result offset function");
+
+  // Invoke and free the args memory.
+  auto resultOffset = reinterpret_cast<std::uint64_t>(*roPtr);
+
+  [[maybe_unused]] auto uncheckedResult =
+      altLaunchKernel(properName.data(), thunk, rawArgs, size, resultOffset);
   std::free(rawArgs);
   // TODO: any return values are dropped on the floor here.
 }
