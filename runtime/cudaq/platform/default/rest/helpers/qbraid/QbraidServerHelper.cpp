@@ -252,7 +252,37 @@ public:
         }
 
       } catch (const std::exception &e) {
-        cudaq::info("Exception when fetching results: {}", e.what());
+        // RestClient throws std::runtime_error on any non-success HTTP status
+        // (see runtime/common/RestClient.cpp) with a fixed message format:
+        //   "HTTP <VERB> Error - status code <code>: <curl_err>: <body>"
+        // The code isn't exposed as a structured attribute, so we parse it
+        // out to distinguish terminal client errors (401/403/404) from
+        // transient server/network errors (5xx, parse errors) that retry.
+        static const std::regex statusRx(R"(status code (\d+))");
+        const std::string what = e.what();
+        std::smatch match;
+        int statusCode = 0;
+        if (std::regex_search(what, match, statusRx))
+          statusCode = std::stoi(match[1]);
+
+        // Terminal: auth failures - retrying will not recover.
+        if (statusCode == 401 || statusCode == 403)
+          throw std::runtime_error(
+              "qBraid authentication failed (HTTP " +
+              std::to_string(statusCode) +
+              "). Verify QBRAID_API_KEY or api_key target argument.");
+
+        // Terminal: result resource genuinely does not exist. This is
+        // distinct from the "not yet available" race which returns
+        // 200 + success=false (handled above).
+        if (statusCode == 404)
+          throw std::runtime_error(
+              "qBraid result not found (HTTP 404) for job " + jobId +
+              ". The job may have been deleted or never produced results.");
+
+        // Retryable: 5xx, network errors, JSON parse failures, etc.
+        cudaq::info("Exception when fetching results (attempt {}/{}): {}",
+                    attempt + 1, maxRetries, what);
         if (attempt < maxRetries - 1) {
           int sleepTime = (attempt == 0)
                               ? waitTime

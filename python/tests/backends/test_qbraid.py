@@ -8,6 +8,7 @@
 
 import os
 from multiprocessing import Process
+from urllib.request import Request, urlopen
 
 import cudaq
 import pytest
@@ -20,7 +21,7 @@ except ImportError:
     print("Mock qpu not available, skipping qBraid tests.")
     pytest.skip("Mock qpu not available.", allow_module_level=True)
 
-port = 62452
+port = 62454
 
 # Default machine for tests. Mirrors the real qBraid device string format.
 TEST_MACHINE = "qbraid:qbraid:sim:qir-sv"
@@ -173,6 +174,62 @@ def test_qbraid_machine_alternative_device():
     kernel.h(qubit)
     kernel.mz(qubit)
 
+    counts = cudaq.sample(kernel)
+    assert len(counts) >= 1
+
+
+def _arm_result_status(code: int):
+    """Force the next /result call on the mock to return the given HTTP code.
+
+    Resets prior test-hook state first so the test is order-independent.
+    """
+    reset_url = f"http://localhost:{port}/test/reset"
+    arm_url = f"http://localhost:{port}/test/force_next_result_status/{code}"
+    # POST with empty body; no response parsing needed.
+    urlopen(Request(reset_url, data=b"", method="POST"), timeout=5).read()
+    urlopen(Request(arm_url, data=b"", method="POST"), timeout=5).read()
+
+
+def test_qbraid_result_auth_failure():
+    """401 on /result -> terminal auth error; message names the status."""
+    _arm_result_status(401)
+    kernel = cudaq.make_kernel()
+    qubit = kernel.qalloc()
+    kernel.h(qubit)
+    kernel.mz(qubit)
+    with pytest.raises(RuntimeError, match="authentication failed"):
+        cudaq.sample(kernel)
+
+
+def test_qbraid_result_forbidden():
+    """403 on /result -> same terminal auth translation as 401."""
+    _arm_result_status(403)
+    kernel = cudaq.make_kernel()
+    qubit = kernel.qalloc()
+    kernel.h(qubit)
+    kernel.mz(qubit)
+    with pytest.raises(RuntimeError, match="authentication failed"):
+        cudaq.sample(kernel)
+
+
+def test_qbraid_result_not_found():
+    """404 on /result -> terminal 'result not found' error."""
+    _arm_result_status(404)
+    kernel = cudaq.make_kernel()
+    qubit = kernel.qalloc()
+    kernel.h(qubit)
+    kernel.mz(qubit)
+    with pytest.raises(RuntimeError, match="result not found"):
+        cudaq.sample(kernel)
+
+
+def test_qbraid_result_server_error_retries():
+    """500 on /result is retryable; hook clears after one call so retry wins."""
+    _arm_result_status(500)
+    kernel = cudaq.make_kernel()
+    qubit = kernel.qalloc()
+    kernel.h(qubit)
+    kernel.mz(qubit)
     counts = cudaq.sample(kernel)
     assert len(counts) >= 1
 

@@ -45,6 +45,10 @@ FAIL_NEXT_JOB = {"enabled": False}
 # success=false (simulating the qbraid v2 race where status=COMPLETED before
 # results are queryable). Decrements on each /result call until 0.
 DELAY_RESULTS_COUNT = {"remaining": 0}
+# Testing hook: when set, the next GET /jobs/{id}/result call raises the given
+# HTTP status. Consumed (reset to None) after one call. Used to exercise the
+# helper's 401/403/404/5xx handling paths.
+FORCE_NEXT_RESULT_STATUS = {"code": None}
 
 
 def count_qubits(qasm: str) -> int:
@@ -208,6 +212,23 @@ async def armDelayResults(count: int = Path(...)):
     return {"remaining": count}
 
 
+# Test-only: force the next GET /result call to return the given HTTP status.
+# Consumed after one call.
+@app.post("/test/force_next_result_status/{code}")
+async def armForceResultStatus(code: int = Path(...)):
+    FORCE_NEXT_RESULT_STATUS["code"] = code
+    return {"armed_status": code}
+
+
+# Test-only: reset all test-hook globals so tests are order-independent.
+@app.post("/test/reset")
+async def resetTestState():
+    FAIL_NEXT_JOB["enabled"] = False
+    DELAY_RESULTS_COUNT["remaining"] = 0
+    FORCE_NEXT_RESULT_STATUS["code"] = None
+    return {"reset": True}
+
+
 # v2 API: GET /jobs/{job_qrn}
 @app.get("/jobs/{job_id}")
 async def getJob(
@@ -256,6 +277,14 @@ async def getJobResult(
         x_api_key: Optional[str] = Header(None, alias="X-API-KEY"),
 ):
     """Retrieve the results of a quantum job (v2 API)."""
+    # Test hook: if armed, raise the requested status. Checked first so tests
+    # can force 401/403 even when a valid api key is present.
+    if FORCE_NEXT_RESULT_STATUS["code"] is not None:
+        forced = FORCE_NEXT_RESULT_STATUS["code"]
+        FORCE_NEXT_RESULT_STATUS["code"] = None
+        raise HTTPException(status_code=forced,
+                            detail=f"Forced HTTP {forced} for test")
+
     if x_api_key is None:
         raise HTTPException(status_code=401, detail="API key is required")
 
