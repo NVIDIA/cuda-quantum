@@ -127,19 +127,31 @@ fi
 
 if $bootstrap; then
   stage1_prefix="${LLVM_INSTALL_PREFIX}-stage1"
-  stage1_build_dir="${LLVM_SOURCE}/build-stage1"
   if [ ! -x "$stage1_prefix/bin/clang" ]; then
-    echo "Bootstrap stage 1: building minimal LLVM with ${CXX:-c++}..."
-    mkdir -p "$stage1_prefix" "$stage1_build_dir" && cd "$stage1_build_dir"
-    stage1_cmake_args="-DLLVM_TARGETS_TO_BUILD=host \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX='$stage1_prefix' \
-      -DLLVM_ENABLE_PROJECTS='clang;lld' \
-      -DCMAKE_CXX_FLAGS='-w'"
-    if [ -n "$CC" ]; then stage1_cmake_args="$stage1_cmake_args -DCMAKE_C_COMPILER='$CC'"; fi
-    if [ -n "$CXX" ]; then stage1_cmake_args="$stage1_cmake_args -DCMAKE_CXX_COMPILER='$CXX'"; fi
-    echo $stage1_cmake_args | xargs cmake -G Ninja "$LLVM_SOURCE/llvm"
-    ninja install-clang install-lld install-clang-resource-headers
+    if [ -z "${LLVM_PROJECTS##*runtimes*}" ]; then
+      # Outer build includes runtimes: build stage1 with runtimes so stage1 clang
+      # defaults to libc++/compiler-rt, making stage2 gcc-free.
+      echo "Bootstrap stage 1: building clang+lld+runtimes with ${CC:-cc}..."
+      LLVM_INSTALL_PREFIX="$stage1_prefix" \
+      LLVM_PROJECTS='clang;lld;runtimes' \
+      LLVM_BUILD_FOLDER="build-stage1" \
+      LLVM_SOURCE="$LLVM_SOURCE" \
+      CC="$CC" CXX="$CXX" \
+      bash "$(readlink -f "${BASH_SOURCE[0]}")" -c Release -v
+    else
+      # Outer build has no runtimes: minimal stage1 to avoid a libc++ runtime dependency.
+      echo "Bootstrap stage 1: building minimal clang+lld with ${CXX:-c++}..."
+      mkdir -p "$stage1_prefix" "$LLVM_SOURCE/build-stage1" && cd "$LLVM_SOURCE/build-stage1"
+      stage1_cmake_args="-DLLVM_TARGETS_TO_BUILD=host \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX='$stage1_prefix' \
+        -DLLVM_ENABLE_PROJECTS='clang;lld' \
+        -DCMAKE_CXX_FLAGS='-w'"
+      if [ -n "$CC" ]; then stage1_cmake_args="$stage1_cmake_args -DCMAKE_C_COMPILER='$CC'"; fi
+      if [ -n "$CXX" ]; then stage1_cmake_args="$stage1_cmake_args -DCMAKE_CXX_COMPILER='$CXX'"; fi
+      echo $stage1_cmake_args | xargs cmake -G Ninja "$LLVM_SOURCE/llvm"
+      ninja install-clang install-lld install-clang-resource-headers
+    fi
     echo "Bootstrap stage 1 done."
   else
     echo "Bootstrap stage 1 already present at $stage1_prefix, skipping."

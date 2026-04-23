@@ -269,6 +269,17 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
       export CC=clang
       export CXX=clang++
       echo "Using Apple Clang: $(clang --version | head -1)"
+    elif [ "$toolchain" = "llvm" ] && [ -n "$BOOTSTRAP_LLVM" ]; then
+      # build_llvm.sh -b handles the full self-hosted bootstrap; just ensure a valid system compiler.
+      if [ ! -x "$CC" ]; then CC="${GCC_TOOLCHAIN:+$GCC_TOOLCHAIN/bin/gcc}"; fi
+      if [ ! -x "$CXX" ]; then CXX="${GCC_TOOLCHAIN:+$GCC_TOOLCHAIN/bin/g++}"; fi
+      if [ -x "$CC" ] && [ -x "$CXX" ]; then
+        export CC CXX
+        echo "Using system GCC for bootstrap stage 1: $CC"
+      else
+        unset CC CXX
+        echo "No system compiler set; CMake will auto-detect for bootstrap stage 1."
+      fi
     else
       LLVM_INSTALL_PREFIX="$LLVM_STAGE1_BUILD" LLVM_BUILD_FOLDER="stage1_build" \
       source "$this_file_dir/install_toolchain.sh" -t ${toolchain:-gcc12}
