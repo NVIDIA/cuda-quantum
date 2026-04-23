@@ -10,16 +10,18 @@
 
 // Verify compile-time diagnostics for `cudaq::measure_handle`:
 //
-//   1. `operator==` / `operator!=` on `measure_handle` are explicitly deleted
-//      (spec §`measure_handle` class). Users must write
-//      `discriminate(h1) == discriminate(h2)` instead.
+//   1. Reaching any bool-coercion context (`if`, `while`, ternary, `!`,
+//      `&&`, `||`, `==`, `!=`, `bool b = ...`, `return ...`, `bool(...)`,
+//      `static_cast<bool>(...)`, `assert`, a function argument requiring
+//      `measure_handle -> bool`, ...) with a default-constructed (unbound)
+//      handle is rejected by the frontend with the spec-mandated message
+//      "discriminating an unbound measure_handle" (spec `measure_handle`,
+//      Operational Semantics and unbound-handle concept). The bridge
+//      emits `quake.discriminate` at the coercion site and raises the
+//      diagnostic when the source operand is still a default-constructed
+//      handle at that point.
 //
-//   2. `cudaq::discriminate` on a default-constructed (unbound) handle is
-//      rejected by the frontend with the spec-mandated message
-//      "discriminating an unbound measure_handle" (spec §`measure_handle`
-//      class, unbound-handle concept).
-//
-//   3. Entry-point kernels may not name `measure_handle` -- directly or via
+//   2. Entry-point kernels may not name `measure_handle` -- directly or via
 //      any container (`std::vector`, `std::tuple`, `std::pair`, pointers, ...)
 //      -- in any parameter or return position. The diagnostic is the spec's
 //      exact message "measure_handle cannot cross the host-device boundary;
@@ -35,38 +37,16 @@
 
 // expected-note@* 0+ {{}}
 
-struct EqOnHandle {
-  void operator()() __qpu__ {
-    cudaq::measure_handle h1;
-    cudaq::measure_handle h2;
-    // expected-error@+1{{deleted}}
-    bool b = (h1 == h2);
-    (void)b;
-  }
-};
-
-struct NeOnHandle {
-  void operator()() __qpu__ {
-    cudaq::measure_handle h1;
-    cudaq::measure_handle h2;
-    // expected-error@+1{{deleted}}
-    bool b = (h1 != h2);
-    (void)b;
-  }
-};
-
-// Directly discriminating a default-constructed handle is the canonical
-// "unbound" pattern and must be diagnosed.
+// Reaching an implicit bool-coercion context (`if`) with a
+// default-constructed handle is the canonical "unbound" pattern and must
+// be diagnosed.
 struct DiscriminateUnbound {
   bool operator()() __qpu__ {
     cudaq::measure_handle h;
-    // The primary diagnostic is the unbound-handle error on the
-    // `cudaq::discriminate` call; the bridge then fails the enclosing
-    // statement because the call did not push a value. Accept both so
-    // -verify passes without masking either diagnostic.
-    // expected-error@+2{{discriminating an unbound measure_handle}}
-    // expected-error@+1{{statement not supported in qpu kernel}}
-    return cudaq::discriminate(h);
+    // expected-error@+1{{discriminating an unbound measure_handle}}
+    if (h)
+      return true;
+    return false;
   }
 };
 
@@ -85,7 +65,7 @@ struct BoundaryDirectReturn {
   // expected-error@+1{{measure_handle cannot cross the host-device boundary; entry-point kernels must discriminate first}}
   cudaq::measure_handle operator()() __qpu__ {
     cudaq::qubit q;
-    return mz_handle(q);
+    return mz(q);
   }
 };
 
