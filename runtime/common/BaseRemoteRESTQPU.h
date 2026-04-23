@@ -21,6 +21,7 @@
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "cudaq_internal/compiler/CompileOptions.h"
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/JIT.h"
 #include "llvm/Support/Base64.h"
@@ -259,6 +260,8 @@ public:
           "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
 
     auto [module, context] = Compiler::loadQuakeCodeByName(kernelName);
+    cudaq_internal::compiler::populateContextFromModule(*executionContext,
+                                                        module);
 
     // Get the Quake code, lowered according to config file.
     // FIXME: For python, we reach here with rawArgs being empty and args having
@@ -292,6 +295,8 @@ public:
 
     Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
                       noiseModel, emulate);
+    cudaq_internal::compiler::populateContextFromModule(*executionContext,
+                                                        module);
     completeLaunchKernel(kernelName,
                          compiler.lowerQuakeCode(executionContext, kernelName,
                                                  module, nullptr, rawArgs));

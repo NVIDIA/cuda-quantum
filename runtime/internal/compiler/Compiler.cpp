@@ -409,27 +409,16 @@ cudaq::CompiledModule Compiler::runPassPipeline(
   auto [moduleOp, epFunc] =
       prepareModule(kernelName, m_module, rawArgs, kernelArgs);
 
-  // Populate conditional measurement flag in the context.
   if (emulate && executionContext && executionContext->name == "sample") {
-    for (auto &artifact : moduleOp) {
-      quake::detail::QuakeFunctionAnalysis analysis{&artifact};
-      auto info = analysis.getAnalysisInfo();
-      if (info.empty())
-        continue;
-      auto result = info[&artifact];
-      if (result.hasConditionalsOnMeasure) {
-        throw std::runtime_error(
-            "`cudaq::sample` and `cudaq::sample_async` no longer support "
-            "kernels "
-            "that branch on measurement results. Kernel '" +
-            kernelName +
-            "' uses conditional feedback. Use `cudaq::run` or "
-            "`cudaq::run_async` "
-            "instead. See CUDA-Q documentation for migration guide.");
-      }
+    if (executionContext->hasConditionalsOnMeasureResults) {
+      throw std::runtime_error(
+          "`cudaq::sample` and `cudaq::sample_async` no longer support kernels "
+          "that branch on measurement results. Kernel '" +
+          kernelName +
+          "' uses conditional feedback. Use `cudaq::run` or `cudaq::run_async` "
+          "instead. See CUDA-Q documentation for migration guide.");
     }
   }
-
   bool combineMeasurements = executeMainPipeline(moduleOp, kernelName);
 
   // We need to run resource counting preprocessing after the pass pipeline as
@@ -449,31 +438,6 @@ cudaq::CompiledModule Compiler::runPassPipeline(
   if (executionContext) {
     if (executionContext->name == "sample") {
       executionContext->reorderIdx = mapping_reorder_idx;
-      // Warn if kernel has named measurement registers (sub-registers).
-      if (!executionContext->warnedNamedMeasurements) {
-        auto funcOp = moduleOp.template lookupSymbol<mlir::func::FuncOp>(
-            std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
-        if (funcOp) {
-          bool hasNamedMeasurements = false;
-          funcOp.walk([&](quake::MeasurementInterface meas) {
-            if (meas.getOptionalRegisterName().has_value()) {
-              hasNamedMeasurements = true;
-              return mlir::WalkResult::interrupt();
-            }
-            return mlir::WalkResult::advance();
-          });
-          if (hasNamedMeasurements) {
-            executionContext->warnedNamedMeasurements = true;
-            std::cerr
-                << "WARNING: Kernel \"" << kernelName
-                << "\" uses named measurement results "
-                << "but is invoked in sampling mode. Support for "
-                << "sub-registers in `sample_result` is deprecated and will "
-                << "be removed in a future release. Use `run` to retrieve "
-                << "individual measurement results." << std::endl;
-          }
-        }
-      }
       // No need to add measurements only to remove them eventually
       if (postCodeGenPasses.find("remove-measurements") == std::string::npos)
         applyPipeline("func.func(add-measurements)", moduleOp, kernelName);

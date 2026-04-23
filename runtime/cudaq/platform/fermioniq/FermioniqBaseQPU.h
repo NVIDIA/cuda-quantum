@@ -47,6 +47,7 @@ public:
     CUDAQ_INFO("FermioniqBaseQPU launching kernel ({})", kernelName);
     auto [module, context] = Compiler::loadQuakeCodeByName(kernelName);
     launchImpl(kernelName, [&](Compiler &compiler, ExecutionContext *ctx) {
+      cudaq_internal::compiler::populateContextFromModule(*ctx, module);
       return rawArgs.empty()
                  ? compiler.lowerQuakeCode(ctx, kernelName, module, args, {})
                  : compiler.lowerQuakeCode(ctx, kernelName, module, nullptr,
@@ -60,6 +61,7 @@ public:
                const std::vector<void *> &rawArgs) override {
     CUDAQ_INFO("FermioniqBaseQPU launching kernel via module ({})", kernelName);
     launchImpl(kernelName, [&](Compiler &compiler, ExecutionContext *ctx) {
+      cudaq_internal::compiler::populateContextFromModule(*ctx, module);
       return compiler.lowerQuakeCode(ctx, kernelName, module, nullptr, rawArgs);
     });
     return {};

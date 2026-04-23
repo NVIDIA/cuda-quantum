@@ -22,6 +22,7 @@ target_include_directories(cudaq-mlir-runtime-headers INTERFACE
 add_library(cudaq-mlir-runtime
   SHARED
     ArgumentConversion.cpp
+    CompileOptions.cpp
     Compiler.cpp
     CompiledModuleHelper.cpp
     JIT.cpp
