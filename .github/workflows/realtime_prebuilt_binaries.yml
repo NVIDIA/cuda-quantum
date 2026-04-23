@@ -46,13 +46,13 @@ jobs:
         submodules: true
 
     - name: Log in to DockerHub
-      uses: docker/login-action@v3
+      uses: docker/login-action@v4
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
     - name: Login to GitHub CR
-      uses: docker/login-action@v3
+      uses: docker/login-action@v4
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
@@ -62,7 +62,7 @@ jobs:
         docker context create builder_context
 
     - name: Set up buildx runner
-      uses: docker/setup-buildx-action@v3
+      uses: docker/setup-buildx-action@v4
       with:
         endpoint: builder_context
         version: v0.19.0
@@ -72,7 +72,9 @@ jobs:
           image=moby/buildkit:v0.19.0
     - name: Build assets
       id: docker_build
-      uses: docker/build-push-action@v5
+      uses: docker/build-push-action@v6
+      env:
+        DOCKER_BUILD_RECORD_UPLOAD: "false"
       with:
         context: .
         file: ./realtime/docker/assets.Dockerfile
@@ -92,7 +94,7 @@ jobs:
         # Output the installer
         outputs: type=local,dest=/tmp/install
     - name: Upload installer
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: install_cuda_quantum_realtime_cu${{ inputs.cuda_version }}.${{ inputs.platform }} 
         path: /tmp/install

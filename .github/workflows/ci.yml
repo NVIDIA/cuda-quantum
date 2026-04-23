@@ -172,7 +172,7 @@ jobs:
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+      - uses: mitchdz/github-action-matrix-outputs-read@v2-alpha
         id: read_json
         with:
           matrix-step-name: dev_environment_devdeps
@@ -184,7 +184,7 @@ jobs:
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+      - uses: mitchdz/github-action-matrix-outputs-read@v2-alpha
         id: read_json
         with:
           matrix-step-name: dev_environment_wheeldeps
@@ -196,7 +196,7 @@ jobs:
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+      - uses: mitchdz/github-action-matrix-outputs-read@v2-alpha
         id: read_json
         with:
           matrix-step-name: dev_environment_source_build
@@ -334,7 +334,7 @@ jobs:
           echo "pr-base: ${{ needs.metadata.outputs.pull_request_base }}" >> metadata.txt
 
       - name: Upload cache keys
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cache_keys_ci
           path: cache_keys.txt
@@ -342,7 +342,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload metadata
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: metadata_ci
           path: metadata.txt

@@ -240,7 +240,7 @@ jobs:
       image_hash: ${{ fromJson(steps.write_json.outputs.result).image_hash }}
 
     steps:
-      - uses: cloudposse/github-action-matrix-outputs-write@1.0.0
+      - uses: mitchdz/github-action-matrix-outputs-write@v2-alpha
         id: write_json
         with:
           matrix-step-name: ${{ inputs.matrix_key && 'dev_environment_macos' }}
