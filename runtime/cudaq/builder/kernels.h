@@ -80,13 +80,17 @@ void from_state(Kernel &&kernel, QuakeValue &qubits,
         break;
     }
   }
-  if (nonZeroCount <= 1) {
+  if (nonZeroCount == 0)
+    throw std::invalid_argument(
+        "[from_state] input state vector is all zeros; a quantum state "
+        "must have unit norm.");
+  if (nonZeroCount == 1) {
     // Möttönen ordering: state-vector index MSB maps to qubits[0], LSB to
-    // qubits[numQubits-1]
-    if (nonZeroCount == 1)
-      for (std::make_signed_t<std::size_t> q = 0; q < numQubits; ++q)
-        if ((nonZeroIdx >> (numQubits - 1 - q)) & 1)
-          kernel.x(qubits[q]);
+    // qubits[numQubits-1].
+    auto nq = static_cast<std::size_t>(numQubits);
+    for (std::size_t q = 0; q < nq; ++q)
+      if ((nonZeroIdx >> (nq - 1 - q)) & 1)
+        kernel.x(qubits[q]);
     return;
   }
 

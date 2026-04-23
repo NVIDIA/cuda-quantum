@@ -204,11 +204,8 @@ CUDAQ_TEST(KernelsTester, checkFromStateBasis) {
     std::vector<std::complex<double>> zero(8, 0.0);
     auto kernel = cudaq::make_kernel();
     auto qubits = kernel.qalloc(3);
-    cudaq::from_state(kernel, qubits, zero);
-    auto ss = cudaq::get_state(kernel);
-    EXPECT_NEAR(std::abs(ss[0] - std::complex<double>(1.0, 0.0)), 0.0, 1e-6);
-    for (std::size_t i = 1; i < 8; i++)
-      EXPECT_NEAR(std::abs(ss[i]), 0.0, 1e-6);
+    EXPECT_THROW(cudaq::from_state(kernel, qubits, zero),
+                 std::invalid_argument);
   }
 
   {
