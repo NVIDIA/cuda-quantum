@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,6 +9,7 @@
 #pragma once
 
 #include "cudaq/Optimizer/Builder/Factory.h"
+#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 
 //===----------------------------------------------------------------------===//
 //
@@ -22,60 +23,14 @@
 
 namespace cudaq::runtime {
 
-/// Prefix for all kernel entry functions.
-static constexpr const char cudaqGenPrefixName[] = "__nvqpp__mlirgen__";
+/// Get the return type of a kernel FuncOp. Returns a null Type if the kernel
+/// returns void or has more than one result (unsupported).
+inline mlir::Type getReturnType(mlir::func::FuncOp funcOp) {
+  if (!funcOp)
+    return nullptr;
 
-/// Convenience constant for the length of the kernel entry prefix.
-static constexpr unsigned cudaqGenPrefixLength = sizeof(cudaqGenPrefixName) - 1;
-
-/// Name of the callback into the runtime.
-/// A kernel entry procedure can either be replaced with a new function at
-/// compile time (see `cudaqGenPrefixName`) or it can be rewritten to call back
-/// to the runtime library (and be handled at runtime).
-static constexpr const char launchKernelFuncName[] = "altLaunchKernel";
-static constexpr const char launchKernelStreamlinedFuncName[] =
-    "streamlinedLaunchKernel";
-static constexpr const char launchKernelHybridFuncName[] = "hybridLaunchKernel";
-
-static constexpr const char mangledNameMap[] = "quake.mangled_name_map";
-
-static constexpr const char deviceCodeHolderAdd[] =
-    "__cudaq_deviceCodeHolderAdd";
-
-static constexpr const char registerLinkableKernel[] =
-    "__cudaq_registerLinkableKernel";
-static constexpr const char getLinkableKernelKey[] =
-    "__cudaq_getLinkableKernelKey";
-static constexpr const char getLinkableKernelName[] =
-    "__cudaq_getLinkableKernelName";
-static constexpr const char getLinkableKernelDeviceSide[] =
-    "__cudaq_getLinkableKernelDeviceFunction";
-
-static constexpr const char CudaqRegisterLambdaName[] =
-    "cudaqRegisterLambdaName";
-static constexpr const char CudaqRegisterArgsCreator[] =
-    "cudaqRegisterArgsCreator";
-static constexpr const char CudaqRegisterKernelName[] =
-    "cudaqRegisterKernelName";
-
-/// Prefix for an analog kernel entry functions.
-static constexpr const char cudaqAHKPrefixName[] =
-    "__analog_hamiltonian_kernel__";
-
-// Host-side helper functions for working with `cudaq::pauli_word` or a
-// `std::string`. These include both fully dynamic and binding time (library
-// build time) helper functions.
-static constexpr const char sizeofStringAttrName[] = "cc.sizeof_string";
-static constexpr const char getPauliWordSize[] =
-    "_ZNK5cudaq10pauli_word11_nvqpp_sizeEv";
-static constexpr const char getPauliWordData[] =
-    "_ZNK5cudaq10pauli_word11_nvqpp_dataEv";
-static constexpr const char bindingGetStringData[] = "__nvqpp_getStringData";
-static constexpr const char bindingGetStringSize[] = "__nvqpp_getStringSize";
-static constexpr const char bindingInitializeString[] =
-    "__nvqpp_initializeStringFromSpan";
-static constexpr const char bindingDeconstructString[] =
-    "__nvqpp_deconstructString";
-static constexpr const char enableCudaqRun[] = "quake.cudaq_run";
+  auto numResults = funcOp.getFunctionType().getNumResults();
+  return numResults == 1 ? funcOp.getFunctionType().getResult(0) : nullptr;
+}
 
 } // namespace cudaq::runtime

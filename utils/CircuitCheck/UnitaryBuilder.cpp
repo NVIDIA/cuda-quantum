@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -16,7 +16,7 @@ using namespace mlir;
 LogicalResult UnitaryBuilder::build(func::FuncOp func) {
   for (auto arg : func.getArguments()) {
     auto type = arg.getType();
-    if (isa<quake::RefType>(type) || isa<quake::VeqType>(type))
+    if (isa<quake::RefType, quake::VeqType>(type))
       if (allocateQubits(arg) == WalkResult::interrupt())
         return failure();
   }

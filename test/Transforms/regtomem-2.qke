@@ -1,0 +1,68 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Regression test for use-after-free bug in RegToMem pass cleanup phase.
+//
+// Bug: In the cleanup walk, after erasing a BorrowWireOp, the code continued
+// to access the `op` pointer to check if it was a ReturnOp. This is a
+// use-after-free because `op` is dangling after erase().
+//
+// Fix: Return WalkResult::skip() immediately after erase() to prevent
+// accessing the dangling pointer.
+//
+// This test uses borrow_wire ops which populate borrowAllocas, exercising
+// the full buggy code path. With MALLOC_PERTURB_=165, the unfixed code
+// crashes due to freed memory being scribbled.
+
+// RUN: cudaq-opt -regtomem %s | FileCheck %s
+// RUN: env MALLOC_PERTURB_=165 cudaq-opt -regtomem %s | FileCheck %s
+
+quake.wire_set @test_wires[10]
+
+func.func @uaf_regression_test() {
+  %w0 = quake.borrow_wire @test_wires[0] : !quake.wire
+  %w1 = quake.borrow_wire @test_wires[1] : !quake.wire
+  %w2 = quake.borrow_wire @test_wires[2] : !quake.wire
+  %w3 = quake.borrow_wire @test_wires[3] : !quake.wire
+  %w4 = quake.borrow_wire @test_wires[4] : !quake.wire
+  %w5 = quake.borrow_wire @test_wires[5] : !quake.wire
+  %w6 = quake.borrow_wire @test_wires[6] : !quake.wire
+  %w7 = quake.borrow_wire @test_wires[7] : !quake.wire
+  %w8 = quake.borrow_wire @test_wires[8] : !quake.wire
+  %w9 = quake.borrow_wire @test_wires[9] : !quake.wire
+
+  %r0 = quake.h %w0 : (!quake.wire) -> !quake.wire
+  %r1 = quake.h %w1 : (!quake.wire) -> !quake.wire
+  %r2 = quake.h %w2 : (!quake.wire) -> !quake.wire
+  %r3 = quake.h %w3 : (!quake.wire) -> !quake.wire
+  %r4 = quake.h %w4 : (!quake.wire) -> !quake.wire
+  %r5 = quake.h %w5 : (!quake.wire) -> !quake.wire
+  %r6 = quake.h %w6 : (!quake.wire) -> !quake.wire
+  %r7 = quake.h %w7 : (!quake.wire) -> !quake.wire
+  %r8 = quake.h %w8 : (!quake.wire) -> !quake.wire
+  %r9 = quake.h %w9 : (!quake.wire) -> !quake.wire
+
+  quake.return_wire %r0 : !quake.wire
+  quake.return_wire %r1 : !quake.wire
+  quake.return_wire %r2 : !quake.wire
+  quake.return_wire %r3 : !quake.wire
+  quake.return_wire %r4 : !quake.wire
+  quake.return_wire %r5 : !quake.wire
+  quake.return_wire %r6 : !quake.wire
+  quake.return_wire %r7 : !quake.wire
+  quake.return_wire %r8 : !quake.wire
+  quake.return_wire %r9 : !quake.wire
+
+  return
+}
+
+// CHECK-LABEL: func.func @uaf_regression_test()
+// CHECK-COUNT-10: quake.alloca !quake.ref
+// CHECK-COUNT-10: quake.h
+// CHECK-COUNT-10: quake.dealloc
+// CHECK: return

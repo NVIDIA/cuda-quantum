@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -76,7 +76,7 @@ public:
   /// Take the quantum kernel and concrete arguments for all arguments except
   /// the first std::vector<double> argument, which is used for the variational
   /// parameters for the gradient. Serialize and save those arguments into this
-  /// object. (Useful for NVQC.)
+  /// object.
   template <typename QuantumKernel, typename... Args>
   void setArgs(QuantumKernel &kernel, Args &&...args) {
     static_assert(

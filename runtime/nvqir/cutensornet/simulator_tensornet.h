@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #pragma once
-#include "cudaq.h"
+#include "cudaq/cudaq_mpi.h"
 #include "simulator_cutensornet.h"
 #include "tn_simulation_state.h"
 
@@ -47,15 +47,15 @@ public:
             std::getenv("CUDAQ_TENSORNET_CONTROLLED_RANK")) {
       auto maxControlledRank = std::atoi(maxControlledRankEnvVar);
       if (maxControlledRank <= 0)
-        throw std::runtime_error(
-            fmt::format("Invalid CUDAQ_TENSORNET_CONTROLLED_RANK environment "
-                        "variable setting. Expecting a "
-                        "positive integer value, got '{}'.",
-                        maxControlledRank));
+        throw std::runtime_error(cudaq_fmt::format(
+            "Invalid CUDAQ_TENSORNET_CONTROLLED_RANK environment "
+            "variable setting. Expecting a "
+            "positive integer value, got '{}'.",
+            maxControlledRank));
 
-      cudaq::info("Setting max controlled rank for full tensor expansion from "
-                  "{} to {}.",
-                  m_maxControlledRankForFullTensorExpansion, maxControlledRank);
+      CUDAQ_INFO("Setting max controlled rank for full tensor expansion from "
+                 "{} to {}.",
+                 m_maxControlledRankForFullTensorExpansion, maxControlledRank);
       m_maxControlledRankForFullTensorExpansion = maxControlledRank;
     }
   }
@@ -84,6 +84,13 @@ public:
     LOG_API_TIME();
     return std::make_unique<TensorNetSimulationState<ScalarType>>(
         std::move(m_state), scratchPad, m_cutnHandle, m_randomEngine);
+  }
+
+  std::unique_ptr<cudaq::SimulationState>
+  createStateFromData(const cudaq::state_data &data) override {
+    return std::make_unique<TensorNetSimulationState<ScalarType>>(
+               nullptr, scratchPad, m_cutnHandle, m_randomEngine)
+        ->createFromData(data);
   }
 
   void addQubitsToState(std::size_t numQubits, const void *ptr) override {
@@ -123,6 +130,9 @@ public:
       m_state = TensorNetState<ScalarType>::createFromOpTensors(
           in_state.getNumQubits(), casted->getAppliedTensors(), scratchPad,
           m_cutnHandle, m_randomEngine);
+      // Need to extend lifetime of all the device pointers stored in the input
+      // state.
+      m_state->m_tempDevicePtrs = casted->m_state->m_tempDevicePtrs;
     } else {
       // Expand an existing state:
       //  (1) Create a blank tensor network with combined number of qubits
@@ -141,14 +151,33 @@ public:
         return mapped;
       };
       for (auto &op : casted->getAppliedTensors()) {
-        if (op.isUnitary)
+        // Check for noise channel first (noise channel ops have deviceData ==
+        // nullptr and noiseChannel.has_value() == true)
+        if (op.noiseChannel.has_value()) {
+          const bool isGeneralChannel = op.noiseChannel->tensorData.size() !=
+                                        op.noiseChannel->probabilities.size();
+          if (isGeneralChannel) {
+            m_state->applyGeneralChannel(mapQubitIdxs(op.targetQubitIds),
+                                         op.noiseChannel->tensorData);
+          } else {
+            m_state->applyUnitaryChannel(mapQubitIdxs(op.targetQubitIds),
+                                         op.noiseChannel->tensorData,
+                                         op.noiseChannel->probabilities);
+          }
+        } else if (op.isUnitary) {
           m_state->applyGate(mapQubitIdxs(op.controlQubitIds),
                              mapQubitIdxs(op.targetQubitIds), op.deviceData,
                              op.isAdjoint);
-        else
+        } else {
           m_state->applyQubitProjector(op.deviceData,
                                        mapQubitIdxs(op.targetQubitIds));
+        }
       }
+      // Append the temp. pointer
+      m_state->m_tempDevicePtrs.insert(
+          m_state->m_tempDevicePtrs.end(),
+          casted->m_state->m_tempDevicePtrs.begin(),
+          casted->m_state->m_tempDevicePtrs.end());
     }
   }
   bool requireCacheWorkspace() const override { return true; }

@@ -49,6 +49,26 @@ committing your changes:
 git commit -s -m "Add cool feature."
 ```
 
+### Automated Checks with Pre-commit
+
+Before submitting a pull request, we recommend running automated checks locally
+to catch formatting and linting issues early:
+
+```bash
+# One-time setup
+pip install pre-commit
+pre-commit install
+
+# Run all checks (same as CI)
+pre-commit run --all-files --hook-stage pre-push
+```
+
+All pre-commit checks that run in CI can be run locally. This helps reduce
+CI churn from formatting issues. See [Developing.md](Developing.md) for detailed
+pre-commit usage and troubleshooting.
+
+---
+
 This will append the following to your commit message:
 
 ```txt

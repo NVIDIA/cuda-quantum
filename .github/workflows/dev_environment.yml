@@ -56,6 +56,10 @@ on:
         required: false
         type: string
         description: The key to use for the json entry in the output of the cloudposse GitHub action (only needed when the workflow runs as part of a matrix job).
+      matrix_step_name:
+        required: false
+        type: string
+        description: Override the step name used when writing matrix outputs (enables split config so downstream jobs can start as soon as their deps are ready).
       environment:
         required: false
         type: string
@@ -109,7 +113,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: "${{ (inputs.pull_request_number != '' && (inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number))) || '' }}"
 
@@ -139,10 +143,17 @@ jobs:
           tag_prefix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo %. | tr . -`${platform_tag:+$platform_tag-}${build_config_id:+$build_config_id-}
           tag_suffix=""
 
-          if ${{ inputs.pull_request_number != '' }} || ${{ github.event.pull_request.number != '' }}; then
-            pr_number=${{ inputs.pull_request_number || github.event.pull_request.number}}
-          elif ${{ startsWith(github.ref_name, 'pull-request/') }}; then
-            pr_number=`echo ${{ github.ref_name }} | cut -d / -f2`
+          # PR number detection (also handles merge queue refs)
+          if ${{ inputs.pull_request_number != '' }}; then
+            pr_number=${{ inputs.pull_request_number }}
+          elif ${{ github.event.pull_request.number != '' }}; then
+            pr_number=${{ github.event.pull_request.number }}
+          elif [[ "${{ github.ref_name }}" =~ (pull-request/|.*/pr-)([0-9]+) ]]; then
+            pr_number="${BASH_REMATCH[2]}"
+          fi
+
+          if [ -n "$pr_number" ]; then
+            image_name=${image_name}-ci
           fi
 
           if ${{ inputs.pull_request_commit != '' }}; then
@@ -205,15 +216,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: "${{ (inputs.pull_request_number != '' && (inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number))) || '' }}"
           submodules: ${{ inputs.checkout_submodules }}
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          image: tonistiigi/binfmt:qemu-v9.2.2-52
 
       - name: Set up context for buildx
         run: |
@@ -224,9 +230,16 @@ jobs:
         with:
           endpoint: builder_context
           version: v0.19.0
+          buildkitd-config: ${{ needs.metadata.outputs.runner != 'ubuntu-latest' && '/etc/buildkit/buildkitd.toml' || null }}
           driver-opts: |
             network=host
             image=moby/buildkit:v0.19.0
+
+      - name: Setup proxy cache
+        if: needs.metadata.outputs.runner != 'ubuntu-latest'
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: true
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
@@ -246,6 +259,11 @@ jobs:
         run: |
           build_config_id=${{ inputs.build_config_id }}
           registry_cache=ghcr.io/${{ needs.metadata.outputs.owner }}/${{ vars.packages_prefix }}buildcache-cuda-quantum
+          if ${{ needs.metadata.outputs.pr_number != '' }}; then
+            registry_cache=${registry_cache}-ci
+          elif ${{ github.event_name == 'merge_group' }}; then
+            registry_cache=${registry_cache}-merge-group
+          fi
           nvidia_registry_cache=ghcr.io/nvidia/buildcache-cuda-quantum
           registry_cache_base=$(echo ${{ inputs.registry_cache_from || github.event.pull_request.base.ref || 'main' }} | tr / -)
           cache_id=$(echo ${{ needs.metadata.outputs.image_id }}${build_config_id:+-$build_config_id} | tr . -)
@@ -265,12 +283,20 @@ jobs:
           if ${{ inputs.update_registry_cache != '' }}; then
             registry_cache_target=$(echo ${{ inputs.update_registry_cache }} | tr / -)
             build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_target"
-            cache_to="${build_cache},mode=max,ignore-error=false"
+            cache_to="${build_cache},mode=max,ignore-error=false,compression=zstd"
           elif ${{ inputs.create_local_cache }}; then
             # In general, using the build cache from the registry/parent branch is the quickest.
             # We hence create a build cache only upon request.
             build_cache="${local_buildcache_key}"
             cache_to="type=local,dest=${local_buildcache_path}-new,mode=max,ignore-error=true"
+          elif ${{ needs.metadata.outputs.pr_number != '' }}; then
+            # for PRs, also push buildkit cache to the registry to speed up subsequent builds
+            cache_to="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }},compression=zstd"
+            build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_base"
+          elif ${{ github.event_name == 'merge_group' }}; then
+            # for merge queues, also push buildkit cache to the registry to speed up subsequent builds
+            cache_to="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base,compression=zstd"
+            build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base"
           else 
             build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_base"
           fi
@@ -289,6 +315,8 @@ jobs:
             for platform_id in $platform_ids; do
               if ${{ needs.metadata.outputs.pr_number != '' }}; then
                 echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }}"
+              elif ${{ github.event_name == 'merge_group' }}; then
+                echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base"
               fi
               echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
               echo "type=registry,ref=${nvidia_registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
@@ -394,6 +422,9 @@ jobs:
             # - https://github.com/docker/cli/issues/3350.
 
             remote_image=ghcr.io/${{ needs.metadata.outputs.owner }}/${{ vars.packages_prefix }}${{ needs.metadata.outputs.image_title }}
+            if ${{ needs.metadata.outputs.pr_number != '' }}; then
+              remote_image=${remote_image}-ci
+            fi
             remote_tag=${{ needs.metadata.outputs.tag_prefix }}${{ steps.cache.outputs.registry_cache_base }}${{ needs.metadata.outputs.tag_suffix }}
             echo "Trying to pull remote tag $remote_image:$remote_tag."
             docker pull $remote_image:$remote_tag || true
@@ -441,10 +472,11 @@ jobs:
       - uses: cloudposse/github-action-matrix-outputs-write@1.0.0
         id: write_json
         with:
-          matrix-step-name: ${{ inputs.matrix_key && 'dev_environment' }}
+          matrix-step-name: ${{ inputs.matrix_step_name || (inputs.matrix_key && 'dev_environment') }}
           matrix-key: ${{ inputs.matrix_key }}
           outputs: |
             image_hash: ${{ needs.build.outputs.image_hash }}
             cache_key: ${{ needs.build.outputs.tar_cache }}
             tar_archive: ${{ needs.build.outputs.tar_archive }}
             build_cache: ${{ needs.build.outputs.build_cache }}
+            image_tag: ${{ needs.metadata.outputs.image_tags }}

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -11,7 +11,7 @@
 
 bool cudaq::__nvqpp__MeasureResultBoolConversion(int result) {
   auto &platform = get_platform();
-  auto *ctx = platform.get_exec_ctx();
+  auto *ctx = getExecutionContext();
   if (ctx && ctx->name == "tracer")
     ctx->registerNames.push_back("");
   return result == 1;

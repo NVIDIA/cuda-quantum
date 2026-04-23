@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -124,7 +124,8 @@ int main() {
     // magnetization operator at each time step.
     auto evolve_result =
         cudaq::evolve(hamiltonian, dimensions, schedule, psi0, integrator, {},
-                      {staggered_magnetization_op}, true);
+                      {staggered_magnetization_op},
+                      cudaq::IntermediateResultSave::ExpectationValue);
 
     // Lambda to extract expectation values for a given observable index
     auto get_expectation = [](int idx, auto &result) -> std::vector<double> {

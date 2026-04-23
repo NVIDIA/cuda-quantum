@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -11,9 +11,9 @@
 #include "cudaq.h"
 #include "cudaq/platform.h"
 #include "nvqir/CircuitSimulator.h"
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-namespace py = pybind11;
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
 
 namespace nvqir {
 void toggleDynamicQubitManagement();
@@ -21,44 +21,32 @@ void toggleDynamicQubitManagement();
 
 namespace cudaq {
 
-void bindTestUtils(py::module &mod, LinkedLibraryHolder &holder) {
+void bindTestUtils(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
   auto testingSubmodule = mod.def_submodule("testing");
-
-  /// NOTE: "ExecutionContext" is already registered in
-  /// python/runtime/common/py_ExecutionContext.cpp
-  // // py::class_<ExecutionContext>(testingSubmodule, "ExecutionContext", "");
-
-  // Vision for all this
-  //
-  // cudaq.testing.toggleDynamicQubitManagement()
-  // qubits, context = cudaq.testing.initialize(numQubits, 1000)
-  // .. use llvmlite.jit to execute kernel function
-  // results = cudaq.testing.finalize(qubits, context);
-  // results.dump()
 
   testingSubmodule.def(
       "toggleDynamicQubitManagement",
       [&]() { nvqir::toggleDynamicQubitManagement(); }, "");
 
   testingSubmodule.def(
-      "initialize", [&](std::size_t numQubits, std::size_t numShots) {
-        cudaq::ExecutionContext *context =
-            new cudaq::ExecutionContext("sample", numShots);
-        cudaq::set_random_seed(13);
+      "allocateQubits",
+      [&](std::size_t numQubits) {
         auto simName = holder.getTarget().simulatorName;
-        holder.getSimulator(simName)->setExecutionContext(context);
-        return std::make_tuple(
-            holder.getSimulator(simName)->allocateQubits(numQubits), context);
-      });
+        return holder.getSimulator(simName)->allocateQubits(numQubits);
+      },
+      nanobind::arg("numQubits"));
 
-  testingSubmodule.def("finalize", [&](const std::vector<std::size_t> &qubits,
-                                       cudaq::ExecutionContext *context) {
+  testingSubmodule.def("deallocateQubits",
+                       [&](const std::vector<std::size_t> &qubits) {
+                         auto simName = holder.getTarget().simulatorName;
+                         holder.getSimulator(simName)->deallocateQubits(qubits);
+                       });
+
+  testingSubmodule.def("getAndClearOutputLog", [&]() {
     auto simName = holder.getTarget().simulatorName;
-    holder.getSimulator(simName)->deallocateQubits(qubits);
-    holder.getSimulator(simName)->resetExecutionContext();
-    nvqir::toggleDynamicQubitManagement();
-    // Pybind will delete the context bc its been wrapped in a unique_ptr
-    return context->result;
+    auto log = holder.getSimulator(simName)->outputLog;
+    holder.getSimulator(simName)->outputLog.clear();
+    return log;
   });
 }
 

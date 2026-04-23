@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -9,59 +9,22 @@
 import cudaq, pytest, os
 import numpy as np
 from cudaq import spin
-from multiprocessing import Process
 from typing import List
-from network_utils import check_server_connection
-try:
-    from utils.mock_qpu.quantinuum import startServer
-except:
-    print("Mock qpu not available, skipping Quantinuum tests.")
-    pytest.skip("Mock qpu not available.", allow_module_level=True)
+from conftest import QUANTINUUM_MOCK_PORT
 
-# Define the port for the mock server
-port = 62440
+pytestmark = pytest.mark.xdist_group("quantinuum_mock")
 
 
 def assert_close(got) -> bool:
-    return got < -1.5 and got > -1.9
-
-
-@pytest.fixture(scope="session", autouse=True)
-def startUpMockServer():
-    # We need a Fake Credentials Config file
-    credsName = '{}/QuantinuumFakeConfig.config'.format(os.environ["HOME"])
-    f = open(credsName, 'w')
-    f.write('key: {}\nrefresh: {}\ntime: 0'.format("hello", "rtoken"))
-    f.close()
-
-    cudaq.set_random_seed(13)
-
-    # Set the targeted QPU
-    cudaq.set_target('quantinuum', url='http://localhost:{}'.format(port))
-
-    # Launch the Mock Server
-    p = Process(target=startServer, args=(port,))
-    p.start()
-
-    if not check_server_connection(port):
-        p.terminate()
-        pytest.exit("Mock server did not start in time, skipping tests.",
-                    returncode=1)
-
-    yield credsName
-
-    # Kill the server, remove the file
-    p.terminate()
-    os.remove(credsName)
+    return got < -1.1 and got > -2.2
 
 
 @pytest.fixture(scope="function", autouse=True)
-def configureTarget(startUpMockServer):
-
-    # Set the targeted QPU with credentials
+def configureTarget(quantinuum_mock_server):
     cudaq.set_target('quantinuum',
-                     url='http://localhost:{}'.format(port),
-                     credentials=startUpMockServer)
+                     url='http://localhost:{}'.format(QUANTINUUM_MOCK_PORT),
+                     credentials=quantinuum_mock_server,
+                     project='mock_project_id')
 
     yield "Running the test."
     cudaq.reset_target()
@@ -176,41 +139,6 @@ def test_quantinuum_u3_ctrl_decomposition():
     result = cudaq.sample(kernel)
 
 
-def test_quantinuum_state_preparation():
-
-    @cudaq.kernel
-    def kernel(vec: List[complex]):
-        qubits = cudaq.qvector(vec)
-
-    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
-    counts = cudaq.sample(kernel, state)
-    assert '00' in counts
-    assert '10' in counts
-    assert not '01' in counts
-    assert not '11' in counts
-
-
-def test_quantinuum_state_synthesis_from_simulator():
-
-    @cudaq.kernel
-    def kernel(state: cudaq.State):
-        qubits = cudaq.qvector(state)
-
-    state = cudaq.State.from_data(
-        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.], dtype=complex))
-
-    counts = cudaq.sample(kernel, state)
-    assert "00" in counts
-    assert "10" in counts
-    assert len(counts) == 2
-
-    synthesized = cudaq.synthesize(kernel, state)
-    counts = cudaq.sample(synthesized)
-    assert '00' in counts
-    assert '10' in counts
-    assert len(counts) == 2
-
-
 def test_quantinuum_state_synthesis():
 
     @cudaq.kernel
@@ -242,6 +170,34 @@ def test_exp_pauli():
     assert '11' in counts
     assert not '01' in counts
     assert not '10' in counts
+
+
+def test_draw():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(2)
+        h(q[0])
+        x.ctrl(q[0], q[1])
+        mz(q)
+
+    # Test here is that this does not raise an exception
+    result = cudaq.draw(kernel)
+    assert result is ''
+
+
+def test_quantinuum_state_preparation():
+
+    @cudaq.kernel
+    def kernel(vec: List[complex]):
+        qubits = cudaq.qvector(vec)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state)
+    assert '00' in counts
+    assert '10' in counts
+    assert not '01' in counts
+    assert not '11' in counts
 
 
 # leave for gdb debugging

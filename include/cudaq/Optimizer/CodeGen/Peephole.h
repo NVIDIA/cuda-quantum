@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -58,10 +58,11 @@ inline mlir::Value createMeasureCall(mlir::PatternRewriter &builder,
 inline mlir::Value createReadResultCall(mlir::PatternRewriter &builder,
                                         mlir::Location loc,
                                         mlir::Value result) {
+  // NB: This code is only used from a deprecated pass.
   auto i1Ty = mlir::IntegerType::get(builder.getContext(), 1);
   return builder
       .create<mlir::LLVM::CallOp>(loc, mlir::TypeRange{i1Ty},
-                                  cudaq::opt::QIRReadResultBody,
+                                  cudaq::opt::qir0_1::ReadResultBody,
                                   mlir::ArrayRef<mlir::Value>{result})
       .getResult();
 }

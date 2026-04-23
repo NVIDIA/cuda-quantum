@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -13,8 +13,8 @@
 #include <cudaq.h>
 #include <fstream>
 
-struct adonis_kernel {
-  // Adonis QPU.
+struct crystal_5_kernel {
+  // Crystal_5 QPU.
   //       QB1
   //        |
   // QB2 - QB3 - QB4
@@ -34,7 +34,7 @@ struct adonis_kernel {
 };
 
 int main() {
-  auto counts = cudaq::sample(adonis_kernel{});
+  auto counts = cudaq::sample(crystal_5_kernel{});
   counts.dump();
 }
 
@@ -43,15 +43,15 @@ int main() {
 
 // CHECK:   include "qelib1.inc";
 
-// CHECK:   gate ZN13adonis_kernelclEv(param0)  {
+// CHECK:   gate ZN16crystal_5_kernelclEv(param0)  {
 // CHECK:   }
 
-// CHECK:   qreg var0[5];
-// CHECK:   x var0[0];
-// CHECK:   cx var0[0], var0[1];
-// CHECK:   cx var0[1], var0[2];
-// CHECK:   cx var0[2], var0[3];
-// CHECK:   cx var0[3], var0[4];
-// CHECK:   ccx var0[0], var0[2], var0[1];
-// CHECK:   creg var6[5];
-// CHECK:   measure var0 -> var6;
+// CHECK: qreg var0[5];
+// CHECK: x var0[0];
+// CHECK: cx var0[0], var0[1];
+// CHECK: cx var0[1], var0[2];
+// CHECK: cx var0[2], var0[3];
+// CHECK: cx var0[3], var0[4];
+// CHECK: ccx var0[0], var0[2], var0[1];
+// CHECK: creg var6[5];
+// CHECK: measure var0 -> var6;

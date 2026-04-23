@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -27,11 +27,9 @@ if (${CMAKE_EXE_LINKER_FLAGS} MATCHES "^.*static-libstdc\\+\\+.*")
         -Wl,--no-whole-archive
     )
 endif()
-target_link_libraries(${TOOL_NAME} PRIVATE cudaq rest-remote-platform-server cudaq-mlir-runtime)
+target_link_libraries(${TOOL_NAME} PRIVATE cudaq rest-remote-platform-server cudaq-mlir-runtime cudaq-platform-default)
 target_compile_options(${TOOL_NAME} PRIVATE -fno-rtti)
 export_executable_symbols_for_plugins(${TOOL_NAME})
 
 install(TARGETS ${TOOL_NAME} DESTINATION bin)
 install(FILES ${TOOL_NAME}.py DESTINATION bin)
-install(FILES nvqc_proxy.py DESTINATION bin)
-install(FILES json_request_runner.py DESTINATION bin)

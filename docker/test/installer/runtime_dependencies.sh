@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -34,7 +34,7 @@ esac
 CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
 CUDA_ARCH_FOLDER=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64)
 CUDA_VERSION_SUFFIX=$(echo ${CUDART_VERSION:-'12.0'} | tr . -)
-CUDA_PACKAGES=$(echo "cuda-cudart cuda-nvrtc libcusolver libcublas libcurand" | sed "s/[^ ]*/&-${CUDA_VERSION_SUFFIX} /g")
+CUDA_PACKAGES=$(echo "cuda-cudart cuda-nvrtc libcusolver libcublas libcurand libcusparse" | sed "s/[^ ]*/&-${CUDA_VERSION_SUFFIX} /g")
 if [ $(echo ${CUDART_VERSION} | cut -d . -f1) -gt 11 ]; then 
     CUDA_PACKAGES+=" libnvjitlink-${CUDA_VERSION_SUFFIX}"
 fi
@@ -58,6 +58,11 @@ if [ "$pkg_manager" == "apt-get" ]; then
         rm cuda-keyring_1.1-1_all.deb
     fi
 
+    ## [Extra validation packages]
+    if [ -n "${VALIDATION_PACKAGES}" ]; then
+        apt-get install -y --no-install-recommends ${VALIDATION_PACKAGES}
+    fi
+
 elif [ "$pkg_manager" == "dnf" ]; then
     ## [Prerequisites]
     dnf install -y --nobest --setopt=install_weak_deps=False \
@@ -75,6 +80,11 @@ elif [ "$pkg_manager" == "dnf" ]; then
         dnf install -y --nobest --setopt=install_weak_deps=False ${CUDA_PACKAGES}
     fi
 
+    ## [Extra validation packages]
+    if [ -n "${VALIDATION_PACKAGES}" ]; then
+        dnf install -y --nobest --setopt=install_weak_deps=False ${VALIDATION_PACKAGES}
+    fi
+
 elif [ "$pkg_manager" == "zypper" ]; then
     ## [Prerequisites]
     zypper clean --all && zypper ref && zypper --non-interactive up --no-recommends
@@ -90,6 +100,11 @@ elif [ "$pkg_manager" == "zypper" ]; then
     if [ -n "${CUDA_DISTRIBUTION}" ]; then
         zypper ar "${CUDA_DOWNLOAD_URL}/${CUDA_DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${CUDA_DISTRIBUTION}.repo"
         zypper --non-interactive --gpg-auto-import-keys in --no-recommends ${CUDA_PACKAGES}
+    fi
+
+    ## [Extra validation packages]
+    if [ -n "${VALIDATION_PACKAGES}" ]; then
+        zypper --non-interactive in --no-recommends ${VALIDATION_PACKAGES}
     fi
 
 else

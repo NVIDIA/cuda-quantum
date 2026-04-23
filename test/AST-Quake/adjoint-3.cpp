@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
 // RUN: cudaq-quake %s | FileCheck %s
 // RUN: cudaq-quake %s | cudaq-opt --memtoreg=quantum=0 --canonicalize --apply-op-specialization | FileCheck --check-prefix=ADJOINT %s
 
@@ -151,7 +150,7 @@ struct run_circuit {
 // ADJOINT:           cc.condition %[[VAL_57]](%[[VAL_55]], %[[VAL_56]] : i64, i64)
 // ADJOINT:         } do {
 // ADJOINT:         ^bb0(%[[VAL_58:.*]]: i64, %[[VAL_59:.*]]: i64):
-// ADJOINT:           %[[VAL_60:.*]] = quake.extract_ref %[[VAL_14]]{{\[}}%[[VAL_58]]] : (!quake.veq<?>, i64) -> !quake.ref
+// ADJOINT:           %[[VAL_60:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_58]]] : (!quake.veq<?>, i64) -> !quake.ref
 // ADJOINT:           quake.h %[[VAL_60]] : (!quake.ref) -> ()
 // ADJOINT:           cc.continue %[[VAL_58]], %[[VAL_59]] : i64, i64
 // ADJOINT:         } step {

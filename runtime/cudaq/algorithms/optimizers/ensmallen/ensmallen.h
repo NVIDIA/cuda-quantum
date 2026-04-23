@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -47,10 +47,13 @@ CUDAQ_ENSMALLEN_ALGORITHM_TYPE(adam, true,
                                std::optional<std::size_t> batch_size;
                                std::optional<double> beta1;
                                std::optional<double> beta2;
-                               std::optional<double> eps;)
+                               std::optional<double> eps;
+                               std::optional<double> step_size;
+                               std::optional<double> f_tol;)
 
 CUDAQ_ENSMALLEN_ALGORITHM_TYPE(gradient_descent, true, )
-CUDAQ_ENSMALLEN_ALGORITHM_TYPE(sgd, true,
-                               std::optional<std::size_t> batch_size;)
+CUDAQ_ENSMALLEN_ALGORITHM_TYPE(sgd, true, std::optional<std::size_t> batch_size;
+                               std::optional<double> step_size;
+                               std::optional<double> f_tol;)
 
 } // namespace cudaq::optimizers

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -11,13 +11,11 @@ target_link_libraries(mqpu_util
     PRIVATE
         LLVMSupport
         cudaq-common  
-        spdlog::spdlog 
+        cudaq-logger
         fmt::fmt-header-only
 )
 
-if (CUDA_FOUND AND CUSTATEVEC_ROOT)
-  enable_language(CUDA)
-  find_package(CUDAToolkit REQUIRED)
+if (cuStateVec_FOUND)
   target_compile_definitions(mqpu_util PRIVATE CUDAQ_ENABLE_CUDA)
   target_link_libraries(mqpu_util PRIVATE CUDA::cudart_static)
   target_include_directories(mqpu_util PRIVATE $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>)

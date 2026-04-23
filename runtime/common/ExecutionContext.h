@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,10 +8,10 @@
 
 #pragma once
 
+#include "CompiledModule.h"
 #include "Future.h"
-#include "MeasureCounts.h"
 #include "NoiseModel.h"
-#include "SimulationState.h"
+#include "SampleResult.h"
 #include "Trace.h"
 #include "cudaq/algorithms/optimizer.h"
 #include "cudaq/operators.h"
@@ -19,6 +19,9 @@
 #include <string_view>
 
 namespace cudaq {
+
+class SimulationState;
+class ExecutionManager;
 
 /// The ExecutionContext is an abstraction to indicate how a CUDA-Q kernel
 /// should be executed.
@@ -31,8 +34,10 @@ public:
   /// @brief The constructor, takes the name and the number of shots.
   /// @param n The name of the context
   /// @param shots_ The number of shots
-  ExecutionContext(const std::string &n, std::size_t shots_)
-      : name(n), shots(shots_) {}
+  /// @param qpu_id The ID of the QPU that this execution context is running on.
+  ExecutionContext(const std::string &n, std::size_t shots_,
+                   std::size_t qpu_id = 0)
+      : name(n), shots(shots_), qpuId(qpu_id) {}
 
   ~ExecutionContext() = default;
 
@@ -115,6 +120,9 @@ public:
   /// register after execution. Empty means no reordering.
   std::vector<std::size_t> reorderIdx;
 
+  /// @brief The ID of the QPU that this execution context is running on.
+  std::size_t qpuId = 0;
+
   /// @brief A buffer containing the return value of a kernel invocation.
   /// Note: this is only needed for invocation not able to return a
   /// `sample_result`.
@@ -127,5 +135,99 @@ public:
   /// @brief Whether or not to simply concatenate measurements in execution
   /// order.
   bool explicitMeasurements = false;
+
+  /// @brief Flag to indicate that a warning about named measurement registers
+  /// in sampling context has already been emitted.
+  bool warnedNamedMeasurements = false;
+
+  /// @brief Probability of occurrence of each error mechanism (column) in
+  /// Measurement Syndrome Matrix (0-1 range).
+  std::optional<std::vector<double>> msm_probabilities;
+
+  /// @brief Error mechanism ID. From a probability perspective, each error
+  /// mechanism ID is independent of all other error mechanism ID. For all
+  /// errors with the *same* ID, only one of them can happen. That is - the
+  /// errors containing the same ID are correlated with each other.
+  std::optional<std::vector<std::size_t>> msm_prob_err_id;
+
+  /// @brief The number of rows and columns of a Measurement Syndrome Matrix.
+  /// Note: Measurement Syndrome Matrix is defined in
+  /// https://arxiv.org/pdf/2407.13826.
+  std::optional<std::pair<std::size_t, std::size_t>> msm_dimensions;
+
+  bool allowJitEngineCaching = false;
+
+  bool useParametricJit = false;
+
+  /// @cond HIDDEN_MEMBERS
+  /// @brief Pointer to the execution manager for the current execution context,
+  /// if it exists.
+  ExecutionManager *executionManager = nullptr;
+
+  /// @brief For performance, a launcher may cache the JIT execution engine and
+  /// use it for multiple discrete calls.
+  std::optional<cudaq::JitEngine> jitEng = std::nullopt;
+
+  /// @endcond
 };
+
+//===----------------------------------------------------------------------===//
+// Access to the thread-local ExecutionContext
+//===----------------------------------------------------------------------===//
+
+/// @brief Get the current thread-local execution context.
+///
+/// This is used by the NVQIR bridge to forward calls from QPU kernels to the
+/// appropriate QPU backend. It is also currently used in QPUs and simulators
+/// to adjust behavior based on the execution context.
+ExecutionContext *getExecutionContext();
+
+/// @brief Return true if the simulator is in the tracer mode.
+bool isInTracerMode();
+
+/// @brief Return true if the current execution is in batch mode.
+bool isInBatchMode();
+
+/// @brief Return true if the current execution is the last execution of batch
+/// mode.
+bool isLastBatch();
+
+/// @brief Get the ID of the current QPU.
+std::size_t getCurrentQpuId();
+
+namespace detail {
+/// Set the execution context for the current thread.
+///
+/// Use `quantum_platform::with_execution_context` instead of setting/resetting
+/// the execution context manually.
+void setExecutionContext(ExecutionContext *ctx);
+
+/// Reset the execution context for the current thread.
+///
+/// Use `quantum_platform::with_execution_context` instead of setting/resetting
+/// the execution context manually.
+void resetExecutionContext();
+} // namespace detail
+
+namespace compiler_artifact {
+/// Saves and reuses the JITEngine across launches
+///
+/// This will exhibit undefined behavior if the launch arguments/context
+/// in any way differs from the saved launch.
+void enablePersistentJITEngine();
+void disablePersistentJITEngine();
+bool isPersistingJITEngine();
+
+/// Checks that the compiler artifact (if present) can be reused for the
+/// given kernel. Throws if a different kernel name was previously saved.
+void checkArtifactReuse(const std::string kernelName,
+                        const cudaq::JitEngine jit);
+
+void saveArtifact(const std::string kernelName, const cudaq::JitEngine jit);
+
+/// Returns the saved JIT engine if one is present for \p kernelName.
+/// Throws if a different kernel name was previously saved.
+/// Returns std::nullopt if no artifact has been saved yet.
+std::optional<JitEngine> getArtifactJit(const std::string &kernelName);
+}; // namespace compiler_artifact
 } // namespace cudaq

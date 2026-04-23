@@ -1,12 +1,12 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# fmt: off
+# `fmt: off`
 #[Begin Docs]
 import cudaq
 import numpy as np
@@ -45,4 +45,4 @@ def custom_xy_test():
 
 cudaq.sample(custom_xy_test).dump() # prints { 10:1000 }
 #[End Docs]
-# fmt: on
+# `fmt: on`

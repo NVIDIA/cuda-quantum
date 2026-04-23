@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -621,15 +621,16 @@ def test_apply_noise_custom():
     counts = cudaq.sample(test, noise_model=noise)
     assert len(counts) == 2 and '0' in counts and '1' in counts
 
-    @cudaq.kernel
-    def testbad():
-        q = cudaq.qubit()
-        x(q)
-        # can pass as standard arguments
-        cudaq.apply_noise(CustomNoiseChannelBad, 0.1, q)
-
     with pytest.raises(RuntimeError) as e:
-        testbad.compile()
+
+        @cudaq.kernel
+        def testbad():
+            q = cudaq.qubit()
+            x(q)
+            # can pass as standard arguments
+            cudaq.apply_noise(CustomNoiseChannelBad, 0.1, q)
+
+        cudaq.sample(testbad)
 
     @cudaq.kernel
     def test():
@@ -741,6 +742,465 @@ def test_apply_noise_builtin(target: str):
     counts = cudaq.sample(pauli2_test, noise_model=noise)
     assert len(counts) == 4
     print(counts)
+
+    cudaq.reset_target()
+
+
+@pytest.mark.parametrize('target', ['density-matrix-cpu', 'stim'])
+def test_depolarization2_standard_formula(target: str):
+    cudaq.set_target(target)
+    cudaq.set_random_seed(42)
+
+    @cudaq.kernel
+    def cnot_echo():
+        q = cudaq.qvector(2)
+        x.ctrl(q[0], q[1])
+        x.ctrl(q[0], q[1])
+        mz(q)
+
+    test_cases = [
+        (0.1, 0.70, 0.95),
+        (0.3, 0.45, 0.70),
+        (0.5, 0.30, 0.55),
+    ]
+
+    for p, min_expected, max_expected in test_cases:
+        noise_model = cudaq.NoiseModel()
+        depol2 = cudaq.Depolarization2(p)
+        noise_model.add_channel("x", [0, 1], depol2)
+
+        counts = cudaq.sample(cnot_echo,
+                              shots_count=10000,
+                              noise_model=noise_model)
+        prob_00 = counts.probability("00")
+
+        assert min_expected <= prob_00 <= max_expected, f"Expected probability to be in between {min_expected} and {max_expected}, got {prob_00:.4f}"
+
+        assert len(counts) == 4, f"Expected 4 outcomes, got {len(counts)}"
+
+    cudaq.reset_target()
+
+
+@pytest.mark.parametrize('target', ['density-matrix-cpu'])
+def test_noise_observe_reset(target: str):
+    cudaq.set_target(target)
+    noise_model = cudaq.NoiseModel()
+    # Amplitude damping channel with `1.0` probability of the qubit
+    # decaying to the ground state.
+    amplitude_damping = cudaq.AmplitudeDampingChannel(1.0)
+
+    noise_model.add_all_qubit_channel('x', amplitude_damping)
+
+    test_x = cudaq.make_kernel()
+    qubit = test_x.qalloc(1)
+    test_x.x(qubit)
+
+    observable = cudaq.spin.z(0)
+    for i in range(10):
+        # Run this in a loop to check that noise model argument is isolated to each observe call.
+        result_noiseless = cudaq.observe(test_x, observable)
+        result_noisy = cudaq.observe(test_x,
+                                     observable,
+                                     noise_model=noise_model)
+        assert np.isclose(result_noiseless.expectation(), -1.)
+        assert np.isclose(result_noisy.expectation(), 1.)
+
+
+@pytest.mark.parametrize('target', ['density-matrix-cpu'])
+def test_get_channel(target: str):
+    cudaq.set_target(target)
+    noise_model = cudaq.NoiseModel()
+    # Amplitude damping channel with `1.0` probability of the qubit
+    # decaying to the ground state.
+    amplitude_damping = cudaq.AmplitudeDampingChannel(1.0)
+
+    noise_model.add_all_qubit_channel('x', amplitude_damping)
+
+    # Get the channel from the noise model for a specific gate and qubit
+    for iq in range(5):
+        channels = noise_model.get_channels('x', [iq])
+        assert len(channels) == 1
+        channel = channels[0]
+        assert channel.noise_type == cudaq.NoiseModelType.AmplitudeDampingChannel
+        assert len(channel.parameters) == 1
+        assert channel.parameters[0] == 1.0
+
+    noise_model.add_all_qubit_channel('x', amplitude_damping)
+    for iq in range(5):
+        channels = noise_model.get_channels('x', [iq])
+        assert len(channels) == 2
+        for channel in channels:
+            assert channel.noise_type == cudaq.NoiseModelType.AmplitudeDampingChannel
+            assert len(channel.parameters) == 1
+            assert channel.parameters[0] == 1.0
+
+
+@pytest.mark.parametrize('target', ['density-matrix-cpu'])
+def test_get_channel_with_control(target: str):
+    cudaq.set_target(target)
+    noise_model = cudaq.NoiseModel()
+    # Amplitude damping channel with `1.0` probability of the qubit
+    # decaying to the ground state.
+    depol2 = cudaq.Depolarization2(0.2)
+
+    noise_model.add_all_qubit_channel('x', depol2, num_controls=1)
+
+    # Get the channel from the noise model for a specific gate and adjacent qubit pairs
+    for iq in range(5):
+        channels = noise_model.get_channels('x', [iq], [iq + 1])
+        assert len(channels) == 1
+        channel = channels[0]
+        assert channel.noise_type == cudaq.NoiseModelType.Depolarization2
+        assert len(channel.parameters) == 1
+        assert channel.parameters[0] == 0.2
+
+    # Check syntactic sugar for all-qubit channel with control
+    noise_model.add_all_qubit_channel('cx', depol2)
+    for iq in range(5):
+        channels = noise_model.get_channels('x', [iq], [iq + 1])
+        assert len(channels) == 2
+        for channel in channels:
+            assert channel.noise_type == cudaq.NoiseModelType.Depolarization2
+            assert len(channel.parameters) == 1
+            assert channel.parameters[0] == 0.2
+
+
+def test_builder_apply_noise_custom():
+    cudaq.set_target('density-matrix-cpu')
+
+    class CustomNoiseChannel(cudaq.KrausChannel):
+        num_parameters = 1
+        num_targets = 1
+
+        def __init__(self, params: list[float]):
+            cudaq.KrausChannel.__init__(self)
+            # Example: Create Kraus ops based on params
+            p = params[0]
+            k0 = np.array([[np.sqrt(1 - p), 0], [0, np.sqrt(1 - p)]],
+                          dtype=np.complex128)
+            k1 = np.array([[0, np.sqrt(p)], [np.sqrt(p), 0]],
+                          dtype=np.complex128)
+
+            # Create KrausOperators and add to channel
+            self.append(cudaq.KrausOperator(k0))
+            self.append(cudaq.KrausOperator(k1))
+
+            # Set noise type for Stim integration
+            self.noise_type = cudaq.NoiseModelType.Unknown
+
+    class CustomNoiseChannelTwoParams(cudaq.KrausChannel):
+        num_parameters = 2
+        num_targets = 1
+
+        def __init__(self, params: list[float]):
+            cudaq.KrausChannel.__init__(self)
+            # Example: Create Kraus ops based on params
+            p = params[0]
+            q = params[1]
+            k0 = np.array([[np.sqrt(1 - p), 0], [0, np.sqrt(1 - p)]],
+                          dtype=np.complex128)
+            k1 = np.array([[0, np.sqrt(q)], [np.sqrt(q), 0]],
+                          dtype=np.complex128)
+
+            # Create KrausOperators and add to channel
+            self.append(cudaq.KrausOperator(k0))
+            self.append(cudaq.KrausOperator(k1))
+
+            # Set noise type for Stim integration
+            self.noise_type = cudaq.NoiseModelType.Unknown
+
+    noise = cudaq.NoiseModel()
+    noise.register_channel(CustomNoiseChannel)
+
+    test = cudaq.make_kernel()
+    q = test.qalloc()
+    test.x(q)
+    # can pass as vector of params
+    test.apply_noise(CustomNoiseChannel, [0.1], q)
+
+    counts = cudaq.sample(test)
+    counts.dump()
+    assert len(counts) == 1 and '1' in counts
+
+    counts = cudaq.sample(test, noise_model=noise)
+    counts.dump()
+    assert len(counts) == 2 and '0' in counts and '1' in counts
+
+    test = cudaq.make_kernel()
+    q = test.qalloc()
+    test.x(q)
+    # can pass as standard arguments
+    test.apply_noise(CustomNoiseChannel, 0.1, q)
+
+    counts = cudaq.sample(test)
+    counts.dump()
+    assert len(counts) == 1 and '1' in counts
+
+    counts = cudaq.sample(test, noise_model=noise)
+    counts.dump()
+    assert len(counts) == 2 and '0' in counts and '1' in counts
+
+    test = cudaq.make_kernel()
+    q = test.qalloc()
+    test.x(q)
+    # can pass as standard arguments
+    test.apply_noise(CustomNoiseChannelTwoParams, 0.1, 0.2, q)
+
+    noise.register_channel(CustomNoiseChannelTwoParams)
+
+    counts = cudaq.sample(test, noise_model=noise)
+    counts.dump()
+    assert len(counts) == 2 and '0' in counts and '1' in counts
+
+    cudaq.reset_target()
+
+
+@pytest.mark.parametrize('target', ['density-matrix-cpu', 'stim'])
+def test_builder_apply_noise_builtin(target: str):
+    cudaq.set_target(target)
+
+    noise = cudaq.NoiseModel()
+
+    # Test builtin channels
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(3)
+    kernel.apply_noise(cudaq.DepolarizationChannel, 0.1, q[0])
+    kernel.mz(q)
+
+    counts = cudaq.sample(kernel, noise_model=noise)
+    print(counts)
+    assert len(counts) == 2 and '000' in counts and '100' in counts
+
+    bell_depol2, d = cudaq.make_kernel(float)
+    q, r = bell_depol2.qalloc(), bell_depol2.qalloc()
+    bell_depol2.h(q)
+    bell_depol2.cx(q, r)
+    bell_depol2.apply_noise(cudaq.Depolarization2, d, q, r)
+
+    counts = cudaq.sample(bell_depol2, 0.2, noise_model=noise)
+    print(counts)
+    assert len(counts) == 4
+
+    bell_x = cudaq.make_kernel()
+    q, r = bell_x.qalloc(), bell_x.qalloc()
+    bell_x.h(q)
+    bell_x.cx(q, r)
+    bell_x.apply_noise(cudaq.XError, 0.1, q)
+    bell_x.apply_noise(cudaq.XError, 0.1, r)
+
+    bell_y = cudaq.make_kernel()
+    q, r = bell_y.qalloc(), bell_y.qalloc()
+    bell_y.h(q)
+    bell_y.cx(q, r)
+    bell_y.apply_noise(cudaq.YError, 0.1, q)
+    bell_y.apply_noise(cudaq.YError, 0.1, r)
+
+    test_z = cudaq.make_kernel()
+    q = test_z.qalloc(2)
+    test_z.h(q)
+    test_z.apply_noise(cudaq.ZError, 0.1, q[0])
+    test_z.apply_noise(cudaq.ZError, 0.1, q[1])
+    test_z.h(q)
+    test_z.mz(q)
+
+    counts = cudaq.sample(bell_x, noise_model=noise)
+    assert len(counts) == 4
+    print(counts)
+    counts = cudaq.sample(bell_y, noise_model=noise)
+    assert len(counts) == 4
+    print(counts)
+    counts = cudaq.sample(test_z, noise_model=noise)
+    assert len(counts) == 4
+    print(counts)
+
+    pauli1_test = cudaq.make_kernel()
+    q, r = pauli1_test.qalloc(), pauli1_test.qalloc()
+    pauli1_test.h(q)
+    pauli1_test.cx(q, r)
+    pauli1_test.apply_noise(cudaq.Pauli1, 0.1, 0.1, 0.1, q)
+    pauli1_test.apply_noise(cudaq.Pauli1, 0.1, 0.1, 0.1, r)
+
+    counts = cudaq.sample(pauli1_test, noise_model=noise)
+    assert len(counts) == 4
+    print(counts)
+
+    pauli2_test = cudaq.make_kernel()
+    q, r = pauli2_test.qalloc(), pauli2_test.qalloc()
+    pauli2_test.h(q)
+    pauli2_test.cx(q, r)
+    pauli2_test.apply_noise(cudaq.Pauli2, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02,
+                            0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02,
+                            0.02, q, r)
+
+    counts = cudaq.sample(pauli2_test, noise_model=noise)
+    assert len(counts) == 4
+    print(counts)
+
+    cudaq.reset_target()
+
+
+def test_builder_apply_noise_inplace():
+    cudaq.set_target("density-matrix-cpu")
+    cudaq.set_random_seed(13)
+
+    def kraus_mats(error_probability):
+
+        kraus_0 = np.sqrt(1 - error_probability) * np.array(
+            [[1.0, 0.0], [0.0, 1.0]], dtype=np.complex128)
+
+        kraus_1 = np.sqrt(error_probability) * np.array(
+            [[0.0, 1.0], [1.0, 0.0]], dtype=np.complex128)
+        return [kraus_0, kraus_1]
+
+    test = cudaq.make_kernel()
+    q, r = test.qalloc(), test.qalloc()
+    test.x(q)
+    test.x(r)
+    test.apply_noise(cudaq.KrausChannel(kraus_mats(0.5)), q)
+    test.apply_noise(cudaq.KrausChannel(kraus_mats(0.25)), r)
+    counts = cudaq.sample(test,
+                          noise_model=cudaq.NoiseModel(),
+                          shots_count=10000)
+    counts.dump()
+    assert np.isclose(counts.probability("00"), 0.5 * 0.25,
+                      atol=1e-2)  # both decay
+    assert np.isclose(counts.probability("11"), 0.5 * 0.75,
+                      atol=1e-2)  # both stay
+    assert np.isclose(counts.probability("10"), 0.5 * 0.25,
+                      atol=1e-2)  # q stays, r decays
+    assert np.isclose(counts.probability("01"), 0.5 * 0.75,
+                      atol=1e-2)  # q decays, r stays
+    cudaq.reset_target()
+
+
+@pytest.mark.parametrize('target', ['density-matrix-cpu', 'stim'])
+def test_sample_async_with_noise(target: str):
+    """
+    Tests that `cudaq.sample_async` correctly applies the noise model
+    and does not pollute subsequent calls.
+    
+    This test verifies the fix for the bug where:
+    1. Noise model was set but never reset (state pollution)
+    2. Noise model pointer became dangling after function return
+    3. Noise model was not correctly applied in async execution
+    """
+    cudaq.set_target(target)
+    cudaq.set_random_seed(42)
+
+    # Create a simple kernel that applies X gate (should give |1>)
+    kernel = cudaq.make_kernel()
+    qubit = kernel.qalloc()
+    kernel.x(qubit)
+    kernel.mz(qubit)
+
+    # Create a depolarizing noise model with high probability
+    noise = cudaq.NoiseModel()
+    depol = cudaq.DepolarizationChannel(0.9)  # 90% depolarization
+    noise.add_channel("x", [0], depol)
+
+    # Step 1: Baseline - sample without noise should give 100% |1>
+    clean_result = cudaq.sample(kernel, shots_count=100)
+    assert clean_result.count('1') == 100, "Baseline should be 100% |1>"
+
+    # Step 2: sample_async WITH noise should produce mixed results
+    future = cudaq.sample_async(kernel, shots_count=1000, noise_model=noise)
+    noisy_result = future.get()
+    # With 90% depolarization, we expect significant noise
+    assert noisy_result.count(
+        '0') > 0, "Noisy sample_async should have some |0>"
+    assert noisy_result.count(
+        '1') > 0, "Noisy sample_async should have some |1>"
+
+    # Step 3: Sample WITHOUT noise after async call - should NOT be polluted
+    clean_after = cudaq.sample(kernel, shots_count=100)
+    assert clean_after.count('1') == 100, \
+        "Sample after sample_async should not be polluted by noise model"
+
+    # Step 4: Another sample_async WITHOUT noise - should be clean
+    future_clean = cudaq.sample_async(kernel, shots_count=100)
+    clean_async_result = future_clean.get()
+    assert clean_async_result.count('1') == 100, \
+        "sample_async without noise should be 100% |1>"
+
+    cudaq.reset_target()
+
+
+@pytest.mark.parametrize('target', ['density-matrix-cpu'])
+def test_sample_async_noise_isolation(target: str):
+    """
+    Tests that multiple sample_async calls with different noise models
+    are properly isolated from each other.
+    """
+    cudaq.set_target(target)
+    cudaq.set_random_seed(13)
+
+    kernel = cudaq.make_kernel()
+    qubit = kernel.qalloc()
+    kernel.x(qubit)
+    kernel.mz(qubit)
+
+    # Create two different noise models
+    noise_high = cudaq.NoiseModel()
+    noise_high.add_channel("x", [0], cudaq.DepolarizationChannel(1.0))
+
+    noise_low = cudaq.NoiseModel()
+    noise_low.add_channel("x", [0], cudaq.DepolarizationChannel(0.1))
+
+    # Run multiple async calls with different noise models
+    future_high = cudaq.sample_async(kernel,
+                                     shots_count=1000,
+                                     noise_model=noise_high)
+    future_low = cudaq.sample_async(kernel,
+                                    shots_count=1000,
+                                    noise_model=noise_low)
+    future_none = cudaq.sample_async(kernel, shots_count=100)
+
+    # Get results
+    result_high = future_high.get()
+    result_low = future_low.get()
+    result_none = future_none.get()
+
+    # With DepolarizationChannel(p=1.0) applied after an X gate, the channel is
+    # (1-p)I + p/3 (X, Y, Z). Starting from |1>, this yields P(|0>) = 2/3.
+    # Allow a generous tolerance to avoid flakiness from finite-shot sampling.
+    high_zero_prob = result_high.probability('0')
+    assert 0.55 < high_zero_prob < 0.80, \
+        f"High noise should give P(|0>) ~ 2/3, got {high_zero_prob}"
+
+    # Low noise should have mostly |1>
+    low_one_prob = result_low.probability('1')
+    assert low_one_prob > 0.8, \
+        f"Low noise should give >80% |1>, got {low_one_prob}"
+
+    # No noise should be 100% |1>
+    assert result_none.count('1') == 100, \
+        "No noise should give 100% |1>"
+
+    cudaq.reset_target()
+
+
+INVALID_PROBABILITY_MSG = (r"probability must be in the range|"
+                           r"not completely positive|trace preserving")
+
+
+@pytest.mark.parametrize('target', ['density-matrix-cpu'])
+def test_noise_validation_probability_check(target: str):
+    cudaq.set_target(target)
+
+    with pytest.raises(RuntimeError, match=INVALID_PROBABILITY_MSG):
+        cudaq.DepolarizationChannel(-0.1)
+
+    with pytest.raises(RuntimeError, match=INVALID_PROBABILITY_MSG):
+        cudaq.BitFlipChannel(1.5)
+
+    with pytest.raises(RuntimeError, match=INVALID_PROBABILITY_MSG):
+        cudaq.Depolarization2(1.5)
+
+    depol_zero = cudaq.DepolarizationChannel(0.0)
+    depol_one = cudaq.DepolarizationChannel(1.0)
+    noise = cudaq.NoiseModel()
+    noise.add_channel("x", [0], depol_zero)
+    noise.add_channel("h", [0], depol_one)
 
     cudaq.reset_target()
 

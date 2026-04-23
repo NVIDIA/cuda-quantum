@@ -14,6 +14,8 @@ Operators
 
 .. doxygenclass:: cudaq::matrix_callback
 
+.. doxygenclass:: cudaq::diag_matrix_callback
+
 .. cpp:type:: csr_spmatrix = std::tuple<std::vector<std::complex<double>>, std::vector<std::size_t>, std::vector<std::size_t>>
 
     Alias for a tuple containing vectors for complex values, indices, and sizes.
@@ -29,6 +31,8 @@ Operators
     Alias for a pair, in the multi-diagonal representation, containing vectors for complex values and diagonal offsets.  
 
 .. doxygenclass:: cudaq::operator_handler
+
+.. doxygenclass:: cudaq::mdiag_operator_handler
 
 .. doxygenclass:: cudaq::spin_handler
     :members:
@@ -123,6 +127,11 @@ Common
 .. doxygenfunction:: cudaq::sample(std::size_t shots, QuantumKernel &&kernel, Args &&...args)
 .. doxygenfunction:: cudaq::sample(QuantumKernel &&kernel, Args&&... args)
 
+.. doxygenfunction:: cudaq::run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args)
+.. doxygenfunction:: cudaq::run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel, ARGS &&...args)
+.. doxygenfunction:: cudaq::run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel, ARGS &&...args)
+.. doxygenfunction:: cudaq::run_async(std::size_t qpu_id, std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel, ARGS &&...args)
+
 .. doxygenclass:: cudaq::SimulationState
 
 .. doxygenstruct:: cudaq::SimulationState::Tensor
@@ -159,8 +168,6 @@ Common
 .. doxygenfunction:: cudaq::range(ElementType total)
 .. doxygenfunction:: cudaq::range(ElementType begin, ElementType end, ElementType step)
 
-.. doxygenfunction:: cudaq::draw(QuantumKernel &&kernel, Args&&... args)
-
 .. doxygenfunction:: cudaq::get_state(QuantumKernel &&kernel, Args&&... args)
 
 .. doxygenclass:: cudaq::Resources
@@ -179,12 +186,12 @@ Noise Modeling
     it is automatically (and silently) stripped from any programs submitted to
     hardware targets.
 
-    :tparam Channel: A subtype of :cpp:class:`cudaq::kraus_channel` that
+    :`tparam` Channel: A subtype of :cpp:class:`cudaq::kraus_channel` that
         implements/defines the desired noise mechanisms as Kraus channels (e.g.
         :cpp:class:`cudaq::depolarization2`). If you want to use a custom
         :cpp:class:`cudaq::kraus_channel` (i.e. not built-in to CUDA-Q), it must
         first be registered *outside the kernel* with
-        :cpp:func:`cudaq::noise_model::register_channel`, like this:
+        `:cpp:func:cudaq::noise_model::register_channel`, like this:
 
         .. code-block:: cpp
 
@@ -207,7 +214,7 @@ Noise Modeling
             cudaq::noise_model noise;
             noise.register_channel<my_custom_kraus_channel_subtype>();
 
-    :param args: The precise argument pack depend on the concrete `Channel` being
+    :`param` `args`: The precise argument pack depend on the concrete `Channel` being
         used. The arguments are a concatenated list of parameters and targets.
         For example, to apply a 2-qubit depolarization channel, which has
         `num_parameters = 1` and `num_targets = 2`, one would write the call
@@ -319,8 +326,6 @@ Platform
 
 .. doxygenclass:: cudaq::BaseRemoteSimulatorQPU
 
-.. doxygenclass:: cudaq::BaseNvcfSimulatorQPU
-
 .. doxygenclass:: cudaq::AnalogRemoteRESTQPU    
 
 .. doxygenclass:: cudaq::FermioniqBaseQPU
@@ -332,8 +337,6 @@ Platform
 
 .. doxygenstruct:: cudaq::RemoteCapabilities
     :members:
-
-.. doxygenclass:: cudaq::SerializedCodeExecutionContext
 
 .. doxygentypedef:: cudaq::QuantumTask
 
@@ -347,6 +350,10 @@ Platform
 
 .. doxygentypedef:: cudaq::KernelThunkType
 
+.. doxygenstruct:: cudaq::CodeGenConfig
+
+.. doxygenstruct:: cudaq::RuntimeTarget
+
 Utilities
 =========
 
@@ -355,6 +362,10 @@ Utilities
 .. doxygentypedef:: cudaq::real 
 
 .. doxygenfunction:: cudaq::range(std::size_t)
+
+.. doxygenfunction:: cudaq::contrib::draw(QuantumKernel &&kernel, Args&&... args)
+
+.. doxygenfunction:: cudaq::contrib::get_unitary_cmat(QuantumKernel &&kernel, Args&&... args)
     
 Namespaces 
 ===========
@@ -366,6 +377,9 @@ Namespaces
 .. doxygenfunction:: cudaq::set_random_seed
 .. doxygenfunction:: cudaq::set_noise
 .. doxygenfunction:: cudaq::unset_noise
+    
+.. doxygennamespace:: cudaq::contrib
+    :desc-only:
 
 .. doxygennamespace:: cudaq::details
     :desc-only:
@@ -396,3 +410,101 @@ Namespaces
 .. doxygenfunction:: cudaq::orca::sample(std::vector<std::size_t> &input_state, std::vector<std::size_t> &loop_lengths, std::vector<double> &bs_angles, std::vector<double> &ps_angles, int n_samples = 10000, std::size_t qpu_id = 0)
 .. doxygenfunction:: cudaq::orca::sample_async(std::vector<std::size_t> &input_state, std::vector<std::size_t> &loop_lengths, std::vector<double> &bs_angles, int n_samples = 10000, std::size_t qpu_id = 0)
 .. doxygenfunction:: cudaq::orca::sample_async(std::vector<std::size_t> &input_state, std::vector<std::size_t> &loop_lengths, std::vector<double> &bs_angles, std::vector<double> &ps_angles, int n_samples = 10000, std::size_t qpu_id = 0)
+
+PTSBE
+=====
+
+The ``cudaq::ptsbe`` namespace implements Pre-Trajectory Sampling with Batch
+Execution (PTSBE). For a conceptual overview and usage tutorial see
+:doc:`../../using/examples/ptsbe`.
+
+.. doxygennamespace:: cudaq::ptsbe
+    :desc-only:
+
+Sampling Functions
+-------------------
+
+.. doxygenfunction:: cudaq::ptsbe::sample(const cudaq::noise_model &noise, std::size_t shots, QuantumKernel &&kernel, Args &&...args)
+.. doxygenfunction:: cudaq::ptsbe::sample(const sample_options &options, QuantumKernel &&kernel, Args &&...args)
+.. doxygenfunction:: cudaq::ptsbe::sample_async(const cudaq::noise_model &noise, std::size_t shots, QuantumKernel &&kernel, Args &&...args)
+.. doxygenfunction:: cudaq::ptsbe::sample_async(const sample_options &options, QuantumKernel &&kernel, Args &&...args)
+
+----
+
+Options
+--------
+
+.. doxygenstruct:: cudaq::ptsbe::sample_options
+    :members:
+
+.. doxygenstruct:: cudaq::ptsbe::PTSBEOptions
+    :members:
+
+----
+
+Result Type
+------------
+
+.. doxygenclass:: cudaq::ptsbe::sample_result
+    :members:
+
+----
+
+Trajectory Sampling Strategies
+--------------------------------
+
+.. doxygenstruct:: cudaq::ptsbe::detail::NoisePoint
+    :members:
+
+.. doxygenclass:: cudaq::ptsbe::PTSSamplingStrategy
+    :members:
+
+.. doxygenclass:: cudaq::ptsbe::ProbabilisticSamplingStrategy
+    :members:
+
+.. doxygenclass:: cudaq::ptsbe::OrderedSamplingStrategy
+    :members:
+
+.. doxygenclass:: cudaq::ptsbe::ExhaustiveSamplingStrategy
+    :members:
+
+.. doxygentypedef:: cudaq::ptsbe::TrajectoryPredicate
+
+.. doxygenclass:: cudaq::ptsbe::ConditionalSamplingStrategy
+    :members:
+
+----
+
+Shot Allocation Strategy
+-------------------------
+
+See :ref:`ptsbe-shot-allocation` for full API details.
+
+----
+
+Execution Data
+---------------
+
+.. doxygentypedef:: cudaq::ptsbe::PTSBETrace
+
+.. doxygenstruct:: cudaq::ptsbe::PTSBEExecutionData
+    :members:
+
+.. doxygenstruct:: cudaq::ptsbe::TraceInstruction
+    :members:
+
+.. doxygenenum:: cudaq::ptsbe::TraceInstructionType
+
+----
+
+Trajectory and Selection Types
+--------------------------------
+
+.. doxygenclass:: cudaq::KrausTrajectoryBuilder
+    :members:
+
+.. doxygenstruct:: cudaq::KrausTrajectory
+    :members:
+
+.. doxygenstruct:: cudaq::KrausSelection
+    :members:

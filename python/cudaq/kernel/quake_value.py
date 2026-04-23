@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -10,9 +10,8 @@ from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import arith, quake, cc
 from cudaq.mlir.ir import (DenseI32ArrayAttr, F64Type, FloatAttr, Location,
                            IntegerAttr, IntegerType)
+from cudaq.kernel_types import qvector
 from .utils import mlirTypeFromPyType
-
-qvector = cudaq_runtime.qvector
 
 
 class QuakeValue(object):
@@ -326,10 +325,10 @@ class QuakeValue(object):
         with self.ctx, Location.unknown(), self.pyKernel.insertPoint:
             if cc.StdvecType.isinstance(self.mlirValue.type):
                 eleTy = cc.StdvecType.getElementType(self.mlirValue.type)
-                arrTy = cc.ArrayType.get(self.ctx, eleTy)
-                arrPtrTy = cc.PointerType.get(self.ctx, arrTy)
+                arrTy = cc.ArrayType.get(eleTy)
+                arrPtrTy = cc.PointerType.get(arrTy)
                 vecPtr = cc.StdvecDataOp(arrPtrTy, self.mlirValue).result
-                elePtrTy = cc.PointerType.get(self.ctx, eleTy)
+                elePtrTy = cc.PointerType.get(eleTy)
                 eleAddr = None
                 i64Ty = IntegerType.get_signless(64)
                 if isinstance(idx, QuakeValue):
@@ -355,7 +354,7 @@ class QuakeValue(object):
                                                                     idx)).result
                 else:
                     raise RuntimeError("invalid idx passed to QuakeValue.")
-                op = quake.ExtractRefOp(quake.RefType.get(self.ctx),
+                op = quake.ExtractRefOp(quake.RefType.get(),
                                         self.mlirValue,
                                         -1,
                                         index=processedIdx)

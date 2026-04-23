@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -72,7 +72,7 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
         loop.emitOpError("not a simple counted loop");
       return failure();
     }
-    if (allowBreak && !cudaq::opt::isaConstantUpperBoundLoop(loop)) {
+    if (allowBreak && !cudaq::opt::isaIndefiniteCountedLoop(loop)) {
       if (signalFailure)
         loop.emitOpError("not a constant upper bound loop");
       return failure();
@@ -147,8 +147,7 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
           auto termOpers = cont.getOperands();
           rewriter.setInsertionPoint(cont);
           rewriter.replaceOpWithNewOp<cf::BranchOp>(cont, contBlock, termOpers);
-        }
-        if (allowBreak) {
+        } else if (allowBreak) {
           if (auto brk = dyn_cast<cudaq::cc::BreakOp>(term)) {
             auto termOpers = brk.getOperands();
             rewriter.setInsertionPoint(brk);

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -40,7 +40,6 @@ class pauli_word;
 
 std::string get_quake_by_name(const std::string &);
 
-#if CUDAQ_USE_STD20
 /// @brief Define a floating point concept
 template <typename T>
 concept NumericType = requires(T param) { std::is_floating_point_v<T>; };
@@ -74,11 +73,6 @@ concept KernelBuilderArgTypeIsValid =
           std::vector<cudaq::complex>, cudaq::qubit, cudaq::qvector<>,         \
           std::vector<cudaq::pauli_word>, cudaq::state *> &&                   \
       ...)
-#else
-// Not C++ 2020: stub these out.
-#define QuakeValueOrNumericType typename
-#define CUDAQ_VALID_BUILDER_ARGS_FOLD()
-#endif
 
 namespace details {
 /// Use parametric type: `initializations` must be vectors of complex float or
@@ -243,6 +237,10 @@ void reset(mlir::ImplicitLocOpBuilder &builder, const QuakeValue &qubitOrQvec);
 void c_if(mlir::ImplicitLocOpBuilder &builder, QuakeValue &conditional,
           std::function<void()> &thenFunctor);
 
+void u3(mlir::ImplicitLocOpBuilder &builder,
+        std::vector<QuakeValue> &parameters, std::vector<QuakeValue> &ctrls,
+        QuakeValue &target, bool adjoint = false);
+
 /// @brief Return the name of this `kernel_builder`, it is also the name of the
 /// function
 std::string name(std::string_view kernelName);
@@ -270,6 +268,11 @@ void call(mlir::ImplicitLocOpBuilder &builder, std::string &name,
 /// @brief Apply the given kernel controlled on the provided qubit value.
 void control(mlir::ImplicitLocOpBuilder &builder, std::string &name,
              std::string &quakeCode, QuakeValue &control,
+             std::vector<QuakeValue> &values);
+
+/// @brief Apply the given kernel controlled on multiple qubit values.
+void control(mlir::ImplicitLocOpBuilder &builder, std::string &name,
+             std::string &quakeCode, const std::vector<QuakeValue> &controls,
              std::vector<QuakeValue> &values);
 
 /// @brief Apply the adjoint of the given kernel
@@ -374,7 +377,6 @@ public:
 
 } // namespace details
 
-#if CUDAQ_USE_STD20
 template <class... Ts>
 concept AllAreQuakeValues =
     sizeof...(Ts) < 2 ||
@@ -383,7 +385,6 @@ concept AllAreQuakeValues =
      std::is_same_v<
          std::remove_reference_t<std::tuple_element<0, std::tuple<Ts...>>>,
          QuakeValue>);
-#endif
 
 template <typename... Args>
 class kernel_builder : public details::kernel_builder_base {
@@ -746,6 +747,76 @@ public:
       details::exp_pauli(*opBuilder, theta, qubitValues, pauliWord);
   }
 
+  void u3(QuakeValue param1, QuakeValue param2, QuakeValue param3,
+          QuakeValue target) {
+    std::vector<QuakeValue> empty;
+    std::vector<QuakeValue> parameters{param1, param2, param3};
+    details::u3(*opBuilder, parameters, empty, target);
+  }
+  template <typename mod, typename = typename std::enable_if_t<
+                              std::is_same_v<mod, cudaq::ctrl>>>
+  void u3(QuakeValue param1, QuakeValue param2, QuakeValue param3,
+          std::vector<QuakeValue> &ctrls, QuakeValue &target) {
+    std::vector<QuakeValue> parameters{param1, param2, param3};
+    details::u3(*opBuilder, parameters, ctrls, target);
+  }
+  void u3(double param1, double param2, double param3, QuakeValue target) {
+    std::vector<QuakeValue> empty;
+    QuakeValue v1(*opBuilder, param1);
+    QuakeValue v2(*opBuilder, param2);
+    QuakeValue v3(*opBuilder, param3);
+    std::vector<QuakeValue> parameters{v1, v2, v3};
+    details::u3(*opBuilder, parameters, empty, target);
+  }
+  template <typename mod, typename = typename std::enable_if_t<
+                              std::is_same_v<mod, cudaq::ctrl>>>
+  void u3(double param1, double param2, double param3,
+          std::vector<QuakeValue> &ctrls, QuakeValue &target) {
+    QuakeValue v1(*opBuilder, param1);
+    QuakeValue v2(*opBuilder, param2);
+    QuakeValue v3(*opBuilder, param3);
+    std::vector<QuakeValue> parameters{v1, v2, v3};
+    details::u3(*opBuilder, parameters, ctrls, target);
+  }
+  template <
+      typename mod, typename ParamT,
+      typename = typename std::enable_if_t<std::is_same_v<mod, cudaq::adj>>>
+  void u3(const ParamT &param1, const ParamT &param2, const ParamT &param3,
+          QuakeValue target) {
+    // swap the 2nd and 3rd parameter for correctness
+    if constexpr (std::is_floating_point_v<ParamT>)
+      u3(QuakeValue(*opBuilder, -param1), QuakeValue(*opBuilder, -param3),
+         QuakeValue(*opBuilder, -param2), target);
+    else
+      u3(-param1, -param3, -param2, target);
+  }
+  template <typename mod, typename = typename std::enable_if_t<
+                              std::is_same_v<mod, cudaq::ctrl>>>
+  void u3(std::vector<QuakeValue> &parameters, std::vector<QuakeValue> &ctrls,
+          QuakeValue &target) {
+    details::u3(*opBuilder, parameters, ctrls, target);
+  }
+  template <typename mod, typename ParamT, typename... QubitValues,
+            typename = typename std::enable_if_t<sizeof...(QubitValues) >= 2>>
+  void u3(const ParamT &param1, const ParamT &param2, const ParamT &param3,
+          QubitValues... args) {
+    std::vector<QuakeValue> values{args...};
+    if constexpr (std::is_same_v<mod, cudaq::ctrl>) {
+      std::vector<QuakeValue> ctrls(values.begin(), values.end() - 1);
+      auto &target = values.back();
+      if constexpr (std::is_floating_point_v<ParamT>) {
+        QuakeValue v1(*opBuilder, param1);
+        QuakeValue v2(*opBuilder, param2);
+        QuakeValue v3(*opBuilder, param3);
+        std::vector<QuakeValue> parameters{v1, v2, v3};
+        u3<cudaq::ctrl>(parameters, ctrls, target);
+      } else {
+        std::vector<QuakeValue> parameters{param1, param2, param3};
+        u3<cudaq::ctrl>(parameters, ctrls, target);
+      }
+    }
+  }
+
   /// @brief Apply the given `otherKernel` with the provided `QuakeValue`
   /// arguments.
   template <typename OtherKernelBuilder>
@@ -766,14 +837,8 @@ public:
 
   /// @brief Apply the given `otherKernel` with the provided `QuakeValue`
   /// arguments.
-#if CUDAQ_USE_STD20
   template <typename OtherKernelBuilder, typename... QuakeValues>
     requires AllAreQuakeValues<QuakeValues...>
-#else
-  template <typename OtherKernelBuilder, typename... QuakeValues,
-            typename = std::enable_if_t<std::conjunction_v<std::is_same<
-                std::remove_reference_t<QuakeValues>, cudaq::QuakeValue>...>>>
-#endif
   void call(OtherKernelBuilder &&kernel, QuakeValues &...values) {
     // static_assert(kernel)
     std::vector<QuakeValue> vecValues{values...};
@@ -801,14 +866,8 @@ public:
   }
 
   /// @brief Apply the given kernel controlled on the provided qubit value.
-#if CUDAQ_USE_STD20
   template <typename OtherKernelBuilder, typename... QuakeValues>
     requires AllAreQuakeValues<QuakeValues...>
-#else
-  template <typename OtherKernelBuilder, typename... QuakeValues,
-            typename = std::enable_if_t<std::conjunction_v<std::is_same<
-                std::remove_reference_t<QuakeValues>, cudaq::QuakeValue>...>>>
-#endif
   void control(OtherKernelBuilder &kernel, QuakeValue &ctrl,
                QuakeValues &...values) {
     std::vector<QuakeValue> vecValues{values...};
@@ -834,14 +893,8 @@ public:
   }
 
   /// @brief Apply the adjoint of the given kernel.
-#if CUDAQ_USE_STD20
   template <typename OtherKernelBuilder, typename... QuakeValues>
     requires AllAreQuakeValues<QuakeValues...>
-#else
-  template <typename OtherKernelBuilder, typename... QuakeValues,
-            typename = std::enable_if_t<std::conjunction_v<std::is_same<
-                std::remove_reference_t<QuakeValues>, cudaq::QuakeValue>...>>>
-#endif
   void adjoint(OtherKernelBuilder &kernel, QuakeValues &...values) {
     std::vector<QuakeValue> vecValues{values...};
     adjoint(kernel, vecValues);
@@ -944,7 +997,7 @@ inline auto make_kernel() {
 
 /// Factory function for creating a new `kernel_builder` with specified argument
 /// types. This requires programmers specify the concrete argument types of the
-/// kernel being built. The return type is meant to be acquired via C++17
+/// kernel being built. The return type is meant to be acquired via C++20
 /// structured binding with the first element representing the builder, and the
 /// remaining bound variables representing the kernel argument handles.
 template <typename... Args>

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,7 +7,9 @@
  ******************************************************************************/
 
 #include "common/ExecutionContext.h"
-#include "common/Logger.h"
+#include "common/FmtCore.h"
+#include "common/SampleResult.h"
+#include "cudaq/runtime/logger/logger.h"
 
 #include "cudaq/operators.h"
 #include "cudaq/qis/managers/BasicExecutionManager.h"
@@ -56,31 +58,36 @@ protected:
   void deallocateQudit(const cudaq::QuditInfo &q) override {}
   void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {}
 
-  void handleExecutionContextChanged() override {}
+  sample_result finalizeExecutionContext(const sample_policy &policy,
+                                         ExecutionContext &ctx) override {
+    BasicExecutionManager::finalizeExecutionContextImpl(ctx);
 
-  void handleExecutionContextEnded() override {
-    if (executionContext && executionContext->name == "sample") {
-      std::vector<std::size_t> ids;
-      for (auto &s : sampleQudits) {
-        ids.push_back(s.id);
-      }
-      sampleQudits.clear();
-      auto sampleResult = qpp::sample(executionContext->shots, state, ids,
-                                      sampleQudits.begin()->levels);
-
-      ExecutionResult execResult;
-      for (auto [result, count] : sampleResult) {
-        std::cout << fmt::format("Sample {} : {}", result, count) << "\n";
-        // Populate counts dictionary. FIXME - handle qudits with >= 10 levels
-        // better.
-        std::string resultStr;
-        resultStr.reserve(result.size());
-        for (auto x : result)
-          resultStr += std::to_string(x);
-        execResult.counts[resultStr] = count;
-      }
-      executionContext->result.append(execResult);
+    std::vector<std::size_t> ids;
+    for (auto &s : sampleQudits) {
+      ids.push_back(s.id);
     }
+    auto sampleResult =
+        qpp::sample(ctx.shots, state, ids, sampleQudits.begin()->levels);
+
+    ExecutionResult execResult;
+    for (auto [result, count] : sampleResult) {
+      std::cout << fmt::format("Sample {} : {}", result, count) << "\n";
+      // Populate counts dictionary. FIXME - handle qudits with >= 10 levels
+      // better.
+      std::string resultStr;
+      resultStr.reserve(result.size());
+      for (auto x : result)
+        resultStr += std::to_string(x);
+      execResult.counts[resultStr] = count;
+    }
+    sample_result result;
+    result.append(execResult);
+    return result;
+  }
+
+  void endExecution() override {
+    sampleQudits.clear();
+    BasicExecutionManager::endExecution();
   }
 
   void executeInstruction(const Instruction &instruction) override {
@@ -90,6 +97,7 @@ protected:
 
   int measureQudit(const cudaq::QuditInfo &q,
                    const std::string &regName) override {
+    ExecutionContext *executionContext = cudaq::getExecutionContext();
     if (executionContext && executionContext->name == "sample") {
       sampleQudits.push_back(q);
       return 0;
@@ -105,11 +113,13 @@ protected:
     state = Eigen::Map<const qpp::ket>(collapsed_state.data(),
                                        collapsed_state.size());
 
-    cudaq::info("Measured qubit {} -> {}", q.id, measurement_result);
+    CUDAQ_INFO("Measured qubit {} -> {}", q.id, measurement_result);
     return measurement_result;
   }
 
-  void measureSpinOp(const cudaq::spin_op &) override {}
+  cudaq::SpinMeasureResult measureSpinOp(const cudaq::spin_op &) override {
+    return cudaq::SpinMeasureResult(0.0, {});
+  }
 
 public:
   SimpleQuditExecutionManager() {
@@ -118,7 +128,7 @@ public:
       u << 0, 0, 1, 1, 0, 0, 0, 1, 0;
       auto &[gateName, params, controls, qudits, op] = inst;
       auto target = qudits[0];
-      cudaq::info("Applying plusGate on {}<{}>", target.id, target.levels);
+      CUDAQ_INFO("Applying plusGate on {}<{}>", target.id, target.levels);
       state = qpp::apply(state, u, {target.id}, target.levels);
     });
   }

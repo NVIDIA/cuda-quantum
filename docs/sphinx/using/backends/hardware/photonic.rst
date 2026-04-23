@@ -28,16 +28,16 @@ configuration.
 
 .. code:: bash
 
-  |:spellcheck-disable:|export ORCA_ACCESS_URL="https://<ORCA API Server>"|:spellcheck-enable:|
+      export ORCA_ACCESS_URL="https://<ORCA API Server>"
 
 
 Sometimes the requests to the PT-1 require an authentication token. This token can be set as an
-environment variable named ``ORCA_AUTH_TOKEN``. For example, if the token is :code:`AbCdEf123456`,
+environment variable named ``ORCA_AUTH_TOKEN``. For example, if the token is :code:`token123`,
 you can set the environment variable as follows:
 
 .. code:: bash
 
-  |:spellcheck-disable:|export ORCA_AUTH_TOKEN="AbCdEf123456"|:spellcheck-enable:|
+      export ORCA_AUTH_TOKEN="token123"
 
 Submitting
 `````````````````````````
@@ -65,9 +65,6 @@ Submitting
             loop_lengths = [1]
             counts = cudaq.orca.sample(input_state, loop_lengths, bs_angles)
 
-        To see a complete example for using ORCA's backends, take a look at our :doc:`Python examples <../../examples/hardware_providers>`.
-
-
 
 .. tab:: C++
 
@@ -93,4 +90,4 @@ Submitting
            ./executable
 
 
-        To see a complete example for using ORCA server backends, take a look at our :doc:`C++ examples <../../examples/hardware_providers>`.
+To see a complete example, take a look at :ref:`ORCA Computing examples <orca-examples>`.

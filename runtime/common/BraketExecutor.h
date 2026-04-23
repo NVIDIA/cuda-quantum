@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,10 +10,8 @@
 
 #include "common/BraketServerHelper.h"
 #include "common/Executor.h"
-#include "common/FmtCore.h"
-#include "common/Logger.h"
-#include "common/MeasureCounts.h"
-#include "cudaq.h"
+#include "common/SampleResult.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <aws/braket/BraketClient.h>
 #include <aws/core/Aws.h>
 #include <aws/core/utils/logging/AWSLogging.h>
@@ -39,7 +37,7 @@ protected:
 
   public:
     ScopedApi(Aws::SDKOptions &options) : options(options) {
-      cudaq::debug("Initializing AWS API");
+      CUDAQ_DBG("Initializing AWS API");
       /// FIXME: Allow setting following flag via CUDA-Q frontend
       // options.loggingOptions.logLevel = Aws::Utils::Logging::LogLevel::Debug;
       Aws::InitAPI(options);
@@ -75,7 +73,8 @@ public:
 
   /// @brief Execute the provided Braket task
   details::future execute(std::vector<KernelExecution> &codesToExecute,
-                          bool isObserve) override;
+                          cudaq::details::ExecutionContextType execType,
+                          std::vector<char> *rawOutput) override;
 
   /// @brief Set the server helper
   void setServerHelper(ServerHelper *helper) override;

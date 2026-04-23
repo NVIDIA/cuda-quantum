@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,27 +7,29 @@
  ******************************************************************************/
 
 #include "common/ExecutionContext.h"
-#include "common/Logger.h"
-#include "common/NoiseModel.h"
+#include "common/RuntimeTarget.h"
 #include "common/Timing.h"
-#include "cudaq/Support/TargetConfig.h"
+#include "cudaq/Support/TargetConfigYaml.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
-#include "utils/cudaq_utils.h"
+#include "cudaq/runtime/logger/logger.h"
+#include "cudaq/utils/cudaq_utils.h"
 #include <filesystem>
 #include <fstream>
 
-/// This file defines the default, library mode, quantum platform.
-/// Its goal is to create a single QPU that is added to the quantum_platform
-/// which delegates kernel execution to the current Execution Manager.
+/// This file defines the default, library mode, quantum platform. Its goal is
+/// to create a single QPU that is added to the quantum_platform which delegates
+/// kernel execution to the current Execution Manager.
 
 namespace {
+
 /// The DefaultQPU models a simulated QPU by specifically
 /// targeting the QIS ExecutionManager.
 class DefaultQPU : public cudaq::QPU {
 public:
   DefaultQPU() = default;
+  virtual ~DefaultQPU() = default;
 
   void enqueue(cudaq::QuantumTask &task) override {
     execution_queue->enqueue(task);
@@ -41,51 +43,57 @@ public:
     return kernelFunc(args, /*isRemote=*/false);
   }
 
-  /// Overrides setExecutionContext to forward it to the ExecutionManager
-  void setExecutionContext(cudaq::ExecutionContext *context) override {
-    ScopedTraceWithContext("DefaultPlatform::setExecutionContext",
-                           context->name);
-    executionContext = context;
+  void
+  configureExecutionContext(cudaq::ExecutionContext &context) const override {
+    ScopedTraceWithContext("DefaultPlatform::prepareExecutionContext",
+                           context.name);
     if (noiseModel)
-      executionContext->noiseModel = noiseModel;
+      context.noiseModel = noiseModel;
 
-    cudaq::getExecutionManager()->setExecutionContext(executionContext);
+    context.executionManager = cudaq::getDefaultExecutionManager();
+    context.executionManager->configureExecutionContext(context);
   }
 
-  /// Overrides resetExecutionContext to forward to
-  /// the ExecutionManager. Also handles observe post-processing
-  void resetExecutionContext() override {
+  void beginExecution() override {
+    cudaq::getExecutionContext()->executionManager->beginExecution();
+  }
+
+  void endExecution() override {
+    cudaq::getExecutionContext()->executionManager->endExecution();
+  }
+
+  void
+  finalizeExecutionContext(cudaq::ExecutionContext &context) const override {
     ScopedTraceWithContext(
-        executionContext->name == "observe" ? cudaq::TIMING_OBSERVE : 0,
-        "DefaultPlatform::resetExecutionContext", executionContext->name);
-    handleObservation(executionContext);
-    cudaq::getExecutionManager()->resetExecutionContext();
-    executionContext = nullptr;
+        context.name == "observe" ? cudaq::TIMING_OBSERVE : 0,
+        "DefaultPlatform::finalizeExecutionContext", context.name);
+    handleObservation(context);
+
+    cudaq::getExecutionContext()->executionManager->finalizeExecutionContext(
+        context);
   }
 };
 
-/// The DefaultQuantumPlatform is a quantum_platform that
-/// provides a single simulated QPU, which delegates to the
-/// QIS ExecutionManager.
+/// The DefaultQuantumPlatform is a quantum_platform that provides a single
+/// simulated QPU, which delegates to the QIS ExecutionManager.
 class DefaultQuantumPlatform : public cudaq::quantum_platform {
 public:
   DefaultQuantumPlatform() {
     // Populate the information and add the QPUs
     platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
-    platformNumQPUs = platformQPUs.size();
   }
 
-  /// @brief Set the target backend. Here we have an opportunity
-  /// to know the -qpu QPU target we are running on. This function will
-  /// read in the qpu configuration file and search for the PLATFORM_QPU
-  /// variable, and if found, will change from the DefaultQPU to the QPU subtype
-  /// specified by that variable.
+private:
+  /// @brief Set the target backend. Here we have an opportunity to know the
+  /// -qpu QPU target we are running on. This function will read in the qpu
+  /// configuration file and search for the PLATFORM_QPU variable, and if found,
+  /// will change from the DefaultQPU to the QPU subtype specified by that
+  /// variable.
   void setTargetBackend(const std::string &backend) override {
     platformQPUs.clear();
-    threadToQpuId.clear();
     platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
 
-    cudaq::info("Backend string is {}", backend);
+    CUDAQ_INFO("Backend string is {}", backend);
     std::map<std::string, std::string> configMap;
     auto mutableBackend = backend;
     if (mutableBackend.find(";") != std::string::npos) {
@@ -95,34 +103,42 @@ public:
         configMap.insert({keyVals[i], keyVals[i + 1]});
     }
 
-    std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
-    auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
-    std::string fileName = mutableBackend + std::string(".yml");
-
-    /// Once we know the backend, we should search for the config file
-    /// from there we can get the URL/PORT and the required MLIR pass pipeline.
-    auto configFilePath = platformPath / fileName;
-    cudaq::info("Config file path = {}", configFilePath.string());
-
-    // Don't try to load something that doesn't exist.
-    if (!std::filesystem::exists(configFilePath)) {
-      platformQPUs.front()->setTargetBackend(backend);
-      return;
-    }
-
-    std::ifstream configFile(configFilePath.string());
-    std::string configContents((std::istreambuf_iterator<char>(configFile)),
-                               std::istreambuf_iterator<char>());
+    // If runtimeTarget was pre-populated (e.g., by the Python
+    // LinkedLibraryHolder), use its already-parsed config to avoid re-reading
+    // the YAML file from disk.
     cudaq::config::TargetConfig config;
-    llvm::yaml::Input Input(configContents.c_str());
-    Input >> config;
+    if (runtimeTarget) {
+      config = runtimeTarget->config;
+      runtimeTarget->runtimeConfig = configMap;
+    } else {
+      std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
+      auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
+      std::string fileName = mutableBackend + std::string(".yml");
+      auto configFilePath = platformPath / fileName;
+      CUDAQ_INFO("Config file path = {}", configFilePath.string());
+
+      if (!std::filesystem::exists(configFilePath)) {
+        platformQPUs.front()->setTargetBackend(backend);
+        return;
+      }
+
+      std::ifstream configFile(configFilePath.string());
+      std::string configContents((std::istreambuf_iterator<char>(configFile)),
+                                 std::istreambuf_iterator<char>());
+      llvm::yaml::Input Input(configContents.c_str());
+      Input >> config;
+      runtimeTarget = std::make_unique<cudaq::RuntimeTarget>();
+      runtimeTarget->config = config;
+      runtimeTarget->name = mutableBackend;
+      runtimeTarget->description = config.Description;
+      runtimeTarget->runtimeConfig = configMap;
+    }
 
     if (config.BackendConfig.has_value() &&
         !config.BackendConfig->PlatformQpu.empty()) {
       auto qpuName = config.BackendConfig->PlatformQpu;
-      cudaq::info("Default platform QPU subtype name: {}", qpuName);
+      CUDAQ_INFO("Default platform QPU subtype name: {}", qpuName);
       platformQPUs.clear();
-      threadToQpuId.clear();
       platformQPUs.emplace_back(cudaq::registry::get<cudaq::QPU>(qpuName));
       if (platformQPUs.front() == nullptr)
         throw std::runtime_error(

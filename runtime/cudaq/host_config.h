@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,7 +10,6 @@
 
 #include <complex>
 
-#define CUDAQ_USE_STD20 (__cplusplus >= 202002L)
 #define CUDAQ_APPLE_CLANG (defined(__apple_build_version__))
 
 namespace cudaq {

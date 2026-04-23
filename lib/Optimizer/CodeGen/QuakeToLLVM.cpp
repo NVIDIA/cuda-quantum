@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,6 +9,7 @@
 #include "cudaq/Optimizer/CodeGen/QuakeToLLVM.h"
 #include "CodeGenOps.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
+#include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
@@ -826,7 +827,8 @@ public:
         cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, numControls));
     funcArgs.push_back(isArrayAndLengthArr);
     funcArgs.push_back(ctrlOpPointer);
-    funcArgs.append(instOperands.begin(), instOperands.end());
+    funcArgs.append(adaptor.getControls().begin(), adaptor.getControls().end());
+    funcArgs.append(adaptor.getTargets().begin(), adaptor.getTargets().end());
 
     // Call our utility function.
     rewriter.replaceOpWithNewOp<LLVM::CallOp>(
@@ -1007,7 +1009,8 @@ public:
         cudaq::opt::factory::genLlvmI64Constant(loc, rewriter, numControls));
     funcArgs.push_back(isArrayAndLengthArr);
     funcArgs.push_back(ctrlOpPointer);
-    funcArgs.append(instOperands.begin(), instOperands.end());
+    funcArgs.append(adaptor.getControls().begin(), adaptor.getControls().end());
+    funcArgs.append(adaptor.getTargets().begin(), adaptor.getTargets().end());
 
     // Call our utility function.
     rewriter.replaceOpWithNewOp<LLVM::CallOp>(
@@ -1345,10 +1348,9 @@ public:
       auto globalName = generatorName.str();
       // IMPORTANT: this must match the logic to generate global data
       // globalName = f'{nvqppPrefix}{opName}_generator_{numTargets}.rodata'
-      const std::string nvqppPrefix = "__nvqpp__mlirgen__";
       const std::string generatorSuffix = "_generator";
-      if (globalName.starts_with(nvqppPrefix)) {
-        globalName = globalName.substr(nvqppPrefix.size());
+      if (globalName.starts_with(cudaq::runtime::cudaqGenPrefixName)) {
+        globalName = globalName.substr(cudaq::runtime::cudaqGenPrefixLength);
         const size_t pos = globalName.find(generatorSuffix);
         if (pos != std::string::npos)
           return globalName.substr(0, pos);

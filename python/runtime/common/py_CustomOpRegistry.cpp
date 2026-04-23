@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,9 +7,10 @@
  ******************************************************************************/
 #include "py_CustomOpRegistry.h"
 #include "common/CustomOp.h"
-#include <pybind11/complex.h>
-#include <pybind11/functional.h>
-#include <pybind11/stl.h>
+#include <nanobind/stl/complex.h>
+#include <nanobind/stl/function.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
 
 namespace cudaq {
 struct py_unitary_operation : public unitary_operation {
@@ -22,7 +23,7 @@ struct py_unitary_operation : public unitary_operation {
   }
 };
 
-void bindCustomOpRegistry(py::module &mod) {
+void bindCustomOpRegistry(nanobind::module_ &mod) {
   mod.def(
       "register_custom_operation",
       [&](const std::string &opName) {

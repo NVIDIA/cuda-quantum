@@ -1,5 +1,5 @@
 /********************************************************** -*- tablegen -*- ***
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -194,11 +194,6 @@ def cc_CallableType : CCType<"Callable", "callable"> {
       return Base::get(signature.getContext(), signature);
     }]>
   ];
-
-  let extraClassDeclaration = [{
-    /// Create a callable type without a signature, for prototyping only.
-    [[deprecated]] static CallableType getNoSignature(mlir::MLIRContext *ctx);
-  }];
 }
 
 def cc_IndirectCallableType : CCType<"IndirectCallable", "indirect_callable"> {
@@ -294,5 +289,23 @@ def SpanningType : Type<IsSpanLikePred, "dynamic length type">;
 def AnyStateInitLike : TypeConstraint<cc_PointerType.predicate,
                          "state initializer types">;
 def AnyStateInitType : Type<AnyStateInitLike.predicate, "initial state type">;
+
+def IsStdvecTypePred : CPred<"$_self.isa<::cudaq::cc::StdvecType>()">;
+
+class StdvecOf<list<Type> allowedTypes> : Type<
+    And<[IsStdvecTypePred, Concat<"[](::mlir::Type elementType) { return ",
+      SubstLeaves<"$_self", "elementType", AnyTypeOf<allowedTypes>.predicate>,
+        "; }($_self.cast<::cudaq::cc::StdvecType>().getElementType())">]>,
+    "stdvec of " # AnyTypeOf<allowedTypes>.summary # " values",
+    "::cudaq::cc::StdvecType">;
+
+def IsPointerTypePred : CPred<"$_self.isa<::cudaq::cc::PointerType>()">;
+
+class PointerOf<list<Type> allowedTypes> : Type<
+    And<[IsPointerTypePred, Concat<"[](::mlir::Type elementType) { return ",
+      SubstLeaves<"$_self", "elementType", AnyTypeOf<allowedTypes>.predicate>,
+        "; }($_self.cast<::cudaq::cc::PointerType>().getElementType())">]>,
+    "pointer of " # AnyTypeOf<allowedTypes>.summary # " values",
+    "::cudaq::cc::PointerType">;
 
 #endif // CUDAQ_DIALECT_CC_TYPES_TD

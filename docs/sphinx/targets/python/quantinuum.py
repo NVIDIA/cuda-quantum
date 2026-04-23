@@ -1,9 +1,20 @@
 import cudaq
+import os
 
-# You only have to set the target once! No need to redefine it
-# for every execution call on your kernel.
+# You only have to set the target once! No need to redefine it for every
+# execution call on your kernel.
 # By default, we will submit to the Quantinuum syntax checker.
-cudaq.set_target("quantinuum")
+## NOTE: It is mandatory to specify the Nexus project by name or ID.
+# Update and un-comment the line below.
+# ```
+# cudaq.set_target("quantinuum", project="nexus_project")
+# ```
+# Or use environment variable
+# ```
+# os.environ["QUANTINUUM_NEXUS_PROJECT"] = "nexus_project"
+# ```
+cudaq.set_target("quantinuum",
+                 project=os.environ.get("QUANTINUUM_NEXUS_PROJECT", None))
 
 
 # Create the kernel we'd like to execute on Quantinuum.
@@ -12,8 +23,6 @@ def kernel():
     qvector = cudaq.qvector(2)
     h(qvector[0])
     x.ctrl(qvector[0], qvector[1])
-    mz(qvector[0])
-    mz(qvector[1])
 
 
 # Submit to Quantinuum's endpoint and confirm the program is valid.
@@ -30,7 +39,9 @@ if (syntax_check):
 
 # Now we can update the target to the Quantinuum emulator and
 # execute our program.
-cudaq.set_target("quantinuum", machine="H1-2E")
+cudaq.set_target("quantinuum",
+                 machine="H2-1E",
+                 project=os.environ.get("QUANTINUUM_NEXUS_PROJECT", None))
 
 # Option B:
 # By using the asynchronous `cudaq.sample_async`, the remaining

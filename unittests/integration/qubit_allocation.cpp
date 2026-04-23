@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -14,7 +14,7 @@
 #ifndef CUDAQ_BACKEND_STIM
 
 std::vector<cudaq::complex> randomState(int numQubits) {
-  std::vector<cudaq::complex> stateVec(1ULL << numQubits);
+  std::vector<cudaq::complex> stateVec(1 << numQubits);
   std::generate(stateVec.begin(), stateVec.end(), []() -> cudaq::complex {
     thread_local std::default_random_engine
         generator; // thread_local so we don't have to do any locking
@@ -40,26 +40,38 @@ struct test_state_vector_init {
   }
 };
 
+struct test_state_vector_init_state_ctor {
+  void operator()(const std::vector<cudaq::complex> &stateVec) __qpu__ {
+    cudaq::qvector q(cudaq::state{stateVec});
+    mz(q);
+  }
+};
+
 CUDAQ_TEST(AllocationTester, checkAllocationFromStateVecGeneral) {
   constexpr int numQubits = 5;
   // Large number of shots
   constexpr int numShots = 1000000;
   const auto stateVec = randomState(numQubits);
   cudaq::set_random_seed(13); // set for repeatability
-  auto counts = cudaq::sample(numShots, test_state_vector_init{}, stateVec);
-  counts.dump();
-  for (const auto &[bitStrOrg, count] : counts) {
-    auto bitStr = bitStrOrg;
-    std::reverse(bitStr.begin(), bitStr.end());
-    const int val = std::stoi(bitStr, nullptr, 2);
-    const double prob = 1.0 * count / numShots;
-    const double expectedProb = std::norm(stateVec[val]);
-    if (expectedProb > 1e-6) {
-      const double relError = std::abs(expectedProb - prob) / expectedProb;
-      // Less than 10% difference (relative)
-      EXPECT_LT(relError, 0.1);
+
+  auto runTest = [&](auto &&kernel) {
+    auto counts = cudaq::sample(numShots, kernel, stateVec);
+    counts.dump();
+    for (const auto &[bitStrOrg, count] : counts) {
+      auto bitStr = bitStrOrg;
+      std::reverse(bitStr.begin(), bitStr.end());
+      const int val = std::stoi(bitStr, nullptr, 2);
+      const double prob = 1.0 * count / numShots;
+      const double expectedProb = std::norm(stateVec[val]);
+      if (expectedProb > 1e-6) {
+        const double relError = std::abs(expectedProb - prob) / expectedProb;
+        // Less than 10% difference (relative)
+        EXPECT_LT(relError, 0.1);
+      }
     }
-  }
+  };
+  runTest(test_state_vector_init{});
+  runTest(test_state_vector_init_state_ctor{});
 }
 
 // Same as test_state_vector_init with some dummy gates
@@ -276,13 +288,19 @@ CUDAQ_TEST(AllocationTester, checkStateFromMpsData) {
                                     {mps2.data(), mpsExtent2}};
     auto state = cudaq::state::from_data(initData);
     state.dump();
-    std::vector<cudaq::complex> stateVec(4);
+    // Use sentinel values to detect incomplete copy in to_host
+    std::vector<cudaq::complex> stateVec(4, {-999.0, -999.0});
     state.to_host(stateVec.data(), stateVec.size());
     EXPECT_NEAR(std::abs(stateVec[0] - static_cast<cudaq::real>(1.0)), 0.0,
                 1e-12);
     EXPECT_NEAR(std::abs(stateVec[1]), 0.0, 1e-12);
     EXPECT_NEAR(std::abs(stateVec[2]), 0.0, 1e-12);
     EXPECT_NEAR(std::abs(stateVec[3]), 0.0, 1e-12);
+    // Verify no sentinel values remain (ensures all elements were copied)
+    for (std::size_t i = 0; i < 4; ++i) {
+      EXPECT_NE(stateVec[i].real(), -999.0)
+          << "Element " << i << " was not copied by to_host";
+    }
   }
   {
     const std::vector<cudaq::complex> mps1{1.0, 0.0};
@@ -303,6 +321,17 @@ CUDAQ_TEST(AllocationTester, checkStateFromMpsData) {
     state2.dump();
     EXPECT_NEAR(std::abs(state2.amplitude({0, 0})), M_SQRT1_2, 1e-6);
     EXPECT_NEAR(std::abs(state2.amplitude({1, 1})), M_SQRT1_2, 1e-6);
+
+    // Test to_host with Bell state - element 3 is non-zero, directly detects
+    // incomplete copy bug
+    std::vector<cudaq::complex> bellStateVec(4, {-999.0, -999.0});
+    state2.to_host(bellStateVec.data(), bellStateVec.size());
+    // Bell state: (|00> + |11>) / sqrt(2) = [1/sqrt(2), 0, 0, 1/sqrt(2)]
+    EXPECT_NEAR(bellStateVec[0].real(), M_SQRT1_2, 1e-6);
+    EXPECT_NEAR(bellStateVec[1].real(), 0.0, 1e-6);
+    EXPECT_NEAR(bellStateVec[2].real(), 0.0, 1e-6);
+    EXPECT_NEAR(bellStateVec[3].real(), M_SQRT1_2, 1e-6)
+        << "Element 3 should be 1/sqrt(2), not copied correctly by to_host";
   }
   {
     constexpr int numQubits = 10;

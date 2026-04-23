@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -19,15 +19,18 @@
 #include <optional>
 #include <string_view>
 #include <unordered_map>
+#include <vector>
 
 namespace mlir {
 class MLIRContext;
-}
+class ModuleOp;
+class Operation;
+} // namespace mlir
+
 namespace cudaq {
 class ExecutionContext;
 class gradient;
 class optimizer;
-class SerializedCodeExecutionContext;
 
 /// Base interface encapsulating a CUDA-Q runtime server capable of
 /// running kernel IR code.
@@ -85,19 +88,33 @@ public:
   // Return the remote capabilities of the server.
   virtual RemoteCapabilities getRemoteCapabilities() const = 0;
 
+  // Extract the quake representation for the kernel `kernelName`,
+  // with all the relevant client-side passes run. The returned
+  // `ModuleOp` will then need the final codegen pipeline
+  // (e.g., convertToQIR) run before it can be executed.
+  virtual mlir::ModuleOp lowerKernel(mlir::MLIRContext &mlirContext,
+                                     const std::string &kernelName,
+                                     const void *kernelArgs,
+                                     std::uint64_t argsSize,
+                                     const std::size_t startingArgIdx,
+                                     const std::vector<void *> *rawArgs) = 0;
+  virtual mlir::ModuleOp
+  lowerKernelInPlace(mlir::ModuleOp module, const std::string &shortName,
+                     const std::vector<void *> &rawArgs) = 0;
+
   // Delegate/send kernel execution to a remote server.
   // Subclass will implement necessary transport-layer serialization and
   // communication protocols. The `ExecutionContext` will be updated in-place as
   // if this was a local execution.
   virtual bool
   sendRequest(mlir::MLIRContext &mlirContext, ExecutionContext &io_context,
-              SerializedCodeExecutionContext *serializedCodeContext,
               cudaq::gradient *vqe_gradient, cudaq::optimizer *vqe_optimizer,
               const int vqe_n_params, const std::string &backendSimName,
               const std::string &kernelName, void (*kernelFunc)(void *),
               const void *kernelArgs, std::uint64_t argsSize,
               std::string *optionalErrorMsg = nullptr,
-              const std::vector<void *> *rawArgs = nullptr) = 0;
+              const std::vector<void *> *rawArgs = nullptr,
+              mlir::Operation *prefabMod = nullptr) = 0;
   // Destructor
   virtual ~RemoteRuntimeClient() = default;
 };

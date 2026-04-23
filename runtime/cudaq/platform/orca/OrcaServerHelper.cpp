@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,8 +8,8 @@
 
 #include "OrcaServerHelper.h"
 #include "common/Future.h"
-#include "common/Logger.h"
 #include "common/Registry.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "orca_qpu.h"
 
 namespace cudaq {
@@ -116,11 +116,11 @@ bool OrcaServerHelper::jobIsDone(ServerMessage &getJobResponse) {
     return true;
   } else if (!status) {
     auto job_status = getJobResponse["job_status"].get<std::string>();
-    cudaq::info("job_status {}", job_status);
+    CUDAQ_INFO("job_status {}", job_status);
     return false;
   } else {
     auto error_message = getJobResponse["error_message"].get<std::string>();
-    cudaq::info("error_message {}", error_message);
+    CUDAQ_INFO("error_message {}", error_message);
     if (error_message == "Job can't be found") {
       return false;
     } else {

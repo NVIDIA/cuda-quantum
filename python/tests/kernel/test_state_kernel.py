@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -19,7 +19,7 @@ skipIfNoGQPU = pytest.mark.skipif(
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def run_and_clear_registries():
     yield
     cudaq.__clearKernelRegistries()
 
@@ -31,7 +31,7 @@ def test_state_vector_simple():
     backend. Begins with a kernel, converts to state, then checks
     its member functions.
     """
-    cudaq.set_target('nvidia-fp64')
+    cudaq.set_target('nvidia', option='fp64')
 
     @cudaq.kernel
     def bell():
@@ -185,7 +185,7 @@ def test_state_vector_async():
     want_state = np.array([-1j / np.sqrt(2.), 0., 0., -1j / np.sqrt(2.)],
                           dtype=np.complex128)
     state = future.get()
-    state.dump()
+    print(state)
     assert np.allclose(state, want_state, atol=1e-3)
     # Check invalid qpu_id
     with pytest.raises(Exception) as error:

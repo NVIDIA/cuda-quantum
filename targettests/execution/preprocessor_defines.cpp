@@ -1,39 +1,42 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ %cpp_std --enable-mlir -DCUDAQ_HELLO_WORLD %s -o %t && %t | FileCheck --check-prefixes=DEFINE_ON %s
-// RUN: nvq++ -std=c++17 --enable-mlir %s -o %t && %t | FileCheck %s
-// RUN: if [ $(echo %cpp_std | cut -c4- ) -ge 20 ]; then \
+// clang-format off
+// RUN: nvq++ --enable-mlir -DCUDAQ_HELLO_WORLD %s -o %t && %t | FileCheck --check-prefixes=DEFINE_ON %s
+// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: if [ $(echo | cut -c4- ) -ge 20 ]; then \
 // RUN:   nvq++ --enable-mlir %s -o %t && %t | FileCheck %s; \
 // RUN: fi
+// clang-format on
 
 #include "cudaq.h"
 
 #ifdef CUDAQ_HELLO_WORLD
 struct test {
-    void operator()() __qpu__ {
-        cudaq::qubit q;
-        h(q);
-        mz(q);
-    }
+  void operator()() __qpu__ {
+    cudaq::qubit q;
+    h(q);
+    mz(q);
+  }
 };
-#else 
+#else
 struct test {
-    void operator()() __qpu__ {
-        cudaq::qubit q;
-        x(q);
-        mz(q);
-    }
+  void operator()() __qpu__ {
+    cudaq::qubit q;
+    x(q);
+    mz(q);
+  }
 };
-#endif 
+#endif
 
 int main() {
-    cudaq::sample(test{}).dump();
+  cudaq::sample(test{}).dump();
+  return 0;
 }
 
 // DEFINE_ON: { [[B0:.*]]:[[C0:.*]] [[B1:.*]]:[[C1:.*]] }

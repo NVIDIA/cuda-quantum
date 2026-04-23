@@ -1,13 +1,15 @@
-/*************************************************************** -*- C++ -*- ***
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+/*******************************************************************************
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-#include "common/Logger.h"
+#include "common/FmtCore.h"
+#include "common/SampleResult.h"
 #include "cudaq/operators.h"
 #include "cudaq/qis/managers/BasicExecutionManager.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "qpp.h"
 #include <cmath>
@@ -154,57 +156,80 @@ protected:
   /// @brief Deallocate a set of `qudits` (`qumodes`) with a single call.
   void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {}
 
-  /// @brief Handler for when the photonics execution context changes
-  void handleExecutionContextChanged() override {}
+  /// @brief Configure and validate the execution context
+  void configureExecutionContext(ExecutionContext &ctx) override {
+    BasicExecutionManager::configureExecutionContext(ctx);
 
-  /// @brief Handler for when the current execution context has ended. It
-  /// returns samples to the execution context if it is "sample".
-  void handleExecutionContextEnded() override {
-    if (executionContext) {
-      std::vector<std::size_t> ids;
-      for (auto &s : sampleQudits) {
-        ids.push_back(s.id);
-      }
-      if (executionContext->name == "sample") {
-        cudaq::info("Sampling");
-        auto shots = executionContext->shots;
-        auto sampleResult =
-            qpp::sample(shots, state, ids, sampleQudits.begin()->levels);
-        cudaq::ExecutionResult counts;
-        for (auto [result, count] : sampleResult) {
-          std::stringstream bitstring;
-          for (const auto &quditRes : result) {
-            bitstring << quditRes;
-          }
-          // Add to the sample result
-          // in mid-circ sampling mode this will append 1 bitstring
-          counts.appendResult(bitstring.str(), count);
-          // Reset the string.
-          bitstring.str("");
-          bitstring.clear();
-        }
-        executionContext->result.append(counts);
-      } else if (executionContext->name == "extract-state") {
-        cudaq::info("Extracting state");
-        // If here, then we care about the result qudit, so compute it.
-        for (auto &q : sampleQudits) {
-          const auto measurement_tuple = qpp::measure(
-              state, qpp::cmat::Identity(q.levels, q.levels), {q.id},
-              /*qudit dimension=*/q.levels, /*destructive measmt=*/false);
-          const auto measurement_result = std::get<qpp::RES>(measurement_tuple);
-          const auto &post_meas_states = std::get<qpp::ST>(measurement_tuple);
-          const auto &collapsed_state = post_meas_states[measurement_result];
-          state = Eigen::Map<const qpp::ket>(collapsed_state.data(),
-                                             collapsed_state.size());
-        }
+    if (!(ctx.name == "sample" || ctx.name == "extract-state" ||
+          ctx.name == "tracer"))
+      throw std::runtime_error(ctx.name + " is not supported on this target");
+  }
 
-        executionContext->simulationState =
-            std::make_unique<cudaq::PhotonicsState>(std::move(state), levels);
-      }
-      // Reset the state and qudits
-      state.resize(0);
-      sampleQudits.clear();
+  /// @brief Process results into the execution context
+  void finalizeExecutionContextImpl(std::vector<std::size_t> &ids,
+                                    ExecutionContext &ctx) {
+    BasicExecutionManager::finalizeExecutionContextImpl(ctx);
+    for (auto &s : sampleQudits) {
+      ids.push_back(s.id);
     }
+  }
+
+  sample_result finalizeExecutionContext(const sample_policy &policy,
+                                         ExecutionContext &ctx) override {
+    std::vector<std::size_t> ids;
+    finalizeExecutionContextImpl(ids, ctx);
+    CUDAQ_INFO("Sampling");
+    auto shots = ctx.shots;
+    auto sampleResult =
+        qpp::sample(shots, state, ids, sampleQudits.begin()->levels);
+    cudaq::ExecutionResult counts;
+    for (auto [result, count] : sampleResult) {
+      std::stringstream bitstring;
+      for (const auto &quditRes : result) {
+        bitstring << quditRes;
+      }
+      // Add to the sample result
+      // in mid-circ sampling mode this will append 1 bitstring
+      counts.appendResult(bitstring.str(), count);
+      // Reset the string.
+      bitstring.str("");
+      bitstring.clear();
+    }
+    sample_result result;
+    result.append(counts);
+    return result;
+  }
+
+  void finalizeExecutionContext(const other_policies &policy,
+                                ExecutionContext &ctx) override {
+    std::vector<std::size_t> ids;
+    finalizeExecutionContextImpl(ids, ctx);
+
+    if (ctx.name == "extract-state") {
+      CUDAQ_INFO("Extracting state");
+      // If here, then we care about the result qudit, so compute it.
+      for (auto &q : sampleQudits) {
+        const auto measurement_tuple = qpp::measure(
+            state, qpp::cmat::Identity(q.levels, q.levels), {q.id},
+            /*qudit dimension=*/q.levels, /*destructive measmt=*/false);
+        const auto measurement_result = std::get<qpp::RES>(measurement_tuple);
+        const auto &post_meas_states = std::get<qpp::ST>(measurement_tuple);
+        const auto &collapsed_state = post_meas_states[measurement_result];
+        state = Eigen::Map<const qpp::ket>(collapsed_state.data(),
+                                           collapsed_state.size());
+      }
+
+      ctx.simulationState =
+          std::make_unique<cudaq::PhotonicsState>(std::move(state), levels);
+    }
+  }
+
+  /// @brief Clean up state after execution ends
+  void endExecution() override {
+    // Reset the state and qudits
+    state.resize(0);
+    sampleQudits.clear();
+    BasicExecutionManager::endExecution();
   }
 
   /// @brief Method for executing instructions.
@@ -216,6 +241,7 @@ protected:
   /// @brief Method for performing qudit measurement.
   int measureQudit(const cudaq::QuditInfo &q,
                    const std::string &registerName) override {
+    ExecutionContext *executionContext = cudaq::getExecutionContext();
     if (executionContext && executionContext->name == "sample") {
       sampleQudits.push_back(q);
       return 0;
@@ -236,12 +262,14 @@ protected:
     state = Eigen::Map<const qpp::ket>(collapsed_state.data(),
                                        collapsed_state.size());
 
-    cudaq::info("Measured qubit {} -> {}", q.id, measurement_result);
+    CUDAQ_INFO("Measured qubit {} -> {}", q.id, measurement_result);
     return measurement_result;
   }
 
   /// @brief Measure the state in the basis described by the given `spin_op`.
-  void measureSpinOp(const cudaq::spin_op &) override {}
+  cudaq::SpinMeasureResult measureSpinOp(const cudaq::spin_op &) override {
+    return cudaq::SpinMeasureResult(0.0, {});
+  }
 
   /// @brief Method for performing qudit reset.
   void resetQudit(const cudaq::QuditInfo &id) override {}
@@ -352,7 +380,7 @@ public:
       for (int i = 1; i < d; i++) {
         u(i, i - 1) = 1;
       }
-      cudaq::info("Applying create on {}<{}>", target.id, target.levels);
+      CUDAQ_INFO("Applying create on {}<{}>", target.id, target.levels);
       state = qpp::apply(state, u, {target.id}, target.levels);
     });
 
@@ -365,7 +393,7 @@ public:
       for (int i = 0; i < d - 1; i++) {
         u(i, i + 1) = 1;
       }
-      cudaq::info("Applying annihilate on {}<{}>", target.id, target.levels);
+      CUDAQ_INFO("Applying annihilate on {}<{}>", target.id, target.levels);
       state = qpp::apply(state, u, {target.id}, target.levels);
     });
 
@@ -378,7 +406,7 @@ public:
       for (int i = 1; i < d; i++) {
         u(i, i - 1) = 1;
       }
-      cudaq::info("Applying plus on {}<{}>", target.id, target.levels);
+      CUDAQ_INFO("Applying plus on {}<{}>", target.id, target.levels);
       state = qpp::apply(state, u, {target.id}, target.levels);
     });
 
@@ -390,8 +418,8 @@ public:
       const double theta = params[0];
       qpp::cmat BS{qpp::cmat::Zero(d * d, d * d)};
       beam_splitter(theta, BS);
-      cudaq::info("Applying beam_splitter on {}<{}> and {}<{}>", target1.id,
-                  target1.levels, target2.id, target2.levels);
+      CUDAQ_INFO("Applying beam_splitter on {}<{}> and {}<{}>", target1.id,
+                 target1.levels, target2.id, target2.levels);
       state = qpp::apply(state, BS, {target1.id, target2.id}, d);
     });
 
@@ -405,7 +433,7 @@ public:
       for (size_t n = 0; n < d; n++) {
         PS(n, n) = std::exp(n * phi * i);
       }
-      cudaq::info("Applying phase_shift on {}<{}>", target.id, target.levels);
+      CUDAQ_INFO("Applying phase_shift on {}<{}>", target.id, target.levels);
       state = qpp::apply(state, PS, {target.id}, target.levels);
     });
   }

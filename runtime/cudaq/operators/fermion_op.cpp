@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -14,7 +14,7 @@
 
 #include "common/EigenSparse.h"
 #include "cudaq/operators.h"
-#include "cudaq/utils/matrix.h"
+#include "cudaq/operators/matrix.h"
 
 #include "cudaq/fermion_op.h"
 
@@ -242,6 +242,15 @@ complex_matrix fermion_handler::to_matrix(
     const {
   std::vector<std::int64_t> relevant_dims;
   return fermion_handler::to_matrix(
+      this->canonical_form(dimensions, relevant_dims));
+}
+
+mdiag_sparse_matrix fermion_handler::to_diagonal_matrix(
+    std::unordered_map<std::size_t, std::int64_t> &dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters)
+    const {
+  std::vector<std::int64_t> relevant_dims;
+  return fermion_handler::to_diagonal_matrix(
       this->canonical_form(dimensions, relevant_dims));
 }
 

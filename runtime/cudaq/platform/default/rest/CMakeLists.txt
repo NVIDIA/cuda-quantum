@@ -1,16 +1,13 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
-
 message(STATUS "Building REST QPU.")
-add_library(cudaq-rest-qpu SHARED RemoteRESTQPU.cpp 
-   ../../common/QuantumExecutionQueue.cpp)
+add_library(cudaq-rest-qpu SHARED RemoteRESTQPU.cpp)
 
 add_subdirectory(helpers)
 
@@ -26,16 +23,17 @@ else()
   set(AWSSDK_LINK_LIBRARIES "")
 endif()
 
-target_link_libraries(cudaq-rest-qpu 
-  PUBLIC 
+target_link_libraries(cudaq-rest-qpu
+  PUBLIC
     cudaq-operator
-    cudaq-common 
-  PRIVATE 
-    cudaq-mlir-runtime 
-    MLIRTranslateLib
-    fmt::fmt-header-only 
-    cudaq 
+    cudaq-common
+  PRIVATE
+    cudaq-mlir-runtime
+    fmt::fmt-header-only
+    cudaq
     cudaq-platform-default
+    nvqir
+    ZLIB::ZLIB
     ${AWSSDK_LINK_LIBRARIES})
 
 install(TARGETS cudaq-rest-qpu DESTINATION lib)

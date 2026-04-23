@@ -1,20 +1,20 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "CuDensityMatContext.h"
-#include "CuDensityMatErrorHandling.h"
-#include "CuDensityMatState.h"
-#include "CuDensityMatTimeStepper.h"
+#include "CuDensityMatIntegratorBase.h"
 #include "CuDensityMatUtils.h"
-#include "common/Logger.h"
 #include "cudaq/algorithms/integrator.h"
+#include "cudaq/runtime/logger/logger.h"
+
 namespace cudaq {
 namespace integrators {
+
+using cudmIntHelp = CuDensityMatIntegratorHelper;
 
 runge_kutta::runge_kutta(int order, const std::optional<double> &max_step_size)
     : m_t(0.0), m_order(order), m_dt(max_step_size) {
@@ -34,113 +34,74 @@ std::shared_ptr<base_integrator> runge_kutta::clone() {
   return clone;
 }
 
-void runge_kutta::setState(const cudaq::state &initial_state, double t0) {
-  auto *simState = cudaq::state_helper::getSimulationState(
-      const_cast<cudaq::state *>(&initial_state));
-  auto *cudmState = dynamic_cast<CuDensityMatState *>(simState);
-  if (!cudmState)
-    throw std::runtime_error("Invalid state.");
-  m_state = std::make_shared<cudaq::state>(
-      CuDensityMatState::clone(*cudmState).release());
-  m_t = t0;
+void runge_kutta::setState(const cudaq::state &initialState, double t0) {
+  cudmIntHelp::setState(m_state, m_t, initialState, t0);
 }
 
 std::pair<double, cudaq::state> runge_kutta::getState() {
-  auto *simState = cudaq::state_helper::getSimulationState(m_state.get());
-  auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
-  if (!castSimState)
-    throw std::runtime_error("Invalid state.");
-
-  return std::make_pair(
-      m_t, cudaq::state(CuDensityMatState::clone(*castSimState).release()));
+  return cudmIntHelp::getState(m_state, m_t);
 }
 
 void runge_kutta::integrate(double targetTime) {
   cudaq::dynamics::PerfMetricScopeTimer metricTimer("runge_kutta::integrate");
-  const auto asCudmState = [](cudaq::state &cudaqState) -> CuDensityMatState * {
-    auto *simState = cudaq::state_helper::getSimulationState(&cudaqState);
-    auto *castSimState = dynamic_cast<CuDensityMatState *>(simState);
-    if (!castSimState)
-      throw std::runtime_error("Invalid state.");
-    return castSimState;
-  };
-  auto &castSimState = *asCudmState(*m_state);
-  std::unordered_map<std::string, std::complex<double>> params;
-  if (!m_stepper) {
-    for (const auto &param : m_schedule.get_parameters()) {
-      params[param] = m_schedule.get_value_function()(param, 0.0);
-    }
+  cudmIntHelp::ensureStepper(m_stepper, m_state, m_system, m_schedule);
+  auto &castSimState = *cudmIntHelp::asCudmState(*m_state);
 
-    auto liouvillian =
-        cudaq::dynamics::Context::getCurrentContext()
-            ->getOpConverter()
-            .constructLiouvillian(m_system.hamiltonian, m_system.collapseOps,
-                                  m_system.modeExtents, params,
-                                  castSimState.is_density_matrix());
-    m_stepper = std::make_unique<CuDensityMatTimeStepper>(
-        castSimState.get_handle(), liouvillian);
-  }
   while (m_t < targetTime) {
     const double step_size =
-        std::min(m_dt.value_or(targetTime - m_t), targetTime - m_t);
+        cudmIntHelp::computeStepSize(m_t, targetTime, m_dt);
     if (m_order == 1) {
       // Euler method (1st order)
-      for (const auto &param : m_schedule.get_parameters()) {
-        params[param] = m_schedule.get_value_function()(param, m_t);
-      }
+      auto params = cudmIntHelp::scheduleParamsAt(m_schedule, m_t);
       auto k1State = m_stepper->compute(*m_state, m_t, params);
-      auto &k1 = *asCudmState(k1State);
+      auto &k1 = *cudmIntHelp::asCudmState(k1State);
       k1 *= step_size;
       castSimState += k1;
     } else if (m_order == 2) {
       // Midpoint method (2nd order)
-      for (const auto &param : m_schedule.get_parameters()) {
-        params[param] = m_schedule.get_value_function()(param, m_t);
-      }
+      // Standard formula: y_{n+1} = y_n + h * k2
+      // where k1 = f(t, y_n), k2 = f(t + h/2, y_n + h/2 * k1)
+      auto params = cudmIntHelp::scheduleParamsAt(m_schedule, m_t);
       auto k1State = m_stepper->compute(*m_state, m_t, params);
-      auto &k1 = *asCudmState(k1State);
-      k1 *= (step_size / 2.0);
+      auto &k1 = *cudmIntHelp::asCudmState(k1State);
 
-      castSimState += k1;
-      for (const auto &param : m_schedule.get_parameters()) {
-        params[param] =
-            m_schedule.get_value_function()(param, m_t + step_size / 2.0);
-      }
-      auto k2State =
-          m_stepper->compute(*m_state, m_t + step_size / 2.0, params);
-      auto &k2 = *asCudmState(k2State);
-      k2 *= (step_size / 2.0);
+      // Create temporary state: y_temp = y_n + (h/2) * k1
+      auto rho_temp = CuDensityMatState::clone(castSimState);
+      rho_temp->accumulate_inplace(k1, step_size / 2.0);
 
-      castSimState += k2;
+      // Compute k2 at the midpoint
+      auto params_mid =
+          cudmIntHelp::scheduleParamsAt(m_schedule, m_t + step_size / 2.0);
+      auto k2State = m_stepper->compute(cudaq::state(rho_temp.release()),
+                                        m_t + step_size / 2.0, params_mid);
+      auto &k2 = *cudmIntHelp::asCudmState(k2State);
+
+      // Final update: y_{n+1} = y_n + h * k2
+      castSimState.accumulate_inplace(k2, step_size);
     } else if (m_order == 4) {
       // Runge-Kutta method (4th order)
-      for (const auto &param : m_schedule.get_parameters()) {
-        params[param] = m_schedule.get_value_function()(param, m_t);
-      }
+      auto params = cudmIntHelp::scheduleParamsAt(m_schedule, m_t);
       auto k1State = m_stepper->compute(*m_state, m_t, params);
-      auto &k1 = *asCudmState(k1State);
+      auto &k1 = *cudmIntHelp::asCudmState(k1State);
       auto rho_temp = CuDensityMatState::clone(castSimState);
       rho_temp->accumulate_inplace(k1, step_size / 2); // y + h * k1/2
-      for (const auto &param : m_schedule.get_parameters()) {
-        params[param] =
-            m_schedule.get_value_function()(param, m_t + step_size / 2.0);
-      }
+      auto params_mid =
+          cudmIntHelp::scheduleParamsAt(m_schedule, m_t + step_size / 2.0);
       auto k2State = m_stepper->compute(cudaq::state(rho_temp.release()),
-                                        m_t + step_size / 2.0, params);
-      auto &k2 = *asCudmState(k2State);
+                                        m_t + step_size / 2.0, params_mid);
+      auto &k2 = *cudmIntHelp::asCudmState(k2State);
       auto rho_temp_2 = CuDensityMatState::clone(castSimState);
       rho_temp_2->accumulate_inplace(k2, step_size / 2); // y + h * k2/2
       auto k3State = m_stepper->compute(cudaq::state(rho_temp_2.release()),
-                                        m_t + step_size / 2.0, params);
-      auto &k3 = *asCudmState(k3State);
+                                        m_t + step_size / 2.0, params_mid);
+      auto &k3 = *cudmIntHelp::asCudmState(k3State);
       auto rho_temp_3 = CuDensityMatState::clone(castSimState);
       rho_temp_3->accumulate_inplace(k3, step_size); // y + h * k3
-      for (const auto &param : m_schedule.get_parameters()) {
-        params[param] = m_schedule.get_value_function()(param, m_t + step_size);
-      }
+      auto params_end =
+          cudmIntHelp::scheduleParamsAt(m_schedule, m_t + step_size);
       auto k4State = m_stepper->compute(cudaq::state(rho_temp_3.release()),
-                                        m_t + step_size, params);
-      auto &k4 = *asCudmState(k4State);
+                                        m_t + step_size, params_end);
+      auto &k4 = *cudmIntHelp::asCudmState(k4State);
 
       castSimState.accumulate_inplace(k1, step_size / 6.0);
       castSimState.accumulate_inplace(k2, step_size / 3.0);
@@ -150,7 +111,6 @@ void runge_kutta::integrate(double targetTime) {
       throw std::runtime_error("Invalid integrator order");
     }
 
-    // Update time
     m_t += step_size;
   }
 }

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -41,8 +41,11 @@ public:
 
   /// @brief Execute the provided quantum codes and return a future object
   /// The caller can make this synchronous by just immediately calling .get().
-  virtual details::future execute(std::vector<KernelExecution> &codesToExecute,
-                                  bool isObserve = false);
+  virtual details::future
+  execute(std::vector<KernelExecution> &codesToExecute,
+          cudaq::details::ExecutionContextType execType =
+              cudaq::details::ExecutionContextType::sample,
+          std::vector<char> *rawOutput = nullptr);
 };
 
 } // namespace cudaq

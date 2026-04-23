@@ -1,15 +1,14 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
 // clang-format off
-// RUN: nvq++ %cpp_std %s -o %t --target ionq --emulate && %t | FileCheck --check-prefix=IONQ %s
-// RUN: nvq++ %cpp_std %s -o %t --target oqc --emulate && %t | FileCheck --check-prefix=OQC %s
+// RUN: nvq++ %s -o %t --target ionq --emulate && %t | FileCheck --check-prefix=IONQ %s
+// RUN: nvq++ %s -o %t --target oqc --emulate && %t | FileCheck --check-prefix=OQC %s
 // clang-format on
 
 #include <cudaq.h>
@@ -28,7 +27,7 @@ __qpu__ void foo() {
 }
 
 int main() {
-  std::cout << cudaq::draw(foo) << '\n';
+  std::cout << cudaq::contrib::draw(foo) << '\n';
 
   return 0;
 }

@@ -16,13 +16,13 @@ Moreover, since quantum kernels are functions, there is more expressibility avai
 standard quantum circuit. We can not only parameterize the kernel, but can also contain classical control
 flow statements (`if`, `for`, `while`, etc.), and classical computations such as additions, multiplication, etc.
 Conditional statements on quantum memory and qubit measurements can be included in quantum kernels to enable 
-dynamic circuits and fast feedback, particularly useful for quantum error correction. To learn more about what
+dynamic circuits and fast feedback, which are particularly useful for quantum error correction. To learn more about what
 language constructs are supported within quantum kernels, take a look at the CUDA-Q 
 :doc:`specification <../../specification/cudaq/kernels>`.
 
 **How do I build and run a quantum kernel?**
 
 Once a quantum kernel has been defined in a program, it may be called as a typical function, or can be executed
-using the `sample` or `observe` primitives.
+using the `sample`, `run` or `observe` primitives.
 
 Let’s take a closer look at how to build and execute a quantum kernel with CUDA-Q.

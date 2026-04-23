@@ -1,98 +1,125 @@
-CUDA-Q Dynamics 
+CUDA-Q Dynamics
 ===============
 .. _dynamics_examples:
 
+This section contains examples for CUDA-Q Dynamics in both Python and C++. For a conceptual
+overview of the ``evolve`` API, see the :ref:`Dynamics Simulation <dynamics>` page.
 
-This page contains a number of examples that use CUDA-Q dynamics to simulate a range of fundamental physical systems and specific qubit modalities. All example problems simulate systems of very low dimension so that the code can be run quickly on any device. For small problems, the GPU will not provide a significant performance advantage over the CPU. The GPU will start to outperform the CPU for cases where the total dimension of all subsystems is O(1000).
-
-
-Cavity QED
----------------
-.. _cavity_qed:
-
-.. literalinclude:: ../../examples/python/dynamics/cavity_qed.py
-   :language: python
-
-Cross Resonance
------------------
-.. _cross_resonance:
-
-.. literalinclude:: ../../examples/python/dynamics/cross_resonance.py
-   :language: python
-
-Gate Calibration
-------------------
-.. _gate_calibration:
-
-.. literalinclude:: ../../examples/python/dynamics/gate_calibration.py
-   :language: python
-
-Heisenberg Model
-------------------
-.. _heisenberg_model:
-
-.. literalinclude:: ../../examples/python/dynamics/heisenberg_model.py
-   :language: python
-
-Landau Zener
--------------------
-.. _landau_zener:
-
-.. literalinclude:: ../../examples/python/dynamics/landau_zener.py
-   :language: python
-
-Pulse
-------
-.. _pulse:
-
-.. literalinclude:: ../../examples/python/dynamics/pulse.py
-   :language: python
-
-Qubit Control
---------------
-.. _qubit_control:
-
-.. literalinclude:: ../../examples/python/dynamics/qubit_control.py
-   :language: python
-
-Qubit Dynamics
---------------
-.. _qubit_dynamics:
-
-.. literalinclude:: ../../examples/python/dynamics/qubit_dynamics.py
-   :language: python
-
-Silicon Spin Qubit
--------------------
-.. _silicon_spin_qubit:
-
-.. literalinclude:: ../../examples/python/dynamics/silicon_spin_qubit.py
-   :language: python
-
-Tensor Callback
-------------------
-.. _tensor_callback:
-
-.. literalinclude:: ../../examples/python/dynamics/tensor_callback.py
-   :language: python
-
-Transmon Resonator
---------------------
-.. _transmon_resonator:
-
-.. literalinclude:: ../../examples/python/dynamics/transmon_resonator.py
-   :language: python
-
-Initial State (Multi-GPU Multi-Node)
+Python Examples (Jupyter Notebooks)
 -------------------------------------
-.. _initial_state_mgmn:
 
-.. literalinclude:: ../../examples/python/dynamics/mgmn/initial_state.py
-   :language: python
+The notebooks below contain groups of examples using CUDA-Q Dynamics.  The first two notebooks provide an introduction to CUDA-Q Dynamics appropriate for new users.
 
-Heisenberg Model (Multi-GPU Multi-Node)
--------------------------------------------
-.. _heisenberg_model_mgmn:
+Download the notebooks below `here <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples/python/dynamics>`_.
 
-.. literalinclude:: ../../examples/python/dynamics/mgmn/multi_gpu.py
-   :language: python
+
+.. toctree::
+   :maxdepth: 2
+
+      Introduction to CUDA-Q Dynamics (Jaynes-Cummings Model) <../../examples/python/dynamics/dynamics_intro_1.ipynb>
+      Introduction to CUDA-Q Dynamics (Time Dependent Hamiltonians) <../../examples/python/dynamics/dynamics_intro_2.ipynb>
+      Superconducting Qubits <../../examples/python/dynamics/superconducting.ipynb>
+      Spin Qubits <../../examples/python/dynamics/spinqubits.ipynb>
+      Trapped Ion Qubits <../../examples/python/dynamics/iontrap.ipynb>
+      Control <../../examples/python/dynamics/control.ipynb>
+
+.. |:spellcheck-disable:| replace:: \
+
+C++ Examples
+--------------
+
+The following C++ examples demonstrate core CUDA-Q Dynamics capabilities. Each example can
+be compiled and run with:
+
+.. code:: bash
+
+   nvq++ --target dynamics <example>.cpp -o a.out && ./a.out
+
+The source files are available in the
+`CUDA-Q repository <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples/cpp/dynamics>`__.
+
+Introduction: Single Qubit Dynamics
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This example demonstrates the basic workflow for time-evolving a single qubit under a
+transverse field Hamiltonian, with and without dissipation (collapse operators).
+
+.. literalinclude:: ../../examples/cpp/dynamics/qubit_dynamics.cpp
+   :language: cpp
+
+Introduction: Cavity QED (Jaynes-Cummings Model)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This example simulates a two-level atom coupled to a single-mode optical cavity, known
+as the Jaynes-Cummings model. It demonstrates how to set up composite quantum systems
+with different subsystem dimensions.
+
+.. literalinclude:: ../../examples/cpp/dynamics/cavity_qed.cpp
+   :language: cpp
+
+Superconducting Qubits: Cross-Resonance Gate
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This example simulates the cross-resonance interaction between two coupled superconducting
+qubits, a key primitive for entangling gates in superconducting hardware. It demonstrates
+time-dependent Hamiltonians and batched state evolution.
+
+.. literalinclude:: ../../examples/cpp/dynamics/cross_resonance.cpp
+   :language: cpp
+
+Spin Qubits: Heisenberg Spin Chain
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This example simulates the time evolution of a Heisenberg spin chain, a canonical model
+for studying quantum magnetism and entanglement dynamics in spin qubit systems.
+
+.. literalinclude:: ../../examples/cpp/dynamics/heisenberg_model.cpp
+   :language: cpp
+
+Control: Driven Qubit
+~~~~~~~~~~~~~~~~~~~~~~
+
+This example demonstrates qubit control via a time-dependent driving Hamiltonian. It
+shows how to construct schedules with named time parameters and time-dependent coefficient
+callbacks for modelling control pulses.
+
+.. literalinclude:: ../../examples/cpp/dynamics/qubit_control.cpp
+   :language: cpp
+
+State Batching
+~~~~~~~~~~~~~~~
+
+Batching multiple initial states in a single ``evolve`` call enables efficient process
+tomography and parallel parameter sweeps. This example evolves four SIC-POVM states under
+the same Hamiltonian simultaneously.
+
+.. literalinclude:: ../../examples/cpp/dynamics/qubit_dynamics_batched.cpp
+   :language: cpp
+
+Numerical Integrators
+~~~~~~~~~~~~~~~~~~~~~~~
+
+CUDA-Q provides three numerical integrators for the ``dynamics`` target.
+
+The following example shows how to use these integrators on the same single-qubit problem:
+
+.. literalinclude:: ../../snippets/cpp/using/backends/dynamics_integrators.cpp
+   :language: cpp
+   :start-after: [Begin RungeKutta]
+   :end-before: [End RungeKutta]
+
+The Crank-Nicolson integrator:
+
+.. literalinclude:: ../../snippets/cpp/using/backends/dynamics_integrators.cpp
+   :language: cpp
+   :start-after: [Begin CrankNicolson]
+   :end-before: [End CrankNicolson]
+
+The Magnus expansion integrator:
+
+.. literalinclude:: ../../snippets/cpp/using/backends/dynamics_integrators.cpp
+   :language: cpp
+   :start-after: [Begin MagnusExpansion]
+   :end-before: [End MagnusExpansion]
+
+.. |:spellcheck-enable:| replace:: \

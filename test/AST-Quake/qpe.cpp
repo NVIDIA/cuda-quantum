@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// REQUIRES: c++20
 // RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 
 // This is an end-to-end test, so we probably want to put it in a different
@@ -282,7 +281,7 @@ int main() {
 // CHECK:             cc.condition %[[VAL_31]](%[[VAL_30]] : i64)
 // CHECK:           } do {
 // CHECK:           ^bb0(%[[VAL_32:.*]]: i64):
-// CHECK:             %[[VAL_33:.*]] = quake.extract_ref %[[VAL_20]]{{\[}}%[[VAL_32]]] : (!quake.veq<?>, i64) -> !quake.ref
+// CHECK:             %[[VAL_33:.*]] = quake.extract_ref %[[VAL_16]]{{\[}}%[[VAL_32]]] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:             quake.h %[[VAL_33]] : (!quake.ref) -> ()
 // CHECK:             cc.continue %[[VAL_32]] : i64
 // CHECK:           } step {
@@ -299,7 +298,6 @@ int main() {
 // CHECK:               %[[VAL_39:.*]] = arith.cmpi slt, %[[VAL_37]], %[[VAL_38]] : i32
 // CHECK:               cc.condition %[[VAL_39]]
 // CHECK:             } do {
-// CHECK:               cc.scope {
 // CHECK:                 cc.scope {
 // CHECK:                   %[[VAL_40:.*]] = cc.alloca i32
 // CHECK:                   cc.store %[[VAL_5]], %[[VAL_40]] : !cc.ptr<i32>
@@ -314,7 +312,7 @@ int main() {
 // CHECK:                   } do {
 // CHECK:                     %[[VAL_47:.*]] = cc.load %[[VAL_36]] : !cc.ptr<i32>
 // CHECK:                     %[[VAL_48:.*]] = cc.cast signed %[[VAL_47]] : (i32) -> i64
-// CHECK:                     %[[VAL_49:.*]] = quake.extract_ref %[[VAL_20]]{{\[}}%[[VAL_48]]] : (!quake.veq<?>, i64) -> !quake.ref
+// CHECK:                     %[[VAL_49:.*]] = quake.extract_ref %[[VAL_16]]{{\[}}%[[VAL_48]]] : (!quake.veq<?>, i64) -> !quake.ref
 // CHECK:                     quake.apply @__nvqpp__mlirgen__tgate [%[[VAL_49]]] %[[VAL_26]] : (!quake.ref, !quake.veq<?>) -> ()
 // CHECK:                     cc.continue
 // CHECK:                   } step {
@@ -323,7 +321,6 @@ int main() {
 // CHECK:                     cc.store %[[VAL_51]], %[[VAL_40]] : !cc.ptr<i32>
 // CHECK:                   }
 // CHECK:                 }
-// CHECK:               }
 // CHECK:               cc.continue
 // CHECK:             } step {
 // CHECK:               %[[VAL_52:.*]] = cc.load %[[VAL_36]] : !cc.ptr<i32>

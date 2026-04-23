@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -22,7 +22,7 @@ public:
     queraServerHelper->setShots(shots);
 
     auto config = queraServerHelper->getConfig();
-    cudaq::info("Backend config: {}, shots {}", config, shots);
+    CUDAQ_INFO("Backend config: {}, shots {}", config, shots);
     config.insert({"shots", std::to_string(shots)});
 
     return queraServerHelper->createJob(codesToExecute);

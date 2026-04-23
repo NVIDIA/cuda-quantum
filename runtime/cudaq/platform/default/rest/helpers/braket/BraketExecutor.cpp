@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,6 +8,7 @@
 
 #include "common/BraketExecutor.h"
 #include "common/BraketServerHelper.h"
+#include "common/FmtCore.h"
 
 #include <aws/braket/model/Association.h>
 #include <aws/braket/model/AssociationType.h>
@@ -17,8 +18,6 @@
 
 #include <aws/s3-crt/model/CreateBucketRequest.h>
 #include <aws/s3-crt/model/GetObjectRequest.h>
-#include <aws/s3-crt/model/PutBucketPolicyRequest.h>
-#include <aws/s3-crt/model/PutPublicAccessBlockRequest.h>
 
 #include <aws/core/utils/ARN.h>
 
@@ -34,13 +33,13 @@ void tryCreateBucket(Aws::S3Crt::S3CrtClient &client, std::string const &region,
             GetBucketLocationConstraintForName(region));
   }
   createReq.SetCreateBucketConfiguration(config);
-  cudaq::info("Attempting to create S3 bucket \"s3://{}\"", bucketName);
+  CUDAQ_INFO("Attempting to create S3 bucket \"s3://{}\"", bucketName);
   auto createResponse = client.CreateBucket(createReq);
   if (!createResponse.IsSuccess()) {
     auto error = createResponse.GetError();
     if (error.GetErrorType() ==
         Aws::S3Crt::S3CrtErrors::BUCKET_ALREADY_OWNED_BY_YOU) {
-      cudaq::info("\"s3://{}\" already exists", bucketName);
+      CUDAQ_INFO("\"s3://{}\" already exists", bucketName);
       return;
     } else if (error.GetErrorType() ==
                Aws::S3Crt::S3CrtErrors::BUCKET_ALREADY_EXISTS) {
@@ -51,53 +50,7 @@ void tryCreateBucket(Aws::S3Crt::S3CrtClient &client, std::string const &region,
       throw std::runtime_error(error.GetMessage());
     }
   }
-
-  Aws::S3Crt::Model::PutPublicAccessBlockRequest publicReq;
-  publicReq.SetBucket(bucketName);
-  Aws::S3Crt::Model::PublicAccessBlockConfiguration publicConfig;
-  publicConfig.SetBlockPublicAcls(true);
-  publicConfig.SetIgnorePublicAcls(true);
-  publicConfig.SetBlockPublicPolicy(true);
-  publicConfig.SetRestrictPublicBuckets(true);
-  publicReq.SetPublicAccessBlockConfiguration(publicConfig);
-
-  auto publicResponse = client.PutPublicAccessBlock(publicReq);
-  if (!publicResponse.IsSuccess()) {
-    auto error = publicResponse.GetError();
-    throw std::runtime_error(error.GetMessage());
-  }
-
-  std::string policy = fmt::format(R"({{
-    "Version": "2012-10-17",
-    "Statement": [
-        {{
-            "Effect": "Allow",
-            "Principal": {{
-                "Service": [
-                    "braket.amazonaws.com"
-                ]
-            }},
-            "Action": "s3:*",
-            "Resource": [
-                "arn:aws:s3:::{0}",
-                "arn:aws:s3:::{0}/*"
-            ]
-        }}
-    ]
-}})",
-                                   bucketName);
-
-  Aws::S3Crt::Model::PutBucketPolicyRequest policyReq;
-  policyReq.SetBucket(bucketName);
-  policyReq.SetBody(std::make_shared<Aws::StringStream>(policy));
-
-  auto policyResponse = client.PutBucketPolicy(policyReq);
-  if (!policyResponse.IsSuccess()) {
-    auto error = policyResponse.GetError();
-    throw std::runtime_error(error.GetMessage());
-  }
 }
-
 } // namespace
 
 namespace cudaq {
@@ -129,7 +82,7 @@ void BraketExecutor::setServerHelper(ServerHelper *helper) {
   s3ClientConfig.verifySSL = false;
   if (!region.empty()) {
     if (region != clientConfig.region) {
-      cudaq::info("Auto-routing to AWS region {}", region);
+      CUDAQ_INFO("Auto-routing to AWS region {}", region);
       clientConfig.region = region;
       s3ClientConfig.region = region;
     }
@@ -154,8 +107,8 @@ void BraketExecutor::setServerHelper(ServerHelper *helper) {
           }
         }
         tryCreateBucket(*s3ClientPtr, region, bucketName);
-        cudaq::info("Braket task results will use S3 bucket \"s3://{}\"",
-                    bucketName);
+        CUDAQ_INFO("Braket task results will use S3 bucket \"s3://{}\"",
+                   bucketName);
         return bucketName;
       }).share();
 }
@@ -167,7 +120,7 @@ ServerJobPayload BraketExecutor::checkHelperAndCreateJob(
   braketServerHelper->setShots(shots);
 
   auto config = braketServerHelper->getConfig();
-  cudaq::info("Backend config: {}, shots {}", config, shots);
+  CUDAQ_INFO("Backend config: {}, shots {}", config, shots);
   config.insert({"shots", std::to_string(shots)});
 
   return braketServerHelper->createJob(codesToExecute);
@@ -187,7 +140,10 @@ void BraketExecutor::setOutputNames(const KernelExecution &codeToExecute,
 
 details::future
 BraketExecutor::execute(std::vector<KernelExecution> &codesToExecute,
-                        bool isObserve) {
+                        cudaq::details::ExecutionContextType execType,
+                        std::vector<char> *rawOutput) {
+  const bool isObserve =
+      execType == cudaq::details::ExecutionContextType::observe;
   auto [dummy1, dummy2, messages] = checkHelperAndCreateJob(codesToExecute);
 
   std::string const defaultBucket = defaultBucketFuture.get();
@@ -231,7 +187,7 @@ BraketExecutor::execute(std::vector<KernelExecution> &codesToExecute,
           }
           std::string taskArn = createResponse.GetResult().GetQuantumTaskArn();
 
-          cudaq::info("Created Braket quantum task {}", taskArn);
+          CUDAQ_INFO("Created Braket quantum task {}", taskArn);
           setOutputNames(codesToExecute[i], taskArn);
 
           Aws::Braket::Model::GetQuantumTaskRequest req;
@@ -265,9 +221,9 @@ BraketExecutor::execute(std::vector<KernelExecution> &codesToExecute,
           std::string outBucket = getResult.GetOutputS3Bucket();
           std::string outPrefix = getResult.GetOutputS3Directory();
 
-          cudaq::info("Fetching braket quantum task {} results from "
-                      "s3://{}/{}/results.json",
-                      taskArn, outBucket, outPrefix);
+          CUDAQ_INFO("Fetching braket quantum task {} results from "
+                     "s3://{}/{}/results.json",
+                     taskArn, outBucket, outPrefix);
 
           Aws::S3Crt::Model::GetObjectRequest resultsJsonRequest;
           resultsJsonRequest.SetBucket(outBucket);

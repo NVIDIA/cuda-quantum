@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -12,7 +12,7 @@
 
 #include "common/EigenSparse.h"
 #include "cudaq/operators.h"
-#include "cudaq/utils/matrix.h"
+#include "cudaq/operators/matrix.h"
 
 #include "cudaq/spin_op.h"
 
@@ -200,6 +200,15 @@ complex_matrix spin_handler::to_matrix(
     const {
   std::vector<std::int64_t> rel_dims;
   return spin_handler::to_matrix(this->canonical_form(dimensions, rel_dims));
+}
+
+mdiag_sparse_matrix spin_handler::to_diagonal_matrix(
+    std::unordered_map<std::size_t, std::int64_t> &dimensions,
+    const std::unordered_map<std::string, std::complex<double>> &parameters)
+    const {
+  std::vector<std::int64_t> rel_dims;
+  return spin_handler::to_diagonal_matrix(
+      this->canonical_form(dimensions, rel_dims));
 }
 
 mdiag_sparse_matrix spin_handler::to_diagonal_matrix(

@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -9,15 +9,13 @@ from typing import Union
 
 import base64
 import ctypes
-import cudaq
 import uuid
-import uvicorn
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.responses import JSONResponse
 from llvmlite import binding as llvm
 from pydantic import BaseModel
-import json
 from typing import Any, Dict
+from .. import PreallocatedQubitsContext
 
 # Define the REST Server App
 app = FastAPI()
@@ -58,6 +56,18 @@ target = llvm.Target.from_default_triple()
 targetMachine = target.create_target_machine()
 backing_mod = llvm.parse_assembly("")
 engine = llvm.create_mcjit_compiler(backing_mod, targetMachine)
+
+
+def getNumRequiredQubits(function):
+    for a in function.attributes:
+        if "required_num_qubits" in str(a):
+            return int(
+                str(a).split(f'required_num_qubits\"=')[-1].split(" ")
+                [0].replace("\"", "").replace("'", ""))
+        elif "requiredQubits" in str(a):
+            return int(
+                str(a).split(f'requiredQubits\"=')[-1].split(" ")[0].replace(
+                    "\"", "").replace("'", ""))
 
 
 def getKernelFunction(module):
@@ -112,10 +122,9 @@ async def postJob(data: Dict[str, Any],
         kernel = ctypes.CFUNCTYPE(None)(funcPtr)
 
         # Invoke the Kernel
-        cudaq.testing.toggleDynamicQubitManagement()
-        qubits, context = cudaq.testing.initialize(numQubitsRequired, 1000)
-        kernel()
-        results = cudaq.testing.finalize(qubits, context)
+        with PreallocatedQubitsContext(numQubitsRequired) as context:
+            kernel()
+        results = context.result
         results.dump()
         createdJobs[newId] = (task.task_id, results)
 
@@ -185,8 +194,5 @@ async def qetQpu(authentication_token: str = Header(...)):
 
 
 def startServer(port):
+    import uvicorn
     uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")
-
-
-if __name__ == '__main__':
-    startServer(62442)

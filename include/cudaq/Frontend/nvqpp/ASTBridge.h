@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -20,6 +20,7 @@
 #include "clang/Frontend/FrontendAction.h"
 #include "clang/Rewrite/Core/Rewriter.h"
 #include "llvm/ADT/ScopedHashTable.h"
+#include "llvm/Support/Allocator.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
 #include "mlir/IR/Builders.h"
@@ -151,12 +152,12 @@ public:
       MangledKernelNamesMap &namesMap, clang::CompilerInstance &ci,
       clang::ItaniumMangleContext *mangler,
       std::unordered_map<std::string, std::string> &customOperations,
-      bool tuplesAreReversed)
+      llvm::BumpPtrAllocator &alloc, bool tuplesAreReversed)
       : astContext(astCtx), mlirContext(mlirCtx), builder(bldr), module(module),
         symbolTable(symTab), functionsToEmit(funcsToEmit),
         reachableFunctions(reachableFuncs), namesMap(namesMap),
         compilerInstance(ci), mangler(mangler),
-        customOperationNames(customOperations),
+        customOperationNames(customOperations), allocator(alloc),
         tuplesAreReversed(tuplesAreReversed) {}
 
   /// `nvq++` renames quantum kernels to differentiate them from classical C++
@@ -288,6 +289,10 @@ public:
   bool TraverseCXXConstructExpr(clang::CXXConstructExpr *x,
                                 DataRecursionQueue *q = nullptr);
   bool VisitCXXConstructExpr(clang::CXXConstructExpr *x);
+  bool TraverseCXXTemporaryObjectExpr(clang::CXXTemporaryObjectExpr *x,
+                                      DataRecursionQueue *q = nullptr) {
+    return TraverseCXXConstructExpr(x, q);
+  }
   bool VisitCXXOperatorCallExpr(clang::CXXOperatorCallExpr *x);
   bool VisitCXXParenListInitExpr(clang::CXXParenListInitExpr *x);
   bool WalkUpFromCXXOperatorCallExpr(clang::CXXOperatorCallExpr *x);
@@ -349,6 +354,10 @@ public:
   bool VisitUnaryOperator(clang::UnaryOperator *x);
   bool VisitStringLiteral(clang::StringLiteral *x);
   bool VisitCXXScalarValueInitExpr(clang::CXXScalarValueInitExpr *x);
+  bool VisitUnaryExprOrTypeTraitExpr(clang::UnaryExprOrTypeTraitExpr *x);
+
+  bool TraverseCXXDefaultArgExpr(clang::CXXDefaultArgExpr *x,
+                                 DataRecursionQueue *q = nullptr);
 
   bool TraverseMemberExpr(clang::MemberExpr *x,
                           DataRecursionQueue *q = nullptr);
@@ -447,6 +456,12 @@ public:
   /// Coerce an float value, \p value, to be the same width as \p toTypey.
   mlir::Value floatingPointCoercion(mlir::Location loc, mlir::Type toType,
                                     mlir::Value value);
+
+  mlir::SmallVector<mlir::Value>
+  convertKernelArgs(mlir::Location loc, std::size_t dropFrontNum,
+                    const mlir::SmallVector<mlir::Value> &args,
+                    mlir::ArrayRef<mlir::Type> kernelArgTys,
+                    clang::CallExpr *x);
 
   /// Load the value referenced by an addressable value, if \p val is an address
   /// type. Otherwise, just returns \p val.
@@ -610,6 +625,9 @@ private:
   std::string loweredFuncName;
   llvm::SmallVector<mlir::Value> negations;
   std::unordered_map<std::string, std::string> &customOperationNames;
+  /// Allocator for dynamically generated symbol names, referenced by the symbol
+  /// table.
+  llvm::BumpPtrAllocator &allocator;
 
   //===--------------------------------------------------------------------===//
   // Type traversals
@@ -627,6 +645,9 @@ private:
   /// Stack of Types built by the visitor. (right-to-left ordering)
   llvm::SmallVector<mlir::Type> typeStack;
   llvm::DenseMap<clang::RecordType *, mlir::Type> records;
+  // Certain productions, such as template functions, may need to traverse and
+  // store an extra type, such as an argument.
+  mlir::Type extraType;
 
   // State Flags
   const bool tuplesAreReversed : 1;
@@ -694,6 +715,10 @@ public:
     // The symbol table, holding MLIR values keyed on variable name.
     SymbolTable symbol_table;
 
+    /// Allocator for dynamically generated symbol names, referenced by the
+    /// symbol table.
+    llvm::BumpPtrAllocator allocator;
+
     // The mangler is constructed and owned by `this`.
     clang::ItaniumMangleContext *mangler;
 
@@ -712,8 +737,8 @@ public:
     /// pipelines which erase private declarations.
     void addFunctionDecl(const clang::FunctionDecl *funcDecl,
                          details::QuakeBridgeVisitor &visitor,
-                         mlir::FunctionType funcTy,
-                         mlir::StringRef devFuncName);
+                         mlir::FunctionType funcTy, mlir::StringRef devFuncName,
+                         bool isDecl);
 
   public:
     ASTBridgeConsumer(clang::CompilerInstance &compiler,

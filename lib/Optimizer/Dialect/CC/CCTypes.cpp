@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -107,7 +107,7 @@ cc::StructType::getPreferredAlignment(const DataLayout &dataLayout,
 LogicalResult
 cc::StructType::verify(llvm::function_ref<mlir::InFlightDiagnostic()> emitError,
                        mlir::StringAttr, llvm::ArrayRef<mlir::Type> members,
-                       bool, bool, unsigned long, unsigned int) {
+                       bool, bool, std::uint64_t, unsigned int) {
   for (auto ty : members)
     if (quake::isQuantumType(ty))
       return emitError() << "cc.struct may not contain quake types: " << ty;
@@ -152,7 +152,7 @@ void cc::ArrayType::print(AsmPrinter &printer) const {
 
 LogicalResult
 cc::ArrayType::verify(function_ref<InFlightDiagnostic()> emitError, Type eleTy,
-                      long) {
+                      std::int64_t) {
   if (quake::isQuantumType(eleTy))
     return emitError() << "cc.array may not have a quake element type: "
                        << eleTy;
@@ -181,9 +181,21 @@ cc::StdvecType::verify(function_ref<InFlightDiagnostic()> emitError,
 
 namespace cudaq::cc {
 
-Type cc::SpanLikeType::getElementType() const {
+Type SpanLikeType::getElementType() const {
   return llvm::TypeSwitch<Type, Type>(*this).Case<StdvecType, CharspanType>(
       [](auto type) { return type.getElementType(); });
+}
+
+bool isDevicePtr(Type argTy) {
+  auto ptrTy = dyn_cast<cc::PointerType>(argTy);
+  if (!ptrTy)
+    return false;
+  auto eleTy = ptrTy.getElementType();
+  auto structTy = dyn_cast<cc::StructType>(eleTy);
+  if (!structTy || !structTy.getName())
+    return false;
+
+  return structTy.getName().getValue() == "device_ptr";
 }
 
 bool isDynamicType(Type ty) {
@@ -201,8 +213,20 @@ bool isDynamicType(Type ty) {
   return false;
 }
 
-CallableType CallableType::getNoSignature(MLIRContext *ctx) {
-  return CallableType::get(ctx, FunctionType::get(ctx, {}, {}));
+bool isDynamicallySizedType(Type ty) {
+  if (isa<SpanLikeType>(ty))
+    return false;
+  if (auto strTy = dyn_cast<StructType>(ty)) {
+    for (auto memTy : strTy.getMembers())
+      if (isDynamicallySizedType(memTy))
+        return true;
+    return false;
+  }
+  if (auto arrTy = dyn_cast<ArrayType>(ty))
+    return arrTy.isUnknownSize() ||
+           isDynamicallySizedType(arrTy.getElementType());
+  // Note: this isn't considering quake, builtin, etc. types.
+  return false;
 }
 
 void CCDialect::registerTypes() {

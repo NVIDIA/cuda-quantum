@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,8 +8,8 @@
 
 // clang-format off
 // Simulators
-// RUN: nvq++ %cpp_std --enable-mlir  %s -o %t && %t | FileCheck %s
-// RUN: nvq++ %cpp_std --library-mode %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --enable-mlir  %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --library-mode %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
@@ -75,7 +75,7 @@ int main() {
     std::cout
         << "Passing large state from another kernel as argument (builder mode)"
         << std::endl;
-    // TODO: State larger than 5 qubits fails on iqm machines with Adonis
+    // TODO: State larger than 5 qubits fails on iqm machines with Crystal_5
     // architecture
     // TODO: State larger than 8 qubits fails on oqc and anyon
     // Up to 14 bits works with quantinuum an ionq

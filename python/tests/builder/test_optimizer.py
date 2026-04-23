@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -239,6 +239,36 @@ def test_schwefel_gradients(optimizer, dimension):
         assert_close(want_parameter, got_parameter, tolerance=1e-2)
         for want_parameter, got_parameter in zip(want_optimal_parameters,
                                                  got_optimal_parameters))
+
+
+@pytest.mark.parametrize("optimizer_cls, step", [
+    (cudaq.optimizers.Adam, 1e-3),
+    (cudaq.optimizers.Adam, 1e-2),
+    (cudaq.optimizers.Adam, 1e-1),
+    (cudaq.optimizers.SGD, 1e-3),
+    (cudaq.optimizers.SGD, 1e-2),
+    (cudaq.optimizers.SGD, 1e-1),
+])
+def test_optimizer_step_size_parameter(optimizer_cls, step):
+    """
+    Test that Adam and SGD optimizers correctly accept and stores the step_size parameter.
+    """
+    optimizer = optimizer_cls()
+    optimizer.step_size = step
+    assert assert_close(step, optimizer.step_size)
+
+
+@pytest.mark.parametrize("optimizer_cls, f_tol", [
+    (cudaq.optimizers.Adam, 1e-2),
+    (cudaq.optimizers.SGD, 1e-2),
+])
+def test_optimizer_f_tol_parameter(optimizer_cls, f_tol):
+    """
+    Test that Adam and SGD optimizers correctly accept and stores the f_tol parameter.
+    """
+    optimizer = optimizer_cls()
+    optimizer.f_tol = f_tol
+    assert assert_close(f_tol, optimizer.f_tol)
 
 
 # leave for gdb debugging

@@ -1,5 +1,5 @@
 /*************************************************************** -*- C++ -*- ***
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,6 +8,8 @@
 #pragma once
 
 #include "common/SimulationState.h"
+#include "cudaq/runtime/logger/cudaq_fmt.h"
+#include "cudaq/runtime/logger/logger.h"
 
 #include <thrust/complex.h>
 #include <thrust/device_ptr.h>
@@ -19,9 +21,9 @@
   {                                                                            \
     const auto err = x;                                                        \
     if (err != CUSTATEVEC_STATUS_SUCCESS) {                                    \
-      throw std::runtime_error(fmt::format("[custatevec] %{} in {} (line {})", \
-                                           custatevecGetErrorString(err),      \
-                                           __FUNCTION__, __LINE__));           \
+      throw std::runtime_error(cudaq_fmt::format(                              \
+          "[custatevec] %{} in {} (line {})", custatevecGetErrorString(err),   \
+          __FUNCTION__, __LINE__));                                            \
     }                                                                          \
   };
 
@@ -29,9 +31,9 @@
   {                                                                            \
     const auto err = x;                                                        \
     if (err != cudaSuccess) {                                                  \
-      throw std::runtime_error(fmt::format("[custatevec] %{} in {} (line {})", \
-                                           cudaGetErrorString(err),            \
-                                           __FUNCTION__, __LINE__));           \
+      throw std::runtime_error(                                                \
+          cudaq_fmt::format("[custatevec] %{} in {} (line {})",                \
+                            cudaGetErrorString(err), __FUNCTION__, __LINE__)); \
     }                                                                          \
   };
 
@@ -146,9 +148,9 @@ public:
       return std::abs(std::complex<ScalarType>(cmplx.real, cmplx.imaginary));
     } else {
       // If we reach here, then we have to copy the data from host.
-      cudaq::info("[custatevec-state] overlap computation requested with a "
-                  "state that is "
-                  "in host memory. Host data will be copied to GPU.");
+      CUDAQ_INFO("[custatevec-state] overlap computation requested with a "
+                 "state that is "
+                 "in host memory. Host data will be copied to GPU.");
 
       auto cmplx = nvqir::innerProduct<ScalarType>(
           devicePtr, other.getTensor().data, size, true);
@@ -159,11 +161,11 @@ public:
   std::complex<double>
   getAmplitude(const std::vector<int> &basisState) override {
     if (getNumQubits() != basisState.size())
-      throw std::runtime_error(
-          fmt::format("[custatevec-state] getAmplitude with an invalid number "
-                      "of bits in the "
-                      "basis state: expected {}, provided {}.",
-                      getNumQubits(), basisState.size()));
+      throw std::runtime_error(cudaq_fmt::format(
+          "[custatevec-state] getAmplitude with an invalid number "
+          "of bits in the "
+          "basis state: expected {}, provided {}.",
+          getNumQubits(), basisState.size()));
     if (std::any_of(basisState.begin(), basisState.end(),
                     [](int x) { return x != 0 && x != 1; }))
       throw std::runtime_error(
@@ -207,6 +209,9 @@ public:
 
   std::unique_ptr<SimulationState>
   createFromSizeAndPtr(std::size_t size, void *ptr, std::size_t type) override {
+    if (!ptr || size == 0)
+      throw std::runtime_error(
+          "[createFromSizeAndPtr] invalid null pointer or zero size");
     // If the data is provided as a pointer / size, then
     // we assume we do not own it.
     bool weOwnTheData = type < 2 ? true : false;
@@ -291,9 +296,9 @@ public:
       cudaSetDevice(device);
 
     cudaGetDevice(&currentDev);
-    cudaq::info("custatevec-state destroying state vector handle (devicePtr "
-                "GPU = {}, currentDevice = {}).",
-                device, currentDev);
+    CUDAQ_INFO("custatevec-state destroying state vector handle (devicePtr "
+               "GPU = {}, currentDevice = {}).",
+               device, currentDev);
 
     HANDLE_CUDA_ERROR(cudaFree(devicePtr));
   }

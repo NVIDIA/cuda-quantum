@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -18,7 +18,11 @@
 # - https://github.com/numpy/numpy/blob/main/pyproject.toml, and 
 # - https://github.com/numpy/numpy/blob/main/.github/workflows/wheels.yml
 
-ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:manylinux-amd64-cu12.0-gcc11-main
+ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:manylinux-amd64-cu12.6-gcc11-main
+# Default empty stage for ccache data. CI overrides this with
+# --build-context ccache-data=<path> to inject a pre-populated cache,
+# while local/devcontainer builds get a harmless no-op (empty scratch).
+FROM scratch AS ccache-data
 FROM $base_image AS wheelbuild
 
 ARG release_version=
@@ -29,66 +33,51 @@ ARG destination=cuda-quantum
 ADD "$workspace" "$destination"
 
 ARG python_version=3.10
+ENV CCACHE_DIR=/root/.ccache
+ENV CCACHE_BASEDIR=/cuda-quantum
+ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros,pch_defines
+ENV CCACHE_COMPILERCHECK=content
+ENV CCACHE_LOGFILE=/root/.ccache/ccache.log
+RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
+    if [ -d /tmp/ccache-import ] && [ "$(ls -A /tmp/ccache-import 2>/dev/null)" ]; then \
+        echo "Importing ccache data..." && \
+        mkdir -p /root/.ccache && cp -a /tmp/ccache-import/. /root/.ccache/ && \
+        ccache -s 2>/dev/null || true && \
+        ccache -z 2>/dev/null || true && \
+        find /root/.ccache -type f | wc -l | tr -d ' ' > /root/.ccache/_restore_file_count.txt; \
+    else \
+        echo "No ccache data injected using empty scratch stage." && \
+        mkdir -p /root/.ccache; \
+    fi
 RUN echo "Building MLIR bindings for python${python_version}" && \
-    python${python_version} -m pip install --no-cache-dir numpy && \
+    CCACHE_DISABLE=1 python${python_version} -m pip install --no-cache-dir numpy && \
     rm -rf "$LLVM_INSTALL_PREFIX/src" "$LLVM_INSTALL_PREFIX/python_packages" && \
     Python3_EXECUTABLE="$(which python${python_version})" \
     LLVM_PROJECTS='clang;mlir;python-bindings' \
     LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake LLVM_SOURCE=/llvm-project \
     bash /scripts/build_llvm.sh -c Release -v 
 
-# Patch the pyproject.toml file to change the CUDA version if needed
-RUN sed -i "s/README.md.in/README.md/g" cuda-quantum/pyproject.toml && \
-    if [ "${CUDA_VERSION#11.}" != "${CUDA_VERSION}" ]; then \
-        cublas_version=11.11 && \
-        sed -i "s/-cu12/-cu11/g" cuda-quantum/pyproject.toml && \
-        sed -i -E "s/(nvidia-cublas-cu[0-9]* ~= )[0-9\.]*/\1${cublas_version}/g" cuda-quantum/pyproject.toml && \
-        sed -i -E "s/(nvidia-cuda-nvrtc-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" cuda-quantum/pyproject.toml && \
-        sed -i -E "s/(nvidia-cuda-runtime-cu[0-9]* ~= )[0-9\.]*/\1${CUDA_VERSION}/g" cuda-quantum/pyproject.toml; \
-    fi
+# Build wheel using unified wheel build script
+RUN cd /cuda-quantum && \
+    PYTHON=python${python_version} \
+    CUDA_VERSION=${CUDA_VERSION} \
+    bash scripts/build_wheel.sh \
+        -c $(echo ${CUDA_VERSION} | cut -d . -f1) \
+        -o wheelhouse \
+        -a assets \
+        -v && \
+    echo "=== ccache stats ===" && (ccache -s 2>/dev/null || true) && \
+    (ccache --print-stats 2>/dev/null || ccache -s 2>/dev/null) > /root/.ccache/_build_stats.txt
 
-# Create the README
-RUN cd cuda-quantum && cat python/README.md.in > python/README.md && \
-    package_name=cuda-quantum-cu$(echo ${CUDA_VERSION} | cut -d . -f1) && \
-    cuda_version_requirement="\>= ${CUDA_VERSION}" && \
-    cuda_version_conda=${CUDA_VERSION}.0 && \
-    if [ "${CUDA_VERSION#11.}" != "${CUDA_VERSION}" ]; then \
-        deprecation_notice="**Note**: Support for CUDA 11 will be removed in future releases. Please update to CUDA 12."; \
-    fi && \
-    for variable in package_name cuda_version_requirement cuda_version_conda deprecation_notice; do \
-        sed -i "s/.{{[ ]*$variable[ ]*}}/${!variable}/g" python/README.md; \
-    done && \
-    if [ -n "$(cat python/README.md | grep -e '.{{.*}}')" ]; then \
-        echo "Incomplete template substitutions in README." && \
-        exit 1; \
-    fi
+# Export ccache data so CI can extract it for persistence.
+# Tar inside the container to export a single file instead of thousands of
+# small ccache entries (avoids slow per-file gRPC export in BuildKit).
+# Build with --target ccache-export --output type=local,dest=/tmp/ccache-out
+FROM wheelbuild AS ccache-tar
+RUN tar cf /ccache.tar -C /root/.ccache .
 
-# Build the wheel
-RUN echo "Building wheel for python${python_version}." \
-    && rm ~/.cache/pip -rf \
-    && cd cuda-quantum && python=python${python_version} \
-    # Find any external NVQIR simulator assets to be pulled in during wheel packaging.
-    && export CUDAQ_EXTERNAL_NVQIR_SIMS=$(bash scripts/find_wheel_assets.sh assets) \
-    && export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/assets" \
-    &&  SETUPTOOLS_SCM_PRETEND_VERSION=${CUDA_QUANTUM_VERSION:-0.0.0} \
-        CUDACXX="$CUDA_INSTALL_PREFIX/bin/nvcc" CUDAHOSTCXX=$CXX \
-        $python -m build --wheel \
-    && cudaq_major=$(echo ${CUDA_VERSION} | cut -d . -f1) \
-    && cudart_libsuffix=$([ "$cuda_major" == "11" ] && echo "11.0" || echo "12") \
-    && $python -m pip install --no-cache-dir auditwheel \
-    && LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$(pwd)/_skbuild/lib" \
-        $python -m auditwheel -v repair dist/cuda_quantum*linux_*.whl \
-            --exclude libcustatevec.so.1 \
-            --exclude libcutensornet.so.2 \
-            --exclude libcublas.so.$cudaq_major \
-            --exclude libcublasLt.so.$cudaq_major \
-            --exclude libcurand.so.10 \
-            --exclude libcusolver.so.$cudaq_major \
-            --exclude libcutensor.so.2 \
-            --exclude libnvToolsExt.so.1 \ 
-            --exclude libcudart.so.$cudart_libsuffix \
-            --exclude libnvidia-ml.so.1 \
-            --exclude libcuda.so.1
+FROM scratch AS ccache-export
+COPY --from=ccache-tar /ccache.tar /
 
 FROM scratch
 COPY --from=wheelbuild /cuda-quantum/wheelhouse/*manylinux*.whl . 

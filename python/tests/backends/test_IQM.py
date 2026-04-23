@@ -1,6 +1,7 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
+# Copyright 2025 IQM Quantum Computers                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
@@ -30,21 +31,6 @@ except:
 # Define the port for the mock server
 port = 62443
 
-# If we're in a git repo, test that we can provide a filename with spaces.
-# If we are not in a git repo, then simply test without overriding
-# mapping_file. (Testing a mapping_file with spaces is done elsewhere, and
-# that isn't the main point of these tests.)
-with os.popen("git rev-parse --show-toplevel") as f:
-    git_top = f.read().strip()
-    if os.path.isdir(git_top):
-        target_config_origin = os.path.join(
-            f"{git_top}", "runtime/cudaq/platform/default/rest/helpers/iqm")
-        target_config_dest = os.path.join(f"{git_top}", "targettests")
-        shutil.copy(os.path.join(target_config_origin, "Adonis.txt"),
-                    os.path.join(target_config_dest, "Adonis Variant.txt"))
-        shutil.copy(os.path.join(target_config_origin, "Apollo.txt"),
-                    os.path.join(target_config_dest, "Apollo Variant.txt"))
-
 
 def assert_close(want, got, tolerance=1.0e-5) -> bool:
     return abs(want - got) < tolerance
@@ -68,17 +54,15 @@ def startUpMockServer():
     cudaq.set_random_seed(13)
     # Set the targeted QPU
     os.environ["IQM_TOKENS_FILE"] = tmp_tokens_file.name
-    kwargs = {"qpu-architecture": "Apollo"}
-    if os.path.isdir(git_top):
-        mapping_file = f"{git_top}/targettests/Apollo Variant.txt"
-        kwargs["mapping_file"] = mapping_file
-    cudaq.set_target("iqm", url="http://localhost:{}".format(port), **kwargs)
+    cudaq.set_target("iqm", url="http://localhost:{}".format(port))
 
     yield "Running the tests."
 
     # Kill the server, remove the tokens file
     p.terminate()
     os.remove(tmp_tokens_file.name)
+
+    cudaq.reset_target()
 
 
 def test_iqm_ghz():
@@ -201,84 +185,19 @@ def test_IQM_state_preparation_builder():
     assert assert_close(counts["11"], 0., 2)
 
 
-def test_IQM_state_synthesis_from_simulator():
+def test_IQM_state_synthesis_from_simulator_unsupported():
 
     @cudaq.kernel
     def kernel(state: cudaq.State):
         qubits = cudaq.qvector(state)
 
+    # Constructed a state bound to the local simulator is unsupported.
     state = cudaq.State.from_data(
-        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.], dtype=complex))
+        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.],
+                 dtype=cudaq.complex()))
 
-    counts = cudaq.sample(kernel, state)
-    print(counts)
-    assert "00" in counts
-    assert "10" in counts
-    assert assert_close(counts["01"], 0., 2)
-    assert assert_close(counts["11"], 0., 2)
-
-    synthesized = cudaq.synthesize(kernel, state)
-    counts = cudaq.sample(synthesized)
-    assert '00' in counts
-    assert '10' in counts
-    assert assert_close(counts["01"], 0., 2)
-    assert assert_close(counts["11"], 0., 2)
-
-
-def test_IQM_state_synthesis_from_simulator_builder():
-
-    kernel, state = cudaq.make_kernel(cudaq.State)
-    qubits = kernel.qalloc(state)
-
-    state = cudaq.State.from_data(
-        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.], dtype=complex))
-
-    counts = cudaq.sample(kernel, state)
-    assert "00" in counts
-    assert "10" in counts
-    assert assert_close(counts["01"], 0., 2)
-    assert assert_close(counts["11"], 0., 2)
-
-
-def test_IQM_state_synthesis():
-
-    @cudaq.kernel
-    def init(n: int):
-        q = cudaq.qvector(n)
-        x(q[0])
-
-    @cudaq.kernel
-    def kernel(s: cudaq.State):
-        q = cudaq.qvector(s)
-        x(q[1])
-
-    s = cudaq.get_state(init, 2)
-    s = cudaq.get_state(kernel, s)
-    counts = cudaq.sample(kernel, s)
-    assert '10' in counts
-    assert assert_close(counts["00"], 0., 2)
-    assert assert_close(counts["01"], 0., 2)
-    assert assert_close(counts["11"], 0., 2)
-
-
-def test_IQM_state_synthesis_builder():
-
-    init, n = cudaq.make_kernel(int)
-    qubits = init.qalloc(n)
-    init.x(qubits[0])
-
-    s = cudaq.get_state(init, 2)
-
-    kernel, state = cudaq.make_kernel(cudaq.State)
-    qubits = kernel.qalloc(state)
-    kernel.x(qubits[1])
-
-    s = cudaq.get_state(kernel, s)
-    counts = cudaq.sample(kernel, s)
-    assert '10' in counts
-    assert assert_close(counts["00"], 0., 2)
-    assert assert_close(counts["01"], 0., 2)
-    assert assert_close(counts["11"], 0., 2)
+    with pytest.raises(RuntimeError) as e:
+        counts = cudaq.sample(kernel, state)
 
 
 def test_exp_pauli():
@@ -376,6 +295,48 @@ def test_explicit_measurement():
     with pytest.raises(RuntimeError) as e:
         counts = cudaq.sample(bell_pair, explicit_measurements=True)
     assert "not supported on this target" in repr(e)
+
+
+def test_IQM_state_synthesis():
+
+    @cudaq.kernel
+    def init(n: int):
+        q = cudaq.qvector(n)
+        x(q[0])
+
+    @cudaq.kernel
+    def kernel(s: cudaq.State):
+        q = cudaq.qvector(s)
+        x(q[1])
+
+    s = cudaq.get_state(init, 2)
+    s = cudaq.get_state(kernel, s)
+    counts = cudaq.sample(kernel, s)
+    counts.dump()
+    assert '10' in counts
+    assert assert_close(counts["00"], 0., 2)
+    assert assert_close(counts["01"], 0., 2)
+    assert assert_close(counts["11"], 0., 2)
+
+
+def test_IQM_state_synthesis_builder():
+
+    init, n = cudaq.make_kernel(int)
+    qubits = init.qalloc(n)
+    init.x(qubits[0])
+
+    s = cudaq.get_state(init, 2)
+
+    kernel, state = cudaq.make_kernel(cudaq.State)
+    qubits = kernel.qalloc(state)
+    kernel.x(qubits[1])
+
+    s = cudaq.get_state(kernel, s)
+    counts = cudaq.sample(kernel, s)
+    assert '10' in counts
+    assert assert_close(counts["00"], 0., 2)
+    assert assert_close(counts["01"], 0., 2)
+    assert assert_close(counts["11"], 0., 2)
 
 
 # leave for gdb debugging

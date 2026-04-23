@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -18,6 +18,9 @@ static constexpr const char entryPointAttrName[] = "cudaq-entrypoint";
 
 /// Name of the attribute attached to CUDA-Q kernels.
 static constexpr const char kernelAttrName[] = "cudaq-kernel";
+
+/// Name of the attribute attached to device call functions.
+static constexpr const char deviceCallAttrName[] = "cudaq-devicecall";
 
 /// Name of the annotation attribute attached to unitary generator function for
 /// user-defined custom operations

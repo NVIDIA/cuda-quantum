@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -11,17 +11,23 @@ set(LIBRARY_NAME cudaq-common)
 
 set(COMMON_EXTRA_DEPS "")
 set(COMMON_RUNTIME_SRC
+  CodeGenConfig.cpp
   CustomOp.cpp
+  DeviceCodeRegistry.cpp
   Environment.cpp
+  ExecutionContext.cpp
   Executor.cpp
+  ExtraPayloadProvider.cpp
   Future.cpp
-  Logger.cpp
-  MeasureCounts.cpp
   NoiseModel.cpp
   RecordLogParser.cpp
   Resources.cpp
+  RuntimeTarget.cpp
+  SampleResult.cpp
   ServerHelper.cpp
   Trace.cpp
+  CompiledModule.cpp
+  "${CMAKE_BINARY_DIR}/runtime/common/Version.cpp"
 )
 
 # Create the cudaq-common library
@@ -35,10 +41,17 @@ target_include_directories(${LIBRARY_NAME}
     PRIVATE .
         $<BUILD_INTERFACE:${LLVM_INCLUDE_DIRS}>
         ${CMAKE_SOURCE_DIR}/tpls/eigen
-        ${CMAKE_SOURCE_DIR}/runtime)
+        ${CMAKE_SOURCE_DIR}/runtime
+	${CMAKE_SOURCE_DIR}/include
+)
 
-# Link privately to all dependencies
-target_link_libraries(${LIBRARY_NAME} PUBLIC cudaq-operator PRIVATE spdlog::spdlog)
+target_link_libraries(${LIBRARY_NAME}
+  PUBLIC
+    cudaq-operator
+  PRIVATE
+    cudaq-logger
+    fmt::fmt-header-only
+)
 
 # Bug in GCC 12 leads to spurious warnings (-Wrestrict)
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105329
@@ -53,8 +66,19 @@ if(OPENSSL_FOUND)
   message(STATUS "OpenSSL Found, building REST Client.")
 
   target_sources(${LIBRARY_NAME} PRIVATE RestClient.cpp)
-  target_link_libraries(${LIBRARY_NAME} PRIVATE cpr::cpr -Wl,--start-group ZLIB::ZLIB)
+  # --start-group is a GNU ld flag for circular dependencies; Apple's ld doesn't support it
+  if(APPLE)
+    target_link_libraries(${LIBRARY_NAME} PRIVATE cpr::cpr ZLIB::ZLIB)
+  else()
+    target_link_libraries(${LIBRARY_NAME} PRIVATE cpr::cpr -Wl,--start-group ZLIB::ZLIB)
+  endif()
   target_compile_definitions(${LIBRARY_NAME} PRIVATE -DCUDAQ_RESTCLIENT_AVAILABLE)
+  # Override the global flat_namespace for this library. cudaq-common doesn't need
+  # LLVM symbol sharing, and flat_namespace causes issues with statically-linked
+  # OpenSSL assembly code linked with flat namespace.
+  if(APPLE)
+    target_link_options(${LIBRARY_NAME} PRIVATE "-Wl,-twolevel_namespace")
+  endif()
 endif()
 
 
@@ -77,58 +101,3 @@ if(EXISTS "$ENV{CURL_INSTALL_PREFIX}/cacert.pem")
   install(FILES "$ENV{CURL_INSTALL_PREFIX}/cacert.pem" DESTINATION .)
 endif()
 
-## ----- Runtime MLIR Library -----
-## We need support in the runtime for compiler-level things,
-## but we have to collate this functionality in one place to avoid
-## LLVM starting up static Options more than once. Create a library
-## here called cudaq-mlir-runtime that cudaq-builder and cudaq-rest-qpu
-## can link to and get MLIR/LLVM things uniformly
-
-add_library(cudaq-mlir-runtime
-  SHARED
-    ArgumentConversion.cpp
-    Environment.cpp
-    JIT.cpp
-    Logger.cpp
-    RuntimeMLIR.cpp
-    RunTheKernel.cpp
-)
-set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-mlir-runtime)
-
-set_source_files_properties(
-    Environment.cpp
-    JIT.cpp
-    Logger.cpp
-    RuntimeMLIR.cpp
-)
-
-target_include_directories(cudaq-mlir-runtime
-  PRIVATE .
-    ${CMAKE_SOURCE_DIR}/tpls/spdlog/include
-    ${CMAKE_SOURCE_DIR}/tpls/fmt/include
-    ${CMAKE_SOURCE_DIR}/runtime)
-
-target_link_libraries(cudaq-mlir-runtime
-  PUBLIC
-    nvqir
-    CCDialect
-    QuakeDialect
-    OptCodeGen
-    OptTransforms
-    MLIRTranslateLib
-    MLIRIR
-    MLIRParser
-    MLIRPass
-    MLIRTranslateLib
-    MLIRSupport
-    MLIROptLib
-    MLIRExecutionEngine
-    MLIRTransforms
-    MLIRTargetLLVMIRExport
-    MLIRLLVMCommonConversion
-    MLIRLLVMToLLVMIRTranslation
-  PRIVATE
-    cudaq
-    spdlog::spdlog)
-
-install(TARGETS cudaq-mlir-runtime DESTINATION lib)

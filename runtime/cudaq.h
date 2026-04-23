@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/DeviceCodeRegistry.h"
 #include "common/NoiseModel.h"
 #include "cudaq/host_config.h"
 #include "cudaq/qis/qubit_qis.h"
@@ -27,27 +28,16 @@ constexpr bool isTupleRecursivelyDefined() {
 
 namespace __internal__ {
 std::string demangle_kernel(const char *);
-bool isLibraryMode(const std::string &);
 extern bool globalFalse;
+class TargetSetter {
+public:
+  TargetSetter(const char *backend);
+};
+
+#ifdef NVQPP_TARGET_BACKEND_CONFIG
+inline TargetSetter targetSetter(NVQPP_TARGET_BACKEND_CONFIG);
+#endif
 } // namespace __internal__
-
-/// @brief Given a string kernel name, return the corresponding Quake code
-/// This will throw if the kernel name is unknown to the quake code registry.
-std::string get_quake_by_name(const std::string &kernelName);
-
-/// @brief Given a string kernel name, return the corresponding Quake code.
-/// This overload allows one to specify the known mangled arguments string
-/// in order to disambiguate overloaded kernel names.
-/// This will throw if the kernel name is unknown to the quake code registry.
-std::string get_quake_by_name(const std::string &kernelName,
-                              std::optional<std::string> knownMangledArgs);
-
-/// @brief Given a string kernel name, return the corresponding Quake code.
-// If `throwException` is set, it will throw if the kernel name is unknown to
-// the quake code registry. Otherwise, return an empty string in that case.
-std::string
-get_quake_by_name(const std::string &kernelName, bool throwException,
-                  std::optional<std::string> knownMangledArgs = std::nullopt);
 
 // Simple test to see if the QuantumKernel template
 // type is a `cudaq::builder` with `operator()(Args...)`
@@ -115,11 +105,6 @@ std::string get_kernel_template_member_name() {
          internal::expand_parameter_pack<Args...>();
 }
 
-/// Get the name of a plain old function that is marked as a quantum kernel.
-inline std::string get_kernel_function_name(std::string &&name) {
-  return "function_" + std::move(name);
-}
-
 inline std::string get_kernel_function_name(const std::string &name) {
   return "function_" + name;
 }
@@ -140,16 +125,9 @@ std::string get_kernel_template_function_name(const std::string &funcName) {
 
 /// These get_quake overloads can be used for introspection, to look up the
 /// Quake IR for a specific kernel by providing an instance of the kernel, etc.
-#if CUDAQ_USE_STD20
 template <typename MemberArg0, typename... MemberArgs, typename QuantumKernel,
           std::enable_if_t<std::is_class_v<std::remove_cvref_t<QuantumKernel>>,
                            bool> = true>
-#else
-template <typename MemberArg0, typename... MemberArgs, typename QuantumKernel,
-          std::enable_if_t<std::is_class_v<std::remove_cv_t<
-                               std::remove_reference_t<QuantumKernel>>>,
-                           bool> = true>
-#endif
 std::string get_quake(QuantumKernel &&kernel) {
   // See comment below.
   if (__internal__::globalFalse) {
@@ -164,16 +142,9 @@ std::string get_quake(QuantumKernel &&kernel) {
                                       MemberArgs...>());
 }
 
-#if CUDAQ_USE_STD20
 template <typename QuantumKernel,
           std::enable_if_t<std::is_class_v<std::remove_cvref_t<QuantumKernel>>,
                            bool> = true>
-#else
-template <typename QuantumKernel,
-          std::enable_if_t<std::is_class_v<std::remove_cv_t<
-                               std::remove_reference_t<QuantumKernel>>>,
-                           bool> = true>
-#endif
 std::string get_quake(QuantumKernel &&kernel) {
   if constexpr (hasToQuakeMethod<QuantumKernel>::value) {
     return kernel.to_quake();
@@ -205,24 +176,7 @@ inline std::string get_quake(std::string &&functionName) {
   return get_quake_by_name(get_kernel_function_name(std::move(functionName)));
 }
 
-inline std::string get_quake(std::string &&functionName,
-                             const std::string &knownMangledArgs) {
-  return get_quake_by_name(get_kernel_function_name(std::move(functionName)),
-                           knownMangledArgs);
-}
-
-typedef std::size_t (*KernelArgsCreator)(void **, void **);
-KernelArgsCreator getArgsCreator(const std::string &kernelName);
-
 bool kernelHasConditionalFeedback(const std::string &kernelName);
-
-/// @brief Provide a hook to set the target backend.
-void set_target_backend(const char *backend);
-
-/// @brief Utility function for setting the shots on the platform
-[[deprecated("Specify the number of shots in the using the overloaded sample() "
-             "and observe() functions")]] void
-set_shots(const std::size_t nShots);
 
 /// @brief Set a custom noise model for simulation. The caller must also call
 /// `cudaq::unset_noise` before `model` gets deallocated or goes out of scope.
@@ -230,11 +184,6 @@ void set_noise(const cudaq::noise_model &model);
 
 /// @brief Remove an existing noise model from simulation.
 void unset_noise();
-
-/// @brief Utility function for clearing the shots
-[[deprecated("Specify the number of shots in the using the overloaded sample() "
-             "and observe() functions")]] void
-clear_shots(const std::size_t nShots);
 
 /// @brief Set a seed for any random number
 /// generators used in backend simulations.
@@ -246,79 +195,9 @@ std::size_t get_random_seed();
 /// @brief The number of available GPUs.
 int num_available_gpus();
 
-namespace mpi {
-/// @brief Return true if CUDA-Q has MPI plugin support.
-bool available();
-
-/// @brief Initialize MPI if available. This function
-/// is a no-op if there CUDA-Q has not been built
-/// against MPI.
-void initialize();
-
-/// @brief Initialize MPI if available. This function
-/// is a no-op if there CUDA-Q has not been built
-/// against MPI. Takes program arguments as input.
-void initialize(int argc, char **argv);
-
-/// @brief Return the rank of the calling process.
-int rank();
-
-/// @brief Return the number of MPI ranks.
-int num_ranks();
-
-/// @brief Return true if MPI is already initialized, false otherwise.
-bool is_initialized();
-
-namespace details {
-#define CUDAQ_ALL_REDUCE_DEF(TYPE, BINARY)                                     \
-  TYPE allReduce(const TYPE &, const BINARY<TYPE> &);
-
-CUDAQ_ALL_REDUCE_DEF(float, std::plus)
-CUDAQ_ALL_REDUCE_DEF(float, std::multiplies)
-
-CUDAQ_ALL_REDUCE_DEF(double, std::plus)
-CUDAQ_ALL_REDUCE_DEF(double, std::multiplies)
-
-} // namespace details
-
-/// @brief Reduce all values across ranks with the specified binary function.
-template <typename T, typename BinaryFunction>
-T all_reduce(const T &localValue, const BinaryFunction &function) {
-  return details::allReduce(localValue, function);
-}
-
-/// @brief Gather all vector data (floating point numbers) locally into the
-/// provided global vector.
-///
-/// Global vector must be sized to fit all vector
-/// elements coming from individual ranks.
-void all_gather(std::vector<double> &global, const std::vector<double> &local);
-
-/// @brief Gather all vector data (integers) locally into the provided
-/// global vector.
-///
-/// Global vector must be sized to fit all
-/// vector elements coming from individual ranks.
-void all_gather(std::vector<int> &global, const std::vector<int> &local);
-
-/// @brief Broadcast a vector from a process (rootRank) to all other processes.
-void broadcast(std::vector<double> &data, int rootRank);
-
-/// @brief Broadcast a string from a process (rootRank) to all other processes.
-void broadcast(std::string &data, int rootRank);
-
-/// @brief Duplicate the communicator. Returns the new communicator (as a void*)
-/// and its size.
-std::pair<void *, std::size_t> comm_dup();
-
-/// @brief Finalize MPI. This function
-/// is a no-op if there CUDA-Q has not been built
-/// against MPI.
-void finalize();
-
-} // namespace mpi
-
 } // namespace cudaq
+
+#include "cudaq/cudaq_mpi.h"
 
 // Users should get sample by default
 #include "cudaq/algorithms/sample.h"
@@ -328,3 +207,5 @@ void finalize();
 #include "cudaq/algorithms/observe.h"
 // Users should get get_state by default
 #include "cudaq/algorithms/get_state.h"
+// Users should get device.h by default
+#include "cudaq/driver/device.h"

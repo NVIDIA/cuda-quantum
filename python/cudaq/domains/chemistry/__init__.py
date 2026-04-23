@@ -1,10 +1,12 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
+
+DATA_DIRECTORY = '.'
 
 
 def tryImport():
@@ -46,8 +48,8 @@ def create_molecular_hamiltonian(geometry: list,
       Hamiltonian and the raw molecular data. 
     '''
     of, ofpyscf = tryImport()
-    molecule = ofpyscf.run_pyscf(of.MolecularData(geometry, basis, multiplicity,
-                                                  charge),
+    molecule = ofpyscf.run_pyscf(of.MolecularData(
+        geometry, basis, multiplicity, charge, data_directory=DATA_DIRECTORY),
                                  run_fci=True)
     if n_active_electrons is None:
         n_core_orbitals = 0
@@ -100,8 +102,8 @@ def __internal_cpp_create_molecular_hamiltonian(geometry: list,
       Hamiltonian and the raw molecular data. 
     '''
     of, ofpyscf = tryImport()
-    molecule = ofpyscf.run_pyscf(of.MolecularData(geometry, basis, multiplicity,
-                                                  charge),
+    molecule = ofpyscf.run_pyscf(of.MolecularData(
+        geometry, basis, multiplicity, charge, data_directory=DATA_DIRECTORY),
                                  run_fci=True)
     if n_active_electrons is None:
         n_core_orbitals = 0

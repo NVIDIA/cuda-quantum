@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,10 +7,9 @@
  ******************************************************************************/
 
 // REQUIRES: remote-sim
-// REQUIRES: c++20
 
 // clang-format off
-// RUN: nvq++ -fenable-cudaq-run %cpp_std --target remote-mqpu %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target remote-mqpu %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include "remote_test_assert.h"
@@ -39,7 +38,6 @@ struct rwpe {
       x<cudaq::ctrl>(aux, target);
       h(aux);
       if (mz(aux)) {
-        x(aux);
         mu += sigma * .6065;
       } else {
         mu -= sigma * .6065;
@@ -47,6 +45,8 @@ struct rwpe {
 
       sigma *= .7951;
       iteration += 1;
+      // Reset qubit for reuse
+      reset(aux);
     }
 
     return 2. * mu;

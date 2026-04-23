@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,7 +8,6 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/Canonical.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
@@ -62,11 +61,12 @@ public:
               alloc.getLoc(), os.first, rewriter.getI64Type());
           Value hi = rewriter.create<arith::ConstantIntOp>(
               alloc.getLoc(), os.first + os.second - 1, rewriter.getI64Type());
+          // trying to print alloc after the replace gives a segfault
+          LLVM_DEBUG(llvm::dbgs() << "replace " << alloc);
           [[maybe_unused]] Value subveq =
               rewriter.replaceOpWithNewOp<quake::SubVeqOp>(
                   alloc, alloc.getType(), analysis.newAlloc, lo, hi);
-          LLVM_DEBUG(llvm::dbgs()
-                     << "replace " << alloc << " with " << subveq << '\n');
+          LLVM_DEBUG(llvm::dbgs() << " with " << subveq << '\n');
           return success();
         }
         if (auto sty = dyn_cast<quake::StruqType>(alloc.getType())) {
@@ -122,8 +122,12 @@ public:
         if (auto alloc = dyn_cast_or_null<quake::AllocaOp>(&op)) {
           if (alloc.getSize() || alloc.hasInitializedState())
             return;
+          auto size = quake::getAllocationSize(alloc.getType());
+          if (size == 0)
+            // Skip zero-size allocas. Merging them would
+            // produce subveq(lo, lo-1) which is invalid.
+            continue;
           analysis.allocations.push_back(alloc);
-          auto size = allocationSize(alloc);
           analysis.offsetSizes.emplace_back(currentOffset, size);
           currentOffset += size;
         } else if (auto dealloc = dyn_cast_or_null<quake::DeallocOp>(&op)) {
@@ -150,8 +154,10 @@ public:
     {
       RewritePatternSet patterns(ctx);
       patterns.insert<AllocaPat>(ctx, analysis);
-      patterns.insert<quake::canonical::ExtractRefFromSubVeqPattern,
-                      quake::canonical::CombineSubVeqsPattern>(ctx);
+      quake::ExtractRefOp::getCanonicalizationPatterns(patterns, ctx);
+      quake::GetMemberOp::getCanonicalizationPatterns(patterns, ctx);
+      quake::SubVeqOp::getCanonicalizationPatterns(patterns, ctx);
+      quake::ConcatOp::getCanonicalizationPatterns(patterns, ctx);
       if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
                                               std::move(patterns)))) {
         func.emitOpError("combining alloca, subveq, and extract ops failed");
@@ -174,11 +180,6 @@ public:
 
     LLVM_DEBUG(llvm::dbgs() << "Function after combining quake alloca:\n"
                             << func << "\n\n");
-  }
-
-  // TODO: move this to a place where it can be shared.
-  static std::size_t allocationSize(quake::AllocaOp alloc) {
-    return quake::getAllocationSize(alloc.getType());
   }
 };
 } // namespace

@@ -1,0 +1,50 @@
+{
+    "retryOn429": true,
+    "retryCount": 5,
+    "fallbackRetryDelay": "30s",
+    "aliveStatusCodes": [200, 206],
+    "httpHeaders": [
+      {
+        "urls": ["https://github.com/", "https://guides.github.com/", "https://help.github.com/", "https://docs.github.com/"],
+        "headers": {
+          "Accept-Encoding": "zstd, br, gzip, deflate"
+        }
+      },
+      {
+        "urls": ["https://www.quantum-machines.co/", "https://quantumcircuits.com/"],
+        "headers": {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+          "Accept-Language": "en-US,en;q=0.9"
+        }
+      }
+    ],
+    "ignorePatterns": [
+      {
+        "pattern": "^https://www.gnu.org/"
+      },
+      {
+        "pattern": "^https://gcc.gnu.org/"
+      },
+      {
+        "pattern": "^https://epubs.siam.org/doi/10.1137/S0097539796300921"
+      },
+      {
+        "pattern": "^https://epubs.siam.org/doi/10.1137/090774999"
+      },
+      {
+        "pattern": "^https://epubs.siam.org/doi/10.1137/090771806"
+      },
+      {
+        "pattern": "^https://vscode.dev/"
+      },
+      {
+        "pattern": "microsoft.com/"
+      },
+      {
+        "pattern": "visualstudio.com/"
+      },
+      {
+        "pattern": "openapi.html"
+      }
+    ]
+}

@@ -1,12 +1,12 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Support/TargetConfig.h"
+#include "cudaq/Support/TargetConfigYaml.h"
 #include "llvm/Support/Allocator.h"
 #include "llvm/Support/Base64.h"
 #include "llvm/Support/CommandLine.h"
@@ -50,9 +50,17 @@ static std::string processSimBackendConfig(
     output << "LIBRARY_MODE="
            << (configValue.LibraryMode.value() ? "true" : "false") << "\n";
 
-  if (!configValue.PlatformLoweringConfig.empty())
-    output << "PLATFORM_LOWERING_CONFIG=\""
-           << configValue.PlatformLoweringConfig << "\"\n";
+  if (!configValue.JITHighLevelPipeline.empty())
+    output << "JIT_HIGH_LEVEL_PIPELINE=\"" << configValue.JITHighLevelPipeline
+           << "\"\n";
+
+  if (!configValue.JITMidLevelPipeline.empty())
+    output << "JIT_MID_LEVEL_PIPELINE=\"" << configValue.JITMidLevelPipeline
+           << "\"\n";
+
+  if (!configValue.JITLowLevelPipeline.empty())
+    output << "JIT_LOW_LEVEL_PIPELINE=\"" << configValue.JITLowLevelPipeline
+           << "\"\n";
 
   if (!configValue.TargetPassPipeline.empty())
     output << "TARGET_PASS_PIPELINE=\"" << configValue.TargetPassPipeline
@@ -111,16 +119,24 @@ static std::string processSimBackendConfig(
   }
 
   if (!configValue.SimulationBackend.values.empty()) {
+    // Use platform-appropriate shared library extension
+#ifdef __APPLE__
+    constexpr const char *libExt = ".dylib";
+#else
+    constexpr const char *libExt = ".so";
+#endif
     output << "if [ -f \"${install_dir}/lib/libnvqir-"
-           << configValue.SimulationBackend.values.front() << ".so\" ]; then\n";
+           << configValue.SimulationBackend.values.front() << libExt
+           << "\" ]; then\n";
     output << "  NVQIR_SIMULATION_BACKEND=\""
            << configValue.SimulationBackend.values.front() << "\"\n";
     // If there are more than one simulator libs, create the `else` paths to
-    // check their .so files.
+    // check their library files.
     for (std::size_t i = 1; i < configValue.SimulationBackend.values.size();
          ++i) {
       output << "elif [ -f \"${install_dir}/lib/libnvqir-"
-             << configValue.SimulationBackend.values[i] << ".so\" ]; then\n";
+             << configValue.SimulationBackend.values[i] << libExt
+             << "\" ]; then\n";
       output << "  NVQIR_SIMULATION_BACKEND=\""
              << configValue.SimulationBackend.values[i] << "\"\n";
     }
@@ -145,9 +161,9 @@ static std::string processSimBackendConfig(
   return output.str();
 }
 
-std::string
-cudaq::config::processRuntimeArgs(const cudaq::config::TargetConfig &config,
-                                  const std::vector<std::string> &targetArgv) {
+std::string cudaq::config::processRuntimeArgs(
+    const cudaq::config::TargetConfig &config,
+    const std::map<std::string, std::string> &args) {
   std::stringstream output;
   if (config.BackendConfig.has_value())
     output << processSimBackendConfig(config.Name,
@@ -155,8 +171,7 @@ cudaq::config::processRuntimeArgs(const cudaq::config::TargetConfig &config,
 
   unsigned featureFlag = 0;
   std::stringstream platformExtraArgs;
-  for (std::size_t idx = 0; idx < targetArgv.size();) {
-    const auto argsStr = targetArgv[idx];
+  for (const auto &[argKey, argVal] : args) {
     const auto iter = std::find_if(
         config.TargetArguments.begin(), config.TargetArguments.end(),
         [&](const cudaq::config::TargetArgument &argConfig) {
@@ -166,21 +181,19 @@ cudaq::config::processRuntimeArgs(const cudaq::config::TargetConfig &config,
               "--" + config.Name + "-" + argConfig.KeyName;
           const std::string targetPrefixArgKey =
               "--target-" + argConfig.KeyName;
-          return (nvqppArgKey == argsStr) || (targetPrefixArgKey == argsStr) ||
-                 (argsStr == argConfig.KeyName);
+          return llvm::is_contained<llvm::StringRef>(
+              {nvqppArgKey, targetPrefixArgKey, argConfig.KeyName}, argKey);
         });
     if (iter != config.TargetArguments.end()) {
       if (iter->Type != cudaq::config::ArgumentType::FeatureFlag) {
         // If this is a platform option (platform argument key is provide),
         // forward the value to the platform extra arguments.
-        if (!iter->PlatformArgKey.empty() && idx + 1 < targetArgv.size())
-          platformExtraArgs << ";" << iter->PlatformArgKey << ";"
-                            << targetArgv[idx + 1];
-      } else if (idx + 1 < targetArgv.size()) {
+        if (!iter->PlatformArgKey.empty())
+          platformExtraArgs << ";" << iter->PlatformArgKey << ";" << argVal;
+      } else {
         // This is an option flag, construct the value for mapping selection.
-        const auto featureFlags = targetArgv[idx + 1];
         llvm::SmallVector<llvm::StringRef> flagStrs;
-        llvm::StringRef(featureFlags).split(flagStrs, ',', -1, false);
+        llvm::StringRef(argVal).split(flagStrs, ',', -1, false);
         for (const auto &flag : flagStrs) {
           const auto iter = stringToFeatureFlag.find(flag.str());
           if (iter == stringToFeatureFlag.end()) {
@@ -191,8 +204,6 @@ cudaq::config::processRuntimeArgs(const cudaq::config::TargetConfig &config,
         }
       }
     }
-    // We assume the arguments are given as '<key> <value>' pairs.
-    idx += 2;
   }
 
   if (!config.ConfigMap.empty()) {
@@ -261,6 +272,8 @@ void ScalarEnumerationTraits<cudaq::config::ArgumentType>::enumeration(
   io.enumCase(value, "integer", cudaq::config::ArgumentType::Int);
   io.enumCase(value, "uuid", cudaq::config::ArgumentType::UUID);
   io.enumCase(value, "option-flags", cudaq::config::ArgumentType::FeatureFlag);
+  io.enumCase(value, "machine-config",
+              cudaq::config::ArgumentType::MachineConfig);
 }
 
 void MappingTraits<cudaq::config::TargetArgument>::mapping(
@@ -270,6 +283,15 @@ void MappingTraits<cudaq::config::TargetArgument>::mapping(
   io.mapOptional("platform-arg", info.PlatformArgKey);
   io.mapOptional("help-string", info.HelpString);
   io.mapOptional("type", info.Type);
+  io.mapOptional("machine-config", info.MachineConfigs);
+}
+
+std::string MappingTraits<cudaq::config::TargetArgument>::validate(
+    IO &io, cudaq::config::TargetArgument &info) {
+  if (!info.MachineConfigs.empty() &&
+      info.Type != cudaq::config::ArgumentType::MachineConfig)
+    return "If 'machine-config' is provided, 'type' must be 'machine-config'.";
+  return "";
 }
 
 void BlockScalarTraits<cudaq::config::SimulationBackendSetting>::output(
@@ -307,7 +329,9 @@ void MappingTraits<cudaq::config::BackendEndConfigEntry>::mapping(
     IO &io, cudaq::config::BackendEndConfigEntry &info) {
   io.mapOptional("gen-target-backend", info.GenTargetBackend);
   io.mapOptional("library-mode", info.LibraryMode);
-  io.mapOptional("platform-lowering-config", info.PlatformLoweringConfig);
+  io.mapOptional("jit-high-level-pipeline", info.JITHighLevelPipeline);
+  io.mapOptional("jit-mid-level-pipeline", info.JITMidLevelPipeline);
+  io.mapOptional("jit-low-level-pipeline", info.JITLowLevelPipeline);
   io.mapOptional("target-pass-pipeline", info.TargetPassPipeline);
   io.mapOptional("codegen-emission", info.CodegenEmission);
   io.mapOptional("post-codegen-passes", info.PostCodeGenPasses);
@@ -342,5 +366,124 @@ void MappingTraits<cudaq::config::TargetConfig>::mapping(
   io.mapOptional("configuration-matrix", info.ConfigMap);
 }
 
+std::string MappingTraits<cudaq::config::TargetConfig>::validate(
+    IO &io, cudaq::config::TargetConfig &info) {
+  // There should only ever be 1 machine-configuration entry in the target
+  // arguments.
+  unsigned count = 0;
+  for (const auto &targetArg : info.TargetArguments) {
+    if (targetArg.Type == cudaq::config::ArgumentType::MachineConfig)
+      count++;
+  }
+  if (count > 1)
+    return "There should only ever be 1 machine-configuration entry in the "
+           "target arguments.";
+  return std::string();
+}
+
+void MappingTraits<cudaq::config::TargetArchitectureSettings>::mapping(
+    IO &io, cudaq::config::TargetArchitectureSettings &info) {
+  io.mapOptional("codegen-emission", info.CodegenEmission);
+}
+
+void MappingTraits<cudaq::config::MachineArchitectureConfig>::mapping(
+    IO &io, cudaq::config::MachineArchitectureConfig &info) {
+  io.mapOptional("arch-name", info.Name);
+  io.mapOptional("machine-names", info.MachineNames);
+  io.mapOptional("pattern", info.MachinePattern);
+  io.mapRequired("config", info.Configuration);
+}
+
+std::string MappingTraits<cudaq::config::MachineArchitectureConfig>::validate(
+    IO &io, cudaq::config::MachineArchitectureConfig &info) {
+  if (info.MachineNames.empty() && info.MachinePattern.empty())
+    return "Either 'machine-names' or 'pattern' must be specified.";
+
+  if (!info.MachinePattern.empty()) {
+    // Check if this is a valid regex
+    llvm::Regex re(info.MachinePattern);
+    std::string errorIfAny;
+    if (!re.isValid(errorIfAny)) {
+      std::stringstream ss;
+      ss << "'" << info.MachinePattern
+         << "' is not a valid regex: " << errorIfAny;
+      return ss.str();
+    }
+  }
+  return std::string();
+}
 } // namespace yaml
 } // namespace llvm
+
+std::string cudaq::config::TargetConfig::getCodeGenSpec(
+    const std::map<std::string, std::string> &targetArgs) const {
+  // Check whether we have a per-machine config
+  const auto machineConfigIter = std::find_if(
+      TargetArguments.begin(), TargetArguments.end(),
+      [&](const cudaq::config::TargetArgument &argConfig) {
+        return argConfig.Type == cudaq::config::ArgumentType::MachineConfig;
+      });
+  if (machineConfigIter == TargetArguments.end()) {
+    // No machine specific config
+    return BackendConfig.has_value() ? BackendConfig->CodegenEmission : "";
+  }
+
+  // Get the machine name from the CLI argument
+  std::string machineName;
+  for (const auto &[argKey, argVal] : targetArgs) {
+    if (argKey == machineConfigIter->PlatformArgKey) {
+      machineName = argVal;
+      break;
+    }
+  }
+
+  if (!machineName.empty()) {
+    // Check for match
+    for (auto &archConfig : machineConfigIter->MachineConfigs) {
+      // Check names first
+      if (std::find(archConfig.MachineNames.begin(),
+                    archConfig.MachineNames.end(),
+                    machineName) != archConfig.MachineNames.end()) {
+        return archConfig.Configuration.CodegenEmission;
+      }
+      // Check pattern if provided
+      if (!archConfig.MachinePattern.empty()) {
+        llvm::Regex re(archConfig.MachinePattern);
+        if (re.match(machineName)) {
+          return archConfig.Configuration.CodegenEmission;
+        }
+      }
+    }
+  }
+
+  // No machine specific config rule matches, fallback to the default backend
+  // config
+  return BackendConfig.has_value() ? BackendConfig->CodegenEmission : "";
+}
+
+bool cudaq::config::BackendEndConfigEntry::hasPassPipeline() const {
+  return !TargetPassPipeline.empty() || !JITHighLevelPipeline.empty() ||
+         !JITMidLevelPipeline.empty() || !JITLowLevelPipeline.empty();
+}
+
+std::string cudaq::config::BackendEndConfigEntry::getPassPipeline(
+    std::string_view deployStage, std::string_view finalizeStage) const {
+  if (!TargetPassPipeline.empty())
+    return TargetPassPipeline;
+
+  std::string pipeline;
+  auto append = [&](std::string_view stage) {
+    if (stage.empty())
+      return;
+    if (!pipeline.empty())
+      pipeline += ",";
+    pipeline += stage;
+  };
+
+  append(JITHighLevelPipeline);
+  append(deployStage);
+  append(JITMidLevelPipeline);
+  append(finalizeStage);
+  append(JITLowLevelPipeline);
+  return pipeline;
+}

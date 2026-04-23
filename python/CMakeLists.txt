@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -79,6 +79,6 @@ endif()
 
 add_subdirectory(runtime/interop)
 
-if (CUDENSITYMAT_ROOT AND CUDA_FOUND)
+if (cuDensityMat_FOUND)
   add_subdirectory(runtime/cudaq/dynamics)
 endif()

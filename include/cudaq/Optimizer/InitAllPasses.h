@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Transforms/Passes.h"
@@ -20,14 +21,22 @@ inline void registerCudaqPassesAndPipelines() {
   opt::registerOptTransformsPasses();
 
   // CUDA-Q pipelines
-  opt::registerAggressiveEarlyInliningPipeline();
+  opt::registerAggressiveInliningPipeline();
   opt::registerUnrollingPipeline();
+  opt::registerPhaseFoldingPipeline();
   opt::registerClassicalOptimizationPipeline();
   opt::registerToExecutionManagerCCPipeline();
   opt::registerToQIRAPIPipeline();
   opt::registerTargetPipelines();
   opt::registerWireSetToProfileQIRPipeline();
   opt::registerMappingPipeline();
+  opt::registerToCFGPipeline();
+
+  // JIT compiler pipelines
+  opt::registerJITPipelines();
+
+  // AOT compiler pipelines
+  opt::registerAOTPipelines();
 }
 
 inline void registerAllPasses() {
@@ -38,4 +47,7 @@ inline void registerAllPasses() {
   registerCudaqPassesAndPipelines();
 }
 
+inline void registerAllCLOptions() {
+  opt::builder::registerCUDAQBuilderCLOptions();
+}
 } // namespace cudaq

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -10,7 +10,8 @@
 #include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatUtils.h"
 #include "common/EigenDense.h"
-#include "common/Logger.h"
+#include "common/FmtCore.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 namespace cudaq {
 
@@ -38,14 +39,13 @@ CuDensityMatState::overlap(const cudaq::SimulationState &other) {
 
   if (!isDensityMatrix) {
     Eigen::VectorXcd state(dimension);
-    const auto size = dimension;
     HANDLE_CUDA_ERROR(cudaMemcpy(state.data(), devicePtr,
-                                 size * sizeof(std::complex<double>),
+                                 dimension * sizeof(std::complex<double>),
                                  cudaMemcpyDeviceToHost));
 
     Eigen::VectorXcd otherState(dimension);
     HANDLE_CUDA_ERROR(cudaMemcpy(otherState.data(), other.getTensor().data,
-                                 size * sizeof(std::complex<double>),
+                                 dimension * sizeof(std::complex<double>),
                                  cudaMemcpyDeviceToHost));
     return std::abs(std::inner_product(
         state.begin(), state.end(), otherState.begin(),
@@ -54,15 +54,17 @@ CuDensityMatState::overlap(const cudaq::SimulationState &other) {
   }
 
   // FIXME: implement this in GPU memory
-  Eigen::MatrixXcd state(dimension, dimension);
-  const auto size = dimension * dimension;
+  // For density matrices, `dimension` is the total number of elements (N^2).
+  // The matrix side length is sqrt(dimension).
+  const std::size_t matDim = static_cast<std::size_t>(std::sqrt(dimension));
+  Eigen::MatrixXcd state(matDim, matDim);
   HANDLE_CUDA_ERROR(cudaMemcpy(state.data(), devicePtr,
-                               size * sizeof(std::complex<double>),
+                               dimension * sizeof(std::complex<double>),
                                cudaMemcpyDeviceToHost));
 
-  Eigen::MatrixXcd otherState(dimension, dimension);
+  Eigen::MatrixXcd otherState(matDim, matDim);
   HANDLE_CUDA_ERROR(cudaMemcpy(otherState.data(), other.getTensor().data,
-                               size * sizeof(std::complex<double>),
+                               dimension * sizeof(std::complex<double>),
                                cudaMemcpyDeviceToHost));
 
   return (state.adjoint() * otherState).trace();
@@ -89,8 +91,34 @@ void CuDensityMatState::dump(std::ostream &os) const {
 }
 
 std::unique_ptr<SimulationState>
+CuDensityMatState::createFromData(const state_data &data) {
+  if (std::holds_alternative<cudaq::complex_matrix>(data)) {
+    auto &cMat = std::get<cudaq::complex_matrix>(data);
+    if (cMat.rows() != cMat.cols())
+      throw std::runtime_error(
+          "[CuDensityMatState] Density matrix input must be square.");
+    const std::size_t size = cMat.rows() * cMat.cols();
+    void *dataPtr = const_cast<cudaq::complex_matrix &>(cMat).get_data(
+        cudaq::complex_matrix::order::row_major);
+    std::complex<double> *devicePtr = static_cast<std::complex<double> *>(
+        cudaq::dynamics::DeviceAllocator::allocate(
+            size * sizeof(std::complex<double>)));
+    HANDLE_CUDA_ERROR(cudaMemcpy(devicePtr, dataPtr,
+                                 size * sizeof(std::complex<double>),
+                                 cudaMemcpyDefault));
+    auto result = std::make_unique<CuDensityMatState>(size, devicePtr);
+    result->isDensityMatrix = true;
+    return result;
+  }
+  return SimulationState::createFromData(data);
+}
+
+std::unique_ptr<SimulationState>
 CuDensityMatState::createFromSizeAndPtr(std::size_t size, void *dataPtr,
                                         std::size_t type) {
+  if (!dataPtr || size == 0)
+    throw std::runtime_error(
+        "[createFromSizeAndPtr] invalid null pointer or zero size");
   bool isDm = false;
   if (type == cudaq::detail::variant_index<cudaq::state_data,
                                            cudaq::TensorStateData>()) {
@@ -106,7 +134,8 @@ CuDensityMatState::createFromSizeAndPtr(std::size_t size, void *dataPtr,
                                "accept 1D or 2D arrays");
 
     isDm = extents.size() == 2;
-    size = std::reduce(extents.begin(), extents.end(), 1, std::multiplies());
+    size = std::reduce(extents.begin(), extents.end(), std::size_t{1},
+                       std::multiplies());
     dataPtr = const_cast<void *>(ptr);
   }
   std::complex<double> *devicePtr = static_cast<std::complex<double> *>(
@@ -127,13 +156,18 @@ CuDensityMatState::getTensor(std::size_t tensorIdx) const {
     throw std::runtime_error(
         "CuDensityMatState state only supports a single tensor");
 
-  const std::size_t dim = isDensityMatrix
-                              ? static_cast<std::size_t>(std::sqrt(dimension))
-                              : dimension;
-  const std::vector<std::size_t> extents =
-      isDensityMatrix ? std::vector<std::size_t>{dim, dim}
-                      : std::vector<std::size_t>{dim};
-  return Tensor{devicePtr, extents, precision::fp64};
+  if (batchSize == 1) {
+    const std::size_t dim = isDensityMatrix
+                                ? static_cast<std::size_t>(std::sqrt(dimension))
+                                : dimension;
+    const std::vector<std::size_t> extents =
+        isDensityMatrix ? std::vector<std::size_t>{dim, dim}
+                        : std::vector<std::size_t>{dim};
+    return Tensor{devicePtr, extents, precision::fp64};
+  } else {
+    // For batched state, always returns the flat buffer.
+    return Tensor{devicePtr, {dimension}, precision::fp64};
+  }
 }
 
 std::complex<double>
@@ -154,9 +188,14 @@ CuDensityMatState::operator()(std::size_t tensorIdx,
     if (indices.size() != 2)
       throw std::runtime_error("CuDensityMatState holding a density matrix "
                                "supports only 2-dimensional indices");
-    if (indices[0] >= dimension || indices[1] >= dimension)
+    // For density matrix, dimension is the total size (dim*dim), so we need
+    // to compute the single-side dimension for bounds checking.
+    const std::size_t dim = static_cast<std::size_t>(std::sqrt(dimension));
+    if (indices[0] >= dim || indices[1] >= dim)
       throw std::runtime_error("CuDensityMatState indices out of range");
-    return extractValue(indices[0] * dimension + indices[1]);
+    // cuDensityMat uses column-major (Fortran) storage order, so the linear
+    // index for element [row, col] is: col * numRows + row
+    return extractValue(indices[1] * dim + indices[0]);
   }
   if (indices.size() != 1)
     throw std::runtime_error(
@@ -196,17 +235,19 @@ void CuDensityMatState::destroyState() {
     cudmState = nullptr;
   }
   if (devicePtr != nullptr) {
-    cudaq::dynamics::DeviceAllocator::free(devicePtr);
+    if (!borrowedData)
+      cudaq::dynamics::DeviceAllocator::free(devicePtr);
     devicePtr = nullptr;
     dimension = 0;
     isDensityMatrix = false;
+    borrowedData = false;
   }
 }
 
 static size_t
 calculate_state_vector_size(const std::vector<int64_t> &hilbertSpaceDims) {
-  return std::accumulate(hilbertSpaceDims.begin(), hilbertSpaceDims.end(), 1,
-                         std::multiplies<>());
+  return std::accumulate(hilbertSpaceDims.begin(), hilbertSpaceDims.end(),
+                         std::size_t{1}, std::multiplies<>());
 }
 
 static size_t
@@ -215,8 +256,8 @@ calculate_density_matrix_size(const std::vector<int64_t> &hilbertSpaceDims) {
   return vectorSize * vectorSize;
 }
 
-CuDensityMatState::CuDensityMatState(std::size_t size, void *ptr)
-    : devicePtr(ptr), dimension(size),
+CuDensityMatState::CuDensityMatState(std::size_t size, void *ptr, bool borrowed)
+    : devicePtr(ptr), dimension(size), borrowedData(borrowed),
       cudmHandle(dynamics::Context::getCurrentContext()->getHandle()) {
   if (size == 0)
     throw std::invalid_argument("Zero-length state is not allowed.");
@@ -358,6 +399,7 @@ CuDensityMatState::clone(const CuDensityMatState &other) {
   state->dimension = other.dimension;
   state->isDensityMatrix = other.isDensityMatrix;
   state->batchSize = other.batchSize;
+  state->singleStateDimension = other.singleStateDimension;
   const size_t dataSize = state->dimension * sizeof(std::complex<double>);
   state->devicePtr = cudaq::dynamics::DeviceAllocator::allocate(dataSize);
   HANDLE_CUDA_ERROR(cudaMemcpy(state->devicePtr, other.devicePtr, dataSize,
@@ -386,14 +428,18 @@ CuDensityMatState::CuDensityMatState(CuDensityMatState &&other) noexcept
     : isDensityMatrix(other.isDensityMatrix), dimension(other.dimension),
       devicePtr(other.devicePtr), cudmState(other.cudmState),
       cudmHandle(other.cudmHandle), hilbertSpaceDims(other.hilbertSpaceDims),
-      batchSize(other.batchSize) {
+      batchSize(other.batchSize),
+      singleStateDimension(other.singleStateDimension),
+      borrowedData(other.borrowedData) {
   other.isDensityMatrix = false;
   other.dimension = 0;
   other.devicePtr = nullptr;
   other.batchSize = 1;
+  other.singleStateDimension = 0;
   other.cudmState = nullptr;
   other.cudmHandle = nullptr;
   other.hilbertSpaceDims.clear();
+  other.borrowedData = false;
 }
 
 CuDensityMatState &
@@ -403,7 +449,7 @@ CuDensityMatState::operator=(CuDensityMatState &&other) noexcept {
     if (cudmState)
       cudensitymatDestroyState(cudmState);
 
-    if (devicePtr) {
+    if (devicePtr != nullptr && !borrowedData) {
       cudaq::dynamics::DeviceAllocator::free(devicePtr);
     }
 
@@ -415,13 +461,16 @@ CuDensityMatState::operator=(CuDensityMatState &&other) noexcept {
     cudmHandle = other.cudmHandle;
     hilbertSpaceDims = std::move(other.hilbertSpaceDims);
     batchSize = other.batchSize;
+    singleStateDimension = other.singleStateDimension;
+    borrowedData = other.borrowedData;
     // Nullify other
     other.isDensityMatrix = false;
     other.dimension = 0;
     other.devicePtr = nullptr;
-
     other.cudmState = nullptr;
     other.batchSize = 1;
+    other.singleStateDimension = 0;
+    other.borrowedData = false;
   }
   return *this;
 }
@@ -445,8 +494,8 @@ CuDensityMatState cudaq::CuDensityMatState::to_density_matrix() const {
     throw std::runtime_error("State is already a density matrix.");
 
   if (batchSize > 1)
-    throw std::runtime_error(
-        "Conversion of a batched state to a density matrix is not supported.");
+    throw std::runtime_error("Conversion of a batched state to a density "
+                             "matrix is not supported.");
 
   const std::size_t vectorSize = calculate_state_vector_size(hilbertSpaceDims);
   const std::size_t expectedDensityMatrixSize = vectorSize * vectorSize;
@@ -495,7 +544,7 @@ void CuDensityMatState::initialize_cudm(cudensitymatHandle_t handleToSet,
   size_t expectedStateVectorSize =
       calculate_state_vector_size(hilbertSpaceDims);
   const int64_t totalDistributedDimension =
-      cudaq::dynamics::getNumRanks() * dimension;
+      dynamics::Context::getCurrentContext()->getNumRanks() * dimension;
   if (dimension != batchSize * expectedDensityMatrixSize &&
       dimension != batchSize * expectedStateVectorSize &&
       totalDistributedDimension != batchSize * expectedDensityMatrixSize &&
@@ -652,20 +701,50 @@ void CuDensityMatState::distributeBatchedStateData(
       batchedState.cudmHandle, batchedState.cudmState,
       /*stateComponentLocalId=*/0, &stateComponentGlobalId, &numModes,
       stateComponentModeExtents.data(), stateComponentModeOffsets.data()));
-  int64_t startIdx = 0;
-  int64_t accumulatedIdx = 1;
-  for (int32_t i = 0; i < numModes; ++i) {
-    accumulatedIdx *= stateComponentModeExtents[i];
-    startIdx += (stateComponentModeOffsets[i] * accumulatedIdx);
+
+  // Calculate the batch index using the batch mode location.
+  // The batchModeLocation tells us which mode corresponds to the batch
+  // dimension. If batchModeLocation is valid (>= 0), use the offset directly
+  // from that mode. Otherwise, fall back to computing from the linear index.
+  int batchIdx = 0;
+  if (batchModeLocation >= 0 && batchModeLocation < numModes) {
+    // The batch mode offset directly gives us the starting batch index
+    batchIdx = static_cast<int>(stateComponentModeOffsets[batchModeLocation]);
+  } else {
+    // Fallback: compute from linear index (original logic)
+    int64_t startIdx = 0;
+    int64_t accumulatedIdx = 1;
+    for (int32_t i = 0; i < numModes; ++i) {
+      accumulatedIdx *= stateComponentModeExtents[i];
+      startIdx += (stateComponentModeOffsets[i] * accumulatedIdx);
+    }
+    batchIdx = startIdx / singleStateDimension;
+    if (batchIdx * singleStateDimension != startIdx)
+      throw std::runtime_error(
+          "Batched state cannot be evenly distributed across available GPUs");
   }
-  const int batchIdx = startIdx / singleStateDimension;
+
   const int64_t stateVolume = batchedState.dimension;
   const int numStatesPerGpu = stateVolume / singleStateDimension;
-  if (batchIdx * singleStateDimension != startIdx)
+
+  // Validate that we won't access out-of-bounds indices in inputStates.
+  const int64_t totalInputStates = static_cast<int64_t>(inputStates.size());
+  if (batchIdx < 0 || batchIdx + numStatesPerGpu > totalInputStates) {
     throw std::runtime_error(
-        "Batched state cannot be evenly distributed across available GPUs");
+        "Distributed batched state data access would exceed input states "
+        "bounds. batchIdx=" +
+        std::to_string(batchIdx) +
+        ", numStatesPerGpu=" + std::to_string(numStatesPerGpu) +
+        ", totalInputStates=" + std::to_string(totalInputStates));
+  }
+
   for (int i = 0; i < numStatesPerGpu; ++i) {
     auto *sourcePtr = inputStates[i + batchIdx]->devicePtr;
+    if (sourcePtr == nullptr) {
+      throw std::runtime_error("Input state at index " +
+                               std::to_string(i + batchIdx) +
+                               " has null device pointer");
+    }
     std::complex<double> *destPtr =
         static_cast<std::complex<double> *>(batchedState.devicePtr) +
         i * singleStateDimension;
@@ -698,8 +777,8 @@ std::unique_ptr<CuDensityMatState> CuDensityMatState::createBatchedState(
     throw std::invalid_argument("Invalid hilbertSpaceDims for the state data");
 
   const bool isDm = firstStateDimension == expectedDensityMatrixSize;
-  // These are state vectors but we need density matrices (e.g., with collapsed
-  // operators)
+  // These are state vectors but we need density matrices (e.g., with
+  // collapsed operators)
   if (!isDm && createDensityState) {
     std::vector<CuDensityMatState *> initialDensityMatrixStates =
         convertStateVecToDensityMatrix(initial_states,
@@ -717,6 +796,7 @@ std::unique_ptr<CuDensityMatState> CuDensityMatState::createBatchedState(
   cudmState->hilbertSpaceDims = dimensions;
   cudmState->batchSize = initial_states.size();
   cudmState->isDensityMatrix = isDm;
+  cudmState->singleStateDimension = firstStateDimension;
   const cudensitymatStatePurity_t purity = cudmState->isDensityMatrix
                                                ? CUDENSITYMAT_STATE_PURITY_MIXED
                                                : CUDENSITYMAT_STATE_PURITY_PURE;
@@ -774,13 +854,40 @@ CuDensityMatState::splitBatchedState(CuDensityMatState &batchedState) {
   if (batchedState.batchSize <= 1) {
     throw std::runtime_error("Input is not a batched state");
   }
-  const int64_t stateSize = batchedState.dimension / batchedState.batchSize;
+
+  // Use the stored single state dimension if available, otherwise fall back to
+  // the old calculation (for backward compatibility with non-distributed
+  // states).
+  const int64_t stateSize =
+      (batchedState.singleStateDimension > 0)
+          ? batchedState.singleStateDimension
+          : batchedState.dimension / batchedState.batchSize;
+
+  // Calculate the number of states stored locally on this rank.
+  // In distributed mode, dimension < batchSize * singleStateDimension.
+  // In non-distributed mode, dimension == batchSize * singleStateDimension.
+  const int64_t localNumStates = batchedState.dimension / stateSize;
+
+  if (localNumStates <= 0) {
+    throw std::runtime_error(
+        "Invalid state configuration: no local states available");
+  }
+
   std::complex<double> *ptr =
       static_cast<std::complex<double> *>(batchedState.devicePtr);
   std::vector<CuDensityMatState *> splitStates;
-  for (int i = 0; i < batchedState.batchSize; ++i) {
+
+  // Only iterate over the states that are actually stored locally.
+  for (int64_t i = 0; i < localNumStates; ++i) {
+    // Each split state needs to own its memory
+    // Allocate memory for the split state
+    void *splitStateMemPtr = cudaq::dynamics::DeviceAllocator::allocate(
+        stateSize * sizeof(std::complex<double>));
+    HANDLE_CUDA_ERROR(cudaMemcpy(splitStateMemPtr, ptr + i * stateSize,
+                                 stateSize * sizeof(std::complex<double>),
+                                 cudaMemcpyDefault));
     splitStates.emplace_back(
-        new CuDensityMatState(stateSize, ptr + i * stateSize));
+        new CuDensityMatState(stateSize, splitStateMemPtr));
   }
   return splitStates;
 }

@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,19 +9,13 @@
 #pragma once
 
 #include "common/BaseRemoteRESTQPU.h"
+#include <optional>
 
 namespace cudaq {
 
 /// @brief Base QPU class for analog platforms like `quera` and `pasqal`.
 /// Provides common functionality and implementation.
 class AnalogRemoteRESTQPU : public BaseRemoteRESTQPU {
-protected:
-  std::tuple<mlir::ModuleOp, mlir::MLIRContext *, void *>
-  extractQuakeCodeAndContext(const std::string &kernelName,
-                             void *data) override {
-    throw std::runtime_error("Not supported on this target.");
-  }
-
 public:
   /// @brief Check if this is a remote target
   virtual bool isRemote() override { return true; }
@@ -30,19 +24,14 @@ public:
   virtual bool isEmulated() override { return false; }
 
   /// @brief Launch a kernel with the given arguments
-  void launchKernel(const std::string &kernelName,
-                    const std::vector<void *> &rawArgs) override {
-    throw std::runtime_error(
-        "Arbitrary kernel execution is not supported on this target.");
-  }
-
-  /// @brief Launch a kernel with the given arguments
   /// Only analog Hamiltonian kernels are supported
   KernelThunkResultType
   launchKernel(const std::string &kernelName, KernelThunkType kernelFunc,
                void *args, std::uint64_t voidStarSize,
                std::uint64_t resultOffset,
                const std::vector<void *> &rawArgs) override {
+    auto executionContext = cudaq::getExecutionContext();
+
     if (kernelName.find(cudaq::runtime::cudaqAHKPrefixName) != 0)
       throw std::runtime_error(
           "Arbitrary kernel execution is not supported on this target.");
@@ -51,14 +40,15 @@ public:
       throw std::runtime_error(
           "Local emulation is not yet supported on this target.");
 
-    cudaq::info("Launching remote kernel ({})", kernelName);
+    CUDAQ_INFO("Launching remote kernel ({})", kernelName);
     std::vector<cudaq::KernelExecution> codes;
     std::string name = kernelName;
     char *charArgs = (char *)(args);
     std::string strArgs = charArgs;
     nlohmann::json j;
     std::vector<std::size_t> mapping_reorder_idx;
-    codes.emplace_back(name, strArgs, j, mapping_reorder_idx);
+    codes.emplace_back(name, strArgs, std::nullopt, std::nullopt, j,
+                       mapping_reorder_idx);
 
     if (executionContext) {
       executor->setShots(executionContext->shots);

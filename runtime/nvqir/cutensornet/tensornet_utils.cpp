@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,7 +7,8 @@
  ******************************************************************************/
 
 #include "tensornet_utils.h"
-#include "common/Logger.h"
+#include "common/FmtCore.h"
+#include "cudaq/runtime/logger/logger.h"
 
 std::vector<double> randomValues(uint64_t num_samples, double max_value,
                                  std::mt19937 &randomEngine) {
@@ -40,7 +41,7 @@ ScratchDeviceMem::ScratchDeviceMem() {
           minScratchSizePercent, maxScratchSizePercent, scratchSizePercent));
 
     freeMemRatio = static_cast<double>(envIntVal) / 100.0;
-    cudaq::info("Setting scratch size ratio to {}.", freeMemRatio);
+    CUDAQ_INFO("Setting scratch size ratio to {}.", freeMemRatio);
   }
 }
 

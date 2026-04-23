@@ -1,26 +1,30 @@
 CUDA-Q Applications
 ====================
 
+This page contains a number of different applications implemented using CUDA-Q. All notebooks can be found `here. <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/applications/python>`_
+
+
 .. when adding applications
 .. 1. Add notebook to the hidden TOC list directly below
 .. 2. Add an html block along with any tags
 .. 3. Add a preview image in the _static folder
 
+.. |:spellcheck-disable:| replace:: \
+
 .. toctree::
    :maxdepth: 1
    :hidden:
 
-
    /applications/python/qaoa
    /applications/python/digitized_counterdiabatic_qaoa
    /applications/python/krylov
+   /applications/python/qsci
    /applications/python/bernstein_vazirani
    /applications/python/cost_minimization
    /applications/python/deutsch_algorithm
    /applications/python/divisive_clustering_coresets
    /applications/python/hybrid_quantum_neural_networks
    /applications/python/hadamard_test
-   /applications/python/logical_aim_sqale
    /applications/python/hamiltonian_simulation
    /applications/python/quantum_fourier_transform
    /applications/python/quantum_teleportation
@@ -28,16 +32,22 @@ CUDA-Q Applications
    /applications/python/readout_error_mitigation
    /applications/python/unitary_compilation_diffusion_models
    /applications/python/vqe_advanced
-   /applications/python/quantum_transformer
    /applications/python/afqmc
    /applications/python/adapt_qaoa
    /applications/python/adapt_vqe
    /applications/python/edge_detection
    /applications/python/shors
    /applications/python/generate_fermionic_ham
+   /applications/python/grovers
    /applications/python/quantum_pagerank
    /applications/python/uccsd_wf_ansatz
+   /applications/python/mps_encoding
+   /applications/python/qm_mm_pe
+   /applications/python/skqd
+   /applications/python/entanglement_acc_hamiltonian_simulation
+   /applications/python/ptsbe
 
+.. |:spellcheck-enable:| replace:: \
 
 .. raw:: html
 
@@ -106,6 +116,21 @@ CUDA-Q Applications
         <img src="../_static/app_title_images/krylov_preview.png" alt="Krylov Preview" class="notebook-image">
     </div>
 
+    <div class="notebook-entry" data-tags="chemistry,noiseless,gpu">
+        <a href="../applications/python/qsci.html" class="notebook-title">Quantum-Selected Configuration Interaction</a>
+        <div class="notebook-content">
+            Learn how the QSCI method uses the observe and sample primitives.
+        </div>
+        <img src="../_static/app_title_images/qsci_preview.png" alt="QSCI Preview" class="notebook-image">
+    </div>
+
+    <div class="notebook-entry" data-tags="chemistry,noiseless">
+        <a href="../applications/python/skqd.html" class="notebook-title">Sample-Based Krylov Quantum Diagonalization (SKQD)</a>
+        <div class="notebook-content">
+            Learn how to implement the Sample-Based Krylov Quantum Diagonalization (SKQD) algorithm to predict the ground state energy of molecules.
+        </div>
+    </div>
+
     <div class="notebook-entry" data-tags="cpu,fundamental,noiseless,gpu">
         <a href="../applications/python/bernstein_vazirani.html" class="notebook-title">The Bernstein-Vazirani Algorithm</a>
         <div class="notebook-content">
@@ -144,14 +169,6 @@ CUDA-Q Applications
             Learn about the Hadamard test and how it can be used to estimate expectation values. This notebook also explores how the Hadamard test can be used for Krylov subspace method and accelerated with the <code>mqpu</code> backend to evaluate execution on multiple simulated QPUs in parallel.
         </div>
         <img src="../_static/app_title_images/hadamard_preview.png" alt="Hadamard Preview" class="notebook-image">
-    </div>
-
-    <div class="notebook-entry" data-tags="chemistry,qec,qpu,neutral,collab">
-        <a href="../applications/python/logical_aim_sqale.html" class="notebook-title">The Anderson Impurity Model With Logical Qubits</a>
-        <div class="notebook-content">
-            A collaboration between NVIDIA and Infleqtion demonstrated a logical qubit workflow built in CUDA-Q and executed on the Infleqtion's neutral atom QPU. (https://arxiv.org/abs/2412.07670)
-        </div>
-        <img src="../_static/app_title_images/aim_preview.png" alt="AIM Preview" class="notebook-image">
     </div>
 
     <div class="notebook-entry" data-tags="fundamental,noiseless,gpu">
@@ -210,14 +227,6 @@ CUDA-Q Applications
         <img src="../_static/app_title_images/vqe_preview.png" alt="VQE Preview" class="notebook-image">
     </div>
 
-    <div class="notebook-entry" data-tags="chemistry,collab,qforai,noiseless,gpu">
-        <a href="../applications/python/quantum_transformer.html" class="notebook-title">Quantum Transformer Model for Generating Molecules</a>
-        <div class="notebook-content">
-            Learn how to implement a hybrid quantum transformer model for generating molecules. The tutorial is based off a collaboration between NVIDIA and Yale. (https://arxiv.org/pdf/2502.19214)
-        </div>
-        <img src="../_static/app_title_images/quantum_transformer_preview.png" alt="Transformer Preview" class="notebook-image">
-    </div>
-
     <div class="notebook-entry" data-tags="chemistry,noiseless,gpu,collab">
         <a href="../applications/python/afqmc.html" class="notebook-title">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a>
         <div class="notebook-content">
@@ -266,6 +275,13 @@ CUDA-Q Applications
         </div>
         <img src="../_static/app_title_images/electronic-ham.png" alt="Electronic Hamiltonian" class="notebook-image">
     </div> 
+    <div class="notebook-entry" data-tags="cpu,fundamental,noiseless,gpu">
+        <a href="../applications/python/grovers.html" class="notebook-title">Grover's Algorithm</a>
+        <div class="notebook-content">
+            Learn how quantum computers can quadratically speed up searching through an unstructured database by amplifying the probability of finding the desired item.
+        </div>
+        <img src="../_static/app_title_images/grovers_preview.png" alt="DJ Preview" class="notebook-image">
+    </div>
 
     <div class="notebook-entry" data-tags="dynamics,noiseless,gpu">
         <a href="../applications/python/quantum_pagerank.html" class="notebook-title">Quantum Pagerank</a>
@@ -275,13 +291,44 @@ CUDA-Q Applications
         <img src="../_static/app_title_images/quantum_pagerank_preview.png" alt="Quantum Pagerank Preview" class="notebook-image">
     </div> 
 
-    <div class="notebook-entry" data-tags="chemistry,noisless">
+    <div class="notebook-entry" data-tags="chemistry,noiseless">
         <a href="../applications/python/uccsd_wf_ansatz.html" class="notebook-title">UCCSD Wavefunction Ansatz</a>
         <div class="notebook-content">
             Learn how to implement the UCCSD wavefunction ansatz using CUDA-Q.
         </div>
         <img src="../_static/app_title_images/uccsd.png" alt="UCCSD Wavefunction Ansatz" class="notebook-image">
+    </div>
 
+    <div class="notebook-entry" data-tags="cpu,fundamental">
+        <a href="../applications/python/mps_encoding.html" class="notebook-title">MPS Sequential Encoding</a>
+        <div class="notebook-content">
+            Learn how to approximately prepare quantum states via MPS using CUDA-Q.
+        </div>
+        <img src="../_static/app_title_images/mps_encoding.png" alt="MPS Encoding" class="notebook-image">
+    </div>
+
+    <div class="notebook-entry" data-tags="chemistry,noiseless">
+        <a href="../applications/python/qm_mm_pe.html" class="notebook-title">QM/MM simulation: VQE within a Polarizable Embedded Framework.</a>
+        <div class="notebook-content">
+            Learn how to implement QM/MM with PE framework using CUDA-Q.
+        </div>
+        <img src="../_static/app_title_images/qmmm-pe.png" alt="QM/MM partitioning in the PE model." class="notebook-image">
+    </div>
+
+    <div class="notebook-entry" data-tags="fundamental,noisy,gpu">
+        <a href="../applications/python/ptsbe.html" class="notebook-title">Noisy Circuit Simulation with PTSBE</a>
+        <div class="notebook-content">
+            Pre-Trajectory Sampling with Batch Execution (PTSBE) is an efficient method for sampling from noisy quantum circuits. Rather than simulating the full density matrix, PTSBE pre-samples unique noise trajectories and batches many shots across them, yielding orders-of-magnitude speedups for large shot counts. Based on the SC25 paper by Patti et al. (https://arxiv.org/abs/2504.16297).
+        </div>
+    </div>
+
+    <div class="notebook-entry" data-tags="gpu, dynamics, noiseless">
+        <a href="../applications/python/entanglement_acc_hamiltonian_simulation" class="notebook-title">Entanglement Accelerates Quantum Simulation</a>
+        <div class="notebook-content">
+            Learn how entanglement growth can *reduce* the Trotter error of the first-order product formula (PF1), recovering the result from the [paper](https://www.nature.com/articles/s41567-025-02945-2) using NVIDIA CUDA-Q. 
+        </div>
+        <img src="../_static/app_title_images/entanglement_acc_hamiltonian_simulation_preview.png" alt="PF1 error decreases as entanglement spreads" class="notebook-image">
+    </div>
 
     <script>
     document.addEventListener("DOMContentLoaded", function() {

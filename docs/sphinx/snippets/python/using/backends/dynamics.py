@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -46,31 +46,33 @@ steps = np.linspace(0, t_final, n_steps)
 schedule = Schedule(steps, ["t"])
 
 # Run the simulation.
-evolution_result = cudaq.evolve(hamiltonian,
-                                dimensions,
-                                schedule,
-                                rho0,
-                                observables=[spin.x(0),
-                                             spin.y(0),
-                                             spin.z(0)],
-                                collapse_operators=[],
-                                store_intermediate_results=True)
+evolution_result = cudaq.evolve(
+    hamiltonian,
+    dimensions,
+    schedule,
+    rho0,
+    observables=[spin.x(0), spin.y(0), spin.z(0)],
+    collapse_operators=[],
+    store_intermediate_results=cudaq.IntermediateResultSave.ALL)
 #[End Evolve]
 
-#[Begin Plot]
-get_result = lambda idx, res: [
-    exp_vals[idx].expectation() for exp_vals in res.expectation_values()
-]
+try:
+    #[Begin Plot]
+    get_result = lambda idx, res: [
+        exp_vals[idx].expectation() for exp_vals in res.expectation_values()
+    ]
 
-import matplotlib.pyplot as plt
+    import matplotlib.pyplot as plt
 
-plt.plot(steps, get_result(0, evolution_result))
-plt.plot(steps, get_result(1, evolution_result))
-plt.plot(steps, get_result(2, evolution_result))
-plt.ylabel("Expectation value")
-plt.xlabel("Time")
-plt.legend(("Sigma-X", "Sigma-Y", "Sigma-Z"))
-#[End Plot]
+    plt.plot(steps, get_result(0, evolution_result))
+    plt.plot(steps, get_result(1, evolution_result))
+    plt.plot(steps, get_result(2, evolution_result))
+    plt.ylabel("Expectation value")
+    plt.xlabel("Time")
+    plt.legend(("Sigma-X", "Sigma-Y", "Sigma-Z"))
+    #[End Plot]
+except ImportError:
+    pass
 
 # Made up values - not sure what values are reasonable here.
 omega_c = 6 * np.pi
@@ -176,6 +178,31 @@ time_dependence = parameter_values(numpy.linspace(0, 1, 100))
 cudaq.evolve(system_operator, system_dimensions, time_dependence, initial_state)
 #[End Schedule2]
 
+#[Begin SuperOperator]
+import cudaq
+from cudaq import spin, Schedule, RungeKuttaIntegrator
+import numpy as np
+
+hamiltonian = 2.0 * np.pi * 0.1 * spin.x(0)
+steps = np.linspace(0, 1, 10)
+schedule = Schedule(steps, ["t"])
+dimensions = {0: 2}
+# initial state
+psi0 = cudaq.dynamics.InitialState.ZERO
+# Create a super-operator that represents the evolution of the system
+# under the Hamiltonian `-iH|psi>`, where `H` is the Hamiltonian.
+se_super_op = cudaq.SuperOperator()
+# Apply `-iH|psi>` super-operator
+se_super_op += cudaq.SuperOperator.left_multiply(-1j * hamiltonian)
+evolution_result = cudaq.evolve(se_super_op,
+                                dimensions,
+                                schedule,
+                                psi0,
+                                observables=[spin.z(0)],
+                                store_intermediate_results=True,
+                                integrator=RungeKuttaIntegrator())
+#[End SuperOperator]
+
 import cudaq
 from cudaq import operators, spin, Schedule, RungeKuttaIntegrator
 
@@ -205,14 +232,15 @@ cudaq.set_target("dynamics")
 psi0 = cudaq.dynamics.InitialState.ZERO
 
 # Run the simulation
-evolution_result = cudaq.evolve(H,
-                                dimensions,
-                                schedule,
-                                psi0,
-                                observables=[],
-                                collapse_operators=[],
-                                store_intermediate_results=True,
-                                integrator=RungeKuttaIntegrator())
+evolution_result = cudaq.evolve(
+    H,
+    dimensions,
+    schedule,
+    psi0,
+    observables=[],
+    collapse_operators=[],
+    store_intermediate_results=cudaq.IntermediateResultSave.NONE,
+    integrator=RungeKuttaIntegrator())
 
 cudaq.mpi.finalize()
 #[End MPI]

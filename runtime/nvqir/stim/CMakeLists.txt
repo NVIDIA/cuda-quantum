@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -7,7 +7,6 @@
 # ============================================================================ #
 
 set(LIBRARY_NAME nvqir-stim)
-set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 set(STIM_SOURCE_DIR ${CMAKE_SOURCE_DIR}/tpls/Stim)
 set(STIM_BINARY_DIR ${CMAKE_BINARY_DIR}/tpls/Stim)
@@ -24,7 +23,7 @@ add_subdirectory(${STIM_SOURCE_DIR} ${STIM_BINARY_DIR} EXCLUDE_FROM_ALL)
 add_library(${LIBRARY_NAME} SHARED StimCircuitSimulator.cpp)
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 
-set (STIM_DEPENDENCIES libstim fmt::fmt-header-only cudaq-common)
+set (STIM_DEPENDENCIES libstim fmt::fmt-header-only cudaq-logger cudaq-common)
 
 # If -Wall is enabled (as is done in parent directories), Stim will not compile.
 # So override that here.
@@ -38,6 +37,39 @@ target_include_directories(${LIBRARY_NAME}
 
 target_link_libraries(${LIBRARY_NAME}
   PRIVATE ${STIM_DEPENDENCIES})
+
+# Hide stim namespace symbols (*4stim* matches mangled C++ symbols where "4stim" is the
+# namespace with its length prefix) to avoid conflicts when users import both cudaq and
+# stim in Python with different Stim versions. Apple's ld uses different syntax than GNU ld.
+if(APPLE)
+  # Apple: list symbols to hide (everything else exported by default)
+  file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/nvqir-stim.map "*4stim*\n")
+  target_link_options(${LIBRARY_NAME} PRIVATE
+    "-Wl,-unexported_symbols_list,${CMAKE_CURRENT_BINARY_DIR}/nvqir-stim.map")
+else()
+  # GNU ld: global=export all, local=hide matching (same effect as Apple's unexported list)
+  file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/nvqir-stim.map "
+{
+  global:
+    *;
+  local:
+    *4stim*;
+};
+")
+  target_link_options(${LIBRARY_NAME} PRIVATE
+    "-Wl,--version-script,${CMAKE_CURRENT_BINARY_DIR}/nvqir-stim.map")
+endif()
+
+# Add a post-build check to verify that no unwanted Stim symbols are exported.
+# This is important to allow users to import both `cudaq` and `stim` into the same
+# Python environment (even if they are using different versions of Stim).
+add_custom_command(
+  TARGET ${LIBRARY_NAME}
+  POST_BUILD
+  COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/verify_linkage.sh $<TARGET_FILE:${LIBRARY_NAME}>
+  VERBATIM
+  COMMENT "Verifying that no stim namespace symbols are exported in ${LIBRARY_NAME}..."
+)
 
 set_target_properties(${LIBRARY_NAME}
     PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${LLVM_BINARY_DIR}/lib")

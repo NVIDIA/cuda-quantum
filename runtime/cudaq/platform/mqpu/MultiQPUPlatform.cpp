@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,12 +7,14 @@
  ******************************************************************************/
 
 #include "common/ExecutionContext.h"
-#include "common/Logger.h"
+#include "common/FmtCore.h"
 #include "common/NoiseModel.h"
-#include "cudaq/Support/TargetConfig.h"
+#include "common/RuntimeTarget.h"
+#include "cudaq/Support/TargetConfigYaml.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "helpers/MQPUUtils.h"
 #include "utils/cudaq_utils.h"
 #include "llvm/Support/Base64.h"
@@ -31,8 +33,6 @@ public:
     // Make sure that we clean up the client QPUs first before cleaning up the
     // remote servers.
     platformQPUs.clear();
-    threadToQpuId.clear();
-    platformNumQPUs = 0;
     m_remoteServers.clear();
   }
 
@@ -66,9 +66,6 @@ public:
               cudaq::registry::get<cudaq::QPU>("GPUEmulatedQPU"));
           platformQPUs.back()->setId(i);
         }
-
-        platformNumQPUs = platformQPUs.size();
-        platformCurrentQPU = 0;
       }
     }
   }
@@ -85,8 +82,8 @@ public:
     auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
     std::string targetConfigFileName = targetName + std::string(".yml");
     auto configFilePath = platformPath / targetConfigFileName;
-    cudaq::info("Config file path for target {} = {}", targetName,
-                configFilePath.string());
+    CUDAQ_INFO("Config file path for target {} = {}", targetName,
+               configFilePath.string());
     // Don't try to load something that doesn't exist.
     if (!std::filesystem::exists(configFilePath))
       return "";
@@ -105,6 +102,7 @@ public:
     return "";
   }
 
+private:
   void setTargetBackend(const std::string &description) override {
     const auto getOpt = [](const std::string &str,
                            const std::string &prefix) -> std::string {
@@ -117,7 +115,7 @@ public:
         return "";
       for (std::size_t i = 0; i < splitParts.size() - 1; ++i) {
         if (splitParts[i] == prefix) {
-          cudaq::debug(
+          CUDAQ_DBG(
               "Retrieved option '{}' for the key '{}' from input string '{}'",
               splitParts[i + 1], prefix, str);
           if (splitParts[i + 1].starts_with("base64_")) {
@@ -126,8 +124,8 @@ public:
             if (auto err = llvm::decodeBase64(splitParts[i + 1], decoded_vec))
               throw std::runtime_error("DecodeBase64 error");
             std::string decodedStr(decoded_vec.data(), decoded_vec.size());
-            cudaq::info("Decoded {} parameter from '{}' to '{}'", splitParts[i],
-                        splitParts[i + 1], decodedStr);
+            CUDAQ_INFO("Decoded {} parameter from '{}' to '{}'", splitParts[i],
+                       splitParts[i + 1], decodedStr);
             return decodedStr;
           }
           return splitParts[i + 1];
@@ -153,55 +151,9 @@ public:
             fmt::format("Unable to retrieve {} QPU implementation. Please "
                         "check your installation.",
                         qpuSubType));
-      if (qpuSubType == "NvcfSimulatorQPU") {
-        platformQPUs.clear();
-        threadToQpuId.clear();
-        auto simName = getOpt(description, "backend");
-        if (simName.empty())
-          simName = "custatevec-fp32";
-        std::string configStr =
-            fmt::format("target;nvqc;simulator;{}", simName);
-        auto getOptAndSetConfig = [&](const std::string &key) {
-          auto val = getOpt(description, key);
-          if (!val.empty())
-            configStr += fmt::format(";{};{}", key, val);
-        };
-        getOptAndSetConfig("api_key");
-        getOptAndSetConfig("function_id");
-        getOptAndSetConfig("version_id");
-
-        auto numQpusStr = getOpt(description, "nqpus");
-        int numQpus = numQpusStr.empty() ? 1 : std::stoi(numQpusStr);
-
-        if (simName.find("nvidia-mqpu") != std::string::npos && numQpus > 1) {
-          // If the backend simulator is an MQPU simulator (like nvidia-mqpu),
-          // then use "nqpus" to determine the number of GPUs to request for the
-          // backend. This allows us to seamlessly translate requests for MQPU
-          // requests to the NVQC platform.
-          configStr += fmt::format(";{};{}", "ngpus", numQpus);
-          // Now change numQpus to 1 for the downstream code, which will make a
-          // single NVQC QPU.
-          numQpus = 1;
-        } else {
-          getOptAndSetConfig("ngpus");
-        }
-
-        if (numQpus < 1)
-          throw std::invalid_argument("Number of QPUs must be greater than 0.");
-        for (int qpuId = 0; qpuId < numQpus; ++qpuId) {
-          // Populate the information and add the QPUs
-          auto qpu = cudaq::registry::get<cudaq::QPU>("NvcfSimulatorQPU");
-          qpu->setId(qpuId);
-          qpu->setTargetBackend(configStr);
-          threadToQpuId[std::hash<std::thread::id>{}(
-              qpu->getExecutionThreadId())] = qpuId;
-          platformQPUs.emplace_back(std::move(qpu));
-        }
-        platformNumQPUs = platformQPUs.size();
-      } else if (qpuSubType == "orca") {
+      if (qpuSubType == "orca") {
         auto urls = cudaq::split(getOpt(description, "url"), ',');
         platformQPUs.clear();
-        threadToQpuId.clear();
         for (std::size_t qId = 0; qId < urls.size(); ++qId) {
           // Populate the information and add the QPUs
           platformQPUs.emplace_back(cudaq::registry::get<cudaq::QPU>("orca"));
@@ -209,10 +161,7 @@ public:
           const std::string configStr =
               fmt::format("orca;url;{}", formatUrl(urls[qId]));
           platformQPUs.back()->setTargetBackend(configStr);
-          threadToQpuId[std::hash<std::thread::id>{}(
-              platformQPUs.back()->getExecutionThreadId())] = qId;
         }
-        platformNumQPUs = platformQPUs.size();
       } else {
         auto urls = cudaq::split(getOpt(description, "url"), ',');
         auto sims = cudaq::split(getOpt(description, "backend"), ',');
@@ -230,7 +179,7 @@ public:
           // Default to launching one instance if no other setting is available.
           const int numInstances =
               numInstanceStr.empty() ? 1 : std::stoi(numInstanceStr);
-          cudaq::info("Auto launch {} REST servers", numInstances);
+          CUDAQ_INFO("Auto launch {} REST servers", numInstances);
           for (int i = 0; i < numInstances; ++i) {
             m_remoteServers.emplace_back(
                 std::make_unique<cudaq::AutoLaunchRestServerProcess>(i));
@@ -247,7 +196,6 @@ public:
               "receiving {}, expecting {}.",
               sims.size(), urls.size()));
         platformQPUs.clear();
-        threadToQpuId.clear();
         for (std::size_t qId = 0; qId < urls.size(); ++qId) {
           const auto simName = sims.size() == 1 ? sims.front() : sims[qId];
           // Populate the information and add the QPUs
@@ -256,11 +204,8 @@ public:
           const std::string configStr =
               fmt::format("url;{};simulator;{}", formatUrl(urls[qId]), simName);
           qpu->setTargetBackend(configStr);
-          threadToQpuId[std::hash<std::thread::id>{}(
-              qpu->getExecutionThreadId())] = qId;
           platformQPUs.emplace_back(std::move(qpu));
         }
-        platformNumQPUs = platformQPUs.size();
       }
     }
   }

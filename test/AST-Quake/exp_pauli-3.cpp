@@ -1,12 +1,12 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %cpp_std %s | cudaq-opt | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 
 #include <cudaq.h>
 
@@ -29,11 +29,6 @@ int main() {
 // CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_2]][1] : (!quake.veq<4>) -> !quake.ref
 // CHECK:           quake.x %[[VAL_4]] : (!quake.ref) -> ()
 // CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_1]] : !cc.ptr<f64>
-// CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_2]][0] : (!quake.veq<4>) -> !quake.ref
-// CHECK:           %[[VAL_8:.*]] = quake.extract_ref %[[VAL_2]][1] : (!quake.veq<4>) -> !quake.ref
-// CHECK:           %[[VAL_9:.*]] = quake.extract_ref %[[VAL_2]][2] : (!quake.veq<4>) -> !quake.ref
-// CHECK:           %[[VAL_10:.*]] = quake.extract_ref %[[VAL_2]][3] : (!quake.veq<4>) -> !quake.ref
-// CHECK:           %[[VAL_11:.*]] = quake.concat %[[VAL_7]], %[[VAL_8]], %[[VAL_9]], %[[VAL_10]] : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> !quake.veq<4>
-// CHECK:           quake.exp_pauli (%[[VAL_5]]) %[[VAL_11]] to "XXXY" : (f64, !quake.veq<4>) -> ()
+// CHECK:           quake.exp_pauli (%[[VAL_5]]) %[[VAL_2]] to "XXXY" : (f64, !quake.veq<4>) -> ()
 // CHECK:           return
 // CHECK:         }

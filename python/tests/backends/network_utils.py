@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -10,7 +10,7 @@ import socket
 import time
 
 
-def check_server_connection(port, retries=10, delay=1):
+def check_server_connection(port, retries=120, delay=1):
     for _ in range(retries):
         try:
             with socket.create_connection(("localhost", port), timeout=1):

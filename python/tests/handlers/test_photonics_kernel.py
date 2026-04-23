@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -14,11 +14,11 @@ import cudaq
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def set_up_target():
     cudaq.set_target("orca-photonics")
     yield
-    cudaq.reset_target()
     cudaq.__clearKernelRegistries()
+    cudaq.reset_target()
 
 
 def test_qudit():
@@ -40,6 +40,23 @@ def test_qudit():
     assert 4 == state.__len__()
 
 
+def test_compilation_unsupported():
+
+    @cudaq.kernel
+    def kernel():
+        q = qudit(level=4)
+        create(q)
+
+    assert not kernel.supports_compilation()
+
+    with pytest.raises(RuntimeError) as e:
+        kernel.compile()
+
+    print(e.value)
+    assert "Cannot compile kernel 'kernel': target handler 'orca-photonics' does not support compilation" in str(
+        e.value)
+
+
 def test_qudit_list():
 
     @cudaq.kernel
@@ -56,12 +73,13 @@ def test_qudit_list():
 
 def test_qudit_invalid():
 
-    @cudaq.kernel
-    def kernel():
-        q = [i for i in range(2)]
-        create(q[0])
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel():
+            q = [i for i in range(2)]
+            create(q[0])
+
         cudaq.sample(kernel)
     assert "Qudit level not set" in repr(e)
 
@@ -164,12 +182,13 @@ def test_target_change():
 
 def test_unsupported_gates():
 
-    @cudaq.kernel
-    def kernel():
-        q = qudit(6)
-        h(q)
-
     with pytest.raises(NameError) as e:
+
+        @cudaq.kernel
+        def kernel():
+            q = qudit(6)
+            h(q)
+
         cudaq.sample(kernel)
     assert "name 'h' is not defined" in repr(e)
 
@@ -182,21 +201,23 @@ def test_unsupported_gates():
 )
 def test_unsupported_types():
 
-    @cudaq.kernel
-    def kernel1():
-        q = cudaq.qubit()
-        create(q)
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel1():
+            q = cudaq.qubit()
+            create(q)
+
         cudaq.sample(kernel1)
     assert "Qudit level not set" in repr(e)
 
-    @cudaq.kernel
-    def kernel2():
-        q = cudaq.qvector(2)
-        create(q[0])
-
     with pytest.raises(Exception) as e:
+
+        @cudaq.kernel
+        def kernel2():
+            q = cudaq.qvector(2)
+            create(q[0])
+
         cudaq.sample(kernel2)
     assert "Qudit level not set" in repr(e)
 
@@ -204,26 +225,45 @@ def test_unsupported_types():
 def test_target_handler():
     cudaq.reset_target()
 
-    @cudaq.kernel
-    def kernel():
-        q = qudit(level=3)
-        create(q)
-        mz(q)
-
     with pytest.raises(RuntimeError):
+
+        @cudaq.kernel
+        def kernel():
+            q = qudit(level=3)
+            create(q)
+            mz(q)
+
         cudaq.sample(kernel)
 
 
 def test_qudit_level():
 
-    @cudaq.kernel
-    def kernel():
-        q1 = qudit(2)
-        q2 = qudit(3)
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel():
+            q1 = qudit(2)
+            q2 = qudit(3)
+
         cudaq.sample(kernel)
     assert "qudits must be of same level" in repr(e)
+
+
+def test_run_unsupported():
+
+    @cudaq.kernel
+    def kernel():
+        q = qudit(level=2)
+        create(q)
+        mz(q)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(kernel, shots_count=10)
+    assert "Unsupported target" in repr(e)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.observe(kernel, None)
+    assert "Unsupported target" in repr(e)
 
 
 # leave for gdb debugging

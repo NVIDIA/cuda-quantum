@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -122,6 +122,44 @@ CUDAQ_TEST(ObserveResult, checkExpValBug) {
   // kernels/gates defined by the two operators is not the same since
   // it acts on a different number of qubits). This is in particular
   // also relevant for noise modeling.
+}
+#endif
+
+CUDAQ_TEST(ObserveResult, checkObserveWithIdentity) {
+
+  auto kernel = []() __qpu__ {
+    cudaq::qvector qubits(5);
+    cudaq::exp_pauli(1.0, qubits, "XXIIX");
+  };
+
+  const std::string pauliWord = "ZZIIZ";
+  const std::size_t numQubits = pauliWord.size();
+  auto pauliOp = cudaq::spin_op::from_word(pauliWord);
+  // The canonicalized degree list is less than the number of qubits
+  EXPECT_LT(cudaq::spin_op::canonicalize(pauliOp).degrees().size(), numQubits);
+  auto expVal = cudaq::observe(kernel, pauliOp);
+  std::cout << "<" << pauliWord << "> = " << expVal.expectation() << "\n";
+  EXPECT_NEAR(expVal.expectation(), -0.416147, 1e-6);
+}
+
+#ifdef CUDAQ_BACKEND_TENSORNET
+CUDAQ_TEST(ObserveResult, checkObserveWithIdentityLarge) {
+
+  auto kernel = []() __qpu__ {
+    cudaq::qvector qubits(50);
+    cudaq::exp_pauli(1.0, qubits,
+                     "XXIIXXXIIXXXIIXXXIIXXXIIXXXIIXXXIIXXXIIXXXIIXXXIXX");
+  };
+
+  const std::string pauliWord =
+      "ZZIIZZZIIZZZIIZZZIIZZZIIZZZIIZZZIIZZZIIZZZIIZZZIZZ";
+  const std::size_t numQubits = pauliWord.size();
+  auto pauliOp = cudaq::spin_op::from_word(pauliWord);
+  // The canonicalized degree list is less than the number of qubits
+  EXPECT_LT(cudaq::spin_op::canonicalize(pauliOp).degrees().size(), numQubits);
+  auto expVal = cudaq::observe(kernel, pauliOp);
+  std::cout << "<" << pauliWord << "> = " << expVal.expectation() << "\n";
+  EXPECT_NEAR(expVal.expectation(), -0.416147, 1e-3);
 }
 #endif
 #endif

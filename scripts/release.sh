@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -51,7 +51,7 @@ done
 # Check that all three workflows above completed successfully. 
 # Once the publishing completes, you should see a draft release on GitHub for the new version.
 
-# Check that all nightly integration tests and NVQC regression tests are enabled and run successfully with the release image. 
+# Check that all nightly integration tests are enabled and run successfully with the release image. 
 # Work with QA to get the release candidate fully validated.
 
 # Go to the draft release on GitHub and download the python wheels and metapackages in the draft release.

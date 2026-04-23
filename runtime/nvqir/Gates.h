@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -44,9 +44,52 @@ enum class GateName {
   U1,
   U2,
   U3,
-  PhasedRx
+  PhasedRx,
+  Swap,
+  Id
 };
 
+/// @brief Given a string, return the corresponding GateName enum value.
+inline GateName getGateNameFromString(const std::string &name) {
+  if (name == "x")
+    return GateName::X;
+  else if (name == "y")
+    return GateName::Y;
+  else if (name == "z")
+    return GateName::Z;
+  else if (name == "h")
+    return GateName::H;
+  else if (name == "s")
+    return GateName::S;
+  else if (name == "sdg")
+    return GateName::Sdg;
+  else if (name == "t")
+    return GateName::T;
+  else if (name == "tdg")
+    return GateName::Tdg;
+  else if (name == "rx")
+    return GateName::Rx;
+  else if (name == "ry")
+    return GateName::Ry;
+  else if (name == "rz")
+    return GateName::Rz;
+  else if (name == "r1")
+    return GateName::R1;
+  else if (name == "u1")
+    return GateName::U1;
+  else if (name == "u2")
+    return GateName::U2;
+  else if (name == "u3")
+    return GateName::U3;
+  else if (name == "phased_rx")
+    return GateName::PhasedRx;
+  else if (name == "swap")
+    return GateName::Swap;
+  else if (name == "id")
+    return GateName::Id;
+
+  throw std::runtime_error("Invalid gate name provided: " + name);
+}
 /// @brief Given the gate name (an element of the GateName enum),
 /// return the matrix data, optionally parameterized by a rotation angle.
 template <typename Scalar>
@@ -128,6 +171,12 @@ getGateByName(GateName name, const std::vector<Scalar> angles = {}) {
                 std::sin(phi / two),
             std::cos(phi / two)};
   }
+  case (GateName::Swap): {
+    // The swap gate is a 4x4 matrix
+    return {1., 0., 0., 0., 0., 0., 1., 0., 0., 1., 0., 0., 0., 0., 0., 1.};
+  }
+  case (GateName::Id):
+    return {{1., 0.}, {0., 0.}, {0., 0.}, {1., 0.}};
   }
 
   throw std::runtime_error("Invalid gate provided to getGateByName.");

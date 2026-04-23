@@ -1,10 +1,14 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
+import functools
+import time
+import warnings
+
 import pytest
 import os, math, sys
 import numpy as np
@@ -13,6 +17,49 @@ import cudaq
 from cudaq import spin
 
 num_qpus = 3
+
+# Keep this module on one xdist worker to avoid multiple auto-launched
+# remote-mqpu clusters competing in parallel.
+pytestmark = pytest.mark.xdist_group("remote_mqpu_platform")
+
+
+def retry_on_flaky_connection(platform="darwin", max_attempts=3, delay=0.5):
+    """Retry decorator for tests that hit transient localhost HTTP
+    connection errors.
+
+    See https://github.com/NVIDIA/cuda-quantum/issues/3910
+    """
+
+    def decorator(func):
+        if sys.platform != platform:
+            return func
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            for attempt in range(max_attempts):
+                try:
+                    return func(*args, **kwargs)
+                except RuntimeError as e:
+                    is_last = attempt == max_attempts - 1
+                    if "status code 0" in str(e) and not is_last:
+                        warnings.warn(
+                            f"[flaky retry] attempt {attempt + 1}/"
+                            f"{max_attempts}: {e}",
+                            RuntimeWarning,
+                            stacklevel=2)
+                        time.sleep(delay * (attempt + 1))
+                        continue
+                    if "status code 0" in str(e):
+                        warnings.warn(
+                            f"[flaky retry] all {max_attempts} "
+                            f"attempts exhausted",
+                            RuntimeWarning,
+                            stacklevel=2)
+                    raise
+
+        return wrapper
+
+    return decorator
 
 
 def assert_close(want, got, tolerance=1.e-5) -> bool:
@@ -27,7 +74,7 @@ def startUpMockServer():
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def run_and_clear_registries():
     yield
     cudaq.__clearKernelRegistries()
 
@@ -247,28 +294,9 @@ def test_additional_spin_ops():
 
 
 def check_state(entity):
-    state = cudaq.get_state(entity)
-    state.dump()
-    assert assert_close(state[0], 1.0 / np.sqrt(2))
-    assert assert_close(state[-1], 1.0 / np.sqrt(2))
-    assert assert_close(state.amplitude([0] * state.num_qubits()),
-                        1.0 / np.sqrt(2))
-    assert assert_close(state.amplitude([1] * state.num_qubits()),
-                        1.0 / np.sqrt(2))
-    # Access amplitudes by bit strings
-    assert assert_close(state.amplitude('0' * state.num_qubits()),
-                        1.0 / np.sqrt(2))
-    assert assert_close(state.amplitude('1' * state.num_qubits()),
-                        1.0 / np.sqrt(2))
-    # Amplitude batch access
-    basisStates = [[0] * state.num_qubits(), [1] * state.num_qubits()]
-    amplitudes = state.amplitudes(basisStates)
-    assert assert_close(amplitudes[0], 1.0 / np.sqrt(2))
-    assert assert_close(amplitudes[0], 1.0 / np.sqrt(2))
-    bitStrings = ['0' * state.num_qubits(), '0' * state.num_qubits()]
-    amplitudes = state.amplitudes(bitStrings)
-    assert assert_close(amplitudes[0], 1.0 / np.sqrt(2))
-    assert assert_close(amplitudes[0], 1.0 / np.sqrt(2))
+    with pytest.raises(RuntimeError) as e:
+        state = cudaq.get_state(entity)
+    assert "get_state is not supported" in repr(e)
 
 
 def test_state():
@@ -295,29 +323,13 @@ def test_state_kernel():
     check_state(kernel)
 
 
-def test_disallowed_execution_context():
-    print("In test_disallowed_execution_context...")
-
-    @cudaq.kernel
-    def simple_kernel():
-        qubits = cudaq.qvector(2)
-        h(qubits[0])
-        x.ctrl(qubits[0], qubits[1])
-        mz(qubits)
-
-    with pytest.raises(
-            RuntimeError,
-            match=
-            "tracer operation is not supported with cudaq target remote-mqpu!"):
-        cudaq.draw(simple_kernel)
-
-
 def check_overlap(entity_bell, entity_x):
-    state1 = cudaq.get_state(entity_bell)
-    state1.dump()
-    state2 = cudaq.get_state(entity_x)
-    state2.dump()
-    assert assert_close(state1.overlap(state2), 1.0 / np.sqrt(2))
+    with pytest.raises(RuntimeError) as e:
+        state1 = cudaq.get_state(entity_bell)
+        state1.dump()
+        state2 = cudaq.get_state(entity_x)
+        state2.dump()
+    assert "get_state is not supported" in repr(e)
 
 
 def test_overlap():
@@ -353,23 +365,25 @@ def test_overlap_kernel():
 
 
 def check_overlap_param(entity):
-    num_tests = 10
-    for i in range(num_tests):
-        angle1 = np.random.rand(
-        ) * 2.0 * np.pi  # random angle in [0, 2pi] range
-        state1 = cudaq.get_state(entity, angle1)
-        print("First angle =", angle1)
-        state1.dump()
-        angle2 = np.random.rand(
-        ) * 2.0 * np.pi  # random angle in [0, 2pi] range
-        print("Second angle =", angle2)
-        state2 = cudaq.get_state(entity, angle2)
-        state2.dump()
-        overlap = state1.overlap(state2)
-        expected = np.abs(
-            np.cos(angle1 / 2) * np.cos(angle2 / 2) +
-            np.sin(angle1 / 2) * np.sin(angle2 / 2))
-        assert assert_close(overlap, expected)
+    with pytest.raises(RuntimeError) as e:
+        num_tests = 10
+        for i in range(num_tests):
+            angle1 = (np.random.rand() * 2.0 * np.pi
+                     )  # random angle in [0, 2pi] range
+            state1 = cudaq.get_state(entity, angle1)
+            print("First angle =", angle1)
+            state1.dump()
+            angle2 = (np.random.rand() * 2.0 * np.pi
+                     )  # random angle in [0, 2pi] range
+            print("Second angle =", angle2)
+            state2 = cudaq.get_state(entity, angle2)
+            state2.dump()
+            overlap = state1.overlap(state2)
+            expected = np.abs(
+                np.cos(angle1 / 2) * np.cos(angle2 / 2) +
+                np.sin(angle1 / 2) * np.sin(angle2 / 2))
+            assert assert_close(overlap, expected)
+    assert "get_state is not supported" in repr(e)
 
 
 def test_overlap_param_kernel():
@@ -395,7 +409,7 @@ def test_math_exp():
     @cudaq.kernel
     def iqft(register: cudaq.qview):
         N = register.size()
-        for i in range(N / 2):
+        for i in range(int(N / 2)):
             swap(register[i], register[N - i - 1])
 
         for i in range(N - 1):
@@ -455,34 +469,20 @@ def test_capture_array():
     assert "1" in counts
 
 
-def test_capture_state():
-    s = cudaq.State.from_data(np.array([1., 0], dtype=np.complex128))
-
-    @cudaq.kernel
-    def kernel():
-        q = cudaq.qvector(s)
-
-    with pytest.raises(
-            RuntimeError,
-            match=
-            "captured states are not supported on quantum hardware or remote simulators"
-    ):
-        counts = cudaq.sample(kernel)
+@cudaq.kernel
+def simple(numQubits: int) -> int:
+    qubits = cudaq.qvector(numQubits)
+    h(qubits.front())
+    for i, qubit in enumerate(qubits.front(numQubits - 1)):
+        x.ctrl(qubit, qubits[i + 1])
+    result = 0
+    for i in range(numQubits):
+        if mz(qubits[i]):
+            result += 1
+    return result
 
 
 def test_run():
-
-    @cudaq.kernel
-    def simple(numQubits: int) -> int:
-        qubits = cudaq.qvector(numQubits)
-        h(qubits.front())
-        for i, qubit in enumerate(qubits.front(numQubits - 1)):
-            x.ctrl(qubit, qubits[i + 1])
-        result = 0
-        for i in range(numQubits):
-            if mz(qubits[i]):
-                result += 1
-        return result
 
     shots = 100
     qubitCount = 4
@@ -495,6 +495,28 @@ def test_run():
         if result == qubitCount:
             non_zero_count += 1
     assert non_zero_count > 0
+
+
+# May be flaky on macOS CI due to
+# https://github.com/NVIDIA/cuda-quantum/issues/3910
+@retry_on_flaky_connection(platform="darwin")
+def test_run_async():
+
+    shots = 10
+    qubitCount = 4
+
+    result_futures = []
+    for i in range(cudaq.get_target().num_qpus()):
+        result = cudaq.run_async(simple,
+                                 qubitCount,
+                                 shots_count=shots,
+                                 qpu_id=i)
+        result_futures.append(result)
+
+    for idx in range(len(result_futures)):
+        res = result_futures[idx].get()
+        print(f"{idx} : {res}")
+        assert len(res) == shots
 
 
 # leave for gdb debugging

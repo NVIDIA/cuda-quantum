@@ -41,7 +41,7 @@ Here's a template for implementing a server helper class:
 .. code-block:: cpp
 
     // ProviderNameServerHelper.cpp
-    #include "common/Logger.h"
+    #include "cudaq/runtime/logger/logger.h"
     #include "common/RestClient.h"
     #include "common/ServerHelper.h"
     #include "cudaq/Support/Version.h"
@@ -83,7 +83,7 @@ Here's a template for implementing a server helper class:
     
       /// @brief Example implementation of backend initialization.
       void initialize(BackendConfig config) override {
-        cudaq::info("Initializing Provider Name Backend");
+        CUDAQ_INFO("Initializing Provider Name Backend");
         backendConfig = config;
         
         if (!backendConfig.count("url"))
@@ -143,7 +143,7 @@ Here's a template for implementing a server helper class:
       /// This is the place to do that.
       cudaq::sample_result processResults(ServerMessage &getJobResponse,
                                          std::string &jobId) override {
-        cudaq::info("Processing results: {}", getJobResponse.dump());
+        CUDAQ_INFO("Processing results: {}", getJobResponse.dump());
         
         // Extract measurement results from the response
         auto samplesJson = getJobResponse["results"]["counts"];
@@ -223,9 +223,9 @@ Create a ``YAML`` configuration file for your target:
       gen-target-backend: true
       # Add preprocessor defines to compilation
       preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
-      # Define the lowering pipeline
+      # Define the JIT lowering pipeline
       # This will cover applying hardware-specific constraints since each provider may have different native gate sets, requiring custom mappings and decompositions. You may need assistance from the CUDA-Q team to set this up correctly.
-      platform-lowering-config: "classical-optimization-pipeline,globalize-array-values,func.func(state-prep),unitary-synthesis,canonicalize,apply-op-specialization,aggressive-early-inlining,classical-optimization-pipeline,func.func(lower-to-cfg,canonicalize,multicontrol-decomposition),decomposition{enable-patterns=U3ToRotations},symbol-dce,<provider_name>-gate-set-mapping"
+      jit-mid-level-pipeline: "lower-to-cfg,func.func(canonicalize,multicontrol-decomposition),decomposition{enable-patterns=U3ToRotations},symbol-dce,<provider_name>-gate-set-mapping"
       # Tell the rest-qpu that we are generating QIR base profile.
       # As of the time of this writing, qasm2, qir-base and qir-adaptive are supported.
       codegen-emission: qir-base
@@ -286,18 +286,16 @@ Create unit tests for your server helper:
 .. code-block:: cmake
 
     # CMakeLists.txt
-    add_executable(ProviderNameTester ProviderNameTester.cpp)
-    target_link_libraries(ProviderNameTester
-      PRIVATE
-      cudaq-common
-      cudaq
-      gtest_main
+    add_backend_unittest_executable(ProviderNameTester 
+      SOURCES ProviderNameTester.cpp
+      BACKEND ProviderName
+      BACKEND_CONFIG "<provider_name> url=http://localhost:<PORT>"
     )
     
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/ProviderNameStartServerAndTest.sh.in
-                  ${CMAKE_CURRENT_BINARY_DIR}/ProviderNameStartServerAndTest.sh @ONLY)
+    configure_file(ProviderNameStartServerAndTest.sh.in
+                   ProviderNameStartServerAndTest.sh @ONLY)
     
-    add_test(NAME ProviderNameTester COMMAND ${CMAKE_CURRENT_BINARY_DIR}/ProviderNameStartServerAndTest.sh)
+    add_test(NAME ProviderNameTester COMMAND bash ProviderNameStartServerAndTest.sh)
     set_tests_properties(ProviderNameTester PROPERTIES TIMEOUT 120)
 
 3. Create a shell script to start the mock server and run tests:
@@ -307,7 +305,7 @@ Create unit tests for your server helper:
     #!/bin/bash
     
     # Start the mock server
-    python3 -m utils.mock_qpu.<provider_name> @PORT@ &
+    python3 utils/start_mock_qpu.py <provider_name> &
     SERVER_PID=$!
     
     # Wait for server to start
@@ -328,21 +326,13 @@ Create unit tests for your server helper:
 .. code-block:: cpp
 
     // ProviderNameTester.cpp
-    #include "common/Logger.h"
+    #include "cudaq/runtime/logger/logger.h"
     #include "common/RestClient.h"
     #include "common/ServerHelper.h"
     #include "cudaq/platform/quantum_platform.h"
     #include "gtest/gtest.h"
     
     TEST(ProviderNameTester, checkSimpleCircuit) {
-      // Initialize the platform
-      auto platform = cudaq::get_platform();
-      platform->setTargetBackend("<provider_name>");
-      
-      // Set configuration
-      platform->setBackendParameter("url", "http://localhost:PORT");
-      platform->setBackendParameter("api_key", "test_key");
-      
       // Create a simple circuit
       auto kernel = cudaq::make_kernel();
       auto qubits = kernel.qalloc(2);
@@ -374,7 +364,7 @@ And add the following to your ``targettests`` ``.cpp`` file:
 
 .. code-block:: cpp
 
-    // RUN: if %provider_avail; then nvq++ %cpp_std --target provider %s -o %t.x; fi
+    // RUN: if %provider_avail; then nvq++ --target provider %s -o %t.x; fi
 
 Mock Server
 -----------

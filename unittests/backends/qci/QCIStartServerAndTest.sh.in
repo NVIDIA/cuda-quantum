@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# ============================================================================ #
+# Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+checkServerConnection() {
+  PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ - << EOF
+import socket
+try:
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect(("localhost", 62449))
+    s.close()
+except Exception:
+    exit(1)
+EOF
+}
+
+
+# Launch the mock server
+PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/start_mock_qpu.py qci &
+# we'll need the process id to kill it
+pid=$(echo "$!")
+n=0
+while ! checkServerConnection; do
+  sleep 1
+  n=$((n+1))
+  if [ "$n" -eq "60" ]; then
+    kill -INT $pid
+    exit 99
+  fi
+done
+# Set the environment before entering main
+export QCI_AUTH_TOKEN="00000000000000000000000000000000"
+export QCI_API_URL="http://localhost:62449"
+# Run the tests
+./test_qci
+# Did they fail? 
+testsPassed=$?
+# kill the server
+kill -INT $pid
+# return success / failure
+exit $testsPassed

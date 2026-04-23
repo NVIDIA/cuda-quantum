@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -125,15 +125,15 @@ void MPIPlugin::all_reduce(std::vector<double> &global,
 }
 
 void MPIPlugin::finalize() {
-  if (rank() == 0)
-    cudaq::info("Finalizing MPI.");
-
   // Check if finalize has been called.
   int isFinalized{0};
   HANDLE_MPI_ERROR(m_distributedInterface->finalized(&isFinalized));
 
   if (isFinalized)
     return;
+
+  if (rank() == 0)
+    CUDAQ_INFO("Finalizing MPI.");
 
   // Finalize
   HANDLE_MPI_ERROR(m_distributedInterface->finalize());

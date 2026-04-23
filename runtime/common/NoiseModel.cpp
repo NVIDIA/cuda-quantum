@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -7,19 +7,19 @@
  ******************************************************************************/
 
 #include "NoiseModel.h"
-#include "Logger.h"
+#include "FmtCore.h"
 #include "common/CustomOp.h"
 #include "common/EigenDense.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <numeric>
 #include <optional>
-
-namespace cudaq {
 
 // Helper to check whether a matrix is a scaled unitary matrix, i.e., `k * U`
 // where U is a unitary matrix. If so, it also returns the `k` factor.
 // Otherwise, return a nullopt.
-static std::optional<double>
-isScaledUnitary(const std::vector<std::complex<double>> &mat, double eps) {
+std::optional<double>
+cudaq::isScaledUnitary(const std::vector<std::complex<double>> &mat,
+                       double eps) {
   typedef Eigen::Matrix<std::complex<double>, Eigen::Dynamic, Eigen::Dynamic,
                         Eigen::RowMajor>
       RowMajorMatTy;
@@ -34,9 +34,9 @@ isScaledUnitary(const std::vector<std::complex<double>> &mat, double eps) {
     return std::nullopt;
   // First element
   std::complex<double> val = kdK(0, 0);
-  if (val.real() > eps && std::abs(val.imag()) < eps) {
+  if (val.real() > 0.0 && std::abs(val.imag()) < eps) {
     auto scaledKdK = (std::complex<double>{1.0} / val) * kdK;
-    if (scaledKdK.isIdentity())
+    if (scaledKdK.isIdentity(eps))
       return std::sqrt(val.real());
   }
   return std::nullopt;
@@ -45,11 +45,11 @@ isScaledUnitary(const std::vector<std::complex<double>> &mat, double eps) {
 // Helper to determine if a vector of Kraus ops are actually a unitary mixture.
 // If so, it returns all the unitaries and the probabilities associated with
 // each one of those unitaries.
-static std::optional<std::pair<std::vector<double>,
-                               std::vector<std::vector<std::complex<double>>>>>
-computeUnitaryMixture(
+std::optional<std::pair<std::vector<double>,
+                        std::vector<std::vector<std::complex<double>>>>>
+cudaq::computeUnitaryMixture(
     const std::vector<std::vector<std::complex<double>>> &krausOps,
-    double tol = 1e-6) {
+    double tol) {
   std::vector<double> probs;
   std::vector<std::vector<std::complex<double>>> mats;
   const auto scaleMat = [](const std::vector<std::complex<double>> &mat,
@@ -76,6 +76,8 @@ computeUnitaryMixture(
 
   return std::make_pair(probs, mats);
 }
+
+namespace cudaq {
 
 template <typename EigenMatTy>
 bool isIdentity(const EigenMatTy &mat, double threshold = 1e-9) {
@@ -143,10 +145,45 @@ void validateCompletenessRelation_fp64(const std::vector<kraus_op> &ops) {
         "Provided kraus_ops are not completely positive and trace preserving.");
 }
 
+namespace {
+// Check whether a d x d unitary matrix (stored row-major as a flat vector)
+// is a global-phase-times-identity, i.e. e^{i*phi} * I. Global phase is
+// unobservable in measurement, so these operators act as identity for PTSBE.
+bool isIdentityUnitary(const std::vector<std::complex<double>> &mat,
+                       double tol = 1e-6) {
+  auto n = mat.size();
+  if (n == 0)
+    return false;
+  std::size_t dim = static_cast<std::size_t>(std::round(std::sqrt(n)));
+  if (dim * dim != n)
+    return false;
+  auto phase = mat[0];
+  if (std::abs(std::abs(phase) - 1.0) > tol)
+    return false;
+  for (std::size_t r = 0; r < dim; ++r) {
+    for (std::size_t c = 0; c < dim; ++c) {
+      auto expected = (r == c) ? phase : std::complex<double>(0.0);
+      if (std::abs(mat[r * dim + c] - expected) > tol)
+        return false;
+    }
+  }
+  return true;
+}
+
+void computeIdentityFlags(
+    const std::vector<std::vector<std::complex<double>>> &unitary_ops,
+    std::vector<bool> &identity_flags) {
+  identity_flags.clear();
+  identity_flags.reserve(unitary_ops.size());
+  for (const auto &u : unitary_ops)
+    identity_flags.push_back(isIdentityUnitary(u));
+}
+} // namespace
+
 void generateUnitaryParameters_fp32(
     const std::vector<kraus_op> &ops,
     std::vector<std::vector<std::complex<double>>> &unitary_ops,
-    std::vector<double> &probabilities) {
+    std::vector<double> &probabilities, std::vector<bool> &identity_flags) {
   std::vector<std::vector<std::complex<double>>> double_kraus_ops;
   double_kraus_ops.reserve(ops.size());
   for (auto &op : ops) {
@@ -165,13 +202,14 @@ void generateUnitaryParameters_fp32(
   if (asUnitaryMixture.has_value()) {
     probabilities = std::move(asUnitaryMixture.value().first);
     unitary_ops = std::move(asUnitaryMixture.value().second);
+    computeIdentityFlags(unitary_ops, identity_flags);
   }
 }
 
 void generateUnitaryParameters_fp64(
     const std::vector<kraus_op> &ops,
     std::vector<std::vector<std::complex<double>>> &unitary_ops,
-    std::vector<double> &probabilities) {
+    std::vector<double> &probabilities, std::vector<bool> &identity_flags) {
   std::vector<std::vector<std::complex<double>>> double_kraus_ops;
   double_kraus_ops.reserve(ops.size());
   for (auto &op : ops)
@@ -182,13 +220,15 @@ void generateUnitaryParameters_fp64(
   if (asUnitaryMixture.has_value()) {
     probabilities = std::move(asUnitaryMixture.value().first);
     unitary_ops = std::move(asUnitaryMixture.value().second);
+    computeIdentityFlags(unitary_ops, identity_flags);
   }
 }
 
 kraus_channel::kraus_channel(const kraus_channel &other)
     : ops(other.ops), noise_type(other.noise_type),
       parameters(other.parameters), unitary_ops(other.unitary_ops),
-      probabilities(other.probabilities) {}
+      probabilities(other.probabilities), identity_flags(other.identity_flags),
+      op_names(other.op_names) {}
 
 std::size_t kraus_channel::size() const { return ops.size(); }
 
@@ -204,11 +244,22 @@ kraus_channel &kraus_channel::operator=(const kraus_channel &other) {
   parameters = other.parameters;
   unitary_ops = other.unitary_ops;
   probabilities = other.probabilities;
+  identity_flags = other.identity_flags;
+  op_names = other.op_names;
   return *this;
 }
 
 std::vector<kraus_op> kraus_channel::get_ops() const { return ops; }
-void kraus_channel::push_back(kraus_op op) { ops.push_back(op); }
+
+void kraus_channel::push_back(kraus_op op, std::optional<std::string> name) {
+  ops.push_back(op);
+  identity_flags.push_back(false);
+  if (name.has_value())
+    op_names.push_back(std::move(*name));
+  else
+    op_names.push_back(get_type_name() + "[" + std::to_string(ops.size() - 1) +
+                       "]");
+}
 
 void noise_model::add_channel(const std::string &quantumOp,
                               const std::vector<std::size_t> &qubits,
@@ -233,15 +284,15 @@ void noise_model::add_channel(const std::string &quantumOp,
   auto key = std::make_pair(quantumOp, qubits);
   auto iter = noiseModel.find(key);
   if (iter == noiseModel.end()) {
-    cudaq::info("Adding new kraus_channel to noise_model ({}, {})", quantumOp,
-                qubits);
+    CUDAQ_INFO("Adding new kraus_channel to noise_model ({}, {})", quantumOp,
+               qubits);
     noiseModel.insert({key, {channel}});
     return;
   }
 
-  cudaq::info("kraus_channel existed for {}, adding new kraus_channel to "
-              "noise_model (qubits = {})",
-              quantumOp, qubits);
+  CUDAQ_INFO("kraus_channel existed for {}, adding new kraus_channel to "
+             "noise_model (qubits = {})",
+             quantumOp, qubits);
 
   iter->second.push_back(channel);
 }
@@ -274,16 +325,16 @@ void noise_model::add_all_qubit_channel(const std::string &quantumOp,
   GateIdentifier key(actualGateName, numControls);
   auto iter = defaultNoiseModel.find(key);
   if (iter == defaultNoiseModel.end()) {
-    cudaq::info("Adding new all-qubit kraus_channel to noise_model ({}, number "
-                "of control bits = {})",
-                actualGateName, numControls);
+    CUDAQ_INFO("Adding new all-qubit kraus_channel to noise_model ({}, number "
+               "of control bits = {})",
+               actualGateName, numControls);
     defaultNoiseModel.insert({key, {channel}});
     return;
   }
 
-  cudaq::info("kraus_channel existed for {}, adding new kraus_channel to "
-              "noise_model (number of control bits = {})",
-              actualGateName, numControls);
+  CUDAQ_INFO("kraus_channel existed for {}, adding new kraus_channel to "
+             "noise_model (number of control bits = {})",
+             actualGateName, numControls);
 
   iter->second.push_back(channel);
 }
@@ -297,8 +348,8 @@ void noise_model::add_channel(const std::string &quantumOp,
         "Invalid quantum op for noise_model::add_channel (" + quantumOp + ").");
   auto iter = gatePredicates.find(quantumOp);
   if (iter == gatePredicates.end()) {
-    cudaq::info("Adding new callback kraus_channel to noise_model for {}.",
-                quantumOp);
+    CUDAQ_INFO("Adding new callback kraus_channel to noise_model for {}.",
+               quantumOp);
     gatePredicates.insert({quantumOp, pred});
     return;
   }
@@ -330,7 +381,7 @@ noise_model::get_channels(const std::string &quantumOp,
   auto iter = noiseModel.find(key);
   // Note: we've validated the channel dimension in the 'add_channel' method.
   if (iter != noiseModel.end()) {
-    cudaq::info("Found kraus_channel for {} on {}.", quantumOp, qubits);
+    CUDAQ_INFO("Found kraus_channel for {} on {}.", quantumOp, qubits);
     const auto &krausChannel = iter->second;
     resultChannels.insert(resultChannels.end(), krausChannel.begin(),
                           krausChannel.end());
@@ -340,7 +391,7 @@ noise_model::get_channels(const std::string &quantumOp,
   auto defaultIter =
       defaultNoiseModel.find(GateIdentifier(quantumOp, controlQubits.size()));
   if (defaultIter != defaultNoiseModel.end()) {
-    cudaq::info(
+    CUDAQ_INFO(
         "Found default kraus_channel setting for {} with {} control bits.",
         quantumOp, controlQubits.size());
 
@@ -359,7 +410,7 @@ noise_model::get_channels(const std::string &quantumOp,
   // Look up predicate-specific noise settings
   auto predIter = gatePredicates.find(quantumOp);
   if (predIter != gatePredicates.end()) {
-    cudaq::info("Found callback kraus_channel setting for {}.", quantumOp);
+    CUDAQ_INFO("Found callback kraus_channel setting for {}.", quantumOp);
     const auto krausChannel = predIter->second(qubits, params);
     if (!verifyChannelDimension({krausChannel}))
       throw std::runtime_error(fmt::format(
@@ -373,7 +424,7 @@ noise_model::get_channels(const std::string &quantumOp,
   }
 
   if (resultChannels.empty())
-    cudaq::info("No kraus_channel available for {} on {}.", quantumOp, qubits);
+    CUDAQ_INFO("No kraus_channel available for {} on {}.", quantumOp, qubits);
 
   return resultChannels;
 }

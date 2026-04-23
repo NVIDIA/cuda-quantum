@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -15,7 +15,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "llvm/ADT/TypeSwitch.h"
-#include "mlir/Transforms/DialectConversion.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 
 #define DEBUG_TYPE "return-to-output-log"
@@ -28,27 +28,27 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
-class ReturnRewrite : public OpRewritePattern<func::ReturnOp> {
+class ReturnRewrite : public OpRewritePattern<cudaq::cc::LogOutputOp> {
 public:
-  using OpRewritePattern::OpRewritePattern;
+  ReturnRewrite(MLIRContext *ctx, bool allowDynamic)
+      : OpRewritePattern(ctx), allowDynamic(allowDynamic) {}
 
   // This is where the heavy lifting is done. We take the return op's operand(s)
   // and convert them to calls to the QIR output logging functions with the
   // appropriate label information.
-  LogicalResult matchAndRewrite(func::ReturnOp ret,
+  LogicalResult matchAndRewrite(cudaq::cc::LogOutputOp log,
                                 PatternRewriter &rewriter) const override {
-    auto loc = ret.getLoc();
-    // For each operand:
-    for (auto operand : ret.getOperands())
-      genOutputLog(loc, rewriter, operand, std::nullopt);
-    auto unitAttr = rewriter.getUnitAttr();
-    rewriter.updateRootInPlace(
-        ret, [&]() { ret->setAttr("cc.cudaq.run", unitAttr); });
+    auto loc = log.getLoc();
+    // For each operand, generate a QIR logging call.
+    for (auto operand : log.getOperands())
+      genOutputLog(loc, rewriter, operand, std::nullopt, allowDynamic);
+    rewriter.eraseOp(log);
     return success();
   }
 
   static void genOutputLog(Location loc, PatternRewriter &rewriter, Value val,
-                           std::optional<StringRef> prefix) {
+                           std::optional<StringRef> prefix,
+                           bool allowDynamic = false) {
     Type valTy = val.getType();
     TypeSwitch<Type>(valTy)
         .Case([&](IntegerType intTy) {
@@ -108,7 +108,7 @@ public:
             Value w = rewriter.create<cudaq::cc::ExtractValueOp>(
                 loc, structTy.getMember(i), val,
                 ArrayRef<cudaq::cc::ExtractValueArg>{i});
-            genOutputLog(loc, rewriter, w, offset);
+            genOutputLog(loc, rewriter, w, offset, allowDynamic);
           }
         })
         .Case([&](cudaq::cc::ArrayType arrTy) {
@@ -126,14 +126,12 @@ public:
             Value w = rewriter.create<cudaq::cc::ExtractValueOp>(
                 loc, arrTy.getElementType(), val,
                 ArrayRef<cudaq::cc::ExtractValueArg>{i});
-            genOutputLog(loc, rewriter, w, offset);
+            genOutputLog(loc, rewriter, w, offset, allowDynamic);
           }
         })
         .Case([&](cudaq::cc::StdvecType vecTy) {
           // For this type, we expect a cc.stdvec_init operation as the input.
           // The data will be in a variable.
-          // If we reach here and we cannot determine the constant size of the
-          // buffer, then we will not generate any output logging.
           if (auto vecInit = val.getDefiningOp<cudaq::cc::StdvecInitOp>())
             if (auto maybeLen = cudaq::opt::factory::maybeValueOfIntConstant(
                     vecInit.getLength())) {
@@ -158,9 +156,55 @@ public:
                 auto v = rewriter.create<cudaq::cc::ComputePtrOp>(
                     loc, buffTy, buffer, ArrayRef<cudaq::cc::ComputePtrArg>{i});
                 Value w = rewriter.create<cudaq::cc::LoadOp>(loc, v);
-                genOutputLog(loc, rewriter, w, offset);
+                genOutputLog(loc, rewriter, w, offset, allowDynamic);
               }
+              return;
             }
+          // Dynamic size: use runtime span logging helpers.
+          if (!allowDynamic)
+            return;
+          auto eleTy = vecTy.getElementType();
+          auto i8PtrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
+          Value size = rewriter.create<cudaq::cc::StdvecSizeOp>(
+              loc, rewriter.getI64Type(), val);
+          Value rawData =
+              rewriter.create<cudaq::cc::StdvecDataOp>(loc, i8PtrTy, val);
+          if (auto intTy = dyn_cast<IntegerType>(eleTy)) {
+            if (eleTy == rewriter.getI1Type()) {
+              rewriter.create<func::CallOp>(loc, TypeRange{},
+                                            cudaq::opt::QIRBoolSpanRecordOutput,
+                                            ArrayRef<Value>{rawData, size});
+            } else {
+              std::int32_t byteSize = (intTy.getWidth() + 7) / 8;
+              Value elemSize =
+                  rewriter.create<arith::ConstantIntOp>(loc, byteSize, 32);
+              rewriter.create<func::CallOp>(
+                  loc, TypeRange{}, cudaq::opt::QIRIntSpanRecordOutput,
+                  ArrayRef<Value>{rawData, size, elemSize});
+            }
+          } else if (isa<FloatType>(eleTy)) {
+            auto floatTy = cast<FloatType>(eleTy);
+            std::int32_t byteSize = floatTy.getWidth() / 8;
+            Value elemSize =
+                rewriter.create<arith::ConstantIntOp>(loc, byteSize, 32);
+            rewriter.create<func::CallOp>(
+                loc, TypeRange{}, cudaq::opt::QIRFloatSpanRecordOutput,
+                ArrayRef<Value>{rawData, size, elemSize});
+          } else {
+            // Unsupported element type — trap.
+            LLVM_DEBUG(llvm::dbgs()
+                       << "ReturnToOutputLog -- unsupported element type: "
+                       << eleTy << "\n");
+            Value one = rewriter.create<arith::ConstantIntOp>(loc, 1, 64);
+            rewriter.create<func::CallOp>(loc, TypeRange{}, cudaq::opt::QISTrap,
+                                          ValueRange{one});
+          }
+        })
+        .Default([&](Type) {
+          // If we reach here, we don't know how to handle this type.
+          Value one = rewriter.create<arith::ConstantIntOp>(loc, 1, 64);
+          rewriter.create<func::CallOp>(loc, TypeRange{}, cudaq::opt::QISTrap,
+                                        ValueRange{one});
         });
   }
 
@@ -203,6 +247,8 @@ public:
     auto i8PtrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
     return rewriter.create<cudaq::cc::CastOp>(loc, i8PtrTy, lit);
   }
+
+  bool allowDynamic;
 };
 
 struct ReturnToOutputLogPass
@@ -211,31 +257,37 @@ struct ReturnToOutputLogPass
 
   void runOnOperation() override {
     auto module = getOperation();
-    if (!module->hasAttr(cudaq::runtime::enableCudaqRun))
-      return;
 
     auto *ctx = &getContext();
     auto irBuilder = cudaq::IRBuilder::atBlockEnd(module.getBody());
-    if (failed(irBuilder.loadIntrinsic(module, "qir_output_logging"))) {
-      module.emitError("could not load QIR output logging declarations.");
+    if (failed(irBuilder.loadIntrinsic(module,
+                                       cudaq::opt::QIRArrayRecordOutput))) {
+      module.emitError("could not load QIR output logging functions.");
       signalPassFailure();
       return;
     }
+    if (failed(irBuilder.loadIntrinsic(module, cudaq::opt::QISTrap))) {
+      module.emitError("could not load QIR trap function.");
+      signalPassFailure();
+      return;
+    }
+    if (allowDynamicResult) {
+      if (failed(irBuilder.loadIntrinsic(
+              module, cudaq::opt::QIRBoolSpanRecordOutput)) ||
+          failed(irBuilder.loadIntrinsic(module,
+                                         cudaq::opt::QIRIntSpanRecordOutput)) ||
+          failed(irBuilder.loadIntrinsic(
+              module, cudaq::opt::QIRFloatSpanRecordOutput))) {
+        module.emitError("could not load QIR span output logging functions.");
+        signalPassFailure();
+        return;
+      }
+    }
 
     RewritePatternSet patterns(ctx);
-    patterns.insert<ReturnRewrite>(ctx);
+    patterns.insert<ReturnRewrite>(ctx, allowDynamicResult);
     LLVM_DEBUG(llvm::dbgs() << "Before return to output logging:\n" << module);
-    ConversionTarget target(*ctx);
-    target.addLegalDialect<arith::ArithDialect, cudaq::cc::CCDialect,
-                           func::FuncDialect>();
-    target.addDynamicallyLegalOp<func::ReturnOp>([&](func::ReturnOp ret) {
-      // Legal if return is not in an entry-point or does not return a value.
-      if (auto fn = ret->getParentOfType<func::FuncOp>())
-        return !fn->hasAttr(cudaq::entryPointAttrName) ||
-               ret->hasAttr("cc.cudaq.run");
-      return true;
-    });
-    if (failed(applyPartialConversion(module, target, std::move(patterns))))
+    if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
       signalPassFailure();
     LLVM_DEBUG(llvm::dbgs() << "After return to output logging:\n" << module);
   }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -217,8 +217,8 @@ static bool hasStdVectorBool(Type ty) {
 
 // The host-side type of a `std::vector<bool>` is distinct from the transient
 // type for a `std::vector<bool>`. The former is a unique data type with a size
-// of 40 bytes. The latter is identical to `std::vector<char>` (which has a size
-// of 24 bytes).
+// of 40 bytes on libstdc++ (Linux) or 24 bytes on libc++ (macOS). The latter
+// is identical to `std::vector<char>` (which has a size of 24 bytes).
 static Type convertToTransientType(Type ty, ModuleOp mod) {
   if (isStdVectorBool(ty)) {
     auto *ctx = ty.getContext();
@@ -785,7 +785,8 @@ cudaq::opt::marshal::dropAnyHiddenArguments(MutableArrayRef<BlockArgument> args,
 std::pair<bool, func::FuncOp> cudaq::opt::marshal::lookupHostEntryPointFunc(
     StringRef mangledEntryPointName, ModuleOp module, func::FuncOp funcOp) {
   if (mangledEntryPointName == "BuilderKernel.EntryPoint" ||
-      mangledEntryPointName.contains("_PyKernelEntryPointRewrite")) {
+      mangledEntryPointName.contains("_PyKernelEntryPointRewrite") ||
+      funcOp.empty()) {
     // No host entry point needed.
     return {false, func::FuncOp{}};
   }

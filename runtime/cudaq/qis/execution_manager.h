@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -9,9 +9,10 @@
 #pragma once
 
 #include "common/CustomOp.h"
-#include "common/MeasureCounts.h"
 #include "common/NoiseModel.h"
 #include "common/QuditIdTracker.h"
+#include "common/SampleResult.h"
+#include "cudaq/algorithms/policies.h"
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
 #include <deque>
@@ -58,6 +59,15 @@ public:
 
   operator int() const { return result; }
   operator bool() const { return __nvqpp__MeasureResultBoolConversion(result); }
+
+  static std::vector<bool>
+  to_bool_vector(const std::vector<measure_result> &results) {
+    std::vector<bool> boolResults;
+    boolResults.reserve(results.size());
+    for (const auto &res : results)
+      boolResults.push_back(static_cast<bool>(res));
+    return boolResults;
+  }
 };
 #else
 /// When compiling with MLIR, we default to a boolean.
@@ -101,11 +111,22 @@ public:
   /// Checker for qudits that were not deallocated
   bool memoryLeaked() { return !tracker.allDeallocated(); }
 
-  /// Provide an ExecutionContext for the current cudaq kernel
-  virtual void setExecutionContext(cudaq::ExecutionContext *ctx) = 0;
+  /// Configure the execution context before an execution.
+  virtual void configureExecutionContext(ExecutionContext &ctx) {}
 
-  /// Reset the execution context
-  virtual void resetExecutionContext() = 0;
+  /// Finalize the execution context after an execution.
+  void finalizeExecutionContext(ExecutionContext &ctx);
+
+  virtual void finalizeExecutionContext(const other_policies &policy,
+                                        ExecutionContext &ctx) {}
+  virtual sample_result finalizeExecutionContext(const sample_policy &policy,
+                                                 ExecutionContext &ctx) = 0;
+
+  /// Set up the execution manager for a new execution.
+  virtual void beginExecution() {}
+
+  /// Clean up the execution manager after an execution.
+  virtual void endExecution() {}
 
   /// @brief Initialize the state of the given qudits to the provided
   /// state vector.
@@ -184,19 +205,51 @@ public:
   virtual ~ExecutionManager() = default;
 };
 
+inline sample_result finalize_execution_manager_impl(
+    ExecutionManager &mgr, const sample_policy &policy, ExecutionContext &ctx) {
+  return mgr.finalizeExecutionContext(policy, ctx);
+}
+
+inline void finalize_execution_manager_impl(ExecutionManager &mgr,
+                                            ExecutionContext &ctx) {
+  mgr.finalizeExecutionContext(other_policies{}, ctx);
+}
+
 // Function declaration, implemented by the macro expansion below
 ExecutionManager *getRegisteredExecutionManager();
 
-// Function declaration, implemented elsewhere
+// Function declarations for explicit execution manager override
+// (implemented in execution_manager.cpp)
 ExecutionManager *getExecutionManagerInternal();
+void setExecutionManagerInternal(ExecutionManager *em);
+void resetExecutionManagerInternal();
 
-// Get the execution manager instance.
-inline ExecutionManager *getExecutionManager() {
+/// @brief Get an instance of the default execution manager.
+///
+/// Returns the explicitly set manager if one was set via
+/// setExecutionManagerInternal(), otherwise returns the default registered
+/// manager via getRegisteredExecutionManager().
+inline ExecutionManager *getDefaultExecutionManager() {
   ExecutionManager *em = getExecutionManagerInternal();
+  if (em)
+    return em;
+  return getRegisteredExecutionManager();
+}
+
+namespace detail {
+ExecutionManager *getExecutionManagerFromContext();
+}
+
+/// Get the current execution manager.
+///
+/// This may only be called within a CUDA-Q kernel execution.
+inline ExecutionManager *getExecutionManager() {
+  ExecutionManager *em = detail::getExecutionManagerFromContext();
   if (em) {
     return em;
   }
-  return getRegisteredExecutionManager();
+  // if not execution context is set, use the default execution manager
+  return getDefaultExecutionManager();
 }
 
 } // namespace cudaq

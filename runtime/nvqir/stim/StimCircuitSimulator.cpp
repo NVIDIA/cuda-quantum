@@ -1,23 +1,34 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/FmtCore.h"
 #include "nvqir/CircuitSimulator.h"
-#include "nvqir/Gates.h"
 #include "stim.h"
-
-#include <bit>
-#include <iostream>
-#include <set>
-#include <span>
+#include <cmath>
+#include <numeric>
 
 using namespace cudaq;
 
 namespace nvqir {
+
+/// @brief Collection of information about a noise type in Stim
+struct StimNoiseType {
+  /// The name of the error mechanism in Stim
+  std::string stim_name;
+  /// Whether the error mechanism flips X; one per error mechanism per target
+  std::vector<bool> flips_x;
+  /// Whether the error mechanism flips Z; one per error mechanism per target
+  std::vector<bool> flips_z;
+  /// One probability per error mechanism
+  std::vector<double> params;
+  /// The number of targets for the noise type
+  int num_targets = 1;
+};
 
 /// @brief The StimCircuitSimulator implements the CircuitSimulator
 /// base class to provide a simulator delegating to the Stim library from
@@ -40,28 +51,95 @@ protected:
   /// @brief Stim Frame/Flip simulator (used to generate multiple shots)
   std::unique_ptr<stim::FrameSimulator<W>> sampleSim;
 
-  std::optional<std::string>
+  /// @brief Error counter for MSM generation. This is only used for "msm" and
+  /// "msm_size" execution contexts.
+  std::size_t msm_err_count = 0;
+
+  /// @brief Error ID counter for MSM generation. This is only used for "msm"
+  /// and "msm_size" execution contexts.
+  std::size_t msm_id_counter = 0;
+
+  /// @brief Whether or not the execution context name is "msm" (value is cached
+  /// for speed)
+  bool is_msm_mode = false;
+
+  std::optional<StimNoiseType>
   isValidStimNoiseChannel(const kraus_channel &channel) const {
 
     // Check the old way first
     switch (channel.noise_type) {
     case cudaq::noise_model_type::bit_flip_channel:
     case cudaq::noise_model_type::x_error:
-      return "X_ERROR";
+      return StimNoiseType{.stim_name = "X_ERROR",
+                           .flips_x = {true},
+                           .flips_z = {false},
+                           .params = {channel.parameters[0]}};
     case cudaq::noise_model_type::y_error:
-      return "Y_ERROR";
+      return StimNoiseType{.stim_name = "Y_ERROR",
+                           .flips_x = {true},
+                           .flips_z = {true},
+                           .params = {channel.parameters[0]}};
     case cudaq::noise_model_type::phase_flip_channel:
     case cudaq::noise_model_type::z_error:
-      return "Z_ERROR";
+      return StimNoiseType{.stim_name = "Z_ERROR",
+                           .flips_x = {false},
+                           .flips_z = {true},
+                           .params = {channel.parameters[0]}};
     case cudaq::noise_model_type::depolarization_channel:
     case cudaq::noise_model_type::depolarization1:
-      return "DEPOLARIZE1";
-    case cudaq::noise_model_type::depolarization2:
-      return "DEPOLARIZE2";
-    case cudaq::noise_model_type::pauli1:
-      return "PAULI_CHANNEL_1";
-    case cudaq::noise_model_type::pauli2:
-      return "PAULI_CHANNEL_2";
+      return StimNoiseType{
+          .stim_name = "DEPOLARIZE1",
+          .flips_x = {true, true, false},
+          .flips_z = {false, true, true},
+          .params = std::vector<double>(3, channel.parameters[0] / 3.0)};
+    case cudaq::noise_model_type::depolarization2: {
+      constexpr bool x_err[4] = {false, true, true, false}; // X errors for IXYZ
+      constexpr bool z_err[4] = {false, false, true, true}; // Z errors for IXYZ
+      StimNoiseType ret{.stim_name = "DEPOLARIZE2", .num_targets = 2};
+      ret.params = std::vector<double>(15, channel.parameters[0] / 15.0);
+      // Generate the entries for p/15: IX, IY, IZ, XI, XX, XY, XZ, YI, YX,
+      // YY, YZ, ZI, ZX, ZY, ZZ
+      for (int q1_err = 0; q1_err < 4; q1_err++) {   // qubit 1 loop
+        for (int q2_err = 0; q2_err < 4; q2_err++) { // qubit 2 loop
+          if (q1_err == 0 && q2_err == 0)            // skip II
+            continue;
+          // Push back the values for the two qubits, for both x and z errors
+          ret.flips_x.insert(ret.flips_x.end(), {x_err[q1_err], x_err[q2_err]});
+          ret.flips_z.insert(ret.flips_z.end(), {z_err[q1_err], z_err[q2_err]});
+        }
+      }
+      return ret;
+    }
+    case cudaq::noise_model_type::pauli1: {
+      // Either X error, Y error, or Z error happens, each with its own
+      // probability that is specified in the 3 channel parameters.
+      static_assert(cudaq::pauli1::num_parameters == 3);
+      assert(channel.parameters.size() == cudaq::pauli1::num_parameters);
+      return StimNoiseType{.stim_name = "PAULI_CHANNEL_1",
+                           .flips_x = {true, true, false},
+                           .flips_z = {false, true, true},
+                           .params = channel.parameters};
+    }
+    case cudaq::noise_model_type::pauli2: {
+      static_assert(cudaq::pauli2::num_parameters == 15);
+      assert(channel.parameters.size() == cudaq::pauli2::num_parameters);
+      StimNoiseType ret{.stim_name = "PAULI_CHANNEL_2", .num_targets = 2};
+      // Generate the entries for: IX, IY, IZ, XI, XX, XY, XZ, YI, YX, YY, YZ,
+      // ZI, ZX, ZY, ZZ
+      std::vector<bool> x_err{false, true, true, false}; // X errors for IXYZ
+      std::vector<bool> z_err{false, false, true, true}; // Z errors for IXYZ
+      for (int q1_err = 0; q1_err < 4; q1_err++) {       // qubit 1 loop
+        for (int q2_err = 0; q2_err < 4; q2_err++) {     // qubit 2 loop
+          if (q1_err == 0 && q2_err == 0)                // skip II
+            continue;
+          // Push back the values for the two qubits, for both x and z errors
+          ret.flips_x.insert(ret.flips_x.end(), {x_err[q1_err], x_err[q2_err]});
+          ret.flips_z.insert(ret.flips_z.end(), {z_err[q1_err], z_err[q2_err]});
+        }
+      }
+      ret.params = channel.parameters;
+      return ret;
+    }
     case cudaq::noise_model_type::amplitude_damping_channel:
     case cudaq::noise_model_type::amplitude_damping:
     case cudaq::noise_model_type::phase_damping:
@@ -75,26 +153,66 @@ protected:
   /// @brief Grow the state vector by one qubit.
   void addQubitToState() override { addQubitsToState(1); }
 
-  /// @brief Get the batch size to use for the Stim sample simulator.
+  /// @brief Get the batch size to use for the Stim simulator.
   std::size_t getBatchSize() {
     // Default to single shot
     std::size_t batch_size = 1;
-    if (getExecutionContext() && getExecutionContext()->name == "sample" &&
-        !getExecutionContext()->hasConditionalsOnMeasureResults)
-      batch_size = getExecutionContext()->shots;
+    auto *executionContext = getExecutionContext();
+    if (executionContext &&
+        (executionContext->name == "sample" ||
+         executionContext->name == "ptsbe-sample") &&
+        !executionContext->hasConditionalsOnMeasureResults)
+      batch_size = executionContext->shots;
+    else if (executionContext && executionContext->name == "msm")
+      batch_size =
+          executionContext->msm_dimensions.value_or(std::make_pair(1, 1))
+              .second;
     return batch_size;
+  }
+
+  /// @brief Return the number of rows and columns needed for a Parity Check
+  /// Matrix
+  std::optional<std::pair<std::size_t, std::size_t>>
+  generateMSMSize() override {
+    return std::make_pair(num_measurements, msm_err_count);
+  }
+
+  void generateMSM() override {
+    const auto num_cols = getBatchSize();
+    stim::simd_bit_table<W> msmSample = sampleSim->m_record.storage;
+    // Disabled because it's too verbose, but left here as comments for
+    // reference.
+    // CUDAQ_INFO("msmSample is {} {}\n{}", msm_err_count, num_cols,
+    //             msmSample.str(num_measurements, num_cols).c_str());
+
+    // Now it's msmSample[error_mechanism_index][measure_idx]
+    msmSample = msmSample.transposed();
+    CountsDictionary counts;
+    std::vector<std::string> sequentialData;
+    sequentialData.reserve(num_cols);
+    for (std::size_t shot = 0; shot < num_cols; shot++) {
+      std::string aShot(num_measurements, '0');
+      for (std::size_t b = 0; b < num_measurements; b++)
+        aShot[b] = msmSample[shot][b] ? '1' : '0';
+      counts[aShot]++;
+      sequentialData.push_back(std::move(aShot));
+    }
+    ExecutionResult result(counts);
+    result.sequentialData = std::move(sequentialData);
+    getExecutionContext()->result = result;
   }
 
   /// @brief Override the default sized allocation of qubits
   /// here to be a bit more efficient than the default implementation
   void addQubitsToState(std::size_t qubitCount,
                         const void *stateDataIn = nullptr) override {
+    auto executionContext = getExecutionContext();
     if (stateDataIn)
       throw std::runtime_error("The Stim simulator does not support "
                                "initialization of qubits from state data.");
 
     if (!tableau) {
-      cudaq::info("Creating new Stim Tableau simulator");
+      CUDAQ_INFO("Creating new Stim Tableau simulator");
       // Bump the randomEngine before cloning and giving to the Tableau
       // simulator.
       randomEngine.discard(
@@ -103,18 +221,41 @@ protected:
           std::mt19937_64(randomEngine), /*num_qubits=*/0, /*sign_bias=*/+0);
     }
     if (!sampleSim) {
+      is_msm_mode = executionContext && executionContext->name == "msm";
+      std::size_t anticipated_num_measurements = 0;
+      std::size_t num_msm_cols = 0;
+      if (is_msm_mode) {
+        auto dims =
+            executionContext->msm_dimensions.value_or(std::make_pair(1, 1));
+        anticipated_num_measurements = dims.first;
+        num_msm_cols = dims.second;
+        executionContext->msm_probabilities.emplace();
+        executionContext->msm_probabilities->reserve(num_msm_cols);
+        executionContext->msm_prob_err_id.emplace();
+        executionContext->msm_prob_err_id->reserve(num_msm_cols);
+      }
+
+      // If possible, provide a non-empty stim::CircuitStats in order to avoid
+      // reallocations during execution.
+      stim::CircuitStats circuit_stats;
+      circuit_stats.num_measurements = anticipated_num_measurements;
+
       auto batch_size = getBatchSize();
-      cudaq::info("Creating new Stim frame simulator with batch size {}",
-                  batch_size);
+      CUDAQ_INFO("Creating new Stim frame simulator with batch size {}",
+                 batch_size);
       // Bump the randomEngine before cloning and giving to the sample
       // simulator.
       randomEngine.discard(
           std::uniform_int_distribution<int>(1, 30)(randomEngine));
       sampleSim = std::make_unique<stim::FrameSimulator<W>>(
-          stim::CircuitStats(),
-          stim::FrameSimulatorMode::STORE_MEASUREMENTS_TO_MEMORY, batch_size,
-          std::mt19937_64(randomEngine));
+          circuit_stats, stim::FrameSimulatorMode::STORE_MEASUREMENTS_TO_MEMORY,
+          batch_size, std::mt19937_64(randomEngine));
+      if (is_msm_mode) {
+        sampleSim->guarantee_anticommutation_via_frame_randomization = false;
+      }
       sampleSim->reset_all();
+      msm_err_count = 0;
+      msm_id_counter = 0;
     }
   }
 
@@ -127,6 +268,9 @@ protected:
       randomEngine = std::move(sampleSim->rng);
     sampleSim.reset();
     num_measurements = 0;
+    msm_err_count = 0;
+    msm_id_counter = 0;
+    is_msm_mode = false;
   }
 
   /// @brief Apply operation to all Stim simulators.
@@ -135,7 +279,7 @@ protected:
     if (targets.empty())
       return;
     stim::Circuit tempCircuit;
-    cudaq::info("Calling applyOpToSims {} - {}", gate_name, targets);
+    CUDAQ_INFO("Calling applyOpToSims {} - {}", gate_name, targets);
     tempCircuit.safe_append_u(gate_name, targets);
     tableau->safe_do_circuit(tempCircuit);
     sampleSim->safe_do_circuit(tempCircuit);
@@ -146,6 +290,8 @@ protected:
                          const std::vector<std::size_t> &controls,
                          const std::vector<std::size_t> &targets,
                          const std::vector<double> &params) override {
+    auto executionContext = getExecutionContext();
+
     // Do nothing if no execution context
     if (!executionContext)
       return;
@@ -173,18 +319,11 @@ protected:
     if (krausChannels.empty())
       return;
 
-    cudaq::info("Applying {} kraus channels to qubits {}", krausChannels.size(),
-                stimTargets);
+    CUDAQ_INFO("Applying {} kraus channels to qubits {}", krausChannels.size(),
+               stimTargets);
 
-    stim::Circuit noiseOps;
-    for (auto &channel : krausChannels) {
-      if (auto stimName = isValidStimNoiseChannel(channel))
-        noiseOps.safe_append_u(stimName.value(), stimTargets,
-                               channel.parameters);
-    }
-    // Only apply the noise operations to the sample simulator (not the Tableau
-    // simulator).
-    sampleSim->safe_do_circuit(noiseOps);
+    for (auto &channel : krausChannels)
+      applyNoise(channel, stimTargets);
   }
 
   bool isValidNoiseChannel(const cudaq::noise_model_type &type) const override {
@@ -196,25 +335,97 @@ protected:
   void applyNoise(const cudaq::kraus_channel &channel,
                   const std::vector<std::size_t> &qubits) override {
     flushGateQueue();
-    cudaq::info("[stim] apply kraus channel {}", channel.get_type_name());
-    stim::Circuit noiseOps;
-    std::vector<std::uint32_t> stimTargets;
-    stimTargets.reserve(qubits.size());
-    for (auto q : qubits)
-      stimTargets.push_back(static_cast<std::uint32_t>(q));
+    std::vector<std::uint32_t> stimTargets(qubits.begin(), qubits.end());
+    applyNoise(channel, stimTargets);
+  }
+
+  void applyNoise(const cudaq::kraus_channel &channel,
+                  const std::vector<std::uint32_t> &qubits) {
+    CUDAQ_INFO("[stim] apply kraus channel {}, is_msm_mode = {}",
+               channel.get_type_name(), is_msm_mode);
+
+    auto executionContext = getExecutionContext();
 
     // If we have a valid operation, apply it
-    if (auto stimName = isValidStimNoiseChannel(channel)) {
-      noiseOps.safe_append_u(stimName.value(), stimTargets, channel.parameters);
-      sampleSim->safe_do_circuit(noiseOps);
+    if (auto res = isValidStimNoiseChannel(channel)) {
+      if (is_msm_mode) {
+        // If the noise operation is the first operation done to a qubit, the
+        // x_table and z_table may not be sized for the qubits. If that is the
+        // case, then we simply perform a reset on the qubit to essentially
+        // allocate it, which ensures the tables are resized to the correct
+        // size.
+        auto max_qubit = *std::max_element(qubits.begin(), qubits.end());
+        if (sampleSim->num_qubits < max_qubit + 1)
+          applyOpToSims("R", std::vector<std::uint32_t>{max_qubit});
+
+        // Apply the errors found in res directly into sampleSim, as if they
+        // definitely happened, 1 mechanism at a time. (For example, a
+        // depolarization channel will manifest as 3 possible error mechanisms:
+        // an X error, Y error, or Z error.)
+        std::size_t num_mechanisms = res->params.size();
+        std::size_t flip_ix = 0;
+        for (std::size_t m = 0; m < num_mechanisms; m++) {
+          // In this mode, the "shot" is an alias for the MSM error count.
+          std::size_t shot = msm_err_count;
+          if (msm_err_count < sampleSim->batch_size) {
+            for (std::size_t t = 0; t < res->num_targets; t++, flip_ix++) {
+              sampleSim->x_table[qubits[t]][shot] ^= res->flips_x[flip_ix];
+              sampleSim->z_table[qubits[t]][shot] ^= res->flips_z[flip_ix];
+            }
+            executionContext->msm_probabilities->push_back(res->params[m]);
+            executionContext->msm_prob_err_id->push_back(msm_id_counter);
+            msm_err_count++;
+          }
+        }
+        msm_id_counter++;
+      } else {
+        stim::Circuit noiseOps;
+        noiseOps.safe_append_u(res.value().stim_name, qubits,
+                               channel.parameters);
+        // Only apply the noise operations to the sample simulator (not the
+        // Tableau simulator).
+        sampleSim->safe_do_circuit(noiseOps);
+
+        // Increment the error count by the number of mechanisms
+        msm_err_count += res->params.size();
+      }
     }
+  }
+
+  /// @brief Check if gateName is a two-qubit Pauli product (e.g. "IX", "ZZ").
+  static bool isTwoQubitPauliProduct(const std::string &gateName) {
+    if (gateName.size() != 2)
+      return false;
+    static const std::string paulis = "IXYZ";
+    return paulis.find(gateName[0]) != std::string::npos &&
+           paulis.find(gateName[1]) != std::string::npos;
+  }
+
+  static bool isApproxAngle(double value, double target) {
+    constexpr double tolerance = 1e-12;
+    return std::abs(value - target) < tolerance;
   }
 
   void applyGate(const GateApplicationTask &task) override {
     std::string gateName(task.operationName);
     std::transform(gateName.begin(), gateName.end(), gateName.begin(),
                    ::toupper);
-    std::vector<std::uint32_t> stimTargets;
+
+    // Two-qubit Pauli product gates (e.g. "IX", "XY", "ZZ") decompose into
+    // independent single-qubit gates on each target qubit.
+    if (isTwoQubitPauliProduct(gateName)) {
+      if (!task.controls.empty() || task.targets.size() != 2)
+        throw std::runtime_error(fmt::format(
+            "Two-qubit Pauli product gate {} requires exactly 2 targets and "
+            "no controls, got {} targets and {} controls.",
+            task.operationName, task.targets.size(), task.controls.size()));
+      for (int i = 0; i < 2; i++) {
+        if (gateName[i] != 'I')
+          applyOpToSims(std::string(1, gateName[i]),
+                        {static_cast<std::uint32_t>(task.targets[i])});
+      }
+      return;
+    }
 
     // These CUDA-Q rotation gates have the same name as Stim "reset" gates.
     // Stim is a Clifford simulator, so it doesn't actually support rotational
@@ -225,9 +436,31 @@ protected:
           fmt::format("Gate not supported by Stim simulator: {}. Note that "
                       "Stim can only simulate Clifford gates.",
                       task.operationName));
-    else if (gateName == "SDG")
-      gateName = "S_DAG";
+    else if (gateName == "R1") {
+      if (task.parameters.size() != 1)
+        throw std::runtime_error(
+            fmt::format("Gate not supported by Stim simulator: {}. Note that "
+                        "Stim can only simulate Clifford gates.",
+                        task.operationName));
 
+      auto angle = task.parameters.front();
+      if (isApproxAngle(angle, M_PI_2))
+        gateName = "S";
+      else if (isApproxAngle(angle, -M_PI_2))
+        gateName = "S_DAG";
+      else if (isApproxAngle(angle, M_PI) || isApproxAngle(angle, -M_PI))
+        gateName = "Z";
+      else
+        throw std::runtime_error(
+            fmt::format("Gate not supported by Stim simulator: {}({}). Note "
+                        "that Stim can only simulate Clifford gates.",
+                        task.operationName, angle));
+    } else if (gateName == "SDG")
+      gateName = "S_DAG";
+    else if (gateName == "ID")
+      gateName = "I";
+
+    std::vector<std::uint32_t> stimTargets;
     if (task.controls.size() > 1)
       throw std::runtime_error(
           "Gates with >1 controls not supported by Stim simulator");
@@ -239,16 +472,34 @@ protected:
       stimTargets.push_back(t);
     try {
       applyOpToSims(gateName, stimTargets);
-    } catch (std::out_of_range &e) {
+    } catch (...) {
       throw std::runtime_error(
           fmt::format("Gate not supported by Stim simulator: {}. Note that "
                       "Stim can only simulate Clifford gates.",
-                      e.what()));
+                      task.operationName));
     }
   }
 
   /// @brief Set the current state back to the |0> state.
-  void setToZeroState() override { return; }
+  void setToZeroState() override {
+    if (!tableau || !sampleSim) {
+      deallocateState();
+      return;
+    }
+
+    // Reset all qubits to |0> and clear measurement records, preserving
+    // the allocated simulators for reuse (required by the PTSBE
+    // per-trajectory loop which calls setToZeroState between trajectories).
+    auto nq = sampleSim->num_qubits;
+    if (nq > 0) {
+      std::vector<std::uint32_t> allQubits(nq);
+      std::iota(allQubits.begin(), allQubits.end(), 0);
+      applyOpToSims("R", allQubits);
+    }
+    tableau->measurement_record.clear();
+    sampleSim->m_record.clear();
+    num_measurements = 0;
+  }
 
   /// @brief Override the calculateStateDim because this is not a state vector
   /// simulator.
@@ -310,7 +561,10 @@ public:
   /// explicitMeasurements is set, this returns all previously saved
   /// measurements.
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &qubits,
-                                const int shots) override {
+                                const int shots,
+                                bool includeSequentialData = true) override {
+    auto executionContext = getExecutionContext();
+
     if (executionContext->explicitMeasurements && qubits.empty() &&
         num_measurements == 0)
       throw std::runtime_error(
@@ -322,6 +576,9 @@ public:
         return qubits.empty();
       return true;
     }();
+    if (!sampleSim)
+      throw std::runtime_error("Stim simulator state is not initialized. "
+                               "Cannot sample from uninitialized state.");
     assert(shots <= sampleSim->batch_size);
     std::vector<std::uint32_t> stimTargetQubits(qubits.begin(), qubits.end());
     applyOpToSims("M", stimTargetQubits);
@@ -359,22 +616,32 @@ public:
                                         ? 0
                                         : bits_per_sample - qubits.size();
     CountsDictionary counts;
-    sequentialData.reserve(shots);
+    if (includeSequentialData)
+      sequentialData.reserve(shots);
     for (std::size_t shot = 0; shot < shots; shot++) {
       std::string aShot(bits_per_sample - first_bit_to_save, '0');
       for (std::size_t b = first_bit_to_save; b < bits_per_sample; b++)
         aShot[b - first_bit_to_save] = sample[shot][b] ? '1' : '0';
       counts[aShot]++;
-      sequentialData.push_back(std::move(aShot));
+      if (includeSequentialData)
+        sequentialData.push_back(std::move(aShot));
     }
     ExecutionResult result(counts);
-    result.sequentialData = std::move(sequentialData);
+    if (includeSequentialData)
+      result.sequentialData = std::move(sequentialData);
     return result;
   }
 
   bool isStateVectorSimulator() const override { return false; }
 
   std::string name() const override { return "stim"; }
+
+  std::unique_ptr<cudaq::SimulationState>
+  createStateFromData(const cudaq::state_data &) override {
+    throw std::runtime_error(
+        "Simulation data not available for the stim simulator backend.");
+  }
+
   NVQIR_SIMULATOR_CLONE_IMPL(StimCircuitSimulator)
 };
 

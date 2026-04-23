@@ -1,0 +1,107 @@
+name: Stale issue notifier
+
+on:
+  schedule:
+    - cron: '0 14 * * *'
+  workflow_dispatch:
+  issues:
+    types: [edited, reopened]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  notify:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch stale-issue events
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+            const LABEL = 'stale-notified';
+            const now = Date.now();
+
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: LABEL,
+              });
+            } catch (e) {
+              if (e.status !== 404) throw e;
+              await github.rest.issues.createLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: LABEL,
+                color: 'ededed',
+                description: 'Stale notification has already fired for this issue',
+              });
+            }
+
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              sort: 'updated',
+              direction: 'asc',
+              per_page: 100,
+            });
+
+            let dispatched = 0;
+            for (const issue of issues) {
+              if (issue.pull_request) continue;
+              const age = now - new Date(issue.updated_at).getTime();
+              const alreadyNotified = issue.labels.some(l => (l.name || l) === LABEL);
+              if (age < WEEK_MS || alreadyNotified) continue;
+
+              await github.rest.repos.createDispatchEvent({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                event_type: 'stale-issue',
+                client_payload: {
+                  number: issue.number,
+                  url: issue.html_url,
+                  title: issue.title,
+                },
+              });
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: [LABEL],
+              });
+              core.info(`Dispatched stale-issue for #${issue.number}`);
+              dispatched++;
+            }
+            core.info(`Total dispatched: ${dispatched}`);
+
+  refresh:
+    if: |
+      github.event_name == 'issues' ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request == null)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remove stale-notified label on activity
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const LABEL = 'stale-notified';
+            const issue = context.payload.issue;
+            const hasLabel = (issue.labels || []).some(l => l.name === LABEL);
+            if (!hasLabel) return;
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                name: LABEL,
+              });
+              core.info(`Removed ${LABEL} from #${issue.number}`);
+            } catch (e) {
+              if (e.status !== 404) throw e;
+            }

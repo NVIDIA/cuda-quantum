@@ -107,7 +107,7 @@ It is worth drawing attention to gate fusion, a powerful tool for improving simu
     - Description
   * - ``CUDAQ_FUSION_MAX_QUBITS``
     - positive integer
-    - The max number of qubits used for gate fusion. The default value depends on `GPU Compute Capability <https://developer.nvidia.com/cuda-gpus>`__ (CC) and the floating point precision selected for the simulator. Specifically, for CC 8.0, 9.0, and 10.0 the defaults are `4`, `5`, and `5` for `FP32`. For `FP64` the corresponding defaults are `5`, `6`, and `4`. For all other CC, the default is `4` for both precision modes.
+    - The max number of qubits used for gate fusion. The default value depends on `GPU Compute Capability <https://developer.nvidia.com/cuda-gpus>`__ (CC) and the floating point precision selected for the simulator as specified :ref:`here <gate-fusion-table>`.
   * - ``CUDAQ_FUSION_DIAGONAL_GATE_MAX_QUBITS``
     - integer greater than or equal to -1
     - The max number of qubits used for diagonal gate fusion. The default value is set to `-1` and the fusion size will be automatically adjusted for the better performance. If 0, the gate fusion for diagonal gates is disabled.
@@ -249,16 +249,16 @@ the multi-node multi-GPU configuration. Any environment variables must be set pr
     - The qubit count threshold where state vector distribution is activated. Below this threshold, simulation is performed as independent (non-distributed) tasks across all MPI processes for optimal performance. Default is 25. 
   * - ``CUDAQ_MGPU_FUSE``
     - positive integer
-    - The max number of qubits used for gate fusion. The default value depends on `GPU Compute Capability <https://developer.nvidia.com/cuda-gpus>`__ (CC) and the floating point precision selected for the simulator. Specifically, for CC 8.0, 9.0, and 10.0 the defaults are `4`, `5`, and `5` for `FP32`. For `FP64` the corresponding defaults are `5`, `6`, and `4`. For all other CC, the default is `4` for both precision modes.
+    - The max number of qubits used for gate fusion. The default value depends on `GPU Compute Capability <https://developer.nvidia.com/cuda-gpus>`__ (CC) and the floating point precision selected for the simulator as specified :ref:`here <gate-fusion-table>`. 
   * - ``CUDAQ_MGPU_P2P_DEVICE_BITS``
     - positive integer
     - Specify the number of GPUs that can communicate by using GPUDirect P2P. Default value is 0 (P2P communication is disabled).
   * - ``CUDAQ_GPU_FABRIC``
-    - `MNNVL`, `NVL`, or `NONE`
-    - Automatically set the number of P2P device bits based on the total number of processes when multi-node NVLink (`MNNVL`) is selected; or the number of processes per node when NVLink (`NVL`) is selected; or disable P2P (with `NONE`). 
+    - `MNNVL`, `NVL`, `NONE`, or NVLink domain size (power of 2 integer)
+    - Automatically set the number of P2P device bits based on the total number of processes when multi-node NVLink (`MNNVL`) is selected; or the number of processes per node when NVLink (`NVL`) is selected; or disable P2P (with `NONE`); or a specific NVLink domain size.
   * - ``CUDAQ_GLOBAL_INDEX_BITS``
     - comma-separated list of positive integers
-    - Specify the inter-node network structure (faster to slower). For example, assuming a 8 nodes, 4 GPUs/node simulation whereby network communication is faster, this `CUDAQ_GLOBAL_INDEX_BITS` environment variable can be set to `3,2`. The first `3` represents **8** nodes with fast communication and the second `2` represents **4** 8-node groups in those total 32 nodes. Default is an empty list (no customization based on network structure of the cluster).
+    - Specify the network structure (faster to slower). For example, assuming a 32 MPI processes simulation, whereby the network topology is divided into 4 groups of 8 processes, which have faster communication network between them. In this case, the `CUDAQ_GLOBAL_INDEX_BITS` environment variable can be set to `3,2`. The first `3` (`log2(8)`) represents **8** processes with fast communication within the group and the second `2` represents the **4** groups (8 processes each) in those total 32 processes. The sum of all elements in this list is `5`, corresponding to the total number of MPI processes (`2^5 = 32`). If none specified, the global index bits are set based on P2P device bits.
   * - ``CUDAQ_HOST_DEVICE_MIGRATION_LEVEL``
     - positive integer
     - Specify host-device memory migration w.r.t. the network structure. If provided, this setting determines the position to insert the number of migration index bits to the `CUDAQ_GLOBAL_INDEX_BITS` list. By default, if not set, the number of migration index bits (CPU-GPU data transfers) is appended to the end of the array of index bits (aka, state vector distribution scheme). This default behavior is optimized for systems with fast GPU-GPU interconnects (NVLink, InfiniBand, etc.) 
@@ -269,6 +269,35 @@ the multi-node multi-GPU configuration. Any environment variables must be set pr
 .. deprecated:: 0.8
     The :code:`nvidia-mgpu` backend, which is equivalent to the multi-node multi-GPU double-precision option (`mgpu,fp64`) of the :code:`nvidia`
     is deprecated and will be removed in a future release.
+
+.. |:spellcheck-disable:| replace:: \
+.. |:spellcheck-enable:| replace:: \
+
+
+.. _gate-fusion-table:
+
+.. list-table:: **Default Gate Fusion Size**
+  :widths: 20 30 50
+
+  * - Compute Capability
+    - GPU 
+    - Default Gate Fusion Size
+  * - 8.0
+    - NVIDIA A100
+    - 4 (`fp32`) or 5 (`fp64`)
+  * - 9.0
+    - NVIDIA H100, H200, |:spellcheck-disable:| GH200 |:spellcheck-enable:| 
+    - 5 (`fp32`) or 6 (`fp64`)
+  * - 10.0
+    - NVIDIA GB200, B200
+    - 5 (`fp32`) or 4 (`fp64`)
+  * - 10.3
+    - NVIDIA B300
+    - 5 (`fp32`) or 1 (`fp64`)
+  * - Others
+    - 
+    - 4 (`fp32` and `fp64`)
+
 
 The above configuration options of the :code:`nvidia` backend 
 can be tuned to reduce your simulation runtimes. One of the

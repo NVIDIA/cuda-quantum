@@ -1,0 +1,65 @@
+/*******************************************************************************
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#include "py_resource_count.h"
+#include "common/Resources.h"
+#include "runtime/cudaq/platform/py_alt_launch_kernel.h"
+#include "utils/LinkedLibraryHolder.h"
+#include "utils/NanobindAdaptors.h"
+#include <nanobind/stl/function.h>
+#include <nanobind/stl/optional.h>
+
+using namespace cudaq;
+
+static Resources
+estimate_resources_impl(const std::string &kernelName, MlirModule kernelMod,
+                        std::optional<std::function<bool()>> choice,
+                        nanobind::args args) {
+  auto &platform = cudaq::get_platform();
+  args = simplifiedValidateInputArguments(args);
+
+  ExecutionContext ctx("resource-count", 1);
+  ctx.kernelName = kernelName;
+  // Indicate that this is not an async exec
+  ctx.asyncExec = false;
+
+  // Use the resource counter simulator
+  python::detail::switchToResourceCounterSimulator();
+
+  // Set the choice function for the simulator
+  if (!choice) {
+    auto seed = cudaq::get_random_seed();
+    std::mt19937 gen(seed);
+    std::uniform_int_distribution<> rand(0, 1);
+    choice = [gen = std::move(gen), rand = std::move(rand)]() mutable {
+      return rand(gen);
+    };
+  }
+  python::detail::setChoiceFunction(*choice);
+
+  try {
+    platform.with_execution_context(ctx, [&]() {
+      [[maybe_unused]] auto result =
+          cudaq::marshal_and_launch_module(kernelName, kernelMod, args);
+    });
+  } catch (...) {
+    python::detail::stopUsingResourceCounterSimulator();
+    throw;
+  }
+
+  // Save and clone counts data
+  Resources counts = *python::detail::getResourceCounts();
+  // Switch simulators back
+  python::detail::stopUsingResourceCounterSimulator();
+  return counts;
+}
+
+void cudaq::bindCountResources(nanobind::module_ &mod) {
+  mod.def("estimate_resources_impl", estimate_resources_impl,
+          "See python documentation for estimate_resources.");
+}

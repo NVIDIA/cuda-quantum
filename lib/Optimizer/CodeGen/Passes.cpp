@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -14,17 +14,14 @@
 
 using namespace mlir;
 
-static SmallVector<std::string> z_disabledPatterns = {"R1ToU3"};
-
 static void addAnyonPPipeline(OpPassManager &pm) {
   using namespace cudaq::opt;
   std::string basis[] = {
       "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "z(1)",
   };
-  BasisConversionPassOptions options;
+  BasisConversionOptions options;
   options.basis = basis;
-  options.disabledPatterns = z_disabledPatterns;
-  pm.addPass(createBasisConversionPass(options));
+  pm.addPass(createBasisConversion(options));
 }
 
 static void addAnyonCPipeline(OpPassManager &pm) {
@@ -32,10 +29,9 @@ static void addAnyonCPipeline(OpPassManager &pm) {
   std::string basis[] = {
       "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)",
   };
-  BasisConversionPassOptions options;
+  BasisConversionOptions options;
   options.basis = basis;
-  options.disabledPatterns = z_disabledPatterns;
-  pm.addPass(createBasisConversionPass(options));
+  pm.addPass(createBasisConversion(options));
 }
 
 static void addOQCPipeline(OpPassManager &pm) {
@@ -44,10 +40,22 @@ static void addOQCPipeline(OpPassManager &pm) {
       // TODO: make this our native gate set
       "h", "s", "t", "r1", "rx", "ry", "rz", "x", "y", "z", "x(1)",
   };
-  BasisConversionPassOptions options;
+  BasisConversionOptions options;
   options.basis = basis;
-  options.disabledPatterns = z_disabledPatterns;
-  pm.addPass(createBasisConversionPass(options));
+  pm.addPass(createBasisConversion(options));
+}
+
+static void addQCIPipeline(OpPassManager &pm) {
+  using namespace cudaq::opt;
+  // Note: QCI's basis gate set is "sx", "rz", "cz", but QCI currently has
+  // a transpiler converting all other gates to that basis.
+  // We use the gate set below so we can translate all gates to QIR.
+  std::string basis[] = {
+      "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)",
+  };
+  BasisConversionOptions options;
+  options.basis = basis;
+  pm.addPass(createBasisConversion(options));
 }
 
 static void addQuantinuumPipeline(OpPassManager &pm) {
@@ -55,10 +63,9 @@ static void addQuantinuumPipeline(OpPassManager &pm) {
   std::string basis[] = {
       "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)",
   };
-  BasisConversionPassOptions options;
+  BasisConversionOptions options;
   options.basis = basis;
-  options.disabledPatterns = z_disabledPatterns;
-  pm.addPass(createBasisConversionPass(options));
+  pm.addPass(createBasisConversion(options));
 }
 
 static void addIQMPipeline(OpPassManager &pm) {
@@ -67,10 +74,9 @@ static void addIQMPipeline(OpPassManager &pm) {
       "phased_rx",
       "z(1)",
   };
-  BasisConversionPassOptions options;
+  BasisConversionOptions options;
   options.basis = basis;
-  options.disabledPatterns = z_disabledPatterns;
-  pm.addPass(createBasisConversionPass(options));
+  pm.addPass(createBasisConversion(options));
 }
 
 static void addIonQPipeline(OpPassManager &pm) {
@@ -79,10 +85,9 @@ static void addIonQPipeline(OpPassManager &pm) {
       "h",  "s", "t", "rx", "ry",
       "rz", "x", "y", "z",  "x(1)", // TODO set to ms, gpi, gpi2
   };
-  BasisConversionPassOptions options;
+  BasisConversionOptions options;
   options.basis = basis;
-  options.disabledPatterns = z_disabledPatterns;
-  pm.addPass(createBasisConversionPass(options));
+  pm.addPass(createBasisConversion(options));
 }
 
 static void addFermioniqPipeline(OpPassManager &pm) {
@@ -90,10 +95,9 @@ static void addFermioniqPipeline(OpPassManager &pm) {
   std::string basis[] = {
       "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)",
   };
-  BasisConversionPassOptions options;
+  BasisConversionOptions options;
   options.basis = basis;
-  options.disabledPatterns = z_disabledPatterns;
-  pm.addPass(createBasisConversionPass(options));
+  pm.addPass(createBasisConversion(options));
 }
 
 void cudaq::opt::registerTargetPipelines() {
@@ -109,6 +113,9 @@ void cudaq::opt::registerTargetPipelines() {
   PassPipelineRegistration<>("iqm-gate-set-mapping",
                              "Convert kernels to IQM gate set.",
                              addIQMPipeline);
+  PassPipelineRegistration<>("qci-gate-set-mapping",
+                             "Convert kernels to QCI gate set.",
+                             addQCIPipeline);
   PassPipelineRegistration<>("quantinuum-gate-set-mapping",
                              "Convert kernels to Quantinuum gate set.",
                              addQuantinuumPipeline);

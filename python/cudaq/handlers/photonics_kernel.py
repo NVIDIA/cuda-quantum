@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -13,7 +13,7 @@ from typing import List
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 
-@dataclass
+@dataclass(slots=True)
 class PyQudit:
     """
     A data structure to represent `qudit` which models a general d-level 

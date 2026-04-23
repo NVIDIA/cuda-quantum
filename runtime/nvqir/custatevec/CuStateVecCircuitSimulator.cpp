@@ -1,11 +1,10 @@
-/*************************************************************** -*- C++ -*- ***
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+/*******************************************************************************
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-
 #include "CuStateVecCircuitSimulator.h"
 #include "CircuitSimulator.h"
 #include "CuStateVecState.h"
@@ -39,7 +38,6 @@ protected:
   using nvqir::CircuitSimulatorBase<ScalarType>::nQubitsAllocated;
   using nvqir::CircuitSimulatorBase<ScalarType>::stateDimension;
   using nvqir::CircuitSimulatorBase<ScalarType>::calculateStateDim;
-  using nvqir::CircuitSimulatorBase<ScalarType>::executionContext;
   using nvqir::CircuitSimulatorBase<ScalarType>::gateToString;
   using nvqir::CircuitSimulatorBase<ScalarType>::x;
   using nvqir::CircuitSimulatorBase<ScalarType>::flushGateQueue;
@@ -64,6 +62,8 @@ protected:
   std::random_device randomDevice;
   std::mt19937 randomEngine;
   bool ownsDeviceVector = true;
+
+  uint32_t maxGridDimY = 65535;
 
   /// @brief Generate a vector of random values
   std::vector<double> randomValues(uint64_t num_samples, double max_value) {
@@ -167,7 +167,7 @@ protected:
 
     int dev;
     HANDLE_CUDA_ERROR(cudaGetDevice(&dev));
-    cudaq::info("GPU {} Allocating new qubit array of size {}.", dev, count);
+    CUDAQ_INFO("GPU {} Allocating new qubit array of size {}.", dev, count);
 
     constexpr int32_t threads_per_block = 256;
     uint32_t n_blocks =
@@ -247,7 +247,7 @@ protected:
           "CuStateVecCircuitSimulator::addQubitsToState kronprod");
       // Compute the kronecker product
       nvqir::kronprod<CudaDataType>(
-          n_blocks, threads_per_block, previousStateDimension,
+          maxGridDimY, threads_per_block, previousStateDimension,
           deviceStateVector, (1UL << count), otherState, newDeviceStateVector);
       HANDLE_CUDA_ERROR(cudaGetLastError());
     }
@@ -294,7 +294,7 @@ protected:
           "CuStateVecCircuitSimulator::addQubitsToState kronprod");
       // Compute the kronecker product
       nvqir::kronprod<CudaDataType>(
-          n_blocks, threads_per_block, previousStateDimension,
+          maxGridDimY, threads_per_block, previousStateDimension,
           deviceStateVector, (1UL << in_state.getNumQubits()),
           casted->getDevicePointer(), newDeviceStateVector);
       HANDLE_CUDA_ERROR(cudaGetLastError());
@@ -407,6 +407,12 @@ public:
 
     HANDLE_CUDA_ERROR(cudaFree(0));
     randomEngine = std::mt19937(randomDevice());
+
+    int dev;
+    HANDLE_CUDA_ERROR(cudaGetDevice(&dev));
+    cudaDeviceProp prop;
+    HANDLE_CUDA_ERROR(cudaGetDeviceProperties(&prop, dev));
+    maxGridDimY = static_cast<uint32_t>(prop.maxGridSize[1]);
   }
 
   /// The destructor
@@ -456,7 +462,7 @@ public:
   void applyExpPauli(double theta, const std::vector<std::size_t> &controlIds,
                      const std::vector<std::size_t> &qubits,
                      const cudaq::spin_op_term &term) override {
-    if (this->isInTracerMode()) {
+    if (cudaq::isInTracerMode()) {
       nvqir::CircuitSimulator::applyExpPauli(theta, controlIds, qubits, term);
       return;
     }
@@ -539,6 +545,9 @@ public:
     // i.e., a valid shots count value was set.
     // Note: -1 is also used to denote non-sampling execution. Hence, we need to
     // check for this particular -1 value as being casted to an unsigned type.
+
+    auto *executionContext = cudaq::getExecutionContext();
+
     if (executionContext && executionContext->shots > 0 &&
         executionContext->shots != static_cast<std::size_t>(-1)) {
       return false;
@@ -646,7 +655,8 @@ public:
 
   /// @brief Sample the multi-qubit state.
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &measuredBits,
-                                const int shots) override {
+                                const int shots,
+                                bool includeSequentialData = true) override {
     ScopedTraceWithContext(cudaq::TIMING_SAMPLE, "CuStateVecSimulator::sample");
     double expVal = 0.0;
     // cudaq::CountsDictionary counts;
@@ -697,19 +707,23 @@ public:
       extraWorkspace = nullptr;
     }
 
-    std::vector<std::string> sequentialData;
-    sequentialData.reserve(shots);
-
     cudaq::ExecutionResult counts;
 
-    // We've sampled, convert the results to our ExecutionResult counts
-    for (int i = 0; i < shots; ++i) {
-      auto bitstring = std::bitset<64>(bitstrings0[i])
-                           .to_string()
-                           .erase(0, 64 - measuredBits.size());
+    // Bitstrings are sorted in ascending order.
+    // Use this to avoid O(N) string conversions.
+    for (int i = 0; i < shots;) {
+      auto val = bitstrings0[i];
+      int runLen = 1;
+      while (i + runLen < shots && bitstrings0[i + runLen] == val)
+        ++runLen;
+      auto bitstring =
+          std::bitset<64>(val).to_string().erase(0, 64 - measuredBits.size());
       std::reverse(bitstring.begin(), bitstring.end());
-      counts.appendResult(bitstring, 1);
-      sequentialData.push_back(std::move(bitstring));
+      if (includeSequentialData)
+        counts.appendResult(bitstring, runLen);
+      else
+        counts.counts[std::move(bitstring)] += runLen;
+      i += runLen;
     }
 
     // Compute the expectation value from the counts
@@ -734,6 +748,12 @@ public:
     ownsDeviceVector = false;
     return std::make_unique<cudaq::CusvState<ScalarType>>(stateDimension,
                                                           deviceStateVector);
+  }
+
+  std::unique_ptr<cudaq::SimulationState>
+  createStateFromData(const cudaq::state_data &data) override {
+    return std::make_unique<cudaq::CusvState<ScalarType>>(0, nullptr)
+        ->createFromData(data);
   }
 
   bool isStateVectorSimulator() const override { return true; }

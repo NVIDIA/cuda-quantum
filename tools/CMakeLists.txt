@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -25,4 +25,3 @@ if (CUDAQ_ENABLE_REMOTE_SIM)
   # Add cudaq-qpud executable/tool (including Python wheels)
   add_subdirectory(cudaq-qpud)
 endif()
-

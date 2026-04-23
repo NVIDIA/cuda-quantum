@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -176,7 +176,7 @@ static LogicalResult emitOperation(Emitter &emitter, quake::ApplyOp op) {
   // Separate classical and quantum arguments.
   SmallVector<Value> parameters;
   SmallVector<Value> targets;
-  for (auto arg : op.getArgs()) {
+  for (auto arg : op.getActuals()) {
     if (isa<quake::RefType, quake::VeqType>(arg.getType()))
       targets.push_back(arg);
     else

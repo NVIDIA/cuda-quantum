@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -9,7 +9,7 @@
 from . import boson
 from . import fermion
 from . import spin
-
+from .super_op import SuperOperator
 from .custom import *
 from .definitions import *
 from .manipulation import OperatorArithmetics

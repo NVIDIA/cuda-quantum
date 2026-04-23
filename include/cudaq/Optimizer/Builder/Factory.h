@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -44,6 +44,12 @@ namespace factory {
 constexpr const char targetTripleAttrName[] = "llvm.triple";
 constexpr const char targetDataLayoutAttrName[] = "llvm.data_layout";
 
+/// Padding size for std::vector<bool> host type representation.
+/// `libc++` (macOS) uses 24-byte layout, `libstdc++` (Linux) uses 40-byte
+/// layout. The padding is `sizeof(std::vector<bool>)` - `sizeof(void*)`.
+constexpr std::size_t stdVecBoolPaddingSize =
+    sizeof(std::vector<bool>) - sizeof(void *);
+
 //===----------------------------------------------------------------------===//
 // Type builders
 //===----------------------------------------------------------------------===//
@@ -82,6 +88,8 @@ cudaq::cc::PointerType getIndexedObjectType(mlir::Type eleTy);
 
 mlir::Type genArgumentBufferType(mlir::Type ty);
 
+bool isStlVectorBoolHostType(mlir::Type ty);
+
 /// Build an LLVM struct type with all the arguments and then all the results.
 /// If the type is a std::vector, then add an i64 to the struct for the
 /// length. The actual data values will be appended to the end of the
@@ -89,16 +97,21 @@ mlir::Type genArgumentBufferType(mlir::Type ty);
 ///
 /// A kernel signature of
 /// ```c++
-/// i32_t operator() (i16_t, std::vector<double>, double);
+///   i32_t operator() (i16_t, std::vector<double>, double);
 /// ```
 /// will generate the LLVM struct
 /// ```llvm
-/// { i16, i64, double, i32 }
+///   { i16, i64, double, i32 }
 /// ```
 /// where the values of the vector argument are pass-by-value and appended to
 /// the end of the struct as a sequence of \i n double values.
 ///
 /// The leading `startingArgIdx + 1` parameters are omitted from the struct.
+///
+/// NB: It is DEEPLY INCORRECT to add a packed attribute to this data structure
+/// and pass it to other APIs, since there is absolutely, positively NO chance
+/// that foreign code will be able to decode this buffer correctly. To do so
+/// requires information that is erased by the NVQ++ compiler.
 cudaq::cc::StructType buildInvokeStructType(mlir::FunctionType funcTy,
                                             std::size_t startingArgIdx = 0);
 
@@ -186,6 +199,9 @@ std::optional<std::uint64_t> maybeValueOfIntConstant(mlir::Value v);
 
 /// Return the floating point value if \p v is a floating-point constant.
 std::optional<double> maybeValueOfFloatConstant(mlir::Value v);
+
+/// Is \p v defined by a `ConstantLike` `Operation`?
+bool isConstantOp(mlir::Value v);
 
 /// Create a temporary on the stack. The temporary is created such that it is
 /// \em{not} control dependent (other than on function entry).
@@ -289,6 +305,7 @@ std::pair<mlir::func::FuncOp, /*alreadyDefined=*/bool>
 getOrAddFunc(mlir::Location loc, mlir::StringRef funcName,
              mlir::FunctionType funcTy, mlir::ModuleOp module);
 
+void mergeModules(mlir::ModuleOp into, mlir::ModuleOp from);
 } // namespace factory
 
 std::size_t getDataSize(llvm::DataLayout &dataLayout, mlir::Type ty);

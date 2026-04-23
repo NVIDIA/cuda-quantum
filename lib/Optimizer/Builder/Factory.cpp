@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -44,7 +44,7 @@ bool factory::isAArch64(ModuleOp module) {
 }
 
 template <bool isOutput>
-static Type genBufferType(Type ty) {
+Type genBufferType(Type ty) {
   auto *ctx = ty.getContext();
   if (isa<cudaq::cc::CallableType>(ty))
     return cudaq::cc::PointerType::get(ctx);
@@ -88,7 +88,7 @@ factory::buildInvokeStructType(FunctionType funcTy,
       eleTys.push_back(genBufferType</*isOutput=*/false>(inTy.value()));
   for (auto outTy : funcTy.getResults())
     eleTys.push_back(genBufferType</*isOutput=*/true>(outTy));
-  return cudaq::cc::StructType::get(ctx, eleTys);
+  return cudaq::cc::StructType::get(ctx, eleTys, /*packed=*/false);
 }
 
 Value factory::packIsArrayAndLengthArray(Location loc,
@@ -183,6 +183,11 @@ std::optional<double> factory::maybeValueOfFloatConstant(Value v) {
   if (matchPattern(v, m_ConstantFloat(&cst)))
     return {cst.convertToDouble()};
   return std::nullopt;
+}
+
+bool factory::isConstantOp(Value v) {
+  Attribute attr;
+  return matchPattern(v, m_Constant(&attr));
 }
 
 void factory::createGlobalCtorCall(ModuleOp mod, FlatSymbolRefAttr ctor) {
@@ -353,8 +358,30 @@ static cc::StructType stlHostVectorType(Type eleTy) {
   // std::vector<bool> is a different type than std::vector<T>.
   auto ptrTy = cc::PointerType::get(eleTy);
   auto i8Ty = IntegerType::get(ctx, 8);
-  auto padout = cc::ArrayType::get(ctx, i8Ty, 32);
+  auto padout = cc::ArrayType::get(ctx, i8Ty, factory::stdVecBoolPaddingSize);
   return cc::StructType::get(ctx, ArrayRef<Type>{ptrTy, padout});
+}
+
+bool factory::isStlVectorBoolHostType(Type ty) {
+  auto strTy = dyn_cast<cc::StructType>(ty);
+  if (!strTy)
+    return false;
+  if (strTy.getMembers().size() != 2)
+    return false;
+  auto ptrTy = dyn_cast<cc::PointerType>(strTy.getMember(0));
+  if (!ptrTy)
+    return false;
+  if (ptrTy.getElementType() != IntegerType::get(ty.getContext(), 1))
+    return false;
+  auto arrTy = dyn_cast<cc::ArrayType>(strTy.getMember(1));
+  if (!arrTy)
+    return false;
+  if (arrTy.getElementType() != IntegerType::get(ty.getContext(), 8))
+    return false;
+  if (arrTy.isUnknownSize() ||
+      (arrTy.getSize() != factory::stdVecBoolPaddingSize))
+    return false;
+  return true;
 }
 
 // FIXME: Give these front-end names so we can disambiguate more types.
@@ -374,7 +401,7 @@ Type factory::getSRetElementType(FunctionType funcTy) {
   if (funcTy.getNumResults() > 1)
     return cc::StructType::get(ctx, funcTy.getResults());
   if (auto spanTy = dyn_cast<cc::SpanLikeType>(funcTy.getResult(0)))
-    return stlVectorType(spanTy.getElementType());
+    return stlHostVectorType(spanTy.getElementType());
   return funcTy.getResult(0);
 }
 
@@ -530,6 +557,8 @@ bool factory::hasHiddenSRet(FunctionType funcTy) {
   if (isa<cc::SpanLikeType, cc::ArrayType, cc::CallableType>(resTy))
     return true;
   if (auto strTy = dyn_cast<cc::StructType>(resTy)) {
+    if (strTy.getMembers().empty())
+      return false;
     SmallVector<Type> packedTys;
     bool inRegisters = shouldExpand(packedTys, strTy) || !packedTys.empty();
     return !inRegisters;
@@ -772,4 +801,17 @@ factory::getOrAddFunc(mlir::Location loc, mlir::StringRef funcName,
   return {func, /*defined=*/false};
 }
 
+void factory::mergeModules(ModuleOp into, ModuleOp from) {
+  for (Operation &op : from) {
+    auto sym = dyn_cast<SymbolOpInterface>(op);
+    if (!sym)
+      continue; // Only merge named symbols, avoids duplicating anonymous ops.
+
+    // If `into` already has a symbol with this name, skip it.
+    if (SymbolTable::lookupSymbolIn(into, sym.getName()))
+      continue;
+
+    into.push_back(op.clone());
+  }
+}
 } // namespace cudaq::opt

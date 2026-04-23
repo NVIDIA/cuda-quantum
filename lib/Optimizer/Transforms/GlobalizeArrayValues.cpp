@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -102,7 +102,8 @@ static bool useDataToInitState(cudaq::cc::ReifySpanOp reify) {
   for (auto *user : reify->getUsers())
     if (auto data = dyn_cast<cudaq::cc::StdvecDataOp>(user))
       if (std::distance(data->user_begin(), data->user_end()) == 1)
-        return isa<quake::InitializeStateOp>(*data->user_begin());
+        return isa<quake::InitializeStateOp, quake::CreateStateOp>(
+            *data->user_begin());
   return false;
 }
 
@@ -266,7 +267,14 @@ struct ReifySpanPattern : public OpRewritePattern<cudaq::cc::ReifySpanOp> {
         members.push_back(rewriter.create<cudaq::cc::StdvecInitOp>(
             loc, cudaq::cc::CharspanType::get(ctx), strLit, size));
       } else if (auto a = dyn_cast<IntegerAttr>(attr)) {
-        members.push_back(rewriter.create<arith::ConstantOp>(loc, a, eleTy));
+        if (auto floatTy = dyn_cast<FloatType>(eleTy)) {
+          APFloat floatVal(floatTy.getFloatSemantics(), a.getValue());
+          auto floatAttr = FloatAttr::get(floatTy, floatVal);
+          members.push_back(
+              rewriter.create<arith::ConstantOp>(loc, floatAttr, floatTy));
+        } else {
+          members.push_back(rewriter.create<arith::ConstantOp>(loc, a, eleTy));
+        }
       } else if (auto a = dyn_cast<FloatAttr>(attr)) {
         members.push_back(rewriter.create<arith::ConstantOp>(loc, a, eleTy));
       } else {
@@ -275,11 +283,26 @@ struct ReifySpanPattern : public OpRewritePattern<cudaq::cc::ReifySpanOp> {
         members.push_back(rewriter.create<cudaq::cc::PoisonOp>(loc, eleTy));
       }
     }
+
+    // FIXME: get rid of this;
+    // see https://github.com/NVIDIA/cuda-quantum/issues/3593
+    auto hasBoolElems = false;
+    if (auto iTy = dyn_cast<IntegerType>(eleTy)) {
+      if (iTy.getWidth() == 1) {
+        eleTy = IntegerType::get(ty.getContext(), 8);
+        hasBoolElems = true;
+      }
+    }
+
     auto size = rewriter.create<arith::ConstantIntOp>(loc, members.size(), 64);
     auto buff = rewriter.create<cudaq::cc::AllocaOp>(loc, eleTy, size);
     for (auto iter : llvm::enumerate(members)) {
       std::int32_t idx = iter.index();
       auto m = iter.value();
+      if (hasBoolElems) {
+        auto unit = UnitAttr::get(rewriter.getContext());
+        m = rewriter.create<cudaq::cc::CastOp>(loc, eleTy, m, UnitAttr(), unit);
+      }
       auto ptrEleTy = cudaq::cc::PointerType::get(eleTy);
       auto ptr = rewriter.create<cudaq::cc::ComputePtrOp>(
           loc, ptrEleTy, buff, ArrayRef<cudaq::cc::ComputePtrArg>{idx});

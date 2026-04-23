@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -8,128 +8,43 @@
 
 import ast
 import inspect
-import importlib
 import textwrap
+from typing import Optional, Type
 
-from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
-from cudaq.mlir.dialects import cc
-from .utils import globalAstRegistry, globalKernelRegistry, mlirTypeFromAnnotation
-
-
-class FindDepKernelsVisitor(ast.NodeVisitor):
-
-    def __init__(self, ctx):
-        self.depKernels = {}
-        self.context = ctx
-        self.kernelName = ''
-
-    def visit_FunctionDef(self, node):
-        """
-        Here we will look at this Functions arguments, if 
-        there is a Callable, we will add any seen kernel/AST with the same 
-        signature to the dependent kernels map. This enables the creation 
-        of `ModuleOps` that contain all the functions necessary to inline and 
-        synthesize callable block arguments.
-        """
-        self.kernelName = node.name
-        for arg in node.args.args:
-            annotation = arg.annotation
-            if annotation == None:
-                raise RuntimeError(
-                    'cudaq.kernel functions must have argument type annotations.'
-                )
-            if isinstance(annotation, ast.Subscript) and hasattr(
-                    annotation.value,
-                    "id") and annotation.value.id == 'Callable':
-                if not hasattr(annotation, 'slice'):
-                    raise RuntimeError(
-                        'Callable type must have signature specified.')
-
-                # This is callable, let's add all in scope kernels with
-                # the same signature
-                callableTy = mlirTypeFromAnnotation(annotation, self.context)
-                for k, v in globalKernelRegistry.items():
-                    if str(v.type) == str(
-                            cc.CallableType.getFunctionType(callableTy)):
-                        self.depKernels[k] = globalAstRegistry[k]
-
-        self.generic_visit(node)
-
-    def visit_Call(self, node):
-        """
-        Here we look for function calls within this kernel. We will 
-        add these to dependent kernels dictionary. We will also look for 
-        kernels that are passed to control and adjoint.
-        """
-        if hasattr(node, 'func'):
-            if isinstance(node.func,
-                          ast.Name) and node.func.id in globalAstRegistry:
-                self.depKernels[node.func.id] = globalAstRegistry[node.func.id]
-            elif isinstance(node.func, ast.Attribute):
-                if hasattr(
-                        node.func.value, 'id'
-                ) and node.func.value.id == 'cudaq' and node.func.attr == 'kernel':
-                    return
-                # May need to somehow import a library kernel, find
-                # all module names in a mod1.mod2.mod3.function type call
-                moduleNames = []
-                value = node.func.value
-                while isinstance(value, ast.Attribute):
-                    moduleNames.append(value.attr)
-                    value = value.value
-                    if isinstance(value, ast.Name):
-                        moduleNames.append(value.id)
-                        break
-
-                if all(x in moduleNames for x in ['cudaq', 'dbg', 'ast']):
-                    return
-
-                if len(moduleNames):
-                    moduleNames.reverse()
-                    if cudaq_runtime.isRegisteredDeviceModule(
-                            '.'.join(moduleNames)):
-                        return
-
-                    # This will throw if the function / module is invalid
-                    try:
-                        m = importlib.import_module('.'.join(moduleNames))
-                    except:
-                        return
-
-                    getattr(m, node.func.attr)
-                    name = node.func.attr
-
-                    if name not in globalAstRegistry:
-                        raise RuntimeError(
-                            f"{name} is not a valid kernel to call ({'.'.join(moduleNames)}). Registry: {globalAstRegistry}"
-                        )
-
-                    self.depKernels[name] = globalAstRegistry[name]
-
-                elif hasattr(node.func,
-                             'attr') and node.func.attr in globalAstRegistry:
-                    self.depKernels[node.func.attr] = globalAstRegistry[
-                        node.func.attr]
-                elif node.func.value.id == 'cudaq' and node.func.attr in [
-                        'control', 'adjoint'
-                ] and node.args[0].id in globalAstRegistry:
-                    self.depKernels[node.args[0].id] = globalAstRegistry[
-                        node.args[0].id]
+from .utils import get_function_source_or_raise
 
 
-class HasReturnNodeVisitor(ast.NodeVisitor):
+class FunctionDefVisitor(ast.NodeVisitor):
     """
-    This visitor will visit the function definition and report 
-    true if that function has a return statement.
+    This visitor will visit the function definition of `kernel_name` and report 
+    type annotations and whether the function has a return statement.
     """
 
-    def __init__(self):
-        self.hasReturnNode = False
+    arg_annotations: list[(str, Type)]
+    return_annotation: Optional[Type] = None
+    has_return_statement: bool = False
+    found: bool = False
+
+    def __init__(self, kernel_name: str):
+        self.kernel_name: str = kernel_name
+        self.arg_annotations = []
 
     def visit_FunctionDef(self, node):
-        for n in node.body:
-            if isinstance(n, ast.Return) and n.value != None:
-                self.hasReturnNode = True
+        if node.name == self.kernel_name:
+            self.found = True
+            self.arg_annotations = [
+                (arg.arg, arg.annotation) for arg in node.args.args
+            ]
+            self.return_annotation = node.returns
+            self.has_return_statement = any(
+                isinstance(n, ast.Return) and n.value != None
+                for n in node.body)
+
+    def generic_visit(self, node):
+        if self.found:
+            # skip traversing the rest of the AST once found
+            return
+        super().generic_visit(node)
 
 
 class FindDepFuncsVisitor(ast.NodeVisitor):
@@ -195,7 +110,8 @@ class FetchDepFuncsSourceCode:
         if name is None:
             name = func_obj.__name__
 
-        tree = ast.parse(textwrap.dedent(inspect.getsource(func_obj)))
+        src, _ = get_function_source_or_raise(func_obj)
+        tree = ast.parse(src)
         vis = FindDepFuncsVisitor()
         visit_set.add(name)
         vis.visit(tree)
@@ -228,8 +144,70 @@ class FetchDepFuncsSourceCode:
             else:
                 this_func_obj = FetchDepFuncsSourceCode._getFuncObj(
                     funcName, callingFrame)
-            src = textwrap.dedent(inspect.getsource(this_func_obj))
+            if this_func_obj is None:
+                continue
+            src, _ = get_function_source_or_raise(this_func_obj)
 
             code += src + '\n'
 
         return code
+
+
+class ValidateArgumentAnnotations(ast.NodeVisitor):
+    """
+    Utility visitor for finding argument annotations
+    """
+
+    def __init__(self, bridge):
+        self.bridge = bridge
+
+    def visit_FunctionDef(self, node):
+        for arg in node.args.args:
+            if arg.annotation == None:
+                self.bridge.emitFatalError(
+                    'cudaq.kernel functions must have argument type annotations.',
+                    arg)
+
+
+class ValidateReturnStatements(ast.NodeVisitor):
+    """
+    Analyze the AST and ensure that functions with a return-type annotation
+    actually have a return statement in all paths.
+    """
+
+    def __init__(self, bridge):
+        self.bridge = bridge
+
+    def visit_FunctionDef(self, node):
+        # skip if un-annotated or explicitly marked as None
+        is_none_ret = (isinstance(node.returns, ast.Constant) and
+                       node.returns.value
+                       is None) or (isinstance(node.returns, ast.Name) and
+                                    node.returns.id == 'None')
+
+        if node.returns is None or is_none_ret:
+            return self.generic_visit(node)
+
+        def all_paths_return(stmts):
+            for stmt in stmts:
+                if isinstance(stmt, ast.Return):
+                    return True
+
+                if isinstance(stmt, ast.If):
+                    if all_paths_return(stmt.body) and all_paths_return(
+                            stmt.orelse):
+                        return True
+
+                if isinstance(stmt, (ast.For, ast.While)):
+                    if all_paths_return(stmt.body) or all_paths_return(
+                            stmt.orelse):
+                        return True
+
+            return False
+
+        if not all_paths_return(node.body):
+            self.bridge.emitFatalError(
+                'cudaq.kernel functions with return type annotations must have a return statement.',
+                node)
+
+        self.generic_visit(node)
