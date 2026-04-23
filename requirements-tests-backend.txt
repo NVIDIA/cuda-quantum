@@ -9,5 +9,5 @@
 # Backend dependencies required for running tests against hardware provider
 # mock servers (e.g., IQM, Scaleway). Pinned here so that all CI workflows
 # and coverage scripts reference a single source of truth.
-iqm-client==28.0.0
+iqm-client==34.0.1
 qio~=0.1.33

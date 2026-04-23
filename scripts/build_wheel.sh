@@ -274,13 +274,9 @@ if [ -z "$OpenMP_libomp_LIBRARY_PATH" ] && [ "$platform" = "Darwin" ]; then
 fi
 if [ -n "$OpenMP_libomp_LIBRARY_PATH" ]; then
     omp_header_dir=$(find "$OpenMP_SEARCH_PREFIX" -name 'omp.h' -print -quit 2>/dev/null | xargs dirname)
-    # Apple Clang requires -Xpreprocessor -fopenmp; LLVM Clang/GCC use -fopenmp directly
-    # Use -idirafter to add omp.h path AFTER system headers (avoids conflicts with clang's stdint.h)
-    if ${CXX:-c++} --version 2>&1 | grep -q "Apple clang"; then
-        OpenMP_FLAGS="${OpenMP_FLAGS:--Xpreprocessor -fopenmp -idirafter $omp_header_dir}"
-    else
-        OpenMP_FLAGS="${OpenMP_FLAGS:--fopenmp -idirafter $omp_header_dir}"
-    fi
+    # Use -idirafter so omp.h is searched after system headers (avoids a
+    # conflict with clang's stdint.h on macOS).
+    OpenMP_FLAGS="${OpenMP_FLAGS:--fopenmp -idirafter $omp_header_dir}"
     echo "OpenMP found: $OpenMP_libomp_LIBRARY_PATH"
 else
     echo "OpenMP not found - wheel will be built without OpenMP parallelization"

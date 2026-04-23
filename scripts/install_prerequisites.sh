@@ -394,14 +394,16 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
     echo "LLVM already installed in $LLVM_INSTALL_PREFIX."
   fi
 
-  if [ "$toolchain" = "llvm" ]; then
+  if [ "$toolchain" = "llvm" ] || [ "$(uname)" = "Darwin" ]; then
     #rm -rf "$llvm_stage1_tmpdir"
-    export CC="$LLVM_INSTALL_PREFIX/bin/clang" 
+    export CC="$LLVM_INSTALL_PREFIX/bin/clang"
     export CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
-    export FC="$LLVM_INSTALL_PREFIX/bin/flang"
     echo "Configured C compiler: $CC"
     echo "Configured C++ compiler: $CXX"
-    echo "Configured Fortran compiler: $FC"
+    if [ -x "$LLVM_INSTALL_PREFIX/bin/flang" ]; then
+      export FC="$LLVM_INSTALL_PREFIX/bin/flang"
+      echo "Configured Fortran compiler: $FC"
+    fi
   fi
 fi
 
