@@ -433,7 +433,10 @@ if [ -n "$BLAS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep blas)" ]
     # See also: https://github.com/NVIDIA/cuda-quantum/issues/452
     wget "${BLAS_TARBALL_URL}"
     tar -xzvf "blas-${BLAS_VERSION}.tgz" && cd BLAS-3.11.0
-    make FC="${FC:-gfortran}"
+    # flang does not support -frecursive (it allocates on the stack by default)
+    blas_fflags="-O2 -frecursive"
+    [[ "${FC:-gfortran}" == *"flang"* ]] && blas_fflags="-O2"
+    make FC="${FC:-gfortran}" FFLAGS="$blas_fflags" FFLAGS_DRV="$blas_fflags" FFLAGS_NOOPT="${blas_fflags/-O2/-O0}"
     mkdir -p "$BLAS_INSTALL_PREFIX"
     mv blas_*.a "$BLAS_INSTALL_PREFIX/libblas.a"
 
