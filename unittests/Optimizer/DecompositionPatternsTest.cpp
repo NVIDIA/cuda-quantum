@@ -244,25 +244,24 @@ TEST_F(DecompositionPatternsTest, PatternNamesMatchDebugNames) {
       cudaq::DecompositionPatternType::RegistryType::entries();
 
   for (auto &entry : patternEntries) {
-    auto patternName = entry.getName();
+    std::string patternName = entry.getName();
     // Create the pattern
-    auto patternType = cudaq::registry::get<cudaq::DecompositionPatternType>(
-        patternName.str());
+    auto patternType =
+        cudaq::registry::get<cudaq::DecompositionPatternType>(patternName);
     ASSERT_NE(patternType, nullptr)
-        << "Failed to recover registered pattern type: " << patternName.str();
+        << "Failed to recover registered pattern type: " << patternName;
 
     auto pattern = patternType->create(context.get());
-    ASSERT_NE(pattern, nullptr)
-        << "Failed to create pattern: " << patternName.str();
+    ASSERT_NE(pattern, nullptr) << "Failed to create pattern: " << patternName;
 
     // Get the debug name
     auto debugName = pattern->getDebugName().str();
     stripNamespace(debugName);
 
     // Verify they match
-    EXPECT_EQ(patternName.str(), debugName)
-        << "Pattern name '" << patternName.str()
-        << "' does not match debug name '" << debugName << "'";
+    EXPECT_EQ(patternName, debugName)
+        << "Pattern name '" << patternName << "' does not match debug name '"
+        << debugName << "'";
   }
 }
 
@@ -272,7 +271,7 @@ TEST_F(DecompositionPatternsTest, MetadataConsistency) {
       cudaq::DecompositionPatternType::RegistryType::entries();
 
   for (auto &entry : patternEntries) {
-    std::string patternName = entry.getName().str();
+    std::string patternName = entry.getName();
     auto patternType = entry.instantiate();
     std::string sourceGate = patternType->getSourceOp().str();
     auto targetGates = patternType->getTargetOps();
@@ -299,7 +298,7 @@ TEST_F(DecompositionPatternsTest, DecompositionProducesOnlyTargetGates) {
       cudaq::DecompositionPatternType::RegistryType::entries();
 
   for (auto &entry : patternEntries) {
-    std::string patternName = entry.getName().str();
+    std::string patternName = entry.getName();
     auto patternType = entry.instantiate();
     std::string sourceGate = patternType->getSourceOp().str();
     auto targetGates = patternType->getTargetOps();

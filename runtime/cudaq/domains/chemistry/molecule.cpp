@@ -30,7 +30,7 @@ struct rebind_container<
 
 #include <xtensor/xio.hpp>
 
-LLVM_INSTANTIATE_REGISTRY(cudaq::MoleculePackageDriver::RegistryType)
+CUDAQ_INSTANTIATE_REGISTRY(cudaq::MoleculePackageDriver::RegistryType)
 
 namespace cudaq {
 

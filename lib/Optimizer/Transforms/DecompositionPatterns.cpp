@@ -39,7 +39,7 @@
 
 using namespace mlir;
 
-LLVM_INSTANTIATE_REGISTRY(cudaq::DecompositionPatternType::RegistryType)
+CUDAQ_INSTANTIATE_REGISTRY(cudaq::DecompositionPatternType::RegistryType)
 
 namespace {
 
@@ -1832,7 +1832,7 @@ void cudaq::populateWithAllDecompositionPatterns(
             map;
         for (auto &patternType :
              cudaq::DecompositionPatternType::RegistryType::entries()) {
-          map[patternType.getName().str()] = patternType.instantiate();
+          map[patternType.getName()] = patternType.instantiate();
         }
         return map;
       }();
