@@ -371,6 +371,41 @@ def test_unknown_veq_size_incorrect_count():
         error)
 
 
+def test_nested_kernel_single_qubit():
+    """Regression test for issue #2485: custom op in a nested kernel on a single qubit."""
+    cudaq.register_operation("custom_x_nested", np.array([0, 1, 1, 0]))
+
+    @cudaq.kernel
+    def inner(q: cudaq.qubit):
+        custom_x_nested(q)
+
+    @cudaq.kernel
+    def outer():
+        q = cudaq.qubit()
+        inner(q)
+
+    counts = cudaq.sample(outer, shots_count=100)
+    assert counts["1"] == 100
+
+
+def test_nested_kernel_qview():
+    """Regression test for issue #2485: custom op in a nested kernel on a qview."""
+    cudaq.register_operation("custom_x_qview", np.array([0, 1, 1, 0]))
+
+    @cudaq.kernel
+    def inner(qubits: cudaq.qview):
+        for i in range(len(qubits)):
+            custom_x_qview(qubits[i])
+
+    @cudaq.kernel
+    def outer():
+        qubits = cudaq.qvector(2)
+        inner(qubits)
+
+    counts = cudaq.sample(outer, shots_count=100)
+    assert counts["11"] == 100
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
