@@ -49,7 +49,6 @@ jobs:
       pybind11_commit: ${{ steps.repo_info.outputs.pybind11_commit }}
       platform_config: ${{ steps.config.outputs.platforms }}
       ci_tier: ${{ steps.ci_tier.outputs.tier }}
-      build_and_test_matrix: ${{ steps.ci_tier.outputs.build_and_test_matrix }}
 
     steps:
       - name: Checkout repository
@@ -106,30 +105,6 @@ jobs:
           fi
           echo "tier=$tier" >> $GITHUB_OUTPUT
           echo "CI tier: $tier"
-
-          # Derive build_and_test matrix from the tier. Required checks run on
-          # every tier so all 6 entries are present either way; PR tier marks
-          # arm64/gcc11 and arm64/gcc12 with skip_build=true so those jobs
-          # fake-pass for merge-queue gating without doing the heavy build.
-          if [ "$tier" == "pr" ]; then
-            matrix='{
-              "include": [
-                {"platform": "amd64", "toolchain": "clang16", "mpi": "openmpi"},
-                {"platform": "amd64", "toolchain": "gcc11",   "mpi": "openmpi"},
-                {"platform": "amd64", "toolchain": "gcc12",   "mpi": "openmpi"},
-                {"platform": "arm64", "toolchain": "clang16", "mpi": "openmpi"},
-                {"platform": "arm64", "toolchain": "gcc11",   "mpi": "openmpi", "skip_build": true},
-                {"platform": "arm64", "toolchain": "gcc12",   "mpi": "openmpi", "skip_build": true}
-              ]
-            }'
-          else
-            matrix='{
-              "platform": ["amd64", "arm64"],
-              "toolchain": ["clang16", "gcc11", "gcc12"],
-              "mpi": ["openmpi"]
-            }'
-          fi
-          echo "build_and_test_matrix=$(echo "$matrix" | jq -c .)" >> $GITHUB_OUTPUT
 
   devdeps:
     name: Load dependencies
@@ -257,7 +232,10 @@ jobs:
     name: Build and test
     needs: [metadata, config_devdeps]
     strategy:
-      matrix: ${{ fromJSON(needs.metadata.outputs.build_and_test_matrix) }}
+      matrix:
+        platform: [amd64, arm64]
+        toolchain: [clang16, gcc11, gcc12]
+        mpi: [openmpi]
       fail-fast: false
     uses: ./.github/workflows/test_in_devenv.yml
     with:
@@ -267,7 +245,11 @@ jobs:
       devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
-      skip_build: ${{ matrix.skip_build == true }}
+      # PR tier fake-passes the arm64/gcc builds (expensive, redundant with amd64/gcc coverage).
+      # Computing skip_build from the 3 real matrix axes keeps the auto-generated job name as
+      # "Build and test (<platform>, <toolchain>, <mpi>) / ..." so branch-protection required
+      # check names match. Adding a 4th matrix key would leak into the name and break gating.
+      skip_build: ${{ needs.metadata.outputs.ci_tier == 'pr' && matrix.platform == 'arm64' && (matrix.toolchain == 'gcc11' || matrix.toolchain == 'gcc12') }}
 
   gen_code_coverage:
     name: Gen code coverage
@@ -343,12 +325,16 @@ jobs:
       wheel_artifacts: 'pycudaq-*'
       skip_build: ${{ needs.metadata.outputs.ci_tier == 'pr' }}
 
-  # Installer builds are packaging. Skipped on PR tier;
-  # code correctness is validated by build_and_test.
+  # Installer builds are packaging, not correctness. On PR tier this fake-passes
+  # (skip_build=true) so required checks report status; code correctness is
+  # validated by build_and_test.
   binaries:
     name: Create CUDA Quantum installer
     needs: [metadata, config_source_build]
-    if: needs.metadata.outputs.ci_tier != 'pr'
+    # Run even when config_source_build is skipped on PR tier. The child
+    # workflow guards all real build steps on !inputs.skip_build, so the
+    # unused build_cache input is fine.
+    if: ${{ always() && needs.metadata.result == 'success' }}
     strategy:
       matrix:
         platform: [amd64, arm64]
@@ -363,7 +349,8 @@ jobs:
       platform_base_image: ${{ fromJson(needs.metadata.outputs.platform_config)[format('{0}', matrix.platform)].minimal_base_image }}
       build_config_id: cu${{ matrix.cuda_version }}-llvm
       cuda_version: ${{ matrix.cuda_version }}
-      build_cache:  ${{ fromJson(needs.config_source_build.outputs.json).build_cache[format('{0}-cu{1}-installer', matrix.platform, matrix.cuda_version)] }}
+      build_cache: ${{ needs.config_source_build.result == 'success' && fromJson(needs.config_source_build.outputs.json).build_cache[format('{0}-cu{1}-installer', matrix.platform, matrix.cuda_version)] || '' }}
+      skip_build: ${{ needs.metadata.outputs.ci_tier == 'pr' }}
 
   clean_up:
     name: Prepare cache clean-up
