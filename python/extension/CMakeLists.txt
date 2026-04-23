@@ -9,6 +9,13 @@
 include(HandleLLVMOptions)
 include(AddMLIRPython)
 
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag("-Wdeprecated-literal-operator"
+  CUDAQ_HAS_WDEPRECATED_LITERAL_OPERATOR)
+if(NOT CUDAQ_HAS_WDEPRECATED_LITERAL_OPERATOR)
+  add_compile_options(-Wno-unknown-warning-option)
+endif()
+
 # Specifies that all MLIR packages are co-located under the cudaq
 # top level package (the API has been embedded in a relocatable way).
 add_compile_definitions("MLIR_PYTHON_PACKAGE_PREFIX=cudaq.mlir.")
