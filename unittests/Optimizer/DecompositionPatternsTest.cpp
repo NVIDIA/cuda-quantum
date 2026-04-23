@@ -12,22 +12,20 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-
+#include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringSet.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/IR/Builders.h"
+#include "mlir/IR/BuiltinOps.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/PassManager.h"
 #include <gtest/gtest.h>
-#include <iterator>
-#include <llvm/ADT/APFloat.h>
-#include <llvm/ADT/STLExtras.h>
-#include <llvm/ADT/StringMap.h>
 #include <memory>
-#include <mlir/IR/BuiltinOps.h>
 
 using namespace mlir;
 

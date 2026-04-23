@@ -8,14 +8,13 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-
-#define DEBUG_TYPE "eliminate-dead-heap-copy"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_ELIMINATEDEADHEAPCOPY
 #include "cudaq/Optimizer/CodeGen/Passes.h.inc"
 } // namespace cudaq::opt
+
+#define DEBUG_TYPE "eliminate-dead-heap-copy"
 
 using namespace mlir;
 

@@ -9,6 +9,17 @@
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "cudaq/Optimizer/CodeGen/Peephole.h"
+#include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
+#include "cudaq/Todo.h"
+#include "nlohmann/json.hpp"
+#include "llvm/ADT/SmallSet.h"
+#include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
+#include "mlir/Conversion/LLVMCommon/TypeConverter.h"
+#include "mlir/Dialect/LLVMIR/LLVMTypes.h"
+#include "mlir/Pass/PassManager.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include "mlir/Transforms/Passes.h"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_QIRTOQIRPROFILE
@@ -16,19 +27,6 @@ namespace cudaq::opt {
 #define GEN_PASS_DEF_QIRTOQIRPROFILEPREP
 #include "cudaq/Optimizer/CodeGen/Passes.h.inc"
 } // namespace cudaq::opt
-#include "cudaq/Optimizer/CodeGen/Peephole.h"
-#include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
-#include "cudaq/Todo.h"
-#include "nlohmann/json.hpp"
-#include "llvm/ADT/SmallSet.h"
-#include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
-#include "mlir/Conversion/LLVMCommon/TypeConverter.h"
-#include "mlir/Dialect/LLVMIR/LLVMDialect.h"
-#include "mlir/Dialect/LLVMIR/LLVMTypes.h"
-#include "mlir/Pass/PassManager.h"
-#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
-#include "mlir/Transforms/Passes.h"
 
 #define DEBUG_TYPE "qir-profile"
 

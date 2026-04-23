@@ -8,14 +8,12 @@
 
 #include "QuakeToCodegen.h"
 #include "CodeGenOps.h"
+#include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
 #include "mlir/Conversion/LLVMCommon/Pattern.h"
-#include "mlir/Dialect/Complex/IR/Complex.h"
 
 using namespace mlir;
 
