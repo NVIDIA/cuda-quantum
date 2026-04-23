@@ -9,6 +9,7 @@
 from ..integrator import BaseTimeStepper, BaseIntegrator
 from .builtin_integrators import cuDensityMatTimeStepper, cuDensityMatSuperOpTimeStepper
 from ...mlir._mlir_libs._quakeDialects import cudaq_runtime
+from typing import Optional
 import numpy, math
 
 has_dynamics = True
@@ -32,7 +33,7 @@ class ScipyZvodeIntegrator(BaseIntegrator[cudaq_runtime.State]):
     order = 12
 
     def __init__(self,
-                 stepper: BaseTimeStepper[cudaq_runtime.State] = None,
+                 stepper: Optional[BaseTimeStepper[cudaq_runtime.State]] = None,
                  **kwargs):
         if not has_dynamics:
             raise ImportError(

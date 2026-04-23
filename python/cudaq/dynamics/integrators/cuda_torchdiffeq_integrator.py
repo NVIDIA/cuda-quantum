@@ -9,6 +9,7 @@
 from ..integrator import BaseTimeStepper, BaseIntegrator
 from .builtin_integrators import cuDensityMatTimeStepper, cuDensityMatSuperOpTimeStepper
 from ...mlir._mlir_libs._quakeDialects import cudaq_runtime
+from typing import Optional
 import math
 
 has_cupy = True
@@ -71,7 +72,7 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
     rtol = 1e-7
 
     def __init__(self,
-                 stepper: BaseTimeStepper[cudaq_runtime.State],
+                 stepper: Optional[BaseTimeStepper[cudaq_runtime.State]] = None,
                  solver: str = 'rk4',
                  **kwargs):
         if not has_dynamics:
@@ -141,7 +142,7 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
             # state back to a torch tensor via `dlpack` (no extra copy).
             result_state_obj = self.stepper.compute(temp_state, t_scalar)
             result_cupy = to_cupy_array(result_state_obj)
-            result_vec = torch.from_dlpack(result_cupy).clone()
+            result_vec = torch.from_dlpack(result_cupy)
         return result_vec
 
     def _create_wrapped_rhs_func(self):
@@ -284,7 +285,7 @@ class CUDATorchDiffEqIntegrator(BaseIntegrator[cudaq_runtime.State]):
 class CUDATorchDiffEqRK4Integrator(CUDATorchDiffEqIntegrator):
 
     def __init__(self,
-                 stepper: BaseTimeStepper[cudaq_runtime.State] = None,
+                 stepper: Optional[BaseTimeStepper[cudaq_runtime.State]] = None,
                  **kwargs):
         super().__init__(stepper, solver='rk4', **kwargs)
 
@@ -292,7 +293,7 @@ class CUDATorchDiffEqRK4Integrator(CUDATorchDiffEqIntegrator):
 class CUDATorchDiffEqEulerIntegrator(CUDATorchDiffEqIntegrator):
 
     def __init__(self,
-                 stepper: BaseTimeStepper[cudaq_runtime.State] = None,
+                 stepper: Optional[BaseTimeStepper[cudaq_runtime.State]] = None,
                  **kwargs):
         super().__init__(stepper, solver='euler', **kwargs)
 
@@ -300,7 +301,7 @@ class CUDATorchDiffEqEulerIntegrator(CUDATorchDiffEqIntegrator):
 class CUDATorchDiffEqMidpointIntegrator(CUDATorchDiffEqIntegrator):
 
     def __init__(self,
-                 stepper: BaseTimeStepper[cudaq_runtime.State] = None,
+                 stepper: Optional[BaseTimeStepper[cudaq_runtime.State]] = None,
                  **kwargs):
         super().__init__(stepper, solver='midpoint', **kwargs)
 
@@ -308,7 +309,7 @@ class CUDATorchDiffEqMidpointIntegrator(CUDATorchDiffEqIntegrator):
 class CUDATorchDiffEqDopri5Integrator(CUDATorchDiffEqIntegrator):
 
     def __init__(self,
-                 stepper: BaseTimeStepper[cudaq_runtime.State] = None,
+                 stepper: Optional[BaseTimeStepper[cudaq_runtime.State]] = None,
                  **kwargs):
         super().__init__(stepper, solver='dopri5', **kwargs)
 
@@ -316,7 +317,7 @@ class CUDATorchDiffEqDopri5Integrator(CUDATorchDiffEqIntegrator):
 class CUDATorchDiffEqDopri8Integrator(CUDATorchDiffEqIntegrator):
 
     def __init__(self,
-                 stepper: BaseTimeStepper[cudaq_runtime.State] = None,
+                 stepper: Optional[BaseTimeStepper[cudaq_runtime.State]] = None,
                  **kwargs):
         super().__init__(stepper, solver='dopri8', **kwargs)
 
@@ -324,7 +325,7 @@ class CUDATorchDiffEqDopri8Integrator(CUDATorchDiffEqIntegrator):
 class CUDATorchDiffEqBosh3Integrator(CUDATorchDiffEqIntegrator):
 
     def __init__(self,
-                 stepper: BaseTimeStepper[cudaq_runtime.State] = None,
+                 stepper: Optional[BaseTimeStepper[cudaq_runtime.State]] = None,
                  **kwargs):
         super().__init__(stepper, solver='bosh3', **kwargs)
 
@@ -332,7 +333,7 @@ class CUDATorchDiffEqBosh3Integrator(CUDATorchDiffEqIntegrator):
 class CUDATorchDiffEqAdaptiveHeunIntegrator(CUDATorchDiffEqIntegrator):
 
     def __init__(self,
-                 stepper: BaseTimeStepper[cudaq_runtime.State] = None,
+                 stepper: Optional[BaseTimeStepper[cudaq_runtime.State]] = None,
                  **kwargs):
         super().__init__(stepper, solver='adaptive_heun', **kwargs)
 
@@ -340,7 +341,7 @@ class CUDATorchDiffEqAdaptiveHeunIntegrator(CUDATorchDiffEqIntegrator):
 class CUDATorchDiffEqExplicitAdamsIntegrator(CUDATorchDiffEqIntegrator):
 
     def __init__(self,
-                 stepper: BaseTimeStepper[cudaq_runtime.State] = None,
+                 stepper: Optional[BaseTimeStepper[cudaq_runtime.State]] = None,
                  **kwargs):
         super().__init__(stepper, solver='explicit_adams', **kwargs)
 
@@ -348,7 +349,7 @@ class CUDATorchDiffEqExplicitAdamsIntegrator(CUDATorchDiffEqIntegrator):
 class CUDATorchDiffEqFehlberg2Integrator(CUDATorchDiffEqIntegrator):
 
     def __init__(self,
-                 stepper: BaseTimeStepper[cudaq_runtime.State] = None,
+                 stepper: Optional[BaseTimeStepper[cudaq_runtime.State]] = None,
                  **kwargs):
         super().__init__(stepper, solver='fehlberg2', **kwargs)
 
@@ -356,7 +357,7 @@ class CUDATorchDiffEqFehlberg2Integrator(CUDATorchDiffEqIntegrator):
 class CUDATorchDiffEqHeun3Integrator(CUDATorchDiffEqIntegrator):
 
     def __init__(self,
-                 stepper: BaseTimeStepper[cudaq_runtime.State] = None,
+                 stepper: Optional[BaseTimeStepper[cudaq_runtime.State]] = None,
                  **kwargs):
         super().__init__(stepper, solver='heun3', **kwargs)
 
@@ -364,7 +365,7 @@ class CUDATorchDiffEqHeun3Integrator(CUDATorchDiffEqIntegrator):
 class CUDATorchDiffEqImplicitAdamsIntegrator(CUDATorchDiffEqIntegrator):
 
     def __init__(self,
-                 stepper: BaseTimeStepper[cudaq_runtime.State] = None,
+                 stepper: Optional[BaseTimeStepper[cudaq_runtime.State]] = None,
                  **kwargs):
         super().__init__(stepper, solver='implicit_adams', **kwargs)
 
@@ -372,6 +373,6 @@ class CUDATorchDiffEqImplicitAdamsIntegrator(CUDATorchDiffEqIntegrator):
 class CUDATorchDiffEqFixedAdamsIntegrator(CUDATorchDiffEqIntegrator):
 
     def __init__(self,
-                 stepper: BaseTimeStepper[cudaq_runtime.State] = None,
+                 stepper: Optional[BaseTimeStepper[cudaq_runtime.State]] = None,
                  **kwargs):
         super().__init__(stepper, solver='fixed_adams', **kwargs)

@@ -35,7 +35,9 @@ class BaseIntegrator(ABC, Generic[TState]):
         self.dimensions = None
         self.schedule = None
         self.hamiltonian = None
-        # The actual stepper used for integration. This may be set in the constructor with a user-provided stepper, or it may be auto-created by the integrator when `integrate()` is called based on the system dynamics.
+        # The actual stepper used for integration.
+        # This may be set in the constructor with a user-provided stepper,
+        # or it may be auto-created by the integrator when `integrate()` is called based on the system dynamics.
         self.stepper = None
         # User-provided stepper.
         # This will be used for integration if provided.
