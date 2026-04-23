@@ -29,6 +29,7 @@ def clear_registries():
 
 
 def test_kernel_call_via_partial_module_path():
+
     @cudaq.kernel
     def test0():
         gates.qft_ops.qft_kernel()

@@ -27,6 +27,7 @@ def clear_registries():
 
 
 def test_unqualified_cross_module_kernel_call_raises():
+
     @cudaq.kernel
     def test0():
         spooky_kernel()  # not imported — should not resolve
