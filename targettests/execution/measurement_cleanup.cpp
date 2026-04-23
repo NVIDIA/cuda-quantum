@@ -41,7 +41,7 @@ __qpu__ int cccx_measure_cleanup() {
   if (result)
     z<cudaq::ctrl>(qubits[0], qubits[1]);
 
-    return cudaq::to_integer(mz(qubits));
+    return cudaq::to_integer(cudaq::to_bools(mz(qubits)));
 }
 
 int main() {

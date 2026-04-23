@@ -23,7 +23,7 @@ bool xor_result(const std::vector<cudaq::measure_result> &result_vec) __qpu__ {
 bool kernel() __qpu__ {
   cudaq::qvector q(7);
   x(q);
-  std::vector<cudaq::measure_result> mz_res = mz(q);
+  std::vector<cudaq::measure_result> mz_res = cudaq::to_bools(mz(q));
   bool res = xor_result(mz_res);
   return res;
 }

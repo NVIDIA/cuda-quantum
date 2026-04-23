@@ -53,11 +53,10 @@ struct vector_mz_test {
     cudaq::qvector q(5);
     cudaq::qubit p;
     x(q);
-#ifdef CUDAQ_LIBRARY_MODE
-    return cudaq::measure_result::to_bool_vector(mz(q));
-#else
-    return mz(q);
-#endif
+    // `mz(qvec)` returns `std::vector<measure_handle>` per the
+    // `measure_handle` spec; `to_bools` is the single sanctioned way to
+    // reach `std::vector<bool>` in both library and MLIR modes.
+    return cudaq::to_bools(mz(q));
   }
 };
 
