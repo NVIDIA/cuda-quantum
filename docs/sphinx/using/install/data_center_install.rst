@@ -372,6 +372,38 @@ and install it by running the commands
     . /opt/nvidia/cudaq/set_env.sh
 
 This will extract the built assets and move them to the correct locations.
+
+Alternative: install via apt/dpkg (experimental)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+On Debian or Ubuntu hosts (22.04, 24.04, Debian 12), the release also ships
+Debian packages alongside the makeself installer. The easiest path is the
+``cudaq`` metapackage, which pulls in the appropriate CUDA variant:
+
+.. code-block:: bash
+
+    # Pick the arch + CUDA major version that matches your host
+    arch=$(dpkg --print-architecture)                 # amd64 or arm64
+    version=<release-version>                         # e.g. 0.14.0
+    base=https://github.com/NVIDIA/cuda-quantum/releases/download/v${version}
+    wget ${base}/cudaq_${version}_all.deb
+    wget ${base}/cuda-quantum-cu13_${version}_${arch}.deb    # or cu12
+    sudo apt install ./cudaq_${version}_all.deb ./cuda-quantum-cu13_${version}_${arch}.deb
+
+The deb installs to ``/opt/nvidia/cudaq`` and drops
+``/etc/profile.d/cuda-quantum-cu13.sh`` so new login shells pick up the
+environment automatically. Uninstall with
+``sudo apt remove cuda-quantum-cu13``.
+
+To install the realtime flavor, use ``cudaq-realtime`` and
+``cuda-quantum-realtime-cu{12,13}`` instead. The realtime deb installs to
+``/opt/nvidia/cudaq-realtime`` and coexists with the non-realtime core deb
+on the same host.
+
+The ``cudaq`` metapackage cannot probe the host's installed CUDA runtime to
+auto-pick cu12 vs cu13 -- that decision is driven by which variant deb you
+download alongside it. By default apt prefers cu13 if both are available.
+
 The `set_env.sh` script in `/opt/nvidia/cudaq` defines the necessary environment
 variables to use CUDA-Q. To avoid having to set them manually every time a 
 new shell is opened, we highly recommend adding the following lines to

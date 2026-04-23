@@ -236,6 +236,17 @@ jobs:
           platforms: ${{ inputs.platform }}
           outputs: type=local,dest=/tmp/install
 
+      - name: Build deb package
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/release/deb.Dockerfile
+          build-args: |
+            base_image=${{ steps.config.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
+            cudaq_version=${{ steps.config.outputs.cudaq_version }}
+          platforms: ${{ inputs.platform }}
+          outputs: type=local,dest=/tmp/install
+
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:

@@ -20,6 +20,11 @@ FROM ${base_image} AS assets
 SHELL ["/bin/bash", "-c"]
 ARG cuda_version=13.0
 ENV CUDA_VERSION=${cuda_version}
+# Version string stamped into the Debian package Version: field. Caller
+# should pass e.g. 0.14.0 for tagged releases; default 0.0.0 for
+# untagged/CI builds.
+ARG cudaq_version=0.0.0
+ENV CUDAQ_VERSION=${cudaq_version}
 
 # When a dialogue box would be needed during install, assume default configurations.
 # Set here to avoid setting it for all install commands. 
@@ -30,6 +35,8 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False \
     dnf config-manager --enable powertools
 
 ADD scripts/configure_build.sh /cuda-quantum/scripts/configure_build.sh
+ADD scripts/build_deb.sh /cuda-quantum/scripts/build_deb.sh
+ADD LICENSE /cuda-quantum/LICENSE
 
 # [Prerequisites]
 ARG PYTHON=python3.11
@@ -105,11 +112,32 @@ RUN git clone --filter=tree:0 https://github.com/megastep/makeself /makeself && 
     ln -s /makeself/makeself.sh /usr/local/bin/makeself && \
     ln -s /makeself/makeself-header.sh /usr/local/bin/makeself-header.sh
 
+# [Install deb packaging tools]
+# dpkg-dev + fakeroot + xz allow building a Debian .deb on this
+# AlmaLinux host. They come from EPEL.
+RUN dnf install -y --nobest --setopt=install_weak_deps=False epel-release && \
+    dnf install -y --nobest --setopt=install_weak_deps=False \
+        dpkg dpkg-dev fakeroot xz
+
 # [Build realtime installer]
 # Set install prefix to match where build_installer.sh expects it
 ENV CUDAQ_REALTIME_INSTALL_PREFIX=/realtime_assets
-# Run installer build script
-RUN bash /cuda-quantum/realtime/scripts/build_installer.sh -c $(echo $CUDA_VERSION | cut -d . -f1)   
+# Run installer build script (produces out/install_cuda_quantum_realtime_*)
+RUN bash /cuda-quantum/realtime/scripts/build_installer.sh -c $(echo $CUDA_VERSION | cut -d . -f1)
+
+# [Build realtime deb]
+# Packs the same staged tree into a .deb alongside the makeself installer.
+# Installs to /opt/nvidia/cudaq-realtime -- distinct from the core
+# /opt/nvidia/cudaq prefix so the two flavors can coexist under dpkg.
+RUN bash /cuda-quantum/scripts/build_deb.sh \
+        -d \
+        -f realtime \
+        -c $(echo $CUDA_VERSION | cut -d . -f1) \
+        -i /realtime_assets \
+        -V ${CUDAQ_VERSION} \
+        -o /realtime_debs \
+        -v
 
 FROM scratch
 COPY --from=assets out/install_cuda_quantum_realtime_* .
+COPY --from=assets /realtime_debs/*.deb .
