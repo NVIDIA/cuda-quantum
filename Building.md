@@ -69,9 +69,9 @@ CUDA-Q can be built on macOS for development purposes. Note that:
 
 - **ARM64 only**: Only Apple silicon Macs are supported; Intel Macs are not supported
 - **CPU-only**: No CUDA/GPU support is available on macOS
-- **LLVM 22.1 toolchain**: CUDA-Q is compiled with the Clang/LLD/libomp built
+- **LLVM 22.1 toolchain**: CUDA-Q is compiled with the `Clang/LLD/libomp` built
   by `scripts/build_llvm.sh` — the same toolchain used on Linux. Xcode Command
-  Line Tools are still required for the macOS SDK/sysroot (headers, frameworks,
+  Line Tools are still required for the macOS `SDK/sysroot` (headers, frameworks,
   `xcrun`), but Apple Clang is no longer used to compile CUDA-Q itself.
 - **Prerequisites required**: You must use `-p` to install LLVM and other dependencies
 
