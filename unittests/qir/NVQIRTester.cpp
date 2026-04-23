@@ -59,7 +59,6 @@ void __quantum__qis__rz(double x, Qubit *q);
 void __quantum__qis__rz__ctl(double x, Array *ctrls, Qubit *q);
 void __quantum__qis__u3(double theta, double phi, double lambda, Qubit *q);
 Result *__quantum__qis__mz(Qubit *q);
-Result *__quantum__qis__measure__body(Array *basis, Array *qubits);
 Result *__quantum__rt__result_get_one();
 Result *__quantum__rt__result_get_zero();
 void __quantum__qis__exp__body(Array *paulis, double angle, Array *qubits);

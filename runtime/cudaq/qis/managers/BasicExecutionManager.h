@@ -76,10 +76,17 @@ protected:
 
   /// @brief Measure the state in the respective basis described each term in
   /// the given `spin_op`.
-  virtual void measureSpinOp(const cudaq::spin_op &op) = 0;
+  virtual cudaq::SpinMeasureResult measureSpinOp(const cudaq::spin_op &op) = 0;
 
   /// @brief Subtype-specific method for performing qudit reset.
   virtual void resetQudit(const QuditInfo &q) = 0;
+
+  void finalizeExecutionContextImpl(ExecutionContext &ctx) {
+    assert(&ctx == cudaq::getExecutionContext() &&
+           "cannot finalize non-current execution context");
+    ScopedTraceWithContext("BasicExecutionManager::finalizeExecutionContext");
+    synchronize();
+  }
 
 public:
   BasicExecutionManager() = default;
@@ -88,13 +95,6 @@ public:
   void beginExecution() override {
     ScopedTraceWithContext("BasicExecutionManager::beginExecution");
     instructionQueue.clear();
-  }
-
-  void finalizeExecutionContext(ExecutionContext &ctx) override {
-    assert(&ctx == cudaq::getExecutionContext() &&
-           "cannot finalize non-current execution context");
-    ScopedTraceWithContext("BasicExecutionManager::finalizeExecutionContext");
-    synchronize();
   }
 
   void endExecution() override {
@@ -267,10 +267,7 @@ public:
 
   cudaq::SpinMeasureResult measure(const cudaq::spin_op &op) override {
     synchronize();
-    measureSpinOp(op);
-    auto executionContext = cudaq::getExecutionContext();
-    return std::make_pair(executionContext->expectationValue.value(),
-                          executionContext->result);
+    return measureSpinOp(op);
   }
 
   void reset(const QuditInfo &target) override {
