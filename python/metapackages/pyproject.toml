@@ -58,14 +58,11 @@ core-metadata-version = "2.3"
 
 [tool.hatch.build.targets.sdist]
 include = [
-  "hatch_build.py",
   "_version.txt",
-  "README.md",
-  "LICENSE",
-  "NOTICE",
-  "CITATION.cff",
   "_deprecated.txt",
 ]
 
 [tool.hatch.build.targets.wheel]
-bypass-selection = true
+include = [
+    "_version.txt",
+]

@@ -235,9 +235,14 @@ class CudaqMetadataHook(MetadataHookInterface):
         is_sdist_build = os.environ.get('CUDAQ_META_SDIST_BUILD', '0') == '1'
         deprecated_marker = curr_dir / "_deprecated.txt"
 
-        # Case 1: create source distribution with no dependencies.
+        # Case 1: create source distribution with no dependencies. Make sure
+        # to delete any "dependencies" or "optional-dependencies" entries,
+        # as they override the "Dynamic: dependencies" marker.
         if is_sdist_build:
-            metadata["dependencies"] = []
+            if "dependencies" in metadata:
+                del metadata["dependencies"]
+            if "optional-dependencies" in metadata:
+                del metadata["optional-dependencies"]
             return
 
         # Case 2: a user is installing the deprecated `cuda-quantum` `sdist`.
