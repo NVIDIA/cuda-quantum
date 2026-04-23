@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "PassDetails.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 
 namespace cudaq::opt {

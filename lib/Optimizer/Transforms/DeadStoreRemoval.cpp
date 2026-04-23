@@ -18,7 +18,7 @@ namespace cudaq::opt {
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
-#define DEBUG_TYPE "dsr"
+#define DEBUG_TYPE "dead-store-removal"
 
 using namespace mlir;
 

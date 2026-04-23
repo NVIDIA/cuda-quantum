@@ -7,22 +7,16 @@
  ******************************************************************************/
 
 #include "DecompositionPatterns.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "PassDetails.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-
-using namespace mlir;
-using namespace cudaq;
-
-//===----------------------------------------------------------------------===//
-// Generated logic
-//===----------------------------------------------------------------------===//
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_MULTICONTROLDECOMPOSITION
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
+
+using namespace mlir;
 
 //===----------------------------------------------------------------------===//
 // Helpers
@@ -35,10 +29,10 @@ static Operation *createOperator(Location loc, StringRef name,
   SmallVector<Value> operands(parameters);
   operands.append(controls.begin(), controls.end());
   operands.append(targets.begin(), targets.end());
-  auto segmentSizes =
-      builder.getDenseI32ArrayAttr({static_cast<int32_t>(parameters.size()),
-                                    static_cast<int32_t>(controls.size()),
-                                    static_cast<int32_t>(targets.size())});
+  auto segmentSizes = builder.getDenseI32ArrayAttr(
+      {static_cast<std::int32_t>(parameters.size()),
+       static_cast<std::int32_t>(controls.size()),
+       static_cast<std::int32_t>(targets.size())});
   auto op = builder.create(loc, nameAttr, operands);
   op->setAttr("operand_segment_sizes", segmentSizes);
   return op;
@@ -174,7 +168,7 @@ LogicalResult Decomposer::v_decomposition(quake::OperatorInterface op) {
 //===----------------------------------------------------------------------===//
 namespace {
 struct Decomposition
-    : public opt::impl::MultiControlDecompositionBase<Decomposition> {
+    : public cudaq::opt::impl::MultiControlDecompositionBase<Decomposition> {
   using MultiControlDecompositionBase::MultiControlDecompositionBase;
 
   void runOnOperation() override {
@@ -194,5 +188,4 @@ struct Decomposition
     });
   }
 };
-
 } // namespace

@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/PostOrderIterator.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Analysis/CallGraph.h"

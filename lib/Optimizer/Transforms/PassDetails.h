@@ -9,6 +9,7 @@
 #pragma once
 
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
@@ -20,13 +21,6 @@
 #include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassRegistry.h"
-
-namespace cudaq::opt {
-
-// Note: Individual pass implementations should define their specific pass
-// using #define GEN_PASS_DEF_<PassName> before including Passes.h.inc
-
-} // namespace cudaq::opt
 
 #define GATE_OPS(MACRO)                                                        \
   MACRO(XOp), MACRO(YOp), MACRO(ZOp), MACRO(HOp), MACRO(SOp), MACRO(TOp),      \

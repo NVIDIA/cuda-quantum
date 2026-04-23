@@ -6,6 +6,15 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "DecompositionPatterns.h"
+#include "PassDetails.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
+#include "llvm/ADT/StringMap.h"
+#include "llvm/Support/Error.h"
+#include "llvm/Support/TypeName.h"
+#include "mlir/IR/PatternMatch.h"
+#include "mlir/Rewrite/FrozenRewritePatternSet.h"
+
 /**
  * This file contains the decomposition patterns that match single gates and
  * decompose them into a sequence of other gates.
@@ -22,26 +31,10 @@
  * macro can be used for this purpose instead.
  */
 
-#include "DecompositionPatterns.h"
-#include "cudaq/Optimizer/Builder/Factory.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
-#include "mlir/IR/PatternMatch.h"
-#include "mlir/Rewrite/FrozenRewritePatternSet.h"
-#include <llvm/ADT/SmallVector.h>
-#include <llvm/ADT/StringMap.h>
-#include <llvm/ADT/StringRef.h>
-#include <llvm/Support/Casting.h>
-#include <llvm/Support/Error.h>
-#include <llvm/Support/TypeName.h>
-#include <memory>
-
 using namespace mlir;
 
+/// FIXME: DO NOT INSTANTIATE GLOBALS HERE!
 LLVM_INSTANTIATE_REGISTRY(cudaq::DecompositionPatternType::RegistryType)
-
-namespace {
 
 //===----------------------------------------------------------------------===//
 // Helpers
@@ -72,6 +65,7 @@ inline bool containsControlTypes(quake::OperatorInterface op) {
   });
 }
 
+namespace {
 /// @brief This is a wrapper class for `PatternRewriter::create<>()` for
 /// `QuakeOperator`s. If the controls and targets are `quake::WireType`, then
 /// this wrapper class's methods update the controls and targets in the `create`
@@ -247,13 +241,14 @@ public:
 private:
   PatternRewriter &rewriter;
 };
+} // namespace
 
 /// Check whether the operation has the correct number of controls.
 ///
 /// Note: This function assumes that the operation has already been tested for
 /// reference semantics.
-LogicalResult checkNumControls(quake::OperatorInterface op,
-                               std::size_t requiredNumControls) {
+static LogicalResult checkNumControls(quake::OperatorInterface op,
+                                      std::size_t requiredNumControls) {
   auto opControls = op.getControls();
   if (opControls.size() > requiredNumControls)
     return failure();
@@ -280,9 +275,9 @@ LogicalResult checkNumControls(quake::OperatorInterface op,
 ///
 /// Note: This function assumes that the operation has already been tested for
 /// reference semantics.
-LogicalResult checkAndExtractControls(quake::OperatorInterface op,
-                                      MutableArrayRef<Value> controls,
-                                      PatternRewriter &rewriter) {
+static LogicalResult checkAndExtractControls(quake::OperatorInterface op,
+                                             MutableArrayRef<Value> controls,
+                                             PatternRewriter &rewriter) {
   if (failed(checkNumControls(op, controls.size())))
     return failure();
 
@@ -341,11 +336,11 @@ LogicalResult checkAndExtractControls(quake::OperatorInterface op,
 // HOp decompositions
 //===----------------------------------------------------------------------===//
 
+namespace {
 // quake.h target
 // ───────────────────────────────────
 // quake.phased_rx(π/2, π/2) target
 // quake.phased_rx(π, 0) target
-
 struct HToPhasedRxType; // forward declare the pattern type, defined in the
                         // macro below
 struct HToPhasedRx
