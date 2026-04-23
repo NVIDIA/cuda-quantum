@@ -104,6 +104,9 @@ public:
     detail::setExecutionContext(&ctx);
     beginExecution();
 
+    // Cleanup runs after the kernel returns or throws. It finalizes results
+    // and tears down, then resets the execution context.
+    // The context reset always runs even if finalization throws.
     auto cleanup = [this, &ctx, &outerContext]() {
       detail::try_finally(
           [this, &ctx] {
@@ -130,9 +133,6 @@ public:
 
   /// Return whether this platform is a simulator.
   bool is_simulator(std::size_t qpu_id = 0) const;
-
-  /// @brief Return whether the QPU has conditional feedback support
-  bool supports_conditional_feedback(std::size_t qpu_id = 0) const;
 
   /// @brief Return whether the QPU supports explicit measurements.
   bool supports_explicit_measurements(std::size_t qpu_id = 0) const;
@@ -200,21 +200,17 @@ public:
                void *args, std::uint64_t voidStarSize,
                std::uint64_t resultOffset, const std::vector<void *> &rawArgs,
                std::size_t qpu_id = 0);
-  void launchKernel(const std::string &kernelName, const std::vector<void *> &,
-                    std::size_t qpu_id = 0);
 
   // This method launches a kernel from a ModuleOp that has already been
   // created.
   [[nodiscard]] KernelThunkResultType
   launchModule(const std::string &kernelName, mlir::ModuleOp module,
-               const std::vector<void *> &rawArgs, mlir::Type resultTy,
-               std::size_t qpu_id);
+               const std::vector<void *> &rawArgs, std::size_t qpu_id);
 
-  [[nodiscard]] void *
+  [[nodiscard]] CompiledModule
   specializeModule(const std::string &kernelName, mlir::ModuleOp module,
-                   const std::vector<void *> &rawArgs, mlir::Type resultTy,
-                   std::optional<cudaq::JitEngine> &cachedEngine,
-                   std::size_t qpu_id);
+                   const std::vector<void *> &rawArgs, std::size_t qpu_id,
+                   bool isEntryPoint);
 
   /// List all available platforms
   static std::vector<std::string> list_platforms();

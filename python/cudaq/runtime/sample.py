@@ -9,7 +9,7 @@
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.kernel.kernel_builder import PyKernel
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
-from cudaq.kernel.utils import nvqppPrefix
+from cudaq.kernel.utils import mlirTypeToPyType, nvqppPrefix
 from .utils import __isBroadcast, __createArgumentSet
 
 # Maintain a dictionary of queued `async` sample kernels.This dictionary is used
@@ -21,25 +21,22 @@ cudaq_async_sample_cache_counter = 0
 
 class AsyncSampleResult:
 
-    def __init__(self, *args, **kwargs):
-        if len(args) == 2 and isinstance(args[0],
-                                         cudaq_runtime.AsyncSampleResultImpl):
-            impl = args[0]
-            mod = args[1]
-            global cudaq_async_sample_module_cache
-            global cudaq_async_sample_cache_counter
-            self.impl = impl
-            self.getCalled = False
-            self.counter = cudaq_async_sample_cache_counter
-            cudaq_async_sample_cache_counter = self.counter + 1
-            cudaq_async_sample_module_cache[self.counter] = mod
-        elif len(args) == 1 and isinstance(args[0], str):
-            # String-based constructor from JSON
-            self.impl = cudaq_runtime.AsyncSampleResultImpl(args[0])
-            self.counter = None
-        else:
+    def __init__(self, impl, mod=None):
+        global cudaq_async_sample_module_cache
+        global cudaq_async_sample_cache_counter
+        if isinstance(impl, str):
+            impl = cudaq_runtime.AsyncSampleResultImpl(impl)
+        if not hasattr(impl, 'get'):
             raise RuntimeError(
                 "Invalid arguments passed to AsyncSampleResult constructor.")
+        self.impl = impl
+        self.getCalled = False
+        if mod is not None:
+            self.counter = cudaq_async_sample_cache_counter
+            cudaq_async_sample_cache_counter += 1
+            cudaq_async_sample_module_cache[self.counter] = mod
+        else:
+            self.counter = None
 
     def get(self):
         result = self.impl.get()
@@ -85,14 +82,14 @@ def __broadcastSample(kernel,
 def _detail_check_conditionals_on_measure(kernel):
     has_conditionals_on_measure_result = False
     if isa_kernel_decorator(kernel):
-        if kernel.returnType is not None:
+        if kernel.return_type is not None:
             raise RuntimeError(
                 f"The `sample` API only supports kernels that return None "
                 f"(void). Kernel '{kernel.name}' has return type "
-                f"'{kernel.returnType}'. Consider using `run` for kernels "
+                f"'{mlirTypeToPyType(kernel.return_type)}'. Consider using `run` for kernels "
                 f"that return values.")
-        # Only check for kernels that are compiled, not library-mode kernels (e.g., photonics)
-        if kernel.qkeModule is not None:
+        # Only check for kernels that can be compiled, not library-mode kernels (e.g., photonics)
+        if kernel.supports_compilation():
             for operation in kernel.qkeModule.body.operations:
                 if (hasattr(operation, 'name') and nvqppPrefix + kernel.uniqName
                         == operation.name.value and
@@ -245,8 +242,8 @@ def sample_async(decorator,
     if (not isinstance(shots_count, int)) or (shots_count < 0):
         raise RuntimeError(
             "Invalid `shots_count`. Must be a non-negative number.")
-    if (decorator.returnType and
-            decorator.returnType != decorator.get_none_type()):
+    if (decorator.return_type and
+            decorator.return_type != decorator.get_none_type()):
         raise RuntimeError("The `sample_async` API only supports kernels that "
                            "return None (void). Consider using `run_async` for "
                            "kernels that return values.")
@@ -261,16 +258,14 @@ def sample_async(decorator,
             raise ValueError("Noise model is not supported on remote simulator"
                              " or hardware QPU.")
 
-    specMod, processedArgs = decorator.handle_call_arguments(*args)
+    processedArgs, module = decorator.prepare_call(*args)
 
     _detail_check_conditionals_on_measure(kernel)
 
     _detail_check_explicit_measurements(explicit_measurements)
 
-    retTy = decorator.get_none_type()
-    sample_results = cudaq_runtime.sample_async_impl(decorator.uniqName,
-                                                     specMod, retTy,
+    sample_results = cudaq_runtime.sample_async_impl(decorator.uniqName, module,
                                                      shots_count, noise_model,
                                                      explicit_measurements,
                                                      qpu_id, *processedArgs)
-    return AsyncSampleResult(sample_results, specMod)
+    return AsyncSampleResult(sample_results, module)

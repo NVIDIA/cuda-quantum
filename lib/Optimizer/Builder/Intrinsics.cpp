@@ -337,6 +337,10 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__nvqpp_cudaq_state_numberOfQubits(%p : !cc.ptr<!quake.state>) -> i64
 )#"},
 
+    {"__nvqpp_customop_size_error", {}, R"#(
+  func.func private @__nvqpp_customop_size_error(i64, i64)
+)#"},
+
     {cudaq::runtime::bindingDeconstructString,
      {},
      "func.func private @__nvqpp_deconstructString(!cc.ptr<i8>)"},
@@ -452,11 +456,26 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     {cudaq::opt::QIRBoolRecordOutput, {}, R"#(
   func.func private @__quantum__rt__bool_record_output(i1 {llvm.zeroext}, !cc.ptr<i8>)
 )#"},
+    {cudaq::opt::QIRBoolSpanRecordOutput,
+     {cudaq::opt::QIRArrayRecordOutput, cudaq::opt::QIRBoolRecordOutput},
+     R"#(
+  func.func private @__quantum__rt__bool_span_record_output(!cc.ptr<i8>, i64)
+)#"},
     {cudaq::opt::QIRDoubleRecordOutput, {}, R"#(
   func.func private @__quantum__rt__double_record_output(f64, !cc.ptr<i8>)
 )#"},
+    {cudaq::opt::QIRFloatSpanRecordOutput,
+     {cudaq::opt::QIRArrayRecordOutput, cudaq::opt::QIRDoubleRecordOutput},
+     R"#(
+  func.func private @__quantum__rt__float_span_record_output(!cc.ptr<i8>, i64, i32)
+)#"},
     {cudaq::opt::QIRIntegerRecordOutput, {}, R"#(
   func.func private @__quantum__rt__int_record_output(i64, !cc.ptr<i8>)
+)#"},
+    {cudaq::opt::QIRIntSpanRecordOutput,
+     {cudaq::opt::QIRArrayRecordOutput, cudaq::opt::QIRIntegerRecordOutput},
+     R"#(
+  func.func private @__quantum__rt__int_span_record_output(!cc.ptr<i8>, i64, i32)
 )#"},
     {cudaq::opt::QIRTupleRecordOutput, {}, R"#(
   func.func private @__quantum__rt__tuple_record_output(i64, !cc.ptr<i8>)

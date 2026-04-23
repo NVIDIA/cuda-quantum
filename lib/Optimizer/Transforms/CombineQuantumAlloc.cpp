@@ -8,7 +8,6 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/Canonical.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
@@ -123,8 +122,12 @@ public:
         if (auto alloc = dyn_cast_or_null<quake::AllocaOp>(&op)) {
           if (alloc.getSize() || alloc.hasInitializedState())
             return;
+          auto size = quake::getAllocationSize(alloc.getType());
+          if (size == 0)
+            // Skip zero-size allocas. Merging them would
+            // produce subveq(lo, lo-1) which is invalid.
+            continue;
           analysis.allocations.push_back(alloc);
-          auto size = allocationSize(alloc);
           analysis.offsetSizes.emplace_back(currentOffset, size);
           currentOffset += size;
         } else if (auto dealloc = dyn_cast_or_null<quake::DeallocOp>(&op)) {
@@ -151,8 +154,10 @@ public:
     {
       RewritePatternSet patterns(ctx);
       patterns.insert<AllocaPat>(ctx, analysis);
-      patterns.insert<quake::canonical::ExtractRefFromSubVeqPattern,
-                      quake::canonical::CombineSubVeqsPattern>(ctx);
+      quake::ExtractRefOp::getCanonicalizationPatterns(patterns, ctx);
+      quake::GetMemberOp::getCanonicalizationPatterns(patterns, ctx);
+      quake::SubVeqOp::getCanonicalizationPatterns(patterns, ctx);
+      quake::ConcatOp::getCanonicalizationPatterns(patterns, ctx);
       if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
                                               std::move(patterns)))) {
         func.emitOpError("combining alloca, subveq, and extract ops failed");
@@ -175,11 +180,6 @@ public:
 
     LLVM_DEBUG(llvm::dbgs() << "Function after combining quake alloca:\n"
                             << func << "\n\n");
-  }
-
-  // TODO: move this to a place where it can be shared.
-  static std::size_t allocationSize(quake::AllocaOp alloc) {
-    return quake::getAllocationSize(alloc.getType());
   }
 };
 } // namespace

@@ -46,7 +46,7 @@ RUN if [ -x "$(command -v pip)" ]; then \
         apt-get install -y --no-install-recommends gcc libpython3-dev \
         && pip install --no-cache-dir jupyterlab==4.3.4; \
         if [ -n "$MPI_ROOT" ]; then \
-            pip install --no-cache-dir mpi4py~=3.1; \
+            pip install --no-cache-dir mpi4py~=4.1; \
         fi; \
     fi
 # Install CUDA Python packages based on CUDA version

@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/BaseRemoteRESTQPU.h"
+#include <optional>
 
 namespace cudaq {
 
@@ -21,13 +22,6 @@ public:
 
   /// @brief Check if this is an emulated target
   virtual bool isEmulated() override { return false; }
-
-  /// @brief Launch a kernel with the given arguments
-  void launchKernel(const std::string &kernelName,
-                    const std::vector<void *> &rawArgs) override {
-    throw std::runtime_error(
-        "Arbitrary kernel execution is not supported on this target.");
-  }
 
   /// @brief Launch a kernel with the given arguments
   /// Only analog Hamiltonian kernels are supported
@@ -53,7 +47,8 @@ public:
     std::string strArgs = charArgs;
     nlohmann::json j;
     std::vector<std::size_t> mapping_reorder_idx;
-    codes.emplace_back(name, strArgs, j, mapping_reorder_idx);
+    codes.emplace_back(name, strArgs, std::nullopt, std::nullopt, j,
+                       mapping_reorder_idx);
 
     if (executionContext) {
       executor->setShots(executionContext->shots);

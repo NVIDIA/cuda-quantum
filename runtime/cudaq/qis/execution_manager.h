@@ -12,6 +12,7 @@
 #include "common/NoiseModel.h"
 #include "common/QuditIdTracker.h"
 #include "common/SampleResult.h"
+#include "cudaq/algorithms/policies.h"
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
 #include <deque>
@@ -114,7 +115,12 @@ public:
   virtual void configureExecutionContext(ExecutionContext &ctx) {}
 
   /// Finalize the execution context after an execution.
-  virtual void finalizeExecutionContext(ExecutionContext &ctx) {}
+  void finalizeExecutionContext(ExecutionContext &ctx);
+
+  virtual void finalizeExecutionContext(const other_policies &policy,
+                                        ExecutionContext &ctx) {}
+  virtual sample_result finalizeExecutionContext(const sample_policy &policy,
+                                                 ExecutionContext &ctx) = 0;
 
   /// Set up the execution manager for a new execution.
   virtual void beginExecution() {}
@@ -198,6 +204,16 @@ public:
 
   virtual ~ExecutionManager() = default;
 };
+
+inline sample_result finalize_execution_manager_impl(
+    ExecutionManager &mgr, const sample_policy &policy, ExecutionContext &ctx) {
+  return mgr.finalizeExecutionContext(policy, ctx);
+}
+
+inline void finalize_execution_manager_impl(ExecutionManager &mgr,
+                                            ExecutionContext &ctx) {
+  mgr.finalizeExecutionContext(other_policies{}, ctx);
+}
 
 // Function declaration, implemented by the macro expansion below
 ExecutionManager *getRegisteredExecutionManager();

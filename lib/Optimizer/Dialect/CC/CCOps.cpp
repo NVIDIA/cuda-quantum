@@ -195,6 +195,13 @@ void cudaq::cc::AllocaOp::getCanonicalizationPatterns(
   patterns.add<FuseAllocLength>(context);
 }
 
+LogicalResult cudaq::cc::AllocaOp::verify() {
+  // It is deeply incorrect to allocate storage for quake abstract types.
+  if (quake::isQuakeType(getElementType()))
+    return emitOpError("cannot classically allocate quake abstract type");
+  return success();
+}
+
 //===----------------------------------------------------------------------===//
 // CastOp
 //===----------------------------------------------------------------------===//
@@ -2538,6 +2545,25 @@ void cudaq::cc::OffsetOfOp::getCanonicalizationPatterns(
 // ReifySpanOp
 //===----------------------------------------------------------------------===//
 
+namespace {
+struct FoldCastToReifySpan : public OpRewritePattern<cudaq::cc::ReifySpanOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::cc::ReifySpanOp reify,
+                                PatternRewriter &rewriter) const override {
+    auto qast = reify.getElements().getDefiningOp<cudaq::cc::CastOp>();
+    if (!qast)
+      return failure();
+    auto arrTy = cast<cudaq::cc::ArrayType>(qast.getType());
+    if (!arrTy.isUnknownSize())
+      return failure();
+    rewriter.replaceOpWithNewOp<cudaq::cc::ReifySpanOp>(reify, reify.getType(),
+                                                        qast.getValue());
+    return success();
+  }
+};
+} // namespace
+
 LogicalResult cudaq::cc::ReifySpanOp::verify() {
   auto conArr = getElements().getDefiningOp<cudaq::cc::ConstantArrayOp>();
   if (!conArr && !isa<BlockArgument>(getElements()))
@@ -2545,6 +2571,41 @@ LogicalResult cudaq::cc::ReifySpanOp::verify() {
   if (conArr.arrayDimension() != spanDimension())
     return emitOpError("input array dimension must be same as span dimension.");
   return success();
+}
+
+void cudaq::cc::ReifySpanOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<FoldCastToReifySpan>(context);
+}
+
+//===----------------------------------------------------------------------===//
+// ConstantArrayOp
+//===----------------------------------------------------------------------===//
+
+namespace {
+struct ConstArrayConvertToKnownSize
+    : public OpRewritePattern<cudaq::cc::ConstantArrayOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::cc::ConstantArrayOp connie,
+                                PatternRewriter &rewriter) const override {
+    auto arrTy = cast<cudaq::cc::ArrayType>(connie.getArrayType().getType());
+    if (!arrTy.isUnknownSize())
+      return failure();
+    std::size_t size = connie.getConstantValuesAttr().size();
+    auto *ctx = rewriter.getContext();
+    auto newTy = cudaq::cc::ArrayType::get(ctx, arrTy.getElementType(), size);
+    auto ca = rewriter.create<cudaq::cc::ConstantArrayOp>(
+        connie.getLoc(), newTy, connie.getConstantValuesAttr());
+    rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(connie, arrTy, ca);
+    return success();
+  }
+};
+} // namespace
+
+void cudaq::cc::ConstantArrayOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<ConstArrayConvertToKnownSize>(context);
 }
 
 //===----------------------------------------------------------------------===//

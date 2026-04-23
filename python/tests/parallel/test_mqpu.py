@@ -22,7 +22,7 @@ skipIfNoMQPU = pytest.mark.skipif(
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def set_up_target():
     cudaq.set_target('nvidia-mqpu')
     try:
         assert cudaq.get_target().num_qpus(
@@ -222,7 +222,7 @@ def check_get_state_async(entity):
     for handle in asyns_handles:
         angle += 0.2
         expected_state = [np.cos(angle / 2), -1j * np.sin(angle / 2)]
-        state = cudaq.StateMemoryView(handle.get())
+        state = handle.get()
         assert np.allclose(state, expected_state, atol=1e-3)
 
 

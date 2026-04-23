@@ -8,8 +8,7 @@
 
 // clang-format off
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
-/// FIXME: https://github.com/NVIDIA/cuda-quantum/issues/3708
-// SKIPPED: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
@@ -18,13 +17,16 @@
 
 struct test_adaptive {
   std::vector<bool> operator()() __qpu__ {
+    std::vector<bool> results(2);
     cudaq::qubit a, b;
     x(a);
     auto bit = mz(b);
     if (!bit) {
       x(b); // note that this is not allowed in base profile programs
     }
-    return {mz(a), mz(b)};
+    results[0] = mz(a);
+    results[1] = mz(b);
+    return results;
   }
 };
 

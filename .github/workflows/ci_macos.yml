@@ -1,4 +1,18 @@
 on:
+  workflow_call:
+    inputs:
+      cache_base:
+        required: false
+        type: string
+        default: main
+      cudaq_version:
+        required: false
+        type: string
+        description: 'Override version for wheel/installer (e.g. when called from deployments for a release).'
+        default: ''
+  # Daily rebuild on main to ensure devdeps rebuilt as needed
+  schedule:
+    - cron: '0 4 * * *'  # aim to be ready by 9am CET/CEST
   workflow_dispatch:
     inputs:
       cache_base:
@@ -42,8 +56,13 @@ jobs:
 
       - id: pr_info
         run: |
-          pr_number=`echo ${{ github.ref_name }} | grep pull-request/ | (grep -o [0-9]* || true)`
-          pr_number=${pr_number:-${{ github.event.pull_request.number }}}
+          # Try event context first, then parse from the ref name
+          # (handles both pull-request/XXXX and merge queue refs)
+          pr_number="${{ github.event.pull_request.number }}"
+          if [ -z "$pr_number" ] && \
+             [[ "${{ github.ref_name }}" =~ (pull-request/|.*/pr-)([0-9]+) ]]; then
+            pr_number="${BASH_REMATCH[2]}"
+          fi
 
           if [ -n "$pr_number" ]; then
             pr_base=`gh pr view $pr_number -R ${{ github.repository }} --json baseRefName --jq .baseRefName`
@@ -56,11 +75,16 @@ jobs:
 
       - id: version
         run: |
-          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
-          if ${is_versioned}; then
-            cudaq_version=$(echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}")
+          if [ -n "${{ inputs.cudaq_version }}" ]; then
+            cudaq_version=$(echo "${{ inputs.cudaq_version }}" | egrep -o "([0-9]{1,}\.)+[0-9]{1,}([A-Za-z0-9_\-\.]*)" || true)
+            cudaq_version=${cudaq_version:-0.0.0}
           else
-            cudaq_version=0.0.0
+            is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
+            if ${is_versioned}; then
+              cudaq_version=$(echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}")
+            else
+              cudaq_version=0.0.0
+            fi
           fi
           echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
 
@@ -83,10 +107,14 @@ jobs:
   # ============================================================================
   build_and_test:
     name: Build & Test (arm64)
-    needs: devdeps
+    needs: [devdeps, metadata]
     runs-on: macos-26
-    timeout-minutes: 180
+    permissions:
+      contents: read
+      packages: write
     env:
+      CC: clang
+      CXX: clang++
       MACOSX_DEPLOYMENT_TARGET: '13.0'
 
     steps:
@@ -100,17 +128,15 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install ORAS
-        run: brew install oras
+      - name: Set up ccache and ORAS
+        uses: ./.github/actions/ccache-setup
 
       - name: Restore prerequisites from GHCR
         run: |
           set -e  # Exit on error
-          # Login and pull cache artifact using ORAS
           echo "${{ github.token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
           oras pull ${{ needs.devdeps.outputs.image_hash }}
 
-          # Extract to home directory
           tar -xzf macos-artifacts.tar.gz -C $HOME
           rm macos-artifacts.tar.gz
 
@@ -118,21 +144,34 @@ jobs:
           du -sh ~/.local || true
           du -sh ~/.llvm-project || true
 
+      - name: Restore ccache from GHCR
+        uses: ./.github/actions/ccache-restore
+        with:
+          cache-key: arm64-build
+          output-path: ${{ env.CCACHE_DIR }}
+          registry-token: ${{ github.token }}
+
       - name: Install Python dependencies
-        run: pip install -r requirements-dev.txt
+        run: CCACHE_DISABLE=1 pip install -r requirements-dev.txt
 
       - name: Build MLIR Python bindings
         run: |
           source scripts/set_env_defaults.sh
-
-          # Incremental rebuild: add python-bindings to cached LLVM build
           Python3_EXECUTABLE="$(which python3)" \
           LLVM_PROJECTS='clang;lld;mlir;openmp;python-bindings' \
           LLVM_SOURCE="$HOME/.llvm-project" \
           bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
 
       - name: Build CUDA-Q
-        run: bash scripts/build_cudaq.sh -v
+        run: bash scripts/build_cudaq.sh -v -- -DCUDAQ_TEST_OMP_SLOTS=2
+
+      - name: Push ccache to GHCR
+        uses: ./.github/actions/ccache-push
+        with:
+          cache-key: arm64-build
+          cache-path: ${{ env.CCACHE_DIR }}
+          registry-token: ${{ github.token }}
+          upload-log: 'true'
 
       - name: Run tests
         run: bash scripts/run_tests.sh -v
@@ -149,8 +188,12 @@ jobs:
         python_version: ['3.11', '3.12', '3.13']
       fail-fast: false
     runs-on: macos-26
-    timeout-minutes: 90
+    permissions:
+      contents: read
+      packages: write
     env:
+      CC: clang
+      CXX: clang++
       MACOSX_DEPLOYMENT_TARGET: '13.0'
     outputs:
       cudaq_version: ${{ needs.metadata.outputs.cudaq_version }}
@@ -166,28 +209,31 @@ jobs:
         with:
           python-version: ${{ matrix.python_version }}
 
-      - name: Install ORAS
-        run: brew install oras
+      - name: Set up ccache and ORAS
+        uses: ./.github/actions/ccache-setup
 
       - name: Restore prerequisites from GHCR
         run: |
           set -e  # Exit on error
-          # Login and pull cache artifact using ORAS
           echo "${{ github.token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
           oras pull ${{ needs.devdeps.outputs.image_hash }}
 
-          # Extract to home directory
           tar -xzf macos-artifacts.tar.gz -C $HOME
           rm macos-artifacts.tar.gz
 
+      - name: Restore ccache from GHCR
+        uses: ./.github/actions/ccache-restore
+        with:
+          cache-key: arm64-wheel
+          output-path: ${{ env.CCACHE_DIR }}
+          registry-token: ${{ github.token }}
+
       - name: Install Python dependencies
-        run: pip install -r requirements-dev.txt
+        run: CCACHE_DISABLE=1 pip install -r requirements-dev.txt
 
       - name: Build MLIR Python bindings
         run: |
           source scripts/set_env_defaults.sh
-
-          # Incremental rebuild: add python-bindings to cached LLVM build
           Python3_EXECUTABLE="$(which python3)" \
           LLVM_PROJECTS='clang;lld;mlir;openmp;python-bindings' \
           LLVM_SOURCE="$HOME/.llvm-project" \
@@ -207,13 +253,21 @@ jobs:
           wheel_file=$(ls dist/cuda_quantum*.whl 2>/dev/null | head -1)
           echo "Built wheel: $wheel_file"
 
+      - name: Push ccache to GHCR
+        uses: ./.github/actions/ccache-push
+        with:
+          cache-key: arm64-wheel
+          cache-path: ${{ env.CCACHE_DIR }}
+          registry-token: ${{ github.token }}
+          upload-log: 'true'
+
       - name: Upload wheel artifact
         uses: actions/upload-artifact@v4
         with:
           # Consistent with Linux: pycudaq-<python_version_dashed>-<platform_info>
           name: pycudaq-${{ matrix.python_version }}-darwin-arm64
           path: dist/cuda_quantum*.whl
-          retention-days: 1
+          retention-days: 3
           if-no-files-found: error
 
   # ============================================================================
@@ -227,7 +281,6 @@ jobs:
         python_version: ['3.11', '3.12', '3.13']
       fail-fast: false
     runs-on: macos-26
-    timeout-minutes: 30
 
     steps:
       - name: Checkout repository
@@ -246,8 +299,13 @@ jobs:
 
       - name: Validate wheel
         run: |
-          # Full validation: core tests, examples, snippets, backends
-          # GPU/MPI tests are automatically skipped on macOS (CPU-only)
+          # Validates wheel: core tests, examples, snippets, backends.
+          # GPU/remote targets are skipped (no CUDA on macOS runners).
+          # TODO: When adding macOS to publishing.yml, align the validation
+          # approach with python_wheels.yml (which uses
+          # explicit find exclusions for platform/backends/dynamics paths,
+          # and does not use validate_pycudaq.sh for snippets/examples
+          # currently used in python_wheels.yml).
           bash scripts/validate_pycudaq.sh \
             -v ${{ needs.wheel.outputs.cudaq_version }} \
             -i dist \
@@ -260,8 +318,12 @@ jobs:
     name: Installer (arm64)
     needs: [devdeps, metadata]
     runs-on: macos-26
-    timeout-minutes: 120
+    permissions:
+      contents: read
+      packages: write
     env:
+      CC: clang
+      CXX: clang++
       MACOSX_DEPLOYMENT_TARGET: '13.0'
     outputs:
       cudaq_version: ${{ needs.metadata.outputs.cudaq_version }}
@@ -277,37 +339,48 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install ORAS
-        run: brew install oras
+      - name: Set up ccache and ORAS
+        uses: ./.github/actions/ccache-setup
 
       - name: Restore prerequisites from GHCR
         run: |
           set -e  # Exit on error
-          # Login and pull cache artifact using ORAS
           echo "${{ github.token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
           oras pull ${{ needs.devdeps.outputs.image_hash }}
 
-          # Extract to home directory
           tar -xzf macos-artifacts.tar.gz -C $HOME
           rm macos-artifacts.tar.gz
 
+      - name: Restore ccache from GHCR
+        uses: ./.github/actions/ccache-restore
+        with:
+          cache-key: arm64-installer
+          output-path: ${{ env.CCACHE_DIR }}
+          registry-token: ${{ github.token }}
+
       - name: Install dependencies
         run: |
-          pip install -r requirements-dev.txt
-          brew install makeself
+          CCACHE_DISABLE=1 pip install -r requirements-dev.txt
+          brew install makeself pigz
 
       - name: Build MLIR Python bindings
         run: |
           source scripts/set_env_defaults.sh
-
-          # Incremental rebuild: add python-bindings to cached LLVM build
           Python3_EXECUTABLE="$(which python3)" \
           LLVM_PROJECTS='clang;lld;mlir;openmp;python-bindings' \
           LLVM_SOURCE="$HOME/.llvm-project" \
           bash scripts/build_llvm.sh -c Release -v -j $(sysctl -n hw.ncpu)
 
       - name: Build CUDA-Q
-        run: bash scripts/build_cudaq.sh -v
+        run: bash scripts/build_cudaq.sh -v -- -DCUDAQ_TEST_OMP_SLOTS=2
+
+      - name: Push ccache to GHCR
+        uses: ./.github/actions/ccache-push
+        with:
+          cache-key: arm64-installer
+          cache-path: ${{ env.CCACHE_DIR }}
+          registry-token: ${{ github.token }}
+          upload-log: 'true'
 
       - name: Build installer
         run: |
@@ -324,7 +397,7 @@ jobs:
           # Consistent with Linux: cudaq-<platform>-<config>-installer-<run_id>
           name: cudaq-arm64-darwin-installer-${{ github.run_id }}
           path: out/install_cuda_quantum*
-          retention-days: 1
+          retention-days: 3
           if-no-files-found: error
 
   # ============================================================================
@@ -335,7 +408,6 @@ jobs:
     name: Validate Installation (arm64)
     needs: [installer, wheel]
     runs-on: macos-26
-    timeout-minutes: 30
 
     steps:
       - name: Checkout repository
@@ -358,19 +430,34 @@ jobs:
           name: pycudaq-3.12-darwin-arm64
           path: wheel/
 
-      - name: Install CUDA-Q (C++ via installer)
+      - name: Create test user
         run: |
-          # Make installer executable and run with sudo (installs to /opt/nvidia/cudaq)
+          sudo sysadminctl -addUser cudaqtest -password 'cudaqtest123' -admin
+          sudo mkdir -p /Users/cudaqtest
+          sudo chown cudaqtest /Users/cudaqtest
+
+      - name: Install CUDA-Q (C++ via installer to neutral path)
+        run: |
+          install_path=/opt/cudaq-test
+          sudo mkdir -p "$install_path"
+          sudo chown cudaqtest "$install_path"
           chmod +x installer/install_cuda_quantum*
-          sudo bash installer/install_cuda_quantum* --accept
+          sudo -u cudaqtest bash installer/install_cuda_quantum* --accept -- --installpath "$install_path"
 
       - name: Install CUDA-Q (Python via wheel)
         run: |
-          # Install wheel for Python support (per documentation, Python is separate)
-          pip install wheel/*.whl
+          sudo -u cudaqtest -H python3 -m venv /Users/cudaqtest/venv
+          sudo -u cudaqtest -H /Users/cudaqtest/venv/bin/pip install wheel/*.whl
 
       - name: Validate installation
         run: |
-          # Source the installer's environment setup to add nvq++ to PATH
-          source /opt/nvidia/cudaq/set_env.sh
-          bash scripts/validate_installation.sh
+          install_path=/opt/cudaq-test
+          workdir=$(sudo -u cudaqtest mktemp -d)
+          sudo cp -R scripts docs "$workdir/"
+          sudo chown -R cudaqtest "$workdir"
+          sudo -u cudaqtest bash -lc "
+            source /Users/cudaqtest/venv/bin/activate
+            source ${install_path}/set_env.sh
+            cd ${workdir}
+            bash scripts/validate_installation.sh
+          "

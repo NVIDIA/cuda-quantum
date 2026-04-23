@@ -9,7 +9,6 @@
 #pragma once
 
 #include "cudaq/qis/qubit_qis.h"
-#include <pybind11/pybind11.h>
 
 namespace cudaq {
 
@@ -27,5 +26,9 @@ void marshal_test(qkernel<void(std::size_t)> &&, std::size_t);
 void plug_and_chug_test(qkernel<void()> &&);
 void brain_bend_test(qkernel<void(cudaq::qvector<> &)> &&);
 void most_curious_test(qkernel<void(cudaq::qvector<> &, std::size_t)> &&);
+std::size_t
+callback_test(qkernel<std::size_t(cudaq::qvector<> &, std::size_t)> &&);
+void py_ret_test1(cudaq::qkernel<std::vector<float>()> &&qern);
+void py_ret_test2(cudaq::qkernel<std::vector<float>(std::size_t)> &&qern);
 
 } // namespace cudaq

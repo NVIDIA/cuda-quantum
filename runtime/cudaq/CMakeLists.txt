@@ -8,7 +8,6 @@
 
 set(LIBRARY_NAME cudaq)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
-set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 # Create the CUDA-Q Library
 add_library(${LIBRARY_NAME}
@@ -29,20 +28,32 @@ add_library(${LIBRARY_NAME}
     qis/state.cpp
     utils/cudaq_utils.cpp
     distributed/mpi_plugin.cpp
+    ptsbe/PTSBEExecutionData.cpp
+    ptsbe/PTSBESample.cpp
+    ptsbe/PTSBESampleResult.cpp
+    ptsbe/PTSBESampler.cpp
+    ptsbe/ShotAllocationStrategy.cpp
+    ptsbe/TrajectoryDeduplication.cpp
+    ptsbe/strategies/ProbabilisticSamplingStrategy.cpp
+    ptsbe/strategies/ExhaustiveSamplingStrategy.cpp
+    ptsbe/strategies/OrderedSamplingStrategy.cpp
+    ptsbe/strategies/ConditionalSamplingStrategy.cpp
+    ptsbe/NoiseExtractor.cpp
 )
 
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 
 if (CUDA_FOUND)
-  enable_language(CUDA)
-  find_package(CUDAToolkit REQUIRED)
-
+  set(_cudaq_cuda_build_includes "")
+  foreach(_cuda_inc IN LISTS CUDAToolkit_INCLUDE_DIRS)
+    list(APPEND _cudaq_cuda_build_includes "$<BUILD_INTERFACE:${_cuda_inc}>")
+  endforeach()
   target_include_directories(${LIBRARY_NAME}
     PUBLIC $<INSTALL_INTERFACE:include>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
-            $<BUILD_INTERFACE:${CUDAToolkit_INCLUDE_DIRS}>
-    PRIVATE .)
+            ${_cudaq_cuda_build_includes}
+    PRIVATE . ptsbe ptsbe/strategies)
 
   target_link_libraries(${LIBRARY_NAME}
     PUBLIC
@@ -51,13 +62,14 @@ if (CUDA_FOUND)
       cudaq-common
       cudaq-nlopt
       cudaq-ensmallen
-      MLIRIR
     PRIVATE
+      MLIRIR
       nvqir
       cudaq-logger
       fmt::fmt-header-only
       CUDA::cudart_static
       CUDAQTargetConfigUtil
+      cudaq-mlir-runtime-headers
   )
 
   target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_CUDA)
@@ -66,7 +78,7 @@ else()
     PUBLIC $<INSTALL_INTERFACE:include>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
-    PRIVATE .)
+    PRIVATE . ptsbe ptsbe/strategies)
 
   target_link_libraries(${LIBRARY_NAME}
     PUBLIC
@@ -75,12 +87,13 @@ else()
       cudaq-common
       cudaq-nlopt
       cudaq-ensmallen
-      MLIRIR
     PRIVATE
+      MLIRIR
       nvqir
       cudaq-logger
       fmt::fmt-header-only
       CUDAQTargetConfigUtil
+      cudaq-mlir-runtime-headers
   )
 endif()
 
@@ -90,6 +103,7 @@ add_subdirectory(platform)
 add_subdirectory(builder)
 add_subdirectory(domains)
 add_subdirectory(operators)
+add_subdirectory(ptsbe)
 
 install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-targets DESTINATION lib)
 

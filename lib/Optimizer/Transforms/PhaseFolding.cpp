@@ -51,8 +51,21 @@ static bool isSupportedValue(Value ref) {
   if (!ref.getDefiningOp())
     return false;
 
-  if (!isa<quake::AllocaOp>(ref.getDefiningOp()))
+  if (!ref.getDefiningOp<quake::AllocaOp>())
     return false;
+
+  // TODO: Concat op allows the pointer to be loaded again in a separate
+  // ref. This aliasing means that we cannot reason about the operations
+  // on ref just by looking at ref.getUsers(), which is problematic for
+  // the phase folding algorithm. Currently, we handle this by simply
+  // disregarding any refs that get concatenated (and possibly aliased).
+  // We could eventually be a little smarter: we can probably reason
+  // about a wire until it is aliased. We may even be able to trace the
+  // aliases to resume reasoning after the alias is definitely no longer
+  // used if it is relatively isolated.
+  for (auto user : ref.getUsers())
+    if (isa<quake::ConcatOp>(user))
+      return false;
 
   return true;
 }
@@ -109,10 +122,9 @@ public:
         return;
       }
 
-      if (isa<quake::OperatorInterface>(op))
-        for (auto operand : quake::getQuantumOperands(op))
-          if (isSupportedValue(operand))
-            netlists[getIndexOf(operand)].push_back(op);
+      for (auto operand : quake::getQuantumOperands(op))
+        if (isSupportedValue(operand))
+          netlists[getIndexOf(operand)].push_back(op);
     });
   }
 
@@ -699,7 +711,8 @@ struct PhaseFoldingPipelineOptions
 /// loop in the module cannot be fully unrolled and signalFailure is set.
 static void createPhaseFoldingPipeline(OpPassManager &pm, unsigned min_length,
                                        double min_rz_weight) {
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createFactorQuantumAllocations());
+  pm.addNestedPass<func::FuncOp>(
+      cudaq::opt::createFactorQuantumAllocations({.enableFailures = true}));
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   cudaq::opt::PhaseFoldingOptions pfo{min_length, min_rz_weight};

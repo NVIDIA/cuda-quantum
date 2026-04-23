@@ -62,6 +62,7 @@ __pycache__/
 # IDE files
 .vscode/*
 .theia/*
+*.code-workspace
 
 # Container files
 **/.docker/*
@@ -85,7 +86,7 @@ docs/sphinx/_mdgen
 _version.py
 
 # Generated files
-targettests/generated
+python/tests/mlir/generated
 
 # third party integrations
 simulators/

@@ -161,11 +161,13 @@ async def create_job(job: dict):
     items = job.get("data", {}).get("attributes", {}).get("definition",
                                                           {}).get("items", [])
 
-    device_name = job.get("data",
-                          {}).get("attributes",
-                                  {}).get("definition",
-                                          {}).get("backend_config",
-                                                  {}).get("device_name", "")
+    backend_config = job.get("data",
+                             {}).get("attributes",
+                                     {}).get("definition",
+                                             {}).get("backend_config", {})
+    # `QuantinuumConfig` uses "device_name"; `HeliosConfig` uses "system_name"
+    device_name = backend_config.get("device_name", "") or backend_config.get(
+        "system_name", "")
     if verbose:
         print("Job data =", job)
         print("Device name =", device_name)
@@ -358,7 +360,7 @@ async def get_results(result_id: str):
 
 
 # NG device results retrieval endpoint (`qsys_results`)
-@app.get("/api/qsys_results/v1beta/{result_id}")
+@app.get("/api/qsys_results/v1beta2/partial/{result_id}")
 async def get_results(result_id: str, version: int):
     # Version can only be 3 (default)
     if version not in [3]:
@@ -427,3 +429,8 @@ async def create_decoder_config(job: dict):
             }
         }
     }
+
+
+def startServer(port):
+    import uvicorn
+    uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")

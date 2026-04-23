@@ -22,10 +22,6 @@ struct TargetCodegenPipelineOptions
       *this, "loops-may-have-break",
       llvm::cl::desc("Enable break statements in loops."),
       llvm::cl::init(true)};
-  PassOptions::Option<bool> appendDeprecatedVerifier{
-      *this, "append-verifier",
-      llvm::cl::desc("Append the QIR verifier pipeline."),
-      llvm::cl::init(false)};
   PassOptions::Option<std::string> target{
       *this, "convert-to", llvm::cl::desc("Conversion target specifier."),
       llvm::cl::init("")};
@@ -38,7 +34,7 @@ static void addQIRConversionPipeline(PassManager &pm, StringRef convertTo) {
     cudaq::opt::addConvertToQIRAPIPipeline(pm, "full:" +
                                                    convertFields.second.str());
   } else if (convertFields.first == "qir-base") {
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createDelayMeasurementsPass());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createDelayMeasurements());
     cudaq::opt::addConvertToQIRAPIPipeline(pm, "base-profile:" +
                                                    convertFields.second.str());
   } else if (convertFields.first == "qir-adaptive") {
@@ -98,17 +94,29 @@ void createCommonTargetCodegenPipeline(
   pm.addNestedPass<func::FuncOp>(createCSEPass());
 }
 
-template <bool isJIT>
+template <bool isJIT, bool useValueSemantics = false>
 void createTargetCodegenPipeline(PassManager &pm,
                                  const TargetCodegenPipelineOptions &options) {
   createCommonTargetCodegenPipeline<isJIT>(pm, options);
+  if (useValueSemantics) {
+    pm.addNestedPass<func::FuncOp>(
+        cudaq::opt::createFactorQuantumAllocations());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createCableRoughIn());
+    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createMemToReg());
+    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  }
   ::addQIRConversionPipeline(pm, options.target);
-  pm.addPass(cudaq::opt::createReturnToOutputLog());
+  // QIR conversion may introduce cc.loop, lower to cf.
+  cudaq::opt::addLowerToCFG(pm);
+  cudaq::opt::ReturnToOutputLogOptions opts;
+  // Only allow dynamic results with full QIR (local simulator targets).
+  auto tgt = StringRef(options.target).split(':').first;
+  opts.allowDynamicResult = tgt == "qir" || tgt == "qir-full";
+  pm.addPass(cudaq::opt::createReturnToOutputLog(opts));
   pm.addPass(createConvertMathToFuncs());
   pm.addPass(createSymbolDCEPass());
   pm.addPass(cudaq::opt::createCCToLLVM());
-  if (options.appendDeprecatedVerifier)
-    cudaq::opt::addQIRProfileVerify(pm, options.target);
 }
 
 template <bool isJIT>
@@ -116,8 +124,6 @@ void createTargetCodegenPipeline(PassManager &pm, StringRef convertTo) {
   auto convertFields = convertTo.split(':');
   TargetCodegenPipelineOptions opts;
   opts.allowBreaksInLoops = convertFields.first == "qir-adaptive";
-  opts.appendDeprecatedVerifier =
-      convertFields.first != "qir" && convertFields.first != "qir-full";
   opts.target = convertTo.str();
   createTargetCodegenPipeline<isJIT>(pm, opts);
 }
@@ -154,12 +160,9 @@ void cudaq::opt::createPipelineTransformsForPythonToOpenQASM(
   pm.addPass(createSymbolDCEPass());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
-  pm.addNestedPass<func::FuncOp>(createMultiControlDecompositionPass());
-  pm.addPass(createDecompositionPass(
-      {.enabledPatterns = {"SToR1", "TToR1", "R1ToU3", "U3ToRotations",
-                           "CHToCX", "CCZToCX", "CRzToCX", "CRyToCX", "CRxToCX",
-                           "CR1ToCX", "CCZToCX", "RxAdjToRx", "RyAdjToRy",
-                           "RzAdjToRz"}}));
+  pm.addNestedPass<func::FuncOp>(createMultiControlDecomposition());
+  pm.addPass(createDecomposition(
+      {.basis = {"h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)"}}));
   pm.addPass(createQuakeToCCPrep());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createExpandControlVeqs());
@@ -168,7 +171,6 @@ void cudaq::opt::createPipelineTransformsForPythonToOpenQASM(
 }
 
 void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {
-  createCommonTargetCodegenPipeline</*isJIT=*/true>(pm, {});
   pm.addNestedPass<func::FuncOp>(createClassicalMemToReg());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createDeadStoreRemoval());
