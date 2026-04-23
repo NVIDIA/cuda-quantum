@@ -683,7 +683,7 @@ class PyKernel(object):
                 assert isinstance(otherFuncCloned, func.FuncOp)
                 # Same as __addAllCalledFunctionsRecursively does for
                 # transitively called functions: a sub-kernel merged into this
-                # module is no longer an entrypoint.
+                # module is no longer an `entrypoint`.
                 if 'cudaq-entrypoint' in otherFuncCloned.operation.attributes:
                     otherFuncCloned.operation.attributes.__delitem__(
                         'cudaq-entrypoint')
