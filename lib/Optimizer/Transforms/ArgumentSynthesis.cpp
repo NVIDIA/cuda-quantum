@@ -152,8 +152,8 @@ public:
       // substituted. Erasing the arguments changes the calling semantics and
       // breaks all calls to `func`. This practice is unnecessary and highly
       // discouraged.
-      if (changeSemantics)
-        (void)func.eraseArguments(replacedArgs);
+      if (changeSemantics && failed(func.eraseArguments(replacedArgs)))
+        func->emitWarning("could not erase function arguments");
     }
   }
 };
