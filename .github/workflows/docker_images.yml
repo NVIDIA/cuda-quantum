@@ -52,7 +52,10 @@ jobs:
     permissions: {}
 
     outputs:
-      runner: ${{ steps.info.outputs.runner }}
+      # On skip_build (PR tier fake-pass), force every downstream job onto
+      # ubuntu-latest so required checks report success without consuming
+      # self-hosted runner capacity or waiting in the queue.
+      runner: ${{ inputs.skip_build && 'ubuntu-latest' || steps.info.outputs.runner }}
       platform_tag: ${{ steps.info.outputs.platform_tag }}
       build_docs: ${{ steps.info.outputs.build_docs }}
       push_to_ngc: ${{ steps.info.outputs.push_to_ngc }}

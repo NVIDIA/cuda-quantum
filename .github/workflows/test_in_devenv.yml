@@ -34,7 +34,10 @@ name: Run CI within the dev environment container
 jobs:
   build_and_test:
     name: Dev environment (Debug)
-    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    # On skip_build (PR tier fake-pass), run on GitHub-hosted ubuntu-latest so the
+    # required check reports success without consuming self-hosted arm64/amd64
+    # capacity or blocking on runner availability.
+    runs-on: ${{ inputs.skip_build && 'ubuntu-latest' || ((contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8') }}
     permissions:
       contents: read
       packages: write
@@ -225,7 +228,7 @@ jobs:
 
   build_and_test_python:
     name: Dev environment (Python)
-    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    runs-on: ${{ inputs.skip_build && 'ubuntu-latest' || ((contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8') }}
     permissions:
       contents: read
       packages: write
