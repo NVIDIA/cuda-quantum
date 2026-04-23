@@ -44,9 +44,9 @@ def reset_run_clear():
 def test_host_construction_raises_runtime_error():
     """`cudaq.measure_handle` is device-only; constructing one at host scope
     must raise `RuntimeError` with the spec-mandated exact message."""
-    with pytest.raises(RuntimeError,
-                       match=r"^device-only; usable only inside @cudaq\.kernel$"
-                      ):
+    with pytest.raises(
+            RuntimeError,
+            match=r"^device-only; usable only inside @cudaq\.kernel$"):
         cudaq.measure_handle()
 
 

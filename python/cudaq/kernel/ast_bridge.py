@@ -5093,8 +5093,7 @@ class PyASTBridge(ast.NodeVisitor):
             test = self.popValue()
             self.__rejectMeasureHandleAsBool(test, node)
         self.emitFatalError(
-            "CUDA-Q does not currently support ternary IfExp expressions",
-            node)
+            "CUDA-Q does not currently support ternary IfExp expressions", node)
 
     def visit_Assert(self, node):
         """Reject `assert h` whose test is a `!cc.measure_handle` (spec

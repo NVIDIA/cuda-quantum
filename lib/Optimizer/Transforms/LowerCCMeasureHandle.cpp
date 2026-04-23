@@ -60,10 +60,9 @@ public:
       if (auto a = dyn_cast<cudaq::cc::ArrayType>(t)) {
         auto inner = convert(a.getElementType());
         if (inner != a.getElementType())
-          return a.isUnknownSize()
-                     ? cudaq::cc::ArrayType::get(inner)
-                     : cudaq::cc::ArrayType::get(&getContext(), inner,
-                                                 a.getSize());
+          return a.isUnknownSize() ? cudaq::cc::ArrayType::get(inner)
+                                   : cudaq::cc::ArrayType::get(
+                                         &getContext(), inner, a.getSize());
         return t;
       }
       if (auto fn = dyn_cast<FunctionType>(t)) {

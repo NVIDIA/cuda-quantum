@@ -749,8 +749,7 @@ struct DiscriminateOpToCallRewrite
     // remainder of the QIR conversion is unchanged.
     SmallVector<Value> operands{adaptor.getOperands().begin(),
                                 adaptor.getOperands().end()};
-    if (operands.size() == 1 &&
-        isa<IntegerType>(operands.front().getType())) {
+    if (operands.size() == 1 && isa<IntegerType>(operands.front().getType())) {
       auto resultTy = M::getResultType(rewriter.getContext());
       operands.front() =
           rewriter.create<cudaq::cc::CastOp>(loc, resultTy, operands.front());
