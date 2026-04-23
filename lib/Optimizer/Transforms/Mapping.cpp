@@ -177,7 +177,8 @@ void SabreRouter::visitUsers(ResultRange::user_range users,
         for (auto wire : wires)
           qubits.push_back(wireToVirtualQ[wire]);
         // Don't process measurements until we're ready
-        if (allowMeasurementMapping || !user->hasTrait<cudaq::QuantumMeasure>()) {
+        if (allowMeasurementMapping ||
+            !user->hasTrait<cudaq::QuantumMeasure>()) {
           layer.emplace_back(user, qubits);
         } else {
           // Add to measureLayer. Don't add duplicates.
@@ -199,7 +200,8 @@ LogicalResult SabreRouter::mapOperation(VirtualOp &virtOp) {
 
   // An operation cannot be mapped if it is not a measurement and uses two
   // qubits virtual qubit that are no adjacently placed.
-  if (!virtOp.op->hasTrait<cudaq::QuantumMeasure>() && deviceQubits.size() == 2 &&
+  if (!virtOp.op->hasTrait<cudaq::QuantumMeasure>() &&
+      deviceQubits.size() == 2 &&
       !device.areConnected(deviceQubits[0], deviceQubits[1]))
     return failure();
 
