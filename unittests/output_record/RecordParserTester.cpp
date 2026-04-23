@@ -253,7 +253,7 @@ CUDAQ_TEST(ParserTester, checkTupleLabeled) {
 }
 
 CUDAQ_TEST(ParserTester, checkMultipleShots) {
-  const std::string log = "HEADER\tschema_name\tlabeled\n"
+  const std::string log = "HEADER\tschema_id\tlabeled\n"
                           "START\n"
                           "METADATA\tqir_profiles\tbase_profile\n"
                           "OUTPUT\tARRAY\t2\tarray<i16 x 2>\n"
@@ -392,7 +392,7 @@ CUDAQ_TEST(ParserTester, checkFailureCases) {
   }
   {
     const std::string invalidSchema =
-        "HEADER\tschema_name\tordered_and_labeled\n";
+        "HEADER\tschema_id\tordered_and_labeled\n";
     EXPECT_ANY_THROW(parser.parse(invalidSchema));
   }
   {
@@ -577,7 +577,7 @@ CUDAQ_TEST(ParserTester, checkFailedShot_0) {
 }
 
 CUDAQ_TEST(ParserTester, checkFailedShot_1) {
-  const std::string log = "HEADER\tschema_name\tlabeled\n"
+  const std::string log = "HEADER\tschema_id\tlabeled\n"
                           "START\n"
                           "OUTPUT\tARRAY\t2\tarray<i16 x 2>\n"
                           "OUTPUT\tINT\t2345\t[0]\n"
