@@ -2672,11 +2672,33 @@ class PyASTBridge(ast.NodeVisitor):
                     node.func.value.id) and node.func.attr == 'kernel':
                 return
 
+            def isExactCudaqDbgAstCall(func_node: ast.AST) -> bool:
+                """Return True iff `func_node` is the exact AST shape for
+                ``<cudaq_alias>.dbg.ast.<name>``.
+
+                Runtime attribute lookup follows lazy aliases (e.g. ``cudaq.ast``
+                resolves to ``cudaq.dbg.ast`` via ``_LAZY_SUBMODULES``), so
+                `devKey` is not a sufficient check. Walk the literal node
+                structure instead."""
+                if not isinstance(func_node, ast.Attribute):
+                    return False
+                if not isinstance(
+                        func_node.value,
+                        ast.Attribute) or func_node.value.attr != 'ast':
+                    return False
+                if not isinstance(
+                        func_node.value.value,
+                        ast.Attribute) or func_node.value.value.attr != 'dbg':
+                    return False
+                root = func_node.value.value.value
+                return isinstance(root, ast.Name) and self.isCudaqName(root.id)
+
             devKey, name = resolveQualifiedName(node.func)
             if devKey:
 
                 # Handle debug functions
-                if devKey == 'cudaq.dbg.ast':
+                if devKey == 'cudaq.dbg.ast' and isExactCudaqDbgAstCall(
+                        node.func):
                     # Handle a debug print statement
                     arg = self.__groupValues(node.args, [1])
                     self.__insertDbgStmt(arg, name)
