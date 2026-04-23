@@ -68,9 +68,9 @@ public:
     auto loc = call.getLoc();
     auto funcTy = call.getCalleeType();
     cudaq::opt::factory::getOrAddFunc(loc, directName, funcTy, module);
-    rewriter.startOpModification(call);
-    call.setCalleeAttr(SymbolRefAttr::get(ctx, directName));
-    rewriter.finalizeOpModification(call);
+    rewriter.modifyOpInPlace(call, [&]() {
+      call.setCalleeAttr(SymbolRefAttr::get(ctx, directName));
+    });
     LLVM_DEBUG(llvm::dbgs() << "Rewriting " << directName << '\n');
     return success();
   }
