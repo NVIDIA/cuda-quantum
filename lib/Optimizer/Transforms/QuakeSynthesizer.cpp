@@ -755,7 +755,11 @@ public:
         return;
       }
     }
-    (void)funcOp.eraseArguments(argsToErase);
+
+    // FIXME: erasing the arguments like this breaks the semantics of the code
+    // and is a bad idea in general. This practice is HIGHLY DISCOURAGED.
+    if (failed(funcOp.eraseArguments(argsToErase)))
+      funcOp->emitWarning("could not erase arguments");
   }
 };
 
