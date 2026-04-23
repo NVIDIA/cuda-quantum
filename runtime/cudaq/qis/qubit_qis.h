@@ -421,33 +421,56 @@ void exp_pauli(QuantumRegister &ctrls, double theta, const char *pauliWord,
                                false, spin_op::from_word(pauliWord));
 }
 
-/// @brief Measure an individual qubit, return 0,1 as `bool`
-inline measure_result mz(qubit &q) {
-  return getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
+// Measurement primitives.
+//
+// Per the `measure_handle` proposal (C++ API section), every measurement
+// primitive -- single-qubit, range overload, and variadic multi-qubit
+// aggregator -- returns `cudaq::measure_handle` (or a vector thereof). In
+// MLIR-compiler mode the AST bridge intercepts these calls by name and
+// emits `quake.{mz,mx,my}` producing `!cc.measure_handle` (or
+// `!cc.stdvec<!cc.measure_handle>`); the inline bodies below are used only
+// in library mode, where they pack the measured bit into the low bit of
+// the handle's internal `index` so `measure_handle::operator bool()`
+// returns it at conversion time (spec §Library Mode; see the class comment
+// in `measure_handle.h` for the stub's limits). The sentinel reserved for
+// unbound handles (`std::numeric_limits<std::int64_t>::max()`) is never
+// produced by these paths.
+
+/// @brief Measure an individual qubit in the Z basis.
+inline measure_handle mz(qubit &q) {
+  bool bit = getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
+  return measure_handle{details::handle_index,
+                        static_cast<std::int64_t>(bit ? 1 : 0)};
 }
 
-/// @brief Measure an individual qubit in `x` basis, return 0,1 as `bool`
-inline measure_result mx(qubit &q) {
+/// @brief Measure an individual qubit in the X basis.
+inline measure_handle mx(qubit &q) {
   h(q);
-  return getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
+  bool bit = getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
+  return measure_handle{details::handle_index,
+                        static_cast<std::int64_t>(bit ? 1 : 0)};
 }
 
-// Measure an individual qubit in `y` basis, return 0,1 as `bool`
-inline measure_result my(qubit &q) {
+/// @brief Measure an individual qubit in the Y basis.
+inline measure_handle my(qubit &q) {
   r1(-M_PI_2, q);
   h(q);
-  return getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
+  bool bit = getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
+  return measure_handle{details::handle_index,
+                        static_cast<std::int64_t>(bit ? 1 : 0)};
 }
 
 inline void reset(qubit &q) {
   getExecutionManager()->reset({q.n_levels(), q.id()});
 }
 
-// Measure all qubits in the range, return vector of 0,1
+// Range overloads: measure every qubit in the range and return a vector of
+// handles (one per input qubit, in input order). The `i`-th element of the
+// returned vector is the handle for `qvec[i]`.
 template <typename QubitRange>
   requires std::ranges::range<QubitRange>
-std::vector<measure_result> mz(QubitRange &q) {
-  std::vector<measure_result> b;
+std::vector<measure_handle> mz(QubitRange &q) {
+  std::vector<measure_handle> b;
   for (auto &qq : q) {
     b.push_back(mz(qq));
   }
@@ -455,8 +478,8 @@ std::vector<measure_result> mz(QubitRange &q) {
 }
 
 template <std::size_t Levels>
-std::vector<measure_result> mz(const qview<Levels> &q) {
-  std::vector<measure_result> b;
+std::vector<measure_handle> mz(const qview<Levels> &q) {
+  std::vector<measure_handle> b;
   for (auto &qq : q) {
     b.emplace_back(mz(qq));
   }
@@ -464,14 +487,14 @@ std::vector<measure_result> mz(const qview<Levels> &q) {
 }
 
 template <typename... Qs>
-std::vector<measure_result> mz(qubit &q, Qs &&...qs);
+std::vector<measure_handle> mz(qubit &q, Qs &&...qs);
 
 template <typename QubitRange, typename... Qs>
   requires(std::ranges::range<QubitRange>)
-std::vector<measure_result> mz(QubitRange &qr, Qs &&...qs) {
-  std::vector<measure_result> result = mz(qr);
+std::vector<measure_handle> mz(QubitRange &qr, Qs &&...qs) {
+  std::vector<measure_handle> result = mz(qr);
   auto rest = mz(std::forward<Qs>(qs)...);
-  if constexpr (std::is_same_v<decltype(rest), measure_result>) {
+  if constexpr (std::is_same_v<decltype(rest), measure_handle>) {
     result.push_back(rest);
   } else {
     result.insert(result.end(), rest.begin(), rest.end());
@@ -480,42 +503,16 @@ std::vector<measure_result> mz(QubitRange &qr, Qs &&...qs) {
 }
 
 template <typename... Qs>
-std::vector<measure_result> mz(qubit &q, Qs &&...qs) {
-  std::vector<measure_result> result = {mz(q)};
+std::vector<measure_handle> mz(qubit &q, Qs &&...qs) {
+  std::vector<measure_handle> result = {mz(q)};
   auto rest = mz(std::forward<Qs>(qs)...);
-  if constexpr (std::is_same_v<decltype(rest), measure_result>) {
+  if constexpr (std::is_same_v<decltype(rest), measure_handle>) {
     result.push_back(rest);
   } else {
     result.insert(result.end(), rest.begin(), rest.end());
   }
   return result;
 }
-
-// Handle-returning measurement family: opaque, deferred-discrimination
-// counterparts of `mz` / `mx` / `my`. See the `measure_handle` Bikeshed
-// specification, sections "C++ API" and "IR Representation".
-//
-// These overloads emit `quake.mz` (or `quake.mx`/`quake.my`) producing
-// `!cc.measure_handle` (or `!cc.stdvec<!cc.measure_handle>`) and, unlike
-// `mz` / `mx` / `my`, do *not* inline a `quake.discriminate` at the call
-// site. The C++ AST bridge intercepts these calls by name; the declarations
-// below are intentionally undefined so non-MLIR builds get an unresolved-
-// symbol error if the handle API leaks out of a `__qpu__` region.
-measure_handle mz_handle(qubit &q);
-measure_handle mx_handle(qubit &q);
-measure_handle my_handle(qubit &q);
-
-template <typename QubitRange>
-  requires std::ranges::range<QubitRange>
-std::vector<measure_handle> mz_handle(QubitRange &q);
-
-template <typename QubitRange>
-  requires std::ranges::range<QubitRange>
-std::vector<measure_handle> mx_handle(QubitRange &q);
-
-template <typename QubitRange>
-  requires std::ranges::range<QubitRange>
-std::vector<measure_handle> my_handle(QubitRange &q);
 
 namespace support {
 // Helpers to deal with the `vector<bool>` specialized template type.
@@ -551,21 +548,25 @@ inline std::int64_t to_integer(const std::string &arg) {
   return std::stoull(bitString, nullptr, 2);
 }
 
-// Discriminate a measurement handle into a classical bit. Lowers to
-// `quake.discriminate %h : (!cc.measure_handle) -> i1` (or the vector form
-// `(!cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<i1>`) via the AST bridge;
-// this is the only sanctioned way to read a bit from a `measure_handle`.
-// Like the `*_handle` measurement family, both overloads are declared but
-// undefined: the bridge intercepts the calls in MLIR mode, and library-mode
-// uses fail at link time.
-bool discriminate(const measure_handle &h);
-std::vector<bool> discriminate(const std::vector<measure_handle> &handles);
-
-// Cast a vector of measurement handles to an `int64_t`, with `handles[0]`
-// as the LSB. Equivalent to `to_integer(discriminate(handles))`; provided
-// as a single call to mirror `to_integer(const std::vector<measure_result>&)`
-// above. Same library-mode behavior as `discriminate`.
-std::int64_t to_integer(const std::vector<measure_handle> &handles);
+// Bulk discrimination of a handle vector. Per the `measure_handle` proposal
+// (C++ API, `to_bools`), `std::vector<T>` of distinct element types are
+// unrelated types in C++, so the scalar `operator bool()` on
+// `measure_handle` does not propagate to vectors. Users call `to_bools`
+// explicitly whenever a `std::vector<measure_handle>` must reach a
+// `std::vector<bool>` context. Element ordering is preserved.
+//
+// In MLIR-compiler mode the AST bridge intercepts this call and lowers it
+// to a vectorized `quake.discriminate` consuming
+// `!cc.stdvec<!cc.measure_handle>` and producing `!cc.stdvec<i1>`. The
+// inline body below runs in library mode only and walks the handle vector
+// through `operator bool()` one element at a time.
+inline std::vector<bool> to_bools(const std::vector<measure_handle> &handles) {
+  std::vector<bool> bits;
+  bits.reserve(handles.size());
+  for (const auto &h : handles)
+    bits.push_back(static_cast<bool>(h));
+  return bits;
+}
 
 // This concept tests if `Kernel` is a `Callable` that takes the arguments,
 // `Args`, and returns `void`.
