@@ -21,7 +21,6 @@
 #include "cudaq/utils/cudaq_utils.h"
 
 namespace mlir {
-class ModuleOp;
 class Type;
 } // namespace mlir
 
@@ -187,16 +186,13 @@ public:
                          const std::size_t shots) {}
 
   [[nodiscard]] virtual KernelThunkResultType
-  launchKernel(const std::string &name, KernelThunkType kernelFunc,
-               KernelArgs args) = 0;
+  launchKernel(const SourceModule &src, KernelArgs args) = 0;
 
   [[nodiscard]] virtual KernelThunkResultType
   launchModule(const CompiledModule &compiled, KernelArgs args);
 
-  [[nodiscard]] virtual CompiledModule compileModule(const std::string &name,
-                                                     const void *modulePtr,
-                                                     KernelArgs args,
-                                                     bool isEntryPoint);
+  [[nodiscard]] virtual CompiledModule
+  compileModule(const SourceModule &src, KernelArgs args, bool isEntryPoint);
 
   /// @brief Notify the QPU that a new random seed value is set.
   /// By default do nothing, let subclasses override.
@@ -208,8 +204,7 @@ struct ModuleLauncher : public registry::RegisteredType<ModuleLauncher> {
 
   /// Compile (specialize + JIT) a kernel module and return a ready-to-execute
   /// CompiledModule.
-  virtual CompiledModule compileModule(const std::string &name,
-                                       mlir::ModuleOp module, KernelArgs args,
+  virtual CompiledModule compileModule(const SourceModule &src, KernelArgs args,
                                        bool isEntryPoint) = 0;
 };
 

@@ -122,9 +122,11 @@ public:
       throw std::runtime_error("Failed to launch VQE. Error: " + errorMsg);
   }
 
-  KernelThunkResultType launchKernel(const std::string &name,
-                                     KernelThunkType kernelFunc,
+  KernelThunkResultType launchKernel(const SourceModule &src,
                                      KernelArgs args) override {
+    const auto &name = src.getName();
+    auto rawFn = src.getFunctionPtr();
+    KernelThunkType kernelFunc = rawFn ? rawFn->getFn() : nullptr;
     // Make sure at most one argument representation is present.
     KernelArgs forwarded;
     if (kernelFunc) {
@@ -150,12 +152,20 @@ public:
     return launchKernelImpl(compiled, nullptr, args, resultBuf);
   }
 
-  CompiledModule compileModule(const std::string &kernelName,
-                               const void *modulePtr, KernelArgs args,
+  CompiledModule compileModule(const SourceModule &src, KernelArgs args,
                                bool isEntryPoint) override {
+    const auto &kernelName = src.getName();
+    auto mlirArt = src.getMlir();
+    if (!mlirArt)
+      throw std::runtime_error(
+          "BaseRemoteSimulatorQPU::compileModule requires an MLIR artifact on "
+          "the SourceModule for kernel '" +
+          kernelName + "'.");
+    auto module =
+        cudaq_internal::compiler::CompiledModuleHelper::getMlirModuleOp(
+            *mlirArt);
     CUDAQ_INFO("specializing remote simulator kernel via module ({})",
                kernelName);
-    mlir::ModuleOp module = mlir::ModuleOp::getFromOpaquePointer(modulePtr);
     std::string fullName = cudaq::runtime::cudaqGenPrefixName + kernelName;
     auto funcOp = module.lookupSymbol<mlir::func::FuncOp>(fullName);
     auto resTy = cudaq::runtime::getReturnType(funcOp);

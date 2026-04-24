@@ -104,12 +104,13 @@ public:
 
   /// @brief Launch the kernel. Handle all pertinent modifications for the
   /// execution context.
-  [[nodiscard]] KernelThunkResultType
-  launchKernel(const std::string &kernelName, KernelThunkType kernelFunc,
-               KernelArgs args) override {
+  [[nodiscard]] KernelThunkResultType launchKernel(const SourceModule &src,
+                                                   KernelArgs args) override {
+    auto rawFn = src.getFunctionPtr();
+    KernelThunkType kernelFunc = rawFn ? rawFn->getFn() : nullptr;
     auto packed = args.getPacked();
     void *argData = packed ? packed->data.data() : nullptr;
-    return launchKernelCommon(kernelName, kernelFunc, argData);
+    return launchKernelCommon(src.getName(), kernelFunc, argData);
   }
 
   void launchKernel(const std::string &kernelName,
