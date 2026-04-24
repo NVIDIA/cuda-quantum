@@ -374,7 +374,7 @@ and install it by running the commands
 This will extract the built assets and move them to the correct locations.
 
 Alternative: install via apt/dpkg (experimental)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 On Debian or Ubuntu hosts (22.04, 24.04, Debian 12), the release also ships
 Debian packages alongside the makeself installer. The easiest path is the

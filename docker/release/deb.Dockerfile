@@ -34,11 +34,18 @@ ARG cudaq_version
 
 # dpkg-deb + fakeroot + xz for building a .deb on AlmaLinux 8. lintian is a
 # nice-to-have but may be missing on some base images; fall back cleanly.
+# pigz + makeself are required because we reuse scripts/build_installer.sh
+# for the staging work, and that script ends with a makeself --pigz archive
+# step before we package the same tree as a deb.
 RUN dnf install -y --nobest --setopt=install_weak_deps=False epel-release && \
     (dnf install -y --nobest --setopt=install_weak_deps=False \
-        dpkg dpkg-dev fakeroot xz lintian \
+        dpkg dpkg-dev fakeroot xz pigz lintian \
      || dnf install -y --nobest --setopt=install_weak_deps=False \
-        dpkg dpkg-dev fakeroot xz)
+        dpkg dpkg-dev fakeroot xz pigz) && \
+    git clone --filter=tree:0 https://github.com/megastep/makeself /makeself && \
+    cd /makeself && git checkout release-2.5.0 && \
+    ln -s /makeself/makeself.sh /usr/local/bin/makeself && \
+    ln -s /makeself/makeself-header.sh /usr/local/bin/makeself-header.sh
 
 # Stage the install tree via build_installer.sh (its -o output is unused by
 # this Dockerfile; we just want the side-effect of populating
