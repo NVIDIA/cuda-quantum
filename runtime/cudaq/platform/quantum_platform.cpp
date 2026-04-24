@@ -21,7 +21,7 @@
 
 using namespace cudaq_internal::compiler;
 
-LLVM_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)
+CUDAQ_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)
 
 // Bridge so the Python extension can register QPU subtypes (e.g. RemoteRESTQPU)
 // into this DSO's registry. Same pattern as cudaq_add_module_launcher_node.

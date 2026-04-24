@@ -105,6 +105,8 @@ std::unique_ptr<mlir::ConversionTarget>
 createBasisTarget(mlir::MLIRContext &context,
                   mlir::ArrayRef<std::string> targetBasis);
 
+using DecompositionPatternTypeRegistry =
+    llvm::Registry<DecompositionPatternType>;
 } // namespace cudaq
 
 /// Register a decomposition pattern type with the LLVM registry.

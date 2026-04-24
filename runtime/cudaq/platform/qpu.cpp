@@ -12,7 +12,7 @@
 
 using namespace cudaq_internal::compiler;
 
-LLVM_INSTANTIATE_REGISTRY(cudaq::ModuleLauncher::RegistryType)
+CUDAQ_INSTANTIATE_REGISTRY(cudaq::ModuleLauncher::RegistryType)
 
 // Bridge so the Python extension can register PythonLauncher into this DSO's
 // registry. LLVM's Registry uses static inline Head/Tail, so each DSO that

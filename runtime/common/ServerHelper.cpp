@@ -40,7 +40,7 @@ void ServerHelper::parseConfigForCommonParams(const BackendConfig &config) {
 }
 } // namespace cudaq
 
-LLVM_INSTANTIATE_REGISTRY(cudaq::ServerHelper::RegistryType)
+CUDAQ_INSTANTIATE_REGISTRY(cudaq::ServerHelper::RegistryType)
 
 // Bridge so the Python extension (which has hidden-visibility Head/Tail for
 // Registry<ServerHelper>) can look up server helpers registered in this DSO's

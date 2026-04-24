@@ -33,8 +33,7 @@
 
 using namespace mlir;
 
-/// FIXME: DO NOT INSTANTIATE GLOBALS HERE!
-LLVM_INSTANTIATE_REGISTRY(cudaq::DecompositionPatternType::RegistryType)
+LLVM_INSTANTIATE_REGISTRY(cudaq::DecompositionPatternTypeRegistry)
 
 //===----------------------------------------------------------------------===//
 // Helpers
@@ -301,6 +300,8 @@ static LogicalResult checkAndExtractControls(quake::OperatorInterface op,
 }
 
 // From here on, we define the decomposition patterns ==========================
+#define CONCAT(a, b) CONCAT_INNER(a, b)
+#define CONCAT_INNER(a, b) a##b
 
 /// Macro to register a decomposition pattern with its metadata
 /// Usage: REGISTER_DECOMPOSITION_PATTERN(PatternName, "source_op", "target1",
@@ -325,8 +326,8 @@ static LogicalResult checkAndExtractControls(quake::OperatorInterface op,
       return pattern;                                                          \
     }                                                                          \
   };                                                                           \
-  static cudaq::DecompositionPatternType::RegistryType::Add<PATTERN##Type>     \
-      decomp_reg_##PATTERN(#PATTERN, "")
+  static cudaq::DecompositionPatternTypeRegistry::Add<PATTERN##Type> CONCAT(   \
+      TEMPNAME_, PATTERN)(#PATTERN, "");
 
 // NOTE: The patterns SToR1, TToR1, R1ToU3, and U3ToRotations handle arbitrary
 // control counts and are registered with (n) metadata. R1ToRz explicitly
@@ -1826,7 +1827,7 @@ void cudaq::populateWithAllDecompositionPatterns(
         std::map<std::string, std::unique_ptr<cudaq::DecompositionPatternType>>
             map;
         for (auto &patternType :
-             cudaq::DecompositionPatternType::RegistryType::entries()) {
+             cudaq::DecompositionPatternTypeRegistry::entries()) {
           map[patternType.getName().str()] = patternType.instantiate();
         }
         return map;
