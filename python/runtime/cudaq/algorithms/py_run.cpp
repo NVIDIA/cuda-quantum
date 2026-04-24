@@ -264,7 +264,12 @@ void cudaq::bindPyRunAsync(nanobind::module_ &mod) {
       .def(
           "get",
           [](async_run_result &self) {
-            self.ready.get();
+            {
+              // Release the GIL so the async task's MLIR worker threads
+              // can call PyGILState_Ensure without deadlocking on us.
+              nanobind::gil_scoped_release release;
+              self.ready.get();
+            }
             auto err = *self.error;
             if (!err.empty()) {
               delete self.error;
