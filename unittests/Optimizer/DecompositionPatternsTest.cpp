@@ -245,7 +245,7 @@ TEST_F(DecompositionPatternsTest, PatternNamesMatchDebugNames) {
   auto patternEntries = cudaq::DecompositionPatternTypeRegistry::entries();
 
   for (auto &entry : patternEntries) {
-    auto patternName = entry.getName();
+    std::string patternName = entry.getName().str();
     std::unique_ptr<cudaq::DecompositionPatternType> patternType;
     for (auto it = cudaq::DecompositionPatternType::RegistryType::begin(),
               ie = cudaq::DecompositionPatternType::RegistryType::end();
@@ -277,7 +277,7 @@ TEST_F(DecompositionPatternsTest, MetadataConsistency) {
   auto patternEntries = cudaq::DecompositionPatternTypeRegistry::entries();
 
   for (auto &entry : patternEntries) {
-    std::string patternName = entry.getName();
+    std::string patternName = entry.getName().str();
     auto patternType = entry.instantiate();
     std::string sourceGate = patternType->getSourceOp().str();
     auto targetGates = patternType->getTargetOps();
@@ -300,7 +300,7 @@ TEST_F(DecompositionPatternsTest, DecompositionProducesOnlyTargetGates) {
   auto patternEntries = cudaq::DecompositionPatternTypeRegistry::entries();
 
   for (auto &entry : patternEntries) {
-    std::string patternName = entry.getName();
+    std::string patternName = entry.getName().str();
     auto patternType = entry.instantiate();
     std::string sourceGate = patternType->getSourceOp().str();
     auto targetGates = patternType->getTargetOps();
