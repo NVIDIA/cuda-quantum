@@ -1055,7 +1055,7 @@ static MlirModule synthesizeKernel(nanobind::object kernel,
     context->disableMultithreading();
   if (enablePrintMLIREachPass)
     pm.enableIRPrinting();
-  bool pmFailed = failed(pm.run(cloned));
+  bool pmFailed = failed(cudaq::runPassManagerReleasingGIL(pm, cloned));
   timingScope.stop();
   engine.eraseHandler(handlerId);
   if (pmFailed)
@@ -1088,7 +1088,7 @@ static void executeMLIRPassManager(ModuleOp mod, PassManager &pm) {
   auto timingScope = tm.getRootScope(); // starts the timer
   pm.enableTiming(timingScope);         // do this right before pm.run
 
-  bool pmFailed = failed(pm.run(mod));
+  bool pmFailed = failed(cudaq::runPassManagerReleasingGIL(pm, mod));
   timingScope.stop();
   engine.eraseHandler(handlerId);
   if (pmFailed)
@@ -1258,7 +1258,7 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
             cudaq::opt::createPySynthCallableBlockArgs(
                 SmallVector<StringRef>(funcNames.begin(), funcNames.end()),
                 true));
-        if (failed(pm.run(m)))
+        if (failed(cudaq::runPassManagerReleasingGIL(pm, m)))
           throw std::runtime_error(
               "cudaq::jit failed to remove callable block arguments.");
 

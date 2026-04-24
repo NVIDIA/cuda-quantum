@@ -94,7 +94,7 @@ static void specializeKernel(const std::string &name, ModuleOp module,
     module.getContext()->disableMultithreading();
     pm.enableIRPrinting();
   }
-  if (failed(pm.run(module)))
+  if (failed(cudaq::runPassManagerReleasingGIL(pm, module)))
     throw std::runtime_error("Pass pipeline failed.");
 }
 
@@ -168,7 +168,7 @@ static void runTargetPassPipeline(ModuleOp module) {
   llvm::raw_string_ostream errOS(errMsg);
   if (failed(parsePassPipeline(pipeline, pm, errOS)))
     throw std::runtime_error("Failed to parse target pipeline: " + errMsg);
-  if (failed(pm.run(module)))
+  if (failed(cudaq::runPassManagerReleasingGIL(pm, module)))
     throw std::runtime_error("Pass pipeline failed.");
 }
 
@@ -189,7 +189,7 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
   cudaq::opt::addAggressiveInlining(pm);
   cudaq::opt::createTargetFinalizePipeline(pm);
   cudaq::opt::addAOTPipelineConvertToQIR(pm, format);
-  if (failed(pm.run(module)))
+  if (failed(cudaq::runPassManagerReleasingGIL(pm, module)))
     throw std::runtime_error("Pass pipeline failed.");
   if (failed(cudaq::verifier::checkQIRLLVMIRDialect(module, format)))
     throw std::runtime_error("QIR conformance failed.");
@@ -229,7 +229,7 @@ std::string cudaq::detail::lower_to_openqasm(const std::string &name,
     ctx->disableMultithreading();
     pm.enableIRPrinting();
   }
-  if (failed(pm.run(module)))
+  if (failed(cudaq::runPassManagerReleasingGIL(pm, module)))
     throw std::runtime_error("Pass pipeline failed.");
   std::string result;
   llvm::raw_string_ostream os(result);

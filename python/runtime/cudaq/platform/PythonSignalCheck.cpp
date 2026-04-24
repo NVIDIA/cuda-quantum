@@ -43,4 +43,14 @@ namespace cudaq {
 void addPythonSignalInstrumentation(mlir::PassManager &pm) {
   pm.addInstrumentation(std::make_unique<PythonSignalCheckInstrumentation>());
 }
+
+mlir::LogicalResult runPassManagerReleasingGIL(mlir::PassManager &pm,
+                                               mlir::Operation *op) {
+  if (!PyGILState_Check())
+    return pm.run(op);
+  PyThreadState *save = PyEval_SaveThread();
+  mlir::LogicalResult result = pm.run(op);
+  PyEval_RestoreThread(save);
+  return result;
+}
 } // namespace cudaq
