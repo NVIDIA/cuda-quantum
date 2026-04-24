@@ -95,7 +95,7 @@ LogicalResult cudaq::verifier::checkQIRLLVMIRDialect(ModuleOp module,
 
         // Check that qubits are unique values.
         const std::size_t numOpnds = call.getNumOperands();
-        auto qubitTy = cudaq::opt::getQubitType(ctx);
+        auto qubitTy = cudaq::cg::getQubitType(ctx);
         // Determine how many leading operands are qubit pointers. With
         // opaque pointers, Qubit* and Result* are both !llvm.ptr so we
         // cannot distinguish them by type. For measurement functions

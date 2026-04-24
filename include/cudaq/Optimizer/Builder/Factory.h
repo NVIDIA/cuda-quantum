@@ -83,9 +83,9 @@ inline mlir::Type getOpaquePointerType(mlir::MLIRContext *ctx) {
   return mlir::LLVM::LLVMPointerType::get(ctx, /*addressSpace=*/0);
 }
 
-/// Return the LLVM-IR dialect type: `ty*`.
+/// Return the LLVM-IR dialect type: `ptr`. (changed for modern LLVM.)
 inline mlir::Type getPointerType(mlir::Type ty) {
-  return mlir::LLVM::LLVMPointerType::get(ty.getContext());
+  return factory::getPointerType(ty.getContext());
 }
 
 cudaq::cc::PointerType getIndexedObjectType(mlir::Type eleTy);

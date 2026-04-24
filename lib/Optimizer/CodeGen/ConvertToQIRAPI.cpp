@@ -1164,8 +1164,14 @@ struct ExpPauliOpPattern
       controls.push_back(adaptor.getControls().front());
     }
     SmallVector<Value> targets;
-    if (adaptor.getTargets().size() > 1 ||
-        !isa<quake::VeqType>(adaptor.getTargets().front().getType())) {
+    auto pauliTargetConvert = [&]() -> bool {
+      if (auto tyAttr = pauli->getAttrOfType<TypeAttr>("target_type")) {
+        Type ty = tyAttr.getValue();
+        return !isa<quake::VeqType>(ty);
+      }
+      return true;
+    };
+    if (pauliTargetConvert()) {
       // Concat all targets into a single Array.
       Type arrayTy = M::getArrayType(rewriter.getContext());
       Value firstOperand = adaptor.getTargets().front();
@@ -1218,65 +1224,71 @@ struct ExpPauliOpPattern
     // directly (a.k.a. a span)`{i8*,i64}` or a string literal `ptr<array<i8 x
     // n>>`. If it is a string literal, we need to map it to a pauli word.
     auto i8PtrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
-    if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(pauliWord.getType())) {
-      // Make sure we have the right types to extract the length of the string
-      // literal
-      auto arrayTy = dyn_cast<cudaq::cc::ArrayType>(ptrTy.getElementType());
-      if (!arrayTy)
-        return pauli.emitOpError(
-            "exp_pauli string literal must have ptr<array<i8 x N> type.");
-      if (!arrayTy.getSize())
-        return pauli.emitOpError("string literal may not be empty.");
-
-      // We must create the {i8*, i64} struct from the string literal
-      SmallVector<Type> structTys{i8PtrTy, rewriter.getI64Type()};
-      auto structTy =
-          cudaq::cc::StructType::get(rewriter.getContext(), structTys);
-
-      // Allocate the char span struct
+    if (pauli->hasAttr("word_is_span")) {
+      // The attribute tells us we have a pauli word expressed as `{i8*, i64}`.
+      // Allocate a stack slot for it and store what we have to that pointer,
+      // pass the pointer to NVQIR.
+      auto newPauliWord = pauliWord;
+      auto newPauliWordTy = newPauliWord.getType();
       Value alloca =
-          cudaq::opt::factory::createTemporary(loc, rewriter, structTy);
-
-      // Convert the number of elements to a constant op.
-      auto size = arith::ConstantIntOp::create(rewriter, loc,
-                                               arrayTy.getSize() - 1, 64);
-
-      // Set the string literal data
+          cudaq::opt::factory::createTemporary(loc, rewriter, newPauliWordTy);
+      auto castedVar = cudaq::cc::CastOp::create(
+          rewriter, loc, cudaq::cc::PointerType::get(newPauliWordTy), alloca);
+      cudaq::cc::StoreOp::create(rewriter, loc, newPauliWord, castedVar);
       auto castedPauli =
-          cudaq::cc::CastOp::create(rewriter, loc, i8PtrTy, pauliWord);
-      auto strPtr = cudaq::cc::ComputePtrOp::create(
-          rewriter, loc, cudaq::cc::PointerType::get(i8PtrTy), alloca,
-          ArrayRef<cudaq::cc::ComputePtrArg>{0, 0});
-      cudaq::cc::StoreOp::create(rewriter, loc, castedPauli, strPtr);
-
-      // Set the integer length
-      auto intPtr = cudaq::cc::ComputePtrOp::create(
-          rewriter, loc, cudaq::cc::PointerType::get(rewriter.getI64Type()),
-          alloca, ArrayRef<cudaq::cc::ComputePtrArg>{0, 1});
-      cudaq::cc::StoreOp::create(rewriter, loc, size, intPtr);
-
-      // Cast to raw opaque pointer
-      auto castedStore =
           cudaq::cc::CastOp::create(rewriter, loc, i8PtrTy, alloca);
-      operands.back() = castedStore;
+      operands.back() = castedPauli;
       rewriter.replaceOpWithNewOp<func::CallOp>(pauli, TypeRange{},
                                                 qirFunctionName, operands);
       return success();
     }
+    // Make sure we have the right types to extract the length of the string
+    // literal.
 
-    // Here we know we have a pauli word expressed as `{i8*, i64}`. Allocate a
-    // stack slot for it and store what we have to that pointer, pass the
-    // pointer to NVQIR.
-    auto newPauliWord = pauliWord;
-    auto newPauliWordTy = newPauliWord.getType();
+    auto ptrTy = [&]() -> cudaq::cc::PointerType {
+      auto attr = pauli->getAttrOfType<TypeAttr>("word_type");
+      if (attr)
+        return dyn_cast<cudaq::cc::PointerType>(attr.getValue());
+      return dyn_cast<cudaq::cc::PointerType>(pauliWord.getType());
+    }();
+    auto arrayTy = dyn_cast<cudaq::cc::ArrayType>(ptrTy.getElementType());
+    if (!arrayTy)
+      return pauli.emitOpError(
+          "exp_pauli string literal must have ptr<array<i8 x N> type.");
+    if (!arrayTy.getSize())
+      return pauli.emitOpError("string literal may not be empty.");
+
+    // We must create the {i8*, i64} struct from the string literal
+    SmallVector<Type> structTys{i8PtrTy, rewriter.getI64Type()};
+    auto structTy =
+        cudaq::cc::StructType::get(rewriter.getContext(), structTys);
+
+    // Allocate the char span struct
     Value alloca =
-        cudaq::opt::factory::createTemporary(loc, rewriter, newPauliWordTy);
-    auto castedVar = cudaq::cc::CastOp::create(
-        rewriter, loc, cudaq::cc::PointerType::get(newPauliWordTy), alloca);
-    cudaq::cc::StoreOp::create(rewriter, loc, newPauliWord, castedVar);
+        cudaq::opt::factory::createTemporary(loc, rewriter, structTy);
+
+    // Convert the number of elements to a constant op.
+    auto size =
+        arith::ConstantIntOp::create(rewriter, loc, arrayTy.getSize() - 1, 64);
+
+    // Set the string literal data
     auto castedPauli =
+        cudaq::cc::CastOp::create(rewriter, loc, i8PtrTy, pauliWord);
+    auto strPtr = cudaq::cc::ComputePtrOp::create(
+        rewriter, loc, cudaq::cc::PointerType::get(i8PtrTy), alloca,
+        ArrayRef<cudaq::cc::ComputePtrArg>{0, 0});
+    cudaq::cc::StoreOp::create(rewriter, loc, castedPauli, strPtr);
+
+    // Set the integer length
+    auto intPtr = cudaq::cc::ComputePtrOp::create(
+        rewriter, loc, cudaq::cc::PointerType::get(rewriter.getI64Type()),
+        alloca, ArrayRef<cudaq::cc::ComputePtrArg>{0, 1});
+    cudaq::cc::StoreOp::create(rewriter, loc, size, intPtr);
+
+    // Cast to raw opaque pointer
+    auto castedStore =
         cudaq::cc::CastOp::create(rewriter, loc, i8PtrTy, alloca);
-    operands.back() = castedPauli;
+    operands.back() = castedStore;
     rewriter.replaceOpWithNewOp<func::CallOp>(pauli, TypeRange{},
                                               qirFunctionName, operands);
     return success();
@@ -2507,6 +2519,25 @@ struct QuakeToQIRAPIPrepPass
 
     auto *ctx = module.getContext();
     module.walk([&](Operation *op) {
+      if (auto pauli = dyn_cast<quake::ExpPauliOp>(op)) {
+        // We should consider factoring the lowering of quake.exp_pauli. For now
+        // we annotate exp_pauli in place so we know which operand types it had
+        // originally. If there is a single target, record its type. We may need
+        // to wrap it in an Array. If the pauli word operand is a pointer,
+        // record it so we have the points-to type. Otherwise, the pauli word is
+        // a charspan, so note that.
+        if (pauli.getTargets().size() == 1)
+          op->setAttr("target_type",
+                      TypeAttr::get(pauli.getTargets().front().getType()));
+        if (pauli.getPauliLiteralAttr())
+          return;
+        Type pauliWordTy = pauli.getPauli().getType();
+        if (isa<cudaq::cc::PointerType>(pauliWordTy)) {
+          op->setAttr("word_type", TypeAttr::get(pauliWordTy));
+          return;
+        }
+        op->setAttr("word_is_span", UnitAttr::get(ctx));
+      }
       if (!std::any_of(op->getResultTypes().begin(), op->getResultTypes().end(),
                        quake::isQuantumValueType) ||
           !std::any_of(op->getOperandTypes().begin(),

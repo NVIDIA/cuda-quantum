@@ -193,10 +193,12 @@ public:
 } // namespace
 
 void cudaq::opt::initializeTypeConversions(LLVMTypeConverter &typeConverter) {
-  typeConverter.addConversion(
-      [](quake::VeqType type) { return getArrayType(type.getContext()); });
-  typeConverter.addConversion(
-      [](quake::RefType type) { return getQubitType(type.getContext()); });
+  typeConverter.addConversion([](quake::VeqType type) {
+    return cg::getLLVMArrayType(type.getContext());
+  });
+  typeConverter.addConversion([](quake::RefType type) {
+    return cg::getLLVMQubitType(type.getContext());
+  });
   typeConverter.addConversion([&](quake::StruqType type) {
     SmallVector<Type> mems;
     for (auto m : type.getMembers())
