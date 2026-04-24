@@ -106,7 +106,62 @@ jobs:
     - name: Upload installer
       uses: actions/upload-artifact@v4
       with:
-        name: install_cuda_quantum_realtime_cu${{ inputs.cuda_version }}.${{ inputs.platform }} 
+        name: install_cuda_quantum_realtime_cu${{ inputs.cuda_version }}.${{ inputs.platform }}
         path: /tmp/install
         retention-days: 1
         if-no-files-found: error
+
+  validate_deb:
+    name: Validate realtime deb
+    needs: build_installer
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    permissions:
+      contents: read
+
+    strategy:
+      matrix:
+        # Realtime validation only checks install/uninstall mechanics --
+        # libcudaq-realtime requires GPU + Holoscan/DOCA runtimes that
+        # aren't available on the validation runners (validate_deb.sh -f
+        # realtime skips the compile-and-run smoke test for that reason).
+        target_image:
+          - ubuntu:22.04
+          - ubuntu:24.04
+          - debian:12
+      fail-fast: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Download installer artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: install_cuda_quantum_realtime_cu${{ inputs.cuda_version }}.${{ inputs.platform }}
+          path: /tmp/install
+
+      - name: Validate realtime deb in ${{ matrix.target_image }}
+        run: |
+          set -e
+          cuda_major=$(echo "${{ inputs.cuda_version }}" | cut -d . -f1)
+          deb_arch=$([ "$(uname -m)" = "aarch64" ] && echo arm64 || echo amd64)
+
+          deb_file=$(ls /tmp/install/cuda-quantum-realtime-cu${cuda_major}_*_${deb_arch}.deb 2>/dev/null | head -1)
+          if [ -z "$deb_file" ]; then
+            echo "::error::No realtime deb found for cu${cuda_major} ${deb_arch} in /tmp/install/"
+            ls -la /tmp/install/ || true
+            exit 1
+          fi
+          echo "Validating $deb_file in ${{ matrix.target_image }}"
+
+          docker run --rm \
+            -v /tmp/install:/install:ro \
+            -v "$PWD/scripts/validate_deb.sh:/usr/local/bin/validate_deb.sh:ro" \
+            ${{ matrix.target_image }} \
+            bash -c "
+              set -e
+              export DEBIAN_FRONTEND=noninteractive
+              apt-get update >/dev/null
+              apt-get install -y --no-install-recommends $(basename $deb_file | sed 's,^,/install/,')
+              bash /usr/local/bin/validate_deb.sh -c ${cuda_major} -f realtime
+            "
