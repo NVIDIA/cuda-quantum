@@ -13,8 +13,6 @@
 #include "cudaq/qis/execution_manager.h"
 #include <gtest/gtest.h>
 
-using namespace cudaq::ptsbe;
-
 /// Build PTSBE trace then extract noise sites (the two-step pipeline).
 static detail::NoiseExtractionResult
 buildAndExtract(const cudaq::Trace &trace, const cudaq::noise_model &noise,
@@ -410,9 +408,9 @@ TEST(NoiseExtractorTest, ImplicitMeasurementPerQubitNoise) {
   std::size_t measCount = 0;
   std::size_t noiseCount = 0;
   for (const auto &inst : ptsbe) {
-    if (inst.type == TraceInstructionType::Measurement)
+    if (inst.type == cudaq::ptsbe::TraceInstructionType::Measurement)
       ++measCount;
-    if (inst.type == TraceInstructionType::Noise)
+    if (inst.type == cudaq::ptsbe::TraceInstructionType::Noise)
       ++noiseCount;
   }
   EXPECT_EQ(measCount, 2);

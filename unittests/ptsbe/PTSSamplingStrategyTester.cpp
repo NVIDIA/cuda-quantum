@@ -16,7 +16,6 @@
 #include <gtest/gtest.h>
 #include <set>
 
-using namespace cudaq::ptsbe;
 using NoisePoint = cudaq::ptsbe::detail::NoisePoint;
 using cudaq::ptsbe::detail::computeTotalTrajectories;
 
@@ -77,7 +76,7 @@ std::vector<NoisePoint> createThreeOperatorNoisePoints() {
 
 TEST(ProbabilisticSamplingStrategyTest, BasicGeneration) {
   auto noise_points = createSimpleNoisePoints();
-  ProbabilisticSamplingStrategy strategy(42);
+  cudaq::ptsbe::ProbabilisticSamplingStrategy strategy(42);
 
   auto trajectories = strategy.generateTrajectories(noise_points, 10);
 
@@ -94,7 +93,7 @@ TEST(ProbabilisticSamplingStrategyTest, BasicGeneration) {
 
 TEST(ProbabilisticSamplingStrategyTest, Uniqueness) {
   auto noise_points = createSimpleNoisePoints();
-  ProbabilisticSamplingStrategy strategy(42);
+  cudaq::ptsbe::ProbabilisticSamplingStrategy strategy(42);
 
   auto trajectories = strategy.generateTrajectories(noise_points, 4);
 
@@ -118,8 +117,8 @@ TEST(ProbabilisticSamplingStrategyTest, Uniqueness) {
 TEST(ProbabilisticSamplingStrategyTest, Reproducibility) {
   auto noise_points = createSimpleNoisePoints();
 
-  ProbabilisticSamplingStrategy strategy1(123);
-  ProbabilisticSamplingStrategy strategy2(123);
+  cudaq::ptsbe::ProbabilisticSamplingStrategy strategy1(123);
+  cudaq::ptsbe::ProbabilisticSamplingStrategy strategy2(123);
 
   auto trajectories1 = strategy1.generateTrajectories(noise_points, 5);
   auto trajectories2 = strategy2.generateTrajectories(noise_points, 5);
@@ -138,7 +137,7 @@ TEST(ProbabilisticSamplingStrategyTest, Reproducibility) {
 
 TEST(ProbabilisticSamplingStrategyTest, EmptyNoisePoints) {
   std::vector<NoisePoint> empty_noise_points;
-  ProbabilisticSamplingStrategy strategy(42);
+  cudaq::ptsbe::ProbabilisticSamplingStrategy strategy(42);
 
   auto trajectories = strategy.generateTrajectories(empty_noise_points, 10);
 
@@ -147,7 +146,7 @@ TEST(ProbabilisticSamplingStrategyTest, EmptyNoisePoints) {
 
 TEST(ProbabilisticSamplingStrategyTest, ProbabilityCalculation) {
   auto noise_points = createSimpleNoisePoints();
-  ProbabilisticSamplingStrategy strategy(42);
+  cudaq::ptsbe::ProbabilisticSamplingStrategy strategy(42);
 
   auto trajectories = strategy.generateTrajectories(noise_points, 4);
 
@@ -163,12 +162,12 @@ TEST(ProbabilisticSamplingStrategyTest, ProbabilityCalculation) {
 }
 
 TEST(ProbabilisticSamplingStrategyTest, StrategyName) {
-  ProbabilisticSamplingStrategy strategy;
+  cudaq::ptsbe::ProbabilisticSamplingStrategy strategy;
   EXPECT_STREQ(strategy.name(), "Probabilistic");
 }
 
 TEST(ProbabilisticSamplingStrategyTest, Clone) {
-  ProbabilisticSamplingStrategy strategy(42);
+  cudaq::ptsbe::ProbabilisticSamplingStrategy strategy(42);
   auto cloned = strategy.clone();
 
   EXPECT_NE(cloned.get(), nullptr);
@@ -192,7 +191,7 @@ TEST(ProbabilisticSamplingStrategyTest, RequestMoreThanPossible) {
     noise_points.push_back(np);
   }
 
-  ProbabilisticSamplingStrategy strategy(42);
+  cudaq::ptsbe::ProbabilisticSamplingStrategy strategy(42);
 
   auto trajectories = strategy.generateTrajectories(noise_points, 100);
 
@@ -219,7 +218,7 @@ TEST(ProbabilisticSamplingStrategyTest, FewPossibleTrajectoriesDiscoversAll) {
   np.channel = cudaq::depolarization_channel(0.001);
   noise_points.push_back(np);
 
-  ProbabilisticSamplingStrategy strategy(42);
+  cudaq::ptsbe::ProbabilisticSamplingStrategy strategy(42);
 
   auto trajectories = strategy.generateTrajectories(noise_points, 1000000);
 
@@ -245,7 +244,7 @@ TEST(ProbabilisticSamplingStrategyTest,
   np.channel = makeIXYChannel(0.34, 0.33, 0.33);
   noise_points.push_back(np);
 
-  ProbabilisticSamplingStrategy strategy(42);
+  cudaq::ptsbe::ProbabilisticSamplingStrategy strategy(42);
 
   auto trajectories = strategy.generateTrajectories(noise_points, 1000);
 
@@ -276,7 +275,8 @@ TEST(ProbabilisticSamplingStrategyTest,
 
   // When max_trajectory_samples is set, the budget equals that value directly.
   const std::size_t explicit_samples = 200;
-  ProbabilisticSamplingStrategy strategy_explicit(42, explicit_samples);
+  cudaq::ptsbe::ProbabilisticSamplingStrategy strategy_explicit(
+      42, explicit_samples);
 
   auto trajectories = strategy_explicit.generateTrajectories(noise_points, 100);
 
@@ -292,7 +292,7 @@ TEST(ProbabilisticSamplingStrategyTest,
   // Without the parameter, auto-budget is max(max_trajectories,
   // min(target * ATTEMPT_MULTIPLIER, MAX_SAMPLES_CAP)). For this small
   // space (total_possible=3), target=3 so auto=max(100, 30)=100.
-  ProbabilisticSamplingStrategy strategy_auto(42);
+  cudaq::ptsbe::ProbabilisticSamplingStrategy strategy_auto(42);
   auto trajectories_auto =
       strategy_auto.generateTrajectories(noise_points, 100);
 
@@ -316,7 +316,7 @@ TEST(ProbabilisticSamplingStrategyTest,
 
   // max_trajectory_samples=30 < max_trajectories=100: budget should be 30.
   const std::size_t explicit_samples = 30;
-  ProbabilisticSamplingStrategy strategy(42, explicit_samples);
+  cudaq::ptsbe::ProbabilisticSamplingStrategy strategy(42, explicit_samples);
 
   auto trajectories = strategy.generateTrajectories(noise_points, 100);
 
@@ -343,7 +343,7 @@ TEST(ProbabilisticSamplingStrategyTest, EarlyStoppingReducesTotalDraws) {
 
   const std::size_t large_budget = 100000;
   const std::size_t small_max_traj = 20;
-  ProbabilisticSamplingStrategy strategy(42, large_budget);
+  cudaq::ptsbe::ProbabilisticSamplingStrategy strategy(42, large_budget);
 
   auto trajectories =
       strategy.generateTrajectories(noise_points, small_max_traj);
@@ -374,7 +374,7 @@ TEST(ProbabilisticSamplingStrategyTest, LargeTrajectorySpace) {
     noise_points.push_back(np);
   }
 
-  ProbabilisticSamplingStrategy strategy(42);
+  cudaq::ptsbe::ProbabilisticSamplingStrategy strategy(42);
 
   auto trajectories = strategy.generateTrajectories(noise_points, 50);
 
@@ -393,7 +393,7 @@ TEST(ProbabilisticSamplingStrategyTest, LargeTrajectorySpace) {
 
 TEST(ExhaustiveSamplingStrategyTest, GeneratesAllTrajectories) {
   auto noise_points = createSimpleNoisePoints();
-  ExhaustiveSamplingStrategy strategy;
+  cudaq::ptsbe::ExhaustiveSamplingStrategy strategy;
 
   auto trajectories = strategy.generateTrajectories(noise_points, 100);
 
@@ -407,7 +407,7 @@ TEST(ExhaustiveSamplingStrategyTest, GeneratesAllTrajectories) {
 
 TEST(ExhaustiveSamplingStrategyTest, LexicographicOrder) {
   auto noise_points = createSimpleNoisePoints();
-  ExhaustiveSamplingStrategy strategy;
+  cudaq::ptsbe::ExhaustiveSamplingStrategy strategy;
 
   auto trajectories = strategy.generateTrajectories(noise_points, 100);
 
@@ -428,7 +428,7 @@ TEST(ExhaustiveSamplingStrategyTest, LexicographicOrder) {
 
 TEST(ExhaustiveSamplingStrategyTest, CapsAtMaxTrajectories) {
   auto noise_points = createSimpleNoisePoints();
-  ExhaustiveSamplingStrategy strategy;
+  cudaq::ptsbe::ExhaustiveSamplingStrategy strategy;
 
   auto trajectories = strategy.generateTrajectories(noise_points, 2);
 
@@ -437,7 +437,7 @@ TEST(ExhaustiveSamplingStrategyTest, CapsAtMaxTrajectories) {
 
 TEST(ExhaustiveSamplingStrategyTest, ThreeOperators) {
   auto noise_points = createThreeOperatorNoisePoints();
-  ExhaustiveSamplingStrategy strategy;
+  cudaq::ptsbe::ExhaustiveSamplingStrategy strategy;
 
   auto trajectories = strategy.generateTrajectories(noise_points, 100);
 
@@ -450,7 +450,7 @@ TEST(ExhaustiveSamplingStrategyTest, ThreeOperators) {
 
 TEST(ExhaustiveSamplingStrategyTest, EmptyNoisePoints) {
   std::vector<NoisePoint> empty_noise_points;
-  ExhaustiveSamplingStrategy strategy;
+  cudaq::ptsbe::ExhaustiveSamplingStrategy strategy;
 
   auto trajectories = strategy.generateTrajectories(empty_noise_points, 10);
 
@@ -458,12 +458,12 @@ TEST(ExhaustiveSamplingStrategyTest, EmptyNoisePoints) {
 }
 
 TEST(ExhaustiveSamplingStrategyTest, StrategyName) {
-  ExhaustiveSamplingStrategy strategy;
+  cudaq::ptsbe::ExhaustiveSamplingStrategy strategy;
   EXPECT_STREQ(strategy.name(), "Exhaustive");
 }
 
 TEST(ExhaustiveSamplingStrategyTest, Clone) {
-  ExhaustiveSamplingStrategy strategy;
+  cudaq::ptsbe::ExhaustiveSamplingStrategy strategy;
   auto cloned = strategy.clone();
 
   EXPECT_NE(cloned.get(), nullptr);
@@ -472,7 +472,7 @@ TEST(ExhaustiveSamplingStrategyTest, Clone) {
 
 TEST(OrderedSamplingStrategyTest, SortsByProbability) {
   auto noise_points = createSimpleNoisePoints();
-  OrderedSamplingStrategy strategy;
+  cudaq::ptsbe::OrderedSamplingStrategy strategy;
 
   auto trajectories = strategy.generateTrajectories(noise_points, 4);
 
@@ -491,7 +491,7 @@ TEST(OrderedSamplingStrategyTest, SortsByProbability) {
 
 TEST(OrderedSamplingStrategyTest, HighestProbabilityFirst) {
   auto noise_points = createSimpleNoisePoints();
-  OrderedSamplingStrategy strategy;
+  cudaq::ptsbe::OrderedSamplingStrategy strategy;
 
   auto trajectories = strategy.generateTrajectories(noise_points, 1);
 
@@ -504,7 +504,7 @@ TEST(OrderedSamplingStrategyTest, HighestProbabilityFirst) {
 
 TEST(OrderedSamplingStrategyTest, TopKSelection) {
   auto noise_points = createSimpleNoisePoints();
-  OrderedSamplingStrategy strategy;
+  cudaq::ptsbe::OrderedSamplingStrategy strategy;
 
   auto trajectories = strategy.generateTrajectories(noise_points, 2);
 
@@ -516,7 +516,7 @@ TEST(OrderedSamplingStrategyTest, TopKSelection) {
 
 TEST(OrderedSamplingStrategyTest, TrajectoryIDReassignment) {
   auto noise_points = createSimpleNoisePoints();
-  OrderedSamplingStrategy strategy;
+  cudaq::ptsbe::OrderedSamplingStrategy strategy;
 
   auto trajectories = strategy.generateTrajectories(noise_points, 4);
 
@@ -527,7 +527,7 @@ TEST(OrderedSamplingStrategyTest, TrajectoryIDReassignment) {
 
 TEST(OrderedSamplingStrategyTest, EmptyNoisePoints) {
   std::vector<NoisePoint> empty_noise_points;
-  OrderedSamplingStrategy strategy;
+  cudaq::ptsbe::OrderedSamplingStrategy strategy;
 
   auto trajectories = strategy.generateTrajectories(empty_noise_points, 10);
 
@@ -535,12 +535,12 @@ TEST(OrderedSamplingStrategyTest, EmptyNoisePoints) {
 }
 
 TEST(OrderedSamplingStrategyTest, StrategyName) {
-  OrderedSamplingStrategy strategy;
+  cudaq::ptsbe::OrderedSamplingStrategy strategy;
   EXPECT_STREQ(strategy.name(), "Ordered");
 }
 
 TEST(OrderedSamplingStrategyTest, Clone) {
-  OrderedSamplingStrategy strategy;
+  cudaq::ptsbe::OrderedSamplingStrategy strategy;
   auto cloned = strategy.clone();
 
   EXPECT_NE(cloned.get(), nullptr);
@@ -564,7 +564,7 @@ TEST(OrderedSamplingStrategyTest, TopKWithNonZeroIdentityIndex) {
   np.channel = ch;
   std::vector<NoisePoint> noise_points = {np};
 
-  OrderedSamplingStrategy strategy;
+  cudaq::ptsbe::OrderedSamplingStrategy strategy;
   auto trajectories = strategy.generateTrajectories(noise_points, 1);
 
   ASSERT_EQ(trajectories.size(), 1u);
@@ -579,7 +579,7 @@ TEST(ConditionalSamplingStrategyTest, FilterByErrorCount) {
     return traj.countErrors() == 1;
   };
 
-  ConditionalSamplingStrategy strategy(predicate, /*seed=*/42);
+  cudaq::ptsbe::ConditionalSamplingStrategy strategy(predicate, /*seed=*/42);
   auto trajectories = strategy.generateTrajectories(noise_points, 10);
 
   EXPECT_EQ(trajectories.size(), 2);
@@ -598,7 +598,7 @@ TEST(ConditionalSamplingStrategyTest, FilterByNoErrors) {
     return traj.countErrors() == 0;
   };
 
-  ConditionalSamplingStrategy strategy(predicate, /*seed=*/42);
+  cudaq::ptsbe::ConditionalSamplingStrategy strategy(predicate, /*seed=*/42);
   auto trajectories = strategy.generateTrajectories(noise_points, 10);
 
   EXPECT_EQ(trajectories.size(), 1);
@@ -613,7 +613,7 @@ TEST(ConditionalSamplingStrategyTest, FilterByProbabilityThreshold) {
     return traj.probability > 0.1;
   };
 
-  ConditionalSamplingStrategy strategy(predicate, /*seed=*/42);
+  cudaq::ptsbe::ConditionalSamplingStrategy strategy(predicate, /*seed=*/42);
   auto trajectories = strategy.generateTrajectories(noise_points, 10);
 
   EXPECT_EQ(trajectories.size(), 2);
@@ -630,7 +630,7 @@ TEST(ConditionalSamplingStrategyTest, FilterNonePass) {
     return traj.probability > 1.0;
   };
 
-  ConditionalSamplingStrategy strategy(predicate, /*seed=*/42);
+  cudaq::ptsbe::ConditionalSamplingStrategy strategy(predicate, /*seed=*/42);
   auto trajectories = strategy.generateTrajectories(noise_points, 10);
 
   EXPECT_EQ(trajectories.size(), 0);
@@ -641,7 +641,7 @@ TEST(ConditionalSamplingStrategyTest, FilterAllPass) {
 
   auto predicate = [](const cudaq::KrausTrajectory &) { return true; };
 
-  ConditionalSamplingStrategy strategy(predicate, /*seed=*/42);
+  cudaq::ptsbe::ConditionalSamplingStrategy strategy(predicate, /*seed=*/42);
   auto trajectories = strategy.generateTrajectories(noise_points, 10);
 
   EXPECT_EQ(trajectories.size(), 4);
@@ -652,7 +652,7 @@ TEST(ConditionalSamplingStrategyTest, EarlyExit) {
 
   auto predicate = [](const cudaq::KrausTrajectory &) { return true; };
 
-  ConditionalSamplingStrategy strategy(predicate, /*seed=*/42);
+  cudaq::ptsbe::ConditionalSamplingStrategy strategy(predicate, /*seed=*/42);
   auto trajectories = strategy.generateTrajectories(noise_points, 2);
 
   EXPECT_EQ(trajectories.size(), 2);
@@ -662,7 +662,7 @@ TEST(ConditionalSamplingStrategyTest, EmptyNoisePoints) {
   std::vector<NoisePoint> empty_noise_points;
 
   auto predicate = [](const cudaq::KrausTrajectory &) { return true; };
-  ConditionalSamplingStrategy strategy(predicate);
+  cudaq::ptsbe::ConditionalSamplingStrategy strategy(predicate);
 
   auto trajectories = strategy.generateTrajectories(empty_noise_points, 10);
 
@@ -674,9 +674,9 @@ TEST(ConditionalSamplingStrategyTest, ReproducibilityWithSeed) {
 
   auto predicate = [](const cudaq::KrausTrajectory &) { return true; };
 
-  ConditionalSamplingStrategy strategy1(predicate, 12345);
-  ConditionalSamplingStrategy strategy2(predicate, 12345);
-  ConditionalSamplingStrategy strategy3(predicate, 54321);
+  cudaq::ptsbe::ConditionalSamplingStrategy strategy1(predicate, 12345);
+  cudaq::ptsbe::ConditionalSamplingStrategy strategy2(predicate, 12345);
+  cudaq::ptsbe::ConditionalSamplingStrategy strategy3(predicate, 54321);
 
   auto trajectories1 = strategy1.generateTrajectories(noise_points, 4);
   auto trajectories2 = strategy2.generateTrajectories(noise_points, 4);
@@ -699,7 +699,7 @@ TEST(ConditionalSamplingStrategyTest, ReproducibilityWithSeed) {
 
 TEST(ConditionalSamplingStrategyTest, StrategyName) {
   auto predicate = [](const cudaq::KrausTrajectory &) { return true; };
-  ConditionalSamplingStrategy strategy(predicate);
+  cudaq::ptsbe::ConditionalSamplingStrategy strategy(predicate);
 
   EXPECT_STREQ(strategy.name(), "Conditional");
 }
@@ -708,7 +708,7 @@ TEST(ConditionalSamplingStrategyTest, Clone) {
   auto predicate = [](const cudaq::KrausTrajectory &traj) {
     return traj.countErrors() == 1;
   };
-  ConditionalSamplingStrategy strategy(predicate);
+  cudaq::ptsbe::ConditionalSamplingStrategy strategy(predicate);
   auto cloned = strategy.clone();
 
   EXPECT_NE(cloned.get(), nullptr);
@@ -725,12 +725,12 @@ TEST(ConditionalSamplingStrategyTest, UsesCUDAQGlobalRandomSeed) {
 
   cudaq::set_random_seed(12345);
 
-  ConditionalSamplingStrategy strategy1(predicate);
+  cudaq::ptsbe::ConditionalSamplingStrategy strategy1(predicate);
   auto trajectories1 = strategy1.generateTrajectories(noise_points, 5);
 
   cudaq::set_random_seed(12345);
 
-  ConditionalSamplingStrategy strategy2(predicate);
+  cudaq::ptsbe::ConditionalSamplingStrategy strategy2(predicate);
   auto trajectories2 = strategy2.generateTrajectories(noise_points, 5);
 
   ASSERT_EQ(trajectories1.size(), trajectories2.size());
@@ -746,12 +746,12 @@ TEST(ProbabilisticSamplingStrategyTest, UsesCUDAQGlobalRandomSeed) {
 
   cudaq::set_random_seed(54321);
 
-  ProbabilisticSamplingStrategy strategy1;
+  cudaq::ptsbe::ProbabilisticSamplingStrategy strategy1;
   auto trajectories1 = strategy1.generateTrajectories(noise_points, 5);
 
   cudaq::set_random_seed(54321);
 
-  ProbabilisticSamplingStrategy strategy2;
+  cudaq::ptsbe::ProbabilisticSamplingStrategy strategy2;
   auto trajectories2 = strategy2.generateTrajectories(noise_points, 5);
 
   ASSERT_EQ(trajectories1.size(), trajectories2.size());
@@ -765,12 +765,16 @@ TEST(ProbabilisticSamplingStrategyTest, UsesCUDAQGlobalRandomSeed) {
 TEST(PTSSamplingStrategyTest, PolymorphicUsage) {
   auto noise_points = createSimpleNoisePoints();
 
-  std::vector<std::unique_ptr<PTSSamplingStrategy>> strategies;
-  strategies.push_back(std::make_unique<ProbabilisticSamplingStrategy>(42));
-  strategies.push_back(std::make_unique<ExhaustiveSamplingStrategy>());
-  strategies.push_back(std::make_unique<OrderedSamplingStrategy>());
-  strategies.push_back(std::make_unique<ConditionalSamplingStrategy>(
-      [](const cudaq::KrausTrajectory &) { return true; }, /*seed=*/42));
+  std::vector<std::unique_ptr<cudaq::ptsbe::PTSSamplingStrategy>> strategies;
+  strategies.push_back(
+      std::make_unique<cudaq::ptsbe::ProbabilisticSamplingStrategy>(42));
+  strategies.push_back(
+      std::make_unique<cudaq::ptsbe::ExhaustiveSamplingStrategy>());
+  strategies.push_back(
+      std::make_unique<cudaq::ptsbe::OrderedSamplingStrategy>());
+  strategies.push_back(
+      std::make_unique<cudaq::ptsbe::ConditionalSamplingStrategy>(
+          [](const cudaq::KrausTrajectory &) { return true; }, /*seed=*/42));
 
   for (auto &strategy : strategies) {
     auto trajectories = strategy->generateTrajectories(noise_points, 5);
@@ -782,8 +786,8 @@ TEST(PTSSamplingStrategyTest, PolymorphicUsage) {
 TEST(PTSSamplingStrategyTest, ClonePolymorphism) {
   auto noise_points = createSimpleNoisePoints();
 
-  ProbabilisticSamplingStrategy concrete_strategy(42);
-  PTSSamplingStrategy *base_ptr = &concrete_strategy;
+  cudaq::ptsbe::ProbabilisticSamplingStrategy concrete_strategy(42);
+  cudaq::ptsbe::PTSSamplingStrategy *base_ptr = &concrete_strategy;
 
   auto cloned = base_ptr->clone();
 
