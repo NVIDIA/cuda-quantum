@@ -16,7 +16,6 @@
 #include "utils/NanobindAdaptors.h"
 #include "utils/OpaqueArguments.h"
 #include <cstdint>
-#include <numeric>
 #include <nanobind/ndarray.h>
 #include <nanobind/stl/complex.h>
 #include <nanobind/stl/function.h>
@@ -25,6 +24,7 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/unique_ptr.h>
 #include <nanobind/stl/vector.h>
+#include <numeric>
 
 using namespace cudaq;
 
@@ -53,8 +53,8 @@ nanobind::dict getCupyArrayInterface(nanobind::handle cupyArray) {
     throw std::runtime_error("Buffer is not a CuPy array");
 
   return nanobind::cast<nanobind::dict>(
-      nanobind::borrow<nanobind::object>(cupyArray)
-          .attr("__cuda_array_interface__"));
+      nanobind::borrow<nanobind::object>(cupyArray).attr(
+          "__cuda_array_interface__"));
 }
 
 std::vector<ssize_t>
@@ -70,10 +70,9 @@ getCContiguousStrides(const std::vector<std::size_t> &shape,
   return strides;
 }
 
-std::vector<ssize_t>
-getCupyArrayStrides(const nanobind::dict &cupyArrayInfo,
-                    const std::vector<std::size_t> &shape,
-                    std::size_t itemsize) {
+std::vector<ssize_t> getCupyArrayStrides(const nanobind::dict &cupyArrayInfo,
+                                         const std::vector<std::size_t> &shape,
+                                         std::size_t itemsize) {
   auto stridesObj = cupyArrayInfo["strides"];
   if (stridesObj.is_none())
     return getCContiguousStrides(shape, itemsize);
@@ -111,9 +110,8 @@ BufferInfo getCupyBufferInfo(nanobind::object cupyArray) {
       nanobind::cast<std::string>(cupyArrayInfo["typestr"]);
   auto [dataTypeSize, formatDescriptor] = getCupyComplexTypeInfo(typeStr);
   auto strides = getCupyArrayStrides(cupyArrayInfo, shape, dataTypeSize);
-  auto numElements =
-      std::accumulate(shape.begin(), shape.end(), std::size_t{1},
-                      std::multiplies<std::size_t>());
+  auto numElements = std::accumulate(shape.begin(), shape.end(), std::size_t{1},
+                                     std::multiplies<std::size_t>());
 
   BufferInfo info;
   info.ptr =
@@ -128,8 +126,7 @@ BufferInfo getCupyBufferInfo(nanobind::object cupyArray) {
 }
 
 bool isCContiguous(const std::vector<std::size_t> &shape,
-                   const std::vector<ssize_t> &strides,
-                   std::size_t itemsize) {
+                   const std::vector<ssize_t> &strides, std::size_t itemsize) {
   // Treat inconsistent metadata as non-contiguous so callers fall back to
   // canonicalization instead of taking an unsafe fast path.
   if (shape.size() != strides.size())
@@ -400,6 +397,10 @@ static cudaq::state createStateFromPyBuffer(nanobind::object data,
 
   if (!isHostData) {
     if (holder.getTarget().name == "dynamics") {
+      if (info.shape.size() == 2 && info.shape[0] != info.shape[1])
+        throw std::runtime_error(
+            "state.from_data 2D array (density matrix) input must be "
+            "square matrix data.");
       TensorStateData tensorData{
           std::pair<const void *, std::vector<std::size_t>>{info.ptr,
                                                             info.shape}};

@@ -264,6 +264,16 @@ def test_evolve_density_matrix_cupy_contiguous_no_regression_cudm():
     np.testing.assert_allclose(final_arr, expected, atol=1e-12)
 
 
+def test_from_data_cupy_2d_non_square_rejected():
+    """Non-square 2D CuPy arrays on dynamics target must be rejected at
+    `from_data` time with the same error as the host 2D path, not deferred
+    to a cryptic failure inside `evolve()`."""
+    rho = cp.array([[1, 2, 3], [4, 5, 6]], dtype=cp.complex128)
+    assert rho.flags["C_CONTIGUOUS"]
+    with pytest.raises(RuntimeError, match="square matrix"):
+        cudaq.State.from_data(rho)
+
+
 def test_evolve_from_data_random_density_matrix_preserved_cudm():
     np.random.seed(42)
     N = 64
