@@ -854,6 +854,7 @@ class PyASTBridge(ast.NodeVisitor):
         direct `cc.UndefOp -> bool` flow (e.g. the spec example
         `bool(cudaq.measure_handle())`).
         """
+
         # The MLIR Python bindings return two different wrapper kinds
         # depending on how we reach an op: `Value.owner` and
         # `Value.operands[i].owner` give a raw `mlir.ir.Operation`
@@ -864,8 +865,8 @@ class PyASTBridge(ast.NodeVisitor):
         # helper handles both shapes uniformly.
         def _opName(o):
             n = getattr(o, 'name', None)
-            return n if isinstance(n, str) else getattr(
-                o, 'OPERATION_NAME', None)
+            return n if isinstance(n, str) else getattr(o, 'OPERATION_NAME',
+                                                        None)
 
         if not hasattr(value, 'owner'):
             return False
