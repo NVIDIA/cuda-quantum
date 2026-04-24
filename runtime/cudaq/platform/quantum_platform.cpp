@@ -302,7 +302,7 @@ cudaq::altLaunchKernel(const char *kernelName,
   std::size_t qpu_id = cudaq::getCurrentQpuId();
   KernelArgs args{KernelArgs::PackedArgs{kernelArgs, argsSize, resultOffset}};
   SourceModule src{kernName, kernelFunc};
-  return platform.launchKernel(src, args, qpu_id);
+  return platform.unifiedLaunchModule(src, args, qpu_id);
 }
 
 cudaq::KernelThunkResultType
@@ -315,7 +315,7 @@ cudaq::streamlinedLaunchKernel(const char *kernelName,
   std::size_t qpu_id = cudaq::getCurrentQpuId();
   KernelArgs args{rawArgs};
   SourceModule src{kernName};
-  [[maybe_unused]] auto r = platform.launchKernel(src, args, qpu_id);
+  [[maybe_unused]] auto r = platform.unifiedLaunchModule(src, args, qpu_id);
   // NB: The streamlined launch will never return results. Use alt or hybrid if
   // the kernel returns results.
   return {};
@@ -329,7 +329,7 @@ cudaq::streamlinedLaunchModule(const CompiledModule &compiled,
 
   auto &platform = *getQuantumPlatformInternal();
   std::size_t qpu_id = getCurrentQpuId();
-  return platform.launchModule(compiled, {rawArgs}, qpu_id);
+  return platform.unifiedLaunchModule(compiled, {rawArgs}, qpu_id);
 }
 
 cudaq::CompiledModule cudaq::streamlinedCompileModule(
@@ -356,9 +356,10 @@ cudaq::hybridLaunchKernel(const char *kernelName, cudaq::KernelThunkType kernel,
   SourceModule src{kernName, kernel};
   if (platform.is_remote(qpu_id)) {
     // This path should never call a kernel that returns results.
-    [[maybe_unused]] auto r = platform.launchKernel(src, {rawArgs}, qpu_id);
+    [[maybe_unused]] auto r =
+        platform.unifiedLaunchModule(src, {rawArgs}, qpu_id);
     return {};
   }
   KernelArgs hybrid{{args, argsSize, resultOffset}, rawArgs};
-  return platform.launchKernel(src, hybrid, qpu_id);
+  return platform.unifiedLaunchModule(src, hybrid, qpu_id);
 }
