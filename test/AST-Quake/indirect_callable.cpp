@@ -36,7 +36,7 @@ void meanwhile_on_safari() {
 // CHECK:           %[[VAL_6:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
 // CHECK:           %[[VAL_7:.*]] = cc.cast signed %[[VAL_6]] : (i32) -> i64
 // CHECK:           %[[VAL_8:.*]] = quake.alloca !quake.veq<?>[%[[VAL_7]] : i64]
-// CHECK:           %[[VAL_9:.*]] = quake.mz %[[VAL_8]] : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
+// CHECK:           %[[VAL_9:.*]] = quake.mz %[[VAL_8]] : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
 // CHECK:           return
 // CHECK:         }
 
