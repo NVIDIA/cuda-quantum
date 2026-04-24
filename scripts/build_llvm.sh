@@ -40,14 +40,11 @@ Python3_EXECUTABLE=${Python3_EXECUTABLE:-python3}
 # Process command line arguments.
 build_configuration=Release
 verbose=false
-bootstrap=false
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":bc:j:k:v" opt; do
+while getopts ":c:j:k:v" opt; do
   case $opt in
-    b) bootstrap=true
-    ;;
     c) build_configuration="$OPTARG"
     ;;
     j) build_concurrency="-j $OPTARG"
@@ -123,42 +120,6 @@ if [ -d "$LLVM_CMAKE_PATCHES" ]; then
 else
   echo "LLVM patch directory not found. You must apply LLVM patches via the LLVM_CMAKE_PATCHES environment variable."
   (return 0 2>/dev/null) && return 1 || exit 1
-fi
-
-if $bootstrap; then
-  stage1_prefix="${LLVM_INSTALL_PREFIX}-stage1"
-  if [ ! -x "$stage1_prefix/bin/clang" ]; then
-    if [ -z "${LLVM_PROJECTS##*runtimes*}" ]; then
-      # Outer build includes runtimes: build stage1 with runtimes so stage1 clang
-      # defaults to libc++/compiler-rt, making stage2 gcc-free.
-      echo "Bootstrap stage 1: building clang+lld+runtimes with ${CC:-cc}..."
-      LLVM_INSTALL_PREFIX="$stage1_prefix" \
-      LLVM_PROJECTS='clang;lld;runtimes' \
-      LLVM_BUILD_FOLDER="build-stage1" \
-      LLVM_SOURCE="$LLVM_SOURCE" \
-      CC="$CC" CXX="$CXX" \
-      bash "$(readlink -f "${BASH_SOURCE[0]}")" -c Release -v
-    else
-      # Outer build has no runtimes: minimal stage1 to avoid a libc++ runtime dependency.
-      echo "Bootstrap stage 1: building minimal clang+lld with ${CXX:-c++}..."
-      mkdir -p "$stage1_prefix" "$LLVM_SOURCE/build-stage1" && cd "$LLVM_SOURCE/build-stage1"
-      stage1_cmake_args="-DLLVM_TARGETS_TO_BUILD=host \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_INSTALL_PREFIX='$stage1_prefix' \
-        -DLLVM_ENABLE_PROJECTS='clang;lld' \
-        -DCMAKE_CXX_FLAGS='-w'"
-      if [ -n "$CC" ]; then stage1_cmake_args="$stage1_cmake_args -DCMAKE_C_COMPILER='$CC'"; fi
-      if [ -n "$CXX" ]; then stage1_cmake_args="$stage1_cmake_args -DCMAKE_CXX_COMPILER='$CXX'"; fi
-      echo $stage1_cmake_args | xargs cmake -G Ninja "$LLVM_SOURCE/llvm"
-      ninja install-clang install-lld install-clang-resource-headers
-    fi
-    echo "Bootstrap stage 1 done."
-  else
-    echo "Bootstrap stage 1 already present at $stage1_prefix, skipping."
-  fi
-  export CC="$stage1_prefix/bin/clang"
-  export CXX="$stage1_prefix/bin/clang++"
-  echo "Bootstrap stage 2: building full LLVM with $CXX..."
 fi
 
 llvm_build_dir="$LLVM_SOURCE/${LLVM_BUILD_FOLDER:-build}"
@@ -251,16 +212,12 @@ cmake_args=" \
   -DLLVM_ENABLE_RUNTIMES='"${llvm_runtimes%;}"' \
   -DLLVM_DISTRIBUTION_COMPONENTS='"${llvm_components%;}"' \
   -DLLVM_ENABLE_ZLIB=${llvm_enable_zlib:-OFF} \
-  -DZLIB_USE_STATIC_LIBS=${llvm_enable_zlib:-OFF} \
   -DZLIB_ROOT='"$ZLIB_INSTALL_PREFIX"' \
   -DPython3_EXECUTABLE='"$Python3_EXECUTABLE"' \
   -DMLIR_ENABLE_BINDINGS_PYTHON=$mlir_python_bindings \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   -DCMAKE_CXX_FLAGS='-w' \
   -Dnanobind_DIR=$NANOBIND_INSTALL_PREFIX/nanobind/cmake"
-
-if [ -n "$CC" ]; then cmake_args="$cmake_args -DCMAKE_C_COMPILER='$CC'"; fi
-if [ -n "$CXX" ]; then cmake_args="$cmake_args -DCMAKE_CXX_COMPILER='$CXX'"; fi
 
 if [ -z "$LLVM_CMAKE_CACHE" ]; then 
   LLVM_CMAKE_CACHE=`find "$this_file_dir/.." -path '*/cmake/caches/*' -name LLVM.cmake`
@@ -317,14 +274,6 @@ if [ -n "$(echo $install_targets | grep omp)" ]; then
   fi
 fi
 
-# If lld was built, configure clang to use it as the default linker.
-if [ -x "$LLVM_INSTALL_PREFIX/bin/ld.lld" ]; then
-  for cfg in clang clang++; do
-    printf -- '-fuse-ld=lld\n' > "$LLVM_INSTALL_PREFIX/bin/$cfg.cfg"
-  done
-  echo "Configured clang to use lld by default."
-fi
-
 # Build and install runtimes using the newly built toolchain.
 if [ -n "$llvm_runtimes" ]; then
   echo "Building runtime components..."
@@ -350,16 +299,12 @@ if [ -n "$llvm_runtimes" ]; then
       cmake -P runtimes/builtins-bins/cmake_install.cmake \
         2>> "$llvm_log_dir/ninja_error.txt" 1>> "$llvm_log_dir/ninja_output.txt"
     fi
-    if $bootstrap; then
-      echo "Cleaning up bootstrap stage 1..."
-      rm -rf "${LLVM_INSTALL_PREFIX}-stage1" "${LLVM_SOURCE}/build-stage1"
-    fi
     echo "Successfully added runtime components $(echo ${llvm_runtimes%;} | sed 's/;/, /g')."
 
     # We can use a default config file to set specific clang configurations.
     # See https://clang.llvm.org/docs/UsersManual.html#configuration-files
     clang_config_file="$LLVM_INSTALL_PREFIX/bin/clang++.cfg"
-    echo '-L"'$LLVM_INSTALL_PREFIX/lib'"' >> "$clang_config_file"
+    echo '-L"'$LLVM_INSTALL_PREFIX/lib'"' > "$clang_config_file"
     echo '-Wl,-rpath,"'$LLVM_INSTALL_PREFIX/lib'"' >> "$clang_config_file"
     target_specific_libs=`ls -d "$LLVM_INSTALL_PREFIX/lib"/*linux*`
     for libdir in $target_specific_libs; do
@@ -368,11 +313,6 @@ if [ -n "$llvm_runtimes" ]; then
     done
     echo "Added default configuration $clang_config_file."
   fi
-fi
-
-if $bootstrap && [ -z "$llvm_runtimes" ]; then
-  echo "Cleaning up bootstrap stage 1..."
-  rm -rf "${LLVM_INSTALL_PREFIX}-stage1" "${LLVM_SOURCE}/build-stage1"
 fi
 
 cd "$working_dir" && echo "Installed llvm build in directory: $LLVM_INSTALL_PREFIX"

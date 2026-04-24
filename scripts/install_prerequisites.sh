@@ -269,17 +269,6 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
       export CC=clang
       export CXX=clang++
       echo "Using Apple Clang: $(clang --version | head -1)"
-    elif [ "$toolchain" = "llvm" ] && [ -n "$BOOTSTRAP_LLVM" ]; then
-      # build_llvm.sh -b handles the full self-hosted bootstrap; just ensure a valid system compiler.
-      if [ ! -x "$CC" ]; then CC="${GCC_TOOLCHAIN:+$GCC_TOOLCHAIN/bin/gcc}"; fi
-      if [ ! -x "$CXX" ]; then CXX="${GCC_TOOLCHAIN:+$GCC_TOOLCHAIN/bin/g++}"; fi
-      if [ -x "$CC" ] && [ -x "$CXX" ]; then
-        export CC CXX
-        echo "Using system GCC for bootstrap stage 1: $CC"
-      else
-        unset CC CXX
-        echo "No system compiler set; CMake will auto-detect for bootstrap stage 1."
-      fi
     else
       LLVM_INSTALL_PREFIX="$LLVM_STAGE1_BUILD" LLVM_BUILD_FOLDER="stage1_build" \
       source "$this_file_dir/install_toolchain.sh" -t ${toolchain:-gcc12}
@@ -400,7 +389,7 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
     PYBIND11_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" \
     NANOBIND_INSTALL_PREFIX="$NANOBIND_INSTALL_PREFIX" \
     Python3_EXECUTABLE="$Python3_EXECUTABLE" \
-    bash "$this_file_dir/build_llvm.sh" -v ${BOOTSTRAP_LLVM:+-b}
+    bash "$this_file_dir/build_llvm.sh" -v
   else
     echo "LLVM already installed in $LLVM_INSTALL_PREFIX."
   fi
@@ -435,10 +424,7 @@ if [ -n "$BLAS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep blas)" ]
     # See also: https://github.com/NVIDIA/cuda-quantum/issues/452
     wget "${BLAS_TARBALL_URL}"
     tar -xzvf "blas-${BLAS_VERSION}.tgz" && cd BLAS-3.11.0
-    # flang does not support -frecursive (it allocates on the stack by default)
-    blas_fflags="-O2 -frecursive"
-    [[ "${FC:-gfortran}" == *"flang"* ]] && blas_fflags="-O2"
-    make FC="${FC:-gfortran}" FFLAGS="$blas_fflags" FFLAGS_DRV="$blas_fflags" FFLAGS_NOOPT="${blas_fflags/-O2/-O0}"
+    make FC="${FC:-gfortran}"
     mkdir -p "$BLAS_INSTALL_PREFIX"
     mv blas_*.a "$BLAS_INSTALL_PREFIX/libblas.a"
 

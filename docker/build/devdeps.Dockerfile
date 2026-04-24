@@ -13,7 +13,14 @@
 #
 # Usage:
 # Must be built from the repo root with:
-#   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:llvm-latest -f docker/build/devdeps.Dockerfile .
+#   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:${toolchain}-latest -f docker/build/devdeps.Dockerfile --build-arg toolchain=$toolchain .
+#
+# The variable $toolchain indicates which compiler toolchain to build the LLVM libraries with.
+# The toolchain used to build the LLVM binaries that CUDA-Q depends on must be used to build
+# CUDA-Q. This image sets the CC and CXX environment variables to use that toolchain.
+# Currently, gcc12 and llvm are supported. To use a different
+# toolchain, add support for it to the install_toolchain.sh script. If the toolchain is set to llvm,
+# then the toolchain will be built from source.
 
 # [Operating System]
 ARG base_image=ubuntu:24.04
@@ -21,6 +28,7 @@ ARG base_image=ubuntu:24.04
 # [CUDA-Q Dependencies]
 FROM ${base_image} AS prereqs
 SHELL ["/bin/bash", "-c"]
+ARG toolchain=gcc12
 
 # When a dialogue box would be needed during install, assume default configurations.
 # Set here to avoid setting it for all install commands.
@@ -52,21 +60,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         python3-dev python3-pip && \
     python3 -m pip install --no-cache-dir numpy --break-system-packages && \
     apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-## [Compiler Toolchain - clang-22 from apt.llvm.org (bootstrap compiler)]
-RUN wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
-        | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc > /dev/null && \
-    . /etc/os-release && \
-    echo "deb http://apt.llvm.org/${VERSION_CODENAME}/ llvm-toolchain-${VERSION_CODENAME}-22 main" \
-        > /etc/apt/sources.list.d/llvm-22.list && \
-    apt-get update && apt-get install -y --no-install-recommends \
-        clang-22 lld-22 && \
-    apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
+ADD scripts/install_toolchain.sh /cuda-quantum/scripts/install_toolchain.sh
+RUN source /cuda-quantum/scripts/install_toolchain.sh \
+        -e "$LLVM_INSTALL_PREFIX/bootstrap" -t ${toolchain}
 
 ## [Source Dependencies]
 ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites.sh
-ADD scripts/set_env_defaults.sh /cuda-quantum/scripts/set_env_defaults.sh
-ADD scripts/install_toolchain.sh /cuda-quantum/scripts/install_toolchain.sh
 ADD scripts/build_llvm.sh /cuda-quantum/scripts/build_llvm.sh
 ADD cmake/caches/LLVM.cmake /cuda-quantum/cmake/caches/LLVM.cmake
 ADD tpls/customizations/llvm /cuda-quantum/tpls/customizations/llvm
@@ -87,11 +86,9 @@ RUN cd /cuda-quantum && git init && \
             $(cat /.git_modules/$local_path/HEAD) $local_path; \
         fi; \
     done && git submodule init && git submodule
-
-## [LLVM from source, built with apt clang-22]
-RUN CC=clang-22 CXX=clang++-22 \
-    LLVM_PROJECTS='clang;lld;mlir;python-bindings' \
-    bash /cuda-quantum/scripts/install_prerequisites.sh
+# Build compiler-rt (only) since it is needed for code coverage tools
+RUN LLVM_PROJECTS='clang;lld;mlir;python-bindings;compiler-rt' \
+    bash /cuda-quantum/scripts/install_prerequisites.sh -t ${toolchain}
 
 ## [Dev Dependencies]
 RUN if [ "$(uname -m)" == "x86_64" ]; then \
@@ -113,20 +110,29 @@ FROM ${base_image}
 SHELL ["/bin/bash", "-c"]
 
 # When a dialogue box would be needed during install, assume default configurations.
-# Set here to avoid setting it for all install commands.
+# Set here to avoid setting it for all install commands. 
 # Given as arg to make sure that this value is only set during build but not in the launched container.
 ARG DEBIAN_FRONTEND=noninteractive
 ENV HOME=/home SHELL=/bin/bash LANG=C.UTF-8 LC_ALL=C.UTF-8
 ENV SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0
 
-# Copy over the MLIR build (headers, libs, cmake exports, python bindings).
+# Copy over the llvm build dependencies.
 COPY --from=prereqs /usr/local/llvm /usr/local/llvm
 ENV LLVM_INSTALL_PREFIX=/usr/local/llvm
 ENV PATH="$PATH:$LLVM_INSTALL_PREFIX/bin/"
 
-ENV CC=/usr/local/llvm/bin/clang
-ENV CXX=/usr/local/llvm/bin/clang++
-ENV Clang_DIR=/usr/local/llvm/lib/cmake/clang
+# Install the C/C++ compiler toolchain with which the LLVM dependencies have
+# been built. CUDA-Q needs to be built with that same toolchain. We use
+# a wrapper script so that the path that we set CC and CXX to is independent
+# on the installed toolchain. Unfortunately, a symbolic link won't work.
+# Using update-alternatives for c++ and cc could maybe be a better option.
+RUN source "$LLVM_INSTALL_PREFIX/bootstrap/init_command.sh" \
+    && echo -e '#!/bin/bash\n"'$CC'" "$@"' > "$LLVM_INSTALL_PREFIX/bootstrap/cc" \
+    && echo -e '#!/bin/bash\n"'$CXX'" "$@"' > "$LLVM_INSTALL_PREFIX/bootstrap/cxx" \
+    && chmod +x "$LLVM_INSTALL_PREFIX/bootstrap/cc" \
+    && chmod +x "$LLVM_INSTALL_PREFIX/bootstrap/cxx"
+ENV CC="$LLVM_INSTALL_PREFIX/bootstrap/cc"
+ENV CXX="$LLVM_INSTALL_PREFIX/bootstrap/cxx"
 
 # Copy over additional prerequisites.
 ENV BLAS_INSTALL_PREFIX=/usr/local/blas
@@ -154,7 +160,6 @@ COPY requirements-dev.txt /cuda-quantum/requirements-dev.txt
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git gdb ninja-build file lldb ccache \
         python3 python3-pip libpython3-dev \
-        libstdc++-14-dev \
     && python3 -m pip install --no-cache-dir --break-system-packages \
         -r /cuda-quantum/requirements-dev.txt \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*

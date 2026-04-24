@@ -18,7 +18,7 @@
 # - https://github.com/numpy/numpy/blob/main/pyproject.toml, and 
 # - https://github.com/numpy/numpy/blob/main/.github/workflows/wheels.yml
 
-ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:manylinux-amd64-cu12.6-gcc11-main
+ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:manylinux-amd64-cu12.6-gcc12-main
 # Default empty stage for ccache data. CI overrides this with
 # --build-context ccache-data=<path> to inject a pre-populated cache,
 # while local/devcontainer builds get a harmless no-op (empty scratch).
