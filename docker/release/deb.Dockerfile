@@ -47,6 +47,12 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False epel-release && \
     ln -s /makeself/makeself.sh /usr/local/bin/makeself && \
     ln -s /makeself/makeself-header.sh /usr/local/bin/makeself-header.sh
 
+# docker/build/assets.Dockerfile only copies a hand-picked subset of scripts/
+# into the base image (see its ADD list). build_deb.sh isn't in that list, so
+# copy it in here so this Dockerfile stays self-contained and doesn't force a
+# contract change on the broadly-used assets.Dockerfile.
+COPY scripts/build_deb.sh /cuda-quantum/scripts/build_deb.sh
+
 # Stage the install tree via build_installer.sh (its -o output is unused by
 # this Dockerfile; we just want the side-effect of populating
 # build/cuda_quantum_assets/cudaq/). Then pack it as a .deb.
