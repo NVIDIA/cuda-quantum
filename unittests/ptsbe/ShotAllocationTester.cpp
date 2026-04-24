@@ -11,15 +11,15 @@
 #include <array>
 
 // A simple trajectory for testing
-static cudaq::ptsbe::KrausTrajectory
-makeTrajectory(std::size_t id, double prob, std::size_t errors = 0,
-               std::size_t multiplicity = 1) {
-  std::vector<cudaq::ptsbe::KrausSelection> selections;
+static cudaq::KrausTrajectory makeTrajectory(std::size_t id, double prob,
+                                             std::size_t errors = 0,
+                                             std::size_t multiplicity = 1) {
+  std::vector<cudaq::KrausSelection> selections;
   for (std::size_t i = 0; i < errors; ++i) {
     selections.push_back(
-        cudaq::ptsbe::KrausSelection(i, {0}, "h", 1, /*is_error=*/true));
+        cudaq::KrausSelection(i, {0}, "h", 1, /*is_error=*/true));
   }
-  cudaq::ptsbe::KrausTrajectory traj(id, selections, prob, 0);
+  cudaq::KrausTrajectory traj(id, selections, prob, 0);
   traj.multiplicity = multiplicity;
   traj.weight = static_cast<double>(multiplicity);
   return traj;
@@ -27,7 +27,7 @@ makeTrajectory(std::size_t id, double prob, std::size_t errors = 0,
 
 CUDAQ_TEST(ShotAllocationTest, ProportionalBasic) {
   // PROPORTIONAL now weights by multiplicity, not probability.
-  std::vector<cudaq::ptsbe::KrausTrajectory> trajectories = {
+  std::vector<cudaq::KrausTrajectory> trajectories = {
       makeTrajectory(0, 0.5, 0, 5), makeTrajectory(1, 0.3, 0, 3),
       makeTrajectory(2, 0.2, 0, 2)};
 
@@ -49,7 +49,7 @@ CUDAQ_TEST(ShotAllocationTest, ProportionalBasic) {
 
 CUDAQ_TEST(ShotAllocationTest, ProportionalWithEqualMultiplicity) {
   // Equal multiplicities -> equal allocation (like uniform).
-  std::vector<cudaq::ptsbe::KrausTrajectory> trajectories = {
+  std::vector<cudaq::KrausTrajectory> trajectories = {
       makeTrajectory(0, 0.333, 0, 1), makeTrajectory(1, 0.333, 0, 1),
       makeTrajectory(2, 0.334, 0, 1)};
 
@@ -69,8 +69,7 @@ CUDAQ_TEST(ShotAllocationTest, ProportionalWithEqualMultiplicity) {
 }
 
 CUDAQ_TEST(ShotAllocationTest, ProportionalSingleTrajectory) {
-  std::vector<cudaq::ptsbe::KrausTrajectory> trajectories = {
-      makeTrajectory(0, 1.0)};
+  std::vector<cudaq::KrausTrajectory> trajectories = {makeTrajectory(0, 1.0)};
 
   cudaq::ptsbe::ShotAllocationStrategy strategy(
       cudaq::ptsbe::ShotAllocationStrategy::Type::PROPORTIONAL, 2.0,
@@ -81,7 +80,7 @@ CUDAQ_TEST(ShotAllocationTest, ProportionalSingleTrajectory) {
 }
 
 CUDAQ_TEST(ShotAllocationTest, UniformBasic) {
-  std::vector<cudaq::ptsbe::KrausTrajectory> trajectories = {
+  std::vector<cudaq::KrausTrajectory> trajectories = {
       makeTrajectory(0, 0.8), makeTrajectory(1, 0.1), makeTrajectory(2, 0.1)};
 
   cudaq::ptsbe::ShotAllocationStrategy strategy(
@@ -95,8 +94,8 @@ CUDAQ_TEST(ShotAllocationTest, UniformBasic) {
 }
 
 CUDAQ_TEST(ShotAllocationTest, UniformWithRemainder) {
-  std::vector<cudaq::ptsbe::KrausTrajectory> trajectories = {
-      makeTrajectory(0, 0.5), makeTrajectory(1, 0.5)};
+  std::vector<cudaq::KrausTrajectory> trajectories = {makeTrajectory(0, 0.5),
+                                                      makeTrajectory(1, 0.5)};
 
   cudaq::ptsbe::ShotAllocationStrategy strategy(
       cudaq::ptsbe::ShotAllocationStrategy::Type::UNIFORM);
@@ -112,7 +111,7 @@ CUDAQ_TEST(ShotAllocationTest, UniformWithRemainder) {
 }
 
 CUDAQ_TEST(ShotAllocationTest, LowWeightBiasBasic) {
-  std::vector<cudaq::ptsbe::KrausTrajectory> trajectories = {
+  std::vector<cudaq::KrausTrajectory> trajectories = {
       makeTrajectory(0, 0.4, 0, 4), // No errors, mult=4
       makeTrajectory(1, 0.3, 1, 3), // 1 error, mult=3
       makeTrajectory(2, 0.3, 2, 3)  // 2 errors, mult=3
@@ -133,9 +132,9 @@ CUDAQ_TEST(ShotAllocationTest, LowWeightBiasBasic) {
 }
 
 CUDAQ_TEST(ShotAllocationTest, LowWeightBiasStrength) {
-  std::vector<cudaq::ptsbe::KrausTrajectory> trajectories1 = {
+  std::vector<cudaq::KrausTrajectory> trajectories1 = {
       makeTrajectory(0, 0.5, 0, 5), makeTrajectory(1, 0.5, 3, 5)};
-  std::vector<cudaq::ptsbe::KrausTrajectory> trajectories2 = trajectories1;
+  std::vector<cudaq::KrausTrajectory> trajectories2 = trajectories1;
 
   // Weak bias (strength = 1.0)
   cudaq::ptsbe::ShotAllocationStrategy weak_bias(
@@ -155,7 +154,7 @@ CUDAQ_TEST(ShotAllocationTest, LowWeightBiasStrength) {
 }
 
 CUDAQ_TEST(ShotAllocationTest, HighWeightBiasBasic) {
-  std::vector<cudaq::ptsbe::KrausTrajectory> trajectories = {
+  std::vector<cudaq::KrausTrajectory> trajectories = {
       makeTrajectory(0, 0.4, 0, 4), // No errors, mult=4
       makeTrajectory(1, 0.3, 1, 3), // 1 error, mult=3
       makeTrajectory(2, 0.3, 2, 3)  // 2 errors, mult=3
@@ -176,7 +175,7 @@ CUDAQ_TEST(ShotAllocationTest, HighWeightBiasBasic) {
 }
 
 CUDAQ_TEST(ShotAllocationTest, EmptyTrajectoryList) {
-  std::vector<cudaq::ptsbe::KrausTrajectory> trajectories;
+  std::vector<cudaq::KrausTrajectory> trajectories;
   cudaq::ptsbe::ShotAllocationStrategy strategy(
       cudaq::ptsbe::ShotAllocationStrategy::Type::PROPORTIONAL, 2.0,
       /*seed=*/42);
@@ -186,11 +185,11 @@ CUDAQ_TEST(ShotAllocationTest, EmptyTrajectoryList) {
 }
 
 CUDAQ_TEST(ShotAllocationTest, ProportionalThrowsOnZeroWeights) {
-  std::vector<cudaq::ptsbe::KrausTrajectory> trajectories;
+  std::vector<cudaq::KrausTrajectory> trajectories;
   // Construct trajectories with default weight=probability.
   // Probability 0 means weight 0 from constructor default.
-  trajectories.push_back(cudaq::ptsbe::KrausTrajectory(0, {}, 0.0, 0));
-  trajectories.push_back(cudaq::ptsbe::KrausTrajectory(1, {}, 0.0, 0));
+  trajectories.push_back(cudaq::KrausTrajectory(0, {}, 0.0, 0));
+  trajectories.push_back(cudaq::KrausTrajectory(1, {}, 0.0, 0));
 
   cudaq::ptsbe::ShotAllocationStrategy strategy(
       cudaq::ptsbe::ShotAllocationStrategy::Type::PROPORTIONAL, 2.0,
@@ -200,8 +199,8 @@ CUDAQ_TEST(ShotAllocationTest, ProportionalThrowsOnZeroWeights) {
 }
 
 CUDAQ_TEST(ShotAllocationTest, SingleShotDistribution) {
-  std::vector<cudaq::ptsbe::KrausTrajectory> trajectories = {
-      makeTrajectory(0, 0.5), makeTrajectory(1, 0.5)};
+  std::vector<cudaq::KrausTrajectory> trajectories = {makeTrajectory(0, 0.5),
+                                                      makeTrajectory(1, 0.5)};
 
   cudaq::ptsbe::ShotAllocationStrategy strategy(
       cudaq::ptsbe::ShotAllocationStrategy::Type::PROPORTIONAL, 2.0,
@@ -214,7 +213,7 @@ CUDAQ_TEST(ShotAllocationTest, SingleShotDistribution) {
 }
 
 CUDAQ_TEST(ShotAllocationTest, LargeNumberOfTrajectories) {
-  std::vector<cudaq::ptsbe::KrausTrajectory> trajectories;
+  std::vector<cudaq::KrausTrajectory> trajectories;
   for (std::size_t i = 0; i < 1000; ++i) {
     trajectories.push_back(makeTrajectory(i, 0.001));
   }
@@ -239,9 +238,9 @@ CUDAQ_TEST(ShotAllocationTest, LargeNumberOfTrajectories) {
 
 CUDAQ_TEST(ShotAllocationTest, CompareProportionalVsUniform) {
   // Multiplicities 9:1 drive proportional allocation.
-  std::vector<cudaq::ptsbe::KrausTrajectory> traj_prop = {
+  std::vector<cudaq::KrausTrajectory> traj_prop = {
       makeTrajectory(0, 0.5, 0, 9), makeTrajectory(1, 0.5, 0, 1)};
-  std::vector<cudaq::ptsbe::KrausTrajectory> traj_unif = {
+  std::vector<cudaq::KrausTrajectory> traj_unif = {
       makeTrajectory(0, 0.5, 0, 9), makeTrajectory(1, 0.5, 0, 1)};
 
   cudaq::ptsbe::ShotAllocationStrategy proportional(
@@ -264,11 +263,11 @@ CUDAQ_TEST(ShotAllocationTest, CompareProportionalVsUniform) {
 }
 
 CUDAQ_TEST(ShotAllocationTest, CompareLowVsHighWeightBias) {
-  std::vector<cudaq::ptsbe::KrausTrajectory> low_bias = {
+  std::vector<cudaq::KrausTrajectory> low_bias = {
       makeTrajectory(0, 0.5, 0, 5), // No errors, mult=5
       makeTrajectory(1, 0.5, 3, 5)  // 3 errors, mult=5
   };
-  std::vector<cudaq::ptsbe::KrausTrajectory> high_bias = low_bias;
+  std::vector<cudaq::KrausTrajectory> high_bias = low_bias;
 
   cudaq::ptsbe::ShotAllocationStrategy low_strategy(
       cudaq::ptsbe::ShotAllocationStrategy::Type::LOW_WEIGHT_BIAS, 2.0,
@@ -293,30 +292,30 @@ CUDAQ_TEST(ShotAllocationTest, CompareLowVsHighWeightBias) {
 
 CUDAQ_TEST(ShotAllocationTest, CountErrorsHelper) {
   // No errors
-  cudaq::ptsbe::KrausTrajectory traj0 = makeTrajectory(0, 0.5, 0);
+  cudaq::KrausTrajectory traj0 = makeTrajectory(0, 0.5, 0);
   EXPECT_EQ(traj0.countErrors(), 0);
 
   // 1 error
-  cudaq::ptsbe::KrausTrajectory traj1 = makeTrajectory(1, 0.3, 1);
+  cudaq::KrausTrajectory traj1 = makeTrajectory(1, 0.3, 1);
   EXPECT_EQ(traj1.countErrors(), 1);
 
   // 5 errors
-  cudaq::ptsbe::KrausTrajectory traj5 = makeTrajectory(2, 0.1, 5);
+  cudaq::KrausTrajectory traj5 = makeTrajectory(2, 0.1, 5);
   EXPECT_EQ(traj5.countErrors(), 5);
 
   // Some identity, some errors
-  std::vector<cudaq::ptsbe::KrausSelection> mixed = {
-      cudaq::ptsbe::KrausSelection(0, {0}, "h", 0),       // No error
-      cudaq::ptsbe::KrausSelection(1, {0}, "x", 1, true), // Error
-      cudaq::ptsbe::KrausSelection(2, {0, 1}, "cx", 0),   // No error
-      cudaq::ptsbe::KrausSelection(3, {1}, "h", 2, true)  // Error
+  std::vector<cudaq::KrausSelection> mixed = {
+      cudaq::KrausSelection(0, {0}, "h", 0),       // No error
+      cudaq::KrausSelection(1, {0}, "x", 1, true), // Error
+      cudaq::KrausSelection(2, {0, 1}, "cx", 0),   // No error
+      cudaq::KrausSelection(3, {1}, "h", 2, true)  // Error
   };
-  cudaq::ptsbe::KrausTrajectory traj_mixed(3, mixed, 0.2, 0);
+  cudaq::KrausTrajectory traj_mixed(3, mixed, 0.2, 0);
   EXPECT_EQ(traj_mixed.countErrors(), 2);
 }
 
 CUDAQ_TEST(ShotAllocationTest, VerySmallProbabilities) {
-  std::vector<cudaq::ptsbe::KrausTrajectory> trajectories;
+  std::vector<cudaq::KrausTrajectory> trajectories;
   for (std::size_t i = 0; i < 10; ++i) {
     trajectories.push_back(makeTrajectory(i, 1e-6));
   }
@@ -334,7 +333,7 @@ CUDAQ_TEST(ShotAllocationTest, VerySmallProbabilities) {
 }
 
 CUDAQ_TEST(ShotAllocationTest, ExtremelyUnequalMultiplicities) {
-  std::vector<cudaq::ptsbe::KrausTrajectory> trajectories = {
+  std::vector<cudaq::KrausTrajectory> trajectories = {
       makeTrajectory(0, 0.999, 0, 999), // Dominant trajectory
       makeTrajectory(1, 0.001, 0, 1)    // Rare trajectory
   };
@@ -351,7 +350,7 @@ CUDAQ_TEST(ShotAllocationTest, ExtremelyUnequalMultiplicities) {
 }
 
 CUDAQ_TEST(ShotAllocationTest, ManyTrajectoriesFewShots) {
-  std::vector<cudaq::ptsbe::KrausTrajectory> trajectories;
+  std::vector<cudaq::KrausTrajectory> trajectories;
   for (std::size_t i = 0; i < 100; ++i) {
     trajectories.push_back(makeTrajectory(i, 0.01));
   }
@@ -376,7 +375,7 @@ CUDAQ_TEST(ShotAllocationTest, ManyTrajectoriesFewShots) {
 }
 
 CUDAQ_TEST(ShotAllocationTest, TotalShotsInvariant) {
-  std::vector<cudaq::ptsbe::KrausTrajectory> trajectories = {
+  std::vector<cudaq::KrausTrajectory> trajectories = {
       makeTrajectory(0, 0.4, 0, 4), makeTrajectory(1, 0.3, 1, 3),
       makeTrajectory(2, 0.2, 2, 2), makeTrajectory(3, 0.1, 3, 1)};
 
@@ -401,8 +400,8 @@ CUDAQ_TEST(ShotAllocationTest, TotalShotsInvariant) {
 }
 
 CUDAQ_TEST(ShotAllocationTest, NonNegativeShots) {
-  std::vector<cudaq::ptsbe::KrausTrajectory> trajectories = {
-      makeTrajectory(0, 0.5), makeTrajectory(1, 0.5)};
+  std::vector<cudaq::KrausTrajectory> trajectories = {makeTrajectory(0, 0.5),
+                                                      makeTrajectory(1, 0.5)};
 
   cudaq::ptsbe::ShotAllocationStrategy strategy(
       cudaq::ptsbe::ShotAllocationStrategy::Type::PROPORTIONAL, 2.0,
@@ -416,7 +415,7 @@ CUDAQ_TEST(ShotAllocationTest, NonNegativeShots) {
 }
 
 CUDAQ_TEST(ShotAllocationTest, SpanWithArray) {
-  std::array<cudaq::ptsbe::KrausTrajectory, 3> trajectories = {
+  std::array<cudaq::KrausTrajectory, 3> trajectories = {
       {makeTrajectory(0, 0.5, 0, 5), makeTrajectory(1, 0.3, 0, 3),
        makeTrajectory(2, 0.2, 0, 2)}};
 
@@ -434,12 +433,11 @@ CUDAQ_TEST(ShotAllocationTest, SpanWithArray) {
 }
 
 CUDAQ_TEST(ShotAllocationTest, SpanWithSubrange) {
-  std::vector<cudaq::ptsbe::KrausTrajectory> all_trajectories = {
+  std::vector<cudaq::KrausTrajectory> all_trajectories = {
       makeTrajectory(0, 0.25), makeTrajectory(1, 0.25), makeTrajectory(2, 0.25),
       makeTrajectory(3, 0.25)};
 
-  std::span<cudaq::ptsbe::KrausTrajectory> first_two(all_trajectories.data(),
-                                                     2);
+  std::span<cudaq::KrausTrajectory> first_two(all_trajectories.data(), 2);
   cudaq::ptsbe::ShotAllocationStrategy strategy(
       cudaq::ptsbe::ShotAllocationStrategy::Type::UNIFORM);
   cudaq::ptsbe::allocateShots(first_two, 600, strategy);
@@ -451,35 +449,35 @@ CUDAQ_TEST(ShotAllocationTest, SpanWithSubrange) {
 }
 
 CUDAQ_TEST(ShotAllocationTest, RangesCountErrorsMultiple) {
-  std::vector<cudaq::ptsbe::KrausSelection> with_errors = {
-      cudaq::ptsbe::KrausSelection(0, {0}, "h", 1, true),
-      cudaq::ptsbe::KrausSelection(1, {0}, "x", 0),
-      cudaq::ptsbe::KrausSelection(2, {0}, "y", 2, true)};
-  cudaq::ptsbe::KrausTrajectory traj(1, with_errors, 0.5, 100);
+  std::vector<cudaq::KrausSelection> with_errors = {
+      cudaq::KrausSelection(0, {0}, "h", 1, true),
+      cudaq::KrausSelection(1, {0}, "x", 0),
+      cudaq::KrausSelection(2, {0}, "y", 2, true)};
+  cudaq::KrausTrajectory traj(1, with_errors, 0.5, 100);
 
   EXPECT_EQ(traj.countErrors(), 2);
 }
 
 CUDAQ_TEST(ShotAllocationTest, RangesCountErrorsEmpty) {
-  cudaq::ptsbe::KrausTrajectory empty_traj(0, {}, 1.0, 100);
+  cudaq::KrausTrajectory empty_traj(0, {}, 1.0, 100);
   EXPECT_EQ(empty_traj.countErrors(), 0);
 }
 
 CUDAQ_TEST(ShotAllocationTest, RangesCountErrorsAllIdentity) {
-  std::vector<cudaq::ptsbe::KrausSelection> no_errors = {
-      cudaq::ptsbe::KrausSelection(0, {0}, "h", 0),
-      cudaq::ptsbe::KrausSelection(1, {0}, "x", 0),
-      cudaq::ptsbe::KrausSelection(2, {0}, "y", 0)};
-  cudaq::ptsbe::KrausTrajectory traj(0, no_errors, 1.0, 100);
+  std::vector<cudaq::KrausSelection> no_errors = {
+      cudaq::KrausSelection(0, {0}, "h", 0),
+      cudaq::KrausSelection(1, {0}, "x", 0),
+      cudaq::KrausSelection(2, {0}, "y", 0)};
+  cudaq::KrausTrajectory traj(0, no_errors, 1.0, 100);
 
   EXPECT_EQ(traj.countErrors(), 0);
 }
 
 CUDAQ_TEST(ShotAllocationTest, ProportionalReproducibility) {
-  std::vector<cudaq::ptsbe::KrausTrajectory> t1 = {
-      makeTrajectory(0, 0.5, 0, 5), makeTrajectory(1, 0.3, 0, 3),
-      makeTrajectory(2, 0.2, 0, 2)};
-  std::vector<cudaq::ptsbe::KrausTrajectory> t2 = t1;
+  std::vector<cudaq::KrausTrajectory> t1 = {makeTrajectory(0, 0.5, 0, 5),
+                                            makeTrajectory(1, 0.3, 0, 3),
+                                            makeTrajectory(2, 0.2, 0, 2)};
+  std::vector<cudaq::KrausTrajectory> t2 = t1;
 
   cudaq::ptsbe::ShotAllocationStrategy s1(
       cudaq::ptsbe::ShotAllocationStrategy::Type::PROPORTIONAL, 2.0,
@@ -496,9 +494,9 @@ CUDAQ_TEST(ShotAllocationTest, ProportionalReproducibility) {
 }
 
 CUDAQ_TEST(ShotAllocationTest, LowWeightBiasReproducibility) {
-  std::vector<cudaq::ptsbe::KrausTrajectory> t1 = {
-      makeTrajectory(0, 0.5, 0, 5), makeTrajectory(1, 0.5, 2, 5)};
-  std::vector<cudaq::ptsbe::KrausTrajectory> t2 = t1;
+  std::vector<cudaq::KrausTrajectory> t1 = {makeTrajectory(0, 0.5, 0, 5),
+                                            makeTrajectory(1, 0.5, 2, 5)};
+  std::vector<cudaq::KrausTrajectory> t2 = t1;
 
   cudaq::ptsbe::ShotAllocationStrategy s1(
       cudaq::ptsbe::ShotAllocationStrategy::Type::LOW_WEIGHT_BIAS, 2.0,
@@ -514,9 +512,9 @@ CUDAQ_TEST(ShotAllocationTest, LowWeightBiasReproducibility) {
 }
 
 CUDAQ_TEST(ShotAllocationTest, HighWeightBiasReproducibility) {
-  std::vector<cudaq::ptsbe::KrausTrajectory> t1 = {
-      makeTrajectory(0, 0.5, 0, 5), makeTrajectory(1, 0.5, 2, 5)};
-  std::vector<cudaq::ptsbe::KrausTrajectory> t2 = t1;
+  std::vector<cudaq::KrausTrajectory> t1 = {makeTrajectory(0, 0.5, 0, 5),
+                                            makeTrajectory(1, 0.5, 2, 5)};
+  std::vector<cudaq::KrausTrajectory> t2 = t1;
 
   cudaq::ptsbe::ShotAllocationStrategy s1(
       cudaq::ptsbe::ShotAllocationStrategy::Type::HIGH_WEIGHT_BIAS, 2.0,
@@ -532,7 +530,7 @@ CUDAQ_TEST(ShotAllocationTest, HighWeightBiasReproducibility) {
 }
 
 CUDAQ_TEST(ShotAllocationTest, ProportionalNoTruncationZeroShots) {
-  std::vector<cudaq::ptsbe::KrausTrajectory> trajectories;
+  std::vector<cudaq::KrausTrajectory> trajectories;
   for (std::size_t i = 0; i < 100; ++i)
     trajectories.push_back(makeTrajectory(i, 0.01));
 
@@ -555,7 +553,7 @@ CUDAQ_TEST(ShotAllocationTest, ProportionalNoTruncationZeroShots) {
 }
 
 CUDAQ_TEST(ShotAllocationTest, ProportionalExactTotal) {
-  std::vector<cudaq::ptsbe::KrausTrajectory> trajectories = {
+  std::vector<cudaq::KrausTrajectory> trajectories = {
       makeTrajectory(0, 0.7, 0, 7), makeTrajectory(1, 0.2, 0, 2),
       makeTrajectory(2, 0.1, 0, 1)};
 
@@ -576,7 +574,7 @@ CUDAQ_TEST(ShotAllocationTest, ProportionalExactTotal) {
 // Calling cudaq::ptsbe::allocateShots twice on the same trajectories should not
 // accumulate
 CUDAQ_TEST(ShotAllocationTest, DoubleAllocationDoesNotAccumulate) {
-  std::vector<cudaq::ptsbe::KrausTrajectory> trajectories = {
+  std::vector<cudaq::KrausTrajectory> trajectories = {
       makeTrajectory(0, 0.7, 0, 7), makeTrajectory(1, 0.3, 0, 3)};
 
   cudaq::ptsbe::ShotAllocationStrategy strategy(

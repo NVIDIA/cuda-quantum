@@ -49,7 +49,7 @@ CUDAQ_TEST(PTSBEInterfaceTest, PTSBatchWithTrajectories) {
   cudaq::ptsbe::PTSBatch batch;
 
   for (size_t i = 0; i < 5; ++i) {
-    cudaq::ptsbe::KrausTrajectory traj;
+    cudaq::KrausTrajectory traj;
     traj.trajectory_id = i;
     traj.num_shots = (i + 1) * 200;
     batch.trajectories.push_back(traj);
@@ -64,16 +64,15 @@ CUDAQ_TEST(PTSBEInterfaceTest, PTSBatchWithTrajectories) {
 
 /// Test: Trajectory with KrausSelection noise insertions
 CUDAQ_TEST(PTSBEInterfaceTest, TrajectoryWithNoise) {
-  cudaq::ptsbe::KrausTrajectory traj;
+  cudaq::KrausTrajectory traj;
   traj.trajectory_id = 0;
   traj.num_shots = 1000;
 
   // Add noise selections
-  traj.kraus_selections.push_back(cudaq::ptsbe::KrausSelection(0, {0}, "h", 0));
+  traj.kraus_selections.push_back(cudaq::KrausSelection(0, {0}, "h", 0));
   traj.kraus_selections.push_back(
-      cudaq::ptsbe::KrausSelection(1, {0, 1}, "cx", 2, true));
-  traj.kraus_selections.push_back(
-      cudaq::ptsbe::KrausSelection(2, {1}, "x", 1, true));
+      cudaq::KrausSelection(1, {0, 1}, "cx", 2, true));
+  traj.kraus_selections.push_back(cudaq::KrausSelection(2, {1}, "x", 1, true));
 
   EXPECT_EQ(traj.kraus_selections.size(), 3);
   EXPECT_EQ(traj.kraus_selections[1].qubits.size(), 2);
@@ -88,7 +87,7 @@ CUDAQ_TEST(PTSBEInterfaceTest, ShotAllocation) {
   std::vector<size_t> shot_counts = {500, 300, 150, 50};
 
   for (size_t i = 0; i < shot_counts.size(); ++i) {
-    cudaq::ptsbe::KrausTrajectory traj;
+    cudaq::KrausTrajectory traj;
     traj.trajectory_id = i;
     traj.num_shots = shot_counts[i];
     batch.trajectories.push_back(traj);
@@ -105,12 +104,12 @@ CUDAQ_TEST(PTSBEInterfaceTest, ShotAllocation) {
 CUDAQ_TEST(PTSBEInterfaceTest, ZeroShotTrajectory) {
   cudaq::ptsbe::PTSBatch batch;
 
-  cudaq::ptsbe::KrausTrajectory zero_traj;
+  cudaq::KrausTrajectory zero_traj;
   zero_traj.trajectory_id = 0;
   zero_traj.num_shots = 0;
   batch.trajectories.push_back(zero_traj);
 
-  cudaq::ptsbe::KrausTrajectory normal_traj;
+  cudaq::KrausTrajectory normal_traj;
   normal_traj.trajectory_id = 1;
   normal_traj.num_shots = 1000;
   batch.trajectories.push_back(normal_traj);
@@ -129,7 +128,7 @@ CUDAQ_TEST(PTSBEInterfaceTest, EmptyBatch) {
 
 /// Test: Clean trajectory without noise
 CUDAQ_TEST(PTSBEInterfaceTest, CleanTrajectory) {
-  cudaq::ptsbe::KrausTrajectory traj;
+  cudaq::KrausTrajectory traj;
   traj.trajectory_id = 0;
   traj.num_shots = 500;
 

@@ -85,7 +85,7 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, NoNoiseInsertions) {
       {cudaq::ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
   };
 
-  cudaq::ptsbe::KrausTrajectory trajectory(0, {}, 1.0, 100);
+  cudaq::KrausTrajectory trajectory(0, {}, 1.0, 100);
 
   auto merged =
       cudaq::ptsbe::mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
@@ -110,9 +110,9 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, SingleNoiseInsertion) {
   };
 
   // Z error (index 3) at trace position 1 (the Noise entry)
-  std::vector<cudaq::ptsbe::KrausSelection> selections = {
-      cudaq::ptsbe::KrausSelection(1, {0}, "h", 3, true)};
-  cudaq::ptsbe::KrausTrajectory trajectory(0, selections, 0.1, 10);
+  std::vector<cudaq::KrausSelection> selections = {
+      cudaq::KrausSelection(1, {0}, "h", 3, true)};
+  cudaq::KrausTrajectory trajectory(0, selections, 0.1, 10);
 
   auto merged =
       cudaq::ptsbe::mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
@@ -145,10 +145,10 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, MultipleNoiseEntriesAfterGate) {
   };
 
   // X on qubit 0 at trace pos 1, Z on qubit 1 at trace pos 2
-  std::vector<cudaq::ptsbe::KrausSelection> selections = {
-      cudaq::ptsbe::KrausSelection(1, {0}, "h", 1, true),
-      cudaq::ptsbe::KrausSelection(2, {1}, "h", 3, true)};
-  cudaq::ptsbe::KrausTrajectory trajectory(0, selections, 0.05, 5);
+  std::vector<cudaq::KrausSelection> selections = {
+      cudaq::KrausSelection(1, {0}, "h", 1, true),
+      cudaq::KrausSelection(2, {1}, "h", 3, true)};
+  cudaq::KrausTrajectory trajectory(0, selections, 0.05, 5);
 
   auto merged =
       cudaq::ptsbe::mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
@@ -168,9 +168,9 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, InvalidCircuitLocationThrows) {
   };
 
   // circuit_location = 5 is beyond the trace
-  std::vector<cudaq::ptsbe::KrausSelection> selections = {
-      cudaq::ptsbe::KrausSelection(5, {0}, "h", 2, true)};
-  cudaq::ptsbe::KrausTrajectory trajectory(0, selections, 0.1, 10);
+  std::vector<cudaq::KrausSelection> selections = {
+      cudaq::KrausSelection(5, {0}, "h", 2, true)};
+  cudaq::KrausTrajectory trajectory(0, selections, 0.1, 10);
 
   try {
     cudaq::ptsbe::mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
@@ -194,9 +194,9 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, NoiseAtLastPosition) {
   };
 
   // Z error at trace position 2 (the Noise entry)
-  std::vector<cudaq::ptsbe::KrausSelection> selections = {
-      cudaq::ptsbe::KrausSelection(2, {1}, "x", 3, true)};
-  cudaq::ptsbe::KrausTrajectory trajectory(0, selections, 0.1, 10);
+  std::vector<cudaq::KrausSelection> selections = {
+      cudaq::KrausSelection(2, {1}, "x", 3, true)};
+  cudaq::KrausTrajectory trajectory(0, selections, 0.1, 10);
 
   auto merged =
       cudaq::ptsbe::mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
@@ -223,9 +223,9 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, IdentityNoiseSkipped) {
   };
 
   // IDENTITY noise (index 0) at trace position 1, is_error=false
-  std::vector<cudaq::ptsbe::KrausSelection> selections = {
-      cudaq::ptsbe::KrausSelection(1, {0}, "h", 0)};
-  cudaq::ptsbe::KrausTrajectory trajectory(0, selections, 0.9, 90);
+  std::vector<cudaq::KrausSelection> selections = {
+      cudaq::KrausSelection(1, {0}, "h", 0)};
+  cudaq::KrausTrajectory trajectory(0, selections, 0.9, 90);
 
   auto merged =
       cudaq::ptsbe::mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
@@ -258,10 +258,10 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, MixedIdentityAndErrorNoise) {
   };
 
   // IDENTITY at trace pos 1, Y error (index 2) at trace pos 3
-  std::vector<cudaq::ptsbe::KrausSelection> selections = {
-      cudaq::ptsbe::KrausSelection(1, {0}, "h", 0),
-      cudaq::ptsbe::KrausSelection(3, {1}, "x", 2, true)};
-  cudaq::ptsbe::KrausTrajectory trajectory(0, selections, 0.2, 20);
+  std::vector<cudaq::KrausSelection> selections = {
+      cudaq::KrausSelection(1, {0}, "h", 0),
+      cudaq::KrausSelection(3, {1}, "x", 2, true)};
+  cudaq::KrausTrajectory trajectory(0, selections, 0.2, 20);
 
   auto merged =
       cudaq::ptsbe::mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
@@ -282,7 +282,7 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, EmptyTrace) {
   auto tasks = cudaq::ptsbe::detail::convertTrace<double>(ptsbeTrace);
   EXPECT_TRUE(tasks.empty());
 
-  cudaq::ptsbe::KrausTrajectory trajectory(0, {}, 1.0, 100);
+  cudaq::KrausTrajectory trajectory(0, {}, 1.0, 100);
   auto merged =
       cudaq::ptsbe::mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
   EXPECT_TRUE(merged.empty());
@@ -308,10 +308,10 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, NoiseOnEveryGate) {
        cudaq::depolarization_channel(0.1)},
   };
 
-  std::vector<cudaq::ptsbe::KrausSelection> selections = {
-      cudaq::ptsbe::KrausSelection(1, {0}, "h", 3, true),
-      cudaq::ptsbe::KrausSelection(3, {1}, "x", 1, true)};
-  cudaq::ptsbe::KrausTrajectory trajectory(0, selections, 0.01, 1);
+  std::vector<cudaq::KrausSelection> selections = {
+      cudaq::KrausSelection(1, {0}, "h", 3, true),
+      cudaq::KrausSelection(3, {1}, "x", 1, true)};
+  cudaq::KrausTrajectory trajectory(0, selections, 0.01, 1);
 
   auto merged =
       cudaq::ptsbe::mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
@@ -332,7 +332,7 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, MeasurementsSkipped) {
       {cudaq::ptsbe::TraceInstructionType::Measurement, "mz", {0}, {}, {}},
   };
 
-  cudaq::ptsbe::KrausTrajectory trajectory(0, {}, 1.0, 100);
+  cudaq::KrausTrajectory trajectory(0, {}, 1.0, 100);
   auto merged =
       cudaq::ptsbe::mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
 
@@ -361,10 +361,10 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, AllIdentitySkipsAllNoise) {
   };
 
   // Both identity (is_error=false)
-  std::vector<cudaq::ptsbe::KrausSelection> selections = {
-      cudaq::ptsbe::KrausSelection(1, {0}, "h", 0),
-      cudaq::ptsbe::KrausSelection(3, {1}, "x", 0)};
-  cudaq::ptsbe::KrausTrajectory trajectory(0, selections, 0.81, 81);
+  std::vector<cudaq::KrausSelection> selections = {
+      cudaq::KrausSelection(1, {0}, "h", 0),
+      cudaq::KrausSelection(3, {1}, "x", 0)};
+  cudaq::KrausTrajectory trajectory(0, selections, 0.81, 81);
 
   auto merged =
       cudaq::ptsbe::mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);

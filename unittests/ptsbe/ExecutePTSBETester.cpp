@@ -31,7 +31,7 @@ CUDAQ_TEST(ExecutePTSBETest, ThrowsWithoutExecutionContext) {
   batch.trace = kHadamardTrace;
   batch.measureQubits = {0};
 
-  cudaq::ptsbe::KrausTrajectory traj(0, {}, 1.0, 10);
+  cudaq::KrausTrajectory traj(0, {}, 1.0, 10);
   batch.trajectories.push_back(traj);
 
   try {
@@ -72,7 +72,7 @@ CUDAQ_TEST(ExecutePTSBETest, SingleTrajectoryHadamard) {
   batch.trace = kHadamardTrace;
   batch.measureQubits = {0};
 
-  cudaq::ptsbe::KrausTrajectory traj(0, {}, 1.0, 100);
+  cudaq::KrausTrajectory traj(0, {}, 1.0, 100);
   batch.trajectories.push_back(traj);
 
   auto results = cudaq::ptsbe::detail::samplePTSBEWithLifecycle(batch);
@@ -92,8 +92,8 @@ CUDAQ_TEST(ExecutePTSBETest, MultipleTrajectoryAggregation) {
   batch.trace = kXTrace;
   batch.measureQubits = {0};
 
-  cudaq::ptsbe::KrausTrajectory traj1(0, {}, 0.7, 7);
-  cudaq::ptsbe::KrausTrajectory traj2(1, {}, 0.3, 3);
+  cudaq::KrausTrajectory traj1(0, {}, 0.7, 7);
+  cudaq::KrausTrajectory traj2(1, {}, 0.3, 3);
   batch.trajectories.push_back(traj1);
   batch.trajectories.push_back(traj2);
 
@@ -115,8 +115,8 @@ CUDAQ_TEST(ExecutePTSBETest, ZeroShotTrajectoryReturnsEmptyResult) {
   batch.trace = {{cudaq::ptsbe::TraceInstructionType::Gate, "y", {0}, {}, {}}};
   batch.measureQubits = {0};
 
-  cudaq::ptsbe::KrausTrajectory zeroShot(0, {}, 0.5, 0);
-  cudaq::ptsbe::KrausTrajectory normalShot(1, {}, 0.5, 10);
+  cudaq::KrausTrajectory zeroShot(0, {}, 0.5, 0);
+  cudaq::KrausTrajectory normalShot(1, {}, 0.5, 10);
   batch.trajectories.push_back(zeroShot);
   batch.trajectories.push_back(normalShot);
 
@@ -150,7 +150,7 @@ CUDAQ_TEST(ExecutePTSBETest, EmptyInputsReturnEmpty) {
     batch.trace = kHadamardTrace;
     batch.measureQubits = {};
 
-    cudaq::ptsbe::KrausTrajectory traj(0, {}, 1.0, 10);
+    cudaq::KrausTrajectory traj(0, {}, 1.0, 10);
     batch.trajectories.push_back(traj);
 
     auto results = cudaq::ptsbe::detail::samplePTSBEWithLifecycle(batch);
@@ -169,7 +169,7 @@ CUDAQ_TEST(ExecutePTSBETest, BellStateDistribution) {
   };
   batch.measureQubits = {0, 1};
 
-  cudaq::ptsbe::KrausTrajectory traj(0, {}, 1.0, 100);
+  cudaq::KrausTrajectory traj(0, {}, 1.0, 100);
   batch.trajectories.push_back(traj);
 
   auto results = cudaq::ptsbe::detail::samplePTSBEWithLifecycle(batch);
@@ -202,9 +202,9 @@ CUDAQ_TEST(ExecutePTSBETest, TrajectoryWithNoiseInsertion) {
   batch.measureQubits = {0};
 
   // Trajectory with X error (index 1) at trace position 1
-  std::vector<cudaq::ptsbe::KrausSelection> selections = {
-      cudaq::ptsbe::KrausSelection(1, {0}, "id", 1, true)};
-  cudaq::ptsbe::KrausTrajectory traj(0, selections, 1.0, 10);
+  std::vector<cudaq::KrausSelection> selections = {
+      cudaq::KrausSelection(1, {0}, "id", 1, true)};
+  cudaq::KrausTrajectory traj(0, selections, 1.0, 10);
   batch.trajectories.push_back(traj);
 
   auto results = cudaq::ptsbe::detail::samplePTSBEWithLifecycle(batch);
@@ -232,14 +232,14 @@ CUDAQ_TEST(ExecutePTSBETest, MultiQubitWithSelectiveNoise) {
   batch.measureQubits = {0, 1};
 
   // Trajectory 1: identity noise (no error), should give "11"
-  std::vector<cudaq::ptsbe::KrausSelection> selectionsId = {
-      cudaq::ptsbe::KrausSelection(1, {0}, "x", 0)};
-  cudaq::ptsbe::KrausTrajectory traj1(0, selectionsId, 0.5, 10);
+  std::vector<cudaq::KrausSelection> selectionsId = {
+      cudaq::KrausSelection(1, {0}, "x", 0)};
+  cudaq::KrausTrajectory traj1(0, selectionsId, 0.5, 10);
 
   // Trajectory 2: X error (index 1) on qubit 0 at trace position 1
-  std::vector<cudaq::ptsbe::KrausSelection> selectionsX = {
-      cudaq::ptsbe::KrausSelection(1, {0}, "x", 1, true)};
-  cudaq::ptsbe::KrausTrajectory traj2(1, selectionsX, 0.5, 10);
+  std::vector<cudaq::KrausSelection> selectionsX = {
+      cudaq::KrausSelection(1, {0}, "x", 1, true)};
+  cudaq::KrausTrajectory traj2(1, selectionsX, 0.5, 10);
 
   batch.trajectories.push_back(traj1);
   batch.trajectories.push_back(traj2);
@@ -263,7 +263,7 @@ CUDAQ_TEST(ExecutePTSBETest, PartialMeasurement) {
   };
   batch.measureQubits = {0};
 
-  cudaq::ptsbe::KrausTrajectory traj(0, {}, 1.0, 100);
+  cudaq::KrausTrajectory traj(0, {}, 1.0, 100);
   batch.trajectories.push_back(traj);
 
   auto results = cudaq::ptsbe::detail::samplePTSBEWithLifecycle(batch);
@@ -291,7 +291,7 @@ CUDAQ_TEST(ExecutePTSBETest, MeasurementOrderAffectsBitstring) {
     batch.trace = trace;
     batch.measureQubits = {0, 1};
 
-    cudaq::ptsbe::KrausTrajectory traj(0, {}, 1.0, 10);
+    cudaq::KrausTrajectory traj(0, {}, 1.0, 10);
     batch.trajectories.push_back(traj);
 
     auto results = cudaq::ptsbe::detail::samplePTSBEWithLifecycle(batch);
@@ -305,7 +305,7 @@ CUDAQ_TEST(ExecutePTSBETest, MeasurementOrderAffectsBitstring) {
     batch.trace = trace;
     batch.measureQubits = {1, 0};
 
-    cudaq::ptsbe::KrausTrajectory traj(0, {}, 1.0, 10);
+    cudaq::KrausTrajectory traj(0, {}, 1.0, 10);
     batch.trajectories.push_back(traj);
 
     auto results = cudaq::ptsbe::detail::samplePTSBEWithLifecycle(batch);
@@ -331,14 +331,14 @@ CUDAQ_TEST(ExecutePTSBETest, MultipleTrajectoryStateReset) {
   batch.measureQubits = {0};
 
   // Trajectory 1: X error (index 1) flips to |1>
-  std::vector<cudaq::ptsbe::KrausSelection> selectionsWithX = {
-      cudaq::ptsbe::KrausSelection(1, {0}, "id", 1, true)};
-  cudaq::ptsbe::KrausTrajectory trajWithError(0, selectionsWithX, 0.5, 10);
+  std::vector<cudaq::KrausSelection> selectionsWithX = {
+      cudaq::KrausSelection(1, {0}, "id", 1, true)};
+  cudaq::KrausTrajectory trajWithError(0, selectionsWithX, 0.5, 10);
 
   // Trajectory 2: identity noise (no error), stays |0>
-  std::vector<cudaq::ptsbe::KrausSelection> selectionsId = {
-      cudaq::ptsbe::KrausSelection(1, {0}, "id", 0)};
-  cudaq::ptsbe::KrausTrajectory trajNoError(1, selectionsId, 0.5, 10);
+  std::vector<cudaq::KrausSelection> selectionsId = {
+      cudaq::KrausSelection(1, {0}, "id", 0)};
+  cudaq::KrausTrajectory trajNoError(1, selectionsId, 0.5, 10);
 
   batch.trajectories.push_back(trajWithError);
   batch.trajectories.push_back(trajNoError);
@@ -372,9 +372,9 @@ CUDAQ_TEST(ExecutePTSBETest, ReadoutNoiseBitFlipFlipsOutcome) {
   batch.measureQubits = {0};
 
   // X operator (index 1) at trace position 2 (the readout noise entry)
-  std::vector<cudaq::ptsbe::KrausSelection> selections = {
-      cudaq::ptsbe::KrausSelection(2, {0}, "mz", 1, true)};
-  cudaq::ptsbe::KrausTrajectory traj(0, selections, 1.0, 10);
+  std::vector<cudaq::KrausSelection> selections = {
+      cudaq::KrausSelection(2, {0}, "mz", 1, true)};
+  cudaq::KrausTrajectory traj(0, selections, 1.0, 10);
   batch.trajectories.push_back(traj);
 
   auto results = cudaq::ptsbe::detail::samplePTSBEWithLifecycle(batch);
@@ -391,7 +391,7 @@ CUDAQ_TEST(ExecutePTSBETest, LifecycleDispatchProducesCorrectResults) {
   batch.trace = kXTrace;
   batch.measureQubits = {0};
 
-  cudaq::ptsbe::KrausTrajectory traj(0, {}, 1.0, 10);
+  cudaq::KrausTrajectory traj(0, {}, 1.0, 10);
   batch.trajectories.push_back(traj);
 
   auto results = cudaq::ptsbe::detail::samplePTSBEWithLifecycle(batch);
