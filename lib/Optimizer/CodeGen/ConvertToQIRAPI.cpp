@@ -1147,13 +1147,21 @@ struct ExpPauliOpPattern
     if (adaptor.getControls().empty()) {
       // do nothing
     } else if (adaptor.getControls().size() > 1 ||
-               !isa<quake::VeqType>(adaptor.getControls().front().getType())) {
+               !isa<quake::VeqType>(pauli.getControls().front().getType())) {
       // Concat all controls into a single Array.
       Type arrayTy = M::getArrayType(rewriter.getContext());
+      auto wrapIfQubit = [&](Value adaptorVal, Type origTy) {
+        if (isa<quake::VeqType>(origTy))
+          return adaptorVal;
+        return Base::wrapQubitAsArray(loc, rewriter, adaptorVal);
+      };
       Value firstOperand = adaptor.getControls().front();
-      Value resultArray = Base::wrapQubitAsArray(loc, rewriter, firstOperand);
-      for (auto next : adaptor.getControls().drop_front()) {
-        Value wrapNext = Base::wrapQubitAsArray(loc, rewriter, next);
+      Value resultArray =
+          wrapIfQubit(firstOperand, pauli.getControls().front().getType());
+      for (auto [next, origCtrl] :
+           llvm::zip(adaptor.getControls().drop_front(),
+                     pauli.getControls().drop_front())) {
+        Value wrapNext = wrapIfQubit(next, origCtrl.getType());
         auto appended = func::CallOp::create(
             rewriter, loc, arrayTy, cudaq::opt::QIRArrayConcatArray,
             ArrayRef<Value>{resultArray, wrapNext});
