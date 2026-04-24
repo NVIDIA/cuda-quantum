@@ -3343,6 +3343,20 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
       assert(isa<cc::StructType>(ctorTy) && "POD must be a struct type");
       return pushValue(builder.create<cc::LoadOp>(loc, fromStruct));
     }
+    if (isa<cc::MeasureHandleType>(ctorTy)) {
+      // `cudaq::measure_handle` is a value-typed bridge alias for
+      // `!cc.measure_handle`. Copy / move construction is semantically an
+      // SSA-value identity (the handle names a measurement event; copying
+      // the handle does not duplicate the event). Sources from
+      // `std::vector<measure_handle>::operator[]` etc. live in memory, so
+      // load through a pointer source if needed; sources already as
+      // `!cc.measure_handle` SSA values pass through unchanged.
+      Value fromHandle = popValue();
+      if (auto ptrTy = dyn_cast<cc::PointerType>(fromHandle.getType()))
+        if (isa<cc::MeasureHandleType>(ptrTy.getElementType()))
+          fromHandle = builder.create<cc::LoadOp>(loc, fromHandle);
+      return pushValue(fromHandle);
+    }
   }
 
   if (ctor->isCopyConstructor() && ctor->isTrivial() &&
