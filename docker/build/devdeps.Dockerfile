@@ -61,11 +61,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 -m pip install --no-cache-dir numpy --break-system-packages && \
     apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 ADD scripts/install_toolchain.sh /cuda-quantum/scripts/install_toolchain.sh
-RUN source /cuda-quantum/scripts/install_toolchain.sh \
-        -e "$LLVM_INSTALL_PREFIX/bootstrap" -t ${toolchain}
-
-## [Source Dependencies]
-ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites.sh
 ADD scripts/build_llvm.sh /cuda-quantum/scripts/build_llvm.sh
 ADD cmake/caches/LLVM.cmake /cuda-quantum/cmake/caches/LLVM.cmake
 ADD tpls/customizations/llvm /cuda-quantum/tpls/customizations/llvm
@@ -76,6 +71,8 @@ ADD .git/modules/tpls/nanobind/HEAD /.git_modules/tpls/nanobind/HEAD
 
 # This is initializing the .git index sufficiently so that we can
 # check out the correct commits based on the submodule commit.
+# This must happen before install_toolchain.sh so the llvm toolchain
+# can resolve the LLVM submodule commit for cloning.
 RUN cd /cuda-quantum && git init && \
     git config -f .gitmodules --get-regexp '^submodule\..*\.path$' | \
     while read path_key local_path; do \
@@ -86,6 +83,11 @@ RUN cd /cuda-quantum && git init && \
             $(cat /.git_modules/$local_path/HEAD) $local_path; \
         fi; \
     done && git submodule init && git submodule
+RUN source /cuda-quantum/scripts/install_toolchain.sh \
+        -e "$LLVM_INSTALL_PREFIX/bootstrap" -t ${toolchain}
+
+## [Source Dependencies]
+ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites.sh
 # Build compiler-rt (only) since it is needed for code coverage tools
 RUN LLVM_PROJECTS='clang;lld;mlir;python-bindings;compiler-rt' \
     bash /cuda-quantum/scripts/install_prerequisites.sh -t ${toolchain}
