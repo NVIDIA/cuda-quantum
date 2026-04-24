@@ -212,6 +212,7 @@ cmake_args=" \
   -DLLVM_ENABLE_RUNTIMES='"${llvm_runtimes%;}"' \
   -DLLVM_DISTRIBUTION_COMPONENTS='"${llvm_components%;}"' \
   -DLLVM_ENABLE_ZLIB=${llvm_enable_zlib:-OFF} \
+  -DZLIB_USE_STATIC_LIBS=OFF \
   -DZLIB_ROOT='"$ZLIB_INSTALL_PREFIX"' \
   -DPython3_EXECUTABLE='"$Python3_EXECUTABLE"' \
   -DMLIR_ENABLE_BINDINGS_PYTHON=$mlir_python_bindings \
