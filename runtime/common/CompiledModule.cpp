@@ -9,43 +9,43 @@
 #include "CompiledModule.h"
 #include <string_view>
 
-cudaq::CompiledModule::CompiledModule(std::string kernelName)
+cudaq::FatQuakeModule::FatQuakeModule(std::string kernelName)
     : name(std::move(kernelName)) {}
 
-std::optional<cudaq::CompiledModule::JitArtifact>
-cudaq::CompiledModule::getJit() const {
+std::optional<cudaq::FatQuakeModule::JitArtifact>
+cudaq::FatQuakeModule::getJit() const {
   return getJit(name);
 }
 
-std::optional<cudaq::CompiledModule::JitArtifact>
-cudaq::CompiledModule::getJit(std::string_view jitName) const {
+std::optional<cudaq::FatQuakeModule::JitArtifact>
+cudaq::FatQuakeModule::getJit(std::string_view jitName) const {
   auto *jit = artifacts.get<JitArtifact>(jitName);
   return jit ? std::optional<JitArtifact>{*jit} : std::nullopt;
 }
 
-std::optional<cudaq::CompiledModule::MlirArtifact>
-cudaq::CompiledModule::getMlir() const {
+std::optional<cudaq::FatQuakeModule::MlirArtifact>
+cudaq::FatQuakeModule::getMlir() const {
   return getMlir(name);
 }
 
-std::optional<cudaq::CompiledModule::MlirArtifact>
-cudaq::CompiledModule::getMlir(std::string_view mlirName) const {
+std::optional<cudaq::FatQuakeModule::MlirArtifact>
+cudaq::FatQuakeModule::getMlir(std::string_view mlirName) const {
   auto *mlir = artifacts.get<MlirArtifact>(mlirName);
   return mlir ? std::optional<MlirArtifact>{*mlir} : std::nullopt;
 }
 
-bool cudaq::CompiledModule::isFullySpecialized() const {
+bool cudaq::FatQuakeModule::isFullySpecialized() const {
   return getArgsCreator() == nullptr;
 }
 
-int64_t (*cudaq::CompiledModule::getArgsCreator() const)(const void *,
+int64_t (*cudaq::FatQuakeModule::getArgsCreator() const)(const void *,
                                                          void **) {
   auto jit = getJit(name + ".argsCreator");
   return jit ? reinterpret_cast<int64_t (*)(const void *, void **)>(jit->fn)
              : nullptr;
 }
 
-std::optional<std::int64_t> cudaq::CompiledModule::getReturnOffset() const {
+std::optional<std::int64_t> cudaq::FatQuakeModule::getReturnOffset() const {
   auto jit = getJit(name + ".returnOffset");
   if (!jit)
     return std::nullopt;
@@ -53,23 +53,23 @@ std::optional<std::int64_t> cudaq::CompiledModule::getReturnOffset() const {
   return fn();
 }
 
-const cudaq::Resources *cudaq::CompiledModule::getResources() const {
+const cudaq::Resources *cudaq::FatQuakeModule::getResources() const {
   return getResources(name);
 }
 
 const cudaq::Resources *
-cudaq::CompiledModule::getResources(std::string_view resourcesName) const {
+cudaq::FatQuakeModule::getResources(std::string_view resourcesName) const {
   auto *res = artifacts.get<ResourcesArtifact>(resourcesName);
   return res ? &res->getResources() : nullptr;
 }
 
-void cudaq::CompiledModule::addArtifact(std::string name,
+void cudaq::FatQuakeModule::addArtifact(std::string name,
                                         CompiledArtifact artifact) {
   artifacts.add(std::move(name), std::move(artifact));
 }
 
-void (*cudaq::CompiledModule::JitArtifact::getFn() const)() { return fn; }
+void (*cudaq::FatQuakeModule::JitArtifact::getFn() const)() { return fn; }
 
-cudaq::JitEngine cudaq::CompiledModule::JitArtifact::getEngine() const {
+cudaq::JitEngine cudaq::FatQuakeModule::JitArtifact::getEngine() const {
   return engine;
 }

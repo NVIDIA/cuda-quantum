@@ -91,16 +91,17 @@ public:
   std::size_t getBufferSize() const { return bufferSize; }
 };
 
-/// @brief A compiled MLIR module, ready for execution or code generation.
+/// @brief A bundle of artifacts that store the various representations of a
+/// Quake kernel.
 ///
-/// Contains any number of named compilation artifacts (we currently support
-/// JIT binaries, optimized MLIR modules, and pre-computed resource metrics)
-/// that result from the compilation of a Quake MLIR module.
+/// Contains any number of named artifacts (we currently support JIT binaries,
+/// optimized MLIR modules, and pre-computed resource metrics) that result from
+/// the definition, or processing of a Quake MLIR module.
 ///
 /// This type does not depend on MLIR/LLVM — it only keeps type-erased / opaque
 /// pointers. Build instances with
 /// `cudaq_internal::compiler::CompiledModuleHelper`.
-class CompiledModule {
+class FatQuakeModule {
 public:
   // --- Compiled artifact types ---
 
@@ -112,7 +113,7 @@ public:
     JitArtifact(JitEngine engine, void (*fn)())
         : engine(std::move(engine)), fn(fn) {}
 
-    friend class CompiledModule;
+    friend class FatQuakeModule;
     friend class cudaq_internal::compiler::CompiledModuleHelper;
 
   public:
@@ -135,7 +136,7 @@ public:
                  std::shared_ptr<mlir::MLIRContext> context)
         : modulePtr(modulePtr), context(std::move(context)) {}
 
-    friend class CompiledModule;
+    friend class FatQuakeModule;
     friend class cudaq_internal::compiler::CompiledModuleHelper;
   };
 
@@ -145,7 +146,7 @@ public:
 
     ResourcesArtifact(Resources resources) : resources(std::move(resources)) {}
 
-    friend class CompiledModule;
+    friend class FatQuakeModule;
     friend class cudaq_internal::compiler::CompiledModuleHelper;
 
   public:
@@ -216,10 +217,8 @@ public:
   const ResultInfo &getResultInfo() const { return resultInfo; }
   const CompilationMetadata &getMetadata() const { return metadata; }
 
-private:
-  friend class cudaq_internal::compiler::CompiledModuleHelper;
-
-  CompiledModule(std::string kernelName);
+protected:
+  FatQuakeModule(std::string kernelName);
 
   /// Add a compiled artifact to the module under the given name.
   void addArtifact(std::string name, CompiledArtifact artifact);
@@ -230,6 +229,33 @@ private:
                          // agnostic information is worth storing.
   CompilationMetadata metadata;
   ArtifactsStore artifacts;
+};
+
+/// @brief A compiled MLIR module, ready for execution or code generation.
+///
+/// Contains any number of named compilation artifacts (we currently support
+/// JIT binaries, optimized MLIR modules, and pre-computed resource metrics)
+/// that result from the compilation of a Quake MLIR module.
+///
+/// This type does not depend on MLIR/LLVM — it only keeps type-erased / opaque
+/// pointers. Build instances with
+/// `cudaq_internal::compiler::CompiledModuleHelper`.
+class CompiledModule : public FatQuakeModule {
+private:
+  friend class cudaq_internal::compiler::CompiledModuleHelper;
+
+  CompiledModule(std::string kernelName)
+      : FatQuakeModule(std::move(kernelName)) {}
+};
+
+/// Bundle of artifacts that define a CUDA-Q kernel to be compiled and executed.
+///
+/// Contains either a nvq++-compiled function pointer or an MLIR module,
+/// depending on the provenance of the kernel.
+class SourceModule : public FatQuakeModule {
+public:
+  SourceModule(std::string kernelName)
+      : FatQuakeModule(std::move(kernelName)) {}
 };
 
 } // namespace cudaq
