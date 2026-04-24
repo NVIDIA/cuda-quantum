@@ -28,7 +28,7 @@ void RemoteSimulationState::execute() const {
     platform.setLogStream(remoteLogCout);
     platform.with_execution_context(context, [&]() {
       [[maybe_unused]] auto r =
-          platform.launchKernel(kernelName, nullptr, KernelArgs{args});
+          platform.launchKernel(SourceModule{kernelName}, KernelArgs{args});
     });
     platform.resetLogStream();
     // Cache the info log if any.
@@ -156,7 +156,7 @@ std::vector<std::complex<double>> RemoteSimulationState::getAmplitudes(
   // execute and then reset
   platform.with_execution_context(context, [&]() {
     [[maybe_unused]] auto r =
-        platform.launchKernel(kernelName, nullptr, KernelArgs{args});
+        platform.launchKernel(SourceModule{kernelName}, KernelArgs{args});
   });
   std::vector<std::complex<double>> amplitudes;
   amplitudes.reserve(basisStates.size());
@@ -188,7 +188,7 @@ RemoteSimulationState::overlap(const cudaq::SimulationState &other) {
                      static_cast<const cudaq::SimulationState *>(&otherState));
   platform.with_execution_context(context, [&]() {
     [[maybe_unused]] auto dynamicResult =
-        platform.launchKernel(kernelName, nullptr, KernelArgs{});
+        platform.launchKernel(SourceModule{kernelName}, KernelArgs{});
   });
   assert(context.overlapResult.has_value());
   return context.overlapResult.value();

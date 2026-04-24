@@ -26,9 +26,9 @@ public:
 
   /// @brief Launch a kernel with the given arguments
   /// Only analog Hamiltonian kernels are supported
-  KernelThunkResultType launchKernel(const std::string &kernelName,
-                                     KernelThunkType kernelFunc,
+  KernelThunkResultType launchKernel(const SourceModule &src,
                                      KernelArgs args) override {
+    const auto &kernelName = src.getName();
     auto executionContext = cudaq::getExecutionContext();
 
     if (!cudaq::detail::isAnalogHamiltonianKernel(kernelName))

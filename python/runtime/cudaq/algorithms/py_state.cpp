@@ -243,9 +243,9 @@ public:
       auto args = argsData->getArgs();
       args.insert(args.begin(),
                   const_cast<void *>(static_cast<const void *>(&kernelMod)));
+      cudaq::SourceModule src{kernelName};
       platform.with_execution_context(context, [&]() {
-        [[maybe_unused]] auto r =
-            platform.launchKernel(kernelName, nullptr, {args});
+        [[maybe_unused]] auto r = platform.launchKernel(src, {args});
       });
       state = std::move(context.simulationState);
     }
@@ -263,9 +263,9 @@ public:
     args.insert(args.begin(),
                 const_cast<void *>(static_cast<const void *>(&kernelMod)));
 
+    cudaq::SourceModule src{kernelName};
     platform.with_execution_context(context, [&]() {
-      [[maybe_unused]] auto r =
-          platform.launchKernel(kernelName, nullptr, {args});
+      [[maybe_unused]] auto r = platform.launchKernel(src, {args});
     });
     assert(context.overlapResult.has_value());
     return context.overlapResult.value();

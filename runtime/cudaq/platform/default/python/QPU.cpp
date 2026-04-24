@@ -308,12 +308,20 @@ static void precountResources(ModuleOp module) {
 
 namespace {
 struct PythonLauncher : public cudaq::ModuleLauncher {
-  cudaq::CompiledModule compileModule(const std::string &name, ModuleOp module,
+  cudaq::CompiledModule compileModule(const cudaq::SourceModule &src,
                                       cudaq::KernelArgs args,
                                       bool isEntryPoint) override {
 
     ScopedTraceWithContext(cudaq::TIMING_LAUNCH,
                            "PythonLauncher::compileModule");
+    const auto &name = src.getName();
+    auto mlirArt = src.getMlir();
+    if (!mlirArt)
+      throw std::runtime_error(
+          "PythonLauncher::compileModule requires an MLIR artifact on the "
+          "SourceModule for kernel '" +
+          name + "'.");
+    ModuleOp module = CompiledModuleHelper::getMlirModuleOp(*mlirArt);
     const bool enablePythonCodegenDump =
         cudaq::getEnvBool("CUDAQ_PYTHON_CODEGEN_DUMP", false);
 

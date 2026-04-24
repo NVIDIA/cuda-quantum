@@ -9,7 +9,6 @@
 #include "qpu.h"
 #include "common/CompiledModule.h"
 #include "common/KernelArgs.h"
-#include "mlir/IR/BuiltinOps.h"
 #include <cstring>
 #include <stdexcept>
 
@@ -68,8 +67,7 @@ cudaq::QPU::launchModule(const CompiledModule &module, KernelArgs args) {
   return launchCompiledModule(module, args);
 }
 
-cudaq::CompiledModule cudaq::QPU::compileModule(const std::string &name,
-                                                const void *modulePtr,
+cudaq::CompiledModule cudaq::QPU::compileModule(const SourceModule &src,
                                                 KernelArgs args,
                                                 bool isEntryPoint) {
   auto launcher = registry::get<ModuleLauncher>("default");
@@ -77,7 +75,7 @@ cudaq::CompiledModule cudaq::QPU::compileModule(const std::string &name,
     throw std::runtime_error(
         "No ModuleLauncher registered with name 'default'. This may be a "
         "result of attempting to use `compileModule` outside Python.");
-  ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::compileModule", name);
-  mlir::ModuleOp module = mlir::ModuleOp::getFromOpaquePointer(modulePtr);
-  return launcher->compileModule(name, module, args, isEntryPoint);
+  ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::compileModule",
+                         src.getName());
+  return launcher->compileModule(src, args, isEntryPoint);
 }
