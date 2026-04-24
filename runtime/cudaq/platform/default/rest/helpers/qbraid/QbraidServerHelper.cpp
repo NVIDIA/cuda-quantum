@@ -11,7 +11,6 @@
 #include "cudaq/Support/Version.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include <map>
 #include <regex>
 #include <thread>
 
@@ -103,7 +102,7 @@ public:
       // v2 API: program is a structured object with format and data
       nlohmann::json program;
       program["format"] = "qasm2";
-      program["data"] = normalizeClassicalRegisters(circuitCode.code);
+      program["data"] = circuitCode.code;
       job["program"] = program;
 
       // v2 API: name is a top-level field (not nested under tags)
@@ -236,8 +235,43 @@ public:
                     : static_cast<std::size_t>(count);
           }
 
+          // The returned bitstring spans every measured qubit, including
+          // compiler-generated ancillae that the user never declared. Reduce
+          // it down to the user-visible qubits using the output_names entry
+          // populated by the framework (Executor.cpp writes one per submitted
+          // circuit; Future.cpp re-initializes the helper with that config
+          // before processResults runs). Mirrors the IonQ / Braket helpers.
+          cudaq::ExecutionResult fullExecResults{counts};
+          auto fullSampleResults = cudaq::sample_result{fullExecResults};
+
           std::vector<ExecutionResult> execResults;
-          execResults.emplace_back(ExecutionResult{counts});
+
+          auto outputNamesIt = outputNames.find(jobId);
+          if (outputNamesIt != outputNames.end() &&
+              !outputNamesIt->second.empty()) {
+            auto &job_output_names = outputNamesIt->second;
+
+            std::vector<std::size_t> qubitNumbers;
+            qubitNumbers.reserve(job_output_names.size());
+            for (auto &[result, info] : job_output_names)
+              qubitNumbers.push_back(info.qubitNum);
+
+            auto subset = fullSampleResults.get_marginal(qubitNumbers);
+            execResults.emplace_back(ExecutionResult{subset.to_map()});
+
+            // Emit one single-bit register per named result so that
+            // `sample_result::to_map(registerName)` still works.
+            for (const auto &[result, info] : job_output_names) {
+              CountsDictionary regCounts;
+              for (const auto &[bits, count] : fullSampleResults)
+                regCounts[std::string{bits[info.qubitNum]}] += count;
+              execResults.emplace_back(regCounts, info.registerName);
+            }
+          } else {
+            // No output_names available: fall back to the full flat counts.
+            execResults.emplace_back(ExecutionResult{counts});
+          }
+
           return cudaq::sample_result(execResults);
         }
 
@@ -256,7 +290,7 @@ public:
         // (see runtime/common/RestClient.cpp) with a fixed message format:
         //   "HTTP <VERB> Error - status code <code>: <curl_err>: <body>"
         // The code isn't exposed as a structured attribute, so we parse it
-        // out to distinguish terminal client errors (401/403/404) from
+        // out to distinguish terminal client errors (401/403/404/409) from
         // transient server/network errors (5xx, parse errors) that retry.
         static const std::regex statusRx(R"(status code (\d+))");
         const std::string what = e.what();
@@ -279,6 +313,15 @@ public:
           throw std::runtime_error(
               "qBraid result not found (HTTP 404) for job " + jobId +
               ". The job may have been deleted or never produced results.");
+
+        // Terminal: job reached a non-success terminal state (FAILED or
+        // CANCELLED). qBraid v2 returns 409 Conflict on /result in that case
+        // because no measurement data will ever be produced.
+        if (statusCode == 409)
+          throw std::runtime_error(
+              "qBraid job " + jobId +
+              " did not produce results (HTTP 409). The job likely FAILED "
+              "or was CANCELLED.");
 
         // Retryable: 5xx, network errors, JSON parse failures, etc.
         cudaq::info("Exception when fetching results (attempt {}/{}): {}",
@@ -304,70 +347,6 @@ public:
   }
 
 private:
-  /// @brief Merges multiple single-bit classical registers emitted by nvq++'s
-  /// QASM 2 codegen into a single multi-bit `creg c[N]`.
-  std::string normalizeClassicalRegisters(const std::string &qasm) const {
-    // Required to unblock qBraid-routed hardware backends. nvq++ emits one
-    // `creg varK[1];` per measurement. AWS Braket's classical simulators
-    // (SV1, DM1, TN1) tolerate that via lenient register concatenation, but
-    // stricter hardware transpilers below reject it:
-    //   - IQM (Garnet etc.): returns only the first register -> 1-bit results
-    //   - Rigetti: collapses all registers onto b[0] -> "bit already in use"
-    //   - IonQ-via-Braket: similar strict behavior
-    // Normalizing to a single register is the canonical QASM 2 form and is
-    // accepted uniformly by every qBraid-reachable backend.
-    static const std::regex cregDeclRx(R"(creg\s+(\w+)\s*\[\s*(\d+)\s*\]\s*;)");
-
-    std::vector<std::pair<std::string, int>> cregs;
-    for (auto it = std::sregex_iterator(qasm.begin(), qasm.end(), cregDeclRx);
-         it != std::sregex_iterator(); ++it) {
-      cregs.emplace_back((*it)[1].str(), std::stoi((*it)[2].str()));
-    }
-
-    // Nothing to do if the QASM already has a single classical register.
-    if (cregs.size() <= 1)
-      return qasm;
-
-    std::map<std::string, int> offsetByName;
-    int totalBits = 0;
-    for (auto &[name, size] : cregs) {
-      offsetByName[name] = totalBits;
-      totalBits += size;
-    }
-
-    std::string out = qasm;
-
-    // Rewrite every `-> NAME[i]` target BEFORE we mutate the creg declarations.
-    for (auto &[name, size] : cregs) {
-      int base = offsetByName[name];
-      for (int i = 0; i < size; ++i) {
-        std::regex measureTargetRx("->\\s*" + name + "\\s*\\[\\s*" +
-                                   std::to_string(i) + "\\s*\\]");
-        out = std::regex_replace(out, measureTargetRx,
-                                 "-> qbraid__creg__[" +
-                                     std::to_string(base + i) + "]");
-      }
-    }
-
-    // Replace the first declaration with the merged register.
-    out = std::regex_replace(out, cregDeclRx,
-                             "creg qbraid__creg__[" +
-                                 std::to_string(totalBits) + "];",
-                             std::regex_constants::format_first_only);
-
-    // Remove the remaining original declarations.
-    for (size_t i = 1; i < cregs.size(); ++i) {
-      std::regex toRemove("creg\\s+" + cregs[i].first +
-                          "\\s*\\[\\s*\\d+\\s*\\]\\s*;\\s*");
-      out = std::regex_replace(out, toRemove, "");
-    }
-
-    cudaq::info(
-        "Normalized {} classical registers into single qbraid__creg__[{}]",
-        cregs.size(), totalBits);
-    return out;
-  }
-
   /// @brief Returns the headers for the server requests.
   RestHeaders getHeaders() override {
     if (backendConfig.find("api_key") == backendConfig.end()) {

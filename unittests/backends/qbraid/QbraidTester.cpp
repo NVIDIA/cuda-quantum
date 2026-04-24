@@ -276,6 +276,19 @@ CUDAQ_TEST(QbraidTester, checkResultNotFound) {
                                 "result not found"));
 }
 
+// 409 on /result -> terminal. qBraid v2 returns this when the job reached a
+// non-success terminal state (FAILED or CANCELLED), so results will never
+// appear and the helper must fail fast instead of burning the retry budget.
+CUDAQ_TEST(QbraidTester, checkResultConflict) {
+  armResultStatus(409);
+  auto kernel = cudaq::make_kernel();
+  auto qubit = kernel.qalloc(2);
+  kernel.h(qubit[0]);
+  kernel.mz(qubit[0]);
+  EXPECT_TRUE(throwsWithMessage([&]() { (void)cudaq::sample(kernel); },
+                                "did not produce results"));
+}
+
 // 500 on /result -> retryable. Force hook fires once then clears, so the
 // second attempt succeeds. Sampling must not throw.
 CUDAQ_TEST(QbraidTester, checkResultServerErrorRetries) {

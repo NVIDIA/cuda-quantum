@@ -100,16 +100,6 @@ static void addFermioniqPipeline(OpPassManager &pm) {
   pm.addPass(createBasisConversion(options));
 }
 
-static void addQbraidPipeline(OpPassManager &pm) {
-  using namespace cudaq::opt;
-  std::string basis[] = {
-      "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)",
-  };
-  BasisConversionOptions options;
-  options.basis = basis;
-  pm.addPass(createBasisConversion(options));
-}
-
 void cudaq::opt::registerTargetPipelines() {
   PassPipelineRegistration<>("anyon-cgate-set-mapping",
                              "Convert kernels to Anyon gate set.",
@@ -135,9 +125,6 @@ void cudaq::opt::registerTargetPipelines() {
   PassPipelineRegistration<>("fermioniq-gate-set-mapping",
                              "Convert kernels to Fermioniq gate set.",
                              addFermioniqPipeline);
-  PassPipelineRegistration<>("qbraid-gate-set-mapping",
-                             "Convert kernels to qBraid gate set.",
-                             addQbraidPipeline);
 }
 
 void cudaq::opt::registerCodeGenDialect(DialectRegistry &registry) {
