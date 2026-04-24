@@ -9,6 +9,9 @@
 add_library(cudaq-logger
   SHARED
     logger.cpp
+    tracer.cpp
+    spdlog_tracer.cpp
+    chrome_tracer.cpp
 )
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-logger)
 
@@ -17,8 +20,9 @@ target_include_directories(cudaq-logger
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime/include>
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
     $<INSTALL_INTERFACE:include>
-  PRIVATE 
+  PRIVATE
     fmt::fmt-header-only
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/json/include>
 )
 target_link_libraries(cudaq-logger
   PRIVATE

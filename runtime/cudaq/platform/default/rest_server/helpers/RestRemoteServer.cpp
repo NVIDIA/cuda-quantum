@@ -22,6 +22,7 @@
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq_internal/compiler/JIT.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
+#include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "nvqir/CircuitSimulator.h"
 #include "server_impl/RestServer.h"
 #include "llvm/ADT/ScopeExit.h"
@@ -443,6 +444,8 @@ protected:
     auto ctx = module.getContext();
     {
       PassManager pm(ctx);
+      pm.addInstrumentation(
+          std::make_unique<cudaq::TracePassInstrumentation>());
       std::string errMsg;
       llvm::raw_string_ostream os(errMsg);
       const std::string pipeline =

@@ -9,6 +9,7 @@
 #pragma once
 
 #include "cudaq/runtime/logger/cudaq_fmt.h"
+#include "cudaq/runtime/logger/tracer.h"
 
 namespace cudaq {
 
@@ -89,17 +90,6 @@ void log(const std::string_view message, Args &&...args) {
                    cudaq_fmt::format(message, args...));
 }
 
-/// @brief Context information (function, file, and line) of a caller
-struct TraceContext {
-  const char *funcName = nullptr;
-  const char *fileName = nullptr;
-  int lineNo = 0;
-
-  TraceContext(const char *func = __builtin_FUNCTION(),
-               const char *file = __builtin_FILE(), int line = __builtin_LINE())
-      : funcName(func), fileName(file), lineNo(line) {}
-};
-
 /// @brief This type is meant to provided quick tracing
 /// of function calls. Instantiate at the beginning
 /// of a function and when it goes out of scope at function
@@ -128,101 +118,29 @@ struct TraceContext {
 // [2022-12-15 18:54:39.347] [trace] foo executed in 2.572 ms.
 class ScopedTrace {
 private:
-  /// @brief Time when this ScopedTrace is created.
-  std::chrono::time_point<std::chrono::system_clock> startTime;
+  SpanHandle handle;
 
-  /// @brief The name of this trace, typically the function name
-  std::string traceName;
-
-  /// @brief Any arguments the user would also like to print
-  std::string argsMsg;
-
-  /// @brief Integer timing tag value (used to enable/disable this trace)
-  int tag = 0;
-
-  /// @brief Whether or not timing tag is enabled
-  bool tagFound = false;
-
-  /// @brief File, line, etc. of trace caller
-  TraceContext context;
-
-  thread_local static inline short int globalTraceStack = -1;
-
-  /// @brief Constructor with name only. This is private because you should
-  /// probably be using ScopedTraceWithContext() instead.
-  ScopedTrace(const std::string &name) {
-    if (details::should_log(details::LogLevel::trace)) {
-      startTime = std::chrono::system_clock::now();
-      traceName = name;
-      globalTraceStack++;
-    }
-  }
-
-  /// @brief Constructor, take and print user-specified critical arguments. This
-  /// is private because you should probably be using ScopedTraceWithContext()
-  /// instead.
   template <typename... Args>
-  ScopedTrace(const std::string &name, Args &&...args) {
-    if (details::should_log(details::LogLevel::trace)) {
-      startTime = std::chrono::system_clock::now();
-      traceName = name;
-      argsMsg = " (args = {{";
-      constexpr std::size_t nArgs = sizeof...(Args);
-      for (std::size_t i = 0; i < nArgs; i++) {
-        argsMsg += (i != nArgs - 1) ? "{}, " : "{}}})";
-      }
-      argsMsg = cudaq_fmt::format(argsMsg, args...);
-      globalTraceStack++;
-    }
-  }
-
-  /// @brief Constructor, take and print user-specified critical arguments. This
-  /// is private because you should probably be using ScopedTraceWithContext()
-  /// instead.
-  /// @param tag See Timing.h
-  /// @param name String to print
-  template <typename... Args>
-  ScopedTrace(const int tag, const std::string &name, Args &&...args)
-      : tag(tag) {
-    tagFound = cudaq::isTimingTagEnabled(tag);
-    if (tagFound || details::should_log(details::LogLevel::trace)) {
-      startTime = std::chrono::system_clock::now();
-      traceName = name;
+  static std::string formatArgsMsg(bool tagFound, Args &&...args) {
+    if constexpr (sizeof...(Args) == 0) {
+      (void)tagFound;
+      return {};
+    } else {
+      std::string argsMsg;
       if (tagFound) {
-        // This needs double double braces because it goes through
-        // fmt::format(fmt::runtime()) twice ... once in this function and once
-        // in the cudaq::log() in the destructor.
+        // Double-escape: cudaq::log() runs the result through fmt::format
+        // a second time, so literal braces must survive both passes.
         argsMsg = " (args = {{{{";
         constexpr std::size_t nArgs = sizeof...(Args);
-        for (std::size_t i = 0; i < nArgs; i++) {
+        for (std::size_t i = 0; i < nArgs; i++)
           argsMsg += (i != nArgs - 1) ? "{}, " : "{}}}}})";
-        }
       } else {
         argsMsg = " (args = {{";
         constexpr std::size_t nArgs = sizeof...(Args);
-        for (std::size_t i = 0; i < nArgs; i++) {
+        for (std::size_t i = 0; i < nArgs; i++)
           argsMsg += (i != nArgs - 1) ? "{}, " : "{}}})";
-        }
       }
-      argsMsg = cudaq_fmt::format(argsMsg, args...);
-      globalTraceStack++;
-    }
-  }
-
-  /// @brief The constructor with a timing tag. This is private because you
-  /// should probably be using ScopedTraceWithContext() instead.
-  /// @param tag See Timing.h
-  /// @param name String to print
-  ScopedTrace(const int tag, const std::string &name,
-              const char *funcName = __builtin_FUNCTION(),
-              const char *fileName = __builtin_FILE(),
-              int lineNo = __builtin_LINE())
-      : tag(tag), context(funcName, fileName, lineNo) {
-    tagFound = cudaq::isTimingTagEnabled(tag);
-    if (tagFound || details::should_log(details::LogLevel::trace)) {
-      startTime = std::chrono::system_clock::now();
-      traceName = name;
-      globalTraceStack++;
+      return cudaq_fmt::format(argsMsg, args...);
     }
   }
 
@@ -230,45 +148,21 @@ public:
   /// @brief Public constructor with a context and a timing tag.
   template <typename... Args>
   ScopedTrace(TraceContext ctx, const int tag, const std::string &name,
-              Args &&...args)
-      : ScopedTrace(tag, name, args...) {
-    context = ctx;
+              Args &&...args) {
+    const bool tagFound = (tag != 0) && cudaq::isTimingTagEnabled(tag);
+    if (!tagFound && !details::should_log(details::LogLevel::trace) &&
+        !Tracer::instance().isCaptureEnabled())
+      return;
+    std::string argsMsg = formatArgsMsg(tagFound, std::forward<Args>(args)...);
+    handle = Tracer::instance().beginSpan(ctx, name, tag, argsMsg, "scope");
   }
 
   /// @brief Public constructor with a context and no timing tag.
   template <typename... Args>
   ScopedTrace(TraceContext ctx, const std::string &name, Args &&...args)
-      : ScopedTrace(name, args...) {
-    context = ctx;
-  }
+      : ScopedTrace(ctx, /*tag=*/0, name, std::forward<Args>(args)...) {}
 
-  /// The destructor, get the elapsed time and trace.
-  ~ScopedTrace() {
-    if (tagFound || details::should_log(details::LogLevel::trace)) {
-      auto duration = static_cast<double>(
-          std::chrono::duration_cast<std::chrono::microseconds>(
-              std::chrono::system_clock::now() - startTime)
-              .count() /
-          1000.0);
-      // If we're printing because the tag was found, then add that tag info
-      std::string tagStr = tagFound ? cudaq_fmt::format("[tag={}] ", tag) : "";
-      std::string sourceInfo =
-          context.fileName
-              ? cudaq_fmt::format("[{}:{}] ",
-                                  details::pathToFileName(context.fileName),
-                                  context.lineNo)
-              : "";
-      auto str = cudaq_fmt::format(
-          "{}{}{}{} executed in {} ms.{}",
-          globalTraceStack > 0 ? std::string(globalTraceStack, '-') + " " : "",
-          tagStr, sourceInfo, traceName, duration, argsMsg);
-      if (tagFound)
-        cudaq::log(str);
-      else
-        details::trace(str);
-      globalTraceStack--;
-    }
-  }
+  ~ScopedTrace() { Tracer::instance().endSpan(std::move(handle)); }
 };
 } // namespace cudaq
 

@@ -23,6 +23,7 @@
 #include "cudaq/Verifier/QIRSpec.h"
 #include "cudaq/runtime/logger/cudaq_fmt.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
@@ -407,6 +408,7 @@ qirProfileTranslationFunction(const std::string &qirProfile, Operation *op,
 
   auto context = op->getContext();
   PassManager pm(context);
+  pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
   if (printIntermediateMLIR)
     pm.enableIRPrinting();
   if (printStats)
@@ -613,6 +615,8 @@ static void registerToOpenQASMTranslation() {
          bool printIntermediateMLIR, bool printStats) {
         ScopedTraceWithContext(cudaq::TIMING_JIT, "qasm2 translation");
         PassManager pm(op->getContext());
+        pm.addInstrumentation(
+            std::make_unique<cudaq::TracePassInstrumentation>());
         if (printIntermediateMLIR)
           pm.enableIRPrinting();
         if (printStats)
@@ -644,6 +648,8 @@ static void registerToIQMJsonTranslation() {
          bool printIntermediateMLIR, bool printStats) {
         ScopedTraceWithContext(cudaq::TIMING_JIT, "iqm translation");
         PassManager pm(op->getContext());
+        pm.addInstrumentation(
+            std::make_unique<cudaq::TracePassInstrumentation>());
         if (printIntermediateMLIR)
           pm.enableIRPrinting();
         if (printStats)
