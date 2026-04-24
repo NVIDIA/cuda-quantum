@@ -846,10 +846,10 @@ class PyASTBridge(ast.NodeVisitor):
         `VisitCastExpr::CK_UserDefinedConversion` (search for "Push a
         placeholder i1 so the enclosing statement's value stack stays
         balanced"). The C++ check examines the pattern
-        `cc.load(cc.alloca)` and reports the diagnostic if the alloca has
+        `cc.load(cc.alloca)` and reports the diagnostic if the `alloca` has
         no `cc.store` users; in Python the AST bridge stores the
-        default-constructed `cc.UndefOp` value into the alloca (so the
-        alloca always has at least one store), so we instead check that
+        default-constructed `cc.UndefOp` value into the `alloca` (so the
+        `alloca` always has at least one store), so we instead check that
         the only stored values come from `cc.UndefOp`. We also catch the
         direct `cc.UndefOp -> bool` flow (e.g. the spec example
         `bool(cudaq.measure_handle())`).
@@ -3651,7 +3651,7 @@ class PyASTBridge(ast.NodeVisitor):
                         # Spec §C++ API / Python API: `cudaq.to_bools` is
                         # the bulk counterpart to the per-element
                         # `measure_handle -> bool` coercion. Lower to a
-                        # vectorized `quake.discriminate` on the handle
+                        # vector `quake.discriminate` on the handle
                         # vector. Mirrors `to_bools` in
                         # `lib/Frontend/nvqpp/ConvertExpr.cpp`.
                         if len(node.args) != 1 or node.keywords:

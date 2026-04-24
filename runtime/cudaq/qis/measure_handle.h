@@ -15,7 +15,7 @@ namespace cudaq {
 
 namespace details {
 /// Tag type used to dispatch the index-taking `measure_handle` constructor,
-/// keeping `measure_handle{42}` uncompilable in user code. The tag surface is
+/// so `measure_handle{42}` cannot be compiled in user code. The tag surface is
 /// reserved for internal runtime use: the library-mode `mz`/`mx`/`my` bodies
 /// construct a handle from the measured bit via this constructor, and any
 /// future remote-QPU adapter that reconstructs a handle from an

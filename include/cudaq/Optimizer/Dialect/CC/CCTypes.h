@@ -50,7 +50,7 @@ bool isDynamicallySizedType(mlir::Type ty);
 
 /// Returns true if and only if \p ty transitively contains
 /// `!cc.measure_handle` in its value representation. Walks aggregate CC
-/// types (struct, array, stdvec, ptr) generically so any new container
+/// types (struct, array, `stdvec`, `ptr`) generically so any new container
 /// shape is covered for free. Used by the bridge to enforce the
 /// measure_handle host-device boundary rule.
 bool containsMeasureHandle(mlir::Type ty);

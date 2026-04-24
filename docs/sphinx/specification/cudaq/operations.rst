@@ -163,7 +163,7 @@ to bit-pack a handle vector, compose them: :code:`to_integer(to_bools(h))`.
 rejects :code:`measure_handle` in any entry-point parameter or return
 position with the diagnostic :code:`measure_handle cannot cross the
 host-device boundary; entry-point kernels must discriminate first`.
-Pure-device :code:`__qpu__` callees may take :code:`measure_handle` by
+Pure-device :code:`__qpu__` functions may take :code:`measure_handle` by
 :code:`const&`; the bridge passes them through as
 :code:`!cc.ptr<!cc.measure_handle>`. Default-constructed (unbound) handles
 that reach a bool-coercion context produce the diagnostic
