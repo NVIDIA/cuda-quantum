@@ -7,9 +7,9 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/CudaqFunctionNames.h"
+#include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/QuakeToExecMgr.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Pass/PassManager.h"
