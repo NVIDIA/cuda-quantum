@@ -12,7 +12,7 @@
 
 using namespace cudaq_internal::compiler;
 
-LLVM_INSTANTIATE_REGISTRY(cudaq::ModuleLauncher::RegistryType)
+CUDAQ_INSTANTIATE_REGISTRY(cudaq::ModuleLauncher::RegistryType)
 
 /// Execute a JIT-compiled kernel with provided arguments.
 ///
