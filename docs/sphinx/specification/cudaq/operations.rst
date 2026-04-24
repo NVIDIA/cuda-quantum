@@ -94,18 +94,18 @@ The default set of quantum intrinsic operations for the cudaq::qubit type is as 
       template <typename mod = base, typename ScalarAngle, typename... QubitArgs> 
       void ROTATION_NAME(ScalarAngle angle, QubitArgs &...args) noexcept { ... }
  
-      bool MEASURE_OP(qubit &q) noexcept;
-      std::vector<bool> MEASURE_OP(qvector &q) noexcept;
-      double measure(const cudaq::spin_op & term) noexcept { ... }
-
       // Deferred-discrimination measurement (see `measure_handle` proposal).
-      class measure_handle;
-      measure_handle MEASURE_OP_HANDLE(qubit &q) noexcept;
+      class measure_handle {
+      public:
+        measure_handle() = default;
+        operator bool() const;            // non-explicit; discriminates
+      };
+      measure_handle MEASURE_OP(qubit &q) noexcept;
       template <typename QubitRange>
-      std::vector<measure_handle> MEASURE_OP_HANDLE(QubitRange &q) noexcept;
-      bool discriminate(const measure_handle &h) noexcept;
-      std::vector<bool> discriminate(const std::vector<measure_handle> &h) noexcept;
-      std::int64_t to_integer(const std::vector<measure_handle> &h) noexcept;
+      std::vector<measure_handle> MEASURE_OP(QubitRange &q) noexcept;
+      std::vector<bool> to_bools(const std::vector<measure_handle> &h) noexcept;
+      std::int64_t to_integer(const std::vector<bool> &b) noexcept;
+      double measure(const cudaq::spin_op & term) noexcept { ... }
   }
 
 **[1]** For the default implementation of the :code:`cudaq::qubit` intrinsic operations, we let 
@@ -135,13 +135,37 @@ qubit
   
 The set of gates that the official CUDA-Q implementation supports can be found in the :doc:`API documentation </api/api>`.
 
-**[3]** :code:`MEASURE_OP_HANDLE` denotes the handle-returning measurement family
-(:code:`mz_handle`, :code:`mx_handle`, :code:`my_handle`) introduced by the
-:code:`measure_handle` proposal. Each call records a measurement event and
-returns an opaque :code:`cudaq::measure_handle` (a vector thereof for range
-overloads); the classical bit is read explicitly via :code:`cudaq::discriminate`
-(or :code:`cudaq::to_integer` for the vector case). Handles must not cross the
-host-device boundary -- the compiler rejects :code:`measure_handle` in
-entry-point parameter or return position. Implicit conversion to :code:`bool`
-is forbidden in both C++ and Python; see the proposal for the full normative
-requirements (including the spec-mandated frontend diagnostics).
+**[3]** :code:`MEASURE_OP` denotes the measurement family
+(:code:`mz`, :code:`mx`, :code:`my`). Each call records a measurement event
+and returns an opaque :code:`cudaq::measure_handle` (a
+:code:`std::vector<cudaq::measure_handle>` for range overloads); the
+classical bit is produced on demand by the non-explicit
+:code:`measure_handle::operator bool()` whenever the handle is used in a
+bool-requiring context. The single-API surface defined by the
+:code:`measure_handle` proposal collapses what used to be two parallel
+families (the bit-returning :code:`mz` and the handle-returning
+:code:`mz_handle`) into one: every call site that previously returned a
+:code:`bool` continues to compile because the implicit conversion runs at
+the use site. The classical bit is therefore *deferred*: the compiler is
+free to reorder, batch, or eliminate the discriminate as long as program
+behavior is preserved.
+
+**[4]** Bulk discrimination of a vector of handles is explicit, via
+:code:`cudaq::to_bools`. The scalar :code:`operator bool()` does not
+propagate through :code:`std::vector` (unrelated C++ types), so any code
+that needs a :code:`std::vector<bool>` from a
+:code:`std::vector<cudaq::measure_handle>` must call :code:`to_bools`
+explicitly. :code:`cudaq::to_integer` packs a
+:code:`std::vector<bool>` into the low bits of an :code:`std::int64_t`;
+to bit-pack a handle vector, compose them: :code:`to_integer(to_bools(h))`.
+
+**[5]** Handles must not cross the host-device boundary. The frontend
+rejects :code:`measure_handle` in any entry-point parameter or return
+position with the diagnostic :code:`measure_handle cannot cross the
+host-device boundary; entry-point kernels must discriminate first`.
+Pure-device :code:`__qpu__` callees may take :code:`measure_handle` by
+:code:`const&`; the bridge passes them through as
+:code:`!cc.ptr<!cc.measure_handle>`. Default-constructed (unbound) handles
+that reach a bool-coercion context produce the diagnostic
+:code:`discriminating an unbound measure_handle`. See the
+:code:`measure_handle` proposal for the full normative requirements.
