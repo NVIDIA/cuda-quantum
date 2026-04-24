@@ -274,7 +274,7 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
     auto builder = cudaq::IRBuilder::atBlockTerminator(&op.getBody().back());
     auto loc = op.getBody().back().getTerminator()->getLoc();
 
-    auto resultTy = cudaq::opt::getResultType(rewriter.getContext());
+    auto resultTy = cudaq::cg::getLLVMResultType(rewriter.getContext());
     auto i64Ty = rewriter.getI64Type();
     auto module = op->getParentOfType<ModuleOp>();
     for (auto &iv : info.resultQubitVals) {
@@ -288,7 +288,8 @@ struct AddFuncAttribute : public OpRewritePattern<LLVM::LLVMFuncOp> {
       Value idx = LLVM::ConstantOp::create(builder, loc, i64Ty, iv.first);
       Value ptr = LLVM::IntToPtrOp::create(builder, loc, resultTy, idx);
       auto regName = [&]() -> Value {
-        auto charPtrTy = cudaq::opt::getCharPointerType(builder.getContext());
+        auto charPtrTy =
+            cudaq::cg::getLLVMCharPointerType(builder.getContext());
         if (!rec.second.empty()) {
           // Note: it should be the case that this string literal has already
           // been added to the IR, so this step does not actually update the
@@ -545,27 +546,30 @@ struct QIRProfilePreparationPass
     // Add cnot declaration as it may be referenced after peepholes run.
     cudaq::opt::factory::createLLVMFunctionSymbol(
         cudaq::opt::QIRCnot, LLVM::LLVMVoidType::get(ctx),
-        {cudaq::opt::getQubitType(ctx), cudaq::opt::getQubitType(ctx)}, module);
+        {cudaq::cg::getLLVMQubitType(ctx), cudaq::cg::getLLVMQubitType(ctx)},
+        module);
 
     // Add cz declaration as it may be referenced after peepholes run.
     cudaq::opt::factory::createLLVMFunctionSymbol(
         cudaq::opt::QIRCZ, LLVM::LLVMVoidType::get(ctx),
-        {cudaq::opt::getQubitType(ctx), cudaq::opt::getQubitType(ctx)}, module);
+        {cudaq::cg::getLLVMQubitType(ctx), cudaq::cg::getLLVMQubitType(ctx)},
+        module);
 
     // Add measure_body as it has a different signature than measure.
     cudaq::opt::factory::createLLVMFunctionSymbol(
         cudaq::opt::QIRMeasureBody, LLVM::LLVMVoidType::get(ctx),
-        {cudaq::opt::getQubitType(ctx), cudaq::opt::getResultType(ctx)},
+        {cudaq::cg::getLLVMQubitType(ctx), cudaq::cg::getLLVMResultType(ctx)},
         module);
 
     cudaq::opt::factory::createLLVMFunctionSymbol(
         cudaq::opt::qir0_1::ReadResultBody, IntegerType::get(ctx, 1),
-        {cudaq::opt::getResultType(ctx)}, module);
+        {cudaq::cg::getLLVMResultType(ctx)}, module);
 
     // Add record functions for any measurements.
     cudaq::opt::factory::createLLVMFunctionSymbol(
         cudaq::opt::QIRRecordOutput, LLVM::LLVMVoidType::get(ctx),
-        {cudaq::opt::getResultType(ctx), cudaq::opt::getCharPointerType(ctx)},
+        {cudaq::cg::getLLVMResultType(ctx),
+         cudaq::cg::getLLVMCharPointerType(ctx)},
         module);
 
     // Add functions `__quantum__qis__*__body` for all functions matching

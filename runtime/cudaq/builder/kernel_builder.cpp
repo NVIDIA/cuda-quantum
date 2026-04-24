@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "kernel_builder.h"
+#include "common/Environment.h"
 #include "common/FmtCore.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
@@ -978,6 +979,16 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
     pm.addNestedPass<func::FuncOp>(createCSEPass());
     pm.addPass(cudaq::opt::createConvertToQIR());
     pm.addPass(createCanonicalizerPass());
+
+    auto enablePrintMLIREachPass =
+        cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
+    auto disableThreading =
+        cudaq::getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", false);
+    if (enablePrintMLIREachPass || disableThreading) {
+      module->getContext()->disableMultithreading();
+      if (enablePrintMLIREachPass)
+        pm.enableIRPrinting();
+    }
 
     if (failed(pm.run(module)))
       throw std::runtime_error(

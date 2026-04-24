@@ -45,7 +45,7 @@ public:
             dyn_cast_if_present<quake::RefType>(alloca.getResult().getType())) {
 
       StringRef qirQubitAllocate = cudaq::opt::QIRQubitAllocate;
-      auto qubitType = cudaq::opt::getQubitType(context);
+      auto qubitType = cudaq::cg::getLLVMQubitType(context);
       FlatSymbolRefAttr symbolRef =
           cudaq::opt::factory::createLLVMFunctionSymbol(
               qirQubitAllocate, qubitType, {}, parentModule);
@@ -57,7 +57,7 @@ public:
 
     // Create a QIR call to allocate the qubits.
     StringRef qir_qubit_array_allocate = cudaq::opt::QIRArrayQubitAllocateArray;
-    auto array_qbit_type = cudaq::opt::getArrayType(context);
+    auto array_qbit_type = cudaq::cg::getLLVMArrayType(context);
     FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
         qir_qubit_array_allocate, array_qbit_type, {rewriter.getI64Type()},
         parentModule);
@@ -96,7 +96,7 @@ public:
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = raii->getLoc();
     auto parentModule = raii->getParentOfType<ModuleOp>();
-    auto array_qbit_type = cudaq::opt::getArrayType(rewriter.getContext());
+    auto array_qbit_type = cudaq::cg::getLLVMArrayType(rewriter.getContext());
 
     // Get the CC Pointer for the state
     auto ccState = adaptor.getInitState();
@@ -183,10 +183,10 @@ public:
     Type operandType, qType = dealloc.getOperand().getType();
     if (isa<quake::VeqType>(qType)) {
       qirQuantumDeallocateFunc = cudaq::opt::QIRArrayQubitReleaseArray;
-      operandType = cudaq::opt::getArrayType(context);
+      operandType = cudaq::cg::getLLVMArrayType(context);
     } else {
       qirQuantumDeallocateFunc = cudaq::opt::QIRArrayQubitReleaseQubit;
-      operandType = cudaq::opt::getQubitType(context);
+      operandType = cudaq::cg::getLLVMQubitType(context);
     }
 
     FlatSymbolRefAttr deallocSymbolRef =
@@ -218,7 +218,7 @@ public:
     auto parentModule = concat->getParentOfType<ModuleOp>();
     auto context = parentModule->getContext();
 
-    auto arrType = cudaq::opt::getArrayType(context);
+    auto arrType = cudaq::cg::getLLVMArrayType(context);
     auto loc = concat.getLoc();
 
     StringRef qirArrayConcatName = cudaq::opt::QIRArrayConcatArray;
@@ -231,7 +231,7 @@ public:
       return success();
     }
 
-    auto qirArrayTy = cudaq::opt::getArrayType(context);
+    auto qirArrayTy = cudaq::cg::getLLVMArrayType(context);
     auto i8PtrTy = cudaq::opt::factory::getPointerType(context);
     FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
         cudaq::opt::QIRArrayCreateArray, qirArrayTy,
@@ -246,7 +246,7 @@ public:
     Value eight = arith::ConstantIntOp::create(rewriter, loc, 8, 32);
     // Function to convert a QIR Qubit value to an Array value.
     auto wrapQubitInArray = [&](Value v) -> Value {
-      if (v.getType() != cudaq::opt::getQubitType(context))
+      if (v.getType() != cudaq::cg::getLLVMQubitType(context))
         return v;
       auto createCall = LLVM::CallOp::create(
           rewriter, loc, qirArrayTy, symbolRef, ArrayRef<Value>{eight, one});
@@ -304,7 +304,7 @@ public:
 
     auto qir_array_get_element_ptr_1d = cudaq::opt::QIRArrayGetElementPtr1d;
 
-    auto array_qbit_type = cudaq::opt::getArrayType(context);
+    auto array_qbit_type = cudaq::cg::getLLVMArrayType(context);
     auto qbit_element_ptr_type = cudaq::opt::factory::getPointerType(context);
 
     FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
@@ -332,7 +332,7 @@ public:
         rewriter, loc, cudaq::opt::factory::getPointerType(context),
         get_qbit_qir_call.getResult());
     rewriter.replaceOpWithNewOp<LLVM::LoadOp>(
-        extract, cudaq::opt::getQubitType(context), bitcast.getResult());
+        extract, cudaq::cg::getLLVMQubitType(context), bitcast.getResult());
     return success();
   }
 };
@@ -386,7 +386,7 @@ public:
     auto parentModule = subveq->getParentOfType<ModuleOp>();
     auto *context = parentModule->getContext();
     constexpr auto rtSubveqFuncName = cudaq::opt::QIRArraySlice;
-    auto arrayTy = cudaq::opt::getArrayType(context);
+    auto arrayTy = cudaq::cg::getLLVMArrayType(context);
     auto resultTy = arrayTy;
 
     auto i32Ty = rewriter.getI32Type();
@@ -441,7 +441,7 @@ public:
     auto qirFunctionName = cudaq::opt::QIRQISPrefix + instName;
 
     // Create the qubit pointer type
-    auto qirQubitPointerType = cudaq::opt::getQubitType(context);
+    auto qirQubitPointerType = cudaq::cg::getLLVMQubitType(context);
 
     // Get the function reference for the reset function
     auto qirFunctionSymbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
@@ -470,7 +470,7 @@ public:
     auto qirFunctionName = qirQisPrefix + "exp_pauli";
     FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
         qirFunctionName, /*return type=*/LLVM::LLVMVoidType::get(context),
-        {rewriter.getF64Type(), cudaq::opt::getArrayType(context),
+        {rewriter.getF64Type(), cudaq::cg::getLLVMArrayType(context),
          cudaq::opt::factory::getPointerType(context)},
         parentModule);
     SmallVector<Value> operands = adaptor.getOperands();
@@ -578,8 +578,8 @@ public:
     auto qirFunctionName = qirQisPrefix + instName + "__ctl";
 
     // Useful types we'll need
-    auto qirArrayType = cudaq::opt::getArrayType(context);
-    auto qirQubitPointerType = cudaq::opt::getQubitType(context);
+    auto qirArrayType = cudaq::cg::getLLVMArrayType(context);
+    auto qirQubitPointerType = cudaq::cg::getLLVMQubitType(context);
     auto i64Type = rewriter.getI64Type();
 
     // __quantum__qis__NAME__ctl(Array*, Qubit*) Type
@@ -708,7 +708,7 @@ public:
         qirQisPrefix + instName + (instOp.getIsAdj() ? "__adj" : "");
     FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
         qirFunctionName, /*return type=*/LLVM::LLVMVoidType::get(context),
-        {cudaq::opt::getQubitType(context)}, parentModule);
+        {cudaq::cg::getLLVMQubitType(context)}, parentModule);
     rewriter.replaceOpWithNewOp<LLVM::CallOp>(instOp, TypeRange{}, symbolRef,
                                               adaptor.getOperands());
     return success();
@@ -736,8 +736,8 @@ public:
     std::string qirQisPrefix = cudaq::opt::QIRQISPrefix;
     auto qirFunctionName = qirQisPrefix + instName;
 
-    auto qubitIndexType = cudaq::opt::getQubitType(context);
-    auto qubitArrayType = cudaq::opt::getArrayType(context);
+    auto qubitIndexType = cudaq::cg::getLLVMQubitType(context);
+    auto qubitArrayType = cudaq::cg::getLLVMArrayType(context);
     auto paramType = rewriter.getF64Type();
 
     SmallVector<Value> funcArgs;
@@ -860,7 +860,7 @@ public:
     auto qirFunctionName = std::string(cudaq::opt::QIRQISPrefix) + instName;
 
     SmallVector<Type> tmpArgTypes;
-    auto qubitIndexType = cudaq::opt::getQubitType(context);
+    auto qubitIndexType = cudaq::cg::getLLVMQubitType(context);
 
     auto paramType = rewriter.getF64Type();
     tmpArgTypes.push_back(paramType);
@@ -919,8 +919,8 @@ public:
     std::string qirQisPrefix = cudaq::opt::QIRQISPrefix;
     auto qirFunctionName = qirQisPrefix + instName;
 
-    auto qubitIndexType = cudaq::opt::getQubitType(context);
-    auto qubitArrayType = cudaq::opt::getArrayType(context);
+    auto qubitIndexType = cudaq::cg::getLLVMQubitType(context);
+    auto qubitArrayType = cudaq::cg::getLLVMArrayType(context);
     auto paramType = rewriter.getF64Type();
 
     SmallVector<Value> funcArgs;
@@ -1051,7 +1051,7 @@ public:
     auto context = parentModule->getContext();
     auto qirFunctionName = std::string(cudaq::opt::QIRQISPrefix) + instName;
 
-    auto qubitIndexType = cudaq::opt::getQubitType(context);
+    auto qubitIndexType = cudaq::cg::getLLVMQubitType(context);
     SmallVector<Type> tmpArgTypes = {qubitIndexType, qubitIndexType};
 
     FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
@@ -1092,7 +1092,7 @@ public:
 
     std::string qFunctionName = cudaq::opt::QIRMeasure;
     Attribute regName = measure.getRegisterNameAttr();
-    std::vector<Type> funcTypes{cudaq::opt::getQubitType(context)};
+    std::vector<Type> funcTypes{cudaq::cg::getLLVMQubitType(context)};
     std::vector<Value> args{adaptor.getOperands().front()};
 
     bool appendName;
@@ -1148,12 +1148,12 @@ public:
       args.push_back(castedRegNameRef);
 
     FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
-        qFunctionName, cudaq::opt::getResultType(context),
+        qFunctionName, cudaq::cg::getLLVMResultType(context),
         llvm::ArrayRef(funcTypes), parentModule);
 
-    auto callOp =
-        LLVM::CallOp::create(rewriter, loc, cudaq::opt::getResultType(context),
-                             symbolRef, ArrayRef<Value>(args));
+    auto callOp = LLVM::CallOp::create(rewriter, loc,
+                                       cudaq::cg::getLLVMResultType(context),
+                                       symbolRef, ArrayRef<Value>(args));
     if (regName)
       callOp->setAttr("registerName", regName);
     auto i1Ty = rewriter.getI1Type();
@@ -1180,7 +1180,7 @@ public:
 
     auto symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
         qFunctionName, rewriter.getI64Type(),
-        {cudaq::opt::getArrayType(context)}, parentModule);
+        {cudaq::cg::getLLVMArrayType(context)}, parentModule);
 
     auto c = LLVM::CallOp::create(rewriter, loc, rewriter.getI64Type(),
                                   symbolRef, adaptor.getOperands());
@@ -1212,8 +1212,9 @@ public:
 
     // If we are returning a llvm.ptr<Result> then we've really
     // been asked to return a bit, set that up here
-    if (ret.getNumOperands() == 1 && adaptor.getOperands().front().getType() ==
-                                         cudaq::opt::getResultType(context)) {
+    if (ret.getNumOperands() == 1 &&
+        adaptor.getOperands().front().getType() ==
+            cudaq::cg::getLLVMResultType(context)) {
 
       // Bitcast the produced value, which corresponds to the value in
       // ret.operands()[0], from llvm.ptr<Result> to llvm.ptr<i1>. There is a
@@ -1267,7 +1268,7 @@ public:
   Value wrapQubitInArray(Location &loc, ConversionPatternRewriter &rewriter,
                          ModuleOp parentModule, Value v) const {
     auto context = rewriter.getContext();
-    auto qirArrayTy = cudaq::opt::getArrayType(context);
+    auto qirArrayTy = cudaq::cg::getLLVMArrayType(context);
     auto ptrTy = cudaq::opt::factory::getPointerType(context);
     FlatSymbolRefAttr symbolRef = cudaq::opt::factory::createLLVMFunctionSymbol(
         cudaq::opt::QIRArrayCreateArray, qirArrayTy,
@@ -1280,7 +1281,7 @@ public:
     Value one = arith::ConstantIntOp::create(rewriter, loc, 1, 64);
     // FIXME: 8 bytes is assumed to be the sizeof(char*) on the target machine.
     Value eight = arith::ConstantIntOp::create(rewriter, loc, 8, 32);
-    if (v.getType() != cudaq::opt::getQubitType(context))
+    if (v.getType() != cudaq::cg::getLLVMQubitType(context))
       return v;
     auto createCall = LLVM::CallOp::create(rewriter, loc, qirArrayTy, symbolRef,
                                            ArrayRef<Value>{eight, one});
@@ -1307,8 +1308,8 @@ public:
     if (numParameters)
       op.emitOpError("Parameterized custom operations not yet supported.");
 
-    auto arrType = cudaq::opt::getArrayType(context);
-    auto qirArrayTy = cudaq::opt::getArrayType(context);
+    auto arrType = cudaq::cg::getLLVMArrayType(context);
+    auto qirArrayTy = cudaq::cg::getLLVMArrayType(context);
     FlatSymbolRefAttr concatFunc =
         cudaq::opt::factory::createLLVMFunctionSymbol(
             cudaq::opt::QIRArrayConcatArray, arrType, {arrType, arrType},
@@ -1334,12 +1335,12 @@ public:
       FlatSymbolRefAttr symbolRef =
           cudaq::opt::factory::createLLVMFunctionSymbol(
               cudaq::opt::QIRArrayCreateArray,
-              cudaq::opt::getArrayType(context),
+              cudaq::cg::getLLVMArrayType(context),
               {rewriter.getI32Type(), rewriter.getI64Type()}, parentModule);
-      controlArr =
-          LLVM::CallOp::create(rewriter, loc, cudaq::opt::getArrayType(context),
-                               symbolRef, ArrayRef<Value>{zero32, zero})
-              .getResult();
+      controlArr = LLVM::CallOp::create(
+                       rewriter, loc, cudaq::cg::getLLVMArrayType(context),
+                       symbolRef, ArrayRef<Value>{zero32, zero})
+                       .getResult();
     } else {
       controlArr = wrapQubitInArray(loc, rewriter, parentModule,
                                     adaptor.getControls().front());
@@ -1403,8 +1404,8 @@ public:
     FlatSymbolRefAttr customSymbolRef =
         cudaq::opt::factory::createLLVMFunctionSymbol(
             qirFunctionName, LLVM::LLVMVoidType::get(context),
-            {complex64PtrTy, cudaq::opt::getArrayType(context),
-             cudaq::opt::getArrayType(context),
+            {complex64PtrTy, cudaq::cg::getLLVMArrayType(context),
+             cudaq::cg::getLLVMArrayType(context),
              cudaq::opt::factory::getPointerType(context)},
             parentModule);
 

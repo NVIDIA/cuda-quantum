@@ -121,7 +121,7 @@ struct EraseArrayAlloc : public OpRewritePattern<LLVM::CallOp> {
       return failure();
     auto *ctx = rewriter.getContext();
     rewriter.replaceOpWithNewOp<LLVM::UndefOp>(call,
-                                               cudaq::opt::getArrayType(ctx));
+                                               cudaq::cg::getLLVMArrayType(ctx));
     return success();
   }
 };
@@ -226,7 +226,7 @@ struct LoadMeasureResult : public OpRewritePattern<LLVM::LoadOp> {
     if (bitcast.getType() !=
         cudaq::opt::factory::getPointerType(IntegerType::get(ctx, 1)))
       return failure();
-    if (inttoptr.getType() != cudaq::opt::getResultType(ctx))
+    if (inttoptr.getType() != cudaq::cg::getLLVMResultType(ctx))
       return failure();
     if (!isa<IntegerAttr>(conint.getValue()))
       return failure();

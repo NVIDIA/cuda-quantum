@@ -61,10 +61,10 @@ struct QuakeTypeConverter : public TypeConverter {
   QuakeTypeConverter() {
     addConversion([](Type ty) { return ty; });
     addConversion([](quake::WireType ty) {
-      return cudaq::opt::getQubitType(ty.getContext());
+      return cudaq::cg::getQubitType(ty.getContext());
     });
     addConversion([](quake::MeasureType ty) {
-      return cudaq::opt::getResultType(ty.getContext());
+      return cudaq::cg::getResultType(ty.getContext());
     });
   }
 };
@@ -120,8 +120,8 @@ struct GeneralRewrite : OpConversionPattern<OP> {
     if (funcName.ends_with(qis_ctl_suffix) &&
         adaptor.getControls().size() == 1 && adaptor.getTargets().size() == 1) {
       auto *ctx = rewriter.getContext();
-      auto qbTy = cudaq::opt::getQubitType(ctx);
-      auto arrTy = cudaq::opt::getArrayType(ctx);
+      auto qbTy = cudaq::cg::getQubitType(ctx);
+      auto arrTy = cudaq::cg::getArrayType(ctx);
       SmallVector<Type> argTys = {arrTy, qbTy};
       ModuleOp mod = qop->template getParentOfType<ModuleOp>();
       FlatSymbolRefAttr qisFuncSymbol;
@@ -174,7 +174,7 @@ struct BorrowWireRewrite : OpConversionPattern<quake::BorrowWireOp> {
         cudaq::cc::PointerType::get(NoneType::get(rewriter.getContext()));
     idCon = cudaq::cc::CastOp::create(rewriter, loc, imTy, idCon);
     rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(
-        borrowWire, cudaq::opt::getQubitType(rewriter.getContext()), idCon);
+        borrowWire, cudaq::cg::getQubitType(rewriter.getContext()), idCon);
     return success();
   }
 };
@@ -201,7 +201,7 @@ struct BranchRewrite : OpConversionPattern<cf::BranchOp> {
   LogicalResult
   matchAndRewrite(cf::BranchOp branchOp, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-    auto qubitTy = cudaq::opt::getQubitType(rewriter.getContext());
+    auto qubitTy = cudaq::cg::getQubitType(rewriter.getContext());
     rewriter.startOpModification(branchOp);
     if (branchOp.getSuccessor())
       for (auto arg : branchOp.getSuccessor()->getArguments())
@@ -221,7 +221,7 @@ struct CondBranchRewrite : OpConversionPattern<cf::CondBranchOp> {
   LogicalResult
   matchAndRewrite(cf::CondBranchOp branchOp, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-    auto qubitTy = cudaq::opt::getQubitType(rewriter.getContext());
+    auto qubitTy = cudaq::cg::getQubitType(rewriter.getContext());
     rewriter.startOpModification(branchOp);
     for (auto suc : branchOp.getSuccessors())
       for (auto arg : suc->getArguments())
@@ -285,7 +285,7 @@ struct MzRewrite : OpConversionPattern<quake::MzOp> {
         cudaq::cc::PointerType::get(NoneType::get(rewriter.getContext()));
     idCon = cudaq::cc::CastOp::create(rewriter, loc, imTy, idCon);
     Value resultVal = cudaq::cc::CastOp::create(
-        rewriter, loc, cudaq::opt::getResultType(rewriter.getContext()), idCon);
+        rewriter, loc, cudaq::cg::getResultType(rewriter.getContext()), idCon);
     func::CallOp::create(rewriter, loc, mlir::TypeRange{}, funcName,
                          ValueRange{adaptor.getTargets()[0], resultVal});
     rewriter.replaceOp(meas, ValueRange{resultVal, adaptor.getTargets()[0]});
@@ -493,7 +493,7 @@ struct WireSetToProfileQIRPrepPass
 
     LLVM_DEBUG(llvm::dbgs() << "Module before prep:\n"; op.dump());
     // Insert declarations for all the functions we *may* be using.
-    auto qbTy = cudaq::opt::getQubitType(ctx);
+    auto qbTy = cudaq::cg::getQubitType(ctx);
     auto targ1Ty = FunctionType::get(ctx, TypeRange{qbTy}, TypeRange{});
     auto targ1CtrlTy =
         FunctionType::get(ctx, TypeRange{qbTy, qbTy}, TypeRange{});
@@ -535,7 +535,7 @@ struct WireSetToProfileQIRPrepPass
     addDecls("swap", targ2Ty, targ2CtrlTy);
     addBodyDecl("cnot", targ2Ty);
 
-    auto resTy = cudaq::opt::getResultType(ctx);
+    auto resTy = cudaq::cg::getResultType(ctx);
     auto measTy = FunctionType::get(ctx, TypeRange{qbTy, resTy}, TypeRange{});
     addBodyDecl("mz", measTy);
     auto readResTy = FunctionType::get(ctx, TypeRange{resTy},

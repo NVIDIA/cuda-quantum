@@ -647,7 +647,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   !qir_array = !cc.ptr<none>
   !qir_qubit = !cc.ptr<none>
   !qir_result = !cc.ptr<none>
-  !qir_charptr = !cc.ptr<none>
+  !qir_charptr = !cc.ptr<i8>
   !qir_llvmptr = !llvm.ptr
 )#"},
     // Use the obsolete LLVM opaque struct type.

@@ -97,7 +97,7 @@ Value factory::packIsArrayAndLengthArray(
   // Create an integer array where the kth element is N if the kth control
   // operand is a veq<N>, and 0 otherwise.
   auto i64Type = rewriter.getI64Type();
-  auto context = rewriter.getContext();
+  auto *context = rewriter.getContext();
   auto alignment = IntegerAttr::get(i64Type, 8);
   auto ptrTy = LLVM::LLVMPointerType::get(context);
   Value numOpnds = arith::ConstantIntOp::create(rewriter, loc, numOperands, 64);
@@ -105,7 +105,7 @@ Value factory::packIsArrayAndLengthArray(
       rewriter, loc, ptrTy, numOpnds, alignment, TypeAttr::get(i64Type));
   Value zero = arith::ConstantIntOp::create(rewriter, loc, 0, 64);
   auto getSizeSymbolRef = opt::factory::createLLVMFunctionSymbol(
-      opt::QIRArrayGetSize, i64Type, {opt::getArrayType(context)},
+      opt::QIRArrayGetSize, i64Type, {cg::getLLVMArrayType(context)},
       parentModule);
   for (auto iter : llvm::enumerate(operands)) {
     auto operand = iter.value();
