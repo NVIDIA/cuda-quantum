@@ -52,16 +52,21 @@ output_dir="out"
 cudaq_version="0.0.0"
 docker_mode=false
 verbose=false
+# xz is the default for CI (smallest deb); gzip is ~10x faster to build and
+# useful for local iteration. Valid values match dpkg-deb's -Z flag:
+# none, gzip, bzip2, lzma, xz, zstd.
+compression="xz"
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:f:i:o:V:dv" opt; do
+while getopts ":c:f:i:o:V:z:dv" opt; do
   case $opt in
     c) cuda_major="$OPTARG" ;;
     f) flavor="$OPTARG" ;;
     i) staged_dir="$OPTARG" ;;
     o) output_dir="$OPTARG" ;;
     V) cudaq_version="$OPTARG" ;;
+    z) compression="$OPTARG" ;;
     d) docker_mode=true ;;
     v) verbose=true ;;
     \?)
@@ -216,7 +221,7 @@ Version: ${cudaq_version}
 Architecture: ${deb_arch}
 Maintainer: NVIDIA Corporation <cuda-quantum@nvidia.com>
 Installed-Size: ${installed_size}
-Depends: libc6 (>= 2.35), libstdc++6 (>= 12), libgomp1, libgcc-s1
+Depends: libc6 (>= 2.35), libc6-dev, libstdc++6 (>= 12), libgomp1, libgcc-s1
 Conflicts: ${conflicts_pkg}
 Provides: ${provides_pkg}
 Section: science
@@ -306,9 +311,9 @@ find "$pkgroot" -type d -exec chmod 0755 {} +
 # requiring actual root (works inside unprivileged CI containers).
 deb_file="${output_dir}/${pkg_name}_${cudaq_version}_${deb_arch}.deb"
 if $verbose; then
-  dpkg-deb --build --root-owner-group -Zxz "$pkgroot" "$deb_file"
+  dpkg-deb --build --root-owner-group "-Z${compression}" "$pkgroot" "$deb_file"
 else
-  dpkg-deb --build --root-owner-group -Zxz "$pkgroot" "$deb_file" >/dev/null
+  dpkg-deb --build --root-owner-group "-Z${compression}" "$pkgroot" "$deb_file" >/dev/null
 fi
 
 echo "Built $deb_file"
