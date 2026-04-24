@@ -251,6 +251,7 @@ cmake_args=" \
   -DLLVM_ENABLE_RUNTIMES='"${llvm_runtimes%;}"' \
   -DLLVM_DISTRIBUTION_COMPONENTS='"${llvm_components%;}"' \
   -DLLVM_ENABLE_ZLIB=${llvm_enable_zlib:-OFF} \
+  -DZLIB_USE_STATIC_LIBS=${llvm_enable_zlib:-OFF} \
   -DZLIB_ROOT='"$ZLIB_INSTALL_PREFIX"' \
   -DPython3_EXECUTABLE='"$Python3_EXECUTABLE"' \
   -DMLIR_ENABLE_BINDINGS_PYTHON=$mlir_python_bindings \
@@ -316,6 +317,14 @@ if [ -n "$(echo $install_targets | grep omp)" ]; then
   fi
 fi
 
+# If lld was built, configure clang to use it as the default linker.
+if [ -x "$LLVM_INSTALL_PREFIX/bin/ld.lld" ]; then
+  for cfg in clang clang++; do
+    printf -- '-fuse-ld=lld\n' > "$LLVM_INSTALL_PREFIX/bin/$cfg.cfg"
+  done
+  echo "Configured clang to use lld by default."
+fi
+
 # Build and install runtimes using the newly built toolchain.
 if [ -n "$llvm_runtimes" ]; then
   echo "Building runtime components..."
@@ -350,7 +359,7 @@ if [ -n "$llvm_runtimes" ]; then
     # We can use a default config file to set specific clang configurations.
     # See https://clang.llvm.org/docs/UsersManual.html#configuration-files
     clang_config_file="$LLVM_INSTALL_PREFIX/bin/clang++.cfg"
-    echo '-L"'$LLVM_INSTALL_PREFIX/lib'"' > "$clang_config_file"
+    echo '-L"'$LLVM_INSTALL_PREFIX/lib'"' >> "$clang_config_file"
     echo '-Wl,-rpath,"'$LLVM_INSTALL_PREFIX/lib'"' >> "$clang_config_file"
     target_specific_libs=`ls -d "$LLVM_INSTALL_PREFIX/lib"/*linux*`
     for libdir in $target_specific_libs; do

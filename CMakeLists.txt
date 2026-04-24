@@ -188,7 +188,7 @@ if (${CUDAQ_FORCE_COLORED_OUTPUT})
     endif ()
 endif ()
 
-add_compile_options(-Wno-error=deprecated-declarations)
+add_compile_options(-Wno-error=deprecated-declarations -Wno-error=character-conversion)
 
 # Certain build configurations may be set directly in the environment.
 # This facilitates some of the packaging (e.g. python packages built based on the pyproject.toml).
