@@ -8,27 +8,21 @@
 
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/Todo.h"
+#include "llvm/Support/Debug.h"
+#include "mlir/IR/Dominance.h"
+#include "mlir/Transforms/DialectConversion.h"
+#include "mlir/Transforms/Passes.h"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_QUAKEADDMETADATA
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/Todo.h"
-#include "llvm/Support/Debug.h"
-#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/Dialect/LLVMIR/LLVMDialect.h"
-#include "mlir/IR/Dominance.h"
-#include "mlir/Transforms/DialectConversion.h"
-#include "mlir/Transforms/Passes.h"
+#define DEBUG_TYPE "add-metadata"
 
 using namespace mlir;
-
-#define DEBUG_TYPE "add-metadata"
 
 static cudaq::cc::AllocaOp seekAllocaFrom(Value v);
 

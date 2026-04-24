@@ -10,12 +10,9 @@
 #include "common/EigenDense.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
-#include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
@@ -31,7 +28,6 @@ namespace cudaq::opt {
 #define DEBUG_TYPE "unitary-synthesis"
 
 using namespace mlir;
-using namespace std::complex_literals;
 
 namespace {
 
@@ -80,6 +76,7 @@ struct OneQubitOpZYZ : public Decomposer {
   /// corresponding explanation in https://threeplusone.com/pubs/on_gates.pdf,
   /// Section 4.
   void decompose() override {
+    using namespace std::complex_literals;
     /// Rescale the input unitary matrix, `u`, to be special unitary.
     /// Extract a phase factor, `phase`, so that
     /// `determinant(inverse_phase * unitary) = 1`
@@ -180,6 +177,7 @@ struct KAKComponents {
 ///                    0  i −1  0
 ///                    1  0  0 −i
 const Eigen::Matrix4cd &MagicBasisMatrix() {
+  using namespace std::complex_literals;
   static Eigen::Matrix4cd MagicBasisMatrix;
   MagicBasisMatrix << 1.0, 0.0, 0.0, 1i, 0.0, 1i, 1.0, 0, 0, 1i, -1.0, 0, 1.0,
       0, 0, -1i;
@@ -278,6 +276,7 @@ extractSU2FromSO4(const Eigen::Matrix4cd &matrix) {
 
 /// Compute exp(i(x XX + y YY + z ZZ)) matrix for verification
 Eigen::Matrix4cd canonicalVecToMatrix(double x, double y, double z) {
+  using namespace std::complex_literals;
   Eigen::Matrix2cd X{Eigen::Matrix2cd::Zero()};
   Eigen::Matrix2cd Y{Eigen::Matrix2cd::Zero()};
   Eigen::Matrix2cd Z{Eigen::Matrix2cd::Zero()};
@@ -300,6 +299,7 @@ struct TwoQubitOpKAK : public Decomposer {
   /// Ref: https://arxiv.org/pdf/quant-ph/0507171
   /// Ref: https://arxiv.org/pdf/0806.4015
   void decompose() override {
+    using namespace std::complex_literals;
     /// Step0: Convert to special unitary
     phase = std::pow(targetMatrix.determinant(), 0.25);
     auto specialUnitary = targetMatrix / phase;

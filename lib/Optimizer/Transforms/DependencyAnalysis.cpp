@@ -16,6 +16,14 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
 
+//===----------------------------------------------------------------------===//
+// Generated logic
+//===----------------------------------------------------------------------===//
+namespace cudaq::opt {
+#define GEN_PASS_DEF_DEPENDENCYANALYSIS
+#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+} // namespace cudaq::opt
+
 #define DEBUG_TYPE "dep-analysis"
 
 using namespace mlir;
@@ -24,14 +32,6 @@ using namespace mlir;
 #define RAW_MEASURE_OPS MEASURE_OPS(RAW)
 #define RAW_GATE_OPS GATE_OPS(RAW)
 #define RAW_QUANTUM_OPS QUANTUM_OPS(RAW)
-
-//===----------------------------------------------------------------------===//
-// Generated logic
-//===----------------------------------------------------------------------===//
-namespace cudaq::opt {
-#define GEN_PASS_DEF_DEPENDENCYANALYSIS
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
-} // namespace cudaq::opt
 
 namespace {
 // TODO: Someday, it would probably make sense to make VirtualQIDs and

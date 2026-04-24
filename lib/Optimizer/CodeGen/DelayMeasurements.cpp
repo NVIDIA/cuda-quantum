@@ -8,7 +8,6 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_DELAYMEASUREMENTS

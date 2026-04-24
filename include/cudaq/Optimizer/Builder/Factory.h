@@ -233,6 +233,7 @@ mlir::Value packIsArrayAndLengthArray(mlir::Location loc,
                                       std::size_t numOperands,
                                       mlir::ValueRange operands,
                                       mlir::ValueRange originalControls);
+
 mlir::FlatSymbolRefAttr
 createLLVMFunctionSymbol(mlir::StringRef name, mlir::Type retType,
                          mlir::ArrayRef<mlir::Type> inArgTypes,

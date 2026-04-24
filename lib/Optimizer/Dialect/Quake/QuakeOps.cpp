@@ -1260,13 +1260,5 @@ VERIFY_OPS(INSTANTIATE_LINEAR_TYPE_VERIFY)
 
 using namespace cudaq;
 
-LogicalResult
-quake::ApplyOp::verifySymbolUses(mlir::SymbolTableCollection &symTab) {
-  if (auto calleeSym = getCallee())
-    if (!symTab.lookupNearestSymbolFrom<func::FuncOp>(*this, *calleeSym))
-      return failure();
-  return success();
-}
-
 #define GET_OP_CLASSES
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.cpp.inc"

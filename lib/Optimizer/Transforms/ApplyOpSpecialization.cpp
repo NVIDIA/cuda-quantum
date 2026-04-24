@@ -549,7 +549,13 @@ public:
           << "cannot make adjoint of kernel: unstructured control flow\n");
       return failure();
     }
-    if (cudaq::opt::hasCallOp(func)) {
+    // quake::ApplyOp implements CallOpInterface but can be handled below by
+    // toggling isAdj. Reject any other call-like op that we cannot invert.
+    if (cudaq::opt::internal::hasCharacteristic(
+            [](Operation &op) {
+              return isa<mlir::CallOpInterface>(op) && !isa<quake::ApplyOp>(op);
+            },
+            *func.getOperation())) {
       LLVM_DEBUG(llvm::dbgs() << "cannot make adjoint of kernel with calls\n");
       return failure();
     }
@@ -584,7 +590,7 @@ public:
   static SmallVector<Operation *> getOpsToInvert(Block &block) {
     SmallVector<Operation *> ops;
     for (auto &op : block)
-      if (cudaq::opt::hasQuantum(op))
+      if (cudaq::opt::hasQuantum(op) || isa<quake::ApplyOp>(op))
         ops.push_back(&op);
     return ops;
   }
@@ -775,6 +781,20 @@ public:
         op->erase();
         auto newScopeOp = cast<cudaq::cc::ScopeOp>(newScope);
         invert(newScopeOp.getInitRegion());
+        continue;
+      }
+
+      if (auto applyOp = dyn_cast<quake::ApplyOp>(op)) {
+        LLVM_DEBUG(llvm::dbgs() << "moving apply op: " << *op << ".\n");
+        // Adjoint of an ApplyOp: toggles the isAdj flag.
+        mlir::UnitAttr newIsAdj =
+            applyOp.getIsAdj() ? mlir::UnitAttr{}
+                               : mlir::UnitAttr::get(builder.getContext());
+        quake::ApplyOp::create(builder, applyOp.getLoc(),
+                               applyOp.getResultTypes(),
+                               applyOp.getCalleeAttr(), newIsAdj,
+                               applyOp.getControls(), applyOp.getActuals());
+        applyOp->erase();
         continue;
       }
 

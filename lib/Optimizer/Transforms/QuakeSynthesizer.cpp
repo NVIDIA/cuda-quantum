@@ -7,31 +7,24 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-
-namespace cudaq::opt {
-#define GEN_PASS_DEF_QUAKESYNTHESIZE
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
-} // namespace cudaq::opt
-
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
-#include "mlir/Dialect/Arith/IR/Arith.h"
-#include "mlir/Dialect/Complex/IR/Complex.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Target/LLVMIR/TypeToLLVM.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/RegionUtils.h"
+
+namespace cudaq::opt {
+#define GEN_PASS_DEF_QUAKESYNTHESIZE
+#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+} // namespace cudaq::opt
 
 #define DEBUG_TYPE "quake-synthesizer"
 
@@ -762,7 +755,11 @@ public:
         return;
       }
     }
-    (void)funcOp.eraseArguments(argsToErase);
+
+    // FIXME: erasing the arguments like this breaks the semantics of the code
+    // and is a bad idea in general. This practice is HIGHLY DISCOURAGED.
+    if (failed(funcOp.eraseArguments(argsToErase)))
+      funcOp->emitWarning("could not erase arguments");
   }
 };
 

@@ -8,23 +8,14 @@
 
 #include "CodeGenOps.h"
 #include "PassDetails.h"
-
-#include "cudaq/Optimizer/CodeGen/Passes.h"
-
-namespace cudaq::opt {
-#define GEN_PASS_DEF_CONVERTTOQIR
-#define GEN_PASS_DEF_LOWERTOCG
-#include "cudaq/Optimizer/CodeGen/Passes.h.inc"
-} // namespace cudaq::opt
 #include "QuakeToCodegen.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/CCToLLVM.h"
+#include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Peephole.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
 #include "cudaq/Optimizer/CodeGen/QuakeToLLVM.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/Hashing.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/FormatVariadic.h"
@@ -38,10 +29,15 @@ namespace cudaq::opt {
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Conversion/MathToLLVM/MathToLLVM.h"
 #include "mlir/Dialect/Arith/Transforms/Passes.h"
-#include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+
+namespace cudaq::opt {
+#define GEN_PASS_DEF_CONVERTTOQIR
+#define GEN_PASS_DEF_LOWERTOCG
+#include "cudaq/Optimizer/CodeGen/Passes.h.inc"
+} // namespace cudaq::opt
 
 #define DEBUG_TYPE "convert-to-qir"
 

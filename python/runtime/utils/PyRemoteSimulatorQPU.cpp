@@ -8,7 +8,7 @@
 
 #include "common/ArgumentWrapper.h"
 #include "common/BaseRemoteSimulatorQPU.h"
-#include <mlir/IR/BuiltinOps.h>
+#include "mlir/IR/BuiltinOps.h"
 
 using namespace mlir;
 

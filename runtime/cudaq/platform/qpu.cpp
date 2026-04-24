@@ -8,6 +8,7 @@
 
 #include "qpu.h"
 #include "mlir/IR/BuiltinOps.h"
+#include <cstring>
 
 using namespace cudaq_internal::compiler;
 
@@ -23,6 +24,44 @@ extern "C" void cudaq_add_module_launcher_node(void *node_ptr) {
       static_cast<Node *>(node_ptr));
 }
 
+/// Execute a JIT-compiled kernel with provided arguments.
+///
+/// Handles argument marshaling via `argsCreator` (if not fully specialized)
+/// and result buffer allocation.
+static cudaq::KernelThunkResultType
+launchCompiledModule(const cudaq::CompiledModule &compiled,
+                     const std::vector<void *> &rawArgs) {
+  auto funcPtr = compiled.getJit()->getFn();
+  const auto &resultInfo = compiled.getResultInfo();
+  if (!compiled.isFullySpecialized()) {
+    // Pack args at runtime via argsCreator, then call the thunk.
+    auto argsCreator = compiled.getArgsCreator();
+    void *buff = nullptr;
+    argsCreator(static_cast<const void *>(rawArgs.data()), &buff);
+    reinterpret_cast<cudaq::KernelThunkResultType (*)(void *, bool)>(funcPtr)(
+        buff, /*client_server=*/false);
+    // If the kernel has a result, copy it from the packed buffer into
+    // rawArgs.back() (where the caller expects to find it).
+    if (resultInfo.hasResult()) {
+      auto offset = compiled.getReturnOffset().value();
+      std::memcpy(rawArgs.back(), static_cast<char *>(buff) + offset,
+                  resultInfo.getBufferSize());
+    }
+    std::free(buff);
+    return {nullptr, 0};
+  }
+  if (resultInfo.hasResult()) {
+    // Fully specialized with result: rawArgs.back() is the pre-allocated
+    // result buffer; pass it directly to the thunk.
+    void *buff = const_cast<void *>(rawArgs.back());
+    return reinterpret_cast<cudaq::KernelThunkResultType (*)(void *, bool)>(
+        funcPtr)(buff, /*client_server=*/false);
+  }
+  // Fully specialized, no result.
+  funcPtr();
+  return {nullptr, 0};
+}
+
 cudaq::KernelThunkResultType
 cudaq::QPU::launchModule(const std::string &name, mlir::ModuleOp module,
                          const std::vector<void *> &rawArgs) {
@@ -33,7 +72,7 @@ cudaq::QPU::launchModule(const std::string &name, mlir::ModuleOp module,
         "result of attempting to use `launchModule` outside Python.");
   ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::launchModule", name);
   auto compiled = launcher->compileModule(name, module, rawArgs, true);
-  return compiled.execute(rawArgs);
+  return launchCompiledModule(compiled, rawArgs);
 }
 
 cudaq::CompiledModule

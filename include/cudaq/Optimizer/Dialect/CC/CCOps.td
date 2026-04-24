@@ -981,7 +981,6 @@ def cc_ExtractValueOp : CCOp<"extract_value", [Pure]> {
       $rawConstantIndices) `]` `:` functional-type(operands, results) attr-dict
   }];
 
-  let hasFolder = 1;
   let hasVerifier = 1;
   let hasCanonicalizer = 1;
 
@@ -1081,7 +1080,6 @@ def cc_ComputePtrOp : CCOp<"compute_ptr", [Pure]> {
       `]` `:` functional-type(operands, results) attr-dict
   }];
 
-  let hasFolder = 1;
   let hasCanonicalizer = 1;
   let hasVerifier = 1;
 

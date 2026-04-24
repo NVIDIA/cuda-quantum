@@ -15,9 +15,6 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/FormatAdapters.h"
-#include <algorithm>
-#include <cmath>
-#include <numeric>
 
 using namespace mlir;
 

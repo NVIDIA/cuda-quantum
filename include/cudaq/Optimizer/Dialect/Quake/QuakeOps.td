@@ -382,8 +382,7 @@ def quake_VeqSizeOp : QuakeOp<"veq_size", [Pure]> {
 //===----------------------------------------------------------------------===//
 
 def quake_ApplyOp : QuakeOp<"apply",
-    [AttrSizedOperandSegments, CallOpInterface,
-     DeclareOpInterfaceMethods<SymbolUserOpInterface>]> {
+    [AttrSizedOperandSegments, CallOpInterface]> {
   let summary = "Abstract application of a function in Quake.";
   let description = [{
     User-defined kernels define both predicated and unpredicated functions.
