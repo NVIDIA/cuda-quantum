@@ -221,10 +221,10 @@ extern "C" void cudaq_add_qpu_node(void *node_ptr);
 
 namespace {
 struct PyRemoteSimQPURegistration {
-  llvm::SimpleRegistryEntry<cudaq::QPU> entry;
-  llvm::Registry<cudaq::QPU>::node node;
+  cudaq::RegistryEntry<cudaq::QPU> entry;
+  cudaq::Registry<cudaq::QPU>::node node;
   PyRemoteSimQPURegistration()
-      : entry("RemoteSimulatorQPU", "", &PyRemoteSimQPURegistration::ctorFn),
+      : entry("RemoteSimulatorQPU", &PyRemoteSimQPURegistration::ctorFn),
         node(entry) {
     cudaq_add_qpu_node(&node);
   }

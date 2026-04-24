@@ -8,7 +8,6 @@
 
 #pragma once
 
-#include "llvm/Support/Registry.h"
 #include "mlir/IR/Builders.h"
 
 namespace nvqpp {
@@ -20,7 +19,5 @@ public:
   buildInstruction(mlir::OpBuilder &builder, mlir::Location loc,
                    mlir::ValueRange general_operands) = 0;
 };
-
-using QISBuilderRegistry = llvm::Registry<nvqpp::QISBuilder>;
 
 } // namespace nvqpp

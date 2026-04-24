@@ -25,10 +25,10 @@ extern "C" void cudaq_add_qpu_node(void *node_ptr);
 
 namespace {
 struct PasqalQPURegistration {
-  llvm::SimpleRegistryEntry<cudaq::QPU> entry;
-  llvm::Registry<cudaq::QPU>::node node;
+  cudaq::RegistryEntry<cudaq::QPU> entry;
+  cudaq::Registry<cudaq::QPU>::node node;
   PasqalQPURegistration()
-      : entry("pasqal", "", &PasqalQPURegistration::ctorFn), node(entry) {
+      : entry("pasqal", &PasqalQPURegistration::ctorFn), node(entry) {
     cudaq_add_qpu_node(&node);
   }
   static std::unique_ptr<cudaq::QPU> ctorFn() {

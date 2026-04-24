@@ -33,7 +33,7 @@
 
 using namespace mlir;
 
-LLVM_INSTANTIATE_REGISTRY(cudaq::DecompositionPatternTypeRegistry)
+CUDAQ_INSTANTIATE_REGISTRY(cudaq::DecompositionPatternTypeRegistry)
 
 //===----------------------------------------------------------------------===//
 // Helpers
@@ -327,7 +327,7 @@ static LogicalResult checkAndExtractControls(quake::OperatorInterface op,
     }                                                                          \
   };                                                                           \
   static cudaq::DecompositionPatternTypeRegistry::Add<PATTERN##Type> CONCAT(   \
-      TEMPNAME_, PATTERN)(#PATTERN, "");
+      TEMPNAME_, PATTERN)(#PATTERN);
 
 // NOTE: The patterns SToR1, TToR1, R1ToU3, and U3ToRotations handle arbitrary
 // control counts and are registered with (n) metadata. R1ToRz explicitly
@@ -1828,7 +1828,7 @@ void cudaq::populateWithAllDecompositionPatterns(
             map;
         for (auto &patternType :
              cudaq::DecompositionPatternTypeRegistry::entries()) {
-          map[patternType.getName().str()] = patternType.instantiate();
+          map[patternType.getName()] = patternType.instantiate();
         }
         return map;
       }();
