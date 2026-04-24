@@ -296,4 +296,10 @@ public:
   SourceModule(std::string kernelName, const void *mlirModuleOpaquePtr);
 };
 
+// TODO: remove once C++ launch can be cleanly split into compilation + launch.
+// Used by unifiedLaunchModule to compile kernels if they have not been compiled
+// before. In the future, unifiedLaunchModule should only accept compiled
+// modules.
+using AnyModule = std::variant<SourceModule, CompiledModule>;
+
 } // namespace cudaq

@@ -203,6 +203,11 @@ public:
                                                    const KernelArgs &args,
                                                    std::size_t qpu_id);
 
+  // TODO: temporary dispatcher. Routes to `launchKernel` or `launchModule`.
+  [[nodiscard]] KernelThunkResultType
+  unifiedLaunchModule(const AnyModule &module, const KernelArgs &args,
+                      std::size_t qpu_id = 0);
+
   [[nodiscard]] CompiledModule compileModule(const SourceModule &src,
                                              const KernelArgs &args,
                                              std::size_t qpu_id,

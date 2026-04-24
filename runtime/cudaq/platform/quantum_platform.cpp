@@ -230,6 +230,13 @@ quantum_platform::launchModule(const CompiledModule &module,
   return qpu->launchModule(module, args);
 }
 
+KernelThunkResultType quantum_platform::unifiedLaunchModule(
+    const AnyModule &module, const KernelArgs &args, std::size_t qpu_id) {
+  validateQpuId(qpu_id);
+  auto &qpu = platformQPUs[qpu_id];
+  return qpu->unifiedLaunchModule(module, args);
+}
+
 CompiledModule quantum_platform::compileModule(const SourceModule &src,
                                                const KernelArgs &args,
                                                std::size_t qpu_id,

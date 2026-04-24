@@ -67,6 +67,18 @@ cudaq::QPU::launchModule(const CompiledModule &module, KernelArgs args) {
   return launchCompiledModule(module, args);
 }
 
+cudaq::KernelThunkResultType
+cudaq::QPU::unifiedLaunchModule(const AnyModule &module,
+                                const KernelArgs &args) {
+  // Currently:
+  // - C++ passes uncompiled modules -> forward to launchKernel
+  // - Python passes compiled modules -> forward to launchModule
+  if (std::holds_alternative<SourceModule>(module)) {
+    return launchKernel(std::get<SourceModule>(module), args);
+  }
+  return launchModule(std::get<CompiledModule>(module), args);
+}
+
 cudaq::CompiledModule cudaq::QPU::compileModule(const SourceModule &src,
                                                 KernelArgs args,
                                                 bool isEntryPoint) {

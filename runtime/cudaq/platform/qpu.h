@@ -191,6 +191,11 @@ public:
   [[nodiscard]] virtual KernelThunkResultType
   launchModule(const CompiledModule &compiled, KernelArgs args);
 
+  // TODO: temporary dispatcher. Routes C++ kernels to `launchKernel` and
+  // Python kernels to `launchModule`.
+  [[nodiscard]] KernelThunkResultType
+  unifiedLaunchModule(const AnyModule &module, const KernelArgs &args);
+
   [[nodiscard]] virtual CompiledModule
   compileModule(const SourceModule &src, KernelArgs args, bool isEntryPoint);
 
