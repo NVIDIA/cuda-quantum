@@ -2,6 +2,7 @@ CUDA-Q Applications
 ====================
 
 This page contains a number of different applications implemented using CUDA-Q. All notebooks can be found `here. <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/applications/python>`_
+To run these applications without a local installation, run the `CUDA-Q application Hub launchable <https://www.nvidia.com/cudaq-apps/>`_.
 
 
 .. when adding applications
