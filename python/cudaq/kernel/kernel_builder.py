@@ -653,7 +653,6 @@ class PyKernel(object):
                 cloned = otherST[calleeName].operation.clone()
                 if 'cudaq-entrypoint' in cloned.operation.attributes:
                     cloned.operation.attributes.__delitem__('cudaq-entrypoint')
-                print("adding", cloned)
                 currentModule.body.append(cloned)
 
                 visitAllCallOps(cloned)
@@ -682,6 +681,12 @@ class PyKernel(object):
                 otherFuncCloned, otherModule = self.__cloneOrGetFunction(
                     target.name, self.module, target)
                 assert isinstance(otherFuncCloned, func.FuncOp)
+                # Same as __addAllCalledFunctionsRecursively does for
+                # transitively called functions: a sub-kernel merged into this
+                # module is no longer an `entrypoint`.
+                if 'cudaq-entrypoint' in otherFuncCloned.operation.attributes:
+                    otherFuncCloned.operation.attributes.__delitem__(
+                        'cudaq-entrypoint')
                 self.__addAllCalledFunctionsRecursively(otherFuncCloned,
                                                         self.module,
                                                         otherModule)
@@ -866,15 +871,18 @@ class PyKernel(object):
                                        size=initializer.mlirValue).result)
 
                 if cc.StdvecType.isinstance(initializer.mlirValue.type):
-                    size = cc.StdvecSizeOp(self.getIntegerType(),
-                                           initializer.mlirValue).result
                     value = initializer.mlirValue
                     eleTy = cc.StdvecType.getElementType(value.type)
-                    numQubits = math.CountTrailingZerosOp(size).result
-                    qubits = quake.AllocaOp(veqTy, size=numQubits).result
                     ptrTy = cc.PointerType.get(eleTy)
                     data = cc.StdvecDataOp(ptrTy, value).result
-                    init = quake.InitializeStateOp(veqTy, qubits, data).result
+                    intTy = self.getIntegerType()
+                    size = cc.StdvecSizeOp(intTy, value).result
+                    stateTy = cc.PointerType.get(cc.StateType.get())
+                    state = quake.CreateStateOp(stateTy, data, size).result
+                    numQubits = quake.GetNumberOfQubitsOp(intTy, state).result
+                    qubits = quake.AllocaOp(veqTy, size=numQubits).result
+                    init = quake.InitializeStateOp(veqTy, qubits, state).result
+                    deleteState = quake.DeleteStateOp(state)
                     return self.__createQuakeValue(init)
 
                 # State pointer

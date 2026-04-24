@@ -8,7 +8,7 @@
 
 add_subdirectory(helpers)
 
-if (CUDA_FOUND AND CUSTATEVEC_ROOT)
+if (cuStateVec_FOUND)
   add_subdirectory(custatevec)
 endif()
 add_subdirectory(remote)
@@ -36,7 +36,7 @@ target_link_libraries(${LIBRARY_NAME}
     pthread
 )
 
-if (CUDA_FOUND AND CUSTATEVEC_ROOT)
+if (cuStateVec_FOUND)
   target_link_libraries(${LIBRARY_NAME} PRIVATE gpu-emulated-qpu)
   add_target_config(nvidia-mqpu)
   add_target_config(nvidia-mqpu-mps)

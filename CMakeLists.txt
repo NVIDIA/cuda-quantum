@@ -192,18 +192,6 @@ if(NOT BLAS_LIBRARIES AND EXISTS "$ENV{BLAS_INSTALL_PREFIX}/libblas.a")
   # CACHE INTERNAL is needed due to how FindBLAS.cmake works...
   SET(BLAS_LIBRARIES "$ENV{BLAS_INSTALL_PREFIX}/libblas.a" CACHE INTERNAL "")
 endif()
-if(NOT CUSTATEVEC_ROOT)
-  SET(CUSTATEVEC_ROOT "$ENV{CUQUANTUM_INSTALL_PREFIX}" CACHE PATH "Path to cuStateVec installation")
-endif()
-if(NOT CUTENSORNET_ROOT)
-  SET(CUTENSORNET_ROOT "$ENV{CUQUANTUM_INSTALL_PREFIX}" CACHE PATH "Path to cuTensorNet installation")
-endif()
-if(NOT CUDENSITYMAT_ROOT)
-  SET(CUDENSITYMAT_ROOT "$ENV{CUQUANTUM_INSTALL_PREFIX}" CACHE PATH "Path to cuDensityMat installation")
-endif()
-if(NOT CUTENSOR_ROOT)
-  SET(CUTENSOR_ROOT "$ENV{CUTENSOR_INSTALL_PREFIX}" CACHE PATH "Path to cuTensor installation")
-endif()
 if(NOT ZLIB_ROOT)
   SET(ZLIB_ROOT "$ENV{ZLIB_INSTALL_PREFIX}" CACHE PATH "Path to zlib installation")
 endif()
@@ -449,7 +437,7 @@ set(MLIR_BINARY_DIR ${CMAKE_BINARY_DIR})
 
 list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
 
 include(TableGen)
 include(AddLLVM)
@@ -655,6 +643,14 @@ if(CMAKE_CUDA_COMPILER)
   message(STATUS "Cuda language found.")
 endif()
 
+# cuQuantum / cuTensor component discovery
+if (CUDA_FOUND)
+  find_package(cuStateVec)
+  find_package(cuTensor)
+  find_package(cuTensorNet)
+  find_package(cuDensityMat)
+endif()
+
 # Code coverage setup
 # ==============================================================================
 if(CUDAQ_ENABLE_CC)
@@ -717,6 +713,12 @@ if (CUDAQ_ENABLE_PYTHON)
   # Python bindings generated as part of the CUDA-Q build and bindings generated for
   # third party CUDA-Q libraries; see also https://github.com/pybind/pybind11/issues/1262
   add_subdirectory(tpls/pybind11)
+
+  # nanobind is used for all CUDA-Q Python bindings. pybind11 is retained only
+  # for upstream MLIR Python extensions (e.g., _mlirAsyncPasses) which use
+  # mlir/Bindings/Python/PybindAdaptors.h.
+  add_subdirectory(tpls/nanobind)
+
   add_subdirectory(python)
 endif()
 

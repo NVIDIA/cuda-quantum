@@ -756,7 +756,7 @@ def quake_SplitCableOp : QuakeOp<"split_cable", [Pure]> {
   let hasVerifier = 1;
 }
 
-def quake_LeftTeeOp : QuakeOp<"left_tee", [Pure]> {
+def quake_DetachWireOp : QuakeOp<"detach_wire", [Pure]> {
   let summary = "Split a cable exposing a single wire and a new cable.";
   let description = [{
     This operation can be used as syntactic sugar for extracting a single wire
@@ -772,13 +772,13 @@ def quake_LeftTeeOp : QuakeOp<"left_tee", [Pure]> {
     ```mlir
       // create a cable with 3 wires: 0, 1, and 2
       %20 = quake.null_cable !quake.cable<3>
-      %21:2 = quake.left_tee %20[1] : (!quake.cable<3>) -> (!quake.wire,
+      %21:2 = quake.detach_wire %20[1] : (!quake.cable<3>) -> (!quake.wire,
                                                             !quake.cable<2>)
       // %21#0 contains wire 1 previously at position 1 in %20
       // %21#1 contains wire 0 at position 0, and wire 2 at position 1
     ```
 
-    See also `quake.right_tee`.
+    See also `quake.attach_wire`.
   }];
 
   let arguments = (ins
@@ -796,7 +796,7 @@ def quake_LeftTeeOp : QuakeOp<"left_tee", [Pure]> {
   let hasVerifier = 1;
 }
 
-def quake_RightTeeOp : QuakeOp<"right_tee", [Pure]> {
+def quake_AttachWireOp : QuakeOp<"attach_wire", [Pure]> {
   let summary = "Compose a cable from a single wire and an existing cable.";
   let description = [{
     This operation can be used as syntactic sugar for inserting a single wire
@@ -814,15 +814,15 @@ def quake_RightTeeOp : QuakeOp<"right_tee", [Pure]> {
     ```mlir
       // create a cable with 3 wires: 0, 1, and 2
       %20 = quake.null_cable !quake.cable<3>
-      %21:2 = quake.left_tee %20[1] : (!cable<3>) -> (!wire, !cable<2>)
+      %21:2 = quake.detach_wire %20[1] : (!cable<3>) -> (!wire, !cable<2>)
       // %21#0 contains wire 1 previous at position 1 in %20
       // %21#1 contains wire 0 at position 0, and wire 2 at position 1
-      %22 = quake.right_tee %21#0, %21#1[2] : (!wire, !cable<2>) -> (!cable<3>)
+      %22 = quake.attach_wire %21#0, %21#1[2] : (!wire, !cable<2>) -> (!cable<3>)
       // %22 contains wire 0 at position 0, wire 2 at position 1,
       // and wire 1 at position 2 as they were originally created in %20
     ```
 
-    See also `quake.left_tee`.
+    See also `quake.detach_wire`.
   }];
 
   let arguments = (ins
@@ -1154,64 +1154,6 @@ def quake_DiscriminateOp : QuakeOp<"discriminate", [Pure]> {
   }];
 
   let hasVerifier = 1;
-}
-
-//===----------------------------------------------------------------------===//
-// GetMeasureOp
-//===----------------------------------------------------------------------===//
-
-def quake_GetMeasureOp : QuakeOp<"get_measure", [Pure]> {
-  let summary =
-    "Extract a single measurement from a measurements collection.";
-  let description = [{
-    Extracts a single `!quake.measure` value from a `!quake.measurements<N>`
-    collection by index. This is analogous to `quake.extract_ref` for qubits.
-
-    Example:
-    ```mlir
-      %m = quake.get_measure %ms[0] : (!quake.measurements<4>) -> !quake.measure
-    ```
-  }];
-
-  let arguments = (ins
-    MeasurementsType:$measurements,
-    Optional<AnySignlessIntegerOrIndex>:$index,
-    I64Attr:$rawIndex
-  );
-  let results = (outs MeasureType:$measure);
-
-  let builders = [
-    OpBuilder<(ins "mlir::Value":$measurements, "mlir::Value":$index,
-                   "mlir::IntegerAttr":$rawIndex), [{
-      return build($_builder, $_state, $_builder.getType<MeasureType>(),
-                   measurements, index, rawIndex);
-    }]>,
-    OpBuilder<(ins "mlir::Value":$measurements, "mlir::Value":$index), [{
-      return build($_builder, $_state, $_builder.getType<MeasureType>(),
-                   measurements, index, GetMeasureOp::kDynamicIndex);
-    }]>,
-    OpBuilder<(ins "mlir::Value":$measurements, "std::size_t":$rawIndex), [{
-      auto i64Ty = $_builder.getI64Type();
-      return build($_builder, $_state, $_builder.getType<MeasureType>(),
-                   measurements, mlir::Value{},
-                   mlir::IntegerAttr::get(i64Ty, rawIndex));
-    }]>
-  ];
-
-  let assemblyFormat = [{
-    $measurements `[` custom<RawIndex>($index, $rawIndex) `]` `:`
-      functional-type(operands, results) attr-dict
-  }];
-
-  let hasVerifier = 1;
-
-  let extraClassDeclaration = [{
-    static constexpr std::size_t kDynamicIndex =
-      std::numeric_limits<std::size_t>::max();
-
-    bool hasConstantIndex() { return !getIndex(); }
-    std::size_t getConstantIndex() { return getRawIndex(); }
-  }];
 }
 
 //===----------------------------------------------------------------------===//
@@ -1864,7 +1806,7 @@ def quake_CreateStateOp : QuakeOp<"create_state", [Pure]> {
   }];
 }
 
-def QuakeOp_DeleteStateOp : QuakeOp<"delete_state", [] > {
+def QuakeOp_DeleteStateOp : QuakeOp<"delete_state"> {
   let summary = "Delete quantum state";
   let description =  [{
     This operation takes a pointer to the state and deletes the state object.

@@ -71,14 +71,6 @@ find_library(HOLOLINK_COMMON_LIB
     "${HOLOSCAN_SENSOR_BRIDGE_BUILD_DIR}/lib"
   NO_DEFAULT_PATH)
 
-find_library(ROCE_RECEIVER_LIB
-  NAMES roce_receiver
-  PATHS
-    "${HOLOSCAN_SENSOR_BRIDGE_BUILD_DIR}"
-    "${HOLOSCAN_SENSOR_BRIDGE_BUILD_DIR}/src/hololink/operators/roce_receiver"
-    "${HOLOSCAN_SENSOR_BRIDGE_BUILD_DIR}/lib"
-  NO_DEFAULT_PATH)
-
 find_library(BASE_RECEIVER_OP_LIB
   NAMES base_receiver_op
   PATHS
@@ -226,7 +218,6 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
       cudaq-realtime-bridge-hololink
       hololink_wrapper_generic
       ${GPU_ROCE_TRANSCEIVER_LIB}
-      ${ROCE_RECEIVER_LIB}
       ${BASE_RECEIVER_OP_LIB}
       ${HOLOLINK_CORE_LIB}
       ${HOLOLINK_COMMON_LIB}

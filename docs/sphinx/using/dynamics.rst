@@ -403,7 +403,7 @@ backend target.
     In this case, you need to install a CUDA-enabled Torch package via other mechanisms, e.g., building Torch from source or
     using their Docker images.
 
-For C++, CUDA-Q provides Runge-Kutta integrator, to be used with the ``dynamics``
+For C++, CUDA-Q provides the following integrators, to be used with the ``dynamics``
 backend target.
 
 .. list-table:: Numerical Integrators
@@ -413,7 +413,11 @@ backend target.
         *   - Name
             - Description
         *   - `runge_kutta`
-            - 1st-order (Euler method), 2nd-order (Midpoint method), and 4th-order (classical Runge-Kutta method).
+            - 1st-order (Euler method), 2nd-order (Midpoint method), and 4th-order (classical Runge-Kutta method). Good general-purpose choice.
+        *   - `crank_nicolson`
+            - Implicit predictor-corrector method. Well-suited for stiff systems or when energy conservation is important. Configurable number of corrector iterations.
+        *   - `magnus_expansion`
+            - Approximates the matrix exponential via a finite Taylor series truncation, approximating unitary evolution. Suitable for smooth, oscillatory Hamiltonians. Configurable number of Taylor terms.
 
 Batch simulation
 ^^^^^^^^^^^^^^^^^

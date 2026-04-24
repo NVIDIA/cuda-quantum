@@ -66,6 +66,12 @@ struct ExternallyProvidedSimGenerator {
 };
 static std::unique_ptr<ExternallyProvidedSimGenerator> externSimGenerator;
 
+// Callback for lazy simulator initialization. When set, NVQIR calls this
+// before falling back to dlsym when no simulator has been configured yet.
+// Used by the Python LinkedLibraryHolder to defer target initialization
+// until the simulator is actually needed.
+static void (*simulatorInitCallback)() = nullptr;
+
 extern "C" {
 void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *sim) {
   simulator = sim;
@@ -76,6 +82,10 @@ void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *sim) {
   }
   externSimGenerator = std::make_unique<ExternallyProvidedSimGenerator>(sim);
   CUDAQ_INFO("[runtime] Setting the circuit simulator to {}.", sim->name());
+}
+
+void __nvqir__setSimulatorInitCallback(void (*callback)()) {
+  simulatorInitCallback = callback;
 }
 }
 
@@ -94,6 +104,20 @@ CircuitSimulator *getCircuitSimulatorInternal() {
   if (externSimGenerator) {
     simulator = (*externSimGenerator)();
     return simulator;
+  }
+
+  // Lazy init: let the caller (e.g., Python LinkedLibraryHolder) load
+  // and configure the default simulator on demand.
+  if (simulatorInitCallback) {
+    auto callback = simulatorInitCallback;
+    simulatorInitCallback = nullptr;
+    callback();
+    if (simulator)
+      return simulator;
+    if (externSimGenerator) {
+      simulator = (*externSimGenerator)();
+      return simulator;
+    }
   }
 
   simulator = cudaq::getUniquePluginInstance<CircuitSimulator>(
@@ -461,6 +485,71 @@ void __quantum__rt__array_record_output(std::uint64_t len, const char *label) {
   quantumRTGenericRecordOutput("ARRAY", len, label);
 }
 
+// Runtime helpers for logging a dynamic-size span of primitive values. These
+// are called from kernels whose return type is a vector with a size that is
+// only known at runtime (i.e. not a compile-time constant).
+void __quantum__rt__bool_span_record_output(int8_t *data, int64_t count) {
+  std::string arrLabel =
+      std::string("array<i1 x ") + std::to_string(count) + ">";
+  __quantum__rt__array_record_output(count, arrLabel.c_str());
+  for (int64_t i = 0; i < count; ++i) {
+    std::string elemLabel = std::string("[") + std::to_string(i) + "]";
+    __quantum__rt__bool_record_output(data[i] != 0, elemLabel.c_str());
+  }
+}
+
+void __quantum__rt__int_span_record_output(int8_t *data, int64_t count,
+                                           int32_t elemSizeBytes) {
+  std::string typeStr = std::string("i") + std::to_string(elemSizeBytes * 8);
+  std::string arrLabel =
+      std::string("array<") + typeStr + " x " + std::to_string(count) + ">";
+  __quantum__rt__array_record_output(count, arrLabel.c_str());
+  for (int64_t i = 0; i < count; ++i) {
+    std::string elemLabel = std::string("[") + std::to_string(i) + "]";
+    int64_t val = 0;
+    switch (elemSizeBytes) {
+    case 1:
+      val = static_cast<int64_t>(data[i]);
+      break;
+    case 2:
+      val = static_cast<int64_t>(*reinterpret_cast<int16_t *>(data + i * 2));
+      break;
+    case 4:
+      val = static_cast<int64_t>(*reinterpret_cast<int32_t *>(data + i * 4));
+      break;
+    case 8:
+      val = *reinterpret_cast<int64_t *>(data + i * 8);
+      break;
+    default:
+      throw std::runtime_error("int_span_record_output: unknown data kind.");
+    }
+    __quantum__rt__int_record_output(val, elemLabel.c_str());
+  }
+}
+
+void __quantum__rt__float_span_record_output(int8_t *data, int64_t count,
+                                             int32_t elemSizeBytes) {
+  std::string typeStr = std::string("f") + std::to_string(elemSizeBytes * 8);
+  std::string arrLabel =
+      std::string("array<") + typeStr + " x " + std::to_string(count) + ">";
+  __quantum__rt__array_record_output(count, arrLabel.c_str());
+  for (int64_t i = 0; i < count; ++i) {
+    std::string elemLabel = std::string("[") + std::to_string(i) + "]";
+    double val = 0.0;
+    switch (elemSizeBytes) {
+    case 4:
+      val = static_cast<double>(*reinterpret_cast<float *>(data + i * 4));
+      break;
+    case 8:
+      val = *reinterpret_cast<double *>(data + i * 8);
+      break;
+    default:
+      throw std::runtime_error("float_span_record_output: unknown data kind.");
+    }
+    __quantum__rt__double_record_output(val, elemLabel.c_str());
+  }
+}
+
 #define ONE_QUBIT_QIS_FUNCTION(GATENAME)                                       \
   void QIS_FUNCTION_NAME(GATENAME)(Qubit * qubit) {                            \
     auto targetIdx = qubitToSizeT(qubit);                                      \
@@ -712,6 +801,8 @@ void __quantum__qis__trap(std::int64_t code) {
     CUDAQ_ERROR("could not autogenerate the adjoint of a kernel");
   } else if (code == 1) {
     CUDAQ_ERROR("unsupported return type from entry-point kernel");
+  } else if (code == 2) {
+    CUDAQ_ERROR("illegal execution of unreachable code");
   } else {
     CUDAQ_ERROR("code generation failure for target");
   }
@@ -955,86 +1046,6 @@ static std::vector<Pauli> extractPauliTermIds(Array *paulis) {
     pauliIds.emplace_back(tmp);
   }
   return pauliIds;
-}
-
-/// @brief QIR function measuring the qubit state in the given Pauli basis.
-/// @param pauli_arr
-/// @param qubits
-/// @return
-Result *__quantum__qis__measure__body(Array *pauli_arr, Array *qubits) {
-  CUDAQ_INFO("NVQIR measuring in pauli basis");
-  ScopedTraceWithContext("NVQIR::observe_measure_body");
-
-  auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
-  auto *currentContext = cudaq::getExecutionContext();
-
-  // Some backends may better handle the observe task.
-  // Let's give them that opportunity.
-  if (currentContext->canHandleObserve) {
-    circuitSimulator->flushGateQueue();
-    auto result = circuitSimulator->observe(currentContext->spin.value());
-    currentContext->expectationValue = result.expectation();
-    currentContext->result = result.raw_data();
-    return ResultZero;
-  }
-
-  const auto paulis = extractPauliTermIds(pauli_arr);
-  std::vector<std::size_t> qubits_to_measure;
-  std::vector<std::pair<std::string, std::size_t>> reverser;
-  for (size_t i = 0; i < paulis.size(); ++i) {
-    const auto pauli = paulis[i];
-    switch (pauli) {
-    case Pauli::Pauli_I:
-      break;
-    case Pauli::Pauli_X: {
-
-      circuitSimulator->h(i);
-      qubits_to_measure.push_back(i);
-      reverser.push_back({"X", i});
-      break;
-    }
-    case Pauli::Pauli_Y: {
-      double angle = M_PI_2;
-      circuitSimulator->rx(angle, i);
-      qubits_to_measure.push_back(i);
-      reverser.push_back({"Y", i});
-
-      break;
-    }
-    case Pauli::Pauli_Z: {
-      qubits_to_measure.push_back(i);
-      break;
-    }
-    }
-  }
-
-  circuitSimulator->flushGateQueue();
-  int shots = 0;
-  if (currentContext->shots > 0) {
-    shots = currentContext->shots;
-  }
-
-  // Sample and give the data to the context
-  cudaq::ExecutionResult result =
-      circuitSimulator->sample(qubits_to_measure, shots);
-  currentContext->expectationValue = result.expectationValue;
-  currentContext->result = cudaq::sample_result(result);
-
-  // Reverse the measurements bases change.
-  if (!reverser.empty()) {
-    CUDAQ_INFO("NVQIR reverse pauli bases change for measurement.");
-    for (auto it = reverser.rbegin(); it != reverser.rend(); ++it) {
-      if (it->first == "X") {
-        circuitSimulator->h(it->second);
-      } else if (it->first == "Y") {
-        double angle = -M_PI_2;
-        circuitSimulator->rx(angle, it->second);
-      }
-    }
-    circuitSimulator->flushGateQueue();
-  }
-
-  return ResultZero;
 }
 
 /// @brief Implementation of first order trotterization

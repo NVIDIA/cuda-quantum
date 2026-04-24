@@ -18,14 +18,19 @@ class ResourceCounter : public nvqir::CircuitSimulatorBase<double> {
 protected:
   cudaq::Resources resourceCounts;
   std::function<bool()> choice;
+  bool prepopulated = false;
 
   /// @brief Grow the state vector by one qubit.
-  void addQubitToState() override { resourceCounts.addQubit(); }
+  void addQubitToState() override {
+    if (!prepopulated)
+      resourceCounts.addQubit();
+  }
 
   void applyGate(const GateApplicationTask &task) override {
     CUDAQ_INFO("Applying {} with {} controls", task.operationName,
                task.controls.size());
-    resourceCounts.appendInstruction(task.operationName, task.controls.size());
+    resourceCounts.appendInstruction(task.operationName, task.controls,
+                                     task.targets);
   }
 
   /// @brief Measure the qubit and return the result. Collapse the
@@ -54,7 +59,8 @@ public:
   /// @brief Reset the qubit
   /// @param index 0-based index of qubit to reset
   void resetQubit(const std::size_t index) override {
-    resourceCounts.appendInstruction("reset", 0);
+    resourceCounts.appendInstruction("reset", {},
+                                     std::vector<std::size_t>{index});
   }
 
   /// @brief Sample the multi-qubit state.
@@ -68,9 +74,18 @@ public:
 
   CircuitSimulator *clone() override { return this; };
 
+  std::unique_ptr<cudaq::SimulationState>
+  createStateFromData(const cudaq::state_data &) override {
+    throw std::runtime_error(
+        "Simulation data not available for the resource counter backend.");
+  }
+
   void deallocateStateImpl() override {}
 
-  void setToZeroState() override { resourceCounts.clear(); }
+  void setToZeroState() override {
+    resourceCounts.clear();
+    prepopulated = false;
+  }
 
   void configureExecutionContext(cudaq::ExecutionContext &context) override {
     if (context.name != "resource-count")
@@ -83,6 +98,7 @@ public:
   cudaq::Resources *getResourceCounts() { return &this->resourceCounts; }
   void setResourceCounts(cudaq::Resources &&rc) {
     this->resourceCounts = std::move(rc);
+    this->prepopulated = true;
   }
 
   void setChoiceFunction(std::function<bool()> choice) {

@@ -1178,11 +1178,13 @@ def cc_ConstantArrayOp : CCOp<"const_array", [Pure]> {
       %arrCon = cc.const_array [1.0, 2.0] : !cc.array<f64 x 2>
     ```
   }];
+
   let arguments = (ins ArrayAttr:$constantValues);
   let results = (outs cc_ArrayType:$arrayType);
   let assemblyFormat = [{
     $constantValues `:` qualified(type($arrayType)) attr-dict
   }];
+  let hasCanonicalizer = 1;
 
   let extraClassDeclaration = [{
     // The total number of array dimensions.
@@ -1262,6 +1264,7 @@ def cc_ReifySpanOp : CCOp<"reify_span", [Pure]> {
   }];
 
   let hasVerifier = 1;
+  let hasCanonicalizer = 1;
 
   let extraClassDeclaration = [{
     // The total number span dimensions. The total is the number of outer

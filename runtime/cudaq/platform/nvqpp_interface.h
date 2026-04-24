@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "common/JIT.h"
+#include "common/CompiledModule.h"
 #include "common/ThunkInterface.h"
 #include <optional>
 #include <string>
@@ -68,9 +68,8 @@ streamlinedLaunchModule(const char *kernelName, mlir::ModuleOp moduleOp,
 streamlinedLaunchModule(const std::string &kernelName, mlir::ModuleOp moduleOp,
                         const std::vector<void *> &rawArgs);
 
-[[nodiscard]] void *streamlinedSpecializeModule(
+[[nodiscard]] CompiledModule streamlinedSpecializeModule(
     const std::string &kernelName, mlir::ModuleOp moduleOp,
-    const std::vector<void *> &rawArgs,
-    std::optional<cudaq::JitEngine> &cachedEngine, bool isEntryPoint);
+    const std::vector<void *> &rawArgs, bool isEntryPoint);
 
 } // namespace cudaq

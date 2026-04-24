@@ -211,6 +211,21 @@ ADD "CITATION.cff" /cuda-quantum/CITATION.cff
 ARG release_version=
 ENV SETUPTOOLS_SCM_PRETEND_VERSION=$release_version
 
+ENV CCACHE_DIR=/root/.ccache
+ENV CCACHE_BASEDIR=/cuda-quantum
+ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros,pch_defines
+ENV CCACHE_COMPILERCHECK=content
+ENV CCACHE_LOGFILE=/root/.ccache/ccache.log
+RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
+    if [ -d /tmp/ccache-import ] && [ "$(ls -A /tmp/ccache-import 2>/dev/null)" ]; then \
+        echo "Importing ccache data (python_build)..." && \
+        mkdir -p /root/.ccache && cp -a /tmp/ccache-import/. /root/.ccache/ && \
+        ccache -s 2>/dev/null || true && \
+        ccache -z 2>/dev/null || true; \
+    else \
+        mkdir -p /root/.ccache; \
+    fi
+
 ARG PYTHON=python3.11
 RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON}-devel && \
     ${PYTHON} -m ensurepip --upgrade && \
@@ -348,9 +363,14 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
         --param nvqpp_site_config=build/targettests/lit.site.cfg.py ${filtered}
 
 # Export ccache data so CI can extract it for persistence.
+# Tar inside the container to export a single file instead of thousands of
+# small ccache entries (avoids slow per-file gRPC export in BuildKit).
 # Build with --target ccache-export --output type=local,dest=/tmp/ccache-export
+FROM cpp_build AS ccache-tar
+RUN tar cf /ccache.tar -C /root/.ccache .
+
 FROM scratch AS ccache-export
-COPY --from=cpp_build /root/.ccache /ccache
+COPY --from=ccache-tar /ccache.tar /
 
 FROM cpp_tests
 COPY --from=python_tests /wheelhouse /cuda-quantum/wheelhouse

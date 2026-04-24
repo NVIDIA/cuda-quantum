@@ -9,6 +9,7 @@
 import ast
 import inspect
 import json
+import types
 from functools import wraps
 from cudaq.kernel.utils import emitWarning
 import numpy as np
@@ -23,7 +24,8 @@ from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, FunctionType,
 from .analysis import FunctionDefVisitor
 from .kernel_signature import CapturedLinkedKernel, CapturedVariable, KernelSignature
 from .ast_bridge import compile_to_mlir
-from .utils import (emitFatalError, emitErrorIfInvalidPauli, get_module_name,
+from .utils import (emitFatalError, emitErrorIfInvalidPauli,
+                    get_function_source_or_raise, get_module_name,
                     globalRegisteredTypes, mlirTypeFromPyType, mlirTypeToPyType,
                     nvqppPrefix, getMLIRContext, recover_func_op,
                     recover_value_of)
@@ -179,9 +181,21 @@ class PyKernelDecorator(object):
             for name, var in parentVars.items():
                 self._add_global_scoped_var(name, var)
 
+            # Detect aliases for the cudaq module (e.g. `import cudaq as cq`).
+            # Collect all names that refer to the cudaq module so the AST
+            # bridge can recognize them alongside the canonical 'cudaq' name.
+            # Check both local and global scope since the alias may be at
+            # module level while the kernel is defined inside a function.
+            self.cudaqAliases = {'cudaq'}
+            for scope in (parentVars, self.parentFrame.f_globals):
+                for vname, var in scope.items():
+                    if (isinstance(var, types.ModuleType) and
+                            getattr(var, '__name__', None) == 'cudaq'):
+                        self.cudaqAliases.add(vname)
+
             self.astModule = _parse_ast(self.funcSrc, self.verbose)
             self.signature = KernelSignature.parse_from_ast(
-                self.astModule, self.name)
+                self.astModule, self.name, cudaqAliases=self.cudaqAliases)
             self.uniqueId = id(self)
             self.uniqName = self.name + ".." + hex(self.uniqueId)
 
@@ -263,7 +277,8 @@ class PyKernelDecorator(object):
             verbose=self.verbose,
             location=self.location,
             kernelName=self.name,
-            kernelModuleName=self.kernelModuleName)
+            kernelModuleName=self.kernelModuleName,
+            cudaqAliases=getattr(self, 'cudaqAliases', None))
 
         # recursively compile any captured kernels if required
         for captured_arg in self.signature.captured_args:
@@ -629,15 +644,6 @@ class PyKernelDecorator(object):
                                                        isEntryPoint,
                                                        *processed_args)
 
-    def delete_cache_execution_engine(self, key):
-        """
-        Delete the `ExecutionEngine` cache given by a cache key.
-        """
-        # Make sure this hasn't already been cleaned up as we're winding down
-        if (cudaq_runtime is not None and
-                cudaq_runtime.delete_cache_execution_engine is not None):
-            cudaq_runtime.delete_cache_execution_engine(key)
-
     def process_argument(self, arg, arg_type):
         if isa_kernel_decorator(arg):
             return DecoratorCapture(arg)
@@ -731,14 +737,7 @@ def isa_kernel_decorator(object):
 def _get_source(function):
     if function is None:
         return None, None
-    # Get the function source location
-    location = (inspect.getfile(function), inspect.getsourcelines(function)[1])
-    # Get the function source
-    src = inspect.getsource(function)
-    # Strip off the extra tabs
-    leadingSpaces = len(src) - len(src.lstrip())
-    src = '\n'.join([line[leadingSpaces:] for line in src.split('\n')])
-    return src, location
+    return get_function_source_or_raise(function)
 
 
 def _recover_defining_frame():

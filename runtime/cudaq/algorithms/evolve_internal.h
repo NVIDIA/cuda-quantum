@@ -10,6 +10,7 @@
 
 #include "common/EvolveResult.h"
 #include "cudaq/algorithms/get_state.h"
+#include "cudaq/algorithms/observe.h"
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
 #include "cudaq/platform.h"

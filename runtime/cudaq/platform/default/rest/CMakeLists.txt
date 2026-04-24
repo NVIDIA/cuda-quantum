@@ -6,8 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
-
 message(STATUS "Building REST QPU.")
 add_library(cudaq-rest-qpu SHARED RemoteRESTQPU.cpp)
 
@@ -35,6 +33,7 @@ target_link_libraries(cudaq-rest-qpu
     cudaq
     cudaq-platform-default
     nvqir
+    ZLIB::ZLIB
     ${AWSSDK_LINK_LIBRARIES})
 
 install(TARGETS cudaq-rest-qpu DESTINATION lib)

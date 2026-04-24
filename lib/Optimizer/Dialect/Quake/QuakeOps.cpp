@@ -626,30 +626,6 @@ void quake::GetMemberOp::getCanonicalizationPatterns(
 }
 
 //===----------------------------------------------------------------------===//
-// GetMeasureOp
-//===----------------------------------------------------------------------===//
-
-LogicalResult quake::GetMeasureOp::verify() {
-  if (getIndex()) {
-    if (getRawIndex() != kDynamicIndex)
-      return emitOpError(
-          "must not have both a constant index and an index argument.");
-  } else {
-    if (getRawIndex() == kDynamicIndex) {
-      return emitOpError("invalid constant index value");
-    } else {
-      auto msSize = getMeasurements().getType().getSize();
-      if (getMeasurements().getType().hasSpecifiedSize() &&
-          getRawIndex() >= msSize)
-        return emitOpError("invalid index [" + std::to_string(getRawIndex()) +
-                           "] because >= size [" + std::to_string(msSize) +
-                           "]");
-    }
-  }
-  return success();
-}
-
-//===----------------------------------------------------------------------===//
 // InitializeStateOp
 //===----------------------------------------------------------------------===//
 
@@ -903,33 +879,33 @@ LogicalResult quake::DiscriminateOp::verify() {
 LogicalResult quake::BundleCableOp::verify() {
   auto ty = cast<quake::CableType>(getResult().getType());
   if (getWires().size() != ty.getSize())
-    return emitOpError("the bundle type size must equal the arity.");
+    return emitOpError("the cable type size must equal the arity.");
   return success();
 }
 
 LogicalResult quake::SplitCableOp::verify() {
   if (getResults().size() != getCable().getType().getSize())
-    return emitOpError("the bundle type size must equal the coarity.");
+    return emitOpError("the cable type size must equal the coarity.");
   return success();
 }
 
-LogicalResult quake::LeftTeeOp::verify() {
+LogicalResult quake::DetachWireOp::verify() {
   if (!getCable().getType().getSize())
-    return emitOpError("cannot remove a wire from an empty bundle.");
+    return emitOpError("cannot remove a wire from an empty cable.");
   if (getIndex() >= getCable().getType().getSize())
-    return emitOpError("index into the bundle is out of bounds.");
+    return emitOpError("index into the cable is out of bounds.");
   if (getCableOut().getType().getSize() != getCable().getType().getSize() - 1)
-    return emitOpError("the bundle result type size must equal the size of the "
-                       "bundle argument - 1.");
+    return emitOpError("the cable result type size must equal the size of the "
+                       "cable argument - 1.");
   return success();
 }
 
-LogicalResult quake::RightTeeOp::verify() {
+LogicalResult quake::AttachWireOp::verify() {
   if (getIndex() > getCable().getType().getSize())
-    return emitOpError("index into the bundle is out of bounds.");
+    return emitOpError("index into the cable is out of bounds.");
   if (getCableOut().getType().getSize() != getCable().getType().getSize() + 1)
-    return emitOpError("the bundle result type size must equal the size of "
-                       "the bundle argument + 1.");
+    return emitOpError("the cable result type size must equal the size of "
+                       "the cable argument + 1.");
   return success();
 }
 

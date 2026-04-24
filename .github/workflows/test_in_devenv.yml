@@ -21,13 +21,23 @@ on:
       export_environment:
         required: false
         type: boolean
+      skip_build:
+        type: boolean
+        required: false
+        default: false
+        description: >
+          When true the job runs to report success for required-check gating
+          but skips the docker build, tests, and ccache push.
 
 name: Run CI within the dev environment container
 
 jobs:
   build_and_test:
     name: Dev environment (Debug)
-    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    # On skip_build (PR tier fake-pass), run on GitHub-hosted ubuntu-latest so the
+    # required check reports success without consuming self-hosted arm64/amd64
+    # capacity or blocking on runner availability.
+    runs-on: ${{ inputs.skip_build && 'ubuntu-latest' || ((contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8') }}
     permissions:
       contents: read
       packages: write
@@ -36,9 +46,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Report skip_build
+        if: ${{ inputs.skip_build }}
+        run: |
+          echo "::notice title=SKIPPED on PR tier::This check reports success without running. Re-run the workflow with ci_level=full (or merge to trigger merge_group) to validate this configuration."
+          {
+            echo "## Skipped on PR tier"
+            echo ""
+            echo "This check reported success without running. The full validation matrix runs on **merge_group** and **workflow_dispatch** events."
+            echo ""
+            echo "To run it now: **Re-run jobs** and set \`ci_level=full\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Restore environment
         id: restore_devdeps
-        if: inputs.devdeps_image == ''
+        if: ${{ !inputs.skip_build && inputs.devdeps_image == '' }}
         uses: actions/cache/restore@v4
         with:
           path: ${{ inputs.devdeps_archive }}
@@ -46,6 +68,7 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Log in to GitHub CR
+        if: ${{ !inputs.skip_build }}
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -53,25 +76,30 @@ jobs:
           password: ${{ github.token }}
 
       - name: Set up ccache and ORAS
+        if: ${{ !inputs.skip_build }}
         uses: ./.github/actions/ccache-setup
 
       - name: Compute platform ID
         id: platform_meta
+        if: ${{ !inputs.skip_build }}
         run: |
           platform_id=$(echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ')
           echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
 
       - name: Restore ccache from GHCR
+        if: ${{ !inputs.skip_build }}
         uses: ./.github/actions/ccache-restore
         with:
           cache-key: ${{ steps.platform_meta.outputs.platform_id }}-devenv
           registry-token: ${{ github.token }}
 
       - name: Set up context for buildx
+        if: ${{ !inputs.skip_build }}
         run: |
           docker context create builder_context
 
       - name: Set up buildx runner
+        if: ${{ !inputs.skip_build }}
         uses: docker/setup-buildx-action@v3
         with:
           endpoint: builder_context
@@ -81,15 +109,20 @@ jobs:
             image=moby/buildkit:v0.19.0
 
       - name: Setup proxy cache
+        if: ${{ !inputs.skip_build }}
         uses: nv-gha-runners/setup-proxy-cache@main
         with:
           enable-apt: true
 
       - name: Build CUDA Quantum
+        id: build
+        if: ${{ !inputs.skip_build }}
         run: |
           if ${{ steps.restore_devdeps.outcome != 'skipped' }}; then
             load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
             base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
+            docker push $base_image
+            rm -rf "${{ inputs.devdeps_archive }}"
           elif ${{ inputs.devdeps_image != '' }}; then
             base_image=${{ inputs.devdeps_image }}
           else
@@ -97,73 +130,86 @@ jobs:
             exit 1
           fi
 
-          DOCKER_BUILDKIT=1 docker build --platform ${{ inputs.platform }} \
-            -t cuda-quantum-dev:local -f docker/build/cudaq.dev.Dockerfile . \
+          echo "base_image=$base_image" >> $GITHUB_OUTPUT
+
+          docker buildx build --platform ${{ inputs.platform }} \
+            -f docker/build/cudaq.dev.Dockerfile . \
             --build-context ccache-data=/tmp/ccache-data \
             --build-arg base_image=$base_image \
             --build-arg install="CMAKE_BUILD_TYPE=Debug" \
-            --build-arg mpi="${{ inputs.mpi }}"
+            --build-arg mpi="${{ inputs.mpi }}" \
+            --build-arg run_tests=true \
+            --target devbuild
 
-      - name: Extract ccache from image
-        uses: ./.github/actions/ccache-extract-docker
-        with:
-          image: cuda-quantum-dev:local
+      - name: Test CUDA Quantum
+        if: ${{ !inputs.skip_build }}
+        run: |
+          docker buildx build --progress=plain --platform ${{ inputs.platform }} \
+            -f docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-arg base_image=${{ steps.build.outputs.base_image }} \
+            --build-arg install="CMAKE_BUILD_TYPE=Debug" \
+            --build-arg mpi="${{ inputs.mpi }}" \
+            --build-arg run_tests=true \
+            --target test
+
+      - name: Test CUDA Quantum MPI Plugin Activation
+        if: ${{ !inputs.skip_build }}
+        run: |
+          docker buildx build --progress=plain --platform ${{ inputs.platform }} \
+            -f docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-arg base_image=${{ steps.build.outputs.base_image }} \
+            --build-arg install="CMAKE_BUILD_TYPE=Debug" \
+            --build-arg mpi="${{ inputs.mpi }}" \
+            --build-arg run_tests=true \
+            --target test-mpi
+
+      - name: Extract ccache from build
+        timeout-minutes: 15
+        continue-on-error: true
+        if: ${{ !inputs.skip_build }}
+        run: |
+          mkdir -p /tmp/ccache-export
+          docker buildx build \
+            -f docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-arg base_image=${{ steps.build.outputs.base_image }} \
+            --build-arg install="CMAKE_BUILD_TYPE=Debug" \
+            --build-arg mpi="${{ inputs.mpi }}" \
+            --target ccache-export \
+            --output type=local,dest=/tmp/ccache-export \
+            2>&1 | tail -20
+          if [ -f /tmp/ccache-export/ccache.tar ]; then
+            mkdir -p /tmp/ccache-export/ccache
+            tar xf /tmp/ccache-export/ccache.tar -C /tmp/ccache-export/ccache
+            rm -f /tmp/ccache-export/ccache.tar
+          fi
 
       - name: Push ccache to GHCR
+        if: ${{ !inputs.skip_build }}
         uses: ./.github/actions/ccache-push
         with:
           cache-key: ${{ steps.platform_meta.outputs.platform_id }}-devenv
-          cache-path: /tmp/ccache-out/.ccache
+          cache-path: /tmp/ccache-export/ccache
           registry-token: ${{ github.token }}
-
-      - name: Test CUDA Quantum
-        uses: ./.github/actions/run-in-docker
-        with:
-          image: cuda-quantum-dev:local
-          shell: bash
-          run: |
-            set -euo pipefail
-            cd $CUDAQ_REPO_ROOT
-            python3 -m pip install -r requirements-tests-backend.txt --break-system-packages
-            bash scripts/run_tests.sh -v
-
-      - name: Test CUDA Quantum MPI Plugin Activation
-        uses: ./.github/actions/run-in-docker
-        with:
-          image: cuda-quantum-dev:local
-          shell: bash
-          run: |
-            # Set MPI_PATH depending on OMPI/MPICH
-            has_ompiinfo=$(which ompi_info || true)
-            if [[ ! -z $has_ompiinfo ]]; then
-              export MPI_PATH="/usr/lib/$(uname -m)-linux-gnu/openmpi/"
-            else
-              export MPI_PATH="/usr/lib/$(uname -m)-linux-gnu/mpich/"
-            fi
-            # Run the activation script
-            source $CUDAQ_INSTALL_PREFIX/distributed_interfaces/activate_custom_mpi.sh
-            external_plugin_build_status=$?
-            if [ ! $external_plugin_build_status -eq 0 ] ; then
-              echo "::error file=test_in_devenv.yml::Test CUDA Quantum MPI Plugin Activation failed to activate the plugin with status $external_plugin_build_status."
-              exit 1
-            fi
-            echo $CUDAQ_MPI_COMM_LIB
-            # Rerun the MPI plugin test
-            cd $CUDAQ_REPO_ROOT
-            ctest --test-dir build -R MPIApiTest -V
-            external_plugin_status=$?
-            if [ ! $external_plugin_status -eq 0 ] ; then
-              echo "::error file=test_in_devenv.yml::Test CUDA Quantum MPI Plugin Activation failed with status $external_plugin_status."
-              exit 1
-            fi
 
       - name: Save environment
         id: env_save
-        if: inputs.export_environment
+        if: ${{ !inputs.skip_build && inputs.export_environment }}
         run: |
           output_directory=/tmp
           platform_id=`echo ${{ inputs.platform }} | sed 's/linux\///g' | tr -d ' '`
           filename=${platform_id}_debug_build
+
+          # Export the image to Docker daemon only when needed.
+          # Reuses the BuildKit cache so only the export runs.
+          docker buildx build --platform ${{ inputs.platform }} \
+            --load -t cuda-quantum-dev:local -f docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-arg base_image=${{ steps.build.outputs.base_image }} \
+            --build-arg install="CMAKE_BUILD_TYPE=Debug" \
+            --build-arg mpi="${{ inputs.mpi }}"
 
           docker run --name cuda-quantum-dev cuda-quantum-dev:local
           docker export cuda-quantum-dev > $output_directory/$filename.tar
@@ -174,7 +220,7 @@ jobs:
 
       - name: Upload environment
         uses: actions/upload-artifact@v4
-        if: inputs.export_environment
+        if: ${{ !inputs.skip_build && inputs.export_environment }}
         with:
           name: ${{ steps.env_save.outputs.filename }}
           path: ${{ steps.env_save.outputs.output_directory }}/${{ steps.env_save.outputs.filename }}.tar
@@ -182,7 +228,7 @@ jobs:
 
   build_and_test_python:
     name: Dev environment (Python)
-    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    runs-on: ${{ inputs.skip_build && 'ubuntu-latest' || ((contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8') }}
     permissions:
       contents: read
       packages: write
@@ -191,9 +237,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Report skip_build
+        if: ${{ inputs.skip_build }}
+        run: |
+          echo "::notice title=SKIPPED on PR tier::This check reports success without running. Re-run the workflow with ci_level=full (or merge to trigger merge_group) to validate this configuration."
+          {
+            echo "## Skipped on PR tier"
+            echo ""
+            echo "This check reported success without running. The full validation matrix runs on **merge_group** and **workflow_dispatch** events."
+            echo ""
+            echo "To run it now: **Re-run jobs** and set \`ci_level=full\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Restore environment
         id: restore_devdeps
-        if: inputs.devdeps_image == ''
+        if: ${{ !inputs.skip_build && inputs.devdeps_image == '' }}
         uses: actions/cache/restore@v4
         with:
           path: ${{ inputs.devdeps_archive }}
@@ -201,6 +259,7 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Log in to GitHub CR
+        if: ${{ !inputs.skip_build }}
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -208,25 +267,30 @@ jobs:
           password: ${{ github.token }}
 
       - name: Set up ccache and ORAS
+        if: ${{ !inputs.skip_build }}
         uses: ./.github/actions/ccache-setup
 
       - name: Compute platform ID
         id: platform_meta
+        if: ${{ !inputs.skip_build }}
         run: |
           platform_id=$(echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ')
           echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
 
       - name: Restore ccache from GHCR
+        if: ${{ !inputs.skip_build }}
         uses: ./.github/actions/ccache-restore
         with:
           cache-key: ${{ steps.platform_meta.outputs.platform_id }}-devenv-python
           registry-token: ${{ github.token }}
 
       - name: Set up context for buildx
+        if: ${{ !inputs.skip_build }}
         run: |
           docker context create builder_context
 
       - name: Set up buildx runner
+        if: ${{ !inputs.skip_build }}
         uses: docker/setup-buildx-action@v3
         with:
           endpoint: builder_context
@@ -236,16 +300,20 @@ jobs:
             image=moby/buildkit:v0.19.0
 
       - name: Setup proxy cache
+        if: ${{ !inputs.skip_build }}
         uses: nv-gha-runners/setup-proxy-cache@main
         with:
           enable-apt: true
 
       - name: Set up dev environment
         id: dev_env
+        if: ${{ !inputs.skip_build }}
         run: |
           if ${{ steps.restore_devdeps.outcome != 'skipped' }}; then
             load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
             base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
+            docker push $base_image
+            rm -rf "${{ inputs.devdeps_archive }}"
           elif ${{ inputs.devdeps_image != '' }}; then
             base_image=${{ inputs.devdeps_image }}
           else
@@ -253,15 +321,17 @@ jobs:
             exit 1
           fi
 
-          DOCKER_BUILDKIT=1 docker build --platform ${{ inputs.platform }} \
-            -t dev_env:local -f docker/build/cudaq.dev.Dockerfile . \
+          docker buildx build --platform ${{ inputs.platform }} \
+            --load -t dev_env:local -f docker/build/cudaq.dev.Dockerfile . \
             --build-context ccache-data=/tmp/ccache-data \
             --build-arg base_image=$base_image
 
       - name: Setup proxy cache
+        if: ${{ !inputs.skip_build }}
         uses: nv-gha-runners/setup-proxy-cache@main
 
       - name: Build and test CUDA Quantum (Python)
+        if: ${{ !inputs.skip_build }}
         uses: ./.github/actions/run-in-docker
         with:
           image: dev_env:local
@@ -322,21 +392,29 @@ jobs:
             fi
 
       - name: Extract ccache from container
-        uses: ./.github/actions/ccache-extract-docker
-        with:
-          image: dev_env:local
-          from-container: 'true'
+        timeout-minutes: 15
+        continue-on-error: true
+        if: ${{ !inputs.skip_build }}
+        run: |
+          # The Python build runs inside a container (via run-in-docker),
+          # so ccache data is in the most recently stopped container.
+          mkdir -p /tmp/ccache-export/ccache
+          container=$(docker ps -a -q --filter ancestor=dev_env:local --latest)
+          if [ -n "$container" ]; then
+            docker cp "$container:/root/.ccache/." /tmp/ccache-export/ccache/ 2>/dev/null
+          fi
 
       - name: Push ccache to GHCR
+        if: ${{ !inputs.skip_build }}
         uses: ./.github/actions/ccache-push
         with:
           cache-key: ${{ steps.platform_meta.outputs.platform_id }}-devenv-python
-          cache-path: /tmp/ccache-out/.ccache
+          cache-path: /tmp/ccache-export/ccache
           registry-token: ${{ github.token }}
 
       - name: Save environment
         id: env_save
-        if: inputs.export_environment
+        if: ${{ !inputs.skip_build && inputs.export_environment }}
         run: |
           output_directory=/tmp
           platform_id=`echo ${{ inputs.platform }} | sed 's/linux\///g' | tr -d ' '`
@@ -351,7 +429,7 @@ jobs:
 
       - name: Upload environment
         uses: actions/upload-artifact@v4
-        if: inputs.export_environment
+        if: ${{ !inputs.skip_build && inputs.export_environment }}
         with:
           name: ${{ steps.env_save.outputs.filename }}
           path: ${{ steps.env_save.outputs.output_directory }}/${{ steps.env_save.outputs.filename }}.tar

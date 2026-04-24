@@ -366,7 +366,8 @@ class PyASTBridge(ast.NodeVisitor):
                  uniqueId=None,
                  kernelModuleName=None,
                  locationOffset=('', 0),
-                 verbose=False):
+                 verbose=False,
+                 cudaqAliases=None):
         """The constructor. Initializes the `mlir.Value` stack, the
         `mlir.Context`, and the `mlir.Module` that we will be building upon.
         This class keeps track of a symbol table, which maps variable names to
@@ -385,6 +386,9 @@ class PyASTBridge(ast.NodeVisitor):
         self.uniqueId = uniqueId
         self.defFrame = defFrame
         self.kernelModuleName = kernelModuleName
+        # Set of names that refer to the cudaq module, including aliases
+        # from `import cudaq as <alias>`.
+        self.cudaqAliases = cudaqAliases if cudaqAliases else {'cudaq'}
         self.ctx = getMLIRContext()
         self.loc = Location.unknown(context=self.ctx)
         self.module = Module.create(self.loc)
@@ -402,6 +406,11 @@ class PyASTBridge(ast.NodeVisitor):
         self.isSubscriptRoot = False
         self.verbose = verbose
         self.currentNode = None
+
+    def isCudaqName(self, name):
+        """Return True if `name` is 'cudaq' or a known alias for the cudaq
+        module (e.g. from ``import cudaq as cq``)."""
+        return name in self.cudaqAliases
 
     def debug_msg(self, msg, node=None):
         if self.verbose:
@@ -1251,7 +1260,10 @@ class PyASTBridge(ast.NodeVisitor):
         """
         msg = None
         try:
-            return mlirTypeFromAnnotation(annotation, self.ctx, raiseError=True)
+            return mlirTypeFromAnnotation(annotation,
+                                          self.ctx,
+                                          raiseError=True,
+                                          cudaqAliases=self.cudaqAliases)
         except RuntimeError as e:
             msg = str(e)
 
@@ -1649,7 +1661,10 @@ class PyASTBridge(ast.NodeVisitor):
 
         if self.buildingFunctionBody:
             for decorator in getattr(node, 'decorator_list', []):
-                if _get_qualified_name(decorator) in ('cudaq.kernel', 'kernel'):
+                qname = _get_qualified_name(decorator)
+                if qname == 'kernel' or (
+                        qname is not None and qname.endswith('.kernel') and
+                        self.isCudaqName(qname[:qname.rfind('.kernel')])):
                     self.emitFatalError(
                         "nested @cudaq.kernel definitions are not allowed",
                         node)
@@ -2183,7 +2198,7 @@ class PyASTBridge(ast.NodeVisitor):
                                                         node.attr), node)
                 return
 
-            if node.value.id == 'cudaq':
+            if self.isCudaqName(node.value.id):
                 if node.attr in [
                         'DepolarizationChannel', 'AmplitudeDampingChannel',
                         'PhaseFlipChannel', 'BitFlipChannel', 'PhaseDamping',
@@ -2620,7 +2635,7 @@ class PyASTBridge(ast.NodeVisitor):
                     return None
 
             # Check if we can find the desired name among the modules
-            for module_name, module in sys.modules.items():
+            for module_name, module in list(sys.modules.items()):
                 if module_name.split('.')[-1] == moduleNames[0]:
                     try:
                         obj = module
@@ -2653,16 +2668,37 @@ class PyASTBridge(ast.NodeVisitor):
         # do not walk the FunctionDef decorator_list arguments
         if isinstance(node.func, ast.Attribute):
             self.debug_msg(lambda: f'[(Inline) Visit Attribute]', node.func)
-            if hasattr(
-                    node.func.value, 'id'
-            ) and node.func.value.id == 'cudaq' and node.func.attr == 'kernel':
+            if hasattr(node.func.value, 'id') and self.isCudaqName(
+                    node.func.value.id) and node.func.attr == 'kernel':
                 return
+
+            def isExactCudaqDbgAstCall(func_node: ast.AST) -> bool:
+                """Return True iff `func_node` is the exact AST shape for
+                ``<cudaq_alias>.dbg.ast.<name>``.
+
+                Runtime attribute lookup follows lazy aliases (e.g. ``cudaq.ast``
+                resolves to ``cudaq.dbg.ast`` via ``_LAZY_SUBMODULES``), so
+                `devKey` is not a sufficient check. Walk the literal node
+                structure instead."""
+                if not isinstance(func_node, ast.Attribute):
+                    return False
+                if not isinstance(
+                        func_node.value,
+                        ast.Attribute) or func_node.value.attr != 'ast':
+                    return False
+                if not isinstance(
+                        func_node.value.value,
+                        ast.Attribute) or func_node.value.value.attr != 'dbg':
+                    return False
+                root = func_node.value.value.value
+                return isinstance(root, ast.Name) and self.isCudaqName(root.id)
 
             devKey, name = resolveQualifiedName(node.func)
             if devKey:
 
                 # Handle debug functions
-                if devKey == 'cudaq.dbg.ast':
+                if devKey == 'cudaq.dbg.ast' and isExactCudaqDbgAstCall(
+                        node.func):
                     # Handle a debug print statement
                     arg = self.__groupValues(node.args, [1])
                     self.__insertDbgStmt(arg, name)
@@ -3334,7 +3370,7 @@ class PyASTBridge(ast.NodeVisitor):
                     self.emitFatalError(
                         f"unsupported NumPy call ({node.func.attr})", node)
 
-                if node.func.value.id == 'cudaq':
+                if self.isCudaqName(node.func.value.id):
                     if node.func.attr == 'complex':
                         self.__groupValues(node.args, [0])
                         self.pushValue(self.simulationDType())
@@ -3408,16 +3444,21 @@ class PyASTBridge(ast.NodeVisitor):
                             arrTy = cc.ArrayType.get(eleTy)
                             ptrArrTy = cc.PointerType.get(arrTy)
                             data = cc.StdvecDataOp(ptrArrTy, value).result
-                            size = cc.StdvecSizeOp(self.getIntegerType(),
-                                                   value).result
-                            numQubits = math.CountTrailingZerosOp(size).result
+                            intTy = self.getIntegerType()
+                            size = cc.StdvecSizeOp(intTy, value).result
+                            stateTy = cc.PointerType.get(cc.StateType.get())
+                            state = quake.CreateStateOp(stateTy, data,
+                                                        size).result
+                            numQubits = quake.GetNumberOfQubitsOp(intTy,
+                                                                  state).result
                             # Dynamic checking that the state is normalized is
                             # done at the library layer.
                             veqTy = quake.VeqType.get()
                             qubits = quake.AllocaOp(veqTy,
                                                     size=numQubits).result
-                            init = quake.InitializeStateOp(veqTy, qubits,
-                                                           data).result
+                            init = quake.InitializeStateOp(
+                                veqTy, qubits, state).result
+                            deleteState = quake.DeleteStateOp(state)
                             self.pushValue(init)
                             return
 
@@ -3562,7 +3603,7 @@ class PyASTBridge(ast.NodeVisitor):
                         # The first argument must be the Kraus channel
                         numParams, key = 0, None
                         if (isinstance(node.args[0], ast.Attribute) and
-                                node.args[0].value.id == 'cudaq' and
+                                self.isCudaqName(node.args[0].value.id) and
                                 node.args[0].attr in supportedChannels):
 
                             cudaq_module = importlib.import_module('cudaq')
@@ -3778,12 +3819,16 @@ class PyASTBridge(ast.NodeVisitor):
         the MLIR.
 
         By simple, we mean expressions like `[expr(iter) for iter in iterable]`
-        or `myList = [exprThatReturns(iter) for iter in iterable]`.
+        or `myList = [exprThatReturns(iter) for iter in iterable]`, optionally
+        with `if` filter clause.
         """
         if len(node.generators) > 1:
             self.emitFatalError(
                 "CUDA-Q only supports single generators for list comprehension.",
                 node)
+
+        if_clauses = node.generators[0].ifs
+        hasFilter = len(if_clauses) > 0
 
         self.visit(node.generators[0].iter)
         iterable = self.popValue()
@@ -3822,6 +3867,15 @@ class PyASTBridge(ast.NodeVisitor):
             # This loop could be marked as invariant if we didn't use
             # `visit_For`, but that would be premature optimization.
             self.visit_For(forNode)
+
+        def evalFilter():
+            cond = None
+            for if_node in if_clauses:
+                self.visit(if_node)
+                this_cond = self.__arithmetic_to_bool(self.popValue())
+                cond = this_cond if cond is None else arith.AndIOp(
+                    cond, this_cond).result
+            return cond
 
         target_types = {}
 
@@ -4021,10 +4075,11 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         if quake.RefType.isinstance(listElemTy):
-            if quake.VeqType.isinstance(orig_iterable_type):
+            if quake.VeqType.isinstance(orig_iterable_type) and not hasFilter:
                 self.pushValue(iterable)
                 return
-            if cc.StdvecType.isinstance(orig_iterable_type):
+            if (cc.StdvecType.isinstance(orig_iterable_type) or
+                    quake.VeqType.isinstance(orig_iterable_type)):
                 i64Ty = self.getIntegerType()
                 veqTy = self.getVeqType()
                 c0 = self.getConstantInt(0)
@@ -4037,18 +4092,39 @@ class PyASTBridge(ast.NodeVisitor):
 
                 def bodyBuilder(args):
                     i, curr_veq = args[0], args[1]
-                    elem_addr = cc.ComputePtrOp(
-                        cc.PointerType.get(iterTy), iterable, [i],
-                        DenseI32ArrayAttr.get([kDynamicPtrIndex],
-                                              context=self.ctx))
-                    idx_val = cc.LoadOp(elem_addr).result
+                    if quake.VeqType.isinstance(iterable.type):
+                        idx_val = quake.ExtractRefOp(iterTy,
+                                                     iterable,
+                                                     -1,
+                                                     index=i).result
+                    else:
+                        elem_addr = cc.ComputePtrOp(
+                            cc.PointerType.get(iterTy), iterable, [i],
+                            DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                                  context=self.ctx))
+                        idx_val = cc.LoadOp(elem_addr).result
                     self.symbolTable.beginBlock()
                     self.__deconstructAssignment(node.generators[0].target,
                                                  idx_val)
-                    self.visit(node.elt)
-                    ref = self.popValue()
+                    if hasFilter:
+                        cond = evalFilter()
+                        ifOp = cc.IfOp([veqTy], cond, [])
+                        thenBlock = Block.create_at_start(ifOp.thenRegion, [])
+                        with InsertionPoint(thenBlock):
+                            self.visit(node.elt)
+                            ref = self.popValue()
+                            appended = quake.ConcatOp(veqTy,
+                                                      [curr_veq, ref]).result
+                            cc.ContinueOp([appended])
+                        elseBlock = Block.create_at_start(ifOp.elseRegion, [])
+                        with InsertionPoint(elseBlock):
+                            cc.ContinueOp([curr_veq])
+                        new_veq = ifOp.result
+                    else:
+                        self.visit(node.elt)
+                        ref = self.popValue()
+                        new_veq = quake.ConcatOp(veqTy, [curr_veq, ref]).result
                     self.symbolTable.endBlock()
-                    new_veq = quake.ConcatOp(veqTy, [curr_veq, ref]).result
                     cc.ContinueOp([i, new_veq])
 
                 loop = self.createForLoop(
@@ -4070,47 +4146,72 @@ class PyASTBridge(ast.NodeVisitor):
                                 TypeAttr.get(listElemTy),
                                 seqSize=iterableSize).result
 
-        # General case of
-        # `listVar = [expr(i) for i in iterable]`
-        # Need to think of this as
-        # `listVar = stdvec(iterable.size)`
-        # `for i, r in enumerate(listVar):`
-        # `   listVar[i] = expr(r)`
-        def bodyBuilder(iterVar):
-            self.symbolTable.beginBlock()
+        def extractIterVal(iterVar):
             if quake.VeqType.isinstance(iterable.type):
-                iterVal = quake.ExtractRefOp(iterTy,
-                                             iterable,
-                                             -1,
-                                             index=iterVar).result
-            else:
-                eleAddr = cc.ComputePtrOp(
-                    cc.PointerType.get(iterTy), iterable, [iterVar],
-                    DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
-                iterVal = cc.LoadOp(eleAddr).result
+                return quake.ExtractRefOp(iterTy, iterable, -1,
+                                          index=iterVar).result
+            eleAddr = cc.ComputePtrOp(
+                cc.PointerType.get(iterTy), iterable, [iterVar],
+                DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
+            return cc.LoadOp(eleAddr).result
 
-            # We don't do support anything within list comprehensions that would
-            # require being careful about assigning references, so simply
-            # adding them to the symbol table is enough for list comprehension.
-            self.__deconstructAssignment(node.generators[0].target, iterVal)
+        def storeElementAt(storeIdx):
             self.visit(node.elt)
             element = self.popValue()
-            # We do need to be careful, however, about validating the list
-            # elements.
+            # We do need to be careful about validating the list elements.
             self.__validate_container_entry(element, node.elt)
-
             listValueAddr = cc.ComputePtrOp(
-                cc.PointerType.get(listElemTy), listValue, [iterVar],
+                cc.PointerType.get(listElemTy), listValue, [storeIdx],
                 DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
             element = self.changeOperandToType(listElemTy,
                                                element,
                                                allowDemotion=False)
             cc.StoreOp(element, listValueAddr)
-            self.symbolTable.endBlock()
 
-        self.createInvariantForLoop(bodyBuilder, iterableSize)
-        res = cc.StdvecInitOp(resultVecTy, listValue,
-                              length=iterableSize).result
+        if not hasFilter:
+
+            def bodyBuilder(iterVar):
+                self.symbolTable.beginBlock()
+                iterVal = extractIterVal(iterVar)
+                self.__deconstructAssignment(node.generators[0].target, iterVal)
+                storeElementAt(iterVar)
+                self.symbolTable.endBlock()
+
+            self.createInvariantForLoop(bodyBuilder, iterableSize)
+            res = cc.StdvecInitOp(resultVecTy, listValue,
+                                  length=iterableSize).result
+            self.pushValue(res)
+            return
+
+        i64Ty = self.getIntegerType()
+        c0 = self.getConstantInt(0)
+        c1 = self.getConstantInt(1)
+
+        def filteredBodyBuilder(args):
+            i, count = args[0], args[1]
+            self.symbolTable.beginBlock()
+            iterVal = extractIterVal(i)
+            self.__deconstructAssignment(node.generators[0].target, iterVal)
+            cond = evalFilter()
+            ifOp = cc.IfOp([i64Ty], cond, [])
+            thenBlock = Block.create_at_start(ifOp.thenRegion, [])
+            with InsertionPoint(thenBlock):
+                storeElementAt(count)
+                cc.ContinueOp([arith.AddIOp(count, c1).result])
+            elseBlock = Block.create_at_start(ifOp.elseRegion, [])
+            with InsertionPoint(elseBlock):
+                cc.ContinueOp([count])
+            nextCount = ifOp.result
+            self.symbolTable.endBlock()
+            cc.ContinueOp([i, nextCount])
+
+        loop = self.createForLoop(
+            [i64Ty, i64Ty],
+            filteredBodyBuilder, [c0, c0], lambda args: arith.CmpIOp(
+                IntegerAttr.get(i64Ty, 2), args[0], iterableSize).result,
+            lambda args: [arith.AddIOp(args[0], c1).result, args[1]])
+        finalCount = loop.results[1]
+        res = cc.StdvecInitOp(resultVecTy, listValue, length=finalCount).result
         self.pushValue(res)
         return
 
@@ -5369,6 +5470,7 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
     lineNumberOffset = kwargs['location'] if 'location' in kwargs else ('', 0)
     kernelModuleName = kwargs[
         'kernelModuleName'] if 'kernelModuleName' in kwargs else None
+    cudaqAliases = kwargs.get('cudaqAliases', None)
 
     # Initialize the captured arguments list to be populated by the AST Bridge.
     signature.captured_args = []
@@ -5378,7 +5480,8 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
                          uniqueId=uniqueId,
                          verbose=verbose,
                          locationOffset=lineNumberOffset,
-                         kernelModuleName=kernelModuleName)
+                         kernelModuleName=kernelModuleName,
+                         cudaqAliases=cudaqAliases)
 
     ValidateArgumentAnnotations(bridge).visit(astModule)
     ValidateReturnStatements(bridge).visit(astModule)

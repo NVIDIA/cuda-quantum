@@ -168,7 +168,7 @@ shipped user headers as required by `nvq++` compilation.
 #### 3.2.4 Namespaces
 
 - Declarations live under a module namespace nested in `cudaq_internal`:
-  - `namespace cudaq::<module_name> { ... }` where `<module_name>` is lowercase
+  - `namespace cudaq_internal::<module_name> { ... }` where `<module_name>` is lowercase
     Examples: `cudaq_internal::compiler`, `cudaq_internal::device_code`
 - Nested namespaces follow the same visibility convention: they are public
 except for the `detail` namespace.

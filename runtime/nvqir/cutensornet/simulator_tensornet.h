@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #pragma once
-#include "cudaq.h"
+#include "cudaq/cudaq_mpi.h"
 #include "simulator_cutensornet.h"
 #include "tn_simulation_state.h"
 
@@ -84,6 +84,13 @@ public:
     LOG_API_TIME();
     return std::make_unique<TensorNetSimulationState<ScalarType>>(
         std::move(m_state), scratchPad, m_cutnHandle, m_randomEngine);
+  }
+
+  std::unique_ptr<cudaq::SimulationState>
+  createStateFromData(const cudaq::state_data &data) override {
+    return std::make_unique<TensorNetSimulationState<ScalarType>>(
+               nullptr, scratchPad, m_cutnHandle, m_randomEngine)
+        ->createFromData(data);
   }
 
   void addQubitsToState(std::size_t numQubits, const void *ptr) override {

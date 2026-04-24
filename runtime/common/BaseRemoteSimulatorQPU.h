@@ -8,12 +8,9 @@
 
 #pragma once
 
-#include "common/ArgumentConversion.h"
 #include "common/ExecutionContext.h"
-#include "common/JIT.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/Resources.h"
-#include "common/RuntimeMLIR.h"
 #include "cudaq.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -23,6 +20,9 @@
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "cudaq_internal/compiler/ArgumentConversion.h"
+#include "cudaq_internal/compiler/JIT.h"
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/Passes.h"
@@ -120,19 +120,12 @@ public:
       throw std::runtime_error("Failed to launch VQE. Error: " + errorMsg);
   }
 
-  void launchKernel(const std::string &name,
-                    const std::vector<void *> &rawArgs) override {
-    [[maybe_unused]] auto dynamicResult = launchKernelImpl(
-        name, nullptr, nullptr, 0, 0, &rawArgs, mlir::ModuleOp{});
-  }
-
   KernelThunkResultType
   launchKernel(const std::string &name, KernelThunkType kernelFunc, void *args,
                std::uint64_t voidStarSize, std::uint64_t resultOffset,
                const std::vector<void *> &rawArgs) override {
-    // Remote simulation cannot deal with rawArgs. Drop them on the floor.
     return launchKernelImpl(name, kernelFunc, args, voidStarSize, resultOffset,
-                            nullptr, mlir::ModuleOp{});
+                            kernelFunc ? nullptr : &rawArgs, mlir::ModuleOp{});
   }
 
   KernelThunkResultType
@@ -150,15 +143,14 @@ public:
     return launchKernelImpl(name, nullptr, nullptr, 0, 0, &rawArgs, module);
   }
 
-  void *specializeModule(const std::string &kernelName, mlir::ModuleOp module,
-                         const std::vector<void *> &rawArgs,
-                         std::optional<cudaq::JitEngine> &cachedEngine,
-                         bool isEntryPoint) override {
+  CompiledModule specializeModule(const std::string &kernelName,
+                                  mlir::ModuleOp module,
+                                  const std::vector<void *> &rawArgs,
+                                  bool isEntryPoint) override {
     CUDAQ_INFO("specializing remote simulator kernel via module ({})",
                kernelName);
     throw std::runtime_error(
         "NYI: Remote simulator execution via Python/C++ interop.");
-    return nullptr;
   }
 
   [[nodiscard]] KernelThunkResultType launchKernelImpl(
@@ -188,14 +180,16 @@ public:
           if (!rawArgs)
             throw std::runtime_error(
                 "must provide launch arguments (got nullptr)");
-          detail::mergeAllCallableClosures(prefabMod, name, *rawArgs);
+          cudaq_internal::compiler::mergeAllCallableClosures(prefabMod, name,
+                                                             *rawArgs);
           return m_client->lowerKernelInPlace(prefabMod, name, *rawArgs);
         }
         return m_client->lowerKernel(*m_mlirContext, name, args, voidStarSize,
                                      0, rawArgs);
       }();
 
-      auto jit = createQIRJITEngine(moduleOp, "qir-adaptive");
+      auto jit =
+          cudaq_internal::compiler::createJITEngine(moduleOp, "qir-adaptive");
 
       ExecutionContext ctx(executionContextPtr->name,
                            executionContextPtr->shots,

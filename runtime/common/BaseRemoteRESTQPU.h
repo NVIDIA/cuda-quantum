@@ -9,12 +9,10 @@
 #pragma once
 
 #include "NoiseModel.h"
-#include "common/Compiler.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "common/Executor.h"
 #include "common/ExtraPayloadProvider.h"
-#include "common/JIT.h"
 #include "common/Resources.h"
 #include "cudaq.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
@@ -23,6 +21,8 @@
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "cudaq_internal/compiler/Compiler.h"
+#include "cudaq_internal/compiler/JIT.h"
 #include "llvm/Support/Base64.h"
 #include <fstream>
 #include <netinet/in.h>
@@ -40,6 +40,8 @@ namespace cudaq {
 
 class BaseRemoteRESTQPU : public QPU {
 protected:
+  using Compiler = cudaq_internal::compiler::Compiler;
+
   /// The number of shots
   std::optional<int> nShots;
 
@@ -237,25 +239,6 @@ public:
     serverHelper->setRuntimeTarget(runtimeTarget);
   }
 
-  void launchKernel(const std::string &kernelName,
-                    const std::vector<void *> &rawArgs) override {
-    CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
-
-    auto executionContext = cudaq::getExecutionContext();
-
-    // TODO future iterations of this should support non-void return types.
-    if (!executionContext)
-      throw std::runtime_error(
-          "Remote rest execution can only be performed via cudaq::sample(), "
-          "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
-
-    // Get the Quake code, lowered according to config file.
-    Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
-                      noiseModel, emulate);
-    auto codes = compiler.lowerQuakeCode(executionContext, kernelName, rawArgs);
-    completeLaunchKernel(kernelName, std::move(codes));
-  }
-
   /// @brief Launch the kernel. Extract the Quake code and lower to the
   /// representation required by the targeted backend. Handle all pertinent
   /// modifications for the execution context as well as asynchronous or
@@ -283,8 +266,9 @@ public:
                       noiseModel, emulate);
     auto codes =
         rawArgs.empty()
-            ? compiler.lowerQuakeCode(executionContext, kernelName, args)
-            : compiler.lowerQuakeCode(executionContext, kernelName, rawArgs);
+            ? compiler.lowerQuakeCode(executionContext, kernelName, args, {})
+            : compiler.lowerQuakeCode(executionContext, kernelName, nullptr,
+                                      rawArgs);
     completeLaunchKernel(kernelName, std::move(codes));
 
     // NB: Kernel should/will never return dynamic results.
@@ -312,14 +296,13 @@ public:
     return {};
   }
 
-  void *specializeModule(const std::string &kernelName, mlir::ModuleOp module,
-                         const std::vector<void *> &rawArgs,
-                         std::optional<cudaq::JitEngine> &cachedEngine,
-                         bool isEntryPoint) override {
+  CompiledModule specializeModule(const std::string &kernelName,
+                                  mlir::ModuleOp module,
+                                  const std::vector<void *> &rawArgs,
+                                  bool isEntryPoint) override {
     CUDAQ_INFO("specializing remote rest kernel via module ({})", kernelName);
     throw std::runtime_error(
         "NYI: Remote rest execution via Python/C++ interop.");
-    return nullptr;
   }
 
   void completeLaunchKernel(const std::string &kernelName,
