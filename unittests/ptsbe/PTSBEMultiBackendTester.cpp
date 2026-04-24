@@ -49,7 +49,7 @@ CUDAQ_TEST(PTSBEMultiBackendTest, GHZ3WithDepolarizationNoise) {
   noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
   noise.add_all_qubit_channel("cx", cudaq::depolarization2(0.01));
 
-  cudaq::sample_options options;
+  cudaq::ptsbe::sample_options options;
   options.shots = 50;
   options.noise = noise;
   options.ptsbe.return_execution_data = true;

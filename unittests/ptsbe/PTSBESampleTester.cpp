@@ -81,7 +81,7 @@ auto inlineNoiseKernel = []() __qpu__ {
 CUDAQ_TEST(PTSBESampleTest, TracePTSBatchCapturesBellCircuit) {
   auto batch = cudaq::ptsbe::detail::tracePTSBatch(bellKernel);
   // Bell circuit: h, x gates + mz measurements
-  EXPECT_EQ(cudaq::ptsbe::detail::countInstructions(
+  EXPECT_EQ(cudaq::ptsbe::countInstructions(
                 batch.trace, cudaq::ptsbe::TraceInstructionType::Gate),
             2);
 }
@@ -174,7 +174,7 @@ CUDAQ_TEST(PTSBESampleTest, PTSBatchHasCorrectMeasureQubits) {
 
 CUDAQ_TEST(PTSBESampleTest, PTSBatchFromGHZHas3Qubits) {
   auto batch = cudaq::ptsbe::detail::tracePTSBatch(ghzKernel);
-  EXPECT_EQ(cudaq::ptsbe::detail::numQubits(batch.trace), 3);
+  EXPECT_EQ(cudaq::ptsbe::numQubits(batch.trace), 3);
   EXPECT_EQ(batch.measureQubits.size(), 3);
 }
 
@@ -287,7 +287,7 @@ CUDAQ_TEST(PTSBESampleTest, PTSBESampleWithShotAllocationOption) {
   cudaq::noise_model noise;
   noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.02));
 
-  cudaq::sample_options options;
+  cudaq::ptsbe::sample_options options;
   options.shots = 100;
   options.noise = noise;
   options.ptsbe.shot_allocation = cudaq::ptsbe::ShotAllocationStrategy(
@@ -301,7 +301,7 @@ CUDAQ_TEST(PTSBESampleTest, PTSBESampleWithShotAllocationOption) {
 CUDAQ_TEST(PTSBESampleTest, TracePTSBatchCapturesGHZCircuit) {
   auto batch = cudaq::ptsbe::detail::tracePTSBatch(ghzKernel);
   // GHZ has 3 gates (h, cx, cx)
-  EXPECT_EQ(cudaq::ptsbe::detail::countInstructions(
+  EXPECT_EQ(cudaq::ptsbe::countInstructions(
                 batch.trace, cudaq::ptsbe::TraceInstructionType::Gate),
             3);
   // 3 qubits
@@ -312,7 +312,7 @@ CUDAQ_TEST(PTSBESampleTest, TracePTSBatchCapturesGHZCircuit) {
 CUDAQ_TEST(PTSBESampleTest, TracePTSBatchHandlesParameterizedKernel) {
   auto batch = cudaq::ptsbe::detail::tracePTSBatch(rotationKernel, 1.57);
   // rotationKernel has 2 gates (rx, ry)
-  EXPECT_EQ(cudaq::ptsbe::detail::countInstructions(
+  EXPECT_EQ(cudaq::ptsbe::countInstructions(
                 batch.trace, cudaq::ptsbe::TraceInstructionType::Gate),
             2);
   // 2 qubits
@@ -393,7 +393,7 @@ CUDAQ_TEST(PTSBESampleTest, ExecutionDataWarningEmittedOnceOnlyWhenAccessed) {
   cudaq::noise_model noise;
   noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
 
-  cudaq::sample_options noDataOptions;
+  cudaq::ptsbe::sample_options noDataOptions;
   noDataOptions.shots = 1;
   noDataOptions.noise = noise;
 
@@ -405,7 +405,7 @@ CUDAQ_TEST(PTSBESampleTest, ExecutionDataWarningEmittedOnceOnlyWhenAccessed) {
                                             "experimental";
   EXPECT_EQ(noWarning.find(warningToken), std::string::npos);
 
-  cudaq::sample_options withDataOptions;
+  cudaq::ptsbe::sample_options withDataOptions;
   withDataOptions.shots = 1;
   withDataOptions.noise = noise;
   withDataOptions.ptsbe.return_execution_data = true;
@@ -432,7 +432,7 @@ CUDAQ_TEST(PTSBESampleTest, SampleWithExecutionDataPopulatesData) {
   cudaq::noise_model noise;
   noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
 
-  cudaq::sample_options options;
+  cudaq::ptsbe::sample_options options;
   options.shots = 100;
   options.noise = noise;
   options.ptsbe.return_execution_data = true;
@@ -472,7 +472,7 @@ CUDAQ_TEST(PTSBESampleTest, SampleWithoutExecutionDataHasNoData) {
   cudaq::noise_model noise;
   noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
 
-  cudaq::sample_options options;
+  cudaq::ptsbe::sample_options options;
   options.shots = 100;
   options.noise = noise;
   // return_execution_data defaults to false
@@ -579,7 +579,7 @@ CUDAQ_TEST(PTSBESampleTest, SampleAsyncWithOptions) {
   cudaq::noise_model noise;
   noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
 
-  cudaq::sample_options options;
+  cudaq::ptsbe::sample_options options;
   options.shots = 50;
   options.noise = noise;
   options.ptsbe.return_execution_data = true;
@@ -634,7 +634,7 @@ CUDAQ_TEST(PTSBESampleTest, BroadcastReturnsMultipleResults) {
   noise.add_all_qubit_channel("rx", cudaq::depolarization_channel(0.01));
   noise.add_all_qubit_channel("ry", cudaq::depolarization_channel(0.01));
 
-  cudaq::sample_options options;
+  cudaq::ptsbe::sample_options options;
   options.shots = 100;
   options.noise = noise;
 
@@ -653,7 +653,7 @@ CUDAQ_TEST(PTSBESampleTest, BroadcastResultCountMatchesParams) {
   noise.add_all_qubit_channel("rx", cudaq::depolarization_channel(0.01));
   noise.add_all_qubit_channel("ry", cudaq::depolarization_channel(0.01));
 
-  cudaq::sample_options options;
+  cudaq::ptsbe::sample_options options;
   options.shots = 50;
   options.noise = noise;
 
@@ -714,7 +714,7 @@ CUDAQ_TEST(PTSBESampleTest, ExecutionDataIncludesMzNoise) {
   cudaq::noise_model noise;
   noise.add_channel("mz", {0}, cudaq::bit_flip_channel(0.1));
 
-  cudaq::sample_options options;
+  cudaq::ptsbe::sample_options options;
   options.shots = 100;
   options.noise = noise;
   options.ptsbe.return_execution_data = true;
@@ -777,7 +777,7 @@ CUDAQ_TEST(PTSBESampleTest, ZeroShotTrajectoriesNotReturnedInE2E) {
   cudaq::noise_model noise;
   noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
 
-  cudaq::sample_options options;
+  cudaq::ptsbe::sample_options options;
   options.shots = 10;
   options.noise = noise;
   options.ptsbe.return_execution_data = true;
@@ -795,7 +795,7 @@ CUDAQ_TEST(PTSBESampleTest, ZeroShotTrajectoriesNotReturnedInE2E) {
 }
 
 CUDAQ_TEST(PTSBESampleTest, InlineApplyNoise) {
-  cudaq::sample_options options;
+  cudaq::ptsbe::sample_options options;
   options.shots = 50;
   options.ptsbe.return_execution_data = true;
 
@@ -825,7 +825,7 @@ CUDAQ_TEST(PTSBESampleTest, SequentialDataEmptyByDefault) {
   noise.add_all_qubit_channel("x", cudaq::depolarization_channel(0.05));
   noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.05));
 
-  cudaq::sample_options options;
+  cudaq::ptsbe::sample_options options;
   options.shots = 10;
   options.noise = noise;
 
@@ -842,7 +842,7 @@ CUDAQ_TEST(PTSBESampleTest, SequentialDataPopulatedWhenRequested) {
   noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.05));
 
   const std::size_t shots = 10;
-  cudaq::sample_options options;
+  cudaq::ptsbe::sample_options options;
   options.shots = shots;
   options.noise = noise;
   options.ptsbe.include_sequential_data = true;
@@ -869,7 +869,7 @@ CUDAQ_TEST(PTSBESampleTest, SequentialDataWithGHZ) {
   noise.add_all_qubit_channel("x", cudaq::depolarization_channel(0.01));
 
   const std::size_t shots = 10;
-  cudaq::sample_options options;
+  cudaq::ptsbe::sample_options options;
   options.shots = shots;
   options.noise = noise;
   options.ptsbe.include_sequential_data = true;
