@@ -88,3 +88,72 @@ func.func @handle_aggregates(%v: !cc.stdvec<!cc.measure_handle>,
 // CHECK-SAME:    %[[VAL_1:.*]]: !cc.ptr<i64>) -> (!cc.stdvec<i64>, !cc.ptr<i64>) {
 // CHECK:         return %[[VAL_0]], %[[VAL_1]] : !cc.stdvec<i64>, !cc.ptr<i64>
 // CHECK:       }
+
+// Statically-sized handle arrays through cc.alloca / pointer arithmetic.
+// The alloca's elementType attribute, the resulting pointer type, and the
+// pointer arithmetic (compute_ptr) all need to be lowered consistently.
+func.func @handle_static_array(%q: !quake.ref) -> i1 {
+  %c0 = arith.constant 0 : i64
+  %h = quake.mz %q name "h" : (!quake.ref) -> !cc.measure_handle
+  %arr = cc.alloca !cc.array<!cc.measure_handle x 4>
+  %slot = cc.compute_ptr %arr[%c0] : (!cc.ptr<!cc.array<!cc.measure_handle x 4>>, i64) -> !cc.ptr<!cc.measure_handle>
+  cc.store %h, %slot : !cc.ptr<!cc.measure_handle>
+  %loaded = cc.load %slot : !cc.ptr<!cc.measure_handle>
+  %b = quake.discriminate %loaded : (!cc.measure_handle) -> i1
+  return %b : i1
+}
+
+// CHECK-LABEL: func.func @handle_static_array(
+// CHECK-SAME:    %[[VAL_0:.*]]: !quake.ref) -> i1 {
+// CHECK:         %[[VAL_C0:.*]] = arith.constant 0 : i64
+// CHECK:         %[[VAL_H:.*]] = quake.mz %[[VAL_0]] name "h" : (!quake.ref) -> i64
+// CHECK:         %[[VAL_ARR:.*]] = cc.alloca !cc.array<i64 x 4>
+// CHECK:         %[[VAL_SLOT:.*]] = cc.compute_ptr %[[VAL_ARR]][%[[VAL_C0]]] : (!cc.ptr<!cc.array<i64 x 4>>, i64) -> !cc.ptr<i64>
+// CHECK:         cc.store %[[VAL_H]], %[[VAL_SLOT]] : !cc.ptr<i64>
+// CHECK:         %[[VAL_L:.*]] = cc.load %[[VAL_SLOT]] : !cc.ptr<i64>
+// CHECK:         %[[VAL_B:.*]] = quake.discriminate %[[VAL_L]] : (i64) -> i1
+// CHECK:         return %[[VAL_B]] : i1
+// CHECK:       }
+
+// Dynamically-sized handle arrays. Same shape as the static case, but the
+// alloca and pointer types use `!cc.array<T x ?>`, exercising the
+// unknown-size branch of the array converter.
+func.func @handle_dynamic_array(%q: !quake.ref, %n: i64) -> i1 {
+  %c0 = arith.constant 0 : i64
+  %h = quake.mz %q name "h" : (!quake.ref) -> !cc.measure_handle
+  %arr = cc.alloca !cc.measure_handle[%n : i64]
+  %slot = cc.compute_ptr %arr[%c0] : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.ptr<!cc.measure_handle>
+  cc.store %h, %slot : !cc.ptr<!cc.measure_handle>
+  %loaded = cc.load %slot : !cc.ptr<!cc.measure_handle>
+  %b = quake.discriminate %loaded : (!cc.measure_handle) -> i1
+  return %b : i1
+}
+
+// CHECK-LABEL: func.func @handle_dynamic_array(
+// CHECK-SAME:    %[[VAL_0:.*]]: !quake.ref, %[[VAL_N:.*]]: i64) -> i1 {
+// CHECK:         %[[VAL_C0:.*]] = arith.constant 0 : i64
+// CHECK:         %[[VAL_H:.*]] = quake.mz %[[VAL_0]] name "h" : (!quake.ref) -> i64
+// CHECK:         %[[VAL_ARR:.*]] = cc.alloca i64{{\[}}%[[VAL_N]] : i64]
+// CHECK:         %[[VAL_SLOT:.*]] = cc.compute_ptr %[[VAL_ARR]][%[[VAL_C0]]] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.ptr<i64>
+// CHECK:         cc.store %[[VAL_H]], %[[VAL_SLOT]] : !cc.ptr<i64>
+// CHECK:         %[[VAL_L:.*]] = cc.load %[[VAL_SLOT]] : !cc.ptr<i64>
+// CHECK:         %[[VAL_B:.*]] = quake.discriminate %[[VAL_L]] : (i64) -> i1
+// CHECK:         return %[[VAL_B]] : i1
+// CHECK:       }
+
+// A function that touches no handle types must round-trip unchanged. This
+// guards against the converter accidentally rewriting unrelated CC
+// container types when no handle is present.
+func.func private @takes_int_vec(!cc.stdvec<i64>, !cc.ptr<i64>) -> !cc.stdvec<i64>
+func.func @no_handle(%v: !cc.stdvec<i64>, %p: !cc.ptr<i64>) -> !cc.stdvec<i64> {
+  %r = func.call @takes_int_vec(%v, %p) : (!cc.stdvec<i64>, !cc.ptr<i64>) -> !cc.stdvec<i64>
+  return %r : !cc.stdvec<i64>
+}
+
+// CHECK-LABEL: func.func private @takes_int_vec(!cc.stdvec<i64>, !cc.ptr<i64>) -> !cc.stdvec<i64>
+// CHECK-LABEL: func.func @no_handle(
+// CHECK-SAME:    %[[VAL_0:.*]]: !cc.stdvec<i64>,
+// CHECK-SAME:    %[[VAL_1:.*]]: !cc.ptr<i64>) -> !cc.stdvec<i64> {
+// CHECK:         %[[VAL_R:.*]] = call @takes_int_vec(%[[VAL_0]], %[[VAL_1]]) : (!cc.stdvec<i64>, !cc.ptr<i64>) -> !cc.stdvec<i64>
+// CHECK:         return %[[VAL_R]] : !cc.stdvec<i64>
+// CHECK:       }
