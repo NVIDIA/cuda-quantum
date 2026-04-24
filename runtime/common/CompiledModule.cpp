@@ -7,29 +7,31 @@
  ******************************************************************************/
 
 #include "CompiledModule.h"
-#include <stdexcept>
+#include <string_view>
 
 cudaq::CompiledModule::CompiledModule(std::string kernelName)
     : name(std::move(kernelName)) {}
 
 std::optional<cudaq::CompiledModule::JitArtifact>
-cudaq::CompiledModule::getJit(std::optional<std::string> jitName) const {
-  auto name = jitName.value_or(this->name);
-  auto it = artifacts.find(name);
-  if (it == artifacts.end())
-    return std::nullopt;
-  const auto *jit = std::get_if<JitArtifact>(&it->second);
-  return jit ? std::optional(*jit) : std::nullopt;
+cudaq::CompiledModule::getJit() const {
+  return getJit(name);
+}
+
+std::optional<cudaq::CompiledModule::JitArtifact>
+cudaq::CompiledModule::getJit(std::string_view jitName) const {
+  auto *jit = artifacts.get<JitArtifact>(jitName);
+  return jit ? std::optional<JitArtifact>{*jit} : std::nullopt;
 }
 
 std::optional<cudaq::CompiledModule::MlirArtifact>
-cudaq::CompiledModule::getMlir(std::optional<std::string> mlirName) const {
-  auto name = mlirName.value_or(this->name + ".mlir");
-  auto it = artifacts.find(name);
-  if (it == artifacts.end())
-    return std::nullopt;
-  const auto *mlir = std::get_if<MlirArtifact>(&it->second);
-  return mlir ? std::optional(*mlir) : std::nullopt;
+cudaq::CompiledModule::getMlir() const {
+  return getMlir(name);
+}
+
+std::optional<cudaq::CompiledModule::MlirArtifact>
+cudaq::CompiledModule::getMlir(std::string_view mlirName) const {
+  auto *mlir = artifacts.get<MlirArtifact>(mlirName);
+  return mlir ? std::optional<MlirArtifact>{*mlir} : std::nullopt;
 }
 
 bool cudaq::CompiledModule::isFullySpecialized() const {
@@ -51,21 +53,19 @@ std::optional<std::int64_t> cudaq::CompiledModule::getReturnOffset() const {
   return fn();
 }
 
-const cudaq::Resources *cudaq::CompiledModule::getResources(
-    std::optional<std::string> resourcesName) const {
-  auto name = resourcesName.value_or(this->name + ".resources");
-  auto it = artifacts.find(name);
-  if (it == artifacts.end())
-    return nullptr;
-  const auto *resources = std::get_if<ResourcesArtifact>(&it->second);
-  return resources ? &resources->getResources() : nullptr;
+const cudaq::Resources *cudaq::CompiledModule::getResources() const {
+  return getResources(name);
+}
+
+const cudaq::Resources *
+cudaq::CompiledModule::getResources(std::string_view resourcesName) const {
+  auto *res = artifacts.get<ResourcesArtifact>(resourcesName);
+  return res ? &res->getResources() : nullptr;
 }
 
 void cudaq::CompiledModule::addArtifact(std::string name,
                                         CompiledArtifact artifact) {
-  if (artifacts.contains(name))
-    throw std::runtime_error("Artifact with name " + name + " already exists");
-  artifacts.emplace(std::move(name), std::move(artifact));
+  artifacts.add(std::move(name), std::move(artifact));
 }
 
 void (*cudaq::CompiledModule::JitArtifact::getFn() const)() { return fn; }
