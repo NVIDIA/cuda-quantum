@@ -92,3 +92,57 @@ struct BoundaryPointerParam {
   // expected-error@+1{{measure_handle cannot cross the host-device boundary; entry-point kernels must discriminate first}}
   void operator()(cudaq::measure_handle *h) __qpu__ { (void)h; }
 };
+
+struct BoundaryReferenceParam {
+  // expected-error@+1{{measure_handle cannot cross the host-device boundary; entry-point kernels must discriminate first}}
+  void operator()(cudaq::measure_handle &h) __qpu__ { (void)h; }
+};
+
+// User-defined aggregate struct wrapping `measure_handle`. Exercises the
+// `cc::StructType` recursion branch of `containsMeasureHandle` via a named
+// record rather than a `std::tuple` / `std::pair` specialization.
+struct MeasureHandleHolder {
+  cudaq::measure_handle h;
+};
+
+struct BoundaryAggregateParam {
+  // expected-error@+1{{measure_handle cannot cross the host-device boundary; entry-point kernels must discriminate first}}
+  void operator()(MeasureHandleHolder s) __qpu__ { (void)s; }
+};
+
+// Nested container: `std::pair<int, std::vector<measure_handle>>`. Pair of
+// `int` + stdvec-of-handle exercises two recursion steps of
+// `cudaq::cc::containsMeasureHandle`: `cc.struct` -> `cc.stdvec` ->
+// `!cc.measure_handle`. The existing `BoundaryVectorParam`,
+// `BoundaryTupleParam`, `BoundaryPairParam`, and `BoundaryPointerParam`
+// cases already cover the single-step recursion for each container shape;
+// this case proves the walk is genuinely recursive rather than
+// one-level-deep.
+struct BoundaryPairOfVectorParam {
+  // expected-error@+1{{measure_handle cannot cross the host-device boundary; entry-point kernels must discriminate first}}
+  void operator()(std::pair<int, std::vector<cudaq::measure_handle>> p) __qpu__ {
+    (void)p;
+  }
+};
+
+// FIXME(measure_handle follow-up): the following container shapes are
+// listed in the spec's Kernel Signature Rule but trip a pre-existing
+// `getWidthAndAlignment` assertion inside the C++ -> MLIR type mapper
+// before `hasMeasureHandleInSignature` can run, so the boundary diagnostic
+// cannot fire and the bridge aborts with an LLVM signal instead:
+//
+//   - `std::array<cudaq::measure_handle, N>`
+//   - `std::vector<std::tuple<..., cudaq::measure_handle, ...>>`
+//   - `std::optional<cudaq::measure_handle>`
+//   - `std::variant<..., cudaq::measure_handle, ...>`
+//
+// The same type mapper also aborts on `VisitInitListExpr` for a
+// `return {};` in a kernel whose return type transitively names
+// `measure_handle` (e.g. `std::vector<measure_handle>` as a return type),
+// which is why only `BoundaryDirectReturn` (body uses `return mz(q);`)
+// currently appears here. Once the type mapper learns a fallback for
+// opaque classical handles (teach `getWidthAndAlignment` to treat
+// `MeasureHandleType` members as size/alignment of `i64`, or short-circuit
+// layout computation for signatures already flagged by the boundary
+// walker), add explicit return-position cases for every container shape
+// listed above.

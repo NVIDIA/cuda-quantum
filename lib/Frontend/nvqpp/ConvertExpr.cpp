@@ -697,7 +697,14 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
               if (!hasStore) {
                 reportClangError(x, mangler,
                                  "discriminating an unbound measure_handle");
-                return false;
+                // Push a placeholder i1 so the enclosing statement's value
+                // stack stays balanced. Returning `false` here would cause
+                // the outer `TraverseStmt` to emit a second, generic
+                // "statement not supported" diagnostic on top of the
+                // spec-mandated message, which only confuses the user and
+                // breaks `-verify` tests that match the specific text.
+                return pushValue(builder.create<arith::ConstantIntOp>(
+                    loc, /*value=*/0, /*width=*/1));
               }
             }
         return pushValue(builder.create<quake::DiscriminateOp>(
@@ -1286,6 +1293,27 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
 
   if (visitMathLibFunc(x, func, loc, funcName))
     return true;
+
+  // `cudaq::measure_handle::operator bool()` is the single sanctioned
+  // coercion surface on `measure_handle` (spec "C++ API"). The AST bridge
+  // for a `CXXMemberCallExpr` does not push a separate callee value for
+  // member calls (`TraverseMemberExpr` only pushes the method's function
+  // type on the type stack), so we must short-circuit here before the
+  // generic cudaq/member call logic pops one too many values. We load the
+  // implicit-object handle if it lives in memory and leave a
+  // `!cc.measure_handle` value on the stack; the enclosing
+  // `VisitCastExpr::CK_UserDefinedConversion` hook drains the residual
+  // method type and emits the single `quake.discriminate` at the
+  // coercion site (mirrors the `std::_Bit_reference` conversion handler
+  // below).
+  if (isInClassInNamespace(func, "measure_handle", "cudaq") &&
+      isa<clang::CXXConversionDecl>(func)) {
+    Value thisVal = popValue();
+    if (auto ptrTy = dyn_cast<cc::PointerType>(thisVal.getType()))
+      if (isa<cc::MeasureHandleType>(ptrTy.getElementType()))
+        thisVal = builder.create<cc::LoadOp>(loc, thisVal);
+    return pushValue(thisVal);
+  }
 
   // Handle std::complex member functions
   if (isInClassInNamespace(func, "complex", "std")) {

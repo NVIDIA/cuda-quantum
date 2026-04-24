@@ -23,7 +23,11 @@ struct Foo {
 struct Quark {
   Foo operator()() __qpu__ { // expected-error{{kernel result type not supported}}
     cudaq::qvector q(3);
-    return {747, mz(q)};
+    // Wrap `mz(q)` (std::vector<measure_handle>) with `cudaq::to_bools` so
+    // C++ type-checking succeeds; the subsequent "kernel result type not
+    // supported" diagnostic on `Foo` (contains `std::vector<bool>`) is what
+    // this test covers.
+    return {747, cudaq::to_bools(mz(q))};
   }
 };
 
