@@ -177,6 +177,7 @@ struct KAKComponents {
 ///                    0  i −1  0
 ///                    1  0  0 −i
 const Eigen::Matrix4cd &MagicBasisMatrix() {
+  using namespace std::complex_literals;
   static Eigen::Matrix4cd MagicBasisMatrix;
   MagicBasisMatrix << 1.0, 0.0, 0.0, 1i, 0.0, 1i, 1.0, 0, 0, 1i, -1.0, 0, 1.0,
       0, 0, -1i;
