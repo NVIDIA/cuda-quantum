@@ -40,12 +40,12 @@ variable. For any CUDA-Q executable, just prepend as follows:
       # or
       CUDAQ_DUMP_JIT_IR=<output_filename> ./a.out
 
-Python Tracebacks
-+++++++++++++++++++++++++
+Python Stack-Traces
+++++++++++++++++++++++++
 
 When CUDA-Q parses Python command-line options via :func:`cudaq.parse_args`,
-Python tracebacks are suppressed by default to keep runtime errors concise.
-To show the full traceback for debugging, pass
+Python stack-traces are suppressed by default to keep runtime errors concise.
+To show the full stack-trace for debugging, pass
 :code:`--cudaq-full-stack-trace` when invoking your script.
 
 .. code-block:: bash
