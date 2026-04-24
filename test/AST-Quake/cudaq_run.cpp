@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: cudaq-quake %s | cudaq-opt --kernel-execution=generate-run-stack=1 --add-dealloc --expand-measurements --factor-quantum-alloc --expand-control-veqs --cc-loop-unroll --canonicalize --multicontrol-decomposition --lower-to-cfg --cse --decomposition=enable-patterns="CCXToCCZ,CCZToCX" --combine-quantum-alloc --canonicalize --convert-to-qir-api --return-to-output-log --symbol-dce --canonicalize | FileCheck %s
+// RUN: cudaq-quake %s | cudaq-opt --kernel-execution=generate-run-stack=1 --add-dealloc --expand-measurements --factor-quantum-alloc --expand-control-veqs --cc-loop-unroll --canonicalize --multicontrol-decomposition --lower-to-cfg --cse --decomposition=enable-patterns="CCXToCCZ,CCZToCX" --combine-quantum-alloc --canonicalize --lower-cc-measure-handle --convert-to-qir-api --return-to-output-log --symbol-dce --canonicalize | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
@@ -16,7 +16,7 @@ struct K9 {
   std::vector<bool> operator()() __qpu__ {
     cudaq::qvector q(5);
     cudaq::qubit p;
-    return mz(q);
+    return cudaq::to_bools(mz(q));
   }
 };
 
@@ -71,7 +71,7 @@ __qpu__ std::vector<bool> dyn_vec_test(int n) {
   cudaq::qvector qs(n);
   for (int i = 0; i < n; i++)
     FlipQubit{}(qs[i]);
-  return mz(qs);
+  return cudaq::to_bools(mz(qs));
 }
 
 // A kernel with a measurement-branch-dependent result size
@@ -81,7 +81,7 @@ __qpu__ std::vector<bool> branch_vec_test() {
   bool b = mz(ctrl);
   int sz = b ? 2 : 4;
   cudaq::qvector data(sz);
-  return mz(data);
+  return cudaq::to_bools(mz(data));
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__K9.run()

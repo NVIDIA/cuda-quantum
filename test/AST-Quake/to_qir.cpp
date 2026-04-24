@@ -45,16 +45,16 @@ struct kernel {
 // CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%Array*, %Qubit*)* @__quantum__qis__x__ctl to i8*), %Qubit* %[[VAL_8]], %Qubit* %[[VAL_4]])
 // CHECK:         tail call void @__quantum__qis__h(%Qubit* %[[VAL_8]])
 // CHECK:         %[[VAL_9:.*]] = tail call %Result* @__quantum__qis__mz__to__register(%Qubit* %[[VAL_8]], i8* nonnull getelementptr inbounds ([3 x i8], [3 x i8]* @cstr.623000, i64 0, i64 0))
-// CHECK:         %[[VAL_11:.*]] = bitcast %Result* %[[VAL_9]] to i1*
-// CHECK:         %[[VAL_12:.*]] = load i1, i1* %[[VAL_11]], align 1
 // CHECK:         %[[VAL_13:.*]] = tail call %Result* @__quantum__qis__mz__to__register(%Qubit* %[[VAL_4]], i8* nonnull getelementptr inbounds ([3 x i8], [3 x i8]* @cstr.623100, i64 0, i64 0))
 // CHECK:         %[[VAL_14:.*]] = bitcast %Result* %[[VAL_13]] to i1*
 // CHECK:         %[[VAL_15:.*]] = load i1, i1* %[[VAL_14]], align 1
 // CHECK:         br i1 %[[VAL_15]], label %[[VAL_16:.*]], label %[[VAL_17:.*]]
-// CHECK:       14:                                               ; preds = %[[VAL_18:.*]]
+// CHECK:       12:                                               ; preds = %[[VAL_18:.*]]
 // CHECK:         tail call void @__quantum__qis__x(%Qubit* %[[VAL_6]])
 // CHECK:         br label %[[VAL_17]]
-// CHECK:       15:                                               ; preds = %[[VAL_16]], %[[VAL_18]]
+// CHECK:       13:                                               ; preds = %[[VAL_16]], %[[VAL_18]]
+// CHECK:         %[[VAL_11:.*]] = bitcast %Result* %[[VAL_9]] to i1*
+// CHECK:         %[[VAL_12:.*]] = load i1, i1* %[[VAL_11]], align 1
 // CHECK:         br i1 %[[VAL_12]], label %[[VAL_19:.*]], label %[[VAL_20:.*]]
 // CHECK:       16:                                               ; preds = %[[VAL_17]]
 // CHECK:         tail call void @__quantum__qis__z(%Qubit* %[[VAL_6]])
