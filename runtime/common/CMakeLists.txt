@@ -27,6 +27,7 @@ set(COMMON_RUNTIME_SRC
   ServerHelper.cpp
   Trace.cpp
   CompiledModule.cpp
+  KernelArgs.cpp
   "${CMAKE_BINARY_DIR}/runtime/common/Version.cpp"
 )
 

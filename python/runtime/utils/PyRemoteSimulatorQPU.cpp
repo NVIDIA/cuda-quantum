@@ -48,12 +48,34 @@ static void
 launchKernelImpl(cudaq::ExecutionContext *executionContextPtr,
                  std::unique_ptr<cudaq::RemoteRuntimeClient> &remote_client,
                  const std::string &sim_name, const std::string &name,
-                 void (*kernelFunc)(void *), void *args,
-                 std::uint64_t voidStarSize, std::uint64_t resultOffset,
-                 const std::vector<void *> &rawArgs) {
-  auto *wrapper = reinterpret_cast<cudaq::ArgWrapper *>(args);
-  auto module = wrapper->mod;
-  auto callableNames = wrapper->callableNames;
+                 void (*kernelFunc)(void *), cudaq::KernelArgs args) {
+  const auto packed = args.getPacked();
+  const auto rawArgs = args.getTypeErased();
+
+  mlir::ModuleOp module;
+  void *sendArgs = nullptr;
+  std::uint64_t sendSize = 0;
+  std::span<void *const> rawArgsForSend;
+
+  if (kernelFunc) {
+    if (!packed || packed->data.empty())
+      throw std::runtime_error(
+          "PyRemoteSimulatorQPU: launchKernel with a kernel thunk requires "
+          "packed arguments.");
+    auto *wrapper = reinterpret_cast<cudaq::ArgWrapper *>(packed->data.data());
+    module = wrapper->mod;
+    sendArgs = wrapper->rawArgs;
+    sendSize = packed->data.size();
+  } else {
+    if (!rawArgs || rawArgs->empty())
+      throw std::runtime_error(
+          "Streamlined kernel launch: arguments cannot be empty. The first "
+          "argument should be a pointer to the MLIR ModuleOp.");
+    auto *moduleOpPtr = reinterpret_cast<mlir::ModuleOp *>((*rawArgs)[0]);
+    module = *moduleOpPtr;
+    // Remove the first argument (the MLIR ModuleOp) from the list of args.
+    rawArgsForSend = rawArgs->subspan(1);
+  }
 
   auto *mlirContext = module->getContext();
 
@@ -68,41 +90,8 @@ launchKernelImpl(cudaq::ExecutionContext *executionContextPtr,
   const bool requestOkay = remote_client->sendRequest(
       *mlirContext, executionContext,
       /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr, /*vqe_n_params=*/0,
-      sim_name, name, kernelFunc, wrapper->rawArgs, voidStarSize, &errorMsg);
-  if (!requestOkay)
-    throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
-}
-
-static void launchKernelStreamlineImpl(
-    cudaq::ExecutionContext *executionContextPtr,
-    std::unique_ptr<cudaq::RemoteRuntimeClient> &remote_client,
-    const std::string &sim_name, const std::string &name,
-    const std::vector<void *> &rawArgs) {
-  if (rawArgs.empty())
-    throw std::runtime_error(
-        "Streamlined kernel launch: arguments cannot be empty. The first "
-        "argument should be a pointer to the MLIR ModuleOp.");
-
-  auto *moduleOpPtr = reinterpret_cast<mlir::ModuleOp *>(rawArgs[0]);
-  auto module = *moduleOpPtr;
-  auto *mlirContext = module->getContext();
-
-  // Default context for a 'fire-and-ignore' kernel launch; i.e., no context
-  // was set before launching the kernel. Use a static variable per thread to
-  // set up a single-shot execution context for this case.
-  static thread_local cudaq::ExecutionContext defaultContext("sample",
-                                                             /*shots=*/1);
-  cudaq::ExecutionContext &executionContext =
-      executionContextPtr ? *executionContextPtr : defaultContext;
-  std::string errorMsg;
-  auto actualArgs = rawArgs;
-  // Remove the first argument (the MLIR ModuleOp) from the list of arguments.
-  actualArgs.erase(actualArgs.begin());
-
-  const bool requestOkay = remote_client->sendRequest(
-      *mlirContext, executionContext,
-      /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr, /*vqe_n_params=*/0,
-      sim_name, name, nullptr, nullptr, 0, &errorMsg, actualArgs);
+      sim_name, name, kernelFunc, sendArgs, sendSize, &errorMsg,
+      rawArgsForSend);
   if (!requestOkay)
     throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
 }
@@ -128,25 +117,20 @@ public:
                     n_params, shots);
   }
 
-  cudaq::KernelThunkResultType
-  launchKernel(const std::string &name, cudaq::KernelThunkType kernelFunc,
-               void *args, std::uint64_t voidStarSize,
-               std::uint64_t resultOffset,
-               const std::vector<void *> &rawArgs) override {
+  cudaq::KernelThunkResultType launchKernel(const std::string &name,
+                                            cudaq::KernelThunkType kernelFunc,
+                                            cudaq::KernelArgs args) override {
     if (kernelFunc) {
       CUDAQ_INFO("{}: Launch kernel named '{}' remote QPU {} (simulator = {})",
                  Derived::class_name, name, this->qpu_id, this->m_simName);
-      ::launchKernelImpl(cudaq::getExecutionContext(), this->m_client,
-                         this->m_simName, name,
-                         make_degenerate_kernel_type(kernelFunc), args,
-                         voidStarSize, resultOffset, rawArgs);
     } else {
       CUDAQ_INFO("{}: Streamline launch kernel named '{}' remote QPU {} "
                  "(simulator = {})",
                  Derived::class_name, name, this->qpu_id, this->m_simName);
-      ::launchKernelStreamlineImpl(cudaq::getExecutionContext(), this->m_client,
-                                   this->m_simName, name, rawArgs);
     }
+    ::launchKernelImpl(cudaq::getExecutionContext(), this->m_client,
+                       this->m_simName, name,
+                       make_degenerate_kernel_type(kernelFunc), args);
     return {};
   }
 };

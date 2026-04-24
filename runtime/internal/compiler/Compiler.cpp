@@ -267,7 +267,7 @@ void Compiler::applyPipeline(const std::string &pipeline,
 
 std::pair<mlir::ModuleOp, mlir::func::FuncOp>
 Compiler::prepareModule(const std::string &kernelName, mlir::ModuleOp m_module,
-                        const std::vector<void *> &rawArgs, void *kernelArgs) {
+                        cudaq::KernelArgs args) {
   auto *contextPtr = m_module.getContext();
 
   auto origFn = m_module.template lookupSymbol<mlir::func::FuncOp>(
@@ -279,10 +279,12 @@ Compiler::prepareModule(const std::string &kernelName, mlir::ModuleOp m_module,
   auto epFunc =
       moduleOp.template lookupSymbol<mlir::func::FuncOp>(origFn.getName());
   const bool isPython = moduleOp->hasAttr(cudaq::runtime::pythonUniqueAttrName);
-  if (!rawArgs.empty() || kernelArgs) {
+  auto rawArgs = args.getTypeErased();
+  auto packed = args.getPacked();
+  if (!args.empty()) {
     mlir::PassManager pm(contextPtr);
-    if (isPython)
-      mergeAllCallableClosures(moduleOp, kernelName, rawArgs);
+    if (isPython && rawArgs)
+      mergeAllCallableClosures(moduleOp, kernelName, *rawArgs);
 
     // Mark all newly merged kernels private, and leave the entry point alone.
     for (auto &op : moduleOp)
@@ -290,13 +292,13 @@ Compiler::prepareModule(const std::string &kernelName, mlir::ModuleOp m_module,
         if (f != epFunc)
           f.setPrivate();
 
-    if (!rawArgs.empty()) {
+    if (rawArgs) {
       CUDAQ_INFO("Run Argument Synth.\n");
       // For quantum devices, we generate a collection of `init` and
       // `num_qubits` functions and their substitutions created
       // from a kernel and arguments that generated a state argument.
       ArgumentConverter argCon(kernelName, moduleOp);
-      argCon.gen(rawArgs);
+      argCon.gen(*rawArgs);
 
       // Store kernel and substitution strings on the stack.
       // We pass string references to the `createArgumentSynthesisPass`.
@@ -333,9 +335,10 @@ Compiler::prepareModule(const std::string &kernelName, mlir::ModuleOp m_module,
           cudaq::opt::createReplaceStateWithKernel());
       cudaq::opt::addAggressiveInlining(pm);
       pm.addPass(mlir::createSymbolDCEPass());
-    } else if (kernelArgs) {
+    } else if (packed) {
       CUDAQ_INFO("Run Quake Synth.\n");
-      pm.addPass(cudaq::opt::createQuakeSynthesizer(kernelName, kernelArgs));
+      pm.addPass(
+          cudaq::opt::createQuakeSynthesizer(kernelName, packed->data.data()));
     }
     pm.addPass(mlir::createCanonicalizerPass());
     if (disableMLIRthreading || enablePrintMLIREachPass)
@@ -402,13 +405,13 @@ cudaq::CompiledModule Compiler::assembleCompiledModule(
       kernelName, {}, std::move(artifacts), {.reorderIdx = mappingReorderIdx});
 }
 
-cudaq::CompiledModule Compiler::runPassPipeline(
-    cudaq::ExecutionContext *executionContext, const std::string &kernelName,
-    mlir::ModuleOp m_module, const std::vector<void *> &rawArgs,
-    void *kernelArgs, std::shared_ptr<mlir::MLIRContext> context) {
+cudaq::CompiledModule
+Compiler::runPassPipeline(cudaq::ExecutionContext *executionContext,
+                          const std::string &kernelName,
+                          mlir::ModuleOp m_module, cudaq::KernelArgs args,
+                          std::shared_ptr<mlir::MLIRContext> context) {
   assert(!context || context.get() == m_module.getContext());
-  auto [moduleOp, epFunc] =
-      prepareModule(kernelName, m_module, rawArgs, kernelArgs);
+  auto [moduleOp, epFunc] = prepareModule(kernelName, m_module, args);
 
   // Populate conditional measurement flag in the context.
   if (emulate && executionContext && executionContext->name == "sample") {
@@ -594,9 +597,9 @@ Compiler::emitKernelExecutions(const cudaq::CompiledModule &compiled) {
 std::vector<cudaq::KernelExecution>
 Compiler::lowerQuakeCode(cudaq::ExecutionContext *executionContext,
                          const std::string &kernelName, mlir::ModuleOp module,
-                         void *kernelArgs, const std::vector<void *> &rawArgs) {
-  auto compiled = runPassPipeline(executionContext, kernelName, module, rawArgs,
-                                  kernelArgs, nullptr);
+                         cudaq::KernelArgs args) {
+  auto compiled =
+      runPassPipeline(executionContext, kernelName, module, args, nullptr);
   return emitKernelExecutions(compiled);
 }
 

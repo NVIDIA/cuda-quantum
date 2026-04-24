@@ -10,6 +10,7 @@
 #include "LinkedLibraryHolder.h"
 #include "common/ArgumentWrapper.h"
 #include "common/FmtCore.h"
+#include "common/KernelArgs.h"
 #include "cudaq/algorithms/get_state.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
@@ -239,7 +240,7 @@ public:
                   const_cast<void *>(static_cast<const void *>(&kernelMod)));
       platform.with_execution_context(context, [&]() {
         [[maybe_unused]] auto r =
-            platform.launchKernel(kernelName, nullptr, nullptr, 0, 0, args);
+            platform.launchKernel(kernelName, nullptr, {args});
       });
       state = std::move(context.simulationState);
     }
@@ -259,7 +260,7 @@ public:
 
     platform.with_execution_context(context, [&]() {
       [[maybe_unused]] auto r =
-          platform.launchKernel(kernelName, nullptr, nullptr, 0, 0, args);
+          platform.launchKernel(kernelName, nullptr, {args});
     });
     assert(context.overlapResult.has_value());
     return context.overlapResult.value();
