@@ -34,13 +34,22 @@ extern "C" void cudaq_add_module_launcher_node(void *node_ptr) {
       static_cast<Node *>(node_ptr));
 }
 
-/// Execute a JIT-compiled kernel with provided arguments.
-///
-/// Handles argument marshaling via `argsCreator` (if not fully specialized)
-/// and result buffer allocation.
-static cudaq::KernelThunkResultType
-launchCompiledModule(const cudaq::CompiledModule &compiled,
-                     cudaq::KernelArgs args) {
+cudaq::KernelThunkResultType
+cudaq::QPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
+  if (std::holds_alternative<SourceModule>(module))
+    throw std::runtime_error(
+        "This QPU does not support launching uncompiled SourceModule kernels; "
+        "subclasses must override unifiedLaunchModule.");
+
+  const auto &compiled = std::get<CompiledModule>(module);
+  return runJITCompiledModule(compiled, args);
+}
+
+cudaq::KernelThunkResultType
+cudaq::QPU::runJITCompiledModule(const CompiledModule &compiled,
+                                 KernelArgs args) {
+  ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::runJITCompiledModule",
+                         compiled.getName());
   auto rawArgs = args.getTypeErased().value_or(std::span<void *const>{});
   auto funcPtr = compiled.getJit()->getFn();
   const auto &resultInfo = compiled.getResultInfo();
@@ -71,18 +80,6 @@ launchCompiledModule(const cudaq::CompiledModule &compiled,
   // Fully specialized, no result.
   funcPtr();
   return {nullptr, 0};
-}
-
-cudaq::KernelThunkResultType
-cudaq::QPU::launchModule(const CompiledModule &module, KernelArgs args) {
-  auto launcher = registry::get<ModuleLauncher>("default");
-  if (!launcher)
-    throw std::runtime_error(
-        "No ModuleLauncher registered with name 'default'. This may be a "
-        "result of attempting to use `launchModule` outside Python.");
-  ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::launchModule",
-                         module.getName());
-  return launchCompiledModule(module, args);
 }
 
 cudaq::CompiledModule cudaq::QPU::compileModule(const SourceModule &src,
