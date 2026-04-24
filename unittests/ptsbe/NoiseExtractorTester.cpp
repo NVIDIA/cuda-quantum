@@ -14,7 +14,7 @@
 #include <gtest/gtest.h>
 
 /// Build PTSBE trace then extract noise sites (the two-step pipeline).
-static detail::NoiseExtractionResult
+static cudaq::ptsbe::detail::NoiseExtractionResult
 buildAndExtract(const cudaq::Trace &trace, const cudaq::noise_model &noise,
                 bool validate = true) {
   auto ptsbe = cudaq::ptsbe::detail::buildPTSBETrace(trace, noise);
