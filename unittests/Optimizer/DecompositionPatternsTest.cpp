@@ -230,8 +230,7 @@ void stripNamespace(std::string &debugName) {
 
 // Test 1: Verify the total number of registered decomposition patterns
 TEST_F(DecompositionPatternsTest, TotalPatternCount) {
-  auto patternEntries =
-      cudaq::DecompositionPatternType::RegistryType::entries();
+  auto patternEntries = cudaq::DecompositionPatternTypeRegistry::entries();
   unsigned int size =
       std::distance(patternEntries.begin(), patternEntries.end());
   EXPECT_EQ(size, 31) << "Expected 31 decomposition patterns, but found "
@@ -240,14 +239,12 @@ TEST_F(DecompositionPatternsTest, TotalPatternCount) {
 
 // Test 2: Verify pattern names match getDebugName()
 TEST_F(DecompositionPatternsTest, PatternNamesMatchDebugNames) {
-  auto patternEntries =
-      cudaq::DecompositionPatternType::RegistryType::entries();
+  auto patternEntries = cudaq::DecompositionPatternTypeRegistry::entries();
 
   for (auto &entry : patternEntries) {
-    std::string patternName = entry.getName();
+    std::string patternName = entry.getName().str();
     // Create the pattern
-    auto patternType =
-        cudaq::registry::get<cudaq::DecompositionPatternType>(patternName);
+    auto patternType = entry.instantiate();
     ASSERT_NE(patternType, nullptr)
         << "Failed to recover registered pattern type: " << patternName;
 
@@ -267,11 +264,10 @@ TEST_F(DecompositionPatternsTest, PatternNamesMatchDebugNames) {
 
 // Test 3: Verify metadata is consistent (source and target gates are valid)
 TEST_F(DecompositionPatternsTest, MetadataConsistency) {
-  auto patternEntries =
-      cudaq::DecompositionPatternType::RegistryType::entries();
+  auto patternEntries = cudaq::DecompositionPatternTypeRegistry::entries();
 
   for (auto &entry : patternEntries) {
-    std::string patternName = entry.getName();
+    std::string patternName = entry.getName().str();
     auto patternType = entry.instantiate();
     std::string sourceGate = patternType->getSourceOp().str();
     auto targetGates = patternType->getTargetOps();
@@ -294,11 +290,10 @@ TEST_F(DecompositionPatternsTest, MetadataConsistency) {
 
 // Test 4: Verify pattern decompositions produce only target gates
 TEST_F(DecompositionPatternsTest, DecompositionProducesOnlyTargetGates) {
-  auto patternEntries =
-      cudaq::DecompositionPatternType::RegistryType::entries();
+  auto patternEntries = cudaq::DecompositionPatternTypeRegistry::entries();
 
   for (auto &entry : patternEntries) {
-    std::string patternName = entry.getName();
+    std::string patternName = entry.getName().str();
     auto patternType = entry.instantiate();
     std::string sourceGate = patternType->getSourceOp().str();
     auto targetGates = patternType->getTargetOps();

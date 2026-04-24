@@ -183,7 +183,7 @@ public:
   static DecompositionGraph fromRegistry() {
     llvm::StringMap<std::unique_ptr<cudaq::DecompositionPatternType>> patterns;
     for (const auto &patternType :
-         cudaq::DecompositionPatternType::RegistryType::entries()) {
+         cudaq::DecompositionPatternTypeRegistry::entries()) {
       patterns.insert({patternType.getName(), patternType.instantiate()});
     }
     return DecompositionGraph(std::move(patterns));
