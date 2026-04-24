@@ -790,9 +790,10 @@ public:
         mlir::UnitAttr newIsAdj =
             applyOp.getIsAdj() ? mlir::UnitAttr{}
                                : mlir::UnitAttr::get(builder.getContext());
-        builder.create<quake::ApplyOp>(
-            applyOp.getLoc(), applyOp.getResultTypes(), applyOp.getCalleeAttr(),
-            newIsAdj, applyOp.getControls(), applyOp.getActuals());
+        quake::ApplyOp::create(builder, applyOp.getLoc(),
+                               applyOp.getResultTypes(),
+                               applyOp.getCalleeAttr(), newIsAdj,
+                               applyOp.getControls(), applyOp.getActuals());
         applyOp->erase();
         continue;
       }
