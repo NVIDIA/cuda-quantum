@@ -41,7 +41,7 @@ static constexpr char resultIndexName[] = "result.index";
 inline mlir::Value createMeasureCall(mlir::PatternRewriter &builder,
                                      mlir::Location loc, mlir::LLVM::CallOp op,
                                      mlir::ValueRange args) {
-  auto ptrTy = cudaq::opt::getResultType(builder.getContext());
+  auto ptrTy = cudaq::cg::getLLVMResultType(builder.getContext());
   if (auto intAttr =
           dyn_cast_or_null<mlir::IntegerAttr>(op->getAttr(resultIndexName))) {
     mlir::Value constOp = mlir::LLVM::ConstantOp::create(builder, loc, intAttr);

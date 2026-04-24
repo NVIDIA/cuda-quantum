@@ -168,11 +168,10 @@ cudaq_internal::compiler::createWrappedKernel(std::string_view irString,
   return std::make_tuple(std::move(jit), callable);
 }
 
-namespace {
-void insertSetupAndCleanupOperations(Operation *module) {
+static void insertSetupAndCleanupOperations(Operation *module) {
   OpBuilder modBuilder(module);
   auto *context = module->getContext();
-  auto arrayQubitTy = cudaq::opt::getArrayType(context);
+  auto arrayQubitTy = cudaq::cg::getLLVMArrayType(context);
   auto voidTy = LLVM::LLVMVoidType::get(context);
   auto boolTy = modBuilder.getI1Type();
   FlatSymbolRefAttr allocateSymbol =
@@ -247,7 +246,6 @@ void insertSetupAndCleanupOperations(Operation *module) {
                                clearResultMapsSymbol, mlir::ValueRange{});
   }
 }
-} // namespace
 
 cudaq::JitEngine
 cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,

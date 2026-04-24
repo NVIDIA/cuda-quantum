@@ -224,7 +224,7 @@ def QuakeToQIRAPI : Pass<"quake-to-qir-api"> {
   let options = [
     Option<"api", "api", "std::string", /*default=*/"\"full\"",
            "Select the QIR API to use.">,
-    Option<"opaquePtr", "opaque-pointer", "bool", /*default=*/"false",
+    Option<"opaquePtr", "opaque-pointer", "bool", /*default=*/"true",
            "Use opaque pointers.">
   ];
 }
@@ -254,7 +254,7 @@ def QuakeToQIRAPIPrep : Pass<"quake-to-qir-api-prep", "mlir::ModuleOp"> {
   let options = [
     Option<"api", "api", "std::string", /*default=*/"\"full\"",
            "Select the QIR API to use.">,
-    Option<"opaquePtr", "opaque-pointer", "bool", /*default=*/"false",
+    Option<"opaquePtr", "opaque-pointer", "bool", /*default=*/"true",
            "Use opaque pointers.">
   ];
 }

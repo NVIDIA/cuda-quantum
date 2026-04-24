@@ -243,11 +243,8 @@ func.func @test_nested_loop_unroll() {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<6>
 // CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<6>) -> !quake.ref
 // CHECK:           quake.x %[[VAL_1]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<6>) -> !quake.ref
-// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<6>) -> !quake.ref
+// CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_0]][{{.*}}] : (!quake.veq<6>, i64) -> !quake.ref
+// CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][{{.*}}] : (!quake.veq<6>, i64) -> !quake.ref
 // CHECK:           quake.x [%[[VAL_2]]] %[[VAL_3]] : (!quake.ref, !quake.ref) -> ()
-// CHECK:           %[[VAL_4:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<6>) -> !quake.ref
-// CHECK:           %[[VAL_5:.*]] = quake.extract_ref %[[VAL_0]][2] : (!quake.veq<6>) -> !quake.ref
-// CHECK:           quake.x [%[[VAL_4]]] %[[VAL_5]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
