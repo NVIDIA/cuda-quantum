@@ -14,7 +14,7 @@ __qpu__ uint64_t otherKernel(std::vector<cudaq::measure_result> &x);
 
 __qpu__ uint64_t test_entry_point() {
   cudaq::qvector q(5);
-  auto results = cudaq::mz(q);
+  auto results = cudaq::to_bools(cudaq::mz(q));
   return otherKernel(results);
 }
 
