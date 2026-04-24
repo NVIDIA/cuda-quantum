@@ -20,7 +20,7 @@ struct S {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__S() attributes
 // CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.veq<20>
-// CHECK:           quake.mz %[[VAL_2]] : (!quake.veq<20>) -> !cc.stdvec<!quake.measure>
+// CHECK:           quake.mz %[[VAL_2]] : (!quake.veq<20>) -> !cc.stdvec<!cc.measure_handle>
 // CHECK:           return
 // CHECK:         }
 // clang-format on
@@ -31,7 +31,7 @@ struct VectorOfStaticVeq {
     cudaq::qvector reg1(4);
     cudaq::qvector reg2(2);
     cudaq::qubit q2;
-    return mz(q1, reg1, reg2, q2);
+    return cudaq::to_bools(mz(q1, reg1, reg2, q2));
   }
 };
 
@@ -41,7 +41,7 @@ struct VectorOfStaticVeq {
 // CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.veq<4>
 // CHECK:           %[[VAL_6:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_7:.*]] = quake.alloca !quake.ref
-// CHECK:           %[[VAL_81:.*]] = quake.mz %[[VAL_0]], %[[VAL_3]], %[[VAL_6]], %[[VAL_7]] : (!quake.ref, !quake.veq<4>, !quake.veq<2>, !quake.ref) -> !cc.stdvec<!quake.measure>
+// CHECK:           %[[VAL_81:.*]] = quake.mz %[[VAL_0]], %[[VAL_3]], %[[VAL_6]], %[[VAL_7]] : (!quake.ref, !quake.veq<4>, !quake.veq<2>, !quake.ref) -> !cc.stdvec<!cc.measure_handle>
 // CHECK:           %[[VAL_8:.*]] = quake.discriminate %[[VAL_81]] :
 // CHECK:           %[[VAL_9:.*]] = cc.stdvec_data %[[VAL_8]] : (!cc.stdvec<i1>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_10:.*]] = cc.stdvec_size %[[VAL_8]] : (!cc.stdvec<i1>) -> i64
@@ -56,7 +56,7 @@ struct VectorOfDynamicVeq {
     cudaq::qvector reg1(i);
     cudaq::qvector reg2(j);
     cudaq::qubit q2;
-    return mz(q1, reg1, reg2, q2);
+    return cudaq::to_bools(mz(q1, reg1, reg2, q2));
   }
 };
 
@@ -75,7 +75,7 @@ struct VectorOfDynamicVeq {
 // CHECK:           %[[VAL_9:.*]] = cc.cast unsigned %[[VAL_8]] : (i32) -> i64
 // CHECK:           %[[VAL_10:.*]] = quake.alloca !quake.veq<?>[%[[VAL_9]] : i64]
 // CHECK:           %[[VAL_11:.*]] = quake.alloca !quake.ref
-// CHECK:           %[[VAL_112:.*]] = quake.mz %[[VAL_4]], %[[VAL_7]], %[[VAL_10]], %[[VAL_11]] : (!quake.ref, !quake.veq<?>, !quake.veq<?>, !quake.ref) -> !cc.stdvec<!quake.measure>
+// CHECK:           %[[VAL_112:.*]] = quake.mz %[[VAL_4]], %[[VAL_7]], %[[VAL_10]], %[[VAL_11]] : (!quake.ref, !quake.veq<?>, !quake.veq<?>, !quake.ref) -> !cc.stdvec<!cc.measure_handle>
 // CHECK:           %[[VAL_12:.*]] = quake.discriminate %[[VAL_112]] :
 // CHECK:           %[[VAL_13:.*]] = cc.stdvec_data %[[VAL_12]] : (!cc.stdvec<i1>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_14:.*]] = cc.stdvec_size %[[VAL_12]] : (!cc.stdvec<i1>) -> i64
