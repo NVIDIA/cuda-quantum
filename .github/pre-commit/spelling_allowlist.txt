@@ -130,6 +130,7 @@ QuTiP
 Quake
 Quantinuum
 RDMA
+REPL
 RHEL
 RPC
 RSA
