@@ -22,7 +22,7 @@ struct C {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__C()
 // CHECK-DAG:       %[[VAL_3:.*]] = quake.alloca !quake.veq<2>
 // CHECK-DAG:       %[[VAL_10:.*]] = quake.alloca !quake.ref
-// CHECK-DAG:       %[[VAL_11:.*]] = quake.mz %[[VAL_10]] name "singleQubit" : (!quake.ref) -> !quake.measure
+// CHECK-DAG:       %[[VAL_11:.*]] = quake.mz %[[VAL_10]] name "singleQubit" : (!quake.ref) -> !cc.measure_handle
 // CHECK-DAG:       %[[VAL_4:.*]] = cc.alloca !cc.array<i8 x 2>
 // CHECK:           %[[VAL_5:.*]] = quake.extract_ref %[[VAL_3]][0] : (!quake.veq<2>) -> !quake.ref
 // CHECK:           %[[VAL_6:.*]] = quake.mz %[[VAL_5]] name "myRegister%0" : (!quake.ref) -> !quake.measure
