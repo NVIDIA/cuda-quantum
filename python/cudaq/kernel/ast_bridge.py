@@ -1813,22 +1813,22 @@ class PyASTBridge(ast.NodeVisitor):
                 # Host-Device Boundary): `cudaq::measure_handle` is
                 # device-only and must not appear -- directly or
                 # transitively -- in the parameter or return position of
-                # an entry-point kernel. Mirrors the C++ check in
-                # `lib/Frontend/nvqpp/ConvertDecl.cpp` keyed on
-                # `cudaq::cc::containsMeasureHandle`.
+                # an entry-point kernel.  Mirrors the C++ check in
+                # `lib/Frontend/nvqpp/ASTBridge.cpp::hasMeasureHandleInSignature`,
+                # keyed on `cudaq::cc::containsMeasureHandle`.  The
+                # diagnostic string is the spec-canonical message so the
+                # C++ and Python frontends agree on user-visible wording
+                # (asserted by `test/AST-error/measure_handle.cpp` and
+                # `python/tests/kernel/test_measure_handle.py`).
+                _BOUNDARY_DIAG = (
+                    "measure_handle cannot cross the host-device boundary; "
+                    "entry-point kernels must discriminate first")
                 for argTy in self.signature.arg_types:
                     if containsMeasureHandle(argTy):
-                        self.emitFatalError(
-                            "cudaq.measure_handle (or a type containing it) "
-                            "may not appear in entry-point kernel parameters; "
-                            "discriminate to bool inside the kernel and "
-                            "return the result instead", node)
+                        self.emitFatalError(_BOUNDARY_DIAG, node)
                 if (self.signature.return_type and
                         containsMeasureHandle(self.signature.return_type)):
-                    self.emitFatalError(
-                        "cudaq.measure_handle (or a type containing it) may "
-                        "not appear in entry-point kernel return positions; "
-                        "discriminate to bool and return that instead", node)
+                    self.emitFatalError(_BOUNDARY_DIAG, node)
                 f.attributes.__setitem__('cudaq-entrypoint', UnitAttr.get())
 
             # Create the entry block
