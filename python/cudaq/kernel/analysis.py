@@ -11,6 +11,8 @@ import inspect
 import textwrap
 from typing import Optional, Type
 
+from .utils import get_function_source_or_raise
+
 
 class FunctionDefVisitor(ast.NodeVisitor):
     """
@@ -108,7 +110,8 @@ class FetchDepFuncsSourceCode:
         if name is None:
             name = func_obj.__name__
 
-        tree = ast.parse(textwrap.dedent(inspect.getsource(func_obj)))
+        src, _ = get_function_source_or_raise(func_obj)
+        tree = ast.parse(src)
         vis = FindDepFuncsVisitor()
         visit_set.add(name)
         vis.visit(tree)
@@ -141,7 +144,9 @@ class FetchDepFuncsSourceCode:
             else:
                 this_func_obj = FetchDepFuncsSourceCode._getFuncObj(
                     funcName, callingFrame)
-            src = textwrap.dedent(inspect.getsource(this_func_obj))
+            if this_func_obj is None:
+                continue
+            src, _ = get_function_source_or_raise(this_func_obj)
 
             code += src + '\n'
 

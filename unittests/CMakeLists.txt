@@ -443,8 +443,6 @@ if (CUDA_FOUND AND TARGET nvqir-dynamics)
   endif()
 endif()
 
-add_subdirectory(plugin)
-
 # build the test qudit execution manager
 add_subdirectory(qudit)
 add_executable(test_qudit main.cpp qudit/SimpleQuditTester.cpp)
