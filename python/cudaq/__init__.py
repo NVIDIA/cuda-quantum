@@ -279,6 +279,16 @@ def amplitudes(array_data):
     return numpy.array(array_data, dtype=complex())
 
 
+def to_bools(handles):
+    """Bulk discrimination of a ``list[cudaq.measure_handle]`` into a
+    ``list[bool]``. Device-only: this symbol exists so kernels can call
+    ``cudaq.to_bools(...)``; the AST bridge intercepts the call and lowers
+    it to a vectorized ``quake.discriminate``. See spec
+    ``measure_handle.bs`` (Python API / ``to_bools``).
+    """
+    raise RuntimeError("device-only; usable only inside @cudaq.kernel")
+
+
 def __clearKernelRegistries():
     global globalRegisteredOperations
     globalRegisteredOperations.clear()

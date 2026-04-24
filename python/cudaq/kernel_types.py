@@ -39,11 +39,16 @@ class measure_handle(KernelType):
     """
     A handle to a measurement event recorded inside a CUDA-Q kernel.
 
-    Returned by ``mz_handle`` / ``mx_handle`` / ``my_handle`` inside an
-    ``@cudaq.kernel`` body. The classical bit is read explicitly via
-    ``cudaq.discriminate(handle)``; there is no implicit ``bool`` conversion
-    in either direction. See the ``measure_handle`` proposal for the full
-    semantics.
+    Returned by ``mz`` / ``mx`` / ``my`` inside an ``@cudaq.kernel`` body
+    (scalar form on a single qubit; vector form on a ``qvector``/``qview``).
+    The classical outcome is read by coercing the handle to ``bool`` in any
+    Python ``bool`` context (``if h:``, ``while h:``, ``not h``, ``h and
+    ...``, ``h == ...``, returning a handle from a ``-> bool`` kernel,
+    etc.); the AST bridge inserts a ``quake.discriminate`` at the coercion
+    site. ``cudaq.to_bools(handles)`` is the bulk counterpart on a
+    ``list[measure_handle]``. See the ``measure_handle`` proposal for the
+    full semantics, including the ``discriminating an unbound
+    measure_handle`` diagnostic for default-constructed handles.
 
     Instantiating ``cudaq.measure_handle()`` at host scope raises
     ``RuntimeError`` (it is device-only).

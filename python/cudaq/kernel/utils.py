@@ -41,6 +41,29 @@ globalRegisteredOperations = {}
 globalRegisteredTypes = cudaq_runtime.DataClassRegistry
 
 
+def containsMeasureHandle(ty):
+    """Return True if ``ty`` is ``!cc.measure_handle`` or transitively
+    contains one (mirrors the C++ ``cudaq::cc::containsMeasureHandle``
+    helper in ``lib/Optimizer/Dialect/CC/CCTypes.cpp``).
+
+    Used to enforce the ``measure_handle`` boundary rule on entry-point
+    kernel parameter / return positions: handles are device-only and must
+    not appear on the host-callable surface (spec
+    ``measure_handle.bs``: Host-Device Boundary).
+    """
+    if cc.MeasureHandleType.isinstance(ty):
+        return True
+    if cc.PointerType.isinstance(ty):
+        return containsMeasureHandle(cc.PointerType.getElementType(ty))
+    if cc.ArrayType.isinstance(ty):
+        return containsMeasureHandle(cc.ArrayType.getElementType(ty))
+    if cc.StdvecType.isinstance(ty):
+        return containsMeasureHandle(cc.StdvecType.getElementType(ty))
+    if cc.StructType.isinstance(ty):
+        return any(containsMeasureHandle(t) for t in cc.StructType.getTypes(ty))
+    return False
+
+
 def getMLIRContext():
     """
     This code creates an MLIRContext singleton for this python process. We do
