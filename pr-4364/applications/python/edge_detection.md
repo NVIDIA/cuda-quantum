@@ -48,6 +48,9 @@ pr-4364
         -   [Debugging and Verbose Simulation
             Output](../../using/basics/troubleshooting.html#debugging-and-verbose-simulation-output){.reference
             .internal}
+        -   [Python
+            Stack-Traces](../../using/basics/troubleshooting.html#python-stack-traces){.reference
+            .internal}
 -   [Examples](../../using/examples/examples.html){.reference .internal}
     -   [Introduction](../../using/examples/introduction.html){.reference
         .internal}
@@ -1699,6 +1702,9 @@ pr-4364
         -   [Backend
             Configuration](../../api/languages/python_api.html#backend-configuration){.reference
             .internal}
+            -   [[`parse_args()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.parse_args){.reference
+                .internal}
             -   [[`has_target()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.has_target){.reference
                 .internal}
@@ -2108,7 +2114,7 @@ each pixel with its position
 
 <div>
 
-![ad68f7b3615c40ea97ccfc271ba89bc8](../../_images/pixels-img.png){.no-scaled-link
+![3e92bfda24754b7cb3d97f3e1e4331b0](../../_images/pixels-img.png){.no-scaled-link
 style="width: 200px;"}
 
 </div>

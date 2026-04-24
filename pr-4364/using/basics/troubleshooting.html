@@ -119,6 +119,7 @@
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">   Troubleshooting</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#debugging-and-verbose-simulation-output">Debugging and Verbose Simulation Output</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#python-stack-traces">Python Stack-Traces</a></li>
 </ul>
 </li>
 </ul>
@@ -997,6 +998,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#backend-configuration">Backend Configuration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.parse_args"><code class="docutils literal notranslate"><span class="pre">parse_args()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.has_target"><code class="docutils literal notranslate"><span class="pre">has_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.get_target"><code class="docutils literal notranslate"><span class="pre">get_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.get_targets"><code class="docutils literal notranslate"><span class="pre">get_targets()</span></code></a></li>
@@ -1190,6 +1192,24 @@ variable. For any CUDA-Q executable, just prepend as follows:</p>
 </div>
 </div>
 </div>
+</section>
+<section id="python-stack-traces">
+<h2>Python Stack-Traces<a class="headerlink" href="#python-stack-traces" title="Permalink to this heading">¶</a></h2>
+<p>When CUDA-Q parses Python command-line options via <a class="reference internal" href="../../api/languages/python_api.html#cudaq.parse_args" title="cudaq.parse_args"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.parse_args()</span></code></a>,
+Python stack-traces are suppressed by default to keep runtime errors concise.
+To show the full stack-trace for debugging, pass
+<code class="code docutils literal notranslate"><span class="pre">--cudaq-full-stack-trace</span></code> when invoking your script.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>program.py<span class="w"> </span>--cudaq-full-stack-trace
+</pre></div>
+</div>
+<p>This flag can be combined with other CUDA-Q Python runtime options such as
+<code class="code docutils literal notranslate"><span class="pre">--target</span></code>, <code class="code docutils literal notranslate"><span class="pre">--target-option</span></code>, and <code class="code docutils literal notranslate"><span class="pre">--emulate</span></code>.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>program.py<span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w"> </span>--target-option<span class="w"> </span>fp64<span class="w"> </span>--cudaq-full-stack-trace
+</pre></div>
+</div>
+<p>If your application parses CUDA-Q command-line arguments explicitly, call
+<a class="reference internal" href="../../api/languages/python_api.html#cudaq.parse_args" title="cudaq.parse_args"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.parse_args()</span></code></a> before running the rest of the program so the flag is
+recognized.</p>
 </section>
 </section>
 

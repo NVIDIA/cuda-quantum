@@ -48,6 +48,9 @@ pr-4364
         -   [Debugging and Verbose Simulation
             Output](../../using/basics/troubleshooting.html#debugging-and-verbose-simulation-output){.reference
             .internal}
+        -   [Python
+            Stack-Traces](../../using/basics/troubleshooting.html#python-stack-traces){.reference
+            .internal}
 -   [Examples](../../using/examples/examples.html){.reference .internal}
     -   [Introduction](../../using/examples/introduction.html){.reference
         .internal}
@@ -1725,6 +1728,9 @@ pr-4364
                 .internal}
         -   [Backend Configuration](#backend-configuration){.reference
             .internal}
+            -   [[`parse_args()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.parse_args){.reference
+                .internal}
             -   [[`has_target()`{.docutils .literal
                 .notranslate}]{.pre}](#cudaq.has_target){.reference
                 .internal}
@@ -2398,6 +2404,13 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
             concatenate measurements in execution order for the returned
             sample result.
 
+        -   **noise_model** (Optional\[[`NoiseModel`{.code .docutils
+            .literal .notranslate}]{.pre}\]) -- The optional
+            [[`NoiseModel`{.xref .py .py-class .docutils .literal
+            .notranslate}]{.pre}](#cudaq.NoiseModel "cudaq.NoiseModel"){.reference
+            .internal} to add noise to the kernel execution on the
+            simulator. Defaults to an empty noise model.
+
         -   **qpu_id**
             (*Optional\[*[*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
             .external}*\]*) -- The optional identification for which QPU
@@ -2921,6 +2934,14 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
 ::: {#backend-configuration .section}
 ## Backend Configuration[¶](#backend-configuration "Permalink to this heading"){.headerlink}
+
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[parse_args]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[args]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.parse_args "Permalink to this definition"){.headerlink}
+
+:   Parse command line arguments and initialize the CUDA-Q environment.
+
+```{=html}
+<!-- -->
+```
 
 [[cudaq.]{.pre}]{.sig-prename .descclassname}[[has_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/library/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*, *[[/]{.pre}]{.o}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.has_target "Permalink to this definition"){.headerlink}
 

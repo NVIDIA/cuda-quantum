@@ -39,6 +39,8 @@ pr-4364
         -   [Debugging and Verbose Simulation
             Output](#debugging-and-verbose-simulation-output){.reference
             .internal}
+        -   [Python Stack-Traces](#python-stack-traces){.reference
+            .internal}
 -   [Examples](../examples/examples.html){.reference .internal}
     -   [Introduction](../examples/introduction.html){.reference
         .internal}
@@ -1716,6 +1718,9 @@ pr-4364
         -   [Backend
             Configuration](../../api/languages/python_api.html#backend-configuration){.reference
             .internal}
+            -   [[`parse_args()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.parse_args){.reference
+                .internal}
             -   [[`has_target()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.has_target){.reference
                 .internal}
@@ -2101,6 +2106,41 @@ C++
 :::
 :::
 :::
+:::
+
+::: {#python-stack-traces .section}
+## Python Stack-Traces[¶](#python-stack-traces "Permalink to this heading"){.headerlink}
+
+When CUDA-Q parses Python command-line options via
+[[`cudaq.parse_args()`{.xref .py .py-func .docutils .literal
+.notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.parse_args "cudaq.parse_args"){.reference
+.internal}, Python stack-traces are suppressed by default to keep
+runtime errors concise. To show the full stack-trace for debugging, pass
+[`--cudaq-full-stack-trace`{.code .docutils .literal
+.notranslate}]{.pre} when invoking your script.
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    python3 program.py --cudaq-full-stack-trace
+:::
+:::
+
+This flag can be combined with other CUDA-Q Python runtime options such
+as [`--target`{.code .docutils .literal .notranslate}]{.pre},
+[`--target-option`{.code .docutils .literal .notranslate}]{.pre}, and
+[`--emulate`{.code .docutils .literal .notranslate}]{.pre}.
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    python3 program.py --target nvidia --target-option fp64 --cudaq-full-stack-trace
+:::
+:::
+
+If your application parses CUDA-Q command-line arguments explicitly,
+call [[`cudaq.parse_args()`{.xref .py .py-func .docutils .literal
+.notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.parse_args "cudaq.parse_args"){.reference
+.internal} before running the rest of the program so the flag is
+recognized.
 :::
 :::
 :::
