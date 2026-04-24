@@ -264,6 +264,31 @@ def test_evolve_density_matrix_cupy_contiguous_no_regression_cudm():
     np.testing.assert_allclose(final_arr, expected, atol=1e-12)
 
 
+@pytest.mark.parametrize("layout",
+                         ["c_order", "fortran_order", "transpose_view"])
+def test_from_data_cupy_2d_square_metadata_preserved_pre_evolve(layout):
+    """State metadata (extents, array shape) must be correct immediately
+    after `from_data`, before any `evolve()` call re-initializes the state.
+
+    Regression for the `isDensityMatrix` flag not being propagated through
+    `CuDensityMatState::createFromSizeAndPtr` (dropped in PR #2853).
+    """
+    base = cp.array([[1.0 + 0.2j, 0.3 + 0.0j], [0.3 + 0.0j, 0.4 + 0.5j]],
+                    dtype=cp.complex128)
+    if layout == "c_order":
+        rho = base
+    elif layout == "fortran_order":
+        rho = cp.asfortranarray(base)
+    else:
+        rho = base.T
+
+    state = cudaq.State.from_data(rho)
+    assert state.getTensor().extents == [2, 2]
+    arr = np.array(state)
+    assert arr.shape == (2, 2)
+    np.testing.assert_allclose(arr, cp.asnumpy(rho), atol=1e-12)
+
+
 def test_from_data_cupy_2d_non_square_rejected():
     """Non-square 2D CuPy arrays on dynamics target must be rejected at
     `from_data` time with the same error as the host 2D path, not deferred
