@@ -51,6 +51,7 @@ ENV ZLIB_INSTALL_PREFIX=/usr/local/zlib
 ENV OPENSSL_INSTALL_PREFIX=/usr/local/openssl
 ENV CURL_INSTALL_PREFIX=/usr/local/curl
 ENV AWS_INSTALL_PREFIX=/usr/local/aws
+ENV NANOBIND_INSTALL_PREFIX=/usr/local/nanobind
 # TODO: eliminate the need for this
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
 
@@ -90,6 +91,7 @@ RUN source /cuda-quantum/scripts/install_toolchain.sh \
 ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites.sh
 # Build compiler-rt (only) since it is needed for code coverage tools
 RUN LLVM_PROJECTS='clang;lld;mlir;python-bindings;compiler-rt' \
+    LLVM_STAGE1_BUILD="$LLVM_INSTALL_PREFIX/bootstrap" \
     bash /cuda-quantum/scripts/install_prerequisites.sh -t ${toolchain}
 
 ## [Dev Dependencies]
