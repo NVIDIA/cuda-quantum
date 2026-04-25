@@ -40,7 +40,7 @@ def test_list_update():
         for i in arg:
             i += 1
             x(qs[i])
-        return sum(arg), to_integer(mz(qs))
+        return sum(arg), to_integer(cudaq.to_bools(mz(qs)))
 
     results = cudaq.run(test1, [0, 1, 2], shots_count=1)
     # to_integer(0111) = 2 + 4 + 8 = 14

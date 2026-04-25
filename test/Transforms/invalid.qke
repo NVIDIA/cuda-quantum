@@ -236,3 +236,13 @@ func.func @mz_handle_register_scalar_result(%v: !quake.veq<?>) {
   %m = quake.mz %v : (!quake.veq<?>) -> !cc.measure_handle
   return
 }
+
+// -----
+
+// Measuring a single qubit with a stdvec result is rejected by the second
+// `verifyMeasurements` error path (single-qubit, wrong aggregate result).
+func.func @mz_handle_single_qubit_stdvec_result(%q: !quake.ref) {
+  // expected-error@+1 {{must return `!quake.measure` or `!cc.measure_handle` when measuring exactly one qubit}}
+  %m = quake.mz %q : (!quake.ref) -> !cc.stdvec<!cc.measure_handle>
+  return
+}

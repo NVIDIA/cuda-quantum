@@ -666,13 +666,19 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
         func->setAttr(entryPointAttrName, unitAttr);
         // Spec §Kernel Signature Rule: an entry-point kernel may not name
         // `measure_handle` -- directly or via any container -- in any
-        // parameter or return position. The recursive walk above covers
-        // `std::vector<measure_handle>`, `std::array<measure_handle, N>`,
-        // `std::optional<measure_handle>`, `std::tuple<..., measure_handle,
-        // ...>`, `std::pair<..., measure_handle>`, pointer / reference
-        // forms, and any nested combination, since each reduces to a
-        // `cc.stdvec` / `cc.array` / `cc.struct` / `cc.ptr` aggregate after
-        // bridge lowering.
+        // parameter or return position. The recursive walk in
+        // `containsMeasureHandle` (CCTypes.cpp) covers the CC types the
+        // bridge actually produces today: `!cc.measure_handle` (direct),
+        // `cc.stdvec` (`std::vector`), `cc.struct` (`std::tuple`,
+        // `std::pair`, user-defined aggregates), `cc.ptr` (pointer /
+        // reference), and `cc.array`, including nested combinations.
+        //
+        // FIXME(measure_handle follow-up): `std::array<measure_handle, N>`,
+        // `std::optional<measure_handle>`, and `std::variant<...,
+        // measure_handle, ...>` hit a pre-existing `getWidthAndAlignment`
+        // assertion in the C++ -> MLIR type mapper before this check runs,
+        // so the spec-canonical boundary diagnostic cannot fire for those
+        // shapes yet. See test/AST-error/measure_handle.cpp for details.
         if (hasMeasureHandleInSignature(func.getFunctionType())) {
           cudaq::details::reportClangError(
               fdPair.second, mangler,

@@ -514,6 +514,106 @@ std::vector<measure_handle> mz(qubit &q, Qs &&...qs) {
   return result;
 }
 
+// Library-mode parity for `mx` / `my` ranges and variadics; in MLIR mode
+// the AST bridge intercepts these calls by name (see `ConvertExpr.cpp`)
+// and emits `quake.{mx,my}` directly, so the template bodies below are
+// only instantiated by library-mode builds. The basis-rotation preamble
+// is applied per qubit by the scalar `mx(qubit&)` / `my(qubit&)` calls
+// each loop body invokes.
+template <typename QubitRange>
+  requires std::ranges::range<QubitRange>
+std::vector<measure_handle> mx(QubitRange &q) {
+  std::vector<measure_handle> b;
+  for (auto &qq : q) {
+    b.push_back(mx(qq));
+  }
+  return b;
+}
+
+template <std::size_t Levels>
+std::vector<measure_handle> mx(const qview<Levels> &q) {
+  std::vector<measure_handle> b;
+  for (auto &qq : q) {
+    b.emplace_back(mx(qq));
+  }
+  return b;
+}
+
+template <typename... Qs>
+std::vector<measure_handle> mx(qubit &q, Qs &&...qs);
+
+template <typename QubitRange, typename... Qs>
+  requires(std::ranges::range<QubitRange>)
+std::vector<measure_handle> mx(QubitRange &qr, Qs &&...qs) {
+  std::vector<measure_handle> result = mx(qr);
+  auto rest = mx(std::forward<Qs>(qs)...);
+  if constexpr (std::is_same_v<decltype(rest), measure_handle>) {
+    result.push_back(rest);
+  } else {
+    result.insert(result.end(), rest.begin(), rest.end());
+  }
+  return result;
+}
+
+template <typename... Qs>
+std::vector<measure_handle> mx(qubit &q, Qs &&...qs) {
+  std::vector<measure_handle> result = {mx(q)};
+  auto rest = mx(std::forward<Qs>(qs)...);
+  if constexpr (std::is_same_v<decltype(rest), measure_handle>) {
+    result.push_back(rest);
+  } else {
+    result.insert(result.end(), rest.begin(), rest.end());
+  }
+  return result;
+}
+
+template <typename QubitRange>
+  requires std::ranges::range<QubitRange>
+std::vector<measure_handle> my(QubitRange &q) {
+  std::vector<measure_handle> b;
+  for (auto &qq : q) {
+    b.push_back(my(qq));
+  }
+  return b;
+}
+
+template <std::size_t Levels>
+std::vector<measure_handle> my(const qview<Levels> &q) {
+  std::vector<measure_handle> b;
+  for (auto &qq : q) {
+    b.emplace_back(my(qq));
+  }
+  return b;
+}
+
+template <typename... Qs>
+std::vector<measure_handle> my(qubit &q, Qs &&...qs);
+
+template <typename QubitRange, typename... Qs>
+  requires(std::ranges::range<QubitRange>)
+std::vector<measure_handle> my(QubitRange &qr, Qs &&...qs) {
+  std::vector<measure_handle> result = my(qr);
+  auto rest = my(std::forward<Qs>(qs)...);
+  if constexpr (std::is_same_v<decltype(rest), measure_handle>) {
+    result.push_back(rest);
+  } else {
+    result.insert(result.end(), rest.begin(), rest.end());
+  }
+  return result;
+}
+
+template <typename... Qs>
+std::vector<measure_handle> my(qubit &q, Qs &&...qs) {
+  std::vector<measure_handle> result = {my(q)};
+  auto rest = my(std::forward<Qs>(qs)...);
+  if constexpr (std::is_same_v<decltype(rest), measure_handle>) {
+    result.push_back(rest);
+  } else {
+    result.insert(result.end(), rest.begin(), rest.end());
+  }
+  return result;
+}
+
 namespace support {
 // Helpers to deal with the `vector<bool>` specialized template type.
 extern "C" {
@@ -541,6 +641,27 @@ inline std::int64_t to_integer(const std::vector<measure_result> &bits) {
   }
   return ret;
 }
+
+#ifdef CUDAQ_LIBRARY_MODE
+// Library-mode `measure_result` is a class type, so this `vector<bool>`
+// overload is a genuinely distinct signature. In MLIR mode `measure_result`
+// is an alias for `bool` (see `execution_manager.h`), so the existing
+// `to_integer(const std::vector<measure_result>&)` overload above already
+// occupies the `vector<bool>` slot and providing it again here would be a
+// same-translation-unit redefinition. The spec-recommended composition
+// `to_integer(to_bools(mz(qv)))` is supported in both modes: MLIR mode
+// reaches it through the `measure_result == bool` alias; library mode
+// reaches it through the overload below.
+inline std::int64_t to_integer(const std::vector<bool> &bits) {
+  std::int64_t ret = 0;
+  for (std::size_t i = 0; i < bits.size(); i++) {
+    if (bits[i]) {
+      ret |= 1UL << i;
+    }
+  }
+  return ret;
+}
+#endif
 
 inline std::int64_t to_integer(const std::string &arg) {
   std::string bitString{arg};

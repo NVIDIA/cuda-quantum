@@ -145,6 +145,28 @@ struct MxMyHandles {
 // CHECK:           return
 // CHECK:         }
 
+// 6b. `mx` and `my` range parity: the qvec forms must take the same
+//     bridge path as `mz(qvec)` and produce
+//     `!cc.stdvec<!cc.measure_handle>` -- without instantiating the
+//     library-mode C++ template bodies in `qubit_qis.h` (the bridge
+//     intercepts the call by name in `ConvertExpr.cpp`).
+struct MxMyRange {
+  void operator()() __qpu__ {
+    cudaq::qvector qv(3);
+    auto hx = mx(qv);
+    auto hy = my(qv);
+    (void)hx;
+    (void)hy;
+  }
+};
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__MxMyRange()
+// CHECK:           quake.mx %{{.*}} name "hx" : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           quake.my %{{.*}} name "hy" : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
+// CHECK-NOT:       quake.discriminate
+// CHECK:           return
+// CHECK:         }
+
 // 7. Cross-function passage. A pure-device `__qpu__` function takes a
 //    qubit reference and a `const cudaq::measure_handle &`; the qubit
 //    keeps the callee out of entry-point classification, so the boundary
