@@ -253,6 +253,12 @@ void cudaq::bindSamplePTSBE(nanobind::module_ &mod) {
                      return std::vector<double>(self.params.begin(),
                                                 self.params.end());
                    })
+      .def_prop_ro("channel",
+                   [](const ptsbe::TraceInstruction &self) -> nanobind::object {
+                     if (!self.channel)
+                       return nanobind::none();
+                     return nanobind::cast(*self.channel);
+                   })
       .def("__repr__", [](const ptsbe::TraceInstruction &self) {
         return "TraceInstruction(" + self.name + " on " +
                std::to_string(self.targets.size()) + " qubits)";
