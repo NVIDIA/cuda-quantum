@@ -1591,9 +1591,15 @@ struct AnnotateKernelsWithMeasurementStringsPattern
 //===----------------------------------------------------------------------===//
 
 template <typename M, typename OP>
-struct QuantumGatePattern : public OpConversionPattern<OP> {
-  using Base = OpConversionPattern<OP>;
+struct QuantumGatePattern : public QubitHelperConversionPattern<M, OP> {
+  using Base = QubitHelperConversionPattern<M, OP>;
   using Base::Base;
+
+  Type getOrigOperandType(OP op, std::size_t opIndex, Value fallback) const {
+    if (Type t = Base::getInitialType(op, opIndex))
+      return t;
+    return fallback.getType();
+  }
 
   LogicalResult
   matchAndRewrite(OP op, typename Base::OpAdaptor adaptor,
@@ -1646,8 +1652,12 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
     // If no control qubits or if there is 1 control and it is already a veq,
     // just add a call and forward the target qubits as needed.
     auto numControls = adaptor.getControls().size();
+    Type firstCtrlOrigTy =
+        op.getControls().empty()
+            ? Type{}
+            : getOrigOperandType(op, opParams.size(), op.getControls().front());
     if (op.getControls().empty() ||
-        conformsToIntendedCall(numControls, op.getControls().front(), op,
+        conformsToIntendedCall(numControls, firstCtrlOrigTy, op,
                                qirFunctionName)) {
       SmallVector<Value> args{opParams.begin(), opParams.end()};
       args.append(adaptor.getControls().begin(), adaptor.getControls().end());
@@ -1671,9 +1681,14 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
     Type i64Ty = rewriter.getI64Type();
     auto ptrNoneTy = M::getLLVMPointerType(rewriter.getContext());
 
-    // Process the controls, sorting them by type.
-    for (auto pr : llvm::zip(op.getControls(), adaptor.getControls())) {
-      if (isaVeqArgument(std::get<0>(pr).getType())) {
+    // Process the controls, sorting them by type. Using the original
+    // type recorded by QuakeToQIRAPIPrep, since opaque pointers
+    // make Array* and Qubit* indistinguishable on the live operand.
+    for (auto [i, pr] :
+         llvm::enumerate(llvm::zip(op.getControls(), adaptor.getControls()))) {
+      Type origCtrlTy =
+          getOrigOperandType(op, opParams.size() + i, std::get<0>(pr));
+      if (isaVeqArgument(origCtrlTy)) {
         numArrayCtrls++;
         auto sizeCall = func::CallOp::create(rewriter, loc, i64Ty,
                                              cudaq::opt::QIRArrayGetSize,
@@ -1749,11 +1764,10 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
     return isa<quake::VeqType>(ty) || alreadyConverted(ty);
   }
 
-  static bool conformsToIntendedCall(std::size_t numControls, Value ctrl, OP op,
-                                     StringRef qirFunctionName) {
+  static bool conformsToIntendedCall(std::size_t numControls, Type ctrlTy,
+                                     OP op, StringRef qirFunctionName) {
     if (numControls != 1)
       return false;
-    auto ctrlTy = ctrl.getType();
     auto trivialName = specializeFunctionName(op, qirFunctionName, numControls);
     const bool nameChanged = trivialName != qirFunctionName;
     if (nameChanged && !isa<quake::VeqType>(ctrlTy))
