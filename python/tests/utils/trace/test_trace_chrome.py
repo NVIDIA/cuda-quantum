@@ -29,6 +29,9 @@ def test_file_backed_chrome_backend_interleaves_python_and_mlir_pass(tmp_path):
     """A file-backed ChromeBackend captures the Python span plus every
     MLIR pass that runs inside it, and every pass event is contained in the
     outer Python span's time window."""
+    # Reset target in case a prior xdist test on this worker set a remote
+    # backend (e.g. backends/test_Quantinuum_*) and did not restore.
+    cudaq.set_target("qpp-cpu")
     trace_path = tmp_path / "trace.json"
 
     trace.set_backend(trace.ChromeBackend(str(trace_path)))
@@ -70,6 +73,9 @@ def test_in_memory_chrome_backend_exposes_events_without_file():
 def test_builtin_python_phase_spans_wrap_kernel_lifecycle():
     """Built-in @trace.traced decorators emit spans covering the Python
     entry, JIT compile, and prepare_call / clone_module bridge phases."""
+    # Reset target in case a prior xdist test on this worker set a remote
+    # backend (e.g. backends/test_Quantinuum_*) and did not restore.
+    cudaq.set_target("qpp-cpu")
 
     # Fresh kernel forces a JIT compile inside the traced region.
     @cudaq.kernel
