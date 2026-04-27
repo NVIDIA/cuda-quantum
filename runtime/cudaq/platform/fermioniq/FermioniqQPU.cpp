@@ -27,10 +27,10 @@ extern "C" void cudaq_add_qpu_node(void *node_ptr);
 
 namespace {
 struct FermioniqQPURegistration {
-  llvm::SimpleRegistryEntry<cudaq::QPU> entry;
-  llvm::Registry<cudaq::QPU>::node node;
+  cudaq::RegistryEntry<cudaq::QPU> entry;
+  cudaq::Registry<cudaq::QPU>::node node;
   FermioniqQPURegistration()
-      : entry("fermioniq", "", &FermioniqQPURegistration::ctorFn), node(entry) {
+      : entry("fermioniq", &FermioniqQPURegistration::ctorFn), node(entry) {
     cudaq_add_qpu_node(&node);
   }
   static std::unique_ptr<cudaq::QPU> ctorFn() {

@@ -109,7 +109,7 @@ std::vector<std::size_t> extractMappingReorderIdx(mlir::ModuleOp moduleOp,
 } // namespace
 
 std::pair<mlir::ModuleOp, std::unique_ptr<mlir::MLIRContext>>
-Compiler::extractQuakeCodeAndContext(const std::string &kernelName) {
+Compiler::loadQuakeCodeByName(const std::string &kernelName) {
   auto context = getOwningMLIRContext();
 
   // Get the quake representation of the kernel
@@ -596,20 +596,10 @@ Compiler::emitKernelExecutions(const cudaq::CompiledModule &compiled) {
 /// platform directory for the targeted backend.
 std::vector<cudaq::KernelExecution>
 Compiler::lowerQuakeCode(cudaq::ExecutionContext *executionContext,
-                         const std::string &kernelName, void *kernelArgs,
-                         const std::vector<void *> &rawArgs) {
-  auto [m_module, context] = extractQuakeCodeAndContext(kernelName);
-  auto compiled = runPassPipeline(executionContext, kernelName, m_module,
-                                  rawArgs, kernelArgs, std::move(context));
-  return emitKernelExecutions(compiled);
-}
-
-std::vector<cudaq::KernelExecution>
-Compiler::lowerQuakeCode(cudaq::ExecutionContext *executionContext,
                          const std::string &kernelName, mlir::ModuleOp module,
-                         const std::vector<void *> &rawArgs) {
-  auto compiled =
-      runPassPipeline(executionContext, kernelName, module, rawArgs);
+                         void *kernelArgs, const std::vector<void *> &rawArgs) {
+  auto compiled = runPassPipeline(executionContext, kernelName, module, rawArgs,
+                                  kernelArgs, nullptr);
   return emitKernelExecutions(compiled);
 }
 

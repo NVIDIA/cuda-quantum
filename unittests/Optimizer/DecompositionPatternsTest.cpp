@@ -233,8 +233,7 @@ void stripNamespace(std::string &debugName) {
 
 // Test 1: Verify the total number of registered decomposition patterns
 TEST_F(DecompositionPatternsTest, TotalPatternCount) {
-  auto patternEntries =
-      cudaq::DecompositionPatternType::RegistryType::entries();
+  auto patternEntries = cudaq::DecompositionPatternTypeRegistry::entries();
   unsigned int size =
       std::distance(patternEntries.begin(), patternEntries.end());
   EXPECT_EQ(size, 31) << "Expected 31 decomposition patterns, but found "
@@ -243,11 +242,10 @@ TEST_F(DecompositionPatternsTest, TotalPatternCount) {
 
 // Test 2: Verify pattern names match getDebugName()
 TEST_F(DecompositionPatternsTest, PatternNamesMatchDebugNames) {
-  auto patternEntries =
-      cudaq::DecompositionPatternType::RegistryType::entries();
+  auto patternEntries = cudaq::DecompositionPatternTypeRegistry::entries();
 
   for (auto &entry : patternEntries) {
-    auto patternName = entry.getName();
+    std::string patternName = entry.getName().str();
     std::unique_ptr<cudaq::DecompositionPatternType> patternType;
     for (auto it = cudaq::DecompositionPatternType::RegistryType::begin(),
               ie = cudaq::DecompositionPatternType::RegistryType::end();
@@ -258,27 +256,25 @@ TEST_F(DecompositionPatternsTest, PatternNamesMatchDebugNames) {
       }
     }
     ASSERT_NE(patternType, nullptr)
-        << "Failed to recover registered pattern type: " << patternName.str();
+        << "Failed to recover registered pattern type: " << patternName;
 
     auto pattern = patternType->create(context.get());
-    ASSERT_NE(pattern, nullptr)
-        << "Failed to create pattern: " << patternName.str();
+    ASSERT_NE(pattern, nullptr) << "Failed to create pattern: " << patternName;
 
     // Get the debug name
     auto debugName = pattern->getDebugName().str();
     stripNamespace(debugName);
 
     // Verify they match
-    EXPECT_EQ(patternName.str(), debugName)
-        << "Pattern name '" << patternName.str()
-        << "' does not match debug name '" << debugName << "'";
+    EXPECT_EQ(patternName, debugName)
+        << "Pattern name '" << patternName << "' does not match debug name '"
+        << debugName << "'";
   }
 }
 
 // Test 3: Verify metadata is consistent (source and target gates are valid)
 TEST_F(DecompositionPatternsTest, MetadataConsistency) {
-  auto patternEntries =
-      cudaq::DecompositionPatternType::RegistryType::entries();
+  auto patternEntries = cudaq::DecompositionPatternTypeRegistry::entries();
 
   for (auto &entry : patternEntries) {
     std::string patternName = entry.getName().str();
@@ -301,8 +297,7 @@ TEST_F(DecompositionPatternsTest, MetadataConsistency) {
 
 // Test 4: Verify pattern decompositions produce only target gates
 TEST_F(DecompositionPatternsTest, DecompositionProducesOnlyTargetGates) {
-  auto patternEntries =
-      cudaq::DecompositionPatternType::RegistryType::entries();
+  auto patternEntries = cudaq::DecompositionPatternTypeRegistry::entries();
 
   for (auto &entry : patternEntries) {
     std::string patternName = entry.getName().str();

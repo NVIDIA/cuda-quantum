@@ -22,14 +22,10 @@
 namespace cudaq {
 
 #define PROPERTY_SPECIFIC_TEMPLATE_DEFINITION(HandlerTy, property)             \
-  template <typename T,                                                        \
-            std::enable_if_t<std::is_same<HandlerTy, T>::value && property,    \
-                             std::true_type>>
+  template <typename T, typename, std::true_type>
 
 #define PROPERTY_AGNOSTIC_TEMPLATE_DEFINITION(HandlerTy, property)             \
-  template <typename T,                                                        \
-            std::enable_if_t<std::is_same<HandlerTy, T>::value && !property,   \
-                             std::false_type>>
+  template <typename T, typename, std::false_type>
 
 // private methods
 
@@ -460,9 +456,7 @@ product_op<HandlerTy>::product_op(HandlerTy &&atomic) : coefficient(1.) {
 }
 
 template <typename HandlerTy>
-template <typename... Args,
-          std::enable_if_t<
-              std::conjunction<std::is_same<HandlerTy, Args>...>::value, bool>>
+template <typename... Args, typename>
 product_op<HandlerTy>::product_op(scalar_operator coefficient, Args &&...args)
     : coefficient(std::move(coefficient)) {
   this->operators.reserve(sizeof...(Args));
@@ -499,10 +493,7 @@ product_op<HandlerTy>::product_op(scalar_operator coefficient,
 }
 
 template <typename HandlerTy>
-template <typename T,
-          std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
-                               std::is_constructible<HandlerTy, T>::value,
-                           bool>>
+template <typename T, typename>
 product_op<HandlerTy>::product_op(const product_op<T> &other)
     : coefficient(other.coefficient) {
   this->operators.reserve(other.operators.size());
@@ -513,11 +504,7 @@ product_op<HandlerTy>::product_op(const product_op<T> &other)
 }
 
 template <typename HandlerTy>
-template <typename T,
-          std::enable_if_t<std::is_same<HandlerTy, matrix_handler>::value &&
-                               !std::is_same<T, HandlerTy>::value &&
-                               std::is_constructible<HandlerTy, T>::value,
-                           bool>>
+template <typename T, typename>
 product_op<HandlerTy>::product_op(
     const product_op<T> &other,
     const matrix_handler::commutation_behavior &behavior)
@@ -628,10 +615,7 @@ INSTANTIATE_PRODUCT_PRIVATE_FRIEND_CONSTRUCTORS(fermion_handler);
 // assignments
 
 template <typename HandlerTy>
-template <typename T,
-          std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
-                               std::is_constructible<HandlerTy, T>::value,
-                           bool>>
+template <typename T, typename>
 product_op<HandlerTy> &
 product_op<HandlerTy>::operator=(const product_op<T> &other) {
   *this = product_op<HandlerTy>(other);
@@ -1211,8 +1195,7 @@ INSTANTIATE_PRODUCT_LHCOMPOSITE_OPS(fermion_handler);
 // arithmetics that require conversions
 
 #define PRODUCT_CONVERSIONS_OPS(op, returnTy)                                  \
-  template <typename LHtype, typename RHtype,                                  \
-            TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)>                        \
+  template <typename LHtype, typename RHtype, typename>                        \
   returnTy<matrix_handler> operator op(const product_op<LHtype> &other,        \
                                        const product_op<RHtype> &self) {       \
     return product_op<matrix_handler>(other) op self;                          \
@@ -1397,10 +1380,7 @@ INSTANTIATE_PRODUCT_UTILITY_FUNCTIONS(fermion_handler);
 
 #define HANDLER_SPECIFIC_TEMPLATE_DEFINITION(ConcreteTy)                       \
   template <typename HandlerTy>                                                \
-  template <typename T,                                                        \
-            std::enable_if_t<std::is_same<T, ConcreteTy>::value &&             \
-                                 std::is_same<HandlerTy, T>::value,            \
-                             bool>>
+  template <typename T, typename, ConcreteTy *>
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 std::size_t product_op<HandlerTy>::num_qubits() const {
@@ -1549,10 +1529,7 @@ template mdiag_sparse_matrix product_op<boson_handler>::to_diagonal_matrix(
 
 #define SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION                             \
   template <typename HandlerTy>                                                \
-  template <typename T,                                                        \
-            std::enable_if_t<std::is_same<HandlerTy, spin_handler>::value &&   \
-                                 std::is_same<HandlerTy, T>::value,            \
-                             bool>>
+  template <typename T, typename>
 
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
 std::string product_op<HandlerTy>::to_string(bool printCoeffs) const {
