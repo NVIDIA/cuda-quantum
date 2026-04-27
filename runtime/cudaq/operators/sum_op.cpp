@@ -20,14 +20,10 @@
 namespace cudaq {
 
 #define PROPERTY_SPECIFIC_TEMPLATE_DEFINITION(HandlerTy, property)             \
-  template <typename T,                                                        \
-            std::enable_if_t<std::is_same<HandlerTy, T>::value && property,    \
-                             std::true_type>>
+  template <typename T, typename, std::true_type>
 
 #define PROPERTY_AGNOSTIC_TEMPLATE_DEFINITION(HandlerTy, property)             \
-  template <typename T,                                                        \
-            std::enable_if_t<std::is_same<HandlerTy, T>::value && !property,   \
-                             std::false_type>>
+  template <typename T, typename, std::false_type>
 
 // private methods
 
@@ -264,12 +260,7 @@ sum_op<HandlerTy>::sum_op(const product_op<HandlerTy> &prod)
 }
 
 template <typename HandlerTy>
-template <
-    typename... Args,
-    std::enable_if_t<
-        std::conjunction<std::is_same<product_op<HandlerTy>, Args>...>::value &&
-            sizeof...(Args),
-        bool>>
+template <typename... Args, typename>
 sum_op<HandlerTy>::sum_op(Args &&...args) : is_default(false) {
   this->coefficients.reserve(sizeof...(Args));
   this->term_map.reserve(sizeof...(Args));
@@ -278,10 +269,7 @@ sum_op<HandlerTy>::sum_op(Args &&...args) : is_default(false) {
 }
 
 template <typename HandlerTy>
-template <typename T,
-          std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
-                               std::is_constructible<HandlerTy, T>::value,
-                           bool>>
+template <typename T, typename>
 sum_op<HandlerTy>::sum_op(const sum_op<T> &other)
     : is_default(other.is_default), coefficients(other.coefficients) {
   this->term_map.reserve(other.terms.size());
@@ -297,11 +285,7 @@ sum_op<HandlerTy>::sum_op(const sum_op<T> &other)
 }
 
 template <typename HandlerTy>
-template <typename T,
-          std::enable_if_t<std::is_same<HandlerTy, matrix_handler>::value &&
-                               !std::is_same<T, HandlerTy>::value &&
-                               std::is_constructible<HandlerTy, T>::value,
-                           bool>>
+template <typename T, typename>
 sum_op<HandlerTy>::sum_op(const sum_op<T> &other,
                           const matrix_handler::commutation_behavior &behavior)
     : is_default(other.is_default), coefficients(other.coefficients) {
@@ -417,10 +401,7 @@ INSTANTIATE_SUM_PRIVATE_FRIEND_CONSTRUCTORS(fermion_handler);
 // assignments
 
 template <typename HandlerTy>
-template <typename T,
-          std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
-                               std::is_constructible<HandlerTy, T>::value,
-                           bool>>
+template <typename T, typename>
 sum_op<HandlerTy> &sum_op<HandlerTy>::operator=(const product_op<T> &other) {
   *this = product_op<HandlerTy>(other);
   return *this;
@@ -454,10 +435,7 @@ sum_op<HandlerTy> &sum_op<HandlerTy>::operator=(product_op<HandlerTy> &&other) {
 }
 
 template <typename HandlerTy>
-template <typename T,
-          std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
-                               std::is_constructible<HandlerTy, T>::value,
-                           bool>>
+template <typename T, typename>
 sum_op<HandlerTy> &sum_op<HandlerTy>::operator=(const sum_op<T> &other) {
   *this = sum_op<HandlerTy>(other);
   return *this;
@@ -1405,10 +1383,7 @@ sum_op<fermion_handler>::identity(std::size_t target);
 
 #define HANDLER_SPECIFIC_TEMPLATE_DEFINITION(ConcreteTy)                       \
   template <typename HandlerTy>                                                \
-  template <typename T,                                                        \
-            std::enable_if_t<std::is_same<T, ConcreteTy>::value &&             \
-                                 std::is_same<HandlerTy, T>::value,            \
-                             bool>>
+  template <typename T, typename, ConcreteTy *>
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(matrix_handler)
 product_op<T> sum_op<HandlerTy>::number(std::size_t target) {
@@ -1692,10 +1667,7 @@ INSTANTIATE_SUM_UTILITY_FUNCTIONS(fermion_handler);
 
 #define HANDLER_SPECIFIC_TEMPLATE_DEFINITION(ConcreteTy)                       \
   template <typename HandlerTy>                                                \
-  template <typename T,                                                        \
-            std::enable_if_t<std::is_same<T, ConcreteTy>::value &&             \
-                                 std::is_same<HandlerTy, T>::value,            \
-                             bool>>
+  template <typename T, typename, ConcreteTy *>
 
 HANDLER_SPECIFIC_TEMPLATE_DEFINITION(spin_handler)
 std::size_t sum_op<HandlerTy>::num_qubits() const {
@@ -1951,10 +1923,7 @@ sum_op<spin_handler>::get_data_representation() const;
 
 #define SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION                             \
   template <typename HandlerTy>                                                \
-  template <typename T,                                                        \
-            std::enable_if_t<std::is_same<HandlerTy, spin_handler>::value &&   \
-                                 std::is_same<HandlerTy, T>::value,            \
-                             bool>>
+  template <typename T, typename>
 
 SPIN_OPS_BACKWARD_COMPATIBILITY_DEFINITION
 sum_op<HandlerTy>::sum_op(const std::vector<double> &input_vec,
