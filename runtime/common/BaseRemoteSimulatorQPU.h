@@ -194,7 +194,9 @@ public:
           return m_client->lowerKernelInPlace(prefabMod, name, *rawArgs);
         }
         return m_client->lowerKernel(*m_mlirContext, name, args, voidStarSize,
-                                     0, rawArgs);
+                                     0,
+                                     rawArgs ? std::span<void *const>{*rawArgs}
+                                             : std::span<void *const>{});
       }();
 
       auto jit =
@@ -274,7 +276,9 @@ public:
         *m_mlirContext, executionContext,
         /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr, /*vqe_n_params=*/0,
         m_simName, name, make_degenerate_kernel_type(kernelFunc), args,
-        voidStarSize, &errorMsg, rawArgs, moduleOp);
+        voidStarSize, &errorMsg,
+        rawArgs ? std::span<void *const>{*rawArgs} : std::span<void *const>{},
+        moduleOp);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
     if (isDirectInvocation &&

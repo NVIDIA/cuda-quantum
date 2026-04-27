@@ -102,7 +102,7 @@ static void launchKernelStreamlineImpl(
   const bool requestOkay = remote_client->sendRequest(
       *mlirContext, executionContext,
       /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr, /*vqe_n_params=*/0,
-      sim_name, name, nullptr, nullptr, 0, &errorMsg, &actualArgs);
+      sim_name, name, nullptr, nullptr, 0, &errorMsg, actualArgs);
   if (!requestOkay)
     throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
 }
