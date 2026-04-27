@@ -134,25 +134,25 @@ public:
   }
 
   KernelThunkResultType
-  launchModule(const std::string &name, mlir::ModuleOp module,
+  launchModule(const CompiledModule &compiled,
                const std::vector<void *> &rawArgs) override {
-    std::string fullName = cudaq::runtime::cudaqGenPrefixName + name;
+    auto resultInfo = compiled.getResultInfo();
+    auto args = resultInfo.hasResult() ? rawArgs.back() : nullptr;
+    return launchKernelImpl(compiled, nullptr, args, 0, 0, &rawArgs);
+  }
+
+  CompiledModule compileModule(const std::string &kernelName,
+                               mlir::ModuleOp module,
+                               const std::vector<void *> &rawArgs,
+                               bool isEntryPoint) override {
+    CUDAQ_INFO("specializing remote simulator kernel via module ({})",
+               kernelName);
+    std::string fullName = cudaq::runtime::cudaqGenPrefixName + kernelName;
     auto funcOp = module.lookupSymbol<mlir::func::FuncOp>(fullName);
     auto resTy = cudaq::runtime::getReturnType(funcOp);
     auto args = resTy ? rawArgs.back() : nullptr;
     // Looks very much like launchKernel(string, vector<ptr>*).
-    auto compiled = compileKernelImpl(name, args, 0, &rawArgs, module, resTy);
-    return launchKernelImpl(compiled, nullptr, args, 0, 0, &rawArgs);
-  }
-
-  CompiledModule specializeModule(const std::string &kernelName,
-                                  mlir::ModuleOp module,
-                                  const std::vector<void *> &rawArgs,
-                                  bool isEntryPoint) override {
-    CUDAQ_INFO("specializing remote simulator kernel via module ({})",
-               kernelName);
-    throw std::runtime_error(
-        "NYI: Remote simulator execution via Python/C++ interop.");
+    return compileKernelImpl(kernelName, args, 0, &rawArgs, module, resTy);
   }
 
   [[nodiscard]] CompiledModule
