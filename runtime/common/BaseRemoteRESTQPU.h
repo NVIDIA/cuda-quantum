@@ -278,10 +278,23 @@ public:
   }
 
   KernelThunkResultType
-  launchModule(const std::string &kernelName, mlir::ModuleOp module,
+  launchModule(const CompiledModule &compiled,
                const std::vector<void *> &rawArgs) override {
-    CUDAQ_INFO("launching remote rest kernel via module ({})", kernelName);
+    CUDAQ_INFO("launching remote rest kernel via module ({})",
+               compiled.getName());
 
+    Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
+                      noiseModel, emulate);
+    auto codes = compiler.emitKernelExecutions(compiled);
+    completeLaunchKernel(compiled.getName(), std::move(codes));
+    return {};
+  }
+
+  CompiledModule compileModule(const std::string &kernelName,
+                               mlir::ModuleOp module,
+                               const std::vector<void *> &rawArgs,
+                               bool isEntryPoint) override {
+    CUDAQ_INFO("specializing remote rest kernel via module ({})", kernelName);
     auto executionContext = cudaq::getExecutionContext();
 
     // TODO future iterations of this should support non-void return types.
@@ -292,19 +305,8 @@ public:
 
     Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
                       noiseModel, emulate);
-    completeLaunchKernel(kernelName,
-                         compiler.lowerQuakeCode(executionContext, kernelName,
-                                                 module, nullptr, rawArgs));
-    return {};
-  }
-
-  CompiledModule specializeModule(const std::string &kernelName,
-                                  mlir::ModuleOp module,
-                                  const std::vector<void *> &rawArgs,
-                                  bool isEntryPoint) override {
-    CUDAQ_INFO("specializing remote rest kernel via module ({})", kernelName);
-    throw std::runtime_error(
-        "NYI: Remote rest execution via Python/C++ interop.");
+    return compiler.runPassPipeline(executionContext, kernelName, module,
+                                    rawArgs, nullptr);
   }
 
   void completeLaunchKernel(const std::string &kernelName,
