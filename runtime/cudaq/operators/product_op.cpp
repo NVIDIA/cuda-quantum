@@ -1195,8 +1195,7 @@ INSTANTIATE_PRODUCT_LHCOMPOSITE_OPS(fermion_handler);
 // arithmetics that require conversions
 
 #define PRODUCT_CONVERSIONS_OPS(op, returnTy)                                  \
-  template <typename LHtype, typename RHtype,                                  \
-            TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)>                        \
+  template <typename LHtype, typename RHtype, typename>                        \
   returnTy<matrix_handler> operator op(const product_op<LHtype> &other,        \
                                        const product_op<RHtype> &self) {       \
     return product_op<matrix_handler>(other) op self;                          \

@@ -1226,22 +1226,19 @@ INSTANTIATE_SUM_LHCOMPOSITE_OPS(fermion_handler);
 
 #define SUM_CONVERSIONS_OPS(op)                                                \
                                                                                \
-  template <typename LHtype, typename RHtype,                                  \
-            TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)>                        \
+  template <typename LHtype, typename RHtype, typename>                        \
   sum_op<matrix_handler> operator op(const sum_op<LHtype> &other,              \
                                      const product_op<RHtype> &self) {         \
     return sum_op<matrix_handler>(other) op self;                              \
   }                                                                            \
                                                                                \
-  template <typename LHtype, typename RHtype,                                  \
-            TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)>                        \
+  template <typename LHtype, typename RHtype, typename>                        \
   sum_op<matrix_handler> operator op(const product_op<LHtype> &other,          \
                                      const sum_op<RHtype> &self) {             \
     return product_op<matrix_handler>(other) op self;                          \
   }                                                                            \
                                                                                \
-  template <typename LHtype, typename RHtype,                                  \
-            TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)>                        \
+  template <typename LHtype, typename RHtype, typename>                        \
   sum_op<matrix_handler> operator op(const sum_op<LHtype> &other,              \
                                      const sum_op<RHtype> &self) {             \
     return sum_op<matrix_handler>(other) op self;                              \
