@@ -887,6 +887,12 @@ appendResultToArgsVector(cudaq::OpaqueArguments &runtimeArgs, Type returnType,
 cudaq::KernelThunkResultType
 cudaq::clean_launch_module(const std::string &name, ModuleOp mod,
                            cudaq::OpaqueArguments &args) {
+  // Release the GIL for MLIR compilation and JIT. PyEval_SaveThread requires
+  // the GIL to be held, so guard with PyGILState_Check. Async paths invoke
+  // this from worker threads that never held the GIL.
+  std::optional<nanobind::gil_scoped_release> release;
+  if (PyGILState_Check())
+    release.emplace();
   auto kernelFunc = getKernelFuncOp(mod, name);
   Type retTy = cudaq::runtime::getReturnType(kernelFunc);
   // Append space for a result, as needed, to the vector of arguments.
@@ -922,13 +928,7 @@ nanobind::object cudaq::marshal_and_launch_module(const std::string &name,
   Type retTy = cudaq::runtime::getReturnType(kernelFunc);
   auto args = marshal_arguments_for_module_launch(mod, runtimeArgs, kernelFunc);
 
-  {
-    // Release the GIL for MLIR compilation + JIT. This allows Python signal
-    // handling (Ctrl-C) via addPythonSignalInstrumentation which uses
-    // PyGILState_Ensure from the compilation thread.
-    nanobind::gil_scoped_release release;
-    [[maybe_unused]] auto resultPtr = clean_launch_module(name, mod, args);
-  }
+  [[maybe_unused]] auto resultPtr = clean_launch_module(name, mod, args);
 
   if (!retTy)
     return nanobind::none();
