@@ -40,4 +40,4 @@ void ServerHelper::parseConfigForCommonParams(const BackendConfig &config) {
 }
 } // namespace cudaq
 
-LLVM_INSTANTIATE_REGISTRY(cudaq::ServerHelper::RegistryType)
+CUDAQ_INSTANTIATE_REGISTRY(cudaq::ServerHelper::RegistryType)
