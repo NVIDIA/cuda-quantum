@@ -25,7 +25,6 @@
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/JIT.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
-#include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Support/Base64.h"
@@ -250,7 +249,6 @@ void Compiler::applyPipeline(const std::string &pipeline,
                              const std::string &kernelName) {
   auto *contextPtr = moduleOp.getContext();
   mlir::PassManager pm(contextPtr);
-  pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
   std::string errMsg;
   llvm::raw_string_ostream os(errMsg);
   CUDAQ_INFO("Pass pipeline for {} = {}", kernelName, pipeline);
@@ -283,7 +281,6 @@ Compiler::prepareModule(const std::string &kernelName, mlir::ModuleOp m_module,
   const bool isPython = moduleOp->hasAttr(cudaq::runtime::pythonUniqueAttrName);
   if (!rawArgs.empty() || kernelArgs) {
     mlir::PassManager pm(contextPtr);
-    pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
     if (isPython)
       mergeAllCallableClosures(moduleOp, kernelName, rawArgs);
 
@@ -510,8 +507,6 @@ cudaq::CompiledModule Compiler::runPassPipeline(
       // followed by the canonicalizer
       auto *contextPtr = moduleOp.getContext();
       mlir::PassManager pm(contextPtr);
-      pm.addInstrumentation(
-          std::make_unique<cudaq::TracePassInstrumentation>());
       pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createObserveAnsatzPass(
           term.get_binary_symplectic_form()));
       if (disableMLIRthreading || enablePrintMLIREachPass)

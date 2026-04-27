@@ -20,7 +20,6 @@
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
-#include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "llvm/ExecutionEngine/Orc/ExecutionUtils.h"
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h"
@@ -265,7 +264,6 @@ cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
 
     auto *context = module->getContext();
     PassManager pm(context);
-    pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
 
     bool containsWireSet =
         module
