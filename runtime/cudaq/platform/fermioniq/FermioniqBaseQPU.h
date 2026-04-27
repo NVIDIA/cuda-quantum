@@ -45,30 +45,45 @@ public:
                std::uint64_t resultOffset,
                const std::vector<void *> &rawArgs) override {
     CUDAQ_INFO("FermioniqBaseQPU launching kernel ({})", kernelName);
-    launchImpl(kernelName, [&](Compiler &compiler, ExecutionContext *ctx) {
+    auto [module, context] = Compiler::loadQuakeCodeByName(kernelName);
+    auto compiled = compileImpl(kernelName, [&](Compiler &compiler,
+                                                ExecutionContext *ctx) {
       return rawArgs.empty()
-                 ? compiler.lowerQuakeCode(ctx, kernelName, args, {})
-                 : compiler.lowerQuakeCode(ctx, kernelName, nullptr, rawArgs);
+                 ? compiler.runPassPipeline(ctx, kernelName, module, {}, args,
+                                            std::move(context))
+                 : compiler.runPassPipeline(ctx, kernelName, module, rawArgs,
+                                            nullptr, std::move(context));
     });
+    launchImpl(compiled);
     return {};
   }
 
   KernelThunkResultType
-  launchModule(const std::string &kernelName, mlir::ModuleOp module,
+  launchModule(const CompiledModule &compiled,
                const std::vector<void *> &rawArgs) override {
-    CUDAQ_INFO("FermioniqBaseQPU launching kernel via module ({})", kernelName);
-    launchImpl(kernelName, [&](Compiler &compiler, ExecutionContext *ctx) {
-      return compiler.lowerQuakeCode(ctx, kernelName, module, rawArgs);
-    });
+    CUDAQ_INFO("FermioniqBaseQPU launching kernel via module ({})",
+               compiled.getName());
+    launchImpl(compiled);
     return {};
   }
 
+  CompiledModule compileModule(const std::string &kernelName,
+                               mlir::ModuleOp module,
+                               const std::vector<void *> &rawArgs,
+                               bool isEntryPoint) override {
+    CUDAQ_INFO("FermioniqBaseQPU compiling kernel via module ({})", kernelName);
+    return compileImpl(kernelName,
+                       [&](Compiler &compiler, ExecutionContext *ctx) {
+                         return compiler.runPassPipeline(
+                             ctx, kernelName, module, rawArgs, nullptr);
+                       });
+  }
+
 private:
-  void
-  launchImpl(const std::string &kernelName,
-             std::function<std::vector<KernelExecution>(Compiler &,
-                                                        ExecutionContext *)>
-                 lower) {
+  CompiledModule
+  compileImpl(const std::string &kernelName,
+              std::function<CompiledModule(Compiler &, ExecutionContext *)>
+                  runPassPipeline) {
     auto *executionContext = getExecutionContext();
     // TODO future iterations of this should support non-void return types.
     if (!executionContext)
@@ -88,7 +103,20 @@ private:
 
     Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
                       noiseModel, emulate);
-    auto codes = lower(compiler, compileCtx);
+    return runPassPipeline(compiler, compileCtx);
+  }
+
+  void launchImpl(const CompiledModule &compiled) {
+    Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
+                      noiseModel, emulate);
+    auto *executionContext = getExecutionContext();
+    // TODO future iterations of this should support non-void return types.
+    if (!executionContext)
+      throw std::runtime_error(
+          "Remote rest execution can only be performed via cudaq::sample(), "
+          "cudaq::observe(), or cudaq::contrib::draw().");
+
+    auto codes = compiler.emitKernelExecutions(compiled);
 
     if (codes.size() != 1)
       throw std::runtime_error("Provider only allows 1 circuit at a time.");
@@ -111,7 +139,7 @@ private:
       codes[0].user_data = user_data;
     }
 
-    completeLaunchKernel(kernelName, std::move(codes));
+    completeLaunchKernel(compiled.getName(), std::move(codes));
   }
 };
 } // namespace cudaq

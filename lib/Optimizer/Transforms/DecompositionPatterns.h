@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "common/Registry.h"
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/Support/Registry.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include <string>
@@ -28,12 +28,7 @@ namespace cudaq {
 /// system. Stores the pattern metadata and provides a factory method to create
 /// new instances of the pattern.
 ///
-/// Register decomposition patterns using
-/// CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, MyPatternType,
-/// pattern_name)
-/// where pattern_name is the same as MyPatternType().getPatternName().
-class DecompositionPatternType
-    : public registry::RegisteredType<DecompositionPatternType> {
+class DecompositionPatternType {
 public:
   virtual ~DecompositionPatternType() = default;
 
@@ -104,4 +99,6 @@ std::unique_ptr<mlir::ConversionTarget>
 createBasisTarget(mlir::MLIRContext &context,
                   mlir::ArrayRef<std::string> targetBasis);
 
+using DecompositionPatternTypeRegistry =
+    llvm::Registry<DecompositionPatternType>;
 } // namespace cudaq
