@@ -1595,12 +1595,6 @@ struct QuantumGatePattern : public QubitHelperConversionPattern<M, OP> {
   using Base = QubitHelperConversionPattern<M, OP>;
   using Base::Base;
 
-  Type getOrigOperandType(OP op, std::size_t opIndex, Value fallback) const {
-    if (Type t = Base::getInitialType(op, opIndex))
-      return t;
-    return fallback.getType();
-  }
-
   LogicalResult
   matchAndRewrite(OP op, typename Base::OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
@@ -1652,12 +1646,9 @@ struct QuantumGatePattern : public QubitHelperConversionPattern<M, OP> {
     // If no control qubits or if there is 1 control and it is already a veq,
     // just add a call and forward the target qubits as needed.
     auto numControls = adaptor.getControls().size();
-    Type firstCtrlOrigTy =
-        op.getControls().empty()
-            ? Type{}
-            : getOrigOperandType(op, opParams.size(), op.getControls().front());
     if (op.getControls().empty() ||
-        conformsToIntendedCall(numControls, firstCtrlOrigTy, op,
+        conformsToIntendedCall(numControls,
+                               Base::getInitialType(op, opParams.size()), op,
                                qirFunctionName)) {
       SmallVector<Value> args{opParams.begin(), opParams.end()};
       args.append(adaptor.getControls().begin(), adaptor.getControls().end());
@@ -1684,24 +1675,21 @@ struct QuantumGatePattern : public QubitHelperConversionPattern<M, OP> {
     // Process the controls, sorting them by type. Using the original
     // type recorded by QuakeToQIRAPIPrep, since opaque pointers
     // make Array* and Qubit* indistinguishable on the live operand.
-    for (auto [i, pr] :
-         llvm::enumerate(llvm::zip(op.getControls(), adaptor.getControls()))) {
-      Type origCtrlTy =
-          getOrigOperandType(op, opParams.size() + i, std::get<0>(pr));
+    for (auto [i, val] : llvm::enumerate(adaptor.getControls())) {
+      Type origCtrlTy = Base::getInitialType(op, opParams.size() + i);
       if (isaVeqArgument(origCtrlTy)) {
         numArrayCtrls++;
-        auto sizeCall = func::CallOp::create(rewriter, loc, i64Ty,
-                                             cudaq::opt::QIRArrayGetSize,
-                                             ValueRange{std::get<1>(pr)});
+        auto sizeCall = func::CallOp::create(
+            rewriter, loc, i64Ty, cudaq::opt::QIRArrayGetSize, ValueRange{val});
         // Arrays are encoded as pairs of arguments: length and Array*
         opArrCtrls.push_back(sizeCall.getResult(0));
-        opArrCtrls.push_back(cudaq::cc::CastOp::create(rewriter, loc, ptrNoneTy,
-                                                       std::get<1>(pr)));
+        opArrCtrls.push_back(
+            cudaq::cc::CastOp::create(rewriter, loc, ptrNoneTy, val));
       } else {
         numQubitCtrls++;
         // Qubits are simply the Qubit**
-        opQubitCtrls.emplace_back(cudaq::cc::CastOp::create(
-            rewriter, loc, ptrNoneTy, std::get<1>(pr)));
+        opQubitCtrls.emplace_back(
+            cudaq::cc::CastOp::create(rewriter, loc, ptrNoneTy, val));
       }
     }
 
