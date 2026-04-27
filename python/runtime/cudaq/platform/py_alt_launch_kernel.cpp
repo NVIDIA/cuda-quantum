@@ -54,6 +54,7 @@
 using namespace mlir;
 using namespace cudaq_internal::compiler;
 using cudaq::JitEngine;
+using cudaq::PackingStyle;
 
 static std::function<std::string()> getTransportLayer = []() -> std::string {
   throw std::runtime_error("binding for kernel launch is incomplete");
@@ -178,6 +179,7 @@ nanobind::args cudaq::simplifiedValidateInputArguments(nanobind::args &args) {
   return processed;
 }
 
+template <PackingStyle style>
 void cudaq::handleStructMemberVariable(void *data, std::size_t offset,
                                        mlir::Type memberType,
                                        nanobind::object value) {
@@ -206,13 +208,19 @@ void cudaq::handleStructMemberVariable(void *data, std::size_t offset,
           for (std::size_t i = 0; auto v : asList)
             (*values)[i++] = nanobind::cast<T>(v);
 
-          std::memcpy(((char *)data) + offset, values, 16);
+          // synthesis path: span {ptr, size_t}
+          // argsCreator path: std::vector<T> {ptr, ptr, ptr}
+          constexpr std::size_t copySize =
+              sizeof(std::conditional_t<style == PackingStyle::synthesis,
+                                        std::pair<char *, std::size_t>,
+                                        std::vector<T>>);
+          std::memcpy(((char *)data) + offset, values, copySize);
         };
 
         mlir::TypeSwitch<mlir::Type, void>(ty.getElementType())
             .Case([&](mlir::IntegerType type) {
               if (type.isInteger(1)) {
-                appendVectorValue(value, data, offset, char());
+                appendVectorValue(value, data, offset, BoolVecElem<style>{});
                 return;
               }
               appendVectorValue(value, data, offset, std::size_t());
@@ -223,6 +231,20 @@ void cudaq::handleStructMemberVariable(void *data, std::size_t offset,
                 return;
               }
               appendVectorValue(value, data, offset, double());
+            })
+            .Case([&](cudaq::cc::StdvecType innerVecType) {
+              if constexpr (style == PackingStyle::synthesis) {
+                throw std::runtime_error(
+                    "Type not supported for custom struct in kernel.");
+              } else {
+                // Nested vector (e.g., list[list[int]]): delegate to
+                // handleVectorElements which handles the recursive case.
+                auto asList = nanobind::cast<nanobind::list>(value);
+                auto *values = handleVectorElements<PackingStyle::argsCreator>(
+                    innerVecType, asList);
+                std::memcpy(((char *)data) + offset, values,
+                            sizeof(std::vector<std::vector<std::size_t>>));
+              }
             });
       })
       .Default([&](mlir::Type ty) {
@@ -232,6 +254,7 @@ void cudaq::handleStructMemberVariable(void *data, std::size_t offset,
       });
 }
 
+template <PackingStyle style>
 void *cudaq::handleVectorElements(mlir::Type eleTy, nanobind::list list) {
   auto appendValue = []<typename T>(nanobind::list list,
                                     auto &&converter) -> void * {
@@ -245,12 +268,13 @@ void *cudaq::handleVectorElements(mlir::Type eleTy, nanobind::list list) {
 
   return llvm::TypeSwitch<mlir::Type, void *>(eleTy)
       .Case([&](mlir::IntegerType ty) {
-        if (ty.getIntOrFloatBitWidth() == 1)
-          return appendValue.template operator()<char>(
+        if (ty.getIntOrFloatBitWidth() == 1) {
+          return appendValue.template operator()<BoolVecElem<style>>(
               list, [](nanobind::handle v, std::size_t i) {
                 checkListElementType<nanobind::bool_>(v, i);
-                return nanobind::cast<bool>(v);
+                return static_cast<BoolVecElem<style>>(nanobind::cast<bool>(v));
               });
+        }
         if (ty.getIntOrFloatBitWidth() == 8)
           return appendValue.template operator()<std::int8_t>(
               list, [](nanobind::handle v, std::size_t i) {
@@ -313,7 +337,7 @@ void *cudaq::handleVectorElements(mlir::Type eleTy, nanobind::list list) {
                                                 nanobind::list list) -> void * {
           auto *values = new std::vector<std::vector<T>>();
           for (std::size_t i = 0; i < list.size(); i++) {
-            auto ptr = handleVectorElements(eleTy, list[i]);
+            auto ptr = handleVectorElements<style>(eleTy, list[i]);
             auto *element = static_cast<std::vector<T> *>(ptr);
             values->emplace_back(std::move(*element));
           }
@@ -321,9 +345,11 @@ void *cudaq::handleVectorElements(mlir::Type eleTy, nanobind::list list) {
         };
 
         auto eleTy = ty.getElementType();
-        if (ty.getElementType().isInteger(1))
+        if (ty.getElementType().isInteger(1)) {
           // Special case for a `std::vector<bool>`.
-          return appendVectorValue.template operator()<char>(eleTy, list);
+          return appendVectorValue.template operator()<BoolVecElem<style>>(
+              eleTy, list);
+        }
 
         // All other `std::Vector<T>` types, including nested vectors.
         return appendVectorValue.template operator()<std::size_t>(eleTy, list);
@@ -344,6 +370,7 @@ std::string cudaq::mlirTypeToString(mlir::Type ty) {
   return msg;
 }
 
+template <PackingStyle style>
 void cudaq::packArgs(
     OpaqueArguments &argData, nanobind::list args,
     mlir::ArrayRef<mlir::Type> mlirTys,
@@ -387,7 +414,8 @@ void cudaq::packArgs(
         .Case([&](IntegerType ty) {
           if (ty.getIntOrFloatBitWidth() == 1) {
             checkArgumentType<nanobind::bool_>(arg, i);
-            addArgument(argData, static_cast<char>(nanobind::cast<bool>(arg)));
+            addArgument(argData, static_cast<BoolVecElem<style>>(
+                                     nanobind::cast<bool>(arg)));
             return;
           }
 
@@ -434,14 +462,18 @@ void cudaq::packArgs(
         })
         .Case([&](cc::StructType ty) {
           auto mod = kernelFuncOp->getParentOfType<mlir::ModuleOp>();
-          auto [size, offsets] = getTargetLayout(mod, ty);
+          cc::StructType layoutTy = ty;
+          if constexpr (style == PackingStyle::argsCreator)
+            layoutTy = cast<cc::StructType>(
+                cudaq::opt::factory::convertToHostSideType(ty, mod));
+          auto [size, offsets] = getTargetLayout(mod, layoutTy);
           auto memberTys = ty.getMembers();
           auto allocatedArg = std::malloc(size);
           if (ty.getName() == "tuple") {
             auto elements = nanobind::cast<nanobind::tuple>(arg);
             for (std::size_t i = 0; i < offsets.size(); i++)
-              handleStructMemberVariable(allocatedArg, offsets[i], memberTys[i],
-                                         elements[i]);
+              handleStructMemberVariable<style>(allocatedArg, offsets[i],
+                                                memberTys[i], elements[i]);
           } else {
             nanobind::dict attributes =
                 nanobind::cast<nanobind::dict>(arg.attr("__annotations__"));
@@ -449,8 +481,8 @@ void cudaq::packArgs(
                  const auto &[attr_name, unused] : attributes) {
               nanobind::object attr_value =
                   arg.attr(nanobind::cast<std::string>(attr_name).c_str());
-              handleStructMemberVariable(allocatedArg, offsets[i], memberTys[i],
-                                         attr_value);
+              handleStructMemberVariable<style>(allocatedArg, offsets[i],
+                                                memberTys[i], attr_value);
               i++;
             }
           }
@@ -459,7 +491,7 @@ void cudaq::packArgs(
         .Case([&](cc::StdvecType ty) {
           auto appendVectorValue = [&argData]<typename T>(Type eleTy,
                                                           nanobind::list list) {
-            auto allocatedArg = handleVectorElements(eleTy, list);
+            auto allocatedArg = handleVectorElements<style>(eleTy, list);
             argData.emplace_back(allocatedArg, [](void *ptr) {
               delete static_cast<std::vector<T> *>(ptr);
             });
@@ -470,7 +502,8 @@ void cudaq::packArgs(
           auto eleTy = ty.getElementType();
           if (eleTy.isInteger(1)) {
             // Special case for a `std::vector<bool>`.
-            appendVectorValue.template operator()<char>(eleTy, list);
+            appendVectorValue.template operator()<BoolVecElem<style>>(eleTy,
+                                                                      list);
             return;
           }
           // All other `std::vector<T>` types, including nested vectors.
@@ -516,8 +549,8 @@ void cudaq::packArgs(
               if (startLiftedArgs) {
                 auto fnTy = calledFuncOp.getFunctionType();
                 auto liftedTys = fnTy.getInputs().drop_front(*startLiftedArgs);
-                packArgs(resolvedArgs, arguments, liftedTys, backupHandler,
-                         calledFuncOp);
+                packArgs<style>(resolvedArgs, arguments, liftedTys,
+                                backupHandler, calledFuncOp);
               }
               return new runtime::CallableClosureArgument(
                   kernelName, kernelModule, std::move(startLiftedArgs),
@@ -541,6 +574,7 @@ void cudaq::packArgs(
   }
 }
 
+template <PackingStyle style>
 void cudaq::packArgs(
     OpaqueArguments &argData, nanobind::args args,
     mlir::func::FuncOp kernelFuncOp,
@@ -566,7 +600,7 @@ void cudaq::packArgs(
       continue;
     pyList.append(h);
   }
-  return packArgs(
+  return packArgs<style>(
       argData, pyList,
       kernelFuncOp.getFunctionType().getInputs().drop_front(startingArgIdx),
       backupHandler, kernelFuncOp);
@@ -717,17 +751,27 @@ nanobind::object cudaq::convertResult(ModuleOp module, Type ty, char *data) {
         return readPyObject<float>(ty, data);
       })
       .Case([&](cudaq::cc::StdvecType ty) -> nanobind::object {
+        auto eleTy = ty.getElementType();
+        // Nested StdvecType elements have a different in-memory size than
+        // scalar types: span ({ptr,size_t} = 16 bytes) in direct-call context,
+        // std::vector ({ptr,ptr,ptr} = 24 bytes) in run context.
+        auto getEleByteSize = [&](Type eTy) -> std::size_t {
+          if (isa<cudaq::cc::StdvecType>(eTy))
+            return isRunContext ? 3 * sizeof(void *)
+                                : sizeof(char *) + sizeof(std::size_t);
+          return byteSize(eTy);
+        };
+
         if (isRunContext) {
           // cudaq.run return.
-          auto eleTy = ty.getElementType();
-          auto eleByteSize = byteSize(eleTy);
+          auto eleByteSize = getEleByteSize(eleTy);
 
           // Vector of booleans has a special layout.
           // Read the vector and create a list of booleans.
           // Note: in the `cudaq::run` context the `std::vector<bool>` is
           // constructed in the host runtime by parsing the output log to
           // `std::vector<bool>`.
-          if (eleTy.getIntOrFloatBitWidth() == 1) {
+          if (eleTy.isInteger(1)) {
             auto v = reinterpret_cast<std::vector<bool> *>(data);
             nanobind::list list;
             for (auto const bit : *v)
@@ -752,8 +796,7 @@ nanobind::object cudaq::convertResult(ModuleOp module, Type ty, char *data) {
         }
 
         // Direct call return.
-        auto eleTy = ty.getElementType();
-        auto eleByteSize = byteSize(eleTy);
+        auto eleByteSize = getEleByteSize(eleTy);
 
         // Vector is a span: `{ data, length }`.
         // Read `data` and `length` from the buffer.
@@ -854,11 +897,18 @@ cudaq::OpaqueArguments cudaq::marshal_arguments_for_module_launch(
     ModuleOp mod, nanobind::args runtimeArgs, func::FuncOp kernelFunc) {
   // Convert python arguments to opaque form.
   cudaq::OpaqueArguments args;
-  cudaq::packArgs(
-      args, runtimeArgs, kernelFunc,
-      [&](cudaq::OpaqueArguments &args, nanobind::object &pyArg, unsigned pos) {
-        return linkResolvedCallable(mod, kernelFunc, pos, pyArg);
-      });
+  bool isLocalSimulator =
+      !(cudaq::is_remote_platform() || cudaq::is_emulated_platform());
+  auto handler = [&](cudaq::OpaqueArguments &args, nanobind::object &pyArg,
+                     unsigned pos) {
+    return linkResolvedCallable(mod, kernelFunc, pos, pyArg);
+  };
+  if (isLocalSimulator)
+    cudaq::packArgs<PackingStyle::argsCreator>(args, runtimeArgs, kernelFunc,
+                                               handler);
+  else
+    cudaq::packArgs<PackingStyle::synthesis>(args, runtimeArgs, kernelFunc,
+                                             handler);
   return args;
 }
 
@@ -871,7 +921,6 @@ nanobind::object cudaq::marshal_and_launch_module(const std::string &name,
   Type retTy = cudaq::runtime::getReturnType(kernelFunc);
   auto args = marshal_arguments_for_module_launch(mod, runtimeArgs, kernelFunc);
   [[maybe_unused]] auto resultPtr = clean_launch_module(name, mod, args);
-  // FIXME: handle dynamic sized results!
 
   if (!retTy)
     return nanobind::none();
@@ -1093,8 +1142,7 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
       .def_prop_ro(
           "entry_point",
           [](const cudaq::CompiledModule &ck) {
-            return reinterpret_cast<std::uintptr_t>(
-                ck.getJit().getEntryPoint());
+            return reinterpret_cast<std::uintptr_t>(ck.getJit()->getFn());
           },
           "The address of the JIT-compiled entry point.")
       .def_prop_ro("is_fully_specialized",

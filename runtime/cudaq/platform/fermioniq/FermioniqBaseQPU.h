@@ -45,10 +45,12 @@ public:
                std::uint64_t resultOffset,
                const std::vector<void *> &rawArgs) override {
     CUDAQ_INFO("FermioniqBaseQPU launching kernel ({})", kernelName);
+    auto [module, context] = Compiler::loadQuakeCodeByName(kernelName);
     launchImpl(kernelName, [&](Compiler &compiler, ExecutionContext *ctx) {
       return rawArgs.empty()
-                 ? compiler.lowerQuakeCode(ctx, kernelName, args, {})
-                 : compiler.lowerQuakeCode(ctx, kernelName, nullptr, rawArgs);
+                 ? compiler.lowerQuakeCode(ctx, kernelName, module, args, {})
+                 : compiler.lowerQuakeCode(ctx, kernelName, module, nullptr,
+                                           rawArgs);
     });
     return {};
   }
@@ -58,7 +60,7 @@ public:
                const std::vector<void *> &rawArgs) override {
     CUDAQ_INFO("FermioniqBaseQPU launching kernel via module ({})", kernelName);
     launchImpl(kernelName, [&](Compiler &compiler, ExecutionContext *ctx) {
-      return compiler.lowerQuakeCode(ctx, kernelName, module, rawArgs);
+      return compiler.lowerQuakeCode(ctx, kernelName, module, nullptr, rawArgs);
     });
     return {};
   }

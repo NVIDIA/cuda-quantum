@@ -653,7 +653,6 @@ class PyKernel(object):
                 cloned = otherST[calleeName].operation.clone()
                 if 'cudaq-entrypoint' in cloned.operation.attributes:
                     cloned.operation.attributes.__delitem__('cudaq-entrypoint')
-                print("adding", cloned)
                 currentModule.body.append(cloned)
 
                 visitAllCallOps(cloned)
@@ -682,6 +681,12 @@ class PyKernel(object):
                 otherFuncCloned, otherModule = self.__cloneOrGetFunction(
                     target.name, self.module, target)
                 assert isinstance(otherFuncCloned, func.FuncOp)
+                # Same as __addAllCalledFunctionsRecursively does for
+                # transitively called functions: a sub-kernel merged into this
+                # module is no longer an `entrypoint`.
+                if 'cudaq-entrypoint' in otherFuncCloned.operation.attributes:
+                    otherFuncCloned.operation.attributes.__delitem__(
+                        'cudaq-entrypoint')
                 self.__addAllCalledFunctionsRecursively(otherFuncCloned,
                                                         self.module,
                                                         otherModule)
@@ -1113,24 +1118,6 @@ class PyKernel(object):
                     'reset operation broadcasting on qvector not supported yet.'
                 )
 
-    @staticmethod
-    def _get_measurement_type(targets):
-        """
-        Compute the appropriate measurement type for the given targets.
-        """
-        if len(targets) == 1 and quake.RefType.isinstance(targets[0].type):
-            return quake.MeasureType.get()
-        total_size = 0
-        all_known = True
-        for t in targets:
-            if quake.isConstantQuantumRefType(t.type):
-                total_size += quake.getAllocationSize(t.type)
-            else:
-                all_known = False
-        if all_known and total_size > 0:
-            return quake.MeasurementsType.get(total_size)
-        return quake.MeasurementsType.get()
-
     def mz(self, target, regName=None):
         """
         Measure the given qubit or qubits in the Z-basis. The optional
@@ -1163,10 +1150,13 @@ class PyKernel(object):
         """
         with self.ctx, self.insertPoint, self.loc:
             i1Ty = IntegerType.get_signless(1)
-            measTy = PyKernel._get_measurement_type([target.mlirValue])
+            qubitTy = target.mlirValue.type
             retTy = i1Ty
-            if quake.MeasurementsType.isinstance(measTy):
-                retTy = cc.StdvecType.get(i1Ty)
+            measTy = quake.MeasureType.get()
+            stdvecTy = cc.StdvecType.get(i1Ty)
+            if quake.VeqType.isinstance(target.mlirValue.type):
+                retTy = stdvecTy
+                measTy = cc.StdvecType.get(measTy)
             if regName is not None:
                 res = quake.MzOp(measTy, [], [target.mlirValue],
                                  registerName=StringAttr.get(regName,
@@ -1207,10 +1197,13 @@ class PyKernel(object):
         """
         with self.ctx, self.insertPoint, self.loc:
             i1Ty = IntegerType.get_signless(1)
-            measTy = PyKernel._get_measurement_type([target.mlirValue])
+            qubitTy = target.mlirValue.type
             retTy = i1Ty
-            if quake.MeasurementsType.isinstance(measTy):
-                retTy = cc.StdvecType.get(i1Ty)
+            measTy = quake.MeasureType.get()
+            stdvecTy = cc.StdvecType.get(i1Ty)
+            if quake.VeqType.isinstance(target.mlirValue.type):
+                retTy = stdvecTy
+                measTy = cc.StdvecType.get(measTy)
             if regName is not None:
                 res = quake.MxOp(measTy, [], [target.mlirValue],
                                  registerName=StringAttr.get(regName,
@@ -1252,10 +1245,13 @@ class PyKernel(object):
         """
         with self.ctx, self.insertPoint, self.loc:
             i1Ty = IntegerType.get_signless(1)
-            measTy = PyKernel._get_measurement_type([target.mlirValue])
+            qubitTy = target.mlirValue.type
             retTy = i1Ty
-            if quake.MeasurementsType.isinstance(measTy):
-                retTy = cc.StdvecType.get(i1Ty)
+            measTy = quake.MeasureType.get()
+            stdvecTy = cc.StdvecType.get(i1Ty)
+            if quake.VeqType.isinstance(target.mlirValue.type):
+                retTy = stdvecTy
+                measTy = cc.StdvecType.get(measTy)
             if regName is not None:
                 res = quake.MyOp(measTy, [], [target.mlirValue],
                                  registerName=StringAttr.get(regName,

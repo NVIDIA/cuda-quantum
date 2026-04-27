@@ -252,41 +252,6 @@ def MeasureType : QuakeType<"Measure", "measure"> {
 }
 
 //===----------------------------------------------------------------------===//
-// MeasurementsType: classical data type for a collection of measurements
-//===----------------------------------------------------------------------===//
-
-def MeasurementsType : QuakeType<"Measurements", "measurements"> {
-  let summary = "a sequence of measurement results";
-  let description = [{
-    A value of type `measurements` is a collection of values of type `measure`.
-    This is the natural result type of measuring multiple qubits. Like `veq` is
-    to `ref`, `measurements` is to `measure`.
-
-    ```mlir
-      %ms = quake.mz %qubits : (!quake.veq<4>) -> !quake.measurements<4>
-      %m0 = quake.get_measure %ms[0] : (!quake.measurements<4>) -> !quake.measure
-    ```
-  }];
-
-  let parameters = (ins "std::size_t":$size);
-
-  let hasCustomAssemblyFormat = 1;
-
-  let extraClassDeclaration = [{
-    static constexpr std::size_t kDynamicSize =
-      std::numeric_limits<std::size_t>::max();
-    
-    bool hasSpecifiedSize() const { return getSize() != kDynamicSize; }
-    bool hasNonZeroSpecifiedSize() const {
-      return hasSpecifiedSize() && getSize();
-    }
-    static MeasurementsType getUnsized(mlir::MLIRContext *ctx) {
-      return MeasurementsType::get(ctx, kDynamicSize);
-    }
-  }];
-}
-
-//===----------------------------------------------------------------------===//
 // StateType
 //===----------------------------------------------------------------------===//
 

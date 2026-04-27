@@ -258,17 +258,19 @@ public:
           "Remote rest execution can only be performed via cudaq::sample(), "
           "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
 
+    auto [module, context] = Compiler::loadQuakeCodeByName(kernelName);
+
     // Get the Quake code, lowered according to config file.
     // FIXME: For python, we reach here with rawArgs being empty and args having
     // the arguments. Python should be using the streamlined argument synthesis,
     // but apparently it isn't. This works around that bug.
     Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
                       noiseModel, emulate);
-    auto codes =
-        rawArgs.empty()
-            ? compiler.lowerQuakeCode(executionContext, kernelName, args, {})
-            : compiler.lowerQuakeCode(executionContext, kernelName, nullptr,
-                                      rawArgs);
+    auto codes = rawArgs.empty()
+                     ? compiler.lowerQuakeCode(executionContext, kernelName,
+                                               module, args, {})
+                     : compiler.lowerQuakeCode(executionContext, kernelName,
+                                               module, nullptr, rawArgs);
     completeLaunchKernel(kernelName, std::move(codes));
 
     // NB: Kernel should/will never return dynamic results.
@@ -290,9 +292,9 @@ public:
 
     Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
                       noiseModel, emulate);
-    completeLaunchKernel(
-        kernelName,
-        compiler.lowerQuakeCode(executionContext, kernelName, module, rawArgs));
+    completeLaunchKernel(kernelName,
+                         compiler.lowerQuakeCode(executionContext, kernelName,
+                                                 module, nullptr, rawArgs));
     return {};
   }
 

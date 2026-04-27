@@ -21,7 +21,7 @@
 
 using namespace cudaq_internal::compiler;
 
-LLVM_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)
+CUDAQ_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)
 
 namespace cudaq {
 

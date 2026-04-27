@@ -168,15 +168,40 @@ cudaq::complex_matrix::operator*=(const cudaq::complex_matrix &right) {
   if (cols() != right.rows())
     throw std::runtime_error("matrix dimensions mismatch in operator*=");
 
-  auto new_data =
-      new cudaq::complex_matrix::value_type[rows() * right.cols()]();
-  cudaq::complex_matrix::Dimensions new_dims = {rows(), right.cols()};
-  for (std::size_t i = 0; i < rows(); i++)
-    for (std::size_t j = 0; j < right.cols(); j++)
-      for (std::size_t k = 0; k < cols(); k++)
-        access(new_data, new_dims, i, j, this->internal_order) +=
-            access(data, dimensions, i, k, this->internal_order) *
-            access(right.data, right.dimensions, k, j, right.internal_order);
+  const std::size_t new_rows = rows();
+  const std::size_t new_cols = right.cols();
+  auto *new_data = new cudaq::complex_matrix::value_type[new_rows * new_cols];
+  cudaq::complex_matrix::Dimensions new_dims = {new_rows, new_cols};
+
+  using RowMat = Eigen::Matrix<value_type, -1, -1, Eigen::RowMajor, -1, -1>;
+  using ColMat = Eigen::Matrix<value_type, -1, -1, Eigen::ColMajor, -1, -1>;
+
+  auto assign_product = [&](auto &&lhs_map, auto &&rhs_map) {
+    if (this->internal_order == cudaq::complex_matrix::order::row_major)
+      Eigen::Map<RowMat>(new_data, new_rows, new_cols).noalias() =
+          lhs_map * rhs_map;
+    else
+      Eigen::Map<ColMat>(new_data, new_rows, new_cols).noalias() =
+          lhs_map * rhs_map;
+  };
+
+  const bool l_row =
+      this->internal_order == cudaq::complex_matrix::order::row_major;
+  const bool r_row =
+      right.internal_order == cudaq::complex_matrix::order::row_major;
+  Eigen::Map<const RowMat> l_row_map(this->data, this->rows(), this->cols());
+  Eigen::Map<const ColMat> l_col_map(this->data, this->rows(), this->cols());
+  Eigen::Map<const RowMat> r_row_map(right.data, right.rows(), right.cols());
+  Eigen::Map<const ColMat> r_col_map(right.data, right.rows(), right.cols());
+  if (l_row && r_row)
+    assign_product(l_row_map, r_row_map);
+  else if (l_row && !r_row)
+    assign_product(l_row_map, r_col_map);
+  else if (!l_row && r_row)
+    assign_product(l_col_map, r_row_map);
+  else
+    assign_product(l_col_map, r_col_map);
+
   swap(new_data);
   dimensions = new_dims;
   return *this;

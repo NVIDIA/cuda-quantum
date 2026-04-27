@@ -28,7 +28,6 @@ class Type;
 
 namespace cudaq {
 class CompiledModule;
-class ResultInfo;
 } // namespace cudaq
 
 namespace cudaq_internal::compiler {
@@ -36,12 +35,5 @@ namespace cudaq_internal::compiler {
 /// Lower ModuleOp to QIR/LLVM IR and create a JIT execution engine.
 cudaq::JitEngine createJITEngine(mlir::ModuleOp &moduleOp,
                                  llvm::StringRef convertTo);
-
-/// @brief Create a `ResultInfo` from MLIR type and module.
-///
-/// When `resultType` is null or `isEntryPoint` is false, returns an empty
-/// `ResultInfo`.
-cudaq::ResultInfo createResultInfo(mlir::Type resultType, bool isEntryPoint,
-                                   mlir::ModuleOp module);
 
 } // namespace cudaq_internal::compiler

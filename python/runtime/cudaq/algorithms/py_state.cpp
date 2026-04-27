@@ -444,12 +444,24 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
       .def_static(
           "from_data",
           [&](nanobind::object data) {
+            // Reject Python sequences (list/tuple) overload — they should be
+            // dispatched to the vector overload below. In pybind11, py::buffer
+            // excluded lists; nanobind::object accepts anything, so we must
+            // guard explicitly.
+            if (nanobind::isinstance<nanobind::list>(data) ||
+                nanobind::isinstance<nanobind::tuple>(data))
+              throw nanobind::next_overload();
             return createStateFromPyBuffer(data, holder);
           },
           "Return a state from data.")
       .def_static(
           "from_data",
           [&holder](const std::vector<nanobind::object> &tensors) {
+            // Reject SimulationState::Tensor objects overload — they're handled
+            // by the next overload and don't have numpy/cupy buffer attributes.
+            if (!tensors.empty() &&
+                nanobind::isinstance<SimulationState::Tensor>(tensors[0]))
+              throw nanobind::next_overload();
             const bool isHostData =
                 tensors.empty() ||
                 !nanobind::hasattr(tensors[0], "__cuda_array_interface__");
