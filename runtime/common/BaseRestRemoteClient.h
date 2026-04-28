@@ -25,6 +25,7 @@
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
+#include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Module.h"
@@ -157,6 +158,8 @@ public:
     std::string passName;
     if (!rawArgs.empty() || args) {
       mlir::PassManager pm(&mlirContext);
+      pm.addInstrumentation(
+          std::make_unique<cudaq::TracePassInstrumentation>());
       if (!rawArgs.empty()) {
         CUDAQ_INFO("Run Argument Synth.\n");
         cudaq_internal::compiler::ArgumentConverter argCon(name, moduleOp);
@@ -216,6 +219,7 @@ public:
     // Run client-side passes. `clientPasses` is empty right now, but the code
     // below accommodates putting passes into it.
     mlir::PassManager pm(&mlirContext);
+    pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
     std::string errMsg;
     llvm::raw_string_ostream os(errMsg);
 
@@ -298,6 +302,7 @@ public:
     }
 
     mlir::PassManager pm(ctx);
+    pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
     // For now, the server side expects full-QIR.
     opt::addAOTPipelineConvertToQIR(pm);
 

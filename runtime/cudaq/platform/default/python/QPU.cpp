@@ -26,6 +26,7 @@
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq_internal/compiler/JIT.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
+#include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "runtime/cudaq/platform/PythonSignalCheck.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/Pass/PassManager.h"
@@ -51,6 +52,7 @@ static void specializeKernel(const std::string &name, ModuleOp module,
                              bool isFullySpecialized = true) {
   PassManager pm(module.getContext());
   cudaq::addPythonSignalInstrumentation(pm);
+  pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
   ArgumentConverter argCon(name, module);
   // Look up the kernel's type signature.
   argCon.gen(name, module, rawArgs);
@@ -162,6 +164,7 @@ static void runTargetPassPipeline(ModuleOp module) {
     ctx->disableMultithreading();
   PassManager pm(ctx);
   cudaq::addPythonSignalInstrumentation(pm);
+  pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
   if (enablePrintEachPass)
     pm.enableIRPrinting();
   std::string errMsg;
@@ -186,6 +189,7 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
   runTargetPassPipeline(module);
   PassManager pm(module.getContext());
   cudaq::addPythonSignalInstrumentation(pm);
+  pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
   cudaq::opt::addAggressiveInlining(pm);
   cudaq::opt::createTargetFinalizePipeline(pm);
   cudaq::opt::addAOTPipelineConvertToQIR(pm, format);
@@ -220,6 +224,7 @@ std::string cudaq::detail::lower_to_openqasm(const std::string &name,
   auto *ctx = module.getContext();
   PassManager pm(ctx);
   cudaq::addPythonSignalInstrumentation(pm);
+  pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
   cudaq::opt::createTargetFinalizePipeline(pm);
   cudaq::opt::createPipelineTransformsForPythonToOpenQASM(pm);
   cudaq::opt::addPipelineTranslateToOpenQASM(pm);
