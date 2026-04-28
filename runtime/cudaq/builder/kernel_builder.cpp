@@ -37,8 +37,10 @@
 #include <numeric>
 
 using namespace mlir;
-using namespace cudaq_internal::compiler;
 
+// FIXME: include the header file and type out the namespace in every definition
+// below as appropriate and get rid of wrapping the entire file in this
+// namespace.
 namespace cudaq::details {
 
 /// @brief Track unique measurement register names.
@@ -131,7 +133,7 @@ KernelBuilderType convertArgumentTypeToMLIR(cudaq::state *&) {
 
 MLIRContext *initializeContext() {
   CUDAQ_INFO("Initializing the MLIR infrastructure.");
-  return getOwningMLIRContext().release();
+  return cudaq_internal::compiler::getOwningMLIRContext().release();
 }
 void deleteContext(MLIRContext *context) { delete context; }
 void deleteJitEngine(ExecutionEngine *jit) { delete jit; }

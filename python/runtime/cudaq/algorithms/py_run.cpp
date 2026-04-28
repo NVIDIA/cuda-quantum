@@ -23,7 +23,6 @@
 #include <nanobind/stl/vector.h>
 
 using namespace cudaq;
-using namespace cudaq_internal::compiler;
 
 static std::vector<nanobind::object>
 readRunResults(mlir::ModuleOp module, mlir::Type ty,
@@ -81,7 +80,8 @@ pyRunTheKernel(const std::string &name, quantum_platform &platform,
                                "`list` of `dataclass`/`tuple` from "
                                "entry-point kernels.");
   }
-  auto layoutInfo = getLayoutInfo(name, mod.getOperation());
+  auto layoutInfo =
+      cudaq_internal::compiler::getLayoutInfo(name, mod.getOperation());
   auto results = details::runTheKernel(
       [&]() mutable {
         [[maybe_unused]] auto result = clean_launch_module(name, mod, opaques);

@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "py_register_dialects.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
 #include "cudaq/Optimizer/CodeGen/CodeGenDialect.h"
@@ -24,13 +25,12 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 
-using namespace mlir::python::nanobind_adaptors;
 using namespace mlir;
 
-namespace cudaq {
 static bool registered = false;
 
-void registerQuakeDialectAndTypes(nanobind::module_ &m) {
+static void registerQuakeDialectAndTypes(nanobind::module_ &m) {
+  using namespace mlir::python::nanobind_adaptors;
   auto quakeMod = m.def_submodule("quake");
 
   quakeMod.def(
@@ -166,8 +166,8 @@ void registerQuakeDialectAndTypes(nanobind::module_ &m) {
       });
 }
 
-void registerCCDialectAndTypes(nanobind::module_ &m) {
-
+static void registerCCDialectAndTypes(nanobind::module_ &m) {
+  using namespace mlir::python::nanobind_adaptors;
   auto ccMod = m.def_submodule("cc");
 
   ccMod.def(
@@ -359,7 +359,7 @@ void registerCCDialectAndTypes(nanobind::module_ &m) {
           nanobind::arg("context") = nanobind::none());
 }
 
-void bindRegisterDialects(nanobind::module_ &mod) {
+void cudaq::bindRegisterDialects(nanobind::module_ &mod) {
   registerQuakeDialectAndTypes(mod);
   registerCCDialectAndTypes(mod);
 
@@ -376,15 +376,13 @@ void bindRegisterDialects(nanobind::module_ &mod) {
     mlirContext->getOrLoadDialect<cudaq::codegen::CodeGenDialect>();
   });
 
-  mod.def("gen_vector_of_complex_constant", [](MlirLocation loc,
-                                               MlirModule module,
-                                               std::string name,
-                                               const std::vector<std::complex<
-                                                   double>> &values) {
-    ModuleOp modOp = unwrap(module);
-    cudaq::IRBuilder builder = IRBuilder::atBlockEnd(modOp.getBody());
-    SmallVector<std::complex<double>> newValues{values.begin(), values.end()};
-    builder.genVectorOfConstants(unwrap(loc), modOp, name, newValues);
-  });
+  mod.def("gen_vector_of_complex_constant",
+          [](MlirLocation loc, MlirModule module, std::string name,
+             const std::vector<std::complex<double>> &values) {
+            ModuleOp modOp = unwrap(module);
+            cudaq::IRBuilder builder = IRBuilder::atBlockEnd(modOp.getBody());
+            SmallVector<std::complex<double>> newValues{values.begin(),
+                                                        values.end()};
+            builder.genVectorOfConstants(unwrap(loc), modOp, name, newValues);
+          });
 }
-} // namespace cudaq

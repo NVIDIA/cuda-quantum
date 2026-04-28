@@ -54,9 +54,6 @@
 #include <nanobind/stl/vector.h>
 
 using namespace mlir;
-using namespace cudaq_internal::compiler;
-using cudaq::JitEngine;
-using cudaq::PackingStyle;
 
 static std::function<std::string()> getTransportLayer = []() -> std::string {
   throw std::runtime_error("binding for kernel launch is incomplete");
@@ -179,7 +176,7 @@ nanobind::args cudaq::simplifiedValidateInputArguments(nanobind::args &args) {
   return processed;
 }
 
-template <PackingStyle style>
+template <cudaq::PackingStyle style>
 void cudaq::handleStructMemberVariable(void *data, std::size_t offset,
                                        mlir::Type memberType,
                                        nanobind::object value) {
@@ -211,7 +208,7 @@ void cudaq::handleStructMemberVariable(void *data, std::size_t offset,
           // synthesis path: span {ptr, size_t}
           // argsCreator path: std::vector<T> {ptr, ptr, ptr}
           constexpr std::size_t copySize =
-              sizeof(std::conditional_t<style == PackingStyle::synthesis,
+              sizeof(std::conditional_t<style == cudaq::PackingStyle::synthesis,
                                         std::pair<char *, std::size_t>,
                                         std::vector<T>>);
           std::memcpy(((char *)data) + offset, values, copySize);
@@ -233,15 +230,16 @@ void cudaq::handleStructMemberVariable(void *data, std::size_t offset,
               appendVectorValue(value, data, offset, double());
             })
             .Case([&](cudaq::cc::StdvecType innerVecType) {
-              if constexpr (style == PackingStyle::synthesis) {
+              if constexpr (style == cudaq::PackingStyle::synthesis) {
                 throw std::runtime_error(
                     "Type not supported for custom struct in kernel.");
               } else {
                 // Nested vector (e.g., list[list[int]]): delegate to
                 // handleVectorElements which handles the recursive case.
                 auto asList = nanobind::cast<nanobind::list>(value);
-                auto *values = handleVectorElements<PackingStyle::argsCreator>(
-                    innerVecType, asList);
+                auto *values =
+                    handleVectorElements<cudaq::PackingStyle::argsCreator>(
+                        innerVecType, asList);
                 std::memcpy(((char *)data) + offset, values,
                             sizeof(std::vector<std::vector<std::size_t>>));
               }
@@ -254,7 +252,7 @@ void cudaq::handleStructMemberVariable(void *data, std::size_t offset,
       });
 }
 
-template <PackingStyle style>
+template <cudaq::PackingStyle style>
 void *cudaq::handleVectorElements(mlir::Type eleTy, nanobind::list list) {
   auto appendValue = []<typename T>(nanobind::list list,
                                     auto &&converter) -> void * {
@@ -370,7 +368,7 @@ std::string cudaq::mlirTypeToString(mlir::Type ty) {
   return msg;
 }
 
-template <PackingStyle style>
+template <cudaq::PackingStyle style>
 void cudaq::packArgs(
     OpaqueArguments &argData, nanobind::list args,
     mlir::ArrayRef<mlir::Type> mlirTys,
@@ -463,10 +461,11 @@ void cudaq::packArgs(
         .Case([&](cc::StructType ty) {
           auto mod = kernelFuncOp->getParentOfType<mlir::ModuleOp>();
           cc::StructType layoutTy = ty;
-          if constexpr (style == PackingStyle::argsCreator)
+          if constexpr (style == cudaq::PackingStyle::argsCreator)
             layoutTy = cast<cc::StructType>(
                 cudaq::opt::factory::convertToHostSideType(ty, mod));
-          auto [size, offsets] = getTargetLayout(mod, layoutTy);
+          auto [size, offsets] =
+              cudaq_internal::compiler::getTargetLayout(mod, layoutTy);
           auto memberTys = ty.getMembers();
           auto allocatedArg = std::malloc(size);
           if (ty.getName() == "tuple") {
@@ -574,7 +573,7 @@ void cudaq::packArgs(
   }
 }
 
-template <PackingStyle style>
+template <cudaq::PackingStyle style>
 void cudaq::packArgs(
     OpaqueArguments &argData, nanobind::args args,
     mlir::func::FuncOp kernelFuncOp,
@@ -660,7 +659,8 @@ cudaq::OpaqueArguments *cudaq::toOpaqueArgs(nanobind::args &args,
 static void appendTheResultValue(ModuleOp module, const std::string &name,
                                  cudaq::OpaqueArguments &runtimeArgs,
                                  Type returnType) {
-  auto [bufferSize, offsets] = getResultBufferLayout(module, returnType);
+  auto [bufferSize, offsets] =
+      cudaq_internal::compiler::getResultBufferLayout(module, returnType);
   if (bufferSize == 0)
     return;
   auto *buf = std::calloc(1, bufferSize);
@@ -818,7 +818,8 @@ nanobind::object cudaq::convertResult(ModuleOp module, Type ty, char *data) {
         auto name = ty.getName().str();
         // Handle tuples.
         if (name == "tuple") {
-          auto [size, offsets] = getTargetLayout(module, ty);
+          auto [size, offsets] =
+              cudaq_internal::compiler::getTargetLayout(module, ty);
           auto memberTys = ty.getMembers();
           nanobind::list list;
           for (std::size_t i = 0; i < offsets.size(); i++) {
@@ -847,7 +848,8 @@ nanobind::object cudaq::convertResult(ModuleOp module, Type ty, char *data) {
           fieldNames.emplace_back(nanobind::str(attr_name));
 
         // Read field values and create the constructor `kwargs`
-        auto [size, offsets] = getTargetLayout(module, ty);
+        auto [size, offsets] =
+            cudaq_internal::compiler::getTargetLayout(module, ty);
         auto memberTys = ty.getMembers();
         nanobind::dict kwargs;
         for (std::size_t i = 0; i < offsets.size(); i++) {
@@ -911,11 +913,11 @@ cudaq::OpaqueArguments cudaq::marshal_arguments_for_module_launch(
     return linkResolvedCallable(mod, kernelFunc, pos, pyArg);
   };
   if (isLocalSimulator)
-    cudaq::packArgs<PackingStyle::argsCreator>(args, runtimeArgs, kernelFunc,
-                                               handler);
+    cudaq::packArgs<cudaq::PackingStyle::argsCreator>(args, runtimeArgs,
+                                                      kernelFunc, handler);
   else
-    cudaq::packArgs<PackingStyle::synthesis>(args, runtimeArgs, kernelFunc,
-                                             handler);
+    cudaq::packArgs<cudaq::PackingStyle::synthesis>(args, runtimeArgs,
+                                                    kernelFunc, handler);
   return args;
 }
 
@@ -991,7 +993,7 @@ static MlirModule synthesizeKernel(nanobind::object kernel,
   auto isLocalSimulator = platform.is_simulator() && !platform.is_emulated();
   auto isSimulator = isLocalSimulator || isRemoteSimulator;
 
-  ArgumentConverter argCon(name, mod);
+  cudaq_internal::compiler::ArgumentConverter argCon(name, mod);
   argCon.gen(args.getArgs());
 
   // Store kernel and substitution strings on the stack.
