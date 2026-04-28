@@ -16,3 +16,9 @@ void cudaq_internal::compiler::initializeLangMLIR() {
   llvm::InitializeNativeTargetAsmPrinter();
   cudaq::registerAllPasses();
 }
+
+mlir::LogicalResult
+cudaq_internal::compiler::runPassManager(mlir::PassManager &pm,
+                                         mlir::Operation *op) {
+  return pm.run(op);
+}

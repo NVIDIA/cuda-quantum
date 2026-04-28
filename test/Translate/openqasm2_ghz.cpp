@@ -6,22 +6,29 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake  %s | cudaq-translate --convert-to=openqasm2 | FileCheck %s
+// Regression test for https://github.com/NVIDIA/cuda-quantum/issues/2220.
+// The C++ ABI wrapper for a templated struct kernel must not appear as an
+// empty gate definition in the OpenQASM 2 output.
+
+// clang-format off
+// RUN: cudaq-quake %s | cudaq-opt --pass-pipeline="builtin.module(canonicalize,lambda-lifting,apply-op-specialization,func.func(memtoreg{quantum=0}),cc-loop-normalize,cc-loop-unroll)" | cudaq-translate --convert-to=openqasm2 | FileCheck %s
+// clang-format on
 
 #include <cudaq.h>
-#include <fstream>
 
-struct kernel {
+template <std::size_t N>
+struct ghz {
   void operator()() __qpu__ {
-    cudaq::qvector q(2);
+    cudaq::qvector q(N);
     h(q[0]);
-    x<cudaq::ctrl>(q[0], q[1]);
+    for (int i = 0; i < static_cast<int>(N) - 1; i++)
+      x<cudaq::ctrl>(q[i], q[i + 1]);
     mz(q);
   }
 };
 
 int main() {
-  auto counts = cudaq::sample(kernel{});
+  auto counts = cudaq::sample(ghz<3>{});
   counts.dump();
 }
 
@@ -30,8 +37,12 @@ int main() {
 
 // CHECK:  include "qelib1.inc";
 
-// CHECK:  qreg var0[2];
+// CHECK-NOT: gate {{.*}}ghz{{.*}} {
+// CHECK-NOT: }
+
+// CHECK:  qreg var0[3];
 // CHECK:  h var0[0];
 // CHECK:  cx var0[0], var0[1];
-// CHECK:  creg var3[2];
-// CHECK:  measure var0 -> var3;
+// CHECK:  cx var0[1], var0[2];
+// CHECK:  creg var4[3];
+// CHECK:  measure var0 -> var4;
