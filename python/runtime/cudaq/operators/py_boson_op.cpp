@@ -14,6 +14,7 @@
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/set.h>
 #include <nanobind/stl/string.h>
+#include <nanobind/stl/tuple.h>
 #include <nanobind/stl/unordered_map.h>
 #include <nanobind/stl/vector.h>
 
