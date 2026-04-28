@@ -5,6 +5,7 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+
 #include "cudaq_internal/compiler/Compiler.h"
 #include "common/CodeGenConfig.h"
 #include "common/DeviceCodeRegistry.h"
@@ -45,7 +46,6 @@
 #include <regex>
 
 using namespace mlir;
-using namespace cudaq_internal::compiler;
 
 namespace {
 /// Conditionally form an output_names JSON object if this was for QIR
@@ -109,7 +109,8 @@ std::vector<std::size_t> extractMappingReorderIdx(mlir::ModuleOp moduleOp,
 } // namespace
 
 std::pair<mlir::ModuleOp, std::unique_ptr<mlir::MLIRContext>>
-Compiler::loadQuakeCodeByName(const std::string &kernelName) {
+cudaq_internal::compiler::Compiler::loadQuakeCodeByName(
+    const std::string &kernelName) {
   auto context = getOwningMLIRContext();
 
   // Get the quake representation of the kernel
@@ -121,10 +122,11 @@ Compiler::loadQuakeCodeByName(const std::string &kernelName) {
   return std::make_pair(m_module.release(), std::move(context));
 }
 
-Compiler::Compiler(cudaq::ServerHelper *serverHelper,
-                   const std::map<std::string, std::string> &backendConfig,
-                   cudaq::config::TargetConfig &config,
-                   const cudaq::noise_model *noiseModel, bool emulate)
+cudaq_internal::compiler::Compiler::Compiler(
+    cudaq::ServerHelper *serverHelper,
+    const std::map<std::string, std::string> &backendConfig,
+    cudaq::config::TargetConfig &config, const cudaq::noise_model *noiseModel,
+    bool emulate)
     : emulate(emulate) {
 
   initializeMLIR();
@@ -238,15 +240,15 @@ Compiler::Compiler(cudaq::ServerHelper *serverHelper,
   serverHelper->updatePassPipeline(platformPath, passPipelineConfig);
 }
 
-Compiler::~Compiler() = default;
+cudaq_internal::compiler::Compiler::~Compiler() = default;
 
 // =============================================================================
 // Common helpers for policy-specific runPassPipeline overloads
 // =============================================================================
 
-void Compiler::applyPipeline(const std::string &pipeline,
-                             mlir::ModuleOp moduleOp,
-                             const std::string &kernelName) {
+void cudaq_internal::compiler::Compiler::applyPipeline(
+    const std::string &pipeline, mlir::ModuleOp moduleOp,
+    const std::string &kernelName) {
   auto *contextPtr = moduleOp.getContext();
   mlir::PassManager pm(contextPtr);
   std::string errMsg;
@@ -266,8 +268,9 @@ void Compiler::applyPipeline(const std::string &pipeline,
 }
 
 std::pair<mlir::ModuleOp, mlir::func::FuncOp>
-Compiler::prepareModule(const std::string &kernelName, mlir::ModuleOp m_module,
-                        const std::vector<void *> &rawArgs, void *kernelArgs) {
+cudaq_internal::compiler::Compiler::prepareModule(
+    const std::string &kernelName, mlir::ModuleOp m_module,
+    const std::vector<void *> &rawArgs, void *kernelArgs) {
   auto *contextPtr = m_module.getContext();
 
   auto origFn = m_module.template lookupSymbol<mlir::func::FuncOp>(
@@ -350,8 +353,8 @@ Compiler::prepareModule(const std::string &kernelName, mlir::ModuleOp m_module,
   return {moduleOp, epFunc};
 }
 
-bool Compiler::executeMainPipeline(mlir::ModuleOp moduleOp,
-                                   const std::string &kernelName) {
+bool cudaq_internal::compiler::Compiler::executeMainPipeline(
+    mlir::ModuleOp moduleOp, const std::string &kernelName) {
   auto combineMeasurements =
       passPipelineConfig.find("combine-measurements") != std::string::npos;
   if (emulate && combineMeasurements) {
@@ -367,7 +370,8 @@ bool Compiler::executeMainPipeline(mlir::ModuleOp moduleOp,
   return combineMeasurements;
 }
 
-cudaq::CompiledModule Compiler::assembleCompiledModule(
+cudaq::CompiledModule
+cudaq_internal::compiler::Compiler::assembleCompiledModule(
     const std::string &kernelName,
     std::vector<std::pair<std::string, mlir::ModuleOp>> &modules, bool needJit,
     bool runCombineMeasurements, std::optional<cudaq::Resources> resourceCounts,
@@ -403,7 +407,7 @@ cudaq::CompiledModule Compiler::assembleCompiledModule(
       kernelName, {}, std::move(artifacts), {.reorderIdx = mappingReorderIdx});
 }
 
-cudaq::CompiledModule Compiler::runPassPipeline(
+cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
     cudaq::ExecutionContext *executionContext, const std::string &kernelName,
     mlir::ModuleOp m_module, const std::vector<void *> &rawArgs,
     void *kernelArgs, std::shared_ptr<mlir::MLIRContext> context) {
@@ -541,7 +545,8 @@ cudaq::CompiledModule Compiler::runPassPipeline(
 }
 
 std::vector<cudaq::KernelExecution>
-Compiler::emitKernelExecutions(const cudaq::CompiledModule &compiled) {
+cudaq_internal::compiler::Compiler::emitKernelExecutions(
+    const cudaq::CompiledModule &compiled) {
   // Get the code gen translation
   auto translation = getTranslation(codegenTranslation);
 
@@ -598,15 +603,16 @@ Compiler::emitKernelExecutions(const cudaq::CompiledModule &compiled) {
 /// lowering process is controllable via the configuration file in the
 /// platform directory for the targeted backend.
 std::vector<cudaq::KernelExecution>
-Compiler::lowerQuakeCode(cudaq::ExecutionContext *executionContext,
-                         const std::string &kernelName, mlir::ModuleOp module,
-                         void *kernelArgs, const std::vector<void *> &rawArgs) {
+cudaq_internal::compiler::Compiler::lowerQuakeCode(
+    cudaq::ExecutionContext *executionContext, const std::string &kernelName,
+    mlir::ModuleOp module, void *kernelArgs,
+    const std::vector<void *> &rawArgs) {
   auto compiled = runPassPipeline(executionContext, kernelName, module, rawArgs,
                                   kernelArgs, nullptr);
   return emitKernelExecutions(compiled);
 }
 
-mlir::ModuleOp Compiler::lowerQuakeCodeBuildModule(
+mlir::ModuleOp cudaq_internal::compiler::Compiler::lowerQuakeCodeBuildModule(
     const std::string &kernelName, mlir::ModuleOp m_module,
     mlir::MLIRContext *contextPtr, mlir::func::FuncOp func) {
   llvm::SmallVector<mlir::func::FuncOp> newFuncOpsWithDefinitions;

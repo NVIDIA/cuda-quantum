@@ -49,8 +49,6 @@
 #define DEBUG_TYPE "cudaq-qpud"
 
 using namespace mlir;
-using namespace cudaq_internal::compiler;
-using cudaq::JitEngine;
 
 std::tuple<std::unique_ptr<llvm::orc::LLJIT>, std::function<void()>>
 cudaq_internal::compiler::createWrappedKernel(std::string_view irString,
@@ -350,7 +348,7 @@ cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
 
   auto jitOrError = ExecutionEngine::create(moduleOp, opts);
   assert(!!jitOrError && "ExecutionEngine creation failed.");
-  return JitEngine(std::move(jitOrError.get()));
+  return cudaq::JitEngine(std::move(jitOrError.get()));
 }
 
 class cudaq::JitEngine::Impl : public cudaq::JitEngine::Base {
@@ -379,7 +377,7 @@ private:
 };
 
 cudaq::JitEngine::JitEngine(std::unique_ptr<ExecutionEngine> jitEngine)
-    : impl(std::make_shared<JitEngine::Impl>(std::move(jitEngine))) {}
+    : impl(std::make_shared<cudaq::JitEngine::Impl>(std::move(jitEngine))) {}
 
 std::size_t cudaq::JitEngine::getKey() const {
   return static_cast<const Impl *>(impl.get())->getKey();

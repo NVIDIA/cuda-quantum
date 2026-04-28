@@ -21,10 +21,9 @@
 #include "mlir/Target/LLVMIR/TypeToLLVM.h"
 
 using namespace mlir;
-using namespace cudaq_internal::compiler;
 
-namespace {
-LayoutInfoType extractLayout(const std::string &kernelName, ModuleOp moduleOp) {
+static cudaq_internal::compiler::LayoutInfoType
+extractLayout(const std::string &kernelName, ModuleOp moduleOp) {
   auto *fnOp =
       moduleOp.lookupSymbol(cudaq::runtime::cudaqGenPrefixName + kernelName);
   if (!fnOp)
@@ -79,18 +78,18 @@ LayoutInfoType extractLayout(const std::string &kernelName, ModuleOp moduleOp) {
   return {totalSize, fieldOffsets};
 }
 
-LayoutInfoType extractLayout(const std::string &kernelName,
-                             const std::string &quakeCode) {
-  auto moduleOp =
-      parseSourceString<ModuleOp>(StringRef(quakeCode), getMLIRContext());
+static cudaq_internal::compiler::LayoutInfoType
+extractLayout(const std::string &kernelName, const std::string &quakeCode) {
+  auto moduleOp = parseSourceString<ModuleOp>(
+      StringRef(quakeCode), cudaq_internal::compiler::getMLIRContext());
   if (!moduleOp)
     throw std::runtime_error("module cannot be parsed");
   return extractLayout(kernelName, *moduleOp);
 }
-} // namespace
 
-LayoutInfoType cudaq_internal::compiler::getLayoutInfo(const std::string &name,
-                                                       void *opt_module) {
+cudaq_internal::compiler::LayoutInfoType
+cudaq_internal::compiler::getLayoutInfo(const std::string &name,
+                                        void *opt_module) {
   if (opt_module) {
     // In Python, the interpreter already has the ModuleOp resident.
     ModuleOp mod{reinterpret_cast<Operation *>(opt_module)};
@@ -103,7 +102,7 @@ LayoutInfoType cudaq_internal::compiler::getLayoutInfo(const std::string &name,
   return {};
 }
 
-LayoutInfoType
+cudaq_internal::compiler::LayoutInfoType
 cudaq_internal::compiler::getTargetLayout(ModuleOp mod,
                                           cudaq::cc::StructType structTy) {
   StringRef dataLayoutSpec = "";
@@ -128,8 +127,8 @@ cudaq_internal::compiler::getTargetLayout(ModuleOp mod,
   return {strSize, fieldOffsets};
 }
 
-LayoutInfoType cudaq_internal::compiler::getResultBufferLayout(ModuleOp mod,
-                                                               Type resultTy) {
+cudaq_internal::compiler::LayoutInfoType
+cudaq_internal::compiler::getResultBufferLayout(ModuleOp mod, Type resultTy) {
   std::size_t bufferSize = 0;
   std::vector<std::size_t> fieldOffsets;
 
