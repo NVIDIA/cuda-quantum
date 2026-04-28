@@ -194,12 +194,12 @@ public:
                const std::vector<void *> &rawArgs) = 0;
 
   [[nodiscard]] virtual KernelThunkResultType
-  launchModule(const std::string &name, mlir::ModuleOp module,
+  launchModule(const CompiledModule &compiled,
                const std::vector<void *> &rawArgs);
 
   [[nodiscard]] virtual CompiledModule
-  specializeModule(const std::string &name, mlir::ModuleOp module,
-                   const std::vector<void *> &rawArgs, bool isEntryPoint);
+  compileModule(const std::string &name, mlir::ModuleOp module,
+                const std::vector<void *> &rawArgs, bool isEntryPoint);
 
   /// @brief Notify the QPU that a new random seed value is set.
   /// By default do nothing, let subclasses override.
