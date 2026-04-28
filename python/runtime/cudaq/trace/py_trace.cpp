@@ -10,18 +10,14 @@
 #include "cudaq/runtime/logger/chrome_tracer.h"
 #include "cudaq/runtime/logger/spdlog_tracer.h"
 #include "cudaq/runtime/logger/tracer.h"
-
+#include <memory>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/string.h>
-
-#include <memory>
 #include <string>
 #include <utility>
 
-namespace {
-
-std::string formatKwargs(const nanobind::kwargs &kwargs) {
+static std::string formatKwargs(const nanobind::kwargs &kwargs) {
   if (kwargs.size() == 0)
     return {};
   std::string out = " (args = {";
@@ -38,6 +34,7 @@ std::string formatKwargs(const nanobind::kwargs &kwargs) {
   return out;
 }
 
+namespace {
 class TraceSpan {
 public:
   TraceSpan(std::string spanName, std::string spanArgs)
@@ -55,12 +52,9 @@ private:
   std::string args;
   cudaq::SpanHandle handle;
 };
-
 } // namespace
 
-namespace cudaq {
-
-void bindTrace(nanobind::module_ &mod) {
+void cudaq::bindTrace(nanobind::module_ &mod) {
   auto trace = mod.def_submodule("trace");
 
   nanobind::class_<TraceSpan>(trace, "span")
@@ -77,12 +71,14 @@ void bindTrace(nanobind::module_ &mod) {
           nanobind::arg("type").none(), nanobind::arg("value").none(),
           nanobind::arg("traceback").none());
 
-  // Abstract base — used only for upcasting in set_backend / get_backend.
-  nanobind::class_<TraceBackend>(trace, "TraceBackend");
+  // Abstract base used only for upcasting in set_backend / get_backend.
+  nanobind::class_<cudaq::TraceBackend>(trace, "TraceBackend");
 
-  nanobind::class_<ChromeTraceBackend, TraceBackend>(trace, "ChromeBackend")
+  nanobind::class_<cudaq::ChromeTraceBackend, cudaq::TraceBackend>(
+      trace, "ChromeBackend")
       .def(nanobind::new_([](std::string path) {
-             return std::make_shared<ChromeTraceBackend>(std::move(path));
+             return std::make_shared<cudaq::ChromeTraceBackend>(
+                 std::move(path));
            }),
            nanobind::arg("path") = std::string{},
            "Construct a Chrome backend. If `path` is empty, the backend is "
@@ -90,33 +86,35 @@ void bindTrace(nanobind::module_ &mod) {
            "to_json() / to_dict() / write_file() to retrieve events. If "
            "`path` is set, the destructor writes Chrome Trace Event Format "
            "JSON to `path`.")
-      .def("to_json", &ChromeTraceBackend::toJson,
+      .def("to_json", &cudaq::ChromeTraceBackend::toJson,
            "Return captured events as a Chrome Trace Event Format JSON "
            "string (same bytes the destructor would write to file).")
       .def(
           "to_dict",
-          [](ChromeTraceBackend &self) {
+          [](cudaq::ChromeTraceBackend &self) {
             auto jsonMod = nanobind::module_::import_("json");
             return jsonMod.attr("loads")(self.toJson());
           },
           "Return captured events as a parsed Python dict.")
-      .def("write_file", &ChromeTraceBackend::writeFile,
+      .def("write_file", &cudaq::ChromeTraceBackend::writeFile,
            nanobind::arg("path") = nanobind::none(),
            "Write the current buffer as JSON to `path`, or to the ctor path "
            "if omitted. Non-destructive: the buffer stays intact and the "
            "backend keeps capturing.")
-      .def("clear", &ChromeTraceBackend::clear, "Drop all buffered events.");
+      .def("clear", &cudaq::ChromeTraceBackend::clear,
+           "Drop all buffered events.");
 
-  nanobind::class_<SpdlogTraceBackend, TraceBackend>(trace, "SpdlogBackend")
-      .def(
-          nanobind::new_([] { return std::make_shared<SpdlogTraceBackend>(); }),
-          "Route trace events through spdlog. Output respects the current "
-          "CUDAQ log level.");
+  nanobind::class_<cudaq::SpdlogTraceBackend, cudaq::TraceBackend>(
+      trace, "SpdlogBackend")
+      .def(nanobind::new_(
+               [] { return std::make_shared<cudaq::SpdlogTraceBackend>(); }),
+           "Route trace events through spdlog. Output respects the current "
+           "CUDAQ log level.");
 
   trace.def(
       "set_backend",
-      [](std::shared_ptr<TraceBackend> backend) {
-        auto &t = Tracer::instance();
+      [](std::shared_ptr<cudaq::TraceBackend> backend) {
+        auto &t = cudaq::Tracer::instance();
         t.setBackend(std::move(backend));
         t.setCaptureEnabled(true);
       },
@@ -124,18 +122,16 @@ void bindTrace(nanobind::module_ &mod) {
       "Install a TraceBackend and enable span capture.");
 
   trace.def(
-      "get_backend", [] { return Tracer::instance().getBackend(); },
+      "get_backend", [] { return cudaq::Tracer::instance().getBackend(); },
       "Return the currently-installed TraceBackend, or None.");
 
   trace.def(
       "reset_backend",
       [] {
-        auto &t = Tracer::instance();
+        auto &t = cudaq::Tracer::instance();
         t.setBackend(nullptr);
         t.setCaptureEnabled(false);
       },
       "Remove any installed backend and disable span capture. Subsequent "
       "spans early-return without emitting.");
 }
-
-} // namespace cudaq
