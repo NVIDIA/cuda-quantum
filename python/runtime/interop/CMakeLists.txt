@@ -7,6 +7,9 @@
 # ============================================================================ #
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 add_compile_options(-Wno-attributes)
+if (NOT TARGET nanobind-static)
+  nanobind_build_library(nanobind-static)
+endif()
 add_library(cudaq-python-interop SHARED PythonCppInterop.cpp)
 target_include_directories(cudaq-python-interop PRIVATE
     ${Python3_INCLUDE_DIRS}
