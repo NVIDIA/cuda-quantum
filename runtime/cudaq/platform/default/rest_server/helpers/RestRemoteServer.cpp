@@ -55,18 +55,19 @@
 #include <fstream>
 #include <streambuf>
 
+using namespace mlir;
+
 extern "C" {
 void __nvqir__setCircuitSimulator(nvqir::CircuitSimulator *);
 }
 
 namespace {
-using namespace mlir;
-using namespace cudaq_internal::compiler;
 // Encapsulates a dynamically-loaded NVQIR simulator library
 struct SimulatorHandle {
   std::string name;
   void *libHandle;
 };
+} // namespace
 
 // Implementation of llvm::cantFail which throws a C++ exception rather than
 // emits a signal/asserts.
@@ -83,7 +84,7 @@ T getValueOrThrow(llvm::Expected<T> valOrErr,
 // Clear any registered operations in the ExecutionManager and then destroy the
 // JIT. This needs to be called when the registered operations may contain
 // pointers into the code objects inside the JIT.
-void clearRegOpsAndDestroyJIT(std::unique_ptr<llvm::orc::LLJIT> &jit) {
+static void clearRegOpsAndDestroyJIT(std::unique_ptr<llvm::orc::LLJIT> &jit) {
   cudaq::getExecutionManager()->clearRegisteredOperations();
   // Destroys the LLJIT object
   jit.reset();
@@ -105,10 +106,11 @@ auto withExecutionContextExceptRun(cudaq::ExecutionContext &io_context,
 // Optionally, the JIT'ed kernel can be executed a number of
 // times along with a post-execution callback. For example, sample a dynamic
 // kernel.
-void invokeWrappedKernel(
-    std::function<void()> func, cudaq::ExecutionContext &executionContext,
-    std::size_t numTimes = 1,
-    std::function<void(std::size_t)> postExecCallback = {}) {
+static void
+invokeWrappedKernel(std::function<void()> func,
+                    cudaq::ExecutionContext &executionContext,
+                    std::size_t numTimes = 1,
+                    std::function<void(std::size_t)> postExecCallback = {}) {
   auto &platform = cudaq::get_platform();
   for (std::size_t i = 0; i < numTimes; ++i) {
     // Invoke the wrapper with serialized data and the kernel.
@@ -120,6 +122,7 @@ void invokeWrappedKernel(
   }
 }
 
+namespace {
 class RemoteRestRuntimeServer : public cudaq::RemoteRuntimeServer {
   int m_port = -1;
   std::unique_ptr<cudaq::RestServer> m_server;
@@ -212,7 +215,7 @@ public:
 
           return resultJs;
         });
-    m_mlirContext = getOwningMLIRContext();
+    m_mlirContext = cudaq_internal::compiler::getOwningMLIRContext();
     m_hasMpi = cudaq::mpi::is_initialized();
   }
 
@@ -351,8 +354,9 @@ public:
         // In library mode (LLVM), check to see if we have mid-circuit measures
         // by tracing the kernel function.
         cudaq::ExecutionContext context("tracer");
-        std::tie(llvmJit, wrappedKernel) = createWrappedKernel(
-            ir, std::string(kernelName), kernelArgs, argsSize);
+        std::tie(llvmJit, wrappedKernel) =
+            cudaq_internal::compiler::createWrappedKernel(
+                ir, std::string(kernelName), kernelArgs, argsSize);
         invokeWrappedKernel(wrappedKernel, context);
         // In trace mode, if we have a measure result
         // that is passed to an if statement, then
@@ -370,8 +374,9 @@ public:
           // deleted.
           clearRegOpsAndDestroyJIT(llvmJit);
           // If it has conditionals, loop over individual circuit executions
-          std::tie(llvmJit, wrappedKernel) = createWrappedKernel(
-              ir, std::string(kernelName), kernelArgs, argsSize);
+          std::tie(llvmJit, wrappedKernel) =
+              cudaq_internal::compiler::createWrappedKernel(
+                  ir, std::string(kernelName), kernelArgs, argsSize);
           invokeWrappedKernel(wrappedKernel, io_context, io_context.shots,
                               [&](std::size_t i) {
                                 // Flush the single measure result and
@@ -386,13 +391,15 @@ public:
           // in an LLVM JIT, we must clear them before any prior LLVM JIT gets
           // deleted.
           clearRegOpsAndDestroyJIT(llvmJit);
-          std::tie(llvmJit, wrappedKernel) = createWrappedKernel(
-              ir, std::string(kernelName), kernelArgs, argsSize);
+          std::tie(llvmJit, wrappedKernel) =
+              cudaq_internal::compiler::createWrappedKernel(
+                  ir, std::string(kernelName), kernelArgs, argsSize);
           invokeWrappedKernel(wrappedKernel, io_context);
         }
       } else {
-        std::tie(llvmJit, wrappedKernel) = createWrappedKernel(
-            ir, std::string(kernelName), kernelArgs, argsSize);
+        std::tie(llvmJit, wrappedKernel) =
+            cudaq_internal::compiler::createWrappedKernel(
+                ir, std::string(kernelName), kernelArgs, argsSize);
         invokeWrappedKernel(wrappedKernel, io_context);
       }
     } else {
@@ -778,7 +785,6 @@ protected:
     }
   }
 };
-
 } // namespace
 
 CUDAQ_REGISTER_TYPE(cudaq::RemoteRuntimeServer, RemoteRestRuntimeServer, rest)
