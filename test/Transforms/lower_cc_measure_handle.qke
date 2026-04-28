@@ -157,3 +157,35 @@ func.func @no_handle(%v: !cc.stdvec<i64>, %p: !cc.ptr<i64>) -> !cc.stdvec<i64> {
 // CHECK:         %[[VAL_R:.*]] = call @takes_int_vec(%[[VAL_0]], %[[VAL_1]]) : (!cc.stdvec<i64>, !cc.ptr<i64>) -> !cc.stdvec<i64>
 // CHECK:         return %[[VAL_R]] : !cc.stdvec<i64>
 // CHECK:       }
+
+// `cc.indirect_callable` (and `cc.callable`) carry a function-type
+// signature whose inputs and results may name `!cc.measure_handle`. The
+// pass must recurse into that signature so the callable's declared type
+// stays in sync with the post-lowering call-site result; otherwise
+// `cc.call_indirect_callable` rejects the module with "result type
+// mismatch". Models the CUDA-QX `memory_circuit.cpp` round-trip via
+// `code::stabilizer_round`.
+func.func @indirect_handle(%ic: !cc.indirect_callable<(!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>>,
+                           %qv: !quake.veq<?>) -> !cc.stdvec<!cc.measure_handle> {
+  %r = cc.call_indirect_callable %ic, %qv : (!cc.indirect_callable<(!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>>, !quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
+  return %r : !cc.stdvec<!cc.measure_handle>
+}
+
+// CHECK-LABEL: func.func @indirect_handle(
+// CHECK-SAME:    %[[VAL_0:.*]]: !cc.indirect_callable<(!quake.veq<?>) -> !cc.stdvec<i64>>,
+// CHECK-SAME:    %[[VAL_1:.*]]: !quake.veq<?>) -> !cc.stdvec<i64> {
+// CHECK:         %[[VAL_R:.*]] = cc.call_indirect_callable %[[VAL_0]], %[[VAL_1]] : (!cc.indirect_callable<(!quake.veq<?>) -> !cc.stdvec<i64>>, !quake.veq<?>) -> !cc.stdvec<i64>
+// CHECK:         return %[[VAL_R]] : !cc.stdvec<i64>
+// CHECK:       }
+
+// `cc.callable` (the in-module callable wrapper) carries the same kind
+// of `FunctionType` payload as `cc.indirect_callable`; verify the same
+// recursion applies to a handle-typed callable signature.
+func.func @callable_handle(%c: !cc.callable<(!quake.ref) -> !cc.measure_handle>) {
+  return
+}
+
+// CHECK-LABEL: func.func @callable_handle(
+// CHECK-SAME:    %[[VAL_0:.*]]: !cc.callable<(!quake.ref) -> i64>) {
+// CHECK:         return
+// CHECK:       }

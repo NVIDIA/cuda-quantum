@@ -87,6 +87,26 @@ public:
           return FunctionType::get(&getContext(), ins, outs);
         return t;
       }
+      // `cc.callable` and `cc.indirect_callable` wrap a `FunctionType` whose
+      // inputs or results may name `!cc.measure_handle`. Without recursing
+      // into the carried signature, the callable's declared type would
+      // diverge from its post-rewrite call-site result type and
+      // `cc.call_indirect_callable`'s verifier would reject the module.
+      // CUDA-QX's `memory_circuit.cpp` round-trips a `qkernel` typed
+      // `... -> std::vector<measure_handle>`, which is the load-bearing case.
+      if (auto c = dyn_cast<cudaq::cc::CallableType>(t)) {
+        auto inner = convert(c.getSignature());
+        if (inner != c.getSignature())
+          return cudaq::cc::CallableType::get(cast<FunctionType>(inner));
+        return t;
+      }
+      if (auto ic = dyn_cast<cudaq::cc::IndirectCallableType>(t)) {
+        auto inner = convert(ic.getSignature());
+        if (inner != ic.getSignature())
+          return cudaq::cc::IndirectCallableType::get(
+              cast<FunctionType>(inner));
+        return t;
+      }
       return t;
     };
 
