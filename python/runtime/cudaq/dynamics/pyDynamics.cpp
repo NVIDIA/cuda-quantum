@@ -16,15 +16,13 @@
 #include "cudaq/algorithms/integrator.h"
 #include "cudaq/schedule.h"
 #include <nanobind/nanobind.h>
-#include <nanobind/stl/map.h>
+#include <nanobind/stl/complex.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/pair.h>
 #include <nanobind/stl/string.h>
-#include <nanobind/stl/tuple.h>
 #include <nanobind/stl/unordered_map.h>
 #include <nanobind/stl/vector.h>
 
-namespace py = nanobind;
 namespace {
 cudaq::CuDensityMatState *asCudmState(cudaq::state &cudaqState) {
   auto *simState = cudaq::state_helper::getSimulationState(&cudaqState);
@@ -48,7 +46,7 @@ NB_MODULE(nvqir_dynamics_bindings, m) {
   };
 
   // Time stepper bindings
-  py::class_<PyCuDensityMatTimeStepper>(m, "TimeStepper")
+  nanobind::class_<PyCuDensityMatTimeStepper>(m, "TimeStepper")
       .def("__init__",
            [](PyCuDensityMatTimeStepper *self, cudaq::schedule schedule,
               std::vector<int64_t> modeExtents,
@@ -134,7 +132,6 @@ NB_MODULE(nvqir_dynamics_bindings, m) {
       .def("compute",
            [](PyCuDensityMatTimeStepper &self, cudaq::state &inputState,
               double t, cudaq::state &outputState) {
-             // Compute into the provided output state
              std::unordered_map<std::string, std::complex<double>> params;
              for (const auto &param : self.m_schedule.get_parameters()) {
                params[param] = self.m_schedule.get_value_function()(param, t);
@@ -161,8 +158,8 @@ NB_MODULE(nvqir_dynamics_bindings, m) {
            });
 
   // System dynamics data class
-  py::class_<cudaq::SystemDynamics>(m, "SystemDynamics")
-      .def(py::init<>())
+  nanobind::class_<cudaq::SystemDynamics>(m, "SystemDynamics")
+      .def(nanobind::init<>())
       .def_rw("modeExtents", &cudaq::SystemDynamics::modeExtents)
       .def_rw("hamiltonian", &cudaq::SystemDynamics::hamiltonian)
       .def_rw("collapseOps", &cudaq::SystemDynamics::collapseOps)
@@ -170,7 +167,7 @@ NB_MODULE(nvqir_dynamics_bindings, m) {
       .def_rw("superOp", &cudaq::SystemDynamics::superOp);
 
   // Expectation calculation
-  py::class_<cudaq::CuDensityMatExpectation>(m, "CuDensityMatExpectation")
+  nanobind::class_<cudaq::CuDensityMatExpectation>(m, "CuDensityMatExpectation")
       .def("__init__",
            [](cudaq::CuDensityMatExpectation *self,
               cudaq::sum_op<cudaq::matrix_handler> &obs,
@@ -199,9 +196,9 @@ NB_MODULE(nvqir_dynamics_bindings, m) {
       });
 
   // Schedule class
-  py::class_<cudaq::schedule>(m, "Schedule")
-      .def(py::init<const std::vector<double> &,
-                    const std::vector<std::string> &>());
+  nanobind::class_<cudaq::schedule>(m, "Schedule")
+      .def(nanobind::init<const std::vector<double> &,
+                          const std::vector<std::string> &>());
 
   // Helper to initialize a data buffer state
   m.def("initializeState",
@@ -299,23 +296,24 @@ NB_MODULE(nvqir_dynamics_bindings, m) {
         return cudaq::__internal__::checkBatchingCompatibility(hamOps,
                                                                listCollapseOps);
       },
-      py::arg("hamiltonians"), py::arg("collapse_operators"));
+      nanobind::arg("hamiltonians"), nanobind::arg("collapse_operators"));
 
   m.def(
       "checkSuperOpBatchingCompatibility",
       [](const std::vector<cudaq::super_op> &super_operators) {
         return cudaq::__internal__::checkBatchingCompatibility(super_operators);
       },
-      py::arg("super_operators"));
+      nanobind::arg("super_operators"));
 
   auto integratorsSubmodule = m.def_submodule("integrators");
 
   // Runge-Kutta integrator
-  py::class_<cudaq::integrators::runge_kutta>(integratorsSubmodule,
-                                              "runge_kutta")
-      .def(py::init<int, std::optional<double>>(), py::kw_only(),
-           py::arg("order") = cudaq::integrators::runge_kutta::default_order,
-           py::arg("max_step_size") = py::none())
+  nanobind::class_<cudaq::integrators::runge_kutta>(integratorsSubmodule,
+                                                    "runge_kutta")
+      .def(nanobind::init<int, std::optional<double>>(), nanobind::kw_only(),
+           nanobind::arg("order") =
+               cudaq::integrators::runge_kutta::default_order,
+           nanobind::arg("max_step_size") = nanobind::none())
       .def("setState",
            [](cudaq::integrators::runge_kutta &self, cudaq::state &state,
               double t) { self.setState(state, t); })

@@ -16,7 +16,7 @@ pytestmark = pytest.mark.xdist_group("quantinuum_emulation")
 
 
 def assert_close(got) -> bool:
-    return got < -1.5 and got > -2.0
+    return got < -1.5 and got > -1.9
 
 
 @pytest.fixture(scope="function", autouse=True)

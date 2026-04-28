@@ -44,7 +44,7 @@ endif()
 add_target_config(opt-test)
 add_target_config(circuit-opt-bench)
 
-if (CUSTATEVEC_ROOT AND CUDA_FOUND)
+if (cuStateVec_FOUND)
   add_target_config(nvidia)
   add_target_config(nvidia-fp64)
 endif()

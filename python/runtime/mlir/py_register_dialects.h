@@ -10,8 +10,6 @@
 
 #include <nanobind/nanobind.h>
 
-namespace py = nanobind;
-
 namespace cudaq {
-void bindRegisterDialects(py::module_ &mod);
+void bindRegisterDialects(nanobind::module_ &mod);
 } // namespace cudaq
