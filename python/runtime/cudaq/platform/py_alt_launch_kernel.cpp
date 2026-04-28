@@ -22,6 +22,7 @@
 #include "cudaq/platform/qpu.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/LayoutInfo.h"
+#include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "runtime/cudaq/algorithms/py_utils.h"
 #include "runtime/cudaq/platform/PythonSignalCheck.h"
 #include "utils/LinkedLibraryHolder.h"
@@ -1013,6 +1014,7 @@ static MlirModule synthesizeKernel(nanobind::object kernel,
 
   PassManager pm(context);
   cudaq::addPythonSignalInstrumentation(pm);
+  pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
   pm.addPass(cudaq::opt::createArgumentSynthesisPass(
       kernelRefs, substRefs, /*changeSemantics=*/false));
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
@@ -1104,6 +1106,7 @@ static ModuleOp cleanLowerToCodegenKernel(ModuleOp mod,
     auto *ctx = mod.getContext();
     PassManager pm(ctx);
     cudaq::addPythonSignalInstrumentation(pm);
+    pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
     std::string transport = getTransportLayer();
     cudaq::opt::addAOTPipelineConvertToQIR(pm, transport);
     executeMLIRPassManager(mod, pm);
@@ -1253,6 +1256,8 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
         auto context = m.getContext();
         PassManager pm(context);
         cudaq::addPythonSignalInstrumentation(pm);
+        pm.addInstrumentation(
+            std::make_unique<cudaq::TracePassInstrumentation>());
         pm.addNestedPass<func::FuncOp>(
             cudaq::opt::createPySynthCallableBlockArgs(
                 SmallVector<StringRef>(funcNames.begin(), funcNames.end()),

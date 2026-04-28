@@ -110,6 +110,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../../runtime/internal/compiler/RuntimePyMLIR.cpp
     ../../runtime/internal/compiler/JIT.cpp
     ../../runtime/internal/compiler/Compiler.cpp
+    ../../runtime/internal/compiler/TracePassInstrumentation.cpp
 
   EMBED_CAPI_LINK_LIBS
    CUDAQuantumMLIRCAPI
@@ -128,6 +129,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
 # mlir::PassInstrumentation, so it must match LLVM's RTTI setting.
 set_source_files_properties(
     ../runtime/cudaq/platform/PythonSignalCheck.cpp
+    ../../runtime/internal/compiler/TracePassInstrumentation.cpp
     PROPERTIES COMPILE_FLAGS "-fno-rtti -fno-exceptions"
 )
 

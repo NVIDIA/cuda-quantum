@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
+#include "cudaq_internal/compiler/TracePassInstrumentation.h"
 
 // Pass registration is done through the 'register_dialect' python call.
 // The native target initialization is built into the MLIR python extension.
@@ -23,5 +24,6 @@ mlir::LogicalResult runPassManagerReleasingGIL(mlir::PassManager &pm,
 mlir::LogicalResult
 cudaq_internal::compiler::runPassManager(mlir::PassManager &pm,
                                          mlir::Operation *op) {
+  pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
   return cudaq::runPassManagerReleasingGIL(pm, op);
 }
