@@ -77,6 +77,16 @@ Value cudaq::cc::getByteSizeOfType(OpBuilder &builder, Location loc, Type ty,
                 // we're assuming pointers are 64 bits.
                 return {8};
               })
+          .Case([](cudaq::cc::MeasureHandleType)
+                    -> std::optional<std::int32_t> {
+            // `!cc.measure_handle` is the IR alias of `cudaq::measure_handle`,
+            // a class with a single `std::int64_t` field. The late
+            // `--lower-cc-measure-handle` pass replaces it with `i64`; until
+            // then it is statically 8 bytes wide. Required so
+            // `__nvqpp_vectorCopyCtor` gets a constant element size when a
+            // pure-device kernel returns `std::vector<measure_handle>`.
+            return {8};
+          })
           .Default({});
 
   if (rawSize)
