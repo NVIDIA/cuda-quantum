@@ -690,7 +690,7 @@ jobs:
         with:
           name: ${{ steps.release_info.outputs.platform_arch }}-cu${{ steps.release_info.outputs.cuda_major_version }}-installer
           path: /tmp/install
-          retention-days: 1
+          retention-days: 7
           if-no-files-found: error
 
   cudaq_realtime_installers:
@@ -751,7 +751,7 @@ jobs:
         with:
           name: cudaq-deb-metapackages
           path: /tmp/meta-debs
-          retention-days: 1
+          retention-days: 7
           if-no-files-found: error
 
   cudaq_wheels:
