@@ -400,15 +400,15 @@ void cudaq::bindSamplePTSBE(nanobind::module_ &mod) {
            "Block until the PTSBE sampling result is available and return it.");
 
   // PTSBE sample implementation
-  ptsbe.def("sample_impl", pySamplePTSBE, nanobind::arg("kernel_name"),
-            nanobind::arg("module"), nanobind::arg("shots_count"),
-            nanobind::arg("noise_model"), nanobind::arg("max_trajectories"),
-            nanobind::arg("sampling_strategy").none(),
-            nanobind::arg("shot_allocation").none(),
-            nanobind::arg("return_execution_data"),
-            nanobind::arg("include_sequential_data"),
-            nanobind::arg("arguments"),
-            R"pbdoc(
+  ptsbe.def(
+      "sample_impl", pySamplePTSBE, nanobind::arg("kernel_name"),
+      nanobind::arg("module"), nanobind::arg("shots_count"),
+      nanobind::arg("noise_model"), nanobind::arg("max_trajectories").none(),
+      nanobind::arg("sampling_strategy").none(),
+      nanobind::arg("shot_allocation").none(),
+      nanobind::arg("return_execution_data"),
+      nanobind::arg("include_sequential_data"), nanobind::arg("arguments"),
+      R"pbdoc(
 Run PTSBE sampling on the provided kernel.
 
 Args:
@@ -431,7 +431,7 @@ Returns:
   ptsbe.def(
       "sample_async_impl", pySampleAsyncPTSBE, nanobind::arg("kernel_name"),
       nanobind::arg("module"), nanobind::arg("shots_count"),
-      nanobind::arg("noise_model"), nanobind::arg("max_trajectories"),
+      nanobind::arg("noise_model"), nanobind::arg("max_trajectories").none(),
       nanobind::arg("sampling_strategy").none(),
       nanobind::arg("shot_allocation").none(),
       nanobind::arg("return_execution_data"),
