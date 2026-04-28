@@ -12,6 +12,7 @@
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/platform/default/python/QPU.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
 #include "llvm/IR/LLVMContext.h"
@@ -79,6 +80,8 @@ void cudaq::bindPyTranslate(nanobind::module_ &mod) {
         const std::string format = "qir";
         auto mod = unwrap(module);
         PassManager pm(mod.getContext());
+        pm.addInstrumentation(
+            std::make_unique<cudaq::TracePassInstrumentation>());
         cudaq::opt::addAOTPipelineConvertToQIR(pm, format);
         if (failed(pm.run(mod)))
           throw std::runtime_error("Conversion to " + format + " failed.");
