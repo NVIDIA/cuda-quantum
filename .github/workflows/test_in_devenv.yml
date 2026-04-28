@@ -353,6 +353,11 @@ jobs:
               echo "::error file=test_in_devenv.yml:: Pip install of CUDA Quantum failed with status $pyinstall_status."
               exit 1
             fi
+
+            echo "::group::cudaq import smoke-test"
+            python -X faulthandler -c "import cudaq; print('import ok')" 2>&1 | tee /tmp/import_cudaq.log || true
+            echo "::endgroup::"
+
             python -m pip install pytest pytest-xdist
             python -m pytest -v --durations=0 -n auto python/tests/ \
               --ignore python/tests/backends \
