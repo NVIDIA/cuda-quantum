@@ -13,6 +13,7 @@ add_executable(OptimizerUnitTests
   FactoryMergeModuleTest.cpp
   DecompositionPatternsTest.cpp
   DecompositionPatternSelectionTest.cpp
+  IfOpConstantFoldTest.cpp
 )
 
 target_link_libraries(OptimizerUnitTests

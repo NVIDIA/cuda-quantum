@@ -1,0 +1,60 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Tests for cc::IfOp constant condition folding.
+//
+// When the condition is a compile-time constant, only the live region is
+// reported as a successor and gets execution bounds {1,1} (always runs),
+// while the dead region gets bounds {0,0} (never runs).
+
+// RUN: cudaq-opt --control-flow-sink %s | FileCheck %s
+
+func.func private @use_i32(i32)
+
+// Constant true: then-region is live {1,1}, else-region is dead {0,0}.
+// Verifies that a value used only in the then-region is sunk into it.
+func.func @sink_into_true_branch() {
+  %true = arith.constant true
+  %c42 = arith.constant 42 : i32
+  cc.if (%true) {
+    func.call @use_i32(%c42) : (i32) -> ()
+    cc.continue
+  }
+  return
+}
+
+// Constant false: else-region is live {1,1}, then-region is dead {0,0}.
+// Verifies that a value used only in the else-region is sunk into it.
+func.func @sink_into_else_branch() {
+  %false = arith.constant false
+  %c99 = arith.constant 99 : i32
+  cc.if (%false) {
+    cc.continue
+  } else {
+    func.call @use_i32(%c99) : (i32) -> ()
+    cc.continue
+  }
+  return
+}
+
+// CHECK-LABEL: func.func @sink_into_true_branch
+// CHECK:         %true = arith.constant true
+// CHECK:         cc.if(%true) {
+// CHECK:           %[[C42:.*]] = arith.constant 42 : i32
+// CHECK:           func.call @use_i32(%[[C42]])
+// CHECK:         }
+// CHECK:         return
+
+// CHECK-LABEL: func.func @sink_into_else_branch
+// CHECK:         %false = arith.constant false
+// CHECK:         cc.if(%false) {
+// CHECK:         } else {
+// CHECK:           %[[C99:.*]] = arith.constant 99 : i32
+// CHECK:           func.call @use_i32(%[[C99]])
+// CHECK:         }
+// CHECK:         return
