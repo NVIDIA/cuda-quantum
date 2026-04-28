@@ -24,7 +24,7 @@ __qpu__ void reflect_about_uniform(cudaq::qvector<> &qs) {
 struct run_grover {
   template <typename CallableKernel>
   __qpu__ auto operator()(const int n_qubits, CallableKernel &&oracle) {
-    int n_iterations = round(0.25 * std::numbers::pi * sqrt(2 ^ n_qubits));
+    int n_iterations = round(0.25 * std::numbers::pi * sqrt(std::pow(2, n_qubits)));
 
     cudaq::qvector qs(n_qubits);
     h(qs);
