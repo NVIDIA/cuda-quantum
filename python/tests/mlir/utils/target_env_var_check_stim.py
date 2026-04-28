@@ -16,6 +16,7 @@ import pytest
 
 import cudaq
 import numpy as np
+from cudaq._metadata import assertions_enabled as _cudaq_assertions_enabled
 
 skipStimP1 = pytest.mark.skipif(
     _cudaq_assertions_enabled,

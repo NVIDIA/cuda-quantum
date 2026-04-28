@@ -17,6 +17,7 @@ import cudaq
 from cudaq import spin
 
 from test_helpers import h2_hamiltonian_4q
+from cudaq._metadata import assertions_enabled as _cudaq_assertions_enabled
 
 
 @pytest.fixture(autouse=True)

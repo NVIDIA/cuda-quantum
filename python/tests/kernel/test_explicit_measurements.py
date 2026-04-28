@@ -10,6 +10,7 @@ import cudaq
 import pytest
 import os
 import numpy as np
+from cudaq._metadata import assertions_enabled as _cudaq_assertions_enabled
 
 skipIfBraketNotInstalled = pytest.mark.skipif(
     not (cudaq.has_target("braket")),
