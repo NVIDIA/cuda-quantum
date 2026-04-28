@@ -422,7 +422,13 @@ def test_exp_pauli_zz():
     assert '11' in counts
 
 
-@pytest.mark.parametrize('target', ['default', 'stim'])
+_skip_stim_p1 = pytest.mark.skipif(
+    _cudaq_assertions_enabled,
+    reason="https://github.com/NVIDIA/cuda-quantum/issues/4026")
+
+
+@pytest.mark.parametrize(
+    'target', ['default', pytest.param('stim', marks=_skip_stim_p1)])
 def test_dynamic_circuit(target):
     """Test that we correctly handle circuits with 
        mid-circuit measurements and conditionals."""
