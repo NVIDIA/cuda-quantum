@@ -1,0 +1,174 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --expand-measurements %s | FileCheck %s
+// RUN: cudaq-opt --expand-measurements --lower-cc-measure-handle %s | \
+// RUN:   FileCheck --check-prefix=POSTLOWER %s
+
+// Coverage for `quake.mz veq -> !cc.stdvec<!cc.measure_handle>` -- the IR
+// shape the bridge emits for `cudaq::measure_handle` callers (post-spec).
+// The pre-handle pass only handled `quake.discriminate` consumers of the
+// stdvec result; the handle form can flow directly to `func.return`,
+// `cc.store`, calls, etc. without going through `discriminate`. The pass
+// must scalarize per-qubit AND build a `cc.stdvec_init` of the original
+// element type so non-discriminate consumers stay live.
+//
+// `--lower-cc-measure-handle` substitutes `!cc.measure_handle` -> `i64` on
+// the buffer alloca, the per-element `quake.mz` result, the stdvec_init
+// result, and the function signature. The two passes compose: this file
+// also FileChecks the post-lowering shape that downstream QIR conversion
+// will see.
+
+// -----------------------------------------------------------------------------
+// 1. Non-discriminate user only: `func.return` of the handle vector. This is
+// the pure-device QEC stabilizer-round shape (`__qpu__ vector<measure_handle>
+// stabilizer(...) { return mz(qv); }`).
+
+func.func @handle_return(%v: !quake.veq<?>) -> !cc.stdvec<!cc.measure_handle> {
+  %mz = quake.mz %v : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
+  return %mz : !cc.stdvec<!cc.measure_handle>
+}
+
+// CHECK-LABEL:   func.func @handle_return(
+// CHECK-SAME:        %[[V:.*]]: !quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[BUF:.*]] = cc.alloca !cc.measure_handle{{\[}}%{{.*}}
+// CHECK:           cc.loop while
+// CHECK:             %[[Q:.*]] = quake.extract_ref %[[V]]
+// CHECK:             %[[H:.*]] = quake.mz %[[Q]] : (!quake.ref) -> !cc.measure_handle
+// CHECK:             %[[ADDR:.*]] = cc.compute_ptr %[[BUF]]
+// CHECK-SAME:          : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.ptr<!cc.measure_handle>
+// CHECK:             cc.store %[[H]], %[[ADDR]]
+// CHECK:           %[[VEC:.*]] = cc.stdvec_init %[[BUF]]
+// CHECK-SAME:        : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           return %[[VEC]] : !cc.stdvec<!cc.measure_handle>
+
+// POSTLOWER-LABEL:   func.func @handle_return(
+// POSTLOWER-SAME:        %[[V:.*]]: !quake.veq<?>) -> !cc.stdvec<i64>
+// POSTLOWER:           %[[BUF:.*]] = cc.alloca i64{{\[}}%{{.*}}
+// POSTLOWER:             %[[H:.*]] = quake.mz %{{.*}} : (!quake.ref) -> i64
+// POSTLOWER:             cc.store %[[H]], %{{.*}} : !cc.ptr<i64>
+// POSTLOWER:           %[[VEC:.*]] = cc.stdvec_init %[[BUF]]
+// POSTLOWER-SAME:        : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.stdvec<i64>
+// POSTLOWER:           return %[[VEC]] : !cc.stdvec<i64>
+
+// -----------------------------------------------------------------------------
+// 2. Discriminate-only user on the handle stdvec. The fold should emit a
+// `cc.stdvec_init -> !cc.stdvec<i1>` from the i1/byte buffer; per-element
+// measurement falls back to the legacy `!quake.measure` form because no
+// non-discriminate consumer needs a handle buffer here. This shape matches
+// the AST-Quake CHECK lines for kernels like `to_bools(mz(qv))`.
+
+func.func @handle_disc(%v: !quake.veq<?>) -> !cc.stdvec<i1> {
+  %mz = quake.mz %v : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
+  %d = quake.discriminate %mz : (!cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<i1>
+  return %d : !cc.stdvec<i1>
+}
+
+// CHECK-LABEL:   func.func @handle_disc(
+// CHECK:           %[[I8BUF:.*]] = cc.alloca i8{{\[}}%{{.*}}
+// CHECK-NOT:       cc.alloca !cc.measure_handle
+// CHECK:             %[[H:.*]] = quake.mz %{{.*}} : (!quake.ref) -> !quake.measure
+// CHECK:             %[[BIT:.*]] = quake.discriminate %[[H]] : (!quake.measure) -> i1
+// CHECK:             %[[BYTE:.*]] = cc.cast unsigned %[[BIT]] : (i1) -> i8
+// CHECK:             cc.store %[[BYTE]]
+// CHECK:           %[[CAST:.*]] = cc.cast %[[I8BUF]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<!cc.array<i1 x ?>>
+// CHECK:           %[[VEC:.*]] = cc.stdvec_init %[[CAST]]
+// CHECK-SAME:        : (!cc.ptr<!cc.array<i1 x ?>>, i64) -> !cc.stdvec<i1>
+// CHECK:           return %[[VEC]] : !cc.stdvec<i1>
+
+// -----------------------------------------------------------------------------
+// 3. Mixed: same handle vector consumed by BOTH a discriminate (in-kernel
+// branch on a syndrome bit) and a non-discriminate user (return). Two
+// buffers, one shared per-element measurement, both stdvec_inits emitted.
+
+func.func @handle_mixed(%v: !quake.veq<?>) -> !cc.stdvec<!cc.measure_handle> {
+  %mz = quake.mz %v : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
+  %d = quake.discriminate %mz : (!cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<i1>
+  %slot = cc.alloca !cc.stdvec<i1>
+  cc.store %d, %slot : !cc.ptr<!cc.stdvec<i1>>
+  return %mz : !cc.stdvec<!cc.measure_handle>
+}
+
+// CHECK-LABEL:   func.func @handle_mixed(
+// CHECK-DAG:       %[[I8BUF:.*]] = cc.alloca i8{{\[}}%{{.*}}
+// CHECK-DAG:       %[[HBUF:.*]] = cc.alloca !cc.measure_handle{{\[}}%{{.*}}
+// CHECK:             %[[H:.*]] = quake.mz %{{.*}} : (!quake.ref) -> !cc.measure_handle
+// CHECK:             quake.discriminate %[[H]] : (!cc.measure_handle) -> i1
+// CHECK:             cc.store %{{.*}} : !cc.ptr<i8>
+// CHECK:             cc.store %[[H]], %{{.*}} : !cc.ptr<!cc.measure_handle>
+// CHECK:           cc.stdvec_init %{{.*}} : (!cc.ptr<!cc.array<i1 x ?>>, i64) -> !cc.stdvec<i1>
+// CHECK:           %[[HVEC:.*]] = cc.stdvec_init %[[HBUF]]
+// CHECK-SAME:        : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           return %[[HVEC]] : !cc.stdvec<!cc.measure_handle>
+
+// -----------------------------------------------------------------------------
+// 4. Non-discriminate user that is a `cc.store` (handle vector assigned to a
+// local before being returned/passed onward). No `func.return` to legalize.
+
+func.func @handle_store(%v: !quake.veq<?>) {
+  %mz = quake.mz %v : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
+  %slot = cc.alloca !cc.stdvec<!cc.measure_handle>
+  cc.store %mz, %slot : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+  return
+}
+
+// CHECK-LABEL:   func.func @handle_store(
+// CHECK:           %[[HBUF:.*]] = cc.alloca !cc.measure_handle{{\[}}%{{.*}}
+// CHECK-NOT:       cc.alloca i8
+// CHECK:             %[[H:.*]] = quake.mz %{{.*}} : (!quake.ref) -> !cc.measure_handle
+// CHECK:             cc.store %[[H]], %{{.*}} : !cc.ptr<!cc.measure_handle>
+// CHECK:           %[[HVEC:.*]] = cc.stdvec_init %[[HBUF]]
+// CHECK-SAME:        : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           cc.store %[[HVEC]], %{{.*}} : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+
+// -----------------------------------------------------------------------------
+// 5. Mixed targets: a single mz over a `ref` and a `veq`, with the result
+// flowing to a non-discriminate user. Verifies the per-element handle store
+// fires in BOTH the ref branch and the veq-loop branch.
+
+func.func @handle_ref_and_veq(%q: !quake.ref, %v: !quake.veq<?>)
+    -> !cc.stdvec<!cc.measure_handle> {
+  %mz = quake.mz %q, %v
+      : (!quake.ref, !quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
+  return %mz : !cc.stdvec<!cc.measure_handle>
+}
+
+// CHECK-LABEL:   func.func @handle_ref_and_veq(
+// CHECK-SAME:        %[[Q:.*]]: !quake.ref, %[[V:.*]]: !quake.veq<?>
+// CHECK:           %[[HBUF:.*]] = cc.alloca !cc.measure_handle{{\[}}%{{.*}}
+// CHECK:           %[[H_REF:.*]] = quake.mz %[[Q]] : (!quake.ref) -> !cc.measure_handle
+// CHECK:           cc.store %[[H_REF]], %{{.*}} : !cc.ptr<!cc.measure_handle>
+// CHECK:           cc.loop while
+// CHECK:             %[[QV:.*]] = quake.extract_ref %[[V]]
+// CHECK:             %[[H_VEQ:.*]] = quake.mz %[[QV]] : (!quake.ref) -> !cc.measure_handle
+// CHECK:             cc.store %[[H_VEQ]], %{{.*}} : !cc.ptr<!cc.measure_handle>
+// CHECK:           cc.stdvec_init %[[HBUF]]
+// CHECK-SAME:        : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.stdvec<!cc.measure_handle>
+
+// -----------------------------------------------------------------------------
+// 6. Same shape applied to `mx` and `my`; verifies the rewrite pattern is
+// engaged for all three measurement bases (the pattern is templated on the
+// op type and dispatched via `MxRewrite/MyRewrite/MzRewrite`).
+
+func.func @handle_return_mx(%v: !quake.veq<?>) -> !cc.stdvec<!cc.measure_handle> {
+  %mx = quake.mx %v : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
+  return %mx : !cc.stdvec<!cc.measure_handle>
+}
+
+// CHECK-LABEL:   func.func @handle_return_mx(
+// CHECK:             quake.mx %{{.*}} : (!quake.ref) -> !cc.measure_handle
+// CHECK:           cc.stdvec_init %{{.*}} : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.stdvec<!cc.measure_handle>
+
+func.func @handle_return_my(%v: !quake.veq<?>) -> !cc.stdvec<!cc.measure_handle> {
+  %my = quake.my %v : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
+  return %my : !cc.stdvec<!cc.measure_handle>
+}
+
+// CHECK-LABEL:   func.func @handle_return_my(
+// CHECK:             quake.my %{{.*}} : (!quake.ref) -> !cc.measure_handle
+// CHECK:           cc.stdvec_init %{{.*}} : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.stdvec<!cc.measure_handle>

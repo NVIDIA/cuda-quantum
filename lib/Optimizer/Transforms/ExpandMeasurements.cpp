@@ -30,6 +30,22 @@ bool usesIndividualQubit(A x) {
 
 // Generalized pattern for expanding a multiple qubit measurement (whether it is
 // mx, my, or mz) to a series of individual measurements.
+//
+// Handles both result-type families that the vector form of `quake.mz`/`mx`/
+// `my` can carry:
+//   - `!cc.stdvec<!quake.measure>` -- the legacy form. The only legitimate
+//     consumer is `quake.discriminate`, so the rewrite folds the per-element
+//     measurements straight into a `cc.stdvec_init -> !cc.stdvec<i1>`.
+//   - `!cc.stdvec<!cc.measure_handle>` -- emitted by the bridge for
+//     `cudaq::measure_handle` callers (post-`measure_handle` spec). The
+//     handle-vector value can have non-discriminate consumers (returns,
+//     stores, calls to other kernels, `to_bools`, ...). Those consumers
+//     expect a value of the original handle-stdvec type, so the rewrite
+//     additionally builds a per-element handle buffer and folds it into a
+//     `cc.stdvec_init -> !cc.stdvec<!cc.measure_handle>` that replaces all
+//     remaining uses. The late `--lower-cc-measure-handle` pass rewrites
+//     both the buffer's `cc.alloca` element type and the new stdvec_init's
+//     result type to `i64` before QIR emission.
 template <typename A>
 class ExpandRewritePattern : public OpRewritePattern<A> {
 public:
@@ -38,6 +54,50 @@ public:
   LogicalResult matchAndRewrite(A measureOp,
                                 PatternRewriter &rewriter) const override {
     auto loc = measureOp.getLoc();
+    auto *ctx = rewriter.getContext();
+
+    // The dynamic-legality predicate filters out the scalar forms, so by
+    // construction the result type here is `!cc.stdvec<X>` for some X.
+    auto stdvecResTy =
+        dyn_cast<cudaq::cc::StdvecType>(measureOp.getMeasOut().getType());
+    assert(stdvecResTy && "expand-measurements pattern fired on non-stdvec "
+                          "measurement result");
+    auto handleTy = cudaq::cc::MeasureHandleType::get(ctx);
+    bool isHandleResult =
+        isa<cudaq::cc::MeasureHandleType>(stdvecResTy.getElementType());
+
+    // Per-element scalar result type tracks the original stdvec element
+    // type. For handle inputs we measure into `!cc.measure_handle` per
+    // qubit; the bridge guarantees this is the type users wanted at the
+    // source level (`auto` binds to `vector<measure_handle>`, not to
+    // `vector<bool>`). The late `--lower-cc-measure-handle` pass
+    // substitutes the per-element handle to `i64` before QIR emission.
+    Type perElemTy = isHandleResult
+                         ? static_cast<Type>(handleTy)
+                         : static_cast<Type>(quake::MeasureType::get(ctx));
+
+    // Classify users so we only allocate the buffers we actually need.
+    // The legacy `!quake.measure` path has only `quake.discriminate`
+    // consumers by construction; the handle path may have either, both,
+    // or none (callers that bind the result and discard it).
+    bool hasDiscUser = false;
+    bool hasNonDiscUser = false;
+    for (auto *u : measureOp.getMeasOut().getUsers()) {
+      if (isa<quake::DiscriminateOp>(u))
+        hasDiscUser = true;
+      else
+        hasNonDiscUser = true;
+    }
+    // Each buffer is allocated only when a consumer in its element type
+    // class actually needs it. A handle-typed measurement whose result is
+    // bound to `auto` and never bit-discriminated must not synthesize a
+    // spurious discriminate fold; conversely a legacy measurement with no
+    // discriminate consumer (none currently exist by construction --- the
+    // bridge always emits a discriminate for `vector<bool>`) must not
+    // synthesize one either.
+    bool needI1Buf = hasDiscUser;
+    bool needHandleBuf = isHandleResult && hasNonDiscUser;
+
     // 1. Determine the total number of qubits we need to measure. This
     // determines the size of the buffer of bools to create to store the results
     // in.
@@ -55,27 +115,48 @@ public:
             rewriter.template create<arith::AddIOp>(loc, totalToRead, vecSz);
       }
 
-    // 2. Create the buffer.
+    // 2. Create the buffers (one per output kind we actually need).
     auto i1Ty = rewriter.getI1Type();
     auto i8Ty = rewriter.getI8Type();
-    Value buff =
-        rewriter.template create<cudaq::cc::AllocaOp>(loc, i8Ty, totalToRead);
+    Value i1Buff;
+    if (needI1Buf)
+      i1Buff =
+          rewriter.template create<cudaq::cc::AllocaOp>(loc, i8Ty, totalToRead);
+    Value handleBuff;
+    if (needHandleBuf)
+      handleBuff = rewriter.template create<cudaq::cc::AllocaOp>(loc, handleTy,
+                                                                 totalToRead);
+
+    // Per-element store helper. Each qubit is measured exactly once with
+    // `perElemTy`; the resulting value is fanned out to whichever buffers we
+    // allocated (i1 for discriminate consumers, handle for non-discriminate
+    // consumers).
+    auto storePerElement = [&](OpBuilder &builder, Location loc, Value meas,
+                               Value offset) {
+      if (needI1Buf) {
+        auto bit =
+            builder.template create<quake::DiscriminateOp>(loc, i1Ty, meas);
+        auto addr = builder.template create<cudaq::cc::ComputePtrOp>(
+            loc, cudaq::cc::PointerType::get(i8Ty), i1Buff, offset);
+        auto bitByte = builder.template create<cudaq::cc::CastOp>(
+            loc, i8Ty, bit, cudaq::cc::CastOpMode::Unsigned);
+        builder.template create<cudaq::cc::StoreOp>(loc, bitByte, addr);
+      }
+      if (needHandleBuf) {
+        auto addr = builder.template create<cudaq::cc::ComputePtrOp>(
+            loc, cudaq::cc::PointerType::get(handleTy), handleBuff, offset);
+        builder.template create<cudaq::cc::StoreOp>(loc, meas, addr);
+      }
+    };
 
     // 3. Measure each individual qubit and insert the result, in order, into
     // the buffer. For registers/vectors, loop over the entire set of qubits.
     Value buffOff = rewriter.template create<arith::ConstantIntOp>(loc, 0, 64);
     Value one = rewriter.template create<arith::ConstantIntOp>(loc, 1, 64);
-    auto measTy = quake::MeasureType::get(rewriter.getContext());
     for (auto v : measureOp.getTargets()) {
       if (isa<quake::RefType>(v.getType())) {
-        auto meas = rewriter.template create<A>(loc, measTy, v).getMeasOut();
-        auto bit =
-            rewriter.template create<quake::DiscriminateOp>(loc, i1Ty, meas);
-        Value addr = rewriter.template create<cudaq::cc::ComputePtrOp>(
-            loc, cudaq::cc::PointerType::get(i8Ty), buff, buffOff);
-        auto bitByte = rewriter.template create<cudaq::cc::CastOp>(
-            loc, i8Ty, bit, cudaq::cc::CastOpMode::Unsigned);
-        rewriter.template create<cudaq::cc::StoreOp>(loc, bitByte, addr);
+        auto meas = rewriter.template create<A>(loc, perElemTy, v).getMeasOut();
+        storePerElement(rewriter, loc, meas, buffOff);
         buffOff = rewriter.template create<arith::AddIOp>(loc, buffOff, one);
       } else {
         assert(isa<quake::VeqType>(v.getType()));
@@ -86,37 +167,58 @@ public:
               Value iv = block.getArgument(0);
               Value qv =
                   builder.template create<quake::ExtractRefOp>(loc, v, iv);
-              auto meas = builder.template create<A>(loc, measTy, qv);
-              auto bit = builder.template create<quake::DiscriminateOp>(
-                  loc, i1Ty, meas.getMeasOut());
+              auto meas = builder.template create<A>(loc, perElemTy, qv);
               if (auto registerName = measureOp.getRegisterNameAttr())
                 meas.setRegisterName(registerName);
               Value offset =
                   builder.template create<arith::AddIOp>(loc, iv, buffOff);
-              auto addr = builder.template create<cudaq::cc::ComputePtrOp>(
-                  loc, cudaq::cc::PointerType::get(i8Ty), buff, offset);
-              auto bitByte = rewriter.template create<cudaq::cc::CastOp>(
-                  loc, i8Ty, bit, cudaq::cc::CastOpMode::Unsigned);
-              builder.template create<cudaq::cc::StoreOp>(loc, bitByte, addr);
+              storePerElement(builder, loc, meas.getMeasOut(), offset);
             });
         buffOff = rewriter.template create<arith::AddIOp>(loc, buffOff, vecSz);
       }
     }
 
-    // 4. Use the buffer as an initialization expression and create the
-    // std::vec<bool> value.
-    auto stdvecTy = cudaq::cc::StdvecType::get(rewriter.getContext(), i1Ty);
-    for (auto *out : measureOp.getMeasOut().getUsers())
-      if (auto disc = dyn_cast_if_present<quake::DiscriminateOp>(out)) {
-        auto ptrArrI1Ty =
-            cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(i1Ty));
-        auto buffCast =
-            rewriter.template create<cudaq::cc::CastOp>(loc, ptrArrI1Ty, buff);
-        rewriter.template replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
-            disc, stdvecTy, buffCast, totalToRead);
-      }
+    // 4. Replace each `quake.discriminate` consumer with a
+    // `cc.stdvec_init -> !cc.stdvec<i1>` over the i1 buffer.
+    if (needI1Buf) {
+      auto stdvecI1Ty = cudaq::cc::StdvecType::get(ctx, i1Ty);
+      auto ptrArrI1Ty =
+          cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(i1Ty));
+      for (auto *out : llvm::to_vector(measureOp.getMeasOut().getUsers()))
+        if (auto disc = dyn_cast_if_present<quake::DiscriminateOp>(out)) {
+          auto buffCast = rewriter.template create<cudaq::cc::CastOp>(
+              loc, ptrArrI1Ty, i1Buff);
+          rewriter.template replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
+              disc, stdvecI1Ty, buffCast, totalToRead);
+        }
+    }
 
-    rewriter.eraseOp(measureOp);
+    // 5. For the handle path with non-discriminate consumers, build a
+    // `cc.stdvec_init -> !cc.stdvec<!cc.measure_handle>` over the handle
+    // buffer and route the original result's remaining users to it via
+    // `replaceOp` (one atomic substitution -- using `replaceAllUsesWith`
+    // would mark each downstream user as `notifyOperationModified`, which
+    // the partial-conversion framework then tries to re-legalize against
+    // the (intentionally narrow) `quake/cc/arith/llvm` legal-dialect set,
+    // rejecting otherwise-fine `func.return` consumers). The buffer is
+    // already `!cc.ptr<!cc.array<!cc.measure_handle x ?>>` (matches
+    // `cc.alloca measure_handle [N]`), so no intermediate `cc.cast` is
+    // needed.
+    Value replacementVal;
+    if (needHandleBuf) {
+      auto stdvecHandleTy = cudaq::cc::StdvecType::get(ctx, handleTy);
+      auto handleStdvec = rewriter.template create<cudaq::cc::StdvecInitOp>(
+          loc, stdvecHandleTy, handleBuff, totalToRead);
+      replacementVal = handleStdvec.getResult();
+    }
+
+    SmallVector<Value> replacements;
+    replacements.push_back(replacementVal);
+    for (auto wire : measureOp.getWires()) {
+      (void)wire;
+      replacements.push_back(nullptr);
+    }
+    rewriter.replaceOp(measureOp, replacements);
     return success();
   }
 };
