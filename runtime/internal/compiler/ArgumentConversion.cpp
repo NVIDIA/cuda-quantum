@@ -23,7 +23,6 @@
 #include "mlir/Parser/Parser.h"
 
 using namespace mlir;
-using namespace cudaq_internal::compiler;
 
 template <typename A>
 Value genIntegerConstant(OpBuilder &builder, A v, unsigned bits) {
@@ -347,9 +346,10 @@ createNumQubitsFunc(OpBuilder &builder, ModuleOp moduleOp,
   process(numQubitsFunc.getRegion().front());
 }
 
-static Value genConstant(OpBuilder &builder, const cudaq::state *v,
-                         llvm::DataLayout &layout, StringRef kernelName,
-                         ModuleOp substMod, ArgumentConverter &converter) {
+static Value
+genConstant(OpBuilder &builder, const cudaq::state *v, llvm::DataLayout &layout,
+            StringRef kernelName, ModuleOp substMod,
+            cudaq_internal::compiler::ArgumentConverter &converter) {
   auto ctx = builder.getContext();
   auto loc = builder.getUnknownLoc();
   auto simState =
@@ -851,16 +851,18 @@ Value genConstant(OpBuilder &builder, cudaq::cc::IndirectCallableType indCallTy,
 
 //===----------------------------------------------------------------------===//
 
-ArgumentConverter::ArgumentConverter(StringRef kernelName,
-                                     ModuleOp sourceModule)
+cudaq_internal::compiler::ArgumentConverter::ArgumentConverter(
+    StringRef kernelName, ModuleOp sourceModule)
     : sourceModule(sourceModule), kernelName(kernelName) {}
 
-void ArgumentConverter::gen(std::span<void *const> arguments) {
+void cudaq_internal::compiler::ArgumentConverter::gen(
+    std::span<void *const> arguments) {
   gen(kernelName, sourceModule, arguments);
 }
 
-void ArgumentConverter::gen(StringRef kernelName, ModuleOp sourceModule,
-                            std::span<void *const> arguments) {
+void cudaq_internal::compiler::ArgumentConverter::gen(
+    StringRef kernelName, ModuleOp sourceModule,
+    std::span<void *const> arguments) {
   auto *ctx = sourceModule.getContext();
   OpBuilder builder(ctx);
   ModuleOp substModule =
@@ -970,8 +972,9 @@ void ArgumentConverter::gen(StringRef kernelName, ModuleOp sourceModule,
   }
 }
 
-void ArgumentConverter::gen(std::span<void *const> arguments,
-                            const std::unordered_set<unsigned> &exclusions) {
+void cudaq_internal::compiler::ArgumentConverter::gen(
+    std::span<void *const> arguments,
+    const std::unordered_set<unsigned> &exclusions) {
   std::vector<void *> partialArgs;
   for (auto iter : llvm::enumerate(arguments)) {
     if (exclusions.contains(iter.index())) {
@@ -983,8 +986,8 @@ void ArgumentConverter::gen(std::span<void *const> arguments,
   gen(partialArgs);
 }
 
-void ArgumentConverter::gen_drop_front(std::span<void *const> arguments,
-                                       unsigned numDrop) {
+void cudaq_internal::compiler::ArgumentConverter::gen_drop_front(
+    std::span<void *const> arguments, unsigned numDrop) {
   // If we're dropping all the arguments, we're done.
   if (numDrop >= arguments.size())
     return;
