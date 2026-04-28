@@ -320,7 +320,7 @@ jobs:
   # Single aggregator that summarizes the entire CI workflow.
   # Branch protection / merge queue should require ONLY this context;
   # adding/removing matrix legs above does not require a ruleset edit.
-  # Passes on `success` and `skipped` (intentionally-skipped jobs on PR tier).
+  # Passes on `success` and `skipped` (jobs intentionally skipped on PR builds).
   # Fails on `failure` or `cancelled` from any listed job.
   ci_summary:
     name: CI Summary
