@@ -855,12 +855,12 @@ ArgumentConverter::ArgumentConverter(StringRef kernelName,
                                      ModuleOp sourceModule)
     : sourceModule(sourceModule), kernelName(kernelName) {}
 
-void ArgumentConverter::gen(const std::vector<void *> &arguments) {
+void ArgumentConverter::gen(std::span<void *const> arguments) {
   gen(kernelName, sourceModule, arguments);
 }
 
 void ArgumentConverter::gen(StringRef kernelName, ModuleOp sourceModule,
-                            const std::vector<void *> &arguments) {
+                            std::span<void *const> arguments) {
   auto *ctx = sourceModule.getContext();
   OpBuilder builder(ctx);
   ModuleOp substModule =
@@ -970,7 +970,7 @@ void ArgumentConverter::gen(StringRef kernelName, ModuleOp sourceModule,
   }
 }
 
-void ArgumentConverter::gen(const std::vector<void *> &arguments,
+void ArgumentConverter::gen(std::span<void *const> arguments,
                             const std::unordered_set<unsigned> &exclusions) {
   std::vector<void *> partialArgs;
   for (auto iter : llvm::enumerate(arguments)) {
@@ -983,7 +983,7 @@ void ArgumentConverter::gen(const std::vector<void *> &arguments,
   gen(partialArgs);
 }
 
-void ArgumentConverter::gen_drop_front(const std::vector<void *> &arguments,
+void ArgumentConverter::gen_drop_front(std::span<void *const> arguments,
                                        unsigned numDrop) {
   // If we're dropping all the arguments, we're done.
   if (numDrop >= arguments.size())
@@ -1003,7 +1003,7 @@ void ArgumentConverter::gen_drop_front(const std::vector<void *> &arguments,
 
 bool cudaq_internal::compiler::mergeAllCallableClosures(
     ModuleOp intoModule, const std::string &shortName,
-    const std::vector<void *> &rawArgs, std::optional<unsigned> betaRedux) {
+    std::span<void *const> rawArgs, std::optional<unsigned> betaRedux) {
   if (rawArgs.empty())
     return false;
   auto fullName = cudaq::runtime::cudaqGenPrefixName + shortName;

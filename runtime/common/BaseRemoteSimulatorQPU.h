@@ -134,25 +134,25 @@ public:
   }
 
   KernelThunkResultType
-  launchModule(const std::string &name, mlir::ModuleOp module,
+  launchModule(const CompiledModule &compiled,
                const std::vector<void *> &rawArgs) override {
-    std::string fullName = cudaq::runtime::cudaqGenPrefixName + name;
+    auto resultInfo = compiled.getResultInfo();
+    auto args = resultInfo.hasResult() ? rawArgs.back() : nullptr;
+    return launchKernelImpl(compiled, nullptr, args, 0, 0, &rawArgs);
+  }
+
+  CompiledModule compileModule(const std::string &kernelName,
+                               mlir::ModuleOp module,
+                               const std::vector<void *> &rawArgs,
+                               bool isEntryPoint) override {
+    CUDAQ_INFO("specializing remote simulator kernel via module ({})",
+               kernelName);
+    std::string fullName = cudaq::runtime::cudaqGenPrefixName + kernelName;
     auto funcOp = module.lookupSymbol<mlir::func::FuncOp>(fullName);
     auto resTy = cudaq::runtime::getReturnType(funcOp);
     auto args = resTy ? rawArgs.back() : nullptr;
     // Looks very much like launchKernel(string, vector<ptr>*).
-    auto compiled = compileKernelImpl(name, args, 0, &rawArgs, module, resTy);
-    return launchKernelImpl(compiled, nullptr, args, 0, 0, &rawArgs);
-  }
-
-  CompiledModule specializeModule(const std::string &kernelName,
-                                  mlir::ModuleOp module,
-                                  const std::vector<void *> &rawArgs,
-                                  bool isEntryPoint) override {
-    CUDAQ_INFO("specializing remote simulator kernel via module ({})",
-               kernelName);
-    throw std::runtime_error(
-        "NYI: Remote simulator execution via Python/C++ interop.");
+    return compileKernelImpl(kernelName, args, 0, &rawArgs, module, resTy);
   }
 
   [[nodiscard]] CompiledModule
@@ -194,7 +194,9 @@ public:
           return m_client->lowerKernelInPlace(prefabMod, name, *rawArgs);
         }
         return m_client->lowerKernel(*m_mlirContext, name, args, voidStarSize,
-                                     0, rawArgs);
+                                     0,
+                                     rawArgs ? std::span<void *const>{*rawArgs}
+                                             : std::span<void *const>{});
       }();
 
       auto jit =
@@ -274,7 +276,9 @@ public:
         *m_mlirContext, executionContext,
         /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr, /*vqe_n_params=*/0,
         m_simName, name, make_degenerate_kernel_type(kernelFunc), args,
-        voidStarSize, &errorMsg, rawArgs, moduleOp);
+        voidStarSize, &errorMsg,
+        rawArgs ? std::span<void *const>{*rawArgs} : std::span<void *const>{},
+        moduleOp);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
     if (isDirectInvocation &&

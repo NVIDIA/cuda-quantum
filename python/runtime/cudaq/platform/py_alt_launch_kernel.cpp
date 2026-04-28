@@ -18,6 +18,7 @@
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/platform.h"
+#include "cudaq/platform/nvqpp_interface.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/LayoutInfo.h"
@@ -671,7 +672,8 @@ static cudaq::KernelThunkResultType
 pyLaunchModule(const std::string &name, ModuleOp mod,
                const std::vector<void *> &rawArgs) {
   auto clone = mod.clone();
-  auto res = cudaq::streamlinedLaunchModule(name, clone, rawArgs);
+  auto compiled = cudaq::streamlinedCompileModule(name, clone, rawArgs, true);
+  auto res = cudaq::streamlinedLaunchModule(compiled, rawArgs);
   clone.erase();
   return res;
 }
@@ -940,7 +942,7 @@ marshal_and_retain_module(const std::string &name, MlirModule module,
   auto rawArgs = appendResultToArgsVector(args, retTy, mod, name);
   auto clone = mod.clone();
   auto compiled =
-      cudaq::streamlinedSpecializeModule(name, clone, rawArgs, isEntryPoint);
+      cudaq::streamlinedCompileModule(name, clone, rawArgs, isEntryPoint);
   clone.erase();
   return compiled;
 }

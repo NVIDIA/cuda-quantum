@@ -112,7 +112,7 @@ public:
   lowerKernelCommon(mlir::MLIRContext &mlirContext, const std::string &name,
                     const void *args, std::uint64_t argsSize,
                     const std::size_t startingArgIdx,
-                    const std::vector<void *> *rawArgs, mlir::ModuleOp module) {
+                    std::span<void *const> rawArgs, mlir::ModuleOp module) {
     enablePrintMLIREachPass = getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
     // Extract the kernel name
     auto func = module.lookupSymbol<mlir::func::FuncOp>(
@@ -122,9 +122,8 @@ public:
       throw std::runtime_error("no kernel named " + name + " found in module");
 
     // Merge other modules (e.g., if there are device kernel calls).
-    if (rawArgs && !rawArgs->empty())
-      cudaq_internal::compiler::mergeAllCallableClosures(module, name,
-                                                         *rawArgs);
+    if (!rawArgs.empty())
+      cudaq_internal::compiler::mergeAllCallableClosures(module, name, rawArgs);
 
     // Create a new Module to clone the function into
     auto location = mlir::FileLineColLoc::get(&mlirContext, "<builder>", 1, 1);
@@ -156,12 +155,12 @@ public:
       return module;
     }();
     std::string passName;
-    if (rawArgs || args) {
+    if (!rawArgs.empty() || args) {
       mlir::PassManager pm(&mlirContext);
-      if (rawArgs && !rawArgs->empty()) {
+      if (!rawArgs.empty()) {
         CUDAQ_INFO("Run Argument Synth.\n");
         cudaq_internal::compiler::ArgumentConverter argCon(name, moduleOp);
-        argCon.gen_drop_front(*rawArgs, startingArgIdx);
+        argCon.gen_drop_front(rawArgs, startingArgIdx);
 
         // Store kernel and substitution strings on the stack.
         // We pass string references to the `createArgumentSynthesisPass`.
@@ -257,16 +256,16 @@ public:
 
   virtual mlir::ModuleOp
   lowerKernelInPlace(mlir::ModuleOp module, const std::string &name,
-                     const std::vector<void *> &rawArgs) override {
+                     std::span<void *const> rawArgs) override {
     return lowerKernelCommon</*cloneAgain=*/false>(
-        *module.getContext(), name, nullptr, 0, 0, &rawArgs, module);
+        *module.getContext(), name, nullptr, 0, 0, rawArgs, module);
   }
 
-  virtual mlir::ModuleOp
-  lowerKernel(mlir::MLIRContext &mlirContext, const std::string &name,
-              const void *args, std::uint64_t argsSize,
-              const std::size_t startingArgIdx,
-              const std::vector<void *> *rawArgs) override {
+  virtual mlir::ModuleOp lowerKernel(mlir::MLIRContext &mlirContext,
+                                     const std::string &name, const void *args,
+                                     std::uint64_t argsSize,
+                                     const std::size_t startingArgIdx,
+                                     std::span<void *const> rawArgs) override {
 
     // Get the quake representation of the kernel
     auto quakeCode = cudaq::get_quake_by_name(name);
@@ -283,7 +282,7 @@ public:
                                      const std::string &name, const void *args,
                                      std::uint64_t voidStarSize,
                                      std::size_t startingArgIdx,
-                                     const std::vector<void *> *rawArgs,
+                                     std::span<void *const> rawArgs,
                                      mlir::Operation *prefabMod) {
     ScopedTraceWithContext(cudaq::TIMING_JIT, "constructKernelPayload");
     mlir::ModuleOp moduleOp;
@@ -291,7 +290,7 @@ public:
     if (prefabMod) {
       ctx = prefabMod->getContext();
       moduleOp = lowerKernelInPlace(mlir::cast<mlir::ModuleOp>(prefabMod), name,
-                                    *rawArgs);
+                                    rawArgs);
     } else {
       ctx = &mlirContext;
       moduleOp = lowerKernel(mlirContext, name, args, voidStarSize,
@@ -314,12 +313,13 @@ public:
     return llvm::encodeBase64(mlirCode);
   }
 
-  cudaq::RestRequest constructVQEJobRequest(
-      mlir::MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
-      const std::string &backendSimName, const std::string &kernelName,
-      const void *kernelArgs, cudaq::gradient *gradient,
-      cudaq::optimizer &optimizer, const int n_params,
-      const std::vector<void *> *rawArgs) {
+  cudaq::RestRequest
+  constructVQEJobRequest(mlir::MLIRContext &mlirContext,
+                         cudaq::ExecutionContext &io_context,
+                         const std::string &backendSimName,
+                         const std::string &kernelName, const void *kernelArgs,
+                         cudaq::gradient *gradient, cudaq::optimizer &optimizer,
+                         const int n_params, std::span<void *const> rawArgs) {
     cudaq::RestRequest request(io_context, version());
 
     request.opt = RestRequestOptFields();
@@ -360,7 +360,7 @@ public:
       mlir::MLIRContext &mlirContext, cudaq::ExecutionContext &io_context,
       const std::string &backendSimName, const std::string &kernelName,
       void (*kernelFunc)(void *), const void *kernelArgs,
-      std::uint64_t argsSize, const std::vector<void *> *rawArgs,
+      std::uint64_t argsSize, std::span<void *const> rawArgs,
       mlir::Operation *prefabMod) {
 
     cudaq::RestRequest request(io_context, version());
@@ -389,11 +389,11 @@ public:
       stateIrPayload1.entryPoint = kernelName1;
       stateIrPayload1.ir =
           constructKernelPayload(mlirContext, kernelName1, nullptr, 0,
-                                 /*startingArgIdx=*/0, &args1, {});
+                                 /*startingArgIdx=*/0, args1, {});
       stateIrPayload2.entryPoint = kernelName2;
       stateIrPayload2.ir =
           constructKernelPayload(mlirContext, kernelName2, nullptr, 0,
-                                 /*startingArgIdx=*/0, &args2, {});
+                                 /*startingArgIdx=*/0, args2, {});
       // First kernel of the overlap calculation
       request.code = stateIrPayload1.ir;
       request.entryPoint = stateIrPayload1.entryPoint;
@@ -430,7 +430,7 @@ public:
               const int vqe_n_params, const std::string &backendSimName,
               const std::string &kernelName, void (*kernelFunc)(void *),
               const void *kernelArgs, std::uint64_t argsSize,
-              std::string *optionalErrorMsg, const std::vector<void *> *rawArgs,
+              std::string *optionalErrorMsg, std::span<void *const> rawArgs,
               mlir::Operation *prefabMod) override {
     cudaq::RestRequest request = [&]() {
       if (vqe_n_params > 0)

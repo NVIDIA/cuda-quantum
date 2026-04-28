@@ -8,6 +8,7 @@
 
 #include "common/ArgumentWrapper.h"
 #include "common/BaseRemoteSimulatorQPU.h"
+#include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "mlir/IR/BuiltinOps.h"
 
 using namespace mlir;
@@ -109,7 +110,7 @@ static void launchKernelStreamlineImpl(
   const bool requestOkay = remote_client->sendRequest(
       *mlirContext, executionContext,
       /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr, /*vqe_n_params=*/0,
-      sim_name, name, nullptr, nullptr, 0, &errorMsg, &actualArgs);
+      sim_name, name, nullptr, nullptr, 0, &errorMsg, actualArgs);
   if (!requestOkay)
     throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
 }
@@ -165,8 +166,9 @@ public:
   }
 
   cudaq::KernelThunkResultType
-  launchModule(const std::string &name, mlir::ModuleOp module,
+  launchModule(const cudaq::CompiledModule &compiled,
                const std::vector<void *> &rawArgs) override {
+    auto name = compiled.getName();
     CUDAQ_INFO("{}: Launch module named '{}' remote QPU {} (simulator = {})",
                Derived::class_name, name, this->qpu_id, this->m_simName);
 
@@ -174,6 +176,12 @@ public:
 
     if (executionContextPtr && executionContextPtr->name == "tracer")
       return {};
+
+    auto mlir = compiled.getMlir();
+    if (!mlir.has_value())
+      return {};
+    auto moduleOp =
+        cudaq_internal::compiler::CompiledModuleHelper::getMlirModuleOp(*mlir);
 
     // Default context for a 'fire-and-ignore' kernel launch.
     static thread_local cudaq::ExecutionContext defaultContext("sample",
@@ -184,7 +192,7 @@ public:
     // Use the module's own MLIRContext (PyRemoteSimulatorQPU does not
     // initialize m_mlirContext, so the base-class launchKernelImpl would
     // dereference a null unique_ptr).
-    auto *mlirContext = module->getContext();
+    auto *mlirContext = moduleOp->getContext();
 
     std::string errorMsg;
     const bool requestOkay = this->m_client->sendRequest(
@@ -192,7 +200,7 @@ public:
         /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr,
         /*vqe_n_params=*/0, this->m_simName, name,
         /*kernelFunc=*/nullptr, /*kernelArgs=*/nullptr,
-        /*argsSize=*/0, &errorMsg, &rawArgs, module.getOperation());
+        /*argsSize=*/0, &errorMsg, std::span<void *const>{rawArgs}, moduleOp);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
     return {};

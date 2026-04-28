@@ -13,6 +13,7 @@
 #include "cudaq/qis/state.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/Types.h"
+#include <span>
 #include <unordered_set>
 #include <vector>
 
@@ -60,21 +61,21 @@ public:
 
   /// Generate a substitution ModuleOp for the vector of arguments presented.
   /// The arguments are those presented to the kernel, kernelName.
-  void gen(const std::vector<void *> &arguments);
+  void gen(std::span<void *const> arguments);
 
   /// Generate a substitution ModuleOp for the vector of arguments presented.
   /// The arguments are those presented to the kernel, kernelName.
   void gen(mlir::StringRef kernelName, mlir::ModuleOp sourceModule,
-           const std::vector<void *> &arguments);
+           std::span<void *const> arguments);
 
   /// Generate a substitution ModuleOp but include only the arguments that do
   /// not appear in the set of \p exclusions.
-  void gen(const std::vector<void *> &arguments,
+  void gen(std::span<void *const> arguments,
            const std::unordered_set<unsigned> &exclusions);
 
   /// Generate a substitution ModuleOp but drop the first \p numDrop arguments
   /// and thereby exclude them from the substitutions.
-  void gen_drop_front(const std::vector<void *> &arguments, unsigned numDrop);
+  void gen_drop_front(std::span<void *const> arguments, unsigned numDrop);
 
   /// Get the kernel info that were collected by `gen()`.
   mlir::SmallVector<KernelSubstitutionInfo *> &getKernelSubstitutions() {
@@ -123,7 +124,7 @@ private:
 /// Return <code>true</code> if and only if \p intoModule has been modified.
 bool mergeAllCallableClosures(mlir::ModuleOp intoModule,
                               const std::string &shortName,
-                              const std::vector<void *> &rawArgs,
+                              std::span<void *const> rawArgs,
                               std::optional<unsigned> betaRedux = {});
 
 } // namespace cudaq_internal::compiler
