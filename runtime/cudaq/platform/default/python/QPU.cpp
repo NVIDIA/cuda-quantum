@@ -25,9 +25,9 @@
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq_internal/compiler/JIT.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
+#include "runtime/cudaq/platform/PythonSignalCheck.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
-#include "runtime/cudaq/platform/PythonSignalCheck.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Target/LLVMIR/Export.h"
@@ -50,7 +50,7 @@ static void specializeKernel(const std::string &name, ModuleOp module,
                              bool isFullySpecialized = true) {
   PassManager pm(module.getContext());
   cudaq::addPythonSignalInstrumentation(pm);
-  ArgumentConverter argCon(name, module);
+  cudaq_internal::compiler::ArgumentConverter argCon(name, module);
   // Look up the kernel's type signature.
   argCon.gen(name, module, rawArgs);
   SmallVector<std::string> kernels;

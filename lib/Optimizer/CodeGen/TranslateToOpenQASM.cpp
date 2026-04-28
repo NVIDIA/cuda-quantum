@@ -214,7 +214,7 @@ static LogicalResult emitOperation(cudaq::Emitter &emitter, func::FuncOp op) {
   // empty `__qpu__` helper), which have the prefix and are kept so that any
   // call sites remain valid.
   if (!op.isExternal() && op.front().without_terminator().empty() &&
-      !op.getName().starts_with(runtime::cudaqGenPrefixName))
+      !op.getName().starts_with(cudaq::runtime::cudaqGenPrefixName))
     return success();
 
   // In Quake's reference semantics form, kernels only return classical types.
