@@ -202,7 +202,7 @@ elif [ "$(uname)" != "Darwin" ] && [ -x "$LLVM_INSTALL_PREFIX/bin/ld.lld" ]; the
 else
   LLD_BIN=""
 fi
-if [ -n "$LLD_BIN" ]; then
+if [ -n "$LLD_BIN" ] && [ "$(uname)" != "Darwin" ]; then
   echo "Configuring nvq++ and local build to use the lld linker by default ($LLD_BIN)."
   NVQPP_LD_PATH="$LLD_BIN"
   LINKER_TO_USE="lld"
