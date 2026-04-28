@@ -49,6 +49,8 @@ RUN source /cuda-quantum/scripts/configure_build.sh install-cuda
 RUN source /cuda-quantum/scripts/configure_build.sh install-gcc
 
 # [CUDA-Q Dependencies]
+ARG llvm_commit
+ARG pybind11_commit
 ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites.sh
 ADD scripts/set_env_defaults.sh /cuda-quantum/scripts/set_env_defaults.sh
 ADD scripts/install_toolchain.sh /cuda-quantum/scripts/install_toolchain.sh
@@ -56,8 +58,12 @@ ADD scripts/build_llvm.sh /cuda-quantum/scripts/build_llvm.sh
 ADD cmake/caches/LLVM.cmake /cuda-quantum/cmake/caches/LLVM.cmake
 ADD tpls/customizations/llvm /cuda-quantum/tpls/customizations/llvm
 ADD .gitmodules /cuda-quantum/.gitmodules
-ADD .git/modules/tpls/pybind11/HEAD /.git_modules/tpls/pybind11/HEAD
-ADD .git/modules/tpls/llvm/HEAD /.git_modules/tpls/llvm/HEAD
+
+# Pin submodule commits via build args so the prereqs layer caches across
+# CUDA-Q commits when llvm/pybind11 refs are unchanged.
+RUN mkdir -p /.git_modules/tpls/llvm /.git_modules/tpls/pybind11 && \
+    echo "${llvm_commit}" > /.git_modules/tpls/llvm/HEAD && \
+    echo "${pybind11_commit}" > /.git_modules/tpls/pybind11/HEAD
 
 # This is a hack so that we do not need to rebuild the prerequisites 
 # whenever we pick up a new CUDA-Q commit (which is always in CI).

@@ -101,6 +101,9 @@ jobs:
         if: ${{ !inputs.skip_build }}
         id: config
         run: |
+          echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
+          echo "pybind11_commit=$(git rev-parse @:./tpls/pybind11)" >> $GITHUB_OUTPUT
+
           platform_tag=`echo ${{ inputs.platform }} | sed 's/linux\///g' | tr -d ' '`
           is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
           if ${is_versioned}; then
@@ -207,6 +210,8 @@ jobs:
             release_version=${{ steps.config.outputs.cudaq_version }}
             base_image=${{ inputs.platform_base_image }}
             cuda_version=${{ inputs.cuda_version }}
+            llvm_commit=${{ steps.config.outputs.llvm_commit }}
+            pybind11_commit=${{ steps.config.outputs.pybind11_commit }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: ${{ inputs.platform }}

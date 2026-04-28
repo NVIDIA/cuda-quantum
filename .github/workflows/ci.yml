@@ -182,6 +182,8 @@ jobs:
         base_image=${{ fromJson(needs.metadata.outputs.platform_config)[format('{0}', matrix.platform)].minimal_base_image }}
         cuda_version=${{ matrix.cuda_version }}
         toolchain=llvm
+        llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
+        pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       checkout_submodules: true
       environment: ghcr-ci
