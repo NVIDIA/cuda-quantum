@@ -125,8 +125,10 @@ pyObservePar(const PyParType &type, const std::string &shortName,
       printf(
           "[cudaq::observe warning] distributed observe requested but only 1 "
           "QPU available. no speedup expected.\n");
+    nanobind::gil_scoped_release release;
     return details::distributeComputations(
         [&](std::size_t i, const spin_op &op) {
+          nanobind::gil_scoped_acquire acquire;
           return pyObserveAsync(shortName, module, op, i, shots, args);
         },
         spin_operator, nQpus);
@@ -148,8 +150,10 @@ pyObservePar(const PyParType &type, const std::string &shortName,
   auto localH = spins[rank];
 
   // Distribute locally, i.e. to the local nodes QPUs
+  nanobind::gil_scoped_release release;
   auto localRankResult = details::distributeComputations(
       [&](std::size_t i, const spin_op &op) {
+        nanobind::gil_scoped_acquire acquire;
         return pyObserveAsync(shortName, module, op, i, shots, args);
       },
       localH, nQpus);
