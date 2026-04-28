@@ -306,6 +306,11 @@ void bindSpinOperator(nanobind::module_ &mod) {
           "`True`. "
           "See also the documentation for `degrees` for more detail.")
 
+      // Adjoint
+      .def("adjoint", &spin_op::adjoint, "Returns the adjoint of the operator.")
+      .def("adjoint_in_place", &spin_op::adjoint_in_place,
+           "In-place adjoint of the operator.")
+
       // comparisons
 
       .def("__eq__", &spin_op::operator==, nanobind::is_operator(),
@@ -824,6 +829,12 @@ void bindSpinOperator(nanobind::module_ &mod) {
           "can be inverted by setting the optional `invert_order` argument to "
           "`True`. "
           "See also the documentation for `degrees` for more detail.")
+
+      // Adjoint
+      .def("adjoint", &spin_op_term::adjoint,
+           "Returns the adjoint of the operator.")
+      .def("adjoint_in_place", &spin_op_term::adjoint_in_place,
+           "In-place adjoint of the operator.")
 
       // comparisons
 
