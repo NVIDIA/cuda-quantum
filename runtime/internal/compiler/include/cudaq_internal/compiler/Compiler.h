@@ -84,7 +84,7 @@ class Compiler {
   /// Build the module, merge closures, and synthesize arguments.
   std::pair<mlir::ModuleOp, mlir::func::FuncOp>
   prepareModule(const std::string &kernelName, mlir::ModuleOp m_module,
-                const cudaq::KernelArgs &args);
+                cudaq::KernelArgs args);
 
   /// Delay combine-measurements for emulation, then run the main pass
   /// pipeline.  Returns true when combine-measurements was delayed.
@@ -122,7 +122,7 @@ public:
   cudaq::CompiledModule
   runPassPipeline(cudaq::ExecutionContext *executionContext,
                   const std::string &kernelName, mlir::ModuleOp module,
-                  const cudaq::KernelArgs &args,
+                  cudaq::KernelArgs args,
                   std::shared_ptr<mlir::MLIRContext> context = nullptr);
 
   /// @brief Emit target-specific code for each `MlirArtifact` in the
@@ -142,6 +142,6 @@ public:
   std::vector<cudaq::KernelExecution>
   lowerQuakeCode(cudaq::ExecutionContext *executionContext,
                  const std::string &kernelName, mlir::ModuleOp module,
-                 const cudaq::KernelArgs &args);
+                 cudaq::KernelArgs args);
 };
 } // namespace cudaq_internal::compiler

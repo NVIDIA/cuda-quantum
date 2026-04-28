@@ -14,7 +14,6 @@
 #include "cudaq/platform/qpu.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "mlir/IR/BuiltinOps.h"
-#include <functional>
 #include <iostream>
 #include <shared_mutex>
 #include <string>

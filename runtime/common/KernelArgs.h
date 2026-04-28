@@ -7,7 +7,7 @@
  ******************************************************************************/
 #pragma once
 
-#include "common/CompiledModule.h"
+#include "common/NamedVariantStore.h"
 #include <cstddef>
 #include <cstdint>
 #include <functional>

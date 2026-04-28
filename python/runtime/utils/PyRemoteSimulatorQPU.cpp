@@ -120,9 +120,14 @@ public:
   cudaq::KernelThunkResultType launchKernel(const std::string &name,
                                             cudaq::KernelThunkType kernelFunc,
                                             cudaq::KernelArgs args) override {
-    CUDAQ_INFO("{}: {}Launch kernel named '{}' remote QPU {} (simulator = {})",
-               Derived::class_name, kernelFunc ? "" : "Streamline ", name,
-               this->qpu_id, this->m_simName);
+    if (kernelFunc) {
+      CUDAQ_INFO("{}: Launch kernel named '{}' remote QPU {} (simulator = {})",
+                 Derived::class_name, name, this->qpu_id, this->m_simName);
+    } else {
+      CUDAQ_INFO("{}: Streamline launch kernel named '{}' remote QPU {} "
+                 "(simulator = {})",
+                 Derived::class_name, name, this->qpu_id, this->m_simName);
+    }
     ::launchKernelImpl(cudaq::getExecutionContext(), this->m_client,
                        this->m_simName, name,
                        make_degenerate_kernel_type(kernelFunc), args);

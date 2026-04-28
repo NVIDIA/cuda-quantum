@@ -24,11 +24,7 @@ CUDAQ_INSTANTIATE_REGISTRY(cudaq::ModuleLauncher::RegistryType)
 cudaq::KernelThunkResultType
 launchCompiledModule(const cudaq::CompiledModule &compiled,
                      cudaq::KernelArgs args) {
-  auto rawArgsPtr = args.getTypeErased();
-  if (!rawArgsPtr)
-    throw std::runtime_error(
-        "launchCompiledModule requires type-erased kernel arguments.");
-  const auto &rawArgs = *rawArgsPtr;
+  auto rawArgs = args.getTypeErased().value_or(std::span<void *const>{});
   auto funcPtr = compiled.getJit()->getFn();
   const auto &resultInfo = compiled.getResultInfo();
   if (!compiled.isFullySpecialized()) {
@@ -82,8 +78,5 @@ cudaq::CompiledModule cudaq::QPU::compileModule(const std::string &name,
         "No ModuleLauncher registered with name 'default'. This may be a "
         "result of attempting to use `compileModule` outside Python.");
   ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::compileModule", name);
-  auto rawArgsPtr = args.getTypeErased();
-  static const std::vector<void *> empty;
-  return launcher->compileModule(name, module, rawArgsPtr ? *rawArgsPtr : empty,
-                                 isEntryPoint);
+  return launcher->compileModule(name, module, args, isEntryPoint);
 }

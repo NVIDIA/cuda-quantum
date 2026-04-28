@@ -42,8 +42,7 @@ public:
     std::vector<cudaq::KernelExecution> codes;
     std::string name = kernelName;
     const auto packed = args.getPacked();
-    char *charArgs = packed ? (char *)(packed->data.data()) : nullptr;
-    std::string strArgs = charArgs;
+    std::string strArgs = packed ? (char *)packed->data.data() : "";
     nlohmann::json j;
     std::vector<std::size_t> mapping_reorder_idx;
     codes.emplace_back(name, strArgs, std::nullopt, std::nullopt, j,
