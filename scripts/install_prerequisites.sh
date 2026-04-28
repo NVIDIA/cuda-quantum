@@ -408,6 +408,13 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
       export FC="$LLVM_INSTALL_PREFIX/bin/flang"
       echo "Configured Fortran compiler: $FC"
     fi
+    # Rewrite init_command.sh to reference the bootstrapped LLVM so that
+    # the final image uses it as the compiler regardless of build toolchain.
+    if [ -n "$LLVM_STAGE1_BUILD" ] && [ -d "$LLVM_STAGE1_BUILD" ]; then
+      printf 'export CC="%s/bin/clang"\nexport CXX="%s/bin/clang++"\n' \
+        "$LLVM_INSTALL_PREFIX" "$LLVM_INSTALL_PREFIX" \
+        > "$LLVM_STAGE1_BUILD/init_command.sh"
+    fi
   fi
 fi
 
