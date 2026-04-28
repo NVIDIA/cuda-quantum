@@ -285,6 +285,7 @@ jobs:
         with:
           name: ${{ steps.config.outputs.artifact_name }}
           path: /tmp/install
+          # TODO: temporary bump for deb debugging - revert to 1 when done
           retention-days: 7
           if-no-files-found: error
 

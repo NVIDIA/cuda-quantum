@@ -690,6 +690,7 @@ jobs:
         with:
           name: ${{ steps.release_info.outputs.platform_arch }}-cu${{ steps.release_info.outputs.cuda_major_version }}-installer
           path: /tmp/install
+          # TODO: temporary bump for deb debugging - revert to 1 when done
           retention-days: 7
           if-no-files-found: error
 
@@ -751,6 +752,7 @@ jobs:
         with:
           name: cudaq-deb-metapackages
           path: /tmp/meta-debs
+          # TODO: temporary bump for deb debugging - revert to 1 when done
           retention-days: 7
           if-no-files-found: error
 
