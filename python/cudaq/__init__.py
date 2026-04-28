@@ -127,6 +127,17 @@ except Exception:
         print("Could not find a suitable cuQuantum Python package.")
     pass
 
+# Discover external backends
+try:
+    from importlib.metadata import entry_points as _entry_points
+    for _ep in _entry_points(group='cudaq.backends'):
+        try:
+            _ep.load()()
+        except Exception:
+            pass
+except Exception:
+    pass
+
 # ============================================================================ #
 # Module Imports
 # ============================================================================ #

@@ -104,7 +104,8 @@ void parseRuntimeTarget(const std::filesystem::path &cudaqLibPath,
 void findAvailableTargets(
     const std::filesystem::path &targetPath,
     std::unordered_map<std::string, RuntimeTarget> &targets,
-    std::unordered_map<std::string, RuntimeTarget> &simulationTargets) {
+    std::unordered_map<std::string, RuntimeTarget> &simulationTargets,
+    const std::filesystem::path &libDir) {
 
   // directory_iterator ordering is unspecified, so sort it to make it
   // repeatable and consistent.
@@ -141,8 +142,11 @@ void findAvailableTargets(
       target.config = config;
       target.name = targetName;
       target.description = config.Description;
-      auto cudaqLibPath = targetPath.parent_path() / "lib";
-      parseRuntimeTarget(cudaqLibPath, target, defaultTargetConfigStr);
+      auto resolvedLibDir =
+          libDir.empty() ? targetPath.parent_path() / "lib" : libDir;
+      if (!libDir.empty())
+        target.serverHelperLibDir = libDir.string();
+      parseRuntimeTarget(resolvedLibDir, target, defaultTargetConfigStr);
       CUDAQ_INFO("Found Target: {} -> (sim={}, platform={})", targetName,
                  target.simulatorName, target.platformName);
       // Add the target.
@@ -181,6 +185,27 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
     ScopedTraceWithContext("findAvailableTargets");
     auto targetPath = cudaqLibPath.parent_path() / "targets";
     findAvailableTargets(targetPath, targets, simulationTargets);
+  }
+
+  const char *backendPathVar = std::getenv("CUDAQ_BACKEND_PATH");
+  if (backendPathVar) {
+    std::string entry;
+    std::stringstream ss(backendPathVar);
+    while (std::getline(ss, entry, ':')) {
+      if (entry.empty())
+        continue;
+      std::filesystem::path pkgRoot(entry);
+      auto extTargetPath = pkgRoot / "targets";
+      auto extLibDir = pkgRoot / "lib";
+      if (!std::filesystem::is_directory(extTargetPath)) {
+        CUDAQ_INFO("CUDAQ_BACKEND_PATH entry '{}': no targets/ dir, skipping.",
+                   entry);
+        continue;
+      }
+      CUDAQ_INFO("Loading external backends from '{}'.", entry);
+      findAvailableTargets(extTargetPath, targets, simulationTargets,
+                           extLibDir);
+    }
   }
 
   CUDAQ_INFO("Init: Library Path is {}.", cudaqLibPath.string());
@@ -473,9 +498,13 @@ void LinkedLibraryHolder::setTarget(
 
   // Pack the config into the backend string name
   std::string backendConfigStr = targetName;
-  auto potentialServerHelperPath =
-      cudaqLibPath /
+  auto soName =
       fmt::format("libcudaq-serverhelper-{}.{}", targetName, libSuffix);
+  auto potentialServerHelperPath = cudaqLibPath / soName;
+  if (!std::filesystem::exists(potentialServerHelperPath) &&
+      !target.serverHelperLibDir.empty())
+    potentialServerHelperPath =
+        std::filesystem::path(target.serverHelperLibDir) / soName;
   if (std::filesystem::exists(potentialServerHelperPath) &&
       !libHandles.count(potentialServerHelperPath.string())) {
     void *serverHelperHandle = dlopen(
@@ -486,6 +515,13 @@ void LinkedLibraryHolder::setTarget(
   }
   for (auto &[key, value] : extraConfig)
     backendConfigStr += fmt::format(";{};{}", key, value);
+
+  if (!target.serverHelperLibDir.empty()) {
+    auto ymlPath =
+        std::filesystem::path(target.serverHelperLibDir).parent_path() /
+        "targets" / (targetName + ".yml");
+    backendConfigStr += fmt::format(";__yml_path;{}", ymlPath.string());
+  }
 
   platform->setTargetBackend(backendConfigStr);
   setQuantumPlatformInternal(platform);

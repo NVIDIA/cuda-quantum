@@ -17,4 +17,12 @@ target_link_libraries(test_target_config
     gtest_main
 )
 
+if(CUDAQ_ENABLE_PYTHON)
+  target_include_directories(test_target_config PRIVATE
+    ${CMAKE_SOURCE_DIR}/python/utils
+  )
+  target_link_libraries(test_target_config PRIVATE cudaq-py-utils)
+  target_compile_definitions(test_target_config PRIVATE CUDAQ_ENABLE_PYTHON)
+endif()
+
 gtest_discover_tests(test_target_config)
