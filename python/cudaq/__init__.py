@@ -171,6 +171,9 @@ del _patch_mlir_isinstance
 # Module Imports
 # ============================================================================ #
 
+_cudaq_dlopen_flags = sys.getdlopenflags()
+sys.setdlopenflags(_cudaq_dlopen_flags | os.RTLD_GLOBAL)
+
 from .display import display_trace
 from .kernel.kernel_decorator import kernel, PyKernelDecorator
 from .kernel.kernel_builder import (make_kernel, QuakeValue, PyKernel)
@@ -190,6 +193,9 @@ from .runtime.resource_count import estimate_resources
 from .runtime.vqe import vqe  # Removed! Use VQE from CUDA-QX
 from .kernel.register_op import register_operation
 from .mlir._mlir_libs._quakeDialects import cudaq_runtime
+
+sys.setdlopenflags(_cudaq_dlopen_flags)
+del _cudaq_dlopen_flags
 
 try:
     from qutip import Qobj, Bloch

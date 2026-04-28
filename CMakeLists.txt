@@ -190,10 +190,6 @@ endif ()
 
 add_compile_options(-Wno-error=deprecated-declarations)
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    add_compile_options(-fno-gnu-unique)
-endif()
-
 # Certain build configurations may be set directly in the environment.
 # This facilitates some of the packaging (e.g. python packages built based on the pyproject.toml).
 # These are cached so they persist across cmake runs without needing the env vars set again.
