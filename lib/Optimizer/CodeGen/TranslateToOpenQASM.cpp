@@ -343,22 +343,23 @@ static LogicalResult emitOperation(cudaq::Emitter &emitter, quake::ResetOp op) {
 }
 
 static LogicalResult emitOperation(cudaq::Emitter &emitter, Operation &op) {
-  using namespace quake;
   return llvm::TypeSwitch<Operation *, LogicalResult>(&op)
       // MLIR
       .Case<ModuleOp>([&](auto op) { return emitOperation(emitter, op); })
       .Case<func::FuncOp>([&](auto op) { return emitOperation(emitter, op); })
       .Case<func::CallOp>([&](auto op) { return emitOperation(emitter, op); })
       // Quake
-      .Case<ApplyOp>([&](auto op) { return emitOperation(emitter, op); })
-      .Case<AllocaOp>([&](auto op) { return emitOperation(emitter, op); })
-      .Case<ExtractRefOp>([&](auto op) { return emitOperation(emitter, op); })
-      .Case<OperatorInterface>(
+      .Case<quake::ApplyOp>([&](auto op) { return emitOperation(emitter, op); })
+      .Case<quake::AllocaOp>(
+          [&](auto op) { return emitOperation(emitter, op); })
+      .Case<quake::ExtractRefOp>(
+          [&](auto op) { return emitOperation(emitter, op); })
+      .Case<quake::OperatorInterface>(
           [&](auto optor) { return emitOperation(emitter, optor); })
-      .Case<MzOp>([&](auto op) { return emitOperation(emitter, op); })
-      .Case<ResetOp>([&](auto op) { return emitOperation(emitter, op); })
+      .Case<quake::MzOp>([&](auto op) { return emitOperation(emitter, op); })
+      .Case<quake::ResetOp>([&](auto op) { return emitOperation(emitter, op); })
       // Ignore
-      .Case<DeallocOp>([&](auto op) { return success(); })
+      .Case<quake::DeallocOp>([&](auto op) { return success(); })
       .Case<func::ReturnOp>([&](auto op) { return success(); })
       .Case<arith::ConstantOp>([&](auto op) { return success(); })
       .Case<cudaq::cc::AllocaOp>([&](auto op) { return success(); })

@@ -15,8 +15,7 @@
 using namespace mlir;
 
 static void addAnyonPPipeline(OpPassManager &pm) {
-  using namespace cudaq::opt;
-  BasisConversionOptions options;
+  cudaq::opt::BasisConversionOptions options;
   options.basis = {
       "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "z(1)",
   };
@@ -24,8 +23,7 @@ static void addAnyonPPipeline(OpPassManager &pm) {
 }
 
 static void addAnyonCPipeline(OpPassManager &pm) {
-  using namespace cudaq::opt;
-  BasisConversionOptions options;
+  cudaq::opt::BasisConversionOptions options;
   options.basis = {
       "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)",
   };
@@ -33,8 +31,7 @@ static void addAnyonCPipeline(OpPassManager &pm) {
 }
 
 static void addOQCPipeline(OpPassManager &pm) {
-  using namespace cudaq::opt;
-  BasisConversionOptions options;
+  cudaq::opt::BasisConversionOptions options;
   options.basis = {
       // TODO: make this our native gate set
       "h", "s", "t", "r1", "rx", "ry", "rz", "x", "y", "z", "x(1)",
@@ -43,11 +40,10 @@ static void addOQCPipeline(OpPassManager &pm) {
 }
 
 static void addQCIPipeline(OpPassManager &pm) {
-  using namespace cudaq::opt;
   // Note: QCI's basis gate set is "sx", "rz", "cz", but QCI currently has
   // a transpiler converting all other gates to that basis.
   // We use the gate set below so we can translate all gates to QIR.
-  BasisConversionOptions options;
+  cudaq::opt::BasisConversionOptions options;
   options.basis = {
       "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)",
   };
@@ -55,8 +51,7 @@ static void addQCIPipeline(OpPassManager &pm) {
 }
 
 static void addQuantinuumPipeline(OpPassManager &pm) {
-  using namespace cudaq::opt;
-  BasisConversionOptions options;
+  cudaq::opt::BasisConversionOptions options;
   options.basis = {
       "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)",
   };
@@ -64,8 +59,7 @@ static void addQuantinuumPipeline(OpPassManager &pm) {
 }
 
 static void addIQMPipeline(OpPassManager &pm) {
-  using namespace cudaq::opt;
-  BasisConversionOptions options;
+  cudaq::opt::BasisConversionOptions options;
   options.basis = {
       "phased_rx",
       "z(1)",
@@ -74,8 +68,7 @@ static void addIQMPipeline(OpPassManager &pm) {
 }
 
 static void addIonQPipeline(OpPassManager &pm) {
-  using namespace cudaq::opt;
-  BasisConversionOptions options;
+  cudaq::opt::BasisConversionOptions options;
   options.basis = {
       "h",  "s", "t", "rx", "ry",
       "rz", "x", "y", "z",  "x(1)", // TODO set to ms, gpi, gpi2
@@ -84,8 +77,7 @@ static void addIonQPipeline(OpPassManager &pm) {
 }
 
 static void addFermioniqPipeline(OpPassManager &pm) {
-  using namespace cudaq::opt;
-  BasisConversionOptions options;
+  cudaq::opt::BasisConversionOptions options;
   options.basis = {
       "h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)",
   };
