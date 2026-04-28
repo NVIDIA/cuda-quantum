@@ -28,6 +28,12 @@ add_library(cudaq-mlir-runtime
     RuntimeMLIR.cpp
     RuntimeCppMLIR.cpp
     LayoutInfo.cpp
+    TracePassInstrumentation.cpp
+)
+
+set_source_files_properties(
+    TracePassInstrumentation.cpp
+    PROPERTIES COMPILE_FLAGS "-fno-rtti -fno-exceptions"
 )
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-mlir-runtime)
 
