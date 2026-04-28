@@ -216,7 +216,7 @@ cmake_args=" \
   -DPython3_EXECUTABLE='"$Python3_EXECUTABLE"' \
   -DMLIR_ENABLE_BINDINGS_PYTHON=$mlir_python_bindings \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-  -DCMAKE_CXX_FLAGS='-w' \
+  -DCMAKE_CXX_FLAGS='-w -fno-gnu-unique' \
   -Dnanobind_DIR=$NANOBIND_INSTALL_PREFIX/nanobind/cmake"
 
 if [ -z "$LLVM_CMAKE_CACHE" ]; then 
