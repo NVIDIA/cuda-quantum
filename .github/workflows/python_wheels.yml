@@ -25,6 +25,13 @@ on:
         required: false
         type: boolean
         default: false
+      skip_build:
+        type: boolean
+        required: false
+        default: false
+        description: >
+          When true, jobs run to report success for required-check gating
+          but skip the docker builds, tests, and image pushes.
     outputs:
       cudaq_version:
         description: "The version of the built wheels."
@@ -40,7 +47,9 @@ name: Python wheels
 jobs:
   build_wheel:
     name: Build Python ${{ inputs.python_version }} wheel
-    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    # See test_in_devenv.yml for the rationale: on PR tier fake-pass we bypass
+    # self-hosted runners so the required check reports success quickly.
+    runs-on: ${{ inputs.skip_build && 'ubuntu-latest' || ((contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8') }}
     permissions:
       contents: read
       packages: write
@@ -61,13 +70,27 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Report skip_build
+        if: ${{ inputs.skip_build }}
+        run: |
+          echo "::notice title=SKIPPED on PR tier::This check reports success without running. Re-run the workflow with ci_level=full (or merge to trigger merge_group) to validate this configuration."
+          {
+            echo "## Skipped on PR tier"
+            echo ""
+            echo "This check reported success without running. The full validation matrix runs on **merge_group** and **workflow_dispatch** events."
+            echo ""
+            echo "To run it now: **Re-run jobs** and set \`ci_level=full\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Log in to DockerHub
+        if: ${{ !inputs.skip_build }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
       - name: Login to GitHub CR
+        if: ${{ !inputs.skip_build }}
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -75,7 +98,7 @@ jobs:
           password: ${{ github.token }}
 
       - name: Restore build environment
-        if: inputs.devdeps_cache && inputs.devdeps_archive
+        if: ${{ !inputs.skip_build && inputs.devdeps_cache && inputs.devdeps_archive }}
         id: restore
         uses: actions/cache/restore@v4
         with:
@@ -84,6 +107,7 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Load prerequisites
+        if: ${{ !inputs.skip_build }}
         id: prereqs
         run: |
           if ${{ steps.restore.outcome != 'skipped' }}; then
@@ -122,25 +146,30 @@ jobs:
           echo "artifact_name=pycudaq-$cache_id" >> $GITHUB_OUTPUT
 
       - name: Set up ccache and ORAS
+        if: ${{ !inputs.skip_build }}
         uses: ./.github/actions/ccache-setup
 
       - name: Compute platform ID
+        if: ${{ !inputs.skip_build }}
         id: platform_meta
         run: |
           platform_id=$(echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ')
           echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
 
       - name: Restore ccache from GHCR
+        if: ${{ !inputs.skip_build }}
         uses: ./.github/actions/ccache-restore
         with:
           cache-key: ${{ steps.platform_meta.outputs.platform_id }}-wheel
           registry-token: ${{ github.token }}
 
       - name: Set up context for buildx
+        if: ${{ !inputs.skip_build }}
         run: |
           docker context create builder_context
 
       - name: Set up buildx runner
+        if: ${{ !inputs.skip_build }}
         uses: docker/setup-buildx-action@v3
         with:
           endpoint: builder_context
@@ -151,11 +180,13 @@ jobs:
             image=moby/buildkit:v0.19.0
 
       - name: Setup proxy cache
+        if: ${{ !inputs.skip_build }}
         uses: nv-gha-runners/setup-proxy-cache@main
         with:
           enable-apt: true
 
       - name: Build wheel
+        if: ${{ !inputs.skip_build }}
         id: wheel_build
         uses: docker/build-push-action@v5
         with:
@@ -170,6 +201,7 @@ jobs:
           outputs: ${{ steps.prereqs.outputs.docker_output }}
 
       - name: Extract ccache from build
+        if: ${{ !inputs.skip_build }}
         timeout-minutes: 15
         continue-on-error: true
         run: |
@@ -193,6 +225,7 @@ jobs:
           fi
 
       - name: Push ccache to GHCR
+        if: ${{ !inputs.skip_build }}
         uses: ./.github/actions/ccache-push
         with:
           cache-key: ${{ steps.platform_meta.outputs.platform_id }}-wheel
@@ -200,6 +233,7 @@ jobs:
           registry-token: ${{ github.token }}
 
       - name: Upload wheel
+        if: ${{ !inputs.skip_build }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.prereqs.outputs.artifact_name }}
@@ -220,16 +254,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Report skip_build
+        if: ${{ inputs.skip_build }}
+        run: |
+          echo "::notice title=SKIPPED on PR tier::This check reports success without running. Re-run the workflow with ci_level=full (or merge to trigger merge_group) to validate this configuration."
+          {
+            echo "## Skipped on PR tier"
+            echo ""
+            echo "This check reported success without running. The full validation matrix runs on **merge_group** and **workflow_dispatch** events."
+            echo ""
+            echo "To run it now: **Re-run jobs** and set \`ci_level=full\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - id: config
         run: |
           python_config=`cat .github/workflows/config/validation_config.json | jq ".python"`
           operating_systems=`echo "$python_config" | jq '.[] | select(.version=="${{ inputs.python_version }}").operating_systems'`
+
           echo "json={\"os_images\":$(echo $operating_systems)}" >> $GITHUB_OUTPUT
 
   validation:
     name: Validate wheel
     needs: [build_wheel, create_test_config]
-    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    runs-on: ${{ inputs.skip_build && 'ubuntu-latest' || ((contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8') }}
     permissions:
       contents: read
       packages: read
@@ -247,8 +294,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Report skip_build
+        if: ${{ inputs.skip_build }}
+        run: |
+          echo "::notice title=SKIPPED on PR tier::This check reports success without running. Re-run the workflow with ci_level=full (or merge to trigger merge_group) to validate this configuration."
+          {
+            echo "## Skipped on PR tier"
+            echo ""
+            echo "This check reported success without running. The full validation matrix runs on **merge_group** and **workflow_dispatch** events."
+            echo ""
+            echo "To run it now: **Re-run jobs** and set \`ci_level=full\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Log in to GitHub CR
-        if: inputs.environment == ''
+        if: ${{ !inputs.skip_build && inputs.environment == '' }}
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -256,11 +315,13 @@ jobs:
           password: ${{ github.token }}
 
       - name: Load cuda-quantum wheel
+        if: ${{ !inputs.skip_build }}
         uses: actions/download-artifact@v4
         with:
           name: ${{ needs.build_wheel.outputs.artifact_name }}
 
       - name: Install wheel in clean environment
+        if: ${{ !inputs.skip_build }}
         run: |
           os_image=${{ matrix.os_image }}
           distr=`echo $os_image | cut -d : -f 1 | cut -d / -f 1`
@@ -291,6 +352,7 @@ jobs:
           else echo "Successfully imported cudaq module." >> /tmp/validation.out; fi
 
       - name: Run Python tests
+        if: ${{ !inputs.skip_build }}
         uses: ./.github/actions/run-in-docker
         with:
           image: wheel_validation:local
@@ -317,7 +379,7 @@ jobs:
       # if: matrix.os_image == 'redhat/ubi9:9.2'
       # once conda license issues are resolved
       - name: Run Python MPI tests
-        if: false
+        if: ${{ !inputs.skip_build && false }}
         uses: ./.github/actions/run-in-docker
         with:
           image: wheel_validation:local
@@ -369,6 +431,7 @@ jobs:
             fi
 
       - name: Validate Python snippets in docs
+        if: ${{ !inputs.skip_build }}
         run: |
           docker run --rm -dit --name wheel-validation-snippets wheel_validation:local
           status_sum=0
@@ -392,6 +455,7 @@ jobs:
           fi
 
       - name: Validate Python examples
+        if: ${{ !inputs.skip_build }}
         run: |
           docker run --rm -dit --name wheel-validation-examples wheel_validation:local
           status_sum=0
@@ -416,7 +480,7 @@ jobs:
 
       - name: Create job summary
         id: job_summary
-        if: always() && !cancelled() 
+        if: ${{ !inputs.skip_build && always() && !cancelled() }}
         run: |
           cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
           platform_id=`echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
@@ -440,7 +504,7 @@ jobs:
           fi
 
       - name: Upload job summary
-        if: steps.job_summary.outputs.validation_summary != '' && matrix.pip_install_flags == ''
+        if: ${{ !inputs.skip_build && steps.job_summary.outputs.validation_summary != '' && matrix.pip_install_flags == '' }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.job_summary.outputs.artifact_id }}_${{ steps.job_summary.outputs.os_id }}_py${{ inputs.python_version }}_validation
@@ -460,7 +524,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Report skip_build
+        if: ${{ inputs.skip_build }}
+        run: |
+          echo "::notice title=SKIPPED on PR tier::This check reports success without running. Re-run the workflow with ci_level=full (or merge to trigger merge_group) to validate this configuration."
+          {
+            echo "## Skipped on PR tier"
+            echo ""
+            echo "This check reported success without running. The full validation matrix runs on **merge_group** and **workflow_dispatch** events."
+            echo ""
+            echo "To run it now: **Re-run jobs** and set \`ci_level=full\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Create build info
+        if: ${{ !inputs.skip_build }}
         id: staging
         run: |
           wheeldeps_hash=${{ inputs.devdeps_image }}
@@ -480,6 +557,7 @@ jobs:
           cat .github/workflows/config/gitlab_commits.txt >> "$info_file"
 
       - name: Upload build info
+        if: ${{ !inputs.skip_build }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.staging.outputs.artifact_name }} # changing the artifact name requires updating other workflows

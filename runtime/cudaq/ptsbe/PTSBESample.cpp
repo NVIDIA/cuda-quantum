@@ -128,11 +128,12 @@ static void convertTraceInstruction(const cudaq::Trace::Instruction &inst,
         continue;
       if (!channel.is_unitary_mixture())
         channel.generateUnitaryParameters();
+      auto parameters = channel.parameters;
       result.push_back({TraceInstructionType::Noise,
                         channel.get_type_name(),
                         noiseQubits,
                         {},
-                        {},
+                        std::move(parameters),
                         std::move(channel)});
     }
     return;
@@ -151,11 +152,12 @@ static void convertTraceInstruction(const cudaq::Trace::Instruction &inst,
         continue;
       if (!channel.is_unitary_mixture())
         channel.generateUnitaryParameters();
+      auto parameters = channel.parameters;
       result.push_back({TraceInstructionType::Noise,
                         channel.get_type_name(),
                         targets,
                         {},
-                        {},
+                        std::move(parameters),
                         std::move(channel)});
     }
     return;

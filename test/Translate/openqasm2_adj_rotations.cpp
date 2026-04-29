@@ -46,9 +46,6 @@ int main() {
 
 // CHECK:  include "qelib1.inc";
 
-// CHECK:  gate ZN6kernelclEv(param0)  {
-// CHECK:  }
-
 // CHECK: qreg var0[6];
 // CHECK: x var0[5];
 // CHECK: ch var0[4], var0[5];

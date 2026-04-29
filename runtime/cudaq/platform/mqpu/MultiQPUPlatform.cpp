@@ -21,7 +21,7 @@
 #include <filesystem>
 #include <fstream>
 
-LLVM_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)
+CUDAQ_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)
 
 namespace {
 class MultiQPUQuantumPlatform : public cudaq::quantum_platform {

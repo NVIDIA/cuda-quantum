@@ -27,6 +27,13 @@ on:
       environment:
         required: false
         type: string
+      skip_build:
+        type: boolean
+        required: false
+        default: false
+        description: >
+          When true, jobs run to report success for required-check gating
+          but skip the docker builds, tests, and image pushes.
     secrets:
       NGC_CREDENTIALS:
         description: 'Credentials for deployments to NGC.'
@@ -45,7 +52,10 @@ jobs:
     permissions: {}
 
     outputs:
-      runner: ${{ steps.info.outputs.runner }}
+      # On skip_build (PR tier fake-pass), force every downstream job onto
+      # ubuntu-latest so required checks report success without consuming
+      # self-hosted runner capacity or waiting in the queue.
+      runner: ${{ inputs.skip_build && 'ubuntu-latest' || steps.info.outputs.runner }}
       platform_tag: ${{ steps.info.outputs.platform_tag }}
       build_docs: ${{ steps.info.outputs.build_docs }}
       push_to_ngc: ${{ steps.info.outputs.push_to_ngc }}
@@ -105,14 +115,27 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Report skip_build
+        if: ${{ inputs.skip_build }}
+        run: |
+          echo "::notice title=SKIPPED on PR tier::This check reports success without running. Re-run the workflow with ci_level=full (or merge to trigger merge_group) to validate this configuration."
+          {
+            echo "## Skipped on PR tier"
+            echo ""
+            echo "This check reported success without running. The full validation matrix runs on **merge_group** and **workflow_dispatch** events."
+            echo ""
+            echo "To run it now: **Re-run jobs** and set \`ci_level=full\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Log in to DockerHub
+        if: ${{ !inputs.skip_build }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
       - name: Log in to the container registry
-        if: inputs.environment && vars.registry
+        if: ${{ !inputs.skip_build && inputs.environment && vars.registry }}
         uses: docker/login-action@v3
         with:
           registry: ${{ vars.registry }}
@@ -121,6 +144,7 @@ jobs:
 
       - name: Determine build arguments
         id: build_info
+        if: ${{ !inputs.skip_build }}
         run: |
           repo_owner=${{ github.repository_owner }}
           registry=${{ vars.registry || 'localhost:5000' }}
@@ -142,6 +166,7 @@ jobs:
 
       - name: Extract metadata
         id: metadata
+        if: ${{ !inputs.skip_build }}
         uses: docker/metadata-action@v5
         with:
           images: ${{ steps.build_info.outputs.image_name }}
@@ -154,10 +179,12 @@ jobs:
             org.opencontainers.image.description=Open MPI dependencies of CUDA Quantum
 
       - name: Set up context for buildx
+        if: ${{ !inputs.skip_build }}
         run: |
           docker context create builder_context
 
       - name: Set up buildx runner
+        if: ${{ !inputs.skip_build }}
         uses: docker/setup-buildx-action@v3
         with:
           endpoint: builder_context
@@ -168,13 +195,14 @@ jobs:
             image=moby/buildkit:v0.19.0
 
       - name: Setup proxy cache
-        if: needs.metadata.outputs.runner != 'ubuntu-latest'
+        if: ${{ !inputs.skip_build && needs.metadata.outputs.runner != 'ubuntu-latest' }}
         uses: nv-gha-runners/setup-proxy-cache@main
         with:
           enable-apt: true
 
       - name: Build Open MPI
         id: docker_build
+        if: ${{ !inputs.skip_build }}
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -191,20 +219,20 @@ jobs:
           outputs: ${{ steps.build_info.outputs.docker_output }}
 
       - name: Install Cosign
-        if: inputs.environment
+        if: ${{ !inputs.skip_build && inputs.environment }}
         uses: sigstore/cosign-installer@v3.3.0
         with:
           cosign-release: 'v2.2.2'
 
       - name: Sign image with GitHub OIDC Token
-        if: inputs.environment && false # Signing is disabled as long as the package is private, since we can't clean up signatures in that case
+        if: ${{ !inputs.skip_build && inputs.environment && false }}
         env:
           DIGEST: ${{ steps.docker_build.outputs.digest }}
           TAGS: ${{ steps.metadata.outputs.tags }}
         run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
       - name: Cache cuda-quantum image
-        if: steps.build_info.outputs.tar_cache && steps.build_info.outputs.tar_archive
+        if: ${{ !inputs.skip_build && steps.build_info.outputs.tar_cache && steps.build_info.outputs.tar_archive }}
         uses: actions/cache/save@v4
         with:
           path: ${{ steps.build_info.outputs.tar_archive }}
@@ -242,13 +270,27 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Report skip_build
+        if: ${{ inputs.skip_build }}
+        run: |
+          echo "::notice title=SKIPPED on PR tier::This check reports success without running. Re-run the workflow with ci_level=full (or merge to trigger merge_group) to validate this configuration."
+          {
+            echo "## Skipped on PR tier"
+            echo ""
+            echo "This check reported success without running. The full validation matrix runs on **merge_group** and **workflow_dispatch** events."
+            echo ""
+            echo "To run it now: **Re-run jobs** and set \`ci_level=full\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Log in to DockerHub
+        if: ${{ !inputs.skip_build }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
       - name: Log in to GitHub CR
+        if: ${{ !inputs.skip_build }}
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -256,7 +298,7 @@ jobs:
           password: ${{ github.token }}
 
       - name: Log in to the container registry
-        if: inputs.environment && vars.registry
+        if: ${{ !inputs.skip_build && inputs.environment && vars.registry }}
         uses: docker/login-action@v3
         with:
           registry: ${{ vars.registry }}
@@ -264,7 +306,7 @@ jobs:
           password: ${{ github.token }}
 
       - name: Restore build environment
-        if: inputs.devdeps_cache && inputs.devdeps_archive
+        if: ${{ !inputs.skip_build && inputs.devdeps_cache && inputs.devdeps_archive }}
         id: restore
         uses: actions/cache/restore@v4
         with:
@@ -274,6 +316,7 @@ jobs:
 
       - name: Load prerequisites
         id: prereqs
+        if: ${{ !inputs.skip_build }}
         run: |
           if ${{ steps.restore.outcome != 'skipped' }}; then
             load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
@@ -311,10 +354,12 @@ jobs:
           fi
 
       - name: Set up context for buildx
+        if: ${{ !inputs.skip_build }}
         run: |
           docker context create builder_context
 
       - name: Set up buildx runner
+        if: ${{ !inputs.skip_build }}
         uses: docker/setup-buildx-action@v3
         with:
           endpoint: builder_context
@@ -325,15 +370,17 @@ jobs:
             image=moby/buildkit:v0.19.0
 
       - name: Setup proxy cache
-        if: needs.metadata.outputs.runner != 'ubuntu-latest'
+        if: ${{ !inputs.skip_build && needs.metadata.outputs.runner != 'ubuntu-latest' }}
         uses: nv-gha-runners/setup-proxy-cache@main
         with:
           enable-apt: true
 
       - name: Set up ccache and ORAS
+        if: ${{ !inputs.skip_build }}
         uses: ./.github/actions/ccache-setup
 
       - name: Restore ccache from GHCR
+        if: ${{ !inputs.skip_build }}
         uses: ./.github/actions/ccache-restore
         with:
           cache-key: ${{ needs.metadata.outputs.platform_tag }}-cudaqdev
@@ -341,6 +388,7 @@ jobs:
 
       - name: Extract metadata
         id: metadata
+        if: ${{ !inputs.skip_build }}
         uses: docker/metadata-action@v5
         with:
           images: ${{ steps.prereqs.outputs.image_name }}
@@ -352,6 +400,7 @@ jobs:
 
       - name: Build cuda-quantum-dev image (debug)
         id: docker_build
+        if: ${{ !inputs.skip_build }}
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -371,6 +420,7 @@ jobs:
       - name: Extract ccache from build
         timeout-minutes: 15
         continue-on-error: true
+        if: ${{ !inputs.skip_build }}
         run: |
           mkdir -p /tmp/ccache-export
           docker buildx build \
@@ -389,6 +439,7 @@ jobs:
           fi
 
       - name: Push ccache to GHCR
+        if: ${{ !inputs.skip_build }}
         uses: ./.github/actions/ccache-push
         with:
           cache-key: ${{ needs.metadata.outputs.platform_tag }}-cudaqdev
@@ -396,6 +447,7 @@ jobs:
           registry-token: ${{ github.token }}
 
       - name: Write matrix outputs
+        if: ${{ !inputs.skip_build }}
         uses: cloudposse/github-action-matrix-outputs-write@1.0.0
         with:
           matrix-step-name: docker_images
@@ -405,20 +457,20 @@ jobs:
             image_tag: ${{ steps.metadata.outputs.tags }}
 
       - name: Install Cosign
-        if: inputs.environment
+        if: ${{ !inputs.skip_build && inputs.environment }}
         uses: sigstore/cosign-installer@v3.3.0
         with:
           cosign-release: 'v2.2.2'
 
       - name: Sign image with GitHub OIDC Token
-        if: inputs.environment
+        if: ${{ !inputs.skip_build && inputs.environment }}
         env:
           DIGEST: ${{ steps.docker_build.outputs.digest }}
           TAGS: ${{ steps.metadata.outputs.tags }}
         run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
       - name: Cache cuda-quantum-dev image
-        if: steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive
+        if: ${{ !inputs.skip_build && steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive }}
         uses: actions/cache/save@v4
         with:
           path: ${{ steps.prereqs.outputs.tar_archive }}
@@ -458,21 +510,35 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Report skip_build
+        if: ${{ inputs.skip_build }}
+        run: |
+          echo "::notice title=SKIPPED on PR tier::This check reports success without running. Re-run the workflow with ci_level=full (or merge to trigger merge_group) to validate this configuration."
+          {
+            echo "## Skipped on PR tier"
+            echo ""
+            echo "This check reported success without running. The full validation matrix runs on **merge_group** and **workflow_dispatch** events."
+            echo ""
+            echo "To run it now: **Re-run jobs** and set \`ci_level=full\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Log in to DockerHub
+        if: ${{ !inputs.skip_build }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
       - name: Log in to GitHub CR
+        if: ${{ !inputs.skip_build }}
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
-  
+
       - name: Log in to the container registry
-        if: inputs.environment && vars.registry
+        if: ${{ !inputs.skip_build && inputs.environment && vars.registry }}
         uses: docker/login-action@v3
         with:
           registry: ${{ vars.registry }}
@@ -480,7 +546,7 @@ jobs:
           password: ${{ github.token }}
 
       - name: Restore build environment
-        if: inputs.devdeps_cache && inputs.devdeps_archive
+        if: ${{ !inputs.skip_build && inputs.devdeps_cache && inputs.devdeps_archive }}
         id: restore_devdeps
         uses: actions/cache/restore@v4
         with:
@@ -490,7 +556,7 @@ jobs:
 
       - name: Restore Open MPI dependencies
         id: restore_openmpi
-        if: needs.ompi_image.outputs.tar_cache && needs.ompi_image.outputs.tar_archive
+        if: ${{ !inputs.skip_build && needs.ompi_image.outputs.tar_cache && needs.ompi_image.outputs.tar_archive }}
         uses: actions/cache/restore@v4
         with:
           path: ${{ needs.ompi_image.outputs.tar_archive }}
@@ -499,6 +565,7 @@ jobs:
 
       - name: Load prerequisites
         id: prereqs
+        if: ${{ !inputs.skip_build }}
         run: |
           if ${{ needs.ompi_image.result == 'skipped' }}; then
             base_image=ghcr.io/nvidia/ubuntu:24.04
@@ -578,10 +645,12 @@ jobs:
           fi
 
       - name: Set up context for buildx
+        if: ${{ !inputs.skip_build }}
         run: |
           docker context create builder_context
 
       - name: Set up buildx runner
+        if: ${{ !inputs.skip_build }}
         uses: docker/setup-buildx-action@v3
         with:
           endpoint: builder_context
@@ -592,15 +661,17 @@ jobs:
             image=moby/buildkit:v0.19.0
 
       - name: Setup proxy cache
-        if: needs.metadata.outputs.runner != 'ubuntu-latest'
+        if: ${{ !inputs.skip_build && needs.metadata.outputs.runner != 'ubuntu-latest' }}
         uses: nv-gha-runners/setup-proxy-cache@main
         with:
           enable-apt: true
 
       - name: Set up ccache and ORAS
+        if: ${{ !inputs.skip_build }}
         uses: ./.github/actions/ccache-setup
 
       - name: Restore ccache from GHCR
+        if: ${{ !inputs.skip_build }}
         uses: ./.github/actions/ccache-restore
         with:
           cache-key: ${{ needs.metadata.outputs.platform_tag }}-cudaq-release
@@ -608,6 +679,7 @@ jobs:
 
       - name: Extract cuda-quantum-dev metadata
         id: cudaqdev_metadata
+        if: ${{ !inputs.skip_build }}
         uses: docker/metadata-action@v5
         with:
           images: ${{ steps.prereqs.outputs.dev_image_name }}
@@ -621,7 +693,7 @@ jobs:
 
       - name: Build cuda-quantum-dev image (release)
         id: release_build
-        if: success() && !cancelled()
+        if: ${{ !inputs.skip_build && success() && !cancelled() }}
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -640,6 +712,7 @@ jobs:
       - name: Extract ccache from release build
         timeout-minutes: 15
         continue-on-error: true
+        if: ${{ !inputs.skip_build }}
         run: |
           mkdir -p /tmp/ccache-export
           docker buildx build \
@@ -658,6 +731,7 @@ jobs:
           fi
 
       - name: Push ccache to GHCR
+        if: ${{ !inputs.skip_build }}
         uses: ./.github/actions/ccache-push
         with:
           cache-key: ${{ needs.metadata.outputs.platform_tag }}-cudaq-release
@@ -665,20 +739,20 @@ jobs:
           registry-token: ${{ github.token }}
 
       - name: Install Cosign
-        if: inputs.environment
+        if: ${{ !inputs.skip_build && inputs.environment }}
         uses: sigstore/cosign-installer@v3.3.0
         with:
           cosign-release: 'v2.2.2'
 
       - name: Sign image with GitHub OIDC Token
-        if: inputs.environment
+        if: ${{ !inputs.skip_build && inputs.environment }}
         env:
           DIGEST: ${{ steps.release_build.outputs.digest }}
           TAGS: ${{ steps.cudaqdev_metadata.outputs.tags }}
         run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
       - name: Log in to NGC
-        if: needs.metadata.outputs.push_to_ngc == 'true'
+        if: ${{ !inputs.skip_build && needs.metadata.outputs.push_to_ngc == 'true' }}
         uses: docker/login-action@v3
         with:
           registry: nvcr.io
@@ -687,6 +761,7 @@ jobs:
 
       - name: Extract cuda-quantum metadata
         id: cudaq_metadata
+        if: ${{ !inputs.skip_build }}
         uses: docker/metadata-action@v5
         with:
           images: ${{ steps.prereqs.outputs.image_name }}
@@ -699,13 +774,13 @@ jobs:
             org.opencontainers.image.description=${{ steps.prereqs.outputs.image_description }}
 
       - name: Configure credentials
-        if: needs.metadata.outputs.platform_tag == ''
+        if: ${{ !inputs.skip_build && needs.metadata.outputs.platform_tag == '' }}
         run: |
           docker run --privileged multiarch/qemu-user-static:latest --reset -p yes --credential yes
 
       - name: Build cuda-quantum image
         id: cudaq_build
-        if: success() && !cancelled()
+        if: ${{ !inputs.skip_build && success() && !cancelled() }}
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -723,6 +798,7 @@ jobs:
           outputs: ${{ steps.prereqs.outputs.docker_output }}
 
       - name: Write matrix outputs
+        if: ${{ !inputs.skip_build }}
         uses: cloudposse/github-action-matrix-outputs-write@1.0.0
         with:
           matrix-step-name: docker_images
@@ -732,28 +808,28 @@ jobs:
             image_tag: ${{ steps.cudaq_metadata.outputs.tags }}
 
       - name: Cache cuda-quantum image
-        if: steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive
+        if: ${{ !inputs.skip_build && steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive }}
         uses: actions/cache/save@v4
         with:
           path: ${{ steps.prereqs.outputs.tar_archive }}
           key: ${{ steps.prereqs.outputs.tar_cache }}
 
       - name: Sign image with GitHub OIDC Token
-        if: inputs.environment && needs.metadata.outputs.push_to_ngc != 'true'
+        if: ${{ !inputs.skip_build && inputs.environment && needs.metadata.outputs.push_to_ngc != 'true' }}
         env:
           DIGEST: ${{ steps.cudaq_build.outputs.digest }}
           TAGS: ${{ steps.cudaq_metadata.outputs.tags }}
         run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
       - name: Install NGC CLI
-        if: inputs.environment && needs.metadata.outputs.push_to_ngc == 'true'
+        if: ${{ !inputs.skip_build && inputs.environment && needs.metadata.outputs.push_to_ngc == 'true' }}
         uses: ./.github/actions/install-ngc-cli
         with:
           version: 3.31.0
           checksum: b715e503e2c0b44814a51f330eafd605f5d240ea0987bf615700d359c993f138
 
       - name: Sign image with NGC CLI
-        if: inputs.environment && needs.metadata.outputs.push_to_ngc == 'true'
+        if: ${{ !inputs.skip_build && inputs.environment && needs.metadata.outputs.push_to_ngc == 'true' }}
         env:
           TAGS: ${{ steps.cudaq_metadata.outputs.tags }}
           NGC_CLI_API_KEY: ${{ secrets.NGC_CREDENTIALS }}
@@ -780,7 +856,20 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Report skip_build
+        if: ${{ inputs.skip_build }}
+        run: |
+          echo "::notice title=SKIPPED on PR tier::This check reports success without running. Re-run the workflow with ci_level=full (or merge to trigger merge_group) to validate this configuration."
+          {
+            echo "## Skipped on PR tier"
+            echo ""
+            echo "This check reported success without running. The full validation matrix runs on **merge_group** and **workflow_dispatch** events."
+            echo ""
+            echo "To run it now: **Re-run jobs** and set \`ci_level=full\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Log in to GitHub CR
+        if: ${{ !inputs.skip_build }}
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -788,7 +877,7 @@ jobs:
           password: ${{ github.token }}
 
       - name: Log in to the container registry
-        if: inputs.environment && vars.registry
+        if: ${{ !inputs.skip_build && inputs.environment && vars.registry }}
         uses: docker/login-action@v3
         with:
           registry: ${{ vars.registry }}
@@ -797,7 +886,7 @@ jobs:
 
       - name: Restore CUDA Quantum build
         id: restore_cudaqdev
-        if: needs.cudaqdev_image.outputs.tar_cache && needs.cudaqdev_image.outputs.tar_archive
+        if: ${{ !inputs.skip_build && needs.cudaqdev_image.outputs.tar_cache && needs.cudaqdev_image.outputs.tar_archive }}
         uses: actions/cache/restore@v4
         with:
           path: ${{ needs.cudaqdev_image.outputs.tar_archive }}
@@ -806,7 +895,7 @@ jobs:
 
       - name: Restore CUDA Quantum image
         id: restore_cudaq
-        if: needs.cudaq_image.outputs.tar_cache && needs.cudaq_image.outputs.tar_archive
+        if: ${{ !inputs.skip_build && needs.cudaq_image.outputs.tar_cache && needs.cudaq_image.outputs.tar_archive }}
         uses: actions/cache/restore@v4
         with:
           path: ${{ needs.cudaq_image.outputs.tar_archive }}
@@ -815,6 +904,7 @@ jobs:
 
       - name: Build documentation
         id: docs_build
+        if: ${{ !inputs.skip_build }}
         run: |
           if ${{ steps.restore_cudaq.outcome != 'skipped' }}; then
             load_output=`docker load --input "${{ needs.cudaq_image.outputs.tar_archive }}"`
@@ -854,7 +944,7 @@ jobs:
           echo "json=$(echo $json)" >> $GITHUB_OUTPUT
 
       - name: Upload build artifacts
-        if: failure()
+        if: ${{ !inputs.skip_build && failure() }}
         uses: actions/upload-artifact@v4
         with:
           name: build
@@ -862,7 +952,7 @@ jobs:
           retention-days: 1
 
       - name: Upload documentation
-        if: success()
+        if: ${{ !inputs.skip_build && success() }}
         uses: actions/upload-artifact@v4
         with:
           name: cuda_quantum_docs # changing the artifact name requires updating other workflows
@@ -871,7 +961,7 @@ jobs:
           if-no-files-found: error
 
       - name: Spell check HTML documentation
-        if: success()
+        if: ${{ !inputs.skip_build && success() }}
         continue-on-error: true # to be removed once we update all docs for this check to pass
         uses: rojopolis/spellcheck-github-actions@0.30.0
         with:
@@ -899,7 +989,20 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Report skip_build
+        if: ${{ inputs.skip_build }}
+        run: |
+          echo "::notice title=SKIPPED on PR tier::This check reports success without running. Re-run the workflow with ci_level=full (or merge to trigger merge_group) to validate this configuration."
+          {
+            echo "## Skipped on PR tier"
+            echo ""
+            echo "This check reported success without running. The full validation matrix runs on **merge_group** and **workflow_dispatch** events."
+            echo ""
+            echo "To run it now: **Re-run jobs** and set \`ci_level=full\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Log in to GitHub CR
+        if: ${{ !inputs.skip_build }}
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -907,7 +1010,7 @@ jobs:
           password: ${{ github.token }}
 
       - name: Log in to the container registry
-        if: inputs.environment && vars.registry
+        if: ${{ !inputs.skip_build && inputs.environment && vars.registry }}
         uses: docker/login-action@v3
         with:
           registry: ${{ vars.registry }}
@@ -916,7 +1019,7 @@ jobs:
 
       - name: Load cuda-quantum image
         id: restore
-        if: needs.cudaq_image.outputs.tar_cache && needs.cudaq_image.outputs.tar_archive
+        if: ${{ !inputs.skip_build && needs.cudaq_image.outputs.tar_cache && needs.cudaq_image.outputs.tar_archive }}
         uses: actions/cache/restore@v4
         with:
           path: ${{ needs.cudaq_image.outputs.tar_archive }}
@@ -924,6 +1027,7 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Validate cuda-quantum image
+        if: ${{ !inputs.skip_build }}
         run: |
           if ${{ steps.restore.outcome != 'skipped' }}; then
             load_output=`docker load --input "${{ needs.cudaq_image.outputs.tar_archive }}"`
@@ -954,7 +1058,7 @@ jobs:
 
       - name: Create job summary
         id: job_summary
-        if: always() && !cancelled()
+        if: ${{ !inputs.skip_build && always() && !cancelled() }}
         run: |
           cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
           platform_id=${{ needs.metadata.outputs.platform_tag }}
@@ -972,7 +1076,7 @@ jobs:
           fi
 
       - name: Upload job summary
-        if: steps.job_summary.outputs.validation_summary != ''
+        if: ${{ !inputs.skip_build && steps.job_summary.outputs.validation_summary != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.job_summary.outputs.artifact_id }}_validation
@@ -996,8 +1100,21 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Report skip_build
+        if: ${{ inputs.skip_build }}
+        run: |
+          echo "::notice title=SKIPPED on PR tier::This check reports success without running. Re-run the workflow with ci_level=full (or merge to trigger merge_group) to validate this configuration."
+          {
+            echo "## Skipped on PR tier"
+            echo ""
+            echo "This check reported success without running. The full validation matrix runs on **merge_group** and **workflow_dispatch** events."
+            echo ""
+            echo "To run it now: **Re-run jobs** and set \`ci_level=full\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Create build info
         id: staging
+        if: ${{ !inputs.skip_build }}
         run: |
           cudaqdev_hash=${{ needs.cudaqdev_image.outputs.image_hash }}
           cudaq_hash=${{ needs.cudaq_image.outputs.image_hash }}
@@ -1016,6 +1133,7 @@ jobs:
           cat .github/workflows/config/gitlab_commits.txt >> "$info_file"
 
       - name: Upload build info
+        if: ${{ !inputs.skip_build }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.staging.outputs.artifact_name }} # changing the artifact name requires updating other workflows
@@ -1031,8 +1149,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Report skip_build
+        if: ${{ inputs.skip_build }}
+        run: |
+          echo "::notice title=SKIPPED on PR tier::This check reports success without running. Re-run the workflow with ci_level=full (or merge to trigger merge_group) to validate this configuration."
+          {
+            echo "## Skipped on PR tier"
+            echo ""
+            echo "This check reported success without running. The full validation matrix runs on **merge_group** and **workflow_dispatch** events."
+            echo ""
+            echo "To run it now: **Re-run jobs** and set \`ci_level=full\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Save cache keys
         id: workflow_inputs
+        if: ${{ !inputs.skip_build }}
         run: |
           keys=${{ needs.cudaqdev_image.outputs.tar_cache }}
           keys+=" ${{ needs.cudaq_image.outputs.tar_cache }}"
@@ -1040,7 +1171,8 @@ jobs:
           echo "$keys" >> cache_keys.txt
           echo "artifact_name=${{ needs.validation.outputs.artifact_id }}_cache_keys" >> $GITHUB_OUTPUT
 
-      - uses: actions/upload-artifact@v4
+      - if: ${{ !inputs.skip_build }}
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.workflow_inputs.outputs.artifact_name }}
           path: cache_keys.txt

@@ -2672,11 +2672,33 @@ class PyASTBridge(ast.NodeVisitor):
                     node.func.value.id) and node.func.attr == 'kernel':
                 return
 
+            def isExactCudaqDbgAstCall(func_node: ast.AST) -> bool:
+                """Return True iff `func_node` is the exact AST shape for
+                ``<cudaq_alias>.dbg.ast.<name>``.
+
+                Runtime attribute lookup follows lazy aliases (e.g. ``cudaq.ast``
+                resolves to ``cudaq.dbg.ast`` via ``_LAZY_SUBMODULES``), so
+                `devKey` is not a sufficient check. Walk the literal node
+                structure instead."""
+                if not isinstance(func_node, ast.Attribute):
+                    return False
+                if not isinstance(
+                        func_node.value,
+                        ast.Attribute) or func_node.value.attr != 'ast':
+                    return False
+                if not isinstance(
+                        func_node.value.value,
+                        ast.Attribute) or func_node.value.value.attr != 'dbg':
+                    return False
+                root = func_node.value.value.value
+                return isinstance(root, ast.Name) and self.isCudaqName(root.id)
+
             devKey, name = resolveQualifiedName(node.func)
             if devKey:
 
                 # Handle debug functions
-                if devKey == 'cudaq.dbg.ast':
+                if devKey == 'cudaq.dbg.ast' and isExactCudaqDbgAstCall(
+                        node.func):
                     # Handle a debug print statement
                     arg = self.__groupValues(node.args, [1])
                     self.__insertDbgStmt(arg, name)
@@ -3797,12 +3819,16 @@ class PyASTBridge(ast.NodeVisitor):
         the MLIR.
 
         By simple, we mean expressions like `[expr(iter) for iter in iterable]`
-        or `myList = [exprThatReturns(iter) for iter in iterable]`.
+        or `myList = [exprThatReturns(iter) for iter in iterable]`, optionally
+        with `if` filter clause.
         """
         if len(node.generators) > 1:
             self.emitFatalError(
                 "CUDA-Q only supports single generators for list comprehension.",
                 node)
+
+        if_clauses = node.generators[0].ifs
+        hasFilter = len(if_clauses) > 0
 
         self.visit(node.generators[0].iter)
         iterable = self.popValue()
@@ -3841,6 +3867,15 @@ class PyASTBridge(ast.NodeVisitor):
             # This loop could be marked as invariant if we didn't use
             # `visit_For`, but that would be premature optimization.
             self.visit_For(forNode)
+
+        def evalFilter():
+            cond = None
+            for if_node in if_clauses:
+                self.visit(if_node)
+                this_cond = self.__arithmetic_to_bool(self.popValue())
+                cond = this_cond if cond is None else arith.AndIOp(
+                    cond, this_cond).result
+            return cond
 
         target_types = {}
 
@@ -4040,10 +4075,11 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         if quake.RefType.isinstance(listElemTy):
-            if quake.VeqType.isinstance(orig_iterable_type):
+            if quake.VeqType.isinstance(orig_iterable_type) and not hasFilter:
                 self.pushValue(iterable)
                 return
-            if cc.StdvecType.isinstance(orig_iterable_type):
+            if (cc.StdvecType.isinstance(orig_iterable_type) or
+                    quake.VeqType.isinstance(orig_iterable_type)):
                 i64Ty = self.getIntegerType()
                 veqTy = self.getVeqType()
                 c0 = self.getConstantInt(0)
@@ -4056,18 +4092,39 @@ class PyASTBridge(ast.NodeVisitor):
 
                 def bodyBuilder(args):
                     i, curr_veq = args[0], args[1]
-                    elem_addr = cc.ComputePtrOp(
-                        cc.PointerType.get(iterTy), iterable, [i],
-                        DenseI32ArrayAttr.get([kDynamicPtrIndex],
-                                              context=self.ctx))
-                    idx_val = cc.LoadOp(elem_addr).result
+                    if quake.VeqType.isinstance(iterable.type):
+                        idx_val = quake.ExtractRefOp(iterTy,
+                                                     iterable,
+                                                     -1,
+                                                     index=i).result
+                    else:
+                        elem_addr = cc.ComputePtrOp(
+                            cc.PointerType.get(iterTy), iterable, [i],
+                            DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                                  context=self.ctx))
+                        idx_val = cc.LoadOp(elem_addr).result
                     self.symbolTable.beginBlock()
                     self.__deconstructAssignment(node.generators[0].target,
                                                  idx_val)
-                    self.visit(node.elt)
-                    ref = self.popValue()
+                    if hasFilter:
+                        cond = evalFilter()
+                        ifOp = cc.IfOp([veqTy], cond, [])
+                        thenBlock = Block.create_at_start(ifOp.thenRegion, [])
+                        with InsertionPoint(thenBlock):
+                            self.visit(node.elt)
+                            ref = self.popValue()
+                            appended = quake.ConcatOp(veqTy,
+                                                      [curr_veq, ref]).result
+                            cc.ContinueOp([appended])
+                        elseBlock = Block.create_at_start(ifOp.elseRegion, [])
+                        with InsertionPoint(elseBlock):
+                            cc.ContinueOp([curr_veq])
+                        new_veq = ifOp.result
+                    else:
+                        self.visit(node.elt)
+                        ref = self.popValue()
+                        new_veq = quake.ConcatOp(veqTy, [curr_veq, ref]).result
                     self.symbolTable.endBlock()
-                    new_veq = quake.ConcatOp(veqTy, [curr_veq, ref]).result
                     cc.ContinueOp([i, new_veq])
 
                 loop = self.createForLoop(
@@ -4089,47 +4146,72 @@ class PyASTBridge(ast.NodeVisitor):
                                 TypeAttr.get(listElemTy),
                                 seqSize=iterableSize).result
 
-        # General case of
-        # `listVar = [expr(i) for i in iterable]`
-        # Need to think of this as
-        # `listVar = stdvec(iterable.size)`
-        # `for i, r in enumerate(listVar):`
-        # `   listVar[i] = expr(r)`
-        def bodyBuilder(iterVar):
-            self.symbolTable.beginBlock()
+        def extractIterVal(iterVar):
             if quake.VeqType.isinstance(iterable.type):
-                iterVal = quake.ExtractRefOp(iterTy,
-                                             iterable,
-                                             -1,
-                                             index=iterVar).result
-            else:
-                eleAddr = cc.ComputePtrOp(
-                    cc.PointerType.get(iterTy), iterable, [iterVar],
-                    DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
-                iterVal = cc.LoadOp(eleAddr).result
+                return quake.ExtractRefOp(iterTy, iterable, -1,
+                                          index=iterVar).result
+            eleAddr = cc.ComputePtrOp(
+                cc.PointerType.get(iterTy), iterable, [iterVar],
+                DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
+            return cc.LoadOp(eleAddr).result
 
-            # We don't do support anything within list comprehensions that would
-            # require being careful about assigning references, so simply
-            # adding them to the symbol table is enough for list comprehension.
-            self.__deconstructAssignment(node.generators[0].target, iterVal)
+        def storeElementAt(storeIdx):
             self.visit(node.elt)
             element = self.popValue()
-            # We do need to be careful, however, about validating the list
-            # elements.
+            # We do need to be careful about validating the list elements.
             self.__validate_container_entry(element, node.elt)
-
             listValueAddr = cc.ComputePtrOp(
-                cc.PointerType.get(listElemTy), listValue, [iterVar],
+                cc.PointerType.get(listElemTy), listValue, [storeIdx],
                 DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
             element = self.changeOperandToType(listElemTy,
                                                element,
                                                allowDemotion=False)
             cc.StoreOp(element, listValueAddr)
-            self.symbolTable.endBlock()
 
-        self.createInvariantForLoop(bodyBuilder, iterableSize)
-        res = cc.StdvecInitOp(resultVecTy, listValue,
-                              length=iterableSize).result
+        if not hasFilter:
+
+            def bodyBuilder(iterVar):
+                self.symbolTable.beginBlock()
+                iterVal = extractIterVal(iterVar)
+                self.__deconstructAssignment(node.generators[0].target, iterVal)
+                storeElementAt(iterVar)
+                self.symbolTable.endBlock()
+
+            self.createInvariantForLoop(bodyBuilder, iterableSize)
+            res = cc.StdvecInitOp(resultVecTy, listValue,
+                                  length=iterableSize).result
+            self.pushValue(res)
+            return
+
+        i64Ty = self.getIntegerType()
+        c0 = self.getConstantInt(0)
+        c1 = self.getConstantInt(1)
+
+        def filteredBodyBuilder(args):
+            i, count = args[0], args[1]
+            self.symbolTable.beginBlock()
+            iterVal = extractIterVal(i)
+            self.__deconstructAssignment(node.generators[0].target, iterVal)
+            cond = evalFilter()
+            ifOp = cc.IfOp([i64Ty], cond, [])
+            thenBlock = Block.create_at_start(ifOp.thenRegion, [])
+            with InsertionPoint(thenBlock):
+                storeElementAt(count)
+                cc.ContinueOp([arith.AddIOp(count, c1).result])
+            elseBlock = Block.create_at_start(ifOp.elseRegion, [])
+            with InsertionPoint(elseBlock):
+                cc.ContinueOp([count])
+            nextCount = ifOp.result
+            self.symbolTable.endBlock()
+            cc.ContinueOp([i, nextCount])
+
+        loop = self.createForLoop(
+            [i64Ty, i64Ty],
+            filteredBodyBuilder, [c0, c0], lambda args: arith.CmpIOp(
+                IntegerAttr.get(i64Ty, 2), args[0], iterableSize).result,
+            lambda args: [arith.AddIOp(args[0], c1).result, args[1]])
+        finalCount = loop.results[1]
+        res = cc.StdvecInitOp(resultVecTy, listValue, length=finalCount).result
         self.pushValue(res)
         return
 

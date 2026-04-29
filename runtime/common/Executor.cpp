@@ -59,4 +59,4 @@ details::future Executor::execute(std::vector<KernelExecution> &codesToExecute,
 }
 } // namespace cudaq
 
-LLVM_INSTANTIATE_REGISTRY(cudaq::Executor::RegistryType)
+CUDAQ_INSTANTIATE_REGISTRY(cudaq::Executor::RegistryType)

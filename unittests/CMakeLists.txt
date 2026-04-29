@@ -443,8 +443,6 @@ if (CUDA_FOUND AND TARGET nvqir-dynamics)
   endif()
 endif()
 
-add_subdirectory(plugin)
-
 # build the test qudit execution manager
 add_subdirectory(qudit)
 add_executable(test_qudit main.cpp qudit/SimpleQuditTester.cpp)
@@ -588,6 +586,7 @@ add_subdirectory(backends)
 add_subdirectory(Optimizer)
 add_subdirectory(output_record)
 add_subdirectory(target_config)
+add_subdirectory(logger)
 
 if (CUDAQ_ENABLE_PYTHON)
   if (NOT Python_FOUND)

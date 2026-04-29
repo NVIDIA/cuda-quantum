@@ -570,6 +570,66 @@ def test_decrementing_range():
     assert '1010' in counts
 
 
+def test_dbg_ast_strict_path():
+    """Only cudaq.dbg.ast.print_i64/f64 is valid inside a kernel.
+
+    cudaq.ast is a lazy alias for cudaq.dbg.ast (via _LAZY_SUBMODULES), so
+    without an explicit AST structure check it would pass the devKey guard.
+    Component reorderings like dbg.cudaq.ast are also rejected.
+
+    See https://github.com/NVIDIA/cuda-quantum/issues/2342
+    """
+
+    @cudaq.kernel
+    def valid_kernel(n: int, f: float):
+        q = cudaq.qvector(n)
+        h(q[0])
+        cudaq.dbg.ast.print_i64(n)
+        cudaq.dbg.ast.print_f64(f)
+        mz(q)
+
+    counts = cudaq.sample(valid_kernel, 2, 2.0)
+    assert len(counts) > 0
+
+    # cudaq.ast resolves to cudaq.dbg.ast at runtime via _LAZY_SUBMODULES;
+    # isExactCudaqDbgAstCall rejects it because the AST node chain is wrong.
+    with pytest.raises(RuntimeError):
+
+        @cudaq.kernel
+        def invalid_cudaq_ast(n: int):
+            q = cudaq.qvector(n)
+            h(q[0])
+            cudaq.ast.print_i64(n)
+            mz(q)
+
+        cudaq.sample(invalid_cudaq_ast, 2)
+
+    # dbg.cudaq.ast - resolveQualifiedName returns 'dbg.cudaq.ast', which
+    # never matches the devKey guard.
+    with pytest.raises(RuntimeError):
+
+        @cudaq.kernel
+        def invalid_dbg_cudaq_ast(n: int):
+            q = cudaq.qvector(n)
+            h(q[0])
+            dbg.cudaq.ast.print_i64(n)
+            mz(q)
+
+        cudaq.sample(invalid_dbg_cudaq_ast, 2)
+
+    # ast.cudaq.dbg - same: resolveQualifiedName returns 'ast.cudaq.dbg'.
+    with pytest.raises(RuntimeError):
+
+        @cudaq.kernel
+        def invalid_ast_cudaq_dbg(n: int):
+            q = cudaq.qvector(n)
+            h(q[0])
+            ast.cudaq.dbg.print_i64(n)
+            mz(q)
+
+        cudaq.sample(invalid_ast_cudaq_dbg, 2)
+
+
 def test_no_dynamic_Lists():
     with pytest.raises(RuntimeError) as error:
 

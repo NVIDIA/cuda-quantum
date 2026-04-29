@@ -90,10 +90,26 @@ nlohmann::json formOutputNames(const std::string &codegenTranslation,
   }
   return output_names;
 }
+/// Extract qubit-mapping reorder indices from the entry-point attributes.
+std::vector<std::size_t> extractMappingReorderIdx(mlir::ModuleOp moduleOp,
+                                                  mlir::func::FuncOp epFunc) {
+  assert(moduleOp.template lookupSymbol<mlir::func::FuncOp>(epFunc.getName()) &&
+         "Entry point function must survive the lowering pipeline.");
+  std::vector<std::size_t> mapping_reorder_idx;
+  if (auto mappingAttr = dyn_cast_if_present<mlir::ArrayAttr>(
+          epFunc->getAttr("mapping_reorder_idx"))) {
+    mapping_reorder_idx.resize(mappingAttr.size());
+    std::transform(mappingAttr.begin(), mappingAttr.end(),
+                   mapping_reorder_idx.begin(), [](mlir::Attribute attr) {
+                     return mlir::cast<mlir::IntegerAttr>(attr).getInt();
+                   });
+  }
+  return mapping_reorder_idx;
+}
 } // namespace
 
 std::pair<mlir::ModuleOp, std::unique_ptr<mlir::MLIRContext>>
-Compiler::extractQuakeCodeAndContext(const std::string &kernelName) {
+Compiler::loadQuakeCodeByName(const std::string &kernelName) {
   auto context = getOwningMLIRContext();
 
   // Get the quake representation of the kernel
@@ -224,38 +240,41 @@ Compiler::Compiler(cudaq::ServerHelper *serverHelper,
 
 Compiler::~Compiler() = default;
 
-cudaq::CompiledModule Compiler::runPassPipeline(
-    cudaq::ExecutionContext *executionContext, const std::string &kernelName,
-    mlir::ModuleOp m_module, const std::vector<void *> &rawArgs,
-    void *kernelArgs, std::shared_ptr<mlir::MLIRContext> context) {
-  auto contextPtr = m_module.getContext();
-  assert(!context || context.get() == contextPtr);
+// =============================================================================
+// Common helpers for policy-specific runPassPipeline overloads
+// =============================================================================
 
-  // Extract the kernel name
+void Compiler::applyPipeline(const std::string &pipeline,
+                             mlir::ModuleOp moduleOp,
+                             const std::string &kernelName) {
+  auto *contextPtr = moduleOp.getContext();
+  mlir::PassManager pm(contextPtr);
+  std::string errMsg;
+  llvm::raw_string_ostream os(errMsg);
+  CUDAQ_INFO("Pass pipeline for {} = {}", kernelName, pipeline);
+  if (failed(parsePassPipeline(pipeline, pm, os)))
+    throw std::runtime_error(
+        "Remote rest platform failed to add passes to pipeline (" + errMsg +
+        ").");
+  if (disableMLIRthreading || enablePrintMLIREachPass)
+    contextPtr->disableMultithreading();
+  if (enablePrintMLIREachPass)
+    pm.enableIRPrinting();
+  if (failed(cudaq_internal::compiler::runPassManager(pm,
+                                                      moduleOp.getOperation())))
+    throw std::runtime_error("Remote rest platform Quake lowering failed.");
+}
+
+std::pair<mlir::ModuleOp, mlir::func::FuncOp>
+Compiler::prepareModule(const std::string &kernelName, mlir::ModuleOp m_module,
+                        const std::vector<void *> &rawArgs, void *kernelArgs) {
+  auto *contextPtr = m_module.getContext();
+
   auto origFn = m_module.template lookupSymbol<mlir::func::FuncOp>(
       std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
 
   auto moduleOp =
       lowerQuakeCodeBuildModule(kernelName, m_module, contextPtr, origFn);
-
-  // Lambda to apply a specific pipeline to the given ModuleOp
-  auto runPassPipeline = [&](const std::string &pipeline,
-                             mlir::ModuleOp moduleOpIn) {
-    mlir::PassManager pm(contextPtr);
-    std::string errMsg;
-    llvm::raw_string_ostream os(errMsg);
-    CUDAQ_INFO("Pass pipeline for {} = {}", kernelName, pipeline);
-    if (failed(parsePassPipeline(pipeline, pm, os)))
-      throw std::runtime_error(
-          "Remote rest platform failed to add passes to pipeline (" + errMsg +
-          ").");
-    if (disableMLIRthreading || enablePrintMLIREachPass)
-      moduleOpIn.getContext()->disableMultithreading();
-    if (enablePrintMLIREachPass)
-      pm.enableIRPrinting();
-    if (failed(pm.run(moduleOpIn)))
-      throw std::runtime_error("Remote rest platform Quake lowering failed.");
-  };
 
   auto epFunc =
       moduleOp.template lookupSymbol<mlir::func::FuncOp>(origFn.getName());
@@ -323,12 +342,77 @@ cudaq::CompiledModule Compiler::runPassPipeline(
       moduleOp.getContext()->disableMultithreading();
     if (enablePrintMLIREachPass)
       pm.enableIRPrinting();
-    if (failed(pm.run(moduleOp)))
+    if (failed(cudaq_internal::compiler::runPassManager(
+            pm, moduleOp.getOperation())))
       throw std::runtime_error("Could not successfully apply quake-synth.");
   }
 
+  return {moduleOp, epFunc};
+}
+
+bool Compiler::executeMainPipeline(mlir::ModuleOp moduleOp,
+                                   const std::string &kernelName) {
+  auto combineMeasurements =
+      passPipelineConfig.find("combine-measurements") != std::string::npos;
+  if (emulate && combineMeasurements) {
+    std::regex combine("(.*),([ ]*)combine-measurements(.*)");
+    std::string replacement("$1$3");
+    passPipelineConfig =
+        std::regex_replace(passPipelineConfig, combine, replacement);
+    CUDAQ_INFO("Delaying combine-measurements pass due to emulation. "
+               "Updating pipeline to {}",
+               passPipelineConfig);
+  }
+  applyPipeline(passPipelineConfig, moduleOp, kernelName);
+  return combineMeasurements;
+}
+
+cudaq::CompiledModule Compiler::assembleCompiledModule(
+    const std::string &kernelName,
+    std::vector<std::pair<std::string, mlir::ModuleOp>> &modules, bool needJit,
+    bool runCombineMeasurements, std::optional<cudaq::Resources> resourceCounts,
+    const std::vector<std::size_t> &mappingReorderIdx,
+    std::shared_ptr<mlir::MLIRContext> context) {
+  std::vector<CompiledModuleHelper::NamedCompiledArtifact> artifacts;
+  if (needJit) {
+    for (auto &[name, module] : modules) {
+      auto clonedModule = module.clone();
+      auto jitArtifacts = CompiledModuleHelper::createJitArtifacts(
+          kernelName, createJITEngine(clonedModule, codegenTranslation), {},
+          /*isFullySpecialized=*/true);
+      assert(jitArtifacts.size() == 1);
+      jitArtifacts[0].first = name;
+      artifacts.push_back(std::move(jitArtifacts[0]));
+      if (resourceCounts)
+        artifacts.push_back(CompiledModuleHelper::createResourcesArtifact(
+            name + ".resources", std::move(*resourceCounts)));
+    }
+  }
+
+  if (runCombineMeasurements)
+    for (auto &[name, module] : modules)
+      applyPipeline("func.func(combine-measurements)", module, kernelName);
+
+  for (auto &[name, module] : modules) {
+    auto mlirName = name + ".mlir";
+    artifacts.push_back(
+        CompiledModuleHelper::createMlirArtifact(mlirName, module, context));
+  }
+
+  return CompiledModuleHelper::createCompiledModule(
+      kernelName, {}, std::move(artifacts), {.reorderIdx = mappingReorderIdx});
+}
+
+cudaq::CompiledModule Compiler::runPassPipeline(
+    cudaq::ExecutionContext *executionContext, const std::string &kernelName,
+    mlir::ModuleOp m_module, const std::vector<void *> &rawArgs,
+    void *kernelArgs, std::shared_ptr<mlir::MLIRContext> context) {
+  assert(!context || context.get() == m_module.getContext());
+  auto [moduleOp, epFunc] =
+      prepareModule(kernelName, m_module, rawArgs, kernelArgs);
+
+  // Populate conditional measurement flag in the context.
   if (emulate && executionContext && executionContext->name == "sample") {
-    // Populate conditional measurement flag in the context.
     for (auto &artifact : moduleOp) {
       quake::detail::QuakeFunctionAnalysis analysis{&artifact};
       auto info = analysis.getAnalysisInfo();
@@ -347,21 +431,9 @@ cudaq::CompiledModule Compiler::runPassPipeline(
       }
     }
   }
-  // Delay combining measurements for backends that cannot handle
-  // subveqs and multiple measurements until we created the emulation code.
-  auto combineMeasurements =
-      passPipelineConfig.find("combine-measurements") != std::string::npos;
-  if (emulate && combineMeasurements) {
-    std::regex combine("(.*),([ ]*)combine-measurements(.*)");
-    std::string replacement("$1$3");
-    passPipelineConfig =
-        std::regex_replace(passPipelineConfig, combine, replacement);
-    CUDAQ_INFO("Delaying combine-measurements pass due to emulation. "
-               "Updating pipeline to {}",
-               passPipelineConfig);
-  }
 
-  runPassPipeline(passPipelineConfig, moduleOp);
+  bool combineMeasurements = executeMainPipeline(moduleOp, kernelName);
+
   // We need to run resource counting preprocessing after the pass pipeline as
   // the pre-processing might change the IR structure (may interfere with
   // other passes).
@@ -374,17 +446,7 @@ cudaq::CompiledModule Compiler::runPassPipeline(
     resourceCounts = std::move(*result);
   }
 
-  assert(moduleOp.template lookupSymbol<mlir::func::FuncOp>(epFunc.getName()) &&
-         "Entry point function must survive the lowering pipeline.");
-  std::vector<std::size_t> mapping_reorder_idx;
-  if (auto mappingAttr = dyn_cast_if_present<mlir::ArrayAttr>(
-          epFunc->getAttr("mapping_reorder_idx"))) {
-    mapping_reorder_idx.resize(mappingAttr.size());
-    std::transform(mappingAttr.begin(), mappingAttr.end(),
-                   mapping_reorder_idx.begin(), [](mlir::Attribute attr) {
-                     return mlir::cast<mlir::IntegerAttr>(attr).getInt();
-                   });
-  }
+  auto mapping_reorder_idx = extractMappingReorderIdx(moduleOp, epFunc);
 
   if (executionContext) {
     if (executionContext->name == "sample") {
@@ -416,17 +478,17 @@ cudaq::CompiledModule Compiler::runPassPipeline(
       }
       // No need to add measurements only to remove them eventually
       if (postCodeGenPasses.find("remove-measurements") == std::string::npos)
-        runPassPipeline("func.func(add-measurements)", moduleOp);
+        applyPipeline("func.func(add-measurements)", moduleOp, kernelName);
     } else {
       executionContext->reorderIdx.clear();
     }
   }
 
-  std::vector<std::pair<std::string, mlir::ModuleOp>> modules;
   // Apply observations if necessary
+  std::vector<std::pair<std::string, mlir::ModuleOp>> modules;
   if (executionContext && executionContext->name == "observe") {
     mapping_reorder_idx.clear();
-    runPassPipeline("canonicalize,cse", moduleOp);
+    applyPipeline("canonicalize,cse", moduleOp, kernelName);
     cudaq::spin_op &spin = executionContext->spin.value();
     for (const auto &term : spin) {
       if (term.is_identity())
@@ -443,6 +505,7 @@ cudaq::CompiledModule Compiler::runPassPipeline(
 
       // Create the pass manager, add the quake observe ansatz pass and run it
       // followed by the canonicalizer
+      auto *contextPtr = moduleOp.getContext();
       mlir::PassManager pm(contextPtr);
       pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createObserveAnsatzPass(
           term.get_binary_symplectic_form()));
@@ -450,7 +513,8 @@ cudaq::CompiledModule Compiler::runPassPipeline(
         tmpModuleOp.getContext()->disableMultithreading();
       if (enablePrintMLIREachPass)
         pm.enableIRPrinting();
-      if (failed(pm.run(tmpModuleOp)))
+      if (failed(cudaq_internal::compiler::runPassManager(
+              pm, tmpModuleOp.getOperation())))
         throw std::runtime_error("Could not apply measurements to ansatz.");
       // The full pass pipeline was run above, but the ansatz pass can
       // introduce gates that aren't supported by the backend, so we need to
@@ -459,47 +523,21 @@ cudaq::CompiledModule Compiler::runPassPipeline(
       auto csvSplit = cudaq::split(passPipelineConfig, ',');
       for (auto &pass : csvSplit)
         if (pass.ends_with("-gate-set-mapping"))
-          runPassPipeline(pass, tmpModuleOp);
+          applyPipeline(pass, tmpModuleOp, kernelName);
       if (!emulate && combineMeasurements)
-        runPassPipeline("func.func(combine-measurements)", tmpModuleOp);
+        applyPipeline("func.func(combine-measurements)", tmpModuleOp,
+                      kernelName);
       modules.emplace_back(term.get_term_id(), tmpModuleOp);
     }
   } else {
     modules.emplace_back(kernelName, moduleOp);
   }
 
-  // For emulation or resource counting: create JIT artifacts before
-  // applying combine-measurements (so the JIT sees un-combined measurements).
-  std::vector<CompiledModuleHelper::NamedCompiledArtifact> artifacts;
-  if (emulate ||
-      (executionContext && executionContext->name == "resource-count")) {
-    for (auto &[name, module] : modules) {
-      auto clonedModule = module.clone();
-      auto jitArtifacts = CompiledModuleHelper::createJitArtifacts(
-          kernelName, createJITEngine(clonedModule, codegenTranslation), {},
-          /*isFullySpecialized=*/true);
-      assert(jitArtifacts.size() == 1);
-      jitArtifacts[0].first = name;
-      artifacts.push_back(std::move(jitArtifacts[0]));
-      if (resourceCounts)
-        artifacts.push_back(CompiledModuleHelper::createResourcesArtifact(
-            name + ".resources", std::move(*resourceCounts)));
-    }
-  }
-
-  if (emulate && combineMeasurements)
-    for (auto &[name, module] : modules)
-      runPassPipeline("func.func(combine-measurements)", module);
-
-  for (auto &[name, module] : modules) {
-    auto mlirName = name + ".mlir"; // distinguish MLIR and JIT artifacts
-    artifacts.push_back(
-        CompiledModuleHelper::createMlirArtifact(mlirName, module, context));
-  }
-
-  return CompiledModuleHelper::createCompiledModule(
-      kernelName, {}, std::move(artifacts),
-      {.reorderIdx = mapping_reorder_idx});
+  bool needJit = emulate || (executionContext &&
+                             executionContext->name == "resource-count");
+  return assembleCompiledModule(
+      kernelName, modules, needJit, emulate && combineMeasurements,
+      std::move(resourceCounts), mapping_reorder_idx, context);
 }
 
 std::vector<cudaq::KernelExecution>
@@ -561,20 +599,10 @@ Compiler::emitKernelExecutions(const cudaq::CompiledModule &compiled) {
 /// platform directory for the targeted backend.
 std::vector<cudaq::KernelExecution>
 Compiler::lowerQuakeCode(cudaq::ExecutionContext *executionContext,
-                         const std::string &kernelName, void *kernelArgs,
-                         const std::vector<void *> &rawArgs) {
-  auto [m_module, context] = extractQuakeCodeAndContext(kernelName);
-  auto compiled = runPassPipeline(executionContext, kernelName, m_module,
-                                  rawArgs, kernelArgs, std::move(context));
-  return emitKernelExecutions(compiled);
-}
-
-std::vector<cudaq::KernelExecution>
-Compiler::lowerQuakeCode(cudaq::ExecutionContext *executionContext,
                          const std::string &kernelName, mlir::ModuleOp module,
-                         const std::vector<void *> &rawArgs) {
-  auto compiled =
-      runPassPipeline(executionContext, kernelName, module, rawArgs);
+                         void *kernelArgs, const std::vector<void *> &rawArgs) {
+  auto compiled = runPassPipeline(executionContext, kernelName, module, rawArgs,
+                                  kernelArgs, nullptr);
   return emitKernelExecutions(compiled);
 }
 

@@ -9,6 +9,14 @@ on:
       export_environment:
         type: boolean
         description: Export the build environment as tar artifact that can be imported with Docker.
+      ci_level:
+        type: choice
+        description: 'CI tier: pr runs a reduced validation matrix, full runs everything.'
+        options:
+          - auto
+          - pr
+          - full
+        default: auto
   # The GitHub application copy-pr-bot copies the source code for every pull request
   # into the repository. Approving such upstream pushes effectively marks code as trusted,
   # and is necessary to use the self-hosted NVIDIA runners.
@@ -40,6 +48,7 @@ jobs:
       llvm_commit: ${{ steps.repo_info.outputs.llvm_commit }}
       pybind11_commit: ${{ steps.repo_info.outputs.pybind11_commit }}
       platform_config: ${{ steps.config.outputs.platforms }}
+      ci_tier: ${{ steps.ci_tier.outputs.tier }}
 
     steps:
       - name: Checkout repository
@@ -80,6 +89,22 @@ jobs:
         run: |
           echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
           echo "pybind11_commit=$(git rev-parse @:./tpls/pybind11)" >> $GITHUB_OUTPUT
+
+      - id: ci_tier
+        name: Determine CI tier
+        run: |
+          requested="${{ inputs.ci_level || 'auto' }}"
+          if [ "$requested" != "auto" ]; then
+            tier="$requested"
+          elif [ "${{ github.event_name }}" == "push" ]; then
+            # PR pushes (pull-request/NNN branches via copy-pr-bot) get reduced CI
+            tier="pr"
+          else
+            # merge_group, workflow_dispatch with default auto get full CI
+            tier="full"
+          fi
+          echo "tier=$tier" >> $GITHUB_OUTPUT
+          echo "CI tier: $tier"
 
   devdeps:
     name: Load dependencies
@@ -138,6 +163,7 @@ jobs:
   source_build:
     name: Load source build cache
     needs: metadata
+    if: needs.metadata.outputs.ci_tier != 'pr'
     strategy:
       matrix:
         platform: [amd64, arm64]
@@ -192,7 +218,8 @@ jobs:
   config_source_build:
     name: Configure build (source_build)
     runs-on: ubuntu-latest
-    needs: source_build
+    needs: [metadata, source_build]
+    if: needs.metadata.outputs.ci_tier != 'pr'
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
     steps:
@@ -203,17 +230,12 @@ jobs:
 
   build_and_test:
     name: Build and test
-    needs: config_devdeps
+    needs: [metadata, config_devdeps]
     strategy:
       matrix:
         platform: [amd64, arm64]
         toolchain: [clang16, gcc11, gcc12]
         mpi: [openmpi]
-        exclude:
-          - toolchain: llvm
-            mpi: mpich
-          - toolchain: clang16
-            mpi: mpich
       fail-fast: false
     uses: ./.github/workflows/test_in_devenv.yml
     with:
@@ -223,10 +245,16 @@ jobs:
       devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
+      # PR tier fake-passes the arm64/gcc builds (expensive, redundant with amd64/gcc coverage).
+      # Computing skip_build from the 3 real matrix axes keeps the auto-generated job name as
+      # "Build and test (<platform>, <toolchain>, <mpi>) / ..." so branch-protection required
+      # check names match. Adding a 4th matrix key would leak into the name and break gating.
+      skip_build: ${{ needs.metadata.outputs.ci_tier == 'pr' && matrix.platform == 'arm64' && (matrix.toolchain == 'gcc11' || matrix.toolchain == 'gcc12') }}
 
   gen_code_coverage:
     name: Gen code coverage
-    needs: config_devdeps
+    needs: [metadata, config_devdeps]
+    if: needs.metadata.outputs.ci_tier != 'pr'
     strategy:
       matrix:
         platform: [amd64]
@@ -242,9 +270,12 @@ jobs:
       devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
+  # Docker images are packaging, not correctness. On PR tier this fake-passes
+  # (skip_build=true) so required checks remain green without doing the build;
+  # build_and_test covers code compilation and testing.
   docker_image:
     name: Create Docker images
-    needs: config_devdeps
+    needs: [metadata, config_devdeps]
     strategy:
       matrix:
         platform: [amd64, arm64]
@@ -259,10 +290,11 @@ jobs:
       devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-gcc11', matrix.platform)] }}
       devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-gcc11', matrix.platform)] }}
       environment: ghcr-ci
+      skip_build: ${{ needs.metadata.outputs.ci_tier == 'pr' }}
 
   python_wheels:
     name: Create Python wheels
-    needs: config_wheeldeps
+    needs: [metadata, config_wheeldeps]
     strategy:
       matrix:
         platform: [amd64, arm64]
@@ -280,20 +312,29 @@ jobs:
       devdeps_image: ${{ fromJson(needs.config_wheeldeps.outputs.json).image_hash[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
       devdeps_cache: ${{ fromJson(needs.config_wheeldeps.outputs.json).cache_key[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
       devdeps_archive: ${{ fromJson(needs.config_wheeldeps.outputs.json).tar_archive[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
+      skip_build: ${{ needs.metadata.outputs.ci_tier == 'pr' }}
 
   python_metapackages:
     name: Create Python metapackages
-    needs: python_wheels
+    needs: [metadata, python_wheels]
     uses: ./.github/workflows/python_metapackages.yml
     with:
       cudaq_version: ${{ needs.python_wheels.outputs.cudaq_version }}
       python_versions: "['3.11', '3.13']"
       cuda_versions: "['', '12.6', '13.0']"
       wheel_artifacts: 'pycudaq-*'
+      skip_build: ${{ needs.metadata.outputs.ci_tier == 'pr' }}
 
+  # Installer builds are packaging, not correctness. On PR tier this fake-passes
+  # (skip_build=true) so required checks report status; code correctness is
+  # validated by build_and_test.
   binaries:
     name: Create CUDA Quantum installer
     needs: [metadata, config_source_build]
+    # Run even when config_source_build is skipped on PR tier. The child
+    # workflow guards all real build steps on !inputs.skip_build, so the
+    # unused build_cache input is fine.
+    if: ${{ always() && needs.metadata.result == 'success' }}
     strategy:
       matrix:
         platform: [amd64, arm64]
@@ -308,7 +349,8 @@ jobs:
       platform_base_image: ${{ fromJson(needs.metadata.outputs.platform_config)[format('{0}', matrix.platform)].minimal_base_image }}
       build_config_id: cu${{ matrix.cuda_version }}-llvm
       cuda_version: ${{ matrix.cuda_version }}
-      build_cache:  ${{ fromJson(needs.config_source_build.outputs.json).build_cache[format('{0}-cu{1}-installer', matrix.platform, matrix.cuda_version)] }}
+      build_cache: ${{ needs.config_source_build.result == 'success' && fromJson(needs.config_source_build.outputs.json).build_cache[format('{0}-cu{1}-installer', matrix.platform, matrix.cuda_version)] || '' }}
+      skip_build: ${{ needs.metadata.outputs.ci_tier == 'pr' }}
 
   clean_up:
     name: Prepare cache clean-up
