@@ -1334,10 +1334,10 @@ struct MeasurementOpPattern : public OpConversionPattern<quake::MzOp> {
                             adaptor.getTargets().end()};
     auto functionName = M::getQIRMeasure();
 
-    // Handle-form measurements (`mz_handle`/`mx_handle`/`my_handle` callers)
-    // produce a `!cc.measure_handle` SSA value whose converted type is `i64`.
-    // The QIR measurement function still returns `Result*`, so we bridge the
-    // call's `Result*` result to the converted `i64` payload via `cc.cast`.
+    // Handle-form measurements produce a `!cc.measure_handle` SSA value
+    // whose converted type is `i64`. The QIR measurement function still
+    // returns `Result*`, so we bridge the call's `Result*` result to the
+    // converted `i64` payload via `cc.cast`.
     const bool measOutIsHandle =
         isa<cudaq::cc::MeasureHandleType>(mz.getMeasOut().getType());
 
