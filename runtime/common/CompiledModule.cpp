@@ -12,6 +12,17 @@
 cudaq::FatQuakeModule::FatQuakeModule(std::string kernelName)
     : name(std::move(kernelName)) {}
 
+cudaq::SourceModule::SourceModule(std::string kernelName, KernelThunkType fn)
+    : FatQuakeModule(std::move(kernelName)) {
+  addArtifact(name, FunctionPtrArtifact{fn});
+}
+
+cudaq::SourceModule::SourceModule(std::string kernelName,
+                                  const void *mlirModuleOpaquePtr)
+    : FatQuakeModule(std::move(kernelName)) {
+  addArtifact(name, MlirArtifact{mlirModuleOpaquePtr, nullptr});
+}
+
 std::optional<cudaq::FatQuakeModule::JitArtifact>
 cudaq::FatQuakeModule::getJit() const {
   return getJit(name);
@@ -32,6 +43,17 @@ std::optional<cudaq::FatQuakeModule::MlirArtifact>
 cudaq::FatQuakeModule::getMlir(std::string_view mlirName) const {
   auto *mlir = artifacts.get<MlirArtifact>(mlirName);
   return mlir ? std::optional<MlirArtifact>{*mlir} : std::nullopt;
+}
+
+std::optional<cudaq::FatQuakeModule::FunctionPtrArtifact>
+cudaq::FatQuakeModule::getFunctionPtr() const {
+  return getFunctionPtr(name);
+}
+
+std::optional<cudaq::FatQuakeModule::FunctionPtrArtifact>
+cudaq::FatQuakeModule::getFunctionPtr(std::string_view fnName) const {
+  auto *fn = artifacts.get<FunctionPtrArtifact>(fnName);
+  return fn ? std::optional<FunctionPtrArtifact>{*fn} : std::nullopt;
 }
 
 bool cudaq::FatQuakeModule::isFullySpecialized() const {

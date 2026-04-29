@@ -39,9 +39,9 @@ public:
     }
   }
 
-  KernelThunkResultType launchKernel(const std::string &kernelName,
-                                     KernelThunkType kernelFunc,
+  KernelThunkResultType launchKernel(const SourceModule &src,
                                      KernelArgs args) override {
+    const auto &kernelName = src.getName();
     CUDAQ_INFO("FermioniqBaseQPU launching kernel ({})", kernelName);
     auto [module, context] = Compiler::loadQuakeCodeByName(kernelName);
     auto compiled =
@@ -61,9 +61,18 @@ public:
     return {};
   }
 
-  CompiledModule compileModule(const std::string &kernelName,
-                               mlir::ModuleOp module, KernelArgs args,
+  CompiledModule compileModule(const SourceModule &src, KernelArgs args,
                                bool isEntryPoint) override {
+    const auto &kernelName = src.getName();
+    auto mlirArt = src.getMlir();
+    if (!mlirArt)
+      throw std::runtime_error(
+          "FermioniqBaseQPU::compileModule requires an MLIR artifact on the "
+          "SourceModule for kernel '" +
+          kernelName + "'.");
+    auto module =
+        cudaq_internal::compiler::CompiledModuleHelper::getMlirModuleOp(
+            *mlirArt);
     CUDAQ_INFO("FermioniqBaseQPU compiling kernel via module ({})", kernelName);
     return compileImpl(
         kernelName, [&](Compiler &compiler, ExecutionContext *ctx) {

@@ -21,6 +21,7 @@
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/JIT.h"
 #include "llvm/Support/Base64.h"
@@ -243,9 +244,9 @@ public:
   /// representation required by the targeted backend. Handle all pertinent
   /// modifications for the execution context as well as asynchronous or
   /// synchronous invocation.
-  KernelThunkResultType launchKernel(const std::string &kernelName,
-                                     KernelThunkType kernelFunc,
+  KernelThunkResultType launchKernel(const SourceModule &src,
                                      KernelArgs args) override {
+    const auto &kernelName = src.getName();
     CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
 
     auto executionContext = cudaq::getExecutionContext();
@@ -281,9 +282,18 @@ public:
     return {};
   }
 
-  CompiledModule compileModule(const std::string &kernelName,
-                               mlir::ModuleOp module, KernelArgs args,
+  CompiledModule compileModule(const SourceModule &src, KernelArgs args,
                                bool isEntryPoint) override {
+    const auto &kernelName = src.getName();
+    auto mlirArt = src.getMlir();
+    if (!mlirArt)
+      throw std::runtime_error(
+          "BaseRemoteRESTQPU::compileModule requires an MLIR artifact on "
+          "the SourceModule for kernel '" +
+          kernelName + "'.");
+    auto module =
+        cudaq_internal::compiler::CompiledModuleHelper::getMlirModuleOp(
+            *mlirArt);
     CUDAQ_INFO("specializing remote rest kernel via module ({})", kernelName);
     auto executionContext = cudaq::getExecutionContext();
 
