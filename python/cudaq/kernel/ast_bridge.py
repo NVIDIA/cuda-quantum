@@ -5492,15 +5492,15 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
         ValidateReturnStatements(bridge).visit(astModule)
         bridge.visit(astModule)
 
-    # Precompile (simplify) the Module. Run via cudaq_runtime.runPassManager
-    # so TracePassInstrumentation is installed (matching the JIT-side install
-    # at runtime/internal/compiler/RuntimePyMLIR.cpp). Without this, AOT
-    # passes execute through upstream MLIR's pm.run() unannotated and the
-    # tracer cannot attribute their wall-time.
+    # Precompile (simplify) the Module. Run via `cudaq_runtime.runPassManager`
+    # so `TracePassInstrumentation` is installed (matching the JIT-side
+    # install at `runtime/internal/compiler/RuntimePyMLIR.cpp`). Without this,
+    # AOT passes execute through upstream MLIR's `pm.run()` without a tracer
+    # attached and per-pass wall-time cannot be attributed.
     #
-    # The cudaq.pipeline.aot span is the marker tooling uses to identify pass
-    # events as AOT-pipeline (paired with cudaq.pipeline.jit emitted in
-    # QPU.cpp's lower_to_qir_llvm).
+    # The `cudaq.pipeline.aot` span is the marker tooling uses to identify
+    # pass events as AOT-pipeline (paired with `cudaq.pipeline.jit` emitted
+    # from `QPU.cpp` `lower_to_qir_llvm`).
     pm = PassManager.parse("builtin.module(aot-prep-pipeline)",
                            context=bridge.ctx)
     try:
