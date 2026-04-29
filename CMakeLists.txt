@@ -239,7 +239,7 @@ SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 if(APPLE)
   SET(CMAKE_INSTALL_RPATH "@loader_path;@loader_path/lib;@loader_path/lib/plugins;@loader_path/../lib;@loader_path/../lib/plugins;@executable_path;@executable_path/lib;@executable_path/lib/plugins;@executable_path/../lib;@executable_path/../lib/plugins")
 else()
-  SET(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/lib/plugins:$ORIGIN/../lib:$ORIGIN/../lib/plugins")
+  SET(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/lib/plugins:$ORIGIN/../lib:$ORIGIN/../lib/plugins:$ORIGIN/../cudaq/mlir/_mlir_libs:$ORIGIN/../python/cudaq/mlir/_mlir_libs")
 endif()
 
 SET(BLA_STATIC ON)
