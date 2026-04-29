@@ -266,6 +266,21 @@ if(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso)
   endif()
 endif()
 
+if(APPLE AND TARGET cudaq-mlir-runtime)
+  get_target_property(_mr_link_options cudaq-mlir-runtime LINK_OPTIONS)
+  if(_mr_link_options)
+    list(REMOVE_ITEM _mr_link_options
+      "$<$<PLATFORM_ID:Linux>:LINKER:--exclude-libs,ALL>"
+      "LINKER:--exclude-libs,ALL"
+      "LINKER:-twolevel_namespace")
+    set_target_properties(cudaq-mlir-runtime
+      PROPERTIES LINK_OPTIONS "${_mr_link_options}")
+  endif()
+  target_link_options(cudaq-mlir-runtime BEFORE PRIVATE
+    "$<TARGET_FILE:CUDAQuantumPythonCAPI>"
+    "LINKER:-undefined,dynamic_lookup")
+endif()
+
 if(APPLE AND TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso)
   set(_darwin_typeid_diag_script
     "${CMAKE_CURRENT_BINARY_DIR}/darwin_typeid_diag.sh")
