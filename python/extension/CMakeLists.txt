@@ -266,7 +266,7 @@ if(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso)
   endif()
 endif()
 
-if(APPLE AND TARGET cudaq-mlir-runtime AND TARGET CUDAQuantumPythonCAPI)
+if(TARGET cudaq-mlir-runtime AND TARGET CUDAQuantumPythonCAPI)
   get_target_property(_mr_link_options cudaq-mlir-runtime LINK_OPTIONS)
   if(_mr_link_options)
     list(REMOVE_ITEM _mr_link_options
@@ -277,8 +277,13 @@ if(APPLE AND TARGET cudaq-mlir-runtime AND TARGET CUDAQuantumPythonCAPI)
       PROPERTIES LINK_OPTIONS "${_mr_link_options}")
   endif()
   target_link_options(cudaq-mlir-runtime BEFORE PRIVATE
-    "$<TARGET_FILE:CUDAQuantumPythonCAPI>"
-    "LINKER:-undefined,dynamic_lookup")
+    "$<TARGET_FILE:CUDAQuantumPythonCAPI>")
+  target_link_libraries(cudaq-mlir-runtime INTERFACE
+    $<BUILD_INTERFACE:CUDAQuantumPythonCAPI>)
+  if(APPLE)
+    target_link_options(cudaq-mlir-runtime PRIVATE
+      "LINKER:-undefined,dynamic_lookup")
+  endif()
   set_property(TARGET cudaq-mlir-runtime APPEND PROPERTY
     BUILD_RPATH "$<TARGET_FILE_DIR:CUDAQuantumPythonCAPI>")
   add_dependencies(cudaq-mlir-runtime CUDAQuantumPythonCAPI)
