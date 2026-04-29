@@ -260,7 +260,8 @@ void Compiler::applyPipeline(const std::string &pipeline,
     contextPtr->disableMultithreading();
   if (enablePrintMLIREachPass)
     pm.enableIRPrinting();
-  if (failed(pm.run(moduleOp)))
+  if (failed(cudaq_internal::compiler::runPassManager(pm,
+                                                      moduleOp.getOperation())))
     throw std::runtime_error("Remote rest platform Quake lowering failed.");
 }
 
@@ -341,7 +342,8 @@ Compiler::prepareModule(const std::string &kernelName, mlir::ModuleOp m_module,
       moduleOp.getContext()->disableMultithreading();
     if (enablePrintMLIREachPass)
       pm.enableIRPrinting();
-    if (failed(pm.run(moduleOp)))
+    if (failed(cudaq_internal::compiler::runPassManager(
+            pm, moduleOp.getOperation())))
       throw std::runtime_error("Could not successfully apply quake-synth.");
   }
 
@@ -511,7 +513,8 @@ cudaq::CompiledModule Compiler::runPassPipeline(
         tmpModuleOp.getContext()->disableMultithreading();
       if (enablePrintMLIREachPass)
         pm.enableIRPrinting();
-      if (failed(pm.run(tmpModuleOp)))
+      if (failed(cudaq_internal::compiler::runPassManager(
+              pm, tmpModuleOp.getOperation())))
         throw std::runtime_error("Could not apply measurements to ansatz.");
       // The full pass pipeline was run above, but the ansatz pass can
       // introduce gates that aren't supported by the backend, so we need to

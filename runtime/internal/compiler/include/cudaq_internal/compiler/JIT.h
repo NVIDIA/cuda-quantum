@@ -23,6 +23,7 @@ class LLJIT;
 
 namespace mlir {
 class ModuleOp;
+class PassManager;
 class Type;
 } // namespace mlir
 

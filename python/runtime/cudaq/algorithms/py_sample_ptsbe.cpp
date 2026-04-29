@@ -71,6 +71,7 @@ pySamplePTSBE(const std::string &shortName, MlirModule module,
 
   ptsbe::sample_result result;
   try {
+    nanobind::gil_scoped_release release;
     result = ptsbe::detail::runSamplingPTSBE(
         [&]() mutable {
           [[maybe_unused]] auto res =
