@@ -75,8 +75,11 @@ static bool isaConstantOf(Value v, std::int64_t hasVal) {
 }
 
 static bool isClosedIntervalForm(arith::CmpIPredicate p) {
-  return p == arith::CmpIPredicate::ule || p == arith::CmpIPredicate::sle ||
-         p == arith::CmpIPredicate::uge || p == arith::CmpIPredicate::sge;
+  return p == arith::CmpIPredicate::ule || p == arith::CmpIPredicate::sle;
+}
+
+static bool isClosedIntervalDownForm(arith::CmpIPredicate p) {
+  return p == arith::CmpIPredicate::uge || p == arith::CmpIPredicate::sge;
 }
 
 static bool isSemiOpenIntervalForm(arith::CmpIPredicate p) {
@@ -333,8 +336,8 @@ bool opt::LoopComponents::shouldCommuteStepOp() const {
 }
 
 bool opt::LoopComponents::isClosedIntervalForm() const {
-  auto cmp = cast<arith::CmpIOp>(compareOp);
-  return ::isClosedIntervalForm(cmp.getPredicate());
+  auto p = cast<arith::CmpIOp>(compareOp).getPredicate();
+  return ::isClosedIntervalForm(p) || ::isClosedIntervalDownForm(p);
 }
 
 bool opt::LoopComponents::isLinearExpr() const {
