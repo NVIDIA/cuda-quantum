@@ -59,3 +59,43 @@ func.func @countup_sle() -> i64 {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 11 : i64
 // CHECK:           return %[[VAL_0]] : i64
 // CHECK:         }
+
+func.func @countdown_sgt() -> i64 {
+  %c1_i64 = arith.constant 1 : i64
+  %c0_i64 = arith.constant 0 : i64
+  %c3_i64 = arith.constant 3 : i64
+  %0 = cc.loop while ((%arg0 = %c3_i64) -> (i64)) {
+    %1 = arith.cmpi sgt, %arg0, %c0_i64 : i64
+    cc.condition %1(%arg0 : i64)
+  } do {
+  ^bb0(%arg0: i64):
+    %1 = arith.subi %arg0, %c1_i64 : i64
+    cc.continue %1 : i64
+  }
+  return %0 : i64
+}
+
+// CHECK-LABEL:   func.func @countdown_sgt() -> i64 {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i64
+// CHECK:           return %[[VAL_0]] : i64
+// CHECK:         }
+
+func.func @countup_slt() -> i64 {
+  %c1_i64 = arith.constant 1 : i64
+  %c10_i64 = arith.constant 10 : i64
+  %c5_i64 = arith.constant 5 : i64
+  %0 = cc.loop while ((%arg0 = %c5_i64) -> (i64)) {
+    %1 = arith.cmpi slt, %arg0, %c10_i64 : i64
+    cc.condition %1(%arg0 : i64)
+  } do {
+  ^bb0(%arg0: i64):
+    %1 = arith.addi %arg0, %c1_i64 : i64
+    cc.continue %1 : i64
+  }
+  return %0 : i64
+}
+
+// CHECK-LABEL:   func.func @countup_slt() -> i64 {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 10 : i64
+// CHECK:           return %[[VAL_0]] : i64
+// CHECK:         }
