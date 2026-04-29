@@ -198,8 +198,9 @@ fi
 cat "$LLVM_SOURCE/llvm/cmake/config.guess" | tr -d '\r' > ~config.guess
 cat ~config.guess > "$LLVM_SOURCE/llvm/cmake/config.guess" && rm -rf ~config.guess
 
+# `-fno-gnu-unique` is GCC-only
 LLVM_EXTRA_CXX_FLAGS="-w"
-if [ "$(uname)" != "Darwin" ]; then
+if "${CXX:-c++}" --version 2>&1 | grep -q "Free Software Foundation"; then
   LLVM_EXTRA_CXX_FLAGS="$LLVM_EXTRA_CXX_FLAGS -fno-gnu-unique"
 fi
 
