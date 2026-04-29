@@ -544,7 +544,19 @@ if(POLICY CMP0146)
 endif()
 add_subdirectory(tpls/fmt)
 cmake_policy(POP)
-include_directories(SYSTEM tpls/json/include)
+include(FetchContent)
+FetchContent_Declare(json
+  URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
+)
+set(JSON_BuildTests OFF CACHE INTERNAL "")
+set(JSON_Install OFF CACHE INTERNAL "")
+set(JSON_SystemInclude ON CACHE INTERNAL "")
+FetchContent_MakeAvailable(json)
+include_directories(SYSTEM ${json_SOURCE_DIR}/include)
+install(FILES ${json_SOURCE_DIR}/single_include/nlohmann/json_fwd.hpp
+  DESTINATION include/nlohmann)
+file(COPY ${json_SOURCE_DIR}/single_include/nlohmann/json_fwd.hpp
+  DESTINATION ${CMAKE_BINARY_DIR}/include/nlohmann)
 
 # Add spdlog
 set(SPDLOG_BUILD_SHARED OFF)

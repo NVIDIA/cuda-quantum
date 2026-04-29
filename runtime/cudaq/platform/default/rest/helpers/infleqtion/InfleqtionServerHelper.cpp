@@ -11,6 +11,7 @@
 #include "cudaq/Support/Version.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include "nlohmann/json.hpp"
 #include <bitset>
 #include <fstream>
 #include <iostream>
@@ -189,7 +190,7 @@ InfleqtionServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
 
   // Store output names and reorder indices if necessary
   OutputNamesType outputNamesMap;
-  for (auto &item : circuitCode.output_names.items()) {
+  for (auto &item : circuitCode.output_names->items()) {
     std::size_t idx = std::stoul(item.key());
     ResultInfoType info;
     info.qubitNum = idx;

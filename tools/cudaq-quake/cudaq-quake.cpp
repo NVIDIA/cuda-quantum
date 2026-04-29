@@ -432,6 +432,7 @@ int main(int argc, char **argv) {
     clArgs.push_back("-I" + std::string(FALLBACK_REFACTORED_CUDAQ_INCLUDE_DIR));
     clArgs.push_back("-I" +
                      std::string(FALLBACK_CUDAQ_INTERNAL_COMPILER_INCLUDE_DIR));
+    clArgs.push_back("-I" + std::string(FALLBACK_CUDAQ_SUPPORT_DIR));
   }
   // Add preprocessor macro definitions, if any.
   for (auto &def : macroDefines)
