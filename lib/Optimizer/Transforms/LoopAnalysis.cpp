@@ -75,7 +75,8 @@ static bool isaConstantOf(Value v, std::int64_t hasVal) {
 }
 
 static bool isClosedIntervalForm(arith::CmpIPredicate p) {
-  return p == arith::CmpIPredicate::ule || p == arith::CmpIPredicate::sle;
+  return p == arith::CmpIPredicate::ule || p == arith::CmpIPredicate::sle ||
+         p == arith::CmpIPredicate::uge || p == arith::CmpIPredicate::sge;
 }
 
 static bool isSemiOpenIntervalForm(arith::CmpIPredicate p) {
