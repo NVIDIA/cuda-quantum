@@ -279,6 +279,8 @@ if(APPLE AND TARGET cudaq-mlir-runtime AND TARGET CUDAQuantumPythonCAPI)
   target_link_options(cudaq-mlir-runtime BEFORE PRIVATE
     "$<TARGET_FILE:CUDAQuantumPythonCAPI>"
     "LINKER:-undefined,dynamic_lookup")
+  set_property(TARGET cudaq-mlir-runtime APPEND PROPERTY
+    BUILD_RPATH "$<TARGET_FILE_DIR:CUDAQuantumPythonCAPI>")
   add_dependencies(cudaq-mlir-runtime CUDAQuantumPythonCAPI)
 endif()
 
