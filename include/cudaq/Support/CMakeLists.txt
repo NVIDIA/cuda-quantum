@@ -6,13 +6,9 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-install (
-  FILES 
-    TargetConfig.h 
-    Version.h 
-  DESTINATION include/cudaq/Support)
+# Files needed at runtime
+install (FILES TargetConfig.h Version.h DESTINATION include/cudaq/Support)
 
-file(COPY
-    TargetConfig.h
-    Version.h
-  DESTINATION ${CMAKE_BINARY_DIR}/include/cudaq/Support)
+# Make files available to nvq++ tests running in the build directory
+# cudaq-quake will use this as a fallback location
+file(COPY TargetConfig.h Version.h DESTINATION ${CMAKE_BINARY_DIR}/include/cudaq/Support)
