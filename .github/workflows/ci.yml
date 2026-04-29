@@ -40,6 +40,7 @@ jobs:
       llvm_commit: ${{ steps.repo_info.outputs.llvm_commit }}
       pybind11_commit: ${{ steps.repo_info.outputs.pybind11_commit }}
       platform_config: ${{ steps.config.outputs.platforms }}
+      build_test_matrix: ${{ steps.config.outputs.build_test_matrix }}
 
     steps:
       - name: Checkout repository
@@ -56,6 +57,27 @@ jobs:
             platforms=`echo $platforms | jq ". |= . + $platform"`
           done
           echo "platforms=$(echo $platforms)" >> $GITHUB_OUTPUT
+
+          # Build/test matrix: on PR push (copy-pr-bot) skip arm64+gcc combos
+          # (expensive, redundant with amd64/gcc). merge_group/dispatch run all.
+          if [ "${{ github.event_name }}" = "push" ]; then
+            build_test_matrix='{"include":[
+              {"platform":"amd64","toolchain":"clang16","mpi":"openmpi"},
+              {"platform":"amd64","toolchain":"gcc11","mpi":"openmpi"},
+              {"platform":"amd64","toolchain":"gcc12","mpi":"openmpi"},
+              {"platform":"arm64","toolchain":"clang16","mpi":"openmpi"}
+            ]}'
+          else
+            build_test_matrix='{"include":[
+              {"platform":"amd64","toolchain":"clang16","mpi":"openmpi"},
+              {"platform":"amd64","toolchain":"gcc11","mpi":"openmpi"},
+              {"platform":"amd64","toolchain":"gcc12","mpi":"openmpi"},
+              {"platform":"arm64","toolchain":"clang16","mpi":"openmpi"},
+              {"platform":"arm64","toolchain":"gcc11","mpi":"openmpi"},
+              {"platform":"arm64","toolchain":"gcc12","mpi":"openmpi"}
+            ]}'
+          fi
+          echo "build_test_matrix=$(echo "$build_test_matrix" | jq -c .)" >> $GITHUB_OUTPUT
 
       - id: pr_info
         run: |
@@ -206,14 +228,8 @@ jobs:
   build_and_test:
     name: Build and test
     needs: [metadata, config_devdeps]
-    # On PR (event_name=='push' from copy-pr-bot) skip arm64/gcc combos —
-    # expensive and redundant with amd64/gcc coverage. merge_group runs everything.
-    if: ${{ github.event_name != 'push' || !(matrix.platform == 'arm64' && (matrix.toolchain == 'gcc11' || matrix.toolchain == 'gcc12')) }}
     strategy:
-      matrix:
-        platform: [amd64, arm64]
-        toolchain: [clang16, gcc11, gcc12]
-        mpi: [openmpi]
+      matrix: ${{ fromJson(needs.metadata.outputs.build_test_matrix) }}
       fail-fast: false
     uses: ./.github/workflows/test_in_devenv.yml
     with:
@@ -341,18 +357,55 @@ jobs:
       - binaries
     if: always()
     steps:
-      - name: Verify all required jobs passed
+      - name: Summarize job results
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
+
+          icon() {
+            case "$1" in
+              success)   echo ":white_check_mark:" ;;
+              skipped)   echo ":fast_forward:" ;;
+              failure)   echo ":x:" ;;
+              cancelled) echo ":no_entry:" ;;
+              *)         echo ":grey_question:" ;;
+            esac
+          }
+
+          {
+            echo "## CI Summary"
+            echo ""
+            echo "Triggered by: \`$EVENT_NAME\`"
+            echo ""
+            echo "| Job | Result |"
+            echo "| --- | --- |"
+            jq -r 'to_entries | sort_by(.key)[] | "\(.key)\t\(.value.result)"' <<< "$NEEDS_JSON" \
+              | while IFS=$'\t' read -r job result; do
+                  echo "| \`$job\` | $(icon "$result") $result |"
+                done
+            echo ""
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+
+          # Plain-text mirror in the log for easy grepping
+          echo ""
           echo "Job results:"
-          jq -r 'to_entries[] | "  \(.key): \(.value.result)"' <<< "$NEEDS_JSON"
-          if jq -e 'to_entries[] | select(.value.result == "failure" or .value.result == "cancelled")' <<< "$NEEDS_JSON" > /dev/null; then
-            echo "::error::One or more required jobs failed or were cancelled"
+          jq -r 'to_entries | sort_by(.key)[] | "  \(.key): \(.value.result)"' <<< "$NEEDS_JSON"
+
+          # Group jobs by result for the failure message
+          failed=$(jq -r '[to_entries[] | select(.value.result == "failure" or .value.result == "cancelled") | .key] | join(", ")' <<< "$NEEDS_JSON")
+          if [ -n "$failed" ]; then
+            {
+              echo "### :x: Failed or cancelled jobs"
+              echo ""
+              echo "$failed" | tr ',' '\n' | sed 's/^ */- `/; s/$/`/'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error::Failed or cancelled: $failed"
             exit 1
           fi
-          echo "All required jobs passed."
+
+          echo "All required jobs passed (or were intentionally skipped)."
 
   clean_up:
     name: Prepare cache clean-up
