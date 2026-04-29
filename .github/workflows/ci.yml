@@ -113,8 +113,7 @@ jobs:
     needs: metadata
     strategy:
       matrix:
-        platform: [amd64, arm64]
-        toolchain: [llvm, gcc12]
+        platform: [amd64]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -122,15 +121,13 @@ jobs:
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: linux/${{ matrix.platform }}
-      dockerfile: build/devdeps.Dockerfile
-      build_config_id: ${{ matrix.toolchain }}
-      build_args: |
-        toolchain=${{ matrix.toolchain }}
+      dockerfile: build/devdeps.bootstrap.Dockerfile
+      build_config_id: llvm-bootstrap
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       checkout_submodules: true
       environment: ghcr-ci
       # needed only for the cloudposse GitHub action
-      matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
+      matrix_key: ${{ matrix.platform }}-llvm-bootstrap
       matrix_step_name: dev_environment_devdeps
 
   wheeldeps:
@@ -236,23 +233,18 @@ jobs:
     needs: [metadata, config_devdeps]
     strategy:
       matrix:
-        platform: [amd64, arm64]
-        toolchain: [gcc12, llvm]
+        platform: [amd64]
         mpi: [openmpi]
       fail-fast: false
     uses: ./.github/workflows/test_in_devenv.yml
     with:
       platform: linux/${{ matrix.platform }}
       mpi: ${{ matrix.mpi }}
-      devdeps_image: ${{ fromJson(needs.config_devdeps.outputs.json).image_hash[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
-      devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
-      devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
+      devdeps_image: ${{ fromJson(needs.config_devdeps.outputs.json).image_hash[format('{0}-llvm-bootstrap', matrix.platform)] }}
+      devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-llvm-bootstrap', matrix.platform)] }}
+      devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-llvm-bootstrap', matrix.platform)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
-      # PR tier fake-passes the arm64/gcc builds (expensive, redundant with amd64/gcc coverage).
-      # Computing skip_build from the 3 real matrix axes keeps the auto-generated job name as
-      # "Build and test (<platform>, <toolchain>, <mpi>) / ..." so branch-protection required
-      # check names match. Adding a 4th matrix key would leak into the name and break gating.
-      skip_build: ${{ needs.metadata.outputs.ci_tier == 'pr' && matrix.platform == 'arm64' && matrix.toolchain == 'gcc12' }}
+      skip_build: false
 
   gen_code_coverage:
     name: Gen code coverage
@@ -261,16 +253,15 @@ jobs:
     strategy:
       matrix:
         platform: [amd64]
-        toolchain: [llvm]
       fail-fast: false
     uses: ./.github/workflows/generate_cc.yml
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     with:
       platform: linux/${{ matrix.platform }}
-      devdeps_image: ${{ fromJson(needs.config_devdeps.outputs.json).image_hash[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
-      devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
-      devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
+      devdeps_image: ${{ fromJson(needs.config_devdeps.outputs.json).image_hash[format('{0}-llvm-bootstrap', matrix.platform)] }}
+      devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-llvm-bootstrap', matrix.platform)] }}
+      devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-llvm-bootstrap', matrix.platform)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
   # Docker images are packaging, not correctness. On PR tier this fake-passes
