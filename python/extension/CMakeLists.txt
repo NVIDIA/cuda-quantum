@@ -289,28 +289,6 @@ if(TARGET cudaq-mlir-runtime AND TARGET CUDAQuantumPythonCAPI)
   add_dependencies(cudaq-mlir-runtime CUDAQuantumPythonCAPI)
 endif()
 
-if(APPLE AND TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso)
-  set(_darwin_typeid_diag_script
-    "${CMAKE_CURRENT_BINARY_DIR}/darwin_typeid_diag.sh")
-  file(GENERATE OUTPUT "${_darwin_typeid_diag_script}" CONTENT
-"#!/bin/sh
-echo '--- CAPI: TypeIDResolver BuiltinDialect symbol ---'
-nm -g '$<TARGET_FILE:CUDAQuantumPythonCAPI>' | grep TypeIDResolverINS_14BuiltinDialect || echo '(no match in CAPI)'
-echo '--- _quakeDialects: TypeIDResolver BuiltinDialect symbol ---'
-nm -gm '$<TARGET_FILE:CUDAQuantumPythonModules.extension._quakeDialects.dso>' | grep TypeIDResolverINS_14BuiltinDialect || echo '(no match in _quakeDialects)'
-echo '--- cudaq-mlir-runtime: TypeIDResolver BuiltinDialect symbol ---'
-nm -g '$<TARGET_FILE:cudaq-mlir-runtime>' | grep TypeIDResolverINS_14BuiltinDialect || echo '(no match in cudaq-mlir-runtime)'
-echo '--- _quakeDialects: namespace flag (should be flat) ---'
-otool -hv '$<TARGET_FILE:CUDAQuantumPythonModules.extension._quakeDialects.dso>' 2>/dev/null | grep -E 'TWOLEVEL|flags' || echo '(otool unavailable)'
-exit 0
-")
-  add_custom_command(
-    TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso POST_BUILD
-    COMMENT "Darwin diag: BuiltinDialect TypeID symbol distribution"
-    COMMAND sh "${_darwin_typeid_diag_script}"
-  )
-endif()
-
 ## The Python bindings module for Quake dialect depends on CUDAQ libraries
 ## which it can't locate since they are in "../../lib" and the 'rpath' is set
 ## to '$ORIGIN' by default.

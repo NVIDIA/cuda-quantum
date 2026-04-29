@@ -297,14 +297,6 @@ jobs:
           name: pycudaq-${{ matrix.python_version }}-darwin-arm64
           path: dist/
 
-      - name: Diagnose wheel import
-        run: |
-          DIAG_VENV="$RUNNER_TEMP/cudaq-import-diag"
-          python${{ matrix.python_version }} -m venv "$DIAG_VENV"
-          source "$DIAG_VENV/bin/activate"
-          pip install --find-links dist "cuda-quantum-cu13==${{ needs.wheel.outputs.cudaq_version }}"
-          python -X faulthandler -c "import cudaq; print('IMPORT_OK')" 2>&1 || true
-
       - name: Validate wheel
         run: |
           # Validates wheel: core tests, examples, snippets, backends.
