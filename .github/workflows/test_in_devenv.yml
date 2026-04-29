@@ -358,6 +358,23 @@ jobs:
             python -X faulthandler -c "import cudaq; print('import ok')" 2>&1 | tee /tmp/import_cudaq.log || true
             echo "::endgroup::"
 
+            echo "::group::TypeID DSO diagnostic (BuiltinDialect)"
+            site_pkgs=$(python -c "import sysconfig; print(sysconfig.get_paths()['purelib'])" 2>/dev/null || true)
+            if [ -n "$site_pkgs" ]; then
+              find "$site_pkgs" \( -name 'libCUDAQuantumPythonCAPI.so' \
+                                -o -name '_quakeDialects*.so' \
+                                -o -name 'libcudaq-mlir-runtime.so' \) -print 2>/dev/null \
+              | while read f; do
+                  echo "--- $f ---"
+                  nm -D --defined-only "$f" 2>/dev/null | grep TypeIDResolverINS_14BuiltinDialect \
+                    || echo "(no defined BuiltinDialect TypeID symbol)"
+                  echo "(undefined refs:)"
+                  nm -D --undefined-only "$f" 2>/dev/null | grep TypeIDResolverINS_14BuiltinDialect | head -5 \
+                    || echo "(none)"
+                done
+            fi
+            echo "::endgroup::"
+
             python -m pip install pytest pytest-xdist
             python -m pytest -v --durations=0 -n auto python/tests/ \
               --ignore python/tests/backends \
