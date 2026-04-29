@@ -18,6 +18,7 @@
 #include "cudaq/Support/Version.h"
 #include "cudaq/Todo.h"
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
+#include "cudaq/Verifier/QIRSpec.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorOr.h"
@@ -236,6 +237,11 @@ int main(int argc, char **argv) {
     llvm::errs() << "Failed to optimize LLVM IR " << err << '\n';
     std::exit(1);
   }
+
+  if (convertPair.first == "qir-base" &&
+      failed(cudaq::verifier::verifyBaseProfileMeasurementOrdering(
+          llvmModule.get())))
+    cudaq::emitFatalError(module->getLoc(), "Code is not QIR compliant.");
 
   // Output the LLVM IR to the output file.
   if (ec)

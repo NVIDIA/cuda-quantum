@@ -31,6 +31,36 @@
 
 using namespace mlir;
 
+// Once a call to a function with the irreversible attribute is seen, QIR Base
+// Profile does not allow any subsequent call to a reversible function in that
+// execution stream. Output recording is bookkeeping, so it is excluded from the
+// reversible-operation check.
+LogicalResult cudaq::verifier::verifyBaseProfileMeasurementOrdering(
+    llvm::Module *llvmModule) {
+  bool irreversibleSeenYet = false;
+  for (llvm::Function &func : *llvmModule)
+    for (llvm::BasicBlock &block : func)
+      for (llvm::Instruction &inst : block) {
+        auto callInst = llvm::dyn_cast_or_null<llvm::CallBase>(&inst);
+        if (!callInst || !callInst->getCalledFunction())
+          continue;
+
+        auto calledFunc = callInst->getCalledFunction();
+        auto funcName = calledFunc->getName();
+        bool isIrreversible = calledFunc->hasFnAttribute("irreversible");
+        bool isOutputFunction = (funcName == cudaq::opt::QIRRecordOutput ||
+                                 funcName == cudaq::opt::QIRArrayRecordOutput);
+        if (!isIrreversible && !isOutputFunction && irreversibleSeenYet) {
+          llvm::errs() << "error: reversible function " << funcName
+                       << " came after irreversible function\n";
+          return failure();
+        }
+        if (isIrreversible)
+          irreversibleSeenYet = true;
+      }
+  return success();
+}
+
 static bool isValidIntegerArithmeticInstruction(llvm::Instruction &inst) {
   const auto isValidIntegerBinaryInst = [](const auto &inst) {
     if (!llvm::isa<llvm::BinaryOperator>(inst))

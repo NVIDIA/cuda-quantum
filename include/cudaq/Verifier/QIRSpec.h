@@ -28,4 +28,9 @@ struct LLVMVerifierOptions {
 /// Verify that only LLVM instructions allowed by the QIR specification.
 mlir::LogicalResult verifyLLVMInstructions(llvm::Module *llvmModule,
                                            LLVMVerifierOptions options);
+
+/// Verify the QIR Base Profile rule that no reversible operation may follow an
+/// irreversible operation, such as a measurement, in the same execution stream.
+mlir::LogicalResult
+verifyBaseProfileMeasurementOrdering(llvm::Module *llvmModule);
 } // namespace cudaq::verifier

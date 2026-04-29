@@ -949,8 +949,7 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
-    pm.addPass(cudaq::opt::createQuakePropagateMetadata());
+    cudaq::opt::addQuakeMetadataRefresh(pm);
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addNestedPass<func::FuncOp>(createCSEPass());
     pm.addPass(cudaq::opt::createGenerateDeviceCodeLoader({.jitTime = true}));
@@ -976,6 +975,9 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
           cudaq::opt::createCombineQuantumAllocations());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addNestedPass<func::FuncOp>(createCSEPass());
+    // Recompute measurement metadata after allocation combining has exposed
+    // the final Quake shape that sampling uses to choose explicit semantics.
+    cudaq::opt::addQuakeMetadataRefresh(pm);
     pm.addPass(cudaq::opt::createConvertToQIR());
     pm.addPass(createCanonicalizerPass());
 

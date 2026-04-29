@@ -13,6 +13,7 @@
 #include "common/FmtCore.h"
 #include "common/NoiseModel.h"
 #include "common/Resources.h"
+#include "common/SampleMeasurementUtils.h"
 #include "common/ServerHelper.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
@@ -429,6 +430,11 @@ cudaq::CompiledModule Compiler::runPassPipeline(
       }
     }
   }
+
+  if (executionContext && executionContext->name == "sample")
+    cudaq::details::resolveSampleExplicitMeasurements(
+        epFunc, *executionContext,
+        /*targetSupportsExplicit=*/true);
 
   bool combineMeasurements = executeMainPipeline(moduleOp, kernelName);
 

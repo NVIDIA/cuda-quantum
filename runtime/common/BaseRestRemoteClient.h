@@ -12,6 +12,7 @@
 #include "common/JsonConvert.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/RestClient.h"
+#include "common/SampleMeasurementUtils.h"
 #include "common/UnzipUtils.h"
 #include "cudaq.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
@@ -22,6 +23,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/platform.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
@@ -209,6 +211,17 @@ public:
       if (failed(pm.run(moduleOp)))
         throw std::runtime_error("Could not successfully apply " + passName +
                                  " synth.");
+    }
+
+    if (auto *executionContext = cudaq::getExecutionContext();
+        executionContext && executionContext->name == "sample") {
+      auto sampleFunc = moduleOp.lookupSymbol<mlir::func::FuncOp>(
+          std::string("__nvqpp__mlirgen__") + name);
+      if (sampleFunc)
+        cudaq::details::resolveSampleExplicitMeasurements(
+            sampleFunc, *executionContext,
+            cudaq::get_platform().supports_explicit_measurements(
+                executionContext->qpuId));
     }
 
     // Note: do not run state preparation pass here since we are always

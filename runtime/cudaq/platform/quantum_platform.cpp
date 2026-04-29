@@ -142,6 +142,10 @@ void quantum_platform::configureExecutionContext(ExecutionContext &ctx) const {
   std::size_t qid = ctx.qpuId;
   validateQpuId(qid);
   auto &platformQPU = platformQPUs[qid];
+  if (ctx.name == "sample" && ctx.explicitMeasurements &&
+      !platformQPU->supportsExplicitMeasurements())
+    throw std::runtime_error("The sampling option `explicit_measurements` is "
+                             "not supported on this target.");
   platformQPU->configureExecutionContext(ctx);
 }
 

@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/DeviceCodeRegistry.h"
 #include "common/ExecutionContext.h"
 #include "common/SampleResult.h"
 #include "cudaq/algorithms/broadcast.h"
@@ -15,12 +16,16 @@
 #include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
+#include "cudaq/qis/kernel_utils.h"
+#include <algorithm>
+#include <cstdio>
+#include <optional>
+#include <type_traits>
+#include <vector>
 
 namespace cudaq {
 bool kernelHasConditionalFeedback(const std::string &);
 namespace detail {
-bool isKernelGenerated(const std::string &);
-
 /// @brief Check whether a kernel uses conditional feedback (measurement-
 /// dependent branching). Checks MLIR metadata first, then optionally checks
 /// the ExecutionContext's registerNames (populated during library-mode
@@ -36,6 +41,89 @@ inline bool hasConditionalFeedback(const std::string &kernelName,
   if (ctx && !ctx->registerNames.empty())
     return true;
   return false;
+}
+
+template <typename T, typename = void>
+struct HasUniqueCallOperator : std::false_type {};
+
+template <typename T>
+struct HasUniqueCallOperator<
+    T, std::void_t<decltype(&std::remove_cvref_t<T>::operator())>>
+    : std::true_type {};
+
+template <typename QuantumKernel>
+std::string getSampleKernelName(QuantumKernel &&kernel) {
+#ifdef CUDAQ_LIBRARY_MODE
+  return cudaq::getKernelName(kernel);
+#else
+  using KernelType = std::remove_cvref_t<QuantumKernel>;
+  if constexpr (cudaq::has_name<KernelType>::value ||
+                !std::is_class_v<KernelType> ||
+                (HasUniqueCallOperator<KernelType>::value &&
+                 !std::is_aggregate_v<KernelType>)) {
+    return cudaq::details::getKernelName(std::forward<QuantumKernel>(kernel));
+  } else {
+    return cudaq::getKernelName(kernel);
+  }
+#endif
+}
+
+template <typename QuantumKernel>
+void jitIfKernelBuilder(QuantumKernel &kernel) {
+  using KernelType = std::remove_cvref_t<QuantumKernel>;
+  if constexpr (cudaq::has_name<KernelType>::value)
+    static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
+}
+
+inline bool
+resolveRegisteredSampleExplicitMeasurements(const std::string &kernelName,
+                                            ExecutionContext &ctx,
+                                            bool targetSupportsExplicit) {
+  if (ctx.name != "sample")
+    return false;
+
+  auto requiresExplicit = cudaq::kernelRequiresExplicitMeasurements(kernelName);
+  if (!requiresExplicit)
+    return false;
+
+  if (!*requiresExplicit) {
+    ctx.explicitMeasurements = false;
+    return true;
+  }
+
+  if (!targetSupportsExplicit)
+    throw std::runtime_error(
+        "This kernel requires explicit measurement result semantics for "
+        "sampling, but explicit measurements are not supported on this "
+        "target.");
+
+  // Auto-correct: if the analysis requires explicit measurements and the
+  // target supports them, enable them regardless of the initial context
+  // value.
+  ctx.explicitMeasurements = true;
+
+  return true;
+}
+
+// Resolve the initial "auto" value used by no-options sample overloads. This is
+// only a request: if kernel measurement metadata is available, the sampling
+// setup below will still refine it to the effective behavior, e.g. disable
+// explicit handling for no-measurement and allocation-order kernels, or
+// require it for kernels whose measurement order affects the result.
+//
+// If the target cannot support explicit measurements, start in legacy
+// non-explicit mode. This preserves existing remote/vendor target behavior for
+// default sample() calls, where explicit collection cannot be requested from
+// the backend. If measurement metadata is missing, as in deprecated library
+// mode, also use the legacy path because we cannot prove the new semantics
+// locally.
+inline bool defaultSampleExplicitMeasurements(quantum_platform &platform,
+                                              const std::string &kernelName,
+                                              std::size_t qpu_id = 0) {
+  if (!platform.supports_explicit_measurements(qpu_id))
+    return false;
+  auto requiresExplicit = cudaq::kernelRequiresExplicitMeasurements(kernelName);
+  return requiresExplicit.value_or(false);
 }
 } // namespace detail
 
@@ -68,10 +156,6 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
         "' uses conditional feedback. Use `cudaq::run` or `cudaq::run_async` "
         "instead. See CUDA-Q documentation for migration guide.");
 
-  if (explicitMeasurements && !platform.supports_explicit_measurements())
-    throw std::runtime_error("The sampling option `explicit_measurements` is "
-                             "not supported on this target.");
-
   // Create the execution context.
   ExecutionContext ctx("sample", shots, qpu_id);
   ctx.kernelName = kernelName;
@@ -79,32 +163,18 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   ctx.totalIterations = totalBatchIters;
   ctx.explicitMeasurements = explicitMeasurements;
 
-#ifdef CUDAQ_LIBRARY_MODE
-  // If we have a kernel that has its quake code registered, we
-  // won't check for if statements with the tracer.
-  auto isRegistered = detail::isKernelGenerated(kernelName);
+  bool resolvedFromMetadata =
+      detail::resolveRegisteredSampleExplicitMeasurements(
+          kernelName, ctx, platform.supports_explicit_measurements(qpu_id));
 
-  // One extra check to see if we have mid-circuit
-  // measures in library mode
-  if (!isRegistered && !ctx.hasConditionalsOnMeasureResults) {
-    // Trace the kernel function
-    ExecutionContext context("tracer");
-    context.qpuId = qpu_id;
-    auto &platform = get_platform();
-    platform.with_execution_context(context,
-                                    std::forward<KernelFunctor>(wrappedKernel));
-    // In trace mode, if we have a measure result
-    // that is passed to an if statement, then
-    // we'll have collected registernames
-    if (!context.registerNames.empty()) {
-      // append new register names to the main sample context
-      for (std::size_t i = 0; i < context.registerNames.size(); ++i)
-        ctx.registerNames.emplace_back("auto_register_" + std::to_string(i));
-
-      ctx.hasConditionalsOnMeasureResults = true;
-    }
-  }
-#endif
+  if (!resolvedFromMetadata && !explicitMeasurements)
+    std::fprintf(stderr,
+                 "WARNING: CUDA-Q could not analyze measurement semantics for "
+                 "kernel \"%s\" before sampling. Executing with "
+                 "`explicit_measurements=false` using legacy non-explicit "
+                 "sampling behavior; results may not preserve user "
+                 "measurement order.\n",
+                 kernelName.c_str());
 
   // Indicate that this is an asynchronous execution.
   ctx.asyncExec = futureResult != nullptr;
@@ -134,10 +204,6 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
 
     ctx.result.clear();
     if (counts.get_total_shots() == 0) {
-      if (explicitMeasurements)
-        throw std::runtime_error(
-            "The sampling option `explicit_measurements` is not supported on a "
-            "kernel without any measurement operation.");
       printf("WARNING: this kernel invocation produced 0 shots worth "
              "of results when executed. Exiting shot loop to avoid "
              "infinite loop.");
@@ -164,7 +230,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
 template <typename KernelFunctor>
 auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
                       const std::string &kernelName, int shots,
-                      bool explicitMeasurements = false, std::size_t qpu_id = 0,
+                      bool explicitMeasurements = true, std::size_t qpu_id = 0,
                       std::optional<noise_model> noise = std::nullopt) {
   if (qpu_id >= platform.num_qpus()) {
     throw std::invalid_argument("Provided qpu_id " + std::to_string(qpu_id) +
@@ -185,7 +251,8 @@ auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
     details::future futureResult;
     details::runSampling(std::forward<KernelFunctor>(wrappedKernel), platform,
                          kernelName, shots, explicitMeasurements, qpu_id,
-                         &futureResult);
+                         &futureResult, /*batchIteration=*/0,
+                         /*totalBatchIters=*/0);
     return async_sample_result(std::move(futureResult));
   }
 
@@ -209,7 +276,9 @@ auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
         std::optional<sample_result> result;
         try {
           result = details::runSampling(kernel, platform, kernelName, shots,
-                                        explicitMeasurements, qpu_id);
+                                        explicitMeasurements, qpu_id, nullptr,
+                                        /*batchIteration=*/0,
+                                        /*totalBatchIters=*/0);
         } catch (...) {
           // Ensure noise model is reset even on exception.
           if (hasNoise)
@@ -247,17 +316,16 @@ template <typename QuantumKernel, typename... Args>
 sample_result sample(QuantumKernel &&kernel, Args &&...args) {
   // Need the code to be lowered to llvm and the kernel to be registered
   // so that we can check for conditional feedback / mid circ measurement
-  if constexpr (has_name<QuantumKernel>::value) {
-    static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
-  }
+  cudaq::detail::jitIfKernelBuilder(kernel);
 
   // Run this SHOTS times
   auto &platform = cudaq::get_platform();
-  auto kernelName = cudaq::getKernelName(kernel);
+  auto kernelName = cudaq::detail::getSampleKernelName(kernel);
+  auto explicitMeasurements =
+      detail::defaultSampleExplicitMeasurements(platform, kernelName);
   return details::runSampling(
              [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
-             kernelName, /*shots=*/DEFAULT_NUM_SHOTS,
-             /*explicitMeasurements=*/false)
+             kernelName, /*shots=*/DEFAULT_NUM_SHOTS, explicitMeasurements)
       .value();
 }
 
@@ -280,16 +348,16 @@ template <typename QuantumKernel, typename... Args>
 auto sample(std::size_t shots, QuantumKernel &&kernel, Args &&...args) {
   // Need the code to be lowered to llvm and the kernel to be registered
   // so that we can check for conditional feedback / mid circ measurement
-  if constexpr (has_name<QuantumKernel>::value) {
-    static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
-  }
+  cudaq::detail::jitIfKernelBuilder(kernel);
 
   // Run this SHOTS times
   auto &platform = cudaq::get_platform();
-  auto kernelName = cudaq::getKernelName(kernel);
+  auto kernelName = cudaq::detail::getSampleKernelName(kernel);
+  auto explicitMeasurements =
+      detail::defaultSampleExplicitMeasurements(platform, kernelName);
   return details::runSampling(
              [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
-             kernelName, shots, /*explicitMeasurements=*/false)
+             kernelName, shots, explicitMeasurements)
       .value();
 }
 
@@ -313,13 +381,11 @@ sample_result sample(const sample_options &options, QuantumKernel &&kernel,
 
   // Need the code to be lowered to llvm and the kernel to be registered
   // so that we can check for conditional feedback / mid circ measurement
-  if constexpr (has_name<QuantumKernel>::value) {
-    static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
-  }
+  cudaq::detail::jitIfKernelBuilder(kernel);
 
   auto &platform = cudaq::get_platform();
   auto shots = options.shots;
-  auto kernelName = cudaq::getKernelName(kernel);
+  auto kernelName = cudaq::detail::getSampleKernelName(kernel);
   if (!options.noise.empty())
     platform.set_noise(&options.noise);
   auto ret = details::runSampling(
@@ -350,19 +416,19 @@ async_sample_result sample_async(const std::size_t qpu_id,
                                  QuantumKernel &&kernel, Args &&...args) {
   // Need the code to be lowered to llvm and the kernel to be registered
   // so that we can check for conditional feedback / mid circ measurement
-  if constexpr (has_name<QuantumKernel>::value) {
-    static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
-  }
+  cudaq::detail::jitIfKernelBuilder(kernel);
 
   auto &platform = cudaq::get_platform();
-  auto kernelName = cudaq::getKernelName(kernel);
+  auto kernelName = cudaq::detail::getSampleKernelName(kernel);
+  auto explicitMeasurements =
+      detail::defaultSampleExplicitMeasurements(platform, kernelName, qpu_id);
 
   return details::runSamplingAsync(
       [&kernel, ... args = std::forward<Args>(args)]() mutable {
         kernel(std::forward<Args>(args)...);
       },
-      platform, kernelName, /*shots=*/DEFAULT_NUM_SHOTS,
-      /*explicitMeasurements=*/false, qpu_id);
+      platform, kernelName, /*shots=*/DEFAULT_NUM_SHOTS, explicitMeasurements,
+      qpu_id);
 }
 
 /// @brief Sample the given kernel expression asynchronously and return
@@ -386,19 +452,19 @@ async_sample_result sample_async(std::size_t shots, std::size_t qpu_id,
                                  QuantumKernel &&kernel, Args &&...args) {
   // Need the code to be lowered to llvm and the kernel to be registered
   // so that we can check for conditional feedback / mid circ measurement
-  if constexpr (has_name<QuantumKernel>::value) {
-    static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
-  }
+  cudaq::detail::jitIfKernelBuilder(kernel);
 
   // Run this SHOTS times
   auto &platform = cudaq::get_platform();
-  auto kernelName = cudaq::getKernelName(kernel);
+  auto kernelName = cudaq::detail::getSampleKernelName(kernel);
+  auto explicitMeasurements =
+      detail::defaultSampleExplicitMeasurements(platform, kernelName, qpu_id);
 
   return details::runSamplingAsync(
       [&kernel, ... args = std::forward<Args>(args)]() mutable {
         kernel(std::forward<Args>(args)...);
       },
-      platform, kernelName, shots, /*explicitMeasurements=*/false, qpu_id);
+      platform, kernelName, shots, explicitMeasurements, qpu_id);
 }
 
 /// @brief Sample the given kernel expression asynchronously and return
@@ -423,11 +489,9 @@ async_sample_result sample_async(const sample_options &options,
                                  Args &&...args) {
   // Need the code to be lowered to llvm and the kernel to be registered
   // so that we can check for conditional feedback / mid circ measurement
-  if constexpr (has_name<QuantumKernel>::value) {
-    static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
-  }
+  cudaq::detail::jitIfKernelBuilder(kernel);
   auto &platform = cudaq::get_platform();
-  auto kernelName = cudaq::getKernelName(kernel);
+  auto kernelName = cudaq::detail::getSampleKernelName(kernel);
 
   // Pass the noise model (copied by value) to runSamplingAsync, which will
   // set/reset it within the asynchronous task to avoid dangling pointers and
@@ -480,13 +544,15 @@ std::vector<sample_result> sample(QuantumKernel &&kernel,
   details::BroadcastFunctorType<sample_result, Args...> functor =
       [&](std::size_t qpuId, std::size_t counter, std::size_t N,
           Args &...singleIterParameters) -> sample_result {
-    auto kernelName = cudaq::getKernelName(kernel);
+    auto kernelName = cudaq::detail::getSampleKernelName(kernel);
+    auto explicitMeasurements =
+        detail::defaultSampleExplicitMeasurements(platform, kernelName, qpuId);
     auto ret = details::runSampling(
                    [&kernel, &singleIterParameters...]() mutable {
                      kernel(std::forward<Args>(singleIterParameters)...);
                    },
                    platform, kernelName, /*shots=*/DEFAULT_NUM_SHOTS,
-                   /*explicitMeasurements=*/false, qpuId, nullptr, counter, N)
+                   explicitMeasurements, qpuId, nullptr, counter, N)
                    .value();
     return ret;
   };
@@ -517,13 +583,15 @@ std::vector<sample_result> sample(std::size_t shots, QuantumKernel &&kernel,
   details::BroadcastFunctorType<sample_result, Args...> functor =
       [&](std::size_t qpuId, std::size_t counter, std::size_t N,
           Args &...singleIterParameters) -> sample_result {
-    auto kernelName = cudaq::getKernelName(kernel);
+    auto kernelName = cudaq::detail::getSampleKernelName(kernel);
+    auto explicitMeasurements =
+        detail::defaultSampleExplicitMeasurements(platform, kernelName, qpuId);
     auto ret = details::runSampling(
                    [&kernel, &singleIterParameters...]() mutable {
                      kernel(std::forward<Args>(singleIterParameters)...);
                    },
-                   platform, kernelName, shots, /*explicitMeasurements=*/false,
-                   qpuId, nullptr, counter, N)
+                   platform, kernelName, shots, explicitMeasurements, qpuId,
+                   nullptr, counter, N)
                    .value();
     return ret;
   };
@@ -560,7 +628,7 @@ std::vector<sample_result> sample(const sample_options &options,
       [&, explicit_mz = options.explicit_measurements](
           std::size_t qpuId, std::size_t counter, std::size_t N,
           Args &...singleIterParameters) -> sample_result {
-    auto kernelName = cudaq::getKernelName(kernel);
+    auto kernelName = cudaq::detail::getSampleKernelName(kernel);
     auto ret = details::runSampling(
                    [&kernel, &singleIterParameters...]() mutable {
                      kernel(std::forward<Args>(singleIterParameters)...);
@@ -599,13 +667,13 @@ sample_n(QuantumKernel &&kernel, ArgumentSet<Args...> &&params) {
   details::BroadcastFunctorType<sample_result, Args...> functor =
       [&](std::size_t qpuId, std::size_t counter, std::size_t N,
           Args &...singleIterParameters) -> sample_result {
-    auto kernelName = cudaq::getKernelName(kernel);
+    auto kernelName = cudaq::detail::getSampleKernelName(kernel);
     auto ret = details::runSampling(
                    [&kernel, &singleIterParameters...]() mutable {
                      kernel(std::forward<Args>(singleIterParameters)...);
                    },
                    platform, kernelName, /*shots=*/DEFAULT_NUM_SHOTS,
-                   /*explicitMeasurements=*/false, qpuId, nullptr, counter, N)
+                   /*explicitMeasurements=*/true, qpuId, nullptr, counter, N)
                    .value();
     return ret;
   };
@@ -637,12 +705,12 @@ sample_n(std::size_t shots, QuantumKernel &&kernel,
   details::BroadcastFunctorType<sample_result, Args...> functor =
       [&](std::size_t qpuId, std::size_t counter, std::size_t N,
           Args &...singleIterParameters) -> sample_result {
-    auto kernelName = cudaq::getKernelName(kernel);
+    auto kernelName = cudaq::detail::getSampleKernelName(kernel);
     auto ret = details::runSampling(
                    [&kernel, &singleIterParameters...]() mutable {
                      kernel(std::forward<Args>(singleIterParameters)...);
                    },
-                   platform, kernelName, shots, /*explicitMeasurements=*/false,
+                   platform, kernelName, shots, /*explicitMeasurements=*/true,
                    qpuId, nullptr, counter, N)
                    .value();
     return ret;

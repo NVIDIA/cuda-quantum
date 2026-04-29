@@ -8,10 +8,14 @@
 
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "PassDetails.h"
+#include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/Optimizer/Transforms/SampleMeasurementAnalysis.h"
 #include "cudaq/Todo.h"
+#include "llvm/ADT/SmallPtrSet.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -180,6 +184,15 @@ public:
       // if so, add a function attribute
       auto builder = OpBuilder::atBlockBegin(&funcOp.getBody().front());
       funcOp->setAttr("qubitMeasurementFeedback", builder.getBoolAttr(true));
+    }
+
+    if (funcOp->hasAttr(cudaq::kernelAttrName)) {
+      auto builder = OpBuilder::atBlockBegin(&funcOp.getBody().front());
+      funcOp->removeAttr(cudaq::kernelExplicitMeasurementsAttrName);
+
+      if (cudaq::opt::requiresExplicitMeasurements(funcOp))
+        funcOp->setAttr(cudaq::kernelExplicitMeasurementsAttrName,
+                        builder.getUnitAttr());
     }
   }
 };

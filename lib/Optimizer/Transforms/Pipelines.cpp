@@ -60,11 +60,15 @@ struct TargetFinalizationJitPipelineOptions
 };
 } // namespace
 
+void cudaq::opt::addQuakeMetadataRefresh(OpPassManager &pm) {
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
+  pm.addPass(cudaq::opt::createQuakePropagateMetadata());
+}
+
 static void createTargetPrepPipeline(OpPassManager &pm,
                                      const TargetPrepPipelineOptions &options) {
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
-  pm.addPass(cudaq::opt::createQuakePropagateMetadata());
+  cudaq::opt::addQuakeMetadataRefresh(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());

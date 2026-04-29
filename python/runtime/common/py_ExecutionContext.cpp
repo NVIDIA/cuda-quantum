@@ -111,10 +111,13 @@ void bindExecutionContext(nanobind::module_ &mod) {
           },
           nanobind::arg("type").none(), nanobind::arg("value").none(),
           nanobind::arg("traceback").none());
-  mod.def("supportsExplicitMeasurements", []() {
-    auto &platform = cudaq::get_platform();
-    return platform.supports_explicit_measurements();
-  });
+  mod.def(
+      "supportsExplicitMeasurements",
+      [](std::size_t qpuId = 0) {
+        auto &platform = cudaq::get_platform();
+        return platform.supports_explicit_measurements(qpuId);
+      },
+      nanobind::arg("qpu_id") = 0);
   mod.def("getExecutionContextName",
           []() { return cudaq::getExecutionContext()->name; });
   mod.def(

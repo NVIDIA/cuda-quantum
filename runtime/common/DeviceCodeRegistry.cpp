@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "DeviceCodeRegistry.h"
+#include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/qis/qkernel.h"
 #include "cudaq/runtime/logger/logger.h"
 #include <map>
@@ -207,5 +208,17 @@ bool kernelHasConditionalFeedback(const std::string &kernelName) {
   auto quakeCode = get_quake_by_name(kernelName, false);
   return !quakeCode.empty() &&
          quakeCode.find("qubitMeasurementFeedback = true") != std::string::npos;
+}
+
+std::optional<bool>
+kernelRequiresExplicitMeasurements(const std::string &kernelName) {
+  auto quakeCode = get_quake_by_name(kernelName, false);
+  if (quakeCode.empty())
+    return std::nullopt;
+
+  if (quakeCode.find(kernelExplicitMeasurementsAttrName) != std::string::npos)
+    return true;
+
+  return false;
 }
 } // namespace cudaq
