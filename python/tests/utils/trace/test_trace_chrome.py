@@ -97,6 +97,12 @@ def test_builtin_python_phase_spans_wrap_kernel_lifecycle():
     assert "cudaq.kernel.kernel_decorator.PyKernelDecorator.compile" in names
     assert "cudaq.kernel.kernel_decorator.PyKernelDecorator.prepare_call" in names
     assert "kernel.clone_module" in names
+    # AST-bridge build span and the AOT pipeline marker emitted from
+    # compile_to_mlir. Tooling attributes per-pass events to AOT vs JIT by
+    # the cudaq.pipeline.* span ancestry, so a refactor that drops either
+    # name needs to update both this test and the contract.
+    assert "ast_bridge.build_module" in names
+    assert "cudaq.pipeline.aot" in names
 
 
 def test_file_backed_chrome_backend_writes_on_process_exit(tmp_path):

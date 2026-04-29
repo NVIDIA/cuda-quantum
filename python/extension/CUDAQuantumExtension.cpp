@@ -10,6 +10,7 @@
 #include "cudaq/Support/Version.h"
 #include "cudaq/platform/orca/orca_qpu.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "runtime/common/py_AnalogHamiltonian.h"
 #include "runtime/common/py_CustomOpRegistry.h"
 #include "runtime/common/py_EvolveResult.h"
@@ -49,6 +50,7 @@
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/NanobindAdaptors.h"
 #include "utils/OpaqueArguments.h"
+#include "mlir/CAPI/Pass.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include <nanobind/stl/complex.h>
@@ -282,6 +284,17 @@ NB_MODULE(_quakeDialects, m) {
       nanobind::arg("id"));
   cudaqRuntime.def("cloneModule",
                    [](MlirModule mod) { return wrap(unwrap(mod).clone()); });
+  cudaqRuntime.def(
+      "runPassManager",
+      [](MlirPassManager pm, MlirModule mod) {
+        if (mlir::failed(cudaq_internal::compiler::runPassManager(
+                *unwrap(pm), unwrap(mod).getOperation())))
+          throw std::runtime_error("pass pipeline failed");
+      },
+      "Run an MLIR PassManager on a Module via the runtime helper that "
+      "installs TracePassInstrumentation and releases the GIL. Used by "
+      "cudaq.mlir.passmanager.PassManager.run() so every Python-side pass "
+      "run is traced through the same chokepoint as the JIT path.");
   cudaqRuntime.def("isTerminator", [](MlirOperation op) {
     return unwrap(op)->hasTrait<mlir::OpTrait::IsTerminator>();
   });

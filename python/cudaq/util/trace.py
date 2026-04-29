@@ -16,7 +16,7 @@ attached at every ``PassManager`` site.
 Construct a backend, install it with ``set_backend``, emit spans, then
 query the backend directly. ``ChromeBackend`` buffers events in memory
 and writes `Chrome Trace Event Format
-<https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU>`_
+<https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU>`
 JSON to a file on destruction when a path is given. ``SpdlogBackend``
 routes events through the existing log. ``reset_backend()`` clears the
 installed backend and disables capture.
