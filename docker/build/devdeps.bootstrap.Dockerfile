@@ -90,7 +90,7 @@ RUN --mount=type=cache,id=llvm-ccache,target=/root/.ccache \
     LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;runtimes' \
     BOOTSTRAP_LLVM=true \
     bash /cuda-quantum/scripts/bootstrap_prereq.sh && \
-    apt-get remove -y clang lld && apt-get autoremove -y --purge && \
+    apt-get remove -y clang lld || true && apt-get autoremove -y --purge && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 ## [Dev Dependencies]

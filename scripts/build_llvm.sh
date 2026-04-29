@@ -177,7 +177,7 @@ if [ -z "${llvm_projects##*mlir;*}" ]; then
 fi
 if [ -z "${llvm_projects##*lld;*}" ]; then
   echo "- including LLD components"
-  llvm_enable_zlib=ON # certain system libraries are compressed with ELFCOMPRESS_ZLIB, requiring zlib support for lld
+  [ "${LLVM_ENABLE_ZLIB}" != "OFF" ] && llvm_enable_zlib=ON # certain system libraries are compressed with ELFCOMPRESS_ZLIB, requiring zlib support for lld
   llvm_components+="lld;"
   projects=("${projects[@]/lld}")
 fi
@@ -212,7 +212,6 @@ cmake_args=" \
   -DLLVM_ENABLE_RUNTIMES='"${llvm_runtimes%;}"' \
   -DLLVM_DISTRIBUTION_COMPONENTS='"${llvm_components%;}"' \
   -DLLVM_ENABLE_ZLIB=${llvm_enable_zlib:-OFF} \
-  -DZLIB_USE_STATIC_LIBS=OFF \
   -DZLIB_ROOT='"$ZLIB_INSTALL_PREFIX"' \
   -DPython3_EXECUTABLE='"$Python3_EXECUTABLE"' \
   -DMLIR_ENABLE_BINDINGS_PYTHON=$mlir_python_bindings \
