@@ -270,6 +270,7 @@ else()
   # B. Using LLVM/MLIR dylibs. This won't work until later versions of LLVM are used as
   #    the first versions of this setting did not appropriately link all libraries to the dylibs.
   add_link_options("-Wl,-flat_namespace")
+  add_link_options("-Wl,-undefined,dynamic_lookup")
 endif()
 
 # Detect sysroot for C++ stdlib headers/libs. Critical on macOS where a custom-built
