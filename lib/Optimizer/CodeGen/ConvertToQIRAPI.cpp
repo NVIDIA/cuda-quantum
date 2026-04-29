@@ -296,13 +296,12 @@ struct NullCableOpToCallsRewrite
     StringRef qirQubitArrayAllocate = cudaq::opt::QIRArrayQubitAllocateArray;
     Type arrayQubitTy = M::getArrayType(rewriter.getContext());
 
-    // AllocaOp could have a size operand, or the size could be compile time
-    // known and encoded in the veq return type.
+    // NullCableOp must have a constant size encoded in the `!quake.cable`
+    // return type.
     auto loc = nullcable.getLoc();
     quake::CableType type = nullcable.getType();
-    auto constantSize = type.getSize();
-    Value sizeOperand =
-        rewriter.create<arith::ConstantIntOp>(loc, constantSize, 64);
+    auto width = type.getSize();
+    Value sizeOperand = rewriter.create<arith::ConstantIntOp>(loc, width, 64);
 
     // Replace the NullCableOp with the QIR call.
     rewriter.replaceOpWithNewOp<func::CallOp>(
