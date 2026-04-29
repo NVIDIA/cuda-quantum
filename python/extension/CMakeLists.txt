@@ -278,11 +278,12 @@ if(TARGET cudaq-mlir-runtime AND TARGET CUDAQuantumPythonCAPI)
   endif()
   target_link_options(cudaq-mlir-runtime BEFORE PRIVATE
     "$<TARGET_FILE:CUDAQuantumPythonCAPI>")
-  target_link_libraries(cudaq-mlir-runtime INTERFACE
-    $<BUILD_INTERFACE:CUDAQuantumPythonCAPI>)
   if(APPLE)
     target_link_options(cudaq-mlir-runtime PRIVATE
       "LINKER:-undefined,dynamic_lookup")
+  else()
+    target_link_libraries(cudaq-mlir-runtime INTERFACE
+      $<BUILD_INTERFACE:CUDAQuantumPythonCAPI>)
   endif()
   set_property(TARGET cudaq-mlir-runtime APPEND PROPERTY
     BUILD_RPATH "$<TARGET_FILE_DIR:CUDAQuantumPythonCAPI>")
