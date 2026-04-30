@@ -116,6 +116,7 @@ ADD "targettests" /cuda-quantum/targettests
 ADD "test" /cuda-quantum/test
 ADD "tools" /cuda-quantum/tools
 ADD "tpls/customizations" /cuda-quantum/tpls/customizations
+ADD "tpls/json" /cuda-quantum/tpls/json
 ADD "unittests" /cuda-quantum/unittests
 ADD "utils" /cuda-quantum/utils
 ADD "CMakeLists.txt" /cuda-quantum/CMakeLists.txt
@@ -200,6 +201,7 @@ ADD "lib" /cuda-quantum/lib
 ADD "runtime" /cuda-quantum/runtime
 ADD "tools" /cuda-quantum/tools
 ADD "tpls/customizations" /cuda-quantum/tpls/customizations
+ADD "tpls/json" /cuda-quantum/tpls/json
 ADD "utils" /cuda-quantum/utils
 ADD "CMakeLists.txt" /cuda-quantum/CMakeLists.txt
 ADD "LICENSE" /cuda-quantum/LICENSE
