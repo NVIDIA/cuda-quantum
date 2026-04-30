@@ -5,10 +5,6 @@
 # leg / reusable-workflow job to CI but forgetting to add it as a required
 # check, and against silent regressions where a leg stops running.
 #
-# To regenerate after an intentional matrix change:
-#   scripts/regenerate-required-checks.sh <run-id>
-# (run-id of a green run with the matrix you want; commit the diff.)
-#
 # An empty list (or missing key) for an event type disables enforcement
 # for that event — useful for bootstrapping.
 merge_group: &full_matrix
