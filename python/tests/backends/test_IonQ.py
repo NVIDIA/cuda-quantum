@@ -13,12 +13,7 @@ from typing import List
 from multiprocessing import Process
 from network_utils import check_server_connection
 try:
-    from utils.mock_qpu.ionq import app
-    import uvicorn
-
-    def startServer(port):
-        cudaq.set_random_seed(13)
-        uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")
+    from utils.mock_qpu.ionq import startServer
 except:
     print("Mock qpu not available, skipping IonQ tests.")
     pytest.skip("Mock qpu not available.", allow_module_level=True)

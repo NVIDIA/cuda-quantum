@@ -27,7 +27,7 @@ if multiprocessing.get_start_method(allow_none=True) is None:
 # CUDA Library Path Configuration
 # ============================================================================ #
 def _configure_cuda_library_paths() -> None:
-    """    
+    """
     Sets the `CUDAQ_DYNLIBS` environment variable with paths to required
     CUDA libraries based on the detected CUDA version.
     """
@@ -301,7 +301,7 @@ def synthesize(kernel, *args):
 
 def complex():
     """
-    Return the data type for the current simulation backend, 
+    Return the data type for the current simulation backend,
     either `numpy.complex128` or `numpy.complex64`.
     """
     target = get_target()
@@ -313,8 +313,8 @@ def complex():
 
 def amplitudes(array_data):
     """
-    Create a state array with the appropriate data type for the 
-    current simulation backend target. 
+    Create a state array with the appropriate data type for the
+    current simulation backend target.
     """
     return numpy.array(array_data, dtype=complex())
 

@@ -1258,7 +1258,5 @@ VERIFY_OPS(INSTANTIATE_LINEAR_TYPE_VERIFY)
 // Generated logic
 //===----------------------------------------------------------------------===//
 
-using namespace cudaq;
-
 #define GET_OP_CLASSES
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.cpp.inc"

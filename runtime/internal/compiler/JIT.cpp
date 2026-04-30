@@ -19,6 +19,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "llvm/ExecutionEngine/Orc/ExecutionUtils.h"
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h"
@@ -48,8 +49,6 @@
 #define DEBUG_TYPE "cudaq-qpud"
 
 using namespace mlir;
-using namespace cudaq_internal::compiler;
-using cudaq::JitEngine;
 
 std::tuple<std::unique_ptr<llvm::orc::LLJIT>, std::function<void()>>
 cudaq_internal::compiler::createWrappedKernel(std::string_view irString,
@@ -313,7 +312,7 @@ cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
     tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
     auto timingScope = tm.getRootScope(); // starts the timer
     pm.enableTiming(timingScope);         // do this right before pm.run
-    if (failed(pm.run(module))) {
+    if (failed(cudaq_internal::compiler::runPassManager(pm, module))) {
       engine.eraseHandler(handlerId);
       throw std::runtime_error("[createJITEngine] Lowering to QIR for "
                                "remote emulation failed.\n" +
@@ -349,7 +348,7 @@ cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
 
   auto jitOrError = ExecutionEngine::create(moduleOp, opts);
   assert(!!jitOrError && "ExecutionEngine creation failed.");
-  return JitEngine(std::move(jitOrError.get()));
+  return cudaq::JitEngine(std::move(jitOrError.get()));
 }
 
 class cudaq::JitEngine::Impl : public cudaq::JitEngine::Base {
@@ -378,7 +377,7 @@ private:
 };
 
 cudaq::JitEngine::JitEngine(std::unique_ptr<ExecutionEngine> jitEngine)
-    : impl(std::make_shared<JitEngine::Impl>(std::move(jitEngine))) {}
+    : impl(std::make_shared<cudaq::JitEngine::Impl>(std::move(jitEngine))) {}
 
 std::size_t cudaq::JitEngine::getKey() const {
   return static_cast<const Impl *>(impl.get())->getKey();

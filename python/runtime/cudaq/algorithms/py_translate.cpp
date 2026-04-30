@@ -12,6 +12,7 @@
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/platform/default/python/QPU.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
 #include "llvm/IR/LLVMContext.h"
@@ -25,7 +26,7 @@ using namespace mlir;
 /// @brief Run `cudaq::translate` on the provided kernel.
 static std::string translate_impl(const std::string &shortName,
                                   MlirModule module, const std::string &format,
-                                  py::args runtimeArguments) {
+                                  nanobind::args runtimeArguments) {
   StringRef format_ = format;
   auto formatPair = format_.split(':');
   auto mod = unwrap(module);
@@ -68,21 +69,25 @@ static std::string translate_impl(const std::string &shortName,
 }
 
 /// @brief Bind the translate cudaq function
-void cudaq::bindPyTranslate(py::module_ &mod) {
+void cudaq::bindPyTranslate(nanobind::module_ &mod) {
   mod.def("translate_impl", translate_impl,
           "See python documentation for translate.");
+  // Internal translation to QIR for testing and internal use. Not intended to
+  // be a public API.
   mod.def(
       "_lower_to_qir",
       [](MlirModule module) -> std::string {
         const std::string format = "qir";
         auto mod = unwrap(module);
-        mlir::PassManager pm(mod.getContext());
+        PassManager pm(mod.getContext());
+        pm.addInstrumentation(
+            std::make_unique<cudaq::TracePassInstrumentation>());
         cudaq::opt::addAOTPipelineConvertToQIR(pm, format);
-        if (mlir::failed(pm.run(mod)))
+        if (failed(pm.run(mod)))
           throw std::runtime_error("Conversion to " + format + " failed.");
         llvm::LLVMContext llvmContext;
         std::unique_ptr<llvm::Module> llvmModule =
-            mlir::translateModuleToLLVMIR(mod, llvmContext);
+            translateModuleToLLVMIR(mod, llvmContext);
         if (!llvmModule)
           return "{translation failed}";
         std::string result;

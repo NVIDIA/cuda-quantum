@@ -9,9 +9,6 @@
 #include <nanobind/ndarray.h>
 #include <nanobind/operators.h>
 #include <nanobind/stl/complex.h>
-#include <nanobind/stl/map.h>
-#include <nanobind/stl/optional.h>
-#include <nanobind/stl/pair.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/tuple.h>
 #include <nanobind/stl/vector.h>
@@ -21,19 +18,18 @@
 #include "py_matrix.h"
 
 #include <complex>
-#include <cstring>
 
 namespace cudaq {
 
-void bindComplexMatrix(py::module_ &mod) {
-  py::class_<complex_matrix>(
+void bindComplexMatrix(nanobind::module_ &mod) {
+  nanobind::class_<complex_matrix>(
       mod, "ComplexMatrix",
       "The :class:`ComplexMatrix` is a thin wrapper around a "
       "matrix of complex<double> elements.")
       .def(
           "__init__",
-          [](complex_matrix *self, py::object b) {
-            auto arr = py::cast<py::ndarray<>>(b);
+          [](complex_matrix *self, nanobind::object b) {
+            auto arr = nanobind::cast<nanobind::ndarray<>>(b);
             if (arr.ndim() != 2)
               throw std::runtime_error("ComplexMatrix requires a 2D array");
             if (arr.shape(0) == 0 || arr.shape(1) == 0)
@@ -86,7 +82,7 @@ void bindComplexMatrix(py::module_ &mod) {
           [](const complex_matrix &lhs, const complex_matrix &rhs) {
             return lhs == rhs;
           },
-          py::is_operator())
+          nanobind::is_operator())
       .def("__str__", &complex_matrix::to_string,
            "Returns the string representation of the matrix.")
       .def(

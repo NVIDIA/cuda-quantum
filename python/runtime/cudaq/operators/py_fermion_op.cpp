@@ -12,7 +12,6 @@
 #include <nanobind/stl/complex.h>
 #include <nanobind/stl/map.h>
 #include <nanobind/stl/optional.h>
-#include <nanobind/stl/pair.h>
 #include <nanobind/stl/set.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/tuple.h>
@@ -26,7 +25,7 @@
 
 namespace cudaq {
 
-void bindFermionModule(py::module_ &mod) {
+void bindFermionModule(nanobind::module_ &mod) {
   // Binding the functions in `cudaq::fermion` as `_pycudaq` submodule
   // so it's accessible directly in the cudaq namespace.
   auto fermion_submodule = mod.def_submodule("fermion");
@@ -40,25 +39,26 @@ void bindFermionModule(py::module_ &mod) {
   fermion_submodule.def(
       "identity",
       [](std::size_t target) { return fermion_op::identity(target); },
-      py::arg("target"),
+      nanobind::arg("target"),
       "Returns an identity operator on the given target index.");
   fermion_submodule.def(
       "identities",
       [](std::size_t first, std::size_t last) {
         return fermion_op_term(first, last);
       },
-      py::arg("first"), py::arg("last"),
+      nanobind::arg("first"), nanobind::arg("last"),
       "Creates a product operator that applies an identity operation to all "
       "degrees of "
       "freedom in the open range [first, last).");
   fermion_submodule.def(
-      "create", &fermion_op::create<fermion_handler>, py::arg("target"),
+      "create", &fermion_op::create<fermion_handler>, nanobind::arg("target"),
       "Returns a fermionic creation operator on the given target index.");
   fermion_submodule.def(
-      "annihilate", &fermion_op::annihilate<fermion_handler>, py::arg("target"),
+      "annihilate", &fermion_op::annihilate<fermion_handler>,
+      nanobind::arg("target"),
       "Returns a fermionic annihilation operator on the given target index.");
   fermion_submodule.def(
-      "number", &fermion_op::number<fermion_handler>, py::arg("target"),
+      "number", &fermion_op::number<fermion_handler>, nanobind::arg("target"),
       "Returns a fermionic number operator on the given target index.");
   fermion_submodule.def(
       "canonicalized",
@@ -92,19 +92,19 @@ void bindFermionModule(py::module_ &mod) {
       "degrees of freedom.");
 }
 
-void bindFermionOperator(py::module_ &mod) {
+void bindFermionOperator(nanobind::module_ &mod) {
 
-  auto fermion_op_class = py::class_<fermion_op>(mod, "FermionOperator");
+  auto fermion_op_class = nanobind::class_<fermion_op>(mod, "FermionOperator");
   auto fermion_op_term_class =
-      py::class_<fermion_op_term>(mod, "FermionOperatorTerm");
+      nanobind::class_<fermion_op_term>(mod, "FermionOperatorTerm");
 
   fermion_op_class
       .def(
           "__iter__",
           [](fermion_op &self) {
-            py::list items;
+            nanobind::list items;
             for (auto it = self.begin(); it != self.end(); ++it)
-              items.append(py::cast(*it));
+              items.append(nanobind::cast(*it));
             return items.attr("__iter__")();
           },
           "Loop through each term of the operator.")
@@ -137,7 +137,7 @@ void bindFermionOperator(py::module_ &mod) {
 
       // constructors
 
-      .def(py::init<>(),
+      .def(nanobind::init<>(),
            "Creates a default instantiated sum. A default instantiated "
            "sum has no value; it will take a value the first time an "
            "arithmetic operation "
@@ -146,12 +146,12 @@ void bindFermionOperator(py::module_ &mod) {
            "identity. To construct a `0` value in the mathematical sense "
            "(neutral element "
            "for addition), use `empty()` instead.")
-      .def(py::init<std::size_t>(),
+      .def(nanobind::init<std::size_t>(),
            "Creates a sum operator with no terms, reserving "
            "space for the given number of terms.")
-      .def(py::init<const fermion_op_term &>(),
+      .def(nanobind::init<const fermion_op_term &>(),
            "Creates a sum operator with the given term.")
-      .def(py::init<const fermion_op &>(), "Copy constructor.")
+      .def(nanobind::init<const fermion_op &>(), "Copy constructor.")
       .def(
           "copy", [](const fermion_op &self) { return fermion_op(self); },
           "Creates a copy of the operator.")
@@ -167,9 +167,9 @@ void bindFermionOperator(py::module_ &mod) {
             auto cmat = self.to_matrix(dims, pm, invert_order);
             return details::cmat_to_numpy(cmat);
           },
-          py::arg("dimensions").none() = py::none(),
-          py::arg("parameters").none() = py::none(),
-          py::arg("invert_order") = false,
+          nanobind::arg("dimensions").none() = nanobind::none(),
+          nanobind::arg("parameters").none() = nanobind::none(),
+          nanobind::arg("invert_order") = false,
           "Returns the matrix representation of the operator."
           "The matrix is ordered according to the convention (endianness) "
           "used in CUDA-Q, and the ordering returned by `degrees`. This order "
@@ -179,7 +179,7 @@ void bindFermionOperator(py::module_ &mod) {
       .def(
           "to_matrix",
           [](const fermion_op &self, dimension_map dimensions,
-             py::kwargs kwargs) {
+             nanobind::kwargs kwargs) {
             bool invert_order;
             auto pm = details::kwargs_to_param_map(kwargs, invert_order);
             auto cmat = self.to_matrix(dimensions, pm, invert_order);
@@ -193,7 +193,7 @@ void bindFermionOperator(py::module_ &mod) {
           "See also the documentation for `degrees` for more detail.")
       .def(
           "to_matrix",
-          [](const fermion_op &self, py::kwargs kwargs) {
+          [](const fermion_op &self, nanobind::kwargs kwargs) {
             bool invert_order;
             auto pm = details::kwargs_to_param_map(kwargs, invert_order);
             auto cmat = self.to_matrix(dimension_map(), pm, invert_order);
@@ -209,9 +209,9 @@ void bindFermionOperator(py::module_ &mod) {
             parameter_map pm = params.value_or(parameter_map());
             return self.to_sparse_matrix(dims, pm, invert_order);
           },
-          py::arg("dimensions").none() = py::none(),
-          py::arg("parameters").none() = py::none(),
-          py::arg("invert_order") = false,
+          nanobind::arg("dimensions").none() = nanobind::none(),
+          nanobind::arg("parameters").none() = nanobind::none(),
+          nanobind::arg("invert_order") = false,
           "Return the sparse matrix representation of the operator. This "
           "representation is a "
           "`Tuple[list[complex], list[int], list[int]]`, encoding the "
@@ -225,7 +225,7 @@ void bindFermionOperator(py::module_ &mod) {
       .def(
           "to_sparse_matrix",
           [](const fermion_op &self, dimension_map dimensions,
-             py::kwargs kwargs) {
+             nanobind::kwargs kwargs) {
             bool invert_order;
             auto pm = details::kwargs_to_param_map(kwargs, invert_order);
             return self.to_sparse_matrix(dimensions, pm, invert_order);
@@ -243,7 +243,7 @@ void bindFermionOperator(py::module_ &mod) {
 
       // comparisons
 
-      .def("__eq__", &fermion_op::operator==, py::is_operator(),
+      .def("__eq__", &fermion_op::operator==, nanobind::is_operator(),
            "Return true if the two operators are equivalent. The equivalence "
            "check takes "
            "commutation relations into account. Operators acting on different "
@@ -255,91 +255,92 @@ void bindFermionOperator(py::module_ &mod) {
           [](const fermion_op &self, const fermion_op_term &other) {
             return self.num_terms() == 1 && *self.begin() == other;
           },
-          py::is_operator(), "Return true if the two operators are equivalent.")
+          nanobind::is_operator(),
+          "Return true if the two operators are equivalent.")
 
       // unary operators
 
-      .def(-py::self, py::is_operator())
-      .def(+py::self, py::is_operator())
+      .def(-nanobind::self, nanobind::is_operator())
+      .def(+nanobind::self, nanobind::is_operator())
 
       // in-place arithmetics
 
-      .def(py::self /= int(), py::is_operator())
-      .def(py::self *= int(), py::is_operator())
-      .def(py::self += int(), py::is_operator())
-      .def(py::self -= int(), py::is_operator())
-      .def(py::self /= double(), py::is_operator())
-      .def(py::self *= double(), py::is_operator())
-      .def(py::self += double(), py::is_operator())
-      .def(py::self -= double(), py::is_operator())
-      .def(py::self /= std::complex<double>(), py::is_operator())
-      .def(py::self *= std::complex<double>(), py::is_operator())
-      .def(py::self += std::complex<double>(), py::is_operator())
-      .def(py::self -= std::complex<double>(), py::is_operator())
-      .def(py::self /= scalar_operator(), py::is_operator())
-      .def(py::self *= scalar_operator(), py::is_operator())
-      .def(py::self += scalar_operator(), py::is_operator())
-      .def(py::self -= scalar_operator(), py::is_operator())
-      .def(py::self *= fermion_op_term(), py::is_operator())
-      .def(py::self += fermion_op_term(), py::is_operator())
-      .def(py::self -= fermion_op_term(), py::is_operator())
-      .def(py::self *= py::self, py::is_operator())
-      .def(py::self += py::self, py::is_operator())
+      .def(nanobind::self /= int(), nanobind::is_operator())
+      .def(nanobind::self *= int(), nanobind::is_operator())
+      .def(nanobind::self += int(), nanobind::is_operator())
+      .def(nanobind::self -= int(), nanobind::is_operator())
+      .def(nanobind::self /= double(), nanobind::is_operator())
+      .def(nanobind::self *= double(), nanobind::is_operator())
+      .def(nanobind::self += double(), nanobind::is_operator())
+      .def(nanobind::self -= double(), nanobind::is_operator())
+      .def(nanobind::self /= std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self *= std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self += std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self -= std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self /= scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self *= scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self += scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self -= scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self *= fermion_op_term(), nanobind::is_operator())
+      .def(nanobind::self += fermion_op_term(), nanobind::is_operator())
+      .def(nanobind::self -= fermion_op_term(), nanobind::is_operator())
+      .def(nanobind::self *= nanobind::self, nanobind::is_operator())
+      .def(nanobind::self += nanobind::self, nanobind::is_operator())
 // see issue https://github.com/pybind/pybind11/issues/1893
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wself-assign-overloaded"
 #endif
-      .def(py::self -= py::self, py::is_operator())
+      .def(nanobind::self -= nanobind::self, nanobind::is_operator())
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
 
       // right-hand arithmetics
 
-      .def(py::self / int(), py::is_operator())
-      .def(py::self * int(), py::is_operator())
-      .def(py::self + int(), py::is_operator())
-      .def(py::self - int(), py::is_operator())
-      .def(py::self / double(), py::is_operator())
-      .def(py::self * double(), py::is_operator())
-      .def(py::self + double(), py::is_operator())
-      .def(py::self - double(), py::is_operator())
-      .def(py::self / std::complex<double>(), py::is_operator())
-      .def(py::self * std::complex<double>(), py::is_operator())
-      .def(py::self + std::complex<double>(), py::is_operator())
-      .def(py::self - std::complex<double>(), py::is_operator())
-      .def(py::self / scalar_operator(), py::is_operator())
-      .def(py::self * scalar_operator(), py::is_operator())
-      .def(py::self + scalar_operator(), py::is_operator())
-      .def(py::self - scalar_operator(), py::is_operator())
-      .def(py::self * fermion_op_term(), py::is_operator())
-      .def(py::self + fermion_op_term(), py::is_operator())
-      .def(py::self - fermion_op_term(), py::is_operator())
-      .def(py::self * py::self, py::is_operator())
-      .def(py::self + py::self, py::is_operator())
-      .def(py::self - py::self, py::is_operator())
-      .def(py::self * matrix_op_term(), py::is_operator())
-      .def(py::self + matrix_op_term(), py::is_operator())
-      .def(py::self - matrix_op_term(), py::is_operator())
-      .def(py::self * matrix_op(), py::is_operator())
-      .def(py::self + matrix_op(), py::is_operator())
-      .def(py::self - matrix_op(), py::is_operator())
+      .def(nanobind::self / int(), nanobind::is_operator())
+      .def(nanobind::self * int(), nanobind::is_operator())
+      .def(nanobind::self + int(), nanobind::is_operator())
+      .def(nanobind::self - int(), nanobind::is_operator())
+      .def(nanobind::self / double(), nanobind::is_operator())
+      .def(nanobind::self * double(), nanobind::is_operator())
+      .def(nanobind::self + double(), nanobind::is_operator())
+      .def(nanobind::self - double(), nanobind::is_operator())
+      .def(nanobind::self / std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self * std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self + std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self - std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self / scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self * scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self + scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self - scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self * fermion_op_term(), nanobind::is_operator())
+      .def(nanobind::self + fermion_op_term(), nanobind::is_operator())
+      .def(nanobind::self - fermion_op_term(), nanobind::is_operator())
+      .def(nanobind::self * nanobind::self, nanobind::is_operator())
+      .def(nanobind::self + nanobind::self, nanobind::is_operator())
+      .def(nanobind::self - nanobind::self, nanobind::is_operator())
+      .def(nanobind::self * matrix_op_term(), nanobind::is_operator())
+      .def(nanobind::self + matrix_op_term(), nanobind::is_operator())
+      .def(nanobind::self - matrix_op_term(), nanobind::is_operator())
+      .def(nanobind::self * matrix_op(), nanobind::is_operator())
+      .def(nanobind::self + matrix_op(), nanobind::is_operator())
+      .def(nanobind::self - matrix_op(), nanobind::is_operator())
 
       // left-hand arithmetics
 
-      .def(int() * py::self, py::is_operator())
-      .def(int() + py::self, py::is_operator())
-      .def(int() - py::self, py::is_operator())
-      .def(double() * py::self, py::is_operator())
-      .def(double() + py::self, py::is_operator())
-      .def(double() - py::self, py::is_operator())
-      .def(std::complex<double>() * py::self, py::is_operator())
-      .def(std::complex<double>() + py::self, py::is_operator())
-      .def(std::complex<double>() - py::self, py::is_operator())
-      .def(scalar_operator() * py::self, py::is_operator())
-      .def(scalar_operator() + py::self, py::is_operator())
-      .def(scalar_operator() - py::self, py::is_operator())
+      .def(int() * nanobind::self, nanobind::is_operator())
+      .def(int() + nanobind::self, nanobind::is_operator())
+      .def(int() - nanobind::self, nanobind::is_operator())
+      .def(double() * nanobind::self, nanobind::is_operator())
+      .def(double() + nanobind::self, nanobind::is_operator())
+      .def(double() - nanobind::self, nanobind::is_operator())
+      .def(std::complex<double>() * nanobind::self, nanobind::is_operator())
+      .def(std::complex<double>() + nanobind::self, nanobind::is_operator())
+      .def(std::complex<double>() - nanobind::self, nanobind::is_operator())
+      .def(scalar_operator() * nanobind::self, nanobind::is_operator())
+      .def(scalar_operator() + nanobind::self, nanobind::is_operator())
+      .def(scalar_operator() - nanobind::self, nanobind::is_operator())
 
       // common operators
 
@@ -373,13 +374,14 @@ void bindFermionOperator(py::module_ &mod) {
              std::optional<parameter_map> params) {
             return self.trim(tol, params.value_or(parameter_map()));
           },
-          py::arg("tol") = 0.0, py::arg("parameters").none() = py::none(),
+          nanobind::arg("tol") = 0.0,
+          nanobind::arg("parameters").none() = nanobind::none(),
           "Removes all terms from the sum for which the absolute value of the "
           "coefficient is below "
           "the given tolerance.")
       .def(
           "trim",
-          [](fermion_op &self, double tol, py::kwargs kwargs) {
+          [](fermion_op &self, double tol, nanobind::kwargs kwargs) {
             return self.trim(tol, details::kwargs_to_param_map(kwargs));
           },
           "Removes all terms from the sum for which the absolute value of the "
@@ -406,9 +408,9 @@ void bindFermionOperator(py::module_ &mod) {
       .def(
           "__iter__",
           [](fermion_op_term &self) {
-            py::list items;
+            nanobind::list items;
             for (auto it = self.begin(); it != self.end(); ++it)
-              items.append(py::cast(*it));
+              items.append(nanobind::cast(*it));
             return items.attr("__iter__")();
           },
           "Loop through each term of the operator.")
@@ -451,19 +453,19 @@ void bindFermionOperator(py::module_ &mod) {
 
       // constructors
 
-      .def(py::init<>(),
+      .def(nanobind::init<>(),
            "Creates a product operator with constant value 1. The returned "
            "operator does not target any degrees of freedom but merely "
            "represents a constant.")
-      .def(py::init<std::size_t, std::size_t>(), py::arg("first_degree"),
-           py::arg("last_degree"),
+      .def(nanobind::init<std::size_t, std::size_t>(),
+           nanobind::arg("first_degree"), nanobind::arg("last_degree"),
            "Creates a product operator that applies an identity operation to "
            "all degrees of "
            "freedom in the range [first_degree, last_degree).")
-      .def(py::init<double>(),
+      .def(nanobind::init<double>(),
            "Creates a product operator with the given constant value. "
            "The returned operator does not target any degrees of freedom.")
-      .def(py::init<std::complex<double>>(),
+      .def(nanobind::init<std::complex<double>>(),
            "Creates a product operator with the given "
            "constant value. The returned operator does not target any degrees "
            "of freedom.")
@@ -473,10 +475,10 @@ void bindFermionOperator(py::module_ &mod) {
             new (self) fermion_op_term(fermion_op_term() * scalar);
           },
           "Creates a product operator with non-constant scalar value.")
-      .def(py::init<fermion_handler>(),
+      .def(nanobind::init<fermion_handler>(),
            "Creates a product operator with the given elementary operator.")
-      .def(py::init<const fermion_op_term &, std::size_t>(),
-           py::arg("operator"), py::arg("size") = 0,
+      .def(nanobind::init<const fermion_op_term &, std::size_t>(),
+           nanobind::arg("operator"), nanobind::arg("size") = 0,
            "Creates a copy of the given operator and reserves space for "
            "storing the given "
            "number of product terms (if a size is provided).")
@@ -492,7 +494,7 @@ void bindFermionOperator(py::module_ &mod) {
           [](const fermion_op_term &self, std::optional<parameter_map> params) {
             return self.evaluate_coefficient(params.value_or(parameter_map()));
           },
-          py::arg("parameters").none() = py::none(),
+          nanobind::arg("parameters").none() = nanobind::none(),
           "Returns the evaluated coefficient of the product operator. The "
           "parameters is a map of parameter names to their concrete, complex "
           "values.")
@@ -506,9 +508,9 @@ void bindFermionOperator(py::module_ &mod) {
             auto cmat = self.to_matrix(dims, pm, invert_order);
             return details::cmat_to_numpy(cmat);
           },
-          py::arg("dimensions").none() = py::none(),
-          py::arg("parameters").none() = py::none(),
-          py::arg("invert_order") = false,
+          nanobind::arg("dimensions").none() = nanobind::none(),
+          nanobind::arg("parameters").none() = nanobind::none(),
+          nanobind::arg("invert_order") = false,
           "Returns the matrix representation of the operator."
           "The matrix is ordered according to the convention (endianness) "
           "used in CUDA-Q, and the ordering returned by `degrees`. This order "
@@ -518,7 +520,7 @@ void bindFermionOperator(py::module_ &mod) {
       .def(
           "to_matrix",
           [](const fermion_op_term &self, dimension_map dimensions,
-             py::kwargs kwargs) {
+             nanobind::kwargs kwargs) {
             bool invert_order;
             auto pm = details::kwargs_to_param_map(kwargs, invert_order);
             auto cmat = self.to_matrix(dimensions, pm, invert_order);
@@ -532,7 +534,7 @@ void bindFermionOperator(py::module_ &mod) {
           "See also the documentation for `degrees` for more detail.")
       .def(
           "to_matrix",
-          [](const fermion_op_term &self, py::kwargs kwargs) {
+          [](const fermion_op_term &self, nanobind::kwargs kwargs) {
             bool invert_order;
             auto pm = details::kwargs_to_param_map(kwargs, invert_order);
             auto cmat = self.to_matrix(dimension_map(), pm, invert_order);
@@ -549,9 +551,9 @@ void bindFermionOperator(py::module_ &mod) {
             parameter_map pm = params.value_or(parameter_map());
             return self.to_sparse_matrix(dims, pm, invert_order);
           },
-          py::arg("dimensions").none() = py::none(),
-          py::arg("parameters").none() = py::none(),
-          py::arg("invert_order") = false,
+          nanobind::arg("dimensions").none() = nanobind::none(),
+          nanobind::arg("parameters").none() = nanobind::none(),
+          nanobind::arg("invert_order") = false,
           "Return the sparse matrix representation of the operator. This "
           "representation is a "
           "`Tuple[list[complex], list[int], list[int]]`, encoding the "
@@ -565,7 +567,7 @@ void bindFermionOperator(py::module_ &mod) {
       .def(
           "to_sparse_matrix",
           [](const fermion_op_term &self, dimension_map dimensions,
-             py::kwargs kwargs) {
+             nanobind::kwargs kwargs) {
             bool invert_order;
             auto pm = details::kwargs_to_param_map(kwargs, invert_order);
             return self.to_sparse_matrix(dimensions, pm, invert_order);
@@ -583,7 +585,7 @@ void bindFermionOperator(py::module_ &mod) {
 
       // comparisons
 
-      .def("__eq__", &fermion_op_term::operator==, py::is_operator(),
+      .def("__eq__", &fermion_op_term::operator==, nanobind::is_operator(),
            "Return true if the two operators are equivalent. The equivalence "
            "check takes "
            "commutation relations into account. Operators acting on different "
@@ -595,70 +597,71 @@ void bindFermionOperator(py::module_ &mod) {
           [](const fermion_op_term &self, const fermion_op &other) {
             return other.num_terms() == 1 && *other.begin() == self;
           },
-          py::is_operator(), "Return true if the two operators are equivalent.")
+          nanobind::is_operator(),
+          "Return true if the two operators are equivalent.")
 
       // unary operators
 
-      .def(-py::self, py::is_operator())
-      .def(+py::self, py::is_operator())
+      .def(-nanobind::self, nanobind::is_operator())
+      .def(+nanobind::self, nanobind::is_operator())
 
       // in-place arithmetics
 
-      .def(py::self /= int(), py::is_operator())
-      .def(py::self *= int(), py::is_operator())
-      .def(py::self /= double(), py::is_operator())
-      .def(py::self *= double(), py::is_operator())
-      .def(py::self /= std::complex<double>(), py::is_operator())
-      .def(py::self *= std::complex<double>(), py::is_operator())
-      .def(py::self /= scalar_operator(), py::is_operator())
-      .def(py::self *= scalar_operator(), py::is_operator())
-      .def(py::self *= py::self, py::is_operator())
+      .def(nanobind::self /= int(), nanobind::is_operator())
+      .def(nanobind::self *= int(), nanobind::is_operator())
+      .def(nanobind::self /= double(), nanobind::is_operator())
+      .def(nanobind::self *= double(), nanobind::is_operator())
+      .def(nanobind::self /= std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self *= std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self /= scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self *= scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self *= nanobind::self, nanobind::is_operator())
 
       // right-hand arithmetics
 
-      .def(py::self / int(), py::is_operator())
-      .def(py::self * int(), py::is_operator())
-      .def(py::self + int(), py::is_operator())
-      .def(py::self - int(), py::is_operator())
-      .def(py::self / double(), py::is_operator())
-      .def(py::self * double(), py::is_operator())
-      .def(py::self + double(), py::is_operator())
-      .def(py::self - double(), py::is_operator())
-      .def(py::self / std::complex<double>(), py::is_operator())
-      .def(py::self * std::complex<double>(), py::is_operator())
-      .def(py::self + std::complex<double>(), py::is_operator())
-      .def(py::self - std::complex<double>(), py::is_operator())
-      .def(py::self / scalar_operator(), py::is_operator())
-      .def(py::self * scalar_operator(), py::is_operator())
-      .def(py::self + scalar_operator(), py::is_operator())
-      .def(py::self - scalar_operator(), py::is_operator())
-      .def(py::self * py::self, py::is_operator())
-      .def(py::self + py::self, py::is_operator())
-      .def(py::self - py::self, py::is_operator())
-      .def(py::self * fermion_op(), py::is_operator())
-      .def(py::self + fermion_op(), py::is_operator())
-      .def(py::self - fermion_op(), py::is_operator())
-      .def(py::self * matrix_op_term(), py::is_operator())
-      .def(py::self + matrix_op_term(), py::is_operator())
-      .def(py::self - matrix_op_term(), py::is_operator())
-      .def(py::self * matrix_op(), py::is_operator())
-      .def(py::self + matrix_op(), py::is_operator())
-      .def(py::self - matrix_op(), py::is_operator())
+      .def(nanobind::self / int(), nanobind::is_operator())
+      .def(nanobind::self * int(), nanobind::is_operator())
+      .def(nanobind::self + int(), nanobind::is_operator())
+      .def(nanobind::self - int(), nanobind::is_operator())
+      .def(nanobind::self / double(), nanobind::is_operator())
+      .def(nanobind::self * double(), nanobind::is_operator())
+      .def(nanobind::self + double(), nanobind::is_operator())
+      .def(nanobind::self - double(), nanobind::is_operator())
+      .def(nanobind::self / std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self * std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self + std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self - std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self / scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self * scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self + scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self - scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self * nanobind::self, nanobind::is_operator())
+      .def(nanobind::self + nanobind::self, nanobind::is_operator())
+      .def(nanobind::self - nanobind::self, nanobind::is_operator())
+      .def(nanobind::self * fermion_op(), nanobind::is_operator())
+      .def(nanobind::self + fermion_op(), nanobind::is_operator())
+      .def(nanobind::self - fermion_op(), nanobind::is_operator())
+      .def(nanobind::self * matrix_op_term(), nanobind::is_operator())
+      .def(nanobind::self + matrix_op_term(), nanobind::is_operator())
+      .def(nanobind::self - matrix_op_term(), nanobind::is_operator())
+      .def(nanobind::self * matrix_op(), nanobind::is_operator())
+      .def(nanobind::self + matrix_op(), nanobind::is_operator())
+      .def(nanobind::self - matrix_op(), nanobind::is_operator())
 
       // left-hand arithmetics
 
-      .def(int() * py::self, py::is_operator())
-      .def(int() + py::self, py::is_operator())
-      .def(int() - py::self, py::is_operator())
-      .def(double() * py::self, py::is_operator())
-      .def(double() + py::self, py::is_operator())
-      .def(double() - py::self, py::is_operator())
-      .def(std::complex<double>() * py::self, py::is_operator())
-      .def(std::complex<double>() + py::self, py::is_operator())
-      .def(std::complex<double>() - py::self, py::is_operator())
-      .def(scalar_operator() * py::self, py::is_operator())
-      .def(scalar_operator() + py::self, py::is_operator())
-      .def(scalar_operator() - py::self, py::is_operator())
+      .def(int() * nanobind::self, nanobind::is_operator())
+      .def(int() + nanobind::self, nanobind::is_operator())
+      .def(int() - nanobind::self, nanobind::is_operator())
+      .def(double() * nanobind::self, nanobind::is_operator())
+      .def(double() + nanobind::self, nanobind::is_operator())
+      .def(double() - nanobind::self, nanobind::is_operator())
+      .def(std::complex<double>() * nanobind::self, nanobind::is_operator())
+      .def(std::complex<double>() + nanobind::self, nanobind::is_operator())
+      .def(std::complex<double>() - nanobind::self, nanobind::is_operator())
+      .def(scalar_operator() * nanobind::self, nanobind::is_operator())
+      .def(scalar_operator() + nanobind::self, nanobind::is_operator())
+      .def(scalar_operator() - nanobind::self, nanobind::is_operator())
 
       // general utility functions
 
@@ -689,12 +692,12 @@ void bindFermionOperator(py::module_ &mod) {
           "of freedom that are not included in the given set.");
 }
 
-void bindFermionWrapper(py::module_ &mod) {
+void bindFermionWrapper(nanobind::module_ &mod) {
   bindFermionOperator(mod);
-  py::implicitly_convertible<double, fermion_op_term>();
-  py::implicitly_convertible<std::complex<double>, fermion_op_term>();
-  py::implicitly_convertible<scalar_operator, fermion_op_term>();
-  py::implicitly_convertible<fermion_op_term, fermion_op>();
+  nanobind::implicitly_convertible<double, fermion_op_term>();
+  nanobind::implicitly_convertible<std::complex<double>, fermion_op_term>();
+  nanobind::implicitly_convertible<scalar_operator, fermion_op_term>();
+  nanobind::implicitly_convertible<fermion_op_term, fermion_op>();
   bindFermionModule(mod);
 }
 

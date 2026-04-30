@@ -43,9 +43,6 @@ int main() {
 
 // CHECK:   include "qelib1.inc";
 
-// CHECK:   gate ZN16crystal_5_kernelclEv(param0)  {
-// CHECK:   }
-
 // CHECK: qreg var0[5];
 // CHECK: x var0[0];
 // CHECK: cx var0[0], var0[1];

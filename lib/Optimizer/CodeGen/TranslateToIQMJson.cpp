@@ -119,7 +119,7 @@ static LogicalResult emitOperation(nlohmann::json &json,
     emitter.getOrAssignName(optor.getTarget(0),
                             emitter.getOrAssignName(optor.getTarget(0)).str());
   } else {
-    json["name"] = name;
+    json["name"] = "prx";
 
     if (optor.getParameters().size() != 2)
       optor.emitError("IQM phased_rx gate expects exactly two parameters.");

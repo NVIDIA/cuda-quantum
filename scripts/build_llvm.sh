@@ -198,6 +198,12 @@ fi
 cat "$LLVM_SOURCE/llvm/cmake/config.guess" | tr -d '\r' > ~config.guess
 cat ~config.guess > "$LLVM_SOURCE/llvm/cmake/config.guess" && rm -rf ~config.guess
 
+# `-fno-gnu-unique` is GCC-only
+LLVM_EXTRA_CXX_FLAGS="-w"
+if "${CXX:-c++}" --version 2>&1 | grep -q "Free Software Foundation"; then
+  LLVM_EXTRA_CXX_FLAGS="$LLVM_EXTRA_CXX_FLAGS -fno-gnu-unique"
+fi
+
 # Some flags that may be useful to build a GPU-offload-capable compiler: 
 # targets_to_build="host;NVPTX"
 #  -DLLVM_TARGETS_TO_BUILD='"$targets_to_build"' \
@@ -216,7 +222,7 @@ cmake_args=" \
   -DPython3_EXECUTABLE='"$Python3_EXECUTABLE"' \
   -DMLIR_ENABLE_BINDINGS_PYTHON=$mlir_python_bindings \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-  -DCMAKE_CXX_FLAGS='-w' \
+  -DCMAKE_CXX_FLAGS='"$LLVM_EXTRA_CXX_FLAGS"' \
   -Dnanobind_DIR=$NANOBIND_INSTALL_PREFIX/nanobind/cmake"
 
 if [ -z "$LLVM_CMAKE_CACHE" ]; then 

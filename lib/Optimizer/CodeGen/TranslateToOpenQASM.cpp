@@ -8,6 +8,7 @@
 
 #include "PassDetails.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
+#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/CodeGen/Emitter.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "llvm/ADT/PostOrderIterator.h"
@@ -206,6 +207,16 @@ static LogicalResult emitOperation(cudaq::Emitter &emitter, func::FuncOp op) {
   if (op.isPrivate())
     return success();
 
+  // Skip C++ ABI wrapper stubs: functions that have an empty body and whose
+  // name does not carry the `__nvqpp__mlirgen__` kernel prefix. These are stubs
+  // to satisfy the classical linker but contain no quantum operations and are
+  // not relevant to OpenQASM. Legitimate empty kernels (e.g. an explicitly
+  // empty `__qpu__` helper), which have the prefix and are kept so that any
+  // call sites remain valid.
+  if (!op.isExternal() && op.front().without_terminator().empty() &&
+      !op.getName().starts_with(cudaq::runtime::cudaqGenPrefixName))
+    return success();
+
   // In Quake's reference semantics form, kernels only return classical types.
   // Thus, we check whether the numbers of results is zero or not.
   if (op.getNumResults() > 0)
@@ -332,22 +343,23 @@ static LogicalResult emitOperation(cudaq::Emitter &emitter, quake::ResetOp op) {
 }
 
 static LogicalResult emitOperation(cudaq::Emitter &emitter, Operation &op) {
-  using namespace quake;
   return llvm::TypeSwitch<Operation *, LogicalResult>(&op)
       // MLIR
       .Case<ModuleOp>([&](auto op) { return emitOperation(emitter, op); })
       .Case<func::FuncOp>([&](auto op) { return emitOperation(emitter, op); })
       .Case<func::CallOp>([&](auto op) { return emitOperation(emitter, op); })
       // Quake
-      .Case<ApplyOp>([&](auto op) { return emitOperation(emitter, op); })
-      .Case<AllocaOp>([&](auto op) { return emitOperation(emitter, op); })
-      .Case<ExtractRefOp>([&](auto op) { return emitOperation(emitter, op); })
-      .Case<OperatorInterface>(
+      .Case<quake::ApplyOp>([&](auto op) { return emitOperation(emitter, op); })
+      .Case<quake::AllocaOp>(
+          [&](auto op) { return emitOperation(emitter, op); })
+      .Case<quake::ExtractRefOp>(
+          [&](auto op) { return emitOperation(emitter, op); })
+      .Case<quake::OperatorInterface>(
           [&](auto optor) { return emitOperation(emitter, optor); })
-      .Case<MzOp>([&](auto op) { return emitOperation(emitter, op); })
-      .Case<ResetOp>([&](auto op) { return emitOperation(emitter, op); })
+      .Case<quake::MzOp>([&](auto op) { return emitOperation(emitter, op); })
+      .Case<quake::ResetOp>([&](auto op) { return emitOperation(emitter, op); })
       // Ignore
-      .Case<DeallocOp>([&](auto op) { return success(); })
+      .Case<quake::DeallocOp>([&](auto op) { return success(); })
       .Case<func::ReturnOp>([&](auto op) { return success(); })
       .Case<arith::ConstantOp>([&](auto op) { return success(); })
       .Case<cudaq::cc::AllocaOp>([&](auto op) { return success(); })

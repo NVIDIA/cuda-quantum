@@ -202,7 +202,7 @@ elif [ "$(uname)" != "Darwin" ] && [ -x "$LLVM_INSTALL_PREFIX/bin/ld.lld" ]; the
 else
   LLD_BIN=""
 fi
-if [ -n "$LLD_BIN" ]; then
+if [ -n "$LLD_BIN" ] && [ "$(uname)" != "Darwin" ]; then
   echo "Configuring nvq++ and local build to use the lld linker by default ($LLD_BIN)."
   NVQPP_LD_PATH="$LLD_BIN"
   LINKER_TO_USE="lld"
@@ -210,6 +210,8 @@ if [ -n "$LLD_BIN" ]; then
   LINKER_FLAG_LIST="\
     -DCMAKE_LINKER='"$LINKER_TO_USE"' \
     -DCMAKE_EXE_LINKER_FLAGS='"$LINKER_FLAGS"' \
+    -DCMAKE_SHARED_LINKER_FLAGS='"$LINKER_FLAGS"' \
+    -DCMAKE_MODULE_LINKER_FLAGS='"$LINKER_FLAGS"' \
     -DLLVM_USE_LINKER='"$LINKER_TO_USE"'"
 else
   echo "Using the system linker."

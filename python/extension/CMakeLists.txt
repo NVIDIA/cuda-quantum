@@ -72,6 +72,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/algorithms/py_translate.cpp
     ../runtime/cudaq/algorithms/py_unitary.cpp
     ../runtime/cudaq/algorithms/py_utils.cpp
+    ../runtime/cudaq/platform/PythonSignalCheck.cpp
     ../runtime/cudaq/platform/py_alt_launch_kernel.cpp
     ../runtime/cudaq/qis/py_execution_manager.cpp
     ../runtime/cudaq/qis/py_pauli_word.cpp
@@ -90,13 +91,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/utils/PyRemoteSimulatorQPU.cpp
     ../runtime/utils/PyRestRemoteClient.cpp
     ../utils/LinkedLibraryHolder.cpp
-    ../../runtime/internal/compiler/ArgumentConversion.cpp
     ../../runtime/common/CodeGenConfig.cpp
-    ../../runtime/internal/compiler/LayoutInfo.cpp
-    ../../runtime/internal/compiler/RuntimeMLIR.cpp
-    ../../runtime/internal/compiler/RuntimePyMLIR.cpp
-    ../../runtime/internal/compiler/JIT.cpp
-    ../../runtime/internal/compiler/Compiler.cpp
     ../../runtime/cudaq/platform/default/rest_server/RemoteRuntimeClient.cpp
     ../../runtime/cudaq/platform/orca/OrcaExecutor.cpp
     ../../runtime/cudaq/platform/orca/OrcaQPU.cpp
@@ -115,6 +110,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../../runtime/internal/compiler/RuntimePyMLIR.cpp
     ../../runtime/internal/compiler/JIT.cpp
     ../../runtime/internal/compiler/Compiler.cpp
+    ../../runtime/internal/compiler/TracePassInstrumentation.cpp
 
   EMBED_CAPI_LINK_LIBS
    CUDAQuantumMLIRCAPI
@@ -128,6 +124,15 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
    cudaq-platform-default
    cudaq-qir-verifier
 )
+
+# MLIR/LLVM is built without RTTI (LLVM_ENABLE_RTTI=OFF). This file subclasses
+# mlir::PassInstrumentation, so it must match LLVM's RTTI setting.
+set_source_files_properties(
+    ../runtime/cudaq/platform/PythonSignalCheck.cpp
+    ../../runtime/internal/compiler/TracePassInstrumentation.cpp
+    PROPERTIES COMPILE_FLAGS "-fno-rtti -fno-exceptions"
+)
+
 
 target_include_directories(CUDAQuantumPythonSources.Extension INTERFACE
     ${CMAKE_SOURCE_DIR}/python
@@ -261,26 +266,27 @@ if(TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso)
   endif()
 endif()
 
-if(APPLE AND TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso)
-  set(_darwin_typeid_diag_script
-    "${CMAKE_CURRENT_BINARY_DIR}/darwin_typeid_diag.sh")
-  file(GENERATE OUTPUT "${_darwin_typeid_diag_script}" CONTENT
-"#!/bin/sh
-echo '--- CAPI: TypeIDResolver BuiltinDialect symbol ---'
-nm -g '$<TARGET_FILE:CUDAQuantumPythonCAPI>' | grep TypeIDResolverINS_14BuiltinDialect || echo '(no match in CAPI)'
-echo '--- _quakeDialects: TypeIDResolver BuiltinDialect symbol ---'
-nm -gm '$<TARGET_FILE:CUDAQuantumPythonModules.extension._quakeDialects.dso>' | grep TypeIDResolverINS_14BuiltinDialect || echo '(no match in _quakeDialects)'
-echo '--- cudaq-mlir-runtime: TypeIDResolver BuiltinDialect symbol ---'
-nm -g '$<TARGET_FILE:cudaq-mlir-runtime>' | grep TypeIDResolverINS_14BuiltinDialect || echo '(no match in cudaq-mlir-runtime)'
-echo '--- _quakeDialects: namespace flag (should be flat) ---'
-otool -hv '$<TARGET_FILE:CUDAQuantumPythonModules.extension._quakeDialects.dso>' 2>/dev/null | grep -E 'TWOLEVEL|flags' || echo '(otool unavailable)'
-exit 0
-")
-  add_custom_command(
-    TARGET CUDAQuantumPythonModules.extension._quakeDialects.dso POST_BUILD
-    COMMENT "Darwin diag: BuiltinDialect TypeID symbol distribution"
-    COMMAND sh "${_darwin_typeid_diag_script}"
-  )
+if(TARGET cudaq-mlir-runtime AND TARGET CUDAQuantumPythonCAPI)
+  get_target_property(_mr_link_options cudaq-mlir-runtime LINK_OPTIONS)
+  if(_mr_link_options)
+    list(REMOVE_ITEM _mr_link_options
+      "$<$<PLATFORM_ID:Linux>:LINKER:--exclude-libs,ALL>"
+      "LINKER:--exclude-libs,ALL"
+      "LINKER:-twolevel_namespace")
+    set_target_properties(cudaq-mlir-runtime
+      PROPERTIES LINK_OPTIONS "${_mr_link_options}")
+  endif()
+  target_link_options(cudaq-mlir-runtime BEFORE PRIVATE
+    "$<TARGET_FILE:CUDAQuantumPythonCAPI>")
+  target_link_libraries(cudaq-mlir-runtime INTERFACE
+    $<BUILD_INTERFACE:CUDAQuantumPythonCAPI>)
+  if(APPLE)
+    target_link_options(cudaq-mlir-runtime PRIVATE
+      "LINKER:-undefined,dynamic_lookup")
+  endif()
+  set_property(TARGET cudaq-mlir-runtime APPEND PROPERTY
+    BUILD_RPATH "$<TARGET_FILE_DIR:CUDAQuantumPythonCAPI>")
+  add_dependencies(cudaq-mlir-runtime CUDAQuantumPythonCAPI)
 endif()
 
 ## The Python bindings module for Quake dialect depends on CUDAQ libraries

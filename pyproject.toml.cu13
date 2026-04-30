@@ -89,6 +89,17 @@ if.platform-machine = "x86_64"
 inherit.cmake.args = "append"
 cmake.args = ["-DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=ON"]
 
+# Linux: use LLD as the linker
+[[tool.scikit-build.overrides]]
+if.platform-system = "linux"
+inherit.cmake.args = "append"
+cmake.args = [
+    "-DLLVM_USE_LINKER=lld",
+    "-DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=lld -B/usr/local/llvm/bin",
+    "-DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=lld -B/usr/local/llvm/bin",
+    "-DCMAKE_MODULE_LINKER_FLAGS=-fuse-ld=lld -B/usr/local/llvm/bin",
+]
+
 # macOS: Disable symbol stripping. LLVM's JIT relies on local symbols for
 # internal data structures (eg., PassRegistry). On macOS
 # with it's two-level namespace they are removed by stripping which

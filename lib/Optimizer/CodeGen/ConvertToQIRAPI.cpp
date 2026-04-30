@@ -264,8 +264,8 @@ struct NullCableOpToCallsRewrite
     StringRef qirQubitArrayAllocate = cudaq::opt::QIRArrayQubitAllocateArray;
     Type arrayQubitTy = M::getArrayType(rewriter.getContext());
 
-    // AllocaOp could have a size operand, or the size could be compile time
-    // known and encoded in the veq return type.
+    // NullCableOp must have a constant size encoded in the `!quake.cable`
+    // return type.
     auto loc = nullcable.getLoc();
     quake::CableType type = nullcable.getType();
     auto constantSize = type.getSize();
@@ -404,63 +404,21 @@ struct NullCableOpToIntRewrite
   }
 };
 
-/// This helper base class provides shared functionality to convert single
-/// qubits (`!quake.ref`) to vectors of qubits (`!quake.veq`) to satisfy the QIR
-/// API.
-template <typename M, typename OP>
-struct QubitHelperConversionPattern : public OpConversionPattern<OP> {
-  using Base = OpConversionPattern<OP>;
-  using Base::Base;
-
-  static Type getInitialType(OP op, unsigned off) {
-    ArrayAttr initialArgs =
-        op->template getAttrOfType<ArrayAttr>(InitialArgTypesAttrName);
-    if (!initialArgs)
-      return {};
-    return cast<TypeAttr>(initialArgs[off]).getValue();
-  }
-
-  Value wrapQubitAsArray(Location loc, ConversionPatternRewriter &rewriter,
-                         Value val, Type origTy) const {
-    if (isa<quake::VeqType>(origTy))
-      return val;
-
-    // Create a QIR array container of 1 element.
-    auto ptrTy = cudaq::cc::PointerType::get(rewriter.getNoneType());
-    Value sizeofPtrVal = cudaq::cc::SizeOfOp::create(
-        rewriter, loc, rewriter.getI32Type(), ptrTy);
-    Value one = arith::ConstantIntOp::create(rewriter, loc, 1, 64);
-    Type arrayTy = M::getArrayType(rewriter.getContext());
-    auto newArr = func::CallOp::create(rewriter, loc, TypeRange{arrayTy},
-                                       cudaq::opt::QIRArrayCreateArray,
-                                       ArrayRef<Value>{sizeofPtrVal, one});
-    Value result = newArr.getResult(0);
-
-    // Get a pointer to element 0.
-    Value zero = arith::ConstantIntOp::create(rewriter, loc, 0, 64);
-    Type qubitTy = M::getQubitType(rewriter.getContext());
-    auto ptrQubitTy = cudaq::cc::PointerType::get(qubitTy);
-    auto elePtr = func::CallOp::create(rewriter, loc, TypeRange{ptrQubitTy},
-                                       cudaq::opt::QIRArrayGetElementPtr1d,
-                                       ArrayRef<Value>{result, zero});
-
-    // Write the qubit into the array at position 0.
-    auto castVal = cudaq::cc::CastOp::create(rewriter, loc, qubitTy, val);
-    Value addr = elePtr.getResult(0);
-    cudaq::cc::StoreOp::create(rewriter, loc, castVal, addr);
-
-    return result;
-  }
-};
+template <typename OP>
+Type getInitialType(OP op, unsigned off) {
+  ArrayAttr initialArgs =
+      op->template getAttrOfType<ArrayAttr>(InitialArgTypesAttrName);
+  if (!initialArgs)
+    return {};
+  return cast<TypeAttr>(initialArgs[off]).getValue();
+}
 
 template <typename M>
-struct ApplyNoiseOpRewrite
-    : public QubitHelperConversionPattern<M, quake::ApplyNoiseOp> {
-  using Base = QubitHelperConversionPattern<M, quake::ApplyNoiseOp>;
-  using Base::Base;
+struct ApplyNoiseOpRewrite : public OpConversionPattern<quake::ApplyNoiseOp> {
+  using OpConversionPattern::OpConversionPattern;
 
   LogicalResult
-  matchAndRewrite(quake::ApplyNoiseOp noise, Base::OpAdaptor adaptor,
+  matchAndRewrite(quake::ApplyNoiseOp noise, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = noise.getLoc();
 
@@ -472,11 +430,11 @@ struct ApplyNoiseOpRewrite
       SmallVector<Value> args;
       const bool pushASpan =
           adaptor.getParameters().size() == 1 &&
-          isa<cudaq::cc::StdvecType>(Base::getInitialType(noise, paramOffset));
+          isa<cudaq::cc::StdvecType>(getInitialType(noise, paramOffset));
       const bool usingDouble = [&]() {
         if (adaptor.getParameters().empty())
           return true;
-        Type param0Ty = Base::getInitialType(noise, paramOffset);
+        Type param0Ty = getInitialType(noise, paramOffset);
         if (pushASpan)
           return cast<cudaq::cc::StdvecType>(param0Ty).getElementType() ==
                  rewriter.getF64Type();
@@ -509,8 +467,8 @@ struct ApplyNoiseOpRewrite
           arith::ConstantIntOp::create(rewriter, loc, numTargets, 64));
       if (pushASpan) {
         Value stdvec = adaptor.getParameters()[0];
-        auto stdvecTy = cast<cudaq::cc::StdvecType>(
-            Base::getInitialType(noise, paramOffset));
+        auto stdvecTy =
+            cast<cudaq::cc::StdvecType>(getInitialType(noise, paramOffset));
         auto dataTy = cudaq::cc::PointerType::get(
             cudaq::cc::ArrayType::get(stdvecTy.getElementType()));
         args.push_back(
@@ -551,12 +509,12 @@ struct ApplyNoiseOpRewrite
     // already the case, we just append the operands.
     SmallVector<Value> args;
     if (adaptor.getParameters().size() == 1 &&
-        isa<cudaq::cc::StdvecType>(Base::getInitialType(noise, paramOffset))) {
+        isa<cudaq::cc::StdvecType>(getInitialType(noise, paramOffset))) {
       Value svp = adaptor.getParameters()[0];
       // Convert the device-side span back to a host-side vector so that C++
       // doesn't crash.
       auto stdvecTy =
-          cast<cudaq::cc::StdvecType>(Base::getInitialType(noise, paramOffset));
+          cast<cudaq::cc::StdvecType>(getInitialType(noise, paramOffset));
       auto *ctx = rewriter.getContext();
       auto ptrTy = cudaq::cc::PointerType::get(stdvecTy.getElementType());
       auto ptrArrTy = cudaq::cc::PointerType::get(
@@ -610,7 +568,7 @@ struct ApplyNoiseOpRewrite
     Type qirArrTy = M::getArrayType(rewriter.getContext());
     SmallVector<Type> origQubitTys;
     for (auto [i, _] : llvm::enumerate(noise.getQubits()))
-      origQubitTys.push_back(Base::getInitialType(
+      origQubitTys.push_back(getInitialType(
           noise, paramOffset + adaptor.getParameters().size() + i));
     for (auto [qb, oa] : llvm::zip(adaptor.getQubits(), origQubitTys)) {
       if (isa<quake::VeqType>(oa)) {
@@ -649,6 +607,47 @@ struct MaterializeConstantArrayOpRewrite
   }
 };
 
+/// This helper base class provides shared functionality to convert single
+/// qubits (`!quake.ref`) to vectors of qubits (`!quake.veq`) to satisfy the QIR
+/// API.
+template <typename M, typename OP>
+struct QubitHelperConversionPattern : public OpConversionPattern<OP> {
+  using Base = OpConversionPattern<OP>;
+  using Base::Base;
+
+  Value wrapQubitAsArray(Location loc, ConversionPatternRewriter &rewriter,
+                         Value val, Type origTy) const {
+    if (isa<quake::VeqType>(origTy))
+      return val;
+
+    // Create a QIR array container of 1 element.
+    auto ptrTy = cudaq::cc::PointerType::get(rewriter.getNoneType());
+    Value sizeofPtrVal = cudaq::cc::SizeOfOp::create(
+        rewriter, loc, rewriter.getI32Type(), ptrTy);
+    Value one = arith::ConstantIntOp::create(rewriter, loc, 1, 64);
+    Type arrayTy = M::getArrayType(rewriter.getContext());
+    auto newArr = func::CallOp::create(rewriter, loc, TypeRange{arrayTy},
+                                       cudaq::opt::QIRArrayCreateArray,
+                                       ArrayRef<Value>{sizeofPtrVal, one});
+    Value result = newArr.getResult(0);
+
+    // Get a pointer to element 0.
+    Value zero = arith::ConstantIntOp::create(rewriter, loc, 0, 64);
+    Type qubitTy = M::getQubitType(rewriter.getContext());
+    auto ptrQubitTy = cudaq::cc::PointerType::get(qubitTy);
+    auto elePtr = func::CallOp::create(rewriter, loc, TypeRange{ptrQubitTy},
+                                       cudaq::opt::QIRArrayGetElementPtr1d,
+                                       ArrayRef<Value>{result, zero});
+
+    // Write the qubit into the array at position 0.
+    auto castVal = cudaq::cc::CastOp::create(rewriter, loc, qubitTy, val);
+    Value addr = elePtr.getResult(0);
+    cudaq::cc::StoreOp::create(rewriter, loc, castVal, addr);
+
+    return result;
+  }
+};
+
 template <typename M>
 struct ConcatOpRewrite
     : public QubitHelperConversionPattern<M, quake::ConcatOp> {
@@ -673,12 +672,12 @@ struct ConcatOpRewrite
     auto loc = concat.getLoc();
     Type arrayTy = M::getArrayType(rewriter.getContext());
     Value firstOperand = adaptor.getOperands().front();
-    Type firstTy = Base::getInitialType(concat, 0);
+    Type firstTy = getInitialType(concat, 0);
     Value resultArray =
         Base::wrapQubitAsArray(loc, rewriter, firstOperand, firstTy);
     SmallVector<Type> origTys;
     for (auto [i, _] : llvm::enumerate(adaptor.getOperands().drop_front()))
-      origTys.push_back(Base::getInitialType(concat, i + 1));
+      origTys.push_back(getInitialType(concat, i + 1));
     for (auto [next, origTy] :
          llvm::zip(adaptor.getOperands().drop_front(), origTys)) {
       Value wrapNext = Base::wrapQubitAsArray(loc, rewriter, next, origTy);
@@ -739,6 +738,7 @@ struct DeallocLikeErase : public OpConversionPattern<OP> {
 
 using DeallocOpErase = DeallocLikeErase<quake::DeallocOp>;
 using SinkOpErase = DeallocLikeErase<quake::SinkOp>;
+
 struct DiscriminateOpRewrite
     : public OpConversionPattern<quake::DiscriminateOp> {
   using OpConversionPattern::OpConversionPattern;
@@ -1086,15 +1086,15 @@ struct CustomUnitaryOpPattern
       return unitary.emitOpError("Custom operations must have targets.");
 
     // Concat all the targets into an array.
-    Type firstTy = Base::getInitialType(
-        unitary, adaptor.getParameters().size() + adaptor.getControls().size());
+    Type firstTy = getInitialType(unitary, adaptor.getParameters().size() +
+                                               adaptor.getControls().size());
     auto targetArray = Base::wrapQubitAsArray(
         loc, rewriter, adaptor.getTargets().front(), firstTy);
     SmallVector<Type> origTys;
     for (auto [i, _] : llvm::enumerate(adaptor.getTargets().drop_front()))
-      origTys.push_back(Base::getInitialType(
-          unitary, adaptor.getParameters().size() +
-                       adaptor.getControls().size() + i + 1));
+      origTys.push_back(
+          getInitialType(unitary, adaptor.getParameters().size() +
+                                      adaptor.getControls().size() + i + 1));
     for (auto [next, origTy] :
          llvm::zip(adaptor.getTargets().drop_front(), origTys)) {
       auto wrapNext = Base::wrapQubitAsArray(loc, rewriter, next, origTy);
@@ -1111,14 +1111,13 @@ struct CustomUnitaryOpPattern
       Value zero = arith::ConstantIntOp::create(rewriter, loc, 0, 64);
       controlArray = cudaq::cc::CastOp::create(rewriter, loc, arrayTy, zero);
     } else {
-      Type firstTy =
-          Base::getInitialType(unitary, adaptor.getParameters().size());
+      Type firstTy = getInitialType(unitary, adaptor.getParameters().size());
       controlArray = Base::wrapQubitAsArray(
           loc, rewriter, adaptor.getControls().front(), firstTy);
       SmallVector<Type> origTys;
       for (auto [i, _] : llvm::enumerate(adaptor.getControls().drop_front()))
-        origTys.push_back(Base::getInitialType(
-            unitary, adaptor.getParameters().size() + i + 1));
+        origTys.push_back(
+            getInitialType(unitary, adaptor.getParameters().size() + i + 1));
       for (auto [next, origTy] :
            llvm::zip(adaptor.getControls().drop_front(), origTys)) {
         auto wrapNext = Base::wrapQubitAsArray(loc, rewriter, next, origTy);
@@ -1188,8 +1187,7 @@ struct ExpPauliOpPattern
     if (adaptor.getControls().empty()) {
       // do nothing
     } else if (adaptor.getControls().size() > 1 ||
-               !isa<quake::VeqType>(
-                   Base::getInitialType(pauli, firstControlIndex))) {
+               !isa<quake::VeqType>(getInitialType(pauli, firstControlIndex))) {
       // Concat all controls into a single Array.
       Type arrayTy = M::getArrayType(rewriter.getContext());
       auto wrapIfQubit = [&](Value adaptorVal, Type origTy) {
@@ -1198,12 +1196,11 @@ struct ExpPauliOpPattern
         return Base::wrapQubitAsArray(loc, rewriter, adaptorVal, origTy);
       };
       Value firstOperand = adaptor.getControls().front();
-      Type firstTy = Base::getInitialType(pauli, firstControlIndex);
+      Type firstTy = getInitialType(pauli, firstControlIndex);
       Value resultArray = wrapIfQubit(firstOperand, firstTy);
       SmallVector<Type> origCtrlTys;
       for (auto [i, _] : llvm::enumerate(adaptor.getControls().drop_front()))
-        origCtrlTys.push_back(
-            Base::getInitialType(pauli, firstControlIndex + i + 1));
+        origCtrlTys.push_back(getInitialType(pauli, firstControlIndex + i + 1));
       for (auto [next, origCtrlTy] :
            llvm::zip(adaptor.getControls().drop_front(), origCtrlTys)) {
         Value wrapNext = wrapIfQubit(next, origCtrlTy);
@@ -1219,7 +1216,7 @@ struct ExpPauliOpPattern
     SmallVector<Value> targets;
     const auto firstTargetIndex =
         firstControlIndex + adaptor.getControls().size();
-    Type firstTy = Base::getInitialType(pauli, firstTargetIndex);
+    Type firstTy = getInitialType(pauli, firstTargetIndex);
     if (adaptor.getTargets().size() > 1 || !isa<quake::VeqType>(firstTy)) {
       // Concat all targets into a single Array.
       Type arrayTy = M::getArrayType(rewriter.getContext());
@@ -1228,8 +1225,7 @@ struct ExpPauliOpPattern
           Base::wrapQubitAsArray(loc, rewriter, firstOperand, firstTy);
       SmallVector<Type> origTargTys;
       for (auto [i, _] : llvm::enumerate(adaptor.getTargets().drop_front()))
-        origTargTys.push_back(
-            Base::getInitialType(pauli, firstTargetIndex + i + 1));
+        origTargTys.push_back(getInitialType(pauli, firstTargetIndex + i + 1));
       for (auto [next, origTy] :
            llvm::zip(adaptor.getTargets().drop_front(), origTargTys)) {
         Value wrapNext = Base::wrapQubitAsArray(loc, rewriter, next, origTy);
@@ -1281,8 +1277,8 @@ struct ExpPauliOpPattern
     auto i8PtrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
     Type wordTy;
     if (!pauli.getPauliLiteral())
-      wordTy = Base::getInitialType(pauli, firstTargetIndex +
-                                               adaptor.getTargets().size());
+      wordTy =
+          getInitialType(pauli, firstTargetIndex + adaptor.getTargets().size());
     if (wordTy && isa<cudaq::cc::SpanLikeType>(wordTy)) {
       // The attribute tells us we have a pauli word expressed as `{i8*, i64}`.
       // Allocate a stack slot for it and store what we have to that pointer,
@@ -1599,8 +1595,8 @@ struct AnnotateKernelsWithMeasurementStringsPattern
 //===----------------------------------------------------------------------===//
 
 template <typename M, typename OP>
-struct QuantumGatePattern : public QubitHelperConversionPattern<M, OP> {
-  using Base = QubitHelperConversionPattern<M, OP>;
+struct QuantumGatePattern : public OpConversionPattern<OP> {
+  using Base = OpConversionPattern<OP>;
   using Base::Base;
 
   LogicalResult
@@ -1655,9 +1651,8 @@ struct QuantumGatePattern : public QubitHelperConversionPattern<M, OP> {
     // just add a call and forward the target qubits as needed.
     auto numControls = adaptor.getControls().size();
     if (op.getControls().empty() ||
-        conformsToIntendedCall(numControls,
-                               Base::getInitialType(op, opParams.size()), op,
-                               qirFunctionName)) {
+        conformsToIntendedCall(numControls, getInitialType(op, opParams.size()),
+                               op, qirFunctionName)) {
       SmallVector<Value> args{opParams.begin(), opParams.end()};
       args.append(adaptor.getControls().begin(), adaptor.getControls().end());
       args.append(adaptor.getTargets().begin(), adaptor.getTargets().end());
@@ -1684,7 +1679,7 @@ struct QuantumGatePattern : public QubitHelperConversionPattern<M, OP> {
     // type recorded by QuakeToQIRAPIPrep, since opaque pointers
     // make Array* and Qubit* indistinguishable on the live operand.
     for (auto [i, val] : llvm::enumerate(adaptor.getControls())) {
-      Type origCtrlTy = Base::getInitialType(op, opParams.size() + i);
+      Type origCtrlTy = getInitialType(op, opParams.size() + i);
       if (isaVeqArgument(origCtrlTy)) {
         numArrayCtrls++;
         auto sizeCall = func::CallOp::create(
@@ -1811,11 +1806,10 @@ struct AllocaOpPattern : public OpConversionPattern<cudaq::cc::AllocaOp> {
 };
 
 struct ReturnOpPattern : public OpConversionPattern<func::ReturnOp> {
-  using Base = OpConversionPattern<func::ReturnOp>;
-  using Base::Base;
+  using OpConversionPattern::OpConversionPattern;
 
   LogicalResult
-  matchAndRewrite(func::ReturnOp op, typename Base::OpAdaptor adaptor,
+  matchAndRewrite(func::ReturnOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     rewriter.replaceOpWithNewOp<func::ReturnOp>(op, adaptor.getOperands());
     return success();

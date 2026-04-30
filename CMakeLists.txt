@@ -200,18 +200,6 @@ if(NOT BLAS_LIBRARIES AND EXISTS "$ENV{BLAS_INSTALL_PREFIX}/libblas.a")
   # CACHE INTERNAL is needed due to how FindBLAS.cmake works...
   SET(BLAS_LIBRARIES "$ENV{BLAS_INSTALL_PREFIX}/libblas.a" CACHE INTERNAL "")
 endif()
-if(NOT CUSTATEVEC_ROOT)
-  SET(CUSTATEVEC_ROOT "$ENV{CUQUANTUM_INSTALL_PREFIX}" CACHE PATH "Path to cuStateVec installation")
-endif()
-if(NOT CUTENSORNET_ROOT)
-  SET(CUTENSORNET_ROOT "$ENV{CUQUANTUM_INSTALL_PREFIX}" CACHE PATH "Path to cuTensorNet installation")
-endif()
-if(NOT CUDENSITYMAT_ROOT)
-  SET(CUDENSITYMAT_ROOT "$ENV{CUQUANTUM_INSTALL_PREFIX}" CACHE PATH "Path to cuDensityMat installation")
-endif()
-if(NOT CUTENSOR_ROOT)
-  SET(CUTENSOR_ROOT "$ENV{CUTENSOR_INSTALL_PREFIX}" CACHE PATH "Path to cuTensor installation")
-endif()
 if(NOT ZLIB_ROOT)
   SET(ZLIB_ROOT "$ENV{ZLIB_INSTALL_PREFIX}" CACHE PATH "Path to zlib installation")
 endif()
@@ -251,7 +239,7 @@ SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 if(APPLE)
   SET(CMAKE_INSTALL_RPATH "@loader_path;@loader_path/lib;@loader_path/lib/plugins;@loader_path/../lib;@loader_path/../lib/plugins;@executable_path;@executable_path/lib;@executable_path/lib/plugins;@executable_path/../lib;@executable_path/../lib/plugins")
 else()
-  SET(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/lib/plugins:$ORIGIN/../lib:$ORIGIN/../lib/plugins")
+  SET(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/lib/plugins:$ORIGIN/../lib:$ORIGIN/../lib/plugins:$ORIGIN/../cudaq/mlir/_mlir_libs:$ORIGIN/../python/cudaq/mlir/_mlir_libs")
 endif()
 
 SET(BLA_STATIC ON)
@@ -282,6 +270,7 @@ else()
   # B. Using LLVM/MLIR dylibs. This won't work until later versions of LLVM are used as
   #    the first versions of this setting did not appropriately link all libraries to the dylibs.
   add_link_options("-Wl,-flat_namespace")
+  add_link_options("-Wl,-undefined,dynamic_lookup")
 endif()
 
 # Detect sysroot for C++ stdlib headers/libs. Critical on macOS where a custom-built
@@ -663,6 +652,7 @@ if(CMAKE_CUDA_COMPILER)
   message(STATUS "Cuda language found.")
 endif()
 
+# cuQuantum / cuTensor component discovery
 if (CUDA_FOUND)
   find_package(cuStateVec)
   find_package(cuTensor)
@@ -697,12 +687,48 @@ if(CUDAQ_BUILD_TESTS)
 endif()
 
 if (CUDAQ_ENABLE_PYTHON)
-  # MLIR 22 uses nanobind for Python bindings.
-  # Use MLIR's detection macro to find Python3 and nanobind.
-  include(MLIRDetectPythonEnv)
-  mlir_configure_python_dev_packages()
-  # Also find full Python3 Development for embed use cases (e.g., PySCFDriver).
-  find_package(Python3 COMPONENTS Development)
+  find_package(Python 3 COMPONENTS Interpreter Development)
+  find_package(Python3 COMPONENTS Interpreter Development)
+
+  # Apply specific patch to pybind11 for our documentation.
+  # Only apply the patch if not already applied.
+  execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind.h.diff --ignore-whitespace --reverse --check
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                  RESULT_VARIABLE GIT_PATCH_RESULT
+                  ERROR_QUIET)
+  if (NOT GIT_PATCH_RESULT EQUAL "0")
+    execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind.h.diff --ignore-whitespace
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                    RESULT_VARIABLE GIT_PATCH_RESULT)
+  endif()
+  if (NOT GIT_PATCH_RESULT EQUAL "0")
+    message(FATAL_ERROR "Applying patch to submodule failed with ${GIT_PATCH_RESULT}, please update patch")
+  endif()
+
+  # Apply patch to fix LTO flag bug with Clang (https://github.com/pybind/pybind11/issues/5098)
+  execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind11Common.cmake.diff --ignore-whitespace --reverse --check
+                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                  RESULT_VARIABLE GIT_PATCH_RESULT
+                  ERROR_QUIET)
+  if (NOT GIT_PATCH_RESULT EQUAL "0")
+    execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind11Common.cmake.diff --ignore-whitespace
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                    RESULT_VARIABLE GIT_PATCH_RESULT)
+  endif()
+  if (NOT GIT_PATCH_RESULT EQUAL "0")
+    message(FATAL_ERROR "Applying LTO patch to submodule failed with ${GIT_PATCH_RESULT}, please update patch")
+  endif()
+
+  # Regarding the use of PyBind, we need to be careful that the same STL is used for any
+  # Python bindings generated as part of the CUDA-Q build and bindings generated for
+  # third party CUDA-Q libraries; see also https://github.com/pybind/pybind11/issues/1262
+  add_subdirectory(tpls/pybind11)
+
+  # nanobind is used for all CUDA-Q Python bindings. pybind11 is retained only
+  # for upstream MLIR Python extensions (e.g., _mlirAsyncPasses) which use
+  # mlir/Bindings/Python/PybindAdaptors.h.
+  add_subdirectory(tpls/nanobind)
+
   add_subdirectory(python)
 endif()
 

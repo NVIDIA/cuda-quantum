@@ -20,6 +20,7 @@
 #include "cudaq/platform/nvqpp_interface.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
+#include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
@@ -36,8 +37,10 @@
 #include <numeric>
 
 using namespace mlir;
-using namespace cudaq_internal::compiler;
 
+// FIXME: include the header file and type out the namespace in every definition
+// below as appropriate and get rid of wrapping the entire file in this
+// namespace.
 namespace cudaq::details {
 
 /// @brief Track unique measurement register names.
@@ -130,7 +133,7 @@ KernelBuilderType convertArgumentTypeToMLIR(cudaq::state *&) {
 
 MLIRContext *initializeContext() {
   CUDAQ_INFO("Initializing the MLIR infrastructure.");
-  return getOwningMLIRContext().release();
+  return cudaq_internal::compiler::getOwningMLIRContext().release();
 }
 void deleteContext(MLIRContext *context) { delete context; }
 void deleteJitEngine(ExecutionEngine *jit) { delete jit; }
@@ -939,6 +942,7 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
 
   {
     PassManager pm(context);
+    pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
     cudaq::opt::addAggressiveInlining(pm);
     pm.addPass(createCanonicalizerPass());
@@ -966,6 +970,7 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
     // rewrites before lowering to a raw CFG form. Loop unrolling depends on the
     // cc.loop op and GKE generates new code which may have cc.loop ops, etc.
     PassManager pm(context);
+    pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
     cudaq::opt::addLowerToCFG(pm);
     // We want quantum allocations to stay where they are if
     // we are simulating and have user-provided state vectors.
@@ -1136,6 +1141,7 @@ std::string to_quake(ImplicitLocOpBuilder &builder) {
 
   // Clean up the code for print out
   PassManager pm(clonedModule.getContext());
+  pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
   pm.addPass(createCanonicalizerPass());
   pm.addPass(createCSEPass());
   if (failed(pm.run(clonedModule)))
