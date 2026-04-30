@@ -168,6 +168,31 @@ def test_OQC_observe():
     assert assert_close(res.expectation())
 
 
+def test_OQC_observe_broadcast():
+    qubit_count = 5
+    sample_count = 4
+    shots_count = 10000
+    parameters = np.random.default_rng(13).uniform(low=0,
+                                                   high=1,
+                                                   size=(sample_count,
+                                                         qubit_count))
+
+    @cudaq.kernel
+    def kernel(qubit_count: int, parameters: List[float]):
+        qvector = cudaq.qvector(qubit_count)
+        for i in range(qubit_count - 1):
+            rx(parameters[i], qvector[i])
+
+    results = cudaq.observe(kernel,
+                            spin.z(0), [qubit_count] * sample_count,
+                            parameters,
+                            shots_count=shots_count)
+    expected = np.cos(parameters[:, 0])
+
+    assert len(results) == sample_count
+    assert np.allclose([r.expectation() for r in results], expected, atol=0.1)
+
+
 def test_OQC_state_synthesis():
 
     @cudaq.kernel

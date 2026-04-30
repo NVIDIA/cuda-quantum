@@ -28,6 +28,7 @@ from cudaq.mlir.ir import (BoolAttr, Block, BlockArgument, Context, ComplexType,
                            InsertionPoint, IntegerAttr, IntegerType, Location,
                            Module, StringAttr, SymbolTable, TypeAttr, UnitAttr)
 from cudaq.mlir.passmanager import PassManager
+from cudaq.util import trace
 from .analysis import ValidateArgumentAnnotations, ValidateReturnStatements
 from .kernel_signature import KernelSignature
 from .utils import (Color, globalRegisteredOperations, globalRegisteredTypes,
@@ -5490,17 +5491,28 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
                          kernelModuleName=kernelModuleName,
                          cudaqAliases=cudaqAliases)
 
-    ValidateArgumentAnnotations(bridge).visit(astModule)
-    ValidateReturnStatements(bridge).visit(astModule)
+    # Build the AOT Quake Module for this kernel. Wrapped in a single span so
+    # the tracer can separate Python-AST-to-MLIR construction from the AOT
+    # pass pipeline that runs immediately after.
+    with trace.span("ast_bridge.build_module"):
+        ValidateArgumentAnnotations(bridge).visit(astModule)
+        ValidateReturnStatements(bridge).visit(astModule)
+        bridge.visit(astModule)
 
-    # Build the AOT Quake Module for this kernel.
-    bridge.visit(astModule)
-
-    # Precompile (simplify) the Module.
+    # Precompile (simplify) the Module. Run via `cudaq_runtime.runPassManager`
+    # so `TracePassInstrumentation` is installed (matching the JIT-side
+    # install at `runtime/internal/compiler/RuntimePyMLIR.cpp`). Without this,
+    # AOT passes execute through upstream MLIR's `pm.run()` without a tracer
+    # attached and per-pass wall-time cannot be attributed.
+    #
+    # The `cudaq.pipeline.aot` span is the marker tooling uses to identify
+    # pass events as AOT-pipeline (paired with `cudaq.pipeline.jit` emitted
+    # from `QPU.cpp` `lower_to_qir_llvm`).
     pm = PassManager.parse("builtin.module(aot-prep-pipeline)",
                            context=bridge.ctx)
     try:
-        pm.run(bridge.module.operation)
+        with trace.span("cudaq.pipeline.aot"):
+            cudaq_runtime.runPassManager(pm, bridge.module)
     except:
         raise RuntimeError(f"could not compile code for '{bridge.name}'.")
 

@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cudaq.util import trace
 from .utils import __isBroadcast, __createArgumentSet
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
 from cudaq.kernel.kernel_builder import isa_dynamic_kernel
@@ -44,13 +45,31 @@ def __broadcastObserve(kernel, spin_operator, *args, shots_count=0, qpu_id=0):
             kernel(*a)
         res = ctx.result
         results.append(
-            cudaq_runtime.ObserveResult(ctx.getExpectationValue(),
-                                        spin_operator, res))
+            cudaq_runtime.ObserveResult(
+                __resolveExpectationValue(ctx, spin_operator, res),
+                spin_operator, res))
     if has_vector_args:
         ctx.unset_jit_engine()
     return results
 
 
+def __resolveExpectationValue(ctx, spin_operator, sample_result):
+    exp_val = ctx.getExpectationValue()
+    if exp_val is not None:
+        return exp_val
+
+    total = 0.0
+    for term in spin_operator:
+        if term.is_identity():
+            total += term.evaluate_coefficient().real
+        else:
+            total += (sample_result.expectation(term.term_id) *
+                      term.evaluate_coefficient().real)
+
+    return total
+
+
+@trace.traced
 def observe(kernel,
             spin_operator,
             *args,
@@ -180,21 +199,7 @@ def observe(kernel,
             kernel(*args)
         res = ctx.result
 
-        expVal = ctx.getExpectationValue()
-        if expVal == None:
-            sum = 0.0
-
-            def computeExpVal(term):
-                nonlocal sum
-                if term.is_identity():
-                    sum += term.evaluate_coefficient().real
-                else:
-                    sum += res.expectation(
-                        term.term_id) * term.evaluate_coefficient().real
-
-            for term in localOp:
-                computeExpVal(term)
-            expVal = sum
+        expVal = __resolveExpectationValue(ctx, localOp, res)
 
         observeResult = cudaq_runtime.ObserveResult(expVal, localOp, res)
         if not isinstance(spin_operator, list):
@@ -226,6 +231,7 @@ def observe(kernel,
     return results
 
 
+@trace.traced
 def observe_async(kernel, spin_operator, *args, qpu_id=0, shots_count=-1):
     """
     Compute the expected value of the `spin_operator` with respect to the

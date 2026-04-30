@@ -130,6 +130,54 @@ def test_cupy_to_state_without_dtype():
     cudaq.reset_target()
 
 
+def test_cupy_to_state_strided_1d():
+    cudaq.set_target('nvidia', option='fp64')
+    # Use distinct, non-symmetric values so a buggy "read first 2 contiguous
+    # elements from .data.ptr" path would produce [1+1j, 2+2j] while the
+    # correct strided view is [1+1j, 3+3j]. This catches the original bug.
+    base = cp.array([1 + 1j, 2 + 2j, 3 + 3j, 4 + 4j], dtype=cp.complex128)
+    strided = base[::2]
+    assert not strided.flags['C_CONTIGUOUS']
+    state_from_cupy = cudaq.State.from_data(strided)
+    np.testing.assert_allclose(np.array(state_from_cupy),
+                               cp.asnumpy(strided),
+                               atol=1e-12)
+    cudaq.reset_target()
+
+
+def test_cupy_to_state_ownership_semantics():
+    """Document (and lock in) the ownership contract exposed by `from_data`:
+
+    - Contiguous 1D CuPy arrays take the zero-copy GPU fast path, so the
+      resulting State observes later mutations of the source buffer.
+    - Non-contiguous arrays must first be canonicalized via cupy.asnumpy,
+      which round-trips through host memory and yields an independent copy.
+
+    Both behaviours are by design; this test guards against silent changes
+    that would surprise users holding on to the original CuPy array.
+    """
+    cudaq.set_target('nvidia', option='fp64')
+    try:
+        # Contiguous fast path — state aliases device memory.
+        contig = cp.array([1 + 1j, 2 + 2j, 3 + 3j, 4 + 4j], dtype=cp.complex128)
+        s_contig = cudaq.State.from_data(contig)
+        contig[0] = 999 + 0j
+        aliased = np.array(s_contig)
+        assert aliased[0] == 999 + 0j, (
+            "Contiguous CuPy path is expected to alias source memory.")
+
+        # Strided slow path — state is independent of the source.
+        base = cp.array([1 + 1j, 2 + 2j, 3 + 3j, 4 + 4j], dtype=cp.complex128)
+        strided = base[::2]
+        s_strided = cudaq.State.from_data(strided)
+        base[0] = 999 + 0j
+        independent = np.array(s_strided)
+        assert independent[0] == 1 + 1j, (
+            "Strided CuPy path must canonicalize to an independent copy.")
+    finally:
+        cudaq.reset_target()
+
+
 @pytest.mark.parametrize("target", ["qpp-cpu", "density-matrix-cpu"])
 def test_cupy_to_state_cpu_sim(target):
     cudaq.set_target(target)

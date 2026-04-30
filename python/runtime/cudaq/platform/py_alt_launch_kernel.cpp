@@ -924,6 +924,21 @@ cudaq::OpaqueArguments cudaq::marshal_arguments_for_module_launch(
 nanobind::object cudaq::marshal_and_launch_module(const std::string &name,
                                                   MlirModule module,
                                                   nanobind::args runtimeArgs) {
+  // Marker span identifying every nested pass / scoped trace as part of the
+  // JIT-time pipeline. Paired with the cudaq.pipeline.aot span emitted around
+  // aot-prep-pipeline in compile_to_mlir; tooling reads the trace ancestry to
+  // attribute pass events to AOT vs JIT.
+  //
+  // This site is the funnel for kernel-call / sample / observe /
+  // estimate_resources execution paths: each ultimately calls
+  // marshal_and_launch_module, so a single span here attributes their JIT
+  // pass events to the JIT pipeline. The cudaq.translate path has its own
+  // marker in py_translate.cpp::translate_impl since it does not pass
+  // through this function.
+  cudaq::ScopedTrace pipelineJitMarker(cudaq::TraceContext(__builtin_FUNCTION(),
+                                                           __builtin_FILE(),
+                                                           __builtin_LINE()),
+                                       "cudaq.pipeline.jit");
   ScopedTraceWithContext("marshal_and_launch_module", name);
   auto kernelFunc = getKernelFuncOp(module, name);
   auto mod = unwrap(module);
