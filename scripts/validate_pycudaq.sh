@@ -331,6 +331,16 @@ else
     done
 fi
 
+if $is_macos; then
+    echo "Pre-flight: importing cudaq with dyld diagnostics..."
+    DYLD_PRINT_LIBRARIES=1 python3 -c "import cudaq; print('cudaq import OK')" 2>&1 | tail -300
+    preflight_status=${PIPESTATUS[0]}
+    if [ "$preflight_status" -ne 0 ]; then
+        echo -e "\e[01;31mPre-flight cudaq import failed (status=$preflight_status). See output above.\e[0m" >&2
+        status_sum=$((status_sum + 1))
+    fi
+fi
+
 # Run core tests
 echo "Running core tests."
 python3 -m pytest -v -n auto "$root_folder/tests" \
