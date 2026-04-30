@@ -322,15 +322,6 @@ state pyGetStateLibraryMode(nanobind::object kernel, nanobind::args args) {
   });
 }
 
-// Helper to determine if ndarray is complex float or complex double
-static bool isComplexFloat(const nanobind::ndarray<> &arr) {
-  return arr.dtype() == nanobind::dtype<std::complex<float>>();
-}
-
-static bool isComplexDouble(const nanobind::ndarray<> &arr) {
-  return arr.dtype() == nanobind::dtype<std::complex<double>>();
-}
-
 // Helper to check if object is a CuPy array (has __cuda_array_interface__)
 static bool isCupyArray(nanobind::object obj) {
   return nanobind::hasattr(obj, "__cuda_array_interface__");
@@ -372,25 +363,19 @@ static BufferInfo getNumpyBufferInfo(nanobind::object numpy_array) {
 
 static cudaq::state createStateFromPyBuffer(nanobind::object data,
                                             LinkedLibraryHolder &holder) {
-  // If the object isn't directly ndarray-compatible (no buffer protocol or
-  // DLPack) but has __array__ (e.g. StateMemoryView), convert to numpy first.
-  if (!nanobind::ndarray_check(data) && nanobind::hasattr(data, "__array__"))
-    data = data.attr("__array__")();
-
-  const bool isHostData = !isCupyArray(data);
+  const bool isHostData = !nanobind::hasattr(data, "__cuda_array_interface__");
+  // Check that the target is GPU-based, i.e., can handle device
+  // pointer.
   if (!holder.getTarget().config.GpuRequired && !isHostData)
     throw std::runtime_error(
         fmt::format("Current target '{}' does not support CuPy arrays.",
                     holder.getTarget().name));
 
-  // Cast to generic ndarray to inspect properties
-  nanobind::ndarray<> arr = nanobind::cast<nanobind::ndarray<>>(data);
-
-  if (arr.ndim() > 2)
+  auto info = isHostData ? getNumpyBufferInfo(data) : getCupyBufferInfo(data);
+  if (info.shape.size() > 2)
     throw std::runtime_error(
         "state.from_data only supports 1D or 2D array data.");
-
-  if (!isComplexFloat(arr) && !isComplexDouble(arr))
+  if (info.format != "Zf" && info.format != "Zd")
     throw std::runtime_error(
         "A numpy array with only floating point elements passed to "
         "`state.from_data`. Input must be of complex float type. Please add to "
@@ -398,51 +383,66 @@ static cudaq::state createStateFromPyBuffer(nanobind::object data,
         "`dtype=numpy.complex128` if simulation is FP64, or "
         "`dtype=cudaq.complex()` for precision-agnostic code.");
 
-  const bool isDoublePrecision = isComplexDouble(arr);
-  const size_t totalSize = [&]() {
-    size_t s = 1;
-    for (size_t i = 0; i < arr.ndim(); ++i)
-      s *= arr.shape(i);
-    return s;
-  }();
+  if (!isHostData && shouldCanonicalizeCupyArray(info, holder.getTarget().name))
+    return createStateFromPyBuffer(canonicalizeCupyArrayToNumpy(data), holder);
 
-  if (!isHostData || arr.ndim() == 1) {
-    // 1D array or GPU array
-    if (isDoublePrecision)
-      return state::from_data(std::make_pair(
-          reinterpret_cast<std::complex<double> *>(arr.data()), totalSize));
-    else
-      return state::from_data(std::make_pair(
-          reinterpret_cast<std::complex<float> *>(arr.data()), totalSize));
-  } else {
-    // 2D host array (density matrix)
-    const std::size_t rows = arr.shape(0);
-    const std::size_t cols = arr.shape(1);
-    if (rows != cols)
-      throw std::runtime_error(
-          "state.from_data 2D array (density matrix) input must be "
-          "square matrix data.");
-
-    const bool rowMajor =
-        arr.stride(1) ==
-        1; // check row-major: stride in elements (not bytes) for last dim
-    const cudaq::complex_matrix::order matOrder =
-        rowMajor ? cudaq::complex_matrix::order::row_major
-                 : cudaq::complex_matrix::order::column_major;
-    const cudaq::complex_matrix::Dimensions dim = {rows, cols};
-
-    if (isDoublePrecision) {
-      auto *ptr = reinterpret_cast<std::complex<double> *>(arr.data());
-      return state::from_data(cudaq::complex_matrix(
-          std::vector<cudaq::complex_matrix::value_type>(ptr, ptr + totalSize),
-          dim, matOrder));
-    } else {
-      auto *ptr = reinterpret_cast<std::complex<float> *>(arr.data());
-      return state::from_data(cudaq::complex_matrix(
-          std::vector<cudaq::complex_matrix::value_type>(ptr, ptr + totalSize),
-          dim, matOrder));
+  if (!isHostData) {
+    if (holder.getTarget().name == "dynamics") {
+      if (info.shape.size() == 2 && info.shape[0] != info.shape[1])
+        throw std::runtime_error(
+            "state.from_data 2D array (density matrix) input must be "
+            "square matrix data.");
+      TensorStateData tensorData{
+          std::pair<const void *, std::vector<std::size_t>>{info.ptr,
+                                                            info.shape}};
+      return state::from_data(tensorData);
     }
+
+    if (info.format == "Zf")
+      return state::from_data(std::make_pair(
+          reinterpret_cast<std::complex<float> *>(info.ptr), info.size));
+
+    return state::from_data(std::make_pair(
+        reinterpret_cast<std::complex<double> *>(info.ptr), info.size));
   }
+
+  if (info.shape.size() == 1) {
+    if (info.format == "Zf")
+      return state::from_data(std::make_pair(
+          reinterpret_cast<std::complex<float> *>(info.ptr), info.size));
+
+    return state::from_data(std::make_pair(
+        reinterpret_cast<std::complex<double> *>(info.ptr), info.size));
+  }
+
+  const std::size_t rows = info.shape[0];
+  const std::size_t cols = info.shape[1];
+  if (rows != cols)
+    throw std::runtime_error(
+        "state.from_data 2D array (density matrix) input must be "
+        "square matrix data.");
+  const bool isDoublePrecision = (info.format == "Zd");
+  const int64_t dataSize = isDoublePrecision ? sizeof(std::complex<double>)
+                                             : sizeof(std::complex<float>);
+  const bool rowMajor =
+      info.strides[1] ==
+      dataSize; // check row-major: second stride == element size
+  const cudaq::complex_matrix::order matOrder =
+      rowMajor ? cudaq::complex_matrix::order::row_major
+               : cudaq::complex_matrix::order::column_major;
+  const cudaq::complex_matrix::Dimensions dim = {rows, cols};
+  if (isDoublePrecision)
+    return state::from_data(cudaq::complex_matrix(
+        std::vector<cudaq::complex_matrix::value_type>(
+            reinterpret_cast<std::complex<double> *>(info.ptr),
+            reinterpret_cast<std::complex<double> *>(info.ptr) + info.size),
+        dim, matOrder));
+
+  return state::from_data(cudaq::complex_matrix(
+      std::vector<cudaq::complex_matrix::value_type>(
+          reinterpret_cast<std::complex<float> *>(info.ptr),
+          reinterpret_cast<std::complex<float> *>(info.ptr) + info.size),
+      dim, matOrder));
 }
 
 /// @brief Bind the get_state cudaq function
