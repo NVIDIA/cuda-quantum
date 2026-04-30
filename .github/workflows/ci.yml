@@ -106,7 +106,6 @@ jobs:
   devdeps:
     name: Load dependencies
     needs: metadata
-    if: ${{ github.event.action == '__debug_skip_never_set__' }}  # DEBUG-skip: temporarily skip to preview CI Summary with mostly-skipped jobs. Revert before merging.
     strategy:
       matrix:
         platform: [amd64, arm64]
@@ -193,7 +192,6 @@ jobs:
     name: Configure build (devdeps)
     runs-on: ubuntu-latest
     needs: devdeps
-    if: ${{ github.event.action == '__debug_skip_never_set__' }}  # DEBUG-skip: temporarily skip to preview CI Summary with mostly-skipped jobs. Revert before merging.
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
     steps:
@@ -230,7 +228,6 @@ jobs:
   build_and_test:
     name: Build and test
     needs: [metadata, config_devdeps]
-    if: ${{ github.event.action == '__debug_skip_never_set__' }}  # DEBUG-skip: temporarily skip to preview CI Summary with mostly-skipped jobs. Revert before merging.
     strategy:
       matrix: ${{ fromJson(needs.metadata.outputs.build_test_matrix) }}
       fail-fast: false
