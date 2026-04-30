@@ -27,6 +27,16 @@ using namespace mlir;
 static std::string translate_impl(const std::string &shortName,
                                   MlirModule module, const std::string &format,
                                   nanobind::args runtimeArguments) {
+  // Marker span identifying every nested pass / scoped trace as part of the
+  // JIT-time pipeline triggered by cudaq.translate. The primary JIT marker
+  // for kernel-call / sample / observe / estimate_resources lives in
+  // cudaq::marshal_and_launch_module; cudaq.translate has its own JIT
+  // pipeline that does not pass through that function, so it gets its own
+  // marker here. Paired with cudaq.pipeline.aot emitted in compile_to_mlir.
+  cudaq::ScopedTrace pipelineJitMarker(cudaq::TraceContext(__builtin_FUNCTION(),
+                                                           __builtin_FILE(),
+                                                           __builtin_LINE()),
+                                       "cudaq.pipeline.jit");
   StringRef format_ = format;
   auto formatPair = format_.split(':');
   auto mod = unwrap(module);

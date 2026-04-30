@@ -122,8 +122,8 @@ public:
     if (cudaq::opt::isSignedPredicate(cmpOp.getPredicate())) {
       Value noLoopCond = arith::CmpIOp::create(
           rewriter, loc, arith::CmpIPredicate::sgt, newUpper, zero);
-      newUpper =
-          arith::SelectOp::create(rewriter, loc, ty, noLoopCond, newUpper, zero);
+      newUpper = arith::SelectOp::create(rewriter, loc, ty, noLoopCond,
+                                         newUpper, zero);
     }
 
     // 3) Rewrite the comparison (!=) and step operations (+1).
@@ -145,16 +145,34 @@ public:
       rewriter.setInsertionPointToStart(entry);
       Value induct = entry->getArgument(c.induction);
       auto mul = arith::MulIOp::create(rewriter, loc, induct, c.stepValue);
-      Value newInd;
-      if (c.stepIsAnAddOp())
-        newInd = arith::AddIOp::create(rewriter, loc, c.initialValue, mul);
-      else
-        newInd = arith::SubIOp::create(rewriter, loc, c.initialValue, mul);
+      auto newInd = [&]() -> Value {
+        if (c.stepIsAnAddOp())
+          return arith::AddIOp::create(rewriter, loc, c.initialValue, mul);
+        return arith::SubIOp::create(rewriter, loc, c.initialValue, mul);
+      }();
       induct.replaceUsesWithIf(newInd, [&](OpOperand &opnd) {
         auto *op = opnd.getOwner();
         return op != newStep.getOperation() && op != mul &&
                !isa<cudaq::cc::ContinueOp>(op);
       });
+    }
+
+    // 5) Back-convert the loop's induction-position result for external uses
+    if (c.induction < loop.getNumResults()) {
+      Value loopResult = loop.getResult(c.induction);
+      if (!loopResult.use_empty()) {
+        rewriter.setInsertionPointAfter(loop);
+        auto mulRes =
+            arith::MulIOp::create(rewriter, loc, loopResult, c.stepValue);
+        Value recovered;
+        if (c.stepIsAnAddOp())
+          recovered =
+              arith::AddIOp::create(rewriter, loc, c.initialValue, mulRes);
+        else
+          recovered =
+              arith::SubIOp::create(rewriter, loc, c.initialValue, mulRes);
+        loopResult.replaceAllUsesExcept(recovered, mulRes.getOperation());
+      }
     }
     loop->setAttr(cudaq::opt::NormalizedLoopAttr, rewriter.getUnitAttr());
 

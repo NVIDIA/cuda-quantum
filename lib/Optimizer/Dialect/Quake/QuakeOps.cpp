@@ -830,13 +830,19 @@ LogicalResult verifyMeasurements(MEAS op, TypeRange targetsType,
       targetsType.size() > 1 ||
       (targetsType.size() == 1 && isa<quake::VeqType>(targetsType[0]));
   if (mustBeStdvec) {
-    if (!isa<cudaq::cc::StdvecType>(op.getMeasOut().getType()))
-      return op.emitOpError("must return `!cc.stdvec<!quake.measure>`, when "
-                            "measuring a qreg, a series of qubits, or both");
+    auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(op.getMeasOut().getType());
+    if (!stdvecTy || !isa<quake::MeasureType, cudaq::cc::MeasureHandleType>(
+                         stdvecTy.getElementType()))
+      return op.emitOpError(
+          "must return `!cc.stdvec<!quake.measure>` or "
+          "`!cc.stdvec<!cc.measure_handle>` when measuring a qvector, a "
+          "series of qubits, or both");
   } else {
-    if (!isa<quake::MeasureType>(op.getMeasOut().getType()))
+    if (!isa<quake::MeasureType, cudaq::cc::MeasureHandleType>(
+            op.getMeasOut().getType()))
       return op->emitOpError(
-          "must return `!quake.measure` when measuring exactly one qubit");
+          "must return `!quake.measure` or `!cc.measure_handle` when "
+          "measuring exactly one qubit");
   }
   if (op.getRegisterName())
     if (op.getRegisterName()->empty())
@@ -867,11 +873,13 @@ LogicalResult quake::DiscriminateOp::verify() {
   if (isa<cudaq::cc::StdvecType>(getMeasurement().getType())) {
     auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(getResult().getType());
     if (!stdvecTy || !isa<IntegerType>(stdvecTy.getElementType()))
-      return emitOpError("must return a !cc.stdvec<integral> type, when "
-                         "discriminating a qreg, a series of qubits, or both");
+      return emitOpError(
+          "must return a !cc.stdvec<integral> type, when discriminating a "
+          "qvector, a series of qubits, or both");
   } else {
-    auto measTy = isa<quake::MeasureType>(getMeasurement().getType());
-    if (!measTy || !isa<IntegerType>(getResult().getType()))
+    if (!isa<quake::MeasureType, cudaq::cc::MeasureHandleType>(
+            getMeasurement().getType()) ||
+        !isa<IntegerType>(getResult().getType()))
       return emitOpError(
           "must return integral type when discriminating exactly one qubit");
   }

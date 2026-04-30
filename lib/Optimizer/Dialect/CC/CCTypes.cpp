@@ -223,7 +223,7 @@ bool isDynamicallySizedType(Type ty) {
 
 void CCDialect::registerTypes() {
   addTypes<ArrayType, CallableType, CharspanType, IndirectCallableType,
-           PointerType, StdvecType, StructType>();
+           MeasureHandleType, PointerType, StdvecType, StructType>();
 }
 
 } // namespace cudaq::cc

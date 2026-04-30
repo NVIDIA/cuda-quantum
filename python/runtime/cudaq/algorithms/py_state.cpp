@@ -22,6 +22,140 @@ using namespace cudaq;
 // Note: Removed unsafe global hostDataFromDevice vector.
 // Ownership is now managed via nb::capsule per-array.
 
+static nanobind::dict getCupyArrayInterface(nanobind::handle cupyArray) {
+  if (!nanobind::hasattr(cupyArray, "__cuda_array_interface__"))
+    throw std::runtime_error("Buffer is not a CuPy array");
+
+  return nanobind::cast<nanobind::dict>(
+      nanobind::borrow<nanobind::object>(cupyArray).attr(
+          "__cuda_array_interface__"));
+}
+
+static std::vector<ssize_t>
+getCContiguousStrides(const std::vector<std::size_t> &shape,
+                      std::size_t itemsize) {
+  std::vector<ssize_t> strides(shape.size(), itemsize);
+  if (shape.empty())
+    return strides;
+
+  for (int i = static_cast<int>(shape.size()) - 2; i >= 0; --i)
+    strides[i] = strides[i + 1] * static_cast<ssize_t>(shape[i + 1]);
+
+  return strides;
+}
+
+static std::vector<ssize_t>
+getCupyArrayStrides(const nanobind::dict &cupyArrayInfo,
+                    const std::vector<std::size_t> &shape,
+                    std::size_t itemsize) {
+  auto stridesObj = cupyArrayInfo["strides"];
+  if (stridesObj.is_none())
+    return getCContiguousStrides(shape, itemsize);
+
+  auto stridesTuple = nanobind::cast<nanobind::tuple>(stridesObj);
+  std::vector<ssize_t> strides;
+  strides.reserve(stridesTuple.size());
+  for (auto stride : stridesTuple)
+    strides.push_back(nanobind::cast<ssize_t>(stride));
+
+  return strides;
+}
+
+static std::pair<std::size_t, std::string>
+getCupyComplexTypeInfo(const std::string &typeStr) {
+  if (typeStr == "<c8")
+    return {sizeof(std::complex<float>), "Zf"};
+  if (typeStr == "<c16")
+    return {sizeof(std::complex<double>), "Zd"};
+
+  throw std::runtime_error("Unsupported typestr in CuPy array: " + typeStr +
+                           ". Supported types are: <c16 and <c8.");
+}
+
+namespace {
+/// @brief Helper struct to hold buffer metadata, analogous to Python's
+/// buffer_info.
+struct BufferInfo {
+  void *ptr = nullptr;
+  std::size_t itemsize = 0;
+  std::string format;
+  std::size_t ndim = 0;
+  std::vector<std::size_t> shape;
+   std::vector<ssize_t> strides;
+  bool readonly = false;
+  std::size_t size = 0; // total number of elements
+};
+}
+
+static BufferInfo getCupyBufferInfo(nanobind::object cupyArray) {
+  auto cupyArrayInfo = getCupyArrayInterface(cupyArray);
+  auto dataInfo = nanobind::cast<nanobind::tuple>(cupyArrayInfo["data"]);
+  auto shapeTuple = nanobind::cast<nanobind::tuple>(cupyArrayInfo["shape"]);
+  std::vector<std::size_t> shape;
+  shape.reserve(shapeTuple.size());
+  for (auto dim : shapeTuple)
+    shape.push_back(nanobind::cast<std::size_t>(dim));
+
+  const std::string typeStr =
+      nanobind::cast<std::string>(cupyArrayInfo["typestr"]);
+  auto [dataTypeSize, formatDescriptor] = getCupyComplexTypeInfo(typeStr);
+  auto strides = getCupyArrayStrides(cupyArrayInfo, shape, dataTypeSize);
+  auto numElements = std::accumulate(shape.begin(), shape.end(), std::size_t{1},
+                                     std::multiplies<std::size_t>());
+
+  BufferInfo info;
+  info.ptr =
+      reinterpret_cast<void *>(nanobind::cast<std::uintptr_t>(dataInfo[0]));
+  info.itemsize = dataTypeSize;
+  info.format = formatDescriptor;
+  info.shape = std::move(shape);
+  info.strides = std::move(strides);
+  info.readonly = nanobind::cast<bool>(dataInfo[1]);
+  info.size = numElements;
+  return info;
+}
+
+#if 0
+static bool isCContiguous(const std::vector<std::size_t> &shape,
+                          const std::vector<ssize_t> &strides,
+                          std::size_t itemsize) {
+  // Treat inconsistent metadata as non-contiguous so callers fall back to
+  // canonicalization instead of taking an unsafe fast path.
+  if (shape.size() != strides.size())
+    return false;
+
+  if (shape.empty())
+    return true;
+
+  ssize_t expectedStride = static_cast<ssize_t>(itemsize);
+  for (int i = static_cast<int>(shape.size()) - 1; i >= 0; --i) {
+    if (shape[i] > 1 && strides[i] != expectedStride)
+      return false;
+    expectedStride *= static_cast<ssize_t>(shape[i]);
+  }
+
+  return true;
+}
+
+static bool shouldCanonicalizeCupyArray(const BufferInfo &info,
+                                        const std::string &targetName) {
+  if (info.shape.empty())
+    return false;
+
+  // Only 2D arrays for the dynamics target or non-contiguous 1D arrays
+  // need canonicalization.
+  bool needsCanon = (info.shape.size() == 1) ||
+                    (info.shape.size() == 2 && targetName == "dynamics");
+  return needsCanon && !isCContiguous(info.shape, info.strides, info.itemsize);
+}
+
+static nanobind::object
+canonicalizeCupyArrayToNumpy(nanobind::handle cupyArray) {
+  return nanobind::module_::import_("cupy").attr("asnumpy")(
+      nanobind::borrow<nanobind::object>(cupyArray));
+}
+#endif
+
 static std::vector<int> bitStringToIntVec(const std::string &bitString) {
   // Check that this is a valid bit string.
   const bool isValidBitString =
@@ -208,19 +342,7 @@ static bool isCupyArray(nanobind::object obj) {
   return nanobind::hasattr(obj, "__cuda_array_interface__");
 }
 
-/// @brief Helper struct to hold buffer metadata, analogous to Python's
-/// buffer_info.
-struct BufferInfo {
-  void *ptr = nullptr;
-  std::size_t itemsize = 0;
-  std::string format;
-  std::size_t ndim = 0;
-  std::vector<std::size_t> shape;
-  std::vector<ssize_t> strides;
-  bool readonly = false;
-  std::size_t size = 0; // total number of elements
-};
-
+#if 0
 static BufferInfo getCupyBufferInfo(nanobind::object cupy_buffer) {
   // Note: cupy 13.5+ arrays will bind (overload resolution) to a
   // nanobind::object type. We cannot access the underlying buffer info via a
@@ -269,6 +391,7 @@ static BufferInfo getCupyBufferInfo(nanobind::object cupy_buffer) {
   info.size = totalSize;
   return info;
 }
+#endif
 
 /// @brief Helper to get BufferInfo from a numpy array via Python buffer
 /// protocol.
@@ -288,7 +411,6 @@ static BufferInfo getNumpyBufferInfo(nanobind::object numpy_array) {
     info.itemsize = nanobind::cast<std::size_t>(dtype.attr("itemsize"));
   }
   auto shapeTuple = nanobind::cast<nanobind::tuple>(numpy_array.attr("shape"));
-  info.ndim = shapeTuple.size();
   info.size = 1;
   for (std::size_t i = 0; i < shapeTuple.size(); i++) {
     auto ext = nanobind::cast<std::size_t>(shapeTuple[i]);
@@ -636,45 +758,7 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
                   "please add to your cupy array creation "
                   "`dtype=cupy.complex64` if simulation is FP32 and "
                   "`dtype=cupy.complex128` if simulation if FP64.");
-
-            // Compute the number of elements in the array
-            std::vector<std::size_t> extents;
-            auto numElements = [&]() {
-              auto shape =
-                  nanobind::cast<nanobind::tuple>(opaqueData.attr("shape"));
-              std::size_t numElements = 1;
-              for (auto el : shape) {
-                numElements *= nanobind::cast<std::size_t>(el);
-                extents.emplace_back(nanobind::cast<std::size_t>(el));
-              }
-              return numElements;
-            }();
-
-            long ptr = nanobind::cast<long>(data.attr("ptr"));
-            if (holder.getTarget().name == "dynamics") {
-              // For dynamics, we need to send on the extents to distinguish
-              // state vector vs density matrix.
-              TensorStateData tensorData{
-                  std::pair<const void *, std::vector<std::size_t>>{
-                      reinterpret_cast<std::complex<double> *>(ptr), extents}};
-              return state::from_data(tensorData);
-            }
-
-            // Check that the target is GPU-based, i.e., can handle device
-            // pointer.
-            if (!holder.getTarget().config.GpuRequired)
-              throw std::runtime_error(fmt::format(
-                  "Current target '{}' does not support CuPy arrays.",
-                  holder.getTarget().name));
-
-            if (typeStr == "complex64")
-              return state::from_data(std::make_pair(
-                  reinterpret_cast<std::complex<float> *>(ptr), numElements));
-            else if (typeStr == "complex128")
-              return state::from_data(std::make_pair(
-                  reinterpret_cast<std::complex<double> *>(ptr), numElements));
-            else
-              throw std::runtime_error("invalid cupy element type " + typeStr);
+            return createStateFromPyBuffer(opaqueData, holder);
           },
           "Return a state from CuPy device array.")
       .def("is_on_gpu", &state::is_on_gpu,
