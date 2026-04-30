@@ -81,11 +81,11 @@ struct BufferInfo {
   std::string format;
   std::size_t ndim = 0;
   std::vector<std::size_t> shape;
-   std::vector<ssize_t> strides;
+  std::vector<ssize_t> strides;
   bool readonly = false;
   std::size_t size = 0; // total number of elements
 };
-}
+} // namespace
 
 static BufferInfo getCupyBufferInfo(nanobind::object cupyArray) {
   auto cupyArrayInfo = getCupyArrayInterface(cupyArray);
@@ -115,7 +115,6 @@ static BufferInfo getCupyBufferInfo(nanobind::object cupyArray) {
   return info;
 }
 
-#if 0
 static bool isCContiguous(const std::vector<std::size_t> &shape,
                           const std::vector<ssize_t> &strides,
                           std::size_t itemsize) {
@@ -154,7 +153,6 @@ canonicalizeCupyArrayToNumpy(nanobind::handle cupyArray) {
   return nanobind::module_::import_("cupy").attr("asnumpy")(
       nanobind::borrow<nanobind::object>(cupyArray));
 }
-#endif
 
 static std::vector<int> bitStringToIntVec(const std::string &bitString) {
   // Check that this is a valid bit string.
@@ -270,10 +268,6 @@ state pyGetStateRemote(nanobind::object kernel, nanobind::args args) {
   auto kernelMod = nanobind::cast<MlirModule>(kernel.attr("qkeModule"));
   args = simplifiedValidateInputArguments(args);
   auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
-#if 0
-  auto [argWrapper, size, returnOffset] =
-      pyCreateNativeKernel(kernelName, kernelMod, *argData);
-#endif
   return state(new PyRemoteSimulationState(kernelName, /*argWrapper*/ {},
                                            argData,
                                            /*size*/ 0, /*returnOffset*/ 0));
@@ -341,57 +335,6 @@ static bool isComplexDouble(const nanobind::ndarray<> &arr) {
 static bool isCupyArray(nanobind::object obj) {
   return nanobind::hasattr(obj, "__cuda_array_interface__");
 }
-
-#if 0
-static BufferInfo getCupyBufferInfo(nanobind::object cupy_buffer) {
-  // Note: cupy 13.5+ arrays will bind (overload resolution) to a
-  // nanobind::object type. We cannot access the underlying buffer info via a
-  // `.request()` as it will throw unless that is managed memory. Here, we
-  // retrieve and construct BufferInfo from the CuPy array interface.
-  if (!nanobind::hasattr(cupy_buffer, "__cuda_array_interface__"))
-    throw std::runtime_error("Buffer is not a CuPy array");
-
-  nanobind::dict cupy_array_info = nanobind::cast<nanobind::dict>(
-      cupy_buffer.attr("__cuda_array_interface__"));
-  nanobind::tuple dataInfo =
-      nanobind::cast<nanobind::tuple>(cupy_array_info["data"]);
-  void *dataPtr = (void *)nanobind::cast<int64_t>(dataInfo[0]);
-  const bool readOnly = nanobind::cast<bool>(dataInfo[1]);
-  auto shapeTuple = nanobind::cast<nanobind::tuple>(cupy_array_info["shape"]);
-  std::vector<std::size_t> extents;
-  for (std::size_t i = 0; i < shapeTuple.size(); i++)
-    extents.push_back(nanobind::cast<std::size_t>(shapeTuple[i]));
-  const std::string typeStr =
-      nanobind::cast<std::string>(cupy_array_info["typestr"]);
-  if (typeStr != "<c16" && typeStr != "<c8")
-    throw std::runtime_error("Unsupported typestr in CuPy array: " + typeStr +
-                             ". Supported types are: <c16 and <c8.");
-
-  const bool isDoublePrecision = typeStr == "<c16";
-  std::size_t dataTypeSize = isDoublePrecision ? sizeof(std::complex<double>)
-                                               : sizeof(std::complex<float>);
-  std::string desc = isDoublePrecision ? "Zd" : "Zf";
-
-  std::vector<ssize_t> strides(extents.size(), dataTypeSize);
-  for (size_t i = 1; i < extents.size(); ++i)
-    strides[i] = strides[i - 1] * extents[i - 1];
-
-  std::size_t totalSize = 1;
-  for (auto e : extents)
-    totalSize *= e;
-
-  BufferInfo info;
-  info.ptr = dataPtr;
-  info.itemsize = dataTypeSize;
-  info.format = desc;
-  info.ndim = extents.size();
-  info.shape = extents;
-  info.strides = strides;
-  info.readonly = readOnly;
-  info.size = totalSize;
-  return info;
-}
-#endif
 
 /// @brief Helper to get BufferInfo from a numpy array via Python buffer
 /// protocol.
