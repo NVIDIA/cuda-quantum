@@ -74,4 +74,4 @@ add_backend_unittest_executable(test_quantinuum_util
   cudaq-platform-default
   gtest_main
 )
-gtest_discover_tests(test_quantinuum_util)
+gtest_discover_tests(test_quantinuum_util DISCOVERY_TIMEOUT 120)
