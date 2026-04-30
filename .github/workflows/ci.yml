@@ -600,9 +600,6 @@ jobs:
               echo "| $j | $(icon "$status") $status | $link |"
             done
             echo ""
-            if [ "$n_missing" -gt 0 ]; then
-              echo "Refresh from a green run: \`scripts/regenerate-required-checks.sh <run-id>\`."
-            fi
             echo "</details>"
           } | tee -a /tmp/comment.md >> "$GITHUB_STEP_SUMMARY"
 
