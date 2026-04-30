@@ -30,7 +30,7 @@ def test_bug_1777():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test..
-# CHECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
+# CHECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-explicit-measurements", "cudaq-kernel", qubitMeasurementFeedback = true} {
 # CHECK-DAG:       %[[VAL_0:.*]] = arith.constant false
 # CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 1 : i64
 # CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i64

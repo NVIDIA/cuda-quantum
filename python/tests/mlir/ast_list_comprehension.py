@@ -842,10 +842,10 @@ def test_list_comprehension_call():
 # CHECK-SAME: ) -> f64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK: return
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel5
-# CHECK-SAME: () -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-SAME: () -> i1 attributes {"cudaq-entrypoint", "cudaq-explicit-measurements", "cudaq-kernel"}
 # CHECK: return
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel6
-# CHECK-SAME: () -> i64 attributes {"cudaq-entrypoint", "cudaq-kernel"
+# CHECK-SAME: () -> i64 attributes {"cudaq-entrypoint", "cudaq-explicit-measurements", "cudaq-kernel"
 # CHECK: return
 
 
@@ -1014,7 +1014,7 @@ def test_list_comprehension_expressions():
 # CHECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-kernel"}
 # CHECK: return
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel4
-# CHECK-SAME: () -> i64 attributes {"cudaq-entrypoint", "cudaq-kernel"}
+# CHECK-SAME: () -> i64 attributes {"cudaq-entrypoint", "cudaq-explicit-measurements", "cudaq-kernel"}
 # CHECK: return
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel5
 # CHECK-SAME: () -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"}

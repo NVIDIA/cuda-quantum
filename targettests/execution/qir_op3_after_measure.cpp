@@ -19,6 +19,8 @@ __qpu__ void init_state() {
   // The Base Profile spec technically allows a measurement like this because it
   // isn't operating on an already-measured qubit, but it requires that the
   // compiler to reorder the q1 operation to be before the q0 measurement.
+  // However, the semantics for sample requires explicit measurement results
+  // so sample will fail.
   x(q1);
   mz(q1);
 };
@@ -31,4 +33,4 @@ int main() {
   return 0;
 }
 
-// CHECK-NOT: reversible function __quantum__qis__x__body came after irreversible function
+// CHECK: requires explicit measurement result semantics

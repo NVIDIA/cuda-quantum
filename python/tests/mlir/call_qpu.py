@@ -53,7 +53,7 @@ def test_qpu_call_return_vector():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__func_achat..
-# CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>) -> !cc.stdvec<i1> attributes {"cudaq-kernel", qubitMeasurementFeedback = true} {
+# CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>) -> !cc.stdvec<i1> attributes {"cudaq-explicit-measurements", "cudaq-kernel", qubitMeasurementFeedback = true} {
 # CHECK:           %[[VAL_1:.*]] = arith.constant false
 # CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
 # CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_2]] : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>

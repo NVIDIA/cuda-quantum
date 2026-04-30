@@ -78,12 +78,12 @@ LogicalResult lowerToLLVMDialect(ModuleOp module) {
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
-  pm.addPass(cudaq::opt::createQuakePropagateMetadata());
+  cudaq::opt::addQuakeMetadataRefresh(pm);
   cudaq::opt::addLowerToCFG(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createCSEPass());
+  cudaq::opt::addQuakeMetadataRefresh(pm);
   pm.addPass(cudaq::opt::createConvertToQIR());
   return pm.run(module);
 }
@@ -98,7 +98,7 @@ cudaq::sample_result sampleJitCode(ExecutionEngine *jit,
                                             kernelName);
                ASSERT_TRUE(!err);
              },
-             p, kernelName, 1000, /*explicitMeasurements=*/false)
+             p, kernelName, 1000, /*explicitMeasurements=*/true)
       .value();
 }
 

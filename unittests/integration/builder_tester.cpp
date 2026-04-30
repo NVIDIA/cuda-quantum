@@ -1537,9 +1537,11 @@ CUDAQ_TEST(BuilderTester, checkMidCircuitMeasureWithReset) {
   kernel.mz(q, "midCircuit");
   kernel.reset(q);
   kernel.h(q);
+  kernel.mz(q, "final");
   auto counts = cudaq::sample(kernel);
   auto countsMidCircuit = counts.to_map("midCircuit");
-  auto countsFinal = counts.to_map();
+  auto countsFinal = counts.to_map("final");
+  auto countsAll = counts.to_map();
 
   // Verify that all possible outcomes were indeed reported.
   EXPECT_EQ(countsMidCircuit.size(), 16);
@@ -1550,6 +1552,7 @@ CUDAQ_TEST(BuilderTester, checkMidCircuitMeasureWithReset) {
   for (auto &[k, v] : countsMidCircuit)
     if (countsFinal[k] != countsMidCircuit[k])
       match = false;
+  // counts.dump();
   EXPECT_EQ(match, false);
 }
 

@@ -111,8 +111,7 @@ def test_sample_async():
 
 
 def test_named_measurement():
-    """ Test for while using "explicit measurements" mode, the sample result 
-        will not be saved to a mid-circuit measurement register. """
+    """Named measurements preserve the named register."""
 
     @cudaq.kernel
     def kernel():
@@ -120,13 +119,12 @@ def test_named_measurement():
         x(q[0])
         val = mz(q[1])
 
-    counts = cudaq.sample(kernel)
-    assert '__global__' in counts.register_names
-    assert 'val' in counts.register_names
-
-    counts = cudaq.sample(kernel, explicit_measurements=True)
-    assert '__global__' in counts.register_names
-    assert 'val' not in counts.register_names
+    for explicit in (None, True, False):
+        counts = cudaq.sample(kernel, explicit_measurements=explicit)
+        assert '__global__' in counts.register_names
+        assert 'val' in counts.register_names
+        assert counts["0"] == 1000
+        assert counts.get_register_counts("val")["0"] == 1000
 
 
 def test_measurement_order():
@@ -143,9 +141,14 @@ def test_measurement_order():
         mz(q[2])
 
     counts = cudaq.sample(kernel)
-    assert counts["100"] == 1000
+    assert counts["010"] == 1000
 
     counts = cudaq.sample(kernel, explicit_measurements=True)
+    assert counts["010"] == 1000
+
+    # explicit_measurements=False is deprecated and auto-corrected to True
+    # when the kernel requires measurement-order semantics.
+    counts = cudaq.sample(kernel, explicit_measurements=False)
     assert counts["010"] == 1000
 
     @cudaq.kernel
@@ -159,9 +162,13 @@ def test_measurement_order():
             reset(q)
 
     counts = cudaq.sample(kernel_with_loop)
-    assert counts["000"] == 1000  # due to reset
+    assert counts["010010010"] == 1000
 
     counts = cudaq.sample(kernel_with_loop, explicit_measurements=True)
+    assert counts["010010010"] == 1000
+
+    # explicit_measurements=False is auto-corrected.
+    counts = cudaq.sample(kernel_with_loop, explicit_measurements=False)
     assert counts["010010010"] == 1000
 
 
@@ -175,14 +182,18 @@ def test_multiple_measurements():
         mz(q)
 
     counts = cudaq.sample(measure_twice)
-    assert counts["1"] == 1000
+    assert counts["11"] == 1000
 
     counts = cudaq.sample(measure_twice, explicit_measurements=True)
     assert counts["11"] == 1000
 
+    # explicit_measurements=False is auto-corrected.
+    counts = cudaq.sample(measure_twice, explicit_measurements=False)
+    assert counts["11"] == 1000
+
 
 def test_no_measurements():
-    """ Test for kernels executed in "explicit measurements" mode must contain measurements. """
+    """No-measurement kernels use implicit final sampling."""
 
     @cudaq.kernel
     def no_measure_ops():
@@ -190,9 +201,68 @@ def test_no_measurements():
         h(q[0])
         cx(q[0], q[1])
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.sample(no_measure_ops, explicit_measurements=True)
-    assert "not supported on a kernel without any measurement" in repr(e)
+    for explicit in (None, True, False):
+        counts = cudaq.sample(no_measure_ops, explicit_measurements=explicit)
+        assert counts.get_total_shots() == 1000
+
+
+def test_terminal_basis_measurements_allow_non_explicit():
+
+    def check(kernel, expected=None):
+        for explicit in (None, True, False):
+            counts = cudaq.sample(kernel, explicit_measurements=explicit)
+            assert counts.get_total_shots() == 1000
+            if expected is not None:
+                assert counts[expected] == 1000
+
+    @cudaq.kernel
+    def terminal_full_mz():
+        q = cudaq.qvector(2)
+        x(q[0])
+        mz(q)
+
+    check(terminal_full_mz, "10")
+
+    @cudaq.kernel
+    def terminal_mz_then_reset():
+        q = cudaq.qvector(2)
+        x(q[0])
+        mz(q)
+        reset(q)
+
+    check(terminal_mz_then_reset, "10")
+
+    @cudaq.kernel
+    def terminal_mx():
+        q = cudaq.qvector(2)
+        h(q[0])
+        x(q[1])
+        h(q[1])
+        mx(q)
+
+    check(terminal_mx, "01")
+
+    @cudaq.kernel
+    def terminal_my():
+        q = cudaq.qvector(2)
+        my(q)
+
+    check(terminal_my)
+
+
+def test_default_measurement_order_issue_4153():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(4)
+        x(q[2])
+        mz(q[2])
+        mz(q[0])
+        mz(q[1])
+        mz(q[3])
+
+    counts = cudaq.sample(kernel)
+    assert counts["1000"] == 1000
 
 
 def test_mixed_basis_measurement_order_and_preservation():
@@ -221,17 +291,34 @@ def test_mixed_basis_measurement_order_and_preservation():
 
     counts = cudaq.sample(mixed_basis_kernel, shots_count=100)
 
+    # Execution order was q4, q2, q3, q0, q5, q6, q1 => 01?0011.
     total_counts = 0
     for bits in counts:
         assert len(bits) == 7
         assert bits[0] == '0'
         assert bits[1] == '1'
-        assert bits[2] == '1'
+        assert bits[3] == '0'
         assert bits[4] == '0'
-        assert bits[5] == '0'
-        assert bits[6] == '1'
+        assert bits[5] == '1'
+        assert bits[6] == ''
         total_counts += counts[bits]
 
+    assert total_counts == 100
+
+    # explicit_measurements=False is auto-corrected; same result as default.
+    counts = cudaq.sample(mixed_basis_kernel,
+                          explicit_measurements=False,
+                          shots_count=100)
+    total_counts = 0
+    for bits in counts:
+        assert len(bits) == 7
+        assert bits[0] == '0'
+        assert bits[1] == '1'
+        assert bits[3] == '0'
+        assert bits[4] == '0'
+        assert bits[5] == '1'
+        assert bits[6] == '1'
+        total_counts += counts[bits]
     assert total_counts == 100
 
     counts = cudaq.sample(mixed_basis_kernel,

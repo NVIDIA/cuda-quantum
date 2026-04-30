@@ -31,7 +31,7 @@ def test_bug_1775():
 
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test
-# CHECK-SAME:      () attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
+# CHECK-SAME:      () attributes {"cudaq-entrypoint", "cudaq-explicit-measurements", "cudaq-kernel", qubitMeasurementFeedback = true} {
 # CHECK-DAG:       %[[VAL_0:.*]] = arith.constant true
 # CHECK-DAG:       %[[VAL_1:.*]] = quake.alloca !quake.ref
 # CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] name "res" : (!quake.ref) -> !quake.measure
