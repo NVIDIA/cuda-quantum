@@ -11,7 +11,7 @@
 #
 # An empty list (or missing key) for an event type disables enforcement
 # for that event — useful for bootstrapping.
-merge_group:
+merge_group: &full_matrix
 - Build and test (arm64, gcc11, openmpi) / Dev environment (Debug)
 - Build and test (arm64, gcc11, openmpi) / Dev environment (Python)
 - Build and test (arm64, gcc12, openmpi) / Dev environment (Debug)
@@ -56,37 +56,4 @@ push:
 - Build and test (amd64, gcc12, openmpi) / Dev environment (Python)
 - Build and test (arm64, clang16, openmpi) / Dev environment (Debug)
 - Build and test (arm64, clang16, openmpi) / Dev environment (Python)
-- Configure build (devdeps)
-- Configure build (wheeldeps)
-- Load dependencies (amd64, clang16) / Caching
-- Load dependencies (amd64, clang16) / Finalize
-- Load dependencies (amd64, clang16) / Metadata
-- Load dependencies (amd64, gcc11) / Caching
-- Load dependencies (amd64, gcc11) / Finalize
-- Load dependencies (amd64, gcc11) / Metadata
-- Load dependencies (amd64, gcc12) / Caching
-- Load dependencies (amd64, gcc12) / Finalize
-- Load dependencies (amd64, gcc12) / Metadata
-- Load dependencies (arm64, clang16) / Caching
-- Load dependencies (arm64, clang16) / Finalize
-- Load dependencies (arm64, clang16) / Metadata
-- Load dependencies (arm64, gcc11) / Caching
-- Load dependencies (arm64, gcc11) / Finalize
-- Load dependencies (arm64, gcc11) / Metadata
-- Load dependencies (arm64, gcc12) / Caching
-- Load dependencies (arm64, gcc12) / Finalize
-- Load dependencies (arm64, gcc12) / Metadata
-- Load wheel dependencies (amd64, 12.6) / Caching
-- Load wheel dependencies (amd64, 12.6) / Finalize
-- Load wheel dependencies (amd64, 12.6) / Metadata
-- Load wheel dependencies (amd64, 13.0) / Caching
-- Load wheel dependencies (amd64, 13.0) / Finalize
-- Load wheel dependencies (amd64, 13.0) / Metadata
-- Load wheel dependencies (arm64, 12.6) / Caching
-- Load wheel dependencies (arm64, 12.6) / Finalize
-- Load wheel dependencies (arm64, 12.6) / Metadata
-- Load wheel dependencies (arm64, 13.0) / Caching
-- Load wheel dependencies (arm64, 13.0) / Finalize
-- Load wheel dependencies (arm64, 13.0) / Metadata
-- Retrieve PR info
-workflow_dispatch: []
+workflow_dispatch: *full_matrix

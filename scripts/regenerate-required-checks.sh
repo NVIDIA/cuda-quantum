@@ -54,7 +54,16 @@ try:
 except FileNotFoundError:
     data = {}
 
-data[event] = names
+target = data.get(event)
+if isinstance(target, list):
+    # If another key shares the same list object (via YAML alias), mutate
+    # in place so the alias relationship survives the round-trip dump.
+    shared_with = [k for k, v in data.items() if k != event and v is target]
+    target[:] = names
+    if shared_with:
+        print(f"Note: list is shared (alias) with: {', '.join(shared_with)} — both updated.")
+else:
+    data[event] = names
 
 with open(path, "w") as f:
     if header:
