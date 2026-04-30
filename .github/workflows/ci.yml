@@ -369,11 +369,12 @@ jobs:
       REPO: ${{ github.repository }}
       RUN_ID: ${{ github.run_id }}
     steps:
-      - name: Checkout (for needs-coverage check)
+      - name: Checkout (for needs-coverage and manifest checks)
         uses: actions/checkout@v6
         with:
           sparse-checkout: |
             .github/workflows/ci.yml
+            .github/required-checks.yml
           sparse-checkout-cone-mode: false
 
       # Catch the "added a top-level job but forgot to add it to ci_summary.needs"
@@ -521,6 +522,74 @@ jobs:
             echo "n_cancel=$n_cancel"
           } >> "$GITHUB_OUTPUT"
 
+      # Cross-check the actual successful sub-jobs against the names declared
+      # in .github/required-checks.yml for this event type. Catches "added a
+      # matrix leg but forgot to add it to the required list" and the
+      # opposite (a leg silently stopped running). Empty/missing list for
+      # the event = enforcement disabled (bootstrap mode).
+      - name: Verify required-checks manifest
+        id: manifest
+        run: |
+          set -euo pipefail
+          manifest=.github/required-checks.yml
+
+          if [ ! -f "$manifest" ]; then
+            echo "No manifest at $manifest — skipping."
+            echo "n_missing=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Extract the section for this event as JSON, defaulting to [].
+          mapfile -t expected < <(yq -o=json "$manifest" | jq -r --arg e "$EVENT_NAME" '.[$e] // [] | .[]')
+          n_expected=${#expected[@]}
+
+          if [ "$n_expected" -eq 0 ]; then
+            echo "No required checks declared for event '$EVENT_NAME' — skipping enforcement."
+            echo "n_missing=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Successful sub-job names from this run.
+          mapfile -t actual_pass < <(jq -r '.[] | select(.conclusion == "success") | .name' /tmp/jobs.json | sort -u)
+
+          missing=()
+          for e in "${expected[@]}"; do
+            if ! printf '%s\n' "${actual_pass[@]}" | grep -qFx -- "$e"; then
+              missing+=("$e")
+            fi
+          done
+          n_missing=${#missing[@]}
+
+          # Append to the comment + step summary.
+          {
+            echo ""
+            if [ "$n_missing" -eq 0 ]; then
+              echo "<details><summary><b>:white_check_mark: Required checks ($n_expected/$n_expected)</b> — all jobs declared in <code>.github/required-checks.yml</code> for <code>$EVENT_NAME</code> passed</summary>"
+              echo ""
+              for j in "${expected[@]}"; do
+                echo "- :white_check_mark: $j"
+              done
+              echo ""
+              echo "</details>"
+            else
+              echo "<details open><summary><b>:warning: Missing required checks ($n_missing of $n_expected)</b> — declared in <code>.github/required-checks.yml</code> for <code>$EVENT_NAME</code></summary>"
+              echo ""
+              for j in "${missing[@]}"; do
+                echo "- :x: $j"
+              done
+              echo ""
+              echo "These names are listed in the manifest but did not complete with \`success\` in this run. Either:"
+              echo "- a matrix leg / reusable-workflow job stopped running (regression), or"
+              echo "- the matrix changed intentionally — refresh the manifest from a green run via \`scripts/regenerate-required-checks.sh <run-id>\`."
+              echo "</details>"
+            fi
+          } | tee -a /tmp/comment.md >> "$GITHUB_STEP_SUMMARY"
+
+          echo "n_missing=$n_missing" >> "$GITHUB_OUTPUT"
+          if [ "$n_missing" -gt 0 ]; then
+            echo "::error file=.github/required-checks.yml::$n_missing required check(s) missing for event '$EVENT_NAME': ${missing[*]}"
+          fi
+
       - name: Post or update PR comment
         if: env.PR_NUMBER != ''
         run: |
@@ -536,10 +605,17 @@ jobs:
           fi
         continue-on-error: true
 
-      - name: Fail the job if anything failed or was cancelled
+      - name: Fail the job if anything failed, was cancelled, or is missing
         run: |
-          if [ "${{ steps.build.outputs.n_fail }}" -gt 0 ] || [ "${{ steps.build.outputs.n_cancel }}" -gt 0 ]; then
-            echo "::error::One or more required jobs failed or were cancelled"
+          n_fail="${{ steps.build.outputs.n_fail }}"
+          n_cancel="${{ steps.build.outputs.n_cancel }}"
+          n_missing="${{ steps.manifest.outputs.n_missing }}"
+          if [ "$n_fail" -gt 0 ] || [ "$n_cancel" -gt 0 ]; then
+            echo "::error::One or more required jobs failed or were cancelled (failures=$n_fail, cancelled=$n_cancel)"
+            exit 1
+          fi
+          if [ "$n_missing" -gt 0 ]; then
+            echo "::error::$n_missing required check(s) declared in .github/required-checks.yml did not run successfully"
             exit 1
           fi
           echo "All required jobs passed (or were intentionally skipped)."
