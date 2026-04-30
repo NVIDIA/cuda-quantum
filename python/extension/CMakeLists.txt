@@ -46,6 +46,22 @@ declare_mlir_dialect_python_bindings(
     dialects/cc.py
   DIALECT_NAME cc)
 
+if(APPLE)
+  set(_quakeDialects_mlir_runtime_sources "")
+  set(_quakeDialects_extra_link_libs cudaq-mlir-runtime)
+else()
+  set(_quakeDialects_mlir_runtime_sources
+    ../../runtime/internal/compiler/ArgumentConversion.cpp
+    ../../runtime/internal/compiler/CompiledModuleHelper.cpp
+    ../../runtime/internal/compiler/LayoutInfo.cpp
+    ../../runtime/internal/compiler/RuntimeMLIR.cpp
+    ../../runtime/internal/compiler/JIT.cpp
+    ../../runtime/internal/compiler/Compiler.cpp
+    ../../runtime/internal/compiler/TracePassInstrumentation.cpp
+  )
+  set(_quakeDialects_extra_link_libs "")
+endif()
+
 declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
   MODULE_NAME _quakeDialects
   ADD_TO_PARENT CUDAQuantumPythonSources
@@ -104,14 +120,8 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../../runtime/cudaq/platform/fermioniq/FermioniqQPU.cpp
     ../../runtime/cudaq/platform/default/rest/RemoteRESTQPU.cpp
     ../../runtime/cudaq/platform/default/python/QPU.cpp
-    ../../runtime/internal/compiler/ArgumentConversion.cpp
-    ../../runtime/internal/compiler/CompiledModuleHelper.cpp
-    ../../runtime/internal/compiler/LayoutInfo.cpp
-    ../../runtime/internal/compiler/RuntimeMLIR.cpp
+    ${_quakeDialects_mlir_runtime_sources}
     ../../runtime/internal/compiler/RuntimePyMLIR.cpp
-    ../../runtime/internal/compiler/JIT.cpp
-    ../../runtime/internal/compiler/Compiler.cpp
-    ../../runtime/internal/compiler/TracePassInstrumentation.cpp
 
   EMBED_CAPI_LINK_LIBS
    CUDAQuantumMLIRCAPI
@@ -124,6 +134,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
    cudaq-python-interop
    cudaq-platform-default
    cudaq-qir-verifier
+   ${_quakeDialects_extra_link_libs}
 )
 
 # MLIR/LLVM is built without RTTI (LLVM_ENABLE_RTTI=OFF). This file subclasses
