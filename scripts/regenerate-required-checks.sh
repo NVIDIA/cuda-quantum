@@ -33,20 +33,32 @@ if [ "$n" -eq 0 ]; then
 fi
 
 python3 - "$out" "$event" <<PY
-import sys, yaml
+import sys, yaml, re
 path, event = sys.argv[1], sys.argv[2]
 names = """$names""".splitlines()
-names = sorted({n for n in names if n})
+# Self-referential / parallel-running jobs cannot be required by the
+# manifest check (which itself runs inside CI Summary and reads job state
+# at that moment).
+exclude = {"CI Summary", "Prepare cache clean-up"}
+names = sorted({n for n in names if n and n not in exclude})
 
+# Preserve any leading header comment(s) in the existing file.
+header = ""
 try:
     with open(path) as f:
-        data = yaml.safe_load(f) or {}
+        text = f.read()
+    m = re.match(r"((?:\s*#[^\n]*\n)+)", text)
+    if m:
+        header = m.group(1)
+    data = yaml.safe_load(text) or {}
 except FileNotFoundError:
     data = {}
 
 data[event] = names
 
 with open(path, "w") as f:
+    if header:
+        f.write(header)
     yaml.safe_dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=True, width=10000)
 print(f"Wrote {len(names)} entries to {path} under .{event}")
 PY
