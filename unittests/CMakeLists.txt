@@ -523,7 +523,7 @@ target_link_libraries(test_ptsbe
   nvqir-qpp
   fmt::fmt-header-only
   gtest_main)
-gtest_discover_tests(test_ptsbe PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS})
+gtest_discover_tests(test_ptsbe PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
 
 add_executable(test_nvqir_verify main.cpp qir/NVQIRVerify.cpp)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
