@@ -425,6 +425,11 @@ LogicalResult cudaq::cc::CastOp::verify() {
     } else if (isa<IntegerType>(inTy) && isa<cc::IndirectCallableType>(outTy)) {
       // ok: nop
       // the indirect callable value is an integer key on the device side.
+    } else if (isa<IntegerType>(inTy) && isa<cc::MeasureHandleType>(outTy)) {
+      // ok: nop
+      // the measure handle is an opaque i64 payload.
+    } else if (isa<cc::MeasureHandleType>(inTy) && isa<IntegerType>(outTy)) {
+      // ok: nop
     } else if (isa<IntegerType>(inTy) && isa<cc::PointerType>(outTy)) {
       // ok: inttoptr
     } else if (isa<cc::PointerType>(inTy) && isa<IntegerType>(outTy)) {

@@ -9,6 +9,7 @@
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.ir import UnitAttr
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
+from cudaq.util import trace
 import numpy as np
 
 # Maintain a dictionary of queued `async` run kernels. This dictionary is used
@@ -45,6 +46,7 @@ class AsyncRunResult:
             del (cudaq_async_run_module_cache[self.counter])
 
 
+@trace.traced
 def run(decorator, *args, shots_count=100, noise_model=None, qpu_id=0):
     if isa_kernel_decorator(decorator):
         if not decorator.supports_compilation():
@@ -65,6 +67,7 @@ def run(decorator, *args, shots_count=100, noise_model=None, qpu_id=0):
                                   *processedArgs)
 
 
+@trace.traced
 def run_async(decorator, *args, shots_count=100, noise_model=None, qpu_id=0):
     """
 Run the provided `kernel` with the given kernel `arguments` over the specified
