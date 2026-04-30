@@ -21,10 +21,6 @@ on:
       export_environment:
         required: false
         type: boolean
-      debug_fail:  # DEBUG-fail: temporary, to verify required-checks gating
-        required: false
-        type: boolean
-        default: false
 
 name: Run CI within the dev environment container
 
@@ -37,12 +33,6 @@ jobs:
       packages: write
 
     steps:
-      - name: DEBUG-fail (temporary, verifies required-checks gating)
-        if: ${{ inputs.debug_fail }}
-        run: |
-          echo "::error::Intentional failure to verify required-checks enforcement. Remove the 'debug_fail' input wiring in ci.yml + this step + the input in test_in_devenv.yml when done."
-          exit 1
-
       - name: Checkout repository
         uses: actions/checkout@v6
 

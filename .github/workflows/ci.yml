@@ -239,10 +239,6 @@ jobs:
       devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
-      # DEBUG-fail: force amd64+clang16 to fail so we can confirm CI Summary
-      # / required-checks blocks the run. Revert this line + the input + step
-      # in test_in_devenv.yml when done.
-      debug_fail: ${{ matrix.platform == 'amd64' && matrix.toolchain == 'clang16' }}
 
   gen_code_coverage:
     name: Gen code coverage
