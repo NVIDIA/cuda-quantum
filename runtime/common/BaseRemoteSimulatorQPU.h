@@ -206,7 +206,7 @@ public:
               name, jit, {}, true);
       auto mlirArtifact =
           cudaq_internal::compiler::CompiledModuleHelper::createMlirArtifact(
-              name + ".mlir", moduleOp);
+              name, moduleOp);
       artifacts.push_back(mlirArtifact);
       return cudaq_internal::compiler::CompiledModuleHelper::
           createCompiledModule(name, resultInfo, std::move(artifacts));
@@ -214,7 +214,7 @@ public:
 
     auto mlirArtifact =
         cudaq_internal::compiler::CompiledModuleHelper::createMlirArtifact(
-            name + ".mlir", prefabMod);
+            name, prefabMod);
 
     return cudaq_internal::compiler::CompiledModuleHelper::createCompiledModule(
         name, resultInfo, {mlirArtifact});
