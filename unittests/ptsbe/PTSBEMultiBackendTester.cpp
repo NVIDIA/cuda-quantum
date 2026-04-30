@@ -15,8 +15,6 @@
 #include "cudaq/ptsbe/PTSBESample.h"
 #include "cudaq/ptsbe/PTSBESampleResult.h"
 
-using namespace cudaq::ptsbe;
-
 namespace {
 
 auto ghzKernel = []() __qpu__ {
@@ -51,13 +49,13 @@ CUDAQ_TEST(PTSBEMultiBackendTest, GHZ3WithDepolarizationNoise) {
   noise.add_all_qubit_channel("h", cudaq::depolarization_channel(0.01));
   noise.add_all_qubit_channel("cx", cudaq::depolarization2(0.01));
 
-  sample_options options;
+  cudaq::ptsbe::sample_options options;
   options.shots = 50;
   options.noise = noise;
   options.ptsbe.return_execution_data = true;
   options.ptsbe.max_trajectories = 20;
 
-  auto result = sample(options, ghzKernel);
+  auto result = cudaq::ptsbe::sample(options, ghzKernel);
 
   EXPECT_GT(result.size(), 0u);
   EXPECT_EQ(result.get_total_shots(), 50u);
@@ -69,9 +67,13 @@ CUDAQ_TEST(PTSBEMultiBackendTest, GHZ3WithDepolarizationNoise) {
   ASSERT_TRUE(result.has_execution_data());
   const auto &data = result.execution_data();
 
-  EXPECT_EQ(data.count_instructions(TraceInstructionType::Gate), 5);
-  EXPECT_EQ(data.count_instructions(TraceInstructionType::Noise), 5);
-  EXPECT_EQ(data.count_instructions(TraceInstructionType::Measurement), 5);
+  EXPECT_EQ(data.count_instructions(cudaq::ptsbe::TraceInstructionType::Gate),
+            5);
+  EXPECT_EQ(data.count_instructions(cudaq::ptsbe::TraceInstructionType::Noise),
+            5);
+  EXPECT_EQ(
+      data.count_instructions(cudaq::ptsbe::TraceInstructionType::Measurement),
+      5);
 
   EXPECT_GT(data.trajectories.size(), 0u);
   EXPECT_LE(data.trajectories.size(), 20u);

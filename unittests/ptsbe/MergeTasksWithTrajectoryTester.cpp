@@ -11,15 +11,12 @@
 #include "cudaq/ptsbe/PTSBESamplerImpl.h"
 #include <cmath>
 
-using namespace cudaq;
-using namespace cudaq::ptsbe;
-
 /// Verify convertTrace handles multi-gate PTSBE trace correctly
 CUDAQ_TEST(MergeTasksWithTrajectoryTest, ConvertTraceMultiGate) {
-  std::vector<TraceInstruction> ptsbeTrace = {
-      {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
-      {ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
-      {ptsbe::TraceInstructionType::Gate, "x", {1}, {0}, {}},
+  std::vector<cudaq::ptsbe::TraceInstruction> ptsbeTrace = {
+      {cudaq::ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
+      {cudaq::ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
+      {cudaq::ptsbe::TraceInstructionType::Gate, "x", {1}, {0}, {}},
   };
 
   auto tasks = cudaq::ptsbe::detail::convertTrace<double>(ptsbeTrace);
@@ -45,9 +42,9 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, ConvertTraceMultiGate) {
 
 /// Verify convertTrace preserves gate parameters
 CUDAQ_TEST(MergeTasksWithTrajectoryTest, ConvertTracePreservesParameters) {
-  std::vector<TraceInstruction> ptsbeTrace = {
-      {ptsbe::TraceInstructionType::Gate, "rx", {0}, {}, {M_PI / 2}},
-      {ptsbe::TraceInstructionType::Gate, "rz", {1}, {}, {M_PI / 4}},
+  std::vector<cudaq::ptsbe::TraceInstruction> ptsbeTrace = {
+      {cudaq::ptsbe::TraceInstructionType::Gate, "rx", {0}, {}, {M_PI / 2}},
+      {cudaq::ptsbe::TraceInstructionType::Gate, "rz", {1}, {}, {M_PI / 4}},
   };
 
   auto tasks = cudaq::ptsbe::detail::convertTrace<double>(ptsbeTrace);
@@ -61,16 +58,16 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, ConvertTracePreservesParameters) {
 
 /// Verify convertTrace skips Noise and Measurement entries
 CUDAQ_TEST(MergeTasksWithTrajectoryTest, ConvertTraceSkipsNoiseAndMeasurement) {
-  std::vector<TraceInstruction> ptsbeTrace = {
-      {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
-      {ptsbe::TraceInstructionType::Noise,
+  std::vector<cudaq::ptsbe::TraceInstruction> ptsbeTrace = {
+      {cudaq::ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
+      {cudaq::ptsbe::TraceInstructionType::Noise,
        "depolarization",
        {0},
        {},
        {},
-       depolarization_channel(0.1)},
-      {ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
-      {ptsbe::TraceInstructionType::Measurement, "mz", {0, 1}, {}, {}},
+       cudaq::depolarization_channel(0.1)},
+      {cudaq::ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
+      {cudaq::ptsbe::TraceInstructionType::Measurement, "mz", {0, 1}, {}, {}},
   };
 
   auto tasks = cudaq::ptsbe::detail::convertTrace<double>(ptsbeTrace);
@@ -80,16 +77,18 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, ConvertTraceSkipsNoiseAndMeasurement) {
   EXPECT_EQ(tasks[1].operationName, "x");
 }
 
-/// Verify mergeTasksWithTrajectory returns gate tasks unchanged when no noise
+/// Verify cudaq::ptsbe::mergeTasksWithTrajectory returns gate tasks unchanged
+/// when no noise
 CUDAQ_TEST(MergeTasksWithTrajectoryTest, NoNoiseInsertions) {
-  std::vector<TraceInstruction> ptsbeTrace = {
-      {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
-      {ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
+  std::vector<cudaq::ptsbe::TraceInstruction> ptsbeTrace = {
+      {cudaq::ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
+      {cudaq::ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
   };
 
-  KrausTrajectory trajectory(0, {}, 1.0, 100);
+  cudaq::KrausTrajectory trajectory(0, {}, 1.0, 100);
 
-  auto merged = mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
+  auto merged =
+      cudaq::ptsbe::mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
 
   ASSERT_EQ(merged.size(), 2u);
   EXPECT_EQ(merged[0].operationName, "h");
@@ -99,23 +98,24 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, NoNoiseInsertions) {
 /// Verify single noise insertion at its trace position
 CUDAQ_TEST(MergeTasksWithTrajectoryTest, SingleNoiseInsertion) {
   // Trace: [0] H on q0, [1] Noise(depol) on q0, [2] X on q1
-  std::vector<TraceInstruction> ptsbeTrace = {
-      {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
-      {ptsbe::TraceInstructionType::Noise,
+  std::vector<cudaq::ptsbe::TraceInstruction> ptsbeTrace = {
+      {cudaq::ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
+      {cudaq::ptsbe::TraceInstructionType::Noise,
        "depolarization",
        {0},
        {},
        {},
-       depolarization_channel(0.1)},
-      {ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
+       cudaq::depolarization_channel(0.1)},
+      {cudaq::ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
   };
 
   // Z error (index 3) at trace position 1 (the Noise entry)
-  std::vector<KrausSelection> selections = {
-      KrausSelection(1, {0}, "h", 3, true)};
-  KrausTrajectory trajectory(0, selections, 0.1, 10);
+  std::vector<cudaq::KrausSelection> selections = {
+      cudaq::KrausSelection(1, {0}, "h", 3, true)};
+  cudaq::KrausTrajectory trajectory(0, selections, 0.1, 10);
 
-  auto merged = mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
+  auto merged =
+      cudaq::ptsbe::mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
 
   // Should be: H, noise(Z), X
   ASSERT_EQ(merged.size(), 3u);
@@ -128,29 +128,30 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, SingleNoiseInsertion) {
 /// Verify two consecutive noise entries at the same gate
 CUDAQ_TEST(MergeTasksWithTrajectoryTest, MultipleNoiseEntriesAfterGate) {
   // Trace: [0] H on q0, [1] Noise on q0, [2] Noise on q1
-  std::vector<TraceInstruction> ptsbeTrace = {
-      {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
-      {ptsbe::TraceInstructionType::Noise,
+  std::vector<cudaq::ptsbe::TraceInstruction> ptsbeTrace = {
+      {cudaq::ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
+      {cudaq::ptsbe::TraceInstructionType::Noise,
        "depolarization",
        {0},
        {},
        {},
-       depolarization_channel(0.1)},
-      {ptsbe::TraceInstructionType::Noise,
+       cudaq::depolarization_channel(0.1)},
+      {cudaq::ptsbe::TraceInstructionType::Noise,
        "depolarization",
        {1},
        {},
        {},
-       depolarization_channel(0.1)},
+       cudaq::depolarization_channel(0.1)},
   };
 
   // X on qubit 0 at trace pos 1, Z on qubit 1 at trace pos 2
-  std::vector<KrausSelection> selections = {
-      KrausSelection(1, {0}, "h", 1, true),
-      KrausSelection(2, {1}, "h", 3, true)};
-  KrausTrajectory trajectory(0, selections, 0.05, 5);
+  std::vector<cudaq::KrausSelection> selections = {
+      cudaq::KrausSelection(1, {0}, "h", 1, true),
+      cudaq::KrausSelection(2, {1}, "h", 3, true)};
+  cudaq::KrausTrajectory trajectory(0, selections, 0.05, 5);
 
-  auto merged = mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
+  auto merged =
+      cudaq::ptsbe::mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
 
   ASSERT_EQ(merged.size(), 3u);
   EXPECT_EQ(merged[0].operationName, "h");
@@ -162,17 +163,17 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, MultipleNoiseEntriesAfterGate) {
 
 /// Verify invalid circuit_location throws error
 CUDAQ_TEST(MergeTasksWithTrajectoryTest, InvalidCircuitLocationThrows) {
-  std::vector<TraceInstruction> ptsbeTrace = {
-      {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
+  std::vector<cudaq::ptsbe::TraceInstruction> ptsbeTrace = {
+      {cudaq::ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
   };
 
   // circuit_location = 5 is beyond the trace
-  std::vector<KrausSelection> selections = {
-      KrausSelection(5, {0}, "h", 2, true)};
-  KrausTrajectory trajectory(0, selections, 0.1, 10);
+  std::vector<cudaq::KrausSelection> selections = {
+      cudaq::KrausSelection(5, {0}, "h", 2, true)};
+  cudaq::KrausTrajectory trajectory(0, selections, 0.1, 10);
 
   try {
-    mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
+    cudaq::ptsbe::mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
     FAIL() << "Expected an exception for invalid circuit_location";
   } catch (...) {
   }
@@ -181,23 +182,24 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, InvalidCircuitLocationThrows) {
 /// Verify noise at the last trace position works
 CUDAQ_TEST(MergeTasksWithTrajectoryTest, NoiseAtLastPosition) {
   // Trace: [0] H on q0, [1] X on q1, [2] Noise on q1
-  std::vector<TraceInstruction> ptsbeTrace = {
-      {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
-      {ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
-      {ptsbe::TraceInstructionType::Noise,
+  std::vector<cudaq::ptsbe::TraceInstruction> ptsbeTrace = {
+      {cudaq::ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
+      {cudaq::ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
+      {cudaq::ptsbe::TraceInstructionType::Noise,
        "depolarization",
        {1},
        {},
        {},
-       depolarization_channel(0.1)},
+       cudaq::depolarization_channel(0.1)},
   };
 
   // Z error at trace position 2 (the Noise entry)
-  std::vector<KrausSelection> selections = {
-      KrausSelection(2, {1}, "x", 3, true)};
-  KrausTrajectory trajectory(0, selections, 0.1, 10);
+  std::vector<cudaq::KrausSelection> selections = {
+      cudaq::KrausSelection(2, {1}, "x", 3, true)};
+  cudaq::KrausTrajectory trajectory(0, selections, 0.1, 10);
 
-  auto merged = mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
+  auto merged =
+      cudaq::ptsbe::mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
 
   // Should be: H, X, noise(Z)
   ASSERT_EQ(merged.size(), 3u);
@@ -209,22 +211,24 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, NoiseAtLastPosition) {
 /// Verify identity noise is skipped (not inserted into merged output)
 CUDAQ_TEST(MergeTasksWithTrajectoryTest, IdentityNoiseSkipped) {
   // Trace: [0] H on q0, [1] Noise on q0, [2] X on q1
-  std::vector<TraceInstruction> ptsbeTrace = {
-      {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
-      {ptsbe::TraceInstructionType::Noise,
+  std::vector<cudaq::ptsbe::TraceInstruction> ptsbeTrace = {
+      {cudaq::ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
+      {cudaq::ptsbe::TraceInstructionType::Noise,
        "depolarization",
        {0},
        {},
        {},
-       depolarization_channel(0.1)},
-      {ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
+       cudaq::depolarization_channel(0.1)},
+      {cudaq::ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
   };
 
   // IDENTITY noise (index 0) at trace position 1, is_error=false
-  std::vector<KrausSelection> selections = {KrausSelection(1, {0}, "h", 0)};
-  KrausTrajectory trajectory(0, selections, 0.9, 90);
+  std::vector<cudaq::KrausSelection> selections = {
+      cudaq::KrausSelection(1, {0}, "h", 0)};
+  cudaq::KrausTrajectory trajectory(0, selections, 0.9, 90);
 
-  auto merged = mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
+  auto merged =
+      cudaq::ptsbe::mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
 
   // Identity is skipped, so only H and X remain
   ASSERT_EQ(merged.size(), 2u);
@@ -235,30 +239,32 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, IdentityNoiseSkipped) {
 /// Verify mixed identity and error noise insertions
 CUDAQ_TEST(MergeTasksWithTrajectoryTest, MixedIdentityAndErrorNoise) {
   // Trace: [0] H q0, [1] Noise q0, [2] X q1, [3] Noise q1, [4] Z q0
-  std::vector<TraceInstruction> ptsbeTrace = {
-      {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
-      {ptsbe::TraceInstructionType::Noise,
+  std::vector<cudaq::ptsbe::TraceInstruction> ptsbeTrace = {
+      {cudaq::ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
+      {cudaq::ptsbe::TraceInstructionType::Noise,
        "depolarization",
        {0},
        {},
        {},
-       depolarization_channel(0.1)},
-      {ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
-      {ptsbe::TraceInstructionType::Noise,
+       cudaq::depolarization_channel(0.1)},
+      {cudaq::ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
+      {cudaq::ptsbe::TraceInstructionType::Noise,
        "depolarization",
        {1},
        {},
        {},
-       depolarization_channel(0.1)},
-      {ptsbe::TraceInstructionType::Gate, "z", {0}, {}, {}},
+       cudaq::depolarization_channel(0.1)},
+      {cudaq::ptsbe::TraceInstructionType::Gate, "z", {0}, {}, {}},
   };
 
   // IDENTITY at trace pos 1, Y error (index 2) at trace pos 3
-  std::vector<KrausSelection> selections = {
-      KrausSelection(1, {0}, "h", 0), KrausSelection(3, {1}, "x", 2, true)};
-  KrausTrajectory trajectory(0, selections, 0.2, 20);
+  std::vector<cudaq::KrausSelection> selections = {
+      cudaq::KrausSelection(1, {0}, "h", 0),
+      cudaq::KrausSelection(3, {1}, "x", 2, true)};
+  cudaq::KrausTrajectory trajectory(0, selections, 0.2, 20);
 
-  auto merged = mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
+  auto merged =
+      cudaq::ptsbe::mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
 
   // H, (identity skipped), X, noise(Y), Z
   ASSERT_EQ(merged.size(), 4u);
@@ -271,42 +277,44 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, MixedIdentityAndErrorNoise) {
 
 /// Verify empty trace produces empty task list
 CUDAQ_TEST(MergeTasksWithTrajectoryTest, EmptyTrace) {
-  std::vector<TraceInstruction> ptsbeTrace;
+  std::vector<cudaq::ptsbe::TraceInstruction> ptsbeTrace;
 
   auto tasks = cudaq::ptsbe::detail::convertTrace<double>(ptsbeTrace);
   EXPECT_TRUE(tasks.empty());
 
-  KrausTrajectory trajectory(0, {}, 1.0, 100);
-  auto merged = mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
+  cudaq::KrausTrajectory trajectory(0, {}, 1.0, 100);
+  auto merged =
+      cudaq::ptsbe::mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
   EXPECT_TRUE(merged.empty());
 }
 
 /// Verify noise after every gate in the circuit
 CUDAQ_TEST(MergeTasksWithTrajectoryTest, NoiseOnEveryGate) {
   // Trace: [0] H q0, [1] Noise q0, [2] X q1, [3] Noise q1
-  std::vector<TraceInstruction> ptsbeTrace = {
-      {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
-      {ptsbe::TraceInstructionType::Noise,
+  std::vector<cudaq::ptsbe::TraceInstruction> ptsbeTrace = {
+      {cudaq::ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
+      {cudaq::ptsbe::TraceInstructionType::Noise,
        "depolarization",
        {0},
        {},
        {},
-       depolarization_channel(0.1)},
-      {ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
-      {ptsbe::TraceInstructionType::Noise,
+       cudaq::depolarization_channel(0.1)},
+      {cudaq::ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
+      {cudaq::ptsbe::TraceInstructionType::Noise,
        "depolarization",
        {1},
        {},
        {},
-       depolarization_channel(0.1)},
+       cudaq::depolarization_channel(0.1)},
   };
 
-  std::vector<KrausSelection> selections = {
-      KrausSelection(1, {0}, "h", 3, true),
-      KrausSelection(3, {1}, "x", 1, true)};
-  KrausTrajectory trajectory(0, selections, 0.01, 1);
+  std::vector<cudaq::KrausSelection> selections = {
+      cudaq::KrausSelection(1, {0}, "h", 3, true),
+      cudaq::KrausSelection(3, {1}, "x", 1, true)};
+  cudaq::KrausTrajectory trajectory(0, selections, 0.01, 1);
 
-  auto merged = mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
+  auto merged =
+      cudaq::ptsbe::mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
 
   // H, noise(Z), X, noise(X)
   ASSERT_EQ(merged.size(), 4u);
@@ -319,13 +327,14 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, NoiseOnEveryGate) {
 /// Verify measurement entries are skipped during merge
 CUDAQ_TEST(MergeTasksWithTrajectoryTest, MeasurementsSkipped) {
   // Trace: [0] H q0, [1] Measurement mz q0
-  std::vector<TraceInstruction> ptsbeTrace = {
-      {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
-      {ptsbe::TraceInstructionType::Measurement, "mz", {0}, {}, {}},
+  std::vector<cudaq::ptsbe::TraceInstruction> ptsbeTrace = {
+      {cudaq::ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
+      {cudaq::ptsbe::TraceInstructionType::Measurement, "mz", {0}, {}, {}},
   };
 
-  KrausTrajectory trajectory(0, {}, 1.0, 100);
-  auto merged = mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
+  cudaq::KrausTrajectory trajectory(0, {}, 1.0, 100);
+  auto merged =
+      cudaq::ptsbe::mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
 
   ASSERT_EQ(merged.size(), 1u);
   EXPECT_EQ(merged[0].operationName, "h");
@@ -334,29 +343,31 @@ CUDAQ_TEST(MergeTasksWithTrajectoryTest, MeasurementsSkipped) {
 /// Verify all-identity trajectory produces only circuit gate tasks (no noise)
 CUDAQ_TEST(MergeTasksWithTrajectoryTest, AllIdentitySkipsAllNoise) {
   // Trace: [0] H q0, [1] Noise q0, [2] X q1, [3] Noise q1
-  std::vector<TraceInstruction> ptsbeTrace = {
-      {ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
-      {ptsbe::TraceInstructionType::Noise,
+  std::vector<cudaq::ptsbe::TraceInstruction> ptsbeTrace = {
+      {cudaq::ptsbe::TraceInstructionType::Gate, "h", {0}, {}, {}},
+      {cudaq::ptsbe::TraceInstructionType::Noise,
        "depolarization",
        {0},
        {},
        {},
-       depolarization_channel(0.1)},
-      {ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
-      {ptsbe::TraceInstructionType::Noise,
+       cudaq::depolarization_channel(0.1)},
+      {cudaq::ptsbe::TraceInstructionType::Gate, "x", {1}, {}, {}},
+      {cudaq::ptsbe::TraceInstructionType::Noise,
        "depolarization",
        {1},
        {},
        {},
-       depolarization_channel(0.1)},
+       cudaq::depolarization_channel(0.1)},
   };
 
   // Both identity (is_error=false)
-  std::vector<KrausSelection> selections = {KrausSelection(1, {0}, "h", 0),
-                                            KrausSelection(3, {1}, "x", 0)};
-  KrausTrajectory trajectory(0, selections, 0.81, 81);
+  std::vector<cudaq::KrausSelection> selections = {
+      cudaq::KrausSelection(1, {0}, "h", 0),
+      cudaq::KrausSelection(3, {1}, "x", 0)};
+  cudaq::KrausTrajectory trajectory(0, selections, 0.81, 81);
 
-  auto merged = mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
+  auto merged =
+      cudaq::ptsbe::mergeTasksWithTrajectory<double>(ptsbeTrace, trajectory);
 
   // Only circuit gates remain
   ASSERT_EQ(merged.size(), 2u);
