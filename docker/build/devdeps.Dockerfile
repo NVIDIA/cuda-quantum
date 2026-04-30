@@ -84,8 +84,7 @@ RUN cd /cuda-quantum && git init && \
 
 ## [Source Dependencies]
 ADD scripts/bootstrap_prereq.sh /cuda-quantum/scripts/bootstrap_prereq.sh
-RUN --mount=type=cache,id=llvm-ccache,target=/root/.ccache \
-    apt-get update && apt-get install -y --no-install-recommends clang lld && \
+RUN apt-get update && apt-get install -y --no-install-recommends clang lld && \
     CC=clang CXX=clang++ \
     LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;compiler-rt' \
     BOOTSTRAP_LLVM=true \
