@@ -113,7 +113,7 @@ jobs:
     needs: metadata
     strategy:
       matrix:
-        platform: [amd64]
+        platform: [amd64, arm64]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -121,13 +121,13 @@ jobs:
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: linux/${{ matrix.platform }}
-      dockerfile: build/devdeps.bootstrap.Dockerfile
-      build_config_id: llvm-bootstrap
+      dockerfile: build/devdeps.Dockerfile
+      build_config_id: llvm
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       checkout_submodules: true
       environment: ghcr-ci
       # needed only for the cloudposse GitHub action
-      matrix_key: ${{ matrix.platform }}-llvm-bootstrap
+      matrix_key: ${{ matrix.platform }}-llvm
       matrix_step_name: dev_environment_devdeps
 
   wheeldeps:
@@ -233,16 +233,16 @@ jobs:
     needs: [metadata, config_devdeps]
     strategy:
       matrix:
-        platform: [amd64]
+        platform: [amd64, arm64]
         mpi: [openmpi]
       fail-fast: false
     uses: ./.github/workflows/test_in_devenv.yml
     with:
       platform: linux/${{ matrix.platform }}
       mpi: ${{ matrix.mpi }}
-      devdeps_image: ${{ fromJson(needs.config_devdeps.outputs.json).image_hash[format('{0}-llvm-bootstrap', matrix.platform)] }}
-      devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-llvm-bootstrap', matrix.platform)] }}
-      devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-llvm-bootstrap', matrix.platform)] }}
+      devdeps_image: ${{ fromJson(needs.config_devdeps.outputs.json).image_hash[format('{0}-llvm', matrix.platform)] }}
+      devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-llvm', matrix.platform)] }}
+      devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-llvm', matrix.platform)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
       skip_build: false
 
@@ -259,9 +259,9 @@ jobs:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     with:
       platform: linux/${{ matrix.platform }}
-      devdeps_image: ${{ fromJson(needs.config_devdeps.outputs.json).image_hash[format('{0}-llvm-bootstrap', matrix.platform)] }}
-      devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-llvm-bootstrap', matrix.platform)] }}
-      devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-llvm-bootstrap', matrix.platform)] }}
+      devdeps_image: ${{ fromJson(needs.config_devdeps.outputs.json).image_hash[format('{0}-llvm', matrix.platform)] }}
+      devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-llvm', matrix.platform)] }}
+      devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-llvm', matrix.platform)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
   # Docker images are packaging, not correctness. On PR tier this fake-passes
@@ -280,9 +280,9 @@ jobs:
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: linux/${{ matrix.platform }}
-      devdeps_image: ${{ fromJson(needs.config_devdeps.outputs.json).image_hash[format('{0}-gcc12', matrix.platform)] }}
-      devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-gcc12', matrix.platform)] }}
-      devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-gcc12', matrix.platform)] }}
+      devdeps_image: ${{ fromJson(needs.config_devdeps.outputs.json).image_hash[format('{0}-llvm', matrix.platform)] }}
+      devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-llvm', matrix.platform)] }}
+      devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-llvm', matrix.platform)] }}
       environment: ghcr-ci
       skip_build: ${{ needs.metadata.outputs.ci_tier == 'pr' }}
 

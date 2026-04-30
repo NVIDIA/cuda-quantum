@@ -396,10 +396,10 @@ jobs:
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devcontainer.Dockerfile
-      build_config_id: cu${{ matrix.cuda_version }}-gcc12
+      build_config_id: cu${{ matrix.cuda_version }}-llvm
       build_args: |
         cuda_version=${{ matrix.cuda_version }}
-        base_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-gcc12', matrix.platform)] }}
+        base_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-llvm', matrix.platform)] }}
         ompidev_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-ompi', matrix.platform, matrix.cuda_version)] }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}

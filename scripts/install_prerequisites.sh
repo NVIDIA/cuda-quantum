@@ -251,10 +251,6 @@ set -e
 trap 'prepare_exit && ((return 0 2>/dev/null) && return 1 || exit 1)' EXIT
 this_file_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [ "$(uname)" = "Darwin" ] && [ -x "$(command -v xcrun)" ]; then
-  export SDKROOT="${SDKROOT:-$(xcrun --show-sdk-path)}"
-fi
-
 # [Toolchain] CMake, ninja and C/C++ compiler
 if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
   if [ -n "$toolchain" ] || [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
@@ -407,13 +403,6 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
     if [ -x "$LLVM_INSTALL_PREFIX/bin/flang" ]; then
       export FC="$LLVM_INSTALL_PREFIX/bin/flang"
       echo "Configured Fortran compiler: $FC"
-    fi
-    # Rewrite init_command.sh to reference the bootstrapped LLVM so that
-    # the final image uses it as the compiler regardless of build toolchain.
-    if [ -n "$LLVM_STAGE1_BUILD" ] && [ -d "$LLVM_STAGE1_BUILD" ]; then
-      printf 'export CC="%s/bin/clang"\nexport CXX="%s/bin/clang++"\n' \
-        "$LLVM_INSTALL_PREFIX" "$LLVM_INSTALL_PREFIX" \
-        > "$LLVM_STAGE1_BUILD/init_command.sh"
     fi
   fi
 fi

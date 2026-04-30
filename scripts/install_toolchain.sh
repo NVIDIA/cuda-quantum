@@ -97,50 +97,51 @@ if [ "${toolchain#gcc}" != "$toolchain" ]; then
 elif [ "$toolchain" = "llvm" ]; then
 
     LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-"$HOME/.llvm"}
-    # Stage1 bootstrap is installed to a subdirectory so its cmake exports don't
-    # shadow the main prefix and cause install_prerequisites.sh to skip the full
-    # MLIR/python-bindings build. When called via LLVM_STAGE1_BUILD, clang will
-    # be directly in LLVM_INSTALL_PREFIX/bin (no subdir), so check that first.
-    if [ -f "$LLVM_INSTALL_PREFIX/bin/clang" ] && [ -f "$LLVM_INSTALL_PREFIX/bin/clang++" ] && [ -f "$LLVM_INSTALL_PREFIX/bin/ld.lld" ]; then
-        llvm_bootstrap_prefix="$LLVM_INSTALL_PREFIX"
-    else
-        llvm_bootstrap_prefix="${LLVM_INSTALL_PREFIX}/bootstrap"
-        if [ ! -f "$llvm_bootstrap_prefix/bin/clang" ] || [ ! -f "$llvm_bootstrap_prefix/bin/clang++" ] || [ ! -f "$llvm_bootstrap_prefix/bin/ld.lld" ]; then
+    if [ ! -f "$LLVM_INSTALL_PREFIX/bin/clang" ] || [ ! -f "$LLVM_INSTALL_PREFIX/bin/clang++" ] || [ ! -f "$LLVM_INSTALL_PREFIX/bin/ld.lld" ]; then
 
+        if [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
+            # Use the system clang to bootstrap the llvm build.
+            if [ -x "$(command -v apt-get)" ]; then
+                apt-get update && apt-get install -y --no-install-recommends clang lld
+                export CC=clang CXX=clang++
+            elif [ -x "$(command -v dnf)" ]; then
+                dnf install -y --nobest --setopt=install_weak_deps=False clang lld
+                CC="$(find_executable clang)" && CXX="$(find_executable clang++)"
+                export CC CXX
+            else
+                echo -e "\e[01;31mError: No compiler set for bootstrapping. Please define the environment variables CC and CXX.\e[0m" >&2
+                (return 0 2>/dev/null) && return 2 || exit 2
+            fi
+            toolchain=llvm
             if [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
-                source "$(readlink -f "${BASH_SOURCE[0]}")" -t gcc12 || \
-                echo -e "\e[01;31mError: Failed to install gcc12 compiler for bootstrapping.\e[0m" >&2
-                toolchain=llvm
-                if [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
-                    echo -e "\e[01;31mError: No compiler set for bootstrapping. Please define the environment variables CC and CXX.\e[0m" >&2
-                    (return 0 2>/dev/null) && return 2 || exit 2
-                fi
+                echo -e "\e[01;31mError: No compiler set for bootstrapping. Please define the environment variables CC and CXX.\e[0m" >&2
+                (return 0 2>/dev/null) && return 2 || exit 2
             fi
+        fi
 
-            temp_install_if_command_unknown ninja ninja-build
-            temp_install_if_command_unknown cmake cmake
-            this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
-            LLVM_INSTALL_PREFIX="$llvm_bootstrap_prefix" LLVM_PROJECTS='clang;lld;runtimes' \
-            LLVM_SOURCE="$LLVM_SOURCE" LLVM_BUILD_FOLDER="${LLVM_BUILD_FOLDER:-bootstrap_build}" \
-            CC="$CC" CXX="$CXX" bash "$this_file_dir/build_llvm.sh" -c Release -v
-            if [ ! $? -eq 0 ]; then
-                echo -e "\e[01;31mError: Failed to build LLVM toolchain from source.\e[0m" >&2
-                (return 0 2>/dev/null) && return 3 || exit 3
-            fi
+        temp_install_if_command_unknown ninja ninja-build
+        temp_install_if_command_unknown cmake cmake
+        this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
+        LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" LLVM_PROJECTS='clang;lld;runtimes' \
+        LLVM_SOURCE="$LLVM_SOURCE" LLVM_BUILD_FOLDER="$LLVM_BUILD_FOLDER" \
+        CC="$CC" CXX="$CXX" bash "$this_file_dir/build_llvm.sh" -c Release -v
+        if [ ! $? -eq 0 ]; then 
+            echo -e "\e[01;31mError: Failed to build LLVM toolchain from source.\e[0m" >&2
+            (return 0 2>/dev/null) && return 3 || exit 3
+        fi
 
-            if [ -d "$llvm_tmp_dir" ]; then
-                if [ -n "$(ls -A "$llvm_tmp_dir/build/logs"/* 2> /dev/null)" ]; then
-                    echo "The build logs have been moved to $llvm_bootstrap_prefix/logs."
-                    mkdir -p "$llvm_bootstrap_prefix/logs" && mv "$llvm_tmp_dir/build/logs"/* "$llvm_bootstrap_prefix/logs/"
-                fi
-                rm -rf "$llvm_tmp_dir"
+        if [ -d "$llvm_tmp_dir" ]; then
+            if [ -n "$(ls -A "$llvm_tmp_dir/build/logs"/* 2> /dev/null)" ]; then
+                echo "The build logs have been moved to $LLVM_INSTALL_PREFIX/logs."
+                mkdir -p "$LLVM_INSTALL_PREFIX/logs" && mv "$llvm_tmp_dir/build/logs"/* "$LLVM_INSTALL_PREFIX/logs/"
             fi
+            rm -rf "$llvm_tmp_dir"
         fi
     fi
 
-    CC="$llvm_bootstrap_prefix/bin/clang"
-    CXX="$llvm_bootstrap_prefix/bin/clang++"
-    FC="$llvm_bootstrap_prefix/bin/flang"
+    CC="$LLVM_INSTALL_PREFIX/bin/clang"
+    CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
+    FC="$LLVM_INSTALL_PREFIX/bin/flang"
 
 else
 
