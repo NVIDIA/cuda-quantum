@@ -36,10 +36,6 @@ class FuncOp;
 
 namespace cudaq_internal::compiler {
 
-struct MLIRContextDeleter {
-  void operator()(mlir::MLIRContext *) const;
-};
-
 class Compiler {
 
   /// @brief The Pass pipeline string, configured by the
@@ -104,8 +100,7 @@ class Compiler {
       std::shared_ptr<mlir::MLIRContext> context);
 
 public:
-  static std::pair<const void *,
-                   std::unique_ptr<mlir::MLIRContext, MLIRContextDeleter>>
+  static std::pair<const void *, std::shared_ptr<mlir::MLIRContext>>
   loadQuakeCodeByName(const std::string &kernelName);
 
   Compiler(cudaq::ServerHelper *,

@@ -109,14 +109,9 @@ std::vector<std::size_t> extractMappingReorderIdx(mlir::ModuleOp moduleOp,
 }
 } // namespace
 
-void MLIRContextDeleter::operator()(mlir::MLIRContext *ptr) const {
-  delete ptr;
-}
-
-std::pair<const void *, std::unique_ptr<mlir::MLIRContext, MLIRContextDeleter>>
+std::pair<const void *, std::shared_ptr<mlir::MLIRContext>>
 Compiler::loadQuakeCodeByName(const std::string &kernelName) {
-  std::unique_ptr<mlir::MLIRContext, MLIRContextDeleter> context(
-      getOwningMLIRContext().release(), MLIRContextDeleter());
+  std::shared_ptr<mlir::MLIRContext> context(getOwningMLIRContext().release());
 
   // Get the quake representation of the kernel
   auto quakeCode = cudaq::get_quake_by_name(kernelName);
@@ -124,8 +119,7 @@ Compiler::loadQuakeCodeByName(const std::string &kernelName) {
   if (!m_module)
     throw std::runtime_error("module cannot be parsed");
 
-  return std::make_pair(m_module.release().getAsOpaquePointer(),
-                        std::move(context));
+  return std::make_pair(m_module.release().getAsOpaquePointer(), context);
 }
 
 Compiler::Compiler(cudaq::ServerHelper *serverHelper,
