@@ -560,29 +560,50 @@ jobs:
           done
           n_missing=${#missing[@]}
 
-          # Append to the comment + step summary.
+          # Single table listing every required check with its actual status.
+          # Open the section if anything is missing/failed; collapsed if all green.
+          icon() {
+            case "$1" in
+              success)   echo ":white_check_mark:" ;;
+              skipped)   echo ":fast_forward:" ;;
+              failure)   echo ":x:" ;;
+              cancelled) echo ":no_entry:" ;;
+              missing)   echo ":grey_question:" ;;
+              *)         echo ":grey_question:" ;;
+            esac
+          }
+          n_passed=$((n_expected - n_missing))
+          if [ "$n_missing" -eq 0 ]; then
+            summary_line=":white_check_mark: Required checks ($n_passed/$n_expected)"
+            details_state="<details>"
+          else
+            summary_line=":warning: Required checks ($n_passed/$n_expected) — $n_missing missing"
+            details_state="<details open>"
+          fi
+
           {
             echo ""
-            if [ "$n_missing" -eq 0 ]; then
-              echo "<details><summary><b>:white_check_mark: Required checks ($n_expected/$n_expected)</b> — all jobs declared in <code>.github/required-checks.yml</code> for <code>$EVENT_NAME</code> passed</summary>"
-              echo ""
-              for j in "${expected[@]}"; do
-                echo "- :white_check_mark: $j"
-              done
-              echo ""
-              echo "</details>"
-            else
-              echo "<details open><summary><b>:warning: Missing required checks ($n_missing of $n_expected)</b> — declared in <code>.github/required-checks.yml</code> for <code>$EVENT_NAME</code></summary>"
-              echo ""
-              for j in "${missing[@]}"; do
-                echo "- :x: $j"
-              done
-              echo ""
-              echo "These names are listed in the manifest but did not complete with \`success\` in this run. Either:"
-              echo "- a matrix leg / reusable-workflow job stopped running (regression), or"
-              echo "- the matrix changed intentionally — refresh the manifest from a green run via \`scripts/regenerate-required-checks.sh <run-id>\`."
-              echo "</details>"
+            echo "${details_state}<summary><b>${summary_line}</b> — declared in <code>.github/required-checks.yml</code> for <code>${EVENT_NAME}</code></summary>"
+            echo ""
+            echo "| Required check | Status | Link |"
+            echo "| --- | --- | --- |"
+            for j in "${expected[@]}"; do
+              info=$(jq -c --arg n "$j" 'map(select(.name == $n)) | .[0] // null' /tmp/jobs.json)
+              if [ "$info" = "null" ]; then
+                status="missing"
+                link=""
+              else
+                status=$(jq -r '.conclusion // .status' <<< "$info")
+                url=$(jq -r '.html_url' <<< "$info")
+                link="[view]($url)"
+              fi
+              echo "| $j | $(icon "$status") $status | $link |"
+            done
+            echo ""
+            if [ "$n_missing" -gt 0 ]; then
+              echo "Refresh from a green run: \`scripts/regenerate-required-checks.sh <run-id>\`."
             fi
+            echo "</details>"
           } | tee -a /tmp/comment.md >> "$GITHUB_STEP_SUMMARY"
 
           echo "n_missing=$n_missing" >> "$GITHUB_OUTPUT"
