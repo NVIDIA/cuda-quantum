@@ -66,7 +66,7 @@ repo_root=$(cd "$this_file_dir" && git rev-parse --show-toplevel)
 if $gen_cpp_coverage; then
     export CUDAQ_ENABLE_CC=ON
     clang_ver=$(clang --version 2>/dev/null | grep -oP 'version \K[0-9]+')
-    arch=$(uname -m | sed 's/aarch64/aarch64/;s/x86_64/x86_64/')-unknown-linux-gnu
+    arch=$(uname -m)-unknown-linux-gnu
     profile_src="$LLVM_INSTALL_PREFIX/lib/clang/$clang_ver/lib/$arch/libclang_rt.profile.a"
     profile_dst="/usr/lib/llvm-$clang_ver/lib/clang/$clang_ver/lib/linux/libclang_rt.profile-$(uname -m).a"
     mkdir -p "$(dirname "$profile_dst")"

@@ -113,10 +113,6 @@ elif [ "$toolchain" = "llvm" ]; then
                 (return 0 2>/dev/null) && return 2 || exit 2
             fi
             toolchain=llvm
-            if [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
-                echo -e "\e[01;31mError: No compiler set for bootstrapping. Please define the environment variables CC and CXX.\e[0m" >&2
-                (return 0 2>/dev/null) && return 2 || exit 2
-            fi
         fi
 
         temp_install_if_command_unknown ninja ninja-build

@@ -15,9 +15,11 @@
 # Must be built from the repo root with:
 #   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:llvm-latest -f docker/build/devdeps.Dockerfile .
 #
-# The variable $toolchain indicates which compiler toolchain to start the LLVM bootstrap.
-# Currently, gcc12 is supported. To use a different
-# toolchain, add support for it to the install_toolchain.sh script.
+# The variable $toolchain indicates which compiler toolchain to build the LLVM libraries with.
+# The toolchain used to build the LLVM binaries that CUDA-Q depends on must be used to build
+# CUDA-Q. Currently, the $toolchain argument is a no-op; the bootstrap always uses clang.
+# Support for gcc12 (and potentially other toolchains) may be added back in the future.
+# To use a different toolchain, add support for it to the install_toolchain.sh script.
 
 # [Operating System]
 ARG base_image=ubuntu:24.04
@@ -25,7 +27,7 @@ ARG base_image=ubuntu:24.04
 # [CUDA-Q Dependencies]
 FROM ${base_image} AS prereqs
 SHELL ["/bin/bash", "-c"]
-ARG toolchain=gcc12
+ARG toolchain=llvm
 
 # When a dialogue box would be needed during install, assume default configurations.
 # Set here to avoid setting it for all install commands.
@@ -83,12 +85,11 @@ RUN cd /cuda-quantum && git init && \
     done && git submodule init && git submodule
 
 ## [Source Dependencies]
-ADD scripts/bootstrap_prereq.sh /cuda-quantum/scripts/bootstrap_prereq.sh
+ADD scripts/bootstrap_prerequisites.sh /cuda-quantum/scripts/bootstrap_prerequisites.sh
 RUN apt-get update && apt-get install -y --no-install-recommends clang lld && \
     CC=clang CXX=clang++ \
     LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;compiler-rt' \
-    BOOTSTRAP_LLVM=true \
-    bash /cuda-quantum/scripts/bootstrap_prereq.sh && \
+    bash /cuda-quantum/scripts/bootstrap_prerequisites.sh && \
     (apt-get remove -y clang lld || true) && apt-get autoremove -y --purge && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 

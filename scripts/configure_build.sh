@@ -116,11 +116,11 @@ if [ "$1" == "install-gcc" ]; then
 fi
 
 # [>ToolchainConfiguration]
-export GCC_TOOLCHAIN=/opt/rh/gcc-toolset-11/root/usr/
-export CXX="${LLVM_INSTALL_PREFIX}/bin/clang++"
-export CC="${LLVM_INSTALL_PREFIX}/bin/clang"
+export GCC_TOOLCHAIN=/opt/rh/gcc-toolset-12/root/usr/
+export CXX="${GCC_TOOLCHAIN}/bin/g++"
+export CC="${GCC_TOOLCHAIN}/bin/gcc"
 export CUDACXX=/usr/local/cuda/bin/nvcc
-export CUDAHOSTCXX="${LLVM_INSTALL_PREFIX}/bin/clang++"
+export CUDAHOSTCXX="${GCC_TOOLCHAIN}/bin/g++"
 # [<ToolchainConfiguration]
 
 if [ "$1" == "build-openmpi" ]; then

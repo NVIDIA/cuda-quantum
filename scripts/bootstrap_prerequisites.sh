@@ -13,7 +13,7 @@
 # CUDA-Q from source.
 #
 # Usage:
-# bash install_prerequisites.sh
+# bash bootstrap_prerequisites.sh
 #   -e <name>     Exclude a prerequisite (e.g. zlib, llvm, blas, ssl, curl, aws, cuquantum, cutensor, toolchain)
 #   -t <name>     Select toolchain (e.g. gcc12, llvm)
 #   -m            Only install libraries for which an *_INSTALL_PREFIX is defined
@@ -631,7 +631,7 @@ if [ -n "$QRMI_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep qrmi)" ]
       echo -e "\e[01;31mError: SHA-256 checksum mismatch for ${QRMI_ARCHIVE}.\e[0m" >&2
       echo "Expected: $QRMI_ARCHIVE_SHA256" >&2
       echo "Got:      $computed_sha256" >&2
-      rm -f "${qrmi_archive}"
+      rm -f "${QRMI_ARCHIVE}"
       (return 1 2>/dev/null) && return 1 || exit 1
     fi
 

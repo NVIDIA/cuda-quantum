@@ -251,6 +251,10 @@ set -e
 trap 'prepare_exit && ((return 0 2>/dev/null) && return 1 || exit 1)' EXIT
 this_file_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+if [ "$(uname)" = "Darwin" ] && [ -x "$(command -v xcrun)" ]; then
+  export SDKROOT="${SDKROOT:-$(xcrun --show-sdk-path)}"
+fi
+
 # [Toolchain] CMake, ninja and C/C++ compiler
 if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
   if [ -n "$toolchain" ] || [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
