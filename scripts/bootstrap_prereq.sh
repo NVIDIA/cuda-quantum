@@ -266,19 +266,16 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
       if [ ! -x "$LLVM_STAGE1_BUILD/bin/clang" ]; then
         temp_install_if_command_unknown cmake cmake
         temp_install_if_command_unknown ninja ninja-build
-        echo "Building stage1 LLVM (clang;lld;runtimes)..."
+        echo "Building stage1 LLVM (clang;lld)..."
         LLVM_INSTALL_PREFIX="$LLVM_STAGE1_BUILD" \
-        LLVM_PROJECTS='clang;lld;runtimes' \
+        LLVM_PROJECTS='clang;lld' \
         LLVM_ENABLE_ZLIB=OFF \
         LLVM_BUILD_FOLDER=bootstrap_build \
-        LLVM_EXTRA_CMAKE_ARGS='-DLIBCXX_USE_COMPILER_RT=YES -DLIBCXXABI_USE_COMPILER_RT=YES -DLIBUNWIND_USE_COMPILER_RT=YES' \
         bash "$this_file_dir/build_llvm.sh" -v
         remove_temp_installs
       fi
       export CC="$LLVM_STAGE1_BUILD/bin/clang"
       export CXX="$LLVM_STAGE1_BUILD/bin/clang++"
-      stage1_libdirs="$LLVM_STAGE1_BUILD/lib$(ls -d "$LLVM_STAGE1_BUILD/lib/"*linux* 2>/dev/null | sed 's/^/:/')"
-      export LD_LIBRARY_PATH="${stage1_libdirs}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
       echo "Using stage1 clang: $CC"
     fi
   if [ ! -x "$(command -v cmake)" ]; then
@@ -401,7 +398,6 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
     PYBIND11_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" \
     NANOBIND_INSTALL_PREFIX="$NANOBIND_INSTALL_PREFIX" \
     Python3_EXECUTABLE="$Python3_EXECUTABLE" \
-    LLVM_EXTRA_CMAKE_ARGS='-DLLVM_ENABLE_LIBCXX=ON -DLIBCXX_USE_COMPILER_RT=YES -DLIBUNWIND_USE_COMPILER_RT=YES -DLIBCXXABI_USE_LLVM_UNWINDER=ON' \
     bash "$this_file_dir/build_llvm.sh" -v
   else
     echo "LLVM already installed in $LLVM_INSTALL_PREFIX."

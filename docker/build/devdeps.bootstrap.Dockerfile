@@ -56,6 +56,7 @@ ENV PIP_BREAK_SYSTEM_PACKAGES=1
 ## [Build Dependencies]
 RUN apt-get update && apt-get install -y --no-install-recommends \
         wget git unzip ccache \
+        libstdc++-13-dev \
         python3-dev python3-pip && \
     python3 -m pip install --no-cache-dir numpy --break-system-packages && \
     apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -87,7 +88,7 @@ ADD scripts/bootstrap_prereq.sh /cuda-quantum/scripts/bootstrap_prereq.sh
 RUN --mount=type=cache,id=llvm-ccache,target=/root/.ccache \
     apt-get update && apt-get install -y --no-install-recommends clang lld && \
     CC=clang CXX=clang++ \
-    LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;runtimes' \
+    LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;compiler-rt' \
     BOOTSTRAP_LLVM=true \
     bash /cuda-quantum/scripts/bootstrap_prereq.sh && \
     (apt-get remove -y clang lld || true) && apt-get autoremove -y --purge && \
@@ -152,6 +153,7 @@ ENV PATH="${PATH}:/usr/local/cmake-3.28/bin"
 COPY requirements-dev.txt /cuda-quantum/requirements-dev.txt
 RUN apt-get update && apt-get install -y --no-install-recommends \
         git gdb ninja-build file lldb ccache libatomic1 \
+        libstdc++-13-dev \
         python3 python3-pip libpython3-dev \
     && python3 -m pip install --no-cache-dir --break-system-packages \
         -r /cuda-quantum/requirements-dev.txt \
