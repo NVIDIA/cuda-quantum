@@ -23,8 +23,12 @@
 #define FALLBACK_CUDAQ_INCLUDE_DIR "@CMAKE_SOURCE_DIR@/runtime"
 
 // This is used by cudaq-quake as a backup search location
-// for required cudaq support headers.
-#define FALLBACK_CUDAQ_SUPPORT_DIR "@CMAKE_BINARY_DIR@/include"
+// for cudaq/Support/TargetConfig.h and cudaq/Support/Version.h
+#define FALLBACK_CUDAQ_SUPPORT_DIR "@CMAKE_SOURCE_DIR@/include"
+
+// This is used by cudaq-quake as a backup search location
+// for required json headers.
+#define FALLBACK_JSON_INCLUDE_DIR "@CMAKE_BINARY_DIR@/_deps/json-src/include"
 
 // Same as FALLBACK_CUDAQ_INCLUDE_DIR for new include tree introduced by the 
 // runtime refactor

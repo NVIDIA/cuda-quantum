@@ -555,8 +555,6 @@ FetchContent_MakeAvailable(json)
 include_directories(SYSTEM ${json_SOURCE_DIR}/include)
 install(FILES ${json_SOURCE_DIR}/single_include/nlohmann/json_fwd.hpp
   DESTINATION include/nlohmann)
-file(COPY ${json_SOURCE_DIR}/single_include/nlohmann/json_fwd.hpp
-  DESTINATION ${CMAKE_BINARY_DIR}/include/nlohmann)
 
 # Add spdlog
 set(SPDLOG_BUILD_SHARED OFF)
