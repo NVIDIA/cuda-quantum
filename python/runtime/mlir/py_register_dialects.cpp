@@ -18,6 +18,9 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/InitAllPasses.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#ifdef __APPLE__
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
+#endif
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/InitAllDialects.h"
 #include <fmt/core.h>
@@ -42,7 +45,9 @@ static void registerQuakeDialectAndTypes(nanobind::module_ &m) {
           mlirDialectHandleLoadDialect(handle, context);
 
         if (!registered) {
-#ifndef __APPLE__
+#ifdef __APPLE__
+          cudaq_internal::compiler::initializeMLIR();
+#else
           cudaq::registerCudaqPassesAndPipelines();
 #endif
           registered = true;
