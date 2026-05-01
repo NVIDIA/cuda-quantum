@@ -57,6 +57,22 @@ public:
     if (!size)
       size =
           cudaq::opt::factory::genLlvmI32Constant(alloc.getLoc(), rewriter, 1);
+#ifdef __APPLE__
+    if (alloc.getElementType().isInteger(8) && adaptor.getSeqSize()) {
+      auto loc = alloc.getLoc();
+      auto i64Ty = rewriter.getI64Type();
+      Value sized = size;
+      if (sized.getType() != i64Ty)
+        sized = LLVM::ZExtOp::create(rewriter, loc, i64Ty, sized);
+      auto seven = LLVM::ConstantOp::create(rewriter, loc, i64Ty,
+                                            rewriter.getI64IntegerAttr(7));
+      auto mask = LLVM::ConstantOp::create(
+          rewriter, loc, i64Ty,
+          rewriter.getI64IntegerAttr(static_cast<int64_t>(~7ULL)));
+      auto bumped = LLVM::AddOp::create(rewriter, loc, i64Ty, sized, seven);
+      size = LLVM::AndOp::create(rewriter, loc, i64Ty, bumped, mask);
+    }
+#endif
     rewriter.replaceOpWithNewOp<LLVM::AllocaOp>(
         alloc, cudaq::opt::factory::getPointerType(rewriter.getContext()), type,
         size);

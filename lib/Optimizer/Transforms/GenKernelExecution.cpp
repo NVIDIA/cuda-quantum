@@ -447,19 +447,8 @@ public:
     Value castLoadThunk;
     Value extendedStructSize;
     if (cudaq::opt::marshal::isCodegenPackedData(codegenKind)) {
-#ifdef __APPLE__
-      auto seven = arith::ConstantIntOp::create(builder, loc, 7, 64);
-      auto mask = arith::ConstantIntOp::create(builder, loc,
-                                               static_cast<int64_t>(~7ULL), 64);
-      auto bumped =
-          arith::AddIOp::create(builder, loc, messageBufferSize, seven);
-      auto allocaSize = arith::AndIOp::create(builder, loc, bumped, mask);
-      auto rawMessageBuffer =
-          cudaq::cc::AllocaOp::create(builder, loc, i8Ty, allocaSize);
-#else
       auto rawMessageBuffer =
           cudaq::cc::AllocaOp::create(builder, loc, i8Ty, messageBufferSize);
-#endif
       msgBufferPrefix = cudaq::cc::CastOp::create(builder, loc, structPtrTy,
                                                   rawMessageBuffer);
 
