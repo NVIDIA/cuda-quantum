@@ -103,7 +103,7 @@ fi
 
 if [ "$1" == "install-gcc" ]; then
 # [>gccInstall]
-    GCC_VERSION=${GCC_VERSION:-11}
+    GCC_VERSION=${GCC_VERSION:-12}
     dnf install -y --nobest --setopt=install_weak_deps=False \
         gcc-toolset-${GCC_VERSION}
     # Enabling the toolchain globally is only needed for debug builds

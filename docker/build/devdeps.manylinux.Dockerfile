@@ -85,7 +85,7 @@ RUN curl -L https://github.com/Kitware/CMake/releases/download/v3.28.4/cmake-3.2
 ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
 ADD ./cmake/caches/LLVM.cmake /cmake/caches/LLVM.cmake
 ADD ./tpls/customizations/llvm/ /tpls/customizations/llvm/
-RUN LLVM_PROJECTS='clang;mlir' LLVM_SOURCE=/llvm-project \
+RUN LLVM_PROJECTS='clang;lld;mlir' LLVM_SOURCE=/llvm-project \
     LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake \
     LLVM_CMAKE_PATCHES=/tpls/customizations/llvm \
     bash /scripts/build_llvm.sh -c Release -v
