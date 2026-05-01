@@ -17,16 +17,16 @@ target-arguments:
 
 config:
   nvqir-simulation-backend: qpp
-  # Synthesis: loop unrolling, matrix concretization, unitary synthesis.
-  jit-high-level-pipeline: "func.func(cc-loop-normalize,cc-loop-unroll,canonicalize,lift-array-alloc),globalize-array-values,func.func(canonicalize),get-concrete-matrix,unitary-synthesis"
+  # Match the normal hardware-target baseline: no target-specific high-level
+  # passes. Python resource-count tests cover custom unitary and multi-control
+  # cases through the standard JIT/resource-count path below.
+  jit-high-level-pipeline: ""
   # Decompose to CX basis, route via SABRE, then convert CX to CZ to match
   # the Benchpress target basis {id, sx, x, rz, cz}.
   # %DEVICE:bypass% defaults to bypass (no routing) when device is not set.
   # Post-routing decomposition converts router-inserted SWAPs and remaining
   # CX gates to CZ as the final 2Q gate.
-  # Inline KAK-decomposed helper functions before decomposition and routing
-  # so the router sees the individual CX gates, not opaque quake.apply ops.
-  jit-mid-level-pipeline: "apply-op-specialization,aggressive-inlining,func.func(expand-control-veqs,multicontrol-decomposition),decomposition{basis=h,rx,ry,rz,x,x(1)},func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=%DEVICE:bypass%},func.func(delay-measurements,regtomem),decomposition{basis=h,rx,ry,rz,x,z(1)}"
+  jit-mid-level-pipeline: "decomposition{basis=h,rx,ry,rz,x,x(1)},func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=%DEVICE:bypass%},func.func(delay-measurements,regtomem),decomposition{basis=h,rx,ry,rz,x,z(1)}"
   # Cleanup: symbol-dce removes wire_set ops left by add-wireset (prevents
   # the JIT from taking the wireset-to-profile QIR path).
   jit-low-level-pipeline: "func.func(apply-control-negations,canonicalize,cse),symbol-dce"
