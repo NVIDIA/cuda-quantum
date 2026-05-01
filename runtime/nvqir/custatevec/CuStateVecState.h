@@ -72,6 +72,13 @@ private:
   void extractValues(std::complex<ScalarType> *value, std::size_t start,
                      std::size_t end) const {
     checkAndSetDevice();
+    // When `devicePtr` aliases user-provided memory (e.g. a CuPy array),
+    // pending writes may have been issued on a different stream. Under
+    // per-thread default streams, the synchronous cudaMemcpy below does not
+    // wait for those, so a read can see stale data. Sync the device once
+    // here to make `from_data` aliasing observe later mutations of the
+    // source buffer.
+    HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
     HANDLE_CUDA_ERROR(cudaMemcpy(
         value, reinterpret_cast<std::complex<ScalarType> *>(devicePtr) + start,
         (end - start) * sizeof(std::complex<ScalarType>),
