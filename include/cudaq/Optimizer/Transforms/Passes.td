@@ -1471,20 +1471,4 @@ def WriteAfterWriteElimination : Pass<"write-after-write-elimination"> {
   }];
 }
 
-def QubitResetBeforeReuse :
-    Pass<"qubit-reset-before-reuse", "mlir::func::FuncOp"> {
-  let summary = "After measurement of a ref, add reset (and initialization).";
-  let description = [{
-   Adds a `quake.reset` and conditionally applies an X gate if the measurement
-   result is 1 to initialize the reference back into the just measured state
-   afterward. This is only activated when the measured reference is to be
-   reused.
-   
-   Note: if the measurement is already accompanied by a reset, this pass does
-   not add any additional operations.
-  }];
-
-  let dependentDialects = ["quake::QuakeDialect", "cudaq::cc::CCDialect"];
-}
-
 #endif // CUDAQ_OPT_OPTIMIZER_TRANSFORMS_PASSES
