@@ -68,7 +68,7 @@ public:
                                             rewriter.getI64IntegerAttr(7));
       auto mask = LLVM::ConstantOp::create(
           rewriter, loc, i64Ty,
-          rewriter.getI64IntegerAttr(static_cast<int64_t>(~7ULL)));
+          rewriter.getI64IntegerAttr(static_cast<std::int64_t>(~7ULL)));
       auto bumped = LLVM::AddOp::create(rewriter, loc, i64Ty, sized, seven);
       size = LLVM::AndOp::create(rewriter, loc, i64Ty, bumped, mask);
     }
