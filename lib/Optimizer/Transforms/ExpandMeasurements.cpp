@@ -21,10 +21,13 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
-// Only an individual qubit measurement returns a bool.
+// Only an individual qubit measurement returns a scalar token. Both
+// `!quake.measure` (legacy `bool`/`Result*` token) and `!cc.measure_handle`
+// (the IR alias of `cudaq::measure_handle`, an `i64` payload) are scalar
+// per-qubit measurement results, so neither requires expansion to a register.
 template <typename A>
 bool usesIndividualQubit(A x) {
-  return x.getType() == quake::MeasureType::get(x.getContext());
+  return isa<quake::MeasureType, cudaq::cc::MeasureHandleType>(x.getType());
 }
 
 // Generalized pattern for expanding a multiple qubit measurement (whether it is
