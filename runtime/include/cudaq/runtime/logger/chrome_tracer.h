@@ -9,13 +9,11 @@
 #pragma once
 
 #include "cudaq/runtime/logger/tracer.h"
-
-#include <sys/types.h>
-
 #include <cstdint>
 #include <mutex>
 #include <optional>
 #include <string>
+#include <sys/types.h>
 #include <vector>
 
 namespace cudaq {
