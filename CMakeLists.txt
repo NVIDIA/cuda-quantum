@@ -188,9 +188,16 @@ if (${CUDAQ_FORCE_COLORED_OUTPUT})
     endif ()
 endif ()
 
-# -Wno-uninitialized-const-pointer uses the plain -Wno- form (not -Wno-error=) so
-# that GCC silently ignores it — GCC errors on -Wno-error=<unknown-warning>.
-add_compile_options(-Wno-error=deprecated-declarations -Wno-uninitialized-const-pointer)
+add_compile_options(-Wno-error=deprecated-declarations)
+# Use plain -Wno- (not -Wno-error=) so GCC silently ignores it when unsupported.
+# Guard with check_cxx_compiler_flag so Apple Clang (which errors on unknown
+# -Wno- options) doesn't see it if the warning doesn't exist there.
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag(-Wno-uninitialized-const-pointer
+                        CUDAQ_HAS_WNO_UNINITIALIZED_CONST_POINTER)
+if (CUDAQ_HAS_WNO_UNINITIALIZED_CONST_POINTER)
+  add_compile_options(-Wno-uninitialized-const-pointer)
+endif()
 
 # Certain build configurations may be set directly in the environment.
 # This facilitates some of the packaging (e.g. python packages built based on the pyproject.toml).
