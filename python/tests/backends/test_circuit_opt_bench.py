@@ -98,6 +98,24 @@ def test_ccx_fully_decomposed():
     assert resources.gate_count_for_arity(2) > 0
 
 
+def test_negated_control_lowers_to_cz_basis():
+    """Negated controls lower to the target CZ basis."""
+    cudaq.set_target('circuit-opt-bench')
+
+    @cudaq.kernel
+    def kernel():
+        c = cudaq.qubit()
+        q = cudaq.qubit()
+        cx(~c, q)
+        cx(c, q)
+
+    resources = cudaq.estimate_resources(kernel)
+    ops = resources.to_dict()
+    assert ops.get('x', 0) == 2, f"Negated control was not expanded: {ops}"
+    assert ops.get('cz', 0) == 2, f"CX gates did not lower to CZ: {ops}"
+    assert resources.gate_count_for_arity(2) == 2
+
+
 def _make_nonlocal_cx_kernel():
     """Build a 5-qubit kernel with CX between non-adjacent qubits (q0, q4).
     On a path topology, q0 and q4 are 4 hops apart, forcing SWAP insertion."""
