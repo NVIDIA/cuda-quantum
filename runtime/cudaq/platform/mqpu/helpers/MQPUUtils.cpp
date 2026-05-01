@@ -11,6 +11,7 @@
 #include "common/RestClient.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include "nlohmann/json.hpp"
 #include "llvm/Support/Program.h"
 #include <arpa/inet.h>
 #include <cstdint>
