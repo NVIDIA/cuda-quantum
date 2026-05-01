@@ -218,7 +218,7 @@ public:
       auto sampleFunc = moduleOp.lookupSymbol<mlir::func::FuncOp>(
           std::string("__nvqpp__mlirgen__") + name);
       if (sampleFunc)
-        cudaq::details::resolveSampleExplicitMeasurements(
+        cudaq::details::resolveSampleExplicitMeasurementsFromFuncOp(
             sampleFunc, *executionContext,
             cudaq::get_platform().supports_explicit_measurements(
                 executionContext->qpuId));

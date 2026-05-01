@@ -146,10 +146,8 @@ def test_measurement_order():
     counts = cudaq.sample(kernel, explicit_measurements=True)
     assert counts["010"] == 1000
 
-    # explicit_measurements=False is deprecated and auto-corrected to True
-    # when the kernel requires measurement-order semantics.
-    counts = cudaq.sample(kernel, explicit_measurements=False)
-    assert counts["010"] == 1000
+    with pytest.raises(RuntimeError, match="explicit_measurements=false"):
+        cudaq.sample(kernel, explicit_measurements=False)
 
     @cudaq.kernel
     def kernel_with_loop():
@@ -167,9 +165,8 @@ def test_measurement_order():
     counts = cudaq.sample(kernel_with_loop, explicit_measurements=True)
     assert counts["010010010"] == 1000
 
-    # explicit_measurements=False is auto-corrected.
-    counts = cudaq.sample(kernel_with_loop, explicit_measurements=False)
-    assert counts["010010010"] == 1000
+    with pytest.raises(RuntimeError, match="explicit_measurements=false"):
+        cudaq.sample(kernel_with_loop, explicit_measurements=False)
 
 
 def test_multiple_measurements():
@@ -187,9 +184,8 @@ def test_multiple_measurements():
     counts = cudaq.sample(measure_twice, explicit_measurements=True)
     assert counts["11"] == 1000
 
-    # explicit_measurements=False is auto-corrected.
-    counts = cudaq.sample(measure_twice, explicit_measurements=False)
-    assert counts["11"] == 1000
+    with pytest.raises(RuntimeError, match="explicit_measurements=false"):
+        cudaq.sample(measure_twice, explicit_measurements=False)
 
 
 def test_no_measurements():
@@ -300,26 +296,20 @@ def test_mixed_basis_measurement_order_and_preservation():
         assert bits[3] == '0'
         assert bits[4] == '0'
         assert bits[5] == '1'
-        assert bits[6] == ''
-        total_counts += counts[bits]
-
-    assert total_counts == 100
-
-    # explicit_measurements=False is auto-corrected; same result as default.
-    counts = cudaq.sample(mixed_basis_kernel,
-                          explicit_measurements=False,
-                          shots_count=100)
-    total_counts = 0
-    for bits in counts:
-        assert len(bits) == 7
-        assert bits[0] == '0'
-        assert bits[1] == '1'
-        assert bits[3] == '0'
-        assert bits[4] == '0'
-        assert bits[5] == '1'
         assert bits[6] == '1'
         total_counts += counts[bits]
+
     assert total_counts == 100
+
+    with pytest.raises(RuntimeError, match="explicit_measurements=false"):
+        cudaq.sample(mixed_basis_kernel,
+                     explicit_measurements=False,
+                     shots_count=100)
+
+    with pytest.raises(RuntimeError, match="explicit_measurements=false"):
+        cudaq.sample_async(mixed_basis_kernel,
+                           explicit_measurements=False,
+                           shots_count=100).get()
 
     counts = cudaq.sample(mixed_basis_kernel,
                           explicit_measurements=True,

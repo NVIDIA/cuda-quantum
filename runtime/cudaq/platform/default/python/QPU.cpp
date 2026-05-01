@@ -384,7 +384,7 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
         currentExecCtx && currentExecCtx->name == "sample") {
       auto sampleFuncOp = module.lookupSymbol<func::FuncOp>(fullName);
       if (sampleFuncOp)
-        cudaq::details::resolveSampleExplicitMeasurements(
+        cudaq::details::resolveSampleExplicitMeasurementsFromFuncOp(
             sampleFuncOp, *currentExecCtx,
             cudaq::get_platform().supports_explicit_measurements(
                 currentExecCtx->qpuId));

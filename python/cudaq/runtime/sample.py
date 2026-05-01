@@ -63,13 +63,11 @@ def __broadcastSample(kernel, *args, shots_count=0, explicit_measurements=None):
     argSet = __createArgumentSet(*args)
     N = len(argSet)
     results = []
-    initial_explicit = _detail_resolve_default_explicit_measurements(
-        kernel, explicit_measurements)
     for i, a in enumerate(argSet):
         ctx = cudaq_runtime.ExecutionContext('sample', shots_count)
+        ctx.kernelName = kernel.name if hasattr(kernel, 'name') else ''
         ctx.totalIterations = N
         ctx.batchIteration = i
-        ctx.explicitMeasurements = initial_explicit
         with ctx:
             kernel(*a)
         res = ctx.result
@@ -106,16 +104,42 @@ def _detail_check_conditionals_on_measure(kernel):
         )
 
 
-def _detail_resolve_default_explicit_measurements(kernel,
-                                                  explicit_measurements,
-                                                  qpu_id=0):
-    if explicit_measurements is not None:
-        return explicit_measurements
-    if not cudaq_runtime.supportsExplicitMeasurements(qpu_id):
-        return False
-    if isa_kernel_decorator(kernel) and not kernel.supports_compilation():
-        return False
-    return True
+def _detail_module_requires_explicit_measurements(module):
+    for operation in module.body.operations:
+        if (hasattr(operation, 'attributes') and
+                'cudaq-entrypoint' in operation.attributes and
+                'cudaq-explicit-measurements' in operation.attributes):
+            return True
+    return False
+
+
+def _detail_reject_unsupported_explicit_true(explicit_measurements, qpu_id=0):
+    if (explicit_measurements is True and
+            not cudaq_runtime.supportsExplicitMeasurements(qpu_id)):
+        raise RuntimeError("The sampling option `explicit_measurements` is "
+                           "not supported on this target.")
+
+
+def _detail_reject_unsupported_explicit_false(kernel,
+                                              explicit_measurements,
+                                              module=None):
+    if explicit_measurements is not False:
+        return
+    if module is None and isinstance(kernel, PyKernel):
+        kernel.compile()
+        module = kernel.qkeModule
+    elif module is None and isa_kernel_decorator(
+            kernel) and kernel.supports_compilation():
+        module = kernel.qkeModule
+
+    if module is None:
+        return
+
+    if _detail_module_requires_explicit_measurements(module):
+        raise RuntimeError(
+            "This kernel requires explicit measurement result semantics "
+            "for sampling, but `explicit_measurements=false` was "
+            "requested.")
 
 
 def sample(kernel,
@@ -156,7 +180,9 @@ def sample(kernel,
           such results in the case of `sample` function broadcasting.
     """
 
+    _detail_reject_unsupported_explicit_true(explicit_measurements)
     _detail_check_conditionals_on_measure(kernel)
+    _detail_reject_unsupported_explicit_false(kernel, explicit_measurements)
 
     if noise_model:
         cudaq_runtime.set_noise(noise_model)
@@ -171,8 +197,6 @@ def sample(kernel,
 
     ctx = cudaq_runtime.ExecutionContext("sample", shots_count)
     ctx.kernelName = kernel.name if hasattr(kernel, 'name') else ''
-    ctx.explicitMeasurements = _detail_resolve_default_explicit_measurements(
-        kernel, explicit_measurements)
     ctx.allowJitEngineCaching = True
 
     counts = cudaq_runtime.SampleResult()
@@ -233,6 +257,14 @@ def sample_async(decorator,
       :class:`AsyncSampleResult`: A dictionary containing the measurement count
           results for the :class:`Kernel`.
     """
+    target = cudaq_runtime.get_target()
+    num_qpus = target.num_qpus()
+    if qpu_id >= num_qpus:
+        raise ValueError(f"qpu_id ({qpu_id}) exceeds the number of available "
+                         f"QPUs ({num_qpus}).")
+
+    _detail_reject_unsupported_explicit_true(explicit_measurements, qpu_id)
+
     kernel = decorator
     if not isa_kernel_decorator(decorator):
         decorator = mk_decorator(decorator)
@@ -249,11 +281,6 @@ def sample_async(decorator,
         raise RuntimeError("The `sample_async` API only supports kernels that "
                            "return None (void). Consider using `run_async` for "
                            "kernels that return values.")
-    target = cudaq_runtime.get_target()
-    num_qpus = target.num_qpus()
-    if qpu_id >= num_qpus:
-        raise ValueError(f"qpu_id ({qpu_id}) exceeds the number of available "
-                         f"QPUs ({num_qpus}).")
 
     if noise_model:
         if target.is_remote_simulator() or target.is_remote():
@@ -263,12 +290,11 @@ def sample_async(decorator,
     processedArgs, module = decorator.prepare_call(*args)
 
     _detail_check_conditionals_on_measure(kernel)
+    _detail_reject_unsupported_explicit_false(decorator, explicit_measurements,
+                                              module)
 
-    resolved_explicit_measurements = (
-        _detail_resolve_default_explicit_measurements(decorator,
-                                                      explicit_measurements,
-                                                      qpu_id))
-    sample_results = cudaq_runtime.sample_async_impl(
-        decorator.uniqName, module, shots_count, noise_model,
-        resolved_explicit_measurements, qpu_id, *processedArgs)
+    sample_results = cudaq_runtime.sample_async_impl(decorator.uniqName, module,
+                                                     shots_count, noise_model,
+                                                     explicit_measurements,
+                                                     qpu_id, *processedArgs)
     return AsyncSampleResult(sample_results, module)
