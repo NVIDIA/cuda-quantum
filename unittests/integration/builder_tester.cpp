@@ -1555,7 +1555,15 @@ CUDAQ_TEST(BuilderTester, checkMidCircuitMeasureWithReset) {
 
 CUDAQ_TEST(BuilderTester, checkExplicitMeasurements) {
   int n_qubits = 4;
+#ifndef CUDAQ_BACKEND_TENSORNET
   int n_rounds = 10;
+  std::size_t num_shots = 50;
+#else
+  // tensornet backend is much slower for these dynamic circuits, so we reduce
+  // the number of rounds and shots to keep test time reasonable.
+  int n_rounds = 2;
+  std::size_t num_shots = 10;
+#endif
   auto explicit_kernel = cudaq::make_kernel();
   auto q = explicit_kernel.qalloc(n_qubits);
   for (int round = 0; round < n_rounds; round++) {
@@ -1567,7 +1575,6 @@ CUDAQ_TEST(BuilderTester, checkExplicitMeasurements) {
       explicit_kernel.reset(q[i]);
   }
 
-  std::size_t num_shots = 50;
   cudaq::sample_options options{.shots = num_shots,
                                 .explicit_measurements = true};
   auto counts = cudaq::sample(options, explicit_kernel);
