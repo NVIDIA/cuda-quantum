@@ -189,6 +189,11 @@ if (${CUDAQ_FORCE_COLORED_OUTPUT})
 endif ()
 
 add_compile_options(-Wno-error=deprecated-declarations)
+include(CheckCCompilerFlag)
+check_c_compiler_flag(-Wno-uninitialized-const-pointer CUDAQ_HAS_WNO_UNINITIALIZED_CONST_POINTER)
+if (CUDAQ_HAS_WNO_UNINITIALIZED_CONST_POINTER)
+  add_compile_options(-Wno-error=uninitialized-const-pointer)
+endif()
 
 # Certain build configurations may be set directly in the environment.
 # This facilitates some of the packaging (e.g. python packages built based on the pyproject.toml).
