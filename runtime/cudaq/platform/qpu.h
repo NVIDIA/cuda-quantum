@@ -21,7 +21,6 @@
 #include "cudaq/utils/cudaq_utils.h"
 
 namespace mlir {
-class ModuleOp;
 class Type;
 } // namespace mlir
 
@@ -186,20 +185,19 @@ public:
                          cudaq::optimizer &optimizer, const int n_params,
                          const std::size_t shots) {}
 
-  /// Launch the kernel with given name (to extract its Quake representation).
-  /// The raw function pointer is also provided, as are the runtime arguments,
-  /// packaged as a `KernelArgs`.
+  /// Launch the source kernel \p src with arguments \p args.
+  ///
+  /// If possible, the raw function pointer in the source kernel is used for
+  /// execution. Otherwise, the kernel name will be used to extract the Quake
+  /// representation and compile it before executing.
   [[nodiscard]] virtual KernelThunkResultType
-  launchKernel(const std::string &name, KernelThunkType kernelFunc,
-               KernelArgs args) = 0;
+  launchKernel(const SourceModule &src, KernelArgs args) = 0;
 
   [[nodiscard]] virtual KernelThunkResultType
   launchModule(const CompiledModule &compiled, KernelArgs args);
 
-  [[nodiscard]] virtual CompiledModule compileModule(const std::string &name,
-                                                     mlir::ModuleOp module,
-                                                     KernelArgs args,
-                                                     bool isEntryPoint);
+  [[nodiscard]] virtual CompiledModule
+  compileModule(const SourceModule &src, KernelArgs args, bool isEntryPoint);
 
   /// @brief Notify the QPU that a new random seed value is set.
   /// By default do nothing, let subclasses override.
@@ -211,8 +209,7 @@ struct ModuleLauncher : public registry::RegisteredType<ModuleLauncher> {
 
   /// Compile (specialize + JIT) a kernel module and return a ready-to-execute
   /// CompiledModule.
-  virtual CompiledModule compileModule(const std::string &name,
-                                       mlir::ModuleOp module, KernelArgs args,
+  virtual CompiledModule compileModule(const SourceModule &src, KernelArgs args,
                                        bool isEntryPoint) = 0;
 };
 
