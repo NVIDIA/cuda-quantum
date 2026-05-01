@@ -188,7 +188,7 @@ if (${CUDAQ_FORCE_COLORED_OUTPUT})
     endif ()
 endif ()
 
-add_compile_options(-Wno-error=deprecated-declarations -Wno-error=character-conversion)
+add_compile_options(-Wno-error=deprecated-declarations)
 
 # Certain build configurations may be set directly in the environment.
 # This facilitates some of the packaging (e.g. python packages built based on the pyproject.toml).
@@ -736,6 +736,12 @@ if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
   umbrella_lit_testsuite_begin(check-all)
   set(INSTALL_GTEST OFF)
   add_subdirectory(tpls/googletest-src)
+  # Turn off character-conversion warning in gtest for clang compilers
+  include(CheckCXXCompilerFlag)
+  check_cxx_compiler_flag(-Wno-character-conversion CUDAQ_HAS_WNO_CHARACTER_CONVERSION)
+  if (CUDAQ_HAS_WNO_CHARACTER_CONVERSION)
+    target_compile_options(gtest PUBLIC -Wno-character-conversion)
+  endif()
   # Bug in GCC 12 leads to spurious warnings (-Wrestrict)
   # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105329
   if (CMAKE_COMPILER_IS_GNUCXX
@@ -745,13 +751,6 @@ if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
   endif()
   if (CMAKE_CXX_COMPILER_ID MATCHES "^(Apple)?Clang$")
     target_compile_options(gtest PUBLIC -Wno-covered-switch-default)
-    if (APPLE)
-      include(CheckCXXCompilerFlag)
-      check_cxx_compiler_flag(-Wno-character-conversion CUDAQ_HAS_WNO_CHARACTER_CONVERSION)
-      if (CUDAQ_HAS_WNO_CHARACTER_CONVERSION)
-        target_compile_options(gtest PUBLIC -Wno-character-conversion)
-      endif()
-    endif()
   endif()
   include(GoogleTest)
   include(CTest)
