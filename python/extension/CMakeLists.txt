@@ -48,7 +48,14 @@ declare_mlir_dialect_python_bindings(
 
 if(APPLE)
   set(_quakeDialects_mlir_runtime_sources "")
-  set(_quakeDialects_extra_link_libs cudaq-mlir-runtime)
+  set(_quakeDialects_extra_link_libs
+    cudaq-mlir-runtime
+    MLIRPass
+    CUDAQTargetConfigUtil
+    cudaq-python-interop
+    cudaq-platform-default
+  )
+  set(_quakeDialects_pipeline_carrying_link_libs "")
 else()
   set(_quakeDialects_mlir_runtime_sources
     ../../runtime/internal/compiler/ArgumentConversion.cpp
@@ -60,6 +67,15 @@ else()
     ../../runtime/internal/compiler/TracePassInstrumentation.cpp
   )
   set(_quakeDialects_extra_link_libs "")
+  set(_quakeDialects_pipeline_carrying_link_libs
+    OptCodeGen
+    OptTransforms
+    MLIRPass
+    CUDAQTargetConfigUtil
+    cudaq-python-interop
+    cudaq-platform-default
+    cudaq-qir-verifier
+  )
 endif()
 
 declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
@@ -127,13 +143,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
    CUDAQuantumMLIRCAPI
    MLIRCAPIExecutionEngine
   PRIVATE_LINK_LIBS
-   OptCodeGen
-   OptTransforms
-   MLIRPass
-   CUDAQTargetConfigUtil
-   cudaq-python-interop
-   cudaq-platform-default
-   cudaq-qir-verifier
+   ${_quakeDialects_pipeline_carrying_link_libs}
    ${_quakeDialects_extra_link_libs}
 )
 
