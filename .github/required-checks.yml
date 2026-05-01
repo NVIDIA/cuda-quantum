@@ -8,10 +8,10 @@
 # An empty list (or missing key) for an event type disables enforcement
 # for that event — useful for bootstrapping.
 merge_group: &full_matrix
-- Build and test (arm64, gcc11, openmpi) / Dev environment (Debug)
-- Build and test (arm64, gcc11, openmpi) / Dev environment (Python)
-- Build and test (arm64, gcc12, openmpi) / Dev environment (Debug)
-- Build and test (arm64, gcc12, openmpi) / Dev environment (Python)
+- Build and test (arm64, llvm, openmpi) / Dev environment (Debug)
+- Build and test (arm64, llvm, openmpi) / Dev environment (Python)
+- Build and test (arm64, llvm, openmpi) / Dev environment (Debug)
+- Build and test (arm64, llvm, openmpi) / Dev environment (Python)
 - Create CUDA Quantum installer (amd64, 12.6) / Build CUDA Quantum assets
 - Create CUDA Quantum installer (amd64, 12.6) / Minimal OpenMPI installation
 - Create CUDA Quantum installer (amd64, 12.6) / Validate installer (debian:12)
@@ -44,13 +44,9 @@ merge_group: &full_matrix
 - Create Python wheels (arm64, 3.11, 12.6) / Validate wheel (redhat/ubi8:8.10, --user)
 - Create Python wheels (arm64, 3.11, 12.6) / Validate wheel (redhat/ubi8:8.10)
 push:
-- Build and test (amd64, clang16, openmpi) / Dev environment (Debug)
-- Build and test (amd64, clang16, openmpi) / Dev environment (Python)
-- Build and test (amd64, gcc11, openmpi) / Dev environment (Debug)
-- Build and test (amd64, gcc11, openmpi) / Dev environment (Python)
-- Build and test (amd64, gcc12, openmpi) / Dev environment (Debug)
-- Build and test (amd64, gcc12, openmpi) / Dev environment (Python)
-- Build and test (arm64, clang16, openmpi) / Dev environment (Debug)
-- Build and test (arm64, clang16, openmpi) / Dev environment (Python)
+- Build and test (amd64, llvm, openmpi) / Dev environment (Debug)
+- Build and test (amd64, llvm, openmpi) / Dev environment (Python)
+- Build and test (arm64, llvm, openmpi) / Dev environment (Debug)
+- Build and test (arm64, llvm, openmpi) / Dev environment (Python)
 workflow_dispatch: *full_matrix
 schedule: *full_matrix

@@ -241,9 +241,9 @@ jobs:
     with:
       platform: linux/${{ matrix.platform }}
       mpi: ${{ matrix.mpi }}
-      devdeps_image: ${{ fromJson(needs.config_devdeps.outputs.json).image_hash[format('{0}-llvm', matrix.platform)] }}
-      devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-llvm', matrix.platform)] }}
-      devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-llvm', matrix.platform)] }}
+      devdeps_image: ${{ fromJson(needs.config_devdeps.outputs.json).image_hash[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
+      devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
+      devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
   gen_code_coverage:
