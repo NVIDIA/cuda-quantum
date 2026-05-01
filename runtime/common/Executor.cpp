@@ -7,7 +7,9 @@
  ******************************************************************************/
 
 #include "Executor.h"
+#include "common/RestClient.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "nlohmann/json.hpp"
 
 namespace cudaq {
 details::future Executor::execute(std::vector<KernelExecution> &codesToExecute,
@@ -31,8 +33,8 @@ details::future Executor::execute(std::vector<KernelExecution> &codesToExecute,
                jobPostPath);
 
     // Post it, get the response
-    auto response = client.post(jobPostPath, "", job, headers, true, false,
-                                serverHelper->getCookies());
+    auto response = client->post(jobPostPath, "", job, headers, true, false,
+                                 serverHelper->getCookies());
     CUDAQ_INFO("Job (name={}) posted, response was {}", codesToExecute[i].name,
                response.dump());
 
@@ -45,7 +47,7 @@ details::future Executor::execute(std::vector<KernelExecution> &codesToExecute,
     }
     CUDAQ_INFO("Task ID is {}", task_id);
     ids.emplace_back(task_id, codesToExecute[i].name);
-    config["output_names." + task_id] = codesToExecute[i].output_names.dump();
+    config["output_names." + task_id] = codesToExecute[i].output_names->dump();
 
     nlohmann::json jReorder = codesToExecute[i].mapping_reorder_idx;
     config["reorderIdx." + task_id] = jReorder.dump();
@@ -57,6 +59,10 @@ details::future Executor::execute(std::vector<KernelExecution> &codesToExecute,
   std::string name = serverHelper->name();
   return details::future(ids, name, config, execType, rawOutput);
 }
+
+Executor::Executor() : client(std::make_unique<RestClient>()) {}
+Executor::~Executor() = default;
+
 } // namespace cudaq
 
 CUDAQ_INSTANTIATE_REGISTRY(cudaq::Executor::RegistryType)

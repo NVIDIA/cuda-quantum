@@ -574,7 +574,7 @@ def cc_ReturnOp : CCOp<"return", [Pure, ReturnLike, Terminator,
     /// If it is in a region of some other op, returns false.
     bool ownedByFuncOp() {
       if (auto *region = getOperation()->getParentRegion())
-        return isa<mlir::func::FuncOp>(region->getParentOp());
+        return mlir::isa<mlir::func::FuncOp>(region->getParentOp());
       return false;
     }
   }];
