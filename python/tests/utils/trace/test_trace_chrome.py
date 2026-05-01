@@ -105,6 +105,29 @@ def test_builtin_python_phase_spans_wrap_kernel_lifecycle():
     assert "cudaq.pipeline.aot" in names
 
 
+def test_builder_trace_marks_aot_and_jit_pipeline_spans():
+    """Builder kernels also run the AOT prep pipeline before JIT lowering."""
+    cudaq.set_target("qpp-cpu")
+
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(1)
+    kernel.h(q)
+    kernel.mz(q)
+
+    backend = trace.ChromeBackend()
+    trace.set_backend(backend)
+    try:
+        cudaq.sample(kernel, shots_count=10)
+    finally:
+        trace.reset_backend()
+
+    events = backend.to_dict()["traceEvents"]
+    names = {e["name"] for e in events}
+    assert "cudaq.kernel.kernel_builder.PyKernel.compile" in names
+    assert "cudaq.pipeline.aot" in names
+    assert "cudaq.pipeline.jit" in names
+
+
 def test_file_backed_chrome_backend_writes_on_process_exit(tmp_path):
     """A file-backed ChromeBackend installed in a subprocess writes its JSON
     at process exit even without an explicit reset_backend / write_file /

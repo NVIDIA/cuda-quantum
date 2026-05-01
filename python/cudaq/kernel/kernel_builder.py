@@ -28,6 +28,7 @@ from cudaq.mlir.dialects import (complex as complexDialect, arith, quake, cc,
 from cudaq.mlir._mlir_libs._quakeDialects import (
     cudaq_runtime, gen_vector_of_complex_constant, load_intrinsic)
 from cudaq.kernel_types import qubit, qvector
+from cudaq.util import trace
 from .common.fermionic_swap import fermionic_swap_builder
 from .common.givens import givens_builder
 from .kernel_decorator import DecoratorCapture, LinkedKernelCapture, isa_kernel_decorator
@@ -1632,6 +1633,7 @@ class PyKernel(object):
             quake.ApplyNoiseOp([params], [asVeq],
                                key=self.getConstantInt(channel_key))
 
+    @trace.traced
     def compile(self):
         """
         A `PyKernel` can be dynamically extended up until it is reified to be
@@ -1643,7 +1645,8 @@ class PyKernel(object):
             pm = PassManager.parse("builtin.module(aot-prep-pipeline)",
                                    context=ctx)
             try:
-                cudaq_runtime.runPassManager(pm, self.qkeModule)
+                with trace.span("cudaq.pipeline.aot"):
+                    cudaq_runtime.runPassManager(pm, self.qkeModule)
             except:
                 raise RuntimeError("could not compile code for '" +
                                    self.uniqName + "'.")
