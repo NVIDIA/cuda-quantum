@@ -46,6 +46,38 @@ declare_mlir_dialect_python_bindings(
     dialects/cc.py
   DIALECT_NAME cc)
 
+if(APPLE)
+  set(_quakeDialects_mlir_runtime_sources "")
+  set(_quakeDialects_extra_link_libs
+    cudaq-mlir-runtime
+    MLIRPass
+    CUDAQTargetConfigUtil
+    cudaq-python-interop
+    cudaq-platform-default
+  )
+  set(_quakeDialects_pipeline_carrying_link_libs "")
+else()
+  set(_quakeDialects_mlir_runtime_sources
+    ../../runtime/internal/compiler/ArgumentConversion.cpp
+    ../../runtime/internal/compiler/CompiledModuleHelper.cpp
+    ../../runtime/internal/compiler/LayoutInfo.cpp
+    ../../runtime/internal/compiler/RuntimeMLIR.cpp
+    ../../runtime/internal/compiler/JIT.cpp
+    ../../runtime/internal/compiler/Compiler.cpp
+    ../../runtime/internal/compiler/TracePassInstrumentation.cpp
+  )
+  set(_quakeDialects_extra_link_libs "")
+  set(_quakeDialects_pipeline_carrying_link_libs
+    OptCodeGen
+    OptTransforms
+    MLIRPass
+    CUDAQTargetConfigUtil
+    cudaq-python-interop
+    cudaq-platform-default
+    cudaq-qir-verifier
+  )
+endif()
+
 declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
   MODULE_NAME _quakeDialects
   ADD_TO_PARENT CUDAQuantumPythonSources
@@ -104,26 +136,15 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../../runtime/cudaq/platform/fermioniq/FermioniqQPU.cpp
     ../../runtime/cudaq/platform/default/rest/RemoteRESTQPU.cpp
     ../../runtime/cudaq/platform/default/python/QPU.cpp
-    ../../runtime/internal/compiler/ArgumentConversion.cpp
-    ../../runtime/internal/compiler/CompiledModuleHelper.cpp
-    ../../runtime/internal/compiler/LayoutInfo.cpp
-    ../../runtime/internal/compiler/RuntimeMLIR.cpp
+    ${_quakeDialects_mlir_runtime_sources}
     ../../runtime/internal/compiler/RuntimePyMLIR.cpp
-    ../../runtime/internal/compiler/JIT.cpp
-    ../../runtime/internal/compiler/Compiler.cpp
-    ../../runtime/internal/compiler/TracePassInstrumentation.cpp
 
   EMBED_CAPI_LINK_LIBS
    CUDAQuantumMLIRCAPI
    MLIRCAPIExecutionEngine
   PRIVATE_LINK_LIBS
-   OptCodeGen
-   OptTransforms
-   MLIRPass
-   CUDAQTargetConfigUtil
-   cudaq-python-interop
-   cudaq-platform-default
-   cudaq-qir-verifier
+   ${_quakeDialects_pipeline_carrying_link_libs}
+   ${_quakeDialects_extra_link_libs}
 )
 
 # MLIR/LLVM is built without RTTI (LLVM_ENABLE_RTTI=OFF). This file subclasses
@@ -279,11 +300,12 @@ if(TARGET cudaq-mlir-runtime AND TARGET CUDAQuantumPythonCAPI)
   endif()
   target_link_options(cudaq-mlir-runtime BEFORE PRIVATE
     "$<TARGET_FILE:CUDAQuantumPythonCAPI>")
-  target_link_libraries(cudaq-mlir-runtime INTERFACE
-    $<BUILD_INTERFACE:CUDAQuantumPythonCAPI>)
   if(APPLE)
     target_link_options(cudaq-mlir-runtime PRIVATE
       "LINKER:-undefined,dynamic_lookup")
+  else()
+    target_link_libraries(cudaq-mlir-runtime INTERFACE
+      $<BUILD_INTERFACE:CUDAQuantumPythonCAPI>)
   endif()
   set_property(TARGET cudaq-mlir-runtime APPEND PROPERTY
     BUILD_RPATH "$<TARGET_FILE_DIR:CUDAQuantumPythonCAPI>")
