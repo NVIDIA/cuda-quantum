@@ -66,19 +66,13 @@ jobs:
           # (expensive, redundant with amd64/gcc). merge_group/dispatch run all.
           if [ "${{ github.event_name }}" = "push" ]; then
             build_test_matrix='{"include":[
-              {"platform":"amd64","toolchain":"clang16","mpi":"openmpi"},
-              {"platform":"amd64","toolchain":"gcc11","mpi":"openmpi"},
-              {"platform":"amd64","toolchain":"gcc12","mpi":"openmpi"},
-              {"platform":"arm64","toolchain":"clang16","mpi":"openmpi"}
+              {"platform":"amd64","toolchain":"llvm","mpi":"openmpi"},
+              {"platform":"arm64","toolchain":"llvm","mpi":"openmpi"}
             ]}'
           else
             build_test_matrix='{"include":[
-              {"platform":"amd64","toolchain":"clang16","mpi":"openmpi"},
-              {"platform":"amd64","toolchain":"gcc11","mpi":"openmpi"},
-              {"platform":"amd64","toolchain":"gcc12","mpi":"openmpi"},
-              {"platform":"arm64","toolchain":"clang16","mpi":"openmpi"},
-              {"platform":"arm64","toolchain":"gcc11","mpi":"openmpi"},
-              {"platform":"arm64","toolchain":"gcc12","mpi":"openmpi"}
+              {"platform":"amd64","toolchain":"llvm","mpi":"openmpi"},
+              {"platform":"arm64","toolchain":"llvm","mpi":"openmpi"},
             ]}'
           fi
           echo "build_test_matrix=$(echo "$build_test_matrix" | jq -c .)" >> $GITHUB_OUTPUT
@@ -241,13 +235,7 @@ jobs:
     name: Build and test
     needs: [metadata, config_devdeps]
     strategy:
-<<<<<<< oops-all-clang
-      matrix:
-        platform: [amd64, arm64]
-        mpi: [openmpi]
-=======
       matrix: ${{ fromJson(needs.metadata.outputs.build_test_matrix) }}
->>>>>>> llvm22_update
       fail-fast: false
     uses: ./.github/workflows/test_in_devenv.yml
     with:
@@ -257,10 +245,6 @@ jobs:
       devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-llvm', matrix.platform)] }}
       devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-llvm', matrix.platform)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
-<<<<<<< oops-all-clang
-      skip_build: false
-=======
->>>>>>> llvm22_update
 
   gen_code_coverage:
     name: Gen code coverage
