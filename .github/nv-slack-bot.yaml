@@ -69,6 +69,23 @@ notifications:
         commitUrl: workflow_run.head_repository.html_url & "/commit/" & workflow_run.head_sha
     show_webhook_payload_on_error: false
 
+  - name: "Daily CI failed"
+    event: workflow_run
+    slack:
+      nvidia:
+        channels:
+          - id: C0AT93CK1B9 # nvqpp-cudaq-notifications
+    match: workflow_run.name = "CI" and workflow_run.event = "schedule" and workflow_run.conclusion = "failure"
+    message:
+      body: |
+        <{{url}}|Daily CI> failed on `{{branch}}` (commit <{{commitUrl}}|{{sha}}>)
+      vars:
+        url: workflow_run.html_url
+        branch: workflow_run.head_branch
+        sha: $substring(workflow_run.head_sha, 0, 7)
+        commitUrl: workflow_run.head_repository.html_url & "/commit/" & workflow_run.head_sha
+    show_webhook_payload_on_error: false
+
   - name: "Issue opened"
     event: issues
     slack:
