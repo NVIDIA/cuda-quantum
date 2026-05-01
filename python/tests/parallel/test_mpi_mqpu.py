@@ -33,8 +33,8 @@ def _launched_under_mpi():
 
 
 skipIfUnsupported = pytest.mark.skipif(
-    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-mqpu')
-         and _launched_under_mpi()),
+    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-mqpu') and
+         _launched_under_mpi()),
     reason="nvidia-mqpu backend, GPU, or multi-rank MPI launcher not available")
 
 
