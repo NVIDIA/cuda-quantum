@@ -100,18 +100,36 @@ target_include_directories(rest-remote-platform-server
     ../..
 )
 
-target_link_libraries(rest-remote-platform-server
-  PRIVATE
-    rest_server_impl
-    cudaq 
-    cudaq-operator
-    cudaq-em-default 
-    cudaq-mlir-runtime
-    cudaq-platform-default
-    cudaq-qir-verifier
-    nvqir
-    fmt::fmt-header-only
-)
+if(APPLE)
+  target_link_libraries(rest-remote-platform-server
+    PRIVATE
+      rest_server_impl
+      cudaq
+      cudaq-operator
+      cudaq-em-default
+      cudaq-mlir-runtime
+      cudaq-platform-default
+      "$<TARGET_FILE:cudaq-qir-verifier>"
+      nvqir
+      fmt::fmt-header-only
+  )
+  add_dependencies(rest-remote-platform-server cudaq-qir-verifier)
+  target_link_options(rest-remote-platform-server PRIVATE
+    "LINKER:-undefined,dynamic_lookup")
+else()
+  target_link_libraries(rest-remote-platform-server
+    PRIVATE
+      rest_server_impl
+      cudaq
+      cudaq-operator
+      cudaq-em-default
+      cudaq-mlir-runtime
+      cudaq-platform-default
+      cudaq-qir-verifier
+      nvqir
+      fmt::fmt-header-only
+  )
+endif()
 
 if (CUDA_FOUND AND CUSTATEVEC_ROOT)
   enable_language(CUDA)
