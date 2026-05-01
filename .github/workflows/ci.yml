@@ -85,11 +85,20 @@ jobs:
       - id: pr_info
         run: |
           # Try event context first, then parse from the ref name
-          # (handles both pull-request/XXXX and merge queue refs)
+          # (handles both pull-request/XXXX and merge queue refs).
           pr_number="${{ github.event.pull_request.number }}"
           if [ -z "$pr_number" ] && \
              [[ "${{ github.ref_name }}" =~ (pull-request/|.*/pr-)([0-9]+) ]]; then
             pr_number="${BASH_REMATCH[2]}"
+          fi
+
+          # Fallback: workflow_dispatch on a feature branch — look up the
+          # open PR whose head matches the current branch. Lets manual
+          # re-runs post the CI Summary comment too.
+          if [ -z "$pr_number" ] && [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            pr_number=$(gh pr list --repo "${{ github.repository }}" \
+              --head "${{ github.ref_name }}" --state open \
+              --json number --jq '.[0].number // empty')
           fi
 
           if [ -n "$pr_number" ]; then
