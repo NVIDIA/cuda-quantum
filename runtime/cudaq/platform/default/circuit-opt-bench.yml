@@ -17,27 +17,14 @@ target-arguments:
 
 config:
   nvqir-simulation-backend: qpp
-  # Retained high-level pass group:
-  # - get-concrete-matrix materializes matrices for registered custom ops.
-  # - unitary-synthesis lowers those custom unitaries, notably Benchpress QV
-  #   SU(4) blocks, to explicit gates before decomposition and routing.
+  # Target high-level stage: materialize registered custom-op matrices and
+  # synthesize them to gates before target lowering.
   jit-high-level-pipeline: "get-concrete-matrix,unitary-synthesis"
-  # Retained mid-level pass groups:
-  # - apply-op-specialization and aggressive-inlining expose synthesized helper
-  #   functions so later passes see the KAK-decomposed gates, not opaque
-  #   quake.apply ops.
-  # - The first decomposition targets a CX-capable basis for the router.
-  # - Allocation, wire-set, and wire-index passes produce the IR shape expected
-  #   by qubit-mapping and later lowering.
-  # - qubit-mapping runs SABRE routing when device is set. %DEVICE:bypass%
-  #   defaults to bypass, so unconstrained runs do not route.
-  # - delay-measurements/regtomem restore the expected memory form after
-  #   routing.
-  # - The final decomposition converts router-inserted SWAPs and remaining CX
-  #   gates to CZ as the final 2Q gate. Single-qubit gates remain in CUDA-Q's
-  #   decomposition vocabulary: h, rx, ry, rz, x.
+  # Target mid-level stage: inline synthesized helper calls, decompose to a CX
+  # routing basis, prepare wire metadata, optionally route, then lower routed
+  # two-qubit work to CZ. With no device argument, routing is bypassed.
   jit-mid-level-pipeline: "apply-op-specialization,aggressive-inlining,decomposition{basis=h,rx,ry,rz,x,x(1)},func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=%DEVICE:bypass%},func.func(delay-measurements,regtomem),decomposition{basis=h,rx,ry,rz,x,z(1)}"
-  # Cleanup: symbol-dce removes wire_set ops left by add-wireset (prevents
-  # the JIT from taking the wireset-to-profile QIR path).
+  # Target low-level cleanup stage: normalize controls, simplify IR, and remove
+  # wire-set symbols left by routing prep.
   jit-low-level-pipeline: "func.func(apply-control-negations,canonicalize,cse),symbol-dce"
   library-mode: false
