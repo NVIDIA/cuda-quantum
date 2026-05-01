@@ -385,7 +385,7 @@ cudaq::CompiledModule Compiler::assembleCompiledModule(
       artifacts.push_back(std::move(jitArtifacts[0]));
       if (resourceCounts)
         artifacts.push_back(CompiledModuleHelper::createResourcesArtifact(
-            name + ".resources", std::move(*resourceCounts)));
+            name, std::move(*resourceCounts)));
     }
   }
 
@@ -394,9 +394,8 @@ cudaq::CompiledModule Compiler::assembleCompiledModule(
       applyPipeline("func.func(combine-measurements)", module, kernelName);
 
   for (auto &[name, module] : modules) {
-    auto mlirName = name + ".mlir";
     artifacts.push_back(
-        CompiledModuleHelper::createMlirArtifact(mlirName, module, context));
+        CompiledModuleHelper::createMlirArtifact(name, module, context));
   }
 
   return CompiledModuleHelper::createCompiledModule(
@@ -547,11 +546,7 @@ Compiler::emitKernelExecutions(const cudaq::CompiledModule &compiled) {
 
   // Apply user-specified codegen
   std::vector<cudaq::KernelExecution> codes;
-  for (auto &[name, artifact] : compiled.getArtifacts()) {
-    if (!name.ends_with(".mlir"))
-      continue;
-    auto &mlirArtifact =
-        std::get<cudaq::CompiledModule::MlirArtifact>(artifact);
+  for (const auto &[name, mlirArtifact] : compiled.getMlirArtifacts()) {
     auto moduleOpI = CompiledModuleHelper::getMlirModuleOp(mlirArtifact);
 
     std::string codeStr;
@@ -577,17 +572,16 @@ Compiler::emitKernelExecutions(const cudaq::CompiledModule &compiled) {
     // Retrieve pre-computed JIT engine and resource counts (if any).
     std::optional<cudaq::JitEngine> optionalJit;
     std::optional<cudaq::Resources> optionalResourceCounts;
-    auto kernelName = name.substr(0, name.length() - 5);
-    auto jit = compiled.getJit(kernelName);
+    auto jit = compiled.getJit(name);
     if (jit)
       optionalJit = jit->getEngine();
-    auto resourceCounts = compiled.getResources(kernelName + ".resources");
+    auto resourceCounts = compiled.getResources(name);
     if (resourceCounts)
       optionalResourceCounts = *resourceCounts;
 
     auto mapping_reorder_idx = compiled.getMetadata().reorderIdx;
-    codes.emplace_back(kernelName, codeStr, optionalJit, optionalResourceCounts,
-                       j, mapping_reorder_idx);
+    codes.emplace_back(name, codeStr, optionalJit, optionalResourceCounts, j,
+                       mapping_reorder_idx);
   }
 
   return codes;

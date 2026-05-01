@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cudaq.util import trace
 from .utils import __isBroadcast, __createArgumentSet
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
 from cudaq.kernel.kernel_builder import isa_dynamic_kernel
@@ -68,6 +69,7 @@ def __resolveExpectationValue(ctx, spin_operator, sample_result):
     return total
 
 
+@trace.traced
 def observe(kernel,
             spin_operator,
             *args,
@@ -229,6 +231,7 @@ def observe(kernel,
     return results
 
 
+@trace.traced
 def observe_async(kernel, spin_operator, *args, qpu_id=0, shots_count=-1):
     """
     Compute the expected value of the `spin_operator` with respect to the
