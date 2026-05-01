@@ -9,14 +9,6 @@ on:
       export_environment:
         type: boolean
         description: Export the build environment as tar artifact that can be imported with Docker.
-      ci_level:
-        type: choice
-        description: 'CI tier: pr runs a reduced validation matrix, full runs everything.'
-        options:
-          - auto
-          - pr
-          - full
-        default: auto
   # The GitHub application copy-pr-bot copies the source code for every pull request
   # into the repository. Approving such upstream pushes effectively marks code as trusted,
   # and is necessary to use the self-hosted NVIDIA runners.
@@ -24,9 +16,12 @@ on:
     branches:
       - "pull-request/[0-9]+"
   merge_group:
-    types: 
+    types:
       - checks_requested
-    
+  # Daily full-coverage run on the default branch.
+  schedule:
+    - cron: '0 6 * * 1-5'  # 06:00 UTC, Mon-Fri
+
 name: CI # do not change name without updating workflow_run triggers
 
 concurrency:
@@ -49,7 +44,7 @@ jobs:
       pybind11_commit: ${{ steps.repo_info.outputs.pybind11_commit }}
       nanobind_commit: ${{ steps.repo_info.outputs.nanobind_commit }}
       platform_config: ${{ steps.config.outputs.platforms }}
-      ci_tier: ${{ steps.ci_tier.outputs.tier }}
+      build_test_matrix: ${{ steps.config.outputs.build_test_matrix }}
 
     steps:
       - name: Checkout repository
@@ -67,14 +62,44 @@ jobs:
           done
           echo "platforms=$(echo $platforms)" >> $GITHUB_OUTPUT
 
+          # Build/test matrix: on PR push (copy-pr-bot) skip arm64+gcc combos
+          # (expensive, redundant with amd64/gcc). merge_group/dispatch run all.
+          if [ "${{ github.event_name }}" = "push" ]; then
+            build_test_matrix='{"include":[
+              {"platform":"amd64","toolchain":"clang16","mpi":"openmpi"},
+              {"platform":"amd64","toolchain":"gcc11","mpi":"openmpi"},
+              {"platform":"amd64","toolchain":"gcc12","mpi":"openmpi"},
+              {"platform":"arm64","toolchain":"clang16","mpi":"openmpi"}
+            ]}'
+          else
+            build_test_matrix='{"include":[
+              {"platform":"amd64","toolchain":"clang16","mpi":"openmpi"},
+              {"platform":"amd64","toolchain":"gcc11","mpi":"openmpi"},
+              {"platform":"amd64","toolchain":"gcc12","mpi":"openmpi"},
+              {"platform":"arm64","toolchain":"clang16","mpi":"openmpi"},
+              {"platform":"arm64","toolchain":"gcc11","mpi":"openmpi"},
+              {"platform":"arm64","toolchain":"gcc12","mpi":"openmpi"}
+            ]}'
+          fi
+          echo "build_test_matrix=$(echo "$build_test_matrix" | jq -c .)" >> $GITHUB_OUTPUT
+
       - id: pr_info
         run: |
           # Try event context first, then parse from the ref name
-          # (handles both pull-request/XXXX and merge queue refs)
+          # (handles both pull-request/XXXX and merge queue refs).
           pr_number="${{ github.event.pull_request.number }}"
           if [ -z "$pr_number" ] && \
              [[ "${{ github.ref_name }}" =~ (pull-request/|.*/pr-)([0-9]+) ]]; then
             pr_number="${BASH_REMATCH[2]}"
+          fi
+
+          # Fallback: workflow_dispatch on a feature branch — look up the
+          # open PR whose head matches the current branch. Lets manual
+          # re-runs post the CI Summary comment too.
+          if [ -z "$pr_number" ] && [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            pr_number=$(gh pr list --repo "${{ github.repository }}" \
+              --head "${{ github.ref_name }}" --state open \
+              --json number --jq '.[0].number // empty')
           fi
 
           if [ -n "$pr_number" ]; then
@@ -91,22 +116,6 @@ jobs:
           echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
           echo "pybind11_commit=$(git rev-parse @:./tpls/pybind11)" >> $GITHUB_OUTPUT
           echo "nanobind_commit=$(git rev-parse @:./tpls/nanobind)" >> $GITHUB_OUTPUT
-
-      - id: ci_tier
-        name: Determine CI tier
-        run: |
-          requested="${{ inputs.ci_level || 'auto' }}"
-          if [ "$requested" != "auto" ]; then
-            tier="$requested"
-          elif [ "${{ github.event_name }}" == "push" ]; then
-            # PR pushes (pull-request/NNN branches via copy-pr-bot) get reduced CI
-            tier="pr"
-          else
-            # merge_group, workflow_dispatch with default auto get full CI
-            tier="full"
-          fi
-          echo "tier=$tier" >> $GITHUB_OUTPUT
-          echo "CI tier: $tier"
 
   devdeps:
     name: Load dependencies
@@ -163,7 +172,7 @@ jobs:
   source_build:
     name: Load source build cache
     needs: metadata
-    if: needs.metadata.outputs.ci_tier != 'pr'
+    if: github.event_name != 'push'
     strategy:
       matrix:
         platform: [amd64, arm64]
@@ -219,7 +228,7 @@ jobs:
     name: Configure build (source_build)
     runs-on: ubuntu-latest
     needs: [metadata, source_build]
-    if: needs.metadata.outputs.ci_tier != 'pr'
+    if: github.event_name != 'push'
     outputs:
       json: "${{ steps.read_json.outputs.result }}"
     steps:
@@ -232,9 +241,13 @@ jobs:
     name: Build and test
     needs: [metadata, config_devdeps]
     strategy:
+<<<<<<< oops-all-clang
       matrix:
         platform: [amd64, arm64]
         mpi: [openmpi]
+=======
+      matrix: ${{ fromJson(needs.metadata.outputs.build_test_matrix) }}
+>>>>>>> llvm22_update
       fail-fast: false
     uses: ./.github/workflows/test_in_devenv.yml
     with:
@@ -244,12 +257,15 @@ jobs:
       devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-llvm', matrix.platform)] }}
       devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-llvm', matrix.platform)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
+<<<<<<< oops-all-clang
       skip_build: false
+=======
+>>>>>>> llvm22_update
 
   gen_code_coverage:
     name: Gen code coverage
     needs: [metadata, config_devdeps]
-    if: needs.metadata.outputs.ci_tier != 'pr'
+    if: github.event_name != 'push'
     strategy:
       matrix:
         platform: [amd64]
@@ -264,12 +280,11 @@ jobs:
       devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-llvm', matrix.platform)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
-  # Docker images are packaging, not correctness. On PR tier this fake-passes
-  # (skip_build=true) so required checks remain green without doing the build;
-  # build_and_test covers code compilation and testing.
+  # Docker images are packaging, not correctness — only built on merge_group/dispatch.
   docker_image:
     name: Create Docker images
     needs: [metadata, config_devdeps]
+    if: github.event_name != 'push'
     strategy:
       matrix:
         platform: [amd64, arm64]
@@ -284,11 +299,11 @@ jobs:
       devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-llvm', matrix.platform)] }}
       devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-llvm', matrix.platform)] }}
       environment: ghcr-ci
-      skip_build: ${{ needs.metadata.outputs.ci_tier == 'pr' }}
 
   python_wheels:
     name: Create Python wheels
     needs: [metadata, config_wheeldeps]
+    if: github.event_name != 'push'
     strategy:
       matrix:
         platform: [amd64, arm64]
@@ -306,29 +321,23 @@ jobs:
       devdeps_image: ${{ fromJson(needs.config_wheeldeps.outputs.json).image_hash[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
       devdeps_cache: ${{ fromJson(needs.config_wheeldeps.outputs.json).cache_key[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
       devdeps_archive: ${{ fromJson(needs.config_wheeldeps.outputs.json).tar_archive[format('{0}-cu{1}-python', matrix.platform, matrix.cuda_version)] }}
-      skip_build: ${{ needs.metadata.outputs.ci_tier == 'pr' }}
 
   python_metapackages:
     name: Create Python metapackages
     needs: [metadata, python_wheels]
+    if: github.event_name != 'push'
     uses: ./.github/workflows/python_metapackages.yml
     with:
       cudaq_version: ${{ needs.python_wheels.outputs.cudaq_version }}
       python_versions: "['3.11', '3.13']"
       cuda_versions: "['', '12.6', '13.0']"
       wheel_artifacts: 'pycudaq-*'
-      skip_build: ${{ needs.metadata.outputs.ci_tier == 'pr' }}
 
-  # Installer builds are packaging, not correctness. On PR tier this fake-passes
-  # (skip_build=true) so required checks report status; code correctness is
-  # validated by build_and_test.
+  # Installer builds are packaging, not correctness — only built on merge_group/dispatch.
   binaries:
     name: Create CUDA Quantum installer
     needs: [metadata, config_source_build]
-    # Run even when config_source_build is skipped on PR tier. The child
-    # workflow guards all real build steps on !inputs.skip_build, so the
-    # unused build_cache input is fine.
-    if: ${{ always() && needs.metadata.result == 'success' }}
+    if: github.event_name != 'push'
     strategy:
       matrix:
         platform: [amd64, arm64]
@@ -343,8 +352,312 @@ jobs:
       platform_base_image: ${{ fromJson(needs.metadata.outputs.platform_config)[format('{0}', matrix.platform)].minimal_base_image }}
       build_config_id: cu${{ matrix.cuda_version }}-llvm
       cuda_version: ${{ matrix.cuda_version }}
-      build_cache: ${{ needs.config_source_build.result == 'success' && fromJson(needs.config_source_build.outputs.json).build_cache[format('{0}-cu{1}-installer', matrix.platform, matrix.cuda_version)] || '' }}
-      skip_build: ${{ needs.metadata.outputs.ci_tier == 'pr' }}
+      build_cache: ${{ fromJson(needs.config_source_build.outputs.json).build_cache[format('{0}-cu{1}-installer', matrix.platform, matrix.cuda_version)] }}
+
+  # Single aggregator that summarizes the entire CI workflow.
+  # Branch protection / merge queue should require ONLY this context;
+  # adding/removing matrix legs above does not require a ruleset edit.
+  # Passes on `success` and `skipped` (jobs intentionally skipped on PR builds).
+  # Fails on `failure` or `cancelled` from any listed job.
+  ci_summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+      actions: read
+    needs:
+      - metadata
+      - devdeps
+      - wheeldeps
+      - source_build
+      - config_devdeps
+      - config_wheeldeps
+      - config_source_build
+      - build_and_test
+      - gen_code_coverage
+      - docker_image
+      - python_wheels
+      - python_metapackages
+      - binaries
+    if: always()
+    env:
+      GH_TOKEN: ${{ github.token }}
+      NEEDS_JSON: ${{ toJSON(needs) }}
+      EVENT_NAME: ${{ github.event_name }}
+      PR_NUMBER: ${{ needs.metadata.outputs.pull_request_number }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      REPO: ${{ github.repository }}
+      RUN_ID: ${{ github.run_id }}
+    steps:
+      - name: Checkout (for needs-coverage and manifest checks)
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            .github/workflows/ci.yml
+            .github/required-checks.yml
+          sparse-checkout-cone-mode: false
+
+      # Catch the "added a top-level job but forgot to add it to ci_summary.needs"
+      # footgun. The aggregator only gates on jobs in its `needs:` list, so any
+      # job missing here would silently not block merging.
+      - name: Verify ci_summary.needs covers all top-level jobs
+        run: |
+          set -euo pipefail
+          # yq is preinstalled on ubuntu-latest runners (mikefarah/yq).
+          mapfile -t all_jobs < <(yq -r '.jobs | keys | .[]' .github/workflows/ci.yml | sort -u)
+          mapfile -t needs_jobs < <(yq -r '.jobs.ci_summary.needs | .[]' .github/workflows/ci.yml | sort -u)
+
+          # Expected = all_jobs minus ci_summary itself.
+          missing=()
+          for job in "${all_jobs[@]}"; do
+            [ "$job" = "ci_summary" ] && continue
+            [ "$job" = "clean_up" ] && continue   # cache cleanup; intentionally not gated
+            if ! printf '%s\n' "${needs_jobs[@]}" | grep -qx -- "$job"; then
+              missing+=("$job")
+            fi
+          done
+
+          if [ ${#missing[@]} -gt 0 ]; then
+            {
+              echo "### :x: ci_summary.needs is missing jobs"
+              echo ""
+              echo "These top-level jobs exist but are not listed in \`ci_summary.needs:\`."
+              echo "The aggregator does not gate on them, so failures would not block merging."
+              echo ""
+              for j in "${missing[@]}"; do echo "- \`$j\`"; done
+              echo ""
+              echo "Fix: add them to the \`needs:\` list of \`ci_summary\` in \`.github/workflows/ci.yml\`."
+              echo "(Or, if intentionally excluded, add to the allow-list in this step.)"
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::error file=.github/workflows/ci.yml::ci_summary.needs missing: ${missing[*]}"
+            exit 1
+          fi
+          echo "ci_summary.needs covers all top-level jobs."
+
+      - name: Build markdown summary
+        id: build
+        run: |
+          set -euo pipefail
+
+          icon() {
+            case "$1" in
+              success)   echo ":white_check_mark:" ;;
+              skipped)   echo ":fast_forward:" ;;
+              failure)   echo ":x:" ;;
+              cancelled) echo ":no_entry:" ;;
+              *)         echo ":grey_question:" ;;
+            esac
+          }
+
+          # All sub-jobs (with names + html_url + conclusion). Paginate; this
+          # workflow can have hundreds of matrix legs across reusable workflows.
+          gh api --paginate "repos/$REPO/actions/runs/$RUN_ID/jobs" \
+            --jq '.jobs[] | {name, html_url, conclusion, status, started_at, completed_at}' \
+            | jq -s '.' > /tmp/jobs.json
+
+          # Counts grouped by top-level needs.* result.
+          counts() { jq -r "[to_entries[] | select(.value.result == \"$1\")] | length" <<< "$NEEDS_JSON"; }
+          n_pass=$(counts success)
+          n_skip=$(counts skipped)
+          n_fail=$(counts failure)
+          n_cancel=$(counts cancelled)
+
+          overall=":white_check_mark: passed"
+          if [ "$n_fail" -gt 0 ] || [ "$n_cancel" -gt 0 ]; then overall=":x: failed"; fi
+
+          # Header — always visible (one line). Detail goes in <details>.
+          {
+            echo "<!-- ci-summary:${{ github.workflow }} -->"
+            echo "### CI Summary — $overall"
+            echo ""
+            echo "[Run #$RUN_ID]($RUN_URL) · trigger \`$EVENT_NAME\` · :white_check_mark: $n_pass · :fast_forward: $n_skip · :x: $n_fail · :no_entry: $n_cancel"
+            echo ""
+
+            failed=$(jq -r 'to_entries[] | select(.value.result == "failure" or .value.result == "cancelled") | .key' <<< "$NEEDS_JSON" || true)
+            if [ -n "$failed" ]; then
+              echo "<details open><summary><b>:x: Failed or cancelled</b></summary>"
+              echo ""
+              echo "| Job | Result | Link |"
+              echo "| --- | --- | --- |"
+              while read -r job; do
+                [ -z "$job" ] && continue
+                result=$(jq -r --arg k "$job" '.[$k].result' <<< "$NEEDS_JSON")
+                # Prefer top-level job link if we can find one; fall back to run URL.
+                url=$(jq -r --arg n "$job" 'map(select(.name==$n)) | .[0].html_url // empty' /tmp/jobs.json)
+                [ -z "$url" ] && url="$RUN_URL"
+                echo "| \`$job\` | $(icon "$result") $result | [view]($url) |"
+              done <<< "$failed"
+              echo ""
+              echo "</details>"
+              echo ""
+            fi
+
+            echo "<details><summary><b>Top-level jobs ($((n_pass + n_skip + n_fail + n_cancel)))</b></summary>"
+            echo ""
+            echo "| Job | Result |"
+            echo "| --- | --- |"
+            jq -r 'to_entries | sort_by(.key)[] | "\(.key)\t\(.value.result)"' <<< "$NEEDS_JSON" \
+              | while IFS=$'\t' read -r job result; do
+                  echo "| \`$job\` | $(icon "$result") $result |"
+                done
+            echo ""
+            echo "</details>"
+            echo ""
+
+            if [ "$n_skip" -gt 0 ]; then
+              echo "<details><summary><b>:fast_forward: Skipped jobs ($n_skip)</b> — intentionally skipped on PR builds; run on merge_group / workflow_dispatch</summary>"
+              echo ""
+              echo "| Job |"
+              echo "| --- |"
+              jq -r 'to_entries[] | select(.value.result == "skipped") | "| `\(.key)` |"' <<< "$NEEDS_JSON" | sort
+              echo ""
+              echo "</details>"
+              echo ""
+            fi
+
+            n_total=$(jq 'length' /tmp/jobs.json)
+            echo "<details><summary><b>All sub-jobs ($n_total)</b> — every matrix leg, with links</summary>"
+            echo ""
+            echo "| Job | Status | Link |"
+            echo "| --- | --- | --- |"
+            jq -r 'sort_by(.name)[] | "\(.name)\t\(.conclusion // .status)\t\(.html_url)"' /tmp/jobs.json \
+              | while IFS=$'\t' read -r name status url; do
+                  echo "| $name | $(icon "$status") $status | [view]($url) |"
+                done
+            echo ""
+            echo "</details>"
+          } > /tmp/comment.md
+
+          {
+            echo "## CI Summary"
+            cat /tmp/comment.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # Plain-text mirror in the log for easy grepping
+          echo "Job results:"
+          jq -r 'to_entries | sort_by(.key)[] | "  \(.key): \(.value.result)"' <<< "$NEEDS_JSON"
+
+          {
+            echo "n_fail=$n_fail"
+            echo "n_cancel=$n_cancel"
+          } >> "$GITHUB_OUTPUT"
+
+      # Cross-check the actual successful sub-jobs against the names declared
+      # in .github/required-checks.yml for this event type. Catches "added a
+      # matrix leg but forgot to add it to the required list" and the
+      # opposite (a leg silently stopped running). Empty/missing list for
+      # the event = enforcement disabled (bootstrap mode).
+      - name: Verify required-checks manifest
+        id: manifest
+        run: |
+          set -euo pipefail
+          manifest=.github/required-checks.yml
+
+          if [ ! -f "$manifest" ]; then
+            echo "No manifest at $manifest — skipping."
+            echo "n_missing=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Extract the section for this event as JSON, defaulting to [].
+          mapfile -t expected < <(yq -o=json "$manifest" | jq -r --arg e "$EVENT_NAME" '.[$e] // [] | .[]')
+          n_expected=${#expected[@]}
+
+          if [ "$n_expected" -eq 0 ]; then
+            echo "No required checks declared for event '$EVENT_NAME' — skipping enforcement."
+            echo "n_missing=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Successful sub-job names from this run.
+          mapfile -t actual_pass < <(jq -r '.[] | select(.conclusion == "success") | .name' /tmp/jobs.json | sort -u)
+
+          missing=()
+          for e in "${expected[@]}"; do
+            if ! printf '%s\n' "${actual_pass[@]}" | grep -qFx -- "$e"; then
+              missing+=("$e")
+            fi
+          done
+          n_missing=${#missing[@]}
+
+          # Single table listing every required check with its actual status.
+          # Open the section if anything is missing/failed; collapsed if all green.
+          icon() {
+            case "$1" in
+              success)   echo ":white_check_mark:" ;;
+              skipped)   echo ":fast_forward:" ;;
+              failure)   echo ":x:" ;;
+              cancelled) echo ":no_entry:" ;;
+              missing)   echo ":grey_question:" ;;
+              *)         echo ":grey_question:" ;;
+            esac
+          }
+          n_passed=$((n_expected - n_missing))
+          if [ "$n_missing" -eq 0 ]; then
+            summary_line=":white_check_mark: Required checks ($n_passed/$n_expected)"
+            details_state="<details>"
+          else
+            summary_line=":warning: Required checks ($n_passed/$n_expected) — $n_missing missing"
+            details_state="<details open>"
+          fi
+
+          {
+            echo ""
+            echo "${details_state}<summary><b>${summary_line}</b> — declared in <code>.github/required-checks.yml</code> for <code>${EVENT_NAME}</code></summary>"
+            echo ""
+            echo "| Required check | Status | Link |"
+            echo "| --- | --- | --- |"
+            for j in "${expected[@]}"; do
+              info=$(jq -c --arg n "$j" 'map(select(.name == $n)) | .[0] // null' /tmp/jobs.json)
+              if [ "$info" = "null" ]; then
+                status="missing"
+                link=""
+              else
+                status=$(jq -r '.conclusion // .status' <<< "$info")
+                url=$(jq -r '.html_url' <<< "$info")
+                link="[view]($url)"
+              fi
+              echo "| $j | $(icon "$status") $status | $link |"
+            done
+            echo ""
+            echo "</details>"
+          } | tee -a /tmp/comment.md >> "$GITHUB_STEP_SUMMARY"
+
+          echo "n_missing=$n_missing" >> "$GITHUB_OUTPUT"
+          if [ "$n_missing" -gt 0 ]; then
+            echo "::error file=.github/required-checks.yml::$n_missing required check(s) missing for event '$EVENT_NAME': ${missing[*]}"
+          fi
+
+      - name: Post or update PR comment
+        if: env.PR_NUMBER != ''
+        run: |
+          set -euo pipefail
+          marker="<!-- ci-summary:${{ github.workflow }} -->"
+          existing=$(gh api --paginate "repos/$REPO/issues/$PR_NUMBER/comments" \
+            --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -1 || true)
+          if [ -n "$existing" ]; then
+            jq -Rs '{body: .}' < /tmp/comment.md \
+              | gh api "repos/$REPO/issues/comments/$existing" -X PATCH --input -
+          else
+            gh pr comment "$PR_NUMBER" --repo "$REPO" --body-file /tmp/comment.md
+          fi
+        continue-on-error: true
+
+      - name: Fail the job if anything failed, was cancelled, or is missing
+        run: |
+          n_fail="${{ steps.build.outputs.n_fail }}"
+          n_cancel="${{ steps.build.outputs.n_cancel }}"
+          n_missing="${{ steps.manifest.outputs.n_missing }}"
+          if [ "$n_fail" -gt 0 ] || [ "$n_cancel" -gt 0 ]; then
+            echo "::error::One or more required jobs failed or were cancelled (failures=$n_fail, cancelled=$n_cancel)"
+            exit 1
+          fi
+          if [ "$n_missing" -gt 0 ]; then
+            echo "::error::$n_missing required check(s) declared in .github/required-checks.yml did not run successfully"
+            exit 1
+          fi
+          echo "All required jobs passed (or were intentionally skipped)."
 
   clean_up:
     name: Prepare cache clean-up

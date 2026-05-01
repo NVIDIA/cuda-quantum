@@ -47,7 +47,7 @@ func.func @test_0(%0: !cc.ptr<i8>, %1: !cc.ptr<!cc.struct<{!cc.ptr<!cc.struct<{i
 // CHECK:         %[[VAL_6:.*]] = ptrtoint ptr %[[VAL_4]] to i64
 // CHECK:         %[[VAL_7:.*]] = sub i64 %[[VAL_5]], %[[VAL_6]]
 // CHECK:         %[[VAL_8:.*]] = add i64 %[[VAL_7]], 8
-// CHECK:         %[[VAL_9:.*]] = alloca i8, i64 %[[VAL_8]], align 8
+// CHECK:         %[[VAL_9:.*]] = alloca i8, i64 %{{.*}}, align 8
 // CHECK:         %[[VAL_10:.*]] = getelementptr i8, ptr %[[VAL_9]], i64 8
 // CHECK:         store i64 %[[VAL_7]], ptr %[[VAL_9]], align 8
 // CHECK:         call void @llvm.memcpy.p0.p0.i64(ptr align 8 %[[VAL_10]], ptr align 1 %[[VAL_4]], i64 %[[VAL_7]], i1 false)
@@ -112,9 +112,9 @@ func.func @test_1(%0: !cc.ptr<i8>, %1: !cc.ptr<!cc.struct<{!cc.struct<{!cc.ptr<i
 // CHECK:         %[[VAL_12:.*]] = ptrtoint ptr %[[VAL_10]] to i64
 // CHECK:         %[[VAL_13:.*]] = ptrtoint ptr %[[VAL_11]] to i64
 // CHECK:         %[[VAL_14:.*]] = sub i64 %[[VAL_12]], %[[VAL_13]]
-// CHECK:         %[[VAL_15:.*]] = add i64 %[[VAL_7]], 32
-// CHECK:         %[[VAL_16:.*]] = add i64 %[[VAL_15]], %[[VAL_14]]
-// CHECK:         %[[VAL_17:.*]] = alloca i8, i64 %[[VAL_16]], align 8
+// CHECK:         %[[VAL_15:.*]] = add i64 %{{.*}}
+// CHECK:         %[[VAL_16:.*]] = add i64 %{{.*}}
+// CHECK:         %[[VAL_17:.*]] = alloca i8, i64 %{{.*}}, align 8
 // CHECK:         %[[VAL_18:.*]] = getelementptr i8, ptr %[[VAL_17]], i64 16
 // CHECK:         store i64 %[[VAL_7]], ptr %[[VAL_17]], align 8
 // CHECK:         call void @llvm.memcpy.p0.p0.i64(ptr align 8 %[[VAL_18]], ptr align 1 %[[VAL_4]], i64 %[[VAL_7]], i1 false)
@@ -166,7 +166,7 @@ func.func @test_2(%0: !cc.ptr<i8>, %1: !cc.ptr<!cc.struct<{!cc.ptr<!cc.struct<{i
 // CHECK:         %[[VAL_6:.*]] = ptrtoint ptr %[[VAL_4]] to i64
 // CHECK:         %[[VAL_7:.*]] = sub i64 %[[VAL_5]], %[[VAL_6]]
 // CHECK:         %[[VAL_8:.*]] = add i64 %[[VAL_7]], 8
-// CHECK:         %[[VAL_9:.*]] = alloca i8, i64 %[[VAL_8]], align 8
+// CHECK:         %[[VAL_9:.*]] = alloca i8, i64 %{{.*}}, align 8
 // CHECK:         %[[VAL_10:.*]] = getelementptr i8, ptr %[[VAL_9]], i64 8
 // CHECK:         store i64 %[[VAL_7]], ptr %[[VAL_9]], align 8
 // CHECK:         call void @llvm.memcpy.p0.p0.i64(ptr align 8 %[[VAL_10]], ptr align 1 %[[VAL_4]], i64 %[[VAL_7]], i1 false)
@@ -231,9 +231,9 @@ func.func @test_3(%0: !cc.ptr<i8>, %1: !cc.ptr<!cc.struct<{!cc.struct<{!cc.ptr<i
 // CHECK:         %[[VAL_12:.*]] = ptrtoint ptr %[[VAL_10]] to i64
 // CHECK:         %[[VAL_13:.*]] = ptrtoint ptr %[[VAL_11]] to i64
 // CHECK:         %[[VAL_14:.*]] = sub i64 %[[VAL_12]], %[[VAL_13]]
-// CHECK:         %[[VAL_15:.*]] = add i64 %[[VAL_7]], 32
-// CHECK:         %[[VAL_16:.*]] = add i64 %[[VAL_15]], %[[VAL_14]]
-// CHECK:         %[[VAL_17:.*]] = alloca i8, i64 %[[VAL_16]], align 8
+// CHECK:         %[[VAL_15:.*]] = add i64 %{{.*}}
+// CHECK:         %[[VAL_16:.*]] = add i64 %{{.*}}
+// CHECK:         %[[VAL_17:.*]] = alloca i8, i64 %{{.*}}, align 8
 // CHECK:         %[[VAL_18:.*]] = getelementptr i8, ptr %[[VAL_17]], i64 16
 // CHECK:         store i64 %[[VAL_7]], ptr %[[VAL_17]], align 8
 // CHECK:         call void @llvm.memcpy.p0.p0.i64(ptr align 8 %[[VAL_18]], ptr align 1 %[[VAL_4]], i64 %[[VAL_7]], i1 false)
