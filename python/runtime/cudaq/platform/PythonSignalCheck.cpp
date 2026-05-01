@@ -41,6 +41,8 @@ public:
 
 namespace cudaq {
 void addPythonSignalInstrumentation(mlir::PassManager &pm) {
+  if (!PyGILState_Check())
+    return;
   pm.addInstrumentation(std::make_unique<PythonSignalCheckInstrumentation>());
 }
 
