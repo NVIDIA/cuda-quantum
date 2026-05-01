@@ -69,9 +69,11 @@ def test_custom_unitary_produces_2q_gates():
     kernel.test_su4_pipeline(q[0], q[1])
 
     resources = cudaq.estimate_resources(kernel)
+    ops = resources.to_dict()
     two_q = resources.gate_count_for_arity(2)
-    assert two_q >= 1, (
-        f"Random SU(4) produced 0 2Q gates. Gates: {resources.to_dict()}")
+    assert 'custom_op' not in ops, f"Custom SU(4) was not synthesized: {ops}"
+    assert ops.get('cz', 0) >= 1, f"Custom SU(4) did not lower to CZ: {ops}"
+    assert two_q >= 1, (f"Random SU(4) produced 0 2Q gates. Gates: {ops}")
     assert two_q <= 6, (
         f"KAK produces at most 3 CX (6 CZ after basis change), got {two_q}")
 
