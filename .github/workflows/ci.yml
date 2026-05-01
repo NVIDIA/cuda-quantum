@@ -16,9 +16,12 @@ on:
     branches:
       - "pull-request/[0-9]+"
   merge_group:
-    types: 
+    types:
       - checks_requested
-    
+  # Daily full-coverage run on the default branch.
+  schedule:
+    - cron: '0 6 * * 1-5'  # 06:00 UTC, Mon-Fri
+
 name: CI # do not change name without updating workflow_run triggers
 
 concurrency:

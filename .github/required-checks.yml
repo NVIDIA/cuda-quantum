@@ -53,3 +53,4 @@ push:
 - Build and test (arm64, clang16, openmpi) / Dev environment (Debug)
 - Build and test (arm64, clang16, openmpi) / Dev environment (Python)
 workflow_dispatch: *full_matrix
+schedule: *full_matrix
