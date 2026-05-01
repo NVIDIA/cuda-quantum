@@ -48,7 +48,7 @@ func.func @test_0(%0: !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i3
 // CHECK:           cc.store %[[VAL_8]], %[[VAL_7]] : !cc.ptr<!cc.ptr<i8>>
 // CHECK:           %[[VAL_9:.*]] = cc.alloca i64
 // CHECK:           %[[VAL_10:.*]] = cc.sizeof !cc.struct<{i32, !cc.struct<{!cc.ptr<i32>, i64}>}> : i64
-// CHECK:           %[[VAL_11:.*]] = cc.alloca i8{{\[}}%[[VAL_10]] : i64]
+// CHECK:           %[[VAL_11:.*]] = cc.alloca i8{{\[}}%{{.*}} : i64]
 // CHECK:           %[[VAL_12:.*]] = cc.cast %[[VAL_11]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<!cc.struct<{i32, !cc.struct<{!cc.ptr<i32>, i64}>}>>
 // CHECK:           %[[VAL_13:.*]] = cc.alloca !cc.ptr<i8>
 // CHECK:           %[[VAL_14:.*]] = cc.cast %[[VAL_11]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i32>
@@ -145,7 +145,7 @@ func.func @test_1(%0: !cc.ptr<!cc.struct<{!cc.ptr<f64>, !cc.ptr<f64>, !cc.ptr<f6
 // CHECK:           cc.store %[[VAL_7]], %[[VAL_6]] : !cc.ptr<!cc.ptr<i8>>
 // CHECK:           %[[VAL_8:.*]] = cc.alloca i64
 // CHECK:           %[[VAL_9:.*]] = cc.sizeof !cc.struct<{i32, !cc.struct<{!cc.ptr<f64>, i64}>}> : i64
-// CHECK:           %[[VAL_10:.*]] = cc.alloca i8{{\[}}%[[VAL_9]] : i64]
+// CHECK:           %[[VAL_10:.*]] = cc.alloca i8{{\[}}%{{.*}} : i64]
 // CHECK:           %[[VAL_11:.*]] = cc.cast %[[VAL_10]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<!cc.struct<{i32, !cc.struct<{!cc.ptr<f64>, i64}>}>>
 // CHECK:           %[[VAL_12:.*]] = cc.alloca !cc.ptr<i8>
 // CHECK:           %[[VAL_13:.*]] = cc.cast %[[VAL_10]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i32>

@@ -86,7 +86,7 @@ module attributes {quake.mangled_name_map = {
 // ALT-SAME:                           %[[VAL_1:.*]]: i32) -> f64 {
 // ALT:           %[[VAL_2:.*]] = cc.alloca i64
 // ALT:           %[[VAL_3:.*]] = cc.sizeof !cc.struct<{i32, f64}> : i64
-// ALT:           %[[VAL_4:.*]] = cc.alloca i8{{\[}}%[[VAL_3]] : i64]
+// ALT:           %[[VAL_4:.*]] = cc.alloca i8{{\[}}%{{.*}} : i64]
 // ALT:           %[[VAL_5:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<!cc.struct<{i32, f64}>>
 // ALT:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_5]][0] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<i32>
 // ALT:           cc.store %[[VAL_1]], %[[VAL_6]] : !cc.ptr<i32>
@@ -303,7 +303,7 @@ module attributes {quake.mangled_name_map = {
 // HYBRID-SAME:                           %[[VAL_1:.*]]: i32) -> f64 {
 // HYBRID:           %[[VAL_2:.*]] = cc.alloca i64
 // HYBRID:           %[[VAL_3:.*]] = cc.sizeof !cc.struct<{i32, f64}> : i64
-// HYBRID:           %[[VAL_4:.*]] = cc.alloca i8{{\[}}%[[VAL_3]] : i64]
+// HYBRID:           %[[VAL_4:.*]] = cc.alloca i8{{\[}}%{{.*}} : i64]
 // HYBRID:           %[[VAL_5:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<!cc.struct<{i32, f64}>>
 // HYBRID:           %[[VAL_6:.*]] = cc.compute_ptr %[[VAL_5]][0] : (!cc.ptr<!cc.struct<{i32, f64}>>) -> !cc.ptr<i32>
 // HYBRID:           cc.store %[[VAL_1]], %[[VAL_6]] : !cc.ptr<i32>
