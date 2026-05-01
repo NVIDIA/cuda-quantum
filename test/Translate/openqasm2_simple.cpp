@@ -30,9 +30,6 @@ int main() {
 
 // CHECK:  include "qelib1.inc";
 
-// CHECK:  gate ZN6kernelclEv(param0)  {
-// CHECK:  }
-
 // CHECK:  qreg var0[2];
 // CHECK:  h var0[0];
 // CHECK:  cx var0[0], var0[1];

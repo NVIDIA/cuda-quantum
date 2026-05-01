@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "CompiledModule.h"
 #include "common/ExecutionContext.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/Resources.h"
@@ -21,6 +22,7 @@
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
+#include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq_internal/compiler/JIT.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
@@ -124,42 +126,44 @@ public:
   launchKernel(const std::string &name, KernelThunkType kernelFunc, void *args,
                std::uint64_t voidStarSize, std::uint64_t resultOffset,
                const std::vector<void *> &rawArgs) override {
-    return launchKernelImpl(name, kernelFunc, args, voidStarSize, resultOffset,
-                            kernelFunc ? nullptr : &rawArgs, mlir::ModuleOp{});
+    auto rawArgsPtr = kernelFunc ? nullptr : &rawArgs;
+    auto compiled = compileKernelImpl(name, args, voidStarSize, rawArgsPtr,
+                                      mlir::ModuleOp{}, mlir::Type{});
+    return launchKernelImpl(compiled, kernelFunc, args, voidStarSize,
+                            resultOffset, rawArgsPtr);
   }
 
   KernelThunkResultType
-  launchModule(const std::string &name, mlir::ModuleOp module,
+  launchModule(const CompiledModule &compiled,
                const std::vector<void *> &rawArgs) override {
-    std::string fullName = cudaq::runtime::cudaqGenPrefixName + name;
-    auto funcOp = module.lookupSymbol<mlir::func::FuncOp>(fullName);
-    auto resTy = cudaq::runtime::getReturnType(funcOp);
-    if (resTy) {
-      // Looks very much like launchKernel(string, vector<ptr>*).
-      return launchKernelImpl(name, nullptr, rawArgs.back(), 0, 0, &rawArgs,
-                              module);
-    }
-    // Looks very much like launchKernel(string, vector<ptr>*).
-    return launchKernelImpl(name, nullptr, nullptr, 0, 0, &rawArgs, module);
+    auto resultInfo = compiled.getResultInfo();
+    auto args = resultInfo.hasResult() ? rawArgs.back() : nullptr;
+    return launchKernelImpl(compiled, nullptr, args, 0, 0, &rawArgs);
   }
 
-  CompiledModule specializeModule(const std::string &kernelName,
-                                  mlir::ModuleOp module,
-                                  const std::vector<void *> &rawArgs,
-                                  bool isEntryPoint) override {
+  CompiledModule compileModule(const std::string &kernelName,
+                               mlir::ModuleOp module,
+                               const std::vector<void *> &rawArgs,
+                               bool isEntryPoint) override {
     CUDAQ_INFO("specializing remote simulator kernel via module ({})",
                kernelName);
-    throw std::runtime_error(
-        "NYI: Remote simulator execution via Python/C++ interop.");
+    std::string fullName = cudaq::runtime::cudaqGenPrefixName + kernelName;
+    auto funcOp = module.lookupSymbol<mlir::func::FuncOp>(fullName);
+    auto resTy = cudaq::runtime::getReturnType(funcOp);
+    auto args = resTy ? rawArgs.back() : nullptr;
+    // Looks very much like launchKernel(string, vector<ptr>*).
+    return compileKernelImpl(kernelName, args, 0, &rawArgs, module, resTy);
   }
 
-  [[nodiscard]] KernelThunkResultType launchKernelImpl(
-      const std::string &name, KernelThunkType kernelFunc, void *args,
-      std::uint64_t voidStarSize, std::uint64_t resultOffset,
-      const std::vector<void *> *rawArgs, mlir::ModuleOp prefabMod) {
-    CUDAQ_INFO("BaseRemoteSimulatorQPU: Launch kernel named '{}' remote QPU {} "
-               "(simulator = {})",
-               name, qpu_id, m_simName);
+  [[nodiscard]] CompiledModule
+  compileKernelImpl(const std::string &name, void *args,
+                    std::uint64_t voidStarSize,
+                    const std::vector<void *> *rawArgs,
+                    mlir::ModuleOp prefabMod, mlir::Type resTy) {
+    CUDAQ_INFO(
+        "BaseRemoteSimulatorQPU: Compile kernel named '{}' remote QPU {} "
+        "(simulator = {})",
+        name, qpu_id, m_simName);
 
     if (in_resource_estimation)
       throw std::runtime_error(
@@ -169,8 +173,13 @@ public:
     ExecutionContext *executionContextPtr = getExecutionContext();
 
     if (executionContextPtr && executionContextPtr->name == "tracer") {
-      return {};
+      return cudaq_internal::compiler::CompiledModuleHelper::
+          createCompiledModule(name, {}, {});
     }
+
+    auto resultInfo =
+        cudaq_internal::compiler::CompiledModuleHelper::createResultInfo(
+            resTy, true, prefabMod);
 
     // Run resource estimation locally
     if (executionContextPtr && executionContextPtr->name == "resource-count") {
@@ -185,20 +194,62 @@ public:
           return m_client->lowerKernelInPlace(prefabMod, name, *rawArgs);
         }
         return m_client->lowerKernel(*m_mlirContext, name, args, voidStarSize,
-                                     0, rawArgs);
+                                     0,
+                                     rawArgs ? std::span<void *const>{*rawArgs}
+                                             : std::span<void *const>{});
       }();
 
       auto jit =
           cudaq_internal::compiler::createJITEngine(moduleOp, "qir-adaptive");
+      auto artifacts =
+          cudaq_internal::compiler::CompiledModuleHelper::createJitArtifacts(
+              name, jit, {}, true);
+      auto mlirArtifact =
+          cudaq_internal::compiler::CompiledModuleHelper::createMlirArtifact(
+              name, moduleOp);
+      artifacts.push_back(mlirArtifact);
+      return cudaq_internal::compiler::CompiledModuleHelper::
+          createCompiledModule(name, resultInfo, std::move(artifacts));
+    }
+
+    auto mlirArtifact =
+        cudaq_internal::compiler::CompiledModuleHelper::createMlirArtifact(
+            name, prefabMod);
+
+    return cudaq_internal::compiler::CompiledModuleHelper::createCompiledModule(
+        name, resultInfo, {mlirArtifact});
+  }
+
+  [[nodiscard]] KernelThunkResultType
+  launchKernelImpl(const CompiledModule &compiledModule,
+                   KernelThunkType kernelFunc, void *args,
+                   std::uint64_t voidStarSize, std::uint64_t resultOffset,
+                   const std::vector<void *> *rawArgs) {
+    auto name = compiledModule.getName();
+    CUDAQ_INFO("BaseRemoteSimulatorQPU: Launch kernel named '{}' remote QPU {} "
+               "(simulator = {})",
+               name, qpu_id, m_simName);
+
+    ExecutionContext *executionContextPtr = getExecutionContext();
+
+    if (in_resource_estimation) {
+      auto jit = compiledModule.getJit();
+      assert(jit.has_value());
 
       ExecutionContext ctx(executionContextPtr->name,
                            executionContextPtr->shots,
                            executionContextPtr->qpuId);
       ctx.kernelName = executionContextPtr->kernelName;
       ctx.executionManager = cudaq::getDefaultExecutionManager();
-      cudaq::get_platform().with_execution_context(
-          ctx, [jit, name]() { jit.run(name); });
+      cudaq::get_platform().with_execution_context(ctx,
+                                                   [jit]() { jit->getFn()(); });
       in_resource_estimation = false;
+      return {};
+    }
+
+    auto mlir = compiledModule.getMlir();
+    if (!mlir.has_value()) {
+      assert(executionContextPtr && executionContextPtr->name == "tracer");
       return {};
     }
 
@@ -217,12 +268,17 @@ public:
       executionContext.hasConditionalsOnMeasureResults =
           kernelHasConditionalFeedback(name);
 
+    auto moduleOp =
+        cudaq_internal::compiler::CompiledModuleHelper::getMlirModuleOp(*mlir);
+
     std::string errorMsg;
     const bool requestOkay = m_client->sendRequest(
         *m_mlirContext, executionContext,
         /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr, /*vqe_n_params=*/0,
         m_simName, name, make_degenerate_kernel_type(kernelFunc), args,
-        voidStarSize, &errorMsg, rawArgs, prefabMod);
+        voidStarSize, &errorMsg,
+        rawArgs ? std::span<void *const>{*rawArgs} : std::span<void *const>{},
+        moduleOp);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
     if (isDirectInvocation &&

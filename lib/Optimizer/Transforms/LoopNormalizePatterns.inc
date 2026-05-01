@@ -156,6 +156,24 @@ public:
                !isa<cudaq::cc::ContinueOp>(op);
       });
     }
+
+    // 5) Back-convert the loop's induction-position result for external uses
+    if (c.induction < loop.getNumResults()) {
+      Value loopResult = loop.getResult(c.induction);
+      if (!loopResult.use_empty()) {
+        rewriter.setInsertionPointAfter(loop);
+        auto mulRes =
+            rewriter.create<arith::MulIOp>(loc, loopResult, c.stepValue);
+        Value recovered;
+        if (c.stepIsAnAddOp())
+          recovered =
+              rewriter.create<arith::AddIOp>(loc, c.initialValue, mulRes);
+        else
+          recovered =
+              rewriter.create<arith::SubIOp>(loc, c.initialValue, mulRes);
+        loopResult.replaceAllUsesExcept(recovered, mulRes.getOperation());
+      }
+    }
     loop->setAttr(cudaq::opt::NormalizedLoopAttr, rewriter.getUnitAttr());
 
     rewriter.finalizeRootUpdate(loop);

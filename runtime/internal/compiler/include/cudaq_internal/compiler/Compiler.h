@@ -69,9 +69,6 @@ class Compiler {
   /// @brief Flag indicating whether we should print the IR.
   bool printIR = false;
 
-  std::pair<mlir::ModuleOp, std::unique_ptr<mlir::MLIRContext>>
-  extractQuakeCodeAndContext(const std::string &kernelName);
-
   mlir::ModuleOp lowerQuakeCodeBuildModule(const std::string &,
                                            mlir::ModuleOp module,
                                            mlir::MLIRContext *,
@@ -103,6 +100,9 @@ class Compiler {
       std::shared_ptr<mlir::MLIRContext> context);
 
 public:
+  static std::pair<mlir::ModuleOp, std::unique_ptr<mlir::MLIRContext>>
+  loadQuakeCodeByName(const std::string &kernelName);
+
   Compiler(cudaq::ServerHelper *,
            const std::map<std::string, std::string> &backendConfig,
            cudaq::config::TargetConfig &config,
@@ -130,26 +130,18 @@ public:
   std::vector<cudaq::KernelExecution>
   emitKernelExecutions(const cudaq::CompiledModule &compiled);
 
-  /// @brief Extract the Quake representation for the given kernel name and
-  /// lower it to the code format required for the specific backend. The
-  /// lowering process is controllable via the configuration file in the
+  /// Compile the quake code passed via ModuleOp and lower it to the code format
+  /// required for the specific backend.
+  ///
+  /// The lowering process is controllable via the configuration file in the
   /// platform directory for the targeted backend.
-  std::vector<cudaq::KernelExecution>
-  lowerQuakeCode(cudaq::ExecutionContext *executionContext,
-                 const std::string &kernelName, void *kernelArgs,
-                 const std::vector<void *> &rawArgs);
-
-  // Here the quake code is passed to us (via a ModuleOp), so unlike the other
-  // lowerQuakeCode() member functions there is no need to surf dictionaries for
-  // strings of code to assemble. We have to make sure that this MLIRContext is
-  // not destroyed however, since it may hold an unknown number of other
-  // ModuleOps.
-  // Unchecked assumption: \p module is referentially unique (within the scope
-  // of this launch instance) and disposable. It can be modified by this call in
-  // any way necessary without breaking some other kernel launch.
+  ///
+  /// Unchecked assumption: there are no other references to \p module (within
+  /// the scope of this launch instance). It can be disposed and/or modified by
+  /// this call in any way necessary without breaking some other kernel launch.
   std::vector<cudaq::KernelExecution>
   lowerQuakeCode(cudaq::ExecutionContext *executionContext,
                  const std::string &kernelName, mlir::ModuleOp module,
-                 const std::vector<void *> &rawArgs);
+                 void *kernelArgs, const std::vector<void *> &rawArgs);
 };
 } // namespace cudaq_internal::compiler

@@ -149,6 +149,31 @@ struct QIRAPITypeConverter : public TypeConverter {
     addConversion(
         [&](quake::MeasureType ty) { return getResultType(ty.getContext()); });
     addConversion([&](quake::StruqType ty) { return convertStruqType(ty); });
+    // `!cc.measure_handle` is the IR alias of `cudaq::measure_handle`. The
+    // QIR API models classical measurement results as `Result*` (legacy
+    // `quake.measure`) or as opaque `i64` payloads (handle form). The
+    // measurement / discriminate patterns bridge `Result*` to/from `i64`
+    // when the original op carried a handle.
+    addConversion([](cudaq::cc::MeasureHandleType ty) -> Type {
+      return IntegerType::get(ty.getContext(), 64);
+    });
+    // Recursively convert handle / quake types nested in CC array and
+    // stdvec types so that container-shaped function signatures, allocations,
+    // and pointers see consistent post-conversion element types.
+    addConversion([&](cudaq::cc::ArrayType ty) -> Type {
+      Type newEleTy = convertType(ty.getElementType());
+      if (newEleTy == ty.getElementType())
+        return ty;
+      if (ty.isUnknownSize())
+        return cudaq::cc::ArrayType::get(newEleTy);
+      return cudaq::cc::ArrayType::get(ty.getContext(), newEleTy, ty.getSize());
+    });
+    addConversion([&](cudaq::cc::StdvecType ty) -> Type {
+      Type newEleTy = convertType(ty.getElementType());
+      if (newEleTy == ty.getElementType())
+        return ty;
+      return cudaq::cc::StdvecType::get(ty.getContext(), newEleTy);
+    });
   }
 
   Type convertFunctionType(FunctionType ty) {
@@ -271,13 +296,12 @@ struct NullCableOpToCallsRewrite
     StringRef qirQubitArrayAllocate = cudaq::opt::QIRArrayQubitAllocateArray;
     Type arrayQubitTy = M::getArrayType(rewriter.getContext());
 
-    // AllocaOp could have a size operand, or the size could be compile time
-    // known and encoded in the veq return type.
+    // NullCableOp must have a constant size encoded in the `!quake.cable`
+    // return type.
     auto loc = nullcable.getLoc();
     quake::CableType type = nullcable.getType();
-    auto constantSize = type.getSize();
-    Value sizeOperand =
-        rewriter.create<arith::ConstantIntOp>(loc, constantSize, 64);
+    auto width = type.getSize();
+    Value sizeOperand = rewriter.create<arith::ConstantIntOp>(loc, width, 64);
 
     // Replace the NullCableOp with the QIR call.
     rewriter.replaceOpWithNewOp<func::CallOp>(
@@ -743,22 +767,31 @@ struct DiscriminateOpToCallRewrite
   LogicalResult
   matchAndRewrite(quake::DiscriminateOp disc, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
+    auto loc = disc.getLoc();
+    // Handle-form callers feed `quake.discriminate` an `i64` payload (the
+    // converted form of `!cc.measure_handle`). Restore the `Result*` view
+    // expected by the QIR read-result functions.
+    SmallVector<Value> operands{adaptor.getOperands().begin(),
+                                adaptor.getOperands().end()};
+    if (operands.size() == 1 && isa<IntegerType>(operands.front().getType())) {
+      auto resultTy = M::getResultType(rewriter.getContext());
+      operands.front() =
+          rewriter.create<cudaq::cc::CastOp>(loc, resultTy, operands.front());
+    }
     if constexpr (M::discriminateToClassical) {
       if constexpr (M::qirVersion == QirVersion::version_1_0) {
         rewriter.replaceOpWithNewOp<func::CallOp>(
             disc, rewriter.getI1Type(), cudaq::opt::qir1_0::ReadResult,
-            adaptor.getOperands());
+            operands);
       } else {
         rewriter.replaceOpWithNewOp<func::CallOp>(
             disc, rewriter.getI1Type(), cudaq::opt::qir0_1::ReadResultBody,
-            adaptor.getOperands());
+            operands);
       }
     } else {
-      auto loc = disc.getLoc();
       // NB: the double cast here is to avoid folding the pointer casts.
       auto i64Ty = rewriter.getI64Type();
-      auto unu =
-          rewriter.create<cudaq::cc::CastOp>(loc, i64Ty, adaptor.getOperands());
+      auto unu = rewriter.create<cudaq::cc::CastOp>(loc, i64Ty, operands);
       auto ptrI1Ty = cudaq::cc::PointerType::get(rewriter.getI1Type());
       auto du = rewriter.create<cudaq::cc::CastOp>(loc, ptrI1Ty, unu);
       rewriter.replaceOpWithNewOp<cudaq::cc::LoadOp>(disc, du);
@@ -1301,6 +1334,13 @@ struct MeasurementOpPattern : public OpConversionPattern<quake::MzOp> {
                             adaptor.getTargets().end()};
     auto functionName = M::getQIRMeasure();
 
+    // Handle-form measurements produce a `!cc.measure_handle` SSA value
+    // whose converted type is `i64`. The QIR measurement function still
+    // returns `Result*`, so we bridge the call's `Result*` result to the
+    // converted `i64` payload via `cc.cast`.
+    const bool measOutIsHandle =
+        isa<cudaq::cc::MeasureHandleType>(mz.getMeasOut().getType());
+
     // Are we using the measurement that returns a result?
     if constexpr (M::mzReturnsResultType) {
       // Yes, the measurement results the result, so we can use a
@@ -1318,8 +1358,14 @@ struct MeasurementOpPattern : public OpConversionPattern<quake::MzOp> {
       auto call =
           rewriter.create<func::CallOp>(loc, resultTy, functionName, args);
       auto assundry = filterArgs(mz, adaptor.getTargets());
-      SmallVector<Value> replaceVals{call.getResults().begin(),
-                                     call.getResults().end()};
+      SmallVector<Value> replaceVals;
+      if (measOutIsHandle) {
+        auto i64Ty = rewriter.getI64Type();
+        replaceVals.push_back(
+            rewriter.create<cudaq::cc::CastOp>(loc, i64Ty, call.getResult(0)));
+      } else {
+        replaceVals.append(call.getResults().begin(), call.getResults().end());
+      }
       replaceVals.append(assundry.begin(), assundry.end());
       rewriter.replaceOp(mz, replaceVals);
       call->setAttr(cudaq::opt::QIRRegisterNameAttr, regNameAttr);
@@ -1342,6 +1388,15 @@ struct MeasurementOpPattern : public OpConversionPattern<quake::MzOp> {
       auto call =
           rewriter.create<func::CallOp>(loc, TypeRange{}, functionName, args);
       call->setAttr(cudaq::opt::QIRRegisterNameAttr, regNameAttr);
+      // For handle-form callers, materialize the back-cast `Result* -> i64`
+      // here so it dominates downstream uses. The `!discriminateToClassical`
+      // branch below moves the insertion point to the block terminator for
+      // the record-output call, after which a cast would not dominate.
+
+      auto i64Ty = rewriter.getI64Type();
+      Value handleRes =
+          measOutIsHandle ? rewriter.create<cudaq::cc::CastOp>(loc, i64Ty, res)
+                          : res;
       auto cstringGlobal =
           createGlobalCString(mz, loc, rewriter, regNameAttr.getValue());
       if constexpr (!M::discriminateToClassical) {
@@ -1359,7 +1414,7 @@ struct MeasurementOpPattern : public OpConversionPattern<quake::MzOp> {
         recOut->setAttr(cudaq::opt::ResultIndexAttrName, resultAttr);
         recOut->setAttr(cudaq::opt::QIRRegisterNameAttr, regNameAttr);
       }
-      SmallVector<Value> results = {res};
+      SmallVector<Value> results = {handleRes};
       auto assundry = filterArgs(mz, adaptor.getTargets());
       results.append(assundry.begin(), assundry.end());
       rewriter.replaceOp(mz, results);
@@ -2191,49 +2246,49 @@ struct QuakeToQIRAPIPass
                              cudaq::codegen::CodeGenDialect>();
     target.addLegalOp<cudaq::codegen::MaterializeConstantArrayOp>();
     target.addDynamicallyLegalOp<func::FuncOp>([&](func::FuncOp fn) {
-      return !hasQuakeType(fn.getFunctionType()) &&
+      return !needsTypeConversion(fn.getFunctionType()) &&
              (!fn->hasAttr(cudaq::kernelAttrName) || fn->hasAttr(FuncIsQIRAPI));
     });
     target.addDynamicallyLegalOp<func::ConstantOp>([&](func::ConstantOp op) {
-      return !hasQuakeType(op.getResult().getType());
+      return !needsTypeConversion(op.getResult().getType());
     });
     target.addDynamicallyLegalOp<cudaq::cc::UndefOp, cudaq::cc::PoisonOp>(
         [&](Operation *op) {
-          return !hasQuakeType(op->getResult(0).getType());
+          return !needsTypeConversion(op->getResult(0).getType());
         });
     target.addDynamicallyLegalOp<cudaq::cc::CallableFuncOp>(
         [&](cudaq::cc::CallableFuncOp op) {
-          return !hasQuakeType(op.getFunction().getType());
+          return !needsTypeConversion(op.getFunction().getType());
         });
     target.addDynamicallyLegalOp<cudaq::cc::CreateLambdaOp>(
         [&](cudaq::cc::CreateLambdaOp op) {
-          return !hasQuakeType(op.getSignature().getType());
+          return !needsTypeConversion(op.getSignature().getType());
         });
     target.addDynamicallyLegalOp<cudaq::cc::InstantiateCallableOp>(
         [&](cudaq::cc::InstantiateCallableOp op) {
           for (auto d : op.getClosureData())
-            if (hasQuakeType(d.getType()))
+            if (needsTypeConversion(d.getType()))
               return false;
-          return !hasQuakeType(op.getSignature().getType());
+          return !needsTypeConversion(op.getSignature().getType());
         });
     target.addDynamicallyLegalOp<cudaq::cc::CallableClosureOp>(
         [&](cudaq::cc::CallableClosureOp op) {
           for (auto ty : op.getResultTypes())
-            if (hasQuakeType(ty))
+            if (needsTypeConversion(ty))
               return false;
-          return !hasQuakeType(op.getCallable().getType());
+          return !needsTypeConversion(op.getCallable().getType());
         });
     target.addDynamicallyLegalOp<cudaq::cc::AllocaOp>(
         [&](cudaq::cc::AllocaOp op) {
-          return !hasQuakeType(op.getElementType());
+          return !needsTypeConversion(op.getElementType());
         });
     target.addDynamicallyLegalOp<arith::SelectOp>([&](arith::SelectOp op) {
-      return !hasQuakeType(op.getResult().getType());
+      return !needsTypeConversion(op.getResult().getType());
     });
     target.addDynamicallyLegalOp<cf::BranchOp, cf::CondBranchOp>(
         [&](Operation *op) {
           for (auto opnd : op->getOperands())
-            if (hasQuakeType(opnd.getType()))
+            if (needsTypeConversion(opnd.getType()))
               return false;
           return true;
         });
@@ -2244,10 +2299,10 @@ struct QuakeToQIRAPIPass
         cudaq::cc::CastOp, cudaq::cc::FuncToPtrOp, cudaq::cc::StoreOp,
         cudaq::cc::LoadOp>([&](Operation *op) {
       for (auto opnd : op->getOperands())
-        if (hasQuakeType(opnd.getType()))
+        if (needsTypeConversion(opnd.getType()))
           return false;
       for (auto res : op->getResults())
-        if (hasQuakeType(res.getType()))
+        if (needsTypeConversion(res.getType()))
           return false;
       return true;
     });
@@ -2257,23 +2312,33 @@ struct QuakeToQIRAPIPass
     LLVM_DEBUG(llvm::dbgs() << "After QIR API conversion:\n" << *op << '\n');
   }
 
-  static bool hasQuakeType(Type ty) {
+  // Returns true iff `ty` (or some type nested inside it) requires conversion
+  // by `QIRAPITypeConverter`. The recursion descends through CC container
+  // types that the converter rewrites (`cc.ptr`, `cc.callable`,
+  // `cc.indirect_callable`, function types, `cc.array`, `cc.stdvec`) and the
+  // leaf check covers Quake types and `!cc.measure_handle` (the IR alias of
+  // `cudaq::measure_handle`, lowered to `i64`).
+  static bool needsTypeConversion(Type ty) {
     if (auto pty = dyn_cast<cudaq::cc::PointerType>(ty))
-      return hasQuakeType(pty.getElementType());
+      return needsTypeConversion(pty.getElementType());
     if (auto cty = dyn_cast<cudaq::cc::CallableType>(ty))
-      return hasQuakeType(cty.getSignature());
+      return needsTypeConversion(cty.getSignature());
     if (auto cty = dyn_cast<cudaq::cc::IndirectCallableType>(ty))
-      return hasQuakeType(cty.getSignature());
+      return needsTypeConversion(cty.getSignature());
+    if (auto aty = dyn_cast<cudaq::cc::ArrayType>(ty))
+      return needsTypeConversion(aty.getElementType());
+    if (auto sty = dyn_cast<cudaq::cc::StdvecType>(ty))
+      return needsTypeConversion(sty.getElementType());
     if (auto fty = dyn_cast<FunctionType>(ty)) {
       for (auto t : fty.getInputs())
-        if (hasQuakeType(t))
+        if (needsTypeConversion(t))
           return true;
       for (auto t : fty.getResults())
-        if (hasQuakeType(t))
+        if (needsTypeConversion(t))
           return true;
       return false;
     }
-    return quake::isQuakeType(ty);
+    return quake::isQuakeType(ty) || isa<cudaq::cc::MeasureHandleType>(ty);
   }
 
   void runOnOperation() override {
