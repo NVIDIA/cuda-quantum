@@ -49,6 +49,53 @@ void identityPlacement(Placement &placement) {
     placement.map(Placement::VirtualQ(i), Placement::DeviceQ(i));
 }
 
+/// Place circuit qubits on the most centrally-connected device positions using
+/// BFS from the highest-degree node. Remaining device qubits receive auxiliary
+/// virtual qubits in BFS order.
+void bfsPlacement(Placement &placement, const Device &device) {
+  unsigned numDeviceQubits = device.getNumQubits();
+  if (numDeviceQubits == 0)
+    return;
+
+  // Find the highest-degree node (tie-break: lowest index).
+  unsigned bestNode = 0;
+  unsigned bestDegree = 0;
+  for (unsigned i = 0; i < numDeviceQubits; ++i) {
+    unsigned degree = device.getNeighbours(Device::Qubit(i)).size();
+    if (degree > bestDegree) {
+      bestDegree = degree;
+      bestNode = i;
+    }
+  }
+
+  // BFS from bestNode to produce a device-qubit ordering.
+  SmallVector<unsigned> bfsOrder;
+  bfsOrder.reserve(numDeviceQubits);
+  SmallVector<bool> visited(numDeviceQubits, false);
+  SmallVector<unsigned> queue;
+  queue.push_back(bestNode);
+  visited[bestNode] = true;
+  while (!queue.empty()) {
+    SmallVector<unsigned> nextQueue;
+    for (unsigned node : queue) {
+      bfsOrder.push_back(node);
+      for (auto neighbor : device.getNeighbours(Device::Qubit(node))) {
+        if (!visited[neighbor.index]) {
+          visited[neighbor.index] = true;
+          nextQueue.push_back(neighbor.index);
+        }
+      }
+    }
+    queue = std::move(nextQueue);
+  }
+
+  // Assign virtual qubits to physical qubits in BFS order.
+  for (unsigned v = 0, end = placement.getNumVirtualQubits(); v < end; ++v) {
+    unsigned p = (v < bfsOrder.size()) ? bfsOrder[v] : v;
+    placement.map(Placement::VirtualQ(v), Placement::DeviceQ(p));
+  }
+}
+
 //===----------------------------------------------------------------------===//
 // Routing
 //===----------------------------------------------------------------------===//
@@ -843,6 +890,13 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       return WalkResult::advance();
     });
 
+    // Count circuit qubits (user-provided, not auxiliary) before creating
+    // auxiliary wires.
+    unsigned numCircuitQubits = 0;
+    for (auto &s : sources)
+      if (s)
+        ++numCircuitQubits;
+
     // Create or borrow auxillary qubits if needed. Place them after the last
     // allocated qubit.
     builder.setInsertionPointAfter(lastSource);
@@ -856,11 +910,19 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     }
 
     // Place
-    Placement placement(sources.size(), deviceInstance->getNumQubits());
-    identityPlacement(placement);
+    Placement qPlacement(sources.size(), deviceInstance->getNumQubits());
+    if (placement == "identity") {
+      identityPlacement(qPlacement);
+    } else if (placement == "bfs") {
+      bfsPlacement(qPlacement, *deviceInstance);
+    } else {
+      func.emitWarning("Unknown placement strategy '" + placement +
+                       "', defaulting to bfs");
+      bfsPlacement(qPlacement, *deviceInstance);
+    }
 
     // Route
-    SabreRouter router(*deviceInstance, wireToVirtualQ, placement,
+    SabreRouter router(*deviceInstance, wireToVirtualQ, qPlacement,
                        extendedLayerSize, extendedLayerWeight, decayDelta,
                        roundsDecayReset);
     router.route(*blocks.begin(), sources);
@@ -902,7 +964,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     for (unsigned int v = 0; v < *highestIdentity + 1; v++)
       attrs[v] =
           IntegerAttr::get(builder.getIntegerType(64),
-                           placement.getPhy(Placement::VirtualQ(v)).index);
+                           qPlacement.getPhy(Placement::VirtualQ(v)).index);
 
     func->setAttr("mapping_v2p", builder.getArrayAttr(attrs));
 
@@ -919,7 +981,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     measuredQubits.reserve(userQubitsMeasured.size());
     for (auto mq : userQubitsMeasured) {
       measuredQubits.emplace_back(
-          mq, placement.getPhy(Placement::VirtualQ(mq)).index);
+          mq, qPlacement.getPhy(Placement::VirtualQ(mq)).index);
     }
     // First sort the pairs according to the physical qubits.
     llvm::sort(measuredQubits,
@@ -961,6 +1023,7 @@ struct MappingPipelineOptions
   DECLARE_SUB_OPTION(MappingFuncOptions, extendedLayerWeight);
   DECLARE_SUB_OPTION(MappingFuncOptions, decayDelta);
   DECLARE_SUB_OPTION(MappingFuncOptions, roundsDecayReset);
+  DECLARE_SUB_OPTION(MappingFuncOptions, placement);
   PassOptions::Option<bool> nonComposable{*this, "raise-fatal-errors"};
 };
 
@@ -989,6 +1052,7 @@ void registerMappingPipeline() {
         setIt(funcOpts.decayDelta, opt.decayDelta);
         setIt(funcOpts.roundsDecayReset, opt.roundsDecayReset);
         setIt(funcOpts.nonComposable, opt.nonComposable);
+        setIt(funcOpts.placement, opt.placement);
         pm.addNestedPass<func::FuncOp>(cudaq::opt::createMappingFunc(funcOpts));
       });
 }

@@ -1,0 +1,51 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Test BFS placement strategy on various topologies. Verifies that BFS
+// produces valid mapped circuits with mapping_v2p attributes.
+
+// 3-qubit circuit on star(5,0) with BFS placement.
+// RUN: cudaq-opt --qubit-mapping="device=star(5,0)" %s | FileCheck --check-prefix=STAR %s
+
+// 3-qubit circuit on path(5). Identity placement confirms correctness via
+// CircuitCheck. BFS FileCheck confirms structural output.
+// RUN: cudaq-opt --qubit-mapping="device=path(5) placement=identity" %s | CircuitCheck --up-to-mapping %s
+// RUN: cudaq-opt --qubit-mapping="device=path(5)" %s | FileCheck --check-prefix=PATH %s
+
+// 3-qubit circuit on grid(3,3) with BFS placement.
+// RUN: cudaq-opt --qubit-mapping="device=grid(3,3)" %s | FileCheck --check-prefix=GRID %s
+
+quake.wire_set @wires[2147483647]
+
+func.func @test_bfs_placement() {
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2 = quake.borrow_wire @wires[2] : !quake.wire
+  %3:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4:2 = quake.x [%3#0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %5:2 = quake.x [%4#1] %3#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %4#0 : !quake.wire
+  quake.return_wire %5#0 : !quake.wire
+  quake.return_wire %5#1 : !quake.wire
+  return
+}
+
+// Verify star(5,0) BFS produces valid mapped output.
+// STAR-LABEL: func.func @test_bfs_placement()
+// STAR-SAME: mapping_v2p
+// STAR: quake.borrow_wire @mapped_wireset
+
+// Verify path(5) BFS produces valid mapped output.
+// PATH-LABEL: func.func @test_bfs_placement()
+// PATH-SAME: mapping_v2p
+// PATH: quake.borrow_wire @mapped_wireset
+
+// Verify grid(3,3) BFS produces valid mapped output.
+// GRID-LABEL: func.func @test_bfs_placement()
+// GRID-SAME: mapping_v2p
+// GRID: quake.borrow_wire @mapped_wireset

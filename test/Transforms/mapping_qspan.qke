@@ -6,12 +6,12 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --qubit-mapping=device=path\(5\) --delay-measurements %s | FileCheck %s
-// RUN: cudaq-opt --qubit-mapping=device=ring\(5\) --delay-measurements %s | FileCheck --check-prefix RING %s
-// RUN: cudaq-opt --qubit-mapping=device=grid\(3,3\) --delay-measurements %s | FileCheck --check-prefix GRID %s
-// RUN: cudaq-opt --qubit-mapping=device=star\(5\) --delay-measurements %s | FileCheck --check-prefix STAR50 %s
-// RUN: cudaq-opt --qubit-mapping=device=star\(5,0\) --delay-measurements %s | FileCheck --check-prefix STAR50 %s
-// RUN: cudaq-opt --qubit-mapping=device=star\(5,2\) --delay-measurements %s | FileCheck --check-prefix STAR52 %s
+// RUN: cudaq-opt --qubit-mapping="device=path(5) placement=identity" --delay-measurements %s | FileCheck %s
+// RUN: cudaq-opt --qubit-mapping="device=ring(5) placement=identity" --delay-measurements %s | FileCheck --check-prefix RING %s
+// RUN: cudaq-opt --qubit-mapping="device=grid(3,3) placement=identity" --delay-measurements %s | FileCheck --check-prefix GRID %s
+// RUN: cudaq-opt --qubit-mapping="device=star(5) placement=identity" --delay-measurements %s | FileCheck --check-prefix STAR50 %s
+// RUN: cudaq-opt --qubit-mapping="device=star(5,0) placement=identity" --delay-measurements %s | FileCheck --check-prefix STAR50 %s
+// RUN: cudaq-opt --qubit-mapping="device=star(5,2) placement=identity" --delay-measurements %s | FileCheck --check-prefix STAR52 %s
 
 module {
   quake.wire_set @wires[2147483647]

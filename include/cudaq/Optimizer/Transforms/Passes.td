@@ -885,7 +885,9 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
            "Number of rounds before decay is reset">,
     Option<"nonComposable", "raise-fatal-errors", "bool", /*default=*/"false",
            "Run the pass in a non-composable way, which may cause immediate "
-           "internal compiler errors">
+           "internal compiler errors">,
+    Option<"placement", "placement", "std::string", /*default=*/"\"bfs\"",
+           "Initial placement strategy: identity, bfs (default: bfs)">
   ];
 }
 
