@@ -198,6 +198,12 @@ check_cxx_compiler_flag(-Wno-uninitialized-const-pointer
 if (CUDAQ_HAS_WNO_UNINITIALIZED_CONST_POINTER)
   add_compile_options(-Wno-uninitialized-const-pointer)
 endif()
+# GCC 12 headers emit false-positive -Wrestrict diagnostics (e.g. char_traits.h)
+# when compiled with Clang using GCC's sysroot.
+check_cxx_compiler_flag(-Wno-restrict CUDAQ_HAS_WNO_RESTRICT)
+if (CUDAQ_HAS_WNO_RESTRICT)
+  add_compile_options(-Wno-restrict)
+endif()
 
 # Certain build configurations may be set directly in the environment.
 # This facilitates some of the packaging (e.g. python packages built based on the pyproject.toml).
