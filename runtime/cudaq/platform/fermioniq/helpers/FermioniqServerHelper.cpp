@@ -10,6 +10,7 @@
 #include "cudaq/Support/Version.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include "nlohmann/json.hpp"
 #include <bitset>
 #include <fstream>
 #include <map>
@@ -227,7 +228,7 @@ FermioniqServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
 
     circuit_names.push_back(circuitCode.name);
 
-    CUDAQ_INFO("outputNames: {}", circuitCode.output_names.dump());
+    CUDAQ_INFO("outputNames: {}", circuitCode.output_names->dump());
 
     // Construct the job message (for Fermioniq backend)
     circuits.push_back(circuitCode.code);
@@ -238,8 +239,8 @@ FermioniqServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
       config["bond_dim"] = stoi(backendConfig.at(CFG_BOND_DIM_KEY));
     }
 
-    if (circuitCode.user_data.contains("observable")) {
-      config["observable"] = circuitCode.user_data["observable"];
+    if (circuitCode.user_data->contains("observable")) {
+      config["observable"] = circuitCode.user_data->operator[]("observable");
     }
 
     configs.push_back(config);

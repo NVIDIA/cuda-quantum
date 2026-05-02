@@ -76,14 +76,19 @@ static async_observe_result pyObserveAsync(const std::string &shortName,
 
   // Launch the asynchronous execution.
   nanobind::gil_scoped_release release;
+  auto clonedMod = std::shared_ptr<mlir::ModuleOp>(
+      new mlir::ModuleOp(mod.clone()), [](mlir::ModuleOp *p) {
+        p->erase();
+        delete p;
+      });
   return details::runObservationAsync(
-      detail::make_copyable_function([opaques = std::move(opaques), shortName,
-                                      mod = mod.clone()]() mutable {
-        if (cudaq::getEnvBool("CUDAQ_DUMP_JIT_IR", false))
-          mod.dump();
-        [[maybe_unused]] auto result =
-            clean_launch_module(shortName, mod, opaques);
-      }),
+      detail::make_copyable_function(
+          [opaques = std::move(opaques), shortName, clonedMod]() mutable {
+            if (cudaq::getEnvBool("CUDAQ_DUMP_JIT_IR", false))
+              clonedMod->dump();
+            [[maybe_unused]] auto result =
+                clean_launch_module(shortName, *clonedMod, opaques);
+          }),
       spin_operator, platform, shots, shortName, qpu_id);
 }
 

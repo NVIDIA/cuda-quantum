@@ -67,7 +67,7 @@ cudaq::QPU::launchModule(const CompiledModule &module,
 }
 
 cudaq::CompiledModule
-cudaq::QPU::compileModule(const std::string &name, mlir::ModuleOp module,
+cudaq::QPU::compileModule(const std::string &name, const void *modulePtr,
                           const std::vector<void *> &rawArgs,
                           bool isEntryPoint) {
   auto launcher = registry::get<ModuleLauncher>("default");
@@ -76,5 +76,6 @@ cudaq::QPU::compileModule(const std::string &name, mlir::ModuleOp module,
         "No ModuleLauncher registered with name 'default'. This may be a "
         "result of attempting to use `compileModule` outside Python.");
   ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::compileModule", name);
+  mlir::ModuleOp module = mlir::ModuleOp::getFromOpaquePointer(modulePtr);
   return launcher->compileModule(name, module, rawArgs, isEntryPoint);
 }
