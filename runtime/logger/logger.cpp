@@ -11,7 +11,12 @@
 #include "common/Timing.h"
 #include "cudaq/runtime/logger/tracer.h"
 #include "fmt/args.h"
+#include <chrono>
+#include <complex>
+#include <ctime>
 #include <filesystem>
+#include <functional>
+#include <map>
 #include <set>
 #include <spdlog/cfg/env.h>
 #include <spdlog/cfg/helpers.h>
@@ -19,6 +24,7 @@
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/spdlog.h>
 #include <sstream>
+#include <vector>
 
 namespace cudaq {
 
@@ -125,21 +131,127 @@ std::string pathToFileName(const std::string_view fullFilePath) {
   const std::filesystem::path file(fullFilePath);
   return file.filename().string();
 }
+
+void logMessagePacked(LogLevel logLevel, const std::string_view message,
+                      const std::span<const cudaq_fmt::FormatArgument> &args,
+                      const char *funcName, const char *fileName, int lineNo) {
+  (void)funcName;
+  auto msg = cudaq_fmt::details::format_packed(message, args);
+  msg = "[" + pathToFileName(fileName) + ":" + std::to_string(lineNo) + "] " +
+        msg;
+
+  switch (logLevel) {
+  case LogLevel::trace:
+    trace(msg);
+    return;
+  case LogLevel::debug:
+    debug(msg);
+    return;
+  case LogLevel::info:
+    info(msg);
+    return;
+  case LogLevel::warn:
+    warn(msg);
+    return;
+  case LogLevel::error:
+    error(msg);
+    return;
+  }
+}
+
+void logWithTimestampPacked(
+    const std::string_view message,
+    const std::span<const cudaq_fmt::FormatArgument> &args) {
+  const auto timestamp = std::chrono::system_clock::now();
+  const auto now_c = std::chrono::system_clock::to_time_t(timestamp);
+  std::tm now_tm = *std::localtime(&now_c);
+  cudaq_fmt::print("[{:04}-{:02}-{:02} {:02}:{:02}:{:%S}] {}\n",
+                   now_tm.tm_year + 1900, now_tm.tm_mon + 1, now_tm.tm_mday,
+                   now_tm.tm_hour, now_tm.tm_min,
+                   std::chrono::round<std::chrono::milliseconds>(
+                       timestamp.time_since_epoch()),
+                   cudaq_fmt::details::format_packed(message, args));
+}
+
 } // namespace details
 } // namespace cudaq
 
 namespace cudaq_fmt {
+
+template <typename T>
+void FormatArgument::appendArgument(void *store, const void *value) {
+  auto &fmtStore =
+      *static_cast<::fmt::dynamic_format_arg_store<::fmt::format_context> *>(
+          store);
+  fmtStore.push_back(*static_cast<const T *>(value));
+}
+
+void FormatArgument::appendCString(void *store, const void *value) {
+  auto &fmtStore =
+      *static_cast<::fmt::dynamic_format_arg_store<::fmt::format_context> *>(
+          store);
+  fmtStore.push_back(static_cast<const char *>(value));
+}
+
+#define CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(...)                                 \
+  template void FormatArgument::appendArgument<__VA_ARGS__>(void *,            \
+                                                            const void *)
+
+#define CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(...)                             \
+  template <>                                                                  \
+  void FormatArgument::appendArgument<__VA_ARGS__>(void *store,                \
+                                                   const void *value) {        \
+    auto &fmtStore = *static_cast<                                             \
+        ::fmt::dynamic_format_arg_store<::fmt::format_context> *>(store);      \
+    fmtStore.push_back(std::cref(*static_cast<const __VA_ARGS__ *>(value)));   \
+  }
+
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(bool);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(char);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(signed char);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(unsigned char);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(short);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(unsigned short);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(int);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(unsigned int);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(long);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(unsigned long);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(long long);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(unsigned long long);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(float);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(double);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(long double);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(std::complex<float>);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(std::complex<double>);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(std::string_view);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(void *);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(const void *);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(std::chrono::milliseconds);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(std::chrono::system_clock::time_point);
+CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(std::string);
+CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(std::vector<int>);
+CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(std::vector<unsigned int>);
+CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(std::vector<long>);
+CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(std::vector<unsigned long>);
+CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(std::vector<long long>);
+CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(std::vector<unsigned long long>);
+CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(std::vector<float>);
+CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(std::vector<double>);
+CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(std::vector<std::string>);
+CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(std::map<std::string, std::string>);
+CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(std::vector<std::complex<float>>);
+CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(std::vector<std::complex<double>>);
+
+#undef CUDAQ_INSTANTIATE_FORMAT_ARGUMENT
+#undef CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT
+
 namespace details {
 
 void print_packed(const std::string_view message,
-                  const std::span<fmt_arg> &args) {
+                  const std::span<const FormatArgument> &args) {
   ::fmt::dynamic_format_arg_store<::fmt::format_context> store;
   for (auto const &a : args)
-    std::visit(
-        [&](auto const &v) {
-          store.push_back(v); // uses the matching fmt::formatter<T>
-        },
-        a.value);
+    a.append(&store, a.value);
 
   if (::fmt::detail::const_check(!::fmt::detail::use_utf8))
     return ::fmt::detail::vprint_mojibake(stdout, message, store, false);
@@ -147,14 +259,10 @@ void print_packed(const std::string_view message,
 }
 
 std::string format_packed(const std::string_view fmt_str,
-                          const std::span<fmt_arg> &args) {
+                          const std::span<const FormatArgument> &args) {
   ::fmt::dynamic_format_arg_store<::fmt::format_context> store;
   for (auto const &a : args)
-    std::visit(
-        [&](auto const &v) {
-          store.push_back(v); // uses the matching fmt::formatter<T>
-        },
-        a.value);
+    a.append(&store, a.value);
 
   return ::fmt::vformat(fmt_str, store);
 }

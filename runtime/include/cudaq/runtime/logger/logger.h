@@ -11,13 +11,21 @@
 #include "cudaq/runtime/logger/cudaq_fmt.h"
 #include "cudaq/runtime/logger/tracer.h"
 
+#include <array>
+#include <cstddef>
+#include <span>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <utility>
+
 namespace cudaq {
 
 /// @brief Returns true if `tag` is enabled. Tags are only enabled/disabled at
 /// program startup.
 bool isTimingTagEnabled(int tag);
 
-// Keep all spdlog headers hidden in the implementation file
+// Keep all spdlog headers hidden in the implementation file.
 namespace details {
 // This enum must match spdlog::level enums. This is checked via static_assert
 // in logger.cpp.
@@ -29,18 +37,36 @@ void debug(const std::string_view msg);
 void warn(const std::string_view msg);
 void error(const std::string_view msg);
 std::string pathToFileName(const std::string_view fullFilePath);
+
+void logMessagePacked(LogLevel logLevel, const std::string_view message,
+                      const std::span<const cudaq_fmt::FormatArgument> &args,
+                      const char *funcName, const char *fileName, int lineNo);
+
+void logWithTimestampPacked(
+    const std::string_view message,
+    const std::span<const cudaq_fmt::FormatArgument> &args);
+
+template <typename... Args>
+std::string formatMessage(const std::string_view message, Args &&...args) {
+  return cudaq_fmt::format(message, std::forward<Args>(args)...);
+}
+
+template <typename... Args>
+void logMessage(LogLevel logLevel, const std::string_view message,
+                const char *funcName, const char *fileName, int lineNo,
+                Args &&...args) {
+  std::array<cudaq_fmt::FormatArgument, sizeof...(Args)> packedArgs{
+      cudaq_fmt::FormatArgument(std::forward<Args>(args))...};
+  logMessagePacked(logLevel, message,
+                   std::span<const cudaq_fmt::FormatArgument>(
+                       packedArgs.data(), packedArgs.size()),
+                   funcName, fileName, lineNo);
+}
 } // namespace details
 
-/// This type seeks to enable automated injection of the
-/// source location of the `cudaq::info()` or `debug()` call.
-/// We do this via a struct of the same name (info), which
-/// takes the message and variadic arguments for the message, and
-/// finishes with arguments with defaults providing the file name
-/// and the source location. We could also add the function name
-/// if we want it in the future.
-///
-/// We then use a template deduction guide to map calls of the
-/// templated `cudaq::info()` function to this type.
+/// These types seek to enable automated injection of the source location of the
+/// `cudaq::info()` or `debug()` call. The actual formatting is out-of-line in
+/// logger.cpp so callers do not need to parse `fmt` or `chrono` headers.
 #define CUDAQ_LOGGER_DEDUCTION_STRUCT(NAME)                                    \
   template <typename... Args>                                                  \
   struct NAME {                                                                \
@@ -48,15 +74,9 @@ std::string pathToFileName(const std::string_view fullFilePath);
          const char *funcName = __builtin_FUNCTION(),                          \
          const char *fileName = __builtin_FILE(),                              \
          int lineNo = __builtin_LINE()) {                                      \
-      if (details::should_log(details::LogLevel::NAME)) {                      \
-        auto msg = cudaq_fmt::format(message, args...);                        \
-        std::string name = funcName;                                           \
-        auto start = name.find_first_of(" ");                                  \
-        name = name.substr(start + 1, name.find_first_of("(") - start - 1);    \
-        msg = "[" + details::pathToFileName(fileName) + ":" +                  \
-              std::to_string(lineNo) + "] " + msg;                             \
-        details::NAME(msg);                                                    \
-      }                                                                        \
+      if (details::should_log(details::LogLevel::NAME))                        \
+        details::logMessage(details::LogLevel::NAME, message, funcName,        \
+                            fileName, lineNo, std::forward<Args>(args)...);    \
     }                                                                          \
   };                                                                           \
   template <typename... Args>                                                  \
@@ -69,7 +89,7 @@ CUDAQ_LOGGER_DEDUCTION_STRUCT(error);
 #ifdef CUDAQ_DEBUG
 CUDAQ_LOGGER_DEDUCTION_STRUCT(debug);
 #else
-// Remove cudaq::debug log messages from Release binaries
+// Remove cudaq::debug log messages from Release binaries.
 template <typename... Args>
 void debug(const std::string_view, Args &&...) {}
 #endif
@@ -79,43 +99,17 @@ void debug(const std::string_view, Args &&...) {}
 // Note 2: File and line info is not included in the log line.
 template <typename... Args>
 void log(const std::string_view message, Args &&...args) {
-  const auto timestamp = std::chrono::system_clock::now();
-  const auto now_c = std::chrono::system_clock::to_time_t(timestamp);
-  std::tm now_tm = *std::localtime(&now_c);
-  cudaq_fmt::print("[{:04}-{:02}-{:02} {:02}:{:02}:{:%S}] {}\n",
-                   now_tm.tm_year + 1900, now_tm.tm_mon + 1, now_tm.tm_mday,
-                   now_tm.tm_hour, now_tm.tm_min,
-                   std::chrono::round<std::chrono::milliseconds>(
-                       timestamp.time_since_epoch()),
-                   cudaq_fmt::format(message, args...));
+  std::array<cudaq_fmt::FormatArgument, sizeof...(Args)> packedArgs{
+      cudaq_fmt::FormatArgument(std::forward<Args>(args))...};
+  details::logWithTimestampPacked(
+      message, std::span<const cudaq_fmt::FormatArgument>(packedArgs.data(),
+                                                          packedArgs.size()));
 }
 
-/// @brief This type is meant to provided quick tracing
-/// of function calls. Instantiate at the beginning
-/// of a function and when it goes out of scope at function
-/// end, it will call to the trace function and report
-/// the function name and the execution time in ms.
-//
-// Since this traces upon destruction, tracing in tandem
-// with ScopeTrace instances within functions called from
-// the current one will stack and can be read in reverse order.
-// This type keeps track of an integer that prints and indentation
-// before the message to demonstrate the call stack.
-//
-// e.g. for
-// void bar() {
-//   ScopedTrace trace("bar");
-//   foobar() // <-- also creates a ScopedTrace
-// }
-// void foo() {
-//  ScopedTrace trace("foo");
-//  bar()
-// }
-//
-// will print
-// [2022-12-15 18:54:39.346] [trace] -- foobar() executed in 0.026 ms.
-// [2022-12-15 18:54:39.347] [trace] - bar executed in 0.604 ms.
-// [2022-12-15 18:54:39.347] [trace] foo executed in 2.572 ms.
+/// @brief This type is meant to provided quick tracing of function calls.
+/// Instantiate at the beginning of a function and when it goes out of scope at
+/// function end, it will call to the trace function and report the function
+/// name and execution time.
 class ScopedTrace {
 private:
   SpanHandle handle;
@@ -140,7 +134,7 @@ private:
         for (std::size_t i = 0; i < nArgs; i++)
           argsMsg += (i != nArgs - 1) ? "{}, " : "{}}})";
       }
-      return cudaq_fmt::format(argsMsg, args...);
+      return details::formatMessage(argsMsg, std::forward<Args>(args)...);
     }
   }
 
