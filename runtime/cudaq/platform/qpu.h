@@ -198,7 +198,7 @@ public:
                const std::vector<void *> &rawArgs);
 
   [[nodiscard]] virtual CompiledModule
-  compileModule(const std::string &name, mlir::ModuleOp module,
+  compileModule(const std::string &name, const void *modulePtr,
                 const std::vector<void *> &rawArgs, bool isEntryPoint);
 
   /// @brief Notify the QPU that a new random seed value is set.

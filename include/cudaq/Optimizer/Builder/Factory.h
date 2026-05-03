@@ -132,7 +132,7 @@ inline mlir::Type getStringType(mlir::MLIRContext *ctx, std::size_t length) {
 inline mlir::LLVM::LLVMStructType stdVectorImplType(mlir::Type eleTy) {
   auto *ctx = eleTy.getContext();
   // Map stdvec<complex<T>> to stdvec<struct<T,T>>
-  if (auto cTy = dyn_cast<mlir::ComplexType>(eleTy)) {
+  if (auto cTy = mlir::dyn_cast<mlir::ComplexType>(eleTy)) {
     llvm::SmallVector<mlir::Type> types = {cTy.getElementType(),
                                            cTy.getElementType()};
     eleTy = mlir::LLVM::LLVMStructType::getLiteral(ctx, types);
