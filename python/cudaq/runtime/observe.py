@@ -11,6 +11,30 @@ from cudaq.util import trace
 from .utils import __isBroadcast, __createArgumentSet
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
 from cudaq.kernel.kernel_builder import isa_dynamic_kernel
+from cudaq.kernel.utils import register_async_work, unregister_async_work
+
+
+class _AsyncObserveResult:
+
+    def __init__(self, impl, async_work_registered=False):
+        if not hasattr(impl, 'get'):
+            raise RuntimeError(
+                "Invalid arguments passed to AsyncObserveResult constructor.")
+        self.impl = impl
+        self._async_work_registered = True
+        if not async_work_registered:
+            register_async_work()
+
+    def get(self):
+        try:
+            return self.impl.get()
+        finally:
+            if self._async_work_registered:
+                unregister_async_work()
+                self._async_work_registered = False
+
+    def __str__(self):
+        return str(self.impl)
 
 
 def isValidObserveKernel(kernel):
@@ -277,8 +301,15 @@ def observe_async(kernel, spin_operator, *args, qpu_id=0, shots_count=-1):
             " expected.")
     shortName = decorator.uniqName
     processedArgs, module = decorator.prepare_call(*args)
-    return cudaq_runtime.observe_async_impl(shortName, module, spin_operator,
-                                            qpu_id, shots_count, *processedArgs)
+    register_async_work()
+    try:
+        result = cudaq_runtime.observe_async_impl(shortName, module,
+                                                  spin_operator, qpu_id,
+                                                  shots_count, *processedArgs)
+    except Exception:
+        unregister_async_work()
+        raise
+    return _AsyncObserveResult(result, async_work_registered=True)
 
 
 def observe_parallel(kernel,

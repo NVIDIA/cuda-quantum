@@ -11,6 +11,7 @@ import ast
 import inspect
 import re
 import sys
+import threading
 import traceback
 import importlib
 import numpy as np
@@ -39,6 +40,37 @@ globalRegisteredOperations = {}
 
 # Keep a global registry of any custom data types
 globalRegisteredTypes = cudaq_runtime.DataClassRegistry
+
+_active_async_work_lock = threading.Lock()
+_active_async_work_count = 0
+
+
+def register_async_work():
+    """Track asynchronous work that may access the global MLIR context."""
+    global _active_async_work_count
+    with _active_async_work_lock:
+        _active_async_work_count += 1
+
+
+def unregister_async_work():
+    """Release a previously registered asynchronous-work guard."""
+    global _active_async_work_count
+    with _active_async_work_lock:
+        if _active_async_work_count > 0:
+            _active_async_work_count -= 1
+
+
+def check_no_active_async_work():
+    """Fail before constructing kernels while async launches may use MLIR."""
+    with _active_async_work_lock:
+        has_active_async_work = _active_async_work_count > 0
+
+    if has_active_async_work:
+        raise RuntimeError(
+            "Kernel construction is not thread-safe while asynchronous CUDA-Q "
+            "work is pending. Build kernels before dispatching async work, or "
+            "call get() on outstanding async results before calling "
+            "cudaq.make_kernel().")
 
 
 def getMLIRContext():
