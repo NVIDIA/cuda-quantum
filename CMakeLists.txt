@@ -553,7 +553,10 @@ if(POLICY CMP0146)
 endif()
 add_subdirectory(tpls/fmt)
 cmake_policy(POP)
-include_directories(SYSTEM tpls/json/include)
+include_directories(SYSTEM tpls/json/single_include)
+include_directories(SYSTEM tpls/json/single_include_fwd)
+install(FILES tpls/json/single_include_fwd/nlohmann/json_fwd.hpp
+  DESTINATION include/nlohmann)
 
 # Add spdlog
 set(SPDLOG_BUILD_SHARED OFF)

@@ -8,6 +8,7 @@
 
 #include "OrcaRemoteRESTQPU.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "nlohmann/json.hpp"
 #include "llvm/Support/Base64.h"
 
 #ifdef CUDAQ_PYTHON_EXTENSION
