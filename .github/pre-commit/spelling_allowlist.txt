@@ -228,6 +228,7 @@ dependence
 dependences
 deserialization
 deserialize
+deserializes
 destructor
 detuning
 deutsch

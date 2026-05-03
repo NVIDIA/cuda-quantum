@@ -113,6 +113,7 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/operators/py_handlers.cpp
     ../runtime/cudaq/target/py_runtime_target.cpp
     ../runtime/cudaq/target/py_testing_utils.cpp
+    ../runtime/cudaq/trace/py_trace.cpp
     ../runtime/mlir/py_register_dialects.cpp
     ../utils/LinkedLibraryHolder.cpp
     ../../runtime/common/CodeGenConfig.cpp

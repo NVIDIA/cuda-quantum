@@ -19,6 +19,7 @@ from cudaq.kernel.kernel_builder import PyKernel, make_kernel
 from cudaq.kernel.register_op import register_operation
 from cudaq.kernel.utils import ahkPrefix
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cudaq.util import trace
 from ..operators import NumericType, Operator, RydbergHamiltonian, SuperOperator
 from .helpers import InitialState, InitialStateArgT, IntermediateResultSave
 from .integrator import BaseIntegrator
@@ -311,6 +312,7 @@ def evolve_single(
 
 
 # Top level API for the CUDA-Q master equation solver.
+@trace.traced
 def evolve(
     hamiltonian: Operator | SuperOperator | Sequence[Operator] |
     Sequence[SuperOperator],
@@ -589,6 +591,7 @@ def evolve_single_async(
                                           shots_count=shots_count)
 
 
+@trace.traced
 def evolve_async(
     hamiltonian: Operator,
     dimensions: Mapping[int, int] = {},

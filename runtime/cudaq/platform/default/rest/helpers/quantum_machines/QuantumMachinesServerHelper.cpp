@@ -11,6 +11,7 @@
 #include "cudaq/Support/Version.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include "nlohmann/json.hpp"
 #include <bitset>
 #include <fstream>
 #include <iostream>
@@ -19,6 +20,7 @@
 #include <sstream>
 #include <thread>
 #include <unordered_set>
+
 using json = nlohmann::json;
 
 namespace cudaq {

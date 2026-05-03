@@ -1619,6 +1619,66 @@ def test_return_with_false_condition_with_variable_defined_outside_the_loop():
     assert results[0] == 0
 
 
+def test_while_loop_countdown_sge():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        val = 3
+        while val >= 0:
+            val -= 1
+        return val
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == -1
+
+
+def test_while_loop_countup_sle():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        val = 5
+        while val <= 10:
+            val += 1
+        return val
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 11
+
+
+def test_while_loop_sge_with_quantum_gates():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        q = cudaq.qvector(3)
+        val = 2
+        while val >= 0:
+            x(q[val])
+            val -= 1
+        return mz(q[0])
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 1
+
+
+def test_while_loop_sgt_workaround_still_works():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        q = cudaq.qvector(3)
+        val = 2
+        while val > -1:
+            x(q[val])
+            val -= 1
+        return mz(q[0])
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 1
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

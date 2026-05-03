@@ -28,15 +28,13 @@
 
 using namespace cudaq;
 
-namespace {
-
 // FIXME: This is using a thread unsafe global?
 /// If we have any implicit device-to-host data transfers we will store that
 /// data here and ensure it is deleted properly.
-// Keep implicit host copies alive for Python buffer interop.
-std::vector<std::unique_ptr<void, std::function<void(void *)>>>
+static std::vector<std::unique_ptr<void, std::function<void(void *)>>>
     hostDataFromDevice;
 
+namespace {
 // CuPy interop helpers.
 struct BufferInfo {
   void *ptr = nullptr;
@@ -47,8 +45,9 @@ struct BufferInfo {
   bool readonly = false;
   std::size_t size = 0;
 };
+} // namespace
 
-nanobind::dict getCupyArrayInterface(nanobind::handle cupyArray) {
+static nanobind::dict getCupyArrayInterface(nanobind::handle cupyArray) {
   if (!nanobind::hasattr(cupyArray, "__cuda_array_interface__"))
     throw std::runtime_error("Buffer is not a CuPy array");
 
@@ -57,7 +56,7 @@ nanobind::dict getCupyArrayInterface(nanobind::handle cupyArray) {
           "__cuda_array_interface__"));
 }
 
-std::vector<ssize_t>
+static std::vector<ssize_t>
 getCContiguousStrides(const std::vector<std::size_t> &shape,
                       std::size_t itemsize) {
   std::vector<ssize_t> strides(shape.size(), itemsize);
@@ -70,9 +69,10 @@ getCContiguousStrides(const std::vector<std::size_t> &shape,
   return strides;
 }
 
-std::vector<ssize_t> getCupyArrayStrides(const nanobind::dict &cupyArrayInfo,
-                                         const std::vector<std::size_t> &shape,
-                                         std::size_t itemsize) {
+static std::vector<ssize_t>
+getCupyArrayStrides(const nanobind::dict &cupyArrayInfo,
+                    const std::vector<std::size_t> &shape,
+                    std::size_t itemsize) {
   auto stridesObj = cupyArrayInfo["strides"];
   if (stridesObj.is_none())
     return getCContiguousStrides(shape, itemsize);
@@ -86,7 +86,7 @@ std::vector<ssize_t> getCupyArrayStrides(const nanobind::dict &cupyArrayInfo,
   return strides;
 }
 
-std::pair<std::size_t, std::string>
+static std::pair<std::size_t, std::string>
 getCupyComplexTypeInfo(const std::string &typeStr) {
   if (typeStr == "<c8")
     return {sizeof(std::complex<float>), "Zf"};
@@ -97,7 +97,7 @@ getCupyComplexTypeInfo(const std::string &typeStr) {
                            ". Supported types are: <c16 and <c8.");
 }
 
-BufferInfo getCupyBufferInfo(nanobind::object cupyArray) {
+static BufferInfo getCupyBufferInfo(nanobind::object cupyArray) {
   auto cupyArrayInfo = getCupyArrayInterface(cupyArray);
   auto dataInfo = nanobind::cast<nanobind::tuple>(cupyArrayInfo["data"]);
   auto shapeTuple = nanobind::cast<nanobind::tuple>(cupyArrayInfo["shape"]);
@@ -125,8 +125,9 @@ BufferInfo getCupyBufferInfo(nanobind::object cupyArray) {
   return info;
 }
 
-bool isCContiguous(const std::vector<std::size_t> &shape,
-                   const std::vector<ssize_t> &strides, std::size_t itemsize) {
+static bool isCContiguous(const std::vector<std::size_t> &shape,
+                          const std::vector<ssize_t> &strides,
+                          std::size_t itemsize) {
   // Treat inconsistent metadata as non-contiguous so callers fall back to
   // canonicalization instead of taking an unsafe fast path.
   if (shape.size() != strides.size())
@@ -145,8 +146,8 @@ bool isCContiguous(const std::vector<std::size_t> &shape,
   return true;
 }
 
-bool shouldCanonicalizeCupyArray(const BufferInfo &info,
-                                 const std::string &targetName) {
+static bool shouldCanonicalizeCupyArray(const BufferInfo &info,
+                                        const std::string &targetName) {
   if (info.shape.empty())
     return false;
 
@@ -157,12 +158,11 @@ bool shouldCanonicalizeCupyArray(const BufferInfo &info,
   return needsCanon && !isCContiguous(info.shape, info.strides, info.itemsize);
 }
 
-nanobind::object canonicalizeCupyArrayToNumpy(nanobind::handle cupyArray) {
+static nanobind::object
+canonicalizeCupyArrayToNumpy(nanobind::handle cupyArray) {
   return nanobind::module_::import_("cupy").attr("asnumpy")(
       nanobind::borrow<nanobind::object>(cupyArray));
 }
-
-} // namespace
 
 static std::vector<int> bitStringToIntVec(const std::string &bitString) {
   // Check that this is a valid bit string.
@@ -199,12 +199,17 @@ static std::future<state> get_state_async_impl(const std::string &shortName,
   auto opaques = marshal_arguments_for_module_launch(mod, args, fnOp);
 
   nanobind::gil_scoped_release release;
+  auto clonedMod = std::shared_ptr<mlir::ModuleOp>(
+      new mlir::ModuleOp(mod.clone()), [](mlir::ModuleOp *p) {
+        p->erase();
+        delete p;
+      });
   return details::runGetStateAsync(
-      detail::make_copyable_function([opaques = std::move(opaques), kernelName,
-                                      mod = mod.clone()]() mutable {
-        [[maybe_unused]] auto result =
-            clean_launch_module(kernelName, mod, opaques);
-      }),
+      detail::make_copyable_function(
+          [opaques = std::move(opaques), kernelName, clonedMod]() mutable {
+            [[maybe_unused]] auto result =
+                clean_launch_module(kernelName, *clonedMod, opaques);
+          }),
       platform, qpu_id);
 }
 
