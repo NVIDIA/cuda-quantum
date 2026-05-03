@@ -48,7 +48,6 @@ std::complex<double> TensorNetSimulationState<ScalarType>::overlap(
   // Compute <bra|ket> by conjugating the entire |bra> tensor network.
   // Reverse them
   std::reverse(tensorOps.begin(), tensorOps.end());
-  std::vector<void *> tempDeviceBuffers;
   for (auto &op : tensorOps)
     op.isAdjoint = !op.isAdjoint;
 
@@ -181,8 +180,6 @@ std::complex<double> TensorNetSimulationState<ScalarType>::overlap(
   HANDLE_CUTN_ERROR(cutensornetDestroyWorkspaceDescriptor(workDesc));
   HANDLE_CUTN_ERROR(cutensornetDestroyAccessor(accessor));
   HANDLE_CUTN_ERROR(cutensornetDestroyState(tempQuantumState));
-  for (auto *tempBuffer : tempDeviceBuffers)
-    HANDLE_CUDA_ERROR(cudaFree(tempBuffer));
 
   return std::abs(h_overlap);
 }
