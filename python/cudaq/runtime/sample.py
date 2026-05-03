@@ -9,7 +9,8 @@
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.kernel.kernel_builder import PyKernel
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
-from cudaq.kernel.utils import mlirTypeToPyType, nvqppPrefix
+from cudaq.kernel.utils import (mlirTypeToPyType, nvqppPrefix,
+                                register_async_work, unregister_async_work)
 from cudaq.util import trace
 from .utils import __isBroadcast, __createArgumentSet
 
@@ -22,7 +23,7 @@ cudaq_async_sample_cache_counter = 0
 
 class AsyncSampleResult:
 
-    def __init__(self, impl, mod=None):
+    def __init__(self, impl, mod=None, async_work_registered=False):
         global cudaq_async_sample_module_cache
         global cudaq_async_sample_cache_counter
         if isinstance(impl, str):
@@ -32,6 +33,9 @@ class AsyncSampleResult:
                 "Invalid arguments passed to AsyncSampleResult constructor.")
         self.impl = impl
         self.getCalled = False
+        self._async_work_registered = mod is not None
+        if self._async_work_registered and not async_work_registered:
+            register_async_work()
         if mod is not None:
             self.counter = cudaq_async_sample_cache_counter
             cudaq_async_sample_cache_counter += 1
@@ -40,9 +44,13 @@ class AsyncSampleResult:
             self.counter = None
 
     def get(self):
-        result = self.impl.get()
-        self.getCalled = True
-        return result
+        try:
+            return self.impl.get()
+        finally:
+            self.getCalled = True
+            if self._async_work_registered:
+                unregister_async_work()
+                self._async_work_registered = False
 
     def __del__(self):
         # FIXME : This potentially leaks memory intentionally. It is possible
@@ -270,8 +278,14 @@ def sample_async(decorator,
 
     _detail_check_explicit_measurements(explicit_measurements)
 
-    sample_results = cudaq_runtime.sample_async_impl(decorator.uniqName, module,
-                                                     shots_count, noise_model,
-                                                     explicit_measurements,
-                                                     qpu_id, *processedArgs)
-    return AsyncSampleResult(sample_results, module)
+    register_async_work()
+    try:
+        sample_results = cudaq_runtime.sample_async_impl(
+            decorator.uniqName, module, shots_count, noise_model,
+            explicit_measurements, qpu_id, *processedArgs)
+    except Exception:
+        unregister_async_work()
+        raise
+    return AsyncSampleResult(sample_results,
+                             module,
+                             async_work_registered=True)

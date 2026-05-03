@@ -136,6 +136,14 @@ This can be greatly accelerated by batching the circuits on multiple QPUs. The f
 
 As the results are run asynchronously, they need to be stored in a list (:code:`asyncresults`) and retrieved later with the :code:`get` command. The following loops over the parameter batches, and the sets of parameters in each batch. The parameter sets are provided as inputs to :code:`observe_async` along with specification of a :code:`qpu_id` which designates the GPU (of the four available) which will run computation. A speedup of up to 4x can be expected with results varying by problem size.
 
+.. note::
+
+   Dynamic kernels created with :func:`cudaq.make_kernel` use CUDA-Q's
+   process-wide MLIR context. Build these kernels before dispatching
+   :func:`cudaq.sample_async` or :func:`cudaq.observe_async` work, or call
+   :code:`get()` on outstanding async results before constructing additional
+   dynamic kernels.
+
 
 .. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/circuit_batching.py
     :language: python

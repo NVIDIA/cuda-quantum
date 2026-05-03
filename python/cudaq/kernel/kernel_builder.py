@@ -35,7 +35,7 @@ from .quake_value import QuakeValue
 from .utils import (emitFatalError, emitWarning, nvqppPrefix, getMLIRContext,
                     recover_func_op, mlirTypeToPyType, cudaq__unique_attr_name,
                     mlirTypeFromPyType, emitErrorIfInvalidPauli,
-                    globalRegisteredOperations)
+                    globalRegisteredOperations, check_no_active_async_work)
 
 kDynamicPtrIndex: int = -2147483648
 
@@ -1814,6 +1814,12 @@ def make_kernel(*args):
     program construction. This kernel is non-parameterized if it accepts no 
     arguments, else takes the provided types as arguments. 
 
+    Kernel construction uses CUDA-Q's process-wide MLIR context and must not be
+    interleaved with pending asynchronous execution. Build dynamic kernels
+    before calling :func:`sample_async` or :func:`observe_async`, or call
+    :meth:`get` on outstanding async results before constructing another
+    kernel.
+
     Returns a kernel if it is non-parameterized, else a tuple containing the 
     kernel and a :class:`QuakeValue` for each kernel argument.
 
@@ -1828,6 +1834,7 @@ def make_kernel(*args):
     kernel, int_value, float_value = cudaq.make_kernel(int, float)
     """
 
+    check_no_active_async_work()
     kernel = PyKernel([*args])
     if len([*args]) == 0:
         return kernel
