@@ -10,6 +10,7 @@ from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
 from cudaq.runtime.sample import (_detail_check_conditionals_on_measure,
                                   AsyncSampleResult)
+from cudaq.util import trace
 from .utils import __isBroadcast, __createArgumentSet
 
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ptsbe import *
@@ -47,6 +48,7 @@ def _validate_ptsbe_args(kernel, args, shots_count, noise_model,
     return decorator
 
 
+@trace.traced
 def sample(kernel,
            *args,
            shots_count=1000,
@@ -121,6 +123,7 @@ def sample(kernel,
         include_sequential_data, *processedArgs)
 
 
+@trace.traced
 def sample_async(kernel,
                  *args,
                  shots_count=1000,

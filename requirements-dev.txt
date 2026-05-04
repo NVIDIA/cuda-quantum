@@ -15,8 +15,8 @@ pytest==9.0.3
 pytest-xdist==3.8.0
 psutil
 numpy==1.26.4
-notebook==7.5.2
-nbconvert==7.17.0
+notebook==7.5.6
+nbconvert==7.17.1
 llvmlite==0.44.0
 scipy==1.16.3
 requests==2.33.1

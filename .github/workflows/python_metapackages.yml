@@ -72,9 +72,9 @@ jobs:
 
             echo "Building cudaq metapackage ..."
             cd python/metapackages && echo ${{ inputs.cudaq_version }} > _version.txt
-            CUDAQ_META_WHEEL_BUILD=1 python3 -m build . --sdist
+            CUDAQ_META_SDIST_BUILD=1 python3 -m build . --sdist
             mkdir /tmp/packages && mv dist/cudaq-* /tmp/packages/
-            rm -rf cudaq.egg-info dist
+            rm -rf dist
 
             echo "Creating README.md for cuda-quantum package"
             echo "# Welcome to the CUDA-Q Python API" > README.md
@@ -84,7 +84,7 @@ jobs:
             echo "Building cuda-quantum metapackage ..."
             sed -i 's/name = "cudaq"/name = "cuda-quantum"/' pyproject.toml
             echo 'Please remove the cuda-quantum package and `pip install cudaq` instead.' > _deprecated.txt
-            CUDAQ_META_WHEEL_BUILD=1 python3 -m build . --sdist
+            CUDAQ_META_SDIST_BUILD=1 python3 -m build . --sdist
             mv dist/cuda_quantum-* /tmp/packages/
 
             echo "artifact_name=cudaq-metapackage-${{ inputs.cudaq_version }}" >> $GITHUB_OUTPUT

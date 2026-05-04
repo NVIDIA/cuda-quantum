@@ -71,6 +71,7 @@ pySamplePTSBE(const std::string &shortName, MlirModule module,
 
   ptsbe::sample_result result;
   try {
+    nanobind::gil_scoped_release release;
     result = ptsbe::detail::runSamplingPTSBE(
         [&]() mutable {
           [[maybe_unused]] auto res =
@@ -252,6 +253,12 @@ void cudaq::bindSamplePTSBE(nanobind::module_ &mod) {
                    [](const ptsbe::TraceInstruction &self) {
                      return std::vector<double>(self.params.begin(),
                                                 self.params.end());
+                   })
+      .def_prop_ro("channel",
+                   [](const ptsbe::TraceInstruction &self) -> nanobind::object {
+                     if (!self.channel)
+                       return nanobind::none();
+                     return nanobind::cast(*self.channel);
                    })
       .def("__repr__", [](const ptsbe::TraceInstruction &self) {
         return "TraceInstruction(" + self.name + " on " +

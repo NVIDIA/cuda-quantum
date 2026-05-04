@@ -49,7 +49,7 @@ for arch in config.targets_to_build.split():
 
 # Exclude a list of directories from the test suite:
 #   - 'Inputs' contain auxiliary inputs for various tests.
-local_excludes = ['Inputs', 'CMakeLists.txt', 'README.txt', 'LICENSE.txt']
+local_excludes = ['Inputs', 'CMakeLists.txt', 'README.txt', 'LICENSE.txt', 'plugin']
 config.excludes = [exclude for exclude in config.excludes] + local_excludes
 
 # The root path where tests are located.

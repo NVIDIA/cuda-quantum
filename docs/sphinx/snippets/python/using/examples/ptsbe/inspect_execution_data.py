@@ -19,9 +19,17 @@ result = cudaq.ptsbe.sample(
 
 data = result.ptsbe_execution_data
 
-# Circuit structure
+# Circuit structure. For Noise instructions, ``inst.params`` carries the
+# channel's numeric parameters and ``inst.channel`` is a ``cudaq.KrausChannel``
+# exposing ``.noise_type``, ``.parameters``, and ``.get_ops()``. For Gate and
+# Measurement instructions ``inst.channel`` is ``None``.
+Noise = cudaq.ptsbe.TraceInstructionType.Noise
 for inst in data.instructions:
     print(inst.type, inst.name, inst.targets)
+    if inst.type == Noise:
+        print(f"  params={list(inst.params)}  "
+              f"noise_type={inst.channel.noise_type}  "
+              f"num_kraus_ops={len(inst.channel.get_ops())}")
 
 # Trajectory details
 for trajectory in data.trajectories:

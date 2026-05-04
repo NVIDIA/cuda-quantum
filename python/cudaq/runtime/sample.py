@@ -10,6 +10,7 @@ from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.kernel.kernel_builder import PyKernel
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
 from cudaq.kernel.utils import mlirTypeToPyType, nvqppPrefix
+from cudaq.util import trace
 from .utils import __isBroadcast, __createArgumentSet
 
 # Maintain a dictionary of queued `async` sample kernels.This dictionary is used
@@ -115,6 +116,7 @@ def _detail_check_explicit_measurements(explicit_measurements):
             "on this target.")
 
 
+@trace.traced
 def sample(kernel,
            *args,
            shots_count=1000,
@@ -201,6 +203,7 @@ def sample(kernel,
     return counts
 
 
+@trace.traced
 def sample_async(decorator,
                  *args,
                  shots_count=1000,
@@ -224,6 +227,9 @@ def sample_async(decorator,
       explicit_measurements (Optional[bool]): A flag to indicate whether or not
           to concatenate measurements in execution order for the returned
           sample result.
+      noise_model (Optional[`NoiseModel`]): The optional :class:`NoiseModel`
+          to add noise to the kernel execution on the simulator. Defaults to
+          an empty noise model.
       `qpu_id` (Optional[int]): The optional identification for which QPU
           on the platform to target. Defaults to zero. Key-word only.
 

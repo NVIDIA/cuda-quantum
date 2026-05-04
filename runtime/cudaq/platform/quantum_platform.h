@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/CodeGenConfig.h"
+#include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
 #include "common/NoiseModel.h"
 #include "common/ObserveResult.h"
@@ -204,13 +205,14 @@ public:
   // This method launches a kernel from a ModuleOp that has already been
   // created.
   [[nodiscard]] KernelThunkResultType
-  launchModule(const std::string &kernelName, mlir::ModuleOp module,
-               const std::vector<void *> &rawArgs, std::size_t qpu_id);
+  launchModule(const CompiledModule &module, const std::vector<void *> &rawArgs,
+               std::size_t qpu_id);
 
-  [[nodiscard]] CompiledModule
-  specializeModule(const std::string &kernelName, mlir::ModuleOp module,
-                   const std::vector<void *> &rawArgs, std::size_t qpu_id,
-                   bool isEntryPoint);
+  [[nodiscard]] CompiledModule compileModule(const std::string &kernelName,
+                                             mlir::ModuleOp module,
+                                             const std::vector<void *> &rawArgs,
+                                             std::size_t qpu_id,
+                                             bool isEntryPoint);
 
   /// List all available platforms
   static std::vector<std::string> list_platforms();

@@ -7,112 +7,69 @@
  ******************************************************************************/
 
 #include "CompiledModule.h"
-#include <cstring>
-#include <memory>
-#include <stdexcept>
+#include <string_view>
 
 cudaq::CompiledModule::CompiledModule(std::string kernelName)
     : name(std::move(kernelName)) {}
 
-const cudaq::CompiledModule::JitArtifact &
+std::optional<cudaq::CompiledModule::JitArtifact>
 cudaq::CompiledModule::getJit() const {
-  for (auto &[key, artifact] : artifacts)
-    if (auto *jit = std::get_if<JitArtifact>(&artifact))
-      return *jit;
-  throw std::runtime_error("CompiledModule has no JIT artifact.");
+  return getJit(name);
 }
 
-const cudaq::CompiledModule::MlirArtifact &
+std::optional<cudaq::CompiledModule::JitArtifact>
+cudaq::CompiledModule::getJit(std::string_view jitName) const {
+  auto *jit = artifacts.get<JitArtifact>(jitName);
+  return jit ? std::optional<JitArtifact>{*jit} : std::nullopt;
+}
+
+std::optional<cudaq::CompiledModule::MlirArtifact>
 cudaq::CompiledModule::getMlir() const {
-  for (auto &[key, artifact] : artifacts)
-    if (auto *mlir = std::get_if<MlirArtifact>(&artifact))
-      return *mlir;
-  throw std::runtime_error("CompiledModule has no MLIR artifact.");
+  return getMlir(name);
 }
 
-bool cudaq::CompiledModule::hasJit() const {
-  for (auto &[key, artifact] : artifacts)
-    if (std::holds_alternative<JitArtifact>(artifact))
-      return true;
-  return false;
-}
-
-bool cudaq::CompiledModule::hasMlir() const {
-  for (auto &[key, artifact] : artifacts)
-    if (std::holds_alternative<MlirArtifact>(artifact))
-      return true;
-  return false;
+std::optional<cudaq::CompiledModule::MlirArtifact>
+cudaq::CompiledModule::getMlir(std::string_view mlirName) const {
+  auto *mlir = artifacts.get<MlirArtifact>(mlirName);
+  return mlir ? std::optional<MlirArtifact>{*mlir} : std::nullopt;
 }
 
 bool cudaq::CompiledModule::isFullySpecialized() const {
-  if (!hasJit())
-    return true; // No JIT artifact → fully specialized.
-  return getJit().argsCreator == nullptr;
+  return getArgsCreator() == nullptr;
+}
+
+int64_t (*cudaq::CompiledModule::getArgsCreator() const)(const void *,
+                                                         void **) {
+  auto jit = getJit(name + ".argsCreator");
+  return jit ? reinterpret_cast<int64_t (*)(const void *, void **)>(jit->fn)
+             : nullptr;
+}
+
+std::optional<std::int64_t> cudaq::CompiledModule::getReturnOffset() const {
+  auto jit = getJit(name + ".returnOffset");
+  if (!jit)
+    return std::nullopt;
+  auto fn = reinterpret_cast<std::int64_t (*)()>(jit->fn);
+  return fn();
+}
+
+const cudaq::Resources *cudaq::CompiledModule::getResources() const {
+  return getResources(name);
+}
+
+const cudaq::Resources *
+cudaq::CompiledModule::getResources(std::string_view resourcesName) const {
+  auto *res = artifacts.get<ResourcesArtifact>(resourcesName);
+  return res ? &res->getResources() : nullptr;
 }
 
 void cudaq::CompiledModule::addArtifact(std::string name,
                                         CompiledArtifact artifact) {
-  if (artifacts.contains(name))
-    throw std::runtime_error("Artifact with name " + name + " already exists");
-  artifacts.emplace(std::move(name), std::move(artifact));
+  artifacts.add(std::move(name), std::move(artifact));
 }
 
-cudaq::KernelThunkResultType
-cudaq::CompiledModule::execute(const std::vector<void *> &rawArgs) const {
-  auto &jit = getJit();
-  auto funcPtr = jit.entryPoint;
-  if (!isFullySpecialized()) {
-    // Pack args at runtime via argsCreator, then call the thunk.
-    void *buff = nullptr;
-    jit.argsCreator(static_cast<const void *>(rawArgs.data()), &buff);
-    reinterpret_cast<KernelThunkResultType (*)(void *, bool)>(funcPtr)(
-        buff, /*client_server=*/false);
-    // If the kernel has a result, copy it from the packed buffer into
-    // rawArgs.back() (where the caller expects to find it).
-    if (resultInfo.hasResult()) {
-      auto offset = jit.returnOffset();
-      std::memcpy(rawArgs.back(), static_cast<char *>(buff) + offset,
-                  resultInfo.bufferSize);
-    }
-    std::free(buff);
-    return {nullptr, 0};
-  }
-  if (resultInfo.hasResult()) {
-    // Fully specialized with result: rawArgs.back() is the pre-allocated
-    // result buffer; pass it directly to the thunk.
-    void *buff = const_cast<void *>(rawArgs.back());
-    return reinterpret_cast<KernelThunkResultType (*)(void *, bool)>(funcPtr)(
-        buff, /*client_server=*/false);
-  }
-  // Fully specialized, no result.
-  jit.entryPoint();
-  return {nullptr, 0};
-}
-
-cudaq::KernelThunkResultType cudaq::CompiledModule::execute() const {
-  if (!isFullySpecialized())
-    throw std::runtime_error(
-        "Kernel has unspecialized parameters; call execute(rawArgs) instead.");
-  if (!resultInfo.hasResult()) {
-    getJit().entryPoint();
-    return {nullptr, 0};
-  }
-  // Allocate a result buffer on-the-fly.
-  auto buf = std::make_unique<char[]>(resultInfo.bufferSize);
-  std::vector<void *> rawArgs = {buf.get()};
-  execute(rawArgs);
-  return {buf.release(), resultInfo.bufferSize};
-}
-
-void (*cudaq::CompiledModule::JitArtifact::getEntryPoint() const)() {
-  return entryPoint;
-}
+void (*cudaq::CompiledModule::JitArtifact::getFn() const)() { return fn; }
 
 cudaq::JitEngine cudaq::CompiledModule::JitArtifact::getEngine() const {
   return engine;
-}
-
-std::optional<cudaq::Resources>
-cudaq::CompiledModule::JitArtifact::getResourceCounts() const {
-  return resourceCounts;
 }

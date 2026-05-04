@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
+#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/CodeGen/Emitter.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
@@ -204,6 +205,16 @@ static inline StringRef formatFunctionName(StringRef quakeName) {
 
 static LogicalResult emitOperation(Emitter &emitter, func::FuncOp op) {
   if (op.isPrivate())
+    return success();
+
+  // Skip C++ ABI wrapper stubs: functions that have an empty body and whose
+  // name does not carry the `__nvqpp__mlirgen__` kernel prefix. These are stubs
+  // to satisfy the classical linker but contain no quantum operations and are
+  // not relevant to OpenQASM. Legitimate empty kernels (e.g. an explicitly
+  // empty `__qpu__` helper), which have the prefix and are kept so that any
+  // call sites remain valid.
+  if (!op.isExternal() && op.front().without_terminator().empty() &&
+      !op.getName().starts_with(runtime::cudaqGenPrefixName))
     return success();
 
   // In Quake's reference semantics form, kernels only return classical types.

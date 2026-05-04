@@ -7,16 +7,16 @@
  ******************************************************************************/
 #pragma once
 
+#include "common/NamedVariantStore.h"
 #include "common/Resources.h"
 #include "common/ThunkInterface.h"
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <map>
 #include <memory>
 #include <optional>
 #include <string>
-#include <variant>
+#include <string_view>
 #include <vector>
 
 // This header file and the types defined within are designed to have no
@@ -87,13 +87,15 @@ class ResultInfo {
 public:
   /// Whether this kernel has a result that must be marshaled.
   bool hasResult() const { return typeOpaquePtr != nullptr; }
+  /// Get the size (in bytes) of the buffer needed to hold the result value.
+  std::size_t getBufferSize() const { return bufferSize; }
 };
 
 /// @brief A compiled MLIR module, ready for execution or code generation.
 ///
 /// Contains any number of named compilation artifacts (we currently support
-/// JIT binaries and optimized MLIR modules) that result from the compilation
-/// of a Quake MLIR module.
+/// JIT binaries, optimized MLIR modules, and pre-computed resource metrics)
+/// that result from the compilation of a Quake MLIR module.
 ///
 /// This type does not depend on MLIR/LLVM — it only keeps type-erased / opaque
 /// pointers. Build instances with
@@ -105,46 +107,18 @@ public:
   /// JIT-compiled artifact, ready for local execution.
   class JitArtifact {
     JitEngine engine;
-    void (*entryPoint)() = nullptr;
-    std::int64_t (*argsCreator)(const void *, void **) = nullptr;
-    /// Offset (in bytes) of the result field within the argsCreator-packed
-    /// buffer. Only valid when argsCreator is non-null and the kernel has a
-    /// result. Use resultInfo.bufferSize to know how many bytes to copy.
-    std::int64_t (*returnOffset)() = nullptr;
-    std::optional<Resources> resourceCounts;
+    void (*fn)() = nullptr;
 
-    JitArtifact(JitEngine engine, void (*entryPoint)(),
-                int64_t (*argsCreator)(const void *, void **),
-                int64_t (*returnOffset)(),
-                std::optional<Resources> resourceCounts)
-        : engine(engine), entryPoint(entryPoint), argsCreator(argsCreator),
-          returnOffset(returnOffset),
-          resourceCounts(std::move(resourceCounts)) {}
+    JitArtifact(JitEngine engine, void (*fn)())
+        : engine(std::move(engine)), fn(fn) {}
 
     friend class CompiledModule;
     friend class cudaq_internal::compiler::CompiledModuleHelper;
 
   public:
-    // TODO: remove the following two methods once the `CompiledModule` instance
-    // is returned to Python.
-
-    /// @brief Get the entry point of the kernel as a function pointer.
-    ///
-    /// Assumes that there is (exactly one) compiled JIT artifact.
-    ///
-    /// The returned function pointer will expect different arguments depending
-    /// on the kernel:
-    ///  - if the kernel returns a value and/or is not fully specialized, the
-    ///    entry point will expect a pointer to a buffer storing the packed
-    ///    arguments and result.
-    ///  - otherwise, the entry point will not expect any arguments.
-    ///
-    /// Prefer using `CompiledModule::execute` instead of calling this function
-    /// as it will handle the buffer and argument packing automatically.
-    void (*getEntryPoint() const)();
+    /// Get the raw function pointer stored in this artifact.
+    void (*getFn() const)();
     JitEngine getEngine() const;
-
-    std::optional<Resources> getResourceCounts() const;
   };
 
   /// Optimized MLIR module artifact, for deferred code generation or
@@ -165,8 +139,23 @@ public:
     friend class cudaq_internal::compiler::CompiledModuleHelper;
   };
 
-  /// A compiled artifact is either a JIT binary or an MLIR module.
-  using CompiledArtifact = std::variant<JitArtifact, MlirArtifact>;
+  /// Pre-computed resource metrics (gate counts, depth) from IR analysis.
+  class ResourcesArtifact {
+    Resources resources;
+
+    ResourcesArtifact(Resources resources) : resources(std::move(resources)) {}
+
+    friend class CompiledModule;
+    friend class cudaq_internal::compiler::CompiledModuleHelper;
+
+  public:
+    const Resources &getResources() const { return resources; }
+  };
+
+  /// A compiled artifact is a JIT binary, an MLIR module, or resource metrics.
+  using ArtifactsStore =
+      detail::NamedVariantStore<JitArtifact, MlirArtifact, ResourcesArtifact>;
+  using CompiledArtifact = ArtifactsStore::Value;
 
   // --- Compilation metadata ---
 
@@ -178,47 +167,54 @@ public:
 
   // --- Queries ---
 
-  /// Whether any artifact in the map is a JitArtifact.
-  bool hasJit() const;
-
-  /// Whether any artifact in the map is an MlirArtifact.
-  bool hasMlir() const;
-
-  /// Get the compiled JIT artifact. Returns the first one found.
+  /// Get the JIT artifact with the given name.
   ///
-  /// Throws if none exists.
-  const JitArtifact &getJit() const;
+  /// If no name is provided, defaults to the kernel name.
+  std::optional<JitArtifact> getJit() const;
+  std::optional<JitArtifact> getJit(std::string_view jitName) const;
 
-  /// Get the optimized MLIR artifact. Returns the first one found.
+  /// Get the MLIR artifact with the given name.
   ///
-  /// Throws if none exists.
-  const MlirArtifact &getMlir() const;
+  /// If no name is provided, defaults to the kernel name.
+  std::optional<MlirArtifact> getMlir() const;
+  std::optional<MlirArtifact> getMlir(std::string_view mlirName) const;
 
-  /// Get all compiled artifacts.
-  const std::map<std::string, CompiledArtifact> &getArtifacts() const {
-    return artifacts;
+  /// Get the pre-computed resource counts, or `nullptr` if it does not exist.
+  ///
+  /// If no name is provided, defaults to the kernel name.
+  const Resources *getResources() const;
+  const Resources *getResources(std::string_view resourcesName) const;
+
+  /// Get all compiled artifacts in insertion order.
+  const ArtifactsStore &getArtifacts() const { return artifacts; }
+
+  /// Get all MLIR artifacts in insertion order.
+  auto getMlirArtifacts() const {
+    return artifacts.getAllOfType<MlirArtifact>();
   }
 
-  /// Whether the kernel is fully specialized (all arguments inlined). For JIT
-  /// kernels this means `argsCreator` is null.
-  /// Kernels without a JIT artifact are considered fully specialized.
+  /// Whether the kernel is fully specialized (all arguments inlined).
+  ///
+  /// Currently, kernels are considered fully specialized if and only if they do
+  /// not have an `argsCreator` artifact.
   bool isFullySpecialized() const;
+
+  /// Get the argument-marshaling function, or `nullptr` if it does not exist.
+  ///
+  /// Assumes the artifact is named `kernelName + ".argsCreator"`.
+  int64_t (*getArgsCreator() const)(const void *, void **);
+
+  /// Get the offset (in bytes) of the result field within the
+  /// `argsCreator`-packed buffer, evaluating the stored JIT function.
+  /// Returns `std::nullopt` if no `.returnOffset` artifact was emitted
+  /// (e.g. the kernel has no result or is fully specialized).
+  ///
+  /// Assumes the artifact is named `kernelName + ".returnOffset"`.
+  std::optional<std::int64_t> getReturnOffset() const;
 
   const std::string &getName() const { return name; }
   const ResultInfo &getResultInfo() const { return resultInfo; }
   const CompilationMetadata &getMetadata() const { return metadata; }
-
-  // --- Execution (local JIT path) ---
-
-  /// @brief Execute a fully specialized kernel (no external arguments needed).
-  ///
-  /// Assumes that there is (exactly one) compiled JIT artifact.
-  KernelThunkResultType execute() const;
-
-  /// @brief Execute the JIT-ed kernel with caller-provided arguments.
-  ///
-  /// Assumes that there is (exactly one) compiled JIT artifact.
-  KernelThunkResultType execute(const std::vector<void *> &rawArgs) const;
 
 private:
   friend class cudaq_internal::compiler::CompiledModuleHelper;
@@ -233,7 +229,7 @@ private:
                          // signature here. Though I'm not sure what MLIR
                          // agnostic information is worth storing.
   CompilationMetadata metadata;
-  std::map<std::string, CompiledArtifact> artifacts;
+  ArtifactsStore artifacts;
 };
 
 } // namespace cudaq

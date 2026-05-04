@@ -118,8 +118,12 @@ run_impl(const std::string &shortName, MlirModule module,
   auto fnOp = getFuncOpAndCheckResult(mod, shortName);
   auto opaques = marshal_arguments_for_module_launch(mod, runtimeArgs, fnOp);
 
-  auto span = pyRunTheKernel(shortName, platform, mod, shots_count, qpu_id,
-                             opaques, true);
+  details::RunResultSpan span;
+  {
+    nanobind::gil_scoped_release release;
+    span = pyRunTheKernel(shortName, platform, mod, shots_count, qpu_id,
+                          opaques, true);
+  }
   auto results = pyReadResults(span, mod, shots_count, shortName);
 
   if (noise_model.has_value())
@@ -260,7 +264,12 @@ void cudaq::bindPyRunAsync(nanobind::module_ &mod) {
       .def(
           "get",
           [](async_run_result &self) {
-            self.ready.get();
+            {
+              // Release the GIL so the async task's MLIR worker threads
+              // can call PyGILState_Ensure without deadlocking on us.
+              nanobind::gil_scoped_release release;
+              self.ready.get();
+            }
             auto err = *self.error;
             if (!err.empty()) {
               delete self.error;

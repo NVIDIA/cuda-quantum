@@ -11,10 +11,10 @@
 #include "common/ExecutionContext.h"
 #include "common/SampleResult.h"
 #include "cudaq/algorithms/broadcast.h"
+#include "cudaq/algorithms/sample/options.h"
+#include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
-
-constexpr int DEFAULT_NUM_SHOTS = 1000;
 
 namespace cudaq {
 bool kernelHasConditionalFeedback(const std::string &);
@@ -228,18 +228,6 @@ auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
       details::future(platform.enqueueAsyncTask(qpu_id, task)));
 }
 } // namespace details
-
-/// @brief Sample options to provide to the sample() / async_sample() functions
-///
-/// @param shots number of shots to run for the given kernel
-/// @param noise noise model to use for the sample operation
-/// @param explicit_measurements whether or not to form the global register
-/// based on user-supplied measurement order.
-struct sample_options {
-  std::size_t shots = DEFAULT_NUM_SHOTS;
-  cudaq::noise_model noise;
-  bool explicit_measurements = false;
-};
 
 /// @overload
 /// @brief Sample the given quantum kernel expression and return the

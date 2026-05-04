@@ -10,6 +10,7 @@
 #include "FmtCore.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include "nlohmann/json.hpp"
 #include <cpr/cpr.h>
 
 namespace cudaq {

@@ -7,10 +7,11 @@
 # ============================================================================ #
 
 import ctypes, os, sys
-import importlib.util
+from pathlib import Path
 import site, glob
-from setuptools import setup
 from typing import Optional
+
+from hatchling.metadata.plugin.interface import MetadataHookInterface
 
 
 def _log(msg: str) -> None:
@@ -217,39 +218,41 @@ def _infer_best_package() -> str:
     return cudaq_bdist
 
 
-# This setup handles 3 cases:
-#   1. At the release time, we use it to generate source distribution (which contains
-#      this script).
-#   2. If the source distribution is generated for the deprecated cuda-quantum package
-#      name, this script raises an exception at install time asking to install cudaq.
-#   3. If the source distribution is generated for a valid cudaq version,
-#      this script identifies the installed CUDA version at cudaq install time
-#      and downloads the corresponding CUDA-Q binary distribution.
-# For case 1, `CUDAQ_META_WHEEL_BUILD` is set to 1.
-setup_dir = os.path.dirname(os.path.abspath(__file__))
-data_files = []
-install_requires = []
-if os.environ.get('CUDAQ_META_WHEEL_BUILD', '0') == '1':
-    # Case 1: create source distribution
-    if os.path.exists(os.path.join(setup_dir, "_deprecated.txt")):
-        data_files = [('', [
-            '_deprecated.txt',
-        ])]  # extra files to be copied into the distribution
-else:
-    # Case 2: install cuda-quantum source distribution
-    if os.path.exists(os.path.join(setup_dir, "_deprecated.txt")):
-        with open(os.path.join(setup_dir, "_deprecated.txt"), "r") as f:
-            deprecation = f.read()
-        raise Exception(f'This package is deprecated. \n' + deprecation)
-    # Case 3: install cudaq source distribution
-    with open(os.path.join(setup_dir, "_version.txt"), "r") as f:
-        __version__ = f.read()
-    install_requires = [
-        f"{_infer_best_package()}=={__version__}",
-    ]
+# This hook handles 3 cases:
+#   1. At release time (`CUDAQ_META_SDIST_BUILD=1`), a source distribution
+#      is built (which contains this script).
+#   2. If the `sdist` has been generated for a project marked as deprecated
+#      (`cuda-quantum` package), this script raises an exception at install
+#      time asking to install cudaq.
+#   3. Finally, if the `sdist` has been generated for a valid cudaq version,
+#      this hook identifies the installed CUDA version at cudaq install time
+#      and pins the corresponding CUDA-Q binary distribution.
+class CudaqMetadataHook(MetadataHookInterface):
+    PLUGIN_NAME = "custom"
 
-setup(
-    zip_safe=False,
-    data_files=data_files,
-    install_requires=install_requires,
-)
+    def update(self, metadata):
+        curr_dir = Path(__file__).resolve().parent
+        is_sdist_build = os.environ.get('CUDAQ_META_SDIST_BUILD', '0') == '1'
+        deprecated_marker = curr_dir / "_deprecated.txt"
+
+        # Case 1: create source distribution with no dependencies. Make sure
+        # to delete any "dependencies" or "optional-dependencies" entries,
+        # as they override the "Dynamic: dependencies" marker.
+        if is_sdist_build:
+            if "dependencies" in metadata:
+                del metadata["dependencies"]
+            if "optional-dependencies" in metadata:
+                del metadata["optional-dependencies"]
+            return
+
+        # Case 2: a user is installing the deprecated `cuda-quantum` `sdist`.
+        if deprecated_marker.exists():
+            with deprecated_marker.open("r") as f:
+                deprecation = f.read()
+            raise Exception(f'This package is deprecated. \n' + deprecation)
+
+        # Case 3: a user is installing cudaq. Infer dependency based on
+        # installed CUDA version.
+        with (curr_dir / "_version.txt").open("r") as f:
+            version = f.read().strip()
+        metadata["dependencies"] = [f"{_infer_best_package()}=={version}"]

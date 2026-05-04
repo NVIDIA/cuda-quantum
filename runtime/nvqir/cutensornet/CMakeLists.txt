@@ -21,8 +21,10 @@ if(_cut_loc)
   set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${_cut_dir}")
 endif()
 
-# We need cutensornet v2.9.0+
-if (${cuTensorNet_VERSION} VERSION_GREATER_EQUAL "2.9")
+# We need cutensornet v2.12.1+ 
+# Note: before v2.12.1, there is a workaround for adjoint of non-unitary ops 
+# which has been fixed in v2.12.1, so we've removed the workaround.
+if (${cuTensorNet_VERSION} VERSION_GREATER_EQUAL "2.12.1")
   set (BASE_TENSOR_BACKEND_SRS tensornet_utils.cpp)
 
   # Helper macro to add cutensornet-based backends
@@ -48,5 +50,5 @@ if (${cuTensorNet_VERSION} VERSION_GREATER_EQUAL "2.9")
   target_link_libraries(nvqir-tensornet PRIVATE tensornet-mpi-util)
   target_link_libraries(nvqir-tensornet-fp32 PRIVATE tensornet-mpi-util)
 else()
-  message(WARNING "Skipped tensornet backend due to incompatible cutensornet version. Please install cutensornet v2.9.0+.")
+  message(WARNING "Skipped tensornet backend due to incompatible cutensornet version. Please install cutensornet v2.12.1+.")
 endif()
