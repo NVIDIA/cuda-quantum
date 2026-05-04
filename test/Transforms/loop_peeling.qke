@@ -59,13 +59,21 @@ func.func @peel_do_while() {
 // CHECK:           %[[VAL_9:.*]] = arith.extui %[[VAL_7]] : i32 to i64
 // CHECK:           %[[VAL_10:.*]] = quake.extract_ref %[[VAL_4]][%[[VAL_9]]] : (!quake.veq<10>, i64) -> !quake.ref
 // CHECK:           %[[VAL_11:.*]] = quake.mz %[[VAL_10]] : (!quake.ref) -> !quake.measure
-// CHECK:           %[[VAL_111:.*]] = quake.discriminate %[[VAL_11]] :
-// CHECK:           cc.store %[[VAL_111]], %[[VAL_6]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_12:.*]] = quake.discriminate %[[VAL_11]] : (!quake.measure) -> i1
+// CHECK:           cc.store %[[VAL_12]], %[[VAL_6]] : !cc.ptr<i1>
 // CHECK:           cf.br ^bb2
 // CHECK:         ^bb2:
 // CHECK:           cc.loop while {
-// CHECK:             cc.if(%
-// CHECK:             cc.condition %
+// CHECK:             %[[VAL_13:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i1>
+// CHECK:             %[[VAL_14:.*]] = arith.cmpi eq, %[[VAL_13]], %[[VAL_1]] : i1
+// CHECK:             %[[VAL_15:.*]] = cc.if(%[[VAL_14]]) -> i1 {
+// CHECK:               cc.continue %[[VAL_1]] : i1
+// CHECK:             } else {
+// CHECK:               %[[VAL_16:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
+// CHECK:               %[[VAL_17:.*]] = arith.cmpi ult, %[[VAL_16]], %[[VAL_3]] : i32
+// CHECK:               cc.continue %[[VAL_17]] : i1
+// CHECK:             }
+// CHECK:             cc.condition %[[VAL_15]]
 // CHECK:           } do {
 // CHECK:             %[[VAL_18:.*]] = cc.load %[[VAL_5]] : !cc.ptr<i32>
 // CHECK:             %[[VAL_19:.*]] = arith.addi %[[VAL_18]], %[[VAL_0]] : i32
@@ -73,8 +81,8 @@ func.func @peel_do_while() {
 // CHECK:             %[[VAL_20:.*]] = arith.extui %[[VAL_18]] : i32 to i64
 // CHECK:             %[[VAL_21:.*]] = quake.extract_ref %[[VAL_4]][%[[VAL_20]]] : (!quake.veq<10>, i64) -> !quake.ref
 // CHECK:             %[[VAL_22:.*]] = quake.mz %[[VAL_21]] : (!quake.ref) -> !quake.measure
-// CHECK:             %[[VAL_122:.*]] = quake.discriminate %[[VAL_22]] :
-// CHECK:             cc.store %[[VAL_122]], %[[VAL_6]] : !cc.ptr<i1>
+// CHECK:             %[[VAL_23:.*]] = quake.discriminate %[[VAL_22]] : (!quake.measure) -> i1
+// CHECK:             cc.store %[[VAL_23]], %[[VAL_6]] : !cc.ptr<i1>
 // CHECK:             cc.continue
 // CHECK:           }
 // CHECK:           cf.br ^bb3
@@ -113,37 +121,35 @@ func.func @peel_do_while_with_args() {
 }
 
 // CHECK-LABEL:   func.func @peel_do_while_with_args() {
-// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 1 : i32
-// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant false
-// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 0 : i32
-// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 10 : i32
+// CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 0 : i64
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 10 : i32
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant false
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 1 : i32
 // CHECK-DAG:       %[[VAL_4:.*]] = quake.alloca !quake.veq<10>
-// CHECK:           cf.br ^bb1(%[[VAL_2]] : i32)
-// CHECK:         ^bb1(%[[VAL_5:.*]]: i32):
-// CHECK:           %[[VAL_6:.*]] = arith.addi %[[VAL_5]], %[[VAL_0]] : i32
-// CHECK:           %[[VAL_7:.*]] = arith.extui %[[VAL_5]] : i32 to i64
-// CHECK:           %[[VAL_8:.*]] = quake.extract_ref %[[VAL_4]][%[[VAL_7]]] : (!quake.veq<10>, i64) -> !quake.ref
-// CHECK:           %[[VAL_109:.*]] = quake.mz %[[VAL_8]] : (!quake.ref) -> !quake.measure
-// CHECK:           %[[VAL_9:.*]] = quake.discriminate %[[VAL_109]] :
-// CHECK:           cf.br ^bb2(%[[VAL_6]], %[[VAL_9]] : i32, i1)
-// CHECK:         ^bb2(%[[VAL_10:.*]]: i32, %[[VAL_11:.*]]: i1):
-// CHECK:           %[[VAL_12:.*]]:2 = cc.loop while ((%[[VAL_13:.*]] = %[[VAL_10]], %[[VAL_14:.*]] = %[[VAL_11]]) -> (i32, i1)) {
-// CHECK:             %[[VAL_15:.*]] = arith.cmpi eq, %[[VAL_14]], %[[VAL_1]] : i1
-// CHECK:             %[[VAL_16:.*]] = cc.if(%[[VAL_15]]) -> i1 {
-// CHECK:               cc.continue %[[VAL_1]] : i1
+// CHECK:           cf.br ^bb1
+// CHECK:         ^bb1:
+// CHECK:           %[[VAL_5:.*]] = quake.extract_ref %[[VAL_4]][%[[VAL_0]]] : (!quake.veq<10>, i64) -> !quake.ref
+// CHECK:           %[[VAL_6:.*]] = quake.mz %[[VAL_5]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[VAL_7:.*]] = quake.discriminate %[[VAL_6]] : (!quake.measure) -> i1
+// CHECK:           cf.br ^bb2
+// CHECK:         ^bb2:
+// CHECK:           %[[VAL_8:.*]]:2 = cc.loop while ((%[[VAL_9:.*]] = %[[VAL_3]], %[[VAL_10:.*]] = %[[VAL_7]]) -> (i32, i1)) {
+// CHECK:             %[[VAL_11:.*]] = arith.cmpi eq, %[[VAL_10]], %[[VAL_2]] : i1
+// CHECK:             %[[VAL_12:.*]] = cc.if(%[[VAL_11]]) -> i1 {
+// CHECK:               cc.continue %[[VAL_2]] : i1
 // CHECK:             } else {
-// CHECK:               %[[VAL_17:.*]] = arith.cmpi ult, %[[VAL_13]], %[[VAL_3]] : i32
-// CHECK:               cc.continue %[[VAL_17]] : i1
+// CHECK:               %[[VAL_13:.*]] = arith.cmpi ult, %[[VAL_9]], %[[VAL_1]] : i32
+// CHECK:               cc.continue %[[VAL_13]] : i1
 // CHECK:             }
-// CHECK:             cc.condition %[[VAL_18:.*]](%[[VAL_13]], %[[VAL_14]] : i32, i1)
+// CHECK:             cc.condition %[[VAL_12]](%[[VAL_9]], %[[VAL_10]] : i32, i1)
 // CHECK:           } do {
-// CHECK:           ^bb0(%[[VAL_19:.*]]: i32, %[[VAL_20:.*]]: i1):
-// CHECK:             %[[VAL_21:.*]] = arith.addi %[[VAL_19]], %[[VAL_0]] : i32
-// CHECK:             %[[VAL_22:.*]] = arith.extui %[[VAL_19]] : i32 to i64
-// CHECK:             %[[VAL_23:.*]] = quake.extract_ref %[[VAL_4]][%[[VAL_22]]] : (!quake.veq<10>, i64) -> !quake.ref
-// CHECK:             %[[VAL_124:.*]] = quake.mz %[[VAL_23]] : (!quake.ref) -> !quake.measure
-// CHECK:             %[[VAL_24:.*]] = quake.discriminate %[[VAL_124]] :
-// CHECK:             cc.continue %[[VAL_21]], %[[VAL_24]] : i32, i1
+// CHECK:           ^bb0(%[[VAL_14:.*]]: i32, %[[VAL_15:.*]]: i1):
+// CHECK:             %[[VAL_16:.*]] = arith.addi %[[VAL_14]], %[[VAL_3]] : i32
+// CHECK:             %[[VAL_17:.*]] = arith.extui %[[VAL_14]] : i32 to i64
+// CHECK:             %[[VAL_18:.*]] = quake.extract_ref %[[VAL_4]][%[[VAL_17]]] : (!quake.veq<10>, i64) -> !quake.ref
+// CHECK:             %[[VAL_19:.*]] = quake.mz %[[VAL_18]] : (!quake.ref) -> !quake.measure
+// CHECK:             %[[VAL_20:.*]] = quake.discriminate %[[VAL_19]] : (!quake.measure) -> i1
+// CHECK:             cc.continue %[[VAL_16]], %[[VAL_20]] : i32, i1
 // CHECK:           }
 // CHECK:           cf.br ^bb3
 // CHECK:         ^bb3:

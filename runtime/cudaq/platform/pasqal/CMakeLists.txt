@@ -31,13 +31,6 @@ add_library(${SERVERHELPER_LIBRARY_NAME}
 set(_pasqal_public_link_libs
   cudaq-operator
   cudaq-common)
-set(_pasqal_private_link_libs
-  pthread
-  cudaq-mlir-runtime
-  fmt::fmt-header-only
-  cudaq
-  cudaq-platform-default
-  nvqir)
 foreach(_pasqal_target IN ITEMS ${LIBRARY_NAME} ${SERVERHELPER_LIBRARY_NAME})
   target_include_directories(${_pasqal_target} PRIVATE .
     PUBLIC
@@ -46,9 +39,22 @@ foreach(_pasqal_target IN ITEMS ${LIBRARY_NAME} ${SERVERHELPER_LIBRARY_NAME})
   )
   target_link_libraries(${_pasqal_target}
     PUBLIC ${_pasqal_public_link_libs}
-    PRIVATE ${_pasqal_private_link_libs}
   )
 endforeach()
+
+target_link_libraries(${LIBRARY_NAME}
+  PRIVATE
+    cudaq-mlir-runtime
+    fmt::fmt-header-only
+    cudaq
+    cudaq-platform-default
+    nvqir)
+
+target_link_libraries(${SERVERHELPER_LIBRARY_NAME}
+  PRIVATE
+    fmt::fmt-header-only
+    cudaq-logger
+    pthread)
     
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
 install(TARGETS ${SERVERHELPER_LIBRARY_NAME} DESTINATION lib)

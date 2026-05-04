@@ -57,8 +57,7 @@ def test_bug_1777():
 # CHECK:             %[[VAL_23:.*]] = arith.addi %[[VAL_20]], %[[VAL_1]] : i64
 # CHECK:             cc.continue %[[VAL_23]], %[[VAL_21]], %[[VAL_22]] : i64, i64, i1
 # CHECK:           }
-# CHECK:           %[[VAL_24:.*]] = arith.cmpi eq, %[[VAL_25:.*]]#2, %[[VAL_3]] : i1
-# CHECK:           cc.if(%[[VAL_24]]) {
+# CHECK:           cc.if(%[[VAL_7]]#2) {
 # CHECK:             %[[VAL_26:.*]] = quake.mz %[[VAL_6]] name "outer_mz" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 # CHECK:           } else {
 # CHECK:           }

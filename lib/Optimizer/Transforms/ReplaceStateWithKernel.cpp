@@ -8,11 +8,7 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "mlir/Dialect/Complex/IR/Complex.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
@@ -124,8 +120,7 @@ public:
     LLVM_DEBUG(llvm::dbgs()
                << "Before replace state with kernel: " << func << '\n');
 
-    if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
-                                            std::move(patterns))))
+    if (failed(applyPatternsGreedily(func.getOperation(), std::move(patterns))))
       signalPassFailure();
 
     LLVM_DEBUG(llvm::dbgs()

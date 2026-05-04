@@ -10,8 +10,8 @@
 #include "common/DeviceCodeRegistry.h"
 #include "cudaq/algorithms/sample.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
-#include "utils/NanobindAdaptors.h"
 #include "utils/OpaqueArguments.h"
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include <fmt/core.h>
@@ -109,5 +109,10 @@ programming pattern.
           },
           "FIXME: document");
 
-  mod.def("sample_async_impl", sample_async_impl, "FIXME: document");
+  mod.def("sample_async_impl", sample_async_impl, "FIXME: document",
+          nanobind::arg("short_name"), nanobind::arg("module"),
+          nanobind::arg("shots_count"),
+          nanobind::arg("noise_model").none() = std::nullopt,
+          nanobind::arg("explicit_measurements"), nanobind::arg("qpu_id"),
+          nanobind::arg("runtime_args"));
 }

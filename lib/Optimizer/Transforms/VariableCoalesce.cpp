@@ -242,7 +242,7 @@ public:
         }
         auto loc = o->getLoc();
         auto ty = cast<cudaq::cc::AllocaOp>(o).getElementType();
-        auto newVar = rewriter.create<cudaq::cc::AllocaOp>(loc, ty);
+        auto newVar = cudaq::cc::AllocaOp::create(rewriter, loc, ty);
         analysis.addBinding(o, newVar);
       }
     }
@@ -250,7 +250,7 @@ public:
     // Step 2: Replace old variables with new ones.
     RewritePatternSet patterns(ctx);
     patterns.insert<PackingPattern>(ctx, analysis);
-    if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns))))
+    if (failed(applyPatternsGreedily(func, std::move(patterns))))
       signalPassFailure();
     LLVM_DEBUG(llvm::dbgs() << "After variable coalescing:\n"
                             << func << "\n\n");

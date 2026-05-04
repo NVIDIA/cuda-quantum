@@ -48,78 +48,78 @@ func.func @__nvqpp__mlirgen__function_multi_vector._Z12multi_vectorv() attribute
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_bell_pair._Z9bell_pairv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, passthrough = ["entry_point", ["qir_profiles", "{{base_}}profile"], ["output_labeling_schema", "schema_id"], ["requiredQubits", "2"], ["requiredResults", "2"], ["output_names", "{{\[\[}}[0,[0,\22r00000\22]],[1,[1,\22r00001\22]]]]"]], "qir-api"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_1:.*]] = arith.constant 0 : i64
-// CHECK:           %[[VAL_2:.*]] = arith.constant 2 : i64
-// CHECK:           %[[VAL_3:.*]] = cc.cast %[[VAL_1]] : (i64) -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
-// CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_0]] : (i64) -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
+// CHECK-DAG:       %[[C2:.*]] = arith.constant 2 : i64
+// CHECK-DAG:       %[[C1:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[C0:.*]] = arith.constant 0 : i64
+// CHECK:           %[[VAL_3:.*]] = cc.cast %[[C0]] : (i64) -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
+// CHECK:           %[[VAL_4:.*]] = cc.cast %[[C1]] : (i64) -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
 // CHECK:           call @__quantum__qis__h__body(%[[VAL_3]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
 // CHECK:           call @__quantum__qis__cnot__body(%[[VAL_3]], %[[VAL_4]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
-// CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_1]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:           %[[VAL_5:.*]] = cc.cast %[[C0]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
 // CHECK:           call @__quantum__qis__mz__body(%[[VAL_3]], %[[VAL_5]]) {registerName = "r00000"} : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Result", opaque>>) -> ()
 // CHECK:           %[[VAL_6:.*]] = cc.address_of @cstr.72303030303000 : !cc.ptr<!llvm.array<7 x i8>>
 // CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!llvm.array<7 x i8>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_0]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:           %[[VAL_8:.*]] = cc.cast %[[C1]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
 // CHECK:           call @__quantum__qis__mz__body(%[[VAL_4]], %[[VAL_8]]) {registerName = "r00001"} : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Result", opaque>>) -> ()
 // CHECK:           %[[VAL_9:.*]] = cc.address_of @cstr.72303030303100 : !cc.ptr<!llvm.array<7 x i8>>
 // CHECK:           %[[VAL_10:.*]] = cc.cast %[[VAL_9]] : (!cc.ptr<!llvm.array<7 x i8>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_11:.*]] = cc.string_literal "array<i1 x 2>" : !cc.ptr<!cc.array<i8 x 14>>
 // CHECK:           %[[VAL_12:.*]] = cc.cast %[[VAL_11]] : (!cc.ptr<!cc.array<i8 x 14>>) -> !cc.ptr<i8>
-// CHECK:           call @__quantum__rt__array_record_output(%[[VAL_2]], %[[VAL_12]]) : (i64, !cc.ptr<i8>) -> ()
+// CHECK:           call @__quantum__rt__array_record_output(%[[C2]], %[[VAL_12]]) : (i64, !cc.ptr<i8>) -> ()
 // CHECK:           call @__quantum__rt__result_record_output(%[[VAL_5]], %[[VAL_7]]) {ResultIndex = 0 : i64, registerName = "r00000"} : (!cc.ptr<!llvm.struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
 // CHECK:           call @__quantum__rt__result_record_output(%[[VAL_8]], %[[VAL_10]]) {ResultIndex = 1 : i64, registerName = "r00001"} : (!cc.ptr<!llvm.struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
 // CHECK:           return
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_one_qubit._Z9one_qubitv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, passthrough = ["entry_point", ["qir_profiles", "base_profile"], ["output_labeling_schema", "schema_id"], ["requiredQubits", "1"], ["requiredResults", "1"], ["output_names", "{{\[\[}}[0,[0,\22r00000\22]]]]"]], "qir-api"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i64
-// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_2:.*]] = cc.cast %[[VAL_0]] : (i64) -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
+// CHECK-DAG:       %[[C1:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[C0:.*]] = arith.constant 0 : i64
+// CHECK:           %[[VAL_2:.*]] = cc.cast %[[C0]] : (i64) -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
 // CHECK:           call @__quantum__qis__x__body(%[[VAL_2]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
-// CHECK:           %[[VAL_3:.*]] = cc.cast %[[VAL_0]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:           %[[VAL_3:.*]] = cc.cast %[[C0]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
 // CHECK:           call @__quantum__qis__mz__body(%[[VAL_2]], %[[VAL_3]]) {registerName = "r00000"} : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Result", opaque>>) -> ()
 // CHECK:           %[[VAL_4:.*]] = cc.address_of @cstr.72303030303000 : !cc.ptr<!llvm.array<7 x i8>>
 // CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<!llvm.array<7 x i8>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_6:.*]] = cc.string_literal "array<i1 x 1>" : !cc.ptr<!cc.array<i8 x 14>>
 // CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!cc.array<i8 x 14>>) -> !cc.ptr<i8>
-// CHECK:           call @__quantum__rt__array_record_output(%[[VAL_1]], %[[VAL_7]]) : (i64, !cc.ptr<i8>) -> ()
+// CHECK:           call @__quantum__rt__array_record_output(%[[C1]], %[[VAL_7]]) : (i64, !cc.ptr<i8>) -> ()
 // CHECK:           call @__quantum__rt__result_record_output(%[[VAL_3]], %[[VAL_5]]) {ResultIndex = 0 : i64, registerName = "r00000"} : (!cc.ptr<!llvm.struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
 // CHECK:           return
 // CHECK:         }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_multi_vector._Z12multi_vectorv() attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_reorder_idx = [0, 1, 2, 3], mapping_v2p = [0, 1, 2, 3], no_this, passthrough = ["entry_point", ["qir_profiles", "base_profile"], ["output_labeling_schema", "schema_id"], ["requiredQubits", "4"], ["requiredResults", "4"], ["output_names", "{{\[\[}}[0,[0,\22r00000\22]],[1,[1,\22r00001\22]],[2,[2,\22r00002\22]],[3,[3,\22r00003\22]]]]"]], "qir-api"} {
-// CHECK:           %[[VAL_0:.*]] = arith.constant 3 : i64
-// CHECK:           %[[VAL_1:.*]] = arith.constant 2 : i64
-// CHECK:           %[[VAL_2:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_3:.*]] = arith.constant 0 : i64
-// CHECK:           %[[VAL_4:.*]] = arith.constant 4 : i64
-// CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_3]] : (i64) -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
-// CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_2]] : (i64) -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
-// CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_1]] : (i64) -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
-// CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_0]] : (i64) -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
+// CHECK-DAG:       %[[C4:.*]] = arith.constant 4 : i64
+// CHECK-DAG:       %[[C3:.*]] = arith.constant 3 : i64
+// CHECK-DAG:       %[[C2:.*]] = arith.constant 2 : i64
+// CHECK-DAG:       %[[C1:.*]] = arith.constant 1 : i64
+// CHECK-DAG:       %[[C0:.*]] = arith.constant 0 : i64
+// CHECK:           %[[VAL_5:.*]] = cc.cast %[[C0]] : (i64) -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
+// CHECK:           %[[VAL_6:.*]] = cc.cast %[[C1]] : (i64) -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
+// CHECK:           %[[VAL_7:.*]] = cc.cast %[[C2]] : (i64) -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
+// CHECK:           %[[VAL_8:.*]] = cc.cast %[[C3]] : (i64) -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
 // CHECK:           call @__quantum__qis__x__body(%[[VAL_5]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
 // CHECK:           call @__quantum__qis__x__body(%[[VAL_6]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
 // CHECK:           call @__quantum__qis__h__body(%[[VAL_8]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
 // CHECK:           call @__quantum__qis__cnot__body(%[[VAL_8]], %[[VAL_7]]) : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
-// CHECK:           %[[VAL_9:.*]] = cc.cast %[[VAL_3]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:           %[[VAL_9:.*]] = cc.cast %[[C0]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
 // CHECK:           call @__quantum__qis__mz__body(%[[VAL_5]], %[[VAL_9]]) {registerName = "r00000"} : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Result", opaque>>) -> ()
 // CHECK:           %[[VAL_10:.*]] = cc.address_of @cstr.72303030303000 : !cc.ptr<!llvm.array<7 x i8>>
 // CHECK:           %[[VAL_11:.*]] = cc.cast %[[VAL_10]] : (!cc.ptr<!llvm.array<7 x i8>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_12:.*]] = cc.cast %[[VAL_2]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:           %[[VAL_12:.*]] = cc.cast %[[C1]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
 // CHECK:           call @__quantum__qis__mz__body(%[[VAL_6]], %[[VAL_12]]) {registerName = "r00001"} : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Result", opaque>>) -> ()
 // CHECK:           %[[VAL_13:.*]] = cc.address_of @cstr.72303030303100 : !cc.ptr<!llvm.array<7 x i8>>
 // CHECK:           %[[VAL_14:.*]] = cc.cast %[[VAL_13]] : (!cc.ptr<!llvm.array<7 x i8>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_15:.*]] = cc.cast %[[VAL_1]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:           %[[VAL_15:.*]] = cc.cast %[[C2]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
 // CHECK:           call @__quantum__qis__mz__body(%[[VAL_7]], %[[VAL_15]]) {registerName = "r00002"} : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Result", opaque>>) -> ()
 // CHECK:           %[[VAL_16:.*]] = cc.address_of @cstr.72303030303200 : !cc.ptr<!llvm.array<7 x i8>>
 // CHECK:           %[[VAL_17:.*]] = cc.cast %[[VAL_16]] : (!cc.ptr<!llvm.array<7 x i8>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_18:.*]] = cc.cast %[[VAL_0]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:           %[[VAL_18:.*]] = cc.cast %[[C3]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
 // CHECK:           call @__quantum__qis__mz__body(%[[VAL_8]], %[[VAL_18]]) {registerName = "r00003"} : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<!llvm.struct<"Result", opaque>>) -> ()
 // CHECK:           %[[VAL_19:.*]] = cc.address_of @cstr.72303030303300 : !cc.ptr<!llvm.array<7 x i8>>
 // CHECK:           %[[VAL_20:.*]] = cc.cast %[[VAL_19]] : (!cc.ptr<!llvm.array<7 x i8>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_21:.*]] = cc.string_literal "array<i1 x 4>" : !cc.ptr<!cc.array<i8 x 14>>
 // CHECK:           %[[VAL_22:.*]] = cc.cast %[[VAL_21]] : (!cc.ptr<!cc.array<i8 x 14>>) -> !cc.ptr<i8>
-// CHECK:           call @__quantum__rt__array_record_output(%[[VAL_4]], %[[VAL_22]]) : (i64, !cc.ptr<i8>) -> ()
+// CHECK:           call @__quantum__rt__array_record_output(%[[C4]], %[[VAL_22]]) : (i64, !cc.ptr<i8>) -> ()
 // CHECK:           call @__quantum__rt__result_record_output(%[[VAL_9]], %[[VAL_11]]) {ResultIndex = 0 : i64, registerName = "r00000"} : (!cc.ptr<!llvm.struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
 // CHECK:           call @__quantum__rt__result_record_output(%[[VAL_12]], %[[VAL_14]]) {ResultIndex = 1 : i64, registerName = "r00001"} : (!cc.ptr<!llvm.struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
 // CHECK:           call @__quantum__rt__result_record_output(%[[VAL_15]], %[[VAL_17]]) {ResultIndex = 2 : i64, registerName = "r00002"} : (!cc.ptr<!llvm.struct<"Result", opaque>>, !cc.ptr<i8>) -> ()

@@ -10,7 +10,7 @@
 #include "cudaq/algorithms/unitary.h"
 #include "runtime/cudaq/operators/py_helpers.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
-#include "utils/NanobindAdaptors.h"
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
 
 using namespace cudaq;
 
@@ -24,7 +24,7 @@ static nanobind::object get_unitary_impl(const std::string &shortName,
 
   // Return as numpy array (dim, dim), complex128
   auto temp = contrib::get_unitary_cmat(std::move(f));
-  return nanobind::cast(details::cmat_to_numpy(temp));
+  return details::cmat_to_numpy(temp);
 }
 
 /// Bind the get_unitary cudaq function

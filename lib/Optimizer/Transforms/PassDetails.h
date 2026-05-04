@@ -9,21 +9,18 @@
 #pragma once
 
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
+#include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
+#include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassRegistry.h"
-
-namespace cudaq::opt {
-
-#define GEN_PASS_CLASSES
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
-
-} // namespace cudaq::opt
 
 #define GATE_OPS(MACRO)                                                        \
   MACRO(XOp), MACRO(YOp), MACRO(ZOp), MACRO(HOp), MACRO(SOp), MACRO(TOp),      \

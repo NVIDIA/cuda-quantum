@@ -537,7 +537,7 @@ target_link_libraries(test_ptsbe
   nvqir-qpp
   fmt::fmt-header-only
   gtest_main)
-gtest_discover_tests(test_ptsbe PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS})
+gtest_discover_tests(test_ptsbe PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
 
 add_executable(test_nvqir_verify main.cpp qir/NVQIRVerify.cpp)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
@@ -615,6 +615,11 @@ if (CUDAQ_ENABLE_PYTHON)
 
   if(NOT ${PYSCF_result} EQUAL 0)
     message(STATUS "OpenFermion PySCF not available for chemistry tests.")
+    return()
+  endif()
+
+  if(NOT TARGET cudaq-pyscf)
+    message(STATUS "cudaq-pyscf plugin not enabled; skipping chemistry tests.")
     return()
   endif()
 

@@ -8,7 +8,6 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
@@ -95,10 +94,10 @@ public:
       SmallVector<Value> memAllocs;
       for (auto memTy : stqTy.getMembers())
         memAllocs.emplace_back(
-            rewriter.create<quake::AllocaOp>(loc, memTy).getResult());
+            quake::AllocaOp::create(rewriter, loc, memTy).getResult());
       // 2. Create a value of the original struq type using quake.make_struq.
       auto aggregate =
-          rewriter.create<quake::MakeStruqOp>(loc, stqTy, memAllocs);
+          quake::MakeStruqOp::create(rewriter, loc, stqTy, memAllocs);
       // 3. Walk all the uses. If they are quake.get_member operations, replace
       // them with direct uses.
       for (auto *user : llvm::make_early_inc_range(allocOp->getUsers()))
@@ -119,7 +118,7 @@ public:
 
     // Split the aggregate veq into a sequence of distinct alloca of ref.
     for (std::size_t i = 0; i < size; ++i)
-      newAllocs.emplace_back(rewriter.create<quake::AllocaOp>(loc, refTy));
+      newAllocs.emplace_back(quake::AllocaOp::create(rewriter, loc, refTy));
 
     if (usesAreConvertible(allocOp)) {
       // Visit all users and replace them accordingly.
@@ -150,7 +149,7 @@ public:
         rewriter.setInsertionPoint(dealloc);
         auto deloc = dealloc.getLoc();
         for (std::size_t i = 0; i < size - 1; ++i)
-          rewriter.create<quake::DeallocOp>(deloc, newAllocs[i]);
+          quake::DeallocOp::create(rewriter, deloc, newAllocs[i]);
         rewriter.replaceOpWithNewOp<quake::DeallocOp>(dealloc,
                                                       newAllocs[size - 1]);
         continue;
@@ -215,20 +214,17 @@ public:
     }
 
     auto loc = dealloc.getLoc();
-    // 1. Split the aggregate alloc into a sequence of distinct dealloc of
-    // ref.
     if (auto veqTy = dyn_cast<quake::VeqType>(allocTy)) {
       generateDeallocs(veqTy, rewriter, loc, alloc);
     } else if (auto stqTy = dyn_cast<quake::StruqType>(allocTy)) {
-      // Process a struq in memberwise fashion.
       for (auto iter : llvm::enumerate(stqTy.getMembers())) {
         Type memTy = iter.value();
-        auto mem = rewriter.create<quake::GetMemberOp>(loc, memTy, alloc,
-                                                       iter.index());
+        auto mem = quake::GetMemberOp::create(rewriter, loc, memTy, alloc,
+                                              iter.index());
         if (auto veqTy = dyn_cast<quake::VeqType>(memTy))
           generateDeallocs(veqTy, rewriter, loc, mem);
         else
-          rewriter.create<quake::DeallocOp>(loc, mem);
+          quake::DeallocOp::create(rewriter, loc, mem);
       }
     }
 
@@ -243,8 +239,8 @@ public:
     std::size_t size = veqTy.getSize();
 
     for (std::size_t i = 0; i < size; ++i) {
-      Value r = rewriter.create<quake::ExtractRefOp>(loc, alloc, i);
-      rewriter.create<quake::DeallocOp>(loc, r);
+      Value r = quake::ExtractRefOp::create(rewriter, loc, alloc, i);
+      quake::DeallocOp::create(rewriter, loc, r);
     }
   };
 };
@@ -284,7 +280,7 @@ public:
     func::FuncOp func = getOperation();
     RewritePatternSet patterns(ctx);
     patterns.insert<DeallocPattern>(ctx);
-    if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns))))
+    if (failed(applyPatternsGreedily(func, std::move(patterns))))
       return failure();
     return success();
   }
@@ -294,7 +290,7 @@ public:
     func::FuncOp func = getOperation();
     RewritePatternSet patterns(ctx);
     patterns.insert<AllocaPattern>(ctx);
-    if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns))))
+    if (failed(applyPatternsGreedily(func, std::move(patterns))))
       return failure();
     return success();
   }

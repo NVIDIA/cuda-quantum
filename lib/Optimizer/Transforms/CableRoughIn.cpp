@@ -8,10 +8,7 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
@@ -80,7 +77,7 @@ public:
     for (auto arg : call.getOperands()) {
       Type argTy = arg.getType();
       if (argTy == refTy) {
-        newArgs.push_back(rewriter.create<quake::UnwrapOp>(loc, wireTy, arg));
+        newArgs.push_back(quake::UnwrapOp::create(rewriter, loc, wireTy, arg));
         resultTys.push_back(wireTy);
         continue;
       }
@@ -103,9 +100,9 @@ public:
         SmallVector<Value> unwraps;
         for (auto carg : concat.getTargets())
           unwraps.push_back(
-              rewriter.create<quake::UnwrapOp>(loc, wireTy, carg));
+              quake::UnwrapOp::create(rewriter, loc, wireTy, carg));
         newArgs.push_back(
-            rewriter.create<quake::BundleCableOp>(loc, cableTy, unwraps));
+            quake::BundleCableOp::create(rewriter, loc, cableTy, unwraps));
         resultTys.push_back(cableTy);
         continue;
       }
@@ -121,7 +118,7 @@ public:
           auto strArgTy = strArg.getType();
           if (isa<quake::RefType>(strArgTy)) {
             unwraps.push_back(
-                rewriter.create<quake::UnwrapOp>(loc, wireTy, strArg));
+                quake::UnwrapOp::create(rewriter, loc, wireTy, strArg));
             cableSize++;
             continue;
           }
@@ -142,7 +139,7 @@ public:
             cableSize += concat.getTargets().size();
             for (auto carg : concat.getTargets())
               unwraps.push_back(
-                  rewriter.create<quake::UnwrapOp>(loc, wireTy, carg));
+                  quake::UnwrapOp::create(rewriter, loc, wireTy, carg));
             continue;
           }
           LLVM_DEBUG(llvm::dbgs() << strArg << " is not supported.\n");
@@ -150,7 +147,7 @@ public:
         }
         auto cableTy = quake::CableType::get(ctx, cableSize);
         newArgs.push_back(
-            rewriter.create<quake::BundleCableOp>(loc, cableTy, unwraps));
+            quake::BundleCableOp::create(rewriter, loc, cableTy, unwraps));
         resultTys.push_back(cableTy);
         continue;
       }
@@ -159,8 +156,8 @@ public:
     }
 
     // Create a quake.call_by_ref operation.
-    auto callByRef = rewriter.create<quake::CallByRefOp>(
-        loc, resultTys, call.getCalleeAttr(), newArgs);
+    auto callByRef = quake::CallByRefOp::create(
+        rewriter, loc, call.getCalleeAttr(), resultTys, newArgs);
 
     // Wrap the wires and cables.
     std::size_t i = origCoarity;
@@ -169,7 +166,7 @@ public:
     for (auto arg : call.getOperands()) {
       Type argTy = arg.getType();
       if (argTy == refTy) {
-        rewriter.create<quake::WrapOp>(loc, results[i++], arg);
+        quake::WrapOp::create(rewriter, loc, results[i++], arg);
         continue;
       }
       if (isa<quake::VeqType>(argTy)) {
@@ -181,11 +178,11 @@ public:
         SmallVector<Type> wireTys(cableSize);
         std::fill(wireTys.begin(), wireTys.end(), wireTy);
         auto split =
-            rewriter.create<quake::SplitCableOp>(loc, wireTys, results[i++]);
+            quake::SplitCableOp::create(rewriter, loc, wireTys, results[i++]);
         SmallVector<Value> concatTargs{concat.getTargets().begin(),
                                        concat.getTargets().end()};
         for (auto [j, wire] : llvm::enumerate(split.getResults()))
-          rewriter.create<quake::WrapOp>(loc, wire, concatTargs[j]);
+          quake::WrapOp::create(rewriter, loc, wire, concatTargs[j]);
       }
       if (isa<quake::StruqType>(argTy)) {
         auto mkStruq = arg.getDefiningOp<quake::MakeStruqOp>();
@@ -194,14 +191,14 @@ public:
         SmallVector<Type> wireTys(cableSize);
         std::fill(wireTys.begin(), wireTys.end(), wireTy);
         auto split =
-            rewriter.create<quake::SplitCableOp>(loc, wireTys, results[i++]);
+            quake::SplitCableOp::create(rewriter, loc, wireTys, results[i++]);
         std::size_t j = 0;
         SmallVector<Value> splitResults{split.getResults().begin(),
                                         split.getResults().end()};
         for (auto strArg : mkStruq.getVeqs()) {
           auto strArgTy = strArg.getType();
           if (isa<quake::RefType>(strArgTy)) {
-            rewriter.create<quake::WrapOp>(loc, splitResults[j++], strArg);
+            quake::WrapOp::create(rewriter, loc, splitResults[j++], strArg);
             continue;
           }
           if (isa<quake::VeqType>(strArgTy)) {
@@ -211,8 +208,8 @@ public:
             SmallVector<Value> concatTargs{concat.getTargets().begin(),
                                            concat.getTargets().end()};
             for (std::size_t k = 0, K = concatTargs.size(); k < K; ++k)
-              rewriter.create<quake::WrapOp>(loc, splitResults[j++],
-                                             concatTargs[k]);
+              quake::WrapOp::create(rewriter, loc, splitResults[j++],
+                                    concatTargs[k]);
             continue;
           }
           LLVM_DEBUG(llvm::dbgs() << strArg << " is not supported.\n");
@@ -240,7 +237,7 @@ public:
     patterns.insert<CallPattern>(ctx);
     quake::ExtractRefOp::getCanonicalizationPatterns(patterns, ctx);
     quake::GetMemberOp::getCanonicalizationPatterns(patterns, ctx);
-    if (failed(applyPatternsAndFoldGreedily(funcOp, std::move(patterns))))
+    if (failed(applyPatternsGreedily(funcOp, std::move(patterns))))
       signalPassFailure();
   }
 };

@@ -243,7 +243,13 @@ nitpick_ignore = [
     ('cpp:identifier', 'cudaq::detail::EigenSparseMatrix'),
     ('cpp:identifier', 'detail'),
     ('cpp:identifier', 'detail::NoisePoint'),
+    # nanobind generates RST function directives whose description text gets
+    # misinterpreted as py:class cross-references in nitpick mode
+    ('py:class', 'Convert spin_op to JSON string'),
+    ('py:class', 'Checks if all operators in the product are the identity. Note'),
 ]
+
+suppress_warnings = ["myst.duplicate_def"]
 
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False

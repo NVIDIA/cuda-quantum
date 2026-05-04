@@ -18,7 +18,7 @@
 # - https://github.com/numpy/numpy/blob/main/pyproject.toml, and 
 # - https://github.com/numpy/numpy/blob/main/.github/workflows/wheels.yml
 
-ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:manylinux-amd64-cu12.6-gcc11-main
+ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:manylinux-amd64-cu12.6-gcc12-main
 # Default empty stage for ccache data. CI overrides this with
 # --build-context ccache-data=<path> to inject a pre-populated cache,
 # while local/devcontainer builds get a harmless no-op (empty scratch).
@@ -50,12 +50,12 @@ RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
         mkdir -p /root/.ccache; \
     fi
 RUN echo "Building MLIR bindings for python${python_version}" && \
-    CCACHE_DISABLE=1 python${python_version} -m pip install --no-cache-dir numpy && \
+    CCACHE_DISABLE=1 python${python_version} -m pip install --no-cache-dir numpy "nanobind>=2.9.0" && \
     rm -rf "$LLVM_INSTALL_PREFIX/src" "$LLVM_INSTALL_PREFIX/python_packages" && \
     Python3_EXECUTABLE="$(which python${python_version})" \
-    LLVM_PROJECTS='clang;mlir;python-bindings' \
+    LLVM_PROJECTS='clang;lld;mlir;python-bindings' \
     LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake LLVM_SOURCE=/llvm-project \
-    bash /scripts/build_llvm.sh -c Release -v 
+    bash /scripts/build_llvm.sh -c Release -v
 
 # Build wheel using unified wheel build script
 RUN cd /cuda-quantum && \

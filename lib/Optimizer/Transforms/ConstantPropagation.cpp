@@ -8,10 +8,7 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Dominance.h"
 #include "mlir/IR/PatternMatch.h"
@@ -114,8 +111,8 @@ public:
     }
     Type loadTy = loadSpan.getType();
     auto arrayAttr = cast<ArrayAttr>(attr);
-    Value newConArr = rewriter.create<cudaq::cc::ConstantArrayOp>(
-        loadSpan.getLoc(), ty, arrayAttr);
+    Value newConArr = cudaq::cc::ConstantArrayOp::create(
+        rewriter, loadSpan.getLoc(), ty, arrayAttr);
     rewriter.replaceOpWithNewOp<cudaq::cc::ReifySpanOp>(loadSpan, loadTy,
                                                         newConArr);
     return success();
@@ -193,24 +190,24 @@ public:
     auto loc = loadSpanEle.getLoc();
     if (isa<cudaq::cc::CharspanType>(loadTy)) {
       auto stringAttr = cast<StringAttr>(attr);
-      auto lit = rewriter.create<cudaq::cc::CreateStringLiteralOp>(
-          loc, cudaq::cc::PointerType::get(ty), stringAttr);
-      auto len = rewriter.create<arith::ConstantIntOp>(
-          loc, stringAttr.getValue().size() + 1, 64);
+      auto lit = cudaq::cc::CreateStringLiteralOp::create(
+          rewriter, loc, cudaq::cc::PointerType::get(ty), stringAttr);
+      auto len = arith::ConstantIntOp::create(
+          rewriter, loc, stringAttr.getValue().size() + 1, 64);
       rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(loadSpanEle, loadTy,
                                                            lit, len);
       return success();
     }
     if (auto intTy = dyn_cast<IntegerType>(loadTy)) {
       auto intAttr = cast<IntegerAttr>(attr);
-      rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(
-          loadSpanEle, intAttr.getInt(), intTy);
+      rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(loadSpanEle, intTy,
+                                                        intAttr.getInt());
       return success();
     }
     if (auto floatTy = dyn_cast<FloatType>(loadTy)) {
       auto floatAttr = cast<FloatAttr>(attr);
-      rewriter.replaceOpWithNewOp<arith::ConstantFloatOp>(
-          loadSpanEle, floatAttr.getValue(), floatTy);
+      rewriter.replaceOpWithNewOp<arith::ConstantFloatOp>(loadSpanEle, floatTy,
+                                                          floatAttr.getValue());
       return success();
     }
     return failure();
@@ -231,8 +228,8 @@ public:
 
     LLVM_DEBUG(llvm::dbgs() << "Before constant prop:\n" << func << '\n');
 
-    if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
-                                            std::move(patterns)))) {
+    if (failed(
+            applyPatternsGreedily(func.getOperation(), std::move(patterns)))) {
       signalPassFailure();
       return;
     }

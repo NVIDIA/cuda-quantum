@@ -40,7 +40,7 @@ endif()
 # CMP0116: Ninja generators transform `DEPFILE`s from `add_custom_command()`
 # New in CMake 3.20. https://cmake.org/cmake/help/latest/policy/CMP0116.html
 if(POLICY CMP0116)
-  cmake_policy(SET CMP0116 OLD)
+  cmake_policy(SET CMP0116 NEW)
 endif()
 
 # Project setup
@@ -87,10 +87,13 @@ endif()
 # Enable the remote simulator by default.
 if (CUDAQ_ENABLE_REST AND NOT DEFINED CUDAQ_ENABLE_REMOTE_SIM)
   set(CUDAQ_ENABLE_REMOTE_SIM ON CACHE BOOL "Enable building cudaq-qpud.")
-  # Optionally enable the tests that use cudaq-qpud.
   if (NOT DEFINED CUDAQ_TEST_REMOTE_SIM)
     set(CUDAQ_TEST_REMOTE_SIM ON CACHE BOOL "Run remote-sim tests.")
   endif()
+endif()
+if (NOT CUDAQ_ENABLE_REST)
+  set(CUDAQ_ENABLE_REMOTE_SIM OFF CACHE BOOL "Enable building cudaq-qpud." FORCE)
+  set(CUDAQ_TEST_REMOTE_SIM OFF CACHE BOOL "Run remote-sim tests." FORCE)
 endif()
 
 # Enable Amazon Braket backends by default.
@@ -140,7 +143,10 @@ endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
 if(NOT LLVM_VERSION_MAJOR)
-  set(LLVM_VERSION_MAJOR 16)
+  set(LLVM_VERSION_MAJOR 22)
+endif()
+if(NOT LLVM_VERSION_MINOR)
+  set(LLVM_VERSION_MINOR 1)
 endif()
 
 find_package(Git QUIET)
@@ -181,6 +187,27 @@ if (${CUDAQ_FORCE_COLORED_OUTPUT})
        add_compile_options (-fcolor-diagnostics)
     endif ()
 endif ()
+
+add_compile_options(-Wno-error=deprecated-declarations)
+# Use plain -Wno- (not -Wno-error=) so GCC silently ignores it when unsupported.
+# Guard with check_cxx_compiler_flag so Apple Clang (which errors on unknown
+# -Wno- options) doesn't see it if the warning doesn't exist there.
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag(-Wno-uninitialized-const-pointer
+                        CUDAQ_HAS_WNO_UNINITIALIZED_CONST_POINTER)
+if (CUDAQ_HAS_WNO_UNINITIALIZED_CONST_POINTER)
+  add_compile_options(-Wno-uninitialized-const-pointer)
+endif()
+# GCC 12 headers emit false-positive diagnostics (e.g. char_traits.h,
+# stl_algobase.h) when compiled with Clang using GCC's sysroot.
+check_cxx_compiler_flag(-Wno-restrict CUDAQ_HAS_WNO_RESTRICT)
+if (CUDAQ_HAS_WNO_RESTRICT)
+  add_compile_options(-Wno-restrict)
+endif()
+# -Wstringop-overflow is GCC-only; check_cxx_compiler_flag caching is unreliable here.
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  add_compile_options(-Wno-stringop-overflow)
+endif()
 
 # Certain build configurations may be set directly in the environment.
 # This facilitates some of the packaging (e.g. python packages built based on the pyproject.toml).
@@ -229,9 +256,9 @@ SET(CMAKE_SKIP_INSTALL_RPATH FALSE)
 SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 if(APPLE)
-  SET(CMAKE_INSTALL_RPATH "@loader_path;@loader_path/lib;@loader_path/lib/plugins;@loader_path/../lib;@loader_path/../lib/plugins;@executable_path;@executable_path/lib;@executable_path/lib/plugins;@executable_path/../lib;@executable_path/../lib/plugins")
+  SET(CMAKE_INSTALL_RPATH "@loader_path;@loader_path/lib;@loader_path/lib/plugins;@loader_path/../lib;@loader_path/../lib/plugins;@loader_path/../cudaq/mlir/_mlir_libs;@loader_path/../python/cudaq/mlir/_mlir_libs;@executable_path;@executable_path/lib;@executable_path/lib/plugins;@executable_path/../lib;@executable_path/../lib/plugins;@executable_path/../cudaq/mlir/_mlir_libs;@executable_path/../python/cudaq/mlir/_mlir_libs")
 else()
-  SET(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/lib/plugins:$ORIGIN/../lib:$ORIGIN/../lib/plugins")
+  SET(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/lib/plugins:$ORIGIN/../lib:$ORIGIN/../lib/plugins:$ORIGIN/../cudaq/mlir/_mlir_libs:$ORIGIN/../python/cudaq/mlir/_mlir_libs")
 endif()
 
 SET(BLA_STATIC ON)
@@ -262,6 +289,7 @@ else()
   # B. Using LLVM/MLIR dylibs. This won't work until later versions of LLVM are used as
   #    the first versions of this setting did not appropriately link all libraries to the dylibs.
   add_link_options("-Wl,-flat_namespace")
+  add_link_options("-Wl,-undefined,dynamic_lookup")
 endif()
 
 # Detect sysroot for C++ stdlib headers/libs. Critical on macOS where a custom-built
@@ -325,10 +353,10 @@ endif()
 # using `LLVM_VERSION_MAJOR`, e.g. "-LLVM_VERSION_MAJOR=16".  Note that this
 # version variable is set to the latest LLVM version by default, and setting it
 # to an older version might break the project.
-find_package(LLVM ${LLVM_VERSION_MAJOR} CONFIG QUIET)
+find_package(LLVM ${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR} CONFIG QUIET)
 
 if(NOT LLVM_DIR)
-  message(STATUS "LLVM_DIR not found, will try with llvm-config executable.")
+  message(STATUS "LLVM_DIR not found for ${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR}, will try with llvm-config executable.")
 
   macro(find_llvm_config name version_major)
     set(extra_args ${ARGN})
@@ -386,7 +414,7 @@ if(NOT LLVM_DIR)
       "Could not find suitable llvm-config(-${LLVM_VERSION_MAJOR}).\
       \nTry providing valid -DLLVM_DIR=/path/to/llvm/lib/cmake/llvm.")
   else()
-    find_package(LLVM ${LLVM_VERSION_MAJOR} REQUIRED CONFIG
+    find_package(LLVM ${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR} REQUIRED CONFIG
       HINTS ${LLVM_CONFIG_CMAKE_DIR} NO_DEFAULT_PATH)
   endif()
 endif()
@@ -682,6 +710,7 @@ endif()
 
 if (CUDAQ_ENABLE_PYTHON)
   find_package(Python 3 COMPONENTS Interpreter Development)
+  find_package(Python3 COMPONENTS Interpreter Development)
 
   # Apply specific patch to pybind11 for our documentation.
   # Only apply the patch if not already applied.
@@ -729,6 +758,12 @@ if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
   umbrella_lit_testsuite_begin(check-all)
   set(INSTALL_GTEST OFF)
   add_subdirectory(tpls/googletest-src)
+  # Turn off character-conversion warning in gtest for clang compilers
+  include(CheckCXXCompilerFlag)
+  check_cxx_compiler_flag(-Wno-character-conversion CUDAQ_HAS_WNO_CHARACTER_CONVERSION)
+  if (CUDAQ_HAS_WNO_CHARACTER_CONVERSION)
+    target_compile_options(gtest PUBLIC -Wno-character-conversion)
+  endif()
   # Bug in GCC 12 leads to spurious warnings (-Wrestrict)
   # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105329
   if (CMAKE_COMPILER_IS_GNUCXX
