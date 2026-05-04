@@ -189,12 +189,17 @@ static std::future<state> get_state_async_impl(const std::string &shortName,
   auto opaques = marshal_arguments_for_module_launch(mod, args, fnOp);
 
   nanobind::gil_scoped_release release;
+  auto clonedMod = std::shared_ptr<mlir::ModuleOp>(
+      new mlir::ModuleOp(mod.clone()), [](mlir::ModuleOp *p) {
+        p->erase();
+        delete p;
+      });
   return details::runGetStateAsync(
-      detail::make_copyable_function([opaques = std::move(opaques), kernelName,
-                                      mod = mod.clone()]() mutable {
-        [[maybe_unused]] auto result =
-            clean_launch_module(kernelName, mod, opaques);
-      }),
+      detail::make_copyable_function(
+          [opaques = std::move(opaques), kernelName, clonedMod]() mutable {
+            [[maybe_unused]] auto result =
+                clean_launch_module(kernelName, *clonedMod, opaques);
+          }),
       platform, qpu_id);
 }
 
