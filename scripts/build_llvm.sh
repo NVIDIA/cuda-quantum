@@ -177,7 +177,7 @@ if [ -z "${llvm_projects##*mlir;*}" ]; then
 fi
 if [ -z "${llvm_projects##*lld;*}" ]; then
   echo "- including LLD components"
-  llvm_enable_zlib=ON # certain system libraries are compressed with ELFCOMPRESS_ZLIB, requiring zlib support for lld
+  [ "${LLVM_ENABLE_ZLIB}" != "OFF" ] && llvm_enable_zlib=ON # certain system libraries are compressed with ELFCOMPRESS_ZLIB, requiring zlib support for lld
   llvm_components+="lld;"
   projects=("${projects[@]/lld}")
 fi
@@ -310,13 +310,17 @@ if [ -n "$llvm_runtimes" ]; then
     # We can use a default config file to set specific clang configurations.
     # See https://clang.llvm.org/docs/UsersManual.html#configuration-files
     clang_config_file="$LLVM_INSTALL_PREFIX/bin/clang++.cfg"
-    echo '-L"'$LLVM_INSTALL_PREFIX/lib'"' > "$clang_config_file"
+    if [ -f "$LLVM_INSTALL_PREFIX/bin/ld.lld" ]; then
+      echo '-fuse-ld=lld' > "$clang_config_file"
+    fi
+    echo '-L"'$LLVM_INSTALL_PREFIX/lib'"' >> "$clang_config_file"
     echo '-Wl,-rpath,"'$LLVM_INSTALL_PREFIX/lib'"' >> "$clang_config_file"
     target_specific_libs=`ls -d "$LLVM_INSTALL_PREFIX/lib"/*linux*`
     for libdir in $target_specific_libs; do
       echo '-L"'$libdir'"' >> "$clang_config_file"
       echo '-Wl,-rpath,"'$libdir'"' >> "$clang_config_file"
     done
+    cp "$clang_config_file" "$LLVM_INSTALL_PREFIX/bin/clang.cfg"
     echo "Added default configuration $clang_config_file."
   fi
 fi

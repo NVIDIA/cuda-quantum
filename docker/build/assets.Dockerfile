@@ -73,7 +73,7 @@ RUN cd /cuda-quantum && git init && \
         fi; \
     done && git submodule init && git submodule
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' \
+    LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' BOOTSTRAP_LLVM=true \
     bash scripts/install_prerequisites.sh -t llvm -e qrmi
 
 # Validate that the built toolchain and libraries have no GCC dependencies.

@@ -27,7 +27,7 @@ fi
 # -or-
 #   source scripts/install_toolchain.sh -t <toolchain> -e path/to/dir
 #
-# where <toolchain> can be either llvm, clang16, gcc12, or gcc11. 
+# where <toolchain> can be either llvm or gcc12.
 # The -e option creates a init_command.sh file in the given directory that 
 # can be used to reinstall the same toolchain if needed.
 
@@ -94,40 +94,25 @@ if [ "${toolchain#gcc}" != "$toolchain" ]; then
       echo "No supported package manager detected." >&2
     fi
 
-elif [ "$toolchain" = "clang16" ]; then
-
-    if [ -x "$(command -v apt-get)" ]; then
-        temp_install_if_command_unknown wget wget
-        temp_install_if_command_unknown gpg gnupg
-        temp_install_if_command_unknown add-apt-repository software-properties-common
-
-        wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
-        add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main"
-        apt-get update && apt-get install -y --no-install-recommends clang-16 libstdc++-13-dev
-    elif [ -x "$(command -v dnf)" ]; then
-        dnf install -y --nobest --setopt=install_weak_deps=False clang-16.0.6
-    else
-        echo "No supported package manager detected." >&2
-    fi
-
-    CC="$(find_executable clang-16)" 
-    CXX="$(find_executable clang++-16)" 
-    FC="$(find_executable flang-new-16)"
-
 elif [ "$toolchain" = "llvm" ]; then
 
     LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-"$HOME/.llvm"}
     if [ ! -f "$LLVM_INSTALL_PREFIX/bin/clang" ] || [ ! -f "$LLVM_INSTALL_PREFIX/bin/clang++" ] || [ ! -f "$LLVM_INSTALL_PREFIX/bin/ld.lld" ]; then
 
         if [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
-            # We use the clang to bootstrap the llvm build since it is faster than gcc.
-            source "$(readlink -f "${BASH_SOURCE[0]}")" -t clang16 || \
-            echo -e "\e[01;31mError: Failed to install clang compiler for bootstrapping.\e[0m" >&2
-            toolchain=llvm
-            if [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
+            # Use the system clang to bootstrap the llvm build.
+            if [ -x "$(command -v apt-get)" ]; then
+                apt-get update && apt-get install -y --no-install-recommends clang lld
+                export CC=clang CXX=clang++
+            elif [ -x "$(command -v dnf)" ]; then
+                dnf install -y --nobest --setopt=install_weak_deps=False clang lld
+                CC="$(find_executable clang)" && CXX="$(find_executable clang++)"
+                export CC CXX
+            else
                 echo -e "\e[01;31mError: No compiler set for bootstrapping. Please define the environment variables CC and CXX.\e[0m" >&2
                 (return 0 2>/dev/null) && return 2 || exit 2
             fi
+            toolchain=llvm
         fi
 
         temp_install_if_command_unknown ninja ninja-build
@@ -157,7 +142,7 @@ elif [ "$toolchain" = "llvm" ]; then
 else
 
     echo "The requested toolchain cannot be installed by this script."
-    echo "Supported toolchains: llvm, clang16, gcc12, gcc11."
+    echo "Supported toolchains: llvm, gcc12."
     (return 0 2>/dev/null) && return 1 || exit 1
 
 fi

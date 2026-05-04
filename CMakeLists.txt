@@ -189,6 +189,25 @@ if (${CUDAQ_FORCE_COLORED_OUTPUT})
 endif ()
 
 add_compile_options(-Wno-error=deprecated-declarations)
+# Use plain -Wno- (not -Wno-error=) so GCC silently ignores it when unsupported.
+# Guard with check_cxx_compiler_flag so Apple Clang (which errors on unknown
+# -Wno- options) doesn't see it if the warning doesn't exist there.
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag(-Wno-uninitialized-const-pointer
+                        CUDAQ_HAS_WNO_UNINITIALIZED_CONST_POINTER)
+if (CUDAQ_HAS_WNO_UNINITIALIZED_CONST_POINTER)
+  add_compile_options(-Wno-uninitialized-const-pointer)
+endif()
+# GCC 12 headers emit false-positive diagnostics (e.g. char_traits.h,
+# stl_algobase.h) when compiled with Clang using GCC's sysroot.
+check_cxx_compiler_flag(-Wno-restrict CUDAQ_HAS_WNO_RESTRICT)
+if (CUDAQ_HAS_WNO_RESTRICT)
+  add_compile_options(-Wno-restrict)
+endif()
+# -Wstringop-overflow is GCC-only; check_cxx_compiler_flag caching is unreliable here.
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  add_compile_options(-Wno-stringop-overflow)
+endif()
 
 # Certain build configurations may be set directly in the environment.
 # This facilitates some of the packaging (e.g. python packages built based on the pyproject.toml).
@@ -739,6 +758,12 @@ if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
   umbrella_lit_testsuite_begin(check-all)
   set(INSTALL_GTEST OFF)
   add_subdirectory(tpls/googletest-src)
+  # Turn off character-conversion warning in gtest for clang compilers
+  include(CheckCXXCompilerFlag)
+  check_cxx_compiler_flag(-Wno-character-conversion CUDAQ_HAS_WNO_CHARACTER_CONVERSION)
+  if (CUDAQ_HAS_WNO_CHARACTER_CONVERSION)
+    target_compile_options(gtest PUBLIC -Wno-character-conversion)
+  endif()
   # Bug in GCC 12 leads to spurious warnings (-Wrestrict)
   # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105329
   if (CMAKE_COMPILER_IS_GNUCXX
@@ -748,13 +773,6 @@ if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
   endif()
   if (CMAKE_CXX_COMPILER_ID MATCHES "^(Apple)?Clang$")
     target_compile_options(gtest PUBLIC -Wno-covered-switch-default)
-    if (APPLE)
-      include(CheckCXXCompilerFlag)
-      check_cxx_compiler_flag(-Wno-character-conversion CUDAQ_HAS_WNO_CHARACTER_CONVERSION)
-      if (CUDAQ_HAS_WNO_CHARACTER_CONVERSION)
-        target_compile_options(gtest PUBLIC -Wno-character-conversion)
-      endif()
-    endif()
   endif()
   include(GoogleTest)
   include(CTest)

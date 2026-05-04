@@ -205,7 +205,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
-        toolchain: [clang16, gcc11, gcc12]
+        toolchain: [llvm]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -244,11 +244,11 @@ jobs:
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.manylinux.Dockerfile
-      build_config_id: cu${{ matrix.cuda_version }}-gcc11
+      build_config_id: cu${{ matrix.cuda_version }}-gcc12
       build_args: |
         base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ (matrix.platform == 'arm64' && '_aarch64') || (matrix.platform == 'amd64' && '_x86_64') || '' }}:latest
         cuda_version=${{ matrix.cuda_version }}
-        toolchain=gcc11
+        toolchain=gcc12
         distro=rhel8
         llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
         pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
@@ -371,7 +371,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64]
-        toolchain: [clang16]
+        toolchain: [llvm]
       fail-fast: false
     uses: ./.github/workflows/generate_cc.yml
     secrets:
@@ -396,10 +396,10 @@ jobs:
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devcontainer.Dockerfile
-      build_config_id: cu${{ matrix.cuda_version }}-gcc11
+      build_config_id: cu${{ matrix.cuda_version }}-llvm
       build_args: |
         cuda_version=${{ matrix.cuda_version }}
-        base_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-gcc11', matrix.platform)] }}
+        base_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-llvm', matrix.platform)] }}
         ompidev_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-ompi', matrix.platform, matrix.cuda_version)] }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
