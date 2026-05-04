@@ -17,7 +17,7 @@
 #   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:ext -f docker/build/devdeps.ext.Dockerfile .
 
 ARG cuda_version=12.6
-ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:gcc11-main
+ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:gcc12-main
 ARG ompidev_image=ghcr.io/nvidia/cuda-quantum-devdeps:cu12-ompi-main
 FROM $ompidev_image AS ompibuild
 ARG cuda_version
@@ -183,7 +183,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     else \
         cupy_version=13.4.1; \
     fi && \
-    python3 -m pip install --break-system-packages cupy-cuda$(echo $CUDA_VERSION | cut -d . -f1)x==${cupy_version} cuquantum-cu$(echo $CUDA_VERSION | cut -d . -f1)==26.1.0 && \
+    python3 -m pip install --break-system-packages cupy-cuda$(echo $CUDA_VERSION | cut -d . -f1)x==${cupy_version} cuquantum-cu$(echo $CUDA_VERSION | cut -d . -f1)==26.3.1 && \
     if [ "$(python3 --version | grep -o [0-9\.]* | cut -d . -f -2)" != "3.12" ]; then \
         echo "expecting Python version 3.12"; \
     fi

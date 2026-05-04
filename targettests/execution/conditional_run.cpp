@@ -17,7 +17,7 @@
 #include <cudaq.h>
 
 struct kernel {
-  bool operator()() __qpu__ {
+  auto operator()() __qpu__ {
     cudaq::qarray<3> q;
     // Initial state prep
     x(q[0]);

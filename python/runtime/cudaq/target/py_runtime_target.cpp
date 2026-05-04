@@ -13,9 +13,11 @@
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/target_control.h"
 #include <functional>
-#include <pybind11/functional.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/function.h>
+#include <nanobind/stl/map.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
 #include <shared_mutex>
 
 namespace {
@@ -52,55 +54,55 @@ void onTargetChange(const cudaq::RuntimeTarget &newTarget) {
 namespace cudaq {
 
 std::map<std::string, std::string>
-parseTargetKwArgs(const py::kwargs &extraConfig) {
+parseTargetKwArgs(const nanobind::kwargs &extraConfig) {
   if (extraConfig.contains("options"))
     throw std::runtime_error("The keyword `options` argument is not supported "
                              "in cudaq.set_target(). Please use the keyword "
                              "`option` in order to set the target options.");
   std::map<std::string, std::string> config;
-  for (auto &[key, value] : extraConfig) {
+  for (auto [key, value] : extraConfig) {
     std::string strValue = "";
-    if (py::isinstance<py::bool_>(value))
-      strValue = value.cast<py::bool_>() ? "true" : "false";
-    else if (py::isinstance<py::str>(value))
-      strValue = value.cast<std::string>();
-    else if (py::isinstance<py::int_>(value))
-      strValue = std::to_string(value.cast<int>());
+    if (nanobind::isinstance<nanobind::bool_>(value))
+      strValue = nanobind::cast<bool>(value) ? "true" : "false";
+    else if (nanobind::isinstance<nanobind::str>(value))
+      strValue = nanobind::cast<std::string>(value);
+    else if (nanobind::isinstance<nanobind::int_>(value))
+      strValue = std::to_string(nanobind::cast<int>(value));
     else
       throw std::runtime_error(
           "QPU kwargs config value must be cast-able to a string.");
 
     // Ignore empty parameter values
     if (!strValue.empty())
-      config.emplace(key.cast<std::string>(), strValue);
+      config.emplace(nanobind::cast<std::string>(key), strValue);
   }
   return config;
 }
 
-void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
+void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
 
-  py::enum_<simulation_precision>(
+  nanobind::enum_<simulation_precision>(
       mod, "SimulationPrecision",
       "Enumeration describing the precision of the underlying simulation.")
       .value("fp32", simulation_precision::fp32)
       .value("fp64", simulation_precision::fp64);
 
-  py::class_<cudaq::RuntimeTarget>(
+  nanobind::class_<cudaq::RuntimeTarget>(
       mod, "Target",
       "The `cudaq.Target` represents the underlying infrastructure that "
       "CUDA-Q kernels will execute on. Instances of `cudaq.Target` describe "
       "what simulator they may leverage, the quantum_platform required for "
       "execution, and a description for the target.")
-      .def_readonly("name", &cudaq::RuntimeTarget::name,
-                    "The name of the `cudaq.Target`.")
-      .def_readonly("simulator", &cudaq::RuntimeTarget::simulatorName,
-                    "The name of the simulator this `cudaq.Target` leverages. "
-                    "This will be empty for physical QPUs.")
-      .def_readonly("platform", &cudaq::RuntimeTarget::platformName,
-                    "The name of the quantum_platform implementation this "
-                    "`cudaq.Target` leverages.")
-      .def_readonly("description", &cudaq::RuntimeTarget::description,
-                    "A string describing the features for this `cudaq.Target`.")
+      .def_ro("name", &cudaq::RuntimeTarget::name,
+              "The name of the `cudaq.Target`.")
+      .def_ro("simulator", &cudaq::RuntimeTarget::simulatorName,
+              "The name of the simulator this `cudaq.Target` leverages. "
+              "This will be empty for physical QPUs.")
+      .def_ro("platform", &cudaq::RuntimeTarget::platformName,
+              "The name of the quantum_platform implementation this "
+              "`cudaq.Target` leverages.")
+      .def_ro("description", &cudaq::RuntimeTarget::description,
+              "A string describing the features for this `cudaq.Target`.")
       .def(
           "num_qpus",
           [](cudaq::RuntimeTarget &_) { return cudaq::platform_num_qpus(); },
@@ -165,7 +167,7 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
       "Return all available `cudaq.Target` instances on the current system.");
   mod.def(
       "set_target",
-      [&](const cudaq::RuntimeTarget &target, py::kwargs extraConfig) {
+      [&](const cudaq::RuntimeTarget &target, nanobind::kwargs extraConfig) {
         auto config = parseTargetKwArgs(extraConfig);
         holder.setTarget(target.name, config);
         onTargetChange(target);
@@ -175,7 +177,7 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
       "kwargs.");
   mod.def(
       "set_target",
-      [&](const std::string &name, py::kwargs extraConfig) {
+      [&](const std::string &name, nanobind::kwargs extraConfig) {
         auto config = parseTargetKwArgs(extraConfig);
         holder.setTarget(name, config);
         onTargetChange(holder.getTarget());
@@ -209,10 +211,12 @@ void bindRuntimeTarget(py::module &mod, LinkedLibraryHolder &holder) {
       },
       "Unregister a callback identified by the input identifier.");
 
-  py::module_::import("atexit").attr("register")(py::cpp_function([]() {
-    // Perform cleanup of registered callbacks, which might be Python objects.
-    g_callbacks.clear();
-  }));
+  nanobind::module_::import_("atexit").attr("register")(
+      nanobind::cpp_function([]() {
+        // Perform cleanup of registered callbacks, which might be Python
+        // objects.
+        g_callbacks.clear();
+      }));
 }
 
 } // namespace cudaq

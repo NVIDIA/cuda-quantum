@@ -21,7 +21,13 @@
 #include <filesystem>
 #include <fstream>
 
-LLVM_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)
+// Note: LLVM_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType) is intentionally
+// NOT placed here. The canonical QPU registry instance lives in
+// quantum_platform.cpp (libcudaq). With LLVM 22's static-inline Head/Tail
+// pointers in llvm::Registry, having the instantiation in multiple DSOs can
+// cause registry fragmentation — nodes added via cudaq_add_qpu_node (which
+// targets libcudaq's registry) would be invisible to code in this DSO if the
+// linker kept separate copies. A single instantiation in libcudaq avoids this.
 
 namespace {
 class MultiQPUQuantumPlatform : public cudaq::quantum_platform {

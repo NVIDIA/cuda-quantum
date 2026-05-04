@@ -128,6 +128,7 @@ QuTiP
 Quake
 Quantinuum
 RDMA
+REPL
 RHEL
 RPC
 RSA
@@ -227,6 +228,7 @@ dependence
 dependences
 deserialization
 deserialize
+deserializes
 destructor
 detuning
 deutsch
@@ -307,6 +309,7 @@ multithreaded
 mutex
 namespace
 namespaces
+nanobind
 natively
 normalization
 nullary

@@ -18,6 +18,7 @@
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/InitAllDialects.h"
+#include "cudaq/Optimizer/InitAllPasses.h"
 #include "cudaq/Support/TargetConfig.h"
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
 #include "cudaq/Verifier/QIRSpec.h"
@@ -26,14 +27,23 @@
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
-#include "llvm/MC/SubtargetFeature.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Base64.h"
-#include "llvm/Support/Host.h"
+#include "llvm/Support/CommandLine.h"
+#include "llvm/Support/ErrorOr.h"
+#include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Target/TargetMachine.h"
+#include "llvm/TargetParser/Host.h"
+#include "llvm/TargetParser/SubtargetFeature.h"
+#include "mlir/Dialect/Func/Extensions/InlinerExtension.h"
+#include "mlir/Dialect/LLVMIR/Transforms/InlinerInterfaceImpl.h"
+#include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/ExecutionEngine/OptUtils.h"
+#include "mlir/InitAllTranslations.h"
+#include "mlir/Parser/Parser.h"
 #include "mlir/Pass/PassManager.h"
+#include "mlir/Target/LLVMIR/Dialect/Builtin/BuiltinToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Tools/ParseUtilities.h"
@@ -105,7 +115,7 @@ cudaq_internal::compiler::TranslateFromMLIRRegistration::
 
 static bool setupTargetTriple(llvm::Module *llvmModule) {
   // Setup the machine properties from the current architecture.
-  auto targetTriple = llvm::sys::getDefaultTargetTriple();
+  llvm::Triple targetTriple(llvm::sys::getDefaultTargetTriple());
   std::string errorMessage;
   const auto *target =
       llvm::TargetRegistry::lookupTarget(targetTriple, errorMessage);
@@ -114,11 +124,10 @@ static bool setupTargetTriple(llvm::Module *llvmModule) {
 
   std::string cpu(llvm::sys::getHostCPUName());
   llvm::SubtargetFeatures features;
-  llvm::StringMap<bool> hostFeatures;
+  llvm::StringMap<bool> hostFeatures = llvm::sys::getHostCPUFeatures();
 
-  if (llvm::sys::getHostCPUFeatures(hostFeatures))
-    for (auto &f : hostFeatures)
-      features.AddFeature(f.first(), f.second);
+  for (auto &f : hostFeatures)
+    features.AddFeature(f.first(), f.second);
 
   std::unique_ptr<llvm::TargetMachine> machine(target->createTargetMachine(
       targetTriple, cpu, features.getString(), {}, {}));
@@ -171,6 +180,28 @@ static void applyWriteOnlyAttributes(llvm::Module *llvmModule) {
       }
 }
 
+// LLVM 22 no longer infers the nonnull attribute on GEP arguments pointing to
+// global constant strings during O3 optimization. The QIR profile verification
+// expects nonnull on pointer parameters of __quantum__rt__result_record_output
+// calls, so we explicitly add it here after optimization.
+void applyNonNullAttributes(llvm::Module *llvmModule) {
+  for (llvm::Function &func : *llvmModule)
+    for (llvm::BasicBlock &block : func)
+      for (llvm::Instruction &inst : block) {
+        auto callInst = llvm::dyn_cast_or_null<llvm::CallBase>(&inst);
+        if (callInst && callInst->getCalledFunction()) {
+          auto funcName = callInst->getCalledFunction()->getName();
+          if (funcName == cudaq::opt::QIRRecordOutput ||
+              funcName == cudaq::opt::QIRArrayRecordOutput) {
+            for (unsigned i = 0; i < callInst->arg_size(); ++i) {
+              if (callInst->getArgOperand(i)->getType()->isPointerTy())
+                callInst->addParamAttr(i, llvm::Attribute::NonNull);
+            }
+          }
+        }
+      }
+}
+
 // Once a call to a function with irreversible attribute is seen, no more calls
 // to reversible functions are allowed.
 static LogicalResult
@@ -209,10 +240,9 @@ static LogicalResult verifyOutputCalls(llvm::CallBase *callInst,
   int iArg = 0;
   for (auto &arg : callInst->args()) {
     auto myArg = arg->getType();
-    auto ptrTy = llvm::dyn_cast_or_null<llvm::PointerType>(myArg);
-    // If we're dealing with the i8* parameters
-    if (ptrTy != nullptr &&
-        ptrTy->getNonOpaquePointerElementType()->isIntegerTy(8)) {
+    auto ptrTy = dyn_cast_if_present<llvm::PointerType>(myArg);
+    // If we're dealing with pointer parameters (opaque pointers)
+    if (ptrTy != nullptr) {
       // Verify that it has the nonnull attribute
       if (!callInst->paramHasAttr(iArg, llvm::Attribute::NonNull)) {
         llvm::errs() << "error - nonnull attribute is missing from i8* "
@@ -375,7 +405,7 @@ static LogicalResult filterSpecificCodePatterns(llvm::Module *llvmModule,
         for (llvm::Instruction &inst : block)
           if (auto *call = llvm::dyn_cast<llvm::CallInst>(&inst)) {
             auto *calledFunc = call->getCalledFunction();
-            auto name = calledFunc->getGlobalIdentifier();
+            auto name = calledFunc->getName();
             if (eraseStackBounding && calledFunc->isIntrinsic() &&
                 (name == cudaq::llvmStackSave ||
                  name == cudaq::llvmStackRestore))
@@ -434,7 +464,7 @@ qirProfileTranslationFunction(const std::string &qirProfile, Operation *op,
   tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
   auto timingScope = tm.getRootScope(); // starts the timer
   pm.enableTiming(timingScope);         // do this right before pm.run
-  if (failed(pm.run(op)))
+  if (failed(cudaq_internal::compiler::runPassManager(pm, op)))
     return failure();
   if (auto mod = dyn_cast<ModuleOp>(op))
     if (failed(cudaq::verifier::checkQIRLLVMIRDialect(mod, profileName)))
@@ -442,7 +472,6 @@ qirProfileTranslationFunction(const std::string &qirProfile, Operation *op,
   timingScope.stop();
 
   auto llvmContext = std::make_unique<llvm::LLVMContext>();
-  llvmContext->setOpaquePointers(false);
   auto llvmModule = translateModuleToLLVMIR(op, *llvmContext);
 
   // Apply required attributes for the Base Profile
@@ -521,9 +550,11 @@ qirProfileTranslationFunction(const std::string &qirProfile, Operation *op,
   if (failed(filterSpecificCodePatterns(llvmModule.get(), config)))
     return failure();
 
-  // Note: optimizeLLVM is the one that is setting nonnull attributes on
-  // the @__quantum__rt__result_record_output calls.
+  // Note: LLVM 22 no longer infers nonnull attributes on GEP arguments to
+  // @__quantum__rt__result_record_output during O3 optimization, so we
+  // explicitly add them after optimization.
   optimizeLLVM(llvmModule.get());
+  applyNonNullAttributes(llvmModule.get());
   if (!setupTargetTriple(llvmModule.get()))
     throw std::runtime_error("Failed to setup the llvm module target triple.");
 
@@ -622,7 +653,7 @@ static void registerToOpenQASMTranslation() {
         tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
         auto timingScope = tm.getRootScope(); // starts the timer
         pm.enableTiming(timingScope);         // do this right before pm.run
-        if (failed(pm.run(op)))
+        if (failed(cudaq_internal::compiler::runPassManager(pm, op)))
           throw std::runtime_error("code generation failed.");
         timingScope.stop();
         auto passed = cudaq::translateToOpenQASM(op, output);
@@ -653,7 +684,7 @@ static void registerToIQMJsonTranslation() {
         tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
         auto timingScope = tm.getRootScope(); // starts the timer
         pm.enableTiming(timingScope);         // do this right before pm.run
-        if (failed(pm.run(op)))
+        if (failed(cudaq_internal::compiler::runPassManager(pm, op)))
           throw std::runtime_error("code generation failed.");
         timingScope.stop();
         auto passed = cudaq::translateToIQMJson(op, output);
@@ -674,9 +705,12 @@ static std::unique_ptr<MLIRContext> createMLIRContext() {
   DialectRegistry registry;
   cudaq::opt::registerCodeGenDialect(registry);
   cudaq::registerAllDialects(registry);
+  mlir::func::registerInlinerExtension(registry);
+  mlir::LLVM::registerInlinerInterface(registry);
+  registerBuiltinDialectTranslation(registry);
+  registerLLVMDialectTranslation(registry);
   auto context = std::make_unique<MLIRContext>(registry);
   context->loadAllAvailableDialects();
-  registerLLVMDialectTranslation(*context);
   return context;
 }
 
@@ -711,7 +745,7 @@ cudaq_internal::compiler::getEntryPointName(OwningOpRef<ModuleOp> &module) {
     if (auto op = dyn_cast<func::FuncOp>(a)) {
       // Note: the .thunk function is where unmarshalling happens. It is *not*
       // an entry point.
-      if (op.getName().endswith(".thunk"))
+      if (op.getName().ends_with(".thunk"))
         return {op.getName().str()};
     }
   }

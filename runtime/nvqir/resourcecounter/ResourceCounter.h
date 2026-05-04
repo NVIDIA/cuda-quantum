@@ -74,6 +74,12 @@ public:
 
   CircuitSimulator *clone() override { return this; };
 
+  std::unique_ptr<cudaq::SimulationState>
+  createStateFromData(const cudaq::state_data &) override {
+    throw std::runtime_error(
+        "Simulation data not available for the resource counter backend.");
+  }
+
   void deallocateStateImpl() override {}
 
   void setToZeroState() override {

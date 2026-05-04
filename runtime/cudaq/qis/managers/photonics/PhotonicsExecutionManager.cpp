@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 #include "common/FmtCore.h"
+#include "common/SampleResult.h"
 #include "cudaq/operators.h"
 #include "cudaq/qis/managers/BasicExecutionManager.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -165,33 +166,46 @@ protected:
   }
 
   /// @brief Process results into the execution context
-  void finalizeExecutionContext(ExecutionContext &ctx) override {
-    BasicExecutionManager::finalizeExecutionContext(ctx);
-
-    std::vector<std::size_t> ids;
+  void finalizeExecutionContextImpl(std::vector<std::size_t> &ids,
+                                    ExecutionContext &ctx) {
+    BasicExecutionManager::finalizeExecutionContextImpl(ctx);
     for (auto &s : sampleQudits) {
       ids.push_back(s.id);
     }
-    if (ctx.name == "sample") {
-      CUDAQ_INFO("Sampling");
-      auto shots = ctx.shots;
-      auto sampleResult =
-          qpp::sample(shots, state, ids, sampleQudits.begin()->levels);
-      cudaq::ExecutionResult counts;
-      for (auto [result, count] : sampleResult) {
-        std::stringstream bitstring;
-        for (const auto &quditRes : result) {
-          bitstring << quditRes;
-        }
-        // Add to the sample result
-        // in mid-circ sampling mode this will append 1 bitstring
-        counts.appendResult(bitstring.str(), count);
-        // Reset the string.
-        bitstring.str("");
-        bitstring.clear();
+  }
+
+  sample_result finalizeExecutionContext(const sample_policy &policy,
+                                         ExecutionContext &ctx) override {
+    std::vector<std::size_t> ids;
+    finalizeExecutionContextImpl(ids, ctx);
+    CUDAQ_INFO("Sampling");
+    auto shots = ctx.shots;
+    auto sampleResult =
+        qpp::sample(shots, state, ids, sampleQudits.begin()->levels);
+    cudaq::ExecutionResult counts;
+    for (auto [result, count] : sampleResult) {
+      std::stringstream bitstring;
+      for (const auto &quditRes : result) {
+        bitstring << quditRes;
       }
-      ctx.result.append(counts);
-    } else if (ctx.name == "extract-state") {
+      // Add to the sample result
+      // in mid-circ sampling mode this will append 1 bitstring
+      counts.appendResult(bitstring.str(), count);
+      // Reset the string.
+      bitstring.str("");
+      bitstring.clear();
+    }
+    sample_result result;
+    result.append(counts);
+    return result;
+  }
+
+  void finalizeExecutionContext(const other_policies &policy,
+                                ExecutionContext &ctx) override {
+    std::vector<std::size_t> ids;
+    finalizeExecutionContextImpl(ids, ctx);
+
+    if (ctx.name == "extract-state") {
       CUDAQ_INFO("Extracting state");
       // If here, then we care about the result qudit, so compute it.
       for (auto &q : sampleQudits) {
@@ -253,7 +267,9 @@ protected:
   }
 
   /// @brief Measure the state in the basis described by the given `spin_op`.
-  void measureSpinOp(const cudaq::spin_op &) override {}
+  cudaq::SpinMeasureResult measureSpinOp(const cudaq::spin_op &) override {
+    return cudaq::SpinMeasureResult(0.0, {});
+  }
 
   /// @brief Method for performing qudit reset.
   void resetQudit(const cudaq::QuditInfo &id) override {}

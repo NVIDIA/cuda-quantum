@@ -21,11 +21,11 @@ dependencies = [
   'astpretty ~= 3.0',
   'numpy >= 1.24',
   'scipy >= 1.10.1',
-  'requests >= 2.32.4',
+  'requests >= 2.32.3',
   # CUDA dependencies - excluded on macOS (CPU-only support)
-  'custatevec-cu13 ~= 1.12; sys_platform != "darwin"',
-  'cutensornet-cu13 ~= 2.11; sys_platform != "darwin"',
-  'cudensitymat-cu13 ~= 0.4; sys_platform != "darwin"',
+  'custatevec-cu13 ~= 1.13.1; sys_platform != "darwin"',
+  'cutensornet-cu13 ~= 2.12.1; sys_platform != "darwin"',
+  'cudensitymat-cu13 ~= 0.5.1; sys_platform != "darwin"',
   'nvidia-cublas ~= 13.0; sys_platform != "darwin"',
   'nvidia-curand ~= 10.4; sys_platform != "darwin"',
   'nvidia-cusparse ~= 12.6; sys_platform != "darwin"',
@@ -64,14 +64,14 @@ visualization = [ "qutip>5" , "matplotlib>=3.5" ]
 integrators = [ "torchdiffeq" ]
 
 [build-system]
-requires = ["scikit-build-core==0.11.6", "cmake>=3.27,<3.29", "numpy>=1.24", "pytest==9.0.3"]
+requires = ["scikit-build-core==0.11.6", "cmake>=3.27,<3.29", "numpy>=1.24", "pytest==9.0.3", "nanobind>=2.9.0"]
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
 wheel.packages = ["python/cudaq"]
 build-dir = "_skbuild"
 metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
-cmake.minimum-version = "3.27"
+cmake.version = ">=3.27,<3.29"
 cmake.build-type = "Release"
 cmake.verbose = false
 cmake.args = [
@@ -88,6 +88,17 @@ if.platform-system = "linux"
 if.platform-machine = "x86_64"
 inherit.cmake.args = "append"
 cmake.args = ["-DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=ON"]
+
+# Linux: use LLD as the linker
+[[tool.scikit-build.overrides]]
+if.platform-system = "linux"
+inherit.cmake.args = "append"
+cmake.args = [
+    "-DLLVM_USE_LINKER=lld",
+    "-DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=lld -B/usr/local/llvm/bin",
+    "-DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=lld -B/usr/local/llvm/bin",
+    "-DCMAKE_MODULE_LINKER_FLAGS=-fuse-ld=lld -B/usr/local/llvm/bin",
+]
 
 # macOS: Disable symbol stripping. LLVM's JIT relies on local symbols for
 # internal data structures (eg., PassRegistry). On macOS

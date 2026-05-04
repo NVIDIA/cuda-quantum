@@ -10,17 +10,16 @@
 #include "common/Resources.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/LinkedLibraryHolder.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"
-#include <pybind11/functional.h>
-
-namespace py = pybind11;
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
+#include <nanobind/stl/function.h>
+#include <nanobind/stl/optional.h>
 
 using namespace cudaq;
 
 static Resources
 estimate_resources_impl(const std::string &kernelName, MlirModule kernelMod,
                         std::optional<std::function<bool()>> choice,
-                        py::args args) {
+                        nanobind::args args) {
   auto &platform = cudaq::get_platform();
   args = simplifiedValidateInputArguments(args);
 
@@ -60,7 +59,8 @@ estimate_resources_impl(const std::string &kernelName, MlirModule kernelMod,
   return counts;
 }
 
-void cudaq::bindCountResources(py::module &mod) {
-  mod.def("estimate_resources_impl", estimate_resources_impl,
+void cudaq::bindCountResources(nanobind::module_ &mod) {
+  mod.def("estimate_resources_impl", estimate_resources_impl, nanobind::arg(),
+          nanobind::arg(), nanobind::arg().none(), nanobind::arg(),
           "See python documentation for estimate_resources.");
 }

@@ -95,6 +95,7 @@ jobs:
             scripts/build_llvm.sh \
             scripts/set_env_defaults.sh \
             .github/workflows/dev_environment_macos.yml \
+            tpls/customizations/llvm/*.diff \
             | sha256sum | cut -c1-8)
           echo "scripts_hash=$scripts_hash" >> $GITHUB_OUTPUT
 
@@ -181,6 +182,9 @@ jobs:
           # cache already has MLIR_ENABLE_BINDINGS_PYTHON=ON.  Downstream
           # wheel jobs only change Python3_EXECUTABLE, which keeps ninja's
           # incremental rebuild scoped to the binding targets.
+          # Initialize nanobind submodule which are needed for MLIR Python bindings
+          git submodule update --init --recursive tpls/nanobind
+
           source scripts/set_env_defaults.sh
           export LLVM_PROJECTS='clang;lld;mlir;openmp;python-bindings'
           

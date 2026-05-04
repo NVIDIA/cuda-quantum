@@ -11,6 +11,10 @@
 
 include "mlir/Pass/PassBase.td"
 
+// NB: Before approving changes to this file make sure the author understands
+// the passes are listed in alphabetical order. Changes that add passes in
+// non-alphabetical order should get a Request Changes.
+
 def AddMeasurements : Pass<"add-measurements", "mlir::func::FuncOp"> {
   let summary = "Add measurement operations.";
   let description = [{
@@ -150,6 +154,7 @@ def BasisConversion : Pass<"basis-conversion", "mlir::ModuleOp"> {
     If no `basis` is specified or the pass cannot decompose all operations to
     the specified basis, the pass application will fail.
   }];
+  let dependentDialects = ["mlir::arith::ArithDialect"];
   let options = [
     ListOption<"basis", "basis", "std::string", "Set of basis operations">,
     ListOption<"disabledPatterns", "disable-patterns", "std::string",
@@ -219,7 +224,7 @@ def CombineMeasurements :
       %1 = ... : !quake.veq<4>
       %2 = quake.subveq %1, %c2, %c3 : (!quake.veq<4>, i32, i32) ->
             !quake.veq<2>
-      %measOut = quake.mz %2 : (!quake.veq<2>) -> !quake.measurements<2>
+      %measOut = quake.mz %2 : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
     }
     ```
     with:
@@ -227,7 +232,7 @@ def CombineMeasurements :
     func.func @kernel() attributes {"cudaq-entrypoint", ["output_names",
     "[[[0,[1,\22q0\22]],[1,[2,\22q1\22]]]]"]} {
       %1 = ... : !quake.veq<4>
-      %measOut = quake.mz %1 : (!quake.veq<4>) -> !quake.measurements<4>
+      %measOut = quake.mz %1 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
     }
     ```
   }];
@@ -272,50 +277,6 @@ def ConvertToDirectCalls : Pass<"indirect-to-direct-calls", "mlir::ModuleOp"> {
   }];
 }
 
-def ResourceCountPreprocess :
-    Pass<"resource-count-preprocess", "mlir::func::FuncOp"> {
-  let summary = "Performs preprocessing to optimize for resource counter.";
-  let description = [{
-    This pass performs preprocessing to optimize the code for the resource
-    counter by removing as many invariant gates as possible during compilation,
-    with the aim of reducing the program size for further compilation, and
-    speeding up resource counting by the simulator at runtime.
-
-    For example, in the following program:
-
-    ```c++
-      cudaq::qarray<10> q;
-      h(q[0]);
-      for (size_t i = 0; i < 10; i++) {
-        y(q[i]);
-        if (mz(q[i]))
-          x(q[i]);
-      }
-    ```
-
-    The initial `h(q[0])` will always be run once, so we can precount it and
-    remove it. Similarly, it is trivial to see that the loop will run 10 times,
-    so we can pre count `y(q[i])` ten times as well. However, because `x(q[i])`
-    is gated by `mz(q[i])`, it is not invariant, so it will remain and be
-    counted during simulation.
-
-    Currently, the detection of "invariance" is purposefully dumb.
-
-    This preprocessing path may interfere with detecting downstream
-    optimizations, as preprocessed gates are counted and removed early in the
-    pipeline.
-  }];
-
-  let options = [
-    Option<"countGate", "count-gate",
-      "std::function<void(std::string,std::vector<std::size_t>,std::vector<std::size_t>,size_t)>",
-      /*default=*/"[](std::string,std::vector<std::size_t>,std::vector<std::size_t>,size_t){}",
-      "Closure that receives gate name, control qubit indices, target qubit indices, and multiplicity">,
-    Option<"dumpPreprocessed", "dump-preprocessed", "bool", /*default=*/"false",
-      "Dump preprocessed gates instead of counting them (useful for testing)">,
-  ];
-}
-
 def DeadStoreRemoval : Pass<"dead-store-removal"> {
   let summary = "Dead store removal (DSR).";
   let description = [{
@@ -357,6 +318,7 @@ def Decomposition : Pass<"decomposition", "mlir::ModuleOp"> {
     means no decomposition will take place under the presence of controlled
     `quake.apply` operations in the module.
   }];
+  let dependentDialects = ["mlir::arith::ArithDialect"];
   let options = [
     ListOption<"basis", "basis", "std::string", "Set of basis operations">,
     ListOption<"disabledPatterns", "disable-patterns", "std::string",
@@ -425,9 +387,9 @@ def DistributedDeviceCall : Pass<"distributed-device-call", "mlir::ModuleOp"> {
 
   let options = [
     Option<"insertTrapImplementation", "insert-trap", "bool", /*default=*/"false",
-      "Enable pass to insert a default implementation (runtime trap) for device call "
-      "(default=false). The default implementation has weak linkage, i.e., " 
-      "allowed to be overridden at link time.">
+      "Enable pass to insert a default implementation (runtime trap) for "
+      "device call (default=false). The default implementation has weak "
+      "linkage, i.e., allowed to be overridden at link time.">
   ];
 }
 
@@ -464,7 +426,7 @@ def ExpandControlVeqs: Pass<"expand-control-veqs", "mlir::func::FuncOp"> {
   let description = [{
     Given an operation of the form
     ```mlir
-    quake.any [%veq] %r : (!quake.veq<n>, !quake.ref) -> ()
+    quake.* [%veq] %r : (!quake.veq<n>, !quake.ref) -> ()
     ```
     this pass will extract each qubit from `%veq%` and explicitly provide them
     as qubits:
@@ -472,36 +434,22 @@ def ExpandControlVeqs: Pass<"expand-control-veqs", "mlir::func::FuncOp"> {
     %arg0 = quake.extract_ref %veq[0] : (!quake.veq<n>) -> !quake.ref
     ...
     %argn = quake.extract_ref %veq[n] : (!quake.veq<n>) -> !quake.ref
-    quake.any [%arg0, ..., %argn] %0 : (!quake.ref, ..., !quake.ref, !quake.ref) -> ()
+    quake.* [%arg0, ..., %argn] %0 : (!quake.ref, ..., !quake.ref,
+        !quake.ref) -> ()
     ```
   }];
 }
 
 def ExpandMeasurements : Pass<"expand-measurements"> {
-  let summary = "Expand multi-qubit measurements to individual qubit ops.";
+  let summary = "Expand multi-ref measurements to series on single refs.";
   let description = [{
-    The `mx`, `my`, `mz` ops can take a list of qubits and/or veq arguments
-    and return a `!quake.measurements<N>` collection. The target may only
-    support measuring a single qubit however. This pass expands these
-    multi-qubit measurements into individual single-qubit measurements in two
-    steps.
+    The `mx`, `my`, `mz` ops can take a list of qubits and/or veq arguments.
+    The target may only support measuring a single qubit however. This pass
+    expands these ops in list format into a series of measurements (including
+    loops) on individual qubits and into a single `std::vector<bool>` result.
 
-    Step 1: Any `quake.discriminate` on a sized `!quake.measurements<N>`
-    value is expanded into N individual `quake.get_measure` +
-    `quake.discriminate` operations on single `!quake.measure` values, with
-    results collected into a `!cc.stdvec<iK>`.
-
-    Step 2: Multi-qubit `mx`, `my`, `mz` ops are replaced with individual
-    per-qubit measurements. For `veq<N>` targets with known size, the qubits
-    are extracted via `quake.extract_ref` and measured individually. For
-    `veq<?>` targets with dynamically-sized targets, a loop is generated
-    using `quake.veq_size` to compute the iteration count and individual
-    qubits are extracted via `quake.extract_ref` within the loop body.
-    
-    Multi-qubit measurements without local discriminate users are left intact.
-
-    The `reset` op can also take a veq argument and this pass will expand that
-    to a loop of `reset` operations on individual qubits.
+    The `reset` op can also take a veq argument and this pass will also expand
+    that to a series of `reset` operations on single qubits.
   }];
 
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
@@ -597,7 +545,9 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
     constants) regardless of the kernel's (semantically correct) signature.
   }];
 
-  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect",
+    "mlir::func::FuncDialect", "mlir::cf::ControlFlowDialect",
+    "mlir::arith::ArithDialect"];
 
   let options = [
     Option<"outputFilename", "output-filename", "std::string",
@@ -612,7 +562,8 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
       "Defer generating kernel execution until JIT time.">,
     Option<"positNullary", "posit-nullary", "bool", /*default=*/"false",
       "Posit that the entry-point is nullary regardless of its signature.">,
-    Option<"ignoreHostFunction", "ignore-host-function", "bool", /*default=*/"false",
+    Option<"ignoreHostFunction", "ignore-host-function", "bool",
+      /*default=*/"false",
       "Assume that the kernel doesn't need a host function.">
   ];
 }
@@ -630,20 +581,28 @@ def GetConcreteMatrix : Pass<"get-concrete-matrix", "mlir::ModuleOp"> {
     Example:
     ```mlir
       module {
-        func.func @__nvqpp__mlirgen__function_foo_generator_1.bar(%arg0: !cc.stdvec<f64>) -> !cc.stdvec<complex<f64>> {
+        func.func @__nvqpp__mlirgen__function_foo_generator_1.bar(%arg0:
+            !cc.stdvec<f64>) -> !cc.stdvec<complex<f64>> {
           ...
-          %0 = cc.address_of @__nvqpp__mlirgen__function_foo_generator_1.bar.rodata_0 : !cc.ptr<!cc.array<complex<f64> x 4>>
+          %0 = cc.address_of
+              @__nvqpp__mlirgen__function_foo_generator_1.bar.rodata_0 :
+              !cc.ptr<!cc.array<complex<f64> x 4>>
           ...
           return %3 : !cc.stdvec<complex<f64>>
         }
 
         func.func @__nvqpp__mlirgen__function_kernel_1._Z8kernel_1v() {
           %0 = quake.alloca !quake.ref
-          quake.custom_op @__nvqpp__mlirgen__function_foo_generator_1.bar %0 : (!quake.ref) -> ()
+          quake.custom_op @__nvqpp__mlirgen__function_foo_generator_1.bar %0 :
+              (!quake.ref) -> ()
           return
         }
 
-        cc.global constant private @__nvqpp__mlirgen__function_foo_generator_1.bar.rodata_0 ((dense<[(0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+        cc.global constant private
+          @__nvqpp__mlirgen__function_foo_generator_1.bar.rodata_0
+          ((dense<[(0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00),
+            (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> :
+              tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
       }
     ```
 
@@ -652,7 +611,9 @@ def GetConcreteMatrix : Pass<"get-concrete-matrix", "mlir::ModuleOp"> {
     ```mlir
       func.func @__nvqpp__mlirgen__function_kernel_1._Z8kernel_1v() {
         %0 = quake.alloca !quake.ref
-        quake.custom_op @__nvqpp__mlirgen__function_foo_generator_1.bar.rodata_0 %0 : (!quake.ref) -> ()
+        quake.custom_op
+            @__nvqpp__mlirgen__function_foo_generator_1.bar.rodata_0 %0 :
+              (!quake.ref) -> ()
         return
       }
     ```
@@ -698,6 +659,9 @@ def LambdaLifting : Pass<"lambda-lifting", "mlir::ModuleOp"> {
     issues with memtoreg altering the structure of cc.loop too aggressively
     before the loop is analyzed.
   }];
+
+  let dependentDialects = ["mlir::cf::ControlFlowDialect",
+                           "mlir::func::FuncDialect"];
 
   let options = [
     Option<"constantPropagation", "constant-prop", "bool", /*default=*/"false",
@@ -916,7 +880,8 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
 
   let options = [
     Option<"device", "device", "std::string", /*default=*/"\"-\"",
-      "Device topology: path(N), ring(N), star(N), star(N,c), grid(w,h), file(/path/to/file), bypass">,
+      "Device topology: path(N), ring(N), star(N), star(N,c), grid(w,h), "
+      "file(/path/to/file), bypass">,
     Option<"extendedLayerSize", "extendedLayerSize", "unsigned",
            /*default=*/"20", "Extended layer size">,
     Option<"extendedLayerWeight", "extendedLayerWeight", "float",
@@ -997,7 +962,8 @@ def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
   }];
   let options = [
     ListOption<"termBSF", "term-bsf", "unsigned",
-      "The measurement bases as a Pauli tensor product represented in binary symplectic form.">
+      "The measurement bases as a Pauli tensor product represented in binary "
+      "symplectic form.">
   ];
 }
 
@@ -1101,6 +1067,10 @@ def QuakeSynthesize : Pass<"quake-synth", "mlir::ModuleOp"> {
      runtime values.
   }];
 
+  let dependentDialects = ["mlir::arith::ArithDialect",
+                           "mlir::complex::ComplexDialect",
+                           "cudaq::cc::CCDialect", "mlir::math::MathDialect"];
+
   let constructor = "cudaq::opt::createQuakeSynthesizer()";
 }
 
@@ -1143,6 +1113,21 @@ def QuakeSimplify : Pass<"quake-simplify"> {
     This pass performs several simplifications on quake operations. The
     IR is expected to be in value-semantics form.
   }];
+}
+
+def QubitResetBeforeReuse :
+    Pass<"qubit-reset-before-reuse", "mlir::func::FuncOp"> {
+  let summary = "After measurement of a ref, add reset (and initialization).";
+  let description = [{
+   Adds a `quake.reset` and conditionally applies an X gate if the measurement
+   result is 1 to initialize the reference back into the just measured state
+   afterward. This is only activated when the measured reference is to be
+   reused.
+   
+   Note: if the measurement is already accompanied by a reset, this pass does
+   not add any additional operations.
+  }];
+
 }
 
 def RegToMem : Pass<"regtomem", "mlir::func::FuncOp"> {
@@ -1203,12 +1188,13 @@ def ReplaceStateWithKernel : Pass<"replace-state-with-kernel",
     The argument synthesis also substituted the state argument in the `caller`
     with:
       ```
-      quake.materialize_state @callee_num_qubits @callee_init: !cc.ptr<!quake.state>
+      quake.materialize_state @callee_num_qubits @callee_init:
+          !cc.ptr<!quake.state>
       ```
 
-    This optimization performs the replacements for the the following operations 
-    that use a state produced by  `quake.materialize_state @num_qubits, @init`
-    operation:
+    This optimization performs the replacements for the the following
+    operations that use a state produced by  `quake.materialize_state
+    @num_qubits, @init` operation:
 
     - Replace `quake.get_number_of_qubits` operation by call to `@num_qubits`
     - Replace `quake.init_state` operation by call to `@init`
@@ -1219,10 +1205,12 @@ def ReplaceStateWithKernel : Pass<"replace-state-with-kernel",
     Before ReplaceStateWithKernel (replace-state-with-kernel):
     ```
     func.func @foo() {
-      %0 = quake.materialize_state @callee.num_qubits_0, @callee.init_0: !cc.ptr<!quake.state>
+      %0 = quake.materialize_state @callee.num_qubits_0, @callee.init_0:
+              !cc.ptr<!quake.state>
       %1 = quake.get_number_of_qubits %0 : (!cc.ptr<!quake.state>) -> i64
       %2 = quake.alloca !quake.veq<?>[%1 : i64]
-      %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
+      %3 = quake.init_state %2, %0 : (!quake.veq<?>, !cc.ptr<!quake.state>)
+              -> !quake.veq<?>
       return
     }
     ```
@@ -1237,6 +1225,50 @@ def ReplaceStateWithKernel : Pass<"replace-state-with-kernel",
     }
     ```
   }];
+}
+
+def ResourceCountPreprocess :
+    Pass<"resource-count-preprocess", "mlir::func::FuncOp"> {
+  let summary = "Performs preprocessing to optimize for resource counter.";
+  let description = [{
+    This pass performs preprocessing to optimize the code for the resource
+    counter by removing as many invariant gates as possible during compilation,
+    with the aim of reducing the program size for further compilation, and
+    speeding up resource counting by the simulator at runtime.
+
+    For example, in the following program:
+
+    ```c++
+      cudaq::qarray<10> q;
+      h(q[0]);
+      for (size_t i = 0; i < 10; i++) {
+        y(q[i]);
+        if (mz(q[i]))
+          x(q[i]);
+      }
+    ```
+
+    The initial `h(q[0])` will always be run once, so we can precount it and
+    remove it. Similarly, it is trivial to see that the loop will run 10 times,
+    so we can pre count `y(q[i])` ten times as well. However, because `x(q[i])`
+    is gated by `mz(q[i])`, it is not invariant, so it will remain and be
+    counted during simulation.
+
+    Currently, the detection of "invariance" is purposefully dumb.
+
+    This preprocessing path may interfere with detecting downstream
+    optimizations, as preprocessed gates are counted and removed early in the
+    pipeline.
+  }];
+
+  let options = [
+    Option<"countGate", "count-gate",
+      "std::function<void(std::string,std::vector<std::size_t>,std::vector<std::size_t>,size_t)>",
+      /*default=*/"[](std::string,std::vector<std::size_t>,std::vector<std::size_t>,size_t){}",
+      "Closure that receives gate name, control qubit indices, target qubit indices, and multiplicity">,
+    Option<"dumpPreprocessed", "dump-preprocessed", "bool", /*default=*/"false",
+      "Dump preprocessed gates instead of counting them (useful for testing)">,
+  ];
 }
 
 def SROA : Pass<"cc-sroa"> {
@@ -1291,10 +1323,14 @@ def StatePreparation : Pass<"state-prep", "mlir::func::FuncOp"> {
       func.func @foo() attributes {
         %0 = cc.address_of @foo.rodata_0 : !cc.ptr<!cc.array<complex<f32> x 4>>
         %1 = quake.alloca !quake.veq<2>
-        %2 = quake.init_state %1, %0 : (!quake.veq<2>, !cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<2>
+        %2 = quake.init_state %1, %0 : (!quake.veq<2>,
+          !cc.ptr<!cc.array<complex<f32> x 4>>) -> !quake.veq<2>
         return
       }
-      cc.global constant private @foo.rodata_0 (dense<[(0.707106769,0.000000e+00), (0.707106769,0.000000e+00), (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f32>>) : !cc.array<complex<f32> x 4>
+      cc.global constant private @foo.rodata_0
+        (dense<[(0.707106769,0.000000e+00), (0.707106769,0.000000e+00),
+          (0.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> :
+            tensor<4xcomplex<f32>>) : !cc.array<complex<f32> x 4>
     }
     ```
     Will be rewritten to:
@@ -1337,15 +1373,18 @@ def UnitarySynthesis : Pass<"unitary-synthesis", "mlir::ModuleOp"> {
 
     For example,
     ```mlir
-    quake.custom_op @__nvqpp__mlirgen__custom_x_generator_1.rodata %0 : (!quake.ref) -> ()
+    quake.custom_op @__nvqpp__mlirgen__custom_x_generator_1.rodata %0 :
+      (!quake.ref) -> ()
     ```
     This call will be converted to an `ApplyOp`.
     ```mlir
-    quake.apply @__nvqpp__mlirgen__custom_x_generator_1.kernel %[[VAL_0]] : (!quake.ref) -> ()
+    quake.apply @__nvqpp__mlirgen__custom_x_generator_1.kernel %[[VAL_0]] :
+      (!quake.ref) -> ()
     ```
     The function has sequence of decomposed gates.
     ```mlir
-    func.func private @__nvqpp__mlirgen__custom_x_generator_1.kernel(%arg0: !quake.ref) {
+    func.func private @__nvqpp__mlirgen__custom_x_generator_1.kernel(%arg0:
+      !quake.ref) {
         %cst = arith.constant 1.5707963267948966 : f64        
         quake.ry (%cst) %arg0 : (f64, !quake.ref) -> ()
         ...
@@ -1353,6 +1392,7 @@ def UnitarySynthesis : Pass<"unitary-synthesis", "mlir::ModuleOp"> {
       }
     ```
   }];
+  let dependentDialects = ["mlir::arith::ArithDialect", "mlir::func::FuncDialect"];
 }
 
 def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {
@@ -1378,6 +1418,9 @@ def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {
     The lower to CFG pass removed all structured operations from a function,
     lowering the body of the function completely to a primitive CFG.
   }];
+
+  let dependentDialects = ["mlir::cf::ControlFlowDialect",
+                           "quake::QuakeDialect", "cudaq::cc::CCDialect"];
 }
 
 def UpdateRegisterNames : Pass<"update-register-names"> {
@@ -1426,21 +1469,6 @@ def WriteAfterWriteElimination : Pass<"write-after-write-elimination"> {
     cc.store %c1_i64, %2 : !cc.ptr<i64>
     ```
   }];
-}
-
-def QubitResetBeforeReuse :
-    Pass<"qubit-reset-before-reuse", "mlir::func::FuncOp"> {
-  let summary = "After measurement of a ref, add reset (and initialization).";
-  let description = [{
-   Adds a `quake.reset` and conditionally applies an X gate if the measurement
-   result is 1 to initialize the reference back into the just measured state
-   afterward. This is only activated when the measured reference is to be
-   reused.
-   
-   Note: if the measurement is already accompanied by a reset, this pass does
-   not add any additional operations.
-  }];
-
 }
 
 #endif // CUDAQ_OPT_OPTIMIZER_TRANSFORMS_PASSES

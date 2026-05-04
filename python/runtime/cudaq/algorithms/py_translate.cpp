@@ -12,9 +12,12 @@
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/platform/default/python/QPU.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Target/LLVMIR/Export.h"
 
@@ -23,7 +26,17 @@ using namespace mlir;
 /// @brief Run `cudaq::translate` on the provided kernel.
 static std::string translate_impl(const std::string &shortName,
                                   MlirModule module, const std::string &format,
-                                  py::args runtimeArguments) {
+                                  nanobind::args runtimeArguments) {
+  // Marker span identifying every nested pass / scoped trace as part of the
+  // JIT-time pipeline triggered by cudaq.translate. The primary JIT marker
+  // for kernel-call / sample / observe / estimate_resources lives in
+  // cudaq::marshal_and_launch_module; cudaq.translate has its own JIT
+  // pipeline that does not pass through that function, so it gets its own
+  // marker here. Paired with cudaq.pipeline.aot emitted in compile_to_mlir.
+  cudaq::ScopedTrace pipelineJitMarker(cudaq::TraceContext(__builtin_FUNCTION(),
+                                                           __builtin_FILE(),
+                                                           __builtin_LINE()),
+                                       "cudaq.pipeline.jit");
   StringRef format_ = format;
   auto formatPair = format_.split(':');
   auto mod = unwrap(module);
@@ -43,7 +56,7 @@ static std::string translate_impl(const std::string &shortName,
       cudaq::marshal_arguments_for_module_launch(mod, runtimeArguments, fn);
 
   return StringSwitch<std::function<std::string()>>(formatPair.first)
-      .Cases("qir", "qir-full", "qir-adaptive", "qir-base",
+      .Cases({"qir", "qir-full", "qir-adaptive", "qir-base"},
              [&]() {
                return cudaq::detail::lower_to_qir_llvm(shortName, mod, opaques,
                                                        format);
@@ -66,7 +79,7 @@ static std::string translate_impl(const std::string &shortName,
 }
 
 /// @brief Bind the translate cudaq function
-void cudaq::bindPyTranslate(py::module &mod) {
+void cudaq::bindPyTranslate(nanobind::module_ &mod) {
   mod.def("translate_impl", translate_impl,
           "See python documentation for translate.");
   // Internal translation to QIR for testing and internal use. Not intended to
@@ -77,11 +90,12 @@ void cudaq::bindPyTranslate(py::module &mod) {
         const std::string format = "qir";
         auto mod = unwrap(module);
         PassManager pm(mod.getContext());
+        pm.addInstrumentation(
+            std::make_unique<cudaq::TracePassInstrumentation>());
         cudaq::opt::addAOTPipelineConvertToQIR(pm, format);
         if (failed(pm.run(mod)))
           throw std::runtime_error("Conversion to " + format + " failed.");
         llvm::LLVMContext llvmContext;
-        llvmContext.setOpaquePointers(false);
         std::unique_ptr<llvm::Module> llvmModule =
             translateModuleToLLVMIR(mod, llvmContext);
         if (!llvmModule)

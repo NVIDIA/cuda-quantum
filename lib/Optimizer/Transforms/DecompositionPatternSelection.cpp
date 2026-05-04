@@ -7,34 +7,23 @@
  ******************************************************************************/
 
 #include "DecompositionPatterns.h"
-#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
-#include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
-#include "mlir/Dialect/Math/IR/Math.h"
+#include "PassDetails.h"
+#include "llvm/ADT/Hashing.h"
+#include "llvm/ADT/SetVector.h"
+#include "llvm/ADT/StringMap.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include <algorithm>
-#include <llvm/ADT/ArrayRef.h>
-#include <llvm/ADT/Hashing.h>
-#include <llvm/ADT/SetVector.h>
-#include <llvm/ADT/StringMap.h>
-#include <llvm/ADT/StringRef.h>
-#include <memory>
 #include <queue>
 #include <unordered_map>
 #include <unordered_set>
-#include <vector>
 
 using namespace mlir;
 
 namespace {
 
-//===----------------------------------------------------------------------===//
 // ConversionTarget and OperatorInfo, parsed from target basis strings such as
 // ["x", "x(1)", "z"]
-//===----------------------------------------------------------------------===//
-
 struct OperatorInfo {
   StringRef name;
   std::size_t numControls;
@@ -136,8 +125,6 @@ struct hash<OperatorInfo> {
 };
 } // namespace std
 
-namespace {
-
 // Computes a hash of the given unordered set using the hashes of the elements
 // in the set.
 template <typename T>
@@ -150,6 +137,7 @@ std::size_t computeSetHash(const std::unordered_set<T> &set) {
   return llvm::hash_combine_range(hashes.begin(), hashes.end());
 }
 
+namespace {
 //===----------------------------------------------------------------------===//
 // Decomposition Graph for Pattern Selection
 //===----------------------------------------------------------------------===//
@@ -183,7 +171,7 @@ public:
   static DecompositionGraph fromRegistry() {
     llvm::StringMap<std::unique_ptr<cudaq::DecompositionPatternType>> patterns;
     for (const auto &patternType :
-         cudaq::DecompositionPatternType::RegistryType::entries()) {
+         cudaq::DecompositionPatternTypeRegistry::entries()) {
       patterns.insert({patternType.getName(), patternType.instantiate()});
     }
     return DecompositionGraph(std::move(patterns));
@@ -357,7 +345,6 @@ private:
   std::unordered_map<std::size_t, std::vector<std::string>>
       patternSelectionCache;
 };
-
 } // namespace
 
 std::unique_ptr<ConversionTarget>

@@ -35,6 +35,7 @@ set(CUDAQ_TEST_DEPENDS
     cudaq-translate
     FileCheck
     cudaq-qpud
+    CustomPassPlugin
 )
 # We require split-file, which should be installed along with FileCheck, but
 # the CI doesn't do it. Comment this out and open a bug.

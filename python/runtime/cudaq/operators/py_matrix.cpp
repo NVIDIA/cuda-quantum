@@ -6,10 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <pybind11/complex.h>
-#include <pybind11/numpy.h>
-#include <pybind11/operators.h>
-#include <pybind11/stl.h>
+#include <nanobind/ndarray.h>
+#include <nanobind/operators.h>
+#include <nanobind/stl/complex.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/vector.h>
 
 #include "cudaq/operators/matrix.h"
 #include "py_helpers.h"
@@ -19,44 +21,39 @@
 
 namespace cudaq {
 
-/// @brief Extract the array data from a buffer_info into our
-/// own allocated data pointer.
-void extractMatrixData(py::buffer_info &info, std::complex<double> *data) {
-  if (info.format != py::format_descriptor<std::complex<double>>::format())
-    throw std::runtime_error(
-        "Incompatible buffer format, must be np.complex128.");
-
-  if (info.ndim != 2)
-    throw std::runtime_error("Incompatible buffer shape.");
-
-  memcpy(data, info.ptr,
-         sizeof(std::complex<double>) * (info.shape[0] * info.shape[1]));
-}
-
-void bindComplexMatrix(py::module &mod) {
-  py::class_<complex_matrix>(
-      mod, "ComplexMatrix", py::buffer_protocol(),
+void bindComplexMatrix(nanobind::module_ &mod) {
+  nanobind::class_<complex_matrix>(
+      mod, "ComplexMatrix",
       "The :class:`ComplexMatrix` is a thin wrapper around a "
       "matrix of complex<double> elements.")
-      /// The following makes this fully compatible with NumPy
-      .def_buffer([](complex_matrix &op) -> py::buffer_info {
-        return py::buffer_info(
-            op.get_data(complex_matrix::order::row_major),
-            sizeof(std::complex<double>),
-            py::format_descriptor<std::complex<double>>::format(), 2,
-            {op.rows(), op.cols()},
-            {sizeof(std::complex<double>) * op.cols(),
-             sizeof(std::complex<double>)});
-      })
-      .def(py::init([](const py::buffer &b) {
-             py::buffer_info info = b.request();
-             complex_matrix m(info.shape[0], info.shape[1]);
-             extractMatrixData(info,
-                               m.get_data(complex_matrix::order::row_major));
-             return m;
-           }),
-           "Create a :class:`ComplexMatrix` from a buffer of data, such as a "
-           "numpy.ndarray.")
+      .def(
+          "__init__",
+          [](complex_matrix *self, nanobind::object b) {
+            auto arr = nanobind::cast<nanobind::ndarray<>>(b);
+            if (arr.ndim() != 2)
+              throw std::runtime_error("ComplexMatrix requires a 2D array");
+            if (arr.shape(0) == 0 || arr.shape(1) == 0)
+              throw std::runtime_error("Matrix dimensions must be non-zero.");
+
+            new (self) complex_matrix(arr.shape(0), arr.shape(1));
+
+            // Stride-aware element-wise copy so both row-major (C) and
+            // column-major (Fortran) layouts are handled correctly.
+            // nanobind strides are counted in elements, not bytes.
+            auto *dest = self->get_data(complex_matrix::order::row_major);
+            auto *src = static_cast<std::complex<double> *>(arr.data());
+            auto stride0 = arr.stride(0);
+            auto stride1 = arr.stride(1);
+            for (size_t i = 0; i < arr.shape(0); ++i)
+              for (size_t j = 0; j < arr.shape(1); ++j)
+                dest[i * arr.shape(1) + j] = src[i * stride0 + j * stride1];
+          },
+          "Create a :class:`ComplexMatrix` from a buffer of data, such as a "
+          "numpy.ndarray.")
+      .def(
+          "to_numpy",
+          [](complex_matrix &op) { return details::cmat_to_numpy(op); },
+          "Convert to a NumPy array.")
       .def(
           "num_rows", [](complex_matrix &m) { return m.rows(); },
           "Returns the number of rows in the matrix.")
@@ -85,7 +82,7 @@ void bindComplexMatrix(py::module &mod) {
           [](const complex_matrix &lhs, const complex_matrix &rhs) {
             return lhs == rhs;
           },
-          py::is_operator())
+          nanobind::is_operator())
       .def("__str__", &complex_matrix::to_string,
            "Returns the string representation of the matrix.")
       .def(

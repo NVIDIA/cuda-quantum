@@ -261,21 +261,21 @@ def quake_ExtractRefOp : QuakeOp<"extract_ref", [Pure]> {
 }
 
 def quake_RelaxSizeOp : QuakeOp<"relax_size", [Pure]> {
-  let summary = "Relax the constant size on a sized type to be unknown.";
+  let summary = "Relax the constant size on a !veq to be unknown.";
   let description = [{
-    Demotes a sized `!quake.veq<N>` to `!quake.veq<?>`, or a sized
-    `!quake.measurements<N>` to `!quake.measurements<?>`. Required to preserve
-    strongly-typed IR at function call/return boundaries.
+    At times, the IR needs to forget the length of an SSA-value of type
+    `!quake.veq<N>` and demote it to type `!quake.veq<?>` where the size is
+    said to be unknown. This demotion is required to preserve a valid,
+    strongly-typed IR.
 
-    Examples:
+    Example:
     ```mlir
       %uqv = quake.relax_size %qv : (!quake.veq<4>) -> !quake.veq<?>
-      %ums = quake.relax_size %ms : (!quake.measurements<4>) -> !quake.measurements<?>
     ```
   }];
 
-  let arguments = (ins AnyTypeOf<[VeqType, MeasurementsType]>:$inputVec);
-  let results = (outs AnyTypeOf<[VeqType, MeasurementsType]>);
+  let arguments = (ins VeqType:$inputVec);
+  let results = (outs VeqType);
 
   let assemblyFormat = [{
     $inputVec `:` functional-type(operands, results) attr-dict
@@ -377,34 +377,6 @@ def quake_VeqSizeOp : QuakeOp<"veq_size", [Pure]> {
   let hasCanonicalizer = 1;
 }
 
-def quake_MeasurementsSizeOp : QuakeOp<"measurements_size", [Pure]> {
-  let summary = "Return the size of a measurements collection.";
-  let description = [{
-    Returns the number of individual measurements in a `!quake.measurements<N>`
-    collection. If the collection has a static size, the static size is returned
-    (effectively as a constant). If the size is dynamic, the value will be an
-    SSA-value.
-
-    Examples:
-    ```mlir
-      %ms = quake.mz %qubits : (!quake.veq<4>) -> !quake.measurements<4>
-      %n = quake.measurements_size %ms : (!quake.measurements<4>) -> i64
-      
-      %ms2 = quake.mz %dyn_veq : (!quake.veq<?>) -> !quake.measurements<?>
-      %n2 = quake.measurements_size %ms2 : (!quake.measurements<?>) -> i64
-    ```
-  }];
-
-  let arguments = (ins MeasurementsType:$measurements);
-  let results = (outs AnySignlessIntegerOrIndex:$size);
-
-  let assemblyFormat = [{
-    $measurements `:` functional-type(operands, results) attr-dict
-  }];
-
-  let hasCanonicalizer = 1;
-}
-
 //===----------------------------------------------------------------------===//
 // Application, ComputeAction(Uncompute)
 //===----------------------------------------------------------------------===//
@@ -425,7 +397,9 @@ def quake_ApplyOp : QuakeOp<"apply",
     Variadic<cc_CallableType>:$indirect_callee, // must be 0 or 1 element
     UnitAttr:$is_adj,
     Variadic<AnyQType>:$controls,
-    Variadic<AnyType>:$actuals
+    Variadic<AnyType>:$actuals,
+    OptionalAttr<DictArrayAttr>:$arg_attrs,
+    OptionalAttr<DictArrayAttr>:$res_attrs
   );
   let results = (outs Variadic<AnyType>);
 
@@ -439,7 +413,7 @@ def quake_ApplyOp : QuakeOp<"apply",
                    "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$args), [{
       return build($_builder, $_state, retTy, callee, {}, is_adj, controls,
-                   args);
+                   args, {}, {});
     }]>,
     OpBuilder<(ins "mlir::TypeRange":$retTy,
                    "mlir::SymbolRefAttr":$callee,
@@ -447,7 +421,7 @@ def quake_ApplyOp : QuakeOp<"apply",
                    "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$args), [{
       return build($_builder, $_state, retTy, callee, {}, is_adj, controls,
-                   args);
+                   args, {}, {});
     }]>,
     OpBuilder<(ins "mlir::TypeRange":$retTy,
                    "mlir::Value":$callable,
@@ -455,7 +429,7 @@ def quake_ApplyOp : QuakeOp<"apply",
                    "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$args), [{
       return build($_builder, $_state, retTy, mlir::SymbolRefAttr{},
-                   mlir::ValueRange{callable}, is_adj, controls, args);
+                   mlir::ValueRange{callable}, is_adj, controls, args, {}, {});
     }]>,
     OpBuilder<(ins "mlir::TypeRange":$retTy,
                    "mlir::Value":$callable,
@@ -463,7 +437,7 @@ def quake_ApplyOp : QuakeOp<"apply",
                    "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$args), [{
       return build($_builder, $_state, retTy, mlir::SymbolRefAttr{},
-                   mlir::ValueRange{callable}, is_adj, controls, args);
+                   mlir::ValueRange{callable}, is_adj, controls, args, {}, {});
     }]>
   ];
 
@@ -479,6 +453,14 @@ def quake_ApplyOp : QuakeOp<"apply",
       return {getActuals().begin(), getActuals().end()};
     }
 
+    mlir::MutableOperandRange getArgOperandsMutable() {
+      auto range0 = getODSOperandIndexAndLength(0);
+      auto range2 = getODSOperandIndexAndLength(2);
+      auto mutableRange = ::mlir::MutableOperandRange(getOperation(),
+        range0.first, range2.second);
+      return mutableRange;
+    }
+
     bool applyToVariant() {
       return getIsAdj() || !getControls().empty();
     }
@@ -488,6 +470,12 @@ def quake_ApplyOp : QuakeOp<"apply",
       if (getCallee())
         return (*this)->getAttrOfType<mlir::SymbolRefAttr>(getCalleeAttrName());
       return getIndirectCallee().front();
+    }
+
+    /// Set the callee for this operation.
+    void setCalleeFromCallable(mlir::CallInterfaceCallable callee) {
+      (*this)->setAttr(getCalleeAttrName(),
+                       llvm::cast<mlir::SymbolRefAttr>(callee));
     }
   }];
 }
@@ -657,7 +645,9 @@ def quake_CallByRefOp : QuakeOp<"call_by_ref", [CallOpInterface]> {
 
   let arguments = (ins
     SymbolRefAttr:$callee,
-    Variadic<AnyType>:$args
+    Variadic<AnyType>:$args,
+    OptionalAttr<DictArrayAttr>:$arg_attrs,
+    OptionalAttr<DictArrayAttr>:$res_attrs
   );
   let results = (outs Variadic<AnyType>);
 
@@ -665,15 +655,32 @@ def quake_CallByRefOp : QuakeOp<"call_by_ref", [CallOpInterface]> {
     $callee `(` $args `)` `:` functional-type(operands, results) attr-dict
   }];
 
+  let builders = [
+    OpBuilder<(ins "mlir::SymbolRefAttr":$callee,
+                   "mlir::TypeRange":$results,
+                   "mlir::ValueRange":$args), [{
+      return build($_builder, $_state, results, callee, args, {}, {});
+    }]>
+  ];
+
   let hasVerifier = 1;
 
   let extraClassDeclaration = [{
     operand_range getArgOperands() {
       return {operand_begin(), operand_end()};
     }
-    
+
+    mlir::MutableOperandRange getArgOperandsMutable() {
+      return getArgsMutable();
+    }
+
     mlir::CallInterfaceCallable getCallableForCallee() {
       return (*this)->getAttrOfType<mlir::SymbolRefAttr>(getCalleeAttrName());
+    }
+
+    void setCalleeFromCallable(mlir::CallInterfaceCallable callee) {
+      (*this)->setAttr(getCalleeAttrName(),
+                       llvm::cast<mlir::SymbolRefAttr>(callee));
     }
   }];
 }
@@ -1078,7 +1085,7 @@ def quake_ResetOp : QuakeOp<"reset", [QuantumGate,
   let extraClassDeclaration = [{
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::
         EffectInstance<mlir::MemoryEffects::Effect>> &effects) {
-      quake::getResetEffectsImpl(effects, getTargets());
+      quake::getResetEffectsImpl(effects, getTargetsMutable());
     }
   }];
 }
@@ -1093,8 +1100,17 @@ class Measurement<string mnemonic> : QuakeOp<mnemonic, [MeasurementInterface,
     Variadic<AnyQTargetType>:$targets,
     OptionalAttr<StrAttr>:$registerName
   );
+  // The classical result of a measurement is one of:
+  //   - !quake.measure                   (the legacy SSA result),
+  //   - !cc.measure_handle               (the cudaq::measure_handle alias),
+  //   - !cc.stdvec<!quake.measure>       (vector of legacy results),
+  //   - !cc.stdvec<!cc.measure_handle>   (vector of handles).
+  // The handle forms are emitted by the bridge for `cudaq::measure_handle`
+  // callers (overloads of `mz`/`mx`/`my`) and are lowered to `i64` by
+  // `--convert-to-qir-api`'s `TypeConverter`.
   let results = (outs
-    AnyTypeOf<[MeasureType, MeasurementsType]>:$measOut,
+    AnyTypeOf<[MeasureType, cc_MeasureHandleType,
+               StdvecOf<[MeasureType, cc_MeasureHandleType]>]>:$measOut,
     Variadic<WireType>:$wires
   );
 
@@ -1106,20 +1122,18 @@ class Measurement<string mnemonic> : QuakeOp<mnemonic, [MeasurementInterface,
   code OpBaseDeclaration = [{
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
       mlir::MemoryEffects::Effect>> &effects) {
-      quake::getMeasurementEffectsImpl(effects, getTargets());
+      quake::getMeasurementEffectsImpl(effects, getTargetsMutable());
     }
   }];
 
   let hasVerifier = 1;
-  let hasCanonicalizer = 1;
 }
 
 def MxOp : Measurement<"mx"> {
   let summary = "Measurement along the x-axis";
   let description = [{
-    The `mx` operation measures the state of qubits along the x-axis. For a
-    single qubit the result is `!quake.measure`; for multiple qubits the result
-    is `!quake.measurements<N>` (or `!quake.measurements<?>` when unsized).
+    The `mx` operation measures the state of qubits into classical bits
+    represented by a `i1` (or a vector of `i1`), along the x-axis.
 
     The state of the qubits is collapsed into one of the computational basis
     states, i.e., either |0> or |1>. A `reset` operation can guarantee that the
@@ -1132,9 +1146,8 @@ def MxOp : Measurement<"mx"> {
 def MyOp : Measurement<"my"> {
   let summary = "Measurement along the y-axis";
   let description = [{
-    The `my` operation measures the state of qubits along the y-axis. For a
-    single qubit the result is `!quake.measure`; for multiple qubits the result
-    is `!quake.measurements<N>` (or `!quake.measurements<?>` when unsized).
+    The `my` operation measures the state of qubits into classical bits
+    represented by a `i1` (or a vector of `i1`), along the y-axis.
 
     The state of the qubit is collapsed into one of the computational basis
     states, i.e., either |0> or |1>. A `reset` operation can guarantee that the
@@ -1147,10 +1160,9 @@ def MyOp : Measurement<"my"> {
 def MzOp : Measurement<"mz"> {
   let summary = "Measurement along the z-axis";
   let description = [{
-    The `mz` operation measures the state of qubits along the z-axis---the
-    so-called computational basis. For a single qubit the result is
-    `!quake.measure`; for multiple qubits the result is
-    `!quake.measurements<N>` (or `!quake.measurements<?>` when unsized).
+    The `mz` operation measures the state of qubits into a classical bits
+    represented by a `i1` (or a vector of `i1`), along the z-axis---the
+    so-called computational basis.
 
     The state of the qubit is collapsed into one of the computational basis
     states, i.e., either |0> or |1>. A `reset` operation can guarantee that the
@@ -1163,19 +1175,21 @@ def MzOp : Measurement<"mz"> {
 def quake_DiscriminateOp : QuakeOp<"discriminate", [Pure]> {
   let summary = "Converts a measurement to a classical integral value.";
   let description = [{
-    Quake's measurement operators return a value of type `!quake.measure`. The
-    discriminate operation converts a value of type measure to a classical
-    integral value. This value is typically an `i1` type, but might be `i2` for
-    qutrits, or even an `i8` for general qudits.
+    Quake's measurement operators return a value of type `!quake.measure` or,
+    for `cudaq::measure_handle` callers, `!cc.measure_handle`. The
+    discriminate operation converts either form to a classical integral value.
+    The result is typically an `i1`, but might be `i2` for qutrits, or `i8`
+    for general qudits.
 
     While a measurement of a wire changes/corrupts the state of the wire, the
-    model maintains that a `!quake.measure` value is non-volatile. Therefore,
-    multiple applications of discriminate on the same `!quake.measure` value
-    will yield the same result value for a given result type.
+    model maintains that the classical measurement value is non-volatile.
+    Multiple applications of discriminate on the same value will yield the
+    same result for a given result type.
   }];
 
   let arguments = (ins
-    AnyTypeOf<[MeasureType, MeasurementsType]>:$measurement
+    AnyTypeOf<[MeasureType, cc_MeasureHandleType,
+               StdvecOf<[MeasureType, cc_MeasureHandleType]>]>:$measurement
   );
   let results = (outs
     AnyTypeOf<[AnySignlessInteger, StdvecOf<[AnySignlessInteger]>]>
@@ -1186,64 +1200,6 @@ def quake_DiscriminateOp : QuakeOp<"discriminate", [Pure]> {
   }];
 
   let hasVerifier = 1;
-}
-
-//===----------------------------------------------------------------------===//
-// GetMeasureOp
-//===----------------------------------------------------------------------===//
-
-def quake_GetMeasureOp : QuakeOp<"get_measure", [Pure]> {
-  let summary =
-    "Extract a single measurement from a measurements collection.";
-  let description = [{
-    Extracts a single `!quake.measure` value from a `!quake.measurements<N>`
-    collection by index. This is analogous to `quake.extract_ref` for qubits.
-
-    Example:
-    ```mlir
-      %m = quake.get_measure %ms[0] : (!quake.measurements<4>) -> !quake.measure
-    ```
-  }];
-
-  let arguments = (ins
-    MeasurementsType:$measurements,
-    Optional<AnySignlessIntegerOrIndex>:$index,
-    I64Attr:$rawIndex
-  );
-  let results = (outs MeasureType:$measure);
-
-  let builders = [
-    OpBuilder<(ins "mlir::Value":$measurements, "mlir::Value":$index,
-                   "mlir::IntegerAttr":$rawIndex), [{
-      return build($_builder, $_state, $_builder.getType<MeasureType>(),
-                   measurements, index, rawIndex);
-    }]>,
-    OpBuilder<(ins "mlir::Value":$measurements, "mlir::Value":$index), [{
-      return build($_builder, $_state, $_builder.getType<MeasureType>(),
-                   measurements, index, GetMeasureOp::kDynamicIndex);
-    }]>,
-    OpBuilder<(ins "mlir::Value":$measurements, "std::size_t":$rawIndex), [{
-      auto i64Ty = $_builder.getI64Type();
-      return build($_builder, $_state, $_builder.getType<MeasureType>(),
-                   measurements, mlir::Value{},
-                   mlir::IntegerAttr::get(i64Ty, rawIndex));
-    }]>
-  ];
-
-  let assemblyFormat = [{
-    $measurements `[` custom<RawIndex>($index, $rawIndex) `]` `:`
-      functional-type(operands, results) attr-dict
-  }];
-
-  let hasVerifier = 1;
-
-  let extraClassDeclaration = [{
-    static constexpr std::size_t kDynamicIndex =
-      std::numeric_limits<std::size_t>::max();
-
-    bool hasConstantIndex() { return !getIndex(); }
-    std::size_t getConstantIndex() { return getRawIndex(); }
-  }];
 }
 
 //===----------------------------------------------------------------------===//
@@ -1331,7 +1287,7 @@ class QuakeOperator<string mnemonic, list<Trait> traits = [],
 
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
       mlir::MemoryEffects::Effect>> &effects) {
-      quake::getOperatorEffectsImpl(effects, getControls(), getTargets());
+      quake::getOperatorEffectsImpl(effects, getControlsMutable(), getTargetsMutable());
     }
 
     //===------------------------------------------------------------------===//
@@ -1494,7 +1450,7 @@ def quake_ExpPauliOp : QuakeOp<"exp_pauli",
 
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
       mlir::MemoryEffects::Effect>> &effects) {
-      quake::getOperatorEffectsImpl(effects, getControls(), getTargets());
+      quake::getOperatorEffectsImpl(effects, getControlsMutable(), getTargetsMutable());
     }
 
     //===------------------------------------------------------------------===//

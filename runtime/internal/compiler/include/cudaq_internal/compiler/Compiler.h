@@ -8,6 +8,7 @@
 #pragma once
 
 #include "common/CompiledModule.h"
+#include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include <map>
 #include <memory>
 #include <string>
@@ -62,58 +63,85 @@ class Compiler {
   /// to be printed. This is similar to `-mlir-pass-statistics` in `cudaq-opt`
   bool enablePassStatistics = false;
 
-  /// @brief If we are emulating locally, keep track
-  /// of JIT engines for invoking the kernels.
-  std::vector<cudaq::JitEngine> jitEngines;
-
   /// @brief Flag indicating whether we should emulate execution locally.
   bool emulate = false;
 
   /// @brief Flag indicating whether we should print the IR.
   bool printIR = false;
 
-  std::vector<cudaq::KernelExecution>
-  lowerQuakeCodePart2(cudaq::ExecutionContext *executionContext,
-                      const std::string &kernelName, void *kernelArgs,
-                      const std::vector<void *> &rawArgs,
-                      mlir::ModuleOp m_module, mlir::MLIRContext *contextPtr,
-                      void *updatedArgs);
-
-  std::tuple<mlir::ModuleOp, std::unique_ptr<mlir::MLIRContext>, void *>
-  extractQuakeCodeAndContext(const std::string &kernelName, void *data);
-
   mlir::ModuleOp lowerQuakeCodeBuildModule(const std::string &,
                                            mlir::ModuleOp module,
                                            mlir::MLIRContext *,
                                            mlir::func::FuncOp);
 
+  // ---- Common helpers used by runPassPipeline ----
+
+  /// Run an arbitrary MLIR pass pipeline string on a module.
+  void applyPipeline(const std::string &pipeline, mlir::ModuleOp moduleOp,
+                     const std::string &kernelName);
+
+  /// Build the module, merge closures, and synthesize arguments.
+  std::pair<mlir::ModuleOp, mlir::func::FuncOp>
+  prepareModule(const std::string &kernelName, mlir::ModuleOp m_module,
+                const std::vector<void *> &rawArgs, void *kernelArgs);
+
+  /// Delay combine-measurements for emulation, then run the main pass
+  /// pipeline.  Returns true when combine-measurements was delayed.
+  bool executeMainPipeline(mlir::ModuleOp moduleOp,
+                           const std::string &kernelName);
+
+  /// Create JIT and MLIR artifacts and assemble a CompiledModule.
+  cudaq::CompiledModule assembleCompiledModule(
+      const std::string &kernelName,
+      std::vector<std::pair<std::string, mlir::ModuleOp>> &modules,
+      bool needJit, bool runCombineMeasurements,
+      std::optional<cudaq::Resources> resourceCounts,
+      const std::vector<std::size_t> &mappingReorderIdx,
+      std::shared_ptr<mlir::MLIRContext> context);
+
 public:
+  static std::pair<const void *, std::shared_ptr<mlir::MLIRContext>>
+  loadQuakeCodeByName(const std::string &kernelName);
+
   Compiler(cudaq::ServerHelper *,
            const std::map<std::string, std::string> &backendConfig,
            cudaq::config::TargetConfig &config,
            const cudaq::noise_model *noiseModel, bool emulate);
   ~Compiler();
 
-  /// @brief Extract the Quake representation for the given kernel name and
-  /// lower it to the code format required for the specific backend. The
-  /// lowering process is controllable via the configuration file in the
-  /// platform directory for the targeted backend.
-  std::vector<cudaq::KernelExecution>
-  lowerQuakeCode(cudaq::ExecutionContext *executionContext,
-                 const std::string &kernelName, void *kernelArgs,
-                 const std::vector<void *> &rawArgs);
+  /// @brief Compile the given module and return a `CompiledModule`.
+  ///
+  /// Performs argument synthesis, the full pass pipeline, and observation
+  /// splitting (for observe mode).
+  ///
+  /// If \p context is provided, `module.getContext() == context.get()` must
+  /// be true. In that case, the MLIR artifacts will keep a `shared_ptr` to
+  /// the context, guaranteeing it outlives the artifacts. Otherwise the
+  /// context lifetime must be managed by the caller.
+  cudaq::CompiledModule
+  runPassPipeline(cudaq::ExecutionContext *executionContext,
+                  const std::string &kernelName, const void *modulePtr,
+                  const std::vector<void *> &rawArgs,
+                  void *kernelArgs = nullptr,
+                  std::shared_ptr<mlir::MLIRContext> context = nullptr);
 
-  // Here the quake code is passed to us (via a ModuleOp), so unlike the other
-  // lowerQuakeCode() member functions there is no need to surf dictionaries for
-  // strings of code to assemble. We have to make sure that this MLIRContext is
-  // not destroyed however, since it may hold an unknown number of other
-  // ModuleOps.
-  // Unchecked assumption: \p module is referentially unique (within the scope
-  // of this launch instance) and disposable. It can be modified by this call in
-  // any way necessary without breaking some other kernel launch.
+  /// @brief Emit target-specific code for each `MlirArtifact` in the
+  /// `CompiledModule` and produce `KernelExecution` objects.
+  std::vector<cudaq::KernelExecution>
+  emitKernelExecutions(const cudaq::CompiledModule &compiled);
+
+  /// Compile the quake code passed via ModuleOp and lower it to the code format
+  /// required for the specific backend.
+  ///
+  /// The lowering process is controllable via the configuration file in the
+  /// platform directory for the targeted backend.
+  ///
+  /// Unchecked assumption: there are no other references to \p module (within
+  /// the scope of this launch instance). It can be disposed and/or modified by
+  /// this call in any way necessary without breaking some other kernel launch.
   std::vector<cudaq::KernelExecution>
   lowerQuakeCode(cudaq::ExecutionContext *executionContext,
-                 const std::string &kernelName, mlir::ModuleOp module,
-                 const std::vector<void *> &rawArgs);
+                 const std::string &kernelName, const void *modulePtr,
+                 void *kernelArgs, const std::vector<void *> &rawArgs);
 };
 } // namespace cudaq_internal::compiler

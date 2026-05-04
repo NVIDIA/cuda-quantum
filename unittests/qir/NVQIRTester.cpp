@@ -59,7 +59,6 @@ void __quantum__qis__rz(double x, Qubit *q);
 void __quantum__qis__rz__ctl(double x, Array *ctrls, Qubit *q);
 void __quantum__qis__u3(double theta, double phi, double lambda, Qubit *q);
 Result *__quantum__qis__mz(Qubit *q);
-Result *__quantum__qis__measure__body(Array *basis, Array *qubits);
 Result *__quantum__rt__result_get_one();
 Result *__quantum__rt__result_get_zero();
 void __quantum__qis__exp__body(Array *paulis, double angle, Array *qubits);
@@ -105,7 +104,6 @@ Array *__quantum__rt__array_slice(Array *array, int32_t dim,
                                   int64_t range_end);
 Array *__quantum__rt__array_slice_1d(Array *array, int64_t range_start,
                                      int64_t range_step, int64_t range_end);
-Array *__quantum__rt__result_array_create_1d(int64_t count);
 }
 
 CUDAQ_TEST(NVQIRTester, checkSimple) {
@@ -123,18 +121,6 @@ CUDAQ_TEST(NVQIRTester, checkSimple) {
   EXPECT_EQ(*r, *s);
 
   __quantum__rt__qubit_release_array(qubits);
-  __quantum__rt__finalize();
-}
-
-CUDAQ_TEST(NVQIRTester, checkResultArrayCreate) {
-  __quantum__rt__initialize(0, nullptr);
-
-  constexpr int64_t numResults = 3;
-  auto *arr = __quantum__rt__result_array_create_1d(numResults);
-  EXPECT_NE(arr, nullptr);
-  EXPECT_EQ(__quantum__rt__array_get_size_1d(arr), numResults);
-
-  __quantum__rt__array_release(arr);
   __quantum__rt__finalize();
 }
 

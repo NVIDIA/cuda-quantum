@@ -8,8 +8,6 @@
 
 #include "quantum_lib.h"
 
-namespace py = pybind11;
-
 __qpu__ void
 cudaq::entryPoint(const std::function<void(cudaq::qvector<> &)> &statePrep) {
   cudaq::qvector q(2);

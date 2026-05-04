@@ -83,17 +83,15 @@ Array *__quantum__rt__array_slice(Array *array, int32_t dim,
 Array *__quantum__rt__array_slice_1d(Array *array, int64_t range_start,
                                      int64_t range_step, int64_t range_end);
 Array *quantum__rt__array_slice(Array *array, int32_t dim, Range range);
-Array *__quantum__rt__result_array_create_1d(std::int64_t count);
-int8_t *__quantum__rt__result_array_get_element_ptr_1d(Array *q, uint64_t idx);
 
 // Internal method to clean up any dangling arrays
 void __nvqpp_cleanup_arrays();
 }
 
 // Results
-using Result = int;
-static const Result ResultZeroVal = 0;
-static const Result ResultOneVal = 1;
+using Result = bool;
+static const Result ResultZeroVal = false;
+static const Result ResultOneVal = true;
 inline Result *ResultZero = const_cast<Result *>(&ResultZeroVal);
 inline Result *ResultOne = const_cast<Result *>(&ResultOneVal);
 

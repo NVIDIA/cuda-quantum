@@ -297,6 +297,7 @@ jobs:
               echo "::error file=test_in_devenv.yml:: Pip install of CUDA Quantum failed with status $pyinstall_status."
               exit 1
             fi
+
             python -m pip install pytest pytest-xdist
             python -m pytest -v --durations=0 -n auto python/tests/ \
               --ignore python/tests/backends \
