@@ -35,12 +35,18 @@ public:
     execution_queue->enqueue(task);
   }
 
-  cudaq::KernelThunkResultType
-  launchKernel(const std::string &name, cudaq::KernelThunkType kernelFunc,
-               void *args, std::uint64_t argsSize, std::uint64_t resultOffset,
-               const std::vector<void *> &rawArgs) override {
+  cudaq::KernelThunkResultType launchKernel(const cudaq::SourceModule &src,
+                                            cudaq::KernelArgs args) override {
     ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::launchKernel");
-    return kernelFunc(args, /*isRemote=*/false);
+    auto rawFn = src.getFunctionPtr();
+    if (!rawFn)
+      throw std::runtime_error(
+          "DefaultQPU::launchKernel requires a raw kernel function pointer "
+          "for kernel '" +
+          src.getName() + "'.");
+    auto packed = args.getPacked();
+    void *argData = packed ? packed->data.data() : nullptr;
+    return rawFn->getFn()(argData, /*isRemote=*/false);
   }
 
   void

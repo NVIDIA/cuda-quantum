@@ -104,12 +104,13 @@ public:
 
   /// @brief Launch the kernel. Handle all pertinent modifications for the
   /// execution context.
-  [[nodiscard]] KernelThunkResultType
-  launchKernel(const std::string &kernelName, KernelThunkType kernelFunc,
-               void *args, std::uint64_t voidStarSize,
-               std::uint64_t resultOffset,
-               const std::vector<void *> &rawArgs) override {
-    return launchKernelCommon(kernelName, kernelFunc, args);
+  [[nodiscard]] KernelThunkResultType launchKernel(const SourceModule &src,
+                                                   KernelArgs args) override {
+    auto rawFn = src.getFunctionPtr();
+    KernelThunkType kernelFunc = rawFn ? rawFn->getFn() : nullptr;
+    auto packed = args.getPacked();
+    void *argData = packed ? packed->data.data() : nullptr;
+    return launchKernelCommon(src.getName(), kernelFunc, argData);
   }
 };
 } // namespace cudaq

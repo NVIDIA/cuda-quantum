@@ -27,10 +27,6 @@ class PassManager;
 class Type;
 } // namespace mlir
 
-namespace cudaq {
-class CompiledModule;
-} // namespace cudaq
-
 namespace cudaq_internal::compiler {
 
 /// Util to create a wrapped kernel defined by LLVM IR with serialized

@@ -10,6 +10,7 @@
 
 #include "QuantumExecutionQueue.h"
 #include "common/CompiledModule.h"
+#include "common/KernelArgs.h"
 #include "common/Registry.h"
 #include "common/ThunkInterface.h"
 #include "common/Timing.h"
@@ -20,7 +21,6 @@
 #include "cudaq/utils/cudaq_utils.h"
 
 namespace mlir {
-class ModuleOp;
 class Type;
 } // namespace mlir
 
@@ -185,21 +185,19 @@ public:
                          cudaq::optimizer &optimizer, const int n_params,
                          const std::size_t shots) {}
 
-  /// Launch the kernel with given name (to extract its Quake representation).
-  /// The raw function pointer is also provided, as are the runtime arguments,
-  /// as a struct-packed void pointer and its corresponding size.
   [[nodiscard]] virtual KernelThunkResultType
-  launchKernel(const std::string &name, KernelThunkType kernelFunc, void *args,
-               std::uint64_t, std::uint64_t,
-               const std::vector<void *> &rawArgs) = 0;
+  launchKernel(const SourceModule &src, KernelArgs args) = 0;
 
   [[nodiscard]] virtual KernelThunkResultType
-  launchModule(const CompiledModule &compiled,
-               const std::vector<void *> &rawArgs);
+  launchModule(const CompiledModule &compiled, KernelArgs args);
+
+  // TODO: temporary dispatcher. Routes C++ kernels to `launchKernel` and
+  // Python kernels to `launchModule`.
+  [[nodiscard]] KernelThunkResultType
+  unifiedLaunchModule(const AnyModule &module, const KernelArgs &args);
 
   [[nodiscard]] virtual CompiledModule
-  compileModule(const std::string &name, const void *modulePtr,
-                const std::vector<void *> &rawArgs, bool isEntryPoint);
+  compileModule(const SourceModule &src, KernelArgs args, bool isEntryPoint);
 
   /// @brief Notify the QPU that a new random seed value is set.
   /// By default do nothing, let subclasses override.
@@ -211,9 +209,7 @@ struct ModuleLauncher : public registry::RegisteredType<ModuleLauncher> {
 
   /// Compile (specialize + JIT) a kernel module and return a ready-to-execute
   /// CompiledModule.
-  virtual CompiledModule compileModule(const std::string &name,
-                                       mlir::ModuleOp module,
-                                       const std::vector<void *> &rawArgs,
+  virtual CompiledModule compileModule(const SourceModule &src, KernelArgs args,
                                        bool isEntryPoint) = 0;
 };
 

@@ -34,13 +34,19 @@ public:
     execution_queue->enqueue(task);
   }
 
-  cudaq::KernelThunkResultType
-  launchKernel(const std::string &name, cudaq::KernelThunkType kernelFunc,
-               void *args, std::uint64_t, std::uint64_t,
-               const std::vector<void *> &rawArgs) override {
+  cudaq::KernelThunkResultType launchKernel(const cudaq::SourceModule &src,
+                                            cudaq::KernelArgs args) override {
     CUDAQ_INFO("QPU::launchKernel GPU {}", qpu_id);
     cudaSetDevice(qpu_id);
-    return kernelFunc(args, /*differentMemorySpace=*/false);
+    auto rawFn = src.getFunctionPtr();
+    if (!rawFn)
+      throw std::runtime_error(
+          "GPUEmulatedQPU::launchKernel requires a raw kernel function "
+          "pointer for kernel '" +
+          src.getName() + "'.");
+    auto packed = args.getPacked();
+    void *argData = packed ? packed->data.data() : nullptr;
+    return rawFn->getFn()(argData, /*differentMemorySpace=*/false);
   }
 
   void

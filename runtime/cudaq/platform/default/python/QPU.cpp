@@ -45,8 +45,7 @@ using namespace cudaq_internal::compiler;
 using cudaq::JitEngine;
 
 static void specializeKernel(const std::string &name, ModuleOp module,
-                             const std::vector<void *> &rawArgs,
-                             Type resultTy = {},
+                             std::span<void *const> rawArgs, Type resultTy = {},
                              bool enablePythonCodegenDump = false,
                              bool isEntryPoint = true,
                              bool isFullySpecialized = true) {
@@ -263,9 +262,7 @@ static void updateExecutionContext(ModuleOp module) {
   }
 }
 
-static std::optional<JitEngine>
-alreadyBuiltJITCode(const std::string &name,
-                    const std::vector<void *> &rawArgs) {
+static std::optional<JitEngine> alreadyBuiltJITCode(const std::string &name) {
   auto *currentExecCtx = cudaq::getExecutionContext();
   if (currentExecCtx && currentExecCtx->allowJitEngineCaching) {
     auto jit = currentExecCtx->jitEng;
@@ -311,12 +308,20 @@ static void precountResources(ModuleOp module) {
 
 namespace {
 struct PythonLauncher : public cudaq::ModuleLauncher {
-  cudaq::CompiledModule compileModule(const std::string &name, ModuleOp module,
-                                      const std::vector<void *> &rawArgs,
+  cudaq::CompiledModule compileModule(const cudaq::SourceModule &src,
+                                      cudaq::KernelArgs args,
                                       bool isEntryPoint) override {
 
     ScopedTraceWithContext(cudaq::TIMING_LAUNCH,
                            "PythonLauncher::compileModule");
+    const auto &name = src.getName();
+    auto mlirArt = src.getMlir();
+    if (!mlirArt)
+      throw std::runtime_error(
+          "PythonLauncher::compileModule requires an MLIR artifact on the "
+          "SourceModule for kernel '" +
+          name + "'.");
+    ModuleOp module = CompiledModuleHelper::getMlirModuleOp(*mlirArt);
     const bool enablePythonCodegenDump =
         cudaq::getEnvBool("CUDAQ_PYTHON_CODEGEN_DUMP", false);
 
@@ -341,25 +346,29 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     bool isLocalSimulator =
         !(cudaq::is_remote_platform() || cudaq::is_emulated_platform());
 
-    std::vector<void *> closureArgs;
+    std::vector<void *> closureArgsVec;
+    std::span<void *const> closureArgs;
+    std::span<void *const> rawArgs =
+        args.hasTypeErased() ? *args.getTypeErased() : std::span<void *const>();
 
     // Special handling in case the arguments were already synthesized
     size_t numArgs = rawArgs.size() - (hasResult ? 1 : 0);
     if (isEntryPoint && isLocalSimulator &&
         numArgs == fromFuncTy.getNumInputs()) {
-      closureArgs = rawArgs;
+      closureArgsVec = std::vector(rawArgs.begin(), rawArgs.end());
       for (auto [i, ty] : llvm::enumerate(fromFuncTy.getInputs())) {
         if (!isa<cudaq::cc::CallableType>(ty)) {
           isFullySpecialized = false;
-          closureArgs[i] = nullptr;
+          closureArgsVec[i] = nullptr;
         }
       }
+      closureArgs = closureArgsVec;
     } else {
       // Avoid copying
-      closureArgs = std::move(rawArgs);
+      closureArgs = rawArgs;
     }
 
-    if (auto jit = alreadyBuiltJITCode(name, rawArgs)) {
+    if (auto jit = alreadyBuiltJITCode(name)) {
       auto jitArtifacts = CompiledModuleHelper::createJitArtifacts(
           name, *jit, resultInfo, isFullySpecialized);
       return CompiledModuleHelper::createCompiledModule(name, resultInfo,
