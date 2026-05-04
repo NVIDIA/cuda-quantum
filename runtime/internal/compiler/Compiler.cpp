@@ -47,7 +47,6 @@
 #include <regex>
 
 using namespace mlir;
-using namespace cudaq_internal::compiler;
 
 namespace {
 /// Conditionally form an output_names JSON object if this was for QIR
@@ -111,8 +110,10 @@ std::vector<std::size_t> extractMappingReorderIdx(mlir::ModuleOp moduleOp,
 } // namespace
 
 std::pair<const void *, std::shared_ptr<mlir::MLIRContext>>
-Compiler::loadQuakeCodeByName(const std::string &kernelName) {
-  std::shared_ptr<mlir::MLIRContext> context(getOwningMLIRContext().release());
+cudaq_internal::compiler::Compiler::loadQuakeCodeByName(
+    const std::string &kernelName) {
+  std::shared_ptr<mlir::MLIRContext> context(
+      cudaq_internal::compiler::getOwningMLIRContext().release());
 
   // Get the quake representation of the kernel
   auto quakeCode = cudaq::get_quake_by_name(kernelName);
@@ -130,7 +131,7 @@ cudaq_internal::compiler::Compiler::Compiler(
     bool emulate)
     : emulate(emulate) {
 
-  initializeMLIR();
+  cudaq_internal::compiler::initializeMLIR();
 
   // Print the IR if requested
   printIR = cudaq::getEnvBool("CUDAQ_DUMP_JIT_IR", printIR);
@@ -286,7 +287,8 @@ cudaq_internal::compiler::Compiler::prepareModule(
   if (!rawArgs.empty() || kernelArgs) {
     mlir::PassManager pm(contextPtr);
     if (isPython)
-      mergeAllCallableClosures(moduleOp, kernelName, rawArgs);
+      cudaq_internal::compiler::mergeAllCallableClosures(moduleOp, kernelName,
+                                                         rawArgs);
 
     // Mark all newly merged kernels private, and leave the entry point alone.
     for (auto &op : moduleOp)
@@ -299,7 +301,7 @@ cudaq_internal::compiler::Compiler::prepareModule(
       // For quantum devices, we generate a collection of `init` and
       // `num_qubits` functions and their substitutions created
       // from a kernel and arguments that generated a state argument.
-      ArgumentConverter argCon(kernelName, moduleOp);
+      cudaq_internal::compiler::ArgumentConverter argCon(kernelName, moduleOp);
       argCon.gen(rawArgs);
 
       // Store kernel and substitution strings on the stack.
@@ -378,19 +380,26 @@ cudaq_internal::compiler::Compiler::assembleCompiledModule(
     bool runCombineMeasurements, std::optional<cudaq::Resources> resourceCounts,
     const std::vector<std::size_t> &mappingReorderIdx,
     std::shared_ptr<mlir::MLIRContext> context) {
-  std::vector<CompiledModuleHelper::NamedCompiledArtifact> artifacts;
+  std::vector<
+      cudaq_internal::compiler::CompiledModuleHelper::NamedCompiledArtifact>
+      artifacts;
   if (needJit) {
     for (auto &[name, module] : modules) {
       auto clonedModule = module.clone();
-      auto jitArtifacts = CompiledModuleHelper::createJitArtifacts(
-          kernelName, createJITEngine(clonedModule, codegenTranslation), {},
-          /*isFullySpecialized=*/true);
+      auto jitArtifacts =
+          cudaq_internal::compiler::CompiledModuleHelper::createJitArtifacts(
+              kernelName,
+              cudaq_internal::compiler::createJITEngine(clonedModule,
+                                                        codegenTranslation),
+              {},
+              /*isFullySpecialized=*/true);
       assert(jitArtifacts.size() == 1);
       jitArtifacts[0].first = name;
       artifacts.push_back(std::move(jitArtifacts[0]));
       if (resourceCounts)
-        artifacts.push_back(CompiledModuleHelper::createResourcesArtifact(
-            name, std::move(*resourceCounts)));
+        artifacts.push_back(
+            cudaq_internal::compiler::CompiledModuleHelper::
+                createResourcesArtifact(name, std::move(*resourceCounts)));
     }
   }
 
@@ -400,18 +409,18 @@ cudaq_internal::compiler::Compiler::assembleCompiledModule(
 
   for (auto &[name, module] : modules) {
     artifacts.push_back(
-        CompiledModuleHelper::createMlirArtifact(name, module, context));
+        cudaq_internal::compiler::CompiledModuleHelper::createMlirArtifact(
+            name, module, context));
   }
 
-  return CompiledModuleHelper::createCompiledModule(
+  return cudaq_internal::compiler::CompiledModuleHelper::createCompiledModule(
       kernelName, {}, std::move(artifacts), {.reorderIdx = mappingReorderIdx});
 }
 
-cudaq::CompiledModule
-Compiler::runPassPipeline(cudaq::ExecutionContext *executionContext,
-                          const std::string &kernelName, const void *modulePtr,
-                          const std::vector<void *> &rawArgs, void *kernelArgs,
-                          std::shared_ptr<mlir::MLIRContext> context) {
+cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
+    cudaq::ExecutionContext *executionContext, const std::string &kernelName,
+    const void *modulePtr, const std::vector<void *> &rawArgs, void *kernelArgs,
+    std::shared_ptr<mlir::MLIRContext> context) {
   mlir::ModuleOp m_module = mlir::ModuleOp::getFromOpaquePointer(modulePtr);
   assert(!context || context.get() == m_module.getContext());
   auto [moduleOp, epFunc] =
@@ -550,12 +559,15 @@ std::vector<cudaq::KernelExecution>
 cudaq_internal::compiler::Compiler::emitKernelExecutions(
     const cudaq::CompiledModule &compiled) {
   // Get the code gen translation
-  auto translation = getTranslation(codegenTranslation);
+  auto translation =
+      cudaq_internal::compiler::getTranslation(codegenTranslation);
 
   // Apply user-specified codegen
   std::vector<cudaq::KernelExecution> codes;
   for (const auto &[name, mlirArtifact] : compiled.getMlirArtifacts()) {
-    auto moduleOpI = CompiledModuleHelper::getMlirModuleOp(mlirArtifact);
+    auto moduleOpI =
+        cudaq_internal::compiler::CompiledModuleHelper::getMlirModuleOp(
+            mlirArtifact);
 
     std::string codeStr;
     llvm::raw_string_ostream outStr(codeStr);
@@ -600,9 +612,10 @@ cudaq_internal::compiler::Compiler::emitKernelExecutions(
 /// lowering process is controllable via the configuration file in the
 /// platform directory for the targeted backend.
 std::vector<cudaq::KernelExecution>
-Compiler::lowerQuakeCode(cudaq::ExecutionContext *executionContext,
-                         const std::string &kernelName, const void *modulePtr,
-                         void *kernelArgs, const std::vector<void *> &rawArgs) {
+cudaq_internal::compiler::Compiler::lowerQuakeCode(
+    cudaq::ExecutionContext *executionContext, const std::string &kernelName,
+    const void *modulePtr, void *kernelArgs,
+    const std::vector<void *> &rawArgs) {
   auto compiled = runPassPipeline(executionContext, kernelName, modulePtr,
                                   rawArgs, kernelArgs, nullptr);
   return emitKernelExecutions(compiled);
