@@ -47,6 +47,7 @@
 #include <regex>
 
 using namespace mlir;
+using namespace cudaq_internal::compiler;
 
 namespace {
 /// Conditionally form an output_names JSON object if this was for QIR
