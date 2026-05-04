@@ -142,17 +142,32 @@ jobs:
       - name: Log in to GitHub CR
         run: echo "${{ github.token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
 
+      - name: Select latest stable Xcode
+        uses: ./.github/actions/setup-xcode-stable
+
+      - name: Log macOS toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          xcrun --show-sdk-path
+          xcrun --show-sdk-version
+          clang --version
+
       - name: Compute cache key
         id: cache_key
         run: |
           # Combine build scripts hash with the runner image version to detect
           # tool updates (cmake, compilers, etc.) that would invalidate the cache.
+          # Include the selected Xcode as well because the same runner image can
+          # contain multiple SDK/compiler releases.
           scripts_hash=${{ needs.metadata.outputs.scripts_hash }}
           runner_image=${ImageVersion:-unknown}
-          deps_hash=$(echo "${scripts_hash}-${runner_image}" | shasum -a 256 | cut -c1-8)
+          developer_dir=${DEVELOPER_DIR:-$(xcode-select -p 2>/dev/null || echo unknown)}
+          xcode_version=$(xcodebuild -version 2>/dev/null | shasum -a 256 | cut -c1-8 || echo unknown)
+          deps_hash=$(echo "${scripts_hash}-${runner_image}-${developer_dir}-${xcode_version}" | shasum -a 256 | cut -c1-8)
           image_name="${{ needs.metadata.outputs.image_name_base }}${deps_hash}"
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
-          echo "Cache key: scripts_hash=$scripts_hash runner_image=$runner_image deps_hash=$deps_hash"
+          echo "Cache key: scripts_hash=$scripts_hash runner_image=$runner_image developer_dir=$developer_dir xcode_version=$xcode_version deps_hash=$deps_hash"
           echo "Image name: $image_name"
 
       - name: Check for cached image
@@ -186,7 +201,6 @@ jobs:
           git submodule update --init --recursive tpls/nanobind
 
           source scripts/set_env_defaults.sh
-          export LLVM_PROJECTS='clang;lld;mlir;openmp;python-bindings'
           
           echo "Building prerequisites..."
           echo "LLVM_INSTALL_PREFIX=$LLVM_INSTALL_PREFIX"
