@@ -43,6 +43,9 @@ latest
         -   [Debugging and Verbose Simulation
             Output](../basics/troubleshooting.html#debugging-and-verbose-simulation-output){.reference
             .internal}
+        -   [Python
+            Stack-Traces](../basics/troubleshooting.html#python-stack-traces){.reference
+            .internal}
 -   [Examples](examples.html){.reference .internal}
     -   [Introduction](introduction.html){.reference .internal}
     -   [Building Kernels](building_kernels.html){.reference .internal}
@@ -291,96 +294,44 @@ latest
             Notes](sample_vs_run.html#additional-notes){.reference
             .internal}
     -   [Dynamics Examples](#){.current .reference .internal}
-        -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
-            Model)](../../examples/python/dynamics/dynamics_intro_1.html){.reference
+        -   [Python Examples (Jupyter
+            Notebooks)](#python-examples-jupyter-notebooks){.reference
             .internal}
-            -   [Why dynamics simulations vs. circuit
-                simulations?](../../examples/python/dynamics/dynamics_intro_1.html#Why-dynamics-simulations-vs.-circuit-simulations?){.reference
+            -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
+                Model)](../../examples/python/dynamics/dynamics_intro_1.html){.reference
                 .internal}
-            -   [Functionality](../../examples/python/dynamics/dynamics_intro_1.html#Functionality){.reference
+            -   [Introduction to CUDA-Q Dynamics (Time Dependent
+                Hamiltonians)](../../examples/python/dynamics/dynamics_intro_2.html){.reference
                 .internal}
-            -   [Performance](../../examples/python/dynamics/dynamics_intro_1.html#Performance){.reference
+            -   [Superconducting
+                Qubits](../../examples/python/dynamics/superconducting.html){.reference
                 .internal}
-            -   [Section 1 - Simulating the Jaynes-Cummings
-                Hamiltonian](../../examples/python/dynamics/dynamics_intro_1.html#Section-1---Simulating-the-Jaynes-Cummings-Hamiltonian){.reference
+            -   [Spin
+                Qubits](../../examples/python/dynamics/spinqubits.html){.reference
                 .internal}
-            -   [Exercise 1 - Simulating a many-photon Jaynes-Cummings
-                Hamiltonian](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-1---Simulating-a-many-photon-Jaynes-Cummings-Hamiltonian){.reference
+            -   [Trapped Ion
+                Qubits](../../examples/python/dynamics/iontrap.html){.reference
                 .internal}
-            -   [Section 2 - Simulating open quantum systems with the
-                [`collapse_operators`{.docutils .literal
-                .notranslate}]{.pre}](../../examples/python/dynamics/dynamics_intro_1.html#Section-2---Simulating-open-quantum-systems-with-the-collapse_operators){.reference
+            -   [Control](../../examples/python/dynamics/control.html){.reference
                 .internal}
-            -   [Exercise 2 - Adding additional jump operators
-                [\\(L_i\\)]{.math .notranslate
-                .nohighlight}](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-2---Adding-additional-jump-operators-L_i){.reference
+        -   [C++ Examples](#c-examples){.reference .internal}
+            -   [Introduction: Single Qubit
+                Dynamics](#introduction-single-qubit-dynamics){.reference
                 .internal}
-            -   [Section 3 - Many qubits coupled to the
-                resonator](../../examples/python/dynamics/dynamics_intro_1.html#Section-3---Many-qubits-coupled-to-the-resonator){.reference
+            -   [Introduction: Cavity QED (Jaynes-Cummings
+                Model)](#introduction-cavity-qed-jaynes-cummings-model){.reference
                 .internal}
-        -   [Introduction to CUDA-Q Dynamics (Time Dependent
-            Hamiltonians)](../../examples/python/dynamics/dynamics_intro_2.html){.reference
-            .internal}
-            -   [The Landau-Zener
-                model](../../examples/python/dynamics/dynamics_intro_2.html#The-Landau-Zener-model){.reference
+            -   [Superconducting Qubits: Cross-Resonance
+                Gate](#superconducting-qubits-cross-resonance-gate){.reference
                 .internal}
-            -   [Section 1 - Implementing time dependent
-                terms](../../examples/python/dynamics/dynamics_intro_2.html#Section-1---Implementing-time-dependent-terms){.reference
+            -   [Spin Qubits: Heisenberg Spin
+                Chain](#spin-qubits-heisenberg-spin-chain){.reference
                 .internal}
-            -   [Section 2 - Implementing custom
-                operators](../../examples/python/dynamics/dynamics_intro_2.html#Section-2---Implementing-custom-operators){.reference
-                .internal}
-            -   [Section 3 - Heisenberg Model with a time-varying
-                magnetic
-                field](../../examples/python/dynamics/dynamics_intro_2.html#Section-3---Heisenberg-Model-with-a-time-varying-magnetic-field){.reference
-                .internal}
-            -   [Exercise 1 - Define a time-varying magnetic
-                field](../../examples/python/dynamics/dynamics_intro_2.html#Exercise-1---Define-a-time-varying-magnetic-field){.reference
-                .internal}
-            -   [Exercise 2
-                (Optional)](../../examples/python/dynamics/dynamics_intro_2.html#Exercise-2-(Optional)){.reference
-                .internal}
-        -   [Superconducting
-            Qubits](../../examples/python/dynamics/superconducting.html){.reference
-            .internal}
-            -   [Cavity
-                QED](../../examples/python/dynamics/superconducting.html#Cavity-QED){.reference
-                .internal}
-            -   [Cross
-                Resonance](../../examples/python/dynamics/superconducting.html#Cross-Resonance){.reference
-                .internal}
-            -   [Transmon
-                Resonator](../../examples/python/dynamics/superconducting.html#Transmon-Resonator){.reference
-                .internal}
-        -   [Spin
-            Qubits](../../examples/python/dynamics/spinqubits.html){.reference
-            .internal}
-            -   [Silicon Spin
-                Qubit](../../examples/python/dynamics/spinqubits.html#Silicon-Spin-Qubit){.reference
-                .internal}
-            -   [Heisenberg
-                Model](../../examples/python/dynamics/spinqubits.html#Heisenberg-Model){.reference
-                .internal}
-        -   [Trapped Ion
-            Qubits](../../examples/python/dynamics/iontrap.html){.reference
-            .internal}
-            -   [GHZ
-                state](../../examples/python/dynamics/iontrap.html#GHZ-state){.reference
-                .internal}
-        -   [Control](../../examples/python/dynamics/control.html){.reference
-            .internal}
-            -   [Gate
-                Calibration](../../examples/python/dynamics/control.html#Gate-Calibration){.reference
-                .internal}
-            -   [Pulse](../../examples/python/dynamics/control.html#Pulse){.reference
-                .internal}
-            -   [Qubit
-                Control](../../examples/python/dynamics/control.html#Qubit-Control){.reference
-                .internal}
-            -   [Qubit
-                Dynamics](../../examples/python/dynamics/control.html#Qubit-Dynamics){.reference
-                .internal}
-            -   [Landau-Zenner](../../examples/python/dynamics/control.html#Landau-Zenner){.reference
+            -   [Control: Driven
+                Qubit](#control-driven-qubit){.reference .internal}
+            -   [State Batching](#state-batching){.reference .internal}
+            -   [Numerical
+                Integrators](#numerical-integrators){.reference
                 .internal}
 -   [Applications](../applications.html){.reference .internal}
     -   [Max-Cut with
@@ -1747,6 +1698,9 @@ latest
         -   [Backend
             Configuration](../../api/languages/python_api.html#backend-configuration){.reference
             .internal}
+            -   [[`parse_args()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.parse_args){.reference
+                .internal}
             -   [[`has_target()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.has_target){.reference
                 .internal}
@@ -2071,6 +2025,14 @@ aria-hidden="true"}](../../examples/python/dynamics/dynamics_intro_1.html "Intro
 ::: {#cuda-q-dynamics .section}
 # CUDA-Q Dynamics[¶](#cuda-q-dynamics "Permalink to this heading"){.headerlink}
 
+This section contains examples for CUDA-Q Dynamics in both Python and
+C++. For a conceptual overview of the [`evolve`{.docutils .literal
+.notranslate}]{.pre} API, see the [[Dynamics Simulation]{.std
+.std-ref}](../dynamics.html#dynamics){.reference .internal} page.
+
+::: {#python-examples-jupyter-notebooks .section}
+## Python Examples (Jupyter Notebooks)[¶](#python-examples-jupyter-notebooks "Permalink to this heading"){.headerlink}
+
 The notebooks below contain groups of examples using CUDA-Q Dynamics.
 The first two notebooks provide an introduction to CUDA-Q Dynamics
 appropriate for new users.
@@ -2170,6 +2132,918 @@ Download the notebooks below
         .internal}
     -   [Landau-Zenner](../../examples/python/dynamics/control.html#Landau-Zenner){.reference
         .internal}
+:::
+:::
+
+::: {#c-examples .section}
+## C++ Examples[¶](#c-examples "Permalink to this heading"){.headerlink}
+
+The following C++ examples demonstrate core CUDA-Q Dynamics
+capabilities. Each example can be compiled and run with:
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    nvq++ --target dynamics <example>.cpp -o a.out && ./a.out
+:::
+:::
+
+The source files are available in the [CUDA-Q
+repository](https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples/cpp/dynamics){.reference
+.external}.
+
+::: {#introduction-single-qubit-dynamics .section}
+### Introduction: Single Qubit Dynamics[¶](#introduction-single-qubit-dynamics "Permalink to this heading"){.headerlink}
+
+This example demonstrates the basic workflow for time-evolving a single
+qubit under a transverse field Hamiltonian, with and without dissipation
+(collapse operators).
+
+::: {.highlight-cpp .notranslate}
+::: highlight
+    /*******************************************************************************
+     * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+     * All rights reserved.                                                        *
+     *                                                                             *
+     * This source code and the accompanying materials are made available under    *
+     * the terms of the Apache License 2.0 which accompanies this distribution.    *
+     ******************************************************************************/
+
+    // Compile and run with:
+    // ```
+    // nvq++ --target dynamics qubit_dynamics.cpp -o a.out && ./a.out
+    // ```
+
+    #include "cudaq/algorithms/evolve.h"
+    #include "cudaq/algorithms/integrator.h"
+    #include "cudaq/operators.h"
+    #include "export_csv_helper.h"
+    #include <cudaq.h>
+
+    int main() {
+      // Qubit `hamiltonian`: 2 * pi * 0.1 * sigma_x
+      // Physically, this represents a qubit (a two-level system) driven by a weak
+      // transverse field along the x-axis.
+      auto hamiltonian = 2.0 * M_PI * 0.1 * cudaq::spin_op::x(0);
+
+      // Dimensions: one subsystem of dimension 2 (a two-level system).
+      const cudaq::dimension_map dimensions = {{0, 2}};
+
+      // Initial state: ground state
+      std::vector<std::complex<double>> initial_state_vec = {1.0, 0.0};
+      auto psi0 = cudaq::state::from_data(initial_state_vec);
+
+      // Create a schedule of time steps from 0 to 10 with 101 points
+      std::vector<double> steps = cudaq::linspace(0.0, 10.0, 101);
+      cudaq::schedule schedule(steps);
+
+      // Runge-`Kutta` integrator with a time step of 0.01 and order 4
+      cudaq::integrators::runge_kutta integrator(4, 0.01);
+
+      // Run the simulation without collapse operators (ideal evolution)
+      auto evolve_result =
+          cudaq::evolve(hamiltonian, dimensions, schedule, psi0, integrator, {},
+                        {cudaq::spin_op::y(0), cudaq::spin_op::z(0)},
+                        cudaq::IntermediateResultSave::ExpectationValue);
+
+      constexpr double decay_rate = 0.05;
+      auto collapse_operator = std::sqrt(decay_rate) * cudaq::spin_op::x(0);
+
+      // Evolve with collapse operators
+      cudaq::evolve_result evolve_result_decay = cudaq::evolve(
+          hamiltonian, dimensions, schedule, psi0, integrator, {collapse_operator},
+          {cudaq::spin_op::y(0), cudaq::spin_op::z(0)},
+          cudaq::IntermediateResultSave::ExpectationValue);
+
+      // Lambda to extract expectation values for a given observable index
+      auto get_expectation = [](int idx, auto &result) -> std::vector<double> {
+        std::vector<double> expectations;
+
+        auto all_exps = result.expectation_values.value();
+        for (auto exp_vals : all_exps) {
+          expectations.push_back((double)exp_vals[idx]);
+        }
+        return expectations;
+      };
+
+      auto ideal_result0 = get_expectation(0, evolve_result);
+      auto ideal_result1 = get_expectation(1, evolve_result);
+      auto decay_result0 = get_expectation(0, evolve_result_decay);
+      auto decay_result1 = get_expectation(1, evolve_result_decay);
+
+      export_csv("qubit_dynamics_ideal_result.csv", "time", steps, "sigma_y",
+                 ideal_result0, "sigma_z", ideal_result1);
+      export_csv("qubit_dynamics_decay_result.csv", "time", steps, "sigma_y",
+                 decay_result0, "sigma_z", decay_result1);
+
+      std::cout << "Results exported to qubit_dynamics_ideal_result.csv and "
+                   "qubit_dynamics_decay_result.csv"
+                << std::endl;
+
+      return 0;
+    }
+:::
+:::
+:::
+
+::: {#introduction-cavity-qed-jaynes-cummings-model .section}
+### Introduction: Cavity QED (Jaynes-Cummings Model)[¶](#introduction-cavity-qed-jaynes-cummings-model "Permalink to this heading"){.headerlink}
+
+This example simulates a two-level atom coupled to a single-mode optical
+cavity, known as the Jaynes-Cummings model. It demonstrates how to set
+up composite quantum systems with different subsystem dimensions.
+
+::: {.highlight-cpp .notranslate}
+::: highlight
+    /*******************************************************************************
+     * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+     * All rights reserved.                                                        *
+     *                                                                             *
+     * This source code and the accompanying materials are made available under    *
+     * the terms of the Apache License 2.0 which accompanies this distribution.    *
+     ******************************************************************************/
+
+    // Compile and run with:
+    // ```
+    // nvq++ --target dynamics cavity_qed.cpp -o a.out && ./a.out
+    // ```
+
+    #include "cudaq/algorithms/evolve.h"
+    #include "cudaq/algorithms/integrator.h"
+    #include "cudaq/operators.h"
+    #include "export_csv_helper.h"
+    #include <cudaq.h>
+
+    int main() {
+
+      // Dimension of our composite quantum system:
+      // subsystem 0 (atom) has 2 levels (ground and excited states).
+      // subsystem 1 (cavity) has 10 levels (Fock states, representing photon number
+      // states).
+      cudaq::dimension_map dimensions{{0, 2}, {1, 10}};
+
+      // For the cavity subsystem 1
+      // We create the annihilation (a) and creation (a+) operators.
+      // These operators lower and raise the photon number, respectively.
+      auto a = cudaq::boson_op::annihilate(1);
+      auto a_dag = cudaq::boson_op::create(1);
+
+      // For the atom subsystem 0
+      // We create the annihilation (`sm`) and creation (`sm_dag`) operators.
+      // These operators lower and raise the excitation number, respectively.
+      auto sm = cudaq::boson_op::annihilate(0);
+      auto sm_dag = cudaq::boson_op::create(0);
+
+      // Number operators
+      // These operators count the number of excitations.
+      // For the atom (`subsytem` 0) and the cavity (`subsystem` 1) they give the
+      // population in each subsystem.
+      auto atom_occ_op = cudaq::matrix_op::number(0);
+      auto cavity_occ_op = cudaq::matrix_op::number(1);
+
+      // Hamiltonian
+      // The `hamiltonian` models the dynamics of the atom-cavity (cavity QED)
+      // system It has 3 parts:
+      // 1. Cavity energy: 2 * pi * photon_number_operator -> energy proportional to
+      // the number of photons.
+      // 2. Atomic energy: 2 * pi * atom_number_operator -> energy proportional to
+      // the atomic excitation.
+      // 3. Atomic-cavity interaction: 2 * pi * 0.25 * (`sm` * a_dag + `sm_dag` * a)
+      // -> represents the exchange of energy between the atom and the cavity. It is
+      // analogous to the Jaynes-Cummings model in cavity QED.
+      auto hamiltonian = (2 * M_PI * cavity_occ_op) + (2 * M_PI * atom_occ_op) +
+                         (2 * M_PI * 0.25 * (sm * a_dag + sm_dag * a));
+
+      // Build the initial state
+      // Atom (sub-system 0) in ground state.
+      // Cavity (sub-system 1) has 5 photons (Fock space).
+      // The overall Hilbert space is 2 * 10 = 20.
+      const int num_photons = 5;
+      std::vector<std::complex<double>> initial_state_vec(20, 0.0);
+      // The index is chosen such that the atom is in the ground state while the
+      // cavity is in the Fock state with 5 photons.
+      initial_state_vec[dimensions[0] * num_photons] = 1;
+
+      // Define a time evolution schedule
+      // We define a time grid from 0 to 10 (in arbitrary time units) with 201 time
+      // steps. This schedule is used by the integrator to simulate the dynamics.
+      const int num_steps = 201;
+      std::vector<double> steps = cudaq::linspace(0.0, 10.0, num_steps);
+      cudaq::schedule schedule(steps);
+
+      // Create a CUDA quantum state
+      // The initial state is converted into a quantum state object for evolution.
+      auto rho0 = cudaq::state::from_data(initial_state_vec);
+
+      // Numerical integrator
+      // Here we choose a Runge-`Kutta` method for time evolution.
+      // `dt` defines the time step for the numerical integration, and order 4
+      // indicates a 4`th` order method.
+      cudaq::integrators::runge_kutta integrator(4, 0.01);
+
+      // Evolve without collapse operators
+      // This evolution is ideal (closed system) dynamics governed solely by the
+      // Hamiltonian. The expectation values of the observables (cavity photon
+      // number and atom excitation probability) are recorded.
+      cudaq::evolve_result evolve_result =
+          cudaq::evolve(hamiltonian, dimensions, schedule, rho0, integrator, {},
+                        {cavity_occ_op, atom_occ_op},
+                        cudaq::IntermediateResultSave::ExpectationValue);
+
+      // Adding dissipation
+      // To simulate a realistic scenario, we introduce decay (dissipation).
+      // Here, the collapse operator represents photon loss from the cavity.
+      constexpr double decay_rate = 0.1;
+      auto collapse_operator = std::sqrt(decay_rate) * a;
+      // Evolve with the collapse operator to incorporate the effect of decay.
+      cudaq::evolve_result evolve_result_decay =
+          cudaq::evolve(hamiltonian, dimensions, schedule, rho0, integrator,
+                        {collapse_operator}, {cavity_occ_op, atom_occ_op},
+                        cudaq::IntermediateResultSave::ExpectationValue);
+
+      // Lambda to extract expectation values for a given observable index
+      // Here, index 0 corresponds to the cavity photon number and index 1
+      // corresponds to the atom excitation probability.
+      auto get_expectation = [](int idx, auto &result) -> std::vector<double> {
+        std::vector<double> expectations;
+
+        auto all_exps = result.expectation_values.value();
+        for (auto exp_vals : all_exps) {
+          expectations.push_back((double)exp_vals[idx]);
+        }
+        return expectations;
+      };
+
+      // Retrieve expectation values from both the ideal and decaying `evolutions`.
+      auto ideal_result0 = get_expectation(0, evolve_result);
+      auto ideal_result1 = get_expectation(1, evolve_result);
+      auto decay_result0 = get_expectation(0, evolve_result_decay);
+      auto decay_result1 = get_expectation(1, evolve_result_decay);
+
+      // Export the results to `CSV` files
+      // "cavity_`qed`_ideal_result.`csv`" contains the ideal evolution results.
+      // "cavity_`qed`_decay_result.`csv`" contains the evolution results with
+      // cavity decay.
+      export_csv("cavity_qed_ideal_result.csv", "time", steps,
+                 "cavity_photon_number", ideal_result0,
+                 "atom_excitation_probability", ideal_result1);
+      export_csv("cavity_qed_decay_result.csv", "time", steps,
+                 "cavity_photon_number", decay_result0,
+                 "atom_excitation_probability", decay_result1);
+
+      std::cout << "Simulation complete. The results are saved in "
+                   "cavity_qed_ideal_result.csv "
+                   "and cavity_qed_decay_result.csv files."
+                << std::endl;
+      return 0;
+    }
+:::
+:::
+:::
+
+::: {#superconducting-qubits-cross-resonance-gate .section}
+### Superconducting Qubits: Cross-Resonance Gate[¶](#superconducting-qubits-cross-resonance-gate "Permalink to this heading"){.headerlink}
+
+This example simulates the cross-resonance interaction between two
+coupled superconducting qubits, a key primitive for entangling gates in
+superconducting hardware. It demonstrates time-dependent Hamiltonians
+and batched state evolution.
+
+::: {.highlight-cpp .notranslate}
+::: highlight
+    /*******************************************************************************
+     * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+     * All rights reserved.                                                        *
+     *                                                                             *
+     * This source code and the accompanying materials are made available under    *
+     * the terms of the Apache License 2.0 which accompanies this distribution.    *
+     ******************************************************************************/
+
+    // Compile and run with:
+    // ```
+    // nvq++ --target dynamics cavity_qed.cpp -o a.out && ./a.out
+    // ```
+
+    #include "cudaq/algorithms/evolve.h"
+    #include "cudaq/algorithms/integrator.h"
+    #include "cudaq/operators.h"
+    #include "export_csv_helper.h"
+    #include <cudaq.h>
+
+    int main() {
+
+      // `delta` represents the detuning between the two qubits.
+      // In physical terms, detuning is the energy difference (or frequency offset)
+      // between qubit levels. Detuning term (in angular frequency units).
+      double delta = 100 * 2 * M_PI;
+      // `J` is the static coupling strength between the two qubits.
+      // This terms facilitates energy exchange between the qubits, effectively
+      // coupling their dynamics.
+      double J = 7 * 2 * M_PI;
+      // `m_12` models spurious electromagnetic `crosstalk`.
+      // `Crosstalk` is an unwanted interaction , here represented as a fraction of
+      // the drive strength applied to the second qubit.
+      double m_12 = 0.2;
+      // `Omega` is the drive strength applied to the qubits.
+      // A driving field can induce transitions between qubit states.
+      double Omega = 20 * 2 * M_PI;
+
+      // For a spin-1/2 system, the raising operator S^+ and lowering operator S^-
+      // are defined as: S^+ = 0.5 * (X + `iY`) and S^- = 0.5 * (X - `iY`) These
+      // operators allow transitions between the spin states (|0> and |1>).
+      auto spin_plus = [](int degree) {
+        return 0.5 * (cudaq::spin_op::x(degree) +
+                      std::complex<double>(0.0, 1.0) * cudaq::spin_op::y(degree));
+      };
+
+      auto spin_minus = [](int degree) {
+        return 0.5 * (cudaq::spin_op::x(degree) -
+                      std::complex<double>(0.0, 1.0) * cudaq::spin_op::y(degree));
+      };
+
+      // The Hamiltonian describes the energy and dynamics of our 2-qubit system.
+      // It consist of several parts:
+      // 1. Detuning term for qubit 0: (delta / 2) * Z. This sets the energy
+      // splitting for qubit 0.
+      // 2. Exchange interaction: J * (S^-_1 * S^+_0 + S^+_1 * S^-_0). This couples
+      // the two qubits, enabling excitation transfer.
+      // 3. Drive on qubit 0: Omega * X. A control field that drives transition in
+      // qubit 0.
+      // 4. `Crosstalk` drive on qubit 1: m_12 * Omega * X. A reduces drive on qubit
+      // 1 due to electromagnetic `crosstalk`.
+      auto hamiltonian =
+          (delta / 2.0) * cudaq::spin_op::z(0) +
+          J * (spin_minus(1) * spin_plus(0) + spin_plus(1) * spin_minus(0)) +
+          Omega * cudaq::spin_op::x(0) + m_12 * Omega * cudaq::spin_op::x(1);
+
+      // Each qubit is a 2-level system (dimension 2).
+      // The composite system (two qubits) has a total Hilbert space dimension of 2
+      // * 2 = 4.
+      cudaq::dimension_map dimensions{{0, 2}, {1, 2}};
+
+      // Build the initial state
+      // psi_00 represents the state |00> (both qubits in the ground state).
+      // psi_10 represents the state |10> (first qubit excited, second qubit in the
+      // ground state).
+      std::vector<std::complex<double>> psi00_data = {
+          {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
+      std::vector<std::complex<double>> psi10_data = {
+          {0.0, 0.0}, {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}};
+
+      // Two initial state vectors for the 2-qubit system (dimension 4)
+      auto psi_00 = cudaq::state::from_data(psi00_data);
+      auto psi_10 = cudaq::state::from_data(psi10_data);
+
+      // Create a list of time steps for the simulation.
+      // Here we use 1001 points linearly spaced between time 0 and 1.
+      // This schedule will be used to integrate the time evolution of the system.
+      const int num_steps = 1001;
+      std::vector<double> steps = cudaq::linspace(0.0, 1.0, num_steps);
+      cudaq::schedule schedule(steps);
+
+      // Use Runge-`Kutta` integrator (4`th` order) to solve the time-dependent
+      // evolution. `dt` is the integration time step, and `order` sets the accuracy
+      // of the integrator method.
+      cudaq::integrators::runge_kutta integrator(4, 0.0001);
+
+      // The observables are the spin components along the x, y, and z directions
+      // for both qubits. These observables will be measured during the evolution.
+      auto observables = {cudaq::spin_op::x(0), cudaq::spin_op::y(0),
+                          cudaq::spin_op::z(0), cudaq::spin_op::x(1),
+                          cudaq::spin_op::y(1), cudaq::spin_op::z(1)};
+
+      // Evolution with 2 initial states
+      // We evolve the system under the defined Hamiltonian for both initial states
+      // simultaneously. No collapsed operators are provided (closed system
+      // evolution). The evolution returns expectation values for all defined
+      // observables at each time step.
+      auto evolution_results = cudaq::evolve(
+          hamiltonian, dimensions, schedule, {psi_00, psi_10}, integrator, {},
+          observables, cudaq::IntermediateResultSave::ExpectationValue);
+
+      // Retrieve the evolution result corresponding to each initial state.
+      auto &evolution_result_00 = evolution_results[0];
+      auto &evolution_result_10 = evolution_results[1];
+
+      // Lambda to extract expectation values for a given observable index
+      auto get_expectation = [](int idx, auto &result) -> std::vector<double> {
+        std::vector<double> expectations;
+
+        auto all_exps = result.expectation_values.value();
+        for (auto exp_vals : all_exps) {
+          expectations.push_back((double)exp_vals[idx]);
+        }
+        return expectations;
+      };
+
+      // For the two `evolutions`, extract the six observable trajectories.
+      // For the |00> initial state, we extract the expectation trajectories for
+      // each observable.
+      auto result_00_0 = get_expectation(0, evolution_result_00);
+      auto result_00_1 = get_expectation(1, evolution_result_00);
+      auto result_00_2 = get_expectation(2, evolution_result_00);
+      auto result_00_3 = get_expectation(3, evolution_result_00);
+      auto result_00_4 = get_expectation(4, evolution_result_00);
+      auto result_00_5 = get_expectation(5, evolution_result_00);
+
+      // Similarly, for the |10> initial state:
+      auto result_10_0 = get_expectation(0, evolution_result_10);
+      auto result_10_1 = get_expectation(1, evolution_result_10);
+      auto result_10_2 = get_expectation(2, evolution_result_10);
+      auto result_10_3 = get_expectation(3, evolution_result_10);
+      auto result_10_4 = get_expectation(4, evolution_result_10);
+      auto result_10_5 = get_expectation(5, evolution_result_10);
+
+      // Export the results to a `CSV` file
+      // Export the Z-component of qubit 1's expectation values for both initial
+      // states. The `CSV` file "cross_resonance_z.`csv`" will have time versus (Z1)
+      // data for both |00> and |10> initial conditions.
+      export_csv("cross_resonance_z.csv", "time", steps, "<Z1>_00", result_00_5,
+                 "<Z1>_10", result_10_5);
+      // Export the Y-component of qubit 1's expectation values for both initial
+      // states. The `CSV` file "cross_resonance_y.`csv`" will have time versus (Y1)
+      // data.
+      export_csv("cross_resonance_y.csv", "time", steps, "<Y1>_00", result_00_4,
+                 "<Y1>_10", result_10_4);
+
+      std::cout
+          << "Simulation complete. The results are saved in cross_resonance_z.csv "
+             "and cross_resonance_y.csv files."
+          << std::endl;
+      return 0;
+    }
+:::
+:::
+:::
+
+::: {#spin-qubits-heisenberg-spin-chain .section}
+### Spin Qubits: Heisenberg Spin Chain[¶](#spin-qubits-heisenberg-spin-chain "Permalink to this heading"){.headerlink}
+
+This example simulates the time evolution of a Heisenberg spin chain, a
+canonical model for studying quantum magnetism and entanglement dynamics
+in spin qubit systems.
+
+::: {.highlight-cpp .notranslate}
+::: highlight
+    /*******************************************************************************
+     * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+     * All rights reserved.                                                        *
+     *                                                                             *
+     * This source code and the accompanying materials are made available under    *
+     * the terms of the Apache License 2.0 which accompanies this distribution.    *
+     ******************************************************************************/
+
+    // Compile and run with:
+    // ```
+    // nvq++ --target dynamics heisenberg_model.cpp -o a.out && ./a.out
+    // ```
+
+    #include "cudaq/algorithms/evolve.h"
+    #include "cudaq/algorithms/integrator.h"
+    #include "cudaq/operators.h"
+    #include "export_csv_helper.h"
+    #include <cudaq.h>
+
+    int main() {
+
+      // Set up a 9-spin chain, where each spin is a two-level system.
+      const int num_spins = 9;
+      cudaq::dimension_map dimensions;
+      for (int i = 0; i < num_spins; i++) {
+        dimensions[i] = 2; // Each spin (site) has dimension 2.
+      }
+
+      // Initial state
+      // Prepare an initial state where the spins are arranged in a staggered
+      // configuration. Even indices get the value '0' and odd indices get '1'. For
+      // example, for 9 spins: spins: 0 1 0 1 0 1 0 1 0
+      std::string spin_state;
+      for (int i = 0; i < num_spins; i++) {
+        spin_state.push_back((i % 2 == 0) ? '0' : '1');
+      }
+
+      // Convert the binary string to an integer index
+      // In the Hilbert space of 9 spins (size 2^9 = 512), this index corresponds to
+      // the state |0 1 0 1 0 1 0 1 0>
+      int initial_state_index = std::stoi(spin_state, nullptr, 2);
+
+      // Build the staggered magnetization operator
+      // The staggered magnetization operator is used to measure antiferromagnetic
+      // order. It is defined as a sum over all spins of the Z operator, alternating
+      // in sign. For even sites, we add `sz`; for odd sites, we subtract `sz`.
+      auto staggered_magnetization_t = cudaq::spin_op::empty();
+      for (int i = 0; i < num_spins; i++) {
+        auto sz = cudaq::spin_op::z(i);
+        if (i % 2 == 0) {
+          staggered_magnetization_t += sz;
+        } else {
+          staggered_magnetization_t -= sz;
+        }
+      }
+
+      // Normalize the number of spins so that the observable is intensive.
+      auto stagged_magnetization_op =
+          (1 / static_cast<double>(num_spins)) * staggered_magnetization_t;
+
+      // Each entry will associate a value of g (the `anisotropy` in the Z coupling)
+      // with its corresponding time-series of expectation values of the staggered
+      // magnetization.
+      std::vector<std::pair<double, std::vector<double>>> observe_results;
+
+      // Simulate the dynamics over 1000 time steps spanning from time 0 to 5.
+      const int num_steps = 1000;
+      std::vector<double> steps = cudaq::linspace(0.0, 5.0, num_steps);
+
+      // For three different values of g, which sets the strength of the Z-Z
+      // interaction: g = 0.0 (isotropic in the `XY` plane), 0.25, and 4.0 (strongly
+      // `anisotropy`).
+      std::vector<double> g_values = {0.0, 0.25, 4.0};
+
+      // Initial state vector
+      // For a 9-spin system, the Hilbert space dimension is 2^9 = 512.
+      // Initialize the state as a vector with all zeros except for a 1 at the
+      // index corresponding to our staggered state.
+      const int state_size = 1 << num_spins;
+      std::vector<std::complex<double>> psi0_data(state_size, {0.0, 0.0});
+      psi0_data[initial_state_index] = {1.0, 0.0};
+
+      // We construct a list of Hamiltonian operators for each value of g.
+      // All simulations will be batched together in a single call to `evolve`.
+      std::vector<cudaq::sum_op<cudaq::matrix_handler>> batched_hamiltonians;
+      std::vector<cudaq::state> initial_states;
+      for (auto g : g_values) {
+        // Set the coupling strengths:
+        // `Jx` and `Jy` are set to 1.0 (coupling along X and Y axes), while `Jz` is
+        // set to the current g value (coupling along the Z axis).
+        double Jx = 1.0, Jy = 1.0, Jz = g;
+
+        // The Hamiltonian is built from the nearest-neighbor interactions:
+        // H = H + `Jx` * `Sx`_i * `Sx`_{i+1}
+        // H = H + `Jy` * `Sy`_i * `Sy`_{i+1}
+        // H = H + `Jz` * `Sz`_i * `Sz`_{i+1}
+        // This is a form of the `anisotropic` Heisenberg (or `XYZ`) model.
+        auto hamiltonian = cudaq::spin_op::empty();
+        for (int i = 0; i < num_spins - 1; i++) {
+          hamiltonian =
+              hamiltonian + Jx * cudaq::spin_op::x(i) * cudaq::spin_op::x(i + 1);
+          hamiltonian =
+              hamiltonian + Jy * cudaq::spin_op::y(i) * cudaq::spin_op::y(i + 1);
+          hamiltonian =
+              hamiltonian + Jz * cudaq::spin_op::z(i) * cudaq::spin_op::z(i + 1);
+        }
+
+        // Add the Hamiltonian to the batch.
+        batched_hamiltonians.emplace_back(hamiltonian);
+        // Initial states for each simulation.
+        initial_states.emplace_back(cudaq::state::from_data(psi0_data));
+      }
+
+      // The schedule is built using the time steps array.
+      cudaq::schedule schedule(steps);
+
+      // Use a Runge-`Kutta` integrator (4`th` order) with a small time step `dt`
+      // = 0.001.
+      cudaq::integrators::runge_kutta integrator(4, 0.001);
+
+      // Evolve the initial state psi0 under the list of Hamiltonian operators,
+      // using the specified schedule and integrator. No collapse operators are
+      // included (closed system evolution). Measure the expectation value of the
+      // staggered magnetization operator at each time step.
+      auto evolve_results =
+          cudaq::evolve(batched_hamiltonians, dimensions, schedule, initial_states,
+                        integrator, {}, {stagged_magnetization_op},
+                        cudaq::IntermediateResultSave::ExpectationValue);
+
+      if (evolve_results.size() != g_values.size()) {
+        std::cerr << "Unexpected number of results. Expected " << g_values.size()
+                  << "; got " << evolve_results.size() << std::endl;
+        return 1;
+      }
+
+      // Lambda to extract expectation values for a given observable index
+      auto get_expectation = [](int idx, auto &result) -> std::vector<double> {
+        std::vector<double> expectations;
+
+        auto all_exps = result.expectation_values.value();
+        for (auto exp_vals : all_exps) {
+          expectations.push_back((double)exp_vals[idx]);
+        }
+        return expectations;
+      };
+
+      for (std::size_t i = 0; i < g_values.size(); ++i) {
+        observe_results.push_back(
+            {g_values[i], get_expectation(0, evolve_results[i])});
+      }
+
+      // The `CSV` file "`heisenberg`_model.`csv`" will contain column with:
+      //    - The time steps
+      //    - The expectation values of the staggered magnetization for each g value
+      //    (labeled g_0, g_0.25, g_4).
+      export_csv("heisenberg_model_result.csv", "time", steps, "g_0",
+                 observe_results[0].second, "g_0.25", observe_results[1].second,
+                 "g_4", observe_results[2].second);
+
+      std::cout << "Simulation complete. The results are saved in "
+                   "heisenberg_model_result.csv file."
+                << std::endl;
+      return 0;
+    }
+:::
+:::
+:::
+
+::: {#control-driven-qubit .section}
+### Control: Driven Qubit[¶](#control-driven-qubit "Permalink to this heading"){.headerlink}
+
+This example demonstrates qubit control via a time-dependent driving
+Hamiltonian. It shows how to construct schedules with named time
+parameters and time-dependent coefficient callbacks for modelling
+control pulses.
+
+::: {.highlight-cpp .notranslate}
+::: highlight
+    /*******************************************************************************
+     * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+     * All rights reserved.                                                        *
+     *                                                                             *
+     * This source code and the accompanying materials are made available under    *
+     * the terms of the Apache License 2.0 which accompanies this distribution.    *
+     ******************************************************************************/
+
+    // Compile and run with:
+    // ```
+    // nvq++ --target dynamics qubit_control.cpp -o a.out && ./a.out
+    // ```
+
+    #include "cudaq/algorithms/evolve.h"
+    #include "cudaq/algorithms/integrator.h"
+    #include "cudaq/operators.h"
+    #include "export_csv_helper.h"
+    #include <cudaq.h>
+
+    int main() {
+      // Qubit resonant frequency (energy splitting along Z).
+      double omega_z = 10.0 * 2 * M_PI;
+      // Transverse driving term (amplitude of the drive along the X-axis).
+      double omega_x = 2 * M_PI;
+      // Driving frequency, chosen to be slightly off-resonance (0.99 of omega_z).
+      double omega_drive = 0.99 * omega_z;
+
+      // The lambda function acts as a callback that returns a modulation factor for
+      // the drive. It extracts the time `t` from the provided parameters and
+      // computes cos(omega_drive * t).
+      auto mod_func =
+          [omega_drive](
+              const cudaq::parameter_map &params) -> std::complex<double> {
+        auto it = params.find("t");
+        if (it != params.end()) {
+          double t = it->second.real();
+          const auto result = std::cos(omega_drive * t);
+          return result;
+        }
+        throw std::runtime_error("Cannot find the time parameter.");
+      };
+
+      // The Hamiltonian consists of two terms:
+      // 1. A static term: 0.5 * omega_z * `Sz`_0, representing the `qubit's`
+      // intrinsic energy splitting.
+      // 2. A time-dependent driving term: omega_x * cos(omega_drive * t) * `Sx`_0,
+      // which induces rotations about the X-axis. The scalar_operator(mod_`func`)
+      // allows the drive term to vary in time according to mod_`func`.
+      auto hamiltonian = 0.5 * omega_z * cudaq::spin_op::z(0) +
+                         mod_func * cudaq::spin_op::x(0) * omega_x;
+
+      // A single qubit with dimension 2.
+      cudaq::dimension_map dimensions = {{0, 2}};
+
+      // The qubit starts in the |0> state, represented by the vector [1, 0].
+      std::vector<std::complex<double>> initial_state_vec = {1.0, 0.0};
+      auto psi0 = cudaq::state::from_data(initial_state_vec);
+
+      // Set the final simulation time such that t_final = pi / omega_x, which
+      // relates to a specific qubit rotation.
+      double t_final = M_PI / omega_x;
+      // Define the integration time step `dt` as a small fraction of the drive
+      // period.
+      double dt = 2.0 * M_PI / omega_drive / 100;
+      // Compute the number of steps required for the simulation
+      int num_steps = static_cast<int>(std::ceil(t_final / dt)) + 1;
+      // Create a schedule with time steps from 0 to t_final.
+      std::vector<double> steps = cudaq::linspace(0.0, t_final, num_steps);
+      // The schedule carries the time parameter `labelled` `t`, which is used by
+      // mod_`func`.
+      cudaq::schedule schedule(steps, {"t"});
+
+      // A default Runge-`Kutta` integrator (4`th` order) with time step `dt`
+      // depending on the schedule.
+      cudaq::integrators::runge_kutta integrator;
+
+      // Measure the expectation values of the `qubit's` spin components along the
+      // X, Y, and Z directions.
+      auto observables = {cudaq::spin_op::x(0), cudaq::spin_op::y(0),
+                          cudaq::spin_op::z(0)};
+
+      // Simulation without decoherence
+      // Evolve the system under the Hamiltonian, using the specified schedule and
+      // integrator. No collapse operators are included (closed system evolution).
+      auto evolve_result = cudaq::evolve(
+          hamiltonian, dimensions, schedule, psi0, integrator, {}, observables,
+          cudaq::IntermediateResultSave::ExpectationValue);
+
+      // Simulation with decoherence
+      // Introduce `dephasing` (decoherence) through a collapse operator.
+      // Here, gamma_`sz` = 1.0 is the `dephasing` rate, and the collapse operator
+      // is `sqrt`(gamma_`sz`) * `Sz`_0 which simulates decoherence in the energy
+      // basis (Z-basis `dephasing`).
+      double gamma_sz = 1.0;
+      auto evolve_result_decay =
+          cudaq::evolve(hamiltonian, dimensions, schedule, psi0, integrator,
+                        {std::sqrt(gamma_sz) * cudaq::spin_op::z(0)}, observables,
+                        cudaq::IntermediateResultSave::ExpectationValue);
+
+      // Lambda to extract expectation values for a given observable index
+      auto get_expectation = [](int idx, auto &result) -> std::vector<double> {
+        std::vector<double> expectations;
+
+        auto all_exps = result.expectation_values.value();
+        for (auto exp_vals : all_exps) {
+          expectations.push_back(exp_vals[idx].expectation());
+        }
+        return expectations;
+      };
+
+      // For the ideal evolution
+      auto ideal_result_x = get_expectation(0, evolve_result);
+      auto ideal_result_y = get_expectation(1, evolve_result);
+      auto ideal_result_z = get_expectation(2, evolve_result);
+
+      // For the decoherence evolution
+      auto decoherence_result_x = get_expectation(0, evolve_result_decay);
+      auto decoherence_result_y = get_expectation(1, evolve_result_decay);
+      auto decoherence_result_z = get_expectation(2, evolve_result_decay);
+
+      // Export the results to a `CSV` file
+      export_csv("qubit_control_ideal_result.csv", "t", steps, "sigma_x",
+                 ideal_result_x, "sigma_y", ideal_result_y, "sigma_z",
+                 ideal_result_z);
+      export_csv("qubit_control_decoherence_result.csv", "t", steps, "sigma_x",
+                 decoherence_result_x, "sigma_y", decoherence_result_y, "sigma_z",
+                 decoherence_result_z);
+
+      std::cout << "Results exported to qubit_control_ideal_result.csv and "
+                   "qubit_control_decoherence_result.csv"
+                << std::endl;
+
+      return 0;
+    }
+:::
+:::
+:::
+
+::: {#state-batching .section}
+### State Batching[¶](#state-batching "Permalink to this heading"){.headerlink}
+
+Batching multiple initial states in a single [`evolve`{.docutils
+.literal .notranslate}]{.pre} call enables efficient process tomography
+and parallel parameter sweeps. This example evolves four SIC-POVM states
+under the same Hamiltonian simultaneously.
+
+::: {.highlight-cpp .notranslate}
+::: highlight
+    /*******************************************************************************
+     * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+     * All rights reserved.                                                        *
+     *                                                                             *
+     * This source code and the accompanying materials are made available under    *
+     * the terms of the Apache License 2.0 which accompanies this distribution.    *
+     ******************************************************************************/
+
+    // Compile and run with:
+    // ```
+    // nvq++ --target dynamics qubit_dynamics.cpp -o a.out && ./a.out
+    // ```
+
+    #include "cudaq/algorithms/evolve.h"
+    #include "cudaq/algorithms/integrator.h"
+    #include "cudaq/operators.h"
+    #include "export_csv_helper.h"
+    #include <cudaq.h>
+
+    int main() {
+      // Qubit `hamiltonian`: 2 * pi * 0.1 * sigma_x
+      // Physically, this represents a qubit (a two-level system) driven by a weak
+      // transverse field along the x-axis.
+      auto hamiltonian = 2.0 * M_PI * 0.1 * cudaq::spin_op::x(0);
+
+      // Dimensions: one subsystem of dimension 2 (a two-level system).
+      const cudaq::dimension_map dimensions = {{0, 2}};
+
+      // Initial state: ground state
+      std::vector<std::complex<double>> initial_state_zero = {1.0, 0.0};
+      std::vector<std::complex<double>> initial_state_one = {0.0, 1.0};
+
+      auto psi0 = cudaq::state::from_data(initial_state_zero);
+      auto psi1 = cudaq::state::from_data(initial_state_one);
+
+      // Create a schedule of time steps from 0 to 10 with 101 points
+      std::vector<double> steps = cudaq::linspace(0.0, 10.0, 101);
+      cudaq::schedule schedule(steps);
+
+      // Runge-`Kutta` integrator with a time step of 0.01 and order 4
+      cudaq::integrators::runge_kutta integrator(4, 0.01);
+
+      // Run the simulation without collapse operators (ideal evolution)
+      auto evolve_results =
+          cudaq::evolve(hamiltonian, dimensions, schedule, {psi0, psi1}, integrator,
+                        {}, {cudaq::spin_op::y(0), cudaq::spin_op::z(0)},
+                        cudaq::IntermediateResultSave::ExpectationValue);
+
+      // Lambda to extract expectation values for a given observable index
+      auto get_expectation = [](int idx, auto &result) -> std::vector<double> {
+        std::vector<double> expectations;
+
+        auto all_exps = result.expectation_values.value();
+        for (auto exp_vals : all_exps) {
+          expectations.push_back((double)exp_vals[idx]);
+        }
+        return expectations;
+      };
+
+      auto result_state0_y = get_expectation(0, evolve_results[0]);
+      auto result_state0_z = get_expectation(1, evolve_results[0]);
+      auto result_state1_y = get_expectation(0, evolve_results[1]);
+      auto result_state1_z = get_expectation(1, evolve_results[1]);
+
+      export_csv("qubit_dynamics_state_0.csv", "time", steps, "sigma_y",
+                 result_state0_y, "sigma_z", result_state0_z);
+      export_csv("qubit_dynamics_state_1.csv", "time", steps, "sigma_y",
+                 result_state1_y, "sigma_z", result_state1_z);
+
+      std::cout << "Results exported to qubit_dynamics_state_0.csv and "
+                   "qubit_dynamics_state_1.csv"
+                << std::endl;
+
+      return 0;
+    }
+:::
+:::
+:::
+
+::: {#numerical-integrators .section}
+### Numerical Integrators[¶](#numerical-integrators "Permalink to this heading"){.headerlink}
+
+CUDA-Q provides three numerical integrators for the
+[`dynamics`{.docutils .literal .notranslate}]{.pre} target.
+
+The following example shows how to use these integrators on the same
+single-qubit problem:
+
+::: {.highlight-cpp .notranslate}
+::: highlight
+      // Explicit 4th-order Runge-Kutta method (the default integrator).
+      // Arguments: order (1, 2, or 4) and optional max sub-step size.
+      cudaq::integrators::runge_kutta rk_integrator(/*order=*/4,
+                                                    /*max_step_size=*/0.01);
+      auto rk_result = cudaq::evolve(
+          hamiltonian, dimensions, schedule, psi0, rk_integrator, {}, observables,
+          cudaq::IntermediateResultSave::ExpectationValue);
+:::
+:::
+
+The Crank-Nicolson integrator:
+
+::: {.highlight-cpp .notranslate}
+::: highlight
+      // Implicit Crank-Nicolson predictor-corrector method.
+      // Well-suited for stiff systems or when energy conservation is important.
+      // Arguments: number of corrector iterations (default: 2) and optional max
+      // sub-step size.
+      cudaq::integrators::crank_nicolson cn_integrator(/*num_corrector_steps=*/2,
+                                                       /*max_step_size=*/0.01);
+      auto cn_result = cudaq::evolve(
+          hamiltonian, dimensions, schedule, psi0, cn_integrator, {}, observables,
+          cudaq::IntermediateResultSave::ExpectationValue);
+:::
+:::
+
+The Magnus expansion integrator:
+
+::: {.highlight-cpp .notranslate}
+::: highlight
+      // Magnus expansion integrator.
+      // Uses a finite Taylor series truncation to approximate the matrix
+      // exponential, approximating unitary evolution. Suitable for smooth,
+      // oscillatory
+      // Hamiltonians. Arguments: maximum number of Taylor terms (default: 10) and
+      // optional max sub-step size.
+      cudaq::integrators::magnus_expansion magnus_integrator(
+          /*num_taylor_terms=*/10, /*max_step_size=*/0.01);
+      auto magnus_result = cudaq::evolve(
+          hamiltonian, dimensions, schedule, psi0, magnus_integrator, {},
+          observables, cudaq::IntermediateResultSave::ExpectationValue);
+:::
+:::
+:::
 :::
 :::
 :::

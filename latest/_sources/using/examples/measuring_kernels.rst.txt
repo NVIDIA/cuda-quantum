@@ -65,8 +65,8 @@ The results show qubit 0 is one, indicating the reset worked, and qubit 1 has a 
 
     .. literalinclude:: ../../examples/cpp/measuring_kernels.cpp
         :language: cpp
-        :start-after: [Begin Run1]
-        :end-before: [End Run1]
+        :start-after: [Begin Run0]
+        :end-before: [End Run0]
 
 Output
 

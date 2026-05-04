@@ -48,6 +48,9 @@ latest
         -   [Debugging and Verbose Simulation
             Output](../../using/basics/troubleshooting.html#debugging-and-verbose-simulation-output){.reference
             .internal}
+        -   [Python
+            Stack-Traces](../../using/basics/troubleshooting.html#python-stack-traces){.reference
+            .internal}
 -   [Examples](../../using/examples/examples.html){.reference .internal}
     -   [Introduction](../../using/examples/introduction.html){.reference
         .internal}
@@ -321,96 +324,49 @@ latest
     -   [Dynamics
         Examples](../../using/examples/dynamics_examples.html){.reference
         .internal}
-        -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
-            Model)](../../examples/python/dynamics/dynamics_intro_1.html){.reference
+        -   [Python Examples (Jupyter
+            Notebooks)](../../using/examples/dynamics_examples.html#python-examples-jupyter-notebooks){.reference
             .internal}
-            -   [Why dynamics simulations vs. circuit
-                simulations?](../../examples/python/dynamics/dynamics_intro_1.html#Why-dynamics-simulations-vs.-circuit-simulations?){.reference
+            -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
+                Model)](../../examples/python/dynamics/dynamics_intro_1.html){.reference
                 .internal}
-            -   [Functionality](../../examples/python/dynamics/dynamics_intro_1.html#Functionality){.reference
+            -   [Introduction to CUDA-Q Dynamics (Time Dependent
+                Hamiltonians)](../../examples/python/dynamics/dynamics_intro_2.html){.reference
                 .internal}
-            -   [Performance](../../examples/python/dynamics/dynamics_intro_1.html#Performance){.reference
+            -   [Superconducting
+                Qubits](../../examples/python/dynamics/superconducting.html){.reference
                 .internal}
-            -   [Section 1 - Simulating the Jaynes-Cummings
-                Hamiltonian](../../examples/python/dynamics/dynamics_intro_1.html#Section-1---Simulating-the-Jaynes-Cummings-Hamiltonian){.reference
+            -   [Spin
+                Qubits](../../examples/python/dynamics/spinqubits.html){.reference
                 .internal}
-            -   [Exercise 1 - Simulating a many-photon Jaynes-Cummings
-                Hamiltonian](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-1---Simulating-a-many-photon-Jaynes-Cummings-Hamiltonian){.reference
+            -   [Trapped Ion
+                Qubits](../../examples/python/dynamics/iontrap.html){.reference
                 .internal}
-            -   [Section 2 - Simulating open quantum systems with the
-                [`collapse_operators`{.docutils .literal
-                .notranslate}]{.pre}](../../examples/python/dynamics/dynamics_intro_1.html#Section-2---Simulating-open-quantum-systems-with-the-collapse_operators){.reference
+            -   [Control](../../examples/python/dynamics/control.html){.reference
                 .internal}
-            -   [Exercise 2 - Adding additional jump operators
-                [\\(L_i\\)]{.math .notranslate
-                .nohighlight}](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-2---Adding-additional-jump-operators-L_i){.reference
-                .internal}
-            -   [Section 3 - Many qubits coupled to the
-                resonator](../../examples/python/dynamics/dynamics_intro_1.html#Section-3---Many-qubits-coupled-to-the-resonator){.reference
-                .internal}
-        -   [Introduction to CUDA-Q Dynamics (Time Dependent
-            Hamiltonians)](../../examples/python/dynamics/dynamics_intro_2.html){.reference
+        -   [C++
+            Examples](../../using/examples/dynamics_examples.html#c-examples){.reference
             .internal}
-            -   [The Landau-Zener
-                model](../../examples/python/dynamics/dynamics_intro_2.html#The-Landau-Zener-model){.reference
+            -   [Introduction: Single Qubit
+                Dynamics](../../using/examples/dynamics_examples.html#introduction-single-qubit-dynamics){.reference
                 .internal}
-            -   [Section 1 - Implementing time dependent
-                terms](../../examples/python/dynamics/dynamics_intro_2.html#Section-1---Implementing-time-dependent-terms){.reference
+            -   [Introduction: Cavity QED (Jaynes-Cummings
+                Model)](../../using/examples/dynamics_examples.html#introduction-cavity-qed-jaynes-cummings-model){.reference
                 .internal}
-            -   [Section 2 - Implementing custom
-                operators](../../examples/python/dynamics/dynamics_intro_2.html#Section-2---Implementing-custom-operators){.reference
+            -   [Superconducting Qubits: Cross-Resonance
+                Gate](../../using/examples/dynamics_examples.html#superconducting-qubits-cross-resonance-gate){.reference
                 .internal}
-            -   [Section 3 - Heisenberg Model with a time-varying
-                magnetic
-                field](../../examples/python/dynamics/dynamics_intro_2.html#Section-3---Heisenberg-Model-with-a-time-varying-magnetic-field){.reference
+            -   [Spin Qubits: Heisenberg Spin
+                Chain](../../using/examples/dynamics_examples.html#spin-qubits-heisenberg-spin-chain){.reference
                 .internal}
-            -   [Exercise 1 - Define a time-varying magnetic
-                field](../../examples/python/dynamics/dynamics_intro_2.html#Exercise-1---Define-a-time-varying-magnetic-field){.reference
+            -   [Control: Driven
+                Qubit](../../using/examples/dynamics_examples.html#control-driven-qubit){.reference
                 .internal}
-            -   [Exercise 2
-                (Optional)](../../examples/python/dynamics/dynamics_intro_2.html#Exercise-2-(Optional)){.reference
+            -   [State
+                Batching](../../using/examples/dynamics_examples.html#state-batching){.reference
                 .internal}
-        -   [Superconducting
-            Qubits](../../examples/python/dynamics/superconducting.html){.reference
-            .internal}
-            -   [Cavity
-                QED](../../examples/python/dynamics/superconducting.html#Cavity-QED){.reference
-                .internal}
-            -   [Cross
-                Resonance](../../examples/python/dynamics/superconducting.html#Cross-Resonance){.reference
-                .internal}
-            -   [Transmon
-                Resonator](../../examples/python/dynamics/superconducting.html#Transmon-Resonator){.reference
-                .internal}
-        -   [Spin
-            Qubits](../../examples/python/dynamics/spinqubits.html){.reference
-            .internal}
-            -   [Silicon Spin
-                Qubit](../../examples/python/dynamics/spinqubits.html#Silicon-Spin-Qubit){.reference
-                .internal}
-            -   [Heisenberg
-                Model](../../examples/python/dynamics/spinqubits.html#Heisenberg-Model){.reference
-                .internal}
-        -   [Trapped Ion
-            Qubits](../../examples/python/dynamics/iontrap.html){.reference
-            .internal}
-            -   [GHZ
-                state](../../examples/python/dynamics/iontrap.html#GHZ-state){.reference
-                .internal}
-        -   [Control](../../examples/python/dynamics/control.html){.reference
-            .internal}
-            -   [Gate
-                Calibration](../../examples/python/dynamics/control.html#Gate-Calibration){.reference
-                .internal}
-            -   [Pulse](../../examples/python/dynamics/control.html#Pulse){.reference
-                .internal}
-            -   [Qubit
-                Control](../../examples/python/dynamics/control.html#Qubit-Control){.reference
-                .internal}
-            -   [Qubit
-                Dynamics](../../examples/python/dynamics/control.html#Qubit-Dynamics){.reference
-                .internal}
-            -   [Landau-Zenner](../../examples/python/dynamics/control.html#Landau-Zenner){.reference
+            -   [Numerical
+                Integrators](../../using/examples/dynamics_examples.html#numerical-integrators){.reference
                 .internal}
 -   [Applications](../../using/applications.html){.reference .internal}
     -   [Max-Cut with QAOA](qaoa.html){.reference .internal}
@@ -1748,6 +1704,9 @@ latest
         -   [Backend
             Configuration](../../api/languages/python_api.html#backend-configuration){.reference
             .internal}
+            -   [[`parse_args()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.parse_args){.reference
+                .internal}
             -   [[`has_target()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.has_target){.reference
                 .internal}
@@ -2176,7 +2135,7 @@ This cell installs the necessary packages.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [1]:
 :::
 :::
 
@@ -2266,7 +2225,7 @@ good results for this demonstration.
     [pyscf] Total number of orbitals =  2
     [pyscf] Total number of electrons =  2
     [pyscf] HF energy =  -1.116325564486115
-    [pyscf] Total R-CCSD energy =  -1.1371758844013342
+    [pyscf] Total R-CCSD energy =  -1.1371758844013327
     Ground state energy (classical simulation)=  (-1.1371757102406845+0j) , index=  3
 :::
 :::
@@ -2285,10 +2244,14 @@ will be uses later.
 
 ::: {.input_area .highlight-ipython3 .notranslate}
 ::: highlight
-    # Collect coefficients from a spin operator so we can pass them to a kernel
+    # Collect coefficients from a spin operator so we can pass them to a kernel.
+    # The identity term is excluded. Its contribution is added back to the
+    # Hamiltonian matrix classically below.
     def term_coefficients(ham: cudaq.SpinOperator) -> list[complex]:
         result = []
         for term in ham:
+            if term.is_identity():
+                continue
             result.append(term.evaluate_coefficient())
         return result
 
@@ -2296,15 +2259,23 @@ will be uses later.
     def term_words(ham: cudaq.SpinOperator) -> list[str]:
         # Our kernel uses these words to apply exp_pauli to the entire state.
         # we hence ensure that each pauli word covers the entire space.
-
         result = []
         for term in ham:
+            if term.is_identity():
+                continue
             result.append(term.get_pauli_word(qubits_num))
         return result
 
     # Build the lists of coefficients and Pauli Words from the H2 Hamiltonian
     coefficient = term_coefficients(hamiltonian)
     pauli_string = term_words(hamiltonian)
+
+    # Sum of identity-term coefficients
+    # The identity contributes `identity_coef * S` to the Hamiltonian matrix.
+    identity_coef = sum(
+        term.evaluate_coefficient().real
+        for term in hamiltonian
+        if term.is_identity())
 
     print(coefficient)
     print(pauli_string)
@@ -2318,8 +2289,8 @@ will be uses later.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    [(-0.10647701149300526+0j), (0.17028010135220517+0j), (0.17028010135220514+0j), (-0.22004130022421745+0j), (-0.22004130022421745+0j), (0.1683359862516207+0j), (0.12020049071260122+0j), (0.1656068235817425+0j), (0.1656068235817425+0j), (0.12020049071260122+0j), (0.17407289249680213+0j), (-0.04540633286914128+0j), (0.04540633286914128+0j), (0.04540633286914128+0j), (-0.04540633286914128+0j)]
-    ['IIII', 'ZIII', 'IZII', 'IIZI', 'IIIZ', 'ZZII', 'ZIZI', 'ZIIZ', 'IZZI', 'IZIZ', 'IIZZ', 'XXYY', 'XYYX', 'YXXY', 'YYXX']
+    [(0.17028010135220506+0j), (0.17028010135220503+0j), (-0.2200413002242175+0j), (-0.2200413002242175+0j), (0.1683359862516207+0j), (0.12020049071260122+0j), (0.1656068235817425+0j), (0.1656068235817425+0j), (0.12020049071260122+0j), (0.17407289249680213+0j), (-0.04540633286914128+0j), (0.04540633286914128+0j), (0.04540633286914128+0j), (-0.04540633286914128+0j)]
+    ['ZIII', 'IZII', 'IIZI', 'IIIZ', 'ZZII', 'ZIZI', 'ZIIZ', 'IZZI', 'IZIZ', 'IIZZ', 'XXYY', 'XYYX', 'YXXY', 'YYXX']
 :::
 :::
 :::
@@ -2573,7 +2544,7 @@ summing the results to produce one matrix element.
             # 2 entry array that stores real and imaginary part of matrix element
             tot_e = np.zeros(2)
 
-            # Loops over the terms in the Hamiltonian, computing expectation values
+            # Loops over the (non-identity) terms in the Hamiltonian, computing expectation values
             for coef, word in zip(coefficient, pauli_string):
                 pauli_list = pauli_str(word, qubits_num)
 
@@ -2591,8 +2562,8 @@ summing the results to produce one matrix element.
                 tot_e[0] += temp[0]
                 tot_e[1] += temp[1]
 
-            # Sums real and imaginary totals to specify Hamiltonian entry
-            ham_matrx[m, n] = tot_e[0] + tot_e[1] * 1j
+            # Adds back the identity-term contribution.
+            ham_matrx[m, n] = tot_e[0] + tot_e[1] * 1j + identity_coef * wf_overlap[m, n]
             if n != m:
                 ham_matrx[n, m] = np.conj(ham_matrx[m, n])
 :::
@@ -2695,7 +2666,7 @@ original eigenvectors to the problem can be found by left multiplying by
 ::: {.output_area .docutils .container}
 ::: highlight
     Energy from QFD:
-    (-1.137176660753775-1.6945689273261445e-07j)
+    (-1.1359686811350462-4.497484607599205e-09j)
 :::
 :::
 :::

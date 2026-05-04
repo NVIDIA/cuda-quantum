@@ -55,7 +55,7 @@ add_nvqpp_test(Gradients examples/cpp/other/gradients.cpp)
 add_nvqpp_test(IterativePhaseEstimation applications/cpp/iterative_qpe.cpp)
 add_nvqpp_test(RandomWalkPhaseEstimation applications/cpp/random_walk_qpe.cpp)
 
-if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
+if (cuStateVec_FOUND)
   add_nvqpp_test(CuQuantumGHZ examples/cpp/basics/cuquantum_backends.cpp TARGET nvidia LABELS gpu_required)  
   add_nvqpp_test(CuQuantumBernsteinVazirani applications/cpp/bernstein_vazirani.cpp TARGET nvidia LABELS gpu_required)  
 endif()
@@ -72,14 +72,14 @@ add_nvqpp_test(PTSBE_InspectData inspect_execution_data.cpp SOURCE_DIR ${PTSBE_C
 add_nvqpp_test(PTSBE_SamplingStrategies sampling_strategies.cpp SOURCE_DIR ${PTSBE_CPP_SNIPPET_DIR})
 add_nvqpp_test(PTSBE_ShotAllocation shot_allocation.cpp SOURCE_DIR ${PTSBE_CPP_SNIPPET_DIR})
 
-if (CUDENSITYMAT_ROOT AND CUDA_FOUND) 
+if (cuDensityMat_FOUND)
   add_nvqpp_test(Dynamics_Snippets using/backends/dynamics.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp/ TARGET dynamics LABELS gpu_required)  
   add_nvqpp_test(Dynamics_State_Batching_Snippets using/backends/dynamics_state_batching.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp/ TARGET dynamics LABELS gpu_required)  
   add_nvqpp_test(Dynamics_Operator_Batching_Snippets using/backends/dynamics_operator_batching.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp/ TARGET dynamics LABELS gpu_required)  
 endif()
 
 set(NGPUS 0)
-if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
+if (cuStateVec_FOUND)
   add_nvqpp_test(QuickStart_nvidia quick_start.cpp TARGET nvidia LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
 
   # mqpu snippets need custatevec backend and optionally MPI
@@ -155,12 +155,12 @@ if (CUDAQ_ENABLE_PYTHON)
     add_pycudaq_test(EvolveDynamicsOperatorBatching using/backends/dynamics_operator_batching.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
   endif()
 
-  if (CUTENSORNET_ROOT AND CUDA_FOUND) 
+  if (cuTensorNet_FOUND)
     # This example uses tensornet backend.
     add_pycudaq_test(SampleAsyncRemote using/cudaq/platform/sample_async_remote.py SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
   endif()
   
-  if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
+  if (cuStateVec_FOUND)
     add_pycudaq_test(SampleAsync using/cudaq/platform/sample_async.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
     add_pycudaq_test(ObserveMQPU using/cudaq/platform/observe_mqpu.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
     if (MPI_CXX_FOUND AND ${NGPUS} GREATER_EQUAL 2)

@@ -39,6 +39,8 @@ latest
         -   [Debugging and Verbose Simulation
             Output](#debugging-and-verbose-simulation-output){.reference
             .internal}
+        -   [Python Stack-Traces](#python-stack-traces){.reference
+            .internal}
 -   [Examples](../examples/examples.html){.reference .internal}
     -   [Introduction](../examples/introduction.html){.reference
         .internal}
@@ -307,96 +309,49 @@ latest
     -   [Dynamics
         Examples](../examples/dynamics_examples.html){.reference
         .internal}
-        -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
-            Model)](../../examples/python/dynamics/dynamics_intro_1.html){.reference
+        -   [Python Examples (Jupyter
+            Notebooks)](../examples/dynamics_examples.html#python-examples-jupyter-notebooks){.reference
             .internal}
-            -   [Why dynamics simulations vs. circuit
-                simulations?](../../examples/python/dynamics/dynamics_intro_1.html#Why-dynamics-simulations-vs.-circuit-simulations?){.reference
+            -   [Introduction to CUDA-Q Dynamics (Jaynes-Cummings
+                Model)](../../examples/python/dynamics/dynamics_intro_1.html){.reference
                 .internal}
-            -   [Functionality](../../examples/python/dynamics/dynamics_intro_1.html#Functionality){.reference
+            -   [Introduction to CUDA-Q Dynamics (Time Dependent
+                Hamiltonians)](../../examples/python/dynamics/dynamics_intro_2.html){.reference
                 .internal}
-            -   [Performance](../../examples/python/dynamics/dynamics_intro_1.html#Performance){.reference
+            -   [Superconducting
+                Qubits](../../examples/python/dynamics/superconducting.html){.reference
                 .internal}
-            -   [Section 1 - Simulating the Jaynes-Cummings
-                Hamiltonian](../../examples/python/dynamics/dynamics_intro_1.html#Section-1---Simulating-the-Jaynes-Cummings-Hamiltonian){.reference
+            -   [Spin
+                Qubits](../../examples/python/dynamics/spinqubits.html){.reference
                 .internal}
-            -   [Exercise 1 - Simulating a many-photon Jaynes-Cummings
-                Hamiltonian](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-1---Simulating-a-many-photon-Jaynes-Cummings-Hamiltonian){.reference
+            -   [Trapped Ion
+                Qubits](../../examples/python/dynamics/iontrap.html){.reference
                 .internal}
-            -   [Section 2 - Simulating open quantum systems with the
-                [`collapse_operators`{.docutils .literal
-                .notranslate}]{.pre}](../../examples/python/dynamics/dynamics_intro_1.html#Section-2---Simulating-open-quantum-systems-with-the-collapse_operators){.reference
+            -   [Control](../../examples/python/dynamics/control.html){.reference
                 .internal}
-            -   [Exercise 2 - Adding additional jump operators
-                [\\(L_i\\)]{.math .notranslate
-                .nohighlight}](../../examples/python/dynamics/dynamics_intro_1.html#Exercise-2---Adding-additional-jump-operators-L_i){.reference
-                .internal}
-            -   [Section 3 - Many qubits coupled to the
-                resonator](../../examples/python/dynamics/dynamics_intro_1.html#Section-3---Many-qubits-coupled-to-the-resonator){.reference
-                .internal}
-        -   [Introduction to CUDA-Q Dynamics (Time Dependent
-            Hamiltonians)](../../examples/python/dynamics/dynamics_intro_2.html){.reference
+        -   [C++
+            Examples](../examples/dynamics_examples.html#c-examples){.reference
             .internal}
-            -   [The Landau-Zener
-                model](../../examples/python/dynamics/dynamics_intro_2.html#The-Landau-Zener-model){.reference
+            -   [Introduction: Single Qubit
+                Dynamics](../examples/dynamics_examples.html#introduction-single-qubit-dynamics){.reference
                 .internal}
-            -   [Section 1 - Implementing time dependent
-                terms](../../examples/python/dynamics/dynamics_intro_2.html#Section-1---Implementing-time-dependent-terms){.reference
+            -   [Introduction: Cavity QED (Jaynes-Cummings
+                Model)](../examples/dynamics_examples.html#introduction-cavity-qed-jaynes-cummings-model){.reference
                 .internal}
-            -   [Section 2 - Implementing custom
-                operators](../../examples/python/dynamics/dynamics_intro_2.html#Section-2---Implementing-custom-operators){.reference
+            -   [Superconducting Qubits: Cross-Resonance
+                Gate](../examples/dynamics_examples.html#superconducting-qubits-cross-resonance-gate){.reference
                 .internal}
-            -   [Section 3 - Heisenberg Model with a time-varying
-                magnetic
-                field](../../examples/python/dynamics/dynamics_intro_2.html#Section-3---Heisenberg-Model-with-a-time-varying-magnetic-field){.reference
+            -   [Spin Qubits: Heisenberg Spin
+                Chain](../examples/dynamics_examples.html#spin-qubits-heisenberg-spin-chain){.reference
                 .internal}
-            -   [Exercise 1 - Define a time-varying magnetic
-                field](../../examples/python/dynamics/dynamics_intro_2.html#Exercise-1---Define-a-time-varying-magnetic-field){.reference
+            -   [Control: Driven
+                Qubit](../examples/dynamics_examples.html#control-driven-qubit){.reference
                 .internal}
-            -   [Exercise 2
-                (Optional)](../../examples/python/dynamics/dynamics_intro_2.html#Exercise-2-(Optional)){.reference
+            -   [State
+                Batching](../examples/dynamics_examples.html#state-batching){.reference
                 .internal}
-        -   [Superconducting
-            Qubits](../../examples/python/dynamics/superconducting.html){.reference
-            .internal}
-            -   [Cavity
-                QED](../../examples/python/dynamics/superconducting.html#Cavity-QED){.reference
-                .internal}
-            -   [Cross
-                Resonance](../../examples/python/dynamics/superconducting.html#Cross-Resonance){.reference
-                .internal}
-            -   [Transmon
-                Resonator](../../examples/python/dynamics/superconducting.html#Transmon-Resonator){.reference
-                .internal}
-        -   [Spin
-            Qubits](../../examples/python/dynamics/spinqubits.html){.reference
-            .internal}
-            -   [Silicon Spin
-                Qubit](../../examples/python/dynamics/spinqubits.html#Silicon-Spin-Qubit){.reference
-                .internal}
-            -   [Heisenberg
-                Model](../../examples/python/dynamics/spinqubits.html#Heisenberg-Model){.reference
-                .internal}
-        -   [Trapped Ion
-            Qubits](../../examples/python/dynamics/iontrap.html){.reference
-            .internal}
-            -   [GHZ
-                state](../../examples/python/dynamics/iontrap.html#GHZ-state){.reference
-                .internal}
-        -   [Control](../../examples/python/dynamics/control.html){.reference
-            .internal}
-            -   [Gate
-                Calibration](../../examples/python/dynamics/control.html#Gate-Calibration){.reference
-                .internal}
-            -   [Pulse](../../examples/python/dynamics/control.html#Pulse){.reference
-                .internal}
-            -   [Qubit
-                Control](../../examples/python/dynamics/control.html#Qubit-Control){.reference
-                .internal}
-            -   [Qubit
-                Dynamics](../../examples/python/dynamics/control.html#Qubit-Dynamics){.reference
-                .internal}
-            -   [Landau-Zenner](../../examples/python/dynamics/control.html#Landau-Zenner){.reference
+            -   [Numerical
+                Integrators](../examples/dynamics_examples.html#numerical-integrators){.reference
                 .internal}
 -   [Applications](../applications.html){.reference .internal}
     -   [Max-Cut with
@@ -1763,6 +1718,9 @@ latest
         -   [Backend
             Configuration](../../api/languages/python_api.html#backend-configuration){.reference
             .internal}
+            -   [[`parse_args()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.parse_args){.reference
+                .internal}
             -   [[`has_target()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.has_target){.reference
                 .internal}
@@ -2148,6 +2106,41 @@ C++
 :::
 :::
 :::
+:::
+
+::: {#python-stack-traces .section}
+## Python Stack-Traces[¶](#python-stack-traces "Permalink to this heading"){.headerlink}
+
+When CUDA-Q parses Python command-line options via
+[[`cudaq.parse_args()`{.xref .py .py-func .docutils .literal
+.notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.parse_args "cudaq.parse_args"){.reference
+.internal}, Python stack-traces are suppressed by default to keep
+runtime errors concise. To show the full stack-trace for debugging, pass
+[`--cudaq-full-stack-trace`{.code .docutils .literal
+.notranslate}]{.pre} when invoking your script.
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    python3 program.py --cudaq-full-stack-trace
+:::
+:::
+
+This flag can be combined with other CUDA-Q Python runtime options such
+as [`--target`{.code .docutils .literal .notranslate}]{.pre},
+[`--target-option`{.code .docutils .literal .notranslate}]{.pre}, and
+[`--emulate`{.code .docutils .literal .notranslate}]{.pre}.
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    python3 program.py --target nvidia --target-option fp64 --cudaq-full-stack-trace
+:::
+:::
+
+If your application parses CUDA-Q command-line arguments explicitly,
+call [[`cudaq.parse_args()`{.xref .py .py-func .docutils .literal
+.notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.parse_args "cudaq.parse_args"){.reference
+.internal} before running the rest of the program so the flag is
+recognized.
 :::
 :::
 :::
