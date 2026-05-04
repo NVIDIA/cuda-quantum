@@ -747,6 +747,15 @@ void quake::WrapOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
 // CallByRefOp
 //===----------------------------------------------------------------------===//
 
+LogicalResult
+quake::CallByRefOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
+  auto fn =
+      symbolTable.lookupNearestSymbolFrom<func::FuncOp>(*this, getCalleeAttr());
+  if (!fn)
+    return emitOpError("callee must be declared");
+  return success();
+}
+
 // This is syntactic sugar for calling a kernel declared with quantum reference
 // types and using "mismatched" arguments of quantum value types. This verify
 // enforces all the restrictions on the call.
@@ -756,10 +765,8 @@ LogicalResult quake::CallByRefOp::verify() {
     if (quake::isQuantumReferenceType(ty))
       return emitOpError("quantum reference types are not allowed");
 
-  auto fn =
-      SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(*this, getCallee());
-  if (!fn)
-    return emitOpError("callee must be declared");
+  auto fn = SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(*this,
+                                                               getCalleeAttr());
   FunctionType asSig = fn.getFunctionType();
 
   // Arity of callee's signature must be equal to number of arguments provided.
