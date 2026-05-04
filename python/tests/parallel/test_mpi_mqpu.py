@@ -10,9 +10,32 @@ import cudaq, os, pytest
 from cudaq import spin
 import numpy as np
 
+
+def _launched_under_mpi():
+    # Detect a real multi-rank MPI launcher (mpirun/mpiexec/srun). Without
+    # this, calling MPI collectives (e.g. cudaq.parallel.mpi observe,
+    # cudaq.mpi.all_gather) inside a single-process pytest run blocks
+    # forever waiting on peers that don't exist. Validation environments
+    # run pytest directly without mpiexec, so this guard skips the test
+    # there. Real MPI test runs launched via mpiexec set one of these.
+    for var in ("OMPI_COMM_WORLD_SIZE", "PMI_SIZE", "MPI_LOCALNRANKS"):
+        try:
+            if int(os.environ.get(var, "1")) > 1:
+                return True
+        except ValueError:
+            pass
+    try:
+        if int(os.environ.get("SLURM_NTASKS", "1")) > 1:
+            return True
+    except ValueError:
+        pass
+    return False
+
+
 skipIfUnsupported = pytest.mark.skipif(
-    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-mqpu')),
-    reason="nvidia-mqpu backend not available or mpi not found")
+    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-mqpu') and
+         _launched_under_mpi()),
+    reason="nvidia-mqpu backend, GPU, or multi-rank MPI launcher not available")
 
 
 @pytest.fixture(scope='session', autouse=True)

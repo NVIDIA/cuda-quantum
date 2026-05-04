@@ -958,6 +958,10 @@ jobs:
     name: Docker image validation
     needs: [assets, cudaq_images, image_validation_config]
     runs-on: linux-amd64-gpu-a100-latest-1
+    # Cap to avoid silent multi-hour hangs (e.g. a hung test in a validation
+    # script blocking the run until a human cancels it). 60 min is well above
+    # the historical successful runtime (~10 min).
+    timeout-minutes: 60
     permissions:
       contents: read
       packages: read
@@ -1065,6 +1069,7 @@ jobs:
     name: Installer validation
     needs: [assets, cudaq_installers]
     runs-on: linux-amd64-gpu-a100-latest-1
+    timeout-minutes: 60
     permissions:
       contents: read
 
@@ -1197,6 +1202,7 @@ jobs:
   wheel_validation_piponly:
     name: Wheel validation, pip only
     needs: [assets, cudaq_wheels, cudaq_metapackages]
+    timeout-minutes: 60
     permissions:
       contents: read
 
@@ -1295,6 +1301,7 @@ jobs:
     name: Python metapackage validation, conda environment
     needs: [assets, cudaq_wheels, cudaq_metapackages]
     runs-on: linux-amd64-gpu-a100-latest-1
+    timeout-minutes: 60
     permissions:
       contents: read
 
@@ -1381,6 +1388,7 @@ jobs:
     needs: [assets, cudaq_metapackages, macos_artifacts]
     if: needs.macos_artifacts.outputs.has_macos_wheels == 'true'
     runs-on: macos-15
+    timeout-minutes: 60
 
     steps:
       - name: Checkout repository
