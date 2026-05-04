@@ -15,15 +15,12 @@
 #include "common/ExtraPayloadProvider.h"
 #include "common/Resources.h"
 #include "cudaq.h"
-#include "cudaq/Optimizer/Builder/Runtime.h"
-#include "cudaq/Support/TargetConfigYaml.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
-#include "cudaq/platform/quantum_platform.h"
+#include "cudaq/platform/qpu_utils.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/JIT.h"
-#include "llvm/Support/Base64.h"
 #include <fstream>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -178,10 +175,7 @@ public:
         // No need to decode trivial true/false values
         if (split[i + 1].starts_with("base64_")) {
           split[i + 1].erase(0, 7); // erase "base64_"
-          std::vector<char> decoded_vec;
-          if (auto err = llvm::decodeBase64(split[i + 1], decoded_vec))
-            throw std::runtime_error("DecodeBase64 error");
-          std::string decodedStr(decoded_vec.data(), decoded_vec.size());
+          std::string decodedStr = detail::decodeBase64(split[i + 1]);
           CUDAQ_INFO("Decoded {} parameter from '{}' to '{}'", split[i],
                      split[i + 1], decodedStr);
           backendConfig.insert({split[i], decodedStr});
@@ -203,8 +197,7 @@ public:
     std::ifstream configFile(configFilePath.string());
     std::string configYmlContents((std::istreambuf_iterator<char>(configFile)),
                                   std::istreambuf_iterator<char>());
-    llvm::yaml::Input Input(configYmlContents.c_str());
-    Input >> targetConfig;
+    detail::parseTargetConfigYml(configYmlContents, targetConfig);
 
     // Keep a local copy for capability queries like
     // supportsConditionalFeedback(). The Compiler computes and validates the
@@ -258,17 +251,19 @@ public:
           "Remote rest execution can only be performed via cudaq::sample(), "
           "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
 
+    auto [module, context] = Compiler::loadQuakeCodeByName(kernelName);
+
     // Get the Quake code, lowered according to config file.
     // FIXME: For python, we reach here with rawArgs being empty and args having
     // the arguments. Python should be using the streamlined argument synthesis,
     // but apparently it isn't. This works around that bug.
     Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
                       noiseModel, emulate);
-    auto codes =
-        rawArgs.empty()
-            ? compiler.lowerQuakeCode(executionContext, kernelName, args, {})
-            : compiler.lowerQuakeCode(executionContext, kernelName, nullptr,
-                                      rawArgs);
+    auto codes = rawArgs.empty()
+                     ? compiler.lowerQuakeCode(executionContext, kernelName,
+                                               module, args, {})
+                     : compiler.lowerQuakeCode(executionContext, kernelName,
+                                               module, nullptr, rawArgs);
     completeLaunchKernel(kernelName, std::move(codes));
 
     // NB: Kernel should/will never return dynamic results.
@@ -276,10 +271,23 @@ public:
   }
 
   KernelThunkResultType
-  launchModule(const std::string &kernelName, mlir::ModuleOp module,
+  launchModule(const CompiledModule &compiled,
                const std::vector<void *> &rawArgs) override {
-    CUDAQ_INFO("launching remote rest kernel via module ({})", kernelName);
+    CUDAQ_INFO("launching remote rest kernel via module ({})",
+               compiled.getName());
 
+    Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
+                      noiseModel, emulate);
+    auto codes = compiler.emitKernelExecutions(compiled);
+    completeLaunchKernel(compiled.getName(), std::move(codes));
+    return {};
+  }
+
+  CompiledModule compileModule(const std::string &kernelName,
+                               const void *modulePtr,
+                               const std::vector<void *> &rawArgs,
+                               bool isEntryPoint) override {
+    CUDAQ_INFO("specializing remote rest kernel via module ({})", kernelName);
     auto executionContext = cudaq::getExecutionContext();
 
     // TODO future iterations of this should support non-void return types.
@@ -290,19 +298,8 @@ public:
 
     Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
                       noiseModel, emulate);
-    completeLaunchKernel(
-        kernelName,
-        compiler.lowerQuakeCode(executionContext, kernelName, module, rawArgs));
-    return {};
-  }
-
-  CompiledModule specializeModule(const std::string &kernelName,
-                                  mlir::ModuleOp module,
-                                  const std::vector<void *> &rawArgs,
-                                  bool isEntryPoint) override {
-    CUDAQ_INFO("specializing remote rest kernel via module ({})", kernelName);
-    throw std::runtime_error(
-        "NYI: Remote rest execution via Python/C++ interop.");
+    return compiler.runPassPipeline(executionContext, kernelName, modulePtr,
+                                    rawArgs, nullptr);
   }
 
   void completeLaunchKernel(const std::string &kernelName,

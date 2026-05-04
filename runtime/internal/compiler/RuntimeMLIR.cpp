@@ -404,7 +404,7 @@ qirProfileTranslationFunction(const std::string &qirProfile, Operation *op,
   tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
   auto timingScope = tm.getRootScope(); // starts the timer
   pm.enableTiming(timingScope);         // do this right before pm.run
-  if (failed(pm.run(op)))
+  if (failed(cudaq_internal::compiler::runPassManager(pm, op)))
     return failure();
   if (auto mod = dyn_cast<ModuleOp>(op))
     if (failed(cudaq::verifier::checkQIRLLVMIRDialect(mod, profileName)))
@@ -593,7 +593,7 @@ static void registerToOpenQASMTranslation() {
         tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
         auto timingScope = tm.getRootScope(); // starts the timer
         pm.enableTiming(timingScope);         // do this right before pm.run
-        if (failed(pm.run(op)))
+        if (failed(cudaq_internal::compiler::runPassManager(pm, op)))
           throw std::runtime_error("code generation failed.");
         timingScope.stop();
         auto passed = cudaq::translateToOpenQASM(op, output);
@@ -624,7 +624,7 @@ static void registerToIQMJsonTranslation() {
         tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
         auto timingScope = tm.getRootScope(); // starts the timer
         pm.enableTiming(timingScope);         // do this right before pm.run
-        if (failed(pm.run(op)))
+        if (failed(cudaq_internal::compiler::runPassManager(pm, op)))
           throw std::runtime_error("code generation failed.");
         timingScope.stop();
         auto passed = cudaq::translateToIQMJson(op, output);

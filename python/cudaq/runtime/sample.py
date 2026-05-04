@@ -10,6 +10,7 @@ from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.kernel.kernel_builder import PyKernel
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
 from cudaq.kernel.utils import mlirTypeToPyType, nvqppPrefix
+from cudaq.util import trace
 from .utils import __isBroadcast, __createArgumentSet
 
 # Maintain a dictionary of queued `async` sample kernels.This dictionary is used
@@ -142,6 +143,7 @@ def _detail_reject_unsupported_explicit_false(kernel,
             "requested.")
 
 
+@trace.traced
 def sample(kernel,
            *args,
            shots_count=1000,
@@ -224,6 +226,7 @@ def sample(kernel,
     return counts
 
 
+@trace.traced
 def sample_async(decorator,
                  *args,
                  shots_count=1000,

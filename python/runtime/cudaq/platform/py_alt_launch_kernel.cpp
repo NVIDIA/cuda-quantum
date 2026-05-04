@@ -18,10 +18,13 @@
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/platform.h"
+#include "cudaq/platform/nvqpp_interface.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/LayoutInfo.h"
+#include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "runtime/cudaq/algorithms/py_utils.h"
+#include "runtime/cudaq/platform/PythonSignalCheck.h"
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/NanobindAdaptors.h"
 #include "utils/OpaqueArguments.h"
@@ -674,7 +677,8 @@ static cudaq::KernelThunkResultType
 pyLaunchModule(const std::string &name, ModuleOp mod,
                const std::vector<void *> &rawArgs) {
   auto clone = mod.clone();
-  auto res = cudaq::streamlinedLaunchModule(name, clone, rawArgs);
+  auto compiled = cudaq::streamlinedCompileModule(name, clone, rawArgs, true);
+  auto res = cudaq::streamlinedLaunchModule(compiled, rawArgs);
   clone.erase();
   return res;
 }
@@ -886,6 +890,12 @@ appendResultToArgsVector(cudaq::OpaqueArguments &runtimeArgs, Type returnType,
 cudaq::KernelThunkResultType
 cudaq::clean_launch_module(const std::string &name, ModuleOp mod,
                            cudaq::OpaqueArguments &args) {
+  // Release the GIL for MLIR compilation and JIT. PyEval_SaveThread requires
+  // the GIL to be held, so guard with PyGILState_Check. Async paths invoke
+  // this from worker threads that never held the GIL.
+  std::optional<nanobind::gil_scoped_release> release;
+  if (PyGILState_Check())
+    release.emplace();
   auto kernelFunc = getKernelFuncOp(mod, name);
   Type retTy = cudaq::runtime::getReturnType(kernelFunc);
   // Append space for a result, as needed, to the vector of arguments.
@@ -915,11 +925,27 @@ cudaq::OpaqueArguments cudaq::marshal_arguments_for_module_launch(
 nanobind::object cudaq::marshal_and_launch_module(const std::string &name,
                                                   MlirModule module,
                                                   nanobind::args runtimeArgs) {
+  // Marker span identifying every nested pass / scoped trace as part of the
+  // JIT-time pipeline. Paired with the cudaq.pipeline.aot span emitted around
+  // aot-prep-pipeline in compile_to_mlir; tooling reads the trace ancestry to
+  // attribute pass events to AOT vs JIT.
+  //
+  // This site is the funnel for kernel-call / sample / observe /
+  // estimate_resources execution paths: each ultimately calls
+  // marshal_and_launch_module, so a single span here attributes their JIT
+  // pass events to the JIT pipeline. The cudaq.translate path has its own
+  // marker in py_translate.cpp::translate_impl since it does not pass
+  // through this function.
+  cudaq::ScopedTrace pipelineJitMarker(cudaq::TraceContext(__builtin_FUNCTION(),
+                                                           __builtin_FILE(),
+                                                           __builtin_LINE()),
+                                       "cudaq.pipeline.jit");
   ScopedTraceWithContext("marshal_and_launch_module", name);
   auto kernelFunc = getKernelFuncOp(module, name);
   auto mod = unwrap(module);
   Type retTy = cudaq::runtime::getReturnType(kernelFunc);
   auto args = marshal_arguments_for_module_launch(mod, runtimeArgs, kernelFunc);
+
   [[maybe_unused]] auto resultPtr = clean_launch_module(name, mod, args);
 
   if (!retTy)
@@ -943,7 +969,7 @@ marshal_and_retain_module(const std::string &name, MlirModule module,
   auto rawArgs = appendResultToArgsVector(args, retTy, mod, name);
   auto clone = mod.clone();
   auto compiled =
-      cudaq::streamlinedSpecializeModule(name, clone, rawArgs, isEntryPoint);
+      cudaq::streamlinedCompileModule(name, clone, rawArgs, isEntryPoint);
   clone.erase();
   return compiled;
 }
@@ -1005,6 +1031,8 @@ static MlirModule synthesizeKernel(nanobind::object kernel,
   SmallVector<StringRef> substRefs{substs.begin(), substs.end()};
 
   PassManager pm(context);
+  cudaq::addPythonSignalInstrumentation(pm);
+  pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
   pm.addPass(cudaq::opt::createArgumentSynthesisPass(
       kernelRefs, substRefs, /*changeSemantics=*/false));
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
@@ -1046,13 +1074,12 @@ static MlirModule synthesizeKernel(nanobind::object kernel,
     context->disableMultithreading();
   if (enablePrintMLIREachPass)
     pm.enableIRPrinting();
-  if (failed(pm.run(cloned))) {
-    engine.eraseHandler(handlerId);
-    throw std::runtime_error(
-        "failed to JIT compile the Quake representation\n" + error_msg);
-  }
+  bool pmFailed = failed(cudaq::runPassManagerReleasingGIL(pm, cloned));
   timingScope.stop();
   engine.eraseHandler(handlerId);
+  if (pmFailed)
+    throw std::runtime_error(
+        "failed to JIT compile the Quake representation\n" + error_msg);
   return wrap(cloned);
 }
 
@@ -1080,12 +1107,12 @@ static void executeMLIRPassManager(ModuleOp mod, PassManager &pm) {
   auto timingScope = tm.getRootScope(); // starts the timer
   pm.enableTiming(timingScope);         // do this right before pm.run
 
-  if (failed(pm.run(mod))) {
-    engine.eraseHandler(handlerId);
+  bool pmFailed = failed(cudaq::runPassManagerReleasingGIL(pm, mod));
+  timingScope.stop();
+  engine.eraseHandler(handlerId);
+  if (pmFailed)
     throw std::runtime_error(
         "failed to JIT compile the Quake representation\n" + error_msg);
-  }
-  timingScope.stop();
   engine.eraseHandler(handlerId);
 }
 
@@ -1096,6 +1123,8 @@ static ModuleOp cleanLowerToCodegenKernel(ModuleOp mod,
     // arguments will be resolved and marshaled at the kernel call site.
     auto *ctx = mod.getContext();
     PassManager pm(ctx);
+    cudaq::addPythonSignalInstrumentation(pm);
+    pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
     std::string transport = getTransportLayer();
     cudaq::opt::addAOTPipelineConvertToQIR(pm, transport);
     executeMLIRPassManager(mod, pm);
@@ -1244,11 +1273,14 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
         auto m = unwrap(modA);
         auto context = m.getContext();
         PassManager pm(context);
+        cudaq::addPythonSignalInstrumentation(pm);
+        pm.addInstrumentation(
+            std::make_unique<cudaq::TracePassInstrumentation>());
         pm.addNestedPass<func::FuncOp>(
             cudaq::opt::createPySynthCallableBlockArgs(
                 SmallVector<StringRef>(funcNames.begin(), funcNames.end()),
                 true));
-        if (failed(pm.run(m)))
+        if (failed(cudaq::runPassManagerReleasingGIL(pm, m)))
           throw std::runtime_error(
               "cudaq::jit failed to remove callable block arguments.");
 

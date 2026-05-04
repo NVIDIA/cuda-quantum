@@ -9,6 +9,7 @@
 #include "cudaq/runtime/logger/logger.h"
 #include "common/FmtCore.h"
 #include "common/Timing.h"
+#include "cudaq/runtime/logger/tracer.h"
 #include "fmt/args.h"
 #include <filesystem>
 #include <set>
@@ -90,6 +91,8 @@ __attribute__((constructor)) void initializeLogger() {
       }
     }
   }
+
+  configureTracerFromEnv();
 }
 
 namespace details {

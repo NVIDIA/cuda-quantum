@@ -732,7 +732,7 @@ class PyKernel(object):
                 "cse,quake-add-metadata),quake-propagate-metadata)",
                 context=self.ctx)
             cloned = cudaq_runtime.cloneModule(self.module)
-            pm.run(cloned)
+            cudaq_runtime.runPassManager(pm, cloned)
             return str(cloned)
         return str(self.module)
 
@@ -1643,7 +1643,7 @@ class PyKernel(object):
             pm = PassManager.parse("builtin.module(aot-prep-pipeline)",
                                    context=ctx)
             try:
-                pm.run(self.qkeModule)
+                cudaq_runtime.runPassManager(pm, self.qkeModule)
             except:
                 raise RuntimeError("could not compile code for '" +
                                    self.uniqName + "'.")

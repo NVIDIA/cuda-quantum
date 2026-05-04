@@ -51,6 +51,7 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   integration/kernels_tester.cpp
   common/MeasureCountsTester.cpp
   common/NoiseModelTester.cpp
+  common/CompiledModuleTester.cpp
   common/ExecutionContextThreadTester.cpp
   ptsbe/PTSBESampleTester.cpp
   ptsbe/PTSBEMultiBackendTester.cpp
@@ -586,6 +587,7 @@ add_subdirectory(backends)
 add_subdirectory(Optimizer)
 add_subdirectory(output_record)
 add_subdirectory(target_config)
+add_subdirectory(logger)
 
 if (CUDAQ_ENABLE_PYTHON)
   if (NOT Python_FOUND)

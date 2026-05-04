@@ -39,7 +39,7 @@
 
 using namespace mlir;
 
-LLVM_INSTANTIATE_REGISTRY(cudaq::DecompositionPatternType::RegistryType)
+LLVM_INSTANTIATE_REGISTRY(cudaq::DecompositionPatternTypeRegistry)
 
 namespace {
 
@@ -309,6 +309,8 @@ LogicalResult checkAndExtractControls(quake::OperatorInterface op,
 }
 
 // From here on, we define the decomposition patterns ==========================
+#define CONCAT(a, b) CONCAT_INNER(a, b)
+#define CONCAT_INNER(a, b) a##b
 
 /// Macro to register a decomposition pattern with its metadata
 /// Usage: REGISTER_DECOMPOSITION_PATTERN(PatternName, "source_op", "target1",
@@ -332,7 +334,8 @@ LogicalResult checkAndExtractControls(quake::OperatorInterface op,
       return pattern;                                                          \
     }                                                                          \
   };                                                                           \
-  CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, PATTERN##Type, PATTERN)
+  static cudaq::DecompositionPatternTypeRegistry::Add<PATTERN##Type> CONCAT(   \
+      TEMPNAME_, PATTERN)(#PATTERN, "");
 
 // NOTE: The patterns SToR1, TToR1, R1ToU3, and U3ToRotations handle arbitrary
 // control counts and are registered with (n) metadata. R1ToRz explicitly
@@ -944,13 +947,13 @@ struct CCXToCCZ : public cudaq::DecompositionPattern<CCXToCCZType, quake::XOp> {
 
   LogicalResult matchAndRewrite(quake::XOp op,
                                 PatternRewriter &rewriter) const override {
-    if (failed(checkNumControls(op, 2)))
+    SmallVector<Value, 2> controls(2);
+    if (failed(checkAndExtractControls(op, controls, rewriter)))
       return failure();
 
     // Op info
     Location loc = op->getLoc();
     Value target = op.getTarget();
-    SmallVector<Value> controls = op.getControls();
 
     QuakeOperatorCreator qRewriter(rewriter);
     qRewriter.create<quake::HOp>(loc, target);
@@ -1831,7 +1834,7 @@ void cudaq::populateWithAllDecompositionPatterns(
         std::map<std::string, std::unique_ptr<cudaq::DecompositionPatternType>>
             map;
         for (auto &patternType :
-             cudaq::DecompositionPatternType::RegistryType::entries()) {
+             cudaq::DecompositionPatternTypeRegistry::entries()) {
           map[patternType.getName().str()] = patternType.instantiate();
         }
         return map;

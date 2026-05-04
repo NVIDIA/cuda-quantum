@@ -7,12 +7,13 @@
  ******************************************************************************/
 
 #include "qpu.h"
+#include "common/CompiledModule.h"
 #include "mlir/IR/BuiltinOps.h"
 #include <cstring>
 
 using namespace cudaq_internal::compiler;
 
-LLVM_INSTANTIATE_REGISTRY(cudaq::ModuleLauncher::RegistryType)
+CUDAQ_INSTANTIATE_REGISTRY(cudaq::ModuleLauncher::RegistryType)
 
 /// Execute a JIT-compiled kernel with provided arguments.
 ///
@@ -53,27 +54,28 @@ launchCompiledModule(const cudaq::CompiledModule &compiled,
 }
 
 cudaq::KernelThunkResultType
-cudaq::QPU::launchModule(const std::string &name, mlir::ModuleOp module,
+cudaq::QPU::launchModule(const CompiledModule &module,
                          const std::vector<void *> &rawArgs) {
   auto launcher = registry::get<ModuleLauncher>("default");
   if (!launcher)
     throw std::runtime_error(
         "No ModuleLauncher registered with name 'default'. This may be a "
         "result of attempting to use `launchModule` outside Python.");
-  ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::launchModule", name);
-  auto compiled = launcher->compileModule(name, module, rawArgs, true);
-  return launchCompiledModule(compiled, rawArgs);
+  ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::launchModule",
+                         module.getName());
+  return launchCompiledModule(module, rawArgs);
 }
 
 cudaq::CompiledModule
-cudaq::QPU::specializeModule(const std::string &name, mlir::ModuleOp module,
-                             const std::vector<void *> &rawArgs,
-                             bool isEntryPoint) {
+cudaq::QPU::compileModule(const std::string &name, const void *modulePtr,
+                          const std::vector<void *> &rawArgs,
+                          bool isEntryPoint) {
   auto launcher = registry::get<ModuleLauncher>("default");
   if (!launcher)
     throw std::runtime_error(
         "No ModuleLauncher registered with name 'default'. This may be a "
-        "result of attempting to use `specializeModule` outside Python.");
-  ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::specializeModule", name);
+        "result of attempting to use `compileModule` outside Python.");
+  ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::compileModule", name);
+  mlir::ModuleOp module = mlir::ModuleOp::getFromOpaquePointer(modulePtr);
   return launcher->compileModule(name, module, rawArgs, isEntryPoint);
 }

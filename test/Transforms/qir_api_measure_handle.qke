@@ -1,0 +1,120 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --convert-to-qir-api %s | FileCheck %s
+
+// Verifies that `--convert-to-qir-api` lowers `!cc.measure_handle` -- the IR
+// alias of `cudaq::measure_handle` -- to its `i64` payload through the
+// `QIRAPITypeConverter`, including bridging casts on `quake.mz` (which still
+// returns `Result*`) and `quake.discriminate` (which still consumes `Result*`).
+
+// -----
+// Scalar handle measurement (full-QIR `mzReturnsResultType` branch).
+
+func.func @scalar_handle() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %0 = quake.alloca !quake.ref
+  %m = quake.mz %0 name "h" : (!quake.ref) -> !cc.measure_handle
+  %b = quake.discriminate %m : (!cc.measure_handle) -> i1
+  return %b : i1
+}
+
+// CHECK-LABEL:   func.func @scalar_handle() -> i1
+// CHECK:           %[[VAL_Q:.*]] = call @__quantum__rt__qubit_allocate()
+// CHECK:           %[[VAL_R:.*]] = call @__quantum__qis__mz__to__register(%[[VAL_Q]], {{%.*}}) {{.*}} -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// `MeasurementOpPattern` casts the QIR call's `Result*` to the converted
+// `i64` payload (the handle).
+// CHECK:           %[[VAL_I:.*]] = cc.cast %[[VAL_R]] : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> i64
+// `DiscriminateOpToCallRewrite` (full-QIR / `!discriminateToClassical`) casts
+// the i64 to `!cc.ptr<i1>` and loads. The transient `i64 -> Result* -> i64`
+// round-trip introduced by the handle bridge folds out, leaving a single
+// `cc.cast` from i64.
+// CHECK:           %[[VAL_P:.*]] = cc.cast %[[VAL_I]] : (i64) -> !cc.ptr<i1>
+// CHECK:           %[[VAL_B:.*]] = cc.load %[[VAL_P]] : !cc.ptr<i1>
+// CHECK:           return %[[VAL_B]] : i1
+
+// -----
+// Function signatures with handle parameter and return.
+
+func.func @handle_signature(%arg0: !cc.measure_handle) -> !cc.measure_handle attributes {"cudaq-kernel"} {
+  return %arg0 : !cc.measure_handle
+}
+
+// CHECK-LABEL:   func.func @handle_signature(
+// CHECK-SAME:      %[[VAL_0:.*]]: i64) -> i64
+// CHECK:           return %[[VAL_0]] : i64
+
+// -----
+// `cc.alloca` of a scalar handle.
+
+func.func @handle_alloca() attributes {"cudaq-kernel"} {
+  %0 = cc.alloca !cc.measure_handle
+  return
+}
+
+// CHECK-LABEL:   func.func @handle_alloca()
+// CHECK:           cc.alloca i64
+
+// -----
+// Static-size array of handles.
+
+func.func @handle_static_array() attributes {"cudaq-kernel"} {
+  %0 = cc.alloca !cc.array<!cc.measure_handle x 5>
+  return
+}
+
+// CHECK-LABEL:   func.func @handle_static_array()
+// CHECK:           cc.alloca !cc.array<i64 x 5>
+
+// -----
+// Dynamic-size array of handles.
+
+func.func @handle_dynamic_array(%n: i64) attributes {"cudaq-kernel"} {
+  %0 = cc.alloca !cc.measure_handle[%n : i64]
+  return
+}
+
+// CHECK-LABEL:   func.func @handle_dynamic_array(
+// CHECK-SAME:      %[[VAL_N:.*]]: i64)
+// CHECK:           cc.alloca i64{{\[}}%[[VAL_N]] : i64]
+
+// -----
+// Function returning `cc.stdvec<measure_handle>` (recursive container rule).
+
+func.func @stdvec_handle(%arg: !cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<!cc.measure_handle> attributes {"cudaq-kernel"} {
+  return %arg : !cc.stdvec<!cc.measure_handle>
+}
+
+// CHECK-LABEL:   func.func @stdvec_handle(
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.stdvec<i64>) -> !cc.stdvec<i64>
+// CHECK:           return %[[VAL_0]] : !cc.stdvec<i64>
+
+// -----
+// Negative: a kernel without any handle types is left alone.
+
+func.func @no_handle() attributes {"cudaq-kernel"} {
+  %0 = cc.alloca i64
+  return
+}
+
+// CHECK-LABEL:   func.func @no_handle()
+// CHECK:           cc.alloca i64
+
+// -----
+// `cc.indirect_callable` carrying a handle return type.
+
+func.func @indirect_handle(%c: !cc.indirect_callable<() -> !cc.measure_handle>)
+    -> !cc.measure_handle attributes {"cudaq-kernel"} {
+  %0 = cc.call_indirect_callable %c
+    : (!cc.indirect_callable<() -> !cc.measure_handle>) -> !cc.measure_handle
+  return %0 : !cc.measure_handle
+}
+
+// CHECK-LABEL:   func.func @indirect_handle(
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.indirect_callable<() -> i64>) -> i64
+// CHECK:           %[[VAL_1:.*]] = cc.call_indirect_callable %[[VAL_0]] : (!cc.indirect_callable<() -> i64>) -> i64
+// CHECK:           return %[[VAL_1]] : i64

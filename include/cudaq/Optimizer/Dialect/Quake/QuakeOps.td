@@ -1065,8 +1065,17 @@ class Measurement<string mnemonic> : QuakeOp<mnemonic, [MeasurementInterface,
     Variadic<AnyQTargetType>:$targets,
     OptionalAttr<StrAttr>:$registerName
   );
+  // The classical result of a measurement is one of:
+  //   - !quake.measure                   (the legacy SSA result),
+  //   - !cc.measure_handle               (the cudaq::measure_handle alias),
+  //   - !cc.stdvec<!quake.measure>       (vector of legacy results),
+  //   - !cc.stdvec<!cc.measure_handle>   (vector of handles).
+  // The handle forms are emitted by the bridge for `cudaq::measure_handle`
+  // callers (overloads of `mz`/`mx`/`my`) and are lowered to `i64` by
+  // `--convert-to-qir-api`'s `TypeConverter`.
   let results = (outs
-    AnyTypeOf<[MeasureType, StdvecOf<[MeasureType]>]>:$measOut,
+    AnyTypeOf<[MeasureType, cc_MeasureHandleType,
+               StdvecOf<[MeasureType, cc_MeasureHandleType]>]>:$measOut,
     Variadic<WireType>:$wires
   );
 
@@ -1131,19 +1140,21 @@ def MzOp : Measurement<"mz"> {
 def quake_DiscriminateOp : QuakeOp<"discriminate", [Pure]> {
   let summary = "Converts a measurement to a classical integral value.";
   let description = [{
-    Quake's measurement operators return a value of type `!quake.measure`. The
-    discriminate operation converts a value of type measure to a classical
-    integral value. This value is typically an `i1` type, but might be `i2` for
-    qutrits, or even an `i8` for general qudits.
+    Quake's measurement operators return a value of type `!quake.measure` or,
+    for `cudaq::measure_handle` callers, `!cc.measure_handle`. The
+    discriminate operation converts either form to a classical integral value.
+    The result is typically an `i1`, but might be `i2` for qutrits, or `i8`
+    for general qudits.
 
     While a measurement of a wire changes/corrupts the state of the wire, the
-    model maintains that a `!quake.measure` value is non-volatile. Therefore,
-    multiple applications of discriminate on the same `!quake.measure` value
-    will yield the same result value for a given result type.
+    model maintains that the classical measurement value is non-volatile.
+    Multiple applications of discriminate on the same value will yield the
+    same result for a given result type.
   }];
 
   let arguments = (ins
-    AnyTypeOf<[MeasureType, StdvecOf<[MeasureType]>]>:$measurement
+    AnyTypeOf<[MeasureType, cc_MeasureHandleType,
+               StdvecOf<[MeasureType, cc_MeasureHandleType]>]>:$measurement
   );
   let results = (outs
     AnyTypeOf<[AnySignlessInteger, StdvecOf<[AnySignlessInteger]>]>
