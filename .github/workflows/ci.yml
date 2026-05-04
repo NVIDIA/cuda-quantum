@@ -463,11 +463,14 @@ jobs:
           if [ "$n_fail" -gt 0 ] || [ "$n_cancel" -gt 0 ]; then overall=":x: failed"; fi
 
           # Header — always visible (one line). Detail goes in <details>.
+          # The marker includes the event name so push / merge_group / dispatch
+          # comments don't overwrite each other — a merge_group failure should
+          # not look like it invalidated a green PR push.
           {
-            echo "<!-- ci-summary:${{ github.workflow }} -->"
-            echo "### CI Summary — $overall"
+            echo "<!-- ci-summary:${{ github.workflow }}:${EVENT_NAME} -->"
+            echo "### CI Summary (\`${EVENT_NAME}\`) — $overall"
             echo ""
-            echo "[Run #$RUN_ID]($RUN_URL) · trigger \`$EVENT_NAME\` · :white_check_mark: $n_pass · :fast_forward: $n_skip · :x: $n_fail · :no_entry: $n_cancel"
+            echo "[Run #$RUN_ID]($RUN_URL) · :white_check_mark: $n_pass · :fast_forward: $n_skip · :x: $n_fail · :no_entry: $n_cancel"
             echo ""
 
             failed=$(jq -r 'to_entries[] | select(.value.result == "failure" or .value.result == "cancelled") | .key' <<< "$NEEDS_JSON" || true)
@@ -629,7 +632,7 @@ jobs:
         if: env.PR_NUMBER != ''
         run: |
           set -euo pipefail
-          marker="<!-- ci-summary:${{ github.workflow }} -->"
+          marker="<!-- ci-summary:${{ github.workflow }}:${EVENT_NAME} -->"
           existing=$(gh api --paginate "repos/$REPO/issues/$PR_NUMBER/comments" \
             --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -1 || true)
           if [ -n "$existing" ]; then
