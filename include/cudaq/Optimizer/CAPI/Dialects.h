@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "mlir/CAPI/IR.h"
 #include "mlir/CAPI/Registration.h"
 
 #ifdef __cplusplus
@@ -16,6 +17,9 @@ extern "C" {
 
 MLIR_DECLARE_CAPI_DIALECT_REGISTRATION(Quake, quake);
 MLIR_DECLARE_CAPI_DIALECT_REGISTRATION(CC, cc);
+
+// Register Quake, CC, and all upstream MLIR dialects into `context`.
+MLIR_CAPI_EXPORTED void cudaqRegisterAllDialects(MlirContext context);
 
 #ifdef __cplusplus
 }

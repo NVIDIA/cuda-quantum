@@ -142,11 +142,12 @@ public:
   }
 
   CompiledModule compileModule(const std::string &kernelName,
-                               mlir::ModuleOp module,
+                               const void *modulePtr,
                                const std::vector<void *> &rawArgs,
                                bool isEntryPoint) override {
     CUDAQ_INFO("specializing remote simulator kernel via module ({})",
                kernelName);
+    mlir::ModuleOp module = mlir::ModuleOp::getFromOpaquePointer(modulePtr);
     std::string fullName = cudaq::runtime::cudaqGenPrefixName + kernelName;
     auto funcOp = module.lookupSymbol<mlir::func::FuncOp>(fullName);
     auto resTy = cudaq::runtime::getReturnType(funcOp);
@@ -206,7 +207,7 @@ public:
               name, jit, {}, true);
       auto mlirArtifact =
           cudaq_internal::compiler::CompiledModuleHelper::createMlirArtifact(
-              name + ".mlir", moduleOp);
+              name, moduleOp);
       artifacts.push_back(mlirArtifact);
       return cudaq_internal::compiler::CompiledModuleHelper::
           createCompiledModule(name, resultInfo, std::move(artifacts));
@@ -214,7 +215,7 @@ public:
 
     auto mlirArtifact =
         cudaq_internal::compiler::CompiledModuleHelper::createMlirArtifact(
-            name + ".mlir", prefabMod);
+            name, prefabMod);
 
     return cudaq_internal::compiler::CompiledModuleHelper::createCompiledModule(
         name, resultInfo, {mlirArtifact});

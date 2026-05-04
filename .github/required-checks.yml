@@ -1,0 +1,83 @@
+# Required sub-job names per event type for the `CI` workflow.
+#
+# `CI Summary` fails if any name listed here did not complete with
+# `conclusion: success`. This guards against accidentally adding a matrix
+# leg / reusable-workflow job to CI but forgetting to add it as a required
+# check, and against silent regressions where a leg stops running.
+#
+# An empty list (or missing key) for an event type disables enforcement
+# for that event — useful for bootstrapping.
+merge_group: &full_matrix
+- Build and test (amd64, llvm, openmpi) / Dev environment (Debug)
+- Build and test (amd64, llvm, openmpi) / Dev environment (Python)
+- Build and test (arm64, llvm, openmpi) / Dev environment (Debug)
+- Build and test (arm64, llvm, openmpi) / Dev environment (Python)
+- Create CUDA Quantum installer (amd64, 12.6) / Build CUDA Quantum assets
+- Create CUDA Quantum installer (amd64, 12.6) / Minimal OpenMPI installation
+- Create CUDA Quantum installer (amd64, 12.6) / Validate installer (debian:12)
+- Create CUDA Quantum installer (amd64, 12.6) / Validate installer (fedora:42)
+- Create CUDA Quantum installer (amd64, 12.6) / Validate installer (opensuse/leap:15.5)
+- Create CUDA Quantum installer (amd64, 12.6) / Validate installer (redhat/ubi9:9.6)
+- Create CUDA Quantum installer (amd64, 12.6) / Validate installer (ubuntu:22.04)
+- Create CUDA Quantum installer (arm64, 12.6) / Build CUDA Quantum assets
+- Create CUDA Quantum installer (arm64, 12.6) / Minimal OpenMPI installation
+- Create CUDA Quantum installer (arm64, 12.6) / Validate installer (redhat/ubi9:9.6)
+- Create CUDA Quantum installer (arm64, 12.6) / Validate installer (ubuntu:22.04)
+- Create Docker images (amd64) / Documentation
+- Create Docker images (amd64) / Validation
+- Create Docker images (arm64) / Validation
+- Create Python metapackages / Build Python metapackages
+- Create Python metapackages / Test Python metapackages (3.11)
+- Create Python metapackages / Test Python metapackages (3.13)
+- Create Python metapackages / Test Python metapackages (12.6, 3.11)
+- Create Python metapackages / Test Python metapackages (12.6, 3.13)
+- Create Python wheels (amd64, 3.11, 12.6) / Validate wheel (debian:12, --user)
+- Create Python wheels (amd64, 3.11, 12.6) / Validate wheel (debian:12)
+- Create Python wheels (amd64, 3.11, 12.6) / Validate wheel (fedora:42, --user)
+- Create Python wheels (amd64, 3.11, 12.6) / Validate wheel (fedora:42)
+- Create Python wheels (amd64, 3.11, 12.6) / Validate wheel (redhat/ubi8:8.10, --user)
+- Create Python wheels (amd64, 3.11, 12.6) / Validate wheel (redhat/ubi8:8.10)
+- Create Python wheels (arm64, 3.11, 12.6) / Validate wheel (debian:12, --user)
+- Create Python wheels (arm64, 3.11, 12.6) / Validate wheel (debian:12)
+- Create Python wheels (arm64, 3.11, 12.6) / Validate wheel (fedora:42, --user)
+- Create Python wheels (arm64, 3.11, 12.6) / Validate wheel (fedora:42)
+- Create Python wheels (arm64, 3.11, 12.6) / Validate wheel (redhat/ubi8:8.10, --user)
+- Create Python wheels (arm64, 3.11, 12.6) / Validate wheel (redhat/ubi8:8.10)
+push:
+- Build and test (amd64, llvm, openmpi) / Dev environment (Debug)
+- Build and test (amd64, llvm, openmpi) / Dev environment (Python)
+- Build and test (arm64, llvm, openmpi) / Dev environment (Debug)
+- Build and test (arm64, llvm, openmpi) / Dev environment (Python)
+- Create CUDA Quantum installer (amd64, 12.6) / Build CUDA Quantum assets
+- Create CUDA Quantum installer (amd64, 12.6) / Minimal OpenMPI installation
+- Create CUDA Quantum installer (amd64, 12.6) / Validate installer (debian:12)
+- Create CUDA Quantum installer (amd64, 12.6) / Validate installer (fedora:42)
+- Create CUDA Quantum installer (amd64, 12.6) / Validate installer (opensuse/leap:15.5)
+- Create CUDA Quantum installer (amd64, 12.6) / Validate installer (redhat/ubi9:9.6)
+- Create CUDA Quantum installer (amd64, 12.6) / Validate installer (ubuntu:22.04)
+- Create CUDA Quantum installer (arm64, 12.6) / Build CUDA Quantum assets
+- Create CUDA Quantum installer (arm64, 12.6) / Minimal OpenMPI installation
+- Create CUDA Quantum installer (arm64, 12.6) / Validate installer (redhat/ubi9:9.6)
+- Create CUDA Quantum installer (arm64, 12.6) / Validate installer (ubuntu:22.04)
+- Create Docker images (amd64) / Documentation
+- Create Docker images (amd64) / Validation
+- Create Docker images (arm64) / Validation
+- Create Python metapackages / Build Python metapackages
+- Create Python metapackages / Test Python metapackages (3.11)
+- Create Python metapackages / Test Python metapackages (3.13)
+- Create Python metapackages / Test Python metapackages (12.6, 3.11)
+- Create Python metapackages / Test Python metapackages (12.6, 3.13)
+- Create Python wheels (amd64, 3.11, 12.6) / Validate wheel (debian:12, --user)
+- Create Python wheels (amd64, 3.11, 12.6) / Validate wheel (debian:12)
+- Create Python wheels (amd64, 3.11, 12.6) / Validate wheel (fedora:42, --user)
+- Create Python wheels (amd64, 3.11, 12.6) / Validate wheel (fedora:42)
+- Create Python wheels (amd64, 3.11, 12.6) / Validate wheel (redhat/ubi8:8.10, --user)
+- Create Python wheels (amd64, 3.11, 12.6) / Validate wheel (redhat/ubi8:8.10)
+- Create Python wheels (arm64, 3.11, 12.6) / Validate wheel (debian:12, --user)
+- Create Python wheels (arm64, 3.11, 12.6) / Validate wheel (debian:12)
+- Create Python wheels (arm64, 3.11, 12.6) / Validate wheel (fedora:42, --user)
+- Create Python wheels (arm64, 3.11, 12.6) / Validate wheel (fedora:42)
+- Create Python wheels (arm64, 3.11, 12.6) / Validate wheel (redhat/ubi8:8.10, --user)
+- Create Python wheels (arm64, 3.11, 12.6) / Validate wheel (redhat/ubi8:8.10)
+workflow_dispatch: *full_matrix
+schedule: *full_matrix

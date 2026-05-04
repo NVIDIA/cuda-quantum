@@ -32,6 +32,7 @@ if [ "$(uname)" = "Darwin" ]; then
   export OPENSSL_INSTALL_PREFIX=${OPENSSL_INSTALL_PREFIX:-$HOME/.local/ssl}
   export CURL_INSTALL_PREFIX=${CURL_INSTALL_PREFIX:-$HOME/.local/curl}
   export PYBIND11_INSTALL_PREFIX=${PYBIND11_INSTALL_PREFIX:-$HOME/.local/pybind11}
+  export NANOBIND_INSTALL_PREFIX=${NANOBIND_INSTALL_PREFIX:-$HOME/.local/nanobind}
   export AWS_INSTALL_PREFIX=${AWS_INSTALL_PREFIX:-$HOME/.local/aws}
   # Include OpenMP by default on macOS since CUDA/GPU acceleration is unavailable.
   # To skip building OpenMP with LLVM (e.g., if using
@@ -41,10 +42,21 @@ if [ "$(uname)" = "Darwin" ]; then
   # Set minimum macOS deployment target for consistent builds.
   # This ensures LLVM/clang and CUDA-Q libraries use the same target.
   export MACOSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-13.0}"
+  # Default CC/CXX to the built LLVM toolchain once it exists. This keeps the
+  # CUDA-Q build, nvq++, and the just-built MLIR/Clang all on the same
+  # compiler (same warning set, same libc++ target), avoiding the drift
+  # between Apple Clang / Homebrew Clang / upstream Clang that makes the
+  # macOS path fragile. Guarded on the install existing so the first run of
+  # build_llvm.sh (which needs a working system compiler) isn't broken.
+  if [ -x "$LLVM_INSTALL_PREFIX/bin/clang++" ]; then
+    export CC="${CC:-$LLVM_INSTALL_PREFIX/bin/clang}"
+    export CXX="${CXX:-$LLVM_INSTALL_PREFIX/bin/clang++}"
+  fi
 else
   # Linux: system-wide installations (may require sudo)
   export LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/opt/llvm}
   export PYBIND11_INSTALL_PREFIX=${PYBIND11_INSTALL_PREFIX:-/usr/local/pybind11}
+  export NANOBIND_INSTALL_PREFIX=${NANOBIND_INSTALL_PREFIX:-/usr/local/nanobind}
   export BLAS_INSTALL_PREFIX=${BLAS_INSTALL_PREFIX:-/usr/local/blas}
   export ZLIB_INSTALL_PREFIX=${ZLIB_INSTALL_PREFIX:-/usr/local/zlib}
   export OPENSSL_INSTALL_PREFIX=${OPENSSL_INSTALL_PREFIX:-/usr/lib/ssl}

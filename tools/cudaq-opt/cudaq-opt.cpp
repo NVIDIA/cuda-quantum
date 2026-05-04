@@ -21,6 +21,7 @@
 #include "llvm/Support/InitLLVM.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/ToolOutputFile.h"
+#include "mlir/Dialect/Func/Extensions/InlinerExtension.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Pass/Pass.h"
@@ -79,6 +80,7 @@ int main(int argc, char **argv) {
   cudaq::registerAllDialects(registry);
   registry.insert<cudaq::codegen::CodeGenDialect>();
   registerInlinerExtension(registry);
+  mlir::func::registerInlinerExtension(registry);
   return mlir::asMainReturnCode(
       mlir::MlirOptMain(argc, argv, "nvq++ optimizer\n", registry));
 }

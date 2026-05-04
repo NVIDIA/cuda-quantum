@@ -127,6 +127,46 @@ except Exception:
         print("Could not find a suitable cuQuantum Python package.")
     pass
 
+
+def _patch_mlir_isinstance() -> None:
+    import builtins
+
+    from .mlir._mlir_libs import _mlir as _mlir_ext
+    ir = _mlir_ext.ir
+    value_base = getattr(ir, "Value", None)
+    py_isinstance = builtins.isinstance
+    for name in dir(ir):
+        cls = getattr(ir, name)
+        if not py_isinstance(cls, type) or "isinstance" in cls.__dict__:
+            continue
+        static_typeid = None
+        try:
+            static_typeid = cls.static_typeid
+        except Exception:
+            pass
+        if static_typeid is not None:
+
+            def _isinstance(other, _tid=static_typeid):
+                try:
+                    return other.typeid == _tid
+                except Exception:
+                    return False
+        elif value_base is not None and cls is not value_base and \
+                issubclass(cls, value_base):
+
+            def _isinstance(other, _cls=cls, _isinst=py_isinstance):
+                try:
+                    return _isinst(other.maybe_downcast(), _cls)
+                except Exception:
+                    return False
+        else:
+            continue
+        setattr(cls, "isinstance", staticmethod(_isinstance))
+
+
+_patch_mlir_isinstance()
+del _patch_mlir_isinstance
+
 # ============================================================================ #
 # Module Imports
 # ============================================================================ #

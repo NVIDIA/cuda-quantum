@@ -16,7 +16,7 @@
 # The variable $toolchain indicates which compiler toolchain to build the LLVM libraries with. 
 # The toolchain used to build the LLVM binaries that CUDA-Q depends on must be used to build
 # CUDA-Q. This image sets the CC and CXX environment variables to use that toolchain. 
-# Currently, clang16 and gcc11, gcc12, and gcc13 are supported.
+# Currently, gcc12 and gcc13 are supported.
 
 # There are currently no multi-platform manylinux images available.
 # See https://github.com/pypa/manylinux/issues/1306.
@@ -26,7 +26,7 @@ FROM ${base_image}
 ARG distro=rhel8
 ARG llvm_commit
 ARG pybind11_commit
-ARG toolchain=gcc11
+ARG toolchain=gcc12
 
 # When a dialogue box would be needed during install, assume default configurations.
 # Set here to avoid setting it for all install commands. 
@@ -53,9 +53,6 @@ RUN if [ "${toolchain#gcc}" != "$toolchain" ]; then \
             enable_script=`find / -path '*gcc*' -path '*'$gcc_version'*' -name enable` && . "$enable_script"; \
         fi && \
         CC="$(which gcc)" && CXX="$(which g++)"; \
-    elif [ "$toolchain" == 'clang16' ]; then \
-        dnf install -y --nobest --setopt=install_weak_deps=False clang-16.0.6 && \
-        CC="$(which clang-16)" && CXX="$(which clang++-16)"; \
     else echo "Toolchain not supported." && exit 1; \
     fi && dnf clean all \
     && mkdir -p "$LLVM_INSTALL_PREFIX/bootstrap" \
@@ -88,7 +85,7 @@ RUN curl -L https://github.com/Kitware/CMake/releases/download/v3.28.4/cmake-3.2
 ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
 ADD ./cmake/caches/LLVM.cmake /cmake/caches/LLVM.cmake
 ADD ./tpls/customizations/llvm/ /tpls/customizations/llvm/
-RUN LLVM_PROJECTS='clang;mlir' LLVM_SOURCE=/llvm-project \
+RUN LLVM_PROJECTS='clang;lld;mlir' LLVM_SOURCE=/llvm-project \
     LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake \
     LLVM_CMAKE_PATCHES=/tpls/customizations/llvm \
     bash /scripts/build_llvm.sh -c Release -v

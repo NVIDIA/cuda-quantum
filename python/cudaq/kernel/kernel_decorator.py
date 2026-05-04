@@ -17,6 +17,7 @@ import sys
 
 from cudaq.handlers import get_target_handler
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cudaq.util import trace
 from cudaq.mlir.dialects import cc, func
 from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, FunctionType,
                            IntegerType, NoneType, TypeAttr, UnitAttr, Module,
@@ -255,6 +256,7 @@ class PyKernelDecorator(object):
         handler = get_target_handler()
         return not handler.skip_compilation()
 
+    @trace.traced
     def compile(self):
         """
         Compile the Python AST to portable Quake.
@@ -303,7 +305,7 @@ class PyKernelDecorator(object):
         for op in newMod.body:
             if isinstance(op, func.FuncOp):
                 for attr in op.attributes:
-                    if 'cudaq-entrypoint' == attr.name:
+                    if 'cudaq-entrypoint' == attr:
                         name = op.name.value.removeprefix(nvqppPrefix)
                         break
 
@@ -325,7 +327,7 @@ class PyKernelDecorator(object):
         for op in newMod.body:
             if isinstance(op, func.FuncOp):
                 for attr in op.attributes:
-                    if 'cudaq-entrypoint' == attr.name:
+                    if 'cudaq-entrypoint' == attr:
                         name = op.name.value.removeprefix(nvqppPrefix)
                         break
 
@@ -558,6 +560,7 @@ class PyKernelDecorator(object):
 
         return args
 
+    @trace.traced
     def prepare_call(self, *args, allow_no_args=False):
         """
         Process call site arguments, capture lifted arguments and retrieve
@@ -566,7 +569,7 @@ class PyKernelDecorator(object):
         # Returns:
 
         `processed_args` : list
-            The list of processed runtime arguments, including captured arguments, 
+            The list of processed runtime arguments, including captured arguments,
         `module` : Module
             A clone of the MLIR module to be used for kernel execution.
         """
@@ -575,7 +578,8 @@ class PyKernelDecorator(object):
         # append captured arguments
         processed_args.extend(self.resolve_captured_arguments())
 
-        module = cudaq_runtime.cloneModule(self.qkeModule)
+        with trace.span("kernel.clone_module"):
+            module = cudaq_runtime.cloneModule(self.qkeModule)
 
         return processed_args, module
 

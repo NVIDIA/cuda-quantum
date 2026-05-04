@@ -7,7 +7,12 @@
  ******************************************************************************/
 #define TENSORNET_FP32
 
+// GCC 12 emits a spurious -Wstringop-overflow false positive inside
+// std::copy<size_t*> inlined from SimulatorTensorNetBase::swap().
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
 #include "simulator_tensornet.h"
+#pragma GCC diagnostic pop
 
 /// Register this Simulator class with NVQIR under name "tensornet-fp32"
 extern "C" {

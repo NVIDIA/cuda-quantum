@@ -32,9 +32,11 @@ int main() {
 }
 
 // clang-format off
-// QIR_ADAPTIVE: @cstr.[[ADDRESS:[A-Z0-9]+]] = private constant [14 x i8] c"measureResult\00"
+// QIR_ADAPTIVE-DAG: @cstr.[[TYPE_ADDR:[A-Z0-9]+]] = private constant [14 x i8] c"array<i1 x 1>\00"
+// QIR_ADAPTIVE-DAG: @cstr.[[LABEL_ADDR:[A-Z0-9]+]] = private constant [14 x i8] c"measureResult\00"
 // CHECK-LABEL: define void @__nvqpp__mlirgen__function_qir_test.
 // CHECK-SAME:    () local_unnamed_addr #[[ATTR_1:[0-9]+]] {
-// QIR_ADAPTIVE:         call void @__quantum__rt__result_record_output(%Result* null, i8* nonnull getelementptr inbounds ([14 x i8], [14 x i8]* @cstr.[[ADDRESS]], i64 0, i64 0))
+// QIR_ADAPTIVE:         tail call void @__quantum__rt__array_record_output(i64 1, ptr nonnull @cstr.[[TYPE_ADDR]])
+// QIR_ADAPTIVE:         tail call void @__quantum__rt__result_record_output(ptr nonnull null, ptr nonnull @cstr.[[LABEL_ADDR]])
 // IONQ:         tail call void @__quantum__qis__x__body(
 // CHECK:     attributes #[[ATTR_1]] = { "entry_point" {{.*}}"qir_profiles"="{{.*}}_profile" "requiredQubits"="1" "requiredResults"="1" }

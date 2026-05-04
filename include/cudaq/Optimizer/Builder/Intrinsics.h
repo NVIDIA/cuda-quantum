@@ -19,9 +19,8 @@ class GlobalOp;
 /// calls will be erased before code gen.
 static constexpr const char stdMoveBuiltin[] = ".std::move";
 
-static constexpr const char llvmMemCopyIntrinsic[] =
-    "llvm.memcpy.p0i8.p0i8.i64";
-static constexpr const char llvmMemSetIntrinsic[] = "llvm.memset.p0i8.i64";
+static constexpr const char llvmMemCopyIntrinsic[] = "llvm.memcpy.p0.p0.i64";
+static constexpr const char llvmMemSetIntrinsic[] = "llvm.memset.p0.i64";
 
 // cudaq::range(count);
 static constexpr const char setCudaqRangeVector[] = "__nvqpp_CudaqRangeInit";

@@ -12,22 +12,20 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-
+#include "llvm/ADT/APFloat.h"
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringSet.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/IR/Builders.h"
+#include "mlir/IR/BuiltinOps.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/PassManager.h"
 #include <gtest/gtest.h>
-#include <iterator>
-#include <llvm/ADT/APFloat.h>
-#include <llvm/ADT/STLExtras.h>
-#include <llvm/ADT/StringMap.h>
 #include <memory>
-#include <mlir/IR/BuiltinOps.h>
 
 using namespace mlir;
 
@@ -68,7 +66,7 @@ GateSpec parseGateSpec(StringRef gateSpec) {
   size_t numControls = 0;
   if (gateSpec.consume_front("(")) {
     gateSpec = gateSpec.ltrim();
-    if (gateSpec.startswith("n")) {
+    if (gateSpec.starts_with("n")) {
       numControls = std::numeric_limits<size_t>::max();
     } else {
       gateSpec.consumeInteger(10, numControls);
@@ -95,7 +93,7 @@ ModuleOp createTestModule(MLIRContext *context, StringRef gateSpecStr) {
   }
 
   OpBuilder builder(context);
-  auto module = builder.create<ModuleOp>(builder.getUnknownLoc());
+  auto module = ModuleOp::create(builder, builder.getUnknownLoc());
   builder.setInsertionPointToEnd(module.getBody());
 
   // Create function type: (qubits...) -> ()
@@ -107,8 +105,8 @@ ModuleOp createTestModule(MLIRContext *context, StringRef gateSpecStr) {
   auto funcType = builder.getFunctionType(inputTypes, {});
 
   // Create function
-  auto func = builder.create<func::FuncOp>(builder.getUnknownLoc(), "test_func",
-                                           funcType);
+  auto func = func::FuncOp::create(builder, builder.getUnknownLoc(),
+                                   "test_func", funcType);
   auto *entry = func.addEntryBlock();
   builder.setInsertionPointToStart(entry);
 
@@ -126,55 +124,60 @@ ModuleOp createTestModule(MLIRContext *context, StringRef gateSpecStr) {
                                                         builder.getF64Type());
 
   if (gateName == "h") {
-    builder.create<quake::HOp>(loc, isAdj, controls, target);
+    quake::HOp::create(builder, loc, isAdj, controls, target);
   } else if (gateName == "s") {
-    builder.create<quake::SOp>(loc, isAdj, controls, target);
+    quake::SOp::create(builder, loc, isAdj, controls, target);
   } else if (gateName == "t") {
-    builder.create<quake::TOp>(loc, isAdj, controls, target);
+    quake::TOp::create(builder, loc, isAdj, controls, target);
   } else if (gateName == "x") {
-    builder.create<quake::XOp>(loc, isAdj, controls, target);
+    quake::XOp::create(builder, loc, isAdj, controls, target);
   } else if (gateName == "y") {
-    builder.create<quake::YOp>(loc, isAdj, controls, target);
+    quake::YOp::create(builder, loc, isAdj, controls, target);
   } else if (gateName == "z") {
-    builder.create<quake::ZOp>(loc, isAdj, controls, target);
+    quake::ZOp::create(builder, loc, isAdj, controls, target);
   } else if (gateName == "rx") {
-    builder.create<quake::RxOp>(loc, isAdj, ValueRange{pi_2}, controls, target);
+    quake::RxOp::create(builder, loc, isAdj, ValueRange{pi_2}, controls,
+                        target);
   } else if (gateName == "ry") {
-    builder.create<quake::RyOp>(loc, isAdj, ValueRange{pi_2}, controls, target);
+    quake::RyOp::create(builder, loc, isAdj, ValueRange{pi_2}, controls,
+                        target);
   } else if (gateName == "rz") {
-    builder.create<quake::RzOp>(loc, isAdj, ValueRange{pi_2}, controls, target);
+    quake::RzOp::create(builder, loc, isAdj, ValueRange{pi_2}, controls,
+                        target);
   } else if (gateName == "r1") {
-    builder.create<quake::R1Op>(loc, isAdj, ValueRange{pi_2}, controls, target);
+    quake::R1Op::create(builder, loc, isAdj, ValueRange{pi_2}, controls,
+                        target);
   } else if (gateName == "u3") {
-    builder.create<quake::U3Op>(loc, isAdj, ValueRange{pi_2, pi_2, pi_2},
-                                controls, target);
+    quake::U3Op::create(builder, loc, isAdj, ValueRange{pi_2, pi_2, pi_2},
+                        controls, target);
   } else if (gateName == "phased_rx") {
-    builder.create<quake::PhasedRxOp>(loc, isAdj, ValueRange{{pi_2, pi_2}},
-                                      controls, target);
+    quake::PhasedRxOp::create(builder, loc, isAdj, ValueRange{{pi_2, pi_2}},
+                              controls, target);
   } else if (gateName == "swap") {
     // Swap needs 2 targets
     Value target = entry->getArgument(0);
     Value target2 = entry->getArgument(1);
-    builder.create<quake::SwapOp>(loc, ValueRange{target, target2});
+    quake::SwapOp::create(builder, loc, ValueRange{target, target2});
   } else if (gateName == "exp_pauli") {
     Value target = entry->getArgument(0);
     Value target2 = entry->getArgument(1);
     // Create a veq from the two target qubits using ConcatOp
     SmallVector<Value> targetValues = {target, target2};
-    Value qubitsVal = builder.create<quake::ConcatOp>(
-        loc, quake::VeqType::get(builder.getContext(), 2), targetValues);
+    Value qubitsVal = quake::ConcatOp::create(
+        builder, loc, quake::VeqType::get(builder.getContext(), 2),
+        targetValues);
 
-    builder.create<quake::ExpPauliOp>(loc,
-                                      /* parameters = */ ValueRange{pi_2},
-                                      /* controls = */ ValueRange{},
-                                      /* targets = */ qubitsVal,
-                                      /* pauliLiteral = */ "XX");
+    quake::ExpPauliOp::create(builder, loc,
+                              /* parameters = */ ValueRange{pi_2},
+                              /* controls = */ ValueRange{},
+                              /* targets = */ qubitsVal,
+                              /* pauliLiteral = */ "XX");
   } else {
     // Unsupported gate for this test
     ADD_FAILURE() << "unknown gate: " << gateName;
   }
 
-  builder.create<func::ReturnOp>(loc);
+  func::ReturnOp::create(builder, loc);
   return module;
 }
 
@@ -243,8 +246,15 @@ TEST_F(DecompositionPatternsTest, PatternNamesMatchDebugNames) {
 
   for (auto &entry : patternEntries) {
     std::string patternName = entry.getName().str();
-    // Create the pattern
-    auto patternType = entry.instantiate();
+    std::unique_ptr<cudaq::DecompositionPatternType> patternType;
+    for (auto it = cudaq::DecompositionPatternType::RegistryType::begin(),
+              ie = cudaq::DecompositionPatternType::RegistryType::end();
+         it != ie; ++it) {
+      if (patternName == it->getName()) {
+        patternType = it->instantiate();
+        break;
+      }
+    }
     ASSERT_NE(patternType, nullptr)
         << "Failed to recover registered pattern type: " << patternName;
 
@@ -272,15 +282,12 @@ TEST_F(DecompositionPatternsTest, MetadataConsistency) {
     std::string sourceGate = patternType->getSourceOp().str();
     auto targetGates = patternType->getTargetOps();
 
-    // Source gate should not be empty
     EXPECT_FALSE(sourceGate.empty())
         << "Pattern '" << patternName << "' has empty source gate";
 
-    // Target gates should not be empty
     EXPECT_FALSE(targetGates.empty())
         << "Pattern '" << patternName << "' has empty target gates";
 
-    // All target gates should be non-empty
     for (auto targetGate : targetGates) {
       EXPECT_FALSE(targetGate.empty())
           << "Pattern '" << patternName << "' has empty target gate in list";
@@ -304,8 +311,7 @@ TEST_F(DecompositionPatternsTest, DecompositionProducesOnlyTargetGates) {
     // Apply the decomposition pass with only this pattern enabled
     PassManager pm(context.get());
     cudaq::opt::DecompositionOptions options;
-    std::string ownedEnabledPatterns[]{patternName};
-    options.enabledPatterns = ownedEnabledPatterns;
+    options.enabledPatterns = llvm::SmallVector<std::string>{patternName};
     pm.addPass(cudaq::opt::createDecomposition(options));
 
     // Run the pass

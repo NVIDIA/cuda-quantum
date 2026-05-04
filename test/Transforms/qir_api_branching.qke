@@ -69,28 +69,27 @@ func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint", "cudaq-ker
 // CHECK:           cf.br ^bb1(%[[VAL_2]] : i64)
 // CHECK:         ^bb1(%[[VAL_18:.*]]: i64):
 // CHECK:           %[[VAL_19:.*]] = arith.cmpi ne, %[[VAL_18]], %[[VAL_17]] : i64
-// CHECK:           cf.cond_br %[[VAL_19]], ^bb2(%[[VAL_18]] : i64), ^bb3(%[[VAL_13]] : !cc.ptr<!llvm.struct<"Qubit", opaque>>)
-// CHECK:         ^bb2(%[[VAL_20:.*]]: i64):
-// CHECK:           %[[VAL_21:.*]] = arith.muli %[[VAL_20]], %[[VAL_5]] : i64
-// CHECK:           %[[VAL_22:.*]] = arith.addi %[[VAL_11]], %[[VAL_21]] : i64
-// CHECK:           %[[VAL_23:.*]] = arith.subi %[[VAL_22]], %[[VAL_4]] : i64
-// CHECK:           %[[VAL_24:.*]] = call @__quantum__rt__array_get_element_ptr_1d(%[[VAL_8]], %[[VAL_23]]) : (!cc.ptr<!llvm.struct<"Array", opaque>>, i64) -> !cc.ptr<!cc.ptr<!llvm.struct<"Qubit", opaque>>>
+// CHECK:           cf.cond_br %[[VAL_19]], ^bb2, ^bb3
+// CHECK:         ^bb2:
+// CHECK:           %[[VAL_20:.*]] = arith.subi %[[VAL_11]], %[[VAL_18]] : i64
+// CHECK:           %[[VAL_21:.*]] = arith.subi %[[VAL_20]], %[[VAL_4]] : i64
+// CHECK:           %[[VAL_22:.*]] = call @__quantum__rt__array_get_element_ptr_1d(%[[VAL_8]], %[[VAL_21]]) : (!cc.ptr<!llvm.struct<"Array", opaque>>, i64) -> !cc.ptr<!cc.ptr<!llvm.struct<"Qubit", opaque>>>
+// CHECK:           %[[VAL_23:.*]] = cc.load %[[VAL_22]] : !cc.ptr<!cc.ptr<!llvm.struct<"Qubit", opaque>>>
+// CHECK:           %[[VAL_24:.*]] = call @__quantum__rt__array_get_element_ptr_1d(%[[VAL_8]], %[[VAL_20]]) : (!cc.ptr<!llvm.struct<"Array", opaque>>, i64) -> !cc.ptr<!cc.ptr<!llvm.struct<"Qubit", opaque>>>
 // CHECK:           %[[VAL_25:.*]] = cc.load %[[VAL_24]] : !cc.ptr<!cc.ptr<!llvm.struct<"Qubit", opaque>>>
-// CHECK:           %[[VAL_26:.*]] = call @__quantum__rt__array_get_element_ptr_1d(%[[VAL_8]], %[[VAL_22]]) : (!cc.ptr<!llvm.struct<"Array", opaque>>, i64) -> !cc.ptr<!cc.ptr<!llvm.struct<"Qubit", opaque>>>
-// CHECK:           %[[VAL_27:.*]] = cc.load %[[VAL_26]] : !cc.ptr<!cc.ptr<!llvm.struct<"Qubit", opaque>>>
-// CHECK:           %[[VAL_28:.*]] = cc.cast %[[VAL_25]] : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> !llvm.ptr<i8>
-// CHECK:           %[[VAL_29:.*]] = cc.func_ptr %[[VAL_1]] : ((!cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()) -> !llvm.ptr<i8>
-// CHECK:           %[[VAL_30:.*]] = cc.cast %[[VAL_27]] : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> !llvm.ptr<i8>
-// CHECK:           cc.call_vararg @generalizedInvokeWithRotationsControlsTargets(%[[VAL_2]], %[[VAL_2]], %[[VAL_4]], %[[VAL_4]], %[[VAL_29]], %[[VAL_28]], %[[VAL_30]]) : (i64, i64, i64, i64, !llvm.ptr<i8>, !llvm.ptr<i8>, !llvm.ptr<i8>) -> ()
-// CHECK:           %[[VAL_31:.*]] = arith.addi %[[VAL_20]], %[[VAL_4]] : i64
-// CHECK:           cf.br ^bb1(%[[VAL_31]] : i64)
-// CHECK:         ^bb3(%[[VAL_32:.*]]: !cc.ptr<!llvm.struct<"Qubit", opaque>>):
-// CHECK:           %[[VAL_33:.*]] = call @__quantum__rt__array_get_element_ptr_1d(%[[VAL_8]], %[[VAL_0]]) : (!cc.ptr<!llvm.struct<"Array", opaque>>, i64) -> !cc.ptr<!cc.ptr<!llvm.struct<"Qubit", opaque>>>
-// CHECK:           %[[VAL_34:.*]] = cc.load %[[VAL_33]] : !cc.ptr<!cc.ptr<!llvm.struct<"Qubit", opaque>>>
-// CHECK:           %[[VAL_35:.*]] = cc.cast %[[VAL_34]] : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> !llvm.ptr<i8>
-// CHECK:           %[[VAL_36:.*]] = cc.func_ptr %[[VAL_1]] : ((!cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()) -> !llvm.ptr<i8>
-// CHECK:           %[[VAL_37:.*]] = cc.cast %[[VAL_32]] : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> !llvm.ptr<i8>
-// CHECK:           cc.call_vararg @generalizedInvokeWithRotationsControlsTargets(%[[VAL_2]], %[[VAL_2]], %[[VAL_4]], %[[VAL_4]], %[[VAL_36]], %[[VAL_35]], %[[VAL_37]]) : (i64, i64, i64, i64, !llvm.ptr<i8>, !llvm.ptr<i8>, !llvm.ptr<i8>) -> ()
+// CHECK:           %[[VAL_26:.*]] = cc.cast %[[VAL_23]] : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> !llvm.ptr
+// CHECK:           %[[VAL_27:.*]] = cc.func_ptr %[[VAL_1]] : ((!cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()) -> !llvm.ptr
+// CHECK:           %[[VAL_28:.*]] = cc.cast %[[VAL_25]] : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> !llvm.ptr
+// CHECK:           cc.call_vararg @generalizedInvokeWithRotationsControlsTargets(%[[VAL_2]], %[[VAL_2]], %[[VAL_4]], %[[VAL_4]], %[[VAL_27]], %[[VAL_26]], %[[VAL_28]]) : (i64, i64, i64, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr) -> ()
+// CHECK:           %[[VAL_29:.*]] = arith.addi %[[VAL_18]], %[[VAL_4]] : i64
+// CHECK:           cf.br ^bb1(%[[VAL_29]] : i64)
+// CHECK:         ^bb3:
+// CHECK:           %[[VAL_30:.*]] = call @__quantum__rt__array_get_element_ptr_1d(%[[VAL_8]], %[[VAL_0]]) : (!cc.ptr<!llvm.struct<"Array", opaque>>, i64) -> !cc.ptr<!cc.ptr<!llvm.struct<"Qubit", opaque>>>
+// CHECK:           %[[VAL_31:.*]] = cc.load %[[VAL_30]] : !cc.ptr<!cc.ptr<!llvm.struct<"Qubit", opaque>>>
+// CHECK:           %[[VAL_32:.*]] = cc.cast %[[VAL_31]] : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> !llvm.ptr
+// CHECK:           %[[VAL_33:.*]] = cc.func_ptr %[[VAL_1]] : ((!cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()) -> !llvm.ptr
+// CHECK:           %[[VAL_34:.*]] = cc.cast %[[VAL_13]] : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> !llvm.ptr
+// CHECK:           cc.call_vararg @generalizedInvokeWithRotationsControlsTargets(%[[VAL_2]], %[[VAL_2]], %[[VAL_4]], %[[VAL_4]], %[[VAL_33]], %[[VAL_32]], %[[VAL_34]]) : (i64, i64, i64, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr) -> ()
 // CHECK:           call @__quantum__rt__qubit_release_array(%[[VAL_8]]) : (!cc.ptr<!llvm.struct<"Array", opaque>>) -> ()
 // CHECK:           return
 // CHECK:         }

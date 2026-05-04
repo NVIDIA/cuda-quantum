@@ -12,6 +12,7 @@
 #include <nanobind/stl/complex.h>
 #include <nanobind/stl/function.h>
 #include <nanobind/stl/map.h>
+#include <nanobind/stl/optional.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/unordered_map.h>
 #include <nanobind/stl/vector.h>
@@ -75,23 +76,27 @@ void bindOperatorHandlers(nanobind::module_ &mod) {
            "Returns the string representation of the operator.")
       .def(
           "to_matrix",
-          [](const matrix_handler &self, dimension_map &dimensions,
-             const parameter_map &params) {
-            auto cmat = self.to_matrix(dimensions, params);
+          [](const matrix_handler &self,
+             std::optional<dimension_map> dimensions,
+             std::optional<parameter_map> params) {
+            dimension_map dims = dimensions.value_or(dimension_map());
+            parameter_map pm = params.value_or(parameter_map());
+            auto cmat = self.to_matrix(dims, pm);
             return details::cmat_to_numpy(cmat);
           },
-          nanobind::arg("dimensions") = dimension_map(),
-          nanobind::arg("parameters") = parameter_map(),
+          nanobind::arg("dimensions") = nanobind::none(),
+          nanobind::arg("parameters") = nanobind::none(),
           "Returns the matrix representation of the operator.")
       .def(
           "to_matrix",
-          [](const matrix_handler &self, dimension_map &dimensions,
-             const nanobind::kwargs &kwargs) {
-            auto cmat = self.to_matrix(dimensions,
-                                       details::kwargs_to_param_map(kwargs));
+          [](const matrix_handler &self,
+             std::optional<dimension_map> dimensions, nanobind::kwargs kwargs) {
+            dimension_map dims = dimensions.value_or(dimension_map());
+            auto cmat =
+                self.to_matrix(dims, details::kwargs_to_param_map(kwargs));
             return details::cmat_to_numpy(cmat);
           },
-          nanobind::arg("dimensions") = dimension_map(),
+          nanobind::arg("dimensions") = nanobind::none(),
           nanobind::arg("kwargs"),
           "Returns the matrix representation of the operator.")
 
@@ -100,7 +105,7 @@ void bindOperatorHandlers(nanobind::module_ &mod) {
           "_define",
           [](std::string operator_id, std::vector<int64_t> expected_dimensions,
              const matrix_callback &func, bool overwrite,
-             const nanobind::kwargs &kwargs) {
+             nanobind::kwargs kwargs) {
             // we need to make sure the python function that is stored in
             // the static dictionary containing the operator definitions
             // is properly cleaned up - otherwise python will hang on exit...
@@ -136,23 +141,26 @@ void bindOperatorHandlers(nanobind::module_ &mod) {
            "Returns the string representation of the operator.")
       .def(
           "to_matrix",
-          [](const boson_handler &self, dimension_map &dimensions,
-             const parameter_map &params) {
-            auto cmat = self.to_matrix(dimensions, params);
+          [](const boson_handler &self, std::optional<dimension_map> dimensions,
+             std::optional<parameter_map> params) {
+            dimension_map dims = dimensions.value_or(dimension_map());
+            parameter_map pm = params.value_or(parameter_map());
+            auto cmat = self.to_matrix(dims, pm);
             return details::cmat_to_numpy(cmat);
           },
-          nanobind::arg("dimensions") = dimension_map(),
-          nanobind::arg("parameters") = parameter_map(),
+          nanobind::arg("dimensions") = nanobind::none(),
+          nanobind::arg("parameters") = nanobind::none(),
           "Returns the matrix representation of the operator.")
       .def(
           "to_matrix",
-          [](const boson_handler &self, dimension_map &dimensions,
-             const nanobind::kwargs &kwargs) {
-            auto cmat = self.to_matrix(dimensions,
-                                       details::kwargs_to_param_map(kwargs));
+          [](const boson_handler &self, std::optional<dimension_map> dimensions,
+             nanobind::kwargs kwargs) {
+            dimension_map dims = dimensions.value_or(dimension_map());
+            auto cmat =
+                self.to_matrix(dims, details::kwargs_to_param_map(kwargs));
             return details::cmat_to_numpy(cmat);
           },
-          nanobind::arg("dimensions") = dimension_map(),
+          nanobind::arg("dimensions") = nanobind::none(),
           nanobind::arg("kwargs"),
           "Returns the matrix representation of the operator.");
 
@@ -171,23 +179,27 @@ void bindOperatorHandlers(nanobind::module_ &mod) {
            "Returns the string representation of the operator.")
       .def(
           "to_matrix",
-          [](const fermion_handler &self, dimension_map &dimensions,
-             const parameter_map &params) {
-            auto cmat = self.to_matrix(dimensions, params);
+          [](const fermion_handler &self,
+             std::optional<dimension_map> dimensions,
+             std::optional<parameter_map> params) {
+            dimension_map dims = dimensions.value_or(dimension_map());
+            parameter_map pm = params.value_or(parameter_map());
+            auto cmat = self.to_matrix(dims, pm);
             return details::cmat_to_numpy(cmat);
           },
-          nanobind::arg("dimensions") = dimension_map(),
-          nanobind::arg("parameters") = parameter_map(),
+          nanobind::arg("dimensions") = nanobind::none(),
+          nanobind::arg("parameters") = nanobind::none(),
           "Returns the matrix representation of the operator.")
       .def(
           "to_matrix",
-          [](const fermion_handler &self, dimension_map &dimensions,
-             const nanobind::kwargs &kwargs) {
-            auto cmat = self.to_matrix(dimensions,
-                                       details::kwargs_to_param_map(kwargs));
+          [](const fermion_handler &self,
+             std::optional<dimension_map> dimensions, nanobind::kwargs kwargs) {
+            dimension_map dims = dimensions.value_or(dimension_map());
+            auto cmat =
+                self.to_matrix(dims, details::kwargs_to_param_map(kwargs));
             return details::cmat_to_numpy(cmat);
           },
-          nanobind::arg("dimensions") = dimension_map(),
+          nanobind::arg("dimensions") = nanobind::none(),
           nanobind::arg("kwargs"),
           "Returns the matrix representation of the operator.");
 
@@ -208,23 +220,26 @@ void bindOperatorHandlers(nanobind::module_ &mod) {
            "Returns the string representation of the operator.")
       .def(
           "to_matrix",
-          [](const spin_handler &self, dimension_map &dimensions,
-             const parameter_map &params) {
-            auto cmat = self.to_matrix(dimensions, params);
+          [](const spin_handler &self, std::optional<dimension_map> dimensions,
+             std::optional<parameter_map> params) {
+            dimension_map dims = dimensions.value_or(dimension_map());
+            parameter_map pm = params.value_or(parameter_map());
+            auto cmat = self.to_matrix(dims, pm);
             return details::cmat_to_numpy(cmat);
           },
-          nanobind::arg("dimensions") = dimension_map(),
-          nanobind::arg("parameters") = parameter_map(),
+          nanobind::arg("dimensions") = nanobind::none(),
+          nanobind::arg("parameters") = nanobind::none(),
           "Returns the matrix representation of the operator.")
       .def(
           "to_matrix",
-          [](const spin_handler &self, dimension_map &dimensions,
-             const nanobind::kwargs &kwargs) {
-            auto cmat = self.to_matrix(dimensions,
-                                       details::kwargs_to_param_map(kwargs));
+          [](const spin_handler &self, std::optional<dimension_map> dimensions,
+             nanobind::kwargs kwargs) {
+            dimension_map dims = dimensions.value_or(dimension_map());
+            auto cmat =
+                self.to_matrix(dims, details::kwargs_to_param_map(kwargs));
             return details::cmat_to_numpy(cmat);
           },
-          nanobind::arg("dimensions") = dimension_map(),
+          nanobind::arg("dimensions") = nanobind::none(),
           nanobind::arg("kwargs"),
           "Returns the matrix representation of the operator.");
 }
