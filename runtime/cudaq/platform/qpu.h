@@ -186,9 +186,6 @@ public:
                          cudaq::optimizer &optimizer, const int n_params,
                          const std::size_t shots) {}
 
-  /// Launch the kernel with given name (to extract its Quake representation).
-  /// The raw function pointer is also provided, as are the runtime arguments,
-  /// packaged as a `KernelArgs`.
   [[nodiscard]] virtual KernelThunkResultType
   launchKernel(const std::string &name, KernelThunkType kernelFunc,
                KernelArgs args) = 0;

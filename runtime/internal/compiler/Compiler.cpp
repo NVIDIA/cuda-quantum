@@ -408,9 +408,10 @@ cudaq::CompiledModule Compiler::assembleCompiledModule(
 
 cudaq::CompiledModule
 Compiler::runPassPipeline(cudaq::ExecutionContext *executionContext,
-                          const std::string &kernelName, const void *m_module,
+                          const std::string &kernelName, const void *modulePtr,
                           cudaq::KernelArgs args,
                           std::shared_ptr<mlir::MLIRContext> context) {
+  mlir::ModuleOp m_module = mlir::ModuleOp::getFromOpaquePointer(modulePtr);
   assert(!context || context.get() == m_module.getContext());
   auto [moduleOp, epFunc] = prepareModule(kernelName, m_module, args);
 
@@ -600,7 +601,7 @@ Compiler::lowerQuakeCode(cudaq::ExecutionContext *executionContext,
                          const std::string &kernelName, const void *modulePtr,
                          cudaq::KernelArgs args) {
   auto compiled =
-      runPassPipeline(executionContext, kernelName, module, args, nullptr);
+      runPassPipeline(executionContext, kernelName, modulePtr, args, nullptr);
   return emitKernelExecutions(compiled);
 }
 
