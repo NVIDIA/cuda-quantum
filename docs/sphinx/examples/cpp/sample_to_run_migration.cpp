@@ -31,7 +31,7 @@ __qpu__ void reset_pattern() {
 
 // [Begin Example1]
 struct simple_conditional {
-  bool operator()() __qpu__ {
+  auto operator()() __qpu__ {
     cudaq::qvector q(2);
     h(q[0]);
     auto r = mz(q[0]);

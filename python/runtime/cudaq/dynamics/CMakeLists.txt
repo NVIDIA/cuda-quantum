@@ -6,18 +6,31 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-find_package(Python COMPONENTS Interpreter Development)
-find_package(pybind11 CONFIG)
+find_package(CUDAToolkit REQUIRED)
 
-pybind11_add_module(nvqir_dynamics_bindings pyDynamics.cpp)
+nanobind_add_module(nvqir_dynamics_bindings
+    NB_SHARED
+    NB_DOMAIN cudaq
+    pyDynamics.cpp)
 target_include_directories(nvqir_dynamics_bindings PRIVATE
-    ${PYTHON_INCLUDE_DIRS}
-    ${pybind11_INCLUDE_DIRS}
+    ${Python3_INCLUDE_DIRS}
+    ${nanobind_INCLUDE_DIR}
 )
+find_file(CUDENSITYMAT_INC
+    NAMES   cudensitymat.h
+    HINTS   
+        $ENV{CUQUANTUM_INSTALL_PREFIX}/include      
+        /usr/include    
+        ENV CPATH
+    REQUIRED
+)
+
+get_filename_component(CUDENSITYMAT_INCLUDE_DIR ${CUDENSITYMAT_INC} DIRECTORY)
 target_include_directories(nvqir_dynamics_bindings 
     PRIVATE 
         ${CMAKE_SOURCE_DIR}/runtime
-        ${CMAKE_SOURCE_DIR}/runtime/nvqir/cudensitymat
+        ${CMAKE_SOURCE_DIR}/runtime/nvqir/cudensitymat 
+        ${CUDENSITYMAT_INCLUDE_DIR}
         ${CUDAToolkit_INCLUDE_DIRS})
 target_link_libraries(nvqir_dynamics_bindings PRIVATE
     cudaq-logger
@@ -33,12 +46,12 @@ endif()
 
 if(NOT SKBUILD)
   set_target_properties(nvqir_dynamics_bindings PROPERTIES
-    INSTALL_RPATH "${_origin_prefix}/../../lib;${_origin_prefix}/../../lib/plugins"
+    INSTALL_RPATH "${_origin_prefix}/../../lib;${_origin_prefix}/../../lib/plugins;${_origin_prefix}/../mlir/_mlir_libs"
     BUILD_RPATH   "${CMAKE_BINARY_DIR}/lib"
   )
 else()
   set_target_properties(nvqir_dynamics_bindings PROPERTIES
-    INSTALL_RPATH "${_origin_prefix}/../../lib;${_origin_prefix}/../../cuda_quantum.libs"
+    INSTALL_RPATH "${_origin_prefix}/../../lib;${_origin_prefix}/../../cuda_quantum.libs;${_origin_prefix}/../mlir/_mlir_libs"
     BUILD_RPATH   "${CMAKE_BINARY_DIR}/lib"
   )
 endif()

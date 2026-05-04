@@ -162,7 +162,9 @@ void cudaq::opt::createPipelineTransformsForPythonToOpenQASM(
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addNestedPass<func::FuncOp>(createMultiControlDecomposition());
   pm.addPass(createDecomposition(
-      {.basis = {"h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)"}}));
+      {.basis = {"h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)"},
+       .disabledPatterns = {},
+       .enabledPatterns = {}}));
   pm.addPass(createQuakeToCCPrep());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createExpandControlVeqs());
@@ -171,7 +173,6 @@ void cudaq::opt::createPipelineTransformsForPythonToOpenQASM(
 }
 
 void cudaq::opt::addPipelineTranslateToOpenQASM(PassManager &pm) {
-  createCommonTargetCodegenPipeline</*isJIT=*/true>(pm, {});
   pm.addNestedPass<func::FuncOp>(createClassicalMemToReg());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(createDeadStoreRemoval());

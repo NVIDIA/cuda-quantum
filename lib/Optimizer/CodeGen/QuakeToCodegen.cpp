@@ -8,14 +8,12 @@
 
 #include "QuakeToCodegen.h"
 #include "CodeGenOps.h"
+#include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
 #include "mlir/Conversion/LLVMCommon/Pattern.h"
-#include "mlir/Dialect/Complex/IR/Complex.h"
 
 using namespace mlir;
 
@@ -55,11 +53,11 @@ public:
       return failure();
     auto loc = castOp.getLoc();
     auto ty = cast<ComplexType>(castOp.getValue().getType()).getElementType();
-    Value rePart = rewriter.create<complex::ReOp>(loc, ty, castOp.getValue());
-    Value imPart = rewriter.create<complex::ImOp>(loc, ty, castOp.getValue());
+    Value rePart = complex::ReOp::create(rewriter, loc, ty, castOp.getValue());
+    Value imPart = complex::ImOp::create(rewriter, loc, ty, castOp.getValue());
     auto eleTy = complexTy.getElementType();
-    auto reCast = rewriter.create<cudaq::cc::CastOp>(loc, eleTy, rePart);
-    auto imCast = rewriter.create<cudaq::cc::CastOp>(loc, eleTy, imPart);
+    auto reCast = cudaq::cc::CastOp::create(rewriter, loc, eleTy, rePart);
+    auto imCast = cudaq::cc::CastOp::create(rewriter, loc, eleTy, imPart);
     rewriter.replaceOpWithNewOp<complex::CreateOp>(castOp, complexTy, reCast,
                                                    imCast);
     return success();
@@ -108,7 +106,7 @@ public:
     auto stateTy = quake::StateType::get(ctx);
     auto statePtrTy = cudaq::cc::PointerType::get(stateTy);
     auto i8PtrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
-    auto cast = rewriter.create<cudaq::cc::CastOp>(loc, i8PtrTy, buffer);
+    auto cast = cudaq::cc::CastOp::create(rewriter, loc, i8PtrTy, buffer);
 
     rewriter.replaceOpWithNewOp<func::CallOp>(
         createStateOp, statePtrTy, createStateFunc, ValueRange{cast, size});
@@ -130,7 +128,7 @@ public:
     auto result = irBuilder.loadIntrinsic(module, cudaq::deleteCudaqState);
     assert(succeeded(result) && "loading intrinsic should never fail");
 
-    rewriter.replaceOpWithNewOp<func::CallOp>(deleteStateOp, std::nullopt,
+    rewriter.replaceOpWithNewOp<func::CallOp>(deleteStateOp, mlir::TypeRange{},
                                               cudaq::deleteCudaqState,
                                               mlir::ValueRange{state});
     return success();

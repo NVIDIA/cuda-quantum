@@ -8,16 +8,18 @@
 
 #include "py_pauli_word.h"
 #include "cudaq/qis/pauli_word.h"
-#include <pybind11/pybind11.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/string.h>
 
 namespace cudaq {
 
-void bindPauliWord(py::module &mod) {
+void bindPauliWord(nanobind::module_ &mod) {
 
-  py::class_<pauli_word>(mod, "pauli_word",
-                         "The `pauli_word` is a thin wrapper on a Pauli tensor "
-                         "product string, e.g. `XXYZ` on 4 qubits.")
-      .def(py::init<>())
-      .def(py::init<const std::string>());
+  nanobind::class_<pauli_word>(
+      mod, "pauli_word",
+      "The `pauli_word` is a thin wrapper on a Pauli tensor "
+      "product string, e.g. `XXYZ` on 4 qubits.")
+      .def(nanobind::init<>())
+      .def(nanobind::init<const std::string>());
 }
 } // namespace cudaq

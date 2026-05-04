@@ -6,11 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "PassDetails.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
-#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Characteristics.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/Threading.h"
@@ -18,16 +16,13 @@
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
 #include "mlir/Transforms/DialectConversion.h"
 
-using namespace mlir;
-
-//===----------------------------------------------------------------------===//
-// Generated logic
-//===----------------------------------------------------------------------===//
 namespace cudaq::opt {
 #define GEN_PASS_DEF_ASSIGNWIREINDICES
 #define GEN_PASS_DEF_ADDWIRESET
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
+
+using namespace mlir;
 
 namespace {
 class NullWirePat : public OpRewritePattern<quake::NullWireOp> {
@@ -111,9 +106,9 @@ struct AddWiresetPass
   void runOnOperation() override {
     ModuleOp mod = getOperation();
     OpBuilder builder(mod.getBodyRegion());
-    auto wireSetOp = builder.create<quake::WireSetOp>(
-        builder.getUnknownLoc(), cudaq::opt::topologyAgnosticWiresetName,
-        INT_MAX, ElementsAttr{});
+    auto wireSetOp = quake::WireSetOp::create(
+        builder, builder.getUnknownLoc(),
+        cudaq::opt::topologyAgnosticWiresetName, INT_MAX, ElementsAttr{});
     wireSetOp.setPrivate();
   }
 };

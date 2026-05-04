@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "mlir/Pass/PassManager.h"
+#include "mlir/Support/LogicalResult.h"
 #include "mlir/Tools/mlir-translate/Translation.h"
 #include <functional>
 #include <memory>
@@ -17,6 +19,7 @@
 namespace mlir {
 class MLIRContext;
 class ModuleOp;
+class Operation;
 } // namespace mlir
 
 namespace cudaq_internal::compiler {
@@ -109,4 +112,9 @@ std::optional<std::string>
 getEntryPointName(mlir::OwningOpRef<mlir::ModuleOp> &module);
 
 void initializeLangMLIR();
+
+/// Run pm on op. Implementation is selected at link time by
+/// RuntimeCppMLIR.cpp / RuntimePyMLIR.cpp so the host language can wrap
+/// the call with any required interpreter-lock handling.
+mlir::LogicalResult runPassManager(mlir::PassManager &pm, mlir::Operation *op);
 } // namespace cudaq_internal::compiler

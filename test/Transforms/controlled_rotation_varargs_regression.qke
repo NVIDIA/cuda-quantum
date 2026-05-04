@@ -34,8 +34,8 @@ func.func @test_controlled_rx_two_refs() attributes {"cudaq-entrypoint", "cudaq-
 
 // CHECK-LABEL: llvm.func @test_controlled_rx_two_refs()
 // CHECK: @invokeRotationWithControlQubits
-// CHECK-NOT: !llvm.ptr<func<void (f64, ptr<struct<"Array", opaque>>, ptr<struct<"Qubit", opaque>>)>>, f64
-// CHECK-SAME: !llvm.ptr<func<void (f64, ptr<struct<"Array", opaque>>, ptr<struct<"Qubit", opaque>>)>>, !llvm.ptr<struct<"Qubit", opaque>>
+// CHECK-NOT: vararg(!llvm.func<void (f64, i64, ptr, ptr, ...)>) : (f64, i64, !llvm.ptr, !llvm.ptr, f64
+// CHECK-SAME: vararg(!llvm.func<void (f64, i64, ptr, ptr, ...)>) : (f64, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr
 
 
 func.func @test_controlled_ry_single_ref() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
@@ -48,5 +48,5 @@ func.func @test_controlled_ry_single_ref() attributes {"cudaq-entrypoint", "cuda
 
 // CHECK-LABEL: llvm.func @test_controlled_ry_single_ref()
 // CHECK: @invokeRotationWithControlQubits
-// CHECK-NOT: !llvm.ptr<func<void (f64, ptr<struct<"Array", opaque>>, ptr<struct<"Qubit", opaque>>)>>, f64
-// CHECK-SAME: !llvm.ptr<func<void (f64, ptr<struct<"Array", opaque>>, ptr<struct<"Qubit", opaque>>)>>, !llvm.ptr<struct<"Qubit", opaque>>
+// CHECK-NOT: vararg(!llvm.func<void (f64, i64, ptr, ptr, ...)>) : (f64, i64, !llvm.ptr, !llvm.ptr, f64
+// CHECK-SAME: vararg(!llvm.func<void (f64, i64, ptr, ptr, ...)>) : (f64, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr

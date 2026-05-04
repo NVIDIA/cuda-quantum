@@ -251,6 +251,10 @@ set -e
 trap 'prepare_exit && ((return 0 2>/dev/null) && return 1 || exit 1)' EXIT
 this_file_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+if [ "$(uname)" = "Darwin" ] && [ -x "$(command -v xcrun)" ]; then
+  export SDKROOT="${SDKROOT:-$(xcrun --show-sdk-path)}"
+fi
+
 # [Toolchain] CMake, ninja and C/C++ compiler
 if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
   if [ -n "$toolchain" ] || [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
@@ -363,6 +367,23 @@ if [ -n "$ZLIB_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep zlib)" ]
   fi
 fi
 
+# [nanobind] Needed for MLIR Python bindings (MLIR 22+)
+# Install nanobind independently of the LLVM build so that it is available
+# even when LLVM is restored from cache.
+if [ -n "$NANOBIND_INSTALL_PREFIX" ]; then
+  if [ ! -d "$NANOBIND_INSTALL_PREFIX" ] || [ -z "$(ls -A "$NANOBIND_INSTALL_PREFIX"/* 2> /dev/null)" ]; then
+    echo "Building nanobind..."
+    cd "$this_file_dir" && cd $(git rev-parse --show-toplevel)
+    git submodule update --init --recursive --recommend-shallow --single-branch tpls/nanobind
+    mkdir -p "tpls/nanobind/build" && cd "tpls/nanobind/build"
+    cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$NANOBIND_INSTALL_PREFIX" -DNB_TEST=False
+    cmake --build . --target install --config Release
+    cd "$working_dir"
+  else
+    echo "nanobind already installed in $NANOBIND_INSTALL_PREFIX."
+  fi
+fi
+
 # [LLVM/MLIR] Needed to build the CUDA Quantum toolchain
 if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]; then
   if [ ! -d "$LLVM_INSTALL_PREFIX/lib/cmake/llvm" ]; then
@@ -370,20 +391,23 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
     LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
     LLVM_PROJECTS="$LLVM_PROJECTS" \
     PYBIND11_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" \
+    NANOBIND_INSTALL_PREFIX="$NANOBIND_INSTALL_PREFIX" \
     Python3_EXECUTABLE="$Python3_EXECUTABLE" \
     bash "$this_file_dir/build_llvm.sh" -v
-  else 
+  else
     echo "LLVM already installed in $LLVM_INSTALL_PREFIX."
   fi
 
-  if [ "$toolchain" = "llvm" ]; then
+  if [ "$toolchain" = "llvm" ] || [ "$(uname)" = "Darwin" ]; then
     #rm -rf "$llvm_stage1_tmpdir"
-    export CC="$LLVM_INSTALL_PREFIX/bin/clang" 
+    export CC="$LLVM_INSTALL_PREFIX/bin/clang"
     export CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
-    export FC="$LLVM_INSTALL_PREFIX/bin/flang-new"
     echo "Configured C compiler: $CC"
     echo "Configured C++ compiler: $CXX"
-    echo "Configured Fortran compiler: $FC"
+    if [ -x "$LLVM_INSTALL_PREFIX/bin/flang" ]; then
+      export FC="$LLVM_INSTALL_PREFIX/bin/flang"
+      echo "Configured Fortran compiler: $FC"
+    fi
   fi
 fi
 
@@ -404,7 +428,7 @@ if [ -n "$BLAS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep blas)" ]
     # See also: https://github.com/NVIDIA/cuda-quantum/issues/452
     wget "${BLAS_TARBALL_URL}"
     tar -xzvf "blas-${BLAS_VERSION}.tgz" && cd BLAS-3.11.0
-    make FC="${FC:-gfortran}"
+    make FC="${FC:-gfortran}" FFLAGS="-O2"
     mkdir -p "$BLAS_INSTALL_PREFIX"
     mv blas_*.a "$BLAS_INSTALL_PREFIX/libblas.a"
 

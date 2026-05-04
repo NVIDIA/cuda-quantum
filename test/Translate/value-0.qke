@@ -19,8 +19,8 @@ func.func @test() {
 }
 
 // CHECK-LABEL: define void @test() local_unnamed_addr {
-// CHECK:         %[[VAL_0:.*]] = tail call %[[VAL_1:.*]]* @__quantum__rt__qubit_allocate_array(i64 2)
-// CHECK:         tail call void @callee(%[[VAL_1]]* %[[VAL_0]], float 1.0
-// CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_1]]* %[[VAL_0]])
+// CHECK:         %[[VAL_0:.*]] = tail call ptr @__quantum__rt__qubit_allocate_array(i64 2)
+// CHECK:         tail call void @callee(ptr %[[VAL_0]], float 1.0
+// CHECK:         tail call void @__quantum__rt__qubit_release_array(ptr %[[VAL_0]])
 // CHECK:         ret void
 // CHECK:       }

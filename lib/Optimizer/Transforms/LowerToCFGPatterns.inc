@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -61,7 +61,7 @@ public:
       Block *continueBlock = rewriter.createBlock(
           endBlock, ifOp.getResultTypes(),
           SmallVector<Location>(ifOp.getNumResults(), loc));
-      rewriter.create<cf::BranchOp>(loc, endBlock);
+      cf::BranchOp::create(rewriter, loc, endBlock);
       endBlock = continueBlock;
     }
     auto *thenBlock = &ifOp.getThenRegion().front();
@@ -73,9 +73,9 @@ public:
     if (hasElse)
       rewriter.inlineRegionBefore(ifOp.getElseRegion(), endBlock);
     rewriter.setInsertionPointToEnd(initBlock);
-    rewriter.create<cf::CondBranchOp>(loc, ifOp.getCondition(), thenBlock,
-                                      ifOp.getLinearArgs(), elseBlock,
-                                      ifOp.getLinearArgs());
+    cf::CondBranchOp::create(rewriter, loc, ifOp.getCondition(), thenBlock,
+                             ifOp.getLinearArgs(), elseBlock,
+                             ifOp.getLinearArgs());
     rewriter.replaceOp(ifOp, endBlock->getArguments());
     return success();
   }

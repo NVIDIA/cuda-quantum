@@ -305,7 +305,11 @@ if [ ! -f "${install_dir}/include/cudaq.h" ]; then
 	if [ "@CMAKE_BINARY_DIR@" -ef "${install_dir}" ]; then
 		CUDAQ_INCLUDE_PATH="@CMAKE_SOURCE_DIR@/runtime"
 		INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/tpls/fmt/include"
-		INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/runtime/internal/compiler/include"
+		if ${LIBRARY_MODE}; then
+			INCLUDES="${INCLUDES} -I @CMAKE_BINARY_DIR@/include"
+			INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/runtime/include"
+			INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/runtime/internal/compiler/include"
+		fi
 	else
 		error_exit "Invalid CUDA-Q install configuration."
 	fi

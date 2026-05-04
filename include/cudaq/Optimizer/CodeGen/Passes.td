@@ -58,7 +58,9 @@ def ConvertToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
   }];
 
   let dependentDialects = [
-    "cudaq::codegen::CodeGenDialect", "mlir::LLVM::LLVMDialect"
+    "cudaq::codegen::CodeGenDialect", "mlir::LLVM::LLVMDialect",
+    "mlir::arith::ArithDialect", "mlir::complex::ComplexDialect",
+    "cudaq::cc::CCDialect"
   ];
 }
 
@@ -136,6 +138,7 @@ def QIRToQIRProfile : Pass<"convert-to-qir-profile"> {
            "Which QIR profile to convert to (default is 'qir-base')">
   ];
 
+  let dependentDialects = ["mlir::LLVM::LLVMDialect"];
   let constructor = "cudaq::opt::createQIRToQIRProfilePass(\"qir-base\")";
 }
 
@@ -172,7 +175,8 @@ def WireSetToProfileQIR : Pass<"wireset-to-profile-qir", "mlir::func::FuncOp"> {
     the code to CC dialect with QIR calls, etc.
   }];
 
-  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect",
+      "mlir::func::FuncDialect", "mlir::arith::ArithDialect"];
   let options = [
     Option<"convertTo", "convert-to", "std::string", /*default=*/"\"qir-base\"",
            "Select the profile to convert wire sets to.">
@@ -220,7 +224,7 @@ def QuakeToQIRAPI : Pass<"quake-to-qir-api"> {
   let options = [
     Option<"api", "api", "std::string", /*default=*/"\"full\"",
            "Select the QIR API to use.">,
-    Option<"opaquePtr", "opaque-pointer", "bool", /*default=*/"false",
+    Option<"opaquePtr", "opaque-pointer", "bool", /*default=*/"true",
            "Use opaque pointers.">
   ];
 }
@@ -250,7 +254,7 @@ def QuakeToQIRAPIPrep : Pass<"quake-to-qir-api-prep", "mlir::ModuleOp"> {
   let options = [
     Option<"api", "api", "std::string", /*default=*/"\"full\"",
            "Select the QIR API to use.">,
-    Option<"opaquePtr", "opaque-pointer", "bool", /*default=*/"false",
+    Option<"opaquePtr", "opaque-pointer", "bool", /*default=*/"true",
            "Use opaque pointers.">
   ];
 }
@@ -276,6 +280,34 @@ def ReturnToOutputLog : Pass<"return-to-output-log", "mlir::ModuleOp"> {
            "that require statically-known output record counts (e.g., targets"
            "that don't support full QIR).">,
   ];
+}
+
+def EliminateDeadHeapCopy
+    : Pass<"eliminate-dead-heap-copy", "mlir::func::FuncOp"> {
+  let summary = "Eliminate dead heap copies from return value logging.";
+  let description = [{
+    When a kernel returns a vector (e.g., measurement results), the frontend
+    wraps the return value with `__nvqpp_vectorCopyCtor`, which performs a
+    malloc+memcpy to copy the data from the callee's stack to the heap. This
+    is necessary because the returned data must outlive the callee's stack
+    frame when one kernel calls another. After AggressiveInlining, this
+    intrinsic is expanded into raw malloc and memcpy operations in the caller.
+
+    After ReturnToOutputLog converts return values to QIR output logging
+    calls (e.g., `__quantum__rt__*_record_output`), it reads from the
+    cc.stdvec_init's buffer (the malloc'd pointer) and creates new load ops
+    from it, leaving the cc.stdvec_init with no users. The malloc+memcpy
+    are then only needed to populate the heap buffer that the output logging
+    reads from. This pass redirects those reads to the memcpy source (the
+    original stack data), making the malloc+memcpy dead, and erases them
+    along with the now-unused cc.stdvec_init.
+
+    Note: this pass is only needed on code paths that do not run LLVM's
+    optimization passes (e.g., when emitting MLIR rather than LLVM IR for 
+    a remote backend). When the full LLVM opt pipeline runs, it would eliminate
+    these dead allocations on its own.
+  }];
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
 }
 
 

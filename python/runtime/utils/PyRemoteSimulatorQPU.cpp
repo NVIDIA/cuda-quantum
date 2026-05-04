@@ -8,6 +8,7 @@
 
 #include "common/ArgumentWrapper.h"
 #include "common/BaseRemoteSimulatorQPU.h"
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include <mlir/IR/BuiltinOps.h>
 
 using namespace mlir;
@@ -102,7 +103,7 @@ static void launchKernelStreamlineImpl(
   const bool requestOkay = remote_client->sendRequest(
       *mlirContext, executionContext,
       /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr, /*vqe_n_params=*/0,
-      sim_name, name, nullptr, nullptr, 0, &errorMsg, &actualArgs);
+      sim_name, name, nullptr, nullptr, 0, &errorMsg, actualArgs);
   if (!requestOkay)
     throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
 }
@@ -110,7 +111,9 @@ static void launchKernelStreamlineImpl(
 template <typename Derived, typename Base>
 class PyRemoteSimulatorCommonBase : public Base {
 public:
-  using Base::Base;
+  PyRemoteSimulatorCommonBase() : Base() {
+    this->m_mlirContext = cudaq_internal::compiler::getOwningMLIRContext();
+  }
   PyRemoteSimulatorCommonBase(PyRemoteSimulatorCommonBase &&) = delete;
   virtual ~PyRemoteSimulatorCommonBase() = default;
 

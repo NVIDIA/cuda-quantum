@@ -45,7 +45,7 @@ struct simple_double_rotation {
 // CHECK:           %[[VAL_12:.*]] = cc.load %[[VAL_11]] : !cc.ptr<f64>
 // CHECK:           %[[VAL_13:.*]] = quake.extract_ref %[[VAL_8]][0] : (!quake.veq<1>) -> !quake.ref
 // CHECK:           quake.rx (%[[VAL_12]]) %[[VAL_13]] : (f64, !quake.ref) -> ()
-// CHECK:           %[[VAL_14:.*]] = quake.mz %[[VAL_8]] : (!quake.veq<1>) -> !quake.measurements<1>
+// CHECK:           %[[VAL_14:.*]] = quake.mz %[[VAL_8]] : (!quake.veq<1>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 // clang-format on
@@ -79,7 +79,7 @@ struct simple_float_rotation {
 // CHECK:           %[[VAL_12:.*]] = math.absf %[[VAL_11]] : f32
 // CHECK:           %[[VAL_13:.*]] = quake.extract_ref %[[VAL_8]][0] : (!quake.veq<1>) -> !quake.ref
 // CHECK:           quake.rx (%[[VAL_12]]) %[[VAL_13]] : (f32, !quake.ref) -> ()
-// CHECK:           %[[VAL_14:.*]] = quake.mz %[[VAL_8]] : (!quake.veq<1>) -> !quake.measurements<1>
+// CHECK:           %[[VAL_14:.*]] = quake.mz %[[VAL_8]] : (!quake.veq<1>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 // clang-format on
@@ -105,7 +105,7 @@ struct difficult_symphony {
 // CHECK:           %[[VAL_6:.*]] = cc.load %[[VAL_5]] : !cc.ptr<f32>
 // CHECK:           %[[VAL_7:.*]] = quake.extract_ref %[[VAL_3]][0] : (!quake.veq<1>) -> !quake.ref
 // CHECK:           quake.rx (%[[VAL_6]]) %[[VAL_7]] : (f32, !quake.ref) -> ()
-// CHECK:           %[[VAL_8:.*]] = quake.mz %[[VAL_3]] : (!quake.veq<1>) -> !quake.measurements<1>
+// CHECK:           %[[VAL_8:.*]] = quake.mz %[[VAL_3]] : (!quake.veq<1>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 // clang-format on

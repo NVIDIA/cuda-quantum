@@ -11,6 +11,7 @@
 /// This file provides the opaque struct types to be used with the obsolete LLVM
 /// typed pointer type.
 
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
@@ -22,73 +23,64 @@ inline mlir::Type getQuantumTypeByName(mlir::StringRef type,
 }
 
 namespace opt {
-
-// The following type creators are deprecated and should only be used in the
-// older codegen passes. Use the creators in the cg namespace immediately below
-// instead.
-inline mlir::Type getOpaquePointerType(mlir::MLIRContext *context) {
-  return mlir::LLVM::LLVMPointerType::get(context);
-}
-
-inline mlir::Type getQubitType(mlir::MLIRContext *context) {
-  return mlir::LLVM::LLVMPointerType::get(
-      getQuantumTypeByName("Qubit", context));
-}
-
-inline mlir::Type getArrayType(mlir::MLIRContext *context) {
-  return mlir::LLVM::LLVMPointerType::get(
-      getQuantumTypeByName("Array", context));
-}
-
-inline mlir::Type getResultType(mlir::MLIRContext *context) {
-  return mlir::LLVM::LLVMPointerType::get(
-      getQuantumTypeByName("Result", context));
-}
-
-inline mlir::Type getCharPointerType(mlir::MLIRContext *context) {
-  return mlir::LLVM::LLVMPointerType::get(mlir::IntegerType::get(context, 8));
-}
-
 void initializeTypeConversions(mlir::LLVMTypeConverter &typeConverter);
-
 } // namespace opt
 
 namespace cg {
 
-// The following type creators replace the ones above. They are configurable on
-// the fly to either use opaque structs or opaque pointers. The default is to
-// use pointers to opaque structs, which is no longer supported in modern LLVM.
+// These type creators are configurable on the fly to either use opaque structs
+// or opaque pointers. The default is to use opaque pointers, which are the
+// default in any modern LLVM version.
 
 inline mlir::Type getOpaquePointerType(mlir::MLIRContext *context) {
   return cc::PointerType::get(mlir::NoneType::get(context));
 }
 
 inline mlir::Type getQubitType(mlir::MLIRContext *context,
-                               bool useOpaquePtr = false) {
+                               bool useOpaquePtr = true) {
   if (useOpaquePtr)
     return getOpaquePointerType(context);
   return cc::PointerType::get(getQuantumTypeByName("Qubit", context));
 }
 
 inline mlir::Type getArrayType(mlir::MLIRContext *context,
-                               bool useOpaquePtr = false) {
+                               bool useOpaquePtr = true) {
   if (useOpaquePtr)
     return getOpaquePointerType(context);
   return cc::PointerType::get(getQuantumTypeByName("Array", context));
 }
 
 inline mlir::Type getResultType(mlir::MLIRContext *context,
-                                bool useOpaquePtr = false) {
+                                bool useOpaquePtr = true) {
   if (useOpaquePtr)
     return getOpaquePointerType(context);
   return cc::PointerType::get(getQuantumTypeByName("Result", context));
 }
 
 inline mlir::Type getCharPointerType(mlir::MLIRContext *context,
-                                     bool useOpaquePtr = false) {
+                                     bool useOpaquePtr = true) {
   if (useOpaquePtr)
     return getOpaquePointerType(context);
   return cc::PointerType::get(mlir::IntegerType::get(context, 8));
+}
+
+// LLVM Types:
+// The factory builder will build opaque pointers for modern MLIR.
+
+inline mlir::Type getLLVMQubitType(mlir::MLIRContext *context) {
+  return opt::factory::getPointerType(getQuantumTypeByName("Qubit", context));
+}
+
+inline mlir::Type getLLVMArrayType(mlir::MLIRContext *context) {
+  return opt::factory::getPointerType(getQuantumTypeByName("Array", context));
+}
+
+inline mlir::Type getLLVMResultType(mlir::MLIRContext *context) {
+  return opt::factory::getPointerType(getQuantumTypeByName("Result", context));
+}
+
+inline mlir::Type getLLVMCharPointerType(mlir::MLIRContext *context) {
+  return opt::factory::getPointerType(mlir::IntegerType::get(context, 8));
 }
 
 } // namespace cg

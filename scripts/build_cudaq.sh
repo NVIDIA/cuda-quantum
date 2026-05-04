@@ -192,16 +192,26 @@ else
   fi
 fi
 
-# Determine linker and linker flags
-# On macOS, always use the system linker (Apple's ld) as we haven't yet added building with lld on MacOS.
-if [ "$(uname)" != "Darwin" ] && [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
-  echo "Configuring nvq++ and local build to use the lld linker by default."
-  NVQPP_LD_PATH="$LLVM_INSTALL_PREFIX/bin/ld.lld"
+# Determine linker and linker flags.
+# On macOS, prefer LLVM's Mach-O lld (ld64.lld) when available; on Linux use
+# ld.lld. In either case fall back to the system linker if lld isn't present.
+if [ "$(uname)" = "Darwin" ] && [ -x "$LLVM_INSTALL_PREFIX/bin/ld64.lld" ]; then
+  LLD_BIN="$LLVM_INSTALL_PREFIX/bin/ld64.lld"
+elif [ "$(uname)" != "Darwin" ] && [ -x "$LLVM_INSTALL_PREFIX/bin/ld.lld" ]; then
+  LLD_BIN="$LLVM_INSTALL_PREFIX/bin/ld.lld"
+else
+  LLD_BIN=""
+fi
+if [ -n "$LLD_BIN" ] && [ "$(uname)" != "Darwin" ]; then
+  echo "Configuring nvq++ and local build to use the lld linker by default ($LLD_BIN)."
+  NVQPP_LD_PATH="$LLD_BIN"
   LINKER_TO_USE="lld"
   LINKER_FLAGS="-fuse-ld=lld -B$LLVM_INSTALL_PREFIX/bin"
   LINKER_FLAG_LIST="\
     -DCMAKE_LINKER='"$LINKER_TO_USE"' \
     -DCMAKE_EXE_LINKER_FLAGS='"$LINKER_FLAGS"' \
+    -DCMAKE_SHARED_LINKER_FLAGS='"$LINKER_FLAGS"' \
+    -DCMAKE_MODULE_LINKER_FLAGS='"$LINKER_FLAGS"' \
     -DLLVM_USE_LINKER='"$LINKER_TO_USE"'"
 else
   echo "Using the system linker."
@@ -220,17 +230,13 @@ if [ -z "$CUDAHOSTCXX" ] && [ -z "$CUDAFLAGS" ]; then
   fi
 fi
 
-# Determine OpenMP flags (check for .so on Linux, .dylib on macOS)
+# Determine OpenMP flags (check for .so on Linux, .dylib on macOS).
+# Use -idirafter so omp.h is searched after system headers (avoids a conflict
+# with clang's stdint.h on macOS).
 OpenMP_libomp_LIBRARY_PATH=$(find "$LLVM_INSTALL_PREFIX" \( -name 'libomp.so' -o -name 'libomp.dylib' \) 2>/dev/null | head -1)
 if [ -n "$OpenMP_libomp_LIBRARY_PATH" ]; then
   omp_header_dir=$(find "$LLVM_INSTALL_PREFIX" -name 'omp.h' -print -quit 2>/dev/null | xargs dirname)
-  # Apple Clang requires -Xpreprocessor -fopenmp; LLVM Clang/GCC use -fopenmp directly
-  # Use -idirafter to add omp.h path AFTER system headers (avoids conflicts with clang's stdint.h)
-  if ${CXX:-c++} --version 2>&1 | grep -q "Apple clang"; then
-    OpenMP_FLAGS="${OpenMP_FLAGS:--Xpreprocessor -fopenmp -idirafter $omp_header_dir}"
-  else
-    OpenMP_FLAGS="${OpenMP_FLAGS:--fopenmp -idirafter $omp_header_dir}"
-  fi
+  OpenMP_FLAGS="${OpenMP_FLAGS:--fopenmp -idirafter $omp_header_dir}"
 fi
 
 # Check for ccache and configure compiler launcher
@@ -275,6 +281,7 @@ cmake_args="-G Ninja '"$repo_root"' \
   -DCUDAQ_BUILD_TESTS=${CUDAQ_BUILD_TESTS:-TRUE} \
   -DCUDAQ_TEST_MOCK_SERVERS=${CUDAQ_BUILD_TESTS:-TRUE} \
   -DCMAKE_COMPILE_WARNING_AS_ERROR=${CUDAQ_WERROR:-ON} \
+  -Dnanobind_DIR=$NANOBIND_INSTALL_PREFIX/nanobind/cmake \
   $extra_cmake_args"
 
 # Add CUDA-specific flags only on non-macOS systems

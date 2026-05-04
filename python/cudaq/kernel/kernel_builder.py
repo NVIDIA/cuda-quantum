@@ -653,7 +653,6 @@ class PyKernel(object):
                 cloned = otherST[calleeName].operation.clone()
                 if 'cudaq-entrypoint' in cloned.operation.attributes:
                     cloned.operation.attributes.__delitem__('cudaq-entrypoint')
-                print("adding", cloned)
                 currentModule.body.append(cloned)
 
                 visitAllCallOps(cloned)
@@ -682,6 +681,12 @@ class PyKernel(object):
                 otherFuncCloned, otherModule = self.__cloneOrGetFunction(
                     target.name, self.module, target)
                 assert isinstance(otherFuncCloned, func.FuncOp)
+                # Same as __addAllCalledFunctionsRecursively does for
+                # transitively called functions: a sub-kernel merged into this
+                # module is no longer an `entrypoint`.
+                if 'cudaq-entrypoint' in otherFuncCloned.operation.attributes:
+                    otherFuncCloned.operation.attributes.__delitem__(
+                        'cudaq-entrypoint')
                 self.__addAllCalledFunctionsRecursively(otherFuncCloned,
                                                         self.module,
                                                         otherModule)
@@ -727,7 +732,7 @@ class PyKernel(object):
                 "cse,quake-add-metadata),quake-propagate-metadata)",
                 context=self.ctx)
             cloned = cudaq_runtime.cloneModule(self.module)
-            pm.run(cloned)
+            cudaq_runtime.runPassManager(pm, cloned)
             return str(cloned)
         return str(self.module)
 
@@ -1113,24 +1118,6 @@ class PyKernel(object):
                     'reset operation broadcasting on qvector not supported yet.'
                 )
 
-    @staticmethod
-    def _get_measurement_type(targets):
-        """
-        Compute the appropriate measurement type for the given targets.
-        """
-        if len(targets) == 1 and quake.RefType.isinstance(targets[0].type):
-            return quake.MeasureType.get()
-        total_size = 0
-        all_known = True
-        for t in targets:
-            if quake.isConstantQuantumRefType(t.type):
-                total_size += quake.getAllocationSize(t.type)
-            else:
-                all_known = False
-        if all_known and total_size > 0:
-            return quake.MeasurementsType.get(total_size)
-        return quake.MeasurementsType.get()
-
     def mz(self, target, regName=None):
         """
         Measure the given qubit or qubits in the Z-basis. The optional
@@ -1163,10 +1150,13 @@ class PyKernel(object):
         """
         with self.ctx, self.insertPoint, self.loc:
             i1Ty = IntegerType.get_signless(1)
-            measTy = PyKernel._get_measurement_type([target.mlirValue])
+            qubitTy = target.mlirValue.type
             retTy = i1Ty
-            if quake.MeasurementsType.isinstance(measTy):
-                retTy = cc.StdvecType.get(i1Ty)
+            measTy = quake.MeasureType.get()
+            stdvecTy = cc.StdvecType.get(i1Ty)
+            if quake.VeqType.isinstance(target.mlirValue.type):
+                retTy = stdvecTy
+                measTy = cc.StdvecType.get(measTy)
             if regName is not None:
                 res = quake.MzOp(measTy, [], [target.mlirValue],
                                  registerName=StringAttr.get(regName,
@@ -1207,10 +1197,13 @@ class PyKernel(object):
         """
         with self.ctx, self.insertPoint, self.loc:
             i1Ty = IntegerType.get_signless(1)
-            measTy = PyKernel._get_measurement_type([target.mlirValue])
+            qubitTy = target.mlirValue.type
             retTy = i1Ty
-            if quake.MeasurementsType.isinstance(measTy):
-                retTy = cc.StdvecType.get(i1Ty)
+            measTy = quake.MeasureType.get()
+            stdvecTy = cc.StdvecType.get(i1Ty)
+            if quake.VeqType.isinstance(target.mlirValue.type):
+                retTy = stdvecTy
+                measTy = cc.StdvecType.get(measTy)
             if regName is not None:
                 res = quake.MxOp(measTy, [], [target.mlirValue],
                                  registerName=StringAttr.get(regName,
@@ -1252,10 +1245,13 @@ class PyKernel(object):
         """
         with self.ctx, self.insertPoint, self.loc:
             i1Ty = IntegerType.get_signless(1)
-            measTy = PyKernel._get_measurement_type([target.mlirValue])
+            qubitTy = target.mlirValue.type
             retTy = i1Ty
-            if quake.MeasurementsType.isinstance(measTy):
-                retTy = cc.StdvecType.get(i1Ty)
+            measTy = quake.MeasureType.get()
+            stdvecTy = cc.StdvecType.get(i1Ty)
+            if quake.VeqType.isinstance(target.mlirValue.type):
+                retTy = stdvecTy
+                measTy = cc.StdvecType.get(measTy)
             if regName is not None:
                 res = quake.MyOp(measTy, [], [target.mlirValue],
                                  registerName=StringAttr.get(regName,
@@ -1558,11 +1554,23 @@ class PyKernel(object):
             emitFatalError("Noise channel parameter must be float")
 
     @staticmethod
+    def _get_num_parameters(noise_channel):
+        """Return the `num_parameters` for a noise channel class,
+        supporting both the attribute (custom channels) and the
+        method (nanobind-bound built-in channels)."""
+        if hasattr(noise_channel, 'num_parameters'):
+            return noise_channel.num_parameters
+        if hasattr(noise_channel, 'get_num_parameters'):
+            return noise_channel.get_num_parameters()
+        return None
+
+    @staticmethod
     def _validate_noise_channel_probability_params(noise_channel, param_values):
         """
         Raise `RuntimeError` if any `param` is a constant float outside [0, 1].
         """
-        if not hasattr(noise_channel, 'num_parameters'):
+        if not (hasattr(noise_channel, 'num_parameters') or
+                hasattr(noise_channel, 'get_num_parameters')):
             return
         for p in param_values:
             if isinstance(p, (int, float)):
@@ -1582,17 +1590,19 @@ class PyKernel(object):
             self.appliedNoiseChannels.append(noise_channel)
 
         if not issubclass(noise_channel, cudaq_runtime.KrausChannel):
-            if not hasattr(noise_channel, 'num_parameters'):
+            if not (hasattr(noise_channel, 'num_parameters') or
+                    hasattr(noise_channel, 'get_num_parameters')):
                 emitFatalError(
                     'apply_noise kraus channels must have `num_parameters` '
                     'constant class attribute specified.')
 
+            n_params = self._get_num_parameters(noise_channel)
             # We needs to have noise channel parameters + qubit arguments
             if isinstance(args[0], list):
-                if len(args[0]) != noise_channel.num_parameters:
+                if len(args[0]) != n_params:
                     emitFatalError(f"Invalid number of arguments passed to "
                                    f"apply_noise for channel `{noise_channel}`")
-            elif len(args) <= noise_channel.num_parameters:
+            elif len(args) <= n_params:
                 emitFatalError(f"Invalid number of arguments passed to "
                                f"apply_noise for channel `{noise_channel}`")
 
@@ -1616,11 +1626,12 @@ class PyKernel(object):
                         emitFatalError("Invalid qubit operand type")
                     target_qubits.append(p.mlirValue)
             else:
-                param_values = args[:noise_channel.num_parameters]
+                n_params = self._get_num_parameters(noise_channel)
+                param_values = args[:n_params]
                 self._validate_noise_channel_probability_params(
                     noise_channel, param_values)
                 for i, p in enumerate(args):
-                    if i < noise_channel.num_parameters:
+                    if i < n_params:
                         noise_channel_params.append(
                             self.process_channel_param(p))
                     else:
@@ -1647,7 +1658,7 @@ class PyKernel(object):
             pm = PassManager.parse("builtin.module(aot-prep-pipeline)",
                                    context=ctx)
             try:
-                pm.run(self.qkeModule)
+                cudaq_runtime.runPassManager(pm, self.qkeModule)
             except:
                 raise RuntimeError("could not compile code for '" +
                                    self.uniqName + "'.")

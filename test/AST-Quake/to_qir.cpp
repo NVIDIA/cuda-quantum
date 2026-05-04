@@ -33,33 +33,32 @@ struct kernel {
 
 // clang-format off
 // CHECK-LABEL: define void @__nvqpp__mlirgen__kernel()
-// CHECK:         %[[VAL_0:.*]] = tail call %[[VAL_1:.*]]* @__quantum__rt__qubit_allocate_array(i64 3)
-// CHECK:         %[[VAL_2:.*]] = tail call %[[VAL_3:.*]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 1)
-// CHECK:         %[[VAL_4:.*]] = load %[[VAL_3]]*, %[[VAL_3]]** %[[VAL_2]], align 8
-// CHECK:         tail call void @__quantum__qis__h(%[[VAL_3]]* %[[VAL_4]])
-// CHECK:         %[[VAL_5:.*]] = tail call %[[VAL_3]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 2)
-// CHECK:         %[[VAL_6:.*]] = load %[[VAL_3]]*, %[[VAL_3]]** %[[VAL_5]], align 8
-// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%[[VAL_1]]*, %[[VAL_3]]*)* @__quantum__qis__x__ctl to i8*), %[[VAL_3]]* %[[VAL_4]], %[[VAL_3]]* %[[VAL_6]])
-// CHECK:         %[[VAL_7:.*]] = tail call %[[VAL_3]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_1]]* %[[VAL_0]], i64 0)
-// CHECK:         %[[VAL_8:.*]] = load %[[VAL_3]]*, %[[VAL_3]]** %[[VAL_7]], align 8
-// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%[[VAL_1]]*, %[[VAL_3]]*)* @__quantum__qis__x__ctl to i8*), %[[VAL_3]]* %[[VAL_8]], %[[VAL_3]]* %[[VAL_4]])
-// CHECK:         tail call void @__quantum__qis__h(%[[VAL_3]]* %[[VAL_8]])
-// CHECK:         %[[VAL_9:.*]] = tail call %[[VAL_10:.*]]* @__quantum__qis__mz__to__register(%[[VAL_3]]* %[[VAL_8]], i8* nonnull getelementptr inbounds ([3 x i8], [3 x i8]* @cstr.623000, i64 0, i64 0))
-// CHECK:         %[[VAL_11:.*]] = tail call %[[VAL_10]]* @__quantum__qis__mz__to__register(%[[VAL_3]]* %[[VAL_4]], i8* nonnull getelementptr inbounds ([3 x i8], [3 x i8]* @cstr.623100, i64 0, i64 0))
-// CHECK:         %[[VAL_12:.*]] = bitcast %[[VAL_10]]* %[[VAL_11]] to i1*
-// CHECK:         %[[VAL_13:.*]] = load i1, i1* %[[VAL_12]], align 1
-// CHECK:         br i1 %[[VAL_13]], label %[[VAL_14:.*]], label %[[VAL_15:.*]]
+// CHECK:         %[[VAL_0:.*]] = tail call ptr @__quantum__rt__qubit_allocate_array(i64 3)
+// CHECK:         %[[VAL_2:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_0]], i64 1)
+// CHECK:         %[[VAL_4:.*]] = load ptr, ptr %[[VAL_2]], align 8
+// CHECK:         tail call void @__quantum__qis__h(ptr %[[VAL_4]])
+// CHECK:         %[[VAL_5:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_0]], i64 2)
+// CHECK:         %[[VAL_6:.*]] = load ptr, ptr %[[VAL_5]], align 8
+// CHECK:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, ptr nonnull @__quantum__qis__x__ctl, ptr %[[VAL_4]], ptr %[[VAL_6]])
+// CHECK:         %[[VAL_7:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_0]], i64 0)
+// CHECK:         %[[VAL_8:.*]] = load ptr, ptr %[[VAL_7]], align 8
+// CHECK:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, ptr nonnull @__quantum__qis__x__ctl, ptr %[[VAL_8]], ptr %[[VAL_4]])
+// CHECK:         tail call void @__quantum__qis__h(ptr %[[VAL_8]])
+// CHECK:         %[[VAL_9:.*]] = tail call ptr @__quantum__qis__mz__to__register(ptr %[[VAL_8]], ptr nonnull @cstr.623000)
+// CHECK-DAG:     %[[VAL_10:.*]] = load i1, ptr %[[VAL_9]], align 1
+// CHECK-DAG:     %[[VAL_11:.*]] = tail call ptr @__quantum__qis__mz__to__register(ptr %[[VAL_4]], ptr nonnull @cstr.623100)
+// CHECK:         %[[VAL_12:.*]] = load i1, ptr %[[VAL_11]], align 1
+// CHECK:         br i1 %[[VAL_12]], label %[[VAL_14:.*]], label %[[VAL_15:.*]]
 // CHECK:       {{[0-9]+}}:
-// CHECK:         tail call void @__quantum__qis__x(%[[VAL_3]]* %[[VAL_6]])
+// CHECK:         tail call void @__quantum__qis__x(ptr %[[VAL_6]])
 // CHECK:         br label %[[VAL_15]]
 // CHECK:       {{[0-9]+}}:
-// CHECK:         %[[VAL_16:.*]] = bitcast %[[VAL_10]]* %[[VAL_9]] to i1*
-// CHECK:         %[[VAL_17:.*]] = load i1, i1* %[[VAL_16]], align 1
-// CHECK:         br i1 %[[VAL_17]], label %[[VAL_18:.*]], label %[[VAL_19:.*]]
+// CHECK:         br i1 %[[VAL_10]], label %[[VAL_18:.*]], label %[[VAL_19:.*]]
 // CHECK:       {{[0-9]+}}:
-// CHECK:         tail call void @__quantum__qis__z(%[[VAL_3]]* %[[VAL_6]])
+// CHECK:         tail call void @__quantum__qis__z(ptr %[[VAL_6]])
 // CHECK:         br label %[[VAL_19]]
 // CHECK:       {{[0-9]+}}:
-// CHECK:         tail call void @__quantum__rt__qubit_release_array(%[[VAL_1]]* %[[VAL_0]])
+// CHECK:         tail call void @__quantum__rt__qubit_release_array(ptr %[[VAL_0]])
 // CHECK:         ret void
 // CHECK:       }
+

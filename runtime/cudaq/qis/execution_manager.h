@@ -12,6 +12,7 @@
 #include "common/NoiseModel.h"
 #include "common/QuditIdTracker.h"
 #include "common/SampleResult.h"
+#include "cudaq/algorithms/policies.h"
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
 #include <deque>
@@ -33,6 +34,45 @@ struct QuditInfo {
     return levels == other.levels && id == other.id;
   }
 };
+
+extern "C" {
+bool __nvqpp__MeasureResultBoolConversion(int);
+}
+
+#ifdef CUDAQ_LIBRARY_MODE
+
+/// In library mode, we model the return type of a qubit measurement result via
+/// the measure_result type. This allows us to keep track of when the result is
+/// implicitly cast to a boolean (likely in the case of conditional feedback),
+/// and affect the simulation accordingly.
+class measure_result {
+private:
+  /// The intrinsic measurement result
+  int result = 0;
+
+  /// Unique integer for measure result identification
+  [[maybe_unused]] std::size_t uniqueId = 0;
+
+public:
+  measure_result(int res, std::size_t id) : result(res), uniqueId(id) {}
+  measure_result(int res) : result(res) {}
+
+  operator int() const { return result; }
+  operator bool() const { return __nvqpp__MeasureResultBoolConversion(result); }
+
+  static std::vector<bool>
+  to_bool_vector(const std::vector<measure_result> &results) {
+    std::vector<bool> boolResults;
+    boolResults.reserve(results.size());
+    for (const auto &res : results)
+      boolResults.push_back(static_cast<bool>(res));
+    return boolResults;
+  }
+};
+#else
+/// When compiling with MLIR, we default to a boolean.
+using measure_result = bool;
+#endif
 
 /// The ExecutionManager provides a base class describing a concrete sub-system
 /// for allocating qudits and executing quantum instructions on those qudits.
@@ -75,7 +115,12 @@ public:
   virtual void configureExecutionContext(ExecutionContext &ctx) {}
 
   /// Finalize the execution context after an execution.
-  virtual void finalizeExecutionContext(ExecutionContext &ctx) {}
+  void finalizeExecutionContext(ExecutionContext &ctx);
+
+  virtual void finalizeExecutionContext(const other_policies &policy,
+                                        ExecutionContext &ctx) {}
+  virtual sample_result finalizeExecutionContext(const sample_policy &policy,
+                                                 ExecutionContext &ctx) = 0;
 
   /// Set up the execution manager for a new execution.
   virtual void beginExecution() {}
@@ -159,6 +204,16 @@ public:
 
   virtual ~ExecutionManager() = default;
 };
+
+inline sample_result finalize_execution_manager_impl(
+    ExecutionManager &mgr, const sample_policy &policy, ExecutionContext &ctx) {
+  return mgr.finalizeExecutionContext(policy, ctx);
+}
+
+inline void finalize_execution_manager_impl(ExecutionManager &mgr,
+                                            ExecutionContext &ctx) {
+  mgr.finalizeExecutionContext(other_policies{}, ctx);
+}
 
 // Function declaration, implemented by the macro expansion below
 ExecutionManager *getRegisteredExecutionManager();

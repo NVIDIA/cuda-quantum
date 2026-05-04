@@ -302,7 +302,7 @@ def test_sample_adjoint_qreg():
 # CHECK:           } {invariant}
 # CHECK:           call @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}}(%[[VAL_3]]) : (!quake.veq<?>) -> ()
 # CHECK:           quake.apply<adj> @__nvqpp__mlirgen__PythonKernelBuilderInstance{{.*}} %[[VAL_3]] : (!quake.veq<?>) -> ()
-# CHECK:           %[[VAL_13:.*]] = quake.mz %0 : (!quake.veq<?>) -> !quake.measurements<?>
+# CHECK:           %[[VAL_13:.*]] = quake.mz %0 : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
 # CHECK:           return
 # CHECK:         }
 

@@ -28,7 +28,7 @@ bool QuakeBridgeVisitor::VisitBreakStmt(clang::BreakStmt *x) {
   // statement. The bridge does not currently support switch statements.
   LLVM_DEBUG(llvm::dbgs() << "%% "; x->dump());
   if (builder.getBlock())
-    builder.create<cc::UnwindBreakOp>(toLocation(x));
+    cc::UnwindBreakOp::create(builder, toLocation(x));
   return true;
 }
 
@@ -36,7 +36,7 @@ bool QuakeBridgeVisitor::VisitContinueStmt(clang::ContinueStmt *x) {
   // It is a C++ syntax error if a continue statement is not in a loop.
   LLVM_DEBUG(llvm::dbgs() << "%% "; x->dump());
   if (builder.getBlock())
-    builder.create<cc::UnwindContinueOp>(toLocation(x));
+    cc::UnwindContinueOp::create(builder, toLocation(x));
   return true;
 }
 
@@ -69,53 +69,53 @@ bool QuakeBridgeVisitor::VisitCompoundAssignOperator(
     switch (x->getOpcode()) {
     case clang::BinaryOperatorKind::BO_AddAssign: {
       if (x->getType()->isIntegerType())
-        return builder.create<mlir::arith::AddIOp>(loc, lhs, rhs);
+        return mlir::arith::AddIOp::create(builder, loc, lhs, rhs);
       if (x->getType()->isFloatingType())
-        return builder.create<mlir::arith::AddFOp>(loc, lhs, rhs);
+        return mlir::arith::AddFOp::create(builder, loc, lhs, rhs);
       TODO_loc(loc, "Unknown type in assignment operator");
     }
     case clang::BinaryOperatorKind::BO_SubAssign: {
       if (x->getType()->isIntegerType())
-        return builder.create<mlir::arith::SubIOp>(loc, lhs, rhs);
+        return mlir::arith::SubIOp::create(builder, loc, lhs, rhs);
       if (x->getType()->isFloatingType())
-        return builder.create<mlir::arith::SubFOp>(loc, lhs, rhs);
+        return mlir::arith::SubFOp::create(builder, loc, lhs, rhs);
       TODO_loc(loc, "Unknown type in assignment operator");
     }
     case clang::BinaryOperatorKind::BO_MulAssign: {
       if (x->getType()->isIntegerType())
-        return builder.create<mlir::arith::MulIOp>(loc, lhs, rhs);
+        return mlir::arith::MulIOp::create(builder, loc, lhs, rhs);
       if (x->getType()->isFloatingType())
-        return builder.create<mlir::arith::MulFOp>(loc, lhs, rhs);
+        return mlir::arith::MulFOp::create(builder, loc, lhs, rhs);
       TODO_loc(loc, "Unknown type in assignment operator");
     }
     case clang::BinaryOperatorKind::BO_DivAssign: {
       if (x->getType()->isIntegerType())
         if (x->getType()->isUnsignedIntegerOrEnumerationType())
-          return builder.create<mlir::arith::DivUIOp>(loc, lhs, rhs);
-      return builder.create<mlir::arith::DivSIOp>(loc, lhs, rhs);
+          return mlir::arith::DivUIOp::create(builder, loc, lhs, rhs);
+      return mlir::arith::DivSIOp::create(builder, loc, lhs, rhs);
       if (x->getType()->isFloatingType())
-        return builder.create<mlir::arith::DivFOp>(loc, lhs, rhs);
+        return mlir::arith::DivFOp::create(builder, loc, lhs, rhs);
       TODO_loc(loc, "Unknown type in assignment operator");
     }
     case clang::BinaryOperatorKind::BO_ShlAssign:
-      return builder.create<mlir::arith::ShLIOp>(loc, lhs, rhs);
+      return mlir::arith::ShLIOp::create(builder, loc, lhs, rhs);
     case clang::BinaryOperatorKind::BO_ShrAssign:
       if (x->getType()->isUnsignedIntegerOrEnumerationType())
-        return builder.create<mlir::arith::ShRUIOp>(loc, lhs, rhs);
-      return builder.create<mlir::arith::ShRSIOp>(loc, lhs, rhs);
+        return mlir::arith::ShRUIOp::create(builder, loc, lhs, rhs);
+      return mlir::arith::ShRSIOp::create(builder, loc, lhs, rhs);
     case clang::BinaryOperatorKind::BO_OrAssign:
-      return builder.create<mlir::arith::OrIOp>(loc, lhs, rhs);
+      return mlir::arith::OrIOp::create(builder, loc, lhs, rhs);
     case clang::BinaryOperatorKind::BO_XorAssign:
-      return builder.create<mlir::arith::XOrIOp>(loc, lhs, rhs);
+      return mlir::arith::XOrIOp::create(builder, loc, lhs, rhs);
     case clang::BinaryOperatorKind::BO_AndAssign:
-      return builder.create<mlir::arith::AndIOp>(loc, lhs, rhs);
+      return mlir::arith::AndIOp::create(builder, loc, lhs, rhs);
     default:
       break;
     }
     TODO_loc(loc, "assignment operator");
   }();
 
-  builder.create<cudaq::cc::StoreOp>(loc, result, lhsPtr);
+  cudaq::cc::StoreOp::create(builder, loc, result, lhsPtr);
   return pushValue(lhsPtr);
 }
 
@@ -151,7 +151,7 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
     auto [iters, ptr, initial,
           stepBy] = [&]() -> std::tuple<Value, Value, Value, Value> {
       if (auto call = buffer.getDefiningOp<func::CallOp>()) {
-        if (call.getCallee().equals(setCudaqRangeVector)) {
+        if (call.getCallee() == setCudaqRangeVector) {
           // The std::vector was produced by cudaq::range(). Optimize this
           // special case to use the loop control directly. Erase the transient
           // buffer and call here since neither is required.
@@ -164,7 +164,7 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
             call->erase();
           }
           return {i, {}, {}, {}};
-        } else if (call.getCallee().equals(setCudaqRangeVectorTriple)) {
+        } else if (call.getCallee() == setCudaqRangeVectorTriple) {
           // Save operands before erasing the call.
           Value initial = call.getOperand(1);
           Value i = call.getOperand(2);
@@ -173,7 +173,7 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
             Operation *callGetSizeOp = nullptr;
             if (auto seqSize = alloc.getSeqSize()) {
               if (auto callSize = seqSize.getDefiningOp<func::CallOp>())
-                if (callSize.getCallee().equals(getCudaqSizeFromTriple))
+                if (callSize.getCallee() == getCudaqSizeFromTriple)
                   callGetSizeOp = callSize.getOperation();
             }
             call->erase(); // erase call must be first
@@ -187,8 +187,8 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
           return {i, {}, initial, stepBy};
         }
       }
-      Value i = builder.create<cc::StdvecSizeOp>(loc, i64Ty, buffer);
-      Value p = builder.create<cc::StdvecDataOp>(loc, dataArrPtrTy, buffer);
+      Value i = cc::StdvecSizeOp::create(builder, loc, i64Ty, buffer);
+      Value p = cc::StdvecDataOp::create(builder, loc, dataArrPtrTy, buffer);
       return {i, p, {}, {}};
     }();
 
@@ -206,7 +206,7 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
           symbolTable.insert(loopVar->getName(), index);
         } else {
           Value addr =
-              builder.create<cc::ComputePtrOp>(loc, dataPtrTy, ptr, index);
+              cc::ComputePtrOp::create(builder, loc, dataPtrTy, ptr, index);
           if (loopVar->getType().isConstQualified()) {
             // Read-only binding, so omit copy.
             symbolTable.insert(loopVar->getName(), addr);
@@ -220,88 +220,48 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
               return;
             }
             auto iterVar = popValue();
-            Value atOffset = builder.create<cc::LoadOp>(loc, addr);
+            Value atOffset = cc::LoadOp::create(builder, loc, addr);
             if (isBool)
-              atOffset = builder.create<cc::CastOp>(loc, builder.getI1Type(),
-                                                    atOffset);
-            builder.create<cc::StoreOp>(loc, atOffset, iterVar);
+              atOffset = cc::CastOp::create(builder, loc, builder.getI1Type(),
+                                            atOffset);
+            cc::StoreOp::create(builder, loc, atOffset, iterVar);
           }
         }
         if (!TraverseStmt(static_cast<clang::Stmt *>(body))) {
           result = false;
           return;
         }
-        builder.create<cc::ContinueOp>(loc);
+        cc::ContinueOp::create(builder, loc);
       };
-      builder.create<cc::ScopeOp>(loc, scopeBuilder);
+      cc::ScopeOp::create(builder, loc, scopeBuilder);
     };
 
     if (!initial) {
-      auto idxIters = builder.create<cudaq::cc::CastOp>(
-          loc, i64Ty, iters, cudaq::cc::CastOpMode::Unsigned);
+      auto idxIters = cudaq::cc::CastOp::create(
+          builder, loc, i64Ty, iters, cudaq::cc::CastOpMode::Unsigned);
       opt::factory::createInvariantLoop(builder, loc, idxIters, bodyBuilder);
     } else {
-      auto idxIters = builder.create<cudaq::cc::CastOp>(
-          loc, i64Ty, iters, cudaq::cc::CastOpMode::Signed);
+      auto idxIters = cudaq::cc::CastOp::create(builder, loc, i64Ty, iters,
+                                                cudaq::cc::CastOpMode::Signed);
       opt::factory::createMonotonicLoop(builder, loc, initial, idxIters, stepBy,
                                         bodyBuilder);
     }
   } else if (auto veqTy = dyn_cast<quake::VeqType>(buffer.getType());
              veqTy && veqTy.hasSpecifiedSize()) {
-    Value iters =
-        builder.create<arith::ConstantIntOp>(loc, veqTy.getSize(), i64Ty);
+    Value iters = arith::ConstantIntOp::create(
+        builder, loc, i64Ty, static_cast<int64_t>(veqTy.getSize()));
     auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &region,
                            Block &block) {
       OpBuilder::InsertionGuard guard(builder);
       builder.setInsertionPointToStart(&block);
       Value index = block.getArgument(0);
-      Value ref = builder.create<quake::ExtractRefOp>(loc, buffer, index);
+      Value ref = quake::ExtractRefOp::create(builder, loc, buffer, index);
       symbolTable.insert(loopVar->getName(), ref);
       if (!TraverseStmt(static_cast<clang::Stmt *>(body)))
         result = false;
     };
-    auto idxIters = builder.create<cudaq::cc::CastOp>(
-        loc, i64Ty, iters, cudaq::cc::CastOpMode::Unsigned);
-    opt::factory::createInvariantLoop(builder, loc, idxIters, bodyBuilder);
-  } else if (auto measTy =
-                 dyn_cast<quake::MeasurementsType>(buffer.getType())) {
-    Value iters;
-    if (measTy.hasSpecifiedSize()) {
-      iters =
-          builder.create<arith::ConstantIntOp>(loc, measTy.getSize(), i64Ty);
-    } else if (auto measIface = dyn_cast_or_null<quake::MeasurementInterface>(
-                   buffer.getDefiningOp())) {
-      // Derive the iteration count from the measurement op's qubit targets.
-      for (auto target : measIface.getTargets()) {
-        Value count;
-        if (auto veqTy = dyn_cast<quake::VeqType>(target.getType())) {
-          if (veqTy.hasSpecifiedSize())
-            count = builder.create<arith::ConstantIntOp>(loc, veqTy.getSize(),
-                                                         i64Ty);
-          else
-            count = builder.create<quake::VeqSizeOp>(loc, i64Ty, target);
-        } else {
-          count = builder.create<arith::ConstantIntOp>(loc, 1, i64Ty);
-        }
-        iters =
-            iters ? builder.create<arith::AddIOp>(loc, iters, count).getResult()
-                  : count;
-      }
-    } else {
-      iters = builder.create<quake::MeasurementsSizeOp>(loc, i64Ty, buffer);
-    }
-    auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &region,
-                           Block &block) {
-      OpBuilder::InsertionGuard guard(builder);
-      builder.setInsertionPointToStart(&block);
-      Value index = block.getArgument(0);
-      Value measure = builder.create<quake::GetMeasureOp>(loc, buffer, index);
-      symbolTable.insert(loopVar->getName(), measure);
-      if (!TraverseStmt(static_cast<clang::Stmt *>(body)))
-        result = false;
-    };
-    auto idxIters = builder.create<cudaq::cc::CastOp>(
-        loc, i64Ty, iters, cudaq::cc::CastOpMode::Unsigned);
+    auto idxIters = cudaq::cc::CastOp::create(builder, loc, i64Ty, iters,
+                                              cudaq::cc::CastOpMode::Unsigned);
     opt::factory::createInvariantLoop(builder, loc, idxIters, bodyBuilder);
   } else {
     TODO_x(toLocation(x), x, mangler, "ranged for statement");
@@ -367,29 +327,13 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *x) {
     if (isa<cc::PointerType>(resTy)) {
       // Promote reference (T&) to value (T) on a return. (There is not
       // necessarily an explicit cast or promotion node in the AST.)
-      auto load = builder.create<cc::LoadOp>(loc, result);
+      auto load = cc::LoadOp::create(builder, loc, result);
       result = load.getResult();
       if (load.getType() == builder.getI8Type()) {
         auto fnTy = load->getParentOfType<func::FuncOp>().getFunctionType();
         auto i1Ty = builder.getI1Type();
         if (fnTy.getNumResults() == 1 && fnTy.getResult(0) == i1Ty)
-          result = builder.create<cc::CastOp>(loc, i1Ty, result);
-      }
-    }
-    // Relax sized measurements to unsized when the function expects unsized.
-    if (auto measTy = dyn_cast<quake::MeasurementsType>(result.getType())) {
-      auto *parentOp = builder.getBlock()->getParentOp();
-      auto funcOp = dyn_cast<func::FuncOp>(parentOp);
-      if (!funcOp)
-        funcOp = parentOp->getParentOfType<func::FuncOp>();
-      if (funcOp) {
-        auto fnTy = funcOp.getFunctionType();
-        if (fnTy.getNumResults() == 1)
-          if (auto fnResMeasTy =
-                  dyn_cast<quake::MeasurementsType>(fnTy.getResult(0)))
-            if (measTy != fnResMeasTy)
-              result =
-                  builder.create<quake::RelaxSizeOp>(loc, fnResMeasTy, result);
+          result = cc::CastOp::create(builder, loc, i1Ty, result);
       }
     }
     if (auto vecTy = dyn_cast<cc::SpanLikeType>(resTy)) {
@@ -402,16 +346,15 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *x) {
       auto eleTy = vecTy.getElementType();
       auto createVectorInit = [&](Value eleSize) {
         auto ptrTy = cudaq::cc::PointerType::get(builder.getI8Type());
-        Value resBuff = builder.create<cc::StdvecDataOp>(loc, ptrTy, result);
-        Value dynSize =
-            builder.create<cc::StdvecSizeOp>(loc, builder.getI64Type(), result);
+        Value resBuff = cc::StdvecDataOp::create(builder, loc, ptrTy, result);
+        Value dynSize = cc::StdvecSizeOp::create(builder, loc,
+                                                 builder.getI64Type(), result);
         Value heapCopy =
-            builder
-                .create<func::CallOp>(loc, ptrTy, "__nvqpp_vectorCopyCtor",
-                                      ValueRange{resBuff, dynSize, eleSize})
+            func::CallOp::create(builder, loc, ptrTy, "__nvqpp_vectorCopyCtor",
+                                 ValueRange{resBuff, dynSize, eleSize})
                 .getResult(0);
-        return builder.create<cc::StdvecInitOp>(loc, resTy,
-                                                ValueRange{heapCopy, dynSize});
+        return cc::StdvecInitOp::create(builder, loc, resTy,
+                                        ValueRange{heapCopy, dynSize});
       };
       IRBuilder irb(builder);
       Value tySize;
@@ -427,15 +370,15 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *x) {
       result = createVectorInit(tySize);
     }
     if (isFuncScope)
-      builder.create<cc::ReturnOp>(loc, result);
+      cc::ReturnOp::create(builder, loc, result);
     else
-      builder.create<cc::UnwindReturnOp>(loc, result);
+      cc::UnwindReturnOp::create(builder, loc, result);
     return true;
   }
   if (isFuncScope)
-    builder.create<cc::ReturnOp>(loc);
+    cc::ReturnOp::create(builder, loc);
   else
-    builder.create<cc::UnwindReturnOp>(loc);
+    cc::UnwindReturnOp::create(builder, loc);
   return true;
 }
 
@@ -463,10 +406,10 @@ bool QuakeBridgeVisitor::TraverseCompoundStmt(clang::CompoundStmt *stmt,
       traverseAndCheck(static_cast<clang::Stmt *>(cs));
     return true;
   }
-  builder.create<cc::ScopeOp>(loc, [&](OpBuilder &builder, Location loc) {
+  cc::ScopeOp::create(builder, loc, [&](OpBuilder &builder, Location loc) {
     for (auto *cs : stmt->body())
       traverseAndCheck(static_cast<clang::Stmt *>(cs));
-    builder.create<cc::ContinueOp>(loc);
+    cc::ContinueOp::create(builder, loc);
   });
   return true;
 }
@@ -489,7 +432,7 @@ bool QuakeBridgeVisitor::traverseDoOrWhileStmt(S *x) {
       return;
     }
     auto val = popValue();
-    builder.create<cc::ConditionOp>(loc, val, ValueRange{});
+    cc::ConditionOp::create(builder, loc, val, ValueRange{});
   };
   auto *body = x->getBody();
   auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &region) {
@@ -504,11 +447,11 @@ bool QuakeBridgeVisitor::traverseDoOrWhileStmt(S *x) {
       return;
     }
     if (!hasTerminator(region.back()))
-      builder.create<cc::ContinueOp>(loc);
+      cc::ContinueOp::create(builder, loc);
   };
   LLVM_DEBUG(llvm::dbgs() << "%% "; x->dump());
-  builder.create<cc::LoopOp>(loc, ValueRange{}, postCondition, whileBuilder,
-                             bodyBuilder);
+  cc::LoopOp::create(builder, loc, ValueRange{}, postCondition, whileBuilder,
+                     bodyBuilder);
   return result;
 }
 
@@ -539,27 +482,26 @@ bool QuakeBridgeVisitor::TraverseIfStmt(clang::IfStmt *x,
         return;
       }
       if (!hasTerminator(region.back()))
-        builder.create<cc::ContinueOp>(loc);
+        cc::ContinueOp::create(builder, loc);
     };
   };
   auto *cond = x->getCond();
   assert(cond && "if statement should have a condition");
   LLVM_DEBUG(llvm::dbgs() << "%% "; x->dump());
   if (auto *init = x->getInit()) {
-    builder.create<cc::ScopeOp>(loc, [&](OpBuilder &builder, Location loc) {
+    cc::ScopeOp::create(builder, loc, [&](OpBuilder &builder, Location loc) {
       SymbolTableScope varScope(symbolTable);
       if (!TraverseStmt(init) || !TraverseStmt(cond)) {
         result = false;
         return;
       }
       if (x->getElse())
-        builder.create<cc::IfOp>(loc, TypeRange{}, popValue(),
-                                 stmtBuilder(x->getThen()),
-                                 stmtBuilder(x->getElse()));
+        cc::IfOp::create(builder, loc, TypeRange{}, popValue(),
+                         stmtBuilder(x->getThen()), stmtBuilder(x->getElse()));
       else
-        builder.create<cc::IfOp>(loc, TypeRange{}, popValue(),
-                                 stmtBuilder(x->getThen()));
-      builder.create<cc::ContinueOp>(loc);
+        cc::IfOp::create(builder, loc, TypeRange{}, popValue(),
+                         stmtBuilder(x->getThen()));
+      cc::ContinueOp::create(builder, loc);
     });
   } else {
     // If there is no initialization expression, skip creating an `if` scope.
@@ -572,19 +514,18 @@ bool QuakeBridgeVisitor::TraverseIfStmt(clang::IfStmt *x,
     // and add the required a load and cast.
     if (auto ptrTy = dyn_cast<cc::PointerType>(peekValue().getType())) {
       Value v = popValue();
-      pushValue(builder.create<cc::LoadOp>(loc, v));
+      pushValue(cc::LoadOp::create(builder, loc, v));
       if (ptrTy != builder.getI1Type()) {
         reportClangError(x, mangler,
                          "expression in condition not yet supported");
       }
     }
     if (x->getElse())
-      builder.create<cc::IfOp>(loc, TypeRange{}, popValue(),
-                               stmtBuilder(x->getThen()),
-                               stmtBuilder(x->getElse()));
+      cc::IfOp::create(builder, loc, TypeRange{}, popValue(),
+                       stmtBuilder(x->getThen()), stmtBuilder(x->getElse()));
     else
-      builder.create<cc::IfOp>(loc, TypeRange{}, popValue(),
-                               stmtBuilder(x->getThen()));
+      cc::IfOp::create(builder, loc, TypeRange{}, popValue(),
+                       stmtBuilder(x->getThen()));
   }
   return result;
 }
@@ -607,7 +548,7 @@ bool QuakeBridgeVisitor::TraverseForStmt(clang::ForStmt *x,
       return;
     }
     auto val = popValue();
-    builder.create<cc::ConditionOp>(loc, val, ValueRange{});
+    cc::ConditionOp::create(builder, loc, val, ValueRange{});
   };
   auto *body = x->getBody();
   auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &region) {
@@ -622,7 +563,7 @@ bool QuakeBridgeVisitor::TraverseForStmt(clang::ForStmt *x,
       return;
     }
     if (!hasTerminator(region.back()))
-      builder.create<cc::ContinueOp>(loc);
+      cc::ContinueOp::create(builder, loc);
   };
   auto *incr = x->getInc();
   auto stepBuilder = [&](OpBuilder &builder, Location loc, Region &region) {
@@ -640,19 +581,19 @@ bool QuakeBridgeVisitor::TraverseForStmt(clang::ForStmt *x,
   LLVM_DEBUG(llvm::dbgs() << "%% "; x->dump());
   if (auto *init = x->getInit()) {
     SymbolTableScope var_scope(symbolTable);
-    builder.create<cc::ScopeOp>(loc, [&](OpBuilder &builder, Location loc) {
+    cc::ScopeOp::create(builder, loc, [&](OpBuilder &builder, Location loc) {
       if (!TraverseStmt(static_cast<clang::Stmt *>(init))) {
         result = false;
         return;
       }
-      builder.create<cc::LoopOp>(loc, ValueRange{}, postCondition, whileBuilder,
-                                 bodyBuilder, stepBuilder);
-      builder.create<cc::ContinueOp>(loc);
+      cc::LoopOp::create(builder, loc, ValueRange{}, postCondition,
+                         whileBuilder, bodyBuilder, stepBuilder);
+      cc::ContinueOp::create(builder, loc);
     });
   } else {
     // If there is no initialization expression, skip creating a `for` scope.
-    builder.create<cc::LoopOp>(loc, ValueRange{}, postCondition, whileBuilder,
-                               bodyBuilder);
+    cc::LoopOp::create(builder, loc, ValueRange{}, postCondition, whileBuilder,
+                       bodyBuilder);
   }
   const auto finalValueDepth = valueStack.size();
   if (finalValueDepth > initialValueDepth) {

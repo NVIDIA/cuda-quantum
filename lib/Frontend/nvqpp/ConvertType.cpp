@@ -124,21 +124,13 @@ static bool isFunctionCallable(Type t) {
   return false;
 }
 
-static bool isMeasureType(Type t) {
-  if (isa<quake::MeasureType, quake::MeasurementsType>(t))
-    return true;
-  if (auto vec = dyn_cast<cudaq::cc::SpanLikeType>(t))
-    return isMeasureType(vec.getElementType());
-  return false;
-}
-
 /// Return true if and only if \p t is a (simple) arithmetic type, an arithmetic
 /// sequence type (possibly dynamic in length), or a static product type of
 /// arithmetic types. Note that this means a product type with a dynamic
 /// sequence of arithmetic types is \em disallowed.
 static bool isKernelResultType(Type t) {
   return isArithmeticType(t) || isArithmeticSequenceType(t) ||
-         isStaticArithmeticProductType(t) || isMeasureType(t);
+         isStaticArithmeticProductType(t);
 }
 
 /// Return true if and only if \p t is a (simple) arithmetic type, an possibly
@@ -147,7 +139,7 @@ static bool isKernelResultType(Type t) {
 static bool isKernelArgumentType(Type t) {
   return isArithmeticType(t) || isComposedArithmeticType(t) ||
          quake::isQuantumReferenceType(t) || isKernelCallable(t) ||
-         isFunctionCallable(t) || isMeasureType(t) ||
+         isFunctionCallable(t) ||
          // TODO: move from pointers to a builtin string type.
          cudaq::isCharPointerType(t);
 }
@@ -183,7 +175,8 @@ QuakeBridgeVisitor::findCallOperator(const clang::CXXRecordDecl *decl) {
   return nullptr;
 }
 
-bool QuakeBridgeVisitor::TraverseRecordType(clang::RecordType *t) {
+bool QuakeBridgeVisitor::TraverseRecordType(clang::RecordType *t,
+                                            bool &visitChildren) {
   auto *recDecl = t->getDecl();
 
   if (ignoredClass(recDecl))
@@ -230,10 +223,10 @@ std::pair<std::uint64_t, unsigned>
 QuakeBridgeVisitor::getWidthAndAlignment(clang::RecordDecl *x) {
   auto *defn = x->getDefinition();
   assert(defn && "struct must be defined here");
-  auto *ty = defn->getTypeForDecl();
-  if (ty->isDependentType())
+  auto qualTy = getContext()->getCanonicalTagType(defn);
+  if (qualTy->isDependentType())
     return {0, 0};
-  auto ti = getContext()->getTypeInfo(ty);
+  auto ti = getContext()->getTypeInfo(qualTy);
   return {ti.Width, llvm::PowerOf2Ceil(ti.Align) / 8};
 }
 
@@ -457,8 +450,7 @@ bool QuakeBridgeVisitor::VisitLValueReferenceType(
     return pushType(cc::PointerType::get(builder.getContext()));
   auto eleTy = popType();
   if (isa<cc::CallableType, cc::IndirectCallableType, cc::SpanLikeType,
-          quake::VeqType, quake::RefType, quake::StruqType, quake::MeasureType,
-          quake::MeasurementsType>(eleTy))
+          quake::VeqType, quake::RefType, quake::StruqType>(eleTy))
     return pushType(eleTy);
   return pushType(cc::PointerType::get(eleTy));
 }
@@ -471,8 +463,7 @@ bool QuakeBridgeVisitor::VisitRValueReferenceType(
   // FIXME: LLVMStructType is promoted as a temporary workaround.
   if (isa<cc::ArrayType, cc::CallableType, cc::IndirectCallableType,
           cc::SpanLikeType, cc::StructType, quake::VeqType, quake::RefType,
-          quake::StruqType, quake::MeasureType, quake::MeasurementsType,
-          LLVM::LLVMStructType>(eleTy))
+          quake::StruqType, LLVM::LLVMStructType>(eleTy))
     return pushType(eleTy);
   return pushType(cc::PointerType::get(eleTy));
 }

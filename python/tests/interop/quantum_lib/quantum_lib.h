@@ -9,7 +9,6 @@
 #pragma once
 
 #include "cudaq/qis/qubit_qis.h"
-#include <pybind11/pybind11.h>
 
 namespace cudaq {
 

@@ -48,3 +48,7 @@
 [submodule "tpls/Stim"]
 	path = tpls/Stim
 	url = https://github.com/quantumlib/Stim
+[submodule "tpls/nanobind"]
+	path = tpls/nanobind
+	url = https://github.com/wjakob/nanobind.git
+	ignore = dirty

@@ -9,6 +9,7 @@
 #include "common/FmtCore.h"
 #include "nvqir/CircuitSimulator.h"
 #include "stim.h"
+#include <cmath>
 #include <numeric>
 
 using namespace cudaq;
@@ -400,6 +401,11 @@ protected:
            paulis.find(gateName[1]) != std::string::npos;
   }
 
+  static bool isApproxAngle(double value, double target) {
+    constexpr double tolerance = 1e-12;
+    return std::abs(value - target) < tolerance;
+  }
+
   void applyGate(const GateApplicationTask &task) override {
     std::string gateName(task.operationName);
     std::transform(gateName.begin(), gateName.end(), gateName.begin(),
@@ -430,7 +436,26 @@ protected:
           fmt::format("Gate not supported by Stim simulator: {}. Note that "
                       "Stim can only simulate Clifford gates.",
                       task.operationName));
-    else if (gateName == "SDG")
+    else if (gateName == "R1") {
+      if (task.parameters.size() != 1)
+        throw std::runtime_error(
+            fmt::format("Gate not supported by Stim simulator: {}. Note that "
+                        "Stim can only simulate Clifford gates.",
+                        task.operationName));
+
+      auto angle = task.parameters.front();
+      if (isApproxAngle(angle, M_PI_2))
+        gateName = "S";
+      else if (isApproxAngle(angle, -M_PI_2))
+        gateName = "S_DAG";
+      else if (isApproxAngle(angle, M_PI) || isApproxAngle(angle, -M_PI))
+        gateName = "Z";
+      else
+        throw std::runtime_error(
+            fmt::format("Gate not supported by Stim simulator: {}({}). Note "
+                        "that Stim can only simulate Clifford gates.",
+                        task.operationName, angle));
+    } else if (gateName == "SDG")
       gateName = "S_DAG";
     else if (gateName == "ID")
       gateName = "I";
@@ -610,6 +635,13 @@ public:
   bool isStateVectorSimulator() const override { return false; }
 
   std::string name() const override { return "stim"; }
+
+  std::unique_ptr<cudaq::SimulationState>
+  createStateFromData(const cudaq::state_data &) override {
+    throw std::runtime_error(
+        "Simulation data not available for the stim simulator backend.");
+  }
+
   NVQIR_SIMULATOR_CLONE_IMPL(StimCircuitSimulator)
 };
 

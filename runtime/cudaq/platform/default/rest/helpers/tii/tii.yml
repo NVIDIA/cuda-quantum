@@ -19,6 +19,7 @@ config:
   # Add preprocessor defines to compilation
   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
   # Define the JIT lowering pipelines
+  jit-high-level-pipeline: "expand-measurements"
   jit-mid-level-pipeline: "lower-to-cfg,func.func(canonicalize,multicontrol-decomposition),decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,x(1)},quake-to-cc-prep,func.func(expand-control-veqs,canonicalize),symbol-dce"
   codegen-emission: qasm2
   # Library mode is only for simulators, physical backends must turn this off

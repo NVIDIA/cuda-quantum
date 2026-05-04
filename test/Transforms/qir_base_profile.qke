@@ -190,7 +190,7 @@ module attributes {cc.sizeof_string = 32 : i64, llvm.data_layout = "e-m:e-p270:3
 // CHECK:         func.func private @__quantum__qis__exp_pauli__ctl(f64, !cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<i8>)
 // CHECK:         func.func private @__quantum__qis__custom_unitary(!cc.ptr<complex<f64>>, !cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<i8>)
 // CHECK:         func.func private @__quantum__qis__custom_unitary__adj(!cc.ptr<complex<f64>>, !cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<i8>)
-// CHECK:         llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !llvm.ptr<i8>, ...) attributes {sym_visibility = "private"}
+// CHECK:         llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !llvm.ptr, ...) attributes {sym_visibility = "private"}
 // CHECK:         func.func private @__quantum__qis__h__body(!cc.ptr<!llvm.struct<"Qubit", opaque>>)
 // CHECK:         func.func private @__quantum__qis__x__body(!cc.ptr<!llvm.struct<"Qubit", opaque>>)
 // CHECK:         func.func private @__quantum__qis__y__body(!cc.ptr<!llvm.struct<"Qubit", opaque>>)

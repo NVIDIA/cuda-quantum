@@ -68,7 +68,7 @@ void cudaq::RecordLogParser::handleHeader(
     const std::vector<std::string> &entries) {
   if (entries.size() < 3)
     throw std::runtime_error("Invalid HEADER record");
-  if (entries[1] == "schema_name") {
+  if (entries[1] == "schema_id") {
     if (entries[2] == "labeled")
       schema = RecordSchemaType::LABELED;
     else if (entries[2] == "ordered")

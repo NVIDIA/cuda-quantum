@@ -46,8 +46,8 @@ public:
     for (auto res : loop.getResults())
       afterBlock->addArgument(res.getType(), loop.getLoc());
     rewriter.setInsertionPointToEnd(oldLoopBlock);
-    auto finalBranch = rewriter.create<cf::BranchOp>(loop.getLoc(), afterBlock,
-                                                     loop.getResults());
+    auto finalBranch = cf::BranchOp::create(rewriter, loop.getLoc(), afterBlock,
+                                            loop.getResults());
     // NB: the results of the original loop are now split between the peeled
     // copy of body and the modified new loop. Introduce explicit block
     // arguments for the phi node functionality.
@@ -75,13 +75,13 @@ public:
     rewriter.cloneRegionBefore(loop.getBodyRegion(), newLoopBlock);
     Block *firstBlock = beforeBlock->getNextNode();
     rewriter.setInsertionPointToEnd(beforeBlock);
-    rewriter.create<cf::BranchOp>(loop.getLoc(), firstBlock, loopArgs);
+    cf::BranchOp::create(rewriter, loop.getLoc(), firstBlock, loopArgs);
 
     // Replace continue ops with branches to the new-loop-block. Replace break
     // ops with branches to the after-block.
     auto rewriteBranch = [&](auto op, Block *dest) {
       rewriter.setInsertionPointToEnd(op->getBlock());
-      rewriter.create<cf::BranchOp>(op.getLoc(), dest, op.getOperands());
+      cf::BranchOp::create(rewriter, op.getLoc(), dest, op.getOperands());
       rewriter.eraseOp(op);
     };
     for (Block *b = firstBlock; b != newLoopBlock; b = b->getNextNode())
@@ -116,7 +116,7 @@ public:
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     patterns.insert<LoopPat>(ctx);
-    if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns)))) {
+    if (failed(applyPatternsGreedily(op, std::move(patterns)))) {
       op->emitOpError("could not peel loop");
       signalPassFailure();
     }

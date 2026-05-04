@@ -20,19 +20,19 @@ enum struct QirVersion { version_0_1, version_1_0 };
 /// possible platforms.
 struct CodeGenConfig {
   // Profile name
-  std::string profile;
+  std::string profile = {};
   // True if this is a QIR profile.
-  bool isQIRProfile;
+  bool isQIRProfile = false;
   // QIR profile version enum
-  QirVersion version;
+  QirVersion version = QirVersion::version_0_1;
   // QIR profile major version
-  std::uint32_t qir_major_version;
+  std::uint32_t qir_major_version = 0;
   // QIR profile minor version
-  std::uint32_t qir_minor_version;
+  std::uint32_t qir_minor_version = 0;
   // True if this is an adaptive QIR profile.
-  bool isAdaptiveProfile;
+  bool isAdaptiveProfile = false;
   // True if this is a base QIR profile.
-  bool isBaseProfile;
+  bool isBaseProfile = false;
   // True if integer computation is enabled.
   bool integerComputations = false;
   // True if floating-point computation is enabled.

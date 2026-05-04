@@ -127,16 +127,18 @@ Value quake::createConstantAlloca(PatternRewriter &builder, Location loc,
   auto newAlloca = [&]() {
     if (isa<quake::VeqType>(result.getType()) &&
         cast<quake::VeqType>(result.getType()).hasSpecifiedSize()) {
-      return builder.create<quake::AllocaOp>(
-          loc, cast<quake::VeqType>(result.getType()).getSize());
+      return quake::AllocaOp::create(
+          builder, loc, cast<quake::VeqType>(result.getType()).getSize());
     }
     auto constOp = cast<arith::ConstantOp>(args[0].getDefiningOp());
-    return builder.create<quake::AllocaOp>(
-        loc, static_cast<std::size_t>(
-                 cast<IntegerAttr>(constOp.getValue()).getInt()));
+    return quake::AllocaOp::create(
+        builder, loc,
+        static_cast<std::size_t>(
+            cast<IntegerAttr>(constOp.getValue()).getInt()));
   }();
-  return builder.create<quake::RelaxSizeOp>(
-      loc, quake::VeqType::getUnsized(builder.getContext()), newAlloca);
+  return quake::RelaxSizeOp::create(
+      builder, loc, quake::VeqType::getUnsized(builder.getContext()),
+      newAlloca);
 }
 
 LogicalResult quake::AllocaOp::verify() {
@@ -626,30 +628,6 @@ void quake::GetMemberOp::getCanonicalizationPatterns(
 }
 
 //===----------------------------------------------------------------------===//
-// GetMeasureOp
-//===----------------------------------------------------------------------===//
-
-LogicalResult quake::GetMeasureOp::verify() {
-  if (getIndex()) {
-    if (getRawIndex() != kDynamicIndex)
-      return emitOpError(
-          "must not have both a constant index and an index argument.");
-  } else {
-    if (getRawIndex() == kDynamicIndex) {
-      return emitOpError("invalid constant index value");
-    } else {
-      auto msSize = getMeasurements().getType().getSize();
-      if (getMeasurements().getType().hasSpecifiedSize() &&
-          getRawIndex() >= msSize)
-        return emitOpError("invalid index [" + std::to_string(getRawIndex()) +
-                           "] because >= size [" + std::to_string(msSize) +
-                           "]");
-    }
-  }
-  return success();
-}
-
-//===----------------------------------------------------------------------===//
 // InitializeStateOp
 //===----------------------------------------------------------------------===//
 
@@ -702,19 +680,8 @@ LogicalResult quake::MakeStruqOp::verify() {
 //===----------------------------------------------------------------------===//
 
 LogicalResult quake::RelaxSizeOp::verify() {
-  auto inTy = getInputVec().getType();
-  auto resTy = getType();
-  if (auto veqTy = dyn_cast<quake::VeqType>(resTy)) {
-    if (veqTy.hasSpecifiedSize())
-      return emitOpError("result veq type must not specify a size");
-    if (!isa<quake::VeqType>(inTy))
-      return emitOpError("input and result must both be veq types");
-  } else if (auto measTy = dyn_cast<quake::MeasurementsType>(resTy)) {
-    if (measTy.hasSpecifiedSize())
-      return emitOpError("result measurements type must not specify a size");
-    if (!isa<quake::MeasurementsType>(inTy))
-      return emitOpError("input and result must both be measurements types");
-  }
+  if (cast<quake::VeqType>(getType()).hasSpecifiedSize())
+    emitOpError("return veq type must not specify a size");
   return success();
 }
 
@@ -765,15 +732,6 @@ void quake::VeqSizeOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
                                                    MLIRContext *context) {
   patterns.add<FoldInitStateSizePattern, ForwardConstantVeqSizePattern>(
       context);
-}
-
-//===----------------------------------------------------------------------===//
-// MeasurementsSizeOp
-//===----------------------------------------------------------------------===//
-
-void quake::MeasurementsSizeOp::getCanonicalizationPatterns(
-    RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<ForwardConstantMeasurementsSizePattern>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -868,17 +826,23 @@ LogicalResult verifyMeasurements(MEAS op, TypeRange targetsType,
                                  const Type bitsType) {
   if (failed(verifyWireResultsAreLinear(op)))
     return failure();
-  bool mustBeCollection =
+  bool mustBeStdvec =
       targetsType.size() > 1 ||
       (targetsType.size() == 1 && isa<quake::VeqType>(targetsType[0]));
-  if (mustBeCollection) {
-    if (!isa<quake::MeasurementsType>(op.getMeasOut().getType()))
-      return op.emitOpError("must return `!quake.measurements`, when "
-                            "measuring a qreg, a series of qubits, or both");
+  if (mustBeStdvec) {
+    auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(op.getMeasOut().getType());
+    if (!stdvecTy || !isa<quake::MeasureType, cudaq::cc::MeasureHandleType>(
+                         stdvecTy.getElementType()))
+      return op.emitOpError(
+          "must return `!cc.stdvec<!quake.measure>` or "
+          "`!cc.stdvec<!cc.measure_handle>` when measuring a qvector, a "
+          "series of qubits, or both");
   } else {
-    if (!isa<quake::MeasureType>(op.getMeasOut().getType()))
+    if (!isa<quake::MeasureType, cudaq::cc::MeasureHandleType>(
+            op.getMeasOut().getType()))
       return op->emitOpError(
-          "must return `!quake.measure` when measuring exactly one qubit");
+          "must return `!quake.measure` or `!cc.measure_handle` when "
+          "measuring exactly one qubit");
   }
   if (op.getRegisterName())
     if (op.getRegisterName()->empty())
@@ -901,33 +865,20 @@ LogicalResult quake::MzOp::verify() {
                             getMeasOut().getType());
 }
 
-void quake::MxOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
-                                              MLIRContext *context) {
-  patterns.add<FuseSizeToMeasurementPattern<quake::MxOp>>(context);
-}
-
-void quake::MyOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
-                                              MLIRContext *context) {
-  patterns.add<FuseSizeToMeasurementPattern<quake::MyOp>>(context);
-}
-
-void quake::MzOp::getCanonicalizationPatterns(RewritePatternSet &patterns,
-                                              MLIRContext *context) {
-  patterns.add<FuseSizeToMeasurementPattern<quake::MzOp>>(context);
-}
-
 //===----------------------------------------------------------------------===//
 // Discriminate
 //===----------------------------------------------------------------------===//
 
 LogicalResult quake::DiscriminateOp::verify() {
-  if (isa<quake::MeasurementsType>(getMeasurement().getType())) {
+  if (isa<cudaq::cc::StdvecType>(getMeasurement().getType())) {
     auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(getResult().getType());
     if (!stdvecTy || !isa<IntegerType>(stdvecTy.getElementType()))
-      return emitOpError("must return a !cc.stdvec<integral> type, when "
-                         "discriminating a measurements collection");
+      return emitOpError(
+          "must return a !cc.stdvec<integral> type, when discriminating a "
+          "qvector, a series of qubits, or both");
   } else {
-    if (!isa<quake::MeasureType>(getMeasurement().getType()) ||
+    if (!isa<quake::MeasureType, cudaq::cc::MeasureHandleType>(
+            getMeasurement().getType()) ||
         !isa<IntegerType>(getResult().getType()))
       return emitOpError(
           "must return integral type when discriminating exactly one qubit");
@@ -1226,15 +1177,16 @@ using EffectsVectorImpl =
 /// reference or value form. A operation with modeless effects is not removed
 /// when its result(s) is (are) unused.
 [[maybe_unused]] inline static void
-getModelessEffectsImpl(EffectsVectorImpl &effects, ValueRange controls,
-                       ValueRange targets) {
-  for (auto v : controls)
-    effects.emplace_back(MemoryEffects::Read::get(), v,
+getModelessEffectsImpl(EffectsVectorImpl &effects,
+                       MutableArrayRef<OpOperand> controls,
+                       MutableArrayRef<OpOperand> targets) {
+  for (OpOperand &v : controls)
+    effects.emplace_back(MemoryEffects::Read::get(), &v,
                          SideEffects::DefaultResource::get());
-  for (auto v : targets) {
-    effects.emplace_back(MemoryEffects::Read::get(), v,
+  for (OpOperand &v : targets) {
+    effects.emplace_back(MemoryEffects::Read::get(), &v,
                          SideEffects::DefaultResource::get());
-    effects.emplace_back(MemoryEffects::Write::get(), v,
+    effects.emplace_back(MemoryEffects::Write::get(), &v,
                          SideEffects::DefaultResource::get());
   }
 }
@@ -1246,36 +1198,37 @@ getModelessEffectsImpl(EffectsVectorImpl &effects, ValueRange controls,
 /// have both a read and write effect. If the operand is in value form, the
 /// operation introduces no effects on that operand.
 inline static void getModedEffectsImpl(EffectsVectorImpl &effects,
-                                       ValueRange controls,
-                                       ValueRange targets) {
-  for (auto v : controls)
-    if (isa<quake::RefType, quake::VeqType>(v.getType()))
-      effects.emplace_back(MemoryEffects::Read::get(), v,
+                                       MutableArrayRef<OpOperand> controls,
+                                       MutableArrayRef<OpOperand> targets) {
+  for (OpOperand &v : controls)
+    if (isa<quake::RefType, quake::VeqType>(v.get().getType()))
+      effects.emplace_back(MemoryEffects::Read::get(), &v,
                            SideEffects::DefaultResource::get());
-  for (auto v : targets)
-    if (isa<quake::RefType, quake::VeqType>(v.getType())) {
-      effects.emplace_back(MemoryEffects::Read::get(), v,
+  for (OpOperand &v : targets)
+    if (isa<quake::RefType, quake::VeqType>(v.get().getType())) {
+      effects.emplace_back(MemoryEffects::Read::get(), &v,
                            SideEffects::DefaultResource::get());
-      effects.emplace_back(MemoryEffects::Write::get(), v,
+      effects.emplace_back(MemoryEffects::Write::get(), &v,
                            SideEffects::DefaultResource::get());
     }
 }
 
 /// Quake reset has modeless effects.
 void quake::getResetEffectsImpl(EffectsVectorImpl &effects,
-                                ValueRange targets) {
+                                MutableArrayRef<OpOperand> targets) {
   getModedEffectsImpl(effects, {}, targets);
 }
 
 /// Quake measurement operations have moded effects.
 void quake::getMeasurementEffectsImpl(EffectsVectorImpl &effects,
-                                      ValueRange targets) {
+                                      MutableArrayRef<OpOperand> targets) {
   getModedEffectsImpl(effects, {}, targets);
 }
 
 /// Quake quantum operators have moded effects.
 void quake::getOperatorEffectsImpl(EffectsVectorImpl &effects,
-                                   ValueRange controls, ValueRange targets) {
+                                   MutableArrayRef<OpOperand> controls,
+                                   MutableArrayRef<OpOperand> targets) {
   getModedEffectsImpl(effects, controls, targets);
 }
 
@@ -1312,8 +1265,6 @@ VERIFY_OPS(INSTANTIATE_LINEAR_TYPE_VERIFY)
 //===----------------------------------------------------------------------===//
 // Generated logic
 //===----------------------------------------------------------------------===//
-
-using namespace cudaq;
 
 #define GET_OP_CLASSES
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.cpp.inc"

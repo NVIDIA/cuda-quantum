@@ -49,7 +49,7 @@ for arch in config.targets_to_build.split():
 
 # Exclude a list of directories from the test suite:
 #   - 'Inputs' contain auxiliary inputs for various tests.
-local_excludes = ['Inputs', 'CMakeLists.txt', 'README.txt', 'LICENSE.txt']
+local_excludes = ['Inputs', 'CMakeLists.txt', 'README.txt', 'LICENSE.txt', 'plugin']
 config.excludes = [exclude for exclude in config.excludes] + local_excludes
 
 # The root path where tests are located.
@@ -57,6 +57,12 @@ config.test_source_root = os.path.dirname(__file__)
 
 # The root path where tests should be run.
 config.test_exec_root = os.path.join(config.cudaq_obj_root, 'test')
+
+# Check for optional plugin libraries.
+custom_pass_plugin = os.path.join(config.cudaq_lib_dir,
+                                  'CustomPassPlugin' + config.cudaq_plugin_ext)
+if os.path.isfile(custom_pass_plugin):
+    config.available_features.add('custom-pass-plugin')
 
 # Tweak the PATH to include the tools directory.
 llvm_config.with_environment('PATH', config.cudaq_tools_dir, append_path=True)

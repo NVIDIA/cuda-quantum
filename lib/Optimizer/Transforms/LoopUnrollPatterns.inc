@@ -178,7 +178,7 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
       // Propagate the previous iteration number into the new block. This makes
       // any unneeded computation dead. DCE will clean that up as well.
       iterationOpers[components->induction] = iterCount;
-      rewriter.create<cf::BranchOp>(loc, cloneRange.first, iterationOpers);
+      cf::BranchOp::create(rewriter, loc, cloneRange.first, iterationOpers);
       // Bookkeeping for the next iteration, which uses the new continue block,
       // `conBlock`, and its arguments.
       setIterationOpers(contBlock->getArguments());
@@ -193,7 +193,7 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
       setIterationOpers(contBlock->getArguments());
     }
     [[maybe_unused]] auto lastBranch =
-        rewriter.create<cf::BranchOp>(loc, endBlock, iterationOpers);
+        cf::BranchOp::create(rewriter, loc, endBlock, iterationOpers);
     rewriter.replaceOp(loop, endBlock->getArguments());
 
     LLVM_DEBUG(llvm::dbgs() << "after unrolling a loop:\n";
@@ -205,7 +205,7 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
   static Value getIntegerConstant(Location loc, Type ty, std::int64_t val,
                                   PatternRewriter &rewriter) {
     auto attr = rewriter.getIntegerAttr(ty, val);
-    return rewriter.create<arith::ConstantOp>(loc, ty, attr);
+    return arith::ConstantOp::create(rewriter, loc, ty, attr);
   }
 
   std::size_t threshold;

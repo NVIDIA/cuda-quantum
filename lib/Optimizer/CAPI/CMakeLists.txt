@@ -6,13 +6,14 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_mlir_public_c_api_library(CUDAQuantumMLIRCAPI 
+add_mlir_public_c_api_library(CUDAQuantumMLIRCAPI
   Dialects.cpp
 
   DEPENDS
   QuakeDialectIncGen
 
-  LINK_LIBS PRIVATE 
-  QuakeDialect 
+  LINK_LIBS PRIVATE
+  QuakeDialect
   CCDialect
+  MLIRRegisterAllDialects
 )

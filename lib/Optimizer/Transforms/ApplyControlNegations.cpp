@@ -8,8 +8,6 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Todo.h"
 #include "mlir/IR/PatternMatch.h"
@@ -40,29 +38,26 @@ public:
 
     for (auto negationIter : llvm::enumerate(negations.value()))
       if (negationIter.value())
-        rewriter.create<quake::XOp>(
-            loc, ValueRange(),
-            ValueRange{op.getControls()[negationIter.index()]});
+        quake::XOp::create(rewriter, loc, ValueRange(),
+                           ValueRange{op.getControls()[negationIter.index()]});
 
     if constexpr (std::is_same_v<Op, quake::ExpPauliOp>) {
-      rewriter.create<quake::ExpPauliOp>(
-          loc, TypeRange{}, op.getIsAdjAttr(), op.getParameters(),
+      quake::ExpPauliOp::create(
+          rewriter, loc, TypeRange{}, op.getIsAdjAttr(), op.getParameters(),
           op.getControls(), op.getTargets(), op.getNegatedQubitControlsAttr(),
           op.getPauli(), op.getPauliLiteralAttr());
     } else if constexpr (std::is_same_v<Op, quake::CustomUnitarySymbolOp>) {
-      rewriter.create<Op>(loc, op.getGeneratorAttr(), op.getIsAdj(),
-                          op.getParameters(), op.getControls(),
-                          op.getTargets());
+      Op::create(rewriter, loc, op.getGeneratorAttr(), op.getIsAdj(),
+                 op.getParameters(), op.getControls(), op.getTargets());
     } else {
-      rewriter.create<Op>(loc, op.getIsAdj(), op.getParameters(),
-                          op.getControls(), op.getTargets());
+      Op::create(rewriter, loc, op.getIsAdj(), op.getParameters(),
+                 op.getControls(), op.getTargets());
     }
 
     for (auto negationIter : llvm::enumerate(negations.value()))
       if (negationIter.value())
-        rewriter.create<quake::XOp>(
-            loc, ValueRange(),
-            ValueRange{op.getControls()[negationIter.index()]});
+        quake::XOp::create(rewriter, loc, ValueRange(),
+                           ValueRange{op.getControls()[negationIter.index()]});
     rewriter.eraseOp(op);
 
     return success();

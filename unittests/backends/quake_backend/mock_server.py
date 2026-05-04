@@ -9,7 +9,7 @@
 import cudaq
 from fastapi import FastAPI, HTTPException, Header, Request
 from typing import Union
-import uvicorn, uuid, base64, ctypes, sys
+import uvicorn, uuid, base64, ctypes, sys, re
 from pydantic import BaseModel
 from llvmlite import binding as llvm
 from cudaq.mlir.passmanager import PassManager
@@ -21,7 +21,6 @@ from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 # Define the REST Server App
 app = FastAPI()
 
-llvm.initialize()
 llvm.initialize_native_target()
 llvm.initialize_native_asmprinter()
 target = llvm.Target.from_default_triple()
@@ -39,21 +38,30 @@ async def postJob(request: Request):
     payload = await request.json()
     # Decode base64
     decoded_payload = base64.b64decode(payload["ir"]).decode('utf-8')
+    # Verify that the input MLIR does not contain actual `malloc` or `memcpy` calls.
+    # Match `@malloc` or `@llvm.memcpy` as function references (calls or declarations).
+    if re.search(r'@malloc\b', decoded_payload) or \
+       re.search(r'@(llvm\.)?memcpy\b', decoded_payload):
+        raise RuntimeError(
+            "Input MLIR contains malloc or memcpy calls. "
+            "These should have been eliminated by the eliminate-dead-heap-copy pass."
+        )
+
     ctx = getMLIRContext()
     recovered_mod = Module.parse(decoded_payload, context=ctx)
     pm = PassManager.parse(
         "builtin.module(canonicalize,distributed-device-call,cse)", context=ctx)
     try:
-        pm.run(recovered_mod)
-    except:
+        pm.run(recovered_mod.operation)
+    except Exception as e:
         raise RuntimeError(
-            f"Failed to run pass manager on the recovered module.")
+            f"Failed to run pass manager on the recovered module: {e}")
 
     entry_func_name = ""
     for op in recovered_mod.body.operations:
         if isinstance(op, func.FuncOp):
             for attr in op.attributes:
-                if attr.name == "cudaq-entrypoint":
+                if attr == "cudaq-entrypoint":
                     entry_func_name = op.name.value
                     break
     # Lower the module to LLVM IR

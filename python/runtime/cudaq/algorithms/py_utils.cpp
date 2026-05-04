@@ -8,55 +8,55 @@
 
 #include "py_utils.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include <pybind11/functional.h>
-#include <pybind11/stl.h>
+#include <nanobind/stl/function.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/unordered_map.h>
+#include <nanobind/stl/vector.h>
 
 namespace cudaq {
 
-py::dict get_serializable_var_dict() {
-  py::object json = py::module_::import("json");
-  py::dict serialized_dict;
+nanobind::dict get_serializable_var_dict() {
+  nanobind::object json = nanobind::module_::import_("json");
+  nanobind::dict serialized_dict;
 
   auto try_to_add_item = [&](const auto item) {
     try {
       auto key = item.first;
       auto value = item.second;
 
-      if (key.template cast<std::string>().starts_with("__")) {
+      std::string keyStr(nanobind::str(key).c_str());
+      if (keyStr.starts_with("__")) {
         // Ignore items that start with "__" (like Python __builtins__, etc.)
-      } else if (py::hasattr(value, "to_json")) {
-        auto type = value.get_type();
-        std::string module =
-            type.attr("__module__").template cast<std::string>();
-        std::string name = type.attr("__name__").template cast<std::string>();
-        auto type_name = py::str(module + "." + name);
-        auto json_key_name = py::str(key) + py::str("/") + type_name;
+      } else if (nanobind::hasattr(value, "to_json")) {
+        auto type = nanobind::handle(
+            reinterpret_cast<PyObject *>(Py_TYPE(value.ptr())));
+        std::string module(nanobind::str(type.attr("__module__")).c_str());
+        std::string name(nanobind::str(type.attr("__name__")).c_str());
+        auto type_name = nanobind::str((module + "." + name).c_str());
+        nanobind::str json_key_name(
+            (keyStr + "/" + module + "." + name).c_str());
         serialized_dict[json_key_name] =
             json.attr("loads")(value.attr("to_json")());
-      } else if (py::hasattr(value, "tolist")) {
+      } else if (nanobind::hasattr(value, "tolist")) {
         serialized_dict[key] =
             json.attr("loads")(json.attr("dumps")(value.attr("tolist")()));
       } else {
         serialized_dict[key] = json.attr("loads")(json.attr("dumps")(value));
       }
-    } catch (const py::error_already_set &e) {
-      // Uncomment the following lines for debug, but all this really means is
-      // that we won't send this to the remote server.
-
-      // std::cout << "Failed to serialize key '"
-      //           << item.first.template cast<std::string>()
-      //           << "' : " + std::string(e.what()) << std::endl;
+    } catch (const nanobind::python_error &e) {
+      // Serialization failures are non-fatal - we just skip the entry.
     }
   };
 
-  for (const auto item : py::globals())
+  for (const auto item : nanobind::globals())
     try_to_add_item(item);
 
-  py::object inspect = py::module::import("inspect");
-  std::vector<py::object> frame_vec;
+  nanobind::object inspect = nanobind::module_::import_("inspect");
+  std::vector<nanobind::object> frame_vec;
   auto current_frame = inspect.attr("currentframe")();
   while (current_frame && !current_frame.is_none()) {
-    frame_vec.push_back(current_frame);
+    frame_vec.push_back(nanobind::object(current_frame));
     current_frame = current_frame.attr("f_back");
   }
 
@@ -64,7 +64,7 @@ py::dict get_serializable_var_dict() {
   // globals first to locals last. This ensures that the overwrites give
   // precedence to closest-to-locals.
   for (auto it = frame_vec.rbegin(); it != frame_vec.rend(); ++it) {
-    py::dict f_locals = it->attr("f_locals");
+    nanobind::dict f_locals = it->attr("f_locals");
     for (const auto item : f_locals)
       try_to_add_item(item);
   }
@@ -104,56 +104,70 @@ static std::size_t strip_leading_whitespace(std::string &source_code) {
   return min_indent;
 }
 
-std::string get_source_code(const py::function &func) {
+std::string get_source_code(const nanobind::callable &func) {
   // Get the source code
-  py::module_ analysis = py::module_::import("cudaq.kernel.analysis");
-  py::object FetchDepFuncsSourceCode = analysis.attr("FetchDepFuncsSourceCode");
-  py::object source_code;
+  nanobind::module_ analysis =
+      nanobind::module_::import_("cudaq.kernel.analysis");
+  nanobind::object FetchDepFuncsSourceCode =
+      analysis.attr("FetchDepFuncsSourceCode");
+  nanobind::object source_code;
   try {
     source_code = FetchDepFuncsSourceCode.attr("fetch")(func);
-  } catch (py::error_already_set &e) {
+  } catch (nanobind::python_error &e) {
     throw std::runtime_error("Failed to get source code: " +
                              std::string(e.what()));
   }
 
-  std::string source = source_code.cast<std::string>();
+  std::string source = nanobind::cast<std::string>(source_code);
   strip_leading_whitespace(source);
   return source;
 }
 
-std::string get_var_name_for_handle(const py::handle &h) {
-  py::object inspect = py::module::import("inspect");
+std::string get_var_name_for_handle(const nanobind::handle &h) {
+  nanobind::object inspect = nanobind::module_::import_("inspect");
   // Search locals first, walking up the call stack
   auto current_frame = inspect.attr("currentframe")();
   while (current_frame && !current_frame.is_none()) {
-    py::dict f_locals = current_frame.attr("f_locals");
+    nanobind::dict f_locals = current_frame.attr("f_locals");
     for (auto item : f_locals)
       if (item.second.is(h))
-        return py::str(item.first);
+        return std::string(nanobind::str(item.first).c_str());
     current_frame = current_frame.attr("f_back");
   }
   // Search globals now
   current_frame = inspect.attr("currentframe")();
-  py::dict f_globals = current_frame.attr("f_globals");
+  nanobind::dict f_globals = current_frame.attr("f_globals");
   for (auto item : f_globals)
     if (item.second.is(h))
-      return py::str(item.first);
+      return std::string(nanobind::str(item.first).c_str());
   return std::string();
 }
 
-std::unordered_map<std::string, std::tuple<py::object, py::dict>>
+std::unordered_map<std::string, std::tuple<nanobind::object, nanobind::dict>>
     DataClassRegistry::classes{};
 
 /// @brief Bind the dataclass registry
-void bindPyDataClassRegistry(py::module &mod) {
-  py::class_<DataClassRegistry>(mod, "DataClassRegistry",
-                                R"#(Registry for dataclasses used in kernels)#")
+void bindPyDataClassRegistry(nanobind::module_ &mod) {
+  nanobind::class_<DataClassRegistry>(
+      mod, "DataClassRegistry", R"#(Registry for dataclasses used in kernels)#")
       .def_static("registerClass", &DataClassRegistry::registerClass,
                   "Register class\n")
       .def_static("isRegisteredClass", &DataClassRegistry::isRegisteredClass,
                   "Is class registered\n")
       .def_static("getClassAttributes", &DataClassRegistry::getClassAttributes,
                   "Find registered class and its attributes\n")
-      .def_readonly_static("classes", &DataClassRegistry::classes);
+      .def_static(
+          "get_classes",
+          []() -> decltype(DataClassRegistry::classes) & {
+            return DataClassRegistry::classes;
+          },
+          nanobind::rv_policy::reference, "Get all registered classes.")
+      .def_prop_ro_static(
+          "classes",
+          [](nanobind::handle /*cls*/)
+              -> decltype(DataClassRegistry::classes) & {
+            return DataClassRegistry::classes;
+          },
+          nanobind::rv_policy::reference, "Get all registered classes.");
 }
 } // namespace cudaq

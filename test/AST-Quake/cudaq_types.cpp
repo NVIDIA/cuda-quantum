@@ -36,7 +36,7 @@ struct Qernel0 {
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__Qernel0()
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<2>) -> !quake.measurements<2>
+// CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 // clang-format on

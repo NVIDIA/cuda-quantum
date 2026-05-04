@@ -46,9 +46,6 @@ int main() {
 
 // CHECK:  include "qelib1.inc";
 
-// CHECK:  gate ZN6kernelclEv(param0)  {
-// CHECK:  }
-
 // CHECK: qreg var0[6];
 // CHECK: x var0[5];
 // CHECK: ch var0[4], var0[5];
@@ -59,15 +56,5 @@ int main() {
 // CHECK: x var0[1];
 // CHECK: ch var0[0], var0[1];
 // CHECK: rz(-6.700000e-01) var0[0];
-// CHECK: creg var7[1];
-// CHECK: measure var0[0] -> var7[0];
-// CHECK: creg var8[1];
-// CHECK: measure var0[1] -> var8[0];
-// CHECK: creg var9[1];
-// CHECK: measure var0[2] -> var9[0];
-// CHECK: creg var10[1];
-// CHECK: measure var0[3] -> var10[0];
-// CHECK: creg var11[1];
-// CHECK: measure var0[4] -> var11[0];
-// CHECK: creg var12[1];
-// CHECK: measure var0[5] -> var12[0];
+// CHECK: creg var7[6];
+// CHECK: measure var0 -> var7;

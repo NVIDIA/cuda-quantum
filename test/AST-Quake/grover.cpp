@@ -152,7 +152,7 @@ int main(int argc, char *argv[]) {
 // CHECK:               cc.store %[[VAL_36]], %[[VAL_30]] : !cc.ptr<i32>
 // CHECK:             }
 // CHECK:           }
-// CHECK:           %[[VAL_37:.*]] = quake.mz %[[VAL_21]] : (!quake.veq<?>) -> !quake.measurements<?>
+// CHECK:           %[[VAL_37:.*]] = quake.mz %[[VAL_21]] : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 

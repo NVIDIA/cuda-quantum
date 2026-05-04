@@ -6,13 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <pybind11/pybind11.h>
-
-namespace py = pybind11;
+#include <nanobind/nanobind.h>
 
 namespace cudaq {
 
 /// @brief Binds the `cudaq::ahs` classes.
-void bindAnalogHamiltonian(py::module &mod);
+void bindAnalogHamiltonian(nanobind::module_ &mod);
 
 } // namespace cudaq

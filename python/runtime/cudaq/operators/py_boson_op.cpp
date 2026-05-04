@@ -7,10 +7,16 @@
  ******************************************************************************/
 
 #include <complex>
-#include <pybind11/complex.h>
-#include <pybind11/numpy.h>
-#include <pybind11/operators.h>
-#include <pybind11/stl.h>
+#include <nanobind/ndarray.h>
+#include <nanobind/operators.h>
+#include <nanobind/stl/complex.h>
+#include <nanobind/stl/map.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/set.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/tuple.h>
+#include <nanobind/stl/unordered_map.h>
+#include <nanobind/stl/vector.h>
 
 #include "cudaq/operators.h"
 #include "cudaq/operators/serialization.h"
@@ -19,7 +25,7 @@
 
 namespace cudaq {
 
-void bindBosonModule(py::module &mod) {
+void bindBosonModule(nanobind::module_ &mod) {
   // Binding the functions in `cudaq::boson` as `_pycudaq` submodule
   // so it's accessible directly in the cudaq namespace.
   auto boson_submodule = mod.def_submodule("boson");
@@ -32,31 +38,32 @@ void bindBosonModule(py::module &mod) {
       "Returns product operator with constant value 1.");
   boson_submodule.def(
       "identity", [](std::size_t target) { return boson_op::identity(target); },
-      py::arg("target"),
+      nanobind::arg("target"),
       "Returns an identity operator on the given target index.");
   boson_submodule.def(
       "identities",
       [](std::size_t first, std::size_t last) {
         return boson_op_term(first, last);
       },
-      py::arg("first"), py::arg("last"),
+      nanobind::arg("first"), nanobind::arg("last"),
       "Creates a product operator that applies an identity operation to all "
       "degrees of "
       "freedom in the open range [first, last).");
   boson_submodule.def(
-      "create", &boson_op::create<boson_handler>, py::arg("target"),
+      "create", &boson_op::create<boson_handler>, nanobind::arg("target"),
       "Returns a bosonic creation operator on the given target index.");
   boson_submodule.def(
-      "annihilate", &boson_op::annihilate<boson_handler>, py::arg("target"),
+      "annihilate", &boson_op::annihilate<boson_handler>,
+      nanobind::arg("target"),
       "Returns a bosonic annihilation operator on the given target index.");
   boson_submodule.def(
-      "number", &boson_op::number<boson_handler>, py::arg("target"),
+      "number", &boson_op::number<boson_handler>, nanobind::arg("target"),
       "Returns a bosonic number operator on the given target index.");
   boson_submodule.def(
-      "position", &boson_op::position<boson_handler>, py::arg("target"),
+      "position", &boson_op::position<boson_handler>, nanobind::arg("target"),
       "Returns a bosonic position operator on the given target index.");
   boson_submodule.def(
-      "momentum", &boson_op::momentum<boson_handler>, py::arg("target"),
+      "momentum", &boson_op::momentum<boson_handler>, nanobind::arg("target"),
       "Returns a bosonic momentum operator on the given target index.");
   boson_submodule.def(
       "canonicalized",
@@ -90,50 +97,52 @@ void bindBosonModule(py::module &mod) {
       "degrees of freedom.");
 }
 
-void bindBosonOperator(py::module &mod) {
+void bindBosonOperator(nanobind::module_ &mod) {
 
-  auto boson_op_class = py::class_<boson_op>(mod, "BosonOperator");
+  auto boson_op_class = nanobind::class_<boson_op>(mod, "BosonOperator");
   auto boson_op_term_class =
-      py::class_<boson_op_term>(mod, "BosonOperatorTerm");
+      nanobind::class_<boson_op_term>(mod, "BosonOperatorTerm");
 
   boson_op_class
       .def(
           "__iter__",
           [](boson_op &self) {
-            return py::make_iterator(self.begin(), self.end());
+            nanobind::list items;
+            for (auto it = self.begin(); it != self.end(); ++it)
+              items.append(nanobind::cast(*it));
+            return items.attr("__iter__")();
           },
-          py::keep_alive<0, 1>(), "Loop through each term of the operator.")
+          "Loop through each term of the operator.")
 
       // properties
 
-      .def_property_readonly("parameters",
-                             &boson_op::get_parameter_descriptions,
-                             "Returns a dictionary that maps each parameter "
-                             "name to its description.")
-      .def_property_readonly("degrees", &boson_op::degrees,
-                             "Returns a vector that lists all degrees of "
-                             "freedom that the operator targets. "
-                             "The order of degrees is from smallest to largest "
-                             "and reflects the ordering of "
-                             "the matrix returned by `to_matrix`. "
-                             "Specifically, the indices of a statevector "
-                             "with two qubits are {00, 01, 10, 11}. An "
-                             "ordering of degrees {0, 1} then indicates "
-                             "that a state where the qubit with index 0 equals "
-                             "1 with probability 1 is given by "
-                             "the vector {0., 1., 0., 0.}.")
-      .def_property_readonly("min_degree", &boson_op::min_degree,
-                             "Returns the smallest index of the degrees of "
-                             "freedom that the operator targets.")
-      .def_property_readonly("max_degree", &boson_op::max_degree,
-                             "Returns the smallest index of the degrees of "
-                             "freedom that the operator targets.")
-      .def_property_readonly("term_count", &boson_op::num_terms,
-                             "Returns the number of terms in the operator.")
+      .def_prop_ro("parameters", &boson_op::get_parameter_descriptions,
+                   "Returns a dictionary that maps each parameter "
+                   "name to its description.")
+      .def_prop_ro("degrees", &boson_op::degrees,
+                   "Returns a vector that lists all degrees of "
+                   "freedom that the operator targets. "
+                   "The order of degrees is from smallest to largest "
+                   "and reflects the ordering of "
+                   "the matrix returned by `to_matrix`. "
+                   "Specifically, the indices of a statevector "
+                   "with two qubits are {00, 01, 10, 11}. An "
+                   "ordering of degrees {0, 1} then indicates "
+                   "that a state where the qubit with index 0 equals "
+                   "1 with probability 1 is given by "
+                   "the vector {0., 1., 0., 0.}.")
+      .def_prop_ro("min_degree", &boson_op::min_degree,
+                   "Returns the smallest index of the degrees of "
+                   "freedom that the operator targets.")
+      .def_prop_ro("max_degree", &boson_op::max_degree,
+                   "Returns the smallest index of the degrees of "
+                   "freedom that the operator targets.")
+      .def_prop_ro("term_count", &boson_op::num_terms,
+                   "Returns the number of terms in the operator.")
 
       // constructors
 
-      .def(py::init<>(),
+      .def(nanobind::init<>(),
            "Creates a default instantiated sum. A default instantiated "
            "sum has no value; it will take a value the first time an "
            "arithmetic operation "
@@ -142,12 +151,12 @@ void bindBosonOperator(py::module &mod) {
            "identity. To construct a `0` value in the mathematical sense "
            "(neutral element "
            "for addition), use `empty()` instead.")
-      .def(py::init<std::size_t>(),
+      .def(nanobind::init<std::size_t>(),
            "Creates a sum operator with no terms, reserving "
            "space for the given number of terms.")
-      .def(py::init<const boson_op_term &>(),
+      .def(nanobind::init<const boson_op_term &>(),
            "Creates a sum operator with the given term.")
-      .def(py::init<const boson_op &>(), "Copy constructor.")
+      .def(nanobind::init<const boson_op &>(), "Copy constructor.")
       .def(
           "copy", [](const boson_op &self) { return boson_op(self); },
           "Creates a copy of the operator.")
@@ -156,14 +165,16 @@ void bindBosonOperator(py::module &mod) {
 
       .def(
           "to_matrix",
-          [](const boson_op &self, dimension_map &dimensions,
-             const parameter_map &params, bool invert_order) {
-            auto cmat = self.to_matrix(dimensions, params, invert_order);
+          [](const boson_op &self, std::optional<dimension_map> dimensions,
+             std::optional<parameter_map> params, bool invert_order) {
+            dimension_map dims = dimensions.value_or(dimension_map());
+            parameter_map pm = params.value_or(parameter_map());
+            auto cmat = self.to_matrix(dims, pm, invert_order);
             return details::cmat_to_numpy(cmat);
           },
-          py::arg("dimensions") = dimension_map(),
-          py::arg("parameters") = parameter_map(),
-          py::arg("invert_order") = false,
+          nanobind::arg("dimensions").none() = nanobind::none(),
+          nanobind::arg("parameters").none() = nanobind::none(),
+          nanobind::arg("invert_order") = false,
           "Returns the matrix representation of the operator."
           "The matrix is ordered according to the convention (endianness) "
           "used in CUDA-Q, and the ordering returned by `degrees`. This order "
@@ -172,14 +183,13 @@ void bindBosonOperator(py::module &mod) {
           "See also the documentation for `degrees` for more detail.")
       .def(
           "to_matrix",
-          [](const boson_op &self, dimension_map &dimensions, bool invert_order,
-             const py::kwargs &kwargs) {
-            auto cmat = self.to_matrix(
-                dimensions, details::kwargs_to_param_map(kwargs), invert_order);
+          [](const boson_op &self, dimension_map dimensions,
+             nanobind::kwargs kwargs) {
+            bool invert_order;
+            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            auto cmat = self.to_matrix(dimensions, pm, invert_order);
             return details::cmat_to_numpy(cmat);
           },
-          py::arg("dimensions") = dimension_map(),
-          py::arg("invert_order") = false,
           "Returns the matrix representation of the operator."
           "The matrix is ordered according to the convention (endianness) "
           "used in CUDA-Q, and the ordering returned by `degrees`. This order "
@@ -187,14 +197,26 @@ void bindBosonOperator(py::module &mod) {
           "`True`. "
           "See also the documentation for `degrees` for more detail.")
       .def(
-          "to_sparse_matrix",
-          [](const boson_op &self, dimension_map &dimensions,
-             const parameter_map &params, bool invert_order) {
-            return self.to_sparse_matrix(dimensions, params, invert_order);
+          "to_matrix",
+          [](const boson_op &self, nanobind::kwargs kwargs) {
+            bool invert_order;
+            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            auto cmat = self.to_matrix(dimension_map(), pm, invert_order);
+            return details::cmat_to_numpy(cmat);
           },
-          py::arg("dimensions") = dimension_map(),
-          py::arg("parameters") = parameter_map(),
-          py::arg("invert_order") = false,
+          "Returns the matrix representation of the operator, passing "
+          "parameters as keyword arguments.")
+      .def(
+          "to_sparse_matrix",
+          [](const boson_op &self, std::optional<dimension_map> dimensions,
+             std::optional<parameter_map> params, bool invert_order) {
+            dimension_map dims = dimensions.value_or(dimension_map());
+            parameter_map pm = params.value_or(parameter_map());
+            return self.to_sparse_matrix(dims, pm, invert_order);
+          },
+          nanobind::arg("dimensions").none() = nanobind::none(),
+          nanobind::arg("parameters").none() = nanobind::none(),
+          nanobind::arg("invert_order") = false,
           "Return the sparse matrix representation of the operator. This "
           "representation is a "
           "`Tuple[list[complex], list[int], list[int]]`, encoding the "
@@ -207,13 +229,12 @@ void bindBosonOperator(py::module &mod) {
           "See also the documentation for `degrees` for more detail.")
       .def(
           "to_sparse_matrix",
-          [](const boson_op &self, dimension_map &dimensions, bool invert_order,
-             const py::kwargs &kwargs) {
-            return self.to_sparse_matrix(
-                dimensions, details::kwargs_to_param_map(kwargs), invert_order);
+          [](const boson_op &self, dimension_map dimensions,
+             nanobind::kwargs kwargs) {
+            bool invert_order;
+            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            return self.to_sparse_matrix(dimensions, pm, invert_order);
           },
-          py::arg("dimensions") = dimension_map(),
-          py::arg("invert_order") = false,
           "Return the sparse matrix representation of the operator. This "
           "representation is a "
           "`Tuple[list[complex], list[int], list[int]]`, encoding the "
@@ -227,7 +248,7 @@ void bindBosonOperator(py::module &mod) {
 
       // comparisons
 
-      .def("__eq__", &boson_op::operator==, py::is_operator(),
+      .def("__eq__", &boson_op::operator==, nanobind::is_operator(),
            "Return true if the two operators are equivalent. The equivalence "
            "check takes "
            "commutation relations into account. Operators acting on different "
@@ -239,91 +260,92 @@ void bindBosonOperator(py::module &mod) {
           [](const boson_op &self, const boson_op_term &other) {
             return self.num_terms() == 1 && *self.begin() == other;
           },
-          py::is_operator(), "Return true if the two operators are equivalent.")
+          nanobind::is_operator(),
+          "Return true if the two operators are equivalent.")
 
       // unary operators
 
-      .def(-py::self, py::is_operator())
-      .def(+py::self, py::is_operator())
+      .def(-nanobind::self, nanobind::is_operator())
+      .def(+nanobind::self, nanobind::is_operator())
 
       // in-place arithmetics
 
-      .def(py::self /= int(), py::is_operator())
-      .def(py::self *= int(), py::is_operator())
-      .def(py::self += int(), py::is_operator())
-      .def(py::self -= int(), py::is_operator())
-      .def(py::self /= double(), py::is_operator())
-      .def(py::self *= double(), py::is_operator())
-      .def(py::self += double(), py::is_operator())
-      .def(py::self -= double(), py::is_operator())
-      .def(py::self /= std::complex<double>(), py::is_operator())
-      .def(py::self *= std::complex<double>(), py::is_operator())
-      .def(py::self += std::complex<double>(), py::is_operator())
-      .def(py::self -= std::complex<double>(), py::is_operator())
-      .def(py::self /= scalar_operator(), py::is_operator())
-      .def(py::self *= scalar_operator(), py::is_operator())
-      .def(py::self += scalar_operator(), py::is_operator())
-      .def(py::self -= scalar_operator(), py::is_operator())
-      .def(py::self *= boson_op_term(), py::is_operator())
-      .def(py::self += boson_op_term(), py::is_operator())
-      .def(py::self -= boson_op_term(), py::is_operator())
-      .def(py::self *= py::self, py::is_operator())
-      .def(py::self += py::self, py::is_operator())
+      .def(nanobind::self /= int(), nanobind::is_operator())
+      .def(nanobind::self *= int(), nanobind::is_operator())
+      .def(nanobind::self += int(), nanobind::is_operator())
+      .def(nanobind::self -= int(), nanobind::is_operator())
+      .def(nanobind::self /= double(), nanobind::is_operator())
+      .def(nanobind::self *= double(), nanobind::is_operator())
+      .def(nanobind::self += double(), nanobind::is_operator())
+      .def(nanobind::self -= double(), nanobind::is_operator())
+      .def(nanobind::self /= std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self *= std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self += std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self -= std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self /= scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self *= scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self += scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self -= scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self *= boson_op_term(), nanobind::is_operator())
+      .def(nanobind::self += boson_op_term(), nanobind::is_operator())
+      .def(nanobind::self -= boson_op_term(), nanobind::is_operator())
+      .def(nanobind::self *= nanobind::self, nanobind::is_operator())
+      .def(nanobind::self += nanobind::self, nanobind::is_operator())
 // see issue https://github.com/pybind/pybind11/issues/1893
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wself-assign-overloaded"
 #endif
-      .def(py::self -= py::self, py::is_operator())
+      .def(nanobind::self -= nanobind::self, nanobind::is_operator())
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
 
       // right-hand arithmetics
 
-      .def(py::self / int(), py::is_operator())
-      .def(py::self * int(), py::is_operator())
-      .def(py::self + int(), py::is_operator())
-      .def(py::self - int(), py::is_operator())
-      .def(py::self / double(), py::is_operator())
-      .def(py::self * double(), py::is_operator())
-      .def(py::self + double(), py::is_operator())
-      .def(py::self - double(), py::is_operator())
-      .def(py::self / std::complex<double>(), py::is_operator())
-      .def(py::self * std::complex<double>(), py::is_operator())
-      .def(py::self + std::complex<double>(), py::is_operator())
-      .def(py::self - std::complex<double>(), py::is_operator())
-      .def(py::self / scalar_operator(), py::is_operator())
-      .def(py::self * scalar_operator(), py::is_operator())
-      .def(py::self + scalar_operator(), py::is_operator())
-      .def(py::self - scalar_operator(), py::is_operator())
-      .def(py::self * boson_op_term(), py::is_operator())
-      .def(py::self + boson_op_term(), py::is_operator())
-      .def(py::self - boson_op_term(), py::is_operator())
-      .def(py::self * py::self, py::is_operator())
-      .def(py::self + py::self, py::is_operator())
-      .def(py::self - py::self, py::is_operator())
-      .def(py::self * matrix_op_term(), py::is_operator())
-      .def(py::self + matrix_op_term(), py::is_operator())
-      .def(py::self - matrix_op_term(), py::is_operator())
-      .def(py::self * matrix_op(), py::is_operator())
-      .def(py::self + matrix_op(), py::is_operator())
-      .def(py::self - matrix_op(), py::is_operator())
+      .def(nanobind::self / int(), nanobind::is_operator())
+      .def(nanobind::self * int(), nanobind::is_operator())
+      .def(nanobind::self + int(), nanobind::is_operator())
+      .def(nanobind::self - int(), nanobind::is_operator())
+      .def(nanobind::self / double(), nanobind::is_operator())
+      .def(nanobind::self * double(), nanobind::is_operator())
+      .def(nanobind::self + double(), nanobind::is_operator())
+      .def(nanobind::self - double(), nanobind::is_operator())
+      .def(nanobind::self / std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self * std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self + std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self - std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self / scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self * scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self + scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self - scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self * boson_op_term(), nanobind::is_operator())
+      .def(nanobind::self + boson_op_term(), nanobind::is_operator())
+      .def(nanobind::self - boson_op_term(), nanobind::is_operator())
+      .def(nanobind::self * nanobind::self, nanobind::is_operator())
+      .def(nanobind::self + nanobind::self, nanobind::is_operator())
+      .def(nanobind::self - nanobind::self, nanobind::is_operator())
+      .def(nanobind::self * matrix_op_term(), nanobind::is_operator())
+      .def(nanobind::self + matrix_op_term(), nanobind::is_operator())
+      .def(nanobind::self - matrix_op_term(), nanobind::is_operator())
+      .def(nanobind::self * matrix_op(), nanobind::is_operator())
+      .def(nanobind::self + matrix_op(), nanobind::is_operator())
+      .def(nanobind::self - matrix_op(), nanobind::is_operator())
 
       // left-hand arithmetics
 
-      .def(int() * py::self, py::is_operator())
-      .def(int() + py::self, py::is_operator())
-      .def(int() - py::self, py::is_operator())
-      .def(double() * py::self, py::is_operator())
-      .def(double() + py::self, py::is_operator())
-      .def(double() - py::self, py::is_operator())
-      .def(std::complex<double>() * py::self, py::is_operator())
-      .def(std::complex<double>() + py::self, py::is_operator())
-      .def(std::complex<double>() - py::self, py::is_operator())
-      .def(scalar_operator() * py::self, py::is_operator())
-      .def(scalar_operator() + py::self, py::is_operator())
-      .def(scalar_operator() - py::self, py::is_operator())
+      .def(int() * nanobind::self, nanobind::is_operator())
+      .def(int() + nanobind::self, nanobind::is_operator())
+      .def(int() - nanobind::self, nanobind::is_operator())
+      .def(double() * nanobind::self, nanobind::is_operator())
+      .def(double() + nanobind::self, nanobind::is_operator())
+      .def(double() - nanobind::self, nanobind::is_operator())
+      .def(std::complex<double>() * nanobind::self, nanobind::is_operator())
+      .def(std::complex<double>() + nanobind::self, nanobind::is_operator())
+      .def(std::complex<double>() - nanobind::self, nanobind::is_operator())
+      .def(scalar_operator() * nanobind::self, nanobind::is_operator())
+      .def(scalar_operator() + nanobind::self, nanobind::is_operator())
+      .def(scalar_operator() - nanobind::self, nanobind::is_operator())
 
       // common operators
 
@@ -351,17 +373,21 @@ void bindBosonOperator(py::module &mod) {
       .def("dump", &boson_op::dump,
            "Prints the string representation of the operator to the standard "
            "output.")
-      .def("trim", &boson_op::trim, py::arg("tol") = 0.0,
-           py::arg("parameters") = parameter_map(),
-           "Removes all terms from the sum for which the absolute value of the "
-           "coefficient is below "
-           "the given tolerance.")
       .def(
           "trim",
-          [](boson_op &self, double tol, const py::kwargs &kwargs) {
+          [](boson_op &self, double tol, std::optional<parameter_map> params) {
+            return self.trim(tol, params.value_or(parameter_map()));
+          },
+          nanobind::arg("tol") = 0.0,
+          nanobind::arg("parameters").none() = nanobind::none(),
+          "Removes all terms from the sum for which the absolute value of the "
+          "coefficient is below "
+          "the given tolerance.")
+      .def(
+          "trim",
+          [](boson_op &self, double tol, nanobind::kwargs kwargs) {
             return self.trim(tol, details::kwargs_to_param_map(kwargs));
           },
-          py::arg("tol") = 0.0,
           "Removes all terms from the sum for which the absolute value of the "
           "coefficient is below "
           "the given tolerance.")
@@ -386,42 +412,44 @@ void bindBosonOperator(py::module &mod) {
       .def(
           "__iter__",
           [](boson_op_term &self) {
-            return py::make_iterator(self.begin(), self.end());
+            nanobind::list items;
+            for (auto it = self.begin(); it != self.end(); ++it)
+              items.append(nanobind::cast(*it));
+            return items.attr("__iter__")();
           },
-          py::keep_alive<0, 1>(), "Loop through each term of the operator.")
+          "Loop through each term of the operator.")
 
       // properties
 
-      .def_property_readonly("parameters",
-                             &boson_op_term::get_parameter_descriptions,
-                             "Returns a dictionary that maps each parameter "
-                             "name to its description.")
-      .def_property_readonly("degrees", &boson_op_term::degrees,
-                             "Returns a vector that lists all degrees of "
-                             "freedom that the operator targets. "
-                             "The order of degrees is from smallest to largest "
-                             "and reflects the ordering of "
-                             "the matrix returned by `to_matrix`. "
-                             "Specifically, the indices of a statevector "
-                             "with two qubits are {00, 01, 10, 11}. An "
-                             "ordering of degrees {0, 1} then indicates "
-                             "that a state where the qubit with index 0 equals "
-                             "1 with probability 1 is given by "
-                             "the vector {0., 1., 0., 0.}.")
-      .def_property_readonly("min_degree", &boson_op_term::min_degree,
-                             "Returns the smallest index of the degrees of "
-                             "freedom that the operator targets.")
-      .def_property_readonly("max_degree", &boson_op_term::max_degree,
-                             "Returns the smallest index of the degrees of "
-                             "freedom that the operator targets.")
-      .def_property_readonly("ops_count", &boson_op_term::num_ops,
-                             "Returns the number of operators in the product.")
-      .def_property_readonly(
+      .def_prop_ro("parameters", &boson_op_term::get_parameter_descriptions,
+                   "Returns a dictionary that maps each parameter "
+                   "name to its description.")
+      .def_prop_ro("degrees", &boson_op_term::degrees,
+                   "Returns a vector that lists all degrees of "
+                   "freedom that the operator targets. "
+                   "The order of degrees is from smallest to largest "
+                   "and reflects the ordering of "
+                   "the matrix returned by `to_matrix`. "
+                   "Specifically, the indices of a statevector "
+                   "with two qubits are {00, 01, 10, 11}. An "
+                   "ordering of degrees {0, 1} then indicates "
+                   "that a state where the qubit with index 0 equals "
+                   "1 with probability 1 is given by "
+                   "the vector {0., 1., 0., 0.}.")
+      .def_prop_ro("min_degree", &boson_op_term::min_degree,
+                   "Returns the smallest index of the degrees of "
+                   "freedom that the operator targets.")
+      .def_prop_ro("max_degree", &boson_op_term::max_degree,
+                   "Returns the smallest index of the degrees of "
+                   "freedom that the operator targets.")
+      .def_prop_ro("ops_count", &boson_op_term::num_ops,
+                   "Returns the number of operators in the product.")
+      .def_prop_ro(
           "term_id", &boson_op_term::get_term_id,
           "The term id uniquely identifies the operators and targets (degrees) "
           "that they act on, "
           "but does not include information about the coefficient.")
-      .def_property_readonly(
+      .def_prop_ro(
           "coefficient", &boson_op_term::get_coefficient,
           "Returns the unevaluated coefficient of the operator. The "
           "coefficient is a "
@@ -429,30 +457,32 @@ void bindBosonOperator(py::module &mod) {
 
       // constructors
 
-      .def(py::init<>(),
+      .def(nanobind::init<>(),
            "Creates a product operator with constant value 1. The returned "
            "operator does not target any degrees of freedom but merely "
            "represents a constant.")
-      .def(py::init<std::size_t, std::size_t>(), py::arg("first_degree"),
-           py::arg("last_degree"),
+      .def(nanobind::init<std::size_t, std::size_t>(),
+           nanobind::arg("first_degree"), nanobind::arg("last_degree"),
            "Creates a product operator that applies an identity operation to "
            "all degrees of "
            "freedom in the range [first_degree, last_degree).")
-      .def(py::init<double>(),
+      .def(nanobind::init<double>(),
            "Creates a product operator with the given constant value. "
            "The returned operator does not target any degrees of freedom.")
-      .def(py::init<std::complex<double>>(),
+      .def(nanobind::init<std::complex<double>>(),
            "Creates a product operator with the given "
            "constant value. The returned operator does not target any degrees "
            "of freedom.")
-      .def(py::init([](const scalar_operator &scalar) {
-             return boson_op_term() * scalar;
-           }),
-           "Creates a product operator with non-constant scalar value.")
-      .def(py::init<boson_handler>(),
+      .def(
+          "__init__",
+          [](boson_op_term *self, const scalar_operator &scalar) {
+            new (self) boson_op_term(boson_op_term() * scalar);
+          },
+          "Creates a product operator with non-constant scalar value.")
+      .def(nanobind::init<boson_handler>(),
            "Creates a product operator with the given elementary operator.")
-      .def(py::init<const boson_op_term &, std::size_t>(), py::arg("operator"),
-           py::arg("size") = 0,
+      .def(nanobind::init<const boson_op_term &, std::size_t>(),
+           nanobind::arg("operator"), nanobind::arg("size") = 0,
            "Creates a copy of the given operator and reserves space for "
            "storing the given "
            "number of product terms (if a size is provided).")
@@ -462,21 +492,27 @@ void bindBosonOperator(py::module &mod) {
 
       // evaluations
 
-      .def("evaluate_coefficient", &boson_op_term::evaluate_coefficient,
-           py::arg("parameters") = parameter_map(),
-           "Returns the evaluated coefficient of the product operator. The "
-           "parameters is a map of parameter names to their concrete, complex "
-           "values.")
+      .def(
+          "evaluate_coefficient",
+          [](const boson_op_term &self, std::optional<parameter_map> params) {
+            return self.evaluate_coefficient(params.value_or(parameter_map()));
+          },
+          nanobind::arg("parameters").none() = nanobind::none(),
+          "Returns the evaluated coefficient of the product operator. The "
+          "parameters is a map of parameter names to their concrete, complex "
+          "values.")
       .def(
           "to_matrix",
-          [](const boson_op_term &self, dimension_map &dimensions,
-             const parameter_map &params, bool invert_order) {
-            auto cmat = self.to_matrix(dimensions, params, invert_order);
+          [](const boson_op_term &self, std::optional<dimension_map> dimensions,
+             std::optional<parameter_map> params, bool invert_order) {
+            dimension_map dims = dimensions.value_or(dimension_map());
+            parameter_map pm = params.value_or(parameter_map());
+            auto cmat = self.to_matrix(dims, pm, invert_order);
             return details::cmat_to_numpy(cmat);
           },
-          py::arg("dimensions") = dimension_map(),
-          py::arg("parameters") = parameter_map(),
-          py::arg("invert_order") = false,
+          nanobind::arg("dimensions").none() = nanobind::none(),
+          nanobind::arg("parameters").none() = nanobind::none(),
+          nanobind::arg("invert_order") = false,
           "Returns the matrix representation of the operator."
           "The matrix is ordered according to the convention (endianness) "
           "used in CUDA-Q, and the ordering returned by `degrees`. This order "
@@ -485,29 +521,40 @@ void bindBosonOperator(py::module &mod) {
           "See also the documentation for `degrees` for more detail.")
       .def(
           "to_matrix",
-          [](const boson_op_term &self, dimension_map &dimensions,
-             bool invert_order, const py::kwargs &kwargs) {
-            auto cmat = self.to_matrix(
-                dimensions, details::kwargs_to_param_map(kwargs), invert_order);
+          [](const boson_op_term &self, dimension_map dimensions,
+             nanobind::kwargs kwargs) {
+            bool invert_order;
+            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            auto cmat = self.to_matrix(dimensions, pm, invert_order);
             return details::cmat_to_numpy(cmat);
           },
-          py::arg("dimensions") = dimension_map(),
-          py::arg("invert_order") = false,
           "Returns the matrix representation of the operator."
           "The matrix is ordered according to the convention (endianness) "
           "used in CUDA-Q, and the ordering returned by `degrees`. This order "
           "can be inverted by setting the optional `invert_order` argument to "
           "`True`. "
           "See also the documentation for `degrees` for more detail.")
+      .def(
+          "to_matrix",
+          [](const boson_op_term &self, nanobind::kwargs kwargs) {
+            bool invert_order;
+            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            auto cmat = self.to_matrix(dimension_map(), pm, invert_order);
+            return details::cmat_to_numpy(cmat);
+          },
+          "Returns the matrix representation of the operator, passing "
+          "parameters as keyword arguments.")
       .def(
           "to_sparse_matrix",
-          [](const boson_op_term &self, dimension_map &dimensions,
-             const parameter_map &params, bool invert_order) {
-            return self.to_sparse_matrix(dimensions, params, invert_order);
+          [](const boson_op_term &self, std::optional<dimension_map> dimensions,
+             std::optional<parameter_map> params, bool invert_order) {
+            dimension_map dims = dimensions.value_or(dimension_map());
+            parameter_map pm = params.value_or(parameter_map());
+            return self.to_sparse_matrix(dims, pm, invert_order);
           },
-          py::arg("dimensions") = dimension_map(),
-          py::arg("parameters") = parameter_map(),
-          py::arg("invert_order") = false,
+          nanobind::arg("dimensions").none() = nanobind::none(),
+          nanobind::arg("parameters").none() = nanobind::none(),
+          nanobind::arg("invert_order") = false,
           "Return the sparse matrix representation of the operator. This "
           "representation is a "
           "`Tuple[list[complex], list[int], list[int]]`, encoding the "
@@ -520,13 +567,12 @@ void bindBosonOperator(py::module &mod) {
           "See also the documentation for `degrees` for more detail.")
       .def(
           "to_sparse_matrix",
-          [](const boson_op_term &self, dimension_map &dimensions,
-             bool invert_order, const py::kwargs &kwargs) {
-            return self.to_sparse_matrix(
-                dimensions, details::kwargs_to_param_map(kwargs), invert_order);
+          [](const boson_op_term &self, dimension_map dimensions,
+             nanobind::kwargs kwargs) {
+            bool invert_order;
+            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            return self.to_sparse_matrix(dimensions, pm, invert_order);
           },
-          py::arg("dimensions") = dimension_map(),
-          py::arg("invert_order") = false,
           "Return the sparse matrix representation of the operator. This "
           "representation is a "
           "`Tuple[list[complex], list[int], list[int]]`, encoding the "
@@ -540,7 +586,7 @@ void bindBosonOperator(py::module &mod) {
 
       // comparisons
 
-      .def("__eq__", &boson_op_term::operator==, py::is_operator(),
+      .def("__eq__", &boson_op_term::operator==, nanobind::is_operator(),
            "Return true if the two operators are equivalent. The equivalence "
            "check takes "
            "commutation relations into account. Operators acting on different "
@@ -552,70 +598,71 @@ void bindBosonOperator(py::module &mod) {
           [](const boson_op_term &self, const boson_op &other) {
             return other.num_terms() == 1 && *other.begin() == self;
           },
-          py::is_operator(), "Return true if the two operators are equivalent.")
+          nanobind::is_operator(),
+          "Return true if the two operators are equivalent.")
 
       // unary operators
 
-      .def(-py::self, py::is_operator())
-      .def(+py::self, py::is_operator())
+      .def(-nanobind::self, nanobind::is_operator())
+      .def(+nanobind::self, nanobind::is_operator())
 
       // in-place arithmetics
 
-      .def(py::self /= int(), py::is_operator())
-      .def(py::self *= int(), py::is_operator())
-      .def(py::self /= double(), py::is_operator())
-      .def(py::self *= double(), py::is_operator())
-      .def(py::self /= std::complex<double>(), py::is_operator())
-      .def(py::self *= std::complex<double>(), py::is_operator())
-      .def(py::self /= scalar_operator(), py::is_operator())
-      .def(py::self *= scalar_operator(), py::is_operator())
-      .def(py::self *= py::self, py::is_operator())
+      .def(nanobind::self /= int(), nanobind::is_operator())
+      .def(nanobind::self *= int(), nanobind::is_operator())
+      .def(nanobind::self /= double(), nanobind::is_operator())
+      .def(nanobind::self *= double(), nanobind::is_operator())
+      .def(nanobind::self /= std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self *= std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self /= scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self *= scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self *= nanobind::self, nanobind::is_operator())
 
       // right-hand arithmetics
 
-      .def(py::self / int(), py::is_operator())
-      .def(py::self * int(), py::is_operator())
-      .def(py::self + int(), py::is_operator())
-      .def(py::self - int(), py::is_operator())
-      .def(py::self / double(), py::is_operator())
-      .def(py::self * double(), py::is_operator())
-      .def(py::self + double(), py::is_operator())
-      .def(py::self - double(), py::is_operator())
-      .def(py::self / std::complex<double>(), py::is_operator())
-      .def(py::self * std::complex<double>(), py::is_operator())
-      .def(py::self + std::complex<double>(), py::is_operator())
-      .def(py::self - std::complex<double>(), py::is_operator())
-      .def(py::self / scalar_operator(), py::is_operator())
-      .def(py::self * scalar_operator(), py::is_operator())
-      .def(py::self + scalar_operator(), py::is_operator())
-      .def(py::self - scalar_operator(), py::is_operator())
-      .def(py::self * py::self, py::is_operator())
-      .def(py::self + py::self, py::is_operator())
-      .def(py::self - py::self, py::is_operator())
-      .def(py::self * boson_op(), py::is_operator())
-      .def(py::self + boson_op(), py::is_operator())
-      .def(py::self - boson_op(), py::is_operator())
-      .def(py::self * matrix_op_term(), py::is_operator())
-      .def(py::self + matrix_op_term(), py::is_operator())
-      .def(py::self - matrix_op_term(), py::is_operator())
-      .def(py::self * matrix_op(), py::is_operator())
-      .def(py::self + matrix_op(), py::is_operator())
-      .def(py::self - matrix_op(), py::is_operator())
+      .def(nanobind::self / int(), nanobind::is_operator())
+      .def(nanobind::self * int(), nanobind::is_operator())
+      .def(nanobind::self + int(), nanobind::is_operator())
+      .def(nanobind::self - int(), nanobind::is_operator())
+      .def(nanobind::self / double(), nanobind::is_operator())
+      .def(nanobind::self * double(), nanobind::is_operator())
+      .def(nanobind::self + double(), nanobind::is_operator())
+      .def(nanobind::self - double(), nanobind::is_operator())
+      .def(nanobind::self / std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self * std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self + std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self - std::complex<double>(), nanobind::is_operator())
+      .def(nanobind::self / scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self * scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self + scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self - scalar_operator(), nanobind::is_operator())
+      .def(nanobind::self * nanobind::self, nanobind::is_operator())
+      .def(nanobind::self + nanobind::self, nanobind::is_operator())
+      .def(nanobind::self - nanobind::self, nanobind::is_operator())
+      .def(nanobind::self * boson_op(), nanobind::is_operator())
+      .def(nanobind::self + boson_op(), nanobind::is_operator())
+      .def(nanobind::self - boson_op(), nanobind::is_operator())
+      .def(nanobind::self * matrix_op_term(), nanobind::is_operator())
+      .def(nanobind::self + matrix_op_term(), nanobind::is_operator())
+      .def(nanobind::self - matrix_op_term(), nanobind::is_operator())
+      .def(nanobind::self * matrix_op(), nanobind::is_operator())
+      .def(nanobind::self + matrix_op(), nanobind::is_operator())
+      .def(nanobind::self - matrix_op(), nanobind::is_operator())
 
       // left-hand arithmetics
 
-      .def(int() * py::self, py::is_operator())
-      .def(int() + py::self, py::is_operator())
-      .def(int() - py::self, py::is_operator())
-      .def(double() * py::self, py::is_operator())
-      .def(double() + py::self, py::is_operator())
-      .def(double() - py::self, py::is_operator())
-      .def(std::complex<double>() * py::self, py::is_operator())
-      .def(std::complex<double>() + py::self, py::is_operator())
-      .def(std::complex<double>() - py::self, py::is_operator())
-      .def(scalar_operator() * py::self, py::is_operator())
-      .def(scalar_operator() + py::self, py::is_operator())
-      .def(scalar_operator() - py::self, py::is_operator())
+      .def(int() * nanobind::self, nanobind::is_operator())
+      .def(int() + nanobind::self, nanobind::is_operator())
+      .def(int() - nanobind::self, nanobind::is_operator())
+      .def(double() * nanobind::self, nanobind::is_operator())
+      .def(double() + nanobind::self, nanobind::is_operator())
+      .def(double() - nanobind::self, nanobind::is_operator())
+      .def(std::complex<double>() * nanobind::self, nanobind::is_operator())
+      .def(std::complex<double>() + nanobind::self, nanobind::is_operator())
+      .def(std::complex<double>() - nanobind::self, nanobind::is_operator())
+      .def(scalar_operator() * nanobind::self, nanobind::is_operator())
+      .def(scalar_operator() + nanobind::self, nanobind::is_operator())
+      .def(scalar_operator() - nanobind::self, nanobind::is_operator())
 
       // general utility functions
 
@@ -645,12 +692,12 @@ void bindBosonOperator(py::module &mod) {
           "of freedom that are not included in the given set.");
 }
 
-void bindBosonWrapper(py::module &mod) {
+void bindBosonWrapper(nanobind::module_ &mod) {
   bindBosonOperator(mod);
-  py::implicitly_convertible<double, boson_op_term>();
-  py::implicitly_convertible<std::complex<double>, boson_op_term>();
-  py::implicitly_convertible<scalar_operator, boson_op_term>();
-  py::implicitly_convertible<boson_op_term, boson_op>();
+  nanobind::implicitly_convertible<double, boson_op_term>();
+  nanobind::implicitly_convertible<std::complex<double>, boson_op_term>();
+  nanobind::implicitly_convertible<scalar_operator, boson_op_term>();
+  nanobind::implicitly_convertible<boson_op_term, boson_op>();
   bindBosonModule(mod);
 }
 

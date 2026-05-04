@@ -58,7 +58,7 @@ func.func @kernel2() {
 // CHECK: Preprocessing h(0) for 9 counts
 // CHECK-LABEL:   func.func @kernel3() {
 // CHECK:     %0 = quake.alloca !quake.veq<10>
-// CHECK:     %measOut = quake.mz %0 : (!quake.veq<10>) -> !quake.measurements<10>
+// CHECK:     %measOut = quake.mz %0 : (!quake.veq<10>) -> !cc.stdvec<!quake.measure>
 // CHECK:     return
 // CHECK:   }
 
@@ -82,7 +82,7 @@ func.func @kernel3() {
     %2 = arith.addi %arg0, %c1_i64 : i64
     cc.continue %2 : i64
   }
-  %measOut = quake.mz %0 : (!quake.veq<10>) -> !quake.measurements<10>
+  %measOut = quake.mz %0 : (!quake.veq<10>) -> !cc.stdvec<!quake.measure>
   return
 }
 

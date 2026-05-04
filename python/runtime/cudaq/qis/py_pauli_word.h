@@ -8,11 +8,9 @@
 
 #pragma once
 
-#include <pybind11/pybind11.h>
-
-namespace py = pybind11;
+#include <nanobind/nanobind.h>
 
 namespace cudaq {
 /// @brief Bind the Quantum Instruction Set.
-void bindPauliWord(py::module &mod);
+void bindPauliWord(nanobind::module_ &mod);
 } // namespace cudaq
