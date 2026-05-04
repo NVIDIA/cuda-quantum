@@ -19,6 +19,7 @@
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/qpu_utils.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/JIT.h"
 #include <fstream>
@@ -236,11 +237,9 @@ public:
   /// representation required by the targeted backend. Handle all pertinent
   /// modifications for the execution context as well as asynchronous or
   /// synchronous invocation.
-  KernelThunkResultType
-  launchKernel(const std::string &kernelName, KernelThunkType kernelFunc,
-               void *args, std::uint64_t voidStarSize,
-               std::uint64_t resultOffset,
-               const std::vector<void *> &rawArgs) override {
+  KernelThunkResultType launchKernel(const SourceModule &src,
+                                     KernelArgs args) override {
+    const auto &kernelName = src.getName();
     CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
 
     auto executionContext = cudaq::getExecutionContext();
@@ -254,25 +253,18 @@ public:
     auto [module, context] = Compiler::loadQuakeCodeByName(kernelName);
 
     // Get the Quake code, lowered according to config file.
-    // FIXME: For python, we reach here with rawArgs being empty and args having
-    // the arguments. Python should be using the streamlined argument synthesis,
-    // but apparently it isn't. This works around that bug.
     Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
                       noiseModel, emulate);
-    auto codes = rawArgs.empty()
-                     ? compiler.lowerQuakeCode(executionContext, kernelName,
-                                               module, args, {})
-                     : compiler.lowerQuakeCode(executionContext, kernelName,
-                                               module, nullptr, rawArgs);
+    auto codes =
+        compiler.lowerQuakeCode(executionContext, kernelName, module, args);
     completeLaunchKernel(kernelName, std::move(codes));
 
     // NB: Kernel should/will never return dynamic results.
     return {};
   }
 
-  KernelThunkResultType
-  launchModule(const CompiledModule &compiled,
-               const std::vector<void *> &rawArgs) override {
+  KernelThunkResultType launchModule(const CompiledModule &compiled,
+                                     KernelArgs args) override {
     CUDAQ_INFO("launching remote rest kernel via module ({})",
                compiled.getName());
 
@@ -283,10 +275,16 @@ public:
     return {};
   }
 
-  CompiledModule compileModule(const std::string &kernelName,
-                               const void *modulePtr,
-                               const std::vector<void *> &rawArgs,
+  CompiledModule compileModule(const SourceModule &src, KernelArgs args,
                                bool isEntryPoint) override {
+    const auto &kernelName = src.getName();
+    auto mlirArt = src.getMlir();
+    if (!mlirArt)
+      throw std::runtime_error(
+          "BaseRemoteRESTQPU::compileModule requires an MLIR artifact on "
+          "the SourceModule for kernel '" +
+          kernelName + "'.");
+    auto modulePtr = mlirArt->getOpaqueModulePtr();
     CUDAQ_INFO("specializing remote rest kernel via module ({})", kernelName);
     auto executionContext = cudaq::getExecutionContext();
 
@@ -299,7 +297,7 @@ public:
     Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
                       noiseModel, emulate);
     return compiler.runPassPipeline(executionContext, kernelName, modulePtr,
-                                    rawArgs, nullptr);
+                                    args);
   }
 
   void completeLaunchKernel(const std::string &kernelName,

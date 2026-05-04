@@ -26,11 +26,9 @@ public:
 
   /// @brief Launch a kernel with the given arguments
   /// Only analog Hamiltonian kernels are supported
-  KernelThunkResultType
-  launchKernel(const std::string &kernelName, KernelThunkType kernelFunc,
-               void *args, std::uint64_t voidStarSize,
-               std::uint64_t resultOffset,
-               const std::vector<void *> &rawArgs) override {
+  KernelThunkResultType launchKernel(const SourceModule &src,
+                                     KernelArgs args) override {
+    const auto &kernelName = src.getName();
     auto executionContext = cudaq::getExecutionContext();
 
     if (!cudaq::detail::isAnalogHamiltonianKernel(kernelName))
@@ -44,8 +42,8 @@ public:
     CUDAQ_INFO("Launching remote kernel ({})", kernelName);
     std::vector<cudaq::KernelExecution> codes;
     std::string name = kernelName;
-    char *charArgs = (char *)(args);
-    std::string strArgs = charArgs;
+    const auto packed = args.getPacked();
+    std::string strArgs = packed ? (char *)packed->data.data() : "";
     std::vector<std::size_t> mapping_reorder_idx;
     codes.emplace_back(name, strArgs, std::nullopt, std::nullopt,
                        mapping_reorder_idx);
