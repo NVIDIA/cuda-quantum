@@ -49,18 +49,16 @@ int main() {
     // Every bitstring must be 7 bits (7 measured qubits).
     assert(bits.size() == 7);
 
-    // Deterministic z-basis results.
-    assert(bits[0] == '0'); // q0 mz -> 0
-    assert(bits[1] == '1'); // q1 mz -> 1
-    assert(bits[4] == '0'); // q4 mz -> 0
-    assert(bits[5] == '1'); // q5 mx(|->) -> 1
-    assert(bits[6] == '1'); // q6 mz -> 1
-
-    // q2: mx(|+>) -> 0
-    assert(bits[2] == '0');
+    // Measurement execution order: q4, q2, q3, q0, q5, q6, q1.
+    assert(bits[0] == '0'); // q4 mz -> 0
+    assert(bits[1] == '0'); // q2 mx(|+>) -> 0
+    assert(bits[3] == '0'); // q0 mz -> 0
+    assert(bits[4] == '1'); // q5 mx(|->) -> 1
+    assert(bits[5] == '1'); // q6 mz -> 1
+    assert(bits[6] == '1'); // q1 mz -> 1
 
     // q3: my(|0>) is non-deterministic, just check valid bit.
-    assert(bits[3] == '0' || bits[3] == '1');
+    assert(bits[2] == '0' || bits[2] == '1');
   }
 
   printf("passed\n");

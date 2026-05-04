@@ -71,8 +71,7 @@ void createCommonTargetCodegenPipeline(
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addNestedPass<func::FuncOp>(createCSEPass());
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddDeallocs());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
-    pm.addPass(cudaq::opt::createQuakePropagateMetadata());
+    cudaq::opt::addQuakeMetadataRefresh(pm);
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
     cudaq::opt::LoopUnrollOptions luo;
     luo.allowBreak = options.allowBreaksInLoops;
@@ -106,6 +105,10 @@ void createTargetCodegenPipeline(PassManager &pm,
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createMemToReg());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   }
+  // Refresh metadata after final Quake simplification. In particular,
+  // measurement expansion and allocation combining can turn dynamic-looking
+  // measurement IR into a provable allocation-order measurement sequence.
+  cudaq::opt::addQuakeMetadataRefresh(pm);
   ::addQIRConversionPipeline(pm, options.target);
   // QIR conversion may introduce cc.loop, lower to cf.
   cudaq::opt::addLowerToCFG(pm);

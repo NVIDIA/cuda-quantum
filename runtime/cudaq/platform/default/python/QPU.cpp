@@ -12,6 +12,7 @@
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "common/RuntimeTarget.h"
+#include "common/SampleMeasurementUtils.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
@@ -388,6 +389,16 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
 
     specializeKernel(name, module, closureArgs, resultTy,
                      enablePythonCodegenDump, isEntryPoint, isFullySpecialized);
+
+    if (auto *currentExecCtx = cudaq::getExecutionContext();
+        currentExecCtx && currentExecCtx->name == "sample") {
+      auto sampleFuncOp = module.lookupSymbol<func::FuncOp>(fullName);
+      if (sampleFuncOp)
+        cudaq::details::resolveSampleExplicitMeasurementsFromFuncOp(
+            sampleFuncOp, *currentExecCtx,
+            cudaq::get_platform().supports_explicit_measurements(
+                currentExecCtx->qpuId));
+    }
 
     // 3b. Run target-specific passes if configured.
     runTargetPassPipeline(module);

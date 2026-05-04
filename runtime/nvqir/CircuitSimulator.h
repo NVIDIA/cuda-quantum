@@ -494,6 +494,27 @@ protected:
   std::unordered_map<std::string, std::vector<std::size_t>>
       registerNameToMeasuredQubit;
 
+  /// @brief Map named measurement registers to explicit measurement positions.
+  std::unordered_map<std::string, std::vector<std::size_t>>
+      registerNameToMeasurementIndex;
+
+  /// @brief Number of explicit measurement bits recorded in this context.
+  std::size_t explicitMeasurementCount = 0;
+
+  /// @brief Clear sampling accumulators that are scoped to one execution
+  /// context.
+  void clearSamplingState(bool clearResult = true) {
+    if (clearResult)
+      internalResult = {};
+    sampleQubits.clear();
+    midCircuitSampleResults.clear();
+    lastMidCircuitRegisterName = "";
+    vectorRegisters.clear();
+    registerNameToMeasuredQubit.clear();
+    registerNameToMeasurementIndex.clear();
+    explicitMeasurementCount = 0;
+  }
+
   /// @brief Environment variable name that allows a programmer to
   /// specify how expectation values should be computed. This
   /// defaults to true.
@@ -582,10 +603,13 @@ protected:
       // Add the qubit to the sampling list
       sampleQubits.push_back(qubitIdx);
 
-      // If we're using explicit measurements (an optimized sampling mode), then
-      // don't populate registerNameToMeasuredQubit.
-      if (executionContext->explicitMeasurements)
+      if (executionContext->explicitMeasurements) {
+        if (!regName.empty())
+          registerNameToMeasurementIndex[regName].push_back(
+              explicitMeasurementCount);
+        ++explicitMeasurementCount;
         return true;
+      }
 
       auto processForRegName = [&](const std::string &regStr) {
         // Insert the sample qubit into the register name map
@@ -1007,7 +1031,11 @@ protected:
     finalizeExecutionContextImpl(context);
 
     // Sample the state over the specified number of shots
-    if (sampleQubits.empty() && !context.explicitMeasurements) {
+    if (sampleQubits.empty() && internalResult.get_total_shots() == 0 &&
+        explicitMeasurementCount == 0) {
+      // Kernels without user measurements use implicit final sampling, even
+      // when the caller requested default/explicit sampling semantics.
+      context.explicitMeasurements = false;
       sampleQubits.resize(getNumQubits());
       if (sampleQubits.empty())
         throw std::runtime_error(
@@ -1018,6 +1046,38 @@ protected:
 
     // Flush any queued up sampling tasks
     flushAnySamplingTasks(/*force this*/ true);
+
+    if (context.explicitMeasurements &&
+        !registerNameToMeasurementIndex.empty()) {
+      if (!context.warnedNamedMeasurements) {
+        context.warnedNamedMeasurements = true;
+        std::cerr
+            << "WARNING: Kernel \"" << context.kernelName
+            << "\" uses named measurement results but is "
+               "invoked in sampling mode. Support for sub-registers in "
+               "`sample_result` is deprecated and will be removed in a future "
+               "release. Use `run` to retrieve individual measurement results."
+            << std::endl;
+      }
+
+      auto sequentialData = internalResult.sequential_data();
+      for (auto &[regName, measurementIndices] :
+           registerNameToMeasurementIndex) {
+        cudaq::ExecutionResult counts(regName);
+        for (const auto &shotBits : sequentialData) {
+          std::string regBits;
+          regBits.reserve(measurementIndices.size());
+          for (auto index : measurementIndices) {
+            if (index >= shotBits.size())
+              throw std::runtime_error(
+                  "Invalid explicit measurement register index.");
+            regBits += shotBits[index];
+          }
+          counts.appendResult(regBits, 1);
+        }
+        internalResult.append(counts);
+      }
+    }
 
     // Handle the processing for any mid circuit measurements
     for (auto &m : midCircuitSampleResults) {
@@ -1052,10 +1112,8 @@ protected:
       context.reorderIdx.clear();
     }
 
-    // Clear the sample bits for the next run
-    sampleQubits.clear();
-    midCircuitSampleResults.clear();
-    lastMidCircuitRegisterName = "";
+    // Clear the sample bits for the next run.
+    clearSamplingState(/*clearResult=*/false);
     currentCircuitName = "";
 
     return internalResult;
@@ -1107,11 +1165,12 @@ public:
     }
 
     tracker = {};
-    internalResult = {};
+    clearSamplingState();
   }
 
   /// @brief Set the execution context
   void configureExecutionContext(cudaq::ExecutionContext &context) override {
+    clearSamplingState();
     context.canHandleObserve = canHandleObserve();
     currentCircuitName = context.kernelName;
     CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);

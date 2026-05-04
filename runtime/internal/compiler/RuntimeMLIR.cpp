@@ -171,36 +171,6 @@ static void applyWriteOnlyAttributes(llvm::Module *llvmModule) {
       }
 }
 
-// Once a call to a function with irreversible attribute is seen, no more calls
-// to reversible functions are allowed.
-static LogicalResult
-verifyBaseProfileMeasurementOrdering(llvm::Module *llvmModule) {
-  bool irreversibleSeenYet = false;
-  for (llvm::Function &func : *llvmModule)
-    for (llvm::BasicBlock &block : func)
-      for (llvm::Instruction &inst : block) {
-        auto callInst = llvm::dyn_cast_or_null<llvm::CallBase>(&inst);
-
-        if (callInst && callInst->getCalledFunction()) {
-          auto calledFunc = callInst->getCalledFunction();
-          auto funcName = calledFunc->getName();
-          bool isIrreversible = calledFunc->hasFnAttribute("irreversible");
-          bool isReversible = !isIrreversible;
-          bool isOutputFunction =
-              (funcName == cudaq::opt::QIRRecordOutput ||
-               funcName == cudaq::opt::QIRArrayRecordOutput);
-          if (isReversible && !isOutputFunction && irreversibleSeenYet) {
-            llvm::errs() << "error: reversible function " << funcName
-                         << " came after irreversible function\n";
-            return failure();
-          }
-          if (isIrreversible)
-            irreversibleSeenYet = true;
-        }
-      }
-  return success();
-}
-
 // Verify that output recording calls
 // 1) Have the nonnull attribute on any i8* parameters
 // 2) Have unique names
@@ -542,7 +512,8 @@ qirProfileTranslationFunction(const std::string &qirProfile, Operation *op,
     return failure();
 
   if (config.isBaseProfile &&
-      failed(verifyBaseProfileMeasurementOrdering(llvmModule.get())))
+      failed(cudaq::verifier::verifyBaseProfileMeasurementOrdering(
+          llvmModule.get())))
     return failure();
 
   if (failed(verifyQubitAndResultRanges(llvmModule.get())))

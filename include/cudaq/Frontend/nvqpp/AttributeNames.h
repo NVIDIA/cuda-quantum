@@ -19,6 +19,11 @@ static constexpr const char entryPointAttrName[] = "cudaq-entrypoint";
 /// Name of the attribute attached to CUDA-Q kernels.
 static constexpr const char kernelAttrName[] = "cudaq-kernel";
 
+/// Name of the attribute attached when a kernel's user measurement order must
+/// be preserved in sample() results.
+static constexpr const char kernelExplicitMeasurementsAttrName[] =
+    "cudaq-explicit-measurements";
+
 /// Name of the attribute attached to device call functions.
 static constexpr const char deviceCallAttrName[] = "cudaq-devicecall";
 

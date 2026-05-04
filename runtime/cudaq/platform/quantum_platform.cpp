@@ -14,6 +14,7 @@
 #include "cudaq/platform/qpu.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "mlir/IR/BuiltinOps.h"
+#include <exception>
 #include <iostream>
 #include <shared_mutex>
 #include <string>
@@ -92,8 +93,12 @@ quantum_platform::enqueueAsyncTask(const std::size_t qpu_id,
   auto f = promise.get_future();
   QuantumTask wrapped = detail::make_copyable_function(
       [p = std::move(promise), t = task]() mutable {
-        auto counts = t();
-        p.set_value(counts);
+        try {
+          auto counts = t();
+          p.set_value(counts);
+        } catch (...) {
+          p.set_exception(std::current_exception());
+        }
       });
 
   platformQPUs[qpu_id]->enqueue(wrapped);

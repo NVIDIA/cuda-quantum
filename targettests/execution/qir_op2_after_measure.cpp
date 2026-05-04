@@ -26,4 +26,4 @@ int main() {
   return 0;
 }
 
-// CHECK: reversible function __quantum__qis__x__body came after irreversible function
+// CHECK: requires explicit measurement result semantics

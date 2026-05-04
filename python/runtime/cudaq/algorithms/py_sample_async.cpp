@@ -21,10 +21,12 @@
 
 using namespace cudaq;
 
-static async_sample_result sample_async_impl(
-    const std::string &shortName, MlirModule module, std::size_t shots_count,
-    std::optional<noise_model> noise_model, bool explicit_measurements,
-    std::size_t qpu_id, nanobind::args runtimeArgs) {
+static async_sample_result
+sample_async_impl(const std::string &shortName, MlirModule module,
+                  std::size_t shots_count,
+                  std::optional<noise_model> noise_model,
+                  std::optional<bool> explicit_measurements, std::size_t qpu_id,
+                  nanobind::args runtimeArgs) {
   mlir::ModuleOp mod = unwrap(module);
   runtimeArgs = simplifiedValidateInputArguments(runtimeArgs);
 

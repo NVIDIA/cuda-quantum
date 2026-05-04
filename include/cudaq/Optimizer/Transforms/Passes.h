@@ -62,6 +62,12 @@ void createClassicalOptimizationPipeline(
     std::optional<bool> allowBreak = std::nullopt,
     std::optional<bool> allowClosedInterval = std::nullopt);
 
+/// Recompute Quake function metadata and propagate it to the module. This is
+/// useful after transformations such as measurement expansion, loop unrolling,
+/// and allocation combining, which can expose a more precise measurement shape
+/// than was available earlier in the pipeline.
+void addQuakeMetadataRefresh(mlir::OpPassManager &pm);
+
 std::unique_ptr<mlir::Pass> createExpandMeasurementsPass();
 void addLowerToCFG(mlir::OpPassManager &pm);
 std::unique_ptr<mlir::Pass> createObserveAnsatzPass(const std::vector<bool> &);

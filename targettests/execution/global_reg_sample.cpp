@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ -DNO_ADAPTIVE --target iqm --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s
+// RUN: nvq++ --target iqm --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s
 // RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
 // clang-format on
@@ -31,8 +31,8 @@ int main() {
   auto test1 = []() __qpu__ {
     cudaq::qubit a, b;
     x(a);
-    mz(b);
     mz(a);
+    mz(b);
   };
   SAMPLE_AND_PRINT_GLOBAL_REG(test1);
   // CHECK: test1:
@@ -42,31 +42,24 @@ int main() {
   auto test2 = []() __qpu__ {
     cudaq::qubit a, b;
     x(a);
-    auto ret_b = mz(b);
     auto ret_a = mz(a);
+    auto ret_b = mz(b);
   };
   SAMPLE_AND_PRINT_GLOBAL_REG(test2);
   // CHECK: test2:
   // CHECK: { 10:1000 }
 
   // Check that duplicate measurements don't get duplicated in global bitstring
-#ifndef NO_ADAPTIVE
   auto test3 = []() __qpu__ {
     cudaq::qubit a, b;
     x(a);
     auto ma1 = mz(a); // 1st measurement of qubit a
-    auto ma2 = mz(a); // 2nd measurement of qubit a
-    auto mb = mz(b);
-  };
-#else
-  auto test3 = []() __qpu__ {
-    cudaq::qubit a, b;
-    x(a);
-    auto ma1 = mz(a); // 1st measurement of qubit a
+    // under the current sample semantics, duplicated measurements
+    // requires explicit_measurements=True flag,
+    // which is not supported on most remote platforms.
     // auto ma2 = mz(a); // 2nd measurement of qubit a
     auto mb = mz(b);
   };
-#endif
   SAMPLE_AND_PRINT_GLOBAL_REG(test3);
   // CHECK: test3:
   // CHECK: { 10:1000 }

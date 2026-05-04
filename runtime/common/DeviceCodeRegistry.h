@@ -88,4 +88,12 @@ inline std::string get_quake(std::string &&functionName,
 typedef std::size_t (*KernelArgsCreator)(void **, void **);
 KernelArgsCreator getArgsCreator(const std::string &kernelName);
 
+bool kernelHasConditionalFeedback(const std::string &kernelName);
+
+/// Return whether the registered Quake for a kernel carries the unit attribute
+/// requiring explicit measurement-order sampling. std::nullopt means no Quake
+/// code was available, e.g. deprecated library mode.
+std::optional<bool>
+kernelRequiresExplicitMeasurements(const std::string &kernelName);
+
 } // namespace cudaq

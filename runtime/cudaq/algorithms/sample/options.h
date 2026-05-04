@@ -18,12 +18,16 @@ namespace cudaq {
 ///
 /// @param shots number of shots to run for the given kernel
 /// @param noise noise model to use for the sample operation
-/// @param explicit_measurements whether or not to form the global register
-/// based on user-supplied measurement order.
+/// @param explicit_measurements deprecated compatibility option. By default,
+/// kernels with measurements return bitstrings in measurement order, and
+/// kernels without measurements use implicit final allocation-order sampling.
 struct sample_options {
   std::size_t shots = DEFAULT_NUM_SHOTS;
   cudaq::noise_model noise;
-  bool explicit_measurements = false;
+  /// Deprecated compatibility option. If false, sampling requests legacy
+  /// allocation-order semantics and rejects kernels whose measurement order
+  /// would change the returned bitstrings.
+  bool explicit_measurements = true;
 };
 
 } // namespace cudaq

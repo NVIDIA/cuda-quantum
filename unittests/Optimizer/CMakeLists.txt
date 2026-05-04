@@ -56,4 +56,6 @@ target_link_libraries(test_quake_synth
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
   target_link_options(test_quake_synth PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
 endif()
-gtest_discover_tests(test_quake_synth DISCOVERY_TIMEOUT 120)
+gtest_discover_tests(test_quake_synth
+  PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=1"
+  DISCOVERY_TIMEOUT 120)
