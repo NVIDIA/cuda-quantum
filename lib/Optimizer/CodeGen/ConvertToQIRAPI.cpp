@@ -800,7 +800,7 @@ struct DiscriminateOpToCallRewrite
     if (operands.size() == 1 && isa<IntegerType>(operands.front().getType())) {
       auto resultTy = M::getResultType(rewriter.getContext());
       operands.front() =
-          rewriter.create<cudaq::cc::CastOp>(loc, resultTy, operands.front());
+          cudaq::cc::CastOp::create(rewriter, loc, resultTy, operands.front());
     }
     if constexpr (M::discriminateToClassical) {
       if constexpr (M::qirVersion == QirVersion::version_1_0) {
@@ -1429,7 +1429,7 @@ struct MeasurementOpPattern : public OpConversionPattern<quake::MzOp> {
       if (measOutIsHandle) {
         auto i64Ty = rewriter.getI64Type();
         replaceVals.push_back(
-            rewriter.create<cudaq::cc::CastOp>(loc, i64Ty, call.getResult(0)));
+            cudaq::cc::CastOp::create(rewriter, loc, i64Ty, call.getResult(0)));
       } else {
         replaceVals.append(call.getResults().begin(), call.getResults().end());
       }
@@ -1462,7 +1462,7 @@ struct MeasurementOpPattern : public OpConversionPattern<quake::MzOp> {
 
       auto i64Ty = rewriter.getI64Type();
       Value handleRes =
-          measOutIsHandle ? rewriter.create<cudaq::cc::CastOp>(loc, i64Ty, res)
+          measOutIsHandle ? cudaq::cc::CastOp::create(rewriter, loc, i64Ty, res)
                           : res;
       auto cstringGlobal =
           createGlobalCString(mz, loc, rewriter, regNameAttr.getValue());
