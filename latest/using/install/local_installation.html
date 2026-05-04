@@ -12,6 +12,7 @@
       <link rel="stylesheet" href="../../_static/cudaq_override.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/sg_gallery.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/_static/cudaq_override.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
   <!--[if lt IE 9]>
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -27,6 +28,7 @@
         <script src="../../_static/copybutton.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+        <script src="../../_static/filter.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -46,7 +48,7 @@
             NVIDIA CUDA-Q
           </a>
               <div class="version">
-                amd64-latest
+                latest
               </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
@@ -102,6 +104,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../quick_start.html">   Quick Start</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../quick_start.html#install-cuda-q">Install CUDA-Q</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../quick_start.html#validate-your-installation">Validate your Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../quick_start.html#cuda-q-academic">CUDA-Q Academic</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../basics/basics.html">   Basics</a><ul>
@@ -109,27 +112,40 @@
 <li class="toctree-l2"><a class="reference internal" href="../basics/build_kernel.html">   Building your first CUDA-Q Program</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../basics/run_kernel.html">   Running your first CUDA-Q Program</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#sample">Sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#run">Run</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#observe">Observe</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../basics/run_kernel.html#running-on-a-gpu">Running on a GPU</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../basics/troubleshooting.html">   Troubleshooting</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../basics/troubleshooting.html#debugging-and-verbose-simulation-output">Debugging and Verbose Simulation Output</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../basics/troubleshooting.html#python-stack-traces">Python Stack-Traces</a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../examples/examples.html">   Examples</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../examples/introduction.html">   Introduction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/building_kernels.html">   Building Kernels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/building_kernels.html">   Building Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/building_kernels.html#defining-kernels">Defining Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/building_kernels.html#initializing-states">Initializing states</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/building_kernels.html#applying-gates">Applying Gates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/building_kernels.html#controlled-operations">Controlled Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/building_kernels.html#multi-controlled-operations">Multi-Controlled Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/building_kernels.html#adjoint-operations">Adjoint Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/building_kernels.html#custom-operations">Custom Operations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/building_kernels.html#building-kernels-with-kernels">Building Kernels with Kernels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/building_kernels.html#parameterized-kernels">Parameterized Kernels</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/quantum_operations.html">   Quantum Operations</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#quantum-states">Quantum States</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#quantum-gates">Quantum Gates</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/quantum_operations.html#measurements">Measurements</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/measuring_kernels.html">   Measuring Kernels</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/measuring_kernels.html#Mid-circuit-Measurement-and-Conditional-Logic">Mid-circuit Measurement and Conditional Logic</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/measuring_kernels.html">   Measuring Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/measuring_kernels.html#mid-circuit-measurement-and-conditional-logic">Mid-circuit Measurement and Conditional Logic</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/visualization.html">   Visualizing Kernels</a><ul>
@@ -137,14 +153,22 @@
 <li class="toctree-l3"><a class="reference internal" href="../../examples/python/visualization.html#Kernel-Visualization">Kernel Visualization</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/executing_kernels.html">   Executing Kernels</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_kernels.html#Sample">Sample</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_kernels.html#Observe">Observe</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_kernels.html#Get-state">Get state</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/executing_kernels.html#Parallelization-Techniques">Parallelization Techniques</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/executing_kernels.html#Observe-Async">Observe Async</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/executing_kernels.html#Sample-Async">Sample Async</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../examples/python/executing_kernels.html#Get-State-Async">Get State Async</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/executing_kernels.html">   Executing Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/executing_kernels.html#sample">Sample</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../examples/executing_kernels.html#sample-asynchronous">Sample Asynchronous</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/executing_kernels.html#run">Run</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../examples/executing_kernels.html#return-custom-data-types">Return Custom Data Types</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/executing_kernels.html#run-asynchronous">Run Asynchronous</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/executing_kernels.html#observe">Observe</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../examples/executing_kernels.html#observe-asynchronous">Observe Asynchronous</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/executing_kernels.html#get-state">Get State</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../examples/executing_kernels.html#get-state-asynchronous">Get State Asynchronous</a></li>
 </ul>
 </li>
 </ul>
@@ -153,7 +177,6 @@
 <li class="toctree-l3"><a class="reference internal" href="../examples/expectation_values.html#parallelizing-across-multiple-processors">Parallelizing across Multiple Processors</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../examples/multi_control.html">   Multi-Control Synthesis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/multi_gpu_workflows.html">   Multi-GPU Workflows</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../examples/multi_gpu_workflows.html#from-cpu-to-gpu">From CPU to GPU</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/multi_gpu_workflows.html#pooling-the-memory-of-multiple-gpus-mgpu">Pooling the memory of multiple GPUs (<code class="code docutils literal notranslate"><span class="pre">mgpu</span></code>)</a></li>
@@ -166,15 +189,38 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/optimizers_gradients.html">   Optimizers &amp; Gradients</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Built-in-CUDA-Q-Optimizers-and-Gradients">Built in CUDA-Q Optimizers and Gradients</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Third-Party-Optimizers">Third-Party Optimizers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Parallel-Parameter-Shift-Gradients">Parallel Parameter Shift Gradients</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#CUDA-Q-Optimizer-Overview">CUDA-Q Optimizer Overview</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Gradient-Free-Optimizers-(no-gradients-required):">Gradient-Free Optimizers (no gradients required):</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#Gradient-Based-Optimizers-(require-gradients):">Gradient-Based Optimizers (require gradients):</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.-Built-in-CUDA-Q-Optimizers-and-Gradients">1. Built-in CUDA-Q Optimizers and Gradients</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.1-Adam-Optimizer-with-Parameter-Configuration">1.1 Adam Optimizer with Parameter Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.2-SGD-(Stochastic-Gradient-Descent)-Optimizer">1.2 SGD (Stochastic Gradient Descent) Optimizer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#1.3-SPSA-(Simultaneous-Perturbation-Stochastic-Approximation)">1.3 SPSA (Simultaneous Perturbation Stochastic Approximation)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#2.-Third-Party-Optimizers">2. Third-Party Optimizers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../examples/python/optimizers_gradients.html#3.-Parallel-Parameter-Shift-Gradients">3. Parallel Parameter Shift Gradients</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/noisy_simulations.html">   Noisy Simulations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../examples/python/operators.html">   Constructing Operators</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/operators.html#Constructing-Spin-Operators">Constructing Spin Operators</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../examples/python/operators.html#Pauli-Words-and-Exponentiating-Pauli-Words">Pauli Words and Exponentiating Pauli Words</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/ptsbe.html">   Pre-Trajectory Sampling with Batch Execution</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/ptsbe.html#conceptual-overview">Conceptual Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/ptsbe.html#when-to-use-ptsbe">When to Use PTSBE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/ptsbe.html#quick-start">Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/ptsbe.html#usage-tutorial">Usage Tutorial</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../examples/ptsbe.html#controlling-the-number-of-trajectories">Controlling the Number of Trajectories</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/ptsbe.html#choosing-a-trajectory-sampling-strategy">Choosing a Trajectory Sampling Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/ptsbe.html#shot-allocation-strategies">Shot Allocation Strategies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/ptsbe.html#inspecting-execution-data">Inspecting Execution Data</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/operators.html">   Constructing Operators</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/operators.html#constructing-spin-operators">Constructing Spin Operators</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/operators.html#pauli-words-and-exponentiating-pauli-words">Pauli Words and Exponentiating Pauli Words</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/performance_optimizations.html">   Performance Optimizations</a><ul>
@@ -183,6 +229,7 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../examples/hardware_providers.html">   Using Quantum Hardware Providers</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#amazon-braket">Amazon Braket</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#anyon-technologies">Anyon Technologies</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#infleqtion">Infleqtion</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#ionq">IonQ</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#iqm">IQM</a></li>
@@ -190,47 +237,110 @@
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#orca-computing">ORCA Computing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#pasqal">Pasqal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#quantinuum">Quantinuum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#quantum-machines">Quantum Machines</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#quera-computing">QuEra Computing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#scaleway">Scaleway</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/hardware_providers.html#tii">TII</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/sample_vs_run.html">   When to Use sample vs. run</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/sample_vs_run.html#introduction">Introduction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/sample_vs_run.html#usage-guidelines">Usage Guidelines</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/sample_vs_run.html#what-is-supported-with-sample">What Is Supported with <code class="docutils literal notranslate"><span class="pre">sample</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/sample_vs_run.html#what-is-not-supported-with-sample">What Is Not Supported with <code class="docutils literal notranslate"><span class="pre">sample</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/sample_vs_run.html#how-to-migrate">How to Migrate</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../examples/sample_vs_run.html#step-1-add-a-return-type-to-the-kernel">Step 1: Add a return type to the kernel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/sample_vs_run.html#step-2-replace-sample-with-run">Step 2: Replace <code class="docutils literal notranslate"><span class="pre">sample</span></code> with <code class="docutils literal notranslate"><span class="pre">run</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/sample_vs_run.html#step-3-update-result-processing">Step 3: Update result processing</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/sample_vs_run.html#migration-examples">Migration Examples</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../examples/sample_vs_run.html#example-1-simple-conditional-logic">Example 1: Simple conditional logic</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/sample_vs_run.html#example-2-returning-multiple-measurement-results">Example 2: Returning multiple measurement results</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/sample_vs_run.html#example-3-quantum-teleportation">Example 3: Quantum teleportation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/sample_vs_run.html#additional-notes">Additional Notes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../examples/dynamics_examples.html">   Dynamics Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../examples/dynamics_examples.html#python-examples-jupyter-notebooks">Python Examples (Jupyter Notebooks)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/dynamics_intro_1.html">   Introduction to CUDA-Q Dynamics (Jaynes-Cummings Model)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/dynamics_intro_2.html">   Introduction to CUDA-Q Dynamics (Time Dependent Hamiltonians)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/superconducting.html">   Superconducting Qubits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/spinqubits.html">   Spin Qubits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/iontrap.html">   Trapped Ion Qubits</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../examples/python/dynamics/control.html">   Control</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../examples/dynamics_examples.html#c-examples">C++ Examples</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../examples/dynamics_examples.html#introduction-single-qubit-dynamics">Introduction: Single Qubit Dynamics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/dynamics_examples.html#introduction-cavity-qed-jaynes-cummings-model">Introduction: Cavity QED (Jaynes-Cummings Model)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/dynamics_examples.html#superconducting-qubits-cross-resonance-gate">Superconducting Qubits: Cross-Resonance Gate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/dynamics_examples.html#spin-qubits-heisenberg-spin-chain">Spin Qubits: Heisenberg Spin Chain</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/dynamics_examples.html#control-driven-qubit">Control: Driven Qubit</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/dynamics_examples.html#state-batching">State Batching</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../examples/dynamics_examples.html#numerical-integrators">Numerical Integrators</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../applications.html">   Applications</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/qaoa.html">Max-Cut with QAOA</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/digitized_counterdiabatic_qaoa.html">Molecular docking via DC-QAOA</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/digitized_counterdiabatic_qaoa.html#Setting-up-the-Molecular-Docking-Problem">Setting up the Molecular Docking Problem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/digitized_counterdiabatic_qaoa.html#CUDA-Q-Implementation">CUDA-Q Implementation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/krylov.html">Multi-reference Quantum Krylov Algorithm - <span class="math notranslate nohighlight">\(H_2\)</span> Molecule</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Setup">Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Computing-the-matrix-elements">Computing the matrix elements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/qsci.html">Quantum-Selected Configuration Interaction (QSCI)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#0.-Problem-definition">0. Problem definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#1.-Prepare-an-Approximate-Quantum-State">1. Prepare an Approximate Quantum State</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#2-Quantum-Sampling-to-Select-Configuration">2 Quantum Sampling to Select Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#3.-Classical-Diagonalization-on-the-Selected-Subspace">3. Classical Diagonalization on the Selected Subspace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#5.-Compare-results">5. Compare results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qsci.html#Reference">Reference</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/bernstein_vazirani.html">Bernstein-Vazirani Algorithm</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/bernstein_vazirani.html#Classical-case">Classical case</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/bernstein_vazirani.html#Quantum-case">Quantum case</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/bernstein_vazirani.html#Implementing-in-CUDA-Q">Implementing in CUDA-Q</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html">Compiling Unitaries Using Diffusion Models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Diffusion-model-pipeline">Diffusion model pipeline</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Setup-and-compilation">Setup and compilation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Load-model">Load model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Unitary-compilation">Unitary compilation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Convert-tensors-to-CUDA-Q">Convert tensors to CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Evaluate-generated-circuits">Evaluate generated circuits</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Simulate-kernels">Simulate kernels</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Compare-unitaries">Compare unitaries</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need">Choosing the circuit you need</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/trotter.html">Computing Magnetization With The Suzuki-Trotter Approximation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/trotter.html#Problem-Setup">Problem Setup</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/trotter.html#Running-the-Simulation">Running the Simulation</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/cost_minimization.html">Cost Minimization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/deutschs_algorithm.html">Deutsch’s Algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutschs_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutschs_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutschs_algorithm.html#Phase-oracle">Phase oracle</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutschs_algorithm.html#Quantum-parallelism">Quantum parallelism</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutschs_algorithm.html#Deutsch's-Algorithm:">Deutsch’s Algorithm:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/deutsch_algorithm.html">Deutsch’s Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_algorithm.html#Phase-oracle">Phase oracle</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_algorithm.html#Quantum-parallelism">Quantum parallelism</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_algorithm.html#Deutsch's-Algorithm:">Deutsch’s Algorithm:</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/deutsch_jozsa.html">The Deutsch-Jozsa Algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_jozsa.html#The-Theory">The Theory</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/deutsch_jozsa.html#The-Algorithm-Implementation">The Algorithm Implementation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html">Divisive Clustering With Coresets Using CUDA-Q</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#Data-preprocessing">Data preprocessing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#Quantum-functions">Quantum functions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#Divisive-Clustering-Function">Divisive Clustering Function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#QAOA-Implementation">QAOA Implementation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#Scaling-simulations-with-CUDA-Q">Scaling simulations with CUDA-Q</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/hybrid_quantum_neural_networks.html">Hybrid Quantum Neural Networks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/hadamard_test.html">Using the Hadamard Test to Determine Quantum Krylov Subspace Decomposition Matrix Elements</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/hadamard_test.html#Numerical-result-as-a-reference:">Numerical result as a reference:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/hadamard_test.html#Using-Sample-to-perform-the-Hadamard-test">Using <code class="docutils literal notranslate"><span class="pre">Sample</span></code> to perform the Hadamard test</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/hadamard_test.html#Multi-GPU-evaluation-of-QKSD-matrix-elements-using-the-Hadamard-Test">Multi-GPU evaluation of QKSD matrix elements using the Hadamard Test</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/hadamard_test.html#Classically-Diagonalize-the-Subspace-Matrix">Classically Diagonalize the Subspace Matrix</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/hamiltonian_simulation.html">Spin-Hamiltonian Simulation Using CUDA-Q</a><ul>
@@ -257,12 +367,94 @@
 <li class="toctree-l3"><a class="reference internal" href="../../applications/python/hamiltonian_simulation.html#Relevant-references">Relevant references</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html">Divisive Clustering With Coresets Using CUDA-Q</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#Data-preprocessing">Data preprocessing</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#Quantum-functions">Quantum functions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#Divisive-Clustering-Function">Divisive Clustering Function</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#QAOA-Implementation">QAOA Implementation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/divisive_clustering_coresets.html#Scaling-simulations-with-CUDA-Q">Scaling simulations with CUDA-Q</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_fourier_transform.html">Quantum Fourier Transform</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited">Quantum Fourier Transform revisited</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_teleportation.html">Quantum Teleporation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_teleportation.html#Teleportation-explained">Teleportation explained</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_volume.html">Quantum Volume</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/readout_error_mitigation.html">Readout Error Mitigation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/readout_error_mitigation.html#Inverse-confusion-matrix-from-k-local-confusion-matrices">Inverse confusion matrix from k local confusion matrices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/readout_error_mitigation.html#Inverse-of-full-confusion-matrix">Inverse of full confusion matrix</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html">Compiling Unitaries Using Diffusion Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Diffusion-model-pipeline">Diffusion model pipeline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Setup-and-load-models">Setup and load models</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Load-discrete-model">Load discrete model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Load-continuous-model">Load continuous model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Create-helper-functions">Create helper functions</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Unitary-compilation">Unitary compilation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Random-unitary">Random unitary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Discrete-model">Discrete model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Continuous-model">Continuous model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Quantum-Fourier-transform">Quantum Fourier transform</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#XXZ-Hamiltonian-evolution">XXZ-Hamiltonian evolution</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need">Choosing the circuit you need</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/vqe_advanced.html">VQE with gradients, active spaces, and gate fusion</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#The-Basics-of-VQE">The Basics of VQE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Installing/Loading-Relevant-Packages">Installing/Loading Relevant Packages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Implementing-VQE-in-CUDA-Q">Implementing VQE in CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Parallel-Parameter-Shift-Gradients">Parallel Parameter Shift Gradients</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Using-an-Active-Space">Using an Active Space</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Gate-Fusion-for-Larger-Circuits">Gate Fusion for Larger Circuits</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Hamiltonian-preparation-for-VQE">Hamiltonian preparation for VQE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Run-VQE-with-CUDA-Q">Run VQE with CUDA-Q</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)">Auxiliary Field Quantum Monte Carlo (AFQMC)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Preparation-of-the-molecular-Hamiltonian">Preparation of the molecular Hamiltonian</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Preparation-of-the-trial-wave-function">Preparation of the trial wave function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Setup-of-the-AFQMC-parameters">Setup of the AFQMC parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/adapt_qaoa.html">ADAPT-QAOA algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#Simulation-input:">Simulation input:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:">The problem Hamiltonian <span class="math notranslate nohighlight">\(H_C\)</span> of the max-cut graph:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#Th-operator-pool-A_j:">Th operator pool <span class="math notranslate nohighlight">\(A_j\)</span>:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#The-commutator-[H_C,A_j]:">The commutator <span class="math notranslate nohighlight">\([H_C,A_j]\)</span>:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:">Beginning of ADAPT-QAOA iteration:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/adapt_vqe.html">ADAPT-VQE algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Classical-pre-processing">Classical pre-processing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Jordan-Wigner:">Jordan Wigner:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#UCCSD-operator-pool">UCCSD operator pool</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Single-excitation">Single excitation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Double-excitation">Double excitation</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Commutator-[H,-A_i]">Commutator [<span class="math notranslate nohighlight">\(H\)</span>, <span class="math notranslate nohighlight">\(A_i\)</span>]</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Reference-State:">Reference State:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Quantum-kernels:">Quantum kernels:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_vqe.html#Beginning-of-ADAPT-VQE:">Beginning of ADAPT-VQE:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/edge_detection.html">Quantum edge detection</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge_detection.html#Image">Image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge_detection.html#Quantum-Probability-Image-Encoding-(QPIE):">Quantum Probability Image Encoding (QPIE):</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/edge_detection.html#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.">Below we show how to encode an image using QPIE in cudaq.</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge_detection.html#Flexible-Representation-of-Quantum-Images-(FRQI):">Flexible Representation of Quantum Images (FRQI):</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/edge_detection.html#Building-the-FRQI-State:">Building the FRQI State:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/edge_detection.html#Quantum-Hadamard-Edge-Detection-(QHED)">Quantum Hadamard Edge Detection (QHED)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/edge_detection.html#Post-processing">Post-processing</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../applications/python/shors.html">Factoring Integers With Shor’s Algorithm</a><ul>
@@ -275,94 +467,133 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/hybrid_qnns.html">Hybrid Quantum Neural Networks</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/qaoa.html">Max-Cut with QAOA</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/digitized_counterdiabatic_qaoa.html">Molecular docking via DC-QAOA</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/digitized_counterdiabatic_qaoa.html#Setting-up-the-Molecular-Docking-Problem">Setting up the Molecular Docking Problem</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/digitized_counterdiabatic_qaoa.html#CUDA-Q-Implementation">CUDA-Q Implementation</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/krylov.html">Multi-reference Quantum Krylov Algorithm - <span class="math notranslate nohighlight">\(H_2\)</span> Molecule</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Setup">Setup</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Computing-the-matrix-elements">Computing the matrix elements</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/krylov.html#Determining-the-ground-state-energy-of-the-subspace">Determining the ground state energy of the subspace</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Hamiltonian-preparation-for-VQE">Hamiltonian preparation for VQE</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Run-VQE-with-CUDA-Q">Run VQE with CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Auxiliary-Field-Quantum-Monte-Carlo-(AFQMC)">Auxiliary Field Quantum Monte Carlo (AFQMC)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Preparation-of-the-molecular-Hamiltonian">Preparation of the molecular Hamiltonian</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Preparation-of-the-trial-wave-function">Preparation of the trial wave function</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/afqmc.html#Setup-of-the-AFQMC-parameters">Setup of the AFQMC parameters</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_fourier_transform.html">Quantum Fourier Transform</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited">Quantum Fourier Transform revisited</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_teleportation.html">Quantum Teleporation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_teleportation.html#Teleportation-explained">Teleportation explained</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_transformer.html">Quantum Transformer</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_transformer.html#Installation">Installation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_transformer.html#Algorithm-and-Example">Algorithm and Example</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/quantum_transformer.html#Creating-the-self-attention-circuits">Creating the self-attention circuits</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_transformer.html#Usage">Usage</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/quantum_transformer.html#Model-Training">Model Training</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/quantum_transformer.html#Generating-Molecules">Generating Molecules</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/quantum_transformer.html#Attention-Maps">Attention Maps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html">Generating the electronic Hamiltonian</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#Second-Quantized-formulation.">Second Quantized formulation.</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#Computational-Implementation">Computational Implementation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(a)-Generate-the-molecular-Hamiltonian-using-Restricted-Hartree-Fock-molecular-orbitals">(a) Generate the molecular Hamiltonian using Restricted Hartree Fock molecular orbitals</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-molecular-Hamiltonian-using-Unrestricted-Hartree-Fock-molecular-orbitals">(b) Generate the molecular Hamiltonian using Unrestricted Hartree Fock molecular orbitals</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(a)-Generate-the-active-space-hamiltonian-using-RHF-molecular-orbitals.">(a) Generate the active space hamiltonian using RHF molecular orbitals.</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(b)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation">(b) Generate the active space Hamiltonian using the natural orbitals computed from MP2 simulation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(c)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">(c) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(d)-Generate-the-electronic-Hamiltonian-using-ROHF">(d) Generate the electronic Hamiltonian using ROHF</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/generate_fermionic_ham.html#(e)-Generate-electronic-Hamiltonian-using-UHF">(e) Generate electronic Hamiltonian using UHF</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_volume.html">Quantum Volume</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/readout_error_mitigation.html">Readout Error Mitigation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/readout_error_mitigation.html#Inverse-confusion-matrix-from-k-local-confusion-matrices">Inverse confusion matrix from k local confusion matrices</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/readout_error_mitigation.html#Inverse-of-full-confusion-matrix">Inverse of full confusion matrix</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/vqe.html">Variational Quantum Eigensolver</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe.html#Using-CUDA-Q-Optimizers">Using CUDA-Q Optimizers</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe.html#Integration-with-Third-Party-Optimizers">Integration with Third-Party Optimizers</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/vqe_advanced.html">VQE with gradients, active spaces, and gate fusion</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#The-Basics-of-VQE">The Basics of VQE</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Installing/Loading-Relevant-Packages">Installing/Loading Relevant Packages</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Implementing-VQE-in-CUDA-Q">Implementing VQE in CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Parallel-Parameter-Shift-Gradients">Parallel Parameter Shift Gradients</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Using-an-Active-Space">Using an Active Space</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/vqe_advanced.html#Gate-Fusion-for-Larger-Circuits">Gate Fusion for Larger Circuits</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/hadamard_test.html">Using the Hadamard Test to Determine Quantum Krylov Subspace Decomposition Matrix Elements</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/hadamard_test.html#Numerical-result-as-a-reference:">Numerical result as a reference:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/hadamard_test.html#Using-Sample-to-perform-the-Hadamard-test">Using <code class="docutils literal notranslate"><span class="pre">Sample</span></code> to perform the Hadamard test</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/hadamard_test.html#Multi-GPU-evaluation-of-QKSD-matrix-elements-using-the-Hadamard-Test">Multi-GPU evaluation of QKSD matrix elements using the Hadamard Test</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../applications/python/hadamard_test.html#Classically-Diagonalize-the-Subspace-Matrix">Classically Diagonalize the Subspace Matrix</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/grovers.html">Grover’s Algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/grovers.html#Overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/grovers.html#Problem">Problem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/grovers.html#Structure-of-Grover's-Algorithm">Structure of Grover’s Algorithm</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/grovers.html#Step-1:-Preparation">Step 1: Preparation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/grovers.html#Good-and-Bad-States">Good and Bad States</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/grovers.html#Step-2:-Oracle-application">Step 2: Oracle application</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/grovers.html#Step-3:-Amplitude-amplification">Step 3: Amplitude amplification</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/grovers.html#Steps-4-and-5:-Iteration-and-measurement">Steps 4 and 5: Iteration and measurement</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/logical_aim_sqale.html">Anderson Impurity Model ground state solver on Infleqtion’s Sqale</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/logical_aim_sqale.html#Performing-logical-Variational-Quantum-Eigensolver-(VQE)-with-CUDA-QX">Performing logical Variational Quantum Eigensolver (VQE) with CUDA-QX</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/logical_aim_sqale.html#Constructing-circuits-in-the-[[4,2,2]]-encoding">Constructing circuits in the <code class="docutils literal notranslate"><span class="pre">[[4,2,2]]</span></code> encoding</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/logical_aim_sqale.html#Setting-up-submission-and-decoding-workflow">Setting up submission and decoding workflow</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/logical_aim_sqale.html#Running-a-CUDA-Q-noisy-simulation">Running a CUDA-Q noisy simulation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/logical_aim_sqale.html#Running-logical-AIM-on-Infleqtion's-hardware">Running logical AIM on Infleqtion’s hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/quantum_pagerank.html">Quantum PageRank</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_pagerank.html#Problem-Definition">Problem Definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_pagerank.html#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics">Simulating Quantum PageRank by CUDA-Q dynamics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/quantum_pagerank.html#Breakdown-of-Terms">Breakdown of Terms</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../applications/python/adapt_qaoa.html">ADAPT-QAOA algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#Simulation-input:">Simulation input:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:">The problem Hamiltonian <span class="math notranslate nohighlight">\(H_C\)</span> of the max-cut graph:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#Th-operator-pool-A_j:">Th operator pool <span class="math notranslate nohighlight">\(A_j\)</span>:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#The-commutator-[H_C,A_j]:">The commutator <span class="math notranslate nohighlight">\([H_C,A_j]\)</span>:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../applications/python/adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:">Beginning of ADAPT-QAOA iteration:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/uccsd_wf_ansatz.html">The UCCSD Wavefunction ansatz</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/uccsd_wf_ansatz.html#What-is-UCCSD?">What is UCCSD?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/uccsd_wf_ansatz.html#Implementation-in-Quantum-Computing">Implementation in Quantum Computing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/uccsd_wf_ansatz.html#Run-VQE">Run VQE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/uccsd_wf_ansatz.html#Challenges-and-consideration">Challenges and consideration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/mps_encoding.html">Approximate State Preparation using MPS Sequential Encoding</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/mps_encoding.html#Ran's-approach">Ran’s approach</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/qm_mm_pe.html">QM/MM simulation: VQE within a Polarizable Embedded Framework.</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Key-concepts:">Key concepts:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#PE-VQE-SCF-Algorithm-Steps">PE-VQE-SCF Algorithm Steps</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Step-1:-Initialize-(Classical-pre-processing)">Step 1: Initialize (Classical pre-processing)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Step-2:-Build-the-Hamiltonian">Step 2: Build the Hamiltonian</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Step-3:-Run-VQE">Step 3: Run VQE</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Step-4:-Update-Environment">Step 4: Update Environment</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Step-5:-Self-Consistency-Loop">Step 5: Self-Consistency Loop</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Requirments:">Requirments:</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Example-1:-LiH-with-2-water-molecules.">Example 1: LiH with 2 water molecules.</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#VQE,-update-environment,-and-scf-loop.">VQE, update environment, and scf loop.</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/qm_mm_pe.html#Example-2:-NH3-with-46-water-molecule-using-active-space.">Example 2: NH3 with 46 water molecule using active space.</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/skqd.html">Sample-Based Krylov Quantum Diagonalization (SKQD)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Why-SKQD?">Why SKQD?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Understanding-Krylov-Subspaces">Understanding Krylov Subspaces</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#What-is-a-Krylov-Subspace?">What is a Krylov Subspace?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#The-SKQD-Algorithm">The SKQD Algorithm</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Problem-Setup:-22-Qubit-Heisenberg-Model">Problem Setup: 22-Qubit Heisenberg Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Krylov-State-Generation-via-Repeated-Evolution">Krylov State Generation via Repeated Evolution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Quantum-Measurements-and-Sampling">Quantum Measurements and Sampling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#The-Sampling-Process">The Sampling Process</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Classical-Post-Processing-and-Diagonalization">Classical Post-Processing and Diagonalization</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#Matrix-Construction-Details">Matrix Construction Details</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#Approach-1:-GPU-Vectorized-CSR-Sparse-Matrix">Approach 1: GPU-Vectorized CSR Sparse Matrix</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#Approach-2:-Matrix-Free-Lanczos-via-distributed_eigsh">Approach 2: Matrix-Free Lanczos via <code class="docutils literal notranslate"><span class="pre">distributed_eigsh</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Results-Analysis-and-Convergence">Results Analysis and Convergence</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#What-to-Expect:">What to Expect:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Postprocessing-Acceleration:-CSR-matrix-approach,-single-GPU-vs-CPU">Postprocessing Acceleration: CSR matrix approach, single GPU vs CPU</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Postprocessing-Scale-Up-and-Scale-Out:-Linear-Operator-Approach,-Multi-GPU-Multi-Node">Postprocessing Scale-Up and Scale-Out: Linear Operator Approach, Multi-GPU Multi-Node</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#Saving-Hamiltonian-Data">Saving Hamiltonian Data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/skqd.html#Running-the-Distributed-Solver">Running the Distributed Solver</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/skqd.html#Summary">Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html">Entanglement Accelerates Quantum Simulation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.-Model-Definition">2. Model Definition</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.1-Initial-product-state">2.1 Initial product state</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.2-QIMF-Hamiltonian">2.2 QIMF Hamiltonian</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.3-First-Order-Trotter-Formula-(PF1)">2.3 First-Order Trotter Formula (PF1)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.4-PF1-step-for-the-QIMF-partition">2.4 PF1 step for the QIMF partition</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#2.5-Hamiltonian-helpers">2.5 Hamiltonian helpers</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#3.-Entanglement-metrics">3. Entanglement metrics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.-Simulation-workflow">4. Simulation workflow</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.1-Single-step-Trotter-error">4.1 Single-step Trotter error</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#4.2-Dual-trajectory-update">4.2 Dual trajectory update</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.-Reproducing-the-paper’s-Figure-1a">5. Reproducing the paper’s Figure 1a</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.1-Visualising-the-joint-behaviour">5.1 Visualising the joint behaviour</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#5.2-Interpreting-the-result">5.2 Interpreting the result</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/entanglement_acc_hamiltonian_simulation.html#6.-References-and-further-reading">6. References and further reading</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../applications/python/ptsbe.html">Pre-Trajectory Sampling with Batch Execution (PTSBE)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe.html#Set-up-the-environment">Set up the environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe.html#Define-the-circuit-and-noise-model">Define the circuit and noise model</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/ptsbe.html#Inline-noise-with-apply_noise">Inline noise with <code class="docutils literal notranslate"><span class="pre">apply_noise</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe.html#Run-PTSBE-sampling">Run PTSBE sampling</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../applications/python/ptsbe.html#Larger-circuit-for-execution-data">Larger circuit for execution data</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe.html#Inspecting-trajectories-with-execution-data">Inspecting trajectories with execution data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../applications/python/ptsbe.html#Performance-of-PTSBE-vs-standard-noisy-sampling">Performance of PTSBE vs standard noisy sampling</a></li>
 </ul>
 </li>
 </ul>
@@ -372,11 +603,11 @@
 <li class="toctree-l3"><a class="reference internal" href="../backends/sims/svsims.html">     State Vector Simulators</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../backends/sims/svsims.html#cpu">CPU</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/sims/svsims.html#single-gpu">Single-GPU</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/sims/svsims.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../backends/sims/svsims.html#multi-gpu-multi-node">Multi-GPU multi-node</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../backends/sims/tnsims.html">     Tensor Network Simulators</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../backends/sims/tnsims.html#multi-node-multi-gpu">Multi-node multi-GPU</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../backends/sims/tnsims.html#multi-gpu-multi-node">Multi-GPU multi-node</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/sims/tnsims.html#matrix-product-state">Matrix product state</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/sims/tnsims.html#fermioniq">Fermioniq</a></li>
 </ul>
@@ -408,6 +639,8 @@
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#anyon-technologies-anyon-computing">Anyon Technologies/Anyon Computing</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#iqm">IQM</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#oqc">OQC</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#quantum-circuits-inc">Quantum Circuits, Inc.</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../backends/hardware/superconducting.html#tii">TII</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../backends/hardware/neutralatom.html">     Neutral Atom QPUs</a><ul>
@@ -420,47 +653,151 @@
 <li class="toctree-l4"><a class="reference internal" href="../backends/hardware/photonic.html#orca-computing">ORCA Computing</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../backends/hardware/qcontrol.html">     Quantum Control Systems</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../backends/hardware/qcontrol.html#quantum-machines">Quantum Machines</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../backends/dynamics.html">     Dynamics Simulation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="../backends/dynamics.html#quick-start">Quick Start</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../backends/dynamics.html#operator">Operator</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../backends/dynamics.html#time-dependent-dynamics">Time-Dependent Dynamics</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../backends/dynamics.html#numerical-integrators">Numerical Integrators</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../backends/dynamics.html#multi-gpu-multi-node-execution">Multi-GPU Multi-Node Execution</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../backends/dynamics_backends.html">     Dynamics Simulation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../backends/cloud.html">     Cloud</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../backends/cloud/braket.html">     Amazon Braket (braket)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../backends/cloud/braket.html#setting-credentials">Setting Credentials</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/braket.html#submission-from-c">Submission from C++</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/braket.html#submission-from-python">Submission from Python</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/braket.html#submitting">Submitting</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../backends/cloud/nvqc.html">     NVIDIA Quantum Cloud (nvqc)</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/nvqc.html#quick-start">Quick Start</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/nvqc.html#simulator-backend-selection">Simulator Backend Selection</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/nvqc.html#multiple-gpus">Multiple GPUs</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/nvqc.html#multiple-qpus-asynchronous-execution">Multiple QPUs Asynchronous Execution</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/nvqc.html#faq">FAQ</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../backends/cloud/scaleway.html">     Scaleway QaaS (scaleway)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/scaleway.html#setting-credentials">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/scaleway.html#submitting">Submitting</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/scaleway.html#manage-your-qpu-session">Manage your QPU session</a></li>
 </ul>
 </li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../backends/dynamics.html">   Dynamics</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../backends/dynamics.html#quick-start">Quick Start</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../backends/dynamics.html#operator">Operator</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../backends/dynamics.html#time-dependent-dynamics">Time-Dependent Dynamics</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../backends/dynamics.html#numerical-integrators">Numerical Integrators</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../backends/dynamics.html#multi-gpu-multi-node-execution">Multi-GPU Multi-Node Execution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dynamics.html">   Dynamics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../dynamics.html#quick-start">Quick Start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dynamics.html#operator">Operator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dynamics.html#time-dependent-dynamics">Time-Dependent Dynamics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dynamics.html#super-operator-representation">Super-operator Representation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dynamics.html#numerical-integrators">Numerical Integrators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dynamics.html#batch-simulation">Batch simulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dynamics.html#multi-gpu-multi-node-execution">Multi-GPU Multi-Node Execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dynamics.html#examples">Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../realtime.html">   Realtime</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../realtime/installation.html">Installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/installation.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/installation.html#setup">Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/installation.html#latency-measurement">Latency Measurement</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../realtime/host.html">Host API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/host.html#what-is-hsb">What is HSB?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/host.html#transport-mechanisms">Transport Mechanisms</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/host.html#supported-transport-options">Supported Transport Options</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/host.html#the-3-kernel-architecture-hsb-example-three-kernel-architecture">The 3-Kernel Architecture (HSB Example) {#three-kernel-architecture}</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/host.html#data-flow-summary">Data Flow Summary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/host.html#why-3-kernels">Why 3 Kernels?</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/host.html#unified-dispatch-mode">Unified Dispatch Mode</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/host.html#architecture">Architecture</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/host.html#transport-agnostic-design">Transport-Agnostic Design</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/host.html#when-to-use-which-mode">When to Use Which Mode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/host.html#host-api-extensions">Host API Extensions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/host.html#wiring-example-unified-mode-with-hsb">Wiring Example (Unified Mode with HSB)</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/host.html#what-this-api-does-in-one-paragraph">What This API Does (In One Paragraph)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/host.html#scope">Scope</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/host.html#terms-and-components">Terms and Components</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/host.html#schema-data-structures">Schema Data Structures</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/host.html#type-descriptors">Type Descriptors</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/host.html#handler-schema">Handler Schema</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/host.html#rpc-messaging-protocol">RPC Messaging Protocol</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/host.html#host-api-overview">Host API Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/host.html#manager-and-dispatcher-topology">Manager and Dispatcher Topology</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/host.html#host-api-functions">Host API Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/host.html#occupancy-query-and-eager-module-loading">Occupancy Query and Eager Module Loading</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/host.html#graph-based-dispatch-functions">Graph-Based Dispatch Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/host.html#kernel-launch-helper-functions">Kernel Launch Helper Functions</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/host.html#memory-layout-and-ring-buffer-wiring">Memory Layout and Ring Buffer Wiring</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/host.html#step-by-step-wiring-the-host-api-minimal">Step-by-Step: Wiring the Host API (Minimal)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/host.html#device-handler-and-function-id">Device Handler and Function ID</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/host.html#multi-argument-handler-example">Multi-Argument Handler Example</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/host.html#cuda-graph-dispatch-mode">CUDA Graph Dispatch Mode</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/host.html#requirements">Requirements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/host.html#graph-based-dispatch-api">Graph-Based Dispatch API</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/host.html#graph-handler-setup-example">Graph Handler Setup Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/host.html#graph-capture-and-instantiation">Graph Capture and Instantiation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/host.html#when-to-use-graph-dispatch">When to Use Graph Dispatch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/host.html#graph-vs-device-call-dispatch">Graph vs Device Call Dispatch</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/host.html#building-and-sending-an-rpc-message">Building and Sending an RPC Message</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/host.html#reading-the-response">Reading the Response</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/host.html#schema-driven-argument-parsing">Schema-Driven Argument Parsing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/host.html#hsb-3-kernel-workflow-primary">HSB 3-Kernel Workflow (Primary)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/host.html#nic-free-testing-no-hsb-no-connectx-7">NIC-Free Testing (No HSB / No ConnectX-7)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/host.html#troubleshooting">Troubleshooting</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../realtime/protocol.html">Messaging Protocol</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/protocol.html#scope">Scope</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/protocol.html#rpc-header-response">RPC Header / Response</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/protocol.html#request-id-semantics">Request ID Semantics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/protocol.html#ptp-timestamp-semantics"><code class="docutils literal notranslate"><span class="pre">PTP</span></code> Timestamp Semantics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/protocol.html#function-id-semantics">Function ID Semantics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/protocol.html#schema-and-payload-interpretation">Schema and Payload Interpretation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/protocol.html#type-system">Type System</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/protocol.html#payload-encoding">Payload Encoding</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/protocol.html#single-argument-payloads">Single-Argument Payloads</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/protocol.html#multi-argument-payloads">Multi-Argument Payloads</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/protocol.html#size-constraints">Size Constraints</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/protocol.html#encoding-examples">Encoding Examples</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/protocol.html#bit-packed-data-encoding">Bit-Packed Data Encoding</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/protocol.html#multi-bit-measurement-encoding">Multi-Bit Measurement Encoding</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/protocol.html#response-encoding">Response Encoding</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/protocol.html#single-result-response">Single-Result Response</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/protocol.html#multi-result-response">Multi-Result Response</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/protocol.html#status-codes">Status Codes</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../realtime/protocol.html#qec-specific-usage-example">QEC-Specific Usage Example</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/protocol.html#qec-terminology">QEC Terminology</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/protocol.html#qec-decoder-handler">QEC Decoder Handler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../realtime/protocol.html#decoding-rounds">Decoding Rounds</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../cudaqx/cudaqx.html">   CUDA-QX</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../cudaqx/cudaqx.html#cuda-q-solvers">CUDA-Q Solvers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../cudaqx/cudaqx.html#cuda-q-qec">CUDA-Q QEC</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="install.html">   Installation</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Local Installation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#introduction">Introduction</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#docker">Docker</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#known-blackwell-issues">Known Blackwell Issues</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#singularity">Singularity</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#python-wheels">Python wheels</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#pre-built-binaries">Pre-built binaries</a></li>
@@ -525,6 +862,32 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../extending/extending.html">   Extending</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../extending/backend.html">Add a new Hardware Backend</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#server-helper-implementation">Server Helper Implementation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#directory-structure">Directory Structure</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#server-helper-class">Server Helper Class</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#cmakelists-txt"><code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#target-configuration">Target Configuration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#update-parent-cmakelists-txt">Update Parent <code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#testing">Testing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#unit-tests">Unit Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#mock-server">Mock Server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#python-tests">Python Tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/backend.html#integration-tests">Integration Tests</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#documentation">Documentation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#example-usage">Example Usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#code-review">Code Review</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#maintaining-a-backend">Maintaining a Backend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/backend.html#conclusion">Conclusion</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="../extending/nvqir_simulator.html">Create a new NVQIR Simulator</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../extending/nvqir_simulator.html#circuitsimulator"><code class="code docutils literal notranslate"><span class="pre">CircuitSimulator</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="../extending/nvqir_simulator.html#let-s-see-this-in-action">Let’s see this in action</a></li>
@@ -563,9 +926,10 @@
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/platform.html">11. Platform</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html">12. Algorithmic Primitives</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-sample">12.1. <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-observe">12.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-run">12.2. <code class="code docutils literal notranslate"><span class="pre">cudaq::run</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-observe">12.3. <code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-optimizer-deprecated-functionality-moved-to-cuda-q-libraries">12.4. <code class="code docutils literal notranslate"><span class="pre">cudaq::optimizer</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../specification/cudaq/algorithmic_primitives.html#cudaq-gradient-deprecated-functionality-moved-to-cuda-q-libraries">12.5. <code class="code docutils literal notranslate"><span class="pre">cudaq::gradient</span></code> (deprecated, functionality moved to CUDA-Q libraries)</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../specification/cudaq/examples.html">13. Example Programs</a><ul>
@@ -597,6 +961,16 @@
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#platform">Platform</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#utilities">Utilities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#namespaces">Namespaces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#ptsbe">PTSBE</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#sampling-functions">Sampling Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#options">Options</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#result-type">Result Type</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#trajectory-sampling-strategies">Trajectory Sampling Strategies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#shot-allocation-strategy">Shot Allocation Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#execution-data">Execution Data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/cpp_api.html#trajectory-and-selection-types">Trajectory and Selection Types</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../api/languages/python_api.html">Python API</a><ul>
@@ -611,6 +985,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#kernel-execution">Kernel Execution</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.sample_async"><code class="docutils literal notranslate"><span class="pre">sample_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.run"><code class="docutils literal notranslate"><span class="pre">run()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.run_async"><code class="docutils literal notranslate"><span class="pre">run_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.observe"><code class="docutils literal notranslate"><span class="pre">observe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.observe_async"><code class="docutils literal notranslate"><span class="pre">observe_async()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.get_state"><code class="docutils literal notranslate"><span class="pre">get_state()</span></code></a></li>
@@ -618,14 +994,11 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.vqe"><code class="docutils literal notranslate"><span class="pre">vqe()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#dynamics">Dynamics</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.evolve"><code class="docutils literal notranslate"><span class="pre">evolve()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.evolve_async"><code class="docutils literal notranslate"><span class="pre">evolve_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#backend-configuration">Backend Configuration</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.parse_args"><code class="docutils literal notranslate"><span class="pre">parse_args()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.has_target"><code class="docutils literal notranslate"><span class="pre">has_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.get_target"><code class="docutils literal notranslate"><span class="pre">get_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.get_targets"><code class="docutils literal notranslate"><span class="pre">get_targets()</span></code></a></li>
@@ -633,9 +1006,37 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.reset_target"><code class="docutils literal notranslate"><span class="pre">reset_target()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.set_noise"><code class="docutils literal notranslate"><span class="pre">set_noise()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.unset_noise"><code class="docutils literal notranslate"><span class="pre">unset_noise()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.register_set_target_callback"><code class="docutils literal notranslate"><span class="pre">register_set_target_callback()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.unregister_set_target_callback"><code class="docutils literal notranslate"><span class="pre">unregister_set_target_callback()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.cudaq.apply_noise"><code class="docutils literal notranslate"><span class="pre">cudaq.apply_noise()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.initialize_cudaq"><code class="docutils literal notranslate"><span class="pre">initialize_cudaq()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.num_available_gpus"><code class="docutils literal notranslate"><span class="pre">num_available_gpus()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.set_random_seed"><code class="docutils literal notranslate"><span class="pre">set_random_seed()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#dynamics">Dynamics</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.evolve"><code class="docutils literal notranslate"><span class="pre">evolve()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.evolve_async"><code class="docutils literal notranslate"><span class="pre">evolve_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Schedule"><code class="docutils literal notranslate"><span class="pre">Schedule</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dynamics.integrator.BaseIntegrator"><code class="docutils literal notranslate"><span class="pre">BaseIntegrator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dynamics.helpers.InitialState"><code class="docutils literal notranslate"><span class="pre">InitialState</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.InitialStateType"><code class="docutils literal notranslate"><span class="pre">InitialStateType</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.IntermediateResultSave"><code class="docutils literal notranslate"><span class="pre">IntermediateResultSave</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#operators">Operators</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.OperatorSum"><code class="docutils literal notranslate"><span class="pre">OperatorSum</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.ProductOperator"><code class="docutils literal notranslate"><span class="pre">ProductOperator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.ElementaryOperator"><code class="docutils literal notranslate"><span class="pre">ElementaryOperator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.ScalarOperator"><code class="docutils literal notranslate"><span class="pre">ScalarOperator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.RydbergHamiltonian"><code class="docutils literal notranslate"><span class="pre">RydbergHamiltonian</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SuperOperator"><code class="docutils literal notranslate"><span class="pre">SuperOperator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.define"><code class="docutils literal notranslate"><span class="pre">operators.define()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operators.instantiate"><code class="docutils literal notranslate"><span class="pre">operators.instantiate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#spin-operators">Spin Operators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#fermion-operators">Fermion Operators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#boson-operators">Boson Operators</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#general-operators">General Operators</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#data-types">Data Types</a><ul>
@@ -648,30 +1049,15 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.qvector"><code class="docutils literal notranslate"><span class="pre">qvector</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Schedule"><code class="docutils literal notranslate"><span class="pre">Schedule</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.integrator.BaseIntegrator"><code class="docutils literal notranslate"><span class="pre">BaseIntegrator</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.EvolveResult"><code class="docutils literal notranslate"><span class="pre">EvolveResult</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncEvolveResult"><code class="docutils literal notranslate"><span class="pre">AsyncEvolveResult</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SpinOperator"><code class="docutils literal notranslate"><span class="pre">SpinOperator</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.expressions.OperatorSum"><code class="docutils literal notranslate"><span class="pre">OperatorSum</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.expressions.ElementaryOperator"><code class="docutils literal notranslate"><span class="pre">ElementaryOperator</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.expressions.ProductOperator"><code class="docutils literal notranslate"><span class="pre">ProductOperator</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.expressions.RydbergHamiltonian"><code class="docutils literal notranslate"><span class="pre">RydbergHamiltonian</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.expressions.ScalarOperator"><code class="docutils literal notranslate"><span class="pre">ScalarOperator</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.definitions.SpinOperator"><code class="docutils literal notranslate"><span class="pre">SpinOperator</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.i"><code class="docutils literal notranslate"><span class="pre">spin.i()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.x"><code class="docutils literal notranslate"><span class="pre">spin.x()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.y"><code class="docutils literal notranslate"><span class="pre">spin.y()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.spin.z"><code class="docutils literal notranslate"><span class="pre">spin.z()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.cudm_state.CuDensityMatState"><code class="docutils literal notranslate"><span class="pre">CuDensityMatState</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.helpers.InitialState"><code class="docutils literal notranslate"><span class="pre">InitialState</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.operator.cudm_state.to_cupy_array"><code class="docutils literal notranslate"><span class="pre">to_cupy_array()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.ObserveResult"><code class="docutils literal notranslate"><span class="pre">ObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncObserveResult"><code class="docutils literal notranslate"><span class="pre">AsyncObserveResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncStateResult"><code class="docutils literal notranslate"><span class="pre">AsyncStateResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.OptimizationResult"><code class="docutils literal notranslate"><span class="pre">OptimizationResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.EvolveResult"><code class="docutils literal notranslate"><span class="pre">EvolveResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncEvolveResult"><code class="docutils literal notranslate"><span class="pre">AsyncEvolveResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.Resources"><code class="docutils literal notranslate"><span class="pre">Resources</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#optimizers">Optimizers</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#gradients">Gradients</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#noisy-simulation">Noisy Simulation</a></li>
@@ -689,6 +1075,15 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#orca-submodule">ORCA Submodule</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.orca.sample"><code class="docutils literal notranslate"><span class="pre">sample()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#ptsbe-submodule">PTSBE Submodule</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#sampling-functions">Sampling Functions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#result-type">Result Type</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#trajectory-sampling-strategies">Trajectory Sampling Strategies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#shot-allocation-strategy">Shot Allocation Strategy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#execution-data">Execution Data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#trajectory-and-selection-types">Trajectory and Selection Types</a></li>
 </ul>
 </li>
 </ul>
@@ -749,7 +1144,6 @@
           <li class="breadcrumb-item"><a href="install.html">Installation Guide</a></li>
       <li class="breadcrumb-item active">Local Installation</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../../_sources/using/install/local_installation.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="install.html" class="btn btn-neutral float-left" title="Installation Guide" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
@@ -835,6 +1229,39 @@ You can then launch the container and connect to it via SSH by executing the fol
 </pre></div>
 </div>
 </section>
+<section id="known-blackwell-issues">
+<span id="id1"></span><h3>Known Blackwell Issues<a class="headerlink" href="#known-blackwell-issues" title="Permalink to this heading">¶</a></h3>
+<p>There are some known Blackwell issues when using CUDA-Q.</p>
+<div class="admonition note" id="blackwell-cuda-dependencies">
+<p class="admonition-title">Note</p>
+<p>If you are using CUDA 12.8 on Blackwell, you may need to install additional
+dependencies to use the python wheels.</p>
+<p>If you see the following error:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cupy_backends.cuda.api.driver.CUDADriverError: CUDA_ERROR_NO_BINARY_FOR_GPU: no kernel image is available for execution on the device</span>
+</pre></div>
+</div>
+<p>You may need to install the more updated python wheels.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">pip install nvidia-cuda-runtime-cu12 nvidia-cublas-cu12 nvidia-cuda-nvrtc-cu12 nvidia-nvjitlink-cu12 nvidia-curand-cu12</span>
+</pre></div>
+</div>
+</div>
+<div class="admonition note" id="blackwell-torch-dependences">
+<p class="admonition-title">Note</p>
+<p>If you are attempting to use torch integrators on Blackwell, you will need to install the nightly torch version.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python3 -m pip install --pre torch --index-url https://download.pytorch.org/whl/nightly/cu128</span>
+</pre></div>
+</div>
+<p>With this new version of torch, you may see:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">Module &#39;torch&#39; was found, but when imported by pytest it raised:</span>
+<span class="go">ImportError(&#39;/home/cudaq/.local/lib/python3.12/site-packages/torch/lib/../../nvidia/cusparse/lib/libcusparse.so.12: undefined symbol: __nvJitLinkCreate_12_8, version libnvJitLink.so.12&#39;)</span>
+</pre></div>
+</div>
+<p>This may be caused by an incorrectly linked shared object. If you encounter this, try adding the shared object to the LD_LIBRARY_PATH:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">export LD_LIBRARY_PATH=$(pip show nvidia-nvjitlink-cu12 | sed -nE &#39;s/Location: (.*)$/\1/p&#39;)/nvidia/nvjitlink/lib:$LD_LIBRARY_PATH</span>
+</pre></div>
+</div>
+</div>
+</section>
 <section id="singularity">
 <span id="install-singularity-image"></span><h3>Singularity<a class="headerlink" href="#singularity" title="Permalink to this heading">¶</a></h3>
 <p>You can use <a class="reference external" href="https://github.com/sylabs/singularity">Singularity</a> to run a CUDA-Q container in a folder without needing administrator permissions.
@@ -910,7 +1337,7 @@ source code for the latest version of the CUDA-Q Python wheels from our
 <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum">GitHub repository</a>.
 The source code for previous versions can be downloaded from the respective
 <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">GitHub Release</a>.</p>
-<p>At this time, wheels are distributed for Linux operating systems only.
+<p>Wheels are distributed for Linux (x86_64 and ARM64) and macOS (ARM64/Apple silicon only).
 If your platform is not <a class="reference internal" href="#dependencies-and-compatibility"><span class="std std-ref">officially supported</span></a> and
 <code class="code docutils literal notranslate"><span class="pre">pip</span></code> does not find a compatible wheel to install, you can build your own
 wheel from source following the instructions here: <a class="reference internal" href="data_center_install.html"><span class="doc">Installation from Source</span></a>.</p>
@@ -930,8 +1357,8 @@ and then run the following commands in the repository root:</p>
 CUDA-Q with C++. Support for using CUDA-Q with Python can be installed
 side-by-side with the pre-built binaries for C++ by following the instructions on
 <a class="reference external" href="https://pypi.org/project/cudaq/">PyPI.org</a>.
-The pre-built binaries work across a range of Linux operating systems listed
-under <a class="reference internal" href="#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a>.</p>
+The pre-built binaries work across the operating systems listed
+under <a class="reference internal" href="#dependencies-and-compatibility"><span class="std std-ref">Dependencies and Compatibility</span></a>, including Linux and macOS (ARM64/Apple silicon only, CPU-only).</p>
 <p>Before installing our pre-built binaries, please make sure that your
 operating system is using the <a class="reference external" href="https://www.gnu.org/software/libc/">GNU C library</a>
 version 2.28 or newer. You can confirm this by checking the output of the command
@@ -940,20 +1367,27 @@ please double check that your operating system is listed as
 <a class="reference internal" href="#dependencies-and-compatibility"><span class="std std-ref">supported</span></a>. If you use an operating system
 with an older GNU C library version, you will need to build the installer from
 source following the instructions in <a class="reference internal" href="data_center_install.html"><span class="doc">Installation from Source</span></a>.</p>
-<p>You can download the <code class="code docutils literal notranslate"><span class="pre">install_cuda_quantum</span></code> file for your processor architecture from
-the assets of the respective <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">GitHub release</a>.
-The installer is a <a class="reference external" href="https://makeself.io/">self-extracting archive</a> that contains the
+<p>You can download the <code class="docutils literal notranslate"><span class="pre">install_cuda_quantum</span></code> file for your platform from
+the assets of the respective <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/releases">GitHub release</a>:</p>
+<ul class="simple">
+<li><p><strong>Linux</strong>: <code class="docutils literal notranslate"><span class="pre">install_cuda_quantum_cu12.&lt;arch&gt;</span></code> or <code class="docutils literal notranslate"><span class="pre">install_cuda_quantum_cu13.&lt;arch&gt;</span></code> (where <code class="code docutils literal notranslate"><span class="pre">&lt;arch&gt;</span></code> is <code class="code docutils literal notranslate"><span class="pre">x86_64</span></code> or <code class="code docutils literal notranslate"><span class="pre">aarch64</span></code>)</p></li>
+<li><p><strong>macOS</strong>: <code class="docutils literal notranslate"><span class="pre">install_cuda_quantum_darwin.arm64</span></code> (CPU-only, Apple silicon)</p></li>
+</ul>
+<p>The installer is a <a class="reference external" href="https://makeself.io/">self-extracting archive</a> that contains the
 pre-built binaries as well as a script to move them to the correct locations. You will need
-<code class="code docutils literal notranslate"><span class="pre">bash</span></code>, <code class="code docutils literal notranslate"><span class="pre">tar</span></code>, and <code class="code docutils literal notranslate"><span class="pre">gzip</span></code> (usually already installed on most Linux distributions) to run
-the installer.
-The installation location of CUDA-Q is not currently configurable and using the installer
-hence requires admin privileges on the system. We may revise that in the future; please see and
-upvote the corresponding <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/issues/1075">GitHub issue</a>.</p>
-<p>To install CUDA-Q, execute the command</p>
+<code class="code docutils literal notranslate"><span class="pre">bash</span></code>, <code class="code docutils literal notranslate"><span class="pre">tar</span></code>, and <code class="code docutils literal notranslate"><span class="pre">gzip</span></code> to run the installer.
+To install CUDA-Q to the default location (<code class="docutils literal notranslate"><span class="pre">/opt/nvidia/cudaq</span></code>), execute the command</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">MPI_PATH</span><span class="o">=</span>/usr/local/openmpi<span class="w"> </span><span class="se">\</span>
 sudo<span class="w"> </span>-E<span class="w"> </span>bash<span class="w"> </span>install_cuda_quantum*.<span class="k">$(</span>uname<span class="w"> </span>-m<span class="k">)</span><span class="w"> </span>--accept<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>.<span class="w"> </span>/etc/profile
 </pre></div>
 </div>
+<p>To install to a custom location (no <code class="docutils literal notranslate"><span class="pre">sudo</span></code> required), pass <code class="docutils literal notranslate"><span class="pre">--installpath</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>bash<span class="w"> </span>install_cuda_quantum*.<span class="k">$(</span>uname<span class="w"> </span>-m<span class="k">)</span><span class="w"> </span>--accept<span class="w"> </span>--<span class="w"> </span>--installpath<span class="w"> </span><span class="nv">$HOME</span>/.cudaq
+</pre></div>
+</div>
+<p>In both cases, the installer configures your shell profile so that CUDA-Q
+is available in new shells automatically. To use it in the current shell,
+run <code class="docutils literal notranslate"><span class="pre">source</span> <span class="pre">&lt;installpath&gt;/set_env.sh</span></code>.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>To use GPU-accelerated backends, you will need to install the necessary CUDA runtime libraries.
@@ -964,7 +1398,8 @@ For more information see the corresponding section on
 using the CUDA-Q toolchain are set upon login for all POSIX shells.
 Confirm that the <code class="code docutils literal notranslate"><span class="pre">nvq++</span></code> command is found. If it is not, please make sure
 to set the environment variables defined by the <code class="code docutils literal notranslate"><span class="pre">set_env.sh</span></code> script in the
-CUDA-Q installation folder (usually <code class="code docutils literal notranslate"><span class="pre">/usr/local/cudaq</span></code> or <code class="code docutils literal notranslate"><span class="pre">/opt/nvidia/cudaq</span></code>).</p>
+CUDA-Q installation folder (<code class="docutils literal notranslate"><span class="pre">/opt/nvidia/cudaq</span></code> for the pre-built installer,
+or <code class="docutils literal notranslate"><span class="pre">$HOME/.cudaq</span></code> for local builds from source).</p>
 <p>If an MPI installation is available in the directory defined by <code class="code docutils literal notranslate"><span class="pre">MPI_PATH</span></code>,
 the installer automatically enables MPI support in CUDA-Q.
 If you do not have MPI installed on your system, you can simply
@@ -1282,7 +1717,7 @@ to help you get started. Take a look at <a class="reference internal" href="#nex
 </section>
 </section>
 <section id="additional-cuda-tools">
-<span id="id7"></span><h2>Additional CUDA Tools<a class="headerlink" href="#additional-cuda-tools" title="Permalink to this heading">¶</a></h2>
+<span id="id8"></span><h2>Additional CUDA Tools<a class="headerlink" href="#additional-cuda-tools" title="Permalink to this heading">¶</a></h2>
 <p>CUDA-Q makes use of GPU-acceleration in certain backends and components.
 Depending on how you installed CUDA-Q, you may need to install
 certain CUDA libraries separately to take advantage of these.</p>
@@ -1312,7 +1747,7 @@ After installing the <code class="code docutils literal notranslate"><span class
 the necessary CUDA runtime libraries to use GPU-acceleration in CUDA-Q.
 If you prefer to only install the minimal set of runtime libraries, the following
 commands, for example, install the necessary packages for RHEL 8:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDA_VERSION</span><span class="o">=</span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="k">:-</span><span class="nv">12</span><span class="p">.0</span><span class="si">}</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDA_VERSION</span><span class="o">=</span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="k">:-</span><span class="nv">12</span><span class="p">.6</span><span class="si">}</span>
 <span class="nv">CUDA_DOWNLOAD_URL</span><span class="o">=</span>https://developer.download.nvidia.com/compute/cuda/repos
 <span class="c1"># Go to the url above, set the variables below to a suitable distribution</span>
 <span class="c1"># and subfolder for your platform, and uncomment the line below.</span>
@@ -1324,7 +1759,9 @@ dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </s
 <span class="w">    </span>cuda-cudart-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>cuda-nvrtc-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>libcusolver-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>libcublas-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span>
+<span class="w">    </span>libcusparse-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>libcublas-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>libcurand-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span>
 <span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">CUDA_VERSION</span><span class="si">}</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>cut<span class="w"> </span>-d<span class="w"> </span>.<span class="w"> </span>-f1<span class="k">)</span><span class="w"> </span>-gt<span class="w"> </span><span class="m">11</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span><span class="w"> </span>
 <span class="w">    </span>dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>--nobest<span class="w"> </span>--setopt<span class="o">=</span><span class="nv">install_weak_deps</span><span class="o">=</span>False<span class="w"> </span><span class="se">\</span>
 <span class="w">        </span>libnvjitlink-<span class="si">${</span><span class="nv">version_suffix</span><span class="si">}</span>
@@ -1333,16 +1770,16 @@ dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </s
 </div>
 <p>More detailed instructions for your platform can be found in the online documentation
 linked for that <a class="reference external" href="https://developer.nvidia.com/cuda-toolkit-archive">CUDA version</a>.
-Please make sure to install CUDA version 11.8 or newer, and confirm that your
+Please make sure to install CUDA version 12.0 or newer, and confirm that your
 <a class="reference external" href="https://www.nvidia.com/download/index.aspx">GPU driver</a> supports that version.
 While the above packages are sufficient to use GPU-acceleration within CUDA-Q,
 we recommend installing the complete CUDA toolkit (<code class="code docutils literal notranslate"><span class="pre">cuda-toolkit-12-0</span></code>) that also
-includes the <code class="code docutils literal notranslate"><span class="pre">nvcc</span></code> compiler. A separate CUDA-Q installer is available for CUDA 11,
-built against version 11.8, and for CUDA 12, built against version 12.0.</p>
+includes the <code class="code docutils literal notranslate"><span class="pre">nvcc</span></code> compiler. A separate CUDA-Q installer is available for CUDA 12,
+built against version 12.6, and for CUDA 13, built against version 13.0.</p>
 </section>
 </section>
 <section id="distributed-computing-with-mpi">
-<span id="id8"></span><h2>Distributed Computing with MPI<a class="headerlink" href="#distributed-computing-with-mpi" title="Permalink to this heading">¶</a></h2>
+<span id="id9"></span><h2>Distributed Computing with MPI<a class="headerlink" href="#distributed-computing-with-mpi" title="Permalink to this heading">¶</a></h2>
 <p>CUDA-Q supports the Message Passing Interface (MPI) parallelism via a plugin interface.
 It is possible to activate or replace such an MPI plugin without re-installing or re-compiling CUDA-Q.
 MPI calls via CUDA-Q API for C++ and Python will be delegated to the currently activated plugin at runtime.</p>
@@ -1407,10 +1844,10 @@ by running the command</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Please check if you have an existing installation of the <code class="code docutils literal notranslate"><span class="pre">cuda-quantum</span></code>,
-<code class="code docutils literal notranslate"><span class="pre">cudaq-quantum-cu11</span></code>, or <code class="code docutils literal notranslate"><span class="pre">cuda-quantum-cu12</span></code> package,
+<code class="code docutils literal notranslate"><span class="pre">cudaq-quantum-cu12</span></code>, or <code class="code docutils literal notranslate"><span class="pre">cuda-quantum-cu13</span></code> package,
 and uninstall it prior to installing <code class="code docutils literal notranslate"><span class="pre">cudaq</span></code>. The <code class="code docutils literal notranslate"><span class="pre">cudaq</span></code> package supersedes the
 <code class="code docutils literal notranslate"><span class="pre">cuda-quantum</span></code> package and will install a suitable binary distribution (either
-<code class="code docutils literal notranslate"><span class="pre">cuda-quantum-cu11</span></code> or <code class="code docutils literal notranslate"><span class="pre">cuda-quantum-cu12</span></code>) for your system. Multiple versions
+<code class="code docutils literal notranslate"><span class="pre">cuda-quantum-cu12</span></code> or <code class="code docutils literal notranslate"><span class="pre">cuda-quantum-cu13</span></code>) for your system. Multiple versions
 of a CUDA-Q binary distribution will conflict with each other and not work properly.</p>
 </div>
 <p>If you previously installed the CUDA-Q pre-built binaries, you should first uninstall your
@@ -1427,16 +1864,17 @@ You can then download and install the new version of CUDA-Q following the
 instructions <a class="reference internal" href="#install-prebuilt-binaries"><span class="std std-ref">above</span></a>.</p>
 </section>
 <section id="dependencies-and-compatibility">
-<span id="id9"></span><h2>Dependencies and Compatibility<a class="headerlink" href="#dependencies-and-compatibility" title="Permalink to this heading">¶</a></h2>
+<span id="id10"></span><h2>Dependencies and Compatibility<a class="headerlink" href="#dependencies-and-compatibility" title="Permalink to this heading">¶</a></h2>
 <p>CUDA-Q can be used to compile and run quantum programs on a CPU-only system, but a GPU is highly recommended and necessary to use the GPU-based simulators, see also <a class="reference internal" href="../backends/simulators.html"><span class="doc">CUDA-Q Circuit Simulation Backends</span></a>.</p>
-<p>The supported CPUs include x86_64 (x86-64-v3 architecture and newer) and ARM64 (ARM v8-A architecture and newer).</p>
+<p>The supported CPUs include x86_64 (x86-64-v3 architecture and newer) and ARM64 (ARM v8-A architecture and newer).
+On macOS, only ARM64 (Apple silicon) is supported.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Some of the components included in the CUDA-Q Python wheels depend on an existing CUDA installation on your system. For more information about installing the CUDA-Q Python wheels, take a look at <a class="reference internal" href="#install-python-wheels"><span class="std std-ref">this section</span></a>.</p>
 </div>
 <p>The following table summarizes the required components.</p>
-<table class="docutils align-default" id="id10">
-<caption><span class="caption-text">Supported Systems</span><a class="headerlink" href="#id10" title="Permalink to this table">¶</a></caption>
+<table class="docutils align-default" id="id11">
+<caption><span class="caption-text">Supported Systems</span><a class="headerlink" href="#id11" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col style="width: 38%" />
 <col style="width: 63%" />
@@ -1445,36 +1883,46 @@ instructions <a class="reference internal" href="#install-prebuilt-binaries"><sp
 <tr class="row-odd"><td><p>CPU architectures</p></td>
 <td><p>x86_64, ARM64</p></td>
 </tr>
-<tr class="row-even"><td><p>Operating System</p></td>
-<td><p>Linux</p></td>
+<tr class="row-even"><td><p>Operating systems</p></td>
+<td><p>Linux, macOS (ARM64/Apple silicon only), Windows via Windows Subsystem for Linux 2 (WSL2)</p></td>
 </tr>
 <tr class="row-odd"><td><p>Tested Distributions</p></td>
-<td><p>CentOS 8; Debian 11, 12; Fedora 38, 39; OpenSUSE/SLED/SLES 15.5, 15.6; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04, 24.04</p></td>
+<td><p>CentOS 8; Debian 11, 12; Fedora 41; OpenSUSE/SLED/SLES 15.5, 15.6; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04, 24.04</p></td>
 </tr>
 <tr class="row-even"><td><p>Python versions</p></td>
-<td><p>3.10+</p></td>
+<td><p>3.11+</p></td>
 </tr>
 </tbody>
 </table>
-<table class="docutils align-default" id="id11">
-<caption><span class="caption-text">Requirements for GPU Simulation</span><a class="headerlink" href="#id11" title="Permalink to this table">¶</a></caption>
+<table class="docutils align-default" id="id12">
+<caption><span class="caption-text">Requirements for GPU Simulation</span><a class="headerlink" href="#id12" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col style="width: 38%" />
 <col style="width: 63%" />
 </colgroup>
 <tbody>
 <tr class="row-odd"><td><p>GPU Architectures</p></td>
-<td><p>Volta, Turing, Ampere, Ada, Hopper</p></td>
+<td><p>Turing, Ampere, Ada, Hopper, Blackwell (Blackwell supported for CUDA 13.x only)</p></td>
 </tr>
 <tr class="row-even"><td><p>NVIDIA GPU with Compute Capability</p></td>
-<td><p>7.0+</p></td>
+<td><p>7.5+</p></td>
 </tr>
 <tr class="row-odd"><td><p>CUDA</p></td>
-<td><p>11.x (Driver 470.57.02+), 12.x (Driver 525.60.13+)</p></td>
+<td><ul class="simple">
+<li><p>12.x (Driver 525.60.13+) – For GPUs that support CUDA Forward Compatibility</p></li>
+<li><p>12.6+ (Driver 560.35.05+) – For all GPUs with supported architecture</p></li>
+<li><p>13.x (Driver 580.65.06+)</p></li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
-<p>Detailed information about supported drivers for different CUDA versions and be found <a class="reference external" href="https://docs.nvidia.com/deploy/cuda-compatibility/">here</a>.</p>
+<p>Detailed information about supported drivers for different CUDA versions and be found <a class="reference external" href="https://docs.nvidia.com/deploy/cuda-compatibility/">here</a>. For more information on GPU forward capabilities, please refer to <a class="reference external" href="https://docs.nvidia.com/deploy/cuda-compatibility/forward-compatibility.html">this page</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Tegra devices (Jetson) are not supported in CUDA-Q at this time.</p>
+<p>For more information, please refer to <a class="reference external" href="https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#binary-compatibility">Binary Compatibility documentation</a>.</p>
+</div>
 </section>
 <section id="next-steps">
 <span id="post-installation"></span><h2>Next Steps<a class="headerlink" href="#next-steps" title="Permalink to this heading">¶</a></h2>
@@ -1562,7 +2010,7 @@ to the fundamental features of CUDA-Q.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, NVIDIA Corporation &amp; Affiliates.</p>
+    <p>&#169; Copyright 2026, NVIDIA Corporation &amp; Affiliates.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

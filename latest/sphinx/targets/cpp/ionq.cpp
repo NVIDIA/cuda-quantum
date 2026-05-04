@@ -28,7 +28,7 @@ struct ghz {
     for (int i = 0; i < 4; i++) {
       x<cudaq::ctrl>(q[i], q[i + 1]);
     }
-    auto result = mz(q);
+    mz(q);
   }
 };
 

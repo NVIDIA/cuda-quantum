@@ -14,6 +14,12 @@ If you have already installed and configured CUDA-Q, or if you are using our
 :doc:`Basics Section <basics/basics>`. More information about working with containers and Docker alternatives can be 
 found in our complete :doc:`Installation Guide <install/install>`.
 
+.. note::
+
+    CUDA-Q is supported on Linux (x86_64 and ARM64) and macOS (ARM64/Apple silicon only).
+    GPU-acceleration is available on Linux only; macOS provides CPU-based simulation.
+    On Windows, you can use `Windows Subsystem for Linux (WSL) <https://learn.microsoft.com/en-us/windows/wsl/>`_ to install CUDA-Q.
+
 Install CUDA-Q
 ----------------------------
 
@@ -28,16 +34,24 @@ Install CUDA-Q
       :start-after: (Begin complete install)
       :end-before: (End complete install)
 
-   Once you completed the installation, please follow the instructions
+.. note::
+
+    If you are using CUDA 12.8 on Blackwell, you may need to install additional
+    dependencies to use the python wheels.
+    See :ref:`Blackwell CUDA Dependencies <blackwell-cuda-dependencies>` for more information.
+
+Once you completed the installation, please follow the instructions
    :ref:`below <validate-installation>` to run your first CUDA-Q program!
 
 .. tab:: C++
 
    To develop CUDA-Q applications using C++, please make sure you have a C++ toolchain installed
-   that supports C++20, for example `g++` version 11 or newer.
-   Download the `install_cuda_quantum` file for your processor architecture and CUDA version (`_cu11` suffix for CUDA 11 and `_cu12` suffix for CUDA 12) 
-   from the assets of the respective `GitHub release <https://github.com/NVIDIA/cuda-quantum/releases>`__; 
-   hat is the file with the `aarch64` extension for ARM processors, and the one with `x86_64` for, e.g., Intel and AMD processors.
+   that supports C++20, for example `g++` version 11 or newer (or `clang++` on macOS).
+   Download the `install_cuda_quantum` file for your platform from the assets of the respective 
+   `GitHub release <https://github.com/NVIDIA/cuda-quantum/releases>`__:
+
+   - **Linux**: Use `_cu12` suffix for CUDA 12 or `_cu13` for CUDA 13, with `aarch64` for ARM or `x86_64` for Intel/AMD processors.
+   - **macOS**: Use the `_darwin` suffix with `arm64` for Apple silicon.
 
    To install CUDA-Q, execute the commands
 
@@ -46,7 +60,17 @@ Install CUDA-Q
       sudo -E bash install_cuda_quantum*.$(uname -m) --accept 
       . /etc/profile
 
-   If you have an NVIDIA GPU, please also install the `CUDA Toolkit <https://developer.nvidia.com/cuda-downloads>`__ to enable GPU-acceleration within CUDA-Q.
+   Alternatively, install to a custom location without ``sudo``:
+
+   .. code-block:: bash
+
+      bash install_cuda_quantum*.$(uname -m) --accept -- --installpath $HOME/.cudaq
+
+   In both cases, the installer configures your shell profile so that CUDA-Q
+   is available in new shells automatically. To use it in the current shell,
+   run ``source /opt/nvidia/cudaq/set_env.sh`` (or the path you chose).
+
+   If you have an NVIDIA GPU on Linux, please also install the `CUDA Toolkit <https://developer.nvidia.com/cuda-downloads>`__ to enable GPU-acceleration within CUDA-Q.
 
    Please see the complete :ref:`installation guide <install-prebuilt-binaries>` for more details, including
 
@@ -103,6 +127,12 @@ should be observed around 500 times each.
       nvq++ program.cpp -o program.x && ./program.x
 
 If you have an NVIDIA GPU the program uses GPU acceleration by default.
+
+.. note::
+
+    GPU-accelerated targets (``nvidia``, ``nvidia-fp64``, etc.) are available on
+    Linux only. macOS users can skip this section and proceed to :doc:`Basics <basics/basics>`.
+
 To confirm that this works as expected and to see the effects of GPU acceleration, you can 
 increase the numbers of qubits the program uses to 28 and
 compare the time to execute the program on the 
@@ -129,3 +159,23 @@ For further information on available targets, see :doc:`Backends <backends/backe
 You are now all set to start developing quantum applications using CUDA-Q!
 Please proceed to :doc:`Basics <basics/basics>` for an introduction
 to the fundamental features of CUDA-Q.
+
+
+CUDA-Q Academic
+------------------
+`CUDA-Q Academic <https://github.com/NVIDIA/cuda-q-academic>`_  is a collection of courses designed for academic use based on the CUDA-Q platform.  Courses range in complexity from the basics of quantum computing up to implementations of algorithms from the research literature.  Users will learn quantum computing, CUDA-Q, and how to run hybrid algorithms that make the most of QPUs and AI supercomputers through coding exercises and interactive lessons.  
+
+.. figure:: cudaq_academic/widget-recording.gif
+   :width: 500px
+   :align: center
+
+   Example of the interactive material within CUDA-Q Academic.
+
+The courses can be run using a local installation of CUDA-Q or via the cloud using `qBraid`, `CoCalc`, or `Google Colab`. 
+
+Users just learning quantum computing are encouraged to begin with the `Quick Start to Quantum <https://github.com/NVIDIA/cuda-q-academic/blob/main/quick-start-to-quantum/README.md>`_ course which provides an introduction to the basics of quantum computing and helps you implement your first algorithm. 
+
+Advanced users can choose from a number of learning paths spanning topics ranging from QEC to hybrid algorithms `here  <https://github.com/NVIDIA/cuda-q-academic>`_ .
+
+
+

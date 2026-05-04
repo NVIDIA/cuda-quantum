@@ -18,7 +18,6 @@ def kernel():
     qvector = cudaq.qvector(2)
     h(qvector[0])
     x.ctrl(qvector[0], qvector[1])
-    mz(qvector)
 
 
 # Execute and print out the results.

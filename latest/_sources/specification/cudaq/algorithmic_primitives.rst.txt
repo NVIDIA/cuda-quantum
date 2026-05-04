@@ -339,6 +339,126 @@ information and can be persisted to file and loaded from file at a later time. A
 and when remote queue jobs are completed, one can invoke :code:`get()` and the results will 
 be retrieved and returned. 
 
+.. _cudaq-run-spec:
+
+:code:`cudaq::run`
+-------------------------
+**[1]** The :code:`cudaq::run` API allows programmers to execute a kernel a specified number 
+of times and retrieve all the individual values returned. Unlike :code:`cudaq::sample`, which 
+collects measurement statistics as a counts dictionary mapping bit strings to frequencies, :code:`run` 
+preserves each individual return value from every execution. Use :code:`sample` when you need 
+quantum state measurement statistics, and use :code:`run` when you need to analyze individual 
+return values from each circuit execution.
+
+**[2]** The CUDA-Q model provides this functionality via template functions within the
+:code:`cudaq` namespace with the following structure:
+
+.. code-block:: cpp
+
+    // Run a kernel for specified number of shots 
+    template <typename QuantumKernel, typename... ARGS>
+      requires(!std::is_void_v<std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>>)
+    std::vector<std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>>
+    run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args);
+
+    // Run a kernel with noise model for specified number of shots
+    template <typename QuantumKernel, typename... ARGS>
+      requires(!std::is_void_v<std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>>)
+    std::vector<std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>>
+    run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel, ARGS &&...args);
+
+**[3]** This function takes as input the number of shots, a quantum kernel instance, and the
+concrete arguments with which the kernel should be invoked. CUDA-Q kernel passed to this
+function must be an entry-point kernel and must return a non-void value.
+
+**[4]** Overloaded function exists for specifying a noise model to apply during execution.
+
+**[5]** The function returns a :code:`std::vector` containing the return values from each execution 
+of the kernel. The vector has a length equal to the number of specified shots, with each element 
+representing the return value of a single kernel execution.
+
+**[6]** Programmers can extract the result information in the following manner:
+
+.. tab:: C++
+
+  .. code-block:: cpp
+
+      auto kernel = [](int numQubits) __qpu__ {
+        // Quantum code that returns an int
+        cudaq::qvector q(numQubits);
+        h(q);
+        // some logic...
+        return result;
+      };
+      
+      // Run the kernel 100 times with 4 qubits
+      auto results = cudaq::run(100, kernel, 4);
+  
+      // Process the results
+      for (const auto& result : results) {
+        printf("Result: %d\n", result);
+      }
+
+.. tab:: Python
+
+  .. code-block:: python
+
+    @cudaq.kernel
+    def kernel(numQubits: int) -> int:
+        # Quantum code that returns an int
+        q = cudaq.qvector(numQubits)
+        h(q)
+        # some logic...
+        return result
+    
+    # Run the kernel 100 times with 4 qubits
+    results = cudaq.run(kernel, 4, shots_count=100)
+    
+    # Process the results
+    for result in results:
+        print(f"Result: {result}")
+
+**[7]** The :code:`cudaq::run` function supports a variety of return types from the quantum kernel:
+
+- Scalar types: :code:`bool`, :code:`int`, :code:`float`, and their variants (:code:`int8/16/32/64`, :code:`float32/64`)
+- Vector/List types: :code:`std::vector<T>` in C++ and :code:`list[T]` in Python, where :code:`T` can be :code:`bool`, :code:`int`, :code:`float`, and their variants 
+- User-defined data structures (via custom structs in C++ or :code:`dataclass` in Python)
+
+**[7.1]** Note: Nested or aggregate vectors / lists / structs (e.g., :code:`list[list[int]]`) are not yet supported.
+
+**[7.2]** For Python, tuple return types are supported with limitations:
+
+- Elements can be scalar types (:code:`bool`, :code:`int`, :code:`float`)
+- Tuple elements are immutable and cannot be modified within the kernel
+- Note: :code:`std::tuple` is not supported in C++ - use custom structs instead
+
+**[7.3]** For Python, :code:`dataclass` return types are supported with limitations:
+
+- Must use :code:`@dataclass(slots=True)` decorator
+- Cannot contain user-defined methods beyond generated ones
+- Can be created and modified within the kernel using :code:`.copy()` for modifications
+
+**[8]** There are specific requirements on input quantum kernels for the use of the
+:code:`run` function which must be enforced by compiler implementations:
+
+- The kernel must be an entry-point kernel
+- The kernel must return a non-void value
+- The kernel must have a return statement in all code paths
+
+**[9]** CUDA-Q also provides an asynchronous version of this function
+(:code:`cudaq::run_async`) which returns a :code:`std::future`:
+
+.. code-block:: cpp
+
+    template <typename QuantumKernel, typename... ARGS>
+      requires(!std::is_void_v<std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>>)
+    std::future<std::vector<std::invoke_result_t<std::decay_t<QuantumKernel>, std::decay_t<ARGS>...>>>
+    run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel, ARGS &&...args);
+
+Programmers can asynchronously launch kernel executions on any :code:`qpu_id` and retrieve results 
+when ready using the returned future's :code:`get()` method.
+
+
 :code:`cudaq::observe`
 -------------------------
 **[1]** A common task in variational algorithms is the computation of the expected
@@ -440,11 +560,10 @@ Here is an example of the utility of the :code:`cudaq::observe` function:
         }
       };
     
-      int main() {
-        using namespace cudaq::spin; // make it easier to use pauli X,Y,Z below
-    
-        spin_op h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
-                    .21829 * z(0) - 6.125 * z(1);
+      int main() {    
+        spin_op h = 5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(1) - 
+                    2.1433 * cudaq::spin_op::y(0) * cudaq::spin_op::y(1) +
+                    .21829 * cudaq::spin_op::z(0) - 6.125 * cudaq::spin_op::z(1);
     
         double energy = cudaq::observe(ansatz{}, h, .59);
         printf("Energy is %lf\n", energy); 
@@ -670,4 +789,3 @@ default :code:`std::vector<double>` signature):
 
     // Print the results
     printf("Optimizer found %lf at [%lf,%lf]\n", min_val, opt_params[0], opt_params[1]);
-

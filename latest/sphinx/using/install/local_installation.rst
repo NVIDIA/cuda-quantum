@@ -96,6 +96,55 @@ You can then launch the container and connect to it via SSH by executing the fol
     docker exec -d cuda-quantum bash -c "sudo -E /usr/sbin/sshd -D"
     ssh cudaq@localhost -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null
 
+.. _known_blackwell_issues:
+
+Known Blackwell Issues
+++++++++++++++++++++++++++++++++++++
+
+There are some known Blackwell issues when using CUDA-Q.
+
+.. _blackwell-cuda-dependencies:
+
+.. note::
+
+    If you are using CUDA 12.8 on Blackwell, you may need to install additional
+    dependencies to use the python wheels.
+
+    If you see the following error:
+
+    .. code-block:: console
+
+       cupy_backends.cuda.api.driver.CUDADriverError: CUDA_ERROR_NO_BINARY_FOR_GPU: no kernel image is available for execution on the device
+
+    You may need to install the more updated python wheels.
+
+    .. code-block:: console
+
+        pip install nvidia-cuda-runtime-cu12 nvidia-cublas-cu12 nvidia-cuda-nvrtc-cu12 nvidia-nvjitlink-cu12 nvidia-curand-cu12
+
+.. _blackwell-torch-dependences:
+
+.. note::
+
+    If you are attempting to use torch integrators on Blackwell, you will need to install the nightly torch version.
+
+    .. code-block:: console
+
+        python3 -m pip install --pre torch --index-url https://download.pytorch.org/whl/nightly/cu128
+
+    With this new version of torch, you may see:
+
+    .. code-block:: console
+
+        Module 'torch' was found, but when imported by pytest it raised:
+        ImportError('/home/cudaq/.local/lib/python3.12/site-packages/torch/lib/../../nvidia/cusparse/lib/libcusparse.so.12: undefined symbol: __nvJitLinkCreate_12_8, version libnvJitLink.so.12')
+
+    This may be caused by an incorrectly linked shared object. If you encounter this, try adding the shared object to the LD_LIBRARY_PATH:
+
+    .. code-block:: console
+
+        export LD_LIBRARY_PATH=$(pip show nvidia-nvjitlink-cu12 | sed -nE 's/Location: (.*)$/\1/p')/nvidia/nvjitlink/lib:$LD_LIBRARY_PATH
+
 
 .. _install-singularity-image:
 
@@ -194,7 +243,7 @@ source code for the latest version of the CUDA-Q Python wheels from our
 The source code for previous versions can be downloaded from the respective 
 `GitHub Release <https://github.com/NVIDIA/cuda-quantum/releases>`__.
 
-At this time, wheels are distributed for Linux operating systems only. 
+Wheels are distributed for Linux (x86_64 and ARM64) and macOS (ARM64/Apple silicon only).
 If your platform is not :ref:`officially supported <dependencies-and-compatibility>` and
 `pip` does not find a compatible wheel to install, you can build your own 
 wheel from source following the instructions here: :doc:`data_center_install`.
@@ -219,8 +268,8 @@ Starting with the 0.6.0 release, we provide pre-built binaries for using
 CUDA-Q with C++. Support for using CUDA-Q with Python can be installed 
 side-by-side with the pre-built binaries for C++ by following the instructions on 
 `PyPI.org <https://pypi.org/project/cudaq/>`__.
-The pre-built binaries work across a range of Linux operating systems listed 
-under :ref:`dependencies-and-compatibility`. 
+The pre-built binaries work across the operating systems listed 
+under :ref:`dependencies-and-compatibility`, including Linux and macOS (ARM64/Apple silicon only, CPU-only).
 
 Before installing our pre-built binaries, please make sure that your 
 operating system is using the `GNU C library <https://www.gnu.org/software/libc/>`__ 
@@ -231,23 +280,32 @@ please double check that your operating system is listed as
 with an older GNU C library version, you will need to build the installer from 
 source following the instructions in :doc:`data_center_install`.
 
-You can download the `install_cuda_quantum` file for your processor architecture from
-the assets of the respective `GitHub release <https://github.com/NVIDIA/cuda-quantum/releases>`__. 
+You can download the ``install_cuda_quantum`` file for your platform from
+the assets of the respective `GitHub release <https://github.com/NVIDIA/cuda-quantum/releases>`__:
+
+- **Linux**: ``install_cuda_quantum_cu12.<arch>`` or ``install_cuda_quantum_cu13.<arch>`` (where `<arch>` is `x86_64` or `aarch64`)
+- **macOS**: ``install_cuda_quantum_darwin.arm64`` (CPU-only, Apple silicon)
+
 The installer is a `self-extracting archive <https://makeself.io/>`__ that contains the 
 pre-built binaries as well as a script to move them to the correct locations. You will need
-`bash`, `tar`, and `gzip` (usually already installed on most Linux distributions) to run 
-the installer.
-The installation location of CUDA-Q is not currently configurable and using the installer
-hence requires admin privileges on the system. We may revise that in the future; please see and
-upvote the corresponding `GitHub issue <https://github.com/NVIDIA/cuda-quantum/issues/1075>`__.
-
-To install CUDA-Q, execute the command
+`bash`, `tar`, and `gzip` to run the installer.
+To install CUDA-Q to the default location (``/opt/nvidia/cudaq``), execute the command
 
 .. literalinclude:: ../../../../docker/test/installer/linux.Dockerfile
     :language: bash
     :dedent:
     :start-after: [>CUDAQuantumInstall]
     :end-before: [<CUDAQuantumInstall]
+
+To install to a custom location (no ``sudo`` required), pass ``--installpath``:
+
+.. code-block:: bash
+
+    bash install_cuda_quantum*.$(uname -m) --accept -- --installpath $HOME/.cudaq
+
+In both cases, the installer configures your shell profile so that CUDA-Q
+is available in new shells automatically. To use it in the current shell,
+run ``source <installpath>/set_env.sh``.
 
 .. note:: 
 
@@ -259,7 +317,8 @@ The installation ensures that the necessary environment variables for
 using the CUDA-Q toolchain are set upon login for all POSIX shells.
 Confirm that the `nvq++` command is found. If it is not, please make sure 
 to set the environment variables defined by the `set_env.sh` script in the 
-CUDA-Q installation folder (usually `/usr/local/cudaq` or `/opt/nvidia/cudaq`).
+CUDA-Q installation folder (``/opt/nvidia/cudaq`` for the pre-built installer, 
+or ``$HOME/.cudaq`` for local builds from source).
 
 If an MPI installation is available in the directory defined by `MPI_PATH`, 
 the installer automatically enables MPI support in CUDA-Q.
@@ -700,12 +759,12 @@ commands, for example, install the necessary packages for RHEL 8:
 
 More detailed instructions for your platform can be found in the online documentation
 linked for that `CUDA version <https://developer.nvidia.com/cuda-toolkit-archive>`__. 
-Please make sure to install CUDA version 11.8 or newer, and confirm that your 
+Please make sure to install CUDA version 12.0 or newer, and confirm that your 
 `GPU driver <https://www.nvidia.com/download/index.aspx>`__ supports that version.
 While the above packages are sufficient to use GPU-acceleration within CUDA-Q, 
 we recommend installing the complete CUDA toolkit (`cuda-toolkit-12-0`) that also 
-includes the `nvcc` compiler. A separate CUDA-Q installer is available for CUDA 11, 
-built against version 11.8, and for CUDA 12, built against version 12.0.
+includes the `nvcc` compiler. A separate CUDA-Q installer is available for CUDA 12, 
+built against version 12.6, and for CUDA 13, built against version 13.0.
 
 .. _distributed-computing-with-mpi:
 
@@ -785,10 +844,10 @@ by running the command
 .. note::
 
   Please check if you have an existing installation of the `cuda-quantum`, 
-  `cudaq-quantum-cu11`, or `cuda-quantum-cu12` package, 
+  `cudaq-quantum-cu12`, or `cuda-quantum-cu13` package, 
   and uninstall it prior to installing `cudaq`. The `cudaq` package supersedes the
   `cuda-quantum` package and will install a suitable binary distribution (either 
-  `cuda-quantum-cu11` or `cuda-quantum-cu12`) for your system. Multiple versions 
+  `cuda-quantum-cu12` or `cuda-quantum-cu13`) for your system. Multiple versions 
   of a CUDA-Q binary distribution will conflict with each other and not work properly.
 
 If you previously installed the CUDA-Q pre-built binaries, you should first uninstall your 
@@ -814,6 +873,7 @@ Dependencies and Compatibility
 CUDA-Q can be used to compile and run quantum programs on a CPU-only system, but a GPU is highly recommended and necessary to use the GPU-based simulators, see also :doc:`../backends/simulators`.
 
 The supported CPUs include x86_64 (x86-64-v3 architecture and newer) and ARM64 (ARM v8-A architecture and newer).
+On macOS, only ARM64 (Apple silicon) is supported.
 
 .. note:: 
 
@@ -827,26 +887,33 @@ The following table summarizes the required components.
 
     * - CPU architectures
       - x86_64, ARM64
-    * - Operating System
-      - Linux
+    * - Operating systems
+      - Linux, macOS (ARM64/Apple silicon only), Windows via Windows Subsystem for Linux 2 (WSL2)
     * - Tested Distributions
-      - CentOS 8; Debian 11, 12; Fedora 38, 39; OpenSUSE/SLED/SLES 15.5, 15.6; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04, 24.04
+      - CentOS 8; Debian 11, 12; Fedora 41; OpenSUSE/SLED/SLES 15.5, 15.6; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04, 24.04
     * - Python versions
-      - 3.10+
+      - 3.11+
 
 .. list-table:: Requirements for GPU Simulation
     :widths: 30 50
     :header-rows: 0
 
     * - GPU Architectures
-      - Volta, Turing, Ampere, Ada, Hopper
+      - Turing, Ampere, Ada, Hopper, Blackwell (Blackwell supported for CUDA 13.x only)
     * - NVIDIA GPU with Compute Capability
-      - 7.0+
+      - 7.5+
     * - CUDA
-      - 11.x (Driver 470.57.02+), 12.x (Driver 525.60.13+)
+      - • 12.x (Driver 525.60.13+) – For GPUs that support CUDA Forward Compatibility  
+        • 12.6+ (Driver 560.35.05+) – For all GPUs with supported architecture  
+        • 13.x (Driver 580.65.06+)
+        
+Detailed information about supported drivers for different CUDA versions and be found `here <https://docs.nvidia.com/deploy/cuda-compatibility/>`__. For more information on GPU forward capabilities, please refer to `this page <https://docs.nvidia.com/deploy/cuda-compatibility/forward-compatibility.html>`__.
 
-Detailed information about supported drivers for different CUDA versions and be found `here <https://docs.nvidia.com/deploy/cuda-compatibility/>`__.
+.. note::
 
+    Tegra devices (Jetson) are not supported in CUDA-Q at this time.
+
+    For more information, please refer to `Binary Compatibility documentation <https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#binary-compatibility>`_.
 
 .. _post-installation:
 

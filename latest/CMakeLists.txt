@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -17,7 +17,7 @@
 #   LAUNCH_COMMAND <COMMAND>: the command to launch the test (e.g., mpirun)
 function(add_nvqpp_test TEST_NAME SOURCE_LOCATION)
   cmake_parse_arguments(PARSED_ARGS "" "TARGET;LABELS;SOURCE_DIR;LAUNCH_COMMAND;APPLICATION_ARGS;TARGET_OPTION" "" ${ARGN})
-  set(NVQPP_COMPILE_ARGS "--library-mode ")
+  set(NVQPP_COMPILE_ARGS "--library-mode -I${CMAKE_SOURCE_DIR}/runtime/include")
   if(PARSED_ARGS_TARGET)
     set(NVQPP_COMPILE_ARGS "${NVQPP_COMPILE_ARGS} --target ${PARSED_ARGS_TARGET}")
     if (PARSED_ARGS_TARGET_OPTION)
@@ -40,7 +40,6 @@ function(add_nvqpp_test TEST_NAME SOURCE_LOCATION)
 endfunction()
 
 add_nvqpp_test(GHZ examples/cpp/basics/static_kernel.cpp)
-add_nvqpp_test(MultiControlOps examples/cpp/basics/multi_controlled_operations.cpp)
 add_nvqpp_test(ExpVals examples/cpp/basics/expectation_values.cpp)
 add_nvqpp_test(MidCircuitMeasurements examples/cpp/basics/mid_circuit_measurement.cpp)
 add_nvqpp_test(PhaseEstimation applications/cpp/phase_estimation.cpp)
@@ -56,7 +55,7 @@ add_nvqpp_test(Gradients examples/cpp/other/gradients.cpp)
 add_nvqpp_test(IterativePhaseEstimation applications/cpp/iterative_qpe.cpp)
 add_nvqpp_test(RandomWalkPhaseEstimation applications/cpp/random_walk_qpe.cpp)
 
-if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
+if (cuStateVec_FOUND)
   add_nvqpp_test(CuQuantumGHZ examples/cpp/basics/cuquantum_backends.cpp TARGET nvidia LABELS gpu_required)  
   add_nvqpp_test(CuQuantumBernsteinVazirani applications/cpp/bernstein_vazirani.cpp TARGET nvidia LABELS gpu_required)  
 endif()
@@ -67,8 +66,20 @@ add_nvqpp_test(FirstObserve using/first_observe.cpp SOURCE_DIR ${CMAKE_CURRENT_S
 add_nvqpp_test(FirstSample using/first_sample.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
 add_nvqpp_test(Timing using/time.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp APPLICATION_ARGS "10")
 
+set(PTSBE_CPP_SNIPPET_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp/using/examples/ptsbe)
+add_nvqpp_test(PTSBE_BellDepol bell_circuit_under_depol_noise.cpp SOURCE_DIR ${PTSBE_CPP_SNIPPET_DIR})
+add_nvqpp_test(PTSBE_InspectData inspect_execution_data.cpp SOURCE_DIR ${PTSBE_CPP_SNIPPET_DIR})
+add_nvqpp_test(PTSBE_SamplingStrategies sampling_strategies.cpp SOURCE_DIR ${PTSBE_CPP_SNIPPET_DIR})
+add_nvqpp_test(PTSBE_ShotAllocation shot_allocation.cpp SOURCE_DIR ${PTSBE_CPP_SNIPPET_DIR})
+
+if (cuDensityMat_FOUND)
+  add_nvqpp_test(Dynamics_Snippets using/backends/dynamics.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp/ TARGET dynamics LABELS gpu_required)  
+  add_nvqpp_test(Dynamics_State_Batching_Snippets using/backends/dynamics_state_batching.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp/ TARGET dynamics LABELS gpu_required)  
+  add_nvqpp_test(Dynamics_Operator_Batching_Snippets using/backends/dynamics_operator_batching.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp/ TARGET dynamics LABELS gpu_required)  
+endif()
+
 set(NGPUS 0)
-if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
+if (cuStateVec_FOUND)
   add_nvqpp_test(QuickStart_nvidia quick_start.cpp TARGET nvidia LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp)
 
   # mqpu snippets need custatevec backend and optionally MPI
@@ -131,16 +142,25 @@ if (CUDAQ_ENABLE_PYTHON)
   endfunction()
 
   add_pycudaq_test(Intro intro.py)
+
+  set(PTSBE_PY_SNIPPET_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python/using/examples/ptsbe)
+  add_pycudaq_test(PTSBE_BellDepol bell_circuit_under_depol_noise.py SOURCE_DIR ${PTSBE_PY_SNIPPET_DIR})
+  add_pycudaq_test(PTSBE_InspectData inspect_execution_data.py SOURCE_DIR ${PTSBE_PY_SNIPPET_DIR})
+  add_pycudaq_test(PTSBE_SamplingStrategies sampling_strategies.py SOURCE_DIR ${PTSBE_PY_SNIPPET_DIR})
+  add_pycudaq_test(PTSBE_ShotAllocation shot_allocation.py SOURCE_DIR ${PTSBE_PY_SNIPPET_DIR})
+
   if (CUDA_FOUND)
     add_pycudaq_test(EvolveDynamics using/backends/dynamics.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
+    add_pycudaq_test(EvolveDynamicsStateBatching using/backends/dynamics_state_batching.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
+    add_pycudaq_test(EvolveDynamicsOperatorBatching using/backends/dynamics_operator_batching.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
   endif()
 
-  if (CUTENSORNET_ROOT AND CUDA_FOUND) 
+  if (cuTensorNet_FOUND)
     # This example uses tensornet backend.
     add_pycudaq_test(SampleAsyncRemote using/cudaq/platform/sample_async_remote.py SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
   endif()
   
-  if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
+  if (cuStateVec_FOUND)
     add_pycudaq_test(SampleAsync using/cudaq/platform/sample_async.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
     add_pycudaq_test(ObserveMQPU using/cudaq/platform/observe_mqpu.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
     if (MPI_CXX_FOUND AND ${NGPUS} GREATER_EQUAL 2)

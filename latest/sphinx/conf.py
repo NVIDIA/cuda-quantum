@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                   #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
@@ -24,7 +24,7 @@ import sphinx_rtd_theme
 # -- Project information -----------------------------------------------------
 
 project = 'NVIDIA CUDA-Q'
-copyright = '2025, NVIDIA Corporation & Affiliates'
+copyright = '2026, NVIDIA Corporation & Affiliates'
 author = 'NVIDIA Corporation & Affiliates'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -48,10 +48,12 @@ extensions = [
     'sphinx.ext.extlinks',
     'sphinx.ext.intersphinx',
     'sphinx.ext.mathjax',
+    'sphinx.ext.todo',
     'sphinx.ext.napoleon',  # support google/numpy style docstrings
     #'sphinx.ext.linkcode',
     'sphinx_reredirects',
     'breathe',
+    'sphinx_tags',
     'enum_tools.autoenum',  # for pretty-print Python enums
     'myst_parser',  # for including markdown files
     'sphinx_inline_tabs',  # showing code blocks in multiple languages
@@ -61,7 +63,26 @@ extensions = [
     "IPython.sphinxext.ipython_console_highlighting",
 ]
 
+html_static_path = ['_static']
+html_js_files = ['filter.js']
+# Disable source links in the HTML output.
+html_show_sourcelink = False
+
+# Enable dynamic filtering in sphinx-needs
+needs_include_needs = True  # Enable needs processing
+needs_types = [{
+    'directive': 'notebook',
+    'title': 'Notebook',
+    'prefix': 'NB_',
+    'color': '#BFD8D2',
+    'style': 'node'
+}]
+
+tags_create_tags = True  # Automatically generate tag pages
 nbsphinx_allow_errors = False
+
+needs_extra_options = ['description', 'nb_links']
+
 nbsphinx_thumbnails = {
     # Default thumbnail if the notebook does not define a cell tag to specify the thumbnail.
     # See also: https://nbsphinx.readthedocs.io/en/latest/subdir/gallery.html
@@ -93,8 +114,13 @@ master_doc = 'index'
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
-    '**/_*', '.DS_Store', 'examples/python/building_kernels.ipynb'
+    '**/_*', '.DS_Store', 'examples/python/building_kernels.ipynb',
+    'examples/python/measuring_kernels.ipynb',
+    'examples/python/executing_kernels.ipynb', 'examples/python/operators.ipynb'
 ]
+
+#redirect links
+redirects = {"backends/dynamics": "../dynamics.html"}
 
 # Generate OpenAPI spec for the REST API
 import ruamel.yaml
@@ -152,7 +178,7 @@ html_theme_options = {
         "#76b900"  # Set upper left search bar to NVIDIA green
 }
 
-html_css_files = ['_static/cudaq_override.css']
+html_css_files = ['_static/cudaq_override.css', 'custom.css']
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -180,7 +206,7 @@ breathe_show_enumvalue_initializer = True
 autosummary_generate = True
 
 # This is unfortunately not sufficient for docs generation, due to the use of Union type;
-# see also https://github.com/sphinx-doc/sphinx/issues/11211. 
+# see also https://github.com/sphinx-doc/sphinx/issues/11211.
 # autodoc_mock_imports = ['cuquantum', 'cupy']
 
 intersphinx_mapping = {
@@ -208,8 +234,15 @@ nitpick_ignore = [
     ('cpp:identifier', 'cudaq::ctrl'),
     ('py:class', 'function'),
     ('py:class', 'type'),
-    ('py:class', 'cudaq::spin_op'),
     ('py:class', 'numpy.ndarray[]'),
+    # FIXME: remove these after adding proper documentation
+    # (also reexamine why some of the ones above are ignored)
+    ('py:class', 'cudaq::sum_op<cudaq::spin_handler>'),
+    ('py:class', 'SpinOperatorTerm'),
+    ('cpp:identifier', 'cudaq::detail'),
+    ('cpp:identifier', 'cudaq::detail::EigenSparseMatrix'),
+    ('cpp:identifier', 'detail'),
+    ('cpp:identifier', 'detail::NoisePoint'),
 ]
 
 napoleon_google_docstring = True

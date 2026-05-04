@@ -12,6 +12,102 @@ and is also available as a Docker image. More information about installing the n
 - `Documentation <https://nvidia.github.io/cuda-quantum/latest>`__
 - `Examples <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples>`__
 
+**0.14.0**
+
+This release comes with a range of exciting improvement. 
+
+This release includes the first 0.1.0 version of CUDA-Q Realtime. CUDA-Q Realtime is built to support low-latency high-bandwidth data transfer between FPGAs and GPUs using NVQLink. CUDA-Q Realtime is installed separately via the C++ installer provided in the release assets. For more information about CUDA-Q Realtime, please see our `docs <https://nvidia.github.io/cuda-quantum/0.14.0/using/realtime.html>`__.
+
+0.14.0 adds support for Pre-Trajectory Sampling with Batch Execution (PTSBE). PTSBE can be used to capture millions of times more noisy shot data, which can then be used as training data in ML tasks such as AI decoders, or it can be deployed proportionally, capturing the exact statistics of the problem while still offering a considerable speedup. For more information, see our `docs <https://nvidia.github.io/cuda-quantum/0.14.0/using/examples/ptsbe.html>`__ and `applications <https://nvidia.github.io/cuda-quantum/0.14.0/applications/python/ptsbe_end_to_end_workflow.html>`__.
+
+Starting with version 0.14.0, we now also distribute MacOS wheels on PyPI, and have made the C++ installer usable without root privileges. 
+Additionally, we have completely overhauled the Python compiler. 
+
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__
+- `Python wheel <https://pypi.org/project/cudaq/0.14.0>`__
+- `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases/0.14.0>`__
+- `CUDA-Q Realtime installer <https://github.com/NVIDIA/cuda-quantum/releases/0.14.0>`__
+- `Documentation <https://nvidia.github.io/cuda-quantum/0.14.0>`__
+- `Examples <https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.14.0/docs/sphinx/examples>`__
+
+The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/releases/0.14.0>`__.
+
+**0.13.0**
+
+This release adds support for CUDA 13 and Python 3.13 and removes support for 
+CUDA 11 and Python 3.10. It adds support for using the CUDA-Q QEC libraries 
+for real-time decoding on Quantinuum backends, and adds support for submission 
+to QCI backends. Check out the release notes below to learn about additional 
+new content.
+
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__
+- `Python wheel <https://pypi.org/project/cudaq/0.13.0>`__
+- `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases/0.13.0>`__
+- `Documentation <https://nvidia.github.io/cuda-quantum/0.13.0>`__
+- `Examples <https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.13.0/docs/sphinx/examples>`__
+
+The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/releases/0.13.0>`__.
+
+**0.12.0**
+
+This release contains a range of new features and performance improvements for 
+the dynamics simulation and adds more tools for error correction applications. 
+It introduces new CUDA-Q API for kernels that return values (`run`), and adds 
+support for connecting to Quantum Machines backends. This release also contains
+contributions from unitaryHACK. With this release, we now include support for
+Python 3.13.
+
+*Note*: Support for Python 3.10 will be removed in future releases.
+
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__
+- `Python wheel <https://pypi.org/project/cudaq/0.12.0>`__
+- `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases/0.12.0>`__
+- `Documentation <https://nvidia.github.io/cuda-quantum/0.12.0>`__
+- `Examples <https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.12.0/docs/sphinx/examples>`__
+
+The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/releases/0.12.0>`__.
+
+**0.11.0**
+
+This release contains a range of ergonomic improvements and documentation updates.
+It adds support for initializing qubits to have a given state for quantum hardware backends
+and exposes a range of new configurations for different simulator backends. This release also
+addresses some performance issues with the initial introduction of a general operator framework
+in CUDA-Q. This required some breaking changes. We refer to the 
+`release notes <https://github.com/NVIDIA/cuda-quantum/releases/0.11.0>`__ for further details.
+
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__
+- `Python wheel <https://pypi.org/project/cudaq/0.11.0>`__
+- `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases/0.11.0>`__
+- `Documentation <https://nvidia.github.io/cuda-quantum/0.11.0>`__
+- `Examples <https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.11.0/docs/sphinx/examples>`__
+
+The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/releases/0.11.0>`__.
+
+**0.10.0**
+
+In this release we have added a range of tools for simulating noisy quantum systems.
+It includes support for trajectory based noise simulation for our GPU-accelerated statevector 
+and tensor network simulators, and a new sampling option for better `stim` performance. We have 
+also expanded the range of noise models, and added an `apply_noise` "gate". This release adds 
+the C++ support for the CUDA-Q `dynamics` backend (a master equation solver), as well as operator 
+classes for fermionic, bosonic and custom operators. This release also includes support for 
+submitting to `Pasqal <https://nvidia.github.io/cuda-quantum/0.10.0/using/backends/hardware/neutralatom.html#pasqal>`__ 
+backends, and adds C++ support for 
+`QuEra <https://nvidia.github.io/cuda-quantum/0.10.0/using/backends/hardware/neutralatom.html#quera-computing>`__ 
+backends. Check out our `documentation <https://nvidia.github.io/cuda-quantum/0.10.0>`__, including 
+new tutorials and examples, for more information.
+
+*Note*: Support for CUDA 11 will be removed in future releases. Please update to CUDA 12.
+
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__
+- `Python wheel <https://pypi.org/project/cudaq/0.10.0>`__
+- `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases/0.10.0>`__
+- `Documentation <https://nvidia.github.io/cuda-quantum/0.10.0>`__
+- `Examples <https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.10.0/docs/sphinx/examples>`__
+
+The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/releases/0.10.0>`__.
+
 **0.9.1**
 
 This release adds support for using 
@@ -25,7 +121,7 @@ could be used when executing on a simulator only. The previous behavior can be f
 flag to the compiler. Please note that if you do so, however, the code will never be executable outside of a simulator 
 and may not be supported even on simulators.
 
-- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum>`__
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__
 - `Python wheel <https://pypi.org/project/cudaq/0.9.1>`__
 - `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases/0.9.1>`__
 - `Documentation <https://nvidia.github.io/cuda-quantum/0.9.1>`__
@@ -87,7 +183,7 @@ The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/r
 
 **0.7.0**
 
-The 0.7.0 release adds support for using :doc:`NVIDIA Quantum Cloud <using/backends/cloud/nvqc>`,
+The 0.7.0 release adds support for using NVIDIA Quantum Cloud,
 giving you access to our most powerful GPU-accelerated simulators even if you don't have an NVIDIA GPU.
 With 0.7.0, we have furthermore greatly increased expressiveness of the Python and C++ language frontends. 
 Check out our `documentation <https://nvidia.github.io/cuda-quantum/0.7.0/using/quick_start.html>`__ 
