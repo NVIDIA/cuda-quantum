@@ -201,6 +201,104 @@ NB_MODULE(_quakeDialects, m) {
       },
       "Duplicates the communicator. Return the new communicator address (as an "
       "integer) and its size in bytes");
+  mpiSubmodule.def(
+      "split_communicator",
+      [](int color, std::optional<int> key) {
+        return reinterpret_cast<intptr_t>(mpi::split_communicator(color, key));
+      },
+      R"doc(Splits the current communicator into sub-communicators based on the
+input color and key.
+
+Ranks that pass the same color are placed in the same new communicator. The key
+controls the rank ordering within that new communicator.
+
+Args:
+  color (int): Split color. Ranks with the same color join the same
+    communicator.
+  key (Optional[int]): Rank-ordering key within the new communicator. Defaults
+    to ``None``, which uses the current rank in the original communicator as the
+    split key.
+
+Returns:
+  int: Integer representation of the new communicator pointer (``comm_ptr``).
+
+Example:
+
+.. code-block:: python
+
+  import cudaq
+
+  cudaq.mpi.initialize()
+  cudaq.set_target("tensornet")
+
+  world_rank = cudaq.mpi.rank()
+  world_size = cudaq.mpi.num_ranks()
+
+  # Split the world communicator into QPU groups of two ranks each.
+  # With four ranks, ranks 0 and 1 use color 0, while ranks 2 and 3 use color 1.
+  ranks_per_qpu = 2
+  if world_size % ranks_per_qpu != 0:
+      raise RuntimeError("World size must be a multiple of ranks_per_qpu.")
+
+  qpu_id = world_rank // ranks_per_qpu
+  qpu_comm = cudaq.mpi.split_communicator(color=qpu_id)
+
+  cudaq.mpi.set_communicator(qpu_comm))doc",
+      nanobind::arg("color"), nanobind::arg("key") = std::nullopt);
+
+  mpiSubmodule.def(
+      "set_communicator",
+      [](intptr_t commPtr) {
+        mpi::set_communicator(reinterpret_cast<void *>(commPtr));
+      },
+      R"doc(Sets the communicator of the backend simulator based on the input
+communicator address (as an integer). MPI must be initialized. If the selected
+target does not support MPI-based distributed simulation, CUDA-Q emits a warning
+and ignores this call.
+
+Args:
+  commPtr (int): Integer representation of the communicator pointer
+    (``comm_ptr``) for the backend simulator to use. This can be returned by
+    ``cudaq.mpi.split_communicator`` or by taking the address of a live
+    ``mpi4py`` communicator with ``MPI._addressof(comm)``.
+
+Examples:
+
+Using ``cudaq.mpi.split_communicator``:
+
+.. code-block:: python
+
+  import cudaq
+
+  cudaq.mpi.initialize()
+  cudaq.set_target("tensornet")
+
+  world_rank = cudaq.mpi.rank()
+  ranks_per_qpu = 2
+  qpu_id = world_rank // ranks_per_qpu
+  qpu_comm = cudaq.mpi.split_communicator(qpu_id)
+
+  cudaq.mpi.set_communicator(qpu_comm)
+
+Using ``mpi4py``:
+
+.. code-block:: python
+
+  import cudaq
+  from mpi4py import MPI
+
+  cudaq.set_target("tensornet")
+
+  world_comm = MPI.COMM_WORLD
+  world_rank = world_comm.Get_rank()
+  ranks_per_qpu = 2
+  qpu_id = world_rank // ranks_per_qpu
+  qpu_comm = world_comm.Split(color=qpu_id, key=world_rank)
+
+  cudaq.mpi.set_communicator(MPI._addressof(qpu_comm))
+
+When using ``mpi4py``, keep the communicator object alive while CUDA-Q uses it.)doc",
+      nanobind::arg("commPtr"));
 
   auto orcaSubmodule = cudaqRuntime.def_submodule("orca");
   orcaSubmodule.def(

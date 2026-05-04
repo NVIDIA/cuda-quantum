@@ -247,14 +247,6 @@ void quantum_platform::onRandomSeedSet(std::size_t seed) {
     qpu->onRandomSeedSet(seed);
 }
 
-void quantum_platform::resetLogStream() { platformLogStream = nullptr; }
-
-std::ostream *quantum_platform::getLogStream() { return platformLogStream; }
-
-void quantum_platform::setLogStream(std::ostream &logStream) {
-  platformLogStream = &logStream;
-}
-
 cudaq::CodeGenConfig quantum_platform::get_codegen_config() {
   if (runtimeTarget &&
       !runtimeTarget->config.getCodeGenSpec(runtimeTarget->runtimeConfig)

@@ -10,10 +10,10 @@
 
 #include <cstddef>
 #include <functional>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
-
 namespace cudaq {
 namespace mpi {
 /// @brief Return true if CUDA-Q has MPI plugin support.
@@ -79,6 +79,21 @@ void broadcast(std::string &data, int rootRank);
 /// @brief Duplicate the communicator. Returns the new communicator (as a void*)
 /// and its size.
 std::pair<void *, std::size_t> comm_dup();
+
+/// @brief Split the communicator based on the input color and key. Returns the
+/// new communicator (as a void*).
+/// @param color The color used to split the communicator.
+/// @param key The key used to determine the rank ordering within the new
+/// communicator. If not provided, the rank from the original communicator will
+/// be used as the key.
+/// @return The new communicator (as a void*).
+void *split_communicator(int color,
+                         const std::optional<int> &key = std::nullopt);
+
+/// @brief Set the communicator to be used by CUDA-Q backend. This allows users
+/// to have multiple backends with different communicators in the same program.
+/// @param comm The communicator to be set.
+void set_communicator(void *comm);
 
 /// @brief Finalize MPI. This function
 /// is a no-op if there CUDA-Q has not been built

@@ -8,7 +8,6 @@
 
 llvm_canonicalize_cmake_booleans(
   CUDA_FOUND
-  CUDAQ_TEST_REMOTE_SIM
 )
 
 if (CUDAQ_DISABLE_RUNTIME)

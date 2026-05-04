@@ -33,15 +33,6 @@ class CompiledModule;
 
 namespace cudaq_internal::compiler {
 
-/// Util to create a wrapped kernel defined by LLVM IR with serialized
-/// arguments.
-// Note: We don't use `mlir::ExecutionEngine` to skip unnecessary
-// `packFunctionArguments` (slow for raw LLVM IR containing many functions from
-// included headers).
-std::tuple<std::unique_ptr<llvm::orc::LLJIT>, std::function<void()>>
-createWrappedKernel(std::string_view llvmIr, const std::string &kernelName,
-                    void *args, std::uint64_t argsSize);
-
 /// Lower ModuleOp to QIR/LLVM IR and create a JIT execution engine.
 cudaq::JitEngine createJITEngine(mlir::ModuleOp &moduleOp,
                                  llvm::StringRef convertTo);

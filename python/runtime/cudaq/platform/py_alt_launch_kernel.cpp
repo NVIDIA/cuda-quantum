@@ -1005,9 +1005,8 @@ static MlirModule synthesizeKernel(nanobind::object kernel,
       cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
 
   auto &platform = cudaq::get_platform();
-  auto isRemoteSimulator = platform.get_remote_capabilities().isRemoteSimulator;
   auto isLocalSimulator = platform.is_simulator() && !platform.is_emulated();
-  auto isSimulator = isLocalSimulator || isRemoteSimulator;
+  auto isSimulator = isLocalSimulator;
 
   ArgumentConverter argCon(name, mod);
   argCon.gen(args.getArgs());

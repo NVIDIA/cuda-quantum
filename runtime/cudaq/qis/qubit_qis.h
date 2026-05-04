@@ -876,11 +876,7 @@ template <typename... Args>
 constexpr bool any_float = std::disjunction_v<
     std::is_floating_point<std::remove_cv_t<std::remove_reference_t<Args>>>...>;
 
-#ifdef CUDAQ_REMOTE_SIM
-#define TARGET_OK_FOR_APPLY_NOISE false
-#else
 #define TARGET_OK_FOR_APPLY_NOISE true
-#endif
 
 template <typename T, typename... Q>
   requires(std::derived_from<T, cudaq::kraus_channel> && !any_float<Q...> &&

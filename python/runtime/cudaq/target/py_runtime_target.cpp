@@ -67,7 +67,7 @@ parseTargetKwArgs(const nanobind::kwargs &extraConfig) {
     else if (nanobind::isinstance<nanobind::str>(value))
       strValue = nanobind::cast<std::string>(value);
     else if (nanobind::isinstance<nanobind::int_>(value))
-      strValue = std::to_string(nanobind::cast<int>(value));
+      strValue = std::to_string(nanobind::cast<int64_t>(value));
     else
       throw std::runtime_error(
           "QPU kwargs config value must be cast-able to a string.");
@@ -116,12 +116,6 @@ void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
           [](cudaq::RuntimeTarget &_) { return cudaq::is_emulated_platform(); },
           "Returns true if the emulation mode for the target has been "
           "activated.")
-      .def(
-          "is_remote_simulator",
-          [](cudaq::RuntimeTarget &_) {
-            return cudaq::is_remote_simulator_platform();
-          },
-          "Returns true if the target consists of a remote REST Simulator QPU.")
       .def("get_precision", &cudaq::RuntimeTarget::get_precision,
            "Return the simulation precision for the current target.")
       .def(

@@ -6,11 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "DefaultQPU.h"
 #include "common/ExecutionContext.h"
 #include "common/RuntimeTarget.h"
 #include "common/Timing.h"
 #include "cudaq/Support/TargetConfigYaml.h"
-#include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -23,64 +23,13 @@
 /// kernel execution to the current Execution Manager.
 
 namespace {
-
-/// The DefaultQPU models a simulated QPU by specifically
-/// targeting the QIS ExecutionManager.
-class DefaultQPU : public cudaq::QPU {
-public:
-  DefaultQPU() = default;
-  virtual ~DefaultQPU() = default;
-
-  void enqueue(cudaq::QuantumTask &task) override {
-    execution_queue->enqueue(task);
-  }
-
-  cudaq::KernelThunkResultType
-  launchKernel(const std::string &name, cudaq::KernelThunkType kernelFunc,
-               void *args, std::uint64_t argsSize, std::uint64_t resultOffset,
-               const std::vector<void *> &rawArgs) override {
-    ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::launchKernel");
-    return kernelFunc(args, /*isRemote=*/false);
-  }
-
-  void
-  configureExecutionContext(cudaq::ExecutionContext &context) const override {
-    ScopedTraceWithContext("DefaultPlatform::prepareExecutionContext",
-                           context.name);
-    if (noiseModel)
-      context.noiseModel = noiseModel;
-
-    context.executionManager = cudaq::getDefaultExecutionManager();
-    context.executionManager->configureExecutionContext(context);
-  }
-
-  void beginExecution() override {
-    cudaq::getExecutionContext()->executionManager->beginExecution();
-  }
-
-  void endExecution() override {
-    cudaq::getExecutionContext()->executionManager->endExecution();
-  }
-
-  void
-  finalizeExecutionContext(cudaq::ExecutionContext &context) const override {
-    ScopedTraceWithContext(
-        context.name == "observe" ? cudaq::TIMING_OBSERVE : 0,
-        "DefaultPlatform::finalizeExecutionContext", context.name);
-    handleObservation(context);
-
-    cudaq::getExecutionContext()->executionManager->finalizeExecutionContext(
-        context);
-  }
-};
-
 /// The DefaultQuantumPlatform is a quantum_platform that provides a single
 /// simulated QPU, which delegates to the QIS ExecutionManager.
 class DefaultQuantumPlatform : public cudaq::quantum_platform {
 public:
   DefaultQuantumPlatform() {
     // Populate the information and add the QPUs
-    platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
+    platformQPUs.emplace_back(std::make_unique<cudaq::details::DefaultQPU>());
   }
 
 private:
@@ -91,7 +40,7 @@ private:
   /// variable.
   void setTargetBackend(const std::string &backend) override {
     platformQPUs.clear();
-    platformQPUs.emplace_back(std::make_unique<DefaultQPU>());
+    platformQPUs.emplace_back(std::make_unique<cudaq::details::DefaultQPU>());
 
     CUDAQ_INFO("Backend string is {}", backend);
     std::map<std::string, std::string> configMap;

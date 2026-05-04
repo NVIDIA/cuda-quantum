@@ -20,7 +20,8 @@ extern "C" nvqir::CircuitSimulator *getCircuitSimulator_tensornet();
 
 namespace nvqir {
 template <typename ScalarType = double>
-class SimulatorTensorNet : public SimulatorTensorNetBase<ScalarType> {
+class SimulatorTensorNet : public SimulatorTensorNetBase<ScalarType>,
+                           public nvqir::MpiCircuitSimulator {
   using SimulatorTensorNetBase<ScalarType>::m_cutnHandle;
   using SimulatorTensorNetBase<
       ScalarType>::m_maxControlledRankForFullTensorExpansion;
@@ -38,7 +39,7 @@ public:
     // the Getting Started section of the cuTensorNet library documentation
     // (Installation and Compilation).
     if (cudaq::mpi::is_initialized()) {
-      initCuTensornetComm(m_cutnHandle);
+      initCuTensornetComm(m_cutnHandle, mpiCommPtr, mpiCommSizeBytes);
       m_cutnMpiInitialized = true;
     }
 
@@ -58,6 +59,14 @@ public:
                  m_maxControlledRankForFullTensorExpansion, maxControlledRank);
       m_maxControlledRankForFullTensorExpansion = maxControlledRank;
     }
+  }
+
+  bool setMpiCommunicator(void *comm, int commSizeBytes) override {
+    mpiCommPtr = comm;
+    mpiCommSizeBytes = commSizeBytes;
+    initCuTensornetComm(m_cutnHandle, mpiCommPtr, mpiCommSizeBytes);
+    m_cutnMpiInitialized = true;
+    return true;
   }
 
   // Nothing to do for state preparation
@@ -195,5 +204,7 @@ private:
 #endif
   /// @brief Has cuTensorNet MPI been initialized?
   bool m_cutnMpiInitialized = false;
+  static inline void *mpiCommPtr = nullptr;
+  static inline int mpiCommSizeBytes = 0;
 };
 } // namespace nvqir

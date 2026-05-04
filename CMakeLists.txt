@@ -84,15 +84,6 @@ if (NOT DEFINED CUDAQ_ENABLE_REST)
   set(CUDAQ_ENABLE_REST ON CACHE BOOL "Enable building REST client & server.")
 endif()
 
-# Enable the remote simulator by default.
-if (CUDAQ_ENABLE_REST AND NOT DEFINED CUDAQ_ENABLE_REMOTE_SIM)
-  set(CUDAQ_ENABLE_REMOTE_SIM ON CACHE BOOL "Enable building cudaq-qpud.")
-  # Optionally enable the tests that use cudaq-qpud.
-  if (NOT DEFINED CUDAQ_TEST_REMOTE_SIM)
-    set(CUDAQ_TEST_REMOTE_SIM ON CACHE BOOL "Run remote-sim tests.")
-  endif()
-endif()
-
 # Enable Amazon Braket backends by default.
 if (NOT DEFINED CUDAQ_ENABLE_BRAKET_BACKEND)
   set(CUDAQ_ENABLE_BRAKET_BACKEND ON CACHE BOOL "Enable building AWS SDK for Amazon Braket backends.")
@@ -591,12 +582,6 @@ if (NOT CUDAQ_DISABLE_RUNTIME)
     PROPERTIES
       INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${LIBQPP_INCLUDE}")
   add_openmp_interface_definitions(libqpp)
-endif()
-
-if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
-  # The asio submodule doesn't use cmake, so use find_path for it.
-  find_path(ASIO_INCLUDE_DIR asio.hpp PATHS tpls/asio/asio/include)
-  add_subdirectory(tpls/Crow)
 endif()
 
 # Check for CUDA Support

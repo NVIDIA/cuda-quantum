@@ -38,13 +38,6 @@
 [submodule "tpls/cpr"]
 	path = tpls/cpr
 	url = https://github.com/libcpr/cpr.git
-[submodule "tpls/asio"]
-	path = tpls/asio
-	url = https://github.com/chriskohlhoff/asio.git
-[submodule "tpls/Crow"]
-	path = tpls/Crow
-	url = https://github.com/CrowCpp/Crow.git
-	ignore = dirty
 [submodule "tpls/Stim"]
 	path = tpls/Stim
 	url = https://github.com/quantumlib/Stim

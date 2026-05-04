@@ -109,9 +109,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   // Indicate that this is an asynchronous execution.
   ctx.asyncExec = futureResult != nullptr;
 
-  auto isRemoteSimulator = platform.get_remote_capabilities().isRemoteSimulator;
-  auto isQuantumDevice =
-      !isRemoteSimulator && (platform.is_remote() || platform.is_emulated());
+  auto isQuantumDevice = (platform.is_remote() || platform.is_emulated());
 
   // Loop until all shots are returned.
   cudaq::sample_result counts;

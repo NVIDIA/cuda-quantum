@@ -39,10 +39,6 @@ config.cuda_found = "@CUDA_FOUND@"
 if cmake_boolvar_to_bool(config.cuda_found):
   config.available_features.add('nvcc')
 
-config.test_remote_sim = "@CUDAQ_TEST_REMOTE_SIM@"
-if cmake_boolvar_to_bool(config.test_remote_sim):
-  config.available_features.add('remote-sim')
-
 import lit.llvm
 lit.llvm.initialize(lit_config, config)
 
