@@ -294,6 +294,7 @@ if(TARGET nvqir-tensornet)
   target_include_directories(test_tensornet_observe_path_reuse PRIVATE .)
   target_compile_definitions(test_tensornet_observe_path_reuse
                              PRIVATE -DNVQIR_BACKEND_NAME=tensornet)
+  target_compile_definitions(test_tensornet_observe_path_reuse PRIVATE -DCUDAQ_BACKEND_TENSORNET)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
     target_link_options(test_tensornet_observe_path_reuse PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
   endif()
