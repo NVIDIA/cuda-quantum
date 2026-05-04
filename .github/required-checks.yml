@@ -8,8 +8,8 @@
 # An empty list (or missing key) for an event type disables enforcement
 # for that event — useful for bootstrapping.
 merge_group: &full_matrix
-- Build and test (arm64, llvm, openmpi) / Dev environment (Debug)
-- Build and test (arm64, llvm, openmpi) / Dev environment (Python)
+- Build and test (amd64, llvm, openmpi) / Dev environment (Debug)
+- Build and test (amd64, llvm, openmpi) / Dev environment (Python)
 - Build and test (arm64, llvm, openmpi) / Dev environment (Debug)
 - Build and test (arm64, llvm, openmpi) / Dev environment (Python)
 - Create CUDA Quantum installer (amd64, 12.6) / Build CUDA Quantum assets
