@@ -48,5 +48,12 @@ push:
 - Build and test (amd64, llvm, openmpi) / Dev environment (Python)
 - Build and test (arm64, llvm, openmpi) / Dev environment (Debug)
 - Build and test (arm64, llvm, openmpi) / Dev environment (Python)
+- Create CUDA Quantum installer (amd64, 12.6) / Build CUDA Quantum assets
+- Create CUDA Quantum installer (amd64, 12.6) / Minimal OpenMPI installation
+- Create Docker images (amd64) / Documentation
+- Create Docker images (amd64) / Validation
+- Create Docker images (arm64) / Validation
+- Create Python wheels (amd64, 3.11, 12.6) / Validate wheel (debian:12, --user)
+- Create Python wheels (amd64, 3.11, 12.6) / Validate wheel (debian:12)
 workflow_dispatch: *full_matrix
 schedule: *full_matrix
