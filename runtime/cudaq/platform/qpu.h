@@ -197,7 +197,7 @@ public:
   launchModule(const CompiledModule &compiled, KernelArgs args);
 
   [[nodiscard]] virtual CompiledModule compileModule(const std::string &name,
-                                                     mlir::ModuleOp module,
+                                                     const void *modulePtr,
                                                      KernelArgs args,
                                                      bool isEntryPoint);
 

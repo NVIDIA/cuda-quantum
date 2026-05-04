@@ -947,13 +947,13 @@ struct CCXToCCZ : public cudaq::DecompositionPattern<CCXToCCZType, quake::XOp> {
 
   LogicalResult matchAndRewrite(quake::XOp op,
                                 PatternRewriter &rewriter) const override {
-    if (failed(checkNumControls(op, 2)))
+    SmallVector<Value, 2> controls(2);
+    if (failed(checkAndExtractControls(op, controls, rewriter)))
       return failure();
 
     // Op info
     Location loc = op->getLoc();
     Value target = op.getTarget();
-    SmallVector<Value> controls = op.getControls();
 
     QuakeOperatorCreator qRewriter(rewriter);
     qRewriter.create<quake::HOp>(loc, target);

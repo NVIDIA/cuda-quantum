@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/BaseRemoteRESTQPU.h"
+#include "cudaq/platform/qpu_utils.h"
 #include <optional>
 
 namespace cudaq {
@@ -30,7 +31,7 @@ public:
                                      KernelArgs args) override {
     auto executionContext = cudaq::getExecutionContext();
 
-    if (kernelName.find(cudaq::runtime::cudaqAHKPrefixName) != 0)
+    if (!cudaq::detail::isAnalogHamiltonianKernel(kernelName))
       throw std::runtime_error(
           "Arbitrary kernel execution is not supported on this target.");
 
@@ -43,9 +44,8 @@ public:
     std::string name = kernelName;
     const auto packed = args.getPacked();
     std::string strArgs = packed ? (char *)packed->data.data() : "";
-    nlohmann::json j;
     std::vector<std::size_t> mapping_reorder_idx;
-    codes.emplace_back(name, strArgs, std::nullopt, std::nullopt, j,
+    codes.emplace_back(name, strArgs, std::nullopt, std::nullopt,
                        mapping_reorder_idx);
 
     if (executionContext) {

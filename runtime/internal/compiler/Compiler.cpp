@@ -25,6 +25,7 @@
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/JIT.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
+#include "nlohmann/json.hpp"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Support/Base64.h"
@@ -108,9 +109,9 @@ std::vector<std::size_t> extractMappingReorderIdx(mlir::ModuleOp moduleOp,
 }
 } // namespace
 
-std::pair<mlir::ModuleOp, std::unique_ptr<mlir::MLIRContext>>
+std::pair<const void *, std::shared_ptr<mlir::MLIRContext>>
 Compiler::loadQuakeCodeByName(const std::string &kernelName) {
-  auto context = getOwningMLIRContext();
+  std::shared_ptr<mlir::MLIRContext> context(getOwningMLIRContext().release());
 
   // Get the quake representation of the kernel
   auto quakeCode = cudaq::get_quake_by_name(kernelName);
@@ -118,7 +119,7 @@ Compiler::loadQuakeCodeByName(const std::string &kernelName) {
   if (!m_module)
     throw std::runtime_error("module cannot be parsed");
 
-  return std::make_pair(m_module.release(), std::move(context));
+  return std::make_pair(m_module.release().getAsOpaquePointer(), context);
 }
 
 Compiler::Compiler(cudaq::ServerHelper *serverHelper,
@@ -407,8 +408,8 @@ cudaq::CompiledModule Compiler::assembleCompiledModule(
 
 cudaq::CompiledModule
 Compiler::runPassPipeline(cudaq::ExecutionContext *executionContext,
-                          const std::string &kernelName,
-                          mlir::ModuleOp m_module, cudaq::KernelArgs args,
+                          const std::string &kernelName, const void *m_module,
+                          cudaq::KernelArgs args,
                           std::shared_ptr<mlir::MLIRContext> context) {
   assert(!context || context.get() == m_module.getContext());
   auto [moduleOp, epFunc] = prepareModule(kernelName, m_module, args);
@@ -596,7 +597,7 @@ Compiler::emitKernelExecutions(const cudaq::CompiledModule &compiled) {
 /// platform directory for the targeted backend.
 std::vector<cudaq::KernelExecution>
 Compiler::lowerQuakeCode(cudaq::ExecutionContext *executionContext,
-                         const std::string &kernelName, mlir::ModuleOp module,
+                         const std::string &kernelName, const void *modulePtr,
                          cudaq::KernelArgs args) {
   auto compiled =
       runPassPipeline(executionContext, kernelName, module, args, nullptr);

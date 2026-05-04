@@ -101,7 +101,7 @@ class Compiler {
       std::shared_ptr<mlir::MLIRContext> context);
 
 public:
-  static std::pair<mlir::ModuleOp, std::unique_ptr<mlir::MLIRContext>>
+  static std::pair<const void *, std::shared_ptr<mlir::MLIRContext>>
   loadQuakeCodeByName(const std::string &kernelName);
 
   Compiler(cudaq::ServerHelper *,
@@ -121,7 +121,7 @@ public:
   /// context lifetime must be managed by the caller.
   cudaq::CompiledModule
   runPassPipeline(cudaq::ExecutionContext *executionContext,
-                  const std::string &kernelName, mlir::ModuleOp module,
+                  const std::string &kernelName, const void *modulePtr,
                   cudaq::KernelArgs args,
                   std::shared_ptr<mlir::MLIRContext> context = nullptr);
 
@@ -141,7 +141,7 @@ public:
   /// this call in any way necessary without breaking some other kernel launch.
   std::vector<cudaq::KernelExecution>
   lowerQuakeCode(cudaq::ExecutionContext *executionContext,
-                 const std::string &kernelName, mlir::ModuleOp module,
+                 const std::string &kernelName, const void *modulePtr,
                  cudaq::KernelArgs args);
 };
 } // namespace cudaq_internal::compiler
