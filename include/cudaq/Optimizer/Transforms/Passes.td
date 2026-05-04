@@ -275,6 +275,8 @@ def ConvertToDirectCalls : Pass<"indirect-to-direct-calls", "mlir::ModuleOp"> {
     quantum code will call other quantum code directly and without going
     indirectly through the launch kernel runtime.
   }];
+
+  let dependentDialects = ["cudaq::cc::CCDialect"];
 }
 
 def DeadStoreRemoval : Pass<"dead-store-removal"> {

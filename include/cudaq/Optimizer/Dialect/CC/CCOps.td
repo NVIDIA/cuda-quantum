@@ -85,6 +85,8 @@ def cc_ScopeOp : CCOp<"scope",
   let hasCanonicalizer = 1;
 
   let builders = [
+    OpBuilder<(ins "mlir::TypeRange",
+      "llvm::function_ref<void(mlir::OpBuilder &, mlir::Location)>")>,
     OpBuilder<(ins 
       CArg<"llvm::function_ref<void(mlir::OpBuilder &, mlir::Location)>",
            "nullptr">)>

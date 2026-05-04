@@ -1909,6 +1909,12 @@ void cudaq::cc::ScopeOp::build(OpBuilder &builder, OperationState &result,
     bodyBuilder(builder, result.location);
 }
 
+void cudaq::cc::ScopeOp::build(OpBuilder &builder, OperationState &result,
+                               TypeRange resultTys, BodyBuilderFn bodyBuilder) {
+  build(builder, result, bodyBuilder);
+  result.addTypes(resultTys);
+}
+
 void cudaq::cc::ScopeOp::print(OpAsmPrinter &p) {
   bool printBlockTerminators = getRegion().getBlocks().size() > 1;
   if (!getResults().empty()) {
