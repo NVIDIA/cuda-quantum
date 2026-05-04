@@ -364,7 +364,12 @@ jobs:
       - python_wheels
       - python_metapackages
       - binaries
-    if: always()
+    # Run on success, failure, or per-job cancellation — but NOT when the
+    # whole workflow is cancelled (e.g. a newer push triggered the
+    # concurrency rule). Otherwise the "fail on cancelled needs" check below
+    # would surface a phantom `CI Summary failed` on the PR rollup for a run
+    # that was actually preempted, not broken.
+    if: ${{ !cancelled() }}
     env:
       GH_TOKEN: ${{ github.token }}
       NEEDS_JSON: ${{ toJSON(needs) }}
