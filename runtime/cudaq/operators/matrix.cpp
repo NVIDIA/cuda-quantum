@@ -13,6 +13,13 @@
 
 #include <Eigen/Dense>
 
+// GCC 12 emits spurious -Wstringop-overflow false positives inside std::copy
+// calls inlined throughout this file.
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overread"
+#endif
+
 // tools for caching eigensolvers
 
 /// @brief Hash function for an cudaq::complex_matrix::EigenMatrix
@@ -434,3 +441,7 @@ cudaq::complex_matrix::diagonal_elements(int index) const {
                                                         diag.end());
   return result;
 }
+
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic pop
+#endif
