@@ -73,6 +73,8 @@ jobs:
             build_test_matrix='{"include":[
               {"platform":"amd64","toolchain":"llvm","mpi":"openmpi"},
               {"platform":"arm64","toolchain":"llvm","mpi":"openmpi"},
+              {"platform":"amd64","toolchain":"gcc12","mpi":"openmpi"},
+              {"platform":"arm64","toolchain":"gcc12","mpi":"openmpi"},
             ]}'
           fi
           echo "build_test_matrix=$(echo "$build_test_matrix" | jq -c .)" >> $GITHUB_OUTPUT
@@ -117,6 +119,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
+        toolchain: [llvm, gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -125,12 +128,13 @@ jobs:
     with:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/devdeps.Dockerfile
-      build_config_id: llvm
+      build_args: toolchain=${{ matrix.toolchain }}
+      build_config_id: ${{ matrix.toolchain }}
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       checkout_submodules: true
       environment: ghcr-ci
       # needed only for the cloudposse GitHub action
-      matrix_key: ${{ matrix.platform }}-llvm
+      matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
       matrix_step_name: dev_environment_devdeps
 
   wheeldeps:
@@ -279,9 +283,9 @@ jobs:
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: linux/${{ matrix.platform }}
-      devdeps_image: ${{ fromJson(needs.config_devdeps.outputs.json).image_hash[format('{0}-llvm', matrix.platform)] }}
-      devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-llvm', matrix.platform)] }}
-      devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-llvm', matrix.platform)] }}
+      devdeps_image: ${{ fromJson(needs.config_devdeps.outputs.json).image_hash[format('{0}-gcc12', matrix.platform)] }}
+      devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-gcc12', matrix.platform)] }}
+      devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-gcc12', matrix.platform)] }}
       environment: ghcr-ci
 
   python_wheels:
