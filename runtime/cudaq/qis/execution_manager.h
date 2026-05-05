@@ -15,6 +15,7 @@
 #include "cudaq/algorithms/policies.h"
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
+#include "cudaq/qis/measure_handle.h"
 #include <deque>
 #include <string_view>
 #include <vector>
@@ -70,8 +71,9 @@ public:
   }
 };
 #else
-/// When compiling with MLIR, we default to a boolean.
-using measure_result = bool;
+// In MLIR mode, keep the existing `measure_result` API name as a compatibility
+// alias for `measure_handle`.
+using measure_result = measure_handle;
 #endif
 
 /// The ExecutionManager provides a base class describing a concrete sub-system

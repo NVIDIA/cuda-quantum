@@ -12,6 +12,7 @@
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
 #include "cudaq/platform.h"
+#include "cudaq/qis/measure_handle.h"
 #include "cudaq/qis/modifiers.h"
 #include "cudaq/qis/pauli_word.h"
 #include "cudaq/qis/qarray.h"
@@ -19,6 +20,7 @@
 #include "cudaq/qis/qreg.h"
 #include "cudaq/qis/qvector.h"
 #include <algorithm>
+#include <cstdlib>
 #include <cstring>
 #include <functional>
 
@@ -420,23 +422,46 @@ void exp_pauli(QuantumRegister &ctrls, double theta, const char *pauliWord,
                                false, spin_op::from_word(pauliWord));
 }
 
-/// @brief Measure an individual qubit, return 0,1 as `bool`
-inline measure_result mz(qubit &q) {
+namespace details {
+inline measure_result measureZ(qubit &q) {
+#ifdef CUDAQ_LIBRARY_MODE
   return getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
+#else
+  (void)q;
+  std::abort();
+#endif
 }
 
-/// @brief Measure an individual qubit in `x` basis, return 0,1 as `bool`
-inline measure_result mx(qubit &q) {
+inline measure_result measureX(qubit &q) {
+#ifdef CUDAQ_LIBRARY_MODE
   h(q);
   return getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
+#else
+  (void)q;
+  std::abort();
+#endif
 }
 
-// Measure an individual qubit in `y` basis, return 0,1 as `bool`
-inline measure_result my(qubit &q) {
+inline measure_result measureY(qubit &q) {
+#ifdef CUDAQ_LIBRARY_MODE
   r1(-M_PI_2, q);
   h(q);
   return getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
+#else
+  (void)q;
+  std::abort();
+#endif
 }
+} // namespace details
+
+/// @brief Measure an individual qubit, return 0,1 as `bool`
+inline measure_result mz(qubit &q) { return details::measureZ(q); }
+
+/// @brief Measure an individual qubit in `x` basis, return 0,1 as `bool`
+inline measure_result mx(qubit &q) { return details::measureX(q); }
+
+/// @brief Measure an individual qubit in `y` basis, return 0,1 as `bool`
+inline measure_result my(qubit &q) { return details::measureY(q); }
 
 inline void reset(qubit &q) {
   getExecutionManager()->reset({q.n_levels(), q.id()});
@@ -518,10 +543,31 @@ inline std::int64_t to_integer(const std::vector<measure_result> &bits) {
   return ret;
 }
 
+// `measure_result` is a class-like type in both library mode and MLIR mode, so
+// this `vector<bool>` overload is a genuinely distinct signature.
+inline std::int64_t to_integer(const std::vector<bool> &bits) {
+  std::int64_t ret = 0;
+  for (std::size_t i = 0; i < bits.size(); i++) {
+    if (bits[i]) {
+      ret |= 1UL << i;
+    }
+  }
+  return ret;
+}
+
 inline std::int64_t to_integer(const std::string &arg) {
   std::string bitString{arg};
   std::reverse(bitString.begin(), bitString.end());
   return std::stoull(bitString, nullptr, 2);
+}
+
+// Bulk discrimination of a handle vector.
+inline std::vector<bool> to_bools(const std::vector<measure_result> &results) {
+#ifdef CUDAQ_LIBRARY_MODE
+  return measure_result::to_bool_vector(results);
+#else
+  std::abort();
+#endif
 }
 
 // This concept tests if `Kernel` is a `Callable` that takes the arguments,
