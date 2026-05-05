@@ -8,13 +8,21 @@
 
 // [Begin Spin]
 #include <cudaq.h>
+#include <iostream>
+
+void build_operator() {
+  auto op =
+      2.0 * cudaq::spin_op::x(0) * cudaq::spin_op::y(1) * cudaq::spin_op::x(2) -
+      3.0 * cudaq::spin_op::z(0) * cudaq::spin_op::z(1) * cudaq::spin_op::y(2);
+  std::cout << op.to_string() << '\n';
+}
 // [End Spin]
 
 // [Begin Pauli]
 __qpu__ void kernel() {
   cudaq::qvector qvector(3);
-  exp_pauli(0.432, qvector, "XYZ");
-  exp_pauli(0.324, qvector, "IXX");
+  exp_pauli(0.432, qvector, "ZYX");
+  exp_pauli(0.324, qvector, "ZXX");
 }
 
 int main() {
