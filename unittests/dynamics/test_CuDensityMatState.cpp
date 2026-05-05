@@ -136,7 +136,14 @@ TEST_F(CuDensityMatStateTest, InitializeWithEmptyRawData) {
 }
 
 TEST_F(CuDensityMatStateTest, ConversionForSingleQubitSystem) {
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overread"
+#endif
   hilbertSpaceDims = {2};
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic pop
+#endif
   stateVectorData = {{1.0, 0.0}, {0.0, 0.0}};
   CuDensityMatState state(stateVectorData.size(),
                           cudaq::dynamics::createArrayGpu(stateVectorData));

@@ -39,11 +39,10 @@ bool usesIndividualQubit(A x) {
 //     consumer is `quake.discriminate`, so the rewrite folds the per-element
 //     measurements straight into a `cc.stdvec_init -> !cc.stdvec<i1>`.
 //   - `!cc.stdvec<!cc.measure_handle>` -- the handle-vector value can have
-//   non-discriminate consumers  Those consumers
-//     expect a value of the original handle-stdvec type, so the rewrite
-//     additionally builds a per-element handle buffer and folds it into a
-//     `cc.stdvec_init -> !cc.stdvec<!cc.measure_handle>` that replaces all
-//     remaining uses.
+//     non-discriminate consumers. Those consumers expect a value of the
+//     original handle-stdvec type, so the rewrite additionally builds a
+//     per-element handle buffer and folds it into a `cc.stdvec_init ->
+//     !cc.stdvec<!cc.measure_handle>` that replaces all remaining uses.
 template <typename A>
 class ExpandRewritePattern : public OpRewritePattern<A> {
 public:
@@ -69,15 +68,15 @@ public:
                          ? static_cast<Type>(handleTy)
                          : static_cast<Type>(quake::MeasureType::get(ctx));
 
-    // Classify users so we only allocate the buffers we actually need.
-    // The legacy `!quake.measure` path has only `quake.discriminate`
-    // consumers by construction; the handle path may have either, both,
-    // or none.
-    bool hasDiscUser = false;
+    // Classify users so we only allocate the buffers we actually need, and
+    // collect the discriminate users at the same time. The legacy
+    // `!quake.measure` path has only `quake.discriminate` consumers by
+    // construction; the handle path may have either, both, or none.
+    SmallVector<quake::DiscriminateOp> discUsers;
     bool hasNonDiscUser = false;
     for (auto *u : measureOp.getMeasOut().getUsers()) {
-      if (isa<quake::DiscriminateOp>(u))
-        hasDiscUser = true;
+      if (auto d = dyn_cast<quake::DiscriminateOp>(u))
+        discUsers.push_back(d);
       else
         hasNonDiscUser = true;
     }
@@ -85,7 +84,7 @@ public:
     //   - Legacy `!cc.stdvec<!quake.measure>` always allocates the i1 buffer.
     //   - `!cc.stdvec<!cc.measure_handle>` allocates each buffer only when a
     //   consumer in that element-type class is present.
-    bool needI1Buf = !isHandleResult || hasDiscUser;
+    bool needI1Buf = !isHandleResult || !discUsers.empty();
     bool needHandleBuf = isHandleResult && hasNonDiscUser;
 
     // 1. Determine the total number of qubits we need to measure. This
@@ -170,13 +169,12 @@ public:
       auto stdvecI1Ty = cudaq::cc::StdvecType::get(ctx, i1Ty);
       auto ptrArrI1Ty =
           cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(i1Ty));
-      for (auto *out : llvm::to_vector(measureOp.getMeasOut().getUsers()))
-        if (auto disc = dyn_cast_if_present<quake::DiscriminateOp>(out)) {
-          auto buffCast =
-              cudaq::cc::CastOp::create(rewriter, loc, ptrArrI1Ty, i1Buff);
-          rewriter.template replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
-              disc, stdvecI1Ty, buffCast, totalToRead);
-        }
+      for (auto disc : discUsers) {
+        auto buffCast =
+            cudaq::cc::CastOp::create(rewriter, loc, ptrArrI1Ty, i1Buff);
+        rewriter.template replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
+            disc, stdvecI1Ty, buffCast, totalToRead);
+      }
     }
 
     // 5. For the handle path with non-discriminate consumers, build a
@@ -191,11 +189,11 @@ public:
       replacementVal = handleStdvec.getResult();
     }
 
-    // The pass is scheduled before wire lowering, so a measurement with
-    // wire results would slip past the replacement loop below as a null
-    // value and crash the rewriter on use. Make the invariant explicit.
+    // The pass is scheduled before wire lowering, so the variadic `$wires`
+    // result group is structurally empty here.
     assert(measureOp.getWires().empty() &&
            "`expand-measurements` runs before wire lowering");
+
     // Step 5 builds a handle-vector replacement exactly when the
     // user-classification scan found a non-discriminate consumer. Without
     // this, `replaceOp` below would feed a null value through to a live
@@ -204,13 +202,7 @@ public:
            "handle-vector replacement must exist iff a non-discriminate "
            "consumer was present");
 
-    SmallVector<Value> replacements;
-    replacements.push_back(replacementVal);
-    for (auto wire : measureOp.getWires()) {
-      (void)wire;
-      replacements.push_back(nullptr);
-    }
-    rewriter.replaceOp(measureOp, replacements);
+    rewriter.replaceOp(measureOp, replacementVal);
     return success();
   }
 };
