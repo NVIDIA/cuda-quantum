@@ -69,9 +69,11 @@ def test_custom_unitary_produces_2q_gates():
     kernel.test_su4_pipeline(q[0], q[1])
 
     resources = cudaq.estimate_resources(kernel)
+    ops = resources.to_dict()
     two_q = resources.gate_count_for_arity(2)
-    assert two_q >= 1, (
-        f"Random SU(4) produced 0 2Q gates. Gates: {resources.to_dict()}")
+    assert 'custom_op' not in ops, f"Custom SU(4) was not synthesized: {ops}"
+    assert ops.get('cz', 0) >= 1, f"Custom SU(4) did not lower to CZ: {ops}"
+    assert two_q >= 1, (f"Random SU(4) produced 0 2Q gates. Gates: {ops}")
     assert two_q <= 6, (
         f"KAK produces at most 3 CX (6 CZ after basis change), got {two_q}")
 
@@ -94,6 +96,24 @@ def test_ccx_fully_decomposed():
     ops = resources.to_dict()
     assert 'ccx' not in ops, f"CCX not decomposed: {ops}"
     assert resources.gate_count_for_arity(2) > 0
+
+
+def test_negated_control_lowers_to_cz_basis():
+    """Negated controls lower to the target CZ basis."""
+    cudaq.set_target('circuit-opt-bench')
+
+    @cudaq.kernel
+    def kernel():
+        c = cudaq.qubit()
+        q = cudaq.qubit()
+        cx(~c, q)
+        cx(c, q)
+
+    resources = cudaq.estimate_resources(kernel)
+    ops = resources.to_dict()
+    assert ops.get('x', 0) == 2, f"Negated control was not expanded: {ops}"
+    assert ops.get('cz', 0) == 2, f"CX gates did not lower to CZ: {ops}"
+    assert resources.gate_count_for_arity(2) == 2
 
 
 def _make_nonlocal_cx_kernel():

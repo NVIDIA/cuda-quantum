@@ -1609,6 +1609,7 @@ class PyASTBridge(ast.NodeVisitor):
                     f"{msg} - use `.copy(deep)` to create a new list",
                     self.currentNode)
 
+    @trace.traced("ast_bridge.visit_module")
     def visit_Module(self, node):
         return super().generic_visit(node)
 
@@ -1647,6 +1648,7 @@ class PyASTBridge(ast.NodeVisitor):
         self.currentNode = parentNode
         self.indent_level -= 1
 
+    @trace.traced("ast_bridge.visit_function_def")
     def visit_FunctionDef(self, node):
         """Create an MLIR `func.FuncOp` for the given FunctionDef AST node. For
         the top-level FunctionDef, this will add the `FuncOp` to the `ModuleOp`
@@ -1744,7 +1746,10 @@ class PyASTBridge(ast.NodeVisitor):
                 # errors on assignments that may lead to unexpected behavior
                 # (i.e. behavior not following expected Python behavior).
                 self.buildingFunctionBody = True
-                [self.visit(n) for n in node.body]
+                with trace.span("ast_bridge.visit_function_body",
+                                statement_count=len(node.body)):
+                    for n in node.body:
+                        self.visit(n)
                 # Add the return operation
                 if not self.hasTerminator(entry_block):
                     # If the function has a known (non-None) return type, emit
@@ -5480,23 +5485,24 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
         'kernelModuleName'] if 'kernelModuleName' in kwargs else None
     cudaqAliases = kwargs.get('cudaqAliases', None)
 
-    # Initialize the captured arguments list to be populated by the AST Bridge.
-    signature.captured_args = []
-    # Create the AST Bridge
-    bridge = PyASTBridge(signature,
-                         defFrame,
-                         uniqueId=uniqueId,
-                         verbose=verbose,
-                         locationOffset=lineNumberOffset,
-                         kernelModuleName=kernelModuleName,
-                         cudaqAliases=cudaqAliases)
-
     # Build the AOT Quake Module for this kernel. Wrapped in a single span so
     # the tracer can separate Python-AST-to-MLIR construction from the AOT
     # pass pipeline that runs immediately after.
     with trace.span("ast_bridge.build_module"):
-        ValidateArgumentAnnotations(bridge).visit(astModule)
-        ValidateReturnStatements(bridge).visit(astModule)
+        # Initialize the captured arguments list to be populated by the AST Bridge.
+        signature.captured_args = []
+        with trace.span("ast_bridge.create_bridge"):
+            bridge = PyASTBridge(signature,
+                                 defFrame,
+                                 uniqueId=uniqueId,
+                                 verbose=verbose,
+                                 locationOffset=lineNumberOffset,
+                                 kernelModuleName=kernelModuleName,
+                                 cudaqAliases=cudaqAliases)
+        with trace.span("ast_bridge.validate_argument_annotations"):
+            ValidateArgumentAnnotations(bridge).visit(astModule)
+        with trace.span("ast_bridge.validate_return_statements"):
+            ValidateReturnStatements(bridge).visit(astModule)
         bridge.visit(astModule)
 
     # Precompile (simplify) the Module. Run via `cudaq_runtime.runPassManager`
