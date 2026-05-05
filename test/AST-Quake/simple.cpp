@@ -61,7 +61,7 @@ struct ghz {
 // CHECK:               cc.store %[[VAL_21]], %[[VAL_8]] : !cc.ptr<i32>
 // CHECK:             }
 // CHECK:           }
-// CHECK:           %[[VAL_22:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
+// CHECK:           %[[VAL_22:.*]] = quake.mz %[[VAL_6]] : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
 // CHECK:           return
 // CHECK:         }
 

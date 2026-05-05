@@ -12,14 +12,14 @@
 
 std::vector<bool> func_achat(cudaq::qview<> &qv) __qpu__ {
   // measure the entire register
-  return mz(qv);
+  return cudaq::to_bools(mz(qv));
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_func_achat._Z10func_achatRN5cudaq5qviewILm2EEE(
 // CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>) -> !cc.stdvec<i1> attributes {"cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
-// CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_2]] : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>
+// CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_2]] : (!cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<i1>
 // CHECK:           %[[VAL_4:.*]] = cc.stdvec_data %[[VAL_3]] : (!cc.stdvec<i1>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_5:.*]] = cc.stdvec_size %[[VAL_3]] : (!cc.stdvec<i1>) -> i64
 // CHECK:           %[[VAL_6:.*]] = call @__nvqpp_vectorCopyCtor(%[[VAL_4]], %[[VAL_5]], %[[VAL_1]]) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>
