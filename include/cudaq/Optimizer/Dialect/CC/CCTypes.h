@@ -48,6 +48,19 @@ bool isDynamicType(mlir::Type ty);
 /// known even if it contains pointers that may point to memory of dynamic size.
 bool isDynamicallySizedType(mlir::Type ty);
 
+/// Returns true if and only if \p ty transitively contains `!cc.measure_handle`
+/// in its value representation. Does not recursively check into callable
+/// signatures or bare function types. Used by code that needs to know whether
+/// the value being moved is itself a handle (e.g.
+/// `cc.alloca`-vs-constructor-call dispatch, marshaling).
+bool containsMeasureHandle(mlir::Type ty);
+
+/// Like `containsMeasureHandle`, but also recursively checks into callable
+/// signatures and bare function types. Used at the host-device boundary check,
+/// where a kernel taking `std::function<void(measure_handle)>` must be rejected
+/// even though its top-level parameter type is `cc.callable`, not a handle.
+bool containsMeasureHandleAtBoundary(mlir::Type ty);
+
 /// Determine the number of hidden arguments, which is 0, 1, or 2.
 inline unsigned numberOfHiddenArgs(bool thisPtr, bool sret) {
   return (thisPtr ? 1 : 0) + (sret ? 1 : 0);
