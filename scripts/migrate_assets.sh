@@ -160,29 +160,38 @@ function move_artifacts {
     echo "$confirmation_prompt" >> "$remove_assets"
     echo 'if $continue; then' >> "$remove_assets"
 
+    # Capture the top-level entries we are about to move into $2. The
+    # uninstall script removes each one with a single `rm -rf`, instead of
+    # emitting an `rm`+`rmdir -p` pair for every individual file. With the
+    # LLVM 22 bundle (~7k files under cudaq/lib/llvm) the per-file form
+    # produced a ~15k-line `if $continue; then ... fi` block that caused
+    # bash to die mid-uninstall in CI.
+    shopt -s nullglob dotglob
+    local top_entries=(*)
+    shopt -u nullglob dotglob
+
     find . -type f -print0 | while IFS= read -r -d '' file;
-    do 
+    do
         echo -e "\tadding file $2/$file"
         mkdir -p "$(dirname "$2/$file")" -m 755
         mv "$file" "$2/$file"
-        echo '  echo -e "\tremoving file '$2/$file'"' >> "$remove_assets"
-        echo "  rm $2/$file" >> "$remove_assets"
-        echo '  rmdir -p "'$(dirname "$2/$file")'" 2> /dev/null || true' >> "$remove_assets"
         chmod a+rX "$2/$file"
     done
     for symlink in $(find_symlinks .); do
         echo -e "\tadding symbolic link $2/$symlink"
         mkdir -p "$(dirname "$2/$symlink")" -m 755
         mv "$symlink" "$2/$symlink"
-        echo '  echo -e "\tremoving symbolic link '$2/$symlink'"' >> "$remove_assets"
-        echo "  rm $2/$symlink" >> "$remove_assets"
-        echo '  rmdir -p "'$(dirname "$2/$symlink")'" 2> /dev/null || true' >> "$remove_assets"
     done
     for symlink in $(find_symlinks "$2"); do
         if [ ! -e "$symlink" ]; then
             echo -e "\e[01;31mError: Broken symbolic link $symlink pointing to $(realpath "$symlink").\e[0m" >&2
             (return 0 2>/dev/null) && return 1 || exit 1
         fi
+    done
+
+    for entry in "${top_entries[@]}"; do
+        echo '  echo -e "\tremoving '$2/$entry'"' >> "$remove_assets"
+        echo '  rm -rf -- "'$2/$entry'"' >> "$remove_assets"
     done
     echo '  rmdir -p "'$2'" 2> /dev/null || true' >> "$remove_assets"
     echo 'fi' >> "$remove_assets"
