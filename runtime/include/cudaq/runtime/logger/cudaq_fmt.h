@@ -44,13 +44,6 @@ struct FormatArgument {
   FormatArgument(const char *value) : value(value), append(&appendCString) {}
   FormatArgument(char *value) : value(value), append(&appendCString) {}
 
-  template <std::size_t N>
-  FormatArgument(const char (&value)[N])
-      : value(value), append(&appendCString) {}
-
-  template <std::size_t N>
-  FormatArgument(char (&value)[N]) : value(value), append(&appendCString) {}
-
   const void *value = nullptr;
   Appender append = nullptr;
 

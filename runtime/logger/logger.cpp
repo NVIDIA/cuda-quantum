@@ -127,6 +127,14 @@ static_assert(static_cast<int>(LogLevel::warn) ==
 bool should_log(const LogLevel logLevel) {
   return spdlog::should_log(static_cast<spdlog::level::level_enum>(logLevel));
 }
+void setLogLevel(LogLevel level) {
+  spdlog::set_level(static_cast<spdlog::level::level_enum>(level));
+}
+LogLevel getLogLevel() { return static_cast<LogLevel>(spdlog::get_level()); }
+void flushLogs() {
+  if (auto logger = spdlog::default_logger())
+    logger->flush();
+}
 std::string pathToFileName(const std::string_view fullFilePath) {
   const std::filesystem::path file(fullFilePath);
   return file.filename().string();
@@ -134,8 +142,7 @@ std::string pathToFileName(const std::string_view fullFilePath) {
 
 void logMessagePacked(LogLevel logLevel, const std::string_view message,
                       const std::span<const cudaq_fmt::FormatArgument> &args,
-                      const char *funcName, const char *fileName, int lineNo) {
-  (void)funcName;
+                      const char *fileName, int lineNo) {
   auto msg = cudaq_fmt::details::format_packed(message, args);
   msg = "[" + pathToFileName(fileName) + ":" + std::to_string(lineNo) + "] " +
         msg;
@@ -164,7 +171,8 @@ void logWithTimestampPacked(
     const std::span<const cudaq_fmt::FormatArgument> &args) {
   const auto timestamp = std::chrono::system_clock::now();
   const auto now_c = std::chrono::system_clock::to_time_t(timestamp);
-  std::tm now_tm = *std::localtime(&now_c);
+  std::tm now_tm;
+  localtime_r(&now_c, &now_tm);
   cudaq_fmt::print("[{:04}-{:02}-{:02} {:02}:{:02}:{:%S}] {}\n",
                    now_tm.tm_year + 1900, now_tm.tm_mon + 1, now_tm.tm_mday,
                    now_tm.tm_hour, now_tm.tm_min,

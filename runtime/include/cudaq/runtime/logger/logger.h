@@ -38,9 +38,18 @@ void warn(const std::string_view msg);
 void error(const std::string_view msg);
 std::string pathToFileName(const std::string_view fullFilePath);
 
+// Test/debug helpers. Production callers configure the level via the
+// CUDAQ_LOG_LEVEL environment variable.
+void setLogLevel(LogLevel level);
+LogLevel getLogLevel();
+// Flushes any buffered log output. Useful in tests that need to inspect
+// captured stdout immediately after emitting an info/debug message
+// (initializeLogger only enables flush_on(warn)).
+void flushLogs();
+
 void logMessagePacked(LogLevel logLevel, const std::string_view message,
                       const std::span<const cudaq_fmt::FormatArgument> &args,
-                      const char *funcName, const char *fileName, int lineNo);
+                      const char *fileName, int lineNo);
 
 void logWithTimestampPacked(
     const std::string_view message,
@@ -53,14 +62,13 @@ std::string formatMessage(const std::string_view message, Args &&...args) {
 
 template <typename... Args>
 void logMessage(LogLevel logLevel, const std::string_view message,
-                const char *funcName, const char *fileName, int lineNo,
-                Args &&...args) {
+                const char *fileName, int lineNo, Args &&...args) {
   std::array<cudaq_fmt::FormatArgument, sizeof...(Args)> packedArgs{
       cudaq_fmt::FormatArgument(std::forward<Args>(args))...};
   logMessagePacked(logLevel, message,
                    std::span<const cudaq_fmt::FormatArgument>(
                        packedArgs.data(), packedArgs.size()),
-                   funcName, fileName, lineNo);
+                   fileName, lineNo);
 }
 } // namespace details
 
@@ -71,12 +79,11 @@ void logMessage(LogLevel logLevel, const std::string_view message,
   template <typename... Args>                                                  \
   struct NAME {                                                                \
     NAME(const std::string_view message, Args &&...args,                       \
-         const char *funcName = __builtin_FUNCTION(),                          \
          const char *fileName = __builtin_FILE(),                              \
          int lineNo = __builtin_LINE()) {                                      \
       if (details::should_log(details::LogLevel::NAME))                        \
-        details::logMessage(details::LogLevel::NAME, message, funcName,        \
-                            fileName, lineNo, std::forward<Args>(args)...);    \
+        details::logMessage(details::LogLevel::NAME, message, fileName,        \
+                            lineNo, std::forward<Args>(args)...);              \
     }                                                                          \
   };                                                                           \
   template <typename... Args>                                                  \
