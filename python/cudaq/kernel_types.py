@@ -35,6 +35,29 @@ class KernelType:
         raise KernelTypeError(cls)
 
 
+class measure_handle(KernelType):
+    """
+    A handle to a measurement event recorded inside a CUDA-Q kernel.
+
+    Returned by ``mz`` / ``mx`` / ``my`` inside an ``@cudaq.kernel`` body
+    (scalar form on a single qubit; vector form on a ``qvector`` /
+    ``qview``). The classical outcome is read by coercing the handle to
+    ``bool`` in any Python ``bool`` context, and the AST bridge inserts a
+    ``quake.discriminate`` at the coercion site.
+    ``cudaq.to_bools(handles)`` is the bulk counterpart on a
+    ``list[measure_handle]``.
+
+    Instantiating ``cudaq.measure_handle()`` at host scope raises
+    ``RuntimeError`` (it is device-only).
+    """
+
+    def __new__(cls, *args, **kwargs):
+        raise RuntimeError("device-only; usable only inside @cudaq.kernel")
+
+    def __init__(self) -> None:
+        ...
+
+
 class qubit(KernelType):
     """
     The qubit is the primary unit of information in a quantum computer.
