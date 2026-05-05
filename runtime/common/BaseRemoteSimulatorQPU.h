@@ -122,28 +122,36 @@ public:
       throw std::runtime_error("Failed to launch VQE. Error: " + errorMsg);
   }
 
-  KernelThunkResultType
-  launchKernel(const std::string &name, KernelThunkType kernelFunc, void *args,
-               std::uint64_t voidStarSize, std::uint64_t resultOffset,
-               const std::vector<void *> &rawArgs) override {
-    auto rawArgsPtr = kernelFunc ? nullptr : &rawArgs;
-    auto compiled = compileKernelImpl(name, args, voidStarSize, rawArgsPtr,
-                                      mlir::ModuleOp{}, mlir::Type{});
-    return launchKernelImpl(compiled, kernelFunc, args, voidStarSize,
-                            resultOffset, rawArgsPtr);
+  KernelThunkResultType launchKernel(const std::string &name,
+                                     KernelThunkType kernelFunc,
+                                     KernelArgs args) override {
+    // Make sure at most one argument representation is present.
+    KernelArgs forwarded;
+    if (kernelFunc) {
+      if (auto packed = args.getPacked())
+        forwarded = KernelArgs{*packed};
+    } else if (auto rawArgs = args.getTypeErased()) {
+      forwarded = KernelArgs{*rawArgs};
+    }
+    auto compiled =
+        compileKernelImpl(name, forwarded, mlir::ModuleOp{}, mlir::Type{});
+    return launchKernelImpl(compiled, kernelFunc, forwarded);
   }
 
-  KernelThunkResultType
-  launchModule(const CompiledModule &compiled,
-               const std::vector<void *> &rawArgs) override {
+  KernelThunkResultType launchModule(const CompiledModule &compiled,
+                                     KernelArgs args) override {
+    auto rawArgs = args.getTypeErased();
     auto resultInfo = compiled.getResultInfo();
-    auto args = resultInfo.hasResult() ? rawArgs.back() : nullptr;
-    return launchKernelImpl(compiled, nullptr, args, 0, 0, &rawArgs);
+    void *resultBuf = nullptr;
+    if (resultInfo.hasResult()) {
+      assert(rawArgs && "no return buffer for kernel with result");
+      resultBuf = rawArgs->back();
+    }
+    return launchKernelImpl(compiled, nullptr, args, resultBuf);
   }
 
   CompiledModule compileModule(const std::string &kernelName,
-                               const void *modulePtr,
-                               const std::vector<void *> &rawArgs,
+                               const void *modulePtr, KernelArgs args,
                                bool isEntryPoint) override {
     CUDAQ_INFO("specializing remote simulator kernel via module ({})",
                kernelName);
@@ -151,16 +159,13 @@ public:
     std::string fullName = cudaq::runtime::cudaqGenPrefixName + kernelName;
     auto funcOp = module.lookupSymbol<mlir::func::FuncOp>(fullName);
     auto resTy = cudaq::runtime::getReturnType(funcOp);
-    auto args = resTy ? rawArgs.back() : nullptr;
-    // Looks very much like launchKernel(string, vector<ptr>*).
-    return compileKernelImpl(kernelName, args, 0, &rawArgs, module, resTy);
+    return compileKernelImpl(kernelName, args, module, resTy);
   }
 
-  [[nodiscard]] CompiledModule
-  compileKernelImpl(const std::string &name, void *args,
-                    std::uint64_t voidStarSize,
-                    const std::vector<void *> *rawArgs,
-                    mlir::ModuleOp prefabMod, mlir::Type resTy) {
+  [[nodiscard]] CompiledModule compileKernelImpl(const std::string &name,
+                                                 const KernelArgs &args,
+                                                 mlir::ModuleOp prefabMod,
+                                                 mlir::Type resTy) {
     CUDAQ_INFO(
         "BaseRemoteSimulatorQPU: Compile kernel named '{}' remote QPU {} "
         "(simulator = {})",
@@ -185,6 +190,8 @@ public:
     // Run resource estimation locally
     if (executionContextPtr && executionContextPtr->name == "resource-count") {
       in_resource_estimation = true;
+      auto packed = args.getPacked();
+      auto rawArgs = args.getTypeErased();
       auto moduleOp = [&]() {
         if (prefabMod) {
           if (!rawArgs)
@@ -194,10 +201,10 @@ public:
                                                              *rawArgs);
           return m_client->lowerKernelInPlace(prefabMod, name, *rawArgs);
         }
-        return m_client->lowerKernel(*m_mlirContext, name, args, voidStarSize,
-                                     0,
-                                     rawArgs ? std::span<void *const>{*rawArgs}
-                                             : std::span<void *const>{});
+        return m_client->lowerKernel(
+            *m_mlirContext, name, packed ? packed->data.data() : nullptr,
+            packed ? packed->data.size() : 0, 0,
+            rawArgs.value_or(std::span<void *const>{}));
       }();
 
       auto jit =
@@ -223,13 +230,20 @@ public:
 
   [[nodiscard]] KernelThunkResultType
   launchKernelImpl(const CompiledModule &compiledModule,
-                   KernelThunkType kernelFunc, void *args,
-                   std::uint64_t voidStarSize, std::uint64_t resultOffset,
-                   const std::vector<void *> *rawArgs) {
+                   KernelThunkType kernelFunc, KernelArgs args,
+                   void *moduleResultBuf = nullptr) {
     auto name = compiledModule.getName();
     CUDAQ_INFO("BaseRemoteSimulatorQPU: Launch kernel named '{}' remote QPU {} "
                "(simulator = {})",
                name, qpu_id, m_simName);
+
+    auto packed = args.getPacked();
+    auto rawArgs = args.getTypeErased();
+    // Packed args: place result in packed buffer,
+    // Type-erased args: place result in `moduleResultBuf`
+    void *sendArgs = packed ? packed->data.data() : moduleResultBuf;
+    std::uint64_t sendSize = packed ? packed->data.size() : 0;
+    std::uint64_t resultOffset = packed ? packed->resultOffset : 0;
 
     ExecutionContext *executionContextPtr = getExecutionContext();
 
@@ -276,16 +290,15 @@ public:
     const bool requestOkay = m_client->sendRequest(
         *m_mlirContext, executionContext,
         /*vqe_gradient=*/nullptr, /*vqe_optimizer=*/nullptr, /*vqe_n_params=*/0,
-        m_simName, name, make_degenerate_kernel_type(kernelFunc), args,
-        voidStarSize, &errorMsg,
-        rawArgs ? std::span<void *const>{*rawArgs} : std::span<void *const>{},
+        m_simName, name, make_degenerate_kernel_type(kernelFunc), sendArgs,
+        sendSize, &errorMsg, rawArgs.value_or(std::span<void *const>{}),
         moduleOp);
     if (!requestOkay)
       throw std::runtime_error("Failed to launch kernel. Error: " + errorMsg);
     if (isDirectInvocation &&
         !executionContext.invocationResultBuffer.empty()) {
       if (executionContext.invocationResultBuffer.size() + resultOffset >
-          voidStarSize)
+          sendSize)
         throw std::runtime_error(
             "Unexpected result: return type size of " +
             std::to_string(executionContext.invocationResultBuffer.size()) +
@@ -299,7 +312,7 @@ public:
             "Serializing the result buffer from a remote kernel invocation is "
             "not supported for BigEndian CPU architectures.");
 
-      char *resultBuf = reinterpret_cast<char *>(args) + resultOffset;
+      char *resultBuf = reinterpret_cast<char *>(sendArgs) + resultOffset;
       // Copy the result data to the args buffer.
       std::memcpy(resultBuf, executionContext.invocationResultBuffer.data(),
                   executionContext.invocationResultBuffer.size());

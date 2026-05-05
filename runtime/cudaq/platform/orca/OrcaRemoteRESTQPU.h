@@ -106,10 +106,10 @@ public:
   /// execution context.
   [[nodiscard]] KernelThunkResultType
   launchKernel(const std::string &kernelName, KernelThunkType kernelFunc,
-               void *args, std::uint64_t voidStarSize,
-               std::uint64_t resultOffset,
-               const std::vector<void *> &rawArgs) override {
-    return launchKernelCommon(kernelName, kernelFunc, args);
+               KernelArgs args) override {
+    auto packed = args.getPacked();
+    void *argData = packed ? packed->data.data() : nullptr;
+    return launchKernelCommon(kernelName, kernelFunc, argData);
   }
 
   void launchKernel(const std::string &kernelName,
