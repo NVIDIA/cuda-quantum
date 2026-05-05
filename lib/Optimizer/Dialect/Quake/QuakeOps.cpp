@@ -767,6 +767,8 @@ LogicalResult quake::CallByRefOp::verify() {
 
   auto fn = SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(*this,
                                                                getCalleeAttr());
+  if (!fn)
+    return emitOpError("callee must be declared");
   FunctionType asSig = fn.getFunctionType();
 
   // Arity of callee's signature must be equal to number of arguments provided.
