@@ -17,6 +17,7 @@
 // RUN: IQM_QPU_QA=%iqm_tests_dir/Crystal_20.txt %t
 // RUN: IQM_QPU_QA=%iqm_tests_dir/Crystal_54.txt %t
 // RUN: nvq++ --target oqc        --emulate %s -o %t && %t
+// RUN: nvq++ --target qbraid     --emulate %s -o %t && %t
 // RUN: nvq++ --target quantinuum --emulate %s -o %t && %t
 // RUN: if %braket_avail; then nvq++ --target braket --emulate %s -o %t && %t; fi
 // RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t; fi

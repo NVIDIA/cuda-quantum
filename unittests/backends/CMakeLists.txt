@@ -8,14 +8,14 @@
 
 # List of libraries to link with by default to create a test executable
 set(default_backend_unittest_libs
-  fmt::fmt-header-only 
-  cudaq-common 
+  fmt::fmt-header-only
+  cudaq-common
   cudaq
   cudaq-builder
   cudaq-mlir-runtime
   cudaq-operator
   nvqir nvqir-qpp
-  cudaq-platform-default 
+  cudaq-platform-default
   gtest_main)
 if (CUDAQ_ENABLE_REST)
   list(APPEND default_backend_unittest_libs cudaq-rest-qpu)
@@ -34,12 +34,12 @@ set_property(DIRECTORY PROPERTY BACKEND_UNITTEST_LIBS ${default_backend_unittest
 # Helper function to create an executable to be used by the gtest unit tests
 # - target: positional argument, name of the executable
 # - BACKEND: named argument to specify a prefix for the test names
-# - BACKEND_CONFIG: if present, the test will set NVQPP_TARGET_BACKEND_CONFIG 
+# - BACKEND_CONFIG: if present, the test will set NVQPP_TARGET_BACKEND_CONFIG
 #     with this value so the backend gets loaded by a constructor before entering main.
 #     To avoid issues with semicolon the format is: backend key1=value1 key2=value2
 #     The function will convert this to           : backend;key1;value1;key2;value2
 #     Example:     infleqtion emulate=false url=http://localhost:62447
-# - LINK_LIBS: optional argument to provide non-default list of libraries to link with 
+# - LINK_LIBS: optional argument to provide non-default list of libraries to link with
 function(add_backend_unittest_executable target)
   set(singleValues BACKEND BACKEND_CONFIG)
   set(multiValues SOURCES INCLUDES LINK_LIBS)
@@ -98,6 +98,9 @@ if (OPENSSL_FOUND AND CUDAQ_ENABLE_PYTHON AND CUDAQ_TEST_MOCK_SERVERS)
   endif()
   if (CUDAQ_ENABLE_SCALEWAY_BACKEND)
     add_subdirectory(scaleway)
+  endif()
+  if (CUDAQ_ENABLE_QBRAID_BACKEND)
+    add_subdirectory(qbraid)
   endif()
   add_subdirectory(extra_payload_provider)
   add_subdirectory(quake_backend)

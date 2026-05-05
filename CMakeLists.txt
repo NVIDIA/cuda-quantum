@@ -138,6 +138,11 @@ if (NOT DEFINED CUDAQ_ENABLE_SCALEWAY_BACKEND)
   set(CUDAQ_ENABLE_SCALEWAY_BACKEND ON CACHE BOOL "Enable building the Scaleway target.")
 endif()
 
+# Enable qBraid target by default.
+if (NOT DEFINED CUDAQ_ENABLE_QBRAID_BACKEND)
+  set(CUDAQ_ENABLE_QBRAID_BACKEND ON CACHE BOOL "Enable building the qBraid target.")
+endif()
+
 # Generate a CompilationDatabase (compile_commands.json file) for our build,
 # for use by clang_complete, YouCompleteMe, etc.
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)

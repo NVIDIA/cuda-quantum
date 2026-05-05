@@ -1,0 +1,40 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: qbraid
+description: "CUDA-Q target for qBraid."
+config:
+  # Tell DefaultQuantumPlatform what QPU subtype to use
+  platform-qpu: remote_rest
+  # Tell NVQ++ to generate glue code to set the target backend name
+  gen-target-backend: true
+  # Add the rest-qpu library to the link list
+  link-libs: ["-lcudaq-rest-qpu"]
+  # Define the JIT lowering pipeline. Mirrors Braket so that
+  # `combine-measurements` runs and attaches the QIROutputNamesAttrName
+  # metadata nvq++ needs to thread user-visible qubit indices through to
+  # `outputNames[jobId]` in the helper. Without that pass the default register
+  # would contain compiler-generated ancillae and named sub-registers would be
+  # unreachable (see QbraidServerHelper::processResults).
+  jit-mid-level-pipeline: "lower-to-cfg,decomposition{basis=h,s,t,rx,ry,rz,x,y,z,x(1)},quake-to-cc-prep,func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements)"
+  # Tell the rest-qpu that we are generating OpenQASM.
+  codegen-emission: qasm2
+  # Library mode is only for simulators, physical backends must turn this off
+  library-mode: false
+
+target-arguments:
+  - key: machine
+    required: false
+    type: string
+    platform-arg: qpu
+    help-string: "Specify the qBraid QPU."
+  - key: api_key
+    required: false
+    type: string
+    platform-arg: api_key
+    help-string: "Specify the qBraid API key."

@@ -28,6 +28,7 @@ on:
           - quantinuum
           - scaleway
           - tii
+          - qbraid
       single_test_name:
         type: string
         required: false
@@ -191,7 +192,7 @@ jobs:
         run: |
           # Determine which providers to test based on inputs and event type
           if [[ "${{ github.event_name }}" == "schedule" || "${{ inputs.target }}" == "nightly" ]]; then
-            providers='["anyon", "fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qci", "quantinuum", "scaleway", "tii"]'
+            providers='["anyon", "fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qbraid", "qci", "quantinuum", "scaleway", "tii"]'
           else
             # Just run the specified target provider
             providers="[\"${{ inputs.target }}\"]"
@@ -260,6 +261,9 @@ jobs:
                 ;;
               pasqal)
                 filelist="docs/sphinx/targets/cpp/pasqal.cpp docs/sphinx/targets/python/pasqal.py"
+                ;;
+              qbraid)
+                filelist="targettests/qbraid/*.cpp docs/sphinx/targets/cpp/qbraid.cpp docs/sphinx/targets/python/qbraid.py"
                 ;;
               qci)
                 filelist="targettests/qci/*.cpp"
@@ -379,6 +383,11 @@ jobs:
               echo "PASQAL_PASSWORD=${{ secrets.PASQAL_PASSWORD }}" >> $GITHUB_ENV
               echo "PASQAL_PROJECT_ID=${{ secrets.PASQAL_PROJECT_ID }}" >> $GITHUB_ENV
               echo "PASQAL_MACHINE_TARGET=EMU_FREE" >> $GITHUB_ENV
+              ;;
+            qbraid)
+              echo "### Setting up qBraid account" >> $GITHUB_STEP_SUMMARY
+              echo "::add-mask::${{ secrets.QBRAID_API_KEY }}"
+              echo "QBRAID_API_KEY=${{ secrets.QBRAID_API_KEY }}" >> $GITHUB_ENV
               ;;
             qci)
               echo "### Setting up QCI account" >> $GITHUB_STEP_SUMMARY
@@ -663,6 +672,39 @@ jobs:
                     fi
                   else
                     echo ":information_source: Skipped QRMI test for $filename (QRMI not available in this build)" >> $GITHUB_STEP_SUMMARY
+                  fi
+                else
+                  echo "::warning::Unsupported file type: $filename"
+                  echo ":warning: Test skipped (unsupported file type): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_skip_sum=$((test_skip_sum+1))
+                fi
+                ;;
+
+              qbraid)
+                if [[ "$filename" == *.cpp ]]; then
+                  nvq++ -v $filename --target qbraid --qbraid-machine qbraid:qbraid:sim:qir-sv
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    ./a.out
+                    test_status=$?
+                    if [ $test_status -eq 0 ]; then
+                      echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                    else
+                      echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                      test_err_sum=$((test_err_sum+1))
+                    fi
+                  else
+                    echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                elif [[ "$filename" == *.py ]]; then
+                  python3 $filename 1> /dev/null
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
                   fi
                 else
                   echo "::warning::Unsupported file type: $filename"

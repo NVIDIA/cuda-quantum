@@ -6,28 +6,11 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-from .preallocated_qubits_context import PreallocatedQubitsContext
+add_backend_unittest_executable(test_qbraid
+  SOURCES QbraidTester.cpp
+  BACKEND qbraid
+  BACKEND_CONFIG "qbraid emulate=false url=http://localhost:62454 api_key=00000000000000000000000000000000"
+)
 
-# Default ports for each mock QPU backend
-MOCK_QPU_PORTS = {
-    "quantinuum": 62440,
-    "ionq": 62441,
-    "oqc": 62442,
-    "iqm": 62443,
-    "braket": 62445,
-    "anyon": 62446,
-    "infleqtion": 62447,
-    "quantum_machines": 62448,
-    "qci": 62449,
-    "scaleway": 62450,
-    "tii": 62451,
-    "qbraid": 62452,
-}
-
-
-def get_backend_port(backend: str) -> int:
-    return MOCK_QPU_PORTS[backend]
-
-
-def all_backend_names() -> list[str]:
-    return list(MOCK_QPU_PORTS.keys())
+configure_file("QbraidStartServerAndTest.sh.in" "${CMAKE_BINARY_DIR}/unittests/backends/qbraid/QbraidStartServerAndTest.sh" @ONLY)
+add_test(NAME qbraid-tests COMMAND bash QbraidStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/unittests/backends/qbraid/)

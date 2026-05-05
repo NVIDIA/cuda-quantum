@@ -472,7 +472,8 @@ if [ -d "$root_folder/targets" ]; then
                 skip_example=true
             elif [ "$t" == "tii" ] || [ "$t" == "scaleway" ] || [ "$t" == "quantum_machines" ] || \
                  [ "$t" == "quantinuum" ] || [ "$t" == "orca" ] || [ "$t" == "orca-photonics" ] || \
-                 [ "$t" == "iqm" ] || [ "$t" == "infleqtion" ] || [ "$t" == "anyon" ]; then
+                 [ "$t" == "iqm" ] || [ "$t" == "infleqtion" ] || [ "$t" == "anyon" ] || \
+                 [ "$t" == "qbraid" ]; then
                 echo "Skipping $ex (remote target '$t' not available)" >&2
                 skip_example=true
             fi

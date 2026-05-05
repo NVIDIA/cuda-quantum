@@ -12,6 +12,7 @@
 // RUN: nvq++ --target ionq       --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target iqm        --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_20.txt %t | FileCheck %s
 // RUN: nvq++ --target oqc        --emulate %s -o %t && %t | FileCheck %s
+// RUN: nvq++ --target qbraid     --emulate %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
 // RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on

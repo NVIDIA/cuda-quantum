@@ -5,29 +5,13 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
+target_sources(cudaq-rest-qpu PRIVATE QbraidServerHelper.cpp)
+add_target_config(qbraid)
 
-from .preallocated_qubits_context import PreallocatedQubitsContext
-
-# Default ports for each mock QPU backend
-MOCK_QPU_PORTS = {
-    "quantinuum": 62440,
-    "ionq": 62441,
-    "oqc": 62442,
-    "iqm": 62443,
-    "braket": 62445,
-    "anyon": 62446,
-    "infleqtion": 62447,
-    "quantum_machines": 62448,
-    "qci": 62449,
-    "scaleway": 62450,
-    "tii": 62451,
-    "qbraid": 62452,
-}
-
-
-def get_backend_port(backend: str) -> int:
-    return MOCK_QPU_PORTS[backend]
-
-
-def all_backend_names() -> list[str]:
-    return list(MOCK_QPU_PORTS.keys())
+add_library(cudaq-serverhelper-qbraid SHARED QbraidServerHelper.cpp )
+target_link_libraries(cudaq-serverhelper-qbraid
+  PUBLIC
+    cudaq-common
+    cudaq-logger
+)
+install(TARGETS cudaq-serverhelper-qbraid DESTINATION lib)
