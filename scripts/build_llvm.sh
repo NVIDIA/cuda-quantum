@@ -226,6 +226,11 @@ cmake_args=" \
   -DCMAKE_CXX_FLAGS='"$LLVM_EXTRA_CXX_FLAGS"' \
   -Dnanobind_DIR=$NANOBIND_INSTALL_PREFIX/nanobind/cmake"
 
+if [ "$(uname)" = "Darwin" ]; then
+  macos_sysroot="$(xcrun --sdk macosx --show-sdk-path)"
+  cmake_args+=" -DCMAKE_OSX_SYSROOT='"$macos_sysroot"'"
+fi
+
 if [ -z "$LLVM_CMAKE_CACHE" ]; then 
   LLVM_CMAKE_CACHE=`find "$this_file_dir/.." -path '*/cmake/caches/*' -name LLVM.cmake`
 fi
@@ -316,11 +321,15 @@ if [ -n "$llvm_runtimes" ]; then
     fi
     echo '-L"'$LLVM_INSTALL_PREFIX/lib'"' >> "$clang_config_file"
     echo '-Wl,-rpath,"'$LLVM_INSTALL_PREFIX/lib'"' >> "$clang_config_file"
-    target_specific_libs=`ls -d "$LLVM_INSTALL_PREFIX/lib"/*linux*`
-    for libdir in $target_specific_libs; do
-      echo '-L"'$libdir'"' >> "$clang_config_file"
-      echo '-Wl,-rpath,"'$libdir'"' >> "$clang_config_file"
-    done
+    # On macOS, sysroot paths are NOT baked into the cfg because they become
+    # stale after Xcode/SDK updates. nvq++ resolves them at runtime instead.
+    if [ "$(uname)" != "Darwin" ]; then
+      target_specific_libs=`ls -d "$LLVM_INSTALL_PREFIX/lib"/*linux*`
+      for libdir in $target_specific_libs; do
+        echo '-L"'$libdir'"' >> "$clang_config_file"
+        echo '-Wl,-rpath,"'$libdir'"' >> "$clang_config_file"
+      done
+    fi
     cp "$clang_config_file" "$LLVM_INSTALL_PREFIX/bin/clang.cfg"
     echo "Added default configuration $clang_config_file."
   fi

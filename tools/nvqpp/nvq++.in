@@ -337,6 +337,7 @@ fi
 if [ -n "${CUDAQ_SYSROOT_PATH}" ]; then
 	COMPILER_FLAGS="${COMPILER_FLAGS} -isysroot ${CUDAQ_SYSROOT_PATH}"
 	LINKER_FLAGS="${LINKER_FLAGS} -isysroot ${CUDAQ_SYSROOT_PATH}"
+	LINKER_FLAGS="${LINKER_FLAGS} -Wl,-syslibroot,${CUDAQ_SYSROOT_PATH}"
 	CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --Xcudaq=-isysroot --Xcudaq=${CUDAQ_SYSROOT_PATH}"
 fi
 
@@ -834,6 +835,25 @@ if ${SHOW_VERSION} && [ -z "$SRCS" ] && [ -z "$OBJS" ]; then
 	DO_LINK=false
 fi
 
+# Set up relocatable linking flags (used to merge quantum + classical objects).
+# On macOS, use -nostdlib to prevent implicit -lc++ linking. If the configured
+# linker does not support -r (e.g., LLVM 16's ld64.lld), fall back to the
+# system ld. Suppress the default config to avoid injecting -rpath which is
+# incompatible with -r.
+NOSTDLIB_FLAG=""
+RELOCATABLE_LINKER_PATH="${LINKER_PATH}"
+RELOCATABLE_EXTRA_FLAGS=""
+if ${CUDAQ_IS_APPLE}; then
+	NOSTDLIB_FLAG="-nostdlib"
+	RELOCATABLE_EXTRA_FLAGS="--no-default-config"
+	probe_obj=$(mktemp "${TMPDIR:-/tmp}/cudaq_probe.XXXXXX")
+	echo "" | ${CXX} --no-default-config -x c -c - -o "$probe_obj" 2>/dev/null
+	if ! ${CXX} --no-default-config ${LINKER_PATH} -nostdlib -r -o /dev/null "$probe_obj" 2>/dev/null; then
+		RELOCATABLE_LINKER_PATH="--ld-path=/usr/bin/ld"
+	fi
+	rm -f "$probe_obj"
+fi
+
 for i in ${SRCS}; do
 	file_with_suffix=$(basename $i)
 	file=${file_with_suffix%.*}
@@ -890,13 +910,7 @@ for i in ${SRCS}; do
 	fi
 
 	# If we had cudaq kernels, merge the quantum and classical object files.
-	# On macOS, use -nostdlib to prevent implicit -lc++ linking
-	NOSTDLIB_FLAG=""
-	if ${CUDAQ_IS_APPLE}; then
-		NOSTDLIB_FLAG="-nostdlib"
-	fi
-
-	run ${CXX} ${LINKER_PATH} ${LINKDIRS} ${NOSTDLIB_FLAG} ${MACOS_VERSION_FLAG} -r ${QUAKE_OBJ} ${file}.classic.o -o ${file}.o
+	run ${CXX} ${RELOCATABLE_EXTRA_FLAGS} ${RELOCATABLE_LINKER_PATH} ${NOSTDLIB_FLAG} ${MACOS_VERSION_FLAG} -r ${QUAKE_OBJ} ${file}.classic.o -o ${file}.o
 	OBJS="${OBJS} ${file}.o"
 done
 
@@ -908,6 +922,10 @@ if ${DO_LINK}; then
 	DEFAULT_CXX_ARGS=$( ( ${CXX} -v 2>&1 || true ) )
 	if [[ $DEFAULT_CXX_ARGS == *"-lc++"* ]]; then
 		LINKLIBS="-lc++ ${LINKLIBS}"
+	fi
+	llvm_libdir="$(dirname "${LLVMBIN}")/lib"
+	if [ -f "${llvm_libdir}/libc++abi.dylib" ] || [ -f "${llvm_libdir}/libc++abi.so" ]; then
+		LINKLIBS="-lc++abi ${LINKLIBS}"
 	fi
 
 	run ${CXX} ${LINKER_PATH} ${LINKER_FLAGS} ${LINKDIRS} ${OBJS} ${LINKLIBS} ${OUTPUTOPTS}

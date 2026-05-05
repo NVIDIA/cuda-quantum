@@ -383,12 +383,17 @@ int main(int argc, char **argv) {
   }
   if (!resolvedLibcxxPath.empty() &&
       std::filesystem::exists(resolvedLibcxxPath)) {
+    clArgs.push_back("-nostdinc++");
     if (std::filesystem::exists(resolvedLibcxxTargetPath)) {
       clArgs.push_back("-isystem");
       clArgs.push_back(resolvedLibcxxTargetPath.string());
     }
     clArgs.push_back("-isystem");
     clArgs.push_back(resolvedLibcxxPath.string());
+    if (!sysrootPath.empty()) {
+      clArgs.push_back("-isysroot");
+      clArgs.push_back(sysrootPath);
+    }
   } else if (!sysrootPath.empty()) {
     clArgs.push_back("-isysroot");
     clArgs.push_back(sysrootPath);
