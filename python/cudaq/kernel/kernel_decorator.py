@@ -650,6 +650,7 @@ class PyKernelDecorator(object):
 
     def process_argument(self, arg, arg_type):
         if isa_kernel_decorator(arg):
+            _validate_kernel_callable_arg(arg, arg_type)
             return DecoratorCapture(arg)
 
         arg = self.convertStringsToPauli(arg)
@@ -775,3 +776,48 @@ def _parse_ast(funcSrc: str, verbose: bool = False):
         except ImportError:
             pass
     return astModule
+
+
+def _validate_kernel_callable_arg(kernel, arg_type):
+    """
+    Validate that `kernel` matches the `arg_type` callable signature.
+    """
+    if not cc.CallableType.isinstance(arg_type):
+        emitFatalError(
+            f"Expected argument of type `{arg_type}`, got callable kernel `{kernel.name}`"
+        )
+
+    expectedFnTy = FunctionType(cc.CallableType.getFunctionType(arg_type))
+    expectedInputs = list(expectedFnTy.inputs)
+    expectedResults = list(expectedFnTy.results)
+
+    actualInputs = list(kernel.signature.arg_types)
+    actualReturn = kernel.signature.return_type
+    actualResults = [actualReturn] if actualReturn is not None else []
+
+    def _format(inputs, results):
+        inputs_str = ", ".join(str(t) for t in inputs)
+        results_str = ", ".join(str(t) for t in results) or "None"
+        return f"({inputs_str}) -> {results_str}"
+
+    if len(expectedInputs) != len(actualInputs):
+        emitFatalError(
+            f"Expected callable with signature {_format(expectedInputs, expectedResults)}, "
+            f"got callable kernel `{kernel.name}` with signature {_format(actualInputs, actualResults)}"
+        )
+
+    mismatches = [(i, exp, act)
+                  for i, (exp,
+                          act) in enumerate(zip(expectedInputs, actualInputs))
+                  if exp != act]
+    if mismatches or expectedResults != actualResults:
+        details = "; ".join(f"argument {i}: expected `{exp}`, got `{act}`"
+                            for i, exp, act in mismatches)
+        if expectedResults != actualResults:
+            ret_detail = (f"return: expected `{_format([], expectedResults)}`, "
+                          f"got `{_format([], actualResults)}`")
+            details = f"{details}; {ret_detail}" if details else ret_detail
+        emitFatalError(
+            f"Expected callable with signature {_format(expectedInputs, expectedResults)}, "
+            f"got callable kernel `{kernel.name}` with signature {_format(actualInputs, actualResults)}"
+        )
