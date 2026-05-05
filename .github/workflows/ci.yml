@@ -74,7 +74,7 @@ jobs:
               {"platform":"amd64","toolchain":"llvm","mpi":"openmpi"},
               {"platform":"arm64","toolchain":"llvm","mpi":"openmpi"},
               {"platform":"amd64","toolchain":"gcc12","mpi":"openmpi"},
-              {"platform":"arm64","toolchain":"gcc12","mpi":"openmpi"},
+              {"platform":"arm64","toolchain":"gcc12","mpi":"openmpi"}
             ]}'
           fi
           echo "build_test_matrix=$(echo "$build_test_matrix" | jq -c .)" >> $GITHUB_OUTPUT
