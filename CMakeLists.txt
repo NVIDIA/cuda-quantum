@@ -204,9 +204,9 @@ check_cxx_compiler_flag(-Wno-restrict CUDAQ_HAS_WNO_RESTRICT)
 if (CUDAQ_HAS_WNO_RESTRICT)
   add_compile_options(-Wno-restrict)
 endif()
-# -Wstringop-overflow is GCC-only; check_cxx_compiler_flag caching is unreliable here.
+# -Wstringop-overflow and -Wstringop-overread are GCC-only; check_cxx_compiler_flag caching is unreliable here.
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  add_compile_options(-Wno-stringop-overflow)
+  add_compile_options(-Wno-stringop-overflow -Wno-stringop-overread)
 endif()
 
 # Certain build configurations may be set directly in the environment.

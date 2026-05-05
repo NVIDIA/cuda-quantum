@@ -12,7 +12,7 @@
 // calls inlined throughout this file.
 #if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
 #pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#pragma GCC diagnostic ignored "-Wstringop-overread"
 #endif
 
 #include <array>
