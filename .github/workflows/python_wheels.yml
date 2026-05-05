@@ -313,11 +313,8 @@ jobs:
               exit 1
             fi
 
-      # TODO: enable
-      # if: matrix.os_image == 'redhat/ubi9:9.2'
-      # once conda license issues are resolved
       - name: Run Python MPI tests
-        if: false
+        if: matrix.os_image == 'redhat/ubi9:9.2'
         uses: ./.github/actions/run-in-docker
         with:
           image: wheel_validation:local
