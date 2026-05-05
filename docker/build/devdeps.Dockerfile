@@ -84,12 +84,13 @@ RUN cd /cuda-quantum && git init && \
 ADD scripts/bootstrap_prerequisites.sh /cuda-quantum/scripts/bootstrap_prerequisites.sh
 ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites.sh
 ADD scripts/set_env_defaults.sh /cuda-quantum/scripts/set_env_defaults.sh
-RUN export LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;compiler-rt' && \
-    if [ "$toolchain" = "llvm" ]; then \
+RUN if [ "$toolchain" = "llvm" ]; then \
+        export LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;compiler-rt' && \
         apt-get update && apt-get install -y --no-install-recommends clang lld && \
         CC=clang CXX=clang++ bash /cuda-quantum/scripts/bootstrap_prerequisites.sh && \
         (apt-get remove -y clang lld || true); \
     else \
+        export LLVM_PROJECTS='clang;lld;mlir;python-bindings;compiler-rt' && \
         bash /cuda-quantum/scripts/install_prerequisites.sh -t ${toolchain}; \
     fi && \
     apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -126,20 +127,20 @@ ENV LLVM_INSTALL_PREFIX=/usr/local/llvm
 ENV PATH="$PATH:$LLVM_INSTALL_PREFIX/bin/"
 
 ARG toolchain=llvm
-RUN if [ "$toolchain" = "gcc12" ]; then \
-        apt-get update && apt-get install -y --no-install-recommends \
-            gcc-12 g++-12 gfortran-12 libstdc++-12-dev && \
-        apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* && \
-        mkdir -p /usr/local/toolchain/bin && \
+RUN mkdir -p /usr/local/toolchain/bin && \
+    if [ "$toolchain" = "gcc12" ]; then \
         ln -s /usr/bin/gcc-12 /usr/local/toolchain/bin/cc && \
         ln -s /usr/bin/g++-12 /usr/local/toolchain/bin/c++; \
+        ln -s /usr/bin/gfortran-12 /usr/local/toolchain/bin/fortran; \
     else \
         mkdir -p /usr/local/toolchain/bin && \
         ln -s "$LLVM_INSTALL_PREFIX/bin/clang" /usr/local/toolchain/bin/cc && \
         ln -s "$LLVM_INSTALL_PREFIX/bin/clang++" /usr/local/toolchain/bin/c++; \
+        ln -s "$LLVM_INSTALL_PREFIX/bin/fortran" /usr/local/toolchain/bin/flang; \
     fi
 ENV CC=/usr/local/toolchain/bin/cc
 ENV CXX=/usr/local/toolchain/bin/c++
+ENV FC=/usr/local/toolchain/bin/fortran
 
 # Copy over additional prerequisites.
 ENV BLAS_INSTALL_PREFIX=/usr/local/blas
