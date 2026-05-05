@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "FermioniqQPU.h"
+#include "cudaq/runtime/logger/cudaq_fmt.h"
 #include "nlohmann/json.hpp"
 #include <memory>
 

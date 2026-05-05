@@ -8,6 +8,7 @@
 
 #pragma once
 #include "cudaq/cudaq_mpi.h"
+#include "cudaq/runtime/logger/cudaq_fmt.h"
 #include "simulator_cutensornet.h"
 #include "tn_simulation_state.h"
 
