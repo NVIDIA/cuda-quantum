@@ -40,6 +40,7 @@ Python3_EXECUTABLE=${Python3_EXECUTABLE:-python3}
 # Process command line arguments.
 build_configuration=Release
 verbose=false
+build_concurrency="-j 8"
 
 __optind__=$OPTIND
 OPTIND=1
