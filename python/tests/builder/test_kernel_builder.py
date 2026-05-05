@@ -17,8 +17,31 @@ from typing import List
 
 import cudaq
 from cudaq import spin
+from cudaq.runtime.sample import AsyncSampleResult
 
 from test_helpers import h2_hamiltonian_4q
+
+
+class MockAsyncResultImpl:
+
+    def get(self):
+        return "done"
+
+    def __str__(self):
+        return "mock async result"
+
+
+def test_make_kernel_rejects_pending_async_work():
+    future = AsyncSampleResult(MockAsyncResultImpl(), object())
+
+    try:
+        with pytest.raises(RuntimeError,
+                           match="Kernel construction is not thread-safe"):
+            cudaq.make_kernel()
+    finally:
+        assert future.get() == "done"
+
+    cudaq.make_kernel()
 
 
 def test_sdg_0_state():
