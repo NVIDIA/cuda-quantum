@@ -76,7 +76,7 @@ def test_run_with_integer_left_shift_operator():
     @cudaq.kernel
     def kernel(n: int) -> int:
         q = cudaq.qvector(n)
-        m = mz(q)
+        m = cudaq.to_bools(mz(q))
         r = 0
         for i in range(n):
             r = r & (m[i] << i)
@@ -96,7 +96,7 @@ def test_run_with_non_integer_left_shift_operator():
         @cudaq.kernel
         def kernel(n: int) -> int:
             q = cudaq.qvector(n)
-            m = mz(q)
+            m = cudaq.to_bools(mz(q))
             r = 0
             for i in range(n):
                 r = r & (m[i] << 1.0)
@@ -113,7 +113,7 @@ def test_run_with_integer_right_shift_operator():
     @cudaq.kernel
     def kernel(n: int) -> int:
         q = cudaq.qvector(n)
-        m = mz(q)
+        m = cudaq.to_bools(mz(q))
         r = 0
         for i in range(n):
             r = r & (m[i] >> i)
@@ -131,7 +131,7 @@ def test_run_with_integer_bitwise_or_operator():
     @cudaq.kernel
     def kernel(n: int) -> int:
         q = cudaq.qvector(n)
-        m = mz(q)
+        m = cudaq.to_bools(mz(q))
         r = 0
         for i in range(n):
             r = r | (m[i] >> i)
@@ -149,7 +149,7 @@ def test_run_with_integer_bitwise_xor_operator():
     @cudaq.kernel
     def kernel(n: int) -> int:
         q = cudaq.qvector(n)
-        m = mz(q)
+        m = cudaq.to_bools(mz(q))
         r = 0
         for i in range(n):
             r = r ^ (m[i] >> i)

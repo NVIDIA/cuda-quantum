@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/TypeSwitch.h"
+#include "llvm/IR/DataLayout.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
@@ -75,6 +76,16 @@ Value cudaq::cc::getByteSizeOfType(OpBuilder &builder, Location loc, Type ty,
               [](cudaq::cc::PointerType ptrTy) -> std::optional<std::int32_t> {
                 // TODO: get this from the target specification. For now
                 // we're assuming pointers are 64 bits.
+                return {8};
+              })
+          .Case(
+              [](cudaq::cc::MeasureHandleType) -> std::optional<std::int32_t> {
+                // `!cc.measure_handle` is the IR alias of
+                // `cudaq::measure_handle`, a class with a single `std::int64_t`
+                // field. A later pass replaces it with `i64`, until then it is
+                // statically 8 bytes wide. Required so
+                // `__nvqpp_vectorCopyCtor` gets a constant element size when a
+                // pure-device kernel returns `std::vector<measure_handle>`.
                 return {8};
               })
           .Default({});
@@ -497,25 +508,48 @@ LogicalResult cudaq::cc::CastOp::verify() {
 }
 
 namespace {
-// There are a number of series of casts that can be fused. For now, fuse
-// pointer cast chains.
+// Fold cast cascades whose endpoints are both pointer types. Two shapes:
+//   - ptr -> ptr -> ptr  (eliminate the intermediate pointer view)
+//   - ptr -> int -> ptr  (eliminate the integer round-trip), only when the
+//                        integer hop is at least as wide as a pointer
 struct FuseCastCascade : public OpRewritePattern<cudaq::cc::CastOp> {
   using OpRewritePattern::OpRewritePattern;
 
   LogicalResult matchAndRewrite(cudaq::cc::CastOp castOp,
                                 PatternRewriter &rewriter) const override {
-    if (auto castToCast = castOp.getValue().getDefiningOp<cudaq::cc::CastOp>())
-      if (isa<cudaq::cc::PointerType>(castOp.getType()) &&
-          isa<cudaq::cc::PointerType>(castToCast.getType())) {
-        // %4 = cc.cast %3 : (!cc.ptr<T>) -> !cc.ptr<U>
-        // %5 = cc.cast %4 : (!cc.ptr<U>) -> !cc.ptr<V>
-        // ────────────────────────────────────────────
-        // %5 = cc.cast %3 : (!cc.ptr<T>) -> !cc.ptr<V>
-        rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(castOp, castOp.getType(),
-                                                       castToCast.getValue());
-        return success();
-      }
-    return failure();
+    auto castToCast = castOp.getValue().getDefiningOp<cudaq::cc::CastOp>();
+    if (!castToCast)
+      return failure();
+    if (!isa<cudaq::cc::PointerType>(castOp.getType()))
+      return failure();
+    if (!isa<cudaq::cc::PointerType>(castToCast.getValue().getType()))
+      return failure();
+    auto middleTy = castToCast.getType();
+    if (auto intTy = dyn_cast<IntegerType>(middleTy)) {
+      // The fold collapses `ptr -> int -> ptr` to `ptr -> ptr`. That is
+      // value-preserving only when the integer hop holds the full pointer
+      // payload; on a 64-bit target, `ptr -> i32 -> ptr` truncates the high
+      // bits and the folded form would observe a different value.
+      //
+      // Parse the data layout to recover the pointer width. If the
+      // attribute is missing, don't fold so the rule remains correct in the
+      // absence of layout information.
+      auto module = castOp->getParentOfType<ModuleOp>();
+      auto dlAttr = module ? module->getAttrOfType<StringAttr>(
+                                 cudaq::opt::factory::targetDataLayoutAttrName)
+                           : nullptr;
+      if (!dlAttr)
+        return failure();
+      llvm::DataLayout dl(dlAttr.getValue());
+      auto ptrBits = dl.getPointerSizeInBits(/*AS=*/0);
+      if (intTy.getWidth() < ptrBits)
+        return failure();
+    } else if (!isa<cudaq::cc::PointerType>(middleTy)) {
+      return failure();
+    }
+    rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(castOp, castOp.getType(),
+                                                   castToCast.getValue());
+    return success();
   }
 };
 

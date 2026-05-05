@@ -1116,7 +1116,7 @@ def test_run_and_sample_and_direct_call():
         q = cudaq.qvector(2)
         h(q[0])
         cx(q[0], q[1])
-        res = mz(q[0]) + 2 * mz(q[1])
+        res = int(bool(mz(q[0]))) + 2 * int(bool(mz(q[1])))
         return res
 
     run_results = cudaq.run(bell_pair, shots_count=10)
@@ -1664,11 +1664,24 @@ def test_while_loop_sge_with_quantum_gates():
         while val >= 0:
             x(q[val])
             val -= 1
-        return mz(q[0])
+        return int(mz(q[0]))
 
     results = cudaq.run(kernel, shots_count=1)
     assert len(results) == 1
     assert results[0] == 1
+
+    @cudaq.kernel
+    def kernel() -> bool:
+        q = cudaq.qvector(3)
+        val = 2
+        while val >= 0:
+            x(q[val])
+            val -= 1
+        return mz(q[0])
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == True
 
 
 def test_while_loop_sgt_workaround_still_works():
@@ -1680,11 +1693,24 @@ def test_while_loop_sgt_workaround_still_works():
         while val > -1:
             x(q[val])
             val -= 1
-        return mz(q[0])
+        return int(mz(q[0]))
 
     results = cudaq.run(kernel, shots_count=1)
     assert len(results) == 1
     assert results[0] == 1
+
+    @cudaq.kernel
+    def kernel() -> bool:
+        q = cudaq.qvector(3)
+        val = 2
+        while val > -1:
+            x(q[val])
+            val -= 1
+        return mz(q[0])
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == True
 
 
 # leave for gdb debugging
