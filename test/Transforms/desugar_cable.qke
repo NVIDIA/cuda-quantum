@@ -1,0 +1,65 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -desugar-cable-ops %s | FileCheck %s
+
+func.func @desugar() {
+  %0 = quake.null_cable !quake.cable<10>
+  %1:2 = quake.detach_wire %0[1] : (!quake.cable<10>) -> (!quake.wire, !quake.cable<9>)
+  %2:2 = quake.detach_wire %1#1[2] : (!quake.cable<9>) -> (!quake.wire, !quake.cable<8>)
+  %3:2 = quake.detach_wire %2#1[3] : (!quake.cable<8>) -> (!quake.wire, !quake.cable<7>)
+  %4:2 = quake.detach_wire %3#1[4] : (!quake.cable<7>) -> (!quake.wire, !quake.cable<6>)
+  %5:2 = quake.detach_wire %4#1[5] : (!quake.cable<6>) -> (!quake.wire, !quake.cable<5>)
+
+  // We have detached wires 1, 3, 5, 7, 9 at this point
+  // Let's have some fun with them
+  %6 = quake.h %1#0 : (!quake.wire) -> !quake.wire
+  %7 = quake.x %2#0 : (!quake.wire) -> !quake.wire
+  %8 = quake.y %3#0 : (!quake.wire) -> !quake.wire
+  %9:2 = quake.z [%5#0] %4#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+
+  // Now we'll reassemble the cable backwards for grins
+  %10 = quake.attach_wire %6, %5#1[5] : (!quake.wire, !quake.cable<5>) -> !quake.cable<6>
+  %11 = quake.attach_wire %7, %10[4] : (!quake.wire, !quake.cable<6>) -> !quake.cable<7>
+  %12 = quake.attach_wire %8, %11[3] : (!quake.wire, !quake.cable<7>) -> !quake.cable<8>
+  %13 = quake.attach_wire %9#0, %12[2] : (!quake.wire, !quake.cable<8>) -> !quake.cable<9>
+  %14 = quake.attach_wire %9#1, %13[1] : (!quake.wire, !quake.cable<9>) -> !quake.cable<10>
+  quake.sink %14 : !quake.cable<10>
+  return
+}
+
+// CHECK-LABEL:   func.func @desugar() {
+// CHECK:           %[[VAL_0:.*]] = quake.null_cable <10>
+// CHECK:           %[[VAL_1:.*]]:10 = quake.split_cable %[[VAL_0]] : (!quake.cable<10>) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire)
+// CHECK:           %[[VAL_2:.*]] = quake.bundle_cable %[[VAL_1]]#0, %[[VAL_1]]#2, %[[VAL_1]]#3, %[[VAL_1]]#4, %[[VAL_1]]#5, %[[VAL_1]]#6, %[[VAL_1]]#7, %[[VAL_1]]#8, %[[VAL_1]]#9 : (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire) -> !quake.cable<9>
+// CHECK:           %[[VAL_3:.*]]:9 = quake.split_cable %[[VAL_2]] : (!quake.cable<9>) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire)
+// CHECK:           %[[VAL_4:.*]] = quake.bundle_cable %[[VAL_3]]#0, %[[VAL_3]]#1, %[[VAL_3]]#3, %[[VAL_3]]#4, %[[VAL_3]]#5, %[[VAL_3]]#6, %[[VAL_3]]#7, %[[VAL_3]]#8 : (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire) -> !quake.cable<8>
+// CHECK:           %[[VAL_5:.*]]:8 = quake.split_cable %[[VAL_4]] : (!quake.cable<8>) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire)
+// CHECK:           %[[VAL_6:.*]] = quake.bundle_cable %[[VAL_5]]#0, %[[VAL_5]]#1, %[[VAL_5]]#2, %[[VAL_5]]#4, %[[VAL_5]]#5, %[[VAL_5]]#6, %[[VAL_5]]#7 : (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire) -> !quake.cable<7>
+// CHECK:           %[[VAL_7:.*]]:7 = quake.split_cable %[[VAL_6]] : (!quake.cable<7>) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire)
+// CHECK:           %[[VAL_8:.*]] = quake.bundle_cable %[[VAL_7]]#0, %[[VAL_7]]#1, %[[VAL_7]]#2, %[[VAL_7]]#3, %[[VAL_7]]#5, %[[VAL_7]]#6 : (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire) -> !quake.cable<6>
+// CHECK:           %[[VAL_9:.*]]:6 = quake.split_cable %[[VAL_8]] : (!quake.cable<6>) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire)
+// CHECK:           %[[VAL_10:.*]] = quake.bundle_cable %[[VAL_9]]#0, %[[VAL_9]]#1, %[[VAL_9]]#2, %[[VAL_9]]#3, %[[VAL_9]]#4 : (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire) -> !quake.cable<5>
+// CHECK:           %[[VAL_11:.*]] = quake.h %[[VAL_1]]#1 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_12:.*]] = quake.x %[[VAL_3]]#2 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_13:.*]] = quake.y %[[VAL_5]]#3 : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_14:.*]]:2 = quake.z {{\[}}%[[VAL_9]]#5] %[[VAL_7]]#4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[VAL_15:.*]]:5 = quake.split_cable %[[VAL_10]] : (!quake.cable<5>) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire)
+// CHECK:           %[[VAL_16:.*]] = quake.bundle_cable %[[VAL_15]]#0, %[[VAL_15]]#1, %[[VAL_15]]#2, %[[VAL_15]]#3, %[[VAL_15]]#4, %[[VAL_11]] : (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire) -> !quake.cable<6>
+// CHECK:           %[[VAL_17:.*]]:6 = quake.split_cable %[[VAL_16]] : (!quake.cable<6>) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire)
+// CHECK:           %[[VAL_18:.*]] = quake.bundle_cable %[[VAL_17]]#0, %[[VAL_17]]#1, %[[VAL_17]]#2, %[[VAL_17]]#3, %[[VAL_12]], %[[VAL_17]]#4, %[[VAL_17]]#5 : (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire) -> !quake.cable<7>
+// CHECK:           %[[VAL_19:.*]]:7 = quake.split_cable %[[VAL_18]] : (!quake.cable<7>) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire)
+// CHECK:           %[[VAL_20:.*]] = quake.bundle_cable %[[VAL_19]]#0, %[[VAL_19]]#1, %[[VAL_19]]#2, %[[VAL_13]], %[[VAL_19]]#3, %[[VAL_19]]#4, %[[VAL_19]]#5, %[[VAL_19]]#6 : (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire) -> !quake.cable<8>
+// CHECK:           %[[VAL_21:.*]]:8 = quake.split_cable %[[VAL_20]] : (!quake.cable<8>) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire)
+// CHECK:           %[[VAL_22:.*]] = quake.bundle_cable %[[VAL_21]]#0, %[[VAL_21]]#1, %[[VAL_14]]#0, %[[VAL_21]]#2, %[[VAL_21]]#3, %[[VAL_21]]#4, %[[VAL_21]]#5, %[[VAL_21]]#6, %[[VAL_21]]#7 : (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire) -> !quake.cable<9>
+// CHECK:           %[[VAL_23:.*]]:9 = quake.split_cable %[[VAL_22]] : (!quake.cable<9>) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire)
+// CHECK:           %[[VAL_24:.*]] = quake.bundle_cable %[[VAL_23]]#0, %[[VAL_14]]#1, %[[VAL_23]]#1, %[[VAL_23]]#2, %[[VAL_23]]#3, %[[VAL_23]]#4, %[[VAL_23]]#5, %[[VAL_23]]#6, %[[VAL_23]]#7, %[[VAL_23]]#8 : (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire) -> !quake.cable<10>
+// CHECK:           quake.sink %[[VAL_24]] : !quake.cable<10>
+// CHECK:           return
+// CHECK:         }
+

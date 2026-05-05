@@ -375,6 +375,42 @@ def DependencyAnalysis : Pass<"dep-analysis", "mlir::ModuleOp"> {
   ];
 }
 
+def DesugarCableOps : Pass<"desugar-cable-ops"> {
+  let summary = "Desugar some of the cable ops";
+  let description = [{
+    The `quake.attach_wire` and `quake.detach_wire` operations are syntactic
+    sugar for a sequence of more primitive operations. This pass desugars the
+    IR and uses the primitives instead.
+
+    Specifically, we make the following expansions.
+    ```mlir
+    %wire, %cab = quake.detach_wire %0[4] : (!quake.cable<10>) -> (!quake.wire,
+        !quake.cable<9>)
+    ```
+    becomes
+    ```mlir
+    %1:10 = quake.split_cable %0 : (!quake.cable<10>) -> (!quake.wire, ...)
+    %cab = quake.bundle_cable %1#0, ... %1#3, %1#5, ... %1#9 :
+        (!quake.wire ...) -> !quake.cable<9>
+    // %wire is substituted with %1#4
+    ```
+
+    The converse operation
+    ```mlir
+    %cab = quake.attach_wire %w, %c[8] : (!quake.wire, !quake.cable<8>) ->
+             !quake.cable<9>)
+    ```
+    becomes
+    ```mlir
+    %1:8 = quake.split_cable %c : (!quake.cable<8>) -> (!quake.wire, ...)
+    %cab = quake.bundle_cable %1#0, ... %1#7, %w : (!quake.wire ...) ->
+           !quake.cable<9>
+    ```
+  }];
+
+  let dependentDialects = ["quake::QuakeDialect"];
+}
+
 def DistributedDeviceCall : Pass<"distributed-device-call", "mlir::ModuleOp"> {
   let summary = "Translate cc.device_call operations";
 
@@ -386,7 +422,8 @@ def DistributedDeviceCall : Pass<"distributed-device-call", "mlir::ModuleOp"> {
   let dependentDialects = ["mlir::LLVM::LLVMDialect"];
 
   let options = [
-    Option<"insertTrapImplementation", "insert-trap", "bool", /*default=*/"false",
+    Option<"insertTrapImplementation", "insert-trap", "bool",
+      /*default=*/"false",
       "Enable pass to insert a default implementation (runtime trap) for "
       "device call (default=false). The default implementation has weak "
       "linkage, i.e., allowed to be overridden at link time.">
