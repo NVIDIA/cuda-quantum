@@ -23,7 +23,7 @@ struct Foo {
 struct Quark {
   Foo operator()() __qpu__ { // expected-error{{kernel result type not supported}}
     cudaq::qvector q(3);
-    return {747, mz(q)};
+    return {747, cudaq::to_bools(mz(q))};
   }
 };
 

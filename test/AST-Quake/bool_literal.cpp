@@ -27,8 +27,11 @@ struct testBoolLiteral {
 // CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
 // CHECK:           %[[VAL_2:.*]] = cc.alloca i1
 // CHECK:           cc.store %[[VAL_0]], %[[VAL_2]] : !cc.ptr<i1>
-// CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> !quake.measure
-// CHECK:           %[[VAL_9:.*]] = quake.discriminate %[[VAL_3]] : (!quake.measure) -> i1
+// CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> !cc.measure_handle
+// CHECK:           %[[HA:.*]] = cc.alloca !cc.measure_handle
+// CHECK:           cc.store %[[VAL_3]], %[[HA]] : !cc.ptr<!cc.measure_handle>
+// CHECK:           %[[HL:.*]] = cc.load %[[HA]] : !cc.ptr<!cc.measure_handle>
+// CHECK:           %[[VAL_9:.*]] = quake.discriminate %[[HL]] : (!cc.measure_handle) -> i1
 // CHECK:           cc.store %[[VAL_9]], %[[VAL_2]] : !cc.ptr<i1>
 // CHECK:           %[[VAL_4:.*]] = cc.load %[[VAL_2]] : !cc.ptr<i1>
 // CHECK:           return %[[VAL_4]] : i1
