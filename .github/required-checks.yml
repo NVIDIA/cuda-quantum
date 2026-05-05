@@ -12,6 +12,10 @@ merge_group: &full_matrix
 - Build and test (amd64, llvm, openmpi) / Dev environment (Python)
 - Build and test (arm64, llvm, openmpi) / Dev environment (Debug)
 - Build and test (arm64, llvm, openmpi) / Dev environment (Python)
+- Build and test (amd64, gcc12, openmpi) / Dev environment (Debug)
+- Build and test (amd64, gcc12, openmpi) / Dev environment (Python)
+- Build and test (arm64, gcc12, openmpi) / Dev environment (Debug)
+- Build and test (arm64, gcc12, openmpi) / Dev environment (Python)
 - Create CUDA Quantum installer (amd64, 12.6) / Build CUDA Quantum assets
 - Create CUDA Quantum installer (amd64, 12.6) / Minimal OpenMPI installation
 - Create CUDA Quantum installer (amd64, 12.6) / Validate installer (debian:12)
@@ -48,5 +52,7 @@ push:
 - Build and test (amd64, llvm, openmpi) / Dev environment (Python)
 - Build and test (arm64, llvm, openmpi) / Dev environment (Debug)
 - Build and test (arm64, llvm, openmpi) / Dev environment (Python)
+- Build and test (amd64, gcc12, openmpi) / Dev environment (Debug)
+- Build and test (amd64, gcc12, openmpi) / Dev environment (Python)
 workflow_dispatch: *full_matrix
 schedule: *full_matrix
