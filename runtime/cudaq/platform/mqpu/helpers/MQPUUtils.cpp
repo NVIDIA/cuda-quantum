@@ -23,6 +23,7 @@
 #include <set>
 #include <signal.h>
 #include <sys/socket.h>
+#include <sys/wait.h>
 #include <thread>
 #include <unistd.h>
 #ifdef CUDAQ_ENABLE_CUDA
@@ -151,16 +152,12 @@ cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess(
     Env->push_back(m_libPathEnv);
   }
 
+  // Use process Id to seed the random port search to minimize collision
+  // between independent processes auto-launching servers on the same machine.
+  std::mt19937 gen(::getpid() * 100 + seed_offset);
   constexpr std::size_t PORT_MAX_RETRIES = 10;
   for (std::size_t j = 0; j < PORT_MAX_RETRIES; j++) {
     /// Step 1: Look up a port
-    // Use process Id to seed the random port search to minimize collision.
-    // For example, multiple processes trying to auto-launch server app on the
-    // same machine.
-    // Also, prevent collision when a single process (same PID) constructing
-    // multiple AutoLaunchRestServerProcess in a loop by allowing to pass an
-    // offset for the seed.
-    static std::mt19937 gen(::getpid() * 100 + seed_offset);
     const auto port = getRandomAvailablePort(gen());
     if (!port.has_value())
       throw std::runtime_error("Unable to find a TCP/IP port on the local "
@@ -197,6 +194,7 @@ cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess(
     };
     int totalWaitTimeMs = 0;
     cudaq::RestClient restClient;
+    bool serverDied = false;
     for (std::size_t i = 0; i < MAX_RETRIES; ++i) {
       try {
         std::map<std::string, std::string> headers;
@@ -206,16 +204,28 @@ cudaq::AutoLaunchRestServerProcess::AutoLaunchRestServerProcess(
                    port.value(), processInfo.Pid, totalWaitTimeMs);
         return;
       } catch (...) {
+        int status = 0;
+        const pid_t reaped = ::waitpid(m_pid, &status, WNOHANG);
+        if (reaped == m_pid) {
+          CUDAQ_INFO("REST server PID {} exited before becoming reachable "
+                     "(status 0x{:x}). Trying a different port.",
+                     m_pid, status);
+          serverDied = true;
+          break;
+        }
         // Wait and retry
         const auto delay = throttledDelay(i);
         totalWaitTimeMs += delay;
         std::this_thread::sleep_for(std::chrono::milliseconds(delay));
       }
     }
-    CUDAQ_INFO(
-        "Timeout Error: No response from the server. Look for another port...");
-    CUDAQ_INFO("Shutting down REST server process {}", m_pid);
-    ::kill(m_pid, SIGKILL);
+    if (!serverDied) {
+      CUDAQ_INFO("Timeout Error: No response from the server. Look for "
+                 "another port...");
+      CUDAQ_INFO("Shutting down REST server process {}", m_pid);
+      ::kill(m_pid, SIGKILL);
+      ::waitpid(m_pid, nullptr, 0);
+    }
   }
   throw std::runtime_error("No usable ports available");
 }
