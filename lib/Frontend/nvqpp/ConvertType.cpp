@@ -128,20 +128,26 @@ static bool isFunctionCallable(Type t) {
 /// sequence type (possibly dynamic in length), or a static product type of
 /// arithmetic types. Note that this means a product type with a dynamic
 /// sequence of arithmetic types is \em disallowed.
+///
+/// `cudaq::measure_handle` (and any aggregate that transitively names it) is
+/// also allowed in pure-device kernels.
 static bool isKernelResultType(Type t) {
   return isArithmeticType(t) || isArithmeticSequenceType(t) ||
-         isStaticArithmeticProductType(t);
+         isStaticArithmeticProductType(t) ||
+         cudaq::cc::containsMeasureHandle(t);
 }
 
 /// Return true if and only if \p t is a (simple) arithmetic type, an possibly
 /// dynamic type composed of arithmetic types, a quantum type, a callable
-/// (function), or a string.
+/// (function), or a string. Types that
+/// transitively contain `cudaq::measure_handle` are also allowed in pure-device
+/// kernels.
 static bool isKernelArgumentType(Type t) {
   return isArithmeticType(t) || isComposedArithmeticType(t) ||
          quake::isQuantumReferenceType(t) || isKernelCallable(t) ||
          isFunctionCallable(t) ||
          // TODO: move from pointers to a builtin string type.
-         cudaq::isCharPointerType(t);
+         cudaq::isCharPointerType(t) || cudaq::cc::containsMeasureHandle(t);
 }
 
 static bool isKernelSignatureType(FunctionType t) {

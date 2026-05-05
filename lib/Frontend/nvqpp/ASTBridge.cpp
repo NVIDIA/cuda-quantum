@@ -623,18 +623,37 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
     visitor.TraverseDecl(const_cast<clang::FunctionDecl *>(fdPair.second));
     if (auto func = module->lookupSymbol<func::FuncOp>(entryName)) {
       // Rationale: If a function marked as quantum code takes or returns
-      // qubits, then it must be a pure quantum kernel that can only be called
-      // from other quantum code and never from classical code. Conversely, a
-      // kernel that is called from a quantum kernel entry function must (for
-      // now) take or return qubits in order to be stitched into the same
-      // circuit with the calling function. CUDA-Q does not presently
-      // support a quantum circuit that invokes a separable quantum circuit.
-      // Launching a quantum circuit implies exactly one distinct circuit
-      // will be mapped to and execute on the QPU.
+      // qubits or measurement "handles", then it must be a pure quantum kernel
+      // that can only be called from other quantum code and never from
+      // classical code. Conversely, a kernel that is called from a quantum
+      // kernel entry function must (for now) take or return qubits in order to
+      // be stitched into the same circuit with the calling function. CUDA-Q
+      // does not presently support a quantum circuit that invokes a separable
+      // quantum circuit. Launching a quantum circuit implies exactly one
+      // distinct circuit will be mapped to and execute on the QPU.
       auto unitAttr = UnitAttr::get(ctx);
       // Flag func as a quantum kernel.
       func->setAttr(kernelAttrName, unitAttr);
+      auto hasMHAtBoundary = [](FunctionType ft) {
+        for (auto ty : ft.getInputs())
+          if (cudaq::cc::containsMeasureHandleAtBoundary(ty))
+            return true;
+        for (auto ty : ft.getResults())
+          if (cudaq::cc::containsMeasureHandleAtBoundary(ty))
+            return true;
+        return false;
+      };
+      if (hasMHAtBoundary(func.getFunctionType()))
+        if (auto *md = dyn_cast<clang::CXXMethodDecl>(fdPair.second);
+            md && md->getOverloadedOperator() == clang::OO_Call) {
+          cudaq::details::reportClangError(
+              fdPair.second, mangler,
+              "measurement handle cannot cross the host-device boundary; "
+              "entry-point kernels must discriminate first");
+          continue;
+        }
       if ((!hasAnyQubitTypes(func.getFunctionType())) &&
+          (!hasMHAtBoundary(func.getFunctionType())) &&
           (!cudaq::ASTBridgeAction::ASTBridgeConsumer::isCustomOpGenerator(
               fdPair.second))) {
         // Flag func as an entry point to a quantum kernel.

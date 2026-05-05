@@ -15,6 +15,7 @@
 #include "llvm/Support/Debug.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/Math/IR/Math.h"
+#include "mlir/IR/Dominance.h"
 
 #define DEBUG_TYPE "lower-ast-expr"
 
@@ -662,13 +663,112 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
   }
   case clang::CastKind::CK_UserDefinedConversion: {
     auto sub = popValue();
-    // castToTy is the converion function signature.
+    // castToTy is the destination type of the user-defined conversion.
     castToTy = popType();
     if (isa<IntegerType>(castToTy) && isa<IntegerType>(sub.getType())) {
       auto locSub = toLocation(x->getSubExpr());
       bool result = intToIntCast(locSub, sub);
       assert(result && "integer conversion failed");
       return result;
+    }
+    // `cudaq::measure_handle::operator bool()` is the single sanctioned
+    // coercion surface on `measure_handle`. Every bool-coercion context lowers
+    // through this call site. We emit the single required `quake.discriminate`
+    // here so the inserted op's location is the coercion site. The
+    // unbound-handle check catches the `measure_handle h; bool b = h;`
+    // pattern, including chains routed through copy/move stores between
+    // local `alloca`s.
+    if (auto intTy = dyn_cast<IntegerType>(castToTy);
+        intTy && intTy.getWidth() == 1) {
+      Value handleVal = sub;
+      if (auto ptrTy = dyn_cast<cc::PointerType>(handleVal.getType()))
+        if (isa<cc::MeasureHandleType>(ptrTy.getElementType()))
+          handleVal = cc::LoadOp::create(builder, loc, handleVal);
+      if (isa<cc::MeasureHandleType>(handleVal.getType())) {
+        // Lazy `mlir::DominanceInfo` shared across recursion levels:
+        // we need it for the scalar-handle alloca case below to verify
+        // that a store to the alloca actually dominates the load.
+        std::optional<mlir::DominanceInfo> domCache;
+        auto getDominance =
+            [&](mlir::Operation *anchor) -> mlir::DominanceInfo & {
+          if (!domCache) {
+            if (auto fn = anchor->getParentOfType<func::FuncOp>())
+              domCache.emplace(fn);
+            else
+              domCache.emplace();
+          }
+          return *domCache;
+        };
+        std::function<bool(Value, llvm::SmallPtrSetImpl<Value> &)>
+            isBoundHandle = [&](Value v,
+                                llvm::SmallPtrSetImpl<Value> &visited) {
+              if (!visited.insert(v).second)
+                return false;
+              if (v.getDefiningOp<quake::MeasurementInterface>())
+                return true;
+              auto load = v.getDefiningOp<cc::LoadOp>();
+              if (!load)
+                return true;
+              // Walk through `cc.compute_ptr` and `cc.cast` to reach the
+              // alloca that owns the storage being loaded.
+              Value ptr = load.getPtrvalue();
+              while (true) {
+                if (auto cp = ptr.getDefiningOp<cc::ComputePtrOp>()) {
+                  ptr = cp.getBase();
+                  continue;
+                }
+                if (auto cs = ptr.getDefiningOp<cc::CastOp>()) {
+                  ptr = cs.getValue();
+                  continue;
+                }
+                break;
+              }
+              auto alloca = ptr.getDefiningOp<cc::AllocaOp>();
+              if (!alloca)
+                return true;
+              auto eleTy = alloca.getElementType();
+              bool isScalarHandleAlloca = isa<cc::MeasureHandleType>(eleTy);
+              if (!isScalarHandleAlloca && !cc::containsMeasureHandle(eleTy))
+                return true;
+              // Bound iff at least one store reaches this alloca with a
+              // value that is itself bound.
+              auto checkStore = [&](cc::StoreOp store) {
+                if (!isScalarHandleAlloca)
+                  return true;
+                auto &dom = getDominance(load.getOperation());
+                if (!dom.dominates(store.getOperation(), load.getOperation()))
+                  return false;
+                return isBoundHandle(store.getValue(), visited);
+              };
+              for (Operation *u : alloca->getUsers()) {
+                if (auto store = dyn_cast<cc::StoreOp>(u)) {
+                  if (checkStore(store))
+                    return true;
+                  continue;
+                }
+                if (isa<cc::ComputePtrOp, cc::CastOp>(u))
+                  for (Operation *uu : u->getUsers())
+                    if (auto store = dyn_cast<cc::StoreOp>(uu))
+                      if (store.getPtrvalue() == u->getResult(0) &&
+                          checkStore(store))
+                        return true;
+              }
+              return false;
+            };
+        llvm::SmallPtrSet<Value, 4> visited;
+        if (!isBoundHandle(handleVal, visited)) {
+          reportClangError(x, mangler,
+                           "discriminating an unbound measure_handle");
+          // Push a placeholder `i1` so the enclosing statement's value
+          // stack stays balanced. Returning `false` here would cause
+          // the outer `TraverseStmt` to emit a second, generic
+          // "statement not supported" diagnostic.
+          return pushValue(arith::ConstantIntOp::create(
+              builder, loc, builder.getI1Type(), /*value=*/0));
+        }
+        return pushValue(quake::DiscriminateOp::create(
+            builder, loc, builder.getI1Type(), handleVal));
+      }
     }
     TODO_loc(loc, "unhandled user-defined implicit conversion");
   }
@@ -1253,6 +1353,43 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
   if (visitMathLibFunc(x, func, loc, funcName))
     return true;
 
+  // Handle `cudaq::measure_handle::operator bool()`
+  if (isInClassInNamespace(func, "measure_handle", "cudaq") &&
+      isa<clang::CXXConversionDecl>(func)) {
+    Value thisVal = popValue();
+    if (auto ptrTy = dyn_cast<cc::PointerType>(thisVal.getType()))
+      if (isa<cc::MeasureHandleType>(ptrTy.getElementType()))
+        thisVal = cc::LoadOp::create(builder, loc, thisVal);
+    return pushValue(thisVal);
+  }
+
+  // Handle `cudaq::measure_handle::operator=` (copy/move assignment).
+  // The synthesized `operator=` is not in the bridge's `cudaq::*` call
+  // dispatch, so without this interception `h2 = h;` falls through to the
+  // generic "unknown function" path and aborts `cudaq-quake`.
+  if (isInClassInNamespace(func, "measure_handle", "cudaq")) {
+    if (auto *md = dyn_cast<clang::CXXMethodDecl>(func);
+        md && md->getOverloadedOperator() == clang::OO_Equal) {
+      Value rhs = popValue();
+      Value thisVal = popValue();
+      // Drop the callee value the visitor pushed for the call.
+      [[maybe_unused]] auto calleeOp = popValue();
+      if (auto ptrTy = dyn_cast<cc::PointerType>(rhs.getType()))
+        if (isa<cc::MeasureHandleType>(ptrTy.getElementType()))
+          rhs = cc::LoadOp::create(builder, loc, rhs);
+      auto thisPtrTy = dyn_cast<cc::PointerType>(thisVal.getType());
+      if (!thisPtrTy ||
+          !isa<cc::MeasureHandleType>(thisPtrTy.getElementType())) {
+        reportClangError(x, mangler,
+                         "`measure_handle` assignment expects an lvalue "
+                         "`measure_handle` as its destination");
+        return false;
+      }
+      cc::StoreOp::create(builder, loc, rhs, thisVal);
+      return pushValue(thisVal);
+    }
+  }
+
   // Handle std::complex member functions
   if (isInClassInNamespace(func, "complex", "std")) {
     auto value = popValue();
@@ -1651,25 +1788,45 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     }
 
     if (funcName == "mx" || funcName == "my" || funcName == "mz") {
-      // Measurements always return a bool or a std::vector<bool>.
+      // Measurements emit `quake.{mz,mx,my}` producing`!cc.measure_handle`
+      // (scalar) or `!cc.stdvec<!cc.measure_handle>` (multi-qubit) and, do not
+      // inline `quake.discriminate` at the call site. Discrimination happens
+      // later, only if necessary.
       bool useStdvec =
           (args.size() > 1) ||
           (args.size() == 1 && isa<quake::VeqType>(args[0].getType()));
-      auto measure = [&]() -> Value {
-        Type measTy = quake::MeasureType::get(builder.getContext());
-        if (useStdvec)
-          measTy = cc::StdvecType::get(measTy);
-        if (funcName == "mx")
-          return quake::MxOp::create(builder, loc, measTy, args).getMeasOut();
-        if (funcName == "my")
-          return quake::MyOp::create(builder, loc, measTy, args).getMeasOut();
-        return quake::MzOp::create(builder, loc, measTy, args).getMeasOut();
-      }();
-      Type resTy = builder.getI1Type();
+      Type measTy = cc::MeasureHandleType::get(builder.getContext());
       if (useStdvec)
-        resTy = cc::StdvecType::get(resTy);
+        measTy = cc::StdvecType::get(measTy);
+      if (funcName == "mx")
+        return pushValue(
+            quake::MxOp::create(builder, loc, measTy, args).getMeasOut());
+      if (funcName == "my")
+        return pushValue(
+            quake::MyOp::create(builder, loc, measTy, args).getMeasOut());
       return pushValue(
-          quake::DiscriminateOp::create(builder, loc, resTy, measure));
+          quake::MzOp::create(builder, loc, measTy, args).getMeasOut());
+    }
+
+    if (funcName == "to_bools") {
+      // `cudaq::to_bools(std::vector<cudaq::measure_handle>)` is the bulk
+      // counterpart to `measure_handle::operator bool()`. Lower to a
+      // vectorized `quake.discriminate` on the handle vector.
+      Value handleArg = args[0];
+      if (auto ptrTy = dyn_cast<cc::PointerType>(handleArg.getType()))
+        if (auto sv = dyn_cast<cc::StdvecType>(ptrTy.getElementType());
+            sv && isa<cc::MeasureHandleType>(sv.getElementType()))
+          handleArg = cc::LoadOp::create(builder, loc, handleArg);
+      auto sv = dyn_cast<cc::StdvecType>(handleArg.getType());
+      if (!sv || !isa<cc::MeasureHandleType>(sv.getElementType())) {
+        reportClangError(x, mangler,
+                         "cudaq::to_bools expects a "
+                         "std::vector<cudaq::measure_handle> argument");
+        return false;
+      }
+      auto resTy = cc::StdvecType::get(builder.getI1Type());
+      return pushValue(
+          quake::DiscriminateOp::create(builder, loc, resTy, handleArg));
     }
 
     // Handle the quantum gate set.
@@ -2128,10 +2285,36 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     }
 
     if (funcName == "toInteger" || funcName == "to_integer") {
+      // `to_integer` packs a `std::vector<bool>` LSB-first into an i64.
       IRBuilder irBuilder(builder.getContext());
       if (failed(irBuilder.loadIntrinsic(module, cudaqConvertToInteger))) {
         reportClangError(x, mangler, "cannot load cudaqConvertToInteger");
         return false;
+      }
+      // The intrinsic signature is `(!cc.stdvec<i1>) -> i64`. The argument
+      // can arrive in either of two shapes from the AST visitor:
+      //   1. `!cc.stdvec<...>` (after lvalue-to-rvalue conversion of the
+      //      named stdvec or for an rvalue from `mz`), or
+      //   2. `!cc.ptr<!cc.stdvec<...>>` (an lvalue that the visitor did
+      //      not lower to an rvalue, e.g. a struct-member access path).
+      // Normalize to the value form first so the `MeasureHandleType`
+      // element-type check below sees the actual stdvec.
+      if (auto ptrTy = dyn_cast<cc::PointerType>(args[0].getType());
+          ptrTy && isa<cc::StdvecType>(ptrTy.getElementType()))
+        args[0] = cc::LoadOp::create(builder, loc, args[0]);
+      // The bridge does not silently insert a discriminate.
+      if (auto stdvecTy = dyn_cast<cc::StdvecType>(args[0].getType());
+          stdvecTy && isa<cc::MeasureHandleType>(stdvecTy.getElementType())) {
+        reportClangError(
+            x, mangler,
+            "`cudaq::to_integer` accepts `std::vector<bool>`; "
+            "wrap measurement results with `cudaq::to_bools(...)` first");
+        // Push a placeholder `i64` so the enclosing statement's value stack
+        // stays balanced; returning `false` here would cause the outer
+        // `TraverseStmt` to emit a second, generic "statement not supported"
+        // diagnostic
+        return pushValue(arith::ConstantIntOp::create(
+            builder, loc, builder.getI64Type(), /*value=*/0));
       }
       auto i64Ty = builder.getI64Type();
       return pushValue(
@@ -3253,7 +3436,23 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
       assert(isa<cc::StructType>(ctorTy) && "POD must be a struct type");
       return pushValue(cc::LoadOp::create(builder, loc, fromStruct));
     }
+    if (isa<cc::MeasureHandleType>(ctorTy)) {
+      Value fromHandle = popValue();
+      if (auto ptrTy = dyn_cast<cc::PointerType>(fromHandle.getType()))
+        if (isa<cc::MeasureHandleType>(ptrTy.getElementType()))
+          fromHandle = cc::LoadOp::create(builder, loc, fromHandle);
+      return pushValue(fromHandle);
+    }
   }
+
+  // Default-construct `cudaq::measure_handle`: produce only the storage
+  // slot. It is `unbound`: any read at a discriminate site is invalid and must
+  // be statically diagnosed where reachable. Allocate the slot here and skip
+  // the call. `VisitVarDecl` recognises the `cc::AllocaOp` result and binds it
+  // directly, leaving the slot uninitialised so the unbound-handle check in
+  // `VisitCXXConversionDecl(operator bool)` fires when reached.
+  if (ctor->isDefaultConstructor() && isa<cc::MeasureHandleType>(ctorTy))
+    return pushValue(cc::AllocaOp::create(builder, loc, ctorTy));
 
   if (ctor->isCopyConstructor() && ctor->isTrivial() &&
       isa<cc::StructType>(ctorTy)) {
