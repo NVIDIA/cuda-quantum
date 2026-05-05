@@ -226,6 +226,11 @@ cmake_args=" \
   -DCMAKE_CXX_FLAGS='"$LLVM_EXTRA_CXX_FLAGS"' \
   -Dnanobind_DIR=$NANOBIND_INSTALL_PREFIX/nanobind/cmake"
 
+if [ "$(uname)" = "Darwin" ]; then
+  macos_sysroot="$(xcrun --sdk macosx --show-sdk-path)"
+  cmake_args+=" -DCMAKE_OSX_SYSROOT='"$macos_sysroot"'"
+fi
+
 if [ -z "$LLVM_CMAKE_CACHE" ]; then 
   LLVM_CMAKE_CACHE=`find "$this_file_dir/.." -path '*/cmake/caches/*' -name LLVM.cmake`
 fi
