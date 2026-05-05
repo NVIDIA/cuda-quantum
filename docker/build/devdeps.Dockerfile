@@ -15,11 +15,8 @@
 # Must be built from the repo root with:
 #   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:llvm-latest -f docker/build/devdeps.Dockerfile .
 #
-# The variable $toolchain indicates which compiler toolchain to build the LLVM libraries with.
-# The toolchain used to build the LLVM binaries that CUDA-Q depends on must be used to build
-# CUDA-Q. Currently, the $toolchain argument is a no-op; the bootstrap always uses clang.
-# Support for gcc12 (and potentially other toolchains) may be added back in the future.
-# To use a different toolchain, add support for it to the install_toolchain.sh script.
+# The variable $toolchain selects the C/C++ compiler for building CUDA-Q (default: llvm).
+# Supported values: llvm, gcc12. The LLVM toolchain is a fully bootstrapped version.
 
 # [Operating System]
 ARG base_image=ubuntu:24.04
@@ -56,8 +53,7 @@ ENV PIP_BREAK_SYSTEM_PACKAGES=1
 
 ## [Build Dependencies]
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        wget git unzip ccache \
-        libstdc++-13-dev \
+        wget git unzip ccache libstdc++-13-dev \
         python3-dev python3-pip && \
     python3 -m pip install --no-cache-dir numpy --break-system-packages && \
     apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -86,12 +82,17 @@ RUN cd /cuda-quantum && git init && \
 
 ## [Source Dependencies]
 ADD scripts/bootstrap_prerequisites.sh /cuda-quantum/scripts/bootstrap_prerequisites.sh
-RUN apt-get update && apt-get install -y --no-install-recommends clang lld && \
-    CC=clang CXX=clang++ \
-    LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;compiler-rt' \
-    bash /cuda-quantum/scripts/bootstrap_prerequisites.sh && \
-    (apt-get remove -y clang lld || true) && apt-get autoremove -y --purge && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites.sh
+ADD scripts/set_env_defaults.sh /cuda-quantum/scripts/set_env_defaults.sh
+RUN export LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;compiler-rt' && \
+    if [ "$toolchain" = "llvm" ]; then \
+        apt-get update && apt-get install -y --no-install-recommends clang lld && \
+        CC=clang CXX=clang++ bash /cuda-quantum/scripts/bootstrap_prerequisites.sh && \
+        (apt-get remove -y clang lld || true); \
+    else \
+        bash /cuda-quantum/scripts/install_prerequisites.sh -t ${toolchain}; \
+    fi && \
+    apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 ## [Dev Dependencies]
 RUN if [ "$(uname -m)" == "x86_64" ]; then \
@@ -124,8 +125,21 @@ COPY --from=prereqs /usr/local/llvm /usr/local/llvm
 ENV LLVM_INSTALL_PREFIX=/usr/local/llvm
 ENV PATH="$PATH:$LLVM_INSTALL_PREFIX/bin/"
 
-ENV CC="$LLVM_INSTALL_PREFIX/bin/clang"
-ENV CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
+ARG toolchain=llvm
+RUN if [ "$toolchain" = "gcc12" ]; then \
+        apt-get update && apt-get install -y --no-install-recommends \
+            gcc-12 g++-12 gfortran-12 libstdc++-12-dev && \
+        apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* && \
+        mkdir -p /usr/local/toolchain/bin && \
+        ln -s /usr/bin/gcc-12 /usr/local/toolchain/bin/cc && \
+        ln -s /usr/bin/g++-12 /usr/local/toolchain/bin/c++; \
+    else \
+        mkdir -p /usr/local/toolchain/bin && \
+        ln -s "$LLVM_INSTALL_PREFIX/bin/clang" /usr/local/toolchain/bin/cc && \
+        ln -s "$LLVM_INSTALL_PREFIX/bin/clang++" /usr/local/toolchain/bin/c++; \
+    fi
+ENV CC=/usr/local/toolchain/bin/cc
+ENV CXX=/usr/local/toolchain/bin/c++
 
 # Copy over additional prerequisites.
 ENV BLAS_INSTALL_PREFIX=/usr/local/blas
