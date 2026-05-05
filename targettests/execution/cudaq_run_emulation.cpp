@@ -30,7 +30,7 @@ __qpu__ int test_kernel(int count) {
 __qpu__ std::vector<bool> mz_test(int count) {
   cudaq::qvector v(count);
   h(v);
-  return mz(v);
+  return cudaq::to_bools(mz(v));
 }
 
 int main() {
