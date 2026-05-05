@@ -8,16 +8,10 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/CodeGen/Emitter.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Todo.h"
 #include "llvm/Support/Debug.h"
-#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/IR/Dominance.h"
-#include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 
@@ -125,7 +119,7 @@ public:
         // Insert reset
         Location loc = mz->getLoc();
         rewriter.setInsertionPointAfter(mz);
-        rewriter.create<quake::ResetOp>(loc, TypeRange{}, measuredQubit);
+        quake::ResetOp::create(rewriter, loc, TypeRange{}, measuredQubit);
         // Insert a conditional X to initialize qubit after reset.
         auto measOut = mz.getMeasOut();
         mlir::Value measBit = [&]() {
@@ -137,19 +131,19 @@ public:
             }
           }
           // No discriminate exists - create the discriminate Op
-          auto discOp = rewriter.create<quake::DiscriminateOp>(
-              loc, rewriter.getI1Type(), measOut);
+          auto discOp = quake::DiscriminateOp::create(
+              rewriter, loc, rewriter.getI1Type(), measOut);
           return discOp.getResult();
         }();
-        rewriter.create<cudaq::cc::IfOp>(
-            loc, TypeRange{}, measBit,
+        cudaq::cc::IfOp::create(
+            rewriter, loc, TypeRange{}, measBit,
             [&](OpBuilder &opBuilder, Location location, Region &region) {
               region.push_back(new Block{});
               auto &bodyBlock = region.front();
               OpBuilder::InsertionGuard guad(opBuilder);
               opBuilder.setInsertionPointToStart(&bodyBlock);
-              opBuilder.create<quake::XOp>(location, measuredQubit);
-              opBuilder.create<cudaq::cc::ContinueOp>(location);
+              quake::XOp::create(opBuilder, location, measuredQubit);
+              cudaq::cc::ContinueOp::create(opBuilder, location);
             });
         modified = true;
       } else {
@@ -190,7 +184,7 @@ private:
             if (v.value() != extractOp) {
               // This is another extract.
               auto nextExtractOp =
-                  dyn_cast_or_null<quake::ExtractRefOp>(v.value());
+                  dyn_cast_if_present<quake::ExtractRefOp>(v.value());
               if (nextExtractOp) {
                 std::optional<int64_t> nextIndex =
                     nextExtractOp.hasConstantIndex()
@@ -239,8 +233,8 @@ public:
     RegUseTracker tracker(funcOp);
     RewritePatternSet patterns(ctx);
     patterns.insert<ResetAfterMeasurePattern>(ctx, tracker);
-    if (failed(applyPatternsAndFoldGreedily(funcOp.getOperation(),
-                                            std::move(patterns)))) {
+    if (failed(applyPatternsGreedily(funcOp.getOperation(),
+                                     std::move(patterns)))) {
       funcOp.emitOpError("Adding qubit reset before reuse pass failed");
       signalPassFailure();
     }

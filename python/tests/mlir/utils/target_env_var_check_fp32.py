@@ -19,8 +19,29 @@ try:
 except:
     NUM_GPUS = 0
 
-os.environ["CUDAQ_DEFAULT_SIMULATOR"] = ("nvidia" if NUM_GPUS > 0 else
-                                         "density-matrix-cpu")
+
+def _target_is_usable(name):
+    if not cudaq.has_target(name):
+        return False
+    prev = os.environ.get("CUDAQ_DEFAULT_SIMULATOR")
+    os.environ["CUDAQ_DEFAULT_SIMULATOR"] = name
+    try:
+        cudaq.set_target(name)
+    except RuntimeError:
+        if prev is None:
+            os.environ.pop("CUDAQ_DEFAULT_SIMULATOR", None)
+        else:
+            os.environ["CUDAQ_DEFAULT_SIMULATOR"] = prev
+        return False
+    cudaq.reset_target()
+    return True
+
+
+if NUM_GPUS > 0 and _target_is_usable("nvidia"):
+    os.environ["CUDAQ_DEFAULT_SIMULATOR"] = "nvidia"
+else:
+    NUM_GPUS = 0
+    os.environ["CUDAQ_DEFAULT_SIMULATOR"] = "density-matrix-cpu"
 
 if cudaq.has_target(os.environ["CUDAQ_DEFAULT_SIMULATOR"]):
     cudaq.set_target(os.environ["CUDAQ_DEFAULT_SIMULATOR"])

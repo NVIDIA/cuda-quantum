@@ -42,6 +42,7 @@ jobs:
       cache_base: ${{ steps.pr_info.outputs.pr_base }}
       llvm_commit: ${{ steps.repo_info.outputs.llvm_commit }}
       pybind11_commit: ${{ steps.repo_info.outputs.pybind11_commit }}
+      nanobind_commit: ${{ steps.repo_info.outputs.nanobind_commit }}
       platform_config: ${{ steps.config.outputs.platforms }}
       build_test_matrix: ${{ steps.config.outputs.build_test_matrix }}
 
@@ -65,19 +66,13 @@ jobs:
           # (expensive, redundant with amd64/gcc). merge_group/dispatch run all.
           if [ "${{ github.event_name }}" = "push" ]; then
             build_test_matrix='{"include":[
-              {"platform":"amd64","toolchain":"clang16","mpi":"openmpi"},
-              {"platform":"amd64","toolchain":"gcc11","mpi":"openmpi"},
-              {"platform":"amd64","toolchain":"gcc12","mpi":"openmpi"},
-              {"platform":"arm64","toolchain":"clang16","mpi":"openmpi"}
+              {"platform":"amd64","toolchain":"llvm","mpi":"openmpi"},
+              {"platform":"arm64","toolchain":"llvm","mpi":"openmpi"}
             ]}'
           else
             build_test_matrix='{"include":[
-              {"platform":"amd64","toolchain":"clang16","mpi":"openmpi"},
-              {"platform":"amd64","toolchain":"gcc11","mpi":"openmpi"},
-              {"platform":"amd64","toolchain":"gcc12","mpi":"openmpi"},
-              {"platform":"arm64","toolchain":"clang16","mpi":"openmpi"},
-              {"platform":"arm64","toolchain":"gcc11","mpi":"openmpi"},
-              {"platform":"arm64","toolchain":"gcc12","mpi":"openmpi"}
+              {"platform":"amd64","toolchain":"llvm","mpi":"openmpi"},
+              {"platform":"arm64","toolchain":"llvm","mpi":"openmpi"},
             ]}'
           fi
           echo "build_test_matrix=$(echo "$build_test_matrix" | jq -c .)" >> $GITHUB_OUTPUT
@@ -114,6 +109,7 @@ jobs:
         run: |
           echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
           echo "pybind11_commit=$(git rev-parse @:./tpls/pybind11)" >> $GITHUB_OUTPUT
+          echo "nanobind_commit=$(git rev-parse @:./tpls/nanobind)" >> $GITHUB_OUTPUT
 
   devdeps:
     name: Load dependencies
@@ -121,7 +117,6 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-        toolchain: [clang16, gcc11, gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -130,14 +125,12 @@ jobs:
     with:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/devdeps.Dockerfile
-      build_config_id: ${{ matrix.toolchain }}
-      build_args: |
-        toolchain=${{ matrix.toolchain }}
+      build_config_id: llvm
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       checkout_submodules: true
       environment: ghcr-ci
       # needed only for the cloudposse GitHub action
-      matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
+      matrix_key: ${{ matrix.platform }}-llvm
       matrix_step_name: dev_environment_devdeps
 
   wheeldeps:
@@ -155,14 +148,15 @@ jobs:
     with:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/devdeps.manylinux.Dockerfile
-      build_config_id: cu${{ matrix.cuda_version }}-gcc11
+      build_config_id: cu${{ matrix.cuda_version }}-gcc12
       build_args: |
         base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ (matrix.platform == 'arm64' && '_aarch64') || (matrix.platform == 'amd64' && '_x86_64') || '' }}:latest
         cuda_version=${{ matrix.cuda_version }}
-        toolchain=gcc11
+        toolchain=gcc12
         distro=rhel8
         llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
         pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
+        nanobind_commit=${{ needs.metadata.outputs.nanobind_commit }}
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       environment: ghcr-ci
       # needed only for the cloudposse GitHub action
@@ -259,16 +253,15 @@ jobs:
     strategy:
       matrix:
         platform: [amd64]
-        toolchain: [clang16]
       fail-fast: false
     uses: ./.github/workflows/generate_cc.yml
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     with:
       platform: linux/${{ matrix.platform }}
-      devdeps_image: ${{ fromJson(needs.config_devdeps.outputs.json).image_hash[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
-      devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
-      devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
+      devdeps_image: ${{ fromJson(needs.config_devdeps.outputs.json).image_hash[format('{0}-llvm', matrix.platform)] }}
+      devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-llvm', matrix.platform)] }}
+      devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-llvm', matrix.platform)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
   # Docker images are packaging, not correctness — only built on merge_group/dispatch.
@@ -286,9 +279,9 @@ jobs:
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: linux/${{ matrix.platform }}
-      devdeps_image: ${{ fromJson(needs.config_devdeps.outputs.json).image_hash[format('{0}-gcc11', matrix.platform)] }}
-      devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-gcc11', matrix.platform)] }}
-      devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-gcc11', matrix.platform)] }}
+      devdeps_image: ${{ fromJson(needs.config_devdeps.outputs.json).image_hash[format('{0}-llvm', matrix.platform)] }}
+      devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-llvm', matrix.platform)] }}
+      devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-llvm', matrix.platform)] }}
       environment: ghcr-ci
 
   python_wheels:
@@ -371,7 +364,12 @@ jobs:
       - python_wheels
       - python_metapackages
       - binaries
-    if: always()
+    # Run on success, failure, or per-job cancellation — but NOT when the
+    # whole workflow is cancelled (e.g. a newer push triggered the
+    # concurrency rule). Otherwise the "fail on cancelled needs" check below
+    # would surface a phantom `CI Summary failed` on the PR rollup for a run
+    # that was actually preempted, not broken.
+    if: ${{ !cancelled() }}
     env:
       GH_TOKEN: ${{ github.token }}
       NEEDS_JSON: ${{ toJSON(needs) }}
@@ -458,11 +456,14 @@ jobs:
           if [ "$n_fail" -gt 0 ] || [ "$n_cancel" -gt 0 ]; then overall=":x: failed"; fi
 
           # Header — always visible (one line). Detail goes in <details>.
+          # The marker includes the event name so push / merge_group / dispatch
+          # comments don't overwrite each other — a merge_group failure should
+          # not look like it invalidated a green PR push.
           {
-            echo "<!-- ci-summary:${{ github.workflow }} -->"
-            echo "### CI Summary — $overall"
+            echo "<!-- ci-summary:${{ github.workflow }}:${EVENT_NAME} -->"
+            echo "### CI Summary (\`${EVENT_NAME}\`) — $overall"
             echo ""
-            echo "[Run #$RUN_ID]($RUN_URL) · trigger \`$EVENT_NAME\` · :white_check_mark: $n_pass · :fast_forward: $n_skip · :x: $n_fail · :no_entry: $n_cancel"
+            echo "[Run #$RUN_ID]($RUN_URL) · :white_check_mark: $n_pass · :fast_forward: $n_skip · :x: $n_fail · :no_entry: $n_cancel"
             echo ""
 
             failed=$(jq -r 'to_entries[] | select(.value.result == "failure" or .value.result == "cancelled") | .key' <<< "$NEEDS_JSON" || true)
@@ -624,7 +625,7 @@ jobs:
         if: env.PR_NUMBER != ''
         run: |
           set -euo pipefail
-          marker="<!-- ci-summary:${{ github.workflow }} -->"
+          marker="<!-- ci-summary:${{ github.workflow }}:${EVENT_NAME} -->"
           existing=$(gh api --paginate "repos/$REPO/issues/$PR_NUMBER/comments" \
             --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -1 || true)
           if [ -n "$existing" ]; then

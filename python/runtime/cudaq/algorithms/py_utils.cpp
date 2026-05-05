@@ -25,16 +25,17 @@ nanobind::dict get_serializable_var_dict() {
       auto key = item.first;
       auto value = item.second;
 
-      if (nanobind::cast<std::string>(key).starts_with("__")) {
+      std::string keyStr(nanobind::str(key).c_str());
+      if (keyStr.starts_with("__")) {
         // Ignore items that start with "__" (like Python __builtins__, etc.)
       } else if (nanobind::hasattr(value, "to_json")) {
-        auto type = value.type();
-        std::string module =
-            nanobind::cast<std::string>(type.attr("__module__"));
-        std::string name = nanobind::cast<std::string>(type.attr("__name__"));
+        auto type = nanobind::handle(
+            reinterpret_cast<PyObject *>(Py_TYPE(value.ptr())));
+        std::string module(nanobind::str(type.attr("__module__")).c_str());
+        std::string name(nanobind::str(type.attr("__name__")).c_str());
         auto type_name = nanobind::str((module + "." + name).c_str());
-        auto json_key_name = nanobind::str(nanobind::str(key).c_str()) +
-                             nanobind::str("/") + type_name;
+        nanobind::str json_key_name(
+            (keyStr + "/" + module + "." + name).c_str());
         serialized_dict[json_key_name] =
             json.attr("loads")(value.attr("to_json")());
       } else if (nanobind::hasattr(value, "tolist")) {
@@ -44,12 +45,7 @@ nanobind::dict get_serializable_var_dict() {
         serialized_dict[key] = json.attr("loads")(json.attr("dumps")(value));
       }
     } catch (const nanobind::python_error &e) {
-      // Uncomment the following lines for debug, but all this really means is
-      // that we won't send this to the remote server.
-
-      // std::cout << "Failed to serialize key '"
-      //           << nanobind::cast<std::string>(item.first)
-      //           << "' : " + std::string(e.what()) << std::endl;
+      // Serialization failures are non-fatal - we just skip the entry.
     }
   };
 
@@ -60,7 +56,7 @@ nanobind::dict get_serializable_var_dict() {
   std::vector<nanobind::object> frame_vec;
   auto current_frame = inspect.attr("currentframe")();
   while (current_frame && !current_frame.is_none()) {
-    frame_vec.push_back(current_frame);
+    frame_vec.push_back(nanobind::object(current_frame));
     current_frame = current_frame.attr("f_back");
   }
 
@@ -68,8 +64,7 @@ nanobind::dict get_serializable_var_dict() {
   // globals first to locals last. This ensures that the overwrites give
   // precedence to closest-to-locals.
   for (auto it = frame_vec.rbegin(); it != frame_vec.rend(); ++it) {
-    nanobind::dict f_locals =
-        nanobind::cast<nanobind::dict>(it->attr("f_locals"));
+    nanobind::dict f_locals = it->attr("f_locals");
     for (const auto item : f_locals)
       try_to_add_item(item);
   }
@@ -133,20 +128,18 @@ std::string get_var_name_for_handle(const nanobind::handle &h) {
   // Search locals first, walking up the call stack
   auto current_frame = inspect.attr("currentframe")();
   while (current_frame && !current_frame.is_none()) {
-    nanobind::dict f_locals =
-        nanobind::cast<nanobind::dict>(current_frame.attr("f_locals"));
+    nanobind::dict f_locals = current_frame.attr("f_locals");
     for (auto item : f_locals)
       if (item.second.is(h))
-        return nanobind::cast<std::string>(nanobind::str(item.first));
+        return std::string(nanobind::str(item.first).c_str());
     current_frame = current_frame.attr("f_back");
   }
   // Search globals now
   current_frame = inspect.attr("currentframe")();
-  nanobind::dict f_globals =
-      nanobind::cast<nanobind::dict>(current_frame.attr("f_globals"));
+  nanobind::dict f_globals = current_frame.attr("f_globals");
   for (auto item : f_globals)
     if (item.second.is(h))
-      return nanobind::cast<std::string>(nanobind::str(item.first));
+      return std::string(nanobind::str(item.first).c_str());
   return std::string();
 }
 
@@ -163,6 +156,18 @@ void bindPyDataClassRegistry(nanobind::module_ &mod) {
                   "Is class registered\n")
       .def_static("getClassAttributes", &DataClassRegistry::getClassAttributes,
                   "Find registered class and its attributes\n")
-      .def_ro_static("classes", &DataClassRegistry::classes);
+      .def_static(
+          "get_classes",
+          []() -> decltype(DataClassRegistry::classes) & {
+            return DataClassRegistry::classes;
+          },
+          nanobind::rv_policy::reference, "Get all registered classes.")
+      .def_prop_ro_static(
+          "classes",
+          [](nanobind::handle /*cls*/)
+              -> decltype(DataClassRegistry::classes) & {
+            return DataClassRegistry::classes;
+          },
+          nanobind::rv_policy::reference, "Get all registered classes.");
 }
 } // namespace cudaq

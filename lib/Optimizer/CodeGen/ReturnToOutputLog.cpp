@@ -12,18 +12,16 @@
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
-
-#define DEBUG_TYPE "return-to-output-log"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_RETURNTOOUTPUTLOG
 #include "cudaq/Optimizer/CodeGen/Passes.h.inc"
 } // namespace cudaq::opt
+
+#define DEBUG_TYPE "return-to-output-log"
 
 using namespace mlir;
 
@@ -58,9 +56,9 @@ public:
             labelStr = prefix->str();
           Value label = makeLabel(loc, rewriter, labelStr);
           if (intTy.getWidth() == 1) {
-            rewriter.create<func::CallOp>(loc, TypeRange{},
-                                          cudaq::opt::QIRBoolRecordOutput,
-                                          ArrayRef<Value>{val, label});
+            func::CallOp::create(rewriter, loc, TypeRange{},
+                                 cudaq::opt::QIRBoolRecordOutput,
+                                 ArrayRef<Value>{val, label});
             return;
           }
           // Integer: convert to (signed) i64. The decoder *must* lop off any
@@ -68,14 +66,15 @@ public:
           // bits by examining the real integer type.
           Value castVal = val;
           if (intTy.getWidth() < 64)
-            castVal = rewriter.create<cudaq::cc::CastOp>(
-                loc, rewriter.getI64Type(), val, cudaq::cc::CastOpMode::Signed);
+            castVal =
+                cudaq::cc::CastOp::create(rewriter, loc, rewriter.getI64Type(),
+                                          val, cudaq::cc::CastOpMode::Signed);
           else if (intTy.getWidth() > 64)
-            castVal = rewriter.create<cudaq::cc::CastOp>(
-                loc, rewriter.getI64Type(), val);
-          rewriter.create<func::CallOp>(loc, TypeRange{},
-                                        cudaq::opt::QIRIntegerRecordOutput,
-                                        ArrayRef<Value>{castVal, label});
+            castVal = cudaq::cc::CastOp::create(rewriter, loc,
+                                                rewriter.getI64Type(), val);
+          func::CallOp::create(rewriter, loc, TypeRange{},
+                               cudaq::opt::QIRIntegerRecordOutput,
+                               ArrayRef<Value>{castVal, label});
         })
         .Case([&](FloatType floatTy) {
           int width = floatTy.getWidth();
@@ -86,11 +85,11 @@ public:
           // Floating point: convert it to double, whatever it actually is.
           Value castVal = val;
           if (floatTy != rewriter.getF64Type())
-            castVal = rewriter.create<cudaq::cc::CastOp>(
-                loc, rewriter.getF64Type(), val);
-          rewriter.create<func::CallOp>(loc, TypeRange{},
-                                        cudaq::opt::QIRDoubleRecordOutput,
-                                        ArrayRef<Value>{castVal, label});
+            castVal = cudaq::cc::CastOp::create(rewriter, loc,
+                                                rewriter.getF64Type(), val);
+          func::CallOp::create(rewriter, loc, TypeRange{},
+                               cudaq::opt::QIRDoubleRecordOutput,
+                               ArrayRef<Value>{castVal, label});
         })
         .Case([&](cudaq::cc::StructType structTy) {
           auto labelStr = translateType(structTy);
@@ -98,15 +97,15 @@ public:
             labelStr = prefix->str();
           Value label = makeLabel(loc, rewriter, labelStr);
           std::int32_t sz = structTy.getNumMembers();
-          Value size = rewriter.create<arith::ConstantIntOp>(loc, sz, 64);
-          rewriter.create<func::CallOp>(loc, TypeRange{},
-                                        cudaq::opt::QIRTupleRecordOutput,
-                                        ArrayRef<Value>{size, label});
+          Value size = arith::ConstantIntOp::create(rewriter, loc, sz, 64);
+          func::CallOp::create(rewriter, loc, TypeRange{},
+                               cudaq::opt::QIRTupleRecordOutput,
+                               ArrayRef<Value>{size, label});
           std::string preStr = prefix ? prefix->str() : std::string{};
           for (std::int32_t i = 0; i < sz; ++i) {
             std::string offset = preStr + std::string(".") + std::to_string(i);
-            Value w = rewriter.create<cudaq::cc::ExtractValueOp>(
-                loc, structTy.getMember(i), val,
+            Value w = cudaq::cc::ExtractValueOp::create(
+                rewriter, loc, structTy.getMember(i), val,
                 ArrayRef<cudaq::cc::ExtractValueArg>{i});
             genOutputLog(loc, rewriter, w, offset, allowDynamic);
           }
@@ -115,16 +114,16 @@ public:
           auto labelStr = translateType(arrTy);
           Value label = makeLabel(loc, rewriter, labelStr);
           std::int32_t sz = arrTy.getSize();
-          Value size = rewriter.create<arith::ConstantIntOp>(loc, sz, 64);
-          rewriter.create<func::CallOp>(loc, TypeRange{},
-                                        cudaq::opt::QIRArrayRecordOutput,
-                                        ArrayRef<Value>{size, label});
+          Value size = arith::ConstantIntOp::create(rewriter, loc, sz, 64);
+          func::CallOp::create(rewriter, loc, TypeRange{},
+                               cudaq::opt::QIRArrayRecordOutput,
+                               ArrayRef<Value>{size, label});
           std::string preStr = prefix ? prefix->str() : std::string{};
           for (std::int32_t i = 0; i < sz; ++i) {
             std::string offset = preStr + std::string("[") + std::to_string(i) +
                                  std::string("]");
-            Value w = rewriter.create<cudaq::cc::ExtractValueOp>(
-                loc, arrTy.getElementType(), val,
+            Value w = cudaq::cc::ExtractValueOp::create(
+                rewriter, loc, arrTy.getElementType(), val,
                 ArrayRef<cudaq::cc::ExtractValueArg>{i});
             genOutputLog(loc, rewriter, w, offset, allowDynamic);
           }
@@ -138,24 +137,42 @@ public:
               std::int32_t sz = *maybeLen;
               auto labelStr = translateType(vecTy, sz);
               Value label = makeLabel(loc, rewriter, labelStr);
-              Value size = rewriter.create<arith::ConstantIntOp>(loc, sz, 64);
-              rewriter.create<func::CallOp>(loc, TypeRange{},
-                                            cudaq::opt::QIRArrayRecordOutput,
-                                            ArrayRef<Value>{size, label});
+              Value size = arith::ConstantIntOp::create(rewriter, loc, sz, 64);
+              func::CallOp::create(rewriter, loc, TypeRange{},
+                                   cudaq::opt::QIRArrayRecordOutput,
+                                   ArrayRef<Value>{size, label});
               std::string preStr = prefix ? prefix->str() : std::string{};
               Value rawBuffer = vecInit.getBuffer();
+              if (auto callOp = rawBuffer.getDefiningOp<func::CallOp>()) {
+                if (callOp.getCallee() == "__nvqpp_vectorCopyCtor" &&
+                    callOp.getNumOperands() >= 1) {
+                  rawBuffer = callOp.getOperand(0);
+                } else if (callOp.getCallee() == "malloc") {
+                  for (auto *user : rawBuffer.getUsers()) {
+                    auto memcpy = dyn_cast<func::CallOp>(user);
+                    if (memcpy &&
+                        memcpy.getCallee().starts_with("llvm.memcpy") &&
+                        memcpy.getNumOperands() >= 2 &&
+                        memcpy.getOperand(0) == rawBuffer) {
+                      rawBuffer = memcpy.getOperand(1);
+                      break;
+                    }
+                  }
+                }
+              }
               auto eleTy = vecTy.getElementType();
               auto buffTy = cudaq::cc::PointerType::get(eleTy);
               auto ptrArrTy =
                   cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(eleTy));
               Value buffer =
-                  rewriter.create<cudaq::cc::CastOp>(loc, ptrArrTy, rawBuffer);
+                  cudaq::cc::CastOp::create(rewriter, loc, ptrArrTy, rawBuffer);
               for (std::int32_t i = 0; i < sz; ++i) {
                 std::string offset = preStr + std::string("[") +
                                      std::to_string(i) + std::string("]");
-                auto v = rewriter.create<cudaq::cc::ComputePtrOp>(
-                    loc, buffTy, buffer, ArrayRef<cudaq::cc::ComputePtrArg>{i});
-                Value w = rewriter.create<cudaq::cc::LoadOp>(loc, v);
+                auto v = cudaq::cc::ComputePtrOp::create(
+                    rewriter, loc, buffTy, buffer,
+                    ArrayRef<cudaq::cc::ComputePtrArg>{i});
+                Value w = cudaq::cc::LoadOp::create(rewriter, loc, v);
                 genOutputLog(loc, rewriter, w, offset, allowDynamic);
               }
               return;
@@ -165,46 +182,46 @@ public:
             return;
           auto eleTy = vecTy.getElementType();
           auto i8PtrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
-          Value size = rewriter.create<cudaq::cc::StdvecSizeOp>(
-              loc, rewriter.getI64Type(), val);
+          Value size = cudaq::cc::StdvecSizeOp::create(
+              rewriter, loc, rewriter.getI64Type(), val);
           Value rawData =
-              rewriter.create<cudaq::cc::StdvecDataOp>(loc, i8PtrTy, val);
+              cudaq::cc::StdvecDataOp::create(rewriter, loc, i8PtrTy, val);
           if (auto intTy = dyn_cast<IntegerType>(eleTy)) {
             if (eleTy == rewriter.getI1Type()) {
-              rewriter.create<func::CallOp>(loc, TypeRange{},
-                                            cudaq::opt::QIRBoolSpanRecordOutput,
-                                            ArrayRef<Value>{rawData, size});
+              func::CallOp::create(rewriter, loc, TypeRange{},
+                                   cudaq::opt::QIRBoolSpanRecordOutput,
+                                   ArrayRef<Value>{rawData, size});
             } else {
               std::int32_t byteSize = (intTy.getWidth() + 7) / 8;
               Value elemSize =
-                  rewriter.create<arith::ConstantIntOp>(loc, byteSize, 32);
-              rewriter.create<func::CallOp>(
-                  loc, TypeRange{}, cudaq::opt::QIRIntSpanRecordOutput,
-                  ArrayRef<Value>{rawData, size, elemSize});
+                  arith::ConstantIntOp::create(rewriter, loc, byteSize, 32);
+              func::CallOp::create(rewriter, loc, TypeRange{},
+                                   cudaq::opt::QIRIntSpanRecordOutput,
+                                   ArrayRef<Value>{rawData, size, elemSize});
             }
           } else if (isa<FloatType>(eleTy)) {
             auto floatTy = cast<FloatType>(eleTy);
             std::int32_t byteSize = floatTy.getWidth() / 8;
             Value elemSize =
-                rewriter.create<arith::ConstantIntOp>(loc, byteSize, 32);
-            rewriter.create<func::CallOp>(
-                loc, TypeRange{}, cudaq::opt::QIRFloatSpanRecordOutput,
-                ArrayRef<Value>{rawData, size, elemSize});
+                arith::ConstantIntOp::create(rewriter, loc, byteSize, 32);
+            func::CallOp::create(rewriter, loc, TypeRange{},
+                                 cudaq::opt::QIRFloatSpanRecordOutput,
+                                 ArrayRef<Value>{rawData, size, elemSize});
           } else {
             // Unsupported element type — trap.
             LLVM_DEBUG(llvm::dbgs()
                        << "ReturnToOutputLog -- unsupported element type: "
                        << eleTy << "\n");
-            Value one = rewriter.create<arith::ConstantIntOp>(loc, 1, 64);
-            rewriter.create<func::CallOp>(loc, TypeRange{}, cudaq::opt::QISTrap,
-                                          ValueRange{one});
+            Value one = arith::ConstantIntOp::create(rewriter, loc, 1, 64);
+            func::CallOp::create(rewriter, loc, TypeRange{},
+                                 cudaq::opt::QISTrap, ValueRange{one});
           }
         })
         .Default([&](Type) {
           // If we reach here, we don't know how to handle this type.
-          Value one = rewriter.create<arith::ConstantIntOp>(loc, 1, 64);
-          rewriter.create<func::CallOp>(loc, TypeRange{}, cudaq::opt::QISTrap,
-                                        ValueRange{one});
+          Value one = arith::ConstantIntOp::create(rewriter, loc, 1, 64);
+          func::CallOp::create(rewriter, loc, TypeRange{}, cudaq::opt::QISTrap,
+                               ValueRange{one});
         });
   }
 
@@ -232,9 +249,12 @@ public:
       return {std::string("array<") + translateType(arrTy.getElementType()) +
               std::string(" x ") + std::to_string(size) + std::string(">")};
     }
-    if (auto arrTy = dyn_cast<cudaq::cc::StdvecType>(ty))
+    if (auto arrTy = dyn_cast<cudaq::cc::StdvecType>(ty)) {
+      if (!vecSz)
+        return {"error"};
       return {std::string("array<") + translateType(arrTy.getElementType()) +
               std::string(" x ") + std::to_string(*vecSz) + std::string(">")};
+    }
     return {"error"};
   }
 
@@ -242,10 +262,10 @@ public:
                          StringRef label) {
     auto strLitTy = cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(
         rewriter.getContext(), rewriter.getI8Type(), label.size() + 1));
-    Value lit = rewriter.create<cudaq::cc::CreateStringLiteralOp>(
-        loc, strLitTy, rewriter.getStringAttr(label));
+    Value lit = cudaq::cc::CreateStringLiteralOp::create(
+        rewriter, loc, strLitTy, rewriter.getStringAttr(label));
     auto i8PtrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
-    return rewriter.create<cudaq::cc::CastOp>(loc, i8PtrTy, lit);
+    return cudaq::cc::CastOp::create(rewriter, loc, i8PtrTy, lit);
   }
 
   bool allowDynamic;
@@ -287,7 +307,7 @@ struct ReturnToOutputLogPass
     RewritePatternSet patterns(ctx);
     patterns.insert<ReturnRewrite>(ctx, allowDynamicResult);
     LLVM_DEBUG(llvm::dbgs() << "Before return to output logging:\n" << module);
-    if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
+    if (failed(applyPatternsGreedily(module, std::move(patterns))))
       signalPassFailure();
     LLVM_DEBUG(llvm::dbgs() << "After return to output logging:\n" << module);
   }

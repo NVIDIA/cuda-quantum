@@ -27,25 +27,27 @@ enum class pauli;
 
 #define HANDLER_SPECIFIC_TEMPLATE(ConcreteTy)                                  \
   template <typename T = HandlerTy,                                            \
-            std::enable_if_t<std::is_same<T, ConcreteTy>::value &&             \
-                                 std::is_same<HandlerTy, T>::value,            \
-                             bool> = true>
+            typename = std::enable_if_t<std::is_same<T, ConcreteTy>::value &&  \
+                                        std::is_same<HandlerTy, T>::value>,    \
+            ConcreteTy * = nullptr>
 
 #define PROPERTY_SPECIFIC_TEMPLATE(property)                                   \
   template <typename T = HandlerTy,                                            \
-            std::enable_if_t<std::is_same<HandlerTy, T>::value && property,    \
-                             std::true_type> = std::true_type()>
+            typename = std::enable_if_t<std::is_same<HandlerTy, T>::value &&   \
+                                        property>,                             \
+            std::true_type = std::true_type{}>
 
 #define PROPERTY_AGNOSTIC_TEMPLATE(property)                                   \
   template <typename T = HandlerTy,                                            \
-            std::enable_if_t<std::is_same<HandlerTy, T>::value && !property,   \
-                             std::false_type> = std::false_type()>
+            typename = std::enable_if_t<std::is_same<HandlerTy, T>::value &&   \
+                                        !property>,                            \
+            std::false_type = std::false_type{}>
 
 #define SPIN_OPS_BACKWARD_COMPATIBILITY(deprecation_message)                   \
   template <typename T = HandlerTy,                                            \
-            std::enable_if_t<std::is_same<HandlerTy, spin_handler>::value &&   \
-                                 std::is_same<HandlerTy, T>::value,            \
-                             bool> = true>                                     \
+            typename = std::enable_if_t<                                       \
+                std::is_same<HandlerTy, spin_handler>::value &&                \
+                std::is_same<HandlerTy, T>::value>>                            \
   [[deprecated(deprecation_message)]]
 
 /// @brief Represents a sum of operator products in a quantum operator algebra.
@@ -192,11 +194,10 @@ public:
   /// product_op<HandlerTy> types.
   /// @param args One or more product operator objects used in the summation
   /// operation.
-  template <typename... Args,
-            std::enable_if_t<std::conjunction<std::is_same<
-                                 product_op<HandlerTy>, Args>...>::value &&
-                                 sizeof...(Args),
-                             bool> = true>
+  template <typename... Args, typename = std::enable_if_t<
+                                  std::conjunction<std::is_same<
+                                      product_op<HandlerTy>, Args>...>::value &&
+                                  sizeof...(Args)>>
   sum_op(Args &&...args);
 
   /// @brief Constructs a sum_op instance from a given product_op instance.
@@ -208,10 +209,9 @@ public:
   /// instantiated with a different type.
   /// @tparam T The type of the other sum_op object, which must not be HandlerTy
   /// and must be constructible to HandlerTy.
-  template <typename T,
-            std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
-                                 std::is_constructible<HandlerTy, T>::value,
-                             bool> = true>
+  template <typename T, typename = std::enable_if_t<
+                            !std::is_same<T, HandlerTy>::value &&
+                            std::is_constructible<HandlerTy, T>::value>>
   sum_op(const sum_op<T> &other);
 
   /// @brief Constructs a new sum_op object from an existing sum_op of a
@@ -220,11 +220,10 @@ public:
   /// construction.
   /// @param behavior The commutation behavior to be applied during
   /// construction.
-  template <typename T,
-            std::enable_if_t<std::is_same<HandlerTy, matrix_handler>::value &&
-                                 !std::is_same<T, HandlerTy>::value &&
-                                 std::is_constructible<HandlerTy, T>::value,
-                             bool> = true>
+  template <typename T, typename = std::enable_if_t<
+                            std::is_same<HandlerTy, matrix_handler>::value &&
+                            !std::is_same<T, HandlerTy>::value &&
+                            std::is_constructible<HandlerTy, T>::value>>
   sum_op(const sum_op<T> &other,
          const matrix_handler::commutation_behavior &behavior);
 
@@ -244,10 +243,9 @@ public:
   /// sum_op<HandlerTy>. It is only enabled when T is not the same as HandlerTy
   /// and when HandlerTy is constructible from T. This constraint ensures that
   /// only compatible types are allowed in the assignment operation.
-  template <typename T,
-            std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
-                                 std::is_constructible<HandlerTy, T>::value,
-                             bool> = true>
+  template <typename T, typename = std::enable_if_t<
+                            !std::is_same<T, HandlerTy>::value &&
+                            std::is_constructible<HandlerTy, T>::value>>
   sum_op<HandlerTy> &operator=(const product_op<T> &other);
 
   /// @brief Assign a product_op object to a sum_op object.
@@ -267,10 +265,9 @@ public:
   /// @tparam T The type of the sum_op object being assigned from.
   /// @param other The sum_op object with type T to be assigned.
   /// @return A reference to the current sum_op object after assignment.
-  template <typename T,
-            std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
-                                 std::is_constructible<HandlerTy, T>::value,
-                             bool> = true>
+  template <typename T, typename = std::enable_if_t<
+                            !std::is_same<T, HandlerTy>::value &&
+                            std::is_constructible<HandlerTy, T>::value>>
   sum_op<HandlerTy> &operator=(const sum_op<T> &other);
 
   /// @brief Performs a copy assignment of one sum_op to another.
@@ -941,10 +938,8 @@ protected:
   std::vector<HandlerTy> operators;
   scalar_operator coefficient;
 
-  template <typename... Args,
-            std::enable_if_t<
-                std::conjunction<std::is_same<HandlerTy, Args>...>::value,
-                bool> = true>
+  template <typename... Args, typename = std::enable_if_t<std::conjunction<
+                                  std::is_same<HandlerTy, Args>...>::value>>
   product_op(scalar_operator coefficient, Args &&...args);
 
   // keep this constructor protected (otherwise it needs to ensure canonical
@@ -1116,10 +1111,9 @@ public:
   /// if HandlerTy can be constructed from T. It allows implicit conversion
   /// between different instantiations of product_op.
   /// @param other The product_op instance to copy from.
-  template <typename T,
-            std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
-                                 std::is_constructible<HandlerTy, T>::value,
-                             bool> = true>
+  template <typename T, typename = std::enable_if_t<
+                            !std::is_same<T, HandlerTy>::value &&
+                            std::is_constructible<HandlerTy, T>::value>>
   product_op(const product_op<T> &other);
 
   /// @brief Constructs a product operator from an existing product operator
@@ -1134,11 +1128,10 @@ public:
   /// object.
   /// @param behavior The commutation behavior to be used with the
   /// matrix_handler.
-  template <typename T,
-            std::enable_if_t<std::is_same<HandlerTy, matrix_handler>::value &&
-                                 !std::is_same<T, HandlerTy>::value &&
-                                 std::is_constructible<HandlerTy, T>::value,
-                             bool> = true>
+  template <typename T, typename = std::enable_if_t<
+                            std::is_same<HandlerTy, matrix_handler>::value &&
+                            !std::is_same<T, HandlerTy>::value &&
+                            std::is_constructible<HandlerTy, T>::value>>
   product_op(const product_op<T> &other,
              const matrix_handler::commutation_behavior &behavior);
 
@@ -1170,10 +1163,9 @@ public:
   /// product_op instance of type T into one of type HandlerTy.
   /// @tparam T The type of the product_op to be assigned from, which must
   /// satisfy that it is not HandlerTy and is constructible as HandlerTy.
-  template <typename T,
-            std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
-                                 std::is_constructible<HandlerTy, T>::value,
-                             bool> = true>
+  template <typename T, typename = std::enable_if_t<
+                            !std::is_same<T, HandlerTy>::value &&
+                            std::is_constructible<HandlerTy, T>::value>>
   product_op<HandlerTy> &operator=(const product_op<T> &other);
 
   /// @brief Assignment operator for the product_op class.

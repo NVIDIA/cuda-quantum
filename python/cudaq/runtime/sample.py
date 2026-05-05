@@ -92,8 +92,10 @@ def _detail_check_conditionals_on_measure(kernel):
         # Only check for kernels that can be compiled, not library-mode kernels (e.g., photonics)
         if kernel.supports_compilation():
             for operation in kernel.qkeModule.body.operations:
-                if (hasattr(operation, 'name') and nvqppPrefix + kernel.uniqName
-                        == operation.name.value and
+                op_name = getattr(operation.name,
+                                  'value', operation.name) if hasattr(
+                                      operation, 'name') else None
+                if (op_name == nvqppPrefix + kernel.uniqName and
                         'qubitMeasurementFeedback' in operation.attributes):
                     has_conditionals_on_measure_result = True
     elif isinstance(kernel, PyKernel) and kernel.conditionalOnMeasure:

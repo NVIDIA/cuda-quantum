@@ -111,5 +111,8 @@ public:
     void *argData = packed ? packed->data.data() : nullptr;
     return launchKernelCommon(kernelName, kernelFunc, argData);
   }
+
+  void launchKernel(const std::string &kernelName,
+                    const std::vector<void *> &rawArgs);
 };
 } // namespace cudaq

@@ -11,8 +11,8 @@
 # This scripts builds the clang and mlir project from the source in the LLVM submodule.
 # The binaries will be installed in the folder defined by the LLVM_INSTALL_PREFIX environment
 # variable, or in $HOME/.llvm if LLVM_INSTALL_PREFIX is not defined.
-# If Python bindings are generated, pybind11 will be built and installed in the location 
-# defined by PYBIND11_INSTALL_PREFIX unless that folder already exists.
+# If Python bindings are generated, nanobind will be built and installed in the location 
+# defined by NANOBIND_INSTALL_PREFIX unless that folder already exists.
 #
 # Usage:
 # bash scripts/build_llvm.sh
@@ -34,7 +34,7 @@
 
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-$HOME/.llvm}
 LLVM_PROJECTS=${LLVM_PROJECTS:-'clang;lld;mlir;python-bindings'}
-PYBIND11_INSTALL_PREFIX=${PYBIND11_INSTALL_PREFIX:-/usr/local/pybind11}
+NANOBIND_INSTALL_PREFIX=${NANOBIND_INSTALL_PREFIX:-/usr/local/nanobind}
 Python3_EXECUTABLE=${Python3_EXECUTABLE:-python3}
 
 # Process command line arguments.
@@ -75,12 +75,12 @@ if [ -z "${llvm_projects##*python-bindings;*}" ]; then
   mlir_python_bindings=ON
   projects=("${projects[@]/python-bindings}")
 
-  if [ ! -d "$PYBIND11_INSTALL_PREFIX" ] || [ -z "$(ls -A "$PYBIND11_INSTALL_PREFIX"/* 2> /dev/null)" ]; then
+  if [ ! -d "$NANOBIND_INSTALL_PREFIX" ] || [ -z "$(ls -A "$NANOBIND_INSTALL_PREFIX"/* 2> /dev/null)" ]; then
     cd "$this_file_dir" && cd $(git rev-parse --show-toplevel)
-    echo "Building PyBind11..."
-    git submodule update --init --recursive --recommend-shallow --single-branch tpls/pybind11 
-    mkdir -p "tpls/pybind11/build" && cd "tpls/pybind11/build"
-    cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" -DPYBIND11_TEST=False
+    echo "Building nanobind..."
+    git submodule update --init --recursive --recommend-shallow --single-branch tpls/nanobind
+    mkdir -p "tpls/nanobind/build" && cd "tpls/nanobind/build"
+    cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$NANOBIND_INSTALL_PREFIX" -DNB_TEST=False
     cmake --build . --target install --config Release
   fi
 fi
@@ -155,18 +155,14 @@ if [ -z "${llvm_projects##*clang;*}" ]; then
 fi
 if [ -z "${llvm_projects##*flang;*}" ]; then
   echo "- including Flang components"
-  llvm_components+="flang-new;"
+  llvm_components+="flang;"
   projects=("${projects[@]/flang}")
 fi
 if [ -z "${llvm_projects##*openmp;*}" ]; then
   echo "- including OpenMP components"
-  # There are no suitable distribution components for libomp. 
+  # There are no suitable distribution components for libomp.
   # We instead manually build suitable targets.
   install_targets+=" omp"
-  # omptarget (GPU offloading) is only available on Linux with CUDA
-  if [ "$(uname)" != "Darwin" ]; then
-    llvm_components+="omptarget;"
-  fi
   llvm_components+="openmp-resource-headers;"
   projects=("${projects[@]/openmp}")
 fi
@@ -181,7 +177,7 @@ if [ -z "${llvm_projects##*mlir;*}" ]; then
 fi
 if [ -z "${llvm_projects##*lld;*}" ]; then
   echo "- including LLD components"
-  llvm_enable_zlib=ON # certain system libraries are compressed with ELFCOMPRESS_ZLIB, requiring zlib support for lld
+  [ "${LLVM_ENABLE_ZLIB}" != "OFF" ] && llvm_enable_zlib=ON # certain system libraries are compressed with ELFCOMPRESS_ZLIB, requiring zlib support for lld
   llvm_components+="lld;"
   projects=("${projects[@]/lld}")
 fi
@@ -196,24 +192,17 @@ if [ "$(echo ${projects[@]} | xargs)" != "" ]; then
   install_targets="install $install_targets"
 else 
   install_targets="install-distribution-stripped $install_targets"
-  if [ -n "$mlir_python_bindings" ]; then
-    # Cherry-pick the necessary commit to have a distribution target
-    # for the mlir-python-sources; to be removed after we update to LLVM 17.
-    echo "Cherry-picking commit 9494bd84df3c5b496fc087285af9ff40d7859b6a"
-    git cherry-pick --no-commit 9494bd84df3c5b496fc087285af9ff40d7859b6a
-    if [ ! 0 -eq $? ]; then
-      echo "Cherry-pick failed."
-      if $(git rev-parse --is-shallow-repository); then
-        echo "Unshallow the repository and try again."
-        (return 0 2>/dev/null) && return 1 || exit 1
-      fi
-    fi
-  fi
 fi
 
 # A hack, since otherwise the build can fail due to line endings in the LLVM script:
 cat "$LLVM_SOURCE/llvm/cmake/config.guess" | tr -d '\r' > ~config.guess
 cat ~config.guess > "$LLVM_SOURCE/llvm/cmake/config.guess" && rm -rf ~config.guess
+
+# `-fno-gnu-unique` is GCC-only
+LLVM_EXTRA_CXX_FLAGS="-w"
+if "${CXX:-c++}" --version 2>&1 | grep -q "Free Software Foundation"; then
+  LLVM_EXTRA_CXX_FLAGS="$LLVM_EXTRA_CXX_FLAGS -fno-gnu-unique"
+fi
 
 # Some flags that may be useful to build a GPU-offload-capable compiler: 
 # targets_to_build="host;NVPTX"
@@ -222,6 +211,7 @@ cat ~config.guess > "$LLVM_SOURCE/llvm/cmake/config.guess" && rm -rf ~config.gue
 # maybe:  -DLLVM_RUNTIME_TARGETS='nvptx64-nvidia-cuda' \
 cmake_args=" \
   -DLLVM_DEFAULT_TARGET_TRIPLE='"$(bash $LLVM_SOURCE/llvm/cmake/config.guess)"' \
+  -DLLVM_TARGETS_TO_BUILD=host \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DCMAKE_INSTALL_PREFIX='"$LLVM_INSTALL_PREFIX"' \
   -DLLVM_ENABLE_PROJECTS='"${llvm_projects%;}"' \
@@ -232,7 +222,8 @@ cmake_args=" \
   -DPython3_EXECUTABLE='"$Python3_EXECUTABLE"' \
   -DMLIR_ENABLE_BINDINGS_PYTHON=$mlir_python_bindings \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-  -DCMAKE_CXX_FLAGS='-w'"
+  -DCMAKE_CXX_FLAGS='"$LLVM_EXTRA_CXX_FLAGS"' \
+  -Dnanobind_DIR=$NANOBIND_INSTALL_PREFIX/nanobind/cmake"
 
 if [ -z "$LLVM_CMAKE_CACHE" ]; then 
   LLVM_CMAKE_CACHE=`find "$this_file_dir/.." -path '*/cmake/caches/*' -name LLVM.cmake`
@@ -319,13 +310,17 @@ if [ -n "$llvm_runtimes" ]; then
     # We can use a default config file to set specific clang configurations.
     # See https://clang.llvm.org/docs/UsersManual.html#configuration-files
     clang_config_file="$LLVM_INSTALL_PREFIX/bin/clang++.cfg"
-    echo '-L"'$LLVM_INSTALL_PREFIX/lib'"' > "$clang_config_file"
+    if [ -f "$LLVM_INSTALL_PREFIX/bin/ld.lld" ]; then
+      echo '-fuse-ld=lld' > "$clang_config_file"
+    fi
+    echo '-L"'$LLVM_INSTALL_PREFIX/lib'"' >> "$clang_config_file"
     echo '-Wl,-rpath,"'$LLVM_INSTALL_PREFIX/lib'"' >> "$clang_config_file"
     target_specific_libs=`ls -d "$LLVM_INSTALL_PREFIX/lib"/*linux*`
     for libdir in $target_specific_libs; do
       echo '-L"'$libdir'"' >> "$clang_config_file"
       echo '-Wl,-rpath,"'$libdir'"' >> "$clang_config_file"
     done
+    cp "$clang_config_file" "$LLVM_INSTALL_PREFIX/bin/clang.cfg"
     echo "Added default configuration $clang_config_file."
   fi
 fi

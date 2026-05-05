@@ -44,17 +44,17 @@ def test_continue():
     # CHECK:             %[[VAL_17:.*]] = math.fpowi %[[VAL_16]], %[[VAL_2]] : f64, i64
     # CHECK:             %[[VAL_18:.*]] = arith.addf %[[VAL_16]], %[[VAL_17]] : f64
     # CHECK:             %[[VAL_19:.*]] = arith.cmpf ogt, %[[VAL_18]], %[[VAL_1]] : f64
-    # CHECK:             cf.cond_br %[[VAL_19]], ^bb1(%[[VAL_14]], %[[VAL_18]] : i64, f64), ^bb2(%[[VAL_14]], %[[VAL_18]] : i64, f64)
-    # CHECK:           ^bb1(%[[VAL_20:.*]]: i64, %[[VAL_21:.*]]: f64):
-    # CHECK:             %[[VAL_22:.*]] = arith.remui %[[VAL_20]], %[[VAL_6]] : i64
+    # CHECK:             cf.cond_br %[[VAL_19]], ^bb1, ^bb2
+    # CHECK:           ^bb1:
+    # CHECK:             %[[VAL_22:.*]] = arith.remui %[[VAL_14]], %[[VAL_6]] : i64
     # CHECK:             %[[VAL_23:.*]] = quake.extract_ref %[[VAL_8]]{{\[}}%[[VAL_22]]] : (!quake.veq<4>, i64) -> !quake.ref
     # CHECK:             quake.x %[[VAL_23]] : (!quake.ref) -> ()
-    # CHECK:             cc.continue %[[VAL_14]], %[[VAL_20]], %[[VAL_21]] : i64, i64, f64
-    # CHECK:           ^bb2(%[[VAL_24:.*]]: i64, %[[VAL_25:.*]]: f64):
-    # CHECK:             %[[VAL_26:.*]] = arith.remui %[[VAL_24]], %[[VAL_6]] : i64
+    # CHECK:             cc.continue %[[VAL_14]], %[[VAL_14]], %[[VAL_18]] : i64, i64, f64
+    # CHECK:           ^bb2:
+    # CHECK:             %[[VAL_26:.*]] = arith.remui %[[VAL_14]], %[[VAL_6]] : i64
     # CHECK:             %[[VAL_27:.*]] = quake.extract_ref %[[VAL_8]]{{\[}}%[[VAL_26]]] : (!quake.veq<4>, i64) -> !quake.ref
-    # CHECK:             quake.ry (%[[VAL_25]]) %[[VAL_27]] : (f64, !quake.ref) -> ()
-    # CHECK:             cc.continue %[[VAL_14]], %[[VAL_24]], %[[VAL_25]] : i64, i64, f64
+    # CHECK:             quake.ry (%[[VAL_18]]) %[[VAL_27]] : (f64, !quake.ref) -> ()
+    # CHECK:             cc.continue %[[VAL_14]], %[[VAL_14]], %[[VAL_18]] : i64, i64, f64
     # CHECK:           } step {
     # CHECK:           ^bb0(%[[VAL_28:.*]]: i64, %[[VAL_29:.*]]: i64, %[[VAL_30:.*]]: f64):
     # CHECK:             %[[VAL_31:.*]] = arith.addi %[[VAL_28]], %[[VAL_4]] : i64

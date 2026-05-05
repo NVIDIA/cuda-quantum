@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include <complex>
-#include <nanobind/make_iterator.h>
 #include <nanobind/ndarray.h>
 #include <nanobind/operators.h>
 #include <nanobind/stl/complex.h>
@@ -79,11 +78,11 @@ void bindSuperOperatorWrapper(nanobind::module_ &mod) {
       .def(
           "__iter__",
           [](super_op &self) {
-            return nanobind::make_iterator(nanobind::type<super_op>(),
-                                           "iterator", self.begin(),
-                                           self.end());
+            nanobind::list items;
+            for (auto it = self.begin(); it != self.end(); ++it)
+              items.append(nanobind::cast(*it));
+            return items.attr("__iter__")();
           },
-          nanobind::keep_alive<0, 1>(),
           "Loop through each term of the super-operator.")
       .def(nanobind::self += nanobind::self, nanobind::is_operator());
 }

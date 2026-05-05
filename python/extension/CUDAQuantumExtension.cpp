@@ -48,8 +48,8 @@
 #include "runtime/interop/PythonCppInteropDecls.h"
 #include "runtime/mlir/py_register_dialects.h"
 #include "utils/LinkedLibraryHolder.h"
-#include "utils/NanobindAdaptors.h"
 #include "utils/OpaqueArguments.h"
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/CAPI/Pass.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
@@ -65,7 +65,12 @@ using namespace cudaq;
 
 static std::unique_ptr<LinkedLibraryHolder> holder;
 
+extern "C" void cudaq_ensure_default_launcher_linked(void);
+
 NB_MODULE(_quakeDialects, m) {
+  // Ensure the TU that registers PythonLauncher ("default") is linked so
+  // kernel launches work without an explicit set_target().
+  cudaq_ensure_default_launcher_linked();
   holder = std::make_unique<LinkedLibraryHolder>();
 
   bindRegisterDialects(m);

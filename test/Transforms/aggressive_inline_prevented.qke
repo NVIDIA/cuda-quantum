@@ -80,4 +80,6 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp
 
 // CHECK-LABEL: func.func @__nvqpp__mlirgen__trotter
 // CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel
-// CHECK: func.call @__nvqpp__mlirgen__trotter
+// The trotter function is now inlined with the func inliner extension.
+// CHECK-NOT: func.call @__nvqpp__mlirgen__trotter
+// CHECK: quake.exp_pauli

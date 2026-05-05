@@ -397,7 +397,9 @@ def quake_ApplyOp : QuakeOp<"apply",
     Variadic<cc_CallableType>:$indirect_callee, // must be 0 or 1 element
     UnitAttr:$is_adj,
     Variadic<AnyQType>:$controls,
-    Variadic<AnyType>:$actuals
+    Variadic<AnyType>:$actuals,
+    OptionalAttr<DictArrayAttr>:$arg_attrs,
+    OptionalAttr<DictArrayAttr>:$res_attrs
   );
   let results = (outs Variadic<AnyType>);
 
@@ -411,7 +413,7 @@ def quake_ApplyOp : QuakeOp<"apply",
                    "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$args), [{
       return build($_builder, $_state, retTy, callee, {}, is_adj, controls,
-                   args);
+                   args, {}, {});
     }]>,
     OpBuilder<(ins "mlir::TypeRange":$retTy,
                    "mlir::SymbolRefAttr":$callee,
@@ -419,7 +421,7 @@ def quake_ApplyOp : QuakeOp<"apply",
                    "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$args), [{
       return build($_builder, $_state, retTy, callee, {}, is_adj, controls,
-                   args);
+                   args, {}, {});
     }]>,
     OpBuilder<(ins "mlir::TypeRange":$retTy,
                    "mlir::Value":$callable,
@@ -427,7 +429,7 @@ def quake_ApplyOp : QuakeOp<"apply",
                    "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$args), [{
       return build($_builder, $_state, retTy, mlir::SymbolRefAttr{},
-                   mlir::ValueRange{callable}, is_adj, controls, args);
+                   mlir::ValueRange{callable}, is_adj, controls, args, {}, {});
     }]>,
     OpBuilder<(ins "mlir::TypeRange":$retTy,
                    "mlir::Value":$callable,
@@ -435,7 +437,7 @@ def quake_ApplyOp : QuakeOp<"apply",
                    "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$args), [{
       return build($_builder, $_state, retTy, mlir::SymbolRefAttr{},
-                   mlir::ValueRange{callable}, is_adj, controls, args);
+                   mlir::ValueRange{callable}, is_adj, controls, args, {}, {});
     }]>
   ];
 
@@ -451,6 +453,14 @@ def quake_ApplyOp : QuakeOp<"apply",
       return {getActuals().begin(), getActuals().end()};
     }
 
+    mlir::MutableOperandRange getArgOperandsMutable() {
+      auto range0 = getODSOperandIndexAndLength(0);
+      auto range2 = getODSOperandIndexAndLength(2);
+      auto mutableRange = ::mlir::MutableOperandRange(getOperation(),
+        range0.first, range2.second);
+      return mutableRange;
+    }
+
     bool applyToVariant() {
       return getIsAdj() || !getControls().empty();
     }
@@ -460,6 +470,12 @@ def quake_ApplyOp : QuakeOp<"apply",
       if (getCallee())
         return (*this)->getAttrOfType<mlir::SymbolRefAttr>(getCalleeAttrName());
       return getIndirectCallee().front();
+    }
+
+    /// Set the callee for this operation.
+    void setCalleeFromCallable(mlir::CallInterfaceCallable callee) {
+      (*this)->setAttr(getCalleeAttrName(),
+                       llvm::cast<mlir::SymbolRefAttr>(callee));
     }
   }];
 }
@@ -629,7 +645,9 @@ def quake_CallByRefOp : QuakeOp<"call_by_ref", [CallOpInterface]> {
 
   let arguments = (ins
     SymbolRefAttr:$callee,
-    Variadic<AnyType>:$args
+    Variadic<AnyType>:$args,
+    OptionalAttr<DictArrayAttr>:$arg_attrs,
+    OptionalAttr<DictArrayAttr>:$res_attrs
   );
   let results = (outs Variadic<AnyType>);
 
@@ -637,15 +655,32 @@ def quake_CallByRefOp : QuakeOp<"call_by_ref", [CallOpInterface]> {
     $callee `(` $args `)` `:` functional-type(operands, results) attr-dict
   }];
 
+  let builders = [
+    OpBuilder<(ins "mlir::SymbolRefAttr":$callee,
+                   "mlir::TypeRange":$results,
+                   "mlir::ValueRange":$args), [{
+      return build($_builder, $_state, results, callee, args, {}, {});
+    }]>
+  ];
+
   let hasVerifier = 1;
 
   let extraClassDeclaration = [{
     operand_range getArgOperands() {
       return {operand_begin(), operand_end()};
     }
-    
+
+    mlir::MutableOperandRange getArgOperandsMutable() {
+      return getArgsMutable();
+    }
+
     mlir::CallInterfaceCallable getCallableForCallee() {
       return (*this)->getAttrOfType<mlir::SymbolRefAttr>(getCalleeAttrName());
+    }
+
+    void setCalleeFromCallable(mlir::CallInterfaceCallable callee) {
+      (*this)->setAttr(getCalleeAttrName(),
+                       llvm::cast<mlir::SymbolRefAttr>(callee));
     }
   }];
 }
@@ -1050,7 +1085,7 @@ def quake_ResetOp : QuakeOp<"reset", [QuantumGate,
   let extraClassDeclaration = [{
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::
         EffectInstance<mlir::MemoryEffects::Effect>> &effects) {
-      quake::getResetEffectsImpl(effects, getTargets());
+      quake::getResetEffectsImpl(effects, getTargetsMutable());
     }
   }];
 }
@@ -1087,7 +1122,7 @@ class Measurement<string mnemonic> : QuakeOp<mnemonic, [MeasurementInterface,
   code OpBaseDeclaration = [{
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
       mlir::MemoryEffects::Effect>> &effects) {
-      quake::getMeasurementEffectsImpl(effects, getTargets());
+      quake::getMeasurementEffectsImpl(effects, getTargetsMutable());
     }
   }];
 
@@ -1252,7 +1287,7 @@ class QuakeOperator<string mnemonic, list<Trait> traits = [],
 
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
       mlir::MemoryEffects::Effect>> &effects) {
-      quake::getOperatorEffectsImpl(effects, getControls(), getTargets());
+      quake::getOperatorEffectsImpl(effects, getControlsMutable(), getTargetsMutable());
     }
 
     //===------------------------------------------------------------------===//
@@ -1415,7 +1450,7 @@ def quake_ExpPauliOp : QuakeOp<"exp_pauli",
 
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
       mlir::MemoryEffects::Effect>> &effects) {
-      quake::getOperatorEffectsImpl(effects, getControls(), getTargets());
+      quake::getOperatorEffectsImpl(effects, getControlsMutable(), getTargetsMutable());
     }
 
     //===------------------------------------------------------------------===//

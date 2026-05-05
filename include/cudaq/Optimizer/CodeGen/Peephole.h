@@ -16,9 +16,9 @@
 #include "mlir/Support/LLVM.h"
 
 inline bool needsToBeRenamed(mlir::StringRef name) {
-  return name.startswith(cudaq::opt::QIRQISPrefix) &&
-         !name.endswith("__body") && !name.endswith("__adj") &&
-         !name.endswith("__ctl");
+  return name.starts_with(cudaq::opt::QIRQISPrefix) &&
+         !name.ends_with("__body") && !name.ends_with("__adj") &&
+         !name.ends_with("__ctl");
 }
 
 inline bool callToInvokeWithXCtrlOneTarget(mlir::StringRef callee,
@@ -26,7 +26,7 @@ inline bool callToInvokeWithXCtrlOneTarget(mlir::StringRef callee,
   if ((args.size() == 4) && (callee == cudaq::opt::NVQIRInvokeWithControlBits))
     if (auto addrOf = dyn_cast_or_null<mlir::LLVM::AddressOfOp>(
             args[1].getDefiningOp())) {
-      return addrOf.getGlobalName().startswith(
+      return addrOf.getGlobalName().starts_with(
           std::string(cudaq::opt::QIRQISPrefix) + "x__ctl");
     }
   return false;
@@ -41,14 +41,14 @@ static constexpr char resultIndexName[] = "result.index";
 inline mlir::Value createMeasureCall(mlir::PatternRewriter &builder,
                                      mlir::Location loc, mlir::LLVM::CallOp op,
                                      mlir::ValueRange args) {
-  auto ptrTy = cudaq::opt::getResultType(builder.getContext());
+  auto ptrTy = cudaq::cg::getLLVMResultType(builder.getContext());
   if (auto intAttr =
           dyn_cast_or_null<mlir::IntegerAttr>(op->getAttr(resultIndexName))) {
-    auto constOp = builder.create<mlir::LLVM::ConstantOp>(loc, intAttr);
-    auto cast = builder.create<mlir::LLVM::IntToPtrOp>(loc, ptrTy, constOp);
-    builder.create<mlir::LLVM::CallOp>(
-        loc, mlir::TypeRange{}, cudaq::opt::QIRMeasureBody,
-        mlir::ArrayRef<mlir::Value>{args[0], cast});
+    mlir::Value constOp = mlir::LLVM::ConstantOp::create(builder, loc, intAttr);
+    auto cast = mlir::LLVM::IntToPtrOp::create(builder, loc, ptrTy, constOp);
+    mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{},
+                               cudaq::opt::QIRMeasureBody,
+                               mlir::ArrayRef<mlir::Value>{args[0], cast});
     return cast;
   }
   op.emitError("mz op must have an associated result index.");
@@ -60,9 +60,8 @@ inline mlir::Value createReadResultCall(mlir::PatternRewriter &builder,
                                         mlir::Value result) {
   // NB: This code is only used from a deprecated pass.
   auto i1Ty = mlir::IntegerType::get(builder.getContext(), 1);
-  return builder
-      .create<mlir::LLVM::CallOp>(loc, mlir::TypeRange{i1Ty},
-                                  cudaq::opt::qir0_1::ReadResultBody,
-                                  mlir::ArrayRef<mlir::Value>{result})
+  return mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{i1Ty},
+                                    cudaq::opt::qir0_1::ReadResultBody,
+                                    mlir::ArrayRef<mlir::Value>{result})
       .getResult();
 }

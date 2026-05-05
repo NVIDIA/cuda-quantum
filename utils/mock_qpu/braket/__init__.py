@@ -30,7 +30,6 @@ createdJobs = {}
 # Could how many times the client has requested the Job
 countJobGetRequests = 0
 
-llvm.initialize()
 llvm.initialize_native_target()
 llvm.initialize_native_asmprinter()
 target = llvm.Target.from_default_triple()

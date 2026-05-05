@@ -83,11 +83,11 @@ Returns:
       .def(
           "__iter__",
           [](sample_result &self) {
-            return nanobind::make_key_iterator(nanobind::type<sample_result>(),
-                                               "key_iterator", self.begin(),
-                                               self.end());
+            nanobind::list keys;
+            for (auto it = self.begin(); it != self.end(); ++it)
+              keys.append(nanobind::cast(it->first));
+            return keys.attr("__iter__")();
           },
-          nanobind::keep_alive<0, 1>(),
           "Iterate through the :class:`SampleResult` dictionary.\n")
       .def("expectation", &sample_result::expectation,
            nanobind::arg("register_name") = GlobalRegisterName,
@@ -182,21 +182,21 @@ Returns:
       .def(
           "items",
           [](sample_result &self) {
-            return nanobind::make_iterator(nanobind::type<sample_result>(),
-                                           "item_iterator", self.begin(),
-                                           self.end());
+            nanobind::list items;
+            for (auto it = self.begin(); it != self.end(); ++it)
+              items.append(nanobind::make_tuple(it->first, it->second));
+            return items.attr("__iter__")();
           },
-          nanobind::keep_alive<0, 1>(),
           "Return the key/value pairs in this :class:`SampleResult` "
           "dictionary.\n")
       .def(
           "values",
           [](sample_result &self) {
-            return nanobind::make_value_iterator(
-                nanobind::type<sample_result>(), "value_iterator", self.begin(),
-                self.end());
+            nanobind::list values;
+            for (auto it = self.begin(); it != self.end(); ++it)
+              values.append(nanobind::cast(it->second));
+            return values.attr("__iter__")();
           },
-          nanobind::keep_alive<0, 1>(),
           "Return all values (the counts) in this :class:`SampleResult` "
           "dictionary.\n")
       .def(nanobind::self += nanobind::self)

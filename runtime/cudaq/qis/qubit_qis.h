@@ -135,7 +135,7 @@ void oneQubitApplyControlledRange(QubitRange &ctrls, qubit &target) {
 #define CUDAQ_QIS_ONE_TARGET_QUBIT_(NAME)                                      \
   namespace types {                                                            \
   struct NAME {                                                                \
-    inline static const std::string name{#NAME};                               \
+    static constexpr std::string_view name{#NAME};                             \
   };                                                                           \
   }                                                                            \
   template <typename mod = base, typename... QubitArgs>                        \
@@ -223,7 +223,7 @@ void oneQubitSingleParameterControlledRange(ScalarAngle angle,
 #define CUDAQ_QIS_PARAM_ONE_TARGET_(NAME)                                      \
   namespace types {                                                            \
   struct NAME {                                                                \
-    inline static const std::string name{#NAME};                               \
+    static constexpr std::string_view name{#NAME};                             \
   };                                                                           \
   }                                                                            \
   template <typename mod = base, typename ScalarAngle, typename... QubitArgs>  \
@@ -247,7 +247,7 @@ CUDAQ_QIS_PARAM_ONE_TARGET_(r1)
 
 namespace types {
 struct u3 {
-  inline static const std::string name{"u3"};
+  static constexpr std::string_view name{"u3"};
 };
 } // namespace types
 
@@ -297,7 +297,7 @@ void u3(ScalarAngle theta, ScalarAngle phi, ScalarAngle lambda,
 // Define the swap gate instruction and control versions of it
 namespace types {
 struct swap {
-  inline static const std::string name{"swap"};
+  static constexpr std::string_view name{"swap"};
 };
 } // namespace types
 

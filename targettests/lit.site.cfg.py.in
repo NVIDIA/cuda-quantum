@@ -71,6 +71,13 @@ if cmake_boolvar_to_bool(config.cudaq_backends_quantum_machines):
 else:
   config.substitutions.append(('%quantum_machines_avail', 'false'))
 
+config.cudaq_stim_backend_disabled = "@CUDAQ_ENABLE_ASSERTIONS@"
+if cmake_boolvar_to_bool(config.cudaq_stim_backend_disabled):
+  config.substitutions.append(('%stim_avail', 'false'))
+else:
+  config.available_features.add('stim')
+  config.substitutions.append(('%stim_avail', 'true'))
+
 import lit.llvm
 lit.llvm.initialize(lit_config, config)
 

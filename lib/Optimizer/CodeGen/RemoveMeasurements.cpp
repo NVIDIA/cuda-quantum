@@ -10,17 +10,16 @@
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
-#include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
-
-#define DEBUG_TYPE "qir-remove-measurements"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_REMOVEMEASUREMENTS
 #include "cudaq/Optimizer/CodeGen/Passes.h.inc"
 } // namespace cudaq::opt
+
+#define DEBUG_TYPE "qir-remove-measurements"
 
 using namespace mlir;
 
@@ -32,9 +31,9 @@ public:
   LogicalResult matchAndRewrite(LLVM::CallOp call,
                                 PatternRewriter &rewriter) const override {
     if (auto callee = call.getCallee()) {
-      if (callee->equals(cudaq::opt::QIRMeasureBody) ||
-          callee->equals(cudaq::opt::QIRRecordOutput) ||
-          callee->equals(cudaq::opt::QIRArrayRecordOutput)) {
+      if (*callee == cudaq::opt::QIRMeasureBody ||
+          *callee == cudaq::opt::QIRRecordOutput ||
+          *callee == cudaq::opt::QIRArrayRecordOutput) {
         rewriter.eraseOp(call);
         return success();
       }
@@ -58,7 +57,7 @@ struct RemoveMeasurementsPass
     RewritePatternSet patterns(context);
     patterns.insert<EraseMeasurements>(context);
     LLVM_DEBUG(llvm::dbgs() << "Before measurement erasure:\n" << *op);
-    if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns))))
+    if (failed(applyPatternsGreedily(op, std::move(patterns))))
       signalPassFailure();
     LLVM_DEBUG(llvm::dbgs() << "After measurement erasure:\n" << *op);
   }
