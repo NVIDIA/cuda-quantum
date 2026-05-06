@@ -38,10 +38,6 @@ if [ "$(uname)" = "Darwin" ]; then
   # To skip building OpenMP with LLVM (e.g., if using
   # Homebrew's libomp via 'brew install libomp'), set LLVM_PROJECTS without openmp.
   # `export LLVM_PROJECTS='clang;lld;mlir;python-bindings'`
-  #
-  # LLVM 22 is compatible with current macOS SDK libc++ headers, so runtimes are
-  # not needed by default. To force bundled LLVM runtimes, set LLVM_PROJECTS to
-  # include 'runtimes'.
   if [ -z "${LLVM_PROJECTS:-}" ]; then
     export LLVM_PROJECTS='clang;lld;mlir;python-bindings;openmp'
   fi
