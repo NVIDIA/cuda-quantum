@@ -45,8 +45,7 @@ async def postJob(request: Request):
        re.search(r'@(llvm\.)?memcpy\b', decoded_payload):
         raise RuntimeError(
             "Input MLIR contains malloc or memcpy calls. These should have been"
-            " eliminated by the eliminate-dead-heap-copy pass. [" +
-            decoded_payload + "]")
+            " eliminated by the eliminate-dead-heap-copy pass.")
 
     ctx = getMLIRContext()
     recovered_mod = Module.parse(decoded_payload, context=ctx)

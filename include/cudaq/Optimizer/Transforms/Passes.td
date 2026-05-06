@@ -1310,6 +1310,22 @@ def ResourceCountPreprocess :
   ];
 }
 
+def RunSemanticsHackery : Pass<"run-semantics-hackery", "mlir::ModuleOp"> {
+  let summary = "Run semantics hackery";
+  let description = [{
+    The design of the `cudaq::run` feature breaks the semantics of the host
+    language.  While that is a terrible design decision, we strive to work
+    around the inherent flaws. This pass should be used after the
+    `kernel-execution` pass to clean up some of the semantics potholes and
+    brokenness left behind.
+
+    Ideally, we'd just fix the CUDA-Q spec and use first-class output logging
+    functions.
+  }];
+
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
+}
+
 def SROA : Pass<"cc-sroa"> {
   let summary = "Scalar replacement of aggregates.";
   let description = [{
@@ -1431,7 +1447,8 @@ def UnitarySynthesis : Pass<"unitary-synthesis", "mlir::ModuleOp"> {
       }
     ```
   }];
-  let dependentDialects = ["mlir::arith::ArithDialect", "mlir::func::FuncDialect"];
+  let dependentDialects = ["mlir::arith::ArithDialect",
+    "mlir::func::FuncDialect"];
 }
 
 def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {

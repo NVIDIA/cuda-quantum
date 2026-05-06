@@ -88,6 +88,7 @@ static void specializeKernel(const std::string &name, ModuleOp module,
   if (isEntryPoint && (resultTy || !isFullySpecialized)) {
     pm.addPass(cudaq::opt::createGenerateKernelExecution(
         {.positNullary = isFullySpecialized, .ignoreHostFunction = true}));
+    pm.addPass(cudaq::opt::createRunSemanticsHackery());
   }
   pm.addPass(mlir::createSymbolDCEPass());
   if (enablePythonCodegenDump) {
