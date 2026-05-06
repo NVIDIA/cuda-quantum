@@ -1129,15 +1129,16 @@ class PyKernel(object):
 
         Args:
         target (:class:`QuakeValue`): The qubit or qubits to measure.
-        register_name (Optional[:obj:`str`]): The optional name to provide the 
-            results of the measurement. Defaults to an empty string. 
+        register_name (Optional[:obj:`str`]): The optional name to provide the
+            results of the measurement. Defaults to ``None``, in which case
+            no register name is attached to the measurement op.
 
         Returns:
         :class:`QuakeValue`: A handle to this measurement operation in the MLIR.
 
         Note:
-        Measurements may be applied both mid-circuit and at the end of 
-        the circuit. Conditional logic on mid-circuit measurements is no longer 
+        Measurements may be applied both mid-circuit and at the end of
+        the circuit. Conditional logic on mid-circuit measurements is no longer
         supported.
 
         ```python
@@ -1150,13 +1151,8 @@ class PyKernel(object):
         ```
         """
         with self.ctx, self.insertPoint, self.loc:
-            i1Ty = IntegerType.get_signless(1)
-            qubitTy = target.mlirValue.type
-            retTy = i1Ty
-            measTy = quake.MeasureType.get()
-            stdvecTy = cc.StdvecType.get(i1Ty)
+            measTy = cc.MeasureHandleType.get()
             if quake.VeqType.isinstance(target.mlirValue.type):
-                retTy = stdvecTy
                 measTy = cc.StdvecType.get(measTy)
             if regName is not None:
                 res = quake.MzOp(measTy, [], [target.mlirValue],
@@ -1164,8 +1160,7 @@ class PyKernel(object):
                                                              context=self.ctx))
             else:
                 res = quake.MzOp(measTy, [], [target.mlirValue])
-            disc = quake.DiscriminateOp(retTy, res)
-            return self.__createQuakeValue(disc.result)
+            return self.__createQuakeValue(res.measOut)
 
     def mx(self, target, regName=None):
         """
@@ -1177,15 +1172,16 @@ class PyKernel(object):
 
         Args:
         target (:class:`QuakeValue`): The qubit or qubits to measure.
-        register_name (Optional[:obj:`str`]): The optional name to provide the 
-            results of the measurement. Defaults to an empty string. 
+        register_name (Optional[:obj:`str`]): The optional name to provide the
+            results of the measurement. Defaults to ``None``, in which case
+            no register name is attached to the measurement op.
 
         Returns:
         :class:`QuakeValue`: A handle to this measurement operation in the MLIR.
 
         Note:
-        Measurements may be applied both mid-circuit and at the end of 
-        the circuit. Conditional logic on mid-circuit measurements is no longer 
+        Measurements may be applied both mid-circuit and at the end of
+        the circuit. Conditional logic on mid-circuit measurements is no longer
         supported.
 
         ```python
@@ -1197,13 +1193,8 @@ class PyKernel(object):
         ```
         """
         with self.ctx, self.insertPoint, self.loc:
-            i1Ty = IntegerType.get_signless(1)
-            qubitTy = target.mlirValue.type
-            retTy = i1Ty
-            measTy = quake.MeasureType.get()
-            stdvecTy = cc.StdvecType.get(i1Ty)
+            measTy = cc.MeasureHandleType.get()
             if quake.VeqType.isinstance(target.mlirValue.type):
-                retTy = stdvecTy
                 measTy = cc.StdvecType.get(measTy)
             if regName is not None:
                 res = quake.MxOp(measTy, [], [target.mlirValue],
@@ -1211,8 +1202,7 @@ class PyKernel(object):
                                                              context=self.ctx))
             else:
                 res = quake.MxOp(measTy, [], [target.mlirValue])
-            disc = quake.DiscriminateOp(retTy, res)
-            return self.__createQuakeValue(disc.result)
+            return self.__createQuakeValue(res.measOut)
 
     def my(self, target, regName=None):
         """
@@ -1224,16 +1214,17 @@ class PyKernel(object):
 
         Args:
         target (:class:`QuakeValue`): The qubit or qubits to measure.
-        register_name (Optional[:obj:`str`]): The optional name to provide the 
-            results of the measurement. Defaults to an empty string. 
+        register_name (Optional[:obj:`str`]): The optional name to provide the
+            results of the measurement. Defaults to ``None``, in which case
+            no register name is attached to the measurement op.
 
         Returns:
         :class:`QuakeValue`: A handle to this measurement operation in the MLIR.
 
         Note:
-        Measurements may be applied both mid-circuit and at the end of 
-        the circuit. Conditional logic on mid-circuit measurements is no longer 
-        supported.
+        Measurements may be applied both mid-circuit and at the end of
+        the circuit. Conditional logic on mid-circuit measurements is no longer
+        supported.  
 
         ```python
             # Example:
@@ -1245,13 +1236,8 @@ class PyKernel(object):
         ```
         """
         with self.ctx, self.insertPoint, self.loc:
-            i1Ty = IntegerType.get_signless(1)
-            qubitTy = target.mlirValue.type
-            retTy = i1Ty
-            measTy = quake.MeasureType.get()
-            stdvecTy = cc.StdvecType.get(i1Ty)
+            measTy = cc.MeasureHandleType.get()
             if quake.VeqType.isinstance(target.mlirValue.type):
-                retTy = stdvecTy
                 measTy = cc.StdvecType.get(measTy)
             if regName is not None:
                 res = quake.MyOp(measTy, [], [target.mlirValue],
@@ -1259,8 +1245,7 @@ class PyKernel(object):
                                                              context=self.ctx))
             else:
                 res = quake.MyOp(measTy, [], [target.mlirValue])
-            disc = quake.DiscriminateOp(retTy, res)
-            return self.__createQuakeValue(disc.result)
+            return self.__createQuakeValue(res.measOut)
 
     def adjoint(self, otherKernel, *target_arguments):
         """
