@@ -89,8 +89,8 @@ def validate(notebook_filename, available_backends):
     # flakiness (long runtimes, external downloads, dynamic pip installs)
     # without adding signal. Set NOTEBOOK_VALIDATION_TIER=required to
     # enable; default (unset) runs everything, for Publishing.
-    if (os.environ.get("NOTEBOOK_VALIDATION_TIER", "").lower() == "required"
-            and base_name in LONG_RUNNING_NOTEBOOKS):
+    if (os.environ.get("NOTEBOOK_VALIDATION_TIER", "").lower() == "required" and
+            base_name in LONG_RUNNING_NOTEBOOKS):
         return False
 
     # Collect all set_target calls
