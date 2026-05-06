@@ -281,6 +281,7 @@ jobs:
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
     with:
       platforms: linux/${{ matrix.platform }}
       devdeps_image: ${{ fromJson(needs.config_devdeps.outputs.json).image_hash[format('{0}-gcc12', matrix.platform)] }}

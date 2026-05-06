@@ -35,6 +35,9 @@ on:
         required: true
       DOCKERHUB_READONLY_TOKEN:
         required: true
+      HF_TOKEN:
+        description: 'Hugging Face Hub token used by the validation step for authenticated model downloads. Without it, anonymous rate limits can stall validation notebooks (see e.g. unitary_compilation_diffusion_models.ipynb).'
+        required: false
 
 name: Docker images
 
@@ -924,6 +927,8 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Validate cuda-quantum image
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           if ${{ steps.restore.outcome != 'skipped' }}; then
             load_output=`docker load --input "${{ needs.cudaq_image.outputs.tar_archive }}"`
@@ -933,7 +938,11 @@ jobs:
             docker pull $cudaq_image
           fi
 
-          docker run --rm -dit --name cuda-quantum $cudaq_image
+          if [ -z "${HF_TOKEN:-}" ]; then
+            echo "::warning::HF_TOKEN secret is not set; Hugging Face Hub downloads in the validation notebooks will be unauthenticated and may be rate-limited."
+          fi
+
+          docker run --rm -dit --name cuda-quantum -e HF_TOKEN $cudaq_image
           docker cp scripts/validate_installation.sh cuda-quantum:"/home/cudaq/validate_installation.sh"
           docker cp docs/notebook_validation.py cuda-quantum:"/home/cudaq/notebook_validation.py"
           # In containers without GPU support, UCX does not work properly since it is configured to work with GPU-support.

@@ -527,6 +527,7 @@ jobs:
       NGC_CREDENTIALS: ${{ secrets.NGC_CREDENTIALS }}
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       cuda_version: ${{ matrix.cuda_version }}
