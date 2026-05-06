@@ -2333,13 +2333,30 @@ on multiple degrees of freedom.</p></li>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.to_json">
 <span class="sig-name descname"><span class="pre">to_json</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.to_json" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convert spin_op to a JSON string, e.g., ‘[d1, d2, d3, …]’.</p>
+<dd><p>‘[d1, d2, d3, …]’</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Convert spin_op to JSON string</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperator.to_matrix">
 <span class="sig-name descname"><span class="pre">to_matrix</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperator.to_matrix" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the matrix representation of the operator.The matrix is ordered according to the convention (endianness) used in CUDA-Q, and the ordering returned by <code class="code docutils literal notranslate"><span class="pre">degrees</span></code>. This order can be inverted by setting the optional <code class="code docutils literal notranslate"><span class="pre">invert_order</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">True</span></code>. See also the documentation for <code class="code docutils literal notranslate"><span class="pre">degrees</span></code> for more detail.</p>
+<dd><p>Overloaded function.</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">to_matrix(self,</span> <span class="pre">dimensions:</span> <span class="pre">collections.abc.Mapping[int,</span> <span class="pre">int]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">parameters:</span> <span class="pre">collections.abc.Mapping[str,</span> <span class="pre">complex]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">invert_order:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False)</span> <span class="pre">-&gt;</span> <span class="pre">object</span></code></p></li>
+</ol>
+<p>Returns the matrix representation of the operator.The matrix is ordered according to the convention (endianness) used in CUDA-Q, and the ordering returned by <code class="code docutils literal notranslate"><span class="pre">degrees</span></code>. This order can be inverted by setting the optional <code class="code docutils literal notranslate"><span class="pre">invert_order</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">True</span></code>. See also the documentation for <code class="code docutils literal notranslate"><span class="pre">degrees</span></code> for more detail.</p>
+<ol class="arabic simple" start="2">
+<li><p><code class="docutils literal notranslate"><span class="pre">to_matrix(self,</span> <span class="pre">arg0:</span> <span class="pre">collections.abc.Mapping[int,</span> <span class="pre">int],</span> <span class="pre">/,</span> <span class="pre">**kwargs)</span> <span class="pre">-&gt;</span> <span class="pre">object</span></code></p></li>
+</ol>
+<p>Returns the matrix representation of the operator.The matrix is ordered according to the convention (endianness) used in CUDA-Q, and the ordering returned by <code class="code docutils literal notranslate"><span class="pre">degrees</span></code>. This order can be inverted by setting the optional <code class="code docutils literal notranslate"><span class="pre">invert_order</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">True</span></code>. See also the documentation for <code class="code docutils literal notranslate"><span class="pre">degrees</span></code> for more detail.</p>
+<ol class="arabic simple" start="3">
+<li><p><code class="docutils literal notranslate"><span class="pre">to_matrix(self,</span> <span class="pre">**kwargs)</span> <span class="pre">-&gt;</span> <span class="pre">object</span></code></p></li>
+</ol>
+<p>Returns the matrix representation of the operator, passing parameters as keyword arguments.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -2459,7 +2476,12 @@ on multiple degrees of freedom.</p></li>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperatorTerm.is_identity">
 <span class="sig-name descname"><span class="pre">is_identity</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperatorTerm.is_identity" title="Permalink to this definition">¶</a></dt>
-<dd><p>Checks if all operators in the product are the identity. Note that this function returns true regardless of the value of the coefficient.</p>
+<dd><p>this function returns true regardless of the value of the coefficient.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Checks if all operators in the product are the identity. Note</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py property">
@@ -2513,13 +2535,30 @@ on multiple degrees of freedom.</p></li>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperatorTerm.to_json">
 <span class="sig-name descname"><span class="pre">to_json</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperatorTerm.to_json" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convert spin_op to a JSON string, e.g., ‘[d1, d2, d3, …]’.</p>
+<dd><p>‘[d1, d2, d3, …]’</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Convert spin_op to JSON string</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.operators.spin.SpinOperatorTerm.to_matrix">
 <span class="sig-name descname"><span class="pre">to_matrix</span></span><a class="headerlink" href="#cudaq.operators.spin.SpinOperatorTerm.to_matrix" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the matrix representation of the operator.The matrix is ordered according to the convention (endianness) used in CUDA-Q, and the ordering returned by <code class="code docutils literal notranslate"><span class="pre">degrees</span></code>. This order can be inverted by setting the optional <code class="code docutils literal notranslate"><span class="pre">invert_order</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">True</span></code>. See also the documentation for <code class="code docutils literal notranslate"><span class="pre">degrees</span></code> for more detail.</p>
+<dd><p>Overloaded function.</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">to_matrix(self,</span> <span class="pre">dimensions:</span> <span class="pre">collections.abc.Mapping[int,</span> <span class="pre">int]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">parameters:</span> <span class="pre">collections.abc.Mapping[str,</span> <span class="pre">complex]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">invert_order:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False)</span> <span class="pre">-&gt;</span> <span class="pre">object</span></code></p></li>
+</ol>
+<p>Returns the matrix representation of the operator.The matrix is ordered according to the convention (endianness) used in CUDA-Q, and the ordering returned by <code class="code docutils literal notranslate"><span class="pre">degrees</span></code>. This order can be inverted by setting the optional <code class="code docutils literal notranslate"><span class="pre">invert_order</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">True</span></code>. See also the documentation for <code class="code docutils literal notranslate"><span class="pre">degrees</span></code> for more detail.</p>
+<ol class="arabic simple" start="2">
+<li><p><code class="docutils literal notranslate"><span class="pre">to_matrix(self,</span> <span class="pre">arg0:</span> <span class="pre">collections.abc.Mapping[int,</span> <span class="pre">int],</span> <span class="pre">/,</span> <span class="pre">**kwargs)</span> <span class="pre">-&gt;</span> <span class="pre">object</span></code></p></li>
+</ol>
+<p>Returns the matrix representation of the operator.The matrix is ordered according to the convention (endianness) used in CUDA-Q, and the ordering returned by <code class="code docutils literal notranslate"><span class="pre">degrees</span></code>. This order can be inverted by setting the optional <code class="code docutils literal notranslate"><span class="pre">invert_order</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">True</span></code>. See also the documentation for <code class="code docutils literal notranslate"><span class="pre">degrees</span></code> for more detail.</p>
+<ol class="arabic simple" start="3">
+<li><p><code class="docutils literal notranslate"><span class="pre">to_matrix(self,</span> <span class="pre">**kwargs)</span> <span class="pre">-&gt;</span> <span class="pre">object</span></code></p></li>
+</ol>
+<p>Returns the matrix representation of the operator, passing parameters as keyword arguments.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -2679,7 +2718,19 @@ on multiple degrees of freedom.</p></li>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.operators.fermion.FermionOperator.to_matrix">
 <span class="sig-name descname"><span class="pre">to_matrix</span></span><a class="headerlink" href="#cudaq.operators.fermion.FermionOperator.to_matrix" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the matrix representation of the operator.The matrix is ordered according to the convention (endianness) used in CUDA-Q, and the ordering returned by <code class="code docutils literal notranslate"><span class="pre">degrees</span></code>. This order can be inverted by setting the optional <code class="code docutils literal notranslate"><span class="pre">invert_order</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">True</span></code>. See also the documentation for <code class="code docutils literal notranslate"><span class="pre">degrees</span></code> for more detail.</p>
+<dd><p>Overloaded function.</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">to_matrix(self,</span> <span class="pre">dimensions:</span> <span class="pre">collections.abc.Mapping[int,</span> <span class="pre">int]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">parameters:</span> <span class="pre">collections.abc.Mapping[str,</span> <span class="pre">complex]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">invert_order:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False)</span> <span class="pre">-&gt;</span> <span class="pre">object</span></code></p></li>
+</ol>
+<p>Returns the matrix representation of the operator.The matrix is ordered according to the convention (endianness) used in CUDA-Q, and the ordering returned by <code class="code docutils literal notranslate"><span class="pre">degrees</span></code>. This order can be inverted by setting the optional <code class="code docutils literal notranslate"><span class="pre">invert_order</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">True</span></code>. See also the documentation for <code class="code docutils literal notranslate"><span class="pre">degrees</span></code> for more detail.</p>
+<ol class="arabic simple" start="2">
+<li><p><code class="docutils literal notranslate"><span class="pre">to_matrix(self,</span> <span class="pre">arg0:</span> <span class="pre">collections.abc.Mapping[int,</span> <span class="pre">int],</span> <span class="pre">/,</span> <span class="pre">**kwargs)</span> <span class="pre">-&gt;</span> <span class="pre">object</span></code></p></li>
+</ol>
+<p>Returns the matrix representation of the operator.The matrix is ordered according to the convention (endianness) used in CUDA-Q, and the ordering returned by <code class="code docutils literal notranslate"><span class="pre">degrees</span></code>. This order can be inverted by setting the optional <code class="code docutils literal notranslate"><span class="pre">invert_order</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">True</span></code>. See also the documentation for <code class="code docutils literal notranslate"><span class="pre">degrees</span></code> for more detail.</p>
+<ol class="arabic simple" start="3">
+<li><p><code class="docutils literal notranslate"><span class="pre">to_matrix(self,</span> <span class="pre">**kwargs)</span> <span class="pre">-&gt;</span> <span class="pre">object</span></code></p></li>
+</ol>
+<p>Returns the matrix representation of the operator, passing parameters as keyword arguments.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -2746,7 +2797,12 @@ on multiple degrees of freedom.</p></li>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.operators.fermion.FermionOperatorTerm.is_identity">
 <span class="sig-name descname"><span class="pre">is_identity</span></span><a class="headerlink" href="#cudaq.operators.fermion.FermionOperatorTerm.is_identity" title="Permalink to this definition">¶</a></dt>
-<dd><p>Checks if all operators in the product are the identity. Note that this function returns true regardless of the value of the coefficient.</p>
+<dd><p>this function returns true regardless of the value of the coefficient.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Checks if all operators in the product are the identity. Note</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py property">
@@ -2782,7 +2838,19 @@ on multiple degrees of freedom.</p></li>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.operators.fermion.FermionOperatorTerm.to_matrix">
 <span class="sig-name descname"><span class="pre">to_matrix</span></span><a class="headerlink" href="#cudaq.operators.fermion.FermionOperatorTerm.to_matrix" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the matrix representation of the operator.The matrix is ordered according to the convention (endianness) used in CUDA-Q, and the ordering returned by <code class="code docutils literal notranslate"><span class="pre">degrees</span></code>. This order can be inverted by setting the optional <code class="code docutils literal notranslate"><span class="pre">invert_order</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">True</span></code>. See also the documentation for <code class="code docutils literal notranslate"><span class="pre">degrees</span></code> for more detail.</p>
+<dd><p>Overloaded function.</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">to_matrix(self,</span> <span class="pre">dimensions:</span> <span class="pre">collections.abc.Mapping[int,</span> <span class="pre">int]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">parameters:</span> <span class="pre">collections.abc.Mapping[str,</span> <span class="pre">complex]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">invert_order:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False)</span> <span class="pre">-&gt;</span> <span class="pre">object</span></code></p></li>
+</ol>
+<p>Returns the matrix representation of the operator.The matrix is ordered according to the convention (endianness) used in CUDA-Q, and the ordering returned by <code class="code docutils literal notranslate"><span class="pre">degrees</span></code>. This order can be inverted by setting the optional <code class="code docutils literal notranslate"><span class="pre">invert_order</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">True</span></code>. See also the documentation for <code class="code docutils literal notranslate"><span class="pre">degrees</span></code> for more detail.</p>
+<ol class="arabic simple" start="2">
+<li><p><code class="docutils literal notranslate"><span class="pre">to_matrix(self,</span> <span class="pre">arg0:</span> <span class="pre">collections.abc.Mapping[int,</span> <span class="pre">int],</span> <span class="pre">/,</span> <span class="pre">**kwargs)</span> <span class="pre">-&gt;</span> <span class="pre">object</span></code></p></li>
+</ol>
+<p>Returns the matrix representation of the operator.The matrix is ordered according to the convention (endianness) used in CUDA-Q, and the ordering returned by <code class="code docutils literal notranslate"><span class="pre">degrees</span></code>. This order can be inverted by setting the optional <code class="code docutils literal notranslate"><span class="pre">invert_order</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">True</span></code>. See also the documentation for <code class="code docutils literal notranslate"><span class="pre">degrees</span></code> for more detail.</p>
+<ol class="arabic simple" start="3">
+<li><p><code class="docutils literal notranslate"><span class="pre">to_matrix(self,</span> <span class="pre">**kwargs)</span> <span class="pre">-&gt;</span> <span class="pre">object</span></code></p></li>
+</ol>
+<p>Returns the matrix representation of the operator, passing parameters as keyword arguments.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -2903,7 +2971,19 @@ on multiple degrees of freedom.</p></li>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.operators.boson.BosonOperator.to_matrix">
 <span class="sig-name descname"><span class="pre">to_matrix</span></span><a class="headerlink" href="#cudaq.operators.boson.BosonOperator.to_matrix" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the matrix representation of the operator.The matrix is ordered according to the convention (endianness) used in CUDA-Q, and the ordering returned by <code class="code docutils literal notranslate"><span class="pre">degrees</span></code>. This order can be inverted by setting the optional <code class="code docutils literal notranslate"><span class="pre">invert_order</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">True</span></code>. See also the documentation for <code class="code docutils literal notranslate"><span class="pre">degrees</span></code> for more detail.</p>
+<dd><p>Overloaded function.</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">to_matrix(self,</span> <span class="pre">dimensions:</span> <span class="pre">collections.abc.Mapping[int,</span> <span class="pre">int]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">parameters:</span> <span class="pre">collections.abc.Mapping[str,</span> <span class="pre">complex]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">invert_order:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False)</span> <span class="pre">-&gt;</span> <span class="pre">object</span></code></p></li>
+</ol>
+<p>Returns the matrix representation of the operator.The matrix is ordered according to the convention (endianness) used in CUDA-Q, and the ordering returned by <code class="code docutils literal notranslate"><span class="pre">degrees</span></code>. This order can be inverted by setting the optional <code class="code docutils literal notranslate"><span class="pre">invert_order</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">True</span></code>. See also the documentation for <code class="code docutils literal notranslate"><span class="pre">degrees</span></code> for more detail.</p>
+<ol class="arabic simple" start="2">
+<li><p><code class="docutils literal notranslate"><span class="pre">to_matrix(self,</span> <span class="pre">arg0:</span> <span class="pre">collections.abc.Mapping[int,</span> <span class="pre">int],</span> <span class="pre">/,</span> <span class="pre">**kwargs)</span> <span class="pre">-&gt;</span> <span class="pre">object</span></code></p></li>
+</ol>
+<p>Returns the matrix representation of the operator.The matrix is ordered according to the convention (endianness) used in CUDA-Q, and the ordering returned by <code class="code docutils literal notranslate"><span class="pre">degrees</span></code>. This order can be inverted by setting the optional <code class="code docutils literal notranslate"><span class="pre">invert_order</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">True</span></code>. See also the documentation for <code class="code docutils literal notranslate"><span class="pre">degrees</span></code> for more detail.</p>
+<ol class="arabic simple" start="3">
+<li><p><code class="docutils literal notranslate"><span class="pre">to_matrix(self,</span> <span class="pre">**kwargs)</span> <span class="pre">-&gt;</span> <span class="pre">object</span></code></p></li>
+</ol>
+<p>Returns the matrix representation of the operator, passing parameters as keyword arguments.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -2970,7 +3050,12 @@ on multiple degrees of freedom.</p></li>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.operators.boson.BosonOperatorTerm.is_identity">
 <span class="sig-name descname"><span class="pre">is_identity</span></span><a class="headerlink" href="#cudaq.operators.boson.BosonOperatorTerm.is_identity" title="Permalink to this definition">¶</a></dt>
-<dd><p>Checks if all operators in the product are the identity. Note that this function returns true regardless of the value of the coefficient.</p>
+<dd><p>this function returns true regardless of the value of the coefficient.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Checks if all operators in the product are the identity. Note</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py property">
@@ -3006,7 +3091,19 @@ on multiple degrees of freedom.</p></li>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.operators.boson.BosonOperatorTerm.to_matrix">
 <span class="sig-name descname"><span class="pre">to_matrix</span></span><a class="headerlink" href="#cudaq.operators.boson.BosonOperatorTerm.to_matrix" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the matrix representation of the operator.The matrix is ordered according to the convention (endianness) used in CUDA-Q, and the ordering returned by <code class="code docutils literal notranslate"><span class="pre">degrees</span></code>. This order can be inverted by setting the optional <code class="code docutils literal notranslate"><span class="pre">invert_order</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">True</span></code>. See also the documentation for <code class="code docutils literal notranslate"><span class="pre">degrees</span></code> for more detail.</p>
+<dd><p>Overloaded function.</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">to_matrix(self,</span> <span class="pre">dimensions:</span> <span class="pre">collections.abc.Mapping[int,</span> <span class="pre">int]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">parameters:</span> <span class="pre">collections.abc.Mapping[str,</span> <span class="pre">complex]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">invert_order:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False)</span> <span class="pre">-&gt;</span> <span class="pre">object</span></code></p></li>
+</ol>
+<p>Returns the matrix representation of the operator.The matrix is ordered according to the convention (endianness) used in CUDA-Q, and the ordering returned by <code class="code docutils literal notranslate"><span class="pre">degrees</span></code>. This order can be inverted by setting the optional <code class="code docutils literal notranslate"><span class="pre">invert_order</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">True</span></code>. See also the documentation for <code class="code docutils literal notranslate"><span class="pre">degrees</span></code> for more detail.</p>
+<ol class="arabic simple" start="2">
+<li><p><code class="docutils literal notranslate"><span class="pre">to_matrix(self,</span> <span class="pre">arg0:</span> <span class="pre">collections.abc.Mapping[int,</span> <span class="pre">int],</span> <span class="pre">/,</span> <span class="pre">**kwargs)</span> <span class="pre">-&gt;</span> <span class="pre">object</span></code></p></li>
+</ol>
+<p>Returns the matrix representation of the operator.The matrix is ordered according to the convention (endianness) used in CUDA-Q, and the ordering returned by <code class="code docutils literal notranslate"><span class="pre">degrees</span></code>. This order can be inverted by setting the optional <code class="code docutils literal notranslate"><span class="pre">invert_order</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">True</span></code>. See also the documentation for <code class="code docutils literal notranslate"><span class="pre">degrees</span></code> for more detail.</p>
+<ol class="arabic simple" start="3">
+<li><p><code class="docutils literal notranslate"><span class="pre">to_matrix(self,</span> <span class="pre">**kwargs)</span> <span class="pre">-&gt;</span> <span class="pre">object</span></code></p></li>
+</ol>
+<p>Returns the matrix representation of the operator, passing parameters as keyword arguments.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -3127,7 +3224,19 @@ on multiple degrees of freedom.</p></li>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.operators.MatrixOperator.to_matrix">
 <span class="sig-name descname"><span class="pre">to_matrix</span></span><a class="headerlink" href="#cudaq.operators.MatrixOperator.to_matrix" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the matrix representation of the operator.The matrix is ordered according to the convention (endianness) used in CUDA-Q, and the ordering returned by <code class="code docutils literal notranslate"><span class="pre">degrees</span></code>. This order can be inverted by setting the optional <code class="code docutils literal notranslate"><span class="pre">invert_order</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">True</span></code>. See also the documentation for <code class="code docutils literal notranslate"><span class="pre">degrees</span></code> for more detail.</p>
+<dd><p>Overloaded function.</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">to_matrix(self,</span> <span class="pre">dimensions:</span> <span class="pre">collections.abc.Mapping[int,</span> <span class="pre">int]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">parameters:</span> <span class="pre">collections.abc.Mapping[str,</span> <span class="pre">complex]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">invert_order:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False)</span> <span class="pre">-&gt;</span> <span class="pre">object</span></code></p></li>
+</ol>
+<p>Returns the matrix representation of the operator.The matrix is ordered according to the convention (endianness) used in CUDA-Q, and the ordering returned by <code class="code docutils literal notranslate"><span class="pre">degrees</span></code>. This order can be inverted by setting the optional <code class="code docutils literal notranslate"><span class="pre">invert_order</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">True</span></code>. See also the documentation for <code class="code docutils literal notranslate"><span class="pre">degrees</span></code> for more detail.</p>
+<ol class="arabic simple" start="2">
+<li><p><code class="docutils literal notranslate"><span class="pre">to_matrix(self,</span> <span class="pre">arg0:</span> <span class="pre">collections.abc.Mapping[int,</span> <span class="pre">int],</span> <span class="pre">/,</span> <span class="pre">**kwargs)</span> <span class="pre">-&gt;</span> <span class="pre">object</span></code></p></li>
+</ol>
+<p>Returns the matrix representation of the operator.The matrix is ordered according to the convention (endianness) used in CUDA-Q, and the ordering returned by <code class="code docutils literal notranslate"><span class="pre">degrees</span></code>. This order can be inverted by setting the optional <code class="code docutils literal notranslate"><span class="pre">invert_order</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">True</span></code>. See also the documentation for <code class="code docutils literal notranslate"><span class="pre">degrees</span></code> for more detail.</p>
+<ol class="arabic simple" start="3">
+<li><p><code class="docutils literal notranslate"><span class="pre">to_matrix(self,</span> <span class="pre">**kwargs)</span> <span class="pre">-&gt;</span> <span class="pre">object</span></code></p></li>
+</ol>
+<p>Returns the matrix representation of the operator, passing parameters as keyword arguments.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -3188,7 +3297,12 @@ on multiple degrees of freedom.</p></li>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.operators.MatrixOperatorTerm.is_identity">
 <span class="sig-name descname"><span class="pre">is_identity</span></span><a class="headerlink" href="#cudaq.operators.MatrixOperatorTerm.is_identity" title="Permalink to this definition">¶</a></dt>
-<dd><p>Checks if all operators in the product are the identity. Note that this function returns true regardless of the value of the coefficient.</p>
+<dd><p>this function returns true regardless of the value of the coefficient.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Checks if all operators in the product are the identity. Note</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py property">
@@ -3224,7 +3338,19 @@ on multiple degrees of freedom.</p></li>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.operators.MatrixOperatorTerm.to_matrix">
 <span class="sig-name descname"><span class="pre">to_matrix</span></span><a class="headerlink" href="#cudaq.operators.MatrixOperatorTerm.to_matrix" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the matrix representation of the operator.The matrix is ordered according to the convention (endianness) used in CUDA-Q, and the ordering returned by <code class="code docutils literal notranslate"><span class="pre">degrees</span></code>. This order can be inverted by setting the optional <code class="code docutils literal notranslate"><span class="pre">invert_order</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">True</span></code>. See also the documentation for <code class="code docutils literal notranslate"><span class="pre">degrees</span></code> for more detail.</p>
+<dd><p>Overloaded function.</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">to_matrix(self,</span> <span class="pre">dimensions:</span> <span class="pre">collections.abc.Mapping[int,</span> <span class="pre">int]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">parameters:</span> <span class="pre">collections.abc.Mapping[str,</span> <span class="pre">complex]</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">invert_order:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False)</span> <span class="pre">-&gt;</span> <span class="pre">object</span></code></p></li>
+</ol>
+<p>Returns the matrix representation of the operator.The matrix is ordered according to the convention (endianness) used in CUDA-Q, and the ordering returned by <code class="code docutils literal notranslate"><span class="pre">degrees</span></code>. This order can be inverted by setting the optional <code class="code docutils literal notranslate"><span class="pre">invert_order</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">True</span></code>. See also the documentation for <code class="code docutils literal notranslate"><span class="pre">degrees</span></code> for more detail.</p>
+<ol class="arabic simple" start="2">
+<li><p><code class="docutils literal notranslate"><span class="pre">to_matrix(self,</span> <span class="pre">arg0:</span> <span class="pre">collections.abc.Mapping[int,</span> <span class="pre">int],</span> <span class="pre">/,</span> <span class="pre">**kwargs)</span> <span class="pre">-&gt;</span> <span class="pre">object</span></code></p></li>
+</ol>
+<p>Returns the matrix representation of the operator.The matrix is ordered according to the convention (endianness) used in CUDA-Q, and the ordering returned by <code class="code docutils literal notranslate"><span class="pre">degrees</span></code>. This order can be inverted by setting the optional <code class="code docutils literal notranslate"><span class="pre">invert_order</span></code> argument to <code class="code docutils literal notranslate"><span class="pre">True</span></code>. See also the documentation for <code class="code docutils literal notranslate"><span class="pre">degrees</span></code> for more detail.</p>
+<ol class="arabic simple" start="3">
+<li><p><code class="docutils literal notranslate"><span class="pre">to_matrix(self,</span> <span class="pre">**kwargs)</span> <span class="pre">-&gt;</span> <span class="pre">object</span></code></p></li>
+</ol>
+<p>Returns the matrix representation of the operator, passing parameters as keyword arguments.</p>
 </dd></dl>
 
 </dd></dl>
@@ -3516,6 +3642,12 @@ on multiple degrees of freedom.</p></li>
 <p>Compute overlap with general CuPy device array.</p>
 </dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cudaq.State.to_numpy">
+<span class="sig-name descname"><span class="pre">to_numpy</span></span><a class="headerlink" href="#cudaq.State.to_numpy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert to a NumPy array.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -3759,7 +3891,15 @@ Qubits can be created individually or as part of larger registers.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.ComplexMatrix.to_numpy">
 <span class="sig-name descname"><span class="pre">to_numpy</span></span><a class="headerlink" href="#cudaq.ComplexMatrix.to_numpy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convert <a class="reference internal" href="#cudaq.ComplexMatrix" title="cudaq.ComplexMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a> to numpy.ndarray.</p>
+<dd><p>Overloaded function.</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">to_numpy(self)</span> <span class="pre">-&gt;</span> <span class="pre">object</span></code></p></li>
+</ol>
+<p>Convert to a NumPy array.</p>
+<ol class="arabic simple" start="2">
+<li><p><code class="docutils literal notranslate"><span class="pre">to_numpy(self)</span> <span class="pre">-&gt;</span> <span class="pre">object</span></code></p></li>
+</ol>
+<p>Convert <a class="reference internal" href="#cudaq.ComplexMatrix" title="cudaq.ComplexMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a> to numpy.ndarray.</p>
 </dd></dl>
 
 </dd></dl>
@@ -4090,10 +4230,22 @@ for more information on this programming pattern.</p>
 
 </dd></dl>
 
-<dl class="py attribute">
+<dl class="py class">
 <dt class="sig sig-object py" id="cudaq.OptimizationResult">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">OptimizationResult</span></span><a class="headerlink" href="#cudaq.OptimizationResult" title="Permalink to this definition">¶</a></dt>
-<dd><p>alias of <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a></p>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">OptimizationResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.OptimizationResult" title="Permalink to this definition">¶</a></dt>
+<dd><p>Result of an optimization: (opt_value, optimal_parameters). optimize() returns a tuple; this type is for type hints and wrapping.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.OptimizationResult.opt_value">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">opt_value</span></span><a class="headerlink" href="#cudaq.OptimizationResult.opt_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>(self) -&gt; float</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cudaq.OptimizationResult.optimal_parameters">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">optimal_parameters</span></span><a class="headerlink" href="#cudaq.OptimizationResult.optimal_parameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>(self) -&gt; list[float]</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">

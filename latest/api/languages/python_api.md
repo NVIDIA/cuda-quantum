@@ -3671,11 +3671,60 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     [[to_json]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.to_json "Permalink to this definition"){.headerlink}
 
-    :   Convert spin_op to a JSON string, e.g., '\[d1, d2, d3, ...\]'.
+    :   '\[d1, d2, d3, ...\]'
+
+        Type[:]{.colon}
+
+        :   Convert spin_op to JSON string
 
     [[to_matrix]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.to_matrix "Permalink to this definition"){.headerlink}
 
-    :   Returns the matrix representation of the operator.The matrix is
+    :   Overloaded function.
+
+        1.  [`to_matrix(self,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`dimensions:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`collections.abc.Mapping[int,`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`int]`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`|`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`=`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`parameters:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`collections.abc.Mapping[str,`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`complex]`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`|`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`=`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`invert_order:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`bool`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`=`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`False)`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`->`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`object`{.docutils .literal
+            .notranslate}]{.pre}
+
+        Returns the matrix representation of the operator.The matrix is
         ordered according to the convention (endianness) used in CUDA-Q,
         and the ordering returned by [`degrees`{.code .docutils .literal
         .notranslate}]{.pre}. This order can be inverted by setting the
@@ -3684,6 +3733,45 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         .literal .notranslate}]{.pre}. See also the documentation for
         [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
         more detail.
+
+        2.  [`to_matrix(self,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`arg0:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`collections.abc.Mapping[int,`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`int],`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`/,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`**kwargs)`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`->`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`object`{.docutils .literal
+            .notranslate}]{.pre}
+
+        Returns the matrix representation of the operator.The matrix is
+        ordered according to the convention (endianness) used in CUDA-Q,
+        and the ordering returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
+
+        3.  [`to_matrix(self,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`**kwargs)`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`->`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`object`{.docutils .literal
+            .notranslate}]{.pre}
+
+        Returns the matrix representation of the operator, passing
+        parameters as keyword arguments.
 
     [[to_sparse_matrix]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperator.to_sparse_matrix "Permalink to this definition"){.headerlink}
 
@@ -3828,9 +3916,13 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     [[is_identity]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.is_identity "Permalink to this definition"){.headerlink}
 
-    :   Checks if all operators in the product are the identity. Note
-        that this function returns true regardless of the value of the
+    :   this function returns true regardless of the value of the
         coefficient.
+
+        Type[:]{.colon}
+
+        :   Checks if all operators in the product are the identity.
+            Note
 
     *[property]{.pre}[ ]{.w}*[[max_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.max_degree "Permalink to this definition"){.headerlink}
 
@@ -3871,11 +3963,60 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     [[to_json]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.to_json "Permalink to this definition"){.headerlink}
 
-    :   Convert spin_op to a JSON string, e.g., '\[d1, d2, d3, ...\]'.
+    :   '\[d1, d2, d3, ...\]'
+
+        Type[:]{.colon}
+
+        :   Convert spin_op to JSON string
 
     [[to_matrix]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.to_matrix "Permalink to this definition"){.headerlink}
 
-    :   Returns the matrix representation of the operator.The matrix is
+    :   Overloaded function.
+
+        1.  [`to_matrix(self,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`dimensions:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`collections.abc.Mapping[int,`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`int]`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`|`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`=`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`parameters:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`collections.abc.Mapping[str,`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`complex]`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`|`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`=`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`invert_order:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`bool`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`=`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`False)`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`->`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`object`{.docutils .literal
+            .notranslate}]{.pre}
+
+        Returns the matrix representation of the operator.The matrix is
         ordered according to the convention (endianness) used in CUDA-Q,
         and the ordering returned by [`degrees`{.code .docutils .literal
         .notranslate}]{.pre}. This order can be inverted by setting the
@@ -3884,6 +4025,45 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         .literal .notranslate}]{.pre}. See also the documentation for
         [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
         more detail.
+
+        2.  [`to_matrix(self,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`arg0:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`collections.abc.Mapping[int,`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`int],`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`/,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`**kwargs)`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`->`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`object`{.docutils .literal
+            .notranslate}]{.pre}
+
+        Returns the matrix representation of the operator.The matrix is
+        ordered according to the convention (endianness) used in CUDA-Q,
+        and the ordering returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
+
+        3.  [`to_matrix(self,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`**kwargs)`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`->`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`object`{.docutils .literal
+            .notranslate}]{.pre}
+
+        Returns the matrix representation of the operator, passing
+        parameters as keyword arguments.
 
     [[to_sparse_matrix]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.spin.SpinOperatorTerm.to_sparse_matrix "Permalink to this definition"){.headerlink}
 
@@ -4057,7 +4237,52 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     [[to_matrix]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.fermion.FermionOperator.to_matrix "Permalink to this definition"){.headerlink}
 
-    :   Returns the matrix representation of the operator.The matrix is
+    :   Overloaded function.
+
+        1.  [`to_matrix(self,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`dimensions:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`collections.abc.Mapping[int,`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`int]`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`|`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`=`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`parameters:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`collections.abc.Mapping[str,`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`complex]`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`|`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`=`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`invert_order:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`bool`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`=`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`False)`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`->`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`object`{.docutils .literal
+            .notranslate}]{.pre}
+
+        Returns the matrix representation of the operator.The matrix is
         ordered according to the convention (endianness) used in CUDA-Q,
         and the ordering returned by [`degrees`{.code .docutils .literal
         .notranslate}]{.pre}. This order can be inverted by setting the
@@ -4066,6 +4291,45 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         .literal .notranslate}]{.pre}. See also the documentation for
         [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
         more detail.
+
+        2.  [`to_matrix(self,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`arg0:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`collections.abc.Mapping[int,`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`int],`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`/,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`**kwargs)`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`->`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`object`{.docutils .literal
+            .notranslate}]{.pre}
+
+        Returns the matrix representation of the operator.The matrix is
+        ordered according to the convention (endianness) used in CUDA-Q,
+        and the ordering returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
+
+        3.  [`to_matrix(self,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`**kwargs)`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`->`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`object`{.docutils .literal
+            .notranslate}]{.pre}
+
+        Returns the matrix representation of the operator, passing
+        parameters as keyword arguments.
 
     [[to_sparse_matrix]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.fermion.FermionOperator.to_sparse_matrix "Permalink to this definition"){.headerlink}
 
@@ -4167,9 +4431,13 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     [[is_identity]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.fermion.FermionOperatorTerm.is_identity "Permalink to this definition"){.headerlink}
 
-    :   Checks if all operators in the product are the identity. Note
-        that this function returns true regardless of the value of the
+    :   this function returns true regardless of the value of the
         coefficient.
+
+        Type[:]{.colon}
+
+        :   Checks if all operators in the product are the identity.
+            Note
 
     *[property]{.pre}[ ]{.w}*[[max_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.fermion.FermionOperatorTerm.max_degree "Permalink to this definition"){.headerlink}
 
@@ -4198,7 +4466,52 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     [[to_matrix]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.fermion.FermionOperatorTerm.to_matrix "Permalink to this definition"){.headerlink}
 
-    :   Returns the matrix representation of the operator.The matrix is
+    :   Overloaded function.
+
+        1.  [`to_matrix(self,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`dimensions:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`collections.abc.Mapping[int,`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`int]`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`|`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`=`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`parameters:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`collections.abc.Mapping[str,`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`complex]`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`|`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`=`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`invert_order:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`bool`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`=`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`False)`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`->`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`object`{.docutils .literal
+            .notranslate}]{.pre}
+
+        Returns the matrix representation of the operator.The matrix is
         ordered according to the convention (endianness) used in CUDA-Q,
         and the ordering returned by [`degrees`{.code .docutils .literal
         .notranslate}]{.pre}. This order can be inverted by setting the
@@ -4207,6 +4520,45 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         .literal .notranslate}]{.pre}. See also the documentation for
         [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
         more detail.
+
+        2.  [`to_matrix(self,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`arg0:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`collections.abc.Mapping[int,`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`int],`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`/,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`**kwargs)`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`->`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`object`{.docutils .literal
+            .notranslate}]{.pre}
+
+        Returns the matrix representation of the operator.The matrix is
+        ordered according to the convention (endianness) used in CUDA-Q,
+        and the ordering returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
+
+        3.  [`to_matrix(self,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`**kwargs)`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`->`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`object`{.docutils .literal
+            .notranslate}]{.pre}
+
+        Returns the matrix representation of the operator, passing
+        parameters as keyword arguments.
 
     [[to_sparse_matrix]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.fermion.FermionOperatorTerm.to_sparse_matrix "Permalink to this definition"){.headerlink}
 
@@ -4348,7 +4700,52 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     [[to_matrix]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.boson.BosonOperator.to_matrix "Permalink to this definition"){.headerlink}
 
-    :   Returns the matrix representation of the operator.The matrix is
+    :   Overloaded function.
+
+        1.  [`to_matrix(self,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`dimensions:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`collections.abc.Mapping[int,`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`int]`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`|`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`=`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`parameters:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`collections.abc.Mapping[str,`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`complex]`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`|`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`=`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`invert_order:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`bool`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`=`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`False)`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`->`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`object`{.docutils .literal
+            .notranslate}]{.pre}
+
+        Returns the matrix representation of the operator.The matrix is
         ordered according to the convention (endianness) used in CUDA-Q,
         and the ordering returned by [`degrees`{.code .docutils .literal
         .notranslate}]{.pre}. This order can be inverted by setting the
@@ -4357,6 +4754,45 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         .literal .notranslate}]{.pre}. See also the documentation for
         [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
         more detail.
+
+        2.  [`to_matrix(self,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`arg0:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`collections.abc.Mapping[int,`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`int],`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`/,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`**kwargs)`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`->`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`object`{.docutils .literal
+            .notranslate}]{.pre}
+
+        Returns the matrix representation of the operator.The matrix is
+        ordered according to the convention (endianness) used in CUDA-Q,
+        and the ordering returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
+
+        3.  [`to_matrix(self,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`**kwargs)`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`->`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`object`{.docutils .literal
+            .notranslate}]{.pre}
+
+        Returns the matrix representation of the operator, passing
+        parameters as keyword arguments.
 
     [[to_sparse_matrix]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.boson.BosonOperator.to_sparse_matrix "Permalink to this definition"){.headerlink}
 
@@ -4458,9 +4894,13 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     [[is_identity]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.boson.BosonOperatorTerm.is_identity "Permalink to this definition"){.headerlink}
 
-    :   Checks if all operators in the product are the identity. Note
-        that this function returns true regardless of the value of the
+    :   this function returns true regardless of the value of the
         coefficient.
+
+        Type[:]{.colon}
+
+        :   Checks if all operators in the product are the identity.
+            Note
 
     *[property]{.pre}[ ]{.w}*[[max_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.boson.BosonOperatorTerm.max_degree "Permalink to this definition"){.headerlink}
 
@@ -4489,7 +4929,52 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     [[to_matrix]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.boson.BosonOperatorTerm.to_matrix "Permalink to this definition"){.headerlink}
 
-    :   Returns the matrix representation of the operator.The matrix is
+    :   Overloaded function.
+
+        1.  [`to_matrix(self,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`dimensions:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`collections.abc.Mapping[int,`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`int]`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`|`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`=`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`parameters:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`collections.abc.Mapping[str,`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`complex]`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`|`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`=`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`invert_order:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`bool`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`=`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`False)`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`->`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`object`{.docutils .literal
+            .notranslate}]{.pre}
+
+        Returns the matrix representation of the operator.The matrix is
         ordered according to the convention (endianness) used in CUDA-Q,
         and the ordering returned by [`degrees`{.code .docutils .literal
         .notranslate}]{.pre}. This order can be inverted by setting the
@@ -4498,6 +4983,45 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         .literal .notranslate}]{.pre}. See also the documentation for
         [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
         more detail.
+
+        2.  [`to_matrix(self,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`arg0:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`collections.abc.Mapping[int,`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`int],`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`/,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`**kwargs)`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`->`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`object`{.docutils .literal
+            .notranslate}]{.pre}
+
+        Returns the matrix representation of the operator.The matrix is
+        ordered according to the convention (endianness) used in CUDA-Q,
+        and the ordering returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
+
+        3.  [`to_matrix(self,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`**kwargs)`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`->`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`object`{.docutils .literal
+            .notranslate}]{.pre}
+
+        Returns the matrix representation of the operator, passing
+        parameters as keyword arguments.
 
     [[to_sparse_matrix]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.boson.BosonOperatorTerm.to_sparse_matrix "Permalink to this definition"){.headerlink}
 
@@ -4633,7 +5157,52 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     [[to_matrix]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.MatrixOperator.to_matrix "Permalink to this definition"){.headerlink}
 
-    :   Returns the matrix representation of the operator.The matrix is
+    :   Overloaded function.
+
+        1.  [`to_matrix(self,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`dimensions:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`collections.abc.Mapping[int,`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`int]`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`|`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`=`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`parameters:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`collections.abc.Mapping[str,`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`complex]`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`|`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`=`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`invert_order:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`bool`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`=`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`False)`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`->`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`object`{.docutils .literal
+            .notranslate}]{.pre}
+
+        Returns the matrix representation of the operator.The matrix is
         ordered according to the convention (endianness) used in CUDA-Q,
         and the ordering returned by [`degrees`{.code .docutils .literal
         .notranslate}]{.pre}. This order can be inverted by setting the
@@ -4642,6 +5211,45 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         .literal .notranslate}]{.pre}. See also the documentation for
         [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
         more detail.
+
+        2.  [`to_matrix(self,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`arg0:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`collections.abc.Mapping[int,`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`int],`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`/,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`**kwargs)`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`->`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`object`{.docutils .literal
+            .notranslate}]{.pre}
+
+        Returns the matrix representation of the operator.The matrix is
+        ordered according to the convention (endianness) used in CUDA-Q,
+        and the ordering returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
+
+        3.  [`to_matrix(self,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`**kwargs)`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`->`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`object`{.docutils .literal
+            .notranslate}]{.pre}
+
+        Returns the matrix representation of the operator, passing
+        parameters as keyword arguments.
 
     [[trim]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.MatrixOperator.trim "Permalink to this definition"){.headerlink}
 
@@ -4722,9 +5330,13 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     [[is_identity]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.MatrixOperatorTerm.is_identity "Permalink to this definition"){.headerlink}
 
-    :   Checks if all operators in the product are the identity. Note
-        that this function returns true regardless of the value of the
+    :   this function returns true regardless of the value of the
         coefficient.
+
+        Type[:]{.colon}
+
+        :   Checks if all operators in the product are the identity.
+            Note
 
     *[property]{.pre}[ ]{.w}*[[max_degree]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.MatrixOperatorTerm.max_degree "Permalink to this definition"){.headerlink}
 
@@ -4753,7 +5365,52 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     [[to_matrix]{.pre}]{.sig-name .descname}[¶](#cudaq.operators.MatrixOperatorTerm.to_matrix "Permalink to this definition"){.headerlink}
 
-    :   Returns the matrix representation of the operator.The matrix is
+    :   Overloaded function.
+
+        1.  [`to_matrix(self,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`dimensions:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`collections.abc.Mapping[int,`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`int]`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`|`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`=`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`parameters:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`collections.abc.Mapping[str,`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`complex]`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`|`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`=`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`None,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`invert_order:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`bool`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`=`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`False)`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`->`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`object`{.docutils .literal
+            .notranslate}]{.pre}
+
+        Returns the matrix representation of the operator.The matrix is
         ordered according to the convention (endianness) used in CUDA-Q,
         and the ordering returned by [`degrees`{.code .docutils .literal
         .notranslate}]{.pre}. This order can be inverted by setting the
@@ -4762,6 +5419,45 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         .literal .notranslate}]{.pre}. See also the documentation for
         [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
         more detail.
+
+        2.  [`to_matrix(self,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`arg0:`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`collections.abc.Mapping[int,`{.docutils
+            .literal .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`int],`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`/,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`**kwargs)`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`->`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`object`{.docutils .literal
+            .notranslate}]{.pre}
+
+        Returns the matrix representation of the operator.The matrix is
+        ordered according to the convention (endianness) used in CUDA-Q,
+        and the ordering returned by [`degrees`{.code .docutils .literal
+        .notranslate}]{.pre}. This order can be inverted by setting the
+        optional [`invert_order`{.code .docutils .literal
+        .notranslate}]{.pre} argument to [`True`{.code .docutils
+        .literal .notranslate}]{.pre}. See also the documentation for
+        [`degrees`{.code .docutils .literal .notranslate}]{.pre} for
+        more detail.
+
+        3.  [`to_matrix(self,`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`**kwargs)`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`->`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`object`{.docutils .literal
+            .notranslate}]{.pre}
+
+        Returns the matrix representation of the operator, passing
+        parameters as keyword arguments.
 
 ```{=html}
 <!-- -->
@@ -5142,6 +5838,10 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
             .notranslate}]{.pre}
 
         Compute overlap with general CuPy device array.
+
+    [[to_numpy]{.pre}]{.sig-name .descname}[¶](#cudaq.State.to_numpy "Permalink to this definition"){.headerlink}
+
+    :   Convert to a NumPy array.
 
 ```{=html}
 <!-- -->
@@ -5525,7 +6225,25 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     [[to_numpy]{.pre}]{.sig-name .descname}[¶](#cudaq.ComplexMatrix.to_numpy "Permalink to this definition"){.headerlink}
 
-    :   Convert [[`ComplexMatrix`{.xref .py .py-class .docutils .literal
+    :   Overloaded function.
+
+        1.  [`to_numpy(self)`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`->`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`object`{.docutils .literal
+            .notranslate}]{.pre}
+
+        Convert to a NumPy array.
+
+        2.  [`to_numpy(self)`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`->`{.docutils .literal
+            .notranslate}]{.pre}` `{.docutils .literal
+            .notranslate}[`object`{.docutils .literal
+            .notranslate}]{.pre}
+
+        Convert [[`ComplexMatrix`{.xref .py .py-class .docutils .literal
         .notranslate}]{.pre}](#cudaq.ComplexMatrix "cudaq.ComplexMatrix"){.reference
         .internal} to numpy.ndarray.
 
@@ -6036,11 +6754,19 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[OptimizationResult]{.pre}]{.sig-name .descname}[¶](#cudaq.OptimizationResult "Permalink to this definition"){.headerlink}
+*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[OptimizationResult]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.OptimizationResult "Permalink to this definition"){.headerlink}
 
-:   alias of [[`tuple`{.xref .py .py-class .docutils .literal
-    .notranslate}]{.pre}](https://docs.python.org/3/library/stdtypes.html#tuple "(in Python v3.14)"){.reference
-    .external}
+:   Result of an optimization: (opt_value, optimal_parameters).
+    optimize() returns a tuple; this type is for type hints and
+    wrapping.
+
+    *[property]{.pre}[ ]{.w}*[[opt_value]{.pre}]{.sig-name .descname}[¶](#cudaq.OptimizationResult.opt_value "Permalink to this definition"){.headerlink}
+
+    :   (self) -\> float
+
+    *[property]{.pre}[ ]{.w}*[[optimal_parameters]{.pre}]{.sig-name .descname}[¶](#cudaq.OptimizationResult.optimal_parameters "Permalink to this definition"){.headerlink}
+
+    :   (self) -\> list\[float\]
 
 ```{=html}
 <!-- -->

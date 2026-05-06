@@ -2277,7 +2277,7 @@ commands install GCC 11:
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
-    GCC_VERSION=${GCC_VERSION:-11}
+    GCC_VERSION=${GCC_VERSION:-12}
     dnf install -y --nobest --setopt=install_weak_deps=False \
         gcc-toolset-${GCC_VERSION}
     # Enabling the toolchain globally is only needed for debug builds
@@ -2295,7 +2295,7 @@ system:
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
-    export GCC_TOOLCHAIN=/opt/rh/gcc-toolset-11/root/usr/
+    export GCC_TOOLCHAIN=/opt/rh/gcc-toolset-12/root/usr/
     export CXX="${GCC_TOOLCHAIN}/bin/g++"
     export CC="${GCC_TOOLCHAIN}/bin/gcc"
     export CUDACXX=/usr/local/cuda/bin/nvcc
@@ -2423,7 +2423,7 @@ following command to build the CUDA-Q Python wheel:
     bash scripts/install_prerequisites.sh -t llvm -e qrmi && \
     CC="$LLVM_INSTALL_PREFIX/bin/clang" \
     CXX="$LLVM_INSTALL_PREFIX/bin/clang++" \
-    FC="$LLVM_INSTALL_PREFIX/bin/flang-new" \
+    FC="$LLVM_INSTALL_PREFIX/bin/flang" \
     python3 -m build --wheel && \
     echo "=== ccache stats (python_build) ===" && (ccache -s 2>/dev/null || true)
 :::
