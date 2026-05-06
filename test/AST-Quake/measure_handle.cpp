@@ -426,18 +426,91 @@ struct HandleOr {
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__HandleOr() -> i1
-// CHECK:           %[[VAL_FALSE:.*]] = arith.constant false
 // CHECK:           %{{.*}} = quake.mz %{{.*}} : (!quake.ref) -> !cc.measure_handle
 // CHECK:           %[[VAL_B1:.*]] = quake.discriminate %{{.*}} : (!cc.measure_handle) -> i1
-// CHECK:           %[[VAL_NZ:.*]] = arith.cmpi ne, %[[VAL_B1]], %[[VAL_FALSE]] : i1
-// CHECK:           %[[VAL_R:.*]] = cc.if(%[[VAL_NZ]]) -> i1 {
-// CHECK:             cc.continue %[[VAL_NZ]] : i1
+// CHECK:           %[[VAL_R:.*]] = cc.if(%[[VAL_B1]]) -> i1 {
+// CHECK:             cc.continue %[[VAL_B1]] : i1
 // CHECK:           } else {
 // CHECK:             %{{.*}} = quake.mz %{{.*}} : (!quake.ref) -> !cc.measure_handle
 // CHECK:             %[[VAL_B2:.*]] = quake.discriminate %{{.*}} : (!cc.measure_handle) -> i1
 // CHECK:             cc.continue %[[VAL_B2]] : i1
 // CHECK:           }
 // CHECK:           return %[[VAL_R]] : i1
+
+struct HandleNamedAndRhs {
+  bool operator()() __qpu__ {
+    cudaq::qubit q0;
+    cudaq::qubit q1;
+    auto result0 = mz(q0);
+    auto result1 = mz(q1);
+    return result0 && result1;
+  }
+};
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__HandleNamedAndRhs() -> i1
+// CHECK:           %[[NA_M0:.*]] = quake.mz %{{.*}} name "result0" : (!quake.ref) -> !cc.measure_handle
+// CHECK:           %[[NA_HA0:.*]] = cc.alloca !cc.measure_handle
+// CHECK:           cc.store %[[NA_M0]], %[[NA_HA0]] : !cc.ptr<!cc.measure_handle>
+// CHECK:           %[[NA_M1:.*]] = quake.mz %{{.*}} name "result1" : (!quake.ref) -> !cc.measure_handle
+// CHECK:           %[[NA_HA1:.*]] = cc.alloca !cc.measure_handle
+// CHECK:           cc.store %[[NA_M1]], %[[NA_HA1]] : !cc.ptr<!cc.measure_handle>
+// CHECK:           %[[NA_HL0:.*]] = cc.load %[[NA_HA0]] : !cc.ptr<!cc.measure_handle>
+// CHECK:           %[[NA_D0:.*]] = quake.discriminate %[[NA_HL0]] : (!cc.measure_handle) -> i1
+// CHECK:           %{{.*}} = cc.if(%{{.*}}) -> i1 {
+// CHECK:             cc.continue %{{.*}} : i1
+// CHECK:           } else {
+// CHECK:             %[[NA_HL1:.*]] = cc.load %[[NA_HA1]] : !cc.ptr<!cc.measure_handle>
+// CHECK:             %[[NA_D1:.*]] = quake.discriminate %[[NA_HL1]] : (!cc.measure_handle) -> i1
+// CHECK:             cc.continue %[[NA_D1]] : i1
+// CHECK:           }
+
+struct HandleNamedOrRhs {
+  bool operator()() __qpu__ {
+    cudaq::qubit q0;
+    cudaq::qubit q1;
+    auto result0 = mz(q0);
+    auto result1 = mz(q1);
+    return result0 || result1;
+  }
+};
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__HandleNamedOrRhs() -> i1
+// CHECK:           %[[NO_M0:.*]] = quake.mz %{{.*}} name "result0" : (!quake.ref) -> !cc.measure_handle
+// CHECK:           %[[NO_HA0:.*]] = cc.alloca !cc.measure_handle
+// CHECK:           cc.store %[[NO_M0]], %[[NO_HA0]] : !cc.ptr<!cc.measure_handle>
+// CHECK:           %[[NO_M1:.*]] = quake.mz %{{.*}} name "result1" : (!quake.ref) -> !cc.measure_handle
+// CHECK:           %[[NO_HA1:.*]] = cc.alloca !cc.measure_handle
+// CHECK:           cc.store %[[NO_M1]], %[[NO_HA1]] : !cc.ptr<!cc.measure_handle>
+// CHECK:           %[[NO_HL0:.*]] = cc.load %[[NO_HA0]] : !cc.ptr<!cc.measure_handle>
+// CHECK:           %[[NO_D0:.*]] = quake.discriminate %[[NO_HL0]] : (!cc.measure_handle) -> i1
+// CHECK:           %{{.*}} = cc.if(%{{.*}}) -> i1 {
+// CHECK:             cc.continue %{{.*}} : i1
+// CHECK:           } else {
+// CHECK:             %[[NO_HL1:.*]] = cc.load %[[NO_HA1]] : !cc.ptr<!cc.measure_handle>
+// CHECK:             %[[NO_D1:.*]] = quake.discriminate %[[NO_HL1]] : (!cc.measure_handle) -> i1
+// CHECK:             cc.continue %[[NO_D1]] : i1
+// CHECK:           }
+
+struct HandleNamedDiscrimInsideIf {
+  bool operator()(bool cond) __qpu__ {
+    cudaq::qubit q;
+    auto result0 = mz(q);
+    bool b = false;
+    if (cond)
+      b = result0;
+    return b;
+  }
+};
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__HandleNamedDiscrimInsideIf(
+// CHECK:           %[[NI_M0:.*]] = quake.mz %{{.*}} name "result0" : (!quake.ref) -> !cc.measure_handle
+// CHECK:           %[[NI_HA0:.*]] = cc.alloca !cc.measure_handle
+// CHECK:           cc.store %[[NI_M0]], %[[NI_HA0]] : !cc.ptr<!cc.measure_handle>
+// CHECK:           cc.if(%{{.*}}) {
+// CHECK:             %[[NI_HL0:.*]] = cc.load %[[NI_HA0]] : !cc.ptr<!cc.measure_handle>
+// CHECK:             %[[NI_D0:.*]] = quake.discriminate %[[NI_HL0]] : (!cc.measure_handle) -> i1
+// CHECK:             cc.store %[[NI_D0]], %{{.*}} : !cc.ptr<i1>
+// CHECK:           }
 
 struct BoolInit {
   void operator()() __qpu__ {

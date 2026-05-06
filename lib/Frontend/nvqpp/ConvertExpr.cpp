@@ -15,7 +15,6 @@
 #include "llvm/Support/Debug.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/Math/IR/Math.h"
-#include "mlir/IR/Dominance.h"
 
 #define DEBUG_TYPE "lower-ast-expr"
 
@@ -685,19 +684,32 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
         if (isa<cc::MeasureHandleType>(ptrTy.getElementType()))
           handleVal = cc::LoadOp::create(builder, loc, handleVal);
       if (isa<cc::MeasureHandleType>(handleVal.getType())) {
-        // Lazy `mlir::DominanceInfo` shared across recursion levels:
-        // we need it for the scalar-handle alloca case below to verify
-        // that a store to the alloca actually dominates the load.
-        std::optional<mlir::DominanceInfo> domCache;
-        auto getDominance =
-            [&](mlir::Operation *anchor) -> mlir::DominanceInfo & {
-          if (!domCache) {
-            if (auto fn = anchor->getParentOfType<func::FuncOp>())
-              domCache.emplace(fn);
-            else
-              domCache.emplace();
+        // Structural ancestor walk instead of `mlir::DominanceInfo`: for
+        // operands of `&&`, `||`, `?:`, the load lives in a `cc.if` region
+        // still under construction (`cc::IfOp::create`'s region-builder
+        // lambdas run before the op is attached), and a function-rooted
+        // `DominanceInfo` can't see ops in that orphan subtree.
+        auto storeDominatesLoad = [](cc::StoreOp store,
+                                     cc::LoadOp load) -> bool {
+          Block *storeBlock = store.getOperation()->getBlock();
+          if (!storeBlock)
+            return false;
+          Operation *anchor = load.getOperation();
+          while (anchor && anchor->getBlock() != storeBlock) {
+            Block *anchorBlock = anchor->getBlock();
+            if (!anchorBlock)
+              return false;
+            // If we walk past a region whose parent op is not yet attached,
+            // assume the store at the outer level lexically precedes the
+            // eventual insertion point of that op.
+            anchor = anchorBlock->getParentOp();
+            if (!anchor)
+              return true;
           }
-          return *domCache;
+          if (!anchor)
+            return false;
+          return anchor == store.getOperation() ||
+                 store.getOperation()->isBeforeInBlock(anchor);
         };
         std::function<bool(Value, llvm::SmallPtrSetImpl<Value> &)>
             isBoundHandle = [&](Value v,
@@ -735,8 +747,7 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
               auto checkStore = [&](cc::StoreOp store) {
                 if (!isScalarHandleAlloca)
                   return true;
-                auto &dom = getDominance(load.getOperation());
-                if (!dom.dominates(store.getOperation(), load.getOperation()))
+                if (!storeDominatesLoad(store, load))
                   return false;
                 return isBoundHandle(store.getValue(), visited);
               };
