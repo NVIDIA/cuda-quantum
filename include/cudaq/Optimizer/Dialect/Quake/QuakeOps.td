@@ -617,7 +617,8 @@ def quake_WrapOp : QuakeOp<"wrap"> {
   let hasCanonicalizer = 1;
 }
 
-def quake_CallByRefOp : QuakeOp<"call_by_ref", [CallOpInterface]> {
+def quake_CallByRefOp : QuakeOp<"call_by_ref",
+    [CallOpInterface, SymbolUserOpInterface]> {
   let summary = "Call a kernel casting wires to refs.";
   let description = [{
     This operation performs a wrap operation on the wire arguments, calls the
@@ -644,7 +645,7 @@ def quake_CallByRefOp : QuakeOp<"call_by_ref", [CallOpInterface]> {
   }];
 
   let arguments = (ins
-    SymbolRefAttr:$callee,
+    FlatSymbolRefAttr:$callee,
     Variadic<AnyType>:$args,
     OptionalAttr<DictArrayAttr>:$arg_attrs,
     OptionalAttr<DictArrayAttr>:$res_attrs
@@ -656,7 +657,7 @@ def quake_CallByRefOp : QuakeOp<"call_by_ref", [CallOpInterface]> {
   }];
 
   let builders = [
-    OpBuilder<(ins "mlir::SymbolRefAttr":$callee,
+    OpBuilder<(ins "mlir::FlatSymbolRefAttr":$callee,
                    "mlir::TypeRange":$results,
                    "mlir::ValueRange":$args), [{
       return build($_builder, $_state, results, callee, args, {}, {});
@@ -682,6 +683,9 @@ def quake_CallByRefOp : QuakeOp<"call_by_ref", [CallOpInterface]> {
       (*this)->setAttr(getCalleeAttrName(),
                        llvm::cast<mlir::SymbolRefAttr>(callee));
     }
+
+    mlir::LogicalResult verifySymbolUses(mlir::SymbolTableCollection &);
+
   }];
 }
 

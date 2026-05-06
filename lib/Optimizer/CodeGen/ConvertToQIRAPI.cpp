@@ -1548,16 +1548,16 @@ struct CallByRefOpRewrite : public OpConversionPattern<quake::CallByRefOp> {
     // uses.
     auto loc = call.getLoc();
     auto fn = SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(
-        call, adaptor.getCallee());
+        call, adaptor.getCalleeAttr());
 
     SmallVector<Value> quantumArgs;
     for (auto [valarg, qirarg] : llvm::zip(call.getArgs(), adaptor.getArgs()))
       if (quake::isQuantumValueType(valarg.getType()))
         quantumArgs.push_back(qirarg);
 
-    auto refCall = func::CallOp::create(
-        rewriter, loc, fn.getFunctionType().getResults(),
-        adaptor.getCallee().getRootReference().getValue(), adaptor.getArgs());
+    auto refCall =
+        func::CallOp::create(rewriter, loc, fn.getFunctionType().getResults(),
+                             adaptor.getCallee(), adaptor.getArgs());
 
     // Concat the formal results and the quantum arguments to rewrite the uses.
     SmallVector<Value> results{refCall.getResults().begin(),
