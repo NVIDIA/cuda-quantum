@@ -222,81 +222,56 @@ bool isDynamicallySizedType(Type ty) {
   return false;
 }
 
-static bool containsMeasureHandleImpl(Type ty,
+static bool containsMeasureHandleImpl(Type ty, bool includeCallables,
                                       llvm::SmallPtrSetImpl<Type> &seen) {
   if (!ty || !seen.insert(ty).second)
     return false;
   if (isa<MeasureHandleType>(ty))
     return true;
-  if (auto p = dyn_cast<PointerType>(ty))
-    return containsMeasureHandleImpl(p.getElementType(), seen);
-  if (auto a = dyn_cast<ArrayType>(ty))
-    return containsMeasureHandleImpl(a.getElementType(), seen);
-  if (auto v = dyn_cast<StdvecType>(ty))
-    return containsMeasureHandleImpl(v.getElementType(), seen);
-  if (auto s = dyn_cast<StructType>(ty)) {
-    for (auto m : s.getMembers())
-      if (containsMeasureHandleImpl(m, seen))
-        return true;
-  }
-  return false;
-}
-
-bool containsMeasureHandle(Type ty) {
-  llvm::SmallPtrSet<Type, 8> seen;
-  return containsMeasureHandleImpl(ty, seen);
-}
-
-static bool
-containsMeasureHandleAtBoundaryImpl(Type ty,
-                                    llvm::SmallPtrSetImpl<Type> &seen) {
-  if (!ty || !seen.insert(ty).second)
-    return false;
-  if (isa<MeasureHandleType>(ty))
-    return true;
-  if (auto p = dyn_cast<PointerType>(ty))
-    return containsMeasureHandleAtBoundaryImpl(p.getElementType(), seen);
-  if (auto a = dyn_cast<ArrayType>(ty))
-    return containsMeasureHandleAtBoundaryImpl(a.getElementType(), seen);
-  if (auto v = dyn_cast<StdvecType>(ty))
-    return containsMeasureHandleAtBoundaryImpl(v.getElementType(), seen);
-  if (auto s = dyn_cast<StructType>(ty)) {
-    for (auto m : s.getMembers())
-      if (containsMeasureHandleAtBoundaryImpl(m, seen))
-        return true;
-  }
-  // Unlike `containsMeasureHandle`, the boundary variant also recursively
-  // checks into callable signatures and bare function types. A kernel taking
-  // `std::function<void(measure_handle)>` -- lowered to
-  // `cc.callable<(!cc.measure_handle) -> ()>` -- transports a
-  // host-defined callable that the kernel invokes with a handle
-  // argument, so the handle would cross the host-device boundary on
-  // every invocation, even though the kernel signature itself does not
-  // syntactically carry a handle. The plain `containsMeasureHandle`
-  // is intentionally callable-blind because the marshaling code at
-  // entry needs to know whether the value being packed is itself a
-  // handle, not whether it ever leads to one.
-  auto recurseFunctionType = [&](FunctionType ft) {
-    for (auto t : ft.getInputs())
-      if (containsMeasureHandleAtBoundaryImpl(t, seen))
-        return true;
-    for (auto t : ft.getResults())
-      if (containsMeasureHandleAtBoundaryImpl(t, seen))
-        return true;
-    return false;
+  auto recurse = [&](Type t) {
+    return containsMeasureHandleImpl(t, includeCallables, seen);
   };
+  if (auto p = dyn_cast<PointerType>(ty))
+    return recurse(p.getElementType());
+  if (auto a = dyn_cast<ArrayType>(ty))
+    return recurse(a.getElementType());
+  if (auto v = dyn_cast<StdvecType>(ty))
+    return recurse(v.getElementType());
+  if (auto s = dyn_cast<StructType>(ty)) {
+    for (auto m : s.getMembers())
+      if (recurse(m))
+        return true;
+    return false;
+  }
+  if (!includeCallables)
+    return false;
+  // Boundary variant: also recursively walk into callable signatures and bare
+  // function types. A kernel taking `std::function<void(measure_handle)>` --
+  // lowered to `cc.callable<(!cc.measure_handle) -> ()>` -- transports a
+  // host-defined callable that the kernel invokes with a handle argument, so
+  // the handle would cross the host-device boundary on every invocation, even
+  // though the kernel signature itself does not syntactically carry a handle.
+  FunctionType ft;
   if (auto c = dyn_cast<CallableType>(ty))
-    return recurseFunctionType(c.getSignature());
-  if (auto c = dyn_cast<IndirectCallableType>(ty))
-    return recurseFunctionType(c.getSignature());
-  if (auto f = dyn_cast<FunctionType>(ty))
-    return recurseFunctionType(f);
+    ft = c.getSignature();
+  else if (auto c = dyn_cast<IndirectCallableType>(ty))
+    ft = c.getSignature();
+  else if (auto f = dyn_cast<FunctionType>(ty))
+    ft = f;
+  if (!ft)
+    return false;
+  for (auto t : ft.getInputs())
+    if (recurse(t))
+      return true;
+  for (auto t : ft.getResults())
+    if (recurse(t))
+      return true;
   return false;
 }
 
-bool containsMeasureHandleAtBoundary(Type ty) {
+bool containsMeasureHandle(Type ty, bool includeCallables) {
   llvm::SmallPtrSet<Type, 8> seen;
-  return containsMeasureHandleAtBoundaryImpl(ty, seen);
+  return containsMeasureHandleImpl(ty, includeCallables, seen);
 }
 
 void CCDialect::registerTypes() {

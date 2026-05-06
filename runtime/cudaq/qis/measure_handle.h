@@ -55,13 +55,13 @@ public:
   operator bool() const { std::abort(); }
 
 private:
-  //`index` is the measurement-event identity consumed by `!cc.measure_handle`
-  // lowering, the encoding is implementation-defined; the bridge produces the
-  // SSA value directly and never reads this field from C++.
-#if defined(__clang__)
-  [[maybe_unused]]
-#endif
-  std::int64_t index = std::numeric_limits<std::int64_t>::max();
+  // `index` is the measurement-event identity consumed by `!cc.measure_handle`
+  // lowering; the encoding is implementation-defined. The bridge produces the
+  // SSA value directly and never reads this field from C++, so the field is
+  // marked `[[maybe_unused]]` to suppress diagnostics from compilers that
+  // notice the apparent dead store.
+  [[maybe_unused]] std::int64_t index =
+      std::numeric_limits<std::int64_t>::max();
 };
 
 // Compile-time checks: the bridge marshals `measure_handle` as a bare `i64`.

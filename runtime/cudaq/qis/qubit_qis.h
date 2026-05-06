@@ -422,8 +422,14 @@ void exp_pauli(QuantumRegister &ctrls, double theta, const char *pauliWord,
                                false, spin_op::from_word(pauliWord));
 }
 
-namespace details {
-inline measure_result measureZ(qubit &q) {
+// `mz`/`mx`/`my` are `__qpu__`-only entry points. In MLIR mode the bridge
+// intercepts every call to these functions inside a `__qpu__` kernel and emits
+// the corresponding `quake.{mz, mx, my}` op directly, so the inline body never
+// runs in a built kernel; we therefore `std::abort()` so host-scope misuse
+// fails loudly instead of returning a meaningless value.
+
+/// @brief Measure an individual qubit, return 0,1 as `bool`
+inline measure_result mz(qubit &q) {
 #ifdef CUDAQ_LIBRARY_MODE
   return getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
 #else
@@ -432,7 +438,8 @@ inline measure_result measureZ(qubit &q) {
 #endif
 }
 
-inline measure_result measureX(qubit &q) {
+/// @brief Measure an individual qubit in `x` basis, return 0,1 as `bool`
+inline measure_result mx(qubit &q) {
 #ifdef CUDAQ_LIBRARY_MODE
   h(q);
   return getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
@@ -442,7 +449,8 @@ inline measure_result measureX(qubit &q) {
 #endif
 }
 
-inline measure_result measureY(qubit &q) {
+/// @brief Measure an individual qubit in `y` basis, return 0,1 as `bool`
+inline measure_result my(qubit &q) {
 #ifdef CUDAQ_LIBRARY_MODE
   r1(-M_PI_2, q);
   h(q);
@@ -452,16 +460,6 @@ inline measure_result measureY(qubit &q) {
   std::abort();
 #endif
 }
-} // namespace details
-
-/// @brief Measure an individual qubit, return 0,1 as `bool`
-inline measure_result mz(qubit &q) { return details::measureZ(q); }
-
-/// @brief Measure an individual qubit in `x` basis, return 0,1 as `bool`
-inline measure_result mx(qubit &q) { return details::measureX(q); }
-
-/// @brief Measure an individual qubit in `y` basis, return 0,1 as `bool`
-inline measure_result my(qubit &q) { return details::measureY(q); }
 
 inline void reset(qubit &q) {
   getExecutionManager()->reset({q.n_levels(), q.id()});

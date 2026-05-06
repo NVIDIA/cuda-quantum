@@ -30,6 +30,123 @@ static Type getResultType(Type ty) {
   return ty;
 }
 
+namespace {
+// `measure_handle` arrives at the bridge as either an SSA `!cc.measure_handle`
+// (the rvalue from `mz`/`mx`/`my`, a copy/move ctor result, etc.) or as the
+// pointer form `!cc.ptr<!cc.measure_handle>` left by lvalue access (named
+// variable read, `operator=` LHS, struct-member-of-handle, ...). The
+// discrimination, copy, and `to_bools` paths all want the value form, so funnel
+// that normalization through one helper rather than open-coding the dyn_cast
+// chain at every call site.
+Value loadHandleIfPointer(OpBuilder &builder, Location loc, Value v) {
+  if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(v.getType()))
+    if (isa<cudaq::cc::MeasureHandleType>(ptrTy.getElementType()))
+      return cudaq::cc::LoadOp::create(builder, loc, v);
+  return v;
+}
+
+// Same intent as `loadHandleIfPointer`, but for the bulk-discriminate /
+// `to_integer` paths where the lvalue carries a `std::vector<measure_handle>`.
+Value loadHandleVectorIfPointer(OpBuilder &builder, Location loc, Value v) {
+  if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(v.getType()))
+    if (auto sv = dyn_cast<cudaq::cc::StdvecType>(ptrTy.getElementType());
+        sv && isa<cudaq::cc::MeasureHandleType>(sv.getElementType()))
+      return cudaq::cc::LoadOp::create(builder, loc, v);
+  return v;
+}
+} // namespace
+
+// Operands of `&&`, `||`, and `?:` lower into the orphan regions that
+// `cc::IfOp::create`'s region-builder lambdas populate before the op is
+// attached to its parent block. A function-rooted `mlir::DominanceInfo` cannot
+// see ops in that subtree, so the unbound-handle check needs a structural
+// ancestor walk instead. Return true iff the store's block lexically dominates
+// the load's insertion point, treating yet-unattached parent regions as
+// post-store by construction (the bridge always emits the store at the outer
+// level before opening the inner `cc.if`).
+static bool storeDominatesLoad(cudaq::cc::StoreOp store,
+                               cudaq::cc::LoadOp load) {
+  Block *storeBlock = store.getOperation()->getBlock();
+  if (!storeBlock)
+    return false;
+  Operation *anchor = load.getOperation();
+  while (anchor && anchor->getBlock() != storeBlock) {
+    Block *anchorBlock = anchor->getBlock();
+    if (!anchorBlock)
+      return false;
+    anchor = anchorBlock->getParentOp();
+    if (!anchor)
+      return true;
+  }
+  if (!anchor)
+    return false;
+  return anchor == store.getOperation() ||
+         store.getOperation()->isBeforeInBlock(anchor);
+}
+
+// Walks the use-def chain back to the originating `mz`/`mx`/`my` so the bridge
+// can statically diagnose `bool b = h;` when `h` was default-constructed.
+//
+// On the scalar-handle alloca path, every store reaching the alloca must
+// dominate the load (`storeDominatesLoad`); the aggregate / array path stays
+// coarse because per-element/per-member tracking would need reasoning about
+// SSA `cc.compute_ptr` indices, which we defer to a follow-up. Recursive
+// because the source of a binding store may itself be the result of another
+// load through copy/move stores between local allocas. The `visited` set
+// prevents cycles when handles flow through multiple allocas.
+static bool isBoundHandle(Value v, llvm::SmallPtrSetImpl<Value> &visited) {
+  if (!visited.insert(v).second)
+    return false;
+  if (v.getDefiningOp<quake::MeasurementInterface>())
+    return true;
+  auto load = v.getDefiningOp<cudaq::cc::LoadOp>();
+  if (!load)
+    return true;
+  // Walk through `cc.compute_ptr` and `cc.cast` to reach the alloca that owns
+  // the storage being loaded.
+  Value ptr = load.getPtrvalue();
+  while (true) {
+    if (auto cp = ptr.getDefiningOp<cudaq::cc::ComputePtrOp>()) {
+      ptr = cp.getBase();
+      continue;
+    }
+    if (auto cs = ptr.getDefiningOp<cudaq::cc::CastOp>()) {
+      ptr = cs.getValue();
+      continue;
+    }
+    break;
+  }
+  auto alloca = ptr.getDefiningOp<cudaq::cc::AllocaOp>();
+  if (!alloca)
+    return true;
+  auto eleTy = alloca.getElementType();
+  bool isScalarHandleAlloca = isa<cudaq::cc::MeasureHandleType>(eleTy);
+  if (!isScalarHandleAlloca && !cudaq::cc::containsMeasureHandle(eleTy))
+    return true;
+  // Bound iff at least one store reaches this alloca with a value that is
+  // itself bound.
+  auto checkStore = [&](cudaq::cc::StoreOp store) {
+    if (!isScalarHandleAlloca)
+      return true;
+    if (!storeDominatesLoad(store, load))
+      return false;
+    return isBoundHandle(store.getValue(), visited);
+  };
+  for (Operation *u : alloca->getUsers()) {
+    if (auto store = dyn_cast<cudaq::cc::StoreOp>(u)) {
+      if (checkStore(store))
+        return true;
+      continue;
+    }
+    if (isa<cudaq::cc::ComputePtrOp, cudaq::cc::CastOp>(u))
+      for (Operation *uu : u->getUsers())
+        if (auto store = dyn_cast<cudaq::cc::StoreOp>(uu))
+          if (store.getPtrvalue() == u->getResult(0) && checkStore(store))
+            return true;
+  }
+  return false;
+}
+
 /// Convert a name, value pair into a symbol name allocated in `allocator`.
 static llvm::StringRef
 createQubitSymbolTableName(StringRef qregName, Value idxVal,
@@ -679,93 +796,8 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
     // local `alloca`s.
     if (auto intTy = dyn_cast<IntegerType>(castToTy);
         intTy && intTy.getWidth() == 1) {
-      Value handleVal = sub;
-      if (auto ptrTy = dyn_cast<cc::PointerType>(handleVal.getType()))
-        if (isa<cc::MeasureHandleType>(ptrTy.getElementType()))
-          handleVal = cc::LoadOp::create(builder, loc, handleVal);
+      Value handleVal = loadHandleIfPointer(builder, loc, sub);
       if (isa<cc::MeasureHandleType>(handleVal.getType())) {
-        // Structural ancestor walk instead of `mlir::DominanceInfo`: for
-        // operands of `&&`, `||`, `?:`, the load lives in a `cc.if` region
-        // still under construction (`cc::IfOp::create`'s region-builder
-        // lambdas run before the op is attached), and a function-rooted
-        // `DominanceInfo` can't see ops in that orphan subtree.
-        auto storeDominatesLoad = [](cc::StoreOp store,
-                                     cc::LoadOp load) -> bool {
-          Block *storeBlock = store.getOperation()->getBlock();
-          if (!storeBlock)
-            return false;
-          Operation *anchor = load.getOperation();
-          while (anchor && anchor->getBlock() != storeBlock) {
-            Block *anchorBlock = anchor->getBlock();
-            if (!anchorBlock)
-              return false;
-            // If we walk past a region whose parent op is not yet attached,
-            // assume the store at the outer level lexically precedes the
-            // eventual insertion point of that op.
-            anchor = anchorBlock->getParentOp();
-            if (!anchor)
-              return true;
-          }
-          if (!anchor)
-            return false;
-          return anchor == store.getOperation() ||
-                 store.getOperation()->isBeforeInBlock(anchor);
-        };
-        std::function<bool(Value, llvm::SmallPtrSetImpl<Value> &)>
-            isBoundHandle = [&](Value v,
-                                llvm::SmallPtrSetImpl<Value> &visited) {
-              if (!visited.insert(v).second)
-                return false;
-              if (v.getDefiningOp<quake::MeasurementInterface>())
-                return true;
-              auto load = v.getDefiningOp<cc::LoadOp>();
-              if (!load)
-                return true;
-              // Walk through `cc.compute_ptr` and `cc.cast` to reach the
-              // alloca that owns the storage being loaded.
-              Value ptr = load.getPtrvalue();
-              while (true) {
-                if (auto cp = ptr.getDefiningOp<cc::ComputePtrOp>()) {
-                  ptr = cp.getBase();
-                  continue;
-                }
-                if (auto cs = ptr.getDefiningOp<cc::CastOp>()) {
-                  ptr = cs.getValue();
-                  continue;
-                }
-                break;
-              }
-              auto alloca = ptr.getDefiningOp<cc::AllocaOp>();
-              if (!alloca)
-                return true;
-              auto eleTy = alloca.getElementType();
-              bool isScalarHandleAlloca = isa<cc::MeasureHandleType>(eleTy);
-              if (!isScalarHandleAlloca && !cc::containsMeasureHandle(eleTy))
-                return true;
-              // Bound iff at least one store reaches this alloca with a
-              // value that is itself bound.
-              auto checkStore = [&](cc::StoreOp store) {
-                if (!isScalarHandleAlloca)
-                  return true;
-                if (!storeDominatesLoad(store, load))
-                  return false;
-                return isBoundHandle(store.getValue(), visited);
-              };
-              for (Operation *u : alloca->getUsers()) {
-                if (auto store = dyn_cast<cc::StoreOp>(u)) {
-                  if (checkStore(store))
-                    return true;
-                  continue;
-                }
-                if (isa<cc::ComputePtrOp, cc::CastOp>(u))
-                  for (Operation *uu : u->getUsers())
-                    if (auto store = dyn_cast<cc::StoreOp>(uu))
-                      if (store.getPtrvalue() == u->getResult(0) &&
-                          checkStore(store))
-                        return true;
-              }
-              return false;
-            };
         llvm::SmallPtrSet<Value, 4> visited;
         if (!isBoundHandle(handleVal, visited)) {
           reportClangError(x, mangler,
@@ -1364,38 +1396,31 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
   if (visitMathLibFunc(x, func, loc, funcName))
     return true;
 
-  // Handle `cudaq::measure_handle::operator bool()`
-  if (isInClassInNamespace(func, "measure_handle", "cudaq") &&
-      isa<clang::CXXConversionDecl>(func)) {
-    Value thisVal = popValue();
-    if (auto ptrTy = dyn_cast<cc::PointerType>(thisVal.getType()))
-      if (isa<cc::MeasureHandleType>(ptrTy.getElementType()))
-        thisVal = cc::LoadOp::create(builder, loc, thisVal);
-    return pushValue(thisVal);
-  }
-
-  // Handle `cudaq::measure_handle::operator=` (copy/move assignment).
-  // The synthesized `operator=` is not in the bridge's `cudaq::*` call
-  // dispatch, so without this interception `h2 = h;` falls through to the
-  // generic "unknown function" path and aborts `cudaq-quake`.
+  // Intercept `cudaq::measure_handle::operator bool()` and the synthesized
+  // `operator=` together: both surface as `CXXMethodDecl`s on
+  // `cudaq::measure_handle`, both leave the value form on top of the visitor
+  // stack, and both are absent from the generic `cudaq::*` call dispatch
+  // below (so without this block, `h2 = h;` would fall through to the
+  // "unknown function" path and abort `cudaq-quake`).
   if (isInClassInNamespace(func, "measure_handle", "cudaq")) {
+    if (isa<clang::CXXConversionDecl>(func)) {
+      Value thisVal = loadHandleIfPointer(builder, loc, popValue());
+      return pushValue(thisVal);
+    }
     if (auto *md = dyn_cast<clang::CXXMethodDecl>(func);
         md && md->getOverloadedOperator() == clang::OO_Equal) {
-      Value rhs = popValue();
+      Value rhs = loadHandleIfPointer(builder, loc, popValue());
       Value thisVal = popValue();
       // Drop the callee value the visitor pushed for the call.
       [[maybe_unused]] auto calleeOp = popValue();
-      if (auto ptrTy = dyn_cast<cc::PointerType>(rhs.getType()))
-        if (isa<cc::MeasureHandleType>(ptrTy.getElementType()))
-          rhs = cc::LoadOp::create(builder, loc, rhs);
+      // The C++ frontend rejects an `operator=` call whose `this` is not an
+      // lvalue `measure_handle`, so the type structure here is fixed by the
+      // earlier visit; the assertion is a sanity check, not a diagnostic.
       auto thisPtrTy = dyn_cast<cc::PointerType>(thisVal.getType());
-      if (!thisPtrTy ||
-          !isa<cc::MeasureHandleType>(thisPtrTy.getElementType())) {
-        reportClangError(x, mangler,
-                         "`measure_handle` assignment expects an lvalue "
-                         "`measure_handle` as its destination");
-        return false;
-      }
+      assert(thisPtrTy &&
+             isa<cc::MeasureHandleType>(thisPtrTy.getElementType()) &&
+             "`measure_handle::operator=` always has a "
+             "`!cc.ptr<!cc.measure_handle>` lhs by construction");
       cc::StoreOp::create(builder, loc, rhs, thisVal);
       return pushValue(thisVal);
     }
@@ -1799,10 +1824,11 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     }
 
     if (funcName == "mx" || funcName == "my" || funcName == "mz") {
-      // Measurements emit `quake.{mz,mx,my}` producing`!cc.measure_handle`
-      // (scalar) or `!cc.stdvec<!cc.measure_handle>` (multi-qubit) and, do not
-      // inline `quake.discriminate` at the call site. Discrimination happens
-      // later, only if necessary.
+      // Measurements emit `quake.{mz,mx,my}` producing `!cc.measure_handle`
+      // (scalar) or `!cc.stdvec<!cc.measure_handle>` (multi-qubit). The
+      // bridge does not inline `quake.discriminate` at the call site;
+      // discrimination happens later, only when a downstream coercion site
+      // demands it.
       bool useStdvec =
           (args.size() > 1) ||
           (args.size() == 1 && isa<quake::VeqType>(args[0].getType()));
@@ -1822,19 +1848,15 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     if (funcName == "to_bools") {
       // `cudaq::to_bools(std::vector<cudaq::measure_handle>)` is the bulk
       // counterpart to `measure_handle::operator bool()`. Lower to a
-      // vectorized `quake.discriminate` on the handle vector.
-      Value handleArg = args[0];
-      if (auto ptrTy = dyn_cast<cc::PointerType>(handleArg.getType()))
-        if (auto sv = dyn_cast<cc::StdvecType>(ptrTy.getElementType());
-            sv && isa<cc::MeasureHandleType>(sv.getElementType()))
-          handleArg = cc::LoadOp::create(builder, loc, handleArg);
+      // vectorized `quake.discriminate` on the handle vector. The stdvec
+      // shape is fixed by the C++ overload resolution (clang would reject
+      // any other argument type before the bridge sees the call), so the
+      // dyn_cast is a sanity check, not a user-facing path.
+      Value handleArg = loadHandleVectorIfPointer(builder, loc, args[0]);
       auto sv = dyn_cast<cc::StdvecType>(handleArg.getType());
-      if (!sv || !isa<cc::MeasureHandleType>(sv.getElementType())) {
-        reportClangError(x, mangler,
-                         "cudaq::to_bools expects a "
-                         "std::vector<cudaq::measure_handle> argument");
-        return false;
-      }
+      assert(sv && isa<cc::MeasureHandleType>(sv.getElementType()) &&
+             "`cudaq::to_bools` always sees `!cc.stdvec<!cc.measure_handle>` "
+             "after C++ overload resolution");
       auto resTy = cc::StdvecType::get(builder.getI1Type());
       return pushValue(
           quake::DiscriminateOp::create(builder, loc, resTy, handleArg));
@@ -2302,17 +2324,10 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         reportClangError(x, mangler, "cannot load cudaqConvertToInteger");
         return false;
       }
-      // The intrinsic signature is `(!cc.stdvec<i1>) -> i64`. The argument
-      // can arrive in either of two shapes from the AST visitor:
-      //   1. `!cc.stdvec<...>` (after lvalue-to-rvalue conversion of the
-      //      named stdvec or for an rvalue from `mz`), or
-      //   2. `!cc.ptr<!cc.stdvec<...>>` (an lvalue that the visitor did
-      //      not lower to an rvalue, e.g. a struct-member access path).
-      // Normalize to the value form first so the `MeasureHandleType`
-      // element-type check below sees the actual stdvec.
-      if (auto ptrTy = dyn_cast<cc::PointerType>(args[0].getType());
-          ptrTy && isa<cc::StdvecType>(ptrTy.getElementType()))
-        args[0] = cc::LoadOp::create(builder, loc, args[0]);
+      // The intrinsic signature is `(!cc.stdvec<i1>) -> i64`. Normalize an
+      // `!cc.ptr<!cc.stdvec<measure_handle>>` lvalue to its value form first
+      // so the element-type check below sees the actual stdvec.
+      args[0] = loadHandleVectorIfPointer(builder, loc, args[0]);
       // The bridge does not silently insert a discriminate.
       if (auto stdvecTy = dyn_cast<cc::StdvecType>(args[0].getType());
           stdvecTy && isa<cc::MeasureHandleType>(stdvecTy.getElementType())) {
@@ -3447,13 +3462,8 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
       assert(isa<cc::StructType>(ctorTy) && "POD must be a struct type");
       return pushValue(cc::LoadOp::create(builder, loc, fromStruct));
     }
-    if (isa<cc::MeasureHandleType>(ctorTy)) {
-      Value fromHandle = popValue();
-      if (auto ptrTy = dyn_cast<cc::PointerType>(fromHandle.getType()))
-        if (isa<cc::MeasureHandleType>(ptrTy.getElementType()))
-          fromHandle = cc::LoadOp::create(builder, loc, fromHandle);
-      return pushValue(fromHandle);
-    }
+    if (isa<cc::MeasureHandleType>(ctorTy))
+      return pushValue(loadHandleIfPointer(builder, loc, popValue()));
   }
 
   // Default-construct `cudaq::measure_handle`: produce only the storage
