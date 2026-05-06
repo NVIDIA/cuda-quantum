@@ -44,6 +44,16 @@ def test_make_kernel_rejects_pending_async_work():
     cudaq.make_kernel()
 
 
+def test_make_kernel_allowed_after_gc_of_async_result():
+    """Dropping an AsyncSampleResult without calling get() must still unblock make_kernel."""
+    future = AsyncSampleResult(MockAsyncResultImpl(), object())
+    with pytest.raises(RuntimeError,
+                       match="Kernel construction is not thread-safe"):
+        cudaq.make_kernel()
+    del future
+    cudaq.make_kernel()
+
+
 def test_sdg_0_state():
     """Tests the adjoint S-gate on a qubit starting in the 0-state."""
     kernel = cudaq.make_kernel()

@@ -33,6 +33,11 @@ class _AsyncObserveResult:
                 unregister_async_work()
                 self._async_work_registered = False
 
+    def __del__(self):
+        if self._async_work_registered:
+            unregister_async_work()
+            self._async_work_registered = False
+
     def __str__(self):
         return str(self.impl)
 

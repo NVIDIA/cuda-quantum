@@ -144,7 +144,6 @@ As the results are run asynchronously, they need to be stored in a list (:code:`
    :code:`get()` on outstanding async results before constructing additional
    dynamic kernels.
 
-
 .. literalinclude:: ../../snippets/python/using/examples/multi_gpu_workflows/circuit_batching.py
     :language: python
     :start-after: [Begin multiple]

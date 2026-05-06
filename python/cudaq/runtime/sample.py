@@ -53,6 +53,9 @@ class AsyncSampleResult:
                 self._async_work_registered = False
 
     def __del__(self):
+        if self._async_work_registered:
+            unregister_async_work()
+            self._async_work_registered = False
         # FIXME : This potentially leaks memory intentionally. It is possible
         # that the `AsyncSampleResult` object gets deleted *before* the `async`
         # sample call occurs or finishes. In that case, we leave the module in
