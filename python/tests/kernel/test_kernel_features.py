@@ -2761,7 +2761,7 @@ def test_mid_circuit_measurements():
 
     @cudaq.kernel
     def callee(register: cudaq.qview) -> list[bool]:
-        result = [False, False, False, False, False, False, False, False]
+        result = [0, 0, 0, 0, 0, 0, 0, 0]
         for i in range(4):
             j = i * 2
             if i % 2 == 0:

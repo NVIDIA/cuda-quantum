@@ -622,15 +622,16 @@ class PyASTBridge(ast.NodeVisitor):
         """
         if ty == operand.type:
             return operand
-        # `measure_handle -> bool` is a user-defined coercion: insert a
-        # `quake.discriminate` then continue with the usual promotion /
-        # demotion rules. This catches `bool b = mz(q)`, `return mz(q)`
-        # from a `-> bool` kernel, bool-typed function-call arguments,
-        # the recursive call from `__arithmetic_to_bool`, and element-
-        # stores into a `list[bool]` (which the bridge backs with `i8`
-        # element storage but logically owns as bool).
-        if (IntegerType.isinstance(ty) and IntegerType(ty).width in (1, 8) and
-                cc.MeasureHandleType.isinstance(operand.type)):
+        # `measure_handle` -> scalar arithmetic target is a user-defined
+        # coercion: insert a `quake.discriminate` then continue with the
+        # usual promotion / demotion rules. The bool case (`i1`) is the
+        # primary contract; the wider-integer and float cases also automatically
+        # discriminate. `i8` also covers element stores into a `list[bool]`,
+        # which the bridge backs with `i8` storage but logically owns as bool.
+        if cc.MeasureHandleType.isinstance(
+                operand.type) and (IntegerType.isinstance(ty) or
+                                   F32Type.isinstance(ty) or
+                                   F64Type.isinstance(ty)):
             disc = self.__discriminateIfMeasureHandle(operand, self.currentNode)
             return self.changeOperandToType(ty, disc, allowDemotion)
         if (cc.StdvecType.isinstance(ty) and
@@ -5345,6 +5346,15 @@ class PyASTBridge(ast.NodeVisitor):
 
         This method handles arithmetic operations between values.
         """
+
+        # `measure_handle` operands in arithmetic context discriminate
+        # through `bool` first. Pre-discriminating here lets
+        # `__get_superior_type` and the `isArithmeticType` check below treat
+        # handles uniformly with any other `i1`-valued operand.
+        if cc.MeasureHandleType.isinstance(left.type):
+            left = self.__discriminateIfMeasureHandle(left, self.currentNode)
+        if cc.MeasureHandleType.isinstance(right.type):
+            right = self.__discriminateIfMeasureHandle(right, self.currentNode)
 
         # type promotion for anything except pow to match Python behavior
         if not issubclass(nodeType, ast.Pow):

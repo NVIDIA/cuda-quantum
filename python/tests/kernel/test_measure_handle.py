@@ -133,6 +133,50 @@ def test_boundary_handle_vector_parameter_is_rejected():
         k.compile()
 
 
+# ---------------------------------------------------------------------------
+# Scalar arithmetic coercion
+# ---------------------------------------------------------------------------
+
+
+def test_return_handle_to_int_kernel_discriminates():
+
+    @cudaq.kernel
+    def k() -> int:
+        q = cudaq.qubit()
+        x(q)
+        return mz(q)
+
+    results = cudaq.run(k, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 1
+
+
+def test_return_handle_to_float_kernel_discriminates():
+
+    @cudaq.kernel
+    def k() -> float:
+        q = cudaq.qubit()
+        x(q)
+        return mz(q)
+
+    results = cudaq.run(k, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 1.0
+
+
+def test_int_handle_in_arithmetic_promotes_through_bool():
+
+    @cudaq.kernel
+    def k() -> int:
+        q = cudaq.qubit()
+        x(q)
+        return (mz(q) + 1)
+
+    results = cudaq.run(k, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 2
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     import os
