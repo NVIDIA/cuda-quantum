@@ -133,17 +133,15 @@ public:
           // The data will be in a variable.
           if (auto vecInit = val.getDefiningOp<cudaq::cc::StdvecInitOp>()) {
             auto maybeLen = [&]() -> std::optional<std::uint64_t> {
-              Value len = vecInit.getLength();
-              if (!len) {
-                auto eleTy =
-                    cast<cudaq::cc::PointerType>(vecInit.getBuffer().getType())
-                        .getElementType();
-                if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(eleTy))
-                  if (!arrTy.isUnknownSize())
-                    return {arrTy.getSize()};
-                return std::nullopt;
-              }
-              return cudaq::opt::factory::maybeValueOfIntConstant(len);
+              if (Value len = vecInit.getLength())
+                return cudaq::opt::factory::maybeValueOfIntConstant(len);
+              auto eleTy =
+                  cast<cudaq::cc::PointerType>(vecInit.getBuffer().getType())
+                      .getElementType();
+              if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(eleTy);
+                  arrTy && !arrTy.isUnknownSize())
+                return {arrTy.getSize()};
+              return std::nullopt;
             }();
             if (maybeLen) {
               std::int64_t sz = *maybeLen;
