@@ -39,19 +39,11 @@ if [ "$(uname)" = "Darwin" ]; then
   # Homebrew's libomp via 'brew install libomp'), set LLVM_PROJECTS without openmp.
   # `export LLVM_PROJECTS='clang;lld;mlir;python-bindings'`
   #
-  # Detect whether the active macOS SDK's libc++ headers are compatible with
-  # LLVM 16. SDK 26+ (Tahoe) removed __has_builtin guards for builtins like
-  # __builtin_ctzg, making the headers incompatible with LLVM 16. In that case,
-  # include runtimes (libc++, libcxxabi, etc.) so that nvq++ uses LLVM's own
-  # libc++ headers. To force this behavior, set LLVM_PROJECTS to include 'runtimes'.
+  # LLVM 22 is compatible with current macOS SDK libc++ headers, so runtimes are
+  # not needed by default. To force bundled LLVM runtimes, set LLVM_PROJECTS to
+  # include 'runtimes'.
   if [ -z "${LLVM_PROJECTS:-}" ]; then
-    _cudaq_llvm_projects='clang;lld;mlir;python-bindings;openmp'
-    _sdk_major="$(xcrun --show-sdk-version 2>/dev/null | cut -d. -f1)"
-    if [ -n "$_sdk_major" ] && [ "$_sdk_major" -ge 26 ] 2>/dev/null; then
-      _cudaq_llvm_projects="${_cudaq_llvm_projects};runtimes"
-    fi
-    export LLVM_PROJECTS="$_cudaq_llvm_projects"
-    unset _cudaq_llvm_projects _sdk_major
+    export LLVM_PROJECTS='clang;lld;mlir;python-bindings;openmp'
   fi
   # Set minimum macOS deployment target for consistent builds.
   # This ensures LLVM/clang and CUDA-Q libraries use the same target.

@@ -94,6 +94,7 @@ jobs:
             scripts/install_prerequisites.sh \
             scripts/build_llvm.sh \
             scripts/set_env_defaults.sh \
+            cmake/caches/LLVM.cmake \
             .github/workflows/dev_environment_macos.yml \
             tpls/customizations/llvm/*.diff \
             | sha256sum | cut -c1-8)
