@@ -296,7 +296,8 @@ jobs:
           image: wheel_validation:local
           shell: bash
           run: |
-            python${{ inputs.python_version }} -m pytest -v /tmp/tests/ \
+            export CUDAQ_LOG_LEVEL=info
+            python${{ inputs.python_version }} -m pytest -v -s /tmp/tests/ \
               --ignore /tmp/tests/backends
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then
@@ -304,7 +305,7 @@ jobs:
               exit 1
             fi
             python${{ inputs.python_version }} -m pip install --user fastapi uvicorn llvmlite
-            python${{ inputs.python_version }} -m pytest -v /tmp/tests/backends
+            python${{ inputs.python_version }} -m pytest -v -s /tmp/tests/backends
             pytest_status=$?
             # Exit code 5 indicates that no tests were collected,
             # i.e. all tests in this file were skipped.
