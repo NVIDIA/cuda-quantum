@@ -129,6 +129,10 @@ ENV PATH="$PATH:$LLVM_INSTALL_PREFIX/bin/"
 ARG toolchain=llvm
 RUN mkdir -p /usr/local/toolchain/bin && \
     if [ "$toolchain" = "gcc12" ]; then \
+        apt-get update && apt-get install -y --no-install-recommends \
+            gcc-12 g++-12 gfortran-12 libstdc++-12-dev && \
+        apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* && \
+        mkdir -p /usr/local/toolchain/bin && \
         ln -s /usr/bin/gcc-12 /usr/local/toolchain/bin/cc && \
         ln -s /usr/bin/g++-12 /usr/local/toolchain/bin/c++; \
         ln -s /usr/bin/gfortran-12 /usr/local/toolchain/bin/fortran; \
