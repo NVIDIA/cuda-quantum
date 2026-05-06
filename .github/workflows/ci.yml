@@ -67,7 +67,8 @@ jobs:
           if [ "${{ github.event_name }}" = "push" ]; then
             build_test_matrix='{"include":[
               {"platform":"amd64","toolchain":"llvm","mpi":"openmpi"},
-              {"platform":"arm64","toolchain":"llvm","mpi":"openmpi"}
+              {"platform":"arm64","toolchain":"llvm","mpi":"openmpi"},
+              {"platform":"amd64","toolchain":"gcc12","mpi":"openmpi"}
             ]}'
           else
             build_test_matrix='{"include":[
