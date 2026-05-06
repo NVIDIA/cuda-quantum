@@ -93,7 +93,7 @@ TEST_F(LogMacrosTest, InfoIncludesFileBasename) {
 
 TEST_F(LogMacrosTest, InfoIncludesLineNumber) {
   cudaq::details::setLogLevel(cudaq::details::LogLevel::info);
-  const int expectedLine = __LINE__ + 2;
+  const int expectedLine = __LINE__ + 1;
   const std::string out = captureLogStdout([] { CUDAQ_INFO("with location"); });
   const std::string needle = ":" + std::to_string(expectedLine) + "]";
   EXPECT_NE(out.find(needle), std::string::npos) << out;
