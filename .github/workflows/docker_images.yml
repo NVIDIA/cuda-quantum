@@ -924,6 +924,11 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Validate cuda-quantum image
+        env:
+          # Per-cell progress from nbconvert in the validation log so a hung
+          # notebook tells us which cell stalled. Honored by
+          # docs/notebook_validation.py.
+          NOTEBOOK_VALIDATION_VERBOSE: "1"
         run: |
           if ${{ steps.restore.outcome != 'skipped' }}; then
             load_output=`docker load --input "${{ needs.cudaq_image.outputs.tar_archive }}"`
@@ -933,7 +938,7 @@ jobs:
             docker pull $cudaq_image
           fi
 
-          docker run --rm -dit --name cuda-quantum $cudaq_image
+          docker run --rm -dit --name cuda-quantum -e NOTEBOOK_VALIDATION_VERBOSE $cudaq_image
           docker cp scripts/validate_installation.sh cuda-quantum:"/home/cudaq/validate_installation.sh"
           docker cp docs/notebook_validation.py cuda-quantum:"/home/cudaq/notebook_validation.py"
           # In containers without GPU support, UCX does not work properly since it is configured to work with GPU-support.

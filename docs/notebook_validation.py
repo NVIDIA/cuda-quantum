@@ -110,6 +110,64 @@ def validate(notebook_filename, available_backends):
     return any(target in available_backends for target in targets_found)
 
 
+_ANSI_ESCAPE_RE = re.compile(r'\x1b\[[0-9;]*m')
+
+
+def _dump_partial_outputs(notebook_filename_out, notebook_basename):
+    """On failure, print per-cell outputs from the partially-executed notebook
+    so a hanging cell is easy to spot in CI logs (which cell ran, what it
+    printed, where it stopped)."""
+    import json
+    if not os.path.exists(notebook_filename_out):
+        print(f"    (no partial output for {notebook_basename})")
+        return
+    try:
+        with open(notebook_filename_out) as f:
+            nb = json.load(f)
+    except Exception as e:
+        print(f"    (couldn't parse {notebook_filename_out}: {e})")
+        return
+
+    cells = [c for c in nb.get('cells', []) if c.get('cell_type') == 'code']
+    print(f"    --- partial output from {notebook_basename} "
+          f"({len(cells)} code cells) ---")
+    last_executed_idx = -1
+    for i, cell in enumerate(cells):
+        outputs = cell.get('outputs', [])
+        source = ''.join(cell.get('source', [])).strip()
+        if not source and not outputs:
+            continue
+        if outputs or cell.get('execution_count') is not None:
+            last_executed_idx = i
+        preview = source.split('\n')[0][:120]
+        print(f"    [cell {i}] {preview}")
+        for out in outputs:
+            ot = out.get('output_type')
+            if ot == 'stream':
+                text = ''.join(out.get('text', []))
+                stream = out.get('name', 'stdout')
+                for line in text.rstrip().splitlines():
+                    print(f"        {stream}: {line}")
+            elif ot == 'error':
+                ename = out.get('ename', '')
+                evalue = out.get('evalue', '')
+                print(f"        ERROR: {ename}: {evalue}")
+                # Last few traceback lines, with ANSI stripped
+                for tb_line in out.get('traceback', [])[-5:]:
+                    cleaned = _ANSI_ESCAPE_RE.sub('', tb_line)
+                    for ln in cleaned.splitlines():
+                        print(f"        | {ln}")
+            elif ot in ('execute_result', 'display_data'):
+                data = out.get('data', {})
+                txt = data.get('text/plain', '')
+                if isinstance(txt, list):
+                    txt = ''.join(txt)
+                if txt.strip():
+                    print(f"        result: {txt[:200]}")
+    print(f"    --- last cell with output: index {last_executed_idx} "
+          f"(cell after this is likely where execution hung/erred) ---")
+
+
 def execute(notebook_filename, jupyter_kernel=None, timeout_seconds=300):
     """Execute a notebook with timeout."""
     notebook_filename_out = notebook_filename.replace('.ipynb',
@@ -117,6 +175,13 @@ def execute(notebook_filename, jupyter_kernel=None, timeout_seconds=300):
     notebook_basename = os.path.basename(notebook_filename)
     if notebook_basename in LONG_RUNNING_NOTEBOOKS:
         timeout_seconds = 2100
+
+    # `NOTEBOOK_VALIDATION_VERBOSE=1` adds per-cell progress to nbconvert's
+    # own log stream (e.g. "[NbConvertApp] Executing cell 12") so we can see
+    # which cell is taking time / where it hangs in real time. Off by
+    # default to keep CI logs readable on green runs.
+    verbose = os.environ.get("NOTEBOOK_VALIDATION_VERBOSE",
+                             "").lower() in ("1", "true", "yes")
 
     try:
         start_time = time.perf_counter()
@@ -127,6 +192,8 @@ def execute(notebook_filename, jupyter_kernel=None, timeout_seconds=300):
         ]
         if jupyter_kernel:
             cmd.extend(["--ExecutePreprocessor.kernel_name", jupyter_kernel])
+        if verbose:
+            cmd.append("--log-level=INFO")
 
         subprocess.run(cmd, check=True)
         elapsed = time.perf_counter() - start_time
@@ -135,6 +202,9 @@ def execute(notebook_filename, jupyter_kernel=None, timeout_seconds=300):
     except subprocess.CalledProcessError:
         elapsed = time.perf_counter() - start_time
         print(f"  ✗  {notebook_basename}: FAILED after {elapsed:.1f}s")
+        # Always dump partial outputs on failure — cheap, and the most
+        # useful info for diagnosing a hung/errored notebook in CI.
+        _dump_partial_outputs(notebook_filename_out, notebook_basename)
         return False
     finally:
         if os.path.exists(notebook_filename_out):
