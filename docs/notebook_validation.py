@@ -58,17 +58,11 @@ GPU_REQUIRED_NOTEBOOKS = [
 LONG_RUNNING_NOTEBOOKS = [
     "divisive_clustering_coresets.ipynb",
     "hybrid_quantum_neural_networks.ipynb",
+    "unitary_compilation_diffusion_models.ipynb",
     "qm_mm_pe.ipynb",
     "qsci.ipynb",
     "uccsd_wf_ansatz.ipynb",
     "vqe_advanced.ipynb",
-]
-
-# TODO: investigate and fix noteook in CI
-EXTERNAL_NETWORK_NOTEBOOKS = [
-    # Downloads `Floki00/qc_unitary_3qubit` from Hugging Face via
-    # DiffusionPipeline.from_pretrained — has timed out at >35 min in CI.
-    "unitary_compilation_diffusion_models.ipynb",
 ]
 
 
@@ -89,9 +83,14 @@ def validate(notebook_filename, available_backends):
     if not has_gpu and base_name in GPU_REQUIRED_NOTEBOOKS:
         return False
 
-    # Notebooks that depend on external network services (HF, etc.) are too
-    # flaky for CI and are unconditionally skipped during validation.
-    if base_name in EXTERNAL_NETWORK_NOTEBOOKS:
+    # Skip heavyweight notebooks in the required validation tier. They are
+    # exercised by the Publishing workflow on real GPU runners against the
+    # published image, so duplicating them in per-PR validation just adds
+    # flakiness (long runtimes, external downloads, dynamic pip installs)
+    # without adding signal. Set NOTEBOOK_VALIDATION_TIER=required to
+    # enable; default (unset) runs everything, for Publishing.
+    if (os.environ.get("NOTEBOOK_VALIDATION_TIER", "").lower() == "required"
+            and base_name in LONG_RUNNING_NOTEBOOKS):
         return False
 
     # Collect all set_target calls

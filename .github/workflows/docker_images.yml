@@ -924,6 +924,13 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Validate cuda-quantum image
+        env:
+          # Required validation tier: only run small/deterministic notebooks
+          # here (catches API regressions cheaply). Heavyweight notebooks
+          # listed in LONG_RUNNING_NOTEBOOKS in docs/notebook_validation.py
+          # are deferred to the Publishing workflow, which exercises them
+          # on real GPU against the published image.
+          NOTEBOOK_VALIDATION_TIER: required
         run: |
           if ${{ steps.restore.outcome != 'skipped' }}; then
             load_output=`docker load --input "${{ needs.cudaq_image.outputs.tar_archive }}"`
@@ -933,7 +940,7 @@ jobs:
             docker pull $cudaq_image
           fi
 
-          docker run --rm -dit --name cuda-quantum $cudaq_image
+          docker run --rm -dit --name cuda-quantum -e NOTEBOOK_VALIDATION_TIER $cudaq_image
           docker cp scripts/validate_installation.sh cuda-quantum:"/home/cudaq/validate_installation.sh"
           docker cp docs/notebook_validation.py cuda-quantum:"/home/cudaq/notebook_validation.py"
           # In containers without GPU support, UCX does not work properly since it is configured to work with GPU-support.
