@@ -147,9 +147,6 @@ static async_run_result
 run_async_impl(const std::string &shortName, MlirModule module,
                std::size_t shots_count, std::optional<noise_model> noise_model,
                std::size_t qpu_id, nanobind::args runtimeArgs) {
-  if (!shots_count)
-    return {};
-
   auto &platform = get_platform();
   auto numQPUs = platform.num_qpus();
   if (qpu_id >= numQPUs)
