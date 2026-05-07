@@ -1,22 +1,22 @@
-# ============================================================================ #
-# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates and Contributors. #
-# All rights reserved.                                                        #
-#                                                                             #
-# This source code and the accompanying materials are made available under    #
-# the terms of the Apache License 2.0 which accompanies this distribution.    #
-# ============================================================================ #
+/*******************************************************************************
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
 
-#include <cudaq.h>
 #include <cmath>
 #include <cstdio>
+#include <cudaq.h>
 #include <iostream>
 
 /*
- * Grover's algorithm is a quantum algorithm that finds with high probability 
- * the unique input to a black box function that produces a particular output 
- * value, using just O(sqrt(N)) evaluations of the function, where N is the 
+ * Grover's algorithm is a quantum algorithm that finds with high probability
+ * the unique input to a black box function that produces a particular output
+ * value, using just O(sqrt(N)) evaluations of the function, where N is the
  * size of the function's domain.
- * 
+ *
  * This example demonstrates:
  * 1. Multi-controlled Z gates.
  * 2. The `cudaq::compute_action` primitive for automatic un-computation.
@@ -95,9 +95,9 @@ int main() {
 
   // Validation.
   if (counts.most_probable() == "1011") {
-      std::cout << "Success!\n";
+    std::cout << "Success!\n";
   } else {
-      std::cout << "Failure.\n";
+    std::cout << "Failure.\n";
   }
 
   return 0;

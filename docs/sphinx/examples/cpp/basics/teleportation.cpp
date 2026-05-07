@@ -1,18 +1,18 @@
-# ============================================================================ #
-# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates and Contributors. #
-# All rights reserved.                                                        #
-#                                                                             #
-# This source code and the accompanying materials are made available under    #
-# the terms of the Apache License 2.0 which accompanies this distribution.    #
-# ============================================================================ #
+/*******************************************************************************
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
 
 #include <cudaq.h>
 #include <iostream>
 
 /*
- * Quantum Teleportation allows for the transfer of a quantum state from one 
+ * Quantum Teleportation allows for the transfer of a quantum state from one
  * qubit to another, using a shared entangled pair and classical communication.
- * 
+ *
  * This example demonstrates:
  * 1. Mid-circuit measurements (`mz`).
  * 2. Conditional operations based on classical measurement results.
@@ -58,7 +58,7 @@ struct teleportation {
 int main() {
   std::cout << "Executing Quantum Teleportation...\n";
 
-  // Since teleportation is a probabilistic process that requires 
+  // Since teleportation is a probabilistic process that requires
   // classical feedback, we use `cudaq::run` instead of `cudaq::sample`.
   // `cudaq::sample` does not support kernels with conditional feedback.
   int n_shots = 100;
@@ -68,17 +68,18 @@ int main() {
   std::size_t n_ones = 0;
   for (auto r : results) {
     if (r) {
-        n_ones++;
+      n_ones++;
     }
   }
 
-  std::cout << "Measured '1' on target qubit " << n_ones << " times out of " << n_shots << " shots.\n";
+  std::cout << "Measured '1' on target qubit " << n_ones << " times out of "
+            << n_shots << " shots.\n";
 
   // Validation
   if (n_ones == n_shots) {
-      std::cout << "Success! The |1> state was teleported perfectly.\n";
+    std::cout << "Success! The |1> state was teleported perfectly.\n";
   } else {
-      std::cout << "Failure.\n";
+    std::cout << "Failure.\n";
   }
 
   return 0;

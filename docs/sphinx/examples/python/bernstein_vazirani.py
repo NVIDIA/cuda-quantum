@@ -1,9 +1,9 @@
 # ============================================================================ #
-# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates and Contributors. #
-# All rights reserved.                                                        #
-#                                                                             #
-# This source code and the accompanying materials are made available under    #
-# the terms of the Apache License 2.0 which accompanies this distribution.    #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under      #
+# the terms of the Apache License 2.0 which accompanies this distribution.      #
 # ============================================================================ #
 
 import cudaq
@@ -16,12 +16,12 @@ def generate_random_bitstring(length):
     return [random.randint(0, 1) for _ in range(length)]
 
 @cudaq.kernel
-def oracle(qvector: cudaq.qview, auxillary_qubit: cudaq.qubit, hidden_bitstring: list[int]):
+def oracle(qvector: cudaq.qview, auxiliary_qubit: cudaq.qubit, hidden_bitstring: list[int]):
     for i, bit in enumerate(hidden_bitstring):
         if bit == 1:
             # Apply a `cx` gate with the current qubit as
-            # the control and the auxillary qubit as the target.
-            x.ctrl(qvector[i], auxillary_qubit)
+            # the control and the auxiliary qubit as the target.
+            x.ctrl(qvector[i], auxiliary_qubit)
 
 @cudaq.kernel
 def bernstein_vazirani(hidden_bitstring: list[int]):
@@ -29,18 +29,18 @@ def bernstein_vazirani(hidden_bitstring: list[int]):
     # corresponds to the length of the hidden bitstring.
     qvector = cudaq.qreg(len(hidden_bitstring))
     
-    # Allocate an extra auxillary qubit.
-    auxillary_qubit = cudaq.qubit()
+    # Allocate an extra auxiliary qubit.
+    auxiliary_qubit = cudaq.qubit()
 
-    # Prepare the auxillary qubit in the |-> state.
-    x(auxillary_qubit)
-    h(auxillary_qubit)
+    # Prepare the auxiliary qubit in the |-> state.
+    x(auxiliary_qubit)
+    h(auxiliary_qubit)
 
     # Place the rest of the qubits in a superposition state.
     h(qvector)
 
     # Query the oracle.
-    oracle(qvector, auxillary_qubit, hidden_bitstring)
+    oracle(qvector, auxiliary_qubit, hidden_bitstring)
 
     # Apply another set of Hadamards to the qubits to 
     # extract the hidden bitstring.
