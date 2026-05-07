@@ -16,17 +16,17 @@ class TargetConfig;
 
 namespace cudaq_internal::compiler {
 
-/// Target JIT pipeline settings resolved from target config and runtime args.
+/// Target JIT pipeline settings resolved from target data and runtime options.
 struct JITTargetPipelineConfig {
   /// MLIR pass pipeline to run.
   std::string passPipelineConfig = "canonicalize";
-  /// Codegen emission selected by the target config.
+  /// Code generation emission selected by the target.
   std::string codegenTranslation;
-  /// Optional pass pipeline to run after codegen.
+  /// Optional pass pipeline to run after code generation.
   std::string postCodeGenPasses;
-  /// Target has a top-level backend `config:` entry.
+  /// Target has a top-level backend entry.
   bool hasBackendConfig = false;
-  /// Backend config provides target pass pipeline fields.
+  /// Backend data provides target pass pipeline fields.
   bool hasConfiguredPassPipeline = false;
   /// `target-pass-pipeline` is an exact pipeline override.
   bool usesTargetPassPipelineOverride = false;
@@ -39,7 +39,7 @@ JITTargetPipelineConfig buildJITTargetPipelineConfig(
     const cudaq::config::TargetConfig &config,
     const std::map<std::string, std::string> &runtimeConfig, bool emulate);
 
-/// Replace `%KEY%` and `%KEY:default%` placeholders from runtime config.
+/// Replace `%KEY%` and `%KEY:default%` placeholders from runtime options.
 void substitutePipelinePlaceholders(
     std::string &pipeline,
     const std::map<std::string, std::string> &runtimeConfig);
