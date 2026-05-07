@@ -8,6 +8,7 @@
 
 #include "common/ArgumentWrapper.h"
 #include "common/BaseRemoteSimulatorQPU.h"
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include <mlir/IR/BuiltinOps.h>
 
 using namespace mlir;
@@ -110,7 +111,9 @@ static void launchKernelStreamlineImpl(
 template <typename Derived, typename Base>
 class PyRemoteSimulatorCommonBase : public Base {
 public:
-  using Base::Base;
+  PyRemoteSimulatorCommonBase() : Base() {
+    this->m_mlirContext = cudaq_internal::compiler::getOwningMLIRContext();
+  }
   PyRemoteSimulatorCommonBase(PyRemoteSimulatorCommonBase &&) = delete;
   virtual ~PyRemoteSimulatorCommonBase() = default;
 

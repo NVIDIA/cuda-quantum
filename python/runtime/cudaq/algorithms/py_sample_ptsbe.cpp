@@ -20,8 +20,8 @@
 #include "cudaq/ptsbe/strategies/OrderedSamplingStrategy.h"
 #include "cudaq/ptsbe/strategies/ProbabilisticSamplingStrategy.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
-#include "utils/NanobindAdaptors.h"
 #include "utils/OpaqueArguments.h"
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include <nanobind/stl/optional.h>
@@ -36,13 +36,18 @@ using namespace cudaq;
 ///
 /// All PTSBE configuration is handled by the Python wrapper
 /// (cudaq.ptsbe.sample) and passed here as positional parameters.
+// nanobind 2.x cannot dispatch NB_TYPE_CASTER-based parameters (MlirModule)
+// when nanobind::object appears in the same function signature. Use concrete
+// std::optional types for all nullable parameters instead.
 static ptsbe::sample_result
 pySamplePTSBE(const std::string &shortName, MlirModule module,
               std::size_t shots_count, noise_model noiseModel,
               std::optional<std::size_t> max_trajectories,
-              nanobind::object sampling_strategy,
-              nanobind::object shot_allocation_obj, bool return_execution_data,
-              bool include_sequential_data, nanobind::args runtimeArgs) {
+              std::optional<std::shared_ptr<ptsbe::PTSSamplingStrategy>>
+                  sampling_strategy,
+              std::optional<ptsbe::ShotAllocationStrategy> shot_allocation,
+              bool return_execution_data, bool include_sequential_data,
+              nanobind::args runtimeArgs) {
   if (shots_count == 0)
     return ptsbe::sample_result();
 
@@ -51,14 +56,11 @@ pySamplePTSBE(const std::string &shortName, MlirModule module,
   ptsbe_options.include_sequential_data = include_sequential_data;
   ptsbe_options.max_trajectories = max_trajectories;
 
-  if (!sampling_strategy.is_none())
-    ptsbe_options.strategy =
-        nanobind::cast<std::shared_ptr<ptsbe::PTSSamplingStrategy>>(
-            sampling_strategy);
+  if (sampling_strategy)
+    ptsbe_options.strategy = *sampling_strategy;
 
-  if (!shot_allocation_obj.is_none())
-    ptsbe_options.shot_allocation =
-        nanobind::cast<ptsbe::ShotAllocationStrategy>(shot_allocation_obj);
+  if (shot_allocation)
+    ptsbe_options.shot_allocation = *shot_allocation;
 
   auto mod = unwrap(module);
   runtimeArgs = simplifiedValidateInputArguments(runtimeArgs);
@@ -108,26 +110,26 @@ struct AsyncPTSBESampleResultImpl {
 } // namespace
 
 /// @brief Run PTSBE sampling asynchronously from Python.
-static AsyncPTSBESampleResultImpl pySampleAsyncPTSBE(
-    const std::string &shortName, MlirModule module, std::size_t shots_count,
-    noise_model &noiseModel, std::optional<std::size_t> max_trajectories,
-    nanobind::object sampling_strategy, nanobind::object shot_allocation_obj,
-    bool return_execution_data, bool include_sequential_data,
-    nanobind::args runtimeArgs) {
+static AsyncPTSBESampleResultImpl
+pySampleAsyncPTSBE(const std::string &shortName, MlirModule module,
+                   std::size_t shots_count, noise_model &noiseModel,
+                   std::optional<std::size_t> max_trajectories,
+                   std::optional<std::shared_ptr<ptsbe::PTSSamplingStrategy>>
+                       sampling_strategy,
+                   std::optional<ptsbe::ShotAllocationStrategy> shot_allocation,
+                   bool return_execution_data, bool include_sequential_data,
+                   nanobind::args runtimeArgs) {
 
   ptsbe::PTSBEOptions ptsbe_options;
   ptsbe_options.return_execution_data = return_execution_data;
   ptsbe_options.include_sequential_data = include_sequential_data;
   ptsbe_options.max_trajectories = max_trajectories;
 
-  if (!sampling_strategy.is_none())
-    ptsbe_options.strategy =
-        nanobind::cast<std::shared_ptr<ptsbe::PTSSamplingStrategy>>(
-            sampling_strategy);
+  if (sampling_strategy)
+    ptsbe_options.strategy = *sampling_strategy;
 
-  if (!shot_allocation_obj.is_none())
-    ptsbe_options.shot_allocation =
-        nanobind::cast<ptsbe::ShotAllocationStrategy>(shot_allocation_obj);
+  if (shot_allocation)
+    ptsbe_options.shot_allocation = *shot_allocation;
 
   auto mod = unwrap(module);
   runtimeArgs = simplifiedValidateInputArguments(runtimeArgs);
@@ -398,14 +400,15 @@ void cudaq::bindSamplePTSBE(nanobind::module_ &mod) {
            "Block until the PTSBE sampling result is available and return it.");
 
   // PTSBE sample implementation
-  ptsbe.def("sample_impl", pySamplePTSBE, nanobind::arg("kernel_name"),
-            nanobind::arg("module"), nanobind::arg("shots_count"),
-            nanobind::arg("noise_model"), nanobind::arg("max_trajectories"),
-            nanobind::arg("sampling_strategy").none(),
-            nanobind::arg("shot_allocation").none(),
-            nanobind::arg("return_execution_data"),
-            nanobind::arg("include_sequential_data"),
-            R"pbdoc(
+  ptsbe.def(
+      "sample_impl", pySamplePTSBE, nanobind::arg("kernel_name"),
+      nanobind::arg("module"), nanobind::arg("shots_count"),
+      nanobind::arg("noise_model"), nanobind::arg("max_trajectories").none(),
+      nanobind::arg("sampling_strategy").none(),
+      nanobind::arg("shot_allocation").none(),
+      nanobind::arg("return_execution_data"),
+      nanobind::arg("include_sequential_data"), nanobind::arg("arguments"),
+      R"pbdoc(
 Run PTSBE sampling on the provided kernel.
 
 Args:
@@ -425,14 +428,14 @@ Returns:
 )pbdoc");
 
   // PTSBE async sample implementation
-  ptsbe.def("sample_async_impl", pySampleAsyncPTSBE,
-            nanobind::arg("kernel_name"), nanobind::arg("module"),
-            nanobind::arg("shots_count"), nanobind::arg("noise_model"),
-            nanobind::arg("max_trajectories"),
-            nanobind::arg("sampling_strategy").none(),
-            nanobind::arg("shot_allocation").none(),
-            nanobind::arg("return_execution_data"),
-            nanobind::arg("include_sequential_data"),
-            "Run PTSBE sampling asynchronously. Returns an "
-            "AsyncSampleResultImpl.");
+  ptsbe.def(
+      "sample_async_impl", pySampleAsyncPTSBE, nanobind::arg("kernel_name"),
+      nanobind::arg("module"), nanobind::arg("shots_count"),
+      nanobind::arg("noise_model"), nanobind::arg("max_trajectories").none(),
+      nanobind::arg("sampling_strategy").none(),
+      nanobind::arg("shot_allocation").none(),
+      nanobind::arg("return_execution_data"),
+      nanobind::arg("include_sequential_data"), nanobind::arg("arguments"),
+      "Run PTSBE sampling asynchronously. Returns an "
+      "AsyncSampleResultImpl.");
 }

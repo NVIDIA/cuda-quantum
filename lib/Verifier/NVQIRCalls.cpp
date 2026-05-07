@@ -39,7 +39,7 @@ constexpr const char *libcFuncs[] = {"malloc", "free", "memcpy", "memset"};
 static bool isVerifiedFunction(StringRef name,
                                const SmallVector<StringRef> &goldenFuncs) {
   auto prefixCheck = [&](const char *prefix) {
-    return name.startswith(prefix);
+    return name.starts_with(prefix);
   };
 
   // Check if name has an accepted QIR or LLVM intrinsic prefix.

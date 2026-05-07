@@ -6,6 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+# Create imported targets for test dependencies
+if(NOT TARGET FileCheck)
+  add_executable(FileCheck IMPORTED)
+  set_target_properties(FileCheck PROPERTIES IMPORTED_LOCATION "/usr/local/llvm/bin/FileCheck")
+endif()
+
 llvm_canonicalize_cmake_booleans(
   CUDA_FOUND
   CUDAQ_TEST_REMOTE_SIM

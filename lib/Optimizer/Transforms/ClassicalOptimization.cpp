@@ -81,7 +81,8 @@ public:
             simplifyRegions(rewriter, op->getRegions());
       }
       progress = 0;
-      (void)applyPatternsAndFoldGreedily(op, frozen);
+      if (failed(applyPatternsGreedily(op, frozen)))
+        break;
     } while (progress);
   }
 

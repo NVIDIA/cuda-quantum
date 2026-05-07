@@ -8,13 +8,9 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/Support/Debug.h"
-#include "mlir/Dialect/Arith/IR/Arith.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
@@ -163,13 +159,13 @@ public:
   void applyRotationOp(double theta, std::size_t target) {
     auto qubit = createQubitRef(target);
     auto thetaValue = createAngleValue(theta);
-    rewriter.create<Op>(loc, thetaValue, mlir::ValueRange{}, qubit);
+    Op::create(rewriter, loc, thetaValue, mlir::ValueRange{}, qubit);
   };
 
   void applyX(std::size_t control, std::size_t target) {
     auto qubitC = createQubitRef(control);
     auto qubitT = createQubitRef(target);
-    rewriter.create<quake::XOp>(loc, qubitC, qubitT);
+    quake::XOp::create(rewriter, loc, qubitC, qubitT);
   };
 
 private:
@@ -177,14 +173,14 @@ private:
     if (qubitRefs.contains(index))
       return qubitRefs[index];
 
-    auto ref = rewriter.create<quake::ExtractRefOp>(loc, qubits, index);
+    auto ref = quake::ExtractRefOp::create(rewriter, loc, qubits, index);
     qubitRefs[index] = ref;
     return ref;
   }
 
   mlir::Value createAngleValue(double angle) {
-    return rewriter.create<mlir::arith::ConstantFloatOp>(
-        loc, llvm::APFloat{angle}, rewriter.getF64Type());
+    return arith::ConstantFloatOp::create(rewriter, loc, rewriter.getF64Type(),
+                                          llvm::APFloat{angle});
   }
 
   PatternRewriter &rewriter;
@@ -451,7 +447,7 @@ public:
     patterns.insert<StatePrepPattern>(ctx, phaseThreshold);
     patterns.insert<FoldQubitsPattern, KillDeleteStatePattern>(ctx);
 
-    if (failed(applyPatternsAndFoldGreedily(func, std::move(patterns)))) {
+    if (failed(applyPatternsGreedily(func, std::move(patterns)))) {
       func.emitOpError("State preparation failed");
       signalPassFailure();
     }

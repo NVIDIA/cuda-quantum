@@ -14,6 +14,7 @@
 #include <bitset>
 #include <fstream>
 #include <map>
+#include <nlohmann/json.hpp>
 #include <thread>
 
 namespace cudaq {

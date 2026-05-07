@@ -67,7 +67,7 @@ jobs:
           else
             # cudaqx: devcontainer base, cudaqx target
             cu_tag=$(echo "${{ matrix.cuda }}" | tr -d .)
-            echo "base_image=ghcr.io/nvidia/cuda-quantum-devcontainer:amd64-cu${{ matrix.cuda }}-gcc11-main" | tee -a $GITHUB_OUTPUT
+            echo "base_image=ghcr.io/nvidia/cuda-quantum-devcontainer:amd64-cu${{ matrix.cuda }}-llvm-main" | tee -a $GITHUB_OUTPUT
             echo "target_image=ghcr.io/nvidia/cudaqx:cu${cuda_major}-latest" | tee -a $GITHUB_OUTPUT
           fi
 

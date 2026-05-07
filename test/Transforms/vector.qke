@@ -94,35 +94,35 @@ func.func @vector_vector(%vecvec : !cc.stdvec<!cc.stdvec<i32>>, %retval : !cc.st
 // CHECK:           return
 // CHECK:         }
 
-// QIR-LABEL: define void @vector_vector({ { i32*, i64 }*, i64 } 
-// QIR-SAME:    %[[VAL_0:.*]], { { double*, i64 }*, i64 } %[[VAL_1:.*]])
-// QIR:         %[[VAL_2:.*]] = extractvalue { { i32*, i64 }*, i64 } %[[VAL_0]], 1
-// QIR:         %[[VAL_3:.*]] = extractvalue { { double*, i64 }*, i64 } %[[VAL_1]], 0
+// QIR-LABEL: define void @vector_vector({ ptr, i64 }
+// QIR-SAME:    %[[VAL_0:.*]], { ptr, i64 } %[[VAL_1:.*]])
+// QIR:         %[[VAL_2:.*]] = extractvalue { ptr, i64 } %[[VAL_0]], 1
+// QIR:         %[[VAL_3:.*]] = extractvalue { ptr, i64 } %[[VAL_1]], 0
 // QIR:         %[[VAL_4:.*]] = icmp eq i64 %[[VAL_2]], 0
 // QIR:         br i1 %[[VAL_4]], label %[[VAL_5:.*]], label %[[VAL_6:.*]]
 // QIR:       .{{.*}}:
 // QIR-SAME:  ; preds = %[[VAL_7:.*]]
-// QIR:         %[[VAL_8:.*]] = extractvalue { { i32*, i64 }*, i64 } %[[VAL_0]], 0
+// QIR:         %[[VAL_8:.*]] = extractvalue { ptr, i64 } %[[VAL_0]], 0
 // QIR:         br label %[[VAL_9:.*]]
 // QIR:       {{.*}}:
 // QIR-SAME:  ; preds = %[[VAL_6]], %[[VAL_10:.*]]
 // QIR:         %[[VAL_11:.*]] = phi i64 [ 0, %[[VAL_6]] ], [ %[[VAL_12:.*]], %[[VAL_10]] ]
-// QIR:         %[[VAL_13:.*]] = getelementptr { i32*, i64 }, { i32*, i64 }* %[[VAL_8]], i64 %[[VAL_11]], i32 0
-// QIR:         %[[VAL_14:.*]] = load i32*, i32** %[[VAL_13]], align 8
-// QIR:         %[[VAL_15:.*]] = getelementptr { i32*, i64 }, { i32*, i64 }* %[[VAL_8]], i64 %[[VAL_11]], i32 1
-// QIR:         %[[VAL_16:.*]] = load i64, i64* %[[VAL_15]], align 8
-// QIR:         %[[VAL_17:.*]] = getelementptr { double*, i64 }, { double*, i64 }* %[[VAL_3]], i64 %[[VAL_11]], i32 0
-// QIR:         %[[VAL_18:.*]] = load double*, double** %[[VAL_17]], align 8
+// QIR:         %[[VAL_13:.*]] = getelementptr { ptr, i64 }, ptr %[[VAL_8]], i64 %[[VAL_11]]
+// QIR:         %[[VAL_14:.*]] = load ptr, ptr %[[VAL_13]], align 8
+// QIR:         %[[VAL_15:.*]] = getelementptr {{.*}} i8, ptr %[[VAL_13]], i64 8
+// QIR:         %[[VAL_16:.*]] = load i64, ptr %[[VAL_15]], align 8
+// QIR:         %[[VAL_17:.*]] = getelementptr { ptr, i64 }, ptr %[[VAL_3]], i64 %[[VAL_11]]
+// QIR:         %[[VAL_18:.*]] = load ptr, ptr %[[VAL_17]], align 8
 // QIR:         %[[VAL_19:.*]] = icmp eq i64 %[[VAL_16]], 0
 // QIR:         br i1 %[[VAL_19]], label %[[VAL_10]], label %[[VAL_20:.*]]
 // QIR:       .{{.*}}:
 // QIR-SAME:  ; preds = %[[VAL_9]], %[[VAL_20]]
 // QIR:         %[[VAL_21:.*]] = phi i64 [ %[[VAL_22:.*]], %[[VAL_20]] ], [ 0, %[[VAL_9]] ]
-// QIR:         %[[VAL_23:.*]] = getelementptr i32, i32* %[[VAL_14]], i64 %[[VAL_21]]
-// QIR:         %[[VAL_24:.*]] = load i32, i32* %[[VAL_23]], align 4
+// QIR:         %[[VAL_23:.*]] = getelementptr i32, ptr %[[VAL_14]], i64 %[[VAL_21]]
+// QIR:         %[[VAL_24:.*]] = load i32, ptr %[[VAL_23]], align 4
 // QIR:         %[[VAL_25:.*]] = sitofp i32 %[[VAL_24]] to double
-// QIR:         %[[VAL_26:.*]] = getelementptr double, double* %[[VAL_18]], i64 %[[VAL_21]]
-// QIR:         store double %[[VAL_25]], double* %[[VAL_26]], align 8
+// QIR:         %[[VAL_26:.*]] = getelementptr double, ptr %[[VAL_18]], i64 %[[VAL_21]]
+// QIR:         store double %[[VAL_25]], ptr %[[VAL_26]], align 8
 // QIR:         %[[VAL_22]] = add nuw i64 %[[VAL_21]], 1
 // QIR:         %[[VAL_27:.*]] = icmp eq i64 %[[VAL_22]], %[[VAL_16]]
 // QIR:         br i1 %[[VAL_27]], label %[[VAL_10]], label %[[VAL_20]]

@@ -6,8 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "py_register_dialects.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
+#include "cudaq/Optimizer/CodeGen/CodeGenDialect.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
@@ -16,7 +18,10 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/InitAllPasses.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "utils/NanobindAdaptors.h"
+#ifdef __APPLE__
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
+#endif
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/InitAllDialects.h"
 #include <fmt/core.h>
 #include <nanobind/stl/complex.h>
@@ -25,10 +30,10 @@
 
 using namespace mlir;
 
-namespace cudaq {
 static bool registered = false;
 
-void registerQuakeDialectAndTypes(nanobind::module_ &m) {
+static void registerQuakeDialectAndTypes(nanobind::module_ &m) {
+  using namespace mlir::python::nanobind_adaptors;
   auto quakeMod = m.def_submodule("quake");
 
   quakeMod.def(
@@ -40,16 +45,20 @@ void registerQuakeDialectAndTypes(nanobind::module_ &m) {
           mlirDialectHandleLoadDialect(handle, context);
 
         if (!registered) {
+#ifdef __APPLE__
+          cudaq_internal::compiler::initializeMLIR();
+#else
           cudaq::registerCudaqPassesAndPipelines();
+#endif
           registered = true;
         }
       },
       nanobind::arg("load") = true,
       nanobind::arg("context") = nanobind::none());
 
-  mlir::python::nanobind_adaptors::mlir_type_subclass(
+  mlir_type_subclass(
       quakeMod, "RefType",
-      [](MlirType type) { return unwrap(type).isa<quake::RefType>(); })
+      [](MlirType type) { return mlir::isa<quake::RefType>(unwrap(type)); })
       .def_classmethod(
           "get",
           [](nanobind::object cls, MlirContext context) {
@@ -57,9 +66,9 @@ void registerQuakeDialectAndTypes(nanobind::module_ &m) {
           },
           nanobind::arg("cls"), nanobind::arg("context") = nanobind::none());
 
-  mlir::python::nanobind_adaptors::mlir_type_subclass(
+  mlir_type_subclass(
       quakeMod, "MeasureType",
-      [](MlirType type) { return unwrap(type).isa<quake::MeasureType>(); })
+      [](MlirType type) { return mlir::isa<quake::MeasureType>(unwrap(type)); })
       .def_classmethod(
           "get",
           [](nanobind::object cls, MlirContext context) {
@@ -69,7 +78,7 @@ void registerQuakeDialectAndTypes(nanobind::module_ &m) {
 
   mlir::python::nanobind_adaptors::mlir_type_subclass(
       quakeMod, "VeqType",
-      [](MlirType type) { return unwrap(type).isa<quake::VeqType>(); })
+      [](MlirType type) { return mlir::isa<quake::VeqType>(unwrap(type)); })
       .def_classmethod(
           "get",
           [](nanobind::object cls, std::size_t size, MlirContext context) {
@@ -113,15 +122,15 @@ void registerQuakeDialectAndTypes(nanobind::module_ &m) {
       [](MlirType type) { return quake::getAllocationSize(unwrap(type)); },
       nanobind::arg("type"));
 
-  mlir::python::nanobind_adaptors::mlir_type_subclass(
+  mlir_type_subclass(
       quakeMod, "StruqType",
-      [](MlirType type) { return unwrap(type).isa<quake::StruqType>(); })
+      [](MlirType type) { return mlir::isa<quake::StruqType>(unwrap(type)); })
       .def_classmethod(
           "get",
           [](nanobind::object cls, nanobind::list aggregateTypes,
              MlirContext context) {
             SmallVector<Type> inTys;
-            for (auto t : aggregateTypes)
+            for (nanobind::handle t : aggregateTypes)
               inTys.push_back(unwrap(nanobind::cast<MlirType>(t)));
 
             return wrap(quake::StruqType::get(unwrap(context), inTys));
@@ -133,7 +142,7 @@ void registerQuakeDialectAndTypes(nanobind::module_ &m) {
           [](nanobind::object cls, const std::string &name,
              nanobind::list aggregateTypes, MlirContext context) {
             SmallVector<Type> inTys;
-            for (auto t : aggregateTypes)
+            for (nanobind::handle t : aggregateTypes)
               inTys.push_back(unwrap(nanobind::cast<MlirType>(t)));
 
             return wrap(quake::StruqType::get(unwrap(context), name, inTys));
@@ -164,8 +173,8 @@ void registerQuakeDialectAndTypes(nanobind::module_ &m) {
       });
 }
 
-void registerCCDialectAndTypes(nanobind::module_ &m) {
-
+static void registerCCDialectAndTypes(nanobind::module_ &m) {
+  using namespace mlir::python::nanobind_adaptors;
   auto ccMod = m.def_submodule("cc");
 
   ccMod.def(
@@ -180,9 +189,10 @@ void registerCCDialectAndTypes(nanobind::module_ &m) {
       nanobind::arg("load") = true,
       nanobind::arg("context") = nanobind::none());
 
-  mlir::python::nanobind_adaptors::mlir_type_subclass(
-      ccMod, "CharspanType",
-      [](MlirType type) { return unwrap(type).isa<cudaq::cc::CharspanType>(); })
+  mlir_type_subclass(ccMod, "CharspanType",
+                     [](MlirType type) {
+                       return mlir::isa<cudaq::cc::CharspanType>(unwrap(type));
+                     })
       .def_classmethod(
           "get",
           [](nanobind::object cls, MlirContext context) {
@@ -190,9 +200,9 @@ void registerCCDialectAndTypes(nanobind::module_ &m) {
           },
           nanobind::arg("cls"), nanobind::arg("context") = nanobind::none());
 
-  mlir::python::nanobind_adaptors::mlir_type_subclass(
+  mlir_type_subclass(
       ccMod, "StateType",
-      [](MlirType type) { return unwrap(type).isa<quake::StateType>(); })
+      [](MlirType type) { return mlir::isa<quake::StateType>(unwrap(type)); })
       .def_classmethod(
           "get",
           [](nanobind::object cls, MlirContext context) {
@@ -200,9 +210,10 @@ void registerCCDialectAndTypes(nanobind::module_ &m) {
           },
           nanobind::arg("cls"), nanobind::arg("context") = nanobind::none());
 
-  mlir::python::nanobind_adaptors::mlir_type_subclass(
-      ccMod, "PointerType",
-      [](MlirType type) { return unwrap(type).isa<cudaq::cc::PointerType>(); })
+  mlir_type_subclass(ccMod, "PointerType",
+                     [](MlirType type) {
+                       return mlir::isa<cudaq::cc::PointerType>(unwrap(type));
+                     })
       .def_classmethod(
           "getElementType",
           [](nanobind::object cls, MlirType type) {
@@ -223,9 +234,10 @@ void registerCCDialectAndTypes(nanobind::module_ &m) {
           nanobind::arg("cls"), nanobind::arg("elementType"),
           nanobind::arg("context") = nanobind::none());
 
-  mlir::python::nanobind_adaptors::mlir_type_subclass(
-      ccMod, "ArrayType",
-      [](MlirType type) { return unwrap(type).isa<cudaq::cc::ArrayType>(); })
+  mlir_type_subclass(ccMod, "ArrayType",
+                     [](MlirType type) {
+                       return mlir::isa<cudaq::cc::ArrayType>(unwrap(type));
+                     })
       .def_classmethod(
           "getElementType",
           [](nanobind::object cls, MlirType type) {
@@ -248,15 +260,16 @@ void registerCCDialectAndTypes(nanobind::module_ &m) {
           nanobind::arg("size") = std::numeric_limits<std::int64_t>::min(),
           nanobind::arg("context") = nanobind::none());
 
-  mlir::python::nanobind_adaptors::mlir_type_subclass(
-      ccMod, "StructType",
-      [](MlirType type) { return unwrap(type).isa<cudaq::cc::StructType>(); })
+  mlir_type_subclass(ccMod, "StructType",
+                     [](MlirType type) {
+                       return mlir::isa<cudaq::cc::StructType>(unwrap(type));
+                     })
       .def_classmethod(
           "get",
           [](nanobind::object cls, nanobind::list aggregateTypes,
              MlirContext context) {
             SmallVector<Type> inTys;
-            for (auto t : aggregateTypes)
+            for (nanobind::handle t : aggregateTypes)
               inTys.push_back(unwrap(nanobind::cast<MlirType>(t)));
 
             return wrap(cudaq::cc::StructType::get(unwrap(context), inTys));
@@ -268,7 +281,7 @@ void registerCCDialectAndTypes(nanobind::module_ &m) {
           [](nanobind::object cls, const std::string &name,
              nanobind::list aggregateTypes, MlirContext context) {
             SmallVector<Type> inTys;
-            for (auto t : aggregateTypes)
+            for (nanobind::handle t : aggregateTypes)
               inTys.push_back(unwrap(nanobind::cast<MlirType>(t)));
 
             return wrap(
@@ -299,19 +312,20 @@ void registerCCDialectAndTypes(nanobind::module_ &m) {
         return ty.getName().getValue().str();
       });
 
-  mlir::python::nanobind_adaptors::mlir_type_subclass(
-      ccMod, "CallableType",
-      [](MlirType type) { return unwrap(type).isa<cudaq::cc::CallableType>(); })
+  mlir_type_subclass(ccMod, "CallableType",
+                     [](MlirType type) {
+                       return mlir::isa<cudaq::cc::CallableType>(unwrap(type));
+                     })
       .def_classmethod("get",
                        [](nanobind::object cls, MlirContext context,
                           nanobind::list inTypes, nanobind::list resTypes) {
                          // Nanobind builder: make the builder for this type
                          // look like that of a FunctionType.
                          SmallVector<Type> inTys;
-                         for (auto t : inTypes)
+                         for (nanobind::handle t : inTypes)
                            inTys.push_back(unwrap(nanobind::cast<MlirType>(t)));
                          SmallVector<Type> resTys;
-                         for (auto t : resTypes)
+                         for (nanobind::handle t : resTypes)
                            resTys.push_back(
                                unwrap(nanobind::cast<MlirType>(t)));
 
@@ -327,9 +341,10 @@ void registerCCDialectAndTypes(nanobind::module_ &m) {
             return wrap(callTy.getSignature());
           });
 
-  mlir::python::nanobind_adaptors::mlir_type_subclass(
-      ccMod, "StdvecType",
-      [](MlirType type) { return unwrap(type).isa<cudaq::cc::StdvecType>(); })
+  mlir_type_subclass(ccMod, "StdvecType",
+                     [](MlirType type) {
+                       return mlir::isa<cudaq::cc::StdvecType>(unwrap(type));
+                     })
       .def_classmethod(
           "getElementType",
           [](nanobind::object cls, MlirType type) {
@@ -351,7 +366,7 @@ void registerCCDialectAndTypes(nanobind::module_ &m) {
           nanobind::arg("context") = nanobind::none());
 }
 
-void bindRegisterDialects(nanobind::module_ &mod) {
+void cudaq::bindRegisterDialects(nanobind::module_ &mod) {
   registerQuakeDialectAndTypes(mod);
   registerCCDialectAndTypes(mod);
 
@@ -363,13 +378,9 @@ void bindRegisterDialects(nanobind::module_ &mod) {
   });
 
   mod.def("register_all_dialects", [](MlirContext context) {
-    DialectRegistry registry;
-    registry.insert<quake::QuakeDialect, cudaq::cc::CCDialect>();
-    cudaq::opt::registerCodeGenDialect(registry);
-    registerAllDialects(registry);
+    ::cudaqRegisterAllDialects(context);
     auto *mlirContext = unwrap(context);
-    mlirContext->appendDialectRegistry(registry);
-    mlirContext->loadAllAvailableDialects();
+    mlirContext->getOrLoadDialect<cudaq::codegen::CodeGenDialect>();
   });
 
   mod.def("gen_vector_of_complex_constant", [](MlirLocation loc,
@@ -383,4 +394,3 @@ void bindRegisterDialects(nanobind::module_ &mod) {
     builder.genVectorOfConstants(unwrap(loc), modOp, name, newValues);
   });
 }
-} // namespace cudaq

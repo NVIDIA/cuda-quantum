@@ -14,8 +14,10 @@
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
-#include "utils/NanobindAdaptors.h"
 #include "utils/OpaqueArguments.h"
+#include "llvm/IR/LLVMContext.h"
+#include "llvm/IR/Module.h"
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Target/LLVMIR/Export.h"
 
@@ -54,7 +56,7 @@ static std::string translate_impl(const std::string &shortName,
       cudaq::marshal_arguments_for_module_launch(mod, runtimeArguments, fn);
 
   return StringSwitch<std::function<std::string()>>(formatPair.first)
-      .Cases("qir", "qir-full", "qir-adaptive", "qir-base",
+      .Cases({"qir", "qir-full", "qir-adaptive", "qir-base"},
              [&]() {
                return cudaq::detail::lower_to_qir_llvm(shortName, mod, opaques,
                                                        format);
@@ -94,7 +96,6 @@ void cudaq::bindPyTranslate(nanobind::module_ &mod) {
         if (failed(pm.run(mod)))
           throw std::runtime_error("Conversion to " + format + " failed.");
         llvm::LLVMContext llvmContext;
-        llvmContext.setOpaquePointers(false);
         std::unique_ptr<llvm::Module> llvmModule =
             translateModuleToLLVMIR(mod, llvmContext);
         if (!llvmModule)
