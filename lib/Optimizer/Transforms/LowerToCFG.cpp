@@ -88,8 +88,7 @@ public:
     if (stackSave) {
       rewriter.setInsertionPointToStart(endBlock);
       func::CallOp::create(rewriter, loc, ArrayRef<Type>{},
-                           cudaq::llvmStackRestore,
-                           ArrayRef<Value>{stackSave});
+                           cudaq::llvmStackRestore, ArrayRef<Value>{stackSave});
     }
     rewriter.replaceOp(scopeOp, scopeResults);
     return success();
