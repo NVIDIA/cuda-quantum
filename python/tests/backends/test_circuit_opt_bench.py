@@ -50,11 +50,8 @@ def test_swap_no_decomposition_default_target():
 def test_custom_unitary_produces_2q_gates():
     """Registered SU(4) unitary must produce entangling gates after synthesis.
 
-    This validates handling of registered random SU(4) operations through the
-    target pipeline. The target pipeline must inline the KAK-decomposed helper
-    function into the main kernel (apply-op-specialization +
-    aggressive-inlining). Without those passes, resource counting sees only 1Q
-    gates for this case.
+    This validates SU(4) handling through the target pipeline. Without helper
+    inlining, resource counting sees only 1Q gates for this case.
     """
     cudaq.set_target('circuit-opt-bench')
 
