@@ -526,10 +526,10 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     // NB: load llvmStackSave to get both.
     {cudaq::llvmStackRestore,
      {},
-     "func.func private @llvm.stackrestore(!cc.ptr<i8>)"},
+     "func.func private @llvm.stackrestore.p0(!cc.ptr<i8>)"},
     {cudaq::llvmStackSave,
      {cudaq::llvmStackRestore},
-     "func.func private @llvm.stacksave() -> !cc.ptr<i8>"},
+     "func.func private @llvm.stacksave.p0() -> !cc.ptr<i8>"},
 
     {"malloc", {}, "func.func private @malloc(i64) -> !cc.ptr<i8>"},
 
