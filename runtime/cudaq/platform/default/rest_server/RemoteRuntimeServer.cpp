@@ -8,4 +8,4 @@
 
 #include "common/RemoteKernelExecutor.h"
 
-LLVM_INSTANTIATE_REGISTRY(cudaq::RemoteRuntimeServer::RegistryType)
+CUDAQ_INSTANTIATE_REGISTRY(cudaq::RemoteRuntimeServer::RegistryType)

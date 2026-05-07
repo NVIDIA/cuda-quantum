@@ -604,7 +604,7 @@ CUDAQ_TEST(PTSBESampleTest, SampleAsyncPropagatesException) {
       "test_kernel", 10, PTSBEOptions{}, /*qpu_id=*/0, noise);
 
   try {
-    future.get();
+    [[maybe_unused]] auto result = future.get();
     FAIL() << "Expected exception from async PTSBE sampling";
   } catch (const std::runtime_error &e) {
     EXPECT_NE(std::string(e.what()).find("injected async failure"),

@@ -7,9 +7,13 @@
  ******************************************************************************/
 
 #include "RestClient.h"
+
+#ifdef CUDAQ_RESTCLIENT_AVAILABLE
+
 #include "FmtCore.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include "nlohmann/json.hpp"
 #include <cpr/cpr.h>
 
 namespace cudaq {
@@ -43,8 +47,6 @@ RestClient::RestClient() : sslOptions(std::make_unique<cpr::SslOptions>()) {
     sslOptions->SetOption(cpr::ssl::CaInfo(std::move(caInfo)));
 }
 
-// Must define this in the cpp file instead of the header file
-// because CPR headers aren't included in RestClient.h.
 RestClient::~RestClient() = default;
 
 nlohmann::json
@@ -65,7 +67,6 @@ RestClient::post(const std::string_view remoteUrl, const std::string_view path,
   for (const auto &kv : cookies)
     cprCookies.emplace_back({kv.first, kv.second});
 
-  // Allow caller to disable logging for things like passwords/tokens
   if (enableLogging)
     CUDAQ_INFO("Posting to {}/{} with data = {}", remoteUrl, path, post.dump());
 
@@ -78,7 +79,6 @@ RestClient::post(const std::string_view remoteUrl, const std::string_view path,
                              std::to_string(r.status_code) + ": " +
                              r.error.message + ": " + r.text);
 
-  // Update the cookies map
   if (cookiesOut)
     for (const auto &cookie : r.cookies)
       (*cookiesOut)[cookie.GetName()] = cookie.GetValue();
@@ -100,7 +100,6 @@ void RestClient::put(const std::string_view remoteUrl,
   cpr::Cookies cprCookies;
   for (const auto &kv : cookies)
     cprCookies.emplace_back({kv.first, kv.second});
-  // Allow caller to disable logging for things like passwords/tokens
   if (enableLogging)
     CUDAQ_INFO("Putting to {}/{} with data = {}", remoteUrl, path,
                putData.dump());
@@ -193,15 +192,67 @@ void RestClient::download(const std::string_view remoteUrl,
                remoteUrl, filePath);
 
   try {
-    // Write the downloaded content to file.
     std::ofstream outfile(filePath, std::ofstream::binary | std::ios::out);
     outfile.write(r.text.c_str(), r.text.size());
     outfile.close();
   } catch (std::exception &e) {
-    // Rethrow it with a descriptive message
     throw std::runtime_error(fmt::format(
         "Failed to write downloaded contents to file {}. Exception: {}.",
         filePath, e.what()));
   }
 }
 } // namespace cudaq
+
+#else // !CUDAQ_RESTCLIENT_AVAILABLE
+
+namespace cpr {
+struct SslOptions {};
+} // namespace cpr
+
+namespace cudaq {
+
+static void throwNoRest [[noreturn]] () {
+  throw std::runtime_error(
+      "REST client is not available. Build with CUDAQ_ENABLE_REST=ON and "
+      "OpenSSL to enable REST support.");
+}
+
+RestClient::RestClient() : sslOptions(std::make_unique<cpr::SslOptions>()) {}
+RestClient::~RestClient() = default;
+
+nlohmann::json RestClient::post(const std::string_view, const std::string_view,
+                                nlohmann::json &,
+                                std::map<std::string, std::string> &, bool,
+                                bool,
+                                const std::map<std::string, std::string> &,
+                                std::map<std::string, std::string> *) {
+  throwNoRest();
+}
+void RestClient::put(const std::string_view, const std::string_view,
+                     nlohmann::json &, std::map<std::string, std::string> &,
+                     bool, bool, const std::map<std::string, std::string> &) {
+  throwNoRest();
+}
+std::string RestClient::getRawText(const std::string_view,
+                                   const std::string_view,
+                                   std::map<std::string, std::string> &, bool,
+                                   const std::map<std::string, std::string> &) {
+  throwNoRest();
+}
+nlohmann::json RestClient::get(const std::string_view, const std::string_view,
+                               std::map<std::string, std::string> &, bool,
+                               const std::map<std::string, std::string> &) {
+  throwNoRest();
+}
+void RestClient::del(const std::string_view, const std::string_view,
+                     std::map<std::string, std::string> &, bool, bool,
+                     const std::map<std::string, std::string> &) {
+  throwNoRest();
+}
+void RestClient::download(const std::string_view, const std::string &, bool,
+                          bool, const std::map<std::string, std::string> &) {
+  throwNoRest();
+}
+} // namespace cudaq
+
+#endif // CUDAQ_RESTCLIENT_AVAILABLE

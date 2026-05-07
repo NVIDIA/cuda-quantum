@@ -12,6 +12,7 @@ set(LIBRARY_NAME cudaq-common)
 set(COMMON_EXTRA_DEPS "")
 set(COMMON_RUNTIME_SRC
   CodeGenConfig.cpp
+  cudaq_json.cpp
   CustomOp.cpp
   DeviceCodeRegistry.cpp
   Environment.cpp
@@ -27,6 +28,7 @@ set(COMMON_RUNTIME_SRC
   ServerHelper.cpp
   Trace.cpp
   CompiledModule.cpp
+  KernelArgs.cpp
   "${CMAKE_BINARY_DIR}/runtime/common/Version.cpp"
 )
 

@@ -152,8 +152,8 @@ protected:
     simulator()->configureExecutionContext(ctx);
   }
 
-  void finalizeExecutionContext(ExecutionContext &ctx) override {
-    BasicExecutionManager::finalizeExecutionContext(ctx);
+  void finalizeExecutionContextImpl(ExecutionContext &ctx) {
+    BasicExecutionManager::finalizeExecutionContextImpl(ctx);
 
     if (!requestedAllocations.empty()) {
       CUDAQ_INFO("[DefaultExecutionManager] Flushing remaining {} allocations "
@@ -165,6 +165,17 @@ protected:
       simulator()->allocateQubits(requestedAllocations.size());
       requestedAllocations.clear();
     }
+  }
+
+  sample_result finalizeExecutionContext(const sample_policy &policy,
+                                         ExecutionContext &ctx) override {
+    finalizeExecutionContextImpl(ctx);
+    return simulator()->finalizeExecutionContext(policy, ctx);
+  }
+
+  void finalizeExecutionContext(const other_policies &policy,
+                                ExecutionContext &ctx) override {
+    finalizeExecutionContextImpl(ctx);
     simulator()->finalizeExecutionContext(ctx);
   }
 
@@ -277,9 +288,9 @@ protected:
     simulator()->flushGateQueue();
   }
 
-  void measureSpinOp(const cudaq::spin_op &op) override {
+  cudaq::SpinMeasureResult measureSpinOp(const cudaq::spin_op &op) override {
     flushRequestedAllocations();
-    simulator()->measureSpinOp(op);
+    return simulator()->measureSpinOp(op);
   }
 
 public:

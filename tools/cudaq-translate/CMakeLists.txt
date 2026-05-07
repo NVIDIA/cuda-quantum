@@ -25,7 +25,10 @@ target_link_libraries(${TOOL_NAME}
     MLIRTransforms
     MLIRTargetLLVMIRExport
     MLIRLLVMCommonConversion
+    MLIRBuiltinToLLVMIRTranslation
     MLIRLLVMToLLVMIRTranslation
+    MLIRFuncInlinerExtension
+    MLIRLLVMIRTransforms
 
     CCDialect
     OptCodeGen

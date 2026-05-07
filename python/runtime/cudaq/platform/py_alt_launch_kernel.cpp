@@ -18,19 +18,21 @@
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/platform.h"
+#include "cudaq/platform/nvqpp_interface.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/LayoutInfo.h"
+#include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "runtime/cudaq/algorithms/py_utils.h"
+#include "runtime/cudaq/platform/PythonSignalCheck.h"
 #include "utils/LinkedLibraryHolder.h"
-#include "utils/NanobindAdaptors.h"
 #include "utils/OpaqueArguments.h"
 #include "utils/PyTypes.h"
-#include "llvm/MC/SubtargetFeature.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Error.h"
-#include "llvm/Support/Host.h"
 #include "llvm/Target/TargetMachine.h"
+#include "llvm/TargetParser/Host.h"
+#include "llvm/TargetParser/SubtargetFeature.h"
 #include "mlir/CAPI/ExecutionEngine.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/ExecutionEngine/OptUtils.h"
@@ -52,8 +54,6 @@
 #include <nanobind/stl/vector.h>
 
 using namespace mlir;
-using namespace cudaq_internal::compiler;
-using cudaq::JitEngine;
 
 static std::function<std::string()> getTransportLayer = []() -> std::string {
   throw std::runtime_error("binding for kernel launch is incomplete");
@@ -85,7 +85,7 @@ static std::unique_ptr<PyStateStorage> cudaqStateStorage =
 
 static std::string createDataLayout() {
   // Setup the machine properties from the current architecture.
-  auto targetTriple = llvm::sys::getDefaultTargetTriple();
+  llvm::Triple targetTriple(llvm::sys::getDefaultTargetTriple());
   std::string errorMessage;
   const auto *target =
       llvm::TargetRegistry::lookupTarget(targetTriple, errorMessage);
@@ -94,11 +94,9 @@ static std::string createDataLayout() {
 
   std::string cpu(llvm::sys::getHostCPUName());
   llvm::SubtargetFeatures features;
-  llvm::StringMap<bool> hostFeatures;
-
-  if (llvm::sys::getHostCPUFeatures(hostFeatures))
-    for (auto &f : hostFeatures)
-      features.AddFeature(f.first(), f.second);
+  auto hostFeatures = llvm::sys::getHostCPUFeatures();
+  for (auto &f : hostFeatures)
+    features.AddFeature(f.first(), f.second);
 
   std::unique_ptr<llvm::TargetMachine> machine(target->createTargetMachine(
       targetTriple, cpu, features.getString(), {}, {}));
@@ -178,6 +176,7 @@ nanobind::args cudaq::simplifiedValidateInputArguments(nanobind::args &args) {
   return processed;
 }
 
+template <cudaq::PackingStyle style>
 void cudaq::handleStructMemberVariable(void *data, std::size_t offset,
                                        mlir::Type memberType,
                                        nanobind::object value) {
@@ -206,13 +205,19 @@ void cudaq::handleStructMemberVariable(void *data, std::size_t offset,
           for (std::size_t i = 0; auto v : asList)
             (*values)[i++] = nanobind::cast<T>(v);
 
-          std::memcpy(((char *)data) + offset, values, 16);
+          // synthesis path: span {ptr, size_t}
+          // argsCreator path: std::vector<T> {ptr, ptr, ptr}
+          constexpr std::size_t copySize =
+              sizeof(std::conditional_t<style == cudaq::PackingStyle::synthesis,
+                                        std::pair<char *, std::size_t>,
+                                        std::vector<T>>);
+          std::memcpy(((char *)data) + offset, values, copySize);
         };
 
         mlir::TypeSwitch<mlir::Type, void>(ty.getElementType())
             .Case([&](mlir::IntegerType type) {
               if (type.isInteger(1)) {
-                appendVectorValue(value, data, offset, char());
+                appendVectorValue(value, data, offset, BoolVecElem<style>{});
                 return;
               }
               appendVectorValue(value, data, offset, std::size_t());
@@ -223,6 +228,21 @@ void cudaq::handleStructMemberVariable(void *data, std::size_t offset,
                 return;
               }
               appendVectorValue(value, data, offset, double());
+            })
+            .Case([&](cudaq::cc::StdvecType innerVecType) {
+              if constexpr (style == cudaq::PackingStyle::synthesis) {
+                throw std::runtime_error(
+                    "Type not supported for custom struct in kernel.");
+              } else {
+                // Nested vector (e.g., list[list[int]]): delegate to
+                // handleVectorElements which handles the recursive case.
+                auto asList = nanobind::cast<nanobind::list>(value);
+                auto *values =
+                    handleVectorElements<cudaq::PackingStyle::argsCreator>(
+                        innerVecType, asList);
+                std::memcpy(((char *)data) + offset, values,
+                            sizeof(std::vector<std::vector<std::size_t>>));
+              }
             });
       })
       .Default([&](mlir::Type ty) {
@@ -232,6 +252,7 @@ void cudaq::handleStructMemberVariable(void *data, std::size_t offset,
       });
 }
 
+template <cudaq::PackingStyle style>
 void *cudaq::handleVectorElements(mlir::Type eleTy, nanobind::list list) {
   auto appendValue = []<typename T>(nanobind::list list,
                                     auto &&converter) -> void * {
@@ -245,12 +266,13 @@ void *cudaq::handleVectorElements(mlir::Type eleTy, nanobind::list list) {
 
   return llvm::TypeSwitch<mlir::Type, void *>(eleTy)
       .Case([&](mlir::IntegerType ty) {
-        if (ty.getIntOrFloatBitWidth() == 1)
-          return appendValue.template operator()<char>(
+        if (ty.getIntOrFloatBitWidth() == 1) {
+          return appendValue.template operator()<BoolVecElem<style>>(
               list, [](nanobind::handle v, std::size_t i) {
                 checkListElementType<nanobind::bool_>(v, i);
-                return nanobind::cast<bool>(v);
+                return static_cast<BoolVecElem<style>>(nanobind::cast<bool>(v));
               });
+        }
         if (ty.getIntOrFloatBitWidth() == 8)
           return appendValue.template operator()<std::int8_t>(
               list, [](nanobind::handle v, std::size_t i) {
@@ -313,7 +335,7 @@ void *cudaq::handleVectorElements(mlir::Type eleTy, nanobind::list list) {
                                                 nanobind::list list) -> void * {
           auto *values = new std::vector<std::vector<T>>();
           for (std::size_t i = 0; i < list.size(); i++) {
-            auto ptr = handleVectorElements(eleTy, list[i]);
+            auto ptr = handleVectorElements<style>(eleTy, list[i]);
             auto *element = static_cast<std::vector<T> *>(ptr);
             values->emplace_back(std::move(*element));
           }
@@ -321,9 +343,11 @@ void *cudaq::handleVectorElements(mlir::Type eleTy, nanobind::list list) {
         };
 
         auto eleTy = ty.getElementType();
-        if (ty.getElementType().isInteger(1))
+        if (ty.getElementType().isInteger(1)) {
           // Special case for a `std::vector<bool>`.
-          return appendVectorValue.template operator()<char>(eleTy, list);
+          return appendVectorValue.template operator()<BoolVecElem<style>>(
+              eleTy, list);
+        }
 
         // All other `std::Vector<T>` types, including nested vectors.
         return appendVectorValue.template operator()<std::size_t>(eleTy, list);
@@ -344,6 +368,7 @@ std::string cudaq::mlirTypeToString(mlir::Type ty) {
   return msg;
 }
 
+template <cudaq::PackingStyle style>
 void cudaq::packArgs(
     OpaqueArguments &argData, nanobind::list args,
     mlir::ArrayRef<mlir::Type> mlirTys,
@@ -387,7 +412,8 @@ void cudaq::packArgs(
         .Case([&](IntegerType ty) {
           if (ty.getIntOrFloatBitWidth() == 1) {
             checkArgumentType<nanobind::bool_>(arg, i);
-            addArgument(argData, static_cast<char>(nanobind::cast<bool>(arg)));
+            addArgument(argData, static_cast<BoolVecElem<style>>(
+                                     nanobind::cast<bool>(arg)));
             return;
           }
 
@@ -434,14 +460,19 @@ void cudaq::packArgs(
         })
         .Case([&](cc::StructType ty) {
           auto mod = kernelFuncOp->getParentOfType<mlir::ModuleOp>();
-          auto [size, offsets] = getTargetLayout(mod, ty);
+          cc::StructType layoutTy = ty;
+          if constexpr (style == cudaq::PackingStyle::argsCreator)
+            layoutTy = cast<cc::StructType>(
+                cudaq::opt::factory::convertToHostSideType(ty, mod));
+          auto [size, offsets] =
+              cudaq_internal::compiler::getTargetLayout(mod, layoutTy);
           auto memberTys = ty.getMembers();
           auto allocatedArg = std::malloc(size);
           if (ty.getName() == "tuple") {
             auto elements = nanobind::cast<nanobind::tuple>(arg);
             for (std::size_t i = 0; i < offsets.size(); i++)
-              handleStructMemberVariable(allocatedArg, offsets[i], memberTys[i],
-                                         elements[i]);
+              handleStructMemberVariable<style>(allocatedArg, offsets[i],
+                                                memberTys[i], elements[i]);
           } else {
             nanobind::dict attributes =
                 nanobind::cast<nanobind::dict>(arg.attr("__annotations__"));
@@ -449,8 +480,8 @@ void cudaq::packArgs(
                  const auto &[attr_name, unused] : attributes) {
               nanobind::object attr_value =
                   arg.attr(nanobind::cast<std::string>(attr_name).c_str());
-              handleStructMemberVariable(allocatedArg, offsets[i], memberTys[i],
-                                         attr_value);
+              handleStructMemberVariable<style>(allocatedArg, offsets[i],
+                                                memberTys[i], attr_value);
               i++;
             }
           }
@@ -459,7 +490,7 @@ void cudaq::packArgs(
         .Case([&](cc::StdvecType ty) {
           auto appendVectorValue = [&argData]<typename T>(Type eleTy,
                                                           nanobind::list list) {
-            auto allocatedArg = handleVectorElements(eleTy, list);
+            auto allocatedArg = handleVectorElements<style>(eleTy, list);
             argData.emplace_back(allocatedArg, [](void *ptr) {
               delete static_cast<std::vector<T> *>(ptr);
             });
@@ -470,7 +501,8 @@ void cudaq::packArgs(
           auto eleTy = ty.getElementType();
           if (eleTy.isInteger(1)) {
             // Special case for a `std::vector<bool>`.
-            appendVectorValue.template operator()<char>(eleTy, list);
+            appendVectorValue.template operator()<BoolVecElem<style>>(eleTy,
+                                                                      list);
             return;
           }
           // All other `std::vector<T>` types, including nested vectors.
@@ -516,8 +548,8 @@ void cudaq::packArgs(
               if (startLiftedArgs) {
                 auto fnTy = calledFuncOp.getFunctionType();
                 auto liftedTys = fnTy.getInputs().drop_front(*startLiftedArgs);
-                packArgs(resolvedArgs, arguments, liftedTys, backupHandler,
-                         calledFuncOp);
+                packArgs<style>(resolvedArgs, arguments, liftedTys,
+                                backupHandler, calledFuncOp);
               }
               return new runtime::CallableClosureArgument(
                   kernelName, kernelModule, std::move(startLiftedArgs),
@@ -541,6 +573,7 @@ void cudaq::packArgs(
   }
 }
 
+template <cudaq::PackingStyle style>
 void cudaq::packArgs(
     OpaqueArguments &argData, nanobind::args args,
     mlir::func::FuncOp kernelFuncOp,
@@ -566,7 +599,7 @@ void cudaq::packArgs(
       continue;
     pyList.append(h);
   }
-  return packArgs(
+  return packArgs<style>(
       argData, pyList,
       kernelFuncOp.getFunctionType().getInputs().drop_front(startingArgIdx),
       backupHandler, kernelFuncOp);
@@ -599,8 +632,8 @@ static bool linkResolvedCallable(ModuleOp currMod, func::FuncOp entryPoint,
   auto loc = entryPoint.getLoc();
   Block &entry = entryPoint.front();
   builder.setInsertionPoint(&entry.front());
-  auto resolved = builder.create<func::ConstantOp>(
-      loc, callee.getFunctionType(), calleeName);
+  auto resolved = func::ConstantOp::create(
+      builder, loc, callee.getFunctionType(), calleeName);
   entry.getArgument(argPos).replaceAllUsesWith(resolved);
   return true;
 }
@@ -626,7 +659,8 @@ cudaq::OpaqueArguments *cudaq::toOpaqueArgs(nanobind::args &args,
 static void appendTheResultValue(ModuleOp module, const std::string &name,
                                  cudaq::OpaqueArguments &runtimeArgs,
                                  Type returnType) {
-  auto [bufferSize, offsets] = getResultBufferLayout(module, returnType);
+  auto [bufferSize, offsets] =
+      cudaq_internal::compiler::getResultBufferLayout(module, returnType);
   if (bufferSize == 0)
     return;
   auto *buf = std::calloc(1, bufferSize);
@@ -640,7 +674,8 @@ static cudaq::KernelThunkResultType
 pyLaunchModule(const std::string &name, ModuleOp mod,
                const std::vector<void *> &rawArgs) {
   auto clone = mod.clone();
-  auto res = cudaq::streamlinedLaunchModule(name, clone, rawArgs);
+  auto compiled = cudaq::streamlinedCompileModule(name, clone, rawArgs, true);
+  auto res = cudaq::streamlinedLaunchModule(compiled, rawArgs);
   clone.erase();
   return res;
 }
@@ -658,7 +693,7 @@ static void pyAltLaunchAnalogKernel(const std::string &name,
     throw std::runtime_error("Unexpected type of kernel.");
   auto dynamicResult = cudaq::altLaunchKernel(
       name.c_str(), cudaq::KernelThunkType(nullptr),
-      (void *)(const_cast<char *>(programArgs.c_str())), 0, 0);
+      (void *)(const_cast<char *>(programArgs.c_str())), programArgs.size(), 0);
   if (dynamicResult.data_buffer || dynamicResult.size)
     throw std::runtime_error("Not implemented: support dynamic results");
 }
@@ -717,17 +752,27 @@ nanobind::object cudaq::convertResult(ModuleOp module, Type ty, char *data) {
         return readPyObject<float>(ty, data);
       })
       .Case([&](cudaq::cc::StdvecType ty) -> nanobind::object {
+        auto eleTy = ty.getElementType();
+        // Nested StdvecType elements have a different in-memory size than
+        // scalar types: span ({ptr,size_t} = 16 bytes) in direct-call context,
+        // std::vector ({ptr,ptr,ptr} = 24 bytes) in run context.
+        auto getEleByteSize = [&](Type eTy) -> std::size_t {
+          if (isa<cudaq::cc::StdvecType>(eTy))
+            return isRunContext ? 3 * sizeof(void *)
+                                : sizeof(char *) + sizeof(std::size_t);
+          return byteSize(eTy);
+        };
+
         if (isRunContext) {
           // cudaq.run return.
-          auto eleTy = ty.getElementType();
-          auto eleByteSize = byteSize(eleTy);
+          auto eleByteSize = getEleByteSize(eleTy);
 
           // Vector of booleans has a special layout.
           // Read the vector and create a list of booleans.
           // Note: in the `cudaq::run` context the `std::vector<bool>` is
           // constructed in the host runtime by parsing the output log to
           // `std::vector<bool>`.
-          if (eleTy.getIntOrFloatBitWidth() == 1) {
+          if (eleTy.isInteger(1)) {
             auto v = reinterpret_cast<std::vector<bool> *>(data);
             nanobind::list list;
             for (auto const bit : *v)
@@ -752,8 +797,7 @@ nanobind::object cudaq::convertResult(ModuleOp module, Type ty, char *data) {
         }
 
         // Direct call return.
-        auto eleTy = ty.getElementType();
-        auto eleByteSize = byteSize(eleTy);
+        auto eleByteSize = getEleByteSize(eleTy);
 
         // Vector is a span: `{ data, length }`.
         // Read `data` and `length` from the buffer.
@@ -774,7 +818,8 @@ nanobind::object cudaq::convertResult(ModuleOp module, Type ty, char *data) {
         auto name = ty.getName().str();
         // Handle tuples.
         if (name == "tuple") {
-          auto [size, offsets] = getTargetLayout(module, ty);
+          auto [size, offsets] =
+              cudaq_internal::compiler::getTargetLayout(module, ty);
           auto memberTys = ty.getMembers();
           nanobind::list list;
           for (std::size_t i = 0; i < offsets.size(); i++) {
@@ -803,7 +848,8 @@ nanobind::object cudaq::convertResult(ModuleOp module, Type ty, char *data) {
           fieldNames.emplace_back(nanobind::str(attr_name));
 
         // Read field values and create the constructor `kwargs`
-        auto [size, offsets] = getTargetLayout(module, ty);
+        auto [size, offsets] =
+            cudaq_internal::compiler::getTargetLayout(module, ty);
         auto memberTys = ty.getMembers();
         nanobind::dict kwargs;
         for (std::size_t i = 0; i < offsets.size(); i++) {
@@ -843,6 +889,12 @@ appendResultToArgsVector(cudaq::OpaqueArguments &runtimeArgs, Type returnType,
 cudaq::KernelThunkResultType
 cudaq::clean_launch_module(const std::string &name, ModuleOp mod,
                            cudaq::OpaqueArguments &args) {
+  // Release the GIL for MLIR compilation and JIT. PyEval_SaveThread requires
+  // the GIL to be held, so guard with PyGILState_Check. Async paths invoke
+  // this from worker threads that never held the GIL.
+  std::optional<nanobind::gil_scoped_release> release;
+  if (PyGILState_Check())
+    release.emplace();
   auto kernelFunc = getKernelFuncOp(mod, name);
   Type retTy = cudaq::runtime::getReturnType(kernelFunc);
   // Append space for a result, as needed, to the vector of arguments.
@@ -854,24 +906,46 @@ cudaq::OpaqueArguments cudaq::marshal_arguments_for_module_launch(
     ModuleOp mod, nanobind::args runtimeArgs, func::FuncOp kernelFunc) {
   // Convert python arguments to opaque form.
   cudaq::OpaqueArguments args;
-  cudaq::packArgs(
-      args, runtimeArgs, kernelFunc,
-      [&](cudaq::OpaqueArguments &args, nanobind::object &pyArg, unsigned pos) {
-        return linkResolvedCallable(mod, kernelFunc, pos, pyArg);
-      });
+  bool isLocalSimulator =
+      !(cudaq::is_remote_platform() || cudaq::is_emulated_platform());
+  auto handler = [&](cudaq::OpaqueArguments &args, nanobind::object &pyArg,
+                     unsigned pos) {
+    return linkResolvedCallable(mod, kernelFunc, pos, pyArg);
+  };
+  if (isLocalSimulator)
+    cudaq::packArgs<cudaq::PackingStyle::argsCreator>(args, runtimeArgs,
+                                                      kernelFunc, handler);
+  else
+    cudaq::packArgs<cudaq::PackingStyle::synthesis>(args, runtimeArgs,
+                                                    kernelFunc, handler);
   return args;
 }
 
 nanobind::object cudaq::marshal_and_launch_module(const std::string &name,
                                                   MlirModule module,
                                                   nanobind::args runtimeArgs) {
+  // Marker span identifying every nested pass / scoped trace as part of the
+  // JIT-time pipeline. Paired with the cudaq.pipeline.aot span emitted around
+  // aot-prep-pipeline in compile_to_mlir; tooling reads the trace ancestry to
+  // attribute pass events to AOT vs JIT.
+  //
+  // This site is the funnel for kernel-call / sample / observe /
+  // estimate_resources execution paths: each ultimately calls
+  // marshal_and_launch_module, so a single span here attributes their JIT
+  // pass events to the JIT pipeline. The cudaq.translate path has its own
+  // marker in py_translate.cpp::translate_impl since it does not pass
+  // through this function.
+  cudaq::ScopedTrace pipelineJitMarker(cudaq::TraceContext(__builtin_FUNCTION(),
+                                                           __builtin_FILE(),
+                                                           __builtin_LINE()),
+                                       "cudaq.pipeline.jit");
   ScopedTraceWithContext("marshal_and_launch_module", name);
   auto kernelFunc = getKernelFuncOp(module, name);
   auto mod = unwrap(module);
   Type retTy = cudaq::runtime::getReturnType(kernelFunc);
   auto args = marshal_arguments_for_module_launch(mod, runtimeArgs, kernelFunc);
+
   [[maybe_unused]] auto resultPtr = clean_launch_module(name, mod, args);
-  // FIXME: handle dynamic sized results!
 
   if (!retTy)
     return nanobind::none();
@@ -894,7 +968,7 @@ marshal_and_retain_module(const std::string &name, MlirModule module,
   auto rawArgs = appendResultToArgsVector(args, retTy, mod, name);
   auto clone = mod.clone();
   auto compiled =
-      cudaq::streamlinedSpecializeModule(name, clone, rawArgs, isEntryPoint);
+      cudaq::streamlinedCompileModule(name, clone, rawArgs, isEntryPoint);
   clone.erase();
   return compiled;
 }
@@ -934,7 +1008,7 @@ static MlirModule synthesizeKernel(nanobind::object kernel,
   auto isLocalSimulator = platform.is_simulator() && !platform.is_emulated();
   auto isSimulator = isLocalSimulator || isRemoteSimulator;
 
-  ArgumentConverter argCon(name, mod);
+  cudaq_internal::compiler::ArgumentConverter argCon(name, mod);
   argCon.gen(args.getArgs());
 
   // Store kernel and substitution strings on the stack.
@@ -956,6 +1030,8 @@ static MlirModule synthesizeKernel(nanobind::object kernel,
   SmallVector<StringRef> substRefs{substs.begin(), substs.end()};
 
   PassManager pm(context);
+  cudaq::addPythonSignalInstrumentation(pm);
+  pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
   pm.addPass(cudaq::opt::createArgumentSynthesisPass(
       kernelRefs, substRefs, /*changeSemantics=*/false));
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
@@ -997,13 +1073,12 @@ static MlirModule synthesizeKernel(nanobind::object kernel,
     context->disableMultithreading();
   if (enablePrintMLIREachPass)
     pm.enableIRPrinting();
-  if (failed(pm.run(cloned))) {
-    engine.eraseHandler(handlerId);
-    throw std::runtime_error(
-        "failed to JIT compile the Quake representation\n" + error_msg);
-  }
+  bool pmFailed = failed(cudaq::runPassManagerReleasingGIL(pm, cloned));
   timingScope.stop();
   engine.eraseHandler(handlerId);
+  if (pmFailed)
+    throw std::runtime_error(
+        "failed to JIT compile the Quake representation\n" + error_msg);
   return wrap(cloned);
 }
 
@@ -1031,12 +1106,12 @@ static void executeMLIRPassManager(ModuleOp mod, PassManager &pm) {
   auto timingScope = tm.getRootScope(); // starts the timer
   pm.enableTiming(timingScope);         // do this right before pm.run
 
-  if (failed(pm.run(mod))) {
-    engine.eraseHandler(handlerId);
+  bool pmFailed = failed(cudaq::runPassManagerReleasingGIL(pm, mod));
+  timingScope.stop();
+  engine.eraseHandler(handlerId);
+  if (pmFailed)
     throw std::runtime_error(
         "failed to JIT compile the Quake representation\n" + error_msg);
-  }
-  timingScope.stop();
   engine.eraseHandler(handlerId);
 }
 
@@ -1047,6 +1122,8 @@ static ModuleOp cleanLowerToCodegenKernel(ModuleOp mod,
     // arguments will be resolved and marshaled at the kernel call site.
     auto *ctx = mod.getContext();
     PassManager pm(ctx);
+    cudaq::addPythonSignalInstrumentation(pm);
+    pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
     std::string transport = getTransportLayer();
     cudaq::opt::addAOTPipelineConvertToQIR(pm, transport);
     executeMLIRPassManager(mod, pm);
@@ -1094,8 +1171,7 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
       .def_prop_ro(
           "entry_point",
           [](const cudaq::CompiledModule &ck) {
-            return reinterpret_cast<std::uintptr_t>(
-                ck.getJit().getEntryPoint());
+            return reinterpret_cast<std::uintptr_t>(ck.getJit()->getFn());
           },
           "The address of the JIT-compiled entry point.")
       .def_prop_ro("is_fully_specialized",
@@ -1196,11 +1272,14 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
         auto m = unwrap(modA);
         auto context = m.getContext();
         PassManager pm(context);
+        cudaq::addPythonSignalInstrumentation(pm);
+        pm.addInstrumentation(
+            std::make_unique<cudaq::TracePassInstrumentation>());
         pm.addNestedPass<func::FuncOp>(
             cudaq::opt::createPySynthCallableBlockArgs(
                 SmallVector<StringRef>(funcNames.begin(), funcNames.end()),
                 true));
-        if (failed(pm.run(m)))
+        if (failed(cudaq::runPassManagerReleasingGIL(pm, m)))
           throw std::runtime_error(
               "cudaq::jit failed to remove callable block arguments.");
 

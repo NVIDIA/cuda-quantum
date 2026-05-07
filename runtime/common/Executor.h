@@ -8,10 +8,12 @@
 
 #pragma once
 #include "common/ExecutionContext.h"
-#include "common/RestClient.h"
 #include "common/ServerHelper.h"
+#include <memory>
 
 namespace cudaq {
+
+class RestClient;
 
 /// @brief The Executor provides an abstraction for executing compiled
 /// quantum codes targeting a remote REST server. This type provides a
@@ -20,7 +22,7 @@ namespace cudaq {
 class Executor : public registry::RegisteredType<Executor> {
 protected:
   /// @brief The REST Client used to interact with the remote system
-  RestClient client;
+  std::unique_ptr<RestClient> client;
 
   /// @brief The ServerHelper, providing system-specific JSON-formatted
   /// job posts and results translation
@@ -30,8 +32,8 @@ protected:
   std::size_t shots = 100;
 
 public:
-  Executor() = default;
-  virtual ~Executor() = default;
+  Executor();
+  virtual ~Executor();
 
   /// @brief Set the server helper
   virtual void setServerHelper(ServerHelper *helper) { serverHelper = helper; }

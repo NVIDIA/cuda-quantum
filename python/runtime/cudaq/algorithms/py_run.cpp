@@ -11,8 +11,8 @@
 #include "cudaq/algorithms/run.h"
 #include "cudaq_internal/compiler/LayoutInfo.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
-#include "utils/NanobindAdaptors.h"
 #include "utils/OpaqueArguments.h"
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include <future>
 #include <nanobind/nanobind.h>
 #include <nanobind/ndarray.h>
@@ -23,7 +23,6 @@
 #include <nanobind/stl/vector.h>
 
 using namespace cudaq;
-using namespace cudaq_internal::compiler;
 
 static std::vector<nanobind::object>
 readRunResults(mlir::ModuleOp module, mlir::Type ty,
@@ -72,16 +71,17 @@ pyRunTheKernel(const std::string &name, quantum_platform &platform,
   // kernels.
   if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(returnTy)) {
     auto elemTy = vecTy.getElementType();
-    if (elemTy.isa<cudaq::cc::StdvecType>())
+    if (mlir::isa<cudaq::cc::StdvecType>(elemTy))
       throw std::runtime_error(
           "`cudaq.run` does not yet support returning nested `list` from "
           "entry-point kernels.");
-    if (elemTy.isa<cudaq::cc::StructType>())
+    if (mlir::isa<cudaq::cc::StructType>(elemTy))
       throw std::runtime_error("`cudaq.run` does not yet support returning "
                                "`list` of `dataclass`/`tuple` from "
                                "entry-point kernels.");
   }
-  auto layoutInfo = getLayoutInfo(name, mod.getOperation());
+  auto layoutInfo =
+      cudaq_internal::compiler::getLayoutInfo(name, mod.getOperation());
   auto results = details::runTheKernel(
       [&]() mutable {
         [[maybe_unused]] auto result = clean_launch_module(name, mod, opaques);
@@ -118,8 +118,12 @@ run_impl(const std::string &shortName, MlirModule module,
   auto fnOp = getFuncOpAndCheckResult(mod, shortName);
   auto opaques = marshal_arguments_for_module_launch(mod, runtimeArgs, fnOp);
 
-  auto span = pyRunTheKernel(shortName, platform, mod, shots_count, qpu_id,
-                             opaques, true);
+  details::RunResultSpan span;
+  {
+    nanobind::gil_scoped_release release;
+    span = pyRunTheKernel(shortName, platform, mod, shots_count, qpu_id,
+                          opaques, true);
+  }
   auto results = pyReadResults(span, mod, shots_count, shortName);
 
   if (noise_model.has_value())
@@ -238,7 +242,9 @@ run_async_impl(const std::string &shortName, MlirModule module,
 
 /// @brief Bind the run cudaq function.
 void cudaq::bindPyRun(nanobind::module_ &mod) {
-  mod.def("run_impl", run_impl,
+  mod.def("run_impl", run_impl, nanobind::arg(), nanobind::arg(),
+          nanobind::arg(), nanobind::arg().none(), nanobind::arg(),
+          nanobind::arg(),
           R"#(
 Run the provided `kernel` with the given kernel arguments over the specified
 number of circuit executions (`shots_count`).
@@ -260,7 +266,12 @@ void cudaq::bindPyRunAsync(nanobind::module_ &mod) {
       .def(
           "get",
           [](async_run_result &self) {
-            self.ready.get();
+            {
+              // Release the GIL so the async task's MLIR worker threads
+              // can call PyGILState_Ensure without deadlocking on us.
+              nanobind::gil_scoped_release release;
+              self.ready.get();
+            }
             auto err = *self.error;
             if (!err.empty()) {
               delete self.error;
@@ -272,7 +283,9 @@ void cudaq::bindPyRunAsync(nanobind::module_ &mod) {
           },
           "FIXME: documentation goes here");
 
-  mod.def("run_async_impl", run_async_impl,
+  mod.def("run_async_impl", run_async_impl, nanobind::arg(), nanobind::arg(),
+          nanobind::arg(), nanobind::arg().none(), nanobind::arg(),
+          nanobind::arg(),
           R"#(
 Run the provided `kernel` with the given kernel arguments over the specified
 number of circuit executions (`shots_count`) asynchronously on the specified

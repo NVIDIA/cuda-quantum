@@ -76,6 +76,7 @@ Kernel Execution
 Backend Configuration
 =============================
 
+.. autofunction:: cudaq::parse_args
 .. autofunction:: cudaq::has_target
 .. autofunction:: cudaq::get_target
 .. autofunction:: cudaq::get_targets
@@ -494,4 +495,3 @@ Trajectory and Selection Types
 
 .. autoclass:: cudaq.ptsbe.KrausSelection
     :members:
-

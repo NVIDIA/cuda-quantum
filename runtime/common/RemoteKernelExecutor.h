@@ -17,6 +17,7 @@
 #include "common/Registry.h"
 #include "cudaq/remote_capabilities.h"
 #include <optional>
+#include <span>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
@@ -97,10 +98,10 @@ public:
                                      const void *kernelArgs,
                                      std::uint64_t argsSize,
                                      const std::size_t startingArgIdx,
-                                     const std::vector<void *> *rawArgs) = 0;
-  virtual mlir::ModuleOp
-  lowerKernelInPlace(mlir::ModuleOp module, const std::string &shortName,
-                     const std::vector<void *> &rawArgs) = 0;
+                                     std::span<void *const> rawArgs) = 0;
+  virtual mlir::ModuleOp lowerKernelInPlace(mlir::ModuleOp module,
+                                            const std::string &shortName,
+                                            std::span<void *const> rawArgs) = 0;
 
   // Delegate/send kernel execution to a remote server.
   // Subclass will implement necessary transport-layer serialization and
@@ -113,7 +114,7 @@ public:
               const std::string &kernelName, void (*kernelFunc)(void *),
               const void *kernelArgs, std::uint64_t argsSize,
               std::string *optionalErrorMsg = nullptr,
-              const std::vector<void *> *rawArgs = nullptr,
+              std::span<void *const> rawArgs = {},
               mlir::Operation *prefabMod = nullptr) = 0;
   // Destructor
   virtual ~RemoteRuntimeClient() = default;

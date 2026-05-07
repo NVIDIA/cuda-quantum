@@ -93,14 +93,13 @@ void QuakeBridgeVisitor::addArgumentSymbols(
       auto parmTy = entryBlock->getArgument(index).getType();
       if (isa<FunctionType, cc::CallableType, cc::IndirectCallableType,
               cc::PointerType, cc::SpanLikeType, LLVM::LLVMStructType,
-              quake::ControlType, quake::MeasureType, quake::MeasurementsType,
-              quake::RefType, quake::StruqType, quake::VeqType,
-              quake::WireType>(parmTy)) {
+              quake::ControlType, quake::RefType, quake::StruqType,
+              quake::VeqType, quake::WireType>(parmTy)) {
         symbolTable.insert(name, entryBlock->getArgument(index));
       } else {
-        auto stackSlot = builder.create<cc::AllocaOp>(loc, parmTy);
-        builder.create<cc::StoreOp>(loc, entryBlock->getArgument(index),
-                                    stackSlot);
+        auto stackSlot = cc::AllocaOp::create(builder, loc, parmTy);
+        cc::StoreOp::create(builder, loc, entryBlock->getArgument(index),
+                            stackSlot);
         symbolTable.insert(name, stackSlot);
       }
     }
@@ -170,9 +169,6 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       auto fnTy = cast<FunctionType>(popType());
       return pushType(cc::IndirectCallableType::get(fnTy));
     }
-    // Measurement result type.
-    if (name == "measure_result")
-      return pushType(quake::MeasureType::get(ctx));
     if (!isInNamespace(x, "solvers") && !isInNamespace(x, "qec")) {
       auto loc = toLocation(x);
       TODO_loc(loc, "unhandled type, " + name + ", in cudaq namespace");
@@ -192,10 +188,6 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
                               "std::vector element type is not supported");
         return false;
       }
-      // TODO: std::vector<measure_result> will be replaced by
-      // cudaq::measure_vector, recognized directly by class name (see spec).
-      if (isa<quake::MeasureType>(ty))
-        return pushType(quake::MeasurementsType::getUnsized(ctx));
       return pushType(cc::StdvecType::get(ctx, ty));
     }
     // std::vector<bool>   =>   cc.stdvec<i1>
@@ -455,8 +447,10 @@ bool QuakeBridgeVisitor::TraverseFunctionDecl(clang::FunctionDecl *x) {
   skipCompoundScope = true;
 
   // Visit the trailing requires clause, if any.
-  if (auto *trailingRequiresClause = x->getTrailingRequiresClause())
-    if (!TraverseStmt(trailingRequiresClause))
+  if (const auto &trailingRequiresClause = x->getTrailingRequiresClause();
+      trailingRequiresClause.ConstraintExpr)
+    if (!TraverseStmt(
+            const_cast<clang::Expr *>(trailingRequiresClause.ConstraintExpr)))
       return false;
 
   if (auto *ctor = dyn_cast<clang::CXXConstructorDecl>(x)) {
@@ -507,8 +501,8 @@ bool QuakeBridgeVisitor::TraverseFunctionDecl(clang::FunctionDecl *x) {
     auto loc = toLocation(x);
     SmallVector<Value> dummyResults;
     for (auto ty : funcTy.getResults())
-      dummyResults.push_back(builder.create<cc::UndefOp>(loc, ty));
-    builder.create<func::ReturnOp>(loc, dummyResults);
+      dummyResults.push_back(cc::UndefOp::create(builder, loc, ty));
+    func::ReturnOp::create(builder, loc, dummyResults);
   }
   builder.clearInsertionPoint();
   return true;
@@ -524,7 +518,7 @@ bool QuakeBridgeVisitor::VisitCXXScalarValueInitExpr(
       if (ptrTy.getElementType() == ty) {
         auto v = popValue();
         auto loc = toLocation(x);
-        return pushValue(builder.create<cc::LoadOp>(loc, v));
+        return pushValue(cc::LoadOp::create(builder, loc, v));
       }
   return true;
 }
@@ -566,13 +560,13 @@ bool QuakeBridgeVisitor::VisitFunctionDecl(clang::FunctionDecl *x) {
         return false;
       }
     }
-    return pushValue(builder.create<func::ConstantOp>(loc, fTy, fSym));
+    return pushValue(func::ConstantOp::create(builder, loc, fTy, fSym));
   }
   auto [funcOp, alreadyAdded] = getOrAddFunc(loc, kernName, typeFromStack);
   if (!alreadyAdded)
     funcOp.setPrivate();
-  return pushValue(builder.create<func::ConstantOp>(
-      loc, funcOp.getFunctionType(), funcOp.getSymNameAttr()));
+  return pushValue(func::ConstantOp::create(
+      builder, loc, funcOp.getFunctionType(), funcOp.getSymNameAttr()));
 }
 
 bool QuakeBridgeVisitor::VisitNamedDecl(clang::NamedDecl *x) {
@@ -700,12 +694,12 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
       qreg = popValue();
     } else {
       // this is a qreg<N> q;
-      auto qregSizeVal = builder.create<mlir::arith::ConstantIntOp>(
-          loc, qregSize, builder.getIntegerType(64));
+      auto qregSizeVal = mlir::arith::ConstantIntOp::create(
+          builder, loc, builder.getIntegerType(64), qregSize);
       if (qregSize != 0)
-        qreg = builder.create<quake::AllocaOp>(loc, qType);
+        qreg = quake::AllocaOp::create(builder, loc, qType);
       else
-        qreg = builder.create<quake::AllocaOp>(loc, qType, qregSizeVal);
+        qreg = quake::AllocaOp::create(builder, loc, qType, qregSizeVal);
     }
     symbolTable.insert(name, qreg);
     // allocated_qreg_names.push_back(name);
@@ -718,12 +712,12 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
       symbolTable.insert(name, peekValue());
       return true;
     }
-    auto zero = builder.create<mlir::arith::ConstantIntOp>(
-        loc, 0, builder.getIntegerType(64));
-    auto qregSizeOne = builder.create<quake::AllocaOp>(
-        loc, quake::VeqType::get(builder.getContext(), 1));
+    auto zero = mlir::arith::ConstantIntOp::create(
+        builder, loc, builder.getIntegerType(64), 0);
+    auto qregSizeOne = quake::AllocaOp::create(
+        builder, loc, quake::VeqType::get(builder.getContext(), 1));
     Value addressTheQubit =
-        builder.create<quake::ExtractRefOp>(loc, qregSizeOne, zero);
+        quake::ExtractRefOp::create(builder, loc, qregSizeOne, zero);
     symbolTable.insert(name, addressTheQubit);
     return pushValue(addressTheQubit);
   }
@@ -740,14 +734,7 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
     return true;
   }
 
-  if (isa<quake::MeasureType, quake::MeasurementsType>(type)) {
-    assert(x->getInit() && "`measure_result` has no default constructor");
-    auto initVal = popValue();
-    symbolTable.insert(x->getName(), initVal);
-    if (auto meas = initVal.getDefiningOp<quake::MeasurementInterface>())
-      meas.setRegisterName(builder.getStringAttr(x->getName()));
-    return true;
-  }
+  // Here we maybe have something like auto var = mz(qreg)
   if (auto vecType = dyn_cast<cc::StdvecType>(type)) {
     // Variable is of !cc.stdvec type.
     if (x->getInit()) {
@@ -758,11 +745,6 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
       // Let's try to see if this was a auto var = mz(qreg)
       // and if so, find the mz and tag it with the variable name
       auto elementType = vecType.getElementType();
-
-      if (auto meas = initVec.getDefiningOp<quake::MeasurementInterface>()) {
-        meas.setRegisterName(builder.getStringAttr(x->getName()));
-        return true;
-      }
 
       // Drop out if this is not an i1
       if (!elementType.isIntOrFloat() ||
@@ -801,11 +783,6 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
         auto firstGepUser = *gepOp->getResult(0).getUsers().begin();
         if (auto storeOp = dyn_cast<cc::StoreOp>(firstGepUser)) {
           auto result = storeOp->getOperand(0);
-          if (auto measureOp =
-                  result.getDefiningOp<quake::MeasurementInterface>()) {
-            measureOp.setRegisterName(builder.getStringAttr(x->getName()));
-            break;
-          }
           if (auto discr = result.getDefiningOp<quake::DiscriminateOp>())
             if (auto mzOp =
                     discr.getMeasurement().getDefiningOp<quake::MzOp>()) {
@@ -832,7 +809,7 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
   // slot in which to save the value. This stack slot is the variable in the
   // memory domain.
   if (!x->getInit() || x->isCXXForRangeDecl()) {
-    Value alloca = builder.create<cc::AllocaOp>(loc, type);
+    Value alloca = cc::AllocaOp::create(builder, loc, type);
     symbolTable.insert(x->getName(), alloca);
     return pushValue(alloca);
   }
@@ -842,24 +819,25 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
 
   // If this was an auto var = mz(q), then we want to know the
   // var name, as it will serve as the classical bit register name
-  if (auto meas = initValue.getDefiningOp<quake::MeasurementInterface>())
-    meas.setRegisterName(builder.getStringAttr(x->getName()));
+  if (auto discr = initValue.getDefiningOp<quake::DiscriminateOp>())
+    if (auto mz = discr.getMeasurement().getDefiningOp<quake::MzOp>())
+      mz.setRegisterName(builder.getStringAttr(x->getName()));
 
   assert(initValue && "initializer value must be lowered");
   if (isa<IntegerType>(initValue.getType()) && isa<IntegerType>(type)) {
     if (initValue.getType().getIntOrFloatBitWidth() <
         type.getIntOrFloatBitWidth()) {
       // FIXME: Use zero-extend if this is unsigned!
-      initValue = builder.create<cudaq::cc::CastOp>(
-          loc, type, initValue, cudaq::cc::CastOpMode::Signed);
+      initValue = cudaq::cc::CastOp::create(builder, loc, type, initValue,
+                                            cudaq::cc::CastOpMode::Signed);
     } else if (initValue.getType().getIntOrFloatBitWidth() >
                type.getIntOrFloatBitWidth()) {
-      initValue = builder.create<cudaq::cc::CastOp>(loc, type, initValue);
+      initValue = cudaq::cc::CastOp::create(builder, loc, type, initValue);
     }
   } else if (isa<IntegerType>(initValue.getType()) && isa<FloatType>(type)) {
     // FIXME: Use UIToFP if this is unsigned!
-    initValue = builder.create<cudaq::cc::CastOp>(
-        loc, type, initValue, cudaq::cc::CastOpMode::Signed);
+    initValue = cudaq::cc::CastOp::create(builder, loc, type, initValue,
+                                          cudaq::cc::CastOpMode::Signed);
   }
 
   if (auto initObject = initValue.getDefiningOp<cc::AllocaOp>()) {
@@ -885,7 +863,7 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
   if (isStdvecBoolReference(qualTy) || qualTy.getTypePtr()->isReferenceType()) {
     // A similar case is when the C++ variable is a reference to a subobject.
     assert(isa<cc::PointerType>(type));
-    Value cast = builder.create<cc::CastOp>(loc, type, initValue);
+    Value cast = cc::CastOp::create(builder, loc, type, initValue);
     symbolTable.insert(x->getName(), cast);
     return pushValue(cast);
   }
@@ -898,8 +876,8 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
 
   // Initialization expression resulted in a value. Create a variable and save
   // that value to the variable's memory address.
-  Value alloca = builder.create<cc::AllocaOp>(loc, type);
-  builder.create<cc::StoreOp>(loc, initValue, alloca);
+  Value alloca = cc::AllocaOp::create(builder, loc, type);
+  cc::StoreOp::create(builder, loc, initValue, alloca);
   symbolTable.insert(x->getName(), alloca);
   return pushValue(alloca);
 }

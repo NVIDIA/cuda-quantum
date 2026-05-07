@@ -27,9 +27,10 @@ struct XCtrlOneTargetToCNot : public OpRewritePattern<LLVM::CallOp> {
       return failure();
     auto *ctx = rewriter.getContext();
     auto funcSymbol = FlatSymbolRefAttr::get(ctx, cudaq::opt::QIRCnot);
-    rewriter.replaceOpWithNewOp<LLVM::CallOp>(
-        call, TypeRange{}, funcSymbol, args.drop_front(2),
-        call.getFastmathFlagsAttr(), call.getBranchWeightsAttr());
+    LLVM::CallOp::Properties properties = call.getProperties();
+    properties.setCallee(funcSymbol);
+    rewriter.replaceOpWithNewOp<LLVM::CallOp>(call, TypeRange{},
+                                              args.drop_front(2), properties);
     return success();
   }
 };
@@ -69,13 +70,14 @@ struct CalleeConv : public OpRewritePattern<LLVM::CallOp> {
     if (!callee)
       return failure();
     if (!needsToBeRenamed(*callee) ||
-        callee->startswith(cudaq::opt::QIRMeasure))
+        callee->starts_with(cudaq::opt::QIRMeasure))
       return failure();
     auto *ctx = rewriter.getContext();
     auto symbol = FlatSymbolRefAttr::get(ctx, callee->str() + "__body");
-    rewriter.replaceOpWithNewOp<LLVM::CallOp>(
-        call, TypeRange{}, symbol, call.getOperands(),
-        call.getFastmathFlagsAttr(), call.getBranchWeightsAttr());
+    LLVM::CallOp::Properties properties = call.getProperties();
+    properties.setCallee(symbol);
+    rewriter.replaceOpWithNewOp<LLVM::CallOp>(call, TypeRange{},
+                                              call.getOperands(), properties);
     return success();
   }
 };
@@ -119,7 +121,7 @@ struct EraseArrayAlloc : public OpRewritePattern<LLVM::CallOp> {
       return failure();
     auto *ctx = rewriter.getContext();
     rewriter.replaceOpWithNewOp<LLVM::UndefOp>(call,
-                                               cudaq::opt::getArrayType(ctx));
+                                               cudaq::cg::getLLVMArrayType(ctx));
     return success();
   }
 };
@@ -224,7 +226,7 @@ struct LoadMeasureResult : public OpRewritePattern<LLVM::LoadOp> {
     if (bitcast.getType() !=
         cudaq::opt::factory::getPointerType(IntegerType::get(ctx, 1)))
       return failure();
-    if (inttoptr.getType() != cudaq::opt::getResultType(ctx))
+    if (inttoptr.getType() != cudaq::cg::getLLVMResultType(ctx))
       return failure();
     if (!isa<IntegerAttr>(conint.getValue()))
       return failure();

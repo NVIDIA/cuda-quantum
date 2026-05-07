@@ -8,21 +8,21 @@
 
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Todo.h"
 #include "llvm/Support/Debug.h"
-#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/IR/Dominance.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
 
-using namespace mlir;
+namespace cudaq::opt {
+#define GEN_PASS_DEF_QUAKEADDMETADATA
+#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+} // namespace cudaq::opt
 
 #define DEBUG_TYPE "add-metadata"
+
+using namespace mlir;
 
 static cudaq::cc::AllocaOp seekAllocaFrom(Value v);
 
@@ -155,7 +155,7 @@ namespace {
 /// This pass will analyze Quake functions and attach metadata (as an MLIR
 /// function attribute) for specific features.
 class QuakeAddMetadataPass
-    : public cudaq::opt::QuakeAddMetadataBase<QuakeAddMetadataPass> {
+    : public cudaq::opt::impl::QuakeAddMetadataBase<QuakeAddMetadataPass> {
 public:
   QuakeAddMetadataPass() = default;
 

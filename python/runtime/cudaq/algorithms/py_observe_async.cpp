@@ -13,14 +13,13 @@
 #include "cudaq/Todo.h"
 #include "cudaq/algorithms/observe.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
-#include "utils/NanobindAdaptors.h"
 #include "utils/OpaqueArguments.h"
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include <fmt/core.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/string.h>
-#include <nanobind/stl/tuple.h>
 #include <nanobind/stl/vector.h>
 
 using namespace cudaq;
@@ -76,14 +75,19 @@ static async_observe_result pyObserveAsync(const std::string &shortName,
 
   // Launch the asynchronous execution.
   nanobind::gil_scoped_release release;
+  auto clonedMod = std::shared_ptr<mlir::ModuleOp>(
+      new mlir::ModuleOp(mod.clone()), [](mlir::ModuleOp *p) {
+        p->erase();
+        delete p;
+      });
   return details::runObservationAsync(
-      detail::make_copyable_function([opaques = std::move(opaques), shortName,
-                                      mod = mod.clone()]() mutable {
-        if (cudaq::getEnvBool("CUDAQ_DUMP_JIT_IR", false))
-          mod.dump();
-        [[maybe_unused]] auto result =
-            clean_launch_module(shortName, mod, opaques);
-      }),
+      detail::make_copyable_function(
+          [opaques = std::move(opaques), shortName, clonedMod]() mutable {
+            if (cudaq::getEnvBool("CUDAQ_DUMP_JIT_IR", false))
+              clonedMod->dump();
+            [[maybe_unused]] auto result =
+                clean_launch_module(shortName, *clonedMod, opaques);
+          }),
       spin_operator, platform, shots, shortName, qpu_id);
 }
 
@@ -126,8 +130,10 @@ pyObservePar(const PyParType &type, const std::string &shortName,
       printf(
           "[cudaq::observe warning] distributed observe requested but only 1 "
           "QPU available. no speedup expected.\n");
+    nanobind::gil_scoped_release release;
     return details::distributeComputations(
         [&](std::size_t i, const spin_op &op) {
+          nanobind::gil_scoped_acquire acquire;
           return pyObserveAsync(shortName, module, op, i, shots, args);
         },
         spin_operator, nQpus);
@@ -149,8 +155,10 @@ pyObservePar(const PyParType &type, const std::string &shortName,
   auto localH = spins[rank];
 
   // Distribute locally, i.e. to the local nodes QPUs
+  nanobind::gil_scoped_release release;
   auto localRankResult = details::distributeComputations(
       [&](std::size_t i, const spin_op &op) {
+        nanobind::gil_scoped_acquire acquire;
         return pyObserveAsync(shortName, module, op, i, shots, args);
       },
       localH, nQpus);
@@ -165,12 +173,12 @@ pyObservePar(const PyParType &type, const std::string &shortName,
 /// broadcast. All these variants are handled here.
 static observe_result observe_parallel_impl(const std::string &shortName,
                                             MlirModule module,
-                                            nanobind::type_object execution,
+                                            nanobind::object execution,
                                             spin_op &spin_operator, int shots,
                                             std::optional<noise_model> noise,
                                             nanobind::args arguments) {
   std::string applicatorKey =
-      nanobind::cast<std::string>(execution.attr("__name__"));
+      std::string(nanobind::str(execution.attr("__name__")).c_str());
   auto mod = unwrap(module);
   if (applicatorKey == "thread")
     return pyObservePar(PyParType::thread, shortName, mod, spin_operator, shots,
@@ -202,5 +210,9 @@ void cudaq::bindObserveAsync(nanobind::module_ &mod) {
           "Test to see if the kernel is suited for use with observe.");
 
   mod.def("observe_parallel_impl", observe_parallel_impl,
+          nanobind::arg("shortName"), nanobind::arg("module"),
+          nanobind::arg("execution"), nanobind::arg("spin_operator"),
+          nanobind::arg("shots"), nanobind::arg("noise").none(),
+          nanobind::arg("arguments"),
           "See the python documentation for observe_parallel.");
 }

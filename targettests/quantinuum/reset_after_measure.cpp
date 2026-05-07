@@ -9,10 +9,6 @@
 // clang-format off
 // RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
 // clang-format on
-// XFAIL: *
-// TODO: QIR adaptive profile fails to materialize Result* -> Array* conversion
-// for get_measure results. Needs QIR lowering fix for MeasurementsType in
-// the adaptive profile pipeline.
 
 #include <cudaq.h>
 #include <cudaq/algorithms/resource_estimation.h>

@@ -17,10 +17,13 @@ add_library(cudaq-pyscf SHARED PySCFDriver.cpp)
 
 target_compile_options(cudaq-pyscf PRIVATE -Wno-cast-qual)
 
+target_include_directories(cudaq-pyscf PRIVATE
+    ${Python3_INCLUDE_DIRS}
+)
 if (SKBUILD)
   target_link_libraries(cudaq-pyscf
     PRIVATE
-      nanobind-static Python::Module
+      nanobind-static Python3::Module
       cudaq-chemistry cudaq-operator cudaq cudaq-py-utils cudaq-platform-default)
   # Apple's linker (ld64) doesn't support --unresolved-symbols flag
   if (NOT APPLE)
@@ -28,12 +31,9 @@ if (SKBUILD)
       PRIVATE -Wl,--unresolved-symbols=ignore-in-object-files)
   endif()
 else()
-  if (NOT Python_FOUND)
-    message(FATAL_ERROR "find_package(Python) not run?")
-  endif()
   target_link_libraries(cudaq-pyscf
     PRIVATE
-      nanobind-static Python::Python
+      nanobind-static Python3::Python
       cudaq-chemistry cudaq-operator cudaq cudaq-py-utils cudaq-platform-default)
 endif()
 

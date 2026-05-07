@@ -10,8 +10,9 @@
 
 #include "cudaq.h"
 
-// This is device only kernel since entry-point kernels cannot accept
-// `measure_result` or `std::vector<measure_result>` as parameters.
+// This function has no cudaq::qubit's in the parameter list, so it will be
+// tagged as a possible cudaq-entrypoint kernel. Make sure we can still inline
+// it if called from another kernel.
 bool xor_result(const std::vector<cudaq::measure_result> &result_vec) __qpu__ {
   bool result = false;
   for (auto x : result_vec)

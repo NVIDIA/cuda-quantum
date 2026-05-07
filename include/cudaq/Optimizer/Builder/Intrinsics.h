@@ -19,9 +19,8 @@ class GlobalOp;
 /// calls will be erased before code gen.
 static constexpr const char stdMoveBuiltin[] = ".std::move";
 
-static constexpr const char llvmMemCopyIntrinsic[] =
-    "llvm.memcpy.p0i8.p0i8.i64";
-static constexpr const char llvmMemSetIntrinsic[] = "llvm.memset.p0i8.i64";
+static constexpr const char llvmMemCopyIntrinsic[] = "llvm.memcpy.p0.p0.i64";
+static constexpr const char llvmMemSetIntrinsic[] = "llvm.memset.p0.i64";
 
 // cudaq::range(count);
 static constexpr const char setCudaqRangeVector[] = "__nvqpp_CudaqRangeInit";
@@ -67,8 +66,8 @@ static constexpr const char deleteCudaqState[] = "__nvqpp_cudaq_state_delete";
 
 // LLVM intrinsics to save and restore the stack pointer. TODO: Newer versions
 // of LLVM have changed the names to have a suffix of ".p0".
-static constexpr const char llvmStackSave[] = "llvm.stacksave";
-static constexpr const char llvmStackRestore[] = "llvm.stackrestore";
+static constexpr const char llvmStackSave[] = "llvm.stacksave.p0";
+static constexpr const char llvmStackRestore[] = "llvm.stackrestore.p0";
 
 static constexpr const char cudaqConvertToInteger[] =
     "__nvqpp_cudaqConvertToInteger";

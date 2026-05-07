@@ -17,6 +17,7 @@ import sys
 
 from cudaq.handlers import get_target_handler
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cudaq.util import trace
 from cudaq.mlir.dialects import cc, func
 from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, FunctionType,
                            IntegerType, NoneType, TypeAttr, UnitAttr, Module,
@@ -24,7 +25,8 @@ from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, FunctionType,
 from .analysis import FunctionDefVisitor
 from .kernel_signature import CapturedLinkedKernel, CapturedVariable, KernelSignature
 from .ast_bridge import compile_to_mlir
-from .utils import (emitFatalError, emitErrorIfInvalidPauli, get_module_name,
+from .utils import (emitFatalError, emitErrorIfInvalidPauli,
+                    get_function_source_or_raise, get_module_name,
                     globalRegisteredTypes, mlirTypeFromPyType, mlirTypeToPyType,
                     nvqppPrefix, getMLIRContext, recover_func_op,
                     recover_value_of)
@@ -254,6 +256,7 @@ class PyKernelDecorator(object):
         handler = get_target_handler()
         return not handler.skip_compilation()
 
+    @trace.traced
     def compile(self):
         """
         Compile the Python AST to portable Quake.
@@ -302,7 +305,7 @@ class PyKernelDecorator(object):
         for op in newMod.body:
             if isinstance(op, func.FuncOp):
                 for attr in op.attributes:
-                    if 'cudaq-entrypoint' == attr.name:
+                    if 'cudaq-entrypoint' == attr:
                         name = op.name.value.removeprefix(nvqppPrefix)
                         break
 
@@ -324,7 +327,7 @@ class PyKernelDecorator(object):
         for op in newMod.body:
             if isinstance(op, func.FuncOp):
                 for attr in op.attributes:
-                    if 'cudaq-entrypoint' == attr.name:
+                    if 'cudaq-entrypoint' == attr:
                         name = op.name.value.removeprefix(nvqppPrefix)
                         break
 
@@ -557,6 +560,7 @@ class PyKernelDecorator(object):
 
         return args
 
+    @trace.traced
     def prepare_call(self, *args, allow_no_args=False):
         """
         Process call site arguments, capture lifted arguments and retrieve
@@ -565,7 +569,7 @@ class PyKernelDecorator(object):
         # Returns:
 
         `processed_args` : list
-            The list of processed runtime arguments, including captured arguments, 
+            The list of processed runtime arguments, including captured arguments,
         `module` : Module
             A clone of the MLIR module to be used for kernel execution.
         """
@@ -574,7 +578,8 @@ class PyKernelDecorator(object):
         # append captured arguments
         processed_args.extend(self.resolve_captured_arguments())
 
-        module = cudaq_runtime.cloneModule(self.qkeModule)
+        with trace.span("kernel.clone_module"):
+            module = cudaq_runtime.cloneModule(self.qkeModule)
 
         return processed_args, module
 
@@ -736,14 +741,7 @@ def isa_kernel_decorator(object):
 def _get_source(function):
     if function is None:
         return None, None
-    # Get the function source location
-    location = (inspect.getfile(function), inspect.getsourcelines(function)[1])
-    # Get the function source
-    src = inspect.getsource(function)
-    # Strip off the extra tabs
-    leadingSpaces = len(src) - len(src.lstrip())
-    src = '\n'.join([line[leadingSpaces:] for line in src.split('\n')])
-    return src, location
+    return get_function_source_or_raise(function)
 
 
 def _recover_defining_frame():

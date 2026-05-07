@@ -9,27 +9,39 @@
 #include "execution_manager.h"
 #include "common/ExecutionContext.h"
 #include "common/PluginUtils.h"
+#include "cudaq/algorithms/policy_cpos.h"
+#include "cudaq/algorithms/policy_dispatch.h"
 
-namespace cudaq {
+using namespace cudaq;
+
 static ExecutionManager *execution_manager;
 
-void setExecutionManagerInternal(ExecutionManager *em) {
+void cudaq::setExecutionManagerInternal(ExecutionManager *em) {
   CUDAQ_INFO("external caller setting the execution manager.");
   execution_manager = em;
 }
 
-void resetExecutionManagerInternal() {
+void cudaq::resetExecutionManagerInternal() {
   CUDAQ_INFO("external caller clearing the execution manager.");
   execution_manager = nullptr;
 }
 
-ExecutionManager *getExecutionManagerInternal() { return execution_manager; }
+ExecutionManager *cudaq::getExecutionManagerInternal() {
+  return execution_manager;
+}
 
-ExecutionManager *detail::getExecutionManagerFromContext() {
+ExecutionManager *cudaq::detail::getExecutionManagerFromContext() {
   auto ctx = getExecutionContext();
   if (ctx)
     return ctx->executionManager;
   return nullptr;
 }
 
-} // namespace cudaq
+void ExecutionManager::finalizeExecutionContext(ExecutionContext &ctx) {
+  policies::withPolicy(ctx.name, [&](auto policy) {
+    policies::visitResult(
+        [&]() { return cudaq::finalize_execution_manager(*this, policy, ctx); },
+        [&](sample_result &&r) { ctx.result = std::move(r); },
+        [&](policies::void_result &&r) {});
+  });
+}

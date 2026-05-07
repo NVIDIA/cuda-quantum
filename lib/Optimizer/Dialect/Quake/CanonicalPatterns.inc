@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -24,8 +24,8 @@ struct AdjustAdjointExpPauliPattern : OpRewritePattern<quake::ExpPauliOp> {
       return failure();
     SmallVector<Value> negp;
     if (!pauli.getParameters().empty())
-      negp.push_back(rewriter.create<arith::NegFOp>(pauli.getLoc(),
-                                                    pauli.getParameters()[0]));
+      negp.push_back(arith::NegFOp::create(rewriter, pauli.getLoc(),
+                                           pauli.getParameters()[0]));
     rewriter.replaceOpWithNewOp<quake::ExpPauliOp>(
         pauli, pauli.getResultTypes(), UnitAttr{}, negp, pauli.getControls(),
         pauli.getTargets(), pauli.getNegatedQubitControlsAttr(),
@@ -94,30 +94,8 @@ struct ForwardConstantVeqSizePattern
     if (!veqTy.hasSpecifiedSize())
       return failure();
     auto resTy = veqSize.getType();
-    rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(veqSize, veqTy.getSize(),
-                                                      resTy);
-    return success();
-  }
-};
-
-// %4 = quake.measurements_size %3 : (!quake.measurements<10>) -> i64
-// ─────────────────────────────────────────────────────────────────
-// %4 = constant 10 : i64
-struct ForwardConstantMeasurementsSizePattern
-    : public OpRewritePattern<quake::MeasurementsSizeOp> {
-  using OpRewritePattern::OpRewritePattern;
-
-  LogicalResult matchAndRewrite(quake::MeasurementsSizeOp msSize,
-                                PatternRewriter &rewriter) const override {
-    auto msTy =
-        dyn_cast<quake::MeasurementsType>(msSize.getMeasurements().getType());
-    if (!msTy)
-      return failure();
-    if (!msTy.hasSpecifiedSize())
-      return failure();
-    auto resTy = msSize.getType();
-    rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(msSize, msTy.getSize(),
-                                                      resTy);
+    rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(veqSize, resTy,
+                                                      veqTy.getSize());
     return success();
   }
 };
@@ -144,8 +122,8 @@ struct FuseConstantToAllocaPattern : public OpRewritePattern<quake::AllocaOp> {
       return failure();
     auto loc = alloc.getLoc();
     auto resTy = alloc.getType();
-    auto newAlloc = rewriter.create<quake::AllocaOp>(
-        loc, static_cast<std::size_t>(*intCon));
+    auto newAlloc = quake::AllocaOp::create(rewriter, loc,
+                                            static_cast<std::size_t>(*intCon));
     rewriter.replaceOpWithNewOp<quake::RelaxSizeOp>(alloc, resTy, newAlloc);
     return success();
   }
@@ -238,8 +216,8 @@ static Value createCast(PatternRewriter &rewriter, Location loc, Value inVal) {
   auto i64Ty = rewriter.getI64Type();
   assert(inVal.getType() != rewriter.getIndexType() &&
          "use of index type is deprecated");
-  return rewriter.create<cudaq::cc::CastOp>(loc, i64Ty, inVal,
-                                            cudaq::cc::CastOpMode::Unsigned);
+  return cudaq::cc::CastOp::create(rewriter, loc, i64Ty, inVal,
+                                   cudaq::cc::CastOpMode::Unsigned);
 }
 
 class ExtractRefFromSubVeqPattern
@@ -273,18 +251,18 @@ public:
     auto loc = extract.getLoc();
     auto low = [&]() -> Value {
       if (subveq.hasConstantLowerBound())
-        return rewriter.create<arith::ConstantIntOp>(
-            loc, subveq.getConstantLowerBound(), 64);
+        return arith::ConstantIntOp::create(rewriter, loc,
+                                            subveq.getConstantLowerBound(), 64);
       return subveq.getLower();
     }();
     if (extract.hasConstantIndex()) {
-      Value cv = rewriter.create<arith::ConstantIntOp>(
-          loc, extract.getConstantIndex(), low.getType());
-      offset = rewriter.create<arith::AddIOp>(loc, cv, low);
+      Value cv = arith::ConstantIntOp::create(rewriter, loc, low.getType(),
+                                              extract.getConstantIndex());
+      offset = arith::AddIOp::create(rewriter, loc, cv, low);
     } else {
       auto cast1 = createCast(rewriter, loc, extract.getIndex());
       auto cast2 = createCast(rewriter, loc, low);
-      offset = rewriter.create<arith::AddIOp>(loc, cast1, cast2);
+      offset = arith::AddIOp::create(rewriter, loc, cast1, cast2);
     }
     rewriter.replaceOpWithNewOp<quake::ExtractRefOp>(extract, subveq.getVeq(),
                                                      offset);
@@ -360,7 +338,8 @@ struct ConcatSizePattern : public OpRewritePattern<quake::ConcatOp> {
         if (*arity) {
           // Get each member for IR legalization.
           for (auto [i, memTy] : llvm::enumerate(stqTy.getMembers())) {
-            auto mem = rewriter.create<quake::GetMemberOp>(loc, memTy, opnd, i);
+            auto mem =
+                quake::GetMemberOp::create(rewriter, loc, memTy, opnd, i);
             targets.push_back(mem);
           }
         }
@@ -376,7 +355,7 @@ struct ConcatSizePattern : public OpRewritePattern<quake::ConcatOp> {
 
     // Leans into the relax_size canonicalization pattern.
     auto newTy = quake::VeqType::get(ctx, sum);
-    Value newOp = rewriter.create<quake::ConcatOp>(loc, newTy, targets);
+    Value newOp = quake::ConcatOp::create(rewriter, loc, newTy, targets);
     auto noSizeTy = quake::VeqType::getUnsized(ctx);
     rewriter.replaceOpWithNewOp<quake::RelaxSizeOp>(concat, noSizeTy, newOp);
     return success();
@@ -471,8 +450,9 @@ struct ForwardAllocaTypePattern
         auto targ = initState.getTargets();
         if (auto targTy = dyn_cast<quake::VeqType>(targ.getType()))
           if (targTy.hasSpecifiedSize()) {
-            auto newInit = rewriter.create<quake::InitializeStateOp>(
-                initState.getLoc(), targTy, targ, initState.getState());
+            auto newInit = quake::InitializeStateOp::create(
+                rewriter, initState.getLoc(), targTy, targ,
+                initState.getState());
             rewriter.replaceOpWithNewOp<quake::RelaxSizeOp>(initState, isTy,
                                                             newInit);
             return success();
@@ -515,9 +495,9 @@ struct FixUnspecifiedSubveqPattern : public OpRewritePattern<quake::SubVeqOp> {
         subveq.getConstantUpperBound() - subveq.getConstantLowerBound() + 1u;
     auto szVecTy = quake::VeqType::get(ctx, size);
     auto loc = subveq.getLoc();
-    auto subv = rewriter.create<quake::SubVeqOp>(
-        loc, szVecTy, subveq.getVeq(), subveq.getLower(), subveq.getUpper(),
-        subveq.getRawLower(), subveq.getRawUpper());
+    auto subv = quake::SubVeqOp::create(
+        rewriter, loc, szVecTy, subveq.getVeq(), subveq.getLower(),
+        subveq.getUpper(), subveq.getRawLower(), subveq.getRawUpper());
     rewriter.replaceOpWithNewOp<quake::RelaxSizeOp>(subveq, veqTy, subv);
     return success();
   }
@@ -628,8 +608,8 @@ public:
     // Lambda to create a Value for the lower bound of `s`.
     auto lofunc = [&](quake::SubVeqOp s) -> Value {
       if (s.hasConstantLowerBound())
-        return rewriter.create<arith::ConstantIntOp>(
-            loc, s.getConstantLowerBound(), 64);
+        return arith::ConstantIntOp::create(rewriter, loc,
+                                            s.getConstantLowerBound(), 64);
       return s.getLower();
     };
     auto priorlo = lofunc(prior);
@@ -638,15 +618,15 @@ public:
     // Lambda for creating the upper bound Value.
     auto svup = [&]() -> Value {
       if (subveq.hasConstantUpperBound())
-        return rewriter.create<arith::ConstantIntOp>(
-            loc, subveq.getConstantUpperBound(), 64);
+        return arith::ConstantIntOp::create(rewriter, loc,
+                                            subveq.getConstantUpperBound(), 64);
       return subveq.getUpper();
     }();
     auto cast1 = createCast(rewriter, loc, priorlo);
     auto cast2 = createCast(rewriter, loc, svlo);
     auto cast3 = createCast(rewriter, loc, svup);
-    Value sum1 = rewriter.create<arith::AddIOp>(loc, cast1, cast2);
-    Value sum2 = rewriter.create<arith::AddIOp>(loc, cast1, cast3);
+    Value sum1 = arith::AddIOp::create(rewriter, loc, cast1, cast2);
+    Value sum2 = arith::AddIOp::create(rewriter, loc, cast1, cast3);
     auto veqTy = subveq.getType();
     rewriter.replaceOpWithNewOp<quake::SubVeqOp>(subveq, veqTy, prior.getVeq(),
                                                  sum1, sum2);
@@ -670,8 +650,8 @@ struct FoldInitStateSizePattern : public OpRewritePattern<quake::VeqSizeOp> {
               dyn_cast<quake::VeqType>(initState.getTargets().getType()))
         if (veqTy.hasSpecifiedSize()) {
           std::size_t numQubits = veqTy.getSize();
-          rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(veqSize, numQubits,
-                                                            veqSize.getType());
+          rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(
+              veqSize, veqSize.getType(), numQubits);
           return success();
         }
     return failure();
@@ -722,109 +702,17 @@ struct MergeRotationPattern : public OpRewritePattern<OP> {
     auto adjAttr = rotate.getIsAdjAttr();
     auto newAngle = [&]() -> Value {
       if (input.isAdj() == rotate.isAdj())
-        return rewriter.create<arith::AddFOp>(loc, angle1, angle2);
+        return arith::AddFOp::create(rewriter, loc, angle1, angle2);
       // One is adjoint, so it should be subtracted from the other.
       if (input.isAdj())
-        return rewriter.create<arith::SubFOp>(loc, angle2, angle1);
+        return arith::SubFOp::create(rewriter, loc, angle2, angle1);
       adjAttr = input.getIsAdjAttr();
-      return rewriter.create<arith::SubFOp>(loc, angle1, angle2);
+      return arith::SubFOp::create(rewriter, loc, angle1, angle2);
     }();
     rewriter.replaceOpWithNewOp<OP>(rotate, rotate.getResultTypes(), adjAttr,
                                     ValueRange{newAngle}, ValueRange{},
                                     ValueRange{input.getTarget(0)},
                                     rotate.getNegatedQubitControlsAttr());
-    return success();
-  }
-};
-
-// %0 = quake.alloca !quake.veq<2>
-// %1 = quake.mz %0 : (!quake.veq<2>) -> !quake.measurements<?>
-// ────────────────────────────────────────────────────────────
-// %0 = quake.alloca !quake.veq<2>
-// %1 = quake.mz %0 : (!quake.veq<2>) -> !quake.measurements<2>
-template <typename MeasOp>
-struct FuseSizeToMeasurementPattern : public OpRewritePattern<MeasOp> {
-  using OpRewritePattern<MeasOp>::OpRewritePattern;
-
-  LogicalResult matchAndRewrite(MeasOp measOp,
-                                PatternRewriter &rewriter) const override {
-    auto measTy =
-        dyn_cast<quake::MeasurementsType>(measOp.getMeasOut().getType());
-    if (!measTy || measTy.hasSpecifiedSize())
-      return failure();
-
-    std::size_t totalSize = 0;
-    for (auto target : measOp.getTargets()) {
-      if (quake::isConstantQuantumRefType(target.getType())) {
-        totalSize += quake::getAllocationSize(target.getType());
-        continue;
-      }
-      return failure();
-    }
-    if (totalSize == 0)
-      return failure();
-
-    auto newMeasTy =
-        quake::MeasurementsType::get(rewriter.getContext(), totalSize);
-
-    // If any user expects unsized measurements (return-like ops where the
-    // function returns unsized, or call ops where the callee parameter is
-    // unsized), insert a quake.relax_size to bridge the sized-to-unsized gap.
-    auto needsCastForUser = [&](OpOperand &use) -> bool {
-      auto *user = use.getOwner();
-      if (isa<cudaq::cc::ReturnOp, cudaq::cc::UnwindReturnOp>(user)) {
-        if (auto funcOp = user->getParentOfType<func::FuncOp>())
-          if (funcOp.getFunctionType().getNumResults() == 1)
-            if (auto fnResMeasTy = dyn_cast<quake::MeasurementsType>(
-                    funcOp.getFunctionType().getResult(0)))
-              return !fnResMeasTy.hasSpecifiedSize();
-        return false;
-      }
-      auto checkCalleeArgType = [&](mlir::FunctionType calleeType,
-                                    unsigned argIdx) -> bool {
-        if (argIdx < calleeType.getNumInputs())
-          if (auto paramMeasTy = dyn_cast<quake::MeasurementsType>(
-                  calleeType.getInput(argIdx)))
-            return !paramMeasTy.hasSpecifiedSize();
-        return false;
-      };
-      if (auto callOp = dyn_cast<func::CallOp>(user))
-        return checkCalleeArgType(callOp.getCalleeType(),
-                                  use.getOperandNumber());
-      if (auto callOp = dyn_cast<func::CallIndirectOp>(user)) {
-        unsigned opIdx = use.getOperandNumber();
-        if (opIdx == 0)
-          return false; // operand 0 is the callee value itself
-        auto calleeFnTy = cast<mlir::FunctionType>(
-            callOp.getCallee().getType());
-        return checkCalleeArgType(calleeFnTy, opIdx - 1);
-      }
-      return false;
-    };
-
-    SmallVector<Type> resultTypes;
-    resultTypes.push_back(newMeasTy);
-    for (unsigned i = 1; i < measOp->getNumResults(); ++i)
-      resultTypes.push_back(measOp->getResult(i).getType());
-
-    auto oldAttrs = measOp->getAttrs();
-    auto newOp = rewriter.replaceOpWithNewOp<MeasOp>(measOp,
-                                                     TypeRange{resultTypes},
-                                                     measOp.getTargets(),
-                                                     measOp.getRegisterNameAttr());
-    for (auto &attr : oldAttrs)
-      if (!newOp->getAttr(attr.getName()))
-        newOp->setAttr(attr.getName(), attr.getValue());
-
-    for (auto &use :
-         llvm::make_early_inc_range(newOp.getMeasOut().getUses())) {
-      if (needsCastForUser(use)) {
-        rewriter.setInsertionPoint(use.getOwner());
-        auto relax = rewriter.create<quake::RelaxSizeOp>(
-            use.getOwner()->getLoc(), measTy, newOp.getMeasOut());
-        use.set(relax);
-      }
-    }
     return success();
   }
 };
@@ -840,7 +728,7 @@ struct ForwardRelaxedSizePattern : public OpRewritePattern<quake::RelaxSizeOp> {
                                 PatternRewriter &rewriter) const override {
     auto inpVec = relax.getInputVec();
     bool replaced = false;
-    rewriter.replaceOpWithIf(relax, inpVec, [&](OpOperand &use) {
+    rewriter.replaceUsesWithIf(relax, inpVec, [&](OpOperand &use) {
       bool res = false;
       if (Operation *user = use.getOwner())
         res = isQuakeOperation(user) && !isa<quake::ApplyOp>(user);

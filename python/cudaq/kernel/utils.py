@@ -265,6 +265,64 @@ def emitWarning(msg):
                    Color.END + '\n\nOffending code:\n' + offendingSrc[0])
 
 
+def _format_missing_source_error(function, filename):
+    """
+    Build a user-facing diagnostic explaining why source for `function` could
+    not be retrieved. Distinguishes between three buckets:
+      - Interactive interpreter-defined (`<stdin>` or `<python-input-...>`).
+      - Other synthetic filenames (code compiled with a non-file name).
+      - Real paths that failed to read (missing file, frozen module,
+        compiled extension).
+    """
+    qualname = getattr(function, '__qualname__',
+                       getattr(function, '__name__', '<unknown>'))
+    if filename is None:
+        return (f"@cudaq.kernel could not determine a source location for "
+                f"function `{qualname}`. `@cudaq.kernel` requires source that "
+                f"Python's `inspect` module can recover. Move the kernel into "
+                f"a `.py` module.")
+    is_repl = filename == '<stdin>' or filename.startswith('<python-input')
+    is_synthetic = filename.startswith('<') and filename.endswith('>')
+    if is_repl:
+        return (f"@cudaq.kernel could not retrieve source for function "
+                f"`{qualname}` because it is defined in the Python REPL, "
+                f"which does not preserve source code that `inspect` can "
+                f"recover. To use `@cudaq.kernel`, either run from a "
+                f"Jupyter/IPython session (which preserves source via "
+                f"`linecache`) or move the kernel into a `.py` module.")
+    if is_synthetic:
+        return (f"@cudaq.kernel could not retrieve source for function "
+                f"`{qualname}`: it is defined in a non-file context "
+                f"(`{filename}`). `@cudaq.kernel` requires source that "
+                f"`inspect` can recover. Move the kernel into a `.py` "
+                f"module.")
+    return (f"@cudaq.kernel could not read source for function "
+            f"`{qualname}` at `{filename}` (the file may be missing, "
+            f"frozen, or a compiled extension).")
+
+
+def get_function_source_or_raise(function):
+    """
+    Return `(dedented_source, (filename, first_lineno))` for `function`.
+    Wraps `inspect.getfile`, `inspect.getsourcelines`, and
+    `inspect.getsource`. If any fail (most commonly because `function` was
+    defined in the interactive Python interpreter), raise `RuntimeError`
+    with a diagnostic
+    tailored to the failure mode, chained from the underlying exception.
+    """
+    filename = None
+    try:
+        filename = inspect.getfile(function)
+        first_line = inspect.getsourcelines(function)[1]
+        src = inspect.getsource(function)
+    except OSError as e:
+        raise RuntimeError(_format_missing_source_error(function,
+                                                        filename)) from e
+    leadingSpaces = len(src) - len(src.lstrip())
+    src = '\n'.join([line[leadingSpaces:] for line in src.split('\n')])
+    return src, (filename, first_line)
+
+
 def mlirTryCreateStructType(mlirEleTypes, name=None, context=None):
     """
     Creates either a `quake.StruqType` or a `cc.StructType` used to represent 

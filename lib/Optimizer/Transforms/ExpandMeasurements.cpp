@@ -8,180 +8,41 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/Todo.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/DialectConversion.h"
-#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
+
+namespace cudaq::opt {
+#define GEN_PASS_DEF_EXPANDMEASUREMENTS
+#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+} // namespace cudaq::opt
 
 using namespace mlir;
 
-namespace {
-// Only an individual qubit measurement returns a bool.
+// Only an individual qubit measurement returns a scalar token. Both
+// `!quake.measure` (legacy `bool`/`Result*` token) and `!cc.measure_handle`
+// (the IR alias of `cudaq::measure_handle`, an `i64` payload) are scalar
+// per-qubit measurement results, so neither requires expansion to a register.
 template <typename A>
 bool usesIndividualQubit(A x) {
-  return x.getType() == quake::MeasureType::get(x.getContext());
+  return isa<quake::MeasureType, cudaq::cc::MeasureHandleType>(x.getType());
 }
-
-// Pattern for expanding a multi-qubit measurement on unsized veq<?> targets
-// into a dynamic loop of individual measurements.
-template <typename A>
-class ExpandUnsizedMeasurePattern : public OpRewritePattern<A> {
-public:
-  using OpRewritePattern<A>::OpRewritePattern;
-
-  LogicalResult matchAndRewrite(A measureOp,
-                                PatternRewriter &rewriter) const override {
-    if (usesIndividualQubit(measureOp.getMeasOut()))
-      return failure();
-
-    // Only handle the unsized case here.
-    bool hasUnsizedTarget = false;
-    for (auto v : measureOp.getTargets())
-      if (auto veqTy = dyn_cast<quake::VeqType>(v.getType()))
-        if (!veqTy.hasSpecifiedSize())
-          hasUnsizedTarget = true;
-    if (!hasUnsizedTarget)
-      return failure();
-
-    // Only expand if every user of the measurement result is a DiscriminateOp.
-    for (auto *user : measureOp.getMeasOut().getUsers())
-      if (!isa<quake::DiscriminateOp>(user))
-        return failure();
-
-    // Even without discriminate users we must expand, because downstream QIR
-    // lowering cannot handle mz on veq<?>. When discriminate users exist we
-    // additionally allocate a buffer to collect per-qubit results and build the
-    // stdvec that replaces each discriminate.
-    bool hasDiscriminateUsers = !measureOp.getMeasOut().use_empty();
-    auto loc = measureOp.getLoc();
-    auto i64Ty = rewriter.getI64Type();
-    auto measTy = quake::MeasureType::get(rewriter.getContext());
-
-    // 1. Determine the total number of qubits we need to measure. This
-    // determines the size of the buffer of bools to create to store the results
-    // in.
-    Value buff, totalToRead, buffOff, one;
-    Type elemTy, bufElemTy;
-    if (hasDiscriminateUsers) {
-      auto firstDisc = cast<quake::DiscriminateOp>(
-          *measureOp.getMeasOut().getUsers().begin());
-      auto stdvecTy =
-          cast<cudaq::cc::StdvecType>(firstDisc.getResult().getType());
-      elemTy = stdvecTy.getElementType();
-      unsigned elemWidth = cast<IntegerType>(elemTy).getWidth();
-      bufElemTy =
-          elemWidth > 8 ? elemTy : static_cast<Type>(rewriter.getI8Type());
-
-      unsigned numQubits = 0u;
-      for (auto v : measureOp.getTargets())
-        if (v.getType().template isa<quake::RefType>())
-          ++numQubits;
-      totalToRead =
-          rewriter.template create<arith::ConstantIntOp>(loc, numQubits, 64);
-      for (auto v : measureOp.getTargets())
-        if (v.getType().template isa<quake::VeqType>()) {
-          Value vecSz =
-              rewriter.template create<quake::VeqSizeOp>(loc, i64Ty, v);
-          totalToRead =
-              rewriter.template create<arith::AddIOp>(loc, totalToRead, vecSz);
-        }
-
-      // 2. Create the buffer.
-      buff = rewriter.template create<cudaq::cc::AllocaOp>(loc, bufElemTy,
-                                                           totalToRead);
-      buffOff = rewriter.template create<arith::ConstantIntOp>(loc, 0, 64);
-      one = rewriter.template create<arith::ConstantIntOp>(loc, 1, 64);
-    }
-
-    // 3. Measure each individual qubit and insert the result, in order, into
-    // the buffer. For registers/vectors, loop over the entire set of qubits.
-    for (auto v : measureOp.getTargets()) {
-      if (isa<quake::RefType>(v.getType())) {
-        auto meas = rewriter.template create<A>(loc, measTy, v);
-        if (auto registerName = measureOp.getRegisterNameAttr())
-          meas.setRegisterName(registerName);
-        if (hasDiscriminateUsers) {
-          auto bit = rewriter.template create<quake::DiscriminateOp>(
-              loc, elemTy, meas.getMeasOut());
-          Value addr = rewriter.template create<cudaq::cc::ComputePtrOp>(
-              loc, cudaq::cc::PointerType::get(bufElemTy), buff, buffOff);
-          Value stored = (elemTy != bufElemTy)
-                             ? rewriter
-                                   .template create<cudaq::cc::CastOp>(
-                                       loc, bufElemTy, bit,
-                                       cudaq::cc::CastOpMode::Unsigned)
-                                   .getResult()
-                             : static_cast<Value>(bit);
-          rewriter.template create<cudaq::cc::StoreOp>(loc, stored, addr);
-          buffOff = rewriter.template create<arith::AddIOp>(loc, buffOff, one);
-        }
-      } else {
-        assert(isa<quake::VeqType>(v.getType()));
-        Value vecSz = rewriter.template create<quake::VeqSizeOp>(loc, i64Ty, v);
-        cudaq::opt::factory::createInvariantLoop(
-            rewriter, loc, vecSz,
-            [&](OpBuilder &builder, Location loc, Region &, Block &block) {
-              Value iv = block.getArgument(0);
-              Value qv =
-                  builder.template create<quake::ExtractRefOp>(loc, v, iv);
-              auto meas = builder.template create<A>(loc, measTy, qv);
-              if (auto registerName = measureOp.getRegisterNameAttr())
-                meas.setRegisterName(registerName);
-              if (hasDiscriminateUsers) {
-                auto bit = builder.template create<quake::DiscriminateOp>(
-                    loc, elemTy, meas.getMeasOut());
-                Value offset =
-                    builder.template create<arith::AddIOp>(loc, iv, buffOff);
-                auto addr = builder.template create<cudaq::cc::ComputePtrOp>(
-                    loc, cudaq::cc::PointerType::get(bufElemTy), buff, offset);
-                Value stored = (elemTy != bufElemTy)
-                                   ? builder
-                                         .template create<cudaq::cc::CastOp>(
-                                             loc, bufElemTy, bit,
-                                             cudaq::cc::CastOpMode::Unsigned)
-                                         .getResult()
-                                   : static_cast<Value>(bit);
-                builder.template create<cudaq::cc::StoreOp>(loc, stored, addr);
-              }
-            });
-        if (hasDiscriminateUsers)
-          buffOff =
-              rewriter.template create<arith::AddIOp>(loc, buffOff, vecSz);
-      }
-    }
-
-    // 4. Use the buffer as an initialization expression and create the
-    // std::vec<bool> value.
-    if (hasDiscriminateUsers) {
-      auto stdvecTy = cudaq::cc::StdvecType::get(rewriter.getContext(), elemTy);
-      SmallVector<quake::DiscriminateOp> discs;
-      for (auto *out : measureOp.getMeasOut().getUsers())
-        if (auto disc = dyn_cast_if_present<quake::DiscriminateOp>(out))
-          discs.push_back(disc);
-      for (auto disc : discs) {
-        auto ptrArrTy =
-            cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(elemTy));
-        auto buffCast =
-            rewriter.template create<cudaq::cc::CastOp>(loc, ptrArrTy, buff);
-        rewriter.template replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
-            disc, stdvecTy, buffCast, totalToRead);
-      }
-    }
-
-    rewriter.eraseOp(measureOp);
-    return success();
-  }
-};
-
-using MxUnsizedRewrite = ExpandUnsizedMeasurePattern<quake::MxOp>;
-using MyUnsizedRewrite = ExpandUnsizedMeasurePattern<quake::MyOp>;
-using MzUnsizedRewrite = ExpandUnsizedMeasurePattern<quake::MzOp>;
 
 // Generalized pattern for expanding a multiple qubit measurement (whether it is
 // mx, my, or mz) to a series of individual measurements.
+//
+// Handles both result-type families that the vector form of `quake.mz`/`mx`/
+// `my` can carry:
+//   - `!cc.stdvec<!quake.measure>` -- the legacy form. The only legitimate
+//     consumer is `quake.discriminate`, so the rewrite folds the per-element
+//     measurements straight into a `cc.stdvec_init -> !cc.stdvec<i1>`.
+//   - `!cc.stdvec<!cc.measure_handle>` -- the handle-vector value can have
+//     non-discriminate consumers. Those consumers expect a value of the
+//     original handle-stdvec type, so the rewrite additionally builds a
+//     per-element handle buffer and folds it into a `cc.stdvec_init ->
+//     !cc.stdvec<!cc.measure_handle>` that replaces all remaining uses.
 template <typename A>
 class ExpandRewritePattern : public OpRewritePattern<A> {
 public:
@@ -189,80 +50,239 @@ public:
 
   LogicalResult matchAndRewrite(A measureOp,
                                 PatternRewriter &rewriter) const override {
-    if (usesIndividualQubit(measureOp.getMeasOut()))
-      return failure();
-
-    // Collect all the `get_measure` ops for this measurement operation.
-    SmallVector<quake::GetMeasureOp> getMeasureOps;
-    for (auto *user : measureOp.getMeasOut().getUsers())
-      if (auto gm = dyn_cast<quake::GetMeasureOp>(user))
-        getMeasureOps.push_back(gm);
-
-    // Can only replace `get_measure %m[i]` with per-qubit measurements, else
-    // bail out.
-    if (getMeasureOps.empty() && !measureOp.getMeasOut().use_empty())
-      return failure();
-
-    // Validate that all `get_measure` ops have constant indices and all the veq
-    // targets have known sizes.
-    for (auto gm : getMeasureOps)
-      if (!gm.hasConstantIndex())
-        return failure();
-    std::size_t totalMeasures = 0;
-    for (auto v : measureOp.getTargets()) {
-      if (isa<quake::RefType>(v.getType())) {
-        ++totalMeasures;
-      } else {
-        auto veqTy = cast<quake::VeqType>(v.getType());
-        if (!veqTy.hasSpecifiedSize())
-          return failure();
-        totalMeasures += veqTy.getSize();
-      }
-    }
-    // Bounds check
-    for (auto gm : getMeasureOps)
-      if (gm.getConstantIndex() >= totalMeasures)
-        return failure();
-
     auto loc = measureOp.getLoc();
-    auto measTy = quake::MeasureType::get(rewriter.getContext());
+    auto *ctx = rewriter.getContext();
 
-    // Create individual per-qubit measurements for each target.
-    SmallVector<Value> individualMeasures;
+    // The dynamic-legality predicate filters out the scalar forms, so by
+    // construction the result type here is `!cc.stdvec<X>` for some X.
+    auto stdvecResTy =
+        dyn_cast<cudaq::cc::StdvecType>(measureOp.getMeasOut().getType());
+    auto handleTy = cudaq::cc::MeasureHandleType::get(ctx);
+    bool isHandleResult =
+        isa<cudaq::cc::MeasureHandleType>(stdvecResTy.getElementType());
+
+    // Per-element scalar result type tracks the original stdvec element
+    // type. For handle inputs we measure into `!cc.measure_handle` per
+    // qubit.
+    Type perElemTy = isHandleResult
+                         ? static_cast<Type>(handleTy)
+                         : static_cast<Type>(quake::MeasureType::get(ctx));
+
+    // Classify users so we only allocate the buffers we actually need, and
+    // collect the discriminate users at the same time. The legacy
+    // `!quake.measure` path has only `quake.discriminate` consumers by
+    // construction; the handle path may have either, both, or none.
+    SmallVector<quake::DiscriminateOp> discUsers;
+    bool hasNonDiscUser = false;
+    for (auto *u : measureOp.getMeasOut().getUsers()) {
+      if (auto d = dyn_cast<quake::DiscriminateOp>(u))
+        discUsers.push_back(d);
+      else
+        hasNonDiscUser = true;
+    }
+    // Allocation policy:
+    //   - Legacy `!cc.stdvec<!quake.measure>` always allocates the i1 buffer.
+    //   - `!cc.stdvec<!cc.measure_handle>` allocates each buffer only when a
+    //   consumer in that element-type class is present.
+    bool needI1Buf = !isHandleResult || !discUsers.empty();
+    bool needHandleBuf = isHandleResult && hasNonDiscUser;
+
+    // 1. Determine the total number of qubits we need to measure. This
+    // determines the size of the buffer of bools to create to store the results
+    // in.
+    unsigned numQubits = 0u;
+    for (auto v : measureOp.getTargets())
+      if (isa<quake::RefType>(v.getType()))
+        ++numQubits;
+    Value totalToRead =
+        arith::ConstantIntOp::create(rewriter, loc, numQubits, 64);
+    auto i64Ty = rewriter.getI64Type();
+    for (auto v : measureOp.getTargets())
+      if (isa<quake::VeqType>(v.getType())) {
+        Value vecSz = quake::VeqSizeOp::create(rewriter, loc, i64Ty, v);
+        totalToRead = arith::AddIOp::create(rewriter, loc, totalToRead, vecSz);
+      }
+
+    // 2. Create the buffers (one per output kind we actually need).
+    auto i1Ty = rewriter.getI1Type();
+    auto i8Ty = rewriter.getI8Type();
+    Value i1Buff;
+    if (needI1Buf)
+      i1Buff = cudaq::cc::AllocaOp::create(rewriter, loc, i8Ty, totalToRead);
+    Value handleBuff;
+    if (needHandleBuf)
+      handleBuff =
+          cudaq::cc::AllocaOp::create(rewriter, loc, handleTy, totalToRead);
+
+    // Per-element store helper. Each qubit is measured exactly once with
+    // `perElemTy`; the resulting value is fanned out to whichever buffers we
+    // allocated (i1 for discriminate consumers, handle for non-discriminate
+    // consumers).
+    auto storePerElement = [&](OpBuilder &builder, Location loc, Value meas,
+                               Value offset) {
+      if (needI1Buf) {
+        auto bit = quake::DiscriminateOp::create(builder, loc, i1Ty, meas);
+        auto addr = cudaq::cc::ComputePtrOp::create(
+            builder, loc, cudaq::cc::PointerType::get(i8Ty), i1Buff, offset);
+        auto bitByte = cudaq::cc::CastOp::create(
+            builder, loc, i8Ty, bit, cudaq::cc::CastOpMode::Unsigned);
+        cudaq::cc::StoreOp::create(builder, loc, bitByte, addr);
+      }
+      if (needHandleBuf) {
+        auto addr = cudaq::cc::ComputePtrOp::create(
+            builder, loc, cudaq::cc::PointerType::get(handleTy), handleBuff,
+            offset);
+        cudaq::cc::StoreOp::create(builder, loc, meas, addr);
+      }
+    };
+
+    // 3. Measure each individual qubit and insert the result, in order, into
+    // the buffer. For registers, loop over the entire set of qubits.
+    Value buffOff = arith::ConstantIntOp::create(rewriter, loc, 0, 64);
+    Value one = arith::ConstantIntOp::create(rewriter, loc, 1, 64);
     for (auto v : measureOp.getTargets()) {
       if (isa<quake::RefType>(v.getType())) {
-        auto meas = rewriter.template create<A>(loc, measTy, v);
-        if (auto registerName = measureOp.getRegisterNameAttr())
-          meas.setRegisterName(registerName);
-        individualMeasures.push_back(meas.getMeasOut());
+        auto meas = A::create(rewriter, loc, perElemTy, v).getMeasOut();
+        storePerElement(rewriter, loc, meas, buffOff);
+        buffOff = arith::AddIOp::create(rewriter, loc, buffOff, one);
       } else {
-        auto veqTy = cast<quake::VeqType>(v.getType());
-        for (std::size_t i = 0; i < veqTy.getSize(); ++i) {
-          Value idx =
-              rewriter.template create<arith::ConstantIntOp>(loc, i, 64);
-          Value qv = rewriter.template create<quake::ExtractRefOp>(loc, v, idx);
-          auto meas = rewriter.template create<A>(loc, measTy, qv);
-          if (auto registerName = measureOp.getRegisterNameAttr())
-            meas.setRegisterName(registerName);
-          individualMeasures.push_back(meas.getMeasOut());
-        }
+        assert(isa<quake::VeqType>(v.getType()));
+        Value vecSz = quake::VeqSizeOp::create(rewriter, loc, i64Ty, v);
+        cudaq::opt::factory::createInvariantLoop(
+            rewriter, loc, vecSz,
+            [&](OpBuilder &builder, Location loc, Region &, Block &block) {
+              Value iv = block.getArgument(0);
+              Value qv = quake::ExtractRefOp::create(builder, loc, v, iv);
+              auto meas = A::create(builder, loc, perElemTy, qv);
+              if (auto registerName = measureOp.getRegisterNameAttr())
+                meas.setRegisterName(registerName);
+              Value offset = arith::AddIOp::create(builder, loc, iv, buffOff);
+              storePerElement(builder, loc, meas.getMeasOut(), offset);
+            });
+        buffOff = arith::AddIOp::create(rewriter, loc, buffOff, vecSz);
       }
     }
 
-    // Replace each get_measure op with the corresponding individual result.
-    for (auto gm : getMeasureOps)
-      rewriter.replaceOp(gm, individualMeasures[gm.getConstantIndex()]);
+    // 4. Replace each `quake.discriminate` consumer with a
+    // `cc.stdvec_init -> !cc.stdvec<i1>` over the i1 buffer.
+    if (needI1Buf) {
+      auto stdvecI1Ty = cudaq::cc::StdvecType::get(ctx, i1Ty);
+      auto ptrArrI1Ty =
+          cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(i1Ty));
+      for (auto disc : discUsers) {
+        auto buffCast =
+            cudaq::cc::CastOp::create(rewriter, loc, ptrArrI1Ty, i1Buff);
+        rewriter.template replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
+            disc, stdvecI1Ty, buffCast, totalToRead);
+      }
+    }
 
-    if (measureOp.getMeasOut().use_empty())
-      rewriter.eraseOp(measureOp);
+    // 5. For the handle path with non-discriminate consumers, build a
+    // `cc.stdvec_init -> !cc.stdvec<!cc.measure_handle>` over the handle
+    // buffer and route the original result's remaining users to it via
+    // `replaceOp` (one atomic substitution)
+    Value replacementVal;
+    if (needHandleBuf) {
+      auto stdvecHandleTy = cudaq::cc::StdvecType::get(ctx, handleTy);
+      auto handleStdvec = cudaq::cc::StdvecInitOp::create(
+          rewriter, loc, stdvecHandleTy, handleBuff, totalToRead);
+      replacementVal = handleStdvec.getResult();
+    }
 
+    // The pass is scheduled before wire lowering, so the variadic `$wires`
+    // result group is structurally empty here.
+    assert(measureOp.getWires().empty() &&
+           "`expand-measurements` runs before wire lowering");
+
+    // Step 5 builds a handle-vector replacement exactly when the
+    // user-classification scan found a non-discriminate consumer. Without
+    // this, `replaceOp` below would feed a null value through to a live
+    // user.
+    assert((replacementVal != nullptr) == hasNonDiscUser &&
+           "handle-vector replacement must exist iff a non-discriminate "
+           "consumer was present");
+
+    rewriter.replaceOp(measureOp, replacementVal);
     return success();
   }
 };
 
+namespace {
 using MxRewrite = ExpandRewritePattern<quake::MxOp>;
 using MyRewrite = ExpandRewritePattern<quake::MyOp>;
 using MzRewrite = ExpandRewritePattern<quake::MzOp>;
+
+// Expand `quake.discriminate : !cc.stdvec<!cc.measure_handle> ->
+// !cc.stdvec<i1>` when the input handle vector is *not* the direct result
+// of a measurement op. The bridge emits this shape for `cudaq::to_bools`
+// applied to a handle vector that has crossed an SSA boundary
+// (e.g. function argument, kernel return), where the measurement-op
+// pattern above cannot reach the underlying `quake.mz/mx/my`. It loops
+// over the handle vector, discriminates each element, and rewraps the
+// resulting bytes as a `!cc.stdvec<i1>`. The direct-from-measurement
+// case stays handled by `ExpandRewritePattern` to avoid an extra
+// per-element load.
+class ExpandStdvecHandleDiscriminate
+    : public OpRewritePattern<quake::DiscriminateOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(quake::DiscriminateOp disc,
+                                PatternRewriter &rewriter) const override {
+    Value handleVec = disc.getMeasurement();
+    auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(handleVec.getType());
+    if (!stdvecTy ||
+        !isa<cudaq::cc::MeasureHandleType>(stdvecTy.getElementType()))
+      return failure();
+    if (handleVec.getDefiningOp<quake::MeasurementInterface>())
+      return failure();
+
+    auto loc = disc.getLoc();
+    auto *ctx = rewriter.getContext();
+    auto i1Ty = rewriter.getI1Type();
+    auto i8Ty = rewriter.getI8Type();
+    auto i64Ty = rewriter.getI64Type();
+    auto handleTy = cudaq::cc::MeasureHandleType::get(ctx);
+
+    Value vecSize =
+        cudaq::cc::StdvecSizeOp::create(rewriter, loc, i64Ty, handleVec);
+    auto handleArrPtrTy =
+        cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(handleTy));
+    Value handleData = cudaq::cc::StdvecDataOp::create(
+        rewriter, loc, handleArrPtrTy, handleVec);
+    // Output is held in an i8 buffer, then bitcast to `!cc.ptr<!cc.array
+    // <i1 x ?>>` for the wrap. This matches the convention used by the
+    // measurement-op pattern above (steps 2 + 4) so downstream passes see
+    // the same shape regardless of which path produced the i1 vector.
+    Value i1Buff = cudaq::cc::AllocaOp::create(rewriter, loc, i8Ty, vecSize);
+
+    cudaq::opt::factory::createInvariantLoop(
+        rewriter, loc, vecSize,
+        [&](OpBuilder &builder, Location loc, Region &, Block &block) {
+          Value iv = block.getArgument(0);
+          Value handleAddr = cudaq::cc::ComputePtrOp::create(
+              builder, loc, cudaq::cc::PointerType::get(handleTy), handleData,
+              iv);
+          Value handleVal = cudaq::cc::LoadOp::create(builder, loc, handleAddr);
+          Value bit =
+              quake::DiscriminateOp::create(builder, loc, i1Ty, handleVal);
+          Value byteAddr = cudaq::cc::ComputePtrOp::create(
+              builder, loc, cudaq::cc::PointerType::get(i8Ty), i1Buff, iv);
+          Value bitByte = cudaq::cc::CastOp::create(
+              builder, loc, i8Ty, bit, cudaq::cc::CastOpMode::Unsigned);
+          cudaq::cc::StoreOp::create(builder, loc, bitByte, byteAddr);
+        });
+
+    auto stdvecI1Ty = cudaq::cc::StdvecType::get(ctx, i1Ty);
+    auto ptrArrI1Ty =
+        cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(i1Ty));
+    Value buffCast =
+        cudaq::cc::CastOp::create(rewriter, loc, ptrArrI1Ty, i1Buff);
+    rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(disc, stdvecI1Ty,
+                                                         buffCast, vecSize);
+    return success();
+  }
+};
 
 /// Convert a `quake.reset` with a `veq` argument into a loop over the elements
 /// of the `veq` and `quake.reset` on each of them.
@@ -272,124 +292,66 @@ public:
 
   LogicalResult matchAndRewrite(quake::ResetOp resetOp,
                                 PatternRewriter &rewriter) const override {
-    auto veqArg = resetOp.getTargets();
-    if (!isa<quake::VeqType>(veqArg.getType()))
-      return failure();
     auto loc = resetOp.getLoc();
+    auto veqArg = resetOp.getTargets();
     auto i64Ty = rewriter.getI64Type();
-    Value vecSz = rewriter.create<quake::VeqSizeOp>(loc, i64Ty, veqArg);
+    Value vecSz = quake::VeqSizeOp::create(rewriter, loc, i64Ty, veqArg);
     cudaq::opt::factory::createInvariantLoop(
         rewriter, loc, vecSz,
         [&](OpBuilder &builder, Location loc, Region &, Block &block) {
           Value iv = block.getArgument(0);
-          Value qv = builder.create<quake::ExtractRefOp>(loc, veqArg, iv);
-          builder.create<quake::ResetOp>(loc, TypeRange{}, qv);
+          Value qv = quake::ExtractRefOp::create(builder, loc, veqArg, iv);
+          quake::ResetOp::create(builder, loc, TypeRange{}, qv);
         });
     rewriter.eraseOp(resetOp);
     return success();
   }
 };
 
-// Pattern for expanding a `quake.discriminate` op on a `quake.measurements`
-// with a known size into a series of `quake.discriminate` ops on individual
-// `quake.measure` results via `quake.get_measure`.
-class ExpandDiscriminatePattern
-    : public OpRewritePattern<quake::DiscriminateOp> {
-public:
-  using OpRewritePattern::OpRewritePattern;
-
-  LogicalResult matchAndRewrite(quake::DiscriminateOp discOp,
-                                PatternRewriter &rewriter) const override {
-    auto measVal = discOp.getMeasurement();
-    auto measTy = dyn_cast<quake::MeasurementsType>(measVal.getType());
-    if (!measTy)
-      return failure();
-    if (!measTy.hasSpecifiedSize())
-      return failure();
-
-    auto loc = discOp.getLoc();
-    auto stdvecResTy =
-        cast<cudaq::cc::StdvecType>(discOp.getResult().getType());
-    auto elemTy = stdvecResTy.getElementType();
-    unsigned elemWidth = cast<IntegerType>(elemTy).getWidth();
-    Type bufElemTy = elemWidth > 8 ? elemTy : rewriter.getI8Type();
-
-    Value totalToRead =
-        rewriter.create<arith::ConstantIntOp>(loc, measTy.getSize(), 64);
-    Value buff =
-        rewriter.create<cudaq::cc::AllocaOp>(loc, bufElemTy, totalToRead);
-
-    // TODO: For large N, consider emitting a loop to avoid IR bloat.
-    std::size_t n = measTy.getSize();
-    for (std::size_t i = 0; i < n; ++i) {
-      Value getMeas = rewriter.create<quake::GetMeasureOp>(loc, measVal, i);
-      Value bit = rewriter.create<quake::DiscriminateOp>(loc, elemTy, getMeas);
-      Value idx = rewriter.create<arith::ConstantIntOp>(loc, i, 64);
-      Value addr = rewriter.create<cudaq::cc::ComputePtrOp>(
-          loc, cudaq::cc::PointerType::get(bufElemTy), buff, idx);
-      Value stored =
-          (elemTy != bufElemTy)
-              ? rewriter
-                    .create<cudaq::cc::CastOp>(loc, bufElemTy, bit,
-                                               cudaq::cc::CastOpMode::Unsigned)
-                    .getResult()
-              : bit;
-      rewriter.create<cudaq::cc::StoreOp>(loc, stored, addr);
-    }
-
-    auto ptrArrElemTy =
-        cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(elemTy));
-    auto buffCast = rewriter.create<cudaq::cc::CastOp>(loc, ptrArrElemTy, buff);
-    rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(discOp, stdvecResTy,
-                                                         buffCast, totalToRead);
-    return success();
-  }
-};
-
 class ExpandMeasurementsPass
-    : public cudaq::opt::ExpandMeasurementsBase<ExpandMeasurementsPass> {
+    : public cudaq::opt::impl::ExpandMeasurementsBase<ExpandMeasurementsPass> {
 public:
+  using Base::Base;
   void runOnOperation() override {
     auto *op = getOperation();
     auto *ctx = &getContext();
-
-    // Step 1: Expand discriminate(measurements<N>) into individual
-    // get_measure + discriminate ops. This must run first so that step 2's
-    // ExpandRewritePattern can see the resulting get_measure users.
-    {
-      RewritePatternSet patterns(ctx);
-      patterns.insert<ExpandDiscriminatePattern>(ctx);
-      ConversionTarget target(*ctx);
-      target.addLegalDialect<quake::QuakeDialect, cudaq::cc::CCDialect,
-                             arith::ArithDialect, LLVM::LLVMDialect>();
-      target.addDynamicallyLegalOp<quake::DiscriminateOp>(
-          [](quake::DiscriminateOp d) {
-            auto measTy =
-                dyn_cast<quake::MeasurementsType>(d.getMeasurement().getType());
-            if (!measTy)
-              return true;
-            return !measTy.hasSpecifiedSize();
-          });
-      if (failed(applyPartialConversion(op, target, std::move(patterns)))) {
-        op->emitOpError("could not expand discriminate ops");
-        signalPassFailure();
-        return;
-      }
-    }
-
-    // Step 2: Expand multi-qubit m[xyz] and reset ops.
-    // ExpandRewritePattern handles sized targets (veq<N>) via unrolling.
-    // ExpandUnsizedMeasurePattern handles unsized targets (veq<?>) via
-    // dynamic loops using VeqSizeOp + createInvariantLoop.
-    {
-      RewritePatternSet patterns(ctx);
-      patterns.insert<MxRewrite, MyRewrite, MzRewrite, ResetRewrite>(ctx);
-      patterns.insert<MxUnsizedRewrite, MyUnsizedRewrite, MzUnsizedRewrite>(
-          ctx);
-      if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns)))) {
-        op->emitOpError("could not expand measurements");
-        signalPassFailure();
-      }
+    RewritePatternSet patterns(ctx);
+    patterns.insert<MxRewrite, MyRewrite, MzRewrite, ResetRewrite,
+                    ExpandStdvecHandleDiscriminate>(ctx);
+    ConversionTarget target(*ctx);
+    target.addLegalDialect<quake::QuakeDialect, cudaq::cc::CCDialect,
+                           arith::ArithDialect, LLVM::LLVMDialect>();
+    target.addDynamicallyLegalOp<quake::MxOp>(
+        [](quake::MxOp x) { return usesIndividualQubit(x.getMeasOut()); });
+    target.addDynamicallyLegalOp<quake::MyOp>(
+        [](quake::MyOp x) { return usesIndividualQubit(x.getMeasOut()); });
+    target.addDynamicallyLegalOp<quake::MzOp>(
+        [](quake::MzOp x) { return usesIndividualQubit(x.getMeasOut()); });
+    target.addDynamicallyLegalOp<quake::ResetOp>([](quake::ResetOp r) {
+      return !isa<quake::VeqType>(r.getTargets().getType());
+    });
+    target.addDynamicallyLegalOp<quake::DiscriminateOp>(
+        [](quake::DiscriminateOp d) {
+          // Scalar discriminate is always legal.
+          auto stdvecTy =
+              dyn_cast<cudaq::cc::StdvecType>(d.getMeasurement().getType());
+          if (!stdvecTy)
+            return true;
+          // Vector discriminate of legacy `!quake.measure` is folded as
+          // a side-effect of the measurement-op rewrite (step 4); leave
+          // it legal here so the driver does not look for a standalone
+          // pattern.
+          if (!isa<cudaq::cc::MeasureHandleType>(stdvecTy.getElementType()))
+            return true;
+          // Vector discriminate of `!cc.measure_handle` whose source is
+          // a measurement op is similarly folded (step 4 again). Only
+          // the indirect case needs `ExpandStdvecHandleDiscriminate`.
+          return d.getMeasurement()
+                     .getDefiningOp<quake::MeasurementInterface>() != nullptr;
+        });
+    if (failed(applyPartialConversion(op, target, std::move(patterns)))) {
+      op->emitOpError("could not expand measurements");
+      signalPassFailure();
     }
   }
 };

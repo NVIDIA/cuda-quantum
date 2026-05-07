@@ -33,4 +33,4 @@ add_backend_unittest_executable(test_observe_backend
   cudaq-em-default
   )
 
-gtest_discover_tests(test_observe_backend)
+gtest_discover_tests(test_observe_backend DISCOVERY_TIMEOUT 120)

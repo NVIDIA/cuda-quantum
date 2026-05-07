@@ -30,8 +30,8 @@ func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", qubitMeasure
     %7 = cc.load %1 : !cc.ptr<i1>
     %8 = arith.cmpi eq, %7, %false : i1
     cc.if(%8) {
-      %measOut_0 = quake.mz %0 name "inner_mz" : (!quake.veq<2>) -> !quake.measurements<2>
-      %9 = quake.discriminate %measOut_0 : (!quake.measurements<2>) -> !cc.stdvec<i1>
+      %measOut_0 = quake.mz %0 name "inner_mz" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+      %9 = quake.discriminate %measOut_0 : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>
       cc.scope {
         %10 = cc.alloca !cc.stdvec<i1>
         cc.store %9, %10 : !cc.ptr<!cc.stdvec<i1>>
@@ -46,8 +46,8 @@ func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", qubitMeasure
   %3 = cc.load %1 : !cc.ptr<i1>
   %4 = arith.cmpi eq, %3, %true : i1
   cc.if(%4) {
-    %measOut = quake.mz %0 name "outer_mz" : (!quake.veq<2>) -> !quake.measurements<2>
-    %5 = quake.discriminate %measOut : (!quake.measurements<2>) -> !cc.stdvec<i1>
+    %measOut = quake.mz %0 name "outer_mz" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+    %5 = quake.discriminate %measOut : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>
     cc.scope {
       %6 = cc.alloca !cc.stdvec<i1>
       cc.store %5, %6 : !cc.ptr<!cc.stdvec<i1>>
@@ -76,12 +76,11 @@ func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", qubitMeasure
 // CHECK:             %[[VAL_17:.*]] = quake.discriminate %[[VAL_15]] : (!quake.measure) -> i1
 // CHECK:             %[[VAL_18:.*]] = arith.cmpi eq, %[[VAL_17]], %[[VAL_0]] : i1
 // CHECK:             cc.if(%[[VAL_18]]) {
-// CHECK:               %[[VAL_19:.*]] = quake.mz %[[VAL_5]] name "inner_mz" : (!quake.veq<2>) -> !quake.measurements<2>
-// CHECK:               %[[VAL_20:.*]] = quake.discriminate %[[VAL_19]] : (!quake.measurements<2>) -> !cc.stdvec<i1>
+// CHECK:               %[[VAL_19:.*]] = quake.mz %[[VAL_5]] name "inner_mz" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+// CHECK:               %[[VAL_20:.*]] = quake.discriminate %[[VAL_19]] : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>
 // CHECK:               cc.scope {
 // CHECK:                 %[[VAL_21:.*]] = cc.undef !cc.stdvec<i1>
 // CHECK:               }
-// CHECK:             } else {
 // CHECK:             }
 // CHECK:             cc.continue %[[VAL_11]], %[[VAL_17]] : i64, i1
 // CHECK:           } step {
@@ -89,14 +88,12 @@ func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", qubitMeasure
 // CHECK:             %[[VAL_24:.*]] = arith.addi %[[VAL_22]], %[[VAL_1]] : i64
 // CHECK:             cc.continue %[[VAL_24]], %[[VAL_23]] : i64, i1
 // CHECK:           } {invariant}
-// CHECK:           %[[VAL_25:.*]] = arith.cmpi eq, %[[VAL_26:.*]]#1, %[[VAL_3]] : i1
-// CHECK:           cc.if(%[[VAL_25]]) {
-// CHECK:             %[[VAL_27:.*]] = quake.mz %[[VAL_5]] name "outer_mz" : (!quake.veq<2>) -> !quake.measurements<2>
-// CHECK:             %[[VAL_28:.*]] = quake.discriminate %[[VAL_27]] : (!quake.measurements<2>) -> !cc.stdvec<i1>
+// CHECK:           cc.if(%[[VAL_26:.*]]#1) {
+// CHECK:             %[[VAL_27:.*]] = quake.mz %[[VAL_5]] name "outer_mz" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+// CHECK:             %[[VAL_28:.*]] = quake.discriminate %[[VAL_27]] : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>
 // CHECK:             cc.scope {
 // CHECK:               %[[VAL_29:.*]] = cc.undef !cc.stdvec<i1>
 // CHECK:             }
-// CHECK:           } else {
 // CHECK:           }
 // CHECK:           return
 // CHECK:         }
@@ -112,55 +109,52 @@ func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", qubitMeasure
 // CANOE:           %[[VAL_7:.*]] = quake.discriminate %[[VAL_6]] : (!quake.measure) -> i1
 // CANOE:           %[[VAL_8:.*]] = arith.cmpi eq, %[[VAL_7]], %[[VAL_1]] : i1
 // CANOE:           cc.if(%[[VAL_8]]) {
-// CANOE:             %[[VAL_9:.*]] = quake.mz %[[VAL_3]] name "inner_mz" : (!quake.ref) -> !quake.measure
-// CANOE:             %[[VAL_10:.*]] = quake.mz %[[VAL_4]] name "inner_mz" : (!quake.ref) -> !quake.measure
-// CANOE:             %[[VAL_11:.*]] = cc.alloca !cc.array<i8 x 2>
-// CANOE:             %[[VAL_12:.*]] = quake.discriminate %[[VAL_9]] : (!quake.measure) -> i1
-// CANOE:             %[[VAL_13:.*]] = cc.cast %[[VAL_11]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
-// CANOE:             %[[VAL_14:.*]] = cc.cast unsigned %[[VAL_12]] : (i1) -> i8
-// CANOE:             cc.store %[[VAL_14]], %[[VAL_13]] : !cc.ptr<i8>
-// CANOE:             %[[VAL_15:.*]] = quake.discriminate %[[VAL_10]] : (!quake.measure) -> i1
-// CANOE:             %[[VAL_16:.*]] = cc.compute_ptr %[[VAL_11]][1] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+// CANOE:             %[[VAL_9:.*]] = cc.alloca !cc.array<i8 x 2>
+// CANOE:             %[[VAL_10:.*]] = quake.mz %[[VAL_3]] name "inner_mz" : (!quake.ref) -> !quake.measure
+// CANOE:             %[[VAL_11:.*]] = quake.discriminate %[[VAL_10]] : (!quake.measure) -> i1
+// CANOE:             %[[VAL_12:.*]] = cc.cast %[[VAL_9]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+// CANOE:             %[[VAL_13:.*]] = cc.cast unsigned %[[VAL_11]] : (i1) -> i8
+// CANOE:             cc.store %[[VAL_13]], %[[VAL_12]] : !cc.ptr<i8>
+// CANOE:             %[[VAL_14:.*]] = quake.mz %[[VAL_4]] name "inner_mz" : (!quake.ref) -> !quake.measure
+// CANOE:             %[[VAL_15:.*]] = quake.discriminate %[[VAL_14]] : (!quake.measure) -> i1
+// CANOE:             %[[VAL_16:.*]] = cc.compute_ptr %[[VAL_9]][1] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
 // CANOE:             %[[VAL_17:.*]] = cc.cast unsigned %[[VAL_15]] : (i1) -> i8
 // CANOE:             cc.store %[[VAL_17]], %[[VAL_16]] : !cc.ptr<i8>
-// CANOE:             %[[VAL_18:.*]] = cc.cast %[[VAL_11]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<!cc.array<i1 x ?>>
+// CANOE:             %[[VAL_18:.*]] = cc.cast %[[VAL_9]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<!cc.array<i1 x ?>>
 // CANOE:             %[[VAL_19:.*]] = cc.stdvec_init %[[VAL_18]], %[[VAL_0]] : (!cc.ptr<!cc.array<i1 x ?>>, i64) -> !cc.stdvec<i1>
 // CANOE:             cc.scope {
 // CANOE:               %[[VAL_20:.*]] = cc.undef !cc.stdvec<i1>
 // CANOE:             }
-// CANOE:           } else {
 // CANOE:           }
 // CANOE:           %[[VAL_21:.*]] = quake.mz %[[VAL_4]] name "res" : (!quake.ref) -> !quake.measure
 // CANOE:           %[[VAL_22:.*]] = quake.discriminate %[[VAL_21]] : (!quake.measure) -> i1
 // CANOE:           %[[VAL_23:.*]] = arith.cmpi eq, %[[VAL_22]], %[[VAL_1]] : i1
 // CANOE:           cc.if(%[[VAL_23]]) {
-// CANOE:             %[[VAL_24:.*]] = quake.mz %[[VAL_3]] name "inner_mz" : (!quake.ref) -> !quake.measure
-// CANOE:             %[[VAL_25:.*]] = quake.mz %[[VAL_4]] name "inner_mz" : (!quake.ref) -> !quake.measure
-// CANOE:             %[[VAL_26:.*]] = cc.alloca !cc.array<i8 x 2>
-// CANOE:             %[[VAL_27:.*]] = quake.discriminate %[[VAL_24]] : (!quake.measure) -> i1
-// CANOE:             %[[VAL_28:.*]] = cc.cast %[[VAL_26]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
-// CANOE:             %[[VAL_29:.*]] = cc.cast unsigned %[[VAL_27]] : (i1) -> i8
-// CANOE:             cc.store %[[VAL_29]], %[[VAL_28]] : !cc.ptr<i8>
-// CANOE:             %[[VAL_30:.*]] = quake.discriminate %[[VAL_25]] : (!quake.measure) -> i1
-// CANOE:             %[[VAL_31:.*]] = cc.compute_ptr %[[VAL_26]][1] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+// CANOE:             %[[VAL_24:.*]] = cc.alloca !cc.array<i8 x 2>
+// CANOE:             %[[VAL_25:.*]] = quake.mz %[[VAL_3]] name "inner_mz" : (!quake.ref) -> !quake.measure
+// CANOE:             %[[VAL_26:.*]] = quake.discriminate %[[VAL_25]] : (!quake.measure) -> i1
+// CANOE:             %[[VAL_27:.*]] = cc.cast %[[VAL_24]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
+// CANOE:             %[[VAL_28:.*]] = cc.cast unsigned %[[VAL_26]] : (i1) -> i8
+// CANOE:             cc.store %[[VAL_28]], %[[VAL_27]] : !cc.ptr<i8>
+// CANOE:             %[[VAL_29:.*]] = quake.mz %[[VAL_4]] name "inner_mz" : (!quake.ref) -> !quake.measure
+// CANOE:             %[[VAL_30:.*]] = quake.discriminate %[[VAL_29]] : (!quake.measure) -> i1
+// CANOE:             %[[VAL_31:.*]] = cc.compute_ptr %[[VAL_24]][1] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
 // CANOE:             %[[VAL_32:.*]] = cc.cast unsigned %[[VAL_30]] : (i1) -> i8
 // CANOE:             cc.store %[[VAL_32]], %[[VAL_31]] : !cc.ptr<i8>
-// CANOE:             %[[VAL_33:.*]] = cc.cast %[[VAL_26]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<!cc.array<i1 x ?>>
+// CANOE:             %[[VAL_33:.*]] = cc.cast %[[VAL_24]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<!cc.array<i1 x ?>>
 // CANOE:             %[[VAL_34:.*]] = cc.stdvec_init %[[VAL_33]], %[[VAL_0]] : (!cc.ptr<!cc.array<i1 x ?>>, i64) -> !cc.stdvec<i1>
 // CANOE:             cc.scope {
 // CANOE:               %[[VAL_35:.*]] = cc.undef !cc.stdvec<i1>
 // CANOE:             }
-// CANOE:           } else {
 // CANOE:           }
-// CANOE:           %[[VAL_36:.*]] = arith.cmpi eq, %[[VAL_22]], %[[VAL_2]] : i1
-// CANOE:           cc.if(%[[VAL_36]]) {
-// CANOE:             %[[VAL_37:.*]] = quake.mz %[[VAL_3]] name "outer_mz" : (!quake.ref) -> !quake.measure
-// CANOE:             %[[VAL_38:.*]] = quake.mz %[[VAL_4]] name "outer_mz" : (!quake.ref) -> !quake.measure
+// CANOE:           cc.if(%[[VAL_22]]) {
 // CANOE:             %[[VAL_39:.*]] = cc.alloca !cc.array<i8 x 2>
+// CANOE:             %[[VAL_37:.*]] = quake.mz %[[VAL_3]] name "outer_mz" : (!quake.ref) -> !quake.measure
 // CANOE:             %[[VAL_40:.*]] = quake.discriminate %[[VAL_37]] : (!quake.measure) -> i1
 // CANOE:             %[[VAL_41:.*]] = cc.cast %[[VAL_39]] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
 // CANOE:             %[[VAL_42:.*]] = cc.cast unsigned %[[VAL_40]] : (i1) -> i8
 // CANOE:             cc.store %[[VAL_42]], %[[VAL_41]] : !cc.ptr<i8>
+// CANOE:             %[[VAL_38:.*]] = quake.mz %[[VAL_4]] name "outer_mz" : (!quake.ref) -> !quake.measure
 // CANOE:             %[[VAL_43:.*]] = quake.discriminate %[[VAL_38]] : (!quake.measure) -> i1
 // CANOE:             %[[VAL_44:.*]] = cc.compute_ptr %[[VAL_39]][1] : (!cc.ptr<!cc.array<i8 x 2>>) -> !cc.ptr<i8>
 // CANOE:             %[[VAL_45:.*]] = cc.cast unsigned %[[VAL_43]] : (i1) -> i8
@@ -170,7 +164,6 @@ func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", qubitMeasure
 // CANOE:             cc.scope {
 // CANOE:               %[[VAL_48:.*]] = cc.undef !cc.stdvec<i1>
 // CANOE:             }
-// CANOE:           } else {
 // CANOE:           }
 // CANOE:           return
 // CANOE:         }
