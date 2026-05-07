@@ -102,9 +102,8 @@ static void specializeKernel(const std::string &name, ModuleOp module,
     throw std::runtime_error("Pass pipeline failed.");
 }
 
-/// Run the target compilation pipeline for Python MLIR kernels. Local Python
-/// targets only enter this path when they configure target pass-pipeline
-/// fields.
+/// Run the target compilation pipeline for Python MLIR kernels. Returns true
+/// when the target pipeline already ran standard finalization.
 static bool runTargetPassPipeline(mlir::ModuleOp module) {
   auto *rt = cudaq::get_platform().get_runtime_target();
   if (!rt)
