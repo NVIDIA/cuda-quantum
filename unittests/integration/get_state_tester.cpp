@@ -152,6 +152,39 @@ CUDAQ_TEST(GetStateTester, checkSimple) {
 #endif
 }
 
+CUDAQ_TEST(GetStateTester, checkTraceAndTensorProduct) {
+  auto bell = []() __qpu__ {
+    cudaq::qubit q, r;
+    h(q);
+    cx(q, r);
+  };
+
+  // 1. Trace of density matrix
+#ifdef CUDAQ_BACKEND_DM
+  auto dm = cudaq::get_state(bell);
+  EXPECT_NEAR(1.0, dm.trace().real(), 1e-6);
+  EXPECT_NEAR(0.0, dm.trace().imag(), 1e-6);
+
+  // 2. Tensor product of density matrices
+  auto jointDm = dm.tensor_product(dm);
+  EXPECT_EQ(jointDm.get_tensor(0).extents.size(), 2);
+  EXPECT_EQ(jointDm.get_tensor(0).extents[0], 16);
+  EXPECT_EQ(jointDm.get_tensor(0).extents[1], 16);
+  EXPECT_NEAR(1.0, jointDm.trace().real(), 1e-6);
+#else
+  auto stateVector = cudaq::get_state(bell);
+  // Trace should throw for state vector
+  EXPECT_THROW(stateVector.trace(), std::runtime_error);
+
+  // Tensor product of state vectors
+  auto jointVec = stateVector.tensor_product(stateVector);
+  EXPECT_EQ(jointVec.get_tensor(0).extents.size(), 1);
+  EXPECT_EQ(jointVec.get_tensor(0).extents[0], 16);
+  // Overlap of |joint> with |bell> x |bell> should be 1
+  EXPECT_NEAR(1.0, jointVec.overlap(jointVec).real(), 1e-6);
+#endif
+}
+
 #ifdef CUDAQ_BACKEND_TENSORNET
 __qpu__ void bell() {
   cudaq::qubit q, r;

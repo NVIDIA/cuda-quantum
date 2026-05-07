@@ -108,6 +108,8 @@ struct QppDmState : public cudaq::SimulationState {
     return state(indices[0], indices[1]);
   }
 
+  std::complex<double> trace() override { return state.trace(); }
+
   std::unique_ptr<cudaq::SimulationState>
   createFromData(const state_data &data) override {
     if (std::holds_alternative<cudaq::complex_matrix>(data)) {

@@ -8,6 +8,7 @@
 
 #include "state.h"
 #include "common/EigenDense.h"
+#include "cudaq/operators/matrix.h"
 #include "cudaq/simulators.h"
 #include <iostream>
 
@@ -109,6 +110,12 @@ std::complex<double> state::operator()(std::size_t idx, std::size_t jdx) const {
 std::complex<double> state::overlap(const state &other) {
   return internal->overlap(*other.internal.get());
 }
+
+state state::tensor_product(const state &other) const {
+  return state(internal->tensorProduct(*other.internal).release());
+}
+
+std::complex<double> state::trace() const { return internal->trace(); }
 
 std::complex<double> state::amplitude(const std::vector<int> &basisState) {
   return internal->getAmplitude(basisState);
