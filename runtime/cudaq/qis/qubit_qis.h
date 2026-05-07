@@ -20,9 +20,9 @@
 #include "cudaq/qis/qreg.h"
 #include "cudaq/qis/qvector.h"
 #include <algorithm>
-#include <cstdlib>
 #include <cstring>
 #include <functional>
+#include <stdexcept>
 
 #define __qpu__ __attribute__((annotate("quantum")))
 
@@ -425,8 +425,12 @@ void exp_pauli(QuantumRegister &ctrls, double theta, const char *pauliWord,
 // `mz`/`mx`/`my` are `__qpu__`-only entry points. In MLIR mode the bridge
 // intercepts every call to these functions inside a `__qpu__` kernel and emits
 // the corresponding `quake.{mz, mx, my}` op directly, so the inline body never
-// runs in a built kernel; we therefore `std::abort()` so host-scope misuse
+// runs in a built kernel; we therefore throw so host-scope misuse
 // fails loudly instead of returning a meaningless value.
+namespace details {
+inline constexpr const char *kQpuOnlyHostScopeError =
+    "Not allowed on host code; usable only inside a `__qpu__` kernel.";
+}
 
 /// @brief Measure an individual qubit, return 0,1 as `bool`
 inline measure_result mz(qubit &q) {
@@ -434,7 +438,7 @@ inline measure_result mz(qubit &q) {
   return getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
 #else
   (void)q;
-  std::abort();
+  throw std::runtime_error(details::kQpuOnlyHostScopeError);
 #endif
 }
 
@@ -445,7 +449,7 @@ inline measure_result mx(qubit &q) {
   return getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
 #else
   (void)q;
-  std::abort();
+  throw std::runtime_error(details::kQpuOnlyHostScopeError);
 #endif
 }
 
@@ -457,7 +461,7 @@ inline measure_result my(qubit &q) {
   return getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
 #else
   (void)q;
-  std::abort();
+  throw std::runtime_error(details::kQpuOnlyHostScopeError);
 #endif
 }
 
@@ -564,7 +568,8 @@ inline std::vector<bool> to_bools(const std::vector<measure_result> &results) {
 #ifdef CUDAQ_LIBRARY_MODE
   return measure_result::to_bool_vector(results);
 #else
-  std::abort();
+  (void)results;
+  throw std::runtime_error(details::kQpuOnlyHostScopeError);
 #endif
 }
 

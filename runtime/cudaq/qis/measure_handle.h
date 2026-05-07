@@ -13,8 +13,8 @@
 #ifndef CUDAQ_LIBRARY_MODE
 
 #include <cstdint>
-#include <cstdlib>
 #include <limits>
+#include <stdexcept>
 #include <type_traits>
 
 namespace cudaq::details {
@@ -49,10 +49,14 @@ public:
 
   // The bridge intercepts every `bool` coercion of a `measure_handle` and
   // emits `quake.discriminate`. This body therefore must never run in a
-  // built kernel; reaching it means the bridge missed an interception
-  // path and the program would otherwise compute on a meaningless `bool`.
-  // Abort instead of returning a quiet wrong answer.
-  operator bool() const { std::abort(); }
+  // built kernel; reaching it means the bridge missed an interception path
+  // and the program would otherwise compute on a meaningless `bool`.
+  operator bool() const {
+    throw std::runtime_error(
+        "`cudaq::measure_handle`: implicit `bool` conversion at host scope is "
+        "not supported. Discriminate the handle inside a "
+        "`__qpu__` kernel before crossing the host-device boundary.");
+  }
 
 private:
   // `index` is the measurement-event identity consumed by `!cc.measure_handle`

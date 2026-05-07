@@ -90,10 +90,11 @@ static bool storeDominatesLoad(cudaq::cc::StoreOp store,
 // On the scalar-handle alloca path, every store reaching the alloca must
 // dominate the load (`storeDominatesLoad`); the aggregate / array path stays
 // coarse because per-element/per-member tracking would need reasoning about
-// SSA `cc.compute_ptr` indices, which we defer to a follow-up. Recursive
-// because the source of a binding store may itself be the result of another
-// load through copy/move stores between local allocas. The `visited` set
-// prevents cycles when handles flow through multiple allocas.
+// SSA `cc.compute_ptr` indices, deferred to a follow-up
+// (NVIDIA/cuda-quantum#4479). Recursive because the source of a binding store
+// may itself be the result of another load through copy/move stores between
+// local allocas. The `visited` set prevents cycles when handles flow through
+// multiple allocas.
 static bool isBoundHandle(Value v, llvm::SmallPtrSetImpl<Value> &visited) {
   if (!visited.insert(v).second)
     return false;
