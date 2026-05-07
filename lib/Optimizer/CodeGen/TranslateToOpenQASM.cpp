@@ -367,6 +367,7 @@ static LogicalResult emitOperation(cudaq::Emitter &emitter, Operation &op) {
       .Case<cudaq::cc::CastOp>([&](auto op) { return success(); })
       .Case<cudaq::cc::ComputePtrOp>([&](auto op) { return success(); })
       .Case<quake::DiscriminateOp>([&](auto op) { return success(); })
+      .Case<cudaq::cc::ScopeOp>([&](auto op) { return success(); })
       .Default([&](Operation *) -> LogicalResult {
         if (op.getName().getDialectNamespace() == "llvm")
           return success();
