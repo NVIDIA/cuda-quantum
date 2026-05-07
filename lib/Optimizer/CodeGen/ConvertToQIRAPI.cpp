@@ -734,11 +734,14 @@ struct BundleCableOpRewrite
     auto loc = bundle.getLoc();
     Type arrayTy = M::getArrayType(rewriter.getContext());
     Value firstOperand = adaptor.getOperands().front();
-    Value resultArray = Base::wrapQubitAsArray(loc, rewriter, firstOperand);
-    for (auto next : adaptor.getOperands().drop_front()) {
-      Value wrapNext = Base::wrapQubitAsArray(loc, rewriter, next);
-      auto appended = rewriter.create<func::CallOp>(
-          loc, arrayTy, cudaq::opt::QIRArrayConcatArray,
+    Type firstTy = getInitialType(bundle, 0);
+    Value resultArray =
+        Base::wrapQubitAsArray(loc, rewriter, firstOperand, firstTy);
+    for (auto [i, next] : llvm::enumerate(adaptor.getOperands().drop_front())) {
+      Type nextTy = getInitialType(bundle, i + 1);
+      Value wrapNext = Base::wrapQubitAsArray(loc, rewriter, next, nextTy);
+      auto appended = func::CallOp::create(
+          rewriter, loc, arrayTy, cudaq::opt::QIRArrayConcatArray,
           ArrayRef<Value>{resultArray, wrapNext});
       resultArray = appended.getResult(0);
     }
@@ -926,14 +929,14 @@ struct SplitCableOpRewrite : public OpConversionPattern<quake::SplitCableOp> {
 
     SmallVector<Value> qubits;
     std::uint64_t size =
-        4; // cast<quake::CableType>(getInitialType(cab, 0)).getSize();
+        cast<quake::CableType>(getInitialType(split, 0)).getSize();
     for (std::uint64_t i = 0; i < size; ++i) {
-      Value index = rewriter.create<arith::ConstantIntOp>(loc, i, 64);
-      auto call = rewriter.create<func::CallOp>(
-          loc, cudaq::cc::PointerType::get(qubitTy),
+      Value index = arith::ConstantIntOp::create(rewriter, loc, i, 64);
+      auto call = func::CallOp::create(
+          rewriter, loc, cudaq::cc::PointerType::get(qubitTy),
           cudaq::opt::QIRArrayGetElementPtr1d, ArrayRef<Value>{cab, index});
       qubits.push_back(
-          rewriter.create<cudaq::cc::LoadOp>(loc, call.getResult(0)));
+          cudaq::cc::LoadOp::create(rewriter, loc, call.getResult(0)));
     }
     rewriter.replaceOp(split, ValueRange{qubits});
     return success();
