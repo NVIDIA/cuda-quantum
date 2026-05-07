@@ -129,14 +129,19 @@ void bindExecutionContext(nanobind::module_ &mod) {
       nanobind::arg("qpuId") = 0);
   mod.def("getQirOutputLog", []() { return nvqir::getQirOutputLog(); });
   mod.def("clearQirOutputLog", []() { nvqir::clearQirOutputLog(); });
-  mod.def("decodeQirOutputLog",
-          [](const std::string &outputLog, nanobind::bytearray decodedResults) {
-            cudaq::RecordLogParser parser;
-            parser.parse(outputLog);
-            auto *origBuffer = parser.getBufferPtr();
-            const std::size_t bufferSize = parser.getBufferSize();
-            std::memcpy(decodedResults.data(), origBuffer, bufferSize);
-          });
+  mod.def("decodeQirOutputLog", [](const std::string &outputLog,
+                                   nanobind::object decodedResults) {
+    cudaq::RecordLogParser parser;
+    parser.parse(outputLog);
+    Py_buffer view;
+    if (PyObject_GetBuffer(decodedResults.ptr(), &view, PyBUF_WRITABLE) != 0)
+      throw nanobind::python_error();
+    // Get the buffer and length of buffer (in bytes) from the parser.
+    auto *origBuffer = parser.getBufferPtr();
+    const std::size_t bufferSize = parser.getBufferSize();
+    std::memcpy(view.buf, origBuffer, bufferSize);
+    PyBuffer_Release(&view);
+  });
 
   nanobind::class_<PersistJITEngine>(
       mod, "reuse_compiler_artifacts",

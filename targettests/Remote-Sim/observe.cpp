@@ -51,7 +51,9 @@ int main() {
         1, [&](const std::vector<double> &x, std::vector<double> &grad_vec) {
           double e = cudaq::observe(ansatz{}, h, x[0]);
           gradient.compute(x, grad_vec, h, e);
-          printf("<H>(%lf, %lf) = %lf\n", x[0], x[1], e);
+          // FIXME: temp fix for oob vector access
+          // printf("<H>(%lf, %lf) = %lf\n", x[0], x[1], e);
+          printf("<H>(%lf) = %lf\n", x[0], e);
           return e;
         });
     printf("Optimal value = %.16lf\n", opt_val);

@@ -144,8 +144,13 @@ CuDensityMatState::createFromSizeAndPtr(std::size_t size, void *dataPtr,
   HANDLE_CUDA_ERROR(cudaMemcpy(devicePtr, dataPtr,
                                size * sizeof(std::complex<double>),
                                cudaMemcpyDefault));
-  // printf("Created CuDensityMatState ptr %p\n", devicePtr);
-  return std::make_unique<CuDensityMatState>(size, devicePtr);
+  auto result = std::make_unique<CuDensityMatState>(size, devicePtr);
+  // Propagate the density-matrix flag so `getTensor()` and `operator()` report
+  // the correct shape before `initialize_cudm()` runs. Dropped in PR #2853 when
+  // the ctor `isDm` parameter was removed; `dimension` already stores the flat
+  // element count, so setting the flag alone is sufficient.
+  result->isDensityMatrix = isDm;
+  return result;
 }
 
 // Return the tensor at the given index. Throws

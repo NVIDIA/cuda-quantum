@@ -28,6 +28,7 @@ from cudaq.mlir.ir import (BoolAttr, Block, BlockArgument, Context, ComplexType,
                            InsertionPoint, IntegerAttr, IntegerType, Location,
                            Module, StringAttr, SymbolTable, TypeAttr, UnitAttr)
 from cudaq.mlir.passmanager import PassManager
+from cudaq.util import trace
 from .analysis import ValidateArgumentAnnotations, ValidateReturnStatements
 from .kernel_signature import KernelSignature
 from .utils import (Color, globalRegisteredOperations, globalRegisteredTypes,
@@ -2793,12 +2794,12 @@ class PyASTBridge(ast.NodeVisitor):
 
                 totalSize = arith.SubIOp(endVal, startVal).result
                 if isDecrementing:
-                    roundingOffset = arith.AddIOp(stepVal, one)
+                    roundingOffset = arith.AddIOp(stepVal, one).result
                 else:
-                    roundingOffset = arith.SubIOp(stepVal, one)
-                totalSize = arith.AddIOp(totalSize, roundingOffset)
+                    roundingOffset = arith.SubIOp(stepVal, one).result
+                totalSize = arith.AddIOp(totalSize, roundingOffset).result
                 totalSize = arith.MaxSIOp(
-                    zero,
+                    zero.result,
                     arith.DivSIOp(totalSize, stepVal).result).result
 
                 # Create an array of i64 of the total size
@@ -2814,7 +2815,7 @@ class PyASTBridge(ast.NodeVisitor):
                 # but we also need to keep track of a counter
                 counter = cc.AllocaOp(cc.PointerType.get(iTy),
                                       TypeAttr.get(iTy)).result
-                cc.StoreOp(zero, counter)
+                cc.StoreOp(zero.result, counter)
 
                 def bodyBuilder(iterVar):
                     loadedCounter = cc.LoadOp(counter).result
@@ -2823,7 +2824,8 @@ class PyASTBridge(ast.NodeVisitor):
                         DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                               context=self.ctx))
                     cc.StoreOp(iterVar, eleAddr)
-                    incrementedCounter = arith.AddIOp(loadedCounter, one).result
+                    incrementedCounter = arith.AddIOp(loadedCounter,
+                                                      one.result).result
                     cc.StoreOp(incrementedCounter, counter)
 
                 self.createMonotonicForLoop(bodyBuilder,
@@ -3609,19 +3611,25 @@ class PyASTBridge(ast.NodeVisitor):
                             cudaq_module = importlib.import_module('cudaq')
                             channel_class = getattr(cudaq_module,
                                                     node.args[0].attr)
-                            numParams = channel_class.num_parameters
+                            numParams = (channel_class.num_parameters
+                                         if hasattr(channel_class,
+                                                    'num_parameters') else
+                                         channel_class.get_num_parameters())
                             key = self.getConstantInt(hash(channel_class))
                         elif isinstance(node.args[0], ast.Name):
                             arg = recover_value_of_or_none(
                                 node.args[0].id, self.defFrame)
                             if (arg and isinstance(arg, type) and issubclass(
                                     arg, cudaq_runtime.KrausChannel)):
-                                if not hasattr(arg, 'num_parameters'):
+                                if (not hasattr(arg, 'num_parameters') and
+                                        not hasattr(arg, 'get_num_parameters')):
                                     self.emitFatalError(
                                         'apply_noise kraus channels must have '
                                         '`num_parameters` constant class '
                                         'attribute specified.')
-                                numParams = arg.num_parameters
+                                numParams = (arg.num_parameters if hasattr(
+                                    arg, 'num_parameters') else
+                                             arg.get_num_parameters())
                                 key = self.getConstantInt(hash(arg))
                         if key is None:
                             self.emitFatalError(
@@ -4822,10 +4830,10 @@ class PyASTBridge(ast.NodeVisitor):
             if ComplexType.isinstance(item1.type):
                 reComp = arith.CmpFOp(fCondPred,
                                       complex.ReOp(item1).result,
-                                      complex.ReOp(item2).result)
+                                      complex.ReOp(item2).result).result
                 imComp = arith.CmpFOp(fCondPred,
                                       complex.ImOp(item1).result,
-                                      complex.ImOp(item2).result)
+                                      complex.ImOp(item2).result).result
                 return arith.AndIOp(reComp, imComp).result
             elif IntegerType.isinstance(item1.type):
                 return arith.CmpIOp(iCondPred, item1, item2).result
@@ -5483,17 +5491,28 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
                          kernelModuleName=kernelModuleName,
                          cudaqAliases=cudaqAliases)
 
-    ValidateArgumentAnnotations(bridge).visit(astModule)
-    ValidateReturnStatements(bridge).visit(astModule)
+    # Build the AOT Quake Module for this kernel. Wrapped in a single span so
+    # the tracer can separate Python-AST-to-MLIR construction from the AOT
+    # pass pipeline that runs immediately after.
+    with trace.span("ast_bridge.build_module"):
+        ValidateArgumentAnnotations(bridge).visit(astModule)
+        ValidateReturnStatements(bridge).visit(astModule)
+        bridge.visit(astModule)
 
-    # Build the AOT Quake Module for this kernel.
-    bridge.visit(astModule)
-
-    # Precompile (simplify) the Module.
+    # Precompile (simplify) the Module. Run via `cudaq_runtime.runPassManager`
+    # so `TracePassInstrumentation` is installed (matching the JIT-side
+    # install at `runtime/internal/compiler/RuntimePyMLIR.cpp`). Without this,
+    # AOT passes execute through upstream MLIR's `pm.run()` without a tracer
+    # attached and per-pass wall-time cannot be attributed.
+    #
+    # The `cudaq.pipeline.aot` span is the marker tooling uses to identify
+    # pass events as AOT-pipeline (paired with `cudaq.pipeline.jit` emitted
+    # from `QPU.cpp` `lower_to_qir_llvm`).
     pm = PassManager.parse("builtin.module(aot-prep-pipeline)",
                            context=bridge.ctx)
     try:
-        pm.run(bridge.module)
+        with trace.span("cudaq.pipeline.aot"):
+            cudaq_runtime.runPassManager(pm, bridge.module)
     except:
         raise RuntimeError(f"could not compile code for '{bridge.name}'.")
 
@@ -5503,8 +5522,13 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
     if verbose:
         print(bridge.module)
     # Clear the live operations cache. This avoids python crashing with
-    # stale references being cached.
-    bridge.module.context._clear_live_operations()
+    # stale references being cached. (MLIR 22+ may expose this as
+    # clear_live_operations instead of _clear_live_operations.)
+    ctx = bridge.module.context
+    clear_fn = getattr(ctx, '_clear_live_operations', None) or getattr(
+        ctx, 'clear_live_operations', None)
+    if clear_fn is not None:
+        clear_fn()
     # The only MLIR code object wrapped & tracked ought to be `newMod` now.
     cudaq_runtime.set_data_layout(bridge.module)
     return bridge.module

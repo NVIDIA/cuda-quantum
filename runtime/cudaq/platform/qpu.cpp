@@ -7,18 +7,29 @@
  ******************************************************************************/
 
 #include "qpu.h"
+#include "common/CompiledModule.h"
 #include "mlir/IR/BuiltinOps.h"
 #include <cstring>
 
 using namespace cudaq_internal::compiler;
 
-LLVM_INSTANTIATE_REGISTRY(cudaq::ModuleLauncher::RegistryType)
+CUDAQ_INSTANTIATE_REGISTRY(cudaq::ModuleLauncher::RegistryType)
+
+// Bridge so the Python extension can register PythonLauncher into this DSO's
+// registry. CUDA-Q Registry uses static inline Head/Tail, so each DSO that
+// instantiates the template gets its own copy; launchModule runs in this DSO
+// and reads the empty list. Registering via this function adds to our list.
+extern "C" void cudaq_add_module_launcher_node(void *node_ptr) {
+  using Node = cudaq::Registry<cudaq::ModuleLauncher>::node;
+  cudaq::Registry<cudaq::ModuleLauncher>::add_node(
+      static_cast<Node *>(node_ptr));
+}
 
 /// Execute a JIT-compiled kernel with provided arguments.
 ///
-/// Handles argument marshaling via `argsCreator` (if not fully specialized) and
-/// result buffer allocation.
-cudaq::KernelThunkResultType
+/// Handles argument marshaling via `argsCreator` (if not fully specialized)
+/// and result buffer allocation.
+static cudaq::KernelThunkResultType
 launchCompiledModule(const cudaq::CompiledModule &compiled,
                      const std::vector<void *> &rawArgs) {
   auto funcPtr = compiled.getJit()->getFn();
@@ -53,27 +64,28 @@ launchCompiledModule(const cudaq::CompiledModule &compiled,
 }
 
 cudaq::KernelThunkResultType
-cudaq::QPU::launchModule(const std::string &name, mlir::ModuleOp module,
+cudaq::QPU::launchModule(const CompiledModule &module,
                          const std::vector<void *> &rawArgs) {
   auto launcher = registry::get<ModuleLauncher>("default");
   if (!launcher)
     throw std::runtime_error(
         "No ModuleLauncher registered with name 'default'. This may be a "
         "result of attempting to use `launchModule` outside Python.");
-  ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::launchModule", name);
-  auto compiled = launcher->compileModule(name, module, rawArgs, true);
-  return launchCompiledModule(compiled, rawArgs);
+  ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::launchModule",
+                         module.getName());
+  return launchCompiledModule(module, rawArgs);
 }
 
 cudaq::CompiledModule
-cudaq::QPU::specializeModule(const std::string &name, mlir::ModuleOp module,
-                             const std::vector<void *> &rawArgs,
-                             bool isEntryPoint) {
+cudaq::QPU::compileModule(const std::string &name, const void *modulePtr,
+                          const std::vector<void *> &rawArgs,
+                          bool isEntryPoint) {
   auto launcher = registry::get<ModuleLauncher>("default");
   if (!launcher)
     throw std::runtime_error(
         "No ModuleLauncher registered with name 'default'. This may be a "
-        "result of attempting to use `specializeModule` outside Python.");
-  ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::specializeModule", name);
+        "result of attempting to use `compileModule` outside Python.");
+  ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::compileModule", name);
+  mlir::ModuleOp module = mlir::ModuleOp::getFromOpaquePointer(modulePtr);
   return launcher->compileModule(name, module, rawArgs, isEntryPoint);
 }

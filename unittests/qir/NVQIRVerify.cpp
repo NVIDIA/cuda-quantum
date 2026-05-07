@@ -34,10 +34,10 @@ TEST(NVQIRVerify, check1) {
   StringRef theQuake = R"#(
     llvm.func @indirectCallFunc() -> i32
     llvm.func @entryPoint() {
-      %0 = llvm.mlir.addressof @indirectCallFunc : !llvm.ptr<func<i32()>>
+      %0 = llvm.mlir.addressof @indirectCallFunc : !llvm.ptr
       // expected-error @+2 {{unexpected indirect call in NVQIR}}
       // expected-note @+1 {{}}
-      %1 = llvm.call %0() : () -> i32
+      %1 = llvm.call %0() : !llvm.ptr, () -> i32
       llvm.return
     }
     )#";

@@ -20,6 +20,7 @@ add_library(${LIBRARY_NAME}
     algorithms/schedule.cpp
     platform/common/QuantumExecutionQueue.cpp
     platform/qpu.cpp
+    platform/qpu_utils.cpp
     platform/qpu_state.cpp
     platform/quantum_platform.cpp
     qis/execution_manager_c_api.cpp

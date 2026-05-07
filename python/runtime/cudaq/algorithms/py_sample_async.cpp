@@ -10,8 +10,8 @@
 #include "common/DeviceCodeRegistry.h"
 #include "cudaq/algorithms/sample.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
-#include "utils/NanobindAdaptors.h"
 #include "utils/OpaqueArguments.h"
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include <fmt/core.h>
@@ -42,6 +42,12 @@ static async_sample_result sample_async_impl(
   // Should only have C++ going on here, safe to release the GIL
   nanobind::gil_scoped_release release;
 
+  auto clonedMod = std::shared_ptr<mlir::ModuleOp>(
+      new mlir::ModuleOp(mod.clone()), [](mlir::ModuleOp *p) {
+        p->erase();
+        delete p;
+      });
+
   // Use runSamplingAsync with noise model support.
   // The noise_model is passed by value to runSamplingAsync, which captures
   // it in the async task to ensure proper lifetime and handles setting/
@@ -51,11 +57,11 @@ static async_sample_result sample_async_impl(
       // (1) no Python data access is allowed in this lambda body.
       // (2) This lambda might be executed multiple times, e.g, when
       // the kernel contains measurement feedback.
-      detail::make_copyable_function([opaques = std::move(opaques), kernelName,
-                                      mod = mod.clone()]() mutable {
-        [[maybe_unused]] auto result =
-            clean_launch_module(kernelName, mod, opaques);
-      }),
+      detail::make_copyable_function(
+          [opaques = std::move(opaques), kernelName, clonedMod]() mutable {
+            [[maybe_unused]] auto result =
+                clean_launch_module(kernelName, *clonedMod, opaques);
+          }),
       platform, kernelName, shots_count, explicit_measurements, qpu_id,
       std::move(noise_model));
 }
@@ -103,5 +109,10 @@ programming pattern.
           },
           "FIXME: document");
 
-  mod.def("sample_async_impl", sample_async_impl, "FIXME: document");
+  mod.def("sample_async_impl", sample_async_impl, "FIXME: document",
+          nanobind::arg("short_name"), nanobind::arg("module"),
+          nanobind::arg("shots_count"),
+          nanobind::arg("noise_model").none() = std::nullopt,
+          nanobind::arg("explicit_measurements"), nanobind::arg("qpu_id"),
+          nanobind::arg("runtime_args"));
 }

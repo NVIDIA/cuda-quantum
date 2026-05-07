@@ -20,14 +20,7 @@ on:
       github_commit:
         required: false
         type: string
-        description: Optional argument to set the GitHub commit to use for the build.
-      skip_build:
-        type: boolean
-        required: false
-        default: false
-        description: >
-          When true, jobs run to report success for required-check gating
-          but skip the docker builds, tests, and image pushes.
+        description: Optional argument to set the GitHub commit to use for the build. 
     outputs:
       artifact_name:
         description: "The name of the artifact that contains the built metapackages."
@@ -51,20 +44,7 @@ jobs:
         with:
           ref: "${{ inputs.github_commit || '' }}"
 
-      - name: Report skip_build
-        if: ${{ inputs.skip_build }}
-        run: |
-          echo "::notice title=SKIPPED on PR tier::This check reports success without running. Re-run the workflow with ci_level=full (or merge to trigger merge_group) to validate this configuration."
-          {
-            echo "## Skipped on PR tier"
-            echo ""
-            echo "This check reported success without running. The full validation matrix runs on **merge_group** and **workflow_dispatch** events."
-            echo ""
-            echo "To run it now: **Re-run jobs** and set \`ci_level=full\`."
-          } >> "$GITHUB_STEP_SUMMARY"
-
       - name: Build metapackages
-        if: ${{ !inputs.skip_build }}
         id: metapackage_build
         run: |
             sed -i "s/README.md.in/README.md/g" python/metapackages/pyproject.toml
@@ -110,7 +90,6 @@ jobs:
             echo "artifact_name=cudaq-metapackage-${{ inputs.cudaq_version }}" >> $GITHUB_OUTPUT
 
       - name: Upload metapackages
-        if: ${{ !inputs.skip_build }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.metapackage_build.outputs.artifact_name }}
@@ -139,20 +118,7 @@ jobs:
       fail-fast: false
 
     steps:
-      - name: Report skip_build
-        if: ${{ inputs.skip_build }}
-        run: |
-          echo "::notice title=SKIPPED on PR tier::This check reports success without running. Re-run the workflow with ci_level=full (or merge to trigger merge_group) to validate this configuration."
-          {
-            echo "## Skipped on PR tier"
-            echo ""
-            echo "This check reported success without running. The full validation matrix runs on **merge_group** and **workflow_dispatch** events."
-            echo ""
-            echo "To run it now: **Re-run jobs** and set \`ci_level=full\`."
-          } >> "$GITHUB_STEP_SUMMARY"
-
       - name: Load metapackages
-        if: ${{ !inputs.skip_build }}
         uses: actions/download-artifact@v4
         with:
           pattern: ${{ needs.build_metapackages.outputs.artifact_name }}
@@ -160,7 +126,6 @@ jobs:
           merge-multiple: true
 
       - name: Load wheels
-        if: ${{ !inputs.skip_build }}
         uses: actions/download-artifact@v4
         with:
           pattern: ${{ inputs.wheel_artifacts }}
@@ -168,7 +133,6 @@ jobs:
           merge-multiple: true
 
       - name: Test installation
-        if: ${{ !inputs.skip_build }}
         run: |
           mkdir -p /tmp/packages 
           mv /tmp/wheels/* /tmp/packages && mv /tmp/metapackages/* /tmp/packages
@@ -227,7 +191,6 @@ jobs:
           fi
 
       - name: Test installation error
-        if: ${{ !inputs.skip_build }}
         run: |
           python=python${{ matrix.python_version }}
 

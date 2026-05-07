@@ -10,6 +10,7 @@ from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.kernel.kernel_builder import PyKernel
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
 from cudaq.kernel.utils import mlirTypeToPyType, nvqppPrefix
+from cudaq.util import trace
 from .utils import __isBroadcast, __createArgumentSet
 
 # Maintain a dictionary of queued `async` sample kernels.This dictionary is used
@@ -91,8 +92,10 @@ def _detail_check_conditionals_on_measure(kernel):
         # Only check for kernels that can be compiled, not library-mode kernels (e.g., photonics)
         if kernel.supports_compilation():
             for operation in kernel.qkeModule.body.operations:
-                if (hasattr(operation, 'name') and nvqppPrefix + kernel.uniqName
-                        == operation.name.value and
+                op_name = getattr(operation.name,
+                                  'value', operation.name) if hasattr(
+                                      operation, 'name') else None
+                if (op_name == nvqppPrefix + kernel.uniqName and
                         'qubitMeasurementFeedback' in operation.attributes):
                     has_conditionals_on_measure_result = True
     elif isinstance(kernel, PyKernel) and kernel.conditionalOnMeasure:
@@ -115,6 +118,7 @@ def _detail_check_explicit_measurements(explicit_measurements):
             "on this target.")
 
 
+@trace.traced
 def sample(kernel,
            *args,
            shots_count=1000,
@@ -201,6 +205,7 @@ def sample(kernel,
     return counts
 
 
+@trace.traced
 def sample_async(decorator,
                  *args,
                  shots_count=1000,

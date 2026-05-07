@@ -217,6 +217,88 @@ def test_evolve_density_matrix_numpy_layout_cudm():
     )
 
 
+def test_evolve_density_matrix_cupy_strided_layout_cudm():
+    base = cp.array([[1.0 + 0.0j, 2.0 + 0.0j], [3.0 + 0.0j, 4.0 + 0.0j]],
+                    dtype=cp.complex128)
+    cases = [
+        ("c_order", base, cp.asnumpy(base)),  # Already C-contiguous, no copy
+        ("fortran_order", cp.asfortranarray(base), cp.asnumpy(base)),
+        ("transpose_view", base.T, cp.asnumpy(base.T)),
+    ]
+
+    for _, rho, expected in cases:
+        state = cudaq.State.from_data(rho)
+        evolution_result = cudaq.evolve(
+            0.0 * boson.number(0),
+            {0: 2},
+            Schedule([0.0], ["t"]),
+            state,
+            observables=[],
+            collapse_operators=[],
+            store_intermediate_results=cudaq.IntermediateResultSave.NONE,
+        )
+
+        final_arr = np.array(evolution_result.final_state())
+        np.testing.assert_allclose(final_arr, expected, atol=1e-12)
+
+
+def test_evolve_density_matrix_cupy_contiguous_no_regression_cudm():
+    """C-contiguous 2D CuPy array should go through the GPU path directly
+    without being copied back to host."""
+    rho = cp.array([[1.0 + 0.0j, 0.0j], [0.0j, 0.0j]], dtype=cp.complex128)
+    assert rho.flags["C_CONTIGUOUS"]
+    expected = cp.asnumpy(rho)
+
+    state = cudaq.State.from_data(rho)
+    evolution_result = cudaq.evolve(
+        0.0 * boson.number(0),
+        {0: 2},
+        Schedule([0.0], ["t"]),
+        state,
+        observables=[],
+        collapse_operators=[],
+        store_intermediate_results=cudaq.IntermediateResultSave.NONE,
+    )
+
+    final_arr = np.array(evolution_result.final_state())
+    np.testing.assert_allclose(final_arr, expected, atol=1e-12)
+
+
+@pytest.mark.parametrize("layout",
+                         ["c_order", "fortran_order", "transpose_view"])
+def test_from_data_cupy_2d_square_metadata_preserved_pre_evolve(layout):
+    """State metadata (extents, array shape) must be correct immediately
+    after `from_data`, before any `evolve()` call re-initializes the state.
+
+    Regression for the `isDensityMatrix` flag not being propagated through
+    `CuDensityMatState::createFromSizeAndPtr` (dropped in PR #2853).
+    """
+    base = cp.array([[1.0 + 0.2j, 0.3 + 0.0j], [0.3 + 0.0j, 0.4 + 0.5j]],
+                    dtype=cp.complex128)
+    if layout == "c_order":
+        rho = base
+    elif layout == "fortran_order":
+        rho = cp.asfortranarray(base)
+    else:
+        rho = base.T
+
+    state = cudaq.State.from_data(rho)
+    assert state.getTensor().extents == [2, 2]
+    arr = np.array(state)
+    assert arr.shape == (2, 2)
+    np.testing.assert_allclose(arr, cp.asnumpy(rho), atol=1e-12)
+
+
+def test_from_data_cupy_2d_non_square_rejected():
+    """Non-square 2D CuPy arrays on dynamics target must be rejected at
+    `from_data` time with the same error as the host 2D path, not deferred
+    to a cryptic failure inside `evolve()`."""
+    rho = cp.array([[1, 2, 3], [4, 5, 6]], dtype=cp.complex128)
+    assert rho.flags["C_CONTIGUOUS"]
+    with pytest.raises(RuntimeError, match="square matrix"):
+        cudaq.State.from_data(rho)
+
+
 def test_evolve_from_data_random_density_matrix_preserved_cudm():
     np.random.seed(42)
     N = 64

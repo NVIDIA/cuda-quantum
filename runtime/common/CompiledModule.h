@@ -7,16 +7,16 @@
  ******************************************************************************/
 #pragma once
 
+#include "common/NamedVariantStore.h"
 #include "common/Resources.h"
 #include "common/ThunkInterface.h"
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <map>
 #include <memory>
 #include <optional>
 #include <string>
-#include <variant>
+#include <string_view>
 #include <vector>
 
 // This header file and the types defined within are designed to have no
@@ -153,8 +153,9 @@ public:
   };
 
   /// A compiled artifact is a JIT binary, an MLIR module, or resource metrics.
-  using CompiledArtifact =
-      std::variant<JitArtifact, MlirArtifact, ResourcesArtifact>;
+  using ArtifactsStore =
+      detail::NamedVariantStore<JitArtifact, MlirArtifact, ResourcesArtifact>;
+  using CompiledArtifact = ArtifactsStore::Value;
 
   // --- Compilation metadata ---
 
@@ -169,24 +170,27 @@ public:
   /// Get the JIT artifact with the given name.
   ///
   /// If no name is provided, defaults to the kernel name.
-  std::optional<JitArtifact>
-  getJit(std::optional<std::string> jitName = std::nullopt) const;
+  std::optional<JitArtifact> getJit() const;
+  std::optional<JitArtifact> getJit(std::string_view jitName) const;
 
   /// Get the MLIR artifact with the given name.
   ///
-  /// If no name is provided, defaults to `kernel_name + ".mlir"`.
-  std::optional<MlirArtifact>
-  getMlir(std::optional<std::string> mlirName = std::nullopt) const;
+  /// If no name is provided, defaults to the kernel name.
+  std::optional<MlirArtifact> getMlir() const;
+  std::optional<MlirArtifact> getMlir(std::string_view mlirName) const;
 
   /// Get the pre-computed resource counts, or `nullptr` if it does not exist.
   ///
-  /// If no name is provided, defaults to `kernel_name + ".resources"`.
-  const Resources *
-  getResources(std::optional<std::string> resourcesName = std::nullopt) const;
+  /// If no name is provided, defaults to the kernel name.
+  const Resources *getResources() const;
+  const Resources *getResources(std::string_view resourcesName) const;
 
-  /// Get all compiled artifacts.
-  const std::map<std::string, CompiledArtifact> &getArtifacts() const {
-    return artifacts;
+  /// Get all compiled artifacts in insertion order.
+  const ArtifactsStore &getArtifacts() const { return artifacts; }
+
+  /// Get all MLIR artifacts in insertion order.
+  auto getMlirArtifacts() const {
+    return artifacts.getAllOfType<MlirArtifact>();
   }
 
   /// Whether the kernel is fully specialized (all arguments inlined).
@@ -225,7 +229,7 @@ private:
                          // signature here. Though I'm not sure what MLIR
                          // agnostic information is worth storing.
   CompilationMetadata metadata;
-  std::map<std::string, CompiledArtifact> artifacts;
+  ArtifactsStore artifacts;
 };
 
 } // namespace cudaq
