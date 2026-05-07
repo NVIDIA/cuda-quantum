@@ -154,6 +154,7 @@ def BasisConversion : Pass<"basis-conversion", "mlir::ModuleOp"> {
     If no `basis` is specified or the pass cannot decompose all operations to
     the specified basis, the pass application will fail.
   }];
+  let dependentDialects = ["mlir::arith::ArithDialect"];
   let options = [
     ListOption<"basis", "basis", "std::string", "Set of basis operations">,
     ListOption<"disabledPatterns", "disable-patterns", "std::string",
@@ -317,6 +318,7 @@ def Decomposition : Pass<"decomposition", "mlir::ModuleOp"> {
     means no decomposition will take place under the presence of controlled
     `quake.apply` operations in the module.
   }];
+  let dependentDialects = ["mlir::arith::ArithDialect"];
   let options = [
     ListOption<"basis", "basis", "std::string", "Set of basis operations">,
     ListOption<"disabledPatterns", "disable-patterns", "std::string",
@@ -543,7 +545,9 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
     constants) regardless of the kernel's (semantically correct) signature.
   }];
 
-  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect",
+    "mlir::func::FuncDialect", "mlir::cf::ControlFlowDialect",
+    "mlir::arith::ArithDialect"];
 
   let options = [
     Option<"outputFilename", "output-filename", "std::string",
@@ -655,6 +659,9 @@ def LambdaLifting : Pass<"lambda-lifting", "mlir::ModuleOp"> {
     issues with memtoreg altering the structure of cc.loop too aggressively
     before the loop is analyzed.
   }];
+
+  let dependentDialects = ["mlir::cf::ControlFlowDialect",
+                           "mlir::func::FuncDialect"];
 
   let options = [
     Option<"constantPropagation", "constant-prop", "bool", /*default=*/"false",
@@ -1060,6 +1067,10 @@ def QuakeSynthesize : Pass<"quake-synth", "mlir::ModuleOp"> {
      runtime values.
   }];
 
+  let dependentDialects = ["mlir::arith::ArithDialect",
+                           "mlir::complex::ComplexDialect",
+                           "cudaq::cc::CCDialect", "mlir::math::MathDialect"];
+
   let constructor = "cudaq::opt::createQuakeSynthesizer()";
 }
 
@@ -1381,6 +1392,7 @@ def UnitarySynthesis : Pass<"unitary-synthesis", "mlir::ModuleOp"> {
       }
     ```
   }];
+  let dependentDialects = ["mlir::arith::ArithDialect", "mlir::func::FuncDialect"];
 }
 
 def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {
@@ -1406,6 +1418,9 @@ def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {
     The lower to CFG pass removed all structured operations from a function,
     lowering the body of the function completely to a primitive CFG.
   }];
+
+  let dependentDialects = ["mlir::cf::ControlFlowDialect",
+                           "quake::QuakeDialect", "cudaq::cc::CCDialect"];
 }
 
 def UpdateRegisterNames : Pass<"update-register-names"> {

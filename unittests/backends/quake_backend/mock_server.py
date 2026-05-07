@@ -21,7 +21,6 @@ from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 # Define the REST Server App
 app = FastAPI()
 
-llvm.initialize()
 llvm.initialize_native_target()
 llvm.initialize_native_asmprinter()
 target = llvm.Target.from_default_triple()
@@ -53,16 +52,16 @@ async def postJob(request: Request):
     pm = PassManager.parse(
         "builtin.module(canonicalize,distributed-device-call,cse)", context=ctx)
     try:
-        pm.run(recovered_mod)
-    except:
+        pm.run(recovered_mod.operation)
+    except Exception as e:
         raise RuntimeError(
-            f"Failed to run pass manager on the recovered module.")
+            f"Failed to run pass manager on the recovered module: {e}")
 
     entry_func_name = ""
     for op in recovered_mod.body.operations:
         if isinstance(op, func.FuncOp):
             for attr in op.attributes:
-                if attr.name == "cudaq-entrypoint":
+                if attr == "cudaq-entrypoint":
                     entry_func_name = op.name.value
                     break
     # Lower the module to LLVM IR

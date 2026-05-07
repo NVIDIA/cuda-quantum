@@ -27,10 +27,9 @@ target_link_libraries(${LIBRARY_NAME}
     cudaq-operator
     cudaq-common 
   PRIVATE
-    pthread
-    cudaq-mlir-runtime 
+    cudaq-mlir-runtime
     fmt::fmt-header-only
-    cudaq 
+    cudaq
     cudaq-platform-default)
 
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)

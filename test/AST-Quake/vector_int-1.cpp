@@ -23,9 +23,9 @@ __qpu__ void touringLondon() {
 }
 
 // CHECK-LABEL:  func.func @__nvqpp__mlirgen__function_doubleDeckerBus._Z15doubleDeckerBusv() -> !cc.stdvec<i32> attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-// CHECK:           %[[VAL_1:.*]] = arith.constant 2 : i64
-// CHECK:           %[[VAL_2:.*]] = arith.constant 4 : i64
-// CHECK:           %[[VAL_3:.*]] = arith.constant 2 : i32
+// CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 2 : i64
+// CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 4 : i64
+// CHECK-DAG:       %[[VAL_3:.*]] = arith.constant 2 : i32
 // CHECK:           %[[VAL_4:.*]] = cc.alloca !cc.array<i32 x 2>
 // CHECK:           %[[VAL_5:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
 // CHECK:           cc.store %[[VAL_3]], %[[VAL_5]] : !cc.ptr<i32>

@@ -8,14 +8,10 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
-#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Todo.h"
 #include "mlir/IR/Dominance.h"
 #include "mlir/IR/IRMapping.h"
-#include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 
@@ -191,24 +187,25 @@ struct CreateLambdaOpPattern
       argTys.push_back(lambdaTy);
       argTys.append(sig.getInputs().begin(), sig.getInputs().end());
       auto funTy = FunctionType::get(ctx, argTys, sig.getResults());
-      auto thunk = rewriter.create<func::FuncOp>(
-          loc, getThunkLambdaName(counter), funTy, emptyDict);
+      auto thunk = func::FuncOp::create(
+          rewriter, loc, getThunkLambdaName(counter), funTy, emptyDict);
       thunk.setPrivate();
       thunk->setAttr(cudaq::kernelAttrName, rewriter.getUnitAttr());
       auto *entry = thunk.addEntryBlock();
       rewriter.setInsertionPointToEnd(entry);
       SmallVector<Value> callableArgs;
       if (!freeValues.empty()) {
-        auto closureData = rewriter.create<cudaq::cc::CallableClosureOp>(
-            loc, freeValues.getTypes(), thunk.getArgument(0));
+        auto closureData = cudaq::cc::CallableClosureOp::create(
+            rewriter, loc, freeValues.getTypes(), thunk.getArgument(0));
         callableArgs.append(closureData.getResults().begin(),
                             closureData.getResults().end());
       }
       callableArgs.append(thunk.getArguments().begin() + 1,
                           thunk.getArguments().end());
-      auto result = rewriter.create<func::CallOp>(
-          loc, sig.getResults(), getLiftedLambdaName(counter), callableArgs);
-      rewriter.create<func::ReturnOp>(loc, result.getResults());
+      auto result =
+          func::CallOp::create(rewriter, loc, sig.getResults(),
+                               getLiftedLambdaName(counter), callableArgs);
+      func::ReturnOp::create(rewriter, loc, result.getResults());
     }
 
     // Create a new lambda function to lift the expression into. This function
@@ -220,8 +217,8 @@ struct CreateLambdaOpPattern
                                freeValues.getTypes().end());
       argTys.append(sig.getInputs().begin(), sig.getInputs().end());
       auto funTy = FunctionType::get(ctx, argTys, sig.getResults());
-      auto func = rewriter.create<func::FuncOp>(
-          loc, getLiftedLambdaName(counter), funTy, emptyDict);
+      auto func = func::FuncOp::create(
+          rewriter, loc, getLiftedLambdaName(counter), funTy, emptyDict);
       func.setPrivate();
       func->setAttr(cudaq::kernelAttrName, rewriter.getUnitAttr());
       auto *entry = func.addEntryBlock();
@@ -256,7 +253,7 @@ struct CreateLambdaOpPattern
       rewriter.setInsertionPointToEnd(entry);
       auto nextBlockIter = ++func.getBlocks().begin();
       // Connect entry block to cloned code.
-      rewriter.create<cf::BranchOp>(loc, &*nextBlockIter);
+      cf::BranchOp::create(rewriter, loc, &*nextBlockIter);
     }
 
     SymbolRefAttr closureSymbol =
@@ -311,12 +308,12 @@ struct ComputeActionOpPattern
     if (!actionCallee)
       return failure();
     auto computeArgs = getArgs(comAct.getCompute());
-    rewriter.create<quake::ApplyOp>(loc, TypeRange{}, computeCallee,
-                                    /*isAdjoint=*/comAct.getIsDagger(),
-                                    ValueRange{}, computeArgs);
-    rewriter.create<quake::ApplyOp>(loc, TypeRange{}, actionCallee,
-                                    /*isAdjoint=*/false, ValueRange{},
-                                    getArgs(comAct.getAction()));
+    quake::ApplyOp::create(rewriter, loc, TypeRange{}, computeCallee,
+                           /*isAdjoint=*/comAct.getIsDagger(), ValueRange{},
+                           computeArgs);
+    quake::ApplyOp::create(rewriter, loc, TypeRange{}, actionCallee,
+                           /*isAdjoint=*/false, ValueRange{},
+                           getArgs(comAct.getAction()));
     rewriter.replaceOpWithNewOp<quake::ApplyOp>(
         comAct, TypeRange{}, computeCallee,
         /*isAdjoint=*/!comAct.getIsDagger(), ValueRange{}, computeArgs);
@@ -363,8 +360,8 @@ struct CallCallableOpPattern
 
     // For a callable, call the trampoline with the closure data.
     if (auto lambTy = dyn_cast<cudaq::cc::CallableType>(closureTy)) {
-      auto dynFunc = rewriter.create<cudaq::cc::CallableFuncOp>(
-          loc, call.getFunctionType(), closure);
+      auto dynFunc = cudaq::cc::CallableFuncOp::create(
+          rewriter, loc, call.getFunctionType(), closure);
       rewriter.replaceOpWithNewOp<func::CallIndirectOp>(call, dynFunc,
                                                         operands);
       return success();
@@ -373,7 +370,7 @@ struct CallCallableOpPattern
     // For a normal function, there is no closure to deal with.
     if (auto sig = dyn_cast<FunctionType>(closureTy)) {
       auto dynFunc =
-          rewriter.create<cudaq::cc::CallableFuncOp>(loc, sig, closure);
+          cudaq::cc::CallableFuncOp::create(rewriter, loc, sig, closure);
       rewriter.replaceOpWithNewOp<func::CallIndirectOp>(call, dynFunc,
                                                         operands.drop_front());
       return success();
@@ -436,7 +433,7 @@ public:
     patterns.insert<CreateLambdaOpPattern>(ctx, constantPropagation);
     patterns.insert<ComputeActionOpPattern, CallCallableOpPattern,
                     CallableFuncOpPattern, ReturnOpPattern>(ctx);
-    if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
+    if (failed(applyPatternsGreedily(module, std::move(patterns))))
       signalPassFailure();
   }
 

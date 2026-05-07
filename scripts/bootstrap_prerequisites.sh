@@ -13,7 +13,7 @@
 # CUDA-Q from source.
 #
 # Usage:
-# bash install_prerequisites.sh
+# bash bootstrap_prerequisites.sh
 #   -e <name>     Exclude a prerequisite (e.g. zlib, llvm, blas, ssl, curl, aws, cuquantum, cutensor, toolchain)
 #   -t <name>     Select toolchain (e.g. gcc12, llvm)
 #   -m            Only install libraries for which an *_INSTALL_PREFIX is defined
@@ -257,27 +257,27 @@ fi
 
 # [Toolchain] CMake, ninja and C/C++ compiler
 if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
-  if [ -n "$toolchain" ] || [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
-    echo "Installing toolchain ${toolchain}..."
-    if [ "$toolchain" = "llvm" ] && [ ! -d "$LLVM_STAGE1_BUILD" ]; then
-      llvm_stage1_tmpdir="$(mktemp -d)"
-      LLVM_STAGE1_BUILD="$llvm_stage1_tmpdir/llvm"
-      echo "Installing LLVM stage-1 build in $LLVM_STAGE1_BUILD."
-    fi
-
-    # Note that when we first build the compiler/runtime built here we need to make sure it is
-    # the same version as CUDA Quantum depends on, even if we rebuild the runtime libraries later,
-    # since otherwise we need to rebuild zlib.
-    # On macOS, use Apple's system clang to avoid header conflicts with macOS SDK
     if [ "$(uname)" = "Darwin" ]; then
       export CC=clang
       export CXX=clang++
       echo "Using Apple Clang: $(clang --version | head -1)"
     else
-      LLVM_INSTALL_PREFIX="$LLVM_STAGE1_BUILD" LLVM_BUILD_FOLDER="stage1_build" \
-      source "$this_file_dir/install_toolchain.sh" -t ${toolchain:-gcc12}
+      export LLVM_STAGE1_BUILD="$LLVM_INSTALL_PREFIX/bootstrap"
+      if [ ! -x "$LLVM_STAGE1_BUILD/bin/clang" ]; then
+        temp_install_if_command_unknown cmake cmake
+        temp_install_if_command_unknown ninja ninja-build
+        echo "Building stage1 LLVM (clang;lld)..."
+        LLVM_INSTALL_PREFIX="$LLVM_STAGE1_BUILD" \
+        LLVM_PROJECTS='clang;lld' \
+        LLVM_ENABLE_ZLIB=OFF \
+        LLVM_BUILD_FOLDER=bootstrap_build \
+        bash "$this_file_dir/build_llvm.sh" -v
+        remove_temp_installs
+      fi
+      export CC="$LLVM_STAGE1_BUILD/bin/clang"
+      export CXX="$LLVM_STAGE1_BUILD/bin/clang++"
+      echo "Using stage1 clang: $CC"
     fi
-  fi
   if [ ! -x "$(command -v cmake)" ]; then
     echo "Installing CMake..."
     temp_install_if_command_unknown wget wget
@@ -308,7 +308,12 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
     if [ "$(uname)" = "Darwin" ]; then
       cmake -B build
     else
-      LDFLAGS="-static-libstdc++" cmake -B build
+      lld="${LLVM_STAGE1_BUILD:+$LLVM_STAGE1_BUILD/bin/ld.lld}"
+      if [ -x "$lld" ]; then
+        cmake -B build -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=$lld"
+      else
+        LDFLAGS="-static-libstdc++" cmake -B build
+      fi
     fi
     cmake --build build
 
@@ -316,17 +321,18 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
       mv build/ninja $HOME/.local/bin/
     else
       mv build/ninja /usr/local/bin/
-    fi 
+    fi
 
     popd
   fi
 fi
 
 # [Zlib] Needed to build LLVM with zlib support (used by linker)
+# [Minizip] Needed by rest_server for archive handling
 # Build both from source for consistency across platforms.
 if [ -n "$ZLIB_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep zlib)" ]; then
-  if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libz.a" ]; then
-    echo "Installing libz..."
+  if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libz.a" ] || [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libminizip.a" ]; then
+    echo "Installing libz and minizip..."
     temp_install_if_command_unknown wget wget
     temp_install_if_command_unknown make make
     temp_install_if_command_unknown automake automake
@@ -346,11 +352,23 @@ if [ -n "$ZLIB_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep zlib)" ]
     CC="$CC" CFLAGS="-fPIC" \
     ./configure --prefix="$ZLIB_INSTALL_PREFIX" --static
     make CC="$CC" && make install
+    cd contrib/minizip
+    # On macOS with Homebrew, set up environment for autoreconf:
+    # - Add Homebrew's m4 macros to aclocal search path
+    # - Point LIBTOOLIZE to glibtoolize (Homebrew's GNU libtoolize)
+    if [ "$(uname)" = "Darwin" ] && [ -x "$(command -v brew)" ]; then
+      export ACLOCAL_PATH="$(brew --prefix)/share/aclocal${ACLOCAL_PATH:+:$ACLOCAL_PATH}"
+      export LIBTOOLIZE=glibtoolize
+    fi
+    autoreconf --install
+    CC="$CC" CFLAGS="-fPIC" \
+    ./configure --prefix="$ZLIB_INSTALL_PREFIX" --disable-shared
+    make CC="$CC" && make install
 
     popd
     remove_temp_installs
   else
-    echo "libz already installed in $ZLIB_INSTALL_PREFIX."
+    echo "libz and minizip already installed in $ZLIB_INSTALL_PREFIX."
   fi
 fi
 
@@ -385,17 +403,12 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
     echo "LLVM already installed in $LLVM_INSTALL_PREFIX."
   fi
 
-  if [ "$toolchain" = "llvm" ] || [ "$(uname)" = "Darwin" ]; then
-    #rm -rf "$llvm_stage1_tmpdir"
-    export CC="$LLVM_INSTALL_PREFIX/bin/clang"
-    export CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
-    echo "Configured C compiler: $CC"
-    echo "Configured C++ compiler: $CXX"
-    if [ -x "$LLVM_INSTALL_PREFIX/bin/flang" ]; then
-      export FC="$LLVM_INSTALL_PREFIX/bin/flang"
-      echo "Configured Fortran compiler: $FC"
-    fi
-  fi
+  export CC="$LLVM_INSTALL_PREFIX/bin/clang"
+  export CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
+  export FC="$LLVM_INSTALL_PREFIX/bin/flang"
+  echo "Configured C compiler: $CC"
+  echo "Configured C++ compiler: $CXX"
+  echo "Configured Fortran compiler: $FC"
 fi
 
 # [Blas] Needed for certain optimizers
@@ -442,6 +455,7 @@ if [ -n "$OPENSSL_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep ssl)"
     wget "${PERL_TARBALL_URL}"
     tar -xzf "perl-${PERL_VERSION}.tar.gz" && cd "perl-${PERL_VERSION}"
     ./Configure -des -Dcc="$CC" -Dprefix="$PREREQS_BUILD_DIR/perl5"
+    find . -name "*.PL" -exec touch {} + # normalize WSL clock skew
     make CC="$CC" && make install
     cd ..
     # Additional perl modules can be installed with cpan, e.g.
@@ -617,7 +631,7 @@ if [ -n "$QRMI_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep qrmi)" ]
       echo -e "\e[01;31mError: SHA-256 checksum mismatch for ${QRMI_ARCHIVE}.\e[0m" >&2
       echo "Expected: $QRMI_ARCHIVE_SHA256" >&2
       echo "Got:      $computed_sha256" >&2
-      rm -f "${qrmi_archive}"
+      rm -f "${QRMI_ARCHIVE}"
       (return 1 2>/dev/null) && return 1 || exit 1
     fi
 

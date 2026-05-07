@@ -38,7 +38,7 @@ target_include_directories(OptimizerUnitTests
 # to avoid linker errors (undefined typeinfo for base classes)
 target_compile_options(OptimizerUnitTests PRIVATE -fno-rtti)
 
-gtest_discover_tests(OptimizerUnitTests)
+gtest_discover_tests(OptimizerUnitTests DISCOVERY_TIMEOUT 120)
 
 add_executable(test_quake_synth QuakeSynthTester.cpp)
 target_link_libraries(test_quake_synth

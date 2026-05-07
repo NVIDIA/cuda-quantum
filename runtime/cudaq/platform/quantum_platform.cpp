@@ -24,6 +24,13 @@ using namespace cudaq_internal::compiler;
 
 CUDAQ_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType)
 
+// Bridge so the Python extension can register QPU subtypes (e.g. RemoteRESTQPU)
+// into this DSO's registry. Same pattern as cudaq_add_module_launcher_node.
+extern "C" void cudaq_add_qpu_node(void *node_ptr) {
+  using Node = cudaq::Registry<cudaq::QPU>::node;
+  cudaq::Registry<cudaq::QPU>::add_node(static_cast<Node *>(node_ptr));
+}
+
 namespace cudaq {
 
 // These functions are defined elsewhere, but

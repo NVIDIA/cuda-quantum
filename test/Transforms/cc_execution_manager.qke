@@ -7,7 +7,7 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt -lower-quake -canonicalize %s | FileCheck %s
-// RUN: cudaq-opt -lower-quake -lower-to-cfg -cse -cc-to-llvm %s | FileCheck --check-prefix=LLVM %s
+// RUN: cudaq-opt -lower-quake -lower-to-cfg -cse -canonicalize -cc-to-llvm %s | FileCheck --check-prefix=LLVM %s
 
 func.func @tocc.test() {
   %qubits = quake.alloca !quake.veq<3>
@@ -323,7 +323,7 @@ func.func @tocc.test() {
 // CHECK:           return
 // CHECK:         }
 // CHECK:         func.func private @__nvqpp__cudaq_em_apply(!cc.ptr<i8>, i64, !cc.ptr<!cc.array<f64 x ?>>, !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, i1)
-// CHECK:         func.func private @llvm.memcpy.p0i8.p0i8.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1)
+// CHECK:         func.func private @llvm.memcpy.p0.p0.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1)
 
 // CHECK-LABEL:   func.func private @__nvqpp__cudaq_em_concatSpan(
 // CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<i64>, %[[VAL_1:.*]]: !cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, %[[VAL_2:.*]]: i64) {
@@ -334,7 +334,7 @@ func.func @tocc.test() {
 // CHECK:           %[[VAL_7:.*]] = arith.muli %[[VAL_2]], %[[VAL_4]] : i64
 // CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i64>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_9:.*]] = cc.cast %[[VAL_6]] : (!cc.ptr<!cc.array<i64 x ?>>) -> !cc.ptr<i8>
-// CHECK:           call @llvm.memcpy.p0i8.p0i8.i64(%[[VAL_8]], %[[VAL_9]], %[[VAL_7]], %[[VAL_3]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+// CHECK:           call @llvm.memcpy.p0.p0.i64(%[[VAL_8]], %[[VAL_9]], %[[VAL_7]], %[[VAL_3]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
 // CHECK:           return
 // CHECK:         }
 // CHECK:         func.func private @__nvqpp__cudaq_em_measure(!cc.ptr<!cc.struct<".qubit_span" {!cc.ptr<!cc.array<i64 x ?>>, i64}>>, !cc.ptr<i8>) -> i32
@@ -368,296 +368,305 @@ func.func @tocc.test() {
 // CHECK-DAG:     llvm.mlir.global private constant @cstr.72{{[0-9]+}}00("r{{.*}}\00") {addr_space = 0 : i32}
 
 
-
 // LLVM-LABEL:   llvm.func @tocc.test() {
-// LLVM-DAG:       %[[VAL_0:.*]] = llvm.mlir.constant(0.000000e+00 : f64) : f64
-// LLVM-DAG:       %[[VAL_1:.*]] = llvm.mlir.constant(1.500000e+00 : f64) : f64
-// LLVM-DAG:       %[[VAL_2:.*]] = llvm.mlir.constant(2.600000e+00 : f64) : f64
-// LLVM-DAG:       %[[VAL_3:.*]] = llvm.mlir.constant(1 : i32) : i32
-// LLVM:           %[[VAL_4:.*]] = llvm.alloca %[[VAL_3]] x !llvm.struct<(ptr<i64>, i64)> : (i32) -> !llvm.ptr<struct<(ptr<i64>, i64)>>
-// LLVM:           %[[VAL_5:.*]] = llvm.mlir.constant(3 : i64) : i64
-// LLVM:           %[[VAL_6:.*]] = llvm.alloca %[[VAL_5]] x i64 : (i64) -> !llvm.ptr<i64>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_4]], %[[VAL_6]], %[[VAL_5]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i64>, i64) -> ()
-// LLVM:           llvm.call @__nvqpp__cudaq_em_allocate_veq(%[[VAL_4]], %[[VAL_5]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, i64) -> ()
-// LLVM:           %[[VAL_7:.*]] = llvm.mlir.constant(0 : i64) : i64
-// LLVM:           %[[VAL_8:.*]] = llvm.getelementptr %[[VAL_4]][0, 0] : (!llvm.ptr<struct<(ptr<i64>, i64)>>) -> !llvm.ptr<ptr<i64>>
-// LLVM:           %[[VAL_9:.*]] = llvm.load %[[VAL_8]] : !llvm.ptr<ptr<i64>>
-// LLVM:           %[[VAL_10:.*]] = llvm.getelementptr %[[VAL_9]][0] : (!llvm.ptr<i64>) -> !llvm.ptr<i64>
-// LLVM:           %[[VAL_11:.*]] = llvm.mlir.constant(1 : i32) : i32
-// LLVM:           %[[VAL_12:.*]] = llvm.alloca %[[VAL_11]] x !llvm.struct<(ptr<i64>, i64)> : (i32) -> !llvm.ptr<struct<(ptr<i64>, i64)>>
-// LLVM:           %[[VAL_13:.*]] = llvm.mlir.constant(1 : i64) : i64
-// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_12]], %{{.*}}, %[[VAL_13]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i64>, i64) -> ()
-// LLVM:           %[[VAL_14:.*]] = llvm.load %[[VAL_8]] : !llvm.ptr<ptr<i64>>
-// LLVM:           %[[VAL_15:.*]] = llvm.getelementptr %[[VAL_14]][1] : (!llvm.ptr<i64>) -> !llvm.ptr<i64>
-// LLVM:           %[[VAL_16:.*]] = llvm.mlir.constant(1 : i32) : i32
-// LLVM:           %[[VAL_17:.*]] = llvm.alloca %[[VAL_16]] x !llvm.struct<(ptr<i64>, i64)> : (i32) -> !llvm.ptr<struct<(ptr<i64>, i64)>>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_17]], %{{.*}}, %[[VAL_13]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i64>, i64) -> ()
-// LLVM:           %[[VAL_18:.*]] = llvm.mlir.constant(2 : i64) : i64
-// LLVM:           %[[VAL_19:.*]] = llvm.load %[[VAL_8]] : !llvm.ptr<ptr<i64>>
-// LLVM:           %[[VAL_20:.*]] = llvm.getelementptr %[[VAL_19]][2] : (!llvm.ptr<i64>) -> !llvm.ptr<i64>
-// LLVM:           %[[VAL_21:.*]] = llvm.mlir.constant(1 : i32) : i32
-// LLVM:           %[[VAL_22:.*]] = llvm.alloca %[[VAL_21]] x !llvm.struct<(ptr<i64>, i64)> : (i32) -> !llvm.ptr<struct<(ptr<i64>, i64)>>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_22]], %{{.*}}, %[[VAL_13]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i64>, i64) -> ()
-// LLVM:           %[[VAL_23:.*]] = llvm.mlir.addressof @cstr.6800 : !llvm.ptr<array<2 x i8>>
-// LLVM:           %[[VAL_24:.*]] = llvm.bitcast %[[VAL_23]] : !llvm.ptr<array<2 x i8>> to !llvm.ptr<i8>
-// LLVM:           %[[VAL_25:.*]] = llvm.inttoptr %[[VAL_7]] : i64 to !llvm.ptr<f64>
-// LLVM:           %[[VAL_26:.*]] = llvm.mlir.constant(1 : i32) : i32
-// LLVM:           %[[VAL_27:.*]] = llvm.alloca %[[VAL_26]] x !llvm.struct<(ptr<i64>, i64)> : (i32) -> !llvm.ptr<struct<(ptr<i64>, i64)>>
-// LLVM:           %[[VAL_28:.*]] = llvm.inttoptr %[[VAL_7]] : i64 to !llvm.ptr<i64>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_27]], %[[VAL_28]], %[[VAL_7]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i64>, i64) -> ()
-// LLVM:           %[[VAL_29:.*]] = llvm.mlir.constant(false) : i1
-// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[VAL_24]], %[[VAL_7]], %[[VAL_25]], %[[VAL_27]], %[[VAL_12]], %[[VAL_29]]) : (!llvm.ptr<i8>, i64, !llvm.ptr<f64>, !llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<struct<(ptr<i64>, i64)>>, i1) -> ()
-// LLVM:           %[[VAL_30:.*]] = llvm.mlir.addressof @cstr.7800 : !llvm.ptr<array<2 x i8>>
-// LLVM:           %[[VAL_31:.*]] = llvm.bitcast %[[VAL_30]] : !llvm.ptr<array<2 x i8>> to !llvm.ptr<i8>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[VAL_31]], %[[VAL_7]], %[[VAL_25]], %[[VAL_12]], %[[VAL_17]], %[[VAL_29]]) : (!llvm.ptr<i8>, i64, !llvm.ptr<f64>, !llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<struct<(ptr<i64>, i64)>>, i1) -> ()
-// LLVM:           %[[VAL_32:.*]] = llvm.mlir.constant(1 : i32) : i32
-// LLVM:           %[[VAL_33:.*]] = llvm.alloca %[[VAL_32]] x !llvm.struct<(ptr<i64>, i64)> : (i32) -> !llvm.ptr<struct<(ptr<i64>, i64)>>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_33]], %[[VAL_28]], %[[VAL_7]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i64>, i64) -> ()
-// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[VAL_31]], %[[VAL_7]], %[[VAL_25]], %[[VAL_33]], %[[VAL_12]], %[[VAL_29]]) : (!llvm.ptr<i8>, i64, !llvm.ptr<f64>, !llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<struct<(ptr<i64>, i64)>>, i1) -> ()
-// LLVM:           %[[VAL_34:.*]] = llvm.mlir.addressof @cstr.7900 : !llvm.ptr<array<2 x i8>>
-// LLVM:           %[[VAL_35:.*]] = llvm.bitcast %[[VAL_34]] : !llvm.ptr<array<2 x i8>> to !llvm.ptr<i8>
-// LLVM:           %[[VAL_36:.*]] = llvm.mlir.constant(1 : i32) : i32
-// LLVM:           %[[VAL_37:.*]] = llvm.alloca %[[VAL_36]] x !llvm.struct<(ptr<i64>, i64)> : (i32) -> !llvm.ptr<struct<(ptr<i64>, i64)>>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_37]], %[[VAL_28]], %[[VAL_7]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i64>, i64) -> ()
-// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[VAL_35]], %[[VAL_7]], %[[VAL_25]], %[[VAL_37]], %[[VAL_22]], %[[VAL_29]]) : (!llvm.ptr<i8>, i64, !llvm.ptr<f64>, !llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<struct<(ptr<i64>, i64)>>, i1) -> ()
-// LLVM:           %[[VAL_38:.*]] = llvm.mlir.addressof @cstr.7A00 : !llvm.ptr<array<2 x i8>>
-// LLVM:           %[[VAL_39:.*]] = llvm.bitcast %[[VAL_38]] : !llvm.ptr<array<2 x i8>> to !llvm.ptr<i8>
-// LLVM:           %[[VAL_40:.*]] = llvm.mlir.constant(1 : i32) : i32
-// LLVM:           %[[VAL_41:.*]] = llvm.alloca %[[VAL_40]] x !llvm.struct<(ptr<i64>, i64)> : (i32) -> !llvm.ptr<struct<(ptr<i64>, i64)>>
-// LLVM:           %[[VAL_42:.*]] = llvm.getelementptr %[[VAL_22]][0, 1] : (!llvm.ptr<struct<(ptr<i64>, i64)>>) -> !llvm.ptr<i64>
-// LLVM:           %[[VAL_43:.*]] = llvm.load %[[VAL_42]] : !llvm.ptr<i64>
-// LLVM:           %[[VAL_44:.*]] = llvm.add %[[VAL_7]], %[[VAL_43]]  : i64
-// LLVM:           %[[VAL_45:.*]] = llvm.getelementptr %[[VAL_12]][0, 1] : (!llvm.ptr<struct<(ptr<i64>, i64)>>) -> !llvm.ptr<i64>
-// LLVM:           %[[VAL_46:.*]] = llvm.load %[[VAL_45]] : !llvm.ptr<i64>
-// LLVM:           %[[VAL_47:.*]] = llvm.add %[[VAL_44]], %[[VAL_46]]  : i64
-// LLVM:           %[[VAL_48:.*]] = llvm.alloca %[[VAL_47]] x i64 : (i64) -> !llvm.ptr<i64>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_41]], %[[VAL_48]], %[[VAL_47]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i64>, i64) -> ()
-// LLVM:           %[[VAL_49:.*]] = llvm.getelementptr %[[VAL_48]][0] : (!llvm.ptr<i64>) -> !llvm.ptr<i64>
-// LLVM:           %[[VAL_50:.*]] = llvm.load %[[VAL_42]] : !llvm.ptr<i64>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_concatSpan(%[[VAL_49]], %[[VAL_22]], %[[VAL_50]]) : (!llvm.ptr<i64>, !llvm.ptr<struct<(ptr<i64>, i64)>>, i64) -> ()
-// LLVM:           %[[VAL_51:.*]] = llvm.add %[[VAL_7]], %[[VAL_50]]  : i64
-// LLVM:           %[[VAL_52:.*]] = llvm.getelementptr %[[VAL_48]]{{\[}}%[[VAL_51]]] : (!llvm.ptr<i64>, i64) -> !llvm.ptr<i64>
-// LLVM:           %[[VAL_53:.*]] = llvm.load %[[VAL_45]] : !llvm.ptr<i64>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_concatSpan(%[[VAL_52]], %[[VAL_12]], %[[VAL_53]]) : (!llvm.ptr<i64>, !llvm.ptr<struct<(ptr<i64>, i64)>>, i64) -> ()
-// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[VAL_39]], %[[VAL_7]], %[[VAL_25]], %[[VAL_41]], %[[VAL_17]], %[[VAL_29]]) : (!llvm.ptr<i8>, i64, !llvm.ptr<f64>, !llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<struct<(ptr<i64>, i64)>>, i1) -> ()
-// LLVM:           %[[VAL_54:.*]] = llvm.mlir.constant(1 : i32) : i32
-// LLVM:           %[[VAL_55:.*]] = llvm.alloca %[[VAL_54]] x !llvm.struct<(ptr<i64>, i64)> : (i32) -> !llvm.ptr<struct<(ptr<i64>, i64)>>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_55]], %[[VAL_28]], %[[VAL_7]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i64>, i64) -> ()
-// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[VAL_39]], %[[VAL_7]], %[[VAL_25]], %[[VAL_55]], %[[VAL_17]], %[[VAL_29]]) : (!llvm.ptr<i8>, i64, !llvm.ptr<f64>, !llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<struct<(ptr<i64>, i64)>>, i1) -> ()
-// LLVM:           %[[VAL_56:.*]] = llvm.mlir.addressof @cstr.7400 : !llvm.ptr<array<2 x i8>>
-// LLVM:           %[[VAL_57:.*]] = llvm.bitcast %[[VAL_56]] : !llvm.ptr<array<2 x i8>> to !llvm.ptr<i8>
-// LLVM:           %[[VAL_58:.*]] = llvm.mlir.constant(1 : i32) : i32
-// LLVM:           %[[VAL_59:.*]] = llvm.alloca %[[VAL_58]] x !llvm.struct<(ptr<i64>, i64)> : (i32) -> !llvm.ptr<struct<(ptr<i64>, i64)>>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_59]], %[[VAL_28]], %[[VAL_7]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i64>, i64) -> ()
-// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[VAL_57]], %[[VAL_7]], %[[VAL_25]], %[[VAL_59]], %[[VAL_17]], %[[VAL_29]]) : (!llvm.ptr<i8>, i64, !llvm.ptr<f64>, !llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<struct<(ptr<i64>, i64)>>, i1) -> ()
-// LLVM:           %[[VAL_60:.*]] = llvm.mlir.addressof @cstr.7300 : !llvm.ptr<array<2 x i8>>
-// LLVM:           %[[VAL_61:.*]] = llvm.bitcast %[[VAL_60]] : !llvm.ptr<array<2 x i8>> to !llvm.ptr<i8>
-// LLVM:           %[[VAL_62:.*]] = llvm.mlir.constant(1 : i32) : i32
-// LLVM:           %[[VAL_63:.*]] = llvm.alloca %[[VAL_62]] x !llvm.struct<(ptr<i64>, i64)> : (i32) -> !llvm.ptr<struct<(ptr<i64>, i64)>>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_63]], %[[VAL_28]], %[[VAL_7]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i64>, i64) -> ()
-// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[VAL_61]], %[[VAL_7]], %[[VAL_25]], %[[VAL_63]], %[[VAL_17]], %[[VAL_29]]) : (!llvm.ptr<i8>, i64, !llvm.ptr<f64>, !llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<struct<(ptr<i64>, i64)>>, i1) -> ()
-// LLVM:           %[[VAL_64:.*]] = llvm.mlir.addressof @cstr.727800 : !llvm.ptr<array<3 x i8>>
-// LLVM:           %[[VAL_65:.*]] = llvm.bitcast %[[VAL_64]] : !llvm.ptr<array<3 x i8>> to !llvm.ptr<i8>
-// LLVM:           %[[VAL_66:.*]] = llvm.alloca %[[VAL_13]] x f64 : (i64) -> !llvm.ptr<f64>
-// LLVM:           %[[VAL_67:.*]] = llvm.getelementptr %[[VAL_66]][0] : (!llvm.ptr<f64>) -> !llvm.ptr<f64>
-// LLVM:           llvm.store %[[VAL_2]], %[[VAL_67]] : !llvm.ptr<f64>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[VAL_65]], %[[VAL_13]], %[[VAL_66]], %[[VAL_12]], %[[VAL_17]], %[[VAL_29]]) : (!llvm.ptr<i8>, i64, !llvm.ptr<f64>, !llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<struct<(ptr<i64>, i64)>>, i1) -> ()
-// LLVM:           %[[VAL_68:.*]] = llvm.mlir.addressof @cstr.7068617365645F727800 : !llvm.ptr<array<10 x i8>>
-// LLVM:           %[[VAL_69:.*]] = llvm.bitcast %[[VAL_68]] : !llvm.ptr<array<10 x i8>> to !llvm.ptr<i8>
-// LLVM:           %[[VAL_70:.*]] = llvm.alloca %[[VAL_18]] x f64 : (i64) -> !llvm.ptr<f64>
-// LLVM:           %[[VAL_71:.*]] = llvm.getelementptr %[[VAL_70]][0] : (!llvm.ptr<f64>) -> !llvm.ptr<f64>
-// LLVM:           llvm.store %[[VAL_2]], %[[VAL_71]] : !llvm.ptr<f64>
-// LLVM:           %[[VAL_72:.*]] = llvm.getelementptr %[[VAL_70]][1] : (!llvm.ptr<f64>) -> !llvm.ptr<f64>
-// LLVM:           llvm.store %[[VAL_1]], %[[VAL_72]] : !llvm.ptr<f64>
-// LLVM:           %[[VAL_73:.*]] = llvm.mlir.constant(1 : i32) : i32
-// LLVM:           %[[VAL_74:.*]] = llvm.alloca %[[VAL_73]] x !llvm.struct<(ptr<i64>, i64)> : (i32) -> !llvm.ptr<struct<(ptr<i64>, i64)>>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_74]], %[[VAL_28]], %[[VAL_7]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i64>, i64) -> ()
-// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[VAL_69]], %[[VAL_18]], %[[VAL_70]], %[[VAL_74]], %[[VAL_17]], %[[VAL_29]]) : (!llvm.ptr<i8>, i64, !llvm.ptr<f64>, !llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<struct<(ptr<i64>, i64)>>, i1) -> ()
-// LLVM:           %[[VAL_75:.*]] = llvm.alloca %[[VAL_13]] x f64 : (i64) -> !llvm.ptr<f64>
-// LLVM:           %[[VAL_76:.*]] = llvm.getelementptr %[[VAL_75]][0] : (!llvm.ptr<f64>) -> !llvm.ptr<f64>
-// LLVM:           llvm.store %[[VAL_1]], %[[VAL_76]] : !llvm.ptr<f64>
-// LLVM:           %[[VAL_77:.*]] = llvm.mlir.constant(1 : i32) : i32
-// LLVM:           %[[VAL_78:.*]] = llvm.alloca %[[VAL_77]] x !llvm.struct<(ptr<i64>, i64)> : (i32) -> !llvm.ptr<struct<(ptr<i64>, i64)>>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_78]], %[[VAL_28]], %[[VAL_7]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i64>, i64) -> ()
-// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[VAL_65]], %[[VAL_13]], %[[VAL_75]], %[[VAL_78]], %[[VAL_17]], %[[VAL_29]]) : (!llvm.ptr<i8>, i64, !llvm.ptr<f64>, !llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<struct<(ptr<i64>, i64)>>, i1) -> ()
-// LLVM:           %[[VAL_79:.*]] = llvm.mlir.constant(1 : i32) : i32
-// LLVM:           %[[VAL_80:.*]] = llvm.alloca %[[VAL_79]] x !llvm.struct<(ptr<i64>, i64)> : (i32) -> !llvm.ptr<struct<(ptr<i64>, i64)>>
-// LLVM:           %[[VAL_81:.*]] = llvm.alloca %[[VAL_13]] x i64 : (i64) -> !llvm.ptr<i64>
-// LLVM:           %[[VAL_82:.*]] = llvm.call @__nvqpp__cudaq_em_allocate() : () -> i64
-// LLVM:           %[[VAL_83:.*]] = llvm.getelementptr %[[VAL_81]][0] : (!llvm.ptr<i64>) -> !llvm.ptr<i64>
-// LLVM:           llvm.store %[[VAL_82]], %[[VAL_83]] : !llvm.ptr<i64>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_80]], %[[VAL_81]], %[[VAL_13]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i64>, i64) -> ()
-// LLVM:           %[[VAL_84:.*]] = llvm.alloca %[[VAL_13]] x f64 : (i64) -> !llvm.ptr<f64>
-// LLVM:           %[[VAL_85:.*]] = llvm.getelementptr %[[VAL_84]][0] : (!llvm.ptr<f64>) -> !llvm.ptr<f64>
-// LLVM:           llvm.store %[[VAL_1]], %[[VAL_85]] : !llvm.ptr<f64>
-// LLVM:           %[[VAL_86:.*]] = llvm.mlir.constant(1 : i32) : i32
-// LLVM:           %[[VAL_87:.*]] = llvm.alloca %[[VAL_86]] x !llvm.struct<(ptr<i64>, i64)> : (i32) -> !llvm.ptr<struct<(ptr<i64>, i64)>>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_87]], %[[VAL_28]], %[[VAL_7]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i64>, i64) -> ()
-// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[VAL_65]], %[[VAL_13]], %[[VAL_84]], %[[VAL_87]], %[[VAL_80]], %[[VAL_29]]) : (!llvm.ptr<i8>, i64, !llvm.ptr<f64>, !llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<struct<(ptr<i64>, i64)>>, i1) -> ()
-// LLVM:           %[[VAL_88:.*]] = llvm.mlir.constant(1 : i32) : i32
-// LLVM:           %[[VAL_89:.*]] = llvm.alloca %[[VAL_88]] x !llvm.struct<(ptr<i64>, i64)> : (i32) -> !llvm.ptr<struct<(ptr<i64>, i64)>>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_89]], %[[VAL_28]], %[[VAL_7]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i64>, i64) -> ()
-// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[VAL_31]], %[[VAL_7]], %[[VAL_25]], %[[VAL_89]], %[[VAL_80]], %[[VAL_29]]) : (!llvm.ptr<i8>, i64, !llvm.ptr<f64>, !llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<struct<(ptr<i64>, i64)>>, i1) -> ()
-// LLVM:           llvm.call @__nvqpp__cudaq_em_return(%[[VAL_80]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>) -> ()
-// LLVM:           %[[VAL_90:.*]] = llvm.mlir.addressof @cstr.727900 : !llvm.ptr<array<3 x i8>>
-// LLVM:           %[[VAL_91:.*]] = llvm.bitcast %[[VAL_90]] : !llvm.ptr<array<3 x i8>> to !llvm.ptr<i8>
-// LLVM:           %[[VAL_92:.*]] = llvm.alloca %[[VAL_13]] x f64 : (i64) -> !llvm.ptr<f64>
-// LLVM:           %[[VAL_93:.*]] = llvm.getelementptr %[[VAL_92]][0] : (!llvm.ptr<f64>) -> !llvm.ptr<f64>
-// LLVM:           llvm.store %[[VAL_2]], %[[VAL_93]] : !llvm.ptr<f64>
-// LLVM:           %[[VAL_94:.*]] = llvm.mlir.constant(1 : i32) : i32
-// LLVM:           %[[VAL_95:.*]] = llvm.alloca %[[VAL_94]] x !llvm.struct<(ptr<i64>, i64)> : (i32) -> !llvm.ptr<struct<(ptr<i64>, i64)>>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_95]], %[[VAL_28]], %[[VAL_7]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i64>, i64) -> ()
-// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[VAL_91]], %[[VAL_13]], %[[VAL_92]], %[[VAL_95]], %[[VAL_17]], %[[VAL_29]]) : (!llvm.ptr<i8>, i64, !llvm.ptr<f64>, !llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<struct<(ptr<i64>, i64)>>, i1) -> ()
-// LLVM:           %[[VAL_96:.*]] = llvm.mlir.addressof @cstr.727A00 : !llvm.ptr<array<3 x i8>>
-// LLVM:           %[[VAL_97:.*]] = llvm.bitcast %[[VAL_96]] : !llvm.ptr<array<3 x i8>> to !llvm.ptr<i8>
-// LLVM:           %[[VAL_98:.*]] = llvm.alloca %[[VAL_13]] x f64 : (i64) -> !llvm.ptr<f64>
-// LLVM:           %[[VAL_99:.*]] = llvm.getelementptr %[[VAL_98]][0] : (!llvm.ptr<f64>) -> !llvm.ptr<f64>
-// LLVM:           llvm.store %[[VAL_1]], %[[VAL_99]] : !llvm.ptr<f64>
-// LLVM:           %[[VAL_100:.*]] = llvm.mlir.constant(1 : i32) : i32
-// LLVM:           %[[VAL_101:.*]] = llvm.alloca %[[VAL_100]] x !llvm.struct<(ptr<i64>, i64)> : (i32) -> !llvm.ptr<struct<(ptr<i64>, i64)>>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_101]], %[[VAL_28]], %[[VAL_7]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i64>, i64) -> ()
-// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[VAL_97]], %[[VAL_13]], %[[VAL_98]], %[[VAL_101]], %[[VAL_12]], %[[VAL_29]]) : (!llvm.ptr<i8>, i64, !llvm.ptr<f64>, !llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<struct<(ptr<i64>, i64)>>, i1) -> ()
-// LLVM:           %[[VAL_102:.*]] = llvm.mlir.addressof @cstr.753200 : !llvm.ptr<array<3 x i8>>
-// LLVM:           %[[VAL_103:.*]] = llvm.bitcast %[[VAL_102]] : !llvm.ptr<array<3 x i8>> to !llvm.ptr<i8>
-// LLVM:           %[[VAL_104:.*]] = llvm.alloca %[[VAL_18]] x f64 : (i64) -> !llvm.ptr<f64>
-// LLVM:           %[[VAL_105:.*]] = llvm.getelementptr %[[VAL_104]][0] : (!llvm.ptr<f64>) -> !llvm.ptr<f64>
-// LLVM:           llvm.store %[[VAL_1]], %[[VAL_105]] : !llvm.ptr<f64>
-// LLVM:           %[[VAL_106:.*]] = llvm.getelementptr %[[VAL_104]][1] : (!llvm.ptr<f64>) -> !llvm.ptr<f64>
-// LLVM:           llvm.store %[[VAL_2]], %[[VAL_106]] : !llvm.ptr<f64>
-// LLVM:           %[[VAL_107:.*]] = llvm.mlir.constant(1 : i32) : i32
-// LLVM:           %[[VAL_108:.*]] = llvm.alloca %[[VAL_107]] x !llvm.struct<(ptr<i64>, i64)> : (i32) -> !llvm.ptr<struct<(ptr<i64>, i64)>>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_108]], %[[VAL_28]], %[[VAL_7]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i64>, i64) -> ()
-// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[VAL_103]], %[[VAL_18]], %[[VAL_104]], %[[VAL_108]], %[[VAL_12]], %[[VAL_29]]) : (!llvm.ptr<i8>, i64, !llvm.ptr<f64>, !llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<struct<(ptr<i64>, i64)>>, i1) -> ()
-// LLVM:           %[[VAL_109:.*]] = llvm.mlir.addressof @cstr.753300 : !llvm.ptr<array<3 x i8>>
-// LLVM:           %[[VAL_110:.*]] = llvm.bitcast %[[VAL_109]] : !llvm.ptr<array<3 x i8>> to !llvm.ptr<i8>
-// LLVM:           %[[VAL_111:.*]] = llvm.alloca %[[VAL_5]] x f64 : (i64) -> !llvm.ptr<f64>
-// LLVM:           %[[VAL_112:.*]] = llvm.getelementptr %[[VAL_111]][0] : (!llvm.ptr<f64>) -> !llvm.ptr<f64>
-// LLVM:           llvm.store %[[VAL_1]], %[[VAL_112]] : !llvm.ptr<f64>
-// LLVM:           %[[VAL_113:.*]] = llvm.getelementptr %[[VAL_111]][1] : (!llvm.ptr<f64>) -> !llvm.ptr<f64>
-// LLVM:           llvm.store %[[VAL_2]], %[[VAL_113]] : !llvm.ptr<f64>
-// LLVM:           %[[VAL_114:.*]] = llvm.getelementptr %[[VAL_111]][2] : (!llvm.ptr<f64>) -> !llvm.ptr<f64>
-// LLVM:           llvm.store %[[VAL_0]], %[[VAL_114]] : !llvm.ptr<f64>
-// LLVM:           %[[VAL_115:.*]] = llvm.mlir.constant(1 : i32) : i32
-// LLVM:           %[[VAL_116:.*]] = llvm.alloca %[[VAL_115]] x !llvm.struct<(ptr<i64>, i64)> : (i32) -> !llvm.ptr<struct<(ptr<i64>, i64)>>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_116]], %[[VAL_28]], %[[VAL_7]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i64>, i64) -> ()
-// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[VAL_110]], %[[VAL_5]], %[[VAL_111]], %[[VAL_116]], %[[VAL_12]], %[[VAL_29]]) : (!llvm.ptr<i8>, i64, !llvm.ptr<f64>, !llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<struct<(ptr<i64>, i64)>>, i1) -> ()
-// LLVM:           %[[VAL_117:.*]] = llvm.mlir.addressof @cstr.7377617000 : !llvm.ptr<array<5 x i8>>
-// LLVM:           %[[VAL_118:.*]] = llvm.bitcast %[[VAL_117]] : !llvm.ptr<array<5 x i8>> to !llvm.ptr<i8>
-// LLVM:           %[[VAL_119:.*]] = llvm.mlir.constant(1 : i32) : i32
-// LLVM:           %[[VAL_120:.*]] = llvm.alloca %[[VAL_119]] x !llvm.struct<(ptr<i64>, i64)> : (i32) -> !llvm.ptr<struct<(ptr<i64>, i64)>>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_120]], %[[VAL_28]], %[[VAL_7]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i64>, i64) -> ()
-// LLVM:           %[[VAL_121:.*]] = llvm.mlir.constant(1 : i32) : i32
-// LLVM:           %[[VAL_122:.*]] = llvm.alloca %[[VAL_121]] x !llvm.struct<(ptr<i64>, i64)> : (i32) -> !llvm.ptr<struct<(ptr<i64>, i64)>>
-// LLVM:           %[[VAL_123:.*]] = llvm.load %[[VAL_45]] : !llvm.ptr<i64>
-// LLVM:           %[[VAL_124:.*]] = llvm.add %[[VAL_7]], %[[VAL_123]]  : i64
-// LLVM:           %[[VAL_125:.*]] = llvm.load %[[VAL_42]] : !llvm.ptr<i64>
-// LLVM:           %[[VAL_126:.*]] = llvm.add %[[VAL_124]], %[[VAL_125]]  : i64
-// LLVM:           %[[VAL_127:.*]] = llvm.alloca %[[VAL_126]] x i64 : (i64) -> !llvm.ptr<i64>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_122]], %[[VAL_127]], %[[VAL_126]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i64>, i64) -> ()
-// LLVM:           %[[VAL_128:.*]] = llvm.getelementptr %[[VAL_127]][0] : (!llvm.ptr<i64>) -> !llvm.ptr<i64>
-// LLVM:           %[[VAL_129:.*]] = llvm.load %[[VAL_45]] : !llvm.ptr<i64>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_concatSpan(%[[VAL_128]], %[[VAL_12]], %[[VAL_129]]) : (!llvm.ptr<i64>, !llvm.ptr<struct<(ptr<i64>, i64)>>, i64) -> ()
-// LLVM:           %[[VAL_130:.*]] = llvm.add %[[VAL_7]], %[[VAL_129]]  : i64
-// LLVM:           %[[VAL_131:.*]] = llvm.getelementptr %[[VAL_127]]{{\[}}%[[VAL_130]]] : (!llvm.ptr<i64>, i64) -> !llvm.ptr<i64>
-// LLVM:           %[[VAL_132:.*]] = llvm.load %[[VAL_42]] : !llvm.ptr<i64>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_concatSpan(%[[VAL_131]], %[[VAL_22]], %[[VAL_132]]) : (!llvm.ptr<i64>, !llvm.ptr<struct<(ptr<i64>, i64)>>, i64) -> ()
-// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[VAL_118]], %[[VAL_7]], %[[VAL_25]], %[[VAL_120]], %[[VAL_122]], %[[VAL_29]]) : (!llvm.ptr<i8>, i64, !llvm.ptr<f64>, !llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<struct<(ptr<i64>, i64)>>, i1) -> ()
-// LLVM:           %[[VAL_133:.*]] = llvm.mlir.addressof @cstr.6D696B6500 : !llvm.ptr<array<5 x i8>>
-// LLVM:           %[[VAL_134:.*]] = llvm.bitcast %[[VAL_133]] : !llvm.ptr<array<5 x i8>> to !llvm.ptr<i8>
-// LLVM:           %[[VAL_135:.*]] = llvm.call @__nvqpp__cudaq_em_measure(%[[VAL_22]], %[[VAL_134]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i8>) -> i32
-// LLVM:           %[[VAL_136:.*]] = llvm.mlir.constant(1 : i32) : i32
-// LLVM:           %[[VAL_137:.*]] = llvm.alloca %[[VAL_136]] x !llvm.struct<(ptr<i64>, i64)> : (i32) -> !llvm.ptr<struct<(ptr<i64>, i64)>>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_137]], %[[VAL_28]], %[[VAL_7]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i64>, i64) -> ()
-// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[VAL_24]], %[[VAL_7]], %[[VAL_25]], %[[VAL_137]], %[[VAL_17]], %[[VAL_29]]) : (!llvm.ptr<i8>, i64, !llvm.ptr<f64>, !llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<struct<(ptr<i64>, i64)>>, i1) -> ()
-// LLVM:           %[[VAL_138:.*]] = llvm.mlir.addressof @cstr.746F6D00 : !llvm.ptr<array<4 x i8>>
-// LLVM:           %[[VAL_139:.*]] = llvm.bitcast %[[VAL_138]] : !llvm.ptr<array<4 x i8>> to !llvm.ptr<i8>
-// LLVM:           %[[VAL_140:.*]] = llvm.call @__nvqpp__cudaq_em_measure(%[[VAL_17]], %[[VAL_139]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i8>) -> i32
-// LLVM:           %[[VAL_141:.*]] = llvm.mlir.constant(1 : i32) : i32
-// LLVM:           %[[VAL_142:.*]] = llvm.alloca %[[VAL_141]] x !llvm.struct<(ptr<i64>, i64)> : (i32) -> !llvm.ptr<struct<(ptr<i64>, i64)>>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_142]], %[[VAL_28]], %[[VAL_7]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i64>, i64) -> ()
-// LLVM:           %[[VAL_143:.*]] = llvm.mlir.constant(true) : i1
-// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[VAL_61]], %[[VAL_7]], %[[VAL_25]], %[[VAL_142]], %[[VAL_12]], %[[VAL_143]]) : (!llvm.ptr<i8>, i64, !llvm.ptr<f64>, !llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<struct<(ptr<i64>, i64)>>, i1) -> ()
-// LLVM:           %[[VAL_144:.*]] = llvm.mlir.constant(1 : i32) : i32
-// LLVM:           %[[VAL_145:.*]] = llvm.alloca %[[VAL_144]] x !llvm.struct<(ptr<i64>, i64)> : (i32) -> !llvm.ptr<struct<(ptr<i64>, i64)>>
-// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[VAL_145]], %[[VAL_28]], %[[VAL_7]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i64>, i64) -> ()
-// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[VAL_24]], %[[VAL_7]], %[[VAL_25]], %[[VAL_145]], %[[VAL_12]], %[[VAL_29]]) : (!llvm.ptr<i8>, i64, !llvm.ptr<f64>, !llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<struct<(ptr<i64>, i64)>>, i1) -> ()
-// LLVM:           %[[VAL_146:.*]] = llvm.mlir.addressof @cstr.72{{[0-9]+}}00 : !llvm.ptr<array<[[LEN:.*]] x i8>>
-// LLVM:           %[[VAL_147:.*]] = llvm.bitcast %[[VAL_146]] : !llvm.ptr<array<[[LEN]] x i8>> to !llvm.ptr<i8>
-// LLVM:           %[[VAL_148:.*]] = llvm.call @__nvqpp__cudaq_em_measure(%[[VAL_12]], %[[VAL_147]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i8>) -> i32
-// LLVM:           llvm.call @__nvqpp__cudaq_em_return(%[[VAL_4]]) : (!llvm.ptr<struct<(ptr<i64>, i64)>>) -> ()
+// LLVM-DAG:       %[[MLIR_0:.*]] = llvm.mlir.constant(true) : i1
+// LLVM-DAG:       %[[MLIR_1:.*]] = llvm.mlir.constant(false) : i1
+// LLVM-DAG:       %[[MLIR_2:.*]] = llvm.mlir.constant(2 : i64) : i64
+// LLVM-DAG:       %[[MLIR_3:.*]] = llvm.mlir.constant(1 : i64) : i64
+// LLVM-DAG:       %[[MLIR_4:.*]] = llvm.mlir.constant(0 : i64) : i64
+// LLVM-DAG:       %[[MLIR_5:.*]] = llvm.mlir.constant(3 : i64) : i64
+// LLVM-DAG:       %[[MLIR_6:.*]] = llvm.mlir.constant(0.000000e+00 : f64) : f64
+// LLVM-DAG:       %[[MLIR_7:.*]] = llvm.mlir.constant(1.500000e+00 : f64) : f64
+// LLVM-DAG:       %[[MLIR_8:.*]] = llvm.mlir.constant(2.600000e+00 : f64) : f64
+// LLVM-DAG:       %[[MLIR_9:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM-DAG:       %[[ALLOCA_0:.*]] = llvm.alloca %[[MLIR_9]] x !llvm.struct<(ptr, i64)> : (i32) -> !llvm.ptr
+// LLVM-DAG:       %[[MLIR_10:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM-DAG:       %[[ALLOCA_1:.*]] = llvm.alloca %[[MLIR_10]] x !llvm.array<3 x i64> : (i32) -> !llvm.ptr
+// LLVM:           %[[BITCAST_0:.*]] = llvm.bitcast %[[ALLOCA_1]] : !llvm.ptr to !llvm.ptr
+// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[ALLOCA_0]], %[[BITCAST_0]], %[[MLIR_5]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           llvm.call @__nvqpp__cudaq_em_allocate_veq(%[[ALLOCA_0]], %[[MLIR_5]]) : (!llvm.ptr, i64) -> ()
+// LLVM:           %[[BITCAST_1:.*]] = llvm.bitcast %[[ALLOCA_0]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[LOAD_0:.*]] = llvm.load %[[BITCAST_1]] : !llvm.ptr -> !llvm.ptr
+// LLVM:           %[[MLIR_11:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_2:.*]] = llvm.alloca %[[MLIR_11]] x !llvm.struct<(ptr, i64)> : (i32) -> !llvm.ptr
+// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[ALLOCA_2]], %[[LOAD_0]], %[[MLIR_3]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           %[[LOAD_1:.*]] = llvm.load %[[BITCAST_1]] : !llvm.ptr -> !llvm.ptr
+// LLVM:           %[[GETELEMENTPTR_0:.*]] = llvm.getelementptr %[[LOAD_1]][1] : (!llvm.ptr) -> !llvm.ptr, i64
+// LLVM:           %[[MLIR_12:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_3:.*]] = llvm.alloca %[[MLIR_12]] x !llvm.struct<(ptr, i64)> : (i32) -> !llvm.ptr
+// LLVM:           %[[BITCAST_2:.*]] = llvm.bitcast %[[GETELEMENTPTR_0]] : !llvm.ptr to !llvm.ptr
+// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[ALLOCA_3]], %[[BITCAST_2]], %[[MLIR_3]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           %[[LOAD_2:.*]] = llvm.load %[[BITCAST_1]] : !llvm.ptr -> !llvm.ptr
+// LLVM:           %[[GETELEMENTPTR_1:.*]] = llvm.getelementptr %[[LOAD_2]][2] : (!llvm.ptr) -> !llvm.ptr, i64
+// LLVM:           %[[MLIR_13:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_4:.*]] = llvm.alloca %[[MLIR_13]] x !llvm.struct<(ptr, i64)> : (i32) -> !llvm.ptr
+// LLVM:           %[[BITCAST_3:.*]] = llvm.bitcast %[[GETELEMENTPTR_1]] : !llvm.ptr to !llvm.ptr
+// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[ALLOCA_4]], %[[BITCAST_3]], %[[MLIR_3]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           %[[MLIR_14:.*]] = llvm.mlir.addressof @cstr.6800 : !llvm.ptr
+// LLVM:           %[[BITCAST_4:.*]] = llvm.bitcast %[[MLIR_14]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[INTTOPTR_0:.*]] = llvm.inttoptr %[[MLIR_4]] : i64 to !llvm.ptr
+// LLVM:           %[[MLIR_15:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_5:.*]] = llvm.alloca %[[MLIR_15]] x !llvm.struct<(ptr, i64)> : (i32) -> !llvm.ptr
+// LLVM:           %[[INTTOPTR_1:.*]] = llvm.inttoptr %[[MLIR_4]] : i64 to !llvm.ptr
+// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[ALLOCA_5]], %[[INTTOPTR_1]], %[[MLIR_4]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[BITCAST_4]], %[[MLIR_4]], %[[INTTOPTR_0]], %[[ALLOCA_5]], %[[ALLOCA_2]], %[[MLIR_1]]) : (!llvm.ptr, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, i1) -> ()
+// LLVM:           %[[MLIR_16:.*]] = llvm.mlir.addressof @cstr.7800 : !llvm.ptr
+// LLVM:           %[[BITCAST_5:.*]] = llvm.bitcast %[[MLIR_16]] : !llvm.ptr to !llvm.ptr
+// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[BITCAST_5]], %[[MLIR_4]], %[[INTTOPTR_0]], %[[ALLOCA_2]], %[[ALLOCA_3]], %[[MLIR_1]]) : (!llvm.ptr, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, i1) -> ()
+// LLVM:           %[[MLIR_17:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_6:.*]] = llvm.alloca %[[MLIR_17]] x !llvm.struct<(ptr, i64)> : (i32) -> !llvm.ptr
+// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[ALLOCA_6]], %[[INTTOPTR_1]], %[[MLIR_4]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[BITCAST_5]], %[[MLIR_4]], %[[INTTOPTR_0]], %[[ALLOCA_6]], %[[ALLOCA_2]], %[[MLIR_1]]) : (!llvm.ptr, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, i1) -> ()
+// LLVM:           %[[MLIR_18:.*]] = llvm.mlir.addressof @cstr.7900 : !llvm.ptr
+// LLVM:           %[[BITCAST_6:.*]] = llvm.bitcast %[[MLIR_18]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[MLIR_19:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_7:.*]] = llvm.alloca %[[MLIR_19]] x !llvm.struct<(ptr, i64)> : (i32) -> !llvm.ptr
+// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[ALLOCA_7]], %[[INTTOPTR_1]], %[[MLIR_4]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[BITCAST_6]], %[[MLIR_4]], %[[INTTOPTR_0]], %[[ALLOCA_7]], %[[ALLOCA_4]], %[[MLIR_1]]) : (!llvm.ptr, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, i1) -> ()
+// LLVM:           %[[MLIR_20:.*]] = llvm.mlir.addressof @cstr.7A00 : !llvm.ptr
+// LLVM:           %[[BITCAST_7:.*]] = llvm.bitcast %[[MLIR_20]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[MLIR_21:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_8:.*]] = llvm.alloca %[[MLIR_21]] x !llvm.struct<(ptr, i64)> : (i32) -> !llvm.ptr
+// LLVM:           %[[GETELEMENTPTR_2:.*]] = llvm.getelementptr %[[ALLOCA_4]][0, 1] : (!llvm.ptr) -> !llvm.ptr, !llvm.struct<(ptr, i64)>
+// LLVM:           %[[LOAD_3:.*]] = llvm.load %[[GETELEMENTPTR_2]] : !llvm.ptr -> i64
+// LLVM:           %[[GETELEMENTPTR_3:.*]] = llvm.getelementptr %[[ALLOCA_2]][0, 1] : (!llvm.ptr) -> !llvm.ptr, !llvm.struct<(ptr, i64)>
+// LLVM:           %[[LOAD_4:.*]] = llvm.load %[[GETELEMENTPTR_3]] : !llvm.ptr -> i64
+// LLVM:           %[[ADD_0:.*]] = llvm.add %[[LOAD_3]], %[[LOAD_4]] : i64
+// LLVM:           %[[ALLOCA_9:.*]] = llvm.alloca %[[ADD_0]] x i64 : (i64) -> !llvm.ptr
+// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[ALLOCA_8]], %[[ALLOCA_9]], %[[ADD_0]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           %[[BITCAST_8:.*]] = llvm.bitcast %[[ALLOCA_9]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[LOAD_5:.*]] = llvm.load %[[GETELEMENTPTR_2]] : !llvm.ptr -> i64
+// LLVM:           llvm.call @__nvqpp__cudaq_em_concatSpan(%[[BITCAST_8]], %[[ALLOCA_4]], %[[LOAD_5]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           %[[GETELEMENTPTR_4:.*]] = llvm.getelementptr %[[ALLOCA_9]]{{\[}}%[[LOAD_5]]] : (!llvm.ptr, i64) -> !llvm.ptr, i64
+// LLVM:           %[[LOAD_6:.*]] = llvm.load %[[GETELEMENTPTR_3]] : !llvm.ptr -> i64
+// LLVM:           llvm.call @__nvqpp__cudaq_em_concatSpan(%[[GETELEMENTPTR_4]], %[[ALLOCA_2]], %[[LOAD_6]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[BITCAST_7]], %[[MLIR_4]], %[[INTTOPTR_0]], %[[ALLOCA_8]], %[[ALLOCA_3]], %[[MLIR_1]]) : (!llvm.ptr, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, i1) -> ()
+// LLVM:           %[[MLIR_22:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_10:.*]] = llvm.alloca %[[MLIR_22]] x !llvm.struct<(ptr, i64)> : (i32) -> !llvm.ptr
+// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[ALLOCA_10]], %[[INTTOPTR_1]], %[[MLIR_4]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[BITCAST_7]], %[[MLIR_4]], %[[INTTOPTR_0]], %[[ALLOCA_10]], %[[ALLOCA_3]], %[[MLIR_1]]) : (!llvm.ptr, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, i1) -> ()
+// LLVM:           %[[MLIR_23:.*]] = llvm.mlir.addressof @cstr.7400 : !llvm.ptr
+// LLVM:           %[[BITCAST_9:.*]] = llvm.bitcast %[[MLIR_23]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[MLIR_24:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_11:.*]] = llvm.alloca %[[MLIR_24]] x !llvm.struct<(ptr, i64)> : (i32) -> !llvm.ptr
+// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[ALLOCA_11]], %[[INTTOPTR_1]], %[[MLIR_4]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[BITCAST_9]], %[[MLIR_4]], %[[INTTOPTR_0]], %[[ALLOCA_11]], %[[ALLOCA_3]], %[[MLIR_1]]) : (!llvm.ptr, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, i1) -> ()
+// LLVM:           %[[MLIR_25:.*]] = llvm.mlir.addressof @cstr.7300 : !llvm.ptr
+// LLVM:           %[[BITCAST_10:.*]] = llvm.bitcast %[[MLIR_25]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[MLIR_26:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_12:.*]] = llvm.alloca %[[MLIR_26]] x !llvm.struct<(ptr, i64)> : (i32) -> !llvm.ptr
+// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[ALLOCA_12]], %[[INTTOPTR_1]], %[[MLIR_4]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[BITCAST_10]], %[[MLIR_4]], %[[INTTOPTR_0]], %[[ALLOCA_12]], %[[ALLOCA_3]], %[[MLIR_1]]) : (!llvm.ptr, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, i1) -> ()
+// LLVM:           %[[MLIR_27:.*]] = llvm.mlir.addressof @cstr.727800 : !llvm.ptr
+// LLVM:           %[[BITCAST_11:.*]] = llvm.bitcast %[[MLIR_27]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[MLIR_28:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_13:.*]] = llvm.alloca %[[MLIR_28]] x !llvm.array<1 x f64> : (i32) -> !llvm.ptr
+// LLVM:           %[[BITCAST_12:.*]] = llvm.bitcast %[[ALLOCA_13]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[BITCAST_13:.*]] = llvm.bitcast %[[ALLOCA_13]] : !llvm.ptr to !llvm.ptr
+// LLVM:           llvm.store %[[MLIR_8]], %[[BITCAST_13]] : f64, !llvm.ptr
+// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[BITCAST_11]], %[[MLIR_3]], %[[BITCAST_12]], %[[ALLOCA_2]], %[[ALLOCA_3]], %[[MLIR_1]]) : (!llvm.ptr, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, i1) -> ()
+// LLVM:           %[[MLIR_29:.*]] = llvm.mlir.addressof @cstr.7068617365645F727800 : !llvm.ptr
+// LLVM:           %[[BITCAST_14:.*]] = llvm.bitcast %[[MLIR_29]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[MLIR_30:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_14:.*]] = llvm.alloca %[[MLIR_30]] x !llvm.array<2 x f64> : (i32) -> !llvm.ptr
+// LLVM:           %[[BITCAST_15:.*]] = llvm.bitcast %[[ALLOCA_14]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[BITCAST_16:.*]] = llvm.bitcast %[[ALLOCA_14]] : !llvm.ptr to !llvm.ptr
+// LLVM:           llvm.store %[[MLIR_8]], %[[BITCAST_16]] : f64, !llvm.ptr
+// LLVM:           %[[GETELEMENTPTR_5:.*]] = llvm.getelementptr %[[ALLOCA_14]][0, 1] : (!llvm.ptr) -> !llvm.ptr, !llvm.array<2 x f64>
+// LLVM:           llvm.store %[[MLIR_7]], %[[GETELEMENTPTR_5]] : f64, !llvm.ptr
+// LLVM:           %[[MLIR_31:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_15:.*]] = llvm.alloca %[[MLIR_31]] x !llvm.struct<(ptr, i64)> : (i32) -> !llvm.ptr
+// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[ALLOCA_15]], %[[INTTOPTR_1]], %[[MLIR_4]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[BITCAST_14]], %[[MLIR_2]], %[[BITCAST_15]], %[[ALLOCA_15]], %[[ALLOCA_3]], %[[MLIR_1]]) : (!llvm.ptr, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, i1) -> ()
+// LLVM:           %[[MLIR_32:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_16:.*]] = llvm.alloca %[[MLIR_32]] x !llvm.array<1 x f64> : (i32) -> !llvm.ptr
+// LLVM:           %[[BITCAST_17:.*]] = llvm.bitcast %[[ALLOCA_16]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[BITCAST_18:.*]] = llvm.bitcast %[[ALLOCA_16]] : !llvm.ptr to !llvm.ptr
+// LLVM:           llvm.store %[[MLIR_7]], %[[BITCAST_18]] : f64, !llvm.ptr
+// LLVM:           %[[MLIR_33:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_17:.*]] = llvm.alloca %[[MLIR_33]] x !llvm.struct<(ptr, i64)> : (i32) -> !llvm.ptr
+// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[ALLOCA_17]], %[[INTTOPTR_1]], %[[MLIR_4]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[BITCAST_11]], %[[MLIR_3]], %[[BITCAST_17]], %[[ALLOCA_17]], %[[ALLOCA_3]], %[[MLIR_1]]) : (!llvm.ptr, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, i1) -> ()
+// LLVM:           %[[MLIR_34:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_18:.*]] = llvm.alloca %[[MLIR_34]] x !llvm.struct<(ptr, i64)> : (i32) -> !llvm.ptr
+// LLVM:           %[[MLIR_35:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_19:.*]] = llvm.alloca %[[MLIR_35]] x !llvm.array<1 x i64> : (i32) -> !llvm.ptr
+// LLVM:           %[[BITCAST_19:.*]] = llvm.bitcast %[[ALLOCA_19]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[CALL_0:.*]] = llvm.call @__nvqpp__cudaq_em_allocate() : () -> i64
+// LLVM:           %[[BITCAST_20:.*]] = llvm.bitcast %[[ALLOCA_19]] : !llvm.ptr to !llvm.ptr
+// LLVM:           llvm.store %[[CALL_0]], %[[BITCAST_20]] : i64, !llvm.ptr
+// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[ALLOCA_18]], %[[BITCAST_19]], %[[MLIR_3]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           %[[MLIR_36:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_20:.*]] = llvm.alloca %[[MLIR_36]] x !llvm.array<1 x f64> : (i32) -> !llvm.ptr
+// LLVM:           %[[BITCAST_21:.*]] = llvm.bitcast %[[ALLOCA_20]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[BITCAST_22:.*]] = llvm.bitcast %[[ALLOCA_20]] : !llvm.ptr to !llvm.ptr
+// LLVM:           llvm.store %[[MLIR_7]], %[[BITCAST_22]] : f64, !llvm.ptr
+// LLVM:           %[[MLIR_37:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_21:.*]] = llvm.alloca %[[MLIR_37]] x !llvm.struct<(ptr, i64)> : (i32) -> !llvm.ptr
+// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[ALLOCA_21]], %[[INTTOPTR_1]], %[[MLIR_4]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[BITCAST_11]], %[[MLIR_3]], %[[BITCAST_21]], %[[ALLOCA_21]], %[[ALLOCA_18]], %[[MLIR_1]]) : (!llvm.ptr, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, i1) -> ()
+// LLVM:           %[[MLIR_38:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_22:.*]] = llvm.alloca %[[MLIR_38]] x !llvm.struct<(ptr, i64)> : (i32) -> !llvm.ptr
+// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[ALLOCA_22]], %[[INTTOPTR_1]], %[[MLIR_4]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[BITCAST_5]], %[[MLIR_4]], %[[INTTOPTR_0]], %[[ALLOCA_22]], %[[ALLOCA_18]], %[[MLIR_1]]) : (!llvm.ptr, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, i1) -> ()
+// LLVM:           llvm.call @__nvqpp__cudaq_em_return(%[[ALLOCA_18]]) : (!llvm.ptr) -> ()
+// LLVM:           %[[MLIR_39:.*]] = llvm.mlir.addressof @cstr.727900 : !llvm.ptr
+// LLVM:           %[[BITCAST_23:.*]] = llvm.bitcast %[[MLIR_39]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[MLIR_40:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_23:.*]] = llvm.alloca %[[MLIR_40]] x !llvm.array<1 x f64> : (i32) -> !llvm.ptr
+// LLVM:           %[[BITCAST_24:.*]] = llvm.bitcast %[[ALLOCA_23]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[BITCAST_25:.*]] = llvm.bitcast %[[ALLOCA_23]] : !llvm.ptr to !llvm.ptr
+// LLVM:           llvm.store %[[MLIR_8]], %[[BITCAST_25]] : f64, !llvm.ptr
+// LLVM:           %[[MLIR_41:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_24:.*]] = llvm.alloca %[[MLIR_41]] x !llvm.struct<(ptr, i64)> : (i32) -> !llvm.ptr
+// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[ALLOCA_24]], %[[INTTOPTR_1]], %[[MLIR_4]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[BITCAST_23]], %[[MLIR_3]], %[[BITCAST_24]], %[[ALLOCA_24]], %[[ALLOCA_3]], %[[MLIR_1]]) : (!llvm.ptr, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, i1) -> ()
+// LLVM:           %[[MLIR_42:.*]] = llvm.mlir.addressof @cstr.727A00 : !llvm.ptr
+// LLVM:           %[[BITCAST_26:.*]] = llvm.bitcast %[[MLIR_42]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[MLIR_43:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_25:.*]] = llvm.alloca %[[MLIR_43]] x !llvm.array<1 x f64> : (i32) -> !llvm.ptr
+// LLVM:           %[[BITCAST_27:.*]] = llvm.bitcast %[[ALLOCA_25]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[BITCAST_28:.*]] = llvm.bitcast %[[ALLOCA_25]] : !llvm.ptr to !llvm.ptr
+// LLVM:           llvm.store %[[MLIR_7]], %[[BITCAST_28]] : f64, !llvm.ptr
+// LLVM:           %[[MLIR_44:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_26:.*]] = llvm.alloca %[[MLIR_44]] x !llvm.struct<(ptr, i64)> : (i32) -> !llvm.ptr
+// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[ALLOCA_26]], %[[INTTOPTR_1]], %[[MLIR_4]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[BITCAST_26]], %[[MLIR_3]], %[[BITCAST_27]], %[[ALLOCA_26]], %[[ALLOCA_2]], %[[MLIR_1]]) : (!llvm.ptr, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, i1) -> ()
+// LLVM:           %[[MLIR_45:.*]] = llvm.mlir.addressof @cstr.753200 : !llvm.ptr
+// LLVM:           %[[BITCAST_29:.*]] = llvm.bitcast %[[MLIR_45]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[MLIR_46:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_27:.*]] = llvm.alloca %[[MLIR_46]] x !llvm.array<2 x f64> : (i32) -> !llvm.ptr
+// LLVM:           %[[BITCAST_30:.*]] = llvm.bitcast %[[ALLOCA_27]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[BITCAST_31:.*]] = llvm.bitcast %[[ALLOCA_27]] : !llvm.ptr to !llvm.ptr
+// LLVM:           llvm.store %[[MLIR_7]], %[[BITCAST_31]] : f64, !llvm.ptr
+// LLVM:           %[[GETELEMENTPTR_6:.*]] = llvm.getelementptr %[[ALLOCA_27]][0, 1] : (!llvm.ptr) -> !llvm.ptr, !llvm.array<2 x f64>
+// LLVM:           llvm.store %[[MLIR_8]], %[[GETELEMENTPTR_6]] : f64, !llvm.ptr
+// LLVM:           %[[MLIR_47:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_28:.*]] = llvm.alloca %[[MLIR_47]] x !llvm.struct<(ptr, i64)> : (i32) -> !llvm.ptr
+// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[ALLOCA_28]], %[[INTTOPTR_1]], %[[MLIR_4]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[BITCAST_29]], %[[MLIR_2]], %[[BITCAST_30]], %[[ALLOCA_28]], %[[ALLOCA_2]], %[[MLIR_1]]) : (!llvm.ptr, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, i1) -> ()
+// LLVM:           %[[MLIR_48:.*]] = llvm.mlir.addressof @cstr.753300 : !llvm.ptr
+// LLVM:           %[[BITCAST_32:.*]] = llvm.bitcast %[[MLIR_48]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[MLIR_49:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_29:.*]] = llvm.alloca %[[MLIR_49]] x !llvm.array<3 x f64> : (i32) -> !llvm.ptr
+// LLVM:           %[[BITCAST_33:.*]] = llvm.bitcast %[[ALLOCA_29]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[BITCAST_34:.*]] = llvm.bitcast %[[ALLOCA_29]] : !llvm.ptr to !llvm.ptr
+// LLVM:           llvm.store %[[MLIR_7]], %[[BITCAST_34]] : f64, !llvm.ptr
+// LLVM:           %[[GETELEMENTPTR_7:.*]] = llvm.getelementptr %[[ALLOCA_29]][0, 1] : (!llvm.ptr) -> !llvm.ptr, !llvm.array<3 x f64>
+// LLVM:           llvm.store %[[MLIR_8]], %[[GETELEMENTPTR_7]] : f64, !llvm.ptr
+// LLVM:           %[[GETELEMENTPTR_8:.*]] = llvm.getelementptr %[[ALLOCA_29]][0, 2] : (!llvm.ptr) -> !llvm.ptr, !llvm.array<3 x f64>
+// LLVM:           llvm.store %[[MLIR_6]], %[[GETELEMENTPTR_8]] : f64, !llvm.ptr
+// LLVM:           %[[MLIR_50:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_30:.*]] = llvm.alloca %[[MLIR_50]] x !llvm.struct<(ptr, i64)> : (i32) -> !llvm.ptr
+// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[ALLOCA_30]], %[[INTTOPTR_1]], %[[MLIR_4]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[BITCAST_32]], %[[MLIR_5]], %[[BITCAST_33]], %[[ALLOCA_30]], %[[ALLOCA_2]], %[[MLIR_1]]) : (!llvm.ptr, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, i1) -> ()
+// LLVM:           %[[MLIR_51:.*]] = llvm.mlir.addressof @cstr.7377617000 : !llvm.ptr
+// LLVM:           %[[BITCAST_35:.*]] = llvm.bitcast %[[MLIR_51]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[MLIR_52:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_31:.*]] = llvm.alloca %[[MLIR_52]] x !llvm.struct<(ptr, i64)> : (i32) -> !llvm.ptr
+// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[ALLOCA_31]], %[[INTTOPTR_1]], %[[MLIR_4]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           %[[MLIR_53:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_32:.*]] = llvm.alloca %[[MLIR_53]] x !llvm.struct<(ptr, i64)> : (i32) -> !llvm.ptr
+// LLVM:           %[[LOAD_7:.*]] = llvm.load %[[GETELEMENTPTR_3]] : !llvm.ptr -> i64
+// LLVM:           %[[LOAD_8:.*]] = llvm.load %[[GETELEMENTPTR_2]] : !llvm.ptr -> i64
+// LLVM:           %[[ADD_1:.*]] = llvm.add %[[LOAD_7]], %[[LOAD_8]] : i64
+// LLVM:           %[[ALLOCA_33:.*]] = llvm.alloca %[[ADD_1]] x i64 : (i64) -> !llvm.ptr
+// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[ALLOCA_32]], %[[ALLOCA_33]], %[[ADD_1]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           %[[BITCAST_36:.*]] = llvm.bitcast %[[ALLOCA_33]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[LOAD_9:.*]] = llvm.load %[[GETELEMENTPTR_3]] : !llvm.ptr -> i64
+// LLVM:           llvm.call @__nvqpp__cudaq_em_concatSpan(%[[BITCAST_36]], %[[ALLOCA_2]], %[[LOAD_9]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           %[[GETELEMENTPTR_9:.*]] = llvm.getelementptr %[[ALLOCA_33]]{{\[}}%[[LOAD_9]]] : (!llvm.ptr, i64) -> !llvm.ptr, i64
+// LLVM:           %[[LOAD_10:.*]] = llvm.load %[[GETELEMENTPTR_2]] : !llvm.ptr -> i64
+// LLVM:           llvm.call @__nvqpp__cudaq_em_concatSpan(%[[GETELEMENTPTR_9]], %[[ALLOCA_4]], %[[LOAD_10]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[BITCAST_35]], %[[MLIR_4]], %[[INTTOPTR_0]], %[[ALLOCA_31]], %[[ALLOCA_32]], %[[MLIR_1]]) : (!llvm.ptr, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, i1) -> ()
+// LLVM:           %[[MLIR_54:.*]] = llvm.mlir.addressof @cstr.6D696B6500 : !llvm.ptr
+// LLVM:           %[[BITCAST_37:.*]] = llvm.bitcast %[[MLIR_54]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[CALL_1:.*]] = llvm.call @__nvqpp__cudaq_em_measure(%[[ALLOCA_4]], %[[BITCAST_37]]) : (!llvm.ptr, !llvm.ptr) -> i32
+// LLVM:           %[[MLIR_55:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_34:.*]] = llvm.alloca %[[MLIR_55]] x !llvm.struct<(ptr, i64)> : (i32) -> !llvm.ptr
+// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[ALLOCA_34]], %[[INTTOPTR_1]], %[[MLIR_4]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[BITCAST_4]], %[[MLIR_4]], %[[INTTOPTR_0]], %[[ALLOCA_34]], %[[ALLOCA_3]], %[[MLIR_1]]) : (!llvm.ptr, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, i1) -> ()
+// LLVM:           %[[MLIR_56:.*]] = llvm.mlir.addressof @cstr.746F6D00 : !llvm.ptr
+// LLVM:           %[[BITCAST_38:.*]] = llvm.bitcast %[[MLIR_56]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[CALL_2:.*]] = llvm.call @__nvqpp__cudaq_em_measure(%[[ALLOCA_3]], %[[BITCAST_38]]) : (!llvm.ptr, !llvm.ptr) -> i32
+// LLVM:           %[[MLIR_57:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_35:.*]] = llvm.alloca %[[MLIR_57]] x !llvm.struct<(ptr, i64)> : (i32) -> !llvm.ptr
+// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[ALLOCA_35]], %[[INTTOPTR_1]], %[[MLIR_4]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[BITCAST_10]], %[[MLIR_4]], %[[INTTOPTR_0]], %[[ALLOCA_35]], %[[ALLOCA_2]], %[[MLIR_0]]) : (!llvm.ptr, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, i1) -> ()
+// LLVM:           %[[MLIR_58:.*]] = llvm.mlir.constant(1 : i32) : i32
+// LLVM:           %[[ALLOCA_36:.*]] = llvm.alloca %[[MLIR_58]] x !llvm.struct<(ptr, i64)> : (i32) -> !llvm.ptr
+// LLVM:           llvm.call @__nvqpp__cudaq_em_writeToSpan(%[[ALLOCA_36]], %[[INTTOPTR_1]], %[[MLIR_4]]) : (!llvm.ptr, !llvm.ptr, i64) -> ()
+// LLVM:           llvm.call @__nvqpp__cudaq_em_apply(%[[BITCAST_4]], %[[MLIR_4]], %[[INTTOPTR_0]], %[[ALLOCA_36]], %[[ALLOCA_2]], %[[MLIR_1]]) : (!llvm.ptr, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, i1) -> ()
+// LLVM:           %[[MLIR_59:.*]] = llvm.mlir.addressof @cstr.72
+// LLVM:           %[[BITCAST_39:.*]] = llvm.bitcast %[[MLIR_59]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[CALL_3:.*]] = llvm.call @__nvqpp__cudaq_em_measure(%[[ALLOCA_2]], %[[BITCAST_39]]) : (!llvm.ptr, !llvm.ptr) -> i32
+// LLVM:           llvm.call @__nvqpp__cudaq_em_return(%[[ALLOCA_0]]) : (!llvm.ptr) -> ()
 // LLVM:           llvm.return
 // LLVM:         }
 // LLVM:         llvm.func @__nvqpp__cudaq_em_allocate() -> i64 attributes {sym_visibility = "private"}
 
 // LLVM-LABEL:   llvm.func @__nvqpp__cudaq_em_allocate_veq(
-// LLVM-SAME:      %[[VAL_0:.*]]: !llvm.ptr<struct<(ptr<i64>, i64)>>,
-// LLVM-SAME:      %[[VAL_1:.*]]: i64) attributes {sym_visibility = "private"} {
-// LLVM:           %[[VAL_2:.*]] = llvm.mlir.constant(1 : i64) : i64
-// LLVM:           %[[VAL_3:.*]] = llvm.mlir.constant(0 : i64) : i64
-// LLVM:           %[[VAL_4:.*]] = llvm.getelementptr %[[VAL_0]][0, 0] : (!llvm.ptr<struct<(ptr<i64>, i64)>>) -> !llvm.ptr<ptr<i64>>
-// LLVM:           %[[VAL_13:.*]] = llvm.load %[[VAL_4]] : !llvm.ptr<ptr<i64>>
-// LLVM:           llvm.br ^bb1(%[[VAL_3]] : i64)
-// LLVM:         ^bb1(%[[VAL_5:.*]]: i64):
-// LLVM:           %[[VAL_6:.*]] = llvm.icmp "slt" %[[VAL_5]], %[[VAL_1]] : i64
-// LLVM:           llvm.cond_br %[[VAL_6]], ^bb2(%[[VAL_5]] : i64), ^bb4(%[[VAL_5]] : i64)
-// LLVM:         ^bb2(%[[VAL_7:.*]]: i64):
-// LLVM:           %[[VAL_8:.*]] = llvm.call @__nvqpp__cudaq_em_allocate() : () -> i64
-// LLVM:           %[[VAL_9:.*]] = llvm.getelementptr %[[VAL_13]][%[[VAL_7]]] : (!llvm.ptr<i64>, i64) -> !llvm.ptr<i64>
-// LLVM:           llvm.store %[[VAL_8]], %[[VAL_9]] : !llvm.ptr<i64>
-// LLVM:           llvm.br ^bb3(%[[VAL_7]] : i64)
-// LLVM:         ^bb3(%[[VAL_10:.*]]: i64):
-// LLVM:           %[[VAL_11:.*]] = llvm.add %[[VAL_10]], %[[VAL_2]]  : i64
-// LLVM:           llvm.br ^bb1(%[[VAL_11]] : i64)
-// LLVM:         ^bb4(%[[VAL_12:.*]]: i64):
-// LLVM:           llvm.br ^bb5
-// LLVM:         ^bb5:
+// LLVM-SAME:      %[[ARG0:.*]]: !llvm.ptr,
+// LLVM-SAME:      %[[ARG1:.*]]: i64) attributes {sym_visibility = "private"} {
+// LLVM:           %[[MLIR_0:.*]] = llvm.mlir.constant(1 : i64) : i64
+// LLVM:           %[[MLIR_1:.*]] = llvm.mlir.constant(0 : i64) : i64
+// LLVM:           %[[BITCAST_0:.*]] = llvm.bitcast %[[ARG0]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[LOAD_0:.*]] = llvm.load %[[BITCAST_0]] : !llvm.ptr -> !llvm.ptr
+// LLVM:           llvm.br ^bb1(%[[MLIR_1]] : i64)
+// LLVM:         ^bb1(%[[VAL_0:.*]]: i64):
+// LLVM:           %[[ICMP_0:.*]] = llvm.icmp "slt" %[[VAL_0]], %[[ARG1]] : i64
+// LLVM:           llvm.cond_br %[[ICMP_0]], ^bb2(%[[VAL_0]] : i64), ^bb3
+// LLVM:         ^bb2(%[[VAL_1:.*]]: i64):
+// LLVM:           %[[CALL_0:.*]] = llvm.call @__nvqpp__cudaq_em_allocate() : () -> i64
+// LLVM:           %[[GETELEMENTPTR_0:.*]] = llvm.getelementptr %[[LOAD_0]]{{\[}}%[[VAL_1]]] : (!llvm.ptr, i64) -> !llvm.ptr, i64
+// LLVM:           llvm.store %[[CALL_0]], %[[GETELEMENTPTR_0]] : i64, !llvm.ptr
+// LLVM:           %[[ADD_0:.*]] = llvm.add %[[VAL_1]], %[[MLIR_0]] : i64
+// LLVM:           llvm.br ^bb1(%[[ADD_0]] : i64)
+// LLVM:         ^bb3:
 // LLVM:           llvm.return
 // LLVM:         }
-// LLVM:         llvm.func @__nvqpp__cudaq_em_apply(!llvm.ptr<i8>, i64, !llvm.ptr<f64>, !llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<struct<(ptr<i64>, i64)>>, i1) attributes {sym_visibility = "private"}
-// LLVM:         llvm.func @llvm.memcpy.p0i8.p0i8.i64(!llvm.ptr<i8>, !llvm.ptr<i8>, i64, i1) attributes {sym_visibility = "private"}
+// LLVM:         llvm.func @__nvqpp__cudaq_em_apply(!llvm.ptr, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, i1) attributes {sym_visibility = "private"}
+// LLVM:         llvm.func @llvm.memcpy.p0.p0.i64(!llvm.ptr, !llvm.ptr, i64, i1) attributes {sym_visibility = "private"}
 
 // LLVM-LABEL:   llvm.func @__nvqpp__cudaq_em_concatSpan(
-// LLVM-SAME:      %[[VAL_0:.*]]: !llvm.ptr<i64>,
-// LLVM-SAME:      %[[VAL_1:.*]]: !llvm.ptr<struct<(ptr<i64>, i64)>>,
-// LLVM-SAME:      %[[VAL_2:.*]]: i64) attributes {sym_visibility = "private"} {
-// LLVM:           %[[VAL_3:.*]] = llvm.mlir.constant(false) : i1
-// LLVM:           %[[VAL_4:.*]] = llvm.mlir.constant(8 : i64) : i64
-// LLVM:           %[[VAL_5:.*]] = llvm.getelementptr %[[VAL_1]][0, 0] : (!llvm.ptr<struct<(ptr<i64>, i64)>>) -> !llvm.ptr<ptr<i64>>
-// LLVM:           %[[VAL_6:.*]] = llvm.load %[[VAL_5]] : !llvm.ptr<ptr<i64>>
-// LLVM:           %[[VAL_7:.*]] = llvm.mul %[[VAL_2]], %[[VAL_4]]  : i64
-// LLVM:           %[[VAL_8:.*]] = llvm.bitcast %[[VAL_0]] : !llvm.ptr<i64> to !llvm.ptr<i8>
-// LLVM:           %[[VAL_9:.*]] = llvm.bitcast %[[VAL_6]] : !llvm.ptr<i64> to !llvm.ptr<i8>
-// LLVM:           llvm.call @llvm.memcpy.p0i8.p0i8.i64(%[[VAL_8]], %[[VAL_9]], %[[VAL_7]], %[[VAL_3]]) : (!llvm.ptr<i8>, !llvm.ptr<i8>, i64, i1) -> ()
+// LLVM-SAME:      %[[ARG0:.*]]: !llvm.ptr, %[[ARG1:.*]]: !llvm.ptr, %[[ARG2:.*]]: i64)
+// LLVM:           %[[MLIR_0:.*]] = llvm.mlir.constant(false) : i1
+// LLVM:           %[[MLIR_1:.*]] = llvm.mlir.constant(8 : i64) : i64
+// LLVM:           %[[BITCAST_0:.*]] = llvm.bitcast %[[ARG1]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[LOAD_0:.*]] = llvm.load %[[BITCAST_0]] : !llvm.ptr -> !llvm.ptr
+// LLVM:           %[[MUL_0:.*]] = llvm.mul %[[ARG2]], %[[MLIR_1]] : i64
+// LLVM:           %[[BITCAST_1:.*]] = llvm.bitcast %[[ARG0]] : !llvm.ptr to !llvm.ptr
+// LLVM:           %[[BITCAST_2:.*]] = llvm.bitcast %[[LOAD_0]] : !llvm.ptr to !llvm.ptr
+// LLVM:           llvm.call @llvm.memcpy.p0.p0.i64(%[[BITCAST_1]], %[[BITCAST_2]], %[[MUL_0]], %[[MLIR_0]]) : (!llvm.ptr, !llvm.ptr, i64, i1) -> ()
 // LLVM:           llvm.return
 // LLVM:         }
-// LLVM:         llvm.func @__nvqpp__cudaq_em_measure(!llvm.ptr<struct<(ptr<i64>, i64)>>, !llvm.ptr<i8>) -> i32 attributes {sym_visibility = "private"}
-// LLVM:         llvm.func @__nvqpp__cudaq_em_reset(!llvm.ptr<struct<(ptr<i64>, i64)>>) attributes {sym_visibility = "private"}
-// LLVM:         llvm.func @__nvqpp__cudaq_em_return(!llvm.ptr<struct<(ptr<i64>, i64)>>) attributes {sym_visibility = "private"}
+// LLVM:         llvm.func @__nvqpp__cudaq_em_measure(!llvm.ptr, !llvm.ptr) -> i32 attributes {sym_visibility = "private"}
+// LLVM:         llvm.func @__nvqpp__cudaq_em_reset(!llvm.ptr) attributes {sym_visibility = "private"}
+// LLVM:         llvm.func @__nvqpp__cudaq_em_return(!llvm.ptr) attributes {sym_visibility = "private"}
 
 // LLVM-LABEL:   llvm.func @__nvqpp__cudaq_em_writeToSpan(
-// LLVM-SAME:      %[[VAL_0:.*]]: !llvm.ptr<struct<(ptr<i64>, i64)>>,
-// LLVM-SAME:      %[[VAL_1:.*]]: !llvm.ptr<i64>,
-// LLVM-SAME:      %[[VAL_2:.*]]: i64) attributes {sym_visibility = "private"} {
-// LLVM:           %[[VAL_3:.*]] = llvm.getelementptr %[[VAL_0]][0, 0] : (!llvm.ptr<struct<(ptr<i64>, i64)>>) -> !llvm.ptr<ptr<i64>>
-// LLVM:           llvm.store %[[VAL_1]], %[[VAL_3]] : !llvm.ptr<ptr<i64>>
-// LLVM:           %[[VAL_4:.*]] = llvm.getelementptr %[[VAL_0]][0, 1] : (!llvm.ptr<struct<(ptr<i64>, i64)>>) -> !llvm.ptr<i64>
-// LLVM:           llvm.store %[[VAL_2]], %[[VAL_4]] : !llvm.ptr<i64>
+// LLVM-SAME:      %[[ARG0:.*]]: !llvm.ptr, %[[ARG1:.*]]: !llvm.ptr, %[[ARG2:.*]]: i64)
+// LLVM:           %[[BITCAST_0:.*]] = llvm.bitcast %[[ARG0]] : !llvm.ptr to !llvm.ptr
+// LLVM:           llvm.store %[[ARG1]], %[[BITCAST_0]] : !llvm.ptr, !llvm.ptr
+// LLVM:           %[[GETELEMENTPTR_0:.*]] = llvm.getelementptr %[[ARG0]][0, 1] : (!llvm.ptr) -> !llvm.ptr, !llvm.struct<(ptr, i64)>
+// LLVM:           llvm.store %[[ARG2]], %[[GETELEMENTPTR_0]] : i64, !llvm.ptr
 // LLVM:           llvm.return
 // LLVM:         }
-// LLVM-DAG:     llvm.mlir.global private constant @cstr.6800("h\00") {addr_space = 0 : i32}
-// LLVM-DAG:     llvm.mlir.global private constant @cstr.7800("x\00") {addr_space = 0 : i32}
-// LLVM-DAG:     llvm.mlir.global private constant @cstr.7900("y\00") {addr_space = 0 : i32}
-// LLVM-DAG:     llvm.mlir.global private constant @cstr.7A00("z\00") {addr_space = 0 : i32}
-// LLVM-DAG:     llvm.mlir.global private constant @cstr.7400("t\00") {addr_space = 0 : i32}
-// LLVM-DAG:     llvm.mlir.global private constant @cstr.7300("s\00") {addr_space = 0 : i32}
-// LLVM-DAG:     llvm.mlir.global private constant @cstr.727800("rx\00") {addr_space = 0 : i32}
-// LLVM-DAG:     llvm.mlir.global private constant @cstr.7068617365645F727800("phased_rx\00") {addr_space = 0 : i32}
-// LLVM-DAG:     llvm.mlir.global private constant @cstr.727900("ry\00") {addr_space = 0 : i32}
-// LLVM-DAG:     llvm.mlir.global private constant @cstr.727A00("rz\00") {addr_space = 0 : i32}
-// LLVM-DAG:     llvm.mlir.global private constant @cstr.753200("u2\00") {addr_space = 0 : i32}
-// LLVM-DAG:     llvm.mlir.global private constant @cstr.753300("u3\00") {addr_space = 0 : i32}
-// LLVM-DAG:     llvm.mlir.global private constant @cstr.7377617000("swap\00") {addr_space = 0 : i32}
-// LLVM-DAG:     llvm.mlir.global private constant @cstr.6D696B6500("mike\00") {addr_space = 0 : i32}
-// LLVM-DAG:     llvm.mlir.global private constant @cstr.746F6D00("tom\00") {addr_space = 0 : i32}
-// LLVM-DAG:     llvm.mlir.global private constant @cstr.72{{[0-9]+}}00("r{{[0-9]+}}\00") {addr_space = 0 : i32}
+// LLVM:         llvm.mlir.global private constant @cstr.6800("h\00") {addr_space = 0 : i32}
+// LLVM:         llvm.mlir.global private constant @cstr.7800("x\00") {addr_space = 0 : i32}
+// LLVM:         llvm.mlir.global private constant @cstr.7900("y\00") {addr_space = 0 : i32}
+// LLVM:         llvm.mlir.global private constant @cstr.7A00("z\00") {addr_space = 0 : i32}
+// LLVM:         llvm.mlir.global private constant @cstr.7400("t\00") {addr_space = 0 : i32}
+// LLVM:         llvm.mlir.global private constant @cstr.7300("s\00") {addr_space = 0 : i32}
+// LLVM:         llvm.mlir.global private constant @cstr.727800("rx\00") {addr_space = 0 : i32}
+// LLVM:         llvm.mlir.global private constant @cstr.7068617365645F727800("phased_rx\00") {addr_space = 0 : i32}
+// LLVM:         llvm.mlir.global private constant @cstr.727900("ry\00") {addr_space = 0 : i32}
+// LLVM:         llvm.mlir.global private constant @cstr.727A00("rz\00") {addr_space = 0 : i32}
+// LLVM:         llvm.mlir.global private constant @cstr.753200("u2\00") {addr_space = 0 : i32}
+// LLVM:         llvm.mlir.global private constant @cstr.753300("u3\00") {addr_space = 0 : i32}
+// LLVM:         llvm.mlir.global private constant @cstr.7377617000("swap\00") {addr_space = 0 : i32}
+// LLVM:         llvm.mlir.global private constant @cstr.6D696B6500("mike\00") {addr_space = 0 : i32}
+// LLVM:         llvm.mlir.global private constant @cstr.746F6D00("tom\00") {addr_space = 0 : i32}
+// LLVM:         llvm.func @llvm.stackrestore(!llvm.ptr) attributes {sym_visibility = "private"}
+// LLVM:         llvm.func @llvm.stacksave() -> !llvm.ptr attributes {sym_visibility = "private"}
 

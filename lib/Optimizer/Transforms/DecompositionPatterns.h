@@ -8,6 +8,7 @@
 
 #pragma once
 
+#define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/Support/Registry.h"
 #include "mlir/IR/PatternMatch.h"
@@ -28,8 +29,13 @@ namespace cudaq {
 /// system. Stores the pattern metadata and provides a factory method to create
 /// new instances of the pattern.
 ///
+/// Register decomposition patterns using
+/// CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, MyPatternType,
+/// pattern_name)
+/// where pattern_name is the same as MyPatternType().getPatternName().
 class DecompositionPatternType {
 public:
+  using RegistryType = llvm::Registry<DecompositionPatternType>;
   virtual ~DecompositionPatternType() = default;
 
   /// Get the source operation this pattern matches and decomposes.
@@ -102,3 +108,9 @@ createBasisTarget(mlir::MLIRContext &context,
 using DecompositionPatternTypeRegistry =
     llvm::Registry<DecompositionPatternType>;
 } // namespace cudaq
+
+/// Register a decomposition pattern type with the LLVM registry.
+/// This is compiler-internal only (no cross-DSO / Python concerns).
+#define REGISTER_DECOMPOSITION_PATTERN(SUBTYPE, NAME)                          \
+  static cudaq::DecompositionPatternType::RegistryType::Add<SUBTYPE>           \
+      decomp_reg_##NAME(#NAME, "");

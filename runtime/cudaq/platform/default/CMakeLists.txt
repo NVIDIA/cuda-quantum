@@ -7,7 +7,8 @@
 # ============================================================================ #
 
 set(LIBRARY_NAME cudaq-platform-default)
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
+set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 add_library(cudaq-qpu-default OBJECT DefaultQPU.cpp)
 target_include_directories(cudaq-qpu-default INTERFACE .)

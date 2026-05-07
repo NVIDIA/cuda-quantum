@@ -8,10 +8,6 @@
 
 add_subdirectory(utils)
 
-if (CMAKE_BUILD_TYPE STREQUAL "DEBUG")
-  set(CMAKE_BUILD_TYPE "Debug")
-endif()
-
 # [RFC]:
 # Check how to solve this better than just disable the warning for the whole directory.
 # If this is better addressed after updating to a newer LLVM version, track as an issue on GitHub.
@@ -35,15 +31,22 @@ if (CUDA_FOUND)
   find_package(CUDAToolkit REQUIRED)
 endif()
 
+if(LLVM_ENABLE_ASSERTIONS)
+  set(CUDAQ_ASSERTIONS_ENABLED "1")
+else()
+  set(CUDAQ_ASSERTIONS_ENABLED "")
+endif()
+
 set(METADATA_FILE "${CMAKE_BINARY_DIR}/python/cudaq/_metadata.py" )
 add_custom_target(
   CopyPythonFiles ALL
   COMMAND ${CMAKE_COMMAND} -E copy_directory
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_BINARY_DIR}/python
-  COMMAND ${CMAKE_COMMAND} 
-  -DMETADATA_FILE="${METADATA_FILE}" 
-  -DCUDA_VERSION_MAJOR=${CUDAToolkit_VERSION_MAJOR} 
+  COMMAND ${CMAKE_COMMAND}
+  -DMETADATA_FILE="${METADATA_FILE}"
+  -DCUDA_VERSION_MAJOR=${CUDAToolkit_VERSION_MAJOR}
+  -DASSERTIONS_ENABLED=${CUDAQ_ASSERTIONS_ENABLED}
   -P ${CMAKE_CURRENT_SOURCE_DIR}/metadata.cmake
   DEPENDS ${PYTHON_SOURCES}
   BYPRODUCTS "${METADATA_FILE}"
