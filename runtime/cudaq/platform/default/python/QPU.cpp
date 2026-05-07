@@ -26,6 +26,7 @@
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq_internal/compiler/JIT.h"
+#include "cudaq_internal/compiler/JITTargetPipeline.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "runtime/cudaq/platform/PythonSignalCheck.h"
@@ -101,104 +102,16 @@ static void specializeKernel(const std::string &name, ModuleOp module,
     throw std::runtime_error("Pass pipeline failed.");
 }
 
-/// Replace %KEY% and %KEY:default% placeholders in a pipeline string with
-/// values from the runtime config map. If the key is in runtimeConfig, use
-/// that value. Otherwise use the inline default if provided (%KEY:val%).
-/// Keys in the pipeline are uppercase; runtimeConfig keys are lowercase.
-/// This is the Python JIT equivalent of ServerHelper::updatePassPipeline().
-static void substitutePipelinePlaceholders(
-    std::string &pipeline,
-    const std::map<std::string, std::string> &runtimeConfig) {
-  std::string::size_type pos = 0;
-  while (pos < pipeline.size()) {
-    auto start = pipeline.find('%', pos);
-    if (start == std::string::npos)
-      break;
-    auto end = pipeline.find('%', start + 1);
-    if (end == std::string::npos)
-      break;
-    auto token = pipeline.substr(start + 1, end - start - 1);
-    auto colon = token.find(':');
-    auto key = (colon != std::string::npos) ? token.substr(0, colon) : token;
-
-    // Lowercase the key to match runtimeConfig convention.
-    std::string lower;
-    for (char c : key)
-      lower += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-    auto it = runtimeConfig.find(lower);
-
-    if (it != runtimeConfig.end()) {
-      pipeline.replace(start, end - start + 1, it->second);
-      pos = start + it->second.size();
-    } else if (colon != std::string::npos) {
-      auto defaultVal = token.substr(colon + 1);
-      pipeline.replace(start, end - start + 1, defaultVal);
-      pos = start + defaultVal.size();
-    } else {
-      pos = end + 1;
-    }
-  }
-}
-
-static void appendPipelineStage(std::string &pipeline,
-                                const std::string &stage) {
-  if (stage.empty())
-    return;
-  if (!pipeline.empty())
-    pipeline += ",";
-  pipeline += stage;
-}
-
-static bool buildTargetPassPipeline(std::string &pipeline,
-                                    bool &runsStandardFinalize) {
-  runsStandardFinalize = false;
+/// Run the target compilation pipeline for Python MLIR kernels. Local Python
+/// targets only enter this path when they configure target pass-pipeline
+/// fields.
+static bool runTargetPassPipeline(mlir::ModuleOp module) {
   auto *rt = cudaq::get_platform().get_runtime_target();
   if (!rt)
     return false;
-  auto &cfg = rt->config;
-  if (!cfg.BackendConfig.has_value() || !cfg.BackendConfig->hasPassPipeline())
-    return false;
-
-  if (!cfg.BackendConfig->TargetPassPipeline.empty()) {
-    pipeline = cfg.BackendConfig->TargetPassPipeline;
-    substitutePipelinePlaceholders(pipeline, rt->runtimeConfig);
-    return true;
-  }
-
-  appendPipelineStage(pipeline, "canonicalize");
-
-  const bool emulate = cudaq::is_emulated_platform();
-  auto codegenTranslation = cfg.getCodeGenSpec(rt->runtimeConfig);
-  const std::string allowEarlyExit =
-      codegenTranslation.starts_with("qir-adaptive") ? "true" : "false";
-
-  if (emulate)
-    appendPipelineStage(pipeline, "emul-jit-prep-pipeline{erase-noise=true "
-                                  "allow-early-exit=" +
-                                      allowEarlyExit + "}");
-  else
-    appendPipelineStage(pipeline, "hw-jit-prep-pipeline{allow-early-exit=" +
-                                      allowEarlyExit + "}");
-
-  const std::string lowerDeviceCalls =
-      (codegenTranslation == "nop" && !emulate) ? "false" : "true";
-  appendPipelineStage(
-      pipeline,
-      cfg.BackendConfig->getPassPipeline(
-          "jit-deploy-pipeline", "jit-finalize-pipeline{lower-device-calls=" +
-                                     lowerDeviceCalls + "}"));
-  substitutePipelinePlaceholders(pipeline, rt->runtimeConfig);
-  runsStandardFinalize = true;
-  return true;
-}
-
-/// Run the target compilation pipeline for Python MLIR kernels. This mirrors
-/// the staged target flow in Compiler.cpp for targets that define pass-pipeline
-/// fields, while preserving target-pass-pipeline as an exact override.
-static bool runTargetPassPipeline(mlir::ModuleOp module) {
-  std::string pipeline;
-  bool runsStandardFinalize = false;
-  if (!buildTargetPassPipeline(pipeline, runsStandardFinalize))
+  auto pipelineConfig = cudaq_internal::compiler::buildJITTargetPipelineConfig(
+      rt->config, rt->runtimeConfig, cudaq::is_emulated_platform());
+  if (!pipelineConfig.hasConfiguredPassPipeline)
     return false;
 
   auto *ctx = module.getContext();
@@ -207,11 +120,12 @@ static bool runTargetPassPipeline(mlir::ModuleOp module) {
   pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
   std::string errMsg;
   llvm::raw_string_ostream errOS(errMsg);
-  if (mlir::failed(mlir::parsePassPipeline(pipeline, pm, errOS)))
+  if (mlir::failed(mlir::parsePassPipeline(pipelineConfig.passPipelineConfig,
+                                           pm, errOS)))
     throw std::runtime_error("Failed to parse target pipeline: " + errMsg);
   if (failed(cudaq::runPassManagerReleasingGIL(pm, module)))
     throw std::runtime_error("Pass pipeline failed.");
-  return runsStandardFinalize;
+  return pipelineConfig.runsStandardFinalize;
 }
 
 /// Lowers \p module to LLVM code. The LLVM code will use "full QIR" as the
