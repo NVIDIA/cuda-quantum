@@ -132,6 +132,9 @@ jobs:
 
       - name: Run link checks
         run: |
+          # Already validated at pull_request; re-running on merge_group
+          # just risks blocking on flaky external sites unrelated to the PR.
+          [ "${{ github.event_name }}" = "merge_group" ] && { echo "::notice::Skipping; validated on pull_request."; exit 0; }
           if [ "${{ steps.setup.outputs.mode }}" == "pr" ]; then
             cat ${{ steps.setup.outputs.changed-files }} | grep '\.md$' || true | xargs -r pre-commit run markdown-link-check --hook-stage pre-push --files
           else
