@@ -9,14 +9,10 @@
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "nlohmann/json.hpp"
 #include "llvm/Support/Debug.h"
-#include "mlir/Dialect/Arith/IR/Arith.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
@@ -109,7 +105,7 @@ public:
   // with:
   // ```
   //   %1 = ... : !quake.veq<4>
-  //   %measOut = quake.mz %1 : (!quake.veq<4>) -> !quake.measurements<4>
+  //   %measOut = quake.mz %1 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
   // ```
   // And collect output names information:  `"[[[0,[1,"q0"]],[1,[2,"q1"]]]]"`
   LogicalResult matchAndRewrite(quake::MzOp measure,
@@ -132,12 +128,7 @@ public:
       analysis.resultQubitVals[offset] =
           std::make_pair(idx, std::to_string(idx));
 
-      Type resultType;
-      if (quake::isConstantQuantumRefType(veq.getType()))
-        resultType = quake::MeasurementsType::get(
-            measure->getContext(), quake::getAllocationSize(veq.getType()));
-      else
-        resultType = quake::MeasurementsType::getUnsized(measure->getContext());
+      auto resultType = cudaq::cc::StdvecType::get(measure.getType(0));
       if (measure == analysis.lastMeasurement) {
         rewriter.replaceOpWithNewOp<quake::MzOp>(measure, TypeRange{resultType},
                                                  ValueRange{veq},
@@ -170,12 +161,12 @@ public:
   //   %1 = ... : !quake.veq<4>
   //   %2 = quake.subveq %1, %c1, %c2 : (!quake.veq<4>, i32, i32) ->
   //        !quake.veq<2>
-  //   %measOut = quake.mz %2 : (!quake.veq<2>) -> !quake.measurements<2>
+  //   %measOut = quake.mz %2 : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
   // ```
   // with:
   // ```
   //   %1 = ... : !quake.veq<4>
-  //   %measOut = quake.mz %1 : (!quake.veq<4>) -> !quake.measurements<4>
+  //   %measOut = quake.mz %1 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
   // ```
   // And collect output names information:  `"[[[0,[1,"q0"]],[1,[2,"q1"]]]]"`
   LogicalResult matchAndRewrite(quake::MzOp measure,
@@ -208,21 +199,12 @@ public:
         analysis.resultQubitVals[offset] = std::make_pair(i, std::to_string(i));
       }
 
-      if (measure == analysis.lastMeasurement) {
-        auto veq = subveq.getVeq();
-        Type resultType;
-        if (quake::isConstantQuantumRefType(veq.getType()))
-          resultType = quake::MeasurementsType::get(
-              measure->getContext(), quake::getAllocationSize(veq.getType()));
-        else
-          resultType =
-              quake::MeasurementsType::getUnsized(measure->getContext());
-        rewriter.replaceOpWithNewOp<quake::MzOp>(measure, TypeRange{resultType},
-                                                 ValueRange{veq},
-                                                 measure.getRegisterNameAttr());
-      } else if (measure.use_empty()) {
+      if (measure == analysis.lastMeasurement)
+        rewriter.replaceOpWithNewOp<quake::MzOp>(
+            measure, measure.getResultTypes(), ValueRange{subveq.getVeq()},
+            measure.getRegisterNameAttr());
+      else if (measure.use_empty())
         rewriter.eraseOp(measure);
-      }
 
       return success();
     }
@@ -262,8 +244,8 @@ public:
     RewritePatternSet patterns(ctx);
     patterns.insert<ExtendQubitMeasurePattern, ExtendVeqMeasurePattern>(
         ctx, analysis);
-    if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
-                                            std::move(patterns)))) {
+    if (failed(
+            applyPatternsGreedily(func.getOperation(), std::move(patterns)))) {
       func.emitOpError("Combining measurements failed");
       signalPassFailure();
     }

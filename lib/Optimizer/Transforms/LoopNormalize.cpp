@@ -36,7 +36,7 @@ public:
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     patterns.insert<LoopPat>(ctx, allowClosedInterval, allowBreak);
-    if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns)))) {
+    if (failed(applyPatternsGreedily(op, std::move(patterns)))) {
       op->emitOpError("could not normalize loop");
       signalPassFailure();
     }

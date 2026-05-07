@@ -13,7 +13,7 @@ func.func @test_struq() {
   %1 = arith.constant 1 : i32
   %2 = arith.constant 2.0 : f32
   // expected-error@+2 {{invalid struq member type}}
-  // expected-error@+1 {{must be non-struct quantum reference type}}
+  // expected-error@+1 {{must be variadic of non-struct quantum reference type}}
   %6 = quake.make_struq %0, %1, %2 : (!quake.veq<4>, i32, f32) -> !quake.struq<!quake.veq<?>, i32, f32>
   return
 }
@@ -229,33 +229,8 @@ func.func private @wonk(!quake.veq<18>, i32) -> f64
 
 // -----
 
-func.func @relax_size_measurements_sized_result(%q : !quake.veq<4>) {
-  %ms = quake.mz %q : (!quake.veq<4>) -> !quake.measurements<4>
-  // expected-error@+1 {{result measurements type must not specify a size}}
-  %bad = quake.relax_size %ms : (!quake.measurements<4>) -> !quake.measurements<4>
-  return
-}
-
-// -----
-
-func.func @relax_size_type_mismatch(%q : !quake.veq<4>) {
-  // expected-error@+1 {{input and result must both be measurements types}}
-  %bad = quake.relax_size %q : (!quake.veq<4>) -> !quake.measurements<?>
-  return
-}
-
-// -----
-
-func.func @relax_size_veq_sized_result(%q : !quake.veq<4>) {
-  // expected-error@+1 {{result veq type must not specify a size}}
-  %bad = quake.relax_size %q : (!quake.veq<4>) -> !quake.veq<4>
-  return
-}
-
-// -----
-
-func.func @relax_size_veq_type_mismatch(%ms : !quake.measurements<4>) {
-  // expected-error@+1 {{input and result must both be veq types}}
-  %bad = quake.relax_size %ms : (!quake.measurements<4>) -> !quake.veq<?>
+func.func @mz_handle_register_scalar_result(%v: !quake.veq<?>) {
+  // expected-error@+1 {{must return `!cc.stdvec<!quake.measure>` or `!cc.stdvec<!cc.measure_handle>`}}
+  %m = quake.mz %v : (!quake.veq<?>) -> !cc.measure_handle
   return
 }

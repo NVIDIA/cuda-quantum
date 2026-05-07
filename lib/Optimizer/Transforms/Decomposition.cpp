@@ -7,9 +7,8 @@
  ******************************************************************************/
 
 #include "DecompositionPatterns.h"
+#include "PassDetails.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/PatternMatch.h"
@@ -17,15 +16,12 @@
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
-using namespace mlir;
-
-//===----------------------------------------------------------------------===//
-// Generated logic
-//===----------------------------------------------------------------------===//
 namespace cudaq::opt {
 #define GEN_PASS_DEF_DECOMPOSITION
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
+
+using namespace mlir;
 
 namespace {
 
@@ -102,7 +98,7 @@ struct Decomposition
     // Process kernels in parallel
     LogicalResult rewriteResult = failableParallelForEach(
         module.getContext(), kernels, [&](Operation *op) {
-          LogicalResult converged = applyPatternsAndFoldGreedily(op, patterns);
+          LogicalResult converged = applyPatternsGreedily(op, patterns);
 
           // Decomposition is best-effort. Non-convergence is only a pass
           // failure if the user asked for convergence.

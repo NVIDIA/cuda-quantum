@@ -11,20 +11,20 @@
 #include "cudaq/algorithms/sample.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include <fmt/core.h>
-#include <pybind11/stl.h>
-
-namespace py = pybind11;
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
 
 using namespace cudaq;
 
 static async_sample_result sample_async_impl(
     const std::string &shortName, MlirModule module, std::size_t shots_count,
     std::optional<noise_model> noise_model, bool explicit_measurements,
-    std::size_t qpu_id, py::args runtimeArgs) {
+    std::size_t qpu_id, nanobind::args runtimeArgs) {
   mlir::ModuleOp mod = unwrap(module);
   runtimeArgs = simplifiedValidateInputArguments(runtimeArgs);
 
@@ -40,7 +40,13 @@ static async_sample_result sample_async_impl(
   auto opaques = marshal_arguments_for_module_launch(mod, runtimeArgs, fnOp);
 
   // Should only have C++ going on here, safe to release the GIL
-  py::gil_scoped_release release;
+  nanobind::gil_scoped_release release;
+
+  auto clonedMod = std::shared_ptr<mlir::ModuleOp>(
+      new mlir::ModuleOp(mod.clone()), [](mlir::ModuleOp *p) {
+        p->erase();
+        delete p;
+      });
 
   // Use runSamplingAsync with noise model support.
   // The noise_model is passed by value to runSamplingAsync, which captures
@@ -51,16 +57,16 @@ static async_sample_result sample_async_impl(
       // (1) no Python data access is allowed in this lambda body.
       // (2) This lambda might be executed multiple times, e.g, when
       // the kernel contains measurement feedback.
-      detail::make_copyable_function([opaques = std::move(opaques), kernelName,
-                                      mod = mod.clone()]() mutable {
-        [[maybe_unused]] auto result =
-            clean_launch_module(kernelName, mod, opaques);
-      }),
+      detail::make_copyable_function(
+          [opaques = std::move(opaques), kernelName, clonedMod]() mutable {
+            [[maybe_unused]] auto result =
+                clean_launch_module(kernelName, *clonedMod, opaques);
+          }),
       platform, kernelName, shots_count, explicit_measurements, qpu_id,
       std::move(noise_model));
 }
 
-void cudaq::bindSampleAsync(py::module &mod) {
+void cudaq::bindSampleAsync(nanobind::module_ &mod) {
   // Async. result wrapper for Python kernels, which also holds the Python MLIR
   // context.
   //
@@ -74,8 +80,8 @@ void cudaq::bindSampleAsync(py::module &mod) {
   // then track a reference (ref count) to the context of the temporary (rval)
   // kernel.
 
-  py::class_<async_sample_result>(mod, "AsyncSampleResultImpl",
-                                  R"#(
+  nanobind::class_<async_sample_result>(mod, "AsyncSampleResultImpl",
+                                        R"#(
 A data-type containing the results of a call to :func:`sample_async`.  The
 `AsyncSampleResult` models a future-like type, whose :class:`SampleResult` may
 be returned via an invocation of the `get` method.  This kicks off a wait on the
@@ -83,14 +89,15 @@ current thread until the results are available.  See `future
 <https://en.cppreference.com/w/cpp/thread/future>`_ for more information on this
 programming pattern.
 )#")
-      .def(py::init([](std::string inJson) {
-        async_sample_result f;
-        std::istringstream is(inJson);
-        is >> f;
-        return f;
-      }))
+      .def("__init__",
+           [](async_sample_result *self, std::string inJson) {
+             async_sample_result f;
+             std::istringstream is(inJson);
+             is >> f;
+             new (self) async_sample_result(std::move(f));
+           })
       .def("get", &async_sample_result::get,
-           py::call_guard<py::gil_scoped_release>(),
+           nanobind::call_guard<nanobind::gil_scoped_release>(),
            "Return the :class:`SampleResult` from the asynchronous sample "
            "execution.\n")
       .def(
@@ -102,5 +109,10 @@ programming pattern.
           },
           "FIXME: document");
 
-  mod.def("sample_async_impl", sample_async_impl, "FIXME: document");
+  mod.def("sample_async_impl", sample_async_impl, "FIXME: document",
+          nanobind::arg("short_name"), nanobind::arg("module"),
+          nanobind::arg("shots_count"),
+          nanobind::arg("noise_model").none() = std::nullopt,
+          nanobind::arg("explicit_measurements"), nanobind::arg("qpu_id"),
+          nanobind::arg("runtime_args"));
 }

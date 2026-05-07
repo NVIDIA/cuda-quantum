@@ -13,11 +13,13 @@ set(default_backend_unittest_libs
   cudaq
   cudaq-builder
   cudaq-mlir-runtime
-  cudaq-rest-qpu
   cudaq-operator
   nvqir nvqir-qpp
   cudaq-platform-default 
   gtest_main)
+if (CUDAQ_ENABLE_REST)
+  list(APPEND default_backend_unittest_libs cudaq-rest-qpu)
+endif()
 
 define_property(DIRECTORY PROPERTY BACKEND_UNITTEST_LIBS INHERITED
   BRIEF_DOCS "Default libraries for backend unit tests"

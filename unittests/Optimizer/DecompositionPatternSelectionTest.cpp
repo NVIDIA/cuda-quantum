@@ -37,6 +37,10 @@ public:
       : mlir::RewritePattern(patternName, 0, context, {}) {
     setDebugName(patternName);
   }
+  LogicalResult matchAndRewrite(Operation *op,
+                                PatternRewriter &rewriter) const override {
+    return failure();
+  }
 };
 
 /// A mock pattern type for testing.
@@ -149,7 +153,7 @@ protected:
 
     // Create a function to hold the operation
     auto funcType = builder.getFunctionType({}, {});
-    auto func = builder.create<func::FuncOp>(loc, "test_func", funcType);
+    auto func = func::FuncOp::create(builder, loc, "test_func", funcType);
     auto *entryBlock = func.addEntryBlock();
     builder.setInsertionPointToStart(entryBlock);
 
@@ -157,14 +161,14 @@ protected:
     SmallVector<Value> controls;
     auto wireType = quake::WireType::get(context.get());
     for (unsigned i = 0; i < nCtrls; ++i) {
-      auto qubit = builder.create<quake::AllocaOp>(loc, wireType);
+      auto qubit = quake::AllocaOp::create(builder, loc, wireType);
       controls.push_back(qubit.getResult());
     }
-    auto targetQubit = builder.create<quake::AllocaOp>(loc, wireType);
+    auto targetQubit = quake::AllocaOp::create(builder, loc, wireType);
     SmallVector<Value> targets{targetQubit};
 
     // Create the operation of type Op with the qubits
-    auto op = builder.create<Op>(loc, controls, targets);
+    auto op = Op::create(builder, loc, controls, targets);
 
     // Get the operation pointer and check if it is legal
     Operation *operation_ptr = op.getOperation();
@@ -362,6 +366,26 @@ TEST_F(FullDecompositionPatternSelectionTest, DecomposeCCXToCZ) {
 
   std::vector<std::string> exp{"CCXToCCZ", "CCZToCX", "CXToCZ", "SwapToCX"};
   EXPECT_EQ(selectedPatterns, exp);
+}
+
+// Regression: multi-hop chain where intermediate gates (t, z(2)) are not
+// in the basis but are reachable through further patterns.
+// Chain: x(2) -> CCXToCCZ -> {h,z(2)} -> CCZToCX -> {t,x(1)}
+//        t -> TToR1 -> {r1(1)} -> CR1ToCX -> {r1,x(1)}
+//        r1 -> R1ToU3 -> {u3} -> U3ToRotations -> {rz,rx}
+TEST_F(FullDecompositionPatternSelectionTest, DecomposeCCXDeepChain) {
+  std::vector<std::string> targetBasis{"h", "rx", "ry", "rz", "x", "x(1)"};
+  auto selectedPatterns = selectPatterns(targetBasis);
+
+  EXPECT_TRUE(std::find(selectedPatterns.begin(), selectedPatterns.end(),
+                        "CCXToCCZ") != selectedPatterns.end())
+      << "CCXToCCZ not selected";
+  EXPECT_TRUE(std::find(selectedPatterns.begin(), selectedPatterns.end(),
+                        "CCZToCX") != selectedPatterns.end())
+      << "CCZToCX not selected";
+  EXPECT_TRUE(std::find(selectedPatterns.begin(), selectedPatterns.end(),
+                        "TToR1") != selectedPatterns.end())
+      << "TToR1 not selected";
 }
 
 //===----------------------------------------------------------------------===//

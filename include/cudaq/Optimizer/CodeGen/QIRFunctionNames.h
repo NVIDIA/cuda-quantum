@@ -81,10 +81,6 @@ static constexpr const char QIRArrayConcatArray[] =
     "__quantum__rt__array_concatenate";
 static constexpr const char QIRArrayCreateArray[] =
     "__quantum__rt__array_create_1d";
-static constexpr const char QIRResultArrayCreate[] =
-    "__quantum__rt__result_array_create_1d";
-static constexpr const char QIRResultArrayGetElementPtr1d[] =
-    "__quantum__rt__result_array_get_element_ptr_1d";
 
 /// Dynamic qubit management helper functions. These are currently only used by
 /// the NVQIR simulator.
@@ -112,6 +108,13 @@ static constexpr const char QIRTupleRecordOutput[] =
     "__quantum__rt__tuple_record_output";
 static constexpr const char QIRArrayRecordOutput[] =
     "__quantum__rt__array_record_output";
+// Logging helpers for dynamic-size vectors
+static constexpr const char QIRBoolSpanRecordOutput[] =
+    "__quantum__rt__bool_span_record_output";
+static constexpr const char QIRFloatSpanRecordOutput[] =
+    "__quantum__rt__float_span_record_output";
+static constexpr const char QIRIntSpanRecordOutput[] =
+    "__quantum__rt__int_span_record_output";
 
 /// Used to specify the type of the data elements in the `QISApplyKrausChannel`
 /// call. (`float` or `double`)

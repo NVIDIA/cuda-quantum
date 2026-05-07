@@ -9,6 +9,7 @@
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "nlohmann/json.hpp"
 #include <map>
 #include <regex>
 #include <sstream>

@@ -20,6 +20,7 @@ add_library(${LIBRARY_NAME}
     algorithms/schedule.cpp
     platform/common/QuantumExecutionQueue.cpp
     platform/qpu.cpp
+    platform/qpu_utils.cpp
     platform/qpu_state.cpp
     platform/quantum_platform.cpp
     qis/execution_manager_c_api.cpp
@@ -44,11 +45,15 @@ add_library(${LIBRARY_NAME}
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 
 if (CUDA_FOUND)
+  set(_cudaq_cuda_build_includes "")
+  foreach(_cuda_inc IN LISTS CUDAToolkit_INCLUDE_DIRS)
+    list(APPEND _cudaq_cuda_build_includes "$<BUILD_INTERFACE:${_cuda_inc}>")
+  endforeach()
   target_include_directories(${LIBRARY_NAME}
     PUBLIC $<INSTALL_INTERFACE:include>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
-            $<BUILD_INTERFACE:${CUDAToolkit_INCLUDE_DIRS}>
+            ${_cudaq_cuda_build_includes}
     PRIVATE . ptsbe ptsbe/strategies)
 
   target_link_libraries(${LIBRARY_NAME}

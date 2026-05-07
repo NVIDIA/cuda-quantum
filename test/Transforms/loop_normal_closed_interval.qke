@@ -1,0 +1,101 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --cc-loop-normalize --canonicalize --cc-loop-unroll --canonicalize %s | FileCheck %s
+
+// Regression test: a `while val >= 0: val -= 1` loop starting at 3 must run 4
+// iterations (closed interval) and yield val = -1.
+
+func.func @countdown_sge() -> i64 {
+  %c1_i64 = arith.constant 1 : i64
+  %c0_i64 = arith.constant 0 : i64
+  %c3_i64 = arith.constant 3 : i64
+  %0 = cc.loop while ((%arg0 = %c3_i64) -> (i64)) {
+    %1 = arith.cmpi sge, %arg0, %c0_i64 : i64
+    cc.condition %1(%arg0 : i64)
+  } do {
+  ^bb0(%arg0: i64):
+    %1 = arith.subi %arg0, %c1_i64 : i64
+    cc.continue %1 : i64
+  } step {
+  ^bb0(%arg0: i64):
+    cc.continue %arg0 : i64
+  }
+  return %0 : i64
+}
+
+// CHECK-LABEL:   func.func @countdown_sge() -> i64 {
+// CHECK:           %[[VAL_0:.*]] = arith.constant -1 : i64
+// CHECK:           return %[[VAL_0]] : i64
+// CHECK:         }
+
+// Regression test: a `while val <= 10: val += 1` loop starting at 5 must run 6
+// iterations (closed interval) and yield val = 11.
+
+func.func @countup_sle() -> i64 {
+  %c1_i64 = arith.constant 1 : i64
+  %c10_i64 = arith.constant 10 : i64
+  %c5_i64 = arith.constant 5 : i64
+  %0 = cc.loop while ((%arg0 = %c5_i64) -> (i64)) {
+    %1 = arith.cmpi sle, %arg0, %c10_i64 : i64
+    cc.condition %1(%arg0 : i64)
+  } do {
+  ^bb0(%arg0: i64):
+    %1 = arith.addi %arg0, %c1_i64 : i64
+    cc.continue %1 : i64
+  } step {
+  ^bb0(%arg0: i64):
+    cc.continue %arg0 : i64
+  }
+  return %0 : i64
+}
+
+// CHECK-LABEL:   func.func @countup_sle() -> i64 {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 11 : i64
+// CHECK:           return %[[VAL_0]] : i64
+// CHECK:         }
+
+func.func @countdown_sgt() -> i64 {
+  %c1_i64 = arith.constant 1 : i64
+  %c0_i64 = arith.constant 0 : i64
+  %c3_i64 = arith.constant 3 : i64
+  %0 = cc.loop while ((%arg0 = %c3_i64) -> (i64)) {
+    %1 = arith.cmpi sgt, %arg0, %c0_i64 : i64
+    cc.condition %1(%arg0 : i64)
+  } do {
+  ^bb0(%arg0: i64):
+    %1 = arith.subi %arg0, %c1_i64 : i64
+    cc.continue %1 : i64
+  }
+  return %0 : i64
+}
+
+// CHECK-LABEL:   func.func @countdown_sgt() -> i64 {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i64
+// CHECK:           return %[[VAL_0]] : i64
+// CHECK:         }
+
+func.func @countup_slt() -> i64 {
+  %c1_i64 = arith.constant 1 : i64
+  %c10_i64 = arith.constant 10 : i64
+  %c5_i64 = arith.constant 5 : i64
+  %0 = cc.loop while ((%arg0 = %c5_i64) -> (i64)) {
+    %1 = arith.cmpi slt, %arg0, %c10_i64 : i64
+    cc.condition %1(%arg0 : i64)
+  } do {
+  ^bb0(%arg0: i64):
+    %1 = arith.addi %arg0, %c1_i64 : i64
+    cc.continue %1 : i64
+  }
+  return %0 : i64
+}
+
+// CHECK-LABEL:   func.func @countup_slt() -> i64 {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 10 : i64
+// CHECK:           return %[[VAL_0]] : i64
+// CHECK:         }

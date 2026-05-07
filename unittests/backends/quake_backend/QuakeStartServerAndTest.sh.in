@@ -80,6 +80,15 @@ else
   fi
 fi
 
+# Run the Python test
+PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/backends/quake_backend/test_app.py
+if [ $? -ne 0 ]; then
+  echo ":x: Python test_app.py failed"
+  test_err_sum=$((test_err_sum+1))
+else
+  echo ":white_check_mark: Successfully ran Python test_app.py"
+fi
+
 # kill the server
 kill -INT $pid
 # return success / failure

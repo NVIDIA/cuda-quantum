@@ -38,13 +38,15 @@ __qpu__ bool issue_3092() {
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_issue_3092._Z10issue_3092v() -> i1
-// CHECK:           %[[VAL_0:.*]] = arith.constant 0 : i64
-// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<6>
-// CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_1]][3] : (!quake.veq<6>) -> !quake.ref
-// CHECK:           quake.x %[[VAL_2]] : (!quake.ref) -> ()
-// CHECK:           %[[VAL_3:.*]] = quake.subveq %[[VAL_1]], 3, 3 : (!quake.veq<6>) -> !quake.veq<1>
-// CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_3]] : (!quake.veq<1>) -> !quake.measurements<1>
-// CHECK:           %[[VAL_5:.*]] = quake.get_measure %[[VAL_4]][%[[VAL_0]]] : (!quake.measurements<1>, i64) -> !quake.measure
-// CHECK:           %[[VAL_6:.*]] = quake.discriminate %[[VAL_5]] : (!quake.measure) -> i1
-// CHECK:           return %[[VAL_6]] : i1
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<6>
+// CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][3] : (!quake.veq<6>) -> !quake.ref
+// CHECK:           quake.x %[[VAL_1]] : (!quake.ref) -> ()
+// CHECK:           %[[VAL_2:.*]] = quake.subveq %[[VAL_0]], 3, 3 : (!quake.veq<6>) -> !quake.veq<1>
+// CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_2]] : (!quake.veq<1>) -> !cc.stdvec<!quake.measure>
+// CHECK:           %[[VAL_4:.*]] = quake.discriminate %[[VAL_3]] : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>
+// CHECK:           %[[VAL_5:.*]] = cc.stdvec_data %[[VAL_4]] : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
+// CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+// CHECK:           %[[VAL_7:.*]] = cc.load %[[VAL_6]] : !cc.ptr<i8>
+// CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_7]] : (i8) -> i1
+// CHECK:           return %[[VAL_8]] : i1
 // CHECK:         }

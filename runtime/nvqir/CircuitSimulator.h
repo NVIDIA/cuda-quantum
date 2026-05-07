@@ -15,6 +15,9 @@
 #include "common/QuditIdTracker.h"
 #include "common/SampleResult.h"
 #include "common/Timing.h"
+#include "cudaq/algorithms/policies.h"
+#include "cudaq/algorithms/policy_cpos.h"
+#include "cudaq/algorithms/policy_dispatch.h"
 #include "cudaq/host_config.h"
 #include "cudaq/runtime/logger/logger.h"
 #include <concepts>
@@ -103,6 +106,9 @@ protected:
   /// sample() function.
   bool supportsBufferedSample = false;
 
+  /// @brief Internal result
+  cudaq::sample_result internalResult = {};
+
 public:
   /// @brief The constructor
   CircuitSimulator() = default;
@@ -123,6 +129,9 @@ public:
   /// @brief Provide a mechanism for simulators to
   /// create and return a `SimulationState` instance from
   /// a user-specified data set.
+  /// Note: this may be called in the middle of a circuit execution
+  /// (`CreateStateOp` in the IR), so implementations must not read from or
+  /// write to the simulator's own live state.
   virtual std::unique_ptr<cudaq::SimulationState>
   createStateFromData(const cudaq::state_data &) = 0;
 
@@ -245,7 +254,20 @@ public:
   virtual void deallocateQubits(const std::vector<std::size_t> &qubits) = 0;
 
   /// @brief Process the results stored in the given execution context.
-  virtual void finalizeExecutionContext(cudaq::ExecutionContext &context) = 0;
+  void finalizeExecutionContext(cudaq::ExecutionContext &ctx) {
+    cudaq::policies::withPolicy(ctx.name, [&](auto policy) {
+      cudaq::policies::visitResult(
+          [&]() { return finalize_simulation_circuit(*this, policy, ctx); },
+          [&](cudaq::sample_result &&r) { ctx.result = std::move(r); },
+          [&](cudaq::policies::void_result &&r) {});
+    });
+  }
+
+  virtual void finalizeExecutionContext(const cudaq::other_policies &policy,
+                                        cudaq::ExecutionContext &ctx) {}
+  virtual cudaq::sample_result
+  finalizeExecutionContext(const cudaq::sample_policy &policy,
+                           cudaq::ExecutionContext &ctx) = 0;
 
   /// @brief Clean up after execution ends.
   virtual void endExecution() {}
@@ -379,7 +401,7 @@ public:
   virtual bool mz(const std::size_t qubitIdx,
                   const std::string &registerName) = 0;
 
-  virtual void measureSpinOp(const cudaq::spin_op &op) = 0;
+  virtual cudaq::SpinMeasureResult measureSpinOp(const cudaq::spin_op &op) = 0;
 
   /// @brief Set the current state to the |0> state,
   /// retaining the current number of qubits.
@@ -640,6 +662,18 @@ protected:
                              "subclasses, override addQubitsToState.");
   }
 
+  /// @brief Check if any of the given qubit indices have already been
+  /// recorded for sampling. Used to decide whether a gate application
+  /// should trigger a sampling flush (only needed when the gate operates
+  /// on a qubit that was already measured, i.e. mid-circuit measurement).
+  bool operatesOnMeasuredQubit(const std::vector<std::size_t> &qubits) const {
+    for (auto q : qubits)
+      if (std::find(sampleQubits.begin(), sampleQubits.end(), q) !=
+          sampleQubits.end())
+        return true;
+    return false;
+  }
+
   /// @brief Execute a sampling task with the current set of sample qubits.
   void flushAnySamplingTasks(bool force = false) {
     auto executionContext = cudaq::getExecutionContext();
@@ -656,7 +690,7 @@ protected:
       // OK, now we're ready to grab the buffered sample results for the entire
       // execution context.
       auto execResult = sample(sampleQubits, nShots);
-      executionContext->result.append(execResult);
+      internalResult.append(execResult);
       return;
     }
 
@@ -694,8 +728,7 @@ protected:
     }
 
     if (registerNameToMeasuredQubit.empty()) {
-      executionContext->result.append(execResult,
-                                      executionContext->explicitMeasurements);
+      internalResult.append(execResult, executionContext->explicitMeasurements);
     } else {
 
       for (auto &[regName, qubits] : registerNameToMeasuredQubit) {
@@ -723,7 +756,7 @@ protected:
           tmp.appendResult(b, count);
         }
 
-        executionContext->result.append(tmp);
+        internalResult.append(tmp);
       }
     }
 
@@ -845,13 +878,6 @@ public:
   /// @brief The destructor
   virtual ~CircuitSimulatorBase() = default;
 
-  /// @brief Create a simulation-specific SimulationState
-  /// instance from a user-provided data set.
-  std::unique_ptr<cudaq::SimulationState>
-  createStateFromData(const cudaq::state_data &data) override {
-    return getSimulationState()->createFromData(data);
-  }
-
   /// @brief Set the current noise model to consider when
   /// simulating the state. This should be overridden by
   /// simulation strategies that support noise modeling.
@@ -965,71 +991,81 @@ public:
     }
   }
 
+protected:
   /// @brief Reset the current execution context.
-  void finalizeExecutionContext(cudaq::ExecutionContext &context) override {
-    if (nQubitsAllocated == 0 && context.name != "sample")
-      return;
-
+  void finalizeExecutionContextImpl(cudaq::ExecutionContext &context) {
     // Get the ExecutionContext name
     auto execContextName = context.name;
 
     // Flush the queue if there are any gates to apply
     flushGateQueue();
+  }
 
-    // If we are sampling...
-    if (execContextName == "sample") {
-      // Sample the state over the specified number of shots
-      if (sampleQubits.empty() && !context.explicitMeasurements) {
-        sampleQubits.resize(getNumQubits());
-        if (sampleQubits.empty())
-          throw std::runtime_error(
-              "Sampling detected on a kernel with no qubits. Your kernel must "
-              "have qubits to sample it.");
-        std::iota(sampleQubits.begin(), sampleQubits.end(), 0);
-      }
+  cudaq::sample_result
+  finalizeExecutionContext(const cudaq::sample_policy &policy,
+                           cudaq::ExecutionContext &context) override {
+    finalizeExecutionContextImpl(context);
 
-      // Flush any queued up sampling tasks
-      flushAnySamplingTasks(/*force this*/ true);
-
-      // Handle the processing for any mid circuit measurements
-      for (auto &m : midCircuitSampleResults) {
-        // Get the register name and the vector of bit results
-        auto regName = m.first;
-        auto bitResults = m.second;
-        cudaq::ExecutionResult counts(regName);
-
-        if (std::find(vectorRegisters.begin(), vectorRegisters.end(),
-                      regName) != vectorRegisters.end()) {
-          // this is a vector register
-          std::string bitStr = "";
-          for (std::size_t j = 0; j < bitResults.size(); j++)
-            bitStr += bitResults[j];
-
-          counts.appendResult(bitStr, 1);
-
-        } else {
-          // Not a vector, collate all bits into a 1 qubit counts dict
-          for (std::size_t j = 0; j < bitResults.size(); j++) {
-            counts.appendResult(bitResults[j], 1);
-          }
-        }
-        context.result.append(counts);
-      }
-
-      // Reorder the global register (if necessary). This might be necessary if
-      // the mapping pass had run and we want to undo the shuffle that occurred
-      // during mapping.
-      if (!context.reorderIdx.empty()) {
-        context.result.reorder(context.reorderIdx);
-        context.reorderIdx.clear();
-      }
-
-      // Clear the sample bits for the next run
-      sampleQubits.clear();
-      midCircuitSampleResults.clear();
-      lastMidCircuitRegisterName = "";
-      currentCircuitName = "";
+    // Sample the state over the specified number of shots
+    if (sampleQubits.empty() && !context.explicitMeasurements) {
+      sampleQubits.resize(getNumQubits());
+      if (sampleQubits.empty())
+        throw std::runtime_error(
+            "Sampling detected on a kernel with no qubits. Your kernel must "
+            "have qubits to sample it.");
+      std::iota(sampleQubits.begin(), sampleQubits.end(), 0);
     }
+
+    // Flush any queued up sampling tasks
+    flushAnySamplingTasks(/*force this*/ true);
+
+    // Handle the processing for any mid circuit measurements
+    for (auto &m : midCircuitSampleResults) {
+      // Get the register name and the vector of bit results
+      auto regName = m.first;
+      auto bitResults = m.second;
+      cudaq::ExecutionResult counts(regName);
+
+      if (std::find(vectorRegisters.begin(), vectorRegisters.end(), regName) !=
+          vectorRegisters.end()) {
+        // this is a vector register
+        std::string bitStr = "";
+        for (std::size_t j = 0; j < bitResults.size(); j++)
+          bitStr += bitResults[j];
+
+        counts.appendResult(bitStr, 1);
+
+      } else {
+        // Not a vector, collate all bits into a 1 qubit counts dict
+        for (std::size_t j = 0; j < bitResults.size(); j++) {
+          counts.appendResult(bitResults[j], 1);
+        }
+      }
+      internalResult.append(counts);
+    }
+
+    // Reorder the global register (if necessary). This might be necessary if
+    // the mapping pass had run and we want to undo the shuffle that occurred
+    // during mapping.
+    if (!context.reorderIdx.empty()) {
+      internalResult.reorder(context.reorderIdx);
+      context.reorderIdx.clear();
+    }
+
+    // Clear the sample bits for the next run
+    sampleQubits.clear();
+    midCircuitSampleResults.clear();
+    lastMidCircuitRegisterName = "";
+    currentCircuitName = "";
+
+    return internalResult;
+  }
+
+  void finalizeExecutionContext(const cudaq::other_policies &policy,
+                                cudaq::ExecutionContext &context) override {
+    if (nQubitsAllocated == 0)
+      return;
+    finalizeExecutionContextImpl(context);
 
     // Set the state data if requested.
     if (context.name == "extract-state") {
@@ -1047,6 +1083,7 @@ public:
     }
   }
 
+public:
   /// @brief Clean up state after execution ends
   void endExecution() override {
     if (nQubitsAllocated == 0) {
@@ -1070,6 +1107,7 @@ public:
     }
 
     tracker = {};
+    internalResult = {};
   }
 
   /// @brief Set the execution context
@@ -1092,7 +1130,8 @@ public:
                             const std::vector<std::size_t> &controls,
                             const std::vector<std::size_t> &targets,
                             const std::string_view customName) override {
-    flushAnySamplingTasks();
+    if (operatesOnMeasuredQubit(controls) || operatesOnMeasuredQubit(targets))
+      flushAnySamplingTasks();
     auto numRows = std::sqrt(matrix.size());
     auto numQubits = std::log2(numRows);
     std::vector<std::complex<ScalarType>> actual;
@@ -1143,7 +1182,8 @@ public:
   void enqueueQuantumOperation(const std::vector<ScalarType> &angles,
                                const std::vector<std::size_t> &controls,
                                const std::vector<std::size_t> &targets) {
-    flushAnySamplingTasks();
+    if (operatesOnMeasuredQubit(controls) || operatesOnMeasuredQubit(targets))
+      flushAnySamplingTasks();
     QuantumOperation gate;
     CUDAQ_INFO(gateToString(gate.name(), controls, angles, targets));
     enqueueGate(gate.name(), gate.getGate(angles), controls, targets, angles);
@@ -1233,7 +1273,9 @@ public:
   /// @brief Invoke a general multi-control swap gate
   void swap(const std::vector<std::size_t> &ctrlBits, const std::size_t srcIdx,
             const std::size_t tgtIdx) override {
-    flushAnySamplingTasks();
+    if (operatesOnMeasuredQubit(ctrlBits) ||
+        operatesOnMeasuredQubit({srcIdx, tgtIdx}))
+      flushAnySamplingTasks();
     CUDAQ_INFO(gateToString("swap", ctrlBits, {}, {srcIdx, tgtIdx}));
     std::vector<std::complex<ScalarType>> matrix{
         {1.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0},
@@ -1292,22 +1334,18 @@ public:
   // FIXME: it would be cleaner and more consistent (with exp_pauli) if
   // this function explicitly received a vector of qubit indices such that
   // only the relative order of the target in the spin op is relevant.
-  void measureSpinOp(const cudaq::spin_op &op) override {
+  cudaq::SpinMeasureResult measureSpinOp(const cudaq::spin_op &op) override {
     auto executionContext = cudaq::getExecutionContext();
 
     if (nQubitsAllocated == 0) {
-      if (executionContext)
-        executionContext->expectationValue = 0.0;
-      return;
+      return cudaq::SpinMeasureResult(0.0, {});
     }
 
     flushGateQueue();
 
     if (executionContext->canHandleObserve) {
       auto result = observe(executionContext->spin.value());
-      executionContext->expectationValue = result.expectation();
-      executionContext->result = result.raw_data();
-      return;
+      return cudaq::SpinMeasureResult(result.expectation(), result.raw_data());
     }
 
     if (op.num_terms() != 1)
@@ -1352,8 +1390,8 @@ public:
 
     // Sample and give the data to the context
     cudaq::ExecutionResult result = sample(qubitsToMeasure, shots);
-    executionContext->expectationValue = result.expectationValue;
-    executionContext->result = cudaq::sample_result(result);
+    cudaq::SpinMeasureResult spinMeasureResult(
+        result.expectationValue.value_or(0.0), result);
 
     // Restore the state.
     if (!basisChange.empty()) {
@@ -1363,6 +1401,8 @@ public:
 
       flushGateQueue();
     }
+
+    return spinMeasureResult;
   }
 
 private:
@@ -1405,6 +1445,27 @@ private:
     return qubits;
   }
 };
+
+} // namespace nvqir
+
+namespace cudaq {
+
+inline sample_result
+finalize_simulation_circuit_impl(nvqir::CircuitSimulator &sim,
+                                 const sample_policy &policy,
+                                 ExecutionContext &ctx) {
+  return sim.finalizeExecutionContext(policy, ctx);
+}
+
+} // namespace cudaq
+
+namespace nvqir {
+
+inline void finalize_simulation_circuit_impl(CircuitSimulator &sim,
+                                             cudaq::ExecutionContext &ctx) {
+  sim.finalizeExecutionContext(cudaq::other_policies{}, ctx);
+}
+
 } // namespace nvqir
 
 #define CONCAT(a, b) CONCAT_INNER(a, b)

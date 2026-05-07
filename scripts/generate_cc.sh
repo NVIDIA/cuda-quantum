@@ -22,7 +22,7 @@
 #
 # Note:
 # The script should be run in the cuda-quantum-devdeps container environment.
-# current tested image: ghcr.io/nvidia/cuda-quantum-devdeps:clang16-main
+# current tested image: ghcr.io/nvidia/cuda-quantum-devdeps:llvm-main
 # Don't enable GPU
 # C/C++ coverage is located in the ./build/ccoverage directory
 # Python coverage is located in the ./build/pycoverage directory
@@ -65,8 +65,12 @@ repo_root=$(cd "$this_file_dir" && git rev-parse --show-toplevel)
 # Set envs
 if $gen_cpp_coverage; then
     export CUDAQ_ENABLE_CC=ON
-    mkdir -p /usr/lib/llvm-16/lib/clang/16/lib/linux
-    ln -s /usr/local/llvm/lib/clang/16/lib/x86_64-unknown-linux-gnu/libclang_rt.profile.a /usr/lib/llvm-16/lib/clang/16/lib/linux/libclang_rt.profile-x86_64.a
+    clang_ver=$(clang --version 2>/dev/null | grep -oP 'version \K[0-9]+')
+    arch=$(uname -m)-unknown-linux-gnu
+    profile_src="$LLVM_INSTALL_PREFIX/lib/clang/$clang_ver/lib/$arch/libclang_rt.profile.a"
+    profile_dst="/usr/lib/llvm-$clang_ver/lib/clang/$clang_ver/lib/linux/libclang_rt.profile-$(uname -m).a"
+    mkdir -p "$(dirname "$profile_dst")"
+    ln -sf "$profile_src" "$profile_dst"
     export LLVM_PROFILE_FILE=${repo_root}/build/tmp/cudaq-cc/profile-%9m.profraw
 fi
 

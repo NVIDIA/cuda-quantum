@@ -14,6 +14,7 @@ import cudaq
 import numpy as np
 import warnings
 import pytest
+from cudaq._metadata import assertions_enabled as _cudaq_assertions_enabled
 
 skipIfBraketNotInstalled = pytest.mark.skipif(
     not (cudaq.has_target("braket")),
@@ -1131,9 +1132,16 @@ def test_run_and_sample_and_direct_call():
         in repr(error))
 
 
+_skip_stim_p1 = pytest.mark.skipif(
+    _cudaq_assertions_enabled,
+    reason="https://github.com/NVIDIA/cuda-quantum/issues/4026")
+
+
 # NOTE: Ref - https://github.com/NVIDIA/cuda-quantum/issues/1925
-@pytest.mark.parametrize("target",
-                         ["density-matrix-cpu", "nvidia", "qpp-cpu", "stim"])
+@pytest.mark.parametrize("target", [
+    "density-matrix-cpu", "nvidia", "qpp-cpu",
+    pytest.param('stim', marks=_skip_stim_p1)
+])
 def test_supported_simulators(target):
 
     def can_set_target(name):
@@ -1617,6 +1625,66 @@ def test_return_with_false_condition_with_variable_defined_outside_the_loop():
     results = cudaq.run(kernel, False, shots_count=1)
     assert len(results) == 1
     assert results[0] == 0
+
+
+def test_while_loop_countdown_sge():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        val = 3
+        while val >= 0:
+            val -= 1
+        return val
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == -1
+
+
+def test_while_loop_countup_sle():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        val = 5
+        while val <= 10:
+            val += 1
+        return val
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 11
+
+
+def test_while_loop_sge_with_quantum_gates():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        q = cudaq.qvector(3)
+        val = 2
+        while val >= 0:
+            x(q[val])
+            val -= 1
+        return mz(q[0])
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 1
+
+
+def test_while_loop_sgt_workaround_still_works():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        q = cudaq.qvector(3)
+        val = 2
+        while val > -1:
+            x(q[val])
+            val -= 1
+        return mz(q[0])
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 1
 
 
 # leave for gdb debugging

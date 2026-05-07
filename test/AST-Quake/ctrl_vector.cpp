@@ -29,7 +29,7 @@ struct lower_ctrl_as_qreg {
 // CHECK:           quake.h [%[[VAL_0]]] %[[VAL_2]] : (!quake.veq<4>, !quake.ref) -> ()
 // CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_1]][1] : (!quake.veq<2>) -> !quake.ref
 // CHECK:           quake.x [%[[VAL_0]]] %[[VAL_3]] : (!quake.veq<4>, !quake.ref) -> ()
-// CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_1]] : (!quake.veq<2>) -> !quake.measurements<2>
+// CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_1]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
 // CHECK:           return
 // CHECK:         }
 

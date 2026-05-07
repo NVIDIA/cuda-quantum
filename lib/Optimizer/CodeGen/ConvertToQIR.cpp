@@ -16,8 +16,6 @@
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
 #include "cudaq/Optimizer/CodeGen/QuakeToLLVM.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/Hashing.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/FormatVariadic.h"
@@ -31,10 +29,15 @@
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Conversion/MathToLLVM/MathToLLVM.h"
 #include "mlir/Dialect/Arith/Transforms/Passes.h"
-#include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+
+namespace cudaq::opt {
+#define GEN_PASS_DEF_CONVERTTOQIR
+#define GEN_PASS_DEF_LOWERTOCG
+#include "cudaq/Optimizer/CodeGen/Passes.h.inc"
+} // namespace cudaq::opt
 
 #define DEBUG_TYPE "convert-to-qir"
 
@@ -44,12 +47,6 @@
    This file translates Quake to full QIR. This pass \e only supports QIR
    version 0.1.
  */
-
-namespace cudaq::opt {
-#define GEN_PASS_DEF_CONVERTTOQIR
-#define GEN_PASS_DEF_LOWERTOCG
-#include "cudaq/Optimizer/CodeGen/Passes.h.inc"
-} // namespace cudaq::opt
 
 using namespace mlir;
 
@@ -61,7 +58,7 @@ static LogicalResult fuseSubgraphPatterns(MLIRContext *ctx, ModuleOp module) {
   RewritePatternSet patterns(ctx);
   cudaq::codegen::populateQuakeToCodegenPatterns(patterns);
   LLVM_DEBUG(llvm::dbgs() << "Before codegen dialect:\n"; module.dump());
-  if (failed(applyPatternsAndFoldGreedily(module, std::move(patterns))))
+  if (failed(applyPatternsGreedily(module, std::move(patterns))))
     return failure();
   LLVM_DEBUG(llvm::dbgs() << "After codegen dialect:\n"; module.dump());
   return success();
@@ -120,18 +117,19 @@ public:
           auto v = [&]() -> Value {
             auto val = constantValues[idx];
             if (auto fTy = dyn_cast<FloatType>(eleTy))
-              return builder.create<arith::ConstantFloatOp>(
-                  loc, cast<FloatAttr>(val).getValue(), fTy);
+              return arith::ConstantFloatOp::create(
+                  builder, loc, fTy, cast<FloatAttr>(val).getValue());
             if (auto iTy = dyn_cast<IntegerType>(eleTy))
-              return builder.create<arith::ConstantIntOp>(
-                  loc, cast<IntegerAttr>(val).getInt(), iTy);
+              return arith::ConstantIntOp::create(
+                  builder, loc, iTy, cast<IntegerAttr>(val).getInt());
             auto cTy = cast<ComplexType>(eleTy);
-            return builder.create<complex::ConstantOp>(loc, cTy,
-                                                       cast<ArrayAttr>(val));
+            return complex::ConstantOp::create(builder, loc, cTy,
+                                               cast<ArrayAttr>(val));
           }();
-          Value arrWithOffset = builder.create<cudaq::cc::ComputePtrOp>(
-              loc, ptrTy, buffer, ArrayRef<cudaq::cc::ComputePtrArg>{idx});
-          builder.create<cudaq::cc::StoreOp>(loc, v, arrWithOffset);
+          Value arrWithOffset = cudaq::cc::ComputePtrOp::create(
+              builder, loc, ptrTy, buffer,
+              ArrayRef<cudaq::cc::ComputePtrArg>{idx});
+          cudaq::cc::StoreOp::create(builder, loc, v, arrWithOffset);
         }
         cleanUps.push_back(user);
       }
@@ -195,10 +193,12 @@ public:
 } // namespace
 
 void cudaq::opt::initializeTypeConversions(LLVMTypeConverter &typeConverter) {
-  typeConverter.addConversion(
-      [](quake::VeqType type) { return getArrayType(type.getContext()); });
-  typeConverter.addConversion(
-      [](quake::RefType type) { return getQubitType(type.getContext()); });
+  typeConverter.addConversion([](quake::VeqType type) {
+    return cg::getLLVMArrayType(type.getContext());
+  });
+  typeConverter.addConversion([](quake::RefType type) {
+    return cg::getLLVMQubitType(type.getContext());
+  });
   typeConverter.addConversion([&](quake::StruqType type) {
     SmallVector<Type> mems;
     for (auto m : type.getMembers())
@@ -206,10 +206,8 @@ void cudaq::opt::initializeTypeConversions(LLVMTypeConverter &typeConverter) {
     return LLVM::LLVMStructType::getLiteral(type.getContext(), mems,
                                             /*packed=*/false);
   });
-  typeConverter.addConversion(
-      [](quake::MeasureType type) { return getResultType(type.getContext()); });
-  typeConverter.addConversion([](quake::MeasurementsType type) {
-    return getArrayType(type.getContext());
+  typeConverter.addConversion([](quake::MeasureType type) {
+    return IntegerType::get(type.getContext(), 1);
   });
   cudaq::opt::populateCCTypeConversions(&typeConverter);
 }
