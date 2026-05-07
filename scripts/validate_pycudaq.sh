@@ -333,15 +333,47 @@ fi
 
 # Run core tests
 echo "Running core tests."
-python3 -m pytest -v -n auto "$root_folder/tests" \
-    --ignore "$root_folder/tests/backends" \
-    --ignore "$root_folder/tests/dynamics/integrators" \
-    --ignore "$root_folder/tests/parallel" \
-    --ignore "$root_folder/tests/domains"
+core_test_args=(
+    -v
+    -n
+    auto
+    "$root_folder/tests"
+    --ignore
+    "$root_folder/tests/backends"
+    --ignore
+    "$root_folder/tests/dynamics/integrators"
+    --ignore
+    "$root_folder/tests/parallel"
+    --ignore
+    "$root_folder/tests/domains"
+)
+
+macos_serial_core_tests=()
+if $is_macos; then
+    ghz_noise_test="test_simple_run_ghz_with_noise"
+    ghz_noise_nodeid="$root_folder/tests/kernel/test_run_kernel.py::${ghz_noise_test}"
+    core_test_args+=(
+        -k
+        "not ${ghz_noise_test}"
+    )
+    macos_serial_core_tests+=("$ghz_noise_nodeid")
+    echo "macOS xdist workaround: excluding ${ghz_noise_test} from parallel core run; it will run serially."
+fi
+
+python3 -m pytest "${core_test_args[@]}"
 if [ ! $? -eq 0 ]; then
     echo -e "\e[01;31mPython tests failed.\e[0m" >&2
     status_sum=$((status_sum + 1))
 fi
+
+for serial_test in "${macos_serial_core_tests[@]}"; do
+    echo "Running serial core test: $serial_test"
+    python3 -m pytest -v --rootdir "$root_folder/tests" "$serial_test"
+    if [ ! $? -eq 0 ]; then
+        echo -e "\e[01;31mPython serial core test failed: $serial_test\e[0m" >&2
+        status_sum=$((status_sum + 1))
+    fi
+done
 
 # If this is a quick test, we return here.
 if $quick_test; then
