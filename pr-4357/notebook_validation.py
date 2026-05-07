@@ -64,7 +64,7 @@ LONG_RUNNING_NOTEBOOKS = [
     "vqe_advanced.ipynb",
 ]
 
-# TODO: investigate and fix noteook in CI
+# TODO: investigate and fix notebook in CI
 EXTERNAL_NETWORK_NOTEBOOKS = [
     # Downloads `Floki00/qc_unitary_3qubit` from Hugging Face via
     # DiffusionPipeline.from_pretrained — has timed out at >35 min in CI.
