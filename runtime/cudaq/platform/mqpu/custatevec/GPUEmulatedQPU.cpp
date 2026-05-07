@@ -24,7 +24,7 @@ namespace {
 /// represents. There is a GPUEmulatedQPU per available GPU.
 class GPUEmulatedQPU : public cudaq::QPU {
 public:
-  GPUEmulatedQPU() : QPU(){};
+  GPUEmulatedQPU() : QPU() {};
   GPUEmulatedQPU(std::size_t id) : QPU(id) {}
 
   void enqueue(cudaq::QuantumTask &task) override {
