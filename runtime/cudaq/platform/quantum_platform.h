@@ -11,6 +11,7 @@
 #include "common/CodeGenConfig.h"
 #include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
+#include "common/KernelArgs.h"
 #include "common/NoiseModel.h"
 #include "common/ObserveResult.h"
 #include "common/ThunkInterface.h"
@@ -198,21 +199,17 @@ public:
   // This method is the hook for the kernel rewrites to invoke quantum kernels.
   [[nodiscard]] KernelThunkResultType
   launchKernel(const std::string &kernelName, KernelThunkType kernelFunc,
-               void *args, std::uint64_t voidStarSize,
-               std::uint64_t resultOffset, const std::vector<void *> &rawArgs,
-               std::size_t qpu_id = 0);
+               const KernelArgs &args, std::size_t qpu_id = 0);
 
   // This method launches a kernel from a ModuleOp that has already been
   // created.
-  [[nodiscard]] KernelThunkResultType
-  launchModule(const CompiledModule &module, const std::vector<void *> &rawArgs,
-               std::size_t qpu_id);
+  [[nodiscard]] KernelThunkResultType launchModule(const CompiledModule &module,
+                                                   const KernelArgs &args,
+                                                   std::size_t qpu_id);
 
-  [[nodiscard]] CompiledModule compileModule(const std::string &kernelName,
-                                             mlir::ModuleOp module,
-                                             const std::vector<void *> &rawArgs,
-                                             std::size_t qpu_id,
-                                             bool isEntryPoint);
+  [[nodiscard]] CompiledModule
+  compileModule(const std::string &kernelName, mlir::ModuleOp module,
+                const KernelArgs &args, std::size_t qpu_id, bool isEntryPoint);
 
   /// List all available platforms
   static std::vector<std::string> list_platforms();

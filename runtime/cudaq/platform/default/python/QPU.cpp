@@ -44,8 +44,7 @@ void setResourceCounts(cudaq::Resources &&);
 using namespace mlir;
 
 static void specializeKernel(const std::string &name, ModuleOp module,
-                             const std::vector<void *> &rawArgs,
-                             Type resultTy = {},
+                             std::span<void *const> rawArgs, Type resultTy = {},
                              bool enablePythonCodegenDump = false,
                              bool isEntryPoint = true,
                              bool isFullySpecialized = true) {
@@ -264,8 +263,7 @@ static void updateExecutionContext(mlir::ModuleOp module) {
 }
 
 static std::optional<cudaq::JitEngine>
-alreadyBuiltJITCode(const std::string &name,
-                    const std::vector<void *> &rawArgs) {
+alreadyBuiltJITCode(const std::string &name) {
   auto *currentExecCtx = cudaq::getExecutionContext();
   if (currentExecCtx && currentExecCtx->allowJitEngineCaching) {
     auto jit = currentExecCtx->jitEng;
@@ -313,7 +311,7 @@ namespace {
 struct PythonLauncher : public cudaq::ModuleLauncher {
   cudaq::CompiledModule compileModule(const std::string &name,
                                       mlir::ModuleOp module,
-                                      const std::vector<void *> &rawArgs,
+                                      cudaq::KernelArgs args,
                                       bool isEntryPoint) override {
 
     ScopedTraceWithContext(cudaq::TIMING_LAUNCH,
@@ -343,25 +341,29 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     bool isLocalSimulator =
         !(cudaq::is_remote_platform() || cudaq::is_emulated_platform());
 
-    std::vector<void *> closureArgs;
+    std::vector<void *> closureArgsVec;
+    std::span<void *const> closureArgs;
+    std::span<void *const> rawArgs =
+        args.hasTypeErased() ? *args.getTypeErased() : std::span<void *const>();
 
     // Special handling in case the arguments were already synthesized
     size_t numArgs = rawArgs.size() - (hasResult ? 1 : 0);
     if (isEntryPoint && isLocalSimulator &&
         numArgs == fromFuncTy.getNumInputs()) {
-      closureArgs = rawArgs;
+      closureArgsVec = std::vector(rawArgs.begin(), rawArgs.end());
       for (auto [i, ty] : llvm::enumerate(fromFuncTy.getInputs())) {
         if (!isa<cudaq::cc::CallableType>(ty)) {
           isFullySpecialized = false;
-          closureArgs[i] = nullptr;
+          closureArgsVec[i] = nullptr;
         }
       }
+      closureArgs = closureArgsVec;
     } else {
       // Avoid copying
-      closureArgs = std::move(rawArgs);
+      closureArgs = rawArgs;
     }
 
-    if (auto jit = alreadyBuiltJITCode(name, rawArgs)) {
+    if (auto jit = alreadyBuiltJITCode(name)) {
       auto jitArtifacts =
           cudaq_internal::compiler::CompiledModuleHelper::createJitArtifacts(
               name, *jit, resultInfo, isFullySpecialized);
