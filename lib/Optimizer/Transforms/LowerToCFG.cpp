@@ -54,12 +54,12 @@ public:
                                 PatternRewriter &rewriter) const override {
     auto loc = scopeOp.getLoc();
     auto *initBlock = rewriter.getInsertionBlock();
-    Value stacksave.p0;
+    Value stackSave;
     auto ptrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
     if (scopeOp.hasAllocation(/*quantumAllocs=*/false)) {
       auto call = func::CallOp::create(rewriter, loc, ptrTy,
                                        cudaq::llvmStackSave, ArrayRef<Value>{});
-      stacksave.p0 = call.getResult(0);
+      stackSave = call.getResult(0);
     }
     auto initPos = rewriter.getInsertionPoint();
     auto *endBlock = rewriter.splitBlock(initBlock, initPos);
@@ -85,11 +85,11 @@ public:
     rewriter.setInsertionPointToEnd(initBlock);
     cf::BranchOp::create(rewriter, loc, entryBlock, ValueRange{});
     rewriter.inlineRegionBefore(scopeOp.getInitRegion(), endBlock);
-    if (stacksave.p0) {
+    if (stackSave) {
       rewriter.setInsertionPointToStart(endBlock);
       func::CallOp::create(rewriter, loc, ArrayRef<Type>{},
                            cudaq::llvmStackRestore,
-                           ArrayRef<Value>{stacksave.p0});
+                           ArrayRef<Value>{stackSave});
     }
     rewriter.replaceOp(scopeOp, scopeResults);
     return success();
