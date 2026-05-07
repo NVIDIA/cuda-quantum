@@ -140,22 +140,67 @@ static void substitutePipelinePlaceholders(
   }
 }
 
-/// Run target-specific passes if the active target config defines a pipeline.
-/// Interleaves jit-deploy-pipeline between high and mid-level stages.
-/// specializeKernel() covers what hw-jit-prep-pipeline and
-/// jit-finalize-pipeline do (inlining, specialization, DistributedDeviceCall),
-/// so those are not interleaved here. Targets needing passes from those stages
-/// (e.g., apply-control-negations) should include them in their own config
-/// fields. Only reads top-level config:, not configuration-matrix entries.
-static void runTargetPassPipeline(mlir::ModuleOp module) {
+static void appendPipelineStage(std::string &pipeline,
+                                const std::string &stage) {
+  if (stage.empty())
+    return;
+  if (!pipeline.empty())
+    pipeline += ",";
+  pipeline += stage;
+}
+
+static bool buildTargetPassPipeline(std::string &pipeline,
+                                    bool &runsStandardFinalize) {
+  runsStandardFinalize = false;
   auto *rt = cudaq::get_platform().get_runtime_target();
   if (!rt)
-    return;
+    return false;
   auto &cfg = rt->config;
   if (!cfg.BackendConfig.has_value() || !cfg.BackendConfig->hasPassPipeline())
-    return;
-  auto pipeline = cfg.BackendConfig->getPassPipeline("jit-deploy-pipeline", "");
+    return false;
+
+  if (!cfg.BackendConfig->TargetPassPipeline.empty()) {
+    pipeline = cfg.BackendConfig->TargetPassPipeline;
+    substitutePipelinePlaceholders(pipeline, rt->runtimeConfig);
+    return true;
+  }
+
+  appendPipelineStage(pipeline, "canonicalize");
+
+  const bool emulate = cudaq::is_emulated_platform();
+  auto codegenTranslation = cfg.getCodeGenSpec(rt->runtimeConfig);
+  const std::string allowEarlyExit =
+      codegenTranslation.starts_with("qir-adaptive") ? "true" : "false";
+
+  if (emulate)
+    appendPipelineStage(pipeline, "emul-jit-prep-pipeline{erase-noise=true "
+                                  "allow-early-exit=" +
+                                      allowEarlyExit + "}");
+  else
+    appendPipelineStage(pipeline, "hw-jit-prep-pipeline{allow-early-exit=" +
+                                      allowEarlyExit + "}");
+
+  const std::string lowerDeviceCalls =
+      (codegenTranslation == "nop" && !emulate) ? "false" : "true";
+  appendPipelineStage(
+      pipeline,
+      cfg.BackendConfig->getPassPipeline(
+          "jit-deploy-pipeline", "jit-finalize-pipeline{lower-device-calls=" +
+                                     lowerDeviceCalls + "}"));
   substitutePipelinePlaceholders(pipeline, rt->runtimeConfig);
+  runsStandardFinalize = true;
+  return true;
+}
+
+/// Run the target compilation pipeline for Python MLIR kernels. This mirrors
+/// the staged target flow in Compiler.cpp for targets that define pass-pipeline
+/// fields, while preserving target-pass-pipeline as an exact override.
+static bool runTargetPassPipeline(mlir::ModuleOp module) {
+  std::string pipeline;
+  bool runsStandardFinalize = false;
+  if (!buildTargetPassPipeline(pipeline, runsStandardFinalize))
+    return false;
+
   auto *ctx = module.getContext();
   PassManager pm(ctx);
   cudaq::addPythonSignalInstrumentation(pm);
@@ -166,6 +211,7 @@ static void runTargetPassPipeline(mlir::ModuleOp module) {
     throw std::runtime_error("Failed to parse target pipeline: " + errMsg);
   if (failed(cudaq::runPassManagerReleasingGIL(pm, module)))
     throw std::runtime_error("Pass pipeline failed.");
+  return runsStandardFinalize;
 }
 
 /// Lowers \p module to LLVM code. The LLVM code will use "full QIR" as the
@@ -180,12 +226,14 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
   cudaq_internal::compiler::mergeAllCallableClosures(module, name,
                                                      args.getArgs());
   specializeKernel(name, module, args.getArgs());
-  runTargetPassPipeline(module);
+  const bool finalizedByTargetPipeline = runTargetPassPipeline(module);
   PassManager pm(module.getContext());
   cudaq::addPythonSignalInstrumentation(pm);
   pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
-  cudaq::opt::addAggressiveInlining(pm);
-  cudaq::opt::createTargetFinalizePipeline(pm);
+  if (!finalizedByTargetPipeline) {
+    cudaq::opt::addAggressiveInlining(pm);
+    cudaq::opt::createTargetFinalizePipeline(pm);
+  }
   cudaq::opt::addAOTPipelineConvertToQIR(pm, format);
   if (failed(cudaq::runPassManagerReleasingGIL(pm, module)))
     throw std::runtime_error("Pass pipeline failed.");
@@ -214,12 +262,13 @@ std::string cudaq::detail::lower_to_openqasm(const std::string &name,
   cudaq_internal::compiler::mergeAllCallableClosures(module, name,
                                                      args.getArgs());
   specializeKernel(name, module, args.getArgs());
-  runTargetPassPipeline(module);
+  const bool finalizedByTargetPipeline = runTargetPassPipeline(module);
   auto *ctx = module.getContext();
   PassManager pm(ctx);
   cudaq::addPythonSignalInstrumentation(pm);
   pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
-  cudaq::opt::createTargetFinalizePipeline(pm);
+  if (!finalizedByTargetPipeline)
+    cudaq::opt::createTargetFinalizePipeline(pm);
   cudaq::opt::createPipelineTransformsForPythonToOpenQASM(pm);
   cudaq::opt::addPipelineTranslateToOpenQASM(pm);
   const bool enablePrintMLIRBeforeAndAfterEachPass =

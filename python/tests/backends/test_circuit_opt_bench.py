@@ -48,12 +48,13 @@ def test_swap_no_decomposition_default_target():
 
 
 def test_custom_unitary_produces_2q_gates():
-    """Custom SU(4) unitary must produce entangling gates after synthesis.
+    """Registered SU(4) unitary must produce entangling gates after synthesis.
 
-    The pipeline must inline the KAK-decomposed helper function into the
-    main kernel (apply-op-specialization + aggressive-inlining). Without
-    these passes, the helper is removed by symbol-dce and 0 2Q gates
-    appear in the output.
+    This is the minimal reproducer for the Benchpress QV construction path,
+    which registers random SU(4) operations via cudaq.register_operation().
+    The target pipeline must inline the KAK-decomposed helper function into
+    the main kernel (apply-op-specialization + aggressive-inlining). Without
+    those passes, resource counting sees only 1Q gates for this case.
     """
     cudaq.set_target('circuit-opt-bench')
 
