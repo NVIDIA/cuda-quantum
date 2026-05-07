@@ -218,6 +218,10 @@ void FormatArgument::appendCString(void *store, const void *value) {
     fmtStore.push_back(std::cref(*static_cast<const __VA_ARGS__ *>(value)));   \
   }
 
+// Note: On aarch64, unsigned long is not the same type as std::uint64_t. It is
+// the same size, but not the same type. The templates instantiated below are
+// based on the types used in the codebase. Feel free to add more types here if
+// needed.
 CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(bool);
 CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(char);
 CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(signed char);
@@ -226,8 +230,8 @@ CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(std::int16_t);
 CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(std::uint16_t);
 CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(std::int32_t);
 CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(std::uint32_t);
-CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(std::int64_t);
-CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(std::uint64_t);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(long);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(unsigned long);
 CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(float);
 CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(double);
 CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(long double);
