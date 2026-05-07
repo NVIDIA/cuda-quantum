@@ -39,7 +39,7 @@ struct CodeGenConfig {
   bool floatComputations = false;
   // True if QIR output to log is enabled.
   bool outputLog = false;
-  // True if we should erase stacksave/stackrestore instructions.
+  // True if we should erase stacksave.p0/stackrestore.p0 instructions.
   bool eraseStackBounding = false;
   // True if we should erase measurement result recording functions.
   bool eraseRecordCalls = false;

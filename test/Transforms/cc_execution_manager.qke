@@ -667,6 +667,6 @@ func.func @tocc.test() {
 // LLVM:         llvm.mlir.global private constant @cstr.7377617000("swap\00") {addr_space = 0 : i32}
 // LLVM:         llvm.mlir.global private constant @cstr.6D696B6500("mike\00") {addr_space = 0 : i32}
 // LLVM:         llvm.mlir.global private constant @cstr.746F6D00("tom\00") {addr_space = 0 : i32}
-// LLVM:         llvm.func @llvm.stackrestore(!llvm.ptr) attributes {sym_visibility = "private"}
-// LLVM:         llvm.func @llvm.stacksave() -> !llvm.ptr attributes {sym_visibility = "private"}
+// LLVM:         llvm.func @llvm.stackrestore.p0(!llvm.ptr) attributes {sym_visibility = "private"}
+// LLVM:         llvm.func @llvm.stacksave.p0() -> !llvm.ptr attributes {sym_visibility = "private"}
 

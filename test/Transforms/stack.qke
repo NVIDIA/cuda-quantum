@@ -10,7 +10,7 @@
 
 func.func private @foo(%0: !cc.ptr<i8>)
 
-func.func @stacksaveandrestore() {
+func.func @stacksave.p0andrestore() {
   cc.scope {
     %0 = cc.alloca i8
     func.call @foo(%0) : (!cc.ptr<i8>) -> ()
@@ -19,14 +19,14 @@ func.func @stacksaveandrestore() {
   return
 }
 
-// CHECK-LABEL:   func.func @stacksaveandrestore() {
-// CHECK:           %[[VAL_0:.*]] = call @llvm.stacksave() : () -> !cc.ptr<i8>
+// CHECK-LABEL:   func.func @stacksave.p0andrestore() {
+// CHECK:           %[[VAL_0:.*]] = call @llvm.stacksave.p0() : () -> !cc.ptr<i8>
 // CHECK:           cf.br ^bb1
 // CHECK:         ^bb1:
 // CHECK:           %[[VAL_1:.*]] = cc.alloca i8
 // CHECK:           call @foo(%[[VAL_1]]) : (!cc.ptr<i8>) -> ()
 // CHECK:           cf.br ^bb2
 // CHECK:         ^bb2:
-// CHECK:           call @llvm.stackrestore(%[[VAL_0]]) : (!cc.ptr<i8>) -> ()
+// CHECK:           call @llvm.stackrestore.p0(%[[VAL_0]]) : (!cc.ptr<i8>) -> ()
 // CHECK:           return
 // CHECK:         }

@@ -1332,9 +1332,9 @@ def StackFramePrealloc : Pass<"stack-frame-prealloc", "mlir::func::FuncOp"> {
     based on their scopes, but works at a lower semantic level of the IR. This
     pass aims to optimize patterns such as
     ```mlir
-      %10 = call @llvm.stacksave()
+      %10 = call @llvm.stacksave.p0()
       %24 = cc.alloca !T
-      call @llvm.stackrestore(%10)
+      call @llvm.stackrestore.p0(%10)
     ```
     such that the allocation, %24, is moved to the entry block and the two
     stack guards, if they guard no allocations, can be correctly removed.
