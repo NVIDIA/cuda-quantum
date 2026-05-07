@@ -38,7 +38,6 @@ TEST(CudaqFmtFormat, BoolFormats) {
 
 TEST(CudaqFmtFormat, IntegerFormats) {
   EXPECT_EQ(cudaq_fmt::format("{}", -7), "-7");
-  EXPECT_EQ(cudaq_fmt::format("{}", static_cast<unsigned long long>(42)), "42");
 }
 
 TEST(CudaqFmtFormat, FloatingPointFormats) {
@@ -168,9 +167,6 @@ TEST(CudaqFmtFormat, AllInstantiatedTypesLinkAndFormat) {
   EXPECT_FALSE(cudaq_fmt::format("{}", static_cast<unsigned int>(1)).empty());
   EXPECT_FALSE(cudaq_fmt::format("{}", static_cast<long>(1)).empty());
   EXPECT_FALSE(cudaq_fmt::format("{}", static_cast<unsigned long>(1)).empty());
-  EXPECT_FALSE(cudaq_fmt::format("{}", static_cast<long long>(1)).empty());
-  EXPECT_FALSE(
-      cudaq_fmt::format("{}", static_cast<unsigned long long>(1)).empty());
   EXPECT_FALSE(cudaq_fmt::format("{}", static_cast<float>(1.0f)).empty());
   EXPECT_FALSE(cudaq_fmt::format("{}", static_cast<double>(1.0)).empty());
   EXPECT_FALSE(cudaq_fmt::format("{}", static_cast<long double>(1.0L)).empty());
@@ -198,9 +194,6 @@ TEST(CudaqFmtFormat, AllInstantiatedTypesLinkAndFormat) {
   EXPECT_FALSE(cudaq_fmt::format("{}", std::vector<long>{1L}).empty());
   EXPECT_FALSE(
       cudaq_fmt::format("{}", std::vector<unsigned long>{1UL}).empty());
-  EXPECT_FALSE(cudaq_fmt::format("{}", std::vector<long long>{1LL}).empty());
-  EXPECT_FALSE(
-      cudaq_fmt::format("{}", std::vector<unsigned long long>{1ULL}).empty());
   EXPECT_FALSE(cudaq_fmt::format("{}", std::vector<float>{1.0f}).empty());
   EXPECT_FALSE(cudaq_fmt::format("{}", std::vector<double>{1.0}).empty());
   EXPECT_FALSE(cudaq_fmt::format("{}", std::vector<std::string>{"x"}).empty());

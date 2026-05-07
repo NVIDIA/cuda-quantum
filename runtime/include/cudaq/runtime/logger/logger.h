@@ -10,7 +10,6 @@
 
 #include "cudaq/runtime/logger/cudaq_fmt.h"
 #include "cudaq/runtime/logger/tracer.h"
-
 #include <array>
 #include <cstddef>
 #include <span>
@@ -42,6 +41,7 @@ std::string pathToFileName(const std::string_view fullFilePath);
 // CUDAQ_LOG_LEVEL environment variable.
 void setLogLevel(LogLevel level);
 LogLevel getLogLevel();
+
 // Flushes any buffered log output. Useful in tests that need to inspect
 // captured stdout immediately after emitting an info/debug message
 // (initializeLogger only enables flush_on(warn)).

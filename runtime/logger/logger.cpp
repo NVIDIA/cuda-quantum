@@ -19,7 +19,6 @@
 #include <map>
 #include <set>
 #include <spdlog/cfg/env.h>
-#include <spdlog/cfg/helpers.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/spdlog.h>
@@ -111,6 +110,7 @@ void debug(const std::string_view msg) {
   spdlog::debug(msg);
 #endif
 }
+
 // These asserts are needed for should_log
 static_assert(static_cast<int>(LogLevel::debug) ==
                   static_cast<int>(spdlog::level::debug),
@@ -127,14 +127,18 @@ static_assert(static_cast<int>(LogLevel::warn) ==
 bool should_log(const LogLevel logLevel) {
   return spdlog::should_log(static_cast<spdlog::level::level_enum>(logLevel));
 }
+
 void setLogLevel(LogLevel level) {
   spdlog::set_level(static_cast<spdlog::level::level_enum>(level));
 }
+
 LogLevel getLogLevel() { return static_cast<LogLevel>(spdlog::get_level()); }
+
 void flushLogs() {
   if (auto logger = spdlog::default_logger())
     logger->flush();
 }
+
 std::string pathToFileName(const std::string_view fullFilePath) {
   const std::filesystem::path file(fullFilePath);
   return file.filename().string();
@@ -218,14 +222,12 @@ CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(bool);
 CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(char);
 CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(signed char);
 CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(unsigned char);
-CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(short);
-CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(unsigned short);
-CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(int);
-CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(unsigned int);
-CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(long);
-CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(unsigned long);
-CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(long long);
-CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(unsigned long long);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(std::int16_t);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(std::uint16_t);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(std::int32_t);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(std::uint32_t);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(std::int64_t);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(std::uint64_t);
 CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(float);
 CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(double);
 CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(long double);

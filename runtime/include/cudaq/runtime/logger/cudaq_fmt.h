@@ -19,7 +19,7 @@
 
 //
 // This header provides a wrapper around some of the `fmtlib` functions, so that
-// `fmtlib` headers, which are not distributed, do not leak into user code.
+// `fmtlib` headers, which are not distributed, do not propagate into user code.
 //
 // It introduces a cudaq_fmt namespace to make it easy to distinguish between
 // what would otherwise be `fmt::format` and `cudaq::format`.
