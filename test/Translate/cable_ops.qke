@@ -1,0 +1,110 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-translate %s --convert-to=qir | FileCheck %s
+// RUN: cudaq-translate %s --convert-to=qir-base | FileCheck %s --check-prefix=BASE
+
+func.func @test_1() -> !quake.wire {
+  %1 = quake.null_cable !quake.cable<4>
+  %2:4 = quake.split_cable %1 : (!quake.cable<4>) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire)
+  %3:2 = quake.x [%2#0] %2#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4:2 = quake.x [%2#2] %2#3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %5:2 = quake.x [%3#1] %4#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  return %5#1 : !quake.wire
+}
+
+func.func @test_2(%0: !quake.wire, %1: !quake.wire, %2: !quake.wire, %3: !quake.wire) -> !quake.cable<4> {
+  %7:2 = quake.h [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %4:2 = quake.h [%2] %3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %5:2 = quake.x [%7#1] %4#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %6 = quake.bundle_cable %5#1, %5#0, %3#0, %4#0 : (!quake.wire, !quake.wire, !quake.wire, !quake.wire) -> !quake.cable<4>
+  return %6 : !quake.cable<4>
+}
+
+// CHECK-LABEL: define 
+// CHECK-SAME:         %[[VAL_0:.*]]* @test_1() local_unnamed_addr {
+// CHECK:         %[[VAL_1:.*]] = tail call %[[VAL_2:.*]]* @__quantum__rt__qubit_allocate_array(i64 4)
+// CHECK:         %[[VAL_3:.*]] = tail call %[[VAL_0]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_2]]* %[[VAL_1]], i64 0)
+// CHECK:         %[[VAL_4:.*]] = bitcast %[[VAL_0]]** %[[VAL_3]] to i8**
+// CHECK:         %[[VAL_5:.*]] = load i8*, i8** %[[VAL_4]], align 8
+// CHECK:         %[[VAL_6:.*]] = tail call %[[VAL_0]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_2]]* %[[VAL_1]], i64 1)
+// CHECK:         %[[VAL_7:.*]] = bitcast %[[VAL_0]]** %[[VAL_6]] to i8**
+// CHECK:         %[[VAL_8:.*]] = load i8*, i8** %[[VAL_7]], align 8
+// CHECK:         %[[VAL_9:.*]] = tail call %[[VAL_0]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_2]]* %[[VAL_1]], i64 2)
+// CHECK:         %[[VAL_10:.*]] = bitcast %[[VAL_0]]** %[[VAL_9]] to i8**
+// CHECK:         %[[VAL_11:.*]] = load i8*, i8** %[[VAL_10]], align 8
+// CHECK:         %[[VAL_12:.*]] = tail call %[[VAL_0]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_2]]* %[[VAL_1]], i64 3)
+// CHECK:         %[[VAL_13:.*]] = load %[[VAL_0]]*, %[[VAL_0]]** %[[VAL_12]], align 8
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%[[VAL_2]]*, %[[VAL_0]]*)* @__quantum__qis__x__ctl to i8*), i8* %[[VAL_5]], i8* %[[VAL_8]])
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%[[VAL_2]]*, %[[VAL_0]]*)* @__quantum__qis__x__ctl to i8*), i8* %[[VAL_11]], %[[VAL_0]]* %[[VAL_13]])
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%[[VAL_2]]*, %[[VAL_0]]*)* @__quantum__qis__x__ctl to i8*), i8* %[[VAL_8]], %[[VAL_0]]* %[[VAL_13]])
+// CHECK:         ret %[[VAL_0]]* %[[VAL_13]]
+// CHECK:       }
+
+// CHECK-LABEL: define 
+// CHECK-SAME:         %[[VAL_0:.*]]* @test_2(%[[VAL_1:.*]]* %[[VAL_2:.*]], %[[VAL_1]]* %[[VAL_3:.*]], %[[VAL_1]]* %[[VAL_4:.*]], %[[VAL_1]]* %[[VAL_5:.*]]) local_unnamed_addr {
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%[[VAL_0]]*, %[[VAL_1]]*)* @__quantum__qis__h__ctl to i8*), %[[VAL_1]]* %[[VAL_2]], %[[VAL_1]]* %[[VAL_3]])
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%[[VAL_0]]*, %[[VAL_1]]*)* @__quantum__qis__h__ctl to i8*), %[[VAL_1]]* %[[VAL_4]], %[[VAL_1]]* %[[VAL_5]])
+// CHECK:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%[[VAL_0]]*, %[[VAL_1]]*)* @__quantum__qis__x__ctl to i8*), %[[VAL_1]]* %[[VAL_3]], %[[VAL_1]]* %[[VAL_5]])
+// CHECK:         %[[VAL_6:.*]] = tail call %[[VAL_0]]* @__quantum__rt__array_create_1d(i32 8, i64 1)
+// CHECK:         %[[VAL_7:.*]] = tail call %[[VAL_1]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_0]]* %[[VAL_6]], i64 0)
+// CHECK:         store %[[VAL_1]]* %[[VAL_5]], %[[VAL_1]]** %[[VAL_7]], align 8
+// CHECK:         %[[VAL_8:.*]] = tail call %[[VAL_0]]* @__quantum__rt__array_create_1d(i32 8, i64 1)
+// CHECK:         %[[VAL_9:.*]] = tail call %[[VAL_1]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_0]]* %[[VAL_8]], i64 0)
+// CHECK:         store %[[VAL_1]]* %[[VAL_3]], %[[VAL_1]]** %[[VAL_9]], align 8
+// CHECK:         %[[VAL_10:.*]] = tail call %[[VAL_0]]* @__quantum__rt__array_concatenate(%[[VAL_0]]* %[[VAL_6]], %[[VAL_0]]* %[[VAL_8]])
+// CHECK:         %[[VAL_11:.*]] = tail call %[[VAL_0]]* @__quantum__rt__array_create_1d(i32 8, i64 1)
+// CHECK:         %[[VAL_12:.*]] = tail call %[[VAL_1]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_0]]* %[[VAL_11]], i64 0)
+// CHECK:         store %[[VAL_1]]* %[[VAL_5]], %[[VAL_1]]** %[[VAL_12]], align 8
+// CHECK:         %[[VAL_13:.*]] = tail call %[[VAL_0]]* @__quantum__rt__array_concatenate(%[[VAL_0]]* %[[VAL_10]], %[[VAL_0]]* %[[VAL_11]])
+// CHECK:         %[[VAL_14:.*]] = tail call %[[VAL_0]]* @__quantum__rt__array_create_1d(i32 8, i64 1)
+// CHECK:         %[[VAL_15:.*]] = tail call %[[VAL_1]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_0]]* %[[VAL_14]], i64 0)
+// CHECK:         store %[[VAL_1]]* %[[VAL_4]], %[[VAL_1]]** %[[VAL_15]], align 8
+// CHECK:         %[[VAL_16:.*]] = tail call %[[VAL_0]]* @__quantum__rt__array_concatenate(%[[VAL_0]]* %[[VAL_13]], %[[VAL_0]]* %[[VAL_14]])
+// CHECK:         ret %[[VAL_0]]* %[[VAL_16]]
+// CHECK:       }
+
+// BASE-LABEL: define 
+// BASE-SAME:         %[[VAL_0:.*]]* @test_1() local_unnamed_addr {
+// BASE:         %[[VAL_1:.*]] = tail call %[[VAL_0]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_2:.*]]* nonnull bitcast ([4 x i64]* @test_1.rodata_0 to %[[VAL_2]]*), i64 0)
+// BASE:         %[[VAL_3:.*]] = load %[[VAL_0]]*, %[[VAL_0]]** %[[VAL_1]], align 8
+// BASE:         %[[VAL_4:.*]] = tail call %[[VAL_0]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_2]]* nonnull bitcast ([4 x i64]* @test_1.rodata_0 to %[[VAL_2]]*), i64 1)
+// BASE:         %[[VAL_5:.*]] = load %[[VAL_0]]*, %[[VAL_0]]** %[[VAL_4]], align 8
+// BASE:         %[[VAL_6:.*]] = tail call %[[VAL_0]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_2]]* nonnull bitcast ([4 x i64]* @test_1.rodata_0 to %[[VAL_2]]*), i64 2)
+// BASE:         %[[VAL_7:.*]] = load %[[VAL_0]]*, %[[VAL_0]]** %[[VAL_6]], align 8
+// BASE:         %[[VAL_8:.*]] = tail call %[[VAL_0]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_2]]* nonnull bitcast ([4 x i64]* @test_1.rodata_0 to %[[VAL_2]]*), i64 3)
+// BASE:         %[[VAL_9:.*]] = load %[[VAL_0]]*, %[[VAL_0]]** %[[VAL_8]], align 8
+// BASE:         tail call void @__quantum__qis__cnot__body(%[[VAL_0]]* %[[VAL_3]], %[[VAL_0]]* %[[VAL_5]])
+// BASE:         tail call void @__quantum__qis__cnot__body(%[[VAL_0]]* %[[VAL_7]], %[[VAL_0]]* %[[VAL_9]])
+// BASE:         tail call void @__quantum__qis__cnot__body(%[[VAL_0]]* %[[VAL_5]], %[[VAL_0]]* %[[VAL_9]])
+// BASE:         ret %[[VAL_0]]* %[[VAL_9]]
+// BASE:       }
+
+// BASE-LABEL: define 
+// BASE-SAME:         %[[VAL_0:.*]]* @test_2(%[[VAL_1:.*]]* %[[VAL_2:.*]], %[[VAL_1]]* %[[VAL_3:.*]], %[[VAL_1]]* %[[VAL_4:.*]], %[[VAL_1]]* %[[VAL_5:.*]]) local_unnamed_addr {
+// BASE:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%[[VAL_0]]*, %[[VAL_1]]*)* @__quantum__qis__h__ctl to i8*), %[[VAL_1]]* %[[VAL_2]], %[[VAL_1]]* %[[VAL_3]])
+// BASE:         tail call void (i64, i64, i64, i64, i8*, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, i8* nonnull bitcast (void (%[[VAL_0]]*, %[[VAL_1]]*)* @__quantum__qis__h__ctl to i8*), %[[VAL_1]]* %[[VAL_4]], %[[VAL_1]]* %[[VAL_5]])
+// BASE:         tail call void @__quantum__qis__cnot__body(%[[VAL_1]]* %[[VAL_3]], %[[VAL_1]]* %[[VAL_5]])
+// BASE:         %[[VAL_6:.*]] = tail call %[[VAL_0]]* @__quantum__rt__array_create_1d(i32 8, i64 1)
+// BASE:         %[[VAL_7:.*]] = tail call %[[VAL_1]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_0]]* %[[VAL_6]], i64 0)
+// BASE:         store %[[VAL_1]]* %[[VAL_5]], %[[VAL_1]]** %[[VAL_7]], align 8
+// BASE:         %[[VAL_8:.*]] = tail call %[[VAL_0]]* @__quantum__rt__array_create_1d(i32 8, i64 1)
+// BASE:         %[[VAL_9:.*]] = tail call %[[VAL_1]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_0]]* %[[VAL_8]], i64 0)
+// BASE:         store %[[VAL_1]]* %[[VAL_3]], %[[VAL_1]]** %[[VAL_9]], align 8
+// BASE:         %[[VAL_10:.*]] = tail call %[[VAL_0]]* @__quantum__rt__array_concatenate(%[[VAL_0]]* %[[VAL_6]], %[[VAL_0]]* %[[VAL_8]])
+// BASE:         %[[VAL_11:.*]] = tail call %[[VAL_0]]* @__quantum__rt__array_create_1d(i32 8, i64 1)
+// BASE:         %[[VAL_12:.*]] = tail call %[[VAL_1]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_0]]* %[[VAL_11]], i64 0)
+// BASE:         store %[[VAL_1]]* %[[VAL_5]], %[[VAL_1]]** %[[VAL_12]], align 8
+// BASE:         %[[VAL_13:.*]] = tail call %[[VAL_0]]* @__quantum__rt__array_concatenate(%[[VAL_0]]* %[[VAL_10]], %[[VAL_0]]* %[[VAL_11]])
+// BASE:         %[[VAL_14:.*]] = tail call %[[VAL_0]]* @__quantum__rt__array_create_1d(i32 8, i64 1)
+// BASE:         %[[VAL_15:.*]] = tail call %[[VAL_1]]** @__quantum__rt__array_get_element_ptr_1d(%[[VAL_0]]* %[[VAL_14]], i64 0)
+// BASE:         store %[[VAL_1]]* %[[VAL_4]], %[[VAL_1]]** %[[VAL_15]], align 8
+// BASE:         %[[VAL_16:.*]] = tail call %[[VAL_0]]* @__quantum__rt__array_concatenate(%[[VAL_0]]* %[[VAL_13]], %[[VAL_0]]* %[[VAL_14]])
+// BASE:         ret %[[VAL_0]]* %[[VAL_16]]
+// BASE:       }
+

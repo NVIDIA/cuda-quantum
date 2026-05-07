@@ -716,6 +716,37 @@ struct ConcatOpRewrite
   }
 };
 
+template <typename M>
+struct BundleCableOpRewrite
+    : public QubitHelperConversionPattern<M, quake::BundleCableOp> {
+  using Base = QubitHelperConversionPattern<M, quake::BundleCableOp>;
+  using Base::Base;
+
+  // Note that this is the same as quake.concat.
+  LogicalResult
+  matchAndRewrite(quake::BundleCableOp bundle, Base::OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    if (adaptor.getOperands().empty()) {
+      rewriter.eraseOp(bundle);
+      return success();
+    }
+
+    auto loc = bundle.getLoc();
+    Type arrayTy = M::getArrayType(rewriter.getContext());
+    Value firstOperand = adaptor.getOperands().front();
+    Value resultArray = Base::wrapQubitAsArray(loc, rewriter, firstOperand);
+    for (auto next : adaptor.getOperands().drop_front()) {
+      Value wrapNext = Base::wrapQubitAsArray(loc, rewriter, next);
+      auto appended = rewriter.create<func::CallOp>(
+          loc, arrayTy, cudaq::opt::QIRArrayConcatArray,
+          ArrayRef<Value>{resultArray, wrapNext});
+      resultArray = appended.getResult(0);
+    }
+    rewriter.replaceOp(bundle, resultArray);
+    return success();
+  }
+};
+
 struct DeallocOpRewrite : public OpConversionPattern<quake::DeallocOp> {
   using OpConversionPattern::OpConversionPattern;
 
@@ -873,6 +904,38 @@ struct ExtractRefOpRewrite : public OpConversionPattern<quake::ExtractRefOp> {
         rewriter, loc, cudaq::cc::PointerType::get(qubitTy),
         cudaq::opt::QIRArrayGetElementPtr1d, ArrayRef<Value>{veq, index});
     rewriter.replaceOpWithNewOp<cudaq::cc::LoadOp>(extract, call.getResult(0));
+    return success();
+  }
+};
+
+template <typename M>
+struct SplitCableOpRewrite : public OpConversionPattern<quake::SplitCableOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  // There are two cases depending on which flavor of QIR is being generated.
+  // For full QIR, we need to generate calls to QIR functions to select the
+  // qubit from a QIR array.
+  // For the profile QIRs, we replace this with a `cc.extract_value` operation,
+  // which will be canonicalized into a constant.
+  LogicalResult
+  matchAndRewrite(quake::SplitCableOp split, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = split.getLoc();
+    auto cab = adaptor.getCable();
+    auto qubitTy = M::getQubitType(rewriter.getContext());
+
+    SmallVector<Value> qubits;
+    std::uint64_t size =
+        4; // cast<quake::CableType>(getInitialType(cab, 0)).getSize();
+    for (std::uint64_t i = 0; i < size; ++i) {
+      Value index = rewriter.create<arith::ConstantIntOp>(loc, i, 64);
+      auto call = rewriter.create<func::CallOp>(
+          loc, cudaq::cc::PointerType::get(qubitTy),
+          cudaq::opt::QIRArrayGetElementPtr1d, ArrayRef<Value>{cab, index});
+      qubits.push_back(
+          rewriter.create<cudaq::cc::LoadOp>(loc, call.getResult(0)));
+    }
+    rewriter.replaceOp(split, ValueRange{qubits});
     return success();
   }
 };
@@ -2128,10 +2191,11 @@ struct FullQIR {
     auto *ctx = patterns.getContext();
     patterns.insert<
         /* Rewrites for qubit management and aggregation. */
-        AllocaOpToCallsRewrite<Self>, ConcatOpRewrite<Self>, DeallocOpRewrite,
-        DiscriminateOpRewrite, ExtractRefOpRewrite<Self>,
-        NullCableOpToCallsRewrite<Self>, NullWireOpToCallsRewrite<Self>,
-        QmemRAIIOpRewrite<Self>, SinkOpRewrite, SubveqOpRewrite<Self>,
+        AllocaOpToCallsRewrite<Self>, BundleCableOpRewrite<Self>,
+        ConcatOpRewrite<Self>, DeallocOpRewrite, DiscriminateOpRewrite,
+        ExtractRefOpRewrite<Self>, NullCableOpToCallsRewrite<Self>,
+        NullWireOpToCallsRewrite<Self>, QmemRAIIOpRewrite<Self>, SinkOpRewrite,
+        SplitCableOpRewrite<Self>, SubveqOpRewrite<Self>,
 
         /* Irregular quantum operators. */
         CustomUnitaryOpPattern<Self>, ExpPauliOpPattern<Self>,
@@ -2197,9 +2261,10 @@ struct AnyProfileQIR {
     auto *ctx = patterns.getContext();
     patterns.insert<
         /* Rewrites for qubit management and aggregation. */
-        AllocaOpToIntRewrite<Self>, ConcatOpRewrite<Self>, DeallocOpErase,
-        ExtractRefOpRewrite<Self>, NullCableOpToIntRewrite<Self>,
-        NullWireOpToIntRewrite<Self>, QmemRAIIOpRewrite<Self>, SinkOpErase,
+        AllocaOpToIntRewrite<Self>, BundleCableOpRewrite<Self>,
+        ConcatOpRewrite<Self>, DeallocOpErase, ExtractRefOpRewrite<Self>,
+        NullCableOpToIntRewrite<Self>, NullWireOpToIntRewrite<Self>,
+        QmemRAIIOpRewrite<Self>, SinkOpErase, SplitCableOpRewrite<Self>,
         SubveqOpRewrite<Self>,
 
         /* Irregular quantum operators. */
