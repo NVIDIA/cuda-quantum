@@ -34,9 +34,3 @@ def test_issue_4407():
         return a + b + c
 
     cudaq.run(main_kernel, shots_count=10)
-
-
-# leave for gdb debugging
-if __name__ == "__main__":
-    loc = os.path.abspath(__file__)
-    pytest.main([loc, "-rP"])
