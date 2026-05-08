@@ -2114,7 +2114,7 @@ each pixel with its position
 
 <div>
 
-![39bfba3f36eb4ba48db3d18db8c0a2e1](../../_images/pixels-img.png){.no-scaled-link
+![6c53147db2c7402cb1d88937d893a8e9](../../_images/pixels-img.png){.no-scaled-link
 style="width: 200px;"}
 
 </div>
