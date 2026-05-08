@@ -29,14 +29,6 @@ constexpr bool isTupleRecursivelyDefined() {
 namespace __internal__ {
 std::string demangle_kernel(const char *);
 extern bool globalFalse;
-class TargetSetter {
-public:
-  TargetSetter(const char *backend);
-};
-
-#ifdef NVQPP_TARGET_BACKEND_CONFIG
-inline TargetSetter targetSetter(NVQPP_TARGET_BACKEND_CONFIG);
-#endif
 } // namespace __internal__
 
 // Simple test to see if the QuantumKernel template
