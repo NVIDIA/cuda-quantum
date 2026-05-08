@@ -1341,9 +1341,11 @@ struct CollapseCastToStdvecInit
               return *optInt;
             return arrSize + 1; // do not replace this one
           }();
-          if (!initLen || arrSize == initSize)
+          if (!initLen || arrSize == initSize) {
             rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
                 init, init.getType(), castVal);
+            return success();
+          }
         }
     }
     return failure();
