@@ -787,37 +787,22 @@ def _validate_kernel_callable_arg(kernel, arg_type):
             f"Expected argument of type `{arg_type}`, got callable kernel `{kernel.name}`"
         )
 
-    expectedFnTy = FunctionType(cc.CallableType.getFunctionType(arg_type))
-    expectedInputs = list(expectedFnTy.inputs)
-    expectedResults = list(expectedFnTy.results)
+    expectedFnTy = cc.CallableType.getFunctionType(arg_type)
+    actualFnTy = cc.CallableType.getFunctionType(
+        kernel.signature.get_callable_type())
 
-    actualInputs = list(kernel.signature.arg_types)
-    actualReturn = kernel.signature.return_type
-    actualResults = [actualReturn] if actualReturn is not None else []
+    if expectedFnTy == actualFnTy:
+        return
 
-    def _format(inputs, results):
-        inputs_str = ", ".join(str(t) for t in inputs)
-        results_str = ", ".join(str(t) for t in results) or "None"
-        return f"({inputs_str}) -> {results_str}"
+    def _format(fnTy):
+        inputs_str = ", ".join(str(t) for t in fnTy.inputs)
+        results = fnTy.results
+        if results:
+            return f"({inputs_str}) -> {results[0]}"
+        else:
+            return inputs_str
 
-    if len(expectedInputs) != len(actualInputs):
-        emitFatalError(
-            f"Expected callable with signature {_format(expectedInputs, expectedResults)}, "
-            f"got callable kernel `{kernel.name}` with signature {_format(actualInputs, actualResults)}"
-        )
-
-    mismatches = [(i, exp, act)
-                  for i, (exp,
-                          act) in enumerate(zip(expectedInputs, actualInputs))
-                  if exp != act]
-    if mismatches or expectedResults != actualResults:
-        details = "; ".join(f"argument {i}: expected `{exp}`, got `{act}`"
-                            for i, exp, act in mismatches)
-        if expectedResults != actualResults:
-            ret_detail = (f"return: expected `{_format([], expectedResults)}`, "
-                          f"got `{_format([], actualResults)}`")
-            details = f"{details}; {ret_detail}" if details else ret_detail
-        emitFatalError(
-            f"Expected callable with signature {_format(expectedInputs, expectedResults)}, "
-            f"got callable kernel `{kernel.name}` with signature {_format(actualInputs, actualResults)}"
-        )
+    emitFatalError(
+        f"Expected callable with signature {_format(expectedFnTy)}, "
+        f"got callable kernel `{kernel.name}` with signature {_format(actualFnTy)}"
+    )
