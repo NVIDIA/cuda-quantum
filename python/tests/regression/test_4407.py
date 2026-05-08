@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 import cudaq
+import pytest
 
 
 @pytest.fixture(autouse=True)
