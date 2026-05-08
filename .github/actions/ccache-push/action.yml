@@ -15,10 +15,10 @@ inputs:
     description: 'PR number for tag. Auto-detected from ref_name when empty.'
     required: false
     default: ''
-  delta-threshold:
-    description: 'Skip push if cache file count changed by less than this percentage. Set to 0 to always push.'
+  miss-threshold:
+    description: 'Skip push if ccache miss rate is below this percentage. Set to 0 to always push.'
     required: false
-    default: '10'
+    default: '5'
   ref-name:
     description: 'Branch name used for tag when not a PR build'
     required: false
@@ -42,7 +42,7 @@ runs:
       shell: bash
       run: |
         cache_path="${{ inputs.cache-path }}"
-        delta_threshold="${{ inputs.delta-threshold }}"
+        miss_threshold="${{ inputs.miss-threshold }}"
 
         # Validate cache path has content
         if [ ! -d "$cache_path" ] || [ -z "$(ls -A "$cache_path" 2>/dev/null)" ]; then
@@ -53,35 +53,30 @@ runs:
 
         # Print stats for visibility: prefer _build_stats.txt from Docker
         # export, fall back to querying ccache on the host (native builds).
+        stats_output=""
         stats_file="$cache_path/_build_stats.txt"
         if [ -f "$stats_file" ]; then
           echo "=== ccache stats (from Docker build) ==="
-          cat "$stats_file"
+          stats_output=$(cat "$stats_file")
+          echo "$stats_output"
         elif command -v ccache &>/dev/null; then
           echo "=== ccache stats ==="
-          ccache -s 2>/dev/null || true
+          stats_output=$(ccache -s 2>/dev/null || true)
+          echo "$stats_output"
         fi
 
-        # Compute cache delta: compare current file count to the baseline
-        # recorded at restore time. This measures how much the cache
-        # actually changed, regardless of whether the build ran natively
-        # or inside Docker.
-        restore_count_file="$cache_path/_restore_file_count.txt"
-        current_count=$(find "$cache_path" -type f | wc -l | tr -d ' ')
-        if [ -f "$restore_count_file" ]; then
-          restore_count=$(cat "$restore_count_file" | tr -d ' ')
-        else
-          restore_count=0
+        # Use ccache's miss rate to decide whether the cache is worth saving.
+        # File-count growth is a poor proxy: a small percentage change can still
+        # represent hundreds of missed compile results in a large cache.
+        cacheable_calls=$(echo "$stats_output" | awk '/^Cacheable calls:/ {print $3; exit}')
+        cache_misses=$(echo "$stats_output" | awk '/^  Misses:/ {print $2; exit}')
+        miss_pct=""
+        if [[ "$cacheable_calls" =~ ^[0-9]+$ ]] && \
+           [[ "$cache_misses" =~ ^[0-9]+$ ]] && \
+           [ "$cacheable_calls" -gt 0 ]; then
+          miss_pct=$((cache_misses * 100 / cacheable_calls))
+          echo "Cache miss rate: ${miss_pct}% (${cache_misses} misses / ${cacheable_calls} cacheable calls)"
         fi
-        new_files=$((current_count - restore_count))
-        if [ "$restore_count" -gt 0 ]; then
-          delta_pct=$((new_files * 100 / restore_count))
-        elif [ "$current_count" -gt 0 ]; then
-          delta_pct=100
-        else
-          delta_pct=0
-        fi
-        echo "Cache delta: ${new_files} new files (${delta_pct}% change, ${restore_count} -> ${current_count})"
 
         # Always push on the default branch to keep the baseline fresh.
         # This includes merge queue runs, which are the only path into
@@ -96,10 +91,14 @@ runs:
 
         if $is_default_branch; then
           echo "On default branch ($default_branch); always pushing to keep baseline fresh."
-        elif [ "$delta_threshold" -gt 0 ] 2>/dev/null && [ "$delta_pct" -lt "$delta_threshold" ]; then
-          echo "Cache changed by ${delta_pct}% (threshold: ${delta_threshold}%); skipping push."
-          echo "pushed=false" >> $GITHUB_OUTPUT
-          exit 0
+        elif [ "$miss_threshold" -gt 0 ] 2>/dev/null; then
+          if [ -z "$miss_pct" ]; then
+            echo "No ccache miss rate available; pushing cache."
+          elif [ "$miss_pct" -lt "$miss_threshold" ]; then
+            echo "Cache miss rate ${miss_pct}% is below threshold ${miss_threshold}%; skipping push."
+            echo "pushed=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
         fi
 
         # Extract log and stats from cache dir before tarring so they
@@ -108,7 +107,7 @@ runs:
         if [ -f "$cache_path/ccache.log" ]; then
           mv "$cache_path/ccache.log" "${GITHUB_WORKSPACE:-$(pwd)}/ccache.log"
         fi
-        rm -f "$stats_file" "$restore_count_file"
+        rm -f "$stats_file" "$cache_path/_restore_file_count.txt"
 
         # Determine tag
         repo_owner=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
