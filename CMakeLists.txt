@@ -769,7 +769,10 @@ if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
   if (CMAKE_COMPILER_IS_GNUCXX
     AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12.0.0
     AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13.0.0)
-    target_compile_options(gtest PUBLIC --param=evrp-mode=legacy)
+    # Keep this GCC 12 workaround CXX-only. If it propagates to CUDA tests that
+    # link gtest_main, such as test_gpu_get_state, nvcc may forward it to a
+    # different CUDA host compiler where the option is invalid.
+    target_compile_options(gtest PUBLIC $<$<COMPILE_LANGUAGE:CXX>:--param=evrp-mode=legacy>)
   endif()
   if (CMAKE_CXX_COMPILER_ID MATCHES "^(Apple)?Clang$")
     target_compile_options(gtest PUBLIC -Wno-covered-switch-default)
