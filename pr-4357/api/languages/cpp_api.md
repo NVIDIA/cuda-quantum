@@ -12761,17 +12761,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1QPU_1a52aad45bea52aaec4dcdf03506dd61f1 .target}[[virtual]{.pre}]{.k}[ ]{.w}[[[KernelThunkResultType]{.pre}]{.n}](#_CPPv4N5cudaq21KernelThunkResultTypeE "cudaq::KernelThunkResultType"){.reference .internal}[ ]{.w}[[[launchKernel]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[name]{.pre}]{.n .sig-param}, [[[KernelThunkType]{.pre}]{.n}](#_CPPv4N5cudaq15KernelThunkTypeE "cudaq::KernelThunkType"){.reference .internal}[ ]{.w}[[kernelFunc]{.pre}]{.n .sig-param}, [[void]{.pre}]{.kt}[ ]{.w}[[\*]{.pre}]{.p}[[args]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[uint64_t]{.pre}]{.n}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[uint64_t]{.pre}]{.n}, [[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[void]{.pre}]{.kt}[[\*]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[rawArgs]{.pre}]{.n .sig-param}[)]{.sig-paren}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[¶](#_CPPv4N5cudaq3QPU12launchKernelERKNSt6stringE15KernelThunkTypePvNSt8uint64_tENSt8uint64_tERKNSt6vectorIPvEE "Permalink to this definition"){.headerlink}\
-
-    :   Launch the kernel with given name (to extract its Quake
-        representation). The raw function pointer is also provided, as
-        are the runtime arguments, as a struct-packed void pointer and
-        its corresponding size.
-
-    ```{=html}
-    <!-- -->
-    ```
-
     []{#classcudaq_1_1QPU_1ab4915615be5d425122d93d59ac1a22cd .target}[[inline]{.pre}]{.k}[ ]{.w}[[virtual]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[onRandomSeedSet]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[seed]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU15onRandomSeedSetENSt6size_tE "Permalink to this definition"){.headerlink}\
 
     :   Notify the [[QPU]{.std .std-ref}](#classcudaq_1_1QPU){.reference
