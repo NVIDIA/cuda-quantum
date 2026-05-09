@@ -693,7 +693,7 @@ static void pyAltLaunchAnalogKernel(const std::string &name,
     throw std::runtime_error("Unexpected type of kernel.");
   auto dynamicResult = cudaq::altLaunchKernel(
       name.c_str(), cudaq::KernelThunkType(nullptr),
-      (void *)(const_cast<char *>(programArgs.c_str())), 0, 0);
+      (void *)(const_cast<char *>(programArgs.c_str())), programArgs.size(), 0);
   if (dynamicResult.data_buffer || dynamicResult.size)
     throw std::runtime_error("Not implemented: support dynamic results");
 }

@@ -149,6 +149,15 @@ static LogicalResult emitOperation(cudaq::Emitter &emitter, ModuleOp moduleOp) {
 }
 
 static LogicalResult emitOperation(cudaq::Emitter &emitter,
+                                   cudaq::cc::ScopeOp scope) {
+  for (Block &block : scope.getInitRegion())
+    for (Operation &op : block)
+      if (failed(emitOperation(emitter, op)))
+        return failure();
+  return success();
+}
+
+static LogicalResult emitOperation(cudaq::Emitter &emitter,
                                    quake::AllocaOp allocaOp) {
   Value refOrVeq = allocaOp.getRefOrVec();
   auto name = emitter.createName();
@@ -367,6 +376,9 @@ static LogicalResult emitOperation(cudaq::Emitter &emitter, Operation &op) {
       .Case<cudaq::cc::CastOp>([&](auto op) { return success(); })
       .Case<cudaq::cc::ComputePtrOp>([&](auto op) { return success(); })
       .Case<quake::DiscriminateOp>([&](auto op) { return success(); })
+      .Case<cudaq::cc::ScopeOp>(
+          [&](auto op) { return emitOperation(emitter, op); })
+      .Case<cudaq::cc::ContinueOp>([&](auto op) { return success(); })
       .Default([&](Operation *) -> LogicalResult {
         if (op.getName().getDialectNamespace() == "llvm")
           return success();

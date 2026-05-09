@@ -10,6 +10,8 @@
 #include "FmtCore.h"
 #include "cudaq/runtime/logger/logger.h"
 #include <stdexcept>
+#include <tuple>
+#include <vector>
 
 namespace {
 

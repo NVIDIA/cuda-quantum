@@ -198,6 +198,8 @@ static void createPythonAOTPipeline(OpPassManager &pm,
   gkeOpts.deferToJIT = options.deferGKEToJIT;
   gkeOpts.codegenKind = options.codegenKind;
   pm.addPass(cudaq::opt::createGenerateKernelExecution(gkeOpts));
+  if (options.autoGenRunStack)
+    pm.addPass(cudaq::opt::createRunSemanticsHackery());
   cudaq::opt::addAggressiveInlining(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createConstantPropagation());

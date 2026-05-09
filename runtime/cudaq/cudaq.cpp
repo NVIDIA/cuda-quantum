@@ -270,7 +270,7 @@ void __nvqpp_initializer_list_to_vector_bool(std::vector<bool> &result,
                                              char *initList, std::size_t size) {
   // result is a sret return value. Make sure it is default initialized. Takes
   // advantage of default empty vector being all 0s.
-  std::memset(reinterpret_cast<void *>(&result), 0, sizeof(result));
+  std::memset(static_cast<void *>(&result), 0, sizeof(result));
   // Allocate space.
   result.reserve(size);
   // Copy in the initialization list data.

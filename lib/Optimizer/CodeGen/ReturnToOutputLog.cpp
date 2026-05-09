@@ -131,10 +131,20 @@ public:
         .Case([&](cudaq::cc::StdvecType vecTy) {
           // For this type, we expect a cc.stdvec_init operation as the input.
           // The data will be in a variable.
-          if (auto vecInit = val.getDefiningOp<cudaq::cc::StdvecInitOp>())
-            if (auto maybeLen = cudaq::opt::factory::maybeValueOfIntConstant(
-                    vecInit.getLength())) {
-              std::int32_t sz = *maybeLen;
+          if (auto vecInit = val.getDefiningOp<cudaq::cc::StdvecInitOp>()) {
+            auto maybeLen = [&]() -> std::optional<std::uint64_t> {
+              if (Value len = vecInit.getLength())
+                return cudaq::opt::factory::maybeValueOfIntConstant(len);
+              auto eleTy =
+                  cast<cudaq::cc::PointerType>(vecInit.getBuffer().getType())
+                      .getElementType();
+              if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(eleTy);
+                  arrTy && !arrTy.isUnknownSize())
+                return {arrTy.getSize()};
+              return std::nullopt;
+            }();
+            if (maybeLen) {
+              std::int64_t sz = *maybeLen;
               auto labelStr = translateType(vecTy, sz);
               Value label = makeLabel(loc, rewriter, labelStr);
               Value size = arith::ConstantIntOp::create(rewriter, loc, sz, 64);
@@ -177,6 +187,7 @@ public:
               }
               return;
             }
+          }
           // Dynamic size: use runtime span logging helpers.
           if (!allowDynamic)
             return;
