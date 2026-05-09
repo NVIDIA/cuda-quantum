@@ -57,10 +57,10 @@ public:
 
   /// @brief Activate the simulator exposed by the named NVQIR plugin.
   ///
-  /// Resolves `getCircuitSimulator_<plugin_name>` via dlsym in the current
+  /// Resolves `getCircuitSimulator_<plugin_name>` via `dlsym` in the current
   /// process's loaded symbol space and returns a `scope` that owns it. The
   /// plugin shared library must already be loaded (statically linked or
-  /// dlopen'd by the caller).
+  /// `dlopen` by the caller).
   static scope from_plugin(std::string name, std::string plugin_name,
                            hooks h = {});
 

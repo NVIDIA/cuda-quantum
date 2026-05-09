@@ -31,9 +31,8 @@ CUDAQ_TEST(AnalysisScopeTester, nestedScopeThrows) {
   auto outer = cudaq::analysis::resource_counter::make_scope(alwaysFalse);
   EXPECT_TRUE(cudaq::analysis::scope::is_active());
 
-  EXPECT_THROW(
-      cudaq::analysis::resource_counter::make_scope(alwaysFalse),
-      std::runtime_error);
+  EXPECT_THROW(cudaq::analysis::resource_counter::make_scope(alwaysFalse),
+               std::runtime_error);
 
   // Outer scope is still the active one after the failed nest attempt.
   EXPECT_TRUE(cudaq::analysis::scope::is_active());
@@ -56,8 +55,9 @@ CUDAQ_TEST(AnalysisScopeTester, prepopulateWithoutScopeThrows) {
   EXPECT_FALSE(cudaq::analysis::scope::is_active());
   cudaq::Resources counts;
   counts.appendInstruction("h", 0);
-  EXPECT_THROW(cudaq::analysis::resource_counter::prepopulate(std::move(counts)),
-               std::runtime_error);
+  EXPECT_THROW(
+      cudaq::analysis::resource_counter::prepopulate(std::move(counts)),
+      std::runtime_error);
 }
 
 CUDAQ_TEST(AnalysisScopeTester, prepopulateInsideScopeReflectsInGetCounts) {

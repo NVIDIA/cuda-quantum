@@ -6,9 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/analysis/scope.h"
 #include "CircuitSimulator.h"
 #include "common/PluginUtils.h"
+#include "cudaq/analysis/scope.h"
 #include "cudaq/runtime/logger/logger.h"
 #include <stdexcept>
 #include <utility>
@@ -53,9 +53,9 @@ scope scope::from_plugin(std::string name, std::string plugin_name, hooks h) {
   const auto symbol = std::string("getCircuitSimulator_") + plugin_name;
   auto *sim = cudaq::getUniquePluginInstance<nvqir::CircuitSimulator>(symbol);
   if (!sim)
-    throw std::runtime_error(
-        "`cudaq::analysis::scope::from_plugin`: plugin '" + plugin_name +
-        "' returned a null CircuitSimulator.");
+    throw std::runtime_error("`cudaq::analysis::scope::from_plugin`: plugin '" +
+                             plugin_name +
+                             "' returned a null CircuitSimulator.");
   return scope{std::move(name), *sim, std::move(h)};
 }
 
