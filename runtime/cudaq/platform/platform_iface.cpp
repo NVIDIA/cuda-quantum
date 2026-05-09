@@ -1,4 +1,4 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
@@ -6,13 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "RemoteSimulatorQPU.h"
-#include "cudaq_internal/compiler/RuntimeMLIR.h"
+#include "cudaq/platform/platform_iface.h"
+#include "cudaq/platform.h"
 
-cudaq::RemoteSimulatorQPU::RemoteSimulatorQPU() : BaseRemoteSimulatorQPU() {
-  m_mlirContext = cudaq_internal::compiler::getOwningMLIRContext();
+void cudaq::platform::with_execution_context(ExecutionContext &ctx,
+                                             std::function<void()> f) {
+  get_platform().with_execution_context(ctx, std::move(f));
 }
-
-cudaq::RemoteSimulatorQPU::~RemoteSimulatorQPU() = default;
-
-CUDAQ_REGISTER_TYPE(cudaq::QPU, cudaq::RemoteSimulatorQPU, RemoteSimulatorQPU)

@@ -9,6 +9,7 @@
 #include "common/ExecutionContext.h"
 #include "common/RuntimeTarget.h"
 #include "cudaq/platform/qpu.h"
+#include "cudaq/platform/quantum_platform.h"
 #include <atomic>
 #include <gtest/gtest.h>
 #include <memory>

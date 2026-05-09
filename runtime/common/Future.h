@@ -198,4 +198,10 @@ std::istream &operator>>(std::istream &is, async_result<T> &ar) {
   return is >> ar.result;
 }
 
+/// @brief Return type for asynchronous observation.
+using async_observe_result = async_result<observe_result>;
+
+/// @brief Return type for asynchronous sampling.
+using async_sample_result = async_result<sample_result>;
+
 } // namespace cudaq

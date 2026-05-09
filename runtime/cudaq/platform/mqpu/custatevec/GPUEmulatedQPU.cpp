@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "GPUEmulatedQPU.h"
 #include "common/ExecutionContext.h"
 #include "common/NoiseModel.h"
 #include "cuda_runtime_api.h"
-#include "cudaq/platform/qpu.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -17,67 +17,55 @@
 #include <fstream>
 #include <iostream>
 
-namespace {
+using namespace cudaq;
 
-/// @brief This QPU implementation enqueues kernel
-/// execution tasks and sets the CUDA GPU device that it
-/// represents. There is a GPUEmulatedQPU per available GPU.
-class GPUEmulatedQPU : public cudaq::QPU {
-public:
-  GPUEmulatedQPU() : QPU() {};
-  GPUEmulatedQPU(std::size_t id) : QPU(id) {}
+GPUEmulatedQPU::GPUEmulatedQPU() : QPU() {}
+GPUEmulatedQPU::GPUEmulatedQPU(std::size_t id) : QPU(id) {}
 
-  void enqueue(cudaq::QuantumTask &task) override {
-    // Note: enqueue is executed on the main thread, not the QPU execution
-    // thread. Hence, do not set the CUDA device here.
-    CUDAQ_INFO("Enqueue Task on QPU {}", qpu_id);
-    execution_queue->enqueue(task);
-  }
+void GPUEmulatedQPU::enqueue(QuantumTask &task) {
+  CUDAQ_INFO("Enqueue Task on QPU {}", qpu_id);
+  execution_queue->enqueue(task);
+}
 
-  cudaq::KernelThunkResultType launchKernel(const cudaq::SourceModule &src,
-                                            cudaq::KernelArgs args) override {
-    CUDAQ_INFO("QPU::launchKernel GPU {}", qpu_id);
-    cudaSetDevice(qpu_id);
-    auto rawFn = src.getFunctionPtr();
-    if (!rawFn)
-      throw std::runtime_error(
-          "GPUEmulatedQPU::launchKernel requires a raw kernel function "
-          "pointer for kernel '" +
-          src.getName() + "'.");
-    auto packed = args.getPacked();
-    void *argData = packed ? packed->data.data() : nullptr;
-    return rawFn->getFn()(argData, /*differentMemorySpace=*/false);
-  }
+cudaq::KernelThunkResultType
+GPUEmulatedQPU::launchKernel(const cudaq::SourceModule &src,
+                             cudaq::KernelArgs args) {
+  CUDAQ_INFO("QPU::launchKernel GPU {}", qpu_id);
+  cudaSetDevice(qpu_id);
+  auto rawFn = src.getFunctionPtr();
+  if (!rawFn)
+    throw std::runtime_error(
+        "GPUEmulatedQPU::launchKernel requires a raw kernel function "
+        "pointer for kernel '" +
+        src.getName() + "'.");
+  auto packed = args.getPacked();
+  void *argData = packed ? packed->data.data() : nullptr;
+  return rawFn->getFn()(argData, /*differentMemorySpace=*/false);
+}
 
-  void
-  configureExecutionContext(cudaq::ExecutionContext &context) const override {
-    CUDAQ_INFO("MultiQPUPlatform::configureExecutionContext QPU {}", qpu_id);
-    if (noiseModel)
-      context.noiseModel = noiseModel;
+void GPUEmulatedQPU::configureExecutionContext(
+    ExecutionContext &context) const {
+  CUDAQ_INFO("MultiQPUPlatform::configureExecutionContext QPU {}", qpu_id);
+  if (noiseModel)
+    context.noiseModel = noiseModel;
 
-    context.executionManager = cudaq::getDefaultExecutionManager();
-    context.executionManager->configureExecutionContext(context);
-  }
+  context.executionManager = getDefaultExecutionManager();
+  context.executionManager->configureExecutionContext(context);
+}
 
-  void beginExecution() override {
-    cudaSetDevice(qpu_id);
-    cudaq::getExecutionContext()->executionManager->beginExecution();
-  }
+void GPUEmulatedQPU::beginExecution() {
+  cudaSetDevice(qpu_id);
+  getExecutionContext()->executionManager->beginExecution();
+}
 
-  void endExecution() override {
-    cudaq::getExecutionContext()->executionManager->endExecution();
-  }
+void GPUEmulatedQPU::endExecution() {
+  getExecutionContext()->executionManager->endExecution();
+}
 
-  void
-  finalizeExecutionContext(cudaq::ExecutionContext &context) const override {
-    CUDAQ_INFO("MultiQPUPlatform::finalizeExecutionContext QPU {}", qpu_id);
+void GPUEmulatedQPU::finalizeExecutionContext(ExecutionContext &context) const {
+  CUDAQ_INFO("MultiQPUPlatform::finalizeExecutionContext QPU {}", qpu_id);
+  handleObservation(context);
+  getExecutionContext()->executionManager->finalizeExecutionContext(context);
+}
 
-    handleObservation(context);
-
-    cudaq::getExecutionContext()->executionManager->finalizeExecutionContext(
-        context);
-  }
-};
-} // namespace
-
-CUDAQ_REGISTER_TYPE(cudaq::QPU, GPUEmulatedQPU, GPUEmulatedQPU)
+CUDAQ_REGISTER_TYPE(cudaq::QPU, cudaq::GPUEmulatedQPU, GPUEmulatedQPU)
