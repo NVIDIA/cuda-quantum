@@ -20,6 +20,7 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Optimizer/Transforms/ResourceCount.h"
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
+#include "cudaq/analysis/resource_counter.h"
 #include "cudaq/platform.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
@@ -34,12 +35,6 @@
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Transforms/Passes.h"
 #include <cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h>
-
-// Declared in runtime/cudaq/algorithms/resource_estimation.h (not included
-// here to avoid pulling in cudaq/platform.h which creates circular deps).
-namespace nvqir {
-void setResourceCounts(cudaq::Resources &&);
-}
 
 using namespace mlir;
 
@@ -304,7 +299,7 @@ static void precountResources(mlir::ModuleOp module) {
   auto counts = cudaq::opt::countResourcesFromIR(module);
   if (mlir::failed(counts))
     return;
-  nvqir::setResourceCounts(std::move(*counts));
+  cudaq::analysis::resource_counter::prepopulate(std::move(*counts));
 }
 
 namespace {

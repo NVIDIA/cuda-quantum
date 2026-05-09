@@ -15,6 +15,8 @@
 #include "common/ExtraPayloadProvider.h"
 #include "common/Resources.h"
 #include "cudaq.h"
+#include "cudaq/analysis/resource_counter.h"
+#include "cudaq/analysis/scope.h"
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/qpu_utils.h"
@@ -29,8 +31,6 @@
 namespace nvqir {
 // QIR helper to retrieve the output log.
 std::string_view getQirOutputLog();
-void setResourceCounts(cudaq::Resources &&);
-bool isUsingResourceCounterSimulator();
 } // namespace nvqir
 
 // When compiled into the Python extension, the LLVM Registry<T> Head/Tail
@@ -134,8 +134,7 @@ public:
     // be expanded more broadly to ensure that the execution context is
     // always fully reset, implying the end of the invocation, being being
     // set again, signaling a new invocation.
-    if (nvqir::isUsingResourceCounterSimulator() &&
-        context.name != "resource-count")
+    if (cudaq::analysis::scope::is_active() && context.name != "resource-count")
       throw std::runtime_error(
           "Illegal use of resource counter simulator! (Did you attempt to run "
           "a kernel inside of a choice function?)");
@@ -337,7 +336,8 @@ public:
       cudaq::ExecutionContext context("resource-count");
       context.executionManager = cudaq::getDefaultExecutionManager();
       assert(codes.size() == 1 && codes[0].jit && codes[0].resourceCounts);
-      nvqir::setResourceCounts(std::move(codes[0].resourceCounts.value()));
+      cudaq::analysis::resource_counter::prepopulate(
+          std::move(codes[0].resourceCounts.value()));
       cudaq::get_platform().with_execution_context(
           context, [&]() { codes[0].jit->run(kernelName); });
       return;

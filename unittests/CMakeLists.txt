@@ -71,6 +71,7 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   ptsbe/PTSBEMultiBackendTester.cpp
   integration/tracer_tester.cpp
   integration/gate_library_tester.cpp
+  integration/analysis_scope_tester.cpp
 )
 
 # Make it so we can get function symbols

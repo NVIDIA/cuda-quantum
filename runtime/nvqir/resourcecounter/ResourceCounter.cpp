@@ -7,9 +7,12 @@
  ******************************************************************************/
 
 #include "ResourceCounter.h"
+#include "cudaq/analysis/resource_counter.h"
+#include <stdexcept>
+#include <utility>
 
 namespace nvqir {
-// Should be alive for the whole runtime, so won't leak memory
+// Per-thread singleton; lives for the duration of the thread.
 thread_local ResourceCounter *resource_counter_simulator = nullptr;
 
 ResourceCounter *getResourceCounterSimulator() {
@@ -19,18 +22,34 @@ ResourceCounter *getResourceCounterSimulator() {
   return resource_counter_simulator;
 }
 
-void setChoiceFunction(std::function<bool()> choice) {
-  getResourceCounterSimulator()->setChoiceFunction(choice);
-}
-
-cudaq::Resources *getResourceCounts() {
-  getResourceCounterSimulator()->flushGateQueue();
-  return getResourceCounterSimulator()->getResourceCounts();
-}
-
-void setResourceCounts(cudaq::Resources &&rc) {
-  getResourceCounterSimulator()->flushGateQueue();
-  getResourceCounterSimulator()->setResourceCounts(std::move(rc));
-}
-
 } // namespace nvqir
+
+namespace cudaq::analysis::resource_counter {
+
+scope make_scope(std::function<bool()> choice) {
+  auto *rc = nvqir::getResourceCounterSimulator();
+  rc->setChoiceFunction(std::move(choice));
+  return scope{
+      "resource_counter",
+      *rc,
+      {.on_enter = nullptr, .on_exit = [](nvqir::CircuitSimulator &sim) {
+         static_cast<nvqir::ResourceCounter &>(sim).setToZeroState();
+       }}};
+}
+
+cudaq::Resources get_counts(scope &s) {
+  auto &rc = static_cast<nvqir::ResourceCounter &>(s.simulator());
+  rc.flushGateQueue();
+  return cudaq::Resources(*rc.getResourceCounts());
+}
+
+void prepopulate(cudaq::Resources counts) {
+  if (!scope::is_active())
+    throw std::runtime_error("`cudaq::analysis::resource_counter::prepopulate`:"
+                             " no analysis scope is active on this thread.");
+  auto *rc = nvqir::getResourceCounterSimulator();
+  rc->flushGateQueue();
+  rc->setResourceCounts(std::move(counts));
+}
+
+} // namespace cudaq::analysis::resource_counter
