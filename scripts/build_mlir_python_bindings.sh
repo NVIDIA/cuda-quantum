@@ -18,10 +18,10 @@
 # ABI) and a small amount of tablegen output get produced.
 #
 # Required environment:
-#   LLVM_SOURCE              path to the llvm-project source (default: /llvm-project)
-#   LLVM_INSTALL_PREFIX      install destination (default: /usr/local/llvm)
-#   Python3_EXECUTABLE       interpreter to bind against
-#   NANOBIND_INSTALL_PREFIX  nanobind install dir (default: /usr/local/nanobind)
+#   LLVM_SOURCE          path to the llvm-project source (default: /llvm-project)
+#   LLVM_INSTALL_PREFIX  install destination (default: /usr/local/llvm)
+#   Python3_EXECUTABLE   interpreter to bind against; must have nanobind and
+#                        numpy already installed (e.g. via pip).
 #
 # Usage:
 #   Python3_EXECUTABLE=$(which python3.11) bash scripts/build_mlir_python_bindings.sh
@@ -30,7 +30,6 @@ set -e
 
 LLVM_SOURCE=${LLVM_SOURCE:-/llvm-project}
 LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-/usr/local/llvm}
-NANOBIND_INSTALL_PREFIX=${NANOBIND_INSTALL_PREFIX:-/usr/local/nanobind}
 LLVM_BUILD_FOLDER=${LLVM_BUILD_FOLDER:-build}
 
 if [ -z "$Python3_EXECUTABLE" ]; then
@@ -45,19 +44,13 @@ if [ ! -f "$llvm_build_dir/CMakeCache.txt" ]; then
   exit 1
 fi
 
-this_file_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# nanobind links against the active interpreter ABI; build it if missing.
-if [ ! -d "$NANOBIND_INSTALL_PREFIX" ] || [ -z "$(ls -A "$NANOBIND_INSTALL_PREFIX"/* 2>/dev/null)" ]; then
-  echo "Building nanobind..."
-  cd "$this_file_dir/.." && repo_root=$(git rev-parse --show-toplevel) && cd "$repo_root"
-  git submodule update --init --recursive --recommend-shallow --single-branch tpls/nanobind
-  mkdir -p tpls/nanobind/build && cd tpls/nanobind/build
-  cmake -G Ninja ../ \
-    -DCMAKE_INSTALL_PREFIX="$NANOBIND_INSTALL_PREFIX" \
-    -DPython3_EXECUTABLE="$Python3_EXECUTABLE" \
-    -DNB_TEST=False
-  cmake --build . --target install --config Release
+# Locate the pip-installed nanobind's CMake config. nanobind ships its own
+# cmake module via pip, so we don't need to build it from the submodule.
+nanobind_cmake_dir=$("$Python3_EXECUTABLE" -m nanobind --cmake_dir)
+if [ ! -d "$nanobind_cmake_dir" ]; then
+  echo "Could not locate nanobind cmake dir from $Python3_EXECUTABLE."
+  echo "Install with: $Python3_EXECUTABLE -m pip install 'nanobind>=2.9.0'"
+  exit 1
 fi
 
 cd "$llvm_build_dir"
@@ -69,7 +62,7 @@ echo "Reconfiguring LLVM build for python bindings (Python: $Python3_EXECUTABLE)
 cmake . \
   -DMLIR_ENABLE_BINDINGS_PYTHON=ON \
   -DPython3_EXECUTABLE="$Python3_EXECUTABLE" \
-  -Dnanobind_DIR="$NANOBIND_INSTALL_PREFIX/nanobind/cmake"
+  -Dnanobind_DIR="$nanobind_cmake_dir"
 
 # Build and install only the python-binding components. Other targets in
 # the existing tree are left untouched and remain installed at
