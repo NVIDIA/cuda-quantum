@@ -1131,7 +1131,10 @@ jobs:
         if: startsWith(matrix.os_image, 'redhat')
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
-          retry dnf install -y --nobest --setopt=install_weak_deps=False \
+          # dnf-specific retry: clears cached metadata between attempts so that
+          # a stale 404 from a CDN mirror doesn't poison the cache for retry #2.
+          retry_dnf() { local pre=""; [ "$(id -u)" -ne 0 ] && pre=sudo; for n in 1 2 3; do $pre dnf "$@" && return 0; [ $n -lt 3 ] && { $pre dnf clean metadata >/dev/null 2>&1 || true; sleep $((15*n*n)); }; done; return 1; }
+          retry_dnf install -y --nobest --setopt=install_weak_deps=False \
             'dnf-command(config-manager)' glibc-devel openssh-clients
           CUDA_VERSION=${{ matrix.cuda_version }}
           DISTRIBUTION=rhel8
@@ -1140,7 +1143,7 @@ jobs:
           # We need to install an MPI implementation, otherwise nothing
           # will be able to run on the nvidia-mgpu backend.
           # Install conda to a shared path so the non-root test user can access MPI.
-          retry dnf install -y --nobest --setopt=install_weak_deps=False wget
+          retry_dnf install -y --nobest --setopt=install_weak_deps=False wget
           conda_prefix=/opt/miniconda3
           retry wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-$(uname -m).sh -O /tmp/miniconda.sh
           bash /tmp/miniconda.sh -b -u -p "$conda_prefix"

@@ -137,6 +137,7 @@ jobs:
       - name: Test installation
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry_dnf() { local pre=""; [ "$(id -u)" -ne 0 ] && pre=sudo; for n in 1 2 3; do $pre dnf "$@" && return 0; [ $n -lt 3 ] && { $pre dnf clean metadata >/dev/null 2>&1 || true; sleep $((15*n*n)); }; done; return 1; }
           mkdir -p /tmp/packages
           mv /tmp/wheels/* /tmp/packages && mv /tmp/metapackages/* /tmp/packages
           rmdir /tmp/wheels /tmp/metapackages
@@ -149,7 +150,7 @@ jobs:
               "${CUDA_DOWNLOAD_URL}/${CUDA_DISTRIBUTION}/${CUDA_ARCH_FOLDER}/cuda-${CUDA_DISTRIBUTION}.repo"
 
             cuda_version_suffix=`echo ${{ matrix.cuda_version }} | tr . -`
-            retry dnf install -y --nobest --setopt=install_weak_deps=False \
+            retry_dnf install -y --nobest --setopt=install_weak_deps=False \
               cuda-cudart-${cuda_version_suffix}
           fi
 
