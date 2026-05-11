@@ -307,7 +307,9 @@ if [ ! -f "${install_dir}/include/cudaq.h" ]; then
 		INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/tpls/fmt/include"
 		if ${LIBRARY_MODE}; then
 			INCLUDES="${INCLUDES} -I @CMAKE_BINARY_DIR@/include"
+			INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/include"
 			INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/runtime/include"
+			INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/tpls/json/single_include_fwd"
 			INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/runtime/internal/compiler/include"
 		fi
 	else

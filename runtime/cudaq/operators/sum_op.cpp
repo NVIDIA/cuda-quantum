@@ -827,7 +827,7 @@ sum_op<HandlerTy>::operator*(const sum_op<HandlerTy> &other) const {
   template <typename HandlerTy>                                                \
   sum_op<HandlerTy> sum_op<HandlerTy>::operator op(                            \
       const sum_op<HandlerTy> &other) const & {                                \
-    sum_op<HandlerTy> sum(*this, this->is_default &&other.is_default,          \
+    sum_op<HandlerTy> sum(*this, this->is_default && other.is_default,         \
                           this->terms.size() + other.terms.size());            \
     for (auto i = 0; i < other.terms.size(); ++i) {                            \
       product_op<HandlerTy> prod(op other.coefficients[i], other.terms[i]);    \
@@ -854,7 +854,7 @@ sum_op<HandlerTy>::operator*(const sum_op<HandlerTy> &other) const {
   template <typename HandlerTy>                                                \
   sum_op<HandlerTy> sum_op<HandlerTy>::operator op(sum_op<HandlerTy> &&other)  \
       const & {                                                                \
-    sum_op<HandlerTy> sum(*this, this->is_default &&other.is_default,          \
+    sum_op<HandlerTy> sum(*this, this->is_default && other.is_default,         \
                           this->terms.size() + other.terms.size());            \
     for (auto i = 0; i < other.terms.size(); ++i) {                            \
       product_op<HandlerTy> prod(op std::move(other.coefficients[i]),          \
@@ -951,16 +951,16 @@ sum_op<HandlerTy> &sum_op<HandlerTy>::operator/=(const scalar_operator &other) {
 #define SUM_ADDITION_SCALAR_ASSIGNMENT(op)                                     \
                                                                                \
   template <typename HandlerTy>                                                \
-  sum_op<HandlerTy> &sum_op<HandlerTy>::operator op##=(                        \
-      const scalar_operator &other) {                                          \
+  sum_op<HandlerTy> &sum_op<HandlerTy>::operator op## =                        \
+      (const scalar_operator &other) {                                         \
     this->is_default = false;                                                  \
     this->insert(product_op<HandlerTy>(op other));                             \
     return *this;                                                              \
   }                                                                            \
                                                                                \
   template <typename HandlerTy>                                                \
-  sum_op<HandlerTy> &sum_op<HandlerTy>::operator op##=(                        \
-      scalar_operator &&other) {                                               \
+  sum_op<HandlerTy> &sum_op<HandlerTy>::operator op## =                        \
+      (scalar_operator && other) {                                             \
     this->is_default = false;                                                  \
     this->insert(product_op<HandlerTy>(op std::move(other)));                  \
     return *this;                                                              \
@@ -995,16 +995,16 @@ sum_op<HandlerTy>::operator*=(const product_op<HandlerTy> &other) {
 #define SUM_ADDITION_PRODUCT_ASSIGNMENT(op)                                    \
                                                                                \
   template <typename HandlerTy>                                                \
-  sum_op<HandlerTy> &sum_op<HandlerTy>::operator op##=(                        \
-      const product_op<HandlerTy> &other) {                                    \
+  sum_op<HandlerTy> &sum_op<HandlerTy>::operator op## =                        \
+      (const product_op<HandlerTy> &other) {                                   \
     this->is_default = false;                                                  \
     this->insert(op other);                                                    \
     return *this;                                                              \
   }                                                                            \
                                                                                \
   template <typename HandlerTy>                                                \
-  sum_op<HandlerTy> &sum_op<HandlerTy>::operator op##=(                        \
-      product_op<HandlerTy> &&other) {                                         \
+  sum_op<HandlerTy> &sum_op<HandlerTy>::operator op## =                        \
+      (product_op<HandlerTy> && other) {                                       \
     this->is_default = false;                                                  \
     this->insert(op std::move(other));                                         \
     return *this;                                                              \
@@ -1045,8 +1045,8 @@ sum_op<HandlerTy>::operator*=(const sum_op<HandlerTy> &other) {
 #define SUM_ADDITION_SUM_ASSIGNMENT(op)                                        \
                                                                                \
   template <typename HandlerTy>                                                \
-  sum_op<HandlerTy> &sum_op<HandlerTy>::operator op##=(                        \
-      const sum_op<HandlerTy> &other) {                                        \
+  sum_op<HandlerTy> &sum_op<HandlerTy>::operator op## =                        \
+      (const sum_op<HandlerTy> &other) {                                       \
     /* in case other is not default but does not have terms: */                \
     this->is_default = this->is_default && other.is_default;                   \
     auto max_size = this->terms.size() + other.terms.size();                   \
@@ -1060,8 +1060,8 @@ sum_op<HandlerTy>::operator*=(const sum_op<HandlerTy> &other) {
   }                                                                            \
                                                                                \
   template <typename HandlerTy>                                                \
-  sum_op<HandlerTy> &sum_op<HandlerTy>::operator op##=(                        \
-      sum_op<HandlerTy> &&other) {                                             \
+  sum_op<HandlerTy> &sum_op<HandlerTy>::operator op## =                        \
+      (sum_op<HandlerTy> && other) {                                           \
     /* in case other is not default but does not have terms: */                \
     this->is_default = this->is_default && other.is_default;                   \
     auto max_size = this->terms.size() + other.terms.size();                   \

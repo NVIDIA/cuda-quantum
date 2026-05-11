@@ -9,14 +9,13 @@
 #pragma once
 
 #include "OrcaExecutor.h"
-#include "common/ExecutionContext.h"
-#include "common/Future.h"
-#include "common/RestClient.h"
-#include "common/ServerHelper.h"
 #include "cudaq/platform/qpu.h"
-#include "orca_qpu.h"
+#include "cudaq/utils/cudaq_utils.h"
+#include "cudaq/utils/owning_ptr.h"
+#include <filesystem>
 
 namespace cudaq {
+class ServerHelper;
 
 /// @brief The OrcaRemoteRESTQPU is a subtype of QPU that enables the
 /// execution of CUDA-Q kernels on remotely hosted quantum computing
@@ -42,17 +41,13 @@ protected:
   /// @brief Pointer to the concrete Executor for this QPU
   std::unique_ptr<OrcaExecutor> executor;
 
-  /// @brief Pointer to the concrete ServerHelper, provides
+  /// @brief Pointer to the forward declared ServerHelper, provides
   /// specific JSON payloads and POST/GET URL paths.
-  std::unique_ptr<ServerHelper> serverHelper;
+  cudaq::owning_ptr<ServerHelper> serverHelper;
 
   /// @brief Mapping of general key-values for backend
   /// configuration.
   std::map<std::string, std::string> backendConfig;
-
-private:
-  /// @brief RestClient used for HTTP requests.
-  RestClient client;
 
 public:
   /// @brief The constructor
@@ -74,10 +69,7 @@ public:
   }
 
   /// @brief Enqueue a quantum task on the asynchronous execution queue.
-  void enqueue(cudaq::QuantumTask &task) override {
-    CUDAQ_INFO("OrcaRemoteRESTQPU: Enqueue Task on QPU {}", qpu_id);
-    execution_queue->enqueue(task);
-  }
+  void enqueue(cudaq::QuantumTask &task) override;
 
   /// @brief Return true if the current backend is a simulator
   bool isSimulator() override { return emulate; }

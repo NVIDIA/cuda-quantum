@@ -176,8 +176,6 @@ inline std::string get_quake(std::string &&functionName) {
   return get_quake_by_name(get_kernel_function_name(std::move(functionName)));
 }
 
-bool kernelHasConditionalFeedback(const std::string &kernelName);
-
 /// @brief Set a custom noise model for simulation. The caller must also call
 /// `cudaq::unset_noise` before `model` gets deallocated or goes out of scope.
 void set_noise(const cudaq::noise_model &model);
@@ -209,3 +207,5 @@ int num_available_gpus();
 #include "cudaq/algorithms/get_state.h"
 // Users should get device.h by default
 #include "cudaq/driver/device.h"
+// Users should get apply_noise by default
+#include "cudaq/apply_noise.h"

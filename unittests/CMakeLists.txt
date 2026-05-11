@@ -388,6 +388,7 @@ if (CUDA_FOUND AND TARGET nvqir-dynamics)
    PRIVATE
    cudaq-operator
    cudaq
+   cudaq-em-default
    cudaq-logger
    nvqir-dynamics
    cuDensityMat::cuDensityMat
@@ -552,6 +553,7 @@ target_link_libraries(test_nvqir_verify
     MLIRSupport
     MLIROptLib
     cudaq-qir-verifier
+    cudaq-platform-default
     gtest_main)
 gtest_discover_tests(test_nvqir_verify DISCOVERY_TIMEOUT 120)
 

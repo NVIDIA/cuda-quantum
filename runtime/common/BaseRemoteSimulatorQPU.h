@@ -9,18 +9,17 @@
 #pragma once
 
 #include "CompiledModule.h"
+#include "common/DeviceCodeRegistry.h"
 #include "common/ExecutionContext.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/Resources.h"
-#include "cudaq.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/algorithms/gradient.h"
 #include "cudaq/algorithms/optimizer.h"
-#include "cudaq/platform.h"
+#include "cudaq/platform/platform_iface.h"
 #include "cudaq/platform/qpu.h"
-#include "cudaq/platform/quantum_platform.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "cudaq/utils/cudaq_utils.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq_internal/compiler/JIT.h"
@@ -31,6 +30,7 @@
 #include <fstream>
 
 namespace cudaq {
+class gradient;
 
 // Remote QPU: delegating the execution to a remotely-hosted server, which can
 // reinstate the execution context and JIT-invoke the kernel.
@@ -266,8 +266,8 @@ public:
                            executionContextPtr->qpuId);
       ctx.kernelName = executionContextPtr->kernelName;
       ctx.executionManager = cudaq::getDefaultExecutionManager();
-      cudaq::get_platform().with_execution_context(ctx,
-                                                   [jit]() { jit->getFn()(); });
+      cudaq::platform::with_execution_context(
+          ctx, [jit, name]() { jit->getFn()(); });
       in_resource_estimation = false;
       return {};
     }
