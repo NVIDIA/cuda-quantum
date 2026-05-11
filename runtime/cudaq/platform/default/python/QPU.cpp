@@ -12,6 +12,7 @@
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "common/RuntimeTarget.h"
+#include "common/Timing.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -22,6 +23,7 @@
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
 #include "cudaq/analysis/resource_counter.h"
 #include "cudaq/platform.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq_internal/compiler/JIT.h"
@@ -83,6 +85,7 @@ static void specializeKernel(const std::string &name, ModuleOp module,
   if (isEntryPoint && (resultTy || !isFullySpecialized)) {
     pm.addPass(cudaq::opt::createGenerateKernelExecution(
         {.positNullary = isFullySpecialized, .ignoreHostFunction = true}));
+    pm.addPass(cudaq::opt::createRunSemanticsHackery());
   }
   pm.addPass(mlir::createSymbolDCEPass());
   if (enablePythonCodegenDump) {
@@ -149,17 +152,9 @@ static void runTargetPassPipeline(mlir::ModuleOp module) {
   auto pipeline = cfg.BackendConfig->getPassPipeline("jit-deploy-pipeline", "");
   substitutePipelinePlaceholders(pipeline, rt->runtimeConfig);
   auto *ctx = module.getContext();
-  auto enablePrintEachPass =
-      cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
-  auto disableThreading =
-      cudaq::getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", false);
-  if (enablePrintEachPass || disableThreading)
-    ctx->disableMultithreading();
   PassManager pm(ctx);
   cudaq::addPythonSignalInstrumentation(pm);
   pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
-  if (enablePrintEachPass)
-    pm.enableIRPrinting();
   std::string errMsg;
   llvm::raw_string_ostream errOS(errMsg);
   if (mlir::failed(mlir::parsePassPipeline(pipeline, pm, errOS)))
@@ -304,13 +299,22 @@ static void precountResources(mlir::ModuleOp module) {
 
 namespace {
 struct PythonLauncher : public cudaq::ModuleLauncher {
-  cudaq::CompiledModule compileModule(const std::string &name,
-                                      mlir::ModuleOp module,
+  cudaq::CompiledModule compileModule(const cudaq::SourceModule &src,
                                       cudaq::KernelArgs args,
                                       bool isEntryPoint) override {
 
     ScopedTraceWithContext(cudaq::TIMING_LAUNCH,
                            "PythonLauncher::compileModule");
+    const auto &name = src.getName();
+    auto mlirArt = src.getMlir();
+    if (!mlirArt)
+      throw std::runtime_error(
+          "PythonLauncher::compileModule requires an MLIR artifact on the "
+          "SourceModule for kernel '" +
+          name + "'.");
+    ModuleOp module =
+        cudaq_internal::compiler::CompiledModuleHelper::getMlirModuleOp(
+            *mlirArt);
     const bool enablePythonCodegenDump =
         cudaq::getEnvBool("CUDAQ_PYTHON_CODEGEN_DUMP", false);
 

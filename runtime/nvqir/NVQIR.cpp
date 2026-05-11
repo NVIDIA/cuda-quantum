@@ -12,7 +12,6 @@
 #include "common/ExecutionContext.h"
 #include "common/PluginUtils.h"
 #include "common/Trace.h"
-#include "cudaq/platform.h"
 #include "cudaq/qis/qudit.h"
 #include "cudaq/qis/state.h"
 #include "cudaq/runtime/logger/logger.h"

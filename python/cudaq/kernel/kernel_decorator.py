@@ -23,7 +23,8 @@ from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, FunctionType,
                            IntegerType, NoneType, TypeAttr, UnitAttr, Module,
                            Type)
 from .analysis import FunctionDefVisitor
-from .kernel_signature import CapturedLinkedKernel, CapturedVariable, KernelSignature
+from .kernel_signature import (CapturedLinkedKernel, CapturedVariable,
+                               KernelSignature)
 from .ast_bridge import compile_to_mlir
 from .utils import (emitFatalError, emitErrorIfInvalidPauli,
                     get_function_source_or_raise, get_module_name,
@@ -268,8 +269,8 @@ class PyKernelDecorator(object):
         if not self.supports_compilation():
             emitFatalError(
                 f"Cannot compile kernel '{self.name}': target handler "
-                f"'{cudaq_runtime.get_target().name}' does not support compilation"
-            )
+                f"'{cudaq_runtime.get_target().name}' does not support "
+                f"compilation")
 
         self._cached_qkeModule = compile_to_mlir(
             id(self),
@@ -547,15 +548,15 @@ class PyKernelDecorator(object):
             for arg, arg_type in zip(args, self.arg_types())
         ]
 
-        # If we're compiling a kernel that's not an entry point, allowing compiling
-        # without providing all arguments
+        # If we're compiling a kernel that's not an entry point, allowing
+        # compiling without providing all arguments
         if allow_no_args:
             expected = len(self.arg_types(include_captured=False))
             actual = len(args)
             if actual != 0 and actual != expected:
                 raise RuntimeError(
-                    "Cannot partially reduce a python kernel! Must either provide all arguments or no arguments."
-                )
+                    "Cannot partially reduce a python kernel! Must either "
+                    "provide all arguments or no arguments.")
             [args.append(None) for k in range(actual, expected)]
 
         return args
@@ -569,7 +570,8 @@ class PyKernelDecorator(object):
         # Returns:
 
         `processed_args` : list
-            The list of processed runtime arguments, including captured arguments,
+            The list of processed runtime arguments, including captured
+            arguments.
         `module` : Module
             A clone of the MLIR module to be used for kernel execution.
         """

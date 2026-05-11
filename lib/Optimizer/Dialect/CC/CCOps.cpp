@@ -1327,13 +1327,25 @@ struct CollapseCastToStdvecInit
       auto toTy = cast<cudaq::cc::PointerType>(buff.getType()).getElementType();
       if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(fromTy))
         if (!isa<cudaq::cc::ArrayType>(toTy)) {
-          if (arrTy.isUnknownSize())
+          if (arrTy.isUnknownSize()) {
             rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
                 init, init.getType(), castVal, init.getLength());
-          else
+            return success();
+          }
+          const std::uint64_t arrSize = arrTy.getSize();
+          Value initLen = init.getLength();
+          auto initSize = [&]() -> std::uint64_t {
+            if (!initLen)
+              return arrSize;
+            if (auto optInt = cudaq::opt::factory::getIntIfConstant(initLen))
+              return *optInt;
+            return arrSize + 1; // do not replace this one
+          }();
+          if (!initLen || arrSize == initSize) {
             rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
                 init, init.getType(), castVal);
-          return success();
+            return success();
+          }
         }
     }
     return failure();
@@ -1907,6 +1919,12 @@ void cudaq::cc::ScopeOp::build(OpBuilder &builder, OperationState &result,
   builder.setInsertionPointToStart(&bodyBlock);
   if (bodyBuilder)
     bodyBuilder(builder, result.location);
+}
+
+void cudaq::cc::ScopeOp::build(OpBuilder &builder, OperationState &result,
+                               TypeRange resultTys, BodyBuilderFn bodyBuilder) {
+  build(builder, result, bodyBuilder);
+  result.addTypes(resultTys);
 }
 
 void cudaq::cc::ScopeOp::print(OpAsmPrinter &p) {
