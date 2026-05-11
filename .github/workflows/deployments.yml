@@ -330,7 +330,10 @@ jobs:
           # We want this dispatch to trigger additional workflows.
           github-token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
           script: |
-            github.rest.actions.createWorkflowDispatch({
+            // The createWorkflowDispatch call has been observed to hit transient
+            // GitHub API 5xx errors; retry up to 3 times with exponential backoff.
+            const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+            const params = {
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: 'deployments.yml',
@@ -340,7 +343,18 @@ jobs:
                 cache_base: '${{ needs.metadata.outputs.cache_base }}',
                 devcontainer_only: ${{ github.event_name == 'schedule' }}
               },
-            })
+            };
+            for (let n = 1; n <= 3; n++) {
+              try {
+                await github.rest.actions.createWorkflowDispatch(params);
+                if (n > 1) core.notice(`createWorkflowDispatch succeeded on attempt ${n}`);
+                return;
+              } catch (err) {
+                if (n === 3) throw err;
+                core.warning(`createWorkflowDispatch attempt ${n}/3 failed: ${err.message}; retrying...`);
+                await sleep(15000 * n * n);
+              }
+            }
 
   # This job is needed only when using the cloudposse GitHub action to read
   # the output of a matrix job. This is a workaround due to current GitHub
@@ -863,7 +877,8 @@ jobs:
         with:
           github-token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
           script: |
-            await github.rest.actions.createWorkflowDispatch({
+            const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+            const params = {
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: 'publishing.yml',
@@ -871,4 +886,15 @@ jobs:
               inputs: {
                 deployment_id: context.runId.toString(),
               },
-            });
+            };
+            for (let n = 1; n <= 3; n++) {
+              try {
+                await github.rest.actions.createWorkflowDispatch(params);
+                if (n > 1) core.notice(`createWorkflowDispatch succeeded on attempt ${n}`);
+                return;
+              } catch (err) {
+                if (n === 3) throw err;
+                core.warning(`createWorkflowDispatch attempt ${n}/3 failed: ${err.message}; retrying...`);
+                await sleep(15000 * n * n);
+              }
+            }
