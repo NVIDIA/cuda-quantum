@@ -47,6 +47,27 @@ merge_group: &full_matrix
 - Create Python wheels (arm64, 3.11, 12.6) / Validate wheel (fedora:42)
 - Create Python wheels (arm64, 3.11, 12.6) / Validate wheel (redhat/ubi8:8.10, --user)
 - Create Python wheels (arm64, 3.11, 12.6) / Validate wheel (redhat/ubi8:8.10)
+# Wrapped sub-workflows folded under the CI orchestrator. Each top-level
+# wrapper job name (left side of the slash) is set in ci.yml; the right side
+# is the inner reusable workflow's job name (or matrix-expanded job name).
+# CodeQL is intentionally absent from this list — the `codeql` wrapper has
+# `if: github.event_name != 'merge_group'` and so reports `skipped` here.
+# Realtime is intentionally absent until names confirmed in a real run.
+- Basic checks / Check code formatting
+- Basic checks / Check license headers
+- Basic checks / Check spelling
+- Basic checks / Check links
+- macOS / Retrieve PR info
+- macOS / Load macOS dependencies
+- macOS / Build & Test (arm64)
+- macOS / Wheel (arm64, py3.11)
+- macOS / Wheel (arm64, py3.12)
+- macOS / Wheel (arm64, py3.13)
+- macOS / Validate (arm64, py3.11)
+- macOS / Validate (arm64, py3.12)
+- macOS / Validate (arm64, py3.13)
+- macOS / Installer (arm64)
+- macOS / Validate Installation (arm64)
 push:
 - Build and test (amd64, llvm, openmpi) / Dev environment (Debug)
 - Build and test (amd64, llvm, openmpi) / Dev environment (Python)
@@ -54,5 +75,21 @@ push:
 - Build and test (arm64, llvm, openmpi) / Dev environment (Python)
 - Build and test (amd64, gcc12, openmpi) / Dev environment (Debug)
 - Build and test (amd64, gcc12, openmpi) / Dev environment (Python)
+- Basic checks / Check code formatting
+- Basic checks / Check license headers
+- Basic checks / Check spelling
+- Basic checks / Check links
+- macOS / Retrieve PR info
+- macOS / Load macOS dependencies
+- macOS / Build & Test (arm64)
+- macOS / Wheel (arm64, py3.11)
+- macOS / Wheel (arm64, py3.12)
+- macOS / Wheel (arm64, py3.13)
+- macOS / Validate (arm64, py3.11)
+- macOS / Validate (arm64, py3.12)
+- macOS / Validate (arm64, py3.13)
+- macOS / Installer (arm64)
+- macOS / Validate Installation (arm64)
+- CodeQL / Analyze (python)
 workflow_dispatch: *full_matrix
 schedule: *full_matrix

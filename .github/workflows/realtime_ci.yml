@@ -1,4 +1,9 @@
 on:
+  # Invoked from ci.yml as a reusable workflow. The path-filtering that used
+  # to live in the `push:` trigger (only realtime/** and .github/** changes
+  # cause this to run on PRs) now lives in ci.yml's metadata job, which
+  # computes a `realtime_changed` output that gates the wrapper.
+  workflow_call:
   workflow_dispatch:
     inputs:
       cache_base:
@@ -6,17 +11,8 @@ on:
         type: string
         description: 'The name of the branch to use as cache base.'
         default: main
-  push:
-    branches:
-      - "pull-request/[0-9]+"
-    paths:
-      - realtime/** # Only trigger on changes to the realtime directory
-      - .github/** # Also trigger on changes to GitHub workflows
-  merge_group:
-    types: 
-      - checks_requested
-    
-name: Realtime CI 
+
+name: Realtime CI
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}

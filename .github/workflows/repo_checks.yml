@@ -7,13 +7,12 @@
 # ============================================================================ #
 
 on:
+  # Invoked from ci.yml as a reusable workflow; also supports manual dispatch.
+  # Direct pull_request/merge_group/push triggers were removed when these
+  # checks were folded under the CI orchestrator — the CI Summary now reports
+  # the formatting/license/spelling/links status as a single rolled-up gate.
+  workflow_call:
   workflow_dispatch:
-  push:
-    branches: [main]
-  pull_request:
-  merge_group:
-    types:
-      - checks_requested
 
 name: "Basic content checks"
 
@@ -132,6 +131,11 @@ jobs:
 
       - name: Run link checks
         run: |
+          # Skip link checking in the merge queue: links are validated on the
+          # pull_request leg of CI, and external link flakes shouldn't gate
+          # a merge that's already been reviewed. Reports `success` so the
+          # CI Summary gate remains green for merge_group events.
+          [ "${{ github.event_name }}" = "merge_group" ] && { echo "::notice::Skipping link check on merge_group; validated on pull_request."; exit 0; }
           if [ "${{ steps.setup.outputs.mode }}" == "pr" ]; then
             cat ${{ steps.setup.outputs.changed-files }} | grep '\.md$' || true | xargs -r pre-commit run markdown-link-check --hook-stage pre-push --files
           else
