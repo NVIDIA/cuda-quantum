@@ -39,9 +39,10 @@ public:
   ///
   /// `on_enter` runs after the slot has been claimed; useful for engines that
   /// need a known starting state. `on_exit` runs while the slot is still
-  /// claimed, before the destructor releases it; the default resets the
-  /// simulator to the |0...0> state to avoid leaking analysis residue into a
-  /// subsequent run on the same thread.
+  /// claimed, before the destructor releases it; engines that need to clear
+  /// per-singleton residue (resource counts, DEM tableau state, ...) must
+  /// supply an `on_exit` that does so — the scope itself never resets the
+  /// simulator, since "reset" is engine-specific.
   ///
   /// Both callbacks must not throw. Exceptions from `on_exit` are caught and
   /// logged; `on_enter` exceptions propagate out of the constructor and the
@@ -79,6 +80,12 @@ public:
 
   /// @brief True iff a `scope` is currently active on the calling thread.
   static bool is_active() noexcept;
+
+  /// @brief Pointer to the simulator owned by the currently active scope on
+  /// this thread, or `nullptr` if no scope is active. Provided so analysis
+  /// engines can verify the active scope is theirs before mutating shared
+  /// per-engine singletons.
+  static nvqir::CircuitSimulator *active_simulator() noexcept;
 
 private:
   std::string name_;

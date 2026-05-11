@@ -41,8 +41,8 @@ scope::scope(std::string name, nvqir::CircuitSimulator &sim, hooks h)
     try {
       h.on_enter(*sim_);
     } catch (...) {
-      // Release the slot before propagating so the thread is not left in an
-      // active-scope state if on_enter throws.
+      // Release the slot before propagating so the thread is not left in
+      // an active-scope state if on_enter throws.
       nvqir::activeAnalysisSimulator = nullptr;
       throw;
     }
@@ -80,6 +80,10 @@ scope::~scope() noexcept {
 
 bool scope::is_active() noexcept {
   return nvqir::activeAnalysisSimulator != nullptr;
+}
+
+nvqir::CircuitSimulator *scope::active_simulator() noexcept {
+  return nvqir::activeAnalysisSimulator;
 }
 
 } // namespace cudaq::analysis

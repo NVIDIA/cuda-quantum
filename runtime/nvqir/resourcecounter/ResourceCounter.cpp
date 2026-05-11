@@ -28,26 +28,37 @@ namespace cudaq::analysis::resource_counter {
 
 scope make_scope(std::function<bool()> choice) {
   auto *rc = nvqir::getResourceCounterSimulator();
-  rc->setChoiceFunction(std::move(choice));
+  // Install the choice function only after the scope has successfully claimed
+  // the thread-local slot.
   return scope{
       "resource_counter",
       *rc,
-      {.on_enter = nullptr, .on_exit = [](nvqir::CircuitSimulator &sim) {
-         static_cast<nvqir::ResourceCounter &>(sim).setToZeroState();
-       }}};
+      {.on_enter =
+           [rc, choice = std::move(choice)](nvqir::CircuitSimulator &) mutable {
+             rc->setChoiceFunction(std::move(choice));
+           },
+       .on_exit = [rc](nvqir::CircuitSimulator &) { rc->setToZeroState(); }}};
 }
 
 cudaq::Resources get_counts(scope &s) {
-  auto &rc = static_cast<nvqir::ResourceCounter &>(s.simulator());
-  rc.flushGateQueue();
-  return cudaq::Resources(*rc.getResourceCounts());
+  auto *rc = nvqir::getResourceCounterSimulator();
+  // Reject scopes that are not backed by the resource-counter singleton so
+  // callers can't accidentally reinterpret other plugin simulator
+  // as a "ResourceCounter".
+  if (&s.simulator() != rc)
+    throw std::runtime_error(
+        "`cudaq::analysis::resource_counter::get_counts`: scope is not a "
+        "resource-counter scope.");
+  rc->flushGateQueue();
+  return cudaq::Resources(*rc->getResourceCounts());
 }
 
 void prepopulate(cudaq::Resources counts) {
-  if (!scope::is_active())
-    throw std::runtime_error("`cudaq::analysis::resource_counter::prepopulate`:"
-                             " no analysis scope is active on this thread.");
   auto *rc = nvqir::getResourceCounterSimulator();
+  if (scope::active_simulator() != rc)
+    throw std::runtime_error(
+        "`cudaq::analysis::resource_counter::prepopulate`: no resource-counter"
+        " scope is active on this thread.");
   rc->flushGateQueue();
   rc->setResourceCounts(std::move(counts));
 }

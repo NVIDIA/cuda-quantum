@@ -120,12 +120,10 @@ public:
   /// Store the execution context for launchKernel
   void
   configureExecutionContext(cudaq::ExecutionContext &context) const override {
-    // This check ensures that a kernel is not called whilst actively being
-    // used for resource counting (implying that the kernel was somehow
-    // invoked from inside the choice function). This check may want to
-    // be expanded more broadly to ensure that the execution context is
-    // always fully reset, implying the end of the invocation, being being
-    // set again, signaling a new invocation.
+    // Re-entry guard for analysis scopes. Without this, a host callback issued
+    // by the analysis simulator (e.g. a `choice` function that calls
+    // `cudaq::sample`) could launch a second kernel through this transport
+    // while the outer scope is still active.
     if (cudaq::analysis::scope::is_active() && context.name != "resource-count")
       throw std::runtime_error(
           "Illegal use of resource counter simulator! (Did you attempt to run "
