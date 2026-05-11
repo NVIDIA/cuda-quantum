@@ -737,6 +737,7 @@ if (CUDAQ_ENABLE_PYTHON)
 endif()
 
 if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
+  include(CheckCXXCompilerFlag)
   umbrella_lit_testsuite_begin(check-all)
   set(INSTALL_GTEST OFF)
   add_subdirectory(tpls/googletest-src)
@@ -751,10 +752,18 @@ if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
   if (CMAKE_COMPILER_IS_GNUCXX
     AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12.0.0
     AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13.0.0)
-    target_compile_options(gtest PUBLIC --param=evrp-mode=legacy)
+    # Keep this GCC 12 workaround CXX-only. If it propagates to CUDA tests that
+    # link gtest_main, such as test_gpu_get_state, nvcc may forward it to a
+    # different CUDA host compiler where the option is invalid.
+    target_compile_options(gtest PUBLIC $<$<COMPILE_LANGUAGE:CXX>:--param=evrp-mode=legacy>)
   endif()
   if (CMAKE_CXX_COMPILER_ID MATCHES "^(Apple)?Clang$")
     target_compile_options(gtest PUBLIC -Wno-covered-switch-default)
+    check_cxx_compiler_flag("-Wno-character-conversion"
+                            CUDAQ_SUPPORTS_WNO_CHARACTER_CONVERSION)
+    if (CUDAQ_SUPPORTS_WNO_CHARACTER_CONVERSION)
+      target_compile_options(gtest PUBLIC -Wno-character-conversion)
+    endif()
   endif()
   include(GoogleTest)
   include(CTest)

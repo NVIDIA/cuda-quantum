@@ -52,7 +52,7 @@ def cc_ScopeOp : CCOp<"scope",
 
     For a C++ variable, this means that the variable may require a call to a
     destructor as well as deallocation. For example, after inserting calls to
-    dtors the LLVM IR intrinsics `llvm.stacksave` and `llvm.stackrestore` may
+    dtors the LLVM IR intrinsics `llvm.stacksave.p0` and `llvm.stackrestore.p0` may
     be added to reclaim stack space, or a call to `free` may be inserted to
     deallocate any compiler-generated heap allocations.
 
@@ -85,6 +85,8 @@ def cc_ScopeOp : CCOp<"scope",
   let hasCanonicalizer = 1;
 
   let builders = [
+    OpBuilder<(ins "mlir::TypeRange",
+      "llvm::function_ref<void(mlir::OpBuilder &, mlir::Location)>")>,
     OpBuilder<(ins 
       CArg<"llvm::function_ref<void(mlir::OpBuilder &, mlir::Location)>",
            "nullptr">)>

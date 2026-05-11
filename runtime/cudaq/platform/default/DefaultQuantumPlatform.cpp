@@ -22,6 +22,8 @@
 /// to create a single QPU that is added to the quantum_platform which delegates
 /// kernel execution to the current Execution Manager.
 
+using namespace cudaq;
+
 namespace {
 /// The DefaultQuantumPlatform is a quantum_platform that provides a single
 /// simulated QPU, which delegates to the QIS ExecutionManager.
@@ -29,7 +31,7 @@ class DefaultQuantumPlatform : public cudaq::quantum_platform {
 public:
   DefaultQuantumPlatform() {
     // Populate the information and add the QPUs
-    platformQPUs.emplace_back(std::make_unique<cudaq::details::DefaultQPU>());
+    platformQPUs.emplace_back(std::make_unique<cudaq::DefaultQPU>());
   }
 
 private:
@@ -40,7 +42,7 @@ private:
   /// variable.
   void setTargetBackend(const std::string &backend) override {
     platformQPUs.clear();
-    platformQPUs.emplace_back(std::make_unique<cudaq::details::DefaultQPU>());
+    platformQPUs.emplace_back(std::make_unique<cudaq::DefaultQPU>());
 
     CUDAQ_INFO("Backend string is {}", backend);
     std::map<std::string, std::string> configMap;

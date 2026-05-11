@@ -15,6 +15,7 @@
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
+#include "cudaq/platform.h"
 #include <functional>
 #include <ranges>
 #include <type_traits>
@@ -29,9 +30,6 @@ bool is_initialized();
 template <typename T, typename Func>
 T all_reduce(const T &, const Func &);
 } // namespace mpi
-
-/// @brief Return type for asynchronous observation.
-using async_observe_result = async_result<observe_result>;
 
 namespace parallel {
 /// @brief Multi-GPU Multi-Node (MPI)

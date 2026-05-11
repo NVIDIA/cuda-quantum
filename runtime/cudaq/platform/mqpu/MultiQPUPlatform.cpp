@@ -61,8 +61,7 @@ public:
 
       // Add a QPU for each GPU.
       for (int i = 0; i < nDevices; i++) {
-        platformQPUs.emplace_back(
-            std::make_unique<cudaq::details::DefaultQPU>());
+        platformQPUs.emplace_back(std::make_unique<cudaq::DefaultQPU>());
         platformQPUs.back()->setId(i);
       }
     }

@@ -28,8 +28,8 @@ using namespace mlir;
    Classic low-level stack frame preallocation pass.
 
    NB: This optimization must be correct above all else. That means that in
-   cases where an allocation cannot be correctly moved or an llvm.stacksave,
-   llvm.stackrestore call pair cannot be erased, this pass should ABSOLUTELY,
+   cases where an allocation cannot be correctly moved or an llvm.stacksave.p0,
+   llvm.stackrestore.p0 call pair cannot be erased, this pass should ABSOLUTELY,
    POSITIVELY NEVER EVER do so. If a particular transport layer does not support
    certain valid operations, it is up to the conformity and/or verifier tools of
    that particular transport layer (not the core compiler) to decide what
@@ -153,7 +153,7 @@ struct SFPAnalysis {
     return {};
   }
 
-  // Get the paired llvm.stackrestore given the llvm.stacksave.
+  // Get the paired llvm.stackrestore.p0 given the llvm.stacksave.p0.
   func::CallOp getStackRestore(func::CallOp stackSave) {
     if (stackSave->getUsers().begin() != stackSave->getUsers().end())
       if (auto c = dyn_cast<func::CallOp>(*stackSave->getUsers().begin()))
@@ -169,7 +169,7 @@ struct SFPAnalysis {
            dom.properlyDominates(op, stackRestoreCall);
   }
 
-  /// Find if any stacksave in the SCC, \p sccIdx, properly fences \p op.
+  /// Find if any stacksave.p0 in the SCC, \p sccIdx, properly fences \p op.
   bool properlyFenced(unsigned sccIdx, Operation *op, DominanceInfo &dom) {
     for (auto call : stackSaveCalls)
       if (sccList[sccIdx].contains(call->getBlock()))
@@ -217,8 +217,9 @@ public:
       }
       // 2) Otherwise (the candidate is in an SCC)
       //    Let S be the innermost such SCC.
-      //    a) If the candidate is dominated by a stacksave also in S and the
-      //       candidate dominates the paired stackrestore also in S, move it.
+      //    a) If the candidate is dominated by a stacksave.p0 also in S and the
+      //       candidate dominates the paired stackrestore.p0 also in S, move
+      //       it.
       if (analysis.properlyFenced(*optSCC, cand, dom)) {
         LLVM_DEBUG(llvm::dbgs() << "moving: " << cand << '\n');
         cand->moveBefore(entryTerm);
@@ -261,7 +262,7 @@ public:
     for (auto dead : analysis.stackSaveCalls) {
       if (pinnedCalls.contains(dead))
         continue;
-      // Get the stackrestore call and delete it.
+      // Get the stackrestore.p0 call and delete it.
       auto users = dead->getUsers();
       if (++users.begin() != users.end()) {
         LLVM_DEBUG(llvm::dbgs() << "IR is malformed, must be exactly 1 user.");
@@ -270,7 +271,7 @@ public:
       users.begin()->dropAllReferences();
       users.begin()->erase();
 
-      // Delete this stacksave call.
+      // Delete this stacksave.p0 call.
       LLVM_DEBUG(llvm::dbgs() << "deleting: " << dead << '\n');
       dead->dropAllReferences();
       dead->erase();

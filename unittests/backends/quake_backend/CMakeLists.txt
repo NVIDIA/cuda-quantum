@@ -15,4 +15,8 @@ install(TARGETS cudaq-serverhelper-quake_fake DESTINATION lib)
 
 add_library(fake_quake_backend_device_funcs SHARED backend_lib.cpp)
 configure_file(QuakeStartServerAndTest.sh.in QuakeStartServerAndTest.sh @ONLY)
-add_test(NAME quake-remote-backend-tests COMMAND bash QuakeStartServerAndTest.sh WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+add_test(NAME quake-remote-backend-tests
+  COMMAND bash QuakeStartServerAndTest.sh
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)

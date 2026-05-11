@@ -15,6 +15,7 @@
 #include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
+#include "cudaq/platform.h"
 
 namespace cudaq {
 bool kernelHasConditionalFeedback(const std::string &);
@@ -38,9 +39,6 @@ inline bool hasConditionalFeedback(const std::string &kernelName,
   return false;
 }
 } // namespace detail
-
-/// @brief Return type for asynchronous sampling.
-using async_sample_result = async_result<sample_result>;
 
 /// @brief Define a combined sample function validation concept.
 /// These concepts provide much better error messages than old-school SFINAE

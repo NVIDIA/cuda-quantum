@@ -196,8 +196,7 @@ NB_MODULE(_quakeDialects, m) {
   mpiSubmodule.def(
       "is_initialized", []() { return mpi::is_initialized(); },
       "Returns true if MPI has already been initialized.");
-  mpiSubmodule.def(
-      "finalize", []() { mpi::finalize(); }, "Finalize MPI.");
+  mpiSubmodule.def("finalize", []() { mpi::finalize(); }, "Finalize MPI.");
   mpiSubmodule.def(
       "comm_dup",
       []() {
