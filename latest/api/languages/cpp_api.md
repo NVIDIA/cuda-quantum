@@ -9000,7 +9000,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[]{#sample_8h_1aca3fc52fbabf920e1de791af75f5b47b .target}[[using]{.pre}]{.k}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[async_sample_result]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[[async_result]{.pre}]{.n}](#_CPPv4I0EN5cudaq12async_resultE "cudaq::async_result"){.reference .internal}[[\<]{.pre}]{.p}[[[sample_result]{.pre}]{.n}](#_CPPv4N5cudaq13sample_resultE "cudaq::sample_result"){.reference .internal}[[\>]{.pre}]{.p}[¶](#_CPPv4N5cudaq19async_sample_resultE "Permalink to this definition"){.headerlink}\
+[]{#Future_8h_1aca3fc52fbabf920e1de791af75f5b47b .target}[[using]{.pre}]{.k}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[async_sample_result]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[[async_result]{.pre}]{.n}](#_CPPv4I0EN5cudaq12async_resultE "cudaq::async_result"){.reference .internal}[[\<]{.pre}]{.p}[[[sample_result]{.pre}]{.n}](#_CPPv4N5cudaq13sample_resultE "cudaq::sample_result"){.reference .internal}[[\>]{.pre}]{.p}[¶](#_CPPv4N5cudaq19async_sample_resultE "Permalink to this definition"){.headerlink}\
 
 :   Return type for asynchronous sampling.
 
@@ -12588,7 +12588,8 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     .std-ref}](#classcudaq_1_1BaseRemoteRESTQPU){.reference .internal},
     [[cudaq::BaseRemoteSimulatorQPU]{.std
     .std-ref}](#classcudaq_1_1BaseRemoteSimulatorQPU){.reference
-    .internal}, [[cudaq::OrcaRemoteRESTQPU]{.std
+    .internal}, cudaq::DefaultQPU, cudaq::GPUEmulatedQPU,
+    [[cudaq::OrcaRemoteRESTQPU]{.std
     .std-ref}](#classcudaq_1_1OrcaRemoteRESTQPU){.reference .internal}
 
     ::: {.breathe-sectiondef .docutils .container}
@@ -12777,7 +12778,8 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 :   Subclassed by [[cudaq::AnalogRemoteRESTQPU]{.std
     .std-ref}](#classcudaq_1_1AnalogRemoteRESTQPU){.reference
     .internal}, [[cudaq::FermioniqQPU]{.std
-    .std-ref}](#classcudaq_1_1FermioniqQPU){.reference .internal}
+    .std-ref}](#classcudaq_1_1FermioniqQPU){.reference .internal},
+    cudaq::RemoteRESTQPU
 
 ```{=html}
 <!-- -->
@@ -12785,7 +12787,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 
 []{#classcudaq_1_1BaseRemoteSimulatorQPU .target}[[class]{.pre}]{.k}[ ]{.w}[[[BaseRemoteSimulatorQPU]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[QPU]{.pre}]{.n}](#_CPPv4N5cudaq3QPUE "cudaq::QPU"){.reference .internal}[¶](#_CPPv4N5cudaq22BaseRemoteSimulatorQPUE "Permalink to this definition"){.headerlink}\
 
-:   
+:   Subclassed by cudaq::RemoteSimulatorQPU
 
 ```{=html}
 <!-- -->
@@ -12798,6 +12800,8 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     .literal .notranslate}]{.pre} and [`pasqal`{.docutils .literal
     .notranslate}]{.pre}. Provides common functionality and
     implementation.
+
+    Subclassed by cudaq::PasqalRemoteRESTQPU, cudaq::QuEraRemoteRESTQPU
 
 ```{=html}
 <!-- -->
@@ -13372,7 +13376,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[]{#cudaq_8h_1a0635ad8b98868ed14865bab138e23ff0 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[set_random_seed]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[seed]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq15set_random_seedENSt6size_tE "Permalink to this definition"){.headerlink}\
+[]{#BaseRemoteRESTQPU_8h_1a0635ad8b98868ed14865bab138e23ff0 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[set_random_seed]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[seed]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq15set_random_seedENSt6size_tE "Permalink to this definition"){.headerlink}\
 
 :   Set a seed for any random number generators used in backend
     simulations.
