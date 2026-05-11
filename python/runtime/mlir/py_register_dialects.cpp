@@ -383,14 +383,13 @@ void cudaq::bindRegisterDialects(nanobind::module_ &mod) {
     mlirContext->getOrLoadDialect<cudaq::codegen::CodeGenDialect>();
   });
 
-  mod.def("gen_vector_of_complex_constant", [](MlirLocation loc,
-                                               MlirModule module,
-                                               std::string name,
-                                               const std::vector<std::complex<
-                                                   double>> &values) {
-    ModuleOp modOp = unwrap(module);
-    cudaq::IRBuilder builder = IRBuilder::atBlockEnd(modOp.getBody());
-    SmallVector<std::complex<double>> newValues{values.begin(), values.end()};
-    builder.genVectorOfConstants(unwrap(loc), modOp, name, newValues);
-  });
+  mod.def("gen_vector_of_complex_constant",
+          [](MlirLocation loc, MlirModule module, std::string name,
+             const std::vector<std::complex<double>> &values) {
+            ModuleOp modOp = unwrap(module);
+            cudaq::IRBuilder builder = IRBuilder::atBlockEnd(modOp.getBody());
+            SmallVector<std::complex<double>> newValues{values.begin(),
+                                                        values.end()};
+            builder.genVectorOfConstants(unwrap(loc), modOp, name, newValues);
+          });
 }
