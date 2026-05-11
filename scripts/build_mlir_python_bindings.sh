@@ -55,6 +55,28 @@ fi
 
 cd "$llvm_build_dir"
 
+# Augment LLVM_DISTRIBUTION_COMPONENTS to include the python-binding install
+# components. The base image's build_llvm.sh sets this variable based on
+# which projects were enabled at original configure time. If python-bindings
+# wasn't in LLVM_PROJECTS then, MLIRPythonModules and mlir-python-sources are
+# absent from the distribution list, and LLVM's distribution-aware export
+# logic (LLVMDistributionSupport.cmake) filters MLIRPython* targets out of
+# the MLIRTargets export set -- even after we flip MLIR_ENABLE_BINDINGS_PYTHON
+# to ON. The downstream symptom is cuda-quantum's wheel cmake configure
+# failing with `get_target_property() called with non-existent target
+# "MLIRPythonExtension.RegisterEverything"` (etc) from
+# python/extension/CMakeLists.txt. Adding these components here makes the
+# reconfigure register them and regenerates MLIRTargets.cmake with the
+# MLIRPython* entries the wheel build needs.
+distribution_components_arg=""
+existing_components=$(grep '^LLVM_DISTRIBUTION_COMPONENTS' CMakeCache.txt | cut -d= -f2- || true)
+if [ -n "$existing_components" ]; then
+  augmented="$existing_components"
+  case ";$augmented;" in *";MLIRPythonModules;"*) ;; *) augmented="${augmented};MLIRPythonModules" ;; esac
+  case ";$augmented;" in *";mlir-python-sources;"*) ;; *) augmented="${augmented};mlir-python-sources" ;; esac
+  distribution_components_arg="-DLLVM_DISTRIBUTION_COMPONENTS=$augmented"
+fi
+
 # Reconfigure the existing build tree: enable MLIR python bindings and
 # point at the active interpreter. Other cache entries (compiler flags,
 # enabled projects, ccache launcher, build type) are preserved.
@@ -62,7 +84,8 @@ echo "Reconfiguring LLVM build for python bindings (Python: $Python3_EXECUTABLE)
 cmake . \
   -DMLIR_ENABLE_BINDINGS_PYTHON=ON \
   -DPython3_EXECUTABLE="$Python3_EXECUTABLE" \
-  -Dnanobind_DIR="$nanobind_cmake_dir"
+  -Dnanobind_DIR="$nanobind_cmake_dir" \
+  ${distribution_components_arg}
 
 # Build and install only the python-binding components plus the regenerated
 # MLIR cmake exports. The base image's mlir-cmake-exports was installed
