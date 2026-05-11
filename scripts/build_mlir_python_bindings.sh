@@ -64,10 +64,15 @@ cmake . \
   -DPython3_EXECUTABLE="$Python3_EXECUTABLE" \
   -Dnanobind_DIR="$nanobind_cmake_dir"
 
-# Build and install only the python-binding components. Other targets in
-# the existing tree are left untouched and remain installed at
-# LLVM_INSTALL_PREFIX from the base image.
+# Build and install only the python-binding components plus the regenerated
+# MLIR cmake exports. The base image's mlir-cmake-exports was installed
+# before python-bindings was enabled, so its MLIRTargets.cmake omits the
+# MLIRPython* targets (MLIRPythonExtension.*, MLIRPythonSources.*,
+# MLIRPythonCAPI.*). Reinstalling install-mlir-cmake-exports here regenerates
+# the file with those entries, which downstream find_package(MLIR) +
+# add_mlir_python_common_capi_library calls (in cuda-quantum's
+# python/extension/CMakeLists.txt) require.
 echo "Building and installing MLIR python bindings..."
-ninja install-MLIRPythonModules install-mlir-python-sources
+ninja install-MLIRPythonModules install-mlir-python-sources install-mlir-cmake-exports
 
 echo "Installed MLIR python bindings into $LLVM_INSTALL_PREFIX."
