@@ -34,6 +34,9 @@ EXAMPLES=(
 
 TMPDIR="$(mktemp -d -t target_setter_check_XXXX)"
 trap 'rm -rf "$TMPDIR"' EXIT
+# Run from TMPDIR so cudaq-quake's intermediate .ll/.qke files land there
+# instead of polluting (or racing in) the caller's cwd.
+cd "$TMPDIR"
 
 failures=0
 for entry in "${EXAMPLES[@]}"; do
@@ -54,14 +57,38 @@ for entry in "${EXAMPLES[@]}"; do
     continue
   fi
 
-  # Capture nm output to a variable to avoid SIGPIPE on grep -q under
+  # Prefer `llvm-nm` from the CUDA-Q LLVM toolchain
+  nm_tool=""
+  if [[ -n "${LLVM_INSTALL_PREFIX:-}" &&
+        -x "$LLVM_INSTALL_PREFIX/bin/llvm-nm" ]]; then
+    nm_tool="$LLVM_INSTALL_PREFIX/bin/llvm-nm"
+  elif command -v llvm-nm >/dev/null 2>&1; then
+    nm_tool="$(command -v llvm-nm)"
+  elif command -v nm >/dev/null 2>&1; then
+    nm_tool="$(command -v nm)"
+  fi
+
+  # Capture nm output to a variable to avoid `SIGPIPE` on `grep -q` under
   # `set -o pipefail` (grep -q exits on first match, closing the pipe).
-  syms="$(nm -C "$out" 2>/dev/null || true)"
-  if grep -qE 'cudaq::__internal__::targetSetter' <<<"$syms"; then
+  syms=""
+  if [[ -n "$nm_tool" ]]; then
+    syms="$("$nm_tool" -C "$out" 2>/dev/null || true)"
+  fi
+
+  # Fallback: when `nm` cannot list the symbol (e.g. stripped binary), look for
+  # the backend config literal nvq++ embeds in `.rodata` via NVQPP_TARGET_BACKEND_CONFIG.
+  marker="${target};emulate;false;disable_qubit_mapping;false"
+  if grep -qE 'cudaq::__internal__::targetSetter' <<<"$syms" ||
+      LC_ALL=C grep -aFq "$marker" "$out"; then
     echo "PASS: $src has TargetSetter ctor (target=$target)"
   else
     echo "FAIL: $src is missing cudaq::__internal__::targetSetter (target=$target)"
     echo "      Runtime backend wiring will not run; expect a segfault on launch."
+    echo "      Diagnostic: nm tool: ${nm_tool:-<none>}"
+    echo "      Diagnostic: backend config marker not found: $marker"
+    if command -v file >/dev/null 2>&1; then
+      echo "      Diagnostic: file output: $(file "$out" 2>/dev/null || true)"
+    fi
     failures=$((failures + 1))
   fi
 done
