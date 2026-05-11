@@ -76,7 +76,9 @@ static bool onlyTakesLinearTypeArguments(Operation *op) {
   return op->hasTrait<cudaq::cc::LinearTypeArgsTrait>();
 }
 
-static bool isLinearType(Value v) { return quake::isLinearType(v.getType()); }
+static bool isLinearType(Value v) {
+  return cudaq::quake::isLinearType(v.getType());
+}
 
 template <typename T>
 void appendToWorklist(std::deque<Block *> &d, T collection) {
@@ -117,11 +119,11 @@ private:
 
   void determineAllocSet(func::FuncOp func) {
     SmallVector<Operation *> allocations;
-    auto qrefTy = quake::RefType::get(func.getContext());
+    auto qrefTy = cudaq::quake::RefType::get(func.getContext());
     func->walk([&](Operation *op) {
       if (isMemoryAlloc(op)) {
         // Make sure this is stack here. Can we make use of an Interface?
-        if (auto alloc = dyn_cast<quake::AllocaOp>(op)) {
+        if (auto alloc = dyn_cast<cudaq::quake::AllocaOp>(op)) {
           if (!alloc.hasInitializedState() && alloc.getType() == qrefTy)
             allocations.push_back(op);
         } else if (auto alloc = dyn_cast<cudaq::cc::AllocaOp>(op)) {
@@ -139,7 +141,7 @@ private:
         v = alloc.getResult();
       for (auto *u : a->getUsers()) {
         // Don't convert quake.custom_op as it has ambiguous semantics.
-        if (isa<quake::CustomUnitarySymbolOp>(u) ||
+        if (isa<cudaq::quake::CustomUnitarySymbolOp>(u) ||
             (!isMemoryUse(u) && !nonEscapingDef(u, v))) {
           add = nullptr;
           break;
@@ -176,8 +178,8 @@ static bool isDescendantOf(Operation *op, Value defVal) {
 
 /// Return the type after \p ty is dereferenced.
 static Type dereferencedType(Type ty) {
-  if (isa<quake::RefType>(ty))
-    return quake::WireType::get(ty.getContext());
+  if (isa<cudaq::quake::RefType>(ty))
+    return cudaq::quake::WireType::get(ty.getContext());
   return cast<cudaq::cc::PointerType>(ty).getElementType();
 }
 
@@ -317,9 +319,9 @@ public:
   /// Create a re-load of a memory reference. This can be used to place a
   /// dominating load operation immediately prior to an op with regions.
   SSAReg reloadMemoryReference(OpBuilder &builder, MemRef mr) {
-    if (isa<quake::RefType>(mr.getType())) {
-      auto wireTy = quake::WireType::get(builder.getContext());
-      return quake::UnwrapOp::create(builder, mr.getLoc(), wireTy, mr);
+    if (isa<cudaq::quake::RefType>(mr.getType())) {
+      auto wireTy = cudaq::quake::WireType::get(builder.getContext());
+      return cudaq::quake::UnwrapOp::create(builder, mr.getLoc(), wireTy, mr);
     }
     return cudaq::cc::LoadOp::create(builder, mr.getLoc(), mr);
   }
@@ -544,36 +546,37 @@ private:
 namespace {
 /// The reset operation is a bit of an oddball and doesn't support the
 /// QuakeOperator interface. Handle it special for now.
-class ResetOpPattern : public OpRewritePattern<quake::ResetOp> {
+class ResetOpPattern : public OpRewritePattern<cudaq::quake::ResetOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(quake::ResetOp op,
+  LogicalResult matchAndRewrite(cudaq::quake::ResetOp op,
                                 PatternRewriter &rewriter) const override {
     auto loc = op.getLoc();
-    auto wireTy = quake::WireType::get(rewriter.getContext());
+    auto wireTy = cudaq::quake::WireType::get(rewriter.getContext());
     auto opnd = op.getTargets();
-    assert(opnd.getType() == quake::RefType::get(rewriter.getContext()));
-    Value target = quake::UnwrapOp::create(rewriter, loc, wireTy, opnd);
+    assert(opnd.getType() == cudaq::quake::RefType::get(rewriter.getContext()));
+    Value target = cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, opnd);
     auto newOp =
-        quake::ResetOp::create(rewriter, loc, TypeRange{wireTy}, target);
-    rewriter.replaceOpWithNewOp<quake::WrapOp>(op, newOp.getResult(0), opnd);
+        cudaq::quake::ResetOp::create(rewriter, loc, TypeRange{wireTy}, target);
+    rewriter.replaceOpWithNewOp<cudaq::quake::WrapOp>(op, newOp.getResult(0),
+                                                      opnd);
     return success();
   }
 };
 
-class DeallocOpPattern : public OpRewritePattern<quake::DeallocOp> {
+class DeallocOpPattern : public OpRewritePattern<cudaq::quake::DeallocOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(quake::DeallocOp op,
+  LogicalResult matchAndRewrite(cudaq::quake::DeallocOp op,
                                 PatternRewriter &rewriter) const override {
     auto loc = op.getLoc();
-    auto wireTy = quake::WireType::get(rewriter.getContext());
+    auto wireTy = cudaq::quake::WireType::get(rewriter.getContext());
     auto opnd = op.getReference();
-    assert(isa<quake::RefType>(opnd.getType()));
-    Value target = quake::UnwrapOp::create(rewriter, loc, wireTy, opnd);
-    rewriter.replaceOpWithNewOp<quake::SinkOp>(op, target);
+    assert(isa<cudaq::quake::RefType>(opnd.getType()));
+    Value target = cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, opnd);
+    rewriter.replaceOpWithNewOp<cudaq::quake::SinkOp>(op, target);
     return success();
   }
 };
@@ -589,16 +592,17 @@ public:
                                 PatternRewriter &rewriter) const override {
     auto loc = op.getLoc();
     SmallVector<Value> unwrapCtrls;
-    auto wireTy = quake::WireType::get(rewriter.getContext());
-    auto qrefTy = quake::RefType::get(rewriter.getContext());
+    auto wireTy = cudaq::quake::WireType::get(rewriter.getContext());
+    auto qrefTy = cudaq::quake::RefType::get(rewriter.getContext());
     // Scan the control and target positions. Any that were not Wires will be
     // promoted to Wires via an unwrap operation. These unwrap ops become the
     // arguments to the quantum value form of the new quantum operation.
-    if constexpr (!quake::isMeasure<OP>) {
+    if constexpr (!cudaq::quake::isMeasure<OP>) {
       for (auto opnd : op.getControls()) {
         auto opndTy = opnd.getType();
         if (opndTy == qrefTy) {
-          auto unwrap = quake::UnwrapOp::create(rewriter, loc, wireTy, opnd);
+          auto unwrap =
+              cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, opnd);
           unwrapCtrls.push_back(unwrap);
         } else {
           unwrapCtrls.push_back(opnd);
@@ -609,7 +613,8 @@ public:
     for (auto opnd : op.getTargets()) {
       auto opndTy = opnd.getType();
       if (opndTy == qrefTy) {
-        auto unwrap = quake::UnwrapOp::create(rewriter, loc, wireTy, opnd);
+        auto unwrap =
+            cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, opnd);
         unwrapTargs.push_back(unwrap);
       } else {
         unwrapTargs.push_back(opnd);
@@ -623,8 +628,8 @@ public:
         auto opndTy = i.value().getType();
         auto offset = i.index() + addend;
         if (opndTy == qrefTy) {
-          quake::WrapOp::create(rewriter, loc, newOp.getResult(offset),
-                                i.value());
+          cudaq::quake::WrapOp::create(rewriter, loc, newOp.getResult(offset),
+                                       i.value());
         } else if (opndTy == wireTy) {
           op.getResult(count++).replaceAllUsesWith(newOp.getResult(offset));
         }
@@ -632,7 +637,7 @@ public:
       rewriter.eraseOp(op);
     };
 
-    if constexpr (quake::isMeasure<OP>) {
+    if constexpr (cudaq::quake::isMeasure<OP>) {
       // The result type of the bits is the same. Add the wire types.
       SmallVector<Type> newTy = {op.getMeasOut().getType()};
       SmallVector<Type> wireTys(unwrapTargs.size(), wireTy);
@@ -673,18 +678,18 @@ public:
   static std::size_t wireCount(ArrayRef<Value> ctls, ArrayRef<Value> trgs) {
     std::size_t result = 0;
     for (Value v : ctls)
-      if (quake::isQuantumValueType(v.getType()))
+      if (cudaq::quake::isQuantumValueType(v.getType()))
         result++;
     for (Value v : trgs)
-      if (quake::isQuantumValueType(v.getType()))
+      if (cudaq::quake::isQuantumValueType(v.getType()))
         result++;
     return result;
   }
 };
 
-#define WRAPPER(OpClass) Wrapper<quake::OpClass>
+#define WRAPPER(OpClass) Wrapper<cudaq::quake::OpClass>
 #define WRAPPER_QUANTUM_OPS QUANTUM_OPS(WRAPPER)
-#define RAW(OpClass) quake::OpClass
+#define RAW(OpClass) cudaq::quake::OpClass
 #define RAW_QUANTUM_OPS QUANTUM_OPS(RAW)
 
 namespace {
@@ -719,9 +724,9 @@ public:
 
     // 3) Cleanup the dead ops. Make sure to delay erasing wrap ops since they
     // may still have uses.
-    SmallVector<quake::WrapOp> wrapOps;
+    SmallVector<cudaq::quake::WrapOp> wrapOps;
     for (auto *op : cleanUps) {
-      if (auto wrap = dyn_cast<quake::WrapOp>(op)) {
+      if (auto wrap = dyn_cast<cudaq::quake::WrapOp>(op)) {
         wrapOps.push_back(wrap);
         continue;
       }
@@ -768,8 +773,8 @@ public:
                             const MemoryAnalysis &memAnalysis,
                             SmallPtrSetImpl<Operation *> &cleanUps) {
     auto *ctx = &getContext();
-    auto wireTy = quake::WireType::get(ctx);
-    auto qrefTy = quake::RefType::get(ctx);
+    auto wireTy = cudaq::quake::WireType::get(ctx);
+    auto qrefTy = cudaq::quake::RefType::get(ctx);
 
     if (auto ifOp = dyn_cast<cudaq::cc::IfOp>(parent)) {
       // Special case: add an else region if it is absent from parent.
@@ -806,8 +811,8 @@ public:
             if (arg.getType() == qrefTy) {
               OpBuilder builder(ctx);
               builder.setInsertionPointToStart(block);
-              Value v =
-                  quake::UnwrapOp::create(builder, arg.getLoc(), wireTy, arg);
+              Value v = cudaq::quake::UnwrapOp::create(builder, arg.getLoc(),
+                                                       wireTy, arg);
               dataFlow.addBinding(block, arg, v);
             }
           }
@@ -824,18 +829,18 @@ public:
             if (!quantumValues)
               continue;
             // If this op defines a quantum reference, record it in the maps.
-            if (auto alloc = dyn_cast<quake::AllocaOp>(op);
+            if (auto alloc = dyn_cast<cudaq::quake::AllocaOp>(op);
                 alloc && memAnalysis.isMember(alloc)) {
               // If it is a known non-escaping alloca, then replace it with a
               // null wire and record it for removal.
               if (!dataFlow.hasBinding(block, alloc)) {
                 OpBuilder builder(alloc);
-                Value v =
-                    quake::NullWireOp::create(builder, alloc.getLoc(), wireTy);
+                Value v = cudaq::quake::NullWireOp::create(
+                    builder, alloc.getLoc(), wireTy);
                 cleanUps.insert(alloc);
                 dataFlow.addBinding(block, alloc, v);
               }
-            } else if (auto alloc = dyn_cast<quake::AllocaOp>(op);
+            } else if (auto alloc = dyn_cast<cudaq::quake::AllocaOp>(op);
                        alloc && alloc.hasInitializedState()) {
               // If this is an quake.alloca followed by a quake.init_state, just
               // skip this op. It has to remain in reference form and there
@@ -846,14 +851,15 @@ public:
               for (auto v : op->getOperands())
                 if (v.getType() == qrefTy && dataFlow.hasBinding(block, v))
                   if (auto vBinding = dataFlow.getBinding(block, v)) {
-                    quake::WrapOp::create(builder, op->getLoc(), vBinding, v);
+                    cudaq::quake::WrapOp::create(builder, op->getLoc(),
+                                                 vBinding, v);
                     dataFlow.cancelBinding(block, v);
                   }
               builder.setInsertionPointAfter(op);
               for (auto r : op->getResults())
                 if (r.getType() == qrefTy) {
-                  Value v =
-                      quake::UnwrapOp::create(builder, op->getLoc(), wireTy, r);
+                  Value v = cudaq::quake::UnwrapOp::create(
+                      builder, op->getLoc(), wireTy, r);
                   dataFlow.addBinding(block, r, v);
                 }
             }
@@ -876,7 +882,7 @@ public:
 
           // If this is a new value being created, add it to the map of values
           // for this block so it can be tracked and forwarded.
-          if (auto nullWire = dyn_cast<quake::NullWireOp>(op)) {
+          if (auto nullWire = dyn_cast<cudaq::quake::NullWireOp>(op)) {
             if (quantumValues)
               dataFlow.addBinding(block, nullWire, nullWire.getResult());
             continue;
@@ -935,7 +941,7 @@ public:
             useop.replaceAllUsesWith(newDef);
             cleanUps.insert(useop);
           };
-          if (auto unwrap = dyn_cast<quake::UnwrapOp>(op)) {
+          if (auto unwrap = dyn_cast<cudaq::quake::UnwrapOp>(op)) {
             if (quantumValues)
               handleUse(unwrap, unwrap.getRefValue());
             continue;
@@ -966,7 +972,7 @@ public:
             }
             cleanUps.insert(defop);
           };
-          if (auto wrap = dyn_cast<quake::WrapOp>(op)) {
+          if (auto wrap = dyn_cast<cudaq::quake::WrapOp>(op)) {
             if (quantumValues)
               handleDefinition(wrap, wrap.getWireValue(), wrap.getRefValue());
             continue;
@@ -989,7 +995,8 @@ public:
             if ((v.getType() == qrefTy) && dataFlow.hasBinding(block, v))
               if (auto vBinding = dataFlow.getBinding(block, v)) {
                 OpBuilder builder(op);
-                quake::WrapOp::create(builder, op->getLoc(), vBinding, v);
+                cudaq::quake::WrapOp::create(builder, op->getLoc(), vBinding,
+                                             v);
                 dataFlow.cancelBinding(block, v);
               }
 
@@ -1059,13 +1066,13 @@ public:
           auto oldVal = dataFlow.getBinding(block, liveOut);
           if (!oldVal) {
             OpBuilder builder(term);
-            oldVal = quake::UnwrapOp::create(
+            oldVal = cudaq::quake::UnwrapOp::create(
                 builder, term->getLoc(),
-                quake::WireType::get(builder.getContext()), liveOut);
+                cudaq::quake::WireType::get(builder.getContext()), liveOut);
           }
           addTerminatorArgument(term, target, oldVal);
-        } else if ((usePromo ||
-                    (onlyLinear && !isa<quake::RefType>(liveOut.getType()))) &&
+        } else if ((usePromo || (onlyLinear && !isa<cudaq::quake::RefType>(
+                                                   liveOut.getType()))) &&
                    dataFlow.isEntryBlock(block)) {
           auto newVal = dataFlow.getPromotedValue(liveOut);
           dataFlow.addBinding(block, liveOut, newVal);
@@ -1133,8 +1140,8 @@ public:
       for (auto iter : llvm::enumerate(allDefs)) {
         auto i = iter.index() + parent->getNumResults();
         if (np->getResult(i).getType() == wireTy)
-          quake::WrapOp::create(builder, np->getLoc(), np->getResult(i),
-                                iter.value());
+          cudaq::quake::WrapOp::create(builder, np->getLoc(), np->getResult(i),
+                                       iter.value());
         else
           cudaq::cc::StoreOp::create(builder, np->getLoc(), np->getResult(i),
                                      iter.value());
@@ -1170,11 +1177,11 @@ public:
     RewritePatternSet patterns(ctx);
     patterns.insert<WRAPPER_QUANTUM_OPS, ResetOpPattern, DeallocOpPattern>(ctx);
     ConversionTarget target(*ctx);
-    target.addDynamicallyLegalOp<RAW_QUANTUM_OPS, quake::ResetOp,
-                                 quake::DeallocOp>(
-        [](Operation *op) { return !quake::hasNonVectorReference(op); });
-    target.addLegalOp<quake::UnwrapOp, quake::WrapOp, quake::NullWireOp,
-                      quake::SinkOp>();
+    target.addDynamicallyLegalOp<RAW_QUANTUM_OPS, cudaq::quake::ResetOp,
+                                 cudaq::quake::DeallocOp>(
+        [](Operation *op) { return !cudaq::quake::hasNonVectorReference(op); });
+    target.addLegalOp<cudaq::quake::UnwrapOp, cudaq::quake::WrapOp,
+                      cudaq::quake::NullWireOp, cudaq::quake::SinkOp>();
     if (failed(applyPartialConversion(func, target, std::move(patterns)))) {
       emitError(func.getLoc(), "error converting to QLS form\n");
       signalPassFailure();

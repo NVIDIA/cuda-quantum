@@ -23,7 +23,7 @@ namespace llvm {
 class DataLayout;
 }
 
-namespace quake {
+namespace cudaq::quake {
 class StateType;
 }
 

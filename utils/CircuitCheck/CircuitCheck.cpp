@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
   cl::ParseCommandLineOptions(argc, argv);
 
   MLIRContext context;
-  context.loadDialect<cudaq::cc::CCDialect, quake::QuakeDialect,
+  context.loadDialect<cudaq::cc::CCDialect, cudaq::quake::QuakeDialect,
                       arith::ArithDialect, func::FuncDialect>();
 
   ParserConfig config(&context);

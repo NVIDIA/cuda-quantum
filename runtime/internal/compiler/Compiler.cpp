@@ -431,7 +431,7 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
   // Populate conditional measurement flag in the context.
   if (emulate && executionContext && executionContext->name == "sample") {
     for (auto &artifact : moduleOp) {
-      quake::detail::QuakeFunctionAnalysis analysis{&artifact};
+      cudaq::quake::detail::QuakeFunctionAnalysis analysis{&artifact};
       auto info = analysis.getAnalysisInfo();
       if (info.empty())
         continue;
@@ -474,7 +474,7 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
             std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
         if (funcOp) {
           bool hasNamedMeasurements = false;
-          funcOp.walk([&](quake::MeasurementInterface meas) {
+          funcOp.walk([&](cudaq::quake::MeasurementInterface meas) {
             if (meas.getOptionalRegisterName().has_value()) {
               hasNamedMeasurements = true;
               return mlir::WalkResult::interrupt();

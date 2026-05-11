@@ -47,14 +47,14 @@ struct DeallocationAnalysisInfo {
     for (Region &region : op->getRegions())
       for (Block &block : region)
         for (Operation &op : block) {
-          if (auto alloca = dyn_cast<quake::AllocaOp>(op)) {
+          if (auto alloca = dyn_cast<cudaq::quake::AllocaOp>(op)) {
             if (!deallocMap.count(&op))
               deallocMap.insert(std::make_pair(&op, false));
-          } else if (auto dealloc = dyn_cast<quake::DeallocOp>(op)) {
+          } else if (auto dealloc = dyn_cast<cudaq::quake::DeallocOp>(op)) {
             auto val = dealloc.getReference();
             Operation *alloc = val.getDefiningOp();
-            if (!isa<quake::AllocaOp>(alloc)) {
-              auto initState = cast<quake::InitializeStateOp>(alloc);
+            if (!isa<cudaq::quake::AllocaOp>(alloc)) {
+              auto initState = cast<cudaq::quake::InitializeStateOp>(alloc);
               alloc = initState.getTargets().getDefiningOp();
             }
             if (deallocMap.count(alloc))
@@ -96,7 +96,7 @@ private:
               cudaq::cc::UnwindReturnOp>(o)) {
         o->emitError("must run unwind-lowering before add-dealloc.");
         hasErrors = true;
-      } else if (auto alloc = dyn_cast<quake::AllocaOp>(o)) {
+      } else if (auto alloc = dyn_cast<cudaq::quake::AllocaOp>(o)) {
         auto *op = alloc.getOperation();
         if (!allocMap.count(op)) {
           allocMap.insert(std::make_pair(op, /*deallocated=*/false));
@@ -104,11 +104,11 @@ private:
           LLVM_DEBUG(llvm::dbgs() << "adding alloca: " << op << " from "
                                   << op->getParentOp() << '\n');
         }
-      } else if (auto dealloc = dyn_cast<quake::DeallocOp>(o)) {
+      } else if (auto dealloc = dyn_cast<cudaq::quake::DeallocOp>(o)) {
         auto val = dealloc.getReference();
-        if (auto init = val.getDefiningOp<quake::InitializeStateOp>())
+        if (auto init = val.getDefiningOp<cudaq::quake::InitializeStateOp>())
           val = init.getTargets();
-        if (auto alloc = val.getDefiningOp<quake::AllocaOp>()) {
+        if (auto alloc = val.getDefiningOp<cudaq::quake::AllocaOp>()) {
           auto *op = alloc.getOperation();
           if (allocMap.count(op))
             allocMap[op] = true;
@@ -131,14 +131,14 @@ private:
 inline void generateDeallocsForSet(PatternRewriter &rewriter,
                                    llvm::DenseSet<Operation *> &allocSet) {
   for (Operation *a : allocSet) {
-    auto alloc = cast<quake::AllocaOp>(a);
+    auto alloc = cast<cudaq::quake::AllocaOp>(a);
     Value v = alloc;
     if (a->hasOneUse()) {
       if (auto initState =
-              dyn_cast<quake::InitializeStateOp>(*a->getUsers().begin()))
+              dyn_cast<cudaq::quake::InitializeStateOp>(*a->getUsers().begin()))
         v = initState;
     }
-    quake::DeallocOp::create(rewriter, a->getLoc(), v);
+    cudaq::quake::DeallocOp::create(rewriter, a->getLoc(), v);
   }
 }
 

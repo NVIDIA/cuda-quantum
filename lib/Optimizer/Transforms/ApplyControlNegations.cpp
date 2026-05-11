@@ -38,15 +38,17 @@ public:
 
     for (auto negationIter : llvm::enumerate(negations.value()))
       if (negationIter.value())
-        quake::XOp::create(rewriter, loc, ValueRange(),
-                           ValueRange{op.getControls()[negationIter.index()]});
+        cudaq::quake::XOp::create(
+            rewriter, loc, ValueRange(),
+            ValueRange{op.getControls()[negationIter.index()]});
 
-    if constexpr (std::is_same_v<Op, quake::ExpPauliOp>) {
-      quake::ExpPauliOp::create(
+    if constexpr (std::is_same_v<Op, cudaq::quake::ExpPauliOp>) {
+      cudaq::quake::ExpPauliOp::create(
           rewriter, loc, TypeRange{}, op.getIsAdjAttr(), op.getParameters(),
           op.getControls(), op.getTargets(), op.getNegatedQubitControlsAttr(),
           op.getPauli(), op.getPauliLiteralAttr());
-    } else if constexpr (std::is_same_v<Op, quake::CustomUnitarySymbolOp>) {
+    } else if constexpr (std::is_same_v<Op,
+                                        cudaq::quake::CustomUnitarySymbolOp>) {
       Op::create(rewriter, loc, op.getGeneratorAttr(), op.getIsAdj(),
                  op.getParameters(), op.getControls(), op.getTargets());
     } else {
@@ -56,8 +58,9 @@ public:
 
     for (auto negationIter : llvm::enumerate(negations.value()))
       if (negationIter.value())
-        quake::XOp::create(rewriter, loc, ValueRange(),
-                           ValueRange{op.getControls()[negationIter.index()]});
+        cudaq::quake::XOp::create(
+            rewriter, loc, ValueRange(),
+            ValueRange{op.getControls()[negationIter.index()]});
     rewriter.eraseOp(op);
 
     return success();
@@ -75,36 +78,41 @@ struct ApplyControlNegationsPass
     auto funcOp = getOperation();
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    patterns.insert<
-        ReplaceNegativeControl<quake::XOp>, ReplaceNegativeControl<quake::YOp>,
-        ReplaceNegativeControl<quake::ZOp>, ReplaceNegativeControl<quake::HOp>,
-        ReplaceNegativeControl<quake::SOp>, ReplaceNegativeControl<quake::TOp>,
-        ReplaceNegativeControl<quake::RxOp>,
-        ReplaceNegativeControl<quake::RyOp>,
-        ReplaceNegativeControl<quake::RzOp>,
-        ReplaceNegativeControl<quake::R1Op>,
-        ReplaceNegativeControl<quake::U3Op>,
-        ReplaceNegativeControl<quake::SwapOp>,
-        ReplaceNegativeControl<quake::ExpPauliOp>,
-        ReplaceNegativeControl<quake::CustomUnitarySymbolOp>>(ctx);
+    patterns
+        .insert<ReplaceNegativeControl<cudaq::quake::XOp>,
+                ReplaceNegativeControl<cudaq::quake::YOp>,
+                ReplaceNegativeControl<cudaq::quake::ZOp>,
+                ReplaceNegativeControl<cudaq::quake::HOp>,
+                ReplaceNegativeControl<cudaq::quake::SOp>,
+                ReplaceNegativeControl<cudaq::quake::TOp>,
+                ReplaceNegativeControl<cudaq::quake::RxOp>,
+                ReplaceNegativeControl<cudaq::quake::RyOp>,
+                ReplaceNegativeControl<cudaq::quake::RzOp>,
+                ReplaceNegativeControl<cudaq::quake::R1Op>,
+                ReplaceNegativeControl<cudaq::quake::U3Op>,
+                ReplaceNegativeControl<cudaq::quake::SwapOp>,
+                ReplaceNegativeControl<cudaq::quake::ExpPauliOp>,
+                ReplaceNegativeControl<cudaq::quake::CustomUnitarySymbolOp>>(
+            ctx);
     ConversionTarget target(*ctx);
     target.addLegalDialect<cudaq::cc::CCDialect, arith::ArithDialect,
                            LLVM::LLVMDialect>();
-    target.addDynamicallyLegalDialect<quake::QuakeDialect>([](Operation *op) {
-      auto quantumOp = dyn_cast<quake::OperatorInterface>(op);
-      if (!quantumOp)
-        return true;
+    target.addDynamicallyLegalDialect<cudaq::quake::QuakeDialect>(
+        [](Operation *op) {
+          auto quantumOp = dyn_cast<cudaq::quake::OperatorInterface>(op);
+          if (!quantumOp)
+            return true;
 
-      auto negations = quantumOp.getNegatedControls();
-      if (!negations.has_value())
-        return true;
+          auto negations = quantumOp.getNegatedControls();
+          if (!negations.has_value())
+            return true;
 
-      for (auto negation : negations.value())
-        if (negation)
-          return false;
+          for (auto negation : negations.value())
+            if (negation)
+              return false;
 
-      return true;
-    });
+          return true;
+        });
     if (failed(applyPartialConversion(funcOp, target, std::move(patterns)))) {
       funcOp->emitOpError("could not replace negations");
       signalPassFailure();

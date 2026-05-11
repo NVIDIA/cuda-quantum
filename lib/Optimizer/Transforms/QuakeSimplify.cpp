@@ -37,7 +37,7 @@ public:
 
     auto targets = qop.getTargets();
     if (targets.size() != 1 ||
-        !quake::isQuantumValueType(targets[0].getType())) {
+        !cudaq::quake::isQuantumValueType(targets[0].getType())) {
       LLVM_DEBUG(llvm::dbgs() << "operation must have 1 target\n");
       return failure();
     }
@@ -60,8 +60,8 @@ public:
     }
     Value prevTrgt = prevTrgs[0];
     auto last = prev.getNumResults() - 1;
-    if (!isa<quake::WireType>(trgt.getType()) ||
-        !isa<quake::WireType>(prevTrgt.getType()) ||
+    if (!isa<cudaq::quake::WireType>(trgt.getType()) ||
+        !isa<cudaq::quake::WireType>(prevTrgt.getType()) ||
         trgt != prev.getResult(last)) {
       LLVM_DEBUG(llvm::dbgs() << "target wire must thread\n");
       return failure();
@@ -77,13 +77,14 @@ public:
     for (auto iter : llvm::enumerate(llvm::zip(controls, prevCtls))) {
       auto n = iter.index();
       auto [c, pc] = iter.value();
-      if (isa<quake::ControlType>(c.getType()))
-        if (!isa<quake::ControlType>(pc.getType()) || c != pc) {
+      if (isa<cudaq::quake::ControlType>(c.getType()))
+        if (!isa<cudaq::quake::ControlType>(pc.getType()) || c != pc) {
           LLVM_DEBUG(llvm::dbgs() << "control must be the same\n");
           return failure();
         }
-      if (!isa<quake::WireType>(c.getType()) ||
-          !isa<quake::WireType>(pc.getType()) || c != prev.getResult(n)) {
+      if (!isa<cudaq::quake::WireType>(c.getType()) ||
+          !isa<cudaq::quake::WireType>(pc.getType()) ||
+          c != prev.getResult(n)) {
         LLVM_DEBUG(llvm::dbgs() << "control wire must be threaded\n");
         return failure();
       }
@@ -101,32 +102,32 @@ public:
 };
 
 template <>
-class HermitianElimination<quake::SwapOp>
-    : public OpRewritePattern<quake::SwapOp> {
+class HermitianElimination<cudaq::quake::SwapOp>
+    : public OpRewritePattern<cudaq::quake::SwapOp> {
 public:
-  using Base = OpRewritePattern<quake::SwapOp>;
+  using Base = OpRewritePattern<cudaq::quake::SwapOp>;
   using Base::Base;
 
-  LogicalResult matchAndRewrite(quake::SwapOp qop,
+  LogicalResult matchAndRewrite(cudaq::quake::SwapOp qop,
                                 PatternRewriter &rewriter) const override {
     if (qop.getNegatedQubitControls())
       return failure();
 
     auto targets = qop.getTargets();
     if (targets.size() != 2 ||
-        !quake::isQuantumValueType(targets[0].getType()) ||
-        !quake::isQuantumValueType(targets[1].getType())) {
+        !cudaq::quake::isQuantumValueType(targets[0].getType()) ||
+        !cudaq::quake::isQuantumValueType(targets[1].getType())) {
       LLVM_DEBUG(llvm::dbgs() << "operation must have 2 targets\n");
       return failure();
     }
 
     // Check that these are the same swap op back-to-back.
-    auto prev0 = targets[0].template getDefiningOp<quake::SwapOp>();
+    auto prev0 = targets[0].template getDefiningOp<cudaq::quake::SwapOp>();
     if (!prev0) {
       LLVM_DEBUG(llvm::dbgs() << "previous operation 0 must be the same\n");
       return failure();
     }
-    auto prev1 = targets[1].template getDefiningOp<quake::SwapOp>();
+    auto prev1 = targets[1].template getDefiningOp<cudaq::quake::SwapOp>();
     if (!prev1) {
       LLVM_DEBUG(llvm::dbgs() << "previous operation 1 must be the same\n");
       return failure();
@@ -148,10 +149,10 @@ public:
     auto matches = [](Value u0, Value u1, Value d0, Value d1) -> bool {
       return (u0 == d0 && u1 == d1) || (u0 == d1 && u1 == d0);
     };
-    if (!isa<quake::WireType>(targets[0].getType()) ||
-        !isa<quake::WireType>(prevTrgs[0].getType()) ||
-        !isa<quake::WireType>(targets[1].getType()) ||
-        !isa<quake::WireType>(prevTrgs[1].getType()) ||
+    if (!isa<cudaq::quake::WireType>(targets[0].getType()) ||
+        !isa<cudaq::quake::WireType>(prevTrgs[0].getType()) ||
+        !isa<cudaq::quake::WireType>(targets[1].getType()) ||
+        !isa<cudaq::quake::WireType>(prevTrgs[1].getType()) ||
         !matches(targets[0], targets[1], prev0.getResult(last - 1),
                  prev0.getResult(last))) {
       LLVM_DEBUG(llvm::dbgs() << "target wires must thread\n");
@@ -168,13 +169,14 @@ public:
     for (auto iter : llvm::enumerate(llvm::zip(controls, prevCtls))) {
       auto n = iter.index();
       auto [c, pc] = iter.value();
-      if (isa<quake::ControlType>(c.getType()))
-        if (!isa<quake::ControlType>(pc.getType()) || c != pc) {
+      if (isa<cudaq::quake::ControlType>(c.getType()))
+        if (!isa<cudaq::quake::ControlType>(pc.getType()) || c != pc) {
           LLVM_DEBUG(llvm::dbgs() << "control must be the same\n");
           return failure();
         }
-      if (!isa<quake::WireType>(c.getType()) ||
-          !isa<quake::WireType>(pc.getType()) || c != prev0.getResult(n)) {
+      if (!isa<cudaq::quake::WireType>(c.getType()) ||
+          !isa<cudaq::quake::WireType>(pc.getType()) ||
+          c != prev0.getResult(n)) {
         LLVM_DEBUG(llvm::dbgs() << "control wire must be threaded\n");
         return failure();
       }
@@ -204,7 +206,7 @@ public:
 
     auto targets = qop.getTargets();
     if (targets.size() != 1 ||
-        !quake::isQuantumValueType(targets[0].getType())) {
+        !cudaq::quake::isQuantumValueType(targets[0].getType())) {
       LLVM_DEBUG(llvm::dbgs() << "must have 1 target\n");
       return failure();
     }
@@ -228,8 +230,8 @@ public:
     }
     Value prevTrgt = prevTrgs[0];
     auto last = prev.getNumResults() - 1;
-    if (!isa<quake::WireType>(trgt.getType()) ||
-        !isa<quake::WireType>(prevTrgt.getType()) ||
+    if (!isa<cudaq::quake::WireType>(trgt.getType()) ||
+        !isa<cudaq::quake::WireType>(prevTrgt.getType()) ||
         trgt != prev.getResult(last)) {
       LLVM_DEBUG(llvm::dbgs() << "target wire must thread\n" << qop << '\n');
       return failure();
@@ -245,13 +247,14 @@ public:
     for (auto iter : llvm::enumerate(llvm::zip(controls, prevCtls))) {
       auto n = iter.index();
       auto [c, pc] = iter.value();
-      if (isa<quake::ControlType>(c.getType()))
-        if (!isa<quake::ControlType>(pc.getType()) || c != pc) {
+      if (isa<cudaq::quake::ControlType>(c.getType()))
+        if (!isa<cudaq::quake::ControlType>(pc.getType()) || c != pc) {
           LLVM_DEBUG(llvm::dbgs() << "control must be the same\n");
           return failure();
         }
-      if (!isa<quake::WireType>(c.getType()) ||
-          !isa<quake::WireType>(pc.getType()) || c != prev.getResult(n)) {
+      if (!isa<cudaq::quake::WireType>(c.getType()) ||
+          !isa<cudaq::quake::WireType>(pc.getType()) ||
+          c != prev.getResult(n)) {
         LLVM_DEBUG(llvm::dbgs() << "control must be threaded\n");
         return failure();
       }
@@ -295,25 +298,25 @@ public:
 };
 
 // Z = SS
-class DoubleSOp : public OpRewritePattern<quake::SOp> {
+class DoubleSOp : public OpRewritePattern<cudaq::quake::SOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(quake::SOp qop,
+  LogicalResult matchAndRewrite(cudaq::quake::SOp qop,
                                 PatternRewriter &rewriter) const override {
     if (qop.getNegatedQubitControls())
       return failure();
 
     auto targets = qop.getTargets();
     if (targets.size() != 1 ||
-        !quake::isQuantumValueType(targets[0].getType())) {
+        !cudaq::quake::isQuantumValueType(targets[0].getType())) {
       LLVM_DEBUG(llvm::dbgs() << "operation must have 1 target\n");
       return failure();
     }
     Value trgt = targets[0];
 
     // Check that these are the same Hermitian op back-to-back.
-    auto prev = targets[0].template getDefiningOp<quake::SOp>();
+    auto prev = targets[0].template getDefiningOp<cudaq::quake::SOp>();
     if (!prev) {
       LLVM_DEBUG(llvm::dbgs() << "previous operation must be the same\n");
       return failure();
@@ -329,8 +332,8 @@ public:
     }
     Value prevTrgt = prevTrgs[0];
     auto last = prev.getNumResults() - 1;
-    if (!isa<quake::WireType>(trgt.getType()) ||
-        !isa<quake::WireType>(prevTrgt.getType()) ||
+    if (!isa<cudaq::quake::WireType>(trgt.getType()) ||
+        !isa<cudaq::quake::WireType>(prevTrgt.getType()) ||
         trgt != prev.getResult(last)) {
       LLVM_DEBUG(llvm::dbgs() << "target wire must thread\n");
       return failure();
@@ -346,13 +349,14 @@ public:
     for (auto iter : llvm::enumerate(llvm::zip(controls, prevCtls))) {
       auto n = iter.index();
       auto [c, pc] = iter.value();
-      if (isa<quake::ControlType>(c.getType()))
-        if (!isa<quake::ControlType>(pc.getType()) || c != pc) {
+      if (isa<cudaq::quake::ControlType>(c.getType()))
+        if (!isa<cudaq::quake::ControlType>(pc.getType()) || c != pc) {
           LLVM_DEBUG(llvm::dbgs() << "control must be the same\n");
           return failure();
         }
-      if (!isa<quake::WireType>(c.getType()) ||
-          !isa<quake::WireType>(pc.getType()) || c != prev.getResult(n)) {
+      if (!isa<cudaq::quake::WireType>(c.getType()) ||
+          !isa<cudaq::quake::WireType>(pc.getType()) ||
+          c != prev.getResult(n)) {
         LLVM_DEBUG(llvm::dbgs() << "control wire must be threaded\n");
         return failure();
       }
@@ -360,34 +364,34 @@ public:
 
     // Rewrite the back-to-back S gates.
     LLVM_DEBUG(llvm::dbgs() << "replaced: " << qop << '\n' << prev << '\n');
-    rewriter.replaceOpWithNewOp<quake::ZOp>(qop, qop.getResultTypes(),
-                                            UnitAttr{}, ValueRange{}, prevCtls,
-                                            prevTrgs, DenseBoolArrayAttr{});
+    rewriter.replaceOpWithNewOp<cudaq::quake::ZOp>(
+        qop, qop.getResultTypes(), UnitAttr{}, ValueRange{}, prevCtls, prevTrgs,
+        DenseBoolArrayAttr{});
     rewriter.eraseOp(prev);
     return success();
   }
 };
 
 // S = TT
-class DoubleTOp : public OpRewritePattern<quake::TOp> {
+class DoubleTOp : public OpRewritePattern<cudaq::quake::TOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(quake::TOp qop,
+  LogicalResult matchAndRewrite(cudaq::quake::TOp qop,
                                 PatternRewriter &rewriter) const override {
     if (qop.getNegatedQubitControls())
       return failure();
 
     auto targets = qop.getTargets();
     if (targets.size() != 1 ||
-        !quake::isQuantumValueType(targets[0].getType())) {
+        !cudaq::quake::isQuantumValueType(targets[0].getType())) {
       LLVM_DEBUG(llvm::dbgs() << "operation must have 1 target\n");
       return failure();
     }
     Value trgt = targets[0];
 
     // Check that these are the same Hermitian op back-to-back.
-    auto prev = targets[0].template getDefiningOp<quake::TOp>();
+    auto prev = targets[0].template getDefiningOp<cudaq::quake::TOp>();
     if (!prev) {
       LLVM_DEBUG(llvm::dbgs() << "previous operation must be T\n");
       return failure();
@@ -403,8 +407,8 @@ public:
     }
     Value prevTrgt = prevTrgs[0];
     auto last = prev.getNumResults() - 1;
-    if (!isa<quake::WireType>(trgt.getType()) ||
-        !isa<quake::WireType>(prevTrgt.getType()) ||
+    if (!isa<cudaq::quake::WireType>(trgt.getType()) ||
+        !isa<cudaq::quake::WireType>(prevTrgt.getType()) ||
         trgt != prev.getResult(last)) {
       LLVM_DEBUG(llvm::dbgs() << "target wire must thread\n");
       return failure();
@@ -420,13 +424,14 @@ public:
     for (auto iter : llvm::enumerate(llvm::zip(controls, prevCtls))) {
       auto n = iter.index();
       auto [c, pc] = iter.value();
-      if (isa<quake::ControlType>(c.getType()))
-        if (!isa<quake::ControlType>(pc.getType()) || c != pc) {
+      if (isa<cudaq::quake::ControlType>(c.getType()))
+        if (!isa<cudaq::quake::ControlType>(pc.getType()) || c != pc) {
           LLVM_DEBUG(llvm::dbgs() << "control must be the same\n");
           return failure();
         }
-      if (!isa<quake::WireType>(c.getType()) ||
-          !isa<quake::WireType>(pc.getType()) || c != prev.getResult(n)) {
+      if (!isa<cudaq::quake::WireType>(c.getType()) ||
+          !isa<cudaq::quake::WireType>(pc.getType()) ||
+          c != prev.getResult(n)) {
         LLVM_DEBUG(llvm::dbgs() << "control wire must be threaded\n");
         return failure();
       }
@@ -434,39 +439,40 @@ public:
 
     // Rewrite the back-to-back S gates.
     LLVM_DEBUG(llvm::dbgs() << "replaced: " << qop << '\n' << prev << '\n');
-    rewriter.replaceOpWithNewOp<quake::SOp>(qop, qop.getResultTypes(),
-                                            UnitAttr{}, ValueRange{}, prevCtls,
-                                            prevTrgs, DenseBoolArrayAttr{});
+    rewriter.replaceOpWithNewOp<cudaq::quake::SOp>(
+        qop, qop.getResultTypes(), UnitAttr{}, ValueRange{}, prevCtls, prevTrgs,
+        DenseBoolArrayAttr{});
     rewriter.eraseOp(prev);
     return success();
   }
 };
 
 // S = YSX
-class ReduceYSX : public OpRewritePattern<quake::XOp> {
+class ReduceYSX : public OpRewritePattern<cudaq::quake::XOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(quake::XOp qop,
+  LogicalResult matchAndRewrite(cudaq::quake::XOp qop,
                                 PatternRewriter &rewriter) const override {
     if (qop.getNegatedQubitControls())
       return failure();
 
     auto targets = qop.getTargets();
     if (targets.size() != 1 ||
-        !quake::isQuantumValueType(targets[0].getType())) {
+        !cudaq::quake::isQuantumValueType(targets[0].getType())) {
       LLVM_DEBUG(llvm::dbgs() << "operation must have 1 target\n");
       return failure();
     }
     Value trgt = targets[0];
 
     // Check that these are the same Hermitian op back-to-back.
-    auto prev0 = targets[0].template getDefiningOp<quake::SOp>();
+    auto prev0 = targets[0].template getDefiningOp<cudaq::quake::SOp>();
     if (!prev0) {
       LLVM_DEBUG(llvm::dbgs() << "previous operation must be S\n");
       return failure();
     }
-    auto prev = prev0.getTargets()[0].template getDefiningOp<quake::YOp>();
+    auto prev =
+        prev0.getTargets()[0].template getDefiningOp<cudaq::quake::YOp>();
     if (!prev) {
       LLVM_DEBUG(llvm::dbgs() << "previous previous operation must be Y\n");
       return failure();
@@ -485,9 +491,9 @@ public:
     Value prevTrgt = prevTrgs[0];
     auto last0 = prev0.getNumResults() - 1;
     auto last = prev.getNumResults() - 1;
-    if (!isa<quake::WireType>(trgt.getType()) ||
-        !isa<quake::WireType>(prev0Trgt.getType()) ||
-        !isa<quake::WireType>(prevTrgt.getType()) ||
+    if (!isa<cudaq::quake::WireType>(trgt.getType()) ||
+        !isa<cudaq::quake::WireType>(prev0Trgt.getType()) ||
+        !isa<cudaq::quake::WireType>(prevTrgt.getType()) ||
         trgt != prev0.getResult(last0) || prev0Trgt != prev.getResult(last)) {
       LLVM_DEBUG(llvm::dbgs() << "target wire must thread\n");
       return failure();
@@ -506,15 +512,16 @@ public:
          llvm::enumerate(llvm::zip(controls, prev0Ctls, prevCtls))) {
       auto n = iter.index();
       auto [c, p0c, pc] = iter.value();
-      if (isa<quake::ControlType>(c.getType()))
-        if (!isa<quake::ControlType>(pc.getType()) || c != pc || p0c != pc) {
+      if (isa<cudaq::quake::ControlType>(c.getType()))
+        if (!isa<cudaq::quake::ControlType>(pc.getType()) || c != pc ||
+            p0c != pc) {
           LLVM_DEBUG(llvm::dbgs() << "control must be the same\n");
           return failure();
         }
-      if (!isa<quake::WireType>(c.getType()) ||
-          !isa<quake::WireType>(pc.getType()) ||
-          !isa<quake::WireType>(pc.getType()) || c != prev0.getResult(n) ||
-          p0c != prev.getResult(n)) {
+      if (!isa<cudaq::quake::WireType>(c.getType()) ||
+          !isa<cudaq::quake::WireType>(pc.getType()) ||
+          !isa<cudaq::quake::WireType>(pc.getType()) ||
+          c != prev0.getResult(n) || p0c != prev.getResult(n)) {
         LLVM_DEBUG(llvm::dbgs() << "control wire must be threaded\n");
         return failure();
       }
@@ -524,9 +531,9 @@ public:
     LLVM_DEBUG(llvm::dbgs() << "replaced: " << qop << '\n'
                             << prev0 << '\n'
                             << prev << '\n');
-    rewriter.replaceOpWithNewOp<quake::SOp>(qop, qop.getResultTypes(),
-                                            UnitAttr{}, ValueRange{}, prevCtls,
-                                            prevTrgs, DenseBoolArrayAttr{});
+    rewriter.replaceOpWithNewOp<cudaq::quake::SOp>(
+        qop, qop.getResultTypes(), UnitAttr{}, ValueRange{}, prevCtls, prevTrgs,
+        DenseBoolArrayAttr{});
     rewriter.eraseOp(prev0);
     rewriter.eraseOp(prev);
     return success();
@@ -543,13 +550,17 @@ public:
     auto *ctx = &getContext();
     auto *op = getOperation();
     RewritePatternSet patterns(ctx);
-    patterns.insert<
-        DoubleSOp, DoubleTOp, ReduceYSX, HermitianElimination<quake::HOp>,
-        HermitianElimination<quake::SwapOp>, HermitianElimination<quake::XOp>,
-        HermitianElimination<quake::YOp>, HermitianElimination<quake::ZOp>,
-        RotationCombine<quake::R1Op>, RotationCombine<quake::RxOp>,
-        RotationCombine<quake::RyOp>, RotationCombine<quake::RzOp>,
-        RotationCombine<quake::PhasedRxOp>>(ctx);
+    patterns.insert<DoubleSOp, DoubleTOp, ReduceYSX,
+                    HermitianElimination<cudaq::quake::HOp>,
+                    HermitianElimination<cudaq::quake::SwapOp>,
+                    HermitianElimination<cudaq::quake::XOp>,
+                    HermitianElimination<cudaq::quake::YOp>,
+                    HermitianElimination<cudaq::quake::ZOp>,
+                    RotationCombine<cudaq::quake::R1Op>,
+                    RotationCombine<cudaq::quake::RxOp>,
+                    RotationCombine<cudaq::quake::RyOp>,
+                    RotationCombine<cudaq::quake::RzOp>,
+                    RotationCombine<cudaq::quake::PhasedRxOp>>(ctx);
     if (failed(applyPatternsGreedily(op, std::move(patterns))))
       signalPassFailure();
   }

@@ -111,7 +111,7 @@ static bool hasInitStateUse(BlockArgument argument) {
   for (auto *argUser : argument.getUsers())
     if (auto stdvecDataOp = dyn_cast<cudaq::cc::StdvecDataOp>(argUser))
       for (auto *dataUser : stdvecDataOp->getUsers())
-        if (isa<quake::InitializeStateOp>(dataUser))
+        if (isa<cudaq::quake::InitializeStateOp>(dataUser))
           return true;
   return false;
 }
@@ -543,7 +543,7 @@ public:
       }
 
       if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(type)) {
-        if (isa<quake::StateType>(ptrTy.getElementType())) {
+        if (isa<cudaq::quake::StateType>(ptrTy.getElementType())) {
           // Special case of a `cudaq::state*` which must be in the same address
           // space. This references a container to a set of simulation
           // amplitudes.
@@ -554,7 +554,8 @@ public:
                   Value rawPtr = arith::ConstantIntOp::create(
                       builder, loc, reinterpret_cast<std::intptr_t>(*concrete),
                       sizeof(void *) * 8);
-                  auto stateTy = quake::StateType::get(builder.getContext());
+                  auto stateTy =
+                      cudaq::quake::StateType::get(builder.getContext());
                   return cudaq::cc::CastOp::create(
                       builder, loc, cudaq::cc::PointerType::get(stateTy),
                       rawPtr);

@@ -29,26 +29,27 @@ using namespace mlir;
  */
 
 namespace {
-class AttachWirePattern : public OpRewritePattern<quake::AttachWireOp> {
+class AttachWirePattern : public OpRewritePattern<cudaq::quake::AttachWireOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(quake::AttachWireOp attach,
+  LogicalResult matchAndRewrite(cudaq::quake::AttachWireOp attach,
                                 PatternRewriter &rewriter) const override {
     auto loc = attach.getLoc();
     auto *ctx = rewriter.getContext();
-    auto size = cast<quake::CableType>(attach.getCable().getType()).getSize();
+    auto size =
+        cast<cudaq::quake::CableType>(attach.getCable().getType()).getSize();
     LLVM_DEBUG(llvm::dbgs() << "attach: " << attach << '\n');
-    SmallVector<Type> wiresTy(size, quake::WireType::get(ctx));
-    auto split =
-        quake::SplitCableOp::create(rewriter, loc, wiresTy, attach.getCable());
+    SmallVector<Type> wiresTy(size, cudaq::quake::WireType::get(ctx));
+    auto split = cudaq::quake::SplitCableOp::create(rewriter, loc, wiresTy,
+                                                    attach.getCable());
     SmallVector<Value> args{split.getResults().begin(),
                             split.getResults().begin() + attach.getIndex()};
     args.push_back(attach.getWire());
     args.append(split.getResults().begin() + attach.getIndex(),
                 split.getResults().end());
     [[maybe_unused]] auto bundle =
-        rewriter.replaceOpWithNewOp<quake::BundleCableOp>(
+        rewriter.replaceOpWithNewOp<cudaq::quake::BundleCableOp>(
             attach, attach.getType(), ValueRange{args});
     LLVM_DEBUG(llvm::dbgs() << "split/bundle: " << split << '\n'
                             << bundle << '\n');
@@ -56,19 +57,20 @@ public:
   }
 };
 
-class DetachWirePattern : public OpRewritePattern<quake::DetachWireOp> {
+class DetachWirePattern : public OpRewritePattern<cudaq::quake::DetachWireOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(quake::DetachWireOp detach,
+  LogicalResult matchAndRewrite(cudaq::quake::DetachWireOp detach,
                                 PatternRewriter &rewriter) const override {
     auto loc = detach.getLoc();
     auto *ctx = rewriter.getContext();
-    auto size = cast<quake::CableType>(detach.getCable().getType()).getSize();
+    auto size =
+        cast<cudaq::quake::CableType>(detach.getCable().getType()).getSize();
     LLVM_DEBUG(llvm::dbgs() << "detach: " << detach << '\n');
-    SmallVector<Type> wiresTy(size, quake::WireType::get(ctx));
-    auto split =
-        quake::SplitCableOp::create(rewriter, loc, wiresTy, detach.getCable());
+    SmallVector<Type> wiresTy(size, cudaq::quake::WireType::get(ctx));
+    auto split = cudaq::quake::SplitCableOp::create(rewriter, loc, wiresTy,
+                                                    detach.getCable());
     auto pos = detach.getIndex();
     SmallVector<Value> args;
     args.reserve(split.getResults().size() - 1);
@@ -76,7 +78,7 @@ public:
       if (i != pos)
         args.push_back(res);
     Value detachee = split.getResult(pos);
-    Value bundle = quake::BundleCableOp::create(
+    Value bundle = cudaq::quake::BundleCableOp::create(
         rewriter, loc, detach.getResult(1).getType(), ValueRange{args});
     rewriter.replaceOp(detach, ValueRange{detachee, bundle});
     LLVM_DEBUG(llvm::dbgs() << "split/bundle: " << split << '\n'

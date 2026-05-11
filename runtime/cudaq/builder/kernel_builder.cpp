@@ -111,12 +111,12 @@ convertArgumentTypeToMLIR(std::vector<std::complex<float>> &e) {
 
 KernelBuilderType convertArgumentTypeToMLIR(cudaq::qubit &e) {
   return KernelBuilderType(
-      [](MLIRContext *ctx) { return quake::RefType::get(ctx); });
+      [](MLIRContext *ctx) { return cudaq::quake::RefType::get(ctx); });
 }
 
 KernelBuilderType convertArgumentTypeToMLIR(cudaq::qvector<> &e) {
   return KernelBuilderType(
-      [](MLIRContext *ctx) { return quake::VeqType::getUnsized(ctx); });
+      [](MLIRContext *ctx) { return cudaq::quake::VeqType::getUnsized(ctx); });
 }
 
 KernelBuilderType convertArgumentTypeToMLIR(std::vector<cudaq::pauli_word> &) {
@@ -127,7 +127,7 @@ KernelBuilderType convertArgumentTypeToMLIR(std::vector<cudaq::pauli_word> &) {
 
 KernelBuilderType convertArgumentTypeToMLIR(cudaq::state *&) {
   return KernelBuilderType([](MLIRContext *ctx) {
-    return cudaq::cc::PointerType::get(quake::StateType::get(ctx));
+    return cudaq::cc::PointerType::get(cudaq::quake::StateType::get(ctx));
   });
 }
 
@@ -200,13 +200,14 @@ void exp_pauli(ImplicitLocOpBuilder &builder, const QuakeValue &theta,
     for (auto &v : qubits)
       values.push_back(v.getValue());
 
-    qubitsVal = quake::ConcatOp::create(
-        builder, quake::VeqType::get(builder.getContext(), qubits.size()),
+    qubitsVal = cudaq::quake::ConcatOp::create(
+        builder,
+        cudaq::quake::VeqType::get(builder.getContext(), qubits.size()),
         values);
   }
 
   auto thetaVal = theta.getValue();
-  if (!isa<quake::VeqType>(qubitsVal.getType()))
+  if (!isa<cudaq::quake::VeqType>(qubitsVal.getType()))
     throw std::runtime_error(
         "exp_pauli must take a QuakeValue of veq type as second argument.");
   if (!thetaVal.getType().isIntOrFloat())
@@ -214,8 +215,8 @@ void exp_pauli(ImplicitLocOpBuilder &builder, const QuakeValue &theta,
                              "type as first argument.");
   CUDAQ_INFO("kernel_builder apply exp_pauli {}", pauliWord);
 
-  quake::ExpPauliOp::create(builder, ValueRange{thetaVal}, ValueRange{},
-                            ValueRange{qubitsVal}, pauliWord);
+  cudaq::quake::ExpPauliOp::create(builder, ValueRange{thetaVal}, ValueRange{},
+                                   ValueRange{qubitsVal}, pauliWord);
 }
 
 /// @brief Search the given `FuncOp` for all `CallOps` recursively.
@@ -233,7 +234,7 @@ void addAllCalledFunctionRecursively(
       StringRef calleeName;
       if (auto callOp = dyn_cast<func::CallOp>(op))
         calleeName = callOp.getCallee();
-      else if (auto applyOp = dyn_cast<quake::ApplyOp>(op))
+      else if (auto applyOp = dyn_cast<cudaq::quake::ApplyOp>(op))
         calleeName = applyOp.getCalleeAttrNameStr();
 
       // We don't have a CallOp or an ApplyOp, drop out
@@ -321,14 +322,14 @@ void call(ImplicitLocOpBuilder &builder, std::string &name,
     Type argType = otherFuncCloned.getArgumentTypes()[i++];
     Value value = v.getValue();
     Type inType = value.getType();
-    auto inAsVeqTy = dyn_cast_or_null<quake::VeqType>(inType);
-    auto argAsVeqTy = dyn_cast_or_null<quake::VeqType>(argType);
+    auto inAsVeqTy = dyn_cast_or_null<cudaq::quake::VeqType>(inType);
+    auto argAsVeqTy = dyn_cast_or_null<cudaq::quake::VeqType>(argType);
 
     // If both are veqs, make sure we don't have veq<N> -> veq<?>
     if (inAsVeqTy && argAsVeqTy) {
       // make sure they are both the same veq<...> type
       if (inAsVeqTy.hasSpecifiedSize() && !argAsVeqTy.hasSpecifiedSize())
-        value = quake::RelaxSizeOp::create(builder, argAsVeqTy, value);
+        value = cudaq::quake::RelaxSizeOp::create(builder, argAsVeqTy, value);
     } else if (inType != argType) {
       std::string inS, argS;
       {
@@ -374,14 +375,14 @@ void applyControlOrAdjoint(ImplicitLocOpBuilder &builder, std::string &name,
     Type argType = otherFuncCloned.getArgumentTypes()[i];
     Value value = v.getValue();
     Type inType = value.getType();
-    auto inAsVeqTy = dyn_cast_or_null<quake::VeqType>(inType);
-    auto argAsVeqTy = dyn_cast_or_null<quake::VeqType>(argType);
+    auto inAsVeqTy = dyn_cast_or_null<cudaq::quake::VeqType>(inType);
+    auto argAsVeqTy = dyn_cast_or_null<cudaq::quake::VeqType>(argType);
 
     // If both are veqs, make sure we don't have veq<N> -> veq<?>
     if (inAsVeqTy && argAsVeqTy) {
       // make sure they are both the same veq<...> type
       if (inAsVeqTy.hasSpecifiedSize() && !argAsVeqTy.hasSpecifiedSize())
-        value = quake::RelaxSizeOp::create(builder, argAsVeqTy, value);
+        value = cudaq::quake::RelaxSizeOp::create(builder, argAsVeqTy, value);
     } else if (inType != argType) {
       std::string inS, argS;
       {
@@ -397,9 +398,9 @@ void applyControlOrAdjoint(ImplicitLocOpBuilder &builder, std::string &name,
   }
 
   auto realName = std::string(cudaq::runtime::cudaqGenPrefixName) + name;
-  quake::ApplyOp::create(builder, TypeRange{},
-                         SymbolRefAttr::get(builder.getContext(), realName),
-                         isAdjoint, controls, mlirValues);
+  cudaq::quake::ApplyOp::create(
+      builder, TypeRange{}, SymbolRefAttr::get(builder.getContext(), realName),
+      isAdjoint, controls, mlirValues);
 }
 
 void control(ImplicitLocOpBuilder &builder, std::string &name,
@@ -483,7 +484,7 @@ Type KernelBuilderType::create(MLIRContext *ctx) { return creator(ctx); }
 
 QuakeValue qalloc(ImplicitLocOpBuilder &builder) {
   CUDAQ_INFO("kernel_builder allocating a single qubit");
-  Value qubit = quake::AllocaOp::create(builder);
+  Value qubit = cudaq::quake::AllocaOp::create(builder);
   return QuakeValue(builder, qubit);
 }
 
@@ -491,8 +492,8 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, const std::size_t nQubits) {
   CUDAQ_INFO("kernel_builder allocating {} qubits", nQubits);
 
   auto context = builder.getContext();
-  Value qubits =
-      quake::AllocaOp::create(builder, quake::VeqType::get(context, nQubits));
+  Value qubits = cudaq::quake::AllocaOp::create(
+      builder, cudaq::quake::VeqType::get(context, nQubits));
 
   return QuakeValue(builder, qubits);
 }
@@ -509,30 +510,33 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &sizeOrVec) {
     Value initials = cc::StdvecDataOp::create(builder, ptrTy, value);
     auto i64Ty = builder.getI64Type();
     Value size = cc::StdvecSizeOp::create(builder, i64Ty, value);
-    auto stateTy = cc::PointerType::get(quake::StateType::get(context));
-    auto state = quake::CreateStateOp::create(builder, stateTy, initials, size);
-    Value numQubits = quake::GetNumberOfQubitsOp::create(builder, i64Ty, state);
+    auto stateTy = cc::PointerType::get(cudaq::quake::StateType::get(context));
+    auto state =
+        cudaq::quake::CreateStateOp::create(builder, stateTy, initials, size);
+    Value numQubits =
+        cudaq::quake::GetNumberOfQubitsOp::create(builder, i64Ty, state);
     // allocate the number of qubits we need
-    auto veqTy = quake::VeqType::getUnsized(context);
-    Value qubits = quake::AllocaOp::create(builder, veqTy, numQubits);
+    auto veqTy = cudaq::quake::VeqType::getUnsized(context);
+    Value qubits = cudaq::quake::AllocaOp::create(builder, veqTy, numQubits);
 
-    qubits = quake::InitializeStateOp::create(builder, veqTy, qubits, state);
-    quake::DeleteStateOp::create(builder, state);
+    qubits =
+        cudaq::quake::InitializeStateOp::create(builder, veqTy, qubits, state);
+    cudaq::quake::DeleteStateOp::create(builder, state);
     return QuakeValue(builder, qubits);
   }
 
   if (auto statePtrTy = dyn_cast<cc::PointerType>(type)) {
     auto eleTy = statePtrTy.getElementType();
-    if (auto stateTy = dyn_cast<quake::StateType>(eleTy)) {
+    if (auto stateTy = dyn_cast<cudaq::quake::StateType>(eleTy)) {
       // get the number of qubits
-      auto numQubits = quake::GetNumberOfQubitsOp::create(
+      auto numQubits = cudaq::quake::GetNumberOfQubitsOp::create(
           builder, builder.getI64Type(), value);
       // allocate the number of qubits we need
-      auto veqTy = quake::VeqType::getUnsized(context);
-      Value qubits = quake::AllocaOp::create(builder, veqTy, numQubits);
+      auto veqTy = cudaq::quake::VeqType::getUnsized(context);
+      Value qubits = cudaq::quake::AllocaOp::create(builder, veqTy, numQubits);
       // Add the initialize state op
-      qubits = quake::InitializeStateOp::create(builder, qubits.getType(),
-                                                qubits, value);
+      qubits = cudaq::quake::InitializeStateOp::create(
+          builder, qubits.getType(), qubits, value);
       return QuakeValue(builder, qubits);
     }
   }
@@ -541,8 +545,8 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder, QuakeValue &sizeOrVec) {
     throw std::runtime_error(
         "Invalid parameter passed to qalloc (must be integer type).");
 
-  Value qubits = quake::AllocaOp::create(
-      builder, quake::VeqType::getUnsized(context), value);
+  Value qubits = cudaq::quake::AllocaOp::create(
+      builder, cudaq::quake::VeqType::getUnsized(context), value);
 
   return QuakeValue(builder, qubits);
 }
@@ -642,8 +646,8 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder,
                                    ValueRange{vecPtr, idxOp});
 
   // Allocate the qubits
-  Value qubits = quake::AllocaOp::create(
-      builder, quake::VeqType::getUnsized(context), size.getResult(0));
+  Value qubits = cudaq::quake::AllocaOp::create(
+      builder, cudaq::quake::VeqType::getUnsized(context), size.getResult(0));
 
   // Use callback to retrieve the data pointer of the captured vector `state` at
   // runtime.
@@ -653,24 +657,25 @@ QuakeValue qalloc(ImplicitLocOpBuilder &builder,
                                       ValueRange{vecPtr, idxOp});
 
   // Add the initialize state op
-  qubits = quake::InitializeStateOp::create(builder, qubits.getType(), qubits,
-                                            dataPtr.getResult(0));
+  qubits = cudaq::quake::InitializeStateOp::create(
+      builder, qubits.getType(), qubits, dataPtr.getResult(0));
   return QuakeValue(builder, qubits);
 }
 
 QuakeValue qalloc(mlir::ImplicitLocOpBuilder &builder, cudaq::state *state,
                   StateVectorStorage &stateVectorStorage) {
   auto *context = builder.getContext();
-  auto statePtrTy = cudaq::cc::PointerType::get(quake::StateType::get(context));
+  auto statePtrTy =
+      cudaq::cc::PointerType::get(cudaq::quake::StateType::get(context));
   auto statePtr = cc::CastOp::create(
       builder, builder.getLoc(), statePtrTy,
       arith::ConstantIntOp::create(builder,
                                    reinterpret_cast<std::intptr_t>(state), 64));
   // Add the initialize state op
-  Value qubits = quake::AllocaOp::create(
-      builder, quake::VeqType::get(context, state->get_num_qubits()));
-  qubits = quake::InitializeStateOp::create(builder, qubits.getType(), qubits,
-                                            statePtr);
+  Value qubits = cudaq::quake::AllocaOp::create(
+      builder, cudaq::quake::VeqType::get(context, state->get_num_qubits()));
+  qubits = cudaq::quake::InitializeStateOp::create(builder, qubits.getType(),
+                                                   qubits, statePtr);
   return QuakeValue(builder, qubits);
 }
 
@@ -687,11 +692,12 @@ void handleOneQubitBroadcast(ImplicitLocOpBuilder &builder, auto param,
   CUDAQ_INFO("kernel_builder handling operation broadcast on qvector.");
 
   auto loc = builder.getLoc();
-  Value rank = quake::VeqSizeOp::create(builder, builder.getI64Type(), veq);
+  Value rank =
+      cudaq::quake::VeqSizeOp::create(builder, builder.getI64Type(), veq);
   auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &,
                          Block &block) {
-    Value ref =
-        quake::ExtractRefOp::create(builder, loc, veq, block.getArgument(0));
+    Value ref = cudaq::quake::ExtractRefOp::create(builder, loc, veq,
+                                                   block.getArgument(0));
 
     QuakeOp::create(builder, loc, adjoint, param, ValueRange(), ref);
   };
@@ -710,19 +716,19 @@ void applyOneQubitOp(ImplicitLocOpBuilder &builder, auto &&params, auto &&ctrls,
     CUDAQ_INFO("kernel_builder apply {}", std::string(#NAME));                 \
     auto value = target.getValue();                                            \
     auto type = value.getType();                                               \
-    if (isa<quake::VeqType>(type)) {                                           \
+    if (isa<cudaq::quake::VeqType>(type)) {                                    \
       if (!ctrls.empty())                                                      \
         throw std::runtime_error(                                              \
             "Cannot specify controls for a veq broadcast.");                   \
-      handleOneQubitBroadcast<quake::QUAKENAME>(builder, ValueRange(),         \
-                                                target.getValue());            \
+      handleOneQubitBroadcast<cudaq::quake::QUAKENAME>(builder, ValueRange(),  \
+                                                       target.getValue());     \
       return;                                                                  \
     }                                                                          \
     std::vector<Value> ctrlValues;                                             \
     std::transform(ctrls.begin(), ctrls.end(), std::back_inserter(ctrlValues), \
                    [](auto &el) { return el.getValue(); });                    \
-    applyOneQubitOp<quake::QUAKENAME>(builder, ValueRange(), ctrlValues,       \
-                                      value, adjoint);                         \
+    applyOneQubitOp<cudaq::quake::QUAKENAME>(builder, ValueRange(),            \
+                                             ctrlValues, value, adjoint);      \
   }
 
 CUDAQ_ONE_QUBIT_IMPL(h, HOp)
@@ -738,19 +744,19 @@ CUDAQ_ONE_QUBIT_IMPL(z, ZOp)
     CUDAQ_INFO("kernel_builder apply {}", std::string(#NAME));                 \
     Value value = target.getValue();                                           \
     auto type = value.getType();                                               \
-    if (isa<quake::VeqType>(type)) {                                           \
+    if (isa<cudaq::quake::VeqType>(type)) {                                    \
       if (!ctrls.empty())                                                      \
         throw std::runtime_error(                                              \
             "Cannot specify controls for a veq broadcast.");                   \
-      handleOneQubitBroadcast<quake::QUAKENAME>(builder, parameter.getValue(), \
-                                                target.getValue());            \
+      handleOneQubitBroadcast<cudaq::quake::QUAKENAME>(                        \
+          builder, parameter.getValue(), target.getValue());                   \
       return;                                                                  \
     }                                                                          \
     std::vector<Value> ctrlValues;                                             \
     std::transform(ctrls.begin(), ctrls.end(), std::back_inserter(ctrlValues), \
                    [](auto &el) { return el.getValue(); });                    \
-    applyOneQubitOp<quake::QUAKENAME>(builder, parameter.getValue(),           \
-                                      ctrlValues, value, false);               \
+    applyOneQubitOp<cudaq::quake::QUAKENAME>(builder, parameter.getValue(),    \
+                                             ctrlValues, value, false);        \
   }
 
 CUDAQ_ONE_QUBIT_PARAM_IMPL(rx, RxOp)
@@ -769,15 +775,15 @@ void u3(ImplicitLocOpBuilder &builder, std::vector<QuakeValue> &parameters,
   std::transform(ctrls.begin(), ctrls.end(), std::back_inserter(ctrlValues),
                  [](auto &el) { return el.getValue(); });
   std::vector<Value> qubitValues{target.getValue()};
-  quake::U3Op::create(builder, adjoint, parameterValues, ctrlValues,
-                      qubitValues);
+  cudaq::quake::U3Op::create(builder, adjoint, parameterValues, ctrlValues,
+                             qubitValues);
 }
 
 template <typename QuakeMeasureOp>
 QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
                         const std::string &regName) {
   auto type = value.getType();
-  if (!isa<quake::RefType, quake::VeqType>(type))
+  if (!isa<cudaq::quake::RefType, cudaq::quake::VeqType>(type))
     throw std::runtime_error("Invalid parameter passed to mz.");
 
   CUDAQ_INFO("kernel_builder apply measurement");
@@ -790,8 +796,8 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
     strAttr = builder.getStringAttr(regName);
 
   Type resTy = builder.getI1Type();
-  Type measTy = quake::MeasureType::get(builder.getContext());
-  if (!isa<quake::RefType>(type)) {
+  Type measTy = cudaq::quake::MeasureType::get(builder.getContext());
+  if (!isa<cudaq::quake::RefType>(type)) {
     resTy = cc::StdvecType::get(resTy);
     measTy = cc::StdvecType::get(measTy);
   }
@@ -802,27 +808,31 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
   else
     measureResult = QuakeMeasureOp::create(builder, measTy, value).getMeasOut();
 
-  Value bits = quake::DiscriminateOp::create(builder, resTy, measureResult);
+  Value bits =
+      cudaq::quake::DiscriminateOp::create(builder, resTy, measureResult);
   return QuakeValue(builder, bits);
 }
 
 QuakeValue mx(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,
               const std::string &regName) {
-  return applyMeasure<quake::MxOp>(builder, qubitOrQvec.getValue(), regName);
+  return applyMeasure<cudaq::quake::MxOp>(builder, qubitOrQvec.getValue(),
+                                          regName);
 }
 
 QuakeValue my(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,
               const std::string &regName) {
-  return applyMeasure<quake::MyOp>(builder, qubitOrQvec.getValue(), regName);
+  return applyMeasure<cudaq::quake::MyOp>(builder, qubitOrQvec.getValue(),
+                                          regName);
 }
 
 QuakeValue mz(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,
               const std::string &regName) {
-  return applyMeasure<quake::MzOp>(builder, qubitOrQvec.getValue(), regName);
+  return applyMeasure<cudaq::quake::MzOp>(builder, qubitOrQvec.getValue(),
+                                          regName);
 }
 
 void reset(ImplicitLocOpBuilder &builder, const QuakeValue &qubitOrQvec) {
-  quake::ResetOp::create(builder, TypeRange{}, qubitOrQvec.getValue());
+  cudaq::quake::ResetOp::create(builder, TypeRange{}, qubitOrQvec.getValue());
 }
 
 void swap(ImplicitLocOpBuilder &builder, const std::vector<QuakeValue> &ctrls,
@@ -834,11 +844,11 @@ void swap(ImplicitLocOpBuilder &builder, const std::vector<QuakeValue> &ctrls,
                  [](auto &el) { return el.getValue(); });
   std::transform(qubits.begin(), qubits.end(), std::back_inserter(qubitValues),
                  [](auto &el) { return el.getValue(); });
-  quake::SwapOp::create(builder, adjoint, ValueRange(), ctrlValues,
-                        qubitValues);
+  cudaq::quake::SwapOp::create(builder, adjoint, ValueRange(), ctrlValues,
+                               qubitValues);
 }
 
-void checkAndUpdateRegName(quake::MeasurementInterface &measure) {
+void checkAndUpdateRegName(cudaq::quake::MeasurementInterface &measure) {
   auto regName = measure.getOptionalRegisterName();
   if (!regName.has_value() || regName.value().empty()) {
     auto regNameUpdate = "auto_register_" + std::to_string(regCounter++);
@@ -864,7 +874,7 @@ std::string name(std::string_view kernelName) {
 }
 
 bool isQubitType(Type ty) {
-  if (isa<quake::RefType, quake::VeqType>(ty))
+  if (isa<cudaq::quake::RefType, cudaq::quake::VeqType>(ty))
     return true;
   if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(ty))
     return isQubitType(vecTy.getElementType());

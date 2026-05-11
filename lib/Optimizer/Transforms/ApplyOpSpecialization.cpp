@@ -75,7 +75,7 @@ struct ApplyOpAnalysis {
 
 private:
   void performAnalysis(Operation *op) {
-    op->walk([&](quake::ApplyOp apply) {
+    op->walk([&](cudaq::quake::ApplyOp apply) {
       if (constProp) {
         // If some of the arguments in getActuals() are constants, then
         // materialize those constants in a clone of the variant. The
@@ -99,7 +99,7 @@ private:
               mapper.map(genericFunc.getArgument(idx), newConst);
               LLVM_DEBUG(llvm::dbgs() << "apply has constant arguments.\n");
             } else {
-              if (auto relax = v.getDefiningOp<quake::RelaxSizeOp>()) {
+              if (auto relax = v.getDefiningOp<cudaq::quake::RelaxSizeOp>()) {
                 // Also, specialize any relaxed veq types.
                 v = relax.getInputVec();
                 updateSignature = true;
@@ -130,8 +130,9 @@ private:
                 auto *ctx = newFunc.getContext();
                 OpBuilder builder(ctx);
                 builder.setInsertionPoint(&newFunc.front().front());
-                auto relax = quake::RelaxSizeOp::create(
-                    builder, newFunc.getLoc(), quake::VeqType::getUnsized(ctx),
+                auto relax = cudaq::quake::RelaxSizeOp::create(
+                    builder, newFunc.getLoc(),
+                    cudaq::quake::VeqType::getUnsized(ctx),
                     newFunc.front().getArgument(pos));
                 newFunc.front().getArgument(pos).replaceAllUsesExcept(
                     relax.getResult(), relax.getOperation());
@@ -143,7 +144,7 @@ private:
               entry.push_front(c);
             module.push_back(newFunc);
             OpBuilder builder(apply);
-            auto newApply = quake::ApplyOp::create(
+            auto newApply = cudaq::quake::ApplyOp::create(
                 builder, apply.getLoc(), apply.getResultTypes(),
                 SymbolRefAttr::get(ctx, calleeName), apply.getIsAdj(),
                 apply.getControls(), preservedArgs);
@@ -184,7 +185,7 @@ private:
       for (auto pr : cloneMap) {
         auto &func = pr.first;
         auto &variant = pr.second;
-        func->walk([&](quake::ApplyOp apply) {
+        func->walk([&](cudaq::quake::ApplyOp apply) {
           auto callee = lookupCallee(apply);
           auto iter = infoMap.find(callee);
           if (iter == infoMap.end()) {
@@ -199,7 +200,7 @@ private:
     }
   }
 
-  func::FuncOp lookupCallee(quake::ApplyOp apply) {
+  func::FuncOp lookupCallee(cudaq::quake::ApplyOp apply) {
     auto callee = apply.getCallee();
     if (callee)
       return module.lookupSymbol<func::FuncOp>(*callee);
@@ -225,7 +226,7 @@ static std::string getCtrlVariantFunctionName(const std::string &n) {
   return n + ".ctrl";
 }
 
-static std::string getVariantFunctionName(quake::ApplyOp apply,
+static std::string getVariantFunctionName(cudaq::quake::ApplyOp apply,
                                           const std::string &calleeName) {
   if (apply.getIsAdj() && !apply.getControls().empty())
     return getAdjCtrlVariantFunctionName(calleeName);
@@ -286,13 +287,13 @@ static bool regionHasUnstructuredControlFlow(Region &region) {
 
 namespace {
 /// Replace an apply op with a call to the correct variant function.
-struct ApplyOpPattern : public OpRewritePattern<quake::ApplyOp> {
-  using Base = OpRewritePattern<quake::ApplyOp>;
+struct ApplyOpPattern : public OpRewritePattern<cudaq::quake::ApplyOp> {
+  using Base = OpRewritePattern<cudaq::quake::ApplyOp>;
 
   explicit ApplyOpPattern(MLIRContext *ctx, bool constProp)
       : Base(ctx), constProp(constProp) {}
 
-  LogicalResult matchAndRewrite(quake::ApplyOp apply,
+  LogicalResult matchAndRewrite(cudaq::quake::ApplyOp apply,
                                 PatternRewriter &rewriter) const override {
     std::string calleeOrigName;
     FunctionType calleeSignature;
@@ -315,11 +316,11 @@ struct ApplyOpPattern : public OpRewritePattern<quake::ApplyOp> {
     }
     auto calleeName = getVariantFunctionName(apply, calleeOrigName);
     auto *ctx = apply.getContext();
-    auto unsizedVeqTy = quake::VeqType::getUnsized(ctx);
+    auto unsizedVeqTy = cudaq::quake::VeqType::getUnsized(ctx);
     SmallVector<Value> newArgs;
     if (!apply.getControls().empty()) {
-      auto consOp = quake::ConcatOp::create(rewriter, apply.getLoc(),
-                                            unsizedVeqTy, apply.getControls());
+      auto consOp = cudaq::quake::ConcatOp::create(
+          rewriter, apply.getLoc(), unsizedVeqTy, apply.getControls());
       newArgs.push_back(consOp);
     }
     for (auto [v, toTy] :
@@ -328,8 +329,8 @@ struct ApplyOpPattern : public OpRewritePattern<quake::ApplyOp> {
         continue;
       Value arg = v;
       if (arg.getType() != toTy)
-        arg = quake::ConcatOp::create(rewriter, apply.getLoc(), unsizedVeqTy,
-                                      arg);
+        arg = cudaq::quake::ConcatOp::create(rewriter, apply.getLoc(),
+                                             unsizedVeqTy, arg);
       newArgs.emplace_back(arg);
     }
     LLVM_DEBUG(llvm::dbgs() << "replacing: " << apply << '\n');
@@ -342,10 +343,10 @@ struct ApplyOpPattern : public OpRewritePattern<quake::ApplyOp> {
   const bool constProp;
 };
 
-struct FoldCallable : public OpRewritePattern<quake::ApplyOp> {
+struct FoldCallable : public OpRewritePattern<cudaq::quake::ApplyOp> {
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(quake::ApplyOp apply,
+  LogicalResult matchAndRewrite(cudaq::quake::ApplyOp apply,
                                 PatternRewriter &rewriter) const override {
     // If we already know the callee function, there's nothing to do.
     if (apply.getCallee())
@@ -359,9 +360,10 @@ struct FoldCallable : public OpRewritePattern<quake::ApplyOp> {
     SmallVector<Value> newArguments = {ind};
     newArguments.append(apply.getActuals().begin(), apply.getActuals().end());
     LLVM_DEBUG(llvm::dbgs() << "replacing " << apply << '\n');
-    [[maybe_unused]] auto result = rewriter.replaceOpWithNewOp<quake::ApplyOp>(
-        apply, apply.getResultTypes(), sym, apply.getIsAdj(),
-        apply.getControls(), newArguments);
+    [[maybe_unused]] auto result =
+        rewriter.replaceOpWithNewOp<cudaq::quake::ApplyOp>(
+            apply, apply.getResultTypes(), sym, apply.getIsAdj(),
+            apply.getControls(), newArguments);
     LLVM_DEBUG(llvm::dbgs() << "as " << result << '\n');
     return success();
   }
@@ -425,7 +427,7 @@ public:
     DenseSet<Operation *> controlNotNeeded;
     if (computeActionOptimization) {
       func->walk([&](Operation *op) {
-        if (auto compAct = dyn_cast<quake::ComputeActionOp>(op)) {
+        if (auto compAct = dyn_cast<cudaq::quake::ComputeActionOp>(op)) {
           // This is clearly a compute action. Mark the compute side.
           if (auto *defOp = compAct.getCompute().getDefiningOp()) {
             controlNotNeeded.insert(defOp);
@@ -433,13 +435,13 @@ public:
             compAct.emitError("compute value not determined");
             signalPassFailure();
           }
-        } else if (auto app0 = dyn_cast<quake::ApplyOp>(op)) {
+        } else if (auto app0 = dyn_cast<cudaq::quake::ApplyOp>(op)) {
           auto next1 = ++app0->getIterator();
           Operation &op1 = *next1;
-          if (auto app1 = dyn_cast<quake::ApplyOp>(op1)) {
+          if (auto app1 = dyn_cast<cudaq::quake::ApplyOp>(op1)) {
             auto next2 = ++next1;
             Operation &op2 = *next2;
-            if (auto app2 = dyn_cast<quake::ApplyOp>(op2);
+            if (auto app2 = dyn_cast<cudaq::quake::ApplyOp>(op2);
                 app2 && (app0.getCalleeAttr() == app2.getCalleeAttr()) &&
                 ((!app0.getIsAdj() && app2.getIsAdj()) ||
                  (app0.getIsAdj() && !app2.getIsAdj())) &&
@@ -466,7 +468,7 @@ public:
     // uncompute kernel) without the controls added.
     auto funcName = getCtrlVariantFunctionName(func.getName().str());
     auto funcTy = func.getFunctionType();
-    auto veqTy = quake::VeqType::getUnsized(ctx);
+    auto veqTy = cudaq::quake::VeqType::getUnsized(ctx);
     auto loc = func.getLoc();
     SmallVector<Type> inTys = {veqTy};
     inTys.append(funcTy.getInputs().begin(), funcTy.getInputs().end());
@@ -480,7 +482,7 @@ public:
     // Helper to check if this is a call to a function taking quantum arguments.
     const auto isQuantumKernelCall = [](Operation *op) -> bool {
       if (auto callOp = dyn_cast<func::CallOp>(op))
-        return !quake::getQuantumOperands(op).empty();
+        return !cudaq::quake::getQuantumOperands(op).empty();
       return false;
     };
 
@@ -511,14 +513,14 @@ public:
         // FIXME: Quake quantum gates do have results.
         builder.create(res);
         op->erase();
-      } else if (auto apply = dyn_cast<quake::ApplyOp>(op)) {
+      } else if (auto apply = dyn_cast<cudaq::quake::ApplyOp>(op)) {
         // If op is an apply and in the set `controlNotNeeded`, then skip it.
         if (controlNotNeeded.count(apply))
           return;
         SmallVector<Value> newControls = {newCond};
         newControls.append(apply.getControls().begin(),
                            apply.getControls().end());
-        auto newApply = quake::ApplyOp::create(
+        auto newApply = cudaq::quake::ApplyOp::create(
             builder, apply.getLoc(), apply.getResultTypes(),
             apply.getCalleeAttr(), apply.getIsAdjAttr(), newControls,
             apply.getActuals());
@@ -549,11 +551,12 @@ public:
           << "cannot make adjoint of kernel: unstructured control flow\n");
       return failure();
     }
-    // quake::ApplyOp implements CallOpInterface but can be handled below by
-    // toggling isAdj. Reject any other call-like op that we cannot invert.
+    // cudaq::quake::ApplyOp implements CallOpInterface but can be handled below
+    // by toggling isAdj. Reject any other call-like op that we cannot invert.
     if (cudaq::opt::internal::hasCharacteristic(
             [](Operation &op) {
-              return isa<mlir::CallOpInterface>(op) && !isa<quake::ApplyOp>(op);
+              return isa<mlir::CallOpInterface>(op) &&
+                     !isa<cudaq::quake::ApplyOp>(op);
             },
             *func.getOperation())) {
       LLVM_DEBUG(llvm::dbgs() << "cannot make adjoint of kernel with calls\n");
@@ -590,7 +593,7 @@ public:
   static SmallVector<Operation *> getOpsToInvert(Block &block) {
     SmallVector<Operation *> ops;
     for (auto &op : block)
-      if (cudaq::opt::hasQuantum(op) || isa<quake::ApplyOp>(op))
+      if (cudaq::opt::hasQuantum(op) || isa<cudaq::quake::ApplyOp>(op))
         ops.push_back(&op);
     return ops;
   }
@@ -784,16 +787,16 @@ public:
         continue;
       }
 
-      if (auto applyOp = dyn_cast<quake::ApplyOp>(op)) {
+      if (auto applyOp = dyn_cast<cudaq::quake::ApplyOp>(op)) {
         LLVM_DEBUG(llvm::dbgs() << "moving apply op: " << *op << ".\n");
         // Adjoint of an ApplyOp: toggles the isAdj flag.
         mlir::UnitAttr newIsAdj =
             applyOp.getIsAdj() ? mlir::UnitAttr{}
                                : mlir::UnitAttr::get(builder.getContext());
-        quake::ApplyOp::create(builder, applyOp.getLoc(),
-                               applyOp.getResultTypes(),
-                               applyOp.getCalleeAttr(), newIsAdj,
-                               applyOp.getControls(), applyOp.getActuals());
+        cudaq::quake::ApplyOp::create(
+            builder, applyOp.getLoc(), applyOp.getResultTypes(),
+            applyOp.getCalleeAttr(), newIsAdj, applyOp.getControls(),
+            applyOp.getActuals());
         applyOp->erase();
         continue;
       }
@@ -814,7 +817,8 @@ public:
 
       // If this is a quantum op that is not self adjoint, we need
       // to adjoint it.
-      if (auto quantumOp = dyn_cast_or_null<quake::OperatorInterface>(op);
+      if (auto quantumOp =
+              dyn_cast_or_null<cudaq::quake::OperatorInterface>(op);
           !quantumOp->hasTrait<cudaq::Hermitian>() && !opWasNegated) {
         if (op->hasAttr("is_adj"))
           op->removeAttr("is_adj");

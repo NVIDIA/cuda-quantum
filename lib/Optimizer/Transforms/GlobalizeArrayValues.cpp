@@ -99,8 +99,8 @@ static bool useDataToInitState(cudaq::cc::ReifySpanOp reify) {
   for (auto *user : reify->getUsers())
     if (auto data = dyn_cast<cudaq::cc::StdvecDataOp>(user))
       if (std::distance(data->user_begin(), data->user_end()) == 1)
-        return isa<quake::InitializeStateOp, quake::CreateStateOp>(
-            *data->user_begin());
+        return isa<cudaq::quake::InitializeStateOp,
+                   cudaq::quake::CreateStateOp>(*data->user_begin());
   return false;
 }
 

@@ -245,7 +245,7 @@ static void updateExecutionContext(mlir::ModuleOp module) {
     return;
 
   for (auto &artifact : module) {
-    quake::detail::QuakeFunctionAnalysis analysis{&artifact};
+    cudaq::quake::detail::QuakeFunctionAnalysis analysis{&artifact};
     auto info = analysis.getAnalysisInfo();
     if (info.empty())
       continue;

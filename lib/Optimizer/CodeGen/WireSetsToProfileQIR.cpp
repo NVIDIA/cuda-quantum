@@ -60,10 +60,10 @@ namespace {
 struct QuakeTypeConverter : public TypeConverter {
   QuakeTypeConverter() {
     addConversion([](Type ty) { return ty; });
-    addConversion([](quake::WireType ty) {
+    addConversion([](cudaq::quake::WireType ty) {
       return cudaq::cg::getQubitType(ty.getContext());
     });
-    addConversion([](quake::MeasureType ty) {
+    addConversion([](cudaq::quake::MeasureType ty) {
       return cudaq::cg::getResultType(ty.getContext());
     });
   }
@@ -161,11 +161,11 @@ struct GeneralRewrite : OpConversionPattern<OP> {
 };
 
 namespace {
-struct BorrowWireRewrite : OpConversionPattern<quake::BorrowWireOp> {
+struct BorrowWireRewrite : OpConversionPattern<cudaq::quake::BorrowWireOp> {
   using OpConversionPattern::OpConversionPattern;
 
   LogicalResult
-  matchAndRewrite(quake::BorrowWireOp borrowWire, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::BorrowWireOp borrowWire, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto id = borrowWire.getIdentity();
     auto loc = borrowWire.getLoc();
@@ -179,11 +179,11 @@ struct BorrowWireRewrite : OpConversionPattern<quake::BorrowWireOp> {
   }
 };
 
-struct ResetRewrite : OpConversionPattern<quake::ResetOp> {
+struct ResetRewrite : OpConversionPattern<cudaq::quake::ResetOp> {
   using OpConversionPattern::OpConversionPattern;
 
   LogicalResult
-  matchAndRewrite(quake::ResetOp reset, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::ResetOp reset, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     SmallVector<Value> qubits{adaptor.getTargets()};
     auto loc = reset.getLoc();
@@ -205,10 +205,10 @@ struct BranchRewrite : OpConversionPattern<cf::BranchOp> {
     rewriter.startOpModification(branchOp);
     if (branchOp.getSuccessor())
       for (auto arg : branchOp.getSuccessor()->getArguments())
-        if (isa<quake::WireType>(arg.getType()))
+        if (isa<cudaq::quake::WireType>(arg.getType()))
           arg.setType(qubitTy);
     for (auto operand : branchOp.getOperands())
-      if (isa<quake::WireType>(operand.getType()))
+      if (isa<cudaq::quake::WireType>(operand.getType()))
         operand.setType(qubitTy);
     rewriter.finalizeOpModification(branchOp);
     return success();
@@ -225,39 +225,39 @@ struct CondBranchRewrite : OpConversionPattern<cf::CondBranchOp> {
     rewriter.startOpModification(branchOp);
     for (auto suc : branchOp.getSuccessors())
       for (auto arg : suc->getArguments())
-        if (isa<quake::WireType>(arg.getType()))
+        if (isa<cudaq::quake::WireType>(arg.getType()))
           arg.setType(qubitTy);
     for (auto operand : branchOp.getOperands())
-      if (isa<quake::WireType>(operand.getType()))
+      if (isa<cudaq::quake::WireType>(operand.getType()))
         operand.setType(qubitTy);
     rewriter.finalizeOpModification(branchOp);
     return success();
   }
 };
 
-struct ReturnWireRewrite : OpConversionPattern<quake::ReturnWireOp> {
+struct ReturnWireRewrite : OpConversionPattern<cudaq::quake::ReturnWireOp> {
   using OpConversionPattern::OpConversionPattern;
 
   LogicalResult
-  matchAndRewrite(quake::ReturnWireOp returnWire, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::ReturnWireOp returnWire, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     rewriter.eraseOp(returnWire);
     return success();
   }
 };
 
-struct WireSetRewrite : OpConversionPattern<quake::WireSetOp> {
+struct WireSetRewrite : OpConversionPattern<cudaq::quake::WireSetOp> {
   using OpConversionPattern::OpConversionPattern;
 
   LogicalResult
-  matchAndRewrite(quake::WireSetOp wireSetOp, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::WireSetOp wireSetOp, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     rewriter.eraseOp(wireSetOp);
     return success();
   }
 };
 
-struct MzRewrite : OpConversionPattern<quake::MzOp> {
+struct MzRewrite : OpConversionPattern<cudaq::quake::MzOp> {
   using Base = OpConversionPattern;
   explicit MzRewrite(TypeConverter &typeConverter, unsigned &counter,
                      OutputNamesType &resultQubitVals, MLIRContext *ctxt,
@@ -266,12 +266,12 @@ struct MzRewrite : OpConversionPattern<quake::MzOp> {
         resultQubitVals(resultQubitVals) {}
 
   LogicalResult
-  matchAndRewrite(quake::MzOp meas, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::MzOp meas, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
 
     bool measureFollowedByDiscriminate = [&]() {
       for (auto user : meas->getResult(0).getUsers())
-        if (isa<quake::DiscriminateOp>(user))
+        if (isa<cudaq::quake::DiscriminateOp>(user))
           return true;
       return false;
     }();
@@ -333,7 +333,7 @@ private:
   OutputNamesType &resultQubitVals;
 };
 
-struct DiscriminateRewrite : OpConversionPattern<quake::DiscriminateOp> {
+struct DiscriminateRewrite : OpConversionPattern<cudaq::quake::DiscriminateOp> {
   using Base = OpConversionPattern;
 
   explicit DiscriminateRewrite(TypeConverter &typeConverter, bool adaptive,
@@ -343,7 +343,7 @@ struct DiscriminateRewrite : OpConversionPattern<quake::DiscriminateOp> {
         regNameMap(nameMap) {}
 
   LogicalResult
-  matchAndRewrite(quake::DiscriminateOp disc, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::DiscriminateOp disc, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = disc.getLoc();
 
@@ -394,8 +394,8 @@ struct WireSetToProfileQIRPass
     auto *context = &getContext();
     OpBuilder builder(op);
     DenseMap<Operation *, StringRef> regNameMap;
-    op.walk([&](quake::DiscriminateOp disc) {
-      auto meas = disc.getMeasurement().getDefiningOp<quake::MzOp>();
+    op.walk([&](cudaq::quake::DiscriminateOp disc) {
+      auto meas = disc.getMeasurement().getDefiningOp<cudaq::quake::MzOp>();
       auto name = meas ? meas.getRegisterName() : std::nullopt;
       if (name)
         regNameMap[disc.getOperation()] = *name;
@@ -403,7 +403,7 @@ struct WireSetToProfileQIRPass
         regNameMap[disc.getOperation()] = "?";
     });
     std::optional<std::uint32_t> highestIdentity;
-    op.walk([&](quake::BorrowWireOp op) {
+    op.walk([&](cudaq::quake::BorrowWireOp op) {
       highestIdentity = highestIdentity
                             ? std::max(*highestIdentity, op.getIdentity())
                             : op.getIdentity();
@@ -416,16 +416,16 @@ struct WireSetToProfileQIRPass
     QuakeTypeConverter quakeTypeConverter;
     unsigned resultCounter = 0;
     OutputNamesType resultQubitVals;
-    patterns.insert<BranchRewrite, CondBranchRewrite,
-                    GeneralRewrite<quake::HOp>, GeneralRewrite<quake::XOp>,
-                    GeneralRewrite<quake::YOp>, GeneralRewrite<quake::ZOp>,
-                    GeneralRewrite<quake::SOp>, GeneralRewrite<quake::TOp>,
-                    GeneralRewrite<quake::RxOp>, GeneralRewrite<quake::RyOp>,
-                    GeneralRewrite<quake::RzOp>, GeneralRewrite<quake::R1Op>,
-                    GeneralRewrite<quake::U3Op>, GeneralRewrite<quake::SwapOp>,
-                    GeneralRewrite<quake::PhasedRxOp>, BorrowWireRewrite,
-                    ResetRewrite, ReturnWireRewrite>(quakeTypeConverter,
-                                                     context);
+    patterns.insert<
+        BranchRewrite, CondBranchRewrite, GeneralRewrite<cudaq::quake::HOp>,
+        GeneralRewrite<cudaq::quake::XOp>, GeneralRewrite<cudaq::quake::YOp>,
+        GeneralRewrite<cudaq::quake::ZOp>, GeneralRewrite<cudaq::quake::SOp>,
+        GeneralRewrite<cudaq::quake::TOp>, GeneralRewrite<cudaq::quake::RxOp>,
+        GeneralRewrite<cudaq::quake::RyOp>, GeneralRewrite<cudaq::quake::RzOp>,
+        GeneralRewrite<cudaq::quake::R1Op>, GeneralRewrite<cudaq::quake::U3Op>,
+        GeneralRewrite<cudaq::quake::SwapOp>,
+        GeneralRewrite<cudaq::quake::PhasedRxOp>, BorrowWireRewrite,
+        ResetRewrite, ReturnWireRewrite>(quakeTypeConverter, context);
     patterns.insert<MzRewrite>(quakeTypeConverter, resultCounter,
                                resultQubitVals, context);
     const bool isAdaptiveProfile = convertTo == "qir-adaptive";
@@ -434,8 +434,8 @@ struct WireSetToProfileQIRPass
     ConversionTarget target(*context);
     target.addLegalDialect<arith::ArithDialect, cudaq::cc::CCDialect,
                            func::FuncDialect, LLVM::LLVMDialect>();
-    target.addIllegalDialect<quake::QuakeDialect>();
-    target.addLegalOp<quake::WireSetOp>();
+    target.addIllegalDialect<cudaq::quake::QuakeDialect>();
+    target.addLegalOp<cudaq::quake::WireSetOp>();
 
     LLVM_DEBUG(llvm::dbgs() << "Module before:\n"; op.dump());
     if (failed(applyPartialConversion(op, target, std::move(patterns))))
@@ -552,7 +552,7 @@ struct WireSetToProfileQIRPrepPass
     createNewDecl(cudaq::opt::NVQIRInvokeWithControlBits, invokeCtrlTy);
 
     unsigned counter = 0;
-    op.walk([&](quake::MzOp meas) {
+    op.walk([&](cudaq::quake::MzOp meas) {
       auto optName = meas.getRegisterName();
       std::string name;
       if (optName) {
@@ -651,7 +651,7 @@ struct WireSetToProfileQIRPostPass
     QuakeTypeConverter quakeTypeConverter;
     patterns.insert<WireSetRewrite>(quakeTypeConverter, ctx);
     ConversionTarget target(*ctx);
-    target.addIllegalDialect<quake::QuakeDialect>();
+    target.addIllegalDialect<cudaq::quake::QuakeDialect>();
 
     LLVM_DEBUG(llvm::dbgs() << "Module before:\n"; op.dump());
     if (failed(applyPartialConversion(op, target, std::move(patterns))))

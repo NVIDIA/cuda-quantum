@@ -101,7 +101,7 @@ cc::StructType::verify(llvm::function_ref<mlir::InFlightDiagnostic()> emitError,
                        mlir::StringAttr, llvm::ArrayRef<mlir::Type> members,
                        bool, bool, std::uint64_t, unsigned int) {
   for (auto ty : members)
-    if (quake::isQuantumType(ty))
+    if (cudaq::quake::isQuantumType(ty))
       return emitError() << "cc.struct may not contain quake types: " << ty;
   return success();
 }
@@ -145,7 +145,7 @@ void cc::ArrayType::print(AsmPrinter &printer) const {
 LogicalResult
 cc::ArrayType::verify(function_ref<InFlightDiagnostic()> emitError, Type eleTy,
                       std::int64_t) {
-  if (quake::isQuantumType(eleTy))
+  if (cudaq::quake::isQuantumType(eleTy))
     return emitError() << "cc.array may not have a quake element type: "
                        << eleTy;
   return success();
@@ -154,7 +154,7 @@ cc::ArrayType::verify(function_ref<InFlightDiagnostic()> emitError, Type eleTy,
 LogicalResult
 cc::StdvecType::verify(function_ref<InFlightDiagnostic()> emitError,
                        Type eleTy) {
-  if (quake::isQuantumType(eleTy))
+  if (cudaq::quake::isQuantumType(eleTy))
     return emitError() << "cc.stdvec may not have a quake element type: "
                        << eleTy;
   return success();

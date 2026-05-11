@@ -56,7 +56,8 @@ struct BasisConversion
           return WalkResult::advance();
         }
         for (auto arg : funcOp.getArguments())
-          if (isa<quake::RefType, quake::VeqType>(arg.getType())) {
+          if (isa<cudaq::quake::RefType, cudaq::quake::VeqType>(
+                  arg.getType())) {
             kernels.push_back(funcOp);
             return WalkResult::advance();
           }
@@ -64,7 +65,7 @@ struct BasisConversion
         return WalkResult::skip();
       }
       // Check if it is controlled quake.apply
-      if (auto applyOp = dyn_cast<quake::ApplyOp>(op))
+      if (auto applyOp = dyn_cast<cudaq::quake::ApplyOp>(op))
         if (!applyOp.getControls().empty())
           return WalkResult::interrupt();
 

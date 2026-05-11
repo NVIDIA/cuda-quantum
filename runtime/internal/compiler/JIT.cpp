@@ -271,7 +271,7 @@ cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
 
     bool containsWireSet =
         module
-            ->walk<WalkOrder::PreOrder>([](quake::WireSetOp wireSetOp) {
+            ->walk<WalkOrder::PreOrder>([](cudaq::quake::WireSetOp wireSetOp) {
               return WalkResult::interrupt();
             })
             .wasInterrupted();
