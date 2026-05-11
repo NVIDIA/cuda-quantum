@@ -199,12 +199,14 @@ std::string demangle_kernel(const char *name) {
   return quantum_platform::demangle(name);
 }
 bool globalFalse = false;
+} // namespace cudaq::__internal__
 
+namespace cudaq::detail {
 TargetSetter::TargetSetter(const char *backend) {
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(std::string(backend));
 }
-} // namespace cudaq::__internal__
+} // namespace cudaq::detail
 
 //===----------------------------------------------------------------------===//
 
