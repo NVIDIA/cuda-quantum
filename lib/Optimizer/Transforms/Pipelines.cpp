@@ -27,6 +27,20 @@ struct TargetPrepPipelineOptions
       llvm::cl::desc(
           "Enable loop unrolling on loops with early exit conditions."),
       llvm::cl::init(false)};
+  PassOptions::Option<bool> preserveLoops{
+      *this, "preserve-loops",
+      llvm::cl::desc(
+          "Preserve cc.loop operations by disabling loop unrolling."),
+      llvm::cl::init(false)};
+};
+
+struct TargetDeployPipelineOptions
+    : public PassPipelineOptions<TargetDeployPipelineOptions> {
+  PassOptions::Option<bool> preserveLoops{
+      *this, "preserve-loops",
+      llvm::cl::desc(
+          "Preserve cc.loop operations by disabling loop unrolling."),
+      llvm::cl::init(false)};
 };
 
 struct TargetFinalizationPipelineOptions
@@ -68,8 +82,9 @@ static void createTargetPrepPipeline(OpPassManager &pm,
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
-  cudaq::opt::createClassicalOptimizationPipeline(pm, std::nullopt,
-                                                  {options.allowEarlyExit});
+  cudaq::opt::createClassicalOptimizationPipeline(
+      pm, std::nullopt, {options.allowEarlyExit}, std::nullopt,
+      {options.preserveLoops});
   pm.addPass(cudaq::opt::createGlobalizeArrayValues());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createUnitarySynthesis());
@@ -129,8 +144,11 @@ void cudaq::opt::addDecomposition(OpPassManager &pm,
   pm.addPass(cudaq::opt::createDecomposition(opts));
 }
 
-static void createTargetDeployPipeline(OpPassManager &pm) {
-  cudaq::opt::createClassicalOptimizationPipeline(pm);
+static void
+createTargetDeployPipeline(OpPassManager &pm,
+                           const TargetDeployPipelineOptions &options) {
+  cudaq::opt::createClassicalOptimizationPipeline(
+      pm, std::nullopt, std::nullopt, std::nullopt, {options.preserveLoops});
   cudaq::opt::addDecomposition(pm, {std::string("U3ToRotations")});
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createMultiControlDecomposition());
@@ -140,9 +158,11 @@ static void createTargetDeployPipeline(OpPassManager &pm) {
 /// pipeline is run between the mid-level and low-level target-specific
 /// pipelines.
 static void registerTargetDeployPipeline() {
-  PassPipelineRegistration<>(
+  PassPipelineRegistration<TargetDeployPipelineOptions>(
       "jit-deploy-pipeline", "Standard deployment pipeline for all targets.",
-      [](OpPassManager &pm) { ::createTargetDeployPipeline(pm); });
+      [](OpPassManager &pm, const TargetDeployPipelineOptions &options) {
+        ::createTargetDeployPipeline(pm, options);
+      });
 }
 
 void cudaq::opt::createTargetFinalizePipeline(OpPassManager &pm) {

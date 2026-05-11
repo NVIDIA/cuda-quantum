@@ -154,7 +154,12 @@ static void runTargetPassPipeline(mlir::ModuleOp module) {
   auto &cfg = rt->config;
   if (!cfg.BackendConfig.has_value() || !cfg.BackendConfig->hasPassPipeline())
     return;
-  auto pipeline = cfg.BackendConfig->getPassPipeline("jit-deploy-pipeline", "");
+  auto codegenTranslation = cfg.getCodeGenSpec(rt->runtimeConfig);
+  // Nop codegen sends MLIR to the server, so keep cc.loop.
+  auto deployStage = codegenTranslation == "nop"
+                         ? "jit-deploy-pipeline{preserve-loops=true}"
+                         : "jit-deploy-pipeline";
+  auto pipeline = cfg.BackendConfig->getPassPipeline(deployStage, "");
   substitutePipelinePlaceholders(pipeline, rt->runtimeConfig);
   auto *ctx = module.getContext();
   PassManager pm(ctx);

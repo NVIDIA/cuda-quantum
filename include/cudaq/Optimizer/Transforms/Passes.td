@@ -210,7 +210,9 @@ def ClassicalOptimization : Pass<"classical-optimization"> {
     Option<"allowClosedInterval", "allow-closed-interval", "bool",
       /*default=*/"true", "Allow loop iterations on a closed interval.">,
     Option<"allowBreak", "allow-early-exit", "bool", /*default=*/"false",
-      "Allow unrolling of loop with early exit (i.e. break statement).">
+      "Allow unrolling of loop with early exit (i.e. break statement).">,
+    Option<"preserveLoops", "preserve-loops", "bool", /*default=*/"false",
+      "Preserve cc.loop operations by disabling loop unrolling.">
   ];
 }
 
