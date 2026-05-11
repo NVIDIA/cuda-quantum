@@ -14,8 +14,6 @@
 #include "common/KernelExecution.h"
 #include "common/Resources.h"
 #include "cudaq/Support/TargetConfig.h"
-#include "cudaq/analysis/resource_counter.h"
-#include "cudaq/analysis/scope.h"
 #include "cudaq/platform/platform_iface.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/qpu_utils.h"
@@ -24,6 +22,8 @@
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/JIT.h"
+#include "nvqir/AnalysisScope.h"
+#include "nvqir/resourcecounter/ResourceCounterScope.h"
 #include <filesystem>
 #include <fstream>
 #include <netinet/in.h>
@@ -124,7 +124,7 @@ public:
     // by the analysis simulator (e.g. a `choice` function that calls
     // `cudaq::sample`) could launch a second kernel through this transport
     // while the outer scope is still active.
-    if (cudaq::analysis::scope::is_active() && context.name != "resource-count")
+    if (nvqir::AnalysisScope::is_active() && context.name != "resource-count")
       throw std::runtime_error(
           "Illegal use of resource counter simulator! (Did you attempt to run "
           "a kernel inside of a choice function?)");
@@ -300,7 +300,7 @@ public:
       cudaq::ExecutionContext context("resource-count");
       context.executionManager = cudaq::getDefaultExecutionManager();
       assert(codes.size() == 1 && codes[0].jit && codes[0].resourceCounts);
-      cudaq::analysis::resource_counter::prepopulate(
+      nvqir::resource_counter::prepopulate(
           std::move(codes[0].resourceCounts.value()));
       cudaq::platform::with_execution_context(
           context, [&]() { codes[0].jit->run(kernelName); });

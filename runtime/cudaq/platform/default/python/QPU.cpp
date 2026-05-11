@@ -21,7 +21,6 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Optimizer/Transforms/ResourceCount.h"
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
-#include "cudaq/analysis/resource_counter.h"
 #include "cudaq/platform.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
@@ -29,6 +28,7 @@
 #include "cudaq_internal/compiler/JIT.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "cudaq_internal/compiler/TracePassInstrumentation.h"
+#include "nvqir/resourcecounter/ResourceCounterScope.h"
 #include "runtime/cudaq/platform/PythonSignalCheck.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
@@ -294,7 +294,7 @@ static void precountResources(mlir::ModuleOp module) {
   auto counts = cudaq::opt::countResourcesFromIR(module);
   if (mlir::failed(counts))
     return;
-  cudaq::analysis::resource_counter::prepopulate(std::move(*counts));
+  nvqir::resource_counter::prepopulate(std::move(*counts));
 }
 
 namespace {

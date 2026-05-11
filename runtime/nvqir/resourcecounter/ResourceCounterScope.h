@@ -9,28 +9,28 @@
 #pragma once
 
 #include "common/Resources.h"
-#include "cudaq/analysis/scope.h"
+#include "nvqir/AnalysisScope.h"
 #include <functional>
 
-namespace cudaq::analysis::resource_counter {
+namespace nvqir::resource_counter {
 
 /// @brief Activate the resource-counter analysis on the current thread.
 ///
-/// Returns a `scope` that, while alive, routes gate/measurement traffic to
-/// the resource-counter simulator. `choice` is invoked for every measurement
-/// to deterministically pick which branch to follow when the kernel contains
-/// mid-circuit measurement-conditional logic.
+/// Returns an `AnalysisScope` that, while alive, routes gate/measurement
+/// traffic to the resource-counter simulator. `choice` is invoked for every
+/// measurement to deterministically pick which branch to follow when the
+/// kernel contains mid-circuit measurement-conditional logic.
 ///
 /// Throws `std::runtime_error` if an analysis scope is already active on the
 /// current thread.
-scope make_scope(std::function<bool()> choice);
+AnalysisScope make_scope(std::function<bool()> choice);
 
 /// @brief Snapshot of the resource counts accumulated so far.
 ///
 /// Must be called while `s` is the active resource-counter scope. The result
 /// is a value-typed copy; the underlying simulator state continues to evolve
 /// as more gates are dispatched.
-cudaq::Resources get_counts(scope &s);
+cudaq::Resources get_counts(AnalysisScope &s);
 
 /// @brief Pre-populate the resource-counter simulator with counts harvested
 /// from an MLIR-level analysis pass (`countResourcesFromIR`).
@@ -41,4 +41,4 @@ cudaq::Resources get_counts(scope &s);
 /// leak counts into a future scope on the same thread.
 void prepopulate(cudaq::Resources counts);
 
-} // namespace cudaq::analysis::resource_counter
+} // namespace nvqir::resource_counter

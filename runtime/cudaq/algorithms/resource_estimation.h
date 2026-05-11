@@ -10,8 +10,8 @@
 
 #include "common/ExecutionContext.h"
 #include "common/Resources.h"
-#include "cudaq/analysis/resource_counter.h"
 #include "cudaq/platform.h"
+#include "nvqir/resourcecounter/ResourceCounterScope.h"
 
 namespace cudaq {
 namespace details {
@@ -33,10 +33,10 @@ Resources run_estimate_resources(KernelFunctor &&wrappedKernel,
 
   // RAII: scope is released (and the resource-counter state cleared) on
   // every exit path, including exceptions thrown from the kernel.
-  auto rcScope = analysis::resource_counter::make_scope(std::move(choice));
+  auto rcScope = nvqir::resource_counter::make_scope(std::move(choice));
   platform.with_execution_context(ctx,
                                   std::forward<KernelFunctor>(wrappedKernel));
-  return analysis::resource_counter::get_counts(rcScope);
+  return nvqir::resource_counter::get_counts(rcScope);
 }
 } // namespace details
 

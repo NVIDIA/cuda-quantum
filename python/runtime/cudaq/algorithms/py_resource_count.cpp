@@ -8,7 +8,7 @@
 
 #include "py_resource_count.h"
 #include "common/Resources.h"
-#include "cudaq/analysis/resource_counter.h"
+#include "nvqir/resourcecounter/ResourceCounterScope.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include <nanobind/stl/function.h>
@@ -40,12 +40,12 @@ estimate_resources_impl(const std::string &kernelName, MlirModule kernelMod,
 
   // RAII: scope is released (and the resource-counter state cleared) on
   // every exit path, including exceptions thrown by the JIT'd kernel.
-  auto rcScope = analysis::resource_counter::make_scope(std::move(*choice));
+  auto rcScope = nvqir::resource_counter::make_scope(std::move(*choice));
   platform.with_execution_context(ctx, [&]() {
     [[maybe_unused]] auto result =
         cudaq::marshal_and_launch_module(kernelName, kernelMod, args);
   });
-  return analysis::resource_counter::get_counts(rcScope);
+  return nvqir::resource_counter::get_counts(rcScope);
 }
 
 void cudaq::bindCountResources(nanobind::module_ &mod) {

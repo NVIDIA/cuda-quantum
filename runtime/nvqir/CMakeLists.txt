@@ -11,7 +11,7 @@ set(LIBRARY_NAME nvqir)
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
 
 set(NVQIR_RUNTIME_SRC
-  analysis_scope.cpp
+  AnalysisScope.cpp
   QIRTypes.cpp
   NVQIR.cpp
   resourcecounter/ResourceCounter.cpp
