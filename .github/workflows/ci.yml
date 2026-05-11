@@ -444,9 +444,10 @@ jobs:
             esac
           }
 
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           # All sub-jobs (with names + html_url + conclusion). Paginate; this
           # workflow can have hundreds of matrix legs across reusable workflows.
-          gh api --paginate "repos/$REPO/actions/runs/$RUN_ID/jobs" \
+          retry gh api --paginate "repos/$REPO/actions/runs/$RUN_ID/jobs" \
             --jq '.jobs[] | {name, html_url, conclusion, status, started_at, completed_at}' \
             | jq -s '.' > /tmp/jobs.json
 
@@ -630,14 +631,15 @@ jobs:
         if: env.PR_NUMBER != ''
         run: |
           set -euo pipefail
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           marker="<!-- ci-summary:${{ github.workflow }}:${EVENT_NAME} -->"
-          existing=$(gh api --paginate "repos/$REPO/issues/$PR_NUMBER/comments" \
+          existing=$(retry gh api --paginate "repos/$REPO/issues/$PR_NUMBER/comments" \
             --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -1 || true)
           if [ -n "$existing" ]; then
             jq -Rs '{body: .}' < /tmp/comment.md \
-              | gh api "repos/$REPO/issues/comments/$existing" -X PATCH --input -
+              | retry gh api "repos/$REPO/issues/comments/$existing" -X PATCH --input -
           else
-            gh pr comment "$PR_NUMBER" --repo "$REPO" --body-file /tmp/comment.md
+            retry gh pr comment "$PR_NUMBER" --repo "$REPO" --body-file /tmp/comment.md
           fi
         continue-on-error: true
 

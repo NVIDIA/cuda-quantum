@@ -91,14 +91,15 @@ jobs:
         if: github.event_name == 'workflow_run'
         id: pr_info
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           artifacts_url=${{ github.event.workflow_run.artifacts_url }}
-          artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
+          artifacts=$(retry gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
 
           for artifact in `echo "$artifacts"`; do
             name=`echo $artifact | jq -r '.name'`
             if [ "$name" == "metadata_pr" ]; then
               url=`echo $artifact | jq -r '.url'`
-              gh api $url > metadata.zip
+              retry gh api $url > metadata.zip
               unzip -d metadata metadata.zip
               for file in `find metadata/ -type f`; do
                 cat "$file" >> metadata.txt
