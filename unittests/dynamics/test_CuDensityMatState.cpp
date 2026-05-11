@@ -199,10 +199,11 @@ TEST_F(CuDensityMatStateTest, InitialStateEnum) {
           const std::complex<double> firstVal = *hostBufferView.begin();
           // First element is 1.0, the rest are zero
           return std::abs(firstVal - 1.0) < 1e-12 &&
-                 std::all_of(hostBufferView.begin() + 1, hostBufferView.end(),
-                             [](std::complex<double> val) {
-                               return std::abs(val) < 1e-12;
-                             });
+                 std::all_of(
+                     hostBufferView.begin() + 1, hostBufferView.end(),
+                     [](std::complex<double> val) {
+                       return std::abs(val) < 1e-12;
+                     });
         } else {
           // All elements are equal.
           // The norm condition should guarantee that it's the expected value.

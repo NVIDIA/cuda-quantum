@@ -7,7 +7,9 @@
  ******************************************************************************/
 
 #include "Executor.h"
+#include "common/KernelExecution.h"
 #include "common/RestClient.h"
+#include "common/ServerHelper.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "nlohmann/json.hpp"
 

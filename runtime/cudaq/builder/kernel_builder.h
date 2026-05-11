@@ -11,6 +11,7 @@
 #include "cudaq/builder/QuakeValue.h"
 #include "cudaq/host_config.h"
 #include "cudaq/qis/modifiers.h"
+#include "cudaq/qis/pauli_word.h"
 #include "cudaq/qis/qvector.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cstring>
@@ -36,7 +37,6 @@ class PassManager;
 } // namespace mlir
 
 namespace cudaq {
-class pauli_word;
 
 std::string get_quake_by_name(const std::string &);
 

@@ -9,18 +9,17 @@
 #pragma once
 
 #include "CompiledModule.h"
+#include "common/DeviceCodeRegistry.h"
 #include "common/ExecutionContext.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/Resources.h"
-#include "cudaq.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/algorithms/gradient.h"
 #include "cudaq/algorithms/optimizer.h"
-#include "cudaq/platform.h"
+#include "cudaq/platform/platform_iface.h"
 #include "cudaq/platform/qpu.h"
-#include "cudaq/platform/quantum_platform.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "cudaq/utils/cudaq_utils.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq_internal/compiler/JIT.h"
@@ -31,6 +30,7 @@
 #include <fstream>
 
 namespace cudaq {
+class gradient;
 
 // Remote QPU: delegating the execution to a remotely-hosted server, which can
 // reinstate the execution context and JIT-invoke the kernel.
@@ -122,9 +122,11 @@ public:
       throw std::runtime_error("Failed to launch VQE. Error: " + errorMsg);
   }
 
-  KernelThunkResultType launchKernel(const std::string &name,
-                                     KernelThunkType kernelFunc,
+  KernelThunkResultType launchKernel(const SourceModule &src,
                                      KernelArgs args) override {
+    const auto &name = src.getName();
+    auto rawFn = src.getFunctionPtr();
+    KernelThunkType kernelFunc = rawFn ? rawFn->getFn() : nullptr;
     // Make sure at most one argument representation is present.
     KernelArgs forwarded;
     if (kernelFunc) {
@@ -150,12 +152,20 @@ public:
     return launchKernelImpl(compiled, nullptr, args, resultBuf);
   }
 
-  CompiledModule compileModule(const std::string &kernelName,
-                               const void *modulePtr, KernelArgs args,
+  CompiledModule compileModule(const SourceModule &src, KernelArgs args,
                                bool isEntryPoint) override {
+    const auto &kernelName = src.getName();
+    auto mlirArt = src.getMlir();
+    if (!mlirArt)
+      throw std::runtime_error(
+          "BaseRemoteSimulatorQPU::compileModule requires an MLIR artifact on "
+          "the SourceModule for kernel '" +
+          kernelName + "'.");
+    auto module =
+        cudaq_internal::compiler::CompiledModuleHelper::getMlirModuleOp(
+            *mlirArt);
     CUDAQ_INFO("specializing remote simulator kernel via module ({})",
                kernelName);
-    mlir::ModuleOp module = mlir::ModuleOp::getFromOpaquePointer(modulePtr);
     std::string fullName = cudaq::runtime::cudaqGenPrefixName + kernelName;
     auto funcOp = module.lookupSymbol<mlir::func::FuncOp>(fullName);
     auto resTy = cudaq::runtime::getReturnType(funcOp);
@@ -256,8 +266,8 @@ public:
                            executionContextPtr->qpuId);
       ctx.kernelName = executionContextPtr->kernelName;
       ctx.executionManager = cudaq::getDefaultExecutionManager();
-      cudaq::get_platform().with_execution_context(ctx,
-                                                   [jit]() { jit->getFn()(); });
+      cudaq::platform::with_execution_context(
+          ctx, [jit, name]() { jit->getFn()(); });
       in_resource_estimation = false;
       return {};
     }

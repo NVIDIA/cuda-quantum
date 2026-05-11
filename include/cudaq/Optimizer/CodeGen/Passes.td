@@ -282,33 +282,4 @@ def ReturnToOutputLog : Pass<"return-to-output-log", "mlir::ModuleOp"> {
   ];
 }
 
-def EliminateDeadHeapCopy
-    : Pass<"eliminate-dead-heap-copy", "mlir::func::FuncOp"> {
-  let summary = "Eliminate dead heap copies from return value logging.";
-  let description = [{
-    When a kernel returns a vector (e.g., measurement results), the frontend
-    wraps the return value with `__nvqpp_vectorCopyCtor`, which performs a
-    malloc+memcpy to copy the data from the callee's stack to the heap. This
-    is necessary because the returned data must outlive the callee's stack
-    frame when one kernel calls another. After AggressiveInlining, this
-    intrinsic is expanded into raw malloc and memcpy operations in the caller.
-
-    After ReturnToOutputLog converts return values to QIR output logging
-    calls (e.g., `__quantum__rt__*_record_output`), it reads from the
-    cc.stdvec_init's buffer (the malloc'd pointer) and creates new load ops
-    from it, leaving the cc.stdvec_init with no users. The malloc+memcpy
-    are then only needed to populate the heap buffer that the output logging
-    reads from. This pass redirects those reads to the memcpy source (the
-    original stack data), making the malloc+memcpy dead, and erases them
-    along with the now-unused cc.stdvec_init.
-
-    Note: this pass is only needed on code paths that do not run LLVM's
-    optimization passes (e.g., when emitting MLIR rather than LLVM IR for 
-    a remote backend). When the full LLVM opt pipeline runs, it would eliminate
-    these dead allocations on its own.
-  }];
-  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
-}
-
-
 #endif // CUDAQ_OPT_OPTIMIZER_CODEGEN_PASSES

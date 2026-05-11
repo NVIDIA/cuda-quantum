@@ -8,12 +8,12 @@
 
 #pragma once
 
+#include "common/DeviceCodeRegistry.h"
 #include "common/Environment.h"
 #include "common/JsonConvert.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/RestClient.h"
 #include "common/UnzipUtils.h"
-#include "cudaq.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
@@ -22,6 +22,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/qis/remote_state.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"

@@ -9,7 +9,7 @@
 #pragma once
 
 #include "cudaq/host_config.h"
-#include "cudaq/platform.h"
+#include "cudaq/platform/quantum_platform.h"
 
 namespace cudaq {
 
