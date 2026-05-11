@@ -87,7 +87,7 @@ void __nvqir__setSimulatorInitCallback(void (*callback)()) {
 
 namespace nvqir {
 
-// Defined in AnalysisScope.cpp; non-null when a `cudaq::analysis::scope` is
+// Defined in analysis_scope.cpp; non-null when a `cudaq::analysis::scope` is
 // active on the current thread.
 extern thread_local CircuitSimulator *activeAnalysisSimulator;
 
