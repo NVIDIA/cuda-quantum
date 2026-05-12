@@ -19,7 +19,9 @@ static const ZSqrt2 kLambda{Integer(1), Integer(1)};
 static const ZSqrt2 kZero{Integer(0), Integer(0)};
 static const ZSqrt2 kOne{Integer(1), Integer(0)};
 
-static long long ll(const Integer &n) { return static_cast<long long>(static_cast<i64>(n)); }
+static long long ll(const Integer &n) {
+  return static_cast<long long>(static_cast<i64>(n));
+}
 
 // ============================================================
 // Arithmetic operators

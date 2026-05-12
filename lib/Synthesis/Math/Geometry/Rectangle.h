@@ -49,21 +49,16 @@ public:
   const Interval &I_y() const { return y; }
 
   /// Returns true iff v = (vₓ, vᵧ) lies inside the rectangle.
-  bool contains(const DOmega &v) const override {
-    return false;
-  }
+  bool contains(const DOmega &v) const override { return false; }
 
   /// Intersects the ray u(t) = u0 + t·v with the rectangle.
   ///
   /// Returns the interval [t_lo, t_hi] of parameter values for which u(t)
   /// lies inside the rectangle, or std::nullopt if the ray misses entirely.
   std::optional<std::pair<Real, Real>>
-  intersect(const DOmega &u0,
-            const DOmega &v) const override;
+  intersect(const DOmega &u0, const DOmega &v) const override;
 
-  Real area() const {
-    return (x.r() - x.l()) * (y.r() - y.l());
-  }
+  Real area() const { return (x.r() - x.l()) * (y.r() - y.l()); }
 
   /// Returns the rectangle as "[x0,x1] x [y0,y1]" using Interval::to_string()
   /// for each axis. Intended for logging and debugging.

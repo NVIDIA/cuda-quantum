@@ -115,7 +115,7 @@ public:
   }
 
   bool operator<=(const ZSqrt2 &other) const { return !(other < *this); }
-  bool operator>(const ZSqrt2 &other) const  { return other < *this; }
+  bool operator>(const ZSqrt2 &other) const { return other < *this; }
   bool operator>=(const ZSqrt2 &other) const { return !(*this < other); }
 
   ZSqrt2 operator+(const ZSqrt2 &other) const {

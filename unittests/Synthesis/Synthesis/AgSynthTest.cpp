@@ -29,7 +29,8 @@ static void expect_identity(const Tableau &tab) {
     EXPECT_FALSE(destab.sign()) << "destab " << i << " sign";
     for (size_t q = 0; q < n; ++q) {
       EXPECT_FALSE(destab.z().get(q)) << "destab " << i << " z[" << q << "]";
-      EXPECT_EQ(destab.x().get(q), q == i) << "destab " << i << " x[" << q << "]";
+      EXPECT_EQ(destab.x().get(q), q == i)
+          << "destab " << i << " x[" << q << "]";
     }
   }
 }
@@ -37,12 +38,24 @@ static void expect_identity(const Tableau &tab) {
 static void apply_circuit(Tableau &tab, const CliffordCircuit &circ) {
   for (const CliffordGate &g : circ) {
     switch (g.kind) {
-    case CliffordGateKind::H:  tab.append_h(g.qubit0);  break;
-    case CliffordGateKind::S:  tab.append_s(g.qubit0);  break;
-    case CliffordGateKind::X:  tab.append_x(g.qubit0);  break;
-    case CliffordGateKind::Z:  tab.append_z(g.qubit0);  break;
-    case CliffordGateKind::CX: tab.append_cx(g.qubit0, g.qubit1); break;
-    case CliffordGateKind::CZ: tab.append_cz(g.qubit0, g.qubit1); break;
+    case CliffordGateKind::H:
+      tab.append_h(g.qubit0);
+      break;
+    case CliffordGateKind::S:
+      tab.append_s(g.qubit0);
+      break;
+    case CliffordGateKind::X:
+      tab.append_x(g.qubit0);
+      break;
+    case CliffordGateKind::Z:
+      tab.append_z(g.qubit0);
+      break;
+    case CliffordGateKind::CX:
+      tab.append_cx(g.qubit0, g.qubit1);
+      break;
+    case CliffordGateKind::CZ:
+      tab.append_cz(g.qubit0, g.qubit1);
+      break;
     }
   }
 }
@@ -127,8 +140,10 @@ TEST(AgSynthSynthesis, ForwardCircuit_MatchesOriginal) {
     PauliProduct p_rebuilt = rebuilt.extract_pauli_product(col);
     EXPECT_EQ(p_orig.sign(), p_rebuilt.sign()) << "col=" << col;
     for (size_t q = 0; q < n; ++q) {
-      EXPECT_EQ(p_orig.z().get(q), p_rebuilt.z().get(q)) << "col=" << col << " z[" << q << "]";
-      EXPECT_EQ(p_orig.x().get(q), p_rebuilt.x().get(q)) << "col=" << col << " x[" << q << "]";
+      EXPECT_EQ(p_orig.z().get(q), p_rebuilt.z().get(q))
+          << "col=" << col << " z[" << q << "]";
+      EXPECT_EQ(p_orig.x().get(q), p_rebuilt.x().get(q))
+          << "col=" << col << " x[" << q << "]";
     }
   }
 }

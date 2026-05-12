@@ -10,20 +10,20 @@
 
 #include "Math/Geometry/Interval.h"
 #include "Math/Grid/Odgp.h"
-#include "cudaq/Synthesis/Math/Real.h"
 #include "Math/Ring/Dsqrt2.h"
 #include "Math/Ring/Zsqrt2.h"
 #include "Support/Generator.h"
+#include "cudaq/Synthesis/Math/Real.h"
 
 namespace {
 
 using cudaq::synth::DSqrt2;
+using cudaq::synth::first_of;
 using cudaq::synth::Integer;
 using cudaq::synth::Interval;
 using cudaq::synth::Real;
-using cudaq::synth::ZSqrt2;
-using cudaq::synth::first_of;
 using cudaq::synth::to_vector;
+using cudaq::synth::ZSqrt2;
 
 // ============================================================
 // Helper: verify a ZSqrt2 element is in the interval pair (I, J)

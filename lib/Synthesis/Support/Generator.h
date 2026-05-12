@@ -84,9 +84,7 @@ public:
       return *handle_.promise().value_ptr;
     }
 
-    pointer operator->() const noexcept {
-      return handle_.promise().value_ptr;
-    }
+    pointer operator->() const noexcept { return handle_.promise().value_ptr; }
 
     iterator &operator++() {
       assert(handle_ && !handle_.done());
@@ -145,9 +143,7 @@ public:
       handle_.destroy();
   }
 
-  explicit operator bool() const noexcept {
-    return handle_ && !handle_.done();
-  }
+  explicit operator bool() const noexcept { return handle_ && !handle_.done(); }
 
 private:
   handle_type handle_ = nullptr;
