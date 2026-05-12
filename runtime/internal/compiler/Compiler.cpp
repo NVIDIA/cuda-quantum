@@ -162,8 +162,8 @@ cudaq_internal::compiler::Compiler::Compiler(
     const std::string allowEarlyExitSetting =
         codegenTranslation.starts_with("qir-adaptive") ? "true" : "false";
     // Nop codegen sends MLIR to the server, so keep cc.loop structure intact.
-    const std::string preserveLoopsSetting =
-        codegenTranslation == "nop" ? " preserve-loops=true" : "";
+    const std::string noLoopUnrollSetting =
+        codegenTranslation == "nop" ? " no-loop-unroll=true" : "";
 
     // 1. Apply all the target-agnostic high-level passes. If this is an
     // emulation and a noise model has been set, do not erase the noise
@@ -172,11 +172,11 @@ cudaq_internal::compiler::Compiler::Compiler(
       // FIXME: Noise should eventually be enabled for emulated hardware targets
       passPipelineConfig += ",emul-jit-prep-pipeline{erase-noise=true"
                             " allow-early-exit=" +
-                            allowEarlyExitSetting + preserveLoopsSetting + "}";
+                            allowEarlyExitSetting + noLoopUnrollSetting + "}";
     else
       passPipelineConfig +=
           ",hw-jit-prep-pipeline{allow-early-exit=" + allowEarlyExitSetting +
-          preserveLoopsSetting + "}";
+          noLoopUnrollSetting + "}";
 
     // 2. Apply target-specific high-level passes from the .yml file, if any.
     if (!config.BackendConfig->JITHighLevelPipeline.empty()) {
@@ -188,7 +188,7 @@ cudaq_internal::compiler::Compiler::Compiler(
     // 3. Apply the target-agnostic deployment passes. Any additional
     // restructuring to get ready for decomposition.
     passPipelineConfig += codegenTranslation == "nop"
-                              ? ",jit-deploy-pipeline{preserve-loops=true}"
+                              ? ",jit-deploy-pipeline{no-loop-unroll=true}"
                               : ",jit-deploy-pipeline";
 
     // 4. Apply the target-specific mid-level passes. This decomposed quantum

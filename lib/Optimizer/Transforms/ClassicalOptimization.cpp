@@ -114,8 +114,8 @@ struct ClassicalOptimizationPipelineOptions
                      "(default: true)"),
       llvm::cl::init(true)};
   PassOptions::Option<bool> preserveLoops{
-      *this, "preserve-loops",
-      llvm::cl::desc("Preserve cc.loop operations by disabling loop unrolling. "
+      *this, "no-loop-unroll",
+      llvm::cl::desc("Disable loop unrolling and preserve cc.loop operations. "
                      "(default: false)"),
       llvm::cl::init(false)};
 };

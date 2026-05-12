@@ -28,18 +28,17 @@ struct TargetPrepPipelineOptions
           "Enable loop unrolling on loops with early exit conditions."),
       llvm::cl::init(false)};
   PassOptions::Option<bool> preserveLoops{
-      *this, "preserve-loops",
-      llvm::cl::desc(
-          "Preserve cc.loop operations by disabling loop unrolling."),
+      *this, "no-loop-unroll",
+      llvm::cl::desc("Disable loop unrolling and preserve cc.loop operations."),
       llvm::cl::init(false)};
 };
 
 struct TargetDeployPipelineOptions
     : public PassPipelineOptions<TargetDeployPipelineOptions> {
   PassOptions::Option<bool> preserveLoops{
-      *this, "preserve-loops",
+      *this, "no-loop-unroll",
       llvm::cl::desc(
-          "Preserve cc.loop operations by disabling loop unrolling."),
+          "Disable loop unrolling and preserve cc.loop operations."),
       llvm::cl::init(false)};
 };
 

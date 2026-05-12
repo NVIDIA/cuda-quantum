@@ -157,7 +157,7 @@ static void runTargetPassPipeline(mlir::ModuleOp module) {
   auto codegenTranslation = cfg.getCodeGenSpec(rt->runtimeConfig);
   // Nop codegen sends MLIR to the server, so keep cc.loop.
   auto deployStage = codegenTranslation == "nop"
-                         ? "jit-deploy-pipeline{preserve-loops=true}"
+                         ? "jit-deploy-pipeline{no-loop-unroll=true}"
                          : "jit-deploy-pipeline";
   auto pipeline = cfg.BackendConfig->getPassPipeline(deployStage, "");
   substitutePipelinePlaceholders(pipeline, rt->runtimeConfig);

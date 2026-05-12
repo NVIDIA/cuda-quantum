@@ -61,8 +61,8 @@ void registerJITPipelines();
 /// code. When converting to a quantum circuit, the static control program is
 /// fully expanded to eliminate control flow.
 /// Default values are threshold = 1024, allow break = true, and allow closed
-/// interval = true. If preserve loops is true, the pipeline keeps cc.loop
-/// operations instead of unrolling them.
+/// interval = true. If loop unrolling is disabled (`preserveLoops` = true), the
+/// pipeline keeps cc.loop operations.
 void createClassicalOptimizationPipeline(
     mlir::OpPassManager &pm, std::optional<unsigned> threshold = std::nullopt,
     std::optional<bool> allowBreak = std::nullopt,
