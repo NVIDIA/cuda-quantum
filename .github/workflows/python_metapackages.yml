@@ -53,8 +53,8 @@ jobs:
                 cp $file python/metapackages/$file
             done
 
-            retry apt-get update
-            retry apt-get install -y --no-install-recommends \
+            retry sudo apt-get update
+            retry sudo apt-get install -y --no-install-recommends \
                 python3 python3-pip python3-venv
             retry python3 -m pip install build
 
