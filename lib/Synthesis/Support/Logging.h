@@ -40,12 +40,12 @@ struct SinkConfig {
 
 /// Complete configuration for the synthesizer logging infrastructure.
 ///
-/// Passed to logging::init() by the embedding application.  Sensible defaults
-/// are provided for all fields; the common override path is via env vars
+/// Passed to `logging::init()` by the embedding application.  Sensible defaults
+/// are provided for all fields; the common override path is via `env` vars
 /// (CUDAQ_SYNTH_LOG_LEVEL, CUDAQ_SYNTH_LOG_FILE, CUDAQ_SYNTH_LOG_FORMAT) which
-/// are applied on top of whatever is passed to init().
+/// are applied on top of whatever is passed to `init()`.
 struct LoggingConfig {
-  /// Whether to call quill::Backend::start() during init().
+  /// Whether to call quill::Backend::start() during `init()`.
   /// Set to false if the embedding application has already started the backend.
   bool start_backend = true;
 
@@ -58,14 +58,14 @@ struct LoggingConfig {
       "%(time) [%(thread_id)] %(short_source_location:<28) "
       "LOG_%(log_level:<9) %(logger:<16) %(message)";
 
-  /// Timestamp format string (strftime + Quill fractional extensions).
+  /// Timestamp format string (`strftime` + Quill fractional extensions).
   std::string timestamp_format = "%H:%M:%S.%Qus";
 
   /// Sinks to create.  Defaults to a single console sink.
   std::vector<SinkConfig> sinks = {SinkConfig{}};
 
 #ifdef LOGGING_BACKEND_QUILL
-  /// Minimum log level applied to all loggers at init time.
+  /// Minimum log level applied to all loggers at `init` time.
   quill::LogLevel global_level = quill::LogLevel::Info;
 
   /// Per-logger level overrides applied when a logger is first created.
@@ -84,7 +84,7 @@ namespace logging {
 ///
 /// Must be called before any synthesizer code runs (or at least before the
 /// first CUDAQ_SYNTH_LOG_* call, which will auto-initialize with defaults if
-/// init() was not called explicitly).
+/// `init()` was not called explicitly).
 ///
 /// Thread-safe; subsequent calls after the first are no-ops.
 void init(const LoggingConfig &config = {});
@@ -92,7 +92,7 @@ void init(const LoggingConfig &config = {});
 /// Flush all pending log messages and stop the backend thread (if we started
 /// it).  Subsequent logging calls after shutdown() are undefined.
 ///
-/// Note: quill::Backend::start() registers an atexit() handler that calls
+/// Note: quill::Backend::start() registers an `atexit()` handler that calls
 /// Backend::stop() automatically, so explicit shutdown() is only needed when
 /// deterministic flushing before a specific program event is required.
 void shutdown();

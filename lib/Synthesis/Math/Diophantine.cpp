@@ -238,7 +238,7 @@ Fp2 fp2_pow(const Fp2Ctx &ctx, Fp2 base_elem, Integer e) {
 // Integer factoring  (Pollard–Brent ρ)
 // ---------------------------------------------------------------------------
 
-/// Pollard–Brent ρ factoring: return one non-trivial factor of n, or nullopt
+/// Pollard–Brent ρ factoring: return one non-trivial factor of n, or `nullopt`
 /// if the allotted time or iteration budget is exhausted.
 ///
 /// Used as the factoring sub-oracle in the Diophantine solver.  The paper
@@ -658,13 +658,13 @@ decompose_into_coprime_factors(const std::vector<ZSqrt2Factor> &factors) {
 ///  p ≡ 7 (mod 8):  2 is a QR mod p (Lemma C.11), so p splits in Z[√2] as
 ///                  p ~ ξ•ξ.  But Lemma C.20 proves ξ is NOT †-decomposable.
 ///                  We check: if √2 exists mod p (confirming p ≡ 7 mod 8)
-///                  → NoSolution.  If the primality test was wrong →
+///                  → NoSolution.  If the `primality` test was wrong →
 ///                  Unsolved.
 ///
 /// [*] Note: ZOmega(-1,0,1,0) = −ω³ + ω = i√2.  Since (i√2)†(i√2) = 2,
 ///     this is the correct representative for the p = 2 case.
 ///
-/// If p is not actually prime (the probabilistic primality test was wrong),
+/// If p is not actually prime (the probabilistic `primality` test was wrong),
 /// returns Unsolved so the caller can attempt further factoring.
 DiophantineResult adj_decompose_prime(Integer p) {
   if (p < 0)

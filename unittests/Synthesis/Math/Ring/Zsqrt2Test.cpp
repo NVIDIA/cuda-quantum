@@ -53,7 +53,7 @@ TEST(ZSqrt2ArithTest, MultiplyByOne) { EXPECT_EQ(kLambda * kOne, kLambda); }
 TEST(ZSqrt2ArithTest, MultiplyByZero) { EXPECT_EQ(kLambda * kZero, kZero); }
 
 TEST(ZSqrt2ArithTest, MultiplyFormula) {
-  // (a + b√2)(c + d√2) = (ac + 2bd) + (ad + bc)√2
+  // (a + b√2)(c + d√2) = (ac + 2bd) + (ad + `bc`)√2
   ZSqrt2 x(2, 3), y(5, 1);
   ZSqrt2 r = x * y;
   // a = 2*5 + 2*3*1 = 10 + 6 = 16
