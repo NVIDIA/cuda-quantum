@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "cudaq/Synthesis/Math/Real.h"
 #include "Math/Ring/Domega.h"
+#include "cudaq/Synthesis/Math/Real.h"
 
 #include <array>
 #include <optional>
@@ -57,8 +57,7 @@ public:
   ///   - a restricted ray (e.g. t ≥ 0) intersection,
   /// depending on how the caller uses t.
   virtual std::optional<std::pair<Real, Real>>
-  intersect(const DOmega &u0,
-            const DOmega &v) const = 0;
+  intersect(const DOmega &u0, const DOmega &v) const = 0;
 };
 
 } // namespace cudaq::synth

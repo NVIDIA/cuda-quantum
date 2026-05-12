@@ -14,9 +14,8 @@
 namespace cudaq::synth {
 
 std::optional<std::pair<Real, Real>>
-Rectangle::intersect(const DOmega &u0,
-                     const DOmega &v) const {
-  //static const Real tolerance(1e-30);
+Rectangle::intersect(const DOmega &u0, const DOmega &v) const {
+  // static const Real tolerance(1e-30);
 
   //// We parameterize the ray as u(t) = u0 + t·v and want all t such that
   //// u(t) lies inside the axis-aligned rectangle:
@@ -26,8 +25,8 @@ Rectangle::intersect(const DOmega &u0,
   ////
   //// Each inequality gives an interval of t; the intersection of all these
   //// intervals is the set of t for which the ray is in the rectangle.
-  //Real t_low = Real::neg_inf(); // current lower bound on t
-  //Real t_high = Real::inf();    // current upper bound on t
+  // Real t_low = Real::neg_inf(); // current lower bound on t
+  // Real t_high = Real::inf();    // current upper bound on t
 
   //// Update [t_low, t_high] given one coordinate constraint:
   ////
@@ -43,13 +42,13 @@ Rectangle::intersect(const DOmega &u0,
   //// and intersect this new [t_min, t_max] with the global [t_low, t_high].
   ////
   //// Returns false if the intersection becomes empty.
-  //auto update_bounds = [&](const Real &p0, const Real &dp, const Real &a,
-  //                         const Real &b) -> bool {
-  //  // Nearly parallel to this axis: p(t) ≈ constant = p0.
-  //  if (abs(dp) < tolerance)
-  //    // If the constant value lies outside [a, b], the ray misses the
-  //    // rectangle.
-  //    return !(p0 < a - tolerance || p0 > b + tolerance);
+  // auto update_bounds = [&](const Real &p0, const Real &dp, const Real &a,
+  //                          const Real &b) -> bool {
+  //   // Nearly parallel to this axis: p(t) ≈ constant = p0.
+  //   if (abs(dp) < tolerance)
+  //     // If the constant value lies outside [a, b], the ray misses the
+  //     // rectangle.
+  //     return !(p0 < a - tolerance || p0 > b + tolerance);
 
   //  // General case: dp nonzero, compute interval of t for which a ≤ p(t) ≤ b.
   //  Real t1 = (a - p0) / dp;
@@ -69,15 +68,15 @@ Rectangle::intersect(const DOmega &u0,
   //};
 
   //// Combine x-interval and y-interval constraints.
-  //if (!update_bounds(u0[0], v[0], x.l(), x.r()))
-  //  return std::nullopt;
-  //if (!update_bounds(u0[1], v[1], y.l(), y.r()))
-  //  return std::nullopt;
+  // if (!update_bounds(u0[0], v[0], x.l(), x.r()))
+  //   return std::nullopt;
+  // if (!update_bounds(u0[1], v[1], y.l(), y.r()))
+  //   return std::nullopt;
 
-  //if (t_low > t_high)
-  //  return std::nullopt;
+  // if (t_low > t_high)
+  //   return std::nullopt;
 
-  //return std::make_pair(std::move(t_low), std::move(t_high));
+  // return std::make_pair(std::move(t_low), std::move(t_high));
   exit(1);
 }
 

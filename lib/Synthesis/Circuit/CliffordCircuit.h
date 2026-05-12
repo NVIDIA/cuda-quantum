@@ -46,18 +46,10 @@ struct CliffordGate {
 
   // -- Convenience factories --
 
-  static CliffordGate h(size_t q) noexcept {
-    return {CliffordGateKind::H, q};
-  }
-  static CliffordGate s(size_t q) noexcept {
-    return {CliffordGateKind::S, q};
-  }
-  static CliffordGate x(size_t q) noexcept {
-    return {CliffordGateKind::X, q};
-  }
-  static CliffordGate z(size_t q) noexcept {
-    return {CliffordGateKind::Z, q};
-  }
+  static CliffordGate h(size_t q) noexcept { return {CliffordGateKind::H, q}; }
+  static CliffordGate s(size_t q) noexcept { return {CliffordGateKind::S, q}; }
+  static CliffordGate x(size_t q) noexcept { return {CliffordGateKind::X, q}; }
+  static CliffordGate z(size_t q) noexcept { return {CliffordGateKind::Z, q}; }
   static CliffordGate cx(size_t control, size_t target) noexcept {
     return {CliffordGateKind::CX, control, target};
   }

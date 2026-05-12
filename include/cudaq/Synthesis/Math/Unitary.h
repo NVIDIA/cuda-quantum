@@ -12,8 +12,8 @@
 #include <complex>
 #include <string>
 
-#include "cudaq/Synthesis/Circuit/Circuit.h"
 #include "Math/Ring/Domega.h"
+#include "cudaq/Synthesis/Circuit/Circuit.h"
 
 namespace cudaq::synth {
 
@@ -194,8 +194,7 @@ public:
   /// Returns "DOmegaUnitary(z=..., w=..., n=N)" delegating to
   /// DOmega::to_string() for z and w. Intended for logging and debugging.
   std::string to_string() const {
-    return "DOmegaUnitary(z=" + _z.to_string() +
-           ", w=" + _w.to_string() +
+    return "DOmegaUnitary(z=" + _z.to_string() + ", w=" + _w.to_string() +
            ", n=" + std::to_string(_n) + ")";
   }
 };
@@ -283,7 +282,8 @@ inline std::string rz_gate_sequence_error(const std::string &theta,
 inline std::string rz_gate_sequence_error(const std::string &theta,
                                           const std::string &gates) {
   auto circuit_or = Circuit::from_string(gates);
-  assert(succeeded(circuit_or) && "rz_gate_sequence_error: invalid gate string");
+  assert(succeeded(circuit_or) &&
+         "rz_gate_sequence_error: invalid gate string");
   return rz_gate_sequence_error(theta, *circuit_or);
 }
 
@@ -301,10 +301,18 @@ inline DOmegaUnitary DOmegaUnitary::from_gates(const Circuit &circuit) {
       unitary =
           with_denom_exp(unitary, unitary.k() + i32(1)).mul_by_H_from_left();
       break;
-    case Gate::T: unitary = unitary.mul_by_T_from_left(); break;
-    case Gate::S: unitary = unitary.mul_by_S_from_left(); break;
-    case Gate::X: unitary = unitary.mul_by_X_from_left(); break;
-    case Gate::W: unitary = unitary.mul_by_W_from_left(); break;
+    case Gate::T:
+      unitary = unitary.mul_by_T_from_left();
+      break;
+    case Gate::S:
+      unitary = unitary.mul_by_S_from_left();
+      break;
+    case Gate::X:
+      unitary = unitary.mul_by_X_from_left();
+      break;
+    case Gate::W:
+      unitary = unitary.mul_by_W_from_left();
+      break;
     }
   }
 

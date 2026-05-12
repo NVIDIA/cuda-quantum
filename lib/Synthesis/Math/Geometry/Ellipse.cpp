@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 #include "Math/Geometry/Ellipse.h"
-#include "cudaq/Synthesis/Math/Real.h"
 #include "Math/Ring/Domega.h"
+#include "cudaq/Synthesis/Math/Real.h"
 
 #include <cassert>
 
@@ -74,31 +74,31 @@ LogicalResult Ellipse::transform_by_gridop_mat(
   return failure();
 }
 
-std::optional<std::pair<Real, Real>>
-Ellipse::intersect(const DOmega &u0,
-                   const DOmega &v) const {
-  //static const Real tolerance(1e-30);
-  //Real rel_x0 = u0[0] - px();
-  //Real rel_y0 = u0[1] - py();
-  //const Real &dx = v[0];
-  //const Real &dy = v[1];
+std::optional<std::pair<Real, Real>> Ellipse::intersect(const DOmega &u0,
+                                                        const DOmega &v) const {
+  // static const Real tolerance(1e-30);
+  // Real rel_x0 = u0[0] - px();
+  // Real rel_y0 = u0[1] - py();
+  // const Real &dx = v[0];
+  // const Real &dy = v[1];
 
-  //Real qa = eval_quadratic_form(dx, dy);
-  //Real qb = 2 * (a() * rel_x0 * dx + b() * (rel_x0 * dy + rel_y0 * dx) +
-                 //d() * rel_y0 * dy);
-  //Real qc = eval_quadratic_form(rel_x0, rel_y0) - 1;
+  // Real qa = eval_quadratic_form(dx, dy);
+  // Real qb = 2 * (a() * rel_x0 * dx + b() * (rel_x0 * dy + rel_y0 * dx) +
+  // d() * rel_y0 * dy);
+  // Real qc = eval_quadratic_form(rel_x0, rel_y0) - 1;
 
-  //// Degenerate: v is nearly in the null space of D (qa ≈ 0 → linear equation).
-  //if (abs(qa) < tolerance) {
-    //if (abs(qb) < tolerance)
-      //return std::nullopt;
-    //// Single intersection point: move to avoid an extra GMP copy.
-    //Real t = -qc / qb;
-    //auto t2 = t;
-    //return std::make_pair(std::move(t), std::move(t2));
+  //// Degenerate: v is nearly in the null space of D (qa ≈ 0 → linear
+  /// equation).
+  // if (abs(qa) < tolerance) {
+  // if (abs(qb) < tolerance)
+  // return std::nullopt;
+  //// Single intersection point: move to avoid an extra GMP copy.
+  // Real t = -qc / qb;
+  // auto t2 = t;
+  // return std::make_pair(std::move(t), std::move(t2));
   //}
 
-  //return solve_quadratic(qa, qb, qc);
+  // return solve_quadratic(qa, qb, qc);
 }
 
 void Ellipse::apply_inverse_transform(const Real &I00, const Real &I01,
