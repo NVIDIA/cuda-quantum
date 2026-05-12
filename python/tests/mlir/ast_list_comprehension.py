@@ -1196,7 +1196,6 @@ def test_list_comprehension_filter():
 # CHECK-LABEL: test_list_comprehension_filter:
 # CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel1..
 # CHECK: cc.loop
-# CHECK: cc.if
 # CHECK: cc.stdvec_init
 # CHECK: return
 # CHECK-LABEL: func.func @__nvqpp__mlirgen__kernel2..

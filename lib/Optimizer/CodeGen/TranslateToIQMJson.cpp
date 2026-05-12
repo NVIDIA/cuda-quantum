@@ -15,9 +15,6 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/FormatAdapters.h"
-#include <algorithm>
-#include <cmath>
-#include <numeric>
 
 using namespace mlir;
 
@@ -117,15 +114,15 @@ static LogicalResult emitOperation(nlohmann::json &json,
 
     // Propagate the name of this qubit into the operation output values.
     emitter.getOrAssignName(
-        optor->getResult(0),
+        optor.getControls()[0],
         emitter.getOrAssignName(optor.getControls()[0]).str());
-    emitter.getOrAssignName(optor->getResult(1),
+    emitter.getOrAssignName(optor.getTarget(0),
                             emitter.getOrAssignName(optor.getTarget(0)).str());
   } else {
     json["name"] = "prx";
 
     if (optor.getParameters().size() != 2)
-      optor.emitError("IQM prx gate expects exactly two parameters.");
+      optor.emitError("IQM phased_rx gate expects exactly two parameters.");
 
     auto parameter0 =
         cudaq::getParameterValueAsDouble(optor.getParameters()[0]);
@@ -139,7 +136,7 @@ static LogicalResult emitOperation(nlohmann::json &json,
     json["args"]["phase_t"] = convertToFullTurns(*parameter1);
 
     // Propagate the name of this qubit into the operation output values.
-    emitter.getOrAssignName(optor->getResult(0),
+    emitter.getOrAssignName(optor.getTarget(0),
                             emitter.getOrAssignName(optor.getTarget(0)).str());
   }
 
@@ -200,9 +197,9 @@ static LogicalResult emitOperation(nlohmann::json &json,
       .Case<arith::ConstantOp>([](auto) { return success(); })
       .Default([&](Operation *) -> LogicalResult {
         // Allow LLVM and cc dialect ops (for storing measure results).
-        if (op.getName().getDialectNamespace().equals("llvm") ||
-            op.getName().getDialectNamespace().equals("cc") ||
-            op.getName().getDialectNamespace().equals("arith"))
+        if (op.getName().getDialectNamespace() == "llvm" ||
+            op.getName().getDialectNamespace() == "cc" ||
+            op.getName().getDialectNamespace() == "arith")
           return success();
         return op.emitOpError() << "unable to translate op to IQM Json "
                                 << op.getName().getIdentifier().str();

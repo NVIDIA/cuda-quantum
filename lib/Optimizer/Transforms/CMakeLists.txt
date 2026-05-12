@@ -28,6 +28,7 @@ add_cudaq_library(OptTransforms
   Decomposition.cpp
   DecompositionPatterns.cpp
   DecompositionPatternSelection.cpp
+  DesugarCableOps.cpp
   DistributedDeviceCall.cpp
   EraseNoise.cpp
   EraseNopCalls.cpp
@@ -66,6 +67,7 @@ add_cudaq_library(OptTransforms
   ResetBeforeReuse.cpp
   ResourceCount.cpp
   ResourceCountPreprocess.cpp
+  RunSemanticsHackery.cpp
   SROA.cpp
   StackFramePrealloc.cpp
   StatePreparation.cpp

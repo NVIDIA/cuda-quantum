@@ -362,10 +362,6 @@ cudaq::dynamics::CuDensityMatOpConverter::createProductOperatorTerm(
     for (size_t j = 0; j < sub_degrees.size(); j++) {
       std::size_t degree = sub_degrees[j];
       int modality = modalities[j];
-
-      if (sub_degrees[i] < 0)
-        throw std::out_of_range("Degree cannot be negative!");
-
       allDegrees.emplace_back(degree);
       allModeActionDuality.emplace_back(modality);
     }

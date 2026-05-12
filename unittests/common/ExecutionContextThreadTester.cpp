@@ -9,6 +9,7 @@
 #include "common/ExecutionContext.h"
 #include "common/RuntimeTarget.h"
 #include "cudaq/platform/qpu.h"
+#include "cudaq/platform/quantum_platform.h"
 #include <atomic>
 #include <gtest/gtest.h>
 #include <memory>
@@ -24,9 +25,8 @@ public:
   void enqueue(cudaq::QuantumTask &task) override {}
 
   cudaq::KernelThunkResultType
-  launchKernel(const std::string &name, cudaq::KernelThunkType kernelFunc,
-               void *args, std::uint64_t argsSize, std::uint64_t resultOffset,
-               const std::vector<void *> &rawArgs) override {
+  unifiedLaunchModule(const cudaq::AnyModule &module,
+                      cudaq::KernelArgs args) override {
     return {};
   }
 };

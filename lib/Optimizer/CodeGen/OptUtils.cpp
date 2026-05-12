@@ -18,13 +18,11 @@
 //===----------------------------------------------------------------------===//
 
 #include "cudaq/Optimizer/CodeGen/OptUtils.h"
-
 #include "llvm/IR/Module.h"
 #include "llvm/Passes/OptimizationLevel.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Target/TargetMachine.h"
-#include <optional>
 
 using namespace llvm;
 
@@ -54,6 +52,7 @@ static std::optional<OptimizationLevel> mapToLevel(unsigned optLevel,
   }
   return std::nullopt;
 }
+
 // Create and return a lambda that uses LLVM pass manager builder to set up
 // optimizations based on the given level.
 std::function<Error(Module *)>

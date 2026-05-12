@@ -17,6 +17,7 @@
 #include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
+#include "cudaq/platform.h"
 #include "cudaq/qis/kernel_utils.h"
 #include <algorithm>
 #include <cstdio>
@@ -76,9 +77,6 @@ void jitIfKernelBuilder(QuantumKernel &kernel) {
     static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
 }
 } // namespace detail
-
-/// @brief Return type for asynchronous sampling.
-using async_sample_result = async_result<sample_result>;
 
 /// @brief Define a combined sample function validation concept.
 /// These concepts provide much better error messages than old-school SFINAE

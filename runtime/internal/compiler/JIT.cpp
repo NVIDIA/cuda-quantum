@@ -49,8 +49,6 @@
 #define DEBUG_TYPE "cudaq-qpud"
 
 using namespace mlir;
-using namespace cudaq_internal::compiler;
-using cudaq::JitEngine;
 
 std::tuple<std::unique_ptr<llvm::orc::LLJIT>, std::function<void()>>
 cudaq_internal::compiler::createWrappedKernel(std::string_view irString,
@@ -121,17 +119,21 @@ cudaq_internal::compiler::createWrappedKernel(std::string_view irString,
   if (mangledKernelNames.first.empty() || mangledKernelNames.second.empty())
     throw std::runtime_error("Failed to locate symbols from the IR");
 
-  ExecutionEngine::setupTargetTriple(llvmModule.get());
+  auto tmBuilderOrError = llvm::orc::JITTargetMachineBuilder::detectHost();
+  if (tmBuilderOrError) {
+    auto tmOrError = tmBuilderOrError->createTargetMachine();
+    if (tmOrError)
+      mlir::ExecutionEngine::setupTargetTripleAndDataLayout(
+          llvmModule.get(), tmOrError.get().get());
+  }
   auto dataLayout = llvmModule->getDataLayout();
 
   // Create the object layer
-  auto objectLinkingLayerCreator = [&](llvm::orc::ExecutionSession &session,
-                                       const llvm::Triple &tt) {
-    auto objectLayer =
-        std::make_unique<llvm::orc::RTDyldObjectLinkingLayer>(session, []() {
+  auto objectLinkingLayerCreator = [&](llvm::orc::ExecutionSession &session) {
+    auto objectLayer = std::make_unique<llvm::orc::RTDyldObjectLinkingLayer>(
+        session, [](const llvm::MemoryBuffer &) {
           return std::make_unique<llvm::SectionMemoryManager>();
         });
-    llvm::Triple targetTriple(llvm::Twine(llvmModule->getTargetTriple()));
     return objectLayer;
   };
 
@@ -165,11 +167,10 @@ cudaq_internal::compiler::createWrappedKernel(std::string_view irString,
   return std::make_tuple(std::move(jit), callable);
 }
 
-namespace {
-void insertSetupAndCleanupOperations(Operation *module) {
+static void insertSetupAndCleanupOperations(Operation *module) {
   OpBuilder modBuilder(module);
   auto *context = module->getContext();
-  auto arrayQubitTy = cudaq::opt::getArrayType(context);
+  auto arrayQubitTy = cudaq::cg::getLLVMArrayType(context);
   auto voidTy = LLVM::LLVMVoidType::get(context);
   auto boolTy = modBuilder.getI1Type();
   FlatSymbolRefAttr allocateSymbol =
@@ -215,32 +216,35 @@ void insertSetupAndCleanupOperations(Operation *module) {
     OpBuilder builder(&block, block.begin());
     auto loc = builder.getUnknownLoc();
 
-    auto origMode = builder.create<LLVM::CallOp>(loc, TypeRange{boolTy},
-                                                 isDynamicSymbol, ValueRange{});
+    auto origMode =
+        mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{boolTy},
+                                   isDynamicSymbol, mlir::ValueRange{});
 
     auto numQubitsVal =
         cudaq::opt::factory::genLlvmI64Constant(loc, builder, num_qubits);
-    auto falseVal = builder.create<LLVM::ConstantOp>(
-        loc, boolTy, builder.getI16IntegerAttr(false));
+    auto falseVal = mlir::LLVM::ConstantOp::create(
+        builder, loc, boolTy, builder.getI16IntegerAttr(false));
 
-    auto qubitAlloc = builder.create<LLVM::CallOp>(
-        loc, TypeRange{arrayQubitTy}, allocateSymbol,
-        ValueRange{numQubitsVal.getResult()});
-    builder.create<LLVM::CallOp>(loc, TypeRange{voidTy}, setDynamicSymbol,
-                                 ValueRange{falseVal.getResult()});
+    auto qubitAlloc = mlir::LLVM::CallOp::create(
+        builder, loc, mlir::TypeRange{arrayQubitTy}, allocateSymbol,
+        mlir::ValueRange{numQubitsVal.getResult()});
+    mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{voidTy},
+                               setDynamicSymbol,
+                               mlir::ValueRange{falseVal.getResult()});
 
     // At the end of the function, deallocate the qubits and restore the
     // simulator state.
     builder.setInsertionPoint(std::prev(blocks.end())->getTerminator());
-    builder.create<LLVM::CallOp>(loc, TypeRange{voidTy}, releaseSymbol,
-                                 ValueRange{qubitAlloc.getResult()});
-    builder.create<LLVM::CallOp>(loc, TypeRange{voidTy}, setDynamicSymbol,
-                                 ValueRange{origMode.getResult()});
-    builder.create<LLVM::CallOp>(loc, TypeRange{voidTy}, clearResultMapsSymbol,
-                                 ValueRange{});
+    mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{voidTy},
+                               releaseSymbol,
+                               mlir::ValueRange{qubitAlloc.getResult()});
+    mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{voidTy},
+                               setDynamicSymbol,
+                               mlir::ValueRange{origMode.getResult()});
+    mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{voidTy},
+                               clearResultMapsSymbol, mlir::ValueRange{});
   }
 }
-} // namespace
 
 cudaq::JitEngine
 cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
@@ -252,15 +256,15 @@ cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
   llvm::cl::ParseCommandLineOptions(2, argv);
 
   ExecutionEngineOptions opts;
-  opts.transformer = [](llvm::Module *m) { return llvm::ErrorSuccess(); };
-  opts.jitCodeGenOptLevel = llvm::CodeGenOpt::None;
-  opts.llvmModuleBuilder =
+  auto transformerTemp = [](llvm::Module *m) { return llvm::ErrorSuccess(); };
+  opts.transformer = std::move(transformerTemp);
+  opts.jitCodeGenOptLevel = llvm::CodeGenOptLevel::None;
+  auto llvmModuleBuilderTemp =
       [convertTo = convertTo.str()](
           Operation *module,
           llvm::LLVMContext &llvmContext) -> std::unique_ptr<llvm::Module> {
     ScopedTraceWithContext(cudaq::TIMING_JIT,
                            "createJITEngine::llvmModuleBuilder");
-    llvmContext.setOpaquePointers(false);
 
     auto *context = module->getContext();
     PassManager pm(context);
@@ -331,13 +335,20 @@ cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
     if (!llvmModule)
       throw std::runtime_error("[createJITEngine] Lowering to LLVM IR failed.");
 
-    ExecutionEngine::setupTargetTriple(llvmModule.get());
+    auto tmBuilderOrError = llvm::orc::JITTargetMachineBuilder::detectHost();
+    if (tmBuilderOrError) {
+      auto tmOrError = tmBuilderOrError->createTargetMachine();
+      if (tmOrError)
+        mlir::ExecutionEngine::setupTargetTripleAndDataLayout(
+            llvmModule.get(), tmOrError.get().get());
+    }
     return llvmModule;
   };
+  opts.llvmModuleBuilder = std::move(llvmModuleBuilderTemp);
 
   auto jitOrError = ExecutionEngine::create(moduleOp, opts);
   assert(!!jitOrError && "ExecutionEngine creation failed.");
-  return JitEngine(std::move(jitOrError.get()));
+  return cudaq::JitEngine(std::move(jitOrError.get()));
 }
 
 class cudaq::JitEngine::Impl : public cudaq::JitEngine::Base {
@@ -366,7 +377,7 @@ private:
 };
 
 cudaq::JitEngine::JitEngine(std::unique_ptr<ExecutionEngine> jitEngine)
-    : impl(std::make_shared<JitEngine::Impl>(std::move(jitEngine))) {}
+    : impl(std::make_shared<cudaq::JitEngine::Impl>(std::move(jitEngine))) {}
 
 std::size_t cudaq::JitEngine::getKey() const {
   return static_cast<const Impl *>(impl.get())->getKey();

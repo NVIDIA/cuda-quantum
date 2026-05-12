@@ -8,13 +8,13 @@
 
 #pragma once
 
+#include "common/DeviceCodeRegistry.h"
 #include "common/Environment.h"
 #include "common/JsonConvert.h"
 #include "common/RemoteKernelExecutor.h"
 #include "common/RestClient.h"
 #include "common/SampleMeasurementUtils.h"
 #include "common/UnzipUtils.h"
-#include "cudaq.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
@@ -24,6 +24,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/platform.h"
+#include "cudaq/qis/remote_state.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
@@ -139,13 +140,13 @@ public:
       func->setAttr(cudaq::entryPointAttrName, builder.getUnitAttr());
     mlir::ModuleOp moduleOp = [&]() {
       if constexpr (cloneAgain) {
-        auto moduleOp = builder.create<mlir::ModuleOp>();
+        auto moduleOp = mlir::ModuleOp::create(builder, builder.getLoc());
         moduleOp->setAttrs(module->getAttrDictionary());
         for (auto &op : module) {
           if (auto funcOp = dyn_cast<mlir::func::FuncOp>(op)) {
             // Add quantum kernels defined in the module.
             if (funcOp->hasAttr(cudaq::kernelAttrName) ||
-                funcOp.getName().startswith("__nvqpp__mlirgen__") ||
+                funcOp.getName().starts_with("__nvqpp__mlirgen__") ||
                 funcOp.getBody().empty())
               moduleOp.push_back(funcOp.clone());
           }

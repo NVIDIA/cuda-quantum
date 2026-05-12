@@ -8,8 +8,8 @@
 
 #include "py_ObserveResult.h"
 
+#include "common/Future.h"
 #include "common/ObserveResult.h"
-#include "cudaq/algorithms/observe.h"
 
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>

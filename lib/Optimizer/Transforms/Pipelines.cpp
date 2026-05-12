@@ -128,8 +128,8 @@ void cudaq::opt::addDecomposition(OpPassManager &pm,
   // NB: Both of these ListOption *must* be set here or they may contain garbage
   // and the compiler may crash.
   cudaq::opt::DecompositionOptions opts;
-  opts.disabledPatterns = disabledPats;
-  opts.enabledPatterns = enabledPats;
+  opts.disabledPatterns.assign(disabledPats.begin(), disabledPats.end());
+  opts.enabledPatterns.assign(enabledPats.begin(), enabledPats.end());
   pm.addPass(cudaq::opt::createDecomposition(opts));
 }
 
@@ -202,6 +202,8 @@ static void createPythonAOTPipeline(OpPassManager &pm,
   gkeOpts.deferToJIT = options.deferGKEToJIT;
   gkeOpts.codegenKind = options.codegenKind;
   pm.addPass(cudaq::opt::createGenerateKernelExecution(gkeOpts));
+  if (options.autoGenRunStack)
+    pm.addPass(cudaq::opt::createRunSemanticsHackery());
   cudaq::opt::addAggressiveInlining(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createConstantPropagation());

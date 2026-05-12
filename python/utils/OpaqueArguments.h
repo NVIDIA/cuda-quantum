@@ -82,8 +82,10 @@ void checkArgumentType(nanobind::handle arg, int index,
         "kernel argument" + word + " type is '" +
         std::string(py_ext::typeName<T>()) + "'" +
         " but argument provided is not (argument " + std::to_string(index) +
-        ", value=" + nanobind::cast<std::string>(nanobind::str(arg)) +
-        ", type=" + nanobind::cast<std::string>(nanobind::str(arg.type())) +
+        ", value=" + std::string(nanobind::str(arg).c_str()) + ", type=" +
+        std::string(nanobind::str(nanobind::handle(reinterpret_cast<PyObject *>(
+                                      Py_TYPE(arg.ptr()))))
+                        .c_str()) +
         ").");
   }
 }

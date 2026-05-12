@@ -187,10 +187,6 @@ public:
     applyConsumers(&clang::ASTConsumer::CompleteTentativeDefinition,
                    std::move(D));
   }
-  void CompleteExternalDeclaration(clang::VarDecl *D) override {
-    applyConsumers(&clang::ASTConsumer::CompleteExternalDeclaration,
-                   std::move(D));
-  }
   void AssignInheritanceModel(clang::CXXRecordDecl *RD) override {
     applyConsumers(&clang::ASTConsumer::AssignInheritanceModel, std::move(RD));
   }
@@ -387,12 +383,17 @@ int main(int argc, char **argv) {
   }
   if (!resolvedLibcxxPath.empty() &&
       std::filesystem::exists(resolvedLibcxxPath)) {
+    clArgs.push_back("-nostdinc++");
     if (std::filesystem::exists(resolvedLibcxxTargetPath)) {
       clArgs.push_back("-isystem");
       clArgs.push_back(resolvedLibcxxTargetPath.string());
     }
     clArgs.push_back("-isystem");
     clArgs.push_back(resolvedLibcxxPath.string());
+    if (!sysrootPath.empty()) {
+      clArgs.push_back("-isysroot");
+      clArgs.push_back(sysrootPath);
+    }
   } else if (!sysrootPath.empty()) {
     clArgs.push_back("-isysroot");
     clArgs.push_back(sysrootPath);

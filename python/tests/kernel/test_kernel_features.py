@@ -17,6 +17,7 @@ import cudaq
 from cudaq import spin
 
 from test_helpers import h2_hamiltonian_4q
+from cudaq._metadata import assertions_enabled as _cudaq_assertions_enabled
 
 
 @pytest.fixture(autouse=True)
@@ -338,6 +339,40 @@ def test_2grover_compute_action():
     assert '011' in counts
 
 
+def test_callable_kernel_arg_signature_mismatch_arg_type():
+
+    @cudaq.kernel
+    def k1(fct: Callable[[int, cudaq.qubit], None]):
+        qubit = cudaq.qubit()
+        fct(0, qubit)
+
+    @cudaq.kernel
+    def k2(cond: bool, q: cudaq.qubit):
+        if cond:
+            x(q)
+
+    with pytest.raises(RuntimeError, match="Expected callable with signature"):
+        k1(k2)
+
+    with pytest.raises(RuntimeError, match="Expected argument of type"):
+        k2(True, k1)
+
+
+def test_callable_kernel_arg_signature_mismatch_arity():
+
+    @cudaq.kernel
+    def caller(fct: Callable[[cudaq.qubit], None]):
+        qubit = cudaq.qubit()
+        fct(qubit)
+
+    @cudaq.kernel
+    def callee(a: int, q: cudaq.qubit):
+        pass
+
+    with pytest.raises(RuntimeError, match="Expected callable with signature"):
+        caller(callee)
+
+
 def test_observe():
 
     @cudaq.kernel
@@ -422,7 +457,13 @@ def test_exp_pauli_zz():
     assert '11' in counts
 
 
-@pytest.mark.parametrize('target', ['default', 'stim'])
+_skip_stim_p1 = pytest.mark.skipif(
+    _cudaq_assertions_enabled,
+    reason="https://github.com/NVIDIA/cuda-quantum/issues/4026")
+
+
+@pytest.mark.parametrize(
+    'target', ['default', pytest.param('stim', marks=_skip_stim_p1)])
 def test_dynamic_circuit(target):
     """Test that we correctly handle circuits with 
        mid-circuit measurements and conditionals."""

@@ -6,13 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/CCToLLVM.h"
-#include "cudaq/Optimizer/CodeGen/CodeGenDialect.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "llvm/IR/LLVMContext.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Conversion/ArithToLLVM/ArithToLLVM.h"
 #include "mlir/Conversion/ComplexToLLVM/ComplexToLLVM.h"

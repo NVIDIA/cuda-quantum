@@ -11,9 +11,14 @@
 /// @file qpu_utils.h
 /// @brief Utility functions for the CUDA-Q platforms to aimed at reducing
 /// header file dependencies.
+#include "cudaq/utils/owning_ptr.h"
+#include <map>
+#include <memory>
 #include <string>
 
 namespace cudaq {
+class Executor;
+class ServerHelper;
 namespace config {
 class TargetConfig;
 } // namespace config
@@ -31,6 +36,18 @@ std::string decodeBase64(const std::string &encoded);
 /// @brief Returns true if @p kernelName has the analog Hamiltonian kernel
 /// prefix.
 bool isAnalogHamiltonianKernel(const std::string &kernelName);
+
+/// @brief Look up the @c ServerHelper and @c Executor registered under
+/// @p qpuName, initialize the server helper with @p backendConfig, wire it
+/// into the executor, and populate the server helper's runtime target from
+/// @p targetConfig and @p backendConfig. Throws @c std::runtime_error if no
+/// @c ServerHelper is registered for @p qpuName.
+void initServerHelperAndExecutor(
+    const std::string &qpuName,
+    const std::map<std::string, std::string> &backendConfig,
+    const config::TargetConfig &targetConfig,
+    owning_ptr<ServerHelper> &serverHelper,
+    std::unique_ptr<Executor> &executor);
 } // namespace detail
 
 } // namespace cudaq
