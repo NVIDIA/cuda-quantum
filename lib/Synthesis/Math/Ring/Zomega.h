@@ -250,7 +250,7 @@ inline ZOmega mul_by_omega_power(const ZOmega &x, i32 n) {
 
 /// Multiplicative inverse of x, valid only for units (elements with norm 1).
 ///
-/// Returns failure() if x is not a unit. In Z[ω] the units are the 8th roots
+/// Returns failure() if x is not a unit. In Z[ω] the units are the `8th` roots
 /// of unity {±1, ±ω, ±ω², ±ω³}; the inverse formula follows from
 ///   x⁻¹ = x● · (x†·(x†)●) / N(x)
 /// which reduces to conj_sq2 * c * c.conj_sq2() when N(x) = 1.
