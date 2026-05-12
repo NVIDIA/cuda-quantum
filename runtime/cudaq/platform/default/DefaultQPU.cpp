@@ -18,14 +18,18 @@ void cudaq::DefaultQPU::enqueue(QuantumTask &task) {
 }
 
 cudaq::KernelThunkResultType
-cudaq::DefaultQPU::launchKernel(const cudaq::SourceModule &src,
-                                cudaq::KernelArgs args) {
-  ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::launchKernel");
+cudaq::DefaultQPU::unifiedLaunchModule(const cudaq::AnyModule &module,
+                                       cudaq::KernelArgs args) {
+  if (!std::holds_alternative<cudaq::SourceModule>(module))
+    return runJITCompiledModule(std::get<cudaq::CompiledModule>(module), args);
+
+  const auto &src = std::get<cudaq::SourceModule>(module);
+  ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::unifiedLaunchModule");
   auto rawFn = src.getFunctionPtr();
   if (!rawFn)
     throw std::runtime_error(
-        "DefaultQPU::launchKernel requires a raw kernel function pointer "
-        "for kernel '" +
+        "DefaultQPU::unifiedLaunchModule requires a raw kernel function "
+        "pointer for kernel '" +
         src.getName() + "'.");
   auto packed = args.getPacked();
   void *argData = packed ? packed->data.data() : nullptr;

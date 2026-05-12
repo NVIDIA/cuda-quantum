@@ -220,41 +220,39 @@ public:
   /// representation required by the targeted backend. Handle all pertinent
   /// modifications for the execution context as well as asynchronous or
   /// synchronous invocation.
-  KernelThunkResultType launchKernel(const SourceModule &src,
-                                     KernelArgs args) override {
-    const auto &kernelName = src.getName();
-    CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
-
-    auto executionContext = cudaq::getExecutionContext();
-
-    // TODO future iterations of this should support non-void return types.
-    if (!executionContext)
-      throw std::runtime_error(
-          "Remote rest execution can only be performed via cudaq::sample(), "
-          "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
-
-    auto [moduleOp, context] = Compiler::loadQuakeCodeByName(kernelName);
-
-    // Get the Quake code, lowered according to config file.
+  KernelThunkResultType unifiedLaunchModule(const AnyModule &module,
+                                            KernelArgs args) override {
     Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
                       noiseModel, emulate);
-    auto codes =
-        compiler.lowerQuakeCode(executionContext, kernelName, moduleOp, args);
+    std::string kernelName;
+    std::vector<cudaq::KernelExecution> codes;
+
+    if (std::holds_alternative<SourceModule>(module)) {
+      const auto &src = std::get<SourceModule>(module);
+      kernelName = src.getName();
+      CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
+
+      auto executionContext = cudaq::getExecutionContext();
+
+      // TODO future iterations of this should support non-void return types.
+      if (!executionContext)
+        throw std::runtime_error(
+            "Remote rest execution can only be performed via cudaq::sample(), "
+            "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
+
+      auto [moduleOp, context] = Compiler::loadQuakeCodeByName(kernelName);
+
+      // Get the Quake code, lowered according to config file.
+      codes =
+          compiler.lowerQuakeCode(executionContext, kernelName, moduleOp, args);
+    } else {
+      const auto &compiled = std::get<CompiledModule>(module);
+      kernelName = compiled.getName();
+      CUDAQ_INFO("launching remote rest kernel via module ({})", kernelName);
+      codes = compiler.emitKernelExecutions(compiled);
+    }
+
     completeLaunchKernel(kernelName, std::move(codes));
-
-    // NB: Kernel should/will never return dynamic results.
-    return {};
-  }
-
-  KernelThunkResultType launchModule(const CompiledModule &compiled,
-                                     KernelArgs args) override {
-    CUDAQ_INFO("launching remote rest kernel via module ({})",
-               compiled.getName());
-
-    Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
-                      noiseModel, emulate);
-    auto codes = compiler.emitKernelExecutions(compiled);
-    completeLaunchKernel(compiled.getName(), std::move(codes));
     return {};
   }
 

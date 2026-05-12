@@ -17,6 +17,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 // This header file and the types defined within are designed to have no
@@ -295,5 +296,11 @@ public:
   /// the `SourceModule` instance.
   SourceModule(std::string kernelName, const void *mlirModuleOpaquePtr);
 };
+
+// TODO: remove once C++ launch can be cleanly split into compilation + launch.
+// Used by unifiedLaunchModule to compile kernels if they have not been compiled
+// before. In the future, unifiedLaunchModule should only accept compiled
+// modules.
+using AnyModule = std::variant<SourceModule, CompiledModule>;
 
 } // namespace cudaq
