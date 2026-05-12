@@ -152,9 +152,8 @@ cudaq_internal::compiler::Compiler::Compiler(
   }
 
   if (config.BackendConfig.has_value()) {
-    auto pipelineConfig =
-        cudaq_internal::compiler::buildJITTargetPipelineConfig(
-            config, backendConfig, emulate);
+    auto pipelineConfig = cudaq_internal::compiler::JITTargetPipelineConfig::
+        createFromTargetConfig(config, backendConfig, emulate);
     passPipelineConfig = pipelineConfig.passPipelineConfig;
     codegenTranslation = pipelineConfig.codegenTranslation;
     postCodeGenPasses = pipelineConfig.postCodeGenPasses;

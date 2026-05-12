@@ -18,6 +18,11 @@ namespace cudaq_internal::compiler {
 
 /// Target JIT pipeline settings resolved from target data and runtime options.
 struct JITTargetPipelineConfig {
+  /// Build the staged JIT target pipeline or exact target override.
+  static JITTargetPipelineConfig createFromTargetConfig(
+      const cudaq::config::TargetConfig &config,
+      const std::map<std::string, std::string> &runtimeConfig, bool emulate);
+
   /// MLIR pass pipeline to run.
   std::string passPipelineConfig = "canonicalize";
   /// Code generation emission selected by the target.
@@ -33,11 +38,6 @@ struct JITTargetPipelineConfig {
   /// Standard `jit-finalize-pipeline` is part of `passPipelineConfig`.
   bool runsStandardFinalize = false;
 };
-
-/// Build the staged JIT target pipeline or exact target override.
-JITTargetPipelineConfig buildJITTargetPipelineConfig(
-    const cudaq::config::TargetConfig &config,
-    const std::map<std::string, std::string> &runtimeConfig, bool emulate);
 
 /// Replace `%KEY%` and `%KEY:default%` placeholders from runtime options.
 void substitutePipelinePlaceholders(

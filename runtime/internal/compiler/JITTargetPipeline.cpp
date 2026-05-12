@@ -60,7 +60,7 @@ void cudaq_internal::compiler::setQubitMappingBypass(std::string &pipeline) {
 }
 
 cudaq_internal::compiler::JITTargetPipelineConfig
-cudaq_internal::compiler::buildJITTargetPipelineConfig(
+cudaq_internal::compiler::JITTargetPipelineConfig::createFromTargetConfig(
     const cudaq::config::TargetConfig &config,
     const std::map<std::string, std::string> &runtimeConfig, bool emulate) {
   JITTargetPipelineConfig pipelineConfig;

@@ -108,8 +108,9 @@ static bool runTargetPassPipeline(mlir::ModuleOp module) {
   auto *rt = cudaq::get_platform().get_runtime_target();
   if (!rt)
     return false;
-  auto pipelineConfig = cudaq_internal::compiler::buildJITTargetPipelineConfig(
-      rt->config, rt->runtimeConfig, cudaq::is_emulated_platform());
+  auto pipelineConfig =
+      cudaq_internal::compiler::JITTargetPipelineConfig::createFromTargetConfig(
+          rt->config, rt->runtimeConfig, cudaq::is_emulated_platform());
   if (!pipelineConfig.hasConfiguredPassPipeline)
     return false;
 
