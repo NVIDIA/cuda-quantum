@@ -28,7 +28,7 @@ namespace cudaq::synth {
 ///   u = α + βi  with α ∈ Aₓ, α● ∈ Bₓ and β ∈ Aᵧ, β● ∈ Bᵧ
 /// (and similarly for the ω-offset case u = α + βi + ω).
 ///
-/// Rectangles serve as bounding boxes for ellipses (bbox method) and
+/// Rectangles serve as bounding boxes for ellipses (`bbox` method) and
 /// define the domain for the TDGP line-scanning phase.
 ///
 class Rectangle : public ConvexSet {

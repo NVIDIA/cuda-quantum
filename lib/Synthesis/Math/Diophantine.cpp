@@ -198,7 +198,7 @@ struct Fp2 {
 ///
 /// @param ctx Ring context (prime p and non-residue δ).
 /// @param lhs Left operand, coefficients in [0, p).
-/// @param rhs Right operand, coefficients in [0, p).
+/// @param `rhs` Right operand, coefficients in [0, p).
 /// @return Product in F_p², coefficients in [0, p).
 Fp2 fp2_mul(const Fp2Ctx &ctx, const Fp2 &lhs, const Fp2 &rhs) {
   // real part: a₁·a₂ + b₁·b₂·δ  (mod p)

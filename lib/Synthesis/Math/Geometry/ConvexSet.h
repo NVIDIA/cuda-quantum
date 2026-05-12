@@ -25,7 +25,7 @@ namespace cudaq::synth {
 /// geometric oracles. In particular, the algorithms need to be able to:
 ///
 ///   1. Decide membership: given a point v, is v ∈ A?
-///   2. Intersect a line (or ray) with A: given a parametrized line u(t),
+///   2. Intersect a line (or ray) with A: given a `parametrized` line u(t),
 ///      find the interval of t for which u(t) lies in A.
 ///
 /// This base class exposes exactly these operations in 2D. Concrete subclasses
@@ -47,7 +47,7 @@ public:
 
   /// Line / ray intersection oracle.
   ///
-  /// The caller parameterizes a line (or ray) as
+  /// The caller `parameterizes` a line (or ray) as
   ///   u(t) = u0 + t·v,  t ∈ ℝ,
   /// and intersect() returns the interval [t_min, t_max] for which u(t) lies
   /// inside the convex set, or std::nullopt if there is no intersection at all.

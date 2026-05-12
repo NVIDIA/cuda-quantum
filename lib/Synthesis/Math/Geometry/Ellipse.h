@@ -25,11 +25,11 @@ namespace cudaq::synth {
 /// Selects the path taken by Ellipse::transform_by_gridop_mat.
 enum class TransformMode {
   /// Hot path: the caller has already precomputed the inverse entries
-  /// (preinv*).  No division or GridOp::inv() call is performed.
+  /// (`preinv`*).  No division or GridOp::inv() call is performed.
   Direct,
   /// Conjugate path: the caller supplies only the forward matrix entries
-  /// (F*).  The inverse is derived algebraically from det(F).  Falls
-  /// through to the Fallback path if det(F) is near-singular.
+  /// (F*).  The inverse is derived algebraically from `det`(F).  Falls
+  /// through to the Fallback path if `det`(F) is near-singular.
   Conjugate,
   /// Fallback path: the exact inverse is obtained via GridOp::inv().
   /// Used when the forward matrix is singular or not analytically inverted.
@@ -44,7 +44,7 @@ enum class TransformMode {
 /// D is stored as three independent scalars _a, _b, _d representing the
 /// symmetric matrix [[a, b], [b, d]].  Storing only three scalars (rather
 /// than a full 2×2 array) saves one GMP allocation per instance and
-/// eliminates the need to synchronise D[0][1] with D[1][0] on every update.
+/// eliminates the need to `synchronise` D[0][1] with D[1][0] on every update.
 ///
 /// Ellipses are central to the algorithm because:
 ///
@@ -59,13 +59,13 @@ enum class TransformMode {
 ///     consists of the D-matrices of a normalized ellipse pair.
 ///
 /// Key derived quantities:
-/// - det(D) = ad - b²  (must be > 0 for positive definiteness)
-/// - area(E) = π / √det(D)
-/// - uprightness = (π/4) · √(det(D) / (a·d))  (equation (30))
+/// - `det`(D) = ad - b²  (must be > 0 for positive definiteness)
+/// - area(E) = π / √`det`(D)
+/// - uprightness = (π/4) · √(`det`(D) / (a·d))  (equation (30))
 /// - skew = b²  (from equation (33): b² = π²/(16M²) - 1)
 /// - bias = d/a  (related to the ratio of eigenvalues)
 ///
-/// The normalize() method scales D so that det(D) = 1, matching the
+/// The normalize() method scales D so that `det`(D) = 1, matching the
 /// normal form (31) used in the Step Lemma analysis.
 ///
 /// Construction: use the static factory methods (create) rather than the
@@ -100,7 +100,7 @@ private:
   /// the forward transformation p' = F p to the center.
   ///
   /// I is the inverse of the forward matrix F.  Both are passed as
-  /// precomputed scalars to avoid any recomputation.
+  /// precomputed scalars to avoid any `recomputation`.
   void apply_inverse_transform(const Real &I00, const Real &I01,
                                const Real &I10, const Real &I11,
                                const Real &F00, const Real &F01,
@@ -115,7 +115,7 @@ public:
   ///
   /// Returns failure() if:
   ///   - D is not symmetric (D[0][1] ≠ D[1][0]), or
-  ///   - D is not positive definite (det(D) ≤ 0, a ≤ 0, or d ≤ 0).
+  ///   - D is not positive definite (`det`(D) ≤ 0, a ≤ 0, or d ≤ 0).
   static FailureOr<Ellipse> create(const std::array<std::array<Real, 2>, 2> &D,
                                    const std::array<Real, 2> &p) {
     if (D[0][1] != D[1][0])
@@ -127,8 +127,8 @@ public:
   }
 
   /// Construct from scalar coefficients a, b, d (matrix [[a,b],[b,d]]) and
-  /// center (px, py).  Returns failure() if the matrix is not positive
-  /// definite (det(D) ≤ 0, a ≤ 0, or d ≤ 0).
+  /// center (`px`, `py`).  Returns failure() if the matrix is not positive
+  /// definite (`det`(D) ≤ 0, a ≤ 0, or d ≤ 0).
   static FailureOr<Ellipse> create(const Real &a, const Real &b, const Real &d,
                                    const Real &px, const Real &py) {
     Real det = a * d - b * b;
@@ -141,7 +141,7 @@ public:
   /// parameters are statically known to form a valid positive-definite matrix.
   ///
   /// Note: the assert is compiled out in release builds (NDEBUG).  Only use
-  /// this overload when the parameters are verifiably correct.
+  /// this overload when the parameters are `verifiably` correct.
   static Ellipse must_create(const Real &a, const Real &b, const Real &d,
                              const Real &px, const Real &py) {
     auto result = create(a, b, d, px, py);
@@ -156,7 +156,7 @@ public:
   /// Returns the (0,0) entry of D: the x² coefficient.
   const Real &a() const { return _a; }
 
-  /// Returns the (0,1) == (1,0) entry of D: the xy cross-term coefficient.
+  /// Returns the (0,1) == (1,0) entry of D: the `xy` cross-term coefficient.
   const Real &b() const { return _b; }
 
   /// Returns the (1,1) entry of D: the y² coefficient.
@@ -171,7 +171,7 @@ public:
   /// Returns the y-coordinate of the center.
   const Real &py() const { return _p[1]; }
 
-  /// Sets the center to (px, py).
+  /// Sets the center to (`px`, `py`).
   void set_p(const Real &px, const Real &py) {
     _p[0] = px;
     _p[1] = py;
@@ -193,9 +193,9 @@ public:
   /// Applies the grid operator g_local to the ellipse (D ← Iᵀ D I, p ← F p).
   ///
   /// mode controls how the inverse is computed:
-  ///   - Direct:    use the precomputed inverse entries (preinv*).
-  ///   - Conjugate: derive the inverse from det(F); fall back to Fallback if
-  ///                det(F) < tol.
+  ///   - Direct:    use the precomputed inverse entries (`preinv`*).
+  ///   - Conjugate: derive the inverse from `det`(F); fall back to Fallback if
+  ///                `det`(F) < `tol`.
   ///   - Fallback:  compute the inverse via GridOp::inv().
   ///
   /// The forward matrix F is extracted from g_local via to_real_mat.
@@ -223,16 +223,16 @@ public:
   // Derived quantities (see free functions below)
   // -------------------------------------------------------------------------
 
-  /// Normalize the D-matrix so that det(D) = 1.
+  /// Normalize the D-matrix so that `det`(D) = 1.
   ///
-  /// Scales all three D entries by 1/√det(D).  Used to produce the normal
+  /// Scales all three D entries by 1/√`det`(D).  Used to produce the normal
   /// form (31) required by the Step Lemma analysis.
-  /// Returns failure() if the determinant invariant is violated (det ≤ 0).
+  /// Returns failure() if the determinant invariant is violated (`det` ≤ 0).
   LogicalResult normalize() {
     Real det_val = _a * _d - _b * _b;
     if (det_val <= 0)
       return failure();
-    // Multiply by 1/√det rather than dividing four times: one GMP division
+    // Multiply by 1/√`det` rather than dividing four times: one GMP division
     // instead of three.
     Real inv_sd = 1 / sqrt(det_val);
     _a *= inv_sd;
@@ -244,8 +244,8 @@ public:
   bool contains(const DOmega &v) const override {
     exit(1);
     return false;
-    // Real x = v[0] - px();
-    // Real y = v[1] - py();
+    // Real x = v[0] - `px`();
+    // Real y = v[1] - `py`();
     // Real tmp = eval_quadratic_form(x, y);
     // return tmp <= 1.0;
   }
@@ -278,7 +278,7 @@ public:
 // Free functions: derived quantities that only need public accessors
 // ---------------------------------------------------------------------------
 
-/// Determinant of the D-matrix: det(D) = a·d − b².
+/// Determinant of the D-matrix: `det`(D) = a·d − b².
 ///
 /// Returns failure() if the result is ≤ 0 (invariant violation — should not
 /// happen for a correctly constructed or transformed Ellipse).
@@ -289,9 +289,9 @@ inline FailureOr<Real> det(const Ellipse &E) {
   return result;
 }
 
-/// Area of the ellipse: π / √det(D).
+/// Area of the ellipse: π / √`det`(D).
 ///
-/// Propagates failure from det().
+/// Propagates failure from `det`().
 inline FailureOr<Real> area(const Ellipse &E) {
   auto det_or = det(E);
   if (failed(det_or))
@@ -312,9 +312,9 @@ inline Real skew(const Ellipse &E) { return E.b() * E.b(); }
 /// operator.
 inline Real bias(const Ellipse &E) { return E.d() / E.a(); }
 
-/// Axis-aligned bounding box of the ellipse: [px±w] × [py±h].
+/// Axis-aligned bounding box of the ellipse: [`px`±w] × [`py`±h].
 ///
-/// Derived from the formula w = √(d/det), h = √(a/det).
+/// Derived from the formula w = √(d/`det`), h = √(a/`det`).
 /// Returns failure() if the determinant invariant is violated.
 inline FailureOr<Rectangle> bbox(const Ellipse &E) {
   FailureOr<Real> det_or = det(E);

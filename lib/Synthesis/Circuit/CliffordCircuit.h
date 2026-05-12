@@ -25,7 +25,7 @@ namespace cudaq::synth {
 
 enum class CliffordGateKind : uint8_t {
   H = 0, ///< Hadamard
-  S,     ///< Phase gate diag(1, i)
+  S,     ///< Phase gate `diag`(1, i)
   X,     ///< Pauli-X (bit-flip)
   Z,     ///< Pauli-Z (phase-flip)
   CX,    ///< Controlled-X (CNOT); control = qubit0, target = qubit1

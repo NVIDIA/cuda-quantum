@@ -56,7 +56,7 @@ concept simd_policy =
 // ---------------------------------------------------------------------------
 //
 // Portable fallback. Uses an alignas(32) array<int32_t,8> so that the
-// in-memory layout is identical to the AVX2 path and serialised bitvectors
+// in-memory layout is identical to the AVX2 path and serialised `bitvectors`
 // can be freely exchanged between builds.
 
 struct ScalarPolicy {

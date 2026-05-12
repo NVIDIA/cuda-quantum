@@ -118,10 +118,10 @@ TEST(PauliProduct, CommutationIsSymmetric) {
 }
 
 TEST(PauliProduct, MultiQubitAntiCommuting) {
-  // XZ anti-commutes with ZX: symplectic inner product = popcount(10 XOR 01) =
-  // 2 → even? No. Wait: x1=(1,0), z1=(0,1); x2=(0,1), z2=(1,0) (x1 & z2) =
-  // (1,0)&(1,0) = (1,0), popcount=1 (z1 & x2) = (0,1)&(0,1) = (0,1), popcount=1
-  // ac = (1,0)^(0,1) = (1,1), popcount=2 → 2%2==0 → commutes!
+  // XZ anti-commutes with ZX: symplectic inner product = `popcount`(10 XOR 01)
+  // = 2 → even? No. Wait: x1=(1,0), z1=(0,1); x2=(0,1), z2=(1,0) (x1 & z2) =
+  // (1,0)&(1,0) = (1,0), `popcount`=1 (z1 & x2) = (0,1)&(0,1) = (0,1),
+  // `popcount`=1 ac = (1,0)^(0,1) = (1,1), `popcount`=2 → 2%2==0 → commutes!
   PauliProduct xz{make_bv({false, true}), make_bv({true, false}), false}; // XZ
   PauliProduct zx{make_bv({true, false}), make_bv({false, true}), false}; // ZX
   EXPECT_TRUE(xz.is_commuting(zx));
@@ -130,9 +130,9 @@ TEST(PauliProduct, MultiQubitAntiCommuting) {
 TEST(PauliProduct, MultiQubitAntiCommutingOdd) {
   // XI anti-commutes with ZI (single-qubit anti-comm, other qubit is I):
   // x1=(1,0), z1=(0,0); x2=(0,0), z2=(1,0)
-  // (x1 & z2) = (1,0)&(1,0) = (1,0), popcount=1
-  // (z1 & x2) = (0,0)&(0,0) = (0,0), popcount=0
-  // ac = (1,0)^(0,0) = (1,0), popcount=1 → 1%2==1 → anti-commutes
+  // (x1 & z2) = (1,0)&(1,0) = (1,0), `popcount`=1
+  // (z1 & x2) = (0,0)&(0,0) = (0,0), `popcount`=0
+  // ac = (1,0)^(0,0) = (1,0), `popcount`=1 → 1%2==1 → anti-commutes
   PauliProduct xi{make_bv({false, false}), make_bv({true, false}), false}; // XI
   PauliProduct zi{make_bv({true, false}), make_bv({false, false}), false}; // ZI
   EXPECT_FALSE(xi.is_commuting(zi));
@@ -147,7 +147,7 @@ TEST(PauliProduct, MultiQubitAntiCommutingOdd) {
 // differs from the naive "+i → sign=false" intuition.
 //
 // Expected values are derived directly from the phase formula:
-//   phase = ac.popcount() + 2*x1z2.popcount()
+//   phase = ac.`popcount`() + 2*x1z2.`popcount`()
 //   sign  = (phase % 4) > 1
 //
 //   X*X = I              z=0,x=0, sign=false

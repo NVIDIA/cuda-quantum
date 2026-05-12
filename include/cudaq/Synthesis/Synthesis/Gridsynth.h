@@ -34,7 +34,7 @@ inline constexpr i32 DEFAULT_DIOPHANTINE_TIMEOUT_MS = 200;
 inline constexpr i32 DEFAULT_FACTORING_TIMEOUT_MS = 50;
 } // namespace details
 
-/// Internal gridsynth algorithm — returns a DOmegaUnitary approximation.
+/// Internal `gridsynth` algorithm — returns a DOmegaUnitary approximation.
 ///
 /// This is the core no-exception implementation of Algorithm 7.6.
 /// Returns failure() if the epsilon region is degenerate or the search
@@ -51,11 +51,11 @@ FailureOr<DOmegaUnitary> gridsynth_unitary(
     i32 diophantine_timeout_ms = details::DEFAULT_DIOPHANTINE_TIMEOUT_MS,
     i32 factoring_timeout_ms = details::DEFAULT_FACTORING_TIMEOUT_MS);
 
-/// Main gridsynth algorithm — returns a Clifford+T Circuit.
+/// Main `gridsynth` algorithm — returns a Clifford+T Circuit.
 ///
 /// Convenience wrapper: calls gridsynth_unitary() to find the DOmegaUnitary,
 /// then kmm_synthesize() for exact synthesis. The result is in
-/// Matsumoto-Amano normal form with minimum T-count.
+/// `Matsumoto-Amano` normal form with minimum T-count.
 ///
 /// Gate alphabet: T (π/8), H (Hadamard), S (phase), X (Pauli-X),
 /// W (global phase ω = e^{iπ/4}).

@@ -24,7 +24,7 @@ namespace cudaq::synth {
 /// Reference: Ross & Selinger, arXiv:1403.2975, Definition 3.1.
 ///
 /// Z[ω] = { aω³ + bω² + cω + d | a, b, c, d ∈ Z } is the ring of
-/// cyclotomic integers of degree 8. It is a subring of the complex numbers
+/// `cyclotomic` integers of degree 8. It is a `subring` of the complex numbers
 /// and a Euclidean domain.
 ///
 /// Representation: stored as (a, b, c, d) representing aω³ + bω² + cω + d.
@@ -153,7 +153,7 @@ public:
   // ---------------------------------------------------------------------------
 
   /// Full norm N(u) = u†u · (u●)†(u●), always a non-negative integer
-  /// (Remark 3.3). Used as the Euclidean function for divmod in Z[ω].
+  /// (Remark 3.3). Used as the Euclidean function for `divmod` in Z[ω].
   /// Costs 6 GMP multiplications.
   Integer norm() const {
     Integer sum_squares = _a * _a + _b * _b + _c * _c + _d * _d;
@@ -191,7 +191,7 @@ public:
 // ---------------------------------------------------------------------------
 
 /// Project x ∈ Z[ω] to Z[√2], asserting that x actually lies in the
-/// Z[√2] subring (i.e. x.b() == 0 and x.a() == -x.c()).
+/// Z[√2] `subring` (i.e. x.b() == 0 and x.a() == -x.c()).
 inline ZSqrt2 ZSqrt2::from_zomega(const ZOmega &x) {
   assert(x.b() == 0 && x.a() == -x.c());
   return ZSqrt2(x.d(), x.c());
@@ -222,7 +222,7 @@ inline ZOmega mul_by_omega_inv(const ZOmega &x) {
 /// Return x · ωⁿ for any integer n (reduced modulo 8 internally).
 ///
 /// Uses a direct switch rather than repeated mul_by_omega calls to avoid
-/// n intermediate allocations. n is reduced mod 8 using a bitmask since
+/// n intermediate allocations. n is reduced mod 8 using a `bitmask` since
 /// ω⁸ = 1.
 inline ZOmega mul_by_omega_power(const ZOmega &x, i32 n) {
   n &= 0b111;
@@ -270,7 +270,7 @@ inline FailureOr<ZOmega> inv(const ZOmega &x) {
 ///   Im(u) = b + (c + a) · √2/2
 ///
 /// Callers that process many elements with the same denominator exponent
-/// should prefer coords_into (defined in domega.h) which amortises the
+/// should prefer coords_into (defined in domega.h) which amortizes the
 /// √2/2 computation across calls.
 inline void to_real_imag(const ZOmega &x, Real &out_real, Real &out_imag) {
   out_real = Real(x.d()) + Real::sqrt2() * Real(x.c() - x.a()) / 2;
@@ -283,7 +283,7 @@ inline void to_real_imag(const ZOmega &x, Real &out_real, Real &out_imag) {
 ///   Re(u) = d + (c − a) · √2/2
 ///
 /// Callers that process many elements with the same denominator exponent
-/// should prefer coords_into (defined in domega.h) which amortises the
+/// should prefer coords_into (defined in domega.h) which amortizes the
 /// √2/2 computation across calls.
 inline void to_real(const ZOmega &x, Real &out_real) {
   out_real = Real(x.d()) + Real::sqrt2() * Real(x.c() - x.a()) / 2;

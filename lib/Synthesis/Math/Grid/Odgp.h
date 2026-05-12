@@ -25,7 +25,7 @@ namespace cudaq::synth {
 /// The one-dimensional grid problem (Definition 4.3):
 ///   Given intervals I and J, find all α ∈ Z[√2] satisfying α ∈ I and α● ∈ J.
 ///
-/// Algorithm: Initial shift to center the search, iterative λ-rescaling until
+/// Algorithm: Initial shift to center the search, iterative `λ-rescaling` until
 /// the interval is narrow enough, then direct enumeration with exact bounds
 /// checks. Variants support parity constraints (Lemma 5.5) and scaled
 /// problems (Proposition 5.21).

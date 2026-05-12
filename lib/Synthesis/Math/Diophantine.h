@@ -12,7 +12,7 @@
 #include "Math/Ring/Dsqrt2.h"
 #include "cudaq/Synthesis/Support/Result.h"
 
-/// Diophantine equation solver for the gridsynth algorithm.
+/// Diophantine equation solver for the `gridsynth` algorithm.
 ///
 /// Reference: Ross & Selinger, arXiv:1403.2975, §6 (Theorem 6.2)
 /// and Appendix C (detailed proofs).

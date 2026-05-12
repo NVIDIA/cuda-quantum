@@ -162,7 +162,7 @@ INSTANTIATE_TEST_SUITE_P(
     });
 
 // ============================================================
-// Non-parametrized targeted tests
+// Non-`parametrized` targeted tests
 // ============================================================
 
 // Verify that a smaller epsilon yields a circuit with more T gates
