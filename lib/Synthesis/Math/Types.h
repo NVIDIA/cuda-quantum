@@ -18,7 +18,7 @@
 ///   - `size_t` for STL sizes and array indexing (C++ convention).
 ///   - `long` / `unsigned long` in function bodies that directly call GMP/MPFR
 ///     APIs (e.g. mpz_set_si, mpz_add_ui), where the library ABI mandates
-///     those types. At such callsites use an explicit static_cast<long> /
+///     those types. At such `callsites` use an explicit static_cast<long> /
 ///     static_cast<unsigned long> to document the boundary.
 ///   - GMP/MPFR-semantic types (mp_bitcnt_t, mpfr_prec_t, gmp_randstate_t)
 ///     which carry domain meaning beyond their width.

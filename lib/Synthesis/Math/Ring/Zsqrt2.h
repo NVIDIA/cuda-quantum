@@ -23,13 +23,13 @@ class ZOmega;
 ///
 /// Reference: Ross & Selinger, arXiv:1403.2975, Definition 3.1.
 ///
-/// This is the ring of "quadratic integers with radicand 2". It is a Euclidean
-/// domain, so unique factorization, GCD, and division with remainder are
-/// well-defined.
+/// This is the ring of "quadratic integers with `radicand` 2". It is a
+/// Euclidean domain, so unique factorization, GCD, and division with remainder
+/// are well-defined.
 ///
 /// Key algebraic operations from the paper:
 ///
-/// - The √2-conjugation automorphism (-)^● maps a + b√2 → a - b√2
+/// - The √2-conjugation `automorphism` (-)^● maps a + b√2 → a - b√2
 ///   (Definition 3.2). Implemented as conj_sq2().
 ///
 /// - The norm N(α) = α · α^● = a² - 2b² is an integer (Remark 3.3).
@@ -62,7 +62,7 @@ public:
   const Integer &a() const { return _a; }
   const Integer &b() const { return _b; }
 
-  /// Project a ZOmega element onto Z[√2], asserting it lies in the subring.
+  /// Project a ZOmega element onto Z[√2], asserting it lies in the `subring`.
   /// Defined in zomega.h after ZOmega is complete (mutual dependency).
   static ZSqrt2 from_zomega(const ZOmega &x);
 
@@ -128,18 +128,18 @@ public:
 
   ZSqrt2 operator-() const { return ZSqrt2(-_a, -_b); }
 
-  /// Ring multiplication: (a + b√2)(c + d√2) = (ac + 2bd) + (ad + bc)√2.
+  /// Ring multiplication: (a + b√2)(c + d√2) = (ac + 2`bd`) + (ad + `bc`)√2.
   ZSqrt2 operator*(const ZSqrt2 &other) const {
     return ZSqrt2(_a * other._a + (_b * other._b << 1),
                   _a * other._b + _b * other._a);
   }
 
   // ---------------------------------------------------------------------------
-  // Ring automorphisms
+  // Ring `automorphism`s
   // ---------------------------------------------------------------------------
 
   /// √2-conjugation (-)●: (a + b√2)● = a - b√2.
-  /// Paper Definition 3.2: automorphism mapping √2 → -√2.
+  /// Paper Definition 3.2: `automorphism` mapping √2 → -√2.
   /// Used in grid problems (Definition 4.1) and the Diophantine solver.
   ZSqrt2 conj_sq2() const { return ZSqrt2(_a, -_b); }
 
@@ -160,7 +160,7 @@ public:
   /// Algebraic norm N(α) = α · α● = a² - 2b² ∈ Z.
   ///
   /// Paper §3, Remark 3.3; Appendix C, passim.
-  /// Used for: unit detection (|N| = 1), primality testing (Lemma C.4),
+  /// Used for: unit detection (|N| = 1), `primality` testing (Lemma C.4),
   /// and the Diophantine equation reduction (Proposition C.24).
   Integer norm() const { return _a * _a - (_b * _b << 1); }
 };
@@ -256,13 +256,13 @@ inline std::pair<ZSqrt2, ZSqrt2> divmod(const ZSqrt2 &x, const ZSqrt2 &y) {
 }
 
 /// Quotient of Euclidean division. Callers needing both quotient and
-/// remainder should use divmod directly.
+/// remainder should use `divmod` directly.
 inline ZSqrt2 operator/(const ZSqrt2 &x, const ZSqrt2 &y) {
   return divmod(x, y).first;
 }
 
 /// Remainder of Euclidean division. Callers needing both quotient and
-/// remainder should use divmod directly.
+/// remainder should use `divmod` directly.
 inline ZSqrt2 operator%(const ZSqrt2 &x, const ZSqrt2 &y) {
   return divmod(x, y).second;
 }

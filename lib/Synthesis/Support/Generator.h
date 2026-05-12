@@ -8,22 +8,22 @@
 
 #pragma once
 
+#include <`coroutine`>
 #include <cassert>
-#include <coroutine>
 #include <iterator>
 #include <optional>
 #include <vector>
 
 namespace cudaq::synth {
 
-/// Lazy, single-pass generator coroutine.
+/// Lazy, single-pass generator `coroutine`.
 ///
 /// Key properties:
 ///   - Pointer semantics: yields store a T* in the promise, avoiding copies
 ///     of GMP/MPFR-backed types (Integer, ZSqrt2, DSqrt2, DOmega).
-///   - RAII: destroying the generator destroys the coroutine frame,
-///     running destructors for all locals (EnumerationScratch, Integer, etc.).
-///     Early termination (abandoning before exhaustion) is safe.
+///   - RAII: destroying the generator destroys the `coroutine` frame,
+///     running `destructors` for all locals (EnumerationScratch, Integer,
+///     etc.). Early termination (abandoning before exhaustion) is safe.
 ///   - Move-only, non-copyable.
 ///
 /// Usage:
@@ -158,7 +158,7 @@ std::vector<T> to_vector(generator<T> gen) {
   return result;
 }
 
-/// Get the first element from a generator, or nullopt if empty.
+/// Get the first element from a generator, or `nullopt` if empty.
 template <typename T>
 std::optional<T> first_of(generator<T> gen) {
   auto it = gen.begin();

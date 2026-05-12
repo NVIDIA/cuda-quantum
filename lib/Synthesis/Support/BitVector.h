@@ -281,7 +281,7 @@ using BitBlock = BasicBitBlock<ScalarPolicy>;
 // BitVector
 // ---------------------------------------------------------------------------
 
-/// Dynamically-sized bitvector backed by std::vector<BitBlock>. Capacity is
+/// Dynamically-sized `bitvector` backed by std::vector<BitBlock>. Capacity is
 /// always a multiple of kBlockSize (256) bits. The stored size rounds up.
 class BitVector {
 public:
@@ -291,10 +291,10 @@ public:
 
   // -- Construction --
 
-  /// Allocate a bitvector with capacity for at least nb_bits bits (all zero).
+  /// Allocate a `bitvector` with capacity for at least nb_bits bits (all zero).
   explicit BitVector(size_t nb_bits) : blocks_(init_blocks(nb_bits)) {}
 
-  /// Allocate a bitvector with exactly nb_blocks blocks (all zero).
+  /// Allocate a `bitvector` with exactly nb_blocks blocks (all zero).
   static BitVector from_blocks(size_t nb_blocks) {
     BitVector bv(0);
     bv.blocks_.resize(nb_blocks, BitBlock::zero());
@@ -332,7 +332,7 @@ public:
   }
 
   /// Build directly from a span of raw int32_t lanes. Length must be a
-  /// multiple of kLanes (8). Useful for serialisation / interop.
+  /// multiple of kLanes (8). Useful for serialization / `interop`.
   static BitVector from_lanes(std::span<const int32_t> lanes) {
     assert(lanes.size() % kLanes == 0 &&
            "lanes.size() must be a multiple of 8");

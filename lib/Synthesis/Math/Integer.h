@@ -25,7 +25,7 @@
 /// - Norm computations N(α) = α·α● which can be quadratic in the
 ///   coefficient sizes (Remark 3.3)
 /// - Modular arithmetic in the Diophantine solver: Tonelli-Shanks for
-///   √(-1) mod p, Miller-Rabin `primality` testing, Pollard-Brent
+///   √(-1) mod p, Miller-Rabin ``primality`` testing, Pollard-Brent
 ///   factoring (Appendix C)
 /// - Euclidean division in Z[√2] for GCD computations (Lemma C.4)
 ///
@@ -403,7 +403,7 @@ inline Integer gcd(Integer a, Integer b) {
   return result;
 }
 
-/// Probable-`primality` test using GMP's mpz_probab_prime_p.
+/// Probable-``primality`` test using GMP's mpz_probab_prime_p.
 ///
 /// Returns true if n is probably or definitely prime, false if n is
 /// definitely composite or not a valid candidate (n < 2). If n < 0,
