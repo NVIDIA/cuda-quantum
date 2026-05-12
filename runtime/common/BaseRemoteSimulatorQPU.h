@@ -122,26 +122,27 @@ public:
       throw std::runtime_error("Failed to launch VQE. Error: " + errorMsg);
   }
 
-  KernelThunkResultType launchKernel(const SourceModule &src,
-                                     KernelArgs args) override {
-    const auto &name = src.getName();
-    auto rawFn = src.getFunctionPtr();
-    KernelThunkType kernelFunc = rawFn ? rawFn->getFn() : nullptr;
-    // Make sure at most one argument representation is present.
-    KernelArgs forwarded;
-    if (kernelFunc) {
-      if (auto packed = args.getPacked())
-        forwarded = KernelArgs{*packed};
-    } else if (auto rawArgs = args.getTypeErased()) {
-      forwarded = KernelArgs{*rawArgs};
+  KernelThunkResultType unifiedLaunchModule(const AnyModule &module,
+                                            KernelArgs args) override {
+    if (std::holds_alternative<SourceModule>(module)) {
+      const auto &src = std::get<SourceModule>(module);
+      const auto &name = src.getName();
+      auto rawFn = src.getFunctionPtr();
+      KernelThunkType kernelFunc = rawFn ? rawFn->getFn() : nullptr;
+      // Make sure at most one argument representation is present.
+      KernelArgs forwarded;
+      if (kernelFunc) {
+        if (auto packed = args.getPacked())
+          forwarded = KernelArgs{*packed};
+      } else if (auto rawArgs = args.getTypeErased()) {
+        forwarded = KernelArgs{*rawArgs};
+      }
+      auto compiled =
+          compileKernelImpl(name, forwarded, mlir::ModuleOp{}, mlir::Type{});
+      return launchKernelImpl(compiled, kernelFunc, forwarded);
     }
-    auto compiled =
-        compileKernelImpl(name, forwarded, mlir::ModuleOp{}, mlir::Type{});
-    return launchKernelImpl(compiled, kernelFunc, forwarded);
-  }
 
-  KernelThunkResultType launchModule(const CompiledModule &compiled,
-                                     KernelArgs args) override {
+    const auto &compiled = std::get<CompiledModule>(module);
     auto rawArgs = args.getTypeErased();
     auto resultInfo = compiled.getResultInfo();
     void *resultBuf = nullptr;
@@ -173,7 +174,7 @@ public:
   }
 
   [[nodiscard]] CompiledModule compileKernelImpl(const std::string &name,
-                                                 const KernelArgs &args,
+                                                 KernelArgs args,
                                                  mlir::ModuleOp prefabMod,
                                                  mlir::Type resTy) {
     CUDAQ_INFO(

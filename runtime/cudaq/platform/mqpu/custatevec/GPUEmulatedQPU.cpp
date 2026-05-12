@@ -28,14 +28,18 @@ void GPUEmulatedQPU::enqueue(QuantumTask &task) {
 }
 
 cudaq::KernelThunkResultType
-GPUEmulatedQPU::launchKernel(const cudaq::SourceModule &src,
-                             cudaq::KernelArgs args) {
-  CUDAQ_INFO("QPU::launchKernel GPU {}", qpu_id);
+GPUEmulatedQPU::unifiedLaunchModule(const cudaq::AnyModule &module,
+                                    cudaq::KernelArgs args) {
+  if (!std::holds_alternative<cudaq::SourceModule>(module))
+    return runJITCompiledModule(std::get<cudaq::CompiledModule>(module), args);
+
+  const auto &src = std::get<cudaq::SourceModule>(module);
+  CUDAQ_INFO("QPU::unifiedLaunchModule GPU {}", qpu_id);
   cudaSetDevice(qpu_id);
   auto rawFn = src.getFunctionPtr();
   if (!rawFn)
     throw std::runtime_error(
-        "GPUEmulatedQPU::launchKernel requires a raw kernel function "
+        "GPUEmulatedQPU::unifiedLaunchModule requires a raw kernel function "
         "pointer for kernel '" +
         src.getName() + "'.");
   auto packed = args.getPacked();
