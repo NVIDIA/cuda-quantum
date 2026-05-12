@@ -123,7 +123,8 @@ size_t num_decimal_digits(const Integer &n) {
 
 /// Compute (base^exp) mod m  via GMP mpz_powm.
 /// Returns 0 when m ∈ {0, 1}.
-Integer mod_pow(const Integer &base, const Integer &exp, const Integer &mod) {
+[[maybe_unused]] Integer mod_pow(const Integer &base, const Integer &exp,
+                                 const Integer &mod) {
   if (mod == 0 || mod == 1)
     return Integer(0);
   Integer b_norm = base;

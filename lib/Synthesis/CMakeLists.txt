@@ -40,6 +40,10 @@ add_library(cudaq-synth STATIC
 target_compile_features(cudaq-synth PUBLIC cxx_std_20)
 set_target_properties(cudaq-synth PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  target_compile_options(cudaq-synth PUBLIC -Wno-psabi)
+endif()
+
 target_include_directories(cudaq-synth
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>

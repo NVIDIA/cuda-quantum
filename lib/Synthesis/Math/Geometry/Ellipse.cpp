@@ -99,6 +99,7 @@ std::optional<std::pair<Real, Real>> Ellipse::intersect(const DOmega &u0,
   //}
 
   // return solve_quadratic(qa, qb, qc);
+  return std::nullopt;
 }
 
 void Ellipse::apply_inverse_transform(const Real &I00, const Real &I01,

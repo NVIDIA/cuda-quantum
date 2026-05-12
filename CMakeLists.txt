@@ -172,6 +172,7 @@ option(CUDAQ_DISABLE_CPP_FRONTEND "Build without the CUDA-Q C++ Clang-based Fron
 option(CUDAQ_ENABLE_CC "Enable CUDA-Q code coverage generation." OFF)
 option(CUDAQ_REQUIRE_OPENMP "Fail the build if OpenMP is not found." OFF)
 option(CUDAQ_ENABLE_SANITIZERS "Enable Address Sanitizer (ASan) and Undefined Behavior Sanitizer (UBSan)." OFF)
+option(CUDAQ_ENABLE_CLIFFORD_T_SYNTHESIS "Enable the Clifford+T rotation synthesis library (requires GMP and MPFR)." ON)
 option (CUDAQ_FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." FALSE)
 if (${CUDAQ_FORCE_COLORED_OUTPUT})
     if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
