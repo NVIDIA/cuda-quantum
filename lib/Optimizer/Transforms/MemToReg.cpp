@@ -994,8 +994,8 @@ public:
               }
 
         } // end loop over ops
-      }   // end loop over blocks
-    }     // end loop over regions
+      } // end loop over blocks
+    } // end loop over regions
 
     LLVM_DEBUG(llvm::dbgs() << "After threading intra-block:\n"
                             << *parent << "\n\n");

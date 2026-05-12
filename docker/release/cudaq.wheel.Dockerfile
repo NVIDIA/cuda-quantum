@@ -50,8 +50,8 @@ RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
         mkdir -p /root/.ccache; \
     fi
 RUN echo "Building MLIR bindings for python${python_version}" && \
-    CCACHE_DISABLE=1 python${python_version} -m pip install --no-cache-dir numpy "nanobind>=2.9.0" && \
-    rm -rf "$LLVM_INSTALL_PREFIX/python_packages" && \
+    CCACHE_DISABLE=1 python${python_version} -m pip install --no-cache-dir numpy "nanobind>=2.12.0" && \
+    rm -rf "$LLVM_INSTALL_PREFIX/src" "$LLVM_INSTALL_PREFIX/python_packages" && \
     Python3_EXECUTABLE="$(which python${python_version})" \
     LLVM_SOURCE=/llvm-project \
     LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \

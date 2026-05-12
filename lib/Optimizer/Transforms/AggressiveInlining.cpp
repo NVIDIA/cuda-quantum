@@ -49,37 +49,6 @@ getConversionMap(ModuleOp module) {
 
 namespace {
 
-/// Conversion of func.call class. [TODO: This should work for the quantum
-/// dialect calls and callables as well.]
-class RewriteCall : public OpRewritePattern<func::CallOp> {
-public:
-  RewriteCall(MLIRContext *ctx, llvm::StringMap<StringRef> &indirectMap,
-              ModuleOp m)
-      : OpRewritePattern(ctx), indirectMap(indirectMap), module(m) {}
-
-  LogicalResult matchAndRewrite(func::CallOp call,
-                                PatternRewriter &rewriter) const override {
-    if (!isIndirectFunc(call.getCallee(), indirectMap))
-      return failure();
-
-    auto callee = call.getCallee();
-    StringRef directName = indirectMap[callee];
-    auto *ctx = rewriter.getContext();
-    auto loc = call.getLoc();
-    auto funcTy = call.getCalleeType();
-    cudaq::opt::factory::getOrAddFunc(loc, directName, funcTy, module);
-    rewriter.modifyOpInPlace(call, [&]() {
-      call.setCalleeAttr(SymbolRefAttr::get(ctx, directName));
-    });
-    LLVM_DEBUG(llvm::dbgs() << "Rewriting " << directName << '\n');
-    return success();
-  }
-
-private:
-  llvm::StringMap<StringRef> &indirectMap;
-  ModuleOp module;
-};
-
 /// Translate indirect calls to direct calls.
 class ConvertToDirectCalls
     : public cudaq::opt::impl::ConvertToDirectCallsBase<ConvertToDirectCalls> {
@@ -87,15 +56,65 @@ public:
   using ConvertToDirectCallsBase::ConvertToDirectCallsBase;
 
   void runOnOperation() override {
-    ModuleOp module = getOperation();
-    auto *ctx = &getContext();
-    if (auto indirectMapOpt = getConversionMap(module)) {
-      LLVM_DEBUG(llvm::dbgs() << "Processing: " << module << '\n');
-      RewritePatternSet patterns(ctx);
-      patterns.insert<RewriteCall>(ctx, *indirectMapOpt, module);
-      if (failed(applyPatternsGreedily(module, std::move(patterns))))
-        signalPassFailure();
-    }
+    ModuleOp mod = getOperation();
+    auto indirectMap = [&]() -> llvm::StringMap<StringRef> {
+      auto indirectMapOpt = getConversionMap(mod);
+      if (indirectMapOpt)
+        return *indirectMapOpt;
+      return {};
+    }();
+    LLVM_DEBUG(llvm::dbgs() << "Processing: " << mod << '\n');
+    mod.walk([&](Operation *op) {
+      auto call = dyn_cast<CallOpInterface>(op);
+      if (!call)
+        return;
+
+      if (!isa<SymbolUserOpInterface>(op))
+        return;
+
+      // Check that no one misguidedly attempts to add SymbolUserOpInterface to
+      // these Ops.
+      if (isa<quake::ApplyOp, cudaq::cc::CallCallableOp,
+              cudaq::cc::CallIndirectCallableOp>(op)) {
+        op->emitOpError("Internal bug was introduced.");
+        return;
+      }
+
+      auto calleeAttr = cast<SymbolRefAttr>(call.getCallableForCallee());
+      StringRef callee = calleeAttr.getRootReference().getValue();
+      OpBuilder rewriter(op);
+      // If this is an indirect call, convert it to a direct call in place.
+      if (isIndirectFunc(callee, indirectMap)) {
+        StringRef directName = indirectMap[callee];
+        auto *ctx = rewriter.getContext();
+        auto loc = call.getLoc();
+        auto indirectFn = SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(
+            call, calleeAttr);
+        auto funcTy = indirectFn.getFunctionType();
+        cudaq::opt::factory::getOrAddFunc(loc, directName, funcTy, mod);
+        auto directAttr = FlatSymbolRefAttr::get(ctx, directName);
+        call.setCalleeFromCallable(directAttr);
+        LLVM_DEBUG(llvm::dbgs() << "Rewriting " << directName << '\n');
+      }
+
+      if (!isa<cudaq::cc::DeviceCallOp, cudaq::cc::NoInlineCallOp>(op)) {
+        // Move the call into a scope so as to preserve any live-ranges for
+        // allocated resources.
+        auto loc = call.getLoc();
+        auto scope = cudaq::cc::ScopeOp::create(
+            rewriter, loc, call->getResultTypes(),
+            [&](OpBuilder &builder, Location loc) {
+              auto *clone = call->clone();
+              builder.insert(clone);
+              cudaq::cc::ContinueOp::create(builder, loc, clone->getResults());
+            });
+        LLVM_DEBUG(llvm::dbgs() << "Call moved into scope " << scope << '\n');
+        op->replaceAllUsesWith(scope);
+        op->erase();
+      }
+      return;
+    });
+    LLVM_DEBUG(llvm::dbgs() << "Finished: " << mod << '\n');
   }
 };
 
@@ -111,11 +130,11 @@ public:
     if (func.empty() || !func->hasAttr(cudaq::kernelAttrName))
       return;
 
-    auto module = func->template getParentOfType<ModuleOp>();
+    auto mod = func->template getParentOfType<ModuleOp>();
     bool passFailed = false;
     func.walk([&](func::CallOp call) {
       auto callee = call.getCallee();
-      if (auto *decl = module.lookupSymbol(callee))
+      if (auto *decl = mod.lookupSymbol(callee))
         if (decl->hasAttr(cudaq::kernelAttrName)) {
           call.emitOpError("kernel call was not inlined, "
                            "possible recursion in call tree");
@@ -130,9 +149,7 @@ public:
 
 } // namespace
 
-static void defaultInlinerOptPipeline(OpPassManager &pm) {
-  pm.addPass(createCanonicalizerPass());
-}
+static void defaultInlinerOptPipeline(OpPassManager &pm) {}
 
 /// Run the passes in the correct order.
 /// 1) Convert calls between kernels to direct calls (on the QPU).
@@ -148,6 +165,7 @@ void cudaq::opt::addAggressiveInlining(OpPassManager &pm, bool fatalChecks) {
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseVectorCopyCtor());
   if (fatalChecks)
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createCheckKernelCalls());
+  pm.addPass(createCanonicalizerPass());
 }
 
 namespace {

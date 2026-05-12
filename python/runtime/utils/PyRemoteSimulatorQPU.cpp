@@ -120,9 +120,16 @@ public:
                     n_params, shots);
   }
 
-  cudaq::KernelThunkResultType launchKernel(const std::string &name,
-                                            cudaq::KernelThunkType kernelFunc,
-                                            cudaq::KernelArgs args) override {
+  cudaq::KernelThunkResultType
+  unifiedLaunchModule(const cudaq::AnyModule &module,
+                      cudaq::KernelArgs args) override {
+    if (!std::holds_alternative<cudaq::SourceModule>(module))
+      return Base::unifiedLaunchModule(module, args);
+
+    const auto &src = std::get<cudaq::SourceModule>(module);
+    const auto &name = src.getName();
+    auto rawFn = src.getFunctionPtr();
+    cudaq::KernelThunkType kernelFunc = rawFn ? rawFn->getFn() : nullptr;
     if (kernelFunc) {
       CUDAQ_INFO("{}: Launch kernel named '{}' remote QPU {} (simulator = {})",
                  Derived::class_name, name, this->qpu_id, this->m_simName);

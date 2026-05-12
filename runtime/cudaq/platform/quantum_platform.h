@@ -26,10 +26,6 @@
 #include <optional>
 #include <string>
 
-namespace mlir {
-class ModuleOp;
-}
-
 namespace cudaq {
 
 class QPU;
@@ -196,20 +192,14 @@ public:
                  cudaq::optimizer &optimizer, const int n_params,
                  const std::size_t shots, std::size_t qpu_id = 0);
 
-  // This method is the hook for the kernel rewrites to invoke quantum kernels.
   [[nodiscard]] KernelThunkResultType
-  launchKernel(const std::string &kernelName, KernelThunkType kernelFunc,
-               const KernelArgs &args, std::size_t qpu_id = 0);
+  unifiedLaunchModule(const AnyModule &module, KernelArgs args,
+                      std::size_t qpu_id = 0);
 
-  // This method launches a kernel from a ModuleOp that has already been
-  // created.
-  [[nodiscard]] KernelThunkResultType launchModule(const CompiledModule &module,
-                                                   const KernelArgs &args,
-                                                   std::size_t qpu_id);
-
-  [[nodiscard]] CompiledModule
-  compileModule(const std::string &kernelName, mlir::ModuleOp module,
-                const KernelArgs &args, std::size_t qpu_id, bool isEntryPoint);
+  [[nodiscard]] CompiledModule compileModule(const SourceModule &src,
+                                             const KernelArgs &args,
+                                             std::size_t qpu_id,
+                                             bool isEntryPoint);
 
   /// List all available platforms
   static std::vector<std::string> list_platforms();

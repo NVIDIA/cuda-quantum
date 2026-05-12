@@ -6,26 +6,13 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "common/BaseRemoteSimulatorQPU.h"
+#include "RemoteSimulatorQPU.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 
-using namespace mlir;
+cudaq::RemoteSimulatorQPU::RemoteSimulatorQPU() : BaseRemoteSimulatorQPU() {
+  m_mlirContext = cudaq_internal::compiler::getOwningMLIRContext();
+}
 
-namespace {
+cudaq::RemoteSimulatorQPU::~RemoteSimulatorQPU() = default;
 
-// Remote QPU: delegating the execution to a remotely-hosted server, which can
-// reinstate the execution context and JIT-invoke the kernel.
-class RemoteSimulatorQPU : public cudaq::BaseRemoteSimulatorQPU {
-
-public:
-  RemoteSimulatorQPU() : BaseRemoteSimulatorQPU() {
-    m_mlirContext = cudaq_internal::compiler::getOwningMLIRContext();
-  }
-
-  RemoteSimulatorQPU(RemoteSimulatorQPU &&) = delete;
-  virtual ~RemoteSimulatorQPU() = default;
-};
-
-} // namespace
-
-CUDAQ_REGISTER_TYPE(cudaq::QPU, RemoteSimulatorQPU, RemoteSimulatorQPU)
+CUDAQ_REGISTER_TYPE(cudaq::QPU, cudaq::RemoteSimulatorQPU, RemoteSimulatorQPU)

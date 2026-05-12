@@ -64,8 +64,7 @@ static constexpr const char createCudaqStateFromDataF32[] =
 // Delete a state created by the runtime functions above.
 static constexpr const char deleteCudaqState[] = "__nvqpp_cudaq_state_delete";
 
-// LLVM intrinsics to save and restore the stack pointer. TODO: Newer versions
-// of LLVM have changed the names to have a suffix of ".p0".
+// LLVM intrinsics to save and restore the stack pointer.
 static constexpr const char llvmStackSave[] = "llvm.stacksave.p0";
 static constexpr const char llvmStackRestore[] = "llvm.stackrestore.p0";
 

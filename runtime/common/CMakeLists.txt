@@ -20,6 +20,7 @@ set(COMMON_RUNTIME_SRC
   Executor.cpp
   ExtraPayloadProvider.cpp
   Future.cpp
+  KernelExecution.cpp
   NoiseModel.cpp
   RecordLogParser.cpp
   Resources.cpp
@@ -50,6 +51,7 @@ target_include_directories(${LIBRARY_NAME}
 target_link_libraries(${LIBRARY_NAME}
   PUBLIC
     cudaq-operator
+    cudaq-mlir-runtime-headers
   PRIVATE
     cudaq-logger
     fmt::fmt-header-only

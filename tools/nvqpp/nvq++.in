@@ -307,7 +307,9 @@ if [ ! -f "${install_dir}/include/cudaq.h" ]; then
 		INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/tpls/fmt/include"
 		if ${LIBRARY_MODE}; then
 			INCLUDES="${INCLUDES} -I @CMAKE_BINARY_DIR@/include"
+			INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/include"
 			INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/runtime/include"
+			INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/tpls/json/single_include_fwd"
 			INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/runtime/internal/compiler/include"
 		fi
 	else
@@ -785,10 +787,12 @@ if ${ENABLE_KERNEL_EXECUTION}; then
 		else
 			KERNEL_EXECUTION_OPTIONS="{${AUTO_GENERATE_RUN_OPTION}}"
 		fi
+		RUN_HACKERY=""
 	elif [[ -n "${KERNEL_EXECUTION_KIND}" ]]; then
 		KERNEL_EXECUTION_OPTIONS="{${KERNEL_EXECUTION_KIND}}"
+		RUN_HACKERY=""
 	fi
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "kernel-execution${KERNEL_EXECUTION_OPTIONS}")
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "kernel-execution${KERNEL_EXECUTION_OPTIONS}${RUN_HACKERY}")
 fi
 if ${ENABLE_AGGRESSIVE_INLINE}; then
 	RUN_OPT=true
