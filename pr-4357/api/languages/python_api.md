@@ -2219,7 +2219,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         [`processed_args`{.code .docutils .literal .notranslate}]{.pre}[list]{.classifier}
 
         :   The list of processed runtime arguments, including captured
-            arguments,
+            arguments.
 
         [`module`{.code .docutils .literal .notranslate}]{.pre}[Module]{.classifier}
 
