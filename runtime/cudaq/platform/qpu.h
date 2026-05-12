@@ -57,6 +57,9 @@ protected:
   /// terms.
   void handleObservation(ExecutionContext &context) const;
 
+  [[nodiscard]] static KernelThunkResultType
+  runJITCompiledModule(const CompiledModule &compiled, KernelArgs args);
+
 public:
   /// The constructor, initializes the execution queue
   QPU() : execution_queue(std::make_unique<QuantumExecutionQueue>()) {}
@@ -139,10 +142,7 @@ public:
                          const std::size_t shots) {}
 
   [[nodiscard]] virtual KernelThunkResultType
-  launchKernel(const SourceModule &src, KernelArgs args) = 0;
-
-  [[nodiscard]] virtual KernelThunkResultType
-  launchModule(const CompiledModule &compiled, KernelArgs args);
+  unifiedLaunchModule(const AnyModule &module, KernelArgs args);
 
   [[nodiscard]] virtual CompiledModule
   compileModule(const SourceModule &src, KernelArgs args, bool isEntryPoint);
