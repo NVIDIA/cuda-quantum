@@ -34,11 +34,11 @@ namespace cudaq::synth {
 /// lexicographic (a, b) order. Early termination (destroying the generator
 /// before exhaustion) is safe and releases all resources via RAII.
 
-// NOTE: All coroutine functions take parameters by value to avoid the
-// dangling-reference pitfall: coroutine frames store copies of parameters,
+// NOTE: All `coroutine` functions take parameters by value to avoid the
+// dangling-reference pitfall: `coroutine` frames store copies of parameters,
 // but for reference parameters only the reference (pointer) is copied.
 // If the caller passed a temporary, the reference dangles after the
-// coroutine's first suspension point.
+// `coroutine`'s first suspension point.
 
 // Core ODGP (Definition 4.3): find all α ∈ Z[√2] with α ∈ I and α● ∈ J.
 generator<ZSqrt2> solve_odgp(Interval I, Interval J);

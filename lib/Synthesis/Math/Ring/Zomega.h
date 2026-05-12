@@ -24,8 +24,8 @@ namespace cudaq::synth {
 /// Reference: Ross & Selinger, arXiv:1403.2975, Definition 3.1.
 ///
 /// Z[ω] = { aω³ + bω² + cω + d | a, b, c, d ∈ Z } is the ring of
-/// `cyclotomic` integers of degree 8. It is a `subring` of the complex numbers
-/// and a Euclidean domain.
+/// `cyclotomic` integers of degree 8. It is a ``subring`` of the complex
+/// numbers and a Euclidean domain.
 ///
 /// Representation: stored as (a, b, c, d) representing aω³ + bω² + cω + d.
 /// The real and imaginary parts are:
@@ -135,7 +135,7 @@ public:
   }
 
   // ---------------------------------------------------------------------------
-  // Ring automorphisms
+  // Ring `automorphism`s
   // ---------------------------------------------------------------------------
 
   /// Complex conjugation (-)†: (aω³+bω²+cω+d)† = -cω³-bω²-aω+d.
@@ -191,7 +191,7 @@ public:
 // ---------------------------------------------------------------------------
 
 /// Project x ∈ Z[ω] to Z[√2], asserting that x actually lies in the
-/// Z[√2] `subring` (i.e. x.b() == 0 and x.a() == -x.c()).
+/// Z[√2] ``subring`` (i.e. x.b() == 0 and x.a() == -x.c()).
 inline ZSqrt2 ZSqrt2::from_zomega(const ZOmega &x) {
   assert(x.b() == 0 && x.a() == -x.c());
   return ZSqrt2(x.d(), x.c());
