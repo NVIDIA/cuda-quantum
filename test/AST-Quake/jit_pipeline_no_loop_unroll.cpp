@@ -6,11 +6,13 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: cudaq-quake %s | cudaq-opt --pass-pipeline="builtin.module(hw-jit-prep-pipeline{no-loop-unroll=true},jit-deploy-pipeline{no-loop-unroll=true})" | FileCheck --check-prefix=PRESERVE %s
 // RUN: cudaq-quake %s | cudaq-opt --pass-pipeline="builtin.module(hw-jit-prep-pipeline,jit-deploy-pipeline)" | FileCheck --check-prefix=UNROLL %s
+// clang-format on
 
-#include <cudaq.h>
 #include "cudaq/qis/qubit_qis.h"
+#include <cudaq.h>
 
 __qpu__ int64_t loop_payload_stress() {
   constexpr int width = 4;

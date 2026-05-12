@@ -37,8 +37,7 @@ struct TargetDeployPipelineOptions
     : public PassPipelineOptions<TargetDeployPipelineOptions> {
   PassOptions::Option<bool> preserveLoops{
       *this, "no-loop-unroll",
-      llvm::cl::desc(
-          "Disable loop unrolling and preserve cc.loop operations."),
+      llvm::cl::desc("Disable loop unrolling and preserve cc.loop operations."),
       llvm::cl::init(false)};
 };
 
