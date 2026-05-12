@@ -30,6 +30,16 @@ on:
         description: Create a GitHub release with the given version number (e.g. 0.3.0). A GitHub release with that version must not exist already.
         required: false
         default: ''
+      include_macos:
+        type: boolean
+        description: Build and include macOS wheels and installer.
+        required: false
+        default: true
+      run_publishing_after:
+        type: boolean
+        description: When this deployment completes successfully, automatically trigger the Publishing workflow.
+        required: false
+        default: false
   workflow_run:
     workflows:
       - PR merged
@@ -67,6 +77,7 @@ jobs:
       pull_request_commit: ${{ steps.pr_info.outputs.merge_commit }}
       llvm_commit: ${{ steps.build_config.outputs.llvm_commit }}
       pybind11_commit: ${{ steps.build_config.outputs.pybind11_commit }}
+      nanobind_commit: ${{ steps.build_config.outputs.nanobind_commit }}
       cache_base: ${{ steps.build_info.outputs.cache_base }}
       cache_target: ${{ steps.build_info.outputs.cache_target }}
       multi_platform: ${{ steps.build_info.outputs.multi_platform }}
@@ -157,6 +168,17 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
+      - name: Upload publishing flag
+        if: github.event_name == 'workflow_dispatch'
+        run: echo '${{ inputs.run_publishing_after }}' > publishing_requested.txt
+      - name: Upload publishing_requested artifact
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: publishing_requested
+          path: publishing_requested.txt
+          retention-days: 1
+
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
@@ -167,6 +189,7 @@ jobs:
         run: |
           echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
           echo "pybind11_commit=$(git rev-parse @:./tpls/pybind11)" >> $GITHUB_OUTPUT
+          echo "nanobind_commit=$(git rev-parse @:./tpls/nanobind)" >> $GITHUB_OUTPUT
 
           if ${{ github.event_name != 'workflow_run' || steps.pr_info.outputs.pr_number != '' }}; then
             echo "build_dependencies=true" >> $GITHUB_OUTPUT
@@ -182,7 +205,7 @@ jobs:
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
-        toolchain: [clang16, gcc11, gcc12]
+        toolchain: [llvm, gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -221,14 +244,15 @@ jobs:
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.manylinux.Dockerfile
-      build_config_id: cu${{ matrix.cuda_version }}-gcc11
+      build_config_id: cu${{ matrix.cuda_version }}-gcc12
       build_args: |
         base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ (matrix.platform == 'arm64' && '_aarch64') || (matrix.platform == 'amd64' && '_x86_64') || '' }}:latest
         cuda_version=${{ matrix.cuda_version }}
-        toolchain=gcc11
+        toolchain=gcc12
         distro=rhel8
         llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
         pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
+        nanobind_commit=${{ needs.metadata.outputs.nanobind_commit }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
@@ -295,7 +319,7 @@ jobs:
 
   dispatch:
     name: Dispatch deployments
-    needs: [metadata, devdeps, wheeldeps, openmpi]
+    needs: [metadata, devdeps, wheeldeps, source_build, openmpi]
     if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
 
@@ -347,7 +371,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64]
-        toolchain: [clang16]
+        toolchain: [llvm]
       fail-fast: false
     uses: ./.github/workflows/generate_cc.yml
     secrets:
@@ -372,10 +396,10 @@ jobs:
     with:
       platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devcontainer.Dockerfile
-      build_config_id: cu${{ matrix.cuda_version }}-gcc11
+      build_config_id: cu${{ matrix.cuda_version }}-gcc12
       build_args: |
         cuda_version=${{ matrix.cuda_version }}
-        base_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-gcc11', matrix.platform)] }}
+        base_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-gcc12', matrix.platform)] }}
         ompidev_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-ompi', matrix.platform, matrix.cuda_version)] }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
@@ -640,9 +664,13 @@ jobs:
           fi
 
           image_tag="cu${cuda_major}-"
-          if ${{ github.event.pull_request.number != '' }} || [ -n "$(echo ${{ github.ref_name }} | grep pull-request/)" ]; then
-            pr_number=`echo ${{ github.ref_name }} | grep -o [0-9]*`
-            image_tag+=pr-${pr_number:-${{ github.event.pull_request.number }}}
+          pr_number="${{ github.event.pull_request.number }}"
+          if [ -z "$pr_number" ] && \
+             [[ "${{ github.ref_name }}" =~ (pull-request/|.*/pr-)([0-9]+) ]]; then
+            pr_number="${BASH_REMATCH[2]}"
+          fi
+          if [ -n "$pr_number" ]; then
+            image_tag+=pr-${pr_number}
           elif ${{ github.ref_type == 'branch' && github.ref_name == 'main' }}; then
             image_tag+="latest"
           elif "$is_versioned" == "true"; then
@@ -809,3 +837,37 @@ jobs:
       cuda_version: ${{ matrix.cuda_version }}
       build_cache: ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-cu{1}-installer', matrix.platform, matrix.cuda_version)] }}
       environment: ghcr-deployment
+
+  macos_ci:
+    name: macOS CI
+    needs: metadata
+    if: >-
+      needs.metadata.outputs.create_packages == 'true'
+      && (github.event_name != 'workflow_dispatch' || inputs.include_macos != false)
+    uses: ./.github/workflows/ci_macos.yml
+    with:
+      cache_base: ${{ needs.metadata.outputs.cache_base }}
+      cudaq_version: ${{ inputs.create_release }}
+
+  trigger_publishing:
+    name: Trigger Publishing
+    needs: [summary, python_wheels, binaries]
+    if: inputs.run_publishing_after
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Trigger Publishing workflow
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'publishing.yml',
+              ref: context.ref.replace('refs/heads/', ''),
+              inputs: {
+                deployment_id: context.runId.toString(),
+              },
+            });

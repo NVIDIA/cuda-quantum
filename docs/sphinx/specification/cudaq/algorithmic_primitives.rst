@@ -339,6 +339,8 @@ information and can be persisted to file and loaded from file at a later time. A
 and when remote queue jobs are completed, one can invoke :code:`get()` and the results will 
 be retrieved and returned. 
 
+.. _cudaq-run-spec:
+
 :code:`cudaq::run`
 -------------------------
 **[1]** The :code:`cudaq::run` API allows programmers to execute a kernel a specified number 

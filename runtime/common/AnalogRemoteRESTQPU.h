@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/BaseRemoteRESTQPU.h"
+#include "cudaq/platform/qpu_utils.h"
 #include <optional>
 
 namespace cudaq {
@@ -24,22 +25,18 @@ public:
   virtual bool isEmulated() override { return false; }
 
   /// @brief Launch a kernel with the given arguments
-  void launchKernel(const std::string &kernelName,
-                    const std::vector<void *> &rawArgs) override {
-    throw std::runtime_error(
-        "Arbitrary kernel execution is not supported on this target.");
-  }
-
-  /// @brief Launch a kernel with the given arguments
   /// Only analog Hamiltonian kernels are supported
-  KernelThunkResultType
-  launchKernel(const std::string &kernelName, KernelThunkType kernelFunc,
-               void *args, std::uint64_t voidStarSize,
-               std::uint64_t resultOffset,
-               const std::vector<void *> &rawArgs) override {
+  KernelThunkResultType unifiedLaunchModule(const AnyModule &module,
+                                            KernelArgs args) override {
+    if (!std::holds_alternative<SourceModule>(module))
+      throw std::runtime_error(
+          "AnalogRemoteRESTQPU does not support pre-compiled module launch.");
+
+    const auto &src = std::get<SourceModule>(module);
+    const auto &kernelName = src.getName();
     auto executionContext = cudaq::getExecutionContext();
 
-    if (kernelName.find(cudaq::runtime::cudaqAHKPrefixName) != 0)
+    if (!cudaq::detail::isAnalogHamiltonianKernel(kernelName))
       throw std::runtime_error(
           "Arbitrary kernel execution is not supported on this target.");
 
@@ -50,11 +47,11 @@ public:
     CUDAQ_INFO("Launching remote kernel ({})", kernelName);
     std::vector<cudaq::KernelExecution> codes;
     std::string name = kernelName;
-    char *charArgs = (char *)(args);
-    std::string strArgs = charArgs;
-    nlohmann::json j;
+    const auto packed = args.getPacked();
+    std::string strArgs = packed ? (char *)packed->data.data() : "";
     std::vector<std::size_t> mapping_reorder_idx;
-    codes.emplace_back(name, strArgs, std::nullopt, j, mapping_reorder_idx);
+    codes.emplace_back(name, strArgs, std::nullopt, std::nullopt,
+                       mapping_reorder_idx);
 
     if (executionContext) {
       executor->setShots(executionContext->shots);

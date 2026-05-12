@@ -8,10 +8,11 @@
 
 import cudaq
 import pytest
-import os
 from cudaq import spin
 import numpy as np
 from typing import List
+
+pytestmark = pytest.mark.xdist_group("quantinuum_emulation")
 
 
 def assert_close(got) -> bool:
@@ -19,20 +20,11 @@ def assert_close(got) -> bool:
 
 
 @pytest.fixture(scope="function", autouse=True)
-def configureTarget():
-    # We need a Fake Credentials Config file
-    credsName = '{}/FakeConfig2.config'.format(os.environ["HOME"])
-    f = open(credsName, 'w')
-    f.write('key: {}\nrefresh: {}\ntime: 0'.format("hello", "rtoken"))
-    f.close()
-
-    # Set the targeted QPU
+def configureTarget(quantinuum_emulation_creds):
     cudaq.set_target('quantinuum', emulate='true')
 
     yield "Running the tests."
 
-    # remove the file
-    os.remove(credsName)
     cudaq.reset_target()
 
 

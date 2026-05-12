@@ -49,7 +49,6 @@ createdJobs = {}
 # Could how many times the client has requested the Job
 countJobGetRequests = 0
 
-llvm.initialize()
 llvm.initialize_native_target()
 llvm.initialize_native_asmprinter()
 target = llvm.Target.from_default_triple()
@@ -191,3 +190,8 @@ async def qetQpu(authentication_token: str = Header(...)):
     }
 
     return JSONResponse(content=data)
+
+
+def startServer(port):
+    import uvicorn
+    uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")

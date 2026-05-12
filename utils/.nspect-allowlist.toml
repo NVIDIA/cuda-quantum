@@ -1,0 +1,8 @@
+version = "1.0.0"
+[oss]
+
+[oss.excluded]
+[[oss.excluded.directories]]
+paths = ['tpls/fmt/support/build.gradle/', 'vscode-mlir/0.0.11/tpls/llvm/mlir/utils/vscode/-npm/']
+comment = 'unused packages'
+nspect_ids = ['NSPECT-3R0F-1R39']

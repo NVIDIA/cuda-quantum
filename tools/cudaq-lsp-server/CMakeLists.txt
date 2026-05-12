@@ -24,6 +24,7 @@ set(LIBS
   MLIRAnalysis
   MLIRDialect
   MLIRLspServerLib
+  MLIRRegisterAllDialects
   MLIRParser
   MLIRPass
   MLIRTransforms

@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "CuDensityMatUtils.h"
-#include "cudaq.h"
+#include "cudaq/cudaq_mpi.h"
 #include <mutex>
 
 namespace {

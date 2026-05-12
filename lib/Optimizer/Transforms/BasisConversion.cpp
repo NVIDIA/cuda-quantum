@@ -7,10 +7,8 @@
  ******************************************************************************/
 
 #include "DecompositionPatterns.h"
+#include "PassDetails.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
-#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/Threading.h"
@@ -18,15 +16,12 @@
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
 #include "mlir/Transforms/DialectConversion.h"
 
-using namespace mlir;
-
-//===----------------------------------------------------------------------===//
-// Generated logic
-//===----------------------------------------------------------------------===//
 namespace cudaq::opt {
-#define GEN_PASS_DEF_BASISCONVERSIONPASS
+#define GEN_PASS_DEF_BASISCONVERSION
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
+
+using namespace mlir;
 
 namespace {
 
@@ -35,8 +30,8 @@ namespace {
 //===----------------------------------------------------------------------===//
 
 struct BasisConversion
-    : public cudaq::opt::impl::BasisConversionPassBase<BasisConversion> {
-  using BasisConversionPassBase::BasisConversionPassBase;
+    : public cudaq::opt::impl::BasisConversionBase<BasisConversion> {
+  using BasisConversionBase::BasisConversionBase;
 
   void runOnOperation() override {
     auto module = getOperation();

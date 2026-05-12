@@ -7,9 +7,8 @@
  ******************************************************************************/
 
 #include "DecompositionPatterns.h"
+#include "PassDetails.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/PatternMatch.h"
@@ -17,15 +16,12 @@
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
-using namespace mlir;
-
-//===----------------------------------------------------------------------===//
-// Generated logic
-//===----------------------------------------------------------------------===//
 namespace cudaq::opt {
-#define GEN_PASS_DEF_DECOMPOSITIONPASS
+#define GEN_PASS_DEF_DECOMPOSITION
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
+
+using namespace mlir;
 
 namespace {
 
@@ -34,8 +30,8 @@ namespace {
 //===----------------------------------------------------------------------===//
 
 struct Decomposition
-    : public cudaq::opt::impl::DecompositionPassBase<Decomposition> {
-  using DecompositionPassBase::DecompositionPassBase;
+    : public cudaq::opt::impl::DecompositionBase<Decomposition> {
+  using DecompositionBase::DecompositionBase;
 
   /// Initialize the decomposer by building the set of patterns used during
   /// execution.
@@ -45,8 +41,7 @@ struct Decomposition
     if (!basis.empty() && !enabledPatterns.empty()) {
       mlir::emitWarning(
           mlir::UnknownLoc::get(context),
-          "DecompositionPass: basis is ignored when enabledPatterns is "
-          "specified");
+          "Decomposition: basis is ignored when enabledPatterns is specified");
     }
 
     if (!basis.empty() && enabledPatterns.empty()) {
@@ -103,7 +98,7 @@ struct Decomposition
     // Process kernels in parallel
     LogicalResult rewriteResult = failableParallelForEach(
         module.getContext(), kernels, [&](Operation *op) {
-          LogicalResult converged = applyPatternsAndFoldGreedily(op, patterns);
+          LogicalResult converged = applyPatternsGreedily(op, patterns);
 
           // Decomposition is best-effort. Non-convergence is only a pass
           // failure if the user asked for convergence.

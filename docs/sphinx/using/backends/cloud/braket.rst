@@ -34,67 +34,68 @@ Alternatively, users can set the following environment variables.
   export AWS_SECRET_ACCESS_KEY="<access_key>"
   export AWS_SESSION_TOKEN="<token>"
 
-Submission from C++
-`````````````````````````
+Submitting
+``````````
 
-To target quantum kernel code for execution in Amazon Braket,
-pass the flag ``--target braket`` to the ``nvq++`` compiler.
-By default jobs are submitted to the state vector simulator, `SV1`.
+.. tab:: Python
 
-.. code:: bash
+    The target to which quantum kernels are submitted
+    can be controlled with the ``cudaq.set_target()`` function.
 
-    nvq++ --target braket src.cpp
+    .. code:: python
 
-To execute your kernels on different device, pass the ``--braket-machine`` flag to the ``nvq++`` compiler
-to specify which machine to submit quantum kernels to:
+        cudaq.set_target("braket")
 
-.. code:: bash
+    By default, jobs are submitted to the state vector simulator, `SV1`.
 
-    nvq++ --target braket --braket-machine "arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet" src.cpp ...
+    To specify which Amazon Braket device to use, set the :code:`machine` parameter.
 
-where ``arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet`` refers to IQM Garnet QPU.
+    .. code:: python
 
-To emulate the device locally, without submitting through the cloud,
-you can also pass the ``--emulate`` flag to ``nvq++``. 
+        device_arn = "arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet"
+        cudaq.set_target("braket", machine=device_arn)
 
-.. code:: bash
+    where ``arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet`` refers to IQM Garnet QPU.
 
-    nvq++ --emulate --target braket src.cpp
+    To emulate the device locally, without submitting through the cloud,
+    you can also set the ``emulate`` flag to ``True``.
+
+    .. code:: python
+
+        cudaq.set_target("braket", emulate=True)
+
+    The number of shots for a kernel execution can be set through the ``shots_count``
+    argument to ``cudaq.sample``. By default, the ``shots_count`` is set to 1000.
+
+    .. code:: python
+
+        cudaq.sample(kernel, shots_count=100)
 
 
-Submission from Python
-`````````````````````````
+.. tab:: C++
 
-The target to which quantum kernels are submitted 
-can be controlled with the ``cudaq.set_target()`` function.
+    To target quantum kernel code for execution in Amazon Braket,
+    pass the flag ``--target braket`` to the ``nvq++`` compiler.
+    By default jobs are submitted to the state vector simulator, `SV1`.
 
-.. code:: python
+    .. code:: bash
 
-    cudaq.set_target("braket")
+        nvq++ --target braket src.cpp
 
-By default, jobs are submitted to the state vector simulator, `SV1`.
+    To execute your kernels on different device, pass the ``--braket-machine`` flag to the ``nvq++`` compiler
+    to specify which machine to submit quantum kernels to:
 
-To specify which Amazon Braket device to use, set the :code:`machine` parameter.
+    .. code:: bash
 
-.. code:: python
+        nvq++ --target braket --braket-machine "arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet" src.cpp ...
 
-    device_arn = "arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet"
-    cudaq.set_target("braket", machine=device_arn)
+    where ``arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet`` refers to IQM Garnet QPU.
 
-where ``arn:aws:braket:eu-north-1::device/qpu/iqm/Garnet`` refers to IQM Garnet QPU.
+    To emulate the device locally, without submitting through the cloud,
+    you can also pass the ``--emulate`` flag to ``nvq++``.
 
-To emulate the device locally, without submitting through the cloud,
-you can also set the ``emulate`` flag to ``True``.
+    .. code:: bash
 
-.. code:: python
-
-    cudaq.set_target("braket", emulate=True)
-
-The number of shots for a kernel execution can be set through the ``shots_count``
-argument to ``cudaq.sample``. By default, the ``shots_count`` is set to 1000.
-
-.. code:: python
-
-    cudaq.sample(kernel, shots_count=100)
+        nvq++ --emulate --target braket src.cpp
 
 To see a complete example, take a look at :ref:`Amazon Braket examples <amazon-braket-examples>`.

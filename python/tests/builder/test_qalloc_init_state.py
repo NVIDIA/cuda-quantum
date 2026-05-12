@@ -192,7 +192,7 @@ def test_kernel_complex128_capture_f64():
 
 
 @skipIfNvidiaFP64NotInstalled
-def test_kernel_complex128_capture_f64():
+def test_kernel_complex64_invalid_precision_f64():
     cudaq.reset_target()
     cudaq.set_target('nvidia', option='fp64')
 

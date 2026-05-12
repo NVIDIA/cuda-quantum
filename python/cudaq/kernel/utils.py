@@ -100,40 +100,14 @@ def recover_func_op(module, name):
     return None
 
 
-def recover_calling_module():
-
-    def frame_and_mod(fr):
-        if fr is None:
-            return None
-        mod = inspect.getmodule(fr)
-        if mod is not None and getattr(mod, "__name__", None):
-            return mod.__name__
-        # Fallback for notebooks to search module in `globals`
-        return fr.f_globals.get("__name__")
-
-    frame = inspect.currentframe()
-    try:
-        frame = frame.f_back
-        name = frame_and_mod(frame)
-
-        while frame is not None and name is not None and (
-                name.startswith("cudaq.kernel") or
-                name.startswith("cudaq.runtime")):
-            frame = frame.f_back
-            name = frame_and_mod(frame)
-
-        if frame is None:
-            return None
-
-        # A real module object if available
-        mod = inspect.getmodule(frame)
-        if mod is not None:
-            return mod
-
-        # Resolve by `globals` name
-        return sys.modules.get(frame.f_globals.get("__name__"))
-    finally:
-        del frame
+def get_module_name(fr):
+    if fr is None:
+        return None
+    mod = inspect.getmodule(fr)
+    if mod is not None and getattr(mod, "__name__", None):
+        return mod.__name__
+    # Fallback for notebooks to search module in `globals`
+    return fr.f_globals.get("__name__")
 
 
 def resolve_qualified_symbol(y):
@@ -175,7 +149,7 @@ def resolve_qualified_symbol(y):
     return None
 
 
-def recover_value_of_or_none(name, resMod):
+def recover_value_of_or_none(name, frame=None):
     """
     Recover the Python value of the symbol `name` from the enclosing context.
     The enclosing context is the context in which the `PyKernelDecorator`
@@ -184,44 +158,34 @@ def recover_value_of_or_none(name, resMod):
     If `name` is qualified, then lookup the symbol in the module that is
     specified in the name itself.
 
-    If there is a resolve-in module, `resMod`, then resolve the symbol in the
-    given module.
+    If there is a resolve-in frame, `frame`, then resolve the symbol in the
+    given frame.
 
-    Otherwise, the symbol is neither qualified nor is there another module to
-    resolve the name in.  So perform a normal LEGB resolution of the symbol in
-    the current set of stack frames. (Actually, EGB since the symbol cannot be
-    local.)
-
-    Note that this need not be used with a `PyKernel` object as the semantics of
-    the kernel builder presumes immediate lookup and resolution of all symbols
-    during construction.
+    Otherwise, perform a normal LEGB resolution (actually, EGB since the symbol
+    cannot be local.) of the symbol. If `frame` is provided, resolve the symbol
+    in the given frame. Otherwise, resolve it in the current set of stack
+    frames. 
     """
-    from .kernel_decorator import isa_kernel_decorator
-
     if '.' in name:
         return resolve_qualified_symbol(name)
 
-    if resMod:
-        return resMod.__dict__.get(name, None)
+    try:
+        if frame is None:
+            frame = inspect.currentframe()
+            # Walk back until we leave the cudaq.kernel module
+            while frame is not None and get_module_name(frame).startswith(
+                    "cudaq.kernel"):
+                frame = frame.f_back
 
-    def drop_front():
-        drop = 0
-        for frameinfo in inspect.stack():
-            frame = frameinfo.frame
-            if 'self' in frame.f_locals:
-                if isa_kernel_decorator(frame.f_locals['self']):
-                    return drop
-            drop = drop + 1
-        return drop
-
-    drop = drop_front()
-    for frameinfo in inspect.stack()[drop:]:
-        frame = frameinfo.frame
-        if name in frame.f_locals:
-            return frame.f_locals[name]
-        if name in frame.f_globals:
-            return frame.f_globals[name]
-    return None
+        while frame is not None:
+            if name in frame.f_locals:
+                return frame.f_locals[name]
+            if name in frame.f_globals:
+                return frame.f_globals[name]
+            frame = frame.f_back
+        return None
+    finally:
+        del frame
 
 
 def is_recovered_value_ok(result):
@@ -235,8 +199,8 @@ def is_recovered_value_ok(result):
     return False
 
 
-def recover_value_of(name, resMod):
-    result = recover_value_of_or_none(name, resMod)
+def recover_value_of(name, frame=None):
+    result = recover_value_of_or_none(name, frame)
     if is_recovered_value_ok(result):
         return result
     raise RuntimeError("'" + name + "' is not available in this scope.")
@@ -301,6 +265,64 @@ def emitWarning(msg):
                    Color.END + '\n\nOffending code:\n' + offendingSrc[0])
 
 
+def _format_missing_source_error(function, filename):
+    """
+    Build a user-facing diagnostic explaining why source for `function` could
+    not be retrieved. Distinguishes between three buckets:
+      - Interactive interpreter-defined (`<stdin>` or `<python-input-...>`).
+      - Other synthetic filenames (code compiled with a non-file name).
+      - Real paths that failed to read (missing file, frozen module,
+        compiled extension).
+    """
+    qualname = getattr(function, '__qualname__',
+                       getattr(function, '__name__', '<unknown>'))
+    if filename is None:
+        return (f"@cudaq.kernel could not determine a source location for "
+                f"function `{qualname}`. `@cudaq.kernel` requires source that "
+                f"Python's `inspect` module can recover. Move the kernel into "
+                f"a `.py` module.")
+    is_repl = filename == '<stdin>' or filename.startswith('<python-input')
+    is_synthetic = filename.startswith('<') and filename.endswith('>')
+    if is_repl:
+        return (f"@cudaq.kernel could not retrieve source for function "
+                f"`{qualname}` because it is defined in the Python REPL, "
+                f"which does not preserve source code that `inspect` can "
+                f"recover. To use `@cudaq.kernel`, either run from a "
+                f"Jupyter/IPython session (which preserves source via "
+                f"`linecache`) or move the kernel into a `.py` module.")
+    if is_synthetic:
+        return (f"@cudaq.kernel could not retrieve source for function "
+                f"`{qualname}`: it is defined in a non-file context "
+                f"(`{filename}`). `@cudaq.kernel` requires source that "
+                f"`inspect` can recover. Move the kernel into a `.py` "
+                f"module.")
+    return (f"@cudaq.kernel could not read source for function "
+            f"`{qualname}` at `{filename}` (the file may be missing, "
+            f"frozen, or a compiled extension).")
+
+
+def get_function_source_or_raise(function):
+    """
+    Return `(dedented_source, (filename, first_lineno))` for `function`.
+    Wraps `inspect.getfile`, `inspect.getsourcelines`, and
+    `inspect.getsource`. If any fail (most commonly because `function` was
+    defined in the interactive Python interpreter), raise `RuntimeError`
+    with a diagnostic
+    tailored to the failure mode, chained from the underlying exception.
+    """
+    filename = None
+    try:
+        filename = inspect.getfile(function)
+        first_line = inspect.getsourcelines(function)[1]
+        src = inspect.getsource(function)
+    except OSError as e:
+        raise RuntimeError(_format_missing_source_error(function,
+                                                        filename)) from e
+    leadingSpaces = len(src) - len(src.lstrip())
+    src = '\n'.join([line[leadingSpaces:] for line in src.split('\n')])
+    return src, (filename, first_line)
+
+
 def mlirTryCreateStructType(mlirEleTypes, name=None, context=None):
     """
     Creates either a `quake.StruqType` or a `cc.StructType` used to represent 
@@ -326,12 +348,16 @@ def mlirTryCreateStructType(mlirEleTypes, name=None, context=None):
     return quake.StruqType.getNamed(name, mlirEleTypes, context=context)
 
 
-def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
+def mlirTypeFromAnnotation(annotation,
+                           ctx,
+                           raiseError=False,
+                           cudaqAliases=None):
     """
     Return the MLIR Type corresponding to the given kernel function argument
     type annotation.  Throws an exception if the programmer did not annotate
     function argument types.
     """
+    _cudaq_names = cudaqAliases if cudaqAliases else {'cudaq'}
 
     localEmitFatalError = emitFatalError
     if raiseError:
@@ -348,7 +374,7 @@ def mlirTypeFromAnnotation(annotation, ctx, raiseError=False):
     with ctx:
 
         if hasattr(annotation, 'attr') and hasattr(annotation.value, 'id'):
-            if annotation.value.id == 'cudaq':
+            if annotation.value.id in _cudaq_names:
                 if annotation.attr in ['qview', 'qvector']:
                     return quake.VeqType.get()
                 if annotation.attr in ['State']:

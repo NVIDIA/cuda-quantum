@@ -9,6 +9,7 @@
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.ir import UnitAttr
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
+from cudaq.util import trace
 import numpy as np
 
 # Maintain a dictionary of queued `async` run kernels. This dictionary is used
@@ -45,11 +46,12 @@ class AsyncRunResult:
             del (cudaq_async_run_module_cache[self.counter])
 
 
+@trace.traced
 def run(decorator, *args, shots_count=100, noise_model=None, qpu_id=0):
     if isa_kernel_decorator(decorator):
-        if decorator.qkeModule is None:
+        if not decorator.supports_compilation():
             raise RuntimeError(
-                "Unsupported target / Invalid kernel for `run`: missing module")
+                "Unsupported target / Invalid kernel for `run`: cannot compile")
 
     if decorator.formal_arity() != len(args):
         raise RuntimeError("Invalid number of arguments passed to run. " +
@@ -59,13 +61,13 @@ def run(decorator, *args, shots_count=100, noise_model=None, qpu_id=0):
         raise RuntimeError(
             "Invalid `shots_count`. Must be a non-negative number.")
 
-    specMod, processedArgs = decorator.handle_call_arguments(*args)
-    retTy = decorator.get_none_type()
-    return cudaq_runtime.run_impl(decorator.uniqName + ".run", specMod, retTy,
+    processedArgs, module = decorator.prepare_call(*args)
+    return cudaq_runtime.run_impl(decorator.uniqName + ".run", module,
                                   shots_count, noise_model, qpu_id,
                                   *processedArgs)
 
 
+@trace.traced
 def run_async(decorator, *args, shots_count=100, noise_model=None, qpu_id=0):
     """
 Run the provided `kernel` with the given kernel `arguments` over the specified
@@ -116,10 +118,9 @@ Returns:
             raise ValueError("Noise model is not supported on remote simulator"
                              " or hardware QPU.")
 
-    specMod, processedArgs = decorator.handle_call_arguments(*args)
-    retTy = decorator.get_none_type()
+    processedArgs, module = decorator.prepare_call(*args)
     async_results = cudaq_runtime.run_async_impl(decorator.uniqName + ".run",
-                                                 specMod, retTy, shots_count,
+                                                 module, shots_count,
                                                  noise_model, qpu_id,
                                                  *processedArgs)
-    return AsyncRunResult(async_results, specMod)
+    return AsyncRunResult(async_results, module)

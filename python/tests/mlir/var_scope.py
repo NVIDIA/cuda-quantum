@@ -43,21 +43,21 @@ def test_variable_name():
     print(slice)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__slice
-# CHECK-SAME:      () attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__slice..
+# CHECK-SAME:    () attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 2 : i64
 # CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 0 : i64
 # CHECK-DAG:       %[[VAL_2:.*]] = arith.constant 1 : i64
 # CHECK-DAG:       %[[VAL_3:.*]] = quake.alloca !quake.veq<4>
-# CHECK:           %[[VAL_4:.*]] = quake.subveq %[[VAL_3]], 2, 3 : (!quake.veq<4>) -> !quake.veq<2>
-# CHECK:           %[[VAL_5:.*]] = cc.loop while ((%[[VAL_6:.*]] = %[[VAL_1]]) -> (i64)) {
-# CHECK:             %[[VAL_7:.*]] = arith.cmpi slt, %[[VAL_6]], %[[VAL_0]] : i64
-# CHECK:             cc.condition %[[VAL_7]](%[[VAL_6]] : i64)
+# CHECK:           %[[VAL_4:.*]] = cc.loop while ((%[[VAL_5:.*]] = %[[VAL_1]]) -> (i64)) {
+# CHECK:             %[[VAL_6:.*]] = arith.cmpi slt, %[[VAL_5]], %[[VAL_0]] : i64
+# CHECK:             cc.condition %[[VAL_6]](%[[VAL_5]] : i64)
 # CHECK:           } do {
-# CHECK:           ^bb0(%[[VAL_8:.*]]: i64):
-# CHECK:             %[[VAL_9:.*]] = quake.extract_ref %[[VAL_4]]{{\[}}%[[VAL_8]]] : (!quake.veq<2>, i64) -> !quake.ref
+# CHECK:           ^bb0(%[[VAL_7:.*]]: i64):
+# CHECK:             %[[VAL_8:.*]] = arith.addi %[[VAL_7]], %[[VAL_0]] : i64
+# CHECK:             %[[VAL_9:.*]] = quake.extract_ref %[[VAL_3]]{{\[}}%[[VAL_8]]] : (!quake.veq<4>, i64) -> !quake.ref
 # CHECK:             quake.x %[[VAL_9]] : (!quake.ref) -> ()
-# CHECK:             cc.continue %[[VAL_8]] : i64
+# CHECK:             cc.continue %[[VAL_7]] : i64
 # CHECK:           } step {
 # CHECK:           ^bb0(%[[VAL_10:.*]]: i64):
 # CHECK:             %[[VAL_11:.*]] = arith.addi %[[VAL_10]], %[[VAL_2]] : i64

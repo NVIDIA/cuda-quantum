@@ -20,22 +20,28 @@ try:
 except ImportError:
     has_cupy = False
 
-has_dynamics = True
-try:
-    from .. import nvqir_dynamics_bindings as bindings
-except ImportError:
-    has_dynamics = False
+_bindings = None
+
+
+def _get_bindings():
+    global _bindings
+    if _bindings is None:
+        try:
+            from .. import nvqir_dynamics_bindings as b
+            _bindings = b
+        except ImportError:
+            raise ImportError(
+                'CUDA-Q is missing dynamics support. Please check your installation'
+            )
+    return _bindings
 
 
 class cuDensityMatTimeStepper(BaseTimeStepper[State]):
     # Thin wrapper around the `TimeStepper` C++ bindings
     def __init__(self, schedule, ham, collapsed_ops, dims, is_master_equation):
-        if not has_dynamics:
-            raise ImportError(
-                'CUDA-Q is missing dynamics support. Please check your installation'
-            )
-        self.stepper = bindings.TimeStepper(schedule, dims, ham, collapsed_ops,
-                                            is_master_equation)
+        self.stepper = _get_bindings().TimeStepper(schedule, dims, ham,
+                                                   collapsed_ops,
+                                                   is_master_equation)
 
     # Compute and return a new state
     def compute(self, state: State, current_time: float):
@@ -51,11 +57,7 @@ class cuDensityMatTimeStepper(BaseTimeStepper[State]):
 class cuDensityMatSuperOpTimeStepper(cuDensityMatTimeStepper):
     # Time-stepper which takes super-operator as system dynamics
     def __init__(self, super_op, schedule, dims):
-        if not has_dynamics:
-            raise ImportError(
-                'CUDA-Q is missing dynamics support. Please check your installation'
-            )
-        self.stepper = bindings.TimeStepper(schedule, dims, super_op)
+        self.stepper = _get_bindings().TimeStepper(schedule, dims, super_op)
 
 
 class RungeKuttaIntegrator(BaseIntegrator[State]):
@@ -68,7 +70,7 @@ class RungeKuttaIntegrator(BaseIntegrator[State]):
         if not has_cupy:
             raise ImportError('CuPy is required to use integrators.')
         super().__init__(**kwargs)
-        self.rk_integrator = bindings.integrators.runge_kutta(
+        self.rk_integrator = _get_bindings().integrators.runge_kutta(
             order=self.order, max_step_size=self.max_step_size)
 
     def is_native(self):
@@ -106,6 +108,7 @@ class RungeKuttaIntegrator(BaseIntegrator[State]):
                    Sequence[SuperOperator],
                    collapse_operators: Sequence[Operator] |
                    Sequence[Sequence[Operator]] = []):
+        bindings = _get_bindings()
         system_ = bindings.SystemDynamics()
         system_.modeExtents = [dimensions[d] for d in range(len(dimensions))]
         if not isinstance(hamiltonian, Sequence):

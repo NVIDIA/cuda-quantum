@@ -12,6 +12,7 @@
 #include "common/NoiseModel.h"
 #include "common/QuditIdTracker.h"
 #include "common/SampleResult.h"
+#include "cudaq/algorithms/policies.h"
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
 #include <deque>
@@ -50,7 +51,7 @@ private:
   int result = 0;
 
   /// Unique integer for measure result identification
-  std::size_t uniqueId = 0;
+  [[maybe_unused]] std::size_t uniqueId = 0;
 
 public:
   measure_result(int res, std::size_t id) : result(res), uniqueId(id) {}
@@ -114,7 +115,12 @@ public:
   virtual void configureExecutionContext(ExecutionContext &ctx) {}
 
   /// Finalize the execution context after an execution.
-  virtual void finalizeExecutionContext(ExecutionContext &ctx) {}
+  void finalizeExecutionContext(ExecutionContext &ctx);
+
+  virtual void finalizeExecutionContext(const other_policies &policy,
+                                        ExecutionContext &ctx) {}
+  virtual sample_result finalizeExecutionContext(const sample_policy &policy,
+                                                 ExecutionContext &ctx) = 0;
 
   /// Set up the execution manager for a new execution.
   virtual void beginExecution() {}
@@ -182,7 +188,7 @@ public:
   virtual void synchronize() = 0;
 
   /// Flush the gate queue (needed for accurate timing information)
-  virtual void flushGateQueue(){};
+  virtual void flushGateQueue() {};
 
   /// @brief Register a new custom unitary operation under the
   /// provided operation name.
@@ -198,6 +204,16 @@ public:
 
   virtual ~ExecutionManager() = default;
 };
+
+inline sample_result finalize_execution_manager_impl(
+    ExecutionManager &mgr, const sample_policy &policy, ExecutionContext &ctx) {
+  return mgr.finalizeExecutionContext(policy, ctx);
+}
+
+inline void finalize_execution_manager_impl(ExecutionManager &mgr,
+                                            ExecutionContext &ctx) {
+  mgr.finalizeExecutionContext(other_policies{}, ctx);
+}
 
 // Function declaration, implemented by the macro expansion below
 ExecutionManager *getRegisteredExecutionManager();

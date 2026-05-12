@@ -53,7 +53,7 @@ def test_slice():
 if __name__ == '__main__':
     test_slice()
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__slice_qvec
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__slice_qvec..
 # CHECK-SAME: () attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 # CHECK-DAG:       %[[VAL_0:.*]] = arith.constant 3 : i64
 # CHECK-DAG:       %[[VAL_1:.*]] = arith.constant 4 : i64
@@ -62,17 +62,19 @@ if __name__ == '__main__':
 # CHECK-DAG:       %[[VAL_4:.*]] = arith.constant 3.1415926535897931 : f64
 # CHECK-DAG:       %[[VAL_5:.*]] = arith.constant 5 : i64
 # CHECK-DAG:       %[[VAL_6:.*]] = arith.constant 0 : i64
-# CHECK-DAG:       %[[VAL_7:.*]] = quake.alloca !quake.veq<4>
-# CHECK:           %[[VAL_8:.*]] = quake.subveq %[[VAL_7]], 2, 3 : (!quake.veq<4>) -> !quake.veq<2>
-# CHECK:           %[[VAL_9:.*]] = quake.extract_ref %[[VAL_8]][0] : (!quake.veq<2>) -> !quake.ref
-# CHECK:           quake.x %[[VAL_9]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_10:.*]] = quake.extract_ref %[[VAL_8]][1] : (!quake.veq<2>) -> !quake.ref
+# CHECK-DAG:       %[[VAL_7:.*]] = cc.undef i64
+# CHECK-DAG:       %[[VAL_8:.*]] = cc.undef i64
+# CHECK-DAG:       %[[VAL_9:.*]] = quake.alloca !quake.veq<4>
+# CHECK:           %[[VAL_10:.*]] = quake.extract_ref %[[VAL_9]][2] : (!quake.veq<4>) -> !quake.ref
 # CHECK:           quake.x %[[VAL_10]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_11:.*]] = quake.subveq %[[VAL_7]], 0, 1 : (!quake.veq<4>) -> !quake.veq<2>
-# CHECK:           %[[VAL_12:.*]] = quake.extract_ref %[[VAL_11]][0] : (!quake.veq<2>) -> !quake.ref
+# CHECK:           %[[VAL_11:.*]] = quake.extract_ref %[[VAL_9]][3] : (!quake.veq<4>) -> !quake.ref
+# CHECK:           quake.x %[[VAL_11]] : (!quake.ref) -> ()
+# CHECK:           %[[VAL_12:.*]] = quake.extract_ref %[[VAL_9]][0] : (!quake.veq<4>) -> !quake.ref
 # CHECK:           quake.y %[[VAL_12]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_13:.*]] = quake.extract_ref %[[VAL_11]][1] : (!quake.veq<2>) -> !quake.ref
+# CHECK:           %[[VAL_13:.*]] = quake.extract_ref %[[VAL_9]][1] : (!quake.veq<4>) -> !quake.ref
 # CHECK:           quake.y %[[VAL_13]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_14:.*]] = quake.subveq %[[VAL_7]], 1, 2 : (!quake.veq<4>) -> !quake.veq<2>
-# CHECK:           return
-# CHECK:         }
+# CHECK:           %[[VAL_14:.*]] = quake.extract_ref %[[VAL_9]][1] : (!quake.veq<4>) -> !quake.ref
+# CHECK:           quake.z %[[VAL_14]] : (!quake.ref) -> ()
+# CHECK:           %[[VAL_15:.*]] = quake.extract_ref %[[VAL_9]][2] : (!quake.veq<4>) -> !quake.ref
+# CHECK:           quake.z %[[VAL_15]] : (!quake.ref) -> ()
+# CHECK:           %[[VAL_16:.*]] = cc.alloca !cc.array<i64 x 5>

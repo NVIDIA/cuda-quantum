@@ -8,8 +8,10 @@
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
+from cudaq.util import trace
 
 
+@trace.traced
 def estimate_resources(kernel, *args, **kwargs):
     """
     Performs resource counting on the given quantum kernel expression and
@@ -34,10 +36,7 @@ def estimate_resources(kernel, *args, **kwargs):
         decorator = kernel
     else:
         decorator = mk_decorator(kernel)
-    specMod, processedArgs = decorator.handle_call_arguments(*args)
-    returnTy = (decorator.return_type
-                if decorator.return_type else decorator.get_none_type())
+    processedArgs, module = decorator.prepare_call(*args)
     choice = kwargs.get("choice", None)
-    return cudaq_runtime.estimate_resources_impl(decorator.uniqName, specMod,
-                                                 returnTy, choice,
-                                                 *processedArgs)
+    return cudaq_runtime.estimate_resources_impl(decorator.uniqName, module,
+                                                 choice, *processedArgs)

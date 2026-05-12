@@ -9,7 +9,6 @@
 #ifndef PYTHON_BINDINGS_CC_OPS
 #define PYTHON_BINDINGS_CC_OPS
 
-include "mlir/Bindings/Python/Attributes.td"
 include "cudaq/Optimizer/Dialect/CC/CCOps.td"
 
 #endif

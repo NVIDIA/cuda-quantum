@@ -280,9 +280,18 @@ install_dir="$(
 	cd -- "$(dirname "$0")/.." >/dev/null 2>&1
 	pwd -P
 )"
-llvm_install_dir="@LLVM_BINARY_DIR@"
-llvm_version="@LLVM_VERSION_MAJOR@.@LLVM_VERSION_MINOR@.@LLVM_VERSION_PATCH@"
 llvm_suffix="@NVQPP_LLVM_EXECUTABLE_SUFFIX@"
+# Locate the LLVM toolchain. The installer bundles LLVM under lib/llvm/;
+# fall back to a flat layout or the build-time LLVM directory (dev builds only).
+if [ -x "${install_dir}/lib/llvm/bin/clang++${llvm_suffix}" ]; then
+	llvm_install_dir="${install_dir}/lib/llvm"
+elif [ -x "${install_dir}/bin/clang++${llvm_suffix}" ]; then
+	llvm_install_dir="${install_dir}"
+elif [ -x "@LLVM_BINARY_DIR@/bin/clang++${llvm_suffix}" ]; then
+	llvm_install_dir="@LLVM_BINARY_DIR@"
+else
+	error_exit "Cannot find clang++ in the CUDA-Q installation. Expected it under ${install_dir}/lib/llvm/bin/ or ${install_dir}/bin/."
+fi
 
 INCLUDES="@CUDAQ_CXX_NVQPP_INCLUDE_STR@"
 # Full version string of this nvq++ script.
@@ -296,6 +305,13 @@ if [ ! -f "${install_dir}/include/cudaq.h" ]; then
 	if [ "@CMAKE_BINARY_DIR@" -ef "${install_dir}" ]; then
 		CUDAQ_INCLUDE_PATH="@CMAKE_SOURCE_DIR@/runtime"
 		INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/tpls/fmt/include"
+		if ${LIBRARY_MODE}; then
+			INCLUDES="${INCLUDES} -I @CMAKE_BINARY_DIR@/include"
+			INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/include"
+			INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/runtime/include"
+			INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/tpls/json/single_include_fwd"
+			INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/runtime/internal/compiler/include"
+		fi
 	else
 		error_exit "Invalid CUDA-Q install configuration."
 	fi
@@ -314,10 +330,17 @@ CUDAQ_IS_APPLE=@CUDAQ_IS_APPLE@
 # Set sysroot for finding system headers and libraries. This is critical on macOS
 # where a custom-built clang doesn't know the SDK location (unlike Linux where
 # system headers are in standard /usr/include paths).
-CUDAQ_SYSROOT_PATH="${CUDAQ_SYSROOT:-@CUDAQ_SYSROOT_PATH@}"
+# Always detect at runtime on macOS. The build-time path is specific to the
+# build machine and goes stale on Xcode updates or between machines.
+# Users can override via CUDAQ_SYSROOT.
+if ${CUDAQ_IS_APPLE}; then
+	CUDAQ_SYSROOT_PATH="${CUDAQ_SYSROOT:-$(xcrun --show-sdk-path 2>/dev/null || echo "")}"
+fi
 if [ -n "${CUDAQ_SYSROOT_PATH}" ]; then
 	COMPILER_FLAGS="${COMPILER_FLAGS} -isysroot ${CUDAQ_SYSROOT_PATH}"
 	LINKER_FLAGS="${LINKER_FLAGS} -isysroot ${CUDAQ_SYSROOT_PATH}"
+	LINKER_FLAGS="${LINKER_FLAGS} -Wl,-syslibroot,${CUDAQ_SYSROOT_PATH}"
+	CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --Xcudaq=-isysroot --Xcudaq=${CUDAQ_SYSROOT_PATH}"
 fi
 
 # Set macOS deployment target to match how the CUDA-Q libraries were built.
@@ -342,17 +365,19 @@ NVQPP_LD_PATH=${NVQPP_LD_PATH:-"@NVQPP_LD_PATH@"}
 if [ -f "$NVQPP_LD_PATH" ]; then
 	LINKER_PATH="--ld-path=${NVQPP_LD_PATH}"
 fi
-LINKER_FLAGS="${LINKER_FLAGS} -Wl,-rpath,${install_dir}/lib -Wl,-rpath,${install_dir}/lib/plugins -Wl,-rpath,${PWD}"
+LINKER_FLAGS="${LINKER_FLAGS} -Wl,-rpath,${install_dir}/lib -Wl,-rpath,${PWD}"
 
 LIBRARY_MODE_EXECUTION_MANAGER="default"
 PLATFORM_LIBRARY="default"
 PLATFORM_TRANSPORT_LAYER="qir:0.1"
-LINKDIRS="-L${install_dir}/lib -L${install_dir}/lib/plugins @CUDAQ_CXX_NVQPP_LINK_STR@"
+LINKDIRS="-L${install_dir}/lib @CUDAQ_CXX_NVQPP_LINK_STR@"
 LINKLIBS="-lcudaq -lcudaq-logger -lcudaq-common -lcudaq-ensmallen -lcudaq-nlopt -lcudaq-operator"
 
 # Add any plugin libraries to the link stage
 CUDAQ_PLUGIN_DIR=${install_dir}/lib/plugins
 if [ -d "$CUDAQ_PLUGIN_DIR" ] && [ -n "$(ls -A $CUDAQ_PLUGIN_DIR)" ]; then
+  LINKER_FLAGS="${LINKER_FLAGS} -Wl,-rpath,${CUDAQ_PLUGIN_DIR}"
+  LINKDIRS="${LINKDIRS} -L${CUDAQ_PLUGIN_DIR}"
   CUDAQ_PLUGIN_LIBS=`ls ${install_dir}/lib/plugins/*`
   for entry in $CUDAQ_PLUGIN_LIBS; do
     PLUGIN_NAME=$(basename $entry)
@@ -723,6 +748,17 @@ fi
 
 AUTO_GENERATE_RUN_OPTION="generate-run-stack=1"
 
+# If this is a quantum device (CUDAQ_QUANTUM_DEVICE and not CUDAQ_EMULATE_REMOTE),
+# we insert default implementation (weak linkage) for all device call declarations.
+# This allows the AOT compilation to succeed without requiring the user to link to a specific device library.
+# When submitting to a quantum device, the device call will be resolved by the provider.
+INSERT_DEFAULT_DEVICE_CALL_IMPL="insert-trap=0"
+# PREPROCESSOR_DEFINES contains 'CUDAQ_QUANTUM_DEVICE'and CUDAQ_EMULATE_REMOTE is false
+if [[ "${PREPROCESSOR_DEFINES}" == *"CUDAQ_QUANTUM_DEVICE"* && "${CUDAQ_EMULATE_REMOTE}" == "false" ]]; then
+	INSERT_DEFAULT_DEVICE_CALL_IMPL="insert-trap=1"
+fi
+
+
 RUN_OPT=false
 # NB: Keep this in synch with the PythonAOT pipeline
 OPT_PASSES=
@@ -751,10 +787,12 @@ if ${ENABLE_KERNEL_EXECUTION}; then
 		else
 			KERNEL_EXECUTION_OPTIONS="{${AUTO_GENERATE_RUN_OPTION}}"
 		fi
+		RUN_HACKERY=""
 	elif [[ -n "${KERNEL_EXECUTION_KIND}" ]]; then
 		KERNEL_EXECUTION_OPTIONS="{${KERNEL_EXECUTION_KIND}}"
+		RUN_HACKERY=""
 	fi
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "kernel-execution${KERNEL_EXECUTION_OPTIONS}")
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "kernel-execution${KERNEL_EXECUTION_OPTIONS}${RUN_HACKERY}")
 fi
 if ${ENABLE_AGGRESSIVE_INLINE}; then
 	RUN_OPT=true
@@ -782,7 +820,7 @@ if ${ENABLE_LOWER_TO_CFG}; then
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "expand-measurements,lower-to-cfg")
 fi
 if ${RUN_OPT}; then
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "distributed-device-call,canonicalize,cse")
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "distributed-device-call{${INSERT_DEFAULT_DEVICE_CALL_IMPL}},canonicalize,cse")
 fi
 
 # If TARGET_PASS_PIPELINE is set, then use that exact pipeline (while still
@@ -799,6 +837,25 @@ if ${SHOW_VERSION} && [ -z "$SRCS" ] && [ -z "$OBJS" ]; then
 	# If version is requested and no source files were provided, log the version string.
 	echo "$NVQPP_VERSION_STRING"
 	DO_LINK=false
+fi
+
+# Set up relocatable linking flags (used to merge quantum + classical objects).
+# On macOS, use -nostdlib to prevent implicit -lc++ linking. If the configured
+# linker does not support -r (e.g., LLVM 16's ld64.lld), fall back to the
+# system ld. Suppress the default config to avoid injecting -rpath which is
+# incompatible with -r.
+NOSTDLIB_FLAG=""
+RELOCATABLE_LINKER_PATH="${LINKER_PATH}"
+RELOCATABLE_EXTRA_FLAGS=""
+if ${CUDAQ_IS_APPLE}; then
+	NOSTDLIB_FLAG="-nostdlib"
+	RELOCATABLE_EXTRA_FLAGS="--no-default-config"
+	probe_obj=$(mktemp "${TMPDIR:-/tmp}/cudaq_probe.XXXXXX")
+	echo "" | ${CXX} --no-default-config -x c -c - -o "$probe_obj" 2>/dev/null
+	if ! ${CXX} --no-default-config ${LINKER_PATH} -nostdlib -r -o /dev/null "$probe_obj" 2>/dev/null; then
+		RELOCATABLE_LINKER_PATH="--ld-path=/usr/bin/ld"
+	fi
+	rm -f "$probe_obj"
 fi
 
 for i in ${SRCS}; do
@@ -857,13 +914,7 @@ for i in ${SRCS}; do
 	fi
 
 	# If we had cudaq kernels, merge the quantum and classical object files.
-	# On macOS, use -nostdlib to prevent implicit -lc++ linking
-	NOSTDLIB_FLAG=""
-	if ${CUDAQ_IS_APPLE}; then
-		NOSTDLIB_FLAG="-nostdlib"
-	fi
-
-	run ${CXX} ${LINKER_PATH} ${LINKDIRS} ${NOSTDLIB_FLAG} -r ${QUAKE_OBJ} ${file}.classic.o -o ${file}.o
+	run ${CXX} ${RELOCATABLE_EXTRA_FLAGS} ${RELOCATABLE_LINKER_PATH} ${NOSTDLIB_FLAG} ${MACOS_VERSION_FLAG} -r ${QUAKE_OBJ} ${file}.classic.o -o ${file}.o
 	OBJS="${OBJS} ${file}.o"
 done
 
@@ -875,6 +926,10 @@ if ${DO_LINK}; then
 	DEFAULT_CXX_ARGS=$( ( ${CXX} -v 2>&1 || true ) )
 	if [[ $DEFAULT_CXX_ARGS == *"-lc++"* ]]; then
 		LINKLIBS="-lc++ ${LINKLIBS}"
+	fi
+	llvm_libdir="$(dirname "${LLVMBIN}")/lib"
+	if [ -f "${llvm_libdir}/libc++abi.dylib" ] || [ -f "${llvm_libdir}/libc++abi.so" ]; then
+		LINKLIBS="-lc++abi ${LINKLIBS}"
 	fi
 
 	run ${CXX} ${LINKER_PATH} ${LINKER_FLAGS} ${LINKDIRS} ${OBJS} ${LINKLIBS} ${OUTPUTOPTS}

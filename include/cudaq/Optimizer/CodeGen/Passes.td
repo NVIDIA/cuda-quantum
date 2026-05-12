@@ -58,8 +58,18 @@ def ConvertToQIR : Pass<"quake-to-qir", "mlir::ModuleOp"> {
   }];
 
   let dependentDialects = [
-    "cudaq::codegen::CodeGenDialect", "mlir::LLVM::LLVMDialect"
+    "cudaq::codegen::CodeGenDialect", "mlir::LLVM::LLVMDialect",
+    "mlir::arith::ArithDialect", "mlir::complex::ComplexDialect",
+    "cudaq::cc::CCDialect"
   ];
+}
+
+def DelayMeasurements : Pass<"delay-measurements", "mlir::func::FuncOp"> {
+  let summary = "Move measurements as late as possible";
+  let description = [{
+    Move measurements as late as possible. This is useful for a Base Profile
+    QIR program.
+  }];
 }
 
 def LowerToCG : Pass<"lower-to-cg", "mlir::ModuleOp"> {
@@ -128,6 +138,7 @@ def QIRToQIRProfile : Pass<"convert-to-qir-profile"> {
            "Which QIR profile to convert to (default is 'qir-base')">
   ];
 
+  let dependentDialects = ["mlir::LLVM::LLVMDialect"];
   let constructor = "cudaq::opt::createQIRToQIRProfilePass(\"qir-base\")";
 }
 
@@ -156,38 +167,6 @@ def RemoveMeasurements : Pass<"remove-measurements"> {
   }];
 }
 
-def VerifyNVQIRCallOps :
-    Pass<"verify-nvqir-call-ops", "mlir::LLVM::LLVMFuncOp"> {
-  let summary =
-    "Verify that all LLVM CallOps' callees are NVQIR compliant";
-  let description = [{
-    This is a function pass to verify that all function calls within the
-    function body are referring to pre-defined allowed functions or QIR
-    functions, i.e., starting with a __quantum prefix, or NVQIR runtime
-    functions.
-  }];
-  
-  let options = [
-    ListOption<"allowedFuncs", "allowed-funcs", "llvm::StringRef",
-        "Allowed list of functions in addition to NVQIR-defined function.">
-  ];
-
-  let constructor = "cudaq::opt::createVerifyNVQIRCallOpsPass({})";
-}
-
-def VerifyQIRProfile : Pass<"verify-qir-profile", "mlir::LLVM::LLVMFuncOp"> {
-  let summary = "Verify that the output conforms to the specific profile";
-  let description = [{
-    This pass scans over functions in the LLVM-IR dialect to make sure they
-    conform to the QIR specific profile.
-  }];
-
-  let options = [
-    Option<"convertTo", "convert-to", "std::string", "\"qir-base\"",
-           "Which QIR profile to convert to (default is 'qir-base')">
-  ];
-}
-
 def WireSetToProfileQIR : Pass<"wireset-to-profile-qir", "mlir::func::FuncOp"> {
   let summary = "Convert quake using wire sets to a profile of QIR";
   let description = [{
@@ -196,7 +175,8 @@ def WireSetToProfileQIR : Pass<"wireset-to-profile-qir", "mlir::func::FuncOp"> {
     the code to CC dialect with QIR calls, etc.
   }];
 
-  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect",
+      "mlir::func::FuncDialect", "mlir::arith::ArithDialect"];
   let options = [
     Option<"convertTo", "convert-to", "std::string", /*default=*/"\"qir-base\"",
            "Select the profile to convert wire sets to.">
@@ -244,7 +224,7 @@ def QuakeToQIRAPI : Pass<"quake-to-qir-api"> {
   let options = [
     Option<"api", "api", "std::string", /*default=*/"\"full\"",
            "Select the QIR API to use.">,
-    Option<"opaquePtr", "opaque-pointer", "bool", /*default=*/"false",
+    Option<"opaquePtr", "opaque-pointer", "bool", /*default=*/"true",
            "Use opaque pointers.">
   ];
 }
@@ -274,7 +254,7 @@ def QuakeToQIRAPIPrep : Pass<"quake-to-qir-api-prep", "mlir::ModuleOp"> {
   let options = [
     Option<"api", "api", "std::string", /*default=*/"\"full\"",
            "Select the QIR API to use.">,
-    Option<"opaquePtr", "opaque-pointer", "bool", /*default=*/"false",
+    Option<"opaquePtr", "opaque-pointer", "bool", /*default=*/"true",
            "Use opaque pointers.">
   ];
 }
@@ -290,8 +270,16 @@ def ReturnToOutputLog : Pass<"return-to-output-log", "mlir::ModuleOp"> {
     of executions and eliminating the overhead of executing the kernel one at
     a time with all the interprocessor overhead.
   }];
-  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect",
+                           "mlir::LLVM::LLVMDialect",
+                           "mlir::arith::ArithDialect"];
+  let options = [
+    Option<"allowDynamicResult", "allow-dynamic-result", "bool",
+           /*default=*/"true",
+           "Allow dynamic-size vector result logging. Set to false for targets"
+           "that require statically-known output record counts (e.g., targets"
+           "that don't support full QIR).">,
+  ];
 }
-
 
 #endif // CUDAQ_OPT_OPTIMIZER_CODEGEN_PASSES

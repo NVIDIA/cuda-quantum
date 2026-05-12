@@ -22,7 +22,7 @@
 #
 # Note:
 # The script should be run in the cuda-quantum-devdeps container environment.
-# current tested image: ghcr.io/nvidia/cuda-quantum-devdeps:clang16-main
+# current tested image: ghcr.io/nvidia/cuda-quantum-devdeps:llvm-main
 # Don't enable GPU
 # C/C++ coverage is located in the ./build/ccoverage directory
 # Python coverage is located in the ./build/pycoverage directory
@@ -65,13 +65,17 @@ repo_root=$(cd "$this_file_dir" && git rev-parse --show-toplevel)
 # Set envs
 if $gen_cpp_coverage; then
     export CUDAQ_ENABLE_CC=ON
-    mkdir -p /usr/lib/llvm-16/lib/clang/16/lib/linux
-    ln -s /usr/local/llvm/lib/clang/16/lib/x86_64-unknown-linux-gnu/libclang_rt.profile.a /usr/lib/llvm-16/lib/clang/16/lib/linux/libclang_rt.profile-x86_64.a
+    clang_ver=$(clang --version 2>/dev/null | grep -oP 'version \K[0-9]+')
+    arch=$(uname -m)-unknown-linux-gnu
+    profile_src="$LLVM_INSTALL_PREFIX/lib/clang/$clang_ver/lib/$arch/libclang_rt.profile.a"
+    profile_dst="/usr/lib/llvm-$clang_ver/lib/clang/$clang_ver/lib/linux/libclang_rt.profile-$(uname -m).a"
+    mkdir -p "$(dirname "$profile_dst")"
+    ln -sf "$profile_src" "$profile_dst"
     export LLVM_PROFILE_FILE=${repo_root}/build/tmp/cudaq-cc/profile-%9m.profraw
 fi
 
 # Build project
-bash ${repo_root}/scripts/build_cudaq.sh
+bash ${repo_root}/scripts/build_cudaq.sh -- -DCUDAQ_TEST_OMP_SLOTS=2
 if [ $? -ne 0 ]; then
     echo "Build cudaq failure: $?" >&2
     exit 1
@@ -93,7 +97,7 @@ if $gen_cpp_coverage; then
     use_llvm_cov=true
 
     # Run tests (C++ Unittests)
-    python3 -m pip install iqm-client==28.0.0
+    python3 -m pip install -r ${repo_root}/requirements-tests-backend.txt --break-system-packages
     ctest --output-on-failure --test-dir ${repo_root}/build -E ctest-nvqpp -E ctest-targettests
     ctest_status=$?
     /usr/local/llvm/bin/llvm-lit -v --param nvqpp_site_config=${repo_root}/build/test/lit.site.cfg.py ${repo_root}/build/test
@@ -130,6 +134,8 @@ if $gen_cpp_coverage; then
             -e '/Linking CXX executable/s/^.*Linking CXX executable //p' ${repo_root}/build/logs/ninja_output.txt))
         objects=""
         for item in "${binarys[@]}"; do
+            # Static libraries (.a) often produce malformed coverage data; only use shared libs and executables
+            [[ "$item" == *.a ]] && continue
             objects+="-object ${repo_root}/build/$item "
         done
 
@@ -178,20 +184,29 @@ if $gen_cpp_coverage; then
 fi
 
 if $gen_py_coverage; then
+    PY_VER=$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
+    apt install -y python${PY_VER}-venv
+ 
+    # Needs to be installed outside of venv
+    python3 -m pip install -r ${repo_root}/requirements-tests-backend.txt --break-system-packages
+
+    venv_dir=${repo_root}/build/venv-coverage
+    python3 -m venv "$venv_dir"
+    . "${venv_dir}/bin/activate"
     pip install pytest-cov
-    pip install iqm_client==16.1 --user -vvv
     rm -rf ${repo_root}/_skbuild
-    pip install . --user -vvv
+    pip install . -vvv
+    mkdir -p ${repo_root}/build/pycoverage
     if $is_codecov_format; then
-        python3 -m pytest -v python/tests/ --ignore python/tests/backends --cov=cudaq --cov-report=xml:${repo_root}/build/pycoverage/coverage.xml --cov-append
+        python -m pytest -v python/tests/ --ignore python/tests/backends --cov=cudaq --cov-report=xml:${repo_root}/build/pycoverage/coverage.xml --cov-append
     else
-        python3 -m pytest -v python/tests/ --ignore python/tests/backends --cov=cudaq --cov-report=html:${repo_root}/build/pycoverage --cov-append
+        python -m pytest -v python/tests/ --ignore python/tests/backends --cov=cudaq --cov-report=html:${repo_root}/build/pycoverage --cov-append
     fi
     for backendTest in python/tests/backends/*.py; do
         if $is_codecov_format; then
-            python3 -m pytest -v $backendTest --cov=cudaq --cov-report=xml:${repo_root}/build/pycoverage/coverage.xml --cov-append
+            python -m pytest -v $backendTest --cov=cudaq --cov-report=xml:${repo_root}/build/pycoverage/coverage.xml --cov-append
         else
-            python3 -m pytest -v $backendTest --cov=cudaq --cov-report=html:${repo_root}/build/pycoverage --cov-append
+            python -m pytest -v $backendTest --cov=cudaq --cov-report=html:${repo_root}/build/pycoverage --cov-append
         fi
         pytest_status=$?
         if [ ! $pytest_status -eq 0 ] && [ ! $pytest_status -eq 5 ]; then

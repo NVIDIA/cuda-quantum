@@ -209,6 +209,9 @@ public:
 
   std::unique_ptr<SimulationState>
   createFromSizeAndPtr(std::size_t size, void *ptr, std::size_t type) override {
+    if (!ptr || size == 0)
+      throw std::runtime_error(
+          "[createFromSizeAndPtr] invalid null pointer or zero size");
     // If the data is provided as a pointer / size, then
     // we assume we do not own it.
     bool weOwnTheData = type < 2 ? true : false;

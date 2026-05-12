@@ -39,7 +39,6 @@ countJobGetRequests = 0
 # Save how many qubits were needed for each test (emulates real backend)
 numQubitsRequired = 0
 
-llvm.initialize()
 llvm.initialize_native_target()
 llvm.initialize_native_asmprinter()
 target = llvm.Target.from_default_triple()
@@ -163,3 +162,8 @@ async def getResults(jobId: str):
 
     res = retData
     return res
+
+
+def startServer(port):
+    import uvicorn
+    uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")

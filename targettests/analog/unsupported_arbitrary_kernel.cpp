@@ -8,6 +8,8 @@
 
 /// NOTE: The `quera` target is available only if AWS SDK is installed, i.e. if
 /// `braket` target is also available.
+/// NOTE: This test intentionally exercises the only direct `pasqal` target.
+/// `pasqal` + QRMI coverage is handled in QRMI end to end tests.
 // clang-format off
 // RUN: if %braket_avail; then nvq++ --target quera %s -o %t.x; fi
 // RUN: if %braket_avail; then not %t.x 2>&1 | FileCheck %s; fi

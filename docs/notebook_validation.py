@@ -54,6 +54,23 @@ GPU_REQUIRED_NOTEBOOKS = [
     'quantum_pagerank.ipynb',  # Requires dynamics target
 ]
 
+# Notebooks for which we set a longer timeout.
+LONG_RUNNING_NOTEBOOKS = [
+    "divisive_clustering_coresets.ipynb",
+    "hybrid_quantum_neural_networks.ipynb",
+    "qm_mm_pe.ipynb",
+    "qsci.ipynb",
+    "uccsd_wf_ansatz.ipynb",
+    "vqe_advanced.ipynb",
+]
+
+# TODO: investigate and fix notebook in CI
+EXTERNAL_NETWORK_NOTEBOOKS = [
+    # Downloads `Floki00/qc_unitary_3qubit` from Hugging Face via
+    # DiffusionPipeline.from_pretrained — has timed out at >35 min in CI.
+    "unitary_compilation_diffusion_models.ipynb",
+]
+
 
 def validate(notebook_filename, available_backends):
     """
@@ -70,6 +87,11 @@ def validate(notebook_filename, available_backends):
     base_name = os.path.basename(notebook_filename)
     has_gpu = 'nvidia' in available_backends
     if not has_gpu and base_name in GPU_REQUIRED_NOTEBOOKS:
+        return False
+
+    # Notebooks that depend on external network services (HF, etc.) are too
+    # flaky for CI and are unconditionally skipped during validation.
+    if base_name in EXTERNAL_NETWORK_NOTEBOOKS:
         return False
 
     # Collect all set_target calls
@@ -98,11 +120,14 @@ def validate(notebook_filename, available_backends):
     return any(target in available_backends for target in targets_found)
 
 
-def execute(notebook_filename, jupyter_kernel=None, timeout_seconds=600):
+def execute(notebook_filename, jupyter_kernel=None, timeout_seconds=300):
     """Execute a notebook with timeout."""
     notebook_filename_out = notebook_filename.replace('.ipynb',
                                                       '.nbconvert.ipynb')
     notebook_basename = os.path.basename(notebook_filename)
+    if notebook_basename in LONG_RUNNING_NOTEBOOKS:
+        timeout_seconds = 2100
+
     try:
         start_time = time.perf_counter()
         cmd = [
@@ -181,13 +206,7 @@ if __name__ == "__main__":
         notebooks_success, notebooks_skipped, notebooks_failed = (
             [] for i in range(3))
 
-        ## `quantum_transformer`:
-        ## See: https://github.com/NVIDIA/cuda-quantum/issues/2689
-        notebooks_skipped = [
-            'quantum_transformer.ipynb', 'logical_aim_sqale.ipynb',
-            'hybrid_quantum_neural_networks.ipynb',
-            'unitary_compilation_diffusion_models.ipynb', 'qsci.ipynb'
-        ]
+        notebooks_skipped = []
 
         for notebook_filename in notebook_filenames:
             base_name = os.path.basename(notebook_filename)

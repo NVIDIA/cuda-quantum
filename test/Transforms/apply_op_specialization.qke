@@ -1,0 +1,98 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt %s --apply-op-specialization -split-input-file | FileCheck %s
+
+module {
+    func.func @test_weird_arg_order(%arg0: !quake.veq<?>, %arg1: i64) attributes {"cudaq-kernel"} {
+        %c1_i64 = arith.constant 1 : i64
+        %c0_i64 = arith.constant 0 : i64
+        %c4_i64 = arith.constant 4 : i64
+        %0:2 = cc.loop while ((%arg2 = %c0_i64, %arg3 = %c0_i64) -> (i64, i64)) {
+            %1 = arith.cmpi ult, %arg3, %c4_i64 : i64
+            cc.condition %1(%arg2, %arg3 : i64, i64)
+        } do {
+        ^bb0(%arg2: i64, %arg3: i64):
+            %1 = quake.extract_ref %arg0[%arg3] : (!quake.veq<?>, i64) -> !quake.ref
+            quake.x %1 : (!quake.ref) -> ()
+            %2 = arith.addi %arg2, %c1_i64 : i64
+            cc.continue %2, %arg3 : i64, i64
+        } step {
+        ^bb0(%arg2: i64, %arg3: i64):
+            %1 = arith.addi %arg3, %c1_i64 : i64
+            cc.continue %arg2, %1 : i64, i64
+        }
+        return
+    }
+
+    func.func @test_caller() {
+        %c8_i64 = arith.constant 8 : i64
+        %0 = quake.alloca !quake.veq<8>
+        %1 = cc.instantiate_callable @test_weird_arg_order() : () -> !cc.callable<(!quake.veq<8>, i64) -> ()>
+        quake.apply<adj> %1 %0, %c8_i64 : (!quake.veq<8>, i64) -> ()
+        return
+    }
+}
+
+// Currently, pass should refuse to create adjoint
+// See: https://github.com/NVIDIA/cuda-quantum/issues/3818
+// CHECK: quake.apply<adj>
+
+// -----
+
+module {
+    func.func @test_threaded_val(%arg0: !quake.veq<?>, %arg1: i64) attributes {"cudaq-kernel"} {
+        %c4_i64 = arith.constant 4 : i64
+        %c1_i64 = arith.constant 1 : i64
+        %c0_i64 = arith.constant 0 : i64
+        %0 = cc.undef i64
+        // expected-error@+1 {{ApplyOpSpecialization does not currently support loops returning values other than the iteration variable}}
+        %1:2 = cc.loop while ((%arg2 = %c0_i64, %arg3 = %arg1) -> (i64, i64)) {
+            %3 = arith.cmpi slt, %arg2, %c4_i64 : i64
+            cc.condition %3(%arg2, %arg3 : i64, i64)
+        } do {
+        ^bb0(%arg2: i64, %arg3: i64):
+            %3 = quake.extract_ref %arg0[%arg2] : (!quake.veq<?>, i64) -> !quake.ref
+            quake.x %3 : (!quake.ref) -> ()
+            %4 = arith.subi %arg3, %c1_i64 : i64
+            cc.continue %arg2, %4 : i64, i64
+        } step {
+        ^bb0(%arg2: i64, %arg3: i64):
+            %3 = arith.addi %arg2, %c1_i64 : i64
+            cc.continue %3, %arg3 : i64, i64
+        }
+        // expected-error@+1 {{ApplyOpSpecialization does not currently support loops with multiple arguments}}
+        %2:2 = cc.loop while ((%arg2 = %c4_i64, %arg3 = %1#1) -> (i64, i64)) {
+            %3 = arith.cmpi slt, %arg2, %arg1 : i64
+            cc.condition %3(%arg2, %arg3 : i64, i64)
+        } do {
+        ^bb0(%arg2: i64, %arg3: i64):
+            %3 = quake.extract_ref %arg0[%arg3] : (!quake.veq<?>, i64) -> !quake.ref
+            quake.h %3 : (!quake.ref) -> ()
+            %4 = arith.subi %arg3, %c1_i64: i64
+            cc.continue %arg2, %4 : i64, i64
+        } step {
+        ^bb0(%arg2: i64, %arg3: i64):
+            %3 = arith.addi %arg2, %c1_i64 : i64
+            cc.continue %3, %arg3 : i64, i64
+        }
+        return
+    }
+
+    func.func @test_caller() {
+        %c8_i64 = arith.constant 8 : i64
+        %0 = quake.alloca !quake.veq<8>
+        %1 = cc.instantiate_callable @test_threaded_val() : () -> !cc.callable<(!quake.veq<8>, i64) -> ()>
+        quake.apply<adj> %1 %0, %c8_i64 : (!quake.veq<8>, i64) -> ()
+        return
+    }
+}
+
+// Currently, pass should refuse to create adjoint
+// See: https://github.com/NVIDIA/cuda-quantum/issues/3818
+// CHECK: quake.apply<adj>

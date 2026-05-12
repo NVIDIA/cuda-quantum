@@ -1008,33 +1008,47 @@ class Dendrogram:
         plt.title(plot_title)
         plt.show()
 
-    def get_linkage_matrix(self, parent: List[str]) -> int:
+    def get_linkage_matrix(self, root: List[str]) -> int:
         """
         Create the linkage matrix for the dendrogram and returns the index of the new branch.
 
         Args:
-            parent (`List[str]`): The parent cluster.
+            parent (`List[str]`): The root cluster.
 
         Returns:
-            List: The linkage matrix.
+            int: The index of the root in the linkage matrix.
         """
 
-        if len(parent) < 2:
-            index_of_parent = np.argwhere(self._coreset_data.index == parent[0])
-            return index_of_parent[0][0]
-        children_1, children_2 = self.find_children(
-            parent, self._hierarchial_clustering_sequence)
+        stack = [(root, 0)]
+        result_stack = []
 
-        index1 = self.get_linkage_matrix(children_1)
-        index2 = self.get_linkage_matrix(children_2)
-        self.linkage_matrix.append([
-            index1,
-            index2,
-            self.distance(index1) + self.distance(index2),
-            self.cluster_len(index1) + self.cluster_len(index2),
-        ])
+        while stack:
+            node, phase = stack[-1]
 
-        return len(self.linkage_matrix) - 1 + len(self.coreset_data)
+            if len(node) < 2:
+                stack.pop()
+                idx = np.argwhere(self._coreset_data.index == node[0])[0][0]
+                result_stack.append(idx)
+            elif phase == 0:
+                stack[-1] = (node, 1)
+                children_1, children_2 = self.find_children(
+                    node, self._hierarchial_clustering_sequence)
+                stack.append((children_2, 0))
+                stack.append((children_1, 0))
+            else:
+                stack.pop()
+                index2 = result_stack.pop()
+                index1 = result_stack.pop()
+                self.linkage_matrix.append([
+                    index1,
+                    index2,
+                    self.distance(index1) + self.distance(index2),
+                    self.cluster_len(index1) + self.cluster_len(index2),
+                ])
+                result_stack.append(
+                    len(self.linkage_matrix) - 1 + len(self.coreset_data))
+
+        return result_stack[0]
 
     def distance(self, i: int) -> float:
         """
@@ -1193,7 +1207,7 @@ class Voironi_Tessalation:
 
         center = self.voronoi.points.mean(axis=0)
         if radius is None:
-            radius = self.voronoi.points.ptp().max()
+            radius = np.ptp(self.voronoi.points).max()
 
         all_ridges = {}
         for (p1, p2), (v1, v2) in zip(self.voronoi.ridge_points,

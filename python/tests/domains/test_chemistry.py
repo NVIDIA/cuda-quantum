@@ -42,6 +42,7 @@ def testUCCSD():
     numQubits = 2 * data.n_orbitals
 
     from cudaq.kernels import uccsd
+    uccsd.compile()
 
     # create the ansatz
     kernel, thetas = cudaq.make_kernel(list)

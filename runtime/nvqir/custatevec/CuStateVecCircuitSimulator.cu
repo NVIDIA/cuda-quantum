@@ -89,26 +89,33 @@ __global__ void cudaKronprod(size_t tsize1, const CudaDataType *arr1,
 #pragma pop
 
 template <typename CudaDataType>
-void kronprod(uint32_t n_blocks, int32_t threads_per_block,
+void kronprod(uint32_t maxGridDimY, int32_t threads_per_block,
               size_t tsize1, const void *arr1,
-              size_t tsize2, const void *arr2, 
+              size_t tsize2, const void *arr2,
               void *arr0) {
-  cudaKronprod<<<n_blocks, threads_per_block>>>(
-    tsize1, reinterpret_cast<const CudaDataType *>(arr1), 
+  uint32_t n_blocks_x =
+      (static_cast<uint32_t>(tsize1) + threads_per_block - 1) / threads_per_block;
+  uint32_t n_blocks_y = static_cast<uint32_t>(
+      std::min((tsize2 + static_cast<size_t>(threads_per_block) - 1) /
+                   static_cast<size_t>(threads_per_block),
+               static_cast<size_t>(maxGridDimY)));
+  dim3 grid(n_blocks_x, n_blocks_y);
+  cudaKronprod<<<grid, threads_per_block>>>(
+    tsize1, reinterpret_cast<const CudaDataType *>(arr1),
     tsize2, reinterpret_cast<const CudaDataType *>(arr2),
     reinterpret_cast<CudaDataType *>(arr0));
 }
 
 template void
-kronprod<cuFloatComplex>(uint32_t n_blocks, int32_t threads_per_block,
-                         size_t tsize1, const void *arr1, 
-                         size_t tsize2, const void *arr2, 
+kronprod<cuFloatComplex>(uint32_t maxGridDimY, int32_t threads_per_block,
+                         size_t tsize1, const void *arr1,
+                         size_t tsize2, const void *arr2,
                          void *arr0);
 
 template void
-kronprod<cuDoubleComplex>(uint32_t n_blocks, int32_t threads_per_block,
-                          size_t tsize1, const void *arr1, 
-                          size_t tsize2, const void *arr2, 
+kronprod<cuDoubleComplex>(uint32_t maxGridDimY, int32_t threads_per_block,
+                          size_t tsize1, const void *arr1,
+                          size_t tsize2, const void *arr2,
                           void *arr0);
 
 /// @brief Kernel to set the first N elements of the state vector sv equal to

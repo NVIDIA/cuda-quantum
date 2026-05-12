@@ -7,7 +7,6 @@
 # ============================================================================ #
 
 set(LIBRARY_NAME nvqir-stim)
-set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 set(STIM_SOURCE_DIR ${CMAKE_SOURCE_DIR}/tpls/Stim)
 set(STIM_BINARY_DIR ${CMAKE_BINARY_DIR}/tpls/Stim)

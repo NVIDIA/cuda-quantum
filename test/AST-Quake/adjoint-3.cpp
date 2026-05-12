@@ -150,7 +150,7 @@ struct run_circuit {
 // ADJOINT:           cc.condition %[[VAL_57]](%[[VAL_55]], %[[VAL_56]] : i64, i64)
 // ADJOINT:         } do {
 // ADJOINT:         ^bb0(%[[VAL_58:.*]]: i64, %[[VAL_59:.*]]: i64):
-// ADJOINT:           %[[VAL_60:.*]] = quake.extract_ref %[[VAL_14]]{{\[}}%[[VAL_58]]] : (!quake.veq<?>, i64) -> !quake.ref
+// ADJOINT:           %[[VAL_60:.*]] = quake.extract_ref %[[VAL_0]]{{\[}}%[[VAL_58]]] : (!quake.veq<?>, i64) -> !quake.ref
 // ADJOINT:           quake.h %[[VAL_60]] : (!quake.ref) -> ()
 // ADJOINT:           cc.continue %[[VAL_58]], %[[VAL_59]] : i64, i64
 // ADJOINT:         } step {

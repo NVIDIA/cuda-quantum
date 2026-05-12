@@ -29,10 +29,10 @@ exclude: '^tpls/'
 repos:
   # Formatting hooks
   - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v16.0.6
+    rev: v22.1.4
     hooks:
       - id: clang-format
-        name: C++ formatting (clang-format-16)
+        name: C++ formatting (clang-format-22)
         types_or: [c++, c]
         files: '\.(cpp|h|hpp)$'
         exclude: '^(test|targettests|tpls|runtime/cudaq/algorithms/optimizers/nlopt/nlopt-src)/'
@@ -53,7 +53,6 @@ repos:
       - id: markdownlint
         name: Markdown linting
         files: '\.md$'
-        exclude: '^tpls/'
         args: ['--config', '.github/pre-commit/md_lint_config.yml']
 
   # Standard quality checks
@@ -106,7 +105,7 @@ repos:
         stages: [pre-push]
         additional_dependencies:
           - pyspelling>=2.8.2
-          - pymdown-extensions
+          - pymdown-extensions>=10.16.1
 
       - id: markdown-link-check
         name: Check links in Markdown files

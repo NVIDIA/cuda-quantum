@@ -17,6 +17,7 @@ void switchToResourceCounterSimulator();
 void stopUsingResourceCounterSimulator();
 void setChoiceFunction(std::function<bool()> choice);
 cudaq::Resources *getResourceCounts();
+void setResourceCounts(cudaq::Resources &&);
 } // namespace nvqir
 
 namespace cudaq {

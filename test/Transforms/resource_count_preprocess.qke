@@ -148,3 +148,45 @@ func.func @kernel5() {
   quake.x [%0, %1, %2] %3 : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
   return
 }
+
+// -----
+
+// CHECK: Preprocessing h(0) for 1 counts
+// CHECK-LABEL: func.func @kernel_relaxed_veq() {
+// CHECK:   %0 = quake.alloca !quake.veq<4>
+// CHECK:   return
+// CHECK: }
+
+// Veq<?> from RelaxSizeOp (SubVeqOp canonicalization with constant bounds).
+// The extract_ref uses %relaxed (veq<?>) to exercise the RelaxSizeOp
+// look-through in getVeqBase.
+func.func @kernel_relaxed_veq() {
+  %c0 = arith.constant 0 : i64
+  %0 = quake.alloca !quake.veq<4>
+  %sub = quake.subveq %0, 0, 1 : (!quake.veq<4>) -> !quake.veq<2>
+  %relaxed = quake.relax_size %sub : (!quake.veq<2>) -> !quake.veq<?>
+  %1 = quake.extract_ref %relaxed[%c0] : (!quake.veq<?>, i64) -> !quake.ref
+  quake.h %1 : (!quake.ref) -> ()
+  return
+}
+
+// -----
+
+// CHECK: Preprocessing x(0) for 1 counts
+// CHECK: Preprocessing x(1) for 1 counts
+
+// CHECK-LABEL: func.func @kernel_veq_ctrl() {
+// CHECK:   return
+// CHECK: }
+
+// Veq-typed controls from ConcatOp (Python list syntax: x.ctrl([q0, q1], q2))
+func.func @kernel_veq_ctrl() {
+  %0 = quake.alloca !quake.veq<3>
+  %1 = quake.extract_ref %0[0] : (!quake.veq<3>) -> !quake.ref
+  %2 = quake.extract_ref %0[1] : (!quake.veq<3>) -> !quake.ref
+  %3 = quake.extract_ref %0[2] : (!quake.veq<3>) -> !quake.ref
+  quake.x %1 : (!quake.ref) -> ()
+  %ctrl = quake.concat %1, %2 : (!quake.ref, !quake.ref) -> !quake.veq<2>
+  quake.x [%ctrl] %3 : (!quake.veq<2>, !quake.ref) -> ()
+  return
+}

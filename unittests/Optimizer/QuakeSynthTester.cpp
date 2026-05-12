@@ -6,12 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "common/RuntimeMLIR.h"
 #include "cudaq.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/algorithm.h"
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -26,6 +26,7 @@
 #include <iostream>
 
 using namespace mlir;
+using namespace cudaq_internal::compiler;
 
 namespace cudaq {
 /// Typedef the KernelArgs Creator Function
@@ -132,7 +133,7 @@ TEST(QuakeSynthTests, checkSimpleIntegerInput) {
   EXPECT_EQ(counts.size(), 32);
 
   // Map the kernel_builder to_quake output to MLIR
-  auto context = cudaq::getOwningMLIRContext();
+  auto context = getOwningMLIRContext();
   auto module = parseSourceString<ModuleOp>(kernel.to_quake(), context.get());
 
   // Create a struct defining the runtime args for the kernel
@@ -190,7 +191,7 @@ TEST(QuakeSynthTests, checkDoubleInput) {
   EXPECT_NEAR(energy, -2.045375, 1e-3);
 
   // Map the kernel_builder to_quake output  to MLIR
-  auto context = cudaq::getOwningMLIRContext();
+  auto context = getOwningMLIRContext();
   auto module = parseSourceString<ModuleOp>(kernel.to_quake(), context.get());
 
   // Create a struct defining the runtime args for the kernel
@@ -249,7 +250,7 @@ TEST(QuakeSynthTests, checkVectorOfDouble) {
   EXPECT_NEAR(energy, -2.045375, 1e-3);
 
   // Map the kernel_builder to_quake output  to MLIR
-  auto context = cudaq::getOwningMLIRContext();
+  auto context = getOwningMLIRContext();
   auto module = parseSourceString<ModuleOp>(kernel.to_quake(), context.get());
 
   // Create a struct defining the runtime args for the kernel
@@ -302,7 +303,7 @@ TEST(QuakeSynthTests, checkVectorOfInt) {
   EXPECT_EQ(counts.size(), 1);
 
   // Map the kernel_builder to_quake output to MLIR
-  auto context = cudaq::getOwningMLIRContext();
+  auto context = getOwningMLIRContext();
   auto module = parseSourceString<ModuleOp>(kernel.to_quake(), context.get());
 
   // Create a struct defining the runtime args for the kernel
@@ -350,7 +351,7 @@ TEST(QuakeSynthTests, checkCallable) {
   double energy = cudaq::observe(kernel, h, argsValue);
   std::cout << "Energy = " << energy << "\n";
   // Map the kernel_builder to_quake output to MLIR
-  auto context = cudaq::getOwningMLIRContext();
+  auto context = getOwningMLIRContext();
   std::cout << "Quake Code:\n" << kernel.to_quake() << "\n";
   auto module = parseSourceString<ModuleOp>(kernel.to_quake(), context.get());
 
@@ -382,7 +383,7 @@ TEST(QuakeSynthTests, checkVectorOfComplex) {
   [[maybe_unused]] auto counts = cudaq::sample(colonel, initialState);
   counts.dump();
 
-  auto context = cudaq::getOwningMLIRContext();
+  auto context = getOwningMLIRContext();
   auto module = parseSourceString<ModuleOp>(colonel.to_quake(), context.get());
 
   auto [args, offset] = cudaq::mapToRawArgs(colonel.name(), initialState);
@@ -413,7 +414,7 @@ TEST(QuakeSynthTests, checkVectorOfPauliWord) {
   [[maybe_unused]] auto counts = cudaq::sample(colonel, peterPauli);
   counts.dump();
 
-  auto context = cudaq::getOwningMLIRContext();
+  auto context = getOwningMLIRContext();
   auto module = parseSourceString<ModuleOp>(colonel.to_quake(), context.get());
 
   auto [args, offset] = cudaq::mapToRawArgs(colonel.name(), peterPauli);

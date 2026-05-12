@@ -80,8 +80,8 @@ jobs:
             pr_number=${{ inputs.pull_request_number }}
           elif ${{ github.event.pull_request.number != '' }}; then
             pr_number=${{ github.event.pull_request.number }}
-          elif ${{ startsWith(github.ref_name, 'pull-request/') }}; then
-            pr_number=$(echo ${{ github.ref_name }} | cut -d / -f2)
+          elif [[ "${{ github.ref_name }}" =~ (pull-request/|.*/pr-)([0-9]+) ]]; then
+            pr_number="${BASH_REMATCH[2]}"
           fi
           echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
 
@@ -89,11 +89,14 @@ jobs:
           # Unlike Linux CI which uses Docker layer caching (automatically invalidates
           # when the copied files change), macOS uses ORAS artifact caching with no
           # content-based invalidation. This hash ensures cache is rebuilt when
-          # build scripts change. Update this list if new files affect the build.
+          # build scripts or the devdeps workflow itself change (e.g. LLVM_PROJECTS).
           scripts_hash=$(cat \
             scripts/install_prerequisites.sh \
             scripts/build_llvm.sh \
             scripts/set_env_defaults.sh \
+            cmake/caches/LLVM.cmake \
+            .github/workflows/dev_environment_macos.yml \
+            tpls/customizations/llvm/*.diff \
             | sha256sum | cut -c1-8)
           echo "scripts_hash=$scripts_hash" >> $GITHUB_OUTPUT
 
@@ -116,6 +119,9 @@ jobs:
       contents: read
       packages: write
       id-token: write
+    env:
+      CC: clang
+      CXX: clang++
 
     outputs:
       image_hash: ${{ steps.image_hash.outputs.image_hash }}
@@ -137,17 +143,32 @@ jobs:
       - name: Log in to GitHub CR
         run: echo "${{ github.token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
 
+      - name: Select latest stable Xcode
+        uses: ./.github/actions/setup-xcode-stable
+
+      - name: Log macOS toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          xcrun --show-sdk-path
+          xcrun --show-sdk-version
+          clang --version
+
       - name: Compute cache key
         id: cache_key
         run: |
           # Combine build scripts hash with the runner image version to detect
           # tool updates (cmake, compilers, etc.) that would invalidate the cache.
+          # Include the selected Xcode as well because the same runner image can
+          # contain multiple SDK/compiler releases.
           scripts_hash=${{ needs.metadata.outputs.scripts_hash }}
           runner_image=${ImageVersion:-unknown}
-          deps_hash=$(echo "${scripts_hash}-${runner_image}" | shasum -a 256 | cut -c1-8)
+          developer_dir=${DEVELOPER_DIR:-$(xcode-select -p 2>/dev/null || echo unknown)}
+          xcode_version=$(xcodebuild -version 2>/dev/null | shasum -a 256 | cut -c1-8 || echo unknown)
+          deps_hash=$(echo "${scripts_hash}-${runner_image}-${developer_dir}-${xcode_version}" | shasum -a 256 | cut -c1-8)
           image_name="${{ needs.metadata.outputs.image_name_base }}${deps_hash}"
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
-          echo "Cache key: scripts_hash=$scripts_hash runner_image=$runner_image deps_hash=$deps_hash"
+          echo "Cache key: scripts_hash=$scripts_hash runner_image=$runner_image developer_dir=$developer_dir xcode_version=$xcode_version deps_hash=$deps_hash"
           echo "Image name: $image_name"
 
       - name: Check for cached image
@@ -170,10 +191,17 @@ jobs:
           brew unlink gcc 2>/dev/null || true
           brew link gcc --overwrite 2>/dev/null || true
           
-          # Build prerequisites without Python bindings
-          # Python bindings are rebuilt per-Python-version in wheel jobs
+          # NumPy is required by MLIR's find_package(Python3 ... NumPy)
+          pip3 install numpy --break-system-packages
+          
+          # Build prerequisites with Python bindings enabled so the cmake
+          # cache already has MLIR_ENABLE_BINDINGS_PYTHON=ON.  Downstream
+          # wheel jobs only change Python3_EXECUTABLE, which keeps ninja's
+          # incremental rebuild scoped to the binding targets.
+          # Initialize nanobind submodule which are needed for MLIR Python bindings
+          git submodule update --init --recursive tpls/nanobind
+
           source scripts/set_env_defaults.sh
-          export LLVM_PROJECTS='clang;lld;mlir;openmp'
           
           echo "Building prerequisites..."
           echo "LLVM_INSTALL_PREFIX=$LLVM_INSTALL_PREFIX"

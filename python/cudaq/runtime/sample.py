@@ -10,6 +10,7 @@ from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.kernel.kernel_builder import PyKernel
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
 from cudaq.kernel.utils import mlirTypeToPyType, nvqppPrefix
+from cudaq.util import trace
 from .utils import __isBroadcast, __createArgumentSet
 
 # Maintain a dictionary of queued `async` sample kernels.This dictionary is used
@@ -21,25 +22,22 @@ cudaq_async_sample_cache_counter = 0
 
 class AsyncSampleResult:
 
-    def __init__(self, *args, **kwargs):
-        if len(args) == 2 and isinstance(args[0],
-                                         cudaq_runtime.AsyncSampleResultImpl):
-            impl = args[0]
-            mod = args[1]
-            global cudaq_async_sample_module_cache
-            global cudaq_async_sample_cache_counter
-            self.impl = impl
-            self.getCalled = False
-            self.counter = cudaq_async_sample_cache_counter
-            cudaq_async_sample_cache_counter = self.counter + 1
-            cudaq_async_sample_module_cache[self.counter] = mod
-        elif len(args) == 1 and isinstance(args[0], str):
-            # String-based constructor from JSON
-            self.impl = cudaq_runtime.AsyncSampleResultImpl(args[0])
-            self.counter = None
-        else:
+    def __init__(self, impl, mod=None):
+        global cudaq_async_sample_module_cache
+        global cudaq_async_sample_cache_counter
+        if isinstance(impl, str):
+            impl = cudaq_runtime.AsyncSampleResultImpl(impl)
+        if not hasattr(impl, 'get'):
             raise RuntimeError(
                 "Invalid arguments passed to AsyncSampleResult constructor.")
+        self.impl = impl
+        self.getCalled = False
+        if mod is not None:
+            self.counter = cudaq_async_sample_cache_counter
+            cudaq_async_sample_cache_counter += 1
+            cudaq_async_sample_module_cache[self.counter] = mod
+        else:
+            self.counter = None
 
     def get(self):
         result = self.impl.get()
@@ -91,11 +89,13 @@ def _detail_check_conditionals_on_measure(kernel):
                 f"(void). Kernel '{kernel.name}' has return type "
                 f"'{mlirTypeToPyType(kernel.return_type)}'. Consider using `run` for kernels "
                 f"that return values.")
-        # Only check for kernels that are compiled, not library-mode kernels (e.g., photonics)
-        if kernel.qkeModule is not None:
+        # Only check for kernels that can be compiled, not library-mode kernels (e.g., photonics)
+        if kernel.supports_compilation():
             for operation in kernel.qkeModule.body.operations:
-                if (hasattr(operation, 'name') and nvqppPrefix + kernel.uniqName
-                        == operation.name.value and
+                op_name = getattr(operation.name,
+                                  'value', operation.name) if hasattr(
+                                      operation, 'name') else None
+                if (op_name == nvqppPrefix + kernel.uniqName and
                         'qubitMeasurementFeedback' in operation.attributes):
                     has_conditionals_on_measure_result = True
     elif isinstance(kernel, PyKernel) and kernel.conditionalOnMeasure:
@@ -118,6 +118,7 @@ def _detail_check_explicit_measurements(explicit_measurements):
             "on this target.")
 
 
+@trace.traced
 def sample(kernel,
            *args,
            shots_count=1000,
@@ -204,6 +205,7 @@ def sample(kernel,
     return counts
 
 
+@trace.traced
 def sample_async(decorator,
                  *args,
                  shots_count=1000,
@@ -227,6 +229,9 @@ def sample_async(decorator,
       explicit_measurements (Optional[bool]): A flag to indicate whether or not
           to concatenate measurements in execution order for the returned
           sample result.
+      noise_model (Optional[`NoiseModel`]): The optional :class:`NoiseModel`
+          to add noise to the kernel execution on the simulator. Defaults to
+          an empty noise model.
       `qpu_id` (Optional[int]): The optional identification for which QPU
           on the platform to target. Defaults to zero. Key-word only.
 
@@ -261,16 +266,14 @@ def sample_async(decorator,
             raise ValueError("Noise model is not supported on remote simulator"
                              " or hardware QPU.")
 
-    specMod, processedArgs = decorator.handle_call_arguments(*args)
+    processedArgs, module = decorator.prepare_call(*args)
 
     _detail_check_conditionals_on_measure(kernel)
 
     _detail_check_explicit_measurements(explicit_measurements)
 
-    retTy = decorator.get_none_type()
-    sample_results = cudaq_runtime.sample_async_impl(decorator.uniqName,
-                                                     specMod, retTy,
+    sample_results = cudaq_runtime.sample_async_impl(decorator.uniqName, module,
                                                      shots_count, noise_model,
                                                      explicit_measurements,
                                                      qpu_id, *processedArgs)
-    return AsyncSampleResult(sample_results, specMod)
+    return AsyncSampleResult(sample_results, module)

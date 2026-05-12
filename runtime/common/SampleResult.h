@@ -145,7 +145,7 @@ public:
   sample_result &operator=(const sample_result &counts) = default;
 
   /// @brief The destructor
-  ~sample_result() = default;
+  virtual ~sample_result() = default;
 
   /// @brief Return true if the `ExecutionResult` with the specified register
   /// name has a precomputed expectation value.

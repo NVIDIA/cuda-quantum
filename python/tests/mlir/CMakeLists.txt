@@ -42,5 +42,15 @@ add_lit_testsuites(PYCUDAQMLIR ${CMAKE_CURRENT_SOURCE_DIR}
 add_test(NAME pycudaq-mlir
   COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target check-pycudaq-mlir
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
-# Increase timeout for this test suite as it is slow on some runners
-set_tests_properties(pycudaq-mlir PROPERTIES TIMEOUT 1200)
+# This test runs llvm-lit internally with parallism, so have ctest 
+# run sequentially.
+include(ProcessorCount)
+ProcessorCount(NPROC)
+if(NPROC EQUAL 0)
+  set(NPROC 1)
+endif()
+set_tests_properties(pycudaq-mlir PROPERTIES
+  TIMEOUT 1200
+  PROCESSORS ${NPROC})
+
+add_subdirectory(phase_folding)

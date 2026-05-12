@@ -53,7 +53,10 @@ else()
     message(STATUS "Minizip found: ${MINI_ZIP_LIB} and ${MINI_UNZIP_INC}")
     target_link_libraries(unzip_util PRIVATE ${MINI_ZIP_LIB} ZLIB::ZLIB)
     get_filename_component(MINI_INCLUDE_DIR ${MINI_UNZIP_INC} DIRECTORY)
-    target_include_directories(unzip_util PRIVATE ${MINI_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR})  
+    target_include_directories(unzip_util
+      PRIVATE
+        ${MINI_INCLUDE_DIR} ${ZLIB_INCLUDE_DIR}
+    )
     set(MINI_ZIP_FOUND TRUE)
   endif()
 endif()
@@ -97,17 +100,36 @@ target_include_directories(rest-remote-platform-server
     ../..
 )
 
-target_link_libraries(rest-remote-platform-server
-  PRIVATE
-    rest_server_impl
-    cudaq 
-    cudaq-operator
-    cudaq-em-default 
-    cudaq-mlir-runtime
-    cudaq-platform-default
-    nvqir
-    fmt::fmt-header-only
-)
+if(APPLE)
+  target_link_libraries(rest-remote-platform-server
+    PRIVATE
+      rest_server_impl
+      cudaq
+      cudaq-operator
+      cudaq-em-default
+      cudaq-mlir-runtime
+      cudaq-platform-default
+      "$<TARGET_FILE:cudaq-qir-verifier>"
+      nvqir
+      fmt::fmt-header-only
+  )
+  add_dependencies(rest-remote-platform-server cudaq-qir-verifier)
+  target_link_options(rest-remote-platform-server PRIVATE
+    "LINKER:-undefined,dynamic_lookup")
+else()
+  target_link_libraries(rest-remote-platform-server
+    PRIVATE
+      rest_server_impl
+      cudaq
+      cudaq-operator
+      cudaq-em-default
+      cudaq-mlir-runtime
+      cudaq-platform-default
+      cudaq-qir-verifier
+      nvqir
+      fmt::fmt-header-only
+  )
+endif()
 
 if (CUDA_FOUND AND CUSTATEVEC_ROOT)
   enable_language(CUDA)

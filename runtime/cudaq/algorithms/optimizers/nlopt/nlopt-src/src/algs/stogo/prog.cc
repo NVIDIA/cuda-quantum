@@ -120,9 +120,9 @@ int main() {
     break;
   case 3:
     dim=3;
-    Dom=Domain_BoxBetts; 
+    Dom=Domain_BoxBetts;
     Obj=Objective_BoxBetts;
-    Grad=Gradient_BoxBetts; 
+    Grad=Gradient_BoxBetts;
     break;
   case 14:
     dim=10;
@@ -134,13 +134,13 @@ int main() {
     dim=4;
     Dom=Domain_Levy;
     Obj=Objective_Levy;
-    Grad=Gradient_Levy;  
+    Grad=Gradient_Levy;
     break;
   case 16:
     dim=5;
-    Dom=Domain_Levy; 
-    Obj=Objective_Levy; 
-    Grad=Gradient_Levy; 
+    Dom=Domain_Levy;
+    Obj=Objective_Levy;
+    Grad=Gradient_Levy;
     break;
  case 17:
     dim=6;
@@ -156,10 +156,10 @@ int main() {
     break;
   case 19:
     cout << "Enter problem dimension ";
-    int rast_dim;   
+    int rast_dim;
     cin >> rast_dim;
     dim=rast_dim;
-    Dom=Domain_Rastrigin;   
+    Dom=Domain_Rastrigin;
     Obj=Objective_Rastrigin;
     Grad=Gradient_Rastrigin;
     break;
@@ -167,7 +167,7 @@ int main() {
     cout << "Enter problem dimension (two or larger) ";
     int trid_dim;
     cin >> trid_dim;
-    dim=trid_dim; 
+    dim=trid_dim;
     Dom=Domain_Trid;
     Obj=Objective_Trid;
     Grad=Gradient_Trid;
@@ -184,7 +184,7 @@ int main() {
     Obj=Objective_Perm_4_05;
     Grad=Gradient_Perm_4_05;
     break;
- case 23:  
+ case 23:
     dim=4;
     Dom=Domain_Powersum;
     Obj=Objective_Powersum;
@@ -221,7 +221,7 @@ int main() {
   GlobalParams params;
   cout << "Enter time limit (seconds) ";
   cin >> params.maxtime;
-  if (params.maxtime<1) {   
+  if (params.maxtime<1) {
     cout << "Warning: time limit set to 1 second\n";
   }
   params.maxeval = 0;
@@ -235,7 +235,7 @@ int main() {
   else {
     cout << "Number of deterministic points ";
     cin >> params.det_pnts;
-    cout << "Numer of stochastic points ";
+    cout << "Number of stochastic points ";
     cin >> params.rnd_pnts;
     cout << "Radius of attraction ";
     cin >> params.eps_cl;
@@ -285,7 +285,7 @@ int main() {
       Problem.SetMinValue(AVbest);
 
       // Add the best point found to the initial box (domain)
-      Problem.AddPoint(x_av, AVbest);      
+      Problem.AddPoint(x_av, AVbest);
     }
   }
 

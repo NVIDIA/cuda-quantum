@@ -15,6 +15,8 @@ import numpy as np
 
 import cudaq
 
+cudaq.set_random_seed(137)
+
 
 @pytest.mark.parametrize("qubit_count", [1, 5])
 def test_kernel_control_no_args(qubit_count):
@@ -271,14 +273,14 @@ def test_sample_control_qubit_args():
     kernel.h(control_qubit)
     kernel.mz(control_qubit)
 
+    # Check the MLIR.
+    print(kernel)
+
     # Simulate `kernel` and check its expectation value.
     result = cudaq.sample(kernel)
     want_expectation = 0.0
     got_expectation = result.expectation()
     assert np.isclose(want_expectation, got_expectation, atol=1e-1)
-
-    # Check the MLIR.
-    print(kernel)
 
 
 # CHECK-LABEL: test_sample_control_qubit_args
@@ -386,14 +388,14 @@ def test_sample_apply_call_control():
     kernel.h(control_qubit)
     kernel.mz(control_qubit)
 
+    # Check the MLIR.
+    print(kernel)
+
     # Simulate `kernel` and check its expectation value.
     result = cudaq.sample(kernel)
     want_expectation = -1. / np.sqrt(2.)
     got_expectation = result.expectation()
     assert np.isclose(want_expectation, got_expectation, atol=1e-1)
-
-    # Check the MLIR.
-    print(kernel)
 
 
 # CHECK-LABEL: test_sample_apply_call_control

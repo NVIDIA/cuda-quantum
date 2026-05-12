@@ -8,6 +8,7 @@
 
 #include "OrcaExecutor.h"
 #include "OrcaServerHelper.h"
+#include "common/RestClient.h"
 #include "cudaq/runtime/logger/logger.h"
 
 namespace cudaq {
@@ -27,7 +28,7 @@ details::future OrcaExecutor::execute(cudaq::orca::TBIParameters params,
   std::vector<cudaq::details::future::Job> ids;
   CUDAQ_INFO("Job created, posting to {}", jobPostPath);
   // Post it, get the response
-  auto response = client.post(jobPostPath, "", job, headers);
+  auto response = client->post(jobPostPath, "", job, headers);
   CUDAQ_INFO("Job posted, response was {}", response.dump());
   // Add the job id and the job name.
   auto job_id = orcaServerHelper->extractJobId(response);

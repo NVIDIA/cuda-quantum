@@ -34,17 +34,18 @@ void getResetEffectsImpl(
     mlir::SmallVectorImpl<
         mlir::SideEffects::EffectInstance<mlir::MemoryEffects::Effect>>
         &effects,
-    mlir::ValueRange targets);
+    llvm::MutableArrayRef<mlir::OpOperand> targets);
 void getMeasurementEffectsImpl(
     mlir::SmallVectorImpl<
         mlir::SideEffects::EffectInstance<mlir::MemoryEffects::Effect>>
         &effects,
-    mlir::ValueRange targets);
+    llvm::MutableArrayRef<mlir::OpOperand> targets);
 void getOperatorEffectsImpl(
     mlir::SmallVectorImpl<
         mlir::SideEffects::EffectInstance<mlir::MemoryEffects::Effect>>
         &effects,
-    mlir::ValueRange controls, mlir::ValueRange targets);
+    llvm::MutableArrayRef<mlir::OpOperand> controls,
+    llvm::MutableArrayRef<mlir::OpOperand> targets);
 
 mlir::ParseResult genericOpParse(mlir::OpAsmParser &parser,
                                  mlir::OperationState &result);
@@ -80,6 +81,24 @@ inline bool hasReference(mlir::Operation *op) {
     if (isQuantumReferenceType(opnd.getType()))
       return true;
   return false;
+}
+
+/// Return the static size of a `!quake.veq` Value. Looks through RelaxSizeOp
+/// when the surface type is dynamically sized but the inner value has a known
+/// size.
+inline std::optional<std::size_t> getVeqSize(mlir::Value v) {
+  auto veqTy = mlir::dyn_cast<quake::VeqType>(v.getType());
+  if (!veqTy)
+    return std::nullopt;
+  if (veqTy.hasSpecifiedSize())
+    return veqTy.getSize();
+  if (auto relaxOp = v.getDefiningOp<quake::RelaxSizeOp>()) {
+    // RelaxSizeOp verifier guarantees input is VeqType when result is VeqType.
+    auto innerTy = mlir::cast<quake::VeqType>(relaxOp.getInputVec().getType());
+    if (innerTy.hasSpecifiedSize())
+      return innerTy.getSize();
+  }
+  return std::nullopt;
 }
 
 /// Returns true if and only if any quantum operand has type `!quake.ref`.

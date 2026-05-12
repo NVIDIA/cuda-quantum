@@ -1,0 +1,68 @@
+/****************************************************************-*- C++ -*-****
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+#pragma once
+
+#include "common/ServerHelper.h"
+#include "qaas/Qaas.h"
+#include "qio/Qio.h"
+
+namespace cudaq {
+
+/// @brief The ScalewayServerHelper class extends the ServerHelper class to
+/// handle interactions with the Scaleway QaaS service to create QPU session and
+/// for submitting and retrieving quantum computation jobs.
+class ScalewayServerHelper : public ServerHelper {
+  inline static const std::string DEFAULT_PLATFORM_NAME = "EMU-CUDAQ-H100";
+  inline static const std::string DEFAULT_MAX_DURATION = "59m";
+  inline static const std::string DEFAULT_MAX_IDLE_DURATION = "30m";
+
+public:
+  /// @brief Returns the name of the server helper.
+  const std::string name() const override { return "scaleway"; }
+
+  /// @brief Initializes the server helper with the provided backend
+  /// configuration.
+  void initialize(BackendConfig config) override;
+
+  RestHeaders getHeaders() override;
+
+  ServerJobPayload
+  createJob(std::vector<KernelExecution> &circuitCodes) override;
+
+  std::string extractJobId(ServerMessage &postResponse) override;
+
+  bool jobIsDone(ServerMessage &getJobResponse) override;
+
+  cudaq::sample_result processResults(ServerMessage &postJobResponse,
+                                      std::string &jobId) override;
+
+  std::string constructGetJobPath(std::string &jobId) override;
+
+  std::string constructGetJobPath(ServerMessage &postResponse) override;
+
+  std::chrono::microseconds
+  nextResultPollingInterval(ServerMessage &postResponse) override;
+
+protected:
+  /// @brief Convenient function to ensure at least one QPU Session is alive
+  /// before sending any jobs against.
+  /// Session is automatically killed by the QaaS after max_duration or
+  /// max_idle_duration.
+  std::string ensureSessionIsActive();
+
+private:
+  std::unique_ptr<qaas::v1alpha1::V1Alpha1Client> m_qaasClient;
+  std::string m_targetPlatformName;
+  std::string m_sessionId;
+  std::string m_sessionDeduplicationId;
+  std::string m_sessionName;
+  std::string m_sessionMaxDuration;
+  std::string m_sessionMaxIdleDuration;
+};
+
+} // namespace cudaq

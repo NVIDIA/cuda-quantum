@@ -44,7 +44,6 @@ class JobRequest(BaseModel):
     options: dict[str, Any] = {}
 
 
-llvm.initialize()
 llvm.initialize_native_target()
 llvm.initialize_native_asmprinter()
 target = llvm.Target.from_default_triple()
@@ -196,3 +195,8 @@ async def get_job_results(job_id: str):
 
     return PlainTextResponse(content=jobResults[job_id],
                              media_type="text/tab-separated-values")
+
+
+def startServer(port):
+    import uvicorn
+    uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")

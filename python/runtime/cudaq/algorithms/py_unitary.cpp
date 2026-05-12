@@ -10,19 +10,16 @@
 #include "cudaq/algorithms/unitary.h"
 #include "runtime/cudaq/operators/py_helpers.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"
-
-namespace py = pybind11;
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
 
 using namespace cudaq;
 
 /// Compute the unitary of this kernel module.
-static py::array get_unitary_impl(const std::string &shortName,
-                                  MlirModule module, MlirType returnTy,
-                                  py::args args) {
-  // Uses the same pattern as py_draw.
+static nanobind::object get_unitary_impl(const std::string &shortName,
+                                         MlirModule module,
+                                         nanobind::args args) {
   auto f = [=]() {
-    return cudaq::marshal_and_launch_module(shortName, module, returnTy, args);
+    return cudaq::marshal_and_launch_module(shortName, module, args);
   };
 
   // Return as numpy array (dim, dim), complex128
@@ -31,7 +28,7 @@ static py::array get_unitary_impl(const std::string &shortName,
 }
 
 /// Bind the get_unitary cudaq function
-void cudaq::bindPyUnitary(py::module &mod) {
+void cudaq::bindPyUnitary(nanobind::module_ &mod) {
   mod.def("get_unitary_impl", get_unitary_impl,
           "See python documentation for get_unitary().");
 }

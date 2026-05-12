@@ -10,6 +10,7 @@
 
 #include "common/EvolveResult.h"
 #include "cudaq/algorithms/get_state.h"
+#include "cudaq/algorithms/observe.h"
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
 #include "cudaq/platform.h"
@@ -107,9 +108,10 @@ evolve_async(state initial_state, QuantumKernel &&kernel,
        &platform]() mutable {
         if (noise_model.has_value())
           platform.set_noise(&noise_model.value());
-        p.set_value(evolve(initial_state, func, observables, shots_count));
+        auto result = evolve(initial_state, func, observables, shots_count);
         if (noise_model.has_value())
           platform.set_noise(nullptr);
+        p.set_value(std::move(result));
       });
 
   platform.enqueueAsyncTask(qpu_id, wrapped);
@@ -132,10 +134,11 @@ evolve_async(state initial_state, std::vector<QuantumKernel> kernels,
        shots_count, &platform, save_intermediate_states]() mutable {
         if (noise_model.has_value())
           platform.set_noise(&noise_model.value());
-        p.set_value(evolve(initial_state, kernels, observables, shots_count,
-                           save_intermediate_states));
+        auto result = evolve(initial_state, kernels, observables, shots_count,
+                             save_intermediate_states);
         if (noise_model.has_value())
           platform.set_noise(nullptr);
+        p.set_value(std::move(result));
       });
 
   platform.enqueueAsyncTask(qpu_id, wrapped);

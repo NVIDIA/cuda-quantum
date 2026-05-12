@@ -190,6 +190,9 @@ inline void from_json(const json &j, ExecutionContext &context) {
     // flat pair of dimensions and data, whereby an empty dimension array
     // represents no state data in the context.
     if (!stateDim.empty()) {
+      if (stateDim[0] != stateData.size())
+        throw std::runtime_error(
+            "[from_json] `simulationData` dimension mismatch");
       // Create the simulation specific SimulationState
       auto *simulator = cudaq::get_simulator();
       if (simulator->isSinglePrecision()) {
@@ -203,6 +206,9 @@ inline void from_json(const json &j, ExecutionContext &context) {
         context.simulationState = simulator->createStateFromData(
             std::make_pair(stateData.data(), stateDim[0]));
       }
+    } else if (!stateData.empty()) {
+      throw std::runtime_error(
+          "[from_json] `simulationData` dimension mismatch");
     }
   }
 
@@ -222,8 +228,7 @@ inline void from_json(const json &j, ExecutionContext &context) {
 // Enum data to denote the payload format.
 enum class CodeFormat { MLIR, LLVM };
 
-#define JSON_ENUM(enum_class, val)                                             \
-  { enum_class::val, #val }
+#define JSON_ENUM(enum_class, val) {enum_class::val, #val}
 
 NLOHMANN_JSON_SERIALIZE_ENUM(CodeFormat, {JSON_ENUM(CodeFormat, MLIR),
                                           JSON_ENUM(CodeFormat, LLVM)});

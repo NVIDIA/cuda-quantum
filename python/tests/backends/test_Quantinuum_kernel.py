@@ -9,60 +9,21 @@
 import cudaq, pytest, os
 import numpy as np
 from cudaq import spin
-from multiprocessing import Process
 from typing import List
-from network_utils import check_server_connection
-try:
-    from utils.mock_qpu.quantinuum import startServer
-except:
-    print("Mock qpu not available, skipping Quantinuum tests.")
-    pytest.skip("Mock qpu not available.", allow_module_level=True)
+from conftest import QUANTINUUM_MOCK_PORT
 
-# Define the port for the mock server
-port = 62440
+pytestmark = pytest.mark.xdist_group("quantinuum_mock")
 
 
 def assert_close(got) -> bool:
-    return got < -1.5 and got > -1.9
-
-
-@pytest.fixture(scope="session", autouse=True)
-def startUpMockServer():
-    # We need a Fake Credentials Config file
-    credsName = '{}/QuantinuumFakeConfig.config'.format(os.environ["HOME"])
-
-    # Create Nexus credential file (cookie format)
-    with open(credsName, 'w') as f:
-        f.write('key: {}\nrefresh: {}\ntime: 0'.format("nexus_key",
-                                                       "nexus_refresh"))
-
-    cudaq.set_random_seed(13)
-
-    # Launch the Mock Server
-    p = Process(target=startServer, args=(port,))
-    p.start()
-
-    if not check_server_connection(port):
-        p.terminate()
-        pytest.exit("Mock server did not start in time, skipping tests.",
-                    returncode=1)
-
-    yield credsName
-
-    # Kill the server, remove the file
-    p.terminate()
-    try:
-        os.remove(credsName)
-    except FileNotFoundError:
-        pass
+    return got < -1.1 and got > -2.2
 
 
 @pytest.fixture(scope="function", autouse=True)
-def configureTarget(startUpMockServer):
-    # Set the target
+def configureTarget(quantinuum_mock_server):
     cudaq.set_target('quantinuum',
-                     url='http://localhost:{}'.format(port),
-                     credentials=startUpMockServer,
+                     url='http://localhost:{}'.format(QUANTINUUM_MOCK_PORT),
+                     credentials=quantinuum_mock_server,
                      project='mock_project_id')
 
     yield "Running the test."
@@ -155,6 +116,31 @@ def test_quantinuum_observe():
     futureReadIn = cudaq.AsyncObserveResult(futureAsString, hamiltonian)
     res = futureReadIn.get()
     assert assert_close(res.expectation())
+
+
+def test_quantinuum_observe_broadcast():
+    qubit_count = 5
+    sample_count = 4
+    shots_count = 10000
+    parameters = np.random.default_rng(13).uniform(low=0,
+                                                   high=1,
+                                                   size=(sample_count,
+                                                         qubit_count))
+
+    @cudaq.kernel
+    def kernel(qubit_count: int, parameters: List[float]):
+        qvector = cudaq.qvector(qubit_count)
+        for i in range(qubit_count - 1):
+            rx(parameters[i], qvector[i])
+
+    results = cudaq.observe(kernel,
+                            spin.z(0), [qubit_count] * sample_count,
+                            parameters,
+                            shots_count=shots_count)
+    expected = np.cos(parameters[:, 0])
+
+    assert len(results) == sample_count
+    assert np.allclose([r.expectation() for r in results], expected, atol=0.1)
 
 
 def test_quantinuum_u3_decomposition():

@@ -10,6 +10,11 @@ import time
 import warnings
 
 import pytest
+
+# Disabled due to page alignment issues with patchelf causing segfaults when
+# auto-launching cudaq-qpud on x86-64 wheels. This test will soon be replaced
+# by https://github.com/NVIDIA/cuda-quantum/pull/4276
+pytest.skip(allow_module_level=True)
 import os, math, sys
 import numpy as np
 
@@ -17,6 +22,10 @@ import cudaq
 from cudaq import spin
 
 num_qpus = 3
+
+# Keep this module on one xdist worker to avoid multiple auto-launched
+# remote-mqpu clusters competing in parallel.
+pytestmark = pytest.mark.xdist_group("remote_mqpu_platform")
 
 
 def retry_on_flaky_connection(platform="darwin", max_attempts=3, delay=0.5):
@@ -70,7 +79,7 @@ def startUpMockServer():
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def run_and_clear_registries():
     yield
     cudaq.__clearKernelRegistries()
 

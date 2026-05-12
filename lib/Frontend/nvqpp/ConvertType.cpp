@@ -175,7 +175,8 @@ QuakeBridgeVisitor::findCallOperator(const clang::CXXRecordDecl *decl) {
   return nullptr;
 }
 
-bool QuakeBridgeVisitor::TraverseRecordType(clang::RecordType *t) {
+bool QuakeBridgeVisitor::TraverseRecordType(clang::RecordType *t,
+                                            bool &visitChildren) {
   auto *recDecl = t->getDecl();
 
   if (ignoredClass(recDecl))
@@ -222,10 +223,10 @@ std::pair<std::uint64_t, unsigned>
 QuakeBridgeVisitor::getWidthAndAlignment(clang::RecordDecl *x) {
   auto *defn = x->getDefinition();
   assert(defn && "struct must be defined here");
-  auto *ty = defn->getTypeForDecl();
-  if (ty->isDependentType())
+  auto qualTy = getContext()->getCanonicalTagType(defn);
+  if (qualTy->isDependentType())
     return {0, 0};
-  auto ti = getContext()->getTypeInfo(ty);
+  auto ti = getContext()->getTypeInfo(qualTy);
   return {ti.Width, llvm::PowerOf2Ceil(ti.Align) / 8};
 }
 
@@ -523,7 +524,7 @@ bool QuakeBridgeVisitor::doSyntaxChecks(const clang::FunctionDecl *x) {
   auto astTy = x->getType();
   // Verify the argument and return types are valid for a kernel.
   auto *protoTy = dyn_cast<clang::FunctionProtoType>(astTy.getTypePtr());
-  auto syntaxError = [&]<unsigned N>(const char(&msg)[N]) -> bool {
+  auto syntaxError = [&]<unsigned N>(const char (&msg)[N]) -> bool {
     reportClangError(x, mangler, msg);
     [[maybe_unused]] auto ty = popType();
     LLVM_DEBUG(llvm::dbgs() << "invalid type: " << ty << '\n');

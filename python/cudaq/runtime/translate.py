@@ -7,9 +7,12 @@
 # ============================================================================ #
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
-from cudaq.kernel.kernel_decorator import isa_kernel_decorator
+from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
+from cudaq.kernel.kernel_builder import isa_dynamic_kernel
+from cudaq.util import trace
 
 
+@trace.traced
 def translate(kernel, *args, format="qir:0.1"):
     """
     Return a `UTF-8` encoded string representing drawing of the execution path,
@@ -77,15 +80,11 @@ def translate(kernel, *args, format="qir:0.1"):
                 f"Invalid number of arguments passed to translate. "
                 f"{suppliedArgs} given, {formals} formally declared, and "
                 f"{launchArgsReq} required.")
-    specMod, processedArgs = decorator.handle_call_arguments(*args)
+    processedArgs, module = decorator.prepare_call(*args)
     if launchArgsReq != len(processedArgs):
         deducedArgs = len(processedArgs) - suppliedArgs
         raise RuntimeError(f"Invalid number of arguments passed to translate. "
                            f"{suppliedArgs} given, {deducedArgs} deduced, and "
                            f"{launchArgsReq} required.")
-    retTy = (decorator.return_type
-             if decorator.return_type else decorator.get_none_type())
-    # Arguments are resolved. Specialize this kernel and translate to the
-    # selected transport layer.
-    return cudaq_runtime.translate_impl(decorator.uniqName, specMod, retTy,
-                                        format, *processedArgs)
+    return cudaq_runtime.translate_impl(decorator.uniqName, module, format,
+                                        *processedArgs)

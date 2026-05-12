@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "cudaq.h"
+#include "cudaq/cudaq_mpi.h"
 #include "cutensornet.h"
 #include "tensornet_spin_op.h"
 
@@ -420,7 +420,8 @@ bool SimulatorTensorNetBase<ScalarType>::measureQubit(
 /// @brief Sample a subset of qubits
 template <typename ScalarType>
 cudaq::ExecutionResult SimulatorTensorNetBase<ScalarType>::sample(
-    const std::vector<std::size_t> &measuredBits, const int shots) {
+    const std::vector<std::size_t> &measuredBits, const int shots,
+    bool includeSequentialData) {
   LOG_API_TIME();
   std::vector<int32_t> measuredBitIds(measuredBits.begin(), measuredBits.end());
   if (shots < 1) {
@@ -449,11 +450,13 @@ cudaq::ExecutionResult SimulatorTensorNetBase<ScalarType>::sample(
   }
 
   counts.expectationValue = expVal;
-  counts.sequentialData.resize(sum_counts);
-  std::size_t s = 0;
-  for (auto &kv : counts.counts)
-    for (std::size_t c = 0; c < kv.second; c++)
-      counts.sequentialData[s++] = kv.first;
+  if (includeSequentialData) {
+    counts.sequentialData.resize(sum_counts);
+    std::size_t s = 0;
+    for (auto &kv : counts.counts)
+      for (std::size_t c = 0; c < kv.second; c++)
+        counts.sequentialData[s++] = kv.first;
+  }
 
   return counts;
 }
@@ -488,6 +491,13 @@ SimulatorTensorNetBase<ScalarType>::observe(const cudaq::spin_op &ham) {
 
   assert(cudaq::spin_op::canonicalize(ham) == ham);
   LOG_API_TIME();
+  // Empty observables can arise when terms are distributed across more workers
+  // than the operator contains. Their expectation value is always zero.
+  if (ham.num_terms() == 0) {
+    std::vector<cudaq::ExecutionResult> results;
+    cudaq::sample_result perTermData(0.0, results);
+    return cudaq::observe_result(0.0, ham, perTermData);
+  }
   prepareQubitTensorState();
   if (!m_reuseContractionPathObserve) {
     // If contraction path reuse is disabled, convert spin_op to

@@ -8,7 +8,6 @@
 
 // RUN: nvq++ %s -o %t --target quantinuum --emulate && %t 2>&1 | FileCheck %s
 // RUN: nvq++ %s -o %t --target oqc --emulate && %t 2>&1 | FileCheck %s
-// RUN: nvq++ --enable-mlir %s -o %t
 
 #include <cudaq.h>
 #include <iostream>

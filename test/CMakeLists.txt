@@ -6,6 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+# Create imported targets for test dependencies
+if(NOT TARGET FileCheck)
+  add_executable(FileCheck IMPORTED)
+  set_target_properties(FileCheck PROPERTIES IMPORTED_LOCATION "/usr/local/llvm/bin/FileCheck")
+endif()
+
 llvm_canonicalize_cmake_booleans(
   CUDA_FOUND
   CUDAQ_TEST_REMOTE_SIM
@@ -14,6 +20,8 @@ llvm_canonicalize_cmake_booleans(
 if (CUDAQ_DISABLE_RUNTIME)
   set(CUDAQ_EXTRA_CONFIG_EXCLUDES "NVQPP")
 endif()
+
+add_subdirectory(plugin)
 
 configure_lit_site_cfg(
   ${CMAKE_CURRENT_SOURCE_DIR}/lit.site.cfg.py.in
@@ -75,6 +83,16 @@ endif()
 add_test(NAME ctest-nvqpp
   COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target check-nvqpp
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+# This test runs llvm-lit internally with parallelism, so have ctest
+# reserve all processors to prevent concurrent scheduling.
+include(ProcessorCount)
+ProcessorCount(NPROC)
+if(NPROC EQUAL 0)
+  set(NPROC 1)
+endif()
+set_tests_properties(ctest-nvqpp PROPERTIES
+  TIMEOUT 3600
+  PROCESSORS ${NPROC})
 
 # Setup an alias for 'check-all'.
 add_custom_target(check)
