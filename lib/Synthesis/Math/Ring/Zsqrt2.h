@@ -152,7 +152,7 @@ public:
   i32 parity() const { return i32(_a.is_odd()); }
 
   /// Returns the element as "(a, b)" where a and b are the integer coefficients
-  /// of a + b*sqrt(2). Intended for logging and debugging.
+  /// of a + b*`sqrt`(2). Intended for logging and debugging.
   std::string to_string() const {
     return "(" + _a.to_string() + ", " + _b.to_string() + ")";
   }
@@ -173,7 +173,7 @@ public:
 ///
 /// The result is a multi-precision float evaluated at runtime precision.
 /// Callers processing many elements with the same denominator exponent should
-/// prefer to_real(DSqrt2) which amortises the scale computation.
+/// prefer to_real(DSqrt2) which amortizes the scale computation.
 inline Real to_real(const ZSqrt2 &x) {
   return Real(x.a()) + Real::sqrt2() * Real(x.b());
 }

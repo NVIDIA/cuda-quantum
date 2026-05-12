@@ -82,8 +82,8 @@ namespace cudaq::synth {
 /// stop enumeration early.
 ///
 /// @param k Denominator exponent (determines grid scale 1/√2^k)
-/// @param setA First convex set constraint (epsilon region in gridsynth)
-/// @param setB Second convex set constraint (unit disk in gridsynth)
+/// @param setA First convex set constraint (epsilon region in `gridsynth`)
+/// @param setB Second convex set constraint (unit disk in `gridsynth`)
 /// @param opG_inv Inverse of upright transformation (from ToUpright)
 /// @param bboxA Bounding box for transformed setA
 /// @param bboxB Bounding box for transformed setB

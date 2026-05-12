@@ -31,8 +31,9 @@ namespace cudaq::synth {
 ///
 /// Two distinct views of the same object are available:
 ///   - as_ellipse(): the Ellipse representation (identity quadratic form,
-///     center at the origin), used by to_upright() for the preprocessing step.
-///   - inside() / intersect(): specialised implementations that exploit the
+///     center at the origin), used by to_upright() for the `preprocessing`
+///     step.
+///   - inside() / intersect(): `specialised` implementations that exploit the
 ///     circular symmetry directly, avoiding the general Ellipse machinery.
 class UnitDisk : public ConvexSet {
 public:
@@ -42,7 +43,7 @@ public:
   ///
   /// The unit disc x² + y² ≤ 1 corresponds to the Ellipse with quadratic
   /// form matrix equal to the 2×2 identity (A = D = 1, B = 0) and center
-  /// at the origin (px = py = 0).
+  /// at the origin (`px` = `py` = 0).
   ///
   /// Implemented as a function-local static to avoid static initialization
   /// order issues (same pattern as ZSqrt2::lambda() and GridOp::identity()).

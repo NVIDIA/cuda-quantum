@@ -62,11 +62,11 @@ public:
   /// and target denominator exponent k.
   ///
   /// Embeds x as the real part and y as the imaginary part (multiplied by
-  /// ω² = i), then normalises the result to the given k via with_denom_exp.
+  /// ω² = i), then normalizes the result to the given k via with_denom_exp.
   static DOmega from_dsqrt2_vector(const DSqrt2 &x, const DSqrt2 &y,
                                    const Integer &k);
 
-  /// Equality: normalises both operands to max(_k, other._k) before comparing
+  /// Equality: normalizes both operands to max(_k, other._k) before comparing
   /// numerators, so two representations of the same value compare equal
   /// regardless of their denominator exponents.
   bool operator==(const DOmega &other) const;
@@ -241,7 +241,7 @@ inline DOmega with_denom_exp(const DOmega &x, const Integer &new_k) {
 /// The algorithm follows Remark D.2 of Ross & Selinger (arXiv:1403.2975):
 ///
 /// Step 1 — Remove common integer factors from the numerator:
-///   Let reduce_k = min(ntz(a), ntz(b), ntz(c), ntz(d)), the 2-adic
+///   Let reduce_k = `min(ntz(a), ntz(b), ntz(c), ntz(d))`, the 2-`adic`
 ///   valuation of the GCD of the four Z[ω] coefficients.
 ///   Each factor of 2 in all coefficients simultaneously cancels √2² = 2
 ///   from the denominator, so k decreases by 2·reduce_k.
@@ -285,7 +285,7 @@ inline DOmega to_lde(const DOmega &x) {
 ///
 /// The caller is expected to precompute and reuse inv_scale = 1/√2^k and
 /// sqrt2_over_2 = √2/2 across multiple elements sharing the same k, in
-/// order to amortise the cost of MPFR floating-point operations.
+/// order to amortize the cost of MPFR floating-point operations.
 inline void coords_into(const DOmega &x, const Real &inv_scale,
                         const Real &sqrt2_over_2, Real &out_real,
                         Real &out_imag) noexcept {
@@ -300,7 +300,7 @@ inline void coords_into(const DOmega &x, const Real &inv_scale,
 // Out-of-line DOmega member definitions (require free functions above)
 // ---------------------------------------------------------------------------
 
-/// Equality: normalises both operands to the same denominator exponent (the
+/// Equality: normalizes both operands to the same denominator exponent (the
 /// maximum of the two) before comparing numerators. Two elements that are
 /// equal as D[ω] values but stored with different k will compare equal.
 inline bool DOmega::operator==(const DOmega &other) const {

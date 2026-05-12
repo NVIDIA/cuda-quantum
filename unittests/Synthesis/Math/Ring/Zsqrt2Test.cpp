@@ -246,7 +246,7 @@ TEST(ZSqrt2PowTest, NormOfPowerIsNormPow) {
 }
 
 // ============================================================
-// sqrt()
+// `sqrt`()
 // ============================================================
 
 TEST(ZSqrt2SqrtTest, SqrtOfZero) {
@@ -262,21 +262,21 @@ TEST(ZSqrt2SqrtTest, SqrtOfOne) {
 }
 
 TEST(ZSqrt2SqrtTest, SqrtOf2AsInteger) {
-  // ZSqrt2(2,0) = 2: sqrt is (0,1) because (0+1·√2)² = 2+0√2
+  // ZSqrt2(2,0) = 2: `sqrt` is (0,1) because (0+1·√2)² = 2+0√2
   FailureOr<ZSqrt2> r = sqrt(ZSqrt2(2, 0));
   ASSERT_TRUE(succeeded(r));
   EXPECT_EQ(*r * *r, ZSqrt2(2, 0));
 }
 
 TEST(ZSqrt2SqrtTest, SqrtOfLambdaSquared) {
-  // λ² = (3,2): sqrt should be λ = (1,1)
+  // λ² = (3,2): `sqrt` should be λ = (1,1)
   FailureOr<ZSqrt2> r = sqrt(ZSqrt2(3, 2));
   ASSERT_TRUE(succeeded(r));
   EXPECT_EQ(*r * *r, ZSqrt2(3, 2));
 }
 
 TEST(ZSqrt2SqrtTest, SqrtOfLambdaFourth) {
-  // λ^4 = (17,12): sqrt should be λ² = (3,2)
+  // λ^4 = (17,12): `sqrt` should be λ² = (3,2)
   ZSqrt2 l4 = pow(kLambda, Integer(4));
   FailureOr<ZSqrt2> r = sqrt(l4);
   ASSERT_TRUE(succeeded(r));
@@ -284,7 +284,7 @@ TEST(ZSqrt2SqrtTest, SqrtOfLambdaFourth) {
 }
 
 TEST(ZSqrt2SqrtTest, SqrtResultSquaresToInput) {
-  // Exhaustive: any element that has a sqrt must square back correctly
+  // Exhaustive: any element that has a `sqrt` must square back correctly
   for (int a = 0; a <= 10; ++a) {
     for (int b = -5; b <= 5; ++b) {
       ZSqrt2 x(a, b);

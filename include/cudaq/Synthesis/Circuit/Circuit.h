@@ -60,14 +60,14 @@ public:
   /// True iff the circuit is the identity (no gates).
   bool empty() const { return gates_.empty(); }
 
-  /// Reserve storage for at least n gates to avoid repeated reallocations
+  /// Reserve storage for at least n gates to avoid repeated `reallocations`
   /// when building a circuit incrementally.
   void reserve(size_t n) { gates_.reserve(n); }
 
   /// Gate at position i (0-indexed, unchecked).
   Gate operator[](size_t i) const { return gates_[i]; }
 
-  /// Last gate in the circuit. Undefined behaviour if the circuit is empty.
+  /// Last gate in the circuit. Undefined `behaviour` if the circuit is empty.
   Gate back() const { return gates_.back(); }
 
   // -------------------------------------------------------------------------
@@ -77,10 +77,10 @@ public:
   /// Append a single gate at the end of the circuit.
   void push_back(Gate g) { gates_.push_back(g); }
 
-  /// Remove the last gate. Undefined behaviour if the circuit is empty.
+  /// Remove the last gate. Undefined `behaviour` if the circuit is empty.
   void pop_back() { gates_.pop_back(); }
 
-  /// Append all gates of rhs to the end of this circuit (concatenation).
+  /// Append all gates of `rhs` to the end of this circuit (concatenation).
   Circuit &operator+=(const Circuit &rhs) {
     gates_.insert(gates_.end(), rhs.begin(), rhs.end());
     return *this;

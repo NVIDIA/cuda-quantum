@@ -40,7 +40,7 @@ namespace cudaq::synth {
 /// Each ZOmega u = (a,b,c,d) encodes a column of the matrix via:
 ///   column = [d + (c-a)/√2, b + (c+a)/√2]^T   (Lemma 5.5)
 ///
-/// A grid operator is "special" if det(G) = ±1 (Definition 5.10).
+/// A grid operator is "special" if `det`(G) = ±1 (Definition 5.10).
 ///
 /// Key property (Proposition 5.13): For a special grid operator G, the
 /// two-dimensional grid problem for sets A and B is computationally
@@ -110,7 +110,7 @@ public:
   /// which guarantees that all intermediate half-integer expressions are exact.
   ///
   /// The auxiliary quantities t1..t8 are the eight half-integer sub-expressions
-  /// shared across the four output coefficients (CSE to minimise GMP
+  /// shared across the four output coefficients (CSE to `minimise` GMP
   /// allocations).
   ZOmega operator*(const ZOmega &other) const {
     const Integer &a0_ = a0(), &b0_ = b0(), &c0_ = c0(), &d0_ = d0();
@@ -170,9 +170,9 @@ inline GridOp conj_sq2(const GridOp &G) {
 
 /// Convert G to a floating-point 2×2 complex matrix.
 ///
-/// Each column ui encodes the two real matrix entries as [Re(ui), Im(ui)]^T
-/// (Lemma 5.5). The real parts form the first row and the imaginary parts
-/// form the second row. The imaginary parts are zero for a valid grid
+/// Each column `ui` encodes the two real matrix entries as [Re(`ui`),
+/// Im(`ui`)]^T (Lemma 5.5). The real parts form the first row and the imaginary
+/// parts form the second row. The imaginary parts are zero for a valid grid
 /// operator (which is a real matrix).
 ///
 /// Prefer to_real_mat() when only the real entries are needed: it avoids
@@ -202,16 +202,16 @@ inline std::array<std::array<Real, 2>, 2> to_real_mat(const GridOp &G) {
 
 /// Inverse of G (valid only for special grid operators, Definition 5.10).
 ///
-/// A grid operator G is special iff det(G) = ±1, where det(G) = Im(u0†·u1)
-/// (the imaginary part of the column inner product). The specialness check
+/// A grid operator G is special iff `det`(G) = ±1, where `det`(G) = Im(u0†·u1)
+/// (the imaginary part of the column inner product). The `specialness` check
 /// is:
-///   det_element = u0.conj() * u1;
-///   special iff det_element.a() + det_element.c() == 0   (no √2 term)
-///               && |det_element.b()| == 1                (unit imaginary)
+///   `det_element` = `u0.conj()` * u1;
+///   special iff `det_element.a()` + `det_element.c()` == 0   (no √2 term)
+///               && |`det_element.b()`| == 1                (unit imaginary)
 ///
-/// The inverse formula is derived from the 2×2 adjugate formula divided
-/// by det, with the P/Q/R/S sub-expressions shared across the two output
-/// columns to minimise GMP allocations.
+/// The inverse formula is derived from the 2×2 `adjugate` formula divided
+/// by `det`, with the P/Q/R/S sub-expressions shared across the two output
+/// columns to `minimise` GMP allocations.
 ///
 /// Returns failure() if G is not special.
 inline FailureOr<GridOp> inv(const GridOp &G) {
@@ -244,7 +244,7 @@ inline FailureOr<GridOp> inv(const GridOp &G) {
 /// Integer power G^exp.
 ///
 /// Uses binary exponentiation (O(log|exp|) GridOp multiplications). Negative
-/// exponents require G to be special (invertible); this precondition is
+/// exponents require G to be special (`invertible`); this precondition is
 /// asserted. The loop is structured to avoid a final wasted squaring on the
 /// last iteration (saves one full GridOp multiplication per call).
 ///

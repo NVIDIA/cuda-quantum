@@ -13,12 +13,12 @@
 
 namespace cudaq::synth {
 
-/// Synthesize the inverse circuit using the Aaronson-Gottesman algorithm:
+/// Synthesize the inverse circuit using the `Aaronson-Gottesman` algorithm:
 /// the circuit that maps \p tab to the identity. Produced by Gaussian
 /// elimination on a working copy of the tableau.
 CliffordCircuit ag_synth_inverse(const Tableau &tab);
 
-/// Synthesize the forward circuit using the Aaronson-Gottesman algorithm:
+/// Synthesize the forward circuit using the `Aaronson-Gottesman` algorithm:
 /// the circuit that produces \p tab from the identity. Internally reverses
 /// ag_synth_inverse and adjusts S -> S*Z (since S^{-1} = Z*S).
 CliffordCircuit ag_synth(const Tableau &tab);

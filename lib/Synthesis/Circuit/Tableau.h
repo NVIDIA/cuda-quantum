@@ -27,7 +27,7 @@ namespace cudaq::synth {
 // ## Data layout (column-major)
 //
 // The tableau stores num_generators_ Pauli generators. The first 2n are the
-// standard stabilizer/destabilizer pair; additional columns are T-stabs.
+// standard stabilizer/`destabilizer` pair; additional columns are T-stabs.
 //
 //   z_[i] : BitVector of length (2n + k)  -- Z-components of qubit i
 //   x_[i] : BitVector of length (2n + k)  -- X-components of qubit i
@@ -59,7 +59,7 @@ public:
 
   /// Construct a tableau for `num_qubits` qubits, pre-allocating capacity for
   /// `num_extra_generators` additional T-stabilizer columns beyond the
-  /// standard 2n stabilizer/destabilizer columns.
+  /// standard 2n stabilizer/`destabilizer` columns.
   explicit Tableau(size_t num_qubits, size_t num_extra_generators = 0)
       : num_qubits_(num_qubits), num_generators_(num_qubits << 1),
         z_(init_z(num_qubits, num_extra_generators)),
@@ -102,7 +102,7 @@ public:
     signs_ ^= x_[qubit];
   }
 
-  /// Conjugate all generators by S on qubit q (S = diag(1, i)).
+  /// Conjugate all generators by S on qubit q (S = `diag`(1, i)).
   /// S: X -> Y, Y -> -X, Z -> Z.
   void append_s(size_t qubit) {
     assert(qubit < num_qubits_);
@@ -110,15 +110,15 @@ public:
     z_[qubit] ^= x_[qubit];
   }
 
-  /// Conjugate all generators by S† (Sdg) on qubit q.
-  /// Sdg: X -> -Y, Y -> X, Z -> Z.
+  /// Conjugate all generators by S† (`Sdg`) on qubit q.
+  /// `Sdg`: X -> -Y, Y -> X, Z -> Z.
   void append_sdg(size_t qubit) {
     assert(qubit < num_qubits_);
     signs_ ^= x_[qubit] ^ (x_[qubit] & z_[qubit]);
     z_[qubit] ^= x_[qubit];
   }
 
-  /// Conjugate all generators by V = S†H = sqrt(X) on qubit q.
+  /// Conjugate all generators by V = S†H = `sqrt`(X) on qubit q.
   /// V: Z -> X, X -> -Z, Y -> Y.
   void append_v(size_t qubit) {
     assert(qubit < num_qubits_);
@@ -164,7 +164,7 @@ public:
   // -- T-stabilizer management --
 
   /// Append a new T-stab generator column with Z on `qubit`. If `adj` is
-  /// true (Tdg), the sign bit is set (negative Pauli).
+  /// true (`Tdg`), the sign bit is set (negative Pauli).
   ///
   /// The new column is written at index `num_generators_`, which must be
   /// within the pre-allocated capacity. Subsequent `append_*` calls will
@@ -210,7 +210,7 @@ public:
   }
 
   /// Left-multiply all generators by S on qubit q.
-  /// For each column: destabilizer = destabilizer * stabilizer.
+  /// For each column: `destabilizer` = `destabilizer` * stabilizer.
   void prepend_s(size_t qubit) {
     assert(qubit < num_qubits_);
     PauliProduct stab = extract_pauli_product(qubit);
@@ -220,7 +220,7 @@ public:
   }
 
   /// Left-multiply all generators by H on qubit q.
-  /// Swaps the stabilizer and destabilizer columns.
+  /// Swaps the stabilizer and `destabilizer` columns.
   void prepend_h(size_t qubit) {
     assert(qubit < num_qubits_);
     PauliProduct stab = extract_pauli_product(qubit);

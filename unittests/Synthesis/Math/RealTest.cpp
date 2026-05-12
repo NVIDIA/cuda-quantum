@@ -231,7 +231,7 @@ TEST(ConversionTest, RoundNegative) {
 }
 
 // ============================================================
-// Math functions: abs, sqrt, log, sin, cos
+// Math functions: abs, `sqrt`, log, sin, cos
 // ============================================================
 
 TEST(MathFuncTest, AbsPositive) {

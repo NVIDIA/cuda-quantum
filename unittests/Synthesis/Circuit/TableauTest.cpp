@@ -18,7 +18,7 @@ using namespace cudaq::synth;
 // ---------------------------------------------------------------------------
 
 // Verify that the identity tableau has stabilizer Z_i at column i and
-// destabilizer X_i at column i+n, all with sign=false.
+// `destabilizer` X_i at column i+n, all with sign=false.
 static void expect_identity(const Tableau &tab) {
   const size_t n = tab.num_qubits();
   for (size_t i = 0; i < n; ++i) {
@@ -29,7 +29,7 @@ static void expect_identity(const Tableau &tab) {
       EXPECT_EQ(stab.z().get(q), q == i) << "stab " << i << " z[" << q << "]";
       EXPECT_FALSE(stab.x().get(q)) << "stab " << i << " x[" << q << "]";
     }
-    // destabilizer i: X_i
+    // `destabilizer` i: X_i
     PauliProduct destab = tab.extract_pauli_product(i + n);
     EXPECT_FALSE(destab.sign()) << "destab " << i << " sign";
     for (size_t q = 0; q < n; ++q) {
@@ -149,7 +149,7 @@ TEST(TableauAppend, H_SwapsXandZ) {
   EXPECT_FALSE(d0.x().get(0));
 }
 
-// append_v implements exp(-i*pi/4 * X) = (I - iX)/sqrt(2).
+// append_v implements exp(-i*pi/4 * X) = (I - iX)/`sqrt`(2).
 // Conjugation action: Z -> -Y (sign flips, becomes Y), X -> X (unchanged).
 TEST(TableauAppend, V_TransformsGenerators) {
   Tableau tab(1);
@@ -255,14 +255,14 @@ TEST(TableauPrepend, X_FlipsStabSign) {
 TEST(TableauPrepend, Z_FlipsDestabSign) {
   Tableau tab(2);
   tab.prepend_z(1);
-  // Signs bit for destabilizer 1 should be flipped.
+  // Signs bit for `destabilizer` 1 should be flipped.
   PauliProduct d1 = tab.extract_pauli_product(3);
   EXPECT_TRUE(d1.sign());
 }
 
 TEST(TableauPrepend, H_SwapsColumns) {
   Tableau tab(2);
-  // After prepend_h(0): stabilizer 0 <-> destabilizer 0
+  // After prepend_h(0): stabilizer 0 <-> `destabilizer` 0
   tab.prepend_h(0);
   PauliProduct s0 = tab.extract_pauli_product(0);
   EXPECT_FALSE(s0.sign());

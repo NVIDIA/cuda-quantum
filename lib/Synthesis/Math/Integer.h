@@ -19,13 +19,13 @@
 ///
 /// GMP-based arbitrary precision integer implementation (wraps mpz_t).
 ///
-/// The gridsynth algorithm (Ross & Selinger, arXiv:1403.2975) requires
+/// The `gridsynth` algorithm (Ross & Selinger, arXiv:1403.2975) requires
 /// arbitrary-precision integers for:
 /// - Ring element coefficients in Z[√2] and Z[ω] (§3, Definition 3.1)
 /// - Norm computations N(α) = α·α● which can be quadratic in the
 ///   coefficient sizes (Remark 3.3)
 /// - Modular arithmetic in the Diophantine solver: Tonelli-Shanks for
-///   √(-1) mod p, Miller-Rabin primality testing, Pollard-Brent
+///   √(-1) mod p, Miller-Rabin `primality` testing, Pollard-Brent
 ///   factoring (Appendix C)
 /// - Euclidean division in Z[√2] for GCD computations (Lemma C.4)
 ///
@@ -34,7 +34,7 @@
 ///
 /// Integer type conventions:
 ///   - Public API uses i32 / i64 (from types.h) for all fixed-width integers.
-///   - GMP API callsites cast to long / unsigned long as required by the
+///   - GMP API `callsites` cast to long / unsigned long as required by the
 ///     library ABI; these casts are always lossless on LP64 (Linux).
 
 namespace cudaq::synth {
@@ -197,7 +197,7 @@ public:
   Integer &operator%=(i64 rhs) {
     assert(rhs != 0 && "Integer::operator%=: modulo by zero");
     bool neg = rhs < 0; // Sign of remainder follows dividend per C++ semantics,
-                        // so ignore sign of rhs
+                        // so ignore sign of `rhs`
     unsigned long mag = static_cast<unsigned long>(neg ? -rhs : rhs);
     mpz_t r;
     mpz_init(r);
@@ -362,7 +362,7 @@ inline Integer floordiv(const Integer &x, const Integer &y) {
   return result;
 }
 
-/// floordiv overload for i32 divisors: avoids constructing a temporary
+/// `floordiv` overload for i32 divisors: avoids constructing a temporary
 /// Integer for the common case.  When y is a positive power of 2,
 /// mpz_fdiv_q_2exp is used — it is O(1) (arithmetic right-shift on GMP
 /// limbs) vs. O(n limbs) for general division.
@@ -403,7 +403,7 @@ inline Integer gcd(Integer a, Integer b) {
   return result;
 }
 
-/// Probable-primality test using GMP's mpz_probab_prime_p.
+/// Probable-`primality` test using GMP's mpz_probab_prime_p.
 ///
 /// Returns true if n is probably or definitely prime, false if n is
 /// definitely composite or not a valid candidate (n < 2). If n < 0,
@@ -464,7 +464,7 @@ inline Integer operator/(const Integer &lhs, i64 rhs) {
 }
 inline Integer operator/(i64 lhs, const Integer &rhs) {
   Integer result(lhs);
-  // Division by large rhs still needs full mpz operation
+  // Division by large `rhs` still needs full mpz operation
   mpz_tdiv_q(result.get_mpz_t(), result.get_mpz_t(), rhs.get_mpz_t());
   return result;
 }
@@ -577,7 +577,7 @@ inline Integer operator%(i32 lhs, const Integer &rhs) {
 }
 
 // Comparison operators with i32 — use mpz_cmp_si directly to avoid
-// constructing a temporary Integer(rhs) (mpz_init + mpz_set_si + mpz_clear).
+// constructing a temporary Integer(`rhs`) (mpz_init + mpz_set_si + mpz_clear).
 inline bool operator==(const Integer &lhs, i32 rhs) {
   return mpz_cmp_si(lhs.get_mpz_t(), static_cast<long>(rhs)) == 0;
 }
