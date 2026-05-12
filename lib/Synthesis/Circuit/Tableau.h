@@ -61,15 +61,16 @@ public:
   /// `num_extra_generators` additional T-stabilizer columns beyond the
   /// standard 2n stabilizer/destabilizer columns.
   explicit Tableau(size_t num_qubits, size_t num_extra_generators = 0)
-      : num_qubits_(num_qubits),
-        num_generators_(num_qubits << 1),
+      : num_qubits_(num_qubits), num_generators_(num_qubits << 1),
         z_(init_z(num_qubits, num_extra_generators)),
         x_(init_x(num_qubits, num_extra_generators)),
         signs_((num_qubits << 1) + num_extra_generators) {}
 
   size_t num_qubits() const noexcept { return num_qubits_; }
   size_t num_generators() const noexcept { return num_generators_; }
-  size_t num_t_stabs() const noexcept { return num_generators_ - (num_qubits_ << 1); }
+  size_t num_t_stabs() const noexcept {
+    return num_generators_ - (num_qubits_ << 1);
+  }
 
   const std::vector<BitVector> &z() const noexcept { return z_; }
   const std::vector<BitVector> &x() const noexcept { return x_; }

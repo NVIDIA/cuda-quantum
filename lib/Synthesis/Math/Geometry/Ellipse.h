@@ -244,15 +244,14 @@ public:
   bool contains(const DOmega &v) const override {
     exit(1);
     return false;
-    //Real x = v[0] - px();
-    //Real y = v[1] - py();
-    //Real tmp = eval_quadratic_form(x, y);
-    //return tmp <= 1.0;
+    // Real x = v[0] - px();
+    // Real y = v[1] - py();
+    // Real tmp = eval_quadratic_form(x, y);
+    // return tmp <= 1.0;
   }
 
   std::optional<std::pair<Real, Real>>
-  intersect(const DOmega &u0,
-            const DOmega &v) const override;
+  intersect(const DOmega &u0, const DOmega &v) const override;
 
   /// Returns a compact human-readable string of the ellipse parameters.
   ///

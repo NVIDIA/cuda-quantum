@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 #include "Math/Geometry/ToUpright.h"
-#include "cudaq/Synthesis/Math/Real.h"
 #include "Support/LogMacros.h"
+#include "cudaq/Synthesis/Math/Real.h"
 
 #include <algorithm>
 
@@ -112,8 +112,8 @@ LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l, GridOp &opG_r,
   Real pair_bias_val = bias_B / bias_A;
 
   CUDAQ_SYNTH_LOG_TRACE("synth.upright",
-                   "step_lemma: bias_A={}, bias_B={}, pair_bias={}",
-                   bias_A, bias_B, pair_bias_val);
+                        "step_lemma: bias_A={}, bias_B={}, pair_bias={}",
+                        bias_A, bias_B, pair_bias_val);
 
   // X operation: if A.bias * B.bias < 1
   if (bias_A * bias_B < 1) {
@@ -145,7 +145,7 @@ LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l, GridOp &opG_r,
   if (skew <= 15) {
     end = true;
     CUDAQ_SYNTH_LOG_TRACE("synth.upright",
-                     "step_lemma: pair_skew={} <= 15, done", skew);
+                          "step_lemma: pair_skew={} <= 15, done", skew);
     return success();
   }
 
@@ -243,8 +243,8 @@ FailureOr<UprightResult> to_upright(const Ellipse &setA, const Ellipse &setB) {
   }
 
   CUDAQ_SYNTH_LOG_DEBUG("synth.upright",
-                   "to_upright: converged after {} step_lemma iterations",
-                   iterations);
+                        "to_upright: converged after {} step_lemma iterations",
+                        iterations);
 
   // opG is built from normalized ellipses; apply it to the original (non-
   // normalized) copies to get the correct upright bboxes. shift_ellipses()
@@ -264,11 +264,11 @@ FailureOr<UprightResult> to_upright(const Ellipse &setA, const Ellipse &setB) {
     return failure();
 
   CUDAQ_SYNTH_LOG_TRACE("synth.upright",
-                   "to_upright: opG={}, bboxA={}, bboxB={}, "
-                   "uprightness_A={}, uprightness_B={}",
-                   opG, *bboxA_or, *bboxB_or,
-                   A_upright.area() / bboxA_or->area(),
-                   B_upright.area() / bboxB_or->area());
+                        "to_upright: opG={}, bboxA={}, bboxB={}, "
+                        "uprightness_A={}, uprightness_B={}",
+                        opG, *bboxA_or, *bboxB_or,
+                        A_upright.area() / bboxA_or->area(),
+                        B_upright.area() / bboxB_or->area());
   return UprightResult(opG, *bboxA_or, *bboxB_or);
 }
 

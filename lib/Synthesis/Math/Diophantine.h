@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "Math/Ring/Dsqrt2.h"
 #include "Math/Ring/Domega.h"
+#include "Math/Ring/Dsqrt2.h"
 #include "cudaq/Synthesis/Support/Result.h"
 
 /// Diophantine equation solver for the gridsynth algorithm.
@@ -44,8 +44,7 @@ namespace cudaq::synth {
 /// @param diophantine_timeout Total timeout in milliseconds for the solver.
 /// @param factoring_timeout Timeout in milliseconds for each factoring attempt.
 /// @return t ∈ D[ω] such that t†t = ξ, or failure() if no solution found.
-FailureOr<DOmega> diophantine_dyadic(const DSqrt2 &xi,
-                                     i32 diophantine_timeout,
+FailureOr<DOmega> diophantine_dyadic(const DSqrt2 &xi, i32 diophantine_timeout,
                                      i32 factoring_timeout);
 
 } // namespace cudaq::synth

@@ -236,10 +236,10 @@ FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
                                            i32 factoring_timeout_ms) {
 
   CUDAQ_SYNTH_LOG_DEBUG("synth.gridsynth",
-                   "gridsynth_unitary: theta={}, eps={}, "
-                   "dioph_timeout={}ms, fact_timeout={}ms",
-                   theta, epsilon, diophantine_timeout_ms,
-                   factoring_timeout_ms);
+                        "gridsynth_unitary: theta={}, eps={}, "
+                        "dioph_timeout={}ms, fact_timeout={}ms",
+                        theta, epsilon, diophantine_timeout_ms,
+                        factoring_timeout_ms);
 
   // ---- Step 0: Setup ----
   // Construct the ε-region R_ε (§7.1, equation 14) and the unit disk
@@ -248,13 +248,14 @@ FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
   FailureOr<EpsilonRegion> region_or = EpsilonRegion::create(theta, epsilon);
   if (failed(region_or)) {
     CUDAQ_SYNTH_LOG_ERROR("synth.gridsynth",
-                     "gridsynth_unitary: degenerate epsilon-region "
-                     "(eps={} may be too small or theta is degenerate)",
-                     epsilon);
+                          "gridsynth_unitary: degenerate epsilon-region "
+                          "(eps={} may be too small or theta is degenerate)",
+                          epsilon);
     return failure();
   }
-  CUDAQ_SYNTH_LOG_TRACE("synth.gridsynth", "gridsynth_unitary: epsilon-region: {}",
-                   region_or->to_string());
+  CUDAQ_SYNTH_LOG_TRACE("synth.gridsynth",
+                        "gridsynth_unitary: epsilon-region: {}",
+                        region_or->to_string());
 
   UnitDisk unit_disk;
 
@@ -266,18 +267,18 @@ FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
       to_upright(region_or->ellipse(), UnitDisk::as_ellipse());
   if (failed(transformed_or)) {
     CUDAQ_SYNTH_LOG_WARN("synth.gridsynth",
-                    "gridsynth_unitary: to_upright preprocessing failed");
+                         "gridsynth_unitary: to_upright preprocessing failed");
     return failure();
   }
   UprightResult &transformed = *transformed_or;
 
   CUDAQ_SYNTH_LOG_DEBUG("synth.gridsynth",
-                   "gridsynth_unitary: to_upright done -- opG={}, "
-                   "bboxA={}x{}, bboxB={}x{}",
-                   transformed.opG, transformed.bboxA.I_x().width(),
-                   transformed.bboxA.I_y().width(),
-                   transformed.bboxB.I_x().width(),
-                   transformed.bboxB.I_y().width());
+                        "gridsynth_unitary: to_upright done -- opG={}, "
+                        "bboxA={}x{}, bboxB={}x{}",
+                        transformed.opG, transformed.bboxA.I_x().width(),
+                        transformed.bboxA.I_y().width(),
+                        transformed.bboxB.I_x().width(),
+                        transformed.bboxB.I_y().width());
 
   // Fatten the y-intervals of the bounding boxes by a small relative amount.
   // This guards against numerical edge effects where valid grid points
@@ -303,8 +304,8 @@ FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
   Integer k = 0;
   while (true) {
     CUDAQ_SYNTH_LOG_DEBUG("synth.gridsynth",
-                     "gridsynth_unitary: trying denominator exponent k={}",
-                     static_cast<i64>(k));
+                          "gridsynth_unitary: trying denominator exponent k={}",
+                          static_cast<i64>(k));
 
     // Step 1: Solve the scaled TDGP for denominator exponent k.
     // Returns candidates u ∈ (1/√2^k)·Z[ω] ∩ R_ε with u● ∈ D̄ lazily.
@@ -331,9 +332,10 @@ FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
           diophantine_dyadic(xi, diophantine_timeout_ms, factoring_timeout_ms);
 
       if (succeeded(w_or)) {
-        CUDAQ_SYNTH_LOG_DEBUG("synth.gridsynth",
-                         "gridsynth_unitary: Diophantine succeeded at k={}",
-                         static_cast<i64>(k));
+        CUDAQ_SYNTH_LOG_DEBUG(
+            "synth.gridsynth",
+            "gridsynth_unitary: Diophantine succeeded at k={}",
+            static_cast<i64>(k));
         // SUCCESS: We have z and w with z†z + w†w = 1.
         // Construct U = [[z, -w†], [w, z†]] (equation 12, with n = 0).
 
@@ -373,22 +375,22 @@ FailureOr<Circuit> gridsynth(const Real &theta, const Real &epsilon,
                              i32 diophantine_timeout_ms,
                              i32 factoring_timeout_ms) {
   CUDAQ_SYNTH_LOG_INFO("synth.gridsynth", "gridsynth: theta={}, eps={}", theta,
-                  epsilon);
+                       epsilon);
 
   FailureOr<DOmegaUnitary> u_or = gridsynth_unitary(
       theta, epsilon, diophantine_timeout_ms, factoring_timeout_ms);
   if (failed(u_or)) {
     CUDAQ_SYNTH_LOG_ERROR("synth.gridsynth",
-                     "gridsynth: synthesis failed for theta={}, eps={}", theta,
-                     epsilon);
+                          "gridsynth: synthesis failed for theta={}, eps={}",
+                          theta, epsilon);
     return failure();
   }
 
   FailureOr<Circuit> circuit = kmm_synthesize(*u_or);
   if (succeeded(circuit)) {
     CUDAQ_SYNTH_LOG_INFO("synth.gridsynth",
-                    "gridsynth: success -- {} gates, T-count={}",
-                    (*circuit).size(), (*circuit).t_count());
+                         "gridsynth: success -- {} gates, T-count={}",
+                         (*circuit).size(), (*circuit).t_count());
   }
   return circuit;
 }

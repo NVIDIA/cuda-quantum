@@ -9,10 +9,10 @@
 #pragma once
 
 #include "Math/Integer.h"
-#include "cudaq/Synthesis/Math/Real.h"
 #include "Math/Ring/Dsqrt2.h"
 #include "Math/Ring/Zomega.h"
 #include "Math/Ring/Zsqrt2.h"
+#include "cudaq/Synthesis/Math/Real.h"
 
 #include <algorithm>
 #include <cassert>

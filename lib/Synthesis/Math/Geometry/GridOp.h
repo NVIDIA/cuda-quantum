@@ -8,10 +8,10 @@
 
 #pragma once
 
-#include "cudaq/Synthesis/Math/Real.h"
 #include "Math/Integer.h"
 #include "Math/Ring/Domega.h"
 #include "Math/Ring/Zomega.h"
+#include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Support/Result.h"
 
 #include <array>
@@ -196,8 +196,8 @@ inline std::array<std::array<Real, 2>, 2> to_real_mat(const GridOp &G) {
   Real u0_r, u0_i, u1_r, u1_i;
   to_real_imag(G.u0(), u0_r, u0_i);
   to_real_imag(G.u1(), u1_r, u1_i);
-  return {{{ {std::move(u0_r), std::move(u1_r)} },
-           { {std::move(u0_i), std::move(u1_i)} }}};
+  return {{{{std::move(u0_r), std::move(u1_r)}},
+           {{std::move(u0_i), std::move(u1_i)}}}};
 }
 
 /// Inverse of G (valid only for special grid operators, Definition 5.10).

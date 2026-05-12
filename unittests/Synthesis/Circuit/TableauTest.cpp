@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "Circuit/CliffordCircuit.h"
 #include "Circuit/Tableau.h"
+#include "Circuit/CliffordCircuit.h"
 
 #include <gtest/gtest.h>
 
@@ -34,7 +34,8 @@ static void expect_identity(const Tableau &tab) {
     EXPECT_FALSE(destab.sign()) << "destab " << i << " sign";
     for (size_t q = 0; q < n; ++q) {
       EXPECT_FALSE(destab.z().get(q)) << "destab " << i << " z[" << q << "]";
-      EXPECT_EQ(destab.x().get(q), q == i) << "destab " << i << " x[" << q << "]";
+      EXPECT_EQ(destab.x().get(q), q == i)
+          << "destab " << i << " x[" << q << "]";
     }
   }
 }
@@ -43,12 +44,24 @@ static void expect_identity(const Tableau &tab) {
 static void apply_circuit(Tableau &tab, const CliffordCircuit &circ) {
   for (const CliffordGate &g : circ) {
     switch (g.kind) {
-    case CliffordGateKind::H:  tab.append_h(g.qubit0);  break;
-    case CliffordGateKind::S:  tab.append_s(g.qubit0);  break;
-    case CliffordGateKind::X:  tab.append_x(g.qubit0);  break;
-    case CliffordGateKind::Z:  tab.append_z(g.qubit0);  break;
-    case CliffordGateKind::CX: tab.append_cx(g.qubit0, g.qubit1); break;
-    case CliffordGateKind::CZ: tab.append_cz(g.qubit0, g.qubit1); break;
+    case CliffordGateKind::H:
+      tab.append_h(g.qubit0);
+      break;
+    case CliffordGateKind::S:
+      tab.append_s(g.qubit0);
+      break;
+    case CliffordGateKind::X:
+      tab.append_x(g.qubit0);
+      break;
+    case CliffordGateKind::Z:
+      tab.append_z(g.qubit0);
+      break;
+    case CliffordGateKind::CX:
+      tab.append_cx(g.qubit0, g.qubit1);
+      break;
+    case CliffordGateKind::CZ:
+      tab.append_cz(g.qubit0, g.qubit1);
+      break;
     }
   }
 }
@@ -334,4 +347,3 @@ TEST(TableauExtractInsert, InsertOverwritesColumn) {
   EXPECT_FALSE(extracted.z().get(1));
   EXPECT_FALSE(extracted.x().get(1));
 }
-

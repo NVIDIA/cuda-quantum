@@ -12,18 +12,18 @@
 
 namespace {
 
-using cudaq::synth::Integer;
 using cudaq::synth::i64;
+using cudaq::synth::Integer;
 
-static long long ll(const Integer &n) { return static_cast<long long>(static_cast<i64>(n)); }
+static long long ll(const Integer &n) {
+  return static_cast<long long>(static_cast<i64>(n));
+}
 
 // ============================================================
 // ntz — number of trailing zeros
 // ============================================================
 
-TEST(NtzTest, Zero) {
-  EXPECT_EQ(ll(cudaq::synth::ntz(Integer(0))), 0LL);
-}
+TEST(NtzTest, Zero) { EXPECT_EQ(ll(cudaq::synth::ntz(Integer(0))), 0LL); }
 
 TEST(NtzTest, One) {
   // 1 = 0b1 — no trailing zeros
@@ -76,13 +76,9 @@ TEST(SignTest, Negative) {
   EXPECT_EQ(ll(cudaq::synth::sign(Integer(-7))), -1LL);
 }
 
-TEST(SignTest, Zero) {
-  EXPECT_EQ(ll(cudaq::synth::sign(Integer(0))), 0LL);
-}
+TEST(SignTest, Zero) { EXPECT_EQ(ll(cudaq::synth::sign(Integer(0))), 0LL); }
 
-TEST(SignTest, One) {
-  EXPECT_EQ(ll(cudaq::synth::sign(Integer(1))), 1LL);
-}
+TEST(SignTest, One) { EXPECT_EQ(ll(cudaq::synth::sign(Integer(1))), 1LL); }
 
 TEST(SignTest, MinusOne) {
   EXPECT_EQ(ll(cudaq::synth::sign(Integer(-1))), -1LL);
@@ -167,8 +163,7 @@ TEST(FloordivTest, IntOverloadPowerOfTwo) {
 TEST(FloordivTest, IntOverloadMatchesIntegerOverload) {
   for (int x = -20; x <= 20; ++x) {
     for (int y : {1, 2, 3, 4, 7}) {
-      long long expected =
-          ll(cudaq::synth::floordiv(Integer(x), Integer(y)));
+      long long expected = ll(cudaq::synth::floordiv(Integer(x), Integer(y)));
       long long actual = ll(cudaq::synth::floordiv(Integer(x), y));
       EXPECT_EQ(actual, expected) << "x=" << x << " y=" << y;
     }
@@ -271,8 +266,7 @@ TEST(IsProbablyPrimeTest, SmallComposites) {
 
 TEST(IsProbablyPrimeTest, SmallPrimes) {
   for (int p : {2, 3, 5, 7, 11, 13, 17, 19, 23, 29}) {
-    EXPECT_TRUE(cudaq::synth::is_probably_prime(Integer(p)))
-        << "p = " << p;
+    EXPECT_TRUE(cudaq::synth::is_probably_prime(Integer(p))) << "p = " << p;
   }
 }
 

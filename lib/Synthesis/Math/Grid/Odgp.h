@@ -49,8 +49,7 @@ generator<ZSqrt2> solve_odgp_with_parity(Interval I, Interval J,
 
 // Scaled ODGP (Proposition 5.21): find all α ∈ (1/√2^denom_exp)Z[√2] with
 // α ∈ I and α● ∈ J
-generator<DSqrt2> solve_odgp_scaled(Interval I, Interval J,
-                                    Integer denom_exp);
+generator<DSqrt2> solve_odgp_scaled(Interval I, Interval J, Integer denom_exp);
 
 // Scaled with parity
 generator<DSqrt2> solve_odgp_scaled_with_parity(Interval I, Interval J,

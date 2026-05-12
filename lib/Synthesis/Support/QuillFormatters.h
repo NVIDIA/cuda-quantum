@@ -10,7 +10,8 @@
 // ---------------------------------------------------------------------------
 // quill_formatters.h — fmtquill::formatter and quill::Codec specializations
 //
-// Enables CUDAQ_SYNTH_LOG_TRACE("synth.grid", "{}", foo) for all synthesizer domain types.
+// Enables CUDAQ_SYNTH_LOG_TRACE("synth.grid", "{}", foo) for all synthesizer
+// domain types.
 //
 // Strategy (Alternative C from design doc):
 //   - Each type has a to_string() member that formats on the calling thread.
@@ -30,17 +31,17 @@
 #include "quill/bundled/fmt/base.h"
 
 // Domain types
-#include "Math/Integer.h"
-#include "cudaq/Synthesis/Math/Real.h"
-#include "Math/Ring/Zsqrt2.h"
-#include "Math/Ring/Zomega.h"
-#include "Math/Ring/Dsqrt2.h"
-#include "Math/Ring/Domega.h"
-#include "Math/Geometry/Interval.h"
-#include "Math/Geometry/Rectangle.h"
 #include "Math/Geometry/Ellipse.h"
 #include "Math/Geometry/GridOp.h"
+#include "Math/Geometry/Interval.h"
+#include "Math/Geometry/Rectangle.h"
 #include "Math/Geometry/ToUpright.h"
+#include "Math/Integer.h"
+#include "Math/Ring/Domega.h"
+#include "Math/Ring/Dsqrt2.h"
+#include "Math/Ring/Zomega.h"
+#include "Math/Ring/Zsqrt2.h"
+#include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Math/Unitary.h"
 
 // ---------------------------------------------------------------------------
@@ -133,7 +134,8 @@ struct fmtquill::formatter<cudaq::synth::GridOp> {
 template <>
 struct fmtquill::formatter<cudaq::synth::UprightResult> {
   constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
-  auto format(const cudaq::synth::UprightResult &val, format_context &ctx) const {
+  auto format(const cudaq::synth::UprightResult &val,
+              format_context &ctx) const {
     return fmtquill::format_to(ctx.out(), "{}", val.to_string());
   }
 };
@@ -141,7 +143,8 @@ struct fmtquill::formatter<cudaq::synth::UprightResult> {
 template <>
 struct fmtquill::formatter<cudaq::synth::DOmegaUnitary> {
   constexpr auto parse(format_parse_context &ctx) { return ctx.begin(); }
-  auto format(const cudaq::synth::DOmegaUnitary &val, format_context &ctx) const {
+  auto format(const cudaq::synth::DOmegaUnitary &val,
+              format_context &ctx) const {
     return fmtquill::format_to(ctx.out(), "{}", val.to_string());
   }
 };

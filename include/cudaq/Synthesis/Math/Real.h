@@ -754,13 +754,15 @@ solve_quadratic(const Real &a, const Real &b, const Real &c) {
 
   if (b >= 0) {
     Real s = -b - sqrt_disc;
-    if (s.is_zero() )
-      return std::make_pair(Real(0), -b / a); // direct: (-b + sqrt_disc) / 2a = 0 already
+    if (s.is_zero())
+      return std::make_pair(
+          Real(0), -b / a); // direct: (-b + sqrt_disc) / 2a = 0 already
     return std::make_pair(s / two_a, (2 * c) / s);
   }
   Real s = -b + sqrt_disc;
   if (s.is_zero())
-    return std::make_pair(-b / a, Real(0)); // direct: (-b - sqrt_disc) / 2a = 0 already
+    return std::make_pair(-b / a,
+                          Real(0)); // direct: (-b - sqrt_disc) / 2a = 0 already
   return std::make_pair((2 * c) / s, s / two_a);
 }
 
