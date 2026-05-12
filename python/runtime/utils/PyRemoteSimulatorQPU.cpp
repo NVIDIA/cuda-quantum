@@ -120,8 +120,13 @@ public:
                     n_params, shots);
   }
 
-  cudaq::KernelThunkResultType launchKernel(const cudaq::SourceModule &src,
-                                            cudaq::KernelArgs args) override {
+  cudaq::KernelThunkResultType
+  unifiedLaunchModule(const cudaq::AnyModule &module,
+                      cudaq::KernelArgs args) override {
+    if (!std::holds_alternative<cudaq::SourceModule>(module))
+      return Base::unifiedLaunchModule(module, args);
+
+    const auto &src = std::get<cudaq::SourceModule>(module);
     const auto &name = src.getName();
     auto rawFn = src.getFunctionPtr();
     cudaq::KernelThunkType kernelFunc = rawFn ? rawFn->getFn() : nullptr;
