@@ -21,8 +21,8 @@ from cudaq.mlir.execution_engine import ExecutionEngine
 from cudaq.mlir.dialects import func
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import quake, cc
-from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, IntegerType, Context,
-                           Module)
+from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, FunctionType,
+                           IntegerType, Context, Module)
 from cudaq.mlir._mlir_libs._quakeDialects import register_all_dialects
 from cudaq.kernel_types import measure_handle, qubit, qvector, qview
 
@@ -40,21 +40,38 @@ globalRegisteredOperations = {}
 # Keep a global registry of any custom data types
 globalRegisteredTypes = cudaq_runtime.DataClassRegistry
 
+boundaryDiagnostic = (
+    "measurement handle cannot cross the host-device boundary; "
+    "entry-point kernels must discriminate first")
 
-def containsMeasureHandle(ty):
+
+def containsMeasureHandle(ty, _seen=None):
     """Return True iff ``ty`` is ``!cc.measure_handle`` or transitively
     contains one.
     """
+    if _seen is None:
+        _seen = set()
+    if ty is None or id(ty) in _seen:
+        return False
+    _seen.add(id(ty))
     if cc.MeasureHandleType.isinstance(ty):
         return True
     if cc.PointerType.isinstance(ty):
-        return containsMeasureHandle(cc.PointerType.getElementType(ty))
+        return containsMeasureHandle(cc.PointerType.getElementType(ty), _seen)
     if cc.ArrayType.isinstance(ty):
-        return containsMeasureHandle(cc.ArrayType.getElementType(ty))
+        return containsMeasureHandle(cc.ArrayType.getElementType(ty), _seen)
     if cc.StdvecType.isinstance(ty):
-        return containsMeasureHandle(cc.StdvecType.getElementType(ty))
+        return containsMeasureHandle(cc.StdvecType.getElementType(ty), _seen)
     if cc.StructType.isinstance(ty):
-        return any(containsMeasureHandle(t) for t in cc.StructType.getTypes(ty))
+        return any(
+            containsMeasureHandle(t, _seen) for t in cc.StructType.getTypes(ty))
+    if cc.CallableType.isinstance(ty):
+        # The kernel signature itself does not syntactically carry a handle,
+        # but a callable parameter that takes or returns a handle would
+        # transport one across the host-device boundary on every invocation.
+        fnTy = FunctionType(cc.CallableType.getFunctionType(ty))
+        return any(containsMeasureHandle(t, _seen) for t in fnTy.inputs) or \
+               any(containsMeasureHandle(t, _seen) for t in fnTy.results)
     return False
 
 

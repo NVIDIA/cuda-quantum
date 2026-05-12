@@ -33,8 +33,9 @@ from .common.fermionic_swap import fermionic_swap_builder
 from .common.givens import givens_builder
 from .kernel_decorator import DecoratorCapture, LinkedKernelCapture, isa_kernel_decorator
 from .quake_value import QuakeValue
-from .utils import (emitFatalError, emitWarning, nvqppPrefix, getMLIRContext,
-                    recover_func_op, mlirTypeToPyType, cudaq__unique_attr_name,
+from .utils import (boundaryDiagnostic, containsMeasureHandle, emitFatalError,
+                    emitWarning, nvqppPrefix, getMLIRContext, recover_func_op,
+                    mlirTypeToPyType, cudaq__unique_attr_name,
                     mlirTypeFromPyType, emitErrorIfInvalidPauli,
                     globalRegisteredOperations)
 
@@ -273,6 +274,14 @@ class PyKernel(object):
                 for argType in
                 [self.__processArgType(ty) for ty in argTypeList]
             ]
+
+            # `cudaq.make_kernel(...)` produces an entry-point kernel by
+            # construction. Reject any handle-containing parameter type before
+            # tagging so the AST-bridge boundary check (which never runs on
+            # this path) cannot be sidestepped via `cudaq.make_kernel`.
+            for argTy in self.mlirArgTypes:
+                if containsMeasureHandle(argTy):
+                    emitFatalError(boundaryDiagnostic)
 
             self.funcOp = func.FuncOp(self.funcName, (self.mlirArgTypes, []),
                                       loc=self.loc)
@@ -1224,7 +1233,7 @@ class PyKernel(object):
         Note:
         Measurements may be applied both mid-circuit and at the end of
         the circuit. Conditional logic on mid-circuit measurements is no longer
-        supported.  
+        supported.
 
         ```python
             # Example:

@@ -31,9 +31,10 @@ from cudaq.mlir.passmanager import PassManager
 from cudaq.util import trace
 from .analysis import ValidateArgumentAnnotations, ValidateReturnStatements
 from .kernel_signature import KernelSignature
-from .utils import (Color, containsMeasureHandle, globalRegisteredOperations,
-                    globalRegisteredTypes, nvqppPrefix, mlirTypeFromAnnotation,
-                    mlirTypeFromPyType, getMLIRContext, is_recovered_value_ok,
+from .utils import (Color, boundaryDiagnostic, containsMeasureHandle,
+                    globalRegisteredOperations, globalRegisteredTypes,
+                    nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType,
+                    getMLIRContext, is_recovered_value_ok,
                     recover_value_of_or_none, cudaq__unique_attr_name,
                     mlirTryCreateStructType)
 
@@ -889,9 +890,8 @@ class PyASTBridge(ast.NodeVisitor):
         ty = value.type
         if cc.MeasureHandleType.isinstance(ty):
             if self.__isProvablyUnboundHandleSource(value):
-                with self.ctx, self.loc:
-                    self.emitFatalError(
-                        'discriminating an unbound measurement handle', node)
+                self.emitFatalError(
+                    'discriminating an unbound measurement handle', node)
             return quake.DiscriminateOp(self.getIntegerType(1), value).result
         if cc.StdvecType.isinstance(ty) and cc.MeasureHandleType.isinstance(
                 cc.StdvecType.getElementType(ty)):
@@ -1795,15 +1795,12 @@ class PyASTBridge(ast.NodeVisitor):
                 # `cudaq::measure_handle` is device-only and must not appear
                 # either directly or transitively in the parameter or return
                 # position of an entry-point kernel.
-                _BOUNDARY_DIAG = (
-                    "measurement handle cannot cross the host-device boundary; "
-                    "entry-point kernels must discriminate first")
                 for argTy in self.signature.arg_types:
                     if containsMeasureHandle(argTy):
-                        self.emitFatalError(_BOUNDARY_DIAG, node)
+                        self.emitFatalError(boundaryDiagnostic, node)
                 if (self.signature.return_type and
                         containsMeasureHandle(self.signature.return_type)):
-                    self.emitFatalError(_BOUNDARY_DIAG, node)
+                    self.emitFatalError(boundaryDiagnostic, node)
                 f.attributes.__setitem__('cudaq-entrypoint', UnitAttr.get())
 
             # Create the entry block
@@ -5111,7 +5108,7 @@ class PyASTBridge(ast.NodeVisitor):
 
     def visit_IfExp(self, node):
         """Reject ternary `a if cond else b`. Discriminate any handle test
-        first so the spec `discriminating an unbound measure_handle`
+        first so the `discriminating an unbound measurement handle`
         diagnostic still fires when applicable; the surface diagnostic for
         the unsupported construct is unchanged."""
         self.visit(node.test)
@@ -5123,7 +5120,7 @@ class PyASTBridge(ast.NodeVisitor):
 
     def visit_Assert(self, node):
         """Reject `assert h`. Discriminate any handle test first so the
-        spec `discriminating an unbound measure_handle` diagnostic still
+        `discriminating an unbound measurement handle` diagnostic still
         fires when applicable; the surface diagnostic for the unsupported
         construct is unchanged."""
         self.visit(node.test)

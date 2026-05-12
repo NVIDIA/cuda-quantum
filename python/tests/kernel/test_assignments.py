@@ -1166,7 +1166,9 @@ def test_disallow_value_updates():
             res = mz(qs[1])
         return res
 
-    test2()
+    # `qs[1]` is flipped to |1> and re-measured, then bound to `res`; the
+    # bool-coercion at the return discriminates exactly once and yields True.
+    assert cudaq.run(test2, shots_count=1)[0] == True
 
 
 def test_var_scopes():

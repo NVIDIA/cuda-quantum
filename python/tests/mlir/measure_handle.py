@@ -347,6 +347,11 @@ def test_to_integer_composes_with_to_bools():
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
 # CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
 # CHECK:           %[[VAL_2:.*]] = quake.discriminate %[[VAL_1]] : (!cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<i1>
+# CHECK:           cc.stdvec_size %[[VAL_2]] : (!cc.stdvec<i1>) -> i64
+# CHECK:           cc.stdvec_data %[[VAL_2]] : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i8 x ?>>
+# CHECK-NOT:       quake.discriminate
+# CHECK:           return %{{.*}} : i64
+# CHECK:         }
 
 # ---------------------------------------------------------------------------
 # Kernel-builder (`cudaq.make_kernel()`) emission. Python counterpart of
