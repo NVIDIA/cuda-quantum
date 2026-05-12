@@ -96,8 +96,13 @@ public:
 
   /// @brief Launch the kernel. Handle all pertinent modifications for the
   /// execution context.
-  [[nodiscard]] KernelThunkResultType launchKernel(const SourceModule &src,
-                                                   KernelArgs args) override {
+  [[nodiscard]] KernelThunkResultType
+  unifiedLaunchModule(const AnyModule &module, KernelArgs args) override {
+    if (!std::holds_alternative<SourceModule>(module))
+      throw std::runtime_error(
+          "OrcaRemoteRESTQPU does not support pre-compiled module launch.");
+
+    const auto &src = std::get<SourceModule>(module);
     auto rawFn = src.getFunctionPtr();
     KernelThunkType kernelFunc = rawFn ? rawFn->getFn() : nullptr;
     auto packed = args.getPacked();

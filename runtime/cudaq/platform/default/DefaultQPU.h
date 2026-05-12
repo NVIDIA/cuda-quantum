@@ -21,8 +21,8 @@ public:
 
   void enqueue(QuantumTask &task) override;
 
-  KernelThunkResultType launchKernel(const cudaq::SourceModule &src,
-                                     cudaq::KernelArgs args) override;
+  KernelThunkResultType unifiedLaunchModule(const cudaq::AnyModule &module,
+                                            cudaq::KernelArgs args) override;
 
   void configureExecutionContext(ExecutionContext &context) const override;
   void beginExecution() override;

@@ -41,25 +41,25 @@ public:
     }
   }
 
-  KernelThunkResultType launchKernel(const SourceModule &src,
-                                     KernelArgs args) override {
-    const auto &kernelName = src.getName();
-    CUDAQ_INFO("FermioniqBaseQPU launching kernel ({})", kernelName);
-    auto [module, context] = Compiler::loadQuakeCodeByName(kernelName);
-    auto compiled =
-        compileImpl(kernelName, [&](Compiler &compiler, ExecutionContext *ctx) {
-          return compiler.runPassPipeline(ctx, kernelName, module, args,
-                                          std::move(context));
-        });
-    launchImpl(compiled);
-    return {};
-  }
-
-  KernelThunkResultType launchModule(const CompiledModule &compiled,
-                                     KernelArgs args) override {
-    CUDAQ_INFO("FermioniqBaseQPU launching kernel via module ({})",
-               compiled.getName());
-    launchImpl(compiled);
+  KernelThunkResultType unifiedLaunchModule(const AnyModule &module,
+                                            KernelArgs args) override {
+    if (std::holds_alternative<SourceModule>(module)) {
+      const auto &src = std::get<SourceModule>(module);
+      const auto &kernelName = src.getName();
+      CUDAQ_INFO("FermioniqBaseQPU launching kernel ({})", kernelName);
+      auto [quakeModule, context] = Compiler::loadQuakeCodeByName(kernelName);
+      auto compiled = compileImpl(
+          kernelName, [&](Compiler &compiler, ExecutionContext *ctx) {
+            return compiler.runPassPipeline(ctx, kernelName, quakeModule, args,
+                                            std::move(context));
+          });
+      launchImpl(compiled);
+    } else {
+      const auto &compiled = std::get<CompiledModule>(module);
+      CUDAQ_INFO("FermioniqBaseQPU launching kernel via module ({})",
+                 compiled.getName());
+      launchImpl(compiled);
+    }
     return {};
   }
 
