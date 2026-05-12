@@ -17,14 +17,14 @@
 // Usage:
 //   #include "Support/LogMacros.h"
 //
-//   CUDAQ_SYNTH_LOG_INFO("synth.gridsynth", "theta={:.6f}, eps={:.2e}", theta,
-//   eps); CUDAQ_SYNTH_LOG_DEBUG("synth.grid", "solve_tdgp: k={}", k);
+//   CUDAQ_SYNTH_LOG_INFO("synth.`gridsynth`", "theta={:.6f}, eps={:.2e}",
+//   theta, eps); CUDAQ_SYNTH_LOG_DEBUG("synth.grid", "solve_tdgp: k={}", k);
 //   CUDAQ_SYNTH_LOG_TRACE("synth.diophantine", "candidate residue={}", r);
 //
 // Guard macros (modeled after LLVM_DEBUG) for code blocks whose sole purpose
 // is preparing data for a log call.  Three-layer gating: (1) compiled out
 // when LOGGING_BACKEND_QUILL is not defined, (2) dead-code eliminated via
-// if constexpr when the compile-time level is above threshold, (3) runtime
+// if `constexpr` when the compile-time level is above threshold, (3) runtime
 // level check via should_log_statement:
 //
 //   CUDAQ_SYNTH_IF_LOG_TRACE("synth.diophantine", {

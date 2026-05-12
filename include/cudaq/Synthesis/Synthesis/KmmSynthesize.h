@@ -13,7 +13,7 @@
 
 namespace cudaq::synth {
 
-/// Decomposes a DOmegaUnitary into a Clifford+T Circuit in Matsumoto-Amano
+/// Decomposes a DOmegaUnitary into a Clifford+T Circuit in `Matsumoto-Amano`
 /// normal form.
 ///
 /// Reference: Ross & Selinger, arXiv:1403.2975, §7.3 step 3.
@@ -23,9 +23,9 @@ namespace cudaq::synth {
 /// 1. Repeatedly call reduce_denomexp to peel off one gate (or short syllable)
 ///    from the left, reducing the denominator exponent k by 1 each iteration.
 /// 2. When k = 0, the remaining matrix is a Clifford; decompose it into
-///    X/W/S gates via the normal-form parametrization.
+///    X/W/S gates via the normal-form `parametrization`.
 /// 3. Normalize the accumulated Circuit via normalize_gates() to produce
-///    the canonical Matsumoto-Amano form with minimum T-count.
+///    the canonical `Matsumoto-Amano` form with minimum T-count.
 ///
 /// The function cannot fail: all inputs from gridsynth_unitary are valid
 /// DOmegaUnitaries, and normalize_gates is total over Circuit (no unknown

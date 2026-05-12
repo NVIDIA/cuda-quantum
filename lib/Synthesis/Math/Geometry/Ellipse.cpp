@@ -77,8 +77,8 @@ LogicalResult Ellipse::transform_by_gridop_mat(
 std::optional<std::pair<Real, Real>> Ellipse::intersect(const DOmega &u0,
                                                         const DOmega &v) const {
   // static const Real tolerance(1e-30);
-  // Real rel_x0 = u0[0] - px();
-  // Real rel_y0 = u0[1] - py();
+  // Real rel_x0 = u0[0] - `px`();
+  // Real rel_y0 = u0[1] - `py`();
   // const Real &dx = v[0];
   // const Real &dy = v[1];
 
@@ -109,7 +109,7 @@ void Ellipse::apply_inverse_transform(const Real &I00, const Real &I01,
   //   T = D · I,   D' = Iᵀ · T  (exploiting the symmetry of D').
   //
   // References to old values must be captured before any write to _a/_b/_d
-  // since the callers may pass aliased references (e.g. preinv* pointing into
+  // since the callers may pass aliased references (e.g. `preinv`* pointing into
   // the same Ellipse).  The old_* bindings below snapshot the values.
   const Real &old_a = _a;
   const Real &old_b = _b;

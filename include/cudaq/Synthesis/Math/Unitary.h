@@ -17,7 +17,7 @@
 
 namespace cudaq::synth {
 
-/// DOmegaUnitary: A 2×2 unitary matrix with entries in D[ω], parametrized as:
+/// DOmegaUnitary: A 2×2 unitary matrix with entries in D[ω], `parametrized` as:
 ///
 ///   U = [[z, -w† · ωⁿ],
 ///        [w,  z† · ωⁿ]]
@@ -25,7 +25,7 @@ namespace cudaq::synth {
 /// where z, w ∈ D[ω] and n ∈ Z/8Z.
 ///
 /// Reference: Ross & Selinger, arXiv:1403.2975, §7.1, equations (11)-(12),
-/// and Kliuchnikov, Maslov, Mosca [10].
+/// and `Kliuchnikov, Maslov, Mosca` [10].
 ///
 /// From [10], a single-qubit operator can be exactly written as a product
 /// of Clifford+T operators iff all its matrix entries belong to D[ω].
@@ -125,16 +125,16 @@ public:
   //
   // Each method computes g · U where g is a standard gate and U = *this.
   // The transformations on (z, w, n) follow from the matrix forms:
-  //   T = diag(1, ω)        → (z, ω·w, n+1)
-  //   S = diag(1, i) = T²   → (z, i·w, n+2)
+  //   T = `diag(1, ω)`        → (z, ω·w, n+1)
+  //   S = `diag(1, i) = T²`   → (z, i·w, n+2)
   //   H = (1/√2)[[1,1],[1,-1]] → ((z+w)/√2, (z-w)/√2, n+4)
   //   X = [[0,1],[1,0]]     → (w, z, n+4)
   //   W = ω·I (global phase)→ (ω·z, ω·w, n+2)
   //
-  // These follow from the parametrization U = [[z, -w†·ωⁿ], [w, z†·ωⁿ]]
+  // These follow from the `parametrization` U = [[z, -w†·ωⁿ], [w, z†·ωⁿ]]
   // and the fact that g·U must again have this form.
 
-  // T·U: T = diag(1, ω) multiplies the lower-left entry w by ω.
+  // T·U: T = `diag(1, ω)` multiplies the lower-left entry w by ω.
   DOmegaUnitary mul_by_T_from_left() const {
     return DOmegaUnitary(_z, mul_by_omega(_w), _n + 1);
   }
@@ -225,13 +225,14 @@ inline DOmegaUnitary to_lde(const DOmegaUnitary &u) {
 /// Reference: Ross & Selinger, arXiv:1403.2975, equation (13).
 ///
 /// Constructs E = U - R_z(θ) entry-by-entry using the complex matrix of u
-/// (via to_complex_matrix()) and returns √|det(E)| as a proxy for the operator
-/// norm. For small ε, the two singular values of E are approximately equal, so
-/// this proxy is accurate in the regime where the synthesizer operates.
+/// (via to_complex_matrix()) and returns √|`det`(E)| as a proxy for the
+/// operator norm. For small ε, the two singular values of E are approximately
+/// equal, so this proxy is accurate in the regime where the synthesizer
+/// operates.
 ///
 /// @param u     The approximating Clifford+T unitary
-/// @param theta Target rotation angle θ; R_z(θ) = diag(e^{-iθ/2}, e^{iθ/2})
-/// @return      √|det(U - R_z(θ))|
+/// @param theta Target rotation angle θ; R_z(θ) = `diag(e^{-iθ/2}, e^{iθ/2})`
+/// @return      √|`det`(U - R_z(θ))|
 inline Real rz_approximation_error(const DOmegaUnitary &u, const Real &theta) {
   Real half = theta / Real(2.0);
   Real c = cos(half);
@@ -252,7 +253,7 @@ inline Real rz_approximation_error(const DOmegaUnitary &u, const Real &theta) {
   Real e11r = M[1][1].real() - c;
   Real e11i = M[1][1].imag() - s;
 
-  // det(E) = E[0][0]·E[1][1] − E[0][1]·E[1][0], computed component-wise.
+  // `det(E) = E[0][0]·E[1][1] − E[0][1]·E[1][0]`, computed component-wise.
   Real det_re = (e00r * e11r - e00i * e11i) - (e01r * e10r - e01i * e10i);
   Real det_im = (e00r * e11i + e00i * e11r) - (e01r * e10i + e01i * e10r);
 
@@ -263,7 +264,7 @@ inline Real rz_approximation_error(const DOmegaUnitary &u, const Real &theta) {
 ///
 /// @param circuit  Clifford+T circuit
 /// @param theta    Target rotation angle θ
-/// @return         √|det(U - R_z(θ))| as a decimal string
+/// @return         √|`det`(U - R_z(θ))| as a decimal string
 inline std::string rz_gate_sequence_error(const std::string &theta,
                                           const Circuit &circuit) {
   return rz_approximation_error(DOmegaUnitary::from_gates(circuit), Real(theta))
@@ -278,7 +279,7 @@ inline std::string rz_gate_sequence_error(const std::string &theta,
 ///
 /// @param theta  Target rotation angle as an arbitrary-precision decimal string
 /// @param gates  Clifford+T gate sequence string (characters H, T, S, X, W)
-/// @return       √|det(U - R_z(θ))| as a decimal string
+/// @return       √|`det`(U - R_z(θ))| as a decimal string
 inline std::string rz_gate_sequence_error(const std::string &theta,
                                           const std::string &gates) {
   auto circuit_or = Circuit::from_string(gates);

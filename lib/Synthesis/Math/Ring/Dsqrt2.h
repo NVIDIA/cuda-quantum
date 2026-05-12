@@ -64,7 +64,7 @@ public:
     return DSqrt2(ZSqrt2{1}, k);
   }
 
-  /// Equality: normalises both operands to max(_k, other._k) before comparing
+  /// Equality: normalizes both operands to max(_k, other._k) before comparing
   /// numerators. Defined out-of-line because it requires with_denom_exp.
   bool operator==(const DSqrt2 &other) const;
 
@@ -246,7 +246,7 @@ inline bool operator>=(const DSqrt2 &lhs, const DSqrt2 &rhs) {
   return !(lhs < rhs);
 }
 
-/// Equality: normalises both operands to max(_k, other._k) before comparing
+/// Equality: normalizes both operands to max(_k, other._k) before comparing
 /// numerators. Two elements equal as D[√2] values but with different k compare
 /// equal.
 inline bool DSqrt2::operator==(const DSqrt2 &other) const {

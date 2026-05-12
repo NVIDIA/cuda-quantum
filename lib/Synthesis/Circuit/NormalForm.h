@@ -16,7 +16,7 @@
 namespace cudaq::synth {
 
 // TODO: Consider exposing NormalForm as a first-class type alongside Circuit
-// rather than discarding the Matsumoto-Amano structure after normalization.
+// rather than discarding the Matsumoto-`Amano` structure after normalization.
 // The internal decomposition already exists here:
 //
 //   struct NormalForm {
@@ -37,7 +37,7 @@ namespace {
 
 // Syllable types used internally by normalize_gates.
 //
-// Each syllable encodes one "step" in the Matsumoto-Amano decomposition:
+// Each syllable encodes one "step" in the Matsumoto-`Amano` decomposition:
 //   T   → T
 //   HT  → H · T
 //   SHT → S · H · T
@@ -47,7 +47,7 @@ enum class Syllable { I = 0, T = 1, HT = 2, SHT = 3 };
 
 } // anonymous namespace
 
-/// Compute the Matsumoto-Amano normal form of a single-qubit Clifford+T
+/// Compute the Matsumoto-`Amano` normal form of a single-qubit Clifford+T
 /// circuit.
 ///
 /// Reference: Giles & Selinger [7], and Ross & Selinger, arXiv:1403.2975, §7.3.
@@ -76,7 +76,7 @@ enum class Syllable { I = 0, T = 1, HT = 2, SHT = 3 };
 ///     up to date as the Clifford context that the next T gate will be
 ///     conjugated past.
 ///
-///   T gate: call c.decompose_tconj() to determine the syllable type that
+///   T gate: call `c.decompose_tconj()` to determine the syllable type that
 ///     results from pushing T past c (i.e. c·T = syllable·c').
 ///     - Axis::I  → next syllable would be T.  Check if the last syllable
 ///       already in the list can be merged (T·T → S, HT·T → HS,
@@ -91,7 +91,7 @@ enum class Syllable { I = 0, T = 1, HT = 2, SHT = 3 };
 /// @param input  Input circuit. Any sequence of Gate values is valid;
 ///               no failure path exists since the gate type is structurally
 ///               constrained to {H, S, T, X, W}.
-/// @return       Circuit in Matsumoto-Amano normal form. An empty Circuit
+/// @return       Circuit in Matsumoto-`Amano` normal form. An empty Circuit
 ///               represents the identity (use Circuit::to_string() for "I").
 inline Circuit normalize_gates(const Circuit &input) {
   std::vector<Syllable> syllables;

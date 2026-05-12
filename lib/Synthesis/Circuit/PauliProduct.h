@@ -30,7 +30,7 @@ namespace cudaq::synth {
 //   sign = true → the overall phase is −1 (i.e. the operator is negated).
 //
 // Internally we keep z and x as separate BitVectors so that bulk operations
-// (AND, XOR, popcount) map to direct calls on contiguous BitVector data with
+// (AND, XOR, `popcount`) map to direct calls on contiguous BitVector data with
 // no deinterleaving needed. This is the most SIMD-friendly layout for the
 // hot-path commutation check and multiplication.
 
@@ -52,7 +52,7 @@ public:
   /// True iff this Pauli product commutes with `other`.
   ///
   /// Two Pauli products P1 and P2 commute iff the symplectic inner product
-  ///   Λ(P1, P2) = popcount((x1 & z2) ^ (z1 & x2)) mod 2
+  ///   Λ(P1, P2) = `popcount`((x1 & z2) ^ (z1 & x2)) mod 2
   /// equals 0. This is O(N/256) bulk SIMD operations over all blocks.
   bool is_commuting(const PauliProduct &other) const {
     BitVector ac = (x_ & other.z_) ^ (z_ & other.x_);
@@ -61,14 +61,14 @@ public:
 
   // -- Multiplication --
 
-  /// In-place Pauli product multiplication: *this = (*this) * rhs.
+  /// In-place Pauli product multiplication: *this = (*this) * `rhs`.
   ///
   /// Uses the standard stabilizer-formalism phase formula. Phase accumulation
   /// follows from the relation XZ = -iY: each qubit where (z1=1, x2=1) or
   /// (x1=1, z2=1) contributes factors of i or -i, tracked via the `ac` and
-  /// `x1z2` auxiliary bitvectors.
+  /// `x1z2` auxiliary `bitvectors`.
   PauliProduct &operator*=(const PauliProduct &rhs) {
-    // x1z2: qubits where self has Z and rhs has X (contributes i)
+    // x1z2: qubits where self has Z and `rhs` has X (contributes i)
     BitVector x1z2 = z_ & rhs.x_;
     // ac: qubits where the two Paulis anti-commute locally
     BitVector ac = (x_ & rhs.z_) ^ x1z2;

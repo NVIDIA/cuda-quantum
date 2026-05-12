@@ -105,14 +105,14 @@ TEST(FloorsqrtTest, PerfectSquares) {
 }
 
 TEST(FloorsqrtTest, NonPerfectSquareFloor) {
-  // floor(sqrt(8)) = 2, floor(sqrt(15)) = 3, floor(sqrt(24)) = 4
+  // floor(`sqrt`(8)) = 2, floor(`sqrt`(15)) = 3, floor(`sqrt`(24)) = 4
   EXPECT_EQ(ll(cudaq::synth::floorsqrt(Integer(8))), 2LL);
   EXPECT_EQ(ll(cudaq::synth::floorsqrt(Integer(15))), 3LL);
   EXPECT_EQ(ll(cudaq::synth::floorsqrt(Integer(24))), 4LL);
 }
 
 TEST(FloorsqrtTest, ResultSquaredLeInput) {
-  // floor(sqrt(n))^2 <= n < (floor(sqrt(n))+1)^2
+  // floor(`sqrt`(n))^2 <= n < (floor(`sqrt`(n))+1)^2
   for (int n = 0; n <= 50; ++n) {
     Integer result = cudaq::synth::floorsqrt(Integer(n));
     long long r = ll(result);
@@ -313,7 +313,7 @@ TEST(CompoundAssignLLTest, AddPositive) {
 }
 
 TEST(CompoundAssignLLTest, AddNegative) {
-  // Negative rhs routes through mpz_sub_ui
+  // Negative `rhs` routes through mpz_sub_ui
   Integer x(10);
   x += -3LL;
   EXPECT_EQ(ll(x), 7LL);
@@ -326,7 +326,7 @@ TEST(CompoundAssignLLTest, SubPositive) {
 }
 
 TEST(CompoundAssignLLTest, SubNegative) {
-  // Negative rhs routes through mpz_add_ui
+  // Negative `rhs` routes through mpz_add_ui
   Integer x(10);
   x -= -3LL;
   EXPECT_EQ(ll(x), 13LL);
@@ -351,7 +351,7 @@ TEST(CompoundAssignLLTest, DivPositive) {
 }
 
 TEST(CompoundAssignLLTest, DivNegative) {
-  // Division by negative rhs: result should be negated
+  // Division by negative `rhs`: result should be negated
   Integer x(20);
   x /= -4LL;
   EXPECT_EQ(ll(x), -5LL);

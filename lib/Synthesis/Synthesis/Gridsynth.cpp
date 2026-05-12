@@ -29,10 +29,10 @@ namespace {
 /// Reference: Ross & Selinger, arXiv:1403.2975, §7.1, equation (14).
 ///
 /// For a target z-rotation
-///   R_z(θ) = diag(e^{-iθ/2}, e^{iθ/2})
+///   R_z(θ) = `diag`(e^{-iθ/2}, e^{iθ/2})
 /// and precision ε > 0, the ε-region is
 ///
-///   R_ε = { u ∈ D̄ | u · z ≥ sqrt(1 - ε²/4) },
+///   R_ε = { u ∈ D̄ | u · z ≥ `sqrt`(1 - ε²/4) },
 ///
 /// where
 ///   z = (cos(-θ/2), sin(-θ/2))
@@ -55,7 +55,7 @@ namespace {
 /// disc definition of R_ε, not the ellipse approximation.
 class EpsilonRegion : public ConvexSet {
 private:
-  // Threshold d = sqrt(1 - ε²/4) appearing in the half-plane inequality u·z ≥
+  // Threshold d = `sqrt`(1 - ε²/4) appearing in the half-plane inequality u·z ≥
   // d.
   Real dot_threshold;
 
@@ -80,7 +80,7 @@ private:
   };
 
   /// Compute:
-  ///   dot_threshold = sqrt(1 - ε²/4)  (= cos(arcsin(ε/2)))
+  ///   dot_threshold = `sqrt`(1 - ε²/4)  (= cos(arcsin(ε/2)))
   ///   z = (cos(-θ/2), sin(-θ/2)),
   /// using mpfr_sin_cos to obtain both trig values at once.
   ///
@@ -102,7 +102,7 @@ private:
   /// definite (should not happen for valid ε > 0).
   ///
   ///   D1 = rotation by -θ/2:   [[ z_x, -z_y], [ z_y,  z_x]]
-  ///   D2 = diag(64/ε⁴, 4/ε²):  anisotropic scaling to fit the lens shape
+  ///   D2 = `diag`(64/ε⁴, 4/ε²):  anisotropic scaling to fit the lens shape
   ///   D3 = rotation by  θ/2:   [[ z_x,  z_y], [-z_y,  z_x]]
   ///
   /// The resulting ellipse is the image of the unit disc under D1·D2·D3,
@@ -117,7 +117,7 @@ private:
     const Real &lambda_y = 4 * inv_eps2; // D2(1,1)
 
     // Quadratic form coefficients for the ellipse:
-    //   A x² + 2B xy + C y² + D x + E y ≤ 1
+    //   A x² + 2B `xy` + C y² + D x + E y ≤ 1
     Real A = lambda_x * z_x * z_x + lambda_y * z_y * z_y;
     Real B = (lambda_x - lambda_y) * z_x * z_y;
     Real C = lambda_x * z_y * z_y + lambda_y * z_x * z_x;
@@ -188,7 +188,7 @@ public:
     Real z_dot_v = z_x * v.real() + z_y * v.imag();
     Real rhs = dot_threshold - (z_x * u0.real() + z_y * u0.imag());
 
-    // z·v > 0: inequality is t ≥ rhs / (z·v).
+    // z·v > 0: inequality is t ≥ `rhs` / (z·v).
     if (z_dot_v > tolerance) {
       Real t_min = std::max(t0, rhs / z_dot_v);
       if (t_min > t1)
@@ -196,7 +196,7 @@ public:
       return std::make_pair(t_min, t1);
     }
 
-    // z·v < 0: inequality flips: t ≤ rhs / (z·v).
+    // z·v < 0: inequality flips: t ≤ `rhs` / (z·v).
     if (z_dot_v < -tolerance) {
       Real t_max = std::min(t1, rhs / z_dot_v);
       if (t0 > t_max)
@@ -206,7 +206,7 @@ public:
 
     // z·v ≈ 0: the ray is (numerically) parallel to the boundary line.
     // Then the inequality is either always satisfied or never satisfied,
-    // depending on rhs = d - z·u0.
+    // depending on `rhs` = d - z·u0.
     if (rhs <= tolerance)
       return std::make_pair(t0, t1);
     return std::nullopt;
