@@ -129,7 +129,7 @@ TEST(BitBlock, NotDoubleNegation) {
 
 TEST(BitVector, DefaultConstructionAllZero) {
   BitVector bv(256);
-  EXPECT_EQ(bv.block_count(), 2u);  // (256/256)+1 = 2
+  EXPECT_EQ(bv.block_count(), 2u); // (256/256)+1 = 2
   EXPECT_EQ(bv.popcount(), 0);
 }
 
@@ -141,9 +141,14 @@ TEST(BitVector, FromBlocks) {
 
 TEST(BitVector, FromIntegersRoundtrip) {
   // Pack 8 int64_t values (fills 2 blocks of 256 bits each).
-  std::vector<int64_t> in = {1LL, -1LL, 0x0F0F'0F0F'0F0F'0F0FLL,
-                              0x1234'5678'9ABC'DEF0LL,
-                              0, INT64_MIN, INT64_MAX, 42LL};
+  std::vector<int64_t> in = {1LL,
+                             -1LL,
+                             0x0F0F'0F0F'0F0F'0F0FLL,
+                             0x1234'5678'9ABC'DEF0LL,
+                             0,
+                             INT64_MIN,
+                             INT64_MAX,
+                             42LL};
   auto bv = BitVector::from_integers(in);
   auto out = bv.to_integer_vec();
   ASSERT_EQ(out.size(), in.size());
@@ -331,7 +336,7 @@ TEST(BitVector, AllOnesKnownPattern) {
 TEST(BitVector, AllOnesRespectsNbBitsLimit) {
   BitVector bv(512);
   bv.xor_bit(10);
-  bv.xor_bit(300);  // beyond the limit
+  bv.xor_bit(300); // beyond the limit
   auto ones = bv.all_ones(256);
   ASSERT_EQ(ones.size(), 1u);
   EXPECT_EQ(ones[0], 10u);

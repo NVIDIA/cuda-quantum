@@ -130,8 +130,8 @@ void shift_ellipses(Ellipse &A, Ellipse &B, const Integer &n);
 /// such that Skew((D,Δ)·G) ≤ 0.9 · Skew(D,Δ).
 /// Sets 'end' to true when Skew ≤ 15 (algorithm complete).
 /// Returns failure() if any internal operation fails.
-LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
-                         GridOp &opG_r, bool &end);
+LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l, GridOp &opG_r,
+                         bool &end);
 
 // Result structure for to_upright
 struct UprightResult {
@@ -146,8 +146,8 @@ struct UprightResult {
   /// GridOp::to_string() and Rectangle::to_string(). Intended for logging.
   std::string to_string() const {
     return "UprightResult(opG=" + opG.to_string() +
-           ", bboxA=" + bboxA.to_string() +
-           ", bboxB=" + bboxB.to_string() + ")";
+           ", bboxA=" + bboxA.to_string() + ", bboxB=" + bboxB.to_string() +
+           ")";
   }
 };
 

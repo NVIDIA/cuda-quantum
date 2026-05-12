@@ -10,8 +10,8 @@
 
 #include <vector>
 
-#include "cudaq/Synthesis/Circuit/Circuit.h"
 #include "Circuit/Clifford.h"
+#include "cudaq/Synthesis/Circuit/Circuit.h"
 
 namespace cudaq::synth {
 

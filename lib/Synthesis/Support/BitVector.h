@@ -281,7 +281,6 @@ using BitBlock = BasicBitBlock<ScalarPolicy>;
 // BitVector
 // ---------------------------------------------------------------------------
 
-
 /// Dynamically-sized bitvector backed by std::vector<BitBlock>. Capacity is
 /// always a multiple of kBlockSize (256) bits. The stored size rounds up.
 class BitVector {

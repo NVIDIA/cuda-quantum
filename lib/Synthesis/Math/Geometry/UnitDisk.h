@@ -10,8 +10,8 @@
 
 #include "Math/Geometry/ConvexSet.h"
 #include "Math/Geometry/Ellipse.h"
-#include "cudaq/Synthesis/Math/Real.h"
 #include "Support/LogMacros.h"
+#include "cudaq/Synthesis/Math/Real.h"
 
 #include <array>
 #include <optional>
@@ -73,8 +73,7 @@ public:
   /// Returns the parameter interval [t₀, t₁] where the ray lies inside the
   /// disc, or std::nullopt if the ray misses it entirely.
   std::optional<std::pair<Real, Real>>
-  intersect(const DOmega &u0,
-            const DOmega &v) const override {
+  intersect(const DOmega &u0, const DOmega &v) const override {
     DOmega a = v.conj() * v;
     DOmega b = DOmega::from_int(2) * (u0.conj() * v);
     DOmega c = u0.conj() * u0 - DOmega::from_dsqrt2(DSqrt2{1});

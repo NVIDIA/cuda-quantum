@@ -63,15 +63,14 @@ TEST_P(GridsynthApproxTest, ErrorWithinEpsilonAndGatesAreValid) {
   std::string err_str =
       cudaq::synth::rz_gate_sequence_error(theta_str, circuit);
   Real err(err_str);
-  EXPECT_LE(err, epsilon)
-      << "error " << err_str << " exceeds epsilon " << tc.epsilon
-      << " for theta=" << tc.theta << " circuit=" << circuit;
+  EXPECT_LE(err, epsilon) << "error " << err_str << " exceeds epsilon "
+                          << tc.epsilon << " for theta=" << tc.theta
+                          << " circuit=" << circuit;
 
   // T-count must be at least 1 for a non-trivial approximation and
   // at most the Ross–Selinger theoretical bound plus generous padding.
   int tc_count = circuit.t_count();
-  EXPECT_GT(tc_count, 0)
-      << "expected T gates for theta=" << tc.theta;
+  EXPECT_GT(tc_count, 0) << "expected T gates for theta=" << tc.theta;
   EXPECT_LE(tc_count, t_count_upper_bound(std::stod(epsilon_str)))
       << "T-count " << tc_count << " suspiciously large for eps=" << tc.epsilon;
 }
@@ -87,28 +86,26 @@ INSTANTIATE_TEST_SUITE_P(
     Angles, GridsynthApproxTest,
     testing::Values(
         // ε = 1e-4
-        GridsynthCase{"0.5",   "1e-4"},
-        GridsynthCase{"1.0",   "1e-4"},
-        GridsynthCase{"2.0",   "1e-4"},
+        GridsynthCase{"0.5", "1e-4"}, GridsynthCase{"1.0", "1e-4"},
+        GridsynthCase{"2.0", "1e-4"},
 
         // ε = 1e-6
-        GridsynthCase{"0.5",   "1e-6"},
-        GridsynthCase{"1.0",   "1e-6"},
-        GridsynthCase{"2.0",   "1e-6"},
+        GridsynthCase{"0.5", "1e-6"}, GridsynthCase{"1.0", "1e-6"},
+        GridsynthCase{"2.0", "1e-6"},
         // π/8 ≈ 0.39269908169872414
-        GridsynthCase{"0.39269908169872414",  "1e-6"},
+        GridsynthCase{"0.39269908169872414", "1e-6"},
         // π/6 ≈ 0.52359877559829882
-        GridsynthCase{"0.52359877559829882",  "1e-6"},
+        GridsynthCase{"0.52359877559829882", "1e-6"},
         // π/3 ≈ 1.04719755119659774
-        GridsynthCase{"1.04719755119659774",  "1e-6"},
+        GridsynthCase{"1.04719755119659774", "1e-6"},
         // π/5 ≈ 0.62831853071795865
-        GridsynthCase{"0.62831853071795865",  "1e-6"},
+        GridsynthCase{"0.62831853071795865", "1e-6"},
         // π/32 ≈ 0.09817477042468104
-        GridsynthCase{"0.09817477042468104",  "1e-6"},
+        GridsynthCase{"0.09817477042468104", "1e-6"},
         // π/64 ≈ 0.04908738521234052
-        GridsynthCase{"0.04908738521234052",  "1e-6"},
+        GridsynthCase{"0.04908738521234052", "1e-6"},
         // π/128 ≈ 0.02454369260617026
-        GridsynthCase{"0.02454369260617026",  "1e-6"},
+        GridsynthCase{"0.02454369260617026", "1e-6"},
 
         // ε = 1e-10  (regression cases)
         GridsynthCase{"0.5", "1e-10"},
@@ -117,36 +114,42 @@ INSTANTIATE_TEST_SUITE_P(
             "038477050785776124828353716294738443622192601661066882973382",
             "1e-10"},
         // π/32 and π/64 at higher precision
-        GridsynthCase{"0.09817477042468103531623142992930937523388918688756445137",
-                      "1e-10"},
-        GridsynthCase{"0.04908738521234051765811571496465468761694459344378222568",
-                      "1e-10"},
+        GridsynthCase{
+            "0.09817477042468103531623142992930937523388918688756445137",
+            "1e-10"},
+        GridsynthCase{
+            "0.04908738521234051765811571496465468761694459344378222568",
+            "1e-10"},
 
         // ε = 1e-12  (fine precision)
-        GridsynthCase{"0.5",   "1e-12"},
-        GridsynthCase{"1.0",   "1e-12"},
+        GridsynthCase{"0.5", "1e-12"}, GridsynthCase{"1.0", "1e-12"},
         // π/32
-        GridsynthCase{"0.09817477042468103531623142992930937523388918688756445137",
-                      "1e-12"},
+        GridsynthCase{
+            "0.09817477042468103531623142992930937523388918688756445137",
+            "1e-12"},
         // π/64
-        GridsynthCase{"0.04908738521234051765811571496465468761694459344378222568",
-                      "1e-12"},
+        GridsynthCase{
+            "0.04908738521234051765811571496465468761694459344378222568",
+            "1e-12"},
         // π/128
-        GridsynthCase{"0.02454369260617025882905785748232734380847229672189111284",
-                      "1e-12"},
+        GridsynthCase{
+            "0.02454369260617025882905785748232734380847229672189111284",
+            "1e-12"},
 
         // ε = 1e-15  (very fine precision)
-        GridsynthCase{"0.5",   "1e-15"},
-        GridsynthCase{"1.0",   "1e-15"},
+        GridsynthCase{"0.5", "1e-15"}, GridsynthCase{"1.0", "1e-15"},
         // π/32
-        GridsynthCase{"0.09817477042468103531623142992930937523388918688756445137",
-                      "1e-15"},
+        GridsynthCase{
+            "0.09817477042468103531623142992930937523388918688756445137",
+            "1e-15"},
         // π/64
-        GridsynthCase{"0.04908738521234051765811571496465468761694459344378222568",
-                      "1e-15"},
+        GridsynthCase{
+            "0.04908738521234051765811571496465468761694459344378222568",
+            "1e-15"},
         // π/128
-        GridsynthCase{"0.02454369260617025882905785748232734380847229672189111284",
-                      "1e-15"}),
+        GridsynthCase{
+            "0.02454369260617025882905785748232734380847229672189111284",
+            "1e-15"}),
     [](const testing::TestParamInfo<GridsynthCase> &info) {
       // Build a readable test name from theta and epsilon
       std::string name;
@@ -167,7 +170,7 @@ INSTANTIATE_TEST_SUITE_P(
 TEST(GridsynthMonotonicityTest, FinerEpsilonMoreTGates) {
   Real theta("0.5");
   auto r_coarse = cudaq::synth::gridsynth(theta, Real("1e-4"));
-  auto r_fine   = cudaq::synth::gridsynth(theta, Real("1e-10"));
+  auto r_fine = cudaq::synth::gridsynth(theta, Real("1e-10"));
 
   ASSERT_TRUE(succeeded(r_coarse));
   ASSERT_TRUE(succeeded(r_fine));
@@ -177,13 +180,12 @@ TEST(GridsynthMonotonicityTest, FinerEpsilonMoreTGates) {
 }
 
 // Verify the error function independently: for a zero-length gate sequence
-// (identity), the error should equal 1 (max distance to a non-trivial rotation).
-// R_z(θ) vs identity: ‖R_z(θ) - I‖ for θ≠0 is non-zero.
+// (identity), the error should equal 1 (max distance to a non-trivial
+// rotation). R_z(θ) vs identity: ‖R_z(θ) - I‖ for θ≠0 is non-zero.
 TEST(GridsynthErrorFuncTest, ErrorForIdentityCircuit) {
   // For an identity circuit, rz_gate_sequence_error(theta, Circuit{}) is the
   // distance from I to R_z(θ), which is non-zero for any θ ∉ {0, 2π, ...}.
-  std::string err =
-      cudaq::synth::rz_gate_sequence_error("0.5", Circuit{});
+  std::string err = cudaq::synth::rz_gate_sequence_error("0.5", Circuit{});
   Real e(err);
   EXPECT_GT(e, Real(0.0));
 }

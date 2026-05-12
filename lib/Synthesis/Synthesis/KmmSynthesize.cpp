@@ -56,7 +56,7 @@ reduce_denomexp(const DOmegaUnitary &unitary) {
   static const Circuit T_POWER_and_H[] = {
       Circuit({Gate::H}),
       Circuit({Gate::T, Gate::H}),
-      Circuit({Gate::S, Gate::H}),         // S = T²
+      Circuit({Gate::S, Gate::H}), // S = T²
       Circuit({Gate::T, Gate::S, Gate::H}),
   };
 
@@ -142,8 +142,8 @@ reduce_denomexp(const DOmegaUnitary &unitary) {
 ///   gate sequence with minimum T-count.
 Circuit kmm_synthesize(DOmegaUnitary unitary) {
   CUDAQ_SYNTH_LOG_DEBUG("synth.kmm",
-                   "kmm_synthesize: denom_exp={} (expected T-count ~{})",
-                   unitary.k(), unitary.k());
+                        "kmm_synthesize: denom_exp={} (expected T-count ~{})",
+                        unitary.k(), unitary.k());
 
   Circuit gates;
 
@@ -159,8 +159,8 @@ Circuit kmm_synthesize(DOmegaUnitary unitary) {
 
   // Phase 2: Decompose the remaining Clifford (k = 0).
   CUDAQ_SYNTH_LOG_TRACE("synth.kmm",
-                   "kmm_synthesize: Clifford phase -- n={}, z={}, w={}",
-                   unitary.n(), unitary.z(), unitary.w());
+                        "kmm_synthesize: Clifford phase -- n={}, z={}, w={}",
+                        unitary.n(), unitary.z(), unitary.w());
   // If phase n is odd, absorb one T to make it even (T adds 1 to n).
   if (unitary.n() & 1) {
     gates.push_back(Gate::T);
@@ -187,22 +187,24 @@ Circuit kmm_synthesize(DOmegaUnitary unitary) {
   // Apply S gates to clear the remaining phase exponent n.
   // Since n is now even, m_S = n/2 applications of S (which adds 2 to n).
   i32 m_S = unitary.n() >> 1;
-  for (i32 i = 0; i < m_S; ++i) gates.push_back(Gate::S);
+  for (i32 i = 0; i < m_S; ++i)
+    gates.push_back(Gate::S);
   unitary = unitary.mul_by_S_power_from_left(-m_S);
 
   assert(unitary == DOmegaUnitary::identity() &&
          "unitary should be the identity after Clifford decomposition");
 
   // Apply W (global phase) gates.
-  for (i32 i = 0; i < m_W; ++i) gates.push_back(Gate::W);
+  for (i32 i = 0; i < m_W; ++i)
+    gates.push_back(Gate::W);
 
   // Phase 3: Convert the raw Circuit to Matsumoto-Amano normal form.
   // This absorbs Cliffords, simplifies TT → S, and produces the
   // canonical representation with minimum T-count. Cannot fail.
   Circuit result = normalize_gates(gates);
-  CUDAQ_SYNTH_LOG_DEBUG("synth.kmm",
-                   "kmm_synthesize: final circuit has {} gates, T-count={}",
-                   result.size(), result.t_count());
+  CUDAQ_SYNTH_LOG_DEBUG(
+      "synth.kmm", "kmm_synthesize: final circuit has {} gates, T-count={}",
+      result.size(), result.t_count());
   return result;
 }
 

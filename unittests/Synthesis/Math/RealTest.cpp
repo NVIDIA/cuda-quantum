@@ -12,9 +12,9 @@
 
 namespace {
 
+using cudaq::synth::i64;
 using cudaq::synth::Integer;
 using cudaq::synth::Real;
-using cudaq::synth::i64;
 
 // Helper: absolute difference of two Reals as a double
 static double absdiff(const Real &a, const Real &b) {

@@ -10,9 +10,9 @@
 #include "Math/Geometry/ConvexSet.h"
 #include "Math/Geometry/Rectangle.h"
 #include "Math/Grid/Odgp.h"
-#include "cudaq/Synthesis/Math/Real.h"
 #include "Math/Ring/Domega.h"
 #include "Support/LogMacros.h"
+#include "cudaq/Synthesis/Math/Real.h"
 
 namespace cudaq::synth {
 
@@ -38,12 +38,12 @@ generator<DOmega> solve_tdgp(Integer k, const ConvexSet &setA,
                              Interval bboxA_y_fattened,
                              Interval bboxB_y_fattened) {
   CUDAQ_SYNTH_LOG_DEBUG("synth.grid",
-                   "solve_tdgp: k={}, bboxA={}x{}, bboxB={}x{}, "
-                   "bboxA_y_fat={}, bboxB_y_fat={}",
-                   static_cast<i64>(k), bboxA.I_x().width(),
-                   bboxA.I_y().width(), bboxB.I_x().width(),
-                   bboxB.I_y().width(), bboxA_y_fattened.width(),
-                   bboxB_y_fattened.width());
+                        "solve_tdgp: k={}, bboxA={}x{}, bboxB={}x{}, "
+                        "bboxA_y_fat={}, bboxB_y_fat={}",
+                        static_cast<i64>(k), bboxA.I_x().width(),
+                        bboxA.I_y().width(), bboxB.I_x().width(),
+                        bboxB.I_y().width(), bboxA_y_fattened.width(),
+                        bboxB_y_fattened.width());
 
   TdgpScratch scratch;
 
@@ -96,9 +96,9 @@ generator<DOmega> solve_tdgp(Integer k, const ConvexSet &setA,
     intB = fatten(intB, scratch.dtB);
 
     CUDAQ_SYNTH_LOG_TRACE("synth.grid",
-                     "solve_tdgp: beta={}, parity={}, "
-                     "intA_fat={}, intB_fat={}",
-                     beta, parity, intA, intB);
+                          "solve_tdgp: beta={}, parity={}, "
+                          "intA_fat={}, intB_fat={}",
+                          beta, parity, intA, intB);
 
     for (const DSqrt2 &alpha :
          solve_odgp_scaled_with_parity(intA, intB, 1, parity)) {
@@ -109,8 +109,8 @@ generator<DOmega> solve_tdgp(Integer k, const ConvexSet &setA,
       bool in_A = setA.contains(z_tr);
       bool in_B = setB.contains(z_tr.conj_sq2());
       CUDAQ_SYNTH_LOG_TRACE("synth.grid",
-                       "solve_tdgp: candidate={}, in_A? {}, in_B? {}",
-                       candidate.to_string(), in_A, in_B);
+                            "solve_tdgp: candidate={}, in_A? {}, in_B? {}",
+                            candidate.to_string(), in_A, in_B);
       if (in_A && in_B)
         co_yield z_tr;
     }
