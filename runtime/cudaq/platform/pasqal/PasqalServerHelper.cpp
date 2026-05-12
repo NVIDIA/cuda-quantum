@@ -10,7 +10,7 @@
 #include "PasqalUtils.h"
 #include "common/AnalogHamiltonian.h"
 #include "cudaq/runtime/logger/logger.h"
-
+#include "nlohmann/json.hpp"
 #include <cstdlib>
 #include <unordered_set>
 

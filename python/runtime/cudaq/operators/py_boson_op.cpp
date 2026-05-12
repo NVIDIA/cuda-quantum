@@ -7,12 +7,11 @@
  ******************************************************************************/
 
 #include <complex>
-#include <nanobind/make_iterator.h>
 #include <nanobind/ndarray.h>
 #include <nanobind/operators.h>
 #include <nanobind/stl/complex.h>
 #include <nanobind/stl/map.h>
-#include <nanobind/stl/pair.h>
+#include <nanobind/stl/optional.h>
 #include <nanobind/stl/set.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/tuple.h>
@@ -108,11 +107,11 @@ void bindBosonOperator(nanobind::module_ &mod) {
       .def(
           "__iter__",
           [](boson_op &self) {
-            return nanobind::make_iterator(nanobind::type<boson_op>(),
-                                           "iterator", self.begin(),
-                                           self.end());
+            nanobind::list items;
+            for (auto it = self.begin(); it != self.end(); ++it)
+              items.append(nanobind::cast(*it));
+            return items.attr("__iter__")();
           },
-          nanobind::keep_alive<0, 1>(),
           "Loop through each term of the operator.")
 
       // properties
@@ -166,13 +165,15 @@ void bindBosonOperator(nanobind::module_ &mod) {
 
       .def(
           "to_matrix",
-          [](const boson_op &self, dimension_map &dimensions,
-             const parameter_map &params, bool invert_order) {
-            auto cmat = self.to_matrix(dimensions, params, invert_order);
+          [](const boson_op &self, std::optional<dimension_map> dimensions,
+             std::optional<parameter_map> params, bool invert_order) {
+            dimension_map dims = dimensions.value_or(dimension_map());
+            parameter_map pm = params.value_or(parameter_map());
+            auto cmat = self.to_matrix(dims, pm, invert_order);
             return details::cmat_to_numpy(cmat);
           },
-          nanobind::arg("dimensions") = dimension_map(),
-          nanobind::arg("parameters") = parameter_map(),
+          nanobind::arg("dimensions").none() = nanobind::none(),
+          nanobind::arg("parameters").none() = nanobind::none(),
           nanobind::arg("invert_order") = false,
           "Returns the matrix representation of the operator."
           "The matrix is ordered according to the convention (endianness) "
@@ -182,14 +183,13 @@ void bindBosonOperator(nanobind::module_ &mod) {
           "See also the documentation for `degrees` for more detail.")
       .def(
           "to_matrix",
-          [](const boson_op &self, dimension_map &dimensions, bool invert_order,
-             const nanobind::kwargs &kwargs) {
-            auto cmat = self.to_matrix(
-                dimensions, details::kwargs_to_param_map(kwargs), invert_order);
+          [](const boson_op &self, dimension_map dimensions,
+             nanobind::kwargs kwargs) {
+            bool invert_order;
+            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            auto cmat = self.to_matrix(dimensions, pm, invert_order);
             return details::cmat_to_numpy(cmat);
           },
-          nanobind::arg("dimensions") = dimension_map(),
-          nanobind::arg("invert_order") = false, nanobind::arg("kwargs"),
           "Returns the matrix representation of the operator."
           "The matrix is ordered according to the convention (endianness) "
           "used in CUDA-Q, and the ordering returned by `degrees`. This order "
@@ -197,13 +197,25 @@ void bindBosonOperator(nanobind::module_ &mod) {
           "`True`. "
           "See also the documentation for `degrees` for more detail.")
       .def(
-          "to_sparse_matrix",
-          [](const boson_op &self, dimension_map &dimensions,
-             const parameter_map &params, bool invert_order) {
-            return self.to_sparse_matrix(dimensions, params, invert_order);
+          "to_matrix",
+          [](const boson_op &self, nanobind::kwargs kwargs) {
+            bool invert_order;
+            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            auto cmat = self.to_matrix(dimension_map(), pm, invert_order);
+            return details::cmat_to_numpy(cmat);
           },
-          nanobind::arg("dimensions") = dimension_map(),
-          nanobind::arg("parameters") = parameter_map(),
+          "Returns the matrix representation of the operator, passing "
+          "parameters as keyword arguments.")
+      .def(
+          "to_sparse_matrix",
+          [](const boson_op &self, std::optional<dimension_map> dimensions,
+             std::optional<parameter_map> params, bool invert_order) {
+            dimension_map dims = dimensions.value_or(dimension_map());
+            parameter_map pm = params.value_or(parameter_map());
+            return self.to_sparse_matrix(dims, pm, invert_order);
+          },
+          nanobind::arg("dimensions").none() = nanobind::none(),
+          nanobind::arg("parameters").none() = nanobind::none(),
           nanobind::arg("invert_order") = false,
           "Return the sparse matrix representation of the operator. This "
           "representation is a "
@@ -217,13 +229,12 @@ void bindBosonOperator(nanobind::module_ &mod) {
           "See also the documentation for `degrees` for more detail.")
       .def(
           "to_sparse_matrix",
-          [](const boson_op &self, dimension_map &dimensions, bool invert_order,
-             const nanobind::kwargs &kwargs) {
-            return self.to_sparse_matrix(
-                dimensions, details::kwargs_to_param_map(kwargs), invert_order);
+          [](const boson_op &self, dimension_map dimensions,
+             nanobind::kwargs kwargs) {
+            bool invert_order;
+            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            return self.to_sparse_matrix(dimensions, pm, invert_order);
           },
-          nanobind::arg("dimensions") = dimension_map(),
-          nanobind::arg("invert_order") = false, nanobind::arg("kwargs"),
           "Return the sparse matrix representation of the operator. This "
           "representation is a "
           "`Tuple[list[complex], list[int], list[int]]`, encoding the "
@@ -280,6 +291,7 @@ void bindBosonOperator(nanobind::module_ &mod) {
       .def(nanobind::self -= boson_op_term(), nanobind::is_operator())
       .def(nanobind::self *= nanobind::self, nanobind::is_operator())
       .def(nanobind::self += nanobind::self, nanobind::is_operator())
+// see issue https://github.com/pybind/pybind11/issues/1893
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wself-assign-overloaded"
@@ -361,17 +373,21 @@ void bindBosonOperator(nanobind::module_ &mod) {
       .def("dump", &boson_op::dump,
            "Prints the string representation of the operator to the standard "
            "output.")
-      .def("trim", &boson_op::trim, nanobind::arg("tol") = 0.0,
-           nanobind::arg("parameters") = parameter_map(),
-           "Removes all terms from the sum for which the absolute value of the "
-           "coefficient is below "
-           "the given tolerance.")
       .def(
           "trim",
-          [](boson_op &self, double tol, const nanobind::kwargs &kwargs) {
+          [](boson_op &self, double tol, std::optional<parameter_map> params) {
+            return self.trim(tol, params.value_or(parameter_map()));
+          },
+          nanobind::arg("tol") = 0.0,
+          nanobind::arg("parameters").none() = nanobind::none(),
+          "Removes all terms from the sum for which the absolute value of the "
+          "coefficient is below "
+          "the given tolerance.")
+      .def(
+          "trim",
+          [](boson_op &self, double tol, nanobind::kwargs kwargs) {
             return self.trim(tol, details::kwargs_to_param_map(kwargs));
           },
-          nanobind::arg("tol") = 0.0, nanobind::arg("kwargs"),
           "Removes all terms from the sum for which the absolute value of the "
           "coefficient is below "
           "the given tolerance.")
@@ -396,11 +412,11 @@ void bindBosonOperator(nanobind::module_ &mod) {
       .def(
           "__iter__",
           [](boson_op_term &self) {
-            return nanobind::make_iterator(nanobind::type<boson_op_term>(),
-                                           "iterator", self.begin(),
-                                           self.end());
+            nanobind::list items;
+            for (auto it = self.begin(); it != self.end(); ++it)
+              items.append(nanobind::cast(*it));
+            return items.attr("__iter__")();
           },
-          nanobind::keep_alive<0, 1>(),
           "Loop through each term of the operator.")
 
       // properties
@@ -476,20 +492,26 @@ void bindBosonOperator(nanobind::module_ &mod) {
 
       // evaluations
 
-      .def("evaluate_coefficient", &boson_op_term::evaluate_coefficient,
-           nanobind::arg("parameters") = parameter_map(),
-           "Returns the evaluated coefficient of the product operator. The "
-           "parameters is a map of parameter names to their concrete, complex "
-           "values.")
+      .def(
+          "evaluate_coefficient",
+          [](const boson_op_term &self, std::optional<parameter_map> params) {
+            return self.evaluate_coefficient(params.value_or(parameter_map()));
+          },
+          nanobind::arg("parameters").none() = nanobind::none(),
+          "Returns the evaluated coefficient of the product operator. The "
+          "parameters is a map of parameter names to their concrete, complex "
+          "values.")
       .def(
           "to_matrix",
-          [](const boson_op_term &self, dimension_map &dimensions,
-             const parameter_map &params, bool invert_order) {
-            auto cmat = self.to_matrix(dimensions, params, invert_order);
+          [](const boson_op_term &self, std::optional<dimension_map> dimensions,
+             std::optional<parameter_map> params, bool invert_order) {
+            dimension_map dims = dimensions.value_or(dimension_map());
+            parameter_map pm = params.value_or(parameter_map());
+            auto cmat = self.to_matrix(dims, pm, invert_order);
             return details::cmat_to_numpy(cmat);
           },
-          nanobind::arg("dimensions") = dimension_map(),
-          nanobind::arg("parameters") = parameter_map(),
+          nanobind::arg("dimensions").none() = nanobind::none(),
+          nanobind::arg("parameters").none() = nanobind::none(),
           nanobind::arg("invert_order") = false,
           "Returns the matrix representation of the operator."
           "The matrix is ordered according to the convention (endianness) "
@@ -499,14 +521,13 @@ void bindBosonOperator(nanobind::module_ &mod) {
           "See also the documentation for `degrees` for more detail.")
       .def(
           "to_matrix",
-          [](const boson_op_term &self, dimension_map &dimensions,
-             bool invert_order, const nanobind::kwargs &kwargs) {
-            auto cmat = self.to_matrix(
-                dimensions, details::kwargs_to_param_map(kwargs), invert_order);
+          [](const boson_op_term &self, dimension_map dimensions,
+             nanobind::kwargs kwargs) {
+            bool invert_order;
+            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            auto cmat = self.to_matrix(dimensions, pm, invert_order);
             return details::cmat_to_numpy(cmat);
           },
-          nanobind::arg("dimensions") = dimension_map(),
-          nanobind::arg("invert_order") = false, nanobind::arg("kwargs"),
           "Returns the matrix representation of the operator."
           "The matrix is ordered according to the convention (endianness) "
           "used in CUDA-Q, and the ordering returned by `degrees`. This order "
@@ -514,13 +535,25 @@ void bindBosonOperator(nanobind::module_ &mod) {
           "`True`. "
           "See also the documentation for `degrees` for more detail.")
       .def(
-          "to_sparse_matrix",
-          [](const boson_op_term &self, dimension_map &dimensions,
-             const parameter_map &params, bool invert_order) {
-            return self.to_sparse_matrix(dimensions, params, invert_order);
+          "to_matrix",
+          [](const boson_op_term &self, nanobind::kwargs kwargs) {
+            bool invert_order;
+            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            auto cmat = self.to_matrix(dimension_map(), pm, invert_order);
+            return details::cmat_to_numpy(cmat);
           },
-          nanobind::arg("dimensions") = dimension_map(),
-          nanobind::arg("parameters") = parameter_map(),
+          "Returns the matrix representation of the operator, passing "
+          "parameters as keyword arguments.")
+      .def(
+          "to_sparse_matrix",
+          [](const boson_op_term &self, std::optional<dimension_map> dimensions,
+             std::optional<parameter_map> params, bool invert_order) {
+            dimension_map dims = dimensions.value_or(dimension_map());
+            parameter_map pm = params.value_or(parameter_map());
+            return self.to_sparse_matrix(dims, pm, invert_order);
+          },
+          nanobind::arg("dimensions").none() = nanobind::none(),
+          nanobind::arg("parameters").none() = nanobind::none(),
           nanobind::arg("invert_order") = false,
           "Return the sparse matrix representation of the operator. This "
           "representation is a "
@@ -534,13 +567,12 @@ void bindBosonOperator(nanobind::module_ &mod) {
           "See also the documentation for `degrees` for more detail.")
       .def(
           "to_sparse_matrix",
-          [](const boson_op_term &self, dimension_map &dimensions,
-             bool invert_order, const nanobind::kwargs &kwargs) {
-            return self.to_sparse_matrix(
-                dimensions, details::kwargs_to_param_map(kwargs), invert_order);
+          [](const boson_op_term &self, dimension_map dimensions,
+             nanobind::kwargs kwargs) {
+            bool invert_order;
+            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            return self.to_sparse_matrix(dimensions, pm, invert_order);
           },
-          nanobind::arg("dimensions") = dimension_map(),
-          nanobind::arg("invert_order") = false, nanobind::arg("kwargs"),
           "Return the sparse matrix representation of the operator. This "
           "representation is a "
           "`Tuple[list[complex], list[int], list[int]]`, encoding the "
@@ -636,8 +668,8 @@ void bindBosonOperator(nanobind::module_ &mod) {
 
       .def("is_identity", &boson_op_term::is_identity,
            "Checks if all operators in the product are the identity. "
-           "Note that this function returns true regardless of the value of "
-           "the coefficient.")
+           "Note: this function returns true regardless of the value of the "
+           "coefficient.")
       .def(
           "__str__", [](const boson_op_term &self) { return self.to_string(); },
           "Returns the string representation of the operator.")

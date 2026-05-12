@@ -28,18 +28,32 @@ void bindComplexMatrix(nanobind::module_ &mod) {
       "matrix of complex<double> elements.")
       .def(
           "__init__",
-          [](complex_matrix *self,
-             nanobind::ndarray<std::complex<double>, nanobind::ndim<2>,
-                               nanobind::c_contig, nanobind::numpy>
-                 arr) {
-            auto rows = arr.shape(0);
-            auto cols = arr.shape(1);
-            new (self) complex_matrix(rows, cols);
-            memcpy(self->get_data(complex_matrix::order::row_major), arr.data(),
-                   sizeof(std::complex<double>) * rows * cols);
+          [](complex_matrix *self, nanobind::object b) {
+            auto arr = nanobind::cast<nanobind::ndarray<>>(b);
+            if (arr.ndim() != 2)
+              throw std::runtime_error("ComplexMatrix requires a 2D array");
+            if (arr.shape(0) == 0 || arr.shape(1) == 0)
+              throw std::runtime_error("Matrix dimensions must be non-zero.");
+
+            new (self) complex_matrix(arr.shape(0), arr.shape(1));
+
+            // Stride-aware element-wise copy so both row-major (C) and
+            // column-major (Fortran) layouts are handled correctly.
+            // nanobind strides are counted in elements, not bytes.
+            auto *dest = self->get_data(complex_matrix::order::row_major);
+            auto *src = static_cast<std::complex<double> *>(arr.data());
+            auto stride0 = arr.stride(0);
+            auto stride1 = arr.stride(1);
+            for (size_t i = 0; i < arr.shape(0); ++i)
+              for (size_t j = 0; j < arr.shape(1); ++j)
+                dest[i * arr.shape(1) + j] = src[i * stride0 + j * stride1];
           },
           "Create a :class:`ComplexMatrix` from a buffer of data, such as a "
           "numpy.ndarray.")
+      .def(
+          "to_numpy",
+          [](complex_matrix &op) { return details::cmat_to_numpy(op); },
+          "Convert to a NumPy array.")
       .def(
           "num_rows", [](complex_matrix &m) { return m.rows(); },
           "Returns the number of rows in the matrix.")

@@ -13,11 +13,13 @@ set(default_backend_unittest_libs
   cudaq
   cudaq-builder
   cudaq-mlir-runtime
-  cudaq-rest-qpu
   cudaq-operator
   nvqir nvqir-qpp
   cudaq-platform-default 
   gtest_main)
+if (CUDAQ_ENABLE_REST)
+  list(APPEND default_backend_unittest_libs cudaq-rest-qpu)
+endif()
 
 define_property(DIRECTORY PROPERTY BACKEND_UNITTEST_LIBS INHERITED
   BRIEF_DOCS "Default libraries for backend unit tests"
@@ -103,3 +105,14 @@ endif()
 add_subdirectory(pasqal)
 add_subdirectory(qpp_observe)
 add_subdirectory(quera)
+
+# Verify nvq++ emits the static `TargetSetter` initializer for every
+# `gen-target-backend: true` example. Without it, analog target binaries
+# silently fall back to DefaultQPU and segfault on first kernel launch.
+add_test(
+  NAME backend_target_setter_check
+  COMMAND
+    ${CMAKE_CURRENT_SOURCE_DIR}/check_target_setter.sh
+    ${CMAKE_BINARY_DIR}/bin/nvq++
+    ${CMAKE_SOURCE_DIR}/docs/sphinx/targets/cpp
+)

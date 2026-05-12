@@ -643,6 +643,7 @@ CUDAQ_TEST(BuilderTester, checkSwap) {
     // `first` and `second` should SWAP.
     kernel.swap<cudaq::ctrl>(ctrls0, ctrls1, ctrls2, first, second);
 
+    std::cout << kernel.to_quake() << "\n";
     auto counts = cudaq::sample(kernel);
     counts.dump();
     std::string ctrls_state = "11111";

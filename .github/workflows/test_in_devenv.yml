@@ -83,7 +83,7 @@ jobs:
       - name: Setup proxy cache
         uses: nv-gha-runners/setup-proxy-cache@main
         with:
-          enable-apt: true
+          enable-apt: false
 
       - name: Build CUDA Quantum
         id: build
@@ -250,7 +250,7 @@ jobs:
       - name: Setup proxy cache
         uses: nv-gha-runners/setup-proxy-cache@main
         with:
-          enable-apt: true
+          enable-apt: false
 
       - name: Set up dev environment
         id: dev_env
@@ -297,6 +297,7 @@ jobs:
               echo "::error file=test_in_devenv.yml:: Pip install of CUDA Quantum failed with status $pyinstall_status."
               exit 1
             fi
+
             python -m pip install pytest pytest-xdist
             python -m pytest -v --durations=0 -n auto python/tests/ \
               --ignore python/tests/backends \

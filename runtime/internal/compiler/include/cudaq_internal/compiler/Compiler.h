@@ -8,6 +8,7 @@
 #pragma once
 
 #include "common/CompiledModule.h"
+#include "common/KernelArgs.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include <map>
 #include <memory>
@@ -83,7 +84,7 @@ class Compiler {
   /// Build the module, merge closures, and synthesize arguments.
   std::pair<mlir::ModuleOp, mlir::func::FuncOp>
   prepareModule(const std::string &kernelName, mlir::ModuleOp m_module,
-                const std::vector<void *> &rawArgs, void *kernelArgs);
+                cudaq::KernelArgs args);
 
   /// Delay combine-measurements for emulation, then run the main pass
   /// pipeline.  Returns true when combine-measurements was delayed.
@@ -100,7 +101,7 @@ class Compiler {
       std::shared_ptr<mlir::MLIRContext> context);
 
 public:
-  static std::pair<mlir::ModuleOp, std::unique_ptr<mlir::MLIRContext>>
+  static std::pair<const void *, std::shared_ptr<mlir::MLIRContext>>
   loadQuakeCodeByName(const std::string &kernelName);
 
   Compiler(cudaq::ServerHelper *,
@@ -120,9 +121,8 @@ public:
   /// context lifetime must be managed by the caller.
   cudaq::CompiledModule
   runPassPipeline(cudaq::ExecutionContext *executionContext,
-                  const std::string &kernelName, mlir::ModuleOp module,
-                  const std::vector<void *> &rawArgs,
-                  void *kernelArgs = nullptr,
+                  const std::string &kernelName, const void *modulePtr,
+                  cudaq::KernelArgs args,
                   std::shared_ptr<mlir::MLIRContext> context = nullptr);
 
   /// @brief Emit target-specific code for each `MlirArtifact` in the
@@ -141,7 +141,7 @@ public:
   /// this call in any way necessary without breaking some other kernel launch.
   std::vector<cudaq::KernelExecution>
   lowerQuakeCode(cudaq::ExecutionContext *executionContext,
-                 const std::string &kernelName, mlir::ModuleOp module,
-                 void *kernelArgs, const std::vector<void *> &rawArgs);
+                 const std::string &kernelName, const void *modulePtr,
+                 cudaq::KernelArgs args);
 };
 } // namespace cudaq_internal::compiler

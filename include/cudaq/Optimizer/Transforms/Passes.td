@@ -154,6 +154,7 @@ def BasisConversion : Pass<"basis-conversion", "mlir::ModuleOp"> {
     If no `basis` is specified or the pass cannot decompose all operations to
     the specified basis, the pass application will fail.
   }];
+  let dependentDialects = ["mlir::arith::ArithDialect"];
   let options = [
     ListOption<"basis", "basis", "std::string", "Set of basis operations">,
     ListOption<"disabledPatterns", "disable-patterns", "std::string",
@@ -274,6 +275,8 @@ def ConvertToDirectCalls : Pass<"indirect-to-direct-calls", "mlir::ModuleOp"> {
     quantum code will call other quantum code directly and without going
     indirectly through the launch kernel runtime.
   }];
+
+  let dependentDialects = ["cudaq::cc::CCDialect"];
 }
 
 def DeadStoreRemoval : Pass<"dead-store-removal"> {
@@ -317,6 +320,7 @@ def Decomposition : Pass<"decomposition", "mlir::ModuleOp"> {
     means no decomposition will take place under the presence of controlled
     `quake.apply` operations in the module.
   }];
+  let dependentDialects = ["mlir::arith::ArithDialect"];
   let options = [
     ListOption<"basis", "basis", "std::string", "Set of basis operations">,
     ListOption<"disabledPatterns", "disable-patterns", "std::string",
@@ -373,6 +377,42 @@ def DependencyAnalysis : Pass<"dep-analysis", "mlir::ModuleOp"> {
   ];
 }
 
+def DesugarCableOps : Pass<"desugar-cable-ops"> {
+  let summary = "Desugar some of the cable ops";
+  let description = [{
+    The `quake.attach_wire` and `quake.detach_wire` operations are syntactic
+    sugar for a sequence of more primitive operations. This pass desugars the
+    IR and uses the primitives instead.
+
+    Specifically, we make the following expansions.
+    ```mlir
+    %wire, %cab = quake.detach_wire %0[4] : (!quake.cable<10>) -> (!quake.wire,
+        !quake.cable<9>)
+    ```
+    becomes
+    ```mlir
+    %1:10 = quake.split_cable %0 : (!quake.cable<10>) -> (!quake.wire, ...)
+    %cab = quake.bundle_cable %1#0, ... %1#3, %1#5, ... %1#9 :
+        (!quake.wire ...) -> !quake.cable<9>
+    // %wire is substituted with %1#4
+    ```
+
+    The converse operation
+    ```mlir
+    %cab = quake.attach_wire %w, %c[8] : (!quake.wire, !quake.cable<8>) ->
+             !quake.cable<9>)
+    ```
+    becomes
+    ```mlir
+    %1:8 = quake.split_cable %c : (!quake.cable<8>) -> (!quake.wire, ...)
+    %cab = quake.bundle_cable %1#0, ... %1#7, %w : (!quake.wire ...) ->
+           !quake.cable<9>
+    ```
+  }];
+
+  let dependentDialects = ["quake::QuakeDialect"];
+}
+
 def DistributedDeviceCall : Pass<"distributed-device-call", "mlir::ModuleOp"> {
   let summary = "Translate cc.device_call operations";
 
@@ -384,7 +424,8 @@ def DistributedDeviceCall : Pass<"distributed-device-call", "mlir::ModuleOp"> {
   let dependentDialects = ["mlir::LLVM::LLVMDialect"];
 
   let options = [
-    Option<"insertTrapImplementation", "insert-trap", "bool", /*default=*/"false",
+    Option<"insertTrapImplementation", "insert-trap", "bool",
+      /*default=*/"false",
       "Enable pass to insert a default implementation (runtime trap) for "
       "device call (default=false). The default implementation has weak "
       "linkage, i.e., allowed to be overridden at link time.">
@@ -543,7 +584,9 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
     constants) regardless of the kernel's (semantically correct) signature.
   }];
 
-  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect",
+    "mlir::func::FuncDialect", "mlir::cf::ControlFlowDialect",
+    "mlir::arith::ArithDialect"];
 
   let options = [
     Option<"outputFilename", "output-filename", "std::string",
@@ -655,6 +698,9 @@ def LambdaLifting : Pass<"lambda-lifting", "mlir::ModuleOp"> {
     issues with memtoreg altering the structure of cc.loop too aggressively
     before the loop is analyzed.
   }];
+
+  let dependentDialects = ["mlir::cf::ControlFlowDialect",
+                           "mlir::func::FuncDialect"];
 
   let options = [
     Option<"constantPropagation", "constant-prop", "bool", /*default=*/"false",
@@ -1060,6 +1106,10 @@ def QuakeSynthesize : Pass<"quake-synth", "mlir::ModuleOp"> {
      runtime values.
   }];
 
+  let dependentDialects = ["mlir::arith::ArithDialect",
+                           "mlir::complex::ComplexDialect",
+                           "cudaq::cc::CCDialect", "mlir::math::MathDialect"];
+
   let constructor = "cudaq::opt::createQuakeSynthesizer()";
 }
 
@@ -1260,6 +1310,22 @@ def ResourceCountPreprocess :
   ];
 }
 
+def RunSemanticsHackery : Pass<"run-semantics-hackery", "mlir::ModuleOp"> {
+  let summary = "Run semantics hackery";
+  let description = [{
+    The design of the `cudaq::run` feature breaks the semantics of the host
+    language.  While that is a terrible design decision, we strive to work
+    around the inherent flaws. This pass should be used after the
+    `kernel-execution` pass to clean up some of the semantics potholes and
+    brokenness left behind.
+
+    Ideally, we'd just fix the CUDA-Q spec and use first-class output logging
+    functions.
+  }];
+
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
+}
+
 def SROA : Pass<"cc-sroa"> {
   let summary = "Scalar replacement of aggregates.";
   let description = [{
@@ -1284,9 +1350,9 @@ def StackFramePrealloc : Pass<"stack-frame-prealloc", "mlir::func::FuncOp"> {
     based on their scopes, but works at a lower semantic level of the IR. This
     pass aims to optimize patterns such as
     ```mlir
-      %10 = call @llvm.stacksave()
+      %10 = call @llvm.stacksave.p0()
       %24 = cc.alloca !T
-      call @llvm.stackrestore(%10)
+      call @llvm.stackrestore.p0(%10)
     ```
     such that the allocation, %24, is moved to the entry block and the two
     stack guards, if they guard no allocations, can be correctly removed.
@@ -1381,6 +1447,8 @@ def UnitarySynthesis : Pass<"unitary-synthesis", "mlir::ModuleOp"> {
       }
     ```
   }];
+  let dependentDialects = ["mlir::arith::ArithDialect",
+    "mlir::func::FuncDialect"];
 }
 
 def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {
@@ -1406,6 +1474,9 @@ def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {
     The lower to CFG pass removed all structured operations from a function,
     lowering the body of the function completely to a primitive CFG.
   }];
+
+  let dependentDialects = ["mlir::cf::ControlFlowDialect",
+                           "quake::QuakeDialect", "cudaq::cc::CCDialect"];
 }
 
 def UpdateRegisterNames : Pass<"update-register-names"> {

@@ -7,7 +7,9 @@
  ******************************************************************************/
 
 #include "OrcaRemoteRESTQPU.h"
+#include "common/ServerHelper.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "orca_qpu.h"
 #include "llvm/Support/Base64.h"
 
 using namespace cudaq;
@@ -52,7 +54,8 @@ void cudaq::OrcaRemoteRESTQPU::setTargetBackend(const std::string &backend) {
   /// pipeline.
   // Set the qpu name
   qpuName = mutableBackend;
-  serverHelper = registry::get<ServerHelper>(qpuName);
+  serverHelper = cudaq::owning_ptr<ServerHelper>(
+      registry::get<ServerHelper>(qpuName).release());
   serverHelper->initialize(backendConfig);
 
   // Give the server helper to the executor
@@ -91,6 +94,16 @@ KernelThunkResultType cudaq::OrcaRemoteRESTQPU::launchKernelCommon(
 
   // TODO: support dynamic result types.
   return {};
+}
+
+void cudaq::OrcaRemoteRESTQPU::enqueue(cudaq::QuantumTask &task) {
+  CUDAQ_INFO("OrcaRemoteRESTQPU: Enqueue Task on QPU {}", qpu_id);
+  execution_queue->enqueue(task);
+}
+
+void cudaq::OrcaRemoteRESTQPU::launchKernel(const std::string &,
+                                            const std::vector<void *> &) {
+  throw std::runtime_error("launch kernel on raw args not implemented");
 }
 
 CUDAQ_REGISTER_TYPE(QPU, OrcaRemoteRESTQPU, orca)

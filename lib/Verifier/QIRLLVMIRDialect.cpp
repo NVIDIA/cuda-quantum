@@ -74,7 +74,7 @@ LogicalResult cudaq::verifier::checkQIRLLVMIRDialect(ModuleOp module,
         func && func->hasAttr(cudaq::kernelAttrName))
       funcs.push_back(func);
 
-  const bool isBaseProfile = profile.startswith("qir-base");
+  const bool isBaseProfile = profile.starts_with("qir-base");
   auto *ctx = module.getContext();
   for (auto func : funcs) {
     auto walkResult = func.walk([&](Operation *op) {
@@ -87,19 +87,28 @@ LogicalResult cudaq::verifier::checkQIRLLVMIRDialect(ModuleOp module,
         if (!funcNameAttr)
           return WalkResult::advance();
         auto funcName = funcNameAttr.getValue();
-        if (isBaseProfile && (!funcName.startswith("__quantum_") ||
-                              funcName.equals(cudaq::opt::QIRCustomOp))) {
+        if (isBaseProfile && (!funcName.starts_with("__quantum_") ||
+                              funcName == cudaq::opt::QIRCustomOp)) {
           call.emitOpError("unexpected call in QIR base profile");
           return WalkResult::interrupt();
         }
 
         // Check that qubits are unique values.
         const std::size_t numOpnds = call.getNumOperands();
-        auto qubitTy = cudaq::opt::getQubitType(ctx);
-        if (numOpnds > 0)
-          for (std::size_t i = 0; i < numOpnds - 1; ++i)
+        auto qubitTy = cudaq::cg::getQubitType(ctx);
+        // Determine how many leading operands are qubit pointers. With
+        // opaque pointers, Qubit* and Result* are both !llvm.ptr so we
+        // cannot distinguish them by type. For measurement functions
+        // like mz__body(Qubit*, Result*), only the first operand is a
+        // qubit; the second is a Result. Limit the uniqueness check to
+        // qubit operand indices only.
+        std::size_t numQubitOpnds = numOpnds;
+        if (funcName == cudaq::opt::QIRMeasureBody)
+          numQubitOpnds = 1;
+        if (numQubitOpnds > 1)
+          for (std::size_t i = 0; i < numQubitOpnds - 1; ++i)
             if (call.getOperand(i).getType() == qubitTy)
-              for (std::size_t j = i + 1; j < numOpnds; ++j)
+              for (std::size_t j = i + 1; j < numQubitOpnds; ++j)
                 if (call.getOperand(j).getType() == qubitTy) {
                   auto i1 =
                       call.getOperand(i).getDefiningOp<LLVM::IntToPtrOp>();

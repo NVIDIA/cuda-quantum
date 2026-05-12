@@ -17,10 +17,10 @@
 // clang-format off
 // RUN: if [[ "$OSTYPE" == "darwin"* ]]; then \
 // RUN: nvq++ %s -o %t 2>&1 | FileCheck %s --check-prefix=COMPILE_ERROR_MACOS ; \
-// RUN: nvq++ %s -o --target quantinuum --emulate %t 2>&1 | FileCheck %s --check-prefix=COMPILE_ERROR_MACOS ; \
+// RUN: nvq++ %s --target quantinuum --emulate -o %t 2>&1 | FileCheck %s --check-prefix=COMPILE_ERROR_MACOS ; \
 // RUN: else \
 // RUN: nvq++ %s -o %t 2>&1 | FileCheck %s --check-prefix=COMPILE_ERROR ; \
-// RUN: nvq++ %s -o --target quantinuum --emulate %t 2>&1 | FileCheck %s --check-prefix=COMPILE_ERROR ; \
+// RUN: nvq++ %s --target quantinuum --emulate -o %t 2>&1 | FileCheck %s --check-prefix=COMPILE_ERROR ; \
 // RUN: fi
 // clang-format on
 
@@ -57,4 +57,5 @@ int main() {
 // toolchain.
 
 // COMPILE_ERROR: undefined {{.*}}add_op
-// COMPILE_ERROR_MACOS: Undefined symbols for architecture
+// COMPILE_ERROR_MACOS: {{undefined symbol|Undefined symbols}}
+// COMPILE_ERROR_MACOS: {{_?add_op}}

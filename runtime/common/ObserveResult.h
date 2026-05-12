@@ -10,7 +10,6 @@
 
 #include "SampleResult.h"
 #include "cudaq/operators.h"
-
 #include <cassert>
 
 namespace cudaq {

@@ -11,6 +11,7 @@
 #include "RestClient.h"
 #include "ServerHelper.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "nlohmann/json.hpp"
 #include <thread>
 
 namespace cudaq::details {
