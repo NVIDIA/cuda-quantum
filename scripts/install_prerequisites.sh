@@ -323,11 +323,10 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
 fi
 
 # [Zlib] Needed to build LLVM with zlib support (used by linker)
-# [Minizip] Needed by rest_server for archive handling
 # Build both from source for consistency across platforms.
 if [ -n "$ZLIB_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep zlib)" ]; then
-  if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libz.a" ] || [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libminizip.a" ]; then
-    echo "Installing libz and minizip..."
+  if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libz.a" ]; then
+    echo "Installing libz..."
     temp_install_if_command_unknown wget wget
     temp_install_if_command_unknown make make
     temp_install_if_command_unknown automake automake
@@ -347,23 +346,11 @@ if [ -n "$ZLIB_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep zlib)" ]
     CC="$CC" CFLAGS="-fPIC" \
     ./configure --prefix="$ZLIB_INSTALL_PREFIX" --static
     make CC="$CC" && make install
-    cd contrib/minizip
-    # On macOS with Homebrew, set up environment for autoreconf:
-    # - Add Homebrew's m4 macros to aclocal search path
-    # - Point LIBTOOLIZE to glibtoolize (Homebrew's GNU libtoolize)
-    if [ "$(uname)" = "Darwin" ] && [ -x "$(command -v brew)" ]; then
-      export ACLOCAL_PATH="$(brew --prefix)/share/aclocal${ACLOCAL_PATH:+:$ACLOCAL_PATH}"
-      export LIBTOOLIZE=glibtoolize
-    fi
-    autoreconf --install
-    CC="$CC" CFLAGS="-fPIC" \
-    ./configure --prefix="$ZLIB_INSTALL_PREFIX" --disable-shared
-    make CC="$CC" && make install
 
     popd
     remove_temp_installs
   else
-    echo "libz and minizip already installed in $ZLIB_INSTALL_PREFIX."
+    echo "libz already installed in $ZLIB_INSTALL_PREFIX."
   fi
 fi
 

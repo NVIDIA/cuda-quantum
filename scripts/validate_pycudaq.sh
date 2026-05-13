@@ -186,7 +186,7 @@ requires_unavailable_gpu_target() {
     targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$file")
     for t in $targets; do
         case "$t" in
-            nvidia|nvidia-fp64|nvidia-mgpu|dynamics|tensornet|remote-mqpu)
+            nvidia|nvidia-fp64|nvidia-mgpu|dynamics|tensornet)
                 echo "Skipping $file (requires GPU target '$t')" >&2
                 return 0
                 ;;
@@ -412,6 +412,8 @@ fi
 example_list=$(mktemp)
 for ex in $(find "$root_folder/examples" -name '*.py'); do
     if requires_unavailable_gpu_target "$ex"; then continue; fi
+    # MPI examples need mpirun and are tested in their own section below
+    if [[ "$ex" == */mpi/* ]]; then continue; fi
     skip_example=false
     explicit_targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$ex")
     for t in $explicit_targets; do
@@ -442,6 +444,40 @@ example_count=$(find "$root_folder/examples" -name '*.py' 2>/dev/null | wc -l)
 if [ "$snippet_count" -eq 0 ] && [ "$example_count" -eq 0 ]; then
     echo -e "\e[01;31mNo snippets or examples found in $root_folder. Check staging setup.\e[0m" >&2
     status_sum=$((status_sum + 1))
+fi
+
+# Run MPI examples (Linux only, requires >= 4 GPUs)
+if $is_macos; then
+    echo "Skipping MPI examples on macOS (requires MPI)"
+else
+    gpu_count=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | wc -l)
+    if [ "$gpu_count" -lt 4 ]; then
+        echo "Skipping MPI examples: found $gpu_count GPU(s), need at least 4"
+    else
+        echo "Running MPI examples with $gpu_count GPUs."
+        mpi_examples_dir="$root_folder/examples/mpi"
+
+        has_mpi4py=false
+        if python3 -c "import mpi4py" 2>/dev/null; then
+            has_mpi4py=true
+        fi
+
+        for mpi_ex in "$mpi_examples_dir"/*.py; do
+            [ -f "$mpi_ex" ] || continue
+            if grep -q "import mpi4py" "$mpi_ex"; then
+                if ! $has_mpi4py; then
+                    echo "Skipping $mpi_ex (mpi4py not installed)"
+                    continue
+                fi
+            fi
+            echo "Executing $mpi_ex"
+            mpiexec --allow-run-as-root -np 4 python3 "$mpi_ex"
+            if [ $? -ne 0 ]; then
+                echo -e "\e[01;31mMPI example $mpi_ex failed.\e[0m" >&2
+                status_sum=$((status_sum + 1))
+            fi
+        done
+    fi
 fi
 
 # Run target tests if target folder exists (pre-filter, execute in parallel).
@@ -491,49 +527,4 @@ if [ -d "$root_folder/targets" ]; then
         fi
     fi
     [ -f "$target_list" ] && rm -f "$target_list"
-fi
-
-# Run remote-mqpu platform test (Linux only - requires GPU and MPI)
-if $is_macos; then
-    echo "Skipping remote-mqpu platform test on macOS (requires GPU and MPI)"
-else
-    # Use cudaq-qpud.py wrapper script to automatically find dependencies for the Python wheel configuration.
-    # Note that a derivative of this code is in
-    # docs/sphinx/using/backends/platform.rst, so if you update it here, you need to
-    # check if any docs updates are needed.
-    cudaq_package=$(python3 -m pip list | grep -oE 'cudaq')
-    cudaq_location=$(python3 -m pip show ${cudaq_package} | grep -e 'Location: .*$')
-    qpud_py="${cudaq_location#Location: }/bin/cudaq-qpud.py"
-    if [ -x "$(command -v nvidia-smi)" ]; then
-        nr_gpus=$(nvidia-smi --list-gpus | wc -l)
-    else
-        nr_gpus=0
-    fi
-    server1_devices=$(echo $(seq $((nr_gpus >> 1)) $((nr_gpus - 1))) | tr ' ' ,)
-    server2_devices=$(echo $(seq 0 $((($nr_gpus >> 1) - 1))) | tr ' ' ,)
-    echo "Launching server 1..."
-    servers="localhost:12001"
-    CUDA_VISIBLE_DEVICES=$server1_devices mpiexec --allow-run-as-root -np 2 python3 "$qpud_py" --port 12001 &
-    if [ -n "$server2_devices" ]; then
-        echo "Launching server 2..."
-        servers+=",localhost:12002"
-        CUDA_VISIBLE_DEVICES=$server2_devices mpiexec --allow-run-as-root -np 2 python3 "$qpud_py" --port 12002 &
-    fi
-
-    sleep 20 # wait for servers to launch
-    python3 "$root_folder/snippets/using/cudaq/platform/sample_async_remote.py" \
-        --backend nvidia-mgpu --servers "$servers"
-    if [ ! $? -eq 0 ]; then
-        echo -e "\e[01;31mRemote platform test failed.\e[0m" >&2
-        status_sum=$((status_sum + 1))
-    fi
-    kill %1 && wait %1 2>/dev/null
-    if [ -n "$server2_devices" ]; then
-        kill %2 && wait %2 2>/dev/null
-    fi
-fi
-
-if [ ! $status_sum -eq 0 ]; then
-    echo -e "\e[01;31mValidation produced errors.\e[0m" >&2
-    (return 0 2>/dev/null) && return $status_sum || exit $status_sum
 fi

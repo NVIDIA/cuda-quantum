@@ -503,19 +503,6 @@ target_link_libraries(test_utils
   gtest_main)
 gtest_discover_tests(test_utils PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
 
-add_executable(test_json_convert main.cpp common/JsonConvertTester.cpp)
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_json_convert PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
-endif()
-target_link_libraries(test_json_convert
-  PRIVATE
-  cudaq
-  cudaq-platform-default
-  nvqir
-  nvqir-qpp
-  gtest_main)
-gtest_discover_tests(test_json_convert PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
-
 add_executable(test_ptsbe main.cpp
   ptsbe/KrausSelectionTester.cpp
   ptsbe/KrausTrajectoryTester.cpp
