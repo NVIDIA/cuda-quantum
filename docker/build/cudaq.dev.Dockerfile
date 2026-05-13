@@ -91,15 +91,24 @@ RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
 # defaults to false so non-CI builds skip these stages entirely.
 FROM devbuild AS test
 ARG run_tests=false
+# Tag/image hint for the failure repro block (CUDAQ_REPRO_TEST). CI passes
+# the resolved image name so users can copy-paste `docker pull <image>` to
+# get the exact image their test failed against. Defaults to a placeholder
+# for local builds.
+ARG cudaq_repro_image=cuda-quantum-dev:local
+COPY scripts/cudaq_repro_wrap.sh /usr/local/bin/cudaq_repro_wrap.sh
+RUN chmod +x /usr/local/bin/cudaq_repro_wrap.sh
 RUN if [ "$run_tests" = "true" ]; then \
         cd $CUDAQ_REPO_ROOT && \
         python3 -m pip install -r requirements-tests-backend.txt --break-system-packages && \
-        bash scripts/run_tests.sh -v; \
+        /usr/local/bin/cudaq_repro_wrap.sh "$cudaq_repro_image" \
+            -- bash scripts/run_tests.sh -v; \
     fi
 
 FROM test AS test-mpi
 ARG run_tests=false
 ARG mpi=
+ARG cudaq_repro_image=cuda-quantum-dev:local
 RUN if [ "$run_tests" = "true" ] && [ -n "$mpi" ]; then \
         has_ompiinfo=$(which ompi_info || true) && \
         if [ -n "$has_ompiinfo" ]; then \
@@ -109,7 +118,8 @@ RUN if [ "$run_tests" = "true" ] && [ -n "$mpi" ]; then \
         fi && \
         source $CUDAQ_INSTALL_PREFIX/distributed_interfaces/activate_custom_mpi.sh && \
         cd $CUDAQ_REPO_ROOT && \
-        ctest --test-dir build -R MPIApiTest -V; \
+        /usr/local/bin/cudaq_repro_wrap.sh "$cudaq_repro_image" \
+            -- ctest --test-dir build -R MPIApiTest -V; \
     fi
 
 # CI coverage stage. Build with --target coverage to generate code

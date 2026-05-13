@@ -175,7 +175,7 @@ jobs:
 
       - name: Build Open MPI
         id: docker_build
-        uses: docker/build-push-action@v5
+        uses: ./.github/actions/build-docker
         with:
           context: .
           file: ./docker/build/devcontainer.Dockerfile
@@ -352,7 +352,7 @@ jobs:
 
       - name: Build cuda-quantum-dev image (debug)
         id: docker_build
-        uses: docker/build-push-action@v5
+        uses: ./.github/actions/build-docker
         with:
           context: .
           file: ./docker/build/cudaq.dev.Dockerfile
@@ -362,6 +362,7 @@ jobs:
             base_image=${{ steps.prereqs.outputs.base_image }}
             install="CMAKE_BUILD_TYPE=Debug"
             git_source_sha=${{ github.sha }}
+            cudaq_repro_image=${{ steps.metadata.outputs.tags }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}
@@ -622,7 +623,7 @@ jobs:
       - name: Build cuda-quantum-dev image (release)
         id: release_build
         if: success() && !cancelled()
-        uses: docker/build-push-action@v5
+        uses: ./.github/actions/build-docker
         with:
           context: .
           file: ./docker/build/cudaq.dev.Dockerfile
@@ -632,6 +633,7 @@ jobs:
             base_image=${{ steps.prereqs.outputs.devdeps_image }}
             install="CMAKE_BUILD_TYPE=Release CUDA_QUANTUM_VERSION=${{ steps.prereqs.outputs.image_tag }}"
             git_source_sha=${{ github.sha }}
+            cudaq_repro_image=${{ steps.cudaqdev_metadata.outputs.tags }}
           tags: ${{ steps.cudaqdev_metadata.outputs.tags }}
           labels: ${{ steps.cudaqdev_metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}
@@ -706,7 +708,7 @@ jobs:
       - name: Build cuda-quantum image
         id: cudaq_build
         if: success() && !cancelled()
-        uses: docker/build-push-action@v5
+        uses: ./.github/actions/build-docker
         with:
           context: .
           file: ./docker/release/cudaq.Dockerfile

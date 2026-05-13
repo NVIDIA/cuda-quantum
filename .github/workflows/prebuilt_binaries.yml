@@ -168,7 +168,7 @@ jobs:
 
       - name: Build assets
         id: docker_build
-        uses: docker/build-push-action@v5
+        uses: ./.github/actions/build-docker
         with:
           context: .
           file: ./docker/build/assets.Dockerfile
@@ -178,6 +178,7 @@ jobs:
             release_version=${{ steps.config.outputs.cudaq_version }}
             base_image=${{ inputs.platform_base_image }}
             cuda_version=${{ inputs.cuda_version }}
+            cudaq_repro_image=${{ steps.metadata.outputs.tags }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: ${{ inputs.platform }}
@@ -227,7 +228,7 @@ jobs:
         run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
       - name: Build installer
-        uses: docker/build-push-action@v5
+        uses: ./.github/actions/build-docker
         with:
           context: .
           file: ./docker/release/installer.Dockerfile
@@ -298,7 +299,7 @@ jobs:
           password: ${{ github.token }}
 
       - name: Build OpenMPI
-        uses: docker/build-push-action@v5
+        uses: ./.github/actions/build-docker
         with:
           context: .
           file: ./docker/test/installer/linux.Dockerfile

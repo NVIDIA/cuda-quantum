@@ -305,6 +305,12 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
 
 ## [Python Tests]
 FROM python_build AS python_tests
+# Tag/image hint for the failure repro block. CI passes the resolved image
+# name so users can `docker pull <image>` to reproduce a failed test.
+ARG cudaq_repro_image=cuda-quantum-assets:local
+COPY scripts/cudaq_repro_wrap.sh /usr/local/bin/cudaq_repro_wrap.sh
+RUN chmod +x /usr/local/bin/cudaq_repro_wrap.sh
+
 RUN gcc_packages=$(dnf list installed "gcc*" | sed '/Installed Packages/d' | cut -d ' ' -f1) && \
     dnf remove -y $gcc_packages && dnf clean all && \
     dnf install -y --nobest --setopt=install_weak_deps=False glibc-devel
@@ -312,12 +318,17 @@ RUN gcc_packages=$(dnf list installed "gcc*" | sed '/Installed Packages/d' | cut
 ## [Python MLIR tests]
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     python3 -m pip install lit pytest scipy && \
-    "${LLVM_INSTALL_PREFIX}/bin/llvm-lit" -v _skbuild/python/tests/mlir \
-        --param nvqpp_site_config=_skbuild/python/tests/mlir/lit.site.cfg.py
+    /usr/local/bin/cudaq_repro_wrap.sh "$cudaq_repro_image" -- \
+        "${LLVM_INSTALL_PREFIX}/bin/llvm-lit" -v _skbuild/python/tests/mlir \
+            --param nvqpp_site_config=_skbuild/python/tests/mlir/lit.site.cfg.py
 # The other tests for the Python wheel are run post-installation.
 
 ## [C++ Tests]
 FROM cpp_build AS cpp_tests
+ARG cudaq_repro_image=cuda-quantum-assets:local
+COPY scripts/cudaq_repro_wrap.sh /usr/local/bin/cudaq_repro_wrap.sh
+RUN chmod +x /usr/local/bin/cudaq_repro_wrap.sh
+
 RUN gcc_packages=$(dnf list installed "gcc*" | sed '/Installed Packages/d' | cut -d ' ' -f1) && \
     dnf remove -y $gcc_packages && dnf clean all && \
     dnf install -y --nobest --setopt=install_weak_deps=False glibc-devel
@@ -332,7 +343,8 @@ RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUD
     # FIXME: Tensor unit tests for runtime errors throw a different exception.
     # Issue: https://github.com/NVIDIA/cuda-quantum/issues/2321
     excludes+=" --exclude-regex ctest-nvqpp|ctest-targettests|pycudaq-mlir|Tensor.*Error" && \
-    ctest --output-on-failure --test-dir build $excludes
+    /usr/local/bin/cudaq_repro_wrap.sh "$cudaq_repro_image" -- \
+        ctest --output-on-failure --test-dir build $excludes
 
 ENV PATH="${PATH}:/usr/local/cuda/bin" 
 RUN if [ -x "$(command -v nvidia-smi)" ] && [ -n "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" ]; then \
@@ -352,16 +364,18 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
         filtered=" --filter-out MixedLanguage/cuda-1"; \
 	filtered+="|AST-Quake/calling_convention|test_argument_conversion"; \
     fi && \
-    "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/test \
-        --param nvqpp_site_config=build/test/lit.site.cfg.py ${filtered} && \
+    /usr/local/bin/cudaq_repro_wrap.sh "$cudaq_repro_image" -- \
+        "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/test \
+            --param nvqpp_site_config=build/test/lit.site.cfg.py ${filtered} && \
     # FIXME: Some tests are still failing when building against libc++
     # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1712
     filtered=" --filter-out Kernel/inline-qpu-func|execution/vector_bool_parameters" && \
     if [ ! -x "$(command -v nvcc)" ]; then \
         filtered+="|TargetConfig/check_compile"; \
     fi && \
-    "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/targettests \
-        --param nvqpp_site_config=build/targettests/lit.site.cfg.py ${filtered}
+    /usr/local/bin/cudaq_repro_wrap.sh "$cudaq_repro_image" -- \
+        "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/targettests \
+            --param nvqpp_site_config=build/targettests/lit.site.cfg.py ${filtered}
 
 # Export ccache data so CI can extract it for persistence.
 # Tar inside the container to export a single file instead of thousands of

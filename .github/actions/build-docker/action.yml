@@ -1,0 +1,313 @@
+name: build-docker
+description: |
+  Wrapper around docker/build-push-action@v5 that emits a copy-pasteable
+  "docker buildx build ..." command to the job log and step summary before
+  invoking the underlying build.
+
+  Workflows use this in place of docker/build-push-action@v5. The repro
+  command is bracketed with banner strings:
+      >>> CUDAQ_REPRO_BUILD <<<
+      ...
+      <<< CUDAQ_REPRO_BUILD >>>
+  so ci.yml's CI Summary can grep the log for them and embed deep-links
+  into the PR comment. Do NOT change these banner strings without updating
+  the ci_summary grep.
+
+  Inputs mirror docker/build-push-action@v5's documented inputs for every
+  parameter we currently use across the repo. Adding a new input here means
+  also forwarding it in the `build` step below.
+
+inputs:
+  context:
+    required: false
+    default: '.'
+  file:
+    required: true
+  platforms:
+    required: false
+    default: ''
+  target:
+    required: false
+    default: ''
+  build-args:
+    required: false
+    default: ''
+  build-contexts:
+    required: false
+    default: ''
+  cache-from:
+    required: false
+    default: ''
+  cache-to:
+    required: false
+    default: ''
+  tags:
+    required: false
+    default: ''
+  labels:
+    required: false
+    default: ''
+  outputs:
+    required: false
+    default: ''
+  load:
+    required: false
+    default: 'false'
+  push:
+    required: false
+    default: 'false'
+  secrets:
+    required: false
+    default: ''
+  secret-files:
+    required: false
+    default: ''
+  provenance:
+    required: false
+    default: ''
+  sbom:
+    required: false
+    default: ''
+  repro-extra-notes:
+    description: Optional caller-supplied notes (e.g. "requires NGC login") to append to the repro block.
+    required: false
+    default: ''
+
+outputs:
+  digest:
+    description: Image digest (passthrough from docker/build-push-action).
+    value: ${{ steps.build.outputs.digest }}
+  imageid:
+    description: Image ID (passthrough from docker/build-push-action).
+    value: ${{ steps.build.outputs.imageid }}
+  metadata:
+    description: Build metadata (passthrough from docker/build-push-action).
+    value: ${{ steps.build.outputs.metadata }}
+
+runs:
+  using: composite
+  steps:
+    # ------------------------------------------------------------------
+    # Step 1: emit the copy-pasteable repro command BEFORE the build.
+    # Always runs; even if the underlying build later fails, the repro
+    # is already in the log for the user.
+    # ------------------------------------------------------------------
+    - name: Emit CUDAQ_REPRO_BUILD block
+      shell: bash
+      env:
+        CONTEXT: ${{ inputs.context }}
+        FILE: ${{ inputs.file }}
+        PLATFORMS: ${{ inputs.platforms }}
+        TARGET: ${{ inputs.target }}
+        BUILD_ARGS: ${{ inputs.build-args }}
+        BUILD_CONTEXTS: ${{ inputs.build-contexts }}
+        CACHE_FROM: ${{ inputs.cache-from }}
+        TAGS: ${{ inputs.tags }}
+        LOAD_INPUT: ${{ inputs.load }}
+        PUSH_INPUT: ${{ inputs.push }}
+        SECRETS_INPUT: ${{ inputs.secrets }}
+        SECRET_FILES_INPUT: ${{ inputs.secret-files }}
+        REPRO_NOTES: ${{ inputs.repro-extra-notes }}
+        GH_SHA: ${{ github.sha }}
+        GH_REPO_OWNER: ${{ github.repository_owner }}
+      run: |
+        # Build the repro block in a temp file, then emit it to both stdout
+        # and $GITHUB_STEP_SUMMARY. Don't `set -e` — emitting the repro is
+        # best-effort; never let a quoting bug here block the real build.
+        set -uo pipefail
+
+        out=$(mktemp)
+        trap "rm -f $out" EXIT
+
+        # Pattern for build-arg names that should have their VALUE redacted
+        # (name is still preserved as useful diagnostic info).
+        redact_re='^([A-Z_]*_(TOKEN|KEY|SECRET|PASSWORD|PASS)|GITHUB_TOKEN|NGC_API_KEY|DOCKERHUB_.*|AWS_SECRET.*|AWS_ACCESS.*)='
+
+        emit_arg() {
+          # $1 = full "NAME=value" string. Print --build-arg with redaction
+          # if name matches the redact pattern.
+          local kv="$1"
+          [ -z "$kv" ] && return 0
+          if [[ "$kv" =~ $redact_re ]]; then
+            local name="${kv%%=*}"
+            printf '    --build-arg %q \\\n' "${name}=<REDACTED>"
+          else
+            printf '    --build-arg %q \\\n' "$kv"
+          fi
+        }
+
+        emit_context() {
+          # $1 = "name=value" build-context. No redaction (these are paths).
+          local kv="$1"
+          [ -z "$kv" ] && return 0
+          printf '    --build-context %q \\\n' "$kv"
+        }
+
+        emit_cache_from() {
+          # $1 = a cache-from line. Redact if it looks like it embeds creds.
+          local line="$1"
+          [ -z "$line" ] && return 0
+          if echo "$line" | grep -qE '(Authorization=|token=|://[^@/]*:[^@/]*@)'; then
+            printf '    --cache-from %q \\\n' "<REDACTED: contained auth>"
+          else
+            printf '    --cache-from %q \\\n' "$line"
+          fi
+        }
+
+        # ------------------------------------------------------------------
+        # Compose the repro block.
+        # ------------------------------------------------------------------
+        {
+          echo '>>> CUDAQ_REPRO_BUILD <<<'
+          echo '## Reproduce this build locally'
+          echo
+          echo '```bash'
+          echo "docker buildx version || { echo 'Install Docker buildx: https://docs.docker.com/build/install-buildx/'; exit 1; }"
+          echo
+          echo '# 1. Check out the same commit'
+          echo "git checkout ${GH_SHA}"
+          echo
+
+          # ccache hint, if any build-context references ccache-data=
+          if echo "$BUILD_CONTEXTS" | grep -q '^ccache-data='; then
+            echo "# 2. (Optional) Restore ccache snapshot — replace <tag> with the"
+            echo "#    cache key shown in ccache-restore step's logs above."
+            echo "oras pull ghcr.io/${GH_REPO_OWNER,,}/cuda-quantum-linux-ccache:<tag>"
+            echo 'mkdir -p /tmp/ccache-data && tar -xf ccache-*.tar -C /tmp/ccache-data'
+            echo
+          fi
+
+          echo '# 3. Build'
+          echo 'docker buildx build \'
+
+          # File / dockerfile
+          if [ -n "$FILE" ]; then
+            printf '    -f %q \\\n' "$FILE"
+          fi
+
+          # Platform handling. If push:true + multi-platform in CI, rewrite
+          # to --load and drop multi-arch (--load doesn't support multi-arch).
+          local_push_strip_platform=false
+          if [ -n "$PLATFORMS" ]; then
+            if [[ "$PLATFORMS" == *","* && ( "$PUSH_INPUT" == "true" || "$LOAD_INPUT" == "true" ) ]]; then
+              # Multi-arch in CI — for local repro, pick the first one and
+              # tell the user how to switch.
+              first_plat="${PLATFORMS%%,*}"
+              printf '    --platform %q \\\n' "$first_plat"
+              local_push_strip_platform=true
+            else
+              printf '    --platform %q \\\n' "$PLATFORMS"
+            fi
+          fi
+
+          if [ -n "$TARGET" ]; then
+            printf '    --target %q \\\n' "$TARGET"
+          fi
+
+          # build-args (newline-separated)
+          if [ -n "$BUILD_ARGS" ]; then
+            while IFS= read -r arg; do
+              emit_arg "$arg"
+            done <<< "$BUILD_ARGS"
+          fi
+
+          # build-contexts (newline-separated)
+          if [ -n "$BUILD_CONTEXTS" ]; then
+            while IFS= read -r ctx; do
+              emit_context "$ctx"
+            done <<< "$BUILD_CONTEXTS"
+          fi
+
+          # cache-from (newline-separated, with auth redaction)
+          if [ -n "$CACHE_FROM" ]; then
+            while IFS= read -r cf; do
+              emit_cache_from "$cf"
+            done <<< "$CACHE_FROM"
+          fi
+
+          # Local repro tags. Take the first tag from CI as a hint, but
+          # always rewrite the published name to a local one — the user
+          # can't push to the CI registry.
+          echo "    --load \\"
+          echo "    -t cudaq-repro:local \\"
+
+          # Secrets: emit template lines, never values.
+          if [ -n "$SECRETS_INPUT" ]; then
+            while IFS= read -r sec; do
+              [ -z "$sec" ] && continue
+              name="${sec%%=*}"
+              printf '    --secret id=%q,env=%s \\\n' "$name" "$name"
+            done <<< "$SECRETS_INPUT"
+          fi
+          if [ -n "$SECRET_FILES_INPUT" ]; then
+            while IFS= read -r sec; do
+              [ -z "$sec" ] && continue
+              name="${sec%%=*}"
+              printf '    --secret id=%q,src=/path/to/your/%s \\\n' "$name" "$name"
+            done <<< "$SECRET_FILES_INPUT"
+          fi
+
+          # Context (build context, last positional arg).
+          printf '    %q\n' "$CONTEXT"
+          echo '```'
+
+          echo
+          echo 'Notes:'
+          # Redaction summary
+          redacted_names=()
+          if [ -n "$BUILD_ARGS" ]; then
+            while IFS= read -r arg; do
+              [ -z "$arg" ] && continue
+              if [[ "$arg" =~ $redact_re ]]; then
+                redacted_names+=("${arg%%=*}")
+              fi
+            done <<< "$BUILD_ARGS"
+          fi
+          if [ ${#redacted_names[@]} -gt 0 ]; then
+            echo "- Redacted build-arg values: ${redacted_names[*]}"
+          fi
+          if $local_push_strip_platform; then
+            echo "- CI built multi-platform via --push; repro rewrites to --load with the first platform only. Edit --platform to switch."
+          else
+            echo "- If you only have one architecture locally, drop --platform or set --platform linux/amd64."
+          fi
+          echo "- The repro uses --load to import into local docker; the CI tag is replaced with cudaq-repro:local."
+          if [ -n "$REPRO_NOTES" ]; then
+            echo
+            echo "Caller notes:"
+            echo "$REPRO_NOTES"
+          fi
+
+          echo '<<< CUDAQ_REPRO_BUILD >>>'
+        } > "$out"
+
+        # Emit to stdout (visible in raw log; ci_summary greps this)
+        cat "$out"
+        # Also write to step summary (UI rendering)
+        cat "$out" >> "$GITHUB_STEP_SUMMARY"
+
+    # ------------------------------------------------------------------
+    # Step 2: invoke the underlying docker/build-push-action@v5 with
+    # every input forwarded verbatim.
+    # ------------------------------------------------------------------
+    - name: Build
+      id: build
+      uses: docker/build-push-action@v5
+      with:
+        context: ${{ inputs.context }}
+        file: ${{ inputs.file }}
+        platforms: ${{ inputs.platforms }}
+        target: ${{ inputs.target }}
+        build-args: ${{ inputs.build-args }}
+        build-contexts: ${{ inputs.build-contexts }}
+        cache-from: ${{ inputs.cache-from }}
+        cache-to: ${{ inputs.cache-to }}
+        tags: ${{ inputs.tags }}
+        labels: ${{ inputs.labels }}
+        outputs: ${{ inputs.outputs }}
+        load: ${{ inputs.load }}
+        push: ${{ inputs.push }}
+        secrets: ${{ inputs.secrets }}
+        secret-files: ${{ inputs.secret-files }}
+        provenance: ${{ inputs.provenance }}
+        sbom: ${{ inputs.sbom }}

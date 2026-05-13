@@ -626,6 +626,55 @@ jobs:
             echo "::error file=.github/required-checks.yml::$n_missing required check(s) missing for event '$EVENT_NAME': ${missing[*]}"
           fi
 
+      # Append a "Reproduce failures locally" section to the PR comment.
+      # For each failed job, grep its log for CUDAQ_REPRO_BUILD /
+      # CUDAQ_REPRO_TEST banners; if found, link directly to the job log
+      # so reviewers can see the copy-pasteable command without clicking
+      # through the matrix. Cheap on API budget (only fetches logs for
+      # actually-failed jobs, typically 0-3 per run).
+      - name: Append reproduction hints to PR comment
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+          REPO: ${{ github.repository }}
+          SERVER_URL: ${{ github.server_url }}
+        run: |
+          set -uo pipefail
+          # Failed jobs only — successful jobs' repro blocks aren't actionable.
+          mapfile -t failed_jobs < <(jq -c '.[] | select(.conclusion == "failure") | {id: .id, name: .name, html_url: .html_url}' /tmp/jobs.json)
+          if [ ${#failed_jobs[@]} -eq 0 ]; then
+            echo "No failed jobs; skipping reproduction-hints section."
+            exit 0
+          fi
+
+          {
+            echo ""
+            echo "### :wrench: Reproduce failures locally"
+            echo ""
+            echo "Each failed job's log contains a copy-pasteable command bracketed by \`>>> CUDAQ_REPRO_BUILD <<<\` (for build failures) or \`>>> CUDAQ_REPRO_TEST <<<\` (for test failures). Click the link and grep the log."
+            echo ""
+            echo "| Failed job | Repro banner | Log |"
+            echo "| --- | --- | --- |"
+          } >> /tmp/comment.md
+
+          for job_entry in "${failed_jobs[@]}"; do
+            job_id=$(jq -r '.id' <<< "$job_entry")
+            job_name=$(jq -r '.name' <<< "$job_entry")
+            job_url=$(jq -r '.html_url' <<< "$job_entry")
+
+            # Best-effort log fetch; on API failure, fall back to "unknown".
+            banner="not found"
+            if log_body=$(gh api "repos/$REPO/actions/jobs/$job_id/logs" 2>/dev/null); then
+              if echo "$log_body" | grep -q "CUDAQ_REPRO_BUILD"; then
+                banner='`CUDAQ_REPRO_BUILD`'
+              elif echo "$log_body" | grep -q "CUDAQ_REPRO_TEST"; then
+                banner='`CUDAQ_REPRO_TEST`'
+              fi
+            fi
+            echo "| \`$job_name\` | $banner | [view log]($job_url) |" >> /tmp/comment.md
+          done
+
       - name: Post or update PR comment
         if: env.PR_NUMBER != ''
         run: |

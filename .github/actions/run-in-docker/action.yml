@@ -20,15 +20,28 @@ runs:
   using: "composite"
   steps:
     - shell: bash
+      env:
+        IMAGE: ${{ inputs.image }}
+        USER_INPUT: ${{ inputs.user }}
+        SHELL_INPUT: ${{ inputs.shell }}
+        VOLUME_INPUT: ${{ inputs.volume }}
+        RUN_INPUT: ${{ inputs.run }}
       run: |
-        if [ -x "$(command -v nvidia-smi)" ] && [ "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" != "" ]; 
+        # Intentionally NOT using `set -e` because we capture the docker
+        # exec exit code manually and emit a CUDAQ_REPRO_TEST block on
+        # failure before propagating it. With `set -e` the script would
+        # exit before the trap can run.
+        set -uo pipefail
+
+        if [ -x "$(command -v nvidia-smi)" ] && [ "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" != "" ];
         then additional_run_args="--gpus all"
+        else additional_run_args=""
         fi
 
         # Check if a volume mapping is specified and set the option
         volume_option=""
-        if [ -n "${{ inputs.volume }}" ]; then
-          volume_option="-v ${{ inputs.volume }}"
+        if [ -n "$VOLUME_INPUT" ]; then
+          volume_option="-v $VOLUME_INPUT"
         fi
 
         # Note: "bash -s << EOF" does not play nice with mpirun/mpiexec. It
@@ -39,9 +52,55 @@ runs:
         ${{ inputs.run }}
         EOF
 
-        container=$(docker run --user ${{ inputs.user }} $additional_run_args $volume_option --network host -id ${{ inputs.image }})
+        container=$(docker run --user $USER_INPUT $additional_run_args $volume_option --network host -id "$IMAGE")
+
+        # Resolve the image to its content-addressable digest so the repro
+        # block points at a byte-identical image (tags can drift).
+        image_digest=$(docker inspect --format '{{.Id}}' "$container" 2>/dev/null || echo "$IMAGE")
+
         docker cp $tmpFile $container:$tmpFile
-        docker exec --user root $container chown -R ${{ inputs.user }} $tmpFile
-        docker exec $container ${{ inputs.shell }} $tmpFile
-        docker stop $container
-        rm $tmpFile
+        docker exec --user root $container chown -R "$USER_INPUT" $tmpFile
+
+        # Run the user's shell inside the container. Capture exit code
+        # without crashing this script, so we can emit the repro block.
+        docker exec $container "$SHELL_INPUT" $tmpFile
+        exec_status=$?
+
+        # Always stop the container; cleanup is independent of failure status.
+        docker stop $container >/dev/null
+        rm -f $tmpFile
+
+        if [ "$exec_status" -ne 0 ]; then
+          # Banner string must match the one consumed by ci.yml's CI Summary
+          # grep — do not change without updating the consumer.
+          {
+            echo ''
+            echo '>>> CUDAQ_REPRO_TEST <<<'
+            echo '## Reproduce this test failure locally'
+            echo ''
+            echo '```bash'
+            echo "# Pull the exact image that ran (digest is content-addressable)"
+            echo "docker pull $IMAGE"
+            echo "# (Or pin to the digest for byte-identical reproduction:"
+            echo "#  docker pull $image_digest)"
+            echo ''
+            echo "# Drop into a shell inside the image"
+            if [ -n "$VOLUME_INPUT" ]; then
+              echo "docker run --rm -it -v $VOLUME_INPUT --network host --entrypoint $SHELL_INPUT $IMAGE"
+            else
+              echo "docker run --rm -it --network host --entrypoint $SHELL_INPUT $IMAGE"
+            fi
+            echo ''
+            echo "# Then, inside the container, re-run the failing script:"
+            echo "cat <<'REPRO_EOF' > /tmp/repro.sh"
+            printf '%s\n' "$RUN_INPUT"
+            echo "REPRO_EOF"
+            echo "$SHELL_INPUT /tmp/repro.sh"
+            echo '```'
+            echo ''
+            echo "Failed with exit code: $exec_status"
+            echo '<<< CUDAQ_REPRO_TEST >>>'
+          } | tee -a "${GITHUB_STEP_SUMMARY:-/dev/null}"
+        fi
+
+        exit "$exec_status"
