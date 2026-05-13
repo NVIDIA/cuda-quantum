@@ -62,12 +62,6 @@ LONG_RUNNING_NOTEBOOKS = [
     "qsci.ipynb",
     "uccsd_wf_ansatz.ipynb",
     "vqe_advanced.ipynb",
-]
-
-# TODO: investigate and fix notebook in CI
-EXTERNAL_NETWORK_NOTEBOOKS = [
-    # Downloads `Floki00/qc_unitary_3qubit` from Hugging Face via
-    # DiffusionPipeline.from_pretrained — has timed out at >35 min in CI.
     "unitary_compilation_diffusion_models.ipynb",
 ]
 
@@ -75,7 +69,7 @@ EXTERNAL_NETWORK_NOTEBOOKS = [
 def validate(notebook_filename, available_backends):
     """
     Validate if a notebook can run with the available backends.
-    
+
     This function is fallback-aware: if a notebook has multiple set_target()
     calls (e.g., `nvidia` with `qpp-cpu` fallback), it will return True if ANY
     of the targets is available.
@@ -87,11 +81,6 @@ def validate(notebook_filename, available_backends):
     base_name = os.path.basename(notebook_filename)
     has_gpu = 'nvidia' in available_backends
     if not has_gpu and base_name in GPU_REQUIRED_NOTEBOOKS:
-        return False
-
-    # Notebooks that depend on external network services (HF, etc.) are too
-    # flaky for CI and are unconditionally skipped during validation.
-    if base_name in EXTERNAL_NETWORK_NOTEBOOKS:
         return False
 
     # Collect all set_target calls
