@@ -222,15 +222,13 @@ bool isDynamicallySizedType(Type ty) {
   return false;
 }
 
-static bool containsMeasureHandleImpl(Type ty, bool includeCallables,
+static bool containsMeasureHandleImpl(Type ty,
                                       llvm::SmallPtrSetImpl<Type> &seen) {
   if (!ty || !seen.insert(ty).second)
     return false;
   if (isa<MeasureHandleType>(ty))
     return true;
-  auto recurse = [&](Type t) {
-    return containsMeasureHandleImpl(t, includeCallables, seen);
-  };
+  auto recurse = [&](Type t) { return containsMeasureHandleImpl(t, seen); };
   if (auto p = dyn_cast<PointerType>(ty))
     return recurse(p.getElementType());
   if (auto a = dyn_cast<ArrayType>(ty))
@@ -243,35 +241,16 @@ static bool containsMeasureHandleImpl(Type ty, bool includeCallables,
         return true;
     return false;
   }
-  if (!includeCallables)
-    return false;
-  // Boundary variant: also recursively walk into callable signatures and bare
-  // function types. A kernel taking `std::function<void(measure_handle)>` --
-  // lowered to `cc.callable<(!cc.measure_handle) -> ()>` -- transports a
-  // host-defined callable that the kernel invokes with a handle argument, so
-  // the handle would cross the host-device boundary on every invocation, even
-  // though the kernel signature itself does not syntactically carry a handle.
-  FunctionType ft;
-  if (auto c = dyn_cast<CallableType>(ty))
-    ft = c.getSignature();
-  else if (auto c = dyn_cast<IndirectCallableType>(ty))
-    ft = c.getSignature();
-  else if (auto f = dyn_cast<FunctionType>(ty))
-    ft = f;
-  if (!ft)
-    return false;
-  for (auto t : ft.getInputs())
-    if (recurse(t))
-      return true;
-  for (auto t : ft.getResults())
-    if (recurse(t))
-      return true;
+  // Callable / function types are a type contract for a device-side body, not
+  // a slot for a handle value: the host marshals only the function-pointer
+  // payload, and any handle that the callable produces or consumes lives on
+  // the device side. Stop the walk here.
   return false;
 }
 
-bool containsMeasureHandle(Type ty, bool includeCallables) {
+bool containsMeasureHandle(Type ty) {
   llvm::SmallPtrSet<Type, 8> seen;
-  return containsMeasureHandleImpl(ty, includeCallables, seen);
+  return containsMeasureHandleImpl(ty, seen);
 }
 
 void CCDialect::registerTypes() {

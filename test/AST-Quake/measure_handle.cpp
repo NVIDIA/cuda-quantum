@@ -526,3 +526,28 @@ struct BoolInit {
 // CHECK:           %[[VAL_B:.*]] = quake.discriminate %{{.*}} : (!cc.measure_handle) -> i1
 // CHECK:           %[[VAL_S:.*]] = cc.alloca i1
 // CHECK:           cc.store %[[VAL_B]], %[[VAL_S]] : !cc.ptr<i1>
+
+struct CallableParamReturningHandleVec {
+  void operator()(
+      cudaq::qkernel<std::vector<cudaq::measure_handle>(std::size_t)> cb)
+      __qpu__ {
+    auto syn = cb(2);
+    (void)syn;
+  }
+};
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__CallableParamReturningHandleVec(
+// CHECK-SAME:      %{{.*}}: !cc.indirect_callable<(i64) -> !cc.stdvec<!cc.measure_handle>>
+// CHECK-SAME:      attributes {"cudaq-entrypoint", "cudaq-kernel"
+
+struct CallableParamTakingHandle {
+  void operator()(cudaq::qkernel<void(cudaq::measure_handle)> cb) __qpu__ {
+    cudaq::qubit q;
+    auto h = mz(q);
+    cb(h);
+  }
+};
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__CallableParamTakingHandle(
+// CHECK-SAME:      %{{.*}}: !cc.indirect_callable<(!cc.measure_handle) -> ()>
+// CHECK-SAME:      attributes {"cudaq-entrypoint", "cudaq-kernel"

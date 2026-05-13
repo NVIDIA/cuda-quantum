@@ -49,20 +49,11 @@ bool isDynamicType(mlir::Type ty);
 bool isDynamicallySizedType(mlir::Type ty);
 
 /// Returns true if and only if \p ty transitively contains `!cc.measure_handle`
-/// in its value representation.
-///
-/// When \p includeCallables is `false` (the default), the walk stops at
-/// callable / `FunctionType` boundaries; this is what marshaling and
-/// `cc.alloca`-vs-constructor-call dispatch want, since they need to know
-/// whether the value being moved is itself a handle.
-///
-/// When \p includeCallables is `true`, recursively walk into callable
-/// signatures and bare function types as well; this is what the host-device
-/// entry-point classifier wants, since a kernel taking
-/// `std::function<void(measure_handle)>` (lowered to
-/// `cc.callable<(!cc.measure_handle) -> ()>`) transports a host-defined
-/// callable whose every invocation moves a handle across the boundary.
-bool containsMeasureHandle(mlir::Type ty, bool includeCallables = false);
+/// in its value representation. The walk stops at callable / `FunctionType`
+/// boundaries: the signature of a callable parameter is a device-side type
+/// contract for the body of the callable, not a slot for a handle value, so the
+/// entry-point classifier and the marshaling layer agree to ignore it.
+bool containsMeasureHandle(mlir::Type ty);
 
 /// Determine the number of hidden arguments, which is 0, 1, or 2.
 inline unsigned numberOfHiddenArgs(bool thisPtr, bool sret) {

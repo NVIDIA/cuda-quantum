@@ -66,8 +66,7 @@ static bool isQubitType(Type ty) {
 // position the kernel boundary classifier needs to treat as device-only.
 static bool hasAnyQuakeOrHandleTypes(FunctionType funcTy) {
   auto isDeviceOnly = [](Type ty) {
-    return isQubitType(ty) ||
-           cudaq::cc::containsMeasureHandle(ty, /*includeCallables=*/true);
+    return isQubitType(ty) || cudaq::cc::containsMeasureHandle(ty);
   };
   for (auto ty : funcTy.getInputs())
     if (isDeviceOnly(ty))
@@ -84,10 +83,10 @@ static bool hasAnyQuakeOrHandleTypes(FunctionType funcTy) {
 // qubit references).
 static bool containsHandleInSignature(FunctionType funcTy) {
   for (auto ty : funcTy.getInputs())
-    if (cudaq::cc::containsMeasureHandle(ty, /*includeCallables=*/true))
+    if (cudaq::cc::containsMeasureHandle(ty))
       return true;
   for (auto ty : funcTy.getResults())
-    if (cudaq::cc::containsMeasureHandle(ty, /*includeCallables=*/true))
+    if (cudaq::cc::containsMeasureHandle(ty))
       return true;
   return false;
 }

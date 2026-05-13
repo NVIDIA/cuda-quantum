@@ -74,20 +74,6 @@ struct BoundaryPairOfVectorParam {
   }
 };
 
-struct BoundaryFunctionTypeParam {
-  // expected-error@+1{{measurement handle cannot cross the host-device boundary; entry-point kernels must discriminate first}}
-  void operator()(std::function<void(cudaq::measure_handle)> f) __qpu__ {
-    (void)f;
-  }
-};
-
-struct BoundaryQkernelParam {
-  // expected-error@+1{{measurement handle cannot cross the host-device boundary; entry-point kernels must discriminate first}}
-  void operator()(cudaq::qkernel<void(cudaq::measure_handle)> k) __qpu__ {
-    (void)k;
-  }
-};
-
 void sink(std::int64_t);
 
 struct ToIntegerDirectRejected {
