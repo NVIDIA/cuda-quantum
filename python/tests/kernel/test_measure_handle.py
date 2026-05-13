@@ -252,18 +252,13 @@ def test_boundary_handle_in_tuple_parameter_is_rejected():
         k.compile()
 
 
-def test_boundary_handle_in_callable_parameter_is_rejected():
-    # A callable transports a handle across the host-device boundary on every
-    # invocation even though the kernel signature itself does not syntactically
-    # carry one. Mirrors the C++ `includeCallables=true` policy on the
-    # `cudaq::cc::containsMeasureHandle` boundary helper.
+def test_boundary_handle_in_callable_parameter_is_admissible():
 
     @cudaq.kernel
     def k(fn: Callable[[cudaq.measure_handle], None]):
         pass
 
-    with pytest.raises(RuntimeError, match=re.escape(_BOUNDARY_DIAG)):
-        k.compile()
+    k.compile()
 
 
 def test_boundary_make_kernel_handle_arg_is_rejected():

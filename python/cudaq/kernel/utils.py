@@ -47,7 +47,9 @@ boundaryDiagnostic = (
 
 def containsMeasureHandle(ty, _seen=None):
     """Return True iff ``ty`` is ``!cc.measure_handle`` or transitively
-    contains one.
+    contains one. The walk stops at callable / function-type boundaries: a
+    callable parameter's signature is a device-side type contract for the
+    body of the callable, not a slot for a handle value.
     """
     if _seen is None:
         _seen = set()
@@ -65,13 +67,6 @@ def containsMeasureHandle(ty, _seen=None):
     if cc.StructType.isinstance(ty):
         return any(
             containsMeasureHandle(t, _seen) for t in cc.StructType.getTypes(ty))
-    if cc.CallableType.isinstance(ty):
-        # The kernel signature itself does not syntactically carry a handle,
-        # but a callable parameter that takes or returns a handle would
-        # transport one across the host-device boundary on every invocation.
-        fnTy = FunctionType(cc.CallableType.getFunctionType(ty))
-        return any(containsMeasureHandle(t, _seen) for t in fnTy.inputs) or \
-               any(containsMeasureHandle(t, _seen) for t in fnTy.results)
     return False
 
 
