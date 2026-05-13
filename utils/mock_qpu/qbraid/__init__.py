@@ -215,12 +215,12 @@ async def armDelayResults(count: int = Path(...)):
 # Test-only: force the next GET /result call to return the given HTTP status.
 # Consumed after one call.
 @app.post("/test/force_next_result_status/{code}")
-async def armForceResultStatus(code: int = Path(...)):
+async def forceNextResultStatus(code: int = Path(...)):
     FORCE_NEXT_RESULT_STATUS["code"] = code
     return {"armed_status": code}
 
 
-# Test-only: reset all test-hook globals so tests are order-independent.
+# Test-only: reset all test-hook state so tests are order-independent.
 @app.post("/test/reset")
 async def resetTestState():
     FAIL_NEXT_JOB["enabled"] = False

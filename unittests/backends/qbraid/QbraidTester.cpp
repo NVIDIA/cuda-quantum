@@ -12,6 +12,7 @@
 #include "cudaq/algorithm.h"
 #include <fstream>
 #include <gtest/gtest.h>
+#include <nlohmann/json.hpp>
 #include <stdlib.h>
 
 // Update the backend string to match the QBraid format
