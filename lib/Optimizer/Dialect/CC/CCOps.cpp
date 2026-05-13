@@ -197,7 +197,7 @@ void cudaq::cc::AllocaOp::getCanonicalizationPatterns(
 
 LogicalResult cudaq::cc::AllocaOp::verify() {
   // It is deeply incorrect to allocate storage for quake abstract types.
-  if (quake::isQuakeType(getElementType()))
+  if (cudaq::quake::isQuakeType(getElementType()))
     return emitOpError("cannot classically allocate quake abstract type");
   return success();
 }
@@ -1989,7 +1989,7 @@ bool hasAllocation(Region &region) {
     for (auto &op : block) {
       if (auto mem = dyn_cast<MemoryEffectOpInterface>(op))
         if (mem.hasEffect<MemoryEffects::Allocate>())
-          if (quantumAllocs || !isa<quake::AllocaOp>(op))
+          if (quantumAllocs || !isa<cudaq::quake::AllocaOp>(op))
             return true;
       if (!isa<cudaq::cc::ScopeOp>(op))
         for (auto &opReg : op.getRegions())
@@ -2173,7 +2173,7 @@ ParseResult cudaq::cc::IfOp::parse(OpAsmParser &parser,
     if (parser.parseAssignmentList(regionArgs, linearOperands) ||
         parser.parseRParen())
       return failure();
-    Type wireTy = quake::WireType::get(builder.getContext());
+    Type wireTy = cudaq::quake::WireType::get(builder.getContext());
     for (auto argOperand : llvm::zip(regionArgs, linearOperands)) {
       std::get<0>(argOperand).type = wireTy;
       if (parser.resolveOperand(std::get<1>(argOperand), wireTy,
@@ -2189,7 +2189,7 @@ ParseResult cudaq::cc::IfOp::parse(OpAsmParser &parser,
     // region arguments. (It can have more.)
     std::int64_t numRegionArgs = regionArgs.size();
     std::for_each(result.types.begin(), result.types.end(), [&](Type t) {
-      if (quake::isLinearType(t))
+      if (cudaq::quake::isLinearType(t))
         --numRegionArgs;
     });
     if (numRegionArgs > 0)
@@ -2250,7 +2250,7 @@ void cudaq::cc::IfOp::getEntrySuccessorRegions(
 template <typename A>
 long countLinearArgs(const A &iterable) {
   return std::count_if(iterable.begin(), iterable.end(),
-                       [](Type t) { return quake::isLinearType(t); });
+                       [](Type t) { return cudaq::quake::isLinearType(t); });
 }
 
 LogicalResult cudaq::cc::verifyConvergentLinearTypesInRegions(Operation *op) {

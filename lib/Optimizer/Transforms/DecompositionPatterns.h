@@ -100,7 +100,7 @@ void populateWithAllDecompositionPatterns(mlir::RewritePatternSet &patterns);
 /// The returned conversion target will accept operations in the MLIR dialects
 /// arith::ArithDialect, cf::ControlFlowDialect, cudaq::cc::CCDialect,
 /// func::FuncDialect, and math::MathDialect, as well as operations in the
-/// quake::QuakeDialect that appear in `targetBasis`.
+/// cudaq::quake::QuakeDialect that appear in `targetBasis`.
 std::unique_ptr<mlir::ConversionTarget>
 createBasisTarget(mlir::MLIRContext &context,
                   mlir::ArrayRef<std::string> targetBasis);

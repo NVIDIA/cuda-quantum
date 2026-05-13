@@ -45,22 +45,22 @@ struct Analysis {
 
   mlir::DenseMap<mlir::Value, std::size_t> measurements;
   OutputNamesType resultQubitVals;
-  quake::MzOp lastMeasurement;
+  cudaq::quake::MzOp lastMeasurement;
 
   bool empty() const { return measurements.empty(); }
 
   LogicalResult analyze(func::FuncOp func) {
-    quake::AllocaOp qalloc;
+    cudaq::quake::AllocaOp qalloc;
     std::size_t currentOffset = 0;
 
     for (auto &block : func.getRegion()) {
       for (auto &op : block) {
-        if (auto alloc = dyn_cast_or_null<quake::AllocaOp>(&op)) {
+        if (auto alloc = dyn_cast_or_null<cudaq::quake::AllocaOp>(&op)) {
           if (qalloc)
             return op.emitError("Multiple qalloc statements found");
 
           qalloc = alloc;
-        } else if (auto measure = dyn_cast_or_null<quake::MzOp>(&op)) {
+        } else if (auto measure = dyn_cast_or_null<cudaq::quake::MzOp>(&op)) {
           if (!measure.use_empty()) {
             measure.emitWarning("Measurements with uses are not supported");
             return success();
@@ -70,9 +70,9 @@ struct Analysis {
           auto ty = veqOp.getType();
 
           std::size_t size = 0;
-          if (auto veqTy = dyn_cast<quake::RefType>(ty))
+          if (auto veqTy = dyn_cast<cudaq::quake::RefType>(ty))
             size = 1;
-          else if (auto veqTy = dyn_cast<quake::VeqType>(ty)) {
+          else if (auto veqTy = dyn_cast<cudaq::quake::VeqType>(ty)) {
             size = veqTy.getSize();
             if (size == 0)
               return op.emitError("Unknown measurement size");
@@ -89,7 +89,7 @@ struct Analysis {
   }
 };
 
-class ExtendQubitMeasurePattern : public OpRewritePattern<quake::MzOp> {
+class ExtendQubitMeasurePattern : public OpRewritePattern<cudaq::quake::MzOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
@@ -108,11 +108,11 @@ public:
   //   %measOut = quake.mz %1 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
   // ```
   // And collect output names information:  `"[[[0,[1,"q0"]],[1,[2,"q1"]]]]"`
-  LogicalResult matchAndRewrite(quake::MzOp measure,
+  LogicalResult matchAndRewrite(cudaq::quake::MzOp measure,
                                 PatternRewriter &rewriter) const override {
 
     auto veqOp = measure.getOperand(0);
-    if (auto extract = veqOp.getDefiningOp<quake::ExtractRefOp>()) {
+    if (auto extract = veqOp.getDefiningOp<cudaq::quake::ExtractRefOp>()) {
       auto veq = extract.getVeq();
       std::size_t idx;
 
@@ -130,9 +130,9 @@ public:
 
       auto resultType = cudaq::cc::StdvecType::get(measure.getType(0));
       if (measure == analysis.lastMeasurement) {
-        rewriter.replaceOpWithNewOp<quake::MzOp>(measure, TypeRange{resultType},
-                                                 ValueRange{veq},
-                                                 measure.getRegisterNameAttr());
+        rewriter.replaceOpWithNewOp<cudaq::quake::MzOp>(
+            measure, TypeRange{resultType}, ValueRange{veq},
+            measure.getRegisterNameAttr());
         return success();
       }
       if (measure.use_empty()) {
@@ -149,7 +149,7 @@ private:
   Analysis &analysis;
 };
 
-class ExtendVeqMeasurePattern : public OpRewritePattern<quake::MzOp> {
+class ExtendVeqMeasurePattern : public OpRewritePattern<cudaq::quake::MzOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
@@ -169,10 +169,10 @@ public:
   //   %measOut = quake.mz %1 : (!quake.veq<4>) -> !cc.stdvec<!quake.measure>
   // ```
   // And collect output names information:  `"[[[0,[1,"q0"]],[1,[2,"q1"]]]]"`
-  LogicalResult matchAndRewrite(quake::MzOp measure,
+  LogicalResult matchAndRewrite(cudaq::quake::MzOp measure,
                                 PatternRewriter &rewriter) const override {
     auto veqOp = measure.getOperand(0);
-    if (auto subveq = veqOp.getDefiningOp<quake::SubVeqOp>()) {
+    if (auto subveq = veqOp.getDefiningOp<cudaq::quake::SubVeqOp>()) {
       std::size_t low;
       if (subveq.hasConstantLowerBound())
         low = subveq.getConstantLowerBound();
@@ -200,7 +200,7 @@ public:
       }
 
       if (measure == analysis.lastMeasurement)
-        rewriter.replaceOpWithNewOp<quake::MzOp>(
+        rewriter.replaceOpWithNewOp<cudaq::quake::MzOp>(
             measure, measure.getResultTypes(), ValueRange{subveq.getVeq()},
             measure.getRegisterNameAttr());
       else if (measure.use_empty())

@@ -21,7 +21,7 @@
 
 //===----------------------------------------------------------------------===//
 
-void quake::QuakeDialect::initialize() {
+void cudaq::quake::QuakeDialect::initialize() {
   registerTypes();
   addOperations<
 #define GET_OP_LIST

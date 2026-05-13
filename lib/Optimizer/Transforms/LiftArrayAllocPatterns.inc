@@ -85,8 +85,7 @@ public:
             //     ArrayRef<cudaq::cc::ExtractValueArg>{offset});
 
             auto extractValue = cudaq::cc::ExtractValueOp::create(
-                rewriter,
-                loc, eleTy, conArr,
+                rewriter, loc, eleTy, conArr,
                 ArrayRef<cudaq::cc::ExtractValueArg>{offset});
             rewriter.replaceAllUsesWith(load, extractValue);
             insertOpToErase(load);
@@ -166,7 +165,8 @@ public:
           }
           continue;
         }
-        if (isa<quake::InitializeStateOp, quake::CreateStateOp>(u)) {
+        if (isa<cudaq::quake::InitializeStateOp, cudaq::quake::CreateStateOp>(
+                u)) {
           toGlobalUses.push_back(u);
           continue;
         }
@@ -221,8 +221,8 @@ public:
           if (cast->hasOneUse()) {
             auto &use = *cast->getUses().begin();
             Operation *u = use.getOwner();
-            if (isa_and_present<quake::InitializeStateOp, quake::CreateStateOp>(
-                    u)) {
+            if (isa_and_present<cudaq::quake::InitializeStateOp,
+                                cudaq::quake::CreateStateOp>(u)) {
               toGlobalUses.push_back(u);
               continue;
             }
@@ -233,7 +233,8 @@ public:
         toGlobalUses.push_back(op);
         continue;
       }
-      if (isa<quake::InitializeStateOp, quake::CreateStateOp>(op)) {
+      if (isa<cudaq::quake::InitializeStateOp, cudaq::quake::CreateStateOp>(
+              op)) {
         toGlobalUses.push_back(op);
         continue;
       }

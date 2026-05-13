@@ -23,12 +23,12 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
-class ThreadControl : public OpRewritePattern<quake::ToControlOp> {
+class ThreadControl : public OpRewritePattern<cudaq::quake::ToControlOp> {
 public:
   explicit ThreadControl(MLIRContext *ctx, DominanceInfo &di)
       : OpRewritePattern(ctx), dom(di) {}
 
-  LogicalResult matchAndRewrite(quake::ToControlOp toCtrl,
+  LogicalResult matchAndRewrite(cudaq::quake::ToControlOp toCtrl,
                                 PatternRewriter &rewriter) const override {
     LLVM_DEBUG(llvm::dbgs() << "\n\n" << toCtrl << '\n');
     SmallVector<Operation *> users(toCtrl->getUsers().begin(),
@@ -41,7 +41,7 @@ public:
     if (numUsers == 1) {
       // User must be a FromControlOp. We can erase them both.
       if (auto fromCtrl =
-              dyn_cast_if_present<quake::FromControlOp>(users.front())) {
+              dyn_cast_if_present<cudaq::quake::FromControlOp>(users.front())) {
         fromCtrl.replaceAllUsesWith(toCtrl.getQubit());
         rewriter.eraseOp(fromCtrl);
         rewriter.eraseOp(toCtrl);
@@ -82,10 +82,10 @@ public:
     // 2. Thread the wire value to each successive user.
     Value wireDef = toCtrl.getQubit();
     auto *ctx = rewriter.getContext();
-    auto wireTy = quake::WireType::get(ctx);
+    auto wireTy = cudaq::quake::WireType::get(ctx);
     for (auto *user : orderedUsers) {
       assert(user);
-      if (isa<quake::FromControlOp>(user)) {
+      if (isa<cudaq::quake::FromControlOp>(user)) {
         assert(user == orderedUsers.back() &&
                "FromControlOp must post-dominate all the users");
         rewriter.replaceOp(user, wireDef);
@@ -97,11 +97,11 @@ public:
       std::size_t operandNumber = Uninitialized;
       for (auto iter : llvm::enumerate(user->getOperands())) {
         Value opnd = iter.value();
-        if (isa<quake::WireType>(opnd.getType())) {
+        if (isa<cudaq::quake::WireType>(opnd.getType())) {
           position++;
           continue;
         }
-        if (auto x = opnd.getDefiningOp<quake::ToControlOp>())
+        if (auto x = opnd.getDefiningOp<cudaq::quake::ToControlOp>())
           if (x.getOperation() == toCtrl.getOperation()) {
             operandNumber = iter.index();
             break;

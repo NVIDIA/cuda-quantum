@@ -30,6 +30,10 @@ ARG toolchain=llvm
 # Set here to avoid setting it for all install commands.
 # Given as arg to make sure that this value is only set during build but not in the launched container.
 ARG DEBIAN_FRONTEND=noninteractive
+# Tolerate transient apt mirror failures (internal NV cache and ubuntu mirrors
+# have been observed to return 502/connection-failed for short intervals).
+RUN echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries \
+    && echo 'Acquire::Retries::Delay::Maximum "30";' >> /etc/apt/apt.conf.d/80-retries
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && \
     apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -115,11 +119,13 @@ FROM ${base_image}
 SHELL ["/bin/bash", "-c"]
 
 # When a dialogue box would be needed during install, assume default configurations.
-# Set here to avoid setting it for all install commands. 
+# Set here to avoid setting it for all install commands.
 # Given as arg to make sure that this value is only set during build but not in the launched container.
 ARG DEBIAN_FRONTEND=noninteractive
 ENV HOME=/home SHELL=/bin/bash LANG=C.UTF-8 LC_ALL=C.UTF-8
 ENV SETUPTOOLS_SCM_PRETEND_VERSION=0.0.0
+RUN echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries \
+    && echo 'Acquire::Retries::Delay::Maximum "30";' >> /etc/apt/apt.conf.d/80-retries
 
 # Copy over the llvm build dependencies.
 COPY --from=prereqs /usr/local/llvm /usr/local/llvm

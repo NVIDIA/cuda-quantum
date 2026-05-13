@@ -246,7 +246,7 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
       opt::factory::createMonotonicLoop(builder, loc, initial, idxIters, stepBy,
                                         bodyBuilder);
     }
-  } else if (auto veqTy = dyn_cast<quake::VeqType>(buffer.getType());
+  } else if (auto veqTy = dyn_cast<cudaq::quake::VeqType>(buffer.getType());
              veqTy && veqTy.hasSpecifiedSize()) {
     Value iters = arith::ConstantIntOp::create(
         builder, loc, i64Ty, static_cast<int64_t>(veqTy.getSize()));
@@ -255,7 +255,8 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
       OpBuilder::InsertionGuard guard(builder);
       builder.setInsertionPointToStart(&block);
       Value index = block.getArgument(0);
-      Value ref = quake::ExtractRefOp::create(builder, loc, buffer, index);
+      Value ref =
+          cudaq::quake::ExtractRefOp::create(builder, loc, buffer, index);
       symbolTable.insert(loopVar->getName(), ref);
       if (!TraverseStmt(static_cast<clang::Stmt *>(body)))
         result = false;

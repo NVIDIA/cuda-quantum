@@ -36,7 +36,7 @@ protected:
   void SetUp() override {
     context = std::make_unique<MLIRContext>();
     context->loadDialect<arith::ArithDialect, cudaq::cc::CCDialect,
-                         func::FuncDialect, quake::QuakeDialect>();
+                         func::FuncDialect, cudaq::quake::QuakeDialect>();
   }
 
   std::unique_ptr<MLIRContext> context;
@@ -98,7 +98,7 @@ ModuleOp createTestModule(MLIRContext *context, StringRef gateSpecStr) {
 
   // Create function type: (qubits...) -> ()
   SmallVector<Type> inputTypes;
-  auto refType = quake::RefType::get(context);
+  auto refType = cudaq::quake::RefType::get(context);
   for (size_t i = 0; i < numQubits; ++i) {
     inputTypes.push_back(refType);
   }
@@ -124,54 +124,54 @@ ModuleOp createTestModule(MLIRContext *context, StringRef gateSpecStr) {
                                                         builder.getF64Type());
 
   if (gateName == "h") {
-    quake::HOp::create(builder, loc, isAdj, controls, target);
+    cudaq::quake::HOp::create(builder, loc, isAdj, controls, target);
   } else if (gateName == "s") {
-    quake::SOp::create(builder, loc, isAdj, controls, target);
+    cudaq::quake::SOp::create(builder, loc, isAdj, controls, target);
   } else if (gateName == "t") {
-    quake::TOp::create(builder, loc, isAdj, controls, target);
+    cudaq::quake::TOp::create(builder, loc, isAdj, controls, target);
   } else if (gateName == "x") {
-    quake::XOp::create(builder, loc, isAdj, controls, target);
+    cudaq::quake::XOp::create(builder, loc, isAdj, controls, target);
   } else if (gateName == "y") {
-    quake::YOp::create(builder, loc, isAdj, controls, target);
+    cudaq::quake::YOp::create(builder, loc, isAdj, controls, target);
   } else if (gateName == "z") {
-    quake::ZOp::create(builder, loc, isAdj, controls, target);
+    cudaq::quake::ZOp::create(builder, loc, isAdj, controls, target);
   } else if (gateName == "rx") {
-    quake::RxOp::create(builder, loc, isAdj, ValueRange{pi_2}, controls,
-                        target);
+    cudaq::quake::RxOp::create(builder, loc, isAdj, ValueRange{pi_2}, controls,
+                               target);
   } else if (gateName == "ry") {
-    quake::RyOp::create(builder, loc, isAdj, ValueRange{pi_2}, controls,
-                        target);
+    cudaq::quake::RyOp::create(builder, loc, isAdj, ValueRange{pi_2}, controls,
+                               target);
   } else if (gateName == "rz") {
-    quake::RzOp::create(builder, loc, isAdj, ValueRange{pi_2}, controls,
-                        target);
+    cudaq::quake::RzOp::create(builder, loc, isAdj, ValueRange{pi_2}, controls,
+                               target);
   } else if (gateName == "r1") {
-    quake::R1Op::create(builder, loc, isAdj, ValueRange{pi_2}, controls,
-                        target);
+    cudaq::quake::R1Op::create(builder, loc, isAdj, ValueRange{pi_2}, controls,
+                               target);
   } else if (gateName == "u3") {
-    quake::U3Op::create(builder, loc, isAdj, ValueRange{pi_2, pi_2, pi_2},
-                        controls, target);
+    cudaq::quake::U3Op::create(builder, loc, isAdj,
+                               ValueRange{pi_2, pi_2, pi_2}, controls, target);
   } else if (gateName == "phased_rx") {
-    quake::PhasedRxOp::create(builder, loc, isAdj, ValueRange{{pi_2, pi_2}},
-                              controls, target);
+    cudaq::quake::PhasedRxOp::create(
+        builder, loc, isAdj, ValueRange{{pi_2, pi_2}}, controls, target);
   } else if (gateName == "swap") {
     // Swap needs 2 targets
     Value target = entry->getArgument(0);
     Value target2 = entry->getArgument(1);
-    quake::SwapOp::create(builder, loc, ValueRange{target, target2});
+    cudaq::quake::SwapOp::create(builder, loc, ValueRange{target, target2});
   } else if (gateName == "exp_pauli") {
     Value target = entry->getArgument(0);
     Value target2 = entry->getArgument(1);
     // Create a veq from the two target qubits using ConcatOp
     SmallVector<Value> targetValues = {target, target2};
-    Value qubitsVal = quake::ConcatOp::create(
-        builder, loc, quake::VeqType::get(builder.getContext(), 2),
+    Value qubitsVal = cudaq::quake::ConcatOp::create(
+        builder, loc, cudaq::quake::VeqType::get(builder.getContext(), 2),
         targetValues);
 
-    quake::ExpPauliOp::create(builder, loc,
-                              /* parameters = */ ValueRange{pi_2},
-                              /* controls = */ ValueRange{},
-                              /* targets = */ qubitsVal,
-                              /* pauliLiteral = */ "XX");
+    cudaq::quake::ExpPauliOp::create(builder, loc,
+                                     /* parameters = */ ValueRange{pi_2},
+                                     /* controls = */ ValueRange{},
+                                     /* targets = */ qubitsVal,
+                                     /* pauliLiteral = */ "XX");
   } else {
     // Unsupported gate for this test
     ADD_FAILURE() << "unknown gate: " << gateName;
@@ -186,7 +186,7 @@ llvm::StringSet<> collectGateTypesInModule(ModuleOp module) {
   llvm::StringSet<> gates;
 
   module.walk([&](Operation *op) {
-    if (auto optor = dyn_cast<quake::OperatorInterface>(op)) {
+    if (auto optor = dyn_cast<cudaq::quake::OperatorInterface>(op)) {
       std::string gateName = optor->getName().stripDialect().str();
       auto numControls = optor.getControls().size();
 

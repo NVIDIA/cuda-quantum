@@ -39,7 +39,10 @@ public:
     ModuleOp moduleOp = getOperation();
     /// NOTE: If the module has an occurrence of `quake.apply` then the step to
     /// build call graph fails. Hence, we skip the pass in such cases.
-    if (moduleOp.walk([](quake::ApplyOp op) { return WalkResult::interrupt(); })
+    if (moduleOp
+            .walk([](cudaq::quake::ApplyOp op) {
+              return WalkResult::interrupt();
+            })
             .wasInterrupted()) {
       LLVM_DEBUG(
           llvm::dbgs()

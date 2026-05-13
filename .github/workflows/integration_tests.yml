@@ -98,11 +98,13 @@ jobs:
       - name: Set variables
         id: vars
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           cudaq_test_image=${{ inputs.cudaq_test_image || vars.cudaq_test_image }}
           cudaq_nightly_image=ghcr.io/nvidia/${{ vars.packages_prefix }}cuda-quantum
 
-          sudo apt-get update && sudo apt-get install -y --no-install-recommends curl
-          curl -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64 > regctl
+          retry sudo apt-get update
+          retry sudo apt-get install -y --no-install-recommends curl
+          retry curl -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64 > regctl
           chmod 755 regctl
 
           manifest=`./regctl image manifest $cudaq_test_image --format "{{ json . }}"`
@@ -281,6 +283,7 @@ jobs:
       # Provider-specific setup steps
       - name: Setup ${{ matrix.provider }} account
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           case "${{ matrix.provider }}" in
             anyon)
               echo "### Setting up Anyon account" >> $GITHUB_STEP_SUMMARY
@@ -349,7 +352,7 @@ jobs:
               ;;
             pasqal)
               echo "### Setting up Pasqal account" >> $GITHUB_STEP_SUMMARY
-              python3 -m pip install pasqal-cloud
+              retry python3 -m pip install pasqal-cloud
               echo "::add-mask::${{ secrets.PASQAL_USERNAME }}"
               echo "::add-mask::${{ secrets.PASQAL_PASSWORD }}"
               echo "::add-mask::${{ secrets.PASQAL_PROJECT_ID }}"

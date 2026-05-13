@@ -773,10 +773,10 @@ void cudaq::opt::marshal::populateCallbackBuffer(
 
 bool cudaq::opt::marshal::hasLegalType(FunctionType funTy) {
   for (auto ty : funTy.getInputs())
-    if (quake::isQuantumType(ty))
+    if (cudaq::quake::isQuantumType(ty))
       return false;
   for (auto ty : funTy.getResults())
-    if (quake::isQuantumType(ty))
+    if (cudaq::quake::isQuantumType(ty))
       return false;
   return true;
 }

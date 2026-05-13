@@ -29,20 +29,20 @@ namespace {
 //===----------------------------------------------------------------------===//
 
 /// Lowers Quake AllocaOp to QIR function call in LLVM.
-class AllocaOpRewrite : public ConvertOpToLLVMPattern<quake::AllocaOp> {
+class AllocaOpRewrite : public ConvertOpToLLVMPattern<cudaq::quake::AllocaOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
   LogicalResult
-  matchAndRewrite(quake::AllocaOp alloca, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::AllocaOp alloca, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = alloca->getLoc();
     auto parentModule = alloca->getParentOfType<ModuleOp>();
     auto *context = parentModule->getContext();
 
     // If this alloc is just returning a qubit
-    if (auto resultType =
-            dyn_cast_if_present<quake::RefType>(alloca.getResult().getType())) {
+    if (auto resultType = dyn_cast_if_present<cudaq::quake::RefType>(
+            alloca.getResult().getType())) {
 
       StringRef qirQubitAllocate = cudaq::opt::QIRQubitAllocate;
       auto qubitType = cudaq::cg::getLLVMQubitType(context);
@@ -66,7 +66,7 @@ public:
     // be compile time known and encoded in the veq return type.
     Value sizeOperand;
     if (adaptor.getOperands().empty()) {
-      auto type = cast<quake::VeqType>(alloca.getResult().getType());
+      auto type = cast<cudaq::quake::VeqType>(alloca.getResult().getType());
       auto constantSize = type.getSize();
       sizeOperand =
           arith::ConstantIntOp::create(rewriter, loc, constantSize, 64);
@@ -114,7 +114,7 @@ public:
       fromComplex = true;
       eleTy = complexTy.getElementType();
     }
-    if (isa<quake::StateType>(eleTy))
+    if (isa<cudaq::quake::StateType>(eleTy))
       functionName = cudaq::opt::QIRArrayQubitAllocateArrayWithCudaqStatePtr;
     if (eleTy == rewriter.getF64Type())
       functionName =
@@ -141,7 +141,7 @@ public:
       else if (sizeTy.getWidth() > 64)
         sizeOperand = LLVM::TruncOp::create(rewriter, loc, i64Ty, sizeOperand);
     } else {
-      auto type = cast<quake::VeqType>(allocTy);
+      auto type = cast<cudaq::quake::VeqType>(allocTy);
       auto constantSize = type.getSize();
       sizeOperand =
           arith::ConstantIntOp::create(rewriter, loc, constantSize, 64);
@@ -166,12 +166,13 @@ public:
 };
 
 /// Lower Quake Dealloc Ops to QIR function calls.
-class DeallocOpRewrite : public ConvertOpToLLVMPattern<quake::DeallocOp> {
+class DeallocOpRewrite
+    : public ConvertOpToLLVMPattern<cudaq::quake::DeallocOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
   LogicalResult
-  matchAndRewrite(quake::DeallocOp dealloc, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::DeallocOp dealloc, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto parentModule = dealloc->getParentOfType<ModuleOp>();
     auto context = parentModule->getContext();
@@ -181,7 +182,7 @@ public:
     // Could be a dealloc on a ref or a veq
     StringRef qirQuantumDeallocateFunc;
     Type operandType, qType = dealloc.getOperand().getType();
-    if (isa<quake::VeqType>(qType)) {
+    if (isa<cudaq::quake::VeqType>(qType)) {
       qirQuantumDeallocateFunc = cudaq::opt::QIRArrayQubitReleaseArray;
       operandType = cudaq::cg::getLLVMArrayType(context);
     } else {
@@ -208,12 +209,12 @@ public:
 // for further reallocations, etc. (These opportunities are left as TODOs.) In
 // general, quake.concat does not guarantee that the sizes of the input Veq is
 // a compile-time constant however.
-class ConcatOpRewrite : public ConvertOpToLLVMPattern<quake::ConcatOp> {
+class ConcatOpRewrite : public ConvertOpToLLVMPattern<cudaq::quake::ConcatOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
   LogicalResult
-  matchAndRewrite(quake::ConcatOp concat, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::ConcatOp concat, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto parentModule = concat->getParentOfType<ModuleOp>();
     auto context = parentModule->getContext();
@@ -276,12 +277,12 @@ public:
 };
 
 class DiscriminateOpPattern
-    : public ConvertOpToLLVMPattern<quake::DiscriminateOp> {
+    : public ConvertOpToLLVMPattern<cudaq::quake::DiscriminateOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
   LogicalResult
-  matchAndRewrite(quake::DiscriminateOp discr, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::DiscriminateOp discr, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto m = discr.getMeasurement();
     rewriter.replaceOp(discr, m);
@@ -291,12 +292,12 @@ public:
 
 /// Convert a ExtractRefOp to the respective QIR.
 class ExtractQubitOpRewrite
-    : public ConvertOpToLLVMPattern<quake::ExtractRefOp> {
+    : public ConvertOpToLLVMPattern<cudaq::quake::ExtractRefOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
   LogicalResult
-  matchAndRewrite(quake::ExtractRefOp extract, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::ExtractRefOp extract, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = extract.getLoc();
     auto parentModule = extract->getParentOfType<ModuleOp>();
@@ -337,12 +338,13 @@ public:
   }
 };
 
-class GetMemberOpPattern : public ConvertOpToLLVMPattern<quake::GetMemberOp> {
+class GetMemberOpPattern
+    : public ConvertOpToLLVMPattern<cudaq::quake::GetMemberOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
   LogicalResult
-  matchAndRewrite(quake::GetMemberOp extract, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::GetMemberOp extract, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto toTy = getTypeConverter()->convertType(extract.getType());
     std::int64_t position = adaptor.getIndex();
@@ -352,12 +354,13 @@ public:
   }
 };
 
-class MakeStruqOpPattern : public ConvertOpToLLVMPattern<quake::MakeStruqOp> {
+class MakeStruqOpPattern
+    : public ConvertOpToLLVMPattern<cudaq::quake::MakeStruqOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
   LogicalResult
-  matchAndRewrite(quake::MakeStruqOp mkStruq, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::MakeStruqOp mkStruq, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = mkStruq.getLoc();
     auto *ctx = rewriter.getContext();
@@ -375,12 +378,12 @@ public:
   }
 };
 
-class SubveqOpRewrite : public ConvertOpToLLVMPattern<quake::SubVeqOp> {
+class SubveqOpRewrite : public ConvertOpToLLVMPattern<cudaq::quake::SubVeqOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
   LogicalResult
-  matchAndRewrite(quake::SubVeqOp subveq, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::SubVeqOp subveq, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = subveq->getLoc();
     auto parentModule = subveq->getParentOfType<ModuleOp>();
@@ -426,12 +429,12 @@ public:
 };
 
 /// Lower the quake.reset op to QIR
-class ResetRewrite : public ConvertOpToLLVMPattern<quake::ResetOp> {
+class ResetRewrite : public ConvertOpToLLVMPattern<cudaq::quake::ResetOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
   LogicalResult
-  matchAndRewrite(quake::ResetOp instOp, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::ResetOp instOp, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto parentModule = instOp->getParentOfType<ModuleOp>();
     auto context = parentModule->getContext();
@@ -456,12 +459,13 @@ public:
 };
 
 /// Lower exp_pauli(f64, veq, cc.string) to __quantum__qis__exp_pauli
-class ExpPauliRewrite : public ConvertOpToLLVMPattern<quake::ExpPauliOp> {
+class ExpPauliRewrite
+    : public ConvertOpToLLVMPattern<cudaq::quake::ExpPauliOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
   LogicalResult
-  matchAndRewrite(quake::ExpPauliOp instOp, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::ExpPauliOp instOp, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = instOp->getLoc();
     auto parentModule = instOp->getParentOfType<ModuleOp>();
@@ -597,7 +601,7 @@ public:
     // Get the first control
     auto control = instOp.getControls().front();
     auto instOperands = adaptor.getOperands();
-    if (numControls == 1 && isa<quake::VeqType>(control.getType())) {
+    if (numControls == 1 && isa<cudaq::quake::VeqType>(control.getType())) {
       // Operands are already an Array* and Qubit*.
       rewriter.replaceOpWithNewOp<LLVM::CallOp>(
           instOp, TypeRange{}, qirFunctionSymbolRef, instOperands);
@@ -622,7 +626,7 @@ public:
     // original quake types to distinguish them.
     auto allControlsAreQubits = [&]() {
       for (auto c : instOp.getControls())
-        if (!isa<quake::RefType>(c.getType()))
+        if (!isa<cudaq::quake::RefType>(c.getType()))
           return false;
       return true;
     }();
@@ -779,7 +783,7 @@ public:
     auto control = *instOp.getControls().begin();
     Type type = control.getType();
     // If type is a VeqType, then we're good, just forward to the call op
-    if (numControls == 1 && isa<quake::VeqType>(type)) {
+    if (numControls == 1 && isa<cudaq::quake::VeqType>(type)) {
 
       // Add the control array to the args.
       funcArgs.push_back(adaptor.getControls().front());
@@ -966,7 +970,7 @@ public:
     auto control = *instOp.getControls().begin();
     Type type = control.getType();
     // If type is a VeqType, then we're good, just forward to the call op
-    if (numControls == 1 && isa<quake::VeqType>(type)) {
+    if (numControls == 1 && isa<cudaq::quake::VeqType>(type)) {
 
       // Add the control array to the args.
       funcArgs.push_back(adaptor.getControls().front());
@@ -1166,12 +1170,13 @@ public:
   }
 };
 
-class GetVeqSizeOpRewrite : public OpConversionPattern<quake::VeqSizeOp> {
+class GetVeqSizeOpRewrite
+    : public OpConversionPattern<cudaq::quake::VeqSizeOp> {
 public:
   using OpConversionPattern::OpConversionPattern;
 
   LogicalResult
-  matchAndRewrite(quake::VeqSizeOp vecsize, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::VeqSizeOp vecsize, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = vecsize->getLoc();
     auto parentModule = vecsize->getParentOfType<ModuleOp>();
@@ -1243,12 +1248,13 @@ public:
 
 /// In case we still have a RelaxSizeOp, we can just remove it, since QIR works
 /// on `Array*` for all sized veqs.
-class RemoveRelaxSizeRewrite : public OpConversionPattern<quake::RelaxSizeOp> {
+class RemoveRelaxSizeRewrite
+    : public OpConversionPattern<cudaq::quake::RelaxSizeOp> {
 public:
   using OpConversionPattern::OpConversionPattern;
 
   LogicalResult
-  matchAndRewrite(quake::RelaxSizeOp relax, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::RelaxSizeOp relax, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     rewriter.replaceOp(relax, relax.getInputVec());
     return success();
@@ -1259,7 +1265,7 @@ public:
 /// the custom operations ought to be decomposed by a separate pass and should
 /// never reach here.
 class CustomUnitaryOpRewrite
-    : public ConvertOpToLLVMPattern<quake::CustomUnitarySymbolOp> {
+    : public ConvertOpToLLVMPattern<cudaq::quake::CustomUnitarySymbolOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
@@ -1297,7 +1303,7 @@ public:
   }
 
   LogicalResult
-  matchAndRewrite(quake::CustomUnitarySymbolOp op, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::CustomUnitarySymbolOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = op.getLoc();
     auto parentModule = op->getParentOfType<ModuleOp>();
@@ -1426,21 +1432,22 @@ void cudaq::opt::populateQuakeToLLVMPatterns(LLVMTypeConverter &typeConverter,
   patterns
       .insert<GetVeqSizeOpRewrite, RemoveRelaxSizeRewrite, ReturnBitRewrite>(
           context);
-  patterns
-      .insert<AllocaOpRewrite, ConcatOpRewrite, CustomUnitaryOpRewrite,
-              DeallocOpRewrite, DiscriminateOpPattern, ExtractQubitOpRewrite,
-              ExpPauliRewrite, GetMemberOpPattern, MakeStruqOpPattern,
-              OneTargetRewrite<quake::HOp>, OneTargetRewrite<quake::XOp>,
-              OneTargetRewrite<quake::YOp>, OneTargetRewrite<quake::ZOp>,
-              OneTargetRewrite<quake::SOp>, OneTargetRewrite<quake::TOp>,
-              OneTargetOneParamRewrite<quake::R1Op>,
-              OneTargetTwoParamRewrite<quake::PhasedRxOp>,
-              OneTargetOneParamRewrite<quake::RxOp>,
-              OneTargetOneParamRewrite<quake::RyOp>,
-              OneTargetOneParamRewrite<quake::RzOp>,
-              OneTargetTwoParamRewrite<quake::U2Op>,
-              OneTargetThreeParamRewrite<quake::U3Op>, QmemRAIIOpRewrite,
-              ResetRewrite, SubveqOpRewrite, TwoTargetRewrite<quake::SwapOp>>(
-          typeConverter);
-  patterns.insert<MeasureRewrite<quake::MzOp>>(typeConverter, measureCounter);
+  patterns.insert<
+      AllocaOpRewrite, ConcatOpRewrite, CustomUnitaryOpRewrite,
+      DeallocOpRewrite, DiscriminateOpPattern, ExtractQubitOpRewrite,
+      ExpPauliRewrite, GetMemberOpPattern, MakeStruqOpPattern,
+      OneTargetRewrite<cudaq::quake::HOp>, OneTargetRewrite<cudaq::quake::XOp>,
+      OneTargetRewrite<cudaq::quake::YOp>, OneTargetRewrite<cudaq::quake::ZOp>,
+      OneTargetRewrite<cudaq::quake::SOp>, OneTargetRewrite<cudaq::quake::TOp>,
+      OneTargetOneParamRewrite<cudaq::quake::R1Op>,
+      OneTargetTwoParamRewrite<cudaq::quake::PhasedRxOp>,
+      OneTargetOneParamRewrite<cudaq::quake::RxOp>,
+      OneTargetOneParamRewrite<cudaq::quake::RyOp>,
+      OneTargetOneParamRewrite<cudaq::quake::RzOp>,
+      OneTargetTwoParamRewrite<cudaq::quake::U2Op>,
+      OneTargetThreeParamRewrite<cudaq::quake::U3Op>, QmemRAIIOpRewrite,
+      ResetRewrite, SubveqOpRewrite, TwoTargetRewrite<cudaq::quake::SwapOp>>(
+      typeConverter);
+  patterns.insert<MeasureRewrite<cudaq::quake::MzOp>>(typeConverter,
+                                                      measureCounter);
 }
