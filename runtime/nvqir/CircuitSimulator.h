@@ -700,9 +700,19 @@ protected:
     if (executionContext->hasConditionalsOnMeasureResults && !force)
       return;
 
+    std::vector<std::size_t> qubitsInMeasurementOrder;
+
     // Sort the qubit indices (unless we're in the optimized sampling mode that
-    // simply concatenates sequential measurements)
+    // simply concatenates sequential measurements). Keep a de-duplicated copy
+    // of the original order so the global register can reflect the user's
+    // measurement order.
     if (!executionContext->explicitMeasurements) {
+      for (auto q : sampleQubits)
+        if (std::find(qubitsInMeasurementOrder.begin(),
+                      qubitsInMeasurementOrder.end(),
+                      q) == qubitsInMeasurementOrder.end())
+          qubitsInMeasurementOrder.push_back(q);
+
       std::sort(sampleQubits.begin(), sampleQubits.end());
       auto last = std::unique(sampleQubits.begin(), sampleQubits.end());
       sampleQubits.erase(last, sampleQubits.end());
@@ -727,36 +737,67 @@ protected:
           << std::endl;
     }
 
+    auto appendRegisterResult = [&](const std::string &regName,
+                                    const std::vector<std::size_t> &qubits) {
+      // Find the position of the qubits we have in the result bit string
+      // Create a map of qubit to bit string location
+      std::unordered_map<std::size_t, std::size_t> qubitLocMap;
+      for (std::size_t i = 0; i < qubits.size(); i++) {
+        auto iter =
+            std::find(sampleQubits.begin(), sampleQubits.end(), qubits[i]);
+        auto idx = std::distance(sampleQubits.begin(), iter);
+        qubitLocMap.insert({qubits[i], idx});
+      }
+
+      cudaq::ExecutionResult tmp(regName);
+      for (auto &[bits, count] : execResult.counts) {
+        std::string b = "";
+        b.reserve(qubits.size());
+        for (auto &qb : qubits)
+          b += bits[qubitLocMap[qb]];
+        tmp.appendResult(b, count);
+      }
+
+      internalResult.append(tmp);
+    };
+
+    auto sortUniqueQubits = [](std::vector<std::size_t> &qubits) {
+      std::sort(qubits.begin(), qubits.end());
+      auto last = std::unique(qubits.begin(), qubits.end());
+      qubits.erase(last, qubits.end());
+    };
+
+    // If the compiler/mapping pipeline provided a reorder index, it already
+    // describes the final global-register order, including source measurement
+    // order. Keep sampled bits in backend order and let finalize apply it.
+    // Without a reorder index, preserve measurement order here for local /
+    // unmapped simulator execution.
+    const bool preserveMeasurementOrder = executionContext->reorderIdx.empty();
+
     if (registerNameToMeasuredQubit.empty()) {
-      internalResult.append(execResult, executionContext->explicitMeasurements);
+      if (preserveMeasurementOrder && !executionContext->explicitMeasurements &&
+          qubitsInMeasurementOrder != sampleQubits) {
+        appendRegisterResult(cudaq::GlobalRegisterName,
+                             qubitsInMeasurementOrder);
+      } else {
+        internalResult.append(execResult,
+                              executionContext->explicitMeasurements);
+      }
     } else {
-
       for (auto &[regName, qubits] : registerNameToMeasuredQubit) {
-        // Measurements are sorted according to qubit allocation order
-        std::sort(qubits.begin(), qubits.end());
-        auto last = std::unique(qubits.begin(), qubits.end());
-        qubits.erase(last, qubits.end());
-
-        // Find the position of the qubits we have in the result bit string
-        // Create a map of qubit to bit string location
-        std::unordered_map<std::size_t, std::size_t> qubitLocMap;
-        for (std::size_t i = 0; i < qubits.size(); i++) {
-          auto iter =
-              std::find(sampleQubits.begin(), sampleQubits.end(), qubits[i]);
-          auto idx = std::distance(sampleQubits.begin(), iter);
-          qubitLocMap.insert({qubits[i], idx});
+        // Unless the mapping pass already provided a reorder, the global
+        // register follows user measurement order. Other named registers keep
+        // the legacy qubit-index ordering.
+        if (regName == cudaq::GlobalRegisterName) {
+          if (preserveMeasurementOrder)
+            qubits = qubitsInMeasurementOrder;
+          else
+            sortUniqueQubits(qubits);
+        } else {
+          sortUniqueQubits(qubits);
         }
 
-        cudaq::ExecutionResult tmp(regName);
-        for (auto &[bits, count] : execResult.counts) {
-          std::string b = "";
-          b.reserve(qubits.size());
-          for (auto &qb : qubits)
-            b += bits[qubitLocMap[qb]];
-          tmp.appendResult(b, count);
-        }
-
-        internalResult.append(tmp);
+        appendRegisterResult(regName, qubits);
       }
     }
 

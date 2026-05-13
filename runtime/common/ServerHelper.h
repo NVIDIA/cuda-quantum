@@ -70,7 +70,7 @@ protected:
   /// @brief Output names indexed by jobID/taskID
   std::map<std::string, OutputNamesType> outputNames;
 
-  /// @brief Reordering indices indexed by jobID/taskID (used by mapping pass)
+  /// @brief Global-register reordering indices indexed by jobID/taskID.
   std::map<std::string, std::vector<std::size_t>> reorderIdx;
 
   /// @brief  Information about the runtime target managing this server helper.

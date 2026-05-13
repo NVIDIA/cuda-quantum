@@ -131,9 +131,8 @@ def test_named_measurement():
 
 
 def test_measurement_order():
-    """ Test for if the "explicit measurements" option is enabled, the global 
-        register contains the concatenated measurements in the order they were
-        executed in the kernel. """
+    """ Test that the global register contains the concatenated measurements
+        in the order they were executed in the kernel. """
 
     @cudaq.kernel
     def kernel():
@@ -144,7 +143,7 @@ def test_measurement_order():
         mz(q[2])
 
     counts = cudaq.sample(kernel)
-    assert counts["100"] == 1000
+    assert counts["010"] == 1000
 
     counts = cudaq.sample(kernel, explicit_measurements=True)
     assert counts["010"] == 1000
@@ -196,6 +195,21 @@ def test_no_measurements():
     assert "not supported on a kernel without any measurement" in repr(e)
 
 
+def test_default_measurement_order_issue_4153():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(4)
+        x(q[2])
+        mz(q[2])
+        mz(q[0])
+        mz(q[1])
+        mz(q[3])
+
+    counts = cudaq.sample(kernel)
+    assert counts["1000"] == 1000
+
+
 def test_mixed_basis_measurement_order_and_preservation():
 
     @cudaq.kernel
@@ -203,8 +217,8 @@ def test_mixed_basis_measurement_order_and_preservation():
         q = cudaq.qvector(9)
 
         # Prepare a non-palindromic deterministic pattern over measured bits.
-        # q0=0 (mz), q1=1 (mz), q2=1 (mx), q3=? (my), q4=0 (mz), q5=0 (mx),
-        # q6=1 (mz) -> 011?001 in allocation order.
+        # q4=0 (mz), q2=1 (mx), q3=? (my), q0=0 (mz), q5=0 (mx),
+        # q6=1 (mz), q1=1 (mz) -> 01?0011 in measurement order.
         x(q[1])
         x(q[2])
         h(q[2])
@@ -227,9 +241,9 @@ def test_mixed_basis_measurement_order_and_preservation():
         assert len(bits) == 7
         assert bits[0] == '0'
         assert bits[1] == '1'
-        assert bits[2] == '1'
+        assert bits[3] == '0'
         assert bits[4] == '0'
-        assert bits[5] == '0'
+        assert bits[5] == '1'
         assert bits[6] == '1'
         total_counts += counts[bits]
 

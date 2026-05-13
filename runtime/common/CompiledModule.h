@@ -184,7 +184,7 @@ public:
 
   /// Metadata on the compilation artifacts.
   struct CompilationMetadata {
-    /// Qubit reorder indices emitted by the qubit-mapping pass.
+    /// Global-register reorder indices emitted by the qubit-mapping pass.
     std::vector<std::size_t> reorderIdx;
   };
 

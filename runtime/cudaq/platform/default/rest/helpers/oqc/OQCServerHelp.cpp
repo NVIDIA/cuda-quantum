@@ -426,7 +426,7 @@ OQCServerHelper::processResults(ServerMessage &postJobResponse,
   sampleResult.reorder(idx);
 
   // Now reorder according to reorderIdx[]. This sorts the global bitstring in
-  // original user qubit allocation order.
+  // the expected global register order.
   auto thisJobReorderIdxIt = reorderIdx.find(jobId);
   if (thisJobReorderIdxIt != reorderIdx.end()) {
     auto &thisJobReorderIdx = thisJobReorderIdxIt->second;

@@ -74,13 +74,28 @@ TEST(MeasureResetTester, checkLibModeOrdering) {
     }
   };
 
-  // Bit string ordered according to qubit allocation order.
+  // Bit string ordered according to measurement order.
   auto counts = cudaq::sample(kernel, true);
   counts.dump();
-  EXPECT_EQ("10", counts.begin()->first);
+  EXPECT_EQ("01", counts.begin()->first);
   counts = cudaq::sample(kernel, false);
   counts.dump();
   EXPECT_EQ("10", counts.begin()->first);
+}
+
+TEST(MeasureResetTester, checkDefaultMeasurementOrderIssue4153) {
+  auto kernel = []() __qpu__ {
+    cudaq::qvector q(4);
+    x(q[2]);
+    mz(q[2]);
+    mz(q[0]);
+    mz(q[1]);
+    mz(q[3]);
+  };
+
+  auto counts = cudaq::sample(kernel);
+  counts.dump();
+  EXPECT_EQ(counts.count("1000"), 1000);
 }
 
 TEST(MeasureResetTester, checkMixedBasisOrderingAndPreservation) {
@@ -90,8 +105,8 @@ TEST(MeasureResetTester, checkMixedBasisOrderingAndPreservation) {
     cudaq::qvector q(7);
 
     // Prepare a non-palindromic deterministic pattern over measured bits.
-    // q0=0 (mz), q1=1 (mz), q2=1 (mx), q3=? (my), q4=0 (mz), q5=0 (mx),
-    // q6=1 (mz) -> 011?001 in allocation order.
+    // q4=0 (mz), q2=1 (mx), q3=? (my), q0=0 (mz), q5=0 (mx),
+    // q6=1 (mz), q1=1 (mz) -> 01?0011 in measurement order.
     x(q[1]);
     x(q[2]);
     h(q[2]);
@@ -99,13 +114,13 @@ TEST(MeasureResetTester, checkMixedBasisOrderingAndPreservation) {
     x(q[6]);
 
     // Mix measurement bases and execution order.
-    mz(q[4]);
-    mx(q[2]);
-    my(q[3]);
-    mz(q[0]);
-    mx(q[5]);
-    mz(q[6]);
-    mz(q[1]);
+    mz(q[4]); // q4=0
+    mx(q[2]); // q2=1
+    my(q[3]); // q3=?
+    mz(q[0]); // q0=0
+    mx(q[5]); // q5=0
+    mz(q[6]); // q6=1
+    mz(q[1]); // q1=1
   };
 
   auto counts = cudaq::sample(shots, kernel);
@@ -118,9 +133,9 @@ TEST(MeasureResetTester, checkMixedBasisOrderingAndPreservation) {
     }
     EXPECT_EQ(bits[0], '0');
     EXPECT_EQ(bits[1], '1');
-    EXPECT_EQ(bits[2], '1');
+    EXPECT_EQ(bits[3], '0');
     EXPECT_EQ(bits[4], '0');
-    EXPECT_EQ(bits[5], '0');
+    EXPECT_EQ(bits[5], '1');
     EXPECT_EQ(bits[6], '1');
     totalCounts += count;
   }

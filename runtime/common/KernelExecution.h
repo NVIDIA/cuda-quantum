@@ -26,6 +26,8 @@ struct KernelExecution {
   std::optional<cudaq::JitEngine> jit;
   std::optional<Resources> resourceCounts;
   cudaq::cudaq_json output_names;
+  /// Reorder indices that map backend bitstrings into the expected global
+  /// register order.
   std::vector<std::size_t> mapping_reorder_idx;
   cudaq::cudaq_json user_data;
   KernelExecution(const std::string &n, const std::string &c,

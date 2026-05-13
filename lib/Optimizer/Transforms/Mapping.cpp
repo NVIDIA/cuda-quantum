@@ -768,10 +768,14 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
           return;
         }
 
-        // Save which qubits are measured
+        // Save which qubits are measured, preserving measurement encounter
+        // order and ignoring duplicate measurements for the global register.
         if (isa<quake::MeasurementInterface>(op))
-          for (const auto &wire : wireOperands)
-            userQubitsMeasured.push_back(wireToVirtualQ[wire].index);
+          for (const auto &wire : wireOperands) {
+            auto virtualQubit = wireToVirtualQ[wire].index;
+            if (!llvm::is_contained(userQubitsMeasured, virtualQubit))
+              userQubitsMeasured.push_back(virtualQubit);
+          }
 
         // Map the result wires to the appropriate virtual qubits.
         for (auto &&[wire, newWire] :
@@ -906,10 +910,11 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
 
     // Now populate mapping_reorder_idx attribute. This attribute will be used
     // by downstream processing to reconstruct a global register as if mapping
-    // had not occurred. This is important because the global register is
-    // required to be sorted by qubit allocation order, and mapping can change
-    // that apparent order AND introduce ancilla qubits that we don't want to
-    // appear in the final global register.
+    // had not occurred. This is important because the global register follows
+    // measurement order, and mapping can change that apparent order AND
+    // introduce ancilla qubits that we don't want to appear in the final global
+    // register. Explicit measurements use their encounter order; implicit
+    // measurements inserted by this pass use allocation order.
 
     // pair is <first=virtual, second=physical>
     using VirtPhyPairType = std::pair<std::size_t, std::size_t>;
@@ -924,14 +929,18 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
                [&](const VirtPhyPairType &a, const VirtPhyPairType &b) {
                  return a.second < b.second;
                });
-    // Now find out how to reorder `measuredQubits` such that the elements are
-    // ordered based on the *virtual* qubits (i.e. measuredQubits[].first).
-    llvm::SmallVector<std::size_t> reorder_idx(measuredQubits.size());
-    for (std::size_t ix = 0; auto &element : reorder_idx)
-      element = ix++;
-    llvm::sort(reorder_idx, [&](const std::size_t &i1, const std::size_t &i2) {
-      return measuredQubits[i1].first < measuredQubits[i2].first;
-    });
+    // Now find out how to reorder `measuredQubits` such that the elements
+    // follow the original measurement encounter order.
+    llvm::SmallVector<std::size_t> reorder_idx;
+    reorder_idx.reserve(userQubitsMeasured.size());
+    for (auto measuredVirtualQubit : userQubitsMeasured) {
+      auto iter = llvm::find_if(measuredQubits, [&](const auto &element) {
+        return element.first == measuredVirtualQubit;
+      });
+      assert(iter != measuredQubits.end() &&
+             "measured qubit must be present in physical-sorted list");
+      reorder_idx.push_back(std::distance(measuredQubits.begin(), iter));
+    }
     // After kernel execution is complete, you can pass reorder_idx[] into
     // sample_result::reorder() in order to undo the ordering change to the
     // global register that the mapping pass induced.

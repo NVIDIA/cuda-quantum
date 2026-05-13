@@ -295,7 +295,7 @@ IQMServerHelper::processResults(ServerMessage &postJobResponse,
 
   // The original sampleResult is ordered by qubit number (FIXME: VERIFY THIS)
   // Now reorder according to reorderIdx[]. This sorts the global bitstring in
-  // original user qubit allocation order.
+  // the expected global register order.
   auto thisJobReorderIdxIt = reorderIdx.find(jobID);
   if (thisJobReorderIdxIt != reorderIdx.end()) {
     auto &thisJobReorderIdx = thisJobReorderIdxIt->second;

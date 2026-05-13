@@ -31,8 +31,8 @@ int main() {
   auto test1 = []() __qpu__ {
     cudaq::qubit a, b;
     x(a);
-    mz(b);
     mz(a);
+    mz(b);
   };
   SAMPLE_AND_PRINT_GLOBAL_REG(test1);
   // CHECK: test1:
@@ -42,8 +42,8 @@ int main() {
   auto test2 = []() __qpu__ {
     cudaq::qubit a, b;
     x(a);
-    auto ret_b = mz(b);
     auto ret_a = mz(a);
+    auto ret_b = mz(b);
   };
   SAMPLE_AND_PRINT_GLOBAL_REG(test2);
   // CHECK: test2:

@@ -22,6 +22,17 @@ __qpu__ void foo() {
   auto result = mz(q);
 }
 
+__qpu__ void out_of_order() {
+  cudaq::qvector q(3);
+  x(q[0]);
+  x(q[1]);
+  x<cudaq::ctrl>(q[0], q[1]);
+  x<cudaq::ctrl>(q[0], q[2]); // requires a swap(q0,q1)
+  mz(q[2]);
+  mz(q[0]);
+  mz(q[1]);
+}
+
 int main() {
   auto result = cudaq::sample(1000, foo);
   result.dump();
@@ -29,6 +40,11 @@ int main() {
   // If the swap is working correctly, this will show "101". If it is working
   // incorrectly, it may show something like "011".
   std::cout << "most_probable \"" << result.most_probable() << "\"\n";
+
+  auto orderedResult = cudaq::sample(1000, out_of_order);
+  orderedResult.dump();
+  std::cout << "out_of_order most_probable \""
+            << orderedResult.most_probable() << "\"\n";
 
   return 0;
 }
@@ -51,3 +67,5 @@ int main() {
 // STDOUT-DAG: result%1 : { 0:1000 }
 // STDOUT-DAG: result%2 : { 1:1000 }
 // STDOUT-DAG: most_probable "101"
+// STDOUT-DAG: { 110:1000 }
+// STDOUT-DAG: out_of_order most_probable "110"
