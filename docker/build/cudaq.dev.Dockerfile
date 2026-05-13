@@ -117,16 +117,9 @@ RUN if [ "$run_tests" = "true" ] && [ -n "$mpi" ]; then \
 # so non-CI builds skip this stage entirely.
 FROM devbuild AS coverage
 ARG run_coverage=false
-# coverage_flags forwarded to scripts/generate_cc.sh. Default exercises
-# both C++ (-c) and Python (-p) paths. PR runs override to "-v -c" only,
-# which skips the _skbuild rebuild + pytest-with-coverage pass — that's
-# 10-20 min that would otherwise put coverage on the critical path. The
-# C++ pass still drives the full ctest + lit suites.
-ARG coverage_flags="-v -c -p"
 RUN if [ "$run_coverage" = "true" ]; then \
         cd $CUDAQ_REPO_ROOT && \
-        bash scripts/generate_cc.sh $coverage_flags && \
-        mkdir -p build/pycoverage && touch build/pycoverage/coverage.xml; \
+        bash scripts/generate_cc.sh -v -c -p; \
     fi
 
 FROM scratch AS coverage-export

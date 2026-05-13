@@ -252,14 +252,9 @@ jobs:
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
 
   # Coverage runs on every PR push, on schedule, and on dispatch.
-  # Explicitly skipped on merge_group: coverage instrumentation would
-  # otherwise lengthen the merge queue critical path without adding
-  # correctness signal (build_and_test already exercises the same code
-  # on the same toolchains). On PR push we pass "-v -c" so generate_cc.sh
-  # skips the Python rebuild+pytest pass; that keeps gen_code_coverage
-  # off the critical path on PR (build_and_test's longest leg stays
-  # the bottleneck). Schedule + dispatch still produce full -c -p
-  # coverage so the daily Codecov report is complete.
+  # Skipped on merge_group: coverage instrumentation would lengthen the
+  # merge queue critical path without adding signal (build_and_test
+  # already covers correctness on the same toolchains).
   gen_code_coverage:
     name: Gen code coverage
     needs: [metadata, config_devdeps]
@@ -277,7 +272,6 @@ jobs:
       devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-llvm', matrix.platform)] }}
       devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-llvm', matrix.platform)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
-      coverage_flags: ${{ (github.event_name == 'push' && '-v -c') || '-v -c -p' }}
 
   # Docker images are packaging, not correctness — only built on merge_group/dispatch.
   docker_image:
