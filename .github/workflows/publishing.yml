@@ -1009,8 +1009,6 @@ jobs:
               do
                   if [ -n "$(cat $file | grep "gpu-requirements")" ]; then \
                     basename $file | cut -d "." -f 1; \
-                  elif [ -n "$(basename $file | grep mqpu)" ]; then \
-                    echo remote-mqpu; \
                   fi; \
               done`
 
