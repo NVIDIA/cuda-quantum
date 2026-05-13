@@ -17,13 +17,8 @@ target-arguments:
 
 config:
   nvqir-simulation-backend: qpp
-  # Target high-level stage: materialize registered custom-op matrices and
-  # synthesize them to gates before target lowering.
-  jit-high-level-pipeline: "get-concrete-matrix,unitary-synthesis"
-  # Target mid-level stage: inline synthesized helper calls, decompose to a CX
-  # routing basis, prepare wire metadata, optionally route, then lower routed
-  # two-qubit work to CZ. With no device argument, routing is bypassed.
-  jit-mid-level-pipeline: "apply-op-specialization,aggressive-inlining,decomposition{basis=h,rx,ry,rz,x,x(1)},func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=%DEVICE:bypass%},func.func(delay-measurements,regtomem),decomposition{basis=h,rx,ry,rz,x,z(1)}"
-  # Target low-level cleanup stage: remove wire-set symbols left by routing prep.
-  jit-low-level-pipeline: "symbol-dce"
+  # Target mid-level stage: decompose to a CX routing basis, prepare wire
+  # metadata, optionally route, then lower routed two-qubit work to CZ. With no
+  # device argument, routing is bypassed.
+  jit-mid-level-pipeline: "decomposition{basis=h,rx,ry,rz,x,x(1)},func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=%DEVICE:bypass%},func.func(regtomem),decomposition{basis=h,rx,ry,rz,x,z(1)}"
   library-mode: false

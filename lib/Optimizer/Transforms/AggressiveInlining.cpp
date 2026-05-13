@@ -74,7 +74,7 @@ public:
 
       // Check that no one misguidedly attempts to add SymbolUserOpInterface to
       // these Ops.
-      if (isa<quake::ApplyOp, cudaq::cc::CallCallableOp,
+      if (isa<cudaq::quake::ApplyOp, cudaq::cc::CallCallableOp,
               cudaq::cc::CallIndirectCallableOp>(op)) {
         op->emitOpError("Internal bug was introduced.");
         return;

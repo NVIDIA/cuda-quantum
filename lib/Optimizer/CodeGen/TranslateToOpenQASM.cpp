@@ -23,8 +23,8 @@ using namespace mlir;
 //===----------------------------------------------------------------------===//
 
 /// Translates operation names into OpenQASM gate names
-static LogicalResult translateOperatorName(quake::OperatorInterface optor,
-                                           StringRef &name) {
+static LogicalResult
+translateOperatorName(cudaq::quake::OperatorInterface optor, StringRef &name) {
   StringRef qkeName = optor->getName().stripDialect();
   if (optor.getControls().size() == 0) {
     name = StringSwitch<StringRef>(qkeName).Case("r1", "u1").Default(qkeName);
@@ -158,23 +158,24 @@ static LogicalResult emitOperation(cudaq::Emitter &emitter,
 }
 
 static LogicalResult emitOperation(cudaq::Emitter &emitter,
-                                   quake::AllocaOp allocaOp) {
+                                   cudaq::quake::AllocaOp allocaOp) {
   Value refOrVeq = allocaOp.getRefOrVec();
   auto name = emitter.createName();
   auto size = 1;
-  if (auto veq = dyn_cast<quake::VeqType>(refOrVeq.getType())) {
+  if (auto veq = dyn_cast<cudaq::quake::VeqType>(refOrVeq.getType())) {
     if (!veq.hasSpecifiedSize())
       return allocaOp.emitError("allocates unbounded veq");
     size = veq.getSize();
   }
   emitter.os << llvm::formatv("qreg {0}[{1}];\n", name, size);
-  if (isa<quake::RefType>(refOrVeq.getType()))
+  if (isa<cudaq::quake::RefType>(refOrVeq.getType()))
     name.append("[0]");
   emitter.getOrAssignName(refOrVeq, name);
   return success();
 }
 
-static LogicalResult emitOperation(cudaq::Emitter &emitter, quake::ApplyOp op) {
+static LogicalResult emitOperation(cudaq::Emitter &emitter,
+                                   cudaq::quake::ApplyOp op) {
   // In Quake's reference semantics form, kernels only return classical types.
   // Thus, we check whether the numbers of results is zero or not.
   if (op.getNumResults() > 0)
@@ -187,7 +188,7 @@ static LogicalResult emitOperation(cudaq::Emitter &emitter, quake::ApplyOp op) {
   SmallVector<Value> parameters;
   SmallVector<Value> targets;
   for (auto arg : op.getActuals()) {
-    if (isa<quake::RefType, quake::VeqType>(arg.getType()))
+    if (isa<cudaq::quake::RefType, cudaq::quake::VeqType>(arg.getType()))
       targets.push_back(arg);
     else
       parameters.push_back(arg);
@@ -235,7 +236,7 @@ static LogicalResult emitOperation(cudaq::Emitter &emitter, func::FuncOp op) {
   SmallVector<Value> parameters;
   SmallVector<Value> targets;
   for (auto arg : op.getArguments()) {
-    if (isa<quake::RefType, quake::VeqType>(arg.getType()))
+    if (isa<cudaq::quake::RefType, cudaq::quake::VeqType>(arg.getType()))
       targets.push_back(arg);
     else
       parameters.push_back(arg);
@@ -270,7 +271,7 @@ static LogicalResult emitOperation(cudaq::Emitter &emitter, func::FuncOp op) {
 }
 
 static LogicalResult emitOperation(cudaq::Emitter &emitter,
-                                   quake::ExtractRefOp op) {
+                                   cudaq::quake::ExtractRefOp op) {
   std::optional<int64_t> index = std::nullopt;
   if (op.hasConstantIndex())
     index = op.getConstantIndex();
@@ -296,7 +297,7 @@ static LogicalResult emitOperation(cudaq::Emitter &emitter,
 }
 
 static LogicalResult emitOperation(cudaq::Emitter &emitter,
-                                   quake::OperatorInterface optor) {
+                                   cudaq::quake::OperatorInterface optor) {
   // Handle adjoint for T and S
   StringRef name = "";
   if (failed(translateOperatorName(optor, name)))
@@ -329,13 +330,14 @@ static LogicalResult emitOperation(cudaq::Emitter &emitter,
   return success();
 }
 
-static LogicalResult emitOperation(cudaq::Emitter &emitter, quake::MzOp op) {
+static LogicalResult emitOperation(cudaq::Emitter &emitter,
+                                   cudaq::quake::MzOp op) {
   if (op.getTargets().size() > 1)
     return op.emitError(
         "cannot translate measurements with more than one target");
   auto qrefOrVeq = op.getTargets()[0];
   auto size = 1;
-  if (auto veq = dyn_cast<quake::VeqType>(qrefOrVeq.getType())) {
+  if (auto veq = dyn_cast<cudaq::quake::VeqType>(qrefOrVeq.getType())) {
     if (!veq.hasSpecifiedSize())
       return op.emitError("cannot emmit measure on an unbounded veq");
     size = veq.getSize();
@@ -346,7 +348,8 @@ static LogicalResult emitOperation(cudaq::Emitter &emitter, quake::MzOp op) {
   return success();
 }
 
-static LogicalResult emitOperation(cudaq::Emitter &emitter, quake::ResetOp op) {
+static LogicalResult emitOperation(cudaq::Emitter &emitter,
+                                   cudaq::quake::ResetOp op) {
   emitter.os << "reset " << emitter.getOrAssignName(op.getTargets()) << ";";
   return success();
 }
@@ -358,24 +361,27 @@ static LogicalResult emitOperation(cudaq::Emitter &emitter, Operation &op) {
       .Case<func::FuncOp>([&](auto op) { return emitOperation(emitter, op); })
       .Case<func::CallOp>([&](auto op) { return emitOperation(emitter, op); })
       // Quake
-      .Case<quake::ApplyOp>([&](auto op) { return emitOperation(emitter, op); })
-      .Case<quake::AllocaOp>(
+      .Case<cudaq::quake::ApplyOp>(
           [&](auto op) { return emitOperation(emitter, op); })
-      .Case<quake::ExtractRefOp>(
+      .Case<cudaq::quake::AllocaOp>(
           [&](auto op) { return emitOperation(emitter, op); })
-      .Case<quake::OperatorInterface>(
+      .Case<cudaq::quake::ExtractRefOp>(
+          [&](auto op) { return emitOperation(emitter, op); })
+      .Case<cudaq::quake::OperatorInterface>(
           [&](auto optor) { return emitOperation(emitter, optor); })
-      .Case<quake::MzOp>([&](auto op) { return emitOperation(emitter, op); })
-      .Case<quake::ResetOp>([&](auto op) { return emitOperation(emitter, op); })
+      .Case<cudaq::quake::MzOp>(
+          [&](auto op) { return emitOperation(emitter, op); })
+      .Case<cudaq::quake::ResetOp>(
+          [&](auto op) { return emitOperation(emitter, op); })
       // Ignore
-      .Case<quake::DeallocOp>([&](auto op) { return success(); })
+      .Case<cudaq::quake::DeallocOp>([&](auto op) { return success(); })
       .Case<func::ReturnOp>([&](auto op) { return success(); })
       .Case<arith::ConstantOp>([&](auto op) { return success(); })
       .Case<cudaq::cc::AllocaOp>([&](auto op) { return success(); })
       .Case<cudaq::cc::StoreOp>([&](auto op) { return success(); })
       .Case<cudaq::cc::CastOp>([&](auto op) { return success(); })
       .Case<cudaq::cc::ComputePtrOp>([&](auto op) { return success(); })
-      .Case<quake::DiscriminateOp>([&](auto op) { return success(); })
+      .Case<cudaq::quake::DiscriminateOp>([&](auto op) { return success(); })
       .Case<cudaq::cc::ScopeOp>(
           [&](auto op) { return emitOperation(emitter, op); })
       .Case<cudaq::cc::ContinueOp>([&](auto op) { return success(); })

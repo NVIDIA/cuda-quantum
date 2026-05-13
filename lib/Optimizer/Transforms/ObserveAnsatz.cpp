@@ -25,11 +25,11 @@ enum class MeasureBasis { I, X, Y, Z };
 void appendMeasurement(MeasureBasis &basis, OpBuilder &builder, Location &loc,
                        Value &qubit) {
   SmallVector<Value> targets{qubit};
-  if (quake::isLinearType(qubit.getType())) {
+  if (cudaq::quake::isLinearType(qubit.getType())) {
     // Value semantics
-    auto wireTy = quake::WireType::get(builder.getContext());
+    auto wireTy = cudaq::quake::WireType::get(builder.getContext());
     if (basis == MeasureBasis::X) {
-      auto newOp = quake::HOp::create(
+      auto newOp = cudaq::quake::HOp::create(
           builder, loc, TypeRange{wireTy}, /*is_adj=*/false, ValueRange{},
           ValueRange{}, targets, DenseBoolArrayAttr{});
       qubit.replaceAllUsesExcept(newOp.getResult(0), newOp);
@@ -38,23 +38,23 @@ void appendMeasurement(MeasureBasis &basis, OpBuilder &builder, Location &loc,
       llvm::APFloat d(M_PI_2);
       Value rotation =
           arith::ConstantFloatOp::create(builder, loc, builder.getF64Type(), d);
-      auto newOp =
-          quake::RxOp::create(builder, loc, TypeRange{wireTy}, /*is_adj=*/false,
-                              ValueRange{rotation}, ValueRange{},
-                              ValueRange{qubit}, DenseBoolArrayAttr{});
+      auto newOp = cudaq::quake::RxOp::create(
+          builder, loc, TypeRange{wireTy}, /*is_adj=*/false,
+          ValueRange{rotation}, ValueRange{}, ValueRange{qubit},
+          DenseBoolArrayAttr{});
       qubit.replaceAllUsesExcept(newOp.getResult(0), newOp);
       qubit = newOp.getResult(0);
     }
   } else {
     // Reference semantics
     if (basis == MeasureBasis::X) {
-      quake::HOp::create(builder, loc, ValueRange{}, targets);
+      cudaq::quake::HOp::create(builder, loc, ValueRange{}, targets);
     } else if (basis == MeasureBasis::Y) {
       llvm::APFloat d(M_PI_2);
       Value rotation =
           arith::ConstantFloatOp::create(builder, loc, builder.getF64Type(), d);
       SmallVector<Value> params{rotation};
-      quake::RxOp::create(builder, loc, params, ValueRange{}, targets);
+      cudaq::quake::RxOp::create(builder, loc, params, ValueRange{}, targets);
     }
   }
 }
@@ -105,15 +105,15 @@ private:
 
     AnsatzMetadata data;
 
-    funcOp->walk([&](quake::BorrowWireOp op) {
+    funcOp->walk([&](cudaq::quake::BorrowWireOp op) {
       Value wire = op.getResult();
       // Wires are linear types that must be used exactly once, so traverse
       // those uses until the end of the linear operators.
       // NOTE - if this is ever moved to other passes that have different use
       // cases than this one, then it needs to be updated to support ResetOp,
       // which is not an operator interface (I don't think).
-      while (auto gate =
-                 dyn_cast<quake::OperatorInterface>(*wire.getUsers().begin())) {
+      while (auto gate = dyn_cast<cudaq::quake::OperatorInterface>(
+                 *wire.getUsers().begin())) {
         std::size_t qopNum = 0;
         auto controls = gate.getControls();
         for (auto w : controls) {
@@ -139,9 +139,9 @@ private:
     });
 
     // walk and find all quantum allocations
-    auto walkResult = funcOp->walk([&](quake::AllocaOp op) {
+    auto walkResult = funcOp->walk([&](cudaq::quake::AllocaOp op) {
       Value result = op.getResult();
-      if (auto veq = dyn_cast<quake::VeqType>(result.getType())) {
+      if (auto veq = dyn_cast<cudaq::quake::VeqType>(result.getType())) {
         // Update data.nQubits here and store qubit info as indexes into
         // the veq, in case we don't encounter any ExtractRefOps for
         // them later.
@@ -164,7 +164,7 @@ private:
     }
 
     // NOTE: assumes canonicalization and cse have run.
-    funcOp->walk([&](quake::ExtractRefOp op) {
+    funcOp->walk([&](cudaq::quake::ExtractRefOp op) {
       if (op.hasConstantIndex())
         data.qubitValues.insert({op.getConstantIndex(), op.getResult()});
     });
@@ -191,7 +191,8 @@ private:
     }
 
     // Count all measures
-    funcOp->walk([&](quake::MzOp op) { data.measurements.push_back(op); });
+    funcOp->walk(
+        [&](cudaq::quake::MzOp op) { data.measurements.push_back(op); });
 
     infoMap.insert({operation, data});
   }
@@ -238,7 +239,7 @@ public:
     for (auto *op : iter->second.measurements) {
       bool safeToRemove = [&]() {
         for (auto user : op->getUsers())
-          if (!isa<quake::SinkOp, quake::ReturnWireOp>(user))
+          if (!isa<cudaq::quake::SinkOp, cudaq::quake::ReturnWireOp>(user))
             return false;
         return true;
       }();
@@ -247,7 +248,7 @@ public:
             "Cannot observe kernel with non dangling measurements.");
 
       for (auto result : op->getResults())
-        if (quake::isLinearType(result.getType()))
+        if (cudaq::quake::isLinearType(result.getType()))
           result.replaceAllUsesWith(op->getOperand(0));
 
       op->dropAllReferences();
@@ -273,8 +274,8 @@ public:
     auto loc = funcOp.getBody().back().getTerminator()->getLoc();
     Operation *last = &funcOp.getBody().back().front();
     funcOp.walk([&](Operation *op) {
-      if (dyn_cast<quake::OperatorInterface>(op) ||
-          dyn_cast<quake::AllocaOp>(op))
+      if (dyn_cast<cudaq::quake::OperatorInterface>(op) ||
+          dyn_cast<cudaq::quake::AllocaOp>(op))
         last = op;
     });
     builder.setInsertionPointAfter(last);
@@ -305,7 +306,7 @@ public:
         auto veqOp = seekIndexed->second.first;
         auto index = seekIndexed->second.second;
         auto extractRef =
-            quake::ExtractRefOp::create(builder, loc, veqOp, index);
+            cudaq::quake::ExtractRefOp::create(builder, loc, veqOp, index);
         qubitVal = extractRef.getResult();
       } else {
         qubitVal = seek->second;
@@ -320,21 +321,21 @@ public:
         qubitsToMeasure.push_back(qubitVal);
     }
 
-    auto measTy = quake::MeasureType::get(builder.getContext());
-    auto wireTy = quake::WireType::get(builder.getContext());
+    auto measTy = cudaq::quake::MeasureType::get(builder.getContext());
+    auto wireTy = cudaq::quake::WireType::get(builder.getContext());
     for (const auto &[measureNum, qubitToMeasure] :
          llvm::enumerate(qubitsToMeasure)) {
       // add the measure
       char regName[16];
       std::snprintf(regName, sizeof(regName), "r%05lu", measureNum);
-      if (quake::isLinearType(qubitToMeasure.getType())) {
-        auto newOp = quake::MzOp::create(
+      if (cudaq::quake::isLinearType(qubitToMeasure.getType())) {
+        auto newOp = cudaq::quake::MzOp::create(
             builder, loc, TypeRange{measTy, wireTy}, ValueRange{qubitToMeasure},
             builder.getStringAttr(regName));
         qubitToMeasure.replaceAllUsesExcept(newOp.getResult(1), newOp);
       } else {
-        quake::MzOp::create(builder, loc, measTy, qubitToMeasure,
-                            builder.getStringAttr(regName));
+        cudaq::quake::MzOp::create(builder, loc, measTy, qubitToMeasure,
+                                   builder.getStringAttr(regName));
       }
     }
 

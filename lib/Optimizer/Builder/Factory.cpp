@@ -117,7 +117,7 @@ Value factory::packIsArrayAndLengthArray(
     // With opaque pointers, both qubit (RefType) and array (VeqType) convert
     // to the same !llvm.ptr type, so we must check the original quake types
     // to distinguish them.
-    bool isQubit = isa<quake::RefType>(originalControls[i].getType());
+    bool isQubit = isa<cudaq::quake::RefType>(originalControls[i].getType());
     if (isQubit) {
       element = zero;
     } else {
@@ -435,7 +435,7 @@ Type factory::convertToHostSideType(Type ty, ModuleOp mod) {
     return cc::StructType::get(ctx, newMembers, structTy.getBitSize(),
                                structTy.getAlignment(), structTy.getPacked());
   }
-  if (auto memrefTy = dyn_cast<quake::VeqType>(ty)) {
+  if (auto memrefTy = dyn_cast<cudaq::quake::VeqType>(ty)) {
     // Use pointer as these must be pass-by-reference.
     return cc::PointerType::get(factory::stlVectorType(
         IntegerType::get(ctx, /*FIXME sizeof a pointer?*/ 64)));

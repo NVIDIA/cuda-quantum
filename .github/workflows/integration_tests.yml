@@ -28,6 +28,7 @@ on:
           - quantinuum
           - scaleway
           - tii
+          - qbraid
       single_test_name:
         type: string
         required: false
@@ -95,14 +96,23 @@ jobs:
       cudaq_test_image: ${{ steps.vars.outputs.cudaq_nightly_image }}@${{ steps.test_image.outputs.digest }}
 
     steps:
+      - name: Log in to GitHub CR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
       - name: Set variables
         id: vars
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           cudaq_test_image=${{ inputs.cudaq_test_image || vars.cudaq_test_image }}
           cudaq_nightly_image=ghcr.io/nvidia/${{ vars.packages_prefix }}cuda-quantum
 
-          sudo apt-get update && sudo apt-get install -y --no-install-recommends curl
-          curl -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64 > regctl
+          retry sudo apt-get update
+          retry sudo apt-get install -y --no-install-recommends curl
+          retry curl -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64 > regctl
           chmod 755 regctl
 
           manifest=`./regctl image manifest $cudaq_test_image --format "{{ json . }}"`
@@ -111,13 +121,6 @@ jobs:
 
           echo "platforms=$(echo $platforms | tr ' ' ,)" >> $GITHUB_OUTPUT
           echo "cudaq_nightly_image=$cudaq_nightly_image" >> $GITHUB_OUTPUT
-
-      - name: Log in to GitHub CR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
 
       - name: Set up context for buildx
         run: |
@@ -191,7 +194,7 @@ jobs:
         run: |
           # Determine which providers to test based on inputs and event type
           if [[ "${{ github.event_name }}" == "schedule" || "${{ inputs.target }}" == "nightly" ]]; then
-            providers='["anyon", "fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qci", "quantinuum", "scaleway", "tii"]'
+            providers='["anyon", "fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qbraid", "qci", "quantinuum", "scaleway", "tii"]'
           else
             # Just run the specified target provider
             providers="[\"${{ inputs.target }}\"]"
@@ -261,6 +264,9 @@ jobs:
               pasqal)
                 filelist="docs/sphinx/targets/cpp/pasqal.cpp docs/sphinx/targets/python/pasqal.py"
                 ;;
+              qbraid)
+                filelist="targettests/qbraid/*.cpp docs/sphinx/targets/cpp/qbraid.cpp docs/sphinx/targets/python/qbraid.py"
+                ;;
               qci)
                 filelist="targettests/qci/*.cpp"
                 ;;
@@ -281,6 +287,7 @@ jobs:
       # Provider-specific setup steps
       - name: Setup ${{ matrix.provider }} account
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           case "${{ matrix.provider }}" in
             anyon)
               echo "### Setting up Anyon account" >> $GITHUB_STEP_SUMMARY
@@ -349,7 +356,7 @@ jobs:
               ;;
             pasqal)
               echo "### Setting up Pasqal account" >> $GITHUB_STEP_SUMMARY
-              python3 -m pip install pasqal-cloud
+              retry python3 -m pip install pasqal-cloud
               echo "::add-mask::${{ secrets.PASQAL_USERNAME }}"
               echo "::add-mask::${{ secrets.PASQAL_PASSWORD }}"
               echo "::add-mask::${{ secrets.PASQAL_PROJECT_ID }}"
@@ -379,6 +386,11 @@ jobs:
               echo "PASQAL_PASSWORD=${{ secrets.PASQAL_PASSWORD }}" >> $GITHUB_ENV
               echo "PASQAL_PROJECT_ID=${{ secrets.PASQAL_PROJECT_ID }}" >> $GITHUB_ENV
               echo "PASQAL_MACHINE_TARGET=EMU_FREE" >> $GITHUB_ENV
+              ;;
+            qbraid)
+              echo "### Setting up qBraid account" >> $GITHUB_STEP_SUMMARY
+              echo "::add-mask::${{ secrets.QBRAID_API_KEY }}"
+              echo "QBRAID_API_KEY=${{ secrets.QBRAID_API_KEY }}" >> $GITHUB_ENV
               ;;
             qci)
               echo "### Setting up QCI account" >> $GITHUB_STEP_SUMMARY
@@ -663,6 +675,39 @@ jobs:
                     fi
                   else
                     echo ":information_source: Skipped QRMI test for $filename (QRMI not available in this build)" >> $GITHUB_STEP_SUMMARY
+                  fi
+                else
+                  echo "::warning::Unsupported file type: $filename"
+                  echo ":warning: Test skipped (unsupported file type): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_skip_sum=$((test_skip_sum+1))
+                fi
+                ;;
+
+              qbraid)
+                if [[ "$filename" == *.cpp ]]; then
+                  nvq++ -v $filename --target qbraid --qbraid-machine qbraid:qbraid:sim:qir-sv
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    ./a.out
+                    test_status=$?
+                    if [ $test_status -eq 0 ]; then
+                      echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                    else
+                      echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                      test_err_sum=$((test_err_sum+1))
+                    fi
+                  else
+                    echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                elif [[ "$filename" == *.py ]]; then
+                  python3 $filename 1> /dev/null
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
                   fi
                 else
                   echo "::warning::Unsupported file type: $filename"

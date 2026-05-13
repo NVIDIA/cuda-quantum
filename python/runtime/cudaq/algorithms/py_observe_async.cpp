@@ -48,7 +48,7 @@ isValidObserveKernel_impl(const std::string &kernelName, MlirModule kernelMod) {
 
   // Are measurements specified?
   if (kernelFunc
-          .walk([&](quake::MeasurementInterface measure) {
+          .walk([&](cudaq::quake::MeasurementInterface measure) {
             // FIXME!! This is incorrect. If the kernel has calls, they are
             // completely ignored.
             return mlir::WalkResult::interrupt();

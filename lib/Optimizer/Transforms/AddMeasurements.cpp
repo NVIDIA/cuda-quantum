@@ -34,10 +34,10 @@ struct Analysis {
         hasMeasurement = true;
         return WalkResult::interrupt();
       }
-      if (auto alloc = dyn_cast<quake::AllocaOp>(op)) {
+      if (auto alloc = dyn_cast<cudaq::quake::AllocaOp>(op)) {
         if (alloc->hasOneUse()) {
           Operation *user = *alloc->getUsers().begin();
-          if (isa<quake::InitializeStateOp>(user))
+          if (isa<cudaq::quake::InitializeStateOp>(user))
             op = user;
         }
         allocations.emplace_back(op);
@@ -88,14 +88,14 @@ addMeasurements(func::FuncOp funcOp, SmallVector<Operation *> &allocations,
 
   // Set insertion point to the new block and add measurements
   builder.setInsertionPointToEnd(newBlock);
-  auto measTy = quake::MeasureType::get(builder.getContext());
+  auto measTy = cudaq::quake::MeasureType::get(builder.getContext());
   for (auto [index, alloca] : llvm::enumerate(allocations)) {
-    if (isa<quake::VeqType>(alloca->getResult(0).getType())) {
+    if (isa<cudaq::quake::VeqType>(alloca->getResult(0).getType())) {
       auto stdvecTy = cudaq::cc::StdvecType::get(measTy);
-      quake::MzOp::create(builder, loc, stdvecTy,
-                          ValueRange{alloca->getResult(0)});
+      cudaq::quake::MzOp::create(builder, loc, stdvecTy,
+                                 ValueRange{alloca->getResult(0)});
     } else {
-      quake::MzOp::create(builder, loc, measTy, alloca->getResult(0));
+      cudaq::quake::MzOp::create(builder, loc, measTy, alloca->getResult(0));
     }
   }
 

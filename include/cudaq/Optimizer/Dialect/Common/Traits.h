@@ -10,7 +10,7 @@
 
 #include "mlir/IR/OpImplementation.h"
 
-namespace quake {
+namespace cudaq::quake {
 mlir::LogicalResult verifyWireArityAndCoarity(mlir::Operation *op);
 
 /// Returns true iff \p op is a Quantum Operator (unitary), measurement, or a
@@ -31,7 +31,7 @@ mlir::ValueRange getQuantumResults(mlir::Operation *op);
 /// Set the operands from \p op from \p quantumVals.
 mlir::LogicalResult setQuantumOperands(mlir::Operation *op,
                                        mlir::ValueRange quantumVals);
-} // namespace quake
+} // namespace cudaq::quake
 
 namespace cudaq {
 
@@ -49,7 +49,7 @@ template <typename ConcreteType>
 class QuantumGate : public mlir::OpTrait::TraitBase<ConcreteType, QuantumGate> {
 public:
   static mlir::LogicalResult verifyTrait(mlir::Operation *op) {
-    return quake::verifyWireArityAndCoarity(op);
+    return cudaq::quake::verifyWireArityAndCoarity(op);
   }
 };
 
@@ -66,7 +66,7 @@ class QuantumMeasure
     : public mlir::OpTrait::TraitBase<ConcreteType, QuantumMeasure> {
 public:
   static mlir::LogicalResult verifyTrait(mlir::Operation *op) {
-    return quake::verifyWireArityAndCoarity(op);
+    return cudaq::quake::verifyWireArityAndCoarity(op);
   }
 };
 

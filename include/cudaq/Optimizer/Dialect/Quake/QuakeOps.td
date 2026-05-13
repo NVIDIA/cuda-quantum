@@ -101,10 +101,10 @@ def quake_AllocaOp : QuakeOp<"alloca", [MemoryEffects<[MemAlloc, MemWrite]>]> {
     bool hasInitializedState() {
       auto *self = getOperation();
       return self->hasOneUse() &&
-        mlir::isa<quake::InitializeStateOp>(*self->getUsers().begin());
+        mlir::isa<cudaq::quake::InitializeStateOp>(*self->getUsers().begin());
     }
 
-    quake::InitializeStateOp getInitializedState();
+    cudaq::quake::InitializeStateOp getInitializedState();
   }];
 }
 
@@ -329,7 +329,7 @@ def quake_SubVeqOp : QuakeOp<"subveq", [AttrSizedOperandSegments, Pure]> {
     OpBuilder<(ins "mlir::Type":$veqTy, "mlir::Value":$input,
                    "mlir::Value":$lower, "mlir::Value":$upper), [{
       return build($_builder, $_state, veqTy, input, lower, upper,
-        quake::SubVeqOp::kDynamicIndex, quake::SubVeqOp::kDynamicIndex);
+        cudaq::quake::SubVeqOp::kDynamicIndex, cudaq::quake::SubVeqOp::kDynamicIndex);
     }]>,
     OpBuilder<(ins "mlir::Type":$veqTy, "mlir::Value":$input,
                    "std::int64_t":$lower, "std::int64_t":$upper), [{
@@ -1089,7 +1089,7 @@ def quake_ResetOp : QuakeOp<"reset", [QuantumGate,
   let extraClassDeclaration = [{
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::
         EffectInstance<mlir::MemoryEffects::Effect>> &effects) {
-      quake::getResetEffectsImpl(effects, getTargetsMutable());
+      cudaq::quake::getResetEffectsImpl(effects, getTargetsMutable());
     }
   }];
 }
@@ -1126,7 +1126,7 @@ class Measurement<string mnemonic> : QuakeOp<mnemonic, [MeasurementInterface,
   code OpBaseDeclaration = [{
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
       mlir::MemoryEffects::Effect>> &effects) {
-      quake::getMeasurementEffectsImpl(effects, getTargetsMutable());
+      cudaq::quake::getMeasurementEffectsImpl(effects, getTargetsMutable());
     }
   }];
 
@@ -1291,7 +1291,7 @@ class QuakeOperator<string mnemonic, list<Trait> traits = [],
 
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
       mlir::MemoryEffects::Effect>> &effects) {
-      quake::getOperatorEffectsImpl(effects, getControlsMutable(), getTargetsMutable());
+      cudaq::quake::getOperatorEffectsImpl(effects, getControlsMutable(), getTargetsMutable());
     }
 
     //===------------------------------------------------------------------===//
@@ -1454,7 +1454,7 @@ def quake_ExpPauliOp : QuakeOp<"exp_pauli",
 
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
       mlir::MemoryEffects::Effect>> &effects) {
-      quake::getOperatorEffectsImpl(effects, getControlsMutable(), getTargetsMutable());
+      cudaq::quake::getOperatorEffectsImpl(effects, getControlsMutable(), getTargetsMutable());
     }
 
     //===------------------------------------------------------------------===//

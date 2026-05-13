@@ -20,11 +20,11 @@ using namespace mlir;
 
 namespace {
 
-struct ReplaceH : public OpRewritePattern<quake::HOp> {
+struct ReplaceH : public OpRewritePattern<cudaq::quake::HOp> {
   using OpRewritePattern::OpRewritePattern;
-  LogicalResult matchAndRewrite(quake::HOp hOp,
+  LogicalResult matchAndRewrite(cudaq::quake::HOp hOp,
                                 PatternRewriter &rewriter) const override {
-    rewriter.replaceOpWithNewOp<quake::SOp>(
+    rewriter.replaceOpWithNewOp<cudaq::quake::SOp>(
         hOp, hOp.isAdj(), hOp.getParameters(), hOp.getControls(),
         hOp.getTargets());
     return success();
@@ -45,8 +45,8 @@ public:
     RewritePatternSet patterns(ctx);
     patterns.insert<ReplaceH>(ctx);
     ConversionTarget target(*ctx);
-    target.addLegalDialect<quake::QuakeDialect>();
-    target.addIllegalOp<quake::HOp>();
+    target.addLegalDialect<cudaq::quake::QuakeDialect>();
+    target.addIllegalOp<cudaq::quake::HOp>();
     if (failed(applyPartialConversion(circuit, target, std::move(patterns)))) {
       circuit.emitOpError("simple pass failed");
       signalPassFailure();

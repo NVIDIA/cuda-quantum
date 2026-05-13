@@ -36,15 +36,16 @@ namespace {
 /// ```
 // clang-format on
 class ReplaceGetNumQubitsPattern
-    : public OpRewritePattern<quake::GetNumberOfQubitsOp> {
+    : public OpRewritePattern<cudaq::quake::GetNumberOfQubitsOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(quake::GetNumberOfQubitsOp numQubits,
+  LogicalResult matchAndRewrite(cudaq::quake::GetNumberOfQubitsOp numQubits,
                                 PatternRewriter &rewriter) const override {
 
     auto stateOp = numQubits.getState();
-    auto materializeState = stateOp.getDefiningOp<quake::MaterializeStateOp>();
+    auto materializeState =
+        stateOp.getDefiningOp<cudaq::quake::MaterializeStateOp>();
     if (!materializeState) {
       LLVM_DEBUG(llvm::dbgs() << "ReplaceStateWithKernel: failed to replace "
                                  "`quake.get_num_qubits`: "
@@ -72,19 +73,19 @@ public:
 /// ```
 // clang-format on
 class ReplaceInitStatePattern
-    : public OpRewritePattern<quake::InitializeStateOp> {
+    : public OpRewritePattern<cudaq::quake::InitializeStateOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(quake::InitializeStateOp initState,
+  LogicalResult matchAndRewrite(cudaq::quake::InitializeStateOp initState,
                                 PatternRewriter &rewriter) const override {
     auto allocaOp = initState.getTargets();
     auto stateOp = initState.getState();
 
     if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(stateOp.getType())) {
-      if (isa<quake::StateType>(ptrTy.getElementType())) {
+      if (isa<cudaq::quake::StateType>(ptrTy.getElementType())) {
         auto materializeState =
-            stateOp.getDefiningOp<quake::MaterializeStateOp>();
+            stateOp.getDefiningOp<cudaq::quake::MaterializeStateOp>();
         if (!materializeState) {
           LLVM_DEBUG(llvm::dbgs() << "ReplaceStateWithKernel: failed to "
                                      "replace `quake.init_state`: "

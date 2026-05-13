@@ -25,7 +25,8 @@ jobs:
       - name: Download PR info
         id: pr_info
         run: |
-          pr_info=`wget -O - ${{ inputs.pr_url }}`
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          pr_info=`retry wget -O - ${{ inputs.pr_url }}`
           pr_nr=`echo $pr_info | jq -r '.number'`
           head_label=`echo $pr_info | jq -r '.head.label'`
           head_sha=`echo $pr_info | jq -r '.head.sha'`

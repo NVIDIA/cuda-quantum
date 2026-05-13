@@ -86,18 +86,19 @@ jobs:
       - name: Load prerequisites
         id: prereqs
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           if ${{ steps.restore.outcome != 'skipped' }}; then
             load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
             base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
             echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
             # Push the image to the local registry to make it available within
             # the containered environment that docker/build-push-action uses.
-            docker push $base_image
+            retry docker push $base_image
             rm -rf "${{ inputs.devdeps_archive }}"
           elif ${{ inputs.devdeps_image != '' }}; then
             base_image=${{ inputs.devdeps_image }}
             echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
-            docker pull $base_image
+            retry docker pull $base_image
           else
             echo "::error file=python_wheels.yml::Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build."
             exit 1
@@ -296,6 +297,7 @@ jobs:
           image: wheel_validation:local
           shell: bash
           run: |
+            retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
             python${{ inputs.python_version }} -m pytest -v /tmp/tests/ \
               --ignore /tmp/tests/backends
             pytest_status=$?
@@ -303,7 +305,7 @@ jobs:
               echo "::error file=python_wheel.yml::Python tests failed with status $pytest_status."
               exit 1
             fi
-            python${{ inputs.python_version }} -m pip install --user fastapi uvicorn llvmlite
+            retry python${{ inputs.python_version }} -m pip install --user fastapi uvicorn llvmlite
             python${{ inputs.python_version }} -m pytest -v /tmp/tests/backends
             pytest_status=$?
             # Exit code 5 indicates that no tests were collected,
@@ -323,16 +325,18 @@ jobs:
           image: wheel_validation:local
           shell: bash
           run: |
+            retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+            retry_dnf() { local pre=""; [ "$(id -u)" -ne 0 ] && pre=sudo; for n in 1 2 3; do $pre dnf "$@" && return 0; [ $n -lt 3 ] && { $pre dnf clean metadata >/dev/null 2>&1 || true; sleep $((15*n*n)); }; done; return 1; }
             # Uninstall pip-installed cuda-quantum in the `wheel_validation:local` image.
-            # In this step, we test the full installation workflow with conda; 
+            # In this step, we test the full installation workflow with conda;
             # hence we don't want to mix conda and pip packages.
             cuda_major=$(echo ${{ inputs.cuda_version }} | cut -d . -f1)
             python${{ inputs.python_version }} -m pip uninstall -y cuda-quantum-cu${cuda_major}
 
             # Install cuda-quantum wheel and all dependencies (including MPI) using conda (README instructions)
-            dnf install -y --nobest --setopt=install_weak_deps=False wget unzip openssh-clients
+            retry_dnf install -y --nobest --setopt=install_weak_deps=False wget unzip openssh-clients
             mkdir -p ~/miniconda3
-            wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-$(uname -m).sh -O ~/miniconda3/miniconda.sh
+            retry wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-$(uname -m).sh -O ~/miniconda3/miniconda.sh
             bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
             ~/miniconda3/bin/conda init bash
             source ~/.bashrc
@@ -360,7 +364,7 @@ jobs:
             done <<< "$ompi_script"
 
             # Run the MPI test
-            python${{ inputs.python_version }} -m pip install pytest numpy
+            retry python${{ inputs.python_version }} -m pip install pytest numpy
             mpirun --allow-run-as-root -np 4 python${{ inputs.python_version }} -m pytest -v /tmp/tests/parallel/test_mpi_api.py
             pytest_mpi_status=$?
             if [ ! $pytest_mpi_status -eq 0 ]; then

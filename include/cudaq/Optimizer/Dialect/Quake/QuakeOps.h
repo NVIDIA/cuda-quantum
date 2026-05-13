@@ -25,7 +25,7 @@
 // Canonicalizer functions.
 //===----------------------------------------------------------------------===//
 
-namespace quake {
+namespace cudaq::quake {
 mlir::Value createConstantAlloca(mlir::PatternRewriter &builder,
                                  mlir::Location loc, mlir::OpResult result,
                                  mlir::ValueRange args);
@@ -53,7 +53,7 @@ void genericOpPrinter(mlir::OpAsmPrinter &_odsPrinter, mlir::Operation *op,
                       bool isAdj, mlir::OperandRange params,
                       mlir::OperandRange ctrls, mlir::OperandRange targs,
                       mlir::DenseBoolArrayAttr negatedQubitControlsAttr);
-} // namespace quake
+} // namespace cudaq::quake
 
 //===----------------------------------------------------------------------===//
 // Tablegen generated logic.
@@ -73,7 +73,7 @@ inline bool isQuakeOperation(mlir::Operation *op) {
   return false;
 }
 
-namespace quake {
+namespace cudaq::quake {
 /// Returns true if and only if any quantum operand has type `!quake.ref` or
 /// `!quake.veq`.
 inline bool hasReference(mlir::Operation *op) {
@@ -87,14 +87,15 @@ inline bool hasReference(mlir::Operation *op) {
 /// when the surface type is dynamically sized but the inner value has a known
 /// size.
 inline std::optional<std::size_t> getVeqSize(mlir::Value v) {
-  auto veqTy = mlir::dyn_cast<quake::VeqType>(v.getType());
+  auto veqTy = mlir::dyn_cast<cudaq::quake::VeqType>(v.getType());
   if (!veqTy)
     return std::nullopt;
   if (veqTy.hasSpecifiedSize())
     return veqTy.getSize();
-  if (auto relaxOp = v.getDefiningOp<quake::RelaxSizeOp>()) {
+  if (auto relaxOp = v.getDefiningOp<cudaq::quake::RelaxSizeOp>()) {
     // RelaxSizeOp verifier guarantees input is VeqType when result is VeqType.
-    auto innerTy = mlir::cast<quake::VeqType>(relaxOp.getInputVec().getType());
+    auto innerTy =
+        mlir::cast<cudaq::quake::VeqType>(relaxOp.getInputVec().getType());
     if (innerTy.hasSpecifiedSize())
       return innerTy.getSize();
   }
@@ -104,7 +105,7 @@ inline std::optional<std::size_t> getVeqSize(mlir::Value v) {
 /// Returns true if and only if any quantum operand has type `!quake.ref`.
 inline bool hasNonVectorReference(mlir::Operation *op) {
   for (mlir::Value opnd : op->getOperands())
-    if (isa<quake::RefType>(opnd.getType()))
+    if (isa<cudaq::quake::RefType>(opnd.getType()))
       return true;
   return false;
 }
@@ -131,13 +132,13 @@ inline bool isAllValues(mlir::Operation *op) {
 /// (QLS) form.
 inline bool isWrapped(mlir::Operation *op) {
   for (mlir::Value val : op->getOperands())
-    if (isa<quake::WireType>(val.getType()) &&
-        !val.getDefiningOp<quake::UnwrapOp>())
+    if (isa<cudaq::quake::WireType>(val.getType()) &&
+        !val.getDefiningOp<cudaq::quake::UnwrapOp>())
       return false;
   for (mlir::Value val : op->getResults())
-    if (isa<quake::WireType>(val.getType()))
+    if (isa<cudaq::quake::WireType>(val.getType()))
       for (auto *u : val.getUsers())
-        if (!isa<quake::WrapOp>(u))
+        if (!isa<cudaq::quake::WrapOp>(u))
           return false;
   return true;
 }
@@ -146,7 +147,7 @@ inline bool isWrapped(mlir::Operation *op) {
 /// Linear-value form is defined such that the Op, \p op, is not in full (or
 /// partial) memory-SSA form and is not in the intermediate QLS form.
 inline bool isLinearValueForm(mlir::Operation *op) {
-  return isa<quake::NullWireOp, quake::SinkOp>(op) ||
+  return isa<cudaq::quake::NullWireOp, cudaq::quake::SinkOp>(op) ||
          (isAllValues(op) && !isWrapped(op));
 }
 inline bool isLinearValueForm(mlir::Value val) {
@@ -156,8 +157,8 @@ inline bool isLinearValueForm(mlir::Value val) {
 }
 
 template <typename OP>
-constexpr bool isMeasure =
-    std::is_same_v<OP, quake::MxOp> || std::is_same_v<OP, quake::MyOp> ||
-    std::is_same_v<OP, quake::MzOp>;
+constexpr bool isMeasure = std::is_same_v<OP, cudaq::quake::MxOp> ||
+                           std::is_same_v<OP, cudaq::quake::MyOp> ||
+                           std::is_same_v<OP, cudaq::quake::MzOp>;
 
-} // namespace quake
+} // namespace cudaq::quake
