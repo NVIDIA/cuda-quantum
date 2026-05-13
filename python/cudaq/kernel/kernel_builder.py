@@ -1128,6 +1128,22 @@ class PyKernel(object):
                     'reset operation broadcasting on qvector not supported yet.'
                 )
 
+    def __measure(self, opClass, target, regName):
+        """Common implementation for `mz` / `mx` / `my`. Emits the measurement
+        op of class `opClass` against `target`, optionally tagging the result
+        with `regName`, and returns the result as a :class:`QuakeValue`."""
+        with self.ctx, self.insertPoint, self.loc:
+            measTy = cc.MeasureHandleType.get()
+            if quake.VeqType.isinstance(target.mlirValue.type):
+                measTy = cc.StdvecType.get(measTy)
+            if regName is not None:
+                res = opClass(measTy, [], [target.mlirValue],
+                              registerName=StringAttr.get(regName,
+                                                          context=self.ctx))
+            else:
+                res = opClass(measTy, [], [target.mlirValue])
+            return self.__createQuakeValue(res.measOut)
+
     def mz(self, target, regName=None):
         """
         Measure the given qubit or qubits in the Z-basis. The optional
@@ -1159,17 +1175,7 @@ class PyKernel(object):
             kernel.mz(target=qubit))
         ```
         """
-        with self.ctx, self.insertPoint, self.loc:
-            measTy = cc.MeasureHandleType.get()
-            if quake.VeqType.isinstance(target.mlirValue.type):
-                measTy = cc.StdvecType.get(measTy)
-            if regName is not None:
-                res = quake.MzOp(measTy, [], [target.mlirValue],
-                                 registerName=StringAttr.get(regName,
-                                                             context=self.ctx))
-            else:
-                res = quake.MzOp(measTy, [], [target.mlirValue])
-            return self.__createQuakeValue(res.measOut)
+        return self.__measure(quake.MzOp, target, regName)
 
     def mx(self, target, regName=None):
         """
@@ -1201,17 +1207,7 @@ class PyKernel(object):
             kernel.mx(qubit))
         ```
         """
-        with self.ctx, self.insertPoint, self.loc:
-            measTy = cc.MeasureHandleType.get()
-            if quake.VeqType.isinstance(target.mlirValue.type):
-                measTy = cc.StdvecType.get(measTy)
-            if regName is not None:
-                res = quake.MxOp(measTy, [], [target.mlirValue],
-                                 registerName=StringAttr.get(regName,
-                                                             context=self.ctx))
-            else:
-                res = quake.MxOp(measTy, [], [target.mlirValue])
-            return self.__createQuakeValue(res.measOut)
+        return self.__measure(quake.MxOp, target, regName)
 
     def my(self, target, regName=None):
         """
@@ -1244,17 +1240,7 @@ class PyKernel(object):
             kernel.my(qubit))
         ```
         """
-        with self.ctx, self.insertPoint, self.loc:
-            measTy = cc.MeasureHandleType.get()
-            if quake.VeqType.isinstance(target.mlirValue.type):
-                measTy = cc.StdvecType.get(measTy)
-            if regName is not None:
-                res = quake.MyOp(measTy, [], [target.mlirValue],
-                                 registerName=StringAttr.get(regName,
-                                                             context=self.ctx))
-            else:
-                res = quake.MyOp(measTy, [], [target.mlirValue])
-            return self.__createQuakeValue(res.measOut)
+        return self.__measure(quake.MyOp, target, regName)
 
     def adjoint(self, otherKernel, *target_arguments):
         """
