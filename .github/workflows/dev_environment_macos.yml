@@ -138,7 +138,9 @@ jobs:
           submodules: ${{ inputs.checkout_submodules }}
 
       - name: Install ORAS
-        run: brew install oras
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry brew install oras
 
       - name: Log in to GitHub CR
         run: echo "${{ github.token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -187,12 +189,13 @@ jobs:
         env:
           MACOSX_DEPLOYMENT_TARGET: '13.0'
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           # Fix CI runner quirk: gcc pre-installed but not linked
           brew unlink gcc 2>/dev/null || true
           brew link gcc --overwrite 2>/dev/null || true
-          
+
           # NumPy is required by MLIR's find_package(Python3 ... NumPy)
-          pip3 install numpy --break-system-packages
+          retry pip3 install numpy --break-system-packages
           
           # Build prerequisites with Python bindings enabled so the cmake
           # cache already has MLIR_ENABLE_BINDINGS_PYTHON=ON.  Downstream
@@ -213,17 +216,18 @@ jobs:
         id: push_image
         if: steps.cache_check.outputs.cache_hit != 'true'
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           # Package artifacts
           echo "Packaging artifacts from ~/.local and ~/.llvm-project..."
           tar -czf macos-artifacts.tar.gz -C $HOME .local .llvm-project
           ls -lh macos-artifacts.tar.gz
-          
+
           # Push directly to GHCR as OCI artifact using ORAS
-          oras push ${{ steps.cache_key.outputs.image_name }} \
+          retry oras push ${{ steps.cache_key.outputs.image_name }} \
             macos-artifacts.tar.gz:application/gzip
-          
+
           # Get digest for signing
-          digest=$(oras manifest fetch ${{ steps.cache_key.outputs.image_name }} --descriptor | jq -r '.digest')
+          digest=$(retry oras manifest fetch ${{ steps.cache_key.outputs.image_name }} --descriptor | jq -r '.digest')
           echo "digest=${{ steps.cache_key.outputs.image_name }}@${digest}" >> $GITHUB_OUTPUT
 
       - name: Install Cosign
