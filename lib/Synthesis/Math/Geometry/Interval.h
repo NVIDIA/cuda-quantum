@@ -10,8 +10,6 @@
 
 #include "cudaq/Synthesis/Math/Real.h"
 
-#include <cassert>
-
 namespace cudaq::synth {
 
 /// Interval: A closed real interval [l, r].
@@ -28,15 +26,16 @@ namespace cudaq::synth {
 /// - If δΔ ≥ (1+√2)², the grid problem has at least one solution.
 /// - The fattened interval (free function fatten) is used in the TDGP solver
 ///   to handle the ω-offset variant from Lemma 5.5.
+///
+/// Degenerate intervals (a > b, i.e. width() < 0) are permitted and represent
+/// the empty set. The ODGP solver short-circuits to an empty result on these.
 class Interval {
 private:
   Real begin;
   Real end;
 
 public:
-  explicit Interval(const Real &a, const Real &b) : begin(a), end(b) {
-    assert(!(a > b) && "Interval: a must be <= b");
-  }
+  explicit Interval(const Real &a, const Real &b) : begin(a), end(b) {}
 
   const Real &l() const { return begin; }
   const Real &r() const { return end; }

@@ -7,9 +7,9 @@
  ******************************************************************************/
 
 #include "Math/Diophantine.h"
+#include "Support/LogMacros.h"
 #include "cudaq/Synthesis/Math/Integer.h"
 #include "cudaq/Synthesis/Math/Ring/Zomega.h"
-#include "Support/LogMacros.h"
 #include "cudaq/Synthesis/Support/Result.h"
 
 #include <cassert>

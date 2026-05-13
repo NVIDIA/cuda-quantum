@@ -13,8 +13,8 @@
 #include <string>
 
 #include "cudaq/Synthesis/Math/Integer.h"
-#include "cudaq/Synthesis/Math/Ring/Zsqrt2.h"
 #include "cudaq/Synthesis/Math/Real.h"
+#include "cudaq/Synthesis/Math/Ring/Zsqrt2.h"
 #include "cudaq/Synthesis/Support/Result.h"
 
 namespace cudaq::synth {

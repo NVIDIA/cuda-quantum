@@ -9,9 +9,9 @@
 #pragma once
 
 #include "cudaq/Synthesis/Math/Integer.h"
+#include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Math/Ring/Domega.h"
 #include "cudaq/Synthesis/Math/Ring/Zomega.h"
-#include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Support/Result.h"
 
 #include <array>

@@ -11,8 +11,8 @@
 #include <array>
 #include <iostream>
 
-#include "cudaq/Synthesis/Math/Types.h"
 #include "cudaq/Synthesis/Circuit/Circuit.h"
+#include "cudaq/Synthesis/Math/Types.h"
 
 namespace cudaq::synth {
 
