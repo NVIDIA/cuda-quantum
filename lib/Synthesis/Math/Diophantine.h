@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "Math/Ring/Domega.h"
-#include "Math/Ring/Dsqrt2.h"
+#include "cudaq/Synthesis/Math/Ring/Domega.h"
+#include "cudaq/Synthesis/Math/Ring/Dsqrt2.h"
 #include "cudaq/Synthesis/Support/Result.h"
 
 /// Diophantine equation solver for the `gridsynth` algorithm.

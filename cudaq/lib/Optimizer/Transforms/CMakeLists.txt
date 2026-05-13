@@ -100,6 +100,5 @@ if(TARGET cudaq-synth)
   target_compile_definitions(obj.OptTransforms PRIVATE
     CUDAQ_HAS_CLIFFORD_T_SYNTHESIS)
   target_include_directories(obj.OptTransforms PRIVATE
-    $<TARGET_PROPERTY:cudaq-synth,INTERFACE_INCLUDE_DIRECTORIES>
-    ${CMAKE_SOURCE_DIR}/lib/Synthesis)
+    $<TARGET_PROPERTY:cudaq-synth,INTERFACE_INCLUDE_DIRECTORIES>)
 endif()

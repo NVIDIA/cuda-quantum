@@ -13,7 +13,7 @@
 #include <iostream>
 #include <string>
 
-#include "Math/Types.h"
+#include "cudaq/Synthesis/Math/Types.h"
 
 /// integer.h
 ///

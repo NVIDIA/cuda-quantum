@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "Support/BitVector.h"
+#include "cudaq/Synthesis/Support/BitVector.h"
 
 #include <cstdint>
 #include <vector>

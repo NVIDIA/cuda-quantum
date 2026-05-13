@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "Support/BitVector.h"
+#include "cudaq/Synthesis/Support/BitVector.h"
 
 #include <gtest/gtest.h>
 
