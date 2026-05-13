@@ -11,16 +11,10 @@
 #include "cudaq/Optimizer/CodeGen/CudaqFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/QuakeToExecMgr.h"
-#include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/Support/Debug.h"
-#include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/DialectConversion.h"
-#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
-
-#define DEBUG_TYPE "convert-to-cc"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_QUAKETOCCPREP
@@ -28,27 +22,29 @@ namespace cudaq::opt {
 #include "cudaq/Optimizer/CodeGen/Passes.h.inc"
 } // namespace cudaq::opt
 
+#define DEBUG_TYPE "convert-to-cc"
+
 using namespace mlir;
 
 namespace {
 struct QuakeTypeConverter : public TypeConverter {
   QuakeTypeConverter() {
     addConversion([](Type ty) { return ty; });
-    addConversion([](quake::VeqType ty) {
+    addConversion([](cudaq::quake::VeqType ty) {
       return cudaq::cc::PointerType::get(
           cudaq::opt::getCudaqQubitSpanType(ty.getContext()));
     });
-    addConversion([](quake::RefType ty) {
+    addConversion([](cudaq::quake::RefType ty) {
       return cudaq::cc::PointerType::get(
           cudaq::opt::getCudaqQubitSpanType(ty.getContext()));
     });
-    addConversion([&](quake::StruqType ty) {
+    addConversion([&](cudaq::quake::StruqType ty) {
       SmallVector<Type> mems;
       for (auto m : ty.getMembers())
         mems.push_back(convertType(m));
       return cudaq::cc::StructType::get(ty.getContext(), mems);
     });
-    addConversion([](quake::MeasureType ty) {
+    addConversion([](cudaq::quake::MeasureType ty) {
       return IntegerType::get(ty.getContext(), 64);
     });
   }
@@ -67,7 +63,7 @@ struct QuakeToCCPass : public cudaq::opt::impl::QuakeToCCBase<QuakeToCCPass> {
     target.addLegalDialect<arith::ArithDialect, cudaq::cc::CCDialect,
                            cf::ControlFlowDialect, func::FuncDialect,
                            LLVM::LLVMDialect>();
-    target.addIllegalDialect<quake::QuakeDialect>();
+    target.addIllegalDialect<cudaq::quake::QuakeDialect>();
 
     LLVM_DEBUG(llvm::dbgs() << "Module before:\n"; op.dump());
     if (failed(applyPartialConversion(op, target, std::move(patterns))))
@@ -101,7 +97,7 @@ struct QuakeToCCPrepPass
       return;
     }
 
-    if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns))))
+    if (failed(applyPatternsGreedily(op, std::move(patterns))))
       signalPassFailure();
     LLVM_DEBUG(llvm::dbgs() << "Module after prep:\n"; op->dump());
   }

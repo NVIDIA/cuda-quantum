@@ -8,6 +8,13 @@
 
 #pragma once
 
+// GCC 12 emits spurious -Wstringop-overflow false positives inside std::copy
+// calls inlined throughout this file.
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overread"
+#endif
+
 #include <array>
 #include <cassert>
 #include <complex>
@@ -285,3 +292,7 @@ inline complex_matrix kronecker(const complex_matrix &left,
 }
 
 } // namespace cudaq
+
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic pop
+#endif

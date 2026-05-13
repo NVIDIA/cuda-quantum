@@ -228,8 +228,7 @@ inline void from_json(const json &j, ExecutionContext &context) {
 // Enum data to denote the payload format.
 enum class CodeFormat { MLIR, LLVM };
 
-#define JSON_ENUM(enum_class, val)                                             \
-  { enum_class::val, #val }
+#define JSON_ENUM(enum_class, val) {enum_class::val, #val}
 
 NLOHMANN_JSON_SERIALIZE_ENUM(CodeFormat, {JSON_ENUM(CodeFormat, MLIR),
                                           JSON_ENUM(CodeFormat, LLVM)});

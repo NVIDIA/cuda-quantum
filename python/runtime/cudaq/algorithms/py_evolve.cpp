@@ -11,8 +11,8 @@
 #include "cudaq/algorithms/evolve_internal.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
-#include "utils/NanobindAdaptors.h"
 #include "utils/OpaqueArguments.h"
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/CAPI/IR.h"
 #include <nanobind/ndarray.h>
 #include <nanobind/stl/complex.h>

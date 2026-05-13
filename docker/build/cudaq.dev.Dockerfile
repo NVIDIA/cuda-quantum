@@ -17,7 +17,7 @@
 # 3) set the CC and CXX environment variable to use the same compiler toolchain
 #    as the LLVM dependencies have been built with.
 
-ARG base_image=ghcr.io/nvidia/cuda-quantum-devcontainer:cu12.6-gcc11-main
+ARG base_image=ghcr.io/nvidia/cuda-quantum-devcontainer:cu12.6-gcc12-main
 # Default empty stage for ccache data. CI overrides this with
 # --build-context ccache-data=<path> to inject a pre-populated cache,
 # while the devcontainer builds get the scratch as a noop.

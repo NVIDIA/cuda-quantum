@@ -63,6 +63,8 @@ def cgq_MaterializeConstantArrayOp :
   let assemblyFormat = [{
     $constArray `:` functional-type(operands, results) attr-dict
   }];
+
+  let hasVerifier = 1;
 }
 
 #endif

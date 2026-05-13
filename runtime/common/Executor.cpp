@@ -7,7 +7,9 @@
  ******************************************************************************/
 
 #include "Executor.h"
+#include "common/KernelExecution.h"
 #include "common/RestClient.h"
+#include "common/ServerHelper.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "nlohmann/json.hpp"
 
@@ -66,3 +68,14 @@ Executor::~Executor() = default;
 } // namespace cudaq
 
 CUDAQ_INSTANTIATE_REGISTRY(cudaq::Executor::RegistryType)
+
+// Bridge so the Python extension can look up Executor subtypes from this DSO's
+// registry (same pattern as cudaq_find_server_helper).
+extern "C" cudaq::Executor *cudaq_find_executor(const char *name) {
+  auto exec = cudaq::registry::get<cudaq::Executor>(std::string(name));
+  return exec.release();
+}
+
+extern "C" bool cudaq_has_executor(const char *name) {
+  return cudaq::registry::isRegistered<cudaq::Executor>(std::string(name));
+}

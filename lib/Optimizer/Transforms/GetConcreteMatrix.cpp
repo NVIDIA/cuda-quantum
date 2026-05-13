@@ -7,8 +7,6 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
@@ -25,12 +23,12 @@ using namespace mlir;
 namespace {
 
 class CustomUnitaryPattern
-    : public OpRewritePattern<quake::CustomUnitarySymbolOp> {
+    : public OpRewritePattern<cudaq::quake::CustomUnitarySymbolOp> {
 
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(quake::CustomUnitarySymbolOp customOp,
+  LogicalResult matchAndRewrite(cudaq::quake::CustomUnitarySymbolOp customOp,
                                 PatternRewriter &rewriter) const override {
 
     // Check if the generator associated with custom operation is a function. If
@@ -64,7 +62,7 @@ public:
         parentModule.lookupSymbol<cudaq::cc::GlobalOp>(concreteMatrix);
 
     if (ccGlobalOp) {
-      rewriter.replaceOpWithNewOp<quake::CustomUnitarySymbolOp>(
+      rewriter.replaceOpWithNewOp<cudaq::quake::CustomUnitarySymbolOp>(
           customOp,
           FlatSymbolRefAttr::get(parentModule.getContext(), concreteMatrix),
           customOp.getIsAdj(), customOp.getParameters(), customOp.getControls(),
@@ -84,8 +82,7 @@ public:
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     patterns.insert<CustomUnitaryPattern>(ctx);
-    if (failed(
-            applyPatternsAndFoldGreedily(getOperation(), std::move(patterns))))
+    if (failed(applyPatternsGreedily(getOperation(), std::move(patterns))))
       signalPassFailure();
   }
 };

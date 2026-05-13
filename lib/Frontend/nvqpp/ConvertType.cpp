@@ -138,7 +138,7 @@ static bool isKernelResultType(Type t) {
 /// (function), or a string.
 static bool isKernelArgumentType(Type t) {
   return isArithmeticType(t) || isComposedArithmeticType(t) ||
-         quake::isQuantumReferenceType(t) || isKernelCallable(t) ||
+         cudaq::quake::isQuantumReferenceType(t) || isKernelCallable(t) ||
          isFunctionCallable(t) ||
          // TODO: move from pointers to a builtin string type.
          cudaq::isCharPointerType(t);
@@ -175,7 +175,8 @@ QuakeBridgeVisitor::findCallOperator(const clang::CXXRecordDecl *decl) {
   return nullptr;
 }
 
-bool QuakeBridgeVisitor::TraverseRecordType(clang::RecordType *t) {
+bool QuakeBridgeVisitor::TraverseRecordType(clang::RecordType *t,
+                                            bool &visitChildren) {
   auto *recDecl = t->getDecl();
 
   if (ignoredClass(recDecl))
@@ -222,10 +223,10 @@ std::pair<std::uint64_t, unsigned>
 QuakeBridgeVisitor::getWidthAndAlignment(clang::RecordDecl *x) {
   auto *defn = x->getDefinition();
   assert(defn && "struct must be defined here");
-  auto *ty = defn->getTypeForDecl();
-  if (ty->isDependentType())
+  auto qualTy = getContext()->getCanonicalTagType(defn);
+  if (qualTy->isDependentType())
     return {0, 0};
-  auto ti = getContext()->getTypeInfo(ty);
+  auto ti = getContext()->getTypeInfo(qualTy);
   return {ti.Width, llvm::PowerOf2Ceil(ti.Align) / 8};
 }
 
@@ -247,7 +248,7 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
   bool isStruq = !fieldTys.empty();
   bool quantumMembers = false;
   for (auto ty : fieldTys) {
-    if (quake::isQuantumType(ty))
+    if (cudaq::quake::isQuantumType(ty))
       quantumMembers = true;
     if (!quake::isQuantumReferenceType(ty))
       isStruq = false;
@@ -260,7 +261,7 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
 
   auto ty = [&]() -> Type {
     if (isStruq)
-      return quake::StruqType::get(ctx, fieldTys);
+      return cudaq::quake::StruqType::get(ctx, fieldTys);
     if (name.empty())
       return cc::StructType::get(ctx, fieldTys, width, alignInBytes);
     return cc::StructType::get(ctx, name, fieldTys, width, alignInBytes);
@@ -269,7 +270,7 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
   // Do some error analysis on the product type. Check the following:
 
   // - If this is a struq:
-  if (isa<quake::StruqType>(ty)) {
+  if (isa<cudaq::quake::StruqType>(ty)) {
     // -- does it contain invalid C++ types?
     for (auto *field : x->fields()) {
       auto *ty = field->getType().getTypePtr();
@@ -295,15 +296,15 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
     }
     // -- does it contain contain a struq member? Not allowed.
     for (auto fieldTy : fieldTys)
-      if (isa<quake::StruqType>(fieldTy))
+      if (isa<cudaq::quake::StruqType>(fieldTy))
         reportClangError(x, mangler,
                          "recursive quantum struct types are not allowed.");
   }
 
   // - Is this a struct does it have quantum types? Not allowed.
-  if (!isa<quake::StruqType>(ty))
+  if (!isa<cudaq::quake::StruqType>(ty))
     for (auto fieldTy : fieldTys)
-      if (quake::isQuakeType(fieldTy))
+      if (cudaq::quake::isQuakeType(fieldTy))
         reportClangError(
             x, mangler,
             "hybrid quantum-classical struct types are not allowed.");
@@ -449,7 +450,8 @@ bool QuakeBridgeVisitor::VisitLValueReferenceType(
     return pushType(cc::PointerType::get(builder.getContext()));
   auto eleTy = popType();
   if (isa<cc::CallableType, cc::IndirectCallableType, cc::SpanLikeType,
-          quake::VeqType, quake::RefType, quake::StruqType>(eleTy))
+          cudaq::quake::VeqType, cudaq::quake::RefType,
+          cudaq::quake::StruqType>(eleTy))
     return pushType(eleTy);
   return pushType(cc::PointerType::get(eleTy));
 }
@@ -461,8 +463,9 @@ bool QuakeBridgeVisitor::VisitRValueReferenceType(
   auto eleTy = popType();
   // FIXME: LLVMStructType is promoted as a temporary workaround.
   if (isa<cc::ArrayType, cc::CallableType, cc::IndirectCallableType,
-          cc::SpanLikeType, cc::StructType, quake::VeqType, quake::RefType,
-          quake::StruqType, LLVM::LLVMStructType>(eleTy))
+          cc::SpanLikeType, cc::StructType, cudaq::quake::VeqType,
+          cudaq::quake::RefType, cudaq::quake::StruqType, LLVM::LLVMStructType>(
+          eleTy))
     return pushType(eleTy);
   return pushType(cc::PointerType::get(eleTy));
 }
@@ -470,10 +473,10 @@ bool QuakeBridgeVisitor::VisitRValueReferenceType(
 bool QuakeBridgeVisitor::VisitConstantArrayType(clang::ConstantArrayType *t) {
   auto size = t->getSize().getZExtValue();
   auto ty = popType();
-  if (quake::isQuantumType(ty)) {
+  if (cudaq::quake::isQuantumType(ty)) {
     auto *ctx = builder.getContext();
-    if (ty == quake::RefType::get(ctx))
-      return pushType(quake::VeqType::getUnsized(ctx));
+    if (ty == cudaq::quake::RefType::get(ctx))
+      return pushType(cudaq::quake::VeqType::getUnsized(ctx));
     emitFatalError(builder.getUnknownLoc(),
                    "array element type is not supported");
     return false;
@@ -511,7 +514,7 @@ SmallVector<Type> QuakeBridgeVisitor::lastTypes(unsigned n) {
 
 static bool isReferenceToCudaqStateType(Type t) {
   if (auto ptrTy = dyn_cast<cc::PointerType>(t))
-    return isa<quake::StateType>(ptrTy.getElementType());
+    return isa<cudaq::quake::StateType>(ptrTy.getElementType());
   return false;
 }
 
@@ -523,7 +526,7 @@ bool QuakeBridgeVisitor::doSyntaxChecks(const clang::FunctionDecl *x) {
   auto astTy = x->getType();
   // Verify the argument and return types are valid for a kernel.
   auto *protoTy = dyn_cast<clang::FunctionProtoType>(astTy.getTypePtr());
-  auto syntaxError = [&]<unsigned N>(const char(&msg)[N]) -> bool {
+  auto syntaxError = [&]<unsigned N>(const char (&msg)[N]) -> bool {
     reportClangError(x, mangler, msg);
     [[maybe_unused]] auto ty = popType();
     LLVM_DEBUG(llvm::dbgs() << "invalid type: " << ty << '\n');

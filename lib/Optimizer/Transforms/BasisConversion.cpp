@@ -7,10 +7,8 @@
  ******************************************************************************/
 
 #include "DecompositionPatterns.h"
+#include "PassDetails.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
-#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/Threading.h"
@@ -18,15 +16,12 @@
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
 #include "mlir/Transforms/DialectConversion.h"
 
-using namespace mlir;
-
-//===----------------------------------------------------------------------===//
-// Generated logic
-//===----------------------------------------------------------------------===//
 namespace cudaq::opt {
 #define GEN_PASS_DEF_BASISCONVERSION
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
+
+using namespace mlir;
 
 namespace {
 
@@ -61,7 +56,8 @@ struct BasisConversion
           return WalkResult::advance();
         }
         for (auto arg : funcOp.getArguments())
-          if (isa<quake::RefType, quake::VeqType>(arg.getType())) {
+          if (isa<cudaq::quake::RefType, cudaq::quake::VeqType>(
+                  arg.getType())) {
             kernels.push_back(funcOp);
             return WalkResult::advance();
           }
@@ -69,7 +65,7 @@ struct BasisConversion
         return WalkResult::skip();
       }
       // Check if it is controlled quake.apply
-      if (auto applyOp = dyn_cast<quake::ApplyOp>(op))
+      if (auto applyOp = dyn_cast<cudaq::quake::ApplyOp>(op))
         if (!applyOp.getControls().empty())
           return WalkResult::interrupt();
 

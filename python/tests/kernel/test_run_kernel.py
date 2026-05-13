@@ -14,6 +14,7 @@ import cudaq
 import numpy as np
 import warnings
 import pytest
+from cudaq._metadata import assertions_enabled as _cudaq_assertions_enabled
 
 skipIfBraketNotInstalled = pytest.mark.skipif(
     not (cudaq.has_target("braket")),
@@ -1131,9 +1132,16 @@ def test_run_and_sample_and_direct_call():
         in repr(error))
 
 
+_skip_stim_p1 = pytest.mark.skipif(
+    _cudaq_assertions_enabled,
+    reason="https://github.com/NVIDIA/cuda-quantum/issues/4026")
+
+
 # NOTE: Ref - https://github.com/NVIDIA/cuda-quantum/issues/1925
-@pytest.mark.parametrize("target",
-                         ["density-matrix-cpu", "nvidia", "qpp-cpu", "stim"])
+@pytest.mark.parametrize("target", [
+    "density-matrix-cpu", "nvidia", "qpp-cpu",
+    pytest.param('stim', marks=_skip_stim_p1)
+])
 def test_supported_simulators(target):
 
     def can_set_target(name):

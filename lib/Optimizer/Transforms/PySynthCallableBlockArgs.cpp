@@ -8,14 +8,16 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Todo.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
+
+namespace cudaq::opt {
+#define GEN_PASS_DEF_PYSYNTHCALLABLEBLOCKARGS
+#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+} // namespace cudaq::opt
 
 using namespace mlir;
 
@@ -92,18 +94,18 @@ public:
   }
 };
 
-class UpdateQuakeApplyOp : public OpConversionPattern<quake::ApplyOp> {
+class UpdateQuakeApplyOp : public OpConversionPattern<cudaq::quake::ApplyOp> {
 public:
   const SmallVector<StringRef> &names;
   llvm::DenseMap<std::size_t, std::size_t> &blockArgToNameMap;
   UpdateQuakeApplyOp(MLIRContext *ctx,
                      const SmallVector<StringRef> &functionNames,
                      llvm::DenseMap<std::size_t, std::size_t> &map)
-      : OpConversionPattern<quake::ApplyOp>(ctx), names(functionNames),
+      : OpConversionPattern<cudaq::quake::ApplyOp>(ctx), names(functionNames),
         blockArgToNameMap(map) {}
 
   LogicalResult
-  matchAndRewrite(quake::ApplyOp op, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::ApplyOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto callableOperand = adaptor.getOperands().front();
     auto module = op->getParentOp()->getParentOfType<ModuleOp>();
@@ -116,7 +118,7 @@ public:
       if (!replacement)
         return failure();
 
-      rewriter.replaceOpWithNewOp<quake::ApplyOp>(
+      rewriter.replaceOpWithNewOp<cudaq::quake::ApplyOp>(
           op, TypeRange{}, FlatSymbolRefAttr::get(ctx, replacement.getName()),
           adaptor.getIsAdj(), adaptor.getControls(), adaptor.getActuals());
       return success();
@@ -126,13 +128,14 @@ public:
 };
 
 class PySynthCallableBlockArgs
-    : public cudaq::opt::PySynthCallableBlockArgsBase<
+    : public cudaq::opt::impl::PySynthCallableBlockArgsBase<
           PySynthCallableBlockArgs> {
 private:
   bool removeBlockArg = false;
 
 public:
   SmallVector<StringRef> names;
+  PySynthCallableBlockArgs() = default;
   PySynthCallableBlockArgs(const SmallVector<StringRef> &_names, bool remove)
       : removeBlockArg(remove), names(_names) {}
 
@@ -169,8 +172,8 @@ public:
     ConversionTarget target(*ctx);
     // We should remove these operations
     target.addIllegalOp<func::CallIndirectOp>();
-    target.addDynamicallyLegalOp<quake::ApplyOp>([](Operation *op) {
-      if (auto apply = dyn_cast<quake::ApplyOp>(op)) {
+    target.addDynamicallyLegalOp<cudaq::quake::ApplyOp>([](Operation *op) {
+      if (auto apply = dyn_cast<cudaq::quake::ApplyOp>(op)) {
         if (isa<BlockArgument>(apply.getOperand(0))) {
           return false;
         }
@@ -191,7 +194,7 @@ public:
         if (isa<cudaq::cc::CallableType>(op.getArgument(argIndex).getType()))
           argsToErase.set(argIndex);
 
-      op.eraseArguments(argsToErase);
+      (void)op.eraseArguments(argsToErase);
     }
   }
 };

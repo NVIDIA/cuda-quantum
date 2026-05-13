@@ -145,35 +145,28 @@ def test_cupy_to_state_strided_1d():
     cudaq.reset_target()
 
 
-def test_cupy_to_state_ownership_semantics():
-    """Document (and lock in) the ownership contract exposed by `from_data`:
+def test_cupy_to_state_strided_canonicalization_is_independent():
+    """Non-contiguous CuPy input is canonicalized via cupy.asnumpy() into
+    an independent host buffer, so the resulting State must NOT observe
+    later mutations of the source CuPy array.
 
-    - Contiguous 1D CuPy arrays take the zero-copy GPU fast path, so the
-      resulting State observes later mutations of the source buffer.
-    - Non-contiguous arrays must first be canonicalized via cupy.asnumpy,
-      which round-trips through host memory and yields an independent copy.
+    Independence is part of the strided-import fix's contract: cupy.asnumpy
+    always copies to host, so the state cannot share storage with the
+    original device buffer.
 
-    Both behaviours are by design; this test guards against silent changes
-    that would surprise users holding on to the original CuPy array.
+    Note: this test does NOT make any claim about the contiguous fast path.
+    Whether the cuStateVec backend adopts the user-supplied device pointer
+    or eagerly copies it into its own pool is a backend implementation
+    detail and varies across cupy / CUDA runtime versions (see #4441).
     """
     cudaq.set_target('nvidia', option='fp64')
     try:
-        # Contiguous fast path — state aliases device memory.
-        contig = cp.array([1 + 1j, 2 + 2j, 3 + 3j, 4 + 4j], dtype=cp.complex128)
-        s_contig = cudaq.State.from_data(contig)
-        contig[0] = 999 + 0j
-        aliased = np.array(s_contig)
-        assert aliased[0] == 999 + 0j, (
-            "Contiguous CuPy path is expected to alias source memory.")
-
-        # Strided slow path — state is independent of the source.
         base = cp.array([1 + 1j, 2 + 2j, 3 + 3j, 4 + 4j], dtype=cp.complex128)
         strided = base[::2]
         s_strided = cudaq.State.from_data(strided)
-        base[0] = 999 + 0j
+        base[0] = 999 + 0j  # Mutate the source AFTER state construction.
         independent = np.array(s_strided)
-        assert independent[0] == 1 + 1j, (
-            "Strided CuPy path must canonicalize to an independent copy.")
+        np.testing.assert_allclose(independent, [1 + 1j, 3 + 3j], atol=1e-12)
     finally:
         cudaq.reset_target()
 

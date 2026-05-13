@@ -8,8 +8,6 @@
 
 #include "PassDetails.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 
@@ -36,10 +34,10 @@ struct Analysis {
         hasMeasurement = true;
         return WalkResult::interrupt();
       }
-      if (auto alloc = dyn_cast<quake::AllocaOp>(op)) {
+      if (auto alloc = dyn_cast<cudaq::quake::AllocaOp>(op)) {
         if (alloc->hasOneUse()) {
           Operation *user = *alloc->getUsers().begin();
-          if (isa<quake::InitializeStateOp>(user))
+          if (isa<cudaq::quake::InitializeStateOp>(user))
             op = user;
         }
         allocations.emplace_back(op);
@@ -83,26 +81,26 @@ addMeasurements(func::FuncOp funcOp, SmallVector<Operation *> &allocations,
   // Replace every func.return in the function with a branch to the new block.
   for (auto returnOp : returnsToReplace) {
     OpBuilder builder(returnOp);
-    builder.create<cf::BranchOp>(returnOp.getLoc(), newBlock,
-                                 returnOp.getOperands());
+    cf::BranchOp::create(builder, returnOp.getLoc(), newBlock,
+                         returnOp.getOperands());
     returnOp.erase();
   }
 
   // Set insertion point to the new block and add measurements
   builder.setInsertionPointToEnd(newBlock);
-  auto measTy = quake::MeasureType::get(builder.getContext());
-  for (auto &[index, alloca] : llvm::enumerate(allocations)) {
-    if (isa<quake::VeqType>(alloca->getResult(0).getType())) {
+  auto measTy = cudaq::quake::MeasureType::get(builder.getContext());
+  for (auto [index, alloca] : llvm::enumerate(allocations)) {
+    if (isa<cudaq::quake::VeqType>(alloca->getResult(0).getType())) {
       auto stdvecTy = cudaq::cc::StdvecType::get(measTy);
-      builder.create<quake::MzOp>(loc, stdvecTy,
-                                  ValueRange{alloca->getResult(0)});
+      cudaq::quake::MzOp::create(builder, loc, stdvecTy,
+                                 ValueRange{alloca->getResult(0)});
     } else {
-      builder.create<quake::MzOp>(loc, measTy, alloca->getResult(0));
+      cudaq::quake::MzOp::create(builder, loc, measTy, alloca->getResult(0));
     }
   }
 
   // Add the final return using block arguments
-  builder.create<func::ReturnOp>(loc, newBlock->getArguments());
+  func::ReturnOp::create(builder, loc, newBlock->getArguments());
 
   return success();
 }
@@ -122,8 +120,8 @@ struct AddMeasurementsPass
     /// NOTE: Having a conditional on a measurement indicates that a measurement
     /// is present, however, it does not guarantee that all the allocated qubits
     /// are measured.
-    if (auto boolAttr = func->getAttr("qubitMeasurementFeedback")
-                            .dyn_cast_or_null<mlir::BoolAttr>()) {
+    if (auto boolAttr = dyn_cast_if_present<mlir::BoolAttr>(
+            func->getAttr("qubitMeasurementFeedback"))) {
       if (boolAttr.getValue())
         return;
     }

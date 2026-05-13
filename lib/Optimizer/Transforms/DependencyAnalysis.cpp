@@ -16,15 +16,6 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
 
-#define DEBUG_TYPE "dep-analysis"
-
-using namespace mlir;
-
-#define RAW(X) quake::X
-#define RAW_MEASURE_OPS MEASURE_OPS(RAW)
-#define RAW_GATE_OPS GATE_OPS(RAW)
-#define RAW_QUANTUM_OPS QUANTUM_OPS(RAW)
-
 //===----------------------------------------------------------------------===//
 // Generated logic
 //===----------------------------------------------------------------------===//
@@ -32,6 +23,15 @@ namespace cudaq::opt {
 #define GEN_PASS_DEF_DEPENDENCYANALYSIS
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
+
+#define DEBUG_TYPE "dep-analysis"
+
+using namespace mlir;
+
+#define RAW(X) cudaq::quake::X
+#define RAW_MEASURE_OPS MEASURE_OPS(RAW)
+#define RAW_GATE_OPS GATE_OPS(RAW)
+#define RAW_QUANTUM_OPS QUANTUM_OPS(RAW)
 
 namespace {
 // TODO: Someday, it would probably make sense to make VirtualQIDs and
@@ -56,7 +56,7 @@ std::size_t getOperandIDXFromResultIDX(std::size_t resultidx, Operation *op) {
     return 0;
   // Currently, all classical operands precede all quantum operands
   for (auto type : op->getOperandTypes()) {
-    if (!quake::isQuantumType(type))
+    if (!cudaq::quake::isQuantumType(type))
       resultidx++;
     else
       break;
@@ -74,7 +74,7 @@ std::size_t getResultIDXFromOperandIDX(std::size_t operand_idx, Operation *op) {
     return 1;
   std::size_t numPrecedingClassical = 0;
   for (auto type : op->getOperandTypes()) {
-    if (!quake::isQuantumType(type))
+    if (!cudaq::quake::isQuantumType(type))
       numPrecedingClassical++;
     else
       break;
@@ -360,7 +360,7 @@ protected:
 public:
   DependencyNode() : successors(), dependencies({}), qids({}), height(0) {}
 
-  virtual ~DependencyNode(){};
+  virtual ~DependencyNode() {};
 
   /// Returns true if \p this is a graph root (has no successors, e.g., a wire
   /// de-alloc)
@@ -652,16 +652,16 @@ protected:
   void codeGen(OpBuilder &builder) override {
     assert(qubit.has_value() && "Trying to codeGen a virtual allocation "
                                 "without a physical qubit assigned!");
-    auto wirety = quake::WireType::get(builder.getContext());
-    auto alloc = builder.create<quake::BorrowWireOp>(
-        builder.getUnknownLoc(), wirety,
+    auto wirety = cudaq::quake::WireType::get(builder.getContext());
+    auto alloc = cudaq::quake::BorrowWireOp::create(
+        builder, builder.getUnknownLoc(), wirety,
         cudaq::opt::topologyAgnosticWiresetName, qubit.value());
     wire = alloc.getResult();
     hasCodeGen = true;
   }
 
 public:
-  InitDependencyNode(quake::BorrowWireOp op) : wire(op.getResult()) {
+  InitDependencyNode(cudaq::quake::BorrowWireOp op) : wire(op.getResult()) {
     // Lookup qid from op
     auto qid = op.getIdentity();
     qids.insert(qid);
@@ -760,13 +760,13 @@ protected:
   std::string getOpName() override {
     if (isa<arith::ConstantOp>(associated)) {
       if (auto cstf = dyn_cast<arith::ConstantFloatOp>(associated)) {
-        auto value = cstf.getValue().cast<FloatAttr>().getValueAsDouble();
+        auto value = cast<FloatAttr>(cstf.getValue()).getValueAsDouble();
         return std::to_string(value);
       } else if (auto cstidx = dyn_cast<arith::ConstantIndexOp>(associated)) {
-        auto value = cstidx.getValue().cast<IntegerAttr>().getInt();
+        auto value = cast<IntegerAttr>(cstidx.getValue()).getInt();
         return std::to_string(value);
       } else if (auto cstint = dyn_cast<arith::ConstantIntOp>(associated)) {
-        auto value = cstint.getValue().cast<IntegerAttr>().getInt();
+        auto value = cast<IntegerAttr>(cstint.getValue()).getInt();
         return std::to_string(value);
       }
     }
@@ -800,9 +800,9 @@ protected:
     auto oldOp = associated;
     auto operands = gatherOperands(builder);
 
-    associated =
-        Operation::create(oldOp->getLoc(), oldOp->getName(),
-                          oldOp->getResultTypes(), operands, oldOp->getAttrs());
+    associated = Operation::create(
+        oldOp->getLoc(), oldOp->getName(), oldOp->getResultTypes(), operands,
+        oldOp->getAttrs(), OpaqueProperties{nullptr});
     associated->removeAttr("dnodeid");
     builder.insert(associated);
   }
@@ -852,7 +852,7 @@ public:
     // TODO: quake.discriminate is currently the only operation in the quake
     // dialect that doesn't operate on wires. This will need to be updated if
     // that changes.
-    if (isa<quake::DiscriminateOp>(op))
+    if (isa<cudaq::quake::DiscriminateOp>(op))
       quantumOp = false;
 
     height = 0;
@@ -939,7 +939,7 @@ public:
       for (auto &edge : successor->dependencies) {
         if (edge.node == this) {
           // If the output isn't a linear type, then don't worry about it
-          if (quake::isQuantumType(edge.getValue().getType())) {
+          if (cudaq::quake::isQuantumType(edge.getValue().getType())) {
             auto idx = getDependencyForQID(edge.qid.value()).value();
             auto dependency = dependencies[idx];
             edge = dependency;
@@ -1709,15 +1709,15 @@ protected:
 
   void genOp(OpBuilder &builder) override {
     auto wire = dependencies[0].getValue();
-    auto newOp =
-        builder.create<quake::ReturnWireOp>(builder.getUnknownLoc(), wire);
+    auto newOp = cudaq::quake::ReturnWireOp::create(
+        builder, builder.getUnknownLoc(), wire);
     newOp->setAttrs(associated->getAttrs());
     newOp->removeAttr("dnodeid");
     associated = newOp;
   }
 
 public:
-  RootDependencyNode(quake::ReturnWireOp op,
+  RootDependencyNode(cudaq::quake::ReturnWireOp op,
                      SmallVector<DependencyEdge> dependencies)
       : OpDependencyNode(op, dependencies) {
     // TODO: does this below comment still hold?
@@ -1772,7 +1772,7 @@ protected:
     return std::to_string(barg.getArgNumber()).append("arg");
   };
 
-  void codeGen(OpBuilder &builder) override{};
+  void codeGen(OpBuilder &builder) override {};
 
 public:
   ArgDependencyNode(BlockArgument arg)
@@ -1799,7 +1799,9 @@ public:
   bool isRoot() override { return false; }
   bool isLeaf() override { return true; }
   // TODO: I'm pretty sure this is always true
-  bool isQuantumOp() override { return quake::isQuantumType(barg.getType()); }
+  bool isQuantumOp() override {
+    return cudaq::quake::isQuantumType(barg.getType());
+  }
   unsigned numTicks() override { return 0; }
 
   void eraseEdgeForQID(VirtualQID qid) override {
@@ -1902,7 +1904,7 @@ protected:
 
   // If the terminator is not a quantum operation, this could be called
   // by dependencies, so do nothing.
-  void codeGen(OpBuilder &builder) override{};
+  void codeGen(OpBuilder &builder) override {};
 
 public:
   TerminatorDependencyNode(Operation *terminator,
@@ -2598,14 +2600,14 @@ protected:
     // Remove operands from shadow dependencies
     // First operand must be conditional, skip it
     for (unsigned i = 1; i < operands.size(); i++) {
-      if (!quake::isQuantumType(operands[i].getType())) {
+      if (!cudaq::quake::isQuantumType(operands[i].getType())) {
         operands.erase(operands.begin() + i);
         i--;
       }
     }
 
     auto newIf =
-        builder.create<cudaq::cc::IfOp>(oldOp->getLoc(), results, operands);
+        cudaq::cc::IfOp::create(builder, oldOp->getLoc(), results, operands);
     auto *then_region = &newIf.getThenRegion();
     then_block->codeGen(builder, then_region);
 
@@ -2924,8 +2926,8 @@ public:
 /// * control flow operations (except `if`s) are not allowed
 /// * memory stores may be rearranged (this is not a hard error)
 bool validateOp(Operation *op) {
-  if (isQuakeOperation(op) && !quake::isLinearValueForm(op) &&
-      !isa<quake::DiscriminateOp>(op)) {
+  if (isQuakeOperation(op) && !cudaq::quake::isLinearValueForm(op) &&
+      !isa<cudaq::quake::DiscriminateOp>(op)) {
     op->emitRemark("DependencyAnalysisPass: requires all quake operations to "
                    "be in value form. Function will be skipped");
     return false;
@@ -2954,7 +2956,7 @@ bool validateOp(Operation *op) {
                     "may be reordered");
   }
 
-  if (isa<quake::NullWireOp>(op)) {
+  if (isa<cudaq::quake::NullWireOp>(op)) {
     op->emitRemark(
         "DependencyAnalysisPass: `quake.borrow_wire` is only "
         "supported qubit allocation operation. Function will be skipped");
@@ -3026,7 +3028,7 @@ public:
       if (!node)
         return nullptr;
 
-      if (isa<quake::ReturnWireOp>(&op))
+      if (isa<cudaq::quake::ReturnWireOp>(&op))
         roots[node] = &op;
 
       if (isTerminator) {
@@ -3054,8 +3056,7 @@ public:
     // Adam: I think this could be done in a silly way by placing the root
     //       in a new graph, and then deleting the graph should clean up all
     //       the nodes for the wire.
-    LLVM_DEBUG(for (auto [root, op]
-                    : roots) {
+    LLVM_DEBUG(for (auto [root, op] : roots) {
       if (!included.contains(root)) {
         llvm::dbgs()
             << "DependencyAnalysisPass: Wire is dead code and its "
@@ -3079,10 +3080,10 @@ public:
 
     DependencyNode *newNode;
 
-    if (auto init = dyn_cast<quake::BorrowWireOp>(op)) {
+    if (auto init = dyn_cast<cudaq::quake::BorrowWireOp>(op)) {
       newNode = new InitDependencyNode(init);
       vallocs++;
-    } else if (auto sink = dyn_cast<quake::ReturnWireOp>(op)) {
+    } else if (auto sink = dyn_cast<cudaq::quake::ReturnWireOp>(op)) {
       newNode = new RootDependencyNode(sink, dependencies);
     } else if (auto ifop = dyn_cast<cudaq::cc::IfOp>(op)) {
       freeClassicals[op] = SetVector<ShadowDependencyNode *>();
@@ -3137,7 +3138,7 @@ public:
     // and thus should have a memoized dnode for defOp, fail if not
     assert(defOp->hasAttr("dnodeid") && "No dnodeid found for operation");
 
-    auto id = defOp->getAttr("dnodeid").cast<IntegerAttr>().getUInt();
+    auto id = cast<IntegerAttr>(defOp->getAttr("dnodeid")).getUInt();
     auto dnode = perOp[id];
 
     if (!ifStack.empty() && defOp->getParentOp() != ifStack.back() &&

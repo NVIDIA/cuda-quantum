@@ -26,11 +26,12 @@ using namespace mlir;
 /// This pass exists simply to remove all the quake.apply_noise Ops from the IR.
 
 namespace {
-class EraseApplyNoisePattern : public OpRewritePattern<quake::ApplyNoiseOp> {
+class EraseApplyNoisePattern
+    : public OpRewritePattern<cudaq::quake::ApplyNoiseOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(quake::ApplyNoiseOp noise,
+  LogicalResult matchAndRewrite(cudaq::quake::ApplyNoiseOp noise,
                                 PatternRewriter &rewriter) const override {
     rewriter.eraseOp(noise);
     return success();
@@ -47,7 +48,7 @@ public:
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     patterns.insert<EraseApplyNoisePattern>(ctx);
-    if (failed(applyPatternsAndFoldGreedily(op, std::move(patterns))))
+    if (failed(applyPatternsGreedily(op, std::move(patterns))))
       signalPassFailure();
     LLVM_DEBUG(llvm::dbgs() << "After erasure:\n" << *op << "\n\n");
   }

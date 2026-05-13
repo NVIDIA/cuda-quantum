@@ -10,6 +10,11 @@ import time
 import warnings
 
 import pytest
+
+# Disabled due to page alignment issues with patchelf causing segfaults when
+# auto-launching cudaq-qpud on x86-64 wheels. This test will soon be replaced
+# by https://github.com/NVIDIA/cuda-quantum/pull/4276
+pytest.skip(allow_module_level=True)
 import os, math, sys
 import numpy as np
 

@@ -5,6 +5,7 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "cudaq_internal/compiler/TracePassInstrumentation.h"
 
@@ -12,6 +13,7 @@
 // The native target initialization is built into the MLIR python extension.
 void cudaq_internal::compiler::initializeLangMLIR() {}
 
+// FIXME: Declare this in a header file!
 // Forward-declare the Python-aware helper so this translation unit does not
 // pull in headers from python/. The symbol is defined in
 // python/runtime/cudaq/platform/PythonSignalCheck.cpp, which is linked into

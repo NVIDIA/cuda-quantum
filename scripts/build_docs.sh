@@ -43,12 +43,16 @@ export PYTHONPATH="$CUDAQ_INSTALL_PREFIX:${PYTHONPATH}"
 
 # Process command line arguments
 force_update=""
+repo_root=$(git rev-parse --show-toplevel)
+build_dir=${repo_root}/build
 
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":u:" opt; do
+while getopts ":u:B:" opt; do
   case $opt in
     u) force_update="$OPTARG"
+    ;;
+    B) build_dir="$OPTARG"
     ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
     (return 0 2>/dev/null) && return 1 || exit 1
@@ -59,18 +63,17 @@ OPTIND=$__optind__
 
 # Need to know the top-level of the repo
 working_dir=`pwd`
-repo_root=$(git rev-parse --show-toplevel)
 docs_exit_code=0 # updated in each step
 
 # Make sure these are full path so that it doesn't matter where we use them
-docs_build_output="$repo_root/build/docs"
+docs_build_output="$build_dir/docs"
 sphinx_output_dir="$docs_build_output/sphinx"
 doxygen_output_dir="$docs_build_output/doxygen"
 dialect_output_dir="$docs_build_output/Dialects"
 rm -rf "$docs_build_output"
 
 # Check if the cudaq Python package is installed and if not, build and install it
-build_include_dir="$repo_root/build/include"
+build_include_dir="$build_dir/include"
 python3 -c "import cudaq" 2>/dev/null
 if [ ! "$?" -eq "0" ] || [ ! -d "$build_include_dir" ] || [ "${force_update,,}" = "python" ] || [ "${force_update,,}" = "py" ]; then
     echo "Building cudaq package."
@@ -90,9 +93,9 @@ if [ ! "$?" -eq "0" ] || [ ! -d "$build_include_dir" ] || [ "${force_update,,}" 
 fi
 
 # Extract documentation from tablegen files
-mkdir -p "$repo_root/build" && cd "$repo_root/build" && mkdir -p logs
+mkdir -p "$build_dir" && cd "$build_dir" && mkdir -p logs
 logs_dir=`pwd`/logs
-cmake .. 1>/dev/null && cmake --build . --target cudaq-doc 1>/dev/null
+cmake $working_dir 1>/dev/null && cmake --build . --target cudaq-doc 1>/dev/null
 cmake_exit_code=$?
 if [ ! "$cmake_exit_code" -eq "0" ]; then
     echo "Failed to generate documentation from the cudaq-doc build target."
@@ -106,7 +109,7 @@ doxygen_revision=`echo $doxygen_version | cut -d '.' -f 3`
 if [ "$doxygen_version" = "" ] || [ "$doxygen_revision" -lt "7" ]; then
     echo "A suitable doxygen installation was not found."
     echo "Attempting to build one from source."
-    mkdir -p "$repo_root/build/doxygen" && cd "$repo_root/build/doxygen"
+    mkdir -p "$build_dir/doxygen" && cd "$build_dir/doxygen"
 
     wget https://github.com/doxygen/doxygen/archive/9a5686aeebff882ebda518151bc5df9d757ea5f7.zip -q -O repo.zip
     (unzip repo.zip && mv doxygen* repo && rm repo.zip) 1> /dev/null
@@ -132,7 +135,10 @@ echo "Generating XML documentation using Doxygen..."
 mkdir -p "${doxygen_output_dir}"
 sed 's@${DOXYGEN_OUTPUT_PREFIX}@'"${doxygen_output_dir}"'@' "$repo_root/docs/Doxyfile.in" | \
 sed 's@${CUDAQ_REPO_ROOT}@'"${repo_root}"'@' > "${doxygen_output_dir}/Doxyfile"
+echo "Running doxygen in $PWD"
+set -x
 "$doxygen_exe" "${doxygen_output_dir}/Doxyfile" 2> "$logs_dir/doxygen_error.txt" 1> "$logs_dir/doxygen_output.txt"
+set +x
 doxygen_exit_code=$?
 if [ ! "$doxygen_exit_code" -eq "0" ]; then
     cat "$logs_dir/doxygen_output.txt" "$logs_dir/doxygen_error.txt"
@@ -167,7 +173,10 @@ cp -r "$doxygen_output_dir" sphinx/_doxygen/
 # cp -r "$dialect_output_dir" sphinx/_mdgen/ # uncomment once we use the content from those files
 
 rm -rf "$sphinx_output_dir"
+echo "Running sphinx in $PWD"
+set -x
 sphinx-build -v -n -W --keep-going -b html sphinx "$sphinx_output_dir" -j auto 2> "$logs_dir/sphinx_error.txt" 1> "$logs_dir/sphinx_output.txt"
+set +x
 sphinx_exit_code=$?
 if [ ! "$sphinx_exit_code" -eq "0" ]; then
     echo "Failed to generate documentation using sphinx-build."
