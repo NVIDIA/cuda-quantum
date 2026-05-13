@@ -354,9 +354,7 @@ def test_to_integer_composes_with_to_bools():
 # CHECK:         }
 
 # ---------------------------------------------------------------------------
-# Kernel-builder (`cudaq.make_kernel()`) emission. Python counterpart of
-# `BuilderTester.checkMeasureHandleEmission` in
-# `unittests/integration/builder_tester.cpp`.
+# Kernel-builder (`cudaq.make_kernel()`) emission.
 # ---------------------------------------------------------------------------
 
 
@@ -413,6 +411,38 @@ def test_builder_mx_my_emit_handles():
 # CHECK-NOT:       quake.discriminate
 # CHECK:           return
 # CHECK:         }
+
+# ---------------------------------------------------------------------------
+# List-comprehension pre-allocation of `cudaq.measure_handle()` placeholders.
+# ---------------------------------------------------------------------------
+
+
+def test_listcomp_default_handle_pre_allocation():
+
+    @cudaq.kernel
+    def kernel_listcomp_handles():
+        qv = cudaq.qvector(4)
+        handles = [cudaq.measure_handle() for _ in range(4)]
+        for i in range(4):
+            handles[i] = mz(qv[i])
+
+    print(kernel_listcomp_handles)
+
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_listcomp_handles
+# CHECK-SAME:      attributes {"cudaq-entrypoint"
+# CHECK:           %[[VEQ:.*]] = quake.alloca !quake.veq<4>
+# CHECK:           %[[ARR:.*]] = cc.alloca !cc.array<!cc.measure_handle x 4>
+# CHECK:           cc.loop
+# CHECK:             %[[UNDEF:.*]] = cc.undef !cc.measure_handle
+# CHECK:             %[[SLOT:.*]] = cc.compute_ptr %[[ARR]]{{.*}} : (!cc.ptr<!cc.array<!cc.measure_handle x 4>>, i64) -> !cc.ptr<!cc.measure_handle>
+# CHECK:             cc.store %[[UNDEF]], %[[SLOT]] : !cc.ptr<!cc.measure_handle>
+# CHECK:           cc.loop
+# CHECK:             %[[REF:.*]] = quake.extract_ref %[[VEQ]]
+# CHECK:             %[[MEAS:.*]] = quake.mz %[[REF]] : (!quake.ref) -> !cc.measure_handle
+# CHECK:             cc.store %[[MEAS]]
+# CHECK-NOT:       quake.discriminate
+# CHECK:           return
 
 # leave for gdb debugging
 if __name__ == "__main__":

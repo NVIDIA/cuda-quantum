@@ -196,6 +196,23 @@ def test_unbound_handle_in_compare_eq_is_diagnosed():
 
 
 # ---------------------------------------------------------------------------
+# List-comprehension pre-allocation of `cudaq.measure_handle()` placeholders
+# ---------------------------------------------------------------------------
+
+
+def test_listcomp_default_handles_overwritten_by_mz_compiles():
+
+    @cudaq.kernel
+    def k():
+        qv = cudaq.qvector(3)
+        handles = [cudaq.measure_handle() for _ in range(3)]
+        for i in range(3):
+            handles[i] = mz(qv[i])
+
+    k.compile()
+
+
+# ---------------------------------------------------------------------------
 # Entry-point boundary rule
 # ---------------------------------------------------------------------------
 
