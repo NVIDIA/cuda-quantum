@@ -67,12 +67,15 @@ jobs:
           if [ "${{ github.event_name }}" = "push" ]; then
             build_test_matrix='{"include":[
               {"platform":"amd64","toolchain":"llvm","mpi":"openmpi"},
-              {"platform":"arm64","toolchain":"llvm","mpi":"openmpi"}
+              {"platform":"arm64","toolchain":"llvm","mpi":"openmpi"},
+              {"platform":"amd64","toolchain":"gcc12","mpi":"openmpi"}
             ]}'
           else
             build_test_matrix='{"include":[
               {"platform":"amd64","toolchain":"llvm","mpi":"openmpi"},
               {"platform":"arm64","toolchain":"llvm","mpi":"openmpi"},
+              {"platform":"amd64","toolchain":"gcc12","mpi":"openmpi"},
+              {"platform":"arm64","toolchain":"gcc12","mpi":"openmpi"}
             ]}'
           fi
           echo "build_test_matrix=$(echo "$build_test_matrix" | jq -c .)" >> $GITHUB_OUTPUT
@@ -117,7 +120,8 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-      fail-fast: false
+        toolchain: [llvm, gcc12]
+      fail-fast: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/dev_environment.yml
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -125,12 +129,13 @@ jobs:
     with:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/devdeps.Dockerfile
-      build_config_id: llvm
+      build_args: toolchain=${{ matrix.toolchain }}
+      build_config_id: ${{ matrix.toolchain }}
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       checkout_submodules: true
       environment: ghcr-ci
       # needed only for the cloudposse GitHub action
-      matrix_key: ${{ matrix.platform }}-llvm
+      matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
       matrix_step_name: dev_environment_devdeps
 
   wheeldeps:
@@ -140,7 +145,7 @@ jobs:
       matrix:
         platform: [amd64, arm64]
         cuda_version: ["12.6", "13.0"]
-      fail-fast: false
+      fail-fast: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/dev_environment.yml
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -171,7 +176,7 @@ jobs:
       matrix:
         platform: [amd64, arm64]
         cuda_version: ["12.6", "13.0"]
-      fail-fast: false
+      fail-fast: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/dev_environment.yml
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -236,7 +241,7 @@ jobs:
     needs: [metadata, config_devdeps]
     strategy:
       matrix: ${{ fromJson(needs.metadata.outputs.build_test_matrix) }}
-      fail-fast: false
+      fail-fast: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/test_in_devenv.yml
     with:
       platform: linux/${{ matrix.platform }}
@@ -253,7 +258,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64]
-      fail-fast: false
+      fail-fast: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/generate_cc.yml
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -272,16 +277,16 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-      fail-fast: false
+      fail-fast: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/docker_images.yml
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
     with:
       platforms: linux/${{ matrix.platform }}
-      devdeps_image: ${{ fromJson(needs.config_devdeps.outputs.json).image_hash[format('{0}-llvm', matrix.platform)] }}
-      devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-llvm', matrix.platform)] }}
-      devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-llvm', matrix.platform)] }}
+      devdeps_image: ${{ fromJson(needs.config_devdeps.outputs.json).image_hash[format('{0}-gcc12', matrix.platform)] }}
+      devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-gcc12', matrix.platform)] }}
+      devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-gcc12', matrix.platform)] }}
       environment: ghcr-ci
 
   python_wheels:
@@ -293,7 +298,7 @@ jobs:
         platform: [amd64, arm64]
         python_version: ['3.11', '3.13']
         cuda_version: ["12.6", "13.0"]
-      fail-fast: false
+      fail-fast: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/python_wheels.yml
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -326,7 +331,7 @@ jobs:
       matrix:
         platform: [amd64, arm64]
         cuda_version: ["12.6", "13.0"]
-      fail-fast: false
+      fail-fast: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/prebuilt_binaries.yml
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}

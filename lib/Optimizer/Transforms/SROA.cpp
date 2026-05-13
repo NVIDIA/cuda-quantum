@@ -143,7 +143,7 @@ public:
       auto *op = worklist.back();
       worklist.pop_back();
       visited.push_back(op);
-      if (isa<quake::InitializeStateOp>(op))
+      if (isa<cudaq::quake::InitializeStateOp>(op))
         return true;
       if (auto cast = dyn_cast<cudaq::cc::CastOp>(op)) {
         if (isa<cudaq::cc::PointerType>(cast.getType())) {

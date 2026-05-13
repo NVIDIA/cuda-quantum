@@ -58,18 +58,19 @@ inline Value createDivF(Location loc, Value numerator, double denominator,
 }
 
 /// @brief Returns true if \p op contains any `ControlType` operands.
-inline bool containsControlTypes(quake::OperatorInterface op) {
+inline bool containsControlTypes(cudaq::quake::OperatorInterface op) {
   return llvm::any_of(op.getControls(), [](const Value &v) {
-    return isa<quake::ControlType>(v.getType());
+    return isa<cudaq::quake::ControlType>(v.getType());
   });
 }
 
 namespace {
 /// @brief This is a wrapper class for `PatternRewriter::create<>()` for
-/// `QuakeOperator`s. If the controls and targets are `quake::WireType`, then
-/// this wrapper class's methods update the controls and targets in the `create`
-/// calls to the corresponding wires in the output. If they are NOT `WireType`,
-/// then the creates behave the exact same as a regular `PatternRewriter`.
+/// `QuakeOperator`s. If the controls and targets are `cudaq::quake::WireType`,
+/// then this wrapper class's methods update the controls and targets in the
+/// `create` calls to the corresponding wires in the output. If they are NOT
+/// `WireType`, then the creates behave the exact same as a regular
+/// `PatternRewriter`.
 class QuakeOperatorCreator {
 public:
   QuakeOperatorCreator(PatternRewriter &rewriter) : rewriter(rewriter) {}
@@ -78,26 +79,27 @@ public:
   /// builder for cases when you have one input ValueRange.
   SmallVector<Type> getResultType(ValueRange operands) {
     std::size_t numOutputWires = llvm::count_if(operands, [](const Value &v) {
-      return isa<quake::WireType>(v.getType());
+      return isa<cudaq::quake::WireType>(v.getType());
     });
 
-    return SmallVector<Type>(numOutputWires,
-                             quake::WireType::get(rewriter.getContext()));
+    return SmallVector<Type>(
+        numOutputWires, cudaq::quake::WireType::get(rewriter.getContext()));
   }
 
   /// Construct a resultType (suitable to be pass into the `TypeRange wires`
   /// builder for cases when you have two input ValueRanges.
   SmallVector<Type> getResultType(ValueRange operands1, ValueRange operands2) {
     std::size_t numOutputWires =
-        llvm::count_if(
-            operands1,
-            [](const Value &v) { return isa<quake::WireType>(v.getType()); }) +
+        llvm::count_if(operands1,
+                       [](const Value &v) {
+                         return isa<cudaq::quake::WireType>(v.getType());
+                       }) +
         llvm::count_if(operands2, [](const Value &v) {
-          return isa<quake::WireType>(v.getType());
+          return isa<cudaq::quake::WireType>(v.getType());
         });
 
-    return SmallVector<Type>(numOutputWires,
-                             quake::WireType::get(rewriter.getContext()));
+    return SmallVector<Type>(
+        numOutputWires, cudaq::quake::WireType::get(rewriter.getContext()));
   }
 
   /// Pluck out the values from \p newValues whose type is `WireType` and
@@ -105,7 +107,7 @@ public:
   void selectWiresAndReplaceUses(Operation *op, ValueRange newValues) {
     SmallVector<Value, 4> newWireValues;
     for (const auto &v : newValues)
-      if (isa<quake::WireType>(v.getType()))
+      if (isa<cudaq::quake::WireType>(v.getType()))
         newWireValues.push_back(v);
     assert(op->getResults().size() == newWireValues.size() &&
            "incorrect number of output wires provided");
@@ -118,9 +120,9 @@ public:
                                  Value target) {
     SmallVector<Value, 4> newWireValues;
     for (const auto &v : controls)
-      if (isa<quake::WireType>(v.getType()))
+      if (isa<cudaq::quake::WireType>(v.getType()))
         newWireValues.push_back(v);
-    if (isa<quake::WireType>(target.getType()))
+    if (isa<cudaq::quake::WireType>(target.getType()))
       newWireValues.push_back(target);
     assert(op->getResults().size() == newWireValues.size() &&
            "incorrect number of output wires provided");
@@ -135,7 +137,8 @@ public:
     auto resultWires = op.getWires();
     auto resultIt = resultWires.begin();
     auto resultWiresEnd = resultWires.end();
-    if (isa<quake::WireType>(target.getType()) && resultIt != resultWiresEnd)
+    if (isa<cudaq::quake::WireType>(target.getType()) &&
+        resultIt != resultWiresEnd)
       target = *resultIt;
     return op;
   }
@@ -148,7 +151,8 @@ public:
     auto resultWires = op.getWires();
     auto resultIt = resultWires.begin();
     auto resultWiresEnd = resultWires.end();
-    if (isa<quake::WireType>(target.getType()) && resultIt != resultWiresEnd)
+    if (isa<cudaq::quake::WireType>(target.getType()) &&
+        resultIt != resultWiresEnd)
       target = *resultIt;
     return op;
   }
@@ -161,9 +165,11 @@ public:
     auto resultWires = op.getWires();
     auto resultIt = resultWires.begin();
     auto resultWiresEnd = resultWires.end();
-    if (isa<quake::WireType>(control.getType()) && resultIt != resultWiresEnd)
+    if (isa<cudaq::quake::WireType>(control.getType()) &&
+        resultIt != resultWiresEnd)
       control = *resultIt++;
-    if (isa<quake::WireType>(target.getType()) && resultIt != resultWiresEnd)
+    if (isa<cudaq::quake::WireType>(target.getType()) &&
+        resultIt != resultWiresEnd)
       target = *resultIt;
     return op;
   }
@@ -179,9 +185,11 @@ public:
     auto resultIt = resultWires.begin();
     auto resultWiresEnd = resultWires.end();
     for (auto &c : controls)
-      if (isa<quake::WireType>(c.getType()) && resultIt != resultWiresEnd)
+      if (isa<cudaq::quake::WireType>(c.getType()) &&
+          resultIt != resultWiresEnd)
         c = *resultIt++;
-    if (isa<quake::WireType>(target.getType()) && resultIt != resultWiresEnd)
+    if (isa<cudaq::quake::WireType>(target.getType()) &&
+        resultIt != resultWiresEnd)
       target = *resultIt;
     return op;
   }
@@ -197,9 +205,11 @@ public:
     auto resultIt = resultWires.begin();
     auto resultWiresEnd = resultWires.end();
     for (auto &c : controls)
-      if (isa<quake::WireType>(c.getType()) && resultIt != resultWiresEnd)
+      if (isa<cudaq::quake::WireType>(c.getType()) &&
+          resultIt != resultWiresEnd)
         c = *resultIt++;
-    if (isa<quake::WireType>(target.getType()) && resultIt != resultWiresEnd)
+    if (isa<cudaq::quake::WireType>(target.getType()) &&
+        resultIt != resultWiresEnd)
       target = *resultIt;
     return op;
   }
@@ -215,9 +225,11 @@ public:
     auto resultIt = resultWires.begin();
     auto resultWiresEnd = resultWires.end();
     for (auto &c : controls)
-      if (isa<quake::WireType>(c.getType()) && resultIt != resultWiresEnd)
+      if (isa<cudaq::quake::WireType>(c.getType()) &&
+          resultIt != resultWiresEnd)
         c = *resultIt++;
-    if (isa<quake::WireType>(target.getType()) && resultIt != resultWiresEnd)
+    if (isa<cudaq::quake::WireType>(target.getType()) &&
+        resultIt != resultWiresEnd)
       target = *resultIt;
     return op;
   }
@@ -232,7 +244,8 @@ public:
     auto resultIt = resultWires.begin();
     auto resultWiresEnd = resultWires.end();
     for (auto &t : targets)
-      if (isa<quake::WireType>(t.getType()) && resultIt != resultWiresEnd)
+      if (isa<cudaq::quake::WireType>(t.getType()) &&
+          resultIt != resultWiresEnd)
         t = *resultIt++;
     return op;
   }
@@ -246,7 +259,7 @@ private:
 ///
 /// Note: This function assumes that the operation has already been tested for
 /// reference semantics.
-static LogicalResult checkNumControls(quake::OperatorInterface op,
+static LogicalResult checkNumControls(cudaq::quake::OperatorInterface op,
                                       std::size_t requiredNumControls) {
   auto opControls = op.getControls();
   if (opControls.size() > requiredNumControls)
@@ -255,7 +268,7 @@ static LogicalResult checkNumControls(quake::OperatorInterface op,
   // Compute the number of controls
   std::size_t numControls = 0;
   for (auto control : opControls) {
-    if (auto veq = dyn_cast<quake::VeqType>(control.getType())) {
+    if (auto veq = dyn_cast<cudaq::quake::VeqType>(control.getType())) {
       if (!veq.hasSpecifiedSize())
         return failure();
       numControls += veq.getSize();
@@ -274,7 +287,7 @@ static LogicalResult checkNumControls(quake::OperatorInterface op,
 ///
 /// Note: This function assumes that the operation has already been tested for
 /// reference semantics.
-static LogicalResult checkAndExtractControls(quake::OperatorInterface op,
+static LogicalResult checkAndExtractControls(cudaq::quake::OperatorInterface op,
                                              MutableArrayRef<Value> controls,
                                              PatternRewriter &rewriter) {
   if (failed(checkNumControls(op, controls.size())))
@@ -282,11 +295,11 @@ static LogicalResult checkAndExtractControls(quake::OperatorInterface op,
 
   std::size_t controlIndex = 0;
   for (Value control : op.getControls()) {
-    if (auto veq = dyn_cast<quake::VeqType>(control.getType())) {
+    if (auto veq = dyn_cast<cudaq::quake::VeqType>(control.getType())) {
       for (std::size_t i = 0, end = veq.getSize(); i < end; ++i) {
         Value index = createConstant(op.getLoc(), i, rewriter);
-        Value qref =
-            quake::ExtractRefOp::create(rewriter, op.getLoc(), control, index);
+        Value qref = cudaq::quake::ExtractRefOp::create(rewriter, op.getLoc(),
+                                                        control, index);
         controls[controlIndex] = qref;
         controlIndex += 1;
       }
@@ -345,12 +358,12 @@ namespace {
 struct HToPhasedRxType; // forward declare the pattern type, defined in the
                         // macro below
 struct HToPhasedRx
-    : public cudaq::DecompositionPattern<HToPhasedRxType, quake::HOp> {
+    : public cudaq::DecompositionPattern<HToPhasedRxType, cudaq::quake::HOp> {
 
   using cudaq::DecompositionPattern<HToPhasedRxType,
-                                    quake::HOp>::DecompositionPattern;
+                                    cudaq::quake::HOp>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::HOp op,
+  LogicalResult matchAndRewrite(cudaq::quake::HOp op,
                                 PatternRewriter &rewriter) const override {
     if (!op.getControls().empty())
       return failure();
@@ -367,10 +380,12 @@ struct HToPhasedRx
 
     std::array<Value, 2> parameters = {pi_2, pi_2};
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
+    qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
+                                               target);
     parameters[0] = pi;
     parameters[1] = zero;
-    qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
+    qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
+                                               target);
 
     qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
@@ -386,11 +401,12 @@ struct ExpPauliDecompositionType; // forward declare the pattern type, defined
                                   // in the macro below
 struct ExpPauliDecomposition
     : public cudaq::DecompositionPattern<ExpPauliDecompositionType,
-                                         quake::ExpPauliOp> {
-  using cudaq::DecompositionPattern<ExpPauliDecompositionType,
-                                    quake::ExpPauliOp>::DecompositionPattern;
+                                         cudaq::quake::ExpPauliOp> {
+  using cudaq::DecompositionPattern<
+      ExpPauliDecompositionType,
+      cudaq::quake::ExpPauliOp>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::ExpPauliOp expPauliOp,
+  LogicalResult matchAndRewrite(cudaq::quake::ExpPauliOp expPauliOp,
                                 PatternRewriter &rewriter) const override {
     auto loc = expPauliOp.getLoc();
     auto module = expPauliOp->getParentOfType<ModuleOp>();
@@ -496,7 +512,8 @@ struct ExpPauliDecomposition
     SmallVector<Value> qubitSupport;
     for (std::size_t i = 0; i < size; i++) {
       Value index = arith::ConstantIntOp::create(rewriter, loc, i, 64);
-      Value qubitI = quake::ExtractRefOp::create(rewriter, loc, qubits, index);
+      Value qubitI =
+          cudaq::quake::ExtractRefOp::create(rewriter, loc, qubits, index);
       if (pauliWordStr[i] != 'I')
         qubitSupport.push_back(qubitI);
 
@@ -504,10 +521,10 @@ struct ExpPauliDecomposition
         APFloat d(M_PI_2);
         Value param = arith::ConstantFloatOp::create(rewriter, loc,
                                                      rewriter.getF64Type(), d);
-        quake::RxOp::create(rewriter, loc, ValueRange{param}, ValueRange{},
-                            ValueRange{qubitI});
+        cudaq::quake::RxOp::create(rewriter, loc, ValueRange{param},
+                                   ValueRange{}, ValueRange{qubitI});
       } else if (pauliWordStr[i] == 'X') {
-        quake::HOp::create(rewriter, loc, ValueRange{qubitI});
+        cudaq::quake::HOp::create(rewriter, loc, ValueRange{qubitI});
       }
     }
 
@@ -521,8 +538,8 @@ struct ExpPauliDecomposition
 
     std::vector<std::pair<Value, Value>> toReverse;
     for (std::size_t i = 0; i < qubitSupport.size() - 1; i++) {
-      quake::XOp::create(rewriter, loc, ValueRange{qubitSupport[i]},
-                         ValueRange{qubitSupport[i + 1]});
+      cudaq::quake::XOp::create(rewriter, loc, ValueRange{qubitSupport[i]},
+                                ValueRange{qubitSupport[i + 1]});
       toReverse.emplace_back(qubitSupport[i], qubitSupport[i + 1]);
     }
 
@@ -530,26 +547,27 @@ struct ExpPauliDecomposition
     Value negTwoTheta = arith::MulFOp::create(
         rewriter, loc,
         createConstant(loc, -2.0, rewriter.getF64Type(), rewriter), theta);
-    quake::RzOp::create(rewriter, loc, ValueRange{negTwoTheta}, ValueRange{},
-                        ValueRange{qubitSupport.back()});
+    cudaq::quake::RzOp::create(rewriter, loc, ValueRange{negTwoTheta},
+                               ValueRange{}, ValueRange{qubitSupport.back()});
 
     std::reverse(toReverse.begin(), toReverse.end());
     for (auto &[i, j] : toReverse)
-      quake::XOp::create(rewriter, loc, ValueRange{i}, ValueRange{j});
+      cudaq::quake::XOp::create(rewriter, loc, ValueRange{i}, ValueRange{j});
 
     for (std::size_t i = 0; i < pauliWordStr.size(); i++) {
       std::size_t k = pauliWordStr.size() - 1 - i;
       Value index = arith::ConstantIntOp::create(rewriter, loc, k, 64);
-      Value qubitK = quake::ExtractRefOp::create(rewriter, loc, qubits, index);
+      Value qubitK =
+          cudaq::quake::ExtractRefOp::create(rewriter, loc, qubits, index);
 
       if (pauliWordStr[k] == 'Y') {
         APFloat d(-M_PI_2);
         Value param = arith::ConstantFloatOp::create(rewriter, loc,
                                                      rewriter.getF64Type(), d);
-        quake::RxOp::create(rewriter, loc, ValueRange{param}, ValueRange{},
-                            ValueRange{qubitK});
+        cudaq::quake::RxOp::create(rewriter, loc, ValueRange{param},
+                                   ValueRange{}, ValueRange{qubitK});
       } else if (pauliWordStr[k] == 'X') {
-        quake::HOp::create(rewriter, loc, ValueRange{qubitK});
+        cudaq::quake::HOp::create(rewriter, loc, ValueRange{qubitK});
       }
     }
 
@@ -566,16 +584,17 @@ REGISTER_DECOMPOSITION_PATTERN(ExpPauliDecomposition, "exp_pauli", "rx", "h",
 // quake apply specialization.
 struct R1ToRzType; // forward declare the pattern type, defined in the macro
                    // below
-struct R1ToRz : public cudaq::DecompositionPattern<R1ToRzType, quake::R1Op> {
+struct R1ToRz
+    : public cudaq::DecompositionPattern<R1ToRzType, cudaq::quake::R1Op> {
   using cudaq::DecompositionPattern<R1ToRzType,
-                                    quake::R1Op>::DecompositionPattern;
+                                    cudaq::quake::R1Op>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::R1Op r1Op,
+  LogicalResult matchAndRewrite(cudaq::quake::R1Op r1Op,
                                 PatternRewriter &rewriter) const override {
     if (!r1Op.getControls().empty())
       return failure();
 
-    rewriter.replaceOpWithNewOp<quake::RzOp>(
+    rewriter.replaceOpWithNewOp<cudaq::quake::RzOp>(
         r1Op, r1Op.isAdj(), r1Op.getParameters(), r1Op.getControls(),
         r1Op.getTargets());
     return success();
@@ -589,16 +608,17 @@ REGISTER_DECOMPOSITION_PATTERN(R1ToRz, "r1", "rz");
 // quake.u3(0, 0, λ) [control] target
 struct R1ToU3Type; // forward declare the pattern type, defined in the macro
                    // below
-struct R1ToU3 : public cudaq::DecompositionPattern<R1ToU3Type, quake::R1Op> {
+struct R1ToU3
+    : public cudaq::DecompositionPattern<R1ToU3Type, cudaq::quake::R1Op> {
   using cudaq::DecompositionPattern<R1ToU3Type,
-                                    quake::R1Op>::DecompositionPattern;
+                                    cudaq::quake::R1Op>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::R1Op r1Op,
+  LogicalResult matchAndRewrite(cudaq::quake::R1Op r1Op,
                                 PatternRewriter &rewriter) const override {
     Location loc = r1Op->getLoc();
     Value zero = createConstant(loc, 0.0, rewriter.getF64Type(), rewriter);
     std::array<Value, 3> parameters = {zero, zero, r1Op.getParameters()[0]};
-    rewriter.replaceOpWithNewOp<quake::U3Op>(
+    rewriter.replaceOpWithNewOp<cudaq::quake::U3Op>(
         r1Op, r1Op.isAdj(), parameters, r1Op.getControls(), r1Op.getTargets());
     return success();
   }
@@ -611,11 +631,11 @@ REGISTER_DECOMPOSITION_PATTERN(R1ToU3, "r1(n)", "u3(n)");
 struct R1AdjToR1Type; // forward declare the pattern type, defined in the macro
                       // below
 struct R1AdjToR1
-    : public cudaq::DecompositionPattern<R1AdjToR1Type, quake::R1Op> {
+    : public cudaq::DecompositionPattern<R1AdjToR1Type, cudaq::quake::R1Op> {
   using cudaq::DecompositionPattern<R1AdjToR1Type,
-                                    quake::R1Op>::DecompositionPattern;
+                                    cudaq::quake::R1Op>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::R1Op op,
+  LogicalResult matchAndRewrite(cudaq::quake::R1Op op,
                                 PatternRewriter &rewriter) const override {
     if (!op.getControls().empty())
       return failure();
@@ -633,7 +653,7 @@ struct R1AdjToR1
     SmallVector<Value> parameters = {angle};
 
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::R1Op>(loc, parameters, noControls, target);
+    qRewriter.create<cudaq::quake::R1Op>(loc, parameters, noControls, target);
 
     qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
@@ -650,11 +670,11 @@ REGISTER_DECOMPOSITION_PATTERN(R1AdjToR1, "r1<adj>", "r1");
 struct SwapToCXType; // forward declare the pattern type, defined in the macro
                      // below
 struct SwapToCX
-    : public cudaq::DecompositionPattern<SwapToCXType, quake::SwapOp> {
+    : public cudaq::DecompositionPattern<SwapToCXType, cudaq::quake::SwapOp> {
   using cudaq::DecompositionPattern<SwapToCXType,
-                                    quake::SwapOp>::DecompositionPattern;
+                                    cudaq::quake::SwapOp>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::SwapOp op,
+  LogicalResult matchAndRewrite(cudaq::quake::SwapOp op,
                                 PatternRewriter &rewriter) const override {
     // Op info
     Location loc = op->getLoc();
@@ -662,9 +682,9 @@ struct SwapToCX
     Value b = op.getTarget(1);
 
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::XOp>(loc, b, a);
-    qRewriter.create<quake::XOp>(loc, a, b);
-    qRewriter.create<quake::XOp>(loc, b, a);
+    qRewriter.create<cudaq::quake::XOp>(loc, b, a);
+    qRewriter.create<cudaq::quake::XOp>(loc, a, b);
+    qRewriter.create<cudaq::quake::XOp>(loc, b, a);
 
     qRewriter.selectWiresAndReplaceUses(op, ValueRange{a, b});
     rewriter.eraseOp(op);
@@ -684,11 +704,12 @@ REGISTER_DECOMPOSITION_PATTERN(SwapToCX, "swap", "x(1)");
 // quake.s<adj> target;
 struct CHToCXType; // forward declare the pattern type, defined in the macro
                    // below
-struct CHToCX : public cudaq::DecompositionPattern<CHToCXType, quake::HOp> {
+struct CHToCX
+    : public cudaq::DecompositionPattern<CHToCXType, cudaq::quake::HOp> {
   using cudaq::DecompositionPattern<CHToCXType,
-                                    quake::HOp>::DecompositionPattern;
+                                    cudaq::quake::HOp>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::HOp op,
+  LogicalResult matchAndRewrite(cudaq::quake::HOp op,
                                 PatternRewriter &rewriter) const override {
     if (failed(checkNumControls(op, 1)))
       return failure();
@@ -699,13 +720,13 @@ struct CHToCX : public cudaq::DecompositionPattern<CHToCXType, quake::HOp> {
     Value target = op.getTarget();
 
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::SOp>(loc, target);
-    qRewriter.create<quake::HOp>(loc, target);
-    qRewriter.create<quake::TOp>(loc, target);
-    qRewriter.create<quake::XOp>(loc, control, target);
-    qRewriter.create<quake::TOp>(loc, /*isAdj=*/true, target);
-    qRewriter.create<quake::HOp>(loc, target);
-    qRewriter.create<quake::SOp>(loc, /*isAdj=*/true, target);
+    qRewriter.create<cudaq::quake::SOp>(loc, target);
+    qRewriter.create<cudaq::quake::HOp>(loc, target);
+    qRewriter.create<cudaq::quake::TOp>(loc, target);
+    qRewriter.create<cudaq::quake::XOp>(loc, control, target);
+    qRewriter.create<cudaq::quake::TOp>(loc, /*isAdj=*/true, target);
+    qRewriter.create<cudaq::quake::HOp>(loc, target);
+    qRewriter.create<cudaq::quake::SOp>(loc, /*isAdj=*/true, target);
 
     qRewriter.selectWiresAndReplaceUses(op, ValueRange{control, target});
     rewriter.eraseOp(op);
@@ -728,11 +749,11 @@ REGISTER_DECOMPOSITION_PATTERN(CHToCX, "h(1)", "s", "h", "t", "x(1)");
 struct SToPhasedRxType; // forward declare the pattern type, defined in the
                         // macro below
 struct SToPhasedRx
-    : public cudaq::DecompositionPattern<SToPhasedRxType, quake::SOp> {
+    : public cudaq::DecompositionPattern<SToPhasedRxType, cudaq::quake::SOp> {
   using cudaq::DecompositionPattern<SToPhasedRxType,
-                                    quake::SOp>::DecompositionPattern;
+                                    cudaq::quake::SOp>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::SOp op,
+  LogicalResult matchAndRewrite(cudaq::quake::SOp op,
                                 PatternRewriter &rewriter) const override {
     if (!op.getControls().empty())
       return failure();
@@ -751,13 +772,16 @@ struct SToPhasedRx
 
     std::array<Value, 2> parameters = {pi_2, zero};
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
+    qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
+                                               target);
     parameters[0] = angle;
     parameters[1] = pi_2;
-    qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
+    qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
+                                               target);
     parameters[0] = negPi_2;
     parameters[1] = zero;
-    qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
+    qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
+                                               target);
 
     qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
@@ -774,11 +798,12 @@ REGISTER_DECOMPOSITION_PATTERN(SToPhasedRx, "s", "phased_rx");
 // patterns such as controlled-r1 to cnot.
 struct SToR1Type; // forward declare the pattern type, defined in the macro
                   // below
-struct SToR1 : public cudaq::DecompositionPattern<SToR1Type, quake::SOp> {
+struct SToR1
+    : public cudaq::DecompositionPattern<SToR1Type, cudaq::quake::SOp> {
   using cudaq::DecompositionPattern<SToR1Type,
-                                    quake::SOp>::DecompositionPattern;
+                                    cudaq::quake::SOp>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::SOp op,
+  LogicalResult matchAndRewrite(cudaq::quake::SOp op,
                                 PatternRewriter &rewriter) const override {
     // Op info
     auto loc = op->getLoc();
@@ -788,7 +813,7 @@ struct SToR1 : public cudaq::DecompositionPattern<SToR1Type, quake::SOp> {
     SmallVector<Value> controls(op.getControls());
     Value target = op.getTarget();
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::R1Op>(loc, angle, controls, target);
+    qRewriter.create<cudaq::quake::R1Op>(loc, angle, controls, target);
 
     qRewriter.selectWiresAndReplaceUses(op, controls, target);
     rewriter.eraseOp(op);
@@ -809,11 +834,11 @@ REGISTER_DECOMPOSITION_PATTERN(SToR1, "s(n)", "r1(n)");
 struct TToPhasedRxType; // forward declare the pattern type, defined in the
                         // macro below
 struct TToPhasedRx
-    : public cudaq::DecompositionPattern<TToPhasedRxType, quake::TOp> {
+    : public cudaq::DecompositionPattern<TToPhasedRxType, cudaq::quake::TOp> {
   using cudaq::DecompositionPattern<TToPhasedRxType,
-                                    quake::TOp>::DecompositionPattern;
+                                    cudaq::quake::TOp>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::TOp op,
+  LogicalResult matchAndRewrite(cudaq::quake::TOp op,
                                 PatternRewriter &rewriter) const override {
     if (!op.getControls().empty())
       return failure();
@@ -833,13 +858,16 @@ struct TToPhasedRx
 
     std::array<Value, 2> parameters = {pi_2, zero};
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
+    qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
+                                               target);
     parameters[0] = angle;
     parameters[1] = pi_2;
-    qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
+    qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
+                                               target);
     parameters[0] = negPi_2;
     parameters[1] = zero;
-    qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
+    qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
+                                               target);
 
     qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
@@ -856,11 +884,12 @@ REGISTER_DECOMPOSITION_PATTERN(TToPhasedRx, "t", "phased_rx");
 // patterns such as controlled-r1 to cnot.
 struct TToR1Type; // forward declare the pattern type, defined in the macro
                   // below
-struct TToR1 : public cudaq::DecompositionPattern<TToR1Type, quake::TOp> {
+struct TToR1
+    : public cudaq::DecompositionPattern<TToR1Type, cudaq::quake::TOp> {
   using cudaq::DecompositionPattern<TToR1Type,
-                                    quake::TOp>::DecompositionPattern;
+                                    cudaq::quake::TOp>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::TOp op,
+  LogicalResult matchAndRewrite(cudaq::quake::TOp op,
                                 PatternRewriter &rewriter) const override {
     // Op info
     auto loc = op->getLoc();
@@ -869,7 +898,7 @@ struct TToR1 : public cudaq::DecompositionPattern<TToR1Type, quake::TOp> {
     SmallVector<Value> controls(op.getControls());
     Value target = op.getTarget();
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::R1Op>(loc, angle, controls, target);
+    qRewriter.create<cudaq::quake::R1Op>(loc, angle, controls, target);
 
     qRewriter.selectWiresAndReplaceUses(op, controls, target);
     rewriter.eraseOp(op);
@@ -889,11 +918,12 @@ REGISTER_DECOMPOSITION_PATTERN(TToR1, "t(n)", "r1(n)");
 // quake.h target
 struct CXToCZType; // forward declare the pattern type, defined in the macro
                    // below
-struct CXToCZ : public cudaq::DecompositionPattern<CXToCZType, quake::XOp> {
+struct CXToCZ
+    : public cudaq::DecompositionPattern<CXToCZType, cudaq::quake::XOp> {
   using cudaq::DecompositionPattern<CXToCZType,
-                                    quake::XOp>::DecompositionPattern;
+                                    cudaq::quake::XOp>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::XOp op,
+  LogicalResult matchAndRewrite(cudaq::quake::XOp op,
                                 PatternRewriter &rewriter) const override {
     if (failed(checkNumControls(op, 1)))
       return failure();
@@ -912,13 +942,13 @@ struct CXToCZ : public cudaq::DecompositionPattern<CXToCZType, quake::XOp> {
       negControl = (*negatedControls)[0];
 
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::HOp>(loc, target);
+    qRewriter.create<cudaq::quake::HOp>(loc, target);
     if (negControl)
-      qRewriter.create<quake::XOp>(loc, controls);
-    qRewriter.create<quake::ZOp>(loc, controls, target);
+      qRewriter.create<cudaq::quake::XOp>(loc, controls);
+    qRewriter.create<cudaq::quake::ZOp>(loc, controls, target);
     if (negControl)
-      qRewriter.create<quake::XOp>(loc, controls);
-    qRewriter.create<quake::HOp>(loc, target);
+      qRewriter.create<cudaq::quake::XOp>(loc, controls);
+    qRewriter.create<cudaq::quake::HOp>(loc, target);
 
     qRewriter.selectWiresAndReplaceUses(op, controls, target);
     rewriter.eraseOp(op);
@@ -934,11 +964,12 @@ REGISTER_DECOMPOSITION_PATTERN(CXToCZ, "x(1)", "h", "z(1)");
 // quake.h target
 struct CCXToCCZType; // forward declare the pattern type, defined in the macro
                      // below
-struct CCXToCCZ : public cudaq::DecompositionPattern<CCXToCCZType, quake::XOp> {
+struct CCXToCCZ
+    : public cudaq::DecompositionPattern<CCXToCCZType, cudaq::quake::XOp> {
   using cudaq::DecompositionPattern<CCXToCCZType,
-                                    quake::XOp>::DecompositionPattern;
+                                    cudaq::quake::XOp>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::XOp op,
+  LogicalResult matchAndRewrite(cudaq::quake::XOp op,
                                 PatternRewriter &rewriter) const override {
     SmallVector<Value, 2> controls(2);
     if (failed(checkAndExtractControls(op, controls, rewriter)))
@@ -949,10 +980,10 @@ struct CCXToCCZ : public cudaq::DecompositionPattern<CCXToCCZType, quake::XOp> {
     Value target = op.getTarget();
 
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::HOp>(loc, target);
-    auto zOp = qRewriter.create<quake::ZOp>(loc, controls, target);
+    qRewriter.create<cudaq::quake::HOp>(loc, target);
+    auto zOp = qRewriter.create<cudaq::quake::ZOp>(loc, controls, target);
     zOp.setNegatedQubitControls(op.getNegatedQubitControls());
-    qRewriter.create<quake::HOp>(loc, target);
+    qRewriter.create<cudaq::quake::HOp>(loc, target);
 
     qRewriter.selectWiresAndReplaceUses(op, controls, target);
     rewriter.eraseOp(op);
@@ -967,11 +998,11 @@ REGISTER_DECOMPOSITION_PATTERN(CCXToCCZ, "x(2)", "h", "z(2)");
 struct XToPhasedRxType; // forward declare the pattern type, defined in the
                         // macro below
 struct XToPhasedRx
-    : public cudaq::DecompositionPattern<XToPhasedRxType, quake::XOp> {
+    : public cudaq::DecompositionPattern<XToPhasedRxType, cudaq::quake::XOp> {
   using cudaq::DecompositionPattern<XToPhasedRxType,
-                                    quake::XOp>::DecompositionPattern;
+                                    cudaq::quake::XOp>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::XOp op,
+  LogicalResult matchAndRewrite(cudaq::quake::XOp op,
                                 PatternRewriter &rewriter) const override {
     if (!op.getControls().empty())
       return failure();
@@ -987,7 +1018,8 @@ struct XToPhasedRx
 
     SmallVector<Value> parameters = {pi, zero};
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
+    qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
+                                               target);
 
     qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
@@ -1006,11 +1038,11 @@ REGISTER_DECOMPOSITION_PATTERN(XToPhasedRx, "x", "phased_rx");
 struct YToPhasedRxType; // forward declare the pattern type, defined in the
                         // macro below
 struct YToPhasedRx
-    : public cudaq::DecompositionPattern<YToPhasedRxType, quake::YOp> {
+    : public cudaq::DecompositionPattern<YToPhasedRxType, cudaq::quake::YOp> {
   using cudaq::DecompositionPattern<YToPhasedRxType,
-                                    quake::YOp>::DecompositionPattern;
+                                    cudaq::quake::YOp>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::YOp op,
+  LogicalResult matchAndRewrite(cudaq::quake::YOp op,
                                 PatternRewriter &rewriter) const override {
     if (!op.getControls().empty())
       return failure();
@@ -1027,7 +1059,8 @@ struct YToPhasedRx
 
     SmallVector<Value> parameters = {pi, negPi_2};
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
+    qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
+                                               target);
 
     qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
@@ -1044,11 +1077,12 @@ REGISTER_DECOMPOSITION_PATTERN(YToPhasedRx, "y", "phased_rx");
 
 struct CYToCXType; // forward declare the pattern type, defined in the macro
                    // below
-struct CYToCX : public cudaq::DecompositionPattern<CYToCXType, quake::YOp> {
+struct CYToCX
+    : public cudaq::DecompositionPattern<CYToCXType, cudaq::quake::YOp> {
   using cudaq::DecompositionPattern<CYToCXType,
-                                    quake::YOp>::DecompositionPattern;
+                                    cudaq::quake::YOp>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::YOp op,
+  LogicalResult matchAndRewrite(cudaq::quake::YOp op,
                                 PatternRewriter &rewriter) const override {
     if (failed(checkNumControls(op, 1)))
       return failure();
@@ -1063,9 +1097,9 @@ struct CYToCX : public cudaq::DecompositionPattern<CYToCXType, quake::YOp> {
     SmallVector<Value> controls = op.getControls();
 
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::SOp>(loc, /*isAdj=*/true, target);
-    qRewriter.create<quake::XOp>(loc, controls, target);
-    qRewriter.create<quake::SOp>(loc, target);
+    qRewriter.create<cudaq::quake::SOp>(loc, /*isAdj=*/true, target);
+    qRewriter.create<cudaq::quake::XOp>(loc, controls, target);
+    qRewriter.create<cudaq::quake::SOp>(loc, target);
 
     qRewriter.selectWiresAndReplaceUses(op, controls, target);
     rewriter.eraseOp(op);
@@ -1093,11 +1127,12 @@ REGISTER_DECOMPOSITION_PATTERN(CYToCX, "y(1)", "s", "x(1)");
 // NOTE: `┴` denotes the adjoint of `T`.
 struct CCZToCXType; // forward declare the pattern type, defined in the macro
                     // below
-struct CCZToCX : public cudaq::DecompositionPattern<CCZToCXType, quake::ZOp> {
+struct CCZToCX
+    : public cudaq::DecompositionPattern<CCZToCXType, cudaq::quake::ZOp> {
   using cudaq::DecompositionPattern<CCZToCXType,
-                                    quake::ZOp>::DecompositionPattern;
+                                    cudaq::quake::ZOp>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::ZOp op,
+  LogicalResult matchAndRewrite(cudaq::quake::ZOp op,
                                 PatternRewriter &rewriter) const override {
     // This decomposition does not support `quake.control` types because the
     // input controls are used as targets during this transformation.
@@ -1130,21 +1165,21 @@ struct CCZToCX : public cudaq::DecompositionPattern<CCZToCXType, quake::ZOp> {
     }
 
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::XOp>(loc, controls[1], target);
-    qRewriter.create<quake::TOp>(loc, /*isAdj=*/!negC0, target);
-    qRewriter.create<quake::XOp>(loc, controls[0], target);
-    qRewriter.create<quake::TOp>(loc, target);
-    qRewriter.create<quake::XOp>(loc, controls[1], target);
-    qRewriter.create<quake::TOp>(loc, /*isAdj=*/!negC1, target);
-    qRewriter.create<quake::XOp>(loc, controls[0], target);
-    qRewriter.create<quake::TOp>(loc, /*isAdj=*/negC0 && !negC1, target);
+    qRewriter.create<cudaq::quake::XOp>(loc, controls[1], target);
+    qRewriter.create<cudaq::quake::TOp>(loc, /*isAdj=*/!negC0, target);
+    qRewriter.create<cudaq::quake::XOp>(loc, controls[0], target);
+    qRewriter.create<cudaq::quake::TOp>(loc, target);
+    qRewriter.create<cudaq::quake::XOp>(loc, controls[1], target);
+    qRewriter.create<cudaq::quake::TOp>(loc, /*isAdj=*/!negC1, target);
+    qRewriter.create<cudaq::quake::XOp>(loc, controls[0], target);
+    qRewriter.create<cudaq::quake::TOp>(loc, /*isAdj=*/negC0 && !negC1, target);
 
-    qRewriter.create<quake::XOp>(loc, controls[0], controls[1]);
-    qRewriter.create<quake::TOp>(loc, /*isAdj=*/true, controls[1]);
-    qRewriter.create<quake::XOp>(loc, controls[0], controls[1]);
-    qRewriter.create<quake::TOp>(loc, /*isAdj=*/negC0, controls[1]);
+    qRewriter.create<cudaq::quake::XOp>(loc, controls[0], controls[1]);
+    qRewriter.create<cudaq::quake::TOp>(loc, /*isAdj=*/true, controls[1]);
+    qRewriter.create<cudaq::quake::XOp>(loc, controls[0], controls[1]);
+    qRewriter.create<cudaq::quake::TOp>(loc, /*isAdj=*/negC0, controls[1]);
 
-    qRewriter.create<quake::TOp>(loc, /*isAdj=*/negC1, controls[0]);
+    qRewriter.create<cudaq::quake::TOp>(loc, /*isAdj=*/negC1, controls[0]);
 
     qRewriter.selectWiresAndReplaceUses(op, controls, target);
     rewriter.eraseOp(op);
@@ -1163,11 +1198,12 @@ REGISTER_DECOMPOSITION_PATTERN(CCZToCX, "z(2)", "t", "x(1)");
 
 struct CZToCXType; // forward declare the pattern type, defined in the macro
                    // below
-struct CZToCX : public cudaq::DecompositionPattern<CZToCXType, quake::ZOp> {
+struct CZToCX
+    : public cudaq::DecompositionPattern<CZToCXType, cudaq::quake::ZOp> {
   using cudaq::DecompositionPattern<CZToCXType,
-                                    quake::ZOp>::DecompositionPattern;
+                                    cudaq::quake::ZOp>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::ZOp op,
+  LogicalResult matchAndRewrite(cudaq::quake::ZOp op,
                                 PatternRewriter &rewriter) const override {
     // This decomposition does not support `quake.control` types because the
     // input controls are used as targets during this transformation.
@@ -1186,13 +1222,13 @@ struct CZToCX : public cudaq::DecompositionPattern<CZToCXType, quake::ZOp> {
       negControl = (*negatedControls)[0];
 
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::HOp>(loc, target);
+    qRewriter.create<cudaq::quake::HOp>(loc, target);
     if (negControl)
-      qRewriter.create<quake::XOp>(loc, controls);
-    qRewriter.create<quake::XOp>(loc, controls, target);
+      qRewriter.create<cudaq::quake::XOp>(loc, controls);
+    qRewriter.create<cudaq::quake::XOp>(loc, controls, target);
     if (negControl)
-      qRewriter.create<quake::XOp>(loc, controls);
-    qRewriter.create<quake::HOp>(loc, target);
+      qRewriter.create<cudaq::quake::XOp>(loc, controls);
+    qRewriter.create<cudaq::quake::HOp>(loc, target);
 
     qRewriter.selectWiresAndReplaceUses(op, controls, target);
     rewriter.eraseOp(op);
@@ -1209,11 +1245,11 @@ REGISTER_DECOMPOSITION_PATTERN(CZToCX, "z(1)", "h", "x(1)");
 struct ZToPhasedRxType; // forward declare the pattern type, defined in the
                         // macro below
 struct ZToPhasedRx
-    : public cudaq::DecompositionPattern<ZToPhasedRxType, quake::ZOp> {
+    : public cudaq::DecompositionPattern<ZToPhasedRxType, cudaq::quake::ZOp> {
   using cudaq::DecompositionPattern<ZToPhasedRxType,
-                                    quake::ZOp>::DecompositionPattern;
+                                    cudaq::quake::ZOp>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::ZOp op,
+  LogicalResult matchAndRewrite(cudaq::quake::ZOp op,
                                 PatternRewriter &rewriter) const override {
     if (!op.getControls().empty())
       return failure();
@@ -1231,13 +1267,16 @@ struct ZToPhasedRx
 
     std::array<Value, 2> parameters = {pi_2, zero};
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
+    qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
+                                               target);
     parameters[0] = negPi;
     parameters[1] = pi_2;
-    qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
+    qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
+                                               target);
     parameters[0] = negPi_2;
     parameters[1] = zero;
-    qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
+    qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
+                                               target);
 
     qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
@@ -1259,11 +1298,12 @@ REGISTER_DECOMPOSITION_PATTERN(ZToPhasedRx, "z", "phased_rx");
 // quake.r1(λ/2) target
 struct CR1ToCXType; // forward declare the pattern type, defined in the macro
                     // below
-struct CR1ToCX : public cudaq::DecompositionPattern<CR1ToCXType, quake::R1Op> {
+struct CR1ToCX
+    : public cudaq::DecompositionPattern<CR1ToCXType, cudaq::quake::R1Op> {
   using cudaq::DecompositionPattern<CR1ToCXType,
-                                    quake::R1Op>::DecompositionPattern;
+                                    cudaq::quake::R1Op>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::R1Op op,
+  LogicalResult matchAndRewrite(cudaq::quake::R1Op op,
                                 PatternRewriter &rewriter) const override {
     if (containsControlTypes(op))
       return failure();
@@ -1290,13 +1330,13 @@ struct CR1ToCX : public cudaq::DecompositionPattern<CR1ToCXType, quake::R1Op> {
     Value negHalfAngle = arith::NegFOp::create(rewriter, loc, halfAngle);
 
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::R1Op>(loc, /*isAdj*/ negControl, halfAngle,
-                                  noControls, control);
-    qRewriter.create<quake::XOp>(loc, control, target);
-    qRewriter.create<quake::R1Op>(loc, /*isAdj*/ negControl, negHalfAngle,
-                                  noControls, target);
-    qRewriter.create<quake::XOp>(loc, control, target);
-    qRewriter.create<quake::R1Op>(loc, halfAngle, noControls, target);
+    qRewriter.create<cudaq::quake::R1Op>(loc, /*isAdj*/ negControl, halfAngle,
+                                         noControls, control);
+    qRewriter.create<cudaq::quake::XOp>(loc, control, target);
+    qRewriter.create<cudaq::quake::R1Op>(loc, /*isAdj*/ negControl,
+                                         negHalfAngle, noControls, target);
+    qRewriter.create<cudaq::quake::XOp>(loc, control, target);
+    qRewriter.create<cudaq::quake::R1Op>(loc, halfAngle, noControls, target);
 
     qRewriter.selectWiresAndReplaceUses(op, ValueRange{control, target});
     rewriter.eraseOp(op);
@@ -1313,11 +1353,11 @@ REGISTER_DECOMPOSITION_PATTERN(CR1ToCX, "r1(1)", "r1", "x(1)");
 struct R1ToPhasedRxType; // forward declare the pattern type, defined in the
                          // macro below
 struct R1ToPhasedRx
-    : public cudaq::DecompositionPattern<R1ToPhasedRxType, quake::R1Op> {
+    : public cudaq::DecompositionPattern<R1ToPhasedRxType, cudaq::quake::R1Op> {
   using cudaq::DecompositionPattern<R1ToPhasedRxType,
-                                    quake::R1Op>::DecompositionPattern;
+                                    cudaq::quake::R1Op>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::R1Op op,
+  LogicalResult matchAndRewrite(cudaq::quake::R1Op op,
                                 PatternRewriter &rewriter) const override {
     if (!op.getControls().empty())
       return failure();
@@ -1339,13 +1379,16 @@ struct R1ToPhasedRx
 
     std::array<Value, 2> parameters = {pi_2, zero};
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
+    qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
+                                               target);
     parameters[0] = negAngle;
     parameters[1] = pi_2;
-    qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
+    qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
+                                               target);
     parameters[0] = negPi_2;
     parameters[1] = zero;
-    qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
+    qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
+                                               target);
 
     qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
@@ -1368,11 +1411,12 @@ REGISTER_DECOMPOSITION_PATTERN(R1ToPhasedRx, "r1", "phased_rx");
 // quake.rz(-π/2) target
 struct CRxToCXType; // forward declare the pattern type, defined in the macro
                     // below
-struct CRxToCX : public cudaq::DecompositionPattern<CRxToCXType, quake::RxOp> {
+struct CRxToCX
+    : public cudaq::DecompositionPattern<CRxToCXType, cudaq::quake::RxOp> {
   using cudaq::DecompositionPattern<CRxToCXType,
-                                    quake::RxOp>::DecompositionPattern;
+                                    cudaq::quake::RxOp>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::RxOp op,
+  LogicalResult matchAndRewrite(cudaq::quake::RxOp op,
                                 PatternRewriter &rewriter) const override {
     Value control;
     if (failed(checkAndExtractControls(op, control, rewriter)))
@@ -1399,14 +1443,14 @@ struct CRxToCX : public cudaq::DecompositionPattern<CRxToCXType, quake::RxOp> {
     Value negPI_2 = createConstant(loc, -M_PI_2, angleType, rewriter);
 
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::SOp>(loc, /*isAdj*/ negControl, target);
-    qRewriter.create<quake::XOp>(loc, control, target);
-    qRewriter.create<quake::RyOp>(loc, negHalfAngle, noControls, target);
-    qRewriter.create<quake::XOp>(loc, control, target);
-    qRewriter.create<quake::RyOp>(loc, /*isAdj*/ negControl, halfAngle,
-                                  noControls, target);
-    qRewriter.create<quake::RzOp>(loc, /*isAdj*/ negControl, negPI_2,
-                                  noControls, target);
+    qRewriter.create<cudaq::quake::SOp>(loc, /*isAdj*/ negControl, target);
+    qRewriter.create<cudaq::quake::XOp>(loc, control, target);
+    qRewriter.create<cudaq::quake::RyOp>(loc, negHalfAngle, noControls, target);
+    qRewriter.create<cudaq::quake::XOp>(loc, control, target);
+    qRewriter.create<cudaq::quake::RyOp>(loc, /*isAdj*/ negControl, halfAngle,
+                                         noControls, target);
+    qRewriter.create<cudaq::quake::RzOp>(loc, /*isAdj*/ negControl, negPI_2,
+                                         noControls, target);
 
     qRewriter.selectWiresAndReplaceUses(op, ValueRange{control, target});
     rewriter.eraseOp(op);
@@ -1421,11 +1465,11 @@ REGISTER_DECOMPOSITION_PATTERN(CRxToCX, "rx(1)", "s", "x(1)", "ry", "rz");
 struct RxToPhasedRxType; // forward declare the pattern type, defined in the
                          // macro below
 struct RxToPhasedRx
-    : public cudaq::DecompositionPattern<RxToPhasedRxType, quake::RxOp> {
+    : public cudaq::DecompositionPattern<RxToPhasedRxType, cudaq::quake::RxOp> {
   using cudaq::DecompositionPattern<RxToPhasedRxType,
-                                    quake::RxOp>::DecompositionPattern;
+                                    cudaq::quake::RxOp>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::RxOp op,
+  LogicalResult matchAndRewrite(cudaq::quake::RxOp op,
                                 PatternRewriter &rewriter) const override {
     if (!op.getControls().empty())
       return failure();
@@ -1444,7 +1488,8 @@ struct RxToPhasedRx
 
     SmallVector<Value> parameters = {angle, zero};
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
+    qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
+                                               target);
 
     qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
@@ -1459,11 +1504,11 @@ REGISTER_DECOMPOSITION_PATTERN(RxToPhasedRx, "rx", "phased_rx");
 struct RxAdjToRxType; // forward declare the pattern type, defined in the macro
                       // below
 struct RxAdjToRx
-    : public cudaq::DecompositionPattern<RxAdjToRxType, quake::RxOp> {
+    : public cudaq::DecompositionPattern<RxAdjToRxType, cudaq::quake::RxOp> {
   using cudaq::DecompositionPattern<RxAdjToRxType,
-                                    quake::RxOp>::DecompositionPattern;
+                                    cudaq::quake::RxOp>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::RxOp op,
+  LogicalResult matchAndRewrite(cudaq::quake::RxOp op,
                                 PatternRewriter &rewriter) const override {
     if (!op.getControls().empty())
       return failure();
@@ -1482,7 +1527,7 @@ struct RxAdjToRx
     SmallVector<Value> parameters = {angle};
 
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::RxOp>(loc, parameters, noControls, target);
+    qRewriter.create<cudaq::quake::RxOp>(loc, parameters, noControls, target);
 
     qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
@@ -1503,11 +1548,12 @@ REGISTER_DECOMPOSITION_PATTERN(RxAdjToRx, "rx<adj>", "rx");
 // quake.x [control] target
 struct CRyToCXType; // forward declare the pattern type, defined in the macro
                     // below
-struct CRyToCX : public cudaq::DecompositionPattern<CRyToCXType, quake::RyOp> {
+struct CRyToCX
+    : public cudaq::DecompositionPattern<CRyToCXType, cudaq::quake::RyOp> {
   using cudaq::DecompositionPattern<CRyToCXType,
-                                    quake::RyOp>::DecompositionPattern;
+                                    cudaq::quake::RyOp>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::RyOp op,
+  LogicalResult matchAndRewrite(cudaq::quake::RyOp op,
                                 PatternRewriter &rewriter) const override {
     Value control;
     if (failed(checkAndExtractControls(op, control, rewriter)))
@@ -1531,11 +1577,11 @@ struct CRyToCX : public cudaq::DecompositionPattern<CRyToCXType, quake::RyOp> {
     Value negHalfAngle = arith::NegFOp::create(rewriter, loc, halfAngle);
 
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::RyOp>(loc, halfAngle, noControls, target);
-    qRewriter.create<quake::XOp>(loc, control, target);
-    qRewriter.create<quake::RyOp>(loc, /*isAdj*/ negControl, negHalfAngle,
-                                  noControls, target);
-    qRewriter.create<quake::XOp>(loc, control, target);
+    qRewriter.create<cudaq::quake::RyOp>(loc, halfAngle, noControls, target);
+    qRewriter.create<cudaq::quake::XOp>(loc, control, target);
+    qRewriter.create<cudaq::quake::RyOp>(loc, /*isAdj*/ negControl,
+                                         negHalfAngle, noControls, target);
+    qRewriter.create<cudaq::quake::XOp>(loc, control, target);
 
     qRewriter.selectWiresAndReplaceUses(op, ValueRange{control, target});
     rewriter.eraseOp(op);
@@ -1550,11 +1596,11 @@ REGISTER_DECOMPOSITION_PATTERN(CRyToCX, "ry(1)", "ry", "x(1)");
 struct RyToPhasedRxType; // forward declare the pattern type, defined in the
                          // macro below
 struct RyToPhasedRx
-    : public cudaq::DecompositionPattern<RyToPhasedRxType, quake::RyOp> {
+    : public cudaq::DecompositionPattern<RyToPhasedRxType, cudaq::quake::RyOp> {
   using cudaq::DecompositionPattern<RyToPhasedRxType,
-                                    quake::RyOp>::DecompositionPattern;
+                                    cudaq::quake::RyOp>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::RyOp op,
+  LogicalResult matchAndRewrite(cudaq::quake::RyOp op,
                                 PatternRewriter &rewriter) const override {
     if (!op.getControls().empty())
       return failure();
@@ -1573,7 +1619,8 @@ struct RyToPhasedRx
 
     SmallVector<Value> parameters = {angle, pi_2};
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
+    qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
+                                               target);
 
     qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
@@ -1588,11 +1635,11 @@ REGISTER_DECOMPOSITION_PATTERN(RyToPhasedRx, "ry", "phased_rx");
 struct RyAdjToRyType; // forward declare the pattern type, defined in the macro
                       // below
 struct RyAdjToRy
-    : public cudaq::DecompositionPattern<RyAdjToRyType, quake::RyOp> {
+    : public cudaq::DecompositionPattern<RyAdjToRyType, cudaq::quake::RyOp> {
   using cudaq::DecompositionPattern<RyAdjToRyType,
-                                    quake::RyOp>::DecompositionPattern;
+                                    cudaq::quake::RyOp>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::RyOp op,
+  LogicalResult matchAndRewrite(cudaq::quake::RyOp op,
                                 PatternRewriter &rewriter) const override {
     if (!op.getControls().empty())
       return failure();
@@ -1611,7 +1658,7 @@ struct RyAdjToRy
     SmallVector<Value> parameters = {angle};
 
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::RyOp>(loc, parameters, noControls, target);
+    qRewriter.create<cudaq::quake::RyOp>(loc, parameters, noControls, target);
 
     qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
@@ -1632,11 +1679,12 @@ REGISTER_DECOMPOSITION_PATTERN(RyAdjToRy, "ry<adj>", "ry");
 // quake.x [control] target
 struct CRzToCXType; // forward declare the pattern type, defined in the macro
                     // below
-struct CRzToCX : public cudaq::DecompositionPattern<CRzToCXType, quake::RzOp> {
+struct CRzToCX
+    : public cudaq::DecompositionPattern<CRzToCXType, cudaq::quake::RzOp> {
   using cudaq::DecompositionPattern<CRzToCXType,
-                                    quake::RzOp>::DecompositionPattern;
+                                    cudaq::quake::RzOp>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::RzOp op,
+  LogicalResult matchAndRewrite(cudaq::quake::RzOp op,
                                 PatternRewriter &rewriter) const override {
     Value control;
     if (failed(checkAndExtractControls(op, control, rewriter)))
@@ -1660,11 +1708,11 @@ struct CRzToCX : public cudaq::DecompositionPattern<CRzToCXType, quake::RzOp> {
     Value negHalfAngle = arith::NegFOp::create(rewriter, loc, halfAngle);
 
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::RzOp>(loc, halfAngle, noControls, target);
-    qRewriter.create<quake::XOp>(loc, control, target);
-    qRewriter.create<quake::RzOp>(loc, /*isAdj*/ negControl, negHalfAngle,
-                                  noControls, target);
-    qRewriter.create<quake::XOp>(loc, control, target);
+    qRewriter.create<cudaq::quake::RzOp>(loc, halfAngle, noControls, target);
+    qRewriter.create<cudaq::quake::XOp>(loc, control, target);
+    qRewriter.create<cudaq::quake::RzOp>(loc, /*isAdj*/ negControl,
+                                         negHalfAngle, noControls, target);
+    qRewriter.create<cudaq::quake::XOp>(loc, control, target);
 
     qRewriter.selectWiresAndReplaceUses(op, ValueRange{control, target});
     rewriter.eraseOp(op);
@@ -1681,11 +1729,11 @@ REGISTER_DECOMPOSITION_PATTERN(CRzToCX, "rz(1)", "rz", "x(1)");
 struct RzToPhasedRxType; // forward declare the pattern type, defined in the
                          // macro below
 struct RzToPhasedRx
-    : public cudaq::DecompositionPattern<RzToPhasedRxType, quake::RzOp> {
+    : public cudaq::DecompositionPattern<RzToPhasedRxType, cudaq::quake::RzOp> {
   using cudaq::DecompositionPattern<RzToPhasedRxType,
-                                    quake::RzOp>::DecompositionPattern;
+                                    cudaq::quake::RzOp>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::RzOp op,
+  LogicalResult matchAndRewrite(cudaq::quake::RzOp op,
                                 PatternRewriter &rewriter) const override {
     if (!op.getControls().empty())
       return failure();
@@ -1707,13 +1755,16 @@ struct RzToPhasedRx
 
     std::array<Value, 2> parameters = {pi_2, zero};
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
+    qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
+                                               target);
     parameters[0] = negAngle;
     parameters[1] = pi_2;
-    qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
+    qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
+                                               target);
     parameters[0] = negPi_2;
     parameters[1] = zero;
-    qRewriter.create<quake::PhasedRxOp>(loc, parameters, noControls, target);
+    qRewriter.create<cudaq::quake::PhasedRxOp>(loc, parameters, noControls,
+                                               target);
 
     qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
@@ -1728,11 +1779,11 @@ REGISTER_DECOMPOSITION_PATTERN(RzToPhasedRx, "rz", "phased_rx");
 struct RzAdjToRzType; // forward declare the pattern type, defined in the macro
                       // below
 struct RzAdjToRz
-    : public cudaq::DecompositionPattern<RzAdjToRzType, quake::RzOp> {
+    : public cudaq::DecompositionPattern<RzAdjToRzType, cudaq::quake::RzOp> {
   using cudaq::DecompositionPattern<RzAdjToRzType,
-                                    quake::RzOp>::DecompositionPattern;
+                                    cudaq::quake::RzOp>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::RzOp op,
+  LogicalResult matchAndRewrite(cudaq::quake::RzOp op,
                                 PatternRewriter &rewriter) const override {
     if (!op.getControls().empty())
       return failure();
@@ -1751,7 +1802,7 @@ struct RzAdjToRz
     SmallVector<Value> parameters = {angle};
 
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::RzOp>(loc, parameters, noControls, target);
+    qRewriter.create<cudaq::quake::RzOp>(loc, parameters, noControls, target);
 
     qRewriter.selectWiresAndReplaceUses(op, target);
     rewriter.eraseOp(op);
@@ -1773,12 +1824,12 @@ REGISTER_DECOMPOSITION_PATTERN(RzAdjToRz, "rz<adj>", "rz");
 // quake.rz(ϕ) target
 struct U3ToRotationsType; // forward declare the pattern type, defined in the
                           // macro below
-struct U3ToRotations
-    : public cudaq::DecompositionPattern<U3ToRotationsType, quake::U3Op> {
+struct U3ToRotations : public cudaq::DecompositionPattern<U3ToRotationsType,
+                                                          cudaq::quake::U3Op> {
   using cudaq::DecompositionPattern<U3ToRotationsType,
-                                    quake::U3Op>::DecompositionPattern;
+                                    cudaq::quake::U3Op>::DecompositionPattern;
 
-  LogicalResult matchAndRewrite(quake::U3Op op,
+  LogicalResult matchAndRewrite(cudaq::quake::U3Op op,
                                 PatternRewriter &rewriter) const override {
     // Op info
     Location loc = op->getLoc();
@@ -1802,11 +1853,11 @@ struct U3ToRotations
     Value negPi_2 = arith::NegFOp::create(rewriter, loc, pi_2);
 
     QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<quake::RzOp>(loc, lam, controls, target);
-    qRewriter.create<quake::RxOp>(loc, pi_2, controls, target);
-    qRewriter.create<quake::RzOp>(loc, theta, controls, target);
-    qRewriter.create<quake::RxOp>(loc, negPi_2, controls, target);
-    qRewriter.create<quake::RzOp>(loc, phi, controls, target);
+    qRewriter.create<cudaq::quake::RzOp>(loc, lam, controls, target);
+    qRewriter.create<cudaq::quake::RxOp>(loc, pi_2, controls, target);
+    qRewriter.create<cudaq::quake::RzOp>(loc, theta, controls, target);
+    qRewriter.create<cudaq::quake::RxOp>(loc, negPi_2, controls, target);
+    qRewriter.create<cudaq::quake::RzOp>(loc, phi, controls, target);
 
     qRewriter.selectWiresAndReplaceUses(op, controls, target);
     rewriter.eraseOp(op);

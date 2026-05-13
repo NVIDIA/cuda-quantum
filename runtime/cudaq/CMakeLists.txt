@@ -23,6 +23,7 @@ add_library(${LIBRARY_NAME}
     platform/qpu_utils.cpp
     platform/qpu_state.cpp
     platform/quantum_platform.cpp
+    platform/platform_iface.cpp
     qis/execution_manager_c_api.cpp
     qis/execution_manager.cpp
     qis/remote_state.cpp
@@ -63,14 +64,14 @@ if (CUDA_FOUND)
       cudaq-common
       cudaq-nlopt
       cudaq-ensmallen
+      cudaq-mlir-runtime-headers # Public until compilation is moved out of the QPUs
+      cudaq-logger
     PRIVATE
       MLIRIR
       nvqir
-      cudaq-logger
       fmt::fmt-header-only
       CUDA::cudart_static
       CUDAQTargetConfigUtil
-      cudaq-mlir-runtime-headers
   )
 
   target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_CUDA)
@@ -88,13 +89,13 @@ else()
       cudaq-common
       cudaq-nlopt
       cudaq-ensmallen
+      cudaq-mlir-runtime-headers # Public until compilation is moved out of the QPUs
+      cudaq-logger
     PRIVATE
       MLIRIR
       nvqir
-      cudaq-logger
       fmt::fmt-header-only
       CUDAQTargetConfigUtil
-      cudaq-mlir-runtime-headers
   )
 endif()
 

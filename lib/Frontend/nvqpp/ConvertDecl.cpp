@@ -93,8 +93,9 @@ void QuakeBridgeVisitor::addArgumentSymbols(
       auto parmTy = entryBlock->getArgument(index).getType();
       if (isa<FunctionType, cc::CallableType, cc::IndirectCallableType,
               cc::PointerType, cc::SpanLikeType, LLVM::LLVMStructType,
-              quake::ControlType, quake::RefType, quake::StruqType,
-              quake::VeqType, quake::WireType>(parmTy)) {
+              cudaq::quake::ControlType, cudaq::quake::RefType,
+              cudaq::quake::StruqType, cudaq::quake::VeqType,
+              cudaq::quake::WireType>(parmTy)) {
         symbolTable.insert(name, entryBlock->getArgument(index));
       } else {
         auto stackSlot = cc::AllocaOp::create(builder, loc, parmTy);
@@ -133,7 +134,7 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
     // Types from the `cudaq` namespace.
     // A qubit is a qudit<LEVEL=2>.
     if (name == "qudit" || name == "qubit")
-      return pushType(quake::RefType::get(ctx));
+      return pushType(cudaq::quake::RefType::get(ctx));
     // qreg<SIZE,LEVEL>, qarray<SIZE,LEVEL>, qspan<SIZE,LEVEL>
     if (name == "qspan" || name == "qreg" || name == "qarray") {
       // If the first template argument is not `std::dynamic_extent` then we
@@ -150,15 +151,15 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
         };
         std::int64_t size = getExtValueHelper(templArg.getAsIntegral());
         if (size != static_cast<std::int64_t>(std::dynamic_extent))
-          return pushType(quake::VeqType::get(ctx, size));
+          return pushType(cudaq::quake::VeqType::get(ctx, size));
       }
-      return pushType(quake::VeqType::getUnsized(ctx));
+      return pushType(cudaq::quake::VeqType::getUnsized(ctx));
     }
     // qvector<LEVEL>, qview<LEVEL>
     if (name == "qvector" || name == "qview")
-      return pushType(quake::VeqType::getUnsized(ctx));
+      return pushType(cudaq::quake::VeqType::getUnsized(ctx));
     if (name == "state")
-      return pushType(quake::StateType::get(ctx));
+      return pushType(cudaq::quake::StateType::get(ctx));
     if (name == "pauli_word")
       return pushType(cc::CharspanType::get(ctx));
     if (name == "qkernel") {
@@ -181,9 +182,9 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       if (!cts || !TraverseType(cts->getTemplateArgs()[0].getAsType()))
         return false;
       auto ty = popType();
-      if (quake::isQuantumType(ty)) {
-        if (ty == quake::RefType::get(ctx))
-          return pushType(quake::VeqType::getUnsized(ctx));
+      if (cudaq::quake::isQuantumType(ty)) {
+        if (ty == cudaq::quake::RefType::get(ctx))
+          return pushType(cudaq::quake::VeqType::getUnsized(ctx));
         cudaq::emitFatalError(toLocation(x->getSourceRange()),
                               "std::vector element type is not supported");
         return false;
@@ -228,7 +229,7 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       if (!TraverseType(cts->getTemplateArgs()[0].getAsType()))
         return false;
       auto refTy = popType();
-      if (isa<quake::RefType, quake::VeqType>(refTy))
+      if (isa<cudaq::quake::RefType, cudaq::quake::VeqType>(refTy))
         return pushType(refTy);
       return pushType(cc::PointerType::get(ctx, refTy));
     }
@@ -685,7 +686,7 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
   assert(type && "variable must have a valid type");
   auto loc = toLocation(x->getSourceRange());
   auto name = x->getName();
-  if (auto qType = dyn_cast<quake::VeqType>(type)) {
+  if (auto qType = dyn_cast<cudaq::quake::VeqType>(type)) {
     // Variable is of !quake.veq type.
     mlir::Value qreg;
     std::size_t qregSize = qType.getSize();
@@ -697,16 +698,16 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
       auto qregSizeVal = mlir::arith::ConstantIntOp::create(
           builder, loc, builder.getIntegerType(64), qregSize);
       if (qregSize != 0)
-        qreg = quake::AllocaOp::create(builder, loc, qType);
+        qreg = cudaq::quake::AllocaOp::create(builder, loc, qType);
       else
-        qreg = quake::AllocaOp::create(builder, loc, qType, qregSizeVal);
+        qreg = cudaq::quake::AllocaOp::create(builder, loc, qType, qregSizeVal);
     }
     symbolTable.insert(name, qreg);
     // allocated_qreg_names.push_back(name);
     return pushValue(qreg);
   }
 
-  if (auto qType = dyn_cast<quake::RefType>(type)) {
+  if (auto qType = dyn_cast<cudaq::quake::RefType>(type)) {
     // Variable is of !quake.ref type.
     if (x->hasInit() && !valueStack.empty()) {
       symbolTable.insert(name, peekValue());
@@ -714,15 +715,15 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
     }
     auto zero = mlir::arith::ConstantIntOp::create(
         builder, loc, builder.getIntegerType(64), 0);
-    auto qregSizeOne = quake::AllocaOp::create(
-        builder, loc, quake::VeqType::get(builder.getContext(), 1));
+    auto qregSizeOne = cudaq::quake::AllocaOp::create(
+        builder, loc, cudaq::quake::VeqType::get(builder.getContext(), 1));
     Value addressTheQubit =
-        quake::ExtractRefOp::create(builder, loc, qregSizeOne, zero);
+        cudaq::quake::ExtractRefOp::create(builder, loc, qregSizeOne, zero);
     symbolTable.insert(name, addressTheQubit);
     return pushValue(addressTheQubit);
   }
 
-  if (isa<quake::StruqType>(type)) {
+  if (isa<cudaq::quake::StruqType>(type)) {
     // A pure quantum struct is just passed along by value. It cannot be stored
     // to a variable.
     symbolTable.insert(name, peekValue());
@@ -752,9 +753,10 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
         return true;
 
       // Assign registerName
-      if (auto descr = initVec.getDefiningOp<quake::DiscriminateOp>())
-        if (auto meas = descr.getMeasurement()
-                            .getDefiningOp<quake::MeasurementInterface>())
+      if (auto descr = initVec.getDefiningOp<cudaq::quake::DiscriminateOp>())
+        if (auto meas =
+                descr.getMeasurement()
+                    .getDefiningOp<cudaq::quake::MeasurementInterface>())
           meas.setRegisterName(builder.getStringAttr(x->getName()));
 
       // Did this come from a stdvec init op? If not drop out
@@ -783,9 +785,9 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
         auto firstGepUser = *gepOp->getResult(0).getUsers().begin();
         if (auto storeOp = dyn_cast<cc::StoreOp>(firstGepUser)) {
           auto result = storeOp->getOperand(0);
-          if (auto discr = result.getDefiningOp<quake::DiscriminateOp>())
-            if (auto mzOp =
-                    discr.getMeasurement().getDefiningOp<quake::MzOp>()) {
+          if (auto discr = result.getDefiningOp<cudaq::quake::DiscriminateOp>())
+            if (auto mzOp = discr.getMeasurement()
+                                .getDefiningOp<cudaq::quake::MzOp>()) {
               // Found it, tag it with the name.
               mzOp.setRegisterName(builder.getStringAttr(x->getName()));
               break;
@@ -819,8 +821,8 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
 
   // If this was an auto var = mz(q), then we want to know the
   // var name, as it will serve as the classical bit register name
-  if (auto discr = initValue.getDefiningOp<quake::DiscriminateOp>())
-    if (auto mz = discr.getMeasurement().getDefiningOp<quake::MzOp>())
+  if (auto discr = initValue.getDefiningOp<cudaq::quake::DiscriminateOp>())
+    if (auto mz = discr.getMeasurement().getDefiningOp<cudaq::quake::MzOp>())
       mz.setRegisterName(builder.getStringAttr(x->getName()));
 
   assert(initValue && "initializer value must be lowered");

@@ -21,27 +21,27 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
-static bool allocaOfVeqStruq(quake::AllocaOp alloc) {
-  return isa<quake::VeqType, quake::StruqType>(alloc.getType());
+static bool allocaOfVeqStruq(cudaq::quake::AllocaOp alloc) {
+  return isa<cudaq::quake::VeqType, cudaq::quake::StruqType>(alloc.getType());
 }
 
-static bool allocaOfUnspecifiedSize(quake::AllocaOp alloc) {
-  if (auto veqTy = dyn_cast<quake::VeqType>(alloc.getType()))
+static bool allocaOfUnspecifiedSize(cudaq::quake::AllocaOp alloc) {
+  if (auto veqTy = dyn_cast<cudaq::quake::VeqType>(alloc.getType()))
     return !veqTy.hasSpecifiedSize();
-  if (auto ty = dyn_cast<quake::StruqType>(alloc.getType()))
+  if (auto ty = dyn_cast<cudaq::quake::StruqType>(alloc.getType()))
     return !ty.hasSpecifiedSize();
   return false;
 }
 
 static bool isUseConvertible(Operation *op) {
-  if (isa<quake::DeallocOp, quake::GetMemberOp>(op))
+  if (isa<cudaq::quake::DeallocOp, cudaq::quake::GetMemberOp>(op))
     return true;
 
   // extract_ref is ok, iff it has a constant offset
-  if (auto ext = dyn_cast<quake::ExtractRefOp>(op))
+  if (auto ext = dyn_cast<cudaq::quake::ExtractRefOp>(op))
     return ext.hasConstantIndex();
 
-  auto sub = dyn_cast<quake::SubVeqOp>(op);
+  auto sub = dyn_cast<cudaq::quake::SubVeqOp>(op);
   if (!sub)
     return false;
 
@@ -64,7 +64,7 @@ static bool isUseConvertible(Operation *op) {
   return true;
 }
 
-static bool usesAreConvertible(quake::AllocaOp alloc) {
+static bool usesAreConvertible(cudaq::quake::AllocaOp alloc) {
   for (auto *users : alloc->getUsers())
     if (!isUseConvertible(users))
       return false;
@@ -72,14 +72,14 @@ static bool usesAreConvertible(quake::AllocaOp alloc) {
 }
 
 namespace {
-class AllocaPattern : public OpRewritePattern<quake::AllocaOp> {
+class AllocaPattern : public OpRewritePattern<cudaq::quake::AllocaOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
   /// If we are here, then all uses of \p allocOp are either an ExtractRefOp
   /// with a constant index or a DeallocOp. Any other user is assumed to block
   /// the factoring of the allocation.
-  LogicalResult matchAndRewrite(quake::AllocaOp allocOp,
+  LogicalResult matchAndRewrite(cudaq::quake::AllocaOp allocOp,
                                 PatternRewriter &rewriter) const override {
     auto loc = allocOp.getLoc();
 
@@ -88,20 +88,20 @@ public:
         allocOp.hasInitializedState())
       return failure();
 
-    if (auto stqTy = dyn_cast<quake::StruqType>(allocOp.getType())) {
+    if (auto stqTy = dyn_cast<cudaq::quake::StruqType>(allocOp.getType())) {
       // allocOp is a struq.
       // 1. Convert the allocation into a member by member allocation.
       SmallVector<Value> memAllocs;
       for (auto memTy : stqTy.getMembers())
         memAllocs.emplace_back(
-            quake::AllocaOp::create(rewriter, loc, memTy).getResult());
+            cudaq::quake::AllocaOp::create(rewriter, loc, memTy).getResult());
       // 2. Create a value of the original struq type using quake.make_struq.
       auto aggregate =
-          quake::MakeStruqOp::create(rewriter, loc, stqTy, memAllocs);
+          cudaq::quake::MakeStruqOp::create(rewriter, loc, stqTy, memAllocs);
       // 3. Walk all the uses. If they are quake.get_member operations, replace
       // them with direct uses.
       for (auto *user : llvm::make_early_inc_range(allocOp->getUsers()))
-        if (auto getMem = dyn_cast<quake::GetMemberOp>(user)) {
+        if (auto getMem = dyn_cast<cudaq::quake::GetMemberOp>(user)) {
           auto index = getMem.getIndex();
           rewriter.replaceOp(getMem, memAllocs[index]);
         }
@@ -110,15 +110,16 @@ public:
     }
 
     // allocOp must be a veq.
-    auto veqTy = cast<quake::VeqType>(allocOp.getType());
+    auto veqTy = cast<cudaq::quake::VeqType>(allocOp.getType());
     std::size_t size = veqTy.getSize();
-    SmallVector<quake::AllocaOp> newAllocs;
+    SmallVector<cudaq::quake::AllocaOp> newAllocs;
     auto *ctx = rewriter.getContext();
-    auto refTy = quake::RefType::get(ctx);
+    auto refTy = cudaq::quake::RefType::get(ctx);
 
     // Split the aggregate veq into a sequence of distinct alloca of ref.
     for (std::size_t i = 0; i < size; ++i)
-      newAllocs.emplace_back(quake::AllocaOp::create(rewriter, loc, refTy));
+      newAllocs.emplace_back(
+          cudaq::quake::AllocaOp::create(rewriter, loc, refTy));
 
     if (usesAreConvertible(allocOp)) {
       // Visit all users and replace them accordingly.
@@ -129,10 +130,11 @@ public:
     } else {
       // Uses are more complex so just concat the refs together.
       SmallVector<Value> theRefs;
-      std::for_each(newAllocs.begin(), newAllocs.end(), [&](quake::AllocaOp a) {
-        theRefs.push_back(a.getResult());
-      });
-      rewriter.replaceOpWithNewOp<quake::ConcatOp>(allocOp, veqTy, theRefs);
+      std::for_each(
+          newAllocs.begin(), newAllocs.end(),
+          [&](cudaq::quake::AllocaOp a) { theRefs.push_back(a.getResult()); });
+      rewriter.replaceOpWithNewOp<cudaq::quake::ConcatOp>(allocOp, veqTy,
+                                                          theRefs);
     }
     return success();
   }
@@ -140,21 +142,21 @@ public:
   static LogicalResult
   rewriteOpAndUsers(Operation *op, std::int64_t start,
                     PatternRewriter &rewriter, std::size_t size,
-                    SmallVector<quake::AllocaOp> &newAllocs) {
+                    SmallVector<cudaq::quake::AllocaOp> &newAllocs) {
     // First handle the users. Note that this can recurse.
     SmallVector<Operation *> users{op->getUsers().begin(),
                                    op->getUsers().end()};
     for (auto *user : users) {
-      if (auto dealloc = dyn_cast<quake::DeallocOp>(user)) {
+      if (auto dealloc = dyn_cast<cudaq::quake::DeallocOp>(user)) {
         rewriter.setInsertionPoint(dealloc);
         auto deloc = dealloc.getLoc();
         for (std::size_t i = 0; i < size - 1; ++i)
-          quake::DeallocOp::create(rewriter, deloc, newAllocs[i]);
-        rewriter.replaceOpWithNewOp<quake::DeallocOp>(dealloc,
-                                                      newAllocs[size - 1]);
+          cudaq::quake::DeallocOp::create(rewriter, deloc, newAllocs[i]);
+        rewriter.replaceOpWithNewOp<cudaq::quake::DeallocOp>(
+            dealloc, newAllocs[size - 1]);
         continue;
       }
-      if (auto subveq = dyn_cast<quake::SubVeqOp>(user)) {
+      if (auto subveq = dyn_cast<cudaq::quake::SubVeqOp>(user)) {
         auto lowInt = [&]() -> std::optional<std::int32_t> {
           if (subveq.hasConstantLowerBound())
             return {subveq.getConstantLowerBound()};
@@ -171,16 +173,16 @@ public:
         rewriter.eraseOp(subveq);
         continue;
       }
-      if (auto ext = dyn_cast<quake::ExtractRefOp>(user)) {
+      if (auto ext = dyn_cast<cudaq::quake::ExtractRefOp>(user)) {
         auto index = ext.getConstantIndex();
         rewriter.replaceOp(ext, newAllocs[start + index].getResult());
       }
     }
 
     // Now handle the base operation.
-    if (isa<quake::SubVeqOp>(op)) {
+    if (isa<cudaq::quake::SubVeqOp>(op)) {
       rewriter.eraseOp(op);
-    } else if (auto ext = dyn_cast<quake::ExtractRefOp>(op)) {
+    } else if (auto ext = dyn_cast<cudaq::quake::ExtractRefOp>(op)) {
       auto index = ext.getConstantIndex();
       rewriter.replaceOp(ext, newAllocs[start + index].getResult());
     }
@@ -188,11 +190,11 @@ public:
   }
 };
 
-class DeallocPattern : public OpRewritePattern<quake::DeallocOp> {
+class DeallocPattern : public OpRewritePattern<cudaq::quake::DeallocOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(quake::DeallocOp dealloc,
+  LogicalResult matchAndRewrite(cudaq::quake::DeallocOp dealloc,
                                 PatternRewriter &rewriter) const override {
     // 0. Check necessary preconditions. Must be a Veq or Struq with a constant
     // size.
@@ -200,12 +202,12 @@ public:
     if (!alloc)
       return failure();
     auto allocTy = alloc.getType();
-    if (alloc.getDefiningOp<quake::InitializeStateOp>())
+    if (alloc.getDefiningOp<cudaq::quake::InitializeStateOp>())
       return failure();
-    if (auto ty = dyn_cast<quake::VeqType>(allocTy)) {
+    if (auto ty = dyn_cast<cudaq::quake::VeqType>(allocTy)) {
       if (!ty.hasSpecifiedSize())
         return failure();
-    } else if (auto ty = dyn_cast<quake::StruqType>(allocTy)) {
+    } else if (auto ty = dyn_cast<cudaq::quake::StruqType>(allocTy)) {
       if (!ty.hasSpecifiedSize())
         return failure();
     } else {
@@ -214,17 +216,17 @@ public:
     }
 
     auto loc = dealloc.getLoc();
-    if (auto veqTy = dyn_cast<quake::VeqType>(allocTy)) {
+    if (auto veqTy = dyn_cast<cudaq::quake::VeqType>(allocTy)) {
       generateDeallocs(veqTy, rewriter, loc, alloc);
-    } else if (auto stqTy = dyn_cast<quake::StruqType>(allocTy)) {
+    } else if (auto stqTy = dyn_cast<cudaq::quake::StruqType>(allocTy)) {
       for (auto iter : llvm::enumerate(stqTy.getMembers())) {
         Type memTy = iter.value();
-        auto mem = quake::GetMemberOp::create(rewriter, loc, memTy, alloc,
-                                              iter.index());
-        if (auto veqTy = dyn_cast<quake::VeqType>(memTy))
+        auto mem = cudaq::quake::GetMemberOp::create(rewriter, loc, memTy,
+                                                     alloc, iter.index());
+        if (auto veqTy = dyn_cast<cudaq::quake::VeqType>(memTy))
           generateDeallocs(veqTy, rewriter, loc, mem);
         else
-          quake::DeallocOp::create(rewriter, loc, mem);
+          cudaq::quake::DeallocOp::create(rewriter, loc, mem);
       }
     }
 
@@ -233,14 +235,15 @@ public:
     return success();
   }
 
-  static void generateDeallocs(quake::VeqType veqTy, PatternRewriter &rewriter,
-                               Location loc, Value alloc) {
+  static void generateDeallocs(cudaq::quake::VeqType veqTy,
+                               PatternRewriter &rewriter, Location loc,
+                               Value alloc) {
     assert(veqTy.hasSpecifiedSize());
     std::size_t size = veqTy.getSize();
 
     for (std::size_t i = 0; i < size; ++i) {
-      Value r = quake::ExtractRefOp::create(rewriter, loc, alloc, i);
-      quake::DeallocOp::create(rewriter, loc, r);
+      Value r = cudaq::quake::ExtractRefOp::create(rewriter, loc, alloc, i);
+      cudaq::quake::DeallocOp::create(rewriter, loc, r);
     }
   };
 };

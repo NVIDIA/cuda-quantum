@@ -428,7 +428,12 @@ if [ -n "$BLAS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep blas)" ]
     # See also: https://github.com/NVIDIA/cuda-quantum/issues/452
     wget "${BLAS_TARBALL_URL}"
     tar -xzvf "blas-${BLAS_VERSION}.tgz" && cd BLAS-3.11.0
-    make FC="${FC:-gfortran}" FFLAGS="-O2"
+    if [ toolchain == "gcc12" ]; then
+      make FC="${FC:-gfortran}"
+    else
+      make FC="${FC:-gfortran}" FFLAGS="-O2"
+    fi
+
     mkdir -p "$BLAS_INSTALL_PREFIX"
     mv blas_*.a "$BLAS_INSTALL_PREFIX/libblas.a"
 

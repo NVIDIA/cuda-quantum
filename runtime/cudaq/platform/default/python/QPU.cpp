@@ -12,6 +12,7 @@
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "common/RuntimeTarget.h"
+#include "common/Timing.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -21,9 +22,11 @@
 #include "cudaq/Optimizer/Transforms/ResourceCount.h"
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
 #include "cudaq/platform.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq_internal/compiler/JIT.h"
+#include "cudaq_internal/compiler/JITTargetPipeline.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "runtime/cudaq/platform/PythonSignalCheck.h"
@@ -44,8 +47,7 @@ void setResourceCounts(cudaq::Resources &&);
 using namespace mlir;
 
 static void specializeKernel(const std::string &name, ModuleOp module,
-                             const std::vector<void *> &rawArgs,
-                             Type resultTy = {},
+                             std::span<void *const> rawArgs, Type resultTy = {},
                              bool enablePythonCodegenDump = false,
                              bool isEntryPoint = true,
                              bool isFullySpecialized = true) {
@@ -89,6 +91,7 @@ static void specializeKernel(const std::string &name, ModuleOp module,
   if (isEntryPoint && (resultTy || !isFullySpecialized)) {
     pm.addPass(cudaq::opt::createGenerateKernelExecution(
         {.positNullary = isFullySpecialized, .ignoreHostFunction = true}));
+    pm.addPass(cudaq::opt::createRunSemanticsHackery());
   }
   pm.addPass(mlir::createSymbolDCEPass());
   if (enablePythonCodegenDump) {
@@ -99,79 +102,30 @@ static void specializeKernel(const std::string &name, ModuleOp module,
     throw std::runtime_error("Pass pipeline failed.");
 }
 
-/// Replace %KEY% and %KEY:default% placeholders in a pipeline string with
-/// values from the runtime config map. If the key is in runtimeConfig, use
-/// that value. Otherwise use the inline default if provided (%KEY:val%).
-/// Keys in the pipeline are uppercase; runtimeConfig keys are lowercase.
-/// This is the Python JIT equivalent of ServerHelper::updatePassPipeline().
-static void substitutePipelinePlaceholders(
-    std::string &pipeline,
-    const std::map<std::string, std::string> &runtimeConfig) {
-  std::string::size_type pos = 0;
-  while (pos < pipeline.size()) {
-    auto start = pipeline.find('%', pos);
-    if (start == std::string::npos)
-      break;
-    auto end = pipeline.find('%', start + 1);
-    if (end == std::string::npos)
-      break;
-    auto token = pipeline.substr(start + 1, end - start - 1);
-    auto colon = token.find(':');
-    auto key = (colon != std::string::npos) ? token.substr(0, colon) : token;
-
-    // Lowercase the key to match runtimeConfig convention.
-    std::string lower;
-    for (char c : key)
-      lower += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-    auto it = runtimeConfig.find(lower);
-
-    if (it != runtimeConfig.end()) {
-      pipeline.replace(start, end - start + 1, it->second);
-      pos = start + it->second.size();
-    } else if (colon != std::string::npos) {
-      auto defaultVal = token.substr(colon + 1);
-      pipeline.replace(start, end - start + 1, defaultVal);
-      pos = start + defaultVal.size();
-    } else {
-      pos = end + 1;
-    }
-  }
-}
-
-/// Run target-specific passes if the active target config defines a pipeline.
-/// Interleaves jit-deploy-pipeline between high and mid-level stages.
-/// specializeKernel() covers what hw-jit-prep-pipeline and
-/// jit-finalize-pipeline do (inlining, specialization, DistributedDeviceCall),
-/// so those are not interleaved here. Targets needing passes from those stages
-/// (e.g., apply-control-negations) should include them in their own config
-/// fields. Only reads top-level config:, not configuration-matrix entries.
-static void runTargetPassPipeline(mlir::ModuleOp module) {
+/// Run the target compilation pipeline for Python MLIR kernels. Returns true
+/// when the target pipeline already ran standard finalization.
+static bool runTargetPassPipeline(mlir::ModuleOp module) {
   auto *rt = cudaq::get_platform().get_runtime_target();
   if (!rt)
-    return;
-  auto &cfg = rt->config;
-  if (!cfg.BackendConfig.has_value() || !cfg.BackendConfig->hasPassPipeline())
-    return;
-  auto pipeline = cfg.BackendConfig->getPassPipeline("jit-deploy-pipeline", "");
-  substitutePipelinePlaceholders(pipeline, rt->runtimeConfig);
+    return false;
+  auto pipelineConfig =
+      cudaq_internal::compiler::JITTargetPipelineConfig::createFromTargetConfig(
+          rt->config, rt->runtimeConfig, cudaq::is_emulated_platform());
+  if (!pipelineConfig.hasConfiguredPassPipeline)
+    return false;
+
   auto *ctx = module.getContext();
-  auto enablePrintEachPass =
-      cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
-  auto disableThreading =
-      cudaq::getEnvBool("CUDAQ_MLIR_DISABLE_THREADING", false);
-  if (enablePrintEachPass || disableThreading)
-    ctx->disableMultithreading();
   PassManager pm(ctx);
   cudaq::addPythonSignalInstrumentation(pm);
   pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
-  if (enablePrintEachPass)
-    pm.enableIRPrinting();
   std::string errMsg;
   llvm::raw_string_ostream errOS(errMsg);
-  if (mlir::failed(mlir::parsePassPipeline(pipeline, pm, errOS)))
+  if (mlir::failed(mlir::parsePassPipeline(pipelineConfig.passPipelineConfig,
+                                           pm, errOS)))
     throw std::runtime_error("Failed to parse target pipeline: " + errMsg);
   if (failed(cudaq::runPassManagerReleasingGIL(pm, module)))
     throw std::runtime_error("Pass pipeline failed.");
+  return pipelineConfig.runsStandardFinalize;
 }
 
 /// Lowers \p module to LLVM code. The LLVM code will use "full QIR" as the
@@ -186,12 +140,14 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
   cudaq_internal::compiler::mergeAllCallableClosures(module, name,
                                                      args.getArgs());
   specializeKernel(name, module, args.getArgs());
-  runTargetPassPipeline(module);
+  const bool finalizedByTargetPipeline = runTargetPassPipeline(module);
   PassManager pm(module.getContext());
   cudaq::addPythonSignalInstrumentation(pm);
   pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
-  cudaq::opt::addAggressiveInlining(pm);
-  cudaq::opt::createTargetFinalizePipeline(pm);
+  if (!finalizedByTargetPipeline) {
+    cudaq::opt::addAggressiveInlining(pm);
+    cudaq::opt::createTargetFinalizePipeline(pm);
+  }
   cudaq::opt::addAOTPipelineConvertToQIR(pm, format);
   if (failed(cudaq::runPassManagerReleasingGIL(pm, module)))
     throw std::runtime_error("Pass pipeline failed.");
@@ -220,12 +176,13 @@ std::string cudaq::detail::lower_to_openqasm(const std::string &name,
   cudaq_internal::compiler::mergeAllCallableClosures(module, name,
                                                      args.getArgs());
   specializeKernel(name, module, args.getArgs());
-  runTargetPassPipeline(module);
+  const bool finalizedByTargetPipeline = runTargetPassPipeline(module);
   auto *ctx = module.getContext();
   PassManager pm(ctx);
   cudaq::addPythonSignalInstrumentation(pm);
   pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
-  cudaq::opt::createTargetFinalizePipeline(pm);
+  if (!finalizedByTargetPipeline)
+    cudaq::opt::createTargetFinalizePipeline(pm);
   cudaq::opt::createPipelineTransformsForPythonToOpenQASM(pm);
   cudaq::opt::addPipelineTranslateToOpenQASM(pm);
   const bool enablePrintMLIRBeforeAndAfterEachPass =
@@ -251,7 +208,7 @@ static void updateExecutionContext(mlir::ModuleOp module) {
     return;
 
   for (auto &artifact : module) {
-    quake::detail::QuakeFunctionAnalysis analysis{&artifact};
+    cudaq::quake::detail::QuakeFunctionAnalysis analysis{&artifact};
     auto info = analysis.getAnalysisInfo();
     if (info.empty())
       continue;
@@ -264,8 +221,7 @@ static void updateExecutionContext(mlir::ModuleOp module) {
 }
 
 static std::optional<cudaq::JitEngine>
-alreadyBuiltJITCode(const std::string &name,
-                    const std::vector<void *> &rawArgs) {
+alreadyBuiltJITCode(const std::string &name) {
   auto *currentExecCtx = cudaq::getExecutionContext();
   if (currentExecCtx && currentExecCtx->allowJitEngineCaching) {
     auto jit = currentExecCtx->jitEng;
@@ -311,13 +267,22 @@ static void precountResources(mlir::ModuleOp module) {
 
 namespace {
 struct PythonLauncher : public cudaq::ModuleLauncher {
-  cudaq::CompiledModule compileModule(const std::string &name,
-                                      mlir::ModuleOp module,
-                                      const std::vector<void *> &rawArgs,
+  cudaq::CompiledModule compileModule(const cudaq::SourceModule &src,
+                                      cudaq::KernelArgs args,
                                       bool isEntryPoint) override {
 
     ScopedTraceWithContext(cudaq::TIMING_LAUNCH,
                            "PythonLauncher::compileModule");
+    const auto &name = src.getName();
+    auto mlirArt = src.getMlir();
+    if (!mlirArt)
+      throw std::runtime_error(
+          "PythonLauncher::compileModule requires an MLIR artifact on the "
+          "SourceModule for kernel '" +
+          name + "'.");
+    ModuleOp module =
+        cudaq_internal::compiler::CompiledModuleHelper::getMlirModuleOp(
+            *mlirArt);
     const bool enablePythonCodegenDump =
         cudaq::getEnvBool("CUDAQ_PYTHON_CODEGEN_DUMP", false);
 
@@ -343,25 +308,29 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     bool isLocalSimulator =
         !(cudaq::is_remote_platform() || cudaq::is_emulated_platform());
 
-    std::vector<void *> closureArgs;
+    std::vector<void *> closureArgsVec;
+    std::span<void *const> closureArgs;
+    std::span<void *const> rawArgs =
+        args.hasTypeErased() ? *args.getTypeErased() : std::span<void *const>();
 
     // Special handling in case the arguments were already synthesized
     size_t numArgs = rawArgs.size() - (hasResult ? 1 : 0);
     if (isEntryPoint && isLocalSimulator &&
         numArgs == fromFuncTy.getNumInputs()) {
-      closureArgs = rawArgs;
+      closureArgsVec = std::vector(rawArgs.begin(), rawArgs.end());
       for (auto [i, ty] : llvm::enumerate(fromFuncTy.getInputs())) {
         if (!isa<cudaq::cc::CallableType>(ty)) {
           isFullySpecialized = false;
-          closureArgs[i] = nullptr;
+          closureArgsVec[i] = nullptr;
         }
       }
+      closureArgs = closureArgsVec;
     } else {
       // Avoid copying
-      closureArgs = std::move(rawArgs);
+      closureArgs = rawArgs;
     }
 
-    if (auto jit = alreadyBuiltJITCode(name, rawArgs)) {
+    if (auto jit = alreadyBuiltJITCode(name)) {
       auto jitArtifacts =
           cudaq_internal::compiler::CompiledModuleHelper::createJitArtifacts(
               name, *jit, resultInfo, isFullySpecialized);

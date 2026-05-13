@@ -153,7 +153,7 @@ jobs:
       - name: Setup proxy cache
         uses: nv-gha-runners/setup-proxy-cache@main
         with:
-          enable-apt: true
+          enable-apt: false
 
       - name: Build wheel
         id: wheel_build

@@ -101,10 +101,10 @@ def quake_AllocaOp : QuakeOp<"alloca", [MemoryEffects<[MemAlloc, MemWrite]>]> {
     bool hasInitializedState() {
       auto *self = getOperation();
       return self->hasOneUse() &&
-        mlir::isa<quake::InitializeStateOp>(*self->getUsers().begin());
+        mlir::isa<cudaq::quake::InitializeStateOp>(*self->getUsers().begin());
     }
 
-    quake::InitializeStateOp getInitializedState();
+    cudaq::quake::InitializeStateOp getInitializedState();
   }];
 }
 
@@ -329,7 +329,7 @@ def quake_SubVeqOp : QuakeOp<"subveq", [AttrSizedOperandSegments, Pure]> {
     OpBuilder<(ins "mlir::Type":$veqTy, "mlir::Value":$input,
                    "mlir::Value":$lower, "mlir::Value":$upper), [{
       return build($_builder, $_state, veqTy, input, lower, upper,
-        quake::SubVeqOp::kDynamicIndex, quake::SubVeqOp::kDynamicIndex);
+        cudaq::quake::SubVeqOp::kDynamicIndex, cudaq::quake::SubVeqOp::kDynamicIndex);
     }]>,
     OpBuilder<(ins "mlir::Type":$veqTy, "mlir::Value":$input,
                    "std::int64_t":$lower, "std::int64_t":$upper), [{
@@ -617,7 +617,8 @@ def quake_WrapOp : QuakeOp<"wrap"> {
   let hasCanonicalizer = 1;
 }
 
-def quake_CallByRefOp : QuakeOp<"call_by_ref", [CallOpInterface]> {
+def quake_CallByRefOp : QuakeOp<"call_by_ref",
+    [CallOpInterface, SymbolUserOpInterface]> {
   let summary = "Call a kernel casting wires to refs.";
   let description = [{
     This operation performs a wrap operation on the wire arguments, calls the
@@ -644,7 +645,7 @@ def quake_CallByRefOp : QuakeOp<"call_by_ref", [CallOpInterface]> {
   }];
 
   let arguments = (ins
-    SymbolRefAttr:$callee,
+    FlatSymbolRefAttr:$callee,
     Variadic<AnyType>:$args,
     OptionalAttr<DictArrayAttr>:$arg_attrs,
     OptionalAttr<DictArrayAttr>:$res_attrs
@@ -656,7 +657,7 @@ def quake_CallByRefOp : QuakeOp<"call_by_ref", [CallOpInterface]> {
   }];
 
   let builders = [
-    OpBuilder<(ins "mlir::SymbolRefAttr":$callee,
+    OpBuilder<(ins "mlir::FlatSymbolRefAttr":$callee,
                    "mlir::TypeRange":$results,
                    "mlir::ValueRange":$args), [{
       return build($_builder, $_state, results, callee, args, {}, {});
@@ -682,6 +683,9 @@ def quake_CallByRefOp : QuakeOp<"call_by_ref", [CallOpInterface]> {
       (*this)->setAttr(getCalleeAttrName(),
                        llvm::cast<mlir::SymbolRefAttr>(callee));
     }
+
+    mlir::LogicalResult verifySymbolUses(mlir::SymbolTableCollection &);
+
   }];
 }
 
@@ -1085,7 +1089,7 @@ def quake_ResetOp : QuakeOp<"reset", [QuantumGate,
   let extraClassDeclaration = [{
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::
         EffectInstance<mlir::MemoryEffects::Effect>> &effects) {
-      quake::getResetEffectsImpl(effects, getTargetsMutable());
+      cudaq::quake::getResetEffectsImpl(effects, getTargetsMutable());
     }
   }];
 }
@@ -1122,7 +1126,7 @@ class Measurement<string mnemonic> : QuakeOp<mnemonic, [MeasurementInterface,
   code OpBaseDeclaration = [{
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
       mlir::MemoryEffects::Effect>> &effects) {
-      quake::getMeasurementEffectsImpl(effects, getTargetsMutable());
+      cudaq::quake::getMeasurementEffectsImpl(effects, getTargetsMutable());
     }
   }];
 
@@ -1287,7 +1291,7 @@ class QuakeOperator<string mnemonic, list<Trait> traits = [],
 
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
       mlir::MemoryEffects::Effect>> &effects) {
-      quake::getOperatorEffectsImpl(effects, getControlsMutable(), getTargetsMutable());
+      cudaq::quake::getOperatorEffectsImpl(effects, getControlsMutable(), getTargetsMutable());
     }
 
     //===------------------------------------------------------------------===//
@@ -1450,7 +1454,7 @@ def quake_ExpPauliOp : QuakeOp<"exp_pauli",
 
     void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
       mlir::MemoryEffects::Effect>> &effects) {
-      quake::getOperatorEffectsImpl(effects, getControlsMutable(), getTargetsMutable());
+      cudaq::quake::getOperatorEffectsImpl(effects, getControlsMutable(), getTargetsMutable());
     }
 
     //===------------------------------------------------------------------===//

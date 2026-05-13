@@ -89,6 +89,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
+        toolchain: [llvm, gcc12]
       fail-fast: false
     uses: ./.github/workflows/dev_environment.yml
     secrets:
@@ -97,13 +98,14 @@ jobs:
     with:
       platforms: linux/${{ matrix.platform }}
       dockerfile: build/devdeps.Dockerfile
-      build_config_id: llvm
+      build_args: toolchain=${{ matrix.toolchain }}
+      build_config_id: ${{ matrix.toolchain }}
       create_local_cache: true
       registry_cache_from: ${{ needs.pr_info.outputs.target_branch }}
       pull_request_number: ${{ needs.pr_info.outputs.pull_request_number }}
       checkout_submodules: true
       # needed only for the cloudposse GitHub action
-      matrix_key: ${{ matrix.platform }}-llvm
+      matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
 
   wheeldeps_caches:
     name: Cache wheel dependencies

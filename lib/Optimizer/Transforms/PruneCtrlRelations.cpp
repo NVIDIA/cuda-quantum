@@ -35,7 +35,7 @@ public:
     auto *ctx = rewriter.getContext();
     if (op.getControls().empty())
       return failure();
-    auto wireTy = quake::WireType::get(ctx);
+    auto wireTy = cudaq::quake::WireType::get(ctx);
     bool nothingToDo = [&]() {
       for (auto cv : op.getControls())
         if (cv.getType() == wireTy)
@@ -49,7 +49,7 @@ public:
     // this op to remove the artificial constraints.
     auto coarity = op.getWires().size();
     auto loc = op.getLoc();
-    auto ctrlTy = quake::ControlType::get(ctx);
+    auto ctrlTy = cudaq::quake::ControlType::get(ctx);
     SmallVector<Value> newCtrls;
 
     // For each wire control, convert the wire to a control with a ToControlOp.
@@ -57,10 +57,11 @@ public:
     for (auto cv : op.getControls()) {
       if (cv.getType() == wireTy) {
         Value input;
-        if (auto fromCtrl = cv.template getDefiningOp<quake::FromControlOp>()) {
+        if (auto fromCtrl =
+                cv.template getDefiningOp<cudaq::quake::FromControlOp>()) {
           input = fromCtrl.getCtrlbit();
         } else {
-          input = quake::ToControlOp::create(rewriter, loc, ctrlTy, cv);
+          input = cudaq::quake::ToControlOp::create(rewriter, loc, ctrlTy, cv);
         }
         newCtrls.push_back(input);
         coarity--;
@@ -82,8 +83,8 @@ public:
     for (auto i : llvm::enumerate(op.getControls())) {
       auto cv = i.value();
       if (cv.getType() == wireTy) {
-        Value fromCtrl = quake::FromControlOp::create(rewriter, loc, wireTy,
-                                                      newCtrls[i.index()]);
+        Value fromCtrl = cudaq::quake::FromControlOp::create(
+            rewriter, loc, wireTy, newCtrls[i.index()]);
         op.getResult(i.index()).replaceAllUsesWith(fromCtrl);
       } else {
         op.getResult(i.index()).replaceAllUsesWith(newOp.getResult(newIdx++));
@@ -104,14 +105,14 @@ public:
 /// both operations can be bypassed and the input to the `quake.from_ctrl` can
 /// be forwarded directly to the users of the `quake.to_ctrl`. There are no
 /// intervening ops on the wire by definition.
-class ForwardControl : public OpRewritePattern<quake::ToControlOp> {
+class ForwardControl : public OpRewritePattern<cudaq::quake::ToControlOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(quake::ToControlOp toCtrl,
+  LogicalResult matchAndRewrite(cudaq::quake::ToControlOp toCtrl,
                                 PatternRewriter &rewriter) const override {
     if (auto fromCtrl =
-            toCtrl.getQubit().getDefiningOp<quake::FromControlOp>()) {
+            toCtrl.getQubit().getDefiningOp<cudaq::quake::FromControlOp>()) {
       rewriter.replaceOp(toCtrl, fromCtrl.getCtrlbit());
       return success();
     }
@@ -120,7 +121,7 @@ public:
 };
 } // namespace
 
-#define WRAPPER(OpClass) MakeControl<quake::OpClass>
+#define WRAPPER(OpClass) MakeControl<cudaq::quake::OpClass>
 #define WRAPPER_GATE_OPS GATE_OPS(WRAPPER)
 
 namespace {

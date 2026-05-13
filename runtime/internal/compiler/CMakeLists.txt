@@ -24,6 +24,7 @@ add_library(cudaq-mlir-runtime
     ArgumentConversion.cpp
     Compiler.cpp
     CompiledModuleHelper.cpp
+    JITTargetPipeline.cpp
     JIT.cpp
     RuntimeMLIR.cpp
     RuntimeCppMLIR.cpp

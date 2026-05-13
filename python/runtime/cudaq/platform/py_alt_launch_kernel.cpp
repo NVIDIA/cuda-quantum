@@ -10,6 +10,7 @@
 #include "common/AnalogHamiltonian.h"
 #include "common/ArgumentWrapper.h"
 #include "common/Environment.h"
+#include "common/Timing.h"
 #include "cudaq/Optimizer/Builder/Marshal.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
@@ -20,6 +21,7 @@
 #include "cudaq/platform.h"
 #include "cudaq/platform/nvqpp_interface.h"
 #include "cudaq/platform/qpu.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/LayoutInfo.h"
 #include "cudaq_internal/compiler/TracePassInstrumentation.h"
@@ -424,7 +426,7 @@ void cudaq::packArgs(
           addArgument(argData, nanobind::cast<pauli_word>(arg).str());
         })
         .Case([&](cc::PointerType ty) {
-          if (isa<quake::StateType>(ty.getElementType())) {
+          if (isa<cudaq::quake::StateType>(ty.getElementType())) {
             auto *stateArg = nanobind::cast<state *>(arg);
 
             if (stateArg == nullptr)
@@ -693,7 +695,7 @@ static void pyAltLaunchAnalogKernel(const std::string &name,
     throw std::runtime_error("Unexpected type of kernel.");
   auto dynamicResult = cudaq::altLaunchKernel(
       name.c_str(), cudaq::KernelThunkType(nullptr),
-      (void *)(const_cast<char *>(programArgs.c_str())), 0, 0);
+      (void *)(const_cast<char *>(programArgs.c_str())), programArgs.size(), 0);
   if (dynamicResult.data_buffer || dynamicResult.size)
     throw std::runtime_error("Not implemented: support dynamic results");
 }

@@ -12,6 +12,15 @@
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeUtilities.h"
 
+using namespace mlir;
+
+LogicalResult cudaq::codegen::MaterializeConstantArrayOp::verify() {
+  auto arrTy = cast<cudaq::cc::ArrayType>(getConstArray().getType());
+  if (arrTy.isUnknownSize())
+    return emitOpError("array must have constant size");
+  return success();
+}
+
 //===----------------------------------------------------------------------===//
 // Generated logic
 //===----------------------------------------------------------------------===//
