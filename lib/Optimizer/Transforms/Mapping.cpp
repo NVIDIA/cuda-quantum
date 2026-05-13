@@ -101,7 +101,7 @@ public:
         allowMeasurementMapping(false) {}
 
   /// Main entry point into SabreRouter routing algorithm
-  void route(Block &block, ArrayRef<quake::BorrowWireOp> sources);
+  void route(Block &block, ArrayRef<cudaq::quake::BorrowWireOp> sources);
 
   /// After routing, this contains the final values for all the qubits
   ArrayRef<Value> getPhyToWire() { return phyToWire; }
@@ -165,13 +165,13 @@ void SabreRouter::visitUsers(ResultRange::user_range users,
     if (incremented)
       incremented->push_back(user);
 
-    if (!quake::isSupportedMappingOperation(user)) {
+    if (!cudaq::quake::isSupportedMappingOperation(user)) {
       LLVM_DEBUG({
         auto *tmpOp = dyn_cast<mlir::Operation *>(user);
         logger.getOStream() << "WARNING: unsupported op: " << *tmpOp << '\n';
       });
     } else {
-      auto wires = quake::getQuantumOperands(user);
+      auto wires = cudaq::quake::getQuantumOperands(user);
       if (entry->second == wires.size()) {
         SmallVector<cudaq::Placement::VirtualQ, 2> qubits;
         for (auto wire : wires)
@@ -209,15 +209,15 @@ LogicalResult SabreRouter::mapOperation(VirtualOp &virtOp) {
   SmallVector<Value, 2> newOpWires;
   for (auto phy : deviceQubits)
     newOpWires.push_back(phyToWire[phy.index]);
-  if (failed(quake::setQuantumOperands(virtOp.op, newOpWires)))
+  if (failed(cudaq::quake::setQuantumOperands(virtOp.op, newOpWires)))
     return failure();
 
-  if (isa<quake::SinkOp, quake::ReturnWireOp>(virtOp.op))
+  if (isa<cudaq::quake::SinkOp, cudaq::quake::ReturnWireOp>(virtOp.op))
     return success();
 
   // Update the mapping between device qubits and wires.
-  for (auto &&[w, q] :
-       llvm::zip_equal(quake::getQuantumResults(virtOp.op), deviceQubits))
+  for (auto &&[w, q] : llvm::zip_equal(
+           cudaq::quake::getQuantumResults(virtOp.op), deviceQubits))
     phyToWire[q.index] = w;
 
   return success();
@@ -275,7 +275,7 @@ void SabreRouter::selectExtendedLayer() {
       // We only add operations that can influence placement to the extended
       // frontlayer, i.e., quantum operators that use two qubits.
       if (!virtOp.op->hasTrait<cudaq::QuantumMeasure>() &&
-          quake::getQuantumOperands(virtOp.op).size() == 2)
+          cudaq::quake::getQuantumOperands(virtOp.op).size() == 2)
         extendedLayer.emplace_back(virtOp);
     tmpLayer = std::move(newTmpLayer);
   }
@@ -349,7 +349,8 @@ SabreRouter::Swap SabreRouter::chooseSwap() {
   return candidates[minIdx];
 }
 
-void SabreRouter::route(Block &block, ArrayRef<quake::BorrowWireOp> sources) {
+void SabreRouter::route(Block &block,
+                        ArrayRef<cudaq::quake::BorrowWireOp> sources) {
 #ifndef NDEBUG
   constexpr char logLineComment[] =
       "//===-------------------------------------------===//\n";
@@ -375,11 +376,11 @@ void SabreRouter::route(Block &block, ArrayRef<quake::BorrowWireOp> sources) {
   }
 
   OpBuilder builder(&block, block.begin());
-  auto wireType = builder.getType<quake::WireType>();
+  auto wireType = builder.getType<cudaq::quake::WireType>();
   auto addSwap = [&](cudaq::Placement::DeviceQ q0,
                      cudaq::Placement::DeviceQ q1) {
     placement.swap(q0, q1);
-    auto swap = quake::SwapOp::create(
+    auto swap = cudaq::quake::SwapOp::create(
         builder, builder.getUnknownLoc(), TypeRange{wireType, wireType}, false,
         ValueRange{}, ValueRange{},
         ValueRange{phyToWire[q0.index], phyToWire[q1.index]},
@@ -568,15 +569,17 @@ struct MappingPrep : public cudaq::opt::impl::MappingPrepBase<MappingPrep> {
     return sparseInt;
   }
 
-  quake::WireSetOp insertWireSetOpForDevice(cudaq::Device &d, ModuleOp mod) {
-    if (auto wires = mod.lookupSymbol<quake::WireSetOp>(mappedWireSetName))
+  cudaq::quake::WireSetOp insertWireSetOpForDevice(cudaq::Device &d,
+                                                   ModuleOp mod) {
+    if (auto wires =
+            mod.lookupSymbol<cudaq::quake::WireSetOp>(mappedWireSetName))
       return wires;
 
     auto adjacency = getAdjacencyFromDevice(d, mod.getContext());
     OpBuilder builder(mod.getBodyRegion());
-    auto wireSetOp = quake::WireSetOp::create(builder, builder.getUnknownLoc(),
-                                              mappedWireSetName,
-                                              d.getNumQubits(), adjacency);
+    auto wireSetOp = cudaq::quake::WireSetOp::create(
+        builder, builder.getUnknownLoc(), mappedWireSetName, d.getNumQubits(),
+        adjacency);
     wireSetOp.setPrivate();
     return wireSetOp;
   }
@@ -630,7 +633,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     //  * The kernel can only have one block
 
     auto mod = func->getParentOfType<ModuleOp>();
-    auto wireSetOp = mod.lookupSymbol<quake::WireSetOp>(mappedWireSetName);
+    auto wireSetOp =
+        mod.lookupSymbol<cudaq::quake::WireSetOp>(mappedWireSetName);
     if (!wireSetOp) {
       // Silently return without error if no mapped wire set is found in the
       // module.
@@ -652,7 +656,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     // them.
     StringRef inputWireSet;
     std::optional<std::uint32_t> highestIdentity;
-    auto walkResult = func.walk([&](quake::BorrowWireOp borrowOp) {
+    auto walkResult = func.walk([&](cudaq::quake::BorrowWireOp borrowOp) {
       if (inputWireSet.empty()) {
         inputWireSet = borrowOp.getSetName();
       } else if (borrowOp.getSetName() != inputWireSet) {
@@ -701,21 +705,21 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
 
     const std::size_t deviceNumQubits = deviceInstance->getNumQubits();
 
-    SmallVector<quake::BorrowWireOp> sources(deviceNumQubits);
-    SmallVector<quake::ReturnWireOp> returnsToRemove;
+    SmallVector<cudaq::quake::BorrowWireOp> sources(deviceNumQubits);
+    SmallVector<cudaq::quake::ReturnWireOp> returnsToRemove;
     DenseMap<Value, cudaq::Placement::VirtualQ> wireToVirtualQ;
     SmallVector<std::size_t> userQubitsMeasured;
     DenseMap<std::size_t, Value> finalQubitWire;
     Operation *lastSource = nullptr;
     for (Operation &op : block.getOperations()) {
-      if (auto qop = dyn_cast<quake::BorrowWireOp>(op)) {
+      if (auto qop = dyn_cast<cudaq::quake::BorrowWireOp>(op)) {
         // Assign a new virtual qubit to the resulting wire.
         auto id = qop.getIdentity();
         wireToVirtualQ[qop.getResult()] = cudaq::Placement::VirtualQ(id);
         finalQubitWire[id] = qop.getResult();
         sources[id] = qop;
         lastSource = &op;
-      } else if (dyn_cast<quake::NullWireOp>(op)) {
+      } else if (dyn_cast<cudaq::quake::NullWireOp>(op)) {
         if (nonComposable) {
           op.emitOpError(
               "the mapper requires borrow operations and prohibits null wires");
@@ -723,7 +727,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         }
         LLVM_DEBUG(llvm::dbgs() << "null_wire ops are not expected");
         return;
-      } else if (dyn_cast<quake::AllocaOp>(op)) {
+      } else if (dyn_cast<cudaq::quake::AllocaOp>(op)) {
         if (nonComposable) {
           op.emitOpError("the mapper requires borrow operations and prohibits "
                          "reference semantics");
@@ -731,16 +735,17 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         }
         LLVM_DEBUG(llvm::dbgs() << "quantum reference semantics not expected");
         return;
-      } else if (quake::isSupportedMappingOperation(&op)) {
+      } else if (cudaq::quake::isSupportedMappingOperation(&op)) {
         // Make sure the operation is using value semantics.
-        if (!quake::isLinearValueForm(&op)) {
+        if (!cudaq::quake::isLinearValueForm(&op)) {
           if (nonComposable) {
             llvm::errs() << "This is not SSA form: " << op << '\n';
-            llvm::errs() << "isa<quake::NullWireOp>() = "
-                         << isa<quake::NullWireOp>(&op) << '\n';
+            llvm::errs() << "isa<cudaq::quake::NullWireOp>() = "
+                         << isa<cudaq::quake::NullWireOp>(&op) << '\n';
             llvm::errs() << "isAllReferences() = "
-                         << quake::isAllReferences(&op) << '\n';
-            llvm::errs() << "isWrapped() = " << quake::isWrapped(&op) << '\n';
+                         << cudaq::quake::isAllReferences(&op) << '\n';
+            llvm::errs() << "isWrapped() = " << cudaq::quake::isWrapped(&op)
+                         << '\n';
             func.emitError("The mapper requires value semantics.");
             signalPassFailure();
           }
@@ -750,14 +755,14 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
 
         // Since `quake.return_wire` operations do not generate new wires, we
         // don't need to further analyze.
-        if (auto rop = dyn_cast<quake::ReturnWireOp>(op)) {
+        if (auto rop = dyn_cast<cudaq::quake::ReturnWireOp>(op)) {
           returnsToRemove.push_back(rop);
           continue;
         }
 
         // Get the wire operands and check if the operators uses at most two
         // qubits. N.B: Measurements do not have this restriction.
-        auto wireOperands = quake::getQuantumOperands(&op);
+        auto wireOperands = cudaq::quake::getQuantumOperands(&op);
         if (!op.hasTrait<cudaq::QuantumMeasure>() && wireOperands.size() > 2) {
           if (nonComposable) {
             func.emitError("Cannot map a kernel with operators that use more "
@@ -769,13 +774,13 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         }
 
         // Save which qubits are measured
-        if (isa<quake::MeasurementInterface>(op))
+        if (isa<cudaq::quake::MeasurementInterface>(op))
           for (const auto &wire : wireOperands)
             userQubitsMeasured.push_back(wireToVirtualQ[wire].index);
 
         // Map the result wires to the appropriate virtual qubits.
-        for (auto &&[wire, newWire] :
-             llvm::zip_equal(wireOperands, quake::getQuantumResults(&op))) {
+        for (auto &&[wire, newWire] : llvm::zip_equal(
+                 wireOperands, cudaq::quake::getQuantumResults(&op))) {
           // Don't use wireToVirtualQ[a] = wireToVirtualQ[b]. It will work
           // *most* of the time but cause memory corruption other times because
           // DenseMap references can be invalidated upon insertion of new pairs.
@@ -797,7 +802,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     }
 
     // Make all existing borrow_wire ops use the mapped wire set.
-    func.walk([&](quake::BorrowWireOp borrowOp) {
+    func.walk([&](cudaq::quake::BorrowWireOp borrowOp) {
       borrowOp.setSetName(mappedWireSetName);
     });
 
@@ -808,21 +813,22 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     returnsToRemove.clear();
 
     OpBuilder builder(&block, block.begin());
-    auto wireTy = builder.getType<quake::WireType>();
+    auto wireTy = builder.getType<cudaq::quake::WireType>();
     auto unknownLoc = builder.getUnknownLoc();
 
     // Add implicit measurements if necessary
     if (userQubitsMeasured.empty()) {
       builder.setInsertionPoint(block.getTerminator());
-      auto measTy = quake::MeasureType::get(builder.getContext());
+      auto measTy = cudaq::quake::MeasureType::get(builder.getContext());
       Type resTy = builder.getI1Type();
       for (unsigned i = 0; i < sources.size(); i++) {
         if (sources[i] != nullptr) {
-          auto measureOp =
-              quake::MzOp::create(builder, finalQubitWire[i].getLoc(),
-                                  TypeRange{measTy, wireTy}, finalQubitWire[i]);
-          quake::DiscriminateOp::create(builder, finalQubitWire[i].getLoc(),
-                                        resTy, measureOp.getMeasOut());
+          auto measureOp = cudaq::quake::MzOp::create(
+              builder, finalQubitWire[i].getLoc(), TypeRange{measTy, wireTy},
+              finalQubitWire[i]);
+          cudaq::quake::DiscriminateOp::create(builder,
+                                               finalQubitWire[i].getLoc(),
+                                               resTy, measureOp.getMeasOut());
 
           wireToVirtualQ.insert(
               {measureOp.getWires()[0], wireToVirtualQ[finalQubitWire[i]]});
@@ -834,7 +840,7 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
 
     // Save the order of the measurements. They are not allowed to change.
     SmallVector<mlir::Operation *> measureOrder;
-    func.walk([&](quake::MeasurementInterface measure) {
+    func.walk([&](cudaq::quake::MeasurementInterface measure) {
       measureOrder.push_back(measure);
       for (auto user : measure->getUsers())
         measureOrder.push_back(user);
@@ -846,8 +852,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     builder.setInsertionPointAfter(lastSource);
     for (unsigned i = 0; i < deviceInstance->getNumQubits(); i++) {
       if (!sources[i]) {
-        auto borrowOp = quake::BorrowWireOp::create(builder, unknownLoc, wireTy,
-                                                    mappedWireSetName, i);
+        auto borrowOp = cudaq::quake::BorrowWireOp::create(
+            builder, unknownLoc, wireTy, mappedWireSetName, i);
         wireToVirtualQ[borrowOp.getResult()] = cudaq::Placement::VirtualQ(i);
         sources[i] = borrowOp;
       }
@@ -884,8 +890,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         s->erase();
       } else {
         // highestMappedQubit = i;
-        quake::ReturnWireOp::create(builder, phyToWire[i].getLoc(),
-                                    phyToWire[i]);
+        cudaq::quake::ReturnWireOp::create(builder, phyToWire[i].getLoc(),
+                                           phyToWire[i]);
       }
     }
 

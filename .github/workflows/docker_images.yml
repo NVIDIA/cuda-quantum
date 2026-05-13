@@ -122,12 +122,13 @@ jobs:
       - name: Determine build arguments
         id: build_info
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           repo_owner=${{ github.repository_owner }}
           registry=${{ vars.registry || 'localhost:5000' }}
           image_name=$registry/${repo_owner,,}/${{ vars.packages_prefix }}open-mpi
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
 
-          docker pull ${{ inputs.ompidev_image }} # to get the tag
+          retry docker pull ${{ inputs.ompidev_image }} # to get the tag
           dev_tag=`docker inspect ${{ inputs.ompidev_image }} --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"'`
           echo "image_tag=${dev_tag#ompi-}" >> $GITHUB_OUTPUT
           docker image rm ${{ inputs.ompidev_image }}
@@ -275,18 +276,19 @@ jobs:
       - name: Load prerequisites
         id: prereqs
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           if ${{ steps.restore.outcome != 'skipped' }}; then
             load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
             base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
             echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
             # Push the image to the local registry to make it available within
             # the containered environment that docker/build-push-action uses.
-            docker push $base_image
+            retry docker push $base_image
             rm -rf "${{ inputs.devdeps_archive }}"
           elif ${{ inputs.devdeps_image != '' }}; then
             base_image=${{ inputs.devdeps_image }}
             echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
-            docker pull $base_image
+            retry docker pull $base_image
           else
             echo "::error file=docker_images.yml::Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build."
             exit 1
@@ -816,12 +818,13 @@ jobs:
       - name: Build documentation
         id: docs_build
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           if ${{ steps.restore_cudaq.outcome != 'skipped' }}; then
             load_output=`docker load --input "${{ needs.cudaq_image.outputs.tar_archive }}"`
             cudaq_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
           else
             cudaq_image=${{ needs.cudaq_image.outputs.image_hash }}
-            docker pull $cudaq_image
+            retry docker pull $cudaq_image
           fi
 
           image_tag=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"' | sed -E 's/^(arm64-|amd64-)//'`
@@ -834,7 +837,7 @@ jobs:
             cudaqdev_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
           else
             cudaqdev_image=${{ needs.cudaqdev_image.outputs.image_hash }}
-            docker pull $cudaqdev_image
+            retry docker pull $cudaqdev_image
           fi
 
           docker run --rm -dit --network host --name cuda-quantum-dev $cudaqdev_image
@@ -925,12 +928,13 @@ jobs:
 
       - name: Validate cuda-quantum image
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           if ${{ steps.restore.outcome != 'skipped' }}; then
             load_output=`docker load --input "${{ needs.cudaq_image.outputs.tar_archive }}"`
             cudaq_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
           else
             cudaq_image=${{ needs.cudaq_image.outputs.image_hash }}
-            docker pull $cudaq_image
+            retry docker pull $cudaq_image
           fi
 
           docker run --rm -dit --name cuda-quantum $cudaq_image
@@ -938,7 +942,7 @@ jobs:
           docker cp docs/notebook_validation.py cuda-quantum:"/home/cudaq/notebook_validation.py"
           # In containers without GPU support, UCX does not work properly since it is configured to work with GPU-support.
           # Hence, don't enforce UCX when running these tests.
-          docker exec cuda-quantum bash -c "python3 -m pip install --break-system-packages pandas scipy seaborn h5py contfrac"
+          retry docker exec cuda-quantum bash -c "python3 -m pip install --break-system-packages pandas scipy seaborn h5py contfrac"
           docker exec cuda-quantum bash -c "sudo apt install -y python3-venv"
           (docker exec cuda-quantum bash -c "unset OMPI_MCA_pml && set -o pipefail && bash validate_installation.sh | tee /tmp/validation.out") && passed=true || passed=false
           docker cp cuda-quantum:"/tmp/validation.out" /tmp/validation.out
@@ -1038,7 +1042,13 @@ jobs:
           keys+=" ${{ needs.cudaq_image.outputs.tar_cache }}"
           keys+=" ${{ needs.ompi_image.outputs.tar_cache }}"
           echo "$keys" >> cache_keys.txt
-          echo "artifact_name=${{ needs.validation.outputs.artifact_id }}_cache_keys" >> $GITHUB_OUTPUT
+          # Fall back to platform/cuda matrix dimensions when validation's
+          # artifact_id is unset (e.g. validation failed before job_summary),
+          # otherwise multiple matrix legs collide on the bare "_cache_keys"
+          # artifact name and `upload-artifact` returns 409 Conflict.
+          artifact_id="${{ needs.validation.outputs.artifact_id }}"
+          fallback="image_${{ needs.metadata.outputs.platform_tag }}_cu$(echo '${{ inputs.cuda_version }}' | cut -d . -f1)"
+          echo "artifact_name=${artifact_id:-$fallback}_cache_keys" >> $GITHUB_OUTPUT
 
       - uses: actions/upload-artifact@v4
         with:

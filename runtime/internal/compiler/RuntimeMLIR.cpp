@@ -444,7 +444,7 @@ qirProfileTranslationFunction(const std::string &qirProfile, Operation *op,
   std::string errMsg;
   llvm::raw_string_ostream errOs(errMsg);
   bool containsWireSet =
-      op->walk<WalkOrder::PreOrder>([](quake::WireSetOp wireSetOp) {
+      op->walk<WalkOrder::PreOrder>([](cudaq::quake::WireSetOp wireSetOp) {
           return WalkResult::interrupt();
         }).wasInterrupted();
 

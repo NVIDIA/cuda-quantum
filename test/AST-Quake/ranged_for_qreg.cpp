@@ -30,8 +30,11 @@ __qpu__ void range_qubit() {
 // CHECK:           ^bb0(%[[VAL_7:.*]]: i64):
 // CHECK:             %[[VAL_9:.*]] = quake.extract_ref %[[VAL_3]][%[[VAL_7]]] : (!quake.veq<10>, i64) -> !quake.ref
 // CHECK:             cc.scope {
-// CHECK:               %[[VAL_110:.*]] = quake.mx %[[VAL_9]] : (!quake.ref) -> !quake.measure
-// CHECK:               %[[VAL_10:.*]] = quake.discriminate %[[VAL_110]] :
+// CHECK:               %[[VAL_110:.*]] = quake.mx %[[VAL_9]] : (!quake.ref) -> !cc.measure_handle
+// CHECK:               %[[HA:.*]] = cc.alloca !cc.measure_handle
+// CHECK:               cc.store %[[VAL_110]], %[[HA]] : !cc.ptr<!cc.measure_handle>
+// CHECK:               %[[HL:.*]] = cc.load %[[HA]] : !cc.ptr<!cc.measure_handle>
+// CHECK:               %[[VAL_10:.*]] = quake.discriminate %[[HL]] :
 // CHECK:               %[[VAL_11:.*]] = cc.alloca i1
 // CHECK:               cc.store %[[VAL_10]], %[[VAL_11]] : !cc.ptr<i1>
 // CHECK:             }

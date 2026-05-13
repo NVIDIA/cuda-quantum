@@ -37,23 +37,24 @@ public:
 
     // Search through the controls for veqs with known sizes
     for (auto [index, control] : llvm::enumerate(op.getControls())) {
-      if (isa<quake::VeqType>(control.getType())) {
-        auto size = quake::getVeqSize(control);
+      if (isa<cudaq::quake::VeqType>(control.getType())) {
+        auto size = cudaq::quake::getVeqSize(control);
         if (!size)
           return failure();
 
         // Use the inner sized veq for extract_ref when looking through
         // RelaxSizeOp (extract_ref needs a sized veq operand).
         Value veqVal = control;
-        if (auto relaxOp = control.template getDefiningOp<quake::RelaxSizeOp>())
+        if (auto relaxOp =
+                control.template getDefiningOp<cudaq::quake::RelaxSizeOp>())
           veqVal = relaxOp.getInputVec();
 
         // For each of the qubits in the veq, create an extraction instruction
         // The result of the extraction will be a new control
         // The veq is not added the newControls, so it will be dropped
         for (size_t i = 0; i < *size; ++i) {
-          auto ext =
-              quake::ExtractRefOp::create(rewriter, op.getLoc(), veqVal, i);
+          auto ext = cudaq::quake::ExtractRefOp::create(rewriter, op.getLoc(),
+                                                        veqVal, i);
           newControls.push_back(ext);
           update = true;
         }
@@ -91,8 +92,8 @@ private:
     for (auto control : op.getControls()) {
       // Valid ops have no control veqs with a resolvable size (including
       // veq<?> whose size can be determined through RelaxSizeOp).
-      if (isa<quake::VeqType>(control.getType()))
-        if (quake::getVeqSize(control))
+      if (isa<cudaq::quake::VeqType>(control.getType()))
+        if (cudaq::quake::getVeqSize(control))
           return false;
     }
 
@@ -105,29 +106,43 @@ public:
     func::FuncOp func = getOperation();
     RewritePatternSet patterns(ctx);
     patterns.insert<
-        ExpandPat<quake::HOp>, ExpandPat<quake::PhasedRxOp>,
-        ExpandPat<quake::R1Op>, ExpandPat<quake::RxOp>, ExpandPat<quake::RyOp>,
-        ExpandPat<quake::RzOp>, ExpandPat<quake::SOp>, ExpandPat<quake::SwapOp>,
-        ExpandPat<quake::TOp>, ExpandPat<quake::U2Op>, ExpandPat<quake::U3Op>,
-        ExpandPat<quake::XOp>, ExpandPat<quake::YOp>, ExpandPat<quake::ZOp>>(
-        ctx);
+        ExpandPat<cudaq::quake::HOp>, ExpandPat<cudaq::quake::PhasedRxOp>,
+        ExpandPat<cudaq::quake::R1Op>, ExpandPat<cudaq::quake::RxOp>,
+        ExpandPat<cudaq::quake::RyOp>, ExpandPat<cudaq::quake::RzOp>,
+        ExpandPat<cudaq::quake::SOp>, ExpandPat<cudaq::quake::SwapOp>,
+        ExpandPat<cudaq::quake::TOp>, ExpandPat<cudaq::quake::U2Op>,
+        ExpandPat<cudaq::quake::U3Op>, ExpandPat<cudaq::quake::XOp>,
+        ExpandPat<cudaq::quake::YOp>, ExpandPat<cudaq::quake::ZOp>>(ctx);
     ConversionTarget target(*ctx);
-    target.addLegalDialect<quake::QuakeDialect>();
-    target.addDynamicallyLegalOp<quake::HOp>(checkLegal<quake::HOp>);
-    target.addDynamicallyLegalOp<quake::PhasedRxOp>(
-        checkLegal<quake::PhasedRxOp>);
-    target.addDynamicallyLegalOp<quake::R1Op>(checkLegal<quake::R1Op>);
-    target.addDynamicallyLegalOp<quake::RxOp>(checkLegal<quake::RxOp>);
-    target.addDynamicallyLegalOp<quake::RyOp>(checkLegal<quake::RyOp>);
-    target.addDynamicallyLegalOp<quake::RzOp>(checkLegal<quake::RzOp>);
-    target.addDynamicallyLegalOp<quake::SOp>(checkLegal<quake::SOp>);
-    target.addDynamicallyLegalOp<quake::SwapOp>(checkLegal<quake::SwapOp>);
-    target.addDynamicallyLegalOp<quake::TOp>(checkLegal<quake::TOp>);
-    target.addDynamicallyLegalOp<quake::U2Op>(checkLegal<quake::U2Op>);
-    target.addDynamicallyLegalOp<quake::U3Op>(checkLegal<quake::U3Op>);
-    target.addDynamicallyLegalOp<quake::XOp>(checkLegal<quake::XOp>);
-    target.addDynamicallyLegalOp<quake::YOp>(checkLegal<quake::YOp>);
-    target.addDynamicallyLegalOp<quake::ZOp>(checkLegal<quake::ZOp>);
+    target.addLegalDialect<cudaq::quake::QuakeDialect>();
+    target.addDynamicallyLegalOp<cudaq::quake::HOp>(
+        checkLegal<cudaq::quake::HOp>);
+    target.addDynamicallyLegalOp<cudaq::quake::PhasedRxOp>(
+        checkLegal<cudaq::quake::PhasedRxOp>);
+    target.addDynamicallyLegalOp<cudaq::quake::R1Op>(
+        checkLegal<cudaq::quake::R1Op>);
+    target.addDynamicallyLegalOp<cudaq::quake::RxOp>(
+        checkLegal<cudaq::quake::RxOp>);
+    target.addDynamicallyLegalOp<cudaq::quake::RyOp>(
+        checkLegal<cudaq::quake::RyOp>);
+    target.addDynamicallyLegalOp<cudaq::quake::RzOp>(
+        checkLegal<cudaq::quake::RzOp>);
+    target.addDynamicallyLegalOp<cudaq::quake::SOp>(
+        checkLegal<cudaq::quake::SOp>);
+    target.addDynamicallyLegalOp<cudaq::quake::SwapOp>(
+        checkLegal<cudaq::quake::SwapOp>);
+    target.addDynamicallyLegalOp<cudaq::quake::TOp>(
+        checkLegal<cudaq::quake::TOp>);
+    target.addDynamicallyLegalOp<cudaq::quake::U2Op>(
+        checkLegal<cudaq::quake::U2Op>);
+    target.addDynamicallyLegalOp<cudaq::quake::U3Op>(
+        checkLegal<cudaq::quake::U3Op>);
+    target.addDynamicallyLegalOp<cudaq::quake::XOp>(
+        checkLegal<cudaq::quake::XOp>);
+    target.addDynamicallyLegalOp<cudaq::quake::YOp>(
+        checkLegal<cudaq::quake::YOp>);
+    target.addDynamicallyLegalOp<cudaq::quake::ZOp>(
+        checkLegal<cudaq::quake::ZOp>);
     if (failed(applyPartialConversion(func.getOperation(), target,
                                       std::move(patterns)))) {
       signalPassFailure();

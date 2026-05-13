@@ -50,10 +50,10 @@ public:
     entryBlock = &(*func.getBody().begin());
   }
 
-  LogicalResult v_decomposition(quake::OperatorInterface op);
+  LogicalResult v_decomposition(cudaq::quake::OperatorInterface op);
 
 private:
-  LogicalResult extractControls(quake::OperatorInterface op,
+  LogicalResult extractControls(cudaq::quake::OperatorInterface op,
                                 SmallVectorImpl<Value> &newControls,
                                 SmallVectorImpl<bool> &negatedControls);
 
@@ -67,21 +67,21 @@ private:
 } // namespace
 
 LogicalResult
-Decomposer::extractControls(quake::OperatorInterface op,
+Decomposer::extractControls(cudaq::quake::OperatorInterface op,
                             SmallVectorImpl<Value> &newControls,
                             SmallVectorImpl<bool> &negatedControls) {
   auto negControls = op.getNegatedControls();
   for (auto [index, control] : llvm::enumerate(op.getControls())) {
     size_t size = 1;
-    if (isa<quake::RefType>(control.getType())) {
+    if (isa<cudaq::quake::RefType>(control.getType())) {
       newControls.push_back(control);
-    } else if (auto veq = dyn_cast<quake::VeqType>(control.getType())) {
+    } else if (auto veq = dyn_cast<cudaq::quake::VeqType>(control.getType())) {
       if (!veq.hasSpecifiedSize())
         return failure();
       size = veq.getSize();
       for (size_t i = 0; i < size; ++i)
-        newControls.push_back(
-            quake::ExtractRefOp::create(builder, op.getLoc(), control, i));
+        newControls.push_back(cudaq::quake::ExtractRefOp::create(
+            builder, op.getLoc(), control, i));
     }
     if (negControls)
       negatedControls.append(size, (*negControls)[index]);
@@ -94,11 +94,11 @@ ArrayRef<Value> Decomposer::getAncillas(Location loc, std::size_t numAncillas) {
   builder.setInsertionPointToStart(entryBlock);
   // If we don't have enough ancillas, allocate some more.
   for (size_t i = allocatedAncillas.size(); i < numAncillas; ++i)
-    allocatedAncillas.push_back(quake::AllocaOp::create(builder, loc));
+    allocatedAncillas.push_back(cudaq::quake::AllocaOp::create(builder, loc));
   return {allocatedAncillas.begin(), allocatedAncillas.begin() + numAncillas};
 }
 
-LogicalResult Decomposer::v_decomposition(quake::OperatorInterface op) {
+LogicalResult Decomposer::v_decomposition(cudaq::quake::OperatorInterface op) {
   builder.setInsertionPoint(op);
   // First, we need to extract controls from any `veq` that might been used as
   // a control for this operation.
@@ -112,7 +112,7 @@ LogicalResult Decomposer::v_decomposition(quake::OperatorInterface op) {
     return failure();
 
   // We don't decompose CCX and CCZ as they are handle by another pass.
-  if (controls.size() == 2 && isa<quake::XOp, quake::ZOp>(op))
+  if (controls.size() == 2 && isa<cudaq::quake::XOp, cudaq::quake::ZOp>(op))
     return failure();
 
   // Operator info
@@ -123,7 +123,7 @@ LogicalResult Decomposer::v_decomposition(quake::OperatorInterface op) {
 
   // Compute the required number of ancillas to decompose this operation.
   // Allocate new qubits if necessary.
-  size_t requiredAncillas = isa<quake::XOp, quake::ZOp>(op)
+  size_t requiredAncillas = isa<cudaq::quake::XOp, cudaq::quake::ZOp>(op)
                                 ? controls.size() - 2
                                 : controls.size() - 1;
   auto ancillas = getAncillas(loc, requiredAncillas);
@@ -131,21 +131,22 @@ LogicalResult Decomposer::v_decomposition(quake::OperatorInterface op) {
   // Compute intermediate results
   SmallVector<Operation *> toCleanup;
   std::array<Value, 2> cs = {controls[0], controls[1]};
-  toCleanup.push_back(quake::XOp::create(builder, loc, cs, ancillas[0]));
+  toCleanup.push_back(cudaq::quake::XOp::create(builder, loc, cs, ancillas[0]));
   if (!negatedControls.empty() && (negatedControls[0] || negatedControls[1]))
     toCleanup.back()->setAttr("negated_qubit_controls",
                               builder.getDenseBoolArrayAttr(
                                   {negatedControls[0], negatedControls[1]}));
   for (std::size_t c = 2, a = 0, n = requiredAncillas + 1; c < n; ++c, ++a) {
     cs = {controls[c], ancillas[a]};
-    toCleanup.push_back(quake::XOp::create(builder, loc, cs, ancillas[a + 1]));
+    toCleanup.push_back(
+        cudaq::quake::XOp::create(builder, loc, cs, ancillas[a + 1]));
     if (!negatedControls.empty() && negatedControls[c])
       toCleanup.back()->setAttr("negated_qubit_controls",
                                 builder.getDenseBoolArrayAttr({true, false}));
   }
 
   // Compute output
-  if (!isa<quake::XOp, quake::ZOp>(op)) {
+  if (!isa<cudaq::quake::XOp, cudaq::quake::ZOp>(op)) {
     createOperator(loc, name, parameters, ancillas.back(), targets, builder);
   } else {
     cs = {controls.back(), ancillas.back()};
@@ -178,9 +179,9 @@ struct Decomposition
       return;
 
     Decomposer decomposer(func);
-    func.walk([&](quake::OperatorInterface op) {
+    func.walk([&](cudaq::quake::OperatorInterface op) {
       // This pass does not handle Quake's value semantics form.
-      if (!quake::isAllReferences(op))
+      if (!cudaq::quake::isAllReferences(op))
         return;
       if (failed(decomposer.v_decomposition(op)))
         return;
