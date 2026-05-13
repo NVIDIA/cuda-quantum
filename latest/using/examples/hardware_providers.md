@@ -3236,10 +3236,12 @@ C++
     // For QRMI-routed execution, see the `pasqal` notes
     // in the CUDA-Q docs or the QRMI project for QRMI specific setup.
 
-    #include "cudaq/algorithms/evolve.h"
-    #include "cudaq/algorithms/integrator.h"
-    #include "cudaq/operators.h"
-    #include "cudaq/schedule.h"
+    #include <cudaq.h>
+    #include <cudaq/algorithms/evolve.h>
+    #include <cudaq/algorithms/integrator.h>
+    #include <cudaq/operators.h>
+    #include <cudaq/schedule.h>
+
     #include <cmath>
     #include <map>
     #include <vector>
@@ -3812,9 +3814,12 @@ C++
     // ```
     // Assumes a valid set of credentials have been stored.
 
-    #include "cudaq/algorithms/evolve.h"
-    #include "cudaq/algorithms/integrator.h"
-    #include "cudaq/schedule.h"
+    #include <cudaq.h>
+    #include <cudaq/algorithms/evolve.h>
+    #include <cudaq/algorithms/integrator.h>
+    #include <cudaq/operators.h>
+    #include <cudaq/schedule.h>
+
     #include <cmath>
     #include <map>
     #include <vector>
