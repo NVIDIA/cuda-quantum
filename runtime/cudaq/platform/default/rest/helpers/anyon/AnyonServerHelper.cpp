@@ -322,7 +322,8 @@ RestHeaders AnyonServerHelper::getHeaders() { return generateRequestHeader(); }
 
 /// Refresh the api key and refresh-token
 void AnyonServerHelper::refreshTokens(bool force_refresh) {
-  std::mutex m;
+  
+  static std::mutex m;
   std::lock_guard<std::mutex> l(m);
   RestClient client;
   auto now = std::chrono::high_resolution_clock::now();
@@ -437,8 +438,15 @@ std::string searchAPIKey(std::string &key, std::string &refreshKey,
     hwConfig = std::string(creds);
   else if (!userSpecifiedConfig.empty())
     hwConfig = userSpecifiedConfig;
-  else
-    hwConfig = std::string(getenv("HOME")) + std::string("/.anyon_config");
+  else {
+    
+    const char *home = std::getenv("HOME");
+    if (!home)
+      throw std::runtime_error(
+          "HOME environment variable is not set. Cannot locate Anyon "
+          "credentials file. Set CUDAQ_ANYON_CREDENTIALS to override.");
+    hwConfig = std::string(home) + std::string("/.anyon_config");
+  }
   if (cudaq::fileExists(hwConfig)) {
     findApiKeyInFile(key, hwConfig, refreshKey, timeStr, credentials);
   } else {

@@ -245,8 +245,15 @@ static std::string searchAPIKey(std::string &key, std::string &refreshKey,
     hwConfig = std::string(creds);
   else if (!userSpecifiedConfig.empty())
     hwConfig = userSpecifiedConfig;
-  else
-    hwConfig = std::string(getenv("HOME")) + std::string("/.quantinuum_config");
+  else {
+    // FIX(security): guard getenv("HOME") against nullptr (e.g. in containers)
+    const char *home = std::getenv("HOME");
+    if (!home)
+      throw std::runtime_error(
+          "HOME environment variable is not set. Cannot locate Quantinuum "
+          "credentials file. Set CUDAQ_QUANTINUUM_CREDENTIALS to override.");
+    hwConfig = std::string(home) + std::string("/.quantinuum_config");
+  }
   if (cudaq::fileExists(hwConfig)) {
     findApiKeyInFile(key, hwConfig, refreshKey, timeStr);
   } else {
@@ -705,7 +712,9 @@ void QuantinuumServerHelper::refreshTokens(bool force_refresh) {
     throw std::runtime_error(
         "Cannot get refresh access token, refresh key is empty.");
   }
-  std::mutex m;
+  // FIX(bug): mutex must be static to provide actual cross-thread protection.
+  // A local mutex is created/destroyed per call, giving zero synchronization.
+  static std::mutex m;
   std::lock_guard<std::mutex> l(m);
   auto now = std::chrono::high_resolution_clock::now();
 
