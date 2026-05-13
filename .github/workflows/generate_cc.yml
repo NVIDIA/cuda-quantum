@@ -17,6 +17,11 @@ on:
       export_environment:
         required: false
         type: boolean
+      coverage_flags:
+        description: 'Flags forwarded to scripts/generate_cc.sh inside the coverage build (e.g. "-v -c" for C++-only).'
+        required: false
+        type: string
+        default: '-v -c -p'
     secrets:
       CODECOV_TOKEN:
         required: false
@@ -113,6 +118,7 @@ jobs:
             --build-context ccache-data=/tmp/ccache-data \
             --build-arg base_image=$base_image \
             --build-arg run_coverage=true \
+            --build-arg coverage_flags="${{ inputs.coverage_flags }}" \
             --target coverage-export \
             --output type=local,dest=${{ github.workspace }}/shared
 
