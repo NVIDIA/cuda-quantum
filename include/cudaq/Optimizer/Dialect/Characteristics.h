@@ -64,7 +64,7 @@ inline bool hasCallOp(A &op) {
 inline bool hasMeasureOp(mlir::Operation &op) {
   return internal::hasCharacteristic(
       [](mlir::Operation &op) {
-        return mlir::isa<quake::MeasurementInterface>(op);
+        return mlir::isa<cudaq::quake::MeasurementInterface>(op);
       },
       op);
 }

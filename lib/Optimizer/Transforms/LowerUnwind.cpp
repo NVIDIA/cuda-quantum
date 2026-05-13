@@ -155,7 +155,7 @@ private:
         for (auto &region : pr.first->getRegions())
           for (auto &block : region)
             for (auto &o : block)
-              if (isa<quake::AllocaOp>(o))
+              if (isa<cudaq::quake::AllocaOp>(o))
                 allocas.push_back(&o);
         if (!allocas.empty())
           scopeAllocMap[pr.first] = allocas;
@@ -285,22 +285,22 @@ static SmallVector<Operation *> populateExitTerminators(Region &reg) {
   return results;
 }
 
-static SmallVector<quake::AllocaOp> populateQuakeAllocas(Region &reg) {
-  SmallVector<quake::AllocaOp> results;
+static SmallVector<cudaq::quake::AllocaOp> populateQuakeAllocas(Region &reg) {
+  SmallVector<cudaq::quake::AllocaOp> results;
   for (Block &b : reg)
     for (Operation &o : b)
-      if (auto q = dyn_cast<quake::AllocaOp>(o))
+      if (auto q = dyn_cast<cudaq::quake::AllocaOp>(o))
         results.push_back(q);
   return results;
 }
 
-static DenseMap<Operation *, SmallVector<quake::AllocaOp>>
+static DenseMap<Operation *, SmallVector<cudaq::quake::AllocaOp>>
 populateTerminatorAllocaMap(const SmallVector<Operation *> &terminators,
-                            const SmallVector<quake::AllocaOp> &qallocas,
+                            const SmallVector<cudaq::quake::AllocaOp> &qallocas,
                             DominanceInfo &dom) {
-  DenseMap<Operation *, SmallVector<quake::AllocaOp>> results;
+  DenseMap<Operation *, SmallVector<cudaq::quake::AllocaOp>> results;
   for (auto *t : terminators) {
-    SmallVector<quake::AllocaOp> domList;
+    SmallVector<cudaq::quake::AllocaOp> domList;
     for (auto a : qallocas)
       if (dom.dominates(a.getOperation(), t))
         domList.push_back(a);
@@ -323,14 +323,14 @@ static bool anyPrimitiveAncestor(
   return false;
 }
 
-static Value adjustedDeallocArg(quake::AllocaOp alloc) {
+static Value adjustedDeallocArg(cudaq::quake::AllocaOp alloc) {
   if (auto init = alloc.getInitializedState())
     return init.getResult();
   return alloc.getResult();
 }
 
 static Value adjustedDeallocArg(Operation *op) {
-  return adjustedDeallocArg(cast<quake::AllocaOp>(op));
+  return adjustedDeallocArg(cast<cudaq::quake::AllocaOp>(op));
 }
 
 namespace {
@@ -378,7 +378,8 @@ struct ScopeOpPattern : public OpRewritePattern<cudaq::cc::ScopeOp> {
       auto *contOp = pr.first;
       rewriter.setInsertionPoint(contOp);
       for (auto a : llvm::reverse(pr.second))
-        quake::DeallocOp::create(rewriter, a.getLoc(), adjustedDeallocArg(a));
+        cudaq::quake::DeallocOp::create(rewriter, a.getLoc(),
+                                        adjustedDeallocArg(a));
       rewriter.replaceOpWithNewOp<cf::BranchOp>(contOp, nextBlock,
                                                 contOp->getOperands());
     }
@@ -392,8 +393,8 @@ struct ScopeOpPattern : public OpRewritePattern<cudaq::cc::ScopeOp> {
       if (Block *blk = blockInfo.continueBlock) {
         rewriter.setInsertionPointToEnd(blk);
         for (auto a : llvm::reverse(qallocas))
-          quake::DeallocOp::create(rewriter, a->getLoc(),
-                                   adjustedDeallocArg(a));
+          cudaq::quake::DeallocOp::create(rewriter, a->getLoc(),
+                                          adjustedDeallocArg(a));
         if (asPrimitive) {
           Block *landingPad = getLandingPad(infoMap, scope).continueBlock;
           cf::BranchOp::create(rewriter, loc, landingPad, blk->getArguments());
@@ -406,8 +407,8 @@ struct ScopeOpPattern : public OpRewritePattern<cudaq::cc::ScopeOp> {
       if (Block *blk = blockInfo.breakBlock) {
         rewriter.setInsertionPointToEnd(blk);
         for (auto a : llvm::reverse(qallocas))
-          quake::DeallocOp::create(rewriter, a->getLoc(),
-                                   adjustedDeallocArg(a));
+          cudaq::quake::DeallocOp::create(rewriter, a->getLoc(),
+                                          adjustedDeallocArg(a));
         if (asPrimitive) {
           Block *landingPad = getLandingPad(infoMap, scope).breakBlock;
           cf::BranchOp::create(rewriter, loc, landingPad, blk->getArguments());
@@ -420,8 +421,8 @@ struct ScopeOpPattern : public OpRewritePattern<cudaq::cc::ScopeOp> {
       if (Block *blk = blockInfo.returnBlock) {
         rewriter.setInsertionPointToEnd(blk);
         for (auto a : llvm::reverse(qallocas))
-          quake::DeallocOp::create(rewriter, a->getLoc(),
-                                   adjustedDeallocArg(a));
+          cudaq::quake::DeallocOp::create(rewriter, a->getLoc(),
+                                          adjustedDeallocArg(a));
         assert(asPrimitive);
         Block *landingPad = getLandingPad(infoMap, scope).returnBlock;
         cf::BranchOp::create(rewriter, loc, landingPad, blk->getArguments());
@@ -472,7 +473,8 @@ struct FuncLikeOpPattern : public OpRewritePattern<OP> {
       auto *exitOp = pr.first;
       rewriter.setInsertionPoint(exitOp);
       for (auto a : llvm::reverse(pr.second))
-        quake::DeallocOp::create(rewriter, a.getLoc(), adjustedDeallocArg(a));
+        cudaq::quake::DeallocOp::create(rewriter, a.getLoc(),
+                                        adjustedDeallocArg(a));
     }
 
     // Here, we handle the unwind return jumps.
@@ -491,8 +493,8 @@ struct FuncLikeOpPattern : public OpRewritePattern<OP> {
       if (Block *exitBlock = blockInfo.returnBlock) {
         rewriter.setInsertionPointToEnd(exitBlock);
         for (auto a : llvm::reverse(qallocas))
-          quake::DeallocOp::create(rewriter, a->getLoc(),
-                                   adjustedDeallocArg(a));
+          cudaq::quake::DeallocOp::create(rewriter, a->getLoc(),
+                                          adjustedDeallocArg(a));
         TERM::create(rewriter, func.getLoc(), exitBlock->getArguments());
         func.getBody().push_back(exitBlock);
       }

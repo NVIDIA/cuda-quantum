@@ -15,22 +15,24 @@ using namespace mlir;
 
 TEST(Quake, HermitianTrait) {
   MLIRContext context;
-  context.loadDialect<quake::QuakeDialect>();
+  context.loadDialect<cudaq::quake::QuakeDialect>();
   OpBuilder builder(&context);
 
-  Value qubit = quake::AllocaOp::create(builder, builder.getUnknownLoc());
-  Operation *op = quake::HOp::create(builder, builder.getUnknownLoc(), qubit);
+  Value qubit =
+      cudaq::quake::AllocaOp::create(builder, builder.getUnknownLoc());
+  Operation *op =
+      cudaq::quake::HOp::create(builder, builder.getUnknownLoc(), qubit);
   ASSERT_TRUE(op->hasTrait<cudaq::Hermitian>());
 
-  auto optor = dyn_cast<quake::OperatorInterface>(op);
+  auto optor = dyn_cast<cudaq::quake::OperatorInterface>(op);
   ASSERT_TRUE(optor->hasTrait<cudaq::Hermitian>());
   // The following does not work because of an MLIR bug
   // ASSERT_TRUE(optor.hasTrait<cudaq::Hermitian>());
 
-  op = quake::TOp::create(builder, builder.getUnknownLoc(), qubit);
+  op = cudaq::quake::TOp::create(builder, builder.getUnknownLoc(), qubit);
   ASSERT_FALSE(op->hasTrait<cudaq::Hermitian>());
 
-  optor = dyn_cast<quake::OperatorInterface>(op);
+  optor = dyn_cast<cudaq::quake::OperatorInterface>(op);
   ASSERT_FALSE(optor->hasTrait<cudaq::Hermitian>());
   // The following does not work because of an MLIR bug
   // ASSERT_TRUE(optor.hasTrait<cudaq::Hermitian>());

@@ -20,10 +20,10 @@ cudaq::opt::countResourcesFromIR(ModuleOp module) {
   // out before running the gate-erasing pass manager.
   std::size_t allocated = 0;
   bool unresolvedVeq = false;
-  module.walk([&](quake::AllocaOp alloc) {
-    if (isa<quake::RefType>(alloc.getType())) {
+  module.walk([&](cudaq::quake::AllocaOp alloc) {
+    if (isa<cudaq::quake::RefType>(alloc.getType())) {
       allocated++;
-    } else if (auto size = quake::getVeqSize(alloc.getResult())) {
+    } else if (auto size = cudaq::quake::getVeqSize(alloc.getResult())) {
       allocated += *size;
     } else {
       unresolvedVeq = true;

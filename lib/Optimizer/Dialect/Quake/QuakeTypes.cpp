@@ -27,7 +27,7 @@ using namespace mlir;
 // veq `<` (`?` | int) `>`
 //===----------------------------------------------------------------------===//
 
-void quake::VeqType::print(AsmPrinter &os) const {
+void cudaq::quake::VeqType::print(AsmPrinter &os) const {
   os << '<';
   if (hasSpecifiedSize())
     os << getSize();
@@ -36,7 +36,7 @@ void quake::VeqType::print(AsmPrinter &os) const {
   os << '>';
 }
 
-Type quake::VeqType::parse(AsmParser &parser) {
+Type cudaq::quake::VeqType::parse(AsmParser &parser) {
   if (parser.parseLess())
     return {};
   std::size_t size = kDynamicSize;
@@ -51,7 +51,7 @@ Type quake::VeqType::parse(AsmParser &parser) {
 
 //===----------------------------------------------------------------------===//
 
-Type quake::StruqType::parse(AsmParser &parser) {
+Type cudaq::quake::StruqType::parse(AsmParser &parser) {
   if (parser.parseLess())
     return {};
   std::string name;
@@ -70,25 +70,25 @@ Type quake::StruqType::parse(AsmParser &parser) {
       break;
     if (!succeeded(*optTy))
       return {};
-    if (!llvm::isa<quake::RefType, quake::VeqType>(member))
+    if (!llvm::isa<cudaq::quake::RefType, cudaq::quake::VeqType>(member))
       parser.emitError(parser.getCurrentLocation(),
                        "invalid struq member type");
     members.push_back(member);
   } while (succeeded(parser.parseOptionalComma()));
   if (parser.parseGreater())
     return {};
-  return quake::StruqType::get(ctx, nameAttr, members);
+  return cudaq::quake::StruqType::get(ctx, nameAttr, members);
 }
 
-bool quake::StruqType::hasSpecifiedSize() const {
+bool cudaq::quake::StruqType::hasSpecifiedSize() const {
   for (auto ty : getMembers())
-    if (auto veqTy = llvm::dyn_cast<quake::VeqType>(ty))
+    if (auto veqTy = llvm::dyn_cast<cudaq::quake::VeqType>(ty))
       if (!veqTy.hasSpecifiedSize())
         return false;
   return true;
 }
 
-std::optional<std::size_t> quake::StruqType::getArity() const {
+std::optional<std::size_t> cudaq::quake::StruqType::getArity() const {
   if (getMembers().empty())
     return {0};
   std::size_t res = 0;
@@ -108,7 +108,7 @@ std::optional<std::size_t> quake::StruqType::getArity() const {
   return {res};
 }
 
-void quake::StruqType::print(AsmPrinter &printer) const {
+void cudaq::quake::StruqType::print(AsmPrinter &printer) const {
   printer << '<';
   if (getName())
     printer << getName() << ": ";
@@ -124,39 +124,41 @@ void quake::StruqType::print(AsmPrinter &printer) const {
 // function returns false for any type not in the set \e R or if the composition
 // of types contains a `veq` of unspecified size.
 static bool isConstQuantumBits(Type ty) {
-  if (isa<quake::RefType>(ty))
+  if (isa<cudaq::quake::RefType>(ty))
     return true;
-  if (auto t = dyn_cast<quake::StruqType>(ty)) {
+  if (auto t = dyn_cast<cudaq::quake::StruqType>(ty)) {
     for (auto m : t.getMembers())
       if (!isConstQuantumBits(m))
         return false;
     return true;
   }
-  if (auto t = dyn_cast<quake::VeqType>(ty))
+  if (auto t = dyn_cast<cudaq::quake::VeqType>(ty))
     if (t.hasSpecifiedSize())
       return true;
   return false;
 }
 
-bool quake::isConstantQuantumRefType(Type ty) { return isConstQuantumBits(ty); }
+bool cudaq::quake::isConstantQuantumRefType(Type ty) {
+  return isConstQuantumBits(ty);
+}
 
-std::size_t quake::getAllocationSize(Type ty) {
-  if (isa<quake::RefType>(ty))
+std::size_t cudaq::quake::getAllocationSize(Type ty) {
+  if (isa<cudaq::quake::RefType>(ty))
     return 1;
-  if (auto stq = dyn_cast<quake::StruqType>(ty)) {
+  if (auto stq = dyn_cast<cudaq::quake::StruqType>(ty)) {
     std::size_t size = 0;
     for (auto m : stq.getMembers())
       size += getAllocationSize(m);
     return size;
   }
-  auto veq = cast<quake::VeqType>(ty);
+  auto veq = cast<cudaq::quake::VeqType>(ty);
   assert(veq.hasSpecifiedSize() && "veq type must have constant size");
   return veq.getSize();
 }
 
 //===----------------------------------------------------------------------===//
 
-void quake::QuakeDialect::registerTypes() {
+void cudaq::quake::QuakeDialect::registerTypes() {
   addTypes<CableType, ControlType, MeasureType, RefType, StateType, StruqType,
            VeqType, WireType>();
 }

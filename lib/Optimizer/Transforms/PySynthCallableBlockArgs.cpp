@@ -94,18 +94,18 @@ public:
   }
 };
 
-class UpdateQuakeApplyOp : public OpConversionPattern<quake::ApplyOp> {
+class UpdateQuakeApplyOp : public OpConversionPattern<cudaq::quake::ApplyOp> {
 public:
   const SmallVector<StringRef> &names;
   llvm::DenseMap<std::size_t, std::size_t> &blockArgToNameMap;
   UpdateQuakeApplyOp(MLIRContext *ctx,
                      const SmallVector<StringRef> &functionNames,
                      llvm::DenseMap<std::size_t, std::size_t> &map)
-      : OpConversionPattern<quake::ApplyOp>(ctx), names(functionNames),
+      : OpConversionPattern<cudaq::quake::ApplyOp>(ctx), names(functionNames),
         blockArgToNameMap(map) {}
 
   LogicalResult
-  matchAndRewrite(quake::ApplyOp op, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::ApplyOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto callableOperand = adaptor.getOperands().front();
     auto module = op->getParentOp()->getParentOfType<ModuleOp>();
@@ -118,7 +118,7 @@ public:
       if (!replacement)
         return failure();
 
-      rewriter.replaceOpWithNewOp<quake::ApplyOp>(
+      rewriter.replaceOpWithNewOp<cudaq::quake::ApplyOp>(
           op, TypeRange{}, FlatSymbolRefAttr::get(ctx, replacement.getName()),
           adaptor.getIsAdj(), adaptor.getControls(), adaptor.getActuals());
       return success();
@@ -172,8 +172,8 @@ public:
     ConversionTarget target(*ctx);
     // We should remove these operations
     target.addIllegalOp<func::CallIndirectOp>();
-    target.addDynamicallyLegalOp<quake::ApplyOp>([](Operation *op) {
-      if (auto apply = dyn_cast<quake::ApplyOp>(op)) {
+    target.addDynamicallyLegalOp<cudaq::quake::ApplyOp>([](Operation *op) {
+      if (auto apply = dyn_cast<cudaq::quake::ApplyOp>(op)) {
         if (isa<BlockArgument>(apply.getOperand(0))) {
           return false;
         }
