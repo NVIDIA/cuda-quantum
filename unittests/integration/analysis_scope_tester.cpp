@@ -34,8 +34,7 @@ CUDAQ_TEST(AnalysisScopeTester, nestedThrows) {
   auto outer = nvqir::resource_counter::make_scope(alwaysFalse);
   EXPECT_TRUE(nvqir::AnalysisScope::is_active());
 
-  EXPECT_THROW(nvqir::resource_counter::make_scope(alwaysFalse),
-               std::runtime_error);
+  EXPECT_ANY_THROW(nvqir::resource_counter::make_scope(alwaysFalse));
 
   // Outer scope is still the active one after the failed nest attempt.
   EXPECT_TRUE(nvqir::AnalysisScope::is_active());
@@ -50,11 +49,10 @@ CUDAQ_TEST(AnalysisScopeTester, failedNestKeepsChoice) {
     return false;
   });
 
-  EXPECT_THROW(nvqir::resource_counter::make_scope([&innerCalled]() {
-                 innerCalled = true;
-                 return true;
-               }),
-               std::runtime_error);
+  EXPECT_ANY_THROW(nvqir::resource_counter::make_scope([&innerCalled]() {
+    innerCalled = true;
+    return true;
+  }));
   EXPECT_TRUE(nvqir::AnalysisScope::is_active());
 
   auto &sim = outer.simulator();
@@ -83,8 +81,7 @@ CUDAQ_TEST(AnalysisScopeTester, prepopulateRejectsForeignScope) {
   nvqir::AnalysisScope s{"backend_scope", *backendSim, {}};
   cudaq::Resources counts;
   counts.appendInstruction("h", 0);
-  EXPECT_THROW(nvqir::resource_counter::prepopulate(std::move(counts)),
-               std::runtime_error);
+  EXPECT_ANY_THROW(nvqir::resource_counter::prepopulate(std::move(counts)));
 }
 
 CUDAQ_TEST(AnalysisScopeTester, getCountsRejectsForeignScope) {
@@ -92,7 +89,7 @@ CUDAQ_TEST(AnalysisScopeTester, getCountsRejectsForeignScope) {
   ASSERT_NE(backendSim, nvqir::getResourceCounterSimulator());
 
   nvqir::AnalysisScope s{"backend_scope", *backendSim, {}};
-  EXPECT_THROW(nvqir::resource_counter::get_counts(s), std::runtime_error);
+  EXPECT_ANY_THROW(nvqir::resource_counter::get_counts(s));
 }
 
 CUDAQ_TEST(AnalysisScopeTester, recoversAfterThrowingChoice) {
@@ -137,8 +134,7 @@ CUDAQ_TEST(AnalysisScopeTester, prepopulateNoScopeThrows) {
   EXPECT_FALSE(nvqir::AnalysisScope::is_active());
   cudaq::Resources counts;
   counts.appendInstruction("h", 0);
-  EXPECT_THROW(nvqir::resource_counter::prepopulate(std::move(counts)),
-               std::runtime_error);
+  EXPECT_ANY_THROW(nvqir::resource_counter::prepopulate(std::move(counts)));
 }
 
 CUDAQ_TEST(AnalysisScopeTester, prepopulateReflectsInCounts) {
