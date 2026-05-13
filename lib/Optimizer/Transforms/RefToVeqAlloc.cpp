@@ -19,7 +19,7 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
-struct AllocaPat : public OpRewritePattern<quake::AllocaOp> {
+struct AllocaPat : public OpRewritePattern<cudaq::quake::AllocaOp> {
   using OpRewritePattern::OpRewritePattern;
 
   // Replace:
@@ -27,12 +27,14 @@ struct AllocaPat : public OpRewritePattern<quake::AllocaOp> {
   // with:
   //   %0 = quake.alloca !quake.veq<1>
   //   %1 = quake.extract_ref %0[0] : (!quake.veq<1>) -> !quake.ref
-  LogicalResult matchAndRewrite(quake::AllocaOp alloc,
+  LogicalResult matchAndRewrite(cudaq::quake::AllocaOp alloc,
                                 PatternRewriter &rewriter) const override {
-    if (isa<quake::VeqType>(alloc.getType()))
+    if (isa<cudaq::quake::VeqType>(alloc.getType()))
       return failure();
-    Value newAlloc = quake::AllocaOp::create(rewriter, alloc.getLoc(), 1u);
-    rewriter.replaceOpWithNewOp<quake::ExtractRefOp>(alloc, newAlloc, 0u);
+    Value newAlloc =
+        cudaq::quake::AllocaOp::create(rewriter, alloc.getLoc(), 1u);
+    rewriter.replaceOpWithNewOp<cudaq::quake::ExtractRefOp>(alloc, newAlloc,
+                                                            0u);
     return success();
   }
 };

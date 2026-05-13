@@ -138,7 +138,7 @@ static Value genConstant(OpBuilder &, cudaq::cc::CallableType, void *, ModuleOp,
   auto loc = initFunc.getLoc();
 
   auto argTypes = calleeFunc.getArgumentTypes();
-  auto retTy = quake::VeqType::getUnsized(ctx);
+  auto retTy = cudaq::quake::VeqType::getUnsized(ctx);
   auto funcTy = FunctionType::get(ctx, argTypes, TypeRange{retTy});
 
   initFunc.setName(initKernelName);
@@ -184,7 +184,7 @@ static Value genConstant(OpBuilder &, cudaq::cc::CallableType, void *, ModuleOp,
     Value blockBegin = begin;
     Value blockAllocSize = zero;
     for (auto &op : block) {
-      if (auto alloc = dyn_cast<quake::AllocaOp>(&op)) {
+      if (auto alloc = dyn_cast<cudaq::quake::AllocaOp>(&op)) {
         newBuilder.setInsertionPointAfter(alloc);
 
         if (!arg) {
@@ -196,11 +196,11 @@ static Value genConstant(OpBuilder &, cudaq::cc::CallableType, void *, ModuleOp,
         if (!allocSize)
           allocSize = arith::ConstantIntOp::create(
               newBuilder, loc, newBuilder.getI64Type(),
-              quake::getAllocationSize(alloc.getType()));
+              cudaq::quake::getAllocationSize(alloc.getType()));
 
         auto offset = arith::SubIOp::create(newBuilder, loc, allocSize, one);
-        subArg =
-            quake::SubVeqOp::create(newBuilder, loc, retTy, arg, begin, offset);
+        subArg = cudaq::quake::SubVeqOp::create(newBuilder, loc, retTy, arg,
+                                                begin, offset);
         alloc.replaceAllUsesWith(subArg);
         cleanUps.push_back(alloc);
         begin = arith::AddIOp::create(newBuilder, loc, begin, allocSize);
@@ -214,8 +214,8 @@ static Value genConstant(OpBuilder &, cudaq::cc::CallableType, void *, ModuleOp,
 
           auto offset =
               arith::SubIOp::create(newBuilder, loc, blockAllocSize, one);
-          Value ret = quake::SubVeqOp::create(newBuilder, loc, retTy, arg,
-                                              blockBegin, offset);
+          Value ret = cudaq::quake::SubVeqOp::create(newBuilder, loc, retTy,
+                                                     arg, blockBegin, offset);
 
           assert(arg && "No veq allocations found");
           replacedReturn = func::ReturnOp::create(newBuilder, loc, ret);
@@ -285,12 +285,12 @@ createNumQubitsFunc(OpBuilder &builder, ModuleOp moduleOp,
 
     for (auto &op : block) {
       // Calculate allocation size (existing allocation size plus new one)
-      if (auto alloc = dyn_cast<quake::AllocaOp>(&op)) {
+      if (auto alloc = dyn_cast<cudaq::quake::AllocaOp>(&op)) {
         Value allocSize = alloc.getSize();
         if (!allocSize)
           allocSize = arith::ConstantIntOp::create(
               newBuilder, loc, newBuilder.getI64Type(),
-              quake::getAllocationSize(alloc.getType()));
+              cudaq::quake::getAllocationSize(alloc.getType()));
         newBuilder.setInsertionPointAfter(alloc);
         size = arith::AddIOp::create(newBuilder, loc, size, allocSize);
       }
@@ -363,7 +363,8 @@ genConstant(OpBuilder &builder, const cudaq::state *v, llvm::DataLayout &layout,
     Value ptrInt =
         genIntegerConstant(builder, reinterpret_cast<std::int64_t>(v), 64);
     // Cast int value to state ptr
-    auto statePtrTy = cudaq::cc::PointerType::get(quake::StateType::get(ctx));
+    auto statePtrTy =
+        cudaq::cc::PointerType::get(cudaq::quake::StateType::get(ctx));
     Value statePtrVal =
         cudaq::cc::CastOp::create(builder, loc, statePtrTy, ptrInt);
     return statePtrVal;
@@ -503,8 +504,9 @@ genConstant(OpBuilder &builder, const cudaq::state *v, llvm::DataLayout &layout,
     }
 
     // Create a substitution for the state pointer.
-    auto statePtrTy = cudaq::cc::PointerType::get(quake::StateType::get(ctx));
-    return quake::MaterializeStateOp::create(
+    auto statePtrTy =
+        cudaq::cc::PointerType::get(cudaq::quake::StateType::get(ctx));
+    return cudaq::quake::MaterializeStateOp::create(
         builder, loc, statePtrTy, builder.getStringAttr(numQubitsKernelName),
         builder.getStringAttr(initKernelName));
   }
@@ -946,7 +948,7 @@ void cudaq_internal::compiler::ArgumentConverter::gen(
             })
             .Case([&](cudaq::cc::PointerType ptrTy)
                       -> cudaq::cc::ArgumentSubstitutionOp {
-              if (ptrTy.getElementType() == quake::StateType::get(ctx))
+              if (ptrTy.getElementType() == cudaq::quake::StateType::get(ctx))
                 return buildSubst(static_cast<const cudaq::state *>(argPtr),
                                   dataLayout, kernelName, substModule, *this);
               return {};

@@ -272,10 +272,10 @@ private:
 /// Convert a compute_action to a series of calls. A compute_action is
 /// semantically a special form of a call site.
 struct ComputeActionOpPattern
-    : public OpRewritePattern<quake::ComputeActionOp> {
+    : public OpRewritePattern<cudaq::quake::ComputeActionOp> {
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(quake::ComputeActionOp comAct,
+  LogicalResult matchAndRewrite(cudaq::quake::ComputeActionOp comAct,
                                 PatternRewriter &rewriter) const override {
     // In lambda lifting, we only deal with rewriting the quake.compute_action
     // Op if it has lambda arguments.
@@ -308,13 +308,13 @@ struct ComputeActionOpPattern
     if (!actionCallee)
       return failure();
     auto computeArgs = getArgs(comAct.getCompute());
-    quake::ApplyOp::create(rewriter, loc, TypeRange{}, computeCallee,
-                           /*isAdjoint=*/comAct.getIsDagger(), ValueRange{},
-                           computeArgs);
-    quake::ApplyOp::create(rewriter, loc, TypeRange{}, actionCallee,
-                           /*isAdjoint=*/false, ValueRange{},
-                           getArgs(comAct.getAction()));
-    rewriter.replaceOpWithNewOp<quake::ApplyOp>(
+    cudaq::quake::ApplyOp::create(rewriter, loc, TypeRange{}, computeCallee,
+                                  /*isAdjoint=*/comAct.getIsDagger(),
+                                  ValueRange{}, computeArgs);
+    cudaq::quake::ApplyOp::create(rewriter, loc, TypeRange{}, actionCallee,
+                                  /*isAdjoint=*/false, ValueRange{},
+                                  getArgs(comAct.getAction()));
+    rewriter.replaceOpWithNewOp<cudaq::quake::ApplyOp>(
         comAct, TypeRange{}, computeCallee,
         /*isAdjoint=*/!comAct.getIsDagger(), ValueRange{}, computeArgs);
     return success();

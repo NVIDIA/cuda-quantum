@@ -58,7 +58,7 @@ class RegUseTracker {
 
 public:
   RegUseTracker(func::FuncOp func) : domInfo(func) {
-    func->walk([&](quake::AllocaOp qalloc) {
+    func->walk([&](cudaq::quake::AllocaOp qalloc) {
       regToOrderedUsers[qalloc.getResult()] =
           sortUsers(qalloc.getResult().getUsers(), domInfo);
     });
@@ -68,9 +68,10 @@ public:
   // list (regToOrderedUsers) and filtering out any operations that have been
   // erased during rewriting to avoid use-after-free bugs.
   SmallVector<Operation *, 8> getUsers(mlir::Value qreg) const {
-    if (!isa<quake::VeqType>(qreg.getType()))
-      mlir::emitError(qreg.getLoc(),
-                      "Unexpected type used: expected a quake::VeqType.");
+    if (!isa<cudaq::quake::VeqType>(qreg.getType()))
+      mlir::emitError(
+          qreg.getLoc(),
+          "Unexpected type used: expected a cudaq::quake::VeqType.");
 
     auto iter = regToOrderedUsers.find(qreg);
     if (iter == regToOrderedUsers.end())
@@ -92,14 +93,14 @@ public:
   RegUseTracker &operator=(const RegUseTracker &) = delete;
 };
 
-class ResetAfterMeasurePattern : public OpRewritePattern<quake::MzOp> {
+class ResetAfterMeasurePattern : public OpRewritePattern<cudaq::quake::MzOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
   explicit ResetAfterMeasurePattern(MLIRContext *ctx, RegUseTracker &tracker)
       : OpRewritePattern(ctx), tracker(tracker) {}
 
-  LogicalResult matchAndRewrite(quake::MzOp mz,
+  LogicalResult matchAndRewrite(cudaq::quake::MzOp mz,
                                 PatternRewriter &rewriter) const override {
     SmallVector<Operation *> useOps;
     bool modified = false;
@@ -107,31 +108,34 @@ public:
       auto *nextOp = getNextUse(measuredQubit, mz);
       if (nextOp) {
         // If the user is a reset/measure op, nothing to do.
-        if (isa<quake::ResetOp>(nextOp) || isa<quake::MzOp>(nextOp)) {
+        if (isa<cudaq::quake::ResetOp>(nextOp) ||
+            isa<cudaq::quake::MzOp>(nextOp)) {
           continue;
         }
 
         // If this is a dealloc op, nothing to do.
-        if (isa<quake::DeallocOp>(nextOp)) {
+        if (isa<cudaq::quake::DeallocOp>(nextOp)) {
           continue;
         }
 
         // Insert reset
         Location loc = mz->getLoc();
         rewriter.setInsertionPointAfter(mz);
-        quake::ResetOp::create(rewriter, loc, TypeRange{}, measuredQubit);
+        cudaq::quake::ResetOp::create(rewriter, loc, TypeRange{},
+                                      measuredQubit);
         // Insert a conditional X to initialize qubit after reset.
         auto measOut = mz.getMeasOut();
         mlir::Value measBit = [&]() {
           for (auto *out : measOut.getUsers()) {
             // A mz may be accompanied by a store op, find that op.
-            if (auto disc = dyn_cast_if_present<quake::DiscriminateOp>(out)) {
+            if (auto disc =
+                    dyn_cast_if_present<cudaq::quake::DiscriminateOp>(out)) {
               rewriter.setInsertionPointAfter(disc);
               return disc.getResult();
             }
           }
           // No discriminate exists - create the discriminate Op
-          auto discOp = quake::DiscriminateOp::create(
+          auto discOp = cudaq::quake::DiscriminateOp::create(
               rewriter, loc, rewriter.getI1Type(), measOut);
           return discOp.getResult();
         }();
@@ -142,7 +146,7 @@ public:
               auto &bodyBlock = region.front();
               OpBuilder::InsertionGuard guad(opBuilder);
               opBuilder.setInsertionPointToStart(&bodyBlock);
-              quake::XOp::create(opBuilder, location, measuredQubit);
+              cudaq::quake::XOp::create(opBuilder, location, measuredQubit);
               cudaq::cc::ContinueOp::create(opBuilder, location);
             });
         modified = true;
@@ -167,9 +171,9 @@ private:
     }
 
     // No next use is found, check if this is an extracted qubit.
-    if (isa<quake::RefType>(qubit.getType())) {
-      if (auto extractOp =
-              dyn_cast_if_present<quake::ExtractRefOp>(qubit.getDefiningOp())) {
+    if (isa<cudaq::quake::RefType>(qubit.getType())) {
+      if (auto extractOp = dyn_cast_if_present<cudaq::quake::ExtractRefOp>(
+              qubit.getDefiningOp())) {
         LLVM_DEBUG(llvm::dbgs() << "Defining op: " << *extractOp << "\n");
         auto reg = extractOp.getVeq();
         std::optional<int64_t> index =
@@ -178,13 +182,13 @@ private:
                 : cudaq::getIndexValueAsInt(extractOp.getIndex());
         LLVM_DEBUG(llvm::dbgs() << "Reg: " << reg
                                 << "; index = " << index.value_or(-1) << "\n");
-        if (isa<quake::AllocaOp>(reg.getDefiningOp())) {
+        if (isa<cudaq::quake::AllocaOp>(reg.getDefiningOp())) {
           const auto orderedUsers = tracker.getUsers(reg);
           for (auto v : llvm::enumerate(orderedUsers)) {
             if (v.value() != extractOp) {
               // This is another extract.
               auto nextExtractOp =
-                  dyn_cast_if_present<quake::ExtractRefOp>(v.value());
+                  dyn_cast_if_present<cudaq::quake::ExtractRefOp>(v.value());
               if (nextExtractOp) {
                 std::optional<int64_t> nextIndex =
                     nextExtractOp.hasConstantIndex()
