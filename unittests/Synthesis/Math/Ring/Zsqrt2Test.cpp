@@ -8,7 +8,7 @@
 
 #include <gtest/gtest.h>
 
-#include "Math/Ring/Zsqrt2.h"
+#include "cudaq/Synthesis/Math/Ring/Zsqrt2.h"
 
 namespace {
 

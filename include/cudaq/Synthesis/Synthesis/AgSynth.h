@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "Circuit/CliffordCircuit.h"
-#include "Circuit/Tableau.h"
+#include "cudaq/Synthesis/Circuit/CliffordCircuit.h"
+#include "cudaq/Synthesis/Circuit/Tableau.h"
 
 namespace cudaq::synth {
 

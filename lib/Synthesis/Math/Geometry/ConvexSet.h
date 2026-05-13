@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "Math/Ring/Domega.h"
+#include "cudaq/Synthesis/Math/Ring/Domega.h"
 #include "cudaq/Synthesis/Math/Real.h"
 
 #include <array>

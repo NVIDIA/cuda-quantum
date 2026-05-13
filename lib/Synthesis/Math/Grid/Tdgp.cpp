@@ -10,7 +10,7 @@
 #include "Math/Geometry/ConvexSet.h"
 #include "Math/Geometry/Rectangle.h"
 #include "Math/Grid/Odgp.h"
-#include "Math/Ring/Domega.h"
+#include "cudaq/Synthesis/Math/Ring/Domega.h"
 #include "Support/LogMacros.h"
 #include "cudaq/Synthesis/Math/Real.h"
 

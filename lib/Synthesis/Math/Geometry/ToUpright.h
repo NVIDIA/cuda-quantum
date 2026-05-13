@@ -11,7 +11,7 @@
 #include "Math/Geometry/Ellipse.h"
 #include "Math/Geometry/GridOp.h"
 #include "Math/Geometry/Rectangle.h"
-#include "Math/Integer.h"
+#include "cudaq/Synthesis/Math/Integer.h"
 #include "cudaq/Synthesis/Support/Result.h"
 
 #include <cmath>

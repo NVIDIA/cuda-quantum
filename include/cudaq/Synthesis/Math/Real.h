@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "Math/Integer.h"
+#include "cudaq/Synthesis/Math/Integer.h"
 
 // Enable 64-bit integer types in MPFR (required for mpfr_set_sj/mpfr_get_sj,
 // which accept intmax_t; needed to bridge i64 → MPFR without truncation on
