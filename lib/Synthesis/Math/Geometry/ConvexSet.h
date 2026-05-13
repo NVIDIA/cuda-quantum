@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "cudaq/Synthesis/Math/Ring/Domega.h"
 #include "cudaq/Synthesis/Math/Real.h"
+#include "cudaq/Synthesis/Math/Ring/Domega.h"
 
 #include <array>
 #include <optional>

@@ -51,9 +51,8 @@ public:
                << "clifford-t-synthesis: epsilon=" << epsilon
                << " diophantine-timeout-ms=" << diophantineTimeoutMs
                << " factoring-timeout-ms=" << factoringTimeoutMs
-               << " retry-count=" << retryCount
-               << " on-dynamic-angle=" << onDynamicAngle
-               << " skip-below=" << skipBelow << '\n');
+               << " retry-count=" << retryCount << " on-dynamic-angle="
+               << onDynamicAngle << " skip-below=" << skipBelow << '\n');
 #endif
   }
 };

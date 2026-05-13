@@ -37,11 +37,11 @@
 #include "Math/Geometry/Rectangle.h"
 #include "Math/Geometry/ToUpright.h"
 #include "cudaq/Synthesis/Math/Integer.h"
+#include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Math/Ring/Domega.h"
 #include "cudaq/Synthesis/Math/Ring/Dsqrt2.h"
 #include "cudaq/Synthesis/Math/Ring/Zomega.h"
 #include "cudaq/Synthesis/Math/Ring/Zsqrt2.h"
-#include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Math/Unitary.h"
 
 // ---------------------------------------------------------------------------
