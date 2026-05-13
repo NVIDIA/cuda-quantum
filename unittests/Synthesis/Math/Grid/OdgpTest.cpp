@@ -10,8 +10,8 @@
 
 #include "Math/Geometry/Interval.h"
 #include "Math/Grid/Odgp.h"
-#include "Math/Ring/Dsqrt2.h"
-#include "Math/Ring/Zsqrt2.h"
+#include "cudaq/Synthesis/Math/Ring/Dsqrt2.h"
+#include "cudaq/Synthesis/Math/Ring/Zsqrt2.h"
 #include "Support/Generator.h"
 #include "cudaq/Synthesis/Math/Real.h"
 

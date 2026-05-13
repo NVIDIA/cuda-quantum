@@ -8,7 +8,7 @@
 
 #include <gtest/gtest.h>
 
-#include "Math/Integer.h"
+#include "cudaq/Synthesis/Math/Integer.h"
 
 namespace {
 

@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "Math/Geometry/Ellipse.h"
-#include "Math/Ring/Domega.h"
+#include "cudaq/Synthesis/Math/Ring/Domega.h"
 #include "cudaq/Synthesis/Math/Real.h"
 
 #include <cassert>

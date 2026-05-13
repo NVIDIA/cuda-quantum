@@ -12,7 +12,7 @@
 #include <complex>
 #include <string>
 
-#include "Math/Ring/Domega.h"
+#include "cudaq/Synthesis/Math/Ring/Domega.h"
 #include "cudaq/Synthesis/Circuit/Circuit.h"
 
 namespace cudaq::synth {

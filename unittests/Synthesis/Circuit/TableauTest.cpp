@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "Circuit/Tableau.h"
-#include "Circuit/CliffordCircuit.h"
+#include "cudaq/Synthesis/Circuit/Tableau.h"
+#include "cudaq/Synthesis/Circuit/CliffordCircuit.h"
 
 #include <gtest/gtest.h>
 

@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "Circuit/PauliProduct.h"
-#include "Support/BitVector.h"
+#include "cudaq/Synthesis/Circuit/PauliProduct.h"
+#include "cudaq/Synthesis/Support/BitVector.h"
 
 #include <cassert>
 #include <cstddef>

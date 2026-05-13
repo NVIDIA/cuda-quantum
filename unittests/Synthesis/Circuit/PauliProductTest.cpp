@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "Circuit/PauliProduct.h"
+#include "cudaq/Synthesis/Circuit/PauliProduct.h"
 
 #include <gtest/gtest.h>
 
