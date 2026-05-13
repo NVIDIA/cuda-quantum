@@ -83,14 +83,17 @@ RUN curl -L https://github.com/Kitware/CMake/releases/download/v3.28.4/cmake-3.2
 
 # Build the the LLVM libraries and compiler toolchain needed to build CUDA-Q.
 ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
+ADD ./scripts/build_mlir_python_bindings.sh /scripts/build_mlir_python_bindings.sh
 ADD ./cmake/caches/LLVM.cmake /cmake/caches/LLVM.cmake
 ADD ./tpls/customizations/llvm/ /tpls/customizations/llvm/
 RUN LLVM_PROJECTS='clang;lld;mlir' LLVM_SOURCE=/llvm-project \
     LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake \
     LLVM_CMAKE_PATCHES=/tpls/customizations/llvm \
     bash /scripts/build_llvm.sh -c Release -v
-    # No clean up of the build or source directory,
-    # since we need to re-build llvm for each python version to get the bindings.
+    # The build directory at /llvm-project/build is intentionally retained:
+    # build_mlir_python_bindings.sh reuses it in the wheel container to add
+    # the python-binding targets per Python version without recompiling
+    # the rest of the LLVM/MLIR/clang/lld tree.
 
 # Install CUDA
 

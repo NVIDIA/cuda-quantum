@@ -281,16 +281,18 @@ jobs:
           image: dev_env:local
           shell: bash
           run: |
+            retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
             cd $CUDAQ_REPO_ROOT
 
             export DEBIAN_FRONTEND=noninteractive
-            apt-get update -y && apt-get install -y python3-venv
+            retry apt-get update -y
+            retry apt-get install -y python3-venv
 
             VENV_DIR="$HOME/.venvs/cudaq"
             python3 -m venv --system-site-packages "$VENV_DIR"
             . "$VENV_DIR/bin/activate"
 
-            pip install -r requirements-tests-backend.txt
+            retry pip install -r requirements-tests-backend.txt
             pip install . -vvv
             pyinstall_status=$?
             if [ ! $pyinstall_status -eq 0 ]; then
@@ -298,7 +300,7 @@ jobs:
               exit 1
             fi
 
-            python -m pip install pytest pytest-xdist
+            retry python -m pip install pytest pytest-xdist
             python -m pytest -v --durations=0 -n auto python/tests/ \
               --ignore python/tests/backends \
               --ignore python/tests/contrib
@@ -328,7 +330,7 @@ jobs:
               exit 1
             fi
 
-            pip install qiskit
+            retry pip install qiskit
             python -m pytest -v --durations=0  python/tests/contrib
             pytest_status=$?
             if [ ! $pytest_status -eq 0 ]; then

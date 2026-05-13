@@ -51,14 +51,15 @@ jobs:
     steps:
       - id: check
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           if [ "$EVENT_NAME" != "workflow_run" ]; then
             echo "run_publishing=true" >> $GITHUB_OUTPUT
           elif [[ "$HEAD_BRANCH" == "main" || "$HEAD_BRANCH" == releases/* || "$HEAD_BRANCH" == staging/* || "$HEAD_BRANCH" == experimental/* ]]; then
             echo "run_publishing=true" >> $GITHUB_OUTPUT
           else
-            artifact_url=$(gh api "$ARTIFACTS_URL" --paginate -q '.artifacts[] | select(.name=="publishing_requested") | .archive_download_url' | head -1)
+            artifact_url=$(retry gh api "$ARTIFACTS_URL" --paginate -q '.artifacts[] | select(.name=="publishing_requested") | .archive_download_url' | head -1)
             if [ -n "$artifact_url" ]; then
-              gh api "$artifact_url" -o publishing_requested.zip
+              retry gh api "$artifact_url" -o publishing_requested.zip
               unzip -o publishing_requested.zip
               content=$(cat publishing_requested.txt 2>/dev/null | tr -d '\n' || echo "true")
             else
@@ -110,16 +111,17 @@ jobs:
       - name: Download build info
         id: artifacts
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           if ${{ inputs.deployment_id != '' }}; then
             artifacts_url=https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ inputs.deployment_id }}/artifacts
           else
             artifacts_url=${{ github.event.workflow_run.artifacts_url }}
             echo "Artifacts downloaded from https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}" >> $GITHUB_STEP_SUMMARY
           fi
-          artifacts=$(gh api $artifacts_url --paginate -q '.artifacts[] | {name: .name, url: .archive_download_url}')
+          artifacts=$(retry gh api $artifacts_url --paginate -q '.artifacts[] | {name: .name, url: .archive_download_url}')
 
           function download {
-            gh api $1 > info.zip
+            retry gh api $1 > info.zip
             unzip -d info info.zip
             for file in `find info/ -type f`; do
               cat "$file" >> $2.txt
@@ -170,7 +172,7 @@ jobs:
               release_version=`cat "$name.txt" | grep -o 'release-version: \S*' | cut -d ' ' -f 2`
             elif [ "$name" == "cuda_quantum_docs" ] && ${{ github.event_name == 'workflow_dispatch' && inputs.include_docs }}; then
               docs_archive="$(pwd)/cuda_quantum_docs.zip"
-              gh api $url > "$docs_archive"
+              retry gh api $url > "$docs_archive"
             fi
           done
 
@@ -415,6 +417,7 @@ jobs:
       - name: Retrieve assets
         id: release_info
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           release_id=${{ fromJson(needs.assets.outputs.docker_images)[format('{0}', matrix.info_file)].release_id }}
           assets_folder=assets && mkdir "$assets_folder" && cd "$assets_folder"
           cp -r /tmp/assets/${{ matrix.info_file }}/. "$(pwd)" && rm -rf /tmp/assets
@@ -429,7 +432,7 @@ jobs:
           cudaqdevdeps_image=`cat $build_info | grep -o 'cuda-quantum-devdeps-image: \S*' | cut -d ' ' -f 2`
           for file in `ls *zip`; do unzip "$file" && rm "$file"; done && cd -
 
-          docker pull $cudaqbase_image
+          retry docker pull $cudaqbase_image
           base_tag=`docker inspect $cudaqbase_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"'`
           base_tag=$(echo "$base_tag" | sed -E 's/^(arm64-|amd64-)//')
           image_title=`docker inspect $cudaqbase_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.title"'`
@@ -875,6 +878,7 @@ jobs:
       - name: Fetch macOS artifacts from Deployments run
         id: fetch
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           artifacts_url="${{ needs.assets.outputs.artifacts_url }}"
           if [ -z "$artifacts_url" ]; then
             echo "No artifacts URL available."
@@ -883,7 +887,7 @@ jobs:
             exit 0
           fi
 
-          artifacts=$(gh api $artifacts_url --paginate -q '.artifacts[] | {name: .name, url: .archive_download_url}')
+          artifacts=$(retry gh api $artifacts_url --paginate -q '.artifacts[] | {name: .name, url: .archive_download_url}')
 
           has_macos_wheels=false
           has_macos_installer=false
@@ -896,14 +900,14 @@ jobs:
             if [[ "$name" == pycudaq-*-darwin-arm64 ]]; then
               python_version=$(echo "$name" | sed 's/pycudaq-\(.*\)-darwin-arm64/\1/')
               echo "Downloading macOS wheel: $name (Python $python_version)"
-              gh api "$url" > "${name}.zip"
+              retry gh api "$url" > "${name}.zip"
               unzip "${name}.zip" -d wheels/
               rm "${name}.zip"
               has_macos_wheels=true
 
             elif [[ "$name" == cudaq-arm64-darwin-installer-* ]]; then
               echo "Downloading macOS installer: $name"
-              gh api "$url" > "${name}.zip"
+              retry gh api "$url" > "${name}.zip"
               unzip "${name}.zip" -d installer/
               rm "${name}.zip"
               has_macos_installer=true
@@ -994,10 +998,11 @@ jobs:
       - name: Basic validation (GPU backends)
         shell: bash
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           # Seems like we will need to install build-essential for resolving nbconvert issue `RuntimeError: Unsupported compiler -- at least C++11 support is needed!`"
           # Given here: https://github.com/NVIDIA/cuda-quantum/blob/main/docs/sphinx/applications/python/qchem/cppe_lib.py#L18
           # and https://github.com/jupyter/nbconvert/issues/1742
-          sudo apt-get update && sudo apt-get install -y build-essential python3-dev python3-venv python3-pip
+          retry sudo apt-get update && retry sudo apt-get install -y build-essential python3-dev python3-venv python3-pip
 
           backends_to_test=`\
               for file in $(ls $CUDA_QUANTUM_PATH/targets/*.yml); \
@@ -1102,15 +1107,17 @@ jobs:
       - name: Runtime dependencies (apt)
         if: startsWith(matrix.os_image, 'ubuntu')
         run: |
-          apt-get update && apt-get install -y --no-install-recommends \
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry apt-get update
+          retry apt-get install -y --no-install-recommends \
             wget ca-certificates libc6-dev libopenmpi-dev
           distro=`echo ${{ matrix.os_image }} | tr -d . | tr -d :`
           CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
-          wget "${CUDA_DOWNLOAD_URL}/$distro/x86_64/cuda-keyring_1.1-1_all.deb"
+          retry wget "${CUDA_DOWNLOAD_URL}/$distro/x86_64/cuda-keyring_1.1-1_all.deb"
           dpkg -i cuda-keyring_1.1-1_all.deb
           cuda_version_suffix="$(echo ${{ matrix.cuda_version }} | tr . -)"
-          apt-get update
-          apt-get install -y --no-install-recommends \
+          retry apt-get update
+          retry apt-get install -y --no-install-recommends \
           cuda-cudart-$cuda_version_suffix \
           cuda-cudart-dev-$cuda_version_suffix \
           cuda-nvrtc-$cuda_version_suffix \
@@ -1123,7 +1130,11 @@ jobs:
       - name: Runtime dependencies (dnf)
         if: startsWith(matrix.os_image, 'redhat')
         run: |
-          dnf install -y --nobest --setopt=install_weak_deps=False \
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          # dnf-specific retry: clears cached metadata between attempts so that
+          # a stale 404 from a CDN mirror doesn't poison the cache for retry #2.
+          retry_dnf() { local pre=""; [ "$(id -u)" -ne 0 ] && pre=sudo; for n in 1 2 3; do $pre dnf "$@" && return 0; [ $n -lt 3 ] && { $pre dnf clean metadata >/dev/null 2>&1 || true; sleep $((15*n*n)); }; done; return 1; }
+          retry_dnf install -y --nobest --setopt=install_weak_deps=False \
             'dnf-command(config-manager)' glibc-devel openssh-clients
           CUDA_VERSION=${{ matrix.cuda_version }}
           DISTRIBUTION=rhel8
@@ -1132,13 +1143,13 @@ jobs:
           # We need to install an MPI implementation, otherwise nothing
           # will be able to run on the nvidia-mgpu backend.
           # Install conda to a shared path so the non-root test user can access MPI.
-          dnf install -y --nobest --setopt=install_weak_deps=False wget
+          retry_dnf install -y --nobest --setopt=install_weak_deps=False wget
           conda_prefix=/opt/miniconda3
-          wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-$(uname -m).sh -O /tmp/miniconda.sh
+          retry wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-$(uname -m).sh -O /tmp/miniconda.sh
           bash /tmp/miniconda.sh -b -u -p "$conda_prefix"
           rm -f /tmp/miniconda.sh
           eval "$($conda_prefix/bin/conda shell.bash hook)"
-          conda install -y -c conda-forge openmpi">=5.0.7"
+          retry conda install -y -c conda-forge openmpi">=5.0.7"
           chmod -R a+rX "$conda_prefix"
 
       - name: Install and run sanity checks
@@ -1238,24 +1249,26 @@ jobs:
       - name: Run basic validation
         shell: bash
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           # These simple steps are only expected to work for
           # test cases that don't require MPI.
           # Create clean python3 environment.
-          apt-get update && apt-get install -y --no-install-recommends python3 python3-pip python3-venv
+          retry apt-get update
+          retry apt-get install -y --no-install-recommends python3 python3-pip python3-venv
 
           # Make a place for local wheels
           mkdir -p /tmp/packages && mv /tmp/wheels/* /tmp/packages && rmdir /tmp/wheels
-          
+
           # Create and activate virtual environment
           python3 -m venv /opt/cudaq-venv
           source /opt/cudaq-venv/bin/activate
 
           if [ -n "${{ matrix.cuda_major }}" ]; then
-            pip install cuda-quantum-cu${{ matrix.cuda_major }}==${{ needs.assets.outputs.cudaq_version }} -v \
+            retry pip install cuda-quantum-cu${{ matrix.cuda_major }}==${{ needs.assets.outputs.cudaq_version }} -v \
               --find-links "file:///tmp/packages"
           else
-            pip install --upgrade pip
-            pip install cudaq==${{ needs.assets.outputs.cudaq_version }} -v \
+            retry pip install --upgrade pip
+            retry pip install cudaq==${{ needs.assets.outputs.cudaq_version }} -v \
               --find-links "file:///tmp/packages" \
             2>&1 | tee /tmp/install.out
 
@@ -1282,7 +1295,7 @@ jobs:
 
           # Also need to test dynamics
           echo "Running with target dynamics"
-          python3 -m pip install matplotlib
+          retry python3 -m pip install matplotlib
           python3 docs/sphinx/examples/python/dynamics/qubit_dynamics.py
 
           set -e # Re-enable exit code error checking
@@ -1340,7 +1353,9 @@ jobs:
       - name: Run validation
         shell: bash
         run: |
-          apt-get update && apt-get install -y --no-install-recommends \
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry apt-get update
+          retry apt-get install -y --no-install-recommends \
             ca-certificates vim wget unzip openssh-client
           mv /tmp/wheels/* /tmp/packages && rmdir /tmp/wheels
 
@@ -1407,15 +1422,16 @@ jobs:
 
       - name: Validate metapackage install chain
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           mkdir -p /tmp/packages
           mv /tmp/wheels/* /tmp/packages
           mv /tmp/metapackages/* /tmp/packages
 
           python3 -m venv /tmp/metapackage-test
           source /tmp/metapackage-test/bin/activate
-          pip install --upgrade pip
+          retry pip install --upgrade pip
 
-          pip install "cudaq==${{ needs.assets.outputs.cudaq_version }}" \
+          retry pip install "cudaq==${{ needs.assets.outputs.cudaq_version }}" \
             --find-links "file:///tmp/packages"
 
           expected_dependency=cuda-quantum-cu13

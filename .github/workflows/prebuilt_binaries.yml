@@ -412,21 +412,24 @@ jobs:
           user: cudaq
           shell: bash -l
           run: |
+            retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+            retry_dnf() { local pre=""; [ "$(id -u)" -ne 0 ] && pre=sudo; for n in 1 2 3; do $pre dnf "$@" && return 0; [ $n -lt 3 ] && { $pre dnf clean metadata >/dev/null 2>&1 || true; sleep $((15*n*n)); }; done; return 1; }
             PYTHON="python3.$(ls cuda_quantum*.whl | grep -o cp3[0-9]* | cut -c 4- | head -1)"
             if [ -x "$(command -v apt-get)" ]; then
-              sudo apt-get update && sudo apt-get install -y --no-install-recommends $PYTHON $PYTHON-venv
+              retry sudo apt-get update
+              retry sudo apt-get install -y --no-install-recommends $PYTHON $PYTHON-venv
               $PYTHON -m venv "$HOME/.venv" && PATH="$HOME/.venv/bin:$PATH"
             elif [ -x "$(command -v dnf)" ]; then
-              sudo dnf install -y --nobest --setopt=install_weak_deps=False $(echo $PYTHON | tr -d .)
+              retry_dnf install -y --nobest --setopt=install_weak_deps=False $(echo $PYTHON | tr -d .)
               $PYTHON -m ensurepip --upgrade
             elif [ -x "$(command -v zypper)" ]; then
-              sudo zypper --non-interactive up --no-recommends
-              sudo zypper --non-interactive in --no-recommends $(echo $PYTHON | tr -d .)
-              $PYTHON -m ensurepip --upgrade            
+              retry sudo zypper --non-interactive up --no-recommends
+              retry sudo zypper --non-interactive in --no-recommends $(echo $PYTHON | tr -d .)
+              $PYTHON -m ensurepip --upgrade
             fi
 
-            ${PYTHON} -m pip install cuda_quantum*.whl
-            ${PYTHON} -m pip install pytest numpy psutil
+            retry ${PYTHON} -m pip install cuda_quantum*.whl
+            retry ${PYTHON} -m pip install pytest numpy psutil
             # FIXME: some tests fail when building against libc++
             # https://github.com/NVIDIA/cuda-quantum/issues/1712
             # /home/cudaq/python/kernel/test_kernel_parameters.py
@@ -446,6 +449,8 @@ jobs:
           user: cudaq
           shell: bash -l
           run: |
+            retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+            retry_dnf() { local pre=""; [ "$(id -u)" -ne 0 ] && pre=sudo; for n in 1 2 3; do $pre dnf "$@" && return 0; [ $n -lt 3 ] && { $pre dnf clean metadata >/dev/null 2>&1 || true; sleep $((15*n*n)); }; done; return 1; }
             # Uninstall CUDA Quantum
             install_dir="$CUDA_QUANTUM_PATH"
             sudo bash ${CUDA_QUANTUM_PATH}/uninstall.sh -y
@@ -478,7 +483,7 @@ jobs:
             status_sum=0
 
             if ${{ contains(matrix.os_image, 'redhat' ) }}; then
-              sudo dnf install -y --nobest --setopt=install_weak_deps=False gcc-toolset-12
+              retry_dnf install -y --nobest --setopt=install_weak_deps=False gcc-toolset-12
               source /opt/rh/gcc-toolset-12/enable
               export OMPI_CXX=g++
               /usr/local/openmpi/bin/mpic++ mpi_cuda_check.cpp -o check.x && \
