@@ -187,7 +187,6 @@ void IQMServerHelper::initialize(BackendConfig config) {
   } else {
     // Set alternative iqmclient-cli tokens file path if provided via env var
     auto envTokenFilePath = getenv("IQM_TOKENS_FILE");
-    // FIX(security): guard getenv("HOME") against nullptr (e.g. in containers)
     const char *homeDir = getenv("HOME");
     auto defaultTokensFilePath =
         homeDir ? std::string(homeDir) + "/.cache/iqm-client-cli/tokens.json"
@@ -540,8 +539,6 @@ std::string IQMServerHelper::writeQuantumArchitectureFile(void) {
     fwrite(outputLine.c_str(), outputLine.length(), 1, file);
   }
 
-  // FIX(bug): fclose() already closes the underlying fd from fdopen().
-  // Calling close(fd) after fclose() is a double-close (UB).
   fclose(file);
 
   return quantumArchitectureFilePath;

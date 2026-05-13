@@ -222,8 +222,6 @@ constexpr std::string_view typeName() {
 template <SimPrecisionType To, SimPrecisionType From>
 std::unique_ptr<std::complex<To>[]> convertToComplex(std::complex<From> *data,
                                                      std::size_t numQubits) {
-  // FIX(perf): use bit-shift instead of floating-point pow() for exact integer
-  // computation — pow() returns double, losing precision for large qubit counts.
   auto size = static_cast<std::size_t>(1) << numQubits;
   constexpr auto toType = typeName<To>();
   constexpr auto fromType = typeName<From>();
@@ -242,8 +240,6 @@ std::unique_ptr<std::complex<To>[]> convertToComplex(std::complex<From> *data,
 template <SimPrecisionType To, SimPrecisionType From>
 std::unique_ptr<std::complex<To>[]> convertToComplex(From *data,
                                                      std::size_t numQubits) {
-  // FIX(perf): use bit-shift instead of floating-point pow() for exact integer
-  // computation — pow() returns double, losing precision for large qubit counts.
   auto size = static_cast<std::size_t>(1) << numQubits;
   constexpr auto toType = typeName<To>();
   constexpr auto fromType = typeName<From>();
@@ -433,7 +429,6 @@ void __quantum__rt__qubit_release_array(Array *arr) {
     nvqir::getCircuitSimulatorInternal()->deallocate(idxVal->idx);
     delete idxVal;
   }
-  // FIX(bug): untrack before delete to avoid use-after-delete on dangling ptr
   nvqir::ArrayTracker::getInstance().untrack(arr);
   delete arr;
   return;
@@ -831,7 +826,6 @@ void __quantum__qis__apply_kraus_channel_double(std::int64_t krausChannelKey,
       try {
         channelName = noise->get_channel(key, paramVec).get_type_name();
       } catch (...) {
-        
         CUDAQ_DBG("Failed to resolve noise channel name in tracer mode for "
                   "key {}, falling back to 'apply_noise'",
                   key);
@@ -876,7 +870,6 @@ __quantum__qis__apply_kraus_channel_float(std::int64_t krausChannelKey,
       try {
         channelName = noise->get_channel(key, paramVec).get_type_name();
       } catch (...) {
-        
         CUDAQ_DBG("Failed to resolve noise channel name in tracer mode for "
                   "key {}, falling back to 'apply_noise'",
                   key);

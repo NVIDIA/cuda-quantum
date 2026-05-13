@@ -246,7 +246,6 @@ static std::string searchAPIKey(std::string &key, std::string &refreshKey,
   else if (!userSpecifiedConfig.empty())
     hwConfig = userSpecifiedConfig;
   else {
-    // FIX(security): guard getenv("HOME") against nullptr (e.g. in containers)
     const char *home = std::getenv("HOME");
     if (!home)
       throw std::runtime_error(
@@ -712,8 +711,6 @@ void QuantinuumServerHelper::refreshTokens(bool force_refresh) {
     throw std::runtime_error(
         "Cannot get refresh access token, refresh key is empty.");
   }
-  // FIX(bug): mutex must be static to provide actual cross-thread protection.
-  // A local mutex is created/destroyed per call, giving zero synchronization.
   static std::mutex m;
   std::lock_guard<std::mutex> l(m);
   auto now = std::chrono::high_resolution_clock::now();

@@ -322,7 +322,6 @@ RestHeaders AnyonServerHelper::getHeaders() { return generateRequestHeader(); }
 
 /// Refresh the api key and refresh-token
 void AnyonServerHelper::refreshTokens(bool force_refresh) {
-  
   static std::mutex m;
   std::lock_guard<std::mutex> l(m);
   RestClient client;
@@ -439,7 +438,6 @@ std::string searchAPIKey(std::string &key, std::string &refreshKey,
   else if (!userSpecifiedConfig.empty())
     hwConfig = userSpecifiedConfig;
   else {
-    
     const char *home = std::getenv("HOME");
     if (!home)
       throw std::runtime_error(
