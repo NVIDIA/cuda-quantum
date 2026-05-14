@@ -13,7 +13,9 @@
 
 // Rx and Ry lower to a Clifford sandwich around an inner Rz, which the
 // greedy driver then re-fires on. The result must contain no surviving
-// rotation ops and at least one T gate per function.
+// rotation ops and a minimum of T gates per function.
+// 15 is a safety floor robust to gridsynth variance.
+// The actual T-count at epsilon=1e-3 is on the order of dozens.
 
 func.func @rx_pi_over_4() {
   %q = quake.alloca !quake.ref
@@ -24,7 +26,7 @@ func.func @rx_pi_over_4() {
 
 // CHECK-LABEL: func.func @rx_pi_over_4
 // CHECK:         quake.alloca
-// CHECK:         quake.t
+// CHECK-COUNT-15: quake.t
 
 func.func @ry_pi_over_4() {
   %q = quake.alloca !quake.ref
@@ -35,4 +37,4 @@ func.func @ry_pi_over_4() {
 
 // CHECK-LABEL: func.func @ry_pi_over_4
 // CHECK:         quake.alloca
-// CHECK:         quake.t
+// CHECK-COUNT-15: quake.t
