@@ -234,7 +234,7 @@ FailureOr<UprightResult> to_upright(const Ellipse &setA, const Ellipse &setB) {
   GridOp opG_l = GridOp::identity();
   GridOp opG_r = GridOp::identity();
 
-  i32 iterations = 0;
+  [[maybe_unused]] i32 iterations = 0;
   bool done = false;
   while (!done) {
     if (failed(step_lemma(A, B, opG_l, opG_r, done)))
