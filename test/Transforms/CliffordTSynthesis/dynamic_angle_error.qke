@@ -1,0 +1,20 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --clifford-t-synthesis='epsilon=1e-3' \
+// RUN:   -verify-diagnostics %s
+
+// With the default --on-dynamic-angle=error, a non-constant rotation angle
+// must produce a diagnostic naming the option that controls this behaviour.
+
+func.func @dyn(%a: f64) {
+  %q = quake.alloca !quake.ref
+  // expected-error @+1 {{rotation angle is not a compile-time constant}}
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
