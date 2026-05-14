@@ -54,6 +54,17 @@ void addDecomposition(mlir::OpPassManager &pm,
                       mlir::ArrayRef<std::string> enabledPats,
                       mlir::ArrayRef<std::string> disabledPats = {});
 
+/// Clifford+T fault-tolerant synthesis sub-pipeline
+/// UnitarySynthesis
+/// ApplyOpSpecialization
+/// constant propagation
+/// CliffordTSynthesis
+/// Decomposition to the {H, S, T, X, Z, CNOT} basis
+/// Opt-in only.
+/// gridsynth is stochastic and may take some time, so this
+/// helper must not be added to default target pipelines.
+void addCliffordTSynthesis(mlir::OpPassManager &pm, double epsilon = 1e-10);
+
 void registerAOTPipelines();
 void registerJITPipelines();
 
