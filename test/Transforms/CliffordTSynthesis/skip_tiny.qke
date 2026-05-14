@@ -1,0 +1,26 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --clifford-t-synthesis='epsilon=1e-3' %s | \
+// RUN:   FileCheck %s --implicit-check-not='quake.r{{[xyz1]}}' \
+// RUN:                --implicit-check-not='quake.{{[hstx]}}'
+
+// |theta| = 1e-15 is below the default --skip-below=1e-12, so the rotation
+// is erased. The function body must end up with only the alloca and return.
+// No rotation ops and no Clifford+T gates.
+
+func.func @tiny() {
+  %q = quake.alloca !quake.ref
+  %a = arith.constant 1.0e-15 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @tiny
+// CHECK:         quake.alloca
+// CHECK:         return
