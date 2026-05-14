@@ -144,6 +144,18 @@ void cudaq::opt::addDecomposition(OpPassManager &pm,
   pm.addPass(cudaq::opt::createDecomposition(opts));
 }
 
+void cudaq::opt::addCliffordTSynthesis(OpPassManager &pm, double epsilon) {
+  pm.addPass(cudaq::opt::createUnitarySynthesis());
+  pm.addPass(cudaq::opt::createApplySpecialization());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createConstantPropagation());
+  cudaq::opt::CliffordTSynthesisOptions ctsOpts;
+  ctsOpts.epsilon = epsilon;
+  pm.addPass(cudaq::opt::createCliffordTSynthesis(ctsOpts));
+  cudaq::opt::DecompositionOptions decOpts;
+  decOpts.basis = {"h", "s", "t", "x", "z", "x(1)"};
+  pm.addPass(cudaq::opt::createDecomposition(decOpts));
+}
+
 static void
 createTargetDeployPipeline(OpPassManager &pm,
                            const TargetDeployPipelineOptions &options) {
