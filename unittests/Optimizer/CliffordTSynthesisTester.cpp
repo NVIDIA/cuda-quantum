@@ -18,6 +18,7 @@
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/LogicalResult.h"
+#include <algorithm>
 #include <cmath>
 #include <complex>
 #include <gtest/gtest.h>
@@ -46,16 +47,51 @@ const M2 kT = {1.0, 0.0, 0.0, std::polar(1.0, M_PI / 4.0)};
 const M2 kTdg = {1.0, 0.0, 0.0, std::polar(1.0, -M_PI / 4.0)};
 const M2 kX = {0.0, 1.0, 1.0, 0.0};
 
-// Create a module containing `func.func @rz_test() { %q = quake.alloca;
-// %a = arith.constant theta; quake.rz(%a) %q; return }`.
-OwningOpRef<ModuleOp> buildRzModule(MLIRContext *context, double theta) {
+enum class Rot { Rx, Ry, Rz, R1 };
+
+std::string nameOf(Rot gate) {
+  switch (gate) {
+  case Rot::Rx:
+    return "Rx";
+  case Rot::Ry:
+    return "Ry";
+  case Rot::Rz:
+    return "Rz";
+  case Rot::R1:
+    return "R1";
+  }
+  __builtin_unreachable();
+}
+
+// Ideal 2x2 unitary for each single-qubit rotation.
+M2 idealUnitary(Rot gate, double theta) {
+  const double cs = std::cos(theta / 2.0);
+  const double sn = std::sin(theta / 2.0);
+  switch (gate) {
+  case Rot::Rx:
+    return {cs, std::complex<double>(0.0, -sn), std::complex<double>(0.0, -sn),
+            cs};
+  case Rot::Ry:
+    return {cs, -sn, sn, cs};
+  case Rot::Rz:
+    return {std::polar(1.0, -theta / 2.0), 0.0, 0.0,
+            std::polar(1.0, theta / 2.0)};
+  case Rot::R1:
+    return {1.0, 0.0, 0.0, std::polar(1.0, theta)};
+  }
+  __builtin_unreachable();
+}
+
+// Build a module containing one rotation op on a single qubit.
+OwningOpRef<ModuleOp> buildRotationModule(MLIRContext *context, Rot gate,
+                                          double theta) {
   OpBuilder builder(context);
   auto loc = builder.getUnknownLoc();
   auto module = ModuleOp::create(builder, loc);
   builder.setInsertionPointToEnd(module.getBody());
 
   auto funcType = builder.getFunctionType({}, {});
-  auto func = func::FuncOp::create(builder, loc, "rz_test", funcType);
+  auto func = func::FuncOp::create(builder, loc, "rot_test", funcType);
   auto *entry = func.addEntryBlock();
   builder.setInsertionPointToStart(entry);
 
@@ -63,9 +99,24 @@ OwningOpRef<ModuleOp> buildRzModule(MLIRContext *context, double theta) {
   Value q = cudaq::quake::AllocaOp::create(builder, loc, refType);
   Value angle = cudaq::opt::factory::createFloatConstant(loc, builder, theta,
                                                          builder.getF64Type());
-
-  cudaq::quake::RzOp::create(builder, loc, /*isAdj=*/false, ValueRange{angle},
-                             /*controls=*/ValueRange{}, q);
+  switch (gate) {
+  case Rot::Rx:
+    cudaq::quake::RxOp::create(builder, loc, /*isAdj=*/false, ValueRange{angle},
+                               ValueRange{}, q);
+    break;
+  case Rot::Ry:
+    cudaq::quake::RyOp::create(builder, loc, /*isAdj=*/false, ValueRange{angle},
+                               ValueRange{}, q);
+    break;
+  case Rot::Rz:
+    cudaq::quake::RzOp::create(builder, loc, /*isAdj=*/false, ValueRange{angle},
+                               ValueRange{}, q);
+    break;
+  case Rot::R1:
+    cudaq::quake::R1Op::create(builder, loc, /*isAdj=*/false, ValueRange{angle},
+                               ValueRange{}, q);
+    break;
+  }
 
   func::ReturnOp::create(builder, loc);
   return OwningOpRef<ModuleOp>(module);
@@ -87,7 +138,13 @@ M2 reconstructUnitary(ModuleOp module) {
   return U;
 }
 
-class CliffordTSynthesisTester : public ::testing::Test {
+struct RotationCase {
+  Rot gate;
+  double theta;
+};
+
+class CliffordTSynthesisRotationTest
+    : public ::testing::TestWithParam<RotationCase> {
 protected:
   void SetUp() override {
     context = std::make_unique<MLIRContext>();
@@ -98,9 +155,9 @@ protected:
   std::unique_ptr<MLIRContext> context;
 };
 
-TEST_F(CliffordTSynthesisTester, RzRoundTripMatchesIdealUpToGlobalPhase) {
-  const double theta = M_PI / 4.0;
-  auto module = buildRzModule(context.get(), theta);
+TEST_P(CliffordTSynthesisRotationTest, RoundTripMatchesIdealUpToGlobalPhase) {
+  const auto &param = GetParam();
+  auto module = buildRotationModule(context.get(), param.gate, param.theta);
 
   PassManager pm(context.get());
   cudaq::opt::CliffordTSynthesisOptions opts;
@@ -108,7 +165,6 @@ TEST_F(CliffordTSynthesisTester, RzRoundTripMatchesIdealUpToGlobalPhase) {
   pm.addPass(cudaq::opt::createCliffordTSynthesis(opts));
   ASSERT_TRUE(succeeded(pm.run(*module)));
 
-  // No rotation ops should survive.
   module->walk([](Operation *op) {
     EXPECT_FALSE((isa<cudaq::quake::RxOp, cudaq::quake::RyOp,
                       cudaq::quake::RzOp, cudaq::quake::R1Op>(op)))
@@ -116,25 +172,27 @@ TEST_F(CliffordTSynthesisTester, RzRoundTripMatchesIdealUpToGlobalPhase) {
         << op->getName().getStringRef().str();
   });
 
-  M2 U = reconstructUnitary(*module);
+  const M2 U = reconstructUnitary(*module);
+  const M2 expected = idealUnitary(param.gate, param.theta);
 
-  // Expected R_z(theta) = diag(e^{-i theta/2}, e^{i theta/2}).
-  const std::complex<double> expectedA = std::polar(1.0, -theta / 2.0);
-  const std::complex<double> expectedD = std::polar(1.0, theta / 2.0);
-
-  const std::complex<double> globalPhase = U.a / expectedA;
-  const std::complex<double> normalized = globalPhase / std::abs(globalPhase);
-
-  const std::complex<double> alignedA = U.a / normalized;
-  const std::complex<double> alignedB = U.b / normalized;
-  const std::complex<double> alignedC = U.c / normalized;
-  const std::complex<double> alignedD = U.d / normalized;
-
-  const double tol = 1e-6;
-  EXPECT_LT(std::abs(alignedA - expectedA), tol);
-  EXPECT_LT(std::abs(alignedB), tol);
-  EXPECT_LT(std::abs(alignedC), tol);
-  EXPECT_LT(std::abs(alignedD - expectedD), tol);
+  const std::complex<double> inner =
+      U.a * std::conj(expected.a) + U.b * std::conj(expected.b) +
+      U.c * std::conj(expected.c) + U.d * std::conj(expected.d);
+  EXPECT_NEAR(std::abs(inner), 2.0, 1e-6);
 }
+
+INSTANTIATE_TEST_SUITE_P(
+    Rotations, CliffordTSynthesisRotationTest,
+    ::testing::Values(RotationCase{Rot::Rz, M_PI / 4.0},
+                      RotationCase{Rot::Rz, M_PI / 3.0},
+                      RotationCase{Rot::Rx, M_PI / 4.0},
+                      RotationCase{Rot::Ry, M_PI / 4.0},
+                      RotationCase{Rot::R1, 2.0 * M_PI / 7.0}),
+    [](const ::testing::TestParamInfo<RotationCase> &info) {
+      std::string theta = std::to_string(info.param.theta);
+      std::replace(theta.begin(), theta.end(), '.', '_');
+      std::replace(theta.begin(), theta.end(), '-', 'n');
+      return nameOf(info.param.gate) + "_" + theta;
+    });
 
 } // namespace
