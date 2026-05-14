@@ -1,0 +1,27 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --clifford-t-synthesis='epsilon=1e-3' \
+// RUN:   -verify-diagnostics %s | FileCheck %s
+
+// A controlled rotation must survive the pass intact. The pass cannot
+// synthesize it (omega global-phase contributions would become observable
+// relative phases) and instead emits a remark instructing the caller to run
+// ApplyOpSpecialization first.
+
+func.func @ctrl() {
+  %q = quake.alloca !quake.ref
+  %c = quake.alloca !quake.ref
+  %a = arith.constant 0.7853981633974483 : f64
+  // expected-remark @+1 {{skipping controlled rotation}}
+  quake.rz (%a) [%c] %q : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @ctrl
+// CHECK:         quake.rz ({{.*}}) [%{{.*}}] %{{.*}} : (f64, !quake.ref, !quake.ref) -> ()
