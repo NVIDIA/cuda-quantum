@@ -22,14 +22,15 @@ namespace {
 // Code generation: converts the Quake IR to Codegen IR.
 //===----------------------------------------------------------------------===//
 
-class CodeGenRAIIPattern : public OpRewritePattern<quake::InitializeStateOp> {
+class CodeGenRAIIPattern
+    : public OpRewritePattern<cudaq::quake::InitializeStateOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(quake::InitializeStateOp init,
+  LogicalResult matchAndRewrite(cudaq::quake::InitializeStateOp init,
                                 PatternRewriter &rewriter) const override {
     Value mem = init.getTargets();
-    auto alloc = mem.getDefiningOp<quake::AllocaOp>();
+    auto alloc = mem.getDefiningOp<cudaq::quake::AllocaOp>();
     if (!alloc)
       return init.emitOpError("init_state must have alloca as input");
     rewriter.replaceOpWithNewOp<cudaq::codegen::RAIIOp>(
@@ -64,11 +65,12 @@ public:
   }
 };
 
-class CreateStateOpPattern : public OpRewritePattern<quake::CreateStateOp> {
+class CreateStateOpPattern
+    : public OpRewritePattern<cudaq::quake::CreateStateOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(quake::CreateStateOp createStateOp,
+  LogicalResult matchAndRewrite(cudaq::quake::CreateStateOp createStateOp,
                                 PatternRewriter &rewriter) const override {
     auto module = createStateOp->getParentOfType<ModuleOp>();
     auto loc = createStateOp.getLoc();
@@ -103,7 +105,7 @@ public:
     auto result = irBuilder.loadIntrinsic(module, createStateFunc);
     assert(succeeded(result) && "loading intrinsic should never fail");
 
-    auto stateTy = quake::StateType::get(ctx);
+    auto stateTy = cudaq::quake::StateType::get(ctx);
     auto statePtrTy = cudaq::cc::PointerType::get(stateTy);
     auto i8PtrTy = cudaq::cc::PointerType::get(rewriter.getI8Type());
     auto cast = cudaq::cc::CastOp::create(rewriter, loc, i8PtrTy, buffer);
@@ -114,11 +116,12 @@ public:
   }
 };
 
-class DeleteStateOpPattern : public OpRewritePattern<quake::DeleteStateOp> {
+class DeleteStateOpPattern
+    : public OpRewritePattern<cudaq::quake::DeleteStateOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(quake::DeleteStateOp deleteStateOp,
+  LogicalResult matchAndRewrite(cudaq::quake::DeleteStateOp deleteStateOp,
                                 PatternRewriter &rewriter) const override {
     auto module = deleteStateOp->getParentOfType<ModuleOp>();
     auto ctx = deleteStateOp.getContext();
@@ -136,12 +139,13 @@ public:
 };
 
 class GetNumberOfQubitsOpPattern
-    : public OpRewritePattern<quake::GetNumberOfQubitsOp> {
+    : public OpRewritePattern<cudaq::quake::GetNumberOfQubitsOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(quake::GetNumberOfQubitsOp getNumQubitsOp,
-                                PatternRewriter &rewriter) const override {
+  LogicalResult
+  matchAndRewrite(cudaq::quake::GetNumberOfQubitsOp getNumQubitsOp,
+                  PatternRewriter &rewriter) const override {
     auto module = getNumQubitsOp->getParentOfType<ModuleOp>();
     auto ctx = getNumQubitsOp.getContext();
     auto state = getNumQubitsOp.getOperand();

@@ -11,10 +11,6 @@
 #include <cstring>
 #include <string>
 
-namespace nvqir {
-bool isUsingResourceCounterSimulator();
-} // namespace nvqir
-
 namespace {
 /// @brief Thread-local storage for the current execution context.
 thread_local cudaq::ExecutionContext *currentExecutionContext = nullptr;

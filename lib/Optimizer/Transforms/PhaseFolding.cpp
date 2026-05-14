@@ -21,7 +21,7 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
-#define RAW(X) quake::X
+#define RAW(X) cudaq::quake::X
 // AXIS-SPECIFIC: Defines which operations break a circuit into subcircuits
 #define CIRCUIT_BREAKERS(MACRO)                                                \
   MACRO(YOp), MACRO(ZOp), MACRO(HOp), MACRO(R1Op), MACRO(RxOp),                \
@@ -30,7 +30,7 @@ using namespace mlir;
 
 // AXIS-SPECIFIC: could allow controlled y and z here
 static bool isCNOT(Operation *op) {
-  if (auto xop = dyn_cast<quake::XOp>(op))
+  if (auto xop = dyn_cast<cudaq::quake::XOp>(op))
     return xop.getControls().size() == 1;
   return false;
 }
@@ -43,13 +43,13 @@ static bool isCNOT(Operation *op) {
 /// restrict the possible optimizations, so future work to recognize
 /// these possible side effects could be beneficial.
 static bool isSupportedValue(Value ref) {
-  if (!isa<quake::RefType>(ref.getType()))
+  if (!isa<cudaq::quake::RefType>(ref.getType()))
     return false;
 
   if (!ref.getDefiningOp())
     return false;
 
-  if (!ref.getDefiningOp<quake::AllocaOp>())
+  if (!ref.getDefiningOp<cudaq::quake::AllocaOp>())
     return false;
 
   // TODO: Concat op allows the pointer to be loaded again in a separate
@@ -62,7 +62,7 @@ static bool isSupportedValue(Value ref) {
   // aliases to resume reasoning after the alias is definitely no longer
   // used if it is relatively isolated.
   for (auto user : ref.getUsers())
-    if (isa<quake::ConcatOp>(user))
+    if (isa<cudaq::quake::ConcatOp>(user))
       return false;
 
   return true;
@@ -77,10 +77,10 @@ static bool isCircuitBreaker(Operation *op) {
   if (!isQuakeOperation(op))
     return true;
 
-  if (isa<RAW_CIRCUIT_BREAKERS, quake::NullWireOp>(op))
+  if (isa<RAW_CIRCUIT_BREAKERS, cudaq::quake::NullWireOp>(op))
     return true;
 
-  auto opi = dyn_cast<quake::OperatorInterface>(op);
+  auto opi = dyn_cast<cudaq::quake::OperatorInterface>(op);
 
   if (!opi)
     return true;
@@ -90,7 +90,7 @@ static bool isCircuitBreaker(Operation *op) {
     return true;
 
   // If any values are unsupported, the operation is also unsupported
-  for (auto operand : quake::getQuantumOperands(op))
+  for (auto operand : cudaq::quake::getQuantumOperands(op))
     if (!isSupportedValue(operand))
       return true;
 
@@ -98,7 +98,7 @@ static bool isCircuitBreaker(Operation *op) {
 }
 
 inline bool isTwoQubitOp(Operation *op) {
-  return quake::getQuantumOperands(op).size() == 2;
+  return cudaq::quake::getQuantumOperands(op).size() == 2;
 }
 
 namespace {
@@ -114,13 +114,13 @@ class Netlist {
 public:
   Netlist(mlir::func::FuncOp func) {
     func.walk([&](Operation *op) {
-      if (auto allocaop = dyn_cast<quake::AllocaOp>(op)) {
-        if (isa<quake::RefType>(allocaop.getType()))
+      if (auto allocaop = dyn_cast<cudaq::quake::AllocaOp>(op)) {
+        if (isa<cudaq::quake::RefType>(allocaop.getType()))
           allocNetlist(allocaop);
         return;
       }
 
-      for (auto operand : quake::getQuantumOperands(op))
+      for (auto operand : cudaq::quake::getQuantumOperands(op))
         if (isSupportedValue(operand))
           netlists[getIndexOf(operand)].push_back(op);
     });
@@ -205,7 +205,7 @@ protected:
           subcircuit->addAnchorPoint(op->getOperand(1), op);
         else
           subcircuit->addAnchorPoint(op->getOperand(0), op);
-      } else if (!isa<quake::XOp>(op)) {
+      } else if (!isa<cudaq::quake::XOp>(op)) {
         // AXIS-SPECIFIC
         subcircuit->num_rot_gates++;
       }
@@ -244,7 +244,8 @@ protected:
 
           if (otherWrapper)
             otherWrapper->pruneFrom(op);
-        } else if (isa<quake::RzOp>(op) && subcircuit->ops.contains(op)) {
+        } else if (isa<cudaq::quake::RzOp>(op) &&
+                   subcircuit->ops.contains(op)) {
           // AXIS-SPECIFIC
           subcircuit->num_rot_gates--;
         }
@@ -511,7 +512,7 @@ public:
 
 class PhaseStorage {
   SmallVector<Phase> phases;
-  SmallVector<quake::RzOp> rotations;
+  SmallVector<cudaq::quake::RzOp> rotations;
   size_t numCombined = 0;
 
   /// @brief Merges the rotation at prev_idx with rzop by adding their
@@ -520,7 +521,7 @@ class PhaseStorage {
   /// to ensure that dynamic rotation angles (e.g., dependent on
   /// measurement results) are indeed available, as earlier angles
   /// will always be available later, but not vice-versa.
-  void combineRotations(size_t prev_idx, quake::RzOp rzop) {
+  void combineRotations(size_t prev_idx, cudaq::quake::RzOp rzop) {
     auto old_rzop = rotations[prev_idx];
     auto rot_arg1 = old_rzop.getOperand(0);
     auto rot_arg2 = rzop.getOperand(0);
@@ -536,7 +537,7 @@ class PhaseStorage {
 public:
   /// @brief registers a new rotation op for the given phase
   /// @returns true if the rotation was combined, false otherwise
-  bool addOrCombineRotationForPhase(quake::RzOp op, Phase phase) {
+  bool addOrCombineRotationForPhase(cudaq::quake::RzOp op, Phase phase) {
     for (size_t i = 0; i < phases.size(); i++)
       if (phases[i] == phase) {
         combineRotations(i, op);
@@ -602,19 +603,19 @@ class PhaseFoldingPass
         auto target_phase = getPhase(target);
         auto new_target_phase = Phase::sum(target_phase, control_phase);
         setPhase(target, new_target_phase);
-      } else if (isa<quake::XOp>(op)) {
+      } else if (isa<cudaq::quake::XOp>(op)) {
         // Simple not, invert target phase
         // AXIS-SPECIFIC: Would want to handle y and z gates here too
         auto target = op->getOperand(0);
         auto target_phase = getPhase(target);
         auto new_target_phase = Phase::invert(target_phase);
         setPhase(target, new_target_phase);
-      } else if (auto rzop = dyn_cast<quake::RzOp>(op)) {
+      } else if (auto rzop = dyn_cast<cudaq::quake::RzOp>(op)) {
         // Rotation, try to merge by looking up in store
         auto target = op->getOperand(1);
         auto target_phase = getPhase(target);
         store.addOrCombineRotationForPhase(rzop, target_phase);
-      } else if (auto swap = dyn_cast<quake::SwapOp>(op)) {
+      } else if (auto swap = dyn_cast<cudaq::quake::SwapOp>(op)) {
         // Swap phases
         auto target1 = op->getOperand(0);
         auto target2 = op->getOperand(1);
@@ -646,7 +647,7 @@ public:
 
     auto subcircuitBuild = root.nest("Building subcircuits");
     subcircuitBuild.start();
-    func.walk([&](quake::XOp op) {
+    func.walk([&](cudaq::quake::XOp op) {
       // AXIS-SPECIFIC: controlled not only
       if (!::isCNOT(op) || nl.wasProcessed(op))
         return;

@@ -30,21 +30,21 @@ namespace {
 struct QuakeTypeConverter : public TypeConverter {
   QuakeTypeConverter() {
     addConversion([](Type ty) { return ty; });
-    addConversion([](quake::VeqType ty) {
+    addConversion([](cudaq::quake::VeqType ty) {
       return cudaq::cc::PointerType::get(
           cudaq::opt::getCudaqQubitSpanType(ty.getContext()));
     });
-    addConversion([](quake::RefType ty) {
+    addConversion([](cudaq::quake::RefType ty) {
       return cudaq::cc::PointerType::get(
           cudaq::opt::getCudaqQubitSpanType(ty.getContext()));
     });
-    addConversion([&](quake::StruqType ty) {
+    addConversion([&](cudaq::quake::StruqType ty) {
       SmallVector<Type> mems;
       for (auto m : ty.getMembers())
         mems.push_back(convertType(m));
       return cudaq::cc::StructType::get(ty.getContext(), mems);
     });
-    addConversion([](quake::MeasureType ty) {
+    addConversion([](cudaq::quake::MeasureType ty) {
       return IntegerType::get(ty.getContext(), 64);
     });
   }
@@ -63,7 +63,7 @@ struct QuakeToCCPass : public cudaq::opt::impl::QuakeToCCBase<QuakeToCCPass> {
     target.addLegalDialect<arith::ArithDialect, cudaq::cc::CCDialect,
                            cf::ControlFlowDialect, func::FuncDialect,
                            LLVM::LLVMDialect>();
-    target.addIllegalDialect<quake::QuakeDialect>();
+    target.addIllegalDialect<cudaq::quake::QuakeDialect>();
 
     LLVM_DEBUG(llvm::dbgs() << "Module before:\n"; op.dump());
     if (failed(applyPartialConversion(op, target, std::move(patterns))))

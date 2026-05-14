@@ -16,15 +16,15 @@ struct ak2 {
   auto operator()() __qpu__ {
     cudaq::qarray<5> q;
     h(q);
-    return mz(q);
+    return cudaq::to_bools(mz(q));
   }
 };
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ak2
 // CHECK-SAME: () -> !cc.stdvec<i1> attributes {
 // CHECK:           %[[VAL_22:.*]] = arith.constant 1 : i64
-// CHECK:           %[[VAL_19:.*]] = quake.mz %{{.*}} : (!quake.veq<5>) -> !cc.stdvec<!quake.measure>
-// CHECK:           %[[VAL_1:.*]] = quake.discriminate %[[VAL_19]] : (!cc.stdvec<!quake.measure>) -> !cc.stdvec<i1>
+// CHECK:           %[[VAL_19:.*]] = quake.mz %{{.*}} : (!quake.veq<5>) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[VAL_1:.*]] = quake.discriminate %[[VAL_19]] : (!cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<i1>
 // CHECK:           %[[VAL_20:.*]] = cc.stdvec_data %[[VAL_1]] : (!cc.stdvec<i1>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_21:.*]] = cc.stdvec_size %[[VAL_1]] : (!cc.stdvec<i1>) -> i64
 // CHECK:           %[[VAL_23:.*]] = call @__nvqpp_vectorCopyCtor(%[[VAL_20]], %[[VAL_21]], %[[VAL_22]]) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>

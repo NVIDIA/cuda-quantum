@@ -106,8 +106,10 @@ private:
   /// @brief Current state
   qpp::ket state;
 
-  /// @brief The qudit-levels (`qumodes`)
-  std::size_t levels;
+  /// @brief The qudit-levels (`qumodes`). Zero until the first qudit is
+  /// allocated; guards downstream consumers against reading an indeterminate
+  /// value when finalize runs on a kernel that allocated nothing.
+  std::size_t levels = 0;
 
   /// @brief Instructions are stored in a map
   std::unordered_map<std::string, std::function<void(const Instruction &)>>
@@ -178,10 +180,20 @@ protected:
                                          ExecutionContext &ctx) override {
     std::vector<std::size_t> ids;
     finalizeExecutionContextImpl(ids, ctx);
+    // Photonics kernels measure explicitly via `mz()`; `sampleQudits` is
+    // populated by `measureQudit`. An empty list means no measurement was
+    // recorded - either the kernel completed without an `mz()` or it threw
+    // before reaching one. Either way there is nothing to sample. Returning
+    // empty (rather than throwing) is required: `finalizeExecutionContext` is
+    // invoked from the exception-cleanup path together with `endExecution`,
+    // and a throw here would skip `endExecution` and leave the simulator
+    // carrying stale state into the next run.
+    if (sampleQudits.empty())
+      return sample_result{};
     CUDAQ_INFO("Sampling");
     auto shots = ctx.shots;
     auto sampleResult =
-        qpp::sample(shots, state, ids, sampleQudits.begin()->levels);
+        qpp::sample(shots, state, ids, sampleQudits.front().levels);
     cudaq::ExecutionResult counts;
     for (auto [result, count] : sampleResult) {
       std::stringstream bitstring;

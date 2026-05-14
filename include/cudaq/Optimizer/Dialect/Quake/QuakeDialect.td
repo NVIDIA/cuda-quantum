@@ -24,7 +24,7 @@ def QuakeDialect : Dialect {
     language in which one writes programs that build quantum circuits. Quake is 
     not tied to a particular quantum hardware/machine.
   }];
-  let cppNamespace = "::quake";
+  let cppNamespace = "cudaq::quake";
   let useDefaultTypePrinterParser = 1;
   let extraClassDeclaration = [{
     /// Register all Quake types.

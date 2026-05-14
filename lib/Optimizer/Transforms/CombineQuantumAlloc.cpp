@@ -27,34 +27,34 @@ struct Analysis {
   Analysis(Analysis &&) = delete;
   Analysis &operator=(const Analysis &) = delete;
 
-  SmallVector<quake::AllocaOp> allocations;
+  SmallVector<cudaq::quake::AllocaOp> allocations;
   SmallVector<std::pair<std::size_t, std::size_t>> offsetSizes;
-  SmallVector<quake::DeallocOp> deallocs;
-  quake::AllocaOp newAlloc;
+  SmallVector<cudaq::quake::DeallocOp> deallocs;
+  cudaq::quake::AllocaOp newAlloc;
 
   bool empty() const { return allocations.empty(); }
 };
 
-class AllocaPat : public OpRewritePattern<quake::AllocaOp> {
+class AllocaPat : public OpRewritePattern<cudaq::quake::AllocaOp> {
 public:
   explicit AllocaPat(MLIRContext *ctx, Analysis &a)
       : OpRewritePattern(ctx), analysis(a) {}
 
-  LogicalResult matchAndRewrite(quake::AllocaOp alloc,
+  LogicalResult matchAndRewrite(cudaq::quake::AllocaOp alloc,
                                 PatternRewriter &rewriter) const override {
     for (auto p : llvm::enumerate(analysis.allocations)) {
       if (alloc == p.value()) {
         auto i = p.index();
         auto &os = analysis.offsetSizes[i];
-        if (isa<quake::RefType>(alloc.getType())) {
+        if (isa<cudaq::quake::RefType>(alloc.getType())) {
           [[maybe_unused]] Value ext =
-              rewriter.replaceOpWithNewOp<quake::ExtractRefOp>(
+              rewriter.replaceOpWithNewOp<cudaq::quake::ExtractRefOp>(
                   alloc, analysis.newAlloc, os.first);
           LLVM_DEBUG(llvm::dbgs()
                      << "replace " << alloc << " with " << ext << '\n');
           return success();
         }
-        if (isa<quake::VeqType>(alloc.getType())) {
+        if (isa<cudaq::quake::VeqType>(alloc.getType())) {
           Value lo = arith::ConstantIntOp::create(
               rewriter, alloc.getLoc(), rewriter.getI64Type(), os.first);
           Value hi = arith::ConstantIntOp::create(rewriter, alloc.getLoc(),
@@ -63,33 +63,35 @@ public:
           // trying to print alloc after the replace gives a segfault
           LLVM_DEBUG(llvm::dbgs() << "replace " << alloc);
           [[maybe_unused]] Value subveq =
-              rewriter.replaceOpWithNewOp<quake::SubVeqOp>(
+              rewriter.replaceOpWithNewOp<cudaq::quake::SubVeqOp>(
                   alloc, alloc.getType(), analysis.newAlloc, lo, hi);
           LLVM_DEBUG(llvm::dbgs() << " with " << subveq << '\n');
           return success();
         }
-        if (auto sty = dyn_cast<quake::StruqType>(alloc.getType())) {
+        if (auto sty = dyn_cast<cudaq::quake::StruqType>(alloc.getType())) {
           SmallVector<Value> parts;
           std::size_t inner = os.first;
           auto loc = alloc.getLoc();
           for (auto m : sty.getMembers()) {
             auto v = [&]() -> Value {
-              if (isa<quake::RefType>(m)) {
-                auto result = quake::ExtractRefOp::create(
+              if (isa<cudaq::quake::RefType>(m)) {
+                auto result = cudaq::quake::ExtractRefOp::create(
                     rewriter, loc, analysis.newAlloc, inner);
                 inner++;
                 return result;
               }
-              assert(cast<quake::VeqType>(m).hasSpecifiedSize());
-              std::size_t dist = inner + cast<quake::VeqType>(m).getSize() - 1;
-              auto result = quake::SubVeqOp::create(
+              assert(cast<cudaq::quake::VeqType>(m).hasSpecifiedSize());
+              std::size_t dist =
+                  inner + cast<cudaq::quake::VeqType>(m).getSize() - 1;
+              auto result = cudaq::quake::SubVeqOp::create(
                   rewriter, loc, m, analysis.newAlloc, inner, dist);
               inner = dist + 1;
               return result;
             }();
             parts.push_back(v);
           }
-          rewriter.replaceOpWithNewOp<quake::MakeStruqOp>(alloc, sty, parts);
+          rewriter.replaceOpWithNewOp<cudaq::quake::MakeStruqOp>(alloc, sty,
+                                                                 parts);
           return success();
         }
         return alloc.emitOpError("has unexpected type");
@@ -118,10 +120,10 @@ public:
     std::size_t currentOffset = 0;
     for (auto &block : func.getRegion())
       for (auto &op : block) {
-        if (auto alloc = dyn_cast_or_null<quake::AllocaOp>(&op)) {
+        if (auto alloc = dyn_cast_or_null<cudaq::quake::AllocaOp>(&op)) {
           if (alloc.getSize() || alloc.hasInitializedState())
             return;
-          auto size = quake::getAllocationSize(alloc.getType());
+          auto size = cudaq::quake::getAllocationSize(alloc.getType());
           if (size == 0)
             // Skip zero-size allocas. Merging them would
             // produce subveq(lo, lo-1) which is invalid.
@@ -129,7 +131,8 @@ public:
           analysis.allocations.push_back(alloc);
           analysis.offsetSizes.emplace_back(currentOffset, size);
           currentOffset += size;
-        } else if (auto dealloc = dyn_cast_or_null<quake::DeallocOp>(&op)) {
+        } else if (auto dealloc =
+                       dyn_cast_or_null<cudaq::quake::DeallocOp>(&op)) {
           analysis.deallocs.push_back(dealloc);
         }
       }
@@ -143,8 +146,8 @@ public:
     auto loc = analysis.allocations.front().getLoc();
     OpBuilder rewriter(ctx);
     rewriter.setInsertionPointToStart(entryBlock);
-    auto veqTy = quake::VeqType::get(ctx, currentOffset);
-    analysis.newAlloc = quake::AllocaOp::create(rewriter, loc, veqTy);
+    auto veqTy = cudaq::quake::VeqType::get(ctx, currentOffset);
+    analysis.newAlloc = cudaq::quake::AllocaOp::create(rewriter, loc, veqTy);
 
     // 3. Greedily replace the uses of the original alloca ops with uses of
     // partitions of the new alloca op. Replace subveq of subveq with a single
@@ -153,10 +156,10 @@ public:
     {
       RewritePatternSet patterns(ctx);
       patterns.insert<AllocaPat>(ctx, analysis);
-      quake::ExtractRefOp::getCanonicalizationPatterns(patterns, ctx);
-      quake::GetMemberOp::getCanonicalizationPatterns(patterns, ctx);
-      quake::SubVeqOp::getCanonicalizationPatterns(patterns, ctx);
-      quake::ConcatOp::getCanonicalizationPatterns(patterns, ctx);
+      cudaq::quake::ExtractRefOp::getCanonicalizationPatterns(patterns, ctx);
+      cudaq::quake::GetMemberOp::getCanonicalizationPatterns(patterns, ctx);
+      cudaq::quake::SubVeqOp::getCanonicalizationPatterns(patterns, ctx);
+      cudaq::quake::ConcatOp::getCanonicalizationPatterns(patterns, ctx);
       if (failed(applyPatternsGreedily(func.getOperation(),
                                        std::move(patterns)))) {
         func.emitOpError("combining alloca, subveq, and extract ops failed");
@@ -171,8 +174,8 @@ public:
       for (auto &block : func.getRegion()) {
         if (block.hasNoSuccessors()) {
           rewriter.setInsertionPoint(block.getTerminator());
-          quake::DeallocOp::create(rewriter, analysis.newAlloc.getLoc(),
-                                   analysis.newAlloc);
+          cudaq::quake::DeallocOp::create(rewriter, analysis.newAlloc.getLoc(),
+                                          analysis.newAlloc);
         }
       }
     }

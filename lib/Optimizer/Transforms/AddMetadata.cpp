@@ -49,16 +49,16 @@ static cudaq::cc::AllocaOp seekAllocaFrom(Value v) {
 
 /// If the operation is a Measurement, check if its qubits are used in a
 /// subsequent reset operation, return true if so.
-static bool checkIsMeasureAndReset(quake::MeasurementInterface mxOp) {
+static bool checkIsMeasureAndReset(cudaq::quake::MeasurementInterface mxOp) {
   if (mxOp.getOptionalRegisterName())
     for (Value measuredQubit : mxOp.getTargets())
       for (Operation *user : measuredQubit.getUsers())
-        if (isa_and_present<quake::ResetOp>(user))
+        if (isa_and_present<cudaq::quake::ResetOp>(user))
           return true;
   return false;
 }
 
-void quake::detail::QuakeFunctionAnalysis::performAnalysis(
+void cudaq::quake::detail::QuakeFunctionAnalysis::performAnalysis(
     Operation *operation) {
   auto funcOp = dyn_cast<func::FuncOp>(operation);
   if (!funcOp)
@@ -68,7 +68,7 @@ void quake::detail::QuakeFunctionAnalysis::performAnalysis(
                           << '\n');
   QuakeMetadata data;
   SmallPtrSet<Operation *, 8> dirtySet;
-  funcOp->walk([&](quake::DiscriminateOp disc) {
+  funcOp->walk([&](cudaq::quake::DiscriminateOp disc) {
     dirtySet.insert(disc.getOperation());
   });
 
@@ -99,13 +99,15 @@ void quake::detail::QuakeFunctionAnalysis::performAnalysis(
     auto *op = keys.back();
     keys.pop_back();
     if (isa<cudaq::cc::IfOp, cudaq::cc::ConditionOp, cf::CondBranchOp,
-            quake::MeasurementInterface, quake::OperatorInterface,
-            quake::ApplyOp, CallOpInterface>(op)) {
+            cudaq::quake::MeasurementInterface, cudaq::quake::OperatorInterface,
+            cudaq::quake::ApplyOp, CallOpInterface>(op)) {
       data.hasConditionalsOnMeasure = true;
       data.hasQuantumDataflowViaClassical =
-          isa<quake::MeasurementInterface, quake::OperatorInterface>(op);
-      data.hasUnexpectedCalls = isa<quake::ApplyOp, cudaq::cc::CallCallableOp,
-                                    func::CallOp, func::CallIndirectOp>(op);
+          isa<cudaq::quake::MeasurementInterface,
+              cudaq::quake::OperatorInterface>(op);
+      data.hasUnexpectedCalls =
+          isa<cudaq::quake::ApplyOp, cudaq::cc::CallCallableOp, func::CallOp,
+              func::CallIndirectOp>(op);
       LLVM_DEBUG(llvm::dbgs() << "FOUND: mid-circuit dependence!\n");
       break;
     }
@@ -137,7 +139,7 @@ void quake::detail::QuakeFunctionAnalysis::performAnalysis(
   //   auto reg = mz(q);
   //   reset(q);
   // don't necessarily need conditional statements
-  funcOp->walk([&](quake::MeasurementInterface meas) {
+  funcOp->walk([&](cudaq::quake::MeasurementInterface meas) {
     // NB: checkIsMeasureAndReset does NOT check the order or any control
     // flow. We only know that a measurement and a reset acted on the same
     // SSA-value. This is overly conservative and possibly a lurking bug.
@@ -169,7 +171,8 @@ public:
       return;
 
     // Create the analysis and extract the info
-    const auto &analysis = getAnalysis<quake::detail::QuakeFunctionAnalysis>();
+    const auto &analysis =
+        getAnalysis<cudaq::quake::detail::QuakeFunctionAnalysis>();
     const auto &funcAnalysisInfo = analysis.getAnalysisInfo();
     auto iter = funcAnalysisInfo.find(funcOp);
     assert(iter != funcAnalysisInfo.end());

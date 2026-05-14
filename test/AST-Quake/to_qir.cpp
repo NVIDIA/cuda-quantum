@@ -45,14 +45,14 @@ struct kernel {
 // CHECK:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, ptr nonnull @__quantum__qis__x__ctl, ptr %[[VAL_8]], ptr %[[VAL_4]])
 // CHECK:         tail call void @__quantum__qis__h(ptr %[[VAL_8]])
 // CHECK:         %[[VAL_9:.*]] = tail call ptr @__quantum__qis__mz__to__register(ptr %[[VAL_8]], ptr nonnull @cstr.623000)
-// CHECK-DAG:     %[[VAL_10:.*]] = load i1, ptr %[[VAL_9]], align 1
-// CHECK-DAG:     %[[VAL_11:.*]] = tail call ptr @__quantum__qis__mz__to__register(ptr %[[VAL_4]], ptr nonnull @cstr.623100)
+// CHECK:         %[[VAL_11:.*]] = tail call ptr @__quantum__qis__mz__to__register(ptr %[[VAL_4]], ptr nonnull @cstr.623100)
 // CHECK:         %[[VAL_12:.*]] = load i1, ptr %[[VAL_11]], align 1
 // CHECK:         br i1 %[[VAL_12]], label %[[VAL_14:.*]], label %[[VAL_15:.*]]
 // CHECK:       {{[0-9]+}}:
 // CHECK:         tail call void @__quantum__qis__x(ptr %[[VAL_6]])
 // CHECK:         br label %[[VAL_15]]
 // CHECK:       {{[0-9]+}}:
+// CHECK:         %[[VAL_10:.*]] = load i1, ptr %[[VAL_9]], align 1
 // CHECK:         br i1 %[[VAL_10]], label %[[VAL_18:.*]], label %[[VAL_19:.*]]
 // CHECK:       {{[0-9]+}}:
 // CHECK:         tail call void @__quantum__qis__z(ptr %[[VAL_6]])

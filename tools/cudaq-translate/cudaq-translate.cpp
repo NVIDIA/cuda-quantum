@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
                                     "quake mlir to llvm ir compiler\n");
 
   DialectRegistry registry;
-  registry.insert<cudaq::cc::CCDialect, quake::QuakeDialect>();
+  registry.insert<cudaq::cc::CCDialect, cudaq::quake::QuakeDialect>();
   cudaq::registerAllDialects(registry);
   mlir::func::registerInlinerExtension(registry);
   mlir::LLVM::registerInlinerInterface(registry);

@@ -590,7 +590,7 @@ public:
                   ConversionPatternRewriter &rewriter) const override {
     auto inputTy = sizeOfOp.getInputType();
     auto resultTy = sizeOfOp.getType();
-    if (quake::isQuakeType(inputTy) ||
+    if (cudaq::quake::isQuakeType(inputTy) ||
         cudaq::cc::isDynamicallySizedType(inputTy)) {
       // Types that cannot be reified produce the poison op.
       rewriter.replaceOpWithNewOp<cudaq::cc::PoisonOp>(sizeOfOp, resultTy);

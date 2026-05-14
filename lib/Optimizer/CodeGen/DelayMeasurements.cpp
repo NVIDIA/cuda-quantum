@@ -86,7 +86,7 @@ struct DelayMeasurementsPass
       }
 
       if (op.hasTrait<cudaq::QuantumMeasure>() || isa<func::ReturnOp>(op) ||
-          isa<quake::DeallocOp>(op)) {
+          isa<cudaq::quake::DeallocOp>(op)) {
         addOpAndUsersToList(&op, opsToMoveToEnd);
         continue;
       }

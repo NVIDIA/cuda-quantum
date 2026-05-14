@@ -165,7 +165,7 @@ public:
   void applyX(std::size_t control, std::size_t target) {
     auto qubitC = createQubitRef(control);
     auto qubitT = createQubitRef(target);
-    quake::XOp::create(rewriter, loc, qubitC, qubitT);
+    cudaq::quake::XOp::create(rewriter, loc, qubitC, qubitT);
   };
 
 private:
@@ -173,7 +173,7 @@ private:
     if (qubitRefs.contains(index))
       return qubitRefs[index];
 
-    auto ref = quake::ExtractRefOp::create(rewriter, loc, qubits, index);
+    auto ref = cudaq::quake::ExtractRefOp::create(rewriter, loc, qubits, index);
     qubitRefs[index] = ref;
     return ref;
   }
@@ -199,8 +199,8 @@ public:
         phaseThreshold(t) {}
 
   template <typename Op,
-            std::enable_if_t<std::is_same<Op, quake::RyOp>::value ||
-                                 std::is_same<Op, quake::RzOp>::value,
+            std::enable_if_t<std::is_same<Op, cudaq::quake::RyOp>::value ||
+                                 std::is_same<Op, cudaq::quake::RzOp>::value,
                              int> = 0>
   void applyUniformlyControlledRotation(size_t numQubits,
                                         const std::span<double> angles) {
@@ -209,7 +209,7 @@ public:
       auto k = numQubits - j + 1;
       auto numControls = j - 1;
       auto target = j - 1;
-      auto alphaK = std::same_as<Op, quake::RyOp>
+      auto alphaK = std::same_as<Op, cudaq::quake::RyOp>
                         ? cudaq::details::getAlphaY(angles, numQubits, k)
                         : cudaq::details::getAlphaZ(angles, numQubits, k);
       applyRotation<Op>(alphaK, numControls, target);
@@ -240,14 +240,14 @@ public:
 
     // Apply uniformly controlled y-rotations (for magnitudes), the construction
     // in Eq. (4).
-    applyUniformlyControlledRotation<quake::RyOp>(numQubits, magnitudes);
+    applyUniformlyControlledRotation<cudaq::quake::RyOp>(numQubits, magnitudes);
 
     if (!needsPhaseEqualization)
       return;
 
     // Apply uniformly controlled z-rotations (for phases), the construction in
     // Eq. (4).
-    applyUniformlyControlledRotation<quake::RzOp>(numQubits, phases);
+    applyUniformlyControlledRotation<cudaq::quake::RzOp>(numQubits, phases);
   }
 
 private:
@@ -324,18 +324,19 @@ namespace {
 ///   }
 /// }
 /// ```
-class StatePrepPattern : public OpRewritePattern<quake::InitializeStateOp> {
+class StatePrepPattern
+    : public OpRewritePattern<cudaq::quake::InitializeStateOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
   explicit StatePrepPattern(MLIRContext *ctx, double phaseThreshold)
       : OpRewritePattern(ctx), phaseThreshold(phaseThreshold) {}
 
-  LogicalResult matchAndRewrite(quake::InitializeStateOp init,
+  LogicalResult matchAndRewrite(cudaq::quake::InitializeStateOp init,
                                 PatternRewriter &rewriter) const override {
     auto loc = init.getLoc();
     auto qubits = init.getTargets();
-    auto alloc = qubits.getDefiningOp<quake::AllocaOp>();
+    auto alloc = qubits.getDefiningOp<cudaq::quake::AllocaOp>();
     if (!alloc)
       return init.emitOpError("failed to replace op (alloca expected)");
 
@@ -343,7 +344,7 @@ public:
     Value data = init.getState();
 
     // Check that this is a state pointer coming from an argument.
-    auto createState = data.getDefiningOp<quake::CreateStateOp>();
+    auto createState = data.getDefiningOp<cudaq::quake::CreateStateOp>();
     if (!createState)
       return init.emitOpError("cannot perform state preparation synthesis on "
                               "arguments to the kernel");
@@ -392,13 +393,15 @@ private:
   double phaseThreshold;
 };
 
-class FoldQubitsPattern : public OpRewritePattern<quake::GetNumberOfQubitsOp> {
+class FoldQubitsPattern
+    : public OpRewritePattern<cudaq::quake::GetNumberOfQubitsOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(quake::GetNumberOfQubitsOp getnum,
+  LogicalResult matchAndRewrite(cudaq::quake::GetNumberOfQubitsOp getnum,
                                 PatternRewriter &rewriter) const override {
-    auto create = getnum.getState().getDefiningOp<quake::CreateStateOp>();
+    auto create =
+        getnum.getState().getDefiningOp<cudaq::quake::CreateStateOp>();
     if (!create)
       return failure();
     auto len = cudaq::opt::factory::maybeValueOfIntConstant(create.getLength());
@@ -414,13 +417,15 @@ public:
   }
 };
 
-class KillDeleteStatePattern : public OpRewritePattern<quake::DeleteStateOp> {
+class KillDeleteStatePattern
+    : public OpRewritePattern<cudaq::quake::DeleteStateOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(quake::DeleteStateOp delstate,
+  LogicalResult matchAndRewrite(cudaq::quake::DeleteStateOp delstate,
                                 PatternRewriter &rewriter) const override {
-    auto create = delstate.getState().getDefiningOp<quake::CreateStateOp>();
+    auto create =
+        delstate.getState().getDefiningOp<cudaq::quake::CreateStateOp>();
     if (!create)
       return failure();
     if (!create->hasOneUse())

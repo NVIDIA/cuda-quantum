@@ -98,18 +98,18 @@ namespace {
 /// span of non-constant size.
 /// All support functions will be declared as intrinsics. Some will be
 /// implemented in C++ and others in the intrinsics table.
-class AllocaOpRewrite : public OpConversionPattern<quake::AllocaOp> {
+class AllocaOpRewrite : public OpConversionPattern<cudaq::quake::AllocaOp> {
 public:
   using OpConversionPattern::OpConversionPattern;
 
   LogicalResult
-  matchAndRewrite(quake::AllocaOp alloca, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::AllocaOp alloca, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = alloca.getLoc();
     auto i64Ty = rewriter.getI64Type();
     auto qspanTy = cudaq::opt::getCudaqQubitSpanType(rewriter.getContext());
     Value qspan = cudaq::cc::AllocaOp::create(rewriter, loc, qspanTy);
-    if (auto resultType = dyn_cast<quake::RefType>(alloca.getType())) {
+    if (auto resultType = dyn_cast<cudaq::quake::RefType>(alloca.getType())) {
       auto one = arith::ConstantIntOp::create(rewriter, loc, 1, 64);
       Value buffer = cudaq::cc::AllocaOp::create(rewriter, loc, i64Ty, one);
       auto call = func::CallOp::create(
@@ -125,7 +125,7 @@ public:
     } else {
       Value sizeOperand;
       if (adaptor.getOperands().empty()) {
-        auto type = cast<quake::VeqType>(alloca.getType());
+        auto type = cast<cudaq::quake::VeqType>(alloca.getType());
         assert(type.hasSpecifiedSize() && "veq must have a constant size");
         auto constantSize = type.getSize();
         sizeOperand =
@@ -155,12 +155,12 @@ public:
   }
 };
 
-class DeallocOpRewrite : public OpConversionPattern<quake::DeallocOp> {
+class DeallocOpRewrite : public OpConversionPattern<cudaq::quake::DeallocOp> {
 public:
   using OpConversionPattern::OpConversionPattern;
 
   LogicalResult
-  matchAndRewrite(quake::DeallocOp dealloc, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::DeallocOp dealloc, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     rewriter.replaceOpWithNewOp<func::CallOp>(
         dealloc, mlir::TypeRange{}, cudaq::opt::CudaqEMReturn,
@@ -169,12 +169,12 @@ public:
   }
 };
 
-class ConcatOpRewrite : public OpConversionPattern<quake::ConcatOp> {
+class ConcatOpRewrite : public OpConversionPattern<cudaq::quake::ConcatOp> {
 public:
   using OpConversionPattern::OpConversionPattern;
 
   LogicalResult
-  matchAndRewrite(quake::ConcatOp concat, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::ConcatOp concat, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = concat.getLoc();
     auto newspan = packQubitSpans(loc, rewriter, adaptor.getOperands());
@@ -185,12 +185,12 @@ public:
 };
 
 class DiscriminateOpRewrite
-    : public OpConversionPattern<quake::DiscriminateOp> {
+    : public OpConversionPattern<cudaq::quake::DiscriminateOp> {
 public:
   using OpConversionPattern::OpConversionPattern;
 
   LogicalResult
-  matchAndRewrite(quake::DiscriminateOp discr, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::DiscriminateOp discr, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto m = discr.getMeasurement();
     rewriter.replaceOp(discr, m);
@@ -198,12 +198,13 @@ public:
   }
 };
 
-class ExtractRefOpRewrite : public OpConversionPattern<quake::ExtractRefOp> {
+class ExtractRefOpRewrite
+    : public OpConversionPattern<cudaq::quake::ExtractRefOp> {
 public:
   using OpConversionPattern::OpConversionPattern;
 
   LogicalResult
-  matchAndRewrite(quake::ExtractRefOp extract, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::ExtractRefOp extract, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = extract.getLoc();
     auto offset = [&]() -> Value {
@@ -239,7 +240,7 @@ public:
   }
 };
 
-class SubveqOpRewrite : public OpConversionPattern<quake::SubVeqOp> {
+class SubveqOpRewrite : public OpConversionPattern<cudaq::quake::SubVeqOp> {
 public:
   using OpConversionPattern::OpConversionPattern;
 
@@ -247,7 +248,7 @@ public:
   // does not make a copy. It simply constructs a new qubit span which is a
   // subspan of the original.
   LogicalResult
-  matchAndRewrite(quake::SubVeqOp subveq, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::SubVeqOp subveq, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = subveq.getLoc();
     auto up = [&]() -> Value {
@@ -288,12 +289,12 @@ public:
   }
 };
 
-class ResetRewrite : public OpConversionPattern<quake::ResetOp> {
+class ResetRewrite : public OpConversionPattern<cudaq::quake::ResetOp> {
 public:
   using OpConversionPattern::OpConversionPattern;
 
   LogicalResult
-  matchAndRewrite(quake::ResetOp resetOp, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::ResetOp resetOp, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     rewriter.replaceOpWithNewOp<func::CallOp>(resetOp, mlir::TypeRange{},
                                               cudaq::opt::CudaqEMReset,
@@ -368,7 +369,7 @@ public:
   }
 };
 
-class MzOpRewrite : public OpConversionPattern<quake::MzOp> {
+class MzOpRewrite : public OpConversionPattern<cudaq::quake::MzOp> {
 public:
   using OpConversionPattern::OpConversionPattern;
 
@@ -393,7 +394,7 @@ public:
   }
 
   LogicalResult
-  matchAndRewrite(quake::MzOp mzOp, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::MzOp mzOp, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = mzOp.getLoc();
     auto mod = mzOp->getParentOfType<ModuleOp>();
@@ -414,41 +415,41 @@ public:
 };
 
 /// Convert a MX operation to a sequence H; MZ.
-class MxToMzRewrite : public OpRewritePattern<quake::MxOp> {
+class MxToMzRewrite : public OpRewritePattern<cudaq::quake::MxOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(quake::MxOp mx,
+  LogicalResult matchAndRewrite(cudaq::quake::MxOp mx,
                                 PatternRewriter &rewriter) const override {
-    quake::HOp::create(rewriter, mx.getLoc(), mx.getTargets());
-    rewriter.replaceOpWithNewOp<quake::MzOp>(
+    cudaq::quake::HOp::create(rewriter, mx.getLoc(), mx.getTargets());
+    rewriter.replaceOpWithNewOp<cudaq::quake::MzOp>(
         mx, mx.getResultTypes(), mx.getTargets(), mx.getRegisterNameAttr());
     return success();
   }
 };
 
 /// Convert a MY operation to a sequence S; H; MZ.
-class MyToMzRewrite : public OpRewritePattern<quake::MyOp> {
+class MyToMzRewrite : public OpRewritePattern<cudaq::quake::MyOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(quake::MyOp my,
+  LogicalResult matchAndRewrite(cudaq::quake::MyOp my,
                                 PatternRewriter &rewriter) const override {
-    quake::SOp::create(rewriter, my.getLoc(), true, ValueRange{}, ValueRange{},
-                       my.getTargets());
-    quake::HOp::create(rewriter, my.getLoc(), my.getTargets());
-    rewriter.replaceOpWithNewOp<quake::MzOp>(
+    cudaq::quake::SOp::create(rewriter, my.getLoc(), true, ValueRange{},
+                              ValueRange{}, my.getTargets());
+    cudaq::quake::HOp::create(rewriter, my.getLoc(), my.getTargets());
+    rewriter.replaceOpWithNewOp<cudaq::quake::MzOp>(
         my, my.getResultTypes(), my.getTargets(), my.getRegisterNameAttr());
     return success();
   }
 };
 
-class VeqSizeOpRewrite : public OpConversionPattern<quake::VeqSizeOp> {
+class VeqSizeOpRewrite : public OpConversionPattern<cudaq::quake::VeqSizeOp> {
 public:
   using OpConversionPattern::OpConversionPattern;
 
   LogicalResult
-  matchAndRewrite(quake::VeqSizeOp vecsize, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::VeqSizeOp vecsize, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = vecsize->getLoc();
     auto i64Ty = rewriter.getI64Type();
@@ -466,16 +467,17 @@ public:
 void cudaq::opt::populateQuakeToCCPatterns(TypeConverter &converter,
                                            RewritePatternSet &patterns) {
   auto *context = patterns.getContext();
-  patterns.insert<AllocaOpRewrite, ConcatOpRewrite, DeallocOpRewrite,
-                  DiscriminateOpRewrite, ExtractRefOpRewrite, VeqSizeOpRewrite,
-                  MzOpRewrite, ResetRewrite, SubveqOpRewrite,
-                  GenericRewrite<quake::HOp>, GenericRewrite<quake::PhasedRxOp>,
-                  GenericRewrite<quake::R1Op>, GenericRewrite<quake::RxOp>,
-                  GenericRewrite<quake::RyOp>, GenericRewrite<quake::RzOp>,
-                  GenericRewrite<quake::SOp>, GenericRewrite<quake::SwapOp>,
-                  GenericRewrite<quake::TOp>, GenericRewrite<quake::U2Op>,
-                  GenericRewrite<quake::U3Op>, GenericRewrite<quake::XOp>,
-                  GenericRewrite<quake::YOp>, GenericRewrite<quake::ZOp>>(
+  patterns.insert<
+      AllocaOpRewrite, ConcatOpRewrite, DeallocOpRewrite, DiscriminateOpRewrite,
+      ExtractRefOpRewrite, VeqSizeOpRewrite, MzOpRewrite, ResetRewrite,
+      SubveqOpRewrite, GenericRewrite<cudaq::quake::HOp>,
+      GenericRewrite<cudaq::quake::PhasedRxOp>,
+      GenericRewrite<cudaq::quake::R1Op>, GenericRewrite<cudaq::quake::RxOp>,
+      GenericRewrite<cudaq::quake::RyOp>, GenericRewrite<cudaq::quake::RzOp>,
+      GenericRewrite<cudaq::quake::SOp>, GenericRewrite<cudaq::quake::SwapOp>,
+      GenericRewrite<cudaq::quake::TOp>, GenericRewrite<cudaq::quake::U2Op>,
+      GenericRewrite<cudaq::quake::U3Op>, GenericRewrite<cudaq::quake::XOp>,
+      GenericRewrite<cudaq::quake::YOp>, GenericRewrite<cudaq::quake::ZOp>>(
       converter, context);
 }
 
