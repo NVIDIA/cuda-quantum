@@ -111,8 +111,6 @@ void IonQServerHelper::initialize(BackendConfig config) {
   // Retrieve the noise model setting (if provided)
   if (config.find("noise") != config.end())
     backendConfig["noise_model"] = config["noise"];
-  else if (config.find("noise_model") != config.end())
-    backendConfig["noise_model"] = config["noise_model"];
   // Retrieve the API key from the environment variables
   bool isTokenRequired = [&]() {
     auto it = config.find("emulate");
@@ -137,11 +135,18 @@ void IonQServerHelper::initialize(BackendConfig config) {
   if (config.find("format") != config.end())
     backendConfig["format"] = config["format"];
 
-  // Enable memory, true by default
-  if (config.find("memory") != config.end())
-    backendConfig["memory"] = config["memory"];
-  else
-    backendConfig["memory"] = "true";
+  // Per-shot bitstring fetching is opt-in (default off).
+  // Accept common boolean spellings since this string may originate from
+  // Python kwargs (lowercased to "true"/"false" by py_runtime_target.cpp)
+  // or from a C++ caller constructing BackendConfig by hand.
+  if (config.find("memory") != config.end()) {
+    const auto &v = config["memory"];
+    backendConfig["memory"] =
+        (v == "true" || v == "True" || v == "TRUE" || v == "1") ? "true"
+                                                                : "false";
+  } else {
+    backendConfig["memory"] = "false";
+  }
 }
 
 // Implementation of the getValueOrDefault function
@@ -381,13 +386,18 @@ std::string IonQServerHelper::getShotsUrl(ServerMessage &jobs) {
 }
 
 bool IonQServerHelper::shotWiseOutputIsNeeded(ServerMessage &jobs) {
-  if (!keyExists("memory") || backendConfig["memory"] != "true")
+  // `initialize()` always seeds backendConfig["memory"], so a missing
+  // key would indicate a programming error rather than user input.
+  if (backendConfig["memory"] != "true")
     return false;
 
   if (jobs.empty())
     return false;
 
   auto &job = jobs[0];
+  // IonQ's API uses the literal string "simulator" for the ideal-cloud sim;
+  // any other value ("qpu.aria-1", "qpu.forte-enterprise-1", ...) is a QPU
+  // for which shot-wise data is meaningful.
   bool isQpu =
       job.contains("target") && job["target"].get<std::string>() != "simulator";
   bool hasNoise = job.contains("noise") && job["noise"].contains("model") &&
@@ -499,11 +509,13 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
     try {
       auto shotsResults = getResults(shotsUrl);
 
+      // IonQ's /results/shots endpoint returns a JSON array of
+      // decimal-string-encoded integers (one per shot), e.g. `["3","3","0"]`.
       std::vector<std::string> fullBitStrings;
       fullBitStrings.reserve(shotsResults.size());
-      for (const auto &element : shotsResults.items())
+      for (const auto &element : shotsResults)
         fullBitStrings.push_back(
-            intToBitString(std::stoull(element.value().get<std::string>())));
+            intToBitString(std::stoull(element.get<std::string>())));
 
       // Global register: extract the marginal over user qubits if compiler-
       // generated qubits are present, otherwise use the full bitstring.
@@ -536,7 +548,11 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
         regIdx++;
       }
     } catch (const std::exception &e) {
-      CUDAQ_INFO("Failed to retrieve shot-wise results: {}", e.what());
+      // memory=true was an explicit user request, so surface the failure
+      // at WARN level rather than INFO.
+      CUDAQ_WARN("IonQ shot-wise results unavailable for job {} (url={}): {}. "
+                 "sample_result.get_sequential_data() will be empty.",
+                 jobID, shotsUrl, e.what());
     }
   }
 

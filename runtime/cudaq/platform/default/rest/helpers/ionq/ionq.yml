@@ -52,4 +52,4 @@ target-arguments:
     required: false
     type: string
     platform-arg: memory
-    help-string: "When `true`, returns sequential data for QPU or noisy simulation runs. Default is `true`."
+    help-string: "When `true`, fetches per-shot bitstrings for QPU or noisy-simulator runs and exposes them via `sample_result.get_sequential_data()`. Adds one extra HTTPS round-trip per completed job. Default is `false`."

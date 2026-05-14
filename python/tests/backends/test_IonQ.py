@@ -352,20 +352,29 @@ def test_2q_unitary_synthesis():
     assert counts["0010011"] == 1000
 
 
-@pytest.mark.parametrize("mock_target,mock_noise,memory,expect_shots", [
-    ("aria-1", "", True, ['110', '110', '110']),
-    ("aria-1", "", False, []),
-    ("simulator", "aria-1", True, ['110', '110', '110']),
-    ("simulator", "aria-1", False, []),
-])
+@pytest.mark.parametrize(
+    "mock_target,mock_noise,memory,expect_shots",
+    [
+        # Shot-wise data SHOULD be returned: QPU target, or noisy simulator.
+        ("aria-1", "", True, ['110', '110', '110']),
+        ("simulator", "aria-1", True, ['110', '110', '110']),
+        # memory=False short-circuits even when the server would otherwise have it.
+        ("aria-1", "", False, []),
+        ("simulator", "aria-1", False, []),
+        # Shot-wise data should be SKIPPED for ideal-simulator runs, even when
+        # the user explicitly asks for memory=True. shotWiseOutputIsNeeded must
+        # return false here so we don't pay the extra round-trip.
+        ("simulator", "", True, []),
+        ("simulator", "ideal", True, []),
+        # And no target field at all in the response is treated as not-a-QPU.
+        ("", "", True, []),
+    ])
 def test_shot_wise_output(mock_target, mock_noise, memory, expect_shots):
 
     url = "http://localhost:{}".format(port)
 
     requests.post(f"{url}/_mock_server_config_target?target={mock_target}")
-    if mock_noise:
-        requests.post(
-            f"{url}/_mock_server_config_noise_model?noise={mock_noise}")
+    requests.post(f"{url}/_mock_server_config_noise_model?noise={mock_noise}")
 
     cudaq.set_target("ionq", url=url, noise='forte-enterprise-1', memory=memory)
 
@@ -378,10 +387,10 @@ def test_shot_wise_output(mock_target, mock_noise, memory, expect_shots):
     results = cudaq.sample(prep_110, shots_count=3)
     assert results.get_sequential_data() == expect_shots
 
-    # Reset mock server state
+    # Unconditionally reset both mock-server fields so a later parametrize
+    # case doesn't inherit stale state.
     requests.post(f"{url}/_mock_server_config_target?target=")
-    if mock_noise:
-        requests.post(f"{url}/_mock_server_config_noise_model?noise=")
+    requests.post(f"{url}/_mock_server_config_noise_model?noise=")
 
 
 @pytest.mark.skip_macos_arm64_jit
