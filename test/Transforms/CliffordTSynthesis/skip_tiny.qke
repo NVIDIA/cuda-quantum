@@ -6,6 +6,8 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
+// REQUIRES: clifford-t-synthesis
+
 // RUN: cudaq-opt --clifford-t-synthesis='epsilon=1e-3' %s | \
 // RUN:   FileCheck %s --implicit-check-not='quake.r{{[xyz1]}}' \
 // RUN:                --implicit-check-not='quake.{{[hstx]}}'
