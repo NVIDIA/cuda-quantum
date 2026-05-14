@@ -1,0 +1,36 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --clifford-t-synthesis='epsilon=1e-3' %s | \
+// RUN:   FileCheck %s --implicit-check-not='quake.r{{[xyz1]}}'
+
+// Rx and Ry lower to a Clifford sandwich around an inner Rz, which the
+// greedy driver then re-fires on. The result must contain no surviving
+// rotation ops and at least one T gate per function.
+
+func.func @rx_pi_over_4() {
+  %q = quake.alloca !quake.ref
+  %a = arith.constant 0.7853981633974483 : f64
+  quake.rx (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @rx_pi_over_4
+// CHECK:         quake.alloca
+// CHECK:         quake.t
+
+func.func @ry_pi_over_4() {
+  %q = quake.alloca !quake.ref
+  %a = arith.constant 0.7853981633974483 : f64
+  quake.ry (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @ry_pi_over_4
+// CHECK:         quake.alloca
+// CHECK:         quake.t
