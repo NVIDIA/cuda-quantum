@@ -201,6 +201,44 @@ struct RxPattern : OpRewritePattern<cudaq::quake::RxOp> {
   RotationOptions opts;
 };
 
+// Ry(theta) = S . H . Rz(theta) . H . S^dagger. Emitted as S.S.S . H . Rz .
+// H . S in circuit order (S^dagger = S^3 since S^4 = I), keeping the output
+// strictly in the Clifford+T alphabet {H, S, T, X}.
+struct RyPattern : OpRewritePattern<cudaq::quake::RyOp> {
+  RyPattern(MLIRContext *ctx, RotationOptions opts)
+      : OpRewritePattern(ctx), opts(std::move(opts)) {}
+
+  LogicalResult matchAndRewrite(cudaq::quake::RyOp op,
+                                PatternRewriter &rewriter) const override {
+    auto check = validateRotationOperands(op, op.getParameter(),
+                                          op.getControls(), rewriter, opts);
+    switch (check.action) {
+    case PreCheck::Action::LeaveInPlace:
+      return failure();
+    case PreCheck::Action::Erased:
+      return success();
+    case PreCheck::Action::Lower:
+      break;
+    }
+
+    Location loc = op.getLoc();
+    Value target = op.getTarget();
+    Value angle = op.getParameter();
+    cudaq::quake::SOp::create(rewriter, loc, ValueRange{target});
+    cudaq::quake::SOp::create(rewriter, loc, ValueRange{target});
+    cudaq::quake::SOp::create(rewriter, loc, ValueRange{target});
+    cudaq::quake::HOp::create(rewriter, loc, ValueRange{target});
+    cudaq::quake::RzOp::create(rewriter, loc, ValueRange{angle}, ValueRange{},
+                               ValueRange{target});
+    cudaq::quake::HOp::create(rewriter, loc, ValueRange{target});
+    cudaq::quake::SOp::create(rewriter, loc, ValueRange{target});
+    rewriter.eraseOp(op);
+    return success();
+  }
+
+  RotationOptions opts;
+};
+
 } // namespace
 
 #endif // CUDAQ_HAS_CLIFFORD_T_SYNTHESIS
@@ -238,7 +276,7 @@ public:
 
     MLIRContext *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    patterns.add<RxPattern, RzPattern>(ctx, opts);
+    patterns.add<RxPattern, RyPattern, RzPattern>(ctx, opts);
 
     if (failed(applyPatternsGreedily(getOperation(), std::move(patterns))))
       signalPassFailure();
