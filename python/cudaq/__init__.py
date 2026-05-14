@@ -204,7 +204,7 @@ else:
 parallel = cudaq_runtime.parallel
 
 # Primitive Types (stubs; used only in kernels, parsed to MLIR)
-from .kernel_types import qubit, qvector, qview
+from .kernel_types import measure_handle, qubit, qvector, qview
 
 Pauli = cudaq_runtime.Pauli
 Kernel = PyKernel
@@ -317,6 +317,17 @@ def amplitudes(array_data):
     current simulation backend target.
     """
     return numpy.array(array_data, dtype=complex())
+
+
+def to_bools(handles):
+    """Bulk-discriminate a ``list[cudaq.measure_handle]`` into a
+    ``list[bool]``. Device-only: this Python symbol exists so kernel
+    code can call ``cudaq.to_bools(...)``; the AST bridge intercepts
+    the call and lowers it to a vector form ``quake.discriminate`` on
+    ``!cc.stdvec<!cc.measure_handle>``. Host-side invocation raises a
+    ``RuntimeError``.
+    """
+    raise RuntimeError("device-only; usable only inside @cudaq.kernel")
 
 
 def __clearKernelRegistries():
