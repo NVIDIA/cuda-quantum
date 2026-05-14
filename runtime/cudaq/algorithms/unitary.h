@@ -43,10 +43,9 @@ inline complex_matrix make_controlled_unitary(const complex_matrix &gate,
 /// @param num_qudits The total number of qubits in the full system.
 /// @param qudit_indices A vector of size m giving the qubit indices the gate
 /// acts on in the full system.
-inline void
-apply_gate_in_place(complex_matrix &U, const complex_matrix &gate,
-                    std::size_t num_qudits,
-                    const std::vector<std::size_t> &qudit_indices) {
+inline void apply_gate_in_place(complex_matrix &U, const complex_matrix &gate,
+                                std::size_t num_qudits,
+                                const std::vector<std::size_t> &qudit_indices) {
   using value_type = std::complex<double>;
   const std::size_t m = qudit_indices.size();
   const std::size_t gdim = 1ULL << m;
