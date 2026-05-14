@@ -138,10 +138,6 @@ public:
   virtual std::unique_ptr<cudaq::SimulationState>
   createStateFromData(const cudaq::state_data &) = 0;
 
-  /// @brief Set the current noise model to consider when
-  /// simulating the state.
-  void setNoiseModel(const cudaq::noise_model *noise) { noiseModel = noise; }
-
   /// @brief Get the current noise model.
   const cudaq::noise_model *getNoiseModel() const { return noiseModel; }
 
@@ -826,7 +822,6 @@ protected:
   /// @brief Flush the gate queue, run all queued gate
   /// application tasks.
   void flushGateQueueImpl() override {
-    auto executionContext = cudaq::getExecutionContext();
 
     while (!gateQueue.empty()) {
       auto &next = gateQueue.front();
@@ -1294,7 +1289,6 @@ public:
   /// context, just measure, collapse, and return the bit.
   bool mz(const std::size_t qubitIdx,
           const std::string &registerName) override {
-    auto executionContext = cudaq::getExecutionContext();
 
     // Flush the Gate Queue
     flushGateQueue();
