@@ -168,6 +168,39 @@ struct RzPattern : OpRewritePattern<cudaq::quake::RzOp> {
   RotationOptions opts;
 };
 
+// Rx(theta) = H . Rz(theta) . H. The greedy driver then re-fires RzPattern
+// on the inner Rz to do the actual Clifford+T expansion.
+struct RxPattern : OpRewritePattern<cudaq::quake::RxOp> {
+  RxPattern(MLIRContext *ctx, RotationOptions opts)
+      : OpRewritePattern(ctx), opts(std::move(opts)) {}
+
+  LogicalResult matchAndRewrite(cudaq::quake::RxOp op,
+                                PatternRewriter &rewriter) const override {
+    auto check = validateRotationOperands(op, op.getParameter(),
+                                          op.getControls(), rewriter, opts);
+    switch (check.action) {
+    case PreCheck::Action::LeaveInPlace:
+      return failure();
+    case PreCheck::Action::Erased:
+      return success();
+    case PreCheck::Action::Lower:
+      break;
+    }
+
+    Location loc = op.getLoc();
+    Value target = op.getTarget();
+    Value angle = op.getParameter();
+    cudaq::quake::HOp::create(rewriter, loc, ValueRange{target});
+    cudaq::quake::RzOp::create(rewriter, loc, ValueRange{angle}, ValueRange{},
+                               ValueRange{target});
+    cudaq::quake::HOp::create(rewriter, loc, ValueRange{target});
+    rewriter.eraseOp(op);
+    return success();
+  }
+
+  RotationOptions opts;
+};
+
 } // namespace
 
 #endif // CUDAQ_HAS_CLIFFORD_T_SYNTHESIS
@@ -205,7 +238,7 @@ public:
 
     MLIRContext *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    patterns.add<RzPattern>(ctx, opts);
+    patterns.add<RxPattern, RzPattern>(ctx, opts);
 
     if (failed(applyPatternsGreedily(getOperation(), std::move(patterns))))
       signalPassFailure();
