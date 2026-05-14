@@ -12,8 +12,15 @@ if(NOT TARGET FileCheck)
   set_target_properties(FileCheck PROPERTIES IMPORTED_LOCATION "/usr/local/llvm/bin/FileCheck")
 endif()
 
+if(TARGET cudaq-synth)
+  set(CUDAQ_HAS_CLIFFORD_T_SYNTHESIS ON)
+else()
+  set(CUDAQ_HAS_CLIFFORD_T_SYNTHESIS OFF)
+endif()
+
 llvm_canonicalize_cmake_booleans(
   CUDA_FOUND
+  CUDAQ_HAS_CLIFFORD_T_SYNTHESIS
 )
 
 if (CUDAQ_DISABLE_RUNTIME)
