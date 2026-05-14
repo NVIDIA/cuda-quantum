@@ -8,12 +8,18 @@
 
 include(HandleLLVMOptions)
 
-add_executable(OptimizerUnitTests
+set(OPTIMIZER_UNIT_TEST_SOURCES
   HermitianTrait.cpp
   FactoryMergeModuleTest.cpp
   DecompositionPatternsTest.cpp
   DecompositionPatternSelectionTest.cpp
 )
+
+if(TARGET cudaq-synth)
+  list(APPEND OPTIMIZER_UNIT_TEST_SOURCES CliffordTSynthesisTester.cpp)
+endif()
+
+add_executable(OptimizerUnitTests ${OPTIMIZER_UNIT_TEST_SOURCES})
 
 target_link_libraries(OptimizerUnitTests
   PRIVATE
