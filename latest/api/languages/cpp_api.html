@@ -185,7 +185,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/examples/multi_gpu_workflows.html#circuit-batching">Circuit Batching</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu">Multi-QPU + Other Backends (<code class="code docutils literal notranslate"><span class="pre">remote-mqpu</span></code>)</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/optimizers_gradients.html">   Optimizers &amp; Gradients</a><ul>
@@ -614,7 +613,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/sims/mqpusims.html">     Multi-QPU Simulators</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/mqpusims.html#simulate-multiple-qpus-in-parallel">Simulate Multiple QPUs in Parallel</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/mqpusims.html#multi-qpu-other-backends">Multi-QPU + Other Backends</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/mqpusims.html#multi-qpu-with-multi-node-multi-gpu-backends">Multi-QPU with Multi-Node Multi-GPU Backends</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/sims/noisy.html">     Noisy Simulators</a><ul>
@@ -670,6 +669,11 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/scaleway.html#setting-credentials">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/scaleway.html#submitting">Submitting</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/scaleway.html#manage-your-qpu-session">Manage your QPU session</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/cloud/qbraid.html">     qBraid</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/qbraid.html#setting-credentials">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/qbraid.html#submitting">Submitting</a></li>
 </ul>
 </li>
 </ul>
@@ -1070,6 +1074,8 @@
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.mpi.all_gather"><code class="docutils literal notranslate"><span class="pre">all_gather()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.mpi.broadcast"><code class="docutils literal notranslate"><span class="pre">broadcast()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.mpi.is_initialized"><code class="docutils literal notranslate"><span class="pre">is_initialized()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.mpi.split_communicator"><code class="docutils literal notranslate"><span class="pre">split_communicator()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.mpi.set_communicator"><code class="docutils literal notranslate"><span class="pre">set_communicator()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.mpi.finalize"><code class="docutils literal notranslate"><span class="pre">finalize()</span></code></a></li>
 </ul>
 </li>
@@ -5575,24 +5581,6 @@
 </dd></dl>
 
 <dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext13amplitudeMapsE">
-<span class="target" id="classcudaq_1_1ExecutionContext_1a225ca6c6264dc4bab3ebffd1d23252c5"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">map</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">int</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">amplitudeMaps</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">nullopt</span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext13amplitudeMapsE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>A map of basis-state amplitudes. </p>
-</dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext20overlapComputeStatesE">
-<span class="target" id="classcudaq_1_1ExecutionContext_1aa33674ead54268a410e60557fdaeb8e0"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">pair</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15SimulationStateE" title="cudaq::SimulationState"><span class="n"><span class="pre">SimulationState</span></span></a><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15SimulationStateE" title="cudaq::SimulationState"><span class="n"><span class="pre">SimulationState</span></span></a><span class="p"><span class="pre">*</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">overlapComputeStates</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">nullopt</span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext20overlapComputeStatesE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>List of pairs of states to compute the overlap. </p>
-</dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext13overlapResultE">
-<span class="target" id="classcudaq_1_1ExecutionContext_1a82f52405385514432d039465fde1ddee"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">overlapResult</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">nullopt</span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext13overlapResultE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Overlap results. </p>
-</dd></dl>
-
-<dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16ExecutionContext11kernelTraceE">
 <span class="target" id="classcudaq_1_1ExecutionContext_1a832079b8beaec29c27462f27704d6386"></span><a class="reference internal" href="#_CPPv4N5cudaq5TraceE" title="cudaq::Trace"><span class="n"><span class="pre">Trace</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kernelTrace</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16ExecutionContext11kernelTraceE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>When run under the tracer context, persist the traced quantum resources here. </p>
@@ -6442,7 +6430,7 @@ Given a quantum kernel with void return type, sample the corresponding quantum c
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq15SimulationStateE">
 <span class="target" id="classcudaq_1_1SimulationState"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SimulationState</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq15SimulationStateE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>The <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1SimulationState"><span class="std std-ref"><span class="pre">SimulationState</span></span></a></code> interface provides and extension point for concrete circuit simulation sub-types to describe their underlying quantum state data in an efficient manner. The <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1SimulationState"><span class="std std-ref"><span class="pre">SimulationState</span></span></a></code> provides a handle on the data for clients, with data remaining on GPU device or CPU memory. The primary goal of this type and its sub-types is to minimize data transfers for the state. </p>
-<p>Subclassed by <a class="reference internal" href="#classcudaq_1_1CusvState"><span class="std std-ref">cudaq::CusvState&lt; ScalarType &gt;</span></a>, <a class="reference internal" href="#classcudaq_1_1QPUState"><span class="std std-ref">cudaq::QPUState</span></a>, <a class="reference internal" href="#classcudaq_1_1RemoteSimulationState"><span class="std std-ref">cudaq::RemoteSimulationState</span></a>, <a class="reference internal" href="#classnvqir_1_1MPSSimulationState"><span class="std std-ref">nvqir::MPSSimulationState&lt; ScalarType &gt;</span></a>, <a class="reference internal" href="#classnvqir_1_1TensorNetSimulationState"><span class="std std-ref">nvqir::TensorNetSimulationState&lt; ScalarType &gt;</span></a></p>
+<p>Subclassed by <a class="reference internal" href="#classcudaq_1_1CusvState"><span class="std std-ref">cudaq::CusvState&lt; ScalarType &gt;</span></a>, <a class="reference internal" href="#classcudaq_1_1QPUState"><span class="std std-ref">cudaq::QPUState</span></a>, <a class="reference internal" href="#classnvqir_1_1MPSSimulationState"><span class="std std-ref">nvqir::MPSSimulationState&lt; ScalarType &gt;</span></a>, <a class="reference internal" href="#classnvqir_1_1TensorNetSimulationState"><span class="std std-ref">nvqir::TensorNetSimulationState&lt; ScalarType &gt;</span></a></p>
 </dd></dl>
 
 <dl class="cpp struct">
@@ -6517,12 +6505,6 @@ Given a quantum kernel with void return type, sample the corresponding quantum c
 <dt class="sig sig-object cpp" id="_CPPv4I0EN5nvqir24TensorNetSimulationStateE">
 <span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ScalarType</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="classnvqir_1_1TensorNetSimulationState"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TensorNetSimulationState</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq15SimulationStateE" title="cudaq::SimulationState"><span class="n"><span class="pre">SimulationState</span></span></a><a class="headerlink" href="#_CPPv4I0EN5nvqir24TensorNetSimulationStateE" title="Permalink to this definition">¶</a><br /></dt>
 <dd></dd></dl>
-
-<dl class="cpp class">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq21RemoteSimulationStateE">
-<span class="target" id="classcudaq_1_1RemoteSimulationState"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">RemoteSimulationState</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq15SimulationStateE" title="cudaq::SimulationState"><span class="n"><span class="pre">SimulationState</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq21RemoteSimulationStateE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Implementation of <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1SimulationState"><span class="std std-ref"><span class="pre">SimulationState</span></span></a></code> for remote simulator backends. </p>
-</dd></dl>
 
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq8QPUStateE">
@@ -8176,7 +8158,7 @@ like this:</p>
 <span class="target" id="classcudaq_1_1QPU"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">QPU</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq8registryE" title="cudaq::registry"><span class="n"><span class="pre">registry</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4I0EN5cudaq8registry14RegisteredTypeE" title="cudaq::registry::RegisteredType"><span class="n"><span class="pre">RegisteredType</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq3QPUE" title="cudaq::QPU"><span class="n"><span class="pre">QPU</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N5cudaq3QPUE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>A CUDA-Q <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> is an abstraction on the quantum processing unit which executes quantum kernel expressions. The <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> exposes certain information about the <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> being targeting, such as the number of available qubits, the logical ID for this <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> in a set of available QPUs, and its qubit connectivity. The <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> keeps track of an execution queue for enqueuing asynchronous tasks that execute quantum kernel expressions. The <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> also tracks the client-provided execution context to enable quantum kernel related tasks such as sampling and observation.</p>
 <p>This type is meant to be subtyped by concrete <a class="reference internal" href="#classcudaq_1_1quantum__platform"><span class="std std-ref">quantum_platform</span></a> subtypes. </p>
-<p>Subclassed by <a class="reference internal" href="#classcudaq_1_1BaseRemoteRESTQPU"><span class="std std-ref">cudaq::BaseRemoteRESTQPU</span></a>, <a class="reference internal" href="#classcudaq_1_1BaseRemoteSimulatorQPU"><span class="std std-ref">cudaq::BaseRemoteSimulatorQPU</span></a>, cudaq::DefaultQPU, cudaq::GPUEmulatedQPU, <a class="reference internal" href="#classcudaq_1_1OrcaRemoteRESTQPU"><span class="std std-ref">cudaq::OrcaRemoteRESTQPU</span></a></p>
+<p>Subclassed by <a class="reference internal" href="#classcudaq_1_1BaseRemoteRESTQPU"><span class="std std-ref">cudaq::BaseRemoteRESTQPU</span></a>, cudaq::DefaultQPU, cudaq::GPUEmulatedQPU, <a class="reference internal" href="#classcudaq_1_1OrcaRemoteRESTQPU"><span class="std std-ref">cudaq::OrcaRemoteRESTQPU</span></a></p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
@@ -8302,12 +8284,6 @@ like this:</p>
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq17BaseRemoteRESTQPUE">
 <span class="target" id="classcudaq_1_1BaseRemoteRESTQPU"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BaseRemoteRESTQPU</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq3QPUE" title="cudaq::QPU"><span class="n"><span class="pre">QPU</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq17BaseRemoteRESTQPUE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Subclassed by <a class="reference internal" href="#classcudaq_1_1AnalogRemoteRESTQPU"><span class="std std-ref">cudaq::AnalogRemoteRESTQPU</span></a>, <a class="reference internal" href="#classcudaq_1_1FermioniqQPU"><span class="std std-ref">cudaq::FermioniqQPU</span></a>, cudaq::RemoteRESTQPU</p>
-</dd></dl>
-
-<dl class="cpp class">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq22BaseRemoteSimulatorQPUE">
-<span class="target" id="classcudaq_1_1BaseRemoteSimulatorQPU"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BaseRemoteSimulatorQPU</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq3QPUE" title="cudaq::QPU"><span class="n"><span class="pre">QPU</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq22BaseRemoteSimulatorQPUE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Subclassed by cudaq::RemoteSimulatorQPU</p>
 </dd></dl>
 
 <dl class="cpp class">
@@ -8463,13 +8439,13 @@ like this:</p>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform14beginExecutionEv">
-<span class="target" id="classcudaq_1_1quantum__platform_1a3dc09b9e9a6a742abf6fb458954c0076"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">beginExecution</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform14beginExecutionEv" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="classcudaq_1_1quantum__platform_1a019c2c60bbbba2a7d70532903d7fc9e0"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">beginExecution</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform14beginExecutionEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Begin a new execution on this platform. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform12endExecutionEv">
-<span class="target" id="classcudaq_1_1quantum__platform_1ad0817eb533cc83577efdd2896619a768"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">endExecution</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform12endExecutionEv" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="classcudaq_1_1quantum__platform_1a1a426c84d608a8eca6dab3719b3bbea5"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">endExecution</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform12endExecutionEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>End the current execution on this platform. </p>
 </dd></dl>
 
@@ -8495,24 +8471,6 @@ like this:</p>
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform15onRandomSeedSetENSt6size_tE">
 <span class="target" id="classcudaq_1_1quantum__platform_1af1694e06135ecdfab51f20ecc87f7ee8"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">onRandomSeedSet</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">seed</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform15onRandomSeedSetENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Called by the runtime to notify that a new random seed value is set. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform14resetLogStreamEv">
-<span class="target" id="classcudaq_1_1quantum__platform_1a02bbc42f21f59ca9fa992db36e9dfd7b"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">resetLogStream</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform14resetLogStreamEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Turn off any custom logging stream. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform12getLogStreamEv">
-<span class="target" id="classcudaq_1_1quantum__platform_1ab77a8ffa73c4f4097f6374095e96bd1f"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ostream</span></span><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">getLogStream</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform12getLogStreamEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Get the stream for info logging. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform12setLogStreamERNSt7ostreamE">
-<span class="target" id="classcudaq_1_1quantum__platform_1a0939ab8f5192e22be54aa85f741f9c49"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">setLogStream</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ostream</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">logStream</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform12setLogStreamERNSt7ostreamE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Set the info logging stream. </p>
 </dd></dl>
 
 </div>
@@ -8552,12 +8510,6 @@ like this:</p>
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq18RemoteCapabilities3vqeE">
 <span class="target" id="structcudaq_1_1RemoteCapabilities_1a9747aef4cba0c08f8a8c762848663c64"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">vqe</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N5cudaq18RemoteCapabilities3vqeE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>True if the remote can perform an entire VQE operation without and back-and-forth client/server communications. </p>
-</dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq18RemoteCapabilities17isRemoteSimulatorE">
-<span class="target" id="structcudaq_1_1RemoteCapabilities_1ae0e06cc1b438c44d0751a43688407a8e"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">isRemoteSimulator</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><a class="headerlink" href="#_CPPv4N5cudaq18RemoteCapabilities17isRemoteSimulatorE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>True if execution is performed on a remote simulator - i.e. IR generation (including synthesis) and execution are performed in different processes. </p>
 </dd></dl>
 
 </div>

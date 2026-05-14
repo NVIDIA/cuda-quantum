@@ -163,10 +163,6 @@ latest
             -   [Circuit
                 Batching](../../using/examples/multi_gpu_workflows.html#circuit-batching){.reference
                 .internal}
-        -   [Multi-QPU + Other Backends ([`remote-mqpu`{.code .docutils
-            .literal
-            .notranslate}]{.pre})](../../using/examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
-            .internal}
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
         .internal}
@@ -1027,8 +1023,8 @@ latest
             -   [Simulate Multiple QPUs in
                 Parallel](../../using/backends/sims/mqpusims.html#simulate-multiple-qpus-in-parallel){.reference
                 .internal}
-            -   [Multi-QPU + Other
-                Backends](../../using/backends/sims/mqpusims.html#multi-qpu-other-backends){.reference
+            -   [Multi-QPU with Multi-Node Multi-GPU
+                Backends](../../using/backends/sims/mqpusims.html#multi-qpu-with-multi-node-multi-gpu-backends){.reference
                 .internal}
         -   [Noisy
             Simulators](../../using/backends/sims/noisy.html){.reference
@@ -1115,6 +1111,13 @@ latest
                 .internal}
             -   [Manage your QPU
                 session](../../using/backends/cloud/scaleway.html#manage-your-qpu-session){.reference
+                .internal}
+        -   [qBraid](../../using/backends/cloud/qbraid.html){.reference
+            .internal}
+            -   [Setting
+                Credentials](../../using/backends/cloud/qbraid.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](../../using/backends/cloud/qbraid.html#submitting){.reference
                 .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
@@ -1913,6 +1916,12 @@ latest
                 .internal}
             -   [[`is_initialized()`{.docutils .literal
                 .notranslate}]{.pre}](python_api.html#cudaq.mpi.is_initialized){.reference
+                .internal}
+            -   [[`split_communicator()`{.docutils .literal
+                .notranslate}]{.pre}](python_api.html#cudaq.mpi.split_communicator){.reference
+                .internal}
+            -   [[`set_communicator()`{.docutils .literal
+                .notranslate}]{.pre}](python_api.html#cudaq.mpi.set_communicator){.reference
                 .internal}
             -   [[`finalize()`{.docutils .literal
                 .notranslate}]{.pre}](python_api.html#cudaq.mpi.finalize){.reference
@@ -8771,30 +8780,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1ExecutionContext_1a225ca6c6264dc4bab3ebffd1d23252c5 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[map]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[int]{.pre}]{.kt}[[\>]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[amplitudeMaps]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[nullopt]{.pre}]{.n}[¶](#_CPPv4N5cudaq16ExecutionContext13amplitudeMapsE "Permalink to this definition"){.headerlink}\
-
-    :   A map of basis-state amplitudes.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1ExecutionContext_1aa33674ead54268a410e60557fdaeb8e0 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[pair]{.pre}]{.n}[[\<]{.pre}]{.p}[[const]{.pre}]{.k}[ ]{.w}[[[SimulationState]{.pre}]{.n}](#_CPPv4N5cudaq15SimulationStateE "cudaq::SimulationState"){.reference .internal}[[\*]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[const]{.pre}]{.k}[ ]{.w}[[[SimulationState]{.pre}]{.n}](#_CPPv4N5cudaq15SimulationStateE "cudaq::SimulationState"){.reference .internal}[[\*]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[overlapComputeStates]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[nullopt]{.pre}]{.n}[¶](#_CPPv4N5cudaq16ExecutionContext20overlapComputeStatesE "Permalink to this definition"){.headerlink}\
-
-    :   List of pairs of states to compute the overlap.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1ExecutionContext_1a82f52405385514432d039465fde1ddee .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[overlapResult]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[nullopt]{.pre}]{.n}[¶](#_CPPv4N5cudaq16ExecutionContext13overlapResultE "Permalink to this definition"){.headerlink}\
-
-    :   Overlap results.
-
-    ```{=html}
-    <!-- -->
-    ```
-
     []{#classcudaq_1_1ExecutionContext_1a832079b8beaec29c27462f27704d6386 .target}[[[Trace]{.pre}]{.n}](#_CPPv4N5cudaq5TraceE "cudaq::Trace"){.reference .internal}[ ]{.w}[[[kernelTrace]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq16ExecutionContext11kernelTraceE "Permalink to this definition"){.headerlink}\
 
     :   When run under the tracer context, persist the traced quantum
@@ -9962,9 +9947,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     .std-ref}](#classcudaq_1_1CusvState){.reference .internal},
     [[cudaq::QPUState]{.std
     .std-ref}](#classcudaq_1_1QPUState){.reference .internal},
-    [[cudaq::RemoteSimulationState]{.std
-    .std-ref}](#classcudaq_1_1RemoteSimulationState){.reference
-    .internal}, [[nvqir::MPSSimulationState\< ScalarType \>]{.std
+    [[nvqir::MPSSimulationState\< ScalarType \>]{.std
     .std-ref}](#classnvqir_1_1MPSSimulationState){.reference .internal},
     [[nvqir::TensorNetSimulationState\< ScalarType \>]{.std
     .std-ref}](#classnvqir_1_1TensorNetSimulationState){.reference
@@ -10074,17 +10057,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 []{#classnvqir_1_1TensorNetSimulationState .target}[[class]{.pre}]{.k}[ ]{.w}[[[TensorNetSimulationState]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[SimulationState]{.pre}]{.n}](#_CPPv4N5cudaq15SimulationStateE "cudaq::SimulationState"){.reference .internal}[¶](#_CPPv4I0EN5nvqir24TensorNetSimulationStateE "Permalink to this definition"){.headerlink}\
 
 :   
-
-```{=html}
-<!-- -->
-```
-
-[]{#classcudaq_1_1RemoteSimulationState .target}[[class]{.pre}]{.k}[ ]{.w}[[[RemoteSimulationState]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[SimulationState]{.pre}]{.n}](#_CPPv4N5cudaq15SimulationStateE "cudaq::SimulationState"){.reference .internal}[¶](#_CPPv4N5cudaq21RemoteSimulationStateE "Permalink to this definition"){.headerlink}\
-
-:   Implementation of [[[`SimulationState`{.docutils .literal
-    .notranslate}]{.pre}]{.std
-    .std-ref}](#classcudaq_1_1SimulationState){.reference .internal} for
-    remote simulator backends.
 
 ```{=html}
 <!-- -->
@@ -12586,9 +12558,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 
     Subclassed by [[cudaq::BaseRemoteRESTQPU]{.std
     .std-ref}](#classcudaq_1_1BaseRemoteRESTQPU){.reference .internal},
-    [[cudaq::BaseRemoteSimulatorQPU]{.std
-    .std-ref}](#classcudaq_1_1BaseRemoteSimulatorQPU){.reference
-    .internal}, cudaq::DefaultQPU, cudaq::GPUEmulatedQPU,
+    cudaq::DefaultQPU, cudaq::GPUEmulatedQPU,
     [[cudaq::OrcaRemoteRESTQPU]{.std
     .std-ref}](#classcudaq_1_1OrcaRemoteRESTQPU){.reference .internal}
 
@@ -12780,14 +12750,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     .internal}, [[cudaq::FermioniqQPU]{.std
     .std-ref}](#classcudaq_1_1FermioniqQPU){.reference .internal},
     cudaq::RemoteRESTQPU
-
-```{=html}
-<!-- -->
-```
-
-[]{#classcudaq_1_1BaseRemoteSimulatorQPU .target}[[class]{.pre}]{.k}[ ]{.w}[[[BaseRemoteSimulatorQPU]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[QPU]{.pre}]{.n}](#_CPPv4N5cudaq3QPUE "cudaq::QPU"){.reference .internal}[¶](#_CPPv4N5cudaq22BaseRemoteSimulatorQPUE "Permalink to this definition"){.headerlink}\
-
-:   Subclassed by cudaq::RemoteSimulatorQPU
 
 ```{=html}
 <!-- -->
@@ -13033,7 +12995,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1quantum__platform_1a3dc09b9e9a6a742abf6fb458954c0076 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[beginExecution]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform14beginExecutionEv "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1quantum__platform_1a019c2c60bbbba2a7d70532903d7fc9e0 .target}[[virtual]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[beginExecution]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform14beginExecutionEv "Permalink to this definition"){.headerlink}\
 
     :   Begin a new execution on this platform.
 
@@ -13041,7 +13003,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1quantum__platform_1ad0817eb533cc83577efdd2896619a768 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[endExecution]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform12endExecutionEv "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1quantum__platform_1a1a426c84d608a8eca6dab3719b3bbea5 .target}[[virtual]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[endExecution]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform12endExecutionEv "Permalink to this definition"){.headerlink}\
 
     :   End the current execution on this platform.
 
@@ -13078,30 +13040,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 
     :   Called by the runtime to notify that a new random seed value is
         set.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1quantum__platform_1a02bbc42f21f59ca9fa992db36e9dfd7b .target}[[void]{.pre}]{.kt}[ ]{.w}[[[resetLogStream]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform14resetLogStreamEv "Permalink to this definition"){.headerlink}\
-
-    :   Turn off any custom logging stream.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1quantum__platform_1ab77a8ffa73c4f4097f6374095e96bd1f .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[ostream]{.pre}]{.n}[ ]{.w}[[\*]{.pre}]{.p}[[[getLogStream]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform12getLogStreamEv "Permalink to this definition"){.headerlink}\
-
-    :   Get the stream for info logging.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1quantum__platform_1a0939ab8f5192e22be54aa85f741f9c49 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[setLogStream]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[ostream]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[logStream]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform12setLogStreamERNSt7ostreamE "Permalink to this definition"){.headerlink}\
-
-    :   Set the info logging stream.
     :::
 
     ::: {.breathe-sectiondef .docutils .container}
@@ -13145,16 +13083,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 
     :   True if the remote can perform an entire VQE operation without
         and back-and-forth client/server communications.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#structcudaq_1_1RemoteCapabilities_1ae0e06cc1b438c44d0751a43688407a8e .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[isRemoteSimulator]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq18RemoteCapabilities17isRemoteSimulatorE "Permalink to this definition"){.headerlink}\
-
-    :   True if execution is performed on a remote simulator - i.e. IR
-        generation (including synthesis) and execution are performed in
-        different processes.
     :::
 
 ```{=html}

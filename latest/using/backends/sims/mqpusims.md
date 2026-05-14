@@ -160,10 +160,6 @@ latest
             -   [Circuit
                 Batching](../../examples/multi_gpu_workflows.html#circuit-batching){.reference
                 .internal}
-        -   [Multi-QPU + Other Backends ([`remote-mqpu`{.code .docutils
-            .literal
-            .notranslate}]{.pre})](../../examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
-            .internal}
     -   [Optimizers &
         Gradients](../../../examples/python/optimizers_gradients.html){.reference
         .internal}
@@ -1013,8 +1009,8 @@ latest
             -   [Simulate Multiple QPUs in
                 Parallel](#simulate-multiple-qpus-in-parallel){.reference
                 .internal}
-            -   [Multi-QPU + Other
-                Backends](#multi-qpu-other-backends){.reference
+            -   [Multi-QPU with Multi-Node Multi-GPU
+                Backends](#multi-qpu-with-multi-node-multi-gpu-backends){.reference
                 .internal}
         -   [Noisy Simulators](noisy.html){.reference .internal}
             -   [Trajectory Noisy
@@ -1087,6 +1083,12 @@ latest
                 .internal}
             -   [Manage your QPU
                 session](../cloud/scaleway.html#manage-your-qpu-session){.reference
+                .internal}
+        -   [qBraid](../cloud/qbraid.html){.reference .internal}
+            -   [Setting
+                Credentials](../cloud/qbraid.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](../cloud/qbraid.html#submitting){.reference
                 .internal}
 -   [Dynamics](../../dynamics.html){.reference .internal}
     -   [Quick Start](../../dynamics.html#quick-start){.reference
@@ -1901,6 +1903,12 @@ latest
             -   [[`is_initialized()`{.docutils .literal
                 .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.mpi.is_initialized){.reference
                 .internal}
+            -   [[`split_communicator()`{.docutils .literal
+                .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.mpi.split_communicator){.reference
+                .internal}
+            -   [[`set_communicator()`{.docutils .literal
+                .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.mpi.set_communicator){.reference
+                .internal}
             -   [[`finalize()`{.docutils .literal
                 .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.mpi.finalize){.reference
                 .internal}
@@ -2070,11 +2078,8 @@ In the multi-QPU mode ([`mqpu`{.code .docutils .literal
 QPU for every available NVIDIA GPU on the underlying system. Each QPU is
 simulated via a [`cuStateVec`{.code .docutils .literal
 .notranslate}]{.pre} simulator backend as defined by the NVIDIA backend.
-For more information about using multiple GPUs to simulate each virtual
-QPU, or using a different backend for virtual QPUs, please see [[remote
-MQPU platform]{.std .std-ref}](#remote-mqpu-platform){.reference
-.internal}. This target enables asynchronous parallel execution of
-quantum kernel tasks.
+This target enables asynchronous parallel execution of quantum kernel
+tasks.
 
 Here is a simple example demonstrating its usage.
 
@@ -2173,8 +2178,7 @@ Depending on the number of GPUs available on the system, the
 [`nvidia`{.code .docutils .literal .notranslate}]{.pre} multi-QPU
 platform will create the same number of virtual QPU instances. For
 example, on a system with 4 GPUs, the above code will distribute the
-four sampling tasks among those [`GPUEmulatedQPU`{.code .docutils
-.literal .notranslate}]{.pre} instances.
+four sampling tasks among those virtual QPU instances.
 
 The results might look like the following 4 different random samplings:
 
@@ -2202,12 +2206,11 @@ be instantiated, one can set the [`CUDAQ_MQPU_NGPUS`{.code .docutils
 needed.
 :::
 
-Since the underlying [`GPUEmulatedQPU`{.code .docutils .literal
-.notranslate}]{.pre} is a simulator backend, we can also retrieve the
-state vector from each QPU via the [`cudaq::get_state_async`{.code
-.docutils .literal .notranslate}]{.pre} (C++) or
-[`cudaq.get_state_async`{.code .docutils .literal .notranslate}]{.pre}
-(Python) as shown in the bellow code snippets.
+Since the underlying virtual QPU is a simulator backend, we can also
+retrieve the state vector from each QPU via the
+[`cudaq::get_state_async`{.code .docutils .literal .notranslate}]{.pre}
+(C++) or [`cudaq.get_state_async`{.code .docutils .literal
+.notranslate}]{.pre} (Python) as shown in the bellow code snippets.
 
 ::: {.tab-set .docutils}
 Python
@@ -2425,19 +2428,60 @@ be launched with an appropriate MPI command, e.g., [`mpiexec`{.code
 :::
 :::
 
-::: {#multi-qpu-other-backends .section}
-## Multi-QPU + Other Backends[¶](#multi-qpu-other-backends "Permalink to this heading"){.headerlink}
+::: {#multi-qpu-with-multi-node-multi-gpu-backends .section}
+[]{#multi-node-mqpu}
 
-As shown in the above examples, the multi-QPU NVIDIA platform enables
-multi-QPU distribution whereby each QPU is simulated by a [[single
-NVIDIA GPU]{.std .std-ref}](svsims.html#cuquantum-single-gpu){.reference
-.internal}. To run multi-QPU workloads on different simulator backends,
-one can use the [`remote-mqpu`{.code .docutils .literal
-.notranslate}]{.pre} platform, which encapsulates simulated QPUs as
-independent HTTP REST server instances. The following code illustrates
-how to launch asynchronous sampling tasks on multiple virtual QPUs, each
-simulated by a [`tensornet`{.code .docutils .literal
-.notranslate}]{.pre} simulator backend.
+## Multi-QPU with Multi-Node Multi-GPU Backends[¶](#multi-qpu-with-multi-node-multi-gpu-backends "Permalink to this heading"){.headerlink}
+
+Some simulator backends, such as [`tensornet`{.code .docutils .literal
+.notranslate}]{.pre} and [`nvidia`{.code .docutils .literal
+.notranslate}]{.pre} with the [`mgpu`{.code .docutils .literal
+.notranslate}]{.pre} option, can distribute a single simulation across
+multiple GPUs on multiple nodes using MPI. This section shows how to run
+*multiple independent simulations in parallel* within the same MPI
+program, where each simulation uses its own dedicated group of MPI ranks
+and GPUs.
+
+The approach is straightforward:
+
+1.  Partition the global MPI communicator into
+    [sub-communicators](https://www.mpich.org/static/docs/latest/www3/MPI_Comm_split.html){.reference
+    .external} --- one per QPU group.
+
+2.  Pass each sub-communicator to CUDA-Q so the underlying simulator
+    uses only the ranks in that group.
+
+3.  Each QPU group then calls CUDA-Q APIs independently.
+
+::: {.admonition .note}
+Note
+
+This replaces the former [`remote-mqpu`{.code .docutils .literal
+.notranslate}]{.pre} target, which required standing up HTTP servers and
+had higher overhead. With direct MPI distribution, users leverage the
+job scheduler's resource binding (e.g.,
+[SLURM's](https://slurm.schedmd.com/mc_support.html){.reference
+.external} [`--ntasks-per-node`{.code .docutils .literal
+.notranslate}]{.pre}) and have full control over rank placement.
+:::
+
+Once the communicator is set, all standard CUDA-Q execution APIs ---
+[`sample`{.code .docutils .literal .notranslate}]{.pre},
+[`observe`{.code .docutils .literal .notranslate}]{.pre}, [`run`{.code
+.docutils .literal .notranslate}]{.pre}, and [`get_state`{.code
+.docutils .literal .notranslate}]{.pre} --- work as usual within each
+QPU group.
+
+In all examples below, 4 MPI ranks are divided into 2 QPU groups of 2
+ranks each (2 GPUs per simulation).
+
+::: {#using-the-cuda-q-mpi-api .section}
+### Using the CUDA-Q MPI API[¶](#using-the-cuda-q-mpi-api "Permalink to this heading"){.headerlink}
+
+For users new to MPI, CUDA-Q provides its own [`cudaq::mpi`{.code
+.docutils .literal .notranslate}]{.pre} (C++) and [`cudaq.mpi`{.code
+.docutils .literal .notranslate}]{.pre} (Python) helpers that wrap the
+common MPI operations needed to set up QPU groups.
 
 ::: {.tab-set .docutils}
 Python
@@ -2445,51 +2489,67 @@ Python
 ::: {.tab-content .docutils}
 ::: {.highlight-python .notranslate}
 ::: highlight
-        # Specified as program input, e.g.
-        # ```
-        # backend = "tensornet"; servers = "2"
-        # ```
-        backend = args.backend
-        servers = args.servers
+    import cudaq
 
-        # Define a kernel to be sampled.
-        @cudaq.kernel
-        def kernel(controls_count: int):
-            controls = cudaq.qvector(controls_count)
-            targets = cudaq.qvector(2)
-            # Place controls in superposition state.
-            h(controls)
-            for target in range(2):
-                x.ctrl(controls, targets[target])
-            # Measure.
-            mz(controls)
-            mz(targets)
 
-        # Set the target to execute on and query the number of QPUs in the system;
-        # The number of QPUs is equal to the number of (auto-)launched server instances.
-        cudaq.set_target("remote-mqpu",
-                         backend=backend,
-                         auto_launch=str(servers) if servers.isdigit() else "",
-                         url="" if servers.isdigit() else servers)
-        qpu_count = cudaq.get_target().num_qpus()
-        print("Number of virtual QPUs:", qpu_count)
+    @cudaq.kernel
+    def ghz(n: int):
+        q = cudaq.qvector(n)
+        h(q[0])
+        for i in range(n - 1):
+            cx(q[i], q[i + 1])
 
-        # We will launch asynchronous sampling tasks,
-        # and will store the results as a future we can query at some later point.
-        # Each QPU (indexed by an unique Id) is associated with a remote REST server.
-        count_futures = []
-        for i in range(qpu_count):
 
-            result = cudaq.sample_async(kernel, i + 1, qpu_id=i)
-            count_futures.append(result)
-        print("Sampling jobs launched for asynchronous processing.")
+    cudaq.mpi.initialize()
 
-        # Go do other work, asynchronous execution of sample tasks on-going.
-        # Get the results, note future::get() will kick off a wait
-        # if the results are not yet available.
-        for idx in range(len(count_futures)):
-            counts = count_futures[idx].get()
-            print(counts)
+    world_rank = cudaq.mpi.rank()
+    world_size = cudaq.mpi.num_ranks()
+
+    # Each QPU is backed by `ranks_per_qpu` MPI ranks / GPUs.
+    ranks_per_qpu = 2
+    if world_size % ranks_per_qpu != 0:
+        if world_rank == 0:
+            print(f"World size must be a multiple of {ranks_per_qpu}.")
+        cudaq.mpi.finalize()
+        raise SystemExit(1)
+
+    # Assign each rank to a QPU group and split the communicator accordingly.
+    # ```
+    #  MPI_COMM_WORLD
+    #  +----------+----------+----------+----------+
+    #  |  rank 0  |  rank 1  |  rank 2  |  rank 3  |
+    #  +----------+----------+----------+----------+
+    #  |        QPU 0        |        QPU 1        |
+    #  |    (qpu_id = 0)     |    (qpu_id = 1)     |
+    #  +---------------------+---------------------+
+    # ```
+    qpu_id = world_rank // ranks_per_qpu
+    qpu_comm = cudaq.mpi.split_communicator(qpu_id)
+
+    # Select the target and pass the sub-communicator for this QPU group.
+    cudaq.set_target("tensornet", comm_handle=qpu_comm)
+
+    # Run an independent circuit on each QPU group.
+    # The `tensornet` backend can handle a large number of qubits via multi-GPU
+    # tensor network contraction, well beyond what state vector simulators support.
+    num_qubits = 40 + 5 * qpu_id
+    result = cudaq.sample(ghz, num_qubits)
+
+    if world_rank % ranks_per_qpu == 0:
+        print(f"QPU {qpu_id} ({num_qubits} qubits):")
+        print(result)
+
+    cudaq.mpi.finalize()
+:::
+:::
+
+::: {.highlight-console .notranslate}
+::: highlight
+    mpirun -n 4 python3 sample_cudaq_mpi.py
+    QPU 0 (40 qubits):
+    { 0000000000000000000000000000000000000000:489 1111111111111111111111111111111111111111:511 }
+    QPU 1 (45 qubits):
+    { 000000000000000000000000000000000000000000000:495 111111111111111111111111111111111111111111111:505 }
 :::
 :::
 :::
@@ -2499,292 +2559,165 @@ C++
 ::: {.tab-content .docutils}
 ::: {.highlight-cpp .notranslate}
 ::: highlight
-      // Define a kernel to be sampled.
-      auto [kernel, nrControls] = cudaq::make_kernel<int>();
-      auto controls = kernel.qalloc(nrControls);
-      auto targets = kernel.qalloc(2);
-      kernel.h(controls);
-      for (std::size_t tidx = 0; tidx < 2; ++tidx) {
-        kernel.x<cudaq::ctrl>(controls, targets[tidx]);
-      }
-      kernel.mz(controls);
-      kernel.mz(targets);
+    #include <cudaq.h>
 
-      // Query the number of QPUs in the system;
-      // The number of QPUs is equal to the number of (auto-)launched server
-      // instances.
-      auto &platform = cudaq::get_platform();
-      auto num_qpus = platform.num_qpus();
-      printf("Number of QPUs: %zu\n", num_qpus);
+    __qpu__ void ghz(int n) {
+      cudaq::qvector q(n);
+      h(q[0]);
+      for (int i = 0; i < n - 1; i++)
+        cx(q[i], q[i + 1]);
+    }
 
-      // We will launch asynchronous sampling tasks,
-      // and will store the results as a future we can query at some later point.
-      // Each QPU (indexed by an unique Id) is associated with a remote REST server.
-      std::vector<cudaq::async_sample_result> countFutures;
-      for (std::size_t i = 0; i < num_qpus; i++) {
-        countFutures.emplace_back(cudaq::sample_async(
-            /*qpuId=*/i, kernel, /*nrControls=*/i + 1));
+    int main() {
+      cudaq::mpi::initialize();
+
+      const int world_rank = cudaq::mpi::rank();
+      const int world_size = cudaq::mpi::num_ranks();
+
+      // Each `QPU` is backed by `ranks_per_qpu` MPI ranks / GPUs.
+      const int ranks_per_qpu = 2;
+      if (world_size % ranks_per_qpu != 0) {
+        if (world_rank == 0)
+          fprintf(stderr, "World size must be a multiple of %d.\n", ranks_per_qpu);
+        cudaq::mpi::finalize();
+        return 1;
       }
 
-      // Go do other work, asynchronous execution of sample tasks on-going
-      // Get the results, note future::get() will kick off a wait
-      // if the results are not yet available.
-      for (auto &counts : countFutures) {
-        counts.get().dump();
+      // Assign each rank to a `QPU` group and split the communicator accordingly.
+      // ```
+      //  MPI_COMM_WORLD
+      //  +----------+----------+----------+----------+
+      //  |  rank 0  |  rank 1  |  rank 2  |  rank 3  |
+      //  +----------+----------+----------+----------+
+      //  |        QPU 0        |        QPU 1        |
+      //  |    (qpu_id = 0)     |    (qpu_id = 1)     |
+      //  +---------------------+---------------------+
+      // ```
+      const int qpu_id = world_rank / ranks_per_qpu;
+      void *qpu_comm = cudaq::mpi::split_communicator(qpu_id);
+
+      // Inform CUDA-Q which sub-communicator this `QPU` group should use.
+      cudaq::mpi::set_communicator(qpu_comm);
+
+      // Run an independent circuit on each `QPU` group.
+      // The `tensornet` backend can handle a large number of qubits via multi-GPU
+      // tensor network contraction, well beyond what state vector simulators
+      // support.
+      const int num_qubits = 40 + 5 * qpu_id;
+      auto result = cudaq::sample(ghz, num_qubits);
+
+      if (world_rank % ranks_per_qpu == 0) {
+        printf("QPU %d (%d qubits):\n", qpu_id, num_qubits);
+        result.dump();
       }
+
+      cudaq::mpi::finalize();
+      return 0;
+    }
 :::
 :::
-
-The code above is saved in [`sample_async.cpp`{.code .docutils .literal
-.notranslate}]{.pre} and compiled with the following command, targeting
-the [`remote-mqpu`{.code .docutils .literal .notranslate}]{.pre}
-platform:
 
 ::: {.highlight-console .notranslate}
 ::: highlight
-    nvq++ sample_async.cpp -o sample_async.x --target remote-mqpu --remote-mqpu-backend tensornet --remote-mqpu-auto-launch 2
-    ./sample_async.x
+    nvq++ --target tensornet -o sample_cudaq_mpi sample_cudaq_mpi.cpp
+    mpirun -n 4 ./sample_cudaq_mpi
+    QPU 0 (40 qubits):
+    { 0000000000000000000000000000000000000000:483 1111111111111111111111111111111111111111:517 }
+    QPU 1 (45 qubits):
+    { 000000000000000000000000000000000000000000000:501 111111111111111111111111111111111111111111111:499 }
 :::
 :::
 :::
 :::
-
-In the above code snippets, the [`remote-mqpu`{.code .docutils .literal
-.notranslate}]{.pre} platform was used in the auto-launch mode, whereby
-a specific number of server instances, i.e., virtual QPUs, are launched
-on the local machine in the background. The remote QPU daemon service,
-[`cudaq-qpud`{.code .docutils .literal .notranslate}]{.pre}, will also
-be shut down automatically at the end of the session.
-
-::: {.admonition .note}
-Note
-
-By default, auto launching daemon services do not support MPI
-parallelism. Hence, using the [`nvidia-mgpu`{.code .docutils .literal
-.notranslate}]{.pre} backend to simulate each virtual QPU requires
-manually launching each server instance. How to do that is explained in
-the rest of this section.
 :::
 
-To customize how many and which GPUs are used for simulating each
-virtual QPU, one can launch each server manually. For instance, on a
-machine with 8 NVIDIA GPUs, one may wish to partition those GPUs into 4
-virtual QPU instances, each manages 2 GPUs. To do so, first launch a
-[`cudaq-qpud`{.code .docutils .literal .notranslate}]{.pre} server for
-each virtual QPU:
+::: {#using-native-mpi-apis .section}
+### Using Native MPI APIs[¶](#using-native-mpi-apis "Permalink to this heading"){.headerlink}
+
+Users who already manage MPI in their application (e.g. with
+[`<mpi.h>`{.code .docutils .literal .notranslate}]{.pre} in C++ or
+[mpi4py](https://mpi4py.readthedocs.io/){.reference .external} in
+Python) can split the communicator using those libraries directly and
+hand the result to CUDA-Q.
 
 ::: {.tab-set .docutils}
 Python
 
 ::: {.tab-content .docutils}
-::: {.highlight-bash .notranslate}
-::: highlight
-    # Use cudaq-qpud.py wrapper script to automatically find dependencies for the Python wheel configuration.
-    cudaq_location=`python3 -m pip show cudaq | grep -e 'Location: .*$'`
-    qpud_py="${cudaq_location#Location: }/bin/cudaq-qpud.py"
-    CUDA_VISIBLE_DEVICES=0,1 mpiexec -np 2 python3 "$qpud_py" --port <QPU 1 TCP/IP port number>
-    CUDA_VISIBLE_DEVICES=2,3 mpiexec -np 2 python3 "$qpud_py" --port <QPU 2 TCP/IP port number>
-    CUDA_VISIBLE_DEVICES=4,5 mpiexec -np 2 python3 "$qpud_py" --port <QPU 3 TCP/IP port number>
-    CUDA_VISIBLE_DEVICES=6,7 mpiexec -np 2 python3 "$qpud_py" --port <QPU 4 TCP/IP port number>
-:::
-:::
-:::
+The sub-communicator handle is passed to CUDA-Q via the
+[`comm_handle`{.code .docutils .literal .notranslate}]{.pre} keyword
+argument of [`cudaq.set_target()`{.code .docutils .literal
+.notranslate}]{.pre}.
 
-C++
-
-::: {.tab-content .docutils}
-::: {.highlight-bash .notranslate}
-::: highlight
-    # It is assumed that your $LD_LIBRARY_PATH is able to find all the necessary dependencies.
-    CUDA_VISIBLE_DEVICES=0,1 mpiexec -np 2 cudaq-qpud --port <QPU 1 TCP/IP port number>
-    CUDA_VISIBLE_DEVICES=2,3 mpiexec -np 2 cudaq-qpud --port <QPU 2 TCP/IP port number>
-    CUDA_VISIBLE_DEVICES=4,5 mpiexec -np 2 cudaq-qpud --port <QPU 3 TCP/IP port number>
-    CUDA_VISIBLE_DEVICES=6,7 mpiexec -np 2 cudaq-qpud --port <QPU 4 TCP/IP port number>
-:::
-:::
-:::
-:::
-
-In the above code snippet, four [`nvidia-mgpu`{.code .docutils .literal
-.notranslate}]{.pre} daemons are started in MPI context via the
-[`mpiexec`{.code .docutils .literal .notranslate}]{.pre} launcher. This
-activates MPI runtime environment required by the [`nvidia-mgpu`{.code
-.docutils .literal .notranslate}]{.pre} backend. Each QPU daemon is
-assigned a unique TCP/IP port number via the [`--port`{.code .docutils
-.literal .notranslate}]{.pre} command-line option. The
-[`CUDA_VISIBLE_DEVICES`{.code .docutils .literal .notranslate}]{.pre}
-environment variable restricts the GPU devices that each QPU daemon sees
-so that it targets specific GPUs.
-
-With these invocations, each virtual QPU is locally addressable at the
-URL [`localhost:<port>`{.code .docutils .literal .notranslate}]{.pre}.
-
-::: {.admonition .warning}
-Warning
-
-There is no authentication required to communicate with this server app.
-Hence, please make sure to either (1) use a non-public TCP/IP port for
-internal use or (2) use firewalls or other security mechanisms to manage
-user access.
-:::
-
-User code can then target these QPUs for multi-QPU workloads, such as
-asynchronous sample or observe shown above for the multi-QPU NVIDIA
-platform platform.
-
-::: {.tab-set .docutils}
-Python
-
-::: {.tab-content .docutils}
 ::: {.highlight-python .notranslate}
 ::: highlight
-    cudaq.set_target("remote-mqpu", url="localhost:<port1>,localhost:<port2>,localhost:<port3>,localhost:<port4>", backend="nvidia-mgpu")
-:::
+    import sys
+
+    import cudaq
+    from mpi4py import MPI
+
+
+    @cudaq.kernel
+    def ghz(n: int):
+        q = cudaq.qvector(n)
+        h(q[0])
+        for i in range(n - 1):
+            cx(q[i], q[i + 1])
+
+
+    def mpi_comm_handle(comm) -> int:
+        """Return a pointer to the MPI_Comm handle as an integer."""
+        return MPI._addressof(comm)
+
+
+    world_comm = MPI.COMM_WORLD
+    world_rank = world_comm.Get_rank()
+    world_size = world_comm.Get_size()
+
+    # Each QPU is backed by `ranks_per_qpu` MPI ranks / GPUs.
+    ranks_per_qpu = 2
+    if world_size % ranks_per_qpu != 0:
+        if world_rank == 0:
+            print(f"World size must be a multiple of {ranks_per_qpu}.",
+                  file=sys.stderr)
+        sys.exit(1)
+
+    # Assign each rank to a QPU group and split the communicator accordingly.
+    # ```
+    #  MPI_COMM_WORLD
+    #  +----------+----------+----------+----------+
+    #  |  rank 0  |  rank 1  |  rank 2  |  rank 3  |
+    #  +----------+----------+----------+----------+
+    #  |        QPU 0        |        QPU 1        |
+    #  |    (qpu_id = 0)     |    (qpu_id = 1)     |
+    #  +---------------------+---------------------+
+    # ```
+    qpu_id = world_rank // ranks_per_qpu
+    qpu_comm = world_comm.Split(color=qpu_id, key=world_rank)
+
+    # Pass the sub-communicator handle to CUDA-Q when selecting the target.
+    cudaq.set_target("tensornet", comm_handle=mpi_comm_handle(qpu_comm))
+
+    # Run an independent circuit on each QPU group.
+    # The `tensornet` backend can handle a large number of qubits via multi-GPU
+    # tensor network contraction, well beyond what state vector simulators support.
+    num_qubits = 40 + 5 * qpu_id
+    result = cudaq.sample(ghz, num_qubits)
+
+    if qpu_comm.Get_rank() == 0:
+        print(f"QPU {qpu_id} ({num_qubits} qubits):")
+        print(result)
+    # [End Documentation]
 :::
 :::
 
-C++
-
-::: {.tab-content .docutils}
 ::: {.highlight-console .notranslate}
 ::: highlight
-    nvq++ distributed.cpp --target remote-mqpu --remote-mqpu-url localhost:<port1>,localhost:<port2>,localhost:<port3>,localhost:<port4> --remote-mqpu-backend nvidia-mgpu
-:::
-:::
-:::
-:::
-
-Each URL is treated as an independent QPU, hence the number of QPUs
-([`num_qpus()`{.code .docutils .literal .notranslate}]{.pre}) is equal
-to the number of URLs provided. The multi-node multi-GPU simulator
-backend ([`nvidia-mgpu`{.code .docutils .literal .notranslate}]{.pre})
-is requested via the [`--remote-mqpu-backend`{.code .docutils .literal
-.notranslate}]{.pre} command-line option.
-
-::: {.admonition .note}
-Note
-
-The requested backend ([`nvidia-mgpu`{.code .docutils .literal
-.notranslate}]{.pre}) will be executed inside the context of the QPU
-daemon service, thus inherits its GPU resource allocation (two GPUs per
-backend simulator instance).
-:::
-
-::: {#supported-kernel-arguments .section}
-### Supported Kernel Arguments[¶](#supported-kernel-arguments "Permalink to this heading"){.headerlink}
-
-The platform serializes kernel invocation to QPU daemons via REST APIs.
-Please refer to the [Open API Docs](../../openapi.html){.reference
-.external} for the latest API information. Runtime arguments are
-serialized into a flat memory buffer ([`args`{.code .docutils .literal
-.notranslate}]{.pre} field of the request JSON). For more information
-about argument type serialization, please see [[the table below]{.std
-.std-ref}](#type-serialization-table){.reference .internal}.
-
-When using a remote backend to simulate each virtual QPU, by default, we
-currently do not support passing complex data structures, such as nested
-vectors or class objects, or other kernels as arguments to the entry
-point kernels. These type limitations only apply to the **entry-point**
-kernel and not when passing arguments to other quantum kernels.
-
-Support for the full range of argument types within CUDA-Q can be
-enabled by compiling the code with the [`--enable-mlir`{.code .docutils
-.literal .notranslate}]{.pre} option. This flag forces quantum kernels
-to be compiled with the CUDA-Q MLIR-based compiler. As a result, runtime
-arguments can be resolved by the CUDA Quantum compiler infrastructure to
-support wider range of argument types. However, certain language
-constructs within quantum kernels may not yet be fully supported.
-
-[]{#type-serialization-table}
-
-+----------------------+----------------------+----------------------+
-| Data type            | Example              | Serialization        |
-+======================+======================+======================+
-| Trivial type         | [`int`{.code         | Byte data (via       |
-| (occupies a          | .docutils .literal   | [`memcpy`{.code      |
-| contiguous memory    | .                    | .docutils .literal   |
-| area)                | notranslate}]{.pre}, | .                    |
-|                      | [`std::size_t`{.code | notranslate}]{.pre}) |
-|                      | .docutils .literal   |                      |
-|                      | .                    |                      |
-|                      | notranslate}]{.pre}, |                      |
-|                      | [`double`{.code      |                      |
-|                      | .docutils .literal   |                      |
-|                      | .                    |                      |
-|                      | notranslate}]{.pre}, |                      |
-|                      | etc.                 |                      |
-+----------------------+----------------------+----------------------+
-| [`std::vector`{.code | [`std                | Total vector size in |
-| .docutils .literal   | ::vector<int>`{.code | bytes as a 64-bit    |
-| .notranslate}]{.pre} | .docutils .literal   | integer followed by  |
-| of trivial type      | .                    | serialized data of   |
-|                      | notranslate}]{.pre}, | all vector elements. |
-|                      | [`std::v             |                      |
-|                      | ector<double>`{.code |                      |
-|                      | .docutils .literal   |                      |
-|                      | .                    |                      |
-|                      | notranslate}]{.pre}, |                      |
-|                      | etc.                 |                      |
-+----------------------+----------------------+----------------------+
-| [`cuda               | [`cudaq::pauli       | Same as              |
-| q::pauli_word`{.code | _word("IXIZ")`{.code | [`std:               |
-| .docutils .literal   | .docutils .literal   | :vector<char>`{.code |
-| .notranslate}]{.pre} | .notranslate}]{.pre} | .docutils .literal   |
-|                      |                      | .                    |
-|                      |                      | notranslate}]{.pre}: |
-|                      |                      | total vector size in |
-|                      |                      | bytes as a 64-bit    |
-|                      |                      | integer followed by  |
-|                      |                      | serialized data of   |
-|                      |                      | all characters.      |
-+----------------------+----------------------+----------------------+
-| Single-level nested  | [`std::vector<std:   | Number of top-level  |
-| [`std::vector`{.code | :vector<int>>`{.code | elements (as a       |
-| .docutils .literal   | .docutils .literal   | 64-bit integer)      |
-| .notranslate}]{.pre} | .                    | followed sizes in    |
-| of supported         | notranslate}]{.pre}, | bytes of element     |
-| [`std::vector`{.code | [`std::vector<cudaq  | vectors (as a        |
-| .docutils .literal   | ::pauli_word>`{.code | contiguous array of  |
-| .notranslate}]{.pre} | .docutils .literal   | 64-bit integers)     |
-| types                | .                    | then serialized data |
-|                      | notranslate}]{.pre}, | of the inner         |
-|                      | etc.                 | vectors.             |
-+----------------------+----------------------+----------------------+
-
-: [Kernel argument
-serialization]{.caption-text}[¶](#id3 "Permalink to this table"){.headerlink}
-
-For CUDA-Q kernels that return a value, the remote platform supports
-returning simple data types of [`bool`{.code .docutils .literal
-.notranslate}]{.pre}, integral (e.g., [`int`{.code .docutils .literal
-.notranslate}]{.pre} or [`std::size_t`{.code .docutils .literal
-.notranslate}]{.pre}), and floating-point types ([`float`{.code
-.docutils .literal .notranslate}]{.pre} or [`double`{.code .docutils
-.literal .notranslate}]{.pre}) when MLIR-based compilation is enabled
-([`--enable-mlir`{.code .docutils .literal .notranslate}]{.pre}).
-:::
-
-::: {#accessing-simulated-quantum-state .section}
-### Accessing Simulated Quantum State[¶](#accessing-simulated-quantum-state "Permalink to this heading"){.headerlink}
-
-The remote [`MQPU`{.code .docutils .literal .notranslate}]{.pre}
-platform supports accessing simulator backend's state vector via the
-[`cudaq::get_state`{.code .docutils .literal .notranslate}]{.pre} (C++)
-or [`cudaq.get_state`{.code .docutils .literal .notranslate}]{.pre}
-(Python) APIs, similar to local simulator backends.
-
-State data can be retrieved as a full state vector or as individual
-basis states' amplitudes. The later is designed for large quantum
-states, which incurred data transfer overheads.
-
-::: {.tab-set .docutils}
-Python
-
-::: {.tab-content .docutils}
-::: {.highlight-python .notranslate}
-::: highlight
-    state = cudaq.get_state(kernel)
-    amplitudes = state.amplitudes(['0000', '1111'])
+    mpirun -n 4 python3 sample.py
+    QPU 0 (40 qubits):
+    { 0000000000000000000000000000000000000000:489 1111111111111111111111111111111111111111:511 }
+    QPU 1 (45 qubits):
+    { 000000000000000000000000000000000000000000000:495 111111111111111111111111111111111111111111111:505 }
 :::
 :::
 :::
@@ -2794,47 +2727,617 @@ C++
 ::: {.tab-content .docutils}
 ::: {.highlight-cpp .notranslate}
 ::: highlight
-    auto state = cudaq::get_state(kernel)
-    auto amplitudes = state.amplitudes({{0, 0, 0, 0}, {1, 1, 1, 1}});
+    #include <cudaq.h>
+    #include <mpi.h>
+
+    __qpu__ void ghz(int n) {
+      cudaq::qvector q(n);
+      h(q[0]);
+      for (int i = 0; i < n - 1; i++)
+        cx(q[i], q[i + 1]);
+    }
+
+    int main(int argc, char **argv) {
+      MPI_Init(&argc, &argv);
+
+      int world_rank, world_size;
+      MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+      MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+      // Each `QPU` is backed by `ranks_per_qpu` MPI ranks / GPUs.
+      const int ranks_per_qpu = 2;
+      if (world_size % ranks_per_qpu != 0) {
+        if (world_rank == 0)
+          fprintf(stderr, "World size must be a multiple of %d.\n", ranks_per_qpu);
+        MPI_Finalize();
+        return 1;
+      }
+
+      // Assign each rank to a `QPU` group and split the communicator accordingly.
+      // ```
+      //  MPI_COMM_WORLD
+      //  +----------+----------+----------+----------+
+      //  |  rank 0  |  rank 1  |  rank 2  |  rank 3  |
+      //  +----------+----------+----------+----------+
+      //  |        QPU 0        |        QPU 1        |
+      //  |    (qpu_id = 0)     |    (qpu_id = 1)     |
+      //  +---------------------+---------------------+
+      // ```
+      const int qpu_id = world_rank / ranks_per_qpu;
+      MPI_Comm qpu_comm;
+      MPI_Comm_split(MPI_COMM_WORLD, qpu_id, world_rank, &qpu_comm);
+
+      // Inform CUDA-Q which sub-communicator this `QPU` group should use.
+      cudaq::mpi::set_communicator(reinterpret_cast<void *>(&qpu_comm));
+
+      // Run an independent circuit on each `QPU` group.
+      // The `tensornet` backend can handle a large number of qubits via multi-GPU
+      // tensor network contraction, well beyond what state vector simulators
+      // support.
+      const int num_qubits = 40 + 5 * qpu_id;
+      auto result = cudaq::sample(ghz, num_qubits);
+
+      int qpu_rank;
+      MPI_Comm_rank(qpu_comm, &qpu_rank);
+      if (qpu_rank == 0) {
+        printf("QPU %d (%d qubits):\n", qpu_id, num_qubits);
+        result.dump();
+      }
+
+      MPI_Comm_free(&qpu_comm);
+      MPI_Finalize();
+      return 0;
+    }
+:::
+:::
+
+::: {.highlight-console .notranslate}
+::: highlight
+    nvq++ --target tensornet -o sample sample.cpp \
+        -I$(mpicc -showme:incdirs) -L$(mpicc -showme:libdirs) -lmpi
+    mpirun -n 4 ./sample
+    QPU 0 (40 qubits):
+    { 0000000000000000000000000000000000000000:483 1111111111111111111111111111111111111111:517 }
+    QPU 1 (45 qubits):
+    { 000000000000000000000000000000000000000000000:501 111111111111111111111111111111111111111111111:499 }
 :::
 :::
 :::
 :::
 
-In the above example, the amplitudes of the two requested states are
-returned.
+::: {.admonition .note}
+Note
 
-For C++ quantum kernels
-[[\[]{.fn-bracket}\*[\]]{.fn-bracket}](#id2){#id1 .footnote-reference
-.brackets role="doc-noteref"} compiled with the CUDA-Q MLIR-based
-compiler and Python kernels, state accessor is evaluated in a
-just-in-time/on-demand manner, and hence can be customize to users'
-need.
+When using native MPI APIs, the pointer passed to
+[`cudaq::mpi::set_communicator`{.code .docutils .literal
+.notranslate}]{.pre} must refer to a live [`MPI_Comm`{.code .docutils
+.literal .notranslate}]{.pre} object. Keep it alive for the duration of
+all CUDA-Q calls in that QPU group and free it with
+[`MPI_Comm_free`{.code .docutils .literal .notranslate}]{.pre} once
+simulation is complete.
+:::
 
-For instance, in the above amplitude access example, if the state vector
-is very large, e.g., multi-GPU distributed state vectors or
-tensor-network encoded quantum states, the full state vector will not be
-retrieved when [`get_state`{.code .docutils .literal
-.notranslate}]{.pre} is called. Instead, when the [`amplitudes`{.code
-.docutils .literal .notranslate}]{.pre} accessor is called, a specific
-amplitude calculation request will be sent to the server. Thus, only the
-amplitudes of those basis states will be computed and returned.
+::: {.admonition .note}
+Note
 
-Similarly, for state overlap calculation, if deferred state evaluation
-is available (Python/MLIR-based compiler) for both of the operand
-quantum states, a custom overlap calculation request will be constructed
-and sent to the server. Only the final overlap result will be returned,
-thereby eliminating back-and-forth state data transfers.
+MPI must be initialized before calling
+[`cudaq::mpi::set_communicator`{.code .docutils .literal
+.notranslate}]{.pre}, [`cudaq.mpi.set_communicator`{.code .docutils
+.literal .notranslate}]{.pre}, or [`cudaq.set_target`{.code .docutils
+.literal .notranslate}]{.pre} with a [`comm_handle`{.code .docutils
+.literal .notranslate}]{.pre}. CUDA-Q will raise an error if MPI has not
+been initialized. Refer to [[Distributed Computing with MPI]{.std
+.std-ref}](../../install/local_installation.html#distributed-computing-with-mpi){.reference
+.internal} for instructions on enabling MPI support in CUDA-Q.
+:::
+:::
 
-[[\[]{.fn-bracket}[\*](#id1){role="doc-backlink"}[\]]{.fn-bracket}]{.label}
+::: {#gradient-computation-for-vqe .section}
+### Gradient Computation for VQE[¶](#gradient-computation-for-vqe "Permalink to this heading"){.headerlink}
 
-Only C++ quantum kernels whose names are available via run-time type
-information (RTTI) are supported. For example, quantum kernels expressed
-as named [`struct`{.code .docutils .literal .notranslate}]{.pre} are
-supported but not standalone functions. Kernels that do not have
-deferred state evaluation support will perform synchronous
-[`get_state`{.code .docutils .literal .notranslate}]{.pre}, whereby the
-full state vector is returned from the server immediately.
+A common application of the multi-QPU pattern is computing the energy
+gradient for the [Variational Quantum Eigensolver
+(VQE)](https://www.nature.com/articles/ncomms5213){.reference
+.external}. Most gradient rules (e.g. parameter-shift) evaluate each
+gradient component independently via one or more [`observe`{.code
+.docutils .literal .notranslate}]{.pre} calls per parameter, which maps
+naturally onto the multi-QPU model: assign one QPU group per parameter
+and all gradient components are evaluated in parallel. The pattern
+scales linearly --- a circuit with [\\(N\\)]{.math .notranslate
+.nohighlight} variational parameters requires [\\(N\\)]{.math
+.notranslate .nohighlight} QPU groups and [\\(N \\times\\)]{.math
+.notranslate .nohighlight} [`ranks_per_qpu`{.code .docutils .literal
+.notranslate}]{.pre} total MPI ranks, with no code changes beyond
+launching more ranks and providing more initial parameters.
+
+::: {.admonition .note}
+Note
+
+This MPI-based approach offers two advantages over the thread-based
+multi-QPU mode ([[Simulate Multiple QPUs in Parallel]{.std
+.std-ref}](#mqpu-platform){.reference .internal}):
+
+-   **Larger problems**: increasing [`ranks_per_qpu`{.code .docutils
+    .literal .notranslate}]{.pre} assigns more GPUs to each virtual QPU,
+    allowing each [`observe`{.code .docutils .literal
+    .notranslate}]{.pre} call to simulate circuits that exceed the
+    memory of a single GPU.
+
+-   **Arbitrary cluster scale**: QPU groups span across nodes via MPI,
+    so the total number of virtual QPUs is limited only by the cluster
+    size, not by the number of GPUs on a single node.
+:::
+
+The examples below use a 40-qubit placeholder ansatz and Hamiltonian to
+illustrate the distribution pattern. To use this in a real VQE workflow,
+substitute your application-specific ansatz and physical Hamiltonian
+(e.g. generated from a chemistry package such as [`PySCF`{.docutils
+.literal .notranslate}]{.pre}), wrap the gradient evaluation in an
+optimization loop (e.g. using [`cudaq.optimizers`{.code .docutils
+.literal .notranslate}]{.pre}), and feed the gathered gradient back to
+the optimizer at each iteration.
+
+::: {.tab-set .docutils}
+Python (cudaq.mpi)
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    import math
+
+    import cudaq
+
+
+    @cudaq.kernel
+    def ansatz(n: int, theta0: float, theta1: float):
+        """Dummy ansatz for demonstration: replace with your VQE circuit.
+        Ry(theta0) on even qubits, Ry(theta1) on odd qubits — product state,
+        no entanglement. With H = sum_i Z(i) this gives an analytically
+        verifiable gradient: grad[k] = -n/2 * sin(theta_k).
+        """
+        q = cudaq.qvector(n)
+        for i in range(n):
+            if i % 2 == 0:
+                ry(theta0, q[i])
+            else:
+                ry(theta1, q[i])
+
+
+    cudaq.mpi.initialize()
+
+    world_rank = cudaq.mpi.rank()
+    world_size = cudaq.mpi.num_ranks()
+
+    ranks_per_qpu = 2
+    if world_size % ranks_per_qpu != 0:
+        if world_rank == 0:
+            print(f"World size must be a multiple of {ranks_per_qpu}.")
+        cudaq.mpi.finalize()
+        raise SystemExit(1)
+
+    num_qpus = world_size // ranks_per_qpu
+
+    # Assign each rank to a QPU group and split the communicator.
+    # QPU group g computes the gradient for parameter theta_g.
+    #
+    # This example uses 2 parameters and 2 QPU groups. To scale to N parameters,
+    # launch with N * `ranks_per_qpu` total MPI ranks and provide N initial `params`.
+    # Each additional QPU group adds `ranks_per_qpu` ranks and handles one more
+    # gradient component in parallel — no other code changes required.
+    #
+    #  MPI_COMM_WORLD
+    #  +----------+----------+----------+----------+
+    #  |  rank 0  |  rank 1  |  rank 2  |  rank 3  |
+    #  +----------+----------+----------+----------+
+    #  |        QPU 0        |        QPU 1        |
+    #  | grad[0]=(E+-E-)/2   | grad[1]=(E+-E-)/2   |
+    #  +---------------------+---------------------+
+    #
+    qpu_id = world_rank // ranks_per_qpu
+    qpu_comm = cudaq.mpi.split_communicator(qpu_id)
+
+    # Each QPU group uses `ranks_per_qpu` GPUs for every cudaq.observe() call.
+    cudaq.set_target("tensornet", comm_handle=qpu_comm)
+
+    # Dummy Hamiltonian (sum of Z on all qubits) for demonstration:
+    # replace with your physical Hamiltonian, e.g. generated from PySCF.
+    n_qubits = 40
+    H = cudaq.spin.z(0)
+    for i in range(1, n_qubits):
+        H += cudaq.spin.z(i)
+    params = [0.5, 0.3]  # theta_0, theta_1
+    shift = math.pi / 2.0
+
+    # Each QPU group applies +/-shift to its assigned parameter and runs two
+    # observe() calls. Both calls use all `ranks_per_qpu` GPUs via the
+    # sub-communicator, enabling multi-GPU tensor-network contraction.
+    #
+    # In a VQE optimization loop, this block executes every iteration:
+    # the optimizer supplies updated `params`, each QPU group re-evaluates its
+    # two shifted energies, and the gathered gradient drives the next step.
+    p_plus = params.copy()
+    p_plus[qpu_id] += shift
+    p_minus = params.copy()
+    p_minus[qpu_id] -= shift
+
+    e_plus = cudaq.observe(ansatz, H, n_qubits, p_plus[0], p_plus[1]).expectation()
+    e_minus = cudaq.observe(ansatz, H, n_qubits, p_minus[0],
+                            p_minus[1]).expectation()
+    local_grad = (e_plus - e_minus) / 2.0
+
+    # Gather local_grad from every world rank. All ranks within a QPU group
+    # hold the same value (collective result), so sample every `ranks_per_qpu-th`
+    # entry to reconstruct the full gradient vector.
+    all_grads = cudaq.mpi.all_gather(world_size, [local_grad])
+
+    if world_rank == 0:
+        gradient = [all_grads[i * ranks_per_qpu] for i in range(num_qpus)]
+        print(f"Gradient: {gradient}")
+
+    cudaq.mpi.finalize()
+:::
+:::
+
+::: {.highlight-console .notranslate}
+::: highlight
+    mpirun -n 4 python3 observe_gradient_cudaq_mpi.py
+    Gradient: [-9.588510772084065, -5.91040413322679]
+:::
+:::
+:::
+
+Python (mpi4py)
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    import math
+    import sys
+
+    import cudaq
+    from mpi4py import MPI
+
+
+    @cudaq.kernel
+    def ansatz(n: int, theta0: float, theta1: float):
+        """Dummy ansatz for demonstration: replace with your VQE circuit.
+        Ry(theta0) on even qubits, Ry(theta1) on odd qubits — product state,
+        no entanglement. With H = sum_i Z(i) this gives an analytically
+        verifiable gradient: grad[k] = -n/2 * sin(theta_k).
+        """
+        q = cudaq.qvector(n)
+        for i in range(n):
+            if i % 2 == 0:
+                ry(theta0, q[i])
+            else:
+                ry(theta1, q[i])
+
+
+    def mpi_comm_handle(comm) -> int:
+        """Return a pointer to the MPI_Comm handle as an integer."""
+        return MPI._addressof(comm)
+
+
+    world_comm = MPI.COMM_WORLD
+    world_rank = world_comm.Get_rank()
+    world_size = world_comm.Get_size()
+
+    ranks_per_qpu = 2
+    if world_size % ranks_per_qpu != 0:
+        if world_rank == 0:
+            print(f"World size must be a multiple of {ranks_per_qpu}.",
+                  file=sys.stderr)
+        sys.exit(1)
+
+    num_qpus = world_size // ranks_per_qpu
+
+    # Assign each rank to a QPU group and split the communicator.
+    # QPU group g computes the gradient for parameter theta_g.
+    #
+    # This example uses 2 parameters and 2 QPU groups. To scale to N parameters,
+    # launch with N * `ranks_per_qpu` total MPI ranks and provide N initial `params`.
+    # Each additional QPU group adds `ranks_per_qpu` ranks and handles one more
+    # gradient component in parallel — no other code changes required.
+    #
+    #  MPI_COMM_WORLD
+    #  +----------+----------+----------+----------+
+    #  |  rank 0  |  rank 1  |  rank 2  |  rank 3  |
+    #  +----------+----------+----------+----------+
+    #  |        QPU 0        |        QPU 1        |
+    #  | grad[0]=(E+-E-)/2   | grad[1]=(E+-E-)/2   |
+    #  +---------------------+---------------------+
+    #
+    qpu_id = world_rank // ranks_per_qpu
+    qpu_comm = world_comm.Split(color=qpu_id, key=world_rank)
+
+    # Each QPU group uses `ranks_per_qpu` GPUs for every cudaq.observe() call.
+    cudaq.set_target("tensornet", comm_handle=mpi_comm_handle(qpu_comm))
+
+    # Dummy Hamiltonian (sum of Z on all qubits) for demonstration:
+    # replace with your physical Hamiltonian, e.g. generated from PySCF.
+    n_qubits = 40
+    H = cudaq.spin.z(0)
+    for i in range(1, n_qubits):
+        H += cudaq.spin.z(i)
+    params = [0.5, 0.3]  # theta_0, theta_1
+    shift = math.pi / 2.0
+
+    # Each QPU group applies +/-shift to its assigned parameter and runs two
+    # observe() calls. Both calls use all `ranks_per_qpu` GPUs via the
+    # sub-communicator, enabling multi-GPU tensor-network contraction.
+    #
+    # In a VQE optimization loop, this block executes every iteration:
+    # the optimizer supplies updated `params`, each QPU group re-evaluates its
+    # two shifted energies, and the gathered gradient drives the next step.
+    p_plus = params.copy()
+    p_plus[qpu_id] += shift
+    p_minus = params.copy()
+    p_minus[qpu_id] -= shift
+
+    e_plus = cudaq.observe(ansatz, H, n_qubits, p_plus[0], p_plus[1]).expectation()
+    e_minus = cudaq.observe(ansatz, H, n_qubits, p_minus[0],
+                            p_minus[1]).expectation()
+    local_grad = (e_plus - e_minus) / 2.0
+
+    # Gather local_grad from every world rank. All ranks within a QPU group
+    # hold the same value (collective result), so sample every `ranks_per_qpu-th`
+    # entry to reconstruct the gradient vector.
+    all_grads = world_comm.allgather(local_grad)
+
+    if world_rank == 0:
+        gradient = [all_grads[i * ranks_per_qpu] for i in range(num_qpus)]
+        print(f"Gradient: {gradient}")
+
+    qpu_comm.Free()
+:::
+:::
+
+::: {.highlight-console .notranslate}
+::: highlight
+    mpirun -n 4 python3 observe_gradient.py
+    Gradient: [-9.588510772084065, -5.91040413322679]
+:::
+:::
+:::
+
+C++ (cudaq::mpi)
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    #include <cmath>
+    #include <cstdio>
+    #include <cudaq.h>
+    #include <vector>
+
+    // Dummy ansatz for demonstration: replace with your VQE circuit.
+    // Ry(theta0) on even qubits, Ry(theta1) on odd qubits — product state,
+    // no entanglement. With H = sum_i Z(i) this gives an analytically
+    // verifiable gradient: grad[k] = -n/2 * sin(theta_k).
+    __qpu__ void ansatz(int n, double theta0, double theta1) {
+      cudaq::qvector q(n);
+      for (int i = 0; i < n; i++) {
+        if (i % 2 == 0)
+          ry(theta0, q[i]);
+        else
+          ry(theta1, q[i]);
+      }
+    }
+
+    int main() {
+      cudaq::mpi::initialize();
+
+      const int world_rank = cudaq::mpi::rank();
+      const int world_size = cudaq::mpi::num_ranks();
+
+      const int ranks_per_qpu = 2;
+      if (world_size % ranks_per_qpu != 0) {
+        if (world_rank == 0)
+          fprintf(stderr, "World size must be a multiple of %d.\n", ranks_per_qpu);
+        cudaq::mpi::finalize();
+        return 1;
+      }
+      const int num_qpus = world_size / ranks_per_qpu;
+
+      // Assign each rank to a `QPU` group and split the communicator.
+      // `QPU` group g computes the gradient for parameter theta_g.
+      //
+      // This example uses 2 parameters and 2 QPU groups. To scale to N parameters,
+      // launch with N * `ranks_per_qpu` total MPI ranks and provide N initial
+      // `params`. Each additional QPU group adds `ranks_per_qpu` ranks and handles
+      // one more gradient component in parallel — no other code changes required.
+      //
+      // ```
+      //  MPI_COMM_WORLD
+      //  +----------+----------+----------+----------+
+      //  |  rank 0  |  rank 1  |  rank 2  |  rank 3  |
+      //  +----------+----------+----------+----------+
+      //  |        QPU 0        |        QPU 1        |
+      //  | grad[0]=(E+-E-)/2   | grad[1]=(E+-E-)/2   |
+      //  +---------------------+---------------------+
+      // ```
+      const int qpu_id = world_rank / ranks_per_qpu;
+      void *qpu_comm = cudaq::mpi::split_communicator(qpu_id);
+
+      // Each `QPU` group uses `ranks_per_qpu` GPUs for every cudaq::observe() call.
+      cudaq::mpi::set_communicator(qpu_comm);
+
+      // Dummy Hamiltonian (sum of Z on all qubits) for demonstration:
+      // replace with your physical Hamiltonian, e.g. generated from `PySCF`.
+      const int n_qubits = 40;
+      auto H = cudaq::spin::z(0) + cudaq::spin::z(1);
+      for (int i = 2; i < n_qubits; i++)
+        H = H + cudaq::spin::z(i);
+      const std::vector<double> params = {0.5, 0.3}; // theta_0, theta_1
+      const double shift = M_PI / 2.0;
+
+      // Each `QPU` group applies +/-shift to its assigned parameter and runs two
+      // observe() calls. Both calls use all `ranks_per_qpu` GPUs via the
+      // sub-communicator, enabling multi-GPU tensor-network contraction.
+      //
+      // In a VQE optimization loop, this block executes every iteration:
+      // the optimizer supplies updated `params`, each `QPU` group re-evaluates its
+      // two shifted energies, and the gathered gradient drives the next step.
+      auto p_plus = params, p_minus = params;
+      p_plus[qpu_id] += shift;
+      p_minus[qpu_id] -= shift;
+
+      const double e_plus =
+          cudaq::observe(ansatz, H, n_qubits, p_plus[0], p_plus[1]).expectation();
+      const double e_minus =
+          cudaq::observe(ansatz, H, n_qubits, p_minus[0], p_minus[1]).expectation();
+      const double local_grad = (e_plus - e_minus) / 2.0;
+
+      // Gather local_grad from every world rank. All ranks within a `QPU` group
+      // hold the same value (collective result), so sample every `ranks_per_qpu-th`
+      // entry to reconstruct the full gradient vector.
+      std::vector<double> all_grads(world_size);
+      cudaq::mpi::all_gather(all_grads, std::vector<double>{local_grad});
+
+      if (world_rank == 0) {
+        printf("Gradient: [");
+        for (int i = 0; i < num_qpus; i++)
+          printf("%s%.6f", i > 0 ? ", " : "", all_grads[i * ranks_per_qpu]);
+        printf("]\n");
+      }
+
+      cudaq::mpi::finalize();
+      return 0;
+    }
+:::
+:::
+
+::: {.highlight-console .notranslate}
+::: highlight
+    nvq++ --target tensornet -o observe_gradient_cudaq_mpi observe_gradient_cudaq_mpi.cpp
+    mpirun -n 4 ./observe_gradient_cudaq_mpi
+    Gradient: [-9.588511, -5.910404]
+:::
+:::
+:::
+
+C++ (native MPI)
+
+::: {.tab-content .docutils}
+::: {.highlight-cpp .notranslate}
+::: highlight
+    #include <cmath>
+    #include <cstdio>
+    #include <cudaq.h>
+    #include <mpi.h>
+    #include <vector>
+
+    // Dummy ansatz for demonstration: replace with your VQE circuit.
+    // Ry(theta0) on even qubits, Ry(theta1) on odd qubits — product state,
+    // no entanglement. With H = sum_i Z(i) this gives an analytically
+    // verifiable gradient: grad[k] = -n/2 * sin(theta_k).
+    __qpu__ void ansatz(int n, double theta0, double theta1) {
+      cudaq::qvector q(n);
+      for (int i = 0; i < n; i++) {
+        if (i % 2 == 0)
+          ry(theta0, q[i]);
+        else
+          ry(theta1, q[i]);
+      }
+    }
+
+    int main(int argc, char **argv) {
+      MPI_Init(&argc, &argv);
+
+      int world_rank, world_size;
+      MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+      MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+      const int ranks_per_qpu = 2;
+      if (world_size % ranks_per_qpu != 0) {
+        if (world_rank == 0)
+          fprintf(stderr, "World size must be a multiple of %d.\n", ranks_per_qpu);
+        MPI_Finalize();
+        return 1;
+      }
+      const int num_qpus = world_size / ranks_per_qpu;
+
+      // Assign each rank to a `QPU` group and split the communicator.
+      // `QPU` group g computes the gradient for parameter theta_g.
+      //
+      // This example uses 2 parameters and 2 QPU groups. To scale to N parameters,
+      // launch with N * `ranks_per_qpu` total MPI ranks and provide N initial
+      // `params`. Each additional QPU group adds `ranks_per_qpu` ranks and handles
+      // one more gradient component in parallel — no other code changes required.
+      //
+      // ```
+      //  MPI_COMM_WORLD
+      //  +----------+----------+----------+----------+
+      //  |  rank 0  |  rank 1  |  rank 2  |  rank 3  |
+      //  +----------+----------+----------+----------+
+      //  |        QPU 0        |        QPU 1        |
+      //  | grad[0]=(E+-E-)/2   | grad[1]=(E+-E-)/2   |
+      //  +---------------------+---------------------+
+      // ```
+      const int qpu_id = world_rank / ranks_per_qpu;
+      MPI_Comm qpu_comm;
+      MPI_Comm_split(MPI_COMM_WORLD, qpu_id, world_rank, &qpu_comm);
+
+      // Each `QPU` group uses `ranks_per_qpu` GPUs for every cudaq::observe() call.
+      cudaq::mpi::set_communicator(reinterpret_cast<void *>(&qpu_comm));
+
+      // Dummy Hamiltonian (sum of Z on all qubits) for demonstration:
+      // replace with your physical Hamiltonian, e.g. generated from `PySCF`.
+      const int n_qubits = 40;
+      auto H = cudaq::spin::z(0) + cudaq::spin::z(1);
+      for (int i = 2; i < n_qubits; i++)
+        H = H + cudaq::spin::z(i);
+      const std::vector<double> params = {0.5, 0.3}; // theta_0, theta_1
+      const double shift = M_PI / 2.0;
+
+      // Each `QPU` group applies +/-shift to its assigned parameter and runs two
+      // observe() calls. Both calls use all `ranks_per_qpu` GPUs via the
+      // sub-communicator, enabling multi-GPU tensor-network contraction.
+      //
+      // In a VQE optimization loop, this block executes every iteration:
+      // the optimizer supplies updated `params`, each `QPU` group re-evaluates its
+      // two shifted energies, and the gathered gradient drives the next step.
+      auto p_plus = params, p_minus = params;
+      p_plus[qpu_id] += shift;
+      p_minus[qpu_id] -= shift;
+
+      const double e_plus =
+          cudaq::observe(ansatz, H, n_qubits, p_plus[0], p_plus[1]).expectation();
+      const double e_minus =
+          cudaq::observe(ansatz, H, n_qubits, p_minus[0], p_minus[1]).expectation();
+      const double local_grad = (e_plus - e_minus) / 2.0;
+
+      // Gather local_grad from every world rank. All ranks within a `QPU` group
+      // hold the same value (collective result), so sample every `ranks_per_qpu-th`
+      // entry to reconstruct the gradient vector.
+      std::vector<double> all_grads(world_size);
+      MPI_Allgather(&local_grad, 1, MPI_DOUBLE, all_grads.data(), 1, MPI_DOUBLE,
+                    MPI_COMM_WORLD);
+
+      if (world_rank == 0) {
+        printf("Gradient: [");
+        for (int i = 0; i < num_qpus; i++)
+          printf("%s%.6f", i > 0 ? ", " : "", all_grads[i * ranks_per_qpu]);
+        printf("]\n");
+      }
+
+      MPI_Comm_free(&qpu_comm);
+      MPI_Finalize();
+      return 0;
+    }
+:::
+:::
+
+::: {.highlight-console .notranslate}
+::: highlight
+    nvq++ --target tensornet -o observe_gradient observe_gradient.cpp \
+        -I$(mpicc -showme:incdirs) -L$(mpicc -showme:libdirs) -lmpi
+    mpirun -n 4 ./observe_gradient
+    Gradient: [-9.588511, -5.910404]
+:::
+:::
+:::
+:::
 :::
 :::
 :::

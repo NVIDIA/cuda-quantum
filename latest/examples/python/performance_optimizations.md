@@ -161,10 +161,6 @@ latest
             -   [Circuit
                 Batching](../../using/examples/multi_gpu_workflows.html#circuit-batching){.reference
                 .internal}
-        -   [Multi-QPU + Other Backends ([`remote-mqpu`{.code .docutils
-            .literal
-            .notranslate}]{.pre})](../../using/examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
-            .internal}
     -   [Optimizers & Gradients](optimizers_gradients.html){.reference
         .internal}
         -   [CUDA-Q Optimizer
@@ -1016,8 +1012,8 @@ latest
             -   [Simulate Multiple QPUs in
                 Parallel](../../using/backends/sims/mqpusims.html#simulate-multiple-qpus-in-parallel){.reference
                 .internal}
-            -   [Multi-QPU + Other
-                Backends](../../using/backends/sims/mqpusims.html#multi-qpu-other-backends){.reference
+            -   [Multi-QPU with Multi-Node Multi-GPU
+                Backends](../../using/backends/sims/mqpusims.html#multi-qpu-with-multi-node-multi-gpu-backends){.reference
                 .internal}
         -   [Noisy
             Simulators](../../using/backends/sims/noisy.html){.reference
@@ -1104,6 +1100,13 @@ latest
                 .internal}
             -   [Manage your QPU
                 session](../../using/backends/cloud/scaleway.html#manage-your-qpu-session){.reference
+                .internal}
+        -   [qBraid](../../using/backends/cloud/qbraid.html){.reference
+            .internal}
+            -   [Setting
+                Credentials](../../using/backends/cloud/qbraid.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](../../using/backends/cloud/qbraid.html#submitting){.reference
                 .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
@@ -1927,6 +1930,12 @@ latest
             -   [[`is_initialized()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.is_initialized){.reference
                 .internal}
+            -   [[`split_communicator()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.split_communicator){.reference
+                .internal}
+            -   [[`set_communicator()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.set_communicator){.reference
+                .internal}
             -   [[`finalize()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.finalize){.reference
                 .internal}
@@ -2093,14 +2102,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![1e790aa5420b48beb80729833dc8a9a8](../../_images/gate-fuse.png)
+![db1ed4e9dbb4495b97e27442bf8aabd4](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![5755e1e0fb6147398d3ed4e03b0fd489](../../_images/gatefusion.png)
+![9afdd291c8394b6a893ff6f1c97578a1](../../_images/gatefusion.png)
 :::
 :::
 :::

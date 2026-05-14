@@ -152,10 +152,6 @@ latest
             -   [Circuit
                 Batching](examples/multi_gpu_workflows.html#circuit-batching){.reference
                 .internal}
-        -   [Multi-QPU + Other Backends ([`remote-mqpu`{.code .docutils
-            .literal
-            .notranslate}]{.pre})](examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
-            .internal}
     -   [Optimizers &
         Gradients](../examples/python/optimizers_gradients.html){.reference
         .internal}
@@ -1005,8 +1001,8 @@ latest
             -   [Simulate Multiple QPUs in
                 Parallel](backends/sims/mqpusims.html#simulate-multiple-qpus-in-parallel){.reference
                 .internal}
-            -   [Multi-QPU + Other
-                Backends](backends/sims/mqpusims.html#multi-qpu-other-backends){.reference
+            -   [Multi-QPU with Multi-Node Multi-GPU
+                Backends](backends/sims/mqpusims.html#multi-qpu-with-multi-node-multi-gpu-backends){.reference
                 .internal}
         -   [Noisy Simulators](backends/sims/noisy.html){.reference
             .internal}
@@ -1088,6 +1084,12 @@ latest
                 .internal}
             -   [Manage your QPU
                 session](backends/cloud/scaleway.html#manage-your-qpu-session){.reference
+                .internal}
+        -   [qBraid](backends/cloud/qbraid.html){.reference .internal}
+            -   [Setting
+                Credentials](backends/cloud/qbraid.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](backends/cloud/qbraid.html#submitting){.reference
                 .internal}
 -   [Dynamics](#){.current .reference .internal}
     -   [Quick Start](#quick-start){.reference .internal}
@@ -1883,6 +1885,12 @@ latest
             -   [[`is_initialized()`{.docutils .literal
                 .notranslate}]{.pre}](../api/languages/python_api.html#cudaq.mpi.is_initialized){.reference
                 .internal}
+            -   [[`split_communicator()`{.docutils .literal
+                .notranslate}]{.pre}](../api/languages/python_api.html#cudaq.mpi.split_communicator){.reference
+                .internal}
+            -   [[`set_communicator()`{.docutils .literal
+                .notranslate}]{.pre}](../api/languages/python_api.html#cudaq.mpi.set_communicator){.reference
+                .internal}
             -   [[`finalize()`{.docutils .literal
                 .notranslate}]{.pre}](../api/languages/python_api.html#cudaq.mpi.finalize){.reference
                 .internal}
@@ -2006,9 +2014,8 @@ latest
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](backends/cloud/scaleway.html "Scaleway Quantum as a Service"){.btn
-.btn-neutral .float-left accesskey="p"} [Next []{.fa
-.fa-arrow-circle-right
+Previous](backends/cloud/qbraid.html "qBraid"){.btn .btn-neutral
+.float-left accesskey="p"} [Next []{.fa .fa-arrow-circle-right
 aria-hidden="true"}](realtime.html "CUDA-Q Realtime"){.btn .btn-neutral
 .float-right accesskey="n"}
 :::
@@ -3688,8 +3695,8 @@ qubit modalities, and utilize multi-GPU multi-Node capabilities.
 
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](backends/cloud/scaleway.html "Scaleway Quantum as a Service"){.btn
-.btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
+Previous](backends/cloud/qbraid.html "qBraid"){.btn .btn-neutral
+.float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
 aria-hidden="true"}](realtime.html "CUDA-Q Realtime"){.btn .btn-neutral
 .float-right accesskey="n" rel="next"}

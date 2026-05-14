@@ -144,10 +144,6 @@ latest
                 .internal}
             -   [Circuit Batching](#circuit-batching){.reference
                 .internal}
-        -   [Multi-QPU + Other Backends ([`remote-mqpu`{.code .docutils
-            .literal
-            .notranslate}]{.pre})](#multi-qpu-other-backends-remote-mqpu){.reference
-            .internal}
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
         .internal}
@@ -992,8 +988,8 @@ latest
             -   [Simulate Multiple QPUs in
                 Parallel](../backends/sims/mqpusims.html#simulate-multiple-qpus-in-parallel){.reference
                 .internal}
-            -   [Multi-QPU + Other
-                Backends](../backends/sims/mqpusims.html#multi-qpu-other-backends){.reference
+            -   [Multi-QPU with Multi-Node Multi-GPU
+                Backends](../backends/sims/mqpusims.html#multi-qpu-with-multi-node-multi-gpu-backends){.reference
                 .internal}
         -   [Noisy Simulators](../backends/sims/noisy.html){.reference
             .internal}
@@ -1078,6 +1074,13 @@ latest
                 .internal}
             -   [Manage your QPU
                 session](../backends/cloud/scaleway.html#manage-your-qpu-session){.reference
+                .internal}
+        -   [qBraid](../backends/cloud/qbraid.html){.reference
+            .internal}
+            -   [Setting
+                Credentials](../backends/cloud/qbraid.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](../backends/cloud/qbraid.html#submitting){.reference
                 .internal}
 -   [Dynamics](../dynamics.html){.reference .internal}
     -   [Quick Start](../dynamics.html#quick-start){.reference
@@ -1887,6 +1890,12 @@ latest
             -   [[`is_initialized()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.is_initialized){.reference
                 .internal}
+            -   [[`split_communicator()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.split_communicator){.reference
+                .internal}
+            -   [[`set_communicator()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.set_communicator){.reference
+                .internal}
             -   [[`finalize()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.finalize){.reference
                 .internal}
@@ -2380,88 +2389,6 @@ expected with results varying by problem size.
 :::
 :::
 :::
-:::
-
-::: {#multi-qpu-other-backends-remote-mqpu .section}
-## Multi-QPU + Other Backends ([`remote-mqpu`{.code .docutils .literal .notranslate}]{.pre})[¶](#multi-qpu-other-backends-remote-mqpu "Permalink to this heading"){.headerlink}
-
-The [`mqpu`{.code .docutils .literal .notranslate}]{.pre} backend can be
-extended so that each parallel simulated QPU run backends other than
-[`nvidia`{.code .docutils .literal .notranslate}]{.pre}. This provides a
-way to simulate larger scale circuits and execute parallel algorithms.
-This accomplished by launching remotes servers which each simulated a
-QPU. The code example below demonstrates this using the
-[`tensornet-mps`{.code .docutils .literal .notranslate}]{.pre} backend
-which allows sampling of a 40 qubit circuit too larger for state vector
-simulation. In this case, the target is specified as
-[`remote-mqpu`{.code .docutils .literal .notranslate}]{.pre} while an
-additional [`backend`{.code .docutils .literal .notranslate}]{.pre} is
-specified for the simulator used for each QPU.
-
-The default approach uses one GPU per QPU and can both launch and close
-each server automatically. This is accomplished by specifying
-[`auto_launch`{.code .docutils .literal .notranslate}]{.pre} and
-:code"[`url`{.code .docutils .literal .notranslate}]{.pre} within
-[`cudaq.set_target`{.code .docutils .literal .notranslate}]{.pre}.
-Running the script below will then sample the 40 qubit circuit using two
-QPUs each running [`tensornet-mps`{.code .docutils .literal
-.notranslate}]{.pre}.
-
-::: {.highlight-python .notranslate}
-::: highlight
-    import cudaq
-
-    backend = 'tensornet-mps'
-
-    servers = '2'
-
-    @cudaq.kernel
-    def kernel(controls_count: int):
-        controls = cudaq.qvector(controls_count)
-        targets = cudaq.qvector(40)
-        # Place controls in superposition state.
-        h(controls)
-        for target in range(40):
-            x.ctrl(controls, targets[target])
-        # Measure.
-        mz(controls)
-        mz(targets)
-
-    # Set the target to execute on and query the number of QPUs in the system;
-    # The number of QPUs is equal to the number of (auto-)launched server instances.
-    cudaq.set_target("remote-mqpu",
-                     backend=backend,
-                     auto_launch=str(servers) if servers.isdigit() else "",
-                     url="" if servers.isdigit() else servers)
-    qpu_count = cudaq.get_target().num_qpus()
-    print("Number of virtual QPUs:", qpu_count)
-
-    # We will launch asynchronous sampling tasks,
-    # and will store the results as a future we can query at some later point.
-    # Each QPU (indexed by an unique Id) is associated with a remote REST server.
-    count_futures = []
-    for i in range(qpu_count):
-
-        result = cudaq.sample_async(kernel, i + 1, qpu_id=i)
-        count_futures.append(result)
-    print("Sampling jobs launched for asynchronous processing.")
-
-    # Go do other work, asynchronous execution of sample tasks on-going.
-    # Get the results, note future::get() will kick off a wait
-    # if the results are not yet available.
-    for idx in range(len(count_futures)):
-        counts = count_futures[idx].get()
-        print(counts)
-:::
-:::
-
-[`remote-mqpu`{.code .docutils .literal .notranslate}]{.pre} can also be
-used with [`mqpu`{.code .docutils .literal .notranslate}]{.pre},
-allowing each QPU to be simulated by multiple GPUs. This requires manual
-preparation of the servers and detailed instructions are in the [[remote
-multi-QPU platform]{.std
-.std-ref}](../backends/sims/mqpusims.html#remote-mqpu-platform){.reference
-.internal} section of the docs.
 :::
 :::
 :::

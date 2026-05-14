@@ -163,10 +163,6 @@ latest
             -   [Circuit
                 Batching](../../using/examples/multi_gpu_workflows.html#circuit-batching){.reference
                 .internal}
-        -   [Multi-QPU + Other Backends ([`remote-mqpu`{.code .docutils
-            .literal
-            .notranslate}]{.pre})](../../using/examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
-            .internal}
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
         .internal}
@@ -980,8 +976,8 @@ latest
             -   [Simulate Multiple QPUs in
                 Parallel](../../using/backends/sims/mqpusims.html#simulate-multiple-qpus-in-parallel){.reference
                 .internal}
-            -   [Multi-QPU + Other
-                Backends](../../using/backends/sims/mqpusims.html#multi-qpu-other-backends){.reference
+            -   [Multi-QPU with Multi-Node Multi-GPU
+                Backends](../../using/backends/sims/mqpusims.html#multi-qpu-with-multi-node-multi-gpu-backends){.reference
                 .internal}
         -   [Noisy
             Simulators](../../using/backends/sims/noisy.html){.reference
@@ -1068,6 +1064,13 @@ latest
                 .internal}
             -   [Manage your QPU
                 session](../../using/backends/cloud/scaleway.html#manage-your-qpu-session){.reference
+                .internal}
+        -   [qBraid](../../using/backends/cloud/qbraid.html){.reference
+            .internal}
+            -   [Setting
+                Credentials](../../using/backends/cloud/qbraid.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](../../using/backends/cloud/qbraid.html#submitting){.reference
                 .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
@@ -1891,6 +1894,12 @@ latest
             -   [[`is_initialized()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.is_initialized){.reference
                 .internal}
+            -   [[`split_communicator()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.split_communicator){.reference
+                .internal}
+            -   [[`set_communicator()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.set_communicator){.reference
+                .internal}
             -   [[`finalize()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.finalize){.reference
                 .internal}
@@ -2113,7 +2122,7 @@ explained above.
 
 <div>
 
-![52329ee6d79042d48943493e70e111ab](../../_images/adapt-qaoa.png){.no-scaled-link
+![0faf385b160746cfb79914740de0a518](../../_images/adapt-qaoa.png){.no-scaled-link
 style="width: 1000px;"}
 
 </div>

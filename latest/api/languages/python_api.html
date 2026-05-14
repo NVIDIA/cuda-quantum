@@ -185,7 +185,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/examples/multi_gpu_workflows.html#circuit-batching">Circuit Batching</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu">Multi-QPU + Other Backends (<code class="code docutils literal notranslate"><span class="pre">remote-mqpu</span></code>)</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/optimizers_gradients.html">   Optimizers &amp; Gradients</a><ul>
@@ -614,7 +613,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/sims/mqpusims.html">     Multi-QPU Simulators</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/mqpusims.html#simulate-multiple-qpus-in-parallel">Simulate Multiple QPUs in Parallel</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/mqpusims.html#multi-qpu-other-backends">Multi-QPU + Other Backends</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/mqpusims.html#multi-qpu-with-multi-node-multi-gpu-backends">Multi-QPU with Multi-Node Multi-GPU Backends</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/sims/noisy.html">     Noisy Simulators</a><ul>
@@ -670,6 +669,11 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/scaleway.html#setting-credentials">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/scaleway.html#submitting">Submitting</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/scaleway.html#manage-your-qpu-session">Manage your QPU session</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/backends/cloud/qbraid.html">     qBraid</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/qbraid.html#setting-credentials">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/cloud/qbraid.html#submitting">Submitting</a></li>
 </ul>
 </li>
 </ul>
@@ -1070,6 +1074,8 @@
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.mpi.all_gather"><code class="docutils literal notranslate"><span class="pre">all_gather()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.mpi.broadcast"><code class="docutils literal notranslate"><span class="pre">broadcast()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.mpi.is_initialized"><code class="docutils literal notranslate"><span class="pre">is_initialized()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.mpi.split_communicator"><code class="docutils literal notranslate"><span class="pre">split_communicator()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.mpi.set_communicator"><code class="docutils literal notranslate"><span class="pre">set_communicator()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.mpi.finalize"><code class="docutils literal notranslate"><span class="pre">finalize()</span></code></a></li>
 </ul>
 </li>
@@ -3492,12 +3498,6 @@ on multiple degrees of freedom.</p></li>
 <dd><p>Returns true if the target consists of a remote REST QPU.</p>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.Target.is_remote_simulator">
-<span class="sig-name descname"><span class="pre">is_remote_simulator</span></span><a class="headerlink" href="#cudaq.Target.is_remote_simulator" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns true if the target consists of a remote REST Simulator QPU.</p>
-</dd></dl>
-
 <dl class="py property">
 <dt class="sig sig-object py" id="cudaq.Target.name">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#cudaq.Target.name" title="Permalink to this definition">¶</a></dt>
@@ -4424,12 +4424,7 @@ This includes all gate counts.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="cudaq.optimizers.GradientDescent">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.optimizers.</span></span><span class="sig-name descname"><span class="pre">GradientDescent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.optimizers.GradientDescent" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.optimizers.GradientDescent.from_json">
-<span class="sig-name descname"><span class="pre">from_json</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#cudaq.optimizers.GradientDescent.from_json" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py property">
+<dd><dl class="py property">
 <dt class="sig sig-object py" id="cudaq.optimizers.GradientDescent.initial_parameters">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">initial_parameters</span></span><a class="headerlink" href="#cudaq.optimizers.GradientDescent.initial_parameters" title="Permalink to this definition">¶</a></dt>
 <dd><p>Initial values for the optimization parameters (optional).</p>
@@ -4480,12 +4475,6 @@ convergence or until another stopping criterion is met.</p>
 </dl>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.optimizers.GradientDescent.to_json">
-<span class="sig-name descname"><span class="pre">to_json</span></span><a class="headerlink" href="#cudaq.optimizers.GradientDescent.to_json" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convert optimizer to JSON string</p>
-</dd></dl>
-
 <dl class="py property">
 <dt class="sig sig-object py" id="cudaq.optimizers.GradientDescent.upper_bounds">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">upper_bounds</span></span><a class="headerlink" href="#cudaq.optimizers.GradientDescent.upper_bounds" title="Permalink to this definition">¶</a></dt>
@@ -4509,12 +4498,7 @@ problem dimension.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="cudaq.optimizers.COBYLA">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.optimizers.</span></span><span class="sig-name descname"><span class="pre">COBYLA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.optimizers.COBYLA" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.optimizers.COBYLA.from_json">
-<span class="sig-name descname"><span class="pre">from_json</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#cudaq.optimizers.COBYLA.from_json" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py property">
+<dd><dl class="py property">
 <dt class="sig sig-object py" id="cudaq.optimizers.COBYLA.initial_parameters">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">initial_parameters</span></span><a class="headerlink" href="#cudaq.optimizers.COBYLA.initial_parameters" title="Permalink to this definition">¶</a></dt>
 <dd><p>Initial values for the optimization parameters (optional).</p>
@@ -4565,12 +4549,6 @@ convergence or until another stopping criterion is met.</p>
 </dl>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.optimizers.COBYLA.to_json">
-<span class="sig-name descname"><span class="pre">to_json</span></span><a class="headerlink" href="#cudaq.optimizers.COBYLA.to_json" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convert optimizer to JSON string</p>
-</dd></dl>
-
 <dl class="py property">
 <dt class="sig sig-object py" id="cudaq.optimizers.COBYLA.upper_bounds">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">upper_bounds</span></span><a class="headerlink" href="#cudaq.optimizers.COBYLA.upper_bounds" title="Permalink to this definition">¶</a></dt>
@@ -4594,12 +4572,7 @@ problem dimension.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="cudaq.optimizers.NelderMead">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.optimizers.</span></span><span class="sig-name descname"><span class="pre">NelderMead</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.optimizers.NelderMead" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.optimizers.NelderMead.from_json">
-<span class="sig-name descname"><span class="pre">from_json</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#cudaq.optimizers.NelderMead.from_json" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py property">
+<dd><dl class="py property">
 <dt class="sig sig-object py" id="cudaq.optimizers.NelderMead.initial_parameters">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">initial_parameters</span></span><a class="headerlink" href="#cudaq.optimizers.NelderMead.initial_parameters" title="Permalink to this definition">¶</a></dt>
 <dd><p>Initial values for the optimization parameters (optional).</p>
@@ -4650,12 +4623,6 @@ convergence or until another stopping criterion is met.</p>
 </dl>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.optimizers.NelderMead.to_json">
-<span class="sig-name descname"><span class="pre">to_json</span></span><a class="headerlink" href="#cudaq.optimizers.NelderMead.to_json" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convert optimizer to JSON string</p>
-</dd></dl>
-
 <dl class="py property">
 <dt class="sig sig-object py" id="cudaq.optimizers.NelderMead.upper_bounds">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">upper_bounds</span></span><a class="headerlink" href="#cudaq.optimizers.NelderMead.upper_bounds" title="Permalink to this definition">¶</a></dt>
@@ -4679,12 +4646,7 @@ problem dimension.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="cudaq.optimizers.LBFGS">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.optimizers.</span></span><span class="sig-name descname"><span class="pre">LBFGS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.optimizers.LBFGS" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.optimizers.LBFGS.from_json">
-<span class="sig-name descname"><span class="pre">from_json</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#cudaq.optimizers.LBFGS.from_json" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py property">
+<dd><dl class="py property">
 <dt class="sig sig-object py" id="cudaq.optimizers.LBFGS.initial_parameters">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">initial_parameters</span></span><a class="headerlink" href="#cudaq.optimizers.LBFGS.initial_parameters" title="Permalink to this definition">¶</a></dt>
 <dd><p>Initial values for the optimization parameters (optional).</p>
@@ -4733,12 +4695,6 @@ convergence or until another stopping criterion is met.</p>
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a></p>
 </dd>
 </dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.optimizers.LBFGS.to_json">
-<span class="sig-name descname"><span class="pre">to_json</span></span><a class="headerlink" href="#cudaq.optimizers.LBFGS.to_json" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convert optimizer to JSON string</p>
 </dd></dl>
 
 <dl class="py property">
@@ -4835,11 +4791,6 @@ convergence but may require more iterations.</p>
 </dl>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.optimizers.Adam.from_json">
-<span class="sig-name descname"><span class="pre">from_json</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#cudaq.optimizers.Adam.from_json" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="py property">
 <dt class="sig sig-object py" id="cudaq.optimizers.Adam.initial_parameters">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">initial_parameters</span></span><a class="headerlink" href="#cudaq.optimizers.Adam.initial_parameters" title="Permalink to this definition">¶</a></dt>
@@ -4906,12 +4857,6 @@ adjust based on convergence behavior.</p>
 </dl>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.optimizers.Adam.to_json">
-<span class="sig-name descname"><span class="pre">to_json</span></span><a class="headerlink" href="#cudaq.optimizers.Adam.to_json" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convert optimizer to JSON string</p>
-</dd></dl>
-
 <dl class="py property">
 <dt class="sig sig-object py" id="cudaq.optimizers.Adam.upper_bounds">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">upper_bounds</span></span><a class="headerlink" href="#cudaq.optimizers.Adam.upper_bounds" title="Permalink to this definition">¶</a></dt>
@@ -4965,11 +4910,6 @@ gradients, convergence may be noisy.</p>
 </dd>
 </dl>
 </dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.optimizers.SGD.from_json">
-<span class="sig-name descname"><span class="pre">from_json</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#cudaq.optimizers.SGD.from_json" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="cudaq.optimizers.SGD.initial_parameters">
@@ -5037,12 +4977,6 @@ lead to slow convergence.</p>
 </dl>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.optimizers.SGD.to_json">
-<span class="sig-name descname"><span class="pre">to_json</span></span><a class="headerlink" href="#cudaq.optimizers.SGD.to_json" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convert optimizer to JSON string</p>
-</dd></dl>
-
 <dl class="py property">
 <dt class="sig sig-object py" id="cudaq.optimizers.SGD.upper_bounds">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">upper_bounds</span></span><a class="headerlink" href="#cudaq.optimizers.SGD.upper_bounds" title="Permalink to this definition">¶</a></dt>
@@ -5066,12 +5000,7 @@ problem dimension.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="cudaq.optimizers.SPSA">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.optimizers.</span></span><span class="sig-name descname"><span class="pre">SPSA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.optimizers.SPSA" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.optimizers.SPSA.from_json">
-<span class="sig-name descname"><span class="pre">from_json</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#cudaq.optimizers.SPSA.from_json" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py property">
+<dd><dl class="py property">
 <dt class="sig sig-object py" id="cudaq.optimizers.SPSA.gamma">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">gamma</span></span><a class="headerlink" href="#cudaq.optimizers.SPSA.gamma" title="Permalink to this definition">¶</a></dt>
 <dd><p>Scaling exponent for the step size schedule (default: 0.101).</p>
@@ -5150,12 +5079,6 @@ to noise. Typical values range from 0.1 to 0.5.</p>
 </dl>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.optimizers.SPSA.to_json">
-<span class="sig-name descname"><span class="pre">to_json</span></span><a class="headerlink" href="#cudaq.optimizers.SPSA.to_json" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convert optimizer to JSON string</p>
-</dd></dl>
-
 <dl class="py property">
 <dt class="sig sig-object py" id="cudaq.optimizers.SPSA.upper_bounds">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">upper_bounds</span></span><a class="headerlink" href="#cudaq.optimizers.SPSA.upper_bounds" title="Permalink to this definition">¶</a></dt>
@@ -5193,17 +5116,6 @@ problem dimension.</p>
 <dd><p>Compute the gradient of the provided <code class="code docutils literal notranslate"><span class="pre">parameter_vector</span></code> with respect to its loss function, using the <code class="code docutils literal notranslate"><span class="pre">CentralDifference</span></code> method.</p>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.gradients.CentralDifference.from_json">
-<span class="sig-name descname"><span class="pre">from_json</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#cudaq.gradients.CentralDifference.from_json" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.gradients.CentralDifference.to_json">
-<span class="sig-name descname"><span class="pre">to_json</span></span><a class="headerlink" href="#cudaq.gradients.CentralDifference.to_json" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convert gradient to JSON string</p>
-</dd></dl>
-
 </dd></dl>
 
 <dl class="py class">
@@ -5215,17 +5127,6 @@ problem dimension.</p>
 <dd><p>Compute the gradient of the provided <code class="code docutils literal notranslate"><span class="pre">parameter_vector</span></code> with respect to its loss function, using the <code class="code docutils literal notranslate"><span class="pre">ForwardDifference</span></code> method.</p>
 </dd></dl>
 
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.gradients.ForwardDifference.from_json">
-<span class="sig-name descname"><span class="pre">from_json</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#cudaq.gradients.ForwardDifference.from_json" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.gradients.ForwardDifference.to_json">
-<span class="sig-name descname"><span class="pre">to_json</span></span><a class="headerlink" href="#cudaq.gradients.ForwardDifference.to_json" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convert gradient to JSON string</p>
-</dd></dl>
-
 </dd></dl>
 
 <dl class="py class">
@@ -5235,17 +5136,6 @@ problem dimension.</p>
 <dt class="sig sig-object py" id="cudaq.gradients.ParameterShift.compute">
 <span class="sig-name descname"><span class="pre">compute</span></span><a class="headerlink" href="#cudaq.gradients.ParameterShift.compute" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute the gradient of the provided <code class="code docutils literal notranslate"><span class="pre">parameter_vector</span></code> with respect to its loss function, using the <code class="code docutils literal notranslate"><span class="pre">ParameterShift</span></code> method.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.gradients.ParameterShift.from_json">
-<span class="sig-name descname"><span class="pre">from_json</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#cudaq.gradients.ParameterShift.from_json" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="cudaq.gradients.ParameterShift.to_json">
-<span class="sig-name descname"><span class="pre">to_json</span></span><a class="headerlink" href="#cudaq.gradients.ParameterShift.to_json" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convert gradient to JSON string</p>
 </dd></dl>
 
 </dd></dl>
@@ -5588,6 +5478,101 @@ ZY, and ZZ.</p>
 <dt class="sig sig-object py" id="cudaq.mpi.is_initialized">
 <span class="sig-prename descclassname"><span class="pre">cudaq.mpi.</span></span><span class="sig-name descname"><span class="pre">is_initialized</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><span class="pre">bool</span></a></span></span><a class="headerlink" href="#cudaq.mpi.is_initialized" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns true if MPI has already been initialized.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.mpi.split_communicator">
+<span class="sig-prename descclassname"><span class="pre">cudaq.mpi.</span></span><span class="sig-name descname"><span class="pre">split_communicator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></span><a class="headerlink" href="#cudaq.mpi.split_communicator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Splits the current communicator into sub-communicators based on the
+input color and key.</p>
+<p>Ranks that pass the same color are placed in the same new communicator. The key
+controls the rank ordering within that new communicator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>color</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Split color. Ranks with the same color join the same
+communicator.</p></li>
+<li><p><strong>key</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a><em>]</em>) – Rank-ordering key within the new communicator. Defaults
+to <code class="docutils literal notranslate"><span class="pre">None</span></code>, which uses the current rank in the original communicator as the
+split key.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Integer representation of the new communicator pointer (<code class="docutils literal notranslate"><span class="pre">comm_ptr</span></code>).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a></p>
+</dd>
+</dl>
+<p>Example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+
+<span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;tensornet&quot;</span><span class="p">)</span>
+
+<span class="n">world_rank</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">rank</span><span class="p">()</span>
+<span class="n">world_size</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">num_ranks</span><span class="p">()</span>
+
+<span class="c1"># Split the world communicator into QPU groups of two ranks each.</span>
+<span class="c1"># With four ranks, ranks 0 and 1 use color 0, while ranks 2 and 3 use color 1.</span>
+<span class="n">ranks_per_qpu</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="k">if</span> <span class="n">world_size</span> <span class="o">%</span> <span class="n">ranks_per_qpu</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;World size must be a multiple of ranks_per_qpu.&quot;</span><span class="p">)</span>
+
+<span class="n">qpu_id</span> <span class="o">=</span> <span class="n">world_rank</span> <span class="o">//</span> <span class="n">ranks_per_qpu</span>
+<span class="n">qpu_comm</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">split_communicator</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">qpu_id</span><span class="p">)</span>
+
+<span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">set_communicator</span><span class="p">(</span><span class="n">qpu_comm</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.mpi.set_communicator">
+<span class="sig-prename descclassname"><span class="pre">cudaq.mpi.</span></span><span class="sig-name descname"><span class="pre">set_communicator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">commPtr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#cudaq.mpi.set_communicator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the communicator of the backend simulator based on the input
+communicator address (as an integer). MPI must be initialized. If the selected
+target does not support MPI-based distributed simulation, CUDA-Q emits a warning
+and ignores this call.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>commPtr</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – Integer representation of the communicator pointer
+(<code class="docutils literal notranslate"><span class="pre">comm_ptr</span></code>) for the backend simulator to use. This can be returned by
+<code class="docutils literal notranslate"><span class="pre">cudaq.mpi.split_communicator</span></code> or by taking the address of a live
+<code class="docutils literal notranslate"><span class="pre">mpi4py</span></code> communicator with <code class="docutils literal notranslate"><span class="pre">MPI._addressof(comm)</span></code>.</p>
+</dd>
+</dl>
+<p>Examples:</p>
+<p>Using <code class="docutils literal notranslate"><span class="pre">cudaq.mpi.split_communicator</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+
+<span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;tensornet&quot;</span><span class="p">)</span>
+
+<span class="n">world_rank</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">rank</span><span class="p">()</span>
+<span class="n">ranks_per_qpu</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">qpu_id</span> <span class="o">=</span> <span class="n">world_rank</span> <span class="o">//</span> <span class="n">ranks_per_qpu</span>
+<span class="n">qpu_comm</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">split_communicator</span><span class="p">(</span><span class="n">qpu_id</span><span class="p">)</span>
+
+<span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">set_communicator</span><span class="p">(</span><span class="n">qpu_comm</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Using <code class="docutils literal notranslate"><span class="pre">mpi4py</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mpi4py</span><span class="w"> </span><span class="kn">import</span> <span class="n">MPI</span>
+
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">&quot;tensornet&quot;</span><span class="p">)</span>
+
+<span class="n">world_comm</span> <span class="o">=</span> <span class="n">MPI</span><span class="o">.</span><span class="n">COMM_WORLD</span>
+<span class="n">world_rank</span> <span class="o">=</span> <span class="n">world_comm</span><span class="o">.</span><span class="n">Get_rank</span><span class="p">()</span>
+<span class="n">ranks_per_qpu</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">qpu_id</span> <span class="o">=</span> <span class="n">world_rank</span> <span class="o">//</span> <span class="n">ranks_per_qpu</span>
+<span class="n">qpu_comm</span> <span class="o">=</span> <span class="n">world_comm</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">qpu_id</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">world_rank</span><span class="p">)</span>
+
+<span class="n">cudaq</span><span class="o">.</span><span class="n">mpi</span><span class="o">.</span><span class="n">set_communicator</span><span class="p">(</span><span class="n">MPI</span><span class="o">.</span><span class="n">_addressof</span><span class="p">(</span><span class="n">qpu_comm</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>When using <code class="docutils literal notranslate"><span class="pre">mpi4py</span></code>, keep the communicator object alive while CUDA-Q uses it.</p>
 </dd></dl>
 
 <dl class="py method">

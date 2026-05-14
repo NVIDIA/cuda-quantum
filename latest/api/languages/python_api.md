@@ -163,10 +163,6 @@ latest
             -   [Circuit
                 Batching](../../using/examples/multi_gpu_workflows.html#circuit-batching){.reference
                 .internal}
-        -   [Multi-QPU + Other Backends ([`remote-mqpu`{.code .docutils
-            .literal
-            .notranslate}]{.pre})](../../using/examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
-            .internal}
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
         .internal}
@@ -1027,8 +1023,8 @@ latest
             -   [Simulate Multiple QPUs in
                 Parallel](../../using/backends/sims/mqpusims.html#simulate-multiple-qpus-in-parallel){.reference
                 .internal}
-            -   [Multi-QPU + Other
-                Backends](../../using/backends/sims/mqpusims.html#multi-qpu-other-backends){.reference
+            -   [Multi-QPU with Multi-Node Multi-GPU
+                Backends](../../using/backends/sims/mqpusims.html#multi-qpu-with-multi-node-multi-gpu-backends){.reference
                 .internal}
         -   [Noisy
             Simulators](../../using/backends/sims/noisy.html){.reference
@@ -1115,6 +1111,13 @@ latest
                 .internal}
             -   [Manage your QPU
                 session](../../using/backends/cloud/scaleway.html#manage-your-qpu-session){.reference
+                .internal}
+        -   [qBraid](../../using/backends/cloud/qbraid.html){.reference
+            .internal}
+            -   [Setting
+                Credentials](../../using/backends/cloud/qbraid.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](../../using/backends/cloud/qbraid.html#submitting){.reference
                 .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
@@ -1900,6 +1903,12 @@ latest
                 .internal}
             -   [[`is_initialized()`{.docutils .literal
                 .notranslate}]{.pre}](#cudaq.mpi.is_initialized){.reference
+                .internal}
+            -   [[`split_communicator()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.mpi.split_communicator){.reference
+                .internal}
+            -   [[`set_communicator()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.mpi.set_communicator){.reference
                 .internal}
             -   [[`finalize()`{.docutils .literal
                 .notranslate}]{.pre}](#cudaq.mpi.finalize){.reference
@@ -5606,11 +5615,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     :   Returns true if the target consists of a remote REST QPU.
 
-    [[is_remote_simulator]{.pre}]{.sig-name .descname}[¶](#cudaq.Target.is_remote_simulator "Permalink to this definition"){.headerlink}
-
-    :   Returns true if the target consists of a remote REST Simulator
-        QPU.
-
     *[property]{.pre}[ ]{.w}*[[name]{.pre}]{.sig-name .descname}[¶](#cudaq.Target.name "Permalink to this definition"){.headerlink}
 
     :   The name of the [`cudaq.Target`{.code .docutils .literal
@@ -6987,10 +6991,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
 :   
 
-    [[from_json]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.optimizers.GradientDescent.from_json "Permalink to this definition"){.headerlink}
-
-    :   
-
     *[property]{.pre}[ ]{.w}*[[initial_parameters]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.GradientDescent.initial_parameters "Permalink to this definition"){.headerlink}
 
     :   Initial values for the optimization parameters (optional).
@@ -7051,10 +7051,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         :   [int](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
             .external}
 
-    [[to_json]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.GradientDescent.to_json "Permalink to this definition"){.headerlink}
-
-    :   Convert optimizer to JSON string
-
     *[property]{.pre}[ ]{.w}*[[upper_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.GradientDescent.upper_bounds "Permalink to this definition"){.headerlink}
 
     :   Upper bounds for optimization parameters (optional).
@@ -7084,10 +7080,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 *[class]{.pre}[ ]{.w}*[[cudaq.optimizers.]{.pre}]{.sig-prename .descclassname}[[COBYLA]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.optimizers.COBYLA "Permalink to this definition"){.headerlink}
 
 :   
-
-    [[from_json]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.optimizers.COBYLA.from_json "Permalink to this definition"){.headerlink}
-
-    :   
 
     *[property]{.pre}[ ]{.w}*[[initial_parameters]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.COBYLA.initial_parameters "Permalink to this definition"){.headerlink}
 
@@ -7149,10 +7141,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         :   [int](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
             .external}
 
-    [[to_json]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.COBYLA.to_json "Permalink to this definition"){.headerlink}
-
-    :   Convert optimizer to JSON string
-
     *[property]{.pre}[ ]{.w}*[[upper_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.COBYLA.upper_bounds "Permalink to this definition"){.headerlink}
 
     :   Upper bounds for optimization parameters (optional).
@@ -7182,10 +7170,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 *[class]{.pre}[ ]{.w}*[[cudaq.optimizers.]{.pre}]{.sig-prename .descclassname}[[NelderMead]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.optimizers.NelderMead "Permalink to this definition"){.headerlink}
 
 :   
-
-    [[from_json]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.optimizers.NelderMead.from_json "Permalink to this definition"){.headerlink}
-
-    :   
 
     *[property]{.pre}[ ]{.w}*[[initial_parameters]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.NelderMead.initial_parameters "Permalink to this definition"){.headerlink}
 
@@ -7247,10 +7231,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         :   [int](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
             .external}
 
-    [[to_json]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.NelderMead.to_json "Permalink to this definition"){.headerlink}
-
-    :   Convert optimizer to JSON string
-
     *[property]{.pre}[ ]{.w}*[[upper_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.NelderMead.upper_bounds "Permalink to this definition"){.headerlink}
 
     :   Upper bounds for optimization parameters (optional).
@@ -7280,10 +7260,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 *[class]{.pre}[ ]{.w}*[[cudaq.optimizers.]{.pre}]{.sig-prename .descclassname}[[LBFGS]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.optimizers.LBFGS "Permalink to this definition"){.headerlink}
 
 :   
-
-    [[from_json]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.optimizers.LBFGS.from_json "Permalink to this definition"){.headerlink}
-
-    :   
 
     *[property]{.pre}[ ]{.w}*[[initial_parameters]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.LBFGS.initial_parameters "Permalink to this definition"){.headerlink}
 
@@ -7344,10 +7320,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
         :   [int](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
             .external}
-
-    [[to_json]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.LBFGS.to_json "Permalink to this definition"){.headerlink}
-
-    :   Convert optimizer to JSON string
 
     *[property]{.pre}[ ]{.w}*[[upper_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.LBFGS.upper_bounds "Permalink to this definition"){.headerlink}
 
@@ -7452,10 +7424,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         :   [float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
             .external}
 
-    [[from_json]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.optimizers.Adam.from_json "Permalink to this definition"){.headerlink}
-
-    :   
-
     *[property]{.pre}[ ]{.w}*[[initial_parameters]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.Adam.initial_parameters "Permalink to this definition"){.headerlink}
 
     :   Initial values for the optimization parameters (optional).
@@ -7530,10 +7498,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         :   [float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
             .external}
 
-    [[to_json]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.Adam.to_json "Permalink to this definition"){.headerlink}
-
-    :   Convert optimizer to JSON string
-
     *[property]{.pre}[ ]{.w}*[[upper_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.Adam.upper_bounds "Permalink to this definition"){.headerlink}
 
     :   Upper bounds for optimization parameters (optional).
@@ -7594,10 +7558,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
         :   [float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
             .external}
-
-    [[from_json]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.optimizers.SGD.from_json "Permalink to this definition"){.headerlink}
-
-    :   
 
     *[property]{.pre}[ ]{.w}*[[initial_parameters]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SGD.initial_parameters "Permalink to this definition"){.headerlink}
 
@@ -7674,10 +7634,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         :   [float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
             .external}
 
-    [[to_json]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SGD.to_json "Permalink to this definition"){.headerlink}
-
-    :   Convert optimizer to JSON string
-
     *[property]{.pre}[ ]{.w}*[[upper_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SGD.upper_bounds "Permalink to this definition"){.headerlink}
 
     :   Upper bounds for optimization parameters (optional).
@@ -7707,10 +7663,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 *[class]{.pre}[ ]{.w}*[[cudaq.optimizers.]{.pre}]{.sig-prename .descclassname}[[SPSA]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.optimizers.SPSA "Permalink to this definition"){.headerlink}
 
 :   
-
-    [[from_json]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.optimizers.SPSA.from_json "Permalink to this definition"){.headerlink}
-
-    :   
 
     *[property]{.pre}[ ]{.w}*[[gamma]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SPSA.gamma "Permalink to this definition"){.headerlink}
 
@@ -7800,10 +7752,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         :   [float](https://docs.python.org/3/library/functions.html#float "(in Python v3.14)"){.reference
             .external}
 
-    [[to_json]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SPSA.to_json "Permalink to this definition"){.headerlink}
-
-    :   Convert optimizer to JSON string
-
     *[property]{.pre}[ ]{.w}*[[upper_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SPSA.upper_bounds "Permalink to this definition"){.headerlink}
 
     :   Upper bounds for optimization parameters (optional).
@@ -7849,14 +7797,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         function, using the [`CentralDifference`{.code .docutils
         .literal .notranslate}]{.pre} method.
 
-    [[from_json]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.gradients.CentralDifference.from_json "Permalink to this definition"){.headerlink}
-
-    :   
-
-    [[to_json]{.pre}]{.sig-name .descname}[¶](#cudaq.gradients.CentralDifference.to_json "Permalink to this definition"){.headerlink}
-
-    :   Convert gradient to JSON string
-
 ```{=html}
 <!-- -->
 ```
@@ -7872,14 +7812,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         function, using the [`ForwardDifference`{.code .docutils
         .literal .notranslate}]{.pre} method.
 
-    [[from_json]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.gradients.ForwardDifference.from_json "Permalink to this definition"){.headerlink}
-
-    :   
-
-    [[to_json]{.pre}]{.sig-name .descname}[¶](#cudaq.gradients.ForwardDifference.to_json "Permalink to this definition"){.headerlink}
-
-    :   Convert gradient to JSON string
-
 ```{=html}
 <!-- -->
 ```
@@ -7894,14 +7826,6 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         .docutils .literal .notranslate}]{.pre} with respect to its loss
         function, using the [`ParameterShift`{.code .docutils .literal
         .notranslate}]{.pre} method.
-
-    [[from_json]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.gradients.ParameterShift.from_json "Permalink to this definition"){.headerlink}
-
-    :   
-
-    [[to_json]{.pre}]{.sig-name .descname}[¶](#cudaq.gradients.ParameterShift.to_json "Permalink to this definition"){.headerlink}
-
-    :   Convert gradient to JSON string
 :::
 
 ::: {#noisy-simulation .section}
@@ -8538,6 +8462,135 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 [[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[is_initialized]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/library/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.mpi.is_initialized "Permalink to this definition"){.headerlink}
 
 :   Returns true if MPI has already been initialized.
+
+```{=html}
+<!-- -->
+```
+
+[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[split_communicator]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[color]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[key]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.mpi.split_communicator "Permalink to this definition"){.headerlink}
+
+:   Splits the current communicator into sub-communicators based on the
+    input color and key.
+
+    Ranks that pass the same color are placed in the same new
+    communicator. The key controls the rank ordering within that new
+    communicator.
+
+    Parameters[:]{.colon}
+
+    :   -   **color**
+            ([*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
+            .external}) -- Split color. Ranks with the same color join
+            the same communicator.
+
+        -   **key**
+            (*Optional\[*[*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
+            .external}*\]*) -- Rank-ordering key within the new
+            communicator. Defaults to [`None`{.docutils .literal
+            .notranslate}]{.pre}, which uses the current rank in the
+            original communicator as the split key.
+
+    Returns[:]{.colon}
+
+    :   Integer representation of the new communicator pointer
+        ([`comm_ptr`{.docutils .literal .notranslate}]{.pre}).
+
+    Return type[:]{.colon}
+
+    :   [int](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
+        .external}
+
+    Example:
+
+    ::: {.highlight-python .notranslate}
+    ::: highlight
+        import cudaq
+
+        cudaq.mpi.initialize()
+        cudaq.set_target("tensornet")
+
+        world_rank = cudaq.mpi.rank()
+        world_size = cudaq.mpi.num_ranks()
+
+        # Split the world communicator into QPU groups of two ranks each.
+        # With four ranks, ranks 0 and 1 use color 0, while ranks 2 and 3 use color 1.
+        ranks_per_qpu = 2
+        if world_size % ranks_per_qpu != 0:
+            raise RuntimeError("World size must be a multiple of ranks_per_qpu.")
+
+        qpu_id = world_rank // ranks_per_qpu
+        qpu_comm = cudaq.mpi.split_communicator(color=qpu_id)
+
+        cudaq.mpi.set_communicator(qpu_comm)
+    :::
+    :::
+
+```{=html}
+<!-- -->
+```
+
+[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[set_communicator]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[commPtr]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/library/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.mpi.set_communicator "Permalink to this definition"){.headerlink}
+
+:   Sets the communicator of the backend simulator based on the input
+    communicator address (as an integer). MPI must be initialized. If
+    the selected target does not support MPI-based distributed
+    simulation, CUDA-Q emits a warning and ignores this call.
+
+    Parameters[:]{.colon}
+
+    :   **commPtr**
+        ([*int*](https://docs.python.org/3/library/functions.html#int "(in Python v3.14)"){.reference
+        .external}) -- Integer representation of the communicator
+        pointer ([`comm_ptr`{.docutils .literal .notranslate}]{.pre})
+        for the backend simulator to use. This can be returned by
+        [`cudaq.mpi.split_communicator`{.docutils .literal
+        .notranslate}]{.pre} or by taking the address of a live
+        [`mpi4py`{.docutils .literal .notranslate}]{.pre} communicator
+        with [`MPI._addressof(comm)`{.docutils .literal
+        .notranslate}]{.pre}.
+
+    Examples:
+
+    Using [`cudaq.mpi.split_communicator`{.docutils .literal
+    .notranslate}]{.pre}:
+
+    ::: {.highlight-python .notranslate}
+    ::: highlight
+        import cudaq
+
+        cudaq.mpi.initialize()
+        cudaq.set_target("tensornet")
+
+        world_rank = cudaq.mpi.rank()
+        ranks_per_qpu = 2
+        qpu_id = world_rank // ranks_per_qpu
+        qpu_comm = cudaq.mpi.split_communicator(qpu_id)
+
+        cudaq.mpi.set_communicator(qpu_comm)
+    :::
+    :::
+
+    Using [`mpi4py`{.docutils .literal .notranslate}]{.pre}:
+
+    ::: {.highlight-python .notranslate}
+    ::: highlight
+        import cudaq
+        from mpi4py import MPI
+
+        cudaq.set_target("tensornet")
+
+        world_comm = MPI.COMM_WORLD
+        world_rank = world_comm.Get_rank()
+        ranks_per_qpu = 2
+        qpu_id = world_rank // ranks_per_qpu
+        qpu_comm = world_comm.Split(color=qpu_id, key=world_rank)
+
+        cudaq.mpi.set_communicator(MPI._addressof(qpu_comm))
+    :::
+    :::
+
+    When using [`mpi4py`{.docutils .literal .notranslate}]{.pre}, keep
+    the communicator object alive while CUDA-Q uses it.
 
 ```{=html}
 <!-- -->

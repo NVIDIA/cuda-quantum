@@ -185,7 +185,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../examples/multi_gpu_workflows.html#circuit-batching">Circuit Batching</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu">Multi-QPU + Other Backends (<code class="code docutils literal notranslate"><span class="pre">remote-mqpu</span></code>)</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/optimizers_gradients.html">   Optimizers &amp; Gradients</a><ul>
@@ -614,7 +613,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="sims/mqpusims.html">     Multi-QPU Simulators</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="sims/mqpusims.html#simulate-multiple-qpus-in-parallel">Simulate Multiple QPUs in Parallel</a></li>
-<li class="toctree-l4"><a class="reference internal" href="sims/mqpusims.html#multi-qpu-other-backends">Multi-QPU + Other Backends</a></li>
+<li class="toctree-l4"><a class="reference internal" href="sims/mqpusims.html#multi-qpu-with-multi-node-multi-gpu-backends">Multi-QPU with Multi-Node Multi-GPU Backends</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="sims/noisy.html">     Noisy Simulators</a><ul>
@@ -670,6 +669,11 @@
 <li class="toctree-l4"><a class="reference internal" href="cloud/scaleway.html#setting-credentials">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="cloud/scaleway.html#submitting">Submitting</a></li>
 <li class="toctree-l4"><a class="reference internal" href="cloud/scaleway.html#manage-your-qpu-session">Manage your QPU session</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="cloud/qbraid.html">     qBraid</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="cloud/qbraid.html#setting-credentials">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="cloud/qbraid.html#submitting">Submitting</a></li>
 </ul>
 </li>
 </ul>
@@ -1070,6 +1074,8 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.mpi.all_gather"><code class="docutils literal notranslate"><span class="pre">all_gather()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.mpi.broadcast"><code class="docutils literal notranslate"><span class="pre">broadcast()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.mpi.is_initialized"><code class="docutils literal notranslate"><span class="pre">is_initialized()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.mpi.split_communicator"><code class="docutils literal notranslate"><span class="pre">split_communicator()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.mpi.set_communicator"><code class="docutils literal notranslate"><span class="pre">set_communicator()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.mpi.finalize"><code class="docutils literal notranslate"><span class="pre">finalize()</span></code></a></li>
 </ul>
 </li>
@@ -1231,35 +1237,28 @@ technical details and code examples for using each circuit simulator.</p>
 <td><p>single (default) / double</p></td>
 <td><p>&lt; 33 / 32 (64 GB)</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="code docutils literal notranslate"><span class="pre">remote-mqpu</span></code> *</p></td>
-<td><p>State Vector / Tensor Network</p></td>
-<td><p>Combine <code class="code docutils literal notranslate"><span class="pre">mqpu</span></code> with other backend like <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> and <code class="code docutils literal notranslate"><span class="pre">mgpu</span></code></p></td>
-<td><p>varies</p></td>
-<td><p>varies</p></td>
-<td><p>varies</p></td>
-</tr>
-<tr class="row-even"><td><p>Trajectory Noisy Simulation</p></td>
+<tr class="row-odd"><td><p>Trajectory Noisy Simulation</p></td>
 <td><p>works with all simulators marked *</p></td>
 <td><p>Noisy trajectory simulations</p></td>
 <td><p>multi-GPU multi-node</p></td>
 <td><p>double</p></td>
 <td><p>varies</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="code docutils literal notranslate"><span class="pre">density-matrix-cpu</span></code></p></td>
+<tr class="row-even"><td><p><code class="code docutils literal notranslate"><span class="pre">density-matrix-cpu</span></code></p></td>
 <td><p>Density Matrix</p></td>
 <td><p>Noisy simulations</p></td>
 <td><p>CPU</p></td>
 <td><p>double</p></td>
 <td><p>&lt; 14</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="code docutils literal notranslate"><span class="pre">stim</span></code></p></td>
+<tr class="row-odd"><td><p><code class="code docutils literal notranslate"><span class="pre">stim</span></code></p></td>
 <td><p>Stabilizer</p></td>
 <td><p>QEC simulation</p></td>
 <td><p>CPU</p></td>
 <td><p>N/A</p></td>
 <td><p>Thousands +</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="code docutils literal notranslate"><span class="pre">orca-photonics</span></code></p></td>
+<tr class="row-even"><td><p><code class="code docutils literal notranslate"><span class="pre">orca-photonics</span></code></p></td>
 <td><p>State Vector</p></td>
 <td><p>Photonics</p></td>
 <td><p>CPU</p></td>
@@ -1284,7 +1283,7 @@ technical details and code examples for using each circuit simulator.</p>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="sims/mqpusims.html">     Multi-QPU Simulators</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="sims/mqpusims.html#simulate-multiple-qpus-in-parallel">Simulate Multiple QPUs in Parallel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sims/mqpusims.html#multi-qpu-other-backends">Multi-QPU + Other Backends</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sims/mqpusims.html#multi-qpu-with-multi-node-multi-gpu-backends">Multi-QPU with Multi-Node Multi-GPU Backends</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="sims/noisy.html">     Noisy Simulators</a><ul>

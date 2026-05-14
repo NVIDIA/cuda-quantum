@@ -163,10 +163,6 @@ latest
             -   [Circuit
                 Batching](../../using/examples/multi_gpu_workflows.html#circuit-batching){.reference
                 .internal}
-        -   [Multi-QPU + Other Backends ([`remote-mqpu`{.code .docutils
-            .literal
-            .notranslate}]{.pre})](../../using/examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
-            .internal}
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
         .internal}
@@ -978,8 +974,8 @@ latest
             -   [Simulate Multiple QPUs in
                 Parallel](../../using/backends/sims/mqpusims.html#simulate-multiple-qpus-in-parallel){.reference
                 .internal}
-            -   [Multi-QPU + Other
-                Backends](../../using/backends/sims/mqpusims.html#multi-qpu-other-backends){.reference
+            -   [Multi-QPU with Multi-Node Multi-GPU
+                Backends](../../using/backends/sims/mqpusims.html#multi-qpu-with-multi-node-multi-gpu-backends){.reference
                 .internal}
         -   [Noisy
             Simulators](../../using/backends/sims/noisy.html){.reference
@@ -1066,6 +1062,13 @@ latest
                 .internal}
             -   [Manage your QPU
                 session](../../using/backends/cloud/scaleway.html#manage-your-qpu-session){.reference
+                .internal}
+        -   [qBraid](../../using/backends/cloud/qbraid.html){.reference
+            .internal}
+            -   [Setting
+                Credentials](../../using/backends/cloud/qbraid.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](../../using/backends/cloud/qbraid.html#submitting){.reference
                 .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
@@ -1889,6 +1892,12 @@ latest
             -   [[`is_initialized()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.is_initialized){.reference
                 .internal}
+            -   [[`split_communicator()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.split_communicator){.reference
+                .internal}
+            -   [[`set_communicator()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.set_communicator){.reference
+                .internal}
             -   [[`finalize()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.finalize){.reference
                 .internal}
@@ -2583,7 +2592,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![ae75b8053fd3403797a30c28c5ae9811](../../_images/speedup.png){.no-scaled-link
+![1292327afa6c4c0cbf7336c7f5c6a816](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2597,9 +2606,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![082d2d6b5ff449aa83809788939dc89c](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![acfad4c59c3d43819adb2a01f7cc4bf1](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![58b11759a234475c807bb25f39ea5990](../../_images/efficiency.jpeg){.no-scaled-link
+![d33dcf157f674d8b8c5fd1e4808ed4fd](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 
