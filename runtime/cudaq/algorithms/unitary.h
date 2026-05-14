@@ -40,22 +40,22 @@ inline complex_matrix make_controlled_unitary(const complex_matrix &gate,
 /// @brief Apply an m-qubit gate in place to an n-qubit unitary.
 /// @param U The 2^n x 2^n unitary, modified in place.
 /// @param gate The 2^m x 2^m gate matrix.
-/// @param num_qudits The total number of qubits in the full system.
-/// @param qudit_indices A vector of size m giving the qubit indices the gate
+/// @param num_qubits The total number of qubits in the full system.
+/// @param qubit_indices A vector of size m giving the qubit indices the gate
 /// acts on in the full system.
 inline void apply_gate_in_place(complex_matrix &U, const complex_matrix &gate,
-                                std::size_t num_qudits,
-                                const std::vector<std::size_t> &qudit_indices) {
+                                std::size_t num_qubits,
+                                const std::vector<std::size_t> &qubit_indices) {
   using value_type = std::complex<double>;
-  const std::size_t m = qudit_indices.size();
+  const std::size_t m = qubit_indices.size();
   const std::size_t gdim = 1ULL << m;
-  const std::size_t dim = 1ULL << num_qudits;
+  const std::size_t dim = 1ULL << num_qubits;
 
   // Bit position of each affected qubit in the system index.
   std::vector<std::size_t> bp(m);
   std::size_t affected_mask = 0;
   for (std::size_t k = 0; k < m; ++k) {
-    bp[k] = num_qudits - 1 - qudit_indices[k];
+    bp[k] = num_qubits - 1 - qubit_indices[k];
     affected_mask |= (1ULL << bp[k]);
   }
 
