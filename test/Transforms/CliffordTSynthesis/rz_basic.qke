@@ -12,8 +12,9 @@
 // RUN:   FileCheck %s --implicit-check-not='quake.r{{[xyz1]}}'
 
 // gridsynth output is stochastic. We assert only structural invariants.
-// No rotation ops survive, and at least one T gate is emitted (a non-trivial
-// constant angle always requires T-count > 0).
+// No rotation ops survive, and a minimum of T gates is emitted.
+// At epsilon=1e-3 the decomposition emits dozens of T gates.
+// 15 is a safety floor robust to gridsynth variance.
 
 func.func @rz_pi_over_4() {
   %q = quake.alloca !quake.ref
@@ -24,4 +25,4 @@ func.func @rz_pi_over_4() {
 
 // CHECK-LABEL: func.func @rz_pi_over_4
 // CHECK:         quake.alloca
-// CHECK:         quake.t
+// CHECK-COUNT-15: quake.t
