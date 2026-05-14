@@ -45,7 +45,6 @@ jobTarget = ""
 # Sets the noise model for the job
 noiseModel = ""
 
-llvm.initialize()
 llvm.initialize_native_target()
 llvm.initialize_native_asmprinter()
 target = llvm.Target.from_default_triple()

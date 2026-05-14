@@ -15,6 +15,7 @@
 #include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
+#include "cudaq/platform.h"
 
 namespace cudaq {
 bool kernelHasConditionalFeedback(const std::string &);
@@ -38,9 +39,6 @@ inline bool hasConditionalFeedback(const std::string &kernelName,
   return false;
 }
 } // namespace detail
-
-/// @brief Return type for asynchronous sampling.
-using async_sample_result = async_result<sample_result>;
 
 /// @brief Define a combined sample function validation concept.
 /// These concepts provide much better error messages than old-school SFINAE
@@ -109,9 +107,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   // Indicate that this is an asynchronous execution.
   ctx.asyncExec = futureResult != nullptr;
 
-  auto isRemoteSimulator = platform.get_remote_capabilities().isRemoteSimulator;
-  auto isQuantumDevice =
-      !isRemoteSimulator && (platform.is_remote() || platform.is_emulated());
+  auto isQuantumDevice = (platform.is_remote() || platform.is_emulated());
 
   // Loop until all shots are returned.
   cudaq::sample_result counts;

@@ -103,7 +103,7 @@ fi
 
 if [ "$1" == "install-gcc" ]; then
 # [>gccInstall]
-    GCC_VERSION=${GCC_VERSION:-11}
+    GCC_VERSION=${GCC_VERSION:-12}
     dnf install -y --nobest --setopt=install_weak_deps=False \
         gcc-toolset-${GCC_VERSION}
     # Enabling the toolchain globally is only needed for debug builds
@@ -116,7 +116,7 @@ if [ "$1" == "install-gcc" ]; then
 fi
 
 # [>ToolchainConfiguration]
-export GCC_TOOLCHAIN=/opt/rh/gcc-toolset-11/root/usr/
+export GCC_TOOLCHAIN=/opt/rh/gcc-toolset-12/root/usr/
 export CXX="${GCC_TOOLCHAIN}/bin/g++"
 export CC="${GCC_TOOLCHAIN}/bin/gcc"
 export CUDACXX=/usr/local/cuda/bin/nvcc

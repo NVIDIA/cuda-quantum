@@ -89,6 +89,7 @@ jobs:
       - name: Prepare image
         id: setup
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           nightly_image=${{ inputs.image_source_location }}/${{ inputs.image_short_name }}:${{ inputs.image_tag }}
           echo "FROM $nightly_image" >> ngc.Dockerfile
           if ! ${{ inputs.allow_arbitrary_tag }} && [ "$(echo ${{ inputs.image_tag }} | egrep -o 'cu[0-9]{1,2}-([0-9]{1,}\.)+[0-9]{1,}')" != "${{ inputs.image_tag }}" ]; then
@@ -96,8 +97,9 @@ jobs:
             exit 1
           fi
 
-          sudo apt-get update && sudo apt-get install -y --no-install-recommends curl
-          curl -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64 > regctl
+          retry sudo apt-get update
+          retry sudo apt-get install -y --no-install-recommends curl
+          retry curl -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64 > regctl
           chmod 755 regctl
 
           manifest=`./regctl image manifest $nightly_image --format "{{ json . }}"`

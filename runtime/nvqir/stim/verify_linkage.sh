@@ -22,12 +22,21 @@ if [ ! -f "$TARGET_LIB" ]; then
     exit 1
 fi
 
+# List exported dynamic symbols. GNU nm uses -D; Apple's nm rejects -D on
+# Mach-O dylibs ("File format has no dynamic symbol table") and instead
+# exposes exported symbols via -gU (global, defined-only).
+if [ "$(uname -s)" = "Darwin" ]; then
+  NM_FLAGS="-gU"
+else
+  NM_FLAGS="-D"
+fi
+
 # Search for 'stim' symbols, excluding the known entry point.
 # The command fails if grep finds any matching lines.
-if nm -D "$TARGET_LIB" | grep 'stim' | grep -q -v 'getCircuitSimulator_stim'; then
+if nm $NM_FLAGS "$TARGET_LIB" | grep 'stim' | grep -q -v 'getCircuitSimulator_stim'; then
   echo "ERROR: Found unexpected exported symbols containing 'stim' in $TARGET_LIB" >&2
   echo '--- Offending Symbols ---' >&2
-  nm -D "$TARGET_LIB" | grep 'stim' | grep -v 'getCircuitSimulator_stim' >&2
+  nm $NM_FLAGS "$TARGET_LIB" | grep 'stim' | grep -v 'getCircuitSimulator_stim' >&2
   echo '-------------------------' >&2
   exit 1
 fi

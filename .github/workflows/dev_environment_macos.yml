@@ -94,7 +94,9 @@ jobs:
             scripts/install_prerequisites.sh \
             scripts/build_llvm.sh \
             scripts/set_env_defaults.sh \
+            cmake/caches/LLVM.cmake \
             .github/workflows/dev_environment_macos.yml \
+            tpls/customizations/llvm/*.diff \
             | sha256sum | cut -c1-8)
           echo "scripts_hash=$scripts_hash" >> $GITHUB_OUTPUT
 
@@ -136,22 +138,39 @@ jobs:
           submodules: ${{ inputs.checkout_submodules }}
 
       - name: Install ORAS
-        run: brew install oras
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry brew install oras
 
       - name: Log in to GitHub CR
         run: echo "${{ github.token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Select latest stable Xcode
+        uses: ./.github/actions/setup-xcode-stable
+
+      - name: Log macOS toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          xcrun --show-sdk-path
+          xcrun --show-sdk-version
+          clang --version
 
       - name: Compute cache key
         id: cache_key
         run: |
           # Combine build scripts hash with the runner image version to detect
           # tool updates (cmake, compilers, etc.) that would invalidate the cache.
+          # Include the selected Xcode as well because the same runner image can
+          # contain multiple SDK/compiler releases.
           scripts_hash=${{ needs.metadata.outputs.scripts_hash }}
           runner_image=${ImageVersion:-unknown}
-          deps_hash=$(echo "${scripts_hash}-${runner_image}" | shasum -a 256 | cut -c1-8)
+          developer_dir=${DEVELOPER_DIR:-$(xcode-select -p 2>/dev/null || echo unknown)}
+          xcode_version=$(xcodebuild -version 2>/dev/null | shasum -a 256 | cut -c1-8 || echo unknown)
+          deps_hash=$(echo "${scripts_hash}-${runner_image}-${developer_dir}-${xcode_version}" | shasum -a 256 | cut -c1-8)
           image_name="${{ needs.metadata.outputs.image_name_base }}${deps_hash}"
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
-          echo "Cache key: scripts_hash=$scripts_hash runner_image=$runner_image deps_hash=$deps_hash"
+          echo "Cache key: scripts_hash=$scripts_hash runner_image=$runner_image developer_dir=$developer_dir xcode_version=$xcode_version deps_hash=$deps_hash"
           echo "Image name: $image_name"
 
       - name: Check for cached image
@@ -170,19 +189,22 @@ jobs:
         env:
           MACOSX_DEPLOYMENT_TARGET: '13.0'
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           # Fix CI runner quirk: gcc pre-installed but not linked
           brew unlink gcc 2>/dev/null || true
           brew link gcc --overwrite 2>/dev/null || true
-          
+
           # NumPy is required by MLIR's find_package(Python3 ... NumPy)
-          pip3 install numpy --break-system-packages
+          retry pip3 install numpy --break-system-packages
           
           # Build prerequisites with Python bindings enabled so the cmake
           # cache already has MLIR_ENABLE_BINDINGS_PYTHON=ON.  Downstream
           # wheel jobs only change Python3_EXECUTABLE, which keeps ninja's
           # incremental rebuild scoped to the binding targets.
+          # Initialize nanobind submodule which are needed for MLIR Python bindings
+          git submodule update --init --recursive tpls/nanobind
+
           source scripts/set_env_defaults.sh
-          export LLVM_PROJECTS='clang;lld;mlir;openmp;python-bindings'
           
           echo "Building prerequisites..."
           echo "LLVM_INSTALL_PREFIX=$LLVM_INSTALL_PREFIX"
@@ -194,17 +216,18 @@ jobs:
         id: push_image
         if: steps.cache_check.outputs.cache_hit != 'true'
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           # Package artifacts
           echo "Packaging artifacts from ~/.local and ~/.llvm-project..."
           tar -czf macos-artifacts.tar.gz -C $HOME .local .llvm-project
           ls -lh macos-artifacts.tar.gz
-          
+
           # Push directly to GHCR as OCI artifact using ORAS
-          oras push ${{ steps.cache_key.outputs.image_name }} \
+          retry oras push ${{ steps.cache_key.outputs.image_name }} \
             macos-artifacts.tar.gz:application/gzip
-          
+
           # Get digest for signing
-          digest=$(oras manifest fetch ${{ steps.cache_key.outputs.image_name }} --descriptor | jq -r '.digest')
+          digest=$(retry oras manifest fetch ${{ steps.cache_key.outputs.image_name }} --descriptor | jq -r '.digest')
           echo "digest=${{ steps.cache_key.outputs.image_name }}@${digest}" >> $GITHUB_OUTPUT
 
       - name: Install Cosign

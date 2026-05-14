@@ -108,6 +108,8 @@ Photonics
 PyPI
 Pygments
 QAOA
+QASM
+QBRAID
 QCI
 QCaaS
 QEC
@@ -128,6 +130,7 @@ QuTiP
 Quake
 Quantinuum
 RDMA
+REPL
 RHEL
 RPC
 RSA
@@ -168,6 +171,7 @@ amongst
 ancilla
 ansatz
 ansatzes
+api
 archiver
 arity
 auxillary
@@ -227,6 +231,7 @@ dependence
 dependences
 deserialization
 deserialize
+deserializes
 destructor
 detuning
 deutsch
@@ -300,6 +305,7 @@ lossy
 lvalue
 macOS
 makefiles
+measurementCounts
 merchantability
 mps
 multinomial
@@ -312,6 +318,7 @@ natively
 normalization
 nullary
 nvcc
+nvq
 observables
 optimizer
 optimizers
@@ -333,21 +340,26 @@ preprocessor
 probability
 programmatically
 pybind
+qBraid
 qaoa
+qbraid
 qed
 qio
+qrn
 quantize
 quantized
 qubit
 qubits
 qudit
 qudits
+queryable
 qumode
 qumodes
 reStructuredText
 realtime
 reconfigurable
 reproducibility
+resultData
 reusability
 runtime
 runtimes

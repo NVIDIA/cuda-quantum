@@ -24,7 +24,7 @@ def OperatorInterface : OpInterface<"OperatorInterface"> {
     getting this information without the need of casting an operation to its
     actual type.
   }];
-  let cppNamespace = "::quake";
+  let cppNamespace = "cudaq::quake";
 
   let methods = [
     InterfaceMethod<
@@ -95,7 +95,7 @@ def MeasurementInterface : OpInterface<"MeasurementInterface"> {
     the value of the qubit in the sense the information that the qubit encoded
     in its state is not recoverable.
   }];
-  let cppNamespace = "quake";
+  let cppNamespace = "cudaq::quake";
 
   let methods = [
     InterfaceMethod<

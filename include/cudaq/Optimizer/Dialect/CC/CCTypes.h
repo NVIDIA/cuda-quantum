@@ -48,6 +48,13 @@ bool isDynamicType(mlir::Type ty);
 /// known even if it contains pointers that may point to memory of dynamic size.
 bool isDynamicallySizedType(mlir::Type ty);
 
+/// Returns true if and only if \p ty transitively contains `!cc.measure_handle`
+/// in its value representation. The walk stops at callable / `FunctionType`
+/// boundaries: the signature of a callable parameter is a device-side type
+/// contract for the body of the callable, not a slot for a handle value, so the
+/// entry-point classifier and the marshaling layer agree to ignore it.
+bool containsMeasureHandle(mlir::Type ty);
+
 /// Determine the number of hidden arguments, which is 0, 1, or 2.
 inline unsigned numberOfHiddenArgs(bool thisPtr, bool sret) {
   return (thisPtr ? 1 : 0) + (sret ? 1 : 0);

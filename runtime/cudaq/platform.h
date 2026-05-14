@@ -9,6 +9,7 @@
 #pragma once
 
 #include "cudaq/builder/kernel_builder.h"
+#include "cudaq/platform/qpu_types.h"
 #include "cudaq/platform/quantum_platform.h"
 
 namespace cudaq {
@@ -28,13 +29,6 @@ inline std::size_t platform_num_qpus() {
 /// @brief Return true if the quantum platform is remote.
 inline bool is_remote_platform() {
   return getQuantumPlatformInternal()->is_remote();
-}
-
-/// @brief Return true if the quantum platform is a remote simulator.
-inline bool is_remote_simulator_platform() {
-  return getQuantumPlatformInternal()
-      ->get_remote_capabilities()
-      .isRemoteSimulator;
 }
 
 /// @brief Return true if the quantum platform is emulated.

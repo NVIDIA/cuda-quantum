@@ -8,7 +8,6 @@
 
 #include "py_helpers.h"
 #include "cudaq/operators.h"
-#include <algorithm>
 #include <complex>
 #include <nanobind/nanobind.h>
 #include <nanobind/ndarray.h>
@@ -27,6 +26,14 @@ cudaq::parameter_map kwargs_to_param_map(const nanobind::kwargs &kwargs) {
   return params;
 }
 
+cudaq::parameter_map kwargs_to_param_map(nanobind::kwargs &kwargs,
+                                         bool &invert_order) {
+  nanobind::str invert_key("invert_order");
+  nanobind::object inv = kwargs.attr("pop")(invert_key, nanobind::bool_(false));
+  invert_order = nanobind::cast<bool>(inv);
+  return kwargs_to_param_map(static_cast<const nanobind::kwargs &>(kwargs));
+}
+
 std::unordered_map<std::string, std::string>
 kwargs_to_param_description(const nanobind::kwargs &kwargs) {
   std::unordered_map<std::string, std::string> param_desc;
@@ -39,23 +46,18 @@ kwargs_to_param_description(const nanobind::kwargs &kwargs) {
   return param_desc;
 }
 
-nanobind::ndarray<nanobind::numpy, std::complex<double>>
-cmat_to_numpy(complex_matrix &cmat) {
+nanobind::object cmat_to_numpy(complex_matrix &cmat) {
   auto rows = cmat.rows();
   auto cols = cmat.cols();
-  auto *src = cmat.get_data(complex_matrix::order::row_major);
-  std::size_t n = rows * cols;
-  std::size_t shape[2] = {rows, cols};
+  auto *data = cmat.get_data(complex_matrix::order::row_major);
 
-  auto *copy = new std::complex<double>[n];
-  std::copy(src, src + n, copy);
-
-  nanobind::capsule owner(copy, [](void *p) noexcept {
-    delete[] static_cast<std::complex<double> *>(p);
-  });
-
-  return nanobind::ndarray<nanobind::numpy, std::complex<double>>(copy, 2,
-                                                                  shape, owner);
-}
+  // Use .cast() to force immediate creation of the numpy array.
+  // Since no owner is specified, rv_policy::automatic will copy the data,
+  // making this safe even when cmat is a temporary (e.g. in get_unitary).
+  return nanobind::ndarray<nanobind::numpy, std::complex<double>,
+                           nanobind::shape<-1, -1>>(data, {rows, cols},
+                                                    nanobind::handle())
+      .cast();
+};
 
 } // namespace cudaq::details

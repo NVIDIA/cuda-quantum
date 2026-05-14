@@ -58,6 +58,7 @@ ADD tpls/customizations/llvm /cuda-quantum/tpls/customizations/llvm
 ADD .gitmodules /cuda-quantum/.gitmodules
 ADD .git/modules/tpls/pybind11/HEAD /.git_modules/tpls/pybind11/HEAD
 ADD .git/modules/tpls/llvm/HEAD /.git_modules/tpls/llvm/HEAD
+ADD .git/modules/tpls/nanobind/HEAD /.git_modules/tpls/nanobind/HEAD
 
 # This is a hack so that we do not need to rebuild the prerequisites 
 # whenever we pick up a new CUDA-Q commit (which is always in CI).
@@ -72,7 +73,7 @@ RUN cd /cuda-quantum && git init && \
         fi; \
     done && git submodule init && git submodule
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' \
+    LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' BOOTSTRAP_LLVM=true \
     bash scripts/install_prerequisites.sh -t llvm -e qrmi
 
 # Validate that the built toolchain and libraries have no GCC dependencies.
@@ -250,7 +251,7 @@ RUN cd /cuda-quantum && \
     bash scripts/install_prerequisites.sh -t llvm -e qrmi && \
     CC="$LLVM_INSTALL_PREFIX/bin/clang" \
     CXX="$LLVM_INSTALL_PREFIX/bin/clang++" \
-    FC="$LLVM_INSTALL_PREFIX/bin/flang-new" \
+    FC="$LLVM_INSTALL_PREFIX/bin/flang" \
     python3 -m build --wheel && \
     echo "=== ccache stats (python_build) ===" && (ccache -s 2>/dev/null || true)
     ## [<CUDAQuantumPythonBuild]

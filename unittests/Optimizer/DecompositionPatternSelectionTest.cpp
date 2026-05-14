@@ -37,6 +37,10 @@ public:
       : mlir::RewritePattern(patternName, 0, context, {}) {
     setDebugName(patternName);
   }
+  LogicalResult matchAndRewrite(Operation *op,
+                                PatternRewriter &rewriter) const override {
+    return failure();
+  }
 };
 
 /// A mock pattern type for testing.
@@ -133,7 +137,7 @@ protected:
   void SetUp() override {
     context = std::make_unique<MLIRContext>();
     context->loadDialect<arith::ArithDialect, cudaq::cc::CCDialect,
-                         func::FuncDialect, quake::QuakeDialect>();
+                         func::FuncDialect, cudaq::quake::QuakeDialect>();
     // set up graph in children classes
   }
 
@@ -149,22 +153,22 @@ protected:
 
     // Create a function to hold the operation
     auto funcType = builder.getFunctionType({}, {});
-    auto func = builder.create<func::FuncOp>(loc, "test_func", funcType);
+    auto func = func::FuncOp::create(builder, loc, "test_func", funcType);
     auto *entryBlock = func.addEntryBlock();
     builder.setInsertionPointToStart(entryBlock);
 
     // Create n_qubits qubit wires
     SmallVector<Value> controls;
-    auto wireType = quake::WireType::get(context.get());
+    auto wireType = cudaq::quake::WireType::get(context.get());
     for (unsigned i = 0; i < nCtrls; ++i) {
-      auto qubit = builder.create<quake::AllocaOp>(loc, wireType);
+      auto qubit = cudaq::quake::AllocaOp::create(builder, loc, wireType);
       controls.push_back(qubit.getResult());
     }
-    auto targetQubit = builder.create<quake::AllocaOp>(loc, wireType);
+    auto targetQubit = cudaq::quake::AllocaOp::create(builder, loc, wireType);
     SmallVector<Value> targets{targetQubit};
 
     // Create the operation of type Op with the qubits
-    auto op = builder.create<Op>(loc, controls, targets);
+    auto op = Op::create(builder, loc, controls, targets);
 
     // Get the operation pointer and check if it is legal
     Operation *operation_ptr = op.getOperation();
@@ -228,28 +232,28 @@ protected:
 TEST_F(BaseDecompositionPatternSelectionTest, BasisTargetParsesSimpleGates) {
   std::vector<std::string> basis{"h", "t", "x"};
   auto target = cudaq::createBasisTarget(*context, basis);
-  EXPECT_TRUE(isLegal<quake::HOp>(target));
-  EXPECT_TRUE(isLegal<quake::TOp>(target));
-  EXPECT_TRUE(isLegal<quake::XOp>(target));
+  EXPECT_TRUE(isLegal<cudaq::quake::HOp>(target));
+  EXPECT_TRUE(isLegal<cudaq::quake::TOp>(target));
+  EXPECT_TRUE(isLegal<cudaq::quake::XOp>(target));
 
-  EXPECT_FALSE(isLegal<quake::HOp>(target, 1));
-  EXPECT_FALSE(isLegal<quake::TOp>(target, 1));
-  EXPECT_FALSE(isLegal<quake::XOp>(target, 1));
-  EXPECT_FALSE(isLegal<quake::ZOp>(target));
+  EXPECT_FALSE(isLegal<cudaq::quake::HOp>(target, 1));
+  EXPECT_FALSE(isLegal<cudaq::quake::TOp>(target, 1));
+  EXPECT_FALSE(isLegal<cudaq::quake::XOp>(target, 1));
+  EXPECT_FALSE(isLegal<cudaq::quake::ZOp>(target));
 }
 
 TEST_F(BaseDecompositionPatternSelectionTest,
        BasisTargetParsesControlledGates) {
   std::vector<std::string> basis{"x(1)", "z(2)"};
   auto target = cudaq::createBasisTarget(*context, basis);
-  EXPECT_TRUE(isLegal<quake::XOp>(target, 1));
-  EXPECT_TRUE(isLegal<quake::ZOp>(target, 2));
+  EXPECT_TRUE(isLegal<cudaq::quake::XOp>(target, 1));
+  EXPECT_TRUE(isLegal<cudaq::quake::ZOp>(target, 2));
 
-  EXPECT_FALSE(isLegal<quake::XOp>(target));
-  EXPECT_FALSE(isLegal<quake::XOp>(target, 2));
-  EXPECT_FALSE(isLegal<quake::ZOp>(target));
-  EXPECT_FALSE(isLegal<quake::ZOp>(target, 1));
-  EXPECT_FALSE(isLegal<quake::ZOp>(target, 3));
+  EXPECT_FALSE(isLegal<cudaq::quake::XOp>(target));
+  EXPECT_FALSE(isLegal<cudaq::quake::XOp>(target, 2));
+  EXPECT_FALSE(isLegal<cudaq::quake::ZOp>(target));
+  EXPECT_FALSE(isLegal<cudaq::quake::ZOp>(target, 1));
+  EXPECT_FALSE(isLegal<cudaq::quake::ZOp>(target, 3));
 }
 
 TEST_F(BaseDecompositionPatternSelectionTest,
@@ -257,10 +261,10 @@ TEST_F(BaseDecompositionPatternSelectionTest,
   std::vector<std::string> basis{"x(n)"};
   auto target = cudaq::createBasisTarget(*context, basis);
 
-  EXPECT_TRUE(isLegal<quake::XOp>(target, 0));
-  EXPECT_TRUE(isLegal<quake::XOp>(target, 1));
-  EXPECT_TRUE(isLegal<quake::XOp>(target, 2));
-  EXPECT_TRUE(isLegal<quake::XOp>(target, 10));
+  EXPECT_TRUE(isLegal<cudaq::quake::XOp>(target, 0));
+  EXPECT_TRUE(isLegal<cudaq::quake::XOp>(target, 1));
+  EXPECT_TRUE(isLegal<cudaq::quake::XOp>(target, 2));
+  EXPECT_TRUE(isLegal<cudaq::quake::XOp>(target, 10));
 }
 
 //===----------------------------------------------------------------------===//

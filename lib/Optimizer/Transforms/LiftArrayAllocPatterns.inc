@@ -1,5 +1,5 @@
 /****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * Copyright (c) 2022 - 2025 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -47,7 +47,7 @@ public:
     auto valuesAttr = rewriter.getArrayAttr(values);
     auto loc = alloc.getLoc();
     Value conArr =
-        rewriter.create<cudaq::cc::ConstantArrayOp>(loc, arrTy, valuesAttr);
+        cudaq::cc::ConstantArrayOp::create(rewriter, loc, arrTy, valuesAttr);
 
     assert(conArr && "must have created the constant array");
     LLVM_DEBUG(llvm::dbgs() << "constant array is:\n" << conArr << '\n');
@@ -84,8 +84,8 @@ public:
             //     load, eleTy, conArr,
             //     ArrayRef<cudaq::cc::ExtractValueArg>{offset});
 
-            auto extractValue = rewriter.create<cudaq::cc::ExtractValueOp>(
-                loc, eleTy, conArr,
+            auto extractValue = cudaq::cc::ExtractValueOp::create(
+                rewriter, loc, eleTy, conArr,
                 ArrayRef<cudaq::cc::ExtractValueArg>{offset});
             rewriter.replaceAllUsesWith(load, extractValue);
             insertOpToErase(load);
@@ -108,7 +108,7 @@ public:
 
     if (cannotEraseAlloc) {
       rewriter.setInsertionPointAfter(alloc);
-      rewriter.create<cudaq::cc::StoreOp>(loc, conArr, alloc);
+      cudaq::cc::StoreOp::create(rewriter, loc, conArr, alloc);
       return success();
     }
     rewriter.eraseOp(alloc);
@@ -165,7 +165,8 @@ public:
           }
           continue;
         }
-        if (isa<quake::InitializeStateOp, quake::CreateStateOp>(u)) {
+        if (isa<cudaq::quake::InitializeStateOp, cudaq::quake::CreateStateOp>(
+                u)) {
           toGlobalUses.push_back(u);
           continue;
         }
@@ -220,8 +221,8 @@ public:
           if (cast->hasOneUse()) {
             auto &use = *cast->getUses().begin();
             Operation *u = use.getOwner();
-            if (isa_and_present<quake::InitializeStateOp, quake::CreateStateOp>(
-                    u)) {
+            if (isa_and_present<cudaq::quake::InitializeStateOp,
+                                cudaq::quake::CreateStateOp>(u)) {
               toGlobalUses.push_back(u);
               continue;
             }
@@ -232,7 +233,8 @@ public:
         toGlobalUses.push_back(op);
         continue;
       }
-      if (isa<quake::InitializeStateOp, quake::CreateStateOp>(op)) {
+      if (isa<cudaq::quake::InitializeStateOp, cudaq::quake::CreateStateOp>(
+              op)) {
         toGlobalUses.push_back(op);
         continue;
       }

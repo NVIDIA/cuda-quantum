@@ -76,6 +76,7 @@ Kernel Execution
 Backend Configuration
 =============================
 
+.. autofunction:: cudaq::parse_args
 .. autofunction:: cudaq::has_target
 .. autofunction:: cudaq::get_target
 .. autofunction:: cudaq::get_targets
@@ -411,6 +412,8 @@ MPI Submodule
 .. automethod:: cudaq.mpi::all_gather
 .. automethod:: cudaq.mpi::broadcast
 .. automethod:: cudaq.mpi::is_initialized
+.. automethod:: cudaq.mpi::split_communicator
+.. automethod:: cudaq.mpi::set_communicator
 .. automethod:: cudaq.mpi::finalize
 
 ORCA Submodule
@@ -494,4 +497,3 @@ Trajectory and Selection Types
 
 .. autoclass:: cudaq.ptsbe.KrausSelection
     :members:
-

@@ -15,9 +15,6 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/FormatAdapters.h"
-#include <algorithm>
-#include <cmath>
-#include <numeric>
 
 using namespace mlir;
 
@@ -62,7 +59,7 @@ static LogicalResult emitOperation(nlohmann::json &json,
 
 static LogicalResult emitOperation(nlohmann::json &json,
                                    cudaq::Emitter &emitter,
-                                   quake::AllocaOp op) {
+                                   cudaq::quake::AllocaOp op) {
   Value refOrVeq = op.getRefOrVec();
   auto name = emitter.createName("QB", 1);
   emitter.getOrAssignName(refOrVeq, name);
@@ -71,7 +68,7 @@ static LogicalResult emitOperation(nlohmann::json &json,
 
 static LogicalResult emitOperation(nlohmann::json &json,
                                    cudaq::Emitter &emitter,
-                                   quake::BorrowWireOp op) {
+                                   cudaq::quake::BorrowWireOp op) {
   auto name = std::string("QB") + std::to_string(op.getIdentity() + 1);
   emitter.getOrAssignName(op.getResult(), name);
   return success();
@@ -79,7 +76,7 @@ static LogicalResult emitOperation(nlohmann::json &json,
 
 static LogicalResult emitOperation(nlohmann::json &json,
                                    cudaq::Emitter &emitter,
-                                   quake::ExtractRefOp op) {
+                                   cudaq::quake::ExtractRefOp op) {
   std::optional<int64_t> index = std::nullopt;
   if (op.hasConstantIndex())
     index = op.getConstantIndex();
@@ -95,7 +92,7 @@ static LogicalResult emitOperation(nlohmann::json &json,
 
 static LogicalResult emitOperation(nlohmann::json &json,
                                    cudaq::Emitter &emitter,
-                                   quake::OperatorInterface optor) {
+                                   cudaq::quake::OperatorInterface optor) {
   auto name = optor->getName().stripDialect();
   std::vector<std::string> validInstructions{"z", "phased_rx"};
   if (std::find(validInstructions.begin(), validInstructions.end(),
@@ -117,15 +114,15 @@ static LogicalResult emitOperation(nlohmann::json &json,
 
     // Propagate the name of this qubit into the operation output values.
     emitter.getOrAssignName(
-        optor->getResult(0),
+        optor.getControls()[0],
         emitter.getOrAssignName(optor.getControls()[0]).str());
-    emitter.getOrAssignName(optor->getResult(1),
+    emitter.getOrAssignName(optor.getTarget(0),
                             emitter.getOrAssignName(optor.getTarget(0)).str());
   } else {
     json["name"] = "prx";
 
     if (optor.getParameters().size() != 2)
-      optor.emitError("IQM prx gate expects exactly two parameters.");
+      optor.emitError("IQM phased_rx gate expects exactly two parameters.");
 
     auto parameter0 =
         cudaq::getParameterValueAsDouble(optor.getParameters()[0]);
@@ -139,7 +136,7 @@ static LogicalResult emitOperation(nlohmann::json &json,
     json["args"]["phase_t"] = convertToFullTurns(*parameter1);
 
     // Propagate the name of this qubit into the operation output values.
-    emitter.getOrAssignName(optor->getResult(0),
+    emitter.getOrAssignName(optor.getTarget(0),
                             emitter.getOrAssignName(optor.getTarget(0)).str());
   }
 
@@ -154,7 +151,8 @@ static LogicalResult emitOperation(nlohmann::json &json,
 }
 
 static LogicalResult emitOperation(nlohmann::json &json,
-                                   cudaq::Emitter &emitter, quake::MzOp op) {
+                                   cudaq::Emitter &emitter,
+                                   cudaq::quake::MzOp op) {
   json["name"] = "measure";
   std::vector<std::string> qubits;
   for (auto target : op.getTargets())
@@ -182,27 +180,27 @@ static LogicalResult emitOperation(nlohmann::json &json,
   return llvm::TypeSwitch<Operation *, LogicalResult>(&op)
       .Case<ModuleOp>([&](auto op) { return emitOperation(json, emitter, op); })
       // Quake
-      .Case<quake::AllocaOp>(
+      .Case<cudaq::quake::AllocaOp>(
           [&](auto op) { return emitOperation(json, emitter, op); })
-      .Case<quake::BorrowWireOp>(
+      .Case<cudaq::quake::BorrowWireOp>(
           [&](auto op) { return emitOperation(json, emitter, op); })
-      .Case<quake::ExtractRefOp>(
+      .Case<cudaq::quake::ExtractRefOp>(
           [&](auto op) { return emitOperation(json, emitter, op); })
-      .Case<quake::OperatorInterface>(
+      .Case<cudaq::quake::OperatorInterface>(
           [&](auto op) { return emitOperation(json, emitter, op); })
-      .Case<quake::MzOp>(
+      .Case<cudaq::quake::MzOp>(
           [&](auto op) { return emitOperation(json, emitter, op); })
       // Ignore
-      .Case<quake::DiscriminateOp>([](auto) { return success(); })
-      .Case<quake::DeallocOp>([](auto) { return success(); })
-      .Case<quake::ReturnWireOp>([](auto) { return success(); })
+      .Case<cudaq::quake::DiscriminateOp>([](auto) { return success(); })
+      .Case<cudaq::quake::DeallocOp>([](auto) { return success(); })
+      .Case<cudaq::quake::ReturnWireOp>([](auto) { return success(); })
       .Case<func::ReturnOp>([](auto) { return success(); })
       .Case<arith::ConstantOp>([](auto) { return success(); })
       .Default([&](Operation *) -> LogicalResult {
         // Allow LLVM and cc dialect ops (for storing measure results).
-        if (op.getName().getDialectNamespace().equals("llvm") ||
-            op.getName().getDialectNamespace().equals("cc") ||
-            op.getName().getDialectNamespace().equals("arith"))
+        if (op.getName().getDialectNamespace() == "llvm" ||
+            op.getName().getDialectNamespace() == "cc" ||
+            op.getName().getDialectNamespace() == "arith")
           return success();
         return op.emitOpError() << "unable to translate op to IQM Json "
                                 << op.getName().getIdentifier().str();

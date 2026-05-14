@@ -8,11 +8,7 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "mlir/Dialect/Complex/IR/Complex.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
@@ -40,15 +36,16 @@ namespace {
 /// ```
 // clang-format on
 class ReplaceGetNumQubitsPattern
-    : public OpRewritePattern<quake::GetNumberOfQubitsOp> {
+    : public OpRewritePattern<cudaq::quake::GetNumberOfQubitsOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(quake::GetNumberOfQubitsOp numQubits,
+  LogicalResult matchAndRewrite(cudaq::quake::GetNumberOfQubitsOp numQubits,
                                 PatternRewriter &rewriter) const override {
 
     auto stateOp = numQubits.getState();
-    auto materializeState = stateOp.getDefiningOp<quake::MaterializeStateOp>();
+    auto materializeState =
+        stateOp.getDefiningOp<cudaq::quake::MaterializeStateOp>();
     if (!materializeState) {
       LLVM_DEBUG(llvm::dbgs() << "ReplaceStateWithKernel: failed to replace "
                                  "`quake.get_num_qubits`: "
@@ -76,19 +73,19 @@ public:
 /// ```
 // clang-format on
 class ReplaceInitStatePattern
-    : public OpRewritePattern<quake::InitializeStateOp> {
+    : public OpRewritePattern<cudaq::quake::InitializeStateOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(quake::InitializeStateOp initState,
+  LogicalResult matchAndRewrite(cudaq::quake::InitializeStateOp initState,
                                 PatternRewriter &rewriter) const override {
     auto allocaOp = initState.getTargets();
     auto stateOp = initState.getState();
 
     if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(stateOp.getType())) {
-      if (isa<quake::StateType>(ptrTy.getElementType())) {
+      if (isa<cudaq::quake::StateType>(ptrTy.getElementType())) {
         auto materializeState =
-            stateOp.getDefiningOp<quake::MaterializeStateOp>();
+            stateOp.getDefiningOp<cudaq::quake::MaterializeStateOp>();
         if (!materializeState) {
           LLVM_DEBUG(llvm::dbgs() << "ReplaceStateWithKernel: failed to "
                                      "replace `quake.init_state`: "
@@ -124,8 +121,7 @@ public:
     LLVM_DEBUG(llvm::dbgs()
                << "Before replace state with kernel: " << func << '\n');
 
-    if (failed(applyPatternsAndFoldGreedily(func.getOperation(),
-                                            std::move(patterns))))
+    if (failed(applyPatternsGreedily(func.getOperation(), std::move(patterns))))
       signalPassFailure();
 
     LLVM_DEBUG(llvm::dbgs()

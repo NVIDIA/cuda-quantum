@@ -22,7 +22,7 @@ struct test {
       }
     }
 
-    return cudaq::to_integer(mz(q));
+    return cudaq::to_integer(cudaq::to_bools(mz(q)));
   }
 };
 

@@ -8,7 +8,6 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_DELAYMEASUREMENTS
@@ -87,7 +86,7 @@ struct DelayMeasurementsPass
       }
 
       if (op.hasTrait<cudaq::QuantumMeasure>() || isa<func::ReturnOp>(op) ||
-          isa<quake::DeallocOp>(op)) {
+          isa<cudaq::quake::DeallocOp>(op)) {
         addOpAndUsersToList(&op, opsToMoveToEnd);
         continue;
       }

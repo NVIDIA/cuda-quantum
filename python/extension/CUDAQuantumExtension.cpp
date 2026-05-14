@@ -10,6 +10,7 @@
 #include "cudaq/Support/Version.h"
 #include "cudaq/platform/orca/orca_qpu.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "runtime/common/py_AnalogHamiltonian.h"
 #include "runtime/common/py_CustomOpRegistry.h"
 #include "runtime/common/py_EvolveResult.h"
@@ -43,11 +44,13 @@
 #include "runtime/cudaq/qis/py_pauli_word.h"
 #include "runtime/cudaq/target/py_runtime_target.h"
 #include "runtime/cudaq/target/py_testing_utils.h"
+#include "runtime/cudaq/trace/py_trace.h"
 #include "runtime/interop/PythonCppInteropDecls.h"
 #include "runtime/mlir/py_register_dialects.h"
 #include "utils/LinkedLibraryHolder.h"
-#include "utils/NanobindAdaptors.h"
 #include "utils/OpaqueArguments.h"
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
+#include "mlir/CAPI/Pass.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include <nanobind/stl/complex.h>
@@ -62,7 +65,12 @@ using namespace cudaq;
 
 static std::unique_ptr<LinkedLibraryHolder> holder;
 
+extern "C" void cudaq_ensure_default_launcher_linked(void);
+
 NB_MODULE(_quakeDialects, m) {
+  // Ensure the TU that registers PythonLauncher ("default") is linked so
+  // kernel launches work without an explicit set_target().
+  cudaq_ensure_default_launcher_linked();
   holder = std::make_unique<LinkedLibraryHolder>();
 
   bindRegisterDialects(m);
@@ -134,6 +142,7 @@ NB_MODULE(_quakeDialects, m) {
   });
   bindTestUtils(cudaqRuntime, *holder.get());
   bindCustomOpRegistry(cudaqRuntime);
+  bindTrace(cudaqRuntime);
 
   cudaqRuntime.def("set_random_seed", &set_random_seed,
                    "Provide the seed for backend quantum kernel simulation.");
@@ -187,8 +196,7 @@ NB_MODULE(_quakeDialects, m) {
   mpiSubmodule.def(
       "is_initialized", []() { return mpi::is_initialized(); },
       "Returns true if MPI has already been initialized.");
-  mpiSubmodule.def(
-      "finalize", []() { mpi::finalize(); }, "Finalize MPI.");
+  mpiSubmodule.def("finalize", []() { mpi::finalize(); }, "Finalize MPI.");
   mpiSubmodule.def(
       "comm_dup",
       []() {
@@ -197,6 +205,104 @@ NB_MODULE(_quakeDialects, m) {
       },
       "Duplicates the communicator. Return the new communicator address (as an "
       "integer) and its size in bytes");
+  mpiSubmodule.def(
+      "split_communicator",
+      [](int color, std::optional<int> key) {
+        return reinterpret_cast<intptr_t>(mpi::split_communicator(color, key));
+      },
+      R"doc(Splits the current communicator into sub-communicators based on the
+input color and key.
+
+Ranks that pass the same color are placed in the same new communicator. The key
+controls the rank ordering within that new communicator.
+
+Args:
+  color (int): Split color. Ranks with the same color join the same
+    communicator.
+  key (Optional[int]): Rank-ordering key within the new communicator. Defaults
+    to ``None``, which uses the current rank in the original communicator as the
+    split key.
+
+Returns:
+  int: Integer representation of the new communicator pointer (``comm_ptr``).
+
+Example:
+
+.. code-block:: python
+
+  import cudaq
+
+  cudaq.mpi.initialize()
+  cudaq.set_target("tensornet")
+
+  world_rank = cudaq.mpi.rank()
+  world_size = cudaq.mpi.num_ranks()
+
+  # Split the world communicator into QPU groups of two ranks each.
+  # With four ranks, ranks 0 and 1 use color 0, while ranks 2 and 3 use color 1.
+  ranks_per_qpu = 2
+  if world_size % ranks_per_qpu != 0:
+      raise RuntimeError("World size must be a multiple of ranks_per_qpu.")
+
+  qpu_id = world_rank // ranks_per_qpu
+  qpu_comm = cudaq.mpi.split_communicator(color=qpu_id)
+
+  cudaq.mpi.set_communicator(qpu_comm))doc",
+      nanobind::arg("color"), nanobind::arg("key") = std::nullopt);
+
+  mpiSubmodule.def(
+      "set_communicator",
+      [](intptr_t commPtr) {
+        mpi::set_communicator(reinterpret_cast<void *>(commPtr));
+      },
+      R"doc(Sets the communicator of the backend simulator based on the input
+communicator address (as an integer). MPI must be initialized. If the selected
+target does not support MPI-based distributed simulation, CUDA-Q emits a warning
+and ignores this call.
+
+Args:
+  commPtr (int): Integer representation of the communicator pointer
+    (``comm_ptr``) for the backend simulator to use. This can be returned by
+    ``cudaq.mpi.split_communicator`` or by taking the address of a live
+    ``mpi4py`` communicator with ``MPI._addressof(comm)``.
+
+Examples:
+
+Using ``cudaq.mpi.split_communicator``:
+
+.. code-block:: python
+
+  import cudaq
+
+  cudaq.mpi.initialize()
+  cudaq.set_target("tensornet")
+
+  world_rank = cudaq.mpi.rank()
+  ranks_per_qpu = 2
+  qpu_id = world_rank // ranks_per_qpu
+  qpu_comm = cudaq.mpi.split_communicator(qpu_id)
+
+  cudaq.mpi.set_communicator(qpu_comm)
+
+Using ``mpi4py``:
+
+.. code-block:: python
+
+  import cudaq
+  from mpi4py import MPI
+
+  cudaq.set_target("tensornet")
+
+  world_comm = MPI.COMM_WORLD
+  world_rank = world_comm.Get_rank()
+  ranks_per_qpu = 2
+  qpu_id = world_rank // ranks_per_qpu
+  qpu_comm = world_comm.Split(color=qpu_id, key=world_rank)
+
+  cudaq.mpi.set_communicator(MPI._addressof(qpu_comm))
+
+When using ``mpi4py``, keep the communicator object alive while CUDA-Q uses it.)doc",
+      nanobind::arg("commPtr"));
 
   auto orcaSubmodule = cudaqRuntime.def_submodule("orca");
   orcaSubmodule.def(
@@ -280,6 +386,17 @@ NB_MODULE(_quakeDialects, m) {
       nanobind::arg("id"));
   cudaqRuntime.def("cloneModule",
                    [](MlirModule mod) { return wrap(unwrap(mod).clone()); });
+  cudaqRuntime.def(
+      "runPassManager",
+      [](MlirPassManager pm, MlirModule mod) {
+        if (mlir::failed(cudaq_internal::compiler::runPassManager(
+                *unwrap(pm), unwrap(mod).getOperation())))
+          throw std::runtime_error("pass pipeline failed");
+      },
+      "Run an MLIR PassManager on a Module via the runtime helper that "
+      "installs TracePassInstrumentation and releases the GIL. Used by "
+      "cudaq.mlir.passmanager.PassManager.run() so every Python-side pass "
+      "run is traced through the same chokepoint as the JIT path.");
   cudaqRuntime.def("isTerminator", [](MlirOperation op) {
     return unwrap(op)->hasTrait<mlir::OpTrait::IsTerminator>();
   });

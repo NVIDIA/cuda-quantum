@@ -13,8 +13,8 @@
 #include "CuDensityMatState.h"
 #include "CuDensityMatTimeStepper.h"
 #include "CuDensityMatUtils.h"
+#include "common/EvolveResult.h"
 #include "common/FmtCore.h"
-#include "cudaq/algorithms/evolve_internal.h"
 #include "cudaq/algorithms/integrator.h"
 #include <iterator>
 #include <random>

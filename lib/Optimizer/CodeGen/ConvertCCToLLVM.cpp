@@ -6,13 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "PassDetails.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/CCToLLVM.h"
-#include "cudaq/Optimizer/CodeGen/CodeGenDialect.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "llvm/IR/LLVMContext.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Conversion/ArithToLLVM/ArithToLLVM.h"
 #include "mlir/Conversion/ComplexToLLVM/ComplexToLLVM.h"
@@ -45,6 +43,9 @@ void cudaq::opt::populateCCTypeConversions(LLVMTypeConverter *converter) {
   converter->addConversion([](cc::IndirectCallableType type) {
     return IntegerType::get(type.getContext(), 64);
   });
+  converter->addConversion([](cc::MeasureHandleType type) {
+    return IntegerType::get(type.getContext(), 64);
+  });
   converter->addConversion([](cc::CallableType type) {
     return lambdaAsPairOfPointers(type.getContext());
   });
@@ -72,8 +73,9 @@ void cudaq::opt::populateCCTypeConversions(LLVMTypeConverter *converter) {
       return type;
     return LLVM::LLVMArrayType::get(eleTy, type.getSize());
   });
-  converter->addConversion(
-      [](quake::StateType type) { return factory::stateImplType(type); });
+  converter->addConversion([](cudaq::quake::StateType type) {
+    return factory::stateImplType(type);
+  });
   converter->addConversion([converter](cc::StructType type) -> Type {
     SmallVector<Type> members;
     for (auto t : type.getMembers())

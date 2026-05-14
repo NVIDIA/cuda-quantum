@@ -8,8 +8,9 @@
 
 #pragma once
 
-#include "common/Registry.h"
+#define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/Support/Registry.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include <string>
@@ -32,9 +33,9 @@ namespace cudaq {
 /// CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, MyPatternType,
 /// pattern_name)
 /// where pattern_name is the same as MyPatternType().getPatternName().
-class DecompositionPatternType
-    : public registry::RegisteredType<DecompositionPatternType> {
+class DecompositionPatternType {
 public:
+  using RegistryType = llvm::Registry<DecompositionPatternType>;
   virtual ~DecompositionPatternType() = default;
 
   /// Get the source operation this pattern matches and decomposes.
@@ -99,9 +100,17 @@ void populateWithAllDecompositionPatterns(mlir::RewritePatternSet &patterns);
 /// The returned conversion target will accept operations in the MLIR dialects
 /// arith::ArithDialect, cf::ControlFlowDialect, cudaq::cc::CCDialect,
 /// func::FuncDialect, and math::MathDialect, as well as operations in the
-/// quake::QuakeDialect that appear in `targetBasis`.
+/// cudaq::quake::QuakeDialect that appear in `targetBasis`.
 std::unique_ptr<mlir::ConversionTarget>
 createBasisTarget(mlir::MLIRContext &context,
                   mlir::ArrayRef<std::string> targetBasis);
 
+using DecompositionPatternTypeRegistry =
+    llvm::Registry<DecompositionPatternType>;
 } // namespace cudaq
+
+/// Register a decomposition pattern type with the LLVM registry.
+/// This is compiler-internal only (no cross-DSO / Python concerns).
+#define REGISTER_DECOMPOSITION_PATTERN(SUBTYPE, NAME)                          \
+  static cudaq::DecompositionPatternType::RegistryType::Add<SUBTYPE>           \
+      decomp_reg_##NAME(#NAME, "");

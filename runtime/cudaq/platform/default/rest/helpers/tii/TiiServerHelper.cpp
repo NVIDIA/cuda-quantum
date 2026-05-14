@@ -11,6 +11,7 @@
 #include "cudaq/Support/Version.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include "nlohmann/json.hpp"
 
 namespace {
 std::string lowercaseArgument(std::string value) {
@@ -47,7 +48,7 @@ namespace cudaq {
 /// retrieving quantum computation jobs.
 class TiiServerHelper : public ServerHelper {
   static constexpr const char *DEFAULT_URL = "https://q-cloud.tii.ae";
-  static constexpr const char *DEFAULT_VERSION = "0.2.2";
+  static constexpr const char *DEFAULT_VERSION = "0.2.4";
 
 public:
   const std::string name() const override { return "tii"; }

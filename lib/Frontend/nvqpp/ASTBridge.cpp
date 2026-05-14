@@ -53,7 +53,7 @@ listReachableFunctions(clang::CallGraphNode *cgn) {
 // Does `ty` refer to a Quake quantum type? This also checks custom recursive
 // types. It does not check builtin recursive types; e.g., `!llvm.ptr<T>`.
 static bool isQubitType(Type ty) {
-  if (quake::isQuakeType(ty))
+  if (cudaq::quake::isQuakeType(ty))
     return true;
   // FIXME: next if case is a bug.
   if (auto vecTy = dyn_cast<cudaq::cc::StdvecType>(ty))
@@ -62,13 +62,31 @@ static bool isQubitType(Type ty) {
 }
 
 // Check the builtin type FunctionType to see if it has any references to Quake
-// qubit types in its arguments and/or results.
-static bool hasAnyQubitTypes(FunctionType funcTy) {
+// qubit types or `cc.measure_handle` in its arguments and/or results, in any
+// position the kernel boundary classifier needs to treat as device-only.
+static bool hasAnyQuakeOrHandleTypes(FunctionType funcTy) {
+  auto isDeviceOnly = [](Type ty) {
+    return isQubitType(ty) || cudaq::cc::containsMeasureHandle(ty);
+  };
   for (auto ty : funcTy.getInputs())
-    if (isQubitType(ty))
+    if (isDeviceOnly(ty))
       return true;
   for (auto ty : funcTy.getResults())
-    if (isQubitType(ty))
+    if (isDeviceOnly(ty))
+      return true;
+  return false;
+}
+
+// Like `hasAnyQuakeOrHandleTypes`, but only the handle component. Used by the
+// functor-`operator()` diagnostic, which fires only when the signature carries
+// a handle (free `__qpu__` functions silently demote even when they carry
+// qubit references).
+static bool containsHandleInSignature(FunctionType funcTy) {
+  for (auto ty : funcTy.getInputs())
+    if (cudaq::cc::containsMeasureHandle(ty))
+      return true;
+  for (auto ty : funcTy.getResults())
+    if (cudaq::cc::containsMeasureHandle(ty))
       return true;
   return false;
 }
@@ -91,12 +109,6 @@ trimmedMangledTypeName(clang::QualType ty,
   return s;
 }
 
-static std::string
-trimmedMangledTypeName(const clang::Type *ty,
-                       clang::ItaniumMangleContext *mangler) {
-  return trimmedMangledTypeName(clang::QualType(ty, /*Quals=*/0), mangler);
-}
-
 std::string
 cudaq::details::getTagNameOfFunctionDecl(const clang::FunctionDecl *func,
                                          clang::ItaniumMangleContext *mangler) {
@@ -108,8 +120,10 @@ cudaq::details::getTagNameOfFunctionDecl(const clang::FunctionDecl *func,
       //   template<typename A> T operator()(args...) { ... }
       // };
       // cudaq::get_class_kernel_name<C, As...>();
-      auto name = "instance_" +
-                  trimmedMangledTypeName(cxxCls->getTypeForDecl(), mangler);
+      auto name =
+          "instance_" +
+          trimmedMangledTypeName(
+              mangler->getASTContext().getCanonicalTagType(cxxCls), mangler);
       assert(cxxMethod->getTemplateSpecializationArgs());
       for (auto &templArg :
            cxxMethod->getTemplateSpecializationArgs()->asArray())
@@ -120,7 +134,8 @@ cudaq::details::getTagNameOfFunctionDecl(const clang::FunctionDecl *func,
     }
     // Member function, but not a template function.
     // cudaq::get_class_kernel_name<C>();
-    auto name = trimmedMangledTypeName(cxxCls->getTypeForDecl(), mangler);
+    auto name = trimmedMangledTypeName(
+        mangler->getASTContext().getCanonicalTagType(cxxCls), mangler);
     LLVM_DEBUG(llvm::dbgs() << "member name is: " << name << '\n');
     return name;
   }
@@ -324,9 +339,8 @@ public:
 
   bool VisitVarDecl(clang::VarDecl *x) {
     if (isTupleReverseVar(x)) {
-      auto loc = x->getLocation();
-      auto opt = x->getAnyInitializer()->getIntegerConstantExpr(
-          x->getASTContext(), &loc, false);
+      auto opt =
+          x->getAnyInitializer()->getIntegerConstantExpr(x->getASTContext());
       if (opt) {
         LLVM_DEBUG(llvm::dbgs() << "tuples are reversed: " << *opt << '\n');
         tuplesAreReversed = !opt->isZero();
@@ -335,9 +349,8 @@ public:
     if (cudaq::isInNamespace(x, "cudaq") &&
         cudaq::isInNamespace(x, "details") && x->getName() == "_nvqpp_sizeof") {
       // This constexpr is the sizeof a pauli_word and a std::string.
-      auto loc = x->getLocation();
-      auto opt = x->getAnyInitializer()->getIntegerConstantExpr(
-          x->getASTContext(), &loc, false);
+      auto opt =
+          x->getAnyInitializer()->getIntegerConstantExpr(x->getASTContext());
       assert(opt && "must compute the sizeof a cudaq::pauli_word");
       auto sizeofString = opt->getZExtValue();
       auto sizeAttr = module->getAttr(cudaq::runtime::sizeofStringAttrName);
@@ -359,8 +372,8 @@ public:
           if (auto *id = decl->getIdentifier()) {
             auto name = id->getName();
             if (name == "qubit" || name == "qudit" || name == "qspan" ||
-                name.startswith("qreg") || name.startswith("qvector") ||
-                name.startswith("qarray") || name.startswith("qview"))
+                name.starts_with("qreg") || name.starts_with("qvector") ||
+                name.starts_with("qarray") || name.starts_with("qview"))
               cudaq::details::reportClangError(
                   x, mangler,
                   "may not use quantum types in non-kernel functions");
@@ -511,8 +524,8 @@ void ASTBridgeAction::ASTBridgeConsumer::addFunctionDecl(
       isa<clang::CXXMethodDecl>(funcDecl) && !funcDecl->isStatic();
   FunctionType hostFuncTy =
       opt::factory::toHostSideFuncType(funcTy, addThisPtr, *module);
-  auto func = build.create<func::FuncOp>(loc, funcName, hostFuncTy,
-                                         ArrayRef<NamedAttribute>{});
+  auto func = func::FuncOp::create(build, loc, funcName, hostFuncTy,
+                                   ArrayRef<NamedAttribute>{});
   if (!addThisPtr)
     func->setAttr("no_this", build.getUnitAttr());
 
@@ -527,8 +540,8 @@ void ASTBridgeAction::ASTBridgeConsumer::addFunctionDecl(
     build.setInsertionPointToStart(block);
     SmallVector<Value> results;
     for (auto resTy : hostFuncTy.getResults())
-      results.push_back(build.create<cc::UndefOp>(loc, resTy));
-    build.create<func::ReturnOp>(loc, results);
+      results.push_back(cc::UndefOp::create(build, loc, resTy));
+    func::ReturnOp::create(build, loc, results);
   }
 
   // Walk the arguments and add byval attributes where needed.
@@ -628,18 +641,35 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
     visitor.TraverseDecl(const_cast<clang::FunctionDecl *>(fdPair.second));
     if (auto func = module->lookupSymbol<func::FuncOp>(entryName)) {
       // Rationale: If a function marked as quantum code takes or returns
-      // qubits, then it must be a pure quantum kernel that can only be called
-      // from other quantum code and never from classical code. Conversely, a
-      // kernel that is called from a quantum kernel entry function must (for
-      // now) take or return qubits in order to be stitched into the same
-      // circuit with the calling function. CUDA-Q does not presently
-      // support a quantum circuit that invokes a separable quantum circuit.
-      // Launching a quantum circuit implies exactly one distinct circuit
-      // will be mapped to and execute on the QPU.
+      // qubits or measurement "handles", then it must be a pure quantum kernel
+      // that can only be called from other quantum code and never from
+      // classical code. Conversely, a kernel that is called from a quantum
+      // kernel entry function must (for now) take or return qubits in order to
+      // be stitched into the same circuit with the calling function. CUDA-Q
+      // does not presently support a quantum circuit that invokes a separable
+      // quantum circuit. Launching a quantum circuit implies exactly one
+      // distinct circuit will be mapped to and execute on the QPU.
       auto unitAttr = UnitAttr::get(ctx);
       // Flag func as a quantum kernel.
       func->setAttr(kernelAttrName, unitAttr);
-      if ((!hasAnyQubitTypes(func.getFunctionType())) &&
+      bool hasDeviceOnlyTypes =
+          hasAnyQuakeOrHandleTypes(func.getFunctionType());
+      if (hasDeviceOnlyTypes)
+        if (auto *md = dyn_cast<clang::CXXMethodDecl>(fdPair.second);
+            md && md->getOverloadedOperator() == clang::OO_Call) {
+          // Functor `operator()` with a handle in the signature is the only
+          // entry-point shape we can disambiguate from a free `__qpu__`
+          // function at AST time, so diagnose it explicitly here. Free
+          // functions silently demote to the device-only worklist below.
+          if (containsHandleInSignature(func.getFunctionType())) {
+            cudaq::details::reportClangError(
+                fdPair.second, mangler,
+                "measurement handle cannot cross the host-device boundary; "
+                "entry-point kernels must discriminate first");
+            continue;
+          }
+        }
+      if (!hasDeviceOnlyTypes &&
           (!cudaq::ASTBridgeAction::ASTBridgeConsumer::isCustomOpGenerator(
               fdPair.second))) {
         // Flag func as an entry point to a quantum kernel.
@@ -710,7 +740,7 @@ std::string getCxxMangledTypeName(clang::QualType ty,
                                   clang::ItaniumMangleContext *mangler) {
   std::string s;
   llvm::raw_string_ostream os(s);
-  mangler->mangleTypeName(ty, os);
+  mangler->mangleCanonicalTypeName(ty, os);
   os.flush();
   LLVM_DEBUG(llvm::dbgs() << "type name mangled as '" << s << "'\n");
   return s;

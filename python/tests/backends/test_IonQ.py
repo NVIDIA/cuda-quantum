@@ -144,6 +144,31 @@ def test_ionq_observe():
     assert assert_close(res.expectation())
 
 
+def test_ionq_observe_broadcast():
+    qubit_count = 5
+    sample_count = 4
+    shots_count = 10000
+    parameters = np.random.default_rng(13).uniform(low=0,
+                                                   high=1,
+                                                   size=(sample_count,
+                                                         qubit_count))
+
+    @cudaq.kernel
+    def kernel(qubit_count: int, parameters: List[float]):
+        qvector = cudaq.qvector(qubit_count)
+        for i in range(qubit_count - 1):
+            rx(parameters[i], qvector[i])
+
+    results = cudaq.observe(kernel,
+                            spin.z(0), [qubit_count] * sample_count,
+                            parameters,
+                            shots_count=shots_count)
+    expected = np.cos(parameters[:, 0])
+
+    assert len(results) == sample_count
+    assert np.allclose([r.expectation() for r in results], expected, atol=0.1)
+
+
 def test_ionq_u3_decomposition():
 
     @cudaq.kernel
@@ -360,6 +385,39 @@ def test_shot_wise_output(mock_target, mock_noise, memory, expect_shots):
     requests.post(f"{url}/_mock_server_config_target?target=")
     if mock_noise:
         requests.post(f"{url}/_mock_server_config_noise_model?noise=")
+
+
+@pytest.mark.skip_macos_arm64_jit
+def test_ionq_estimate_resources_with_kernel_launch_in_choice():
+    # Regression: a `choice` callback that itself launches a kernel via
+    # `cudaq::sample` while `cudaq::estimate_resources` is in flight must
+    # be rejected on every transport, including a non-emulated remote
+    # REST target.
+
+    @cudaq.kernel
+    def mykernel():
+        q = cudaq.qubit()
+        p = cudaq.qubit()
+        h(q)
+        m1 = mz(q)
+        if m1:
+            x(p)
+            m2 = mz(p)
+        else:
+            m3 = mz(p)
+
+    @cudaq.kernel
+    def other_kernel():
+        q = cudaq.qubit()
+        h(q)
+        mz(q)
+
+    def choice():
+        cudaq.sample(other_kernel, shots_count=10)
+        return True
+
+    with pytest.raises(RuntimeError):
+        cudaq.estimate_resources(mykernel, choice=choice)
 
 
 # leave for gdb debugging

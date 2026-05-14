@@ -109,8 +109,4 @@ public:
 
 ResourceCounter *getResourceCounterSimulator();
 
-void setChoiceFunction(std::function<bool()> choice);
-
-cudaq::Resources *getResourceCounts();
-
 } // namespace nvqir

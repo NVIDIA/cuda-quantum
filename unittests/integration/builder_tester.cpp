@@ -643,6 +643,7 @@ CUDAQ_TEST(BuilderTester, checkSwap) {
     // `first` and `second` should SWAP.
     kernel.swap<cudaq::ctrl>(ctrls0, ctrls1, ctrls2, first, second);
 
+    std::cout << kernel.to_quake() << "\n";
     auto counts = cudaq::sample(kernel);
     counts.dump();
     std::string ctrls_state = "11111";
@@ -1073,6 +1074,52 @@ CUDAQ_TEST(BuilderTester, checkMidCircuitMeasure) {
   }
 }
 #endif
+
+CUDAQ_TEST(BuilderTester, checkMeasureHandleEmission) {
+  {
+    // Scalar `mz` on a single qubit produces `!cc.measure_handle` and
+    // carries the register name on `quake.mz` itself, with no
+    // `quake.discriminate` inlined.
+    auto kernel = cudaq::make_kernel();
+    auto q = kernel.qalloc();
+    kernel.h(q);
+    kernel.mz(q, "scalarHandle");
+    auto ir = kernel.to_quake();
+    EXPECT_NE(ir.find("!cc.measure_handle"), std::string::npos);
+    EXPECT_NE(ir.find("\"scalarHandle\""), std::string::npos);
+    EXPECT_EQ(ir.find("quake.discriminate"), std::string::npos);
+    EXPECT_EQ(ir.find("!quake.measure"), std::string::npos);
+  }
+
+  {
+    // Vector `mz` on a register produces `!cc.stdvec<!cc.measure_handle>`
+    // before `expand-measurements`.
+    auto kernel = cudaq::make_kernel();
+    auto q = kernel.qalloc(3);
+    kernel.h(q);
+    kernel.mz(q, "vectorHandle");
+    auto ir = kernel.to_quake();
+    EXPECT_NE(ir.find("!cc.stdvec<!cc.measure_handle>"), std::string::npos);
+    EXPECT_NE(ir.find("\"vectorHandle\""), std::string::npos);
+    EXPECT_EQ(ir.find("quake.discriminate"), std::string::npos);
+    EXPECT_EQ(ir.find("!quake.measure"), std::string::npos);
+  }
+
+  {
+    // `mx` and `my` follow the same shape as `mz`; the IR remains an
+    // undiscriminated handle.
+    auto kernel = cudaq::make_kernel();
+    auto q = kernel.qalloc();
+    kernel.h(q);
+    kernel.mx(q, "xHandle");
+    kernel.my(q, "yHandle");
+    auto ir = kernel.to_quake();
+    EXPECT_NE(ir.find("quake.mx"), std::string::npos);
+    EXPECT_NE(ir.find("quake.my"), std::string::npos);
+    EXPECT_NE(ir.find("!cc.measure_handle"), std::string::npos);
+    EXPECT_EQ(ir.find("quake.discriminate"), std::string::npos);
+  }
+}
 
 #ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(BuilderTester, checkNestedKernelCall) {
@@ -1555,7 +1602,15 @@ CUDAQ_TEST(BuilderTester, checkMidCircuitMeasureWithReset) {
 
 CUDAQ_TEST(BuilderTester, checkExplicitMeasurements) {
   int n_qubits = 4;
+#ifndef CUDAQ_BACKEND_TENSORNET
   int n_rounds = 10;
+  std::size_t num_shots = 50;
+#else
+  // tensornet backend is much slower for these dynamic circuits, so we reduce
+  // the number of rounds and shots to keep test time reasonable.
+  int n_rounds = 2;
+  std::size_t num_shots = 10;
+#endif
   auto explicit_kernel = cudaq::make_kernel();
   auto q = explicit_kernel.qalloc(n_qubits);
   for (int round = 0; round < n_rounds; round++) {
@@ -1567,7 +1622,6 @@ CUDAQ_TEST(BuilderTester, checkExplicitMeasurements) {
       explicit_kernel.reset(q[i]);
   }
 
-  std::size_t num_shots = 50;
   cudaq::sample_options options{.shots = num_shots,
                                 .explicit_measurements = true};
   auto counts = cudaq::sample(options, explicit_kernel);

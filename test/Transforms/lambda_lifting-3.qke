@@ -61,11 +61,11 @@ func.func private @__nvqpp__mlirgen__func0..0x7df00edf9130(%arg0: !quake.ref) at
 
 // CHECK-LABEL:   func.func private @__nvqpp__lifted.lambda.2(
 
-// CHECK-LABEL:   func.func private @__nvqpp__callable.thunk.lambda.1(
-
-// CHECK-LABEL:   func.func private @__nvqpp__lifted.lambda.1(
-
 // CHECK-LABEL:   func.func private @__nvqpp__callable.thunk.lambda.0(
 
 // CHECK-LABEL:   func.func private @__nvqpp__lifted.lambda.0(
+
+// CHECK-LABEL:   func.func private @__nvqpp__callable.thunk.lambda.1(
+
+// CHECK-LABEL:   func.func private @__nvqpp__lifted.lambda.1(
 

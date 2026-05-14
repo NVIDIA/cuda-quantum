@@ -15,7 +15,7 @@ namespace mlir {
 class Operation;
 }
 
-namespace quake::detail {
+namespace cudaq::quake::detail {
 /// Define a type to contain the Quake Function Metadata
 struct QuakeMetadata {
   bool hasConditionalsOnMeasure = false;
@@ -50,4 +50,4 @@ private:
 
   QuakeFunctionInfo infoMap;
 };
-} // namespace quake::detail
+} // namespace cudaq::quake::detail
