@@ -32,8 +32,8 @@ struct M2 {
 };
 
 M2 mul(const M2 &L, const M2 &R) {
-  return {L.a * R.a + L.b * R.c, L.a * R.b + L.b * R.d,
-          L.c * R.a + L.d * R.c, L.c * R.b + L.d * R.d};
+  return {L.a * R.a + L.b * R.c, L.a * R.b + L.b * R.d, L.c * R.a + L.d * R.c,
+          L.c * R.b + L.d * R.d};
 }
 
 const std::complex<double> kI{0.0, 1.0};
@@ -61,8 +61,8 @@ OwningOpRef<ModuleOp> buildRzModule(MLIRContext *context, double theta) {
 
   auto refType = cudaq::quake::RefType::get(context);
   Value q = cudaq::quake::AllocaOp::create(builder, loc, refType);
-  Value angle = cudaq::opt::factory::createFloatConstant(
-      loc, builder, theta, builder.getF64Type());
+  Value angle = cudaq::opt::factory::createFloatConstant(loc, builder, theta,
+                                                         builder.getF64Type());
 
   cudaq::quake::RzOp::create(builder, loc, /*isAdj=*/false, ValueRange{angle},
                              /*controls=*/ValueRange{}, q);
@@ -110,9 +110,10 @@ TEST_F(CliffordTSynthesisTester, RzRoundTripMatchesIdealUpToGlobalPhase) {
 
   // No rotation ops should survive.
   module->walk([](Operation *op) {
-    EXPECT_FALSE(isa<cudaq::quake::RxOp, cudaq::quake::RyOp, cudaq::quake::RzOp,
-                     cudaq::quake::R1Op>(op))
-        << "rotation gate survived synthesis: " << op->getName().getStringRef().str();
+    EXPECT_FALSE((isa<cudaq::quake::RxOp, cudaq::quake::RyOp,
+                      cudaq::quake::RzOp, cudaq::quake::R1Op>(op)))
+        << "rotation gate survived synthesis: "
+        << op->getName().getStringRef().str();
   });
 
   M2 U = reconstructUnitary(*module);

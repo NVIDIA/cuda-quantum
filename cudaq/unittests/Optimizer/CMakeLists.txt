@@ -6,12 +6,20 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+set(OPTIMIZER_UNIT_TEST_SOURCES
+    HermitianTrait.cpp
+    FactoryMergeModuleTest.cpp
+    DecompositionPatternsTest.cpp
+    DecompositionPatternSelectionTest.cpp
+)
+
+if(TARGET cudaq-synth)
+  list(APPEND OPTIMIZER_UNIT_TEST_SOURCES CliffordTSynthesisTester.cpp)
+endif()
+
 add_cudaq_unittest("OptimizerUnitTests" "optimizer-unit-tests"
     SOURCES
-        HermitianTrait.cpp
-        FactoryMergeModuleTest.cpp
-        DecompositionPatternsTest.cpp
-        DecompositionPatternSelectionTest.cpp
+        ${OPTIMIZER_UNIT_TEST_SOURCES}
     INCLUDES
         ${CMAKE_SOURCE_DIR}/runtime
         ${CMAKE_SOURCE_DIR}/cudaq/lib/Optimizer/Transforms
