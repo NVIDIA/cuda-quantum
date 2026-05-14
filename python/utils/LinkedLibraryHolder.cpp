@@ -526,22 +526,6 @@ std::vector<RuntimeTarget> LinkedLibraryHolder::getTargets() const {
   return ret;
 }
 
-void python::detail::switchToResourceCounterSimulator() {
-  nvqir::switchToResourceCounterSimulator();
-}
-
-void python::detail::stopUsingResourceCounterSimulator() {
-  nvqir::stopUsingResourceCounterSimulator();
-}
-
-void python::detail::setChoiceFunction(std::function<bool()> choice) {
-  nvqir::setChoiceFunction(choice);
-}
-
-Resources *python::detail::getResourceCounts() {
-  return nvqir::getResourceCounts();
-}
-
 std::string python::getTransportLayer(LinkedLibraryHolder *holder) {
   if (holder && cudaq::__internal__::canModifyTarget()) {
     auto runtimeTarget = holder->getTarget();
