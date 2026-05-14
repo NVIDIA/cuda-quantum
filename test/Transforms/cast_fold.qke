@@ -440,3 +440,52 @@ func.func @castIntToBool() -> i1 {
 // CHECK:     %true = arith.constant true
 // CHECK:     return %true : i1
 // CHECK:   }
+
+
+// `FuseCastCascade` folds.
+module attributes {llvm.data_layout = "e-p:64:64"} {
+
+// `ptr -> int -> ptr` with a pointer-width integer hop (`i64` on a 64-bit
+// target) is the measure_handle / QIR `Result*` shape and must fold.
+func.func @fuse_ptr_int_ptr(%arg0: !cc.ptr<!llvm.struct<"Result", opaque>>) -> !cc.ptr<i1> {
+  %0 = cc.cast %arg0 : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> i64
+  %1 = cc.cast %0 : (i64) -> !cc.ptr<i1>
+  return %1 : !cc.ptr<i1>
+}
+
+// CHECK-LABEL:   func.func @fuse_ptr_int_ptr(
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<!llvm.struct<"Result", opaque>>) -> !cc.ptr<i1> {
+// CHECK-NEXT:      %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> !cc.ptr<i1>
+// CHECK-NEXT:      return %[[VAL_1]] : !cc.ptr<i1>
+// CHECK-NEXT:    }
+
+// `ptr -> ptr -> ptr` (intermediate-pointer view collapse).
+func.func @fuse_ptr_ptr_ptr(%arg0: !cc.ptr<i32>) -> !cc.ptr<i1> {
+  %0 = cc.cast %arg0 : (!cc.ptr<i32>) -> !cc.ptr<i8>
+  %1 = cc.cast %0 : (!cc.ptr<i8>) -> !cc.ptr<i1>
+  return %1 : !cc.ptr<i1>
+}
+
+// CHECK-LABEL:   func.func @fuse_ptr_ptr_ptr(
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<i32>) -> !cc.ptr<i1> {
+// CHECK-NEXT:      %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i32>) -> !cc.ptr<i1>
+// CHECK-NEXT:      return %[[VAL_1]] : !cc.ptr<i1>
+// CHECK-NEXT:    }
+
+// Negative: a narrow integer hop (`i32` on a 64-bit target) drops the
+// upper pointer bits, so the chain must NOT fold to `ptr -> ptr`. The
+// folded form would observe a value the original chain truncated.
+func.func @no_fuse_ptr_narrow_int_ptr(%arg0: !cc.ptr<i32>) -> !cc.ptr<i1> {
+  %0 = cc.cast %arg0 : (!cc.ptr<i32>) -> i32
+  %1 = cc.cast %0 : (i32) -> !cc.ptr<i1>
+  return %1 : !cc.ptr<i1>
+}
+
+// CHECK-LABEL:   func.func @no_fuse_ptr_narrow_int_ptr(
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.ptr<i32>) -> !cc.ptr<i1> {
+// CHECK-NEXT:      %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (!cc.ptr<i32>) -> i32
+// CHECK-NEXT:      %[[VAL_2:.*]] = cc.cast %[[VAL_1]] : (i32) -> !cc.ptr<i1>
+// CHECK-NEXT:      return %[[VAL_2]] : !cc.ptr<i1>
+// CHECK-NEXT:    }
+
+}

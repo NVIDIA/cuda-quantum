@@ -10,6 +10,14 @@ set(LIBRARY_NAME cudaq-platform-default)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
 set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
+add_library(cudaq-qpu-default OBJECT DefaultQPU.cpp)
+target_include_directories(cudaq-qpu-default INTERFACE .)
+target_include_directories(cudaq-qpu-default 
+  PRIVATE 
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime> 
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime/include>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime/internal/compiler/include>)
+
 set(CUDAQ_DEFAULTPLATFORM_SRC
   DefaultQuantumPlatform.cpp
 )
@@ -26,7 +34,7 @@ target_link_libraries(${LIBRARY_NAME}
   PUBLIC
     pthread cudaq-em-default cudaq-operator cudaq-common cudaq-logger
   PRIVATE
-     cudaq CUDAQTargetConfigUtil)
+     cudaq CUDAQTargetConfigUtil cudaq-qpu-default)
 
 install(TARGETS ${LIBRARY_NAME}
   EXPORT cudaq-platform-default-targets DESTINATION lib)
@@ -38,7 +46,6 @@ install(EXPORT cudaq-platform-default-targets
 
 if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
   add_subdirectory(rest)
-  add_subdirectory(rest_server)
 endif()
   
 add_target_config(opt-test)

@@ -2064,6 +2064,14 @@ using UndefOpPattern = OpInterfacePattern<cudaq::cc::UndefOp>;
 using PoisonOpPattern = OpInterfacePattern<cudaq::cc::PoisonOp>;
 using CastOpPattern = OpInterfacePattern<cudaq::cc::CastOp>;
 using SelectOpPattern = OpInterfacePattern<arith::SelectOp>;
+// Pointer-arithmetic and `stdvec` accessors carry pointer/`stdvec` types whose
+// element types may need conversion (notably `!cc.measure_handle` -> `i64`).
+// Without explicit patterns the type converter inserts unrealized casts on
+// their results that the partial conversion cannot resolve.
+using ComputePtrOpPattern = OpInterfacePattern<cudaq::cc::ComputePtrOp>;
+using StdvecDataOpPattern = OpInterfacePattern<cudaq::cc::StdvecDataOp>;
+using StdvecInitOpPattern = OpInterfacePattern<cudaq::cc::StdvecInitOp>;
+using StdvecSizeOpPattern = OpInterfacePattern<cudaq::cc::StdvecSizeOp>;
 
 struct InstantiateCallablePattern
     : public OpConversionPattern<cudaq::cc::InstantiateCallableOp> {
@@ -2171,14 +2179,15 @@ struct CallableClosurePattern
 static void commonClassicalHandlingPatterns(RewritePatternSet &patterns,
                                             TypeConverter &typeConverter,
                                             MLIRContext *ctx) {
-  patterns.insert<AllocaOpPattern, BranchOpPattern, CallableClosurePattern,
-                  CallableFuncPattern, CallCallableOpPattern,
-                  CallIndirectCallableOpPattern, CallIndirectOpPattern,
-                  CallOpPattern, CallNoInlineOpPattern, CallVarargOpPattern,
-                  CastOpPattern, CondBranchOpPattern, CreateLambdaPattern,
-                  FuncConstantPattern, FuncSignaturePattern, FuncToPtrPattern,
-                  InstantiateCallablePattern, LoadOpPattern, PoisonOpPattern,
-                  SelectOpPattern, StoreOpPattern, UndefOpPattern>(
+  patterns.insert<
+      AllocaOpPattern, BranchOpPattern, CallableClosurePattern,
+      CallableFuncPattern, CallCallableOpPattern, CallIndirectCallableOpPattern,
+      CallIndirectOpPattern, CallOpPattern, CallNoInlineOpPattern,
+      CallVarargOpPattern, CastOpPattern, CondBranchOpPattern,
+      ComputePtrOpPattern, CreateLambdaPattern, FuncConstantPattern,
+      FuncSignaturePattern, FuncToPtrPattern, InstantiateCallablePattern,
+      LoadOpPattern, PoisonOpPattern, SelectOpPattern, StdvecDataOpPattern,
+      StdvecInitOpPattern, StdvecSizeOpPattern, StoreOpPattern, UndefOpPattern>(
       typeConverter, ctx);
 }
 
@@ -2451,8 +2460,9 @@ struct QuakeToQIRAPIPass
         func::CallOp, func::CallIndirectOp, func::ReturnOp,
         cudaq::cc::NoInlineCallOp, cudaq::cc::VarargCallOp,
         cudaq::cc::CallCallableOp, cudaq::cc::CallIndirectCallableOp,
-        cudaq::cc::CastOp, cudaq::cc::FuncToPtrOp, cudaq::cc::StoreOp,
-        cudaq::cc::LoadOp>([&](Operation *op) {
+        cudaq::cc::CastOp, cudaq::cc::ComputePtrOp, cudaq::cc::FuncToPtrOp,
+        cudaq::cc::StoreOp, cudaq::cc::LoadOp, cudaq::cc::StdvecDataOp,
+        cudaq::cc::StdvecInitOp, cudaq::cc::StdvecSizeOp>([&](Operation *op) {
       for (auto opnd : op->getOperands())
         if (needsTypeConversion(opnd.getType()))
           return false;

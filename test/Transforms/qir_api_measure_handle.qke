@@ -7,11 +7,13 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --convert-to-qir-api %s | FileCheck %s
+// RUN: cudaq-opt --convert-to-qir-api -canonicalize %s | FileCheck --check-prefix=CHECK-E2E %s
 
-// Verifies that `--convert-to-qir-api` lowers `!cc.measure_handle` -- the IR
-// alias of `cudaq::measure_handle` -- to its `i64` payload through the
-// `QIRAPITypeConverter`, including bridging casts on `quake.mz` (which still
-// returns `Result*`) and `quake.discriminate` (which still consumes `Result*`).
+// The module-level `llvm.data_layout` is what `FuseCastCascade` consults to
+// gate the `ptr -> int -> ptr` fold; bridge-emitted modules always carry
+// the attribute, hand-typed lit modules opt in here so the canonicalizer
+// can collapse the legitimate `Result* -> i64 -> ptr<i1>` chain.
+module attributes {llvm.data_layout = "e-p:64:64"} {
 
 // -----
 // Scalar handle measurement (full-QIR `mzReturnsResultType` branch).
@@ -27,13 +29,13 @@ func.func @scalar_handle() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 // CHECK:           %[[VAL_Q:.*]] = call @__quantum__rt__qubit_allocate()
 // CHECK:           %[[VAL_R:.*]] = call @__quantum__qis__mz__to__register(%[[VAL_Q]], {{%.*}}) {{.*}} -> !cc.ptr<!llvm.struct<"Result", opaque>>
 // `MeasurementOpPattern` casts the QIR call's `Result*` to the converted
-// `i64` payload (the handle).
-// CHECK:           %[[VAL_I:.*]] = cc.cast %[[VAL_R]] : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> i64
-// `DiscriminateOpToCallRewrite` (full-QIR / `!discriminateToClassical`) casts
-// the i64 to `!cc.ptr<i1>` and loads. The transient `i64 -> Result* -> i64`
-// round-trip introduced by the handle bridge folds out, leaving a single
-// `cc.cast` from i64.
-// CHECK:           %[[VAL_P:.*]] = cc.cast %[[VAL_I]] : (i64) -> !cc.ptr<i1>
+// `i64` payload, and `DiscriminateOpToCallRewrite` casts back to
+// `!cc.ptr<i1>`. The two pointer endpoints (`Result*` and `ptr<i1>`) are
+// joined by an i64 round-trip whose only purpose was the handle ABI; the
+// `FuseCastCascade` `ptr -> int -> ptr` rule collapses the chain into a
+// single pointer cast that lowers to `llvm.bitcast`. This avoids the
+// `llvm.ptrtoint` that the NVQIR profile verifier rejects.
+// CHECK:           %[[VAL_P:.*]] = cc.cast %[[VAL_R]] : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> !cc.ptr<i1>
 // CHECK:           %[[VAL_B:.*]] = cc.load %[[VAL_P]] : !cc.ptr<i1>
 // CHECK:           return %[[VAL_B]] : i1
 
@@ -107,8 +109,7 @@ func.func @no_handle() attributes {"cudaq-kernel"} {
 // -----
 // `cc.indirect_callable` carrying a handle return type.
 
-func.func @indirect_handle(%c: !cc.indirect_callable<() -> !cc.measure_handle>)
-    -> !cc.measure_handle attributes {"cudaq-kernel"} {
+func.func @indirect_handle(%c: !cc.indirect_callable<() -> !cc.measure_handle>) -> !cc.measure_handle attributes {"cudaq-kernel"} {
   %0 = cc.call_indirect_callable %c
     : (!cc.indirect_callable<() -> !cc.measure_handle>) -> !cc.measure_handle
   return %0 : !cc.measure_handle
@@ -118,3 +119,85 @@ func.func @indirect_handle(%c: !cc.indirect_callable<() -> !cc.measure_handle>)
 // CHECK-SAME:      %[[VAL_0:.*]]: !cc.indirect_callable<() -> i64>) -> i64
 // CHECK:           %[[VAL_1:.*]] = cc.call_indirect_callable %[[VAL_0]] : (!cc.indirect_callable<() -> i64>) -> i64
 // CHECK:           return %[[VAL_1]] : i64
+
+// -----
+// Pointer arithmetic, store, cast, and load on a static handle array.
+// `handle_array_rw` is a device-side helper, not an entry point: a handle
+// in its parameter list cannot be marshaled across the host boundary, so
+// the bridge would silently demote (i.e. NOT set `cudaq-entrypoint`) any
+// real source-level free `__qpu__` function with this signature. Reflect
+// that here so the test exercises the same shape the lowering actually
+// sees in production -- the prior `cudaq-entrypoint` attribute was an
+// inconsistency that the type-conversion / lowering pipeline tolerated by
+// accident.
+
+func.func @handle_array_rw(%h: !cc.measure_handle, %i: i64) -> i1 attributes {"cudaq-kernel"} {
+  %0 = cc.alloca !cc.array<!cc.measure_handle x 4>
+  %1 = cc.compute_ptr %0[%i] : (!cc.ptr<!cc.array<!cc.measure_handle x 4>>, i64) -> !cc.ptr<!cc.measure_handle>
+  cc.store %h, %1 : !cc.ptr<!cc.measure_handle>
+  %2 = cc.cast %0 : (!cc.ptr<!cc.array<!cc.measure_handle x 4>>) -> !cc.ptr<!cc.measure_handle>
+  %3 = cc.load %2 : !cc.ptr<!cc.measure_handle>
+  %4 = quake.discriminate %3 : (!cc.measure_handle) -> i1
+  return %4 : i1
+}
+
+// CHECK-LABEL:   func.func @handle_array_rw(
+// CHECK-SAME:      %[[VAL_H:.*]]: i64, %[[VAL_I:.*]]: i64)
+// CHECK:           %[[VAL_BUF:.*]] = cc.alloca !cc.array<i64 x 4>
+// CHECK:           %[[VAL_PI:.*]] = cc.compute_ptr %[[VAL_BUF]]{{\[}}%[[VAL_I]]] : (!cc.ptr<!cc.array<i64 x 4>>, i64) -> !cc.ptr<i64>
+// CHECK:           cc.store %[[VAL_H]], %[[VAL_PI]] : !cc.ptr<i64>
+// CHECK:           %[[VAL_P0:.*]] = cc.cast %[[VAL_BUF]] : (!cc.ptr<!cc.array<i64 x 4>>) -> !cc.ptr<i64>
+// CHECK:           %[[VAL_LOAD:.*]] = cc.load %[[VAL_P0]] : !cc.ptr<i64>
+
+// -----
+// `cc.stdvec_init` + `cc.stdvec_data` + `cc.stdvec_size` over a handle buffer.
+
+func.func @handle_stdvec_init(%n: i64) -> !cc.stdvec<!cc.measure_handle> attributes {"cudaq-kernel"} {
+  %0 = cc.alloca !cc.measure_handle[%n : i64]
+  %1 = cc.stdvec_init %0, %n : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.stdvec<!cc.measure_handle>
+  return %1 : !cc.stdvec<!cc.measure_handle>
+}
+
+// CHECK-LABEL:   func.func @handle_stdvec_init(
+// CHECK-SAME:      %[[VAL_N:.*]]: i64) -> !cc.stdvec<i64>
+// CHECK:           %[[VAL_BUF:.*]] = cc.alloca i64{{\[}}%[[VAL_N]] : i64]
+// CHECK:           %[[VAL_VEC:.*]] = cc.stdvec_init %[[VAL_BUF]], %[[VAL_N]] : (!cc.ptr<!cc.array<i64 x ?>>, i64) -> !cc.stdvec<i64>
+// CHECK:           return %[[VAL_VEC]] : !cc.stdvec<i64>
+
+func.func @handle_stdvec_consume(%v: !cc.stdvec<!cc.measure_handle>) -> i1 attributes {"cudaq-kernel"} {
+  %0 = cc.stdvec_data %v : (!cc.stdvec<!cc.measure_handle>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
+  %1 = cc.cast %0 : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>) -> !cc.ptr<!cc.measure_handle>
+  %2 = cc.load %1 : !cc.ptr<!cc.measure_handle>
+  %3 = quake.discriminate %2 : (!cc.measure_handle) -> i1
+  return %3 : i1
+}
+
+// CHECK-LABEL:   func.func @handle_stdvec_consume(
+// CHECK-SAME:      %[[VAL_V:.*]]: !cc.stdvec<i64>) -> i1
+// CHECK:           %[[VAL_DATA:.*]] = cc.stdvec_data %[[VAL_V]] : (!cc.stdvec<i64>) -> !cc.ptr<!cc.array<i64 x ?>>
+// CHECK:           %[[VAL_PTR:.*]] = cc.cast %[[VAL_DATA]] : (!cc.ptr<!cc.array<i64 x ?>>) -> !cc.ptr<i64>
+// CHECK:           %[[VAL_LD:.*]] = cc.load %[[VAL_PTR]] : !cc.ptr<i64>
+
+// -----
+// End-to-end guard: a follow-up canonicalize pass after convert-to-qir-api
+// must preserve the same Result* -> ptr<i1> collapse. The narrow integer-hop
+// non-fold case is already covered in cast_fold.qke.
+
+func.func @scalar_handle_e2e() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %0 = quake.alloca !quake.ref
+  %m = quake.mz %0 name "h" : (!quake.ref) -> !cc.measure_handle
+  %b = quake.discriminate %m : (!cc.measure_handle) -> i1
+  return %b : i1
+}
+
+// CHECK-E2E-LABEL:   func.func @scalar_handle_e2e() -> i1
+// CHECK-E2E:           %[[VAL_Q:.*]] = call @__quantum__rt__qubit_allocate()
+// CHECK-E2E:           %[[VAL_R:.*]] = call @__quantum__qis__mz__to__register({{.*}})
+// CHECK-E2E-SAME:        -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK-E2E:           %[[VAL_P:.*]] = cc.cast %[[VAL_R]] : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> !cc.ptr<i1>
+// CHECK-E2E-NOT:       cc.cast {{.*}} : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> i64
+// CHECK-E2E-NOT:       cc.cast {{.*}} : (i64) -> !cc.ptr<i1>
+// CHECK-E2E:           %[[VAL_B:.*]] = cc.load %[[VAL_P]] : !cc.ptr<i1>
+// CHECK-E2E:           return %[[VAL_B]] : i1
+
+}

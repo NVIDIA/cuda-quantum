@@ -284,7 +284,16 @@ public:
   LogicalResult
   matchAndRewrite(cudaq::quake::DiscriminateOp discr, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
-    auto m = discr.getMeasurement();
+    auto m = adaptor.getMeasurement();
+    // `MeasureRewrite` produces `i1` for legacy `!quake.measure` results
+    // and `i64` for `!cc.measure_handle` results. The discriminated outcome is
+    // held in the low bit of the payload, so truncate when the upstream value
+    // was widened. Forward the value untouched in the legacy case so we don't
+    // add a no-op cast that would defeat downstream pattern matching.
+    if (isa<IntegerType>(m.getType()) &&
+        cast<IntegerType>(m.getType()).getWidth() != 1)
+      m = LLVM::TruncOp::create(rewriter, discr.getLoc(), rewriter.getI1Type(),
+                                m);
     rewriter.replaceOp(discr, m);
     return success();
   }
@@ -1164,7 +1173,18 @@ public:
     auto i1PtrTy = cudaq::opt::factory::getPointerType(context);
     auto cast =
         LLVM::BitcastOp::create(rewriter, loc, i1PtrTy, callOp.getResult());
-    rewriter.replaceOpWithNewOp<LLVM::LoadOp>(measure, i1Ty, cast);
+    Value loaded = LLVM::LoadOp::create(rewriter, loc, i1Ty, cast);
+
+    // The legacy QIR call returns an opaque `Result*`; loading the result
+    // bitcast as `i1` is the discriminated outcome regardless of whether
+    // the source-level result type was `!quake.measure` or
+    // `!cc.measure_handle`.
+    Value replacement = loaded;
+    if (isa<cudaq::cc::MeasureHandleType>(measure.getMeasOut().getType())) {
+      replacement =
+          LLVM::ZExtOp::create(rewriter, loc, rewriter.getI64Type(), loaded);
+    }
+    rewriter.replaceOp(measure, replacement);
 
     return success();
   }

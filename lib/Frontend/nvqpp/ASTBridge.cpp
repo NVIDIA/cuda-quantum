@@ -62,13 +62,31 @@ static bool isQubitType(Type ty) {
 }
 
 // Check the builtin type FunctionType to see if it has any references to Quake
-// qubit types in its arguments and/or results.
-static bool hasAnyQubitTypes(FunctionType funcTy) {
+// qubit types or `cc.measure_handle` in its arguments and/or results, in any
+// position the kernel boundary classifier needs to treat as device-only.
+static bool hasAnyQuakeOrHandleTypes(FunctionType funcTy) {
+  auto isDeviceOnly = [](Type ty) {
+    return isQubitType(ty) || cudaq::cc::containsMeasureHandle(ty);
+  };
   for (auto ty : funcTy.getInputs())
-    if (isQubitType(ty))
+    if (isDeviceOnly(ty))
       return true;
   for (auto ty : funcTy.getResults())
-    if (isQubitType(ty))
+    if (isDeviceOnly(ty))
+      return true;
+  return false;
+}
+
+// Like `hasAnyQuakeOrHandleTypes`, but only the handle component. Used by the
+// functor-`operator()` diagnostic, which fires only when the signature carries
+// a handle (free `__qpu__` functions silently demote even when they carry
+// qubit references).
+static bool containsHandleInSignature(FunctionType funcTy) {
+  for (auto ty : funcTy.getInputs())
+    if (cudaq::cc::containsMeasureHandle(ty))
+      return true;
+  for (auto ty : funcTy.getResults())
+    if (cudaq::cc::containsMeasureHandle(ty))
       return true;
   return false;
 }
@@ -623,18 +641,35 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
     visitor.TraverseDecl(const_cast<clang::FunctionDecl *>(fdPair.second));
     if (auto func = module->lookupSymbol<func::FuncOp>(entryName)) {
       // Rationale: If a function marked as quantum code takes or returns
-      // qubits, then it must be a pure quantum kernel that can only be called
-      // from other quantum code and never from classical code. Conversely, a
-      // kernel that is called from a quantum kernel entry function must (for
-      // now) take or return qubits in order to be stitched into the same
-      // circuit with the calling function. CUDA-Q does not presently
-      // support a quantum circuit that invokes a separable quantum circuit.
-      // Launching a quantum circuit implies exactly one distinct circuit
-      // will be mapped to and execute on the QPU.
+      // qubits or measurement "handles", then it must be a pure quantum kernel
+      // that can only be called from other quantum code and never from
+      // classical code. Conversely, a kernel that is called from a quantum
+      // kernel entry function must (for now) take or return qubits in order to
+      // be stitched into the same circuit with the calling function. CUDA-Q
+      // does not presently support a quantum circuit that invokes a separable
+      // quantum circuit. Launching a quantum circuit implies exactly one
+      // distinct circuit will be mapped to and execute on the QPU.
       auto unitAttr = UnitAttr::get(ctx);
       // Flag func as a quantum kernel.
       func->setAttr(kernelAttrName, unitAttr);
-      if ((!hasAnyQubitTypes(func.getFunctionType())) &&
+      bool hasDeviceOnlyTypes =
+          hasAnyQuakeOrHandleTypes(func.getFunctionType());
+      if (hasDeviceOnlyTypes)
+        if (auto *md = dyn_cast<clang::CXXMethodDecl>(fdPair.second);
+            md && md->getOverloadedOperator() == clang::OO_Call) {
+          // Functor `operator()` with a handle in the signature is the only
+          // entry-point shape we can disambiguate from a free `__qpu__`
+          // function at AST time, so diagnose it explicitly here. Free
+          // functions silently demote to the device-only worklist below.
+          if (containsHandleInSignature(func.getFunctionType())) {
+            cudaq::details::reportClangError(
+                fdPair.second, mangler,
+                "measurement handle cannot cross the host-device boundary; "
+                "entry-point kernels must discriminate first");
+            continue;
+          }
+        }
+      if (!hasDeviceOnlyTypes &&
           (!cudaq::ASTBridgeAction::ASTBridgeConsumer::isCustomOpGenerator(
               fdPair.second))) {
         // Flag func as an entry point to a quantum kernel.
