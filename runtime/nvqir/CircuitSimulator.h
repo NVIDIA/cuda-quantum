@@ -109,6 +109,9 @@ protected:
   /// @brief Internal result
   cudaq::sample_result internalResult = {};
 
+  /// @brief Noise model to apply to the current execution.
+  const cudaq::noise_model *noiseModel = nullptr;
+
 public:
   /// @brief The constructor
   CircuitSimulator() = default;
@@ -136,9 +139,11 @@ public:
   createStateFromData(const cudaq::state_data &) = 0;
 
   /// @brief Set the current noise model to consider when
-  /// simulating the state. This should be overridden by
-  /// simulation strategies that support noise modeling.
-  virtual void setNoiseModel(cudaq::noise_model &noise) = 0;
+  /// simulating the state.
+  void setNoiseModel(const cudaq::noise_model *noise) { noiseModel = noise; }
+
+  /// @brief Get the current noise model.
+  const cudaq::noise_model *getNoiseModel() const { return noiseModel; }
 
   virtual void setRandomSeed(std::size_t seed) {
     // do nothing
@@ -841,8 +846,7 @@ protected:
           gateQueue.pop();
         throw std::runtime_error("Unknown exception in applyGate");
       }
-      if (executionContext && executionContext->noiseModel &&
-          !executionContext->noiseModel->empty()) {
+      if (getNoiseModel() && !getNoiseModel()->empty()) {
         std::vector<double> params(next.parameters.begin(),
                                    next.parameters.end());
         applyNoiseChannel(next.operationName, next.controls, next.targets,
@@ -877,15 +881,6 @@ public:
   CircuitSimulatorBase() = default;
   /// @brief The destructor
   virtual ~CircuitSimulatorBase() = default;
-
-  /// @brief Set the current noise model to consider when
-  /// simulating the state. This should be overridden by
-  /// simulation strategies that support noise modeling.
-  void setNoiseModel(cudaq::noise_model &noise) override {
-    // Fixme consider this as a warning instead of a hard error
-    throw std::runtime_error(
-        "The current backend does not support noise modeling.");
-  }
 
   /// @brief Compute the expected value of the given spin op
   /// with respect to the current state, <psi | H | psi>.
@@ -1113,6 +1108,8 @@ public:
   /// @brief Set the execution context
   void configureExecutionContext(cudaq::ExecutionContext &context) override {
     context.canHandleObserve = canHandleObserve();
+    noiseModel = context.noiseModel;
+    context.noiseModel = nullptr;
     currentCircuitName = context.kernelName;
     CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
   }
@@ -1315,8 +1312,7 @@ public:
 
     // Apply measurement noise (if any)
     // Note: gate noises are applied during flushGateQueue
-    if (executionContext && executionContext->noiseModel &&
-        !executionContext->noiseModel->empty())
+    if (getNoiseModel() && !getNoiseModel()->empty())
       applyNoiseChannel(/*gateName=*/"mz", /*controls=*/{},
                         /*targets=*/{qubitIdx}, /*params=*/{});
 
