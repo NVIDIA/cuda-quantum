@@ -388,8 +388,8 @@ bool IonQServerHelper::shotWiseOutputIsNeeded(ServerMessage &jobs) {
     return false;
 
   auto &job = jobs[0];
-  bool isQpu = job.contains("target") &&
-               job["target"].get<std::string>() != "simulator";
+  bool isQpu =
+      job.contains("target") && job["target"].get<std::string>() != "simulator";
   bool hasNoise = job.contains("noise") && job["noise"].contains("model") &&
                   job["noise"]["model"].get<std::string>() != "ideal";
 

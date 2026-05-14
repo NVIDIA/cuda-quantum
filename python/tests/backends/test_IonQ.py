@@ -367,10 +367,7 @@ def test_shot_wise_output(mock_target, mock_noise, memory, expect_shots):
         requests.post(
             f"{url}/_mock_server_config_noise_model?noise={mock_noise}")
 
-    cudaq.set_target("ionq",
-                     url=url,
-                     noise='forte-enterprise-1',
-                     memory=memory)
+    cudaq.set_target("ionq", url=url, noise='forte-enterprise-1', memory=memory)
 
     @cudaq.kernel
     def bell_state():
