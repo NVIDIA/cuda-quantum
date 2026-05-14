@@ -370,12 +370,12 @@ def test_shot_wise_output(mock_target, mock_noise, memory, expect_shots):
     cudaq.set_target("ionq", url=url, noise='forte-enterprise-1', memory=memory)
 
     @cudaq.kernel
-    def bell_state():
+    def prep_110():
         qubits = cudaq.qvector(3)
         x(qubits[0])
         cx(qubits[0], qubits[1])
 
-    results = cudaq.sample(bell_state, shots_count=3)
+    results = cudaq.sample(prep_110, shots_count=3)
     assert results.get_sequential_data() == expect_shots
 
     # Reset mock server state

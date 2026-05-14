@@ -39,10 +39,7 @@ countJobGetRequests = 0
 # Save how many qubits were needed for each test (emulates real backend)
 numQubitsRequired = 0
 
-# Sets the target for the job
 jobTarget = ""
-
-# Sets the noise model for the job
 noiseModel = ""
 
 llvm.initialize_native_target()
@@ -179,10 +176,7 @@ async def getResults(jobId: str):
 
 @app.get("/v0.4/jobs/{jobId}/results/shots")
 async def getShotResults(jobId: str):
-    global countJobGetRequests, createdJobs
-
     counts = createdJobs[jobId]
-    counts.dump()
     # Note, the real IonQ backend reverses the bitstring relative to what the
     # simulator does, so flip the bitstring with [::-1].
     return [

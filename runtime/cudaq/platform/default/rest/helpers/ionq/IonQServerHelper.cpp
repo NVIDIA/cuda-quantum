@@ -436,8 +436,6 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
   };
 
   cudaq::CountsDictionary counts;
-
-  // Process the results
   for (const auto &element : results.items()) {
     std::string newkey = intToBitString(std::stoull(element.key()));
     double value = element.value().get<double>();
@@ -496,21 +494,19 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
     execResults.emplace_back(regCounts, info.registerName);
   }
 
-  // Add shot-wise output if requested by user
   auto shotsUrl = getShotsUrl(jobs);
   if (shotWiseOutputIsNeeded(jobs) && !shotsUrl.empty()) {
     try {
       auto shotsResults = getResults(shotsUrl);
 
-      // Parse the per-shot integers into full bitstrings (all qubits)
       std::vector<std::string> fullBitStrings;
       fullBitStrings.reserve(shotsResults.size());
       for (const auto &element : shotsResults.items())
         fullBitStrings.push_back(
             intToBitString(std::stoull(element.value().get<std::string>())));
 
-      // Populate global register sequential data (with marginal extraction
-      // if there are compiler-generated qubits to strip out)
+      // Global register: extract the marginal over user qubits if compiler-
+      // generated qubits are present, otherwise use the full bitstring.
       if (!execResults.empty()) {
         if (qubitNumbers.empty()) {
           execResults[0].sequentialData = fullBitStrings;
@@ -528,7 +524,6 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
         }
       }
 
-      // Populate per-register sequential data
       std::size_t regIdx = 1;
       for (const auto &[result, info] : output_names) {
         if (regIdx >= execResults.size())
@@ -542,8 +537,6 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
       }
     } catch (const std::exception &e) {
       CUDAQ_INFO("Failed to retrieve shot-wise results: {}", e.what());
-    } catch (...) {
-      CUDAQ_INFO("Failed to retrieve shot-wise results (unknown error)");
     }
   }
 
