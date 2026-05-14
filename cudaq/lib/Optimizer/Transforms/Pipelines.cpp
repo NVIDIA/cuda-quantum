@@ -58,6 +58,14 @@ struct TargetFinalizationJitPipelineOptions
           "Lower device calls (to normal function calls) in JIT pipeline."),
       llvm::cl::init(true)};
 };
+
+struct FaultTolerantTargetPipelineOptions
+    : public PassPipelineOptions<FaultTolerantTargetPipelineOptions> {
+  PassOptions::Option<double> epsilon{
+      *this, "epsilon",
+      llvm::cl::desc("Approximation tolerance for Clifford+T synthesis."),
+      llvm::cl::init(1e-10)};
+};
 } // namespace
 
 static void createTargetPrepPipeline(OpPassManager &pm,
@@ -139,6 +147,16 @@ void cudaq::opt::addCliffordTSynthesis(OpPassManager &pm, double epsilon) {
   cudaq::opt::DecompositionOptions decOpts;
   decOpts.basis = {"h", "s", "t", "x", "z", "x(1)"};
   pm.addPass(cudaq::opt::createDecomposition(decOpts));
+}
+
+void cudaq::opt::registerFaultTolerantTargetPipeline() {
+  PassPipelineRegistration<FaultTolerantTargetPipelineOptions>(
+      "cudaq-fault-tolerant-target",
+      "Lower rotations to the {H, S, T, X, Z, CNOT} basis via Clifford+T "
+      "synthesis.",
+      [](OpPassManager &pm, const FaultTolerantTargetPipelineOptions &options) {
+        cudaq::opt::addCliffordTSynthesis(pm, options.epsilon);
+      });
 }
 
 static void createTargetDeployPipeline(OpPassManager &pm) {
