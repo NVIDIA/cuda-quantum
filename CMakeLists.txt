@@ -684,7 +684,7 @@ endif(CUDAQ_ENABLE_CC)
 
 add_subdirectory(cmake)
 add_subdirectory(include)
-add_subdirectory(lib)
+add_subdirectory(cudaq/lib)
 if (NOT CUDAQ_DISABLE_RUNTIME)
   add_subdirectory(runtime)
 endif()
