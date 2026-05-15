@@ -30,7 +30,7 @@ header:
     - 'LICENSE'
     - 'NOTICE'
     - 'llms.txt'
-    - 'test/README.txt'
+    - 'cudaq/test/README.txt'
     - 'runtime/cudaq/platform/default/rest/helpers/anyon/*.txt'
     - 'targettests/Target/IQM/*.txt'
     - 'unittests/backends/iqm/*.txt'
@@ -45,7 +45,7 @@ header:
     - 'docs/sphinx/_static/cuda_quantum_icon.svg'
     - 'docker/test/installer/mpi_cuda_check.cpp'
     - 'include/cudaq/Optimizer/CodeGen/OptUtils.h'
-    - 'lib/Optimizer/CodeGen/OptUtils.cpp'
+    - 'cudaq/lib/Optimizer/CodeGen/OptUtils.cpp'
     - 'runtime/cudaq/algorithms/optimizers/nlopt/nlopt-src'
 
   comment: on-failure
