@@ -30,6 +30,7 @@ target_link_libraries(cudaq-quake
   clangFrontend
 
   CCDialect
+  QECDialect
   QuakeDialect
   cudaq-mlirgen
 )

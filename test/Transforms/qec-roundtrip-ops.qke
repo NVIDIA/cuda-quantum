@@ -1,0 +1,40 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt %s | cudaq-opt | FileCheck %s
+
+func.func @det_obs_roundtrip(%h0 : !cc.measure_handle,
+                              %h1 : !cc.measure_handle,
+                              %v : !cc.stdvec<!cc.measure_handle>) {
+  qec.detector(%h0) : (!cc.measure_handle)
+  qec.detector(%h0, %h1) : (!cc.measure_handle, !cc.measure_handle)
+  qec.detector(%v) : (!cc.stdvec<!cc.measure_handle>)
+  qec.detector(%h0, %v) : (!cc.measure_handle, !cc.stdvec<!cc.measure_handle>)
+  qec.observable(%h0) : (!cc.measure_handle)
+  qec.observable(%h0) index 0 : (!cc.measure_handle)
+  qec.observable(%h0) index 1 : (!cc.measure_handle)
+  qec.observable(%v) index 2 : (!cc.stdvec<!cc.measure_handle>)
+  qec.detectors(%v, %v) : (!cc.stdvec<!cc.measure_handle>, !cc.stdvec<!cc.measure_handle>)
+  return
+}
+
+// CHECK-LABEL:   func.func @det_obs_roundtrip(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !cc.measure_handle,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !cc.measure_handle,
+// CHECK-SAME:      %[[ARG2:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !cc.stdvec<!cc.measure_handle>) {
+// CHECK:           qec.detector(%[[ARG0]]) : (!cc.measure_handle)
+// CHECK:           qec.detector(%[[ARG0]], %[[ARG1]]) : (!cc.measure_handle, !cc.measure_handle)
+// CHECK:           qec.detector(%[[ARG2]]) : (!cc.stdvec<!cc.measure_handle>)
+// CHECK:           qec.detector(%[[ARG0]], %[[ARG2]]) : (!cc.measure_handle, !cc.stdvec<!cc.measure_handle>)
+// CHECK:           qec.observable(%[[ARG0]]) : (!cc.measure_handle)
+// CHECK:           qec.observable(%[[ARG0]]) : (!cc.measure_handle)
+// CHECK:           qec.observable(%[[ARG0]]) index 1 : (!cc.measure_handle)
+// CHECK:           qec.observable(%[[ARG2]]) index 2 : (!cc.stdvec<!cc.measure_handle>)
+// CHECK:           qec.detectors(%[[ARG2]], %[[ARG2]]) : (!cc.stdvec<!cc.measure_handle>, !cc.stdvec<!cc.measure_handle>)
+// CHECK:           return
+// CHECK:         }

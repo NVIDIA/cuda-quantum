@@ -60,6 +60,7 @@ else()
   target_link_libraries(cudaq-mlir-runtime
     PRIVATE
       CCDialect
+      QECDialect
       QuakeDialect
       OptCodeGen
       OptTransforms
