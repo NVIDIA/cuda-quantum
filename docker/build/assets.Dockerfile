@@ -351,8 +351,8 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
         filtered=" --filter-out MixedLanguage/cuda-1"; \
 	filtered+="|AST-Quake/calling_convention|test_argument_conversion"; \
     fi && \
-    "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/test \
-        --param nvqpp_site_config=build/test/lit.site.cfg.py ${filtered} && \
+    "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/cudaq/test \
+        --param nvqpp_site_config=build/cudaq/test/lit.site.cfg.py ${filtered} && \
     # FIXME: Some tests are still failing when building against libc++
     # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1712
     filtered=" --filter-out Kernel/inline-qpu-func|execution/vector_bool_parameters" && \

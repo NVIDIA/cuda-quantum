@@ -24,7 +24,7 @@
 
 // This is used by cudaq-quake as a backup search location
 // for cudaq/Support/TargetConfig.h and cudaq/Support/Version.h
-#define FALLBACK_CUDAQ_SUPPORT_DIR "@CMAKE_SOURCE_DIR@/include"
+#define FALLBACK_CUDAQ_SUPPORT_DIR "@CMAKE_SOURCE_DIR@/cudaq/include"
 
 // This is used by cudaq-quake as a backup search location
 // for required json headers.

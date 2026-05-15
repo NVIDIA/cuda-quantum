@@ -6,4 +6,13 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-install (FILES TargetConfig.h Version.h DESTINATION include/cudaq/Support)
+add_cudaq_dialect(CC cc)
+add_cudaq_interface(CCInterfaces)
+add_cudaq_dialect_doc(CCDialect cc)
+
+install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/
+        DESTINATION include/cudaq/Optimizer/Dialect/CC
+        FILES_MATCHING
+          PATTERN "*.h.inc"
+          PATTERN "*.cpp.inc"
+          PATTERN "CMakeFiles" EXCLUDE)

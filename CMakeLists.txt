@@ -488,12 +488,12 @@ set(LLVM_LIT_ARGS "${LIT_ARGS_DEFAULT}" CACHE STRING "Default options for lit")
 message(STATUS "Build type is ${CMAKE_BUILD_TYPE}")
 
 set(CUDAQ_MAIN_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}) # --src-root
-set(CUDAQ_MAIN_INCLUDE_DIR ${CUDAQ_MAIN_SRC_DIR}/include)
+set(CUDAQ_MAIN_INCLUDE_DIR ${CUDAQ_MAIN_SRC_DIR}/cudaq/include)
 
 set(CUDAQ_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(CUDAQ_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(CUDAQ_CMAKE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-set(CUDAQ_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/include)
+set(CUDAQ_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/cudaq/include)
 set(CUDAQ_LIBRARY_DIR ${CMAKE_BINARY_DIR}/lib)
 set(CUDAQ_TOOLS_DIR ${CMAKE_BINARY_DIR}/bin)
 
@@ -510,8 +510,8 @@ endif()
 
 # Add CUDA Quantum files to the include path
 include_directories(BEFORE
-  ${CUDAQ_SOURCE_DIR}/include
-  ${CUDAQ_BINARY_DIR}/include)
+  ${CUDAQ_SOURCE_DIR}/cudaq/include
+  ${CUDAQ_BINARY_DIR}/cudaq/include)
 
 # Installing the headers and docs needs to depend on generating any public
 # tablegen'd targets.
@@ -683,12 +683,10 @@ endif(CUDAQ_ENABLE_CC)
 # ==============================================================================
 
 add_subdirectory(cmake)
-add_subdirectory(include)
-add_subdirectory(lib)
+add_subdirectory(cudaq)
 if (NOT CUDAQ_DISABLE_RUNTIME)
   add_subdirectory(runtime)
 endif()
-add_subdirectory(tools)
 add_subdirectory(utils)
 
 if(CUDAQ_BUILD_TESTS)
@@ -735,7 +733,6 @@ if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
   endif()
   include(GoogleTest)
   include(CTest)
-  add_subdirectory(test)
   if (NOT CUDAQ_DISABLE_RUNTIME)
     add_subdirectory(targettests)
     add_subdirectory(unittests)
