@@ -109,6 +109,12 @@ protected:
   /// @brief Internal result
   cudaq::sample_result internalResult = {};
 
+  /// @brief Reference to the current circuit name.
+  std::string currentCircuitName = "";
+
+  /// @brief Get the name of the current circuit being executed.
+  std::string getCircuitName() const { return currentCircuitName; }
+
   /// @brief Noise model to apply to the current execution.
   const cudaq::noise_model *noiseModel = nullptr;
 
@@ -273,8 +279,21 @@ public:
   /// @brief Clean up after execution ends.
   virtual void endExecution() {}
 
-  /// @brief Configure the execution context for this simulator.
-  virtual void configureExecutionContext(cudaq::ExecutionContext &context) = 0;
+  /// @brief Return true if this CircuitSimulator can
+  /// handle <psi | H | psi> instead of NVQIR applying measure
+  /// basis quantum gates to change to the Z basis and sample.
+  virtual bool canHandleObserve() { return false; }
+
+  /// @brief Set the execution context
+  void configureExecutionContext(cudaq::ExecutionContext &context) {
+    context.canHandleObserve = canHandleObserve();
+    noiseModel = context.noiseModel;
+    // Stress testing the fact that the context is just used topass the noise
+    // and no one is supposed to use it after that.
+    context.noiseModel = nullptr;
+    currentCircuitName = context.kernelName;
+    CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
+  }
 
   /// @brief Whether or not this is a state vector simulator
   virtual bool isStateVectorSimulator() const { return false; }
@@ -457,10 +476,6 @@ public:
           parameters(params) {}
   };
 
-private:
-  /// @brief Reference to the current circuit name.
-  std::string currentCircuitName = "";
-
 protected:
   /// @brief A tracker for qubit allocation
   cudaq::QuditIdTracker tracker;
@@ -503,9 +518,6 @@ protected:
 
   /// @brief The current queue of operations to execute
   std::queue<GateApplicationTask> gateQueue;
-
-  /// @brief Get the name of the current circuit being executed.
-  std::string getCircuitName() const { return currentCircuitName; }
 
   /// @brief Get the number of shots to execute (only valid if executionContext
   /// is set)
@@ -552,11 +564,6 @@ protected:
   /// @brief Perform the actual mechanics of measuring a qubit,
   /// left as a task for concrete subtypes.
   virtual bool measureQubit(const std::size_t qubitIdx) = 0;
-
-  /// @brief Return true if this CircuitSimulator can
-  /// handle <psi | H | psi> instead of NVQIR applying measure
-  /// basis quantum gates to change to the Z basis and sample.
-  virtual bool canHandleObserve() { return false; }
 
   /// @brief Return the internal state representation. This
   /// is meant for subtypes to override
@@ -1098,15 +1105,6 @@ public:
 
     tracker = {};
     internalResult = {};
-  }
-
-  /// @brief Set the execution context
-  void configureExecutionContext(cudaq::ExecutionContext &context) override {
-    context.canHandleObserve = canHandleObserve();
-    noiseModel = context.noiseModel;
-    context.noiseModel = nullptr;
-    currentCircuitName = context.kernelName;
-    CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
   }
 
   /// @brief Apply a pre-constructed gate task to the simulator state.
