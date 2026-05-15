@@ -8,7 +8,7 @@
 
 #include "DecompositionPatterns.h"
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/Factory.h"
+#include "Optimizer/Builder/Factory.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/TypeName.h"

@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
+#include "Optimizer/Dialect/CC/CCOps.h"
+#include "Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/qis/state.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/Types.h"

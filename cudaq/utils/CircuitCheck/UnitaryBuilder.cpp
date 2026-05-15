@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "UnitaryBuilder.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.h"
+#include "Optimizer/Dialect/Quake/QuakeInterfaces.h"
 #include <numeric>
 
 using namespace cudaq;

@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/DialectImplementation.h"
@@ -19,7 +19,7 @@ using namespace mlir;
 //===----------------------------------------------------------------------===//
 
 #define GET_TYPEDEF_CLASSES
-#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.cpp.inc"
+#include "Optimizer/Dialect/Quake/QuakeTypes.cpp.inc"
 
 //===----------------------------------------------------------------------===//
 // Veq's custom parser and pretty printing.

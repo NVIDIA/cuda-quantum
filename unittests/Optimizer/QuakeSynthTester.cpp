@@ -7,9 +7,9 @@
  ******************************************************************************/
 
 #include "cudaq.h"
-#include "cudaq/Optimizer/Builder/Runtime.h"
-#include "cudaq/Optimizer/CodeGen/Passes.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "Optimizer/Builder/Runtime.h"
+#include "Optimizer/CodeGen/Passes.h"
+#include "Optimizer/Transforms/Passes.h"
 #include "cudaq/algorithm.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"

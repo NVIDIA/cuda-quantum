@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq_internal/compiler/JITTargetPipeline.h"
-#include "cudaq/Support/TargetConfig.h"
+#include "Support/TargetConfig.h"
 #include <cctype>
 #include <regex>
 

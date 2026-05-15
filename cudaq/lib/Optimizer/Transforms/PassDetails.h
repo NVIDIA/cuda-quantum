@@ -8,10 +8,10 @@
 
 #pragma once
 
-#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "Optimizer/Dialect/CC/CCDialect.h"
+#include "Optimizer/Dialect/CC/CCOps.h"
+#include "Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "Optimizer/Dialect/Quake/QuakeOps.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlow.h"

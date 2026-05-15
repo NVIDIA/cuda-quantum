@@ -7,12 +7,12 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Frontend/nvqpp/AttributeNames.h"
-#include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/Builder/Marshal.h"
-#include "cudaq/Optimizer/Builder/Runtime.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/Todo.h"
+#include "Frontend/nvqpp/AttributeNames.h"
+#include "Optimizer/Builder/Intrinsics.h"
+#include "Optimizer/Builder/Marshal.h"
+#include "Optimizer/Builder/Runtime.h"
+#include "Optimizer/Transforms/Passes.h"
+#include "Todo.h"
 #include "clang/Basic/Version.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/Debug.h"
@@ -26,7 +26,7 @@
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_GENERATEKERNELEXECUTION
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+#include "Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "kernel-execution"

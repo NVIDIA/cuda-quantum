@@ -7,11 +7,11 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Frontend/nvqpp/AttributeNames.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "Frontend/nvqpp/AttributeNames.h"
+#include "Optimizer/Dialect/CC/CCOps.h"
+#include "Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "Optimizer/Transforms/Passes.h"
 #include "mlir/IR/IRMapping.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
@@ -21,7 +21,7 @@
 //===----------------------------------------------------------------------===//
 namespace cudaq::opt {
 #define GEN_PASS_DEF_DEPENDENCYANALYSIS
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+#include "Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "dep-analysis"

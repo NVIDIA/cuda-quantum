@@ -9,9 +9,9 @@
 #include "QuakeToCodegen.h"
 #include "CodeGenOps.h"
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/CodeGen/Passes.h"
-#include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
+#include "Optimizer/Builder/Intrinsics.h"
+#include "Optimizer/CodeGen/Passes.h"
+#include "Optimizer/CodeGen/QIRFunctionNames.h"
 #include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
 #include "mlir/Conversion/LLVMCommon/Pattern.h"
 

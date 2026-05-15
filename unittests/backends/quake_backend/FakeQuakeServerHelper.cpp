@@ -8,7 +8,7 @@
 #include "common/FmtCore.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
-#include "cudaq/Support/Version.h"
+#include "Support/Version.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <bitset>
 #include <fstream>

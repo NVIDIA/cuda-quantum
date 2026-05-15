@@ -10,9 +10,9 @@
 #include "common/Executor.h"
 #include "common/RuntimeTarget.h"
 #include "common/ServerHelper.h"
-#include "cudaq/Optimizer/Builder/RuntimeNames.h"
-#include "cudaq/Support/TargetConfig.h"
-#include "cudaq/Support/TargetConfigYaml.h"
+#include "Optimizer/Builder/RuntimeNames.h"
+#include "Support/TargetConfig.h"
+#include "Support/TargetConfigYaml.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "llvm/Support/Base64.h"
 

@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Support/Plugin.h"
+#include "Support/Plugin.h"
 
 using namespace llvm;
 namespace cudaq {

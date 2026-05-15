@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Optimizer/Transforms/AddMetadata.h"
+#include "Optimizer/Transforms/AddMetadata.h"
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/Todo.h"
+#include "Optimizer/Transforms/Passes.h"
+#include "Todo.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/IR/Dominance.h"
 #include "mlir/Transforms/DialectConversion.h"
@@ -17,7 +17,7 @@
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_QUAKEADDMETADATA
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+#include "Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "add-metadata"

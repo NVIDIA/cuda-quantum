@@ -7,12 +7,12 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/Builder/Runtime.h"
-#include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
-#include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "Optimizer/Builder/Intrinsics.h"
+#include "Optimizer/Builder/Runtime.h"
+#include "Optimizer/CodeGen/QIRFunctionNames.h"
+#include "Optimizer/CodeGen/QIROpaqueStructTypes.h"
+#include "Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "Optimizer/Transforms/Passes.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
@@ -23,7 +23,7 @@
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_QUAKESYNTHESIZE
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+#include "Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "quake-synthesizer"

@@ -7,9 +7,9 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/CodeGen/CCToLLVM.h"
-#include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "Optimizer/Builder/Intrinsics.h"
+#include "Optimizer/CodeGen/CCToLLVM.h"
+#include "Optimizer/CodeGen/Passes.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Conversion/ArithToLLVM/ArithToLLVM.h"
@@ -26,7 +26,7 @@
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_CCTOLLVM
-#include "cudaq/Optimizer/CodeGen/Passes.h.inc"
+#include "Optimizer/CodeGen/Passes.h.inc"
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "cc-to-llvm-pass"

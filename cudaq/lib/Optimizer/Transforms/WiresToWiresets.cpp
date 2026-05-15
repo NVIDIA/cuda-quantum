@@ -7,9 +7,9 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Frontend/nvqpp/AttributeNames.h"
-#include "cudaq/Optimizer/Dialect/Characteristics.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "Frontend/nvqpp/AttributeNames.h"
+#include "Optimizer/Dialect/Characteristics.h"
+#include "Optimizer/Transforms/Passes.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/Threading.h"
 #include "mlir/InitAllDialects.h"
@@ -19,7 +19,7 @@
 namespace cudaq::opt {
 #define GEN_PASS_DEF_ASSIGNWIREINDICES
 #define GEN_PASS_DEF_ADDWIRESET
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+#include "Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 using namespace mlir;

@@ -13,14 +13,14 @@
 #include "common/ExecutionContext.h"
 #include "common/RuntimeTarget.h"
 #include "common/Timing.h"
-#include "cudaq/Optimizer/Builder/Runtime.h"
-#include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
-#include "cudaq/Optimizer/CodeGen/Passes.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
-#include "cudaq/Optimizer/Transforms/AddMetadata.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/Optimizer/Transforms/ResourceCount.h"
-#include "cudaq/Verifier/QIRLLVMIRDialect.h"
+#include "Optimizer/Builder/Runtime.h"
+#include "Optimizer/CodeGen/OpenQASMEmitter.h"
+#include "Optimizer/CodeGen/Passes.h"
+#include "Optimizer/Dialect/Quake/QuakeOps.h"
+#include "Optimizer/Transforms/AddMetadata.h"
+#include "Optimizer/Transforms/Passes.h"
+#include "Optimizer/Transforms/ResourceCount.h"
+#include "Verifier/QIRLLVMIRDialect.h"
 #include "cudaq/platform.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
@@ -37,7 +37,7 @@
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Transforms/Passes.h"
-#include <cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h>
+#include <Optimizer/CodeGen/QIROpaqueStructTypes.h>
 
 using namespace mlir;
 

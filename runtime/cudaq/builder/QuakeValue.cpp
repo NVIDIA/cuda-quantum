@@ -7,11 +7,11 @@
  ******************************************************************************/
 
 #include "QuakeValue.h"
-#include "cudaq/Optimizer/Builder/Factory.h"
-#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "Optimizer/Builder/Factory.h"
+#include "Optimizer/Dialect/CC/CCDialect.h"
+#include "Optimizer/Dialect/CC/CCOps.h"
+#include "Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "Optimizer/Dialect/Quake/QuakeOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/ImplicitLocOpBuilder.h"

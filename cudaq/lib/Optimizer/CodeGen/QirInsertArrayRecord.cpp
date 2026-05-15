@@ -7,19 +7,19 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/Builder/Runtime.h"
-#include "cudaq/Optimizer/CodeGen/Passes.h"
-#include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
-#include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "Optimizer/Builder/Intrinsics.h"
+#include "Optimizer/Builder/Runtime.h"
+#include "Optimizer/CodeGen/Passes.h"
+#include "Optimizer/CodeGen/QIRAttributeNames.h"
+#include "Optimizer/CodeGen/QIRFunctionNames.h"
+#include "Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/SmallSet.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_QIRINSERTARRAYRECORD
-#include "cudaq/Optimizer/CodeGen/Passes.h.inc"
+#include "Optimizer/CodeGen/Passes.h.inc"
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "qir-insert-array-record"

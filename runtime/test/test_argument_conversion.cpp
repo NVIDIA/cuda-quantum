@@ -11,9 +11,9 @@
 
 // RUN: test_argument_conversion | FileCheck %s
 
-#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
-#include "cudaq/Optimizer/InitAllDialects.h"
+#include "Optimizer/Dialect/CC/CCDialect.h"
+#include "Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "Optimizer/InitAllDialects.h"
 #include "cudaq/qis/pauli_word.h"
 #include "cudaq/qis/state.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"

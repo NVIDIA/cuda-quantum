@@ -7,13 +7,13 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Frontend/nvqpp/AttributeNames.h"
+#include "Frontend/nvqpp/AttributeNames.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_ADDMEASUREMENTS
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+#include "Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "add-measurements"

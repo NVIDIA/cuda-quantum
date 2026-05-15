@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/Runtime.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "Optimizer/Builder/Runtime.h"
+#include "Optimizer/Transforms/Passes.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/Operation.h"
@@ -19,7 +19,7 @@
 namespace cudaq::opt {
 #define GEN_PASS_DEF_CONVERTTODIRECTCALLS
 #define GEN_PASS_DEF_CHECKKERNELCALLS
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+#include "Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "aggressive-inlining"

@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Frontend/nvqpp/ASTBridge.h"
-#include "cudaq/Frontend/nvqpp/QisBuilder.h"
-#include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "Frontend/nvqpp/ASTBridge.h"
+#include "Frontend/nvqpp/QisBuilder.h"
+#include "Optimizer/Dialect/CC/CCTypes.h"
+#include "Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "clang/AST/ParentMapContext.h"
 #include "clang/Basic/TargetCXXABI.h"
 #include "clang/Basic/TargetInfo.h"

@@ -8,12 +8,12 @@
 
 #include "DecompositionPatterns.h"
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "Optimizer/Dialect/Quake/QuakeInterfaces.h"
+#include "Optimizer/Transforms/Passes.h"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_MULTICONTROLDECOMPOSITION
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+#include "Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 using namespace mlir;

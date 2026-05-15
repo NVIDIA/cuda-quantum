@@ -45,7 +45,7 @@ target_include_directories(${LIBRARY_NAME}
         $<BUILD_INTERFACE:${LLVM_INCLUDE_DIRS}>
         ${CMAKE_SOURCE_DIR}/tpls/eigen
         ${CMAKE_SOURCE_DIR}/runtime
-	${CMAKE_SOURCE_DIR}/include
+	${CMAKE_SOURCE_DIR}/cudaq/include
 )
 
 target_link_libraries(${LIBRARY_NAME}

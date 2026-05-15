@@ -6,15 +6,15 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Optimizer/CodeGen/QuakeToLLVM.h"
+#include "Optimizer/CodeGen/QuakeToLLVM.h"
 #include "CodeGenOps.h"
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/Builder/Runtime.h"
-#include "cudaq/Optimizer/CodeGen/Passes.h"
-#include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
-#include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
-#include "cudaq/Optimizer/CodeGen/QuakeToExecMgr.h"
+#include "Optimizer/Builder/Intrinsics.h"
+#include "Optimizer/Builder/Runtime.h"
+#include "Optimizer/CodeGen/Passes.h"
+#include "Optimizer/CodeGen/QIRFunctionNames.h"
+#include "Optimizer/CodeGen/QIROpaqueStructTypes.h"
+#include "Optimizer/CodeGen/QuakeToExecMgr.h"
 #include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
 #include "mlir/Conversion/LLVMCommon/Pattern.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"

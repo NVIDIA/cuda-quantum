@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "Optimizer/Transforms/Passes.h"
 #include "mlir/Transforms/Passes.h"
 
 using namespace mlir;

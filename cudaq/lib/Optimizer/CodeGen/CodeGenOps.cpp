@@ -26,4 +26,4 @@ LogicalResult cudaq::codegen::MaterializeConstantArrayOp::verify() {
 //===----------------------------------------------------------------------===//
 
 #define GET_OP_CLASSES
-#include "cudaq/Optimizer/CodeGen/CodeGenOps.cpp.inc"
+#include "Optimizer/CodeGen/CodeGenOps.cpp.inc"

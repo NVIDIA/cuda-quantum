@@ -6,12 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/Builder/Factory.h"
-#include "cudaq/Optimizer/Builder/Runtime.h"
-#include "cudaq/Optimizer/CodeGen/CudaqFunctionNames.h"
-#include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
+#include "Optimizer/Builder/Intrinsics.h"
+#include "Optimizer/Builder/Factory.h"
+#include "Optimizer/Builder/Runtime.h"
+#include "Optimizer/CodeGen/CudaqFunctionNames.h"
+#include "Optimizer/CodeGen/QIRFunctionNames.h"
+#include "Optimizer/Dialect/CC/CCOps.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/MD5.h"

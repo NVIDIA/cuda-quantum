@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "Optimizer/Dialect/CC/CCOps.h"
+#include "Optimizer/Transforms/Passes.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/IR/IRMapping.h"
 #include "mlir/Parser/Parser.h"
@@ -17,7 +17,7 @@
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_ARGUMENTSYNTHESIS
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+#include "Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "argument-synthesis"

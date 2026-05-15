@@ -17,7 +17,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "cudaq/Optimizer/CodeGen/OptUtils.h"
+#include "Optimizer/CodeGen/OptUtils.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Passes/OptimizationLevel.h"
 #include "llvm/Passes/PassBuilder.h"

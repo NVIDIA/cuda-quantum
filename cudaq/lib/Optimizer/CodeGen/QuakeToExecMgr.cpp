@@ -6,11 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Optimizer/CodeGen/QuakeToExecMgr.h"
+#include "Optimizer/CodeGen/QuakeToExecMgr.h"
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/CodeGen/CudaqFunctionNames.h"
-#include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "Optimizer/Builder/Intrinsics.h"
+#include "Optimizer/CodeGen/CudaqFunctionNames.h"
+#include "Optimizer/CodeGen/Passes.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"

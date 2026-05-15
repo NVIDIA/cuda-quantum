@@ -7,10 +7,10 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/CodeGen/CudaqFunctionNames.h"
-#include "cudaq/Optimizer/CodeGen/Passes.h"
-#include "cudaq/Optimizer/CodeGen/QuakeToExecMgr.h"
+#include "Optimizer/Builder/Intrinsics.h"
+#include "Optimizer/CodeGen/CudaqFunctionNames.h"
+#include "Optimizer/CodeGen/Passes.h"
+#include "Optimizer/CodeGen/QuakeToExecMgr.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/DialectConversion.h"
@@ -19,7 +19,7 @@
 namespace cudaq::opt {
 #define GEN_PASS_DEF_QUAKETOCCPREP
 #define GEN_PASS_DEF_QUAKETOCC
-#include "cudaq/Optimizer/CodeGen/Passes.h.inc"
+#include "Optimizer/CodeGen/Passes.h.inc"
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "convert-to-cc"

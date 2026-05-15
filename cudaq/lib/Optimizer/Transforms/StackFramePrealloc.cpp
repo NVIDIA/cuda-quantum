@@ -7,15 +7,15 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "Optimizer/Builder/Intrinsics.h"
+#include "Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "mlir/IR/Dominance.h"
 #include "mlir/Transforms/Passes.h"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_STACKFRAMEPREALLOC
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+#include "Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "stack-frame-prealloc"

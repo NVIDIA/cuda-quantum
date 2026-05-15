@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Verifier/NVQIRCalls.h"
+#include "Verifier/NVQIRCalls.h"
 #include "llvm/Support/SourceMgr.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Parser/Parser.h"

@@ -8,9 +8,9 @@
 
 #pragma once
 
-#include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
-#include "cudaq/Optimizer/Dialect/Common/Traits.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "Optimizer/Dialect/CC/CCTypes.h"
+#include "Optimizer/Dialect/Common/Traits.h"
+#include "Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/OpDefinition.h"
@@ -21,4 +21,4 @@
 //===----------------------------------------------------------------------===//
 
 #define GET_OP_CLASSES
-#include "cudaq/Optimizer/CodeGen/CodeGenOps.h.inc"
+#include "Optimizer/CodeGen/CodeGenOps.h.inc"

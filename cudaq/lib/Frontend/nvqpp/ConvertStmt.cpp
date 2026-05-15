@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Frontend/nvqpp/ASTBridge.h"
-#include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "Frontend/nvqpp/ASTBridge.h"
+#include "Optimizer/Builder/Intrinsics.h"
+#include "Optimizer/Dialect/CC/CCOps.h"
+#include "Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/IR/Builders.h"
 

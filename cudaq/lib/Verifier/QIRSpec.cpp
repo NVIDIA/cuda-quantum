@@ -6,9 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Verifier/QIRSpec.h"
-#include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
+#include "Verifier/QIRSpec.h"
+#include "Optimizer/Builder/Intrinsics.h"
+#include "Optimizer/CodeGen/QIRFunctionNames.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"

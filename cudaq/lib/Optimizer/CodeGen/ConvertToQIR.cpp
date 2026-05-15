@@ -9,13 +9,13 @@
 #include "CodeGenOps.h"
 #include "PassDetails.h"
 #include "QuakeToCodegen.h"
-#include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/CodeGen/CCToLLVM.h"
-#include "cudaq/Optimizer/CodeGen/Passes.h"
-#include "cudaq/Optimizer/CodeGen/Peephole.h"
-#include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
-#include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
-#include "cudaq/Optimizer/CodeGen/QuakeToLLVM.h"
+#include "Optimizer/Builder/Intrinsics.h"
+#include "Optimizer/CodeGen/CCToLLVM.h"
+#include "Optimizer/CodeGen/Passes.h"
+#include "Optimizer/CodeGen/Peephole.h"
+#include "Optimizer/CodeGen/QIRFunctionNames.h"
+#include "Optimizer/CodeGen/QIROpaqueStructTypes.h"
+#include "Optimizer/CodeGen/QuakeToLLVM.h"
 #include "llvm/ADT/Hashing.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/FormatVariadic.h"
@@ -36,7 +36,7 @@
 namespace cudaq::opt {
 #define GEN_PASS_DEF_CONVERTTOQIR
 #define GEN_PASS_DEF_LOWERTOCG
-#include "cudaq/Optimizer/CodeGen/Passes.h.inc"
+#include "Optimizer/CodeGen/Passes.h.inc"
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "convert-to-qir"

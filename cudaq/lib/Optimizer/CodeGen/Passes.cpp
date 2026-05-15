@@ -6,9 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "Optimizer/CodeGen/Passes.h"
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "Optimizer/Transforms/Passes.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/Passes.h"
 

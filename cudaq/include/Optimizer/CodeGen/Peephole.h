@@ -1,0 +1,67 @@
+/****************************************************************-*- C++ -*-****
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#pragma once
+
+#include "Optimizer/CodeGen/QIRFunctionNames.h"
+#include "Optimizer/CodeGen/QIROpaqueStructTypes.h"
+#include "Optimizer/Dialect/Quake/QuakeOps.h"
+#include "llvm/ADT/StringRef.h"
+#include "mlir/IR/ValueRange.h"
+#include "mlir/Support/LLVM.h"
+
+inline bool needsToBeRenamed(mlir::StringRef name) {
+  return name.starts_with(cudaq::opt::QIRQISPrefix) &&
+         !name.ends_with("__body") && !name.ends_with("__adj") &&
+         !name.ends_with("__ctl");
+}
+
+inline bool callToInvokeWithXCtrlOneTarget(mlir::StringRef callee,
+                                           mlir::ValueRange args) {
+  if ((args.size() == 4) && (callee == cudaq::opt::NVQIRInvokeWithControlBits))
+    if (auto addrOf = dyn_cast_or_null<mlir::LLVM::AddressOfOp>(
+            args[1].getDefiningOp())) {
+      return addrOf.getGlobalName().starts_with(
+          std::string(cudaq::opt::QIRQISPrefix) + "x__ctl");
+    }
+  return false;
+}
+
+inline bool isIntToPtrOp(mlir::Value operand) {
+  return dyn_cast_or_null<mlir::LLVM::IntToPtrOp>(operand.getDefiningOp());
+}
+
+static constexpr char resultIndexName[] = "result.index";
+
+inline mlir::Value createMeasureCall(mlir::PatternRewriter &builder,
+                                     mlir::Location loc, mlir::LLVM::CallOp op,
+                                     mlir::ValueRange args) {
+  auto ptrTy = cudaq::cg::getLLVMResultType(builder.getContext());
+  if (auto intAttr =
+          dyn_cast_or_null<mlir::IntegerAttr>(op->getAttr(resultIndexName))) {
+    mlir::Value constOp = mlir::LLVM::ConstantOp::create(builder, loc, intAttr);
+    auto cast = mlir::LLVM::IntToPtrOp::create(builder, loc, ptrTy, constOp);
+    mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{},
+                               cudaq::opt::QIRMeasureBody,
+                               mlir::ArrayRef<mlir::Value>{args[0], cast});
+    return cast;
+  }
+  op.emitError("mz op must have an associated result index.");
+  return {};
+}
+
+inline mlir::Value createReadResultCall(mlir::PatternRewriter &builder,
+                                        mlir::Location loc,
+                                        mlir::Value result) {
+  // NB: This code is only used from a deprecated pass.
+  auto i1Ty = mlir::IntegerType::get(builder.getContext(), 1);
+  return mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{i1Ty},
+                                    cudaq::opt::qir0_1::ReadResultBody,
+                                    mlir::ArrayRef<mlir::Value>{result})
+      .getResult();
+}

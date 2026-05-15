@@ -9,6 +9,6 @@
 #ifndef PYTHON_BINDINGS_QUAKE_OPS
 #define PYTHON_BINDINGS_QUAKE_OPS
 
-include "cudaq/Optimizer/Dialect/Quake/QuakeOps.td"
+include "Optimizer/Dialect/Quake/QuakeOps.td"
 
 #endif

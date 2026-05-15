@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Support/TargetConfigYaml.h"
+#include "Support/TargetConfigYaml.h"
 #include <gtest/gtest.h>
 
 TEST(TargetConfigTester, checkMachineList) {

@@ -7,9 +7,9 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/Support/Device.h"
-#include "cudaq/Support/Placement.h"
+#include "Optimizer/Transforms/Passes.h"
+#include "Support/Device.h"
+#include "Support/Placement.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/Support/FileSystem.h"
@@ -20,7 +20,7 @@
 namespace cudaq::opt {
 #define GEN_PASS_DEF_MAPPINGFUNC
 #define GEN_PASS_DEF_MAPPINGPREP
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+#include "Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "quantum-mapper"

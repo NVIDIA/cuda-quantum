@@ -8,9 +8,9 @@
 
 #include "PassDetails.h"
 #include "common/EigenDense.h"
-#include "cudaq/Optimizer/Builder/Factory.h"
-#include "cudaq/Optimizer/CodeGen/Passes.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "Optimizer/Builder/Factory.h"
+#include "Optimizer/CodeGen/Passes.h"
+#include "Optimizer/Transforms/Passes.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
@@ -22,7 +22,7 @@
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_UNITARYSYNTHESIS
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+#include "Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "unitary-synthesis"

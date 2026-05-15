@@ -6,11 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Frontend/nvqpp/ASTBridge.h"
-#include "cudaq/Optimizer/Builder/Factory.h"
-#include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
-#include "cudaq/Todo.h"
+#include "Frontend/nvqpp/ASTBridge.h"
+#include "Optimizer/Builder/Factory.h"
+#include "Optimizer/Dialect/CC/CCTypes.h"
+#include "Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "Todo.h"
 #include "clang/Basic/TargetInfo.h"
 #include "llvm/TargetParser/Triple.h"
 

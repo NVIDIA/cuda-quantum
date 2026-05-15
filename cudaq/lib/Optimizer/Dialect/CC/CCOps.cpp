@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Builder/Factory.h"
-#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "Optimizer/Dialect/CC/CCOps.h"
+#include "Optimizer/Builder/Factory.h"
+#include "Optimizer/Dialect/CC/CCDialect.h"
+#include "Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/IR/DataLayout.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
@@ -3082,4 +3082,4 @@ cudaq::cc::VarargCallOp::verifySymbolUses(SymbolTableCollection &symbolTable) {
 //===----------------------------------------------------------------------===//
 
 #define GET_OP_CLASSES
-#include "cudaq/Optimizer/Dialect/CC/CCOps.cpp.inc"
+#include "Optimizer/Dialect/CC/CCOps.cpp.inc"

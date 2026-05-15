@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Optimizer/CodeGen/CodeGenDialect.h"
+#include "Optimizer/CodeGen/CodeGenDialect.h"
 #include "CodeGenOps.h"
 #include "mlir/IR/DialectImplementation.h"
 
@@ -14,7 +14,7 @@
 // Generated logic
 //===----------------------------------------------------------------------===//
 
-#include "cudaq/Optimizer/CodeGen/CodeGenDialect.cpp.inc"
+#include "Optimizer/CodeGen/CodeGenDialect.cpp.inc"
 
 //===----------------------------------------------------------------------===//
 
@@ -22,6 +22,6 @@ void cudaq::codegen::CodeGenDialect::initialize() {
   registerTypes();
   addOperations<
 #define GET_OP_LIST
-#include "cudaq/Optimizer/CodeGen/CodeGenOps.cpp.inc"
+#include "Optimizer/CodeGen/CodeGenOps.cpp.inc"
       >();
 }

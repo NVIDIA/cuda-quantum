@@ -6,11 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
-#include "cudaq/Optimizer/Builder/Factory.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "Optimizer/Dialect/Quake/QuakeOps.h"
+#include "Optimizer/Builder/Factory.h"
+#include "Optimizer/Dialect/CC/CCOps.h"
+#include "Optimizer/Dialect/CC/CCTypes.h"
+#include "Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "mlir/Dialect/LLVMIR/LLVMTypes.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
@@ -1282,4 +1282,4 @@ VERIFY_OPS(INSTANTIATE_LINEAR_TYPE_VERIFY)
 //===----------------------------------------------------------------------===//
 
 #define GET_OP_CLASSES
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.cpp.inc"
+#include "Optimizer/Dialect/Quake/QuakeOps.cpp.inc"

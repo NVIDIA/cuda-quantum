@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
+#include "Optimizer/Dialect/CC/CCOps.h"
 
 namespace cudaq::opt {
 

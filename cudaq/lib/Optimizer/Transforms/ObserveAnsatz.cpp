@@ -7,11 +7,11 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "Optimizer/Transforms/Passes.h"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_OBSERVEANSATZ
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+#include "Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 using namespace mlir;

@@ -7,10 +7,10 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Frontend/nvqpp/AttributeNames.h"
-#include "cudaq/Optimizer/Builder/RuntimeNames.h"
-#include "cudaq/Optimizer/CodeGen/Emitter.h"
-#include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
+#include "Frontend/nvqpp/AttributeNames.h"
+#include "Optimizer/Builder/RuntimeNames.h"
+#include "Optimizer/CodeGen/Emitter.h"
+#include "Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "llvm/ADT/PostOrderIterator.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/TypeSwitch.h"

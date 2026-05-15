@@ -6,12 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/Builder/Runtime.h"
-#include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
-#include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "Optimizer/Builder/Intrinsics.h"
+#include "Optimizer/Builder/Runtime.h"
+#include "Optimizer/CodeGen/QIRFunctionNames.h"
+#include "Optimizer/CodeGen/QIROpaqueStructTypes.h"
+#include "Optimizer/Dialect/CC/CCOps.h"
+#include "Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/TargetParser/Host.h"
 #include "llvm/TargetParser/Triple.h"
 #include "mlir/IR/Matchers.h"

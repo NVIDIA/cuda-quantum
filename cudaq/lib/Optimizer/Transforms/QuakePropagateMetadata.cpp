@@ -13,7 +13,7 @@
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_QUAKEPROPAGATEMETADATA
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+#include "Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "quake-propagate-metadata"

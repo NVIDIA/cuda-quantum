@@ -8,15 +8,15 @@
 
 #include "LoopAnalysis.h"
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "Optimizer/Dialect/CC/CCOps.h"
+#include "Optimizer/Transforms/Passes.h"
 #include "mlir/IR/IRMapping.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_LOOPNORMALIZE
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+#include "Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "cc-loop-normalize"

@@ -7,9 +7,9 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/Factory.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/Todo.h"
+#include "Optimizer/Builder/Factory.h"
+#include "Optimizer/Transforms/Passes.h"
+#include "Todo.h"
 #include "mlir/IR/Dominance.h"
 #include "mlir/IR/IRMapping.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
@@ -17,7 +17,7 @@
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_LAMBDALIFTING
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+#include "Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "lambda-lifting"

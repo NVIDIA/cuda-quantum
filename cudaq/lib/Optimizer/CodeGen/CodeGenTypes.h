@@ -17,4 +17,4 @@
 //===----------------------------------------------------------------------===//
 
 #define GET_TYPEDEF_CLASSES
-#include "cudaq/Optimizer/CodeGen/CodeGenTypes.h.inc"
+#include "Optimizer/CodeGen/CodeGenTypes.h.inc"

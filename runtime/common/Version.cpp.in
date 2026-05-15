@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Support/Version.h"
+#include "Support/Version.h"
 
 namespace cudaq {
 

@@ -7,12 +7,12 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Frontend/nvqpp/AttributeNames.h"
-#include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/Builder/Runtime.h"
-#include "cudaq/Optimizer/CallGraphFix.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "Frontend/nvqpp/AttributeNames.h"
+#include "Optimizer/Builder/Intrinsics.h"
+#include "Optimizer/Builder/Runtime.h"
+#include "Optimizer/CallGraphFix.h"
+#include "Optimizer/Dialect/CC/CCOps.h"
+#include "Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/DepthFirstIterator.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/FileSystem.h"
@@ -22,7 +22,7 @@
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_GENERATEDEVICECODELOADER
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+#include "Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "device-code-loader"

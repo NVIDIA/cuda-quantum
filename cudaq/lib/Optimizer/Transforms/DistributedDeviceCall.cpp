@@ -7,12 +7,12 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/Builder/Marshal.h"
-#include "cudaq/Optimizer/Builder/Runtime.h"
-#include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "Optimizer/Builder/Intrinsics.h"
+#include "Optimizer/Builder/Marshal.h"
+#include "Optimizer/Builder/Runtime.h"
+#include "Optimizer/CodeGen/QIRFunctionNames.h"
+#include "Optimizer/Dialect/CC/CCOps.h"
+#include "Optimizer/Transforms/Passes.h"
 #include "llvm/Support/MD5.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/TypeSupport.h"
@@ -21,7 +21,7 @@
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_DISTRIBUTEDDEVICECALL
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+#include "Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "distributed-device-call"

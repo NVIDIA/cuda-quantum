@@ -7,11 +7,11 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "Optimizer/CodeGen/Passes.h"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_DELAYMEASUREMENTS
-#include "cudaq/Optimizer/CodeGen/Passes.h.inc"
+#include "Optimizer/CodeGen/Passes.h.inc"
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "delay-measurements"

@@ -6,9 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Optimizer/Transforms/ResourceCount.h"
+#include "Optimizer/Transforms/ResourceCount.h"
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "Optimizer/Transforms/Passes.h"
 #include "mlir/Transforms/Passes.h"
 
 using namespace mlir;

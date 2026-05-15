@@ -8,14 +8,14 @@
 
 #include "CodeGenOps.h"
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/Builder/Runtime.h"
-#include "cudaq/Optimizer/CodeGen/Passes.h"
-#include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
-#include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
-#include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
-#include "cudaq/Optimizer/CodeGen/QuakeToExecMgr.h"
-#include "cudaq/Optimizer/Transforms/Passes.h" // for GlobalizeArrayValues
+#include "Optimizer/Builder/Intrinsics.h"
+#include "Optimizer/Builder/Runtime.h"
+#include "Optimizer/CodeGen/Passes.h"
+#include "Optimizer/CodeGen/QIRAttributeNames.h"
+#include "Optimizer/CodeGen/QIRFunctionNames.h"
+#include "Optimizer/CodeGen/QIROpaqueStructTypes.h"
+#include "Optimizer/CodeGen/QuakeToExecMgr.h"
+#include "Optimizer/Transforms/Passes.h" // for GlobalizeArrayValues
 #include "nlohmann/json.hpp"
 #include "llvm/Support/Debug.h"
 #include "mlir/Pass/PassManager.h"
@@ -29,7 +29,7 @@ namespace cudaq::opt {
 #define GEN_PASS_DEF_QUAKETOQIRAPI
 #define GEN_PASS_DEF_QUAKETOQIRAPIPREP
 #define GEN_PASS_DEF_QUAKETOQIRAPIFINAL
-#include "cudaq/Optimizer/CodeGen/Passes.h.inc"
+#include "Optimizer/CodeGen/Passes.h.inc"
 } // namespace cudaq::opt
 
 using namespace mlir;

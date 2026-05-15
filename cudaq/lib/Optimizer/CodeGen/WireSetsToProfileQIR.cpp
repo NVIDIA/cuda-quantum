@@ -7,14 +7,14 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/CallGraphFix.h"
-#include "cudaq/Optimizer/CodeGen/CudaqFunctionNames.h"
-#include "cudaq/Optimizer/CodeGen/Passes.h"
-#include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
-#include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
-#include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
-#include "cudaq/Optimizer/CodeGen/QuakeToExecMgr.h"
+#include "Optimizer/Builder/Intrinsics.h"
+#include "Optimizer/CallGraphFix.h"
+#include "Optimizer/CodeGen/CudaqFunctionNames.h"
+#include "Optimizer/CodeGen/Passes.h"
+#include "Optimizer/CodeGen/QIRAttributeNames.h"
+#include "Optimizer/CodeGen/QIRFunctionNames.h"
+#include "Optimizer/CodeGen/QIROpaqueStructTypes.h"
+#include "Optimizer/CodeGen/QuakeToExecMgr.h"
 #include "nlohmann/json.hpp"
 #include "llvm/ADT/DepthFirstIterator.h"
 #include "llvm/Support/Debug.h"
@@ -51,7 +51,7 @@ namespace cudaq::opt {
 #define GEN_PASS_DEF_WIRESETTOPROFILEQIR
 #define GEN_PASS_DEF_WIRESETTOPROFILEQIRPOST
 #define GEN_PASS_DEF_WIRESETTOPROFILEQIRPREP
-#include "cudaq/Optimizer/CodeGen/Passes.h.inc"
+#include "Optimizer/CodeGen/Passes.h.inc"
 } // namespace cudaq::opt
 
 using namespace mlir;

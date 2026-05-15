@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "CodeGenTypes.h"
-#include "cudaq/Optimizer/CodeGen/CodeGenDialect.h"
+#include "Optimizer/CodeGen/CodeGenDialect.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/DialectImplementation.h"
@@ -17,7 +17,7 @@
 //===----------------------------------------------------------------------===//
 
 #define GET_TYPEDEF_CLASSES
-#include "cudaq/Optimizer/CodeGen/CodeGenTypes.cpp.inc"
+#include "Optimizer/CodeGen/CodeGenTypes.cpp.inc"
 
 void cudaq::codegen::CodeGenDialect::registerTypes() {
   addTypes<DoNotUseType>();

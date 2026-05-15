@@ -8,17 +8,17 @@
 
 #include "LoopAnalysis.h"
 #include "PassDetails.h"
-#include "cudaq/Frontend/nvqpp/AttributeNames.h"
-#include "cudaq/Optimizer/Builder/Factory.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "Frontend/nvqpp/AttributeNames.h"
+#include "Optimizer/Builder/Factory.h"
+#include "Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "Optimizer/Transforms/Passes.h"
 #include "mlir/IR/IRMapping.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_RESOURCECOUNTPREPROCESS
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+#include "Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "resource-count-preprocess"

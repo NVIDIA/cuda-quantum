@@ -9,6 +9,6 @@
 #ifndef PYTHON_BINDINGS_CC_OPS
 #define PYTHON_BINDINGS_CC_OPS
 
-include "cudaq/Optimizer/Dialect/CC/CCOps.td"
+include "Optimizer/Dialect/CC/CCOps.td"
 
 #endif

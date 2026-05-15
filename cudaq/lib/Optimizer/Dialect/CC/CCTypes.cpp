@@ -6,9 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
-#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "Optimizer/Dialect/CC/CCTypes.h"
+#include "Optimizer/Dialect/CC/CCDialect.h"
+#include "Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/IR/Builders.h"
@@ -168,7 +168,7 @@ cc::StdvecType::verify(function_ref<InFlightDiagnostic()> emitError,
 //===----------------------------------------------------------------------===//
 
 #define GET_TYPEDEF_CLASSES
-#include "cudaq/Optimizer/Dialect/CC/CCTypes.cpp.inc"
+#include "Optimizer/Dialect/CC/CCTypes.cpp.inc"
 
 //===----------------------------------------------------------------------===//
 

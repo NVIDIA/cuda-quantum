@@ -8,10 +8,10 @@
 
 #include "LoopAnalysis.h"
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/Factory.h"
-#include "cudaq/Optimizer/Dialect/Characteristics.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
-#include "cudaq/Todo.h"
+#include "Optimizer/Builder/Factory.h"
+#include "Optimizer/Dialect/Characteristics.h"
+#include "Optimizer/Transforms/Passes.h"
+#include "Todo.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/IR/Dominance.h"
 #include "mlir/IR/IRMapping.h"
@@ -20,7 +20,7 @@
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_APPLYSPECIALIZATION
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+#include "Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "apply-op-specialization"

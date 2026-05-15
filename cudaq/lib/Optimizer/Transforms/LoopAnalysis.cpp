@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "LoopAnalysis.h"
-#include "cudaq/Optimizer/Builder/Factory.h"
+#include "Optimizer/Builder/Factory.h"
 #include "mlir/IR/Dominance.h"
 
 using namespace mlir;

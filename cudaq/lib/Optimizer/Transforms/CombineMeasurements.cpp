@@ -7,10 +7,10 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/Factory.h"
-#include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "Optimizer/Builder/Factory.h"
+#include "Optimizer/CodeGen/QIRAttributeNames.h"
+#include "Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "Optimizer/Transforms/Passes.h"
 #include "nlohmann/json.hpp"
 #include "llvm/Support/Debug.h"
 #include "mlir/Pass/Pass.h"
@@ -19,7 +19,7 @@
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_COMBINEMEASUREMENTS
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+#include "Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "combine-measurements"

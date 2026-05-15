@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq.h"
-#include "cudaq/Support/Version.h"
+#include "Support/Version.h"
 #include "cudaq/platform/orca/orca_qpu.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"

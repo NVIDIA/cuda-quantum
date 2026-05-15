@@ -13,7 +13,7 @@
 #include "common/Executor.h"
 #include "common/KernelExecution.h"
 #include "common/Resources.h"
-#include "cudaq/Support/TargetConfig.h"
+#include "Support/TargetConfig.h"
 #include "cudaq/platform/platform_iface.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/qpu_utils.h"

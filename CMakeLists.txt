@@ -488,7 +488,7 @@ set(LLVM_LIT_ARGS "${LIT_ARGS_DEFAULT}" CACHE STRING "Default options for lit")
 message(STATUS "Build type is ${CMAKE_BUILD_TYPE}")
 
 set(CUDAQ_MAIN_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}) # --src-root
-set(CUDAQ_MAIN_INCLUDE_DIR ${CUDAQ_MAIN_SRC_DIR}/include)
+set(CUDAQ_MAIN_INCLUDE_DIR ${CUDAQ_MAIN_SRC_DIR}/cudaq/include)
 
 set(CUDAQ_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(CUDAQ_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
@@ -510,8 +510,9 @@ endif()
 
 # Add CUDA Quantum files to the include path
 include_directories(BEFORE
-  ${CUDAQ_SOURCE_DIR}/include
-  ${CUDAQ_BINARY_DIR}/include)
+  ${CUDAQ_SOURCE_DIR}/cudaq/include
+  ${CUDAQ_BINARY_DIR}/include
+  ${CUDAQ_BINARY_DIR}/cudaq/include)
 
 # Installing the headers and docs needs to depend on generating any public
 # tablegen'd targets.
@@ -683,7 +684,7 @@ endif(CUDAQ_ENABLE_CC)
 # ==============================================================================
 
 add_subdirectory(cmake)
-add_subdirectory(include)
+add_subdirectory(cudaq/include)
 add_subdirectory(cudaq/lib)
 if (NOT CUDAQ_DISABLE_RUNTIME)
   add_subdirectory(runtime)

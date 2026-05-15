@@ -7,11 +7,11 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/CodeGen/Passes.h"
-#include "cudaq/Optimizer/CodeGen/Peephole.h"
-#include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
-#include "cudaq/Todo.h"
+#include "Optimizer/Builder/Intrinsics.h"
+#include "Optimizer/CodeGen/Passes.h"
+#include "Optimizer/CodeGen/Peephole.h"
+#include "Optimizer/CodeGen/QIRAttributeNames.h"
+#include "Todo.h"
 #include "nlohmann/json.hpp"
 #include "llvm/ADT/SmallSet.h"
 #include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
@@ -25,7 +25,7 @@ namespace cudaq::opt {
 #define GEN_PASS_DEF_QIRTOQIRPROFILE
 #define GEN_PASS_DEF_QIRTOQIRPROFILEFUNC
 #define GEN_PASS_DEF_QIRTOQIRPROFILEPREP
-#include "cudaq/Optimizer/CodeGen/Passes.h.inc"
+#include "Optimizer/CodeGen/Passes.h.inc"
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "qir-profile"

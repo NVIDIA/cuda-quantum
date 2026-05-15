@@ -6,9 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Optimizer/CAPI/Dialects.h"
-#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
+#include "Optimizer/CAPI/Dialects.h"
+#include "Optimizer/Dialect/CC/CCDialect.h"
+#include "Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "mlir/InitAllDialects.h"
 
 MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(Quake, quake, cudaq::quake::QuakeDialect)

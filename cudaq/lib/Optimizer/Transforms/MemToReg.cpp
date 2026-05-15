@@ -17,8 +17,8 @@
 /// load/store form (QLS), is required and performed.
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/MapVector.h"
 #include "mlir/IR/IRMapping.h"
 #include "mlir/Transforms/DialectConversion.h"
@@ -27,7 +27,7 @@
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_MEMTOREG
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+#include "Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 #define DEBUG_TYPE "memtoreg"

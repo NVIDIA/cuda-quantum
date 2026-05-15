@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.h"
+#include "Optimizer/Dialect/Quake/QuakeInterfaces.h"
 
 //===----------------------------------------------------------------------===//
 // Generated logic
 //===----------------------------------------------------------------------===//
 
-#include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.cpp.inc"
+#include "Optimizer/Dialect/Quake/QuakeInterfaces.cpp.inc"

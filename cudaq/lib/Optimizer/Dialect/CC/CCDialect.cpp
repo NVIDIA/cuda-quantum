@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
-#include "cudaq/Optimizer/Dialect/CC/CCInterfaces.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
+#include "Optimizer/Dialect/CC/CCDialect.h"
+#include "Optimizer/Dialect/CC/CCInterfaces.h"
+#include "Optimizer/Dialect/CC/CCOps.h"
+#include "Optimizer/Dialect/CC/CCTypes.h"
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/Interfaces/ControlFlowInterfaces.h"
 #include "mlir/Interfaces/LoopLikeInterface.h"
@@ -18,7 +18,7 @@
 // Generated logic
 //===----------------------------------------------------------------------===//
 
-#include "cudaq/Optimizer/Dialect/CC/CCDialect.cpp.inc"
+#include "Optimizer/Dialect/CC/CCDialect.cpp.inc"
 
 //===----------------------------------------------------------------------===//
 
@@ -28,7 +28,7 @@ void cudaq::cc::CCDialect::initialize() {
   registerTypes();
   addOperations<
 #define GET_OP_LIST
-#include "cudaq/Optimizer/Dialect/CC/CCOps.cpp.inc"
+#include "Optimizer/Dialect/CC/CCOps.cpp.inc"
       >();
   registerAttrs();
   addInterfaces<CCInlinerInterface>();

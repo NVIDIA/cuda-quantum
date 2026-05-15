@@ -8,8 +8,8 @@
 
 #include "DecompositionPatterns.h"
 #include "PassDetails.h"
-#include "cudaq/Frontend/nvqpp/AttributeNames.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "Frontend/nvqpp/AttributeNames.h"
+#include "Optimizer/Transforms/Passes.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/Threading.h"
@@ -18,7 +18,7 @@
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_DECOMPOSITION
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
+#include "Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 using namespace mlir;
