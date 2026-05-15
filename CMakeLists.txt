@@ -689,7 +689,7 @@ if (NOT CUDAQ_DISABLE_RUNTIME)
   add_subdirectory(runtime)
 endif()
 add_subdirectory(cudaq/tools)
-add_subdirectory(utils)
+add_subdirectory(cudaq/utils)
 
 if(CUDAQ_BUILD_TESTS)
   enable_testing()
