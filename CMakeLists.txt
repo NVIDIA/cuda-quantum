@@ -688,7 +688,7 @@ add_subdirectory(cudaq/lib)
 if (NOT CUDAQ_DISABLE_RUNTIME)
   add_subdirectory(runtime)
 endif()
-add_subdirectory(tools)
+add_subdirectory(cudaq/tools)
 add_subdirectory(utils)
 
 if(CUDAQ_BUILD_TESTS)
