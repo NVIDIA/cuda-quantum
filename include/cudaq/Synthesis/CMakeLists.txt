@@ -9,16 +9,12 @@
 install(FILES
   Synthesis/Gridsynth.h
   Synthesis/KmmSynthesize.h
-  Synthesis/AgSynth.h
   DESTINATION include/cudaq/Synthesis/Synthesis
 )
 
 install(FILES
   Circuit/Circuit.h
-  Circuit/CliffordCircuit.h
   Circuit/Gate.h
-  Circuit/PauliProduct.h
-  Circuit/Tableau.h
   DESTINATION include/cudaq/Synthesis/Circuit
 )
 
@@ -39,7 +35,6 @@ install(FILES
 )
 
 install(FILES
-  Support/BitVector.h
   Support/Result.h
   DESTINATION include/cudaq/Synthesis/Support
 )

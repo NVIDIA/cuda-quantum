@@ -32,7 +32,6 @@ add_library(cudaq-synth STATIC
   Math/Grid/Tdgp.cpp
   Math/Real.cpp
   Support/Logging.cpp
-  Synthesis/AgSynth.cpp
   Synthesis/Gridsynth.cpp
   Synthesis/KmmSynthesize.cpp
 )
