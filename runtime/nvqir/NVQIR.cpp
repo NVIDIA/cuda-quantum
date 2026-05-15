@@ -808,7 +808,7 @@ void __quantum__qis__apply_kraus_channel_double(std::int64_t krausChannelKey,
   if (!ctx)
     return;
 
-  auto *noise = ctx->noiseModel;
+  auto *noise = nvqir::getCircuitSimulatorInternal()->getNoiseModel();
   if (cudaq::isInTracerMode()) {
     std::vector<double> paramVec(params, params + numParams);
     std::vector<cudaq::QuditInfo> targets;
@@ -846,7 +846,7 @@ __quantum__qis__apply_kraus_channel_float(std::int64_t krausChannelKey,
   if (!ctx)
     return;
 
-  auto *noise = ctx->noiseModel;
+  auto *noise = nvqir::getCircuitSimulatorInternal()->getNoiseModel();
   if (cudaq::isInTracerMode()) {
     std::vector<double> paramVec;
     paramVec.reserve(numParams);
