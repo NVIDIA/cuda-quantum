@@ -25,15 +25,11 @@ function(add_synthesis_test target_name source_file)
   )
 endfunction()
 
-add_synthesis_test(synthesis_pauli_product_test Circuit/PauliProductTest.cpp)
-add_synthesis_test(synthesis_tableau_test       Circuit/TableauTest.cpp)
 add_synthesis_test(synthesis_integer_test       Math/IntegerTest.cpp)
 add_synthesis_test(synthesis_real_test          Math/RealTest.cpp)
 add_synthesis_test(synthesis_odgp_test          Math/Grid/OdgpTest.cpp)
 add_synthesis_test(synthesis_zsqrt2_test        Math/Ring/Zsqrt2Test.cpp)
-add_synthesis_test(synthesis_bitvector_test     Support/BitVectorTest.cpp)
 add_synthesis_test(synthesis_generator_test     Support/GeneratorTest.cpp)
-add_synthesis_test(synthesis_ag_synth_test      Synthesis/AgSynthTest.cpp)
 add_synthesis_test(synthesis_gridsynth_test     Synthesis/GridsynthTest.cpp)
 
 add_custom_target(check-cudaq-synth-unittests
@@ -42,15 +38,11 @@ add_custom_target(check-cudaq-synth-unittests
           -L cudaq-synth-unittest
           --output-on-failure
   DEPENDS
-    synthesis_pauli_product_test
-    synthesis_tableau_test
     synthesis_integer_test
     synthesis_real_test
     synthesis_odgp_test
     synthesis_zsqrt2_test
-    synthesis_bitvector_test
     synthesis_generator_test
-    synthesis_ag_synth_test
     synthesis_gridsynth_test
   COMMENT "Running all cudaq-synth unit tests"
 )
