@@ -29,7 +29,7 @@ configure_lit_site_cfg(
   ${CMAKE_CURRENT_SOURCE_DIR}/lit.cfg.py
   PATHS
   ${PATHS_FOR_PLUGINS}
-  )
+)
 
 set(NVQPP_TEST_PARAMS
   nvqpp_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg.py)
@@ -43,6 +43,8 @@ set(NVQPP_TEST_DEPENDS
     FileCheck
     test_argument_conversion
     CustomPassPlugin
+    cudaq-target-conf
+    cudaq-rest-qpu
 )
 if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
   set(NVQPP_TEST_DEPENDS ${NVQPP_TEST_DEPENDS}
