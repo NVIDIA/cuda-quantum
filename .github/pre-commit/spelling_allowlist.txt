@@ -339,7 +339,6 @@ prepend
 preprocessor
 probability
 programmatically
-pybind
 qBraid
 qaoa
 qbraid
