@@ -47,10 +47,10 @@ target_include_directories(cudaq-synth
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
-  PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
     ${GMP_INCLUDE_DIR}
     ${MPFR_INCLUDE_DIR}
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 target_link_libraries(cudaq-synth
