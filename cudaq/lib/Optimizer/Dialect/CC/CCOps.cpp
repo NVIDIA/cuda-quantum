@@ -10,6 +10,7 @@
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "llvm/ADT/SmallSet.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/IR/DataLayout.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
@@ -2653,6 +2654,27 @@ LogicalResult cudaq::cc::DeviceCallOp::verify() {
   if (getNumThreadsPerBlock().size() > 3)
     return emitOpError(
         "the number of threads per block must have a maximum dimension of 3");
+
+  const auto byRefVecArgIndices = getByRefVecArgIndicesAttr();
+  if (!byRefVecArgIndices)
+    return success();
+
+  llvm::SmallSet<std::int64_t, 4> seenIndices;
+  const ValueRange args = getArgs();
+  for (std::int64_t index : byRefVecArgIndices.asArrayRef()) {
+    if (index < 0 || static_cast<std::size_t>(index) >= args.size())
+      return emitOpError("by_ref_vec_arg_indices contains out-of-range "
+                         "argument index ")
+             << index;
+    if (!seenIndices.insert(index).second)
+      return emitOpError("by_ref_vec_arg_indices contains duplicate "
+                         "argument index ")
+             << index;
+    if (!isa<StdvecType>(args[index].getType()))
+      return emitOpError("by_ref_vec_arg_indices references non-stdvec "
+                         "argument index ")
+             << index;
+  }
   return success();
 }
 

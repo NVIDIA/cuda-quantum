@@ -46,6 +46,7 @@ if(CUDA_FOUND)
   )
 
   install(TARGETS cudaq-realtime
+    EXPORT cudaq-realtime-targets
     COMPONENT realtime-lib
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   )
@@ -82,6 +83,7 @@ if(CUDA_FOUND)
   )
 
   install(TARGETS cudaq-realtime-dispatch
+    EXPORT cudaq-realtime-targets
     COMPONENT realtime-lib
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   )
@@ -114,6 +116,7 @@ if(CUDA_FOUND)
   )
 
   install(TARGETS cudaq-realtime-host-dispatch
+    EXPORT cudaq-realtime-targets
     COMPONENT realtime-lib
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   )

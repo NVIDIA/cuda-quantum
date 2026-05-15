@@ -26,6 +26,9 @@ set(CMAKE_INSTALL_PREFIX "$ENV{HOME}/.cudaq_realtime" CACHE STRING
 project(cudaq-realtime)
 set(CUDAQ_REALTIME_STANDALONE_BUILD TRUE)
 
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # The following must go after `project(...)` 
@@ -119,6 +122,28 @@ SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libstdc++ -s
 SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
 
 add_subdirectory(lib)
+
+if (CUDA_FOUND)
+  configure_package_config_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/cudaq-realtime-config.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/cmake/cudaq-realtime-config.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime)
+
+  write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/cmake/cudaq-realtime-config-version.cmake
+    VERSION 0.1.0
+    COMPATIBILITY SameMajorVersion)
+
+  install(EXPORT cudaq-realtime-targets
+    FILE cudaq-realtime-targets.cmake
+    NAMESPACE cudaq::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime)
+
+  install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/cmake/cudaq-realtime-config.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/cmake/cudaq-realtime-config-version.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime)
+endif()
 
 if (CUDAQ_REALTIME_BUILD_EXAMPLES)
   message(STATUS "RoCE/DOCA examples removed for RPC dispatch workflow.")

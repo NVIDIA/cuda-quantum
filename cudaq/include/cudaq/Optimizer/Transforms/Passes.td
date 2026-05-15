@@ -423,14 +423,20 @@ def DistributedDeviceCall : Pass<"distributed-device-call", "mlir::ModuleOp"> {
     distributed memory model.
   }];
 
-  let dependentDialects = ["mlir::LLVM::LLVMDialect"];
+  // Realtime `stdvec` lowering may materialize `quake.discriminate` when
+  // converting measurement-handle vectors to boolean payload bytes.
+  let dependentDialects = ["mlir::LLVM::LLVMDialect",
+                           "cudaq::quake::QuakeDialect"];
 
   let options = [
     Option<"insertTrapImplementation", "insert-trap", "bool",
       /*default=*/"false",
       "Enable pass to insert a default implementation (runtime trap) for "
       "device call (default=false). The default implementation has weak "
-      "linkage, i.e., allowed to be overridden at link time.">
+      "linkage, i.e., allowed to be overridden at link time.">,
+    Option<"realtimeLowering", "realtime", "bool",
+      /*default=*/"false",
+      "Lower device calls to the realtime device-call frame ABI.">
   ];
 }
 

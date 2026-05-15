@@ -77,6 +77,15 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     {cudaq::runtime::deviceCodeHolderAdd, {}, R"#(
   llvm.func @__cudaq_deviceCodeHolderAdd(!llvm.ptr, !llvm.ptr) attributes {sym_visibility = "private"}
 )#"},
+    {cudaq::runtime::deviceCallAcquireRealtimeFrame, {}, R"#(
+  func.func private @__cudaq_device_call_acquire_realtime_frame(i32, i32, i64, i64, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>) -> i32
+)#"},
+    {cudaq::runtime::deviceCallDispatchRealtimeFrame, {}, R"#(
+  func.func private @__cudaq_device_call_dispatch_realtime_frame(!cc.ptr<i8>, !cc.ptr<i64>) -> i32
+)#"},
+    {cudaq::runtime::deviceCallSafelyReleaseRealtimeFrame, {}, R"#(
+  func.func private @__cudaq_device_call_safely_release_realtime_frame(!cc.ptr<i8>) -> ()
+)#"},
 
     {cudaq::runtime::getLinkableKernelKey, {}, R"#(
   func.func private @__cudaq_getLinkableKernelKey(!cc.ptr<i8>) -> i64
@@ -245,10 +254,6 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     cc.store %size, %szptr : !cc.ptr<i64>
     return
   }
-)#"},
-
-    {cudaq::runtime::callDeviceCallback, {}, R"#(
-  func.func private @__nvqpp__device_callback_run(i64, !cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, i64, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
 )#"},
 
     {cudaq::runtime::extractDevPtr, {}, R"#(

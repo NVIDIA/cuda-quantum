@@ -7,3 +7,4 @@
 # ============================================================================ #
 
 add_subdirectory(compiler)
+add_subdirectory(device_call)

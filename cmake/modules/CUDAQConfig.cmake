@@ -35,6 +35,14 @@ find_dependency(CUDAQEnsmallen REQUIRED)
 set (CUDAQPythonInterop_DIR "${CUDAQ_CMAKE_DIR}")
 find_dependency(CUDAQPythonInterop)
 
+if (CUDAQ_REALTIME_DIR)
+  find_dependency(cudaq-realtime CONFIG REQUIRED
+    PATHS "${CUDAQ_REALTIME_DIR}"
+    NO_DEFAULT_PATH)
+else()
+  find_dependency(cudaq-realtime CONFIG QUIET)
+endif()
+
 get_filename_component(PARENT_DIRECTORY ${CUDAQ_CMAKE_DIR} DIRECTORY)
 get_filename_component(CUDAQ_LIBRARY_DIR ${PARENT_DIRECTORY} DIRECTORY)
 get_filename_component(CUDAQ_INSTALL_DIR ${CUDAQ_LIBRARY_DIR} DIRECTORY)
@@ -132,6 +140,20 @@ set_target_properties(cudaq::cudaq-stim-target PROPERTIES
 if(NOT TARGET cudaq::cudaq)
     include("${CUDAQ_CMAKE_DIR}/CUDAQTargets.cmake")
 endif()
+
+foreach(_cudaq_config DEBUG RELEASE RELWITHDEBINFO MINSIZEREL NOCONFIG)
+  get_target_property(_cudaq_link_deps cudaq::cudaq
+    IMPORTED_LINK_DEPENDENT_LIBRARIES_${_cudaq_config})
+  if (_cudaq_link_deps MATCHES "cudaq::cudaq-realtime" AND
+      NOT TARGET cudaq::cudaq-realtime)
+    message(FATAL_ERROR
+      "This CUDA-Q install was built with realtime support, but the "
+      "cudaq-realtime package was not found. Set CUDAQ_REALTIME_DIR to the "
+      "installed realtime prefix or add it to CMAKE_PREFIX_PATH.")
+  endif()
+endforeach()
+unset(_cudaq_config)
+unset(_cudaq_link_deps)
 
 function(cudaq_set_target TARGETNAME)
   message(STATUS "CUDA Quantum Target = ${TARGETNAME}")
