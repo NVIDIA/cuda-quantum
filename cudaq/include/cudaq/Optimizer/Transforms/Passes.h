@@ -62,8 +62,7 @@ void addDecomposition(mlir::OpPassManager &pm,
 /// CliffordTSynthesis
 /// Decomposition to the {H, S, T, X, Z, CNOT} basis
 /// Opt-in only.
-/// `gridsynth` is stochastic and may take some time, so this
-/// helper must not be added to default target pipelines.
+/// This helper is not added to default target pipelines.
 void addCliffordTSynthesis(mlir::OpPassManager &pm, double epsilon = 1e-10);
 
 void registerAOTPipelines();
