@@ -699,43 +699,6 @@ if (CUDAQ_ENABLE_PYTHON)
   find_package(Python 3 COMPONENTS Interpreter Development)
   find_package(Python3 COMPONENTS Interpreter Development)
 
-  # Apply specific patch to pybind11 for our documentation.
-  # Only apply the patch if not already applied.
-  execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind.h.diff --ignore-whitespace --reverse --check
-                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                  RESULT_VARIABLE GIT_PATCH_RESULT
-                  ERROR_QUIET)
-  if (NOT GIT_PATCH_RESULT EQUAL "0")
-    execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind.h.diff --ignore-whitespace
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                    RESULT_VARIABLE GIT_PATCH_RESULT)
-  endif()
-  if (NOT GIT_PATCH_RESULT EQUAL "0")
-    message(FATAL_ERROR "Applying patch to submodule failed with ${GIT_PATCH_RESULT}, please update patch")
-  endif()
-
-  # Apply patch to fix LTO flag bug with Clang (https://github.com/pybind/pybind11/issues/5098)
-  execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind11Common.cmake.diff --ignore-whitespace --reverse --check
-                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                  RESULT_VARIABLE GIT_PATCH_RESULT
-                  ERROR_QUIET)
-  if (NOT GIT_PATCH_RESULT EQUAL "0")
-    execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind11Common.cmake.diff --ignore-whitespace
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                    RESULT_VARIABLE GIT_PATCH_RESULT)
-  endif()
-  if (NOT GIT_PATCH_RESULT EQUAL "0")
-    message(FATAL_ERROR "Applying LTO patch to submodule failed with ${GIT_PATCH_RESULT}, please update patch")
-  endif()
-
-  # Regarding the use of PyBind, we need to be careful that the same STL is used for any
-  # Python bindings generated as part of the CUDA-Q build and bindings generated for
-  # third party CUDA-Q libraries; see also https://github.com/pybind/pybind11/issues/1262
-  add_subdirectory(tpls/pybind11)
-
-  # nanobind is used for all CUDA-Q Python bindings. pybind11 is retained only
-  # for upstream MLIR Python extensions (e.g., _mlirAsyncPasses) which use
-  # mlir/Bindings/Python/PybindAdaptors.h.
   add_subdirectory(tpls/nanobind)
 
   add_subdirectory(python)
