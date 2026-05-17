@@ -14,6 +14,7 @@
 #include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include <future>
+#include <memory>
 #include <nanobind/nanobind.h>
 #include <nanobind/ndarray.h>
 #include <nanobind/stl/complex.h>
@@ -135,10 +136,13 @@ run_impl(const std::string &shortName, MlirModule module,
 namespace {
 // Internal struct representing buffer to be filled asynchronously.
 // When the `ready` future is set, the content of the buffer is filled.
+// `results` and `error` are owned by the struct; the deferred future captures
+// non-owning raw pointers to them, which stay valid for the future's lifetime
+// because the future is destroyed before these members.
 struct async_run_result {
+  std::unique_ptr<std::vector<nanobind::object>> results;
+  std::unique_ptr<std::string> error;
   std::future<void> ready;
-  std::vector<nanobind::object> *results;
-  std::string *error;
 };
 } // namespace
 
@@ -147,9 +151,6 @@ static async_run_result
 run_async_impl(const std::string &shortName, MlirModule module,
                std::size_t shots_count, std::optional<noise_model> noise_model,
                std::size_t qpu_id, nanobind::args runtimeArgs) {
-  if (!shots_count)
-    return {};
-
   auto &platform = get_platform();
   auto numQPUs = platform.num_qpus();
   if (qpu_id >= numQPUs)
@@ -166,8 +167,8 @@ run_async_impl(const std::string &shortName, MlirModule module,
         "Noise model is not supported on remote platforms.");
 
   async_run_result result;
-  result.results = new std::vector<nanobind::object>();
-  result.error = new std::string();
+  result.results = std::make_unique<std::vector<nanobind::object>>();
+  result.error = std::make_unique<std::string>();
 
   if (shots_count == 0) {
     std::promise<void> promise;
@@ -219,21 +220,20 @@ run_async_impl(const std::string &shortName, MlirModule module,
     // Release GIL to allow c++ threads, re-acquire for conversion of the
     // results to python objects.
     nanobind::gil_scoped_release gil_release{};
-    auto resultFuture =
-        std::async(std::launch::deferred,
-                   [sf = std::move(spanFuture), ef = std::move(errorFuture),
-                    errorPtr = result.error, resultsPtr = result.results, mod,
-                    shots_count, shortName]() mutable {
-                     auto error = ef.get();
-                     std::swap(*errorPtr, error);
-                     if (error.empty()) {
-                       auto span = sf.get();
-                       nanobind::gil_scoped_acquire gil{};
-                       auto results =
-                           pyReadResults(span, mod, shots_count, shortName);
-                       std::swap(*resultsPtr, results);
-                     }
-                   });
+    auto resultFuture = std::async(
+        std::launch::deferred,
+        [sf = std::move(spanFuture), ef = std::move(errorFuture),
+         errorPtr = result.error.get(), resultsPtr = result.results.get(), mod,
+         shots_count, shortName]() mutable {
+          auto error = ef.get();
+          std::swap(*errorPtr, error);
+          if (error.empty()) {
+            auto span = sf.get();
+            nanobind::gil_scoped_acquire gil{};
+            auto results = pyReadResults(span, mod, shots_count, shortName);
+            std::swap(*resultsPtr, results);
+          }
+        });
     result.ready = std::move(resultFuture);
   }
 
@@ -272,14 +272,9 @@ void cudaq::bindPyRunAsync(nanobind::module_ &mod) {
               nanobind::gil_scoped_release release;
               self.ready.get();
             }
-            auto err = *self.error;
-            if (!err.empty()) {
-              delete self.error;
-              throw std::runtime_error(err);
-            }
-            auto ret = *self.results;
-            delete self.results;
-            return ret;
+            if (!self.error->empty())
+              throw std::runtime_error(*self.error);
+            return std::move(*self.results);
           },
           "FIXME: documentation goes here");
 

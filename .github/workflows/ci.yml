@@ -41,7 +41,6 @@ jobs:
       pull_request_base: ${{ steps.pr_info.outputs.pr_base }}
       cache_base: ${{ steps.pr_info.outputs.pr_base }}
       llvm_commit: ${{ steps.repo_info.outputs.llvm_commit }}
-      pybind11_commit: ${{ steps.repo_info.outputs.pybind11_commit }}
       nanobind_commit: ${{ steps.repo_info.outputs.nanobind_commit }}
       platform_config: ${{ steps.config.outputs.platforms }}
       build_test_matrix: ${{ steps.config.outputs.build_test_matrix }}
@@ -111,7 +110,6 @@ jobs:
       - id: repo_info
         run: |
           echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
-          echo "pybind11_commit=$(git rev-parse @:./tpls/pybind11)" >> $GITHUB_OUTPUT
           echo "nanobind_commit=$(git rev-parse @:./tpls/nanobind)" >> $GITHUB_OUTPUT
 
   devdeps:
@@ -121,7 +119,7 @@ jobs:
       matrix:
         platform: [amd64, arm64]
         toolchain: [llvm, gcc12]
-      fail-fast: false
+      fail-fast: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/dev_environment.yml
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -145,7 +143,7 @@ jobs:
       matrix:
         platform: [amd64, arm64]
         cuda_version: ["12.6", "13.0"]
-      fail-fast: false
+      fail-fast: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/dev_environment.yml
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -160,7 +158,6 @@ jobs:
         toolchain=gcc12
         distro=rhel8
         llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
-        pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
         nanobind_commit=${{ needs.metadata.outputs.nanobind_commit }}
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       environment: ghcr-ci
@@ -176,7 +173,7 @@ jobs:
       matrix:
         platform: [amd64, arm64]
         cuda_version: ["12.6", "13.0"]
-      fail-fast: false
+      fail-fast: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/dev_environment.yml
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -241,7 +238,7 @@ jobs:
     needs: [metadata, config_devdeps]
     strategy:
       matrix: ${{ fromJson(needs.metadata.outputs.build_test_matrix) }}
-      fail-fast: false
+      fail-fast: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/test_in_devenv.yml
     with:
       platform: linux/${{ matrix.platform }}
@@ -258,7 +255,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64]
-      fail-fast: false
+      fail-fast: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/generate_cc.yml
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -277,7 +274,7 @@ jobs:
     strategy:
       matrix:
         platform: [amd64, arm64]
-      fail-fast: false
+      fail-fast: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/docker_images.yml
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -298,7 +295,7 @@ jobs:
         platform: [amd64, arm64]
         python_version: ['3.11', '3.13']
         cuda_version: ["12.6", "13.0"]
-      fail-fast: false
+      fail-fast: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/python_wheels.yml
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -331,7 +328,7 @@ jobs:
       matrix:
         platform: [amd64, arm64]
         cuda_version: ["12.6", "13.0"]
-      fail-fast: false
+      fail-fast: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/prebuilt_binaries.yml
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -444,9 +441,10 @@ jobs:
             esac
           }
 
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           # All sub-jobs (with names + html_url + conclusion). Paginate; this
           # workflow can have hundreds of matrix legs across reusable workflows.
-          gh api --paginate "repos/$REPO/actions/runs/$RUN_ID/jobs" \
+          retry gh api --paginate "repos/$REPO/actions/runs/$RUN_ID/jobs" \
             --jq '.jobs[] | {name, html_url, conclusion, status, started_at, completed_at}' \
             | jq -s '.' > /tmp/jobs.json
 
@@ -630,14 +628,15 @@ jobs:
         if: env.PR_NUMBER != ''
         run: |
           set -euo pipefail
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           marker="<!-- ci-summary:${{ github.workflow }}:${EVENT_NAME} -->"
-          existing=$(gh api --paginate "repos/$REPO/issues/$PR_NUMBER/comments" \
+          existing=$(retry gh api --paginate "repos/$REPO/issues/$PR_NUMBER/comments" \
             --jq ".[] | select(.body | startswith(\"$marker\")) | .id" | head -1 || true)
           if [ -n "$existing" ]; then
             jq -Rs '{body: .}' < /tmp/comment.md \
-              | gh api "repos/$REPO/issues/comments/$existing" -X PATCH --input -
+              | retry gh api "repos/$REPO/issues/comments/$existing" -X PATCH --input -
           else
-            gh pr comment "$PR_NUMBER" --repo "$REPO" --body-file /tmp/comment.md
+            retry gh pr comment "$PR_NUMBER" --repo "$REPO" --body-file /tmp/comment.md
           fi
         continue-on-error: true
 

@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/TypeSwitch.h"
+#include "llvm/IR/DataLayout.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/ControlFlow/IR/ControlFlowOps.h"
 #include "mlir/Dialect/Utils/IndexingUtils.h"
@@ -75,6 +76,16 @@ Value cudaq::cc::getByteSizeOfType(OpBuilder &builder, Location loc, Type ty,
               [](cudaq::cc::PointerType ptrTy) -> std::optional<std::int32_t> {
                 // TODO: get this from the target specification. For now
                 // we're assuming pointers are 64 bits.
+                return {8};
+              })
+          .Case(
+              [](cudaq::cc::MeasureHandleType) -> std::optional<std::int32_t> {
+                // `!cc.measure_handle` is the IR alias of
+                // `cudaq::measure_handle`, a class with a single `std::int64_t`
+                // field. A later pass replaces it with `i64`, until then it is
+                // statically 8 bytes wide. Required so
+                // `__nvqpp_vectorCopyCtor` gets a constant element size when a
+                // pure-device kernel returns `std::vector<measure_handle>`.
                 return {8};
               })
           .Default({});
@@ -197,7 +208,7 @@ void cudaq::cc::AllocaOp::getCanonicalizationPatterns(
 
 LogicalResult cudaq::cc::AllocaOp::verify() {
   // It is deeply incorrect to allocate storage for quake abstract types.
-  if (quake::isQuakeType(getElementType()))
+  if (cudaq::quake::isQuakeType(getElementType()))
     return emitOpError("cannot classically allocate quake abstract type");
   return success();
 }
@@ -497,25 +508,48 @@ LogicalResult cudaq::cc::CastOp::verify() {
 }
 
 namespace {
-// There are a number of series of casts that can be fused. For now, fuse
-// pointer cast chains.
+// Fold cast cascades whose endpoints are both pointer types. Two shapes:
+//   - ptr -> ptr -> ptr  (eliminate the intermediate pointer view)
+//   - ptr -> int -> ptr  (eliminate the integer round-trip), only when the
+//                        integer hop is at least as wide as a pointer
 struct FuseCastCascade : public OpRewritePattern<cudaq::cc::CastOp> {
   using OpRewritePattern::OpRewritePattern;
 
   LogicalResult matchAndRewrite(cudaq::cc::CastOp castOp,
                                 PatternRewriter &rewriter) const override {
-    if (auto castToCast = castOp.getValue().getDefiningOp<cudaq::cc::CastOp>())
-      if (isa<cudaq::cc::PointerType>(castOp.getType()) &&
-          isa<cudaq::cc::PointerType>(castToCast.getType())) {
-        // %4 = cc.cast %3 : (!cc.ptr<T>) -> !cc.ptr<U>
-        // %5 = cc.cast %4 : (!cc.ptr<U>) -> !cc.ptr<V>
-        // ────────────────────────────────────────────
-        // %5 = cc.cast %3 : (!cc.ptr<T>) -> !cc.ptr<V>
-        rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(castOp, castOp.getType(),
-                                                       castToCast.getValue());
-        return success();
-      }
-    return failure();
+    auto castToCast = castOp.getValue().getDefiningOp<cudaq::cc::CastOp>();
+    if (!castToCast)
+      return failure();
+    if (!isa<cudaq::cc::PointerType>(castOp.getType()))
+      return failure();
+    if (!isa<cudaq::cc::PointerType>(castToCast.getValue().getType()))
+      return failure();
+    auto middleTy = castToCast.getType();
+    if (auto intTy = dyn_cast<IntegerType>(middleTy)) {
+      // The fold collapses `ptr -> int -> ptr` to `ptr -> ptr`. That is
+      // value-preserving only when the integer hop holds the full pointer
+      // payload; on a 64-bit target, `ptr -> i32 -> ptr` truncates the high
+      // bits and the folded form would observe a different value.
+      //
+      // Parse the data layout to recover the pointer width. If the
+      // attribute is missing, don't fold so the rule remains correct in the
+      // absence of layout information.
+      auto module = castOp->getParentOfType<ModuleOp>();
+      auto dlAttr = module ? module->getAttrOfType<StringAttr>(
+                                 cudaq::opt::factory::targetDataLayoutAttrName)
+                           : nullptr;
+      if (!dlAttr)
+        return failure();
+      llvm::DataLayout dl(dlAttr.getValue());
+      auto ptrBits = dl.getPointerSizeInBits(/*AS=*/0);
+      if (intTy.getWidth() < ptrBits)
+        return failure();
+    } else if (!isa<cudaq::cc::PointerType>(middleTy)) {
+      return failure();
+    }
+    rewriter.replaceOpWithNewOp<cudaq::cc::CastOp>(castOp, castOp.getType(),
+                                                   castToCast.getValue());
+    return success();
   }
 };
 
@@ -1327,13 +1361,25 @@ struct CollapseCastToStdvecInit
       auto toTy = cast<cudaq::cc::PointerType>(buff.getType()).getElementType();
       if (auto arrTy = dyn_cast<cudaq::cc::ArrayType>(fromTy))
         if (!isa<cudaq::cc::ArrayType>(toTy)) {
-          if (arrTy.isUnknownSize())
+          if (arrTy.isUnknownSize()) {
             rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
                 init, init.getType(), castVal, init.getLength());
-          else
+            return success();
+          }
+          const std::uint64_t arrSize = arrTy.getSize();
+          Value initLen = init.getLength();
+          auto initSize = [&]() -> std::uint64_t {
+            if (!initLen)
+              return arrSize;
+            if (auto optInt = cudaq::opt::factory::getIntIfConstant(initLen))
+              return *optInt;
+            return arrSize + 1; // do not replace this one
+          }();
+          if (!initLen || arrSize == initSize) {
             rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
                 init, init.getType(), castVal);
-          return success();
+            return success();
+          }
         }
     }
     return failure();
@@ -1909,6 +1955,12 @@ void cudaq::cc::ScopeOp::build(OpBuilder &builder, OperationState &result,
     bodyBuilder(builder, result.location);
 }
 
+void cudaq::cc::ScopeOp::build(OpBuilder &builder, OperationState &result,
+                               TypeRange resultTys, BodyBuilderFn bodyBuilder) {
+  build(builder, result, bodyBuilder);
+  result.addTypes(resultTys);
+}
+
 void cudaq::cc::ScopeOp::print(OpAsmPrinter &p) {
   bool printBlockTerminators = getRegion().getBlocks().size() > 1;
   if (!getResults().empty()) {
@@ -1971,7 +2023,7 @@ bool hasAllocation(Region &region) {
     for (auto &op : block) {
       if (auto mem = dyn_cast<MemoryEffectOpInterface>(op))
         if (mem.hasEffect<MemoryEffects::Allocate>())
-          if (quantumAllocs || !isa<quake::AllocaOp>(op))
+          if (quantumAllocs || !isa<cudaq::quake::AllocaOp>(op))
             return true;
       if (!isa<cudaq::cc::ScopeOp>(op))
         for (auto &opReg : op.getRegions())
@@ -2155,7 +2207,7 @@ ParseResult cudaq::cc::IfOp::parse(OpAsmParser &parser,
     if (parser.parseAssignmentList(regionArgs, linearOperands) ||
         parser.parseRParen())
       return failure();
-    Type wireTy = quake::WireType::get(builder.getContext());
+    Type wireTy = cudaq::quake::WireType::get(builder.getContext());
     for (auto argOperand : llvm::zip(regionArgs, linearOperands)) {
       std::get<0>(argOperand).type = wireTy;
       if (parser.resolveOperand(std::get<1>(argOperand), wireTy,
@@ -2171,7 +2223,7 @@ ParseResult cudaq::cc::IfOp::parse(OpAsmParser &parser,
     // region arguments. (It can have more.)
     std::int64_t numRegionArgs = regionArgs.size();
     std::for_each(result.types.begin(), result.types.end(), [&](Type t) {
-      if (quake::isLinearType(t))
+      if (cudaq::quake::isLinearType(t))
         --numRegionArgs;
     });
     if (numRegionArgs > 0)
@@ -2232,7 +2284,7 @@ void cudaq::cc::IfOp::getEntrySuccessorRegions(
 template <typename A>
 long countLinearArgs(const A &iterable) {
   return std::count_if(iterable.begin(), iterable.end(),
-                       [](Type t) { return quake::isLinearType(t); });
+                       [](Type t) { return cudaq::quake::isLinearType(t); });
 }
 
 LogicalResult cudaq::cc::verifyConvergentLinearTypesInRegions(Operation *op) {

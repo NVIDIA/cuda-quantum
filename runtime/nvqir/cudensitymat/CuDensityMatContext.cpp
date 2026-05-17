@@ -128,6 +128,13 @@ int Context::getRank() const {
   return cudaq::mpi::is_initialized() ? cudaq::mpi::rank() : 0;
 }
 
+bool Context::setMpiCommunicator(void *comm, int commSizeBytes) {
+  cudaqDistributedInterface_t *mpiInterface = getMpiPluginInterface();
+  return cudensitymatResetDistributedConfiguration(
+             m_cudmHandle, CUDENSITYMAT_DISTRIBUTED_PROVIDER_MPI, comm,
+             commSizeBytes) == CUDENSITYMAT_STATUS_SUCCESS;
+}
+
 /// @brief Destroy the Context object and release resources.
 Context::~Context() {
   m_opConverter.reset();

@@ -8,11 +8,6 @@
 
 add_subdirectory(helpers)
 
-if (cuStateVec_FOUND)
-  add_subdirectory(custatevec)
-endif()
-add_subdirectory(remote)
-
 set(LIBRARY_NAME cudaq-platform-mqpu)
 add_library(${LIBRARY_NAME}
   SHARED MultiQPUPlatform.cpp)
@@ -31,17 +26,18 @@ target_link_libraries(${LIBRARY_NAME}
     cudaq-logger
     fmt::fmt-header-only
     cudaq
+    nvqir
     mqpu_util
     CUDAQTargetConfigUtil
+    cudaq-qpu-default
     pthread
 )
 
+add_target_config(nvidia-mqpu)
+
 if (cuStateVec_FOUND)
-  target_link_libraries(${LIBRARY_NAME} PRIVATE gpu-emulated-qpu)
-  add_target_config(nvidia-mqpu)
   add_target_config(nvidia-mqpu-mps)
   add_target_config(nvidia-mqpu-fp64)
 endif()
 
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
-add_target_config(remote-mqpu)

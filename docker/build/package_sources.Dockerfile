@@ -39,6 +39,10 @@ FROM ${base_image}
 SHELL ["/bin/bash", "-c"]
 ARG DEBIAN_FRONTEND=noninteractive
 
+# Tolerate transient apt mirror failures.
+RUN echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries \
+    && echo 'Acquire::Retries::Delay::Maximum "30";' >> /etc/apt/apt.conf.d/80-retries
+
 # Install deps for fetching apt source, pip sdists, and cloning tpls
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \

@@ -635,10 +635,9 @@ std::optional<opt::LoopComponents> opt::getLoopComponents(cc::LoopOp loop) {
            (getLinearExpr(cmpOp.getRhs(), result, loop) ==
             whileEntry.getArgument(idx));
   };
-  auto scanRegionForStep = [&]<typename TERM,
-                               int argsOff = computeArgsOffset<TERM>()>(Region &
-                                                                        reg)
-                               ->std::optional<unsigned> {
+  auto scanRegionForStep =
+      [&]<typename TERM, int argsOff = computeArgsOffset<TERM>()>(
+          Region &reg) -> std::optional<unsigned> {
     // Pre-scan to make sure all terminators are ContinueOp.
     for (auto &block : reg)
       if (block.hasNoSuccessors())

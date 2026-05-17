@@ -13,6 +13,7 @@
 #include "cudaq/algorithms/broadcast.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
+#include "cudaq/platform.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
 #include "cudaq/qis/kernel_utils.h"
 #include <cstdint>
@@ -168,8 +169,7 @@ std::vector<
 run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel,
     ARGS &&...args) {
   auto &platform = cudaq::get_platform();
-  if (platform.get_remote_capabilities().isRemoteSimulator ||
-      platform.is_remote())
+  if (platform.is_remote())
     throw std::runtime_error(
         "Noise model is not supported on remote platforms.");
   if (shots == 0)
@@ -294,8 +294,7 @@ run_async(std::size_t qpu_id, std::size_t shots,
   if (qpu_id >= platform.num_qpus())
     throw std::invalid_argument(
         "Provided qpu_id is invalid (must be <= to platform.num_qpus()).");
-  if (platform.get_remote_capabilities().isRemoteSimulator ||
-      platform.is_remote())
+  if (platform.is_remote())
     throw std::runtime_error(
         "Noise model is not supported on remote platforms.");
   // Launch the kernel in the appropriate context.

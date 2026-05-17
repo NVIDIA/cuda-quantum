@@ -71,6 +71,7 @@ set(CUDAQ_RUNTIME_TEST_SOURCES
   ptsbe/PTSBEMultiBackendTester.cpp
   integration/tracer_tester.cpp
   integration/gate_library_tester.cpp
+  integration/analysis_scope_tester.cpp
 )
 
 # Make it so we can get function symbols
@@ -308,6 +309,7 @@ if(TARGET nvqir-tensornet)
   target_include_directories(test_tensornet_observe_path_reuse PRIVATE .)
   target_compile_definitions(test_tensornet_observe_path_reuse
                              PRIVATE -DNVQIR_BACKEND_NAME=tensornet)
+  target_compile_definitions(test_tensornet_observe_path_reuse PRIVATE -DCUDAQ_BACKEND_TENSORNET)
   if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
     target_link_options(test_tensornet_observe_path_reuse PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
   endif()
@@ -388,6 +390,7 @@ if (CUDA_FOUND AND TARGET nvqir-dynamics)
    PRIVATE
    cudaq-operator
    cudaq
+   cudaq-em-default
    cudaq-logger
    nvqir-dynamics
    cuDensityMat::cuDensityMat
@@ -501,19 +504,6 @@ target_link_libraries(test_utils
   gtest_main)
 gtest_discover_tests(test_utils PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
 
-add_executable(test_json_convert main.cpp common/JsonConvertTester.cpp)
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
-  target_link_options(test_json_convert PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
-endif()
-target_link_libraries(test_json_convert
-  PRIVATE
-  cudaq
-  cudaq-platform-default
-  nvqir
-  nvqir-qpp
-  gtest_main)
-gtest_discover_tests(test_json_convert PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
-
 add_executable(test_ptsbe main.cpp
   ptsbe/KrausSelectionTester.cpp
   ptsbe/KrausTrajectoryTester.cpp
@@ -552,6 +542,7 @@ target_link_libraries(test_nvqir_verify
     MLIRSupport
     MLIROptLib
     cudaq-qir-verifier
+    cudaq-platform-default
     gtest_main)
 gtest_discover_tests(test_nvqir_verify DISCOVERY_TIMEOUT 120)
 

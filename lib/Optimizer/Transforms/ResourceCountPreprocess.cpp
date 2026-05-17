@@ -42,7 +42,7 @@ struct ResourceCountPreprocessPass
     if (it != qubitIndexMap.end())
       return it->second;
     auto base = nextQubitIndex;
-    if (auto size = quake::getVeqSize(veq))
+    if (auto size = cudaq::quake::getVeqSize(veq))
       nextQubitIndex += *size;
     qubitIndexMap[veq] = base;
     return base;
@@ -51,15 +51,15 @@ struct ResourceCountPreprocessPass
   /// Resolve a quake value to a globally unique qubit index.
   std::optional<std::size_t> resolveQubitIndex(Value v) {
     // extract_ref from a qvector: base offset + local index.
-    if (auto extractRef = v.getDefiningOp<quake::ExtractRefOp>())
+    if (auto extractRef = v.getDefiningOp<cudaq::quake::ExtractRefOp>())
       if (extractRef.hasConstantIndex())
         return getVeqBase(extractRef.getVeq()) + extractRef.getConstantIndex();
     // Wire semantics: concrete physical index from routing.
-    if (auto borrow = v.getDefiningOp<quake::BorrowWireOp>())
+    if (auto borrow = v.getDefiningOp<cudaq::quake::BorrowWireOp>())
       return static_cast<std::size_t>(borrow.getIdentity());
     // Single-qubit alloca: assign a unique index by declaration order.
-    if (v.getDefiningOp<quake::AllocaOp>() &&
-        isa<quake::RefType>(v.getType())) {
+    if (v.getDefiningOp<cudaq::quake::AllocaOp>() &&
+        isa<cudaq::quake::RefType>(v.getType())) {
       auto it = qubitIndexMap.find(v);
       if (it != qubitIndexMap.end())
         return it->second;
@@ -74,13 +74,13 @@ struct ResourceCountPreprocessPass
     if (!isQuakeOperation(op))
       return false;
 
-    auto opi = dyn_cast<quake::OperatorInterface>(op);
+    auto opi = dyn_cast<cudaq::quake::OperatorInterface>(op);
 
     if (!opi)
       return false;
 
     // Measures may affect control flow, don't remove for now
-    if (isa<quake::MeasurementInterface>(op))
+    if (isa<cudaq::quake::MeasurementInterface>(op))
       return false;
 
     auto name = op->getName().stripDialect();
@@ -92,7 +92,8 @@ struct ResourceCountPreprocessPass
     // (e.g. from ConcatOp when Python passes a list of controls).
     auto resolveOperands = [&](auto operands, std::vector<std::size_t> &out) {
       for (auto val : operands) {
-        if (auto concat = val.template getDefiningOp<quake::ConcatOp>()) {
+        if (auto concat =
+                val.template getDefiningOp<cudaq::quake::ConcatOp>()) {
           for (auto operand : concat.getTargets()) {
             if (auto idx = resolveQubitIndex(operand))
               out.push_back(*idx);

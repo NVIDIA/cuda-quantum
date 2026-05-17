@@ -8,12 +8,14 @@
 
 #pragma once
 #include "common/ExecutionContext.h"
-#include "common/ServerHelper.h"
+#include "common/KernelExecution.h"
+#include "common/Registry.h"
 #include <memory>
 
 namespace cudaq {
 
 class RestClient;
+class ServerHelper;
 
 /// @brief The Executor provides an abstraction for executing compiled
 /// quantum codes targeting a remote REST server. This type provides a

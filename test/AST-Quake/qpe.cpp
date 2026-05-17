@@ -329,7 +329,7 @@ int main() {
 // CHECK:             }
 // CHECK:           }
 // CHECK:           call @__nvqpp__mlirgen__function_iqft{{.*}}(%[[VAL_20]]) : (!quake.veq<?>) -> ()
-// CHECK:           %[[VAL_54:.*]] = quake.mz %[[VAL_20]] : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
+// CHECK:           %[[VAL_54:.*]] = quake.mz %[[VAL_20]] : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
 // CHECK:           return
 // CHECK:         }
 

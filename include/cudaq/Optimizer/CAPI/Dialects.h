@@ -16,6 +16,7 @@ extern "C" {
 #endif
 
 MLIR_DECLARE_CAPI_DIALECT_REGISTRATION(Quake, quake);
+MLIR_DECLARE_CAPI_DIALECT_REGISTRATION(QEC, qec);
 MLIR_DECLARE_CAPI_DIALECT_REGISTRATION(CC, cc);
 
 // Register Quake, CC, and all upstream MLIR dialects into `context`.

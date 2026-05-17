@@ -22,10 +22,10 @@ from cudaq.mlir.execution_engine import ExecutionEngine
 from cudaq.mlir.dialects import func
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import quake, cc
-from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, IntegerType, Context,
-                           Module)
+from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, FunctionType,
+                           IntegerType, Context, Module)
 from cudaq.mlir._mlir_libs._quakeDialects import register_all_dialects
-from cudaq.kernel_types import qubit, qvector, qview
+from cudaq.kernel_types import measure_handle, qubit, qvector, qview
 
 State = cudaq_runtime.State
 pauli_word = cudaq_runtime.pauli_word
@@ -415,6 +415,8 @@ def mlirTypeFromAnnotation(annotation,
                     return quake.RefType.get()
                 if annotation.attr == 'pauli_word':
                     return cc.CharspanType.get()
+                if annotation.attr == 'measure_handle':
+                    return cc.MeasureHandleType.get()
 
             if annotation.value.id in ['numpy', 'np']:
                 if annotation.attr in ['array', 'ndarray']:
@@ -707,6 +709,8 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         return quake.RefType.get(ctx)
     if argType == pauli_word:
         return cc.CharspanType.get(ctx)
+    if argType == measure_handle:
+        return cc.MeasureHandleType.get(ctx)
 
     if 'argInstance' in kwargs:
         argInstance = kwargs['argInstance']
@@ -785,6 +789,9 @@ def mlirTypeToPyType(argType):
 
     if cc.CharspanType.isinstance(argType):
         return pauli_word
+
+    if cc.MeasureHandleType.isinstance(argType):
+        return measure_handle
 
     if cc.StdvecType.isinstance(argType):
         eleTy = cc.StdvecType.getElementType(argType)

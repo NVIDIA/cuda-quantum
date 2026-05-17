@@ -29,7 +29,7 @@ def AddMeasurements : Pass<"add-measurements", "mlir::func::FuncOp"> {
 
   }];
   
-  let dependentDialects = ["quake::QuakeDialect",
+  let dependentDialects = ["cudaq::quake::QuakeDialect",
     "mlir::cf::ControlFlowDialect"];
 }
 
@@ -236,7 +236,7 @@ def CombineMeasurements :
     }
     ```
   }];
-  let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect", "cudaq::quake::QuakeDialect"];
 }
 
 def CombineQuantumAllocations :
@@ -256,7 +256,7 @@ def CombineQuantumAllocations :
     combined deallocation will be added to each exit block.
   }];
 
-  let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect", "cudaq::quake::QuakeDialect"];
 }
 
 def ConstantPropagation : Pass<"constant-propagation", "mlir::func::FuncOp"> {
@@ -275,6 +275,8 @@ def ConvertToDirectCalls : Pass<"indirect-to-direct-calls", "mlir::ModuleOp"> {
     quantum code will call other quantum code directly and without going
     indirectly through the launch kernel runtime.
   }];
+
+  let dependentDialects = ["cudaq::cc::CCDialect"];
 }
 
 def DeadStoreRemoval : Pass<"dead-store-removal"> {
@@ -363,7 +365,7 @@ def DependencyAnalysis : Pass<"dep-analysis", "mlir::ModuleOp"> {
     when running DependencyAnalysis.
   }];
 
-  let dependentDialects = ["quake::QuakeDialect"];
+  let dependentDialects = ["cudaq::quake::QuakeDialect"];
 
   let statistics = [
     Statistic<"numVirtualQubits", "num-virtual-qubits",
@@ -408,7 +410,7 @@ def DesugarCableOps : Pass<"desugar-cable-ops"> {
     ```
   }];
 
-  let dependentDialects = ["quake::QuakeDialect"];
+  let dependentDialects = ["cudaq::quake::QuakeDialect"];
 }
 
 def DistributedDeviceCall : Pass<"distributed-device-call", "mlir::ModuleOp"> {
@@ -507,7 +509,7 @@ def FactorQuantumAllocations :
     If the function contains deallocations of quantum vectors (`veq`), these
     will be replaced with a series of deallocations.
   }];
-  let dependentDialects = ["quake::QuakeDialect", "cudaq::cc::CCDialect"];
+  let dependentDialects = ["cudaq::quake::QuakeDialect", "cudaq::cc::CCDialect"];
 
   let options = [
     Option<"enableFailures", "enable-failures", "bool", /*default=*/"false",
@@ -965,7 +967,7 @@ def MemToReg : Pass<"memtoreg", "mlir::func::FuncOp"> {
     SSA semantics. A use can destroy the value itself, therefore it is required
     that `wire` values be threads in and out of each and every use.
   }];
-  let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect", "cudaq::quake::QuakeDialect"];
 
   let options = [
     Option<"classicalValues", "classical", "bool",
@@ -1039,7 +1041,7 @@ def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
     "Minimumn percentage of rz ops in subcircuit to run phase folding">,
   ];
 
-  let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect", "cudaq::quake::QuakeDialect"];
 }
 
 def PromoteRefToVeqAlloc : Pass<"promote-qubit-allocation"> {
@@ -1187,7 +1189,7 @@ def RegToMem : Pass<"regtomem", "mlir::func::FuncOp"> {
     use cloning to recover such a finite DAG representation. This pass does not,
     however, attempt to perform such heroics.
   }];
-  let dependentDialects = ["cudaq::cc::CCDialect", "quake::QuakeDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect", "cudaq::quake::QuakeDialect"];
 }
 
 def ReplaceStateWithKernel : Pass<"replace-state-with-kernel",
@@ -1308,6 +1310,22 @@ def ResourceCountPreprocess :
   ];
 }
 
+def RunSemanticsHackery : Pass<"run-semantics-hackery", "mlir::ModuleOp"> {
+  let summary = "Run semantics hackery";
+  let description = [{
+    The design of the `cudaq::run` feature breaks the semantics of the host
+    language.  While that is a terrible design decision, we strive to work
+    around the inherent flaws. This pass should be used after the
+    `kernel-execution` pass to clean up some of the semantics potholes and
+    brokenness left behind.
+
+    Ideally, we'd just fix the CUDA-Q spec and use first-class output logging
+    functions.
+  }];
+
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
+}
+
 def SROA : Pass<"cc-sroa"> {
   let summary = "Scalar replacement of aggregates.";
   let description = [{
@@ -1332,9 +1350,9 @@ def StackFramePrealloc : Pass<"stack-frame-prealloc", "mlir::func::FuncOp"> {
     based on their scopes, but works at a lower semantic level of the IR. This
     pass aims to optimize patterns such as
     ```mlir
-      %10 = call @llvm.stacksave()
+      %10 = call @llvm.stacksave.p0()
       %24 = cc.alloca !T
-      call @llvm.stackrestore(%10)
+      call @llvm.stackrestore.p0(%10)
     ```
     such that the allocation, %24, is moved to the entry block and the two
     stack guards, if they guard no allocations, can be correctly removed.
@@ -1429,7 +1447,8 @@ def UnitarySynthesis : Pass<"unitary-synthesis", "mlir::ModuleOp"> {
       }
     ```
   }];
-  let dependentDialects = ["mlir::arith::ArithDialect", "mlir::func::FuncDialect"];
+  let dependentDialects = ["mlir::arith::ArithDialect",
+    "mlir::func::FuncDialect"];
 }
 
 def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {
@@ -1457,7 +1476,7 @@ def UnwindLowering : Pass<"unwind-lowering", "mlir::func::FuncOp"> {
   }];
 
   let dependentDialects = ["mlir::cf::ControlFlowDialect",
-                           "quake::QuakeDialect", "cudaq::cc::CCDialect"];
+                           "cudaq::quake::QuakeDialect", "cudaq::cc::CCDialect"];
 }
 
 def UpdateRegisterNames : Pass<"update-register-names"> {

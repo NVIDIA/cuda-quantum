@@ -30,6 +30,124 @@ static Type getResultType(Type ty) {
   return ty;
 }
 
+namespace {
+// `measure_handle` arrives at the bridge as either an SSA `!cc.measure_handle`
+// (the rvalue from `mz`/`mx`/`my`, a copy/move ctor result, etc.) or as the
+// pointer form `!cc.ptr<!cc.measure_handle>` left by lvalue access (named
+// variable read, `operator=` LHS, struct-member-of-handle, ...). The
+// discrimination, copy, and `to_bools` paths all want the value form, so funnel
+// that normalization through one helper rather than open-coding the dyn_cast
+// chain at every call site.
+Value loadHandleIfPointer(OpBuilder &builder, Location loc, Value v) {
+  if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(v.getType()))
+    if (isa<cudaq::cc::MeasureHandleType>(ptrTy.getElementType()))
+      return cudaq::cc::LoadOp::create(builder, loc, v);
+  return v;
+}
+
+// Same intent as `loadHandleIfPointer`, but for the bulk-discriminate /
+// `to_integer` paths where the lvalue carries a `std::vector<measure_handle>`.
+Value loadHandleVectorIfPointer(OpBuilder &builder, Location loc, Value v) {
+  if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(v.getType()))
+    if (auto sv = dyn_cast<cudaq::cc::StdvecType>(ptrTy.getElementType());
+        sv && isa<cudaq::cc::MeasureHandleType>(sv.getElementType()))
+      return cudaq::cc::LoadOp::create(builder, loc, v);
+  return v;
+}
+} // namespace
+
+// Operands of `&&`, `||`, and `?:` lower into the orphan regions that
+// `cc::IfOp::create`'s region-builder lambdas populate before the op is
+// attached to its parent block. A function-rooted `mlir::DominanceInfo` cannot
+// see ops in that subtree, so the unbound-handle check needs a structural
+// ancestor walk instead. Return true iff the store's block lexically dominates
+// the load's insertion point, treating yet-unattached parent regions as
+// post-store by construction (the bridge always emits the store at the outer
+// level before opening the inner `cc.if`).
+static bool storeDominatesLoad(cudaq::cc::StoreOp store,
+                               cudaq::cc::LoadOp load) {
+  Block *storeBlock = store.getOperation()->getBlock();
+  if (!storeBlock)
+    return false;
+  Operation *anchor = load.getOperation();
+  while (anchor && anchor->getBlock() != storeBlock) {
+    Block *anchorBlock = anchor->getBlock();
+    if (!anchorBlock)
+      return false;
+    anchor = anchorBlock->getParentOp();
+    if (!anchor)
+      return true;
+  }
+  if (!anchor)
+    return false;
+  return anchor == store.getOperation() ||
+         store.getOperation()->isBeforeInBlock(anchor);
+}
+
+// Walks the use-def chain back to the originating `mz`/`mx`/`my` so the bridge
+// can statically diagnose `bool b = h;` when `h` was default-constructed.
+//
+// On the scalar-handle alloca path, every store reaching the alloca must
+// dominate the load (`storeDominatesLoad`); the aggregate / array path stays
+// coarse because per-element/per-member tracking would need reasoning about
+// SSA `cc.compute_ptr` indices, deferred to a follow-up
+// (NVIDIA/cuda-quantum#4479). Recursive because the source of a binding store
+// may itself be the result of another load through copy/move stores between
+// local allocas. The `visited` set prevents cycles when handles flow through
+// multiple allocas.
+static bool isBoundHandle(Value v, llvm::SmallPtrSetImpl<Value> &visited) {
+  if (!visited.insert(v).second)
+    return false;
+  if (v.getDefiningOp<cudaq::quake::MeasurementInterface>())
+    return true;
+  auto load = v.getDefiningOp<cudaq::cc::LoadOp>();
+  if (!load)
+    return true;
+  // Walk through `cc.compute_ptr` and `cc.cast` to reach the alloca that owns
+  // the storage being loaded.
+  Value ptr = load.getPtrvalue();
+  while (true) {
+    if (auto cp = ptr.getDefiningOp<cudaq::cc::ComputePtrOp>()) {
+      ptr = cp.getBase();
+      continue;
+    }
+    if (auto cs = ptr.getDefiningOp<cudaq::cc::CastOp>()) {
+      ptr = cs.getValue();
+      continue;
+    }
+    break;
+  }
+  auto alloca = ptr.getDefiningOp<cudaq::cc::AllocaOp>();
+  if (!alloca)
+    return true;
+  auto eleTy = alloca.getElementType();
+  bool isScalarHandleAlloca = isa<cudaq::cc::MeasureHandleType>(eleTy);
+  if (!isScalarHandleAlloca && !cudaq::cc::containsMeasureHandle(eleTy))
+    return true;
+  // Bound iff at least one store reaches this alloca with a value that is
+  // itself bound.
+  auto checkStore = [&](cudaq::cc::StoreOp store) {
+    if (!isScalarHandleAlloca)
+      return true;
+    if (!storeDominatesLoad(store, load))
+      return false;
+    return isBoundHandle(store.getValue(), visited);
+  };
+  for (Operation *u : alloca->getUsers()) {
+    if (auto store = dyn_cast<cudaq::cc::StoreOp>(u)) {
+      if (checkStore(store))
+        return true;
+      continue;
+    }
+    if (isa<cudaq::cc::ComputePtrOp, cudaq::cc::CastOp>(u))
+      for (Operation *uu : u->getUsers())
+        if (auto store = dyn_cast<cudaq::cc::StoreOp>(uu))
+          if (store.getPtrvalue() == u->getResult(0) && checkStore(store))
+            return true;
+  }
+  return false;
+}
+
 /// Convert a name, value pair into a symbol name allocated in `allocator`.
 static llvm::StringRef
 createQubitSymbolTableName(StringRef qregName, Value idxVal,
@@ -73,10 +191,10 @@ maybeUnpackOperands(OpBuilder &builder, Location loc, ValueRange operands,
   SmallVector<Value> targets = operands.take_back(targetCount);
   Value last_target = operands.back();
 
-  if (isa<quake::VeqType>(last_target.getType())) {
+  if (isa<cudaq::quake::VeqType>(last_target.getType())) {
     // Split the vector. Last `targetCount` are targets, front `N-targetCount`
     // are controls.
-    auto vecSize = quake::VeqSizeOp::create(
+    auto vecSize = cudaq::quake::VeqSizeOp::create(
         builder, loc, builder.getIntegerType(64), targets);
     auto size =
         cudaq::cc::CastOp::create(builder, loc, builder.getI64Type(), vecSize,
@@ -89,14 +207,14 @@ maybeUnpackOperands(OpBuilder &builder, Location loc, ValueRange operands,
         arith::ConstantIntOp::create(builder, loc, builder.getI64Type(), 0);
     auto last = arith::SubIOp::create(builder, loc, offset, numTargets);
     // The canonicalizer will compute a constant size, if possible.
-    auto unsizedVeqTy = quake::VeqType::getUnsized(builder.getContext());
+    auto unsizedVeqTy = cudaq::quake::VeqType::getUnsized(builder.getContext());
 
     // Get the subvector of all targets
-    Value targetSubveq = quake::SubVeqOp::create(builder, loc, unsizedVeqTy,
-                                                 last_target, zero, offset);
+    Value targetSubveq = cudaq::quake::SubVeqOp::create(
+        builder, loc, unsizedVeqTy, last_target, zero, offset);
     // Get the subvector of all qubits excluding the last one: controls.
-    Value ctrlSubveq = quake::SubVeqOp::create(builder, loc, unsizedVeqTy,
-                                               last_target, zero, last);
+    Value ctrlSubveq = cudaq::quake::SubVeqOp::create(
+        builder, loc, unsizedVeqTy, last_target, zero, last);
     return std::make_pair(SmallVector<Value>{targetSubveq},
                           SmallVector<Value>{ctrlSubveq});
   }
@@ -167,19 +285,20 @@ bool buildOp(OpBuilder &builder, Location loc, ValueRange operands,
     }
   } else {
     assert(operands.size() >= 1 && "must be at least 1 operand");
-    if ((operands.size() == 1) && isa<quake::VeqType>(operands[0].getType())) {
+    if ((operands.size() == 1) &&
+        isa<cudaq::quake::VeqType>(operands[0].getType())) {
       auto target = operands[0];
       if (!negations.empty())
         reportNegateError();
       Type i64Ty = builder.getI64Type();
-      auto size = quake::VeqSizeOp::create(builder, loc,
-                                           builder.getIntegerType(64), target);
+      auto size = cudaq::quake::VeqSizeOp::create(
+          builder, loc, builder.getIntegerType(64), target);
       Value rank = cudaq::cc::CastOp::create(builder, loc, i64Ty, size,
                                              cudaq::cc::CastOpMode::Unsigned);
       auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &,
                              Block &block) {
-        Value ref = quake::ExtractRefOp::create(builder, loc, target,
-                                                block.getArgument(0));
+        Value ref = cudaq::quake::ExtractRefOp::create(builder, loc, target,
+                                                       block.getArgument(0));
         A::create(builder, loc, ValueRange(), ref);
       };
       cudaq::opt::factory::createInvariantLoop(builder, loc, rank, bodyBuilder);
@@ -549,12 +668,13 @@ SmallVector<Value> QuakeBridgeVisitor::convertKernelArgs(
       result.push_back(castTo);
       continue;
     }
-    if (auto vVecTy = dyn_cast<quake::VeqType>(vTy))
-      if (auto kVecTy = dyn_cast<quake::VeqType>(kTy)) {
+    if (auto vVecTy = dyn_cast<cudaq::quake::VeqType>(vTy))
+      if (auto kVecTy = dyn_cast<cudaq::quake::VeqType>(kTy)) {
         // Both are Veq but the Veq are not identical. If the callee has a
         // dynamic size, we can relax the size from the calling context.
         if (vVecTy.hasSpecifiedSize() && !kVecTy.hasSpecifiedSize()) {
-          auto relax = quake::RelaxSizeOp::create(builder, loc, kVecTy, v);
+          auto relax =
+              cudaq::quake::RelaxSizeOp::create(builder, loc, kVecTy, v);
           result.push_back(relax);
           continue;
         }
@@ -662,7 +782,7 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
   }
   case clang::CastKind::CK_UserDefinedConversion: {
     auto sub = popValue();
-    // castToTy is the converion function signature.
+    // castToTy is the destination type of the user-defined conversion.
     castToTy = popType();
     if (isa<IntegerType>(castToTy) && isa<IntegerType>(sub.getType())) {
       auto locSub = toLocation(x->getSubExpr());
@@ -670,20 +790,46 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
       assert(result && "integer conversion failed");
       return result;
     }
+    // `cudaq::measure_handle::operator bool()` is the single sanctioned
+    // coercion surface on `measure_handle`. Every bool-coercion context lowers
+    // through this call site. We emit the single required `quake.discriminate`
+    // here so the inserted op's location is the coercion site. The
+    // unbound-handle check catches the `measure_handle h; bool b = h;`
+    // pattern, including chains routed through copy/move stores between
+    // local `alloca`s.
+    if (auto intTy = dyn_cast<IntegerType>(castToTy);
+        intTy && intTy.getWidth() == 1) {
+      Value handleVal = loadHandleIfPointer(builder, loc, sub);
+      if (isa<cc::MeasureHandleType>(handleVal.getType())) {
+        llvm::SmallPtrSet<Value, 4> visited;
+        if (!isBoundHandle(handleVal, visited)) {
+          reportClangError(x, mangler,
+                           "discriminating an unbound measure_handle");
+          // Push a placeholder `i1` so the enclosing statement's value
+          // stack stays balanced. Returning `false` here would cause
+          // the outer `TraverseStmt` to emit a second, generic
+          // "statement not supported" diagnostic.
+          return pushValue(arith::ConstantIntOp::create(
+              builder, loc, builder.getI1Type(), /*value=*/0));
+        }
+        return pushValue(cudaq::quake::DiscriminateOp::create(
+            builder, loc, builder.getI1Type(), handleVal));
+      }
+    }
     TODO_loc(loc, "unhandled user-defined implicit conversion");
   }
   case clang::CastKind::CK_ConstructorConversion: {
     // Enable implicit conversion of surface types, which both map to VeqType.
-    if (isa<quake::VeqType>(castToTy))
+    if (isa<cudaq::quake::VeqType>(castToTy))
       if (auto cxxExpr = dyn_cast<clang::CXXConstructExpr>(x->getSubExpr()))
         if (cxxExpr->getNumArgs() == 1 &&
-            isa<quake::VeqType>(peekValue().getType()))
+            isa<cudaq::quake::VeqType>(peekValue().getType()))
           return true;
     // ... or which both map to RefType.
-    if (isa<quake::RefType>(castToTy))
+    if (isa<cudaq::quake::RefType>(castToTy))
       if (auto cxxExpr = dyn_cast<clang::CXXConstructExpr>(x->getSubExpr()))
         if (cxxExpr->getNumArgs() == 1 &&
-            isa<quake::RefType>(peekValue().getType()))
+            isa<cudaq::quake::RefType>(peekValue().getType()))
           return true;
 
     // Enable implicit conversion of lambda -> std::function, which are both
@@ -696,9 +842,9 @@ bool QuakeBridgeVisitor::VisitCastExpr(clang::CastExpr *x) {
     }
     if (isa<ComplexType>(castToTy) && isa<ComplexType>(peekValue().getType()))
       return true;
-    if (isa<quake::StateType>(castToTy))
+    if (isa<cudaq::quake::StateType>(castToTy))
       if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(peekValue().getType()))
-        if (isa<quake::StateType>(ptrTy.getElementType()))
+        if (isa<cudaq::quake::StateType>(ptrTy.getElementType()))
           return pushValue(cudaq::cc::LoadOp::create(builder, loc, popValue()));
     if (auto funcTy = peelPointerFromFunction(castToTy))
       if (auto fromTy = dyn_cast<cc::CallableType>(peekValue().getType())) {
@@ -1018,8 +1164,8 @@ bool QuakeBridgeVisitor::VisitMaterializeTemporaryExpr(
   // The following cases are λ expressions, quantum data, or a std::vector view.
   // In those cases, there is nothing to materialize, so we can just pass the
   // Value on the top of the stack.
-  if (isa<cc::CallableType, quake::VeqType, quake::RefType, cc::SpanLikeType,
-          quake::StateType>(ty))
+  if (isa<cc::CallableType, cudaq::quake::VeqType, cudaq::quake::RefType,
+          cc::SpanLikeType, cudaq::quake::StateType>(ty))
     return true;
 
   // If not one of the above special cases, then materialize the value to a
@@ -1088,9 +1234,9 @@ bool QuakeBridgeVisitor::VisitMemberExpr(clang::MemberExpr *x) {
     auto object = popValue(); // DeclRefExpr
     auto ty = popType();
     std::int32_t offset = field->getFieldIndex();
-    if (isa<quake::StruqType>(object.getType())) {
+    if (isa<cudaq::quake::StruqType>(object.getType())) {
       return pushValue(
-          quake::GetMemberOp::create(builder, loc, ty, object, offset));
+          cudaq::quake::GetMemberOp::create(builder, loc, ty, object, offset));
     }
     if (!isa<cc::PointerType>(object.getType())) {
       reportClangError(x, mangler,
@@ -1252,6 +1398,36 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
 
   if (visitMathLibFunc(x, func, loc, funcName))
     return true;
+
+  // Intercept `cudaq::measure_handle::operator bool()` and the synthesized
+  // `operator=` together: both surface as `CXXMethodDecl`s on
+  // `cudaq::measure_handle`, both leave the value form on top of the visitor
+  // stack, and both are absent from the generic `cudaq::*` call dispatch
+  // below (so without this block, `h2 = h;` would fall through to the
+  // "unknown function" path and abort `cudaq-quake`).
+  if (isInClassInNamespace(func, "measure_handle", "cudaq")) {
+    if (isa<clang::CXXConversionDecl>(func)) {
+      Value thisVal = loadHandleIfPointer(builder, loc, popValue());
+      return pushValue(thisVal);
+    }
+    if (auto *md = dyn_cast<clang::CXXMethodDecl>(func);
+        md && md->getOverloadedOperator() == clang::OO_Equal) {
+      Value rhs = loadHandleIfPointer(builder, loc, popValue());
+      Value thisVal = popValue();
+      // Drop the callee value the visitor pushed for the call.
+      [[maybe_unused]] auto calleeOp = popValue();
+      // The C++ frontend rejects an `operator=` call whose `this` is not an
+      // lvalue `measure_handle`, so the type structure here is fixed by the
+      // earlier visit; the assertion is a sanity check, not a diagnostic.
+      auto thisPtrTy = dyn_cast<cc::PointerType>(thisVal.getType());
+      assert(thisPtrTy &&
+             isa<cc::MeasureHandleType>(thisPtrTy.getElementType()) &&
+             "`measure_handle::operator=` always has a "
+             "`!cc.ptr<!cc.measure_handle>` lhs by construction");
+      cc::StoreOp::create(builder, loc, rhs, thisVal);
+      return pushValue(thisVal);
+    }
+  }
 
   // Handle std::complex member functions
   if (isInClassInNamespace(func, "complex", "std")) {
@@ -1446,8 +1622,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           [[maybe_unused]] auto calleeTy = popType();
           assert(isa<FunctionType>(calleeTy));
           auto qregArg = popValue();
-          auto qrSize = quake::VeqSizeOp::create(builder, loc,
-                                                 builder.getI64Type(), qregArg);
+          auto qrSize = cudaq::quake::VeqSizeOp::create(
+              builder, loc, builder.getI64Type(), qregArg);
           return pushValue(qrSize);
         }
 
@@ -1465,13 +1641,13 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
             auto one = getConstantInt(builder, loc, 1, 64);
             auto offset = arith::SubIOp::create(builder, loc, qrSize, one);
             auto unsizedVecTy =
-                quake::VeqType::getUnsized(builder.getContext());
-            return pushValue(quake::SubVeqOp::create(builder, loc, unsizedVecTy,
-                                                     qregArg, zero, offset));
+                cudaq::quake::VeqType::getUnsized(builder.getContext());
+            return pushValue(cudaq::quake::SubVeqOp::create(
+                builder, loc, unsizedVecTy, qregArg, zero, offset));
           }
           assert(actArgs.size() == 0);
           return pushValue(
-              quake::ExtractRefOp::create(builder, loc, qregArg, zero));
+              cudaq::quake::ExtractRefOp::create(builder, loc, qregArg, zero));
         }
 
     if (funcName == "back")
@@ -1481,8 +1657,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           assert(isa<FunctionType>(calleeTy));
           auto actArgs = lastValues(x->getNumArgs());
           auto qregArg = popValue();
-          auto qrSize = quake::VeqSizeOp::create(builder, loc,
-                                                 builder.getI64Type(), qregArg);
+          auto qrSize = cudaq::quake::VeqSizeOp::create(
+              builder, loc, builder.getI64Type(), qregArg);
           auto one = getConstantInt(builder, loc, 1, 64);
           auto endOff = arith::SubIOp::create(builder, loc, qrSize, one);
           if (actArgs.size() == 1) {
@@ -1490,13 +1666,13 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
             auto startOff =
                 arith::SubIOp::create(builder, loc, qrSize, actArgs.front());
             auto unsizedVecTy =
-                quake::VeqType::getUnsized(builder.getContext());
-            return pushValue(quake::SubVeqOp::create(
+                cudaq::quake::VeqType::getUnsized(builder.getContext());
+            return pushValue(cudaq::quake::SubVeqOp::create(
                 builder, loc, unsizedVecTy, qregArg, startOff, endOff));
           }
           assert(actArgs.size() == 0);
-          return pushValue(
-              quake::ExtractRefOp::create(builder, loc, qregArg, endOff));
+          return pushValue(cudaq::quake::ExtractRefOp::create(builder, loc,
+                                                              qregArg, endOff));
         }
 
     if (funcName == "slice") {
@@ -1512,9 +1688,10 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           auto one = getConstantInt(builder, loc, 1, 64);
           Value offset = arith::AddIOp::create(builder, loc, start, count);
           offset = arith::SubIOp::create(builder, loc, offset, one);
-          auto unsizedVecTy = quake::VeqType::getUnsized(builder.getContext());
-          return pushValue(quake::SubVeqOp::create(builder, loc, unsizedVecTy,
-                                                   qregArg, start, offset));
+          auto unsizedVecTy =
+              cudaq::quake::VeqType::getUnsized(builder.getContext());
+          return pushValue(cudaq::quake::SubVeqOp::create(
+              builder, loc, unsizedVecTy, qregArg, start, offset));
         }
     }
 
@@ -1568,7 +1745,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           reportClangError(x, mangler, "could not determine string argument");
         }
       };
-      if (args.size() == 3 && isa<quake::VeqType>(args[1].getType())) {
+      if (args.size() == 3 && isa<cudaq::quake::VeqType>(args[1].getType())) {
         // Have f64, veq, string
         parameters.push_back(args[0]);
         targets.push_back(args[1]);
@@ -1584,15 +1761,16 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         SmallVector<Value> quantumArgs;
         for (std::size_t i = 2; i < args.size(); i++)
           quantumArgs.push_back(args[i]);
-        targets.push_back(quake::ConcatOp::create(
+        targets.push_back(cudaq::quake::ConcatOp::create(
             builder, loc,
-            quake::VeqType::get(builder.getContext(), quantumArgs.size()),
+            cudaq::quake::VeqType::get(builder.getContext(),
+                                       quantumArgs.size()),
             quantumArgs));
         addTheString(args[1]);
       }
 
-      quake::ExpPauliOp::create(builder, loc, parameters, ValueRange{}, targets,
-                                pauliWord);
+      cudaq::quake::ExpPauliOp::create(builder, loc, parameters, ValueRange{},
+                                       targets, pauliWord);
       return true;
     }
 
@@ -1621,7 +1799,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         // The first argument that is not floating-point must be a qubit. If
         // the user has interleaved floating-point and qubit arguments, that's
         // an error.
-        if (isa<quake::RefType, quake::VeqType>(aTy)) {
+        if (isa<cudaq::quake::RefType, cudaq::quake::VeqType>(aTy)) {
           qubits.push_back(a);
         } else {
           reportClangError(x, mangler,
@@ -1632,7 +1810,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
 
       if (auto callee = calleeOp.getDefiningOp<func::ConstantOp>()) {
         StringRef calleeName = callee.getValue();
-        quake::ApplyNoiseOp::create(builder, loc, calleeName, params, qubits);
+        cudaq::quake::ApplyNoiseOp::create(builder, loc, calleeName, params,
+                                           qubits);
 
         // Add the declaration of the function to the module.
         SmallVector<Type> argTys;
@@ -1651,25 +1830,42 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     }
 
     if (funcName == "mx" || funcName == "my" || funcName == "mz") {
-      // Measurements always return a bool or a std::vector<bool>.
+      // Measurements emit `quake.{mz,mx,my}` producing `!cc.measure_handle`
+      // (scalar) or `!cc.stdvec<!cc.measure_handle>` (multi-qubit). The
+      // bridge does not inline `quake.discriminate` at the call site;
+      // discrimination happens later, only when a downstream coercion site
+      // demands it.
       bool useStdvec =
           (args.size() > 1) ||
-          (args.size() == 1 && isa<quake::VeqType>(args[0].getType()));
-      auto measure = [&]() -> Value {
-        Type measTy = quake::MeasureType::get(builder.getContext());
-        if (useStdvec)
-          measTy = cc::StdvecType::get(measTy);
-        if (funcName == "mx")
-          return quake::MxOp::create(builder, loc, measTy, args).getMeasOut();
-        if (funcName == "my")
-          return quake::MyOp::create(builder, loc, measTy, args).getMeasOut();
-        return quake::MzOp::create(builder, loc, measTy, args).getMeasOut();
-      }();
-      Type resTy = builder.getI1Type();
+          (args.size() == 1 && isa<cudaq::quake::VeqType>(args[0].getType()));
+      Type measTy = cc::MeasureHandleType::get(builder.getContext());
       if (useStdvec)
-        resTy = cc::StdvecType::get(resTy);
+        measTy = cc::StdvecType::get(measTy);
+      if (funcName == "mx")
+        return pushValue(cudaq::quake::MxOp::create(builder, loc, measTy, args)
+                             .getMeasOut());
+      if (funcName == "my")
+        return pushValue(cudaq::quake::MyOp::create(builder, loc, measTy, args)
+                             .getMeasOut());
       return pushValue(
-          quake::DiscriminateOp::create(builder, loc, resTy, measure));
+          cudaq::quake::MzOp::create(builder, loc, measTy, args).getMeasOut());
+    }
+
+    if (funcName == "to_bools") {
+      // `cudaq::to_bools(std::vector<cudaq::measure_handle>)` is the bulk
+      // counterpart to `measure_handle::operator bool()`. Lower to a
+      // vectorized `quake.discriminate` on the handle vector. The stdvec
+      // shape is fixed by the C++ overload resolution (clang would reject
+      // any other argument type before the bridge sees the call), so the
+      // dyn_cast is a sanity check, not a user-facing path.
+      Value handleArg = loadHandleVectorIfPointer(builder, loc, args[0]);
+      auto sv = dyn_cast<cc::StdvecType>(handleArg.getType());
+      assert(sv && isa<cc::MeasureHandleType>(sv.getElementType()) &&
+             "`cudaq::to_bools` always sees `!cc.stdvec<!cc.measure_handle>` "
+             "after C++ overload resolution");
+      auto resTy = cc::StdvecType::get(builder.getI1Type());
+      return pushValue(
+          cudaq::quake::DiscriminateOp::create(builder, loc, resTy, handleArg));
     }
 
     // Handle the quantum gate set.
@@ -1677,64 +1873,66 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       reportClangError(x, mangler, "target qubit cannot be negated");
     };
     if (funcName == "h")
-      return buildOp<quake::HOp>(builder, loc, args, negations,
-                                 reportNegateError, /*adjoint=*/false,
-                                 isControl);
+      return buildOp<cudaq::quake::HOp>(builder, loc, args, negations,
+                                        reportNegateError, /*adjoint=*/false,
+                                        isControl);
     if (funcName == "ch")
-      return buildOp<quake::HOp>(builder, loc, args, negations,
-                                 reportNegateError, /*adjoint=*/false,
-                                 /*control=*/true);
+      return buildOp<cudaq::quake::HOp>(builder, loc, args, negations,
+                                        reportNegateError, /*adjoint=*/false,
+                                        /*control=*/true);
     if (funcName == "x")
-      return buildOp<quake::XOp>(builder, loc, args, negations,
-                                 reportNegateError, /*adjoint=*/false,
-                                 isControl);
+      return buildOp<cudaq::quake::XOp>(builder, loc, args, negations,
+                                        reportNegateError, /*adjoint=*/false,
+                                        isControl);
     if (funcName == "cnot" || funcName == "cx" || funcName == "ccx")
-      return buildOp<quake::XOp>(builder, loc, args, negations,
-                                 reportNegateError, /*adjoint=*/false,
-                                 /*control=*/true);
+      return buildOp<cudaq::quake::XOp>(builder, loc, args, negations,
+                                        reportNegateError, /*adjoint=*/false,
+                                        /*control=*/true);
     if (funcName == "y")
-      return buildOp<quake::YOp>(builder, loc, args, negations,
-                                 reportNegateError, /*adjoint=*/false,
-                                 isControl);
+      return buildOp<cudaq::quake::YOp>(builder, loc, args, negations,
+                                        reportNegateError, /*adjoint=*/false,
+                                        isControl);
     if (funcName == "cy")
-      return buildOp<quake::YOp>(builder, loc, args, negations,
-                                 reportNegateError, /*adjoint=*/false,
-                                 /*control=*/true);
+      return buildOp<cudaq::quake::YOp>(builder, loc, args, negations,
+                                        reportNegateError, /*adjoint=*/false,
+                                        /*control=*/true);
     if (funcName == "z")
-      return buildOp<quake::ZOp>(builder, loc, args, negations,
-                                 reportNegateError, /*adjoint=*/false,
-                                 isControl);
+      return buildOp<cudaq::quake::ZOp>(builder, loc, args, negations,
+                                        reportNegateError, /*adjoint=*/false,
+                                        isControl);
     if (funcName == "cz")
-      return buildOp<quake::ZOp>(builder, loc, args, negations,
-                                 reportNegateError, /*adjoint=*/false,
-                                 /*control=*/true);
+      return buildOp<cudaq::quake::ZOp>(builder, loc, args, negations,
+                                        reportNegateError, /*adjoint=*/false,
+                                        /*control=*/true);
     if (funcName == "s")
-      return buildOp<quake::SOp>(builder, loc, args, negations,
-                                 reportNegateError, isAdjoint, isControl);
+      return buildOp<cudaq::quake::SOp>(builder, loc, args, negations,
+                                        reportNegateError, isAdjoint,
+                                        isControl);
     if (funcName == "cs")
-      return buildOp<quake::SOp>(builder, loc, args, negations,
-                                 reportNegateError, isAdjoint,
-                                 /*control=*/true);
+      return buildOp<cudaq::quake::SOp>(builder, loc, args, negations,
+                                        reportNegateError, isAdjoint,
+                                        /*control=*/true);
     if (funcName == "sdg")
-      return buildOp<quake::SOp>(builder, loc, args, negations,
-                                 reportNegateError, /*adjoint=*/true,
-                                 isControl);
+      return buildOp<cudaq::quake::SOp>(builder, loc, args, negations,
+                                        reportNegateError, /*adjoint=*/true,
+                                        isControl);
     if (funcName == "t")
-      return buildOp<quake::TOp>(builder, loc, args, negations,
-                                 reportNegateError, isAdjoint, isControl);
+      return buildOp<cudaq::quake::TOp>(builder, loc, args, negations,
+                                        reportNegateError, isAdjoint,
+                                        isControl);
     if (funcName == "ct")
-      return buildOp<quake::TOp>(builder, loc, args, negations,
-                                 reportNegateError, isAdjoint,
-                                 /*control=*/true);
+      return buildOp<cudaq::quake::TOp>(builder, loc, args, negations,
+                                        reportNegateError, isAdjoint,
+                                        /*control=*/true);
     if (funcName == "tdg")
-      return buildOp<quake::TOp>(builder, loc, args, negations,
-                                 reportNegateError, /*adjoint=*/true,
-                                 isControl);
+      return buildOp<cudaq::quake::TOp>(builder, loc, args, negations,
+                                        reportNegateError, /*adjoint=*/true,
+                                        isControl);
 
     if (funcName == "reset") {
       if (!negations.empty())
         reportNegateError();
-      return quake::ResetOp::create(builder, loc, TypeRange{}, args[0]);
+      return cudaq::quake::ResetOp::create(builder, loc, TypeRange{}, args[0]);
     }
     if (funcName == "swap") {
       const auto size = args.size();
@@ -1746,48 +1944,48 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       SmallVector<Value> ctrls(args.begin(), args.begin() + size - 2);
       auto negs =
           negatedControlsAttribute(builder.getContext(), ctrls, negations);
-      auto swap = quake::SwapOp::create(builder, loc, ctrls, targets);
+      auto swap = cudaq::quake::SwapOp::create(builder, loc, ctrls, targets);
       if (negs)
         swap->setAttr("negated_qubit_controls", negs);
       return true;
     }
     if (funcName == "p" || funcName == "r1")
-      return buildOp<quake::R1Op, Param>(builder, loc, args, negations,
-                                         reportNegateError, isAdjoint,
-                                         isControl);
+      return buildOp<cudaq::quake::R1Op, Param>(builder, loc, args, negations,
+                                                reportNegateError, isAdjoint,
+                                                isControl);
     if (funcName == "cr1")
-      return buildOp<quake::R1Op, Param>(builder, loc, args, negations,
-                                         reportNegateError, isAdjoint,
-                                         /*control=*/true);
+      return buildOp<cudaq::quake::R1Op, Param>(builder, loc, args, negations,
+                                                reportNegateError, isAdjoint,
+                                                /*control=*/true);
     if (funcName == "rx")
-      return buildOp<quake::RxOp, Param>(builder, loc, args, negations,
-                                         reportNegateError, isAdjoint,
-                                         isControl);
+      return buildOp<cudaq::quake::RxOp, Param>(builder, loc, args, negations,
+                                                reportNegateError, isAdjoint,
+                                                isControl);
     if (funcName == "crx")
-      return buildOp<quake::RxOp, Param>(builder, loc, args, negations,
-                                         reportNegateError, isAdjoint,
-                                         /*control=*/true);
+      return buildOp<cudaq::quake::RxOp, Param>(builder, loc, args, negations,
+                                                reportNegateError, isAdjoint,
+                                                /*control=*/true);
     if (funcName == "ry")
-      return buildOp<quake::RyOp, Param>(builder, loc, args, negations,
-                                         reportNegateError, isAdjoint,
-                                         isControl);
+      return buildOp<cudaq::quake::RyOp, Param>(builder, loc, args, negations,
+                                                reportNegateError, isAdjoint,
+                                                isControl);
     if (funcName == "cry")
-      return buildOp<quake::RyOp, Param>(builder, loc, args, negations,
-                                         reportNegateError, isAdjoint,
-                                         /*control=*/true);
+      return buildOp<cudaq::quake::RyOp, Param>(builder, loc, args, negations,
+                                                reportNegateError, isAdjoint,
+                                                /*control=*/true);
     if (funcName == "rz")
-      return buildOp<quake::RzOp, Param>(builder, loc, args, negations,
-                                         reportNegateError, isAdjoint,
-                                         isControl);
+      return buildOp<cudaq::quake::RzOp, Param>(builder, loc, args, negations,
+                                                reportNegateError, isAdjoint,
+                                                isControl);
     if (funcName == "crz")
-      return buildOp<quake::RzOp, Param>(builder, loc, args, negations,
-                                         reportNegateError, isAdjoint,
-                                         /*control=*/true);
+      return buildOp<cudaq::quake::RzOp, Param>(builder, loc, args, negations,
+                                                reportNegateError, isAdjoint,
+                                                /*control=*/true);
 
     if (funcName == "u3")
-      return buildOp<quake::U3Op, Param>(builder, loc, args, negations,
-                                         reportNegateError, isAdjoint,
-                                         isControl, /*paramCount=*/3);
+      return buildOp<cudaq::quake::U3Op, Param>(builder, loc, args, negations,
+                                                reportNegateError, isAdjoint,
+                                                isControl, /*paramCount=*/3);
 
     // See if this is a custom unitary.
     std::string maybeUnitaryGenerator = funcName.str() + "_generator_";
@@ -1823,21 +2021,21 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
       ValueRange operands(args);
       assert(operands.size() >= 1 && "must be at least 1 operand");
       if ((operands.size() == 1) &&
-          isa<quake::VeqType>(operands[0].getType())) {
+          isa<cudaq::quake::VeqType>(operands[0].getType())) {
         auto target = operands[0];
         if (!negations.empty())
           reportNegateError();
         Type i64Ty = builder.getI64Type();
-        auto size = quake::VeqSizeOp::create(
+        auto size = cudaq::quake::VeqSizeOp::create(
             builder, loc, builder.getIntegerType(64), target);
         Value rank = cudaq::cc::CastOp::create(builder, loc, i64Ty, size,
                                                cudaq::cc::CastOpMode::Unsigned);
         auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &,
                                Block &block) {
-          Value ref = quake::ExtractRefOp::create(builder, loc, target,
-                                                  block.getArgument(0));
-          quake::CustomUnitarySymbolOp::create(builder, loc, srefAttr,
-                                               ValueRange(), ref);
+          Value ref = cudaq::quake::ExtractRefOp::create(builder, loc, target,
+                                                         block.getArgument(0));
+          cudaq::quake::CustomUnitarySymbolOp::create(builder, loc, srefAttr,
+                                                      ValueRange(), ref);
         };
         cudaq::opt::factory::createInvariantLoop(builder, loc, rank,
                                                  bodyBuilder);
@@ -1855,8 +2053,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         for (auto p : operands.take_front(paramCount))
           if (isa<cudaq::cc::PointerType>(p.getType()))
             params.push_back(cudaq::cc::LoadOp::create(builder, loc, p));
-        quake::CustomUnitarySymbolOp::create(builder, loc, srefAttr, isAdjoint,
-                                             params, ctrls, targets, negs);
+        cudaq::quake::CustomUnitarySymbolOp::create(
+            builder, loc, srefAttr, isAdjoint, params, ctrls, targets, negs);
       }
       return true;
     }
@@ -1876,27 +2074,29 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         if (!negations.empty()) {
           // Loop over the ctrlValues and negate (apply an XOp) those in the
           // negations list.
-          if (auto concat = ctrlValues.getDefiningOp<quake::ConcatOp>()) {
+          if (auto concat =
+                  ctrlValues.getDefiningOp<cudaq::quake::ConcatOp>()) {
             for (auto v : concat.getTargets())
               if (std::find(negations.begin(), negations.end(), v) !=
                   negations.end()) {
-                if (isa<quake::VeqType>(v.getType())) {
+                if (isa<cudaq::quake::VeqType>(v.getType())) {
                   reportClangError(
                       x, mangler, "cannot negate an entire register of qubits");
                 } else {
                   SmallVector<Value> dummy;
-                  buildOp<quake::XOp>(builder, loc, v, dummy, []() {});
+                  buildOp<cudaq::quake::XOp>(builder, loc, v, dummy, []() {});
                 }
               }
-          } else if (isa<quake::VeqType>(ctrlValues.getType())) {
+          } else if (isa<cudaq::quake::VeqType>(ctrlValues.getType())) {
             assert(negations.size() == 1 && negations[0] == ctrlValues);
             reportClangError(x, mangler,
                              "cannot negate an entire register of qubits");
           } else {
-            assert(isa<quake::RefType>(ctrlValues.getType()));
+            assert(isa<cudaq::quake::RefType>(ctrlValues.getType()));
             assert(negations.size() == 1 && negations[0] == ctrlValues);
             SmallVector<Value> dummy;
-            buildOp<quake::XOp>(builder, loc, ctrlValues, dummy, []() {});
+            buildOp<cudaq::quake::XOp>(builder, loc, ctrlValues, dummy,
+                                       []() {});
           }
         }
       };
@@ -1947,8 +2147,9 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         auto kernelArgs =
             convertKernelArgs(loc, 2, args, kernelTy.getInputs(), x);
         inlinedStartControlNegations();
-        quake::ApplyOp::create(builder, loc, TypeRange{}, calleeSymbol,
-                               /*isAdjoint=*/false, ctrlValues, kernelArgs);
+        cudaq::quake::ApplyOp::create(builder, loc, TypeRange{}, calleeSymbol,
+                                      /*isAdjoint=*/false, ctrlValues,
+                                      kernelArgs);
         return inlinedFinishControlNegations();
       }
       if (auto func = calleeValue.getDefiningOp<func::ConstantOp>()) {
@@ -1957,8 +2158,9 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         inlinedStartControlNegations();
         auto kernelArgs =
             convertKernelArgs(loc, 2, args, funcTy.getInputs(), x);
-        quake::ApplyOp::create(builder, loc, funcTy.getResults(), callableSym,
-                               /*isAdjoint=*/false, ctrlValues, kernelArgs);
+        cudaq::quake::ApplyOp::create(
+            builder, loc, funcTy.getResults(), callableSym,
+            /*isAdjoint=*/false, ctrlValues, kernelArgs);
         return inlinedFinishControlNegations();
       }
       if (auto ty = dyn_cast<cc::CallableType>(calleeValue.getType())) {
@@ -1997,13 +2199,13 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           auto kernelArgs =
               convertKernelArgs(loc, 2, args, funcTy.getInputs(), x);
           if (isKernelEntryPoint(callOperDecl)) {
-            quake::ApplyOp::create(builder, loc, funcTy.getResults(),
-                                   calleeSymbol,
-                                   /*isAdjoint=*/false, ctrlValues, kernelArgs);
+            cudaq::quake::ApplyOp::create(
+                builder, loc, funcTy.getResults(), calleeSymbol,
+                /*isAdjoint=*/false, ctrlValues, kernelArgs);
           } else {
-            quake::ApplyOp::create(builder, loc, funcTy.getResults(),
-                                   calleeValue,
-                                   /*isAdjoint=*/false, ctrlValues, kernelArgs);
+            cudaq::quake::ApplyOp::create(
+                builder, loc, funcTy.getResults(), calleeValue,
+                /*isAdjoint=*/false, ctrlValues, kernelArgs);
           }
           return inlinedFinishControlNegations();
         }
@@ -2057,15 +2259,15 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         assert(kernFunc && "kernel call operator must be present");
         auto kernTy = kernFunc.getFunctionType();
         auto kernArgs = convertKernelArgs(loc, 1, args, kernTy.getInputs(), x);
-        return quake::ApplyOp::create(builder, loc, TypeRange{}, kernelSymbol,
-                                      /*isAdjoint=*/true, ValueRange{},
-                                      kernArgs);
+        return cudaq::quake::ApplyOp::create(
+            builder, loc, TypeRange{}, kernelSymbol,
+            /*isAdjoint=*/true, ValueRange{}, kernArgs);
       }
       if (auto func = kernelValue.getDefiningOp<func::ConstantOp>()) {
         auto kernSym = func.getValueAttr();
         auto funcTy = cast<FunctionType>(func.getType());
         auto kernArgs = convertKernelArgs(loc, 1, args, funcTy.getInputs(), x);
-        return quake::ApplyOp::create(
+        return cudaq::quake::ApplyOp::create(
             builder, loc, funcTy.getResults(), kernSym,
             /*isAdjoint=*/true, ValueRange{}, kernArgs);
       }
@@ -2103,11 +2305,11 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
           auto kernelArgs =
               convertKernelArgs(loc, 1, args, funcTy.getInputs(), x);
           if (isKernelEntryPoint(callOperDecl)) {
-            return quake::ApplyOp::create(
+            return cudaq::quake::ApplyOp::create(
                 builder, loc, funcTy.getResults(), kernelSymbol,
                 /*isAdjoint=*/true, ValueRange{}, kernelArgs);
           }
-          return quake::ApplyOp::create(
+          return cudaq::quake::ApplyOp::create(
               builder, loc, funcTy.getResults(), kernelValue,
               /*isAdjoint=*/true, ValueRange{}, kernelArgs);
         }
@@ -2117,21 +2319,40 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     }
 
     if (funcName == "compute_action") {
-      quake::ComputeActionOp::create(builder, loc, /*is_dagger=*/false, args[0],
-                                     args[1]);
+      cudaq::quake::ComputeActionOp::create(builder, loc, /*is_dagger=*/false,
+                                            args[0], args[1]);
       return true;
     }
     if (funcName == "compute_dag_action") {
-      quake::ComputeActionOp::create(builder, loc, /*is_dagger=*/true, args[0],
-                                     args[1]);
+      cudaq::quake::ComputeActionOp::create(builder, loc, /*is_dagger=*/true,
+                                            args[0], args[1]);
       return true;
     }
 
     if (funcName == "toInteger" || funcName == "to_integer") {
+      // `to_integer` packs a `std::vector<bool>` LSB-first into an i64.
       IRBuilder irBuilder(builder.getContext());
       if (failed(irBuilder.loadIntrinsic(module, cudaqConvertToInteger))) {
         reportClangError(x, mangler, "cannot load cudaqConvertToInteger");
         return false;
+      }
+      // The intrinsic signature is `(!cc.stdvec<i1>) -> i64`. Normalize an
+      // `!cc.ptr<!cc.stdvec<measure_handle>>` lvalue to its value form first
+      // so the element-type check below sees the actual stdvec.
+      args[0] = loadHandleVectorIfPointer(builder, loc, args[0]);
+      // The bridge does not silently insert a discriminate.
+      if (auto stdvecTy = dyn_cast<cc::StdvecType>(args[0].getType());
+          stdvecTy && isa<cc::MeasureHandleType>(stdvecTy.getElementType())) {
+        reportClangError(
+            x, mangler,
+            "`cudaq::to_integer` accepts `std::vector<bool>`; "
+            "wrap measurement results with `cudaq::to_bools(...)` first");
+        // Push a placeholder `i64` so the enclosing statement's value stack
+        // stays balanced; returning `false` here would cause the outer
+        // `TraverseStmt` to emit a second, generic "statement not supported"
+        // diagnostic
+        return pushValue(arith::ConstantIntOp::create(
+            builder, loc, builder.getI64Type(), /*value=*/0));
       }
       auto i64Ty = builder.getI64Type();
       return pushValue(
@@ -2505,7 +2726,7 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
         // extract `Op` to the symbol table, but always generate a new
         // `quake.extract_ref` `Op` to get the exact qubit (reference) value.
         auto address_qubit =
-            quake::ExtractRefOp::create(builder, loc, qreg_var, idx_var);
+            cudaq::quake::ExtractRefOp::create(builder, loc, qreg_var, idx_var);
         return replaceTOSValue(address_qubit);
       }
       // Get name of the qreg, e.g. qr, and use it to construct a name for the
@@ -2525,7 +2746,7 @@ bool QuakeBridgeVisitor::VisitCXXOperatorCallExpr(
       // in the symbol table, and return the AddressQubit operation's
       // resulting value.
       auto address_qubit =
-          quake::ExtractRefOp::create(builder, loc, qreg_var, idx_var);
+          cudaq::quake::ExtractRefOp::create(builder, loc, qreg_var, idx_var);
 
       // NB: varName is built from the variable name *and* the index value. This
       // front-end optimization is likely unnecessary as the compiler can always
@@ -2717,30 +2938,31 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
           return true;
   auto last = lastValues(size);
   bool allRef = std::all_of(last.begin(), last.end(), [](auto v) {
-    return isa<quake::RefType, quake::VeqType>(v.getType());
+    return isa<cudaq::quake::RefType, cudaq::quake::VeqType>(v.getType());
   });
-  if (allRef && isa<quake::StruqType>(initListTy))
+  if (allRef && isa<cudaq::quake::StruqType>(initListTy))
     return pushValue(
-        quake::MakeStruqOp::create(builder, loc, initListTy, last));
+        cudaq::quake::MakeStruqOp::create(builder, loc, initListTy, last));
 
   if (allRef && !isa<cc::StructType>(initListTy)) {
     // Initializer list contains all quantum reference types. In this case we
     // want to create quake code to concatenate the references into a veq.
     if (size > 1) {
-      auto veqTy = [&]() -> quake::VeqType {
+      auto veqTy = [&]() -> cudaq::quake::VeqType {
         unsigned size = 0;
         for (auto v : last) {
-          if (auto veqTy = dyn_cast<quake::VeqType>(v.getType())) {
+          if (auto veqTy = dyn_cast<cudaq::quake::VeqType>(v.getType())) {
             if (!veqTy.hasSpecifiedSize())
-              return quake::VeqType::getUnsized(builder.getContext());
+              return cudaq::quake::VeqType::getUnsized(builder.getContext());
             size += veqTy.getSize();
           } else {
             ++size;
           }
         }
-        return quake::VeqType::get(builder.getContext(), size);
+        return cudaq::quake::VeqType::get(builder.getContext(), size);
       }();
-      return pushValue(quake::ConcatOp::create(builder, loc, veqTy, last));
+      return pushValue(
+          cudaq::quake::ConcatOp::create(builder, loc, veqTy, last));
     }
     // Pass initialization list with one member as a Ref.
     return pushValue(last[0]);
@@ -2798,8 +3020,9 @@ bool QuakeBridgeVisitor::VisitInitListExpr(clang::InitListExpr *x) {
   }
 
   // If quantum, use value semantics with cc insert / extract value.
-  if (isa<quake::StruqType>(eleTy))
-    return pushValue(quake::MakeStruqOp::create(builder, loc, eleTy, last));
+  if (isa<cudaq::quake::StruqType>(eleTy))
+    return pushValue(
+        cudaq::quake::MakeStruqOp::create(builder, loc, eleTy, last));
 
   Value alloca = (numEles > 1)
                      ? cc::AllocaOp::create(builder, loc, eleTy, arrSize)
@@ -2855,7 +3078,8 @@ bool QuakeBridgeVisitor::TraverseCXXConstructExpr(clang::CXXConstructExpr *x,
     if (!TraverseType(x->getType()))
       return false;
     assert(typeStack.size() == typeStackDepth + 1);
-    if (x->isStdInitListInitialization() && isa<quake::VeqType>(peekType()))
+    if (x->isStdInitListInitialization() &&
+        isa<cudaq::quake::VeqType>(peekType()))
       initializerIsGlobal = true;
   }
   auto *ctor = x->getConstructor();
@@ -2896,12 +3120,13 @@ bool QuakeBridgeVisitor::VisitCXXParenListInitExpr(
   auto ty = peekType();
   assert(ty && "type must be present");
   LLVM_DEBUG(llvm::dbgs() << "paren list type: " << ty << '\n');
-  auto structTy = dyn_cast<quake::StruqType>(ty);
+  auto structTy = dyn_cast<cudaq::quake::StruqType>(ty);
   if (!structTy)
     return true;
   auto loc = toLocation(x);
   auto last = lastValues(structTy.getMembers().size());
-  return pushValue(quake::MakeStruqOp::create(builder, loc, structTy, last));
+  return pushValue(
+      cudaq::quake::MakeStruqOp::create(builder, loc, structTy, last));
 }
 
 bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
@@ -2918,30 +3143,30 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     if (x->getNumArgs() == 0) {
       if (ctorName == "qudit") {
         // This is a single qubit.
-        assert(isa<quake::RefType>(ctorTy));
-        return pushValue(quake::AllocaOp::create(builder, loc));
+        assert(isa<cudaq::quake::RefType>(ctorTy));
+        return pushValue(cudaq::quake::AllocaOp::create(builder, loc));
       }
       // These classes have template arguments that may give a compile-time
       // constant size. qarray is the only one that requires it, however.
       if (ctorName == "qreg" || ctorName == "qarray" || ctorName == "qspan") {
-        [[maybe_unused]] auto veqTy = cast<quake::VeqType>(ctorTy);
+        [[maybe_unused]] auto veqTy = cast<cudaq::quake::VeqType>(ctorTy);
         assert(veqTy.hasSpecifiedSize());
-        return pushValue(quake::AllocaOp::create(builder, loc, ctorTy));
+        return pushValue(cudaq::quake::AllocaOp::create(builder, loc, ctorTy));
       }
       if (ctorName == "qvector") {
         // The default qvector ctor creates a veq of size 1.
-        assert(isa<quake::VeqType>(ctorTy));
-        auto veq1Ty = quake::VeqType::get(builder.getContext(), 1);
-        return pushValue(quake::AllocaOp::create(builder, loc, veq1Ty));
+        assert(isa<cudaq::quake::VeqType>(ctorTy));
+        auto veq1Ty = cudaq::quake::VeqType::get(builder.getContext(), 1);
+        return pushValue(cudaq::quake::AllocaOp::create(builder, loc, veq1Ty));
       }
     } else if (x->getNumArgs() == 1) {
       if (ctorName == "qreg") {
         // This is a cudaq::qreg(std::size_t).
         auto sizeVal = popValue();
         assert(isa<IntegerType>(sizeVal.getType()));
-        return pushValue(quake::AllocaOp::create(
-            builder, loc, quake::VeqType::getUnsized(builder.getContext()),
-            sizeVal));
+        return pushValue(cudaq::quake::AllocaOp::create(
+            builder, loc,
+            cudaq::quake::VeqType::getUnsized(builder.getContext()), sizeVal));
       }
 
       if (ctorName == "state") {
@@ -2950,7 +3175,7 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
         // to perform the conversion.
         Value stdvec = popValue();
         auto stateTy = cudaq::cc::PointerType::get(
-            quake::StateType::get(builder.getContext()));
+            cudaq::quake::StateType::get(builder.getContext()));
         if (auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(stdvec.getType())) {
           auto dataTy = cudaq::cc::PointerType::get(stdvecTy.getElementType());
           Value data =
@@ -2958,12 +3183,12 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
           auto i64Ty = builder.getI64Type();
           Value size =
               cudaq::cc::StdvecSizeOp::create(builder, loc, i64Ty, stdvec);
-          return pushValue(quake::CreateStateOp::create(
+          return pushValue(cudaq::quake::CreateStateOp::create(
               builder, loc, stateTy, ValueRange{data, size}));
         }
         if (auto alloc = stdvec.getDefiningOp<cudaq::cc::AllocaOp>()) {
           Value size = alloc.getSeqSize();
-          return pushValue(quake::CreateStateOp::create(
+          return pushValue(cudaq::quake::CreateStateOp::create(
               builder, loc, stateTy, ValueRange{alloc, size}));
         }
         TODO_loc(loc, "unhandled state constructor");
@@ -2973,24 +3198,25 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
       // lambda determines: is `t` a cudaq::state* ?
       auto isStateType = [&](Type t) {
         if (auto ptrTy = dyn_cast<cc::PointerType>(t))
-          return isa<quake::StateType>(ptrTy.getElementType());
+          return isa<cudaq::quake::StateType>(ptrTy.getElementType());
         return false;
       };
 
       if (ctorName == "qudit") {
         auto initials = popValue();
-        if (isa<quake::StateType>(initials.getType()))
+        if (isa<cudaq::quake::StateType>(initials.getType()))
           if (auto load = initials.getDefiningOp<cudaq::cc::LoadOp>())
             initials = load.getPtrvalue();
         if (isStateType(initials.getType())) {
-          Value alloca = quake::AllocaOp::create(builder, loc);
-          auto veq1Ty = quake::VeqType::get(builder.getContext(), 1);
-          Value initSt = quake::InitializeStateOp::create(
+          Value alloca = cudaq::quake::AllocaOp::create(builder, loc);
+          auto veq1Ty = cudaq::quake::VeqType::get(builder.getContext(), 1);
+          Value initSt = cudaq::quake::InitializeStateOp::create(
               builder, loc, veq1Ty, ValueRange{alloca, initials});
-          if (auto initOp = initials.getDefiningOp<quake::CreateStateOp>())
-            quake::DeleteStateOp::create(builder, loc, initOp);
+          if (auto initOp =
+                  initials.getDefiningOp<cudaq::quake::CreateStateOp>())
+            cudaq::quake::DeleteStateOp::create(builder, loc, initOp);
           return pushValue(
-              quake::ExtractRefOp::create(builder, loc, initSt, 0));
+              cudaq::quake::ExtractRefOp::create(builder, loc, initSt, 0));
         }
         bool ok = false;
         if (auto ptrTy = dyn_cast<cc::PointerType>(initials.getType()))
@@ -2999,37 +3225,40 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
         if (!ok) {
           // Invalid initializer ignored, but emit an error.
           reportClangError(x, mangler, "invalid qudit initial value");
-          return pushValue(quake::AllocaOp::create(builder, loc));
+          return pushValue(cudaq::quake::AllocaOp::create(builder, loc));
         }
         auto *ctx = builder.getContext();
-        auto veqTy = quake::VeqType::get(ctx, 1);
-        auto alloc = quake::AllocaOp::create(builder, loc, veqTy);
-        auto init = quake::InitializeStateOp::create(builder, loc, veqTy, alloc,
-                                                     initials);
-        return pushValue(quake::ExtractRefOp::create(builder, loc, init, 0));
+        auto veqTy = cudaq::quake::VeqType::get(ctx, 1);
+        auto alloc = cudaq::quake::AllocaOp::create(builder, loc, veqTy);
+        auto init = cudaq::quake::InitializeStateOp::create(builder, loc, veqTy,
+                                                            alloc, initials);
+        return pushValue(
+            cudaq::quake::ExtractRefOp::create(builder, loc, init, 0));
       }
       if (ctorName == "qvector") {
         auto initials = popValue();
         auto *ctx = builder.getContext();
         if (isa<IntegerType>(initials.getType())) {
           // This is the cudaq::qvector(std::size_t) ctor.
-          return pushValue(quake::AllocaOp::create(
-              builder, loc, quake::VeqType::getUnsized(ctx), initials));
+          return pushValue(cudaq::quake::AllocaOp::create(
+              builder, loc, cudaq::quake::VeqType::getUnsized(ctx), initials));
         }
-        if (isa<quake::StateType>(initials.getType()))
+        if (isa<cudaq::quake::StateType>(initials.getType()))
           if (auto load = initials.getDefiningOp<cudaq::cc::LoadOp>())
             initials = load.getPtrvalue();
         if (isStateType(initials.getType())) {
           Value state = initials;
           auto i64Ty = builder.getI64Type();
-          auto numQubits =
-              quake::GetNumberOfQubitsOp::create(builder, loc, i64Ty, state);
-          auto veqTy = quake::VeqType::getUnsized(ctx);
-          Value alloc = quake::AllocaOp::create(builder, loc, veqTy, numQubits);
-          Value initSt = quake::InitializeStateOp::create(builder, loc, veqTy,
-                                                          alloc, state);
-          if (auto initOp = initials.getDefiningOp<quake::CreateStateOp>())
-            quake::DeleteStateOp::create(builder, loc, initOp);
+          auto numQubits = cudaq::quake::GetNumberOfQubitsOp::create(
+              builder, loc, i64Ty, state);
+          auto veqTy = cudaq::quake::VeqType::getUnsized(ctx);
+          Value alloc =
+              cudaq::quake::AllocaOp::create(builder, loc, veqTy, numQubits);
+          Value initSt = cudaq::quake::InitializeStateOp::create(
+              builder, loc, veqTy, alloc, state);
+          if (auto initOp =
+                  initials.getDefiningOp<cudaq::quake::CreateStateOp>())
+            cudaq::quake::DeleteStateOp::create(builder, loc, initOp);
           return pushValue(initSt);
         }
 
@@ -3067,16 +3296,17 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
               "internal error: could not determine the number of qubits");
           return false;
         }
-        auto veqTy = quake::VeqType::getUnsized(ctx);
-        auto alloc = quake::AllocaOp::create(builder, loc, veqTy, numQubits);
-        return pushValue(quake::InitializeStateOp::create(builder, loc, veqTy,
-                                                          alloc, initials));
+        auto veqTy = cudaq::quake::VeqType::getUnsized(ctx);
+        auto alloc =
+            cudaq::quake::AllocaOp::create(builder, loc, veqTy, numQubits);
+        return pushValue(cudaq::quake::InitializeStateOp::create(
+            builder, loc, veqTy, alloc, initials));
       }
       if ((ctorName == "qspan" || ctorName == "qview") &&
-          isa<quake::VeqType>(peekValue().getType())) {
+          isa<cudaq::quake::VeqType>(peekValue().getType())) {
         // One of the qspan ctors, which effectively just makes a copy. Here we
         // omit making a copy and just forward the veq argument.
-        assert(isa<quake::VeqType>(ctorTy));
+        assert(isa<cudaq::quake::VeqType>(ctorTy));
         return true;
       }
     }
@@ -3087,7 +3317,7 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
           if (valueStack.empty())
             return false;
           Value v = peekValue();
-          return v && isa<quake::VeqType>(v.getType());
+          return v && isa<cudaq::quake::VeqType>(v.getType());
         }
       }
       return false;
@@ -3150,7 +3380,7 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
       // The `reference_wrapper` class is used to guide the `qudit&` through a
       // container class (like `std::vector`). It is a NOP at the Quake level.
       [[maybe_unused]] auto tosTy = peekValue().getType();
-      assert((isa<quake::RefType, quake::VeqType>(tosTy)));
+      assert((isa<cudaq::quake::RefType, cudaq::quake::VeqType>(tosTy)));
       return true;
     }
 
@@ -3228,9 +3458,9 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     }
   }
 
-  if (isa<quake::StruqType>(ctorTy)) {
-    if (quake::isConstantQuantumRefType(ctorTy))
-      return pushValue(quake::AllocaOp::create(builder, loc, ctorTy));
+  if (isa<cudaq::quake::StruqType>(ctorTy)) {
+    if (cudaq::quake::isConstantQuantumRefType(ctorTy))
+      return pushValue(cudaq::quake::AllocaOp::create(builder, loc, ctorTy));
     return true;
   }
 
@@ -3244,7 +3474,7 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
 
   if (ctor->isCopyOrMoveConstructor()) {
     // Just walk through copy constructors for quantum struct types.
-    if (isa<quake::StruqType>(ctorTy))
+    if (isa<cudaq::quake::StruqType>(ctorTy))
       return true;
     if (parent->isPOD()) {
       // Copy or move constructor on a POD struct. The value stack should
@@ -3253,7 +3483,18 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
       assert(isa<cc::StructType>(ctorTy) && "POD must be a struct type");
       return pushValue(cc::LoadOp::create(builder, loc, fromStruct));
     }
+    if (isa<cc::MeasureHandleType>(ctorTy))
+      return pushValue(loadHandleIfPointer(builder, loc, popValue()));
   }
+
+  // Default-construct `cudaq::measure_handle`: produce only the storage
+  // slot. It is `unbound`: any read at a discriminate site is invalid and must
+  // be statically diagnosed where reachable. Allocate the slot here and skip
+  // the call. `VisitVarDecl` recognises the `cc::AllocaOp` result and binds it
+  // directly, leaving the slot uninitialised so the unbound-handle check in
+  // `VisitCXXConversionDecl(operator bool)` fires when reached.
+  if (ctor->isDefaultConstructor() && isa<cc::MeasureHandleType>(ctorTy))
+    return pushValue(cc::AllocaOp::create(builder, loc, ctorTy));
 
   if (ctor->isCopyConstructor() && ctor->isTrivial() &&
       isa<cc::StructType>(ctorTy)) {

@@ -15,6 +15,7 @@
 #include "cudaq/algorithms/policies.h"
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
+#include "cudaq/qis/measure_handle.h"
 #include <deque>
 #include <string_view>
 #include <vector>
@@ -70,8 +71,9 @@ public:
   }
 };
 #else
-/// When compiling with MLIR, we default to a boolean.
-using measure_result = bool;
+// In MLIR mode, keep the existing `measure_result` API name as a compatibility
+// alias for `measure_handle`.
+using measure_result = measure_handle;
 #endif
 
 /// The ExecutionManager provides a base class describing a concrete sub-system
@@ -112,7 +114,9 @@ public:
   bool memoryLeaked() { return !tracker.allDeallocated(); }
 
   /// Configure the execution context before an execution.
-  virtual void configureExecutionContext(ExecutionContext &ctx) {}
+  void configureExecutionContext(const sample_policy &policy,
+                                 ExecutionContext &ctx);
+  void configureExecutionContext(ExecutionContext &ctx);
 
   /// Finalize the execution context after an execution.
   void finalizeExecutionContext(ExecutionContext &ctx);
@@ -188,7 +192,7 @@ public:
   virtual void synchronize() = 0;
 
   /// Flush the gate queue (needed for accurate timing information)
-  virtual void flushGateQueue(){};
+  virtual void flushGateQueue() {};
 
   /// @brief Register a new custom unitary operation under the
   /// provided operation name.

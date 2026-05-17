@@ -12,7 +12,6 @@ add_subdirectory(TargetConfig/custom_sim)
 
 llvm_canonicalize_cmake_booleans(
   CUDA_FOUND
-  CUDAQ_TEST_REMOTE_SIM
 )
 
 configure_lit_site_cfg(
@@ -34,7 +33,6 @@ set(CUDAQ_TEST_DEPENDS
     cudaq-opt
     cudaq-translate
     FileCheck
-    cudaq-qpud
     CustomPassPlugin
 )
 # We require split-file, which should be installed along with FileCheck, but
