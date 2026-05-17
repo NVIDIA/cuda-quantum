@@ -23,6 +23,14 @@ namespace cudaq::realtime {
 // Dispatch Kernel Implementation (compiled into libcudaq-realtime.so)
 //==============================================================================
 
+/// @brief Shared-ring-mode flag pushed from the host via
+/// cudaq_dispatch_kernel_set_shared_ring_mode().  When non-zero, the device
+/// dispatcher SKIPS slots whose function_id is not in its function table
+/// (cursor advances, rx_flags NOT cleared) so a peer dispatcher on the same
+/// ring buffer can pick them up.  When zero (default), the dispatcher
+/// DROPS unknown slots (clears rx_flags).
+__constant__ std::uint32_t g_dispatch_shared_ring_mode = 0;
+
 /// @brief Lookup function entry in table by function_id.
 __device__ inline const cudaq_function_entry_t* dispatch_lookup_entry(
     std::uint32_t function_id,
@@ -96,9 +104,34 @@ __global__ void dispatch_kernel_device_call_only(
 
     while (!(*shutdown_flag)) {
       // --- Phase 1: Thread 0 polls and parses ---
+      // Skip / drop disposition for the polled slot (only meaningful to
+      // tid == 0).  When `skip_slot` is true the cursor advances WITHOUT
+      // clearing rx_flags -- a peer dispatcher on a shared ring will
+      // handle the request.  When `drop_slot` is true the cursor advances
+      // AND rx_flags is cleared (bad magic, or legacy unknown-function
+      // path).
+      bool skip_slot = false;
+      bool drop_slot = false;
       if (tid == 0) {
         s_have_work = false;
         std::uint64_t rx_value = rx_flags[current_slot];
+        // Under shared_ring_mode, scan the ring for non-zero rx_flag if
+        // our cursor sees 0 (the peer may have cleared the slot at our
+        // cursor).
+        if (rx_value == 0 && g_dispatch_shared_ring_mode) {
+          std::size_t probe = (current_slot + 1) % num_slots;
+          std::size_t scanned = 0;
+          while (scanned < num_slots - 1) {
+            std::uint64_t v = rx_flags[probe];
+            if (v != 0) {
+              current_slot = probe;
+              rx_value = v;
+              break;
+            }
+            probe = (probe + 1) % num_slots;
+            ++scanned;
+          }
+        }
         if (rx_value != 0) {
           void* rx_slot = reinterpret_cast<void*>(rx_value);
           RPCHeader* header = static_cast<RPCHeader*>(rx_slot);
@@ -128,9 +161,20 @@ __global__ void dispatch_kernel_device_call_only(
               d_request_id     = s_request_id;
               d_ptp_timestamp  = s_ptp_timestamp;
               d_have_work      = true;
+            } else if (g_dispatch_shared_ring_mode) {
+              // shared_ring_mode: function not in our table OR wrong mode
+              // -> SKIP without clearing rx_flags so the peer dispatcher
+              // can pick it up.
+              skip_slot = true;
+            } else {
+              // Legacy: drop unknown / wrong-mode slot.
+              drop_slot = true;
             }
+          } else {
+            // Bad magic -- always drop regardless of shared_ring_mode.
+            drop_slot = true;
           }
-          if (!s_have_work) {
+          if (drop_slot) {
             rx_flags[current_slot] = 0;
           }
         }
@@ -179,28 +223,34 @@ __global__ void dispatch_kernel_device_call_only(
       // --- Phase 4: Sync, then thread 0 writes response ---
       KernelType::sync();
 
-      if (tid == 0 && have_work) {
-        std::uint8_t* tx_slot = tx_data + current_slot * tx_stride_sz;
-        RPCResponse* response = reinterpret_cast<RPCResponse*>(tx_slot);
-        response->magic = RPC_MAGIC_RESPONSE;
-        response->status = status;
-        response->result_len = result_len;
-        response->request_id = request_id;
-        response->ptp_timestamp = ptp_timestamp;
-
-        while (tx_flags[current_slot] != 0 && !(*shutdown_flag))
-          ;
-
-        __threadfence();
-        tx_flags[current_slot] = reinterpret_cast<std::uint64_t>(tx_slot);
-
-        rx_flags[current_slot] = 0;
-        local_packet_count++;
-        current_slot = (current_slot + 1) % num_slots;
-      }
-
-      // Reset device-memory work flag for next iteration
       if (tid == 0) {
+        if (have_work) {
+          std::uint8_t* tx_slot = tx_data + current_slot * tx_stride_sz;
+          RPCResponse* response = reinterpret_cast<RPCResponse*>(tx_slot);
+          response->magic = RPC_MAGIC_RESPONSE;
+          response->status = status;
+          response->result_len = result_len;
+          response->request_id = request_id;
+          response->ptp_timestamp = ptp_timestamp;
+
+          while (tx_flags[current_slot] != 0 && !(*shutdown_flag))
+            ;
+
+          __threadfence();
+          tx_flags[current_slot] = reinterpret_cast<std::uint64_t>(tx_slot);
+
+          rx_flags[current_slot] = 0;
+          local_packet_count++;
+          current_slot = (current_slot + 1) % num_slots;
+        } else if (skip_slot || drop_slot) {
+          // Advance past the slot we just skipped/dropped.  For drop_slot,
+          // rx_flags was already cleared during Phase 1.  For skip_slot,
+          // rx_flags is intentionally left set so a peer dispatcher on a
+          // shared ring can pick it up.
+          current_slot = (current_slot + 1) % num_slots;
+        }
+
+        // Reset device-memory work flag for next iteration
         d_have_work = false;
       }
 
@@ -208,60 +258,84 @@ __global__ void dispatch_kernel_device_call_only(
     }
   } else {
     //==========================================================================
-    // Regular path: only thread 0 calls the handler (unchanged).
+    // Regular path: only thread 0 calls the handler.
     //==========================================================================
     while (!(*shutdown_flag)) {
       if (tid == 0) {
         std::uint64_t rx_value = rx_flags[current_slot];
+        // Under shared_ring_mode, rx_value == 0 at our cursor does NOT
+        // mean "no work" -- the peer dispatcher may have cleared this
+        // slot.  Scan the ring for ANY non-zero rx_flag and jump our
+        // cursor there.
+        if (rx_value == 0 && g_dispatch_shared_ring_mode) {
+          std::size_t probe = (current_slot + 1) % num_slots;
+          std::size_t scanned = 0;
+          while (scanned < num_slots - 1) {
+            std::uint64_t v = rx_flags[probe];
+            if (v != 0) {
+              current_slot = probe;
+              rx_value = v;
+              break;
+            }
+            probe = (probe + 1) % num_slots;
+            ++scanned;
+          }
+        }
         if (rx_value != 0) {
           // RX data address comes from rx_flags (set by Hololink RX kernel
           // or host test harness to the address of the RX data slot)
           void* rx_slot = reinterpret_cast<void*>(rx_value);
           RPCHeader* header = static_cast<RPCHeader*>(rx_slot);
           if (header->magic != RPC_MAGIC_REQUEST) {
+            // Bad magic -- always drop and advance.
             rx_flags[current_slot] = 0;
-            continue;
+            current_slot = (current_slot + 1) % num_slots;
+          } else {
+            std::uint32_t function_id = header->function_id;
+            std::uint32_t arg_len = header->arg_len;
+            void* arg_buffer = static_cast<void*>(header + 1);
+
+            const cudaq_function_entry_t* entry = dispatch_lookup_entry(
+                function_id, function_table, func_count);
+
+            if (entry != nullptr &&
+                entry->dispatch_mode == CUDAQ_DISPATCH_DEVICE_CALL) {
+              DeviceRPCFunction func =
+                  reinterpret_cast<DeviceRPCFunction>(entry->handler.device_fn_ptr);
+
+              std::uint8_t* tx_slot = tx_data + current_slot * tx_stride_sz;
+              std::uint8_t* output_buffer = tx_slot + sizeof(RPCResponse);
+              std::uint32_t result_len = 0;
+              std::uint32_t max_result_len = tx_stride_sz - sizeof(RPCResponse);
+              int status = func(arg_buffer, output_buffer, arg_len,
+                                max_result_len, &result_len);
+
+              RPCResponse* response = reinterpret_cast<RPCResponse*>(tx_slot);
+              response->magic = RPC_MAGIC_RESPONSE;
+              response->status = status;
+              response->result_len = result_len;
+              response->request_id = header->request_id;
+              response->ptp_timestamp = header->ptp_timestamp;
+
+              while (tx_flags[current_slot] != 0 && !(*shutdown_flag))
+                ;
+
+              __threadfence();
+              tx_flags[current_slot] = reinterpret_cast<std::uint64_t>(tx_slot);
+
+              rx_flags[current_slot] = 0;
+              local_packet_count++;
+              current_slot = (current_slot + 1) % num_slots;
+            } else if (g_dispatch_shared_ring_mode) {
+              // shared_ring_mode: function not ours -> SKIP without
+              // clearing rx_flags so the peer dispatcher can handle it.
+              current_slot = (current_slot + 1) % num_slots;
+            } else {
+              // Legacy: drop unknown / wrong-mode slot and advance.
+              rx_flags[current_slot] = 0;
+              current_slot = (current_slot + 1) % num_slots;
+            }
           }
-
-          std::uint32_t function_id = header->function_id;
-          std::uint32_t arg_len = header->arg_len;
-          void* arg_buffer = static_cast<void*>(header + 1);
-
-          const cudaq_function_entry_t* entry = dispatch_lookup_entry(
-              function_id, function_table, func_count);
-
-          if (entry != nullptr && entry->dispatch_mode == CUDAQ_DISPATCH_DEVICE_CALL) {
-            DeviceRPCFunction func =
-                reinterpret_cast<DeviceRPCFunction>(entry->handler.device_fn_ptr);
-
-            // Compute TX slot address from symmetric TX data buffer
-            std::uint8_t* tx_slot = tx_data + current_slot * tx_stride_sz;
-
-            // Handler writes results directly to TX slot (after response header)
-            std::uint8_t* output_buffer = tx_slot + sizeof(RPCResponse);
-            std::uint32_t result_len = 0;
-            std::uint32_t max_result_len = tx_stride_sz - sizeof(RPCResponse);
-            int status = func(arg_buffer, output_buffer, arg_len,
-                              max_result_len, &result_len);
-
-            // Write RPC response header to TX slot
-            RPCResponse* response = reinterpret_cast<RPCResponse*>(tx_slot);
-            response->magic = RPC_MAGIC_RESPONSE;
-            response->status = status;
-            response->result_len = result_len;
-            response->request_id = header->request_id;
-            response->ptp_timestamp = header->ptp_timestamp;
-
-            while (tx_flags[current_slot] != 0 && !(*shutdown_flag))
-              ;
-
-            __threadfence();
-            tx_flags[current_slot] = reinterpret_cast<std::uint64_t>(tx_slot);
-          }
-
-          rx_flags[current_slot] = 0;
-          local_packet_count++;
-          current_slot = (current_slot + 1) % num_slots;
         }
       }
 
@@ -298,71 +372,99 @@ __global__ void dispatch_kernel_with_graph(
   while (!(*shutdown_flag)) {
     if (tid == 0) {
       std::uint64_t rx_value = rx_flags[current_slot];
+      // Under shared_ring_mode, scan the ring for non-zero rx_flag if our
+      // cursor sees 0 (the peer may have cleared the slot at our cursor).
+      if (rx_value == 0 && g_dispatch_shared_ring_mode) {
+        std::size_t probe = (current_slot + 1) % num_slots;
+        std::size_t scanned = 0;
+        while (scanned < num_slots - 1) {
+          std::uint64_t v = rx_flags[probe];
+          if (v != 0) {
+            current_slot = probe;
+            rx_value = v;
+            break;
+          }
+          probe = (probe + 1) % num_slots;
+          ++scanned;
+        }
+      }
       if (rx_value != 0) {
         void* rx_slot = reinterpret_cast<void*>(rx_value);
         RPCHeader* header = static_cast<RPCHeader*>(rx_slot);
         if (header->magic != RPC_MAGIC_REQUEST) {
+          // Bad magic -- always drop and advance.
           rx_flags[current_slot] = 0;
-          continue;
-        }
+          current_slot = (current_slot + 1) % num_slots;
+        } else {
+          std::uint32_t function_id = header->function_id;
+          std::uint32_t arg_len = header->arg_len;
+          void* arg_buffer = static_cast<void*>(header + 1);
 
-        std::uint32_t function_id = header->function_id;
-        std::uint32_t arg_len = header->arg_len;
-        void* arg_buffer = static_cast<void*>(header + 1);
+          const cudaq_function_entry_t* entry = dispatch_lookup_entry(
+              function_id, function_table, func_count);
 
-        const cudaq_function_entry_t* entry = dispatch_lookup_entry(
-            function_id, function_table, func_count);
-        
-        // Compute TX slot address from symmetric TX data buffer
-        std::uint8_t* tx_slot = tx_data + current_slot * tx_stride_sz;
+          // Compute TX slot address from symmetric TX data buffer
+          std::uint8_t* tx_slot = tx_data + current_slot * tx_stride_sz;
 
-        if (entry != nullptr) {
-          if (entry->dispatch_mode == CUDAQ_DISPATCH_DEVICE_CALL) {
-            DeviceRPCFunction func = 
-                reinterpret_cast<DeviceRPCFunction>(entry->handler.device_fn_ptr);
+          bool handled = false;
+          if (entry != nullptr) {
+            if (entry->dispatch_mode == CUDAQ_DISPATCH_DEVICE_CALL) {
+              DeviceRPCFunction func =
+                  reinterpret_cast<DeviceRPCFunction>(entry->handler.device_fn_ptr);
 
-            // Handler writes results directly to TX slot (after response header)
-            std::uint8_t* output_buffer = tx_slot + sizeof(RPCResponse);
-            std::uint32_t result_len = 0;
-            std::uint32_t max_result_len = tx_stride_sz - sizeof(RPCResponse);
-            int status = func(arg_buffer, output_buffer, arg_len,
-                              max_result_len, &result_len);
+              std::uint8_t* output_buffer = tx_slot + sizeof(RPCResponse);
+              std::uint32_t result_len = 0;
+              std::uint32_t max_result_len = tx_stride_sz - sizeof(RPCResponse);
+              int status = func(arg_buffer, output_buffer, arg_len,
+                                max_result_len, &result_len);
 
-            // Write RPC response to TX slot
-            RPCResponse* response = reinterpret_cast<RPCResponse*>(tx_slot);
-            response->magic = RPC_MAGIC_RESPONSE;
-            response->status = status;
-            response->result_len = result_len;
-            response->request_id = header->request_id;
-            response->ptp_timestamp = header->ptp_timestamp;
+              RPCResponse* response = reinterpret_cast<RPCResponse*>(tx_slot);
+              response->magic = RPC_MAGIC_RESPONSE;
+              response->status = status;
+              response->result_len = result_len;
+              response->request_id = header->request_id;
+              response->ptp_timestamp = header->ptp_timestamp;
 
-            while (tx_flags[current_slot] != 0 && !(*shutdown_flag))
-              ;
+              while (tx_flags[current_slot] != 0 && !(*shutdown_flag))
+                ;
 
-            __threadfence();
-            tx_flags[current_slot] = reinterpret_cast<std::uint64_t>(tx_slot);
-          }
-#if __CUDA_ARCH__ >= 900
-          else if (entry->dispatch_mode == CUDAQ_DISPATCH_GRAPH_LAUNCH) {
-            if (graph_io_ctx != nullptr) {
-              graph_io_ctx->rx_slot = rx_slot;
-              graph_io_ctx->tx_slot = tx_slot;
-              graph_io_ctx->tx_flag = &tx_flags[current_slot];
-              graph_io_ctx->tx_flag_value =
-                  reinterpret_cast<std::uint64_t>(tx_slot);
-              graph_io_ctx->tx_stride_sz = tx_stride_sz;
               __threadfence();
+              tx_flags[current_slot] = reinterpret_cast<std::uint64_t>(tx_slot);
+              handled = true;
             }
+#if __CUDA_ARCH__ >= 900
+            else if (entry->dispatch_mode == CUDAQ_DISPATCH_GRAPH_LAUNCH) {
+              if (graph_io_ctx != nullptr) {
+                graph_io_ctx->rx_slot = rx_slot;
+                graph_io_ctx->tx_slot = tx_slot;
+                graph_io_ctx->tx_flag = &tx_flags[current_slot];
+                graph_io_ctx->tx_flag_value =
+                    reinterpret_cast<std::uint64_t>(tx_slot);
+                graph_io_ctx->tx_stride_sz = tx_stride_sz;
+                __threadfence();
+              }
 
-            cudaGraphLaunch(entry->handler.graph_exec,
-                            cudaStreamGraphFireAndForget);
-          }
+              cudaGraphLaunch(entry->handler.graph_exec,
+                              cudaStreamGraphFireAndForget);
+              handled = true;
+            }
 #endif // __CUDA_ARCH__ >= 900
-        }
+          }
 
-        rx_flags[current_slot] = 0;
-        local_packet_count++;
-        current_slot = (current_slot + 1) % num_slots;
+          if (handled) {
+            rx_flags[current_slot] = 0;
+            local_packet_count++;
+            current_slot = (current_slot + 1) % num_slots;
+          } else if (g_dispatch_shared_ring_mode) {
+            // shared_ring_mode: function not ours -> SKIP without clearing
+            // rx_flags so the peer dispatcher can handle it.
+            current_slot = (current_slot + 1) % num_slots;
+          } else {
+            // Legacy: drop unknown / unhandled slot and advance.
+            rx_flags[current_slot] = 0;
+            current_slot = (current_slot + 1) % num_slots;
+          }
+        }
       }
     }
 
@@ -405,6 +507,13 @@ extern "C" cudaError_t cudaq_dispatch_kernel_cooperative_query_occupancy(
   if (err != cudaSuccess) return err;
   if (out_blocks) *out_blocks = num_blocks;
   return cudaSuccess;
+}
+
+extern "C" cudaError_t
+cudaq_dispatch_kernel_set_shared_ring_mode(uint32_t enabled) {
+  return cudaMemcpyToSymbol(cudaq::realtime::g_dispatch_shared_ring_mode,
+                            &enabled, sizeof(enabled), 0,
+                            cudaMemcpyHostToDevice);
 }
 
 extern "C" void cudaq_launch_dispatch_kernel_regular(

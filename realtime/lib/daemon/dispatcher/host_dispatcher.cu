@@ -56,7 +56,9 @@ find_idle_graph_worker_for_function(const cudaq_host_dispatch_loop_ctx_t *ctx,
 struct ParsedSlot {
   uint32_t function_id = 0;
   const cudaq_function_entry_t *entry = nullptr;
-  bool drop = false;
+  bool drop = false; // bad header -- clear rx_flags and advance
+  bool skip = false; // function not in our table -- advance WITHOUT clearing
+                     // (only set when shared_ring_mode is non-zero)
 };
 
 static ParsedSlot
@@ -71,8 +73,12 @@ parse_slot_with_function_table(void *slot_host,
   out.function_id = header->function_id;
   out.entry = lookup_function(ctx->function_table.entries,
                               ctx->function_table.count, out.function_id);
-  if (!out.entry)
-    out.drop = true;
+  if (!out.entry) {
+    if (ctx->config.shared_ring_mode)
+      out.skip = true;
+    else
+      out.drop = true;
+  }
   return out;
 }
 
@@ -197,8 +203,42 @@ cudaq_host_dispatcher_loop(const cudaq_host_dispatch_loop_ctx_t *ctx) {
     if (rx_value == 0) {
       if (!ctx->skip_stream_sweep)
         sweep_completed_workers(ctx);
-      CUDAQ_REALTIME_CPU_RELAX();
-      continue;
+      // Under shared_ring_mode, rx_value == 0 at our local cursor does NOT
+      // mean "no work anywhere on the ring" -- the peer dispatcher may
+      // have cleared this slot after handling it.  Scan the rest of the
+      // ring looking for ANY non-zero rx_flag; if we find one, jump our
+      // cursor there.  If we wrap all the way back without finding any,
+      // fall through to the normal CPU_RELAX wait.
+      if (ctx->config.shared_ring_mode) {
+        size_t probe = (current_slot + 1) % num_slots;
+        size_t scanned = 0;
+        while (scanned < num_slots - 1) {
+          uint64_t v = as_atomic_u64(ctx->ringbuffer.rx_flags_host)[probe]
+                           .load(cuda::std::memory_order_acquire);
+          if (v != 0) {
+            current_slot = probe;
+            break;
+          }
+          probe = (probe + 1) % num_slots;
+          ++scanned;
+        }
+        if (scanned >= num_slots - 1) {
+          // Truly idle: no slot has work for anyone right now.
+          CUDAQ_REALTIME_CPU_RELAX();
+          continue;
+        }
+        // Re-load rx_value at the new cursor position and fall through.
+        rx_value =
+            as_atomic_u64(ctx->ringbuffer.rx_flags_host)[current_slot].load(
+                cuda::std::memory_order_acquire);
+        if (rx_value == 0) {
+          CUDAQ_REALTIME_CPU_RELAX();
+          continue;
+        }
+      } else {
+        CUDAQ_REALTIME_CPU_RELAX();
+        continue;
+      }
     }
 
     void *slot_host = reinterpret_cast<void *>(rx_value);
@@ -214,11 +254,24 @@ cudaq_host_dispatcher_loop(const cudaq_host_dispatch_loop_ctx_t *ctx) {
         current_slot = (current_slot + 1) % num_slots;
         continue;
       }
+      if (parsed.skip) {
+        // shared_ring_mode: leave rx_flags set so a peer dispatcher can pick
+        // this slot up; just advance our local cursor.
+        current_slot = (current_slot + 1) % num_slots;
+        continue;
+      }
       function_id = parsed.function_id;
       entry = parsed.entry;
     }
 
     if (entry && entry->dispatch_mode != CUDAQ_DISPATCH_GRAPH_LAUNCH) {
+      if (ctx->config.shared_ring_mode) {
+        // Entry is in our table but is not a GRAPH_LAUNCH (e.g. a DEVICE_CALL
+        // entry registered for a peer dispatcher).  Under shared_ring_mode
+        // the peer will service it -- skip without clearing rx_flags.
+        current_slot = (current_slot + 1) % num_slots;
+        continue;
+      }
       as_atomic_u64(ctx->ringbuffer.rx_flags_host)[current_slot].store(
           0, cuda::std::memory_order_release);
       current_slot = (current_slot + 1) % num_slots;

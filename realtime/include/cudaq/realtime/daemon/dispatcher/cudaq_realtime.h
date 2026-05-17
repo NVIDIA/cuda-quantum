@@ -108,6 +108,21 @@ typedef struct {
                        // external GPU kernel (e.g. Hololink TX) polls the
                        // same tx_flags array; the sentinel would be
                        // misinterpreted as a valid address.
+  uint32_t shared_ring_mode; // when non-zero, the dispatcher cooperates with
+                             // OTHER dispatchers on the SAME ring buffer.
+                             // Slots whose function_id is not in this
+                             // dispatcher's function table (or is in the
+                             // table but does not match this dispatcher's
+                             // expected dispatch_mode) are SKIPPED without
+                             // clearing rx_flags -- the local cursor
+                             // advances, leaving the slot for another
+                             // dispatcher to pick up.  When zero (default),
+                             // legacy behavior: unknown / wrong-mode slots
+                             // are DROPPED (rx_flags cleared).  Both
+                             // dispatchers sharing a ring must set this to
+                             // non-zero; the partitioning invariant is that
+                             // each function_id appears in AT MOST ONE
+                             // dispatcher's function table.
 } cudaq_dispatcher_config_t;
 
 // GPU ring buffer pointers. For device backend use device pointers only.
@@ -372,6 +387,20 @@ cudaError_t cudaq_dispatch_kernel_query_occupancy(int *out_blocks,
 cudaError_t
 cudaq_dispatch_kernel_cooperative_query_occupancy(int *out_blocks,
                                                   uint32_t threads_per_block);
+
+// Push the shared_ring_mode flag into the DEVICE_LOOP kernel's __constant__
+// memory.  Must be called BEFORE cudaq_dispatcher_start() launches the
+// device kernel; otherwise the kernel will start with shared_ring_mode=0.
+//
+// IMPORTANT: cudaq_dispatcher_start() does NOT call this for you. The
+// __constant__ symbol lives in libcudaq-realtime-dispatch.a, which is
+// linked directly into consumers (not into libcudaq-realtime.so), so the
+// dispatcher manager cannot reach the symbol from inside the shared
+// library.  Consumers that set config.shared_ring_mode = 1 must also call
+// cudaq_dispatch_kernel_set_shared_ring_mode(1) before starting the
+// dispatcher.  The HOST_LOOP path reads config.shared_ring_mode directly
+// and does NOT require this call.
+cudaError_t cudaq_dispatch_kernel_set_shared_ring_mode(uint32_t enabled);
 
 #ifdef __cplusplus
 }

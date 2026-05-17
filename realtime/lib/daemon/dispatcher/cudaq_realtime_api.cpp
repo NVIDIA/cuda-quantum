@@ -222,6 +222,20 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
   if (cudaStreamCreate(&dispatcher->stream) != cudaSuccess)
     return CUDAQ_ERR_CUDA;
 
+  // NOTE on config.shared_ring_mode for DEVICE_LOOP:
+  //
+  // The device dispatch kernel reads shared_ring_mode from a __constant__
+  // symbol that lives in libcudaq-realtime-dispatch.a (the static lib).
+  // libcudaq-realtime.so does NOT link the static lib (architecturally
+  // separate: consumers link the static lib themselves), so we cannot
+  // call cudaq_dispatch_kernel_set_shared_ring_mode() from here.
+  //
+  // Callers that want shared_ring_mode for DEVICE_LOOP must invoke
+  // cudaq_dispatch_kernel_set_shared_ring_mode(1) themselves BEFORE
+  // cudaq_dispatcher_start().  The HOST_LOOP path reads
+  // config.shared_ring_mode directly from this struct (it has no
+  // __constant__ indirection) -- nothing needed here.
+
   if (dispatcher->config.kernel_type == CUDAQ_KERNEL_UNIFIED) {
     dispatcher->unified_launch_fn(
         dispatcher->transport_ctx, dispatcher->table.entries,
