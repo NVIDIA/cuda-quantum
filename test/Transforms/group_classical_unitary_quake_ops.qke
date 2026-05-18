@@ -6,13 +6,14 @@
 // the terms of the Apache License 2.0 which accompanies this distribution. //
 // ========================================================================== //
 
-// RUN: cudaq-opt --group-unitary-ops %s | FileCheck %s
+// RUN: cudaq-opt --group-classical-unitary-quake-ops %s | FileCheck %s
 
-// Two independent wire chains interleaved with classical ops. When legal,
-// unitary gates are scheduled before other non-measurement ready work so the
-// two `h`/`x` pairs can cluster ahead of the pure classical `%e = arith.addi`
-// chain.
-func.func @cluster_unitaries_along_two_wires() {
+// group-classical-unitary-quake-ops: when multiple ops are ready, schedule
+// classical ops, then unitaries, then measurements/resets, then other quake
+// ops, then by original block index.
+
+// Classical chain hoisted; independent unitaries on two wires cluster per wire.
+func.func @cluster_classical_then_unitaries() {
   %w0 = quake.null_wire
   %w1 = quake.null_wire
   %c = arith.constant 0 : i32
@@ -28,25 +29,23 @@ func.func @cluster_unitaries_along_two_wires() {
   return
 }
 
-// CHECK-LABEL: func.func @cluster_unitaries_along_two_wires
-// CHECK: quake.null_wire
+// CHECK-LABEL: func.func @cluster_classical_then_unitaries
+// CHECK: arith.constant
+// CHECK-NEXT: arith.addi
+// CHECK-NEXT: arith.addi
+// CHECK-NEXT: arith.addi
+// CHECK-NEXT: quake.null_wire
 // CHECK-NEXT: quake.h
 // CHECK-NEXT: quake.x
 // CHECK-NEXT: quake.null_wire
 // CHECK-NEXT: quake.x
 // CHECK-NEXT: quake.h
-// CHECK-NEXT: arith.constant
-// CHECK-NEXT: arith.addi
-// CHECK-NEXT: arith.addi
-// CHECK-NEXT: arith.addi
 // CHECK-NEXT: quake.sink
 // CHECK-NEXT: quake.sink
 // CHECK-NEXT: return
 
-// `QuantumMeasure` ops are preferred over classical ops when both are ready:
-// after `quake.h`, `quake.mz` can run before the intervening `arith` uses of
-// `%c` even though `mz` appears later in the source block.
-func.func @cluster_measurement_before_classical() {
+// Classical before measure; unitary before measure on the same wire.
+func.func @classical_before_measurement() {
   %w = quake.null_wire
   %c = arith.constant 0 : i32
   %d = arith.addi %c, %c : i32
@@ -57,12 +56,34 @@ func.func @cluster_measurement_before_classical() {
   return
 }
 
-// CHECK-LABEL: func.func @cluster_measurement_before_classical
-// CHECK: quake.null_wire
+// CHECK-LABEL: func.func @classical_before_measurement
+// CHECK: arith.constant
+// CHECK-NEXT: arith.addi
+// CHECK-NEXT: arith.addi
+// CHECK-NEXT: quake.null_wire
 // CHECK-NEXT: quake.h
 // CHECK-NEXT: quake.mz
-// CHECK-NEXT: arith.constant
-// CHECK-NEXT: arith.addi
-// CHECK-NEXT: arith.addi
+// CHECK-NEXT: quake.sink
+// CHECK-NEXT: return
+
+// Unitaries on one wire cluster before reset on an independent wire.
+func.func @unitaries_before_reset() {
+  %w0 = quake.null_wire
+  %w1 = quake.null_wire
+  %w0h = quake.h %w0 : (!quake.wire) -> !quake.wire
+  %w1n = quake.reset %w1 : (!quake.wire) -> !quake.wire
+  %w0x = quake.x %w0h : (!quake.wire) -> !quake.wire
+  quake.sink %w0x : !quake.wire
+  quake.sink %w1n : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @unitaries_before_reset
+// CHECK: quake.null_wire
+// CHECK-NEXT: quake.h
+// CHECK-NEXT: quake.x
+// CHECK-NEXT: quake.null_wire
+// CHECK-NEXT: quake.reset
+// CHECK-NEXT: quake.sink
 // CHECK-NEXT: quake.sink
 // CHECK-NEXT: return

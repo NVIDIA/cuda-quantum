@@ -40,7 +40,7 @@ add_cudaq_library(OptTransforms
   GenDeviceCodeLoader.cpp
   GetConcreteMatrix.cpp
   GlobalizeArrayValues.cpp
-  GroupUnitaryOps.cpp
+  GroupClassicalUnitaryQuakeOps.cpp
   LambdaLifting.cpp
   LiftArrayAlloc.cpp
   LinearCtrlRelations.cpp

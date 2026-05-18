@@ -682,6 +682,57 @@ def GlobalizeArrayValues : Pass<"globalize-array-values", "mlir::ModuleOp"> {
   }];
 }
 
+def GroupClassicalUnitaryQuakeOps
+    : Pass<"group-classical-unitary-quake-ops", "mlir::func::FuncOp"> {
+  let summary = "Group classical, unitary, measurement/reset, remaining Quake, and then remaining ops.";
+  let description = [{
+    Reorders operations in each basic block using a topological schedule that
+    preserves SSA and memory-effect dependencies. When multiple ops are ready,
+    the pass breaks ties by preferring (in order) classical (non-quake) ops,
+    unitary gates, measurements and resets, other quake ops, then whatever ops
+    are left by original block index.
+
+    This hoists independent classical work, pulls unitaries together on each
+    wire when legal, and keeps measurements and resets after unitaries on the
+    same dependence chain.
+
+    Example:
+    ```mlir
+      %w0 = quake.null_wire
+      %w1 = quake.null_wire
+      %c = arith.constant 0 : i32
+      %w0h = quake.h %w0 : (!quake.wire) -> !quake.wire
+      %d = arith.addi %c, %c : i32
+      %w1x = quake.x %w1 : (!quake.wire) -> !quake.wire
+      %w0x = quake.x %w0h : (!quake.wire) -> !quake.wire
+      %e = arith.addi %d, %d : i32
+      %w1h = quake.h %w1x : (!quake.wire) -> !quake.wire
+      %f = arith.addi %e, %e : i32
+      quake.sink %w0x : !quake.wire
+      quake.sink %w1h : !quake.wire
+      return
+    ```
+
+    may become (when dependencies allow):
+
+    ```mlir
+      %c = arith.constant 0 : i32
+      %d = arith.addi %c, %c : i32
+      %e = arith.addi %d, %d : i32
+      %f = arith.addi %e, %e : i32
+      %w0 = quake.null_wire
+      %w0h = quake.h %w0 : (!quake.wire) -> !quake.wire
+      %w0x = quake.x %w0h : (!quake.wire) -> !quake.wire
+      %w1 = quake.null_wire
+      %w1x = quake.x %w1 : (!quake.wire) -> !quake.wire
+      %w1h = quake.h %w1x : (!quake.wire) -> !quake.wire
+      quake.sink %w0x : !quake.wire
+      quake.sink %w1h : !quake.wire
+      return
+    ```
+  }];
+}
+
 // LambdaLifting is a module pass because it may modify the ModuleOp and add
 // new FuncOps.
 def LambdaLifting : Pass<"lambda-lifting", "mlir::ModuleOp"> {

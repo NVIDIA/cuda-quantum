@@ -15,7 +15,7 @@
 #include <set>
 
 namespace cudaq::opt {
-#define GEN_PASS_DEF_GROUPUNITARYOPS
+#define GEN_PASS_DEF_GROUPCLASSICALUNITARYQUAKEOPS
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
@@ -26,8 +26,9 @@ namespace {
 /// True when memory instances may require the earlier op to stay before the
 /// later op in the original block order (Bernstein-style conflicts on the same
 /// SSA `Value`). Two reads of the same value do not constrain order.
-static bool memoryInstancesOrderDependent(const MemoryEffects::EffectInstance &a,
-                                          const MemoryEffects::EffectInstance &b) {
+static bool
+memoryInstancesOrderDependent(const MemoryEffects::EffectInstance &a,
+                              const MemoryEffects::EffectInstance &b) {
   Value va = a.getValue();
   Value vb = b.getValue();
   if (!va || !vb)
@@ -79,10 +80,11 @@ static void addEdge(unsigned from, unsigned to, EdgeSet &edgeSet,
   indegree[to]++;
 }
 
-static void addSsaEdgesToSuccessors(Block *block, ArrayRef<Operation *> ops,
-                                    EdgeSet &edgeSet,
-                                    SmallVector<SmallVector<unsigned, 4>> &succs,
-                                    MutableArrayRef<unsigned> indegree) {
+static void
+addSsaEdgesToSuccessors(Block *block, ArrayRef<Operation *> ops,
+                        EdgeSet &edgeSet,
+                        SmallVector<SmallVector<unsigned, 4>> &succs,
+                        MutableArrayRef<unsigned> indegree) {
   DenseMap<Operation *, unsigned> index;
   index.reserve(ops.size());
   for (auto [i, op] : llvm::enumerate(ops))
@@ -127,33 +129,41 @@ static void addMemoryAndPinEdges(ArrayRef<Operation *> ops, EdgeSet &edgeSet,
   }
 }
 
-static bool isUnitaryOp(Operation *op) { return op->hasTrait<cudaq::Unitary>(); }
+static bool isClassicalOp(Operation *op) { return !isQuakeOperation(op); }
 
-static bool isMeasurementOp(Operation *op) {
-  return op->hasTrait<cudaq::QuantumMeasure>();
+static bool isUnitaryOp(Operation *op) {
+  return op->hasTrait<cudaq::Unitary>();
 }
 
-/// Among `ready`, pick the next op to schedule. Prefer ready ops that carry the
-/// `Unitary` trait (smallest original index), then ready ops with the
-/// `QuantumMeasure` trait, then the smallest original index. This pulls
-/// independent unitaries and measurements earlier when the dependence graph
-/// allows, analogous to the classical-vs-quantum tie-break in
-/// `group-classical-and-quantum-ops`.
-static unsigned pickNextReady(ArrayRef<unsigned> ready, ArrayRef<Operation *> ops) {
-  assert(!ready.empty());
-  unsigned bestUnitary = std::numeric_limits<unsigned>::max();
-  for (unsigned idx : ready)
-    if (isUnitaryOp(ops[idx]) && idx < bestUnitary)
-      bestUnitary = idx;
-  if (bestUnitary != std::numeric_limits<unsigned>::max())
-    return bestUnitary;
+static bool isMeasurementOrResetOp(Operation *op) {
+  return op->hasTrait<cudaq::QuantumMeasure>() ||
+         isa<cudaq::quake::ResetOp>(op);
+}
 
-  unsigned bestMeasure = std::numeric_limits<unsigned>::max();
-  for (unsigned idx : ready)
-    if (isMeasurementOp(ops[idx]) && idx < bestMeasure)
-      bestMeasure = idx;
-  if (bestMeasure != std::numeric_limits<unsigned>::max())
-    return bestMeasure;
+/// Among `ready`, pick the next op to schedule (smallest original index within
+/// each tier): non-quake classical ops, then `Unitary` ops, then measurements
+/// and resets, then other quake ops, then the smallest original index.
+static unsigned pickNextReady(ArrayRef<unsigned> ready,
+                              ArrayRef<Operation *> ops) {
+  assert(!ready.empty());
+  auto pickBest = [&](auto predicate) -> std::optional<unsigned> {
+    unsigned best = std::numeric_limits<unsigned>::max();
+    for (unsigned idx : ready)
+      if (predicate(ops[idx]) && idx < best)
+        best = idx;
+    if (best != std::numeric_limits<unsigned>::max())
+      return best;
+    return std::nullopt;
+  };
+
+  if (auto idx = pickBest(isClassicalOp))
+    return *idx;
+  if (auto idx = pickBest(isUnitaryOp))
+    return *idx;
+  if (auto idx = pickBest(isMeasurementOrResetOp))
+    return *idx;
+  if (auto idx = pickBest(isQuakeOperation))
+    return *idx;
 
   unsigned best = ready.front();
   for (unsigned idx : ready)
@@ -195,8 +205,9 @@ static LogicalResult scheduleBlock(Block &block, ArrayRef<Operation *> ops) {
   }
 
   if (order.size() != n) {
-    mlir::emitError(block.getParentOp()->getLoc(),
-                    "group-unitary-ops: cycle in dependence graph");
+    mlir::emitError(
+        block.getParentOp()->getLoc(),
+        "group-classical-unitary-quake-ops: cycle in dependence graph");
     return failure();
   }
 
@@ -229,9 +240,10 @@ static void collectBlocks(Operation *root,
   });
 }
 
-struct GroupUnitaryOpsPass
-    : public cudaq::opt::impl::GroupUnitaryOpsBase<GroupUnitaryOpsPass> {
-  using GroupUnitaryOpsBase::GroupUnitaryOpsBase;
+struct GroupClassicalUnitaryQuakeOpsPass
+    : public cudaq::opt::impl::GroupClassicalUnitaryQuakeOpsBase<
+          GroupClassicalUnitaryQuakeOpsPass> {
+  using GroupClassicalUnitaryQuakeOpsBase::GroupClassicalUnitaryQuakeOpsBase;
 
   void runOnOperation() override {
     func::FuncOp func = getOperation();
