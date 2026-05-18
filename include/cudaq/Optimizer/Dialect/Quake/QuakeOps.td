@@ -1773,7 +1773,7 @@ def CustomUnitarySymbolOp :
       return build($_builder, $_state, mlir::TypeRange{}, generator, is_adj,
                    parameters, controls, targets, negates);
     }]>,
-    OpBuilder<(ins "mlir::SymbolRefAttr":$generator,
+    OpBuilder<(ins "mlir::SymbolRAttr":$generator,
                    "bool":$is_adj,
                    "mlir::ValueRange":$parameters,
                    "mlir::ValueRange":$controls,
