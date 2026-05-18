@@ -56,7 +56,7 @@ config.excludes = [exclude for exclude in config.excludes] + local_excludes
 config.test_source_root = os.path.dirname(__file__)
 
 # The root path where tests should be run.
-config.test_exec_root = os.path.join(config.cudaq_obj_root, 'test')
+config.test_exec_root = os.path.join(config.cudaq_obj_root, 'cudaq', 'test')
 
 # Check for optional plugin libraries.
 custom_pass_plugin = os.path.join(config.cudaq_lib_dir,
