@@ -104,8 +104,7 @@ ADD "docs/sphinx/examples" /cuda-quantum/docs/sphinx/examples
 ADD "docs/sphinx/applications" /cuda-quantum/docs/sphinx/applications
 ADD "docs/sphinx/targets" /cuda-quantum/docs/sphinx/targets
 ADD "docs/sphinx/snippets" /cuda-quantum/docs/sphinx/snippets
-ADD "cudaq/include" /cuda-quantum/cudaq/include
-ADD "cudaq/lib" /cuda-quantum/cudaq/lib
+ADD "cudaq" /cuda-quantum/cudaq
 ADD "runtime" /cuda-quantum/runtime
 ADD "scripts/build_cudaq.sh" /cuda-quantum/scripts/build_cudaq.sh
 ADD "scripts/migrate_assets.sh" /cuda-quantum/scripts/migrate_assets.sh
@@ -113,8 +112,6 @@ ADD "scripts/cudaq_set_env.sh" /cuda-quantum/scripts/cudaq_set_env.sh
 ADD "scripts/build_installer.sh" /cuda-quantum/scripts/build_installer.sh
 ADD "scripts/set_env_defaults.sh" /cuda-quantum/scripts/set_env_defaults.sh
 ADD "targettests" /cuda-quantum/targettests
-ADD "cudaq/test" /cuda-quantum/cudaq/test
-ADD "cudaq/tools" /cuda-quantum/cudaq/tools
 ADD "tpls/customizations" /cuda-quantum/tpls/customizations
 ADD "tpls/json" /cuda-quantum/tpls/json
 ADD "unittests" /cuda-quantum/unittests
@@ -196,10 +193,8 @@ FROM prereqs AS python_build
 ADD pyproject.toml.cu* /cuda-quantum/
 ADD "python" /cuda-quantum/python
 ADD "cmake" /cuda-quantum/cmake
-ADD "cudaq/include" /cuda-quantum/cudaq/include
-ADD "cudaq/lib" /cuda-quantum/cudaq/lib
+ADD "cudaq" /cuda-quantum/cudaq
 ADD "runtime" /cuda-quantum/runtime
-ADD "cudaq/tools" /cuda-quantum/cudaq/tools
 ADD "tpls/customizations" /cuda-quantum/tpls/customizations
 ADD "tpls/json" /cuda-quantum/tpls/json
 ADD "utils" /cuda-quantum/utils
