@@ -5182,39 +5182,22 @@ class PyASTBridge(ast.NodeVisitor):
 
         self.walkingReturnNode = True
         # If we are returning a tuple expression with a struct return type,
-        # coerce each element to its expected member type *before* assembling
-        # the struct. Without this, an intermediate struct whose element
-        # types include `!cc.measure_handle` is constructed; that intermediate
-        # type survives to QIR lowering and fails to legalize even though the
-        # outer struct is later coerced to the expected type.
+        # signal `visit_Tuple` to coerce each element to its expected member
+        # type before assembling the struct. Without this, an intermediate
+        # struct whose element types include `!cc.measure_handle` is built
+        # and survives to QIR lowering, where it fails to legalize even
+        # though the outer struct is later coerced to the expected type.
         expectedRet = self.signature.return_type
         if (isinstance(node.value, ast.Tuple) and expectedRet is not None and
                 cc.StructType.isinstance(expectedRet) and
                 len(cc.StructType.getTypes(expectedRet)) == len(
                     node.value.elts)):
-            expectedEleTys = cc.StructType.getTypes(expectedRet)
-            # Mirror the frame discipline that `self.visit(tuple_node)` would
-            # have performed via `visit_Tuple`: push a child frame so
-            # `pushValue` from each element visit lands on this scratch frame
-            # rather than on `visit_Return`'s frame.
-            self.valueStack.pushFrame()
-            for eleNode in node.value.elts:
-                self.visit(eleNode)
-            elementValues = self.popAllValues(len(node.value.elts))
-            elementValues.reverse()
-            # Replicate `visit_Tuple`'s container-entry validation (e.g. the
-            # "only dataclass literals" check) that we would otherwise bypass
-            # by taking this branch instead of going through `visit_Tuple`.
-            for idx, value in enumerate(elementValues):
-                self.__validate_container_entry(value, node.value.elts[idx])
-            coerced = [
-                self.changeOperandToType(eleTy, val, allowDemotion=True)
-                for eleTy, val in zip(expectedEleTys, elementValues)
-            ]
-            self.pushValue(self.__createStructWithKnownValues(coerced))
-            self.valueStack.popFrame()
-        else:
+            self._tupleReturnExpectedEleTys = cc.StructType.getTypes(
+                expectedRet)
+        try:
             self.visit(node.value)
+        finally:
+            self._tupleReturnExpectedEleTys = None
         self.walkingReturnNode = False
 
         if self.valueStack.currentNumValues == 0:
@@ -5294,11 +5277,25 @@ class PyASTBridge(ast.NodeVisitor):
     def visit_Tuple(self, node):
         """Map tuples in the Python AST to equivalents in MLIR."""
 
+        # Consume any expected element types set by an outer caller (e.g.
+        # `visit_Return` for a tuple-returning kernel) so per-element type
+        # coercion happens before the struct is assembled. Reset to `None`
+        # immediately so nested tuples in the element visits below do not
+        # inherit this caller's expectations.
+        expectedEleTys = getattr(self, '_tupleReturnExpectedEleTys', None)
+        self._tupleReturnExpectedEleTys = None
+
         [self.visit(el) for el in node.elts]
         elementValues = self.popAllValues(len(node.elts))
         elementValues.reverse()
         for idx, value in enumerate(elementValues):
             self.__validate_container_entry(value, node.elts[idx])
+        if expectedEleTys is not None and len(expectedEleTys) == len(
+                elementValues):
+            elementValues = [
+                self.changeOperandToType(eleTy, val, allowDemotion=True)
+                for eleTy, val in zip(expectedEleTys, elementValues)
+            ]
         struct = self.__createStructWithKnownValues(elementValues)
         self.pushValue(struct)
 

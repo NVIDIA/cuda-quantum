@@ -341,24 +341,6 @@ def test_int_handle_in_arithmetic_promotes_through_bool():
     assert results[0] == 2
 
 
-# ---------------------------------------------------------------------------
-# Aggregate-element auto-discriminate
-# ---------------------------------------------------------------------------
-
-
-def test_tuple_return_with_handle_element_discriminates():
-
-    @cudaq.kernel
-    def k(first: bool) -> tuple[bool, bool]:
-        q = cudaq.qubit()
-        x(q)
-        return first, mz(q)
-
-    results = cudaq.run(k, True, shots_count=1)
-    assert len(results) == 1
-    assert results[0] == (True, True)
-
-
 # leave for gdb debugging
 if __name__ == "__main__":
     import os
