@@ -68,7 +68,7 @@ this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
 echo "Configured C compiler: $CC"
 echo "Configured C++ compiler: $CXX"
 
-# Check if we build python bindings and build pybind11 from source if necessary.
+# Check if we build python bindings and build nanobind from source if necessary.
 projects=(`echo $LLVM_PROJECTS | tr ';' ' '`)
 llvm_projects=`printf "%s;" "${projects[@]}"`
 if [ -z "${llvm_projects##*python-bindings;*}" ]; then

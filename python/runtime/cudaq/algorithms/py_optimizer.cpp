@@ -12,7 +12,6 @@
 #include <nanobind/stl/tuple.h>
 #include <nanobind/stl/vector.h>
 
-#include "common/JsonConvert.h"
 #include "cudaq/algorithms/gradients/central_difference.h"
 #include "cudaq/algorithms/gradients/forward_difference.h"
 #include "cudaq/algorithms/gradients/parameter_shift.h"
@@ -73,18 +72,6 @@ void bindGradientStrategies(nanobind::module_ &mod) {
                                                             "CentralDifference")
       .def(nanobind::init<>())
       .def(
-          "to_json",
-          [](const gradients::central_difference &p) { return json(p).dump(); },
-          "Convert gradient to JSON string")
-      .def_static(
-          "from_json",
-          [](const std::string &j) {
-            gradients::central_difference p;
-            from_json(json::parse(j), p);
-            return p;
-          },
-          "Convert JSON string to gradient")
-      .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
              nanobind::callable &func, double funcAtX) {
@@ -102,18 +89,6 @@ void bindGradientStrategies(nanobind::module_ &mod) {
                                                             "ForwardDifference")
       .def(nanobind::init<>())
       .def(
-          "to_json",
-          [](const gradients::forward_difference &p) { return json(p).dump(); },
-          "Convert gradient to JSON string")
-      .def_static(
-          "from_json",
-          [](const std::string &j) {
-            gradients::forward_difference p;
-            from_json(json::parse(j), p);
-            return p;
-          },
-          "Convert JSON string to gradient")
-      .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
              nanobind::callable &func, double funcAtX) {
@@ -130,18 +105,6 @@ void bindGradientStrategies(nanobind::module_ &mod) {
   nanobind::class_<gradients::parameter_shift, gradient>(gradients_submodule,
                                                          "ParameterShift")
       .def(nanobind::init<>())
-      .def(
-          "to_json",
-          [](const gradients::parameter_shift &p) { return json(p).dump(); },
-          "Convert gradient to JSON string")
-      .def_static(
-          "from_json",
-          [](const std::string &j) {
-            gradients::parameter_shift p;
-            from_json(json::parse(j), p);
-            return p;
-          },
-          "Convert JSON string to gradient")
       .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
@@ -167,17 +130,6 @@ nanobind::class_<OptimizerT, optimizer> addPyOptimizer(nanobind::module_ &mod,
                                                        std::string &&name) {
   return nanobind::class_<OptimizerT, optimizer>(mod, name.c_str())
       .def(nanobind::init<>())
-      .def(
-          "to_json", [](const OptimizerT &p) { return json(p).dump(); },
-          "Convert optimizer to JSON string")
-      .def_static(
-          "from_json",
-          [](const std::string &j) {
-            OptimizerT p;
-            from_json(json::parse(j), p);
-            return p;
-          },
-          "Convert JSON string to optimizer")
       .def_rw("max_iterations", &OptimizerT::max_eval, R"doc(
           int: Maximum number of optimizer iterations (default: unlimited).
 

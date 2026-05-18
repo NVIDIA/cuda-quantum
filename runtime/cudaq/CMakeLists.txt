@@ -26,7 +26,6 @@ add_library(${LIBRARY_NAME}
     platform/platform_iface.cpp
     qis/execution_manager_c_api.cpp
     qis/execution_manager.cpp
-    qis/remote_state.cpp
     qis/state.cpp
     utils/cudaq_utils.cpp
     distributed/mpi_plugin.cpp

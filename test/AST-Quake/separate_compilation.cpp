@@ -20,4 +20,4 @@ __qpu__ uint64_t test_entry_point() {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_test_entry_point.
 // CHECK-SAME:      () -> i64 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-// CHECK:           %[[VAL_3:.*]] = call @__nvqpp__mlirgen__function_otherKernel.{{.*}}(%{{.*}}) : (!cc.stdvec<i1>) -> i64
+// CHECK:           %[[VAL_3:.*]] = call @{{.*}}otherKernel{{.*}}(%{{.*}}) : (!cc.stdvec<!cc.measure_handle>) -> i64

@@ -22,6 +22,8 @@
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/JIT.h"
+#include "nvqir/AnalysisScope.h"
+#include "nvqir/resourcecounter/ResourceCounterScope.h"
 #include <filesystem>
 #include <fstream>
 #include <netinet/in.h>
@@ -31,8 +33,6 @@
 namespace nvqir {
 // QIR helper to retrieve the output log.
 std::string_view getQirOutputLog();
-void setResourceCounts(cudaq::Resources &&);
-bool isUsingResourceCounterSimulator();
 } // namespace nvqir
 
 namespace cudaq {
@@ -120,14 +120,11 @@ public:
   /// Store the execution context for launchKernel
   void
   configureExecutionContext(cudaq::ExecutionContext &context) const override {
-    // This check ensures that a kernel is not called whilst actively being
-    // used for resource counting (implying that the kernel was somehow
-    // invoked from inside the choice function). This check may want to
-    // be expanded more broadly to ensure that the execution context is
-    // always fully reset, implying the end of the invocation, being being
-    // set again, signaling a new invocation.
-    if (nvqir::isUsingResourceCounterSimulator() &&
-        context.name != "resource-count")
+    // Re-entry guard for analysis scopes. Without this, a host callback issued
+    // by the analysis simulator (e.g. a `choice` function that calls
+    // `cudaq::sample`) could launch a second kernel through this transport
+    // while the outer scope is still active.
+    if (nvqir::AnalysisScope::is_active() && context.name != "resource-count")
       throw std::runtime_error(
           "Illegal use of resource counter simulator! (Did you attempt to run "
           "a kernel inside of a choice function?)");
@@ -216,46 +213,6 @@ public:
                                         serverHelper, executor);
   }
 
-  /// @brief Launch the kernel. Extract the Quake code and lower to the
-  /// representation required by the targeted backend. Handle all pertinent
-  /// modifications for the execution context as well as asynchronous or
-  /// synchronous invocation.
-  KernelThunkResultType unifiedLaunchModule(const AnyModule &module,
-                                            KernelArgs args) override {
-    Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
-                      noiseModel, emulate);
-    std::string kernelName;
-    std::vector<cudaq::KernelExecution> codes;
-
-    if (std::holds_alternative<SourceModule>(module)) {
-      const auto &src = std::get<SourceModule>(module);
-      kernelName = src.getName();
-      CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
-
-      auto executionContext = cudaq::getExecutionContext();
-
-      // TODO future iterations of this should support non-void return types.
-      if (!executionContext)
-        throw std::runtime_error(
-            "Remote rest execution can only be performed via cudaq::sample(), "
-            "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
-
-      auto [moduleOp, context] = Compiler::loadQuakeCodeByName(kernelName);
-
-      // Get the Quake code, lowered according to config file.
-      codes =
-          compiler.lowerQuakeCode(executionContext, kernelName, moduleOp, args);
-    } else {
-      const auto &compiled = std::get<CompiledModule>(module);
-      kernelName = compiled.getName();
-      CUDAQ_INFO("launching remote rest kernel via module ({})", kernelName);
-      codes = compiler.emitKernelExecutions(compiled);
-    }
-
-    completeLaunchKernel(kernelName, std::move(codes));
-    return {};
-  }
-
   CompiledModule compileModule(const SourceModule &src, KernelArgs args,
                                bool isEntryPoint) override {
     const auto &kernelName = src.getName();
@@ -301,7 +258,8 @@ public:
       cudaq::ExecutionContext context("resource-count");
       context.executionManager = cudaq::getDefaultExecutionManager();
       assert(codes.size() == 1 && codes[0].jit && codes[0].resourceCounts);
-      nvqir::setResourceCounts(std::move(codes[0].resourceCounts.value()));
+      nvqir::resource_counter::prepopulate(
+          std::move(codes[0].resourceCounts.value()));
       cudaq::platform::with_execution_context(
           context, [&]() { codes[0].jit->run(kernelName); });
       return;

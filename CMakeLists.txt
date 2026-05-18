@@ -84,18 +84,6 @@ if (NOT DEFINED CUDAQ_ENABLE_REST)
   set(CUDAQ_ENABLE_REST ON CACHE BOOL "Enable building REST client & server.")
 endif()
 
-# Enable the remote simulator by default.
-if (CUDAQ_ENABLE_REST AND NOT DEFINED CUDAQ_ENABLE_REMOTE_SIM)
-  set(CUDAQ_ENABLE_REMOTE_SIM ON CACHE BOOL "Enable building cudaq-qpud.")
-  if (NOT DEFINED CUDAQ_TEST_REMOTE_SIM)
-    set(CUDAQ_TEST_REMOTE_SIM ON CACHE BOOL "Run remote-sim tests.")
-  endif()
-endif()
-if (NOT CUDAQ_ENABLE_REST)
-  set(CUDAQ_ENABLE_REMOTE_SIM OFF CACHE BOOL "Enable building cudaq-qpud." FORCE)
-  set(CUDAQ_TEST_REMOTE_SIM OFF CACHE BOOL "Run remote-sim tests." FORCE)
-endif()
-
 # Enable Amazon Braket backends by default.
 if (NOT DEFINED CUDAQ_ENABLE_BRAKET_BACKEND)
   set(CUDAQ_ENABLE_BRAKET_BACKEND ON CACHE BOOL "Enable building AWS SDK for Amazon Braket backends.")
@@ -626,12 +614,6 @@ if (NOT CUDAQ_DISABLE_RUNTIME)
   add_openmp_interface_definitions(libqpp)
 endif()
 
-if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
-  # The asio submodule doesn't use cmake, so use find_path for it.
-  find_path(ASIO_INCLUDE_DIR asio.hpp PATHS tpls/asio/asio/include)
-  add_subdirectory(tpls/Crow)
-endif()
-
 # Check for CUDA Support
 # ==============================================================================
 include(CheckLanguage)
@@ -717,43 +699,6 @@ if (CUDAQ_ENABLE_PYTHON)
   find_package(Python 3 COMPONENTS Interpreter Development)
   find_package(Python3 COMPONENTS Interpreter Development)
 
-  # Apply specific patch to pybind11 for our documentation.
-  # Only apply the patch if not already applied.
-  execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind.h.diff --ignore-whitespace --reverse --check
-                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                  RESULT_VARIABLE GIT_PATCH_RESULT
-                  ERROR_QUIET)
-  if (NOT GIT_PATCH_RESULT EQUAL "0")
-    execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind.h.diff --ignore-whitespace
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                    RESULT_VARIABLE GIT_PATCH_RESULT)
-  endif()
-  if (NOT GIT_PATCH_RESULT EQUAL "0")
-    message(FATAL_ERROR "Applying patch to submodule failed with ${GIT_PATCH_RESULT}, please update patch")
-  endif()
-
-  # Apply patch to fix LTO flag bug with Clang (https://github.com/pybind/pybind11/issues/5098)
-  execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind11Common.cmake.diff --ignore-whitespace --reverse --check
-                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                  RESULT_VARIABLE GIT_PATCH_RESULT
-                  ERROR_QUIET)
-  if (NOT GIT_PATCH_RESULT EQUAL "0")
-    execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind11Common.cmake.diff --ignore-whitespace
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                    RESULT_VARIABLE GIT_PATCH_RESULT)
-  endif()
-  if (NOT GIT_PATCH_RESULT EQUAL "0")
-    message(FATAL_ERROR "Applying LTO patch to submodule failed with ${GIT_PATCH_RESULT}, please update patch")
-  endif()
-
-  # Regarding the use of PyBind, we need to be careful that the same STL is used for any
-  # Python bindings generated as part of the CUDA-Q build and bindings generated for
-  # third party CUDA-Q libraries; see also https://github.com/pybind/pybind11/issues/1262
-  add_subdirectory(tpls/pybind11)
-
-  # nanobind is used for all CUDA-Q Python bindings. pybind11 is retained only
-  # for upstream MLIR Python extensions (e.g., _mlirAsyncPasses) which use
-  # mlir/Bindings/Python/PybindAdaptors.h.
   add_subdirectory(tpls/nanobind)
 
   add_subdirectory(python)

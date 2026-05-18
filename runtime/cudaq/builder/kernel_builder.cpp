@@ -795,22 +795,21 @@ QuakeValue applyMeasure(ImplicitLocOpBuilder &builder, Value value,
   if (!regName.empty())
     strAttr = builder.getStringAttr(regName);
 
-  Type resTy = builder.getI1Type();
-  Type measTy = cudaq::quake::MeasureType::get(builder.getContext());
-  if (!isa<cudaq::quake::RefType>(type)) {
-    resTy = cc::StdvecType::get(resTy);
+  // `mz`/`mx`/`my` produce a `!cc.measure_handle` (or
+  // `!cc.stdvec<!cc.measure_handle>` when the target is a vector).
+  // Discrimination is deferred to consumer sites, matching the AST-bridge
+  // behavior.
+  Type measTy = cc::MeasureHandleType::get(builder.getContext());
+  if (!isa<cudaq::quake::RefType>(type))
     measTy = cc::StdvecType::get(measTy);
-  }
-  Value measureResult;
+  Value handle;
   if (strAttr)
-    measureResult =
+    handle =
         QuakeMeasureOp::create(builder, measTy, value, strAttr).getMeasOut();
   else
-    measureResult = QuakeMeasureOp::create(builder, measTy, value).getMeasOut();
+    handle = QuakeMeasureOp::create(builder, measTy, value).getMeasOut();
 
-  Value bits =
-      cudaq::quake::DiscriminateOp::create(builder, resTy, measureResult);
-  return QuakeValue(builder, bits);
+  return QuakeValue(builder, handle);
 }
 
 QuakeValue mx(ImplicitLocOpBuilder &builder, QuakeValue &qubitOrQvec,

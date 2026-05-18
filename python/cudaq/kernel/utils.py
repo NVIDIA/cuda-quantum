@@ -21,10 +21,10 @@ from cudaq.mlir.execution_engine import ExecutionEngine
 from cudaq.mlir.dialects import func
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import quake, cc
-from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, IntegerType, Context,
-                           Module)
+from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, FunctionType,
+                           IntegerType, Context, Module)
 from cudaq.mlir._mlir_libs._quakeDialects import register_all_dialects
-from cudaq.kernel_types import qubit, qvector, qview
+from cudaq.kernel_types import measure_handle, qubit, qvector, qview
 
 State = cudaq_runtime.State
 pauli_word = cudaq_runtime.pauli_word
@@ -39,6 +39,35 @@ globalRegisteredOperations = {}
 
 # Keep a global registry of any custom data types
 globalRegisteredTypes = cudaq_runtime.DataClassRegistry
+
+boundaryDiagnostic = (
+    "measurement handle cannot cross the host-device boundary; "
+    "entry-point kernels must discriminate first")
+
+
+def containsMeasureHandle(ty, _seen=None):
+    """Return True iff ``ty`` is ``!cc.measure_handle`` or transitively
+    contains one. The walk stops at callable / function-type boundaries: a
+    callable parameter's signature is a device-side type contract for the
+    body of the callable, not a slot for a handle value.
+    """
+    if _seen is None:
+        _seen = set()
+    if ty is None or id(ty) in _seen:
+        return False
+    _seen.add(id(ty))
+    if cc.MeasureHandleType.isinstance(ty):
+        return True
+    if cc.PointerType.isinstance(ty):
+        return containsMeasureHandle(cc.PointerType.getElementType(ty), _seen)
+    if cc.ArrayType.isinstance(ty):
+        return containsMeasureHandle(cc.ArrayType.getElementType(ty), _seen)
+    if cc.StdvecType.isinstance(ty):
+        return containsMeasureHandle(cc.StdvecType.getElementType(ty), _seen)
+    if cc.StructType.isinstance(ty):
+        return any(
+            containsMeasureHandle(t, _seen) for t in cc.StructType.getTypes(ty))
+    return False
 
 
 def getMLIRContext():
@@ -383,6 +412,8 @@ def mlirTypeFromAnnotation(annotation,
                     return quake.RefType.get()
                 if annotation.attr == 'pauli_word':
                     return cc.CharspanType.get()
+                if annotation.attr == 'measure_handle':
+                    return cc.MeasureHandleType.get()
 
             if annotation.value.id in ['numpy', 'np']:
                 if annotation.attr in ['array', 'ndarray']:
@@ -675,6 +706,8 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
         return quake.RefType.get(ctx)
     if argType == pauli_word:
         return cc.CharspanType.get(ctx)
+    if argType == measure_handle:
+        return cc.MeasureHandleType.get(ctx)
 
     if 'argInstance' in kwargs:
         argInstance = kwargs['argInstance']
@@ -753,6 +786,9 @@ def mlirTypeToPyType(argType):
 
     if cc.CharspanType.isinstance(argType):
         return pauli_word
+
+    if cc.MeasureHandleType.isinstance(argType):
+        return measure_handle
 
     if cc.StdvecType.isinstance(argType):
         eleTy = cc.StdvecType.getElementType(argType)
