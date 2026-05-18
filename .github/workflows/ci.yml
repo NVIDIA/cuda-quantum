@@ -251,11 +251,11 @@ jobs:
   gen_code_coverage:
     name: Gen code coverage
     needs: [metadata, config_devdeps]
-    if: false
+    if: github.event_name != 'merge_group'
     strategy:
       matrix:
         platform: [amd64]
-      fail-fast: ${{ github.event_name == 'merge_group' }}
+      fail-fast: false
     uses: ./.github/workflows/generate_cc.yml
     secrets:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
