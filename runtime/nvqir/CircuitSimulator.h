@@ -288,9 +288,6 @@ public:
   void configureExecutionContext(cudaq::ExecutionContext &context) {
     context.canHandleObserve = canHandleObserve();
     noiseModel = context.noiseModel;
-    // Stress testing the fact that the context is just used topass the noise
-    // and no one is supposed to use it after that.
-    context.noiseModel = nullptr;
     currentCircuitName = context.kernelName;
     CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
   }
