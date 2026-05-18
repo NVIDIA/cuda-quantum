@@ -67,9 +67,14 @@ def ensure_not_recursive(method):
             )
 
         self._resolving_arguments = True
-        ret = method(self, *args, **kwargs)
-        self._resolving_arguments = False
-        return ret
+        try:
+            return method(self, *args, **kwargs)
+        finally:
+            # Clear the flag on every exit path. Without `finally`, an
+            # exception raised by `method` leaks `_resolving_arguments=True`
+            # to the next invocation, which then misreports the real error
+            # as a recursive-call diagnostic.
+            self._resolving_arguments = False
 
     return wrapper
 
