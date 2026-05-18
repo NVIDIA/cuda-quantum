@@ -1,0 +1,32 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt %s -split-input-file -verify-diagnostics
+
+func.func @bad_detectors_elem(%bad : !cc.stdvec<i32>,
+                               %good : !cc.stdvec<!cc.measure_handle>) {
+  // expected-error @+1 {{must be stdvec of}}
+  qec.detectors(%bad, %good) : (!cc.stdvec<i32>, !cc.stdvec<!cc.measure_handle>)
+  return
+}
+
+// -----
+
+func.func @bad_detector_elem(%bad : i32) {
+  // expected-error @+1 {{must be variadic of}}
+  qec.detector(%bad) : (i32)
+  return
+}
+
+// -----
+
+func.func @bad_observable_elem(%bad : !cc.stdvec<i32>) {
+  // expected-error @+1 {{must be variadic of}}
+  qec.observable(%bad) : (!cc.stdvec<i32>)
+  return
+}

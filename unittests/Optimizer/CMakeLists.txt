@@ -31,7 +31,7 @@ target_link_libraries(OptimizerUnitTests
 
 target_include_directories(OptimizerUnitTests
   PRIVATE ${CMAKE_SOURCE_DIR}/runtime
-  PRIVATE ${CMAKE_SOURCE_DIR}/lib/Optimizer/Transforms
+  PRIVATE ${CMAKE_SOURCE_DIR}/cudaq/lib/Optimizer/Transforms
 )
 
 # MLIR/LLVM is built without RTTI, so we must disable it here too

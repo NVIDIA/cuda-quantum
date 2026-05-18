@@ -158,15 +158,6 @@ protected:
   /// @brief Deallocate a set of `qudits` (`qumodes`) with a single call.
   void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {}
 
-  /// @brief Configure and validate the execution context
-  void configureExecutionContext(ExecutionContext &ctx) override {
-    BasicExecutionManager::configureExecutionContext(ctx);
-
-    if (!(ctx.name == "sample" || ctx.name == "extract-state" ||
-          ctx.name == "tracer"))
-      throw std::runtime_error(ctx.name + " is not supported on this target");
-  }
-
   /// @brief Process results into the execution context
   void finalizeExecutionContextImpl(std::vector<std::size_t> &ids,
                                     ExecutionContext &ctx) {
