@@ -2421,7 +2421,7 @@ above.
 
 ::: {.output_area .docutils .container}
 ::: highlight
-    CUDA-Q Version pr-4524 (https://github.com/NVIDIA/cuda-quantum 35576e90725ecdfbd0a27c96cc0ded6245d2bfa9)
+    CUDA-Q Version pr-4524 (https://github.com/NVIDIA/cuda-quantum a1632d6f770de89e3e10dfbf8b6300a862f362bf)
 :::
 :::
 :::
