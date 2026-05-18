@@ -90,12 +90,16 @@ jobs:
           # when the copied files change), macOS uses ORAS artifact caching with no
           # content-based invalidation. This hash ensures cache is rebuilt when
           # build scripts or the devdeps workflow itself change (e.g. LLVM_PROJECTS).
+          # The Xcode selector is included because the selected SDK's absolute
+          # path is baked into cached LLVM CMake imported targets — changing
+          # the selection strategy must force a clean rebuild.
           scripts_hash=$(cat \
             scripts/install_prerequisites.sh \
             scripts/build_llvm.sh \
             scripts/set_env_defaults.sh \
             cmake/caches/LLVM.cmake \
             .github/workflows/dev_environment_macos.yml \
+            .github/actions/setup-xcode-stable/action.yml \
             tpls/customizations/llvm/*.diff \
             | sha256sum | cut -c1-8)
           echo "scripts_hash=$scripts_hash" >> $GITHUB_OUTPUT

@@ -8,15 +8,18 @@
 
 #include "cudaq/Optimizer/CAPI/Dialects.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
+#include "cudaq/Optimizer/Dialect/QEC/QECDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "mlir/InitAllDialects.h"
 
 MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(Quake, quake, cudaq::quake::QuakeDialect)
+MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(QEC, qec, cudaq::qec::QECDialect)
 MLIR_DEFINE_CAPI_DIALECT_REGISTRATION(CC, cc, cudaq::cc::CCDialect)
 
 extern "C" void cudaqRegisterAllDialects(MlirContext context) {
   mlir::DialectRegistry registry;
-  registry.insert<cudaq::quake::QuakeDialect, cudaq::cc::CCDialect>();
+  registry.insert<cudaq::quake::QuakeDialect, cudaq::qec::QECDialect,
+                  cudaq::cc::CCDialect>();
   mlir::registerAllDialects(registry);
   auto *mlirContext = unwrap(context);
   mlirContext->appendDialectRegistry(registry);

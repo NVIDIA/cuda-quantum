@@ -8,12 +8,10 @@
 
 #pragma once
 
-#include "common/Resources.h"
 #include "common/RuntimeTarget.h"
 #include "cudaq/Support/TargetConfig.h"
 #include "cudaq/host_config.h"
 #include <filesystem>
-#include <functional>
 #include <map>
 #include <string>
 #include <unordered_map>
@@ -21,10 +19,6 @@
 
 namespace nvqir {
 class CircuitSimulator;
-void switchToResourceCounterSimulator();
-void stopUsingResourceCounterSimulator();
-void setChoiceFunction(std::function<bool()> choice);
-cudaq::Resources *getResourceCounts();
 } // namespace nvqir
 
 namespace cudaq {
@@ -117,13 +111,6 @@ public:
 };
 
 namespace python {
-namespace detail {
-void switchToResourceCounterSimulator();
-void stopUsingResourceCounterSimulator();
-void setChoiceFunction(std::function<bool()> choice);
-cudaq::Resources *getResourceCounts();
-} // namespace detail
-
 std::string getTransportLayer(LinkedLibraryHolder *holder);
 } // namespace python
 } // namespace cudaq

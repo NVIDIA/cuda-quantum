@@ -180,7 +180,7 @@ protected:
       return;
 
     // Do nothing if no noise model
-    if (!executionContext->noiseModel)
+    if (!getNoiseModel())
       return;
 
     // Get the name as a string
@@ -193,8 +193,8 @@ protected:
     }
 
     // Get the Kraus channels specified for this gate and qubits
-    auto krausChannels = executionContext->noiseModel->get_channels(
-        gName, targets, controls, params);
+    auto krausChannels =
+        getNoiseModel()->get_channels(gName, targets, controls, params);
 
     // If none, do nothing
     if (krausChannels.empty())

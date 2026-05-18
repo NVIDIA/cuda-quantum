@@ -114,7 +114,9 @@ public:
   bool memoryLeaked() { return !tracker.allDeallocated(); }
 
   /// Configure the execution context before an execution.
-  virtual void configureExecutionContext(ExecutionContext &ctx) {}
+  void configureExecutionContext(const sample_policy &policy,
+                                 ExecutionContext &ctx);
+  void configureExecutionContext(ExecutionContext &ctx);
 
   /// Finalize the execution context after an execution.
   void finalizeExecutionContext(ExecutionContext &ctx);

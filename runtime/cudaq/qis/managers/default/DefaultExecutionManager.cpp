@@ -147,11 +147,6 @@ protected:
     requestedAllocations.clear();
   }
 
-  void configureExecutionContext(ExecutionContext &ctx) override {
-    BasicExecutionManager::configureExecutionContext(ctx);
-    simulator()->configureExecutionContext(ctx);
-  }
-
   void finalizeExecutionContextImpl(ExecutionContext &ctx) {
     BasicExecutionManager::finalizeExecutionContextImpl(ctx);
 

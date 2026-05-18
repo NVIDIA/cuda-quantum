@@ -9,6 +9,7 @@
 #pragma once
 
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
+#include "cudaq/Optimizer/Dialect/QEC/QECDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
@@ -33,6 +34,7 @@ inline void registerAllDialects(mlir::DialectRegistry &registry) {
 
     // CUDA-Q dialects
     cudaq::cc::CCDialect,
+    cudaq::qec::QECDialect,
     cudaq::quake::QuakeDialect
   >();
   // clang-format on

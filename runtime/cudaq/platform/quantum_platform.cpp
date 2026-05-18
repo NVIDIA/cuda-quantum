@@ -78,10 +78,6 @@ void quantum_platform::set_noise(const noise_model *model, std::size_t qpu_id) {
 }
 
 const noise_model *quantum_platform::get_noise(std::size_t qpu_id) {
-  ExecutionContext *executionContext;
-  if ((executionContext = getExecutionContext()) != nullptr)
-    return executionContext->noiseModel;
-
   validateQpuId(qpu_id);
   auto &platformQPU = platformQPUs[qpu_id];
   return platformQPU->getNoiseModel();

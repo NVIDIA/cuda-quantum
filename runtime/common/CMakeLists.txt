@@ -51,7 +51,6 @@ target_include_directories(${LIBRARY_NAME}
 target_link_libraries(${LIBRARY_NAME}
   PUBLIC
     cudaq-operator
-    cudaq-mlir-runtime-headers
   PRIVATE
     cudaq-logger
     fmt::fmt-header-only
