@@ -7,12 +7,12 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "nlohmann/json.hpp"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/CodeGen/Peephole.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Todo.h"
-#include "nlohmann/json.hpp"
 #include "llvm/ADT/SmallSet.h"
 #include "mlir/Conversion/LLVMCommon/ConversionTarget.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
