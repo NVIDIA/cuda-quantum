@@ -265,6 +265,7 @@ jobs:
       devdeps_cache: ${{ fromJson(needs.config_devdeps.outputs.json).cache_key[format('{0}-llvm', matrix.platform)] }}
       devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-llvm', matrix.platform)] }}
       export_environment: ${{ github.event_name == 'workflow_dispatch' && inputs.export_environment }}
+      pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
 
   # Docker images are packaging, not correctness — only built on merge_group/dispatch.
   docker_image:

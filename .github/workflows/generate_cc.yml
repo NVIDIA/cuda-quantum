@@ -17,6 +17,10 @@ on:
       export_environment:
         required: false
         type: boolean
+      pull_request_number:
+        required: false
+        type: string
+        default: ''
     secrets:
       CODECOV_TOKEN:
         required: false
@@ -147,6 +151,7 @@ jobs:
           fail_ci_if_error: false
           files: ${{ github.workspace }}/shared/coverage.txt,${{ github.workspace }}/shared/coverage.xml
           token: ${{ secrets.CODECOV_TOKEN }}
+          override_pr: ${{ inputs.pull_request_number }}
           verbose: true
 
       - name: Save environment
