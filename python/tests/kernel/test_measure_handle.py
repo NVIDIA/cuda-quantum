@@ -278,6 +278,17 @@ def test_boundary_handle_in_callable_parameter_is_admissible():
     k.compile()
 
 
+def test_boundary_handle_vector_via_alias_is_rejected():
+    import cudaq as cq
+
+    @cq.kernel
+    def k(hs: list[cq.measure_handle]):
+        pass
+
+    with pytest.raises(RuntimeError, match=re.escape(_BOUNDARY_DIAG)):
+        k.compile()
+
+
 def test_boundary_make_kernel_handle_arg_is_rejected():
     # `cudaq.make_kernel(...)` constructs an entry-point FuncOp directly
     # without going through the AST-bridge boundary check. The boundary rule
@@ -328,6 +339,24 @@ def test_int_handle_in_arithmetic_promotes_through_bool():
     results = cudaq.run(k, shots_count=1)
     assert len(results) == 1
     assert results[0] == 2
+
+
+# ---------------------------------------------------------------------------
+# Aggregate-element auto-discriminate
+# ---------------------------------------------------------------------------
+
+
+def test_tuple_return_with_handle_element_discriminates():
+
+    @cudaq.kernel
+    def k(first: bool) -> tuple[bool, bool]:
+        q = cudaq.qubit()
+        x(q)
+        return first, mz(q)
+
+    results = cudaq.run(k, True, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == (True, True)
 
 
 # leave for gdb debugging

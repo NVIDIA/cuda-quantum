@@ -1781,17 +1781,11 @@ class PyASTBridge(ast.NodeVisitor):
             # function name
             fullName = nvqppPrefix + self.name
 
-            # Create the FuncOp
-            f = func.FuncOp(fullName,
-                            self.signature.get_lifted_type(),
-                            loc=self.loc)
-            self.kernelFuncOp = f
-
-            # Set this kernel as an entry point if the argument types are
-            # classical only
+            # Determine whether this kernel will be an entry point (no quantum
+            # types in the signature). Run this check before creating the
+            # `FuncOp` so a rejection does not leave an orphaned op in the module.
             anyQuantumType = any(
                 self.isQuantumType(ty) for ty in self.signature.arg_types)
-            f.attributes.__setitem__('cudaq-kernel', UnitAttr.get())
             if not anyQuantumType:
                 # `cudaq::measure_handle` is device-only and must not appear
                 # either directly or transitively in the parameter or return
@@ -1802,6 +1796,16 @@ class PyASTBridge(ast.NodeVisitor):
                 if (self.signature.return_type and
                         containsMeasureHandle(self.signature.return_type)):
                     self.emitFatalError(boundaryDiagnostic, node)
+
+            # Create the FuncOp
+            f = func.FuncOp(fullName,
+                            self.signature.get_lifted_type(),
+                            loc=self.loc)
+            self.kernelFuncOp = f
+            f.attributes.__setitem__('cudaq-kernel', UnitAttr.get())
+            # Set this kernel as an entry point if the argument types are
+            # classical only
+            if not anyQuantumType:
                 f.attributes.__setitem__('cudaq-entrypoint', UnitAttr.get())
 
             # Create the entry block
@@ -5177,7 +5181,40 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         self.walkingReturnNode = True
-        self.visit(node.value)
+        # If we are returning a tuple expression with a struct return type,
+        # coerce each element to its expected member type *before* assembling
+        # the struct. Without this, an intermediate struct whose element
+        # types include `!cc.measure_handle` is constructed; that intermediate
+        # type survives to QIR lowering and fails to legalize even though the
+        # outer struct is later coerced to the expected type.
+        expectedRet = self.signature.return_type
+        if (isinstance(node.value, ast.Tuple) and expectedRet is not None and
+                cc.StructType.isinstance(expectedRet) and
+                len(cc.StructType.getTypes(expectedRet)) == len(
+                    node.value.elts)):
+            expectedEleTys = cc.StructType.getTypes(expectedRet)
+            # Mirror the frame discipline that `self.visit(tuple_node)` would
+            # have performed via `visit_Tuple`: push a child frame so
+            # `pushValue` from each element visit lands on this scratch frame
+            # rather than on `visit_Return`'s frame.
+            self.valueStack.pushFrame()
+            for eleNode in node.value.elts:
+                self.visit(eleNode)
+            elementValues = self.popAllValues(len(node.value.elts))
+            elementValues.reverse()
+            # Replicate `visit_Tuple`'s container-entry validation (e.g. the
+            # "only dataclass literals" check) that we would otherwise bypass
+            # by taking this branch instead of going through `visit_Tuple`.
+            for idx, value in enumerate(elementValues):
+                self.__validate_container_entry(value, node.value.elts[idx])
+            coerced = [
+                self.changeOperandToType(eleTy, val, allowDemotion=True)
+                for eleTy, val in zip(expectedEleTys, elementValues)
+            ]
+            self.pushValue(self.__createStructWithKnownValues(coerced))
+            self.valueStack.popFrame()
+        else:
+            self.visit(node.value)
         self.walkingReturnNode = False
 
         if self.valueStack.currentNumValues == 0:
