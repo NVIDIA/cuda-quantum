@@ -251,7 +251,7 @@ jobs:
   gen_code_coverage:
     name: Gen code coverage
     needs: [metadata, config_devdeps]
-    if: github.event_name != 'push'
+    if: false
     strategy:
       matrix:
         platform: [amd64]
