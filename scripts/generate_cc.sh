@@ -62,6 +62,9 @@ OPTIND=$__optind__
 this_file_dir=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
 repo_root=$(cd "$this_file_dir" && git rev-parse --show-toplevel)
 
+pytest_workers="${PYTEST_WORKERS:-4}"
+python3 -m pip install pytest-xdist --break-system-packages 2>/dev/null || true
+
 # Set envs
 if $gen_cpp_coverage; then
     export CUDAQ_ENABLE_CC=ON
@@ -115,7 +118,7 @@ if $gen_cpp_coverage; then
     # Run tests (Python tests)
     rm -rf ${repo_root}/_skbuild
     pip install ${repo_root} --user -vvv
-    python3 -m pytest -v ${repo_root}/python/tests/ --ignore ${repo_root}/python/tests/backends
+    python3 -m pytest -v -n "$pytest_workers" ${repo_root}/python/tests/ --ignore ${repo_root}/python/tests/backends
     for backendTest in ${repo_root}/python/tests/backends/*.py; do
         python3 -m pytest -v $backendTest
         pytest_status=$?
@@ -198,9 +201,9 @@ if $gen_py_coverage; then
     pip install . -vvv
     mkdir -p ${repo_root}/build/pycoverage
     if $is_codecov_format; then
-        python -m pytest -v python/tests/ --ignore python/tests/backends --cov=cudaq --cov-report=xml:${repo_root}/build/pycoverage/coverage.xml --cov-append
+        python -m pytest -v -n "$pytest_workers" python/tests/ --ignore python/tests/backends --cov=cudaq --cov-report=xml:${repo_root}/build/pycoverage/coverage.xml --cov-append
     else
-        python -m pytest -v python/tests/ --ignore python/tests/backends --cov=cudaq --cov-report=html:${repo_root}/build/pycoverage --cov-append
+        python -m pytest -v -n "$pytest_workers" python/tests/ --ignore python/tests/backends --cov=cudaq --cov-report=html:${repo_root}/build/pycoverage --cov-append
     fi
     for backendTest in python/tests/backends/*.py; do
         if $is_codecov_format; then
