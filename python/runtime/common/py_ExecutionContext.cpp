@@ -121,10 +121,7 @@ void bindExecutionContext(nanobind::module_ &mod) {
       "isQuantumDevice",
       [](std::size_t qpuId = 0) {
         auto &platform = cudaq::get_platform();
-        auto isRemoteSimulator =
-            platform.get_remote_capabilities().isRemoteSimulator;
-        return !isRemoteSimulator &&
-               (platform.is_remote() || platform.is_emulated());
+        return (platform.is_remote() || platform.is_emulated());
       },
       nanobind::arg("qpuId") = 0);
   mod.def("getQirOutputLog", []() { return nvqir::getQirOutputLog(); });

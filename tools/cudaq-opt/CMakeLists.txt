@@ -21,6 +21,7 @@ target_link_libraries(cudaq-opt
   MLIRArithDialect
 
   CCDialect
+  QECDialect
   QuakeDialect
   OptCodeGen
   OptTransforms

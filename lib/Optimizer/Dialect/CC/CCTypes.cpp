@@ -9,6 +9,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/DialectImplementation.h"
@@ -219,6 +220,37 @@ bool isDynamicallySizedType(Type ty) {
            isDynamicallySizedType(arrTy.getElementType());
   // Note: this isn't considering quake, builtin, etc. types.
   return false;
+}
+
+static bool containsMeasureHandleImpl(Type ty,
+                                      llvm::SmallPtrSetImpl<Type> &seen) {
+  if (!ty || !seen.insert(ty).second)
+    return false;
+  if (isa<MeasureHandleType>(ty))
+    return true;
+  auto recurse = [&](Type t) { return containsMeasureHandleImpl(t, seen); };
+  if (auto p = dyn_cast<PointerType>(ty))
+    return recurse(p.getElementType());
+  if (auto a = dyn_cast<ArrayType>(ty))
+    return recurse(a.getElementType());
+  if (auto v = dyn_cast<StdvecType>(ty))
+    return recurse(v.getElementType());
+  if (auto s = dyn_cast<StructType>(ty)) {
+    for (auto m : s.getMembers())
+      if (recurse(m))
+        return true;
+    return false;
+  }
+  // Callable / function types are a type contract for a device-side body, not
+  // a slot for a handle value: the host marshals only the function-pointer
+  // payload, and any handle that the callable produces or consumes lives on
+  // the device side. Stop the walk here.
+  return false;
+}
+
+bool containsMeasureHandle(Type ty) {
+  llvm::SmallPtrSet<Type, 8> seen;
+  return containsMeasureHandleImpl(ty, seen);
 }
 
 void CCDialect::registerTypes() {

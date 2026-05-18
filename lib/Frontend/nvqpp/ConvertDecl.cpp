@@ -162,6 +162,8 @@ bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
       return pushType(cudaq::quake::StateType::get(ctx));
     if (name == "pauli_word")
       return pushType(cc::CharspanType::get(ctx));
+    if (name == "measure_handle")
+      return pushType(cc::MeasureHandleType::get(ctx));
     if (name == "qkernel") {
       auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
       // Traverse template argument 0 to get the function's signature.
@@ -747,17 +749,30 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
       // and if so, find the mz and tag it with the variable name
       auto elementType = vecType.getElementType();
 
-      // Drop out if this is not an i1
-      if (!elementType.isIntOrFloat() ||
-          elementType.getIntOrFloatBitWidth() != 1)
+      // Accept both the `bool`-valued (`std::vector<bool>` form, lowered as
+      // discriminate-of-measure-interface) and the handle-valued
+      // (`std::vector<measure_handle>` form, lowered as the measure
+      // interface directly) shapes.
+      bool isI1Bits = elementType.isIntOrFloat() &&
+                      elementType.getIntOrFloatBitWidth() == 1;
+      bool isHandleVec = isa<cc::MeasureHandleType>(elementType);
+      if (!isI1Bits && !isHandleVec)
         return true;
 
-      // Assign registerName
-      if (auto descr = initVec.getDefiningOp<cudaq::quake::DiscriminateOp>())
+      // Assign `registerName`
+      auto attachName = [&](cudaq::quake::MeasurementInterface meas) {
+        meas.setRegisterName(builder.getStringAttr(x->getName()));
+      };
+      if (auto descr = initVec.getDefiningOp<cudaq::quake::DiscriminateOp>()) {
         if (auto meas =
                 descr.getMeasurement()
                     .getDefiningOp<cudaq::quake::MeasurementInterface>())
-          meas.setRegisterName(builder.getStringAttr(x->getName()));
+          attachName(meas);
+      } else if (auto meas =
+                     initVec
+                         .getDefiningOp<cudaq::quake::MeasurementInterface>()) {
+        attachName(meas);
+      }
 
       // Did this come from a stdvec init op? If not drop out
       auto stdVecInit = initVec.getDefiningOp<cc::StdvecInitOp>();
@@ -819,11 +834,23 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
   // Initialization expression is present.
   auto initValue = popValue();
 
-  // If this was an auto var = mz(q), then we want to know the
-  // var name, as it will serve as the classical bit register name
-  if (auto discr = initValue.getDefiningOp<cudaq::quake::DiscriminateOp>())
-    if (auto mz = discr.getMeasurement().getDefiningOp<cudaq::quake::MzOp>())
-      mz.setRegisterName(builder.getStringAttr(x->getName()));
+  // If this was an `auto var = mz(q)` (or `mx`/`my`), then we want to know the
+  // `var` name, as it will serve as the classical bit register name. Two
+  // shapes reach here: `bool b = mz(q);` and `auto h = mz(q);` Both route the
+  // same register name through to the underlying measurement op via
+  // `MeasurementInterface`.
+  auto attachName = [&](cudaq::quake::MeasurementInterface meas) {
+    meas.setRegisterName(builder.getStringAttr(x->getName()));
+  };
+  if (auto discr = initValue.getDefiningOp<cudaq::quake::DiscriminateOp>()) {
+    if (auto meas = discr.getMeasurement()
+                        .getDefiningOp<cudaq::quake::MeasurementInterface>())
+      attachName(meas);
+  } else if (auto meas =
+                 initValue
+                     .getDefiningOp<cudaq::quake::MeasurementInterface>()) {
+    attachName(meas);
+  }
 
   assert(initValue && "initializer value must be lowered");
   if (isa<IntegerType>(initValue.getType()) && isa<IntegerType>(type)) {

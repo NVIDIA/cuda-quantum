@@ -80,6 +80,10 @@ KernelThunkResultType cudaq::OrcaRemoteRESTQPU::launchKernelCommon(
 
   ctx->shots = shots;
 
+  if (!(ctx->name == "sample" || ctx->name == "extract-state" ||
+        ctx->name == "tracer"))
+    throw std::runtime_error(ctx->name + " is not supported on this target");
+
   details::future future;
   future = executor->execute(params, kernelName);
 
@@ -99,11 +103,6 @@ KernelThunkResultType cudaq::OrcaRemoteRESTQPU::launchKernelCommon(
 void cudaq::OrcaRemoteRESTQPU::enqueue(cudaq::QuantumTask &task) {
   CUDAQ_INFO("OrcaRemoteRESTQPU: Enqueue Task on QPU {}", qpu_id);
   execution_queue->enqueue(task);
-}
-
-void cudaq::OrcaRemoteRESTQPU::launchKernel(const std::string &,
-                                            const std::vector<void *> &) {
-  throw std::runtime_error("launch kernel on raw args not implemented");
 }
 
 CUDAQ_REGISTER_TYPE(QPU, OrcaRemoteRESTQPU, orca)

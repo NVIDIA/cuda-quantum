@@ -33,6 +33,7 @@ target_link_libraries(${TOOL_NAME}
     CCDialect
     OptCodeGen
     OptTransforms
+    QECDialect
     QuakeDialect
     cudaq-qir-verifier
 )

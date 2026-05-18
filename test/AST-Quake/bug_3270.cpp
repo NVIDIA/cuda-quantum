@@ -26,8 +26,8 @@ __qpu__ void foo() {
 // CHECK:           quake.x %[[VAL_2]] : (!quake.ref) -> ()
 // CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][2] : (!quake.veq<3>) -> !quake.ref
 // CHECK:           quake.x %[[VAL_3]] : (!quake.ref) -> ()
-// CHECK:           quake.mz %[[VAL_1]] name "result%{{.*}}" : (!quake.ref) -> !quake.measure
-// CHECK:           quake.mz %[[VAL_2]] name "result%{{.*}}" : (!quake.ref) -> !quake.measure
-// CHECK:           quake.mz %[[VAL_3]] name "result%{{.*}}" : (!quake.ref) -> !quake.measure
+// CHECK:           quake.mz %[[VAL_1]] name "result%{{.*}}" : (!quake.ref) -> !cc.measure_handle
+// CHECK:           quake.mz %[[VAL_2]] name "result%{{.*}}" : (!quake.ref) -> !cc.measure_handle
+// CHECK:           quake.mz %[[VAL_3]] name "result%{{.*}}" : (!quake.ref) -> !cc.measure_handle
 // CHECK:           return
 // CHECK:         }

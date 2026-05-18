@@ -31,13 +31,6 @@ inline bool is_remote_platform() {
   return getQuantumPlatformInternal()->is_remote();
 }
 
-/// @brief Return true if the quantum platform is a remote simulator.
-inline bool is_remote_simulator_platform() {
-  return getQuantumPlatformInternal()
-      ->get_remote_capabilities()
-      .isRemoteSimulator;
-}
-
 /// @brief Return true if the quantum platform is emulated.
 inline bool is_emulated_platform() {
   return getQuantumPlatformInternal()->is_emulated();

@@ -170,4 +170,4 @@ this case a clean retry usually requires one of the following:
   `/usr/local`/`/opt` and macOS `~/.local` for *other* system installations
   so do not blindly remove these directories.
 - Resetting one of the submodule build folders, eg.,
-  `rm -rf tpls/pybind11/build` or `rm -rf ~/.llvm-project/build`.
+  `rm -rf tpls/nanobind/build` or `rm -rf ~/.llvm-project/build`.
