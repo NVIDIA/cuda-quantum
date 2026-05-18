@@ -31,6 +31,10 @@ def QuantumMeasure : NativeOpTrait<"QuantumMeasure"> {
   let cppNamespace = "::cudaq";
 }
 
+def Unitary : NativeOpTrait<"Unitary"> {
+  let cppNamespace = "::cudaq";
+}
+
 //===----------------------------------------------------------------------===//
 // Classical compute operation traits
 //===----------------------------------------------------------------------===//

@@ -71,6 +71,15 @@ public:
 };
 
 template <typename ConcreteType>
+class Unitary : public mlir::OpTrait::TraitBase<ConcreteType, Unitary> {
+public:
+  static mlir::LogicalResult verifyTrait(mlir::Operation *op) {
+    // todo: we should verify that the operation is unitary, potentially
+    return mlir::success();
+  }
+};
+
+template <typename ConcreteType>
 class JumpWithUnwind
     : public mlir::OpTrait::TraitBase<ConcreteType, JumpWithUnwind> {
 public:

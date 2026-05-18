@@ -1335,7 +1335,7 @@ class TwoTargetOp<string mnemonic, list<Trait> traits = []> :
 //===----------------------------------------------------------------------===//
 
 def quake_ExpPauliOp : QuakeOp<"exp_pauli",
-    [QuantumGate, AttrSizedOperandSegments, OperatorInterface,
+    [QuantumGate, AttrSizedOperandSegments, OperatorInterface, Unitary, 
      DeclareOpInterfaceMethods<MemoryEffectsOpInterface>]> {
   let summary = "General Pauli tensor product rotation";
   let description = [{
@@ -1481,7 +1481,7 @@ def quake_ExpPauliOp : QuakeOp<"exp_pauli",
   }];
 }
 
-def HOp : OneTargetOp<"h", [Hermitian]> {
+def HOp : OneTargetOp<"h", [Hermitian, Unitary]> {
   let summary = "Hadamard operation";
   let description = [{
     This is a π rotation about the X+Z axis, and has the effect of changing the
@@ -1504,7 +1504,7 @@ def HOp : OneTargetOp<"h", [Hermitian]> {
 }
 
 def PhasedRxOp : QuakeOperator<"phased_rx",
-                   [NumParameters<2>, NumTargets<1>, Rotation]> {
+                   [NumParameters<2>, NumTargets<1>, Rotation, Unitary]> {
   let summary = "an arbitrary rotation θ around the cos(φ)x + sin(φ)y axis";
   let description = [{
     Matrix representation:
@@ -1522,7 +1522,7 @@ def PhasedRxOp : QuakeOperator<"phased_rx",
   }];
 }
 
-def R1Op : OneTargetParamOp<"r1", [Rotation]> {
+def R1Op : OneTargetParamOp<"r1", [Rotation, Unitary]> {
   let summary = "an arbitrary rotation about the |1> state";
   let description = [{
     Matrix representation:
@@ -1540,7 +1540,7 @@ def R1Op : OneTargetParamOp<"r1", [Rotation]> {
   }];
 }
 
-def RxOp : OneTargetParamOp<"rx", [Rotation]> {
+def RxOp : OneTargetParamOp<"rx", [Rotation, Unitary]> {
   let summary = "an arbitrary rotation about the X axis";
   let description = [{
     Matrix representation:
@@ -1559,7 +1559,7 @@ def RxOp : OneTargetParamOp<"rx", [Rotation]> {
   let hasCanonicalizer = 1;
 }
 
-def RyOp : OneTargetParamOp<"ry", [Rotation]> {
+def RyOp : OneTargetParamOp<"ry", [Rotation, Unitary]> {
   let summary = "an arbitrary rotation about the Y axis";
   let description = [{
     Matrix representation:
@@ -1578,7 +1578,7 @@ def RyOp : OneTargetParamOp<"ry", [Rotation]> {
   let hasCanonicalizer = 1;
 }
 
-def RzOp : OneTargetParamOp<"rz", [Rotation]> {
+def RzOp : OneTargetParamOp<"rz", [Rotation, Unitary]> {
   let summary = "an arbitrary rotation about the Z axis";
   let description = [{
     Matrix representation:
@@ -1597,7 +1597,7 @@ def RzOp : OneTargetParamOp<"rz", [Rotation]> {
   let hasCanonicalizer = 1;
 }
 
-def SOp : OneTargetOp<"s"> {
+def SOp : OneTargetOp<"s", [Unitary]> {
   let summary = "S operation (aka, P or Sqrt(Z))";
   let description = [{
     This operation applies to its target a π/2 rotation about the Z axis.
@@ -1617,7 +1617,7 @@ def SOp : OneTargetOp<"s"> {
   }];
 }
 
-def SwapOp : TwoTargetOp<"swap", [Hermitian]> {
+def SwapOp : TwoTargetOp<"swap", [Hermitian, Unitary]> {
   let summary = "Swap operation";
   let description = [{
     This operation swaps the states of two qubits.
@@ -1639,7 +1639,7 @@ def SwapOp : TwoTargetOp<"swap", [Hermitian]> {
   }];
 }
 
-def TOp : OneTargetOp<"t"> {
+def TOp : OneTargetOp<"t", [Unitary]> {
   let summary = "T operation";
   let description = [{
     This operation applies to its target a π/4 rotation about the Z axis.
@@ -1659,7 +1659,7 @@ def TOp : OneTargetOp<"t"> {
   }];
 }
 
-def U2Op : QuakeOperator<"u2", [NumParameters<2>, NumTargets<1>, Rotation]> {
+def U2Op : QuakeOperator<"u2", [NumParameters<2>, NumTargets<1>, Rotation, Unitary]> {
   let summary = "generic rotation about the X+Z axis";
   let description = [{
     The two parameters are Euler angles: φ and λ.
@@ -1679,7 +1679,7 @@ def U2Op : QuakeOperator<"u2", [NumParameters<2>, NumTargets<1>, Rotation]> {
   }];
 }
 
-def U3Op : QuakeOperator<"u3", [NumParameters<3>, NumTargets<1>, Rotation]> {
+def U3Op : QuakeOperator<"u3", [NumParameters<3>, NumTargets<1>, Rotation, Unitary]> {
   let summary = "the universal three-parameters operator";
   let description = [{
     The three parameters are Euler angles: θ, φ, and λ.
@@ -1701,7 +1701,7 @@ def U3Op : QuakeOperator<"u3", [NumParameters<3>, NumTargets<1>, Rotation]> {
   }];
 }
 
-def XOp : OneTargetOp<"x", [Hermitian]> {
+def XOp : OneTargetOp<"x", [Hermitian, Unitary]> {
   let summary = "Pauli-X operation (aka, NOT)";
   let description = [{
     Matrix representation:
@@ -1719,7 +1719,7 @@ def XOp : OneTargetOp<"x", [Hermitian]> {
   }];
 }
 
-def YOp : OneTargetOp<"y", [Hermitian]> {
+def YOp : OneTargetOp<"y", [Hermitian, Unitary]> {
   let summary = "Pauli-Y operation";
   let description = [{
     Matrix representation:
@@ -1737,7 +1737,7 @@ def YOp : OneTargetOp<"y", [Hermitian]> {
   }];
 }
 
-def ZOp : OneTargetOp<"z", [Hermitian]> {
+def ZOp : OneTargetOp<"z", [Hermitian, Unitary]> {
   let summary = "Pauli-Z operation.";
   let description = [{
     Matrix representation:
@@ -1756,7 +1756,7 @@ def ZOp : OneTargetOp<"z", [Hermitian]> {
 }
 
 def CustomUnitarySymbolOp :
-    QuakeOperator<"custom_op", [], (ins SymbolRefAttr:$generator)> {
+    QuakeOperator<"custom_op", [Unitary], (ins SymbolRefAttr:$generator)> {
   let summary = "Custom unitary operation.";
   let description = [{
     Custom unitary operation leveraging a `SymbolRefAttr` describing the

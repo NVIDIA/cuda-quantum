@@ -10,6 +10,7 @@ include(HandleLLVMOptions)
 
 add_executable(OptimizerUnitTests
   HermitianTrait.cpp
+  UnitaryTrait.cpp
   FactoryMergeModuleTest.cpp
   DecompositionPatternsTest.cpp
   DecompositionPatternSelectionTest.cpp
