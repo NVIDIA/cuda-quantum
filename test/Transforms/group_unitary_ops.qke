@@ -1,0 +1,68 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under //
+// the terms of the Apache License 2.0 which accompanies this distribution. //
+// ========================================================================== //
+
+// RUN: cudaq-opt --group-unitary-ops %s | FileCheck %s
+
+// Two independent wire chains interleaved with classical ops. When legal,
+// unitary gates are scheduled before other non-measurement ready work so the
+// two `h`/`x` pairs can cluster ahead of the pure classical `%e = arith.addi`
+// chain.
+func.func @cluster_unitaries_along_two_wires() {
+  %w0 = quake.null_wire
+  %w1 = quake.null_wire
+  %c = arith.constant 0 : i32
+  %w0h = quake.h %w0 : (!quake.wire) -> !quake.wire
+  %d = arith.addi %c, %c : i32
+  %w1x = quake.x %w1 : (!quake.wire) -> !quake.wire
+  %w0x = quake.x %w0h : (!quake.wire) -> !quake.wire
+  %e = arith.addi %d, %d : i32
+  %w1h = quake.h %w1x : (!quake.wire) -> !quake.wire
+  %f = arith.addi %e, %e : i32
+  quake.sink %w0x : !quake.wire
+  quake.sink %w1h : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @cluster_unitaries_along_two_wires
+// CHECK: quake.null_wire
+// CHECK-NEXT: quake.h
+// CHECK-NEXT: quake.x
+// CHECK-NEXT: quake.null_wire
+// CHECK-NEXT: quake.x
+// CHECK-NEXT: quake.h
+// CHECK-NEXT: arith.constant
+// CHECK-NEXT: arith.addi
+// CHECK-NEXT: arith.addi
+// CHECK-NEXT: arith.addi
+// CHECK-NEXT: quake.sink
+// CHECK-NEXT: quake.sink
+// CHECK-NEXT: return
+
+// `QuantumMeasure` ops are preferred over classical ops when both are ready:
+// after `quake.h`, `quake.mz` can run before the intervening `arith` uses of
+// `%c` even though `mz` appears later in the source block.
+func.func @cluster_measurement_before_classical() {
+  %w = quake.null_wire
+  %c = arith.constant 0 : i32
+  %d = arith.addi %c, %c : i32
+  %w1 = quake.h %w : (!quake.wire) -> !quake.wire
+  %bits, %w2 = quake.mz %w1 name "m" : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %e = arith.addi %d, %d : i32
+  quake.sink %w2 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @cluster_measurement_before_classical
+// CHECK: quake.null_wire
+// CHECK-NEXT: quake.h
+// CHECK-NEXT: quake.mz
+// CHECK-NEXT: arith.constant
+// CHECK-NEXT: arith.addi
+// CHECK-NEXT: arith.addi
+// CHECK-NEXT: quake.sink
+// CHECK-NEXT: return
