@@ -92,11 +92,12 @@ private:
     return attributes.device;
   }
 
-  /// @brief Check the input data pointer and if it is
-  /// host data, copy it to the GPU.
-  auto maybeCopyToDevice(std::size_t size, void *dataPtr) {
+  /// @brief Check the input data pointer and if it is host data, copy it to
+  /// the GPU. Returns the (possibly newly-allocated) device pointer together
+  /// with a flag that is true iff we performed a `cudaMalloc` here.
+  std::pair<void *, bool> maybeCopyToDevice(std::size_t size, void *dataPtr) {
     if (isDevicePointer(dataPtr))
-      return dataPtr;
+      return {dataPtr, false};
 
     std::complex<ScalarType> *ptr = nullptr;
     HANDLE_CUDA_ERROR(
@@ -104,7 +105,7 @@ private:
     HANDLE_CUDA_ERROR(cudaMemcpy(ptr, dataPtr,
                                  size * sizeof(std::complex<ScalarType>),
                                  cudaMemcpyHostToDevice));
-    return reinterpret_cast<void *>(ptr);
+    return {reinterpret_cast<void *>(ptr), true};
   };
 
 public:
@@ -212,11 +213,11 @@ public:
     if (!ptr || size == 0)
       throw std::runtime_error(
           "[createFromSizeAndPtr] invalid null pointer or zero size");
-    // If the data is provided as a pointer / size, then
-    // we assume we do not own it.
-    bool weOwnTheData = type < 2 ? true : false;
-    ptr = maybeCopyToDevice(size, ptr);
-    return std::make_unique<CusvState<ScalarType>>(size, ptr, weOwnTheData);
+    // We own the device buffer iff `maybeCopyToDevice` had to allocate one
+    // (i.e. the input was a host pointer). For an existing device pointer
+    // supplied by the caller, ownership stays with the caller.
+    auto [devPtr, weAllocated] = maybeCopyToDevice(size, ptr);
+    return std::make_unique<CusvState<ScalarType>>(size, devPtr, weAllocated);
   }
 
   /// @brief Return the tensor at the given index. Throws
