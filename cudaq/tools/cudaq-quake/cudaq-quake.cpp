@@ -12,6 +12,7 @@
 /// other MLIR dialects as well. These other dialects are convenient but not the
 /// salient part of this tool.)
 
+#include "nvqpp_config.h"
 #include "cudaq/Frontend/nvqpp/ASTBridge.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
@@ -19,7 +20,6 @@
 #include "cudaq/Optimizer/InitAllDialects.h"
 #include "cudaq/Optimizer/Support/Verifier.h"
 #include "cudaq/Support/Version.h"
-#include "nvqpp_config.h"
 #include "clang/CodeGen/BackendUtil.h"
 #include "clang/CodeGen/CodeGenAction.h"
 #include "clang/Frontend/FrontendAction.h"

@@ -7,11 +7,11 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "nlohmann/json.hpp"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "nlohmann/json.hpp"
 #include "llvm/Support/Debug.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"

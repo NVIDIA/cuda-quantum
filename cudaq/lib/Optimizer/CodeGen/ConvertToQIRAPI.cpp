@@ -8,6 +8,7 @@
 
 #include "CodeGenOps.h"
 #include "PassDetails.h"
+#include "nlohmann/json.hpp"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -16,7 +17,6 @@
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
 #include "cudaq/Optimizer/CodeGen/QuakeToExecMgr.h"
 #include "cudaq/Optimizer/Transforms/Passes.h" // for GlobalizeArrayValues
-#include "nlohmann/json.hpp"
 #include "llvm/Support/Debug.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassOptions.h"

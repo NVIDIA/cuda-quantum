@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "nlohmann/json.hpp"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CallGraphFix.h"
 #include "cudaq/Optimizer/CodeGen/CudaqFunctionNames.h"
@@ -15,7 +16,6 @@
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
 #include "cudaq/Optimizer/CodeGen/QuakeToExecMgr.h"
-#include "nlohmann/json.hpp"
 #include "llvm/ADT/DepthFirstIterator.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Pass/PassManager.h"
