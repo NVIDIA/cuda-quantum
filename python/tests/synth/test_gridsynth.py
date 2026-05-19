@@ -16,7 +16,6 @@ synth = pytest.importorskip(
     "CUDAQ_ENABLE_CLIFFORD_T_SYNTHESIS=ON)",
 )
 
-
 GATE_ALPHABET = set("HSTXWI")
 
 
