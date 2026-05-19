@@ -101,4 +101,8 @@ if(TARGET cudaq-synth)
     CUDAQ_HAS_CLIFFORD_T_SYNTHESIS)
   target_include_directories(obj.OptTransforms PRIVATE
     $<TARGET_PROPERTY:cudaq-synth,INTERFACE_INCLUDE_DIRECTORIES>)
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set_source_files_properties(CliffordTSynthesis.cpp PROPERTIES
+      COMPILE_OPTIONS "-Wno-maybe-uninitialized")
+  endif()
 endif()
