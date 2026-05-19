@@ -1188,13 +1188,13 @@ struct UnwrapOpErase : public OpConversionPattern<cudaq::quake::UnwrapOp> {
 template <typename M>
 struct CustomUnitaryOpPattern
     : public QubitHelperConversionPattern<M,
-                                          cudaq::quake::CustomUnitarySymbolOp> {
+                                          cudaq::quake::CustomUnitaryConstantOp> {
   using Base =
-      QubitHelperConversionPattern<M, cudaq::quake::CustomUnitarySymbolOp>;
+      QubitHelperConversionPattern<M, cudaq::quake::CustomUnitaryConstantOp>;
   using Base::Base;
 
   LogicalResult
-  matchAndRewrite(cudaq::quake::CustomUnitarySymbolOp unitary,
+  matchAndRewrite(cudaq::quake::CustomUnitaryConstantOp unitary,
                   Base::OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     if (!unitary.getParameters().empty())
@@ -1251,9 +1251,9 @@ struct CustomUnitaryOpPattern
     }
 
     // Fetch the unitary matrix generator for this custom operation
-    auto generatorSym = unitary.getGenerator();
-    StringRef generatorName = generatorSym.getRootReference();
-    const auto customOpName = extractCustomNamePart(generatorName);
+    auto matrixSym = unitary.getMatrix();
+    StringRef matrixName = matrixSym.getRootReference();
+    const auto customOpName = extractCustomNamePart(matrixName);
 
     // Create a global string for the unitary name.
     auto nameOp = createGlobalCString(unitary, loc, rewriter, customOpName);
@@ -1261,9 +1261,9 @@ struct CustomUnitaryOpPattern
     auto complex64Ty = ComplexType::get(rewriter.getF64Type());
     auto complex64PtrTy = cudaq::cc::PointerType::get(complex64Ty);
     auto globalObj = cast<cudaq::cc::GlobalOp>(
-        unitary->getParentOfType<ModuleOp>().lookupSymbol(generatorName));
+        unitary->getParentOfType<ModuleOp>().lookupSymbol(matrixName));
     auto addrOp = cudaq::cc::AddressOfOp::create(
-        rewriter, loc, globalObj.getType(), generatorName);
+        rewriter, loc, globalObj.getType(), matrixName);
     auto unitaryData =
         cudaq::cc::CastOp::create(rewriter, loc, complex64PtrTy, addrOp);
 
