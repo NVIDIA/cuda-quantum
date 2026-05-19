@@ -10,8 +10,8 @@
 
 #include "common/DeviceCodeRegistry.h"
 #include "common/ExecutionContext.h"
-#include "cudaq/concepts.h"
 #include "qkernel.h"
+#include "cudaq/concepts.h"
 
 namespace cudaq::details {
 

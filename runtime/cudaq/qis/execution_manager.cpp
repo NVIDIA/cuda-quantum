@@ -9,9 +9,9 @@
 #include "execution_manager.h"
 #include "common/ExecutionContext.h"
 #include "common/PluginUtils.h"
+#include "nvqir/CircuitSimulator.h"
 #include "cudaq/algorithms/policy_cpos.h"
 #include "cudaq/algorithms/policy_dispatch.h"
-#include "nvqir/CircuitSimulator.h"
 
 using namespace cudaq;
 

@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/operators/matrix.h"
 #include "operator_leafs.h"
+#include "cudaq/operators/matrix.h"
 #include <complex>
 #include <set>
 #include <unordered_map>

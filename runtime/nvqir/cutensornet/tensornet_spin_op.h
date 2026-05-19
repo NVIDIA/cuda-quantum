@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 #pragma once
-#include "cudaq/operators.h"
 #include "cutensornet.h"
+#include "cudaq/operators.h"
 
 namespace nvqir {
 

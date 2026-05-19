@@ -7,9 +7,6 @@
  ******************************************************************************/
 
 #include "cudaq.h"
-#include "cudaq/Support/Version.h"
-#include "cudaq/platform/orca/orca_qpu.h"
-#include "cudaq/runtime/logger/logger.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "runtime/common/py_AnalogHamiltonian.h"
 #include "runtime/common/py_CustomOpRegistry.h"
@@ -49,6 +46,9 @@
 #include "runtime/mlir/py_register_dialects.h"
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/OpaqueArguments.h"
+#include "cudaq/Support/Version.h"
+#include "cudaq/platform/orca/orca_qpu.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/CAPI/Pass.h"
 #include "mlir/Parser/Parser.h"

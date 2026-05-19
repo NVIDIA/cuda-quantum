@@ -9,9 +9,9 @@
 #pragma once
 
 #include "common/Trace.h"
+#include "nvqir/Gates.h"
 #include "cudaq/algorithms/draw.h"
 #include "cudaq/operators/matrix.h"
-#include "nvqir/Gates.h"
 #include <iostream>
 
 namespace cudaq::contrib {

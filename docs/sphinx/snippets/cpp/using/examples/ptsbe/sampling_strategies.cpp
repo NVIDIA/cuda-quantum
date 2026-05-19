@@ -7,10 +7,10 @@
  ******************************************************************************/
 
 // [Begin PTSBE_Sampling]
+#include "utils.h"
 #include "cudaq/ptsbe/PTSBESample.h"
 #include "cudaq/ptsbe/strategies/OrderedSamplingStrategy.h"
 #include "cudaq/ptsbe/strategies/ProbabilisticSamplingStrategy.h"
-#include "utils.h"
 
 int main() {
   // Reproducible probabilistic sampling
