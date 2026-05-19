@@ -278,6 +278,17 @@ def test_boundary_handle_in_callable_parameter_is_admissible():
     k.compile()
 
 
+def test_boundary_handle_vector_via_alias_is_rejected():
+    import cudaq as cq
+
+    @cq.kernel
+    def k(hs: list[cq.measure_handle]):
+        pass
+
+    with pytest.raises(RuntimeError, match=re.escape(_BOUNDARY_DIAG)):
+        k.compile()
+
+
 def test_boundary_make_kernel_handle_arg_is_rejected():
     # `cudaq.make_kernel(...)` constructs an entry-point FuncOp directly
     # without going through the AST-bridge boundary check. The boundary rule

@@ -1781,17 +1781,11 @@ class PyASTBridge(ast.NodeVisitor):
             # function name
             fullName = nvqppPrefix + self.name
 
-            # Create the FuncOp
-            f = func.FuncOp(fullName,
-                            self.signature.get_lifted_type(),
-                            loc=self.loc)
-            self.kernelFuncOp = f
-
-            # Set this kernel as an entry point if the argument types are
-            # classical only
+            # Determine whether this kernel will be an entry point (no quantum
+            # types in the signature). Run this check before creating the
+            # `FuncOp` so a rejection does not leave an orphaned op in the module.
             anyQuantumType = any(
                 self.isQuantumType(ty) for ty in self.signature.arg_types)
-            f.attributes.__setitem__('cudaq-kernel', UnitAttr.get())
             if not anyQuantumType:
                 # `cudaq::measure_handle` is device-only and must not appear
                 # either directly or transitively in the parameter or return
@@ -1802,6 +1796,16 @@ class PyASTBridge(ast.NodeVisitor):
                 if (self.signature.return_type and
                         containsMeasureHandle(self.signature.return_type)):
                     self.emitFatalError(boundaryDiagnostic, node)
+
+            # Create the FuncOp
+            f = func.FuncOp(fullName,
+                            self.signature.get_lifted_type(),
+                            loc=self.loc)
+            self.kernelFuncOp = f
+            f.attributes.__setitem__('cudaq-kernel', UnitAttr.get())
+            # Set this kernel as an entry point if the argument types are
+            # classical only
+            if not anyQuantumType:
                 f.attributes.__setitem__('cudaq-entrypoint', UnitAttr.get())
 
             # Create the entry block
@@ -5177,7 +5181,23 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         self.walkingReturnNode = True
-        self.visit(node.value)
+        # If we are returning a tuple expression with a struct return type,
+        # signal `visit_Tuple` to coerce each element to its expected member
+        # type before assembling the struct. Without this, an intermediate
+        # struct whose element types include `!cc.measure_handle` is built
+        # and survives to QIR lowering, where it fails to legalize even
+        # though the outer struct is later coerced to the expected type.
+        expectedRet = self.signature.return_type
+        if (isinstance(node.value, ast.Tuple) and expectedRet is not None and
+                cc.StructType.isinstance(expectedRet) and
+                len(cc.StructType.getTypes(expectedRet)) == len(
+                    node.value.elts)):
+            self._tupleReturnExpectedEleTys = cc.StructType.getTypes(
+                expectedRet)
+        try:
+            self.visit(node.value)
+        finally:
+            self._tupleReturnExpectedEleTys = None
         self.walkingReturnNode = False
 
         if self.valueStack.currentNumValues == 0:
@@ -5257,11 +5277,25 @@ class PyASTBridge(ast.NodeVisitor):
     def visit_Tuple(self, node):
         """Map tuples in the Python AST to equivalents in MLIR."""
 
+        # Consume any expected element types set by an outer caller (e.g.
+        # `visit_Return` for a tuple-returning kernel) so per-element type
+        # coercion happens before the struct is assembled. Reset to `None`
+        # immediately so nested tuples in the element visits below do not
+        # inherit this caller's expectations.
+        expectedEleTys = getattr(self, '_tupleReturnExpectedEleTys', None)
+        self._tupleReturnExpectedEleTys = None
+
         [self.visit(el) for el in node.elts]
         elementValues = self.popAllValues(len(node.elts))
         elementValues.reverse()
         for idx, value in enumerate(elementValues):
             self.__validate_container_entry(value, node.elts[idx])
+        if expectedEleTys is not None and len(expectedEleTys) == len(
+                elementValues):
+            elementValues = [
+                self.changeOperandToType(eleTy, val, allowDemotion=True)
+                for eleTy, val in zip(expectedEleTys, elementValues)
+            ]
         struct = self.__createStructWithKnownValues(elementValues)
         self.pushValue(struct)
 

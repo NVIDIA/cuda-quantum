@@ -8,6 +8,8 @@
 
 #include "py_sample_ptsbe.h"
 #include "common/DeviceCodeRegistry.h"
+#include "runtime/cudaq/platform/py_alt_launch_kernel.h"
+#include "utils/OpaqueArguments.h"
 #include "cudaq/ptsbe/KrausSelection.h"
 #include "cudaq/ptsbe/KrausTrajectory.h"
 #include "cudaq/ptsbe/PTSBEExecutionData.h"
@@ -19,8 +21,6 @@
 #include "cudaq/ptsbe/strategies/ExhaustiveSamplingStrategy.h"
 #include "cudaq/ptsbe/strategies/OrderedSamplingStrategy.h"
 #include "cudaq/ptsbe/strategies/ProbabilisticSamplingStrategy.h"
-#include "runtime/cudaq/platform/py_alt_launch_kernel.h"
-#include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"

@@ -120,8 +120,8 @@ struct EraseArrayAlloc : public OpRewritePattern<LLVM::CallOp> {
     if (*callee != cudaq::opt::QIRArrayQubitAllocateArray)
       return failure();
     auto *ctx = rewriter.getContext();
-    rewriter.replaceOpWithNewOp<LLVM::UndefOp>(call,
-                                               cudaq::cg::getLLVMArrayType(ctx));
+    rewriter.replaceOpWithNewOp<LLVM::UndefOp>(
+        call, cudaq::cg::getLLVMArrayType(ctx));
     return success();
   }
 };

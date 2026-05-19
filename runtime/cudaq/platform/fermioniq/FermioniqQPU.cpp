@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 #include "FermioniqQPU.h"
-#include "cudaq/runtime/logger/cudaq_fmt.h"
 #include "nlohmann/json.hpp"
+#include "cudaq/runtime/logger/cudaq_fmt.h"
 #include <memory>
 
 cudaq::FermioniqQPU::~FermioniqQPU() = default;

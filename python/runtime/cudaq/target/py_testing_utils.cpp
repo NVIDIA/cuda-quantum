@@ -9,8 +9,8 @@
 #include "py_testing_utils.h"
 #include "LinkedLibraryHolder.h"
 #include "cudaq.h"
-#include "cudaq/platform.h"
 #include "nvqir/CircuitSimulator.h"
+#include "cudaq/platform.h"
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>

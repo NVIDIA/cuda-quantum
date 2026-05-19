@@ -7,10 +7,10 @@
  ******************************************************************************/
 
 #pragma once
-#include "cudaq/gradients.h"
 #include "gradient.h"
 #include "observe.h"
 #include "optimizer.h"
+#include "cudaq/gradients.h"
 #include <stdio.h>
 
 namespace cudaq {

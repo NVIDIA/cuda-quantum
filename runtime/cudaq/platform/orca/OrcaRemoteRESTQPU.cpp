@@ -8,8 +8,8 @@
 
 #include "OrcaRemoteRESTQPU.h"
 #include "common/ServerHelper.h"
-#include "cudaq/runtime/logger/logger.h"
 #include "orca_qpu.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "llvm/Support/Base64.h"
 
 using namespace cudaq;

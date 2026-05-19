@@ -457,7 +457,13 @@ def mlirTypeFromAnnotation(annotation,
                     f"Unable to get list elements when inferring type from annotation ("
                     f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
                 )
-            argTypes = [mlirTypeFromAnnotation(a, ctx) for a in args.elts]
+            argTypes = [
+                mlirTypeFromAnnotation(a,
+                                       ctx,
+                                       raiseError=raiseError,
+                                       cudaqAliases=cudaqAliases)
+                for a in args.elts
+            ]
             if not isinstance(ret, ast.Constant) or ret.value:
                 localEmitFatalError("passing kernels as arguments that return"
                                     " a value is not currently supported")
@@ -474,7 +480,10 @@ def mlirTypeFromAnnotation(annotation,
 
             eleTypeNode = annotation.slice
             # expected that slice is a Name node
-            listEleTy = mlirTypeFromAnnotation(eleTypeNode, ctx)
+            listEleTy = mlirTypeFromAnnotation(eleTypeNode,
+                                               ctx,
+                                               raiseError=raiseError,
+                                               cudaqAliases=cudaqAliases)
             return cc.StdvecType.get(listEleTy)
 
         if isinstance(annotation,
@@ -497,7 +506,13 @@ def mlirTypeFromAnnotation(annotation,
                     f"annotation ({ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
                 )
 
-            eleTypes = [mlirTypeFromAnnotation(v, ctx) for v in elements]
+            eleTypes = [
+                mlirTypeFromAnnotation(v,
+                                       ctx,
+                                       raiseError=raiseError,
+                                       cudaqAliases=cudaqAliases)
+                for v in elements
+            ]
             tupleTy = mlirTryCreateStructType(eleTypes)
             if tupleTy is None:
                 localEmitFatalError("Hybrid quantum-classical data types and "

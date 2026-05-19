@@ -9,11 +9,11 @@
 #include "LinkedLibraryHolder.h"
 #include "common/FmtCore.h"
 #include "common/PluginUtils.h"
+#include "nvqir/CircuitSimulator.h"
 #include "cudaq/Support/TargetConfigYaml.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/target_control.h"
-#include "nvqir/CircuitSimulator.h"
 #include <fstream>
 #include <regex>
 #include <sstream>
