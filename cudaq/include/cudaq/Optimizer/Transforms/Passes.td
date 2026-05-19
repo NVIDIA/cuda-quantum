@@ -165,6 +165,50 @@ def BasisConversion : Pass<"basis-conversion", "mlir::ModuleOp"> {
   ];
 }
 
+def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
+  let summary = "Approximate constant-angle rotations as Clifford+T sequences.";
+  let description = [{
+    Rewrites `quake.rz`, `quake.rx`, `quake.ry`, and `quake.r1` operations
+    with constant angles into sequences of `quake.h`, `quake.s`, `quake.t`,
+    and `quake.x` (Clifford+T) gates. The synthesis algorithm is gridsynth
+    (Ross & Selinger, arXiv:1403.2975) provided by the embedded
+    `cudaq::synth` library.
+
+    Preconditions (must be enforced by upstream passes):
+    - Rotation angles are folded to constants - run `ArgumentSynthesis` and
+      constant-propagation passes first.
+    - Controls and adjoints are materialized - run `ApplyOpSpecialization`
+      first. The omega global-phase contributions are dropped on the
+      assumption that no consumer wraps the kernel with `cudaq::control`
+      after this pass runs.
+
+    The pass is gated at build time on `CUDAQ_HAS_CLIFFORD_T_SYNTHESIS`.
+    When the synthesis library is not available, `runOnOperation` emits a
+    fatal diagnostic.
+
+    Gridsynth is probabilistic and slow (seconds per rotation). This pass
+    is opt-in via the `cudaq-fault-tolerant-target` pipeline only; it is
+    NOT added to the default target-prep pipeline.
+  }];
+  let options = [
+    Option<"epsilon", "epsilon", "double", /*default=*/"1e-10",
+      "Approximation tolerance epsilon for Clifford+T synthesis.">,
+    Option<"diophantineTimeoutMs", "diophantine-timeout-ms", "int32_t",
+      /*default=*/"200", "Per-candidate Diophantine solver timeout (ms).">,
+    Option<"factoringTimeoutMs", "factoring-timeout-ms", "int32_t",
+      /*default=*/"50", "Per-candidate integer-factoring timeout (ms).">,
+    Option<"retryCount", "retry-count", "int32_t", /*default=*/"3",
+      "Retry attempts with doubled timeouts on gridsynth failure.">,
+    Option<"onDynamicAngle", "on-dynamic-angle", "std::string",
+      /*default=*/"\"error\"",
+      "Behavior on non-constant rotation angles: 'error' or 'skip'.">,
+    Option<"skipBelow", "skip-below", "double", /*default=*/"1e-12",
+      "Skip rotations whose |theta| is below this threshold.">,
+  ];
+  let dependentDialects = ["mlir::arith::ArithDialect",
+                           "quake::QuakeDialect"];
+}
+
 def CableRoughIn : Pass<"cable-rough-in", "mlir::func::FuncOp"> {
   let summary = "Perform the rough-in cabling for value semantics conversion.";
   let description = [{
