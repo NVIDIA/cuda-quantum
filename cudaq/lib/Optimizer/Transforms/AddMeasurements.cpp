@@ -24,7 +24,7 @@ namespace {
 
 /// Analysis class that examines a function to determine whether it contains
 /// measurement operations and collects all qubit allocations. Also, gather all
-/// the returns for redirection
+/// the returns for redirection.
 struct Analysis {
   Analysis() = default;
 
@@ -35,13 +35,20 @@ struct Analysis {
         return WalkResult::interrupt();
       }
       if (auto alloc = dyn_cast<cudaq::quake::AllocaOp>(op)) {
+        // Adjust the op if there is an InitState.
         if (alloc->hasOneUse()) {
           Operation *user = *alloc->getUsers().begin();
           if (isa<cudaq::quake::InitializeStateOp>(user))
             op = user;
         }
         allocations.emplace_back(op);
+      } else if (isa<cudaq::quake::NullWireOp, cudaq::quake::NullCableOp>(op)) {
+        allocations.emplace_back(op);
+      } else if (isa<cudaq::quake::SinkOp, cudaq::quake::DeallocOp>(op)) {
+        // Record deallocations. These supercede return ops in precedence.
+        deallocations.emplace_back(op);
       } else if (isa<func::ReturnOp>(op)) {
+        // Use returns if the deallocations are not present.
         returns.emplace_back(op);
       }
       return WalkResult::advance();
@@ -50,10 +57,49 @@ struct Analysis {
 
   bool hasMeasurement = false;
   SmallVector<Operation *> allocations;
+  SmallVector<Operation *> deallocations;
   SmallVector<func::ReturnOp> returns;
 
+  bool hasQubitDeallocs() const { return !deallocations.empty(); }
   bool hasQubitAlloca() const { return !allocations.empty(); }
 };
+
+/// Add measurement operations before the deallocations. This transformation is
+/// written to work in either reference or value semantics. There is no
+/// control-flow rewrite. We expect that an analysis will be provided to
+/// determine terminal measurement operations.
+LogicalResult addDeallocMeasurements(func::FuncOp funcOp,
+                                     SmallVector<Operation *> &deallocations) {
+  auto ctx = funcOp.getContext();
+  OpBuilder builder(ctx);
+
+  auto measTy = cudaq::quake::MeasureType::get(builder.getContext());
+  auto stdvecTy = cudaq::cc::StdvecType::get(measTy);
+  for (auto *op : deallocations) {
+    if (auto dealloc = dyn_cast<cudaq::quake::DeallocOp>(op)) {
+      auto loc = dealloc.getLoc();
+      builder.setInsertionPoint(dealloc);
+      auto resTy = [&]() -> Type {
+        if (isa<cudaq::quake::RefType>(dealloc.getReference().getType()))
+          return measTy;
+        return stdvecTy;
+      }();
+      cudaq::quake::MzOp::create(builder, loc, resTy, dealloc.getReference());
+    } else {
+      auto sink = cast<cudaq::quake::SinkOp>(op);
+      auto loc = sink.getLoc();
+      builder.setInsertionPoint(sink);
+      auto meas = cudaq::quake::MzOp::create(
+          builder, loc, TypeRange{measTy, sink.getTarget().getType()},
+          sink.getTarget());
+      cudaq::quake::SinkOp::create(builder, loc, TypeRange{},
+                                   meas.getResult(1));
+      sink->dropAllReferences();
+      sink.erase();
+    }
+  }
+  return success();
+}
 
 /// Add measurement operations for all allocated qubits in a function.
 /// This transformation creates a new block at the end of the function,
@@ -62,9 +108,9 @@ struct Analysis {
 /// For vector allocations, the measurements are collected into a vector of
 /// measurement results.
 LogicalResult
-addMeasurements(func::FuncOp funcOp, SmallVector<Operation *> &allocations,
-                const SmallVector<func::ReturnOp> &returnsToReplace) {
-  auto loc = funcOp.getLoc();
+addReturnMeasurements(func::FuncOp funcOp,
+                      SmallVector<Operation *> &allocations,
+                      const SmallVector<func::ReturnOp> &returnsToReplace) {
   auto ctx = funcOp.getContext();
   OpBuilder builder(ctx);
 
@@ -74,6 +120,7 @@ addMeasurements(func::FuncOp funcOp, SmallVector<Operation *> &allocations,
   // Add block arguments for return values if the function returns anything
   ArrayRef<Type> returnTypes = funcOp.getFunctionType().getResults();
   if (!returnTypes.empty()) {
+    auto loc = funcOp.getLoc();
     SmallVector<Location> argLocs(returnTypes.size(), loc);
     newBlock->addArguments(returnTypes, argLocs);
   }
@@ -90,18 +137,23 @@ addMeasurements(func::FuncOp funcOp, SmallVector<Operation *> &allocations,
   builder.setInsertionPointToEnd(newBlock);
   auto measTy = cudaq::quake::MeasureType::get(builder.getContext());
   for (auto [index, alloca] : llvm::enumerate(allocations)) {
-    if (isa<cudaq::quake::VeqType>(alloca->getResult(0).getType())) {
+    Type allocTy = alloca->getResult(0).getType();
+    auto loc = alloca->getLoc();
+    if (isa<cudaq::quake::VeqType>(allocTy)) {
       auto stdvecTy = cudaq::cc::StdvecType::get(measTy);
       cudaq::quake::MzOp::create(builder, loc, stdvecTy,
                                  ValueRange{alloca->getResult(0)});
+    } else if (isa<cudaq::quake::RefType>(allocTy)) {
+      auto val = alloca->getResult(0);
+      cudaq::quake::MzOp::create(builder, loc, measTy, val);
     } else {
-      cudaq::quake::MzOp::create(builder, loc, measTy, alloca->getResult(0));
+      return failure();
     }
   }
 
   // Add the final return using block arguments
+  auto loc = funcOp.getLoc();
   func::ReturnOp::create(builder, loc, newBlock->getArguments());
-
   return success();
 }
 
@@ -136,8 +188,14 @@ struct AddMeasurementsPass
       return;
 
     LLVM_DEBUG(llvm::dbgs() << "Before adding measurements:\n" << *func);
-    if (failed(addMeasurements(func, analysis.allocations, analysis.returns)))
-      signalPassFailure();
+    if (analysis.hasQubitDeallocs()) {
+      if (failed(addDeallocMeasurements(func, analysis.deallocations)))
+        signalPassFailure();
+    } else {
+      if (failed(addReturnMeasurements(func, analysis.allocations,
+                                       analysis.returns)))
+        signalPassFailure();
+    }
     LLVM_DEBUG(llvm::dbgs() << "After adding measurements:\n" << *func);
   }
 };
