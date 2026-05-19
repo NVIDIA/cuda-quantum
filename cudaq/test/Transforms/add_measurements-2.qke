@@ -1,0 +1,54 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -add-measurements %s | FileCheck %s
+
+module attributes {cc.sizeof_string = 32 : i64, llvm.data_layout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128", llvm.triple = "x86_64-unknown-linux-gnu", quake.mangled_name_map = {__nvqpp__mlirgen__function_bell_no_return._Z14bell_no_returnv = "_Z14bell_no_returnv"}} {
+
+  // reference test
+  func.func @foo.bar() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+    %0 = quake.alloca !quake.veq<2>
+    %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+    quake.h %1 : (!quake.ref) -> ()
+    %2 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+    quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+    quake.dealloc %0 : !quake.veq<2>
+    return
+  }
+
+  // value test
+  func.func @test() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+    %0 = quake.null_wire
+    %1 = quake.null_wire
+    %2 = quake.h %0 : (!quake.wire) -> !quake.wire
+    %3:2 = quake.x [%2] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    quake.sink %3#0 : !quake.wire
+    quake.sink %3#1 : !quake.wire
+    return
+  }
+}
+
+// CHECK-LABEL:   func.func @foo.bar()
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           quake.h
+// CHECK:           quake.x
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[ALLOCA_0]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+// CHECK:           quake.dealloc %[[ALLOCA_0]] : !quake.veq<2>
+// CHECK:           return
+
+// CHECK-LABEL:   func.func @test()
+// CHECK-DAG:       %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK-DAG:       %[[NULL_WIRE_1:.*]] = quake.null_wire
+// CHECK:           %[[H_0:.*]] = quake.h %[[NULL_WIRE_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X_0:.*]]:2 = quake.x {{\[}}%[[H_0]]] %[[NULL_WIRE_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK-DAG:       %[[VAL_0:.*]], %[[MZ_0:.*]] = quake.mz %[[X_0]]#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK-DAG:       quake.sink %[[MZ_0]] : !quake.wire
+// CHECK-DAG:       %[[VAL_1:.*]], %[[MZ_1:.*]] = quake.mz %[[X_0]]#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK-DAG:       quake.sink %[[MZ_1]] : !quake.wire
+// CHECK:           return
+
