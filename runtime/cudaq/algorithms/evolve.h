@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/EvolveResult.h"
+#include "evolve_internal.h"
 #include "cudaq/algorithms/base_integrator.h"
 #include "cudaq/algorithms/get_state.h"
 #include "cudaq/host_config.h"
@@ -17,7 +18,6 @@
 #include "cudaq/platform.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
 #include "cudaq/schedule.h"
-#include "evolve_internal.h"
 
 namespace cudaq {
 

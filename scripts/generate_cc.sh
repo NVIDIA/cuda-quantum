@@ -100,7 +100,7 @@ if $gen_cpp_coverage; then
     python3 -m pip install -r ${repo_root}/requirements-tests-backend.txt --break-system-packages
     ctest --output-on-failure --test-dir ${repo_root}/build -E ctest-nvqpp -E ctest-targettests
     ctest_status=$?
-    /usr/local/llvm/bin/llvm-lit -v --param nvqpp_site_config=${repo_root}/build/test/lit.site.cfg.py ${repo_root}/build/test
+    /usr/local/llvm/bin/llvm-lit -v --param nvqpp_site_config=${repo_root}/build/cudaq/test/lit.site.cfg.py ${repo_root}/build/cudaq/test
     lit_status=$?
     /usr/local/llvm/bin/llvm-lit -v --param nvqpp_site_config=${repo_root}/build/targettests/lit.site.cfg.py ${repo_root}/build/targettests
     targ_status=$?

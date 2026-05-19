@@ -10,8 +10,8 @@
 #include "common/KernelExecution.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
-#include "cudaq/runtime/logger/logger.h"
 #include "nlohmann/json.hpp"
+#include "cudaq/runtime/logger/logger.h"
 
 namespace cudaq {
 details::future Executor::execute(std::vector<KernelExecution> &codesToExecute,
