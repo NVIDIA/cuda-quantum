@@ -2169,8 +2169,8 @@ C++
 ::: {.tab-content .docutils}
 ::: {.highlight-cpp .notranslate}
 ::: highlight
-    #include "cudaq/ptsbe/PTSBESample.h"
     #include "utils.h"
+    #include "cudaq/ptsbe/PTSBESample.h"
 
     int main() {
       cudaq::ptsbe::sample_options opts;
@@ -2292,10 +2292,10 @@ C++
 ::: {.tab-content .docutils}
 ::: {.highlight-cpp .notranslate}
 ::: highlight
+    #include "utils.h"
     #include "cudaq/ptsbe/PTSBESample.h"
     #include "cudaq/ptsbe/strategies/OrderedSamplingStrategy.h"
     #include "cudaq/ptsbe/strategies/ProbabilisticSamplingStrategy.h"
-    #include "utils.h"
 
     int main() {
       // Reproducible probabilistic sampling
@@ -2414,9 +2414,9 @@ C++
 ::: {.tab-content .docutils}
 ::: {.highlight-cpp .notranslate}
 ::: highlight
+    #include "utils.h"
     #include "cudaq/ptsbe/PTSBESample.h"
     #include "cudaq/ptsbe/ShotAllocationStrategy.h"
-    #include "utils.h"
 
     int main() {
       cudaq::ptsbe::sample_options opts;
@@ -2485,9 +2485,9 @@ C++
 ::: {.tab-content .docutils}
 ::: {.highlight-cpp .notranslate}
 ::: highlight
+    #include "utils.h"
     #include "cudaq/ptsbe/PTSBESample.h"
     #include "cudaq/ptsbe/ShotAllocationStrategy.h"
-    #include "utils.h"
     #include <cstdio>
 
     int main() {

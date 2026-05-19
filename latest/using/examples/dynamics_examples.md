@@ -2182,10 +2182,10 @@ qubit under a transverse field Hamiltonian, with and without dissipation
     // nvq++ --target dynamics qubit_dynamics.cpp -o a.out && ./a.out
     // ```
 
+    #include "export_csv_helper.h"
     #include "cudaq/algorithms/evolve.h"
     #include "cudaq/algorithms/integrator.h"
     #include "cudaq/operators.h"
-    #include "export_csv_helper.h"
     #include <cudaq.h>
 
     int main() {
@@ -2276,10 +2276,10 @@ up composite quantum systems with different subsystem dimensions.
     // nvq++ --target dynamics cavity_qed.cpp -o a.out && ./a.out
     // ```
 
+    #include "export_csv_helper.h"
     #include "cudaq/algorithms/evolve.h"
     #include "cudaq/algorithms/integrator.h"
     #include "cudaq/operators.h"
-    #include "export_csv_helper.h"
     #include <cudaq.h>
 
     int main() {
@@ -2432,10 +2432,10 @@ and batched state evolution.
     // nvq++ --target dynamics cavity_qed.cpp -o a.out && ./a.out
     // ```
 
+    #include "export_csv_helper.h"
     #include "cudaq/algorithms/evolve.h"
     #include "cudaq/algorithms/integrator.h"
     #include "cudaq/operators.h"
-    #include "export_csv_helper.h"
     #include <cudaq.h>
 
     int main() {
@@ -2606,10 +2606,10 @@ in spin qubit systems.
     // nvq++ --target dynamics heisenberg_model.cpp -o a.out && ./a.out
     // ```
 
+    #include "export_csv_helper.h"
     #include "cudaq/algorithms/evolve.h"
     #include "cudaq/algorithms/integrator.h"
     #include "cudaq/operators.h"
-    #include "export_csv_helper.h"
     #include <cudaq.h>
 
     int main() {
@@ -2784,10 +2784,10 @@ control pulses.
     // nvq++ --target dynamics qubit_control.cpp -o a.out && ./a.out
     // ```
 
+    #include "export_csv_helper.h"
     #include "cudaq/algorithms/evolve.h"
     #include "cudaq/algorithms/integrator.h"
     #include "cudaq/operators.h"
-    #include "export_csv_helper.h"
     #include <cudaq.h>
 
     int main() {
@@ -2932,10 +2932,10 @@ under the same Hamiltonian simultaneously.
     // nvq++ --target dynamics qubit_dynamics.cpp -o a.out && ./a.out
     // ```
 
+    #include "export_csv_helper.h"
     #include "cudaq/algorithms/evolve.h"
     #include "cudaq/algorithms/integrator.h"
     #include "cudaq/operators.h"
-    #include "export_csv_helper.h"
     #include <cudaq.h>
 
     int main() {
