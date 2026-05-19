@@ -31,6 +31,27 @@ module attributes {cc.sizeof_string = 32 : i64, llvm.data_layout = "e-m:e-p270:3
     quake.sink %3#1 : !quake.wire
     return
   }
+
+  // mixed modes with scopes
+  func.func @mixed() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+    cc.scope {
+      %0 = quake.null_wire
+      %1 = quake.null_wire
+      %2 = quake.h %0 : (!quake.wire) -> !quake.wire
+      %3:2 = quake.x [%2] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+      quake.sink %3#0 : !quake.wire
+      quake.sink %3#1 : !quake.wire
+    }
+    cc.scope {
+      %0 = quake.alloca !quake.ref
+      %1 = quake.null_wire
+      quake.h %0 : (!quake.ref) -> ()
+      %3 = quake.x [%0] %1 : (!quake.ref, !quake.wire) -> !quake.wire
+      quake.sink %3#0 : !quake.wire
+      quake.dealloc %0 : !quake.ref
+    }
+    return
+  }  
 }
 
 // CHECK-LABEL:   func.func @foo.bar()
@@ -52,3 +73,26 @@ module attributes {cc.sizeof_string = 32 : i64, llvm.data_layout = "e-m:e-p270:3
 // CHECK-DAG:       quake.sink %[[MZ_1]] : !quake.wire
 // CHECK:           return
 
+// CHECK-LABEL:   func.func @mixed()
+// CHECK:           cc.scope {
+// CHECK-DAG:         %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK-DAG:         %[[NULL_WIRE_1:.*]] = quake.null_wire
+// CHECK:             %[[H_0:.*]] = quake.h %[[NULL_WIRE_0]] : (!quake.wire) -> !quake.wire
+// CHECK:             %[[X_0:.*]]:2 = quake.x {{\[}}%[[H_0]]] %[[NULL_WIRE_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             %[[VAL_0:.*]], %[[MZ_0:.*]] = quake.mz %[[X_0]]#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:             quake.sink %[[MZ_0]] : !quake.wire
+// CHECK:             %[[VAL_1:.*]], %[[MZ_1:.*]] = quake.mz %[[X_0]]#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:             quake.sink %[[MZ_1]] : !quake.wire
+// CHECK:           }
+// CHECK:           cc.scope {
+// CHECK-DAG:         %[[ALLOCA_0:.*]] = quake.alloca !quake.ref
+// CHECK-DAG:         %[[NULL_WIRE_2:.*]] = quake.null_wire
+// CHECK:             quake.h %[[ALLOCA_0]] : (!quake.ref) -> ()
+// CHECK:             %[[X_1:.*]] = quake.x {{\[}}%[[ALLOCA_0]]] %[[NULL_WIRE_2]] : (!quake.ref, !quake.wire) -> !quake.wire
+// CHECK:             %[[VAL_2:.*]], %[[MZ_2:.*]] = quake.mz %[[X_1]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:             quake.sink %[[MZ_2]] : !quake.wire
+// CHECK:             %[[MZ_3:.*]] = quake.mz %[[ALLOCA_0]] : (!quake.ref) -> !quake.measure
+// CHECK:             quake.dealloc %[[ALLOCA_0]] : !quake.ref
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }
