@@ -14,8 +14,6 @@ if(NOT TARGET cudaq-synth)
 endif()
 
 nanobind_add_module(_cudaq_synth
-  NB_SHARED
-  NB_DOMAIN cudaq
   py_synth.cpp)
 
 target_include_directories(_cudaq_synth PRIVATE
