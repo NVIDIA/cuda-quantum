@@ -37,67 +37,74 @@ inline complex_matrix make_controlled_unitary(const complex_matrix &gate,
   return M;
 }
 
-/// @brief Expand an m-qubit gate to an n-qubit system by tensor product with
-/// identities and permuting qubits into the specified positions.
-/// @param gate The unitary matrix acting on m qubits.
-/// @param num_qudits The total number of qubits in the full system.
-/// @param qudit_indices A vector of size m giving the target qubit indices in
-/// the full system.
-/// @returns A complex_matrix representing the expanded gate on the full n-qubit
-/// system.
-inline complex_matrix
-expand_gate_to_system(const complex_matrix &gate, std::size_t num_qudits,
-                      const std::vector<std::size_t> &qudit_indices) {
-  // number of qubits this gate acts on
-  std::size_t m = qudit_indices.size();
+/// @brief Apply an m-qubit gate in place to an n-qubit unitary.
+/// @param U The 2^n x 2^n unitary, modified in place.
+/// @param gate The 2^m x 2^m gate matrix.
+/// @param num_qubits The total number of qubits in the full system.
+/// @param qubit_indices A vector of size m giving the qubit indices the gate
+/// acts on in the full system.
+inline void apply_gate_in_place(complex_matrix &U, const complex_matrix &gate,
+                                std::size_t num_qubits,
+                                const std::vector<std::size_t> &qubit_indices) {
+  using value_type = std::complex<double>;
+  const std::size_t m = qubit_indices.size();
+  const std::size_t gdim = 1ULL << m;
+  const std::size_t dim = 1ULL << num_qubits;
 
-  // 1) Build U0 = gate ⊗ I ⊗ ... ⊗ I, with gate on qubits [0..m-1]
-  std::vector<complex_matrix> facs;
-  facs.reserve(1 + num_qudits - m);
-  facs.push_back(gate);
-  for (std::size_t k = m; k < num_qudits; ++k)
-    facs.push_back(complex_matrix::identity(2));
-  auto U0 = kronecker(facs.begin(), facs.end());
-
-  // 2) Build permutation P that moves qubits [0..m−1] → qudit_indices[]
-  std::size_t dim = 1ULL << num_qudits;
-  // 2a) build a map old_index → new_index
-  std::vector<std::size_t> perm(num_qudits);
-  for (std::size_t k = 0; k < m; ++k)
-    perm[k] = qudit_indices[k];
-  // mark used targets
-  std::vector<bool> used(num_qudits, false);
-  for (auto idx : qudit_indices)
-    used[idx] = true;
-  // collect the free new slots
-  std::vector<std::size_t> free_pos;
-  free_pos.reserve(num_qudits - m);
-  for (std::size_t i = 0; i < num_qudits; ++i)
-    if (!used[i])
-      free_pos.push_back(i);
-  // assign the remaining old qubits (m..n−1) into those slots
-  for (std::size_t k = m; k < num_qudits; ++k)
-    perm[k] = free_pos[k - m];
-
-  // 2b) build P by permuting computational‐basis indices (fixing endian)
-  complex_matrix P(dim, dim);
-  // Interpret bit-0 of the index as the MSB, build P accordingly.
-  for (std::size_t col = 0; col < dim; ++col) {
-    std::size_t row = 0;
-    // i = 0 → MSB, i = num_qudits-1 → LSB
-    for (std::size_t i = 0; i < num_qudits; ++i) {
-      auto srcBitPos = num_qudits - 1 - i;
-      if ((col >> srcBitPos) & 1ULL) {
-        auto dstBitPos = num_qudits - 1 - perm[i];
-        row |= (1ULL << dstBitPos);
-      }
-    }
-    P(row, col) = 1.0;
+  // Bit position of each affected qubit in the system index.
+  std::vector<std::size_t> bp(m);
+  std::size_t affected_mask = 0;
+  for (std::size_t k = 0; k < m; ++k) {
+    bp[k] = num_qubits - 1 - qubit_indices[k];
+    affected_mask |= (1ULL << bp[k]);
   }
 
-  // 3) Embed: full_gate = P * U0 * P⁻¹
-  auto result = P * U0 * P.adjoint();
-  return result;
+  // Local row-major copy of the gate so the inner loop is a tight indexed
+  // multiply-add without going through complex_matrix accessors.
+  std::vector<value_type> g(gdim * gdim);
+  for (std::size_t a = 0; a < gdim; ++a)
+    for (std::size_t b = 0; b < gdim; ++b)
+      g[a * gdim + b] = gate(a, b);
+
+  // scatter[a] deposits the m bits of a into the bp[] positions. Bit (m-1-k)
+  // of a is the k-th qubit's value (MSB-first within the gate, matching the
+  // gate's row/column encoding).
+  std::vector<std::size_t> scatter(gdim, 0);
+  for (std::size_t a = 0; a < gdim; ++a) {
+    std::size_t s = 0;
+    for (std::size_t k = 0; k < m; ++k)
+      if ((a >> (m - 1 - k)) & 1ULL)
+        s |= (1ULL << bp[k]);
+    scatter[a] = s;
+  }
+
+  value_type *udata = U.get_data(complex_matrix::order::row_major);
+
+  std::vector<value_type> col_old(gdim);
+  std::vector<value_type> col_new(gdim);
+  std::vector<std::size_t> rows(gdim);
+
+  // Iterate over all "base" row indices that have zero in every affected bit.
+  // For each base, the 2^m affected rows are base | scatter[a].
+  for (std::size_t base = 0; base < dim; ++base) {
+    if (base & affected_mask)
+      continue;
+    for (std::size_t a = 0; a < gdim; ++a)
+      rows[a] = base | scatter[a];
+
+    for (std::size_t j = 0; j < dim; ++j) {
+      for (std::size_t b = 0; b < gdim; ++b)
+        col_old[b] = udata[rows[b] * dim + j];
+      for (std::size_t a = 0; a < gdim; ++a) {
+        value_type acc(0.0, 0.0);
+        for (std::size_t b = 0; b < gdim; ++b)
+          acc += g[a * gdim + b] * col_old[b];
+        col_new[a] = acc;
+      }
+      for (std::size_t a = 0; a < gdim; ++a)
+        udata[rows[a] * dim + j] = col_new[a];
+    }
+  }
 }
 
 /// @brief Construct the full system unitary from a Trace of quantum
@@ -117,27 +124,19 @@ inline complex_matrix unitary_from_trace(const Trace &trace) {
     complex_matrix gate(gate_vec, {gate_dim, gate_dim});
 
     // If there are control qubits, build the controlled-unitary
-    if (!inst.controls.empty()) {
+    if (!inst.controls.empty())
       gate = make_controlled_unitary(gate, inst.controls.size());
-      gate_dim = gate.rows();
-    }
 
-    // Get vector of all qubit indices that this gate operates on
-    // The control qubits are expected to be at the start of the vector,
+    // Get vector of all qubit indices that this gate operates on.
+    // The control qubits are expected to be at the start of the vector.
     std::vector<std::size_t> inst_qubits;
     inst_qubits.reserve(inst.controls.size() + inst.targets.size());
-    for (const auto &control : inst.controls) {
+    for (const auto &control : inst.controls)
       inst_qubits.push_back(control.id);
-    }
-    for (const auto &target : inst.targets) {
+    for (const auto &target : inst.targets)
       inst_qubits.push_back(target.id);
-    }
 
-    // Expand gate to full system
-    auto full_gate = expand_gate_to_system(gate, num_qubits, inst_qubits);
-
-    // Left-multiply the system unitary
-    U = full_gate * U;
+    apply_gate_in_place(U, gate, num_qubits, inst_qubits);
   }
   return U;
 }
