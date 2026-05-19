@@ -342,9 +342,11 @@ static LogicalResult checkAndExtractControls(cudaq::quake::OperatorInterface op,
   static cudaq::DecompositionPatternTypeRegistry::Add<PATTERN##Type> CONCAT(   \
       TEMPNAME_, PATTERN)(#PATTERN, "");
 
-// NOTE: The patterns SToR1, TToR1, R1ToU3, and U3ToRotations handle arbitrary
-// control counts and are registered with (n) metadata. R1ToRz explicitly
-// rejects controlled ops and uses bare metadata.
+// NOTE: The controlled patterns SToR1, TToR1, R1ToU3, and U3ToRotations handle
+// arbitrary control counts and are registered with (n) metadata. Bare S/T use
+// separate metadata so a target can preserve bare S/T while decomposing
+// controlled forms. R1ToRz explicitly rejects controlled ops and uses bare
+// metadata.
 
 //===----------------------------------------------------------------------===//
 // HOp decompositions
@@ -790,6 +792,37 @@ struct SToPhasedRx
 };
 REGISTER_DECOMPOSITION_PATTERN(SToPhasedRx, "s", "phased_rx");
 
+// quake.s target
+// ────────────────────────────────────
+// quake.r1(π/2) target
+struct SToR1BareType; // forward declare the pattern type, defined in the macro
+                      // below
+struct SToR1Bare
+    : public cudaq::DecompositionPattern<SToR1BareType, cudaq::quake::SOp> {
+  using cudaq::DecompositionPattern<SToR1BareType,
+                                    cudaq::quake::SOp>::DecompositionPattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::SOp op,
+                                PatternRewriter &rewriter) const override {
+    if (!op.getControls().empty())
+      return failure();
+
+    auto loc = op->getLoc();
+    auto angle = createConstant(loc, op.isAdj() ? -M_PI_2 : M_PI_2,
+                                rewriter.getF64Type(), rewriter);
+
+    SmallVector<Value> noControls;
+    Value target = op.getTarget();
+    QuakeOperatorCreator qRewriter(rewriter);
+    qRewriter.create<cudaq::quake::R1Op>(loc, angle, noControls, target);
+
+    qRewriter.selectWiresAndReplaceUses(op, target);
+    rewriter.eraseOp(op);
+    return success();
+  }
+};
+REGISTER_DECOMPOSITION_PATTERN(SToR1Bare, "s", "r1");
+
 // quake.s [control] target
 // ────────────────────────────────────
 // quake.r1(π/2) [control] target
@@ -805,6 +838,9 @@ struct SToR1
 
   LogicalResult matchAndRewrite(cudaq::quake::SOp op,
                                 PatternRewriter &rewriter) const override {
+    if (op.getControls().empty())
+      return failure();
+
     // Op info
     auto loc = op->getLoc();
     auto angle = createConstant(loc, op.isAdj() ? -M_PI_2 : M_PI_2,
@@ -876,6 +912,36 @@ struct TToPhasedRx
 };
 REGISTER_DECOMPOSITION_PATTERN(TToPhasedRx, "t", "phased_rx");
 
+// quake.t target
+// ────────────────────────────────────
+// quake.r1(π/4) target
+struct TToR1BareType; // forward declare the pattern type, defined in the macro
+                      // below
+struct TToR1Bare
+    : public cudaq::DecompositionPattern<TToR1BareType, cudaq::quake::TOp> {
+  using cudaq::DecompositionPattern<TToR1BareType,
+                                    cudaq::quake::TOp>::DecompositionPattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::TOp op,
+                                PatternRewriter &rewriter) const override {
+    if (!op.getControls().empty())
+      return failure();
+
+    auto loc = op->getLoc();
+    auto angle = createConstant(loc, op.isAdj() ? -M_PI_4 : M_PI_4,
+                                rewriter.getF64Type(), rewriter);
+    SmallVector<Value> noControls;
+    Value target = op.getTarget();
+    QuakeOperatorCreator qRewriter(rewriter);
+    qRewriter.create<cudaq::quake::R1Op>(loc, angle, noControls, target);
+
+    qRewriter.selectWiresAndReplaceUses(op, target);
+    rewriter.eraseOp(op);
+    return success();
+  }
+};
+REGISTER_DECOMPOSITION_PATTERN(TToR1Bare, "t", "r1");
+
 // quake.t [control] target
 // ────────────────────────────────────
 // quake.r1(π/4) [control] target
@@ -891,6 +957,9 @@ struct TToR1
 
   LogicalResult matchAndRewrite(cudaq::quake::TOp op,
                                 PatternRewriter &rewriter) const override {
+    if (op.getControls().empty())
+      return failure();
+
     // Op info
     auto loc = op->getLoc();
     auto angle = createConstant(loc, op.isAdj() ? -M_PI_4 : M_PI_4,

@@ -6,12 +6,16 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Tests for the circuit-opt-bench target: CX-basis decomposition with
+# Tests for the compiler-bench-nisq target: CX-basis decomposition with
 # optional SABRE routing on a specified device topology.
 
 import cudaq
 import numpy as np
 import pytest
+
+NISQ_TARGET = 'compiler-bench-nisq'
+
+ALLOWED_NISQ_OPS = {'h', 'rx', 'ry', 'rz', 'x', 'cz', 'mz'}
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -22,8 +26,8 @@ def reset():
 
 
 def test_swap_decomposition():
-    """SWAP decomposes into 3 CZ gates under circuit-opt-bench."""
-    cudaq.set_target('circuit-opt-bench')
+    """SWAP decomposes into 3 CZ gates under compiler-bench-nisq."""
+    cudaq.set_target(NISQ_TARGET)
 
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(2)
@@ -53,7 +57,7 @@ def test_custom_unitary_produces_2q_gates():
     This validates SU(4) handling through the target pipeline. Without helper
     inlining, resource counting sees only 1Q gates for this case.
     """
-    cudaq.set_target('circuit-opt-bench')
+    cudaq.set_target(NISQ_TARGET)
 
     rng = np.random.default_rng(42)
     z = rng.standard_normal((4, 4)) + 1j * rng.standard_normal((4, 4))
@@ -84,7 +88,7 @@ def test_ccx_fully_decomposed():
     (n) registration for SToR1/TToR1 and wildcard matching in the
     pattern selection graph.
     """
-    cudaq.set_target('circuit-opt-bench')
+    cudaq.set_target(NISQ_TARGET)
 
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(4)
@@ -96,9 +100,26 @@ def test_ccx_fully_decomposed():
     assert resources.gate_count_for_arity(2) > 0
 
 
+def test_axis_measurements_normalize_to_nisq_basis():
+    cudaq.set_target(NISQ_TARGET)
+
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(3)
+    kernel.mx(q[0])
+    kernel.my(q[1])
+    kernel.mz(q[2])
+
+    ops = cudaq.estimate_resources(kernel).to_dict()
+    assert ops.get('mz', 0) == 3
+    assert 's' not in ops, (
+        f"NISQ target should normalize S into the rotation basis: {ops}")
+    assert set(ops).issubset(ALLOWED_NISQ_OPS), (
+        f"Unexpected NISQ operations after normalization: {ops}")
+
+
 def test_negated_control_lowers_to_cz_basis():
     """Negated controls lower to the target CZ basis."""
-    cudaq.set_target('circuit-opt-bench')
+    cudaq.set_target(NISQ_TARGET)
 
     @cudaq.kernel
     def kernel():
@@ -128,11 +149,11 @@ def test_routing_inserts_swaps_on_path():
     """Non-adjacent CX on path(5) requires SWAPs, increasing 2Q count."""
     kernel = _make_nonlocal_cx_kernel()
 
-    cudaq.set_target('circuit-opt-bench')
+    cudaq.set_target(NISQ_TARGET)
     unrouted = cudaq.estimate_resources(kernel)
     cudaq.reset_target()
 
-    cudaq.set_target('circuit-opt-bench', device='path(5)')
+    cudaq.set_target(NISQ_TARGET, device='path(5)')
     routed = cudaq.estimate_resources(kernel)
 
     assert unrouted.gate_count_for_arity(2) == 1
@@ -143,7 +164,7 @@ def test_routing_star_no_swaps():
     """Star(5) connects center to all qubits, so no SWAPs are needed."""
     kernel = _make_nonlocal_cx_kernel()
 
-    cudaq.set_target('circuit-opt-bench', device='star(5)')
+    cudaq.set_target(NISQ_TARGET, device='star(5)')
     resources = cudaq.estimate_resources(kernel)
 
     assert resources.gate_count_for_arity(2) == 1
@@ -153,7 +174,7 @@ def test_routing_grid():
     """Grid(3,3) routes non-adjacent q0-q4 CX, inserting SWAPs."""
     kernel = _make_nonlocal_cx_kernel()
 
-    cudaq.set_target('circuit-opt-bench', device='grid(3,3)')
+    cudaq.set_target(NISQ_TARGET, device='grid(3,3)')
     resources = cudaq.estimate_resources(kernel)
 
     # q0 and q4 are 2 hops apart on a 3x3 grid (0->1->4), requiring SWAPs.
@@ -164,7 +185,7 @@ def test_routing_ring():
     """Ring(5) connects q0-q4 directly, so no SWAPs needed."""
     kernel = _make_nonlocal_cx_kernel()
 
-    cudaq.set_target('circuit-opt-bench', device='ring(5)')
+    cudaq.set_target(NISQ_TARGET, device='ring(5)')
     resources = cudaq.estimate_resources(kernel)
 
     # On ring 0-1-2-3-4-0, q0 and q4 are adjacent.

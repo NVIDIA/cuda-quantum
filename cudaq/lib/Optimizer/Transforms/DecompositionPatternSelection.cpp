@@ -67,6 +67,17 @@ struct OperatorInfo {
       return true;
     return numControls == other.numControls;
   }
+
+  /// Check if this basis entry makes another gate legal, matching
+  /// ConversionTarget semantics. A concrete basis entry does not make an
+  /// unbounded source pattern legal.
+  bool makesLegal(const OperatorInfo &other) const {
+    if (name != other.name || isAdj != other.isAdj)
+      return false;
+    if (isUnbounded())
+      return true;
+    return numControls == other.numControls;
+  }
 };
 
 struct BasisTarget : public ConversionTarget {
@@ -264,6 +275,13 @@ private:
     // basis gates
     std::priority_queue<GateDistancePair> gatesToVisit;
 
+    auto isBasisGate = [&](const OperatorInfo &gate) {
+      for (const auto &basisGate : basisGates)
+        if (basisGate.makesLegal(gate))
+          return true;
+      return false;
+    };
+
     // Initialize the priority queue with the basis gates
     for (const auto &gate : basisGates) {
       gatesToVisit.push({gate, 0, std::nullopt});
@@ -306,6 +324,8 @@ private:
       }
 
       if (outgoingPattern.has_value()) {
+        if (isBasisGate(gate))
+          continue;
         selectedPatterns.push_back(*outgoingPattern);
       }
 

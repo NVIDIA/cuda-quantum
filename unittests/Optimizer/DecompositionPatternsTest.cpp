@@ -236,7 +236,7 @@ TEST_F(DecompositionPatternsTest, TotalPatternCount) {
   auto patternEntries = cudaq::DecompositionPatternTypeRegistry::entries();
   unsigned int size =
       std::distance(patternEntries.begin(), patternEntries.end());
-  EXPECT_EQ(size, 31) << "Expected 31 decomposition patterns, but found "
+  EXPECT_EQ(size, 33) << "Expected 33 decomposition patterns, but found "
                       << size;
 }
 
