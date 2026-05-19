@@ -222,7 +222,7 @@ constexpr std::string_view typeName() {
 template <SimPrecisionType To, SimPrecisionType From>
 std::unique_ptr<std::complex<To>[]> convertToComplex(std::complex<From> *data,
                                                      std::size_t numQubits) {
-  auto size = static_cast<std::size_t>(1) << numQubits;
+  auto size = 1ULL << numQubits;
   constexpr auto toType = typeName<To>();
   constexpr auto fromType = typeName<From>();
   CUDAQ_INFO("copying {} complex<{}> values to complex<{}>", size, fromType,
@@ -240,7 +240,7 @@ std::unique_ptr<std::complex<To>[]> convertToComplex(std::complex<From> *data,
 template <SimPrecisionType To, SimPrecisionType From>
 std::unique_ptr<std::complex<To>[]> convertToComplex(From *data,
                                                      std::size_t numQubits) {
-  auto size = static_cast<std::size_t>(1) << numQubits;
+  auto size = 1ULL << numQubits;
   constexpr auto toType = typeName<To>();
   constexpr auto fromType = typeName<From>();
   CUDAQ_INFO("copying {} {} values to complex<{}>", size, fromType, toType);
@@ -979,10 +979,9 @@ std::vector<details::FakeQubit> *
 __quantum__qis__convert_array_to_stdvector(Array *arr) {
   const std::size_t size = arr->size();
   std::vector<details::FakeQubit> *result = new std::vector<details::FakeQubit>;
-  result->resize(size);
+  result->reserve(size);
   for (std::size_t i = 0; i < size; ++i) {
-    (*result)[i].id = (*arr)[i];
-    (*result)[i].negated = false;
+    result->emplace_back(details::FakeQubit{(*arr)[i], false});
   }
   return result;
 }
