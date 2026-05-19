@@ -17,10 +17,10 @@
 #include <nanobind/stl/unordered_map.h>
 #include <nanobind/stl/vector.h>
 
-#include "cudaq/operators.h"
-#include "cudaq/operators/serialization.h"
 #include "py_helpers.h"
 #include "py_matrix_op.h"
+#include "cudaq/operators.h"
+#include "cudaq/operators/serialization.h"
 
 namespace cudaq {
 

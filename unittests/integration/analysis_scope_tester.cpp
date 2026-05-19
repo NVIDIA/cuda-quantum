@@ -7,11 +7,11 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
-#include "cudaq/simulators.h"
 #include "nvqir/AnalysisScope.h"
 #include "nvqir/CircuitSimulator.h"
 #include "nvqir/resourcecounter/ResourceCounter.h"
 #include "nvqir/resourcecounter/ResourceCounterScope.h"
+#include "cudaq/simulators.h"
 #include <cudaq/algorithms/resource_estimation.h>
 #include <stdexcept>
 #include <utility>

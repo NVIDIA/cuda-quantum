@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
-#include "cudaq/ptsbe/PTSBESamplerImpl.h"
 #include "nvqir/Gates.h"
+#include "cudaq/ptsbe/PTSBESamplerImpl.h"
 #include <cmath>
 
 using namespace cudaq;
