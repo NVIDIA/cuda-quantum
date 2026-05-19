@@ -17,7 +17,7 @@ function(add_synthesis_test target_name source_file)
   add_executable(${target_name} ${source_file})
   target_link_libraries(${target_name} PRIVATE gtest_main cudaq-synth)
   target_include_directories(${target_name}
-    PRIVATE ${CMAKE_SOURCE_DIR}/lib/Synthesis
+    PRIVATE ${CMAKE_SOURCE_DIR}/cudaq/lib/Synthesis
   )
   gtest_discover_tests(${target_name}
     PROPERTIES LABELS "cudaq-synth-unittest"
