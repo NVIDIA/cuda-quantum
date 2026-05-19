@@ -85,3 +85,7 @@ add_subdirectory(runtime/interop)
 if (cuDensityMat_FOUND)
   add_subdirectory(runtime/cudaq/dynamics)
 endif()
+
+if (CUDAQ_ENABLE_CLIFFORD_T_SYNTHESIS)
+  add_subdirectory(runtime/synth)
+endif()
