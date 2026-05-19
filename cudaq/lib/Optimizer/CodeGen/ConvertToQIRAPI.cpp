@@ -1186,9 +1186,8 @@ struct UnwrapOpErase : public OpConversionPattern<cudaq::quake::UnwrapOp> {
 //===----------------------------------------------------------------------===//
 
 template <typename M>
-struct CustomUnitaryOpPattern
-    : public QubitHelperConversionPattern<M,
-                                          cudaq::quake::CustomUnitaryConstantOp> {
+struct CustomUnitaryOpPattern : public QubitHelperConversionPattern<
+                                    M, cudaq::quake::CustomUnitaryConstantOp> {
   using Base =
       QubitHelperConversionPattern<M, cudaq::quake::CustomUnitaryConstantOp>;
   using Base::Base;
