@@ -9,10 +9,18 @@
 # Clifford+T rotation synthesis library
 
 find_path(GMP_INCLUDE_DIR NAMES gmp.h)
-find_library(GMP_LIBRARIES NAMES gmp libgmp)
-
 find_path(MPFR_INCLUDE_DIR NAMES mpfr.h)
-find_library(MPFR_LIBRARIES NAMES mpfr libmpfr)
+
+if(APPLE)
+  set(_synth_saved_suffixes ${CMAKE_FIND_LIBRARY_SUFFIXES})
+  set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+  find_library(GMP_LIBRARIES NAMES gmp libgmp)
+  find_library(MPFR_LIBRARIES NAMES mpfr libmpfr)
+  set(CMAKE_FIND_LIBRARY_SUFFIXES ${_synth_saved_suffixes})
+else()
+  find_library(GMP_LIBRARIES NAMES gmp libgmp)
+  find_library(MPFR_LIBRARIES NAMES mpfr libmpfr)
+endif()
 
 if(NOT GMP_INCLUDE_DIR OR NOT GMP_LIBRARIES OR
    NOT MPFR_INCLUDE_DIR OR NOT MPFR_LIBRARIES)
