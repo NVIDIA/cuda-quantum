@@ -6,8 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Clifford+T rotation synthesis library
-
 find_path(GMP_INCLUDE_DIR NAMES gmp.h)
 find_path(MPFR_INCLUDE_DIR NAMES mpfr.h)
 
@@ -29,7 +27,7 @@ if(NOT GMP_INCLUDE_DIR OR NOT GMP_LIBRARIES OR
   return()
 endif()
 
-add_library(cudaq-synth STATIC
+add_cudaq_library(cudaq-synth
   Math/Diophantine.cpp
   Math/Geometry/Ellipse.cpp
   Math/Geometry/Rectangle.cpp
@@ -39,28 +37,23 @@ add_library(cudaq-synth STATIC
   Math/Real.cpp
   Synthesis/Gridsynth.cpp
   Synthesis/KmmSynthesize.cpp
-)
 
-target_compile_features(cudaq-synth PUBLIC cxx_std_20)
-set_target_properties(cudaq-synth PROPERTIES POSITION_INDEPENDENT_CODE ON)
+  LINK_LIBS PRIVATE
+    ${GMP_LIBRARIES}
+    ${MPFR_LIBRARIES}
+)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   target_compile_options(cudaq-synth PUBLIC -Wno-psabi)
+  if(TARGET obj.cudaq-synth)
+    target_compile_options(obj.cudaq-synth PRIVATE -Wno-psabi)
+  endif()
 endif()
 
 target_include_directories(cudaq-synth
   PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
     ${GMP_INCLUDE_DIR}
     ${MPFR_INCLUDE_DIR}
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-target_link_libraries(cudaq-synth
-  PRIVATE
-    ${GMP_LIBRARIES}
-    ${MPFR_LIBRARIES}
-    LLVMSupport
 )
