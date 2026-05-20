@@ -100,15 +100,19 @@ void shift_ellipses(Ellipse &A, Ellipse &B, const Integer &n) {
 
 llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
                                GridOp &opG_r, bool &end) {
-  LLVM_DEBUG(llvm::dbgs() << "[upright] step_lemma: A=" << A << ", B=" << B
-                          << '\n');
+  SYNTH_OPEN_SUB("step_lemma");
+  LLVM_DEBUG(cudaq::synth::dbgs() << "A=" << A << '\n');
+  LLVM_DEBUG(cudaq::synth::dbgs() << "B=" << B << '\n');
 
   if (B.b() < 0) {
     static const GridOp OP_Z(ZOmega(0, 0, 0, 1), ZOmega(0, -1, 0, 0));
-    if (llvm::failed(reduction(A, B, opG_r, OP_Z)))
+    if (llvm::failed(reduction(A, B, opG_r, OP_Z))) {
+      SYNTH_CLOSE_FAILURE("reduction failed");
       return llvm::failure();
+    }
     end = false;
-    LLVM_DEBUG(llvm::dbgs() << "[upright] step_lemma: applied Z\n");
+    SYNTH_ACTION("Apply") << "Z\n";
+    SYNTH_CLOSE_SUCCESS("applied Z");
     return llvm::success();
   }
 
@@ -116,17 +120,20 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
   Real bias_B = bias(B);
   Real pair_bias_val = bias_B / bias_A;
 
-  LLVM_DEBUG(llvm::dbgs() << "[upright] step_lemma: bias_A=" << bias_A
-                          << ", bias_B=" << bias_B
-                          << ", pair_bias=" << pair_bias_val << '\n');
+  LLVM_DEBUG(cudaq::synth::dbgs()
+             << "bias_A=" << bias_A << ", bias_B=" << bias_B
+             << ", pair_bias=" << pair_bias_val << '\n');
 
   // X operation: if A.bias * B.bias < 1
   if (bias_A * bias_B < 1) {
     static const GridOp OP_X(ZOmega(0, 1, 0, 0), ZOmega(0, 0, 0, 1));
-    if (llvm::failed(reduction(A, B, opG_r, OP_X)))
+    if (llvm::failed(reduction(A, B, opG_r, OP_X))) {
+      SYNTH_CLOSE_FAILURE("reduction failed");
       return llvm::failure();
+    }
     end = false;
-    LLVM_DEBUG(llvm::dbgs() << "[upright] step_lemma: applied X\n");
+    SYNTH_ACTION("Apply") << "X\n";
+    SYNTH_CLOSE_SUCCESS("applied X");
     return llvm::success();
   }
 
@@ -138,11 +145,13 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
   if (pair_bias_val > 33.971 || pair_bias_val < 0.029437) {
     static const GridOp OP_S(ZOmega(-1, 0, 1, 1), ZOmega(1, -1, 1, 0));
     Integer n = round_to_integer(log(pair_bias_val) / log(lambda_real) / 8);
-    if (llvm::failed(reduction(A, B, opG_r, pow(OP_S, n))))
+    if (llvm::failed(reduction(A, B, opG_r, pow(OP_S, n)))) {
+      SYNTH_CLOSE_FAILURE("reduction failed");
       return llvm::failure();
+    }
     end = false;
-    LLVM_DEBUG(llvm::dbgs()
-               << "[upright] step_lemma: applied S^" << n << '\n');
+    SYNTH_ACTION("Apply") << "S^" << n << '\n';
+    SYNTH_CLOSE_SUCCESS("applied S^" + n.to_string());
     return llvm::success();
   }
 
@@ -150,8 +159,9 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
   // Done check: computed lazily, only needed if Z/X/S didn't trigger.
   if (skew <= 15) {
     end = true;
-    LLVM_DEBUG(llvm::dbgs() << "[upright] step_lemma: pair_skew=" << skew
-                            << " <= 15, done\n");
+    LLVM_DEBUG(cudaq::synth::dbgs()
+               << "pair_skew=" << skew << " <= 15, done\n");
+    SYNTH_CLOSE_SUCCESS("done");
     return llvm::success();
   }
 
@@ -171,8 +181,8 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
       opG_r = pow(SIGMA_R_NEG, -n) * opG_r;
     }
     end = false;
-    LLVM_DEBUG(llvm::dbgs()
-               << "[upright] step_lemma: applied Sigma^" << n << '\n');
+    SYNTH_ACTION("Apply") << "Sigma^" << n << '\n';
+    SYNTH_CLOSE_SUCCESS("applied Sigma^" + n.to_string());
     return llvm::success();
   }
 
@@ -180,20 +190,26 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
   if (0.24410 <= bias_A && bias_A <= 4.0968 && 0.24410 <= bias_B &&
       bias_B <= 4.0968) {
     static const GridOp OP_R(ZOmega(0, 0, 1, 0), ZOmega(1, 0, 0, 0));
-    if (llvm::failed(reduction(A, B, opG_r, OP_R)))
+    if (llvm::failed(reduction(A, B, opG_r, OP_R))) {
+      SYNTH_CLOSE_FAILURE("reduction failed");
       return llvm::failure();
+    }
     end = false;
-    LLVM_DEBUG(llvm::dbgs() << "[upright] step_lemma: applied R\n");
+    SYNTH_ACTION("Apply") << "R\n";
+    SYNTH_CLOSE_SUCCESS("applied R");
     return llvm::success();
   }
 
   // K operation: A.b >= 0 and A.bias <= 1.6969
   if (A.b() >= 0 && bias_A <= 1.6969) {
     static const GridOp OP_K(ZOmega(-1, -1, 0, 0), ZOmega(0, -1, 1, 0));
-    if (llvm::failed(reduction(A, B, opG_r, OP_K)))
+    if (llvm::failed(reduction(A, B, opG_r, OP_K))) {
+      SYNTH_CLOSE_FAILURE("reduction failed");
       return llvm::failure();
+    }
     end = false;
-    LLVM_DEBUG(llvm::dbgs() << "[upright] step_lemma: applied K\n");
+    SYNTH_ACTION("Apply") << "K\n";
+    SYNTH_CLOSE_SUCCESS("applied K");
     return llvm::success();
   }
 
@@ -201,10 +217,13 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
   if (A.b() >= 0 && bias_B <= 1.6969) {
     static const GridOp OP_K_conj_sq2(ZOmega(1, -1, 0, 0),
                                       ZOmega(0, -1, -1, 0));
-    if (llvm::failed(reduction(A, B, opG_r, OP_K_conj_sq2)))
+    if (llvm::failed(reduction(A, B, opG_r, OP_K_conj_sq2))) {
+      SYNTH_CLOSE_FAILURE("reduction failed");
       return llvm::failure();
+    }
     end = false;
-    LLVM_DEBUG(llvm::dbgs() << "[upright] step_lemma: applied K_conj\n");
+    SYNTH_ACTION("Apply") << "K_conj\n";
+    SYNTH_CLOSE_SUCCESS("applied K_conj");
     return llvm::success();
   }
 
@@ -212,34 +231,42 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
   if (A.b() >= 0) {
     Integer n = std::max(Integer(1), floor_sqrt(std::min(bias_A, bias_B)) / 2);
     GridOp OP_A_n(ZOmega(0, 0, 0, 1), ZOmega(0, 1, 0, 2 * n));
-    if (llvm::failed(reduction(A, B, opG_r, OP_A_n)))
+    if (llvm::failed(reduction(A, B, opG_r, OP_A_n))) {
+      SYNTH_CLOSE_FAILURE("reduction failed");
       return llvm::failure();
+    }
     end = false;
-    LLVM_DEBUG(llvm::dbgs()
-               << "[upright] step_lemma: applied A(n=" << n << ")\n");
+    SYNTH_ACTION("Apply") << "A(n=" << n << ")\n";
+    SYNTH_CLOSE_SUCCESS("applied A(n=" + n.to_string() + ")");
     return llvm::success();
   }
 
   // B operation: fallback case
   Integer n = std::max(Integer(1), floor_sqrt(std::min(bias_A, bias_B) / 2));
   GridOp OP_B_n(ZOmega(0, 0, 0, 1), ZOmega(n, 1, -n, 0));
-  if (llvm::failed(reduction(A, B, opG_r, OP_B_n)))
+  if (llvm::failed(reduction(A, B, opG_r, OP_B_n))) {
+    SYNTH_CLOSE_FAILURE("reduction failed");
     return llvm::failure();
+  }
   end = false;
-  LLVM_DEBUG(llvm::dbgs() << "[upright] step_lemma: applied B(n=" << n
-                          << ")\n");
+  SYNTH_ACTION("Apply") << "B(n=" << n << ")\n";
+  SYNTH_CLOSE_SUCCESS("applied B(n=" + n.to_string() + ")");
   return llvm::success();
 }
 
 llvm::FailureOr<UprightResult> to_upright(const Ellipse &setA,
                                           const Ellipse &setB) {
-  LLVM_DEBUG(llvm::dbgs() << "[upright] to_upright: starting\n");
+  SYNTH_OPEN_SUB("to_upright");
   Ellipse A = setA;
-  if (llvm::failed(A.normalize()))
+  if (llvm::failed(A.normalize())) {
+    SYNTH_CLOSE_FAILURE("normalize(A) failed");
     return llvm::failure();
+  }
   Ellipse B = setB;
-  if (llvm::failed(B.normalize()))
+  if (llvm::failed(B.normalize())) {
+    SYNTH_CLOSE_FAILURE("normalize(B) failed");
     return llvm::failure();
+  }
 
   GridOp opG_l = GridOp::identity();
   GridOp opG_r = GridOp::identity();
@@ -247,13 +274,13 @@ llvm::FailureOr<UprightResult> to_upright(const Ellipse &setA,
   [[maybe_unused]] i32 iterations = 0;
   bool done = false;
   while (!done) {
-    if (llvm::failed(step_lemma(A, B, opG_l, opG_r, done)))
+    if (llvm::failed(step_lemma(A, B, opG_l, opG_r, done))) {
+      SYNTH_CLOSE_FAILURE("step_lemma failed at iteration " +
+                          std::to_string(iterations));
       return llvm::failure();
+    }
     ++iterations;
   }
-
-  LLVM_DEBUG(llvm::dbgs() << "[upright] to_upright: converged after "
-                          << iterations << " step_lemma iterations\n");
 
   // opG is built from normalized ellipses; apply it to the original (non-
   // normalized) copies to get the correct upright bboxes. shift_ellipses()
@@ -262,22 +289,30 @@ llvm::FailureOr<UprightResult> to_upright(const Ellipse &setA,
   GridOp opG = opG_l * opG_r;
   Ellipse A_upright = setA;
   Ellipse B_upright = setB;
-  if (llvm::failed(apply_grid_op(A_upright, B_upright, opG)))
+  if (llvm::failed(apply_grid_op(A_upright, B_upright, opG))) {
+    SYNTH_CLOSE_FAILURE("apply_grid_op (upright recompute) failed");
     return llvm::failure();
+  }
 
   llvm::FailureOr<Rectangle> bboxA_or = bbox(A_upright);
-  if (llvm::failed(bboxA_or))
+  if (llvm::failed(bboxA_or)) {
+    SYNTH_CLOSE_FAILURE("bbox(A_upright) failed");
     return llvm::failure();
+  }
   llvm::FailureOr<Rectangle> bboxB_or = bbox(B_upright);
-  if (llvm::failed(bboxB_or))
+  if (llvm::failed(bboxB_or)) {
+    SYNTH_CLOSE_FAILURE("bbox(B_upright) failed");
     return llvm::failure();
+  }
 
-  LLVM_DEBUG(llvm::dbgs() << "[upright] to_upright: opG=" << opG
-                          << ", bboxA=" << *bboxA_or
-                          << ", bboxB=" << *bboxB_or << ", uprightness_A="
-                          << (A_upright.area() / bboxA_or->area())
-                          << ", uprightness_B="
-                          << (B_upright.area() / bboxB_or->area()) << '\n');
+  LLVM_DEBUG(cudaq::synth::dbgs()
+             << "opG=" << opG << ", bboxA=" << *bboxA_or
+             << ", bboxB=" << *bboxB_or
+             << ", uprightness_A=" << (A_upright.area() / bboxA_or->area())
+             << ", uprightness_B=" << (B_upright.area() / bboxB_or->area())
+             << '\n');
+  SYNTH_CLOSE_SUCCESS("converged after " + std::to_string(iterations) +
+                      " step_lemma iterations");
   return UprightResult(opG, *bboxA_or, *bboxB_or);
 }
 
