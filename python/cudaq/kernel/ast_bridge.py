@@ -3190,9 +3190,9 @@ class PyASTBridge(ast.NodeVisitor):
                         gen_vector_of_complex_constant(self.loc, self.module,
                                                        globalName,
                                                        unitary.tolist())
-                quake.CustomUnitarySymbolOp(
+                quake.CustomUnitaryConstantOp(
                     [],
-                    generator=FlatSymbolRefAttr.get(globalName),
+                    matrix=FlatSymbolRefAttr.get(globalName),
                     parameters=[],
                     controls=[],
                     targets=targets,
@@ -4019,9 +4019,9 @@ class PyASTBridge(ast.NodeVisitor):
                             'invalid target operand - target must not be '
                             'a qvector')
 
-                    quake.CustomUnitarySymbolOp(
+                    quake.CustomUnitaryConstantOp(
                         [],
-                        generator=FlatSymbolRefAttr.get(globalName),
+                        matrix=FlatSymbolRefAttr.get(globalName),
                         parameters=[],
                         controls=controls,
                         targets=targets,
