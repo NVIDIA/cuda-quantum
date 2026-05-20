@@ -160,10 +160,6 @@ latest
             -   [Circuit
                 Batching](../../examples/multi_gpu_workflows.html#circuit-batching){.reference
                 .internal}
-        -   [Multi-QPU + Other Backends ([`remote-mqpu`{.code .docutils
-            .literal
-            .notranslate}]{.pre})](../../examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
-            .internal}
     -   [Optimizers &
         Gradients](../../../examples/python/optimizers_gradients.html){.reference
         .internal}
@@ -1016,8 +1012,8 @@ latest
             -   [Simulate Multiple QPUs in
                 Parallel](../sims/mqpusims.html#simulate-multiple-qpus-in-parallel){.reference
                 .internal}
-            -   [Multi-QPU + Other
-                Backends](../sims/mqpusims.html#multi-qpu-other-backends){.reference
+            -   [Multi-QPU with Multi-Node Multi-GPU
+                Backends](../sims/mqpusims.html#multi-qpu-with-multi-node-multi-gpu-backends){.reference
                 .internal}
         -   [Noisy Simulators](../sims/noisy.html){.reference .internal}
             -   [Trajectory Noisy
@@ -1088,6 +1084,12 @@ latest
             -   [Submitting](#submitting){.reference .internal}
             -   [Manage your QPU
                 session](#manage-your-qpu-session){.reference .internal}
+        -   [qBraid](qbraid.html){.reference .internal}
+            -   [Setting
+                Credentials](qbraid.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](qbraid.html#submitting){.reference
+                .internal}
 -   [Dynamics](../../dynamics.html){.reference .internal}
     -   [Quick Start](../../dynamics.html#quick-start){.reference
         .internal}
@@ -1901,6 +1903,12 @@ latest
             -   [[`is_initialized()`{.docutils .literal
                 .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.mpi.is_initialized){.reference
                 .internal}
+            -   [[`split_communicator()`{.docutils .literal
+                .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.mpi.split_communicator){.reference
+                .internal}
+            -   [[`set_communicator()`{.docutils .literal
+                .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.mpi.set_communicator){.reference
+                .internal}
             -   [[`finalize()`{.docutils .literal
                 .notranslate}]{.pre}](../../../api/languages/python_api.html#cudaq.mpi.finalize){.reference
                 .internal}
@@ -2028,8 +2036,8 @@ latest
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](braket.html "Amazon Braket"){.btn .btn-neutral .float-left
 accesskey="p"} [Next []{.fa .fa-arrow-circle-right
-aria-hidden="true"}](../../dynamics.html "Dynamics Simulation"){.btn
-.btn-neutral .float-right accesskey="n"}
+aria-hidden="true"}](qbraid.html "qBraid"){.btn .btn-neutral
+.float-right accesskey="n"}
 :::
 
 ------------------------------------------------------------------------
@@ -2231,8 +2239,8 @@ To see a complete example, take a look at [[Scaleway QaaS examples]{.std
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](braket.html "Amazon Braket"){.btn .btn-neutral .float-left
 accesskey="p" rel="prev"} [Next []{.fa .fa-arrow-circle-right
-aria-hidden="true"}](../../dynamics.html "Dynamics Simulation"){.btn
-.btn-neutral .float-right accesskey="n" rel="next"}
+aria-hidden="true"}](qbraid.html "qBraid"){.btn .btn-neutral
+.float-right accesskey="n" rel="next"}
 :::
 
 ------------------------------------------------------------------------

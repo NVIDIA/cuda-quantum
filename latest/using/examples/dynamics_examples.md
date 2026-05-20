@@ -148,10 +148,6 @@ latest
             -   [Circuit
                 Batching](multi_gpu_workflows.html#circuit-batching){.reference
                 .internal}
-        -   [Multi-QPU + Other Backends ([`remote-mqpu`{.code .docutils
-            .literal
-            .notranslate}]{.pre})](multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
-            .internal}
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
         .internal}
@@ -991,8 +987,8 @@ latest
             -   [Simulate Multiple QPUs in
                 Parallel](../backends/sims/mqpusims.html#simulate-multiple-qpus-in-parallel){.reference
                 .internal}
-            -   [Multi-QPU + Other
-                Backends](../backends/sims/mqpusims.html#multi-qpu-other-backends){.reference
+            -   [Multi-QPU with Multi-Node Multi-GPU
+                Backends](../backends/sims/mqpusims.html#multi-qpu-with-multi-node-multi-gpu-backends){.reference
                 .internal}
         -   [Noisy Simulators](../backends/sims/noisy.html){.reference
             .internal}
@@ -1077,6 +1073,13 @@ latest
                 .internal}
             -   [Manage your QPU
                 session](../backends/cloud/scaleway.html#manage-your-qpu-session){.reference
+                .internal}
+        -   [qBraid](../backends/cloud/qbraid.html){.reference
+            .internal}
+            -   [Setting
+                Credentials](../backends/cloud/qbraid.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](../backends/cloud/qbraid.html#submitting){.reference
                 .internal}
 -   [Dynamics](../dynamics.html){.reference .internal}
     -   [Quick Start](../dynamics.html#quick-start){.reference
@@ -1886,6 +1889,12 @@ latest
             -   [[`is_initialized()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.is_initialized){.reference
                 .internal}
+            -   [[`split_communicator()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.split_communicator){.reference
+                .internal}
+            -   [[`set_communicator()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.set_communicator){.reference
+                .internal}
             -   [[`finalize()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.finalize){.reference
                 .internal}
@@ -2173,10 +2182,10 @@ qubit under a transverse field Hamiltonian, with and without dissipation
     // nvq++ --target dynamics qubit_dynamics.cpp -o a.out && ./a.out
     // ```
 
+    #include "export_csv_helper.h"
     #include "cudaq/algorithms/evolve.h"
     #include "cudaq/algorithms/integrator.h"
     #include "cudaq/operators.h"
-    #include "export_csv_helper.h"
     #include <cudaq.h>
 
     int main() {
@@ -2267,10 +2276,10 @@ up composite quantum systems with different subsystem dimensions.
     // nvq++ --target dynamics cavity_qed.cpp -o a.out && ./a.out
     // ```
 
+    #include "export_csv_helper.h"
     #include "cudaq/algorithms/evolve.h"
     #include "cudaq/algorithms/integrator.h"
     #include "cudaq/operators.h"
-    #include "export_csv_helper.h"
     #include <cudaq.h>
 
     int main() {
@@ -2423,10 +2432,10 @@ and batched state evolution.
     // nvq++ --target dynamics cavity_qed.cpp -o a.out && ./a.out
     // ```
 
+    #include "export_csv_helper.h"
     #include "cudaq/algorithms/evolve.h"
     #include "cudaq/algorithms/integrator.h"
     #include "cudaq/operators.h"
-    #include "export_csv_helper.h"
     #include <cudaq.h>
 
     int main() {
@@ -2597,10 +2606,10 @@ in spin qubit systems.
     // nvq++ --target dynamics heisenberg_model.cpp -o a.out && ./a.out
     // ```
 
+    #include "export_csv_helper.h"
     #include "cudaq/algorithms/evolve.h"
     #include "cudaq/algorithms/integrator.h"
     #include "cudaq/operators.h"
-    #include "export_csv_helper.h"
     #include <cudaq.h>
 
     int main() {
@@ -2775,10 +2784,10 @@ control pulses.
     // nvq++ --target dynamics qubit_control.cpp -o a.out && ./a.out
     // ```
 
+    #include "export_csv_helper.h"
     #include "cudaq/algorithms/evolve.h"
     #include "cudaq/algorithms/integrator.h"
     #include "cudaq/operators.h"
-    #include "export_csv_helper.h"
     #include <cudaq.h>
 
     int main() {
@@ -2923,10 +2932,10 @@ under the same Hamiltonian simultaneously.
     // nvq++ --target dynamics qubit_dynamics.cpp -o a.out && ./a.out
     // ```
 
+    #include "export_csv_helper.h"
     #include "cudaq/algorithms/evolve.h"
     #include "cudaq/algorithms/integrator.h"
     #include "cudaq/operators.h"
-    #include "export_csv_helper.h"
     #include <cudaq.h>
 
     int main() {

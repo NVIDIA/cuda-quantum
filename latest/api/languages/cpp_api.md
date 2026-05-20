@@ -163,10 +163,6 @@ latest
             -   [Circuit
                 Batching](../../using/examples/multi_gpu_workflows.html#circuit-batching){.reference
                 .internal}
-        -   [Multi-QPU + Other Backends ([`remote-mqpu`{.code .docutils
-            .literal
-            .notranslate}]{.pre})](../../using/examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
-            .internal}
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
         .internal}
@@ -1027,8 +1023,8 @@ latest
             -   [Simulate Multiple QPUs in
                 Parallel](../../using/backends/sims/mqpusims.html#simulate-multiple-qpus-in-parallel){.reference
                 .internal}
-            -   [Multi-QPU + Other
-                Backends](../../using/backends/sims/mqpusims.html#multi-qpu-other-backends){.reference
+            -   [Multi-QPU with Multi-Node Multi-GPU
+                Backends](../../using/backends/sims/mqpusims.html#multi-qpu-with-multi-node-multi-gpu-backends){.reference
                 .internal}
         -   [Noisy
             Simulators](../../using/backends/sims/noisy.html){.reference
@@ -1115,6 +1111,13 @@ latest
                 .internal}
             -   [Manage your QPU
                 session](../../using/backends/cloud/scaleway.html#manage-your-qpu-session){.reference
+                .internal}
+        -   [qBraid](../../using/backends/cloud/qbraid.html){.reference
+            .internal}
+            -   [Setting
+                Credentials](../../using/backends/cloud/qbraid.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](../../using/backends/cloud/qbraid.html#submitting){.reference
                 .internal}
 -   [Dynamics](../../using/dynamics.html){.reference .internal}
     -   [Quick Start](../../using/dynamics.html#quick-start){.reference
@@ -1913,6 +1916,12 @@ latest
                 .internal}
             -   [[`is_initialized()`{.docutils .literal
                 .notranslate}]{.pre}](python_api.html#cudaq.mpi.is_initialized){.reference
+                .internal}
+            -   [[`split_communicator()`{.docutils .literal
+                .notranslate}]{.pre}](python_api.html#cudaq.mpi.split_communicator){.reference
+                .internal}
+            -   [[`set_communicator()`{.docutils .literal
+                .notranslate}]{.pre}](python_api.html#cudaq.mpi.set_communicator){.reference
                 .internal}
             -   [[`finalize()`{.docutils .literal
                 .notranslate}]{.pre}](python_api.html#cudaq.mpi.finalize){.reference
@@ -3792,8 +3801,8 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[T]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[enable_if_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[!]{.pre}]{.o}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_same]{.pre}]{.n}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I0_NSt11enable_if_tIXaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq10product_op10product_opERK10product_opI1TE "cudaq::product_op::product_op::T"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq10product_opE "cudaq::product_op::HandlerTy"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[ ]{.w}[[&&]{.pre}]{.o}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_constructible]{.pre}]{.n}[[\<]{.pre}]{.p}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq10product_opE "cudaq::product_op::HandlerTy"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[T]{.pre}]{.n}](#_CPPv4I0_NSt11enable_if_tIXaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq10product_op10product_opERK10product_opI1TE "cudaq::product_op::product_op::T"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[[,]{.pre}]{.p}[ ]{.w}[[bool]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[true]{.pre}]{.k}[[\>]{.pre}]{.p}\
-    []{#classcudaq_1_1product__op_1adf890fae23a564c51e6cd67f92d1c824 .target}[[[product_op]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[product_op]{.pre}]{.n}](#_CPPv4I0_NSt11enable_if_tIXaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq10product_op10product_opERK10product_opI1TE "cudaq::product_op::product_op"){.reference .internal}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I0_NSt11enable_if_tIXaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq10product_op10product_opERK10product_opI1TE "cudaq::product_op::product_op::T"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[other]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0_NSt11enable_if_tIXaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq10product_op10product_opERK10product_opI1TE "Permalink to this definition"){.headerlink}\
+    [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[T]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[enable_if_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[!]{.pre}]{.o}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_same]{.pre}]{.n}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq10product_op10product_opERK10product_opI1TE "cudaq::product_op::product_op::T"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq10product_opE "cudaq::product_op::HandlerTy"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[ ]{.w}[[&&]{.pre}]{.o}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_constructible]{.pre}]{.n}[[\<]{.pre}]{.p}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq10product_opE "cudaq::product_op::HandlerTy"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq10product_op10product_opERK10product_opI1TE "cudaq::product_op::product_op::T"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}\
+    []{#classcudaq_1_1product__op_1adf890fae23a564c51e6cd67f92d1c824 .target}[[[product_op]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[product_op]{.pre}]{.n}](#_CPPv4I00EN5cudaq10product_op10product_opERK10product_opI1TE "cudaq::product_op::product_op"){.reference .internal}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq10product_op10product_opERK10product_opI1TE "cudaq::product_op::product_op::T"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[other]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I00EN5cudaq10product_op10product_opERK10product_opI1TE "Permalink to this definition"){.headerlink}\
 
     :   Constructs a [[product_op]{.std
         .std-ref}](#classcudaq_1_1product__op){.reference .internal}
@@ -3815,8 +3824,8 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[T]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[enable_if_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_same]{.pre}]{.n}[[\<]{.pre}]{.p}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq10product_opE "cudaq::product_op::HandlerTy"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[matrix_handler]{.pre}]{.n}](#_CPPv4N5cudaq14matrix_handlerE "cudaq::matrix_handler"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[ ]{.w}[[&&]{.pre}]{.o}[ ]{.w}[[!]{.pre}]{.o}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_same]{.pre}]{.n}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I0_NSt11enable_if_tIXaaNSt7is_sameI9HandlerTy14matrix_handlerE5valueEaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq10product_op10product_opERK10product_opI1TERKN14matrix_handler20commutation_behaviorE "cudaq::product_op::product_op::T"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq10product_opE "cudaq::product_op::HandlerTy"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[ ]{.w}[[&&]{.pre}]{.o}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_constructible]{.pre}]{.n}[[\<]{.pre}]{.p}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq10product_opE "cudaq::product_op::HandlerTy"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[T]{.pre}]{.n}](#_CPPv4I0_NSt11enable_if_tIXaaNSt7is_sameI9HandlerTy14matrix_handlerE5valueEaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq10product_op10product_opERK10product_opI1TERKN14matrix_handler20commutation_behaviorE "cudaq::product_op::product_op::T"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[[,]{.pre}]{.p}[ ]{.w}[[bool]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[true]{.pre}]{.k}[[\>]{.pre}]{.p}\
-    []{#classcudaq_1_1product__op_1ad4550845a8ea66fd992f14f4cdccac36 .target}[[[product_op]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[product_op]{.pre}]{.n}](#_CPPv4I0_NSt11enable_if_tIXaaNSt7is_sameI9HandlerTy14matrix_handlerE5valueEaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq10product_op10product_opERK10product_opI1TERKN14matrix_handler20commutation_behaviorE "cudaq::product_op::product_op"){.reference .internal}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I0_NSt11enable_if_tIXaaNSt7is_sameI9HandlerTy14matrix_handlerE5valueEaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq10product_op10product_opERK10product_opI1TERKN14matrix_handler20commutation_behaviorE "cudaq::product_op::product_op::T"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[other]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[matrix_handler]{.pre}]{.n}](#_CPPv4N5cudaq14matrix_handlerE "cudaq::matrix_handler"){.reference .internal}[[::]{.pre}]{.p}[[[commutation_behavior]{.pre}]{.n}](#_CPPv4N5cudaq14matrix_handler20commutation_behaviorE "cudaq::matrix_handler::commutation_behavior"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[behavior]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0_NSt11enable_if_tIXaaNSt7is_sameI9HandlerTy14matrix_handlerE5valueEaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq10product_op10product_opERK10product_opI1TERKN14matrix_handler20commutation_behaviorE "Permalink to this definition"){.headerlink}\
+    [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[T]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[enable_if_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_same]{.pre}]{.n}[[\<]{.pre}]{.p}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq10product_opE "cudaq::product_op::HandlerTy"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[matrix_handler]{.pre}]{.n}](#_CPPv4N5cudaq14matrix_handlerE "cudaq::matrix_handler"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[ ]{.w}[[&&]{.pre}]{.o}[ ]{.w}[[!]{.pre}]{.o}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_same]{.pre}]{.n}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq10product_op10product_opERK10product_opI1TERKN14matrix_handler20commutation_behaviorE "cudaq::product_op::product_op::T"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq10product_opE "cudaq::product_op::HandlerTy"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[ ]{.w}[[&&]{.pre}]{.o}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_constructible]{.pre}]{.n}[[\<]{.pre}]{.p}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq10product_opE "cudaq::product_op::HandlerTy"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq10product_op10product_opERK10product_opI1TERKN14matrix_handler20commutation_behaviorE "cudaq::product_op::product_op::T"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}\
+    []{#classcudaq_1_1product__op_1ad4550845a8ea66fd992f14f4cdccac36 .target}[[[product_op]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[product_op]{.pre}]{.n}](#_CPPv4I00EN5cudaq10product_op10product_opERK10product_opI1TERKN14matrix_handler20commutation_behaviorE "cudaq::product_op::product_op"){.reference .internal}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq10product_op10product_opERK10product_opI1TERKN14matrix_handler20commutation_behaviorE "cudaq::product_op::product_op::T"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[other]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[matrix_handler]{.pre}]{.n}](#_CPPv4N5cudaq14matrix_handlerE "cudaq::matrix_handler"){.reference .internal}[[::]{.pre}]{.p}[[[commutation_behavior]{.pre}]{.n}](#_CPPv4N5cudaq14matrix_handler20commutation_behaviorE "cudaq::matrix_handler::commutation_behavior"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[behavior]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I00EN5cudaq10product_op10product_opERK10product_opI1TERKN14matrix_handler20commutation_behaviorE "Permalink to this definition"){.headerlink}\
 
     :   Constructs a product operator from an existing product operator
         with a different type. This constructor enables the creation of
@@ -3907,8 +3916,8 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[T]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[enable_if_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[!]{.pre}]{.o}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_same]{.pre}]{.n}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I0_NSt11enable_if_tIXaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq10product_opaSER10product_opI9HandlerTyERK10product_opI1TE "cudaq::product_op::operator=::T"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq10product_opE "cudaq::product_op::HandlerTy"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[ ]{.w}[[&&]{.pre}]{.o}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_constructible]{.pre}]{.n}[[\<]{.pre}]{.p}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq10product_opE "cudaq::product_op::HandlerTy"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[T]{.pre}]{.n}](#_CPPv4I0_NSt11enable_if_tIXaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq10product_opaSER10product_opI9HandlerTyERK10product_opI1TE "cudaq::product_op::operator=::T"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[[,]{.pre}]{.p}[ ]{.w}[[bool]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[true]{.pre}]{.k}[[\>]{.pre}]{.p}\
-    []{#classcudaq_1_1product__op_1ace16881180154a36664458d7036e2af2 .target}[[[product_op]{.pre}]{.n}](#_CPPv4I0EN5cudaq10product_opE "cudaq::product_op"){.reference .internal}[[\<]{.pre}]{.p}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq10product_opE "cudaq::product_op::HandlerTy"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[[operator]{.pre}]{.k}[[=]{.pre}]{.o}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[product_op]{.pre}]{.n}](#_CPPv4I0EN5cudaq10product_opE "cudaq::product_op"){.reference .internal}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I0_NSt11enable_if_tIXaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq10product_opaSER10product_opI9HandlerTyERK10product_opI1TE "cudaq::product_op::operator=::T"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[other]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0_NSt11enable_if_tIXaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq10product_opaSER10product_opI9HandlerTyERK10product_opI1TE "Permalink to this definition"){.headerlink}\
+    [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[T]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[enable_if_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[!]{.pre}]{.o}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_same]{.pre}]{.n}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq10product_opaSER10product_opI9HandlerTyERK10product_opI1TE "cudaq::product_op::operator=::T"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq10product_opE "cudaq::product_op::HandlerTy"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[ ]{.w}[[&&]{.pre}]{.o}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_constructible]{.pre}]{.n}[[\<]{.pre}]{.p}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq10product_opE "cudaq::product_op::HandlerTy"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq10product_opaSER10product_opI9HandlerTyERK10product_opI1TE "cudaq::product_op::operator=::T"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}\
+    []{#classcudaq_1_1product__op_1ace16881180154a36664458d7036e2af2 .target}[[[product_op]{.pre}]{.n}](#_CPPv4I0EN5cudaq10product_opE "cudaq::product_op"){.reference .internal}[[\<]{.pre}]{.p}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq10product_opE "cudaq::product_op::HandlerTy"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[[operator]{.pre}]{.k}[[=]{.pre}]{.o}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[product_op]{.pre}]{.n}](#_CPPv4I0EN5cudaq10product_opE "cudaq::product_op"){.reference .internal}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq10product_opaSER10product_opI9HandlerTyERK10product_opI1TE "cudaq::product_op::operator=::T"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[other]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I00EN5cudaq10product_opaSER10product_opI9HandlerTyERK10product_opI1TE "Permalink to this definition"){.headerlink}\
 
     :   Templated assignment operator that enables assigning from a
         [[product_op]{.std
@@ -5985,8 +5994,8 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[enable_if_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[conjunction]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_same]{.pre}]{.n}[[\<]{.pre}]{.p}[[[product_op]{.pre}]{.n}](#_CPPv4I0EN5cudaq10product_opE "cudaq::product_op"){.reference .internal}[[\<]{.pre}]{.p}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op::HandlerTy"){.reference .internal}[[\>]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[[Args]{.pre}]{.n}](#_CPPv4IDp_NSt11enable_if_tIXaaNSt11conjunctionIDpNSt7is_sameI10product_opI9HandlerTyE4ArgsEEE5valueEsZ4ArgsEbEEEN5cudaq6sum_op6sum_opEDpRR4Args "cudaq::sum_op::sum_op::Args"){.reference .internal}[[\>]{.pre}]{.p}[[\...]{.pre}]{.p}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[ ]{.w}[[&&]{.pre}]{.o}[ ]{.w}[[sizeof]{.pre}]{.k}[[\...]{.pre}]{.p}[[(]{.pre}]{.p}[[[Args]{.pre}]{.n}](#_CPPv4IDp_NSt11enable_if_tIXaaNSt11conjunctionIDpNSt7is_sameI10product_opI9HandlerTyE4ArgsEEE5valueEsZ4ArgsEbEEEN5cudaq6sum_op6sum_opEDpRR4Args "cudaq::sum_op::sum_op::Args"){.reference .internal}[[)]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[bool]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[true]{.pre}]{.k}[[\>]{.pre}]{.p}\
-    []{#classcudaq_1_1sum__op_1a389ec02ae0c7ffad3a2b36ec21caa3e8 .target}[[[sum_op]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[Args]{.pre}]{.n}](#_CPPv4IDp_NSt11enable_if_tIXaaNSt11conjunctionIDpNSt7is_sameI10product_opI9HandlerTyE4ArgsEEE5valueEsZ4ArgsEbEEEN5cudaq6sum_op6sum_opEDpRR4Args "cudaq::sum_op::sum_op::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4IDp_NSt11enable_if_tIXaaNSt11conjunctionIDpNSt7is_sameI10product_opI9HandlerTyE4ArgsEEE5valueEsZ4ArgsEbEEEN5cudaq6sum_op6sum_opEDpRR4Args "Permalink to this definition"){.headerlink}\
+    [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[enable_if_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[conjunction]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_same]{.pre}]{.n}[[\<]{.pre}]{.p}[[[product_op]{.pre}]{.n}](#_CPPv4I0EN5cudaq10product_opE "cudaq::product_op"){.reference .internal}[[\<]{.pre}]{.p}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op::HandlerTy"){.reference .internal}[[\>]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[[Args]{.pre}]{.n}](#_CPPv4IDp0EN5cudaq6sum_op6sum_opEDpRR4Args "cudaq::sum_op::sum_op::Args"){.reference .internal}[[\>]{.pre}]{.p}[[\...]{.pre}]{.p}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[ ]{.w}[[&&]{.pre}]{.o}[ ]{.w}[[sizeof]{.pre}]{.k}[[\...]{.pre}]{.p}[[(]{.pre}]{.p}[[[Args]{.pre}]{.n}](#_CPPv4IDp0EN5cudaq6sum_op6sum_opEDpRR4Args "cudaq::sum_op::sum_op::Args"){.reference .internal}[[)]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}\
+    []{#classcudaq_1_1sum__op_1a389ec02ae0c7ffad3a2b36ec21caa3e8 .target}[[[sum_op]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[Args]{.pre}]{.n}](#_CPPv4IDp0EN5cudaq6sum_op6sum_opEDpRR4Args "cudaq::sum_op::sum_op::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4IDp0EN5cudaq6sum_op6sum_opEDpRR4Args "Permalink to this definition"){.headerlink}\
 
     :   Constructs a new sum operator instance from product operator
         arguments.
@@ -6024,8 +6033,8 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[T]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[enable_if_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[!]{.pre}]{.o}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_same]{.pre}]{.n}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I0_NSt11enable_if_tIXaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq6sum_op6sum_opERK6sum_opI1TE "cudaq::sum_op::sum_op::T"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op::HandlerTy"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[ ]{.w}[[&&]{.pre}]{.o}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_constructible]{.pre}]{.n}[[\<]{.pre}]{.p}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op::HandlerTy"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[T]{.pre}]{.n}](#_CPPv4I0_NSt11enable_if_tIXaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq6sum_op6sum_opERK6sum_opI1TE "cudaq::sum_op::sum_op::T"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[[,]{.pre}]{.p}[ ]{.w}[[bool]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[true]{.pre}]{.k}[[\>]{.pre}]{.p}\
-    []{#classcudaq_1_1sum__op_1a876100799fe4be00b1e16de0503e5ed1 .target}[[[sum_op]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[sum_op]{.pre}]{.n}](#_CPPv4I0_NSt11enable_if_tIXaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq6sum_op6sum_opERK6sum_opI1TE "cudaq::sum_op::sum_op"){.reference .internal}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I0_NSt11enable_if_tIXaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq6sum_op6sum_opERK6sum_opI1TE "cudaq::sum_op::sum_op::T"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[other]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0_NSt11enable_if_tIXaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq6sum_op6sum_opERK6sum_opI1TE "Permalink to this definition"){.headerlink}\
+    [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[T]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[enable_if_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[!]{.pre}]{.o}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_same]{.pre}]{.n}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq6sum_op6sum_opERK6sum_opI1TE "cudaq::sum_op::sum_op::T"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op::HandlerTy"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[ ]{.w}[[&&]{.pre}]{.o}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_constructible]{.pre}]{.n}[[\<]{.pre}]{.p}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op::HandlerTy"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq6sum_op6sum_opERK6sum_opI1TE "cudaq::sum_op::sum_op::T"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}\
+    []{#classcudaq_1_1sum__op_1a876100799fe4be00b1e16de0503e5ed1 .target}[[[sum_op]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[sum_op]{.pre}]{.n}](#_CPPv4I00EN5cudaq6sum_op6sum_opERK6sum_opI1TE "cudaq::sum_op::sum_op"){.reference .internal}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq6sum_op6sum_opERK6sum_opI1TE "cudaq::sum_op::sum_op::T"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[other]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I00EN5cudaq6sum_op6sum_opERK6sum_opI1TE "Permalink to this definition"){.headerlink}\
 
     :   Copy constructor for [[sum_op]{.std
         .std-ref}](#classcudaq_1_1sum__op){.reference .internal} that
@@ -6044,8 +6053,8 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[T]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[enable_if_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_same]{.pre}]{.n}[[\<]{.pre}]{.p}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op::HandlerTy"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[matrix_handler]{.pre}]{.n}](#_CPPv4N5cudaq14matrix_handlerE "cudaq::matrix_handler"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[ ]{.w}[[&&]{.pre}]{.o}[ ]{.w}[[!]{.pre}]{.o}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_same]{.pre}]{.n}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I0_NSt11enable_if_tIXaaNSt7is_sameI9HandlerTy14matrix_handlerE5valueEaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq6sum_op6sum_opERK6sum_opI1TERKN14matrix_handler20commutation_behaviorE "cudaq::sum_op::sum_op::T"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op::HandlerTy"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[ ]{.w}[[&&]{.pre}]{.o}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_constructible]{.pre}]{.n}[[\<]{.pre}]{.p}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op::HandlerTy"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[T]{.pre}]{.n}](#_CPPv4I0_NSt11enable_if_tIXaaNSt7is_sameI9HandlerTy14matrix_handlerE5valueEaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq6sum_op6sum_opERK6sum_opI1TERKN14matrix_handler20commutation_behaviorE "cudaq::sum_op::sum_op::T"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[[,]{.pre}]{.p}[ ]{.w}[[bool]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[true]{.pre}]{.k}[[\>]{.pre}]{.p}\
-    []{#classcudaq_1_1sum__op_1aa87dc480cdc7702c17b70b7c76c629e8 .target}[[[sum_op]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[sum_op]{.pre}]{.n}](#_CPPv4I0_NSt11enable_if_tIXaaNSt7is_sameI9HandlerTy14matrix_handlerE5valueEaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq6sum_op6sum_opERK6sum_opI1TERKN14matrix_handler20commutation_behaviorE "cudaq::sum_op::sum_op"){.reference .internal}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I0_NSt11enable_if_tIXaaNSt7is_sameI9HandlerTy14matrix_handlerE5valueEaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq6sum_op6sum_opERK6sum_opI1TERKN14matrix_handler20commutation_behaviorE "cudaq::sum_op::sum_op::T"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[other]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[matrix_handler]{.pre}]{.n}](#_CPPv4N5cudaq14matrix_handlerE "cudaq::matrix_handler"){.reference .internal}[[::]{.pre}]{.p}[[[commutation_behavior]{.pre}]{.n}](#_CPPv4N5cudaq14matrix_handler20commutation_behaviorE "cudaq::matrix_handler::commutation_behavior"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[behavior]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0_NSt11enable_if_tIXaaNSt7is_sameI9HandlerTy14matrix_handlerE5valueEaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq6sum_op6sum_opERK6sum_opI1TERKN14matrix_handler20commutation_behaviorE "Permalink to this definition"){.headerlink}\
+    [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[T]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[enable_if_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_same]{.pre}]{.n}[[\<]{.pre}]{.p}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op::HandlerTy"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[matrix_handler]{.pre}]{.n}](#_CPPv4N5cudaq14matrix_handlerE "cudaq::matrix_handler"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[ ]{.w}[[&&]{.pre}]{.o}[ ]{.w}[[!]{.pre}]{.o}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_same]{.pre}]{.n}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq6sum_op6sum_opERK6sum_opI1TERKN14matrix_handler20commutation_behaviorE "cudaq::sum_op::sum_op::T"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op::HandlerTy"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[ ]{.w}[[&&]{.pre}]{.o}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_constructible]{.pre}]{.n}[[\<]{.pre}]{.p}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op::HandlerTy"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq6sum_op6sum_opERK6sum_opI1TERKN14matrix_handler20commutation_behaviorE "cudaq::sum_op::sum_op::T"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}\
+    []{#classcudaq_1_1sum__op_1aa87dc480cdc7702c17b70b7c76c629e8 .target}[[[sum_op]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[sum_op]{.pre}]{.n}](#_CPPv4I00EN5cudaq6sum_op6sum_opERK6sum_opI1TERKN14matrix_handler20commutation_behaviorE "cudaq::sum_op::sum_op"){.reference .internal}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq6sum_op6sum_opERK6sum_opI1TERKN14matrix_handler20commutation_behaviorE "cudaq::sum_op::sum_op::T"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[other]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[matrix_handler]{.pre}]{.n}](#_CPPv4N5cudaq14matrix_handlerE "cudaq::matrix_handler"){.reference .internal}[[::]{.pre}]{.p}[[[commutation_behavior]{.pre}]{.n}](#_CPPv4N5cudaq14matrix_handler20commutation_behaviorE "cudaq::matrix_handler::commutation_behavior"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[behavior]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I00EN5cudaq6sum_op6sum_opERK6sum_opI1TERKN14matrix_handler20commutation_behaviorE "Permalink to this definition"){.headerlink}\
 
     :   Constructs a new [[sum_op]{.std
         .std-ref}](#classcudaq_1_1sum__op){.reference .internal} object
@@ -6092,8 +6101,8 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[T]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[enable_if_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[!]{.pre}]{.o}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_same]{.pre}]{.n}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I0_NSt11enable_if_tIXaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq6sum_opaSER6sum_opI9HandlerTyERK10product_opI1TE "cudaq::sum_op::operator=::T"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op::HandlerTy"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[ ]{.w}[[&&]{.pre}]{.o}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_constructible]{.pre}]{.n}[[\<]{.pre}]{.p}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op::HandlerTy"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[T]{.pre}]{.n}](#_CPPv4I0_NSt11enable_if_tIXaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq6sum_opaSER6sum_opI9HandlerTyERK10product_opI1TE "cudaq::sum_op::operator=::T"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[[,]{.pre}]{.p}[ ]{.w}[[bool]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[true]{.pre}]{.k}[[\>]{.pre}]{.p}\
-    []{#classcudaq_1_1sum__op_1a64c55df774c6f00c074072da3c268030 .target}[[[sum_op]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op"){.reference .internal}[[\<]{.pre}]{.p}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op::HandlerTy"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[[operator]{.pre}]{.k}[[=]{.pre}]{.o}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[product_op]{.pre}]{.n}](#_CPPv4I0EN5cudaq10product_opE "cudaq::product_op"){.reference .internal}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I0_NSt11enable_if_tIXaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq6sum_opaSER6sum_opI9HandlerTyERK10product_opI1TE "cudaq::sum_op::operator=::T"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[other]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0_NSt11enable_if_tIXaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq6sum_opaSER6sum_opI9HandlerTyERK10product_opI1TE "Permalink to this definition"){.headerlink}\
+    [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[T]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[enable_if_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[!]{.pre}]{.o}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_same]{.pre}]{.n}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq6sum_opaSER6sum_opI9HandlerTyERK10product_opI1TE "cudaq::sum_op::operator=::T"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op::HandlerTy"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[ ]{.w}[[&&]{.pre}]{.o}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_constructible]{.pre}]{.n}[[\<]{.pre}]{.p}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op::HandlerTy"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq6sum_opaSER6sum_opI9HandlerTyERK10product_opI1TE "cudaq::sum_op::operator=::T"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}\
+    []{#classcudaq_1_1sum__op_1a64c55df774c6f00c074072da3c268030 .target}[[[sum_op]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op"){.reference .internal}[[\<]{.pre}]{.p}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op::HandlerTy"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[[operator]{.pre}]{.k}[[=]{.pre}]{.o}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[product_op]{.pre}]{.n}](#_CPPv4I0EN5cudaq10product_opE "cudaq::product_op"){.reference .internal}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq6sum_opaSER6sum_opI9HandlerTyERK10product_opI1TE "cudaq::sum_op::operator=::T"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[other]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I00EN5cudaq6sum_opaSER6sum_opI9HandlerTyERK10product_opI1TE "Permalink to this definition"){.headerlink}\
 
     :   Assigns a [[product_op]{.std
         .std-ref}](#classcudaq_1_1product__op){.reference .internal} to
@@ -6152,8 +6161,8 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[T]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[enable_if_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[!]{.pre}]{.o}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_same]{.pre}]{.n}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I0_NSt11enable_if_tIXaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq6sum_opaSER6sum_opI9HandlerTyERK6sum_opI1TE "cudaq::sum_op::operator=::T"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op::HandlerTy"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[ ]{.w}[[&&]{.pre}]{.o}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_constructible]{.pre}]{.n}[[\<]{.pre}]{.p}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op::HandlerTy"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[T]{.pre}]{.n}](#_CPPv4I0_NSt11enable_if_tIXaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq6sum_opaSER6sum_opI9HandlerTyERK6sum_opI1TE "cudaq::sum_op::operator=::T"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[[,]{.pre}]{.p}[ ]{.w}[[bool]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[true]{.pre}]{.k}[[\>]{.pre}]{.p}\
-    []{#classcudaq_1_1sum__op_1a537f4b6b9aa88ad38b6179a58aa2d19f .target}[[[sum_op]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op"){.reference .internal}[[\<]{.pre}]{.p}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op::HandlerTy"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[[operator]{.pre}]{.k}[[=]{.pre}]{.o}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[sum_op]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op"){.reference .internal}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I0_NSt11enable_if_tIXaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq6sum_opaSER6sum_opI9HandlerTyERK6sum_opI1TE "cudaq::sum_op::operator=::T"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[other]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0_NSt11enable_if_tIXaantNSt7is_sameI1T9HandlerTyE5valueENSt16is_constructibleI9HandlerTy1TE5valueEEbEEEN5cudaq6sum_opaSER6sum_opI9HandlerTyERK6sum_opI1TE "Permalink to this definition"){.headerlink}\
+    [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[T]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[enable_if_t]{.pre}]{.n}[[\<]{.pre}]{.p}[[!]{.pre}]{.o}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_same]{.pre}]{.n}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq6sum_opaSER6sum_opI9HandlerTyERK6sum_opI1TE "cudaq::sum_op::operator=::T"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op::HandlerTy"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[ ]{.w}[[&&]{.pre}]{.o}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_constructible]{.pre}]{.n}[[\<]{.pre}]{.p}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op::HandlerTy"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq6sum_opaSER6sum_opI9HandlerTyERK6sum_opI1TE "cudaq::sum_op::operator=::T"){.reference .internal}[[\>]{.pre}]{.p}[[::]{.pre}]{.p}[[value]{.pre}]{.n}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}\
+    []{#classcudaq_1_1sum__op_1a537f4b6b9aa88ad38b6179a58aa2d19f .target}[[[sum_op]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op"){.reference .internal}[[\<]{.pre}]{.p}[[[HandlerTy]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op::HandlerTy"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[[operator]{.pre}]{.k}[[=]{.pre}]{.o}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[sum_op]{.pre}]{.n}](#_CPPv4I0EN5cudaq6sum_opE "cudaq::sum_op"){.reference .internal}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I00EN5cudaq6sum_opaSER6sum_opI9HandlerTyERK6sum_opI1TE "cudaq::sum_op::operator=::T"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[other]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I00EN5cudaq6sum_opaSER6sum_opI9HandlerTyERK6sum_opI1TE "Permalink to this definition"){.headerlink}\
 
     :   Template assignment operator allowing conversion between
         different [[sum_op]{.std
@@ -8771,30 +8780,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1ExecutionContext_1a225ca6c6264dc4bab3ebffd1d23252c5 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[map]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[int]{.pre}]{.kt}[[\>]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[amplitudeMaps]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[nullopt]{.pre}]{.n}[¶](#_CPPv4N5cudaq16ExecutionContext13amplitudeMapsE "Permalink to this definition"){.headerlink}\
-
-    :   A map of basis-state amplitudes.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1ExecutionContext_1aa33674ead54268a410e60557fdaeb8e0 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[pair]{.pre}]{.n}[[\<]{.pre}]{.p}[[const]{.pre}]{.k}[ ]{.w}[[[SimulationState]{.pre}]{.n}](#_CPPv4N5cudaq15SimulationStateE "cudaq::SimulationState"){.reference .internal}[[\*]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[const]{.pre}]{.k}[ ]{.w}[[[SimulationState]{.pre}]{.n}](#_CPPv4N5cudaq15SimulationStateE "cudaq::SimulationState"){.reference .internal}[[\*]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[overlapComputeStates]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[nullopt]{.pre}]{.n}[¶](#_CPPv4N5cudaq16ExecutionContext20overlapComputeStatesE "Permalink to this definition"){.headerlink}\
-
-    :   List of pairs of states to compute the overlap.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1ExecutionContext_1a82f52405385514432d039465fde1ddee .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[overlapResult]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[nullopt]{.pre}]{.n}[¶](#_CPPv4N5cudaq16ExecutionContext13overlapResultE "Permalink to this definition"){.headerlink}\
-
-    :   Overlap results.
-
-    ```{=html}
-    <!-- -->
-    ```
-
     []{#classcudaq_1_1ExecutionContext_1a832079b8beaec29c27462f27704d6386 .target}[[[Trace]{.pre}]{.n}](#_CPPv4N5cudaq5TraceE "cudaq::Trace"){.reference .internal}[ ]{.w}[[[kernelTrace]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq16ExecutionContext11kernelTraceE "Permalink to this definition"){.headerlink}\
 
     :   When run under the tracer context, persist the traced quantum
@@ -9000,7 +8985,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[]{#sample_8h_1aca3fc52fbabf920e1de791af75f5b47b .target}[[using]{.pre}]{.k}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[async_sample_result]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[[async_result]{.pre}]{.n}](#_CPPv4I0EN5cudaq12async_resultE "cudaq::async_result"){.reference .internal}[[\<]{.pre}]{.p}[[[sample_result]{.pre}]{.n}](#_CPPv4N5cudaq13sample_resultE "cudaq::sample_result"){.reference .internal}[[\>]{.pre}]{.p}[¶](#_CPPv4N5cudaq19async_sample_resultE "Permalink to this definition"){.headerlink}\
+[]{#Future_8h_1aca3fc52fbabf920e1de791af75f5b47b .target}[[using]{.pre}]{.k}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[async_sample_result]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[[async_result]{.pre}]{.n}](#_CPPv4I0EN5cudaq12async_resultE "cudaq::async_result"){.reference .internal}[[\<]{.pre}]{.p}[[[sample_result]{.pre}]{.n}](#_CPPv4N5cudaq13sample_resultE "cudaq::sample_result"){.reference .internal}[[\>]{.pre}]{.p}[¶](#_CPPv4N5cudaq19async_sample_resultE "Permalink to this definition"){.headerlink}\
 
 :   Return type for asynchronous sampling.
 
@@ -9962,9 +9947,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     .std-ref}](#classcudaq_1_1CusvState){.reference .internal},
     [[cudaq::QPUState]{.std
     .std-ref}](#classcudaq_1_1QPUState){.reference .internal},
-    [[cudaq::RemoteSimulationState]{.std
-    .std-ref}](#classcudaq_1_1RemoteSimulationState){.reference
-    .internal}, [[nvqir::MPSSimulationState\< ScalarType \>]{.std
+    [[nvqir::MPSSimulationState\< ScalarType \>]{.std
     .std-ref}](#classnvqir_1_1MPSSimulationState){.reference .internal},
     [[nvqir::TensorNetSimulationState\< ScalarType \>]{.std
     .std-ref}](#classnvqir_1_1TensorNetSimulationState){.reference
@@ -10074,17 +10057,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 []{#classnvqir_1_1TensorNetSimulationState .target}[[class]{.pre}]{.k}[ ]{.w}[[[TensorNetSimulationState]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[SimulationState]{.pre}]{.n}](#_CPPv4N5cudaq15SimulationStateE "cudaq::SimulationState"){.reference .internal}[¶](#_CPPv4I0EN5nvqir24TensorNetSimulationStateE "Permalink to this definition"){.headerlink}\
 
 :   
-
-```{=html}
-<!-- -->
-```
-
-[]{#classcudaq_1_1RemoteSimulationState .target}[[class]{.pre}]{.k}[ ]{.w}[[[RemoteSimulationState]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[SimulationState]{.pre}]{.n}](#_CPPv4N5cudaq15SimulationStateE "cudaq::SimulationState"){.reference .internal}[¶](#_CPPv4N5cudaq21RemoteSimulationStateE "Permalink to this definition"){.headerlink}\
-
-:   Implementation of [[[`SimulationState`{.docutils .literal
-    .notranslate}]{.pre}]{.std
-    .std-ref}](#classcudaq_1_1SimulationState){.reference .internal} for
-    remote simulator backends.
 
 ```{=html}
 <!-- -->
@@ -12586,9 +12558,8 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 
     Subclassed by [[cudaq::BaseRemoteRESTQPU]{.std
     .std-ref}](#classcudaq_1_1BaseRemoteRESTQPU){.reference .internal},
-    [[cudaq::BaseRemoteSimulatorQPU]{.std
-    .std-ref}](#classcudaq_1_1BaseRemoteSimulatorQPU){.reference
-    .internal}, [[cudaq::OrcaRemoteRESTQPU]{.std
+    cudaq::DefaultQPU, cudaq::GPUEmulatedQPU,
+    [[cudaq::OrcaRemoteRESTQPU]{.std
     .std-ref}](#classcudaq_1_1OrcaRemoteRESTQPU){.reference .internal}
 
     ::: {.breathe-sectiondef .docutils .container}
@@ -12761,17 +12732,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1QPU_1a52aad45bea52aaec4dcdf03506dd61f1 .target}[[virtual]{.pre}]{.k}[ ]{.w}[[[KernelThunkResultType]{.pre}]{.n}](#_CPPv4N5cudaq21KernelThunkResultTypeE "cudaq::KernelThunkResultType"){.reference .internal}[ ]{.w}[[[launchKernel]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[name]{.pre}]{.n .sig-param}, [[[KernelThunkType]{.pre}]{.n}](#_CPPv4N5cudaq15KernelThunkTypeE "cudaq::KernelThunkType"){.reference .internal}[ ]{.w}[[kernelFunc]{.pre}]{.n .sig-param}, [[void]{.pre}]{.kt}[ ]{.w}[[\*]{.pre}]{.p}[[args]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[uint64_t]{.pre}]{.n}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[uint64_t]{.pre}]{.n}, [[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[void]{.pre}]{.kt}[[\*]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[rawArgs]{.pre}]{.n .sig-param}[)]{.sig-paren}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[¶](#_CPPv4N5cudaq3QPU12launchKernelERKNSt6stringE15KernelThunkTypePvNSt8uint64_tENSt8uint64_tERKNSt6vectorIPvEE "Permalink to this definition"){.headerlink}\
-
-    :   Launch the kernel with given name (to extract its Quake
-        representation). The raw function pointer is also provided, as
-        are the runtime arguments, as a struct-packed void pointer and
-        its corresponding size.
-
-    ```{=html}
-    <!-- -->
-    ```
-
     []{#classcudaq_1_1QPU_1ab4915615be5d425122d93d59ac1a22cd .target}[[inline]{.pre}]{.k}[ ]{.w}[[virtual]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[onRandomSeedSet]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[seed]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU15onRandomSeedSetENSt6size_tE "Permalink to this definition"){.headerlink}\
 
     :   Notify the [[QPU]{.std .std-ref}](#classcudaq_1_1QPU){.reference
@@ -12788,15 +12748,8 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 :   Subclassed by [[cudaq::AnalogRemoteRESTQPU]{.std
     .std-ref}](#classcudaq_1_1AnalogRemoteRESTQPU){.reference
     .internal}, [[cudaq::FermioniqQPU]{.std
-    .std-ref}](#classcudaq_1_1FermioniqQPU){.reference .internal}
-
-```{=html}
-<!-- -->
-```
-
-[]{#classcudaq_1_1BaseRemoteSimulatorQPU .target}[[class]{.pre}]{.k}[ ]{.w}[[[BaseRemoteSimulatorQPU]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[QPU]{.pre}]{.n}](#_CPPv4N5cudaq3QPUE "cudaq::QPU"){.reference .internal}[¶](#_CPPv4N5cudaq22BaseRemoteSimulatorQPUE "Permalink to this definition"){.headerlink}\
-
-:   
+    .std-ref}](#classcudaq_1_1FermioniqQPU){.reference .internal},
+    cudaq::RemoteRESTQPU
 
 ```{=html}
 <!-- -->
@@ -12809,6 +12762,8 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     .literal .notranslate}]{.pre} and [`pasqal`{.docutils .literal
     .notranslate}]{.pre}. Provides common functionality and
     implementation.
+
+    Subclassed by cudaq::PasqalRemoteRESTQPU, cudaq::QuEraRemoteRESTQPU
 
 ```{=html}
 <!-- -->
@@ -13040,7 +12995,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1quantum__platform_1a3dc09b9e9a6a742abf6fb458954c0076 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[beginExecution]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform14beginExecutionEv "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1quantum__platform_1a019c2c60bbbba2a7d70532903d7fc9e0 .target}[[virtual]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[beginExecution]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform14beginExecutionEv "Permalink to this definition"){.headerlink}\
 
     :   Begin a new execution on this platform.
 
@@ -13048,7 +13003,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1quantum__platform_1ad0817eb533cc83577efdd2896619a768 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[endExecution]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform12endExecutionEv "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1quantum__platform_1a1a426c84d608a8eca6dab3719b3bbea5 .target}[[virtual]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[endExecution]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform12endExecutionEv "Permalink to this definition"){.headerlink}\
 
     :   End the current execution on this platform.
 
@@ -13085,30 +13040,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 
     :   Called by the runtime to notify that a new random seed value is
         set.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1quantum__platform_1a02bbc42f21f59ca9fa992db36e9dfd7b .target}[[void]{.pre}]{.kt}[ ]{.w}[[[resetLogStream]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform14resetLogStreamEv "Permalink to this definition"){.headerlink}\
-
-    :   Turn off any custom logging stream.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1quantum__platform_1ab77a8ffa73c4f4097f6374095e96bd1f .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[ostream]{.pre}]{.n}[ ]{.w}[[\*]{.pre}]{.p}[[[getLogStream]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform12getLogStreamEv "Permalink to this definition"){.headerlink}\
-
-    :   Get the stream for info logging.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1quantum__platform_1a0939ab8f5192e22be54aa85f741f9c49 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[setLogStream]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[ostream]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[logStream]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform12setLogStreamERNSt7ostreamE "Permalink to this definition"){.headerlink}\
-
-    :   Set the info logging stream.
     :::
 
     ::: {.breathe-sectiondef .docutils .container}
@@ -13152,16 +13083,6 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 
     :   True if the remote can perform an entire VQE operation without
         and back-and-forth client/server communications.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#structcudaq_1_1RemoteCapabilities_1ae0e06cc1b438c44d0751a43688407a8e .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[isRemoteSimulator]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[¶](#_CPPv4N5cudaq18RemoteCapabilities17isRemoteSimulatorE "Permalink to this definition"){.headerlink}\
-
-    :   True if execution is performed on a remote simulator - i.e. IR
-        generation (including synthesis) and execution are performed in
-        different processes.
     :::
 
 ```{=html}
@@ -13383,7 +13304,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[]{#cudaq_8h_1a0635ad8b98868ed14865bab138e23ff0 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[set_random_seed]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[seed]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq15set_random_seedENSt6size_tE "Permalink to this definition"){.headerlink}\
+[]{#BaseRemoteRESTQPU_8h_1a0635ad8b98868ed14865bab138e23ff0 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[set_random_seed]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[seed]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq15set_random_seedENSt6size_tE "Permalink to this definition"){.headerlink}\
 
 :   Set a seed for any random number generators used in backend
     simulations.

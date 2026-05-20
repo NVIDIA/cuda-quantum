@@ -185,7 +185,6 @@
 <li class="toctree-l4"><a class="reference internal" href="../examples/multi_gpu_workflows.html#circuit-batching">Circuit Batching</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu">Multi-QPU + Other Backends (<code class="code docutils literal notranslate"><span class="pre">remote-mqpu</span></code>)</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../examples/python/optimizers_gradients.html">   Optimizers &amp; Gradients</a><ul>
@@ -614,7 +613,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../backends/sims/mqpusims.html">     Multi-QPU Simulators</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../backends/sims/mqpusims.html#simulate-multiple-qpus-in-parallel">Simulate Multiple QPUs in Parallel</a></li>
-<li class="toctree-l4"><a class="reference internal" href="../backends/sims/mqpusims.html#multi-qpu-other-backends">Multi-QPU + Other Backends</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../backends/sims/mqpusims.html#multi-qpu-with-multi-node-multi-gpu-backends">Multi-QPU with Multi-Node Multi-GPU Backends</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../backends/sims/noisy.html">     Noisy Simulators</a><ul>
@@ -670,6 +669,11 @@
 <li class="toctree-l4"><a class="reference internal" href="../backends/cloud/scaleway.html#setting-credentials">Setting Credentials</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/cloud/scaleway.html#submitting">Submitting</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/cloud/scaleway.html#manage-your-qpu-session">Manage your QPU session</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../backends/cloud/qbraid.html">     qBraid</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/qbraid.html#setting-credentials">Setting Credentials</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../backends/cloud/qbraid.html#submitting">Submitting</a></li>
 </ul>
 </li>
 </ul>
@@ -1070,6 +1074,8 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.mpi.all_gather"><code class="docutils literal notranslate"><span class="pre">all_gather()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.mpi.broadcast"><code class="docutils literal notranslate"><span class="pre">broadcast()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.mpi.is_initialized"><code class="docutils literal notranslate"><span class="pre">is_initialized()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.mpi.split_communicator"><code class="docutils literal notranslate"><span class="pre">split_communicator()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.mpi.set_communicator"><code class="docutils literal notranslate"><span class="pre">set_communicator()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.mpi.finalize"><code class="docutils literal notranslate"><span class="pre">finalize()</span></code></a></li>
 </ul>
 </li>
@@ -1189,11 +1195,11 @@ a pass, start with the following template in the <code class="code docutils lite
 
 <span class="k">namespace</span><span class="w"> </span><span class="p">{</span>
 
-<span class="k">struct</span><span class="w"> </span><span class="nc">ReplaceH</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">OpRewritePattern</span><span class="o">&lt;</span><span class="n">quake</span><span class="o">::</span><span class="n">HOp</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">ReplaceH</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">OpRewritePattern</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">quake</span><span class="o">::</span><span class="n">HOp</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">OpRewritePattern</span><span class="o">::</span><span class="n">OpRewritePattern</span><span class="p">;</span>
-<span class="w">  </span><span class="n">LogicalResult</span><span class="w"> </span><span class="nf">matchAndRewrite</span><span class="p">(</span><span class="n">quake</span><span class="o">::</span><span class="n">HOp</span><span class="w"> </span><span class="n">hOp</span><span class="p">,</span>
+<span class="w">  </span><span class="n">LogicalResult</span><span class="w"> </span><span class="nf">matchAndRewrite</span><span class="p">(</span><span class="n">cudaq</span><span class="o">::</span><span class="n">quake</span><span class="o">::</span><span class="n">HOp</span><span class="w"> </span><span class="n">hOp</span><span class="p">,</span>
 <span class="w">                                </span><span class="n">PatternRewriter</span><span class="w"> </span><span class="o">&amp;</span><span class="n">rewriter</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="n">rewriter</span><span class="p">.</span><span class="n">replaceOpWithNewOp</span><span class="o">&lt;</span><span class="n">quake</span><span class="o">::</span><span class="n">SOp</span><span class="o">&gt;</span><span class="p">(</span>
+<span class="w">    </span><span class="n">rewriter</span><span class="p">.</span><span class="n">replaceOpWithNewOp</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">quake</span><span class="o">::</span><span class="n">SOp</span><span class="o">&gt;</span><span class="p">(</span>
 <span class="w">        </span><span class="n">hOp</span><span class="p">,</span><span class="w"> </span><span class="n">hOp</span><span class="p">.</span><span class="n">isAdj</span><span class="p">(),</span><span class="w"> </span><span class="n">hOp</span><span class="p">.</span><span class="n">getParameters</span><span class="p">(),</span><span class="w"> </span><span class="n">hOp</span><span class="p">.</span><span class="n">getControls</span><span class="p">(),</span>
 <span class="w">        </span><span class="n">hOp</span><span class="p">.</span><span class="n">getTargets</span><span class="p">());</span>
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">success</span><span class="p">();</span>
@@ -1214,8 +1220,8 @@ a pass, start with the following template in the <code class="code docutils lite
 <span class="w">    </span><span class="n">RewritePatternSet</span><span class="w"> </span><span class="nf">patterns</span><span class="p">(</span><span class="n">ctx</span><span class="p">);</span>
 <span class="w">    </span><span class="n">patterns</span><span class="p">.</span><span class="n">insert</span><span class="o">&lt;</span><span class="n">ReplaceH</span><span class="o">&gt;</span><span class="p">(</span><span class="n">ctx</span><span class="p">);</span>
 <span class="w">    </span><span class="n">ConversionTarget</span><span class="w"> </span><span class="nf">target</span><span class="p">(</span><span class="o">*</span><span class="n">ctx</span><span class="p">);</span>
-<span class="w">    </span><span class="n">target</span><span class="p">.</span><span class="n">addLegalDialect</span><span class="o">&lt;</span><span class="n">quake</span><span class="o">::</span><span class="n">QuakeDialect</span><span class="o">&gt;</span><span class="p">();</span>
-<span class="w">    </span><span class="n">target</span><span class="p">.</span><span class="n">addIllegalOp</span><span class="o">&lt;</span><span class="n">quake</span><span class="o">::</span><span class="n">HOp</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="w">    </span><span class="n">target</span><span class="p">.</span><span class="n">addLegalDialect</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">quake</span><span class="o">::</span><span class="n">QuakeDialect</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="w">    </span><span class="n">target</span><span class="p">.</span><span class="n">addIllegalOp</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">quake</span><span class="o">::</span><span class="n">HOp</span><span class="o">&gt;</span><span class="p">();</span>
 <span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">failed</span><span class="p">(</span><span class="n">applyPartialConversion</span><span class="p">(</span><span class="n">circuit</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">patterns</span><span class="p">))))</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="n">circuit</span><span class="p">.</span><span class="n">emitOpError</span><span class="p">(</span><span class="s">&quot;simple pass failed&quot;</span><span class="p">);</span>
 <span class="w">      </span><span class="n">signalPassFailure</span><span class="p">();</span>

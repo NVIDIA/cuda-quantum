@@ -157,10 +157,6 @@ latest
             -   [Circuit
                 Batching](../examples/multi_gpu_workflows.html#circuit-batching){.reference
                 .internal}
-        -   [Multi-QPU + Other Backends ([`remote-mqpu`{.code .docutils
-            .literal
-            .notranslate}]{.pre})](../examples/multi_gpu_workflows.html#multi-qpu-other-backends-remote-mqpu){.reference
-            .internal}
     -   [Optimizers &
         Gradients](../../examples/python/optimizers_gradients.html){.reference
         .internal}
@@ -1016,8 +1012,8 @@ latest
             -   [Simulate Multiple QPUs in
                 Parallel](../backends/sims/mqpusims.html#simulate-multiple-qpus-in-parallel){.reference
                 .internal}
-            -   [Multi-QPU + Other
-                Backends](../backends/sims/mqpusims.html#multi-qpu-other-backends){.reference
+            -   [Multi-QPU with Multi-Node Multi-GPU
+                Backends](../backends/sims/mqpusims.html#multi-qpu-with-multi-node-multi-gpu-backends){.reference
                 .internal}
         -   [Noisy Simulators](../backends/sims/noisy.html){.reference
             .internal}
@@ -1102,6 +1098,13 @@ latest
                 .internal}
             -   [Manage your QPU
                 session](../backends/cloud/scaleway.html#manage-your-qpu-session){.reference
+                .internal}
+        -   [qBraid](../backends/cloud/qbraid.html){.reference
+            .internal}
+            -   [Setting
+                Credentials](../backends/cloud/qbraid.html#setting-credentials){.reference
+                .internal}
+            -   [Submitting](../backends/cloud/qbraid.html#submitting){.reference
                 .internal}
 -   [Dynamics](../dynamics.html){.reference .internal}
     -   [Quick Start](../dynamics.html#quick-start){.reference
@@ -1894,6 +1897,12 @@ latest
             -   [[`is_initialized()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.is_initialized){.reference
                 .internal}
+            -   [[`split_communicator()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.split_communicator){.reference
+                .internal}
+            -   [[`set_communicator()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.set_communicator){.reference
+                .internal}
             -   [[`finalize()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.mpi.finalize){.reference
                 .internal}
@@ -2277,7 +2286,7 @@ commands install GCC 11:
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
-    GCC_VERSION=${GCC_VERSION:-11}
+    GCC_VERSION=${GCC_VERSION:-12}
     dnf install -y --nobest --setopt=install_weak_deps=False \
         gcc-toolset-${GCC_VERSION}
     # Enabling the toolchain globally is only needed for debug builds
@@ -2295,7 +2304,7 @@ system:
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
-    export GCC_TOOLCHAIN=/opt/rh/gcc-toolset-11/root/usr/
+    export GCC_TOOLCHAIN=/opt/rh/gcc-toolset-12/root/usr/
     export CXX="${GCC_TOOLCHAIN}/bin/g++"
     export CC="${GCC_TOOLCHAIN}/bin/gcc"
     export CUDACXX=/usr/local/cuda/bin/nvcc
@@ -2423,7 +2432,7 @@ following command to build the CUDA-Q Python wheel:
     bash scripts/install_prerequisites.sh -t llvm -e qrmi && \
     CC="$LLVM_INSTALL_PREFIX/bin/clang" \
     CXX="$LLVM_INSTALL_PREFIX/bin/clang++" \
-    FC="$LLVM_INSTALL_PREFIX/bin/flang-new" \
+    FC="$LLVM_INSTALL_PREFIX/bin/flang" \
     python3 -m build --wheel && \
     echo "=== ccache stats (python_build) ===" && (ccache -s 2>/dev/null || true)
 :::

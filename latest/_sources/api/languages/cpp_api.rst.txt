@@ -153,8 +153,6 @@ Common
 
 .. doxygenclass:: nvqir::TensorNetSimulationState
 
-.. doxygenclass:: cudaq::RemoteSimulationState
-
 .. doxygenclass:: cudaq::QPUState
 
 .. doxygenclass:: cudaq::registry::RegisteredType
@@ -323,8 +321,6 @@ Platform
     :members:
 
 .. doxygenclass:: cudaq::BaseRemoteRESTQPU
-
-.. doxygenclass:: cudaq::BaseRemoteSimulatorQPU
 
 .. doxygenclass:: cudaq::AnalogRemoteRESTQPU    
 
