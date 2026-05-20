@@ -236,12 +236,14 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
                                                  const Real &epsilon,
                                                  i32 diophantine_timeout_ms,
                                                  i32 factoring_timeout_ms) {
-
-  LLVM_DEBUG(llvm::dbgs() << "[gridsynth] gridsynth_unitary: theta=" << theta
-                          << ", eps=" << epsilon
-                          << ", dioph_timeout=" << diophantine_timeout_ms
-                          << "ms, fact_timeout=" << factoring_timeout_ms
-                          << "ms\n");
+  SYNTH_OPEN_SUB("gridsynth_unitary");
+  LLVM_DEBUG(
+    cudaq::synth::dbgs() << "theta=" << theta << "\n";
+    cudaq::synth::dbgs() << "eps=" << epsilon << "\n";
+    cudaq::synth::dbgs() << "diophantine_timeout="
+                         << diophantine_timeout_ms << "ms" << "\n";
+    cudaq::synth::dbgs() << "factoring_timeout=" << factoring_timeout_ms << "ms" << "\n"
+  );
 
   // ---- Step 0: Setup ----
   // Construct the ε-region R_ε (§7.1, equation 14) and the unit disk
@@ -250,14 +252,11 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
   llvm::FailureOr<EpsilonRegion> region_or =
       EpsilonRegion::create(theta, epsilon);
   if (llvm::failed(region_or)) {
-    LLVM_DEBUG(llvm::dbgs()
-               << "[gridsynth] gridsynth_unitary: degenerate epsilon-region "
-                  "(eps="
-               << epsilon << " may be too small or theta is degenerate)\n");
+    SYNTH_CLOSE_FAILURE("degenerate epsilon-region");
     return llvm::failure();
   }
-  LLVM_DEBUG(llvm::dbgs() << "[gridsynth] gridsynth_unitary: epsilon-region: "
-                          << region_or->to_string() << '\n');
+  LLVM_DEBUG(cudaq::synth::dbgs()
+             << "epsilon-region: " << region_or->to_string() << '\n');
 
   UnitDisk unit_disk;
 
@@ -268,20 +267,10 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
   llvm::FailureOr<UprightResult> transformed_or =
       to_upright(region_or->ellipse(), UnitDisk::as_ellipse());
   if (llvm::failed(transformed_or)) {
-    LLVM_DEBUG(
-        llvm::dbgs()
-        << "[gridsynth] gridsynth_unitary: to_upright preprocessing failed\n");
+    SYNTH_CLOSE_FAILURE("to_upright preprocessing failed");
     return llvm::failure();
   }
   UprightResult &transformed = *transformed_or;
-
-  LLVM_DEBUG(llvm::dbgs()
-             << "[gridsynth] gridsynth_unitary: to_upright done -- opG="
-             << transformed.opG
-             << ", bboxA=" << transformed.bboxA.I_x().width() << "x"
-             << transformed.bboxA.I_y().width()
-             << ", bboxB=" << transformed.bboxB.I_x().width() << "x"
-             << transformed.bboxB.I_y().width() << '\n');
 
   // Fatten the y-intervals of the bounding boxes by a small relative amount.
   // This guards against numerical edge effects where valid grid points
@@ -294,9 +283,22 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
       fatten(transformed.bboxB.I_y(),
              transformed.bboxB.I_y().width() * epsilon_factor);
 
+  // Bounding-box parameters are loop-invariant across the k-search below;
+  // print them once here so each k iteration stays focused on its own data.
+  LLVM_DEBUG(cudaq::synth::dbgs()
+             << "bboxA=" << transformed.bboxA.I_x().width() << " x "
+             << transformed.bboxA.I_y().width()
+             << ", bboxB=" << transformed.bboxB.I_x().width() << " x "
+             << transformed.bboxB.I_y().width() << '\n');
+  LLVM_DEBUG(cudaq::synth::dbgs() << "bboxA_y_fat=" << bboxA_y_fattened.width()
+                                  << ", bboxB_y_fat=" << bboxB_y_fattened.width()
+                                  << '\n');
+
   llvm::FailureOr<GridOp> opG_inv_or = inv(transformed.opG);
-  if (llvm::failed(opG_inv_or))
+  if (llvm::failed(opG_inv_or)) {
+    SYNTH_CLOSE_FAILURE("inv(opG) failed");
     return llvm::failure();
+  }
   GridOp opG_inv = *opG_inv_or;
 
   // ---- Steps 1-2: Main loop over denominator exponents k ----
@@ -306,10 +308,8 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
   // so iterating k from 0 ensures optimality.
   Integer k = 0;
   while (true) {
-    LLVM_DEBUG(llvm::dbgs()
-               << "[gridsynth] gridsynth_unitary: trying denominator "
-                  "exponent k="
-               << static_cast<i64>(k) << '\n');
+    SYNTH_FENCE();
+    SYNTH_OPEN_SUB("k = " + std::to_string(static_cast<i64>(k)));
 
     // Step 1: Solve the scaled TDGP for denominator exponent k.
     // Returns candidates u ∈ (1/√2^k)·Z[ω] ∩ R_ε with u● ∈ D̄ lazily.
@@ -336,10 +336,6 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
           diophantine_dyadic(xi, diophantine_timeout_ms, factoring_timeout_ms);
 
       if (llvm::succeeded(w_or)) {
-        LLVM_DEBUG(llvm::dbgs()
-                   << "[gridsynth] gridsynth_unitary: Diophantine "
-                      "succeeded at k="
-                   << static_cast<i64>(k) << '\n');
         // SUCCESS: We have z and w with z†z + w†w = 1.
         // Construct U = [[z, -w†], [w, z†]] (equation 12, with n = 0).
 
@@ -364,6 +360,9 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
         else
           u_approx = DOmegaUnitary(z_reduced, mul_by_omega(w_reduced), 0);
 
+        std::string k_str = std::to_string(static_cast<i64>(k));
+        SYNTH_CLOSE_SUCCESS("Diophantine succeeded at k=" + k_str);
+        SYNTH_CLOSE_SUCCESS("synthesized at k=" + k_str);
         return u_approx;
       }
     }
@@ -371,6 +370,7 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
     // No candidate at this k succeeded (either no grid points, or all
     // Diophantine solves failed/timed out). Increment k and try again
     // with a larger denominator exponent (higher T-count).
+    SYNTH_CLOSE_FAILURE("no candidates");
     k++;
   }
 }
@@ -378,23 +378,24 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
 llvm::FailureOr<Circuit> gridsynth(const Real &theta, const Real &epsilon,
                                    i32 diophantine_timeout_ms,
                                    i32 factoring_timeout_ms) {
-  LLVM_DEBUG(llvm::dbgs() << "[gridsynth] gridsynth: theta=" << theta
-                          << ", eps=" << epsilon << '\n');
+  SYNTH_OPEN("gridsynth");
+  LLVM_DEBUG(cudaq::synth::dbgs() << "theta=" << theta << ", eps=" << epsilon
+                                  << '\n');
 
   llvm::FailureOr<DOmegaUnitary> u_or = gridsynth_unitary(
       theta, epsilon, diophantine_timeout_ms, factoring_timeout_ms);
   if (llvm::failed(u_or)) {
-    LLVM_DEBUG(llvm::dbgs()
-               << "[gridsynth] gridsynth: synthesis failed for theta=" << theta
-               << ", eps=" << epsilon << '\n');
+    SYNTH_CLOSE_FAILURE("synthesis failed");
     return llvm::failure();
   }
 
   llvm::FailureOr<Circuit> circuit = kmm_synthesize(*u_or);
   if (llvm::succeeded(circuit)) {
-    LLVM_DEBUG(llvm::dbgs()
-               << "[gridsynth] gridsynth: success -- " << (*circuit).size()
-               << " gates, T-count=" << (*circuit).t_count() << '\n');
+    SYNTH_CLOSE_SUCCESS(std::to_string((*circuit).size()) +
+                        " gates, T-count=" +
+                        std::to_string((*circuit).t_count()));
+  } else {
+    SYNTH_CLOSE_FAILURE("kmm_synthesize failed");
   }
   return circuit;
 }
