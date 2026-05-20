@@ -170,7 +170,6 @@ CUDAQ_TEST(StimQECTester, DetectorThrowsOnOutOfRangeIndex) {
     FAIL() << "expected std::out_of_range";
   } catch (const std::out_of_range &e) {
     const std::string what(e.what());
-    EXPECT_NE(what.find("detector"), std::string::npos) << what;
     EXPECT_NE(what.find("9"), std::string::npos) << what;
     EXPECT_NE(what.find("[0, 2)"), std::string::npos) << what;
   }

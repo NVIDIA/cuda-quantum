@@ -648,23 +648,13 @@ public:
     return result;
   }
 
-  /// @brief Commit any pending `sampleQubits` as `M` ops in `recordedCircuit`
-  /// so subsequent `DETECTOR rec[-N]` / `OBSERVABLE_INCLUDE rec[-N]`
-  /// instructions can reference them. Required because in `cudaq::sample` +
-  /// `explicitMeasurements` mode `mz()` defers the `M` op to flush time, so
-  /// a `qec.detector(handle)` immediately following an `mz` would otherwise
-  /// emit a `rec[-N]` referencing an `M` that has not yet been laid down.
-  void flushPendingSampleMeasurements() {
-    if (!sampleQubits.empty())
-      flushAnySamplingTasks(/*force=*/false);
-  }
-
   /// @brief Translate chronological measurement indices into Stim record-
   /// reference targets (`lookback | TARGET_RECORD_BIT`). Throws
-  /// `std::out_of_range` if any index lies outside `[0, num_measurements)`.
+  /// `std::out_of_range` if any index lies outside `[0, num_measurements)`
+  /// so a broken upstream lowering surfaces at the first bad call instead
+  /// of producing a malformed DEM downstream.
   std::vector<std::uint32_t>
-  measurementIndicesToRecordTargets(const char *op_name,
-                                    const std::int64_t *indices,
+  measurementIndicesToRecordTargets(const std::int64_t *indices,
                                     std::size_t count) const {
     std::vector<std::uint32_t> targets;
     targets.reserve(count);
@@ -672,10 +662,10 @@ public:
       const auto idx = indices[i];
       if (idx < 0 || static_cast<std::size_t>(idx) >= num_measurements)
         throw std::out_of_range(
-            fmt::format("{}: measurement index {} is out of range [0, {}); the "
-                        "lowering must produce chronological indices into the "
-                        "current kernel's measurement record",
-                        op_name, idx, num_measurements));
+            "QEC: measurement index " + std::to_string(idx) +
+            " is out of range [0, " + std::to_string(num_measurements) +
+            "); the lowering must produce chronological indices into the "
+            "current kernel's measurement record");
       auto lookback = static_cast<std::uint32_t>(num_measurements -
                                                  static_cast<std::size_t>(idx));
       targets.push_back(lookback | stim::TARGET_RECORD_BIT);
@@ -684,18 +674,24 @@ public:
   }
 
   void detector(const std::int64_t *indices, std::size_t count) override {
-    flushPendingSampleMeasurements();
-    auto targets =
-        measurementIndicesToRecordTargets("detector", indices, count);
+    // Commit any deferred sample `M` ops so subsequent `DETECTOR rec[-N]`
+    // references resolve. In `cudaq::sample` + `explicitMeasurements` mode
+    // `mz()` defers the `M` op to flush time; without this nudge a
+    // `qec.detector(handle)` immediately following an `mz` would emit a
+    // `rec[-N]` pointing at an `M` not yet laid down, which
+    // `stim::ErrorAnalyzer::circuit_to_detector_error_model` rejects.
+    if (!sampleQubits.empty())
+      flushAnySamplingTasks(/*force=*/false);
+    auto targets = measurementIndicesToRecordTargets(indices, count);
     if (!targets.empty())
       recordedCircuit.safe_append_u("DETECTOR", targets);
   }
 
   void logical_observable(const std::int64_t *indices, std::size_t count,
                           std::size_t observable_index) override {
-    flushPendingSampleMeasurements();
-    auto targets =
-        measurementIndicesToRecordTargets("logical_observable", indices, count);
+    if (!sampleQubits.empty())
+      flushAnySamplingTasks(/*force=*/false);
+    auto targets = measurementIndicesToRecordTargets(indices, count);
     if (!targets.empty())
       recordedCircuit.safe_append_ua("OBSERVABLE_INCLUDE", targets,
                                      static_cast<double>(observable_index));
@@ -703,13 +699,13 @@ public:
 
   void pair_detectors(const std::int64_t *prev, const std::int64_t *curr,
                       std::size_t count) override {
-    flushPendingSampleMeasurements();
+    if (!sampleQubits.empty())
+      flushAnySamplingTasks(/*force=*/false);
     std::vector<std::vector<std::uint32_t>> all_targets;
     all_targets.reserve(count);
     for (std::size_t i = 0; i < count; i++) {
       const std::int64_t pair[2] = {prev[i], curr[i]};
-      all_targets.push_back(
-          measurementIndicesToRecordTargets("pair_detectors", pair, 2));
+      all_targets.push_back(measurementIndicesToRecordTargets(pair, 2));
     }
     for (const auto &targets : all_targets)
       if (!targets.empty())
