@@ -23,6 +23,7 @@
 #include <concepts>
 #include <cstdarg>
 #include <cstddef>
+#include <cstdint>
 #include <iostream>
 #include <queue>
 #include <sstream>
@@ -432,6 +433,24 @@ public:
   virtual cudaq::ExecutionResult
   sample(const std::vector<std::size_t> &qubitIdxs, const int shots,
          bool includeSequentialData = true) = 0;
+
+  /// @brief Declare a `qec.detector` over one or more prior measurements,
+  /// addressed by measurement indices or identifiers assigned by this
+  /// simulator. Default no-op; QEC-capable backends override.
+  virtual void detector(const std::int64_t *indices, std::size_t count) {}
+
+  /// @brief Declare a `qec.logical_observable` over one or more prior
+  /// measurements, tagged with @p observable_index. Default no-op; QEC-capable
+  /// backends override.
+  virtual void logical_observable(const std::int64_t *indices,
+                                  std::size_t count,
+                                  std::size_t observable_index = 0) {}
+
+  /// @brief Declare N detectors element-wise over two parallel index arrays
+  /// (cross-round / pair detectors) of the same size. Default no-op;
+  /// QEC-capable backends override.
+  virtual void pair_detectors(const std::int64_t *prev,
+                              const std::int64_t *curr, std::size_t count) {}
 
   /// @brief Return the name of this CircuitSimulator
   virtual std::string name() const = 0;
