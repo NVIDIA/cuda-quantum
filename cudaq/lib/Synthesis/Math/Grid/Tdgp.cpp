@@ -10,9 +10,12 @@
 #include "Math/Geometry/ConvexSet.h"
 #include "Math/Geometry/Rectangle.h"
 #include "Math/Grid/Odgp.h"
-#include "Support/LogMacros.h"
+#include "Support/StreamOps.h"
 #include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Math/Ring/Domega.h"
+#include "llvm/Support/Debug.h"
+
+#define DEBUG_TYPE "cudaq-synth"
 
 namespace cudaq::synth {
 
@@ -37,13 +40,14 @@ generator<DOmega> solve_tdgp(Integer k, const ConvexSet &setA,
                              Rectangle bboxA, Rectangle bboxB,
                              Interval bboxA_y_fattened,
                              Interval bboxB_y_fattened) {
-  CUDAQ_SYNTH_LOG_DEBUG("synth.grid",
-                        "solve_tdgp: k={}, bboxA={}x{}, bboxB={}x{}, "
-                        "bboxA_y_fat={}, bboxB_y_fat={}",
-                        static_cast<i64>(k), bboxA.I_x().width(),
-                        bboxA.I_y().width(), bboxB.I_x().width(),
-                        bboxB.I_y().width(), bboxA_y_fattened.width(),
-                        bboxB_y_fattened.width());
+  LLVM_DEBUG(llvm::dbgs() << "[grid] solve_tdgp: k=" << static_cast<i64>(k)
+                          << ", bboxA=" << bboxA.I_x().width() << "x"
+                          << bboxA.I_y().width()
+                          << ", bboxB=" << bboxB.I_x().width() << "x"
+                          << bboxB.I_y().width()
+                          << ", bboxA_y_fat=" << bboxA_y_fattened.width()
+                          << ", bboxB_y_fat=" << bboxB_y_fattened.width()
+                          << '\n');
 
   TdgpScratch scratch;
 
@@ -55,7 +59,7 @@ generator<DOmega> solve_tdgp(Integer k, const ConvexSet &setA,
     co_return;
 
   DSqrt2 alpha0 = *x_it;
-  CUDAQ_SYNTH_LOG_TRACE("synth.grid", "solve_tdgp: alpha0={}", alpha0);
+  LLVM_DEBUG(llvm::dbgs() << "[grid] solve_tdgp: alpha0=" << alpha0 << '\n');
 
   DSqrt2 dx = DSqrt2::power_of_inv_sqrt2(k);
   DOmega v_common = opG_inv * DOmega::from_dsqrt2_vector(dx, DSqrt2{0}, k);
@@ -68,10 +72,10 @@ generator<DOmega> solve_tdgp(Integer k, const ConvexSet &setA,
     auto t_B_opt = setB.intersect(z0.conj_sq2(), v_conj);
 
     if (!t_A_opt.has_value() || !t_B_opt.has_value()) {
-      CUDAQ_SYNTH_LOG_TRACE(
-          "synth.grid",
-          "solve_tdgp: beta={}, t_A_valid={}, t_B_valid={} -- skip", beta,
-          t_A_opt.has_value(), t_B_opt.has_value());
+      LLVM_DEBUG(llvm::dbgs()
+                 << "[grid] solve_tdgp: beta=" << beta
+                 << ", t_A_valid=" << t_A_opt.has_value()
+                 << ", t_B_valid=" << t_B_opt.has_value() << " -- skip\n");
       continue;
     }
 
@@ -95,10 +99,9 @@ generator<DOmega> solve_tdgp(Integer k, const ConvexSet &setA,
     intA = fatten(intA, scratch.dtA);
     intB = fatten(intB, scratch.dtB);
 
-    CUDAQ_SYNTH_LOG_TRACE("synth.grid",
-                          "solve_tdgp: beta={}, parity={}, "
-                          "intA_fat={}, intB_fat={}",
-                          beta, parity, intA, intB);
+    LLVM_DEBUG(llvm::dbgs()
+               << "[grid] solve_tdgp: beta=" << beta << ", parity=" << parity
+               << ", intA_fat=" << intA << ", intB_fat=" << intB << '\n');
 
     for (const DSqrt2 &alpha :
          solve_odgp_scaled_with_parity(intA, intB, 1, parity)) {
@@ -108,9 +111,9 @@ generator<DOmega> solve_tdgp(Integer k, const ConvexSet &setA,
       DOmega z_tr = opG_inv * candidate;
       bool in_A = setA.contains(z_tr);
       bool in_B = setB.contains(z_tr.conj_sq2());
-      CUDAQ_SYNTH_LOG_TRACE("synth.grid",
-                            "solve_tdgp: candidate={}, in_A? {}, in_B? {}",
-                            candidate.to_string(), in_A, in_B);
+      LLVM_DEBUG(llvm::dbgs()
+                 << "[grid] solve_tdgp: candidate=" << candidate.to_string()
+                 << ", in_A? " << in_A << ", in_B? " << in_B << '\n');
       if (in_A && in_B)
         co_yield z_tr;
     }
