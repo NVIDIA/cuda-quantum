@@ -160,6 +160,18 @@ def test_state_density_matrix_simple():
     cudaq.reset_target()
 
 
+def test_state_density_matrix_mixed_overlap():
+    cudaq.set_target('density-matrix-cpu')
+
+    rho = np.diag([0.4, 0.3, 0.2, 0.1]).astype(np.complex128)
+    state = cudaq.State.from_data(rho)
+
+    # Density matrix overlap is the Hilbert-Schmidt inner product.
+    assert np.isclose(state.overlap(state), np.trace(rho.conj().T @ rho))
+
+    cudaq.reset_target()
+
+
 def test_state_density_matrix_integration():
     """
     An integration test on the state density matrix class. Uses a CUDA-Q
