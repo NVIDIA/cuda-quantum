@@ -9,7 +9,7 @@
 #pragma once
 
 #include "cudaq/Synthesis/Circuit/Gate.h"
-#include "cudaq/Synthesis/Support/Result.h"
+#include "llvm/Support/LogicalResult.h"
 
 #include <ostream>
 #include <string>
@@ -121,7 +121,7 @@ public:
   /// Parse a gate string into a Circuit. Each character must be one of
   /// H, S, T, X, W. The character 'I' is accepted as the identity sentinel
   /// and produces an empty Circuit. Any other character returns failure().
-  static FailureOr<Circuit> from_string(std::string_view s);
+  static llvm::FailureOr<Circuit> from_string(std::string_view s);
 };
 
 inline std::string Circuit::to_string() const {
@@ -151,7 +151,7 @@ inline std::string Circuit::to_string() const {
   return result;
 }
 
-inline FailureOr<Circuit> Circuit::from_string(std::string_view s) {
+inline llvm::FailureOr<Circuit> Circuit::from_string(std::string_view s) {
   Circuit result;
   result.reserve(s.size());
   for (char c : s) {
@@ -174,7 +174,7 @@ inline FailureOr<Circuit> Circuit::from_string(std::string_view s) {
     case 'I':
       break; // identity sentinel — produces empty Circuit
     default:
-      return failure();
+      return llvm::failure();
     }
   }
   return result;

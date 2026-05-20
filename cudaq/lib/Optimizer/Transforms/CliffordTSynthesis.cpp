@@ -18,8 +18,8 @@
 #include "cudaq/Synthesis/Circuit/Circuit.h"
 #include "cudaq/Synthesis/Circuit/Gate.h"
 #include "cudaq/Synthesis/Math/Real.h"
-#include "cudaq/Synthesis/Support/Result.h"
 #include "cudaq/Synthesis/Synthesis/Gridsynth.h"
+#include "llvm/Support/LogicalResult.h"
 #endif
 
 namespace cudaq::opt {
@@ -119,17 +119,16 @@ struct RzPattern : OpRewritePattern<cudaq::quake::RzOp> {
 
     cudaq::synth::Real thetaReal(check.theta);
     cudaq::synth::Real epsilonReal(opts.epsilon);
-    cudaq::synth::FailureOr<cudaq::synth::Circuit> circuit =
-        cudaq::synth::failure();
+    llvm::FailureOr<cudaq::synth::Circuit> circuit = llvm::failure();
     for (int32_t attempt = 0; attempt <= opts.retryCount; ++attempt) {
       circuit = cudaq::synth::gridsynth(
           thetaReal, epsilonReal,
           static_cast<int32_t>(opts.diophantineTimeoutMs << attempt),
           static_cast<int32_t>(opts.factoringTimeoutMs << attempt));
-      if (cudaq::synth::succeeded(circuit))
+      if (llvm::succeeded(circuit))
         break;
     }
-    if (cudaq::synth::failed(circuit)) {
+    if (llvm::failed(circuit)) {
       op.emitError("clifford-t-synthesis: gridsynth failed for theta=")
           << check.theta << " after " << (opts.retryCount + 1)
           << " attempts; raise --diophantine-timeout-ms or "

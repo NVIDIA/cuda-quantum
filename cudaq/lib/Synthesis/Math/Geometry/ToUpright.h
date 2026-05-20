@@ -12,7 +12,7 @@
 #include "Math/Geometry/GridOp.h"
 #include "Math/Geometry/Rectangle.h"
 #include "cudaq/Synthesis/Math/Integer.h"
-#include "cudaq/Synthesis/Support/Result.h"
+#include "llvm/Support/LogicalResult.h"
 
 #include <cmath>
 #include <string>
@@ -109,14 +109,14 @@ inline Real pair_bias(const Ellipse &A, const Ellipse &B) {
 
 /// Joint transformation: applies G to A and G● to B (Definition A.3).
 /// Returns failure() if any transform step fails (e.g. non-special GridOp).
-LogicalResult apply_grid_op(Ellipse &A, Ellipse &B, const GridOp &g);
+llvm::LogicalResult apply_grid_op(Ellipse &A, Ellipse &B, const GridOp &g);
 
 /// Apply a reduction step: transforms the ellipse pair by new_opG and
 /// accumulates new_opG into opG_r (the right factor of the total operator).
 /// Implements (D,Δ) ↦ (D,Δ)·G from Definition A.3.
 /// Returns failure() propagated from apply_grid_op.
-LogicalResult reduction(Ellipse &A, Ellipse &B, GridOp &opG_r,
-                        const GridOp &new_opG);
+llvm::LogicalResult reduction(Ellipse &A, Ellipse &B, GridOp &opG_r,
+                              const GridOp &new_opG);
 
 /// Shift operation (§A.1, Definition A.7):
 /// (D,Δ)·Shift^n = (σⁿDσⁿ, τⁿΔτⁿ)
@@ -130,8 +130,8 @@ void shift_ellipses(Ellipse &A, Ellipse &B, const Integer &n);
 /// such that Skew((D,Δ)·G) ≤ 0.9 · Skew(D,Δ).
 /// Sets 'end' to true when Skew ≤ 15 (algorithm complete).
 /// Returns failure() if any internal operation fails.
-LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l, GridOp &opG_r,
-                         bool &end);
+llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
+                               GridOp &opG_r, bool &end);
 
 // Result structure for to_upright
 struct UprightResult {
@@ -154,6 +154,7 @@ struct UprightResult {
 /// Transform an ellipse pair to upright position (Theorem 5.16).
 /// Returns the accumulated grid operator G and bounding boxes of
 /// G(setA) and G●(setB), or failure() if the ellipses are degenerate.
-FailureOr<UprightResult> to_upright(const Ellipse &setA, const Ellipse &setB);
+llvm::FailureOr<UprightResult> to_upright(const Ellipse &setA,
+                                          const Ellipse &setB);
 
 } // namespace cudaq::synth

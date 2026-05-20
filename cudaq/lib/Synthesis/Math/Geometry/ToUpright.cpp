@@ -21,7 +21,7 @@ Integer floor_sqrt(const Real &x) { return floor_to_integer(sqrt(x)); }
 
 namespace cudaq::synth {
 
-LogicalResult apply_grid_op(Ellipse &A, Ellipse &B, const GridOp &g) {
+llvm::LogicalResult apply_grid_op(Ellipse &A, Ellipse &B, const GridOp &g) {
   // Use to_real_mat rather than to_mat: avoids allocating 4 imaginary GMP
   // objects that are never used (grid operators are real matrices).
   auto g_mat = to_real_mat(g);
@@ -35,14 +35,15 @@ LogicalResult apply_grid_op(Ellipse &A, Ellipse &B, const GridOp &g) {
 
   if (abs(det) < tol) {
     // Singular: both A and B fall back to exact inversion via GridOp::inv().
-    if (failed(A.transform_by_gridop_mat(TransformMode::Fallback, M00, M01, M10,
-                                         M11, M00, M01, M10, M11, tol, &g)))
-      return failure();
+    if (llvm::failed(A.transform_by_gridop_mat(TransformMode::Fallback, M00,
+                                               M01, M10, M11, M00, M01, M10,
+                                               M11, tol, &g)))
+      return llvm::failure();
     GridOp g_conj = conj_sq2(g);
-    if (failed(B.transform_by_gridop(g_conj, TransformMode::Fallback, M00, M01,
-                                     M10, M11, tol)))
-      return failure();
-    return success();
+    if (llvm::failed(B.transform_by_gridop(g_conj, TransformMode::Fallback, M00,
+                                           M01, M10, M11, tol)))
+      return llvm::failure();
+    return llvm::success();
   }
 
   // Non-singular: compute F⁻¹ once using 1 division + 4 multiplications.
@@ -52,30 +53,30 @@ LogicalResult apply_grid_op(Ellipse &A, Ellipse &B, const GridOp &g) {
   Real inv10 = -(M10 * inv_det);
   Real inv11 = M00 * inv_det;
 
-  if (failed(A.transform_by_gridop_mat(TransformMode::Direct, M00, M01, M10,
-                                       M11, inv00, inv01, inv10, inv11, tol,
-                                       &g)))
-    return failure();
+  if (llvm::failed(A.transform_by_gridop_mat(TransformMode::Direct, M00, M01,
+                                             M10, M11, inv00, inv01, inv10,
+                                             inv11, tol, &g)))
+    return llvm::failure();
 
   ZOmega u0c = g.u0().conj_sq2();
   ZOmega u1c = g.u1().conj_sq2();
   Real M00c, M10c, M01c, M11c;
   to_real_imag(u0c, M00c, M10c);
   to_real_imag(u1c, M01c, M11c);
-  if (failed(B.transform_by_gridop_mat(TransformMode::Conjugate, M00c, M01c,
-                                       M10c, M11c, inv00, inv01, inv10, inv11,
-                                       tol, &g)))
-    return failure();
+  if (llvm::failed(B.transform_by_gridop_mat(TransformMode::Conjugate, M00c,
+                                             M01c, M10c, M11c, inv00, inv01,
+                                             inv10, inv11, tol, &g)))
+    return llvm::failure();
 
-  return success();
+  return llvm::success();
 }
 
-LogicalResult reduction(Ellipse &A, Ellipse &B, GridOp &opG_r,
-                        const GridOp &new_opG) {
-  if (failed(apply_grid_op(A, B, new_opG)))
-    return failure();
+llvm::LogicalResult reduction(Ellipse &A, Ellipse &B, GridOp &opG_r,
+                              const GridOp &new_opG) {
+  if (llvm::failed(apply_grid_op(A, B, new_opG)))
+    return llvm::failure();
   opG_r = new_opG * opG_r;
-  return success();
+  return llvm::success();
 }
 
 void shift_ellipses(Ellipse &A, Ellipse &B, const Integer &n) {
@@ -94,17 +95,17 @@ void shift_ellipses(Ellipse &A, Ellipse &B, const Integer &n) {
     B.flip_b();
 }
 
-LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l, GridOp &opG_r,
-                         bool &end) {
+llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
+                               GridOp &opG_r, bool &end) {
   CUDAQ_SYNTH_LOG_TRACE("synth.upright", "step_lemma: A={}, B={}", A, B);
 
   if (B.b() < 0) {
     static const GridOp OP_Z(ZOmega(0, 0, 0, 1), ZOmega(0, -1, 0, 0));
-    if (failed(reduction(A, B, opG_r, OP_Z)))
-      return failure();
+    if (llvm::failed(reduction(A, B, opG_r, OP_Z)))
+      return llvm::failure();
     end = false;
     CUDAQ_SYNTH_LOG_TRACE("synth.upright", "step_lemma: applied Z");
-    return success();
+    return llvm::success();
   }
 
   Real bias_A = bias(A);
@@ -118,11 +119,11 @@ LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l, GridOp &opG_r,
   // X operation: if A.bias * B.bias < 1
   if (bias_A * bias_B < 1) {
     static const GridOp OP_X(ZOmega(0, 1, 0, 0), ZOmega(0, 0, 0, 1));
-    if (failed(reduction(A, B, opG_r, OP_X)))
-      return failure();
+    if (llvm::failed(reduction(A, B, opG_r, OP_X)))
+      return llvm::failure();
     end = false;
     CUDAQ_SYNTH_LOG_TRACE("synth.upright", "step_lemma: applied X");
-    return success();
+    return llvm::success();
   }
 
   // Both S and Sigma use log(ZSqrt2::lambda()) — cache as a function-local
@@ -133,11 +134,11 @@ LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l, GridOp &opG_r,
   if (pair_bias_val > 33.971 || pair_bias_val < 0.029437) {
     static const GridOp OP_S(ZOmega(-1, 0, 1, 1), ZOmega(1, -1, 1, 0));
     Integer n = round_to_integer(log(pair_bias_val) / log(lambda_real) / 8);
-    if (failed(reduction(A, B, opG_r, pow(OP_S, n))))
-      return failure();
+    if (llvm::failed(reduction(A, B, opG_r, pow(OP_S, n))))
+      return llvm::failure();
     end = false;
     CUDAQ_SYNTH_LOG_TRACE("synth.upright", "step_lemma: applied S^{}", n);
-    return success();
+    return llvm::success();
   }
 
   Real skew = pair_skew(A, B);
@@ -146,7 +147,7 @@ LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l, GridOp &opG_r,
     end = true;
     CUDAQ_SYNTH_LOG_TRACE("synth.upright",
                           "step_lemma: pair_skew={} <= 15, done", skew);
-    return success();
+    return llvm::success();
   }
 
   // Sigma operation: moderate bias values
@@ -166,70 +167,71 @@ LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l, GridOp &opG_r,
     }
     end = false;
     CUDAQ_SYNTH_LOG_TRACE("synth.upright", "step_lemma: applied Sigma^{}", n);
-    return success();
+    return llvm::success();
   }
 
   // R operation: both biases in moderate range
   if (0.24410 <= bias_A && bias_A <= 4.0968 && 0.24410 <= bias_B &&
       bias_B <= 4.0968) {
     static const GridOp OP_R(ZOmega(0, 0, 1, 0), ZOmega(1, 0, 0, 0));
-    if (failed(reduction(A, B, opG_r, OP_R)))
-      return failure();
+    if (llvm::failed(reduction(A, B, opG_r, OP_R)))
+      return llvm::failure();
     end = false;
     CUDAQ_SYNTH_LOG_TRACE("synth.upright", "step_lemma: applied R");
-    return success();
+    return llvm::success();
   }
 
   // K operation: A.b >= 0 and A.bias <= 1.6969
   if (A.b() >= 0 && bias_A <= 1.6969) {
     static const GridOp OP_K(ZOmega(-1, -1, 0, 0), ZOmega(0, -1, 1, 0));
-    if (failed(reduction(A, B, opG_r, OP_K)))
-      return failure();
+    if (llvm::failed(reduction(A, B, opG_r, OP_K)))
+      return llvm::failure();
     end = false;
     CUDAQ_SYNTH_LOG_TRACE("synth.upright", "step_lemma: applied K");
-    return success();
+    return llvm::success();
   }
 
   // K_conj_sq2 operation: A.b >= 0 and B.bias <= 1.6969
   if (A.b() >= 0 && bias_B <= 1.6969) {
     static const GridOp OP_K_conj_sq2(ZOmega(1, -1, 0, 0),
                                       ZOmega(0, -1, -1, 0));
-    if (failed(reduction(A, B, opG_r, OP_K_conj_sq2)))
-      return failure();
+    if (llvm::failed(reduction(A, B, opG_r, OP_K_conj_sq2)))
+      return llvm::failure();
     end = false;
     CUDAQ_SYNTH_LOG_TRACE("synth.upright", "step_lemma: applied K_conj");
-    return success();
+    return llvm::success();
   }
 
   // A operation: A.b >= 0
   if (A.b() >= 0) {
     Integer n = std::max(Integer(1), floor_sqrt(std::min(bias_A, bias_B)) / 2);
     GridOp OP_A_n(ZOmega(0, 0, 0, 1), ZOmega(0, 1, 0, 2 * n));
-    if (failed(reduction(A, B, opG_r, OP_A_n)))
-      return failure();
+    if (llvm::failed(reduction(A, B, opG_r, OP_A_n)))
+      return llvm::failure();
     end = false;
     CUDAQ_SYNTH_LOG_TRACE("synth.upright", "step_lemma: applied A(n={})", n);
-    return success();
+    return llvm::success();
   }
 
   // B operation: fallback case
   Integer n = std::max(Integer(1), floor_sqrt(std::min(bias_A, bias_B) / 2));
   GridOp OP_B_n(ZOmega(0, 0, 0, 1), ZOmega(n, 1, -n, 0));
-  if (failed(reduction(A, B, opG_r, OP_B_n)))
-    return failure();
+  if (llvm::failed(reduction(A, B, opG_r, OP_B_n)))
+    return llvm::failure();
   end = false;
   CUDAQ_SYNTH_LOG_TRACE("synth.upright", "step_lemma: applied B(n={})", n);
-  return success();
+  return llvm::success();
 }
 
-FailureOr<UprightResult> to_upright(const Ellipse &setA, const Ellipse &setB) {
+llvm::FailureOr<UprightResult> to_upright(const Ellipse &setA,
+                                          const Ellipse &setB) {
   CUDAQ_SYNTH_LOG_DEBUG("synth.upright", "to_upright: starting");
   Ellipse A = setA;
-  if (failed(A.normalize()))
-    return failure();
+  if (llvm::failed(A.normalize()))
+    return llvm::failure();
   Ellipse B = setB;
-  if (failed(B.normalize()))
-    return failure();
+  if (llvm::failed(B.normalize()))
+    return llvm::failure();
 
   GridOp opG_l = GridOp::identity();
   GridOp opG_r = GridOp::identity();
@@ -237,8 +239,8 @@ FailureOr<UprightResult> to_upright(const Ellipse &setA, const Ellipse &setB) {
   [[maybe_unused]] i32 iterations = 0;
   bool done = false;
   while (!done) {
-    if (failed(step_lemma(A, B, opG_l, opG_r, done)))
-      return failure();
+    if (llvm::failed(step_lemma(A, B, opG_l, opG_r, done)))
+      return llvm::failure();
     ++iterations;
   }
 
@@ -253,15 +255,15 @@ FailureOr<UprightResult> to_upright(const Ellipse &setA, const Ellipse &setB) {
   GridOp opG = opG_l * opG_r;
   Ellipse A_upright = setA;
   Ellipse B_upright = setB;
-  if (failed(apply_grid_op(A_upright, B_upright, opG)))
-    return failure();
+  if (llvm::failed(apply_grid_op(A_upright, B_upright, opG)))
+    return llvm::failure();
 
-  FailureOr<Rectangle> bboxA_or = bbox(A_upright);
-  if (failed(bboxA_or))
-    return failure();
-  FailureOr<Rectangle> bboxB_or = bbox(B_upright);
-  if (failed(bboxB_or))
-    return failure();
+  llvm::FailureOr<Rectangle> bboxA_or = bbox(A_upright);
+  if (llvm::failed(bboxA_or))
+    return llvm::failure();
+  llvm::FailureOr<Rectangle> bboxB_or = bbox(B_upright);
+  if (llvm::failed(bboxB_or))
+    return llvm::failure();
 
   CUDAQ_SYNTH_LOG_TRACE("synth.upright",
                         "to_upright: opG={}, bboxA={}, bboxB={}, "
