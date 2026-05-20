@@ -149,20 +149,24 @@ private:
   handle_type handle_ = nullptr;
 };
 
-/// Materialize all elements of a generator into a vector.
-template <typename T>
-std::vector<T> to_vector(generator<T> gen) {
-  std::vector<T> result;
-  for (const T &val : gen)
+/// Materialize all elements of a lazy range (generator<T> or any class with
+/// begin()/end() yielding T) into a vector.
+template <typename Range>
+auto to_vector(Range &&r) {
+  using ValueT = std::remove_cv_t<std::remove_reference_t<decltype(*r.begin())>>;
+  std::vector<ValueT> result;
+  for (const auto &val : r)
     result.push_back(val);
   return result;
 }
 
-/// Get the first element from a generator, or `nullopt` if empty.
-template <typename T>
-std::optional<T> first_of(generator<T> gen) {
-  auto it = gen.begin();
-  if (it != gen.end())
+/// Get the first element from a lazy range, or `nullopt` if empty.
+template <typename Range>
+auto first_of(Range &&r)
+    -> std::optional<
+        std::remove_cv_t<std::remove_reference_t<decltype(*r.begin())>>> {
+  auto it = r.begin();
+  if (it != r.end())
     return *it;
   return std::nullopt;
 }
