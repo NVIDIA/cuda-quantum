@@ -66,31 +66,3 @@ target_link_libraries(cudaq-synth
     ${GMP_LIBRARIES}
     ${MPFR_LIBRARIES}
 )
-
-set(CUDAQ_SYNTH_SIMD_BACKEND "AUTO" CACHE STRING
-  "SIMD backend for BitVector: AUTO, AVX2, NEON, SCALAR")
-set_property(CACHE CUDAQ_SYNTH_SIMD_BACKEND PROPERTY STRINGS
-  "AUTO" "AVX2" "NEON" "SCALAR")
-
-if(CUDAQ_SYNTH_SIMD_BACKEND STREQUAL "AVX2" OR
-   (CUDAQ_SYNTH_SIMD_BACKEND STREQUAL "AUTO" AND
-    CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64"))
-  include(CheckCXXCompilerFlag)
-  check_cxx_compiler_flag("-mavx2" CUDAQ_SYNTH_HAS_AVX2)
-  if(CUDAQ_SYNTH_HAS_AVX2)
-    target_compile_options(cudaq-synth PRIVATE -mavx2)
-    message(STATUS "cudaq-synth BitVector SIMD: AVX2")
-  elseif(CUDAQ_SYNTH_SIMD_BACKEND STREQUAL "AVX2")
-    message(WARNING
-      "AVX2 requested but compiler does not support -mavx2; "
-      "falling back to scalar")
-  else()
-    message(STATUS "cudaq-synth BitVector SIMD: scalar")
-  endif()
-elseif(CUDAQ_SYNTH_SIMD_BACKEND STREQUAL "NEON" OR
-       (CUDAQ_SYNTH_SIMD_BACKEND STREQUAL "AUTO" AND
-        CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm"))
-  message(STATUS "cudaq-synth BitVector SIMD: NEON (compiler default)")
-else()
-  message(STATUS "cudaq-synth BitVector SIMD: scalar")
-endif()
