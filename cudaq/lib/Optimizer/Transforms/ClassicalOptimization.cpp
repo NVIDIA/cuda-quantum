@@ -60,7 +60,7 @@ public:
     patterns.insert<LoopPat>(ctx, allowClosedInterval, allowBreak);
     patterns.insert<AllocaPattern>(
         ctx, domInfo, func == nullptr ? "unknown" : func.getName());
-    if (numLoops && !preserveLoops)
+    if (numLoops && !disableLoopUnrolling)
       patterns.insert<UnrollCountedLoop>(ctx, threshold,
                                          /*signalFailure=*/false, allowBreak,
                                          progress);
@@ -113,7 +113,7 @@ struct ClassicalOptimizationPipelineOptions
       llvm::cl::desc("Allow unrolling of loop with a closed interval form. "
                      "(default: true)"),
       llvm::cl::init(true)};
-  PassOptions::Option<bool> preserveLoops{
+  PassOptions::Option<bool> disableLoopUnrolling{
       *this, "no-loop-unroll",
       llvm::cl::desc("Disable loop unrolling and preserve cc.loop operations. "
                      "(default: false)"),
@@ -136,7 +136,7 @@ static void createClassicalOptPipeline(
   opts.threshold = options.threshold;
   opts.allowClosedInterval = options.allowClosedInterval;
   opts.allowBreak = options.allowBreak;
-  opts.preserveLoops = options.preserveLoops;
+  opts.disableLoopUnrolling = options.disableLoopUnrolling;
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalOptimization(opts));
   pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalOptimization(opts));
@@ -146,7 +146,7 @@ static void createClassicalOptPipeline(
 void cudaq::opt::createClassicalOptimizationPipeline(
     OpPassManager &pm, std::optional<unsigned> threshold,
     std::optional<bool> allowBreak, std::optional<bool> allowClosedInterval,
-    std::optional<bool> preserveLoops) {
+    std::optional<bool> disableLoopUnrolling) {
   ClassicalOptimizationPipelineOptions options;
   if (threshold.has_value())
     options.threshold = *threshold;
@@ -154,8 +154,8 @@ void cudaq::opt::createClassicalOptimizationPipeline(
     options.allowClosedInterval = *allowClosedInterval;
   if (allowBreak.has_value())
     options.allowBreak = *allowBreak;
-  if (preserveLoops.has_value())
-    options.preserveLoops = *preserveLoops;
+  if (disableLoopUnrolling.has_value())
+    options.disableLoopUnrolling = *disableLoopUnrolling;
   ::createClassicalOptPipeline(pm, options);
 }
 

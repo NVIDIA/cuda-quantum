@@ -27,7 +27,7 @@ struct TargetPrepPipelineOptions
       llvm::cl::desc(
           "Enable loop unrolling on loops with early exit conditions."),
       llvm::cl::init(false)};
-  PassOptions::Option<bool> preserveLoops{
+  PassOptions::Option<bool> disableLoopUnrolling{
       *this, "no-loop-unroll",
       llvm::cl::desc("Disable loop unrolling and preserve cc.loop operations."),
       llvm::cl::init(false)};
@@ -35,7 +35,7 @@ struct TargetPrepPipelineOptions
 
 struct TargetDeployPipelineOptions
     : public PassPipelineOptions<TargetDeployPipelineOptions> {
-  PassOptions::Option<bool> preserveLoops{
+  PassOptions::Option<bool> disableLoopUnrolling{
       *this, "no-loop-unroll",
       llvm::cl::desc("Disable loop unrolling and preserve cc.loop operations."),
       llvm::cl::init(false)};
@@ -82,7 +82,7 @@ static void createTargetPrepPipeline(OpPassManager &pm,
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
   cudaq::opt::createClassicalOptimizationPipeline(
       pm, std::nullopt, {options.allowEarlyExit}, std::nullopt,
-      {options.preserveLoops});
+      {options.disableLoopUnrolling});
   pm.addPass(cudaq::opt::createGlobalizeArrayValues());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createUnitarySynthesis());
@@ -146,7 +146,8 @@ static void
 createTargetDeployPipeline(OpPassManager &pm,
                            const TargetDeployPipelineOptions &options) {
   cudaq::opt::createClassicalOptimizationPipeline(
-      pm, std::nullopt, std::nullopt, std::nullopt, {options.preserveLoops});
+      pm, std::nullopt, std::nullopt, std::nullopt,
+      {options.disableLoopUnrolling});
   cudaq::opt::addDecomposition(pm, {std::string("U3ToRotations")});
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createMultiControlDecomposition());
