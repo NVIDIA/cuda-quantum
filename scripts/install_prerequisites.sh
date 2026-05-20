@@ -58,11 +58,11 @@ BLAS_TARBALL_URL="http://www.netlib.org/blas/blas-${BLAS_VERSION}.tgz"
 PERL_VERSION=5.38.2
 PERL_TARBALL_URL="https://www.cpan.org/src/5.0/perl-${PERL_VERSION}.tar.gz"
 
-OPENSSL_VERSION=3.5.1
+OPENSSL_VERSION=4.0.0
 OPENSSL_TARBALL_URL="https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz"
 
-CURL_VERSION=8.5.0
-CURL_VERSION_UNDERSCORE=curl-8_5_0
+CURL_VERSION=8.20.0
+CURL_VERSION_UNDERSCORE=curl-8_20_0
 CURL_TARBALL_URL="https://github.com/curl/curl/releases/download/${CURL_VERSION_UNDERSCORE}/curl-${CURL_VERSION}.tar.gz"
 CACERT_URL="https://curl.se/ca/cacert.pem"
 CACERT_SHA256_URL="${CACERT_URL}.sha256"
