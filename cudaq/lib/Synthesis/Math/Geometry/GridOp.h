@@ -12,7 +12,7 @@
 #include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Math/Ring/Domega.h"
 #include "cudaq/Synthesis/Math/Ring/Zomega.h"
-#include "cudaq/Synthesis/Support/Result.h"
+#include "llvm/Support/LogicalResult.h"
 
 #include <array>
 #include <cassert>
@@ -214,10 +214,10 @@ inline std::array<std::array<Real, 2>, 2> to_real_mat(const GridOp &G) {
 /// columns to `minimise` GMP allocations.
 ///
 /// Returns failure() if G is not special.
-inline FailureOr<GridOp> inv(const GridOp &G) {
+inline llvm::FailureOr<GridOp> inv(const GridOp &G) {
   ZOmega det = G.u0().conj() * G.u1();
   if (!((det.a() + det.c() == 0) && (det.b() == 1 || det.b() == -1)))
-    return failure();
+    return llvm::failure();
 
   const Integer &a0_ = G.a0(), &b0_ = G.b0(), &c0_ = G.c0(), &d0_ = G.d0();
   const Integer &a1_ = G.a1(), &b1_ = G.b1(), &c1_ = G.c1(), &d1_ = G.d1();
@@ -252,8 +252,8 @@ inline FailureOr<GridOp> inv(const GridOp &G) {
 /// to the identity matrix [[1,0],[0,1]] in the ZOmega column encoding.
 inline GridOp pow(const GridOp &G, Integer exp) {
   if (exp < 0) {
-    FailureOr<GridOp> inv_or = inv(G);
-    assert(succeeded(inv_or) && "pow(GridOp): matrix is not special");
+    llvm::FailureOr<GridOp> inv_or = inv(G);
+    assert(llvm::succeeded(inv_or) && "pow(GridOp): matrix is not special");
     return pow(*inv_or, -exp);
   }
 

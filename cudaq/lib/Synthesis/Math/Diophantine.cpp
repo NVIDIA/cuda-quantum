@@ -10,7 +10,7 @@
 #include "Support/LogMacros.h"
 #include "cudaq/Synthesis/Math/Integer.h"
 #include "cudaq/Synthesis/Math/Ring/Zomega.h"
-#include "cudaq/Synthesis/Support/Result.h"
+#include "llvm/Support/LogicalResult.h"
 
 #include <cassert>
 #include <chrono>
@@ -249,8 +249,9 @@ Fp2 fp2_pow(const Fp2Ctx &ctx, Fp2 base_elem, Integer e) {
 /// @param n                    Composite integer > 1 to factor.
 /// @param factoring_timeout_ms Wall-clock timeout in milliseconds.
 /// @param batch_size           Steps between batched-GCD checks (default 128).
-FailureOr<Integer> find_factor(const Integer &n, i32 factoring_timeout_ms,
-                               i32 batch_size = 128) {
+llvm::FailureOr<Integer> find_factor(const Integer &n,
+                                     i32 factoring_timeout_ms,
+                                     i32 batch_size = 128) {
   CUDAQ_SYNTH_LOG_TRACE("synth.diophantine",
                         "find_factor: n has {} digits, timeout={}ms",
                         num_decimal_digits(n), factoring_timeout_ms);
@@ -270,7 +271,7 @@ FailureOr<Integer> find_factor(const Integer &n, i32 factoring_timeout_ms,
     }
   }
   if (n <= i64(3))
-    return failure();
+    return llvm::failure();
 
   // Iteration budget heuristic: L ≈ 10^(digits/4) · 1.1774.
   size_t digits = num_decimal_digits(n);
@@ -296,7 +297,7 @@ FailureOr<Integer> find_factor(const Integer &n, i32 factoring_timeout_ms,
   i64 r = 1, k = 0;
   auto start = std::chrono::steady_clock::now();
 
-  auto make_result = [&](mpz_t src) -> FailureOr<Integer> {
+  auto make_result = [&](mpz_t src) -> llvm::FailureOr<Integer> {
     Integer out;
     mpz_set(out.get_mpz_t(), src);
     return out;
@@ -337,11 +338,11 @@ FailureOr<Integer> find_factor(const Integer &n, i32 factoring_timeout_ms,
             mpz_gcd(g, d, n_mpz);
             if (mpz_cmp_ui(g, 1) != 0) {
               if (mpz_cmp(g, n_mpz) == 0)
-                return failure();
+                return llvm::failure();
               return make_result(g);
             }
           }
-          return failure();
+          return llvm::failure();
         }
         return make_result(g);
       }
@@ -355,7 +356,7 @@ FailureOr<Integer> find_factor(const Integer &n, i32 factoring_timeout_ms,
             "find_factor: exhausted budget for {}-digit number "
             "(L={}, k={})",
             digits, L, k);
-        return failure();
+        return llvm::failure();
       }
     }
     r <<= 1;
@@ -374,9 +375,10 @@ FailureOr<Integer> find_factor(const Integer &n, i32 factoring_timeout_ms,
 ///
 /// @param p          Odd prime with p ≡ 1 (mod 4).
 /// @param batch_size Number of random candidates to try (default 128).
-FailureOr<Integer> sqrt_negative_one(const Integer &p, i32 batch_size = 128) {
+llvm::FailureOr<Integer> sqrt_negative_one(const Integer &p,
+                                           i32 batch_size = 128) {
   if (p <= 2)
-    return failure();
+    return llvm::failure();
 
   const auto *p_mpz = p.get_mpz_t();
   Integer exp = (p - 1) >> 2; // (p−1)/4
@@ -398,9 +400,9 @@ FailureOr<Integer> sqrt_negative_one(const Integer &p, i32 batch_size = 128) {
     if (mpz_cmp(r.get_mpz_t(), p_minus_1_mpz) == 0)
       return h; // h² ≡ −1 (mod p)
     if (mpz_cmp_ui(r.get_mpz_t(), 1) != 0)
-      return failure(); // p is not prime (witness found)
+      return llvm::failure(); // p is not prime (witness found)
   }
-  return failure();
+  return llvm::failure();
 }
 
 /// Find y with y² ≡ x (mod p) using Cipolla's algorithm in F_p².
@@ -413,8 +415,8 @@ FailureOr<Integer> sqrt_negative_one(const Integer &p, i32 batch_size = 128) {
 /// @param x          Value whose square root is sought.
 /// @param p          Odd prime modulus.
 /// @param batch_size Number of random candidates to try (default 128).
-FailureOr<Integer> root_mod(const Integer &x, const Integer &p,
-                            i32 batch_size = 128) {
+llvm::FailureOr<Integer> root_mod(const Integer &x, const Integer &p,
+                                  i32 batch_size = 128) {
   Integer x_norm = x % p;
   if (x_norm < 0)
     x_norm += p;
@@ -424,7 +426,7 @@ FailureOr<Integer> root_mod(const Integer &x, const Integer &p,
   if (x_norm == 0)
     return Integer(0);
   if (!(p.is_odd()) && p > 2)
-    return failure(); // even "prime" > 2 — bail out
+    return llvm::failure(); // even "prime" > 2 — bail out
 
   const auto *p_mpz = p.get_mpz_t();
   const auto *x_norm_mpz = x_norm.get_mpz_t();
@@ -439,7 +441,7 @@ FailureOr<Integer> root_mod(const Integer &x, const Integer &p,
   Integer t;
   mpz_powm(t.get_mpz_t(), x_norm_mpz, exp_half_mpz, p_mpz);
   if (mpz_cmp_ui(t.get_mpz_t(), 1) != 0)
-    return failure(); // x is a quadratic non-residue
+    return llvm::failure(); // x is a quadratic non-residue
 
   Integer b, r, candidate_base, check, tmp;
   auto &rng = global_rng();
@@ -450,7 +452,7 @@ FailureOr<Integer> root_mod(const Integer &x, const Integer &p,
     // Verify b is in (Z/pZ)* (Fermat test: b^(p-1) ≡ 1).
     mpz_powm(r.get_mpz_t(), b.get_mpz_t(), p_minus_1_mpz, p_mpz);
     if (mpz_cmp_ui(r.get_mpz_t(), 1) != 0)
-      return failure(); // p is composite (Fermat witness)
+      return llvm::failure(); // p is composite (Fermat witness)
 
     // candidate_base = b² − x  (mod p).  This will be the "base" for F_p².
     mpz_mul(tmp.get_mpz_t(), b.get_mpz_t(), b.get_mpz_t());
@@ -469,7 +471,7 @@ FailureOr<Integer> root_mod(const Integer &x, const Integer &p,
       return std::move(rfp.a);
     }
   }
-  return failure();
+  return llvm::failure();
 }
 
 // ---------------------------------------------------------------------------
@@ -684,8 +686,8 @@ DiophantineResult adj_decompose_prime(Integer p) {
     if ((p & 0b11) == 1) {
       // p ≡ 1 (mod 4), i.e. p ≡ 1 or 5 (mod 8).
       // Solve h² ≡ −1 (mod p), then t = gcd(h + i, p) in Z[ω].
-      FailureOr<Integer> h = sqrt_negative_one(p);
-      if (failed(h))
+      llvm::FailureOr<Integer> h = sqrt_negative_one(p);
+      if (llvm::failed(h))
         return NeedFactoring{};
       ZOmega t =
           gcd(ZOmega(0, 1, 0, 0) + ZOmega(0, 0, 0, *h), ZOmega::from_int(p));
@@ -700,8 +702,8 @@ DiophantineResult adj_decompose_prime(Integer p) {
       // p ≡ 3 (mod 8).
       // Solve h² ≡ −2 (mod p), then t = gcd(h + i√2, p) in Z[ω].
       // i√2 in Z[ω] basis: ω³ + ω = ZOmega(1,0,1,0).
-      auto h = root_mod(-2, p);
-      if (failed(h))
+      llvm::FailureOr<Integer> h = root_mod(-2, p);
+      if (llvm::failed(h))
         return NeedFactoring{};
       ZOmega t =
           gcd(ZOmega(1, 0, 1, 0) + ZOmega(0, 0, 0, *h), ZOmega::from_int(p));
@@ -714,8 +716,8 @@ DiophantineResult adj_decompose_prime(Integer p) {
     if ((p & 0b111) == 7) {
       // p ≡ 7 (mod 8): not †-decomposable (Lemma C.20).
       // Confirm by checking that 2 is a QR mod p.
-      auto h = root_mod(2, p);
-      if (succeeded(h))
+      llvm::FailureOr<Integer> h = root_mod(2, p);
+      if (llvm::succeeded(h))
         return NoSolution{};
       return NeedFactoring{};
     }
@@ -725,8 +727,8 @@ DiophantineResult adj_decompose_prime(Integer p) {
 
   // p is not prime — may need further factoring.
   if ((p & 0b111) == 7) {
-    auto h = root_mod(2, p);
-    if (succeeded(h))
+    llvm::FailureOr<Integer> h = root_mod(2, p);
+    if (llvm::succeeded(h))
       return NoSolution{};
     return NeedFactoring{};
   }
@@ -807,8 +809,8 @@ DiophantineResult adj_decompose(Integer n, i32 diophantine_timeout_ms,
       return NoSolution{};
 
     if (is_need_factoring(t_p)) {
-      auto factor = find_factor(p, factoring_timeout_ms);
-      if (failed(factor)) {
+      llvm::FailureOr<Integer> factor = find_factor(p, factoring_timeout_ms);
+      if (llvm::failed(factor)) {
         factors.emplace_back(p, k);
         auto now = std::chrono::steady_clock::now();
         auto elapsed =
@@ -905,8 +907,8 @@ DiophantineResult adj_decompose_prime(const ZSqrt2 &eta) {
 
   if (is_probably_prime(p)) {
     if ((p & 0b11) == 1) {
-      FailureOr<Integer> h = sqrt_negative_one(p);
-      if (failed(h))
+      llvm::FailureOr<Integer> h = sqrt_negative_one(p);
+      if (llvm::failed(h))
         return NeedFactoring{};
 
       // gcd in Z[ω] of (h + i) and η  (η embedded as a Z[ω] element).
@@ -919,8 +921,8 @@ DiophantineResult adj_decompose_prime(const ZSqrt2 &eta) {
     }
 
     if ((p & 0b111) == 3) {
-      FailureOr<Integer> h = root_mod(-2, p);
-      if (failed(h))
+      llvm::FailureOr<Integer> h = root_mod(-2, p);
+      if (llvm::failed(h))
         return NeedFactoring{};
       ZOmega t = gcd(ZOmega(1, 0, 1, 0) + ZOmega(0, 0, 0, *h),
                      ZOmega::from_zsqrt2(eta));
@@ -931,8 +933,8 @@ DiophantineResult adj_decompose_prime(const ZSqrt2 &eta) {
     }
 
     if ((p & 0b111) == 7) {
-      FailureOr<Integer> h = root_mod(2, p);
-      if (succeeded(h))
+      llvm::FailureOr<Integer> h = root_mod(2, p);
+      if (llvm::succeeded(h))
         return NoSolution{};
       return NeedFactoring{};
     }
@@ -941,8 +943,8 @@ DiophantineResult adj_decompose_prime(const ZSqrt2 &eta) {
   }
 
   if ((p & 0b111) == 7) {
-    FailureOr<Integer> h = root_mod(2, p);
-    if (succeeded(h))
+    llvm::FailureOr<Integer> h = root_mod(2, p);
+    if (llvm::succeeded(h))
       return NoSolution{};
     return NeedFactoring{};
   }
@@ -1026,8 +1028,8 @@ adj_decompose_selfcoprime(const ZSqrt2 &xi, i32 diophantine_timeout_ms,
       Integer n = eta.norm();
       if (n < 0)
         n = -n;
-      FailureOr<Integer> fac_n = find_factor(n, factoring_timeout_ms);
-      if (failed(fac_n)) {
+      llvm::FailureOr<Integer> fac_n = find_factor(n, factoring_timeout_ms);
+      if (llvm::failed(fac_n)) {
         factors.emplace_back(eta, k);
         auto now = std::chrono::steady_clock::now();
         auto elapsed =
@@ -1135,8 +1137,8 @@ DiophantineResult diophantine(const ZSqrt2 &xi, i32 diophantine_timeout_ms,
   ZSqrt2 u = xi / xi_approx; // unit: ξ = u · (t†t)
 
   // u is doubly positive → u = v² (Lemma C.2).
-  FailureOr<ZSqrt2> v_or = sqrt(u);
-  if (failed(v_or))
+  llvm::FailureOr<ZSqrt2> v_or = sqrt(u);
+  if (llvm::failed(v_or))
     return NoSolution{};
 
   ZOmega v_zomega = ZOmega::from_zsqrt2(*v_or);
@@ -1151,9 +1153,9 @@ DiophantineResult diophantine(const ZSqrt2 &xi, i32 diophantine_timeout_ms,
 // Public API: D[√2] solver   (Theorem 6.2 / Lemma C.25)
 // ===========================================================================
 
-FailureOr<DOmega> cudaq::synth::diophantine_dyadic(const DSqrt2 &xi,
-                                                   i32 diophantine_timeout,
-                                                   i32 factoring_timeout) {
+llvm::FailureOr<DOmega>
+cudaq::synth::diophantine_dyadic(const DSqrt2 &xi, i32 diophantine_timeout,
+                                 i32 factoring_timeout) {
   CUDAQ_SYNTH_LOG_DEBUG("synth.diophantine",
                         "diophantine_dyadic: denom_exp={}, dioph_timeout={}ms, "
                         "fact_timeout={}ms",
@@ -1190,7 +1192,7 @@ FailureOr<DOmega> cudaq::synth::diophantine_dyadic(const DSqrt2 &xi,
         "synth.diophantine",
         "diophantine_dyadic: no solution found for denom_exp={}",
         static_cast<i64>(xi.k()));
-    return failure();
+    return llvm::failure();
   }
 
   // Undo the "extra √2" if k was odd, using δ = 1 + ω.

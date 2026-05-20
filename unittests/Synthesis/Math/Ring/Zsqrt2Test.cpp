@@ -154,15 +154,15 @@ TEST(ZSqrt2ConjTest, ProductWithConjIsNorm) {
 // ============================================================
 
 TEST(ZSqrt2InvTest, InvOfOne) {
-  auto r = inv(kOne);
-  ASSERT_TRUE(succeeded(r));
+  llvm::FailureOr<ZSqrt2> r = inv(kOne);
+  ASSERT_TRUE(llvm::succeeded(r));
   EXPECT_EQ(*r, kOne);
 }
 
 TEST(ZSqrt2InvTest, InvOfLambdaIsLambdaInverse) {
   // λ^-1 = -λ^● = -(1,-1) = (-1, 1)
-  auto r = inv(kLambda);
-  ASSERT_TRUE(succeeded(r));
+  llvm::FailureOr<ZSqrt2> r = inv(kLambda);
+  ASSERT_TRUE(llvm::succeeded(r));
   EXPECT_EQ(ll(r->a()), -1LL);
   EXPECT_EQ(ll(r->b()), 1LL);
 }
@@ -170,25 +170,25 @@ TEST(ZSqrt2InvTest, InvOfLambdaIsLambdaInverse) {
 TEST(ZSqrt2InvTest, InvOfLambdaSquared) {
   // λ² = (3,2), norm=1: inv = conj = (3,-2)
   ZSqrt2 l2(3, 2);
-  auto r = inv(l2);
-  ASSERT_TRUE(succeeded(r));
+  llvm::FailureOr<ZSqrt2> r = inv(l2);
+  ASSERT_TRUE(llvm::succeeded(r));
   EXPECT_EQ(ll(r->a()), 3LL);
   EXPECT_EQ(ll(r->b()), -2LL);
 }
 
 TEST(ZSqrt2InvTest, InvTimesOriginalIsOne) {
   for (auto &x : {ZSqrt2(1, 0), ZSqrt2(1, 1), ZSqrt2(3, 2), ZSqrt2(-1, 1)}) {
-    auto r = inv(x);
-    if (succeeded(r))
+    llvm::FailureOr<ZSqrt2> r = inv(x);
+    if (llvm::succeeded(r))
       EXPECT_EQ(x * (*r), kOne)
           << "x = (" << ll(x.a()) << "," << ll(x.b()) << ")";
   }
 }
 
 TEST(ZSqrt2InvTest, InvOfNonUnitFails) {
-  EXPECT_TRUE(failed(inv(ZSqrt2(1, 2)))); // norm = 1-8 = -7
-  EXPECT_TRUE(failed(inv(ZSqrt2(2, 0)))); // norm = 4
-  EXPECT_TRUE(failed(inv(kZero)));        // norm = 0
+  EXPECT_TRUE(llvm::failed(inv(ZSqrt2(1, 2)))); // norm = 1-8 = -7
+  EXPECT_TRUE(llvm::failed(inv(ZSqrt2(2, 0)))); // norm = 4
+  EXPECT_TRUE(llvm::failed(inv(kZero)));        // norm = 0
 }
 
 // ============================================================
@@ -250,36 +250,36 @@ TEST(ZSqrt2PowTest, NormOfPowerIsNormPow) {
 // ============================================================
 
 TEST(ZSqrt2SqrtTest, SqrtOfZero) {
-  FailureOr<ZSqrt2> r = sqrt(kZero);
-  ASSERT_TRUE(succeeded(r));
+  llvm::FailureOr<ZSqrt2> r = sqrt(kZero);
+  ASSERT_TRUE(llvm::succeeded(r));
   EXPECT_EQ(*r, kZero);
 }
 
 TEST(ZSqrt2SqrtTest, SqrtOfOne) {
-  FailureOr<ZSqrt2> r = sqrt(kOne);
-  ASSERT_TRUE(succeeded(r));
+  llvm::FailureOr<ZSqrt2> r = sqrt(kOne);
+  ASSERT_TRUE(llvm::succeeded(r));
   EXPECT_EQ(*r * *r, kOne);
 }
 
 TEST(ZSqrt2SqrtTest, SqrtOf2AsInteger) {
   // ZSqrt2(2,0) = 2: `sqrt` is (0,1) because (0+1·√2)² = 2+0√2
-  FailureOr<ZSqrt2> r = sqrt(ZSqrt2(2, 0));
-  ASSERT_TRUE(succeeded(r));
+  llvm::FailureOr<ZSqrt2> r = sqrt(ZSqrt2(2, 0));
+  ASSERT_TRUE(llvm::succeeded(r));
   EXPECT_EQ(*r * *r, ZSqrt2(2, 0));
 }
 
 TEST(ZSqrt2SqrtTest, SqrtOfLambdaSquared) {
   // λ² = (3,2): `sqrt` should be λ = (1,1)
-  FailureOr<ZSqrt2> r = sqrt(ZSqrt2(3, 2));
-  ASSERT_TRUE(succeeded(r));
+  llvm::FailureOr<ZSqrt2> r = sqrt(ZSqrt2(3, 2));
+  ASSERT_TRUE(llvm::succeeded(r));
   EXPECT_EQ(*r * *r, ZSqrt2(3, 2));
 }
 
 TEST(ZSqrt2SqrtTest, SqrtOfLambdaFourth) {
   // λ^4 = (17,12): `sqrt` should be λ² = (3,2)
   ZSqrt2 l4 = pow(kLambda, Integer(4));
-  FailureOr<ZSqrt2> r = sqrt(l4);
-  ASSERT_TRUE(succeeded(r));
+  llvm::FailureOr<ZSqrt2> r = sqrt(l4);
+  ASSERT_TRUE(llvm::succeeded(r));
   EXPECT_EQ(*r * *r, l4);
 }
 
@@ -288,8 +288,8 @@ TEST(ZSqrt2SqrtTest, SqrtResultSquaresToInput) {
   for (int a = 0; a <= 10; ++a) {
     for (int b = -5; b <= 5; ++b) {
       ZSqrt2 x(a, b);
-      FailureOr<ZSqrt2> r = sqrt(x);
-      if (succeeded(r))
+      llvm::FailureOr<ZSqrt2> r = sqrt(x);
+      if (llvm::succeeded(r))
         EXPECT_EQ(*r * *r, x) << "x = (" << a << "," << b << ")";
     }
   }
@@ -297,9 +297,9 @@ TEST(ZSqrt2SqrtTest, SqrtResultSquaresToInput) {
 
 TEST(ZSqrt2SqrtTest, SqrtOfNonSquareIsNullopt) {
   // ZSqrt2(3,0) = 3 has no square root in Z[√2]
-  EXPECT_FALSE(succeeded(sqrt(ZSqrt2(3, 0))));
+  EXPECT_FALSE(llvm::succeeded(sqrt(ZSqrt2(3, 0))));
   // ZSqrt2(5,0) = 5 likewise
-  EXPECT_FALSE(succeeded(sqrt(ZSqrt2(5, 0))));
+  EXPECT_FALSE(llvm::succeeded(sqrt(ZSqrt2(5, 0))));
 }
 
 // ============================================================

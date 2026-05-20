@@ -10,7 +10,7 @@
 
 #include "cudaq/Synthesis/Math/Integer.h"
 #include "cudaq/Synthesis/Math/Real.h"
-#include "cudaq/Synthesis/Support/Result.h"
+#include "llvm/Support/LogicalResult.h"
 
 #include <cassert>
 #include <utility>
@@ -184,13 +184,13 @@ inline Real to_real(const ZSqrt2 &x) {
 /// Returns failure() if x is not a unit.
 /// N = 1:  x⁻¹ = x● (since x·x● = N = 1).
 /// N = -1: x⁻¹ = -x● (since x·(-x●) = -N = 1).
-inline FailureOr<ZSqrt2> inv(const ZSqrt2 &x) {
+inline llvm::FailureOr<ZSqrt2> inv(const ZSqrt2 &x) {
   Integer n = x.norm();
   if (n == 1)
     return x.conj_sq2();
   if (n == -1)
     return -x.conj_sq2();
-  return failure();
+  return llvm::failure();
 }
 
 /// Integer power x^exp.
@@ -199,8 +199,8 @@ inline FailureOr<ZSqrt2> inv(const ZSqrt2 &x) {
 /// exponents require x to be a unit; callers must ensure this precondition.
 inline ZSqrt2 pow(const ZSqrt2 &x, Integer exp) {
   if (exp < 0) {
-    FailureOr<ZSqrt2> inv_or = inv(x);
-    assert(succeeded(inv_or) && "ZSqrt2::pow: element is not a unit");
+    llvm::FailureOr<ZSqrt2> inv_or = inv(x);
+    assert(llvm::succeeded(inv_or) && "ZSqrt2::pow: element is not a unit");
     return pow(*inv_or, -exp);
   }
 
@@ -221,10 +221,10 @@ inline ZSqrt2 pow(const ZSqrt2 &x, Integer exp) {
 /// The algorithm finds candidate square roots w₁, w₂ ∈ Z[√2] from the
 /// floor-square-roots of the rational candidates (x.a() ± r)/2 and
 /// (x.a() ± r)/4 where r = ⌊√N(x)⌋, then verifies by squaring.
-inline FailureOr<ZSqrt2> sqrt(const ZSqrt2 &x) {
+inline llvm::FailureOr<ZSqrt2> sqrt(const ZSqrt2 &x) {
   Integer n = x.norm();
   if (n < 0 || x.a() < 0)
-    return failure();
+    return llvm::failure();
 
   Integer r = floorsqrt(n);
   Integer a1 = floorsqrt(floordiv(x.a() + r, 2));
@@ -240,7 +240,7 @@ inline FailureOr<ZSqrt2> sqrt(const ZSqrt2 &x) {
     return w1;
   if (x == w2 * w2)
     return w2;
-  return failure();
+  return llvm::failure();
 }
 
 /// Euclidean division with remainder in Z[√2].

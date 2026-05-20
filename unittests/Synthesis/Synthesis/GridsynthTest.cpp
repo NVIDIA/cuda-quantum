@@ -13,14 +13,13 @@
 
 #include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Math/Unitary.h"
-#include "cudaq/Synthesis/Support/Result.h"
 #include "cudaq/Synthesis/Synthesis/Gridsynth.h"
+#include "llvm/Support/LogicalResult.h"
 
 namespace {
 
 using cudaq::synth::Circuit;
 using cudaq::synth::Real;
-using cudaq::synth::succeeded;
 
 // ============================================================
 // Helpers
@@ -51,8 +50,8 @@ TEST_P(GridsynthApproxTest, ErrorWithinEpsilonAndGatesAreValid) {
   Real theta(theta_str);
   Real epsilon(epsilon_str);
 
-  auto result = cudaq::synth::gridsynth(theta, epsilon);
-  ASSERT_TRUE(succeeded(result))
+  llvm::FailureOr<Circuit> result = cudaq::synth::gridsynth(theta, epsilon);
+  ASSERT_TRUE(llvm::succeeded(result))
       << "gridsynth failed for theta=" << tc.theta << " eps=" << tc.epsilon;
 
   const Circuit &circuit = *result;
@@ -169,11 +168,13 @@ INSTANTIATE_TEST_SUITE_P(
 // (monotonicity of approximation quality vs. circuit depth).
 TEST(GridsynthMonotonicityTest, FinerEpsilonMoreTGates) {
   Real theta("0.5");
-  auto r_coarse = cudaq::synth::gridsynth(theta, Real("1e-4"));
-  auto r_fine = cudaq::synth::gridsynth(theta, Real("1e-10"));
+  llvm::FailureOr<Circuit> r_coarse =
+      cudaq::synth::gridsynth(theta, Real("1e-4"));
+  llvm::FailureOr<Circuit> r_fine =
+      cudaq::synth::gridsynth(theta, Real("1e-10"));
 
-  ASSERT_TRUE(succeeded(r_coarse));
-  ASSERT_TRUE(succeeded(r_fine));
+  ASSERT_TRUE(llvm::succeeded(r_coarse));
+  ASSERT_TRUE(llvm::succeeded(r_fine));
 
   EXPECT_LT(r_coarse->t_count(), r_fine->t_count())
       << "coarse: " << *r_coarse << "\nfine: " << *r_fine;
@@ -193,8 +194,9 @@ TEST(GridsynthErrorFuncTest, ErrorForIdentityCircuit) {
 // Verify the error function returns ~0 for a synthesized circuit.
 TEST(GridsynthErrorFuncTest, ErrorForSynthesizedCircuit) {
   std::string theta_str = "0.5";
-  auto result = cudaq::synth::gridsynth(Real(theta_str), Real("1e-6"));
-  ASSERT_TRUE(succeeded(result));
+  llvm::FailureOr<Circuit> result =
+      cudaq::synth::gridsynth(Real(theta_str), Real("1e-6"));
+  ASSERT_TRUE(llvm::succeeded(result));
   std::string err_str =
       cudaq::synth::rz_gate_sequence_error(theta_str, *result);
   Real err(err_str);

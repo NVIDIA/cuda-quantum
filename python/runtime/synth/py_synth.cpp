@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 #include "cudaq/Synthesis/Math/Real.h"
-#include "cudaq/Synthesis/Support/Result.h"
 #include "cudaq/Synthesis/Synthesis/Gridsynth.h"
+#include "llvm/Support/LogicalResult.h"
 
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
@@ -36,9 +36,9 @@ std::string gridsynthBinding(RealArg theta, RealArg epsilon,
   if (!(epsilonReal > 0))
     throw nanobind::value_error("epsilon must be strictly positive");
 
-  auto result = cudaq::synth::gridsynth(
+  llvm::FailureOr<cudaq::synth::Circuit> result = cudaq::synth::gridsynth(
       thetaReal, epsilonReal, diophantine_timeout_ms, factoring_timeout_ms);
-  if (cudaq::synth::failed(result))
+  if (llvm::failed(result))
     throw nanobind::value_error(
         "gridsynth: failed to synthesize a Clifford+T approximation "
         "(degenerate epsilon region or search exhausted)");
