@@ -9,13 +9,18 @@
 #pragma once
 
 #include "Math/Geometry/GridOp.h"
-#include "Support/Generator.h"
+#include "Math/Geometry/Interval.h"
+#include "Math/Geometry/Rectangle.h"
+#include "Math/Grid/Odgp.h"
+#include "Support/Stepper.h"
+#include "cudaq/Synthesis/Math/Ring/Domega.h"
+#include "cudaq/Synthesis/Math/Ring/Dsqrt2.h"
+
+#include <optional>
+#include <string>
 
 namespace cudaq::synth {
 class ConvexSet;
-class DOmega;
-class Rectangle;
-class Interval;
 } // namespace cudaq::synth
 
 namespace cudaq::synth {
@@ -59,7 +64,7 @@ namespace cudaq::synth {
 /// 5. FILTERING: Transform candidates back through G⁻¹ and verify
 ///    membership in the original (non-upright) sets A and B.
 ///
-/// The caller iterates k = 0, 1, 2, ... calling solve_tdgp(k) for each
+/// The caller iterates k = 0, 1, 2, ... calling `solve_tdgp(k, ...)` for each
 /// denominator exponent until a valid solution is found. This provides
 /// enumeration in order of increasing T-count (Lemma 7.3, Proposition 5.22).
 ///
@@ -70,16 +75,84 @@ namespace cudaq::synth {
 /// bounding boxes (bboxA_y_fattened, bboxB_y_fattened) to account
 /// for the ω-offset.
 ///
-/// LAZINESS: Returns a generator<DOmega> that produces solutions on demand.
-/// The entire pipeline (x-ODGP, y-ODGP, parity-ODGP) is lazy, so early
-/// termination by the caller propagates through the full chain without
-/// wasting computation on unused solutions.
+/// LAZINESS: Implemented as a hand-rolled stepper (no coroutines). The entire
+/// pipeline (x-ODGP, y-ODGP, parity-ODGP) is lazy, so early termination by
+/// the caller propagates through the full chain without wasting computation
+/// on unused solutions.
+
+/// Lazy stepper for the scaled TDGP at denominator exponent k.
+///
+/// Yields all u ∈ (1/√2^k)·Z[ω] satisfying u ∈ setA and u● ∈ setB.
+///
+/// Usage:
+///   for (const DOmega &z : TdgpStepper(k, ...)) { ... }
+///
+/// Composes `OdgpScaledStepper` (for the β-iteration) and
+/// `OdgpScaledWithParityStepper` (for the α-iteration per β). The
+/// transformed-membership filter `setA.contains(z_tr) && setB.contains(...)`
+/// is applied inside `next()`; rejected candidates do not increment the
+/// yield counter and are silently skipped.
+///
+/// Non-copyable, non-movable.
+class TdgpStepper : public StepperBase<TdgpStepper, DOmega> {
+public:
+  TdgpStepper(Integer k, const ConvexSet &setA, const ConvexSet &setB,
+              const GridOp &opG_inv, Rectangle bboxA, Rectangle bboxB,
+              Interval bboxA_y_fattened, Interval bboxB_y_fattened);
+  ~TdgpStepper();
+
+  TdgpStepper(const TdgpStepper &) = delete;
+  TdgpStepper &operator=(const TdgpStepper &) = delete;
+  TdgpStepper(TdgpStepper &&) = delete;
+  TdgpStepper &operator=(TdgpStepper &&) = delete;
+
+  const DOmega *next();
+
+private:
+  // Constants from constructor.
+  Integer k_;
+  const ConvexSet *setA_;
+  const ConvexSet *setB_;
+  GridOp opG_inv_;
+  Rectangle bboxA_;
+  Rectangle bboxB_;
+  Interval bboxA_y_fattened_;
+  Interval bboxB_y_fattened_;
+
+  // Computed once in constructor.
+  DSqrt2 alpha0_;
+  DSqrt2 dx_;
+  DOmega v_common_;
+  DOmega v_conj_;
+  Real two_pow_k_;
+
+  // β-iteration; emplaced if construction succeeds (i.e. alpha0_ exists).
+  std::optional<OdgpScaledStepper> beta_gen_;
+  // Current β (the value most recently advanced from beta_gen_) and the
+  // alpha-iteration over it.
+  DSqrt2 current_beta_;
+  std::optional<OdgpScaledWithParityStepper> alpha_gen_;
+
+  // Output buffer.
+  DOmega last_sol_;
+
+  // Diagnostics / state.
+  bool exhausted_ = false;
+  int yielded_ = 0;
+  int skipped_betas_ = 0;
+  std::string close_reason_;
+
+  /// Advance beta_gen_ to the next β with a non-empty (A,B) intersection
+  /// interval, set current_beta_, and emplace alpha_gen_. Returns false if
+  /// β-iteration is exhausted (no more candidates).
+  bool advance_to_next_beta();
+};
 
 /// Solve the scaled TDGP for a given denominator exponent k.
 ///
-/// Returns a lazy generator of all u ∈ (1/√2^k)·Z[ω] with u ∈ setA and
-/// u● ∈ setB. Solutions are produced on demand; destroy the generator to
-/// stop enumeration early.
+/// Returns a lazy stepper of all u ∈ (1/√2^k)·Z[ω] with u ∈ setA and
+/// u● ∈ setB. Solutions are produced on demand; destroy the stepper to stop
+/// enumeration early.
 ///
 /// @param k Denominator exponent (determines grid scale 1/√2^k)
 /// @param setA First convex set constraint (epsilon region in `gridsynth`)
@@ -89,11 +162,9 @@ namespace cudaq::synth {
 /// @param bboxB Bounding box for transformed setB
 /// @param bboxA_y_fattened Fattened y-interval for setA (handles ω-offset)
 /// @param bboxB_y_fattened Fattened y-interval for setB (handles ω-offset)
-/// @return Lazy generator of solutions (may be empty)
-generator<DOmega> solve_tdgp(Integer k, const ConvexSet &setA,
-                             const ConvexSet &setB, const GridOp &opG_inv,
-                             Rectangle bboxA, Rectangle bboxB,
-                             Interval bboxA_y_fattened,
-                             Interval bboxB_y_fattened);
+/// @return Lazy stepper of solutions (may be empty)
+TdgpStepper solve_tdgp(Integer k, const ConvexSet &setA, const ConvexSet &setB,
+                       const GridOp &opG_inv, Rectangle bboxA, Rectangle bboxB,
+                       Interval bboxA_y_fattened, Interval bboxB_y_fattened);
 
 } // namespace cudaq::synth
