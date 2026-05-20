@@ -122,6 +122,32 @@ OwningOpRef<ModuleOp> buildRotationModule(MLIRContext *context, Rot gate,
   return OwningOpRef<ModuleOp>(module);
 }
 
+// Operator-norm proxy distance between two 2x2 unitaries, modulo a global
+// phase. Consistent with cudaq::synth::rz_approximation_error (the metric
+// behind rz_gate_sequence_error). Both compute sqrt(|det(A - B)|), which for
+// 2x2 matrices equals sqrt(sigma_max * sigma_min) and tracks the operator
+// norm in the small-error regime where the two singular values of (A - B)
+// are nearly equal.
+//
+// Phase alignment is required here because CliffordTSynthesis drops the W
+// (global phase) gates emitted by gridsynth, so the reconstructed unitary
+// can differ from the ideal by a global phase even when synthesis succeeds.
+double distance(const M2 &A, const M2 &B) {
+  const std::complex<double> inner =
+      std::conj(A.a) * B.a + std::conj(A.b) * B.b + std::conj(A.c) * B.c +
+      std::conj(A.d) * B.d;
+  const double mag = std::abs(inner);
+  const std::complex<double> phase =
+      mag > 0.0 ? inner / mag : std::complex<double>(1.0, 0.0);
+  const M2 Aligned = {phase * A.a, phase * A.b, phase * A.c, phase * A.d};
+  const std::complex<double> e00 = Aligned.a - B.a;
+  const std::complex<double> e01 = Aligned.b - B.b;
+  const std::complex<double> e10 = Aligned.c - B.c;
+  const std::complex<double> e11 = Aligned.d - B.d;
+  const std::complex<double> det = e00 * e11 - e01 * e10;
+  return std::sqrt(std::abs(det));
+}
+
 M2 reconstructUnitary(ModuleOp module) {
   M2 U = {1.0, 0.0, 0.0, 1.0};
   module.walk([&](Operation *op) {
@@ -174,11 +200,7 @@ TEST_P(CliffordTSynthesisRotationTest, RoundTripMatchesIdealUpToGlobalPhase) {
 
   const M2 U = reconstructUnitary(*module);
   const M2 expected = idealUnitary(param.gate, param.theta);
-
-  const std::complex<double> inner =
-      U.a * std::conj(expected.a) + U.b * std::conj(expected.b) +
-      U.c * std::conj(expected.c) + U.d * std::conj(expected.d);
-  EXPECT_NEAR(std::abs(inner), 2.0, 1e-6);
+  EXPECT_LT(distance(U, expected), opts.epsilon);
 }
 
 INSTANTIATE_TEST_SUITE_P(
