@@ -7,10 +7,13 @@
  ******************************************************************************/
 
 #include "Math/Geometry/ToUpright.h"
-#include "Support/LogMacros.h"
+#include "Support/StreamOps.h"
 #include "cudaq/Synthesis/Math/Real.h"
+#include "llvm/Support/Debug.h"
 
 #include <algorithm>
+
+#define DEBUG_TYPE "cudaq-synth"
 
 using namespace cudaq::synth;
 
@@ -97,14 +100,15 @@ void shift_ellipses(Ellipse &A, Ellipse &B, const Integer &n) {
 
 llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
                                GridOp &opG_r, bool &end) {
-  CUDAQ_SYNTH_LOG_TRACE("synth.upright", "step_lemma: A={}, B={}", A, B);
+  LLVM_DEBUG(llvm::dbgs() << "[upright] step_lemma: A=" << A << ", B=" << B
+                          << '\n');
 
   if (B.b() < 0) {
     static const GridOp OP_Z(ZOmega(0, 0, 0, 1), ZOmega(0, -1, 0, 0));
     if (llvm::failed(reduction(A, B, opG_r, OP_Z)))
       return llvm::failure();
     end = false;
-    CUDAQ_SYNTH_LOG_TRACE("synth.upright", "step_lemma: applied Z");
+    LLVM_DEBUG(llvm::dbgs() << "[upright] step_lemma: applied Z\n");
     return llvm::success();
   }
 
@@ -112,9 +116,9 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
   Real bias_B = bias(B);
   Real pair_bias_val = bias_B / bias_A;
 
-  CUDAQ_SYNTH_LOG_TRACE("synth.upright",
-                        "step_lemma: bias_A={}, bias_B={}, pair_bias={}",
-                        bias_A, bias_B, pair_bias_val);
+  LLVM_DEBUG(llvm::dbgs() << "[upright] step_lemma: bias_A=" << bias_A
+                          << ", bias_B=" << bias_B
+                          << ", pair_bias=" << pair_bias_val << '\n');
 
   // X operation: if A.bias * B.bias < 1
   if (bias_A * bias_B < 1) {
@@ -122,7 +126,7 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
     if (llvm::failed(reduction(A, B, opG_r, OP_X)))
       return llvm::failure();
     end = false;
-    CUDAQ_SYNTH_LOG_TRACE("synth.upright", "step_lemma: applied X");
+    LLVM_DEBUG(llvm::dbgs() << "[upright] step_lemma: applied X\n");
     return llvm::success();
   }
 
@@ -137,7 +141,8 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
     if (llvm::failed(reduction(A, B, opG_r, pow(OP_S, n))))
       return llvm::failure();
     end = false;
-    CUDAQ_SYNTH_LOG_TRACE("synth.upright", "step_lemma: applied S^{}", n);
+    LLVM_DEBUG(llvm::dbgs()
+               << "[upright] step_lemma: applied S^" << n << '\n');
     return llvm::success();
   }
 
@@ -145,8 +150,8 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
   // Done check: computed lazily, only needed if Z/X/S didn't trigger.
   if (skew <= 15) {
     end = true;
-    CUDAQ_SYNTH_LOG_TRACE("synth.upright",
-                          "step_lemma: pair_skew={} <= 15, done", skew);
+    LLVM_DEBUG(llvm::dbgs() << "[upright] step_lemma: pair_skew=" << skew
+                            << " <= 15, done\n");
     return llvm::success();
   }
 
@@ -166,7 +171,8 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
       opG_r = pow(SIGMA_R_NEG, -n) * opG_r;
     }
     end = false;
-    CUDAQ_SYNTH_LOG_TRACE("synth.upright", "step_lemma: applied Sigma^{}", n);
+    LLVM_DEBUG(llvm::dbgs()
+               << "[upright] step_lemma: applied Sigma^" << n << '\n');
     return llvm::success();
   }
 
@@ -177,7 +183,7 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
     if (llvm::failed(reduction(A, B, opG_r, OP_R)))
       return llvm::failure();
     end = false;
-    CUDAQ_SYNTH_LOG_TRACE("synth.upright", "step_lemma: applied R");
+    LLVM_DEBUG(llvm::dbgs() << "[upright] step_lemma: applied R\n");
     return llvm::success();
   }
 
@@ -187,7 +193,7 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
     if (llvm::failed(reduction(A, B, opG_r, OP_K)))
       return llvm::failure();
     end = false;
-    CUDAQ_SYNTH_LOG_TRACE("synth.upright", "step_lemma: applied K");
+    LLVM_DEBUG(llvm::dbgs() << "[upright] step_lemma: applied K\n");
     return llvm::success();
   }
 
@@ -198,7 +204,7 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
     if (llvm::failed(reduction(A, B, opG_r, OP_K_conj_sq2)))
       return llvm::failure();
     end = false;
-    CUDAQ_SYNTH_LOG_TRACE("synth.upright", "step_lemma: applied K_conj");
+    LLVM_DEBUG(llvm::dbgs() << "[upright] step_lemma: applied K_conj\n");
     return llvm::success();
   }
 
@@ -209,7 +215,8 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
     if (llvm::failed(reduction(A, B, opG_r, OP_A_n)))
       return llvm::failure();
     end = false;
-    CUDAQ_SYNTH_LOG_TRACE("synth.upright", "step_lemma: applied A(n={})", n);
+    LLVM_DEBUG(llvm::dbgs()
+               << "[upright] step_lemma: applied A(n=" << n << ")\n");
     return llvm::success();
   }
 
@@ -219,13 +226,14 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
   if (llvm::failed(reduction(A, B, opG_r, OP_B_n)))
     return llvm::failure();
   end = false;
-  CUDAQ_SYNTH_LOG_TRACE("synth.upright", "step_lemma: applied B(n={})", n);
+  LLVM_DEBUG(llvm::dbgs() << "[upright] step_lemma: applied B(n=" << n
+                          << ")\n");
   return llvm::success();
 }
 
 llvm::FailureOr<UprightResult> to_upright(const Ellipse &setA,
                                           const Ellipse &setB) {
-  CUDAQ_SYNTH_LOG_DEBUG("synth.upright", "to_upright: starting");
+  LLVM_DEBUG(llvm::dbgs() << "[upright] to_upright: starting\n");
   Ellipse A = setA;
   if (llvm::failed(A.normalize()))
     return llvm::failure();
@@ -244,9 +252,8 @@ llvm::FailureOr<UprightResult> to_upright(const Ellipse &setA,
     ++iterations;
   }
 
-  CUDAQ_SYNTH_LOG_DEBUG("synth.upright",
-                        "to_upright: converged after {} step_lemma iterations",
-                        iterations);
+  LLVM_DEBUG(llvm::dbgs() << "[upright] to_upright: converged after "
+                          << iterations << " step_lemma iterations\n");
 
   // opG is built from normalized ellipses; apply it to the original (non-
   // normalized) copies to get the correct upright bboxes. shift_ellipses()
@@ -265,12 +272,12 @@ llvm::FailureOr<UprightResult> to_upright(const Ellipse &setA,
   if (llvm::failed(bboxB_or))
     return llvm::failure();
 
-  CUDAQ_SYNTH_LOG_TRACE("synth.upright",
-                        "to_upright: opG={}, bboxA={}, bboxB={}, "
-                        "uprightness_A={}, uprightness_B={}",
-                        opG, *bboxA_or, *bboxB_or,
-                        A_upright.area() / bboxA_or->area(),
-                        B_upright.area() / bboxB_or->area());
+  LLVM_DEBUG(llvm::dbgs() << "[upright] to_upright: opG=" << opG
+                          << ", bboxA=" << *bboxA_or
+                          << ", bboxB=" << *bboxB_or << ", uprightness_A="
+                          << (A_upright.area() / bboxA_or->area())
+                          << ", uprightness_B="
+                          << (B_upright.area() / bboxB_or->area()) << '\n');
   return UprightResult(opG, *bboxA_or, *bboxB_or);
 }
 

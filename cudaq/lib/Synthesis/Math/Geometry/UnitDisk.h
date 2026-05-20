@@ -10,7 +10,6 @@
 
 #include "Math/Geometry/ConvexSet.h"
 #include "Math/Geometry/Ellipse.h"
-#include "Support/LogMacros.h"
 #include "cudaq/Synthesis/Math/Real.h"
 
 #include <array>
