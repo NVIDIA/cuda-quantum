@@ -49,6 +49,21 @@ public:
   /// Access the denominator exponent k ≥ 0.
   const Integer &k() const noexcept { return _k; }
 
+  /// In-place assignment that reuses the existing `mpz_t` buffers inside
+  /// `_alpha` and `_k`. Equivalent to `*this = DSqrt2(alpha, k)` but avoids
+  /// the temporary's `mpz_init` / `mpz_clear` allocator traffic.
+  void assign(const ZSqrt2 &alpha, const Integer &k) noexcept {
+    _alpha.assign(alpha.a(), alpha.b());
+    _k = k;
+  }
+
+  /// In-place assignment that swaps `mpz_t` ownership with the source
+  /// values via the move-based `assign` overload on `ZSqrt2`.
+  void assign(ZSqrt2 &&alpha, Integer &&k) noexcept {
+    _alpha = std::move(alpha);
+    _k = std::move(k);
+  }
+
   /// Embed a Z[√2] element x as x / √2^0 ∈ D[√2].
   static DSqrt2 from_zsqrt2(const ZSqrt2 &x) { return DSqrt2(x, 0); }
 

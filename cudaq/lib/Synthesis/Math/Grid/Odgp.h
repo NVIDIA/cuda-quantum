@@ -9,13 +9,13 @@
 #pragma once
 
 #include "Math/Geometry/Interval.h"
-#include "Support/Generator.h"
+#include "Support/Stepper.h"
 #include "cudaq/Synthesis/Math/Ring/Dsqrt2.h"
 #include "cudaq/Synthesis/Math/Ring/Zsqrt2.h"
 
 #include <cmath>
-#include <iterator>
 #include <mpfr.h>
+#include <optional>
 #include <string>
 
 namespace cudaq::synth {
@@ -32,23 +32,11 @@ namespace cudaq::synth {
 /// checks. Variants support parity constraints (Lemma 5.5) and scaled
 /// problems (Proposition 5.21).
 ///
-/// The core ODGP is exposed as `OdgpStepper`, a hand-rolled stepper class
-/// (no coroutine) so the inner enumeration loop runs as plain C++ without
-/// suspend/resume overhead. The parity / scaled / scaled-with-parity wrappers
-/// remain coroutines for compositional readability; each is a thin transform
-/// over the stepper or another wrapper.
-///
-/// All entry points yield solutions on demand in lexicographic (a, b) order.
-/// Early termination (destroying the stepper / generator before exhaustion)
-/// is safe and releases all resources via RAII.
-
-// NOTE: The `coroutine` wrappers below take parameters by value to avoid the
-// dangling-reference pitfall: `coroutine` frames store copies of parameters,
-// but for reference parameters only the reference (pointer) is copied.
-// If the caller passed a temporary, the reference dangles after the
-// `coroutine`'s first suspension point. `OdgpStepper` is not a coroutine, so
-// this rule does not apply to it -- but for API symmetry it also takes
-// parameters by value.
+/// All entry points are exposed as hand-rolled steppers (no coroutines), with
+/// the iterator inheriting from `llvm::iterator_facade_base`. Each stepper
+/// yields solutions on demand in lexicographic (a, b) order. Early termination
+/// (destroying the stepper before exhaustion) is safe and releases all
+/// resources via RAII.
 
 /// Lazy stepper for the core ODGP (Definition 4.3): find all α ∈ Z[√2] with
 /// α ∈ I and α● ∈ J.
@@ -57,12 +45,10 @@ namespace cudaq::synth {
 ///   for (const ZSqrt2 &alpha : OdgpStepper(I, J)) { ... }
 ///   auto vec = to_vector(OdgpStepper(I, J));
 ///
-/// Replaces an earlier C++20 `coroutine` implementation. The setup work
-/// (shift, λ-rescale, bounds caching) runs once in the constructor; the
+/// Setup (shift, λ-rescale, bounds caching) runs once in the constructor; the
 /// enumeration is resumed across calls to `next()`. There is no heap-allocated
 /// `coroutine` frame, and the inner `b`-loop is plain C++ -- the compiler can
-/// inline `next()` into the calling code and keep loop variables in registers
-/// instead of spilling them to a frame.
+/// inline `next()` into the calling code and keep loop variables in registers.
 ///
 /// Yielded reference contract: the pointer returned by `next()` and the
 /// reference returned by `*it` are valid until the next call to `next()` /
@@ -71,7 +57,7 @@ namespace cudaq::synth {
 /// Non-copyable, non-movable. Owns mpfr_t scratch buffers that are
 /// `mpfr_init2`-ed once in the constructor and `mpfr_clear`-ed in the
 /// destructor.
-class OdgpStepper {
+class OdgpStepper : public StepperBase<OdgpStepper, ZSqrt2> {
 public:
   OdgpStepper(Interval I, Interval J);
   ~OdgpStepper();
@@ -84,44 +70,6 @@ public:
   /// Advance to the next solution. Returns a pointer valid until the next
   /// call to `next()` or destruction. Returns `nullptr` when exhausted.
   const ZSqrt2 *next();
-
-  // --- Range-for support (input-iterator semantics, matching generator<T>) ---
-  struct sentinel {};
-
-  struct iterator {
-    using iterator_category = std::input_iterator_tag;
-    using difference_type = std::ptrdiff_t;
-    using value_type = ZSqrt2;
-    using reference = const ZSqrt2 &;
-    using pointer = const ZSqrt2 *;
-
-    OdgpStepper *s_ = nullptr;
-    const ZSqrt2 *v_ = nullptr;
-
-    iterator &operator++() {
-      v_ = s_->next();
-      return *this;
-    }
-    void operator++(int) { ++*this; }
-    reference operator*() const { return *v_; }
-    pointer operator->() const { return v_; }
-
-    friend bool operator==(const iterator &it, sentinel) noexcept {
-      return it.v_ == nullptr;
-    }
-    friend bool operator!=(const iterator &it, sentinel s) noexcept {
-      return !(it == s);
-    }
-    friend bool operator==(sentinel s, const iterator &it) noexcept {
-      return it == s;
-    }
-    friend bool operator!=(sentinel s, const iterator &it) noexcept {
-      return !(it == s);
-    }
-  };
-
-  iterator begin() { return iterator{this, next()}; }
-  sentinel end() const noexcept { return {}; }
 
 private:
   // mpfr_t scratch buffers used by the inner loop. Initialized in the
@@ -158,19 +106,8 @@ private:
   std::string close_reason_;
 
   // -- Internal helpers (defined in Odgp.cpp) --
-
-  /// Find the next a in [a_, a_max_] with a non-empty refined b-range,
-  /// initializing b_, b_hi_, result_a_, result_b_, and the mpfr running state.
-  /// Returns false (and leaves the stepper exhausted) if no such a exists.
   bool setup_current_a();
-
-  /// Advance one step within the current a-line: ++b_, update result_*,
-  /// step the cur_real_/cur_conj_ MPFR running state. Mirrors the four
-  /// statements after `co_yield sol;` in the pre-stepper implementation.
   void post_yield_update();
-
-  /// Test whether the current (cur_real_, cur_conj_) lies inside the cached
-  /// original I × J rectangle.
   bool b_in_bounds() const;
 
   void cache_interval_bounds(const Interval &I, const Interval &J);
@@ -183,24 +120,105 @@ private:
                                    Integer &range_hi);
 };
 
-// Core ODGP (Definition 4.3): find all α ∈ Z[√2] with α ∈ I and α● ∈ J.
+/// Lazy stepper for ODGP with parity (for ω-offset case, Lemma 5.5).
 ///
-/// Returned by value via guaranteed copy elision; `OdgpStepper` is
-/// non-movable but the return is a prvalue construction, so no move is
-/// invoked.
+/// Yields α ∈ Z[√2] with `α ∈ I`, `α● ∈ J`, and `α ≡ parity_hint (mod 2)` in
+/// the constant coefficient. Composes `OdgpStepper` over rescaled intervals.
+class OdgpWithParityStepper
+    : public StepperBase<OdgpWithParityStepper, ZSqrt2> {
+public:
+  OdgpWithParityStepper(Interval I, Interval J, ZSqrt2 parity_hint);
+  ~OdgpWithParityStepper();
+
+  OdgpWithParityStepper(const OdgpWithParityStepper &) = delete;
+  OdgpWithParityStepper &operator=(const OdgpWithParityStepper &) = delete;
+  OdgpWithParityStepper(OdgpWithParityStepper &&) = delete;
+  OdgpWithParityStepper &operator=(OdgpWithParityStepper &&) = delete;
+
+  const ZSqrt2 *next();
+
+private:
+  OdgpStepper inner_;
+  i32 parity_p_;
+  ZSqrt2 last_sol_;
+  int yielded_ = 0;
+};
+
+/// Lazy stepper for the scaled ODGP (Proposition 5.21): find all
+/// α ∈ (1/√2^denom_exp)·Z[√2] with α ∈ I and α● ∈ J.
+class OdgpScaledStepper : public StepperBase<OdgpScaledStepper, DSqrt2> {
+public:
+  OdgpScaledStepper(Interval I, Interval J, Integer denom_exp);
+  ~OdgpScaledStepper();
+
+  OdgpScaledStepper(const OdgpScaledStepper &) = delete;
+  OdgpScaledStepper &operator=(const OdgpScaledStepper &) = delete;
+  OdgpScaledStepper(OdgpScaledStepper &&) = delete;
+  OdgpScaledStepper &operator=(OdgpScaledStepper &&) = delete;
+
+  const DSqrt2 *next();
+
+private:
+  // Pre-rescaled intervals must be passed to `inner_` at construction; the
+  // simplest way to do that without a helper constructor is to compute them
+  // in the public constructor body and pass them on via `inner_emplace`.
+  // Since `OdgpStepper` is non-movable we hold it through `std::optional`
+  // and `emplace` it once the rescaled intervals are ready.
+  std::optional<OdgpStepper> inner_;
+  Integer denom_exp_;
+  DSqrt2 last_sol_;
+  int yielded_ = 0;
+};
+
+/// Lazy stepper for the scaled-with-parity ODGP variant. Internally branches
+/// on `denom_exp == 0` (composes `OdgpWithParityStepper` directly) vs the
+/// recursive case (composes `OdgpScaledStepper` over shifted intervals).
+class OdgpScaledWithParityStepper
+    : public StepperBase<OdgpScaledWithParityStepper, DSqrt2> {
+public:
+  OdgpScaledWithParityStepper(Interval I, Interval J, Integer denom_exp,
+                              DSqrt2 parity_hint);
+  ~OdgpScaledWithParityStepper();
+
+  OdgpScaledWithParityStepper(const OdgpScaledWithParityStepper &) = delete;
+  OdgpScaledWithParityStepper &
+  operator=(const OdgpScaledWithParityStepper &) = delete;
+  OdgpScaledWithParityStepper(OdgpScaledWithParityStepper &&) = delete;
+  OdgpScaledWithParityStepper &
+  operator=(OdgpScaledWithParityStepper &&) = delete;
+
+  const DSqrt2 *next();
+
+private:
+  // Exactly one of `direct_` / `recursive_` is engaged based on `denom_exp`.
+  std::optional<OdgpWithParityStepper> direct_;   // denom_exp == 0
+  std::optional<OdgpScaledStepper> recursive_;    // denom_exp > 0
+  DSqrt2 offset_;
+  DSqrt2 last_sol_;
+  int yielded_ = 0;
+};
+
+// ---------------------------------------------------------------------------
+// Factory functions
+// ---------------------------------------------------------------------------
+//
+// All return concrete steppers by value. Each stepper is non-movable but the
+// return is a prvalue (guaranteed copy elision since C++17), so the
+// caller-side variable is constructed directly without invoking a move.
+
+/// Core ODGP (Definition 4.3): find all α ∈ Z[√2] with α ∈ I and α● ∈ J.
 OdgpStepper solve_odgp(Interval I, Interval J);
 
-// With parity constraint (for ω-offset case, Lemma 5.5)
-generator<ZSqrt2> solve_odgp_with_parity(Interval I, Interval J,
-                                         ZSqrt2 parity_hint);
+/// ODGP with parity constraint (Lemma 5.5).
+OdgpWithParityStepper solve_odgp_with_parity(Interval I, Interval J,
+                                             ZSqrt2 parity_hint);
 
-// Scaled ODGP (Proposition 5.21): find all α ∈ (1/√2^denom_exp)Z[√2] with
-// α ∈ I and α● ∈ J
-generator<DSqrt2> solve_odgp_scaled(Interval I, Interval J, Integer denom_exp);
+/// Scaled ODGP (Proposition 5.21).
+OdgpScaledStepper solve_odgp_scaled(Interval I, Interval J, Integer denom_exp);
 
-// Scaled with parity
-generator<DSqrt2> solve_odgp_scaled_with_parity(Interval I, Interval J,
-                                                Integer denom_exp,
-                                                DSqrt2 parity_hint);
+/// Scaled ODGP with parity.
+OdgpScaledWithParityStepper
+solve_odgp_scaled_with_parity(Interval I, Interval J, Integer denom_exp,
+                              DSqrt2 parity_hint);
 
 } // namespace cudaq::synth

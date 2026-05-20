@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "Math/Grid/Tdgp.h"
+
 #include "Math/Geometry/ConvexSet.h"
 #include "Math/Geometry/Rectangle.h"
 #include "Math/Grid/Odgp.h"
@@ -15,118 +16,149 @@
 #include "cudaq/Synthesis/Math/Ring/Domega.h"
 #include "llvm/Support/Debug.h"
 
+#include <algorithm>
+#include <utility>
+
 #define DEBUG_TYPE "cudaq-synth"
 
 namespace cudaq::synth {
 
 namespace {
-/// Scratch space for TDGP hot-loop Real temporaries.
-/// Stack-allocated once per solve_tdgp() call to avoid repeated
-/// MPFR init/clear overhead.
-struct TdgpScratch {
-  Real intA_width, intB_width;
-  Real dtA, dtB;
-  Real two_pow_k;
 
-  static const Real TEN;
-};
-
-const Real TdgpScratch::TEN = Real(10.0);
+const Real &tdgp_ten() {
+  static const Real value(10.0);
+  return value;
+}
 
 } // namespace
 
-generator<DOmega> solve_tdgp(Integer k, const ConvexSet &setA,
-                             const ConvexSet &setB, const GridOp &opG_inv,
-                             Rectangle bboxA, Rectangle bboxB,
-                             Interval bboxA_y_fattened,
-                             Interval bboxB_y_fattened) {
+TdgpStepper::TdgpStepper(Integer k, const ConvexSet &setA,
+                         const ConvexSet &setB, const GridOp &opG_inv,
+                         Rectangle bboxA, Rectangle bboxB,
+                         Interval bboxA_y_fattened, Interval bboxB_y_fattened)
+    : k_(std::move(k)), setA_(&setA), setB_(&setB), opG_inv_(opG_inv),
+      bboxA_(std::move(bboxA)), bboxB_(std::move(bboxB)),
+      bboxA_y_fattened_(std::move(bboxA_y_fattened)),
+      bboxB_y_fattened_(std::move(bboxB_y_fattened)) {
   SYNTH_OPEN_SUB("solve_tdgp");
-  // Generators may be abandoned mid-yield by the consumer; plain-C++ guard
-  // ensures the close brace (and indent pop) fires on any path out of the
-  // coroutine frame, including the abandoned case.
-  cudaq::synth::CloseGuard guard;
-  LLVM_DEBUG(cudaq::synth::dbgs() << "k=" << static_cast<i64>(k) << '\n');
-
-  TdgpScratch scratch;
-  int skipped_betas = 0;
-  int yielded = 0;
+  LLVM_DEBUG(cudaq::synth::dbgs() << "k=" << static_cast<i64>(k_) << '\n');
 
   // x-direction: only the first solution is needed as an anchor for the
-  // line-scan step.
-  auto x_gen = solve_odgp_scaled(bboxA.I_x(), bboxB.I_x(), k + 1);
-  auto x_it = x_gen.begin();
-  if (x_it == x_gen.end()) {
-    guard.fail("no x-direction anchor");
-    co_return;
+  // line-scan step. The local stepper is destroyed at the end of this scope.
+  {
+    OdgpScaledStepper x_gen(bboxA_.I_x(), bboxB_.I_x(), k_ + 1);
+    const DSqrt2 *first_x = x_gen.next();
+    if (!first_x) {
+      exhausted_ = true;
+      close_reason_ = "no x-direction anchor";
+      return;
+    }
+    alpha0_ = *first_x;
   }
+  LLVM_DEBUG(cudaq::synth::dbgs() << "alpha0=" << alpha0_ << '\n');
 
-  DSqrt2 alpha0 = *x_it;
-  LLVM_DEBUG(cudaq::synth::dbgs() << "alpha0=" << alpha0 << '\n');
+  dx_ = DSqrt2::power_of_inv_sqrt2(k_);
+  v_common_ = opG_inv_ * DOmega::from_dsqrt2_vector(dx_, DSqrt2{0}, k_);
+  v_conj_ = v_common_.conj_sq2();
 
-  DSqrt2 dx = DSqrt2::power_of_inv_sqrt2(k);
-  DOmega v_common = opG_inv * DOmega::from_dsqrt2_vector(dx, DSqrt2{0}, k);
-  DOmega v_conj = v_common.conj_sq2();
+  two_pow_k_ = Real((Integer(1) << k_));
 
-  for (const DSqrt2 &beta :
-       solve_odgp_scaled(bboxA_y_fattened, bboxB_y_fattened, k + 1)) {
-    DOmega z0 = opG_inv * DOmega::from_dsqrt2_vector(alpha0, beta, k + 1);
-    auto t_A_opt = setA.intersect(z0, v_common);
-    auto t_B_opt = setB.intersect(z0.conj_sq2(), v_conj);
+  beta_gen_.emplace(bboxA_y_fattened_, bboxB_y_fattened_, k_ + 1);
+}
 
+TdgpStepper::~TdgpStepper() {
+  if (skipped_betas_ > 0)
+    SYNTH_ACTION("Skip") << skipped_betas_ << " betas\n";
+
+  if (yielded_ > 0) {
+    SYNTH_CLOSE_SUCCESS("yielded " + std::to_string(yielded_) + " candidates");
+  } else if (!close_reason_.empty()) {
+    SYNTH_CLOSE_FAILURE(close_reason_);
+  } else {
+    SYNTH_CLOSE_FAILURE("no candidates");
+  }
+}
+
+bool TdgpStepper::advance_to_next_beta() {
+  while (true) {
+    const DSqrt2 *beta = beta_gen_->next();
+    if (!beta)
+      return false;
+
+    DOmega z0 = opG_inv_ * DOmega::from_dsqrt2_vector(alpha0_, *beta, k_ + 1);
+    auto t_A_opt = setA_->intersect(z0, v_common_);
+    auto t_B_opt = setB_->intersect(z0.conj_sq2(), v_conj_);
     if (!t_A_opt.has_value() || !t_B_opt.has_value()) {
-      ++skipped_betas;
+      ++skipped_betas_;
       continue;
     }
 
     auto [tA_l, tA_r] = *t_A_opt;
     auto [tB_l, tB_r] = *t_B_opt;
-
     Interval intA(tA_l, tA_r);
     Interval intB(tB_l, tB_r);
 
-    DSqrt2 parity = absorb_sqrt2_power(beta - alpha0, k);
+    DSqrt2 parity = absorb_sqrt2_power(*beta - alpha0_, k_);
 
-    scratch.intA_width = intA.width();
-    scratch.intB_width = intB.width();
-    scratch.two_pow_k = Real((Integer(1) << k));
-    scratch.dtA =
-        TdgpScratch::TEN /
-        std::max(TdgpScratch::TEN, scratch.two_pow_k * scratch.intB_width);
-    scratch.dtB =
-        TdgpScratch::TEN /
-        std::max(TdgpScratch::TEN, scratch.two_pow_k * scratch.intA_width);
-    intA = fatten(intA, scratch.dtA);
-    intB = fatten(intB, scratch.dtB);
+    Real intA_width = intA.width();
+    Real intB_width = intB.width();
+    Real dtA = tdgp_ten() / std::max(tdgp_ten(), two_pow_k_ * intB_width);
+    Real dtB = tdgp_ten() / std::max(tdgp_ten(), two_pow_k_ * intA_width);
+    intA = fatten(intA, dtA);
+    intB = fatten(intB, dtB);
 
     LLVM_DEBUG(cudaq::synth::dbgs()
-               << "beta=" << beta << ", parity=" << parity
+               << "beta=" << *beta << ", parity=" << parity
                << ", intA_fat=" << intA << ", intB_fat=" << intB << '\n');
 
-    for (const DSqrt2 &alpha :
-         solve_odgp_scaled_with_parity(intA, intB, 1, parity)) {
-      DSqrt2 new_alpha = alpha * dx + alpha0;
-      DOmega candidate = DOmega::from_dsqrt2_vector(new_alpha, beta, k);
+    current_beta_ = *beta;
+    alpha_gen_.emplace(intA, intB, Integer(1), parity);
+    return true;
+  }
+}
 
-      DOmega z_tr = opG_inv * candidate;
-      bool in_A = setA.contains(z_tr);
-      bool in_B = setB.contains(z_tr.conj_sq2());
-      LLVM_DEBUG(cudaq::synth::dbgs()
-                 << "candidate=" << candidate.to_string() << ", in_A? " << in_A
-                 << ", in_B? " << in_B << '\n');
-      if (in_A && in_B) {
-        ++yielded;
-        co_yield z_tr;
+const DOmega *TdgpStepper::next() {
+  if (exhausted_)
+    return nullptr;
+
+  for (;;) {
+    if (!alpha_gen_) {
+      if (!advance_to_next_beta()) {
+        exhausted_ = true;
+        return nullptr;
       }
     }
+
+    const DSqrt2 *alpha = alpha_gen_->next();
+    if (!alpha) {
+      // Inner α-stepper exhausted for the current β; move to next β.
+      alpha_gen_.reset();
+      continue;
+    }
+
+    DSqrt2 new_alpha = *alpha * dx_ + alpha0_;
+    DOmega candidate = DOmega::from_dsqrt2_vector(new_alpha, current_beta_, k_);
+    DOmega z_tr = opG_inv_ * candidate;
+    bool in_A = setA_->contains(z_tr);
+    bool in_B = setB_->contains(z_tr.conj_sq2());
+    LLVM_DEBUG(cudaq::synth::dbgs()
+               << "candidate=" << candidate.to_string() << ", in_A? " << in_A
+               << ", in_B? " << in_B << '\n');
+    if (in_A && in_B) {
+      last_sol_.assign(z_tr.u(), z_tr.k());
+      ++yielded_;
+      return &last_sol_;
+    }
+    // filter rejected -- continue with next α
   }
+}
 
-  if (skipped_betas > 0)
-    SYNTH_ACTION("Skip") << skipped_betas << " betas\n";
-
-  if (yielded > 0)
-    guard.succeed("yielded " + std::to_string(yielded) + " candidates");
-  else
-    guard.fail("no candidates");
+TdgpStepper solve_tdgp(Integer k, const ConvexSet &setA, const ConvexSet &setB,
+                       const GridOp &opG_inv, Rectangle bboxA, Rectangle bboxB,
+                       Interval bboxA_y_fattened, Interval bboxB_y_fattened) {
+  return TdgpStepper(std::move(k), setA, setB, opG_inv, std::move(bboxA),
+                     std::move(bboxB), std::move(bboxA_y_fattened),
+                     std::move(bboxB_y_fattened));
 }
 
 } // namespace cudaq::synth
