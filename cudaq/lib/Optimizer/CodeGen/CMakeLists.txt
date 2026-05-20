@@ -41,12 +41,14 @@ add_cudaq_library(OptCodeGen
     CodeGenTypesIncGen
     OptCodeGenPassIncGen
     OptTransformsPassIncGen
+    QECDialect
     QuakeDialect
     cudaq-qir-verifier
     
   LINK_LIBS PUBLIC
     CCDialect
     OptimBuilder
+    QECDialect
     QuakeDialect
 
     MLIRArithTransforms
