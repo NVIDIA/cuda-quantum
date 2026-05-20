@@ -14,7 +14,7 @@
 //
 // Included by the synth source files that emit LLVM_DEBUG logging so the
 // call sites can stream domain values directly (e.g.
-//   llvm::dbgs() << "k=" << unitary.k() << ", w=" << unitary.w()
+//   cudaq::synth::dbgs() << "k=" << unitary.k() << ", w=" << unitary.w()
 // ) without spelling .to_string() at every <<.
 //
 // Kept private to cudaq/lib/Synthesis so the public type headers do not
@@ -26,6 +26,7 @@
 #include "Math/Geometry/Interval.h"
 #include "Math/Geometry/Rectangle.h"
 #include "Math/Geometry/ToUpright.h"
+#include "Support/DebugScope.h"
 #include "cudaq/Synthesis/Math/Integer.h"
 #include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Math/Ring/Domega.h"

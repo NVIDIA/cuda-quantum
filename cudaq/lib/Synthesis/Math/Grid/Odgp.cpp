@@ -252,11 +252,15 @@ void refine_range_against_bounds(EnumerationScratch &s, const mpfr_t &bound_lo,
 // Public API — lazy generators
 // -----------------------------------------------------------------------------
 generator<ZSqrt2> solve_odgp(Interval I, Interval J) {
-  LLVM_DEBUG(llvm::dbgs() << "[grid] solve_odgp: I_width=" << I.width()
-                          << ", J_width=" << J.width() << '\n');
+  SYNTH_OPEN_SUB("solve_odgp");
+  cudaq::synth::CloseGuard guard;
+  LLVM_DEBUG(cudaq::synth::dbgs()
+             << "I_width=" << I.width() << ", J_width=" << J.width() << '\n');
 
-  if (I.width() < 0 || J.width() < 0)
+  if (I.width() < 0 || J.width() < 0) {
+    guard.fail("empty interval");
     co_return;
+  }
 
   Integer shift_a = floor_to_integer((I.l() + J.l()) / 2);
   Integer shift_b = floor_to_integer(Real::sqrt2() * (I.l() - J.l()) / 4);
@@ -285,10 +289,10 @@ generator<ZSqrt2> solve_odgp(Interval I, Interval J) {
     scale = scale * powers.lambda_inv_n;
   }
 
-  LLVM_DEBUG(llvm::dbgs() << "[grid] solve_odgp: after rescale -- cur_I_width="
-                          << cur_I.width()
-                          << ", cur_J_width=" << cur_J.width()
-                          << ", swapped=" << swapped << '\n');
+  LLVM_DEBUG(cudaq::synth::dbgs()
+             << "after rescale: cur_I_width=" << cur_I.width()
+             << ", cur_J_width=" << cur_J.width() << ", swapped=" << swapped
+             << '\n');
 
   // --- Enumeration (inlined from enumerate_solutions) ---
   EnumerationScratch s;
@@ -315,12 +319,13 @@ generator<ZSqrt2> solve_odgp(Interval I, Interval J) {
   Integer a_min = ceil_to_integer((cur_I.l() + cur_J.l()) / 2);
   Integer a_max = floor_to_integer((cur_I.r() + cur_J.r()) / 2);
 
-  LLVM_DEBUG(llvm::dbgs() << "[grid] solve_odgp: a_min=" << a_min
-                          << ", a_max=" << a_max << '\n');
+  LLVM_DEBUG(cudaq::synth::dbgs()
+             << "a_min=" << a_min << ", a_max=" << a_max << '\n');
 
   Integer delta_result_a = (direction > 0) ? two_scale_b : -two_scale_b;
   Integer delta_result_b = (direction > 0) ? scale_a : -scale_a;
 
+  int yielded = 0;
   for (Integer a = a_min; a <= a_max; ++a) {
     Integer b_lo = ceil_to_integer(Real::sqrt2() * (a - cur_J.r()) / 2);
     Integer b_hi = floor_to_integer(Real::sqrt2() * (a - cur_J.l()) / 2);
@@ -369,6 +374,7 @@ generator<ZSqrt2> solve_odgp(Interval I, Interval J) {
           mpfr_cmp(s.cur_conj, s.orig_J_lo) >= 0 &&
           mpfr_cmp(s.cur_conj, s.orig_J_hi) <= 0) {
         ZSqrt2 sol(result_a, result_b);
+        ++yielded;
         co_yield sol;
       }
 
@@ -378,49 +384,77 @@ generator<ZSqrt2> solve_odgp(Interval I, Interval J) {
       mpfr_add(s.cur_conj, s.cur_conj, s.conj_step, MPFR_RNDN);
     }
   }
+  if (yielded > 0)
+    guard.succeed("yielded " + std::to_string(yielded));
+  else
+    guard.fail("no solutions");
 }
 
 generator<ZSqrt2> solve_odgp_with_parity(Interval I, Interval J,
                                          ZSqrt2 parity_hint) {
-  LLVM_DEBUG(llvm::dbgs() << "[grid] solve_odgp_with_parity: parity="
-                          << parity_hint.parity() << '\n');
+  SYNTH_OPEN_SUB("solve_odgp_with_parity");
+  cudaq::synth::CloseGuard guard;
+  LLVM_DEBUG(cudaq::synth::dbgs()
+             << "parity=" << parity_hint.parity() << '\n');
   int p = parity_hint.parity();
   Interval scaled_I = (I + (-static_cast<Real>(p))) * (Real::sqrt2() / 2);
   Interval scaled_J = (J + (-static_cast<Real>(p))) * (-Real::sqrt2() / 2);
 
+  int yielded = 0;
   for (const ZSqrt2 &alpha : solve_odgp(scaled_I, scaled_J)) {
     ZSqrt2 sol = alpha * ZSqrt2{0, 1} + ZSqrt2{p};
+    ++yielded;
     co_yield sol;
   }
+  if (yielded > 0)
+    guard.succeed("yielded " + std::to_string(yielded));
+  else
+    guard.fail("no solutions");
 }
 
 generator<DSqrt2> solve_odgp_scaled(Interval I, Interval J, Integer denom_exp) {
-  LLVM_DEBUG(llvm::dbgs()
-             << "[grid] solve_odgp_scaled: denom_exp="
-             << static_cast<i64>(denom_exp) << ", I_width=" << I.width()
-             << ", J_width=" << J.width() << '\n');
+  SYNTH_OPEN_SUB("solve_odgp_scaled");
+  cudaq::synth::CloseGuard guard;
+  LLVM_DEBUG(cudaq::synth::dbgs()
+             << "denom_exp=" << static_cast<i64>(denom_exp)
+             << ", I_width=" << I.width() << ", J_width=" << J.width() << '\n');
   Real scale = pow_sqrt2(denom_exp);
   Interval scaled_I = I * scale;
   Interval scaled_J = (denom_exp & 1) ? J * (-scale) : J * scale;
 
+  int yielded = 0;
   for (const ZSqrt2 &alpha : solve_odgp(scaled_I, scaled_J)) {
     DSqrt2 sol(alpha, denom_exp);
+    ++yielded;
     co_yield sol;
   }
+  if (yielded > 0)
+    guard.succeed("yielded " + std::to_string(yielded));
+  else
+    guard.fail("no solutions");
 }
 
 generator<DSqrt2> solve_odgp_scaled_with_parity(Interval I, Interval J,
                                                 Integer denom_exp,
                                                 DSqrt2 parity_hint) {
-  LLVM_DEBUG(llvm::dbgs() << "[grid] solve_odgp_scaled_with_parity: denom_exp="
-                          << static_cast<i64>(denom_exp)
-                          << ", parity=" << parity_hint << '\n');
+  SYNTH_OPEN_SUB("solve_odgp_scaled_with_parity");
+  cudaq::synth::CloseGuard guard;
+  LLVM_DEBUG(cudaq::synth::dbgs()
+             << "denom_exp=" << static_cast<i64>(denom_exp)
+             << ", parity=" << parity_hint << '\n');
+
+  int yielded = 0;
   if (denom_exp == 0) {
     ZSqrt2 beta_z = with_denom_exp(parity_hint, 0).alpha();
     for (const ZSqrt2 &a : solve_odgp_with_parity(I, J, beta_z)) {
       DSqrt2 sol = DSqrt2::from_zsqrt2(a);
+      ++yielded;
       co_yield sol;
     }
+    if (yielded > 0)
+      guard.succeed("yielded " + std::to_string(yielded));
+    else
+      guard.fail("no solutions");
     co_return;
   }
 
@@ -432,8 +466,13 @@ generator<DSqrt2> solve_odgp_scaled_with_parity(Interval I, Interval J,
   for (const DSqrt2 &a :
        solve_odgp_scaled(shifted_I, shifted_J, denom_exp - 1)) {
     DSqrt2 sol = a + offset;
+    ++yielded;
     co_yield sol;
   }
+  if (yielded > 0)
+    guard.succeed("yielded " + std::to_string(yielded));
+  else
+    guard.fail("no solutions");
 }
 
 } // namespace cudaq::synth
