@@ -11,10 +11,10 @@
 #include "common/ArgumentWrapper.h"
 #include "common/FmtCore.h"
 #include "common/KernelArgs.h"
-#include "cudaq/algorithms/get_state.h"
-#include "cudaq/runtime/logger/logger.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
+#include "cudaq/algorithms/get_state.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include <nanobind/ndarray.h>
 
@@ -202,81 +202,6 @@ static std::future<state> get_state_async_impl(const std::string &shortName,
                 clean_launch_module(kernelName, *clonedMod, opaques);
           }),
       platform, qpu_id);
-}
-
-/// @brief Python implementation of the `RemoteSimulationState`.
-// Note: Python kernel arguments are wrapped hence need to be unwrapped
-// accordingly.
-class PyRemoteSimulationState : public RemoteSimulationState {
-  // Holder of args data for clean-up.
-  OpaqueArguments *argsData;
-  mlir::ModuleOp kernelMod;
-
-public:
-  PyRemoteSimulationState(const std::string &in_kernelName, ArgWrapper args,
-                          OpaqueArguments *argsDataToOwn, std::size_t size,
-                          std::size_t returnOffset)
-      : argsData(argsDataToOwn), kernelMod(args.mod) {
-    this->kernelName = in_kernelName;
-    this->args = argsData->getArgs();
-  }
-
-  void execute() const override {
-    if (!state) {
-      auto &platform = get_platform();
-      // Create an execution context, indicate this is for
-      // extracting the state representation
-      ExecutionContext context("extract-state");
-      // Note: in Python, the platform QPU (`PyRemoteSimulatorQPU`) expects an
-      // ModuleOp pointer as the first element in the args array in StreamLined
-      // mode.
-      auto args = argsData->getArgs();
-      args.insert(args.begin(),
-                  const_cast<void *>(static_cast<const void *>(&kernelMod)));
-      cudaq::SourceModule src{kernelName};
-      platform.with_execution_context(context, [&]() {
-        [[maybe_unused]] auto r = platform.unifiedLaunchModule(src, {args});
-      });
-      state = std::move(context.simulationState);
-    }
-  }
-
-  std::complex<double> overlap(const SimulationState &other) override {
-    const auto &otherState =
-        dynamic_cast<const PyRemoteSimulationState &>(other);
-    auto &platform = get_platform();
-    ExecutionContext context("state-overlap");
-    context.overlapComputeStates =
-        std::make_pair(static_cast<const SimulationState *>(this),
-                       static_cast<const SimulationState *>(&otherState));
-    auto args = argsData->getArgs();
-    args.insert(args.begin(),
-                const_cast<void *>(static_cast<const void *>(&kernelMod)));
-
-    cudaq::SourceModule src{kernelName};
-    platform.with_execution_context(context, [&]() {
-      [[maybe_unused]] auto r = platform.unifiedLaunchModule(src, {args});
-    });
-    assert(context.overlapResult.has_value());
-    return context.overlapResult.value();
-  }
-
-  virtual ~PyRemoteSimulationState() override { delete argsData; }
-};
-
-/// @brief Run `cudaq::get_state` for remote execution targets on the provided
-/// kernel and args
-state pyGetStateRemote(nanobind::object kernel, nanobind::args args) {
-  if (nanobind::hasattr(kernel, "compile"))
-    kernel.attr("compile")();
-
-  auto kernelName = nanobind::cast<std::string>(kernel.attr("uniqName"));
-  auto kernelMod = nanobind::cast<MlirModule>(kernel.attr("qkeModule"));
-  args = simplifiedValidateInputArguments(args);
-  auto *argData = toOpaqueArgs(args, kernelMod, kernelName);
-  return state(new PyRemoteSimulationState(kernelName, /*argWrapper*/ {},
-                                           argData,
-                                           /*size*/ 0, /*returnOffset*/ 0));
 }
 
 /// @brief Python implementation of the `QPUState`.
@@ -566,9 +491,8 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
           "from_data",
           [&](nanobind::object data) {
             // Reject Python sequences (list/tuple) overload — they should be
-            // dispatched to the vector overload below. In pybind11, py::buffer
-            // excluded lists; nanobind::object accepts anything, so we must
-            // guard explicitly.
+            // dispatched to the vector overload below.
+            // nanobind::object accepts anything, so we must guard explicitly.
             if (nanobind::isinstance<nanobind::list>(data) ||
                 nanobind::isinstance<nanobind::tuple>(data))
               throw nanobind::next_overload();
@@ -919,8 +843,7 @@ index pair.
       [&](const std::string &shortName, MlirModule module,
           nanobind::args args) {
         // Check for unsupported cases.
-        if (holder.getTarget().name == "remote-mqpu" ||
-            holder.getTarget().name == "orca-photonics")
+        if (holder.getTarget().name == "orca-photonics")
           throw std::runtime_error(
               "get_state is not supported in this context.");
 
@@ -949,9 +872,7 @@ for more information on this programming pattern.)#")
       [&](const std::string &shortName, MlirModule module, std::size_t qpu_id,
           nanobind::args args) {
         // Check for unsupported cases.
-        if (holder.getTarget().name == "remote-mqpu" ||
-            holder.getTarget().name == "nvqc" ||
-            holder.getTarget().name == "orca-photonics" ||
+        if (holder.getTarget().name == "orca-photonics" ||
             is_remote_platform() || is_emulated_platform())
           throw std::runtime_error(
               "get_state_async is not supported in this context.");

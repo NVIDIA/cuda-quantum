@@ -412,6 +412,8 @@ MPI Submodule
 .. automethod:: cudaq.mpi::all_gather
 .. automethod:: cudaq.mpi::broadcast
 .. automethod:: cudaq.mpi::is_initialized
+.. automethod:: cudaq.mpi::split_communicator
+.. automethod:: cudaq.mpi::set_communicator
 .. automethod:: cudaq.mpi::finalize
 
 ORCA Submodule

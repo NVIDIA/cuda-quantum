@@ -352,6 +352,39 @@ def test_2q_unitary_synthesis():
     assert counts["0010011"] == 1000
 
 
+@pytest.mark.skip_macos_arm64_jit
+def test_ionq_estimate_resources_with_kernel_launch_in_choice():
+    # Regression: a `choice` callback that itself launches a kernel via
+    # `cudaq::sample` while `cudaq::estimate_resources` is in flight must
+    # be rejected on every transport, including a non-emulated remote
+    # REST target.
+
+    @cudaq.kernel
+    def mykernel():
+        q = cudaq.qubit()
+        p = cudaq.qubit()
+        h(q)
+        m1 = mz(q)
+        if m1:
+            x(p)
+            m2 = mz(p)
+        else:
+            m3 = mz(p)
+
+    @cudaq.kernel
+    def other_kernel():
+        q = cudaq.qubit()
+        h(q)
+        mz(q)
+
+    def choice():
+        cudaq.sample(other_kernel, shots_count=10)
+        return True
+
+    with pytest.raises(RuntimeError):
+        cudaq.estimate_resources(mykernel, choice=choice)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

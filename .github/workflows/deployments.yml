@@ -76,7 +76,6 @@ jobs:
       pull_request_base: ${{ steps.pr_info.outputs.pr_base }}
       pull_request_commit: ${{ steps.pr_info.outputs.merge_commit }}
       llvm_commit: ${{ steps.build_config.outputs.llvm_commit }}
-      pybind11_commit: ${{ steps.build_config.outputs.pybind11_commit }}
       nanobind_commit: ${{ steps.build_config.outputs.nanobind_commit }}
       cache_base: ${{ steps.build_info.outputs.cache_base }}
       cache_target: ${{ steps.build_info.outputs.cache_target }}
@@ -91,14 +90,15 @@ jobs:
         if: github.event_name == 'workflow_run'
         id: pr_info
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           artifacts_url=${{ github.event.workflow_run.artifacts_url }}
-          artifacts=$(gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
+          artifacts=$(retry gh api $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
 
           for artifact in `echo "$artifacts"`; do
             name=`echo $artifact | jq -r '.name'`
             if [ "$name" == "metadata_pr" ]; then
               url=`echo $artifact | jq -r '.url'`
-              gh api $url > metadata.zip
+              retry gh api $url > metadata.zip
               unzip -d metadata metadata.zip
               for file in `find metadata/ -type f`; do
                 cat "$file" >> metadata.txt
@@ -188,7 +188,6 @@ jobs:
         id: build_config
         run: |
           echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
-          echo "pybind11_commit=$(git rev-parse @:./tpls/pybind11)" >> $GITHUB_OUTPUT
           echo "nanobind_commit=$(git rev-parse @:./tpls/nanobind)" >> $GITHUB_OUTPUT
 
           if ${{ github.event_name != 'workflow_run' || steps.pr_info.outputs.pr_number != '' }}; then
@@ -251,7 +250,6 @@ jobs:
         toolchain=gcc12
         distro=rhel8
         llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
-        pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
         nanobind_commit=${{ needs.metadata.outputs.nanobind_commit }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
@@ -329,7 +327,10 @@ jobs:
           # We want this dispatch to trigger additional workflows.
           github-token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
           script: |
-            github.rest.actions.createWorkflowDispatch({
+            // The createWorkflowDispatch call has been observed to hit transient
+            // GitHub API 5xx errors; retry up to 3 times with exponential backoff.
+            const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+            const params = {
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: 'deployments.yml',
@@ -339,7 +340,18 @@ jobs:
                 cache_base: '${{ needs.metadata.outputs.cache_base }}',
                 devcontainer_only: ${{ github.event_name == 'schedule' }}
               },
-            })
+            };
+            for (let n = 1; n <= 3; n++) {
+              try {
+                await github.rest.actions.createWorkflowDispatch(params);
+                if (n > 1) core.notice(`createWorkflowDispatch succeeded on attempt ${n}`);
+                return;
+              } catch (err) {
+                if (n === 3) throw err;
+                core.warning(`createWorkflowDispatch attempt ${n}/3 failed: ${err.message}; retrying...`);
+                await sleep(15000 * n * n);
+              }
+            }
 
   # This job is needed only when using the cloudposse GitHub action to read
   # the output of a matrix job. This is a workaround due to current GitHub
@@ -363,23 +375,6 @@ jobs:
       - name: Print config.outputs.json
         run: |
           echo '${{ steps.read_json.outputs.result }}'
-
-  coverage:
-    name: Update code coverage
-    if: ${{ ! inputs.devcontainer_only }}
-    needs: [metadata, config]
-    strategy:
-      matrix:
-        platform: [amd64]
-        toolchain: [llvm]
-      fail-fast: false
-    uses: ./.github/workflows/generate_cc.yml
-    secrets:
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-    with:
-      platform: linux/${{ matrix.platform }}
-      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
-      export_environment: false
 
   extdevdeps:
     name: Create dev environment
@@ -862,7 +857,8 @@ jobs:
         with:
           github-token: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
           script: |
-            await github.rest.actions.createWorkflowDispatch({
+            const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+            const params = {
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: 'publishing.yml',
@@ -870,4 +866,15 @@ jobs:
               inputs: {
                 deployment_id: context.runId.toString(),
               },
-            });
+            };
+            for (let n = 1; n <= 3; n++) {
+              try {
+                await github.rest.actions.createWorkflowDispatch(params);
+                if (n > 1) core.notice(`createWorkflowDispatch succeeded on attempt ${n}`);
+                return;
+              } catch (err) {
+                if (n === 3) throw err;
+                core.warning(`createWorkflowDispatch attempt ${n}/3 failed: ${err.message}; retrying...`);
+                await sleep(15000 * n * n);
+              }
+            }

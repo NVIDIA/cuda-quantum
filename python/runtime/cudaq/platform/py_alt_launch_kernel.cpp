@@ -11,6 +11,14 @@
 #include "common/ArgumentWrapper.h"
 #include "common/Environment.h"
 #include "common/Timing.h"
+#include "cudaq_internal/compiler/ArgumentConversion.h"
+#include "cudaq_internal/compiler/LayoutInfo.h"
+#include "cudaq_internal/compiler/TracePassInstrumentation.h"
+#include "runtime/cudaq/algorithms/py_utils.h"
+#include "runtime/cudaq/platform/PythonSignalCheck.h"
+#include "utils/LinkedLibraryHolder.h"
+#include "utils/OpaqueArguments.h"
+#include "utils/PyTypes.h"
 #include "cudaq/Optimizer/Builder/Marshal.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
@@ -22,14 +30,6 @@
 #include "cudaq/platform/nvqpp_interface.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/runtime/logger/logger.h"
-#include "cudaq_internal/compiler/ArgumentConversion.h"
-#include "cudaq_internal/compiler/LayoutInfo.h"
-#include "cudaq_internal/compiler/TracePassInstrumentation.h"
-#include "runtime/cudaq/algorithms/py_utils.h"
-#include "runtime/cudaq/platform/PythonSignalCheck.h"
-#include "utils/LinkedLibraryHolder.h"
-#include "utils/OpaqueArguments.h"
-#include "utils/PyTypes.h"
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Target/TargetMachine.h"
@@ -1006,9 +1006,8 @@ static MlirModule synthesizeKernel(nanobind::object kernel,
       cudaq::getEnvBool("CUDAQ_MLIR_PRINT_EACH_PASS", false);
 
   auto &platform = cudaq::get_platform();
-  auto isRemoteSimulator = platform.get_remote_capabilities().isRemoteSimulator;
   auto isLocalSimulator = platform.is_simulator() && !platform.is_emulated();
-  auto isSimulator = isLocalSimulator || isRemoteSimulator;
+  auto isSimulator = isLocalSimulator;
 
   cudaq_internal::compiler::ArgumentConverter argCon(name, mod);
   argCon.gen(args.getArgs());

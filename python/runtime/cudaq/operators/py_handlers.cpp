@@ -17,9 +17,9 @@
 #include <nanobind/stl/unordered_map.h>
 #include <nanobind/stl/vector.h>
 
-#include "cudaq/operators.h"
 #include "py_handlers.h"
 #include "py_helpers.h"
+#include "cudaq/operators.h"
 
 namespace cudaq {
 

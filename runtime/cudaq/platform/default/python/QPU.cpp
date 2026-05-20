@@ -13,6 +13,14 @@
 #include "common/ExecutionContext.h"
 #include "common/RuntimeTarget.h"
 #include "common/Timing.h"
+#include "cudaq_internal/compiler/ArgumentConversion.h"
+#include "cudaq_internal/compiler/CompiledModuleHelper.h"
+#include "cudaq_internal/compiler/JIT.h"
+#include "cudaq_internal/compiler/JITTargetPipeline.h"
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
+#include "cudaq_internal/compiler/TracePassInstrumentation.h"
+#include "nvqir/resourcecounter/ResourceCounterScope.h"
+#include "runtime/cudaq/platform/PythonSignalCheck.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -23,13 +31,6 @@
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
 #include "cudaq/platform.h"
 #include "cudaq/runtime/logger/logger.h"
-#include "cudaq_internal/compiler/ArgumentConversion.h"
-#include "cudaq_internal/compiler/CompiledModuleHelper.h"
-#include "cudaq_internal/compiler/JIT.h"
-#include "cudaq_internal/compiler/JITTargetPipeline.h"
-#include "cudaq_internal/compiler/RuntimeMLIR.h"
-#include "cudaq_internal/compiler/TracePassInstrumentation.h"
-#include "runtime/cudaq/platform/PythonSignalCheck.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
@@ -37,12 +38,6 @@
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Transforms/Passes.h"
 #include <cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h>
-
-// Declared in runtime/cudaq/algorithms/resource_estimation.h (not included
-// here to avoid pulling in cudaq/platform.h which creates circular deps).
-namespace nvqir {
-void setResourceCounts(cudaq::Resources &&);
-}
 
 using namespace mlir;
 
@@ -262,7 +257,7 @@ static void precountResources(mlir::ModuleOp module) {
   auto counts = cudaq::opt::countResourcesFromIR(module);
   if (mlir::failed(counts))
     return;
-  nvqir::setResourceCounts(std::move(*counts));
+  nvqir::resource_counter::prepopulate(std::move(*counts));
 }
 
 namespace {

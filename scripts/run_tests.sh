@@ -88,13 +88,13 @@ if [ $ctest_status -ne 0 ]; then
 fi
 
 # 2. Main lit tests
-echo "=== Running llvm-lit (build/test) ==="
+echo "=== Running llvm-lit (build/cudaq/test) ==="
 "$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$num_jobs" \
-  --param nvqpp_site_config="$build_dir/test/lit.site.cfg.py" \
-  "$build_dir/test"
+  --param nvqpp_site_config="$build_dir/cudaq/test/lit.site.cfg.py" \
+  "$build_dir/cudaq/test"
 lit_status=$?
 if [ $lit_status -ne 0 ]; then
-  echo "::error::llvm-lit (build/test) failed with status $lit_status"
+  echo "::error::llvm-lit (build/cudaq/test) failed with status $lit_status"
   status_sum=$((status_sum + 1))
 fi
 
