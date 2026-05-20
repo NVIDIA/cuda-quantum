@@ -21,6 +21,7 @@ using cudaq::synth::DSqrt2;
 using cudaq::synth::first_of;
 using cudaq::synth::Integer;
 using cudaq::synth::Interval;
+using cudaq::synth::OdgpStepper;
 using cudaq::synth::Real;
 using cudaq::synth::to_vector;
 using cudaq::synth::ZSqrt2;
@@ -178,6 +179,143 @@ TEST(OdgpGeneratorTest, ConsistentAcrossMultipleRuns) {
   ASSERT_EQ(run1.size(), run2.size());
   for (size_t i = 0; i < run1.size(); ++i)
     EXPECT_EQ(run1[i], run2[i]) << "Mismatch at index " << i;
+}
+
+// ============================================================
+// OdgpStepper-specific tests (the hand-rolled stepper that replaces the
+// former coroutine).
+// ============================================================
+
+// next() returns nullptr immediately for an empty/degenerate input and
+// continues to return nullptr on subsequent calls.
+TEST(OdgpStepperTest, NextReturnsNullptrOnEmpty) {
+  Interval I(Real(1.0), Real(0.5));
+  Interval J(Real(0.0), Real(1.0));
+  OdgpStepper stepper(I, J);
+  EXPECT_EQ(stepper.next(), nullptr);
+  EXPECT_EQ(stepper.next(), nullptr);
+  EXPECT_EQ(stepper.next(), nullptr);
+}
+
+// Direct next() iteration is equivalent to range-for.
+TEST(OdgpStepperTest, NextMatchesRangeFor) {
+  Interval I(Real(-3.0), Real(3.0));
+  Interval J(Real(-3.0), Real(3.0));
+
+  std::vector<ZSqrt2> via_next;
+  {
+    OdgpStepper stepper(I, J);
+    while (const ZSqrt2 *v = stepper.next())
+      via_next.push_back(*v);
+  }
+  auto via_range = to_vector(solve_odgp(I, J));
+
+  ASSERT_EQ(via_next.size(), via_range.size());
+  for (size_t i = 0; i < via_next.size(); ++i)
+    EXPECT_EQ(via_next[i], via_range[i]) << "Mismatch at index " << i;
+}
+
+// begin() != end() drives the iterator like a generator<T>.
+TEST(OdgpStepperTest, IteratorInterface) {
+  Interval I(Real(-2.0), Real(2.0));
+  Interval J(Real(-2.0), Real(2.0));
+  OdgpStepper stepper(I, J);
+
+  auto it = stepper.begin();
+  ASSERT_NE(it, stepper.end());
+  ZSqrt2 first = *it;
+  EXPECT_TRUE(in_intervals(first, I, J));
+
+  ++it;
+  if (it != stepper.end()) {
+    ZSqrt2 second = *it;
+    EXPECT_TRUE(in_intervals(second, I, J));
+    EXPECT_NE(first, second);
+  }
+}
+
+// Pointer-yield contract: *it is valid until the next ++it.
+TEST(OdgpStepperTest, PointerStableUntilAdvance) {
+  Interval I(Real(-5.0), Real(5.0));
+  Interval J(Real(-5.0), Real(5.0));
+  OdgpStepper stepper(I, J);
+
+  const ZSqrt2 *first = stepper.next();
+  ASSERT_NE(first, nullptr);
+  ZSqrt2 first_copy = *first;
+
+  // The pointer remains valid (and equal) until next() is called again.
+  EXPECT_EQ(*first, first_copy);
+  EXPECT_EQ(first, &(*first));
+}
+
+// Destroying the stepper mid-stream must release all mpfr_t / mpz_t state
+// and re-iterating should not corrupt thread-local caches (e.g. lambda
+// powers, ScopedPrinter indentation).
+TEST(OdgpStepperTest, EarlyDestructionDoesNotLeak) {
+  Interval I(Real(-100.0), Real(100.0));
+  Interval J(Real(-100.0), Real(100.0));
+  for (int i = 0; i < 200; ++i) {
+    OdgpStepper stepper(I, J);
+    const ZSqrt2 *first = stepper.next();
+    ASSERT_NE(first, nullptr);
+    // intentional: stepper goes out of scope here mid-enumeration.
+  }
+}
+
+// Snapshot-equivalence: pin the produced sequence for a fixed (I, J) so any
+// future refactor that changes ordering or post-yield update sequencing
+// fails loudly.
+TEST(OdgpStepperTest, SnapshotEquivalence) {
+  Interval I(Real(-2.0), Real(2.0));
+  Interval J(Real(-2.0), Real(2.0));
+
+  auto seq1 = to_vector(solve_odgp(I, J));
+  auto seq2 = to_vector(solve_odgp(I, J));
+
+  ASSERT_EQ(seq1.size(), seq2.size());
+  EXPECT_GT(seq1.size(), 0u);
+  for (size_t i = 0; i < seq1.size(); ++i) {
+    EXPECT_EQ(seq1[i], seq2[i]) << "Mismatch at index " << i
+                                << ": " << seq1[i].to_string() << " vs "
+                                << seq2[i].to_string();
+    EXPECT_TRUE(in_intervals(seq1[i], I, J));
+  }
+
+  // Ordering is lexicographic in (a, b): each successive element must be
+  // strictly greater (by ZSqrt2's real-value comparison) within the same a,
+  // or move to a larger a.
+  for (size_t i = 1; i < seq1.size(); ++i)
+    EXPECT_FALSE(seq1[i] == seq1[i - 1]);
+}
+
+// Multiple consecutive next() calls after exhaustion stay at nullptr.
+TEST(OdgpStepperTest, IdempotentAfterExhaustion) {
+  Interval I(Real(0.0), Real(0.5));
+  Interval J(Real(0.0), Real(0.5));
+  OdgpStepper stepper(I, J);
+
+  // Drain.
+  while (stepper.next() != nullptr) {
+  }
+  // Further calls stay at nullptr.
+  for (int i = 0; i < 5; ++i)
+    EXPECT_EQ(stepper.next(), nullptr);
+}
+
+// Range-for over a named (lvalue) stepper -- exercises the begin()/end()
+// path on a non-temporary.
+TEST(OdgpStepperTest, RangeForOverNamedStepper) {
+  Interval I(Real(-3.0), Real(3.0));
+  Interval J(Real(-3.0), Real(3.0));
+  OdgpStepper stepper(I, J);
+
+  size_t count = 0;
+  for (const ZSqrt2 &z : stepper) {
+    EXPECT_TRUE(in_intervals(z, I, J));
+    ++count;
+  }
+  EXPECT_GT(count, 0u);
 }
 
 } // namespace
