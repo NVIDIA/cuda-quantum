@@ -62,6 +62,22 @@ public:
   const Integer &a() const { return _a; }
   const Integer &b() const { return _b; }
 
+  /// In-place assignment that reuses the existing `mpz_t` buffers via
+  /// `Integer::operator=` (which is `mpz_set`-based). Equivalent to
+  /// `*this = ZSqrt2(a, b)` but avoids the `mpz_init` / `mpz_clear` pair the
+  /// temporary would otherwise pay.
+  void assign(const Integer &a, const Integer &b) {
+    _a = a;
+    _b = b;
+  }
+
+  /// In-place assignment that swaps `mpz_t` ownership with the source
+  /// Integers via `Integer::operator=(Integer &&)` (mpz_swap-based).
+  void assign(Integer &&a, Integer &&b) noexcept {
+    _a = std::move(a);
+    _b = std::move(b);
+  }
+
   /// Project a ZOmega element onto Z[√2], asserting it lies in the `subring`.
   /// Defined in zomega.h after ZOmega is complete (mutual dependency).
   static ZSqrt2 from_zomega(const ZOmega &x);

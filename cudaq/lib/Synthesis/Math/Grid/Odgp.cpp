@@ -255,7 +255,7 @@ const ZSqrt2 *OdgpStepper::next() {
 
   for (;;) {
     if (b_in_bounds()) {
-      last_sol_ = ZSqrt2(result_a_, result_b_);
+      last_sol_.assign(result_a_, result_b_);
       ++yielded_;
       return &last_sol_;
     }
@@ -426,95 +426,154 @@ void OdgpStepper::refine_range_against_bounds(
 }
 
 // =============================================================================
-// Public API — lazy stepper + coroutine wrappers
+// OdgpWithParityStepper
+// =============================================================================
+
+namespace {
+
+Interval scaled_parity_I(const Interval &I, int p) {
+  return (I + (-static_cast<Real>(p))) * (Real::sqrt2() / 2);
+}
+Interval scaled_parity_J(const Interval &J, int p) {
+  return (J + (-static_cast<Real>(p))) * (-Real::sqrt2() / 2);
+}
+
+} // namespace
+
+OdgpWithParityStepper::OdgpWithParityStepper(Interval I, Interval J,
+                                             ZSqrt2 parity_hint)
+    : inner_(scaled_parity_I(I, parity_hint.parity()),
+             scaled_parity_J(J, parity_hint.parity())),
+      parity_p_(parity_hint.parity()) {
+  SYNTH_OPEN_SUB("solve_odgp_with_parity");
+  LLVM_DEBUG(cudaq::synth::dbgs() << "parity=" << parity_p_ << '\n');
+}
+
+OdgpWithParityStepper::~OdgpWithParityStepper() {
+  if (yielded_ > 0)
+    SYNTH_CLOSE_SUCCESS("yielded " + std::to_string(yielded_));
+  else
+    SYNTH_CLOSE_FAILURE("no solutions");
+}
+
+const ZSqrt2 *OdgpWithParityStepper::next() {
+  const ZSqrt2 *alpha = inner_.next();
+  if (!alpha)
+    return nullptr;
+  // sol = alpha * ZSqrt2{0, 1} + ZSqrt2{p}
+  //     = (a + b√2)·√2 + p
+  //     = (2b + p) + a·√2
+  Integer new_a = (alpha->b() << 1) + Integer(parity_p_);
+  Integer new_b = alpha->a();
+  last_sol_.assign(std::move(new_a), std::move(new_b));
+  ++yielded_;
+  return &last_sol_;
+}
+
+// =============================================================================
+// OdgpScaledStepper
+// =============================================================================
+
+OdgpScaledStepper::OdgpScaledStepper(Interval I, Interval J, Integer denom_exp)
+    : denom_exp_(std::move(denom_exp)) {
+  SYNTH_OPEN_SUB("solve_odgp_scaled");
+  LLVM_DEBUG(cudaq::synth::dbgs()
+             << "denom_exp=" << static_cast<i64>(denom_exp_)
+             << ", I_width=" << I.width() << ", J_width=" << J.width() << '\n');
+  Real scale = pow_sqrt2(denom_exp_);
+  Interval scaled_I = I * scale;
+  Interval scaled_J = (denom_exp_ & 1) ? J * (-scale) : J * scale;
+  inner_.emplace(scaled_I, scaled_J);
+}
+
+OdgpScaledStepper::~OdgpScaledStepper() {
+  if (yielded_ > 0)
+    SYNTH_CLOSE_SUCCESS("yielded " + std::to_string(yielded_));
+  else
+    SYNTH_CLOSE_FAILURE("no solutions");
+}
+
+const DSqrt2 *OdgpScaledStepper::next() {
+  const ZSqrt2 *alpha = inner_->next();
+  if (!alpha)
+    return nullptr;
+  last_sol_.assign(*alpha, denom_exp_);
+  ++yielded_;
+  return &last_sol_;
+}
+
+// =============================================================================
+// OdgpScaledWithParityStepper
+// =============================================================================
+
+OdgpScaledWithParityStepper::OdgpScaledWithParityStepper(
+    Interval I, Interval J, Integer denom_exp, DSqrt2 parity_hint) {
+  SYNTH_OPEN_SUB("solve_odgp_scaled_with_parity");
+  LLVM_DEBUG(cudaq::synth::dbgs()
+             << "denom_exp=" << static_cast<i64>(denom_exp)
+             << ", parity=" << parity_hint << '\n');
+
+  if (denom_exp == 0) {
+    ZSqrt2 beta_z = with_denom_exp(parity_hint, 0).alpha();
+    direct_.emplace(I, J, beta_z);
+    return;
+  }
+
+  int p = with_denom_exp(parity_hint, denom_exp).parity();
+  offset_ = (p == 0) ? DSqrt2{0} : DSqrt2::power_of_inv_sqrt2(denom_exp);
+  Interval shifted_I = I + (-to_real(offset_));
+  Interval shifted_J = J + (-to_real(offset_.conj_sq2()));
+  recursive_.emplace(shifted_I, shifted_J, denom_exp - 1);
+}
+
+OdgpScaledWithParityStepper::~OdgpScaledWithParityStepper() {
+  if (yielded_ > 0)
+    SYNTH_CLOSE_SUCCESS("yielded " + std::to_string(yielded_));
+  else
+    SYNTH_CLOSE_FAILURE("no solutions");
+}
+
+const DSqrt2 *OdgpScaledWithParityStepper::next() {
+  if (direct_) {
+    const ZSqrt2 *a = direct_->next();
+    if (!a)
+      return nullptr;
+    last_sol_.assign(*a, Integer(0));
+    ++yielded_;
+    return &last_sol_;
+  }
+  // recursive_ branch
+  const DSqrt2 *a = recursive_->next();
+  if (!a)
+    return nullptr;
+  last_sol_ = *a + offset_;
+  ++yielded_;
+  return &last_sol_;
+}
+
+// =============================================================================
+// Factory functions
 // =============================================================================
 OdgpStepper solve_odgp(Interval I, Interval J) {
   return OdgpStepper(std::move(I), std::move(J));
 }
 
-generator<ZSqrt2> solve_odgp_with_parity(Interval I, Interval J,
-                                         ZSqrt2 parity_hint) {
-  SYNTH_OPEN_SUB("solve_odgp_with_parity");
-  cudaq::synth::CloseGuard guard;
-  LLVM_DEBUG(cudaq::synth::dbgs()
-             << "parity=" << parity_hint.parity() << '\n');
-  int p = parity_hint.parity();
-  Interval scaled_I = (I + (-static_cast<Real>(p))) * (Real::sqrt2() / 2);
-  Interval scaled_J = (J + (-static_cast<Real>(p))) * (-Real::sqrt2() / 2);
-
-  int yielded = 0;
-  for (const ZSqrt2 &alpha : solve_odgp(scaled_I, scaled_J)) {
-    ZSqrt2 sol = alpha * ZSqrt2{0, 1} + ZSqrt2{p};
-    ++yielded;
-    co_yield sol;
-  }
-  if (yielded > 0)
-    guard.succeed("yielded " + std::to_string(yielded));
-  else
-    guard.fail("no solutions");
+OdgpWithParityStepper solve_odgp_with_parity(Interval I, Interval J,
+                                             ZSqrt2 parity_hint) {
+  return OdgpWithParityStepper(std::move(I), std::move(J),
+                               std::move(parity_hint));
 }
 
-generator<DSqrt2> solve_odgp_scaled(Interval I, Interval J, Integer denom_exp) {
-  SYNTH_OPEN_SUB("solve_odgp_scaled");
-  cudaq::synth::CloseGuard guard;
-  LLVM_DEBUG(cudaq::synth::dbgs()
-             << "denom_exp=" << static_cast<i64>(denom_exp)
-             << ", I_width=" << I.width() << ", J_width=" << J.width() << '\n');
-  Real scale = pow_sqrt2(denom_exp);
-  Interval scaled_I = I * scale;
-  Interval scaled_J = (denom_exp & 1) ? J * (-scale) : J * scale;
-
-  int yielded = 0;
-  for (const ZSqrt2 &alpha : solve_odgp(scaled_I, scaled_J)) {
-    DSqrt2 sol(alpha, denom_exp);
-    ++yielded;
-    co_yield sol;
-  }
-  if (yielded > 0)
-    guard.succeed("yielded " + std::to_string(yielded));
-  else
-    guard.fail("no solutions");
+OdgpScaledStepper solve_odgp_scaled(Interval I, Interval J, Integer denom_exp) {
+  return OdgpScaledStepper(std::move(I), std::move(J), std::move(denom_exp));
 }
 
-generator<DSqrt2> solve_odgp_scaled_with_parity(Interval I, Interval J,
-                                                Integer denom_exp,
-                                                DSqrt2 parity_hint) {
-  SYNTH_OPEN_SUB("solve_odgp_scaled_with_parity");
-  cudaq::synth::CloseGuard guard;
-  LLVM_DEBUG(cudaq::synth::dbgs()
-             << "denom_exp=" << static_cast<i64>(denom_exp)
-             << ", parity=" << parity_hint << '\n');
-
-  int yielded = 0;
-  if (denom_exp == 0) {
-    ZSqrt2 beta_z = with_denom_exp(parity_hint, 0).alpha();
-    for (const ZSqrt2 &a : solve_odgp_with_parity(I, J, beta_z)) {
-      DSqrt2 sol = DSqrt2::from_zsqrt2(a);
-      ++yielded;
-      co_yield sol;
-    }
-    if (yielded > 0)
-      guard.succeed("yielded " + std::to_string(yielded));
-    else
-      guard.fail("no solutions");
-    co_return;
-  }
-
-  int p = with_denom_exp(parity_hint, denom_exp).parity();
-  DSqrt2 offset = (p == 0) ? DSqrt2{0} : DSqrt2::power_of_inv_sqrt2(denom_exp);
-  Interval shifted_I = I + (-to_real(offset));
-  Interval shifted_J = J + (-to_real(offset.conj_sq2()));
-
-  for (const DSqrt2 &a :
-       solve_odgp_scaled(shifted_I, shifted_J, denom_exp - 1)) {
-    DSqrt2 sol = a + offset;
-    ++yielded;
-    co_yield sol;
-  }
-  if (yielded > 0)
-    guard.succeed("yielded " + std::to_string(yielded));
-  else
-    guard.fail("no solutions");
+OdgpScaledWithParityStepper
+solve_odgp_scaled_with_parity(Interval I, Interval J, Integer denom_exp,
+                              DSqrt2 parity_hint) {
+  return OdgpScaledWithParityStepper(std::move(I), std::move(J),
+                                     std::move(denom_exp),
+                                     std::move(parity_hint));
 }
 
 } // namespace cudaq::synth

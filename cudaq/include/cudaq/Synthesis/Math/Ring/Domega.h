@@ -45,6 +45,21 @@ public:
   /// Access the denominator exponent k ≥ 0.
   const Integer &k() const { return _k; }
 
+  /// In-place assignment that reuses the existing `mpz_t` buffers inside
+  /// `_u` and `_k`. Equivalent to `*this = DOmega(u, k)` but avoids the
+  /// temporary's allocator traffic. `ZOmega::operator=` is `mpz_set`-based.
+  void assign(const ZOmega &u, const Integer &k) {
+    _u = u;
+    _k = k;
+  }
+
+  /// In-place assignment that move-swaps `mpz_t` ownership with the source
+  /// values.
+  void assign(ZOmega &&u, Integer &&k) noexcept {
+    _u = std::move(u);
+    _k = std::move(k);
+  }
+
   /// Embed an integer x as x / √2^0 ∈ D[ω].
   static DOmega from_int(const Integer &x) {
     return DOmega(ZOmega::from_int(x), 0);

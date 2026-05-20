@@ -10,7 +10,7 @@
 
 #include "Math/Geometry/Interval.h"
 #include "Math/Grid/Odgp.h"
-#include "Support/Generator.h"
+#include "Support/Stepper.h"
 #include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Math/Ring/Dsqrt2.h"
 #include "cudaq/Synthesis/Math/Ring/Zsqrt2.h"
@@ -21,7 +21,10 @@ using cudaq::synth::DSqrt2;
 using cudaq::synth::first_of;
 using cudaq::synth::Integer;
 using cudaq::synth::Interval;
+using cudaq::synth::OdgpScaledStepper;
+using cudaq::synth::OdgpScaledWithParityStepper;
 using cudaq::synth::OdgpStepper;
+using cudaq::synth::OdgpWithParityStepper;
 using cudaq::synth::Real;
 using cudaq::synth::to_vector;
 using cudaq::synth::ZSqrt2;
@@ -316,6 +319,121 @@ TEST(OdgpStepperTest, RangeForOverNamedStepper) {
     ++count;
   }
   EXPECT_GT(count, 0u);
+}
+
+// ============================================================
+// Wrapper stepper tests: OdgpWithParity, OdgpScaled, OdgpScaledWithParity.
+// Each wraps an inner OdgpStepper (directly or via std::optional) and
+// performs a value transform per next().
+// ============================================================
+
+TEST(OdgpWithParityStepperTest, NextMatchesFactory) {
+  Interval I(Real(-3.0), Real(3.0));
+  Interval J(Real(-3.0), Real(3.0));
+  ZSqrt2 hint(1, 0);
+
+  std::vector<ZSqrt2> via_next;
+  {
+    OdgpWithParityStepper stepper(I, J, hint);
+    while (const ZSqrt2 *v = stepper.next())
+      via_next.push_back(*v);
+  }
+  auto via_factory = to_vector(solve_odgp_with_parity(I, J, hint));
+
+  ASSERT_EQ(via_next.size(), via_factory.size());
+  for (size_t i = 0; i < via_next.size(); ++i)
+    EXPECT_EQ(via_next[i], via_factory[i]) << "Mismatch at index " << i;
+}
+
+TEST(OdgpWithParityStepperTest, EmptyForDegenerate) {
+  Interval I(Real(1.0), Real(0.5));
+  Interval J(Real(0.0), Real(1.0));
+  ZSqrt2 hint(0, 0);
+  OdgpWithParityStepper stepper(I, J, hint);
+  EXPECT_EQ(stepper.next(), nullptr);
+  EXPECT_EQ(stepper.next(), nullptr);
+}
+
+TEST(OdgpWithParityStepperTest, EarlyDestructionDoesNotLeak) {
+  Interval I(Real(-10.0), Real(10.0));
+  Interval J(Real(-10.0), Real(10.0));
+  ZSqrt2 hint(1, 0);
+  for (int i = 0; i < 100; ++i) {
+    OdgpWithParityStepper stepper(I, J, hint);
+    [[maybe_unused]] const ZSqrt2 *first = stepper.next();
+  }
+}
+
+TEST(OdgpScaledStepperTest, NextMatchesFactory) {
+  Interval I(Real(-1.0), Real(1.0));
+  Interval J(Real(-1.0), Real(1.0));
+
+  std::vector<DSqrt2> via_next;
+  {
+    OdgpScaledStepper stepper(I, J, Integer(2));
+    while (const DSqrt2 *v = stepper.next())
+      via_next.push_back(*v);
+  }
+  auto via_factory = to_vector(solve_odgp_scaled(I, J, Integer(2)));
+
+  ASSERT_EQ(via_next.size(), via_factory.size());
+  for (size_t i = 0; i < via_next.size(); ++i)
+    EXPECT_EQ(via_next[i], via_factory[i]);
+}
+
+TEST(OdgpScaledStepperTest, EarlyTermination) {
+  Interval I(Real(-10.0), Real(10.0));
+  Interval J(Real(-10.0), Real(10.0));
+  auto first = first_of(solve_odgp_scaled(I, J, Integer(4)));
+  ASSERT_TRUE(first.has_value());
+}
+
+TEST(OdgpScaledWithParityStepperTest, DenomZeroBranchMatchesFactory) {
+  Interval I(Real(-3.0), Real(3.0));
+  Interval J(Real(-3.0), Real(3.0));
+  DSqrt2 hint(ZSqrt2{1, 0}, Integer(0));
+
+  std::vector<DSqrt2> via_next;
+  {
+    OdgpScaledWithParityStepper stepper(I, J, Integer(0), hint);
+    while (const DSqrt2 *v = stepper.next())
+      via_next.push_back(*v);
+  }
+  auto via_factory =
+      to_vector(solve_odgp_scaled_with_parity(I, J, Integer(0), hint));
+
+  ASSERT_EQ(via_next.size(), via_factory.size());
+  for (size_t i = 0; i < via_next.size(); ++i)
+    EXPECT_EQ(via_next[i], via_factory[i]);
+}
+
+TEST(OdgpScaledWithParityStepperTest, RecursiveBranchMatchesFactory) {
+  Interval I(Real(-2.0), Real(2.0));
+  Interval J(Real(-2.0), Real(2.0));
+  DSqrt2 hint(ZSqrt2{1, 0}, Integer(1));
+
+  std::vector<DSqrt2> via_next;
+  {
+    OdgpScaledWithParityStepper stepper(I, J, Integer(1), hint);
+    while (const DSqrt2 *v = stepper.next())
+      via_next.push_back(*v);
+  }
+  auto via_factory =
+      to_vector(solve_odgp_scaled_with_parity(I, J, Integer(1), hint));
+
+  ASSERT_EQ(via_next.size(), via_factory.size());
+  for (size_t i = 0; i < via_next.size(); ++i)
+    EXPECT_EQ(via_next[i], via_factory[i]);
+}
+
+TEST(OdgpScaledWithParityStepperTest, EarlyDestructionDoesNotLeak) {
+  Interval I(Real(-10.0), Real(10.0));
+  Interval J(Real(-10.0), Real(10.0));
+  DSqrt2 hint(ZSqrt2{0, 0}, Integer(1));
+  for (int i = 0; i < 50; ++i) {
+    OdgpScaledWithParityStepper stepper(I, J, Integer(1), hint);
+    [[maybe_unused]] const DSqrt2 *first = stepper.next();
+  }
 }
 
 } // namespace

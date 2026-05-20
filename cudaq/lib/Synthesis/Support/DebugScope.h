@@ -100,59 +100,6 @@ inline void fence_line() {
       << "//===-------------------------------------------===//\n";
 }
 
-/// Plain-C++ scope guard for *coroutines* only. Coroutines can be
-/// destroyed mid-yield when the consumer abandons the generator; in that
-/// case no explicit SYNTH_CLOSE_* in the function body would run, leaving
-/// the thread-local ScopedPrinter indent permanently bumped and the next
-/// call's output mis-indented. The guard's destructor closes the scope
-/// (and pops the indent) on any path out of the coroutine.
-///
-/// The guard is plain user-visible C++ (no macro hides the declaration),
-/// so the variable is always present regardless of NDEBUG / debug-flag
-/// state. The class is defined under both NDEBUG and non-NDEBUG below;
-/// under NDEBUG the dtor and setters compile to no-ops.
-///
-/// Usage in a coroutine:
-///   generator<X> my_coro(...) {
-///     SYNTH_OPEN_SUB("my_coro");
-///     cudaq::synth::CloseGuard guard;
-///     ...
-///     for (...) {
-///       co_yield ...;
-///     }
-///     guard.succeed("yielded N");
-///   }
-class CloseGuard {
-public:
-  CloseGuard() = default;
-  CloseGuard(const CloseGuard &) = delete;
-  CloseGuard &operator=(const CloseGuard &) = delete;
-  ~CloseGuard() { close_scope(outcome_, reason_); }
-
-  void succeed(llvm::StringRef reason = {}) {
-    outcome_ = "success";
-    reason_ = reason.str();
-  }
-  void fail(llvm::StringRef reason = {}) {
-    outcome_ = "failure";
-    reason_ = reason.str();
-  }
-
-private:
-  llvm::StringRef outcome_;
-  std::string reason_;
-};
-
-#else // NDEBUG
-
-/// No-op stand-in so `cudaq::synth::CloseGuard guard;` is always a valid
-/// declaration regardless of build mode.
-class CloseGuard {
-public:
-  void succeed(llvm::StringRef = {}) {}
-  void fail(llvm::StringRef = {}) {}
-};
-
 #endif // NDEBUG
 
 } // namespace cudaq::synth
