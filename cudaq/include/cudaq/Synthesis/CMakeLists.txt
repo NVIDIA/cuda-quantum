@@ -33,8 +33,3 @@ install(FILES
   Math/Ring/Zsqrt2.h
   DESTINATION include/cudaq/Synthesis/Math/Ring
 )
-
-install(FILES
-  Support/Result.h
-  DESTINATION include/cudaq/Synthesis/Support
-)

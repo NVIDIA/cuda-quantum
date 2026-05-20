@@ -14,7 +14,7 @@
 
 namespace cudaq::synth {
 
-LogicalResult
+llvm::LogicalResult
 Ellipse::transform_by_gridop(const GridOp &g_local, TransformMode mode,
                              const Real &preinv00, const Real &preinv01,
                              const Real &preinv10, const Real &preinv11,
@@ -25,7 +25,7 @@ Ellipse::transform_by_gridop(const GridOp &g_local, TransformMode mode,
                                  preinv11, tol, &g_local);
 }
 
-LogicalResult Ellipse::transform_by_gridop_mat(
+llvm::LogicalResult Ellipse::transform_by_gridop_mat(
     TransformMode mode, const Real &F00, const Real &F01, const Real &F10,
     const Real &F11, const Real &preinv00, const Real &preinv01,
     const Real &preinv10, const Real &preinv11, const Real &tol,
@@ -33,14 +33,14 @@ LogicalResult Ellipse::transform_by_gridop_mat(
   // Computes the exact inverse via GridOp::inv() and applies the transform.
   // Used for both the Fallback mode and as a recovery path when the forward
   // matrix is near-singular in Conjugate mode.
-  auto apply_from_gridop_inv = [&](const GridOp &g) -> LogicalResult {
-    FailureOr<GridOp> inv_or = inv(g);
-    if (failed(inv_or))
-      return failure();
+  auto apply_from_gridop_inv = [&](const GridOp &g) -> llvm::LogicalResult {
+    llvm::FailureOr<GridOp> inv_or = inv(g);
+    if (llvm::failed(inv_or))
+      return llvm::failure();
     auto invm = to_real_mat(*inv_or);
     apply_inverse_transform(invm[0][0], invm[0][1], invm[1][0], invm[1][1], F00,
                             F01, F10, F11);
-    return success();
+    return llvm::success();
   };
 
   switch (mode) {
@@ -53,7 +53,7 @@ LogicalResult Ellipse::transform_by_gridop_mat(
     // Hot path: inverse is precomputed — pass references directly, no copies.
     apply_inverse_transform(preinv00, preinv01, preinv10, preinv11, F00, F01,
                             F10, F11);
-    return success();
+    return llvm::success();
 
   case TransformMode::Conjugate:
     // Compute I = F⁻¹ algebraically from the 2×2 determinant formula.
@@ -68,10 +68,10 @@ LogicalResult Ellipse::transform_by_gridop_mat(
     Real inv_det = 1 / det;
     apply_inverse_transform(F11 * inv_det, -(F01 * inv_det), -(F10 * inv_det),
                             F00 * inv_det, F00, F01, F10, F11);
-    return success();
+    return llvm::success();
   }
   // Unreachable; suppress compiler warning.
-  return failure();
+  return llvm::failure();
 }
 
 std::optional<std::pair<Real, Real>> Ellipse::intersect(const DOmega &u0,

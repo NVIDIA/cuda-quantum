@@ -11,7 +11,7 @@
 #include "cudaq/Synthesis/Circuit/Circuit.h"
 #include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Math/Unitary.h"
-#include "cudaq/Synthesis/Support/Result.h"
+#include "llvm/Support/LogicalResult.h"
 
 #include <cmath>
 
@@ -45,7 +45,7 @@ inline constexpr i32 DEFAULT_FACTORING_TIMEOUT_MS = 50;
 /// @param factoring_timeout_ms Timeout for integer factoring
 /// @return The unitary as a DOmegaUnitary, or failure()
 ///
-FailureOr<DOmegaUnitary> gridsynth_unitary(
+llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(
     const Real &theta, const Real &epsilon,
     i32 diophantine_timeout_ms = details::DEFAULT_DIOPHANTINE_TIMEOUT_MS,
     i32 factoring_timeout_ms = details::DEFAULT_FACTORING_TIMEOUT_MS);
@@ -62,7 +62,7 @@ FailureOr<DOmegaUnitary> gridsynth_unitary(
 /// @param factoring_timeout_ms Timeout for integer factoring
 /// @return The synthesized circuit or failure()
 ///
-FailureOr<Circuit>
+llvm::FailureOr<Circuit>
 gridsynth(const Real &theta, const Real &epsilon,
           i32 diophantine_timeout_ms = details::DEFAULT_DIOPHANTINE_TIMEOUT_MS,
           i32 factoring_timeout_ms = details::DEFAULT_FACTORING_TIMEOUT_MS);

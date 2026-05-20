@@ -14,6 +14,7 @@
 
 #include "cudaq/Synthesis/Circuit/Circuit.h"
 #include "cudaq/Synthesis/Math/Ring/Domega.h"
+#include "llvm/Support/LogicalResult.h"
 
 namespace cudaq::synth {
 
@@ -282,8 +283,8 @@ inline std::string rz_gate_sequence_error(const std::string &theta,
 /// @return       √|`det`(U - R_z(θ))| as a decimal string
 inline std::string rz_gate_sequence_error(const std::string &theta,
                                           const std::string &gates) {
-  auto circuit_or = Circuit::from_string(gates);
-  assert(succeeded(circuit_or) &&
+  llvm::FailureOr<Circuit> circuit_or = Circuit::from_string(gates);
+  assert(llvm::succeeded(circuit_or) &&
          "rz_gate_sequence_error: invalid gate string");
   return rz_gate_sequence_error(theta, *circuit_or);
 }

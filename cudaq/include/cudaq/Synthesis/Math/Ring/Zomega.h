@@ -15,7 +15,7 @@
 #include "cudaq/Synthesis/Math/Integer.h"
 #include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Math/Ring/Zsqrt2.h"
-#include "cudaq/Synthesis/Support/Result.h"
+#include "llvm/Support/LogicalResult.h"
 
 namespace cudaq::synth {
 
@@ -255,12 +255,12 @@ inline ZOmega mul_by_omega_power(const ZOmega &x, i32 n) {
 ///   x⁻¹ = x● · (x†·(x†)●) / N(x)
 /// which reduces to conj_sq2 * c * c.conj_sq2() when N(x) = 1.
 /// conj() is cached to avoid constructing it twice.
-inline FailureOr<ZOmega> inv(const ZOmega &x) {
+inline llvm::FailureOr<ZOmega> inv(const ZOmega &x) {
   if (x.norm() == 1) {
     ZOmega c = x.conj();
     return x.conj_sq2() * c * c.conj_sq2();
   }
-  return failure();
+  return llvm::failure();
 }
 
 /// Decompose x into floating-point (real, imaginary) parts.

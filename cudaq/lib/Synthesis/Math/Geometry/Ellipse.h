@@ -12,7 +12,7 @@
 #include "Math/Geometry/GridOp.h"
 #include "Math/Geometry/Rectangle.h"
 #include "cudaq/Synthesis/Math/Real.h"
-#include "cudaq/Synthesis/Support/Result.h"
+#include "llvm/Support/LogicalResult.h"
 
 #include <array>
 #include <cmath>
@@ -116,24 +116,26 @@ public:
   /// Returns failure() if:
   ///   - D is not symmetric (D[0][1] ≠ D[1][0]), or
   ///   - D is not positive definite (`det`(D) ≤ 0, a ≤ 0, or d ≤ 0).
-  static FailureOr<Ellipse> create(const std::array<std::array<Real, 2>, 2> &D,
-                                   const std::array<Real, 2> &p) {
+  static llvm::FailureOr<Ellipse>
+  create(const std::array<std::array<Real, 2>, 2> &D,
+         const std::array<Real, 2> &p) {
     if (D[0][1] != D[1][0])
-      return failure();
+      return llvm::failure();
     Real det = D[0][0] * D[1][1] - D[0][1] * D[1][0];
     if (det <= 0 || D[0][0] <= 0 || D[1][1] <= 0)
-      return failure();
+      return llvm::failure();
     return Ellipse(UncheckedTag{}, D, p);
   }
 
   /// Construct from scalar coefficients a, b, d (matrix [[a,b],[b,d]]) and
   /// center (`px`, `py`).  Returns failure() if the matrix is not positive
   /// definite (`det`(D) ≤ 0, a ≤ 0, or d ≤ 0).
-  static FailureOr<Ellipse> create(const Real &a, const Real &b, const Real &d,
-                                   const Real &px, const Real &py) {
+  static llvm::FailureOr<Ellipse> create(const Real &a, const Real &b,
+                                         const Real &d, const Real &px,
+                                         const Real &py) {
     Real det = a * d - b * b;
     if (det <= 0 || a <= 0 || d <= 0)
-      return failure();
+      return llvm::failure();
     return Ellipse(UncheckedTag{}, a, b, d, px, py);
   }
 
@@ -144,8 +146,9 @@ public:
   /// this overload when the parameters are `verifiably` correct.
   static Ellipse must_create(const Real &a, const Real &b, const Real &d,
                              const Real &px, const Real &py) {
-    auto result = create(a, b, d, px, py);
-    assert(succeeded(result) && "Ellipse::must_create: invalid parameters");
+    llvm::FailureOr<Ellipse> result = create(a, b, d, px, py);
+    assert(llvm::succeeded(result) &&
+           "Ellipse::must_create: invalid parameters");
     return *result;
   }
 
@@ -200,10 +203,12 @@ public:
   ///
   /// The forward matrix F is extracted from g_local via to_real_mat.
   /// Returns failure() if mode == Fallback and GridOp::inv() fails.
-  LogicalResult transform_by_gridop(const GridOp &g_local, TransformMode mode,
-                                    const Real &preinv00, const Real &preinv01,
-                                    const Real &preinv10, const Real &preinv11,
-                                    const Real &tol);
+  llvm::LogicalResult transform_by_gridop(const GridOp &g_local,
+                                          TransformMode mode,
+                                          const Real &preinv00,
+                                          const Real &preinv01,
+                                          const Real &preinv10,
+                                          const Real &preinv11, const Real &tol);
 
   /// Applies a precomputed forward matrix F (given as scalars) to the ellipse.
   ///
@@ -211,13 +216,13 @@ public:
   /// fallback_g must be non-null when mode == Fallback or when mode ==
   /// Conjugate and the matrix is found to be near-singular.
   /// Returns failure() if GridOp::inv() fails in the Fallback path.
-  LogicalResult transform_by_gridop_mat(TransformMode mode, const Real &F00,
-                                        const Real &F01, const Real &F10,
-                                        const Real &F11, const Real &preinv00,
-                                        const Real &preinv01,
-                                        const Real &preinv10,
-                                        const Real &preinv11, const Real &tol,
-                                        const GridOp *fallback_g = nullptr);
+  llvm::LogicalResult
+  transform_by_gridop_mat(TransformMode mode, const Real &F00, const Real &F01,
+                          const Real &F10, const Real &F11,
+                          const Real &preinv00, const Real &preinv01,
+                          const Real &preinv10, const Real &preinv11,
+                          const Real &tol,
+                          const GridOp *fallback_g = nullptr);
 
   // -------------------------------------------------------------------------
   // Derived quantities (see free functions below)
@@ -228,17 +233,17 @@ public:
   /// Scales all three D entries by 1/√`det`(D).  Used to produce the normal
   /// form (31) required by the Step Lemma analysis.
   /// Returns failure() if the determinant invariant is violated (`det` ≤ 0).
-  LogicalResult normalize() {
+  llvm::LogicalResult normalize() {
     Real det_val = _a * _d - _b * _b;
     if (det_val <= 0)
-      return failure();
+      return llvm::failure();
     // Multiply by 1/√`det` rather than dividing four times: one GMP division
     // instead of three.
     Real inv_sd = 1 / sqrt(det_val);
     _a *= inv_sd;
     _b *= inv_sd;
     _d *= inv_sd;
-    return success();
+    return llvm::success();
   }
 
   bool contains(const DOmega &v) const override {
@@ -282,20 +287,20 @@ public:
 ///
 /// Returns failure() if the result is ≤ 0 (invariant violation — should not
 /// happen for a correctly constructed or transformed Ellipse).
-inline FailureOr<Real> det(const Ellipse &E) {
+inline llvm::FailureOr<Real> det(const Ellipse &E) {
   Real result = E.a() * E.d() - E.b() * E.b();
   if (result <= 0)
-    return failure();
+    return llvm::failure();
   return result;
 }
 
 /// Area of the ellipse: π / √`det`(D).
 ///
 /// Propagates failure from `det`().
-inline FailureOr<Real> area(const Ellipse &E) {
-  auto det_or = det(E);
-  if (failed(det_or))
-    return failure();
+inline llvm::FailureOr<Real> area(const Ellipse &E) {
+  llvm::FailureOr<Real> det_or = det(E);
+  if (llvm::failed(det_or))
+    return llvm::failure();
   return Real::pi() / sqrt(*det_or);
 }
 
@@ -316,10 +321,10 @@ inline Real bias(const Ellipse &E) { return E.d() / E.a(); }
 ///
 /// Derived from the formula w = √(d/`det`), h = √(a/`det`).
 /// Returns failure() if the determinant invariant is violated.
-inline FailureOr<Rectangle> bbox(const Ellipse &E) {
-  FailureOr<Real> det_or = det(E);
-  if (failed(det_or))
-    return failure();
+inline llvm::FailureOr<Rectangle> bbox(const Ellipse &E) {
+  llvm::FailureOr<Real> det_or = det(E);
+  if (llvm::failed(det_or))
+    return llvm::failure();
   const Real &det_val = *det_or;
   Real w = sqrt(E.d() / det_val);
   Real h = sqrt(E.a() / det_val);
