@@ -29,8 +29,6 @@ if(NOT GMP_INCLUDE_DIR OR NOT GMP_LIBRARIES OR
   return()
 endif()
 
-set(CUDAQ_SYNTH_LOGGING_BACKEND "NONE" CACHE INTERNAL "")
-
 add_library(cudaq-synth STATIC
   Math/Diophantine.cpp
   Math/Geometry/Ellipse.cpp
@@ -39,7 +37,6 @@ add_library(cudaq-synth STATIC
   Math/Grid/Odgp.cpp
   Math/Grid/Tdgp.cpp
   Math/Real.cpp
-  Support/Logging.cpp
   Synthesis/Gridsynth.cpp
   Synthesis/KmmSynthesize.cpp
 )
@@ -65,4 +62,5 @@ target_link_libraries(cudaq-synth
   PRIVATE
     ${GMP_LIBRARIES}
     ${MPFR_LIBRARIES}
+    LLVMSupport
 )

@@ -8,12 +8,15 @@
 
 #include "Math/Grid/Odgp.h"
 
-#include "Support/LogMacros.h"
+#include "Support/StreamOps.h"
+#include "llvm/Support/Debug.h"
 
 #include <algorithm>
 #include <array>
 #include <cassert>
 #include <cmath>
+
+#define DEBUG_TYPE "cudaq-synth"
 
 namespace cudaq::synth {
 
@@ -249,8 +252,8 @@ void refine_range_against_bounds(EnumerationScratch &s, const mpfr_t &bound_lo,
 // Public API — lazy generators
 // -----------------------------------------------------------------------------
 generator<ZSqrt2> solve_odgp(Interval I, Interval J) {
-  CUDAQ_SYNTH_LOG_TRACE("synth.grid", "solve_odgp: I_width={}, J_width={}",
-                        I.width(), J.width());
+  LLVM_DEBUG(llvm::dbgs() << "[grid] solve_odgp: I_width=" << I.width()
+                          << ", J_width=" << J.width() << '\n');
 
   if (I.width() < 0 || J.width() < 0)
     co_return;
@@ -282,11 +285,10 @@ generator<ZSqrt2> solve_odgp(Interval I, Interval J) {
     scale = scale * powers.lambda_inv_n;
   }
 
-  CUDAQ_SYNTH_LOG_TRACE(
-      "synth.grid",
-      "solve_odgp: after rescale -- cur_I_width={}, cur_J_width={}, "
-      "swapped={}",
-      cur_I.width(), cur_J.width(), swapped);
+  LLVM_DEBUG(llvm::dbgs() << "[grid] solve_odgp: after rescale -- cur_I_width="
+                          << cur_I.width()
+                          << ", cur_J_width=" << cur_J.width()
+                          << ", swapped=" << swapped << '\n');
 
   // --- Enumeration (inlined from enumerate_solutions) ---
   EnumerationScratch s;
@@ -313,8 +315,8 @@ generator<ZSqrt2> solve_odgp(Interval I, Interval J) {
   Integer a_min = ceil_to_integer((cur_I.l() + cur_J.l()) / 2);
   Integer a_max = floor_to_integer((cur_I.r() + cur_J.r()) / 2);
 
-  CUDAQ_SYNTH_LOG_TRACE("synth.grid", "solve_odgp: a_min={}, a_max={}", a_min,
-                        a_max);
+  LLVM_DEBUG(llvm::dbgs() << "[grid] solve_odgp: a_min=" << a_min
+                          << ", a_max=" << a_max << '\n');
 
   Integer delta_result_a = (direction > 0) ? two_scale_b : -two_scale_b;
   Integer delta_result_b = (direction > 0) ? scale_a : -scale_a;
@@ -380,8 +382,8 @@ generator<ZSqrt2> solve_odgp(Interval I, Interval J) {
 
 generator<ZSqrt2> solve_odgp_with_parity(Interval I, Interval J,
                                          ZSqrt2 parity_hint) {
-  CUDAQ_SYNTH_LOG_TRACE("synth.grid", "solve_odgp_with_parity: parity={}",
-                        parity_hint.parity());
+  LLVM_DEBUG(llvm::dbgs() << "[grid] solve_odgp_with_parity: parity="
+                          << parity_hint.parity() << '\n');
   int p = parity_hint.parity();
   Interval scaled_I = (I + (-static_cast<Real>(p))) * (Real::sqrt2() / 2);
   Interval scaled_J = (J + (-static_cast<Real>(p))) * (-Real::sqrt2() / 2);
@@ -393,9 +395,10 @@ generator<ZSqrt2> solve_odgp_with_parity(Interval I, Interval J,
 }
 
 generator<DSqrt2> solve_odgp_scaled(Interval I, Interval J, Integer denom_exp) {
-  CUDAQ_SYNTH_LOG_TRACE(
-      "synth.grid", "solve_odgp_scaled: denom_exp={}, I_width={}, J_width={}",
-      static_cast<i64>(denom_exp), I.width(), J.width());
+  LLVM_DEBUG(llvm::dbgs()
+             << "[grid] solve_odgp_scaled: denom_exp="
+             << static_cast<i64>(denom_exp) << ", I_width=" << I.width()
+             << ", J_width=" << J.width() << '\n');
   Real scale = pow_sqrt2(denom_exp);
   Interval scaled_I = I * scale;
   Interval scaled_J = (denom_exp & 1) ? J * (-scale) : J * scale;
@@ -409,9 +412,9 @@ generator<DSqrt2> solve_odgp_scaled(Interval I, Interval J, Integer denom_exp) {
 generator<DSqrt2> solve_odgp_scaled_with_parity(Interval I, Interval J,
                                                 Integer denom_exp,
                                                 DSqrt2 parity_hint) {
-  CUDAQ_SYNTH_LOG_TRACE(
-      "synth.grid", "solve_odgp_scaled_with_parity: denom_exp={}, parity={}",
-      static_cast<i64>(denom_exp), parity_hint);
+  LLVM_DEBUG(llvm::dbgs() << "[grid] solve_odgp_scaled_with_parity: denom_exp="
+                          << static_cast<i64>(denom_exp)
+                          << ", parity=" << parity_hint << '\n');
   if (denom_exp == 0) {
     ZSqrt2 beta_z = with_denom_exp(parity_hint, 0).alpha();
     for (const ZSqrt2 &a : solve_odgp_with_parity(I, J, beta_z)) {

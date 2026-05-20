@@ -8,7 +8,8 @@
 
 #include "cudaq/Synthesis/Synthesis/Gridsynth.h"
 
-#include "Support/LogMacros.h"
+#include "Support/StreamOps.h"
+#include "llvm/Support/Debug.h"
 
 #include "Math/Diophantine.h"
 #include "Math/Geometry/GridOp.h"
@@ -18,6 +19,8 @@
 #include "Math/Grid/Tdgp.h"
 #include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Synthesis/KmmSynthesize.h"
+
+#define DEBUG_TYPE "cudaq-synth"
 
 using namespace cudaq::synth;
 
@@ -234,11 +237,11 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
                                                  i32 diophantine_timeout_ms,
                                                  i32 factoring_timeout_ms) {
 
-  CUDAQ_SYNTH_LOG_DEBUG("synth.gridsynth",
-                        "gridsynth_unitary: theta={}, eps={}, "
-                        "dioph_timeout={}ms, fact_timeout={}ms",
-                        theta, epsilon, diophantine_timeout_ms,
-                        factoring_timeout_ms);
+  LLVM_DEBUG(llvm::dbgs() << "[gridsynth] gridsynth_unitary: theta=" << theta
+                          << ", eps=" << epsilon
+                          << ", dioph_timeout=" << diophantine_timeout_ms
+                          << "ms, fact_timeout=" << factoring_timeout_ms
+                          << "ms\n");
 
   // ---- Step 0: Setup ----
   // Construct the ε-region R_ε (§7.1, equation 14) and the unit disk
@@ -247,15 +250,14 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
   llvm::FailureOr<EpsilonRegion> region_or =
       EpsilonRegion::create(theta, epsilon);
   if (llvm::failed(region_or)) {
-    CUDAQ_SYNTH_LOG_ERROR("synth.gridsynth",
-                          "gridsynth_unitary: degenerate epsilon-region "
-                          "(eps={} may be too small or theta is degenerate)",
-                          epsilon);
+    LLVM_DEBUG(llvm::dbgs()
+               << "[gridsynth] gridsynth_unitary: degenerate epsilon-region "
+                  "(eps="
+               << epsilon << " may be too small or theta is degenerate)\n");
     return llvm::failure();
   }
-  CUDAQ_SYNTH_LOG_TRACE("synth.gridsynth",
-                        "gridsynth_unitary: epsilon-region: {}",
-                        region_or->to_string());
+  LLVM_DEBUG(llvm::dbgs() << "[gridsynth] gridsynth_unitary: epsilon-region: "
+                          << region_or->to_string() << '\n');
 
   UnitDisk unit_disk;
 
@@ -266,19 +268,20 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
   llvm::FailureOr<UprightResult> transformed_or =
       to_upright(region_or->ellipse(), UnitDisk::as_ellipse());
   if (llvm::failed(transformed_or)) {
-    CUDAQ_SYNTH_LOG_WARN("synth.gridsynth",
-                         "gridsynth_unitary: to_upright preprocessing failed");
+    LLVM_DEBUG(
+        llvm::dbgs()
+        << "[gridsynth] gridsynth_unitary: to_upright preprocessing failed\n");
     return llvm::failure();
   }
   UprightResult &transformed = *transformed_or;
 
-  CUDAQ_SYNTH_LOG_DEBUG("synth.gridsynth",
-                        "gridsynth_unitary: to_upright done -- opG={}, "
-                        "bboxA={}x{}, bboxB={}x{}",
-                        transformed.opG, transformed.bboxA.I_x().width(),
-                        transformed.bboxA.I_y().width(),
-                        transformed.bboxB.I_x().width(),
-                        transformed.bboxB.I_y().width());
+  LLVM_DEBUG(llvm::dbgs()
+             << "[gridsynth] gridsynth_unitary: to_upright done -- opG="
+             << transformed.opG
+             << ", bboxA=" << transformed.bboxA.I_x().width() << "x"
+             << transformed.bboxA.I_y().width()
+             << ", bboxB=" << transformed.bboxB.I_x().width() << "x"
+             << transformed.bboxB.I_y().width() << '\n');
 
   // Fatten the y-intervals of the bounding boxes by a small relative amount.
   // This guards against numerical edge effects where valid grid points
@@ -303,9 +306,10 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
   // so iterating k from 0 ensures optimality.
   Integer k = 0;
   while (true) {
-    CUDAQ_SYNTH_LOG_DEBUG("synth.gridsynth",
-                          "gridsynth_unitary: trying denominator exponent k={}",
-                          static_cast<i64>(k));
+    LLVM_DEBUG(llvm::dbgs()
+               << "[gridsynth] gridsynth_unitary: trying denominator "
+                  "exponent k="
+               << static_cast<i64>(k) << '\n');
 
     // Step 1: Solve the scaled TDGP for denominator exponent k.
     // Returns candidates u ∈ (1/√2^k)·Z[ω] ∩ R_ε with u● ∈ D̄ lazily.
@@ -332,10 +336,10 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
           diophantine_dyadic(xi, diophantine_timeout_ms, factoring_timeout_ms);
 
       if (llvm::succeeded(w_or)) {
-        CUDAQ_SYNTH_LOG_DEBUG(
-            "synth.gridsynth",
-            "gridsynth_unitary: Diophantine succeeded at k={}",
-            static_cast<i64>(k));
+        LLVM_DEBUG(llvm::dbgs()
+                   << "[gridsynth] gridsynth_unitary: Diophantine "
+                      "succeeded at k="
+                   << static_cast<i64>(k) << '\n');
         // SUCCESS: We have z and w with z†z + w†w = 1.
         // Construct U = [[z, -w†], [w, z†]] (equation 12, with n = 0).
 
@@ -374,23 +378,23 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
 llvm::FailureOr<Circuit> gridsynth(const Real &theta, const Real &epsilon,
                                    i32 diophantine_timeout_ms,
                                    i32 factoring_timeout_ms) {
-  CUDAQ_SYNTH_LOG_INFO("synth.gridsynth", "gridsynth: theta={}, eps={}", theta,
-                       epsilon);
+  LLVM_DEBUG(llvm::dbgs() << "[gridsynth] gridsynth: theta=" << theta
+                          << ", eps=" << epsilon << '\n');
 
   llvm::FailureOr<DOmegaUnitary> u_or = gridsynth_unitary(
       theta, epsilon, diophantine_timeout_ms, factoring_timeout_ms);
   if (llvm::failed(u_or)) {
-    CUDAQ_SYNTH_LOG_ERROR("synth.gridsynth",
-                          "gridsynth: synthesis failed for theta={}, eps={}",
-                          theta, epsilon);
+    LLVM_DEBUG(llvm::dbgs()
+               << "[gridsynth] gridsynth: synthesis failed for theta=" << theta
+               << ", eps=" << epsilon << '\n');
     return llvm::failure();
   }
 
   llvm::FailureOr<Circuit> circuit = kmm_synthesize(*u_or);
   if (llvm::succeeded(circuit)) {
-    CUDAQ_SYNTH_LOG_INFO("synth.gridsynth",
-                         "gridsynth: success -- {} gates, T-count={}",
-                         (*circuit).size(), (*circuit).t_count());
+    LLVM_DEBUG(llvm::dbgs()
+               << "[gridsynth] gridsynth: success -- " << (*circuit).size()
+               << " gates, T-count=" << (*circuit).t_count() << '\n');
   }
   return circuit;
 }

@@ -8,7 +8,10 @@
 
 #include "cudaq/Synthesis/Synthesis/KmmSynthesize.h"
 #include "Circuit/NormalForm.h"
-#include "Support/LogMacros.h"
+#include "Support/StreamOps.h"
+#include "llvm/Support/Debug.h"
+
+#define DEBUG_TYPE "cudaq-synth"
 
 namespace cudaq::synth {
 
@@ -141,9 +144,8 @@ reduce_denomexp(const DOmegaUnitary &unitary) {
 ///   syllable sequences (e.g., TT → S). The result is the canonical
 ///   gate sequence with minimum T-count.
 Circuit kmm_synthesize(DOmegaUnitary unitary) {
-  CUDAQ_SYNTH_LOG_DEBUG("synth.kmm",
-                        "kmm_synthesize: denom_exp={} (expected T-count ~{})",
-                        unitary.k(), unitary.k());
+  LLVM_DEBUG(llvm::dbgs() << "[kmm] kmm_synthesize: denom_exp=" << unitary.k()
+                          << " (expected T-count ~" << unitary.k() << ")\n");
 
   Circuit gates;
 
@@ -158,9 +160,9 @@ Circuit kmm_synthesize(DOmegaUnitary unitary) {
   }
 
   // Phase 2: Decompose the remaining Clifford (k = 0).
-  CUDAQ_SYNTH_LOG_TRACE("synth.kmm",
-                        "kmm_synthesize: Clifford phase -- n={}, z={}, w={}",
-                        unitary.n(), unitary.z(), unitary.w());
+  LLVM_DEBUG(llvm::dbgs()
+             << "[kmm] kmm_synthesize: Clifford phase -- n=" << unitary.n()
+             << ", z=" << unitary.z() << ", w=" << unitary.w() << '\n');
   // If phase n is odd, absorb one T to make it even (T adds 1 to n).
   if (unitary.n() & 1) {
     gates.push_back(Gate::T);
@@ -202,9 +204,9 @@ Circuit kmm_synthesize(DOmegaUnitary unitary) {
   // This absorbs Cliffords, simplifies TT → S, and produces the
   // canonical representation with minimum T-count. Cannot fail.
   Circuit result = normalize_gates(gates);
-  CUDAQ_SYNTH_LOG_DEBUG(
-      "synth.kmm", "kmm_synthesize: final circuit has {} gates, T-count={}",
-      result.size(), result.t_count());
+  LLVM_DEBUG(llvm::dbgs() << "[kmm] kmm_synthesize: final circuit has "
+                          << result.size()
+                          << " gates, T-count=" << result.t_count() << '\n');
   return result;
 }
 
