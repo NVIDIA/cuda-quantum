@@ -18,7 +18,7 @@ def QECDialect : Dialect {
     The QEC dialect houses quantum error correction operations such as detector
     declarations and logical observable declarations. These are separate from
     the Quake dialect to keep Quake focused on circuit semantics while giving
-    QEC annotations a dedicated namespace.
+    QEC operations a dedicated namespace.
   }];
   let cppNamespace = "cudaq::qec";
 }
