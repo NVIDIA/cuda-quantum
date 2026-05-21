@@ -23,31 +23,31 @@ namespace cudaq::synth {
 // ZOmega
 //===----------------------------------------------------------------------===//
 
-/// Elements of the ring Z[omega] where omega = e^(i*pi/4) = (1+i)/sqrt(2).
+/// Elements of the ring Z[omega] where omega = e^(i*pi/4) = (1+i)/`sqrt`(2).
 ///
 /// Reference: Ross & Selinger, arXiv:1403.2975, Definition 3.1.
 ///
 /// Z[omega] = { a*omega^3 + b*omega^2 + c*omega + d | a, b, c, d in Z } is
-/// the ring of cyclotomic integers of degree 8: a subring of C and a
+/// the ring of `cyclotomic` integers of degree 8: a `subring` of C and a
 /// Euclidean domain.
 ///
 /// Representation. Stored as the four-tuple (a, b, c, d). The real and
 /// imaginary parts decompose as (Lemma 5.5)
-///     Re(u) = d + (c - a) * sqrt(2)/2
-///     Im(u) = b + (c + a) * sqrt(2)/2
+///     Re(u) = d + (c - a) * `sqrt`(2)/2
+///     Im(u) = b + (c + a) * `sqrt`(2)/2
 ///
 /// Key operations used downstream:
 ///   - Complex conjugation (Definition 3.2):
 ///       conj((a, b, c, d)) = (-c, -b, -a, d)
-///   - sqrt(2)-conjugation (Definition 3.2), sends sqrt(2) to -sqrt(2)
+///   - `sqrt`(2)-conjugation (Definition 3.2), sends `sqrt`(2) to -`sqrt`(2)
 ///     while fixing i:
 ///       conj_sq2((a, b, c, d)) = (-a, b, -c, d)
 ///   - Full norm N(u) = conj(u)*u * conj_sq2(conj(u))*conj_sq2(u) is a
-///     non-negative integer (Euclidean function for divmod).
+///     non-negative integer (Euclidean function for `divmod`).
 ///   - Multiplication by omega is a cyclic permutation of the coefficients,
 ///     exploited by mul_by_omega_power for cheap gate operations.
 ///   - The 4-bit residue mod 2 (Definition D.1, Remark D.2) detects
-///     divisibility by sqrt(2) and by delta = 1 + omega, which drives the
+///     divisibility by `sqrt`(2) and by delta = 1 + omega, which drives the
 ///     denominator-exponent reduction in Lemma 7.3.
 ///
 /// Z[omega] is dense in C, and the complex grid
@@ -77,8 +77,8 @@ public:
   /// Embed integer x as 0*omega^3 + 0*omega^2 + 0*omega + x.
   static ZOmega from_int(const Integer &x) { return ZOmega(0, 0, 0, x); }
 
-  /// Embed a + b*sqrt(2) in Z[sqrt(2)] into Z[omega] via the identity
-  /// sqrt(2) = omega + omega^-1, yielding (-b)*omega^3 + 0*omega^2 +
+  /// Embed a + b*`sqrt`(2) in Z[`sqrt`(2)] into Z[omega] via the identity
+  /// `sqrt`(2) = omega + omega^-1, yielding (-b)*omega^3 + 0*omega^2 +
   /// b*omega + a. The inverse projection is ZSqrt2::from_zomega, defined
   /// after ZOmega is complete to break the mutual-dependency cycle.
   static ZOmega from_zsqrt2(const ZSqrt2 &x) {
@@ -141,7 +141,7 @@ public:
   ///       = -c*omega^3 - b*omega^2 - a*omega + d
   ZOmega conj() const { return ZOmega(-_c, -_b, -_a, _d); }
 
-  /// sqrt(2)-conjugation (Paper Definition 3.2). Maps sqrt(2) to -sqrt(2)
+  /// `sqrt`(2)-conjugation (Paper Definition 3.2). Maps `sqrt`(2) to -`sqrt`(2)
   /// while fixing i:
   ///     conj_sq2(a*omega^3 + b*omega^2 + c*omega + d)
   ///       = -a*omega^3 + b*omega^2 - c*omega + d
@@ -155,7 +155,7 @@ public:
 
   /// Full norm N(u) = conj(u) * u * conj_sq2(conj(u)) * conj_sq2(u), always
   /// a non-negative integer (Remark 3.3). Serves as the Euclidean function
-  /// for divmod. Costs 6 GMP multiplications via the squared-sum + cross-
+  /// for `divmod`. Costs 6 GMP multiplications via the squared-sum + cross-
   /// term identity below.
   Integer norm() const {
     Integer sum_squares = _a * _a + _b * _b + _c * _c + _d * _d;
@@ -188,8 +188,8 @@ public:
 // ZSqrt2::from_zomega -- out of line because ZOmega must be complete
 //===----------------------------------------------------------------------===//
 
-/// Project x in Z[omega] onto Z[sqrt(2)], asserting that x actually lies in
-/// the subring (x.b() == 0 and x.a() == -x.c()).
+/// Project x in Z[omega] onto Z[`sqrt`(2)], asserting that x actually lies in
+/// the `subring` (x.b() == 0 and x.a() == -x.c()).
 inline ZSqrt2 ZSqrt2::from_zomega(const ZOmega &x) {
   assert(x.b() == 0 && x.a() == -x.c());
   return ZSqrt2(x.d(), x.c());
@@ -244,7 +244,7 @@ inline ZOmega mul_by_omega_power(const ZOmega &x, int32_t n) {
 /// are the eighth roots of unity { +/-1, +/-omega, +/-omega^2, +/-omega^3 }.
 ///
 /// For a unit x (N(x) = 1) the inverse follows from
-///     inv(x) = conj_sq2(x) * conj(x) * conj_sq2(conj(x))
+///     `inv`(x) = conj_sq2(x) * conj(x) * conj_sq2(conj(x))
 /// which reduces to the closed form below. We cache conj(x) so it is only
 /// constructed once.
 inline llvm::FailureOr<ZOmega> inv(const ZOmega &x) {
@@ -257,19 +257,19 @@ inline llvm::FailureOr<ZOmega> inv(const ZOmega &x) {
 
 /// Decompose x into floating-point (real, imaginary) coordinates via
 /// Lemma 5.5:
-///     Re(u) = d + (c - a) * sqrt(2)/2
-///     Im(u) = b + (c + a) * sqrt(2)/2
+///     Re(u) = d + (c - a) * `sqrt`(2)/2
+///     Im(u) = b + (c + a) * `sqrt`(2)/2
 ///
 /// Callers that process many elements with the same denominator exponent
-/// should prefer `coords_into` (defined in domega.h), which amortises the
-/// sqrt(2)/2 computation across calls.
+/// should prefer `coords_into` (defined in domega.h), which amortizes the
+/// `sqrt`(2)/2 computation across calls.
 inline void to_real_imag(const ZOmega &x, Real &out_real, Real &out_imag) {
   out_real = Real(x.d()) + Real::sqrt2() * Real(x.c() - x.a()) / 2;
   out_imag = Real(x.b()) + Real::sqrt2() * Real(x.c() + x.a()) / 2;
 }
 
 /// Same as `to_real_imag` but only the real part is needed. Skips one
-/// Real allocation. Same amortisation note applies: prefer `coords_into`
+/// Real allocation. Same amortization note applies: prefer `coords_into`
 /// when batching.
 inline void to_real(const ZOmega &x, Real &out_real) {
   out_real = Real(x.d()) + Real::sqrt2() * Real(x.c() - x.a()) / 2;

@@ -59,13 +59,13 @@ public:
   bool empty() const { return gates_.empty(); }
 
   /// Reserve storage for at least n gates so incremental builders avoid
-  /// repeated reallocations.
+  /// repeated `reallocations`.
   void reserve(size_t n) { gates_.reserve(n); }
 
   /// Unchecked element access (0-indexed).
   Gate operator[](size_t i) const { return gates_[i]; }
 
-  /// Last gate. Calling this on an empty Circuit is undefined behaviour.
+  /// Last gate. Calling this on an empty Circuit is undefined `behaviour`.
   Gate back() const {
     assert(!gates_.empty() && "Cannot call back() on an empty Circuit");
     return gates_.back();
@@ -78,7 +78,7 @@ public:
   void push_back(Gate g) { gates_.push_back(g); }
 
   /// Drop the last gate. Calling this on an empty Circuit is undefined
-  /// behaviour.
+  /// `behaviour`.
   void pop_back() {
     assert(!gates_.empty() && "Cannot call pop_back() on an empty Circuit");
     gates_.pop_back();

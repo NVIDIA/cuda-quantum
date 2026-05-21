@@ -39,7 +39,7 @@ public:
 
   /// Line / ray intersection oracle.
   ///
-  /// The caller parameterizes a line as u(t) = u0 + t*v with t in R. The
+  /// The caller `parameterizes` a line as u(t) = u0 + t*v with t in R. The
   /// return value is the interval [t_min, t_max] for which u(t) lies inside
   /// the set, or std::nullopt if there is no intersection. Concrete
   /// implementations are free to interpret the result as a full line

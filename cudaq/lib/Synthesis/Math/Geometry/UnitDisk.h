@@ -31,13 +31,13 @@ namespace cudaq::synth {
 ///
 /// Two views of the same object are exposed: `as_ellipse()` produces the
 /// generic Ellipse representation (used by to_upright()), while `contains()`
-/// and `intersect()` are specialised implementations that use the disk's
+/// and `intersect()` are specialized implementations that use the disk's
 /// circular symmetry directly.
 class UnitDisk : public ConvexSet {
 public:
   UnitDisk() = default;
 
-  /// Unit disk in Ellipse form: identity quadratic form, centre at the
+  /// Unit disk in Ellipse form: identity quadratic form, center at the
   /// origin. Function-local static avoids the static-initialization-order
   /// pitfall (same pattern as ZSqrt2::lambda() and GridOp::identity()).
   static const Ellipse &as_ellipse() {

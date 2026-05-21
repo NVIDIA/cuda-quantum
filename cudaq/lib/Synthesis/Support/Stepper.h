@@ -26,16 +26,16 @@ namespace cudaq::synth {
 ///
 /// Contract for derived classes: implement
 ///
-///     const T *next();
+///     `const` T *next();
 ///
 /// which returns a pointer to the next value (valid until the next call to
-/// next() or the stepper's destruction) or nullptr when exhausted.
+/// next() or the stepper's destruction) or `nullptr` when exhausted.
 ///
 /// StepperBase wraps next() in a single-pass input range so the derived
 /// stepper can be used directly with range-for and `to_vector`:
 ///
-///     for (const T &v : MyStepper(...)) { ... }
-///     auto vec = to_vector(MyStepper(...));
+///     for (`const` T &v : MyStepper(...)) { ... }
+///     auto `vec` = to_vector(MyStepper(...));
 ///
 /// Pointer contract: the value returned by next() (and the reference
 /// returned by *it) is valid only until the next call to next() / ++it.
@@ -86,8 +86,8 @@ public:
 //===----------------------------------------------------------------------===//
 
 /// Drain a lazy range (a stepper or anything with begin()/end()) into a
-/// std::vector. The value type is deduced from the iterator's dereference
-/// type with cv/ref qualifiers stripped.
+/// std::vector. The value type is deduced from the `iterator`'s `dereference`
+/// type with `cv`/ref qualifiers stripped.
 template <typename Range>
 auto to_vector(Range &&r) {
   using ValueT =

@@ -25,7 +25,7 @@
 //     Definition 3.1).
 //   - Norm computations N(alpha) = alpha * conj_sq2(alpha) (Remark 3.3).
 //   - Modular arithmetic in the Diophantine solver: Tonelli-Shanks for
-//     sqrt(-1) mod p, Miller-Rabin primality, Pollard-Brent factoring
+//     sqrt(-1) mod p, Miller-Rabin `primality`, Pollard-Brent factoring
 //     (Appendix C).
 //   - Euclidean division in Z[sqrt(2)] for GCDs (Lemma C.4).
 //
@@ -401,7 +401,7 @@ inline Integer floordiv(const Integer &x, const Integer &y) {
   return result;
 }
 
-/// floordiv overload for an int32_t divisor: avoids materialising a temporary
+/// `floordiv` overload for an int32_t divisor: avoids materializing a temporary
 /// Integer for the common case, and -- when `y` is a positive power of two
 /// -- swaps the O(limbs) general division for a single GMP limb shift.
 inline Integer floordiv(const Integer &x, int32_t y) {
@@ -442,7 +442,7 @@ inline Integer gcd(Integer a, Integer b) {
   return result;
 }
 
-/// Probable-primality test via GMP's mpz_probab_prime_p (Miller-Rabin).
+/// `Probable-primality` test via GMP's mpz_probab_prime_p (Miller-Rabin).
 ///
 /// Returns true if n is "probably or definitely prime", false if n is
 /// "definitely composite" or n is too small to be prime. Tests |n|, so

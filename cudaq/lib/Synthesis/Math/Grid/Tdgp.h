@@ -33,8 +33,8 @@ namespace cudaq::synth {
 // (Theorem 5.18, Propositions 5.21-5.22).
 //
 // Definition 5.3 / 5.20: given convex sets A, B in R^2 and a denominator
-// exponent k >= 0, find all u in (1/sqrt(2)^k) * Z[omega] with u in A and
-// u* in B, where (-)* is the sqrt(2)-conjugation.
+// exponent k >= 0, find all u in (1/`sqrt`(2)^k) * Z[omega] with u in A and
+// u* in B, where (-)* is the `sqrt`(2)-conjugation.
 //
 // Algorithm shape (Theorem 5.18):
 //   1. Upright preprocessing (delegated to ToUpright): a grid operator G is
@@ -42,7 +42,7 @@ namespace cudaq::synth {
 //      handed the inverse G^-1 together with the upright bounding boxes.
 //   2. Reduction to 1D problems (Lemma 5.6): any u = alpha + beta*i (even
 //      case) or u = alpha + beta*i + omega (odd case) has alpha, beta in
-//      Z[sqrt(2)], so the 2D constraint decomposes into two independent 1D
+//      Z[`sqrt`(2)], so the 2D constraint decomposes into two independent 1D
 //      ODGPs, one on the real axis and one on the imaginary axis.
 //   3. Line scan: take a single x-solution alpha_0 as an anchor, parametrise
 //      a line through the candidates as z(t) = z_0 + t * v, intersect that
@@ -73,7 +73,7 @@ namespace cudaq::synth {
 
 /// Stepper for the scaled TDGP at a fixed denominator exponent k.
 ///
-/// Yields all u in (1/sqrt(2)^k) * Z[omega] satisfying u in `setA` and
+/// Yields all u in (1/`sqrt`(2)^k) * Z[omega] satisfying u in `setA` and
 /// u* in `setB`. Composes `OdgpScaledStepper` for the beta-iteration and
 /// `OdgpScaledWithParityStepper` for the alpha-iteration on each beta line.
 /// Candidates that pass the line-scan refinement but fail the exact
@@ -112,7 +112,7 @@ private:
   // Line-scan parameters computed in the constructor (after the one-shot
   // x-anchor solve). alpha0_ is the anchor; dx_ is the per-step grid
   // spacing in t; v_common_ and v_conj_ are the direction vector and its
-  // sqrt(2)-conjugate; two_pow_k_ is precomputed for the per-beta fattening
+  // `sqrt`(2)-conjugate; two_pow_k_ is precomputed for the per-beta fattening
   // factor.
   DSqrt2 alpha0_;
   DSqrt2 dx_;
@@ -138,7 +138,7 @@ private:
   std::string close_reason_;
 
   /// Walk beta_gen_ forward until a beta with a non-empty (A, B) line
-  /// intersection is found. On success: sets `current_beta_`, emplaces
+  /// intersection is found. On success: sets `current_beta_`, `emplaces`
   /// `alpha_gen_`, and returns true. On exhaustion: returns false. Betas
   /// whose line misses A or B are counted in `skipped_betas_`.
   bool advance_to_next_beta();

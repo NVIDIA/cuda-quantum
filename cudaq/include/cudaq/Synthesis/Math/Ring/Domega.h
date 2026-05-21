@@ -26,14 +26,14 @@ namespace cudaq::synth {
 
 /// Elements of the ring
 ///
-///     D[omega] = Z[1/sqrt(2), i] = { a*omega^3 + b*omega^2 + c*omega + d
+///     D[omega] = Z[1/`sqrt`(2), i] = { a*omega^3 + b*omega^2 + c*omega + d
 ///                                    | a, b, c, d in D }
 ///
 /// where D = Z[1/2] is the ring of dyadic fractions.
 ///
 /// Reference: Ross & Selinger, arXiv:1403.2975, Definition 3.1.
 ///
-/// Representation. Stored as u / sqrt(2)^k with u in Z[omega] and k >= 0
+/// Representation. Stored as u / `sqrt`(2)^k with u in Z[omega] and k >= 0
 /// (the "denominator exponent").
 class DOmega {
 private:
@@ -41,7 +41,7 @@ private:
   Integer _k;
 
 public:
-  /// Construct u / sqrt(2)^k.
+  /// Construct u / `sqrt`(2)^k.
   explicit DOmega(const ZOmega &u = ZOmega(), const Integer &k = 0)
       : _u(u), _k(k) {}
 
@@ -49,7 +49,7 @@ public:
   const Integer &k() const { return _k; }
 
   /// In-place assignment that reuses the mpz_t buffers inside _u and _k.
-  /// Saves the temporary's allocator traffic that `*this = DOmega(u, k)`
+  /// Saves the temporary's `allocator` traffic that `*this = DOmega(u, k)`
   /// would otherwise pay.
   void assign(const ZOmega &u, const Integer &k) {
     _u = u;
@@ -63,26 +63,26 @@ public:
     _k = std::move(k);
   }
 
-  /// Embed an integer x as x / sqrt(2)^0.
+  /// Embed an integer x as x / `sqrt`(2)^0.
   static DOmega from_int(const Integer &x) {
     return DOmega(ZOmega::from_int(x), 0);
   }
 
-  /// Embed a Z[omega] element u as u / sqrt(2)^0.
+  /// Embed a Z[omega] element u as u / `sqrt`(2)^0.
   static DOmega from_zomega(const ZOmega &x) { return DOmega(x, 0); }
 
-  /// Embed a real-valued D[omega] element from its D[sqrt(2)] form.
+  /// Embed a real-valued D[omega] element from its D[`sqrt`(2)] form.
   static DOmega from_dsqrt2(const DSqrt2 &x) {
     return DOmega(ZOmega::from_zsqrt2(x.alpha()), x.k());
   }
 
-  /// Build the D[omega] element (x + i*y) / sqrt(2)^k from D[sqrt(2)]
+  /// Build the D[omega] element (x + i*y) / `sqrt`(2)^k from D[`sqrt`(2)]
   /// components x and y. The imaginary part rides on omega^2 = i and the
-  /// final value is renormalised to the requested k via with_denom_exp.
+  /// final value is `renormalized` to the requested k via with_denom_exp.
   static DOmega from_dsqrt2_vector(const DSqrt2 &x, const DSqrt2 &y,
                                    const Integer &k);
 
-  /// Equality modulo denominator exponent: both operands are normalised
+  /// Equality modulo denominator exponent: both operands are normalized
   /// to max(_k, other._k) before the numerator comparison.
   bool operator==(const DOmega &other) const;
 
@@ -94,7 +94,7 @@ public:
   DOmega operator-() const { return DOmega(-_u, _k); }
 
   /// Multiplication:
-  ///   (u / sqrt(2)^k) * (v / sqrt(2)^m) = (u*v) / sqrt(2)^(k+m)
+  ///   (u / `sqrt`(2)^k) * (v / `sqrt`(2)^m) = (u*v) / `sqrt`(2)^(k+m)
   DOmega operator*(const DOmega &other) const {
     return DOmega(_u * other._u, _k + other._k);
   }
@@ -103,14 +103,14 @@ public:
   // Ring automorphisms
   //===--------------------------------------------------------------------===//
 
-  /// Complex conjugation: (u / sqrt(2)^k)^* = conj(u) / sqrt(2)^k. Maps
+  /// Complex conjugation: (u / `sqrt`(2)^k)^* = conj(u) / `sqrt`(2)^k. Maps
   /// omega to omega^-1 (Paper Definition 3.2).
   DOmega conj() const { return DOmega(_u.conj(), _k); }
 
-  /// sqrt(2)-conjugation. For odd k the sign flips
-  /// ((-sqrt(2))^k = -sqrt(2)^k), so
-  ///     conj_sq2(u / sqrt(2)^k) = -conj_sq2(u) / sqrt(2)^k   (k odd)
-  ///                             =  conj_sq2(u) / sqrt(2)^k   (k even)
+  /// `sqrt`(2)-conjugation. For odd k the sign flips
+  /// ((-`sqrt`(2))^k = -`sqrt`(2)^k), so
+  ///     conj_sq2(u / `sqrt`(2)^k) = -conj_sq2(u) / `sqrt`(2)^k   (k odd)
+  ///                             =  conj_sq2(u) / `sqrt`(2)^k   (k even)
   /// Central to the grid problem formulation (Paper Definitions 3.2, 5.1).
   DOmega conj_sq2() const {
     if (_k.is_odd())
@@ -122,7 +122,7 @@ public:
   // Derived properties
   //===--------------------------------------------------------------------===//
 
-  /// Floating-point scaling factor sqrt(2)^k.
+  /// Floating-point scaling factor `sqrt`(2)^k.
   Real scale() const { return pow_sqrt2(_k); }
 
   /// Residue: 4-bit parity pattern of the Z[omega] numerator (Remark D.2,
@@ -132,7 +132,7 @@ public:
   Real real() const { return _u.real() / scale(); }
   Real imag() const { return _u.imag() / scale(); }
 
-  /// "(a, b, c, d)/sqrt2^k" rendering for debug logging.
+  /// "(a, b, c, d)/`sqrt`2^k" rendering for debug logging.
   std::string to_string() const {
     return _u.to_string() + "/sqrt2^" + _k.to_string();
   }
@@ -142,13 +142,13 @@ public:
 // Free functions on DOmega
 //===----------------------------------------------------------------------===//
 
-/// Multiply x by 1/sqrt(2).
+/// Multiply x by 1/`sqrt`(2).
 ///
 /// Precondition: (u.b() + u.d()) and (u.c() + u.a()) must both be even.
 /// This is the divisibility-by-delta = 1 + omega condition (Remark D.2);
-/// without it the result would not lie in Z[omega] / sqrt(2)^k.
+/// without it the result would not lie in Z[omega] / `sqrt`(2)^k.
 ///
-/// In the (a, b, c, d) basis, 1/sqrt(2) acts as
+/// In the (a, b, c, d) basis, 1/`sqrt`(2) acts as
 ///     a' = (b - d)/2,  b' = (c + a)/2,  c' = (b + d)/2,  d' = (c - a)/2.
 inline DOmega mul_by_inv_sqrt2(const DOmega &x) {
   const ZOmega &u = x.u();
@@ -174,16 +174,16 @@ inline DOmega mul_by_omega_power(const DOmega &x, int32_t n) noexcept {
   return DOmega(mul_by_omega_power(x.u(), n), x.k());
 }
 
-/// Multiply x by sqrt(2)^d.
+/// Multiply x by `sqrt(2)^d`.
 ///
-/// For d > 0, every pair of sqrt(2) factors combines into a factor of 2,
+/// For d > 0, every pair of `sqrt`(2) factors combines into a factor of 2,
 /// so each coefficient is left-shifted by d/2; an odd remainder picks up
-/// one extra multiplication by sqrt(2) in Z[omega] (the ZOmega element
+/// one extra multiplication by `sqrt`(2) in Z[omega] (the ZOmega element
 /// (-1, 0, 1, 0)).
 ///
-/// For d < 0, the numerator must be divisible by sqrt(2)^|d| (asserted).
+/// For d < 0, the numerator must be divisible by `sqrt`(2)^|d| (asserted).
 /// Even |d| corresponds to exact right-shifts; odd |d| applies the
-/// mul_by_inv_sqrt2 transformation first and then shifts.
+/// `mul_by_inv_sqrt2` transformation first and then shifts.
 inline DOmega mul_by_sqrt2_power(const DOmega &x, const Integer &d) {
   if (d == 0)
     return x;
@@ -204,7 +204,7 @@ inline DOmega mul_by_sqrt2_power(const DOmega &x, const Integer &d) {
                    u.d() >> d_div_2);
       return DOmega(new_u, x.k());
     }
-    // Odd |d|: combine one mul_by_inv_sqrt2 step with the shift; one
+    // Odd |d|: combine one `mul_by_inv_sqrt2` step with the shift; one
     // assert covers the divisibility for both substeps.
     Integer bit = (Integer(1) << (d_div_2 + 1)) - 1;
     assert(((u.b() - u.d()) & bit) == 0 && ((u.c() + u.a()) & bit) == 0 &&
@@ -216,32 +216,32 @@ inline DOmega mul_by_sqrt2_power(const DOmega &x, const Integer &d) {
     return DOmega(new_u, x.k());
   }
 
-  // d > 0: multiply numerator by 2^(d_div_2), then optionally by sqrt(2).
+  // d > 0: multiply numerator by 2^(d_div_2), then optionally by `sqrt`(2).
   Integer d_div_2 = d >> 1;
   Integer d_mod_2 = d & 1;
   ZOmega new_u(
       u.a() << static_cast<int>(d_div_2), u.b() << static_cast<int>(d_div_2),
       u.c() << static_cast<int>(d_div_2), u.d() << static_cast<int>(d_div_2));
   if (d_mod_2)
-    new_u = new_u * ZOmega(-1, 0, 1, 0); // multiply by sqrt(2) in Z[omega]
+    new_u = new_u * ZOmega(-1, 0, 1, 0); // multiply by `sqrt`(2) in Z[omega]
   return DOmega(new_u, x.k());
 }
 
 /// Re-express x with denominator exponent `new_k`. Same value, different
 /// representation. Scaling up is always exact; scaling down requires the
-/// numerator to be divisible by sqrt(2)^(x.k() - new_k) and is asserted.
+/// numerator to be divisible by `sqrt`(2)^(x.k() - new_k) and is asserted.
 inline DOmega with_denom_exp(const DOmega &x, const Integer &new_k) {
   ZOmega new_u = mul_by_sqrt2_power(x, new_k - x.k()).u();
   return DOmega(new_u, new_k);
 }
 
 /// Reduce x to its least denominator exponent: smallest k' >= 0 such that
-/// x can be written as u' / sqrt(2)^k' with u' in Z[omega].
+/// x can be written as u' / `sqrt`(2)^k' with u' in Z[omega].
 ///
 /// Algorithm (Remark D.2 of Ross & Selinger):
-///   1. Strip the common 2-adic valuation of the four Z[omega] coefficients
-///      (reduce_k = min of ntz over a, b, c, d). Each shared factor of 2
-///      cancels sqrt(2)^2 from the denominator, so k decreases by
+///   1. Strip the common 2-`adic` valuation of the four Z[omega] coefficients
+///      (reduce_k = min of `ntz` over a, b, c, d). Each shared factor of 2
+///      cancels `sqrt`(2)^2 from the denominator, so k decreases by
 ///      2*reduce_k.
 ///   2. Test delta = (1 + omega) divisibility: if (c + a) == 0 and
 ///      (b + d) == 0 modulo 2^(reduce_k + 1), the numerator is also
@@ -267,16 +267,16 @@ inline DOmega to_lde(const DOmega &x) {
   return with_denom_exp(x, std::max(Integer(0), new_k));
 }
 
-/// Convert x = u / sqrt(2)^k into floating-point (real, imaginary) parts,
+/// Convert x = u / `sqrt`(2)^k into floating-point (real, imaginary) parts,
 /// reusing caller-provided scaling factors.
 ///
 /// Formulas (Lemma 5.5):
-///   Re(u / sqrt(2)^k) = (d + (c - a) * sqrt(2)/2) * inv_scale
-///   Im(u / sqrt(2)^k) = (b + (c + a) * sqrt(2)/2) * inv_scale
+///   Re(u / `sqrt`(2)^k) = (d + (c - a) * `sqrt`(2)/2) * inv_scale
+///   Im(u / `sqrt`(2)^k) = (b + (c + a) * `sqrt`(2)/2) * inv_scale
 ///
 /// Callers that process many elements with the same k should compute
-/// inv_scale = 1 / sqrt(2)^k and sqrt2_over_2 = sqrt(2) / 2 once and pass
-/// them in; the MPFR cost is then amortised over all elements.
+/// inv_scale = 1 / `sqrt`(2)^k and `sqrt`2_over_2 = `sqrt`(2) / 2 once and pass
+/// them in; the MPFR cost is then amortized over all elements.
 inline void coords_into(const DOmega &x, const Real &inv_scale,
                         const Real &sqrt2_over_2, Real &out_real,
                         Real &out_imag) noexcept {
@@ -315,8 +315,8 @@ inline DOmega DOmega::from_dsqrt2_vector(const DSqrt2 &x, const DSqrt2 &y,
   return with_denom_exp(dx + dy, k);
 }
 
-// DSqrt2::from_domega is here because it needs DOmega to be complete
-// (dsqrt2.h only forward-declares DOmega).
+// D`sqrt`2::from_domega is here because it needs DOmega to be complete
+// (d`sqrt`2.h only forward-declares DOmega).
 inline DSqrt2 DSqrt2::from_domega(const DOmega &x) {
   return DSqrt2(ZSqrt2::from_zomega(x.u()), x.k());
 }
