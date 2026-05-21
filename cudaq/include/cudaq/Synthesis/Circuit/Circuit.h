@@ -1,5 +1,5 @@
-/*******************************************************************************
- * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+/****************************************************************-*- C++ -*-****
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
@@ -41,7 +41,9 @@ public:
   /// Brace-init from a gate list: Circuit({Gate::H, Gate::T, Gate::H}).
   Circuit(std::initializer_list<Gate> g) : gates_(g) {}
 
-  // -- Iteration --
+  //===--------------------------------------------------------------------===//
+  // Iteration
+  //===--------------------------------------------------------------------===//
 
   /// Forward iteration in application order (left to right).
   auto begin() const { return gates_.begin(); }
@@ -52,7 +54,9 @@ public:
   auto rbegin() const { return gates_.rbegin(); }
   auto rend() const { return gates_.rend(); }
 
-  // -- Capacity and element access --
+  //===--------------------------------------------------------------------===//
+  // Capacity and element access
+  //===--------------------------------------------------------------------===//
 
   size_t size() const { return gates_.size(); }
 
@@ -69,7 +73,9 @@ public:
   /// Last gate. Calling this on an empty Circuit is undefined behaviour.
   Gate back() const { return gates_.back(); }
 
-  // -- Mutation --
+  //===--------------------------------------------------------------------===//
+  // Mutation
+  //===--------------------------------------------------------------------===//
 
   void push_back(Gate g) { gates_.push_back(g); }
 
@@ -83,7 +89,9 @@ public:
     return *this;
   }
 
-  // -- Comparison --
+  //===--------------------------------------------------------------------===//
+  // Comparison
+  //===--------------------------------------------------------------------===//
 
   /// Sequence equality. Unitary equivalence (e.g. modulo global phase or
   /// Clifford relations) is a strictly weaker notion and is *not* checked
@@ -91,7 +99,9 @@ public:
   bool operator==(const Circuit &other) const { return gates_ == other.gates_; }
   bool operator!=(const Circuit &other) const { return !(*this == other); }
 
-  // -- Metrics --
+  //===--------------------------------------------------------------------===//
+  // Metrics
+  //===--------------------------------------------------------------------===//
 
   /// Number of T gates -- the T-count, i.e. the non-Clifford cost of the
   /// circuit. O(n) scan over the gate list.
@@ -103,7 +113,9 @@ public:
     return n;
   }
 
-  // -- Serialization --
+  //===--------------------------------------------------------------------===//
+  // Serialization
+  //===--------------------------------------------------------------------===//
 
   /// Encode the circuit as a gate string (e.g. "HTSHTSH"). The empty
   /// circuit becomes the single-character sentinel "I".
