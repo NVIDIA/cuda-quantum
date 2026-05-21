@@ -59,9 +59,9 @@ namespace cudaq::synth {
 // bounding boxes -- see bboxA_y_fattened / bboxB_y_fattened in the
 // constructor signature.
 //
-// The caller of `solve_tdgp` iterates k = 0, 1, 2, ... until a solution is
-// found, which produces candidates in order of increasing T-count (Lemma 7.3,
-// Proposition 5.22).
+// The caller iterates k = 0, 1, 2, ... over fresh `TdgpStepper` instances
+// until a solution is found, which produces candidates in order of increasing
+// T-count (Lemma 7.3, Proposition 5.22).
 //
 // The whole pipeline (x-ODGP, y-ODGP, scaled-with-parity ODGP, this TDGP)
 // is lazy: early termination by the caller propagates through every layer
@@ -143,19 +143,5 @@ private:
   /// whose line misses A or B are counted in `skipped_betas_`.
   bool advance_to_next_beta();
 };
-
-//===----------------------------------------------------------------------===//
-// Factory function
-//===----------------------------------------------------------------------===//
-
-/// Construct a TdgpStepper for the given denominator exponent.
-///
-/// `setA` and `setB` must outlive the returned stepper. `opG_inv`, the
-/// bounding boxes and the fattened y-intervals are taken by value and
-/// stored inside the stepper. Returned by prvalue so the non-movable
-/// stepper can be assigned with C++17 guaranteed copy elision.
-TdgpStepper solve_tdgp(Integer k, const ConvexSet &setA, const ConvexSet &setB,
-                       const GridOp &opG_inv, Rectangle bboxA, Rectangle bboxB,
-                       Interval bboxA_y_fattened, Interval bboxB_y_fattened);
 
 } // namespace cudaq::synth

@@ -46,14 +46,14 @@ static bool in_intervals(const ZSqrt2 &z, const Interval &I,
 TEST(OdgpGeneratorTest, EmptyWhenIntervalsDegenerate) {
   Interval I(Real(1.0), Real(0.5));
   Interval J(Real(0.0), Real(1.0));
-  auto results = to_vector(solve_odgp(I, J));
+  auto results = to_vector(OdgpStepper(I, J));
   EXPECT_TRUE(results.empty());
 }
 
 TEST(OdgpGeneratorTest, EmptyWhenNoSolutions) {
   Interval I(Real(0.1), Real(0.1001));
   Interval J(Real(0.1), Real(0.1001));
-  auto results = to_vector(solve_odgp(I, J));
+  auto results = to_vector(OdgpStepper(I, J));
   for (const auto &z : results)
     EXPECT_TRUE(in_intervals(z, I, J));
 }
@@ -65,7 +65,7 @@ TEST(OdgpGeneratorTest, EmptyWhenNoSolutions) {
 TEST(OdgpGeneratorTest, FindsSolutionsInWideIntervals) {
   Interval I(Real(-2.0), Real(2.0));
   Interval J(Real(-2.0), Real(2.0));
-  auto results = to_vector(solve_odgp(I, J));
+  auto results = to_vector(OdgpStepper(I, J));
   EXPECT_GT(results.size(), 0u);
   for (const auto &z : results)
     EXPECT_TRUE(in_intervals(z, I, J));
@@ -74,7 +74,7 @@ TEST(OdgpGeneratorTest, FindsSolutionsInWideIntervals) {
 TEST(OdgpGeneratorTest, SolutionsAreValidZSqrt2Elements) {
   Interval I(Real(-5.0), Real(5.0));
   Interval J(Real(-5.0), Real(5.0));
-  auto results = to_vector(solve_odgp(I, J));
+  auto results = to_vector(OdgpStepper(I, J));
   for (const auto &z : results) {
     EXPECT_TRUE(in_intervals(z, I, J))
         << "z=" << z.to_string() << " not in intervals";
@@ -88,7 +88,7 @@ TEST(OdgpGeneratorTest, SolutionsAreValidZSqrt2Elements) {
 TEST(OdgpGeneratorTest, EarlyTerminationProducesValidFirst) {
   Interval I(Real(-10.0), Real(10.0));
   Interval J(Real(-10.0), Real(10.0));
-  auto first = first_of(solve_odgp(I, J));
+  auto first = first_of(OdgpStepper(I, J));
   ASSERT_TRUE(first.has_value());
   EXPECT_TRUE(in_intervals(*first, I, J));
 }
@@ -97,7 +97,7 @@ TEST(OdgpGeneratorTest, EarlyTerminationDoesNotLeak) {
   Interval I(Real(-100.0), Real(100.0));
   Interval J(Real(-100.0), Real(100.0));
   for (int i = 0; i < 100; ++i) {
-    auto gen = solve_odgp(I, J);
+    auto gen = OdgpStepper(I, J);
     auto it = gen.begin();
     if (it != gen.end()) {
       [[maybe_unused]] ZSqrt2 val = *it;
@@ -112,14 +112,14 @@ TEST(OdgpGeneratorTest, EarlyTerminationDoesNotLeak) {
 TEST(OdgpScaledGeneratorTest, ProducesSolutions) {
   Interval I(Real(-1.0), Real(1.0));
   Interval J(Real(-1.0), Real(1.0));
-  auto results = to_vector(solve_odgp_scaled(I, J, Integer(2)));
+  auto results = to_vector(OdgpScaledStepper(I, J, Integer(2)));
   EXPECT_GT(results.size(), 0u);
 }
 
 TEST(OdgpScaledGeneratorTest, EmptyForNarrowIntervals) {
   Interval I(Real(0.5001), Real(0.5002));
   Interval J(Real(0.5001), Real(0.5002));
-  auto results = to_vector(solve_odgp_scaled(I, J, Integer(1)));
+  auto results = to_vector(OdgpScaledStepper(I, J, Integer(1)));
   // May or may not be empty depending on precise arithmetic;
   // just verify no crash.
 }
@@ -127,7 +127,7 @@ TEST(OdgpScaledGeneratorTest, EmptyForNarrowIntervals) {
 TEST(OdgpScaledGeneratorTest, EarlyTermination) {
   Interval I(Real(-10.0), Real(10.0));
   Interval J(Real(-10.0), Real(10.0));
-  auto first = first_of(solve_odgp_scaled(I, J, Integer(4)));
+  auto first = first_of(OdgpScaledStepper(I, J, Integer(4)));
   ASSERT_TRUE(first.has_value());
 }
 
@@ -140,7 +140,7 @@ TEST(OdgpScaledWithParityTest, ProducesSolutions) {
   Interval J(Real(-2.0), Real(2.0));
   DSqrt2 parity_hint(ZSqrt2{1, 0}, Integer(1));
   auto results =
-      to_vector(solve_odgp_scaled_with_parity(I, J, Integer(1), parity_hint));
+      to_vector(OdgpScaledWithParityStepper(I, J, Integer(1), parity_hint));
   EXPECT_GT(results.size(), 0u);
 }
 
@@ -150,7 +150,7 @@ TEST(OdgpScaledWithParityTest, EarlyTermination) {
   DSqrt2 parity_hint(ZSqrt2{0, 0}, Integer(1));
 
   for (int i = 0; i < 50; ++i) {
-    auto gen = solve_odgp_scaled_with_parity(I, J, Integer(1), parity_hint);
+    auto gen = OdgpScaledWithParityStepper(I, J, Integer(1), parity_hint);
     auto it = gen.begin();
     if (it != gen.end()) {
       [[maybe_unused]] DSqrt2 val = *it;
@@ -166,7 +166,7 @@ TEST(OdgpWithParityTest, ProducesSolutions) {
   Interval I(Real(-3.0), Real(3.0));
   Interval J(Real(-3.0), Real(3.0));
   ZSqrt2 hint(1, 0);
-  auto results = to_vector(solve_odgp_with_parity(I, J, hint));
+  auto results = to_vector(OdgpWithParityStepper(I, J, hint));
   EXPECT_GT(results.size(), 0u);
 }
 
@@ -177,8 +177,8 @@ TEST(OdgpWithParityTest, ProducesSolutions) {
 TEST(OdgpGeneratorTest, ConsistentAcrossMultipleRuns) {
   Interval I(Real(-3.0), Real(3.0));
   Interval J(Real(-3.0), Real(3.0));
-  auto run1 = to_vector(solve_odgp(I, J));
-  auto run2 = to_vector(solve_odgp(I, J));
+  auto run1 = to_vector(OdgpStepper(I, J));
+  auto run2 = to_vector(OdgpStepper(I, J));
   ASSERT_EQ(run1.size(), run2.size());
   for (size_t i = 0; i < run1.size(); ++i)
     EXPECT_EQ(run1[i], run2[i]) << "Mismatch at index " << i;
@@ -211,7 +211,7 @@ TEST(OdgpStepperTest, NextMatchesRangeFor) {
     while (const ZSqrt2 *v = stepper.next())
       via_next.push_back(*v);
   }
-  auto via_range = to_vector(solve_odgp(I, J));
+  auto via_range = to_vector(OdgpStepper(I, J));
 
   ASSERT_EQ(via_next.size(), via_range.size());
   for (size_t i = 0; i < via_next.size(); ++i)
@@ -273,8 +273,8 @@ TEST(OdgpStepperTest, SnapshotEquivalence) {
   Interval I(Real(-2.0), Real(2.0));
   Interval J(Real(-2.0), Real(2.0));
 
-  auto seq1 = to_vector(solve_odgp(I, J));
-  auto seq2 = to_vector(solve_odgp(I, J));
+  auto seq1 = to_vector(OdgpStepper(I, J));
+  auto seq2 = to_vector(OdgpStepper(I, J));
 
   ASSERT_EQ(seq1.size(), seq2.size());
   EXPECT_GT(seq1.size(), 0u);
@@ -327,7 +327,7 @@ TEST(OdgpStepperTest, RangeForOverNamedStepper) {
 // performs a value transform per next().
 // ============================================================
 
-TEST(OdgpWithParityStepperTest, NextMatchesFactory) {
+TEST(OdgpWithParityStepperTest, NextMatchesRangeFor) {
   Interval I(Real(-3.0), Real(3.0));
   Interval J(Real(-3.0), Real(3.0));
   ZSqrt2 hint(1, 0);
@@ -338,11 +338,11 @@ TEST(OdgpWithParityStepperTest, NextMatchesFactory) {
     while (const ZSqrt2 *v = stepper.next())
       via_next.push_back(*v);
   }
-  auto via_factory = to_vector(solve_odgp_with_parity(I, J, hint));
+  auto via_range = to_vector(OdgpWithParityStepper(I, J, hint));
 
-  ASSERT_EQ(via_next.size(), via_factory.size());
+  ASSERT_EQ(via_next.size(), via_range.size());
   for (size_t i = 0; i < via_next.size(); ++i)
-    EXPECT_EQ(via_next[i], via_factory[i]) << "Mismatch at index " << i;
+    EXPECT_EQ(via_next[i], via_range[i]) << "Mismatch at index " << i;
 }
 
 TEST(OdgpWithParityStepperTest, EmptyForDegenerate) {
@@ -364,7 +364,7 @@ TEST(OdgpWithParityStepperTest, EarlyDestructionDoesNotLeak) {
   }
 }
 
-TEST(OdgpScaledStepperTest, NextMatchesFactory) {
+TEST(OdgpScaledStepperTest, NextMatchesRangeFor) {
   Interval I(Real(-1.0), Real(1.0));
   Interval J(Real(-1.0), Real(1.0));
 
@@ -374,21 +374,21 @@ TEST(OdgpScaledStepperTest, NextMatchesFactory) {
     while (const DSqrt2 *v = stepper.next())
       via_next.push_back(*v);
   }
-  auto via_factory = to_vector(solve_odgp_scaled(I, J, Integer(2)));
+  auto via_range = to_vector(OdgpScaledStepper(I, J, Integer(2)));
 
-  ASSERT_EQ(via_next.size(), via_factory.size());
+  ASSERT_EQ(via_next.size(), via_range.size());
   for (size_t i = 0; i < via_next.size(); ++i)
-    EXPECT_EQ(via_next[i], via_factory[i]);
+    EXPECT_EQ(via_next[i], via_range[i]);
 }
 
 TEST(OdgpScaledStepperTest, EarlyTermination) {
   Interval I(Real(-10.0), Real(10.0));
   Interval J(Real(-10.0), Real(10.0));
-  auto first = first_of(solve_odgp_scaled(I, J, Integer(4)));
+  auto first = first_of(OdgpScaledStepper(I, J, Integer(4)));
   ASSERT_TRUE(first.has_value());
 }
 
-TEST(OdgpScaledWithParityStepperTest, DenomZeroBranchMatchesFactory) {
+TEST(OdgpScaledWithParityStepperTest, DenomZeroBranchMatchesRangeFor) {
   Interval I(Real(-3.0), Real(3.0));
   Interval J(Real(-3.0), Real(3.0));
   DSqrt2 hint(ZSqrt2{1, 0}, Integer(0));
@@ -399,15 +399,15 @@ TEST(OdgpScaledWithParityStepperTest, DenomZeroBranchMatchesFactory) {
     while (const DSqrt2 *v = stepper.next())
       via_next.push_back(*v);
   }
-  auto via_factory =
-      to_vector(solve_odgp_scaled_with_parity(I, J, Integer(0), hint));
+  auto via_range =
+      to_vector(OdgpScaledWithParityStepper(I, J, Integer(0), hint));
 
-  ASSERT_EQ(via_next.size(), via_factory.size());
+  ASSERT_EQ(via_next.size(), via_range.size());
   for (size_t i = 0; i < via_next.size(); ++i)
-    EXPECT_EQ(via_next[i], via_factory[i]);
+    EXPECT_EQ(via_next[i], via_range[i]);
 }
 
-TEST(OdgpScaledWithParityStepperTest, RecursiveBranchMatchesFactory) {
+TEST(OdgpScaledWithParityStepperTest, RecursiveBranchMatchesRangeFor) {
   Interval I(Real(-2.0), Real(2.0));
   Interval J(Real(-2.0), Real(2.0));
   DSqrt2 hint(ZSqrt2{1, 0}, Integer(1));
@@ -418,12 +418,12 @@ TEST(OdgpScaledWithParityStepperTest, RecursiveBranchMatchesFactory) {
     while (const DSqrt2 *v = stepper.next())
       via_next.push_back(*v);
   }
-  auto via_factory =
-      to_vector(solve_odgp_scaled_with_parity(I, J, Integer(1), hint));
+  auto via_range =
+      to_vector(OdgpScaledWithParityStepper(I, J, Integer(1), hint));
 
-  ASSERT_EQ(via_next.size(), via_factory.size());
+  ASSERT_EQ(via_next.size(), via_range.size());
   for (size_t i = 0; i < via_next.size(); ++i)
-    EXPECT_EQ(via_next[i], via_factory[i]);
+    EXPECT_EQ(via_next[i], via_range[i]);
 }
 
 TEST(OdgpScaledWithParityStepperTest, EarlyDestructionDoesNotLeak) {

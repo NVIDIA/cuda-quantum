@@ -128,7 +128,7 @@ constexpr double SLOPE_ZERO_TOLERANCE = 1e-40;
 //===----------------------------------------------------------------------===//
 
 OdgpStepper::OdgpStepper(Interval I, Interval J) {
-  SYNTH_OPEN_SUB("solve_odgp");
+  SYNTH_OPEN_SUB("OdgpStepper");
   LLVM_DEBUG(cudaq::synth::dbgs()
              << "I_width=" << I.width() << ", J_width=" << J.width() << '\n');
 
@@ -479,7 +479,7 @@ OdgpWithParityStepper::OdgpWithParityStepper(Interval I, Interval J,
     : inner_(scaled_parity_I(I, parity_hint.parity()),
              scaled_parity_J(J, parity_hint.parity())),
       parity_p_(parity_hint.parity()) {
-  SYNTH_OPEN_SUB("solve_odgp_with_parity");
+  SYNTH_OPEN_SUB("OdgpWithParityStepper");
   LLVM_DEBUG(cudaq::synth::dbgs() << "parity=" << parity_p_ << '\n');
 }
 
@@ -513,7 +513,7 @@ const ZSqrt2 *OdgpWithParityStepper::next() {
 
 OdgpScaledStepper::OdgpScaledStepper(Interval I, Interval J, Integer denom_exp)
     : denom_exp_(std::move(denom_exp)) {
-  SYNTH_OPEN_SUB("solve_odgp_scaled");
+  SYNTH_OPEN_SUB("OdgpScaledStepper");
   LLVM_DEBUG(cudaq::synth::dbgs()
              << "denom_exp=" << static_cast<int64_t>(denom_exp_)
              << ", I_width=" << I.width() << ", J_width=" << J.width() << '\n');
@@ -547,7 +547,7 @@ const DSqrt2 *OdgpScaledStepper::next() {
 
 OdgpScaledWithParityStepper::OdgpScaledWithParityStepper(
     Interval I, Interval J, Integer denom_exp, DSqrt2 parity_hint) {
-  SYNTH_OPEN_SUB("solve_odgp_scaled_with_parity");
+  SYNTH_OPEN_SUB("OdgpScaledWithParityStepper");
   LLVM_DEBUG(cudaq::synth::dbgs()
              << "denom_exp=" << static_cast<int64_t>(denom_exp)
              << ", parity=" << parity_hint << '\n');
@@ -590,32 +590,6 @@ const DSqrt2 *OdgpScaledWithParityStepper::next() {
   last_sol_ = *a + offset_;
   ++yielded_;
   return &last_sol_;
-}
-
-//===----------------------------------------------------------------------===//
-// Factory functions
-//===----------------------------------------------------------------------===//
-
-OdgpStepper solve_odgp(Interval I, Interval J) {
-  return OdgpStepper(std::move(I), std::move(J));
-}
-
-OdgpWithParityStepper solve_odgp_with_parity(Interval I, Interval J,
-                                             ZSqrt2 parity_hint) {
-  return OdgpWithParityStepper(std::move(I), std::move(J),
-                               std::move(parity_hint));
-}
-
-OdgpScaledStepper solve_odgp_scaled(Interval I, Interval J, Integer denom_exp) {
-  return OdgpScaledStepper(std::move(I), std::move(J), std::move(denom_exp));
-}
-
-OdgpScaledWithParityStepper
-solve_odgp_scaled_with_parity(Interval I, Interval J, Integer denom_exp,
-                              DSqrt2 parity_hint) {
-  return OdgpScaledWithParityStepper(std::move(I), std::move(J),
-                                     std::move(denom_exp),
-                                     std::move(parity_hint));
 }
 
 } // namespace cudaq::synth

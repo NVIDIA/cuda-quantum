@@ -216,28 +216,4 @@ private:
   int yielded_ = 0;
 };
 
-//===----------------------------------------------------------------------===//
-// Factory functions
-//===----------------------------------------------------------------------===//
-//
-// Each factory returns a stepper by value. The stepper types are non-movable;
-// guaranteed copy elision (C++17 prvalue rules) is what makes both the
-// `return Foo(...)` form and caller-side `auto x = solve_foo(...)` legal.
-
-/// Core ODGP (Definition 4.3): all alpha in Z[sqrt(2)] with alpha in I and
-/// alpha* in J.
-OdgpStepper solve_odgp(Interval I, Interval J);
-
-/// ODGP that fixes the parity of alpha's constant coefficient.
-OdgpWithParityStepper solve_odgp_with_parity(Interval I, Interval J,
-                                             ZSqrt2 parity_hint);
-
-/// Scaled ODGP: enumerate in (1/sqrt(2)^denom_exp) * Z[sqrt(2)].
-OdgpScaledStepper solve_odgp_scaled(Interval I, Interval J, Integer denom_exp);
-
-/// Scaled ODGP with parity constraint.
-OdgpScaledWithParityStepper
-solve_odgp_scaled_with_parity(Interval I, Interval J, Integer denom_exp,
-                              DSqrt2 parity_hint);
-
 } // namespace cudaq::synth
