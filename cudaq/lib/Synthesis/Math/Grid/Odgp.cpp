@@ -515,7 +515,7 @@ OdgpScaledStepper::OdgpScaledStepper(Interval I, Interval J, Integer denom_exp)
     : denom_exp_(std::move(denom_exp)) {
   SYNTH_OPEN_SUB("solve_odgp_scaled");
   LLVM_DEBUG(cudaq::synth::dbgs()
-             << "denom_exp=" << static_cast<i64>(denom_exp_)
+             << "denom_exp=" << static_cast<int64_t>(denom_exp_)
              << ", I_width=" << I.width() << ", J_width=" << J.width() << '\n');
   // Scale I and J by sqrt(2)^denom_exp; the J side picks up a sign flip for
   // odd exponents because the sqrt(2)-conjugation sends sqrt(2) -> -sqrt(2).
@@ -549,7 +549,7 @@ OdgpScaledWithParityStepper::OdgpScaledWithParityStepper(
     Interval I, Interval J, Integer denom_exp, DSqrt2 parity_hint) {
   SYNTH_OPEN_SUB("solve_odgp_scaled_with_parity");
   LLVM_DEBUG(cudaq::synth::dbgs()
-             << "denom_exp=" << static_cast<i64>(denom_exp)
+             << "denom_exp=" << static_cast<int64_t>(denom_exp)
              << ", parity=" << parity_hint << '\n');
 
   // denom_exp == 0 is the parity-only base case; positive exponents reduce

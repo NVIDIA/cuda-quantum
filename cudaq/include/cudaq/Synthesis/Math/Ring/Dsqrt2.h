@@ -118,7 +118,7 @@ public:
 
   /// Parity of the constant coefficient of the Z[sqrt(2)] numerator. Always
   /// 0 or 1. Used by the ODGP parity-aware variant in odgp.cpp.
-  i32 parity() const noexcept { return _alpha.parity(); }
+  int32_t parity() const noexcept { return _alpha.parity(); }
 
   /// Scaling factor sqrt(2)^k as a floating-point Real.
   Real scale() const { return pow_sqrt2(_k); }
@@ -185,8 +185,8 @@ inline DSqrt2 mul_by_sqrt2_power(const DSqrt2 &x, const Integer &d) {
   // d > 0: multiply numerator by 2^(d_div_2), then optionally by sqrt(2).
   Integer d_div_2 = d >> 1;
   Integer d_mod_2 = d & 1;
-  ZSqrt2 new_alpha(a.a() << static_cast<i32>(d_div_2),
-                   a.b() << static_cast<i32>(d_div_2));
+  ZSqrt2 new_alpha(a.a() << static_cast<int32_t>(d_div_2),
+                   a.b() << static_cast<int32_t>(d_div_2));
   if (d_mod_2)
     new_alpha = new_alpha * ZSqrt2(0, 1); // multiply by sqrt(2) in Z[sqrt(2)]
   return DSqrt2(new_alpha, x.k());

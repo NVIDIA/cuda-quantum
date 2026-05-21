@@ -12,11 +12,10 @@
 
 namespace {
 
-using cudaq::synth::i64;
 using cudaq::synth::Integer;
 
 static long long ll(const Integer &n) {
-  return static_cast<long long>(static_cast<i64>(n));
+  return static_cast<long long>(static_cast<int64_t>(n));
 }
 
 // ============================================================
@@ -52,7 +51,7 @@ TEST(NtzTest, Twelve) {
 
 TEST(NtzTest, PowersOfTwo) {
   for (int k = 0; k <= 10; ++k) {
-    Integer n(static_cast<i64>(1LL << k));
+    Integer n(static_cast<int64_t>(1LL << k));
     EXPECT_EQ(ll(cudaq::synth::ntz(n)), static_cast<long long>(k))
         << "k = " << k;
   }

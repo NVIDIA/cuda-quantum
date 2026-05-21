@@ -212,8 +212,8 @@ namespace cudaq::synth {
 
 llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
                                                  const Real &epsilon,
-                                                 i32 diophantine_timeout_ms,
-                                                 i32 factoring_timeout_ms) {
+                                                 int32_t diophantine_timeout_ms,
+                                                 int32_t factoring_timeout_ms) {
   SYNTH_OPEN_SUB("gridsynth_unitary");
   LLVM_DEBUG(
     cudaq::synth::dbgs() << "theta=" << theta << "\n";
@@ -289,7 +289,7 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
   Integer k = 0;
   while (true) {
     SYNTH_FENCE();
-    SYNTH_OPEN_SUB("k = " + std::to_string(static_cast<i64>(k)));
+    SYNTH_OPEN_SUB("k = " + std::to_string(static_cast<int64_t>(k)));
 
     for (const DOmega &z :
          solve_tdgp(k, *region_or, unit_disk, opG_inv, transformed.bboxA,
@@ -338,7 +338,7 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
         else
           u_approx = DOmegaUnitary(z_reduced, mul_by_omega(w_reduced), 0);
 
-        std::string k_str = std::to_string(static_cast<i64>(k));
+        std::string k_str = std::to_string(static_cast<int64_t>(k));
         SYNTH_CLOSE_SUCCESS("Diophantine succeeded at k=" + k_str);
         SYNTH_CLOSE_SUCCESS("synthesized at k=" + k_str);
         return u_approx;
@@ -358,8 +358,8 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
 //===----------------------------------------------------------------------===//
 
 llvm::FailureOr<Circuit> gridsynth(const Real &theta, const Real &epsilon,
-                                   i32 diophantine_timeout_ms,
-                                   i32 factoring_timeout_ms) {
+                                   int32_t diophantine_timeout_ms,
+                                   int32_t factoring_timeout_ms) {
   SYNTH_OPEN("gridsynth");
   LLVM_DEBUG(cudaq::synth::dbgs() << "theta=" << theta << ", eps=" << epsilon
                                   << '\n');

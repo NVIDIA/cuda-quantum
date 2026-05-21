@@ -20,7 +20,7 @@ static const ZSqrt2 kZero{Integer(0), Integer(0)};
 static const ZSqrt2 kOne{Integer(1), Integer(0)};
 
 static long long ll(const Integer &n) {
-  return static_cast<long long>(static_cast<i64>(n));
+  return static_cast<long long>(static_cast<int64_t>(n));
 }
 
 // ============================================================

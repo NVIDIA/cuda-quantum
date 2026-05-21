@@ -10,7 +10,7 @@
 
 #include "cudaq/Synthesis/Math/Integer.h"
 
-// Enable mpfr_set_sj / mpfr_get_sj (intmax_t variants). Needed so that i64
+// Enable mpfr_set_sj / mpfr_get_sj (intmax_t variants). Needed so that int64_t
 // bridges into MPFR without truncation on platforms where `long` is 32-bit
 // (e.g. LLP64).
 #ifndef MPFR_USE_INTMAX_T
@@ -74,12 +74,12 @@ public:
     mpfr_set_zero(value_, 1);
   }
 
-  Real(i32 val) {
+  Real(int32_t val) {
     mpfr_init2(value_, default_precision_);
     mpfr_set_si(value_, static_cast<long>(val), MPFR_RNDN);
   }
 
-  Real(i64 val) {
+  Real(int64_t val) {
     mpfr_init2(value_, default_precision_);
     mpfr_set_sj(value_, static_cast<intmax_t>(val), MPFR_RNDN);
   }
@@ -152,12 +152,12 @@ public:
     return *this;
   }
 
-  Real &operator=(i32 val) {
+  Real &operator=(int32_t val) {
     mpfr_set_si(value_, static_cast<long>(val), MPFR_RNDN);
     return *this;
   }
 
-  Real &operator=(i64 val) {
+  Real &operator=(int64_t val) {
     mpfr_set_sj(value_, static_cast<intmax_t>(val), MPFR_RNDN);
     return *this;
   }
@@ -181,12 +181,12 @@ public:
   // Conversions
   //===--------------------------------------------------------------------===//
 
-  explicit operator i32() const {
-    return static_cast<i32>(mpfr_get_si(value_, MPFR_RNDN));
+  explicit operator int32_t() const {
+    return static_cast<int32_t>(mpfr_get_si(value_, MPFR_RNDN));
   }
 
-  explicit operator i64() const {
-    return static_cast<i64>(mpfr_get_sj(value_, MPFR_RNDN));
+  explicit operator int64_t() const {
+    return static_cast<int64_t>(mpfr_get_sj(value_, MPFR_RNDN));
   }
 
   explicit operator float() const { return mpfr_get_flt(value_, MPFR_RNDN); }
@@ -244,7 +244,7 @@ public:
   }
 
   //===--------------------------------------------------------------------===//
-  // Compound assignment (Real, double, i32)
+  // Compound assignment (Real, double, int32_t)
   //===--------------------------------------------------------------------===//
 
   Real &operator+=(const Real &other) {
@@ -285,20 +285,20 @@ public:
     return *this;
   }
 
-  // i32 overloads bind directly to mpfr_*_si helpers.
-  Real &operator+=(i32 rhs) {
+  // int32_t overloads bind directly to mpfr_*_si helpers.
+  Real &operator+=(int32_t rhs) {
     mpfr_add_si(value_, value_, static_cast<long>(rhs), MPFR_RNDN);
     return *this;
   }
-  Real &operator-=(i32 rhs) {
+  Real &operator-=(int32_t rhs) {
     mpfr_sub_si(value_, value_, static_cast<long>(rhs), MPFR_RNDN);
     return *this;
   }
-  Real &operator*=(i32 rhs) {
+  Real &operator*=(int32_t rhs) {
     mpfr_mul_si(value_, value_, static_cast<long>(rhs), MPFR_RNDN);
     return *this;
   }
-  Real &operator/=(i32 rhs) {
+  Real &operator/=(int32_t rhs) {
     mpfr_div_si(value_, value_, static_cast<long>(rhs), MPFR_RNDN);
     return *this;
   }
@@ -380,7 +380,7 @@ public:
     mpfr_prec_round(value_, prec, MPFR_RNDN);
   }
 
-  std::string to_string(i32 digits = 40) const;
+  std::string to_string(int32_t digits = 40) const;
 
   /// Raw access to the underlying mpfr_t for callers that drop into MPFR
   /// APIs directly.
@@ -603,104 +603,104 @@ inline Real operator/(double lhs, const Real &rhs) {
 }
 
 //===----------------------------------------------------------------------===//
-// Mixed arithmetic / comparison with `i32` (no temporary Real)
+// Mixed arithmetic / comparison with `int32_t` (no temporary Real)
 //===----------------------------------------------------------------------===//
 
-inline Real operator+(const Real &lhs, i32 rhs) {
+inline Real operator+(const Real &lhs, int32_t rhs) {
   Real result = Real::with_precision(lhs.precision());
   mpfr_add_si(result.get_mpfr(), lhs.get_mpfr(), static_cast<long>(rhs),
               MPFR_RNDN);
   return result;
 }
-inline Real operator+(i32 lhs, const Real &rhs) {
+inline Real operator+(int32_t lhs, const Real &rhs) {
   Real result = Real::with_precision(rhs.precision());
   mpfr_add_si(result.get_mpfr(), rhs.get_mpfr(), static_cast<long>(lhs),
               MPFR_RNDN);
   return result;
 }
-inline Real operator-(const Real &lhs, i32 rhs) {
+inline Real operator-(const Real &lhs, int32_t rhs) {
   Real result = Real::with_precision(lhs.precision());
   mpfr_sub_si(result.get_mpfr(), lhs.get_mpfr(), static_cast<long>(rhs),
               MPFR_RNDN);
   return result;
 }
-inline Real operator-(i32 lhs, const Real &rhs) {
+inline Real operator-(int32_t lhs, const Real &rhs) {
   Real result = Real::with_precision(rhs.precision());
   mpfr_si_sub(result.get_mpfr(), static_cast<long>(lhs), rhs.get_mpfr(),
               MPFR_RNDN);
   return result;
 }
-inline Real operator*(const Real &lhs, i32 rhs) {
+inline Real operator*(const Real &lhs, int32_t rhs) {
   Real result = Real::with_precision(lhs.precision());
   mpfr_mul_si(result.get_mpfr(), lhs.get_mpfr(), static_cast<long>(rhs),
               MPFR_RNDN);
   return result;
 }
-inline Real operator*(i32 lhs, const Real &rhs) {
+inline Real operator*(int32_t lhs, const Real &rhs) {
   Real result = Real::with_precision(rhs.precision());
   mpfr_mul_si(result.get_mpfr(), rhs.get_mpfr(), static_cast<long>(lhs),
               MPFR_RNDN);
   return result;
 }
-inline Real operator/(const Real &lhs, i32 rhs) {
+inline Real operator/(const Real &lhs, int32_t rhs) {
   Real result = Real::with_precision(lhs.precision());
   mpfr_div_si(result.get_mpfr(), lhs.get_mpfr(), static_cast<long>(rhs),
               MPFR_RNDN);
   return result;
 }
-inline Real operator/(i32 lhs, const Real &rhs) {
+inline Real operator/(int32_t lhs, const Real &rhs) {
   Real result = Real::with_precision(rhs.precision());
   mpfr_si_div(result.get_mpfr(), static_cast<long>(lhs), rhs.get_mpfr(),
               MPFR_RNDN);
   return result;
 }
 
-inline bool operator==(const Real &lhs, i32 rhs) noexcept {
+inline bool operator==(const Real &lhs, int32_t rhs) noexcept {
   return !mpfr_nan_p(lhs.get_mpfr()) &&
          mpfr_cmp_si(lhs.get_mpfr(), static_cast<long>(rhs)) == 0;
 }
-inline bool operator!=(const Real &lhs, i32 rhs) noexcept {
+inline bool operator!=(const Real &lhs, int32_t rhs) noexcept {
   return mpfr_nan_p(lhs.get_mpfr()) ||
          mpfr_cmp_si(lhs.get_mpfr(), static_cast<long>(rhs)) != 0;
 }
-inline bool operator<(const Real &lhs, i32 rhs) noexcept {
+inline bool operator<(const Real &lhs, int32_t rhs) noexcept {
   return !mpfr_nan_p(lhs.get_mpfr()) &&
          mpfr_cmp_si(lhs.get_mpfr(), static_cast<long>(rhs)) < 0;
 }
-inline bool operator<=(const Real &lhs, i32 rhs) noexcept {
+inline bool operator<=(const Real &lhs, int32_t rhs) noexcept {
   return !mpfr_nan_p(lhs.get_mpfr()) &&
          mpfr_cmp_si(lhs.get_mpfr(), static_cast<long>(rhs)) <= 0;
 }
-inline bool operator>(const Real &lhs, i32 rhs) noexcept {
+inline bool operator>(const Real &lhs, int32_t rhs) noexcept {
   return !mpfr_nan_p(lhs.get_mpfr()) &&
          mpfr_cmp_si(lhs.get_mpfr(), static_cast<long>(rhs)) > 0;
 }
-inline bool operator>=(const Real &lhs, i32 rhs) noexcept {
+inline bool operator>=(const Real &lhs, int32_t rhs) noexcept {
   return !mpfr_nan_p(lhs.get_mpfr()) &&
          mpfr_cmp_si(lhs.get_mpfr(), static_cast<long>(rhs)) >= 0;
 }
 
-inline bool operator==(i32 lhs, const Real &rhs) noexcept {
+inline bool operator==(int32_t lhs, const Real &rhs) noexcept {
   return !mpfr_nan_p(rhs.get_mpfr()) &&
          mpfr_cmp_si(rhs.get_mpfr(), static_cast<long>(lhs)) == 0;
 }
-inline bool operator!=(i32 lhs, const Real &rhs) noexcept {
+inline bool operator!=(int32_t lhs, const Real &rhs) noexcept {
   return mpfr_nan_p(rhs.get_mpfr()) ||
          mpfr_cmp_si(rhs.get_mpfr(), static_cast<long>(lhs)) != 0;
 }
-inline bool operator<(i32 lhs, const Real &rhs) noexcept {
+inline bool operator<(int32_t lhs, const Real &rhs) noexcept {
   return !mpfr_nan_p(rhs.get_mpfr()) &&
          mpfr_cmp_si(rhs.get_mpfr(), static_cast<long>(lhs)) > 0;
 }
-inline bool operator<=(i32 lhs, const Real &rhs) noexcept {
+inline bool operator<=(int32_t lhs, const Real &rhs) noexcept {
   return !mpfr_nan_p(rhs.get_mpfr()) &&
          mpfr_cmp_si(rhs.get_mpfr(), static_cast<long>(lhs)) >= 0;
 }
-inline bool operator>(i32 lhs, const Real &rhs) noexcept {
+inline bool operator>(int32_t lhs, const Real &rhs) noexcept {
   return !mpfr_nan_p(rhs.get_mpfr()) &&
          mpfr_cmp_si(rhs.get_mpfr(), static_cast<long>(lhs)) < 0;
 }
-inline bool operator>=(i32 lhs, const Real &rhs) noexcept {
+inline bool operator>=(int32_t lhs, const Real &rhs) noexcept {
   return !mpfr_nan_p(rhs.get_mpfr()) &&
          mpfr_cmp_si(rhs.get_mpfr(), static_cast<long>(lhs)) <= 0;
 }

@@ -25,10 +25,10 @@ namespace {
 // (i.e. the trailing-zero count). BIT_COUNT[r] is the popcount of r. The
 // reduce_denomexp dispatch uses both to choose the right T^m * H prefix
 // that drops the denominator exponent of a DOmegaUnitary by one.
-inline constexpr std::array<i32, 16> BIT_SHIFT = {0, 0, 1, 0, 2, 0, 1, 3,
+inline constexpr std::array<int32_t, 16> BIT_SHIFT = {0, 0, 1, 0, 2, 0, 1, 3,
                                                   3, 3, 0, 2, 2, 1, 0, 0};
 
-inline constexpr std::array<i32, 16> BIT_COUNT = {0, 1, 1, 2, 1, 2, 2, 3,
+inline constexpr std::array<int32_t, 16> BIT_COUNT = {0, 1, 1, 2, 1, 2, 2, 3,
                                                   1, 2, 2, 3, 2, 3, 3, 4};
 
 //===----------------------------------------------------------------------===//
@@ -72,13 +72,13 @@ reduce_denomexp(const DOmegaUnitary &unitary) {
 
   // residue() encodes (a%2, b%2, c%2, d%2) of the ZOmega numerator into a
   // 4-bit integer. residue_squared_z carries the case label below.
-  i32 residue_z = unitary.z().residue();
-  i32 residue_w = unitary.w().residue();
-  i32 residue_squared_z = (unitary.z().u() * unitary.z().conj().u()).residue();
+  int32_t residue_z = unitary.z().residue();
+  int32_t residue_w = unitary.w().residue();
+  int32_t residue_squared_z = (unitary.z().u() * unitary.z().conj().u()).residue();
 
   // T-power offset that aligns the lowest set bit of w to that of z. The
   // negative branch wraps mod 4 since T has order 8 modulo a sign.
-  i32 m = BIT_SHIFT[static_cast<size_t>(residue_w)] -
+  int32_t m = BIT_SHIFT[static_cast<size_t>(residue_w)] -
           BIT_SHIFT[static_cast<size_t>(residue_z)];
   if (m < 0)
     m += 4;
@@ -183,8 +183,8 @@ Circuit kmm_synthesize(DOmegaUnitary unitary) {
 
   // After the X step z is forced to be a unit in Z[omega], i.e. an
   // omega-power. Find that exponent and divide it out as a global W power.
-  i32 m_W = 0;
-  for (i32 m = 0; m < 8; ++m) {
+  int32_t m_W = 0;
+  for (int32_t m = 0; m < 8; ++m) {
     if (unitary.z().u() == mul_by_omega_power(ZOmega::from_int(1), m)) {
       m_W = m;
       unitary = unitary.mul_by_W_power_from_left(-m_W);
@@ -193,8 +193,8 @@ Circuit kmm_synthesize(DOmegaUnitary unitary) {
   }
 
   // n is now even; S adds 2 to n, so n / 2 S-gates clear it.
-  i32 m_S = unitary.n() >> 1;
-  for (i32 i = 0; i < m_S; ++i)
+  int32_t m_S = unitary.n() >> 1;
+  for (int32_t i = 0; i < m_S; ++i)
     gates.push_back(Gate::S);
   unitary = unitary.mul_by_S_power_from_left(-m_S);
 
@@ -202,7 +202,7 @@ Circuit kmm_synthesize(DOmegaUnitary unitary) {
          "unitary should be the identity after Clifford decomposition");
 
   // Emit the trailing global-phase W gates in the order they were peeled.
-  for (i32 i = 0; i < m_W; ++i)
+  for (int32_t i = 0; i < m_W; ++i)
     gates.push_back(Gate::W);
 
   // Phase 3: normalize. Cannot fail.

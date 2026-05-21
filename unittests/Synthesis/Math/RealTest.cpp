@@ -12,7 +12,6 @@
 
 namespace {
 
-using cudaq::synth::i64;
 using cudaq::synth::Integer;
 using cudaq::synth::Real;
 
@@ -191,43 +190,43 @@ TEST(SolveQuadraticTest, ZeroDiscriminantExact) {
 TEST(ConversionTest, FloorPositive) {
   Real x(3.7);
   Integer result = cudaq::synth::floor_to_integer(x);
-  EXPECT_EQ(static_cast<i64>(result), 3LL);
+  EXPECT_EQ(static_cast<int64_t>(result), 3LL);
 }
 
 TEST(ConversionTest, FloorNegative) {
   Real x(-3.2);
   Integer result = cudaq::synth::floor_to_integer(x);
-  EXPECT_EQ(static_cast<i64>(result), -4LL);
+  EXPECT_EQ(static_cast<int64_t>(result), -4LL);
 }
 
 TEST(ConversionTest, CeilPositive) {
   Real x(3.2);
   Integer result = cudaq::synth::ceil_to_integer(x);
-  EXPECT_EQ(static_cast<i64>(result), 4LL);
+  EXPECT_EQ(static_cast<int64_t>(result), 4LL);
 }
 
 TEST(ConversionTest, CeilNegative) {
   Real x(-3.7);
   Integer result = cudaq::synth::ceil_to_integer(x);
-  EXPECT_EQ(static_cast<i64>(result), -3LL);
+  EXPECT_EQ(static_cast<int64_t>(result), -3LL);
 }
 
 TEST(ConversionTest, RoundHalfUp) {
   Real x(2.5);
   Integer result = cudaq::synth::round_to_integer(x);
-  EXPECT_EQ(static_cast<i64>(result), 2LL); // MPFR_RNDN rounds to even
+  EXPECT_EQ(static_cast<int64_t>(result), 2LL); // MPFR_RNDN rounds to even
 }
 
 TEST(ConversionTest, RoundPositive) {
   Real x(3.6);
   Integer result = cudaq::synth::round_to_integer(x);
-  EXPECT_EQ(static_cast<i64>(result), 4LL);
+  EXPECT_EQ(static_cast<int64_t>(result), 4LL);
 }
 
 TEST(ConversionTest, RoundNegative) {
   Real x(-2.8);
   Integer result = cudaq::synth::round_to_integer(x);
-  EXPECT_EQ(static_cast<i64>(result), -3LL);
+  EXPECT_EQ(static_cast<int64_t>(result), -3LL);
 }
 
 // ============================================================
