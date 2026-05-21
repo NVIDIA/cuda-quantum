@@ -31,8 +31,8 @@ enum class TransformMode {
   /// Hot path: the caller already has the inverse matrix entries. No
   /// division or GridOp::inv() call is performed.
   Direct,
-  /// Algebraic path: derive the inverse from det(F) via the 2x2 closed
-  /// form. Falls through to Fallback if det(F) is near-singular.
+  /// Algebraic path: derive the inverse from `det`(F) via the 2x2 closed
+  /// form. Falls through to Fallback if `det`(F) is near-singular.
   Conjugate,
   /// Slow / safe path: compute the exact inverse via GridOp::inv(). Used
   /// when the forward matrix is singular or not analytically inverted.
@@ -44,7 +44,7 @@ enum class TransformMode {
 //===----------------------------------------------------------------------===//
 
 /// The set E = { u in R^2 | (u - p)^T D (u - p) <= 1 } for a positive
-/// definite 2x2 matrix D and centre p.
+/// definite 2x2 matrix D and center p.
 ///
 /// Reference: Ross & Selinger, arXiv:1403.2975, Definition 5.15.
 ///
@@ -58,18 +58,18 @@ enum class TransformMode {
 ///      EpsilonRegion class for tighter intersection tests).
 ///   2. The to-upright algorithm (Theorem 5.16) iterates on a *pair* of
 ///      ellipses, using grid operators to drive them to M-upright form
-///      (Definition 5.7, uprightness = area(E) / area(bbox(E))).
+///      (Definition 5.7, uprightness = area(E) / area(`bbox`(E))).
 ///   3. The Step Lemma state (D, Delta) (Appendix A, Definition A.1) is
-///      itself just the D-matrices of a normalised ellipse pair.
+///      itself just the D-matrices of a normalized ellipse pair.
 ///
 /// Derived quantities used downstream:
-///   det(D)       = a*d - b^2     (must be > 0 for positive definiteness).
-///   area(E)      = pi / sqrt(det(D)).
-///   uprightness  = (pi/4) * sqrt(det(D) / (a*d))      (equation (30)).
+///   `det`(D)       = a*d - b^2     (must be > 0 for positive definiteness).
+///   area(E)      = pi / `sqrt`(`det`(D)).
+///   uprightness  = (pi/4) * `sqrt`(`det`(D) / (a*d))      (equation (30)).
 ///   skew         = b^2                                 (equation (33)).
 ///   bias         = d / a                               (eigenvalue ratio).
 ///
-/// `normalize()` scales D so det(D) = 1, matching the normal form (31) used
+/// `normalize()` scales D so `det`(D) = 1, matching the normal form (31) used
 /// in the Step Lemma analysis.
 ///
 /// Construction. Prefer the `create` factories over the raw constructors:
@@ -108,8 +108,8 @@ private:
 public:
   // -- Factories --
 
-  /// Build from a full 2x2 D-matrix and centre p. Returns failure() if D is
-  /// asymmetric or fails positive-definiteness (det <= 0, a <= 0, or
+  /// Build from a full 2x2 D-matrix and center p. Returns failure() if D is
+  /// asymmetric or fails positive-definiteness (`det` <= 0, a <= 0, or
   /// d <= 0).
   static llvm::FailureOr<Ellipse>
   create(const std::array<std::array<Real, 2>, 2> &D,
@@ -122,7 +122,7 @@ public:
     return Ellipse(UncheckedTag{}, D, p);
   }
 
-  /// Build from scalar D entries and centre (px, py). Returns failure() if
+  /// Build from scalar D entries and center (`px`, `py`). Returns failure() if
   /// the matrix is not positive definite.
   static llvm::FailureOr<Ellipse> create(const Real &a, const Real &b,
                                          const Real &d, const Real &px,
@@ -149,7 +149,7 @@ public:
   /// D(0, 0): x^2 coefficient.
   const Real &a() const { return _a; }
 
-  /// D(0, 1) == D(1, 0): the off-diagonal entry (the xy cross-term divided
+  /// D(0, 1) == D(1, 0): the off-diagonal entry (the `xy` cross-term divided
   /// by 2 in the quadratic-form expansion).
   const Real &b() const { return _b; }
 
@@ -201,9 +201,9 @@ public:
 
   // -- Derived state --
 
-  /// Normalise D so det(D) = 1 (the normal form used by the Step Lemma).
-  /// Scales all three D entries by 1/sqrt(det) -- one GMP division instead
-  /// of three. Returns failure() if det(D) <= 0.
+  /// Normalise D so `det`(D) = 1 (the normal form used by the Step Lemma).
+  /// Scales all three D entries by 1/`sqrt`(`det`) -- one GMP division instead
+  /// of three. Returns failure() if `det`(D) <= 0.
   llvm::LogicalResult normalize() {
     Real det_val = _a * _d - _b * _b;
     if (det_val <= 0)
@@ -216,9 +216,9 @@ public:
   }
 
   /// Membership test. Currently unimplemented (the upstream code paths use
-  /// the bounding-ellipse representation only for the upright preprocessing
+  /// the bounding-ellipse representation only for the upright `preprocessing`
   /// stage, where the actual ConvexSet::contains called is the
-  /// EpsilonRegion / UnitDisk specialisation). Aborts if reached so
+  /// EpsilonRegion / UnitDisk specialization). Aborts if reached so
   /// accidental callers fail loudly.
   bool contains(const DOmega &v) const override {
     exit(1);
@@ -250,7 +250,7 @@ public:
 // Free functions: derived quantities and the bounding box
 //===----------------------------------------------------------------------===//
 
-/// det(D) = a*d - b^2. Returns failure() if the result is non-positive
+/// `det`(D) = a*d - b^2. Returns failure() if the result is non-positive
 /// (the positive-definiteness invariant should keep that from happening for
 /// a correctly constructed or transformed Ellipse).
 inline llvm::FailureOr<Real> det(const Ellipse &E) {
@@ -260,7 +260,7 @@ inline llvm::FailureOr<Real> det(const Ellipse &E) {
   return result;
 }
 
-/// area(E) = pi / sqrt(det(D)). Propagates failure from `det`.
+/// area(E) = pi / `sqrt`(`det`(D)). Propagates failure from `det`.
 inline llvm::FailureOr<Real> area(const Ellipse &E) {
   llvm::FailureOr<Real> det_or = det(E);
   if (llvm::failed(det_or))
@@ -276,8 +276,9 @@ inline Real skew(const Ellipse &E) { return E.b() * E.b(); }
 /// circle. The Step Lemma uses bias to choose the reduction operator.
 inline Real bias(const Ellipse &E) { return E.d() / E.a(); }
 
-/// Axis-aligned bounding box of E: [px - w, px + w] x [py - h, py + h] with
-/// w = sqrt(d / det) and h = sqrt(a / det). Propagates failure from `det`.
+/// Axis-aligned bounding box of E: [`px` - w, `px` + w] x [`py` - h, `py` + h]
+/// with w = `sqrt`(d / `det`) and h = `sqrt`(a / `det`). Propagates failure
+/// from `det`.
 inline llvm::FailureOr<Rectangle> bbox(const Ellipse &E) {
   llvm::FailureOr<Real> det_or = det(E);
   if (llvm::failed(det_or))

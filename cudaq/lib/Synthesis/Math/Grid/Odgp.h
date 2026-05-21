@@ -26,20 +26,20 @@ namespace cudaq::synth {
 //
 // Reference: Ross & Selinger, arXiv:1403.2975, sec. 4 (Proposition 4.5).
 //
-// Definition 4.3: given intervals I and J, find all alpha in Z[sqrt(2)] with
-// alpha in I and alpha* in J, where (-)* is the sqrt(2)-conjugation that
-// flips the sign of the sqrt(2) coefficient.
+// Definition 4.3: given intervals I and J, find all alpha in Z[`sqrt`(2)] with
+// alpha in I and alpha* in J, where (-)* is the `sqrt`(2)-conjugation that
+// flips the sign of the `sqrt`(2) coefficient.
 //
 // Algorithm outline:
 //   1. Shift to center the search.
-//   2. Apply lambda-rescalings (lambda = 1 + sqrt(2), the fundamental unit of
-//      Z[sqrt(2)]) until J is narrow enough for direct enumeration.
+//   2. Apply lambda-rescalings (lambda = 1 + `sqrt`(2), the fundamental unit of
+//      Z[`sqrt`(2)]) until J is narrow enough for direct enumeration.
 //   3. Enumerate over the resulting two-level (a, b) loop with exact bounds
 //      checks against the *original* (un-shifted) interval.
 //
 // Variants implemented below: parity-constrained (Lemma 5.5, omega-offset
-// case), scaled (Proposition 5.21, enumerating in (1/sqrt(2)^k)*Z[sqrt(2)]),
-// and the combination.
+// case), scaled (Proposition 5.21, enumerating in
+// (1/`sqrt`(2)^k)*Z[`sqrt`(2)]), and the combination.
 //
 // All entry points are stepper classes -- single-pass lazy ranges-- with the
 // iterator inheriting from `llvm::iterator_facade_base`. Solutions stream out
@@ -52,8 +52,8 @@ namespace cudaq::synth {
 
 /// Stepper for the core ODGP (Definition 4.3).
 ///
-/// Construction performs the one-shot shift / lambda-rescale / bounds caching;
-/// `next()` resumes the (a, b) enumeration.
+/// Construction performs the one-shot shift / lambda-`rescale` / bounds
+/// caching; `next()` resumes the (a, b) enumeration.
 ///
 /// Pointer contract: the pointer returned by `next()` (and the reference
 /// returned by `*it`) is valid only until the next call to `next()` / `++it`.
@@ -68,7 +68,7 @@ public:
   OdgpStepper(OdgpStepper &&) = delete;
   OdgpStepper &operator=(OdgpStepper &&) = delete;
 
-  /// Advance one solution; returns nullptr when exhausted.
+  /// Advance one solution; returns `nullptr` when exhausted.
   const ZSqrt2 *next();
 
 private:
@@ -126,9 +126,9 @@ private:
 
 /// Stepper for the omega-offset ODGP variant (Lemma 5.5).
 ///
-/// Yields alpha in Z[sqrt(2)] with alpha in I, alpha* in J, and the constant
+/// Yields alpha in Z[`sqrt`(2)] with alpha in I, alpha* in J, and the constant
 /// coefficient of alpha matching the parity of `parity_hint`. Drives an inner
-/// OdgpStepper over rescaled intervals; per-yield work is a coefficient
+/// OdgpStepper over `rescaled` intervals; per-yield work is a coefficient
 /// transform of the inner value.
 class OdgpWithParityStepper
     : public StepperBase<OdgpWithParityStepper, ZSqrt2> {
@@ -156,7 +156,7 @@ private:
 
 /// Stepper for the scaled ODGP (Proposition 5.21).
 ///
-/// Yields alpha in (1/sqrt(2)^denom_exp) * Z[sqrt(2)] with alpha in I and
+/// Yields alpha in (1/`sqrt`(2)^denom_exp) * Z[`sqrt`(2)] with alpha in I and
 /// alpha* in J. The intervals are pre-scaled (and conjugate-flipped for odd
 /// exponents) before being handed to the inner OdgpStepper.
 class OdgpScaledStepper : public StepperBase<OdgpScaledStepper, DSqrt2> {
@@ -172,7 +172,7 @@ public:
   const DSqrt2 *next();
 
 private:
-  // Optional defers construction until the rescaled intervals are computed
+  // Optional defers construction until the `rescaled` intervals are computed
   // in the body of this stepper's constructor; OdgpStepper itself is
   // non-movable so it cannot live in an initializer list expression.
   std::optional<OdgpStepper> inner_;

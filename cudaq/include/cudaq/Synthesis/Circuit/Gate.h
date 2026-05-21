@@ -16,12 +16,12 @@ namespace cudaq::synth {
 // Gate
 //===----------------------------------------------------------------------===//
 
-/// Single-qubit Clifford+T gate. uint8_t backing keeps sizeof(Gate) == 1,
+/// Single-qubit Clifford+T gate. uint8_t backing keeps `sizeof(Gate) == 1`,
 /// matching the memory footprint of a char-per-gate string representation.
 enum class Gate : uint8_t {
   H = 0, ///< Hadamard.
-  S,     ///< Phase gate diag(1, i) = T^2.
-  T,     ///< pi/8 gate diag(1, e^(i*pi/4)).
+  S,     ///< Phase gate `diag`(1, i) = T^2.
+  T,     ///< pi/8 gate `diag`(1, e^(i*pi/4)).
   X,     ///< Pauli-X bit-flip.
   W,     ///< Global phase omega = e^(i*pi/4).
 };

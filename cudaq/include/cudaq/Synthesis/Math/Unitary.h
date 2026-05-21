@@ -22,7 +22,7 @@ namespace cudaq::synth {
 // DOmegaUnitary
 //===----------------------------------------------------------------------===//
 
-/// A 2x2 unitary with entries in D[omega], parametrised as
+/// A 2x2 unitary with entries in D[omega], parameterized as
 ///
 ///     U = [[ z,           -conj(w) * omega^n ],
 ///          [ w,            conj(z) * omega^n ]]
@@ -30,10 +30,10 @@ namespace cudaq::synth {
 /// where z, w in D[omega] and n in Z/8Z.
 ///
 /// References: Ross & Selinger, arXiv:1403.2975, sec. 7.1, equations (11)
-/// and (12); Kliuchnikov, Maslov, Mosca [10].
+/// and (12); Kliuchnikov, `Maslov`, Mosca [10].
 ///
 /// Theorem (from [10]): a single-qubit operator is exactly Clifford+T iff
-/// every matrix entry lies in D[omega]. The n = 0 specialisation collapses
+/// every matrix entry lies in D[omega]. The n = 0 specialization collapses
 /// to
 ///     U = [[ u, -conj(t) ], [ t, conj(u) ]]
 /// with conj(u)*u + conj(t)*t = 1. Lemma 7.2 of the paper proves that for
@@ -60,7 +60,7 @@ private:
 public:
   /// Construct from explicit (z, w, n). If `k` is negative (the default),
   /// z and w are auto-aligned to the larger of their two denominator
-  /// exponents; otherwise both are renormalised to exactly k.
+  /// exponents; otherwise both are `renormalized` to exactly k.
   DOmegaUnitary(const DOmega &z, const DOmega &w, int32_t n, int32_t k = -1)
       : _z(z), _w(w), _n(n & 0b111) {
 
@@ -94,8 +94,8 @@ public:
   }
 
   /// 2x2 floating-point complex matrix. Avoids the intermediate DOmega
-  /// matrix by computing all four entries' real/imag coordinates with a
-  /// shared inv_scale and sqrt(2)/2 (`coords_into` amortises the MPFR
+  /// matrix by computing all four entries' real/`imag` coordinates with a
+  /// shared inv_scale and `sqrt`(2)/2 (`coords_into` amortizes the MPFR
   /// work across the four entries).
   std::array<std::array<std::complex<Real>, 2>, 2> to_complex_matrix() const {
     DOmega m00 = _z;
@@ -132,13 +132,14 @@ public:
   //
   //   T = diag(1, omega)         -> (z,           omega * w,         n + 1)
   //   S = diag(1, i) = T^2       -> (z,           i * w,             n + 2)
-  //   H = (1/sqrt(2)) [[1, 1], [1, -1]]
-  //                              -> ((z + w)/sqrt(2), (z - w)/sqrt(2), n + 4)
+  //   H = (1/`sqrt`(2)) [[1, 1], [1, -1]]
+  //                              -> ((z + w)/`sqrt`(2), (z - w)/`sqrt`(2), n +
+  //                              4)
   //   X = [[0, 1], [1, 0]]       -> (w,           z,                 n + 4)
   //   W = omega * I (global phase)
   //                              -> (omega * z,  omega * w,           n + 2)
   //
-  // The transformations are forced by the parametrisation
+  // The transformations are forced by the parameterization
   //     U = [[ z, -conj(w) * omega^n ], [ w, conj(z) * omega^n ]]
   // together with the requirement that g * U must again have this form.
 
@@ -232,7 +233,7 @@ inline DOmegaUnitary to_lde(const DOmegaUnitary &u) {
 /// Reference: Ross & Selinger, arXiv:1403.2975, equation (13).
 ///
 /// Builds E = U - R_z(theta) entry by entry from the complex matrix of u
-/// (via `to_complex_matrix`) and returns sqrt(|det(E)|). For small epsilon
+/// (via `to_complex_matrix`) and returns `sqrt`(|`det`(E)|). For small epsilon
 /// the two singular values of E are approximately equal, so this proxy is
 /// accurate in the regime the synthesizer targets.
 inline Real rz_approximation_error(const DOmegaUnitary &u, const Real &theta) {
@@ -255,7 +256,7 @@ inline Real rz_approximation_error(const DOmegaUnitary &u, const Real &theta) {
   Real e11r = M[1][1].real() - c;
   Real e11i = M[1][1].imag() - s;
 
-  // det(E) = E[0][0]*E[1][1] - E[0][1]*E[1][0], computed in (re, im) pairs.
+  // `det`(E) = E[0][0]*E[1][1] - E[0][1]*E[1][0], computed in (re, im) pairs.
   Real det_re = (e00r * e11r - e00i * e11i) - (e01r * e10r - e01i * e10i);
   Real det_im = (e00r * e11i + e00i * e11r) - (e01r * e10i + e01i * e10r);
 
@@ -263,7 +264,7 @@ inline Real rz_approximation_error(const DOmegaUnitary &u, const Real &theta) {
 }
 
 /// Convenience wrapper: compute |R_z(theta) - U| for a circuit already
-/// realised as a Circuit. Theta is consumed as an arbitrary-precision
+/// realized as a Circuit. Theta is consumed as an arbitrary-precision
 /// decimal string (so callers can stay in their preferred I/O format).
 inline std::string rz_gate_sequence_error(const std::string &theta,
                                           const Circuit &circuit) {
@@ -294,7 +295,7 @@ inline DOmegaUnitary DOmegaUnitary::from_gates(const Circuit &circuit) {
   for (auto it = circuit.rbegin(); it != circuit.rend(); ++it) {
     switch (*it) {
     case Gate::H:
-      // H needs one extra factor of sqrt(2) in the denominator to keep
+      // H needs one extra factor of `sqrt`(2) in the denominator to keep
       // every entry inside D[omega].
       unitary = with_denom_exp(unitary, unitary.k() + int32_t(1))
                     .mul_by_H_from_left();

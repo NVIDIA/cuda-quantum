@@ -26,14 +26,14 @@ namespace cudaq::synth {
 //===----------------------------------------------------------------------===//
 
 /// A special grid operator G: R^2 -> R^2 represented as a real 2x2 matrix
-/// with entries in Z[1/sqrt(2)].
+/// with entries in Z[1/`sqrt`(2)].
 ///
 /// Reference: Ross & Selinger, arXiv:1403.2975, sec. 5.3 (Definition 5.10,
 /// Lemma 5.11, Proposition 5.13).
 ///
 /// Lemma 5.11 gives the entry structure:
-///     G = [[ a + a'/sqrt(2),  b + b'/sqrt(2) ],
-///          [ c + c'/sqrt(2),  d + d'/sqrt(2) ]]
+///     G = [[ a + a'/`sqrt`(2),  b + b'/`sqrt`(2) ],
+///          [ c + c'/`sqrt`(2),  d + d'/`sqrt`(2) ]]
 /// with a, b, c, d, a', b', c', d' integers subject to
 ///     a + b + c + d == 0 (mod 2)
 ///     a' == b' == c' == d' (mod 2).
@@ -41,9 +41,9 @@ namespace cudaq::synth {
 /// Internal representation. The matrix is stored as a pair of ZOmega
 /// elements (u0, u1), one per column, where each ZOmega u = (a, b, c, d)
 /// encodes a column via Lemma 5.5:
-///     column = [ d + (c - a) / sqrt(2),  b + (c + a) / sqrt(2) ]^T.
+///     column = [ d + (c - a) / `sqrt`(2),  b + (c + a) / `sqrt`(2) ]^T.
 ///
-/// A grid operator is "special" iff det(G) = +/-1 (Definition 5.10).
+/// A grid operator is "special" iff `det`(G) = +/-1 (Definition 5.10).
 /// Proposition 5.13: for a special G, the 2D grid problem on sets (A, B) is
 /// equivalent to the one on (G(A), conj_sq2(G)(B)). This is the foundation
 /// of the to-upright algorithm (Theorem 5.16).
@@ -60,11 +60,11 @@ public:
   /// Construct from the two column vectors in the Z[omega] encoding.
   explicit GridOp(const ZOmega &u0, const ZOmega &u1) : _u0(u0), _u1(u1) {}
 
-  /// 2x2 identity. In the ZOmega column encoding (Re(u) = d + (c - a)/sqrt(2),
-  /// Im(u) = b + (c + a)/sqrt(2)) the canonical basis vectors [1, 0]^T and
-  /// [0, 1]^T become ZOmega(0, 0, 0, 1) and ZOmega(0, 1, 0, 0). Held as a
-  /// function-local static to dodge static-initialization-order issues, same
-  /// pattern as ZSqrt2::lambda().
+  /// 2x2 identity. In the ZOmega column encoding (Re(u) = d + (c -
+  /// a)/`sqrt`(2), Im(u) = b + (c + a)/`sqrt`(2)) the canonical basis vectors
+  /// [1, 0]^T and [0, 1]^T become ZOmega(0, 0, 0, 1) and ZOmega(0, 1, 0, 0).
+  /// Held as a function-local static to dodge static-initialization-order
+  /// issues, same pattern as ZSqrt2::lambda().
   static const GridOp &identity() {
     static const GridOp value(ZOmega(0, 0, 0, 1), ZOmega(0, 1, 0, 0));
     return value;
@@ -98,7 +98,7 @@ public:
   /// is exact, so we can use floor-division by 2 throughout.
   ///
   /// The eight t1..t8 temporaries are the half-integer sub-expressions
-  /// shared across the four output coefficients (CSE to minimise GMP
+  /// shared across the four output coefficients (CSE to minimize GMP
   /// allocations).
   ZOmega operator*(const ZOmega &other) const {
     const Integer &a0_ = a0(), &b0_ = b0(), &c0_ = c0(), &d0_ = d0();
@@ -130,7 +130,7 @@ public:
 
   /// Lift the Z[omega] action to D[omega]. The denominator exponent k passes
   /// through unchanged because G maps Z[omega] into Z[omega], so
-  /// G(u / sqrt(2)^k) = G(u) / sqrt(2)^k.
+  /// G(u / `sqrt`(2)^k) = G(u) / `sqrt`(2)^k.
   DOmega operator*(const DOmega &other) const {
     return DOmega((*this) * other.u(), other.k());
   }
@@ -145,7 +145,7 @@ public:
 // Free functions on GridOp
 //===----------------------------------------------------------------------===//
 
-/// Sqrt(2)-conjugation acting columnwise. By Remark 5.12,
+/// Sqrt(2)-conjugation acting `columnwise`. By Remark 5.12,
 /// conj_sq2(G)(conj_sq2(u)) = conj_sq2(G * u) for all u in Z[omega]; this is
 /// what lets Proposition 5.13 transform (A, B) into (G(A), conj_sq2(G)(B)).
 inline GridOp conj_sq2(const GridOp &G) {
@@ -180,15 +180,15 @@ inline std::array<std::array<Real, 2>, 2> to_real_mat(const GridOp &G) {
 
 /// Inverse of G, defined only for special grid operators.
 ///
-/// G is special iff det(G) = +/-1, where det(G) = Im(conj(u0) * u1). The
-/// specialness predicate is: let d = conj(u0) * u1; then G is special iff
-///     d.a() + d.c() == 0       (no sqrt(2) term)
+/// G is special iff `det`(G) = +/-1, where `det`(G) = Im(conj(u0) * u1). The
+/// `specialness` predicate is: let d = conj(u0) * u1; then G is special iff
+///     d.a() + d.c() == 0       (no `sqrt`(2) term)
 ///     and |d.b()| == 1         (unit imaginary part).
 /// Returns failure() if either condition fails.
 ///
-/// The closed-form inverse comes from the 2x2 adjugate divided by det. The
+/// The closed-form inverse comes from the 2x2 `adjugate` divided by `det`. The
 /// shared P, Q, R, S sub-expressions are factored out across the two output
-/// columns to minimise GMP allocations.
+/// columns to minimize GMP allocations.
 inline llvm::FailureOr<GridOp> inv(const GridOp &G) {
   ZOmega det = G.u0().conj() * G.u1();
   if (!((det.a() + det.c() == 0) && (det.b() == 1 || det.b() == -1)))
@@ -208,7 +208,7 @@ inline llvm::FailureOr<GridOp> inv(const GridOp &G) {
   Integer new_a1 = floordiv(R + S, 2);
   ZOmega new_u1(new_a1, d0_, new_c1, -d1_);
 
-  // det == -1 flips the sign of both columns of the adjugate.
+  // `det` == -1 flips the sign of both columns of the `adjugate`.
   if (det.b() == -1) {
     new_u0 = -new_u0;
     new_u1 = -new_u1;
@@ -220,7 +220,7 @@ inline llvm::FailureOr<GridOp> inv(const GridOp &G) {
 /// Integer power G^exp by binary exponentiation.
 ///
 /// Cost: O(log|exp|) GridOp multiplications. Negative exponents require G to
-/// be invertible (i.e. special); the precondition is asserted. The loop is
+/// be `invertible` (i.e. special); the precondition is asserted. The loop is
 /// arranged so the final iteration does not square `base` after the last
 /// odd-exponent bit -- saves one full GridOp multiplication per call.
 inline GridOp pow(const GridOp &G, Integer exp) {
