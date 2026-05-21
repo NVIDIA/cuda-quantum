@@ -26,16 +26,14 @@ def reset_run_clear():
 
 
 def test_host_construction_raises_runtime_error():
-    with pytest.raises(
-            RuntimeError,
-            match=r"^device-only; usable only inside @cudaq\.kernel$"):
+    with pytest.raises(RuntimeError,
+                       match="can be used only in CUDA-Q kernels"):
         cudaq.measure_handle()
 
 
 def test_host_to_bools_raises_runtime_error():
-    with pytest.raises(
-            RuntimeError,
-            match=r"^device-only; usable only inside @cudaq\.kernel$"):
+    with pytest.raises(RuntimeError,
+                       match="can be used only in CUDA-Q kernels"):
         cudaq.to_bools([])
 
 
