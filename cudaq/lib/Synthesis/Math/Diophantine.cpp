@@ -228,7 +228,7 @@ Fp2 fp2_pow(const Fp2Ctx &ctx, Fp2 base_elem, Integer e) {
 llvm::FailureOr<Integer> find_factor(const Integer &n,
                                      int32_t factoring_timeout_ms,
                                      int32_t batch_size = 128) {
-  CUDAQ_CUDAQ_SYNTH_OPEN_SUB("find_factor");
+  CUDAQ_SYNTH_OPEN_SUB("find_factor");
   LLVM_DEBUG(cudaq::synth::dbgs()
              << "n has " << num_decimal_digits(n)
              << " digits, timeout=" << factoring_timeout_ms << "ms\n");
@@ -245,13 +245,13 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
   for (uint64_t p : small_primes) {
     if (mpz_divisible_ui_p(n_mpz, static_cast<unsigned long>(p))) {
       if (mpz_cmp_ui(n_mpz, static_cast<unsigned long>(p)) > 0) {
-        CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS("small prime " + std::to_string(p));
+        CUDAQ_SYNTH_CLOSE_SUCCESS("small prime " + std::to_string(p));
         return Integer(static_cast<int64_t>(p));
       }
     }
   }
   if (n <= int64_t(3)) {
-    CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("n <= 3");
+    CUDAQ_SYNTH_CLOSE_FAILURE("n <= 3");
     return llvm::failure();
   }
 
@@ -325,17 +325,17 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
             mpz_gcd(g, d, n_mpz);
             if (mpz_cmp_ui(g, 1) != 0) {
               if (mpz_cmp(g, n_mpz) == 0) {
-                CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("backtrack collapsed");
+                CUDAQ_SYNTH_CLOSE_FAILURE("backtrack collapsed");
                 return llvm::failure();
               }
-              CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS("Pollard-Brent backtrack");
+              CUDAQ_SYNTH_CLOSE_SUCCESS("Pollard-Brent backtrack");
               return make_result(g);
             }
           }
-          CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("backtrack exhausted");
+          CUDAQ_SYNTH_CLOSE_FAILURE("backtrack exhausted");
           return llvm::failure();
         }
-        CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS("Pollard-Brent rho");
+        CUDAQ_SYNTH_CLOSE_SUCCESS("Pollard-Brent rho");
         return make_result(g);
       }
 
@@ -346,9 +346,8 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
         LLVM_DEBUG(cudaq::synth::dbgs()
                    << "exhausted budget for " << digits
                    << "-digit number (L=" << L << ", k=" << k << ")\n");
-        CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE(
-            "budget exhausted (L=" + std::to_string(L) +
-            ", k=" + std::to_string(k) + ")");
+        CUDAQ_SYNTH_CLOSE_FAILURE("budget exhausted (L=" + std::to_string(L) +
+                                  ", k=" + std::to_string(k) + ")");
         return llvm::failure();
       }
     }
@@ -744,7 +743,7 @@ DiophantineResult adj_decompose_prime_power(const Integer &p,
 DiophantineResult adj_decompose(Integer n, int32_t diophantine_timeout_ms,
                                 int32_t factoring_timeout_ms,
                                 std::chrono::steady_clock::time_point start) {
-  CUDAQ_CUDAQ_SYNTH_OPEN_SUB("adj_decompose(int)");
+  CUDAQ_SYNTH_OPEN_SUB("adj_decompose(int)");
   if (n < 0)
     n = -n;
   LLVM_DEBUG(cudaq::synth::dbgs()
@@ -756,7 +755,7 @@ DiophantineResult adj_decompose(Integer n, int32_t diophantine_timeout_ms,
     factors.pop_back();
     DiophantineResult t_p = adj_decompose_prime_power(p, k);
     if (is_no_solution(t_p)) {
-      CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("prime power has no solution");
+      CUDAQ_SYNTH_CLOSE_FAILURE("prime power has no solution");
       return NoSolution{};
     }
 
@@ -771,8 +770,7 @@ DiophantineResult adj_decompose(Integer n, int32_t diophantine_timeout_ms,
             std::chrono::duration_cast<std::chrono::milliseconds>(now - start)
                 .count();
         if (elapsed >= diophantine_timeout_ms) {
-          CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE(
-              "diophantine timeout while factoring");
+          CUDAQ_SYNTH_CLOSE_FAILURE("diophantine timeout while factoring");
           return NoSolution{};
         }
       } else {
@@ -790,7 +788,7 @@ DiophantineResult adj_decompose(Integer n, int32_t diophantine_timeout_ms,
 
     t = t * std::get<ZOmega>(t_p);
   }
-  CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS("");
+  CUDAQ_SYNTH_CLOSE_SUCCESS("");
   return t;
 }
 
@@ -940,7 +938,7 @@ DiophantineResult
 adj_decompose_selfcoprime(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
                           int32_t factoring_timeout_ms,
                           std::chrono::steady_clock::time_point start) {
-  CUDAQ_CUDAQ_SYNTH_OPEN_SUB("adj_decompose_selfcoprime");
+  CUDAQ_SYNTH_OPEN_SUB("adj_decompose_selfcoprime");
   LLVM_DEBUG(cudaq::synth::dbgs() << "xi=" << xi << '\n');
   std::vector<std::pair<ZSqrt2, Integer>> factors = {{xi, 1}};
   ZOmega t = ZOmega::from_int(1);
@@ -957,7 +955,7 @@ adj_decompose_selfcoprime(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
     factors.pop_back();
     DiophantineResult t_eta = adj_decompose_prime_power(eta, k);
     if (is_no_solution(t_eta)) {
-      CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("prime power has no solution");
+      CUDAQ_SYNTH_CLOSE_FAILURE("prime power has no solution");
       return NoSolution{};
     }
 
@@ -973,8 +971,7 @@ adj_decompose_selfcoprime(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
             std::chrono::duration_cast<std::chrono::milliseconds>(now - start)
                 .count();
         if (elapsed >= diophantine_timeout_ms) {
-          CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE(
-              "diophantine timeout while factoring");
+          CUDAQ_SYNTH_CLOSE_FAILURE("diophantine timeout while factoring");
           return NoSolution{};
         }
       } else {
@@ -994,7 +991,7 @@ adj_decompose_selfcoprime(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
 
     t = t * std::get<ZOmega>(t_eta);
   }
-  CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS("");
+  CUDAQ_SYNTH_CLOSE_SUCCESS("");
   return t;
 }
 
@@ -1011,9 +1008,9 @@ DiophantineResult adj_decompose(const ZSqrt2 &xi,
                                 int32_t diophantine_timeout_ms,
                                 int32_t factoring_timeout_ms,
                                 std::chrono::steady_clock::time_point start) {
-  CUDAQ_CUDAQ_SYNTH_OPEN_SUB("adj_decompose(ZSqrt2)");
+  CUDAQ_SYNTH_OPEN_SUB("adj_decompose(ZSqrt2)");
   if (xi == ZSqrt2{0}) {
-    CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS("xi == 0");
+    CUDAQ_SYNTH_CLOSE_SUCCESS("xi == 0");
     return ZOmega::from_int(0);
   }
 
@@ -1027,23 +1024,23 @@ DiophantineResult adj_decompose(const ZSqrt2 &xi,
   DiophantineResult t1 = adj_decompose_selfassociate(
       d, diophantine_timeout_ms, factoring_timeout_ms, start);
   if (is_no_solution(t1)) {
-    CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("self-associate part has no solution");
+    CUDAQ_SYNTH_CLOSE_FAILURE("self-associate part has no solution");
     return t1;
   }
 
   DiophantineResult t2 = adj_decompose_selfcoprime(eta, diophantine_timeout_ms,
                                                    factoring_timeout_ms, start);
   if (is_no_solution(t2)) {
-    CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("self-coprime part has no solution");
+    CUDAQ_SYNTH_CLOSE_FAILURE("self-coprime part has no solution");
     return t2;
   }
 
   if (!is_success(t1) || !is_success(t2)) {
-    CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("need factoring");
+    CUDAQ_SYNTH_CLOSE_FAILURE("need factoring");
     return NeedFactoring{};
   }
 
-  CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS("");
+  CUDAQ_SYNTH_CLOSE_SUCCESS("");
   return std::get<ZOmega>(t1) * std::get<ZOmega>(t2);
 }
 
@@ -1059,18 +1056,18 @@ DiophantineResult adj_decompose(const ZSqrt2 &xi,
 /// and the exact solution is t' = v * t (Lemma C.16).
 DiophantineResult diophantine(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
                               int32_t factoring_timeout_ms) {
-  CUDAQ_CUDAQ_SYNTH_OPEN_SUB("diophantine");
+  CUDAQ_SYNTH_OPEN_SUB("diophantine");
   auto start = std::chrono::steady_clock::now();
   LLVM_DEBUG(cudaq::synth::dbgs() << "xi=" << xi << '\n');
 
   if (xi == ZSqrt2{0}) {
-    CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS("xi == 0");
+    CUDAQ_SYNTH_CLOSE_SUCCESS("xi == 0");
     return ZOmega::from_int(0);
   }
 
   // Necessary conditions (Lemma 6.1): xi >= 0 and conj_sq2(xi) >= 0.
   if (xi < ZSqrt2{0} || xi.conj_sq2() < ZSqrt2{0}) {
-    CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE(
+    CUDAQ_SYNTH_CLOSE_FAILURE(
         "necessary conditions failed (xi<0 or xi_bullet<0)");
     return NoSolution{};
   }
@@ -1078,7 +1075,7 @@ DiophantineResult diophantine(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
   DiophantineResult t =
       adj_decompose(xi, diophantine_timeout_ms, factoring_timeout_ms, start);
   if (!is_success(t)) {
-    CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("adj_decompose failed");
+    CUDAQ_SYNTH_CLOSE_FAILURE("adj_decompose failed");
     return t;
   }
 
@@ -1090,12 +1087,12 @@ DiophantineResult diophantine(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
   // u is doubly positive, so u = v^2 in Z[sqrt(2)] (Lemma C.2).
   llvm::FailureOr<ZSqrt2> v_or = sqrt(u);
   if (llvm::failed(v_or)) {
-    CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("sqrt(u) failed");
+    CUDAQ_SYNTH_CLOSE_FAILURE("sqrt(u) failed");
     return NoSolution{};
   }
 
   ZOmega v_zomega = ZOmega::from_zsqrt2(*v_or);
-  CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS("unit adjustment succeeded");
+  CUDAQ_SYNTH_CLOSE_SUCCESS("unit adjustment succeeded");
   return v_zomega * t_val;
 }
 
@@ -1108,7 +1105,7 @@ DiophantineResult diophantine(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
 llvm::FailureOr<DOmega>
 cudaq::synth::diophantine_dyadic(const DSqrt2 &xi, int32_t diophantine_timeout,
                                  int32_t factoring_timeout) {
-  CUDAQ_CUDAQ_SYNTH_OPEN_SUB("diophantine_dyadic");
+  CUDAQ_SYNTH_OPEN_SUB("diophantine_dyadic");
   LLVM_DEBUG(cudaq::synth::dbgs()
              << "denom_exp=" << static_cast<int64_t>(xi.k())
              << ", dioph_timeout=" << diophantine_timeout
@@ -1129,8 +1126,8 @@ cudaq::synth::diophantine_dyadic(const DSqrt2 &xi, int32_t diophantine_timeout,
       diophantine(arg, diophantine_timeout, factoring_timeout);
 
   if (!is_success(t)) {
-    CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("no solution for denom_exp=" +
-                                    xi.k().to_string());
+    CUDAQ_SYNTH_CLOSE_FAILURE("no solution for denom_exp=" +
+                              xi.k().to_string());
     return llvm::failure();
   }
 
@@ -1144,7 +1141,7 @@ cudaq::synth::diophantine_dyadic(const DSqrt2 &xi, int32_t diophantine_timeout,
   if (k_mod_2)
     z = z * ZOmega(0, -1, 1, 0);
 
-  CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS("solution found for denom_exp=" +
-                                  xi.k().to_string());
+  CUDAQ_SYNTH_CLOSE_SUCCESS("solution found for denom_exp=" +
+                            xi.k().to_string());
   return DOmega(z, k_div_2 + k_mod_2);
 }

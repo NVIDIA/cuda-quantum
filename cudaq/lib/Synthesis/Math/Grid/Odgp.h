@@ -101,8 +101,8 @@ private:
   // Buffer aliased by the pointer returned from next().
   ZSqrt2 last_sol_;
 
-  // Drives the CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS /
-  // CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE line emitted by the destructor.
+  // Drives the CUDAQ_SYNTH_CLOSE_SUCCESS /
+  // CUDAQ_SYNTH_CLOSE_FAILURE line emitted by the destructor.
   int yielded_ = 0;
   std::string close_reason_;
 

@@ -128,7 +128,7 @@ constexpr double SLOPE_ZERO_TOLERANCE = 1e-40;
 //===----------------------------------------------------------------------===//
 
 OdgpStepper::OdgpStepper(Interval I, Interval J) {
-  CUDAQ_CUDAQ_SYNTH_OPEN_SUB("OdgpStepper");
+  CUDAQ_SYNTH_OPEN_SUB("OdgpStepper");
   LLVM_DEBUG(cudaq::synth::dbgs()
              << "I_width=" << I.width() << ", J_width=" << J.width() << '\n');
 
@@ -245,11 +245,11 @@ OdgpStepper::~OdgpStepper() {
   mpfr_clear(scratch2_);
 
   if (yielded_ > 0) {
-    CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS("yielded " + std::to_string(yielded_));
+    CUDAQ_SYNTH_CLOSE_SUCCESS("yielded " + std::to_string(yielded_));
   } else if (!close_reason_.empty()) {
-    CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE(close_reason_);
+    CUDAQ_SYNTH_CLOSE_FAILURE(close_reason_);
   } else {
-    CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("no solutions");
+    CUDAQ_SYNTH_CLOSE_FAILURE("no solutions");
   }
 }
 
@@ -479,15 +479,15 @@ OdgpWithParityStepper::OdgpWithParityStepper(Interval I, Interval J,
     : inner_(scaled_parity_I(I, parity_hint.parity()),
              scaled_parity_J(J, parity_hint.parity())),
       parity_p_(parity_hint.parity()) {
-  CUDAQ_CUDAQ_SYNTH_OPEN_SUB("OdgpWithParityStepper");
+  CUDAQ_SYNTH_OPEN_SUB("OdgpWithParityStepper");
   LLVM_DEBUG(cudaq::synth::dbgs() << "parity=" << parity_p_ << '\n');
 }
 
 OdgpWithParityStepper::~OdgpWithParityStepper() {
   if (yielded_ > 0)
-    CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS("yielded " + std::to_string(yielded_));
+    CUDAQ_SYNTH_CLOSE_SUCCESS("yielded " + std::to_string(yielded_));
   else
-    CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("no solutions");
+    CUDAQ_SYNTH_CLOSE_FAILURE("no solutions");
 }
 
 const ZSqrt2 *OdgpWithParityStepper::next() {
@@ -513,7 +513,7 @@ const ZSqrt2 *OdgpWithParityStepper::next() {
 
 OdgpScaledStepper::OdgpScaledStepper(Interval I, Interval J, Integer denom_exp)
     : denom_exp_(std::move(denom_exp)) {
-  CUDAQ_CUDAQ_SYNTH_OPEN_SUB("OdgpScaledStepper");
+  CUDAQ_SYNTH_OPEN_SUB("OdgpScaledStepper");
   LLVM_DEBUG(cudaq::synth::dbgs()
              << "denom_exp=" << static_cast<int64_t>(denom_exp_)
              << ", I_width=" << I.width() << ", J_width=" << J.width() << '\n');
@@ -527,9 +527,9 @@ OdgpScaledStepper::OdgpScaledStepper(Interval I, Interval J, Integer denom_exp)
 
 OdgpScaledStepper::~OdgpScaledStepper() {
   if (yielded_ > 0)
-    CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS("yielded " + std::to_string(yielded_));
+    CUDAQ_SYNTH_CLOSE_SUCCESS("yielded " + std::to_string(yielded_));
   else
-    CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("no solutions");
+    CUDAQ_SYNTH_CLOSE_FAILURE("no solutions");
 }
 
 const DSqrt2 *OdgpScaledStepper::next() {
@@ -548,7 +548,7 @@ const DSqrt2 *OdgpScaledStepper::next() {
 OdgpScaledWithParityStepper::OdgpScaledWithParityStepper(Interval I, Interval J,
                                                          Integer denom_exp,
                                                          DSqrt2 parity_hint) {
-  CUDAQ_CUDAQ_SYNTH_OPEN_SUB("OdgpScaledWithParityStepper");
+  CUDAQ_SYNTH_OPEN_SUB("OdgpScaledWithParityStepper");
   LLVM_DEBUG(cudaq::synth::dbgs()
              << "denom_exp=" << static_cast<int64_t>(denom_exp)
              << ", parity=" << parity_hint << '\n');
@@ -571,9 +571,9 @@ OdgpScaledWithParityStepper::OdgpScaledWithParityStepper(Interval I, Interval J,
 
 OdgpScaledWithParityStepper::~OdgpScaledWithParityStepper() {
   if (yielded_ > 0)
-    CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS("yielded " + std::to_string(yielded_));
+    CUDAQ_SYNTH_CLOSE_SUCCESS("yielded " + std::to_string(yielded_));
   else
-    CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("no solutions");
+    CUDAQ_SYNTH_CLOSE_FAILURE("no solutions");
 }
 
 const DSqrt2 *OdgpScaledWithParityStepper::next() {
