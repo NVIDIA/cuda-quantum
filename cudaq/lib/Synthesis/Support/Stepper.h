@@ -22,9 +22,7 @@ namespace cudaq::synth {
 // StepperBase
 //===----------------------------------------------------------------------===//
 
-/// CRTP base for lazy single-pass steppers -- the synth library's
-/// coroutine-free replacement for the previous C++20 generator<T> pattern,
-/// matching plain C++17 and the LLVM/MLIR ADT conventions.
+/// CRTP base for lazy single-pass steppers
 ///
 /// Contract for derived classes: implement
 ///
@@ -39,16 +37,12 @@ namespace cudaq::synth {
 ///     for (const T &v : MyStepper(...)) { ... }
 ///     auto vec = to_vector(MyStepper(...));
 ///
-/// The iterator inherits from llvm::iterator_facade_base, so derived
-/// steppers do not have to hand-roll iterator boilerplate.
-///
 /// Pointer contract: the value returned by next() (and the reference
 /// returned by *it) is valid only until the next call to next() / ++it.
 /// Callers must consume or copy before advancing.
 ///
-/// Steppers are typically non-copyable and non-movable (they own mpfr_t
-/// scratch state that has no move semantics). The base class itself is
-/// trivially copyable; derived classes can delete copy/move as needed.
+/// Steppers are typically non-copyable and non-movable. The base class itself
+/// is trivially copyable; derived classes can delete copy/move as needed.
 template <typename Derived, typename T>
 class StepperBase {
 public:
@@ -57,8 +51,7 @@ public:
   /// Single-pass input iterator over the stepper's next() output. A
   /// default-constructed iterator compares equal to any iterator whose
   /// internal value pointer is null, which is what end() returns and what
-  /// an exhausted iterator becomes after ++ -- so the standard
-  /// `it != end()` idiom drops out naturally.
+  /// an exhausted iterator becomes.
   class iterator
       : public llvm::iterator_facade_base<iterator, std::input_iterator_tag,
                                           const T> {
