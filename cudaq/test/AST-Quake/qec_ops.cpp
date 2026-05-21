@@ -361,11 +361,7 @@ struct RepCodeD3 {
 // CHECK:         }
 
 // ---------------------------------------------------------------------------
-// A user-defined `cudaq::qec::detector` must NOT be hijacked by the bridge:
-// the QEC handlers gate on the IMMEDIATE enclosing namespace being `cudaq`
-// (`isInDirectNamespace`), so sub-namespace symbols with the same name
-// dispatch through the regular function-call path. The bridge would
-// otherwise silently shadow QEC-side helpers a user might add.
+// A user-defined `cudaq::qec::detector` function
 // ---------------------------------------------------------------------------
 
 namespace cudaq::qec {
@@ -374,7 +370,7 @@ inline void detector(cudaq::measure_handle h) {
 }
 } // namespace cudaq::qec
 
-struct NamespacedDetectorIsNotHijacked {
+struct NamespacedDetectorIsAllowed {
   void operator()() __qpu__ {
     cudaq::qubit q;
     auto h = mz(q);
@@ -382,7 +378,7 @@ struct NamespacedDetectorIsNotHijacked {
   }
 };
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__NamespacedDetectorIsNotHijacked()
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__NamespacedDetectorIsAllowed()
 // CHECK:           call @_ZN5cudaq3qec8detectorENS_14measure_handleE(%{{.*}})
 // CHECK-NOT:       qec.detector
 // CHECK:           return

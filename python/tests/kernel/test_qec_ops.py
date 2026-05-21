@@ -150,14 +150,6 @@ def test_observable_overflow_idx_rejected():
 # ===========================================================================
 
 
-@pytest.fixture
-def builder_kernel_and_handles():
-    kernel = cudaq.make_kernel()
-    qs = kernel.qalloc(2)
-    hs = kernel.mz(qs)
-    return kernel, hs
-
-
 def test_builder_detector_no_args_rejected():
     kernel = cudaq.make_kernel()
     with pytest.raises(RuntimeError) as e:
@@ -190,6 +182,14 @@ def test_builder_detectors_scalar_arg_rejected():
         kernel.detectors(h0, h1)
     assert ("kernel.detectors arguments must each be a "
             "list[cudaq.measure_handle]") in str(e.value)
+
+
+@pytest.fixture
+def builder_kernel_and_handles():
+    kernel = cudaq.make_kernel()
+    qs = kernel.qalloc(2)
+    hs = kernel.mz(qs)
+    return kernel, hs
 
 
 def test_builder_observable_non_int_idx_rejected(builder_kernel_and_handles):

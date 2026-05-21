@@ -58,7 +58,7 @@ Value loadHandleVectorIfPointer(OpBuilder &builder, Location loc, Value v) {
 
 // Same intent as `isInNamespace`, but only matches when the immediate
 // enclosing namespace is `nsName`. `isInNamespace` drills through nested
-// namespaces, so it would silently hijack a user-defined
+// namespaces, so it would silently "hijack" a user-defined
 // `cudaq::qec::detector` or `cudaq::foo::detector` that happens to
 // share a name with a bridge-intercepted call.
 bool isInDirectNamespace(const clang::Decl *x, mlir::StringRef nsName) {
