@@ -63,6 +63,13 @@ protected:
   /// for speed)
   bool is_msm_mode = false;
 
+  /// @brief Accumulated Stim circuit covering gates, measurements, noise,
+  /// detectors, and observables. Reset alongside `num_measurements` in
+  /// `deallocateStateImpl` and `setToZeroState` so successive kernel
+  /// executions on a reused simulator start from a clean slate. Stim-side
+  /// internal only; not part of any public CUDA-Q API.
+  stim::Circuit recordedCircuit;
+
   std::optional<StimNoiseType>
   isValidStimNoiseChannel(const kraus_channel &channel) const {
 
@@ -271,9 +278,11 @@ protected:
     msm_err_count = 0;
     msm_id_counter = 0;
     is_msm_mode = false;
+    recordedCircuit.clear();
   }
 
-  /// @brief Apply operation to all Stim simulators.
+  /// @brief Apply operation to all Stim simulators and append it to the
+  /// persistent `recordedCircuit` log.
   void applyOpToSims(const std::string &gate_name,
                      const std::vector<uint32_t> &targets) {
     if (targets.empty())
@@ -283,6 +292,7 @@ protected:
     tempCircuit.safe_append_u(gate_name, targets);
     tableau->safe_do_circuit(tempCircuit);
     sampleSim->safe_do_circuit(tempCircuit);
+    recordedCircuit.safe_append_u(gate_name, targets);
   }
 
   /// @brief Apply the noise channel on \p qubits
@@ -385,6 +395,8 @@ protected:
         // Only apply the noise operations to the sample simulator (not the
         // Tableau simulator).
         sampleSim->safe_do_circuit(noiseOps);
+        recordedCircuit.safe_append_u(res.value().stim_name, qubits,
+                                      channel.parameters);
 
         // Increment the error count by the number of mechanisms
         msm_err_count += res->params.size();
@@ -490,6 +502,10 @@ protected:
     // Reset all qubits to |0> and clear measurement records, preserving
     // the allocated simulators for reuse (required by the PTSBE
     // per-trajectory loop which calls setToZeroState between trajectories).
+    // `recordedCircuit` is cleared before the reset `R` ops so the next
+    // trajectory's circuit starts with its own resets, not stacked on top
+    // of the previous trajectory's gates and detectors.
+    recordedCircuit.clear();
     auto nq = sampleSim->num_qubits;
     if (nq > 0) {
       std::vector<std::uint32_t> allQubits(nq);
@@ -630,6 +646,70 @@ public:
     if (includeSequentialData)
       result.sequentialData = std::move(sequentialData);
     return result;
+  }
+
+  /// @brief Translate chronological measurement indices into Stim record-
+  /// reference targets (`lookback | TARGET_RECORD_BIT`). Throws
+  /// `std::out_of_range` if any index lies outside `[0, num_measurements)`
+  /// so a broken upstream lowering surfaces at the first bad call instead
+  /// of producing a malformed DEM downstream.
+  std::vector<std::uint32_t>
+  measurementIndicesToRecordTargets(const std::int64_t *indices,
+                                    std::size_t count) const {
+    std::vector<std::uint32_t> targets;
+    targets.reserve(count);
+    for (std::size_t i = 0; i < count; i++) {
+      const auto idx = indices[i];
+      if (idx < 0 || static_cast<std::size_t>(idx) >= num_measurements)
+        throw std::out_of_range(
+            "QEC: measurement index " + std::to_string(idx) +
+            " is out of range [0, " + std::to_string(num_measurements) +
+            "); the lowering must produce chronological indices into the "
+            "current kernel's measurement record");
+      auto lookback = static_cast<std::uint32_t>(num_measurements -
+                                                 static_cast<std::size_t>(idx));
+      targets.push_back(lookback | stim::TARGET_RECORD_BIT);
+    }
+    return targets;
+  }
+
+  void detector(const std::int64_t *indices, std::size_t count) override {
+    // Commit any deferred sample `M` ops so subsequent `DETECTOR rec[-N]`
+    // references resolve. In `cudaq::sample` + `explicitMeasurements` mode
+    // `mz()` defers the `M` op to flush time; without this nudge a
+    // `qec.detector(handle)` immediately following an `mz` would emit a
+    // `rec[-N]` pointing at an `M` not yet laid down, which
+    // `stim::ErrorAnalyzer::circuit_to_detector_error_model` rejects.
+    if (!sampleQubits.empty())
+      flushAnySamplingTasks(/*force=*/false);
+    auto targets = measurementIndicesToRecordTargets(indices, count);
+    if (!targets.empty())
+      recordedCircuit.safe_append_u("DETECTOR", targets);
+  }
+
+  void logical_observable(const std::int64_t *indices, std::size_t count,
+                          std::size_t observable_index) override {
+    if (!sampleQubits.empty())
+      flushAnySamplingTasks(/*force=*/false);
+    auto targets = measurementIndicesToRecordTargets(indices, count);
+    if (!targets.empty())
+      recordedCircuit.safe_append_ua("OBSERVABLE_INCLUDE", targets,
+                                     static_cast<double>(observable_index));
+  }
+
+  void pair_detectors(const std::int64_t *prev, const std::int64_t *curr,
+                      std::size_t count) override {
+    if (!sampleQubits.empty())
+      flushAnySamplingTasks(/*force=*/false);
+    std::vector<std::vector<std::uint32_t>> all_targets;
+    all_targets.reserve(count);
+    for (std::size_t i = 0; i < count; i++) {
+      const std::int64_t pair[2] = {prev[i], curr[i]};
+      all_targets.push_back(measurementIndicesToRecordTargets(pair, 2));
+    }
+    for (const auto &targets : all_targets)
+      if (!targets.empty())
+        recordedCircuit.safe_append_u("DETECTOR", targets);
   }
 
   bool isStateVectorSimulator() const override { return false; }

@@ -783,6 +783,65 @@ static std::vector<std::size_t> safeArrayToVectorSizeT(Array *arr) {
   return arrayToVectorSizeT(arr);
 }
 
+// Each `Result*` in the incoming buffer is the bit pattern of an `i64`
+// chronological measurement index (the runtime representation of
+// `!cc.measure_handle` post-conversion); it is NOT a heap `Result` object and
+// must not be dereferenced.
+static inline std::int64_t resultPtrToMeasureIndex(Result *r) {
+  return static_cast<std::int64_t>(reinterpret_cast<std::intptr_t>(r));
+}
+
+// Validate the `(results, count)` pair from the QIR side and return the
+// indices as `std::vector<int64_t>`.
+static std::vector<std::int64_t> resultArrayToIndices(Result **results,
+                                                      std::int64_t count) {
+  if (count < 0)
+    throw std::invalid_argument("QEC: count must be non-negative, got " +
+                                std::to_string(count));
+  if (count > 0 && !results)
+    throw std::invalid_argument("QEC: results pointer is null with count=" +
+                                std::to_string(count));
+  std::vector<std::int64_t> indices;
+  indices.reserve(static_cast<std::size_t>(count));
+  for (std::int64_t i = 0; i < count; i++)
+    indices.push_back(resultPtrToMeasureIndex(results[i]));
+  return indices;
+}
+
+void __quantum__qis__detector(Result **results, std::int64_t count) {
+  auto indices = resultArrayToIndices(results, count);
+  nvqir::getCircuitSimulatorInternal()->detector(indices.data(),
+                                                 indices.size());
+}
+
+void __quantum__qis__logical_observable(Result **results, std::int64_t count,
+                                        std::int64_t observable_index) {
+  if (observable_index < 0)
+    throw std::invalid_argument(
+        std::string("QEC: `observable_index` must be non-negative, got ") +
+        std::to_string(observable_index));
+  auto indices = resultArrayToIndices(results, count);
+  nvqir::getCircuitSimulatorInternal()->logical_observable(
+      indices.data(), indices.size(),
+      static_cast<std::size_t>(observable_index));
+}
+
+void __quantum__qis__pair_detectors(Result **prev_results,
+                                    std::int64_t prev_count,
+                                    Result **curr_results,
+                                    std::int64_t curr_count) {
+  if (prev_count != curr_count)
+    throw std::invalid_argument(
+        std::string("QEC: `pair_detectors` requires equal-length `prev` and "
+                    "`curr` measurement arrays, got `prev_count`=") +
+        std::to_string(prev_count) +
+        " `curr_count`=" + std::to_string(curr_count));
+  auto prev = resultArrayToIndices(prev_results, prev_count);
+  auto curr = resultArrayToIndices(curr_results, curr_count);
+  nvqir::getCircuitSimulatorInternal()->pair_detectors(prev.data(), curr.data(),
+                                                       prev.size());
+}
+
 // It may not always be possible for the compiler to reduce a program fully to
 // QIR. In such cases, code generation may elect to produce a trap in the
 // kernel, which calls this function. The trap should explain the issue to the
