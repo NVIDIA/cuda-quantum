@@ -111,7 +111,7 @@ llvm::LogicalResult reduction(Ellipse &A, Ellipse &B, GridOp &opG_r,
 
 /// Shift operation (Definition A.7): (D, Delta) * Shift^n = (sigma^n D
 /// sigma^n, tau^n Delta tau^n). Preserves skew while adjusting bias by 2*n
-/// (Lemma A.8). Not itself a grid operator -- used to renormalise the bias
+/// (Lemma A.8). Not itself a grid operator -- used to `renormalize` the bias
 /// before applying the real reduction operators.
 void shift_ellipses(Ellipse &A, Ellipse &B, const Integer &n);
 

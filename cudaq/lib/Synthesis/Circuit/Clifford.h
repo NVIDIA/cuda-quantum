@@ -20,19 +20,19 @@ namespace cudaq::synth {
 // Axis
 //===----------------------------------------------------------------------===//
 
-/// Coset representative label for the Matsumoto-Amano normal form.
+/// Coset representative label for the Matsumoto-`Amano` normal form.
 ///
-/// The single-qubit Clifford group splits into three cosets of the subgroup
+/// The single-qubit Clifford group splits into three `cosets` of the subgroup
 /// S = <X, S, omega>:
 ///
 ///     Cliff = I*S  U  H*S  U  SH*S
 ///
-/// `Axis` names the three coset representatives and is also the syllable
+/// `Axis` names the three `coset` representatives and is also the syllable
 /// prefix selector used by `Clifford::decompose_tconj`: the `a` exponent of
-/// the (a, b, c, d) Clifford parametrization picks the coset directly:
+/// the (a, b, c, d) Clifford parameterization picks the `coset` directly:
 ///     I  -> a = 0  (element lies in S itself)
-///     H  -> a = 1  (Hadamard coset)
-///     SH -> a = 2  (S*H coset)
+///     H  -> a = 1  (Hadamard `coset`)
+///     SH -> a = 2  (S*H `coset`)
 enum class Axis { I = 0, H = 1, SH = 2 };
 
 //===----------------------------------------------------------------------===//
@@ -69,7 +69,7 @@ enum class Axis { I = 0, H = 1, SH = 2 };
 //       omega^-d step.
 //
 //   TCONJ_TABLE[2a + b]
-//       Matsumoto-Amano syllable lookup. For a trailing Clifford with
+//       Matsumoto-`Amano` syllable lookup. For a trailing Clifford with
 //       parameters (a, b, _, _), records which syllable type results from
 //       appending T:
 //           axis in {I, H, SH} <-> syllable in {T, HT, SHT}
@@ -159,7 +159,7 @@ inline constexpr std::array<std::array<int32_t, 3>, 6> TCONJ_TABLE = {{
 /// An element of the single-qubit Clifford group (including global phase).
 ///
 /// References:
-///   - Giles & Selinger, "Remarks on Matsumoto and Amano's normal form for
+///   - Giles & Selinger, "Remarks on Matsumoto and `Amano`'s normal form for
 ///     single-qubit Clifford+T operators", arXiv:1312.6584 (2013).
 ///   - Ross & Selinger, "Optimal ancilla-free Clifford+T approximation of
 ///     z-rotations", arXiv:1403.2975 (2014).
@@ -170,28 +170,28 @@ inline constexpr std::array<std::array<int32_t, 3>, 6> TCONJ_TABLE = {{
 ///     E     -- order-3 element; a in {0, 1, 2}. H = E*S*omega^5 gives
 ///              E = H * S^-1 * omega^-5 = H * S^3 * omega^3.
 ///     X     -- Pauli-X bit-flip; b in {0, 1}, order 2.
-///     S     -- phase gate diag(1, i); c in {0, 1, 2, 3}, order 4.
+///     S     -- phase gate `diag`(1, i); c in {0, 1, 2, 3}, order 4.
 ///     omega -- e^{i*pi/4} global phase; d in {0, ..., 7}, order 8.
-/// The product 3 * 2 * 4 * 8 = 192 is the full group order; quotienting by
+/// The product 3 * 2 * 4 * 8 = 192 is the full group order; `quotienting` by
 /// the global phase <omega> gives the 24-element Cliff/<omega> ~= S_4.
 ///
-/// Matsumoto-Amano hook. The three cosets of the subgroup <X, S, omega> are
+/// Matsumoto-`Amano` hook. The three `cosets` of the subgroup <X, S, omega> are
 /// indexed by `a` and correspond to the syllables T, HT, SHT in the normal
 /// form:
-///     a = 0 -> coset rep I,  prefix empty -> syllable T
-///     a = 1 -> coset rep H,  prefix H     -> syllable HT
-///     a = 2 -> coset rep SH, prefix S*H   -> syllable SHT
+///     a = 0 -> `coset` rep I,  prefix empty -> syllable T
+///     a = 1 -> `coset` rep H,  prefix H     -> syllable HT
+///     a = 2 -> `coset` rep SH, prefix S*H   -> syllable SHT
 /// `decompose_coset()` extracts the prefix; `decompose_tconj()` produces the
 /// updated trailing Clifford after appending a T gate.
 ///
 /// All arithmetic goes through the precomputed lookup tables and is
-/// constexpr.
+/// `constexpr`.
 class Clifford {
 private:
   int32_t _a, _b, _c, _d;
 
   /// Bring the four exponents back into their canonical ranges after an
-  /// arithmetic step that may have left them unreduced.
+  /// arithmetic step that may have left them `unreduced`.
   constexpr void normalize() {
     _a = (_a % 3 + 3) % 3; // 0 <= a < 3
     _b = _b & 1;           // 0 <= b < 2
@@ -215,8 +215,8 @@ public:
   // Accessors
   //===--------------------------------------------------------------------===//
 
-  /// Component `a` of the (a, b, c, d) parametrization. Also the Axis index
-  /// of the Matsumoto-Amano coset: 0 -> I, 1 -> H, 2 -> SH.
+  /// Component `a` of the (a, b, c, d) parameterization. Also the Axis index
+  /// of the Matsumoto-`Amano` `coset`: 0 -> I, 1 -> H, 2 -> SH.
   constexpr int32_t a() const { return _a; }
 
   /// Component `b`: Pauli-X exponent in {0, 1}.
@@ -243,7 +243,7 @@ public:
   // Conversion
   //===--------------------------------------------------------------------===//
 
-  /// Embed a Clifford `Gate` enumerator into the (a, b, c, d) parametrization.
+  /// Embed a Clifford `Gate` enumerator into the (a, b, c, d) parameterization.
   /// T is not a Clifford gate; passing Gate::T asserts in debug builds.
   static Clifford from_gate(Gate g) {
     switch (g) {
@@ -298,7 +298,7 @@ public:
     return CINV_TABLE[static_cast<size_t>(index)];
   }
 
-  /// Matsumoto-Amano syllable lookup for C * T. See TCONJ_TABLE's header
+  /// Matsumoto-`Amano` syllable lookup for C * T. See TCONJ_TABLE's header
   /// comment.
   static constexpr std::array<int32_t, 3> tconj(int32_t a, int32_t b) {
     int32_t index = (a << 1) | b;
@@ -309,7 +309,7 @@ public:
   // Group arithmetic
   //===--------------------------------------------------------------------===//
 
-  /// Group multiplication via the conjugation tables. O(1), constexpr.
+  /// Group multiplication via the conjugation tables. O(1), `constexpr`.
   ///
   /// Computes (E^a X^b S^c omega^d) * (E^a' X^b' S^c' omega^d') by walking
   /// the inner generators past each other:
@@ -328,13 +328,13 @@ public:
     return Clifford(new_a, new_b, new_c, new_d);
   }
 
-  /// Group inverse via CINV_TABLE. O(1), constexpr.
+  /// Group inverse via CINV_TABLE. O(1), `constexpr`.
   constexpr Clifford inv() const {
     auto [a1, b1, c1, d1] = cinv(_a, _b, _c);
     return Clifford(a1, b1, c1, d1 - _d);
   }
 
-  /// Split C as `rep * remainder` where rep is the coset representative
+  /// Split C as `rep * remainder` where rep is the `coset` representative
   /// (one of I, H, SH) determined by `a`, and remainder lies entirely in
   /// the subgroup <X, S, omega> (i.e. has a = 0). Used by `to_circuit()`
   /// for gate serialization and by `normalize_gates()` for syllable
@@ -343,7 +343,7 @@ public:
   /// Defined out of line because it references CLIFFORD_H / CLIFFORD_SH.
   constexpr std::pair<Axis, Clifford> decompose_coset() const;
 
-  /// Matsumoto-Amano syllable extraction: write C * T as
+  /// Matsumoto-`Amano` syllable extraction: write C * T as
   ///     syllable * C'
   /// where the syllable is one of T (axis I), HT (axis H), SHT (axis SH),
   /// and C' is the new trailing Clifford context. The syllable type is a
@@ -361,7 +361,7 @@ public:
   }
 
   /// Emit this Clifford as a circuit of elementary gates by composing the
-  /// coset prefix with the X / S / W generators implied by (b, c, d):
+  /// `coset` prefix with the X / S / W generators implied by (b, c, d):
   ///     a = 0 ->                X^b * S^c * W^d
   ///     a = 1 -> H *            X^b * S^c * W^d
   ///     a = 2 -> S * H *        X^b * S^c * W^d
@@ -395,10 +395,10 @@ public:
 //   I = (0, 0, 0, 0)    Identity.
 //   X = (0, 1, 0, 0)    Pauli-X bit-flip.
 //   H = (1, 0, 1, 5)    Hadamard.
-//   S = (0, 0, 1, 0)    Phase gate diag(1, i).
+//   S = (0, 0, 1, 0)    Phase gate `diag`(1, i).
 //   W = (0, 0, 0, 1)    Global phase omega = e^{i*pi/4}.
 //
-// Composite Cliffords used by the Matsumoto-Amano machinery:
+// Composite Cliffords used by the Matsumoto-`Amano` machinery:
 //   SH  = S * H        (2, 0, 0, 3)  Coset representative for a = 2.
 //   HS  = H * S        (1, 0, 2, 5)  Absorbed when merging HT * T syllables.
 //   SHS = S * H * S    (2, 0, 1, 3)  Absorbed when merging SHT * T syllables.

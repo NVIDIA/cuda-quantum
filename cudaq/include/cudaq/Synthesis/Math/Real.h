@@ -131,7 +131,7 @@ public:
   // Assignment
   //===--------------------------------------------------------------------===//
 
-  /// Copy assignment. Reinitialises the destination only when precisions
+  /// Copy assignment. Reinitialises the destination only when `precisions`
   /// disagree; the common same-precision case stays at one mpfr_set.
   Real &operator=(const Real &other) {
     if (this != &other) {
@@ -489,9 +489,9 @@ inline Integer round_to_integer(const Real &x) {
   return result;
 }
 
-/// Compute sqrt(2)^k at arbitrary precision.
+/// Compute `sqrt(2)^k` at arbitrary precision.
 ///
-/// 2^(|k|/2) is realised in O(1) by `mpfr_mul_2ui`, which shifts the MPFR
+/// 2^(|k|/2) is realized in O(1) by `mpfr_mul_2ui`, which shifts the MPFR
 /// exponent field directly rather than performing a full multiplication.
 /// In practice |k|/2 always fits in `unsigned long` (it is bounded by the
 /// working precision in bits).
@@ -800,8 +800,8 @@ inline bool operator>=(const Real &lhs, const Integer &rhs) {
 /// Solve a*x^2 + b*x + c = 0. Returns the two roots in (smaller, larger)
 /// order, or std::nullopt if the discriminant is negative.
 ///
-/// Numerically stable: we pick the s = -b +/- sqrt(disc) variant that keeps
-/// the two summands the same sign (so cancellation can't happen), and then
+/// Numerically stable: we pick the s = -b +/- `sqrt(disc)` variant that keeps
+/// the two `summands` the same sign (so cancellation can't happen), and then
 /// recover the other root via Vieta's formula r1 * r2 = c/a. When the
 /// chosen s is zero (a double root at the origin) we fall back to the
 /// direct formula to avoid 0/0.
@@ -817,13 +817,13 @@ solve_quadratic(const Real &a, const Real &b, const Real &c) {
   if (b >= 0) {
     Real s = -b - sqrt_disc;
     if (s.is_zero())
-      // (-b + sqrt_disc) / 2a = 0 already in this branch.
+      // (-b + `sqrt_disc`) / 2a = 0 already in this branch.
       return std::make_pair(Real(0), -b / a);
     return std::make_pair(s / two_a, (2 * c) / s);
   }
   Real s = -b + sqrt_disc;
   if (s.is_zero())
-    // (-b - sqrt_disc) / 2a = 0 already in this branch.
+    // (-b - `sqrt_disc`) / 2a = 0 already in this branch.
     return std::make_pair(-b / a, Real(0));
   return std::make_pair((2 * c) / s, s / two_a);
 }

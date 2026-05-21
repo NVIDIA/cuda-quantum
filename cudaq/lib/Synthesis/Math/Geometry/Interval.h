@@ -20,12 +20,12 @@ namespace cudaq::synth {
 ///
 /// Reference: Ross & Selinger, arXiv:1403.2975, sec. 4. Intervals are the
 /// building blocks of the one-dimensional grid problem (Definition 4.3): the
-/// ODGP solver finds all alpha in Z[sqrt(2)] with alpha in A = [x_0, x_1]
+/// ODGP solver finds all alpha in Z[`sqrt`(2)] with alpha in A = [x_0, x_1]
 /// and conj_sq2(alpha) in B = [y_0, y_1].
 ///
 /// Solvability bounds carried over from the paper:
 ///   width(A) * width(B) < 1            -- at most one solution (Lemma 4.4).
-///   width(A) * width(B) >= (1+sqrt(2))^2 -- at least one solution.
+///   width(A) * width(B) >= (1+`sqrt`(2))^2 -- at least one solution.
 ///
 /// Degenerate intervals (l > r, i.e. width() < 0) are permitted and represent
 /// the empty set. The ODGP solver short-circuits to an empty result on these.

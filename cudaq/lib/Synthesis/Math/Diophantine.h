@@ -21,7 +21,7 @@ namespace cudaq::synth {
 // Reference: Ross & Selinger, arXiv:1403.2975, sec. 6 (Theorem 6.2) and
 // Appendix C (detailed proofs).
 //
-// Problem: given xi in D[sqrt(2)], find t in D[omega] with
+// Problem: given xi in D[`sqrt`(2)], find t in D[omega] with
 // conj(t) * t = xi. This is equation (9) of the paper and step 2(c) of
 // Algorithm 7.6.
 //
@@ -32,10 +32,10 @@ namespace cudaq::synth {
 //   U = [[ u, -conj(t) ], [ t, conj(u) ]]
 // approximating R_z(theta) within the chosen epsilon.
 
-/// Solve conj(t) * t = xi for xi in D[sqrt(2)] (the dyadic case).
+/// Solve conj(t) * t = xi for xi in D[`sqrt`(2)] (the dyadic case).
 ///
-/// Reduces from D[sqrt(2)] to a Z[sqrt(2)] norm equation -- multiplying by
-/// delta = 1 + omega absorbs odd sqrt(2)-denominator exponents (Lemma C.25)
+/// Reduces from D[`sqrt`(2)] to a Z[`sqrt`(2)] norm equation -- multiplying by
+/// delta = 1 + omega absorbs odd `sqrt`(2)-denominator exponents (Lemma C.25)
 /// -- then lifts the Z[omega] solution back with the appropriate dyadic
 /// denominator.
 ///

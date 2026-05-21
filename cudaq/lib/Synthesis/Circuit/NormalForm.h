@@ -16,7 +16,7 @@
 namespace cudaq::synth {
 
 // TODO: expose NormalForm as a first-class type alongside Circuit so callers
-// can keep the Matsumoto-Amano structure after normalization instead of
+// can keep the Matsumoto-`Amano` structure after normalization instead of
 // re-serializing to a gate list. The internal representation already lives
 // here:
 //
@@ -38,7 +38,7 @@ namespace cudaq::synth {
 
 namespace {
 
-/// One step of the Matsumoto-Amano decomposition, used by normalize_gates
+/// One step of the Matsumoto-`Amano` decomposition, used by normalize_gates
 /// while it scans the input. `I` is never stored in the syllable list; it
 /// only exists so the enum has a zero-initialized sentinel value.
 ///
@@ -53,7 +53,7 @@ enum class Syllable { I = 0, T = 1, HT = 2, SHT = 3 };
 // normalize_gates
 //===----------------------------------------------------------------------===//
 
-/// Compute the Matsumoto-Amano normal form of a single-qubit Clifford+T
+/// Compute the Matsumoto-`Amano` normal form of a single-qubit Clifford+T
 /// circuit.
 ///
 /// Reference: Giles & Selinger [7]; Ross & Selinger arXiv:1403.2975, sec. 7.3.
@@ -90,7 +90,7 @@ enum class Syllable { I = 0, T = 1, HT = 2, SHT = 3 };
 ///
 /// @param input Arbitrary Clifford+T circuit. No failure path: the gate
 ///              alphabet is structurally restricted to {H, S, T, X, W}.
-/// @return      Circuit in Matsumoto-Amano normal form. The empty Circuit
+/// @return      Circuit in Matsumoto-`Amano` normal form. The empty Circuit
 ///              represents the identity.
 inline Circuit normalize_gates(const Circuit &input) {
   std::vector<Syllable> syllables;

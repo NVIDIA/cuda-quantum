@@ -52,7 +52,7 @@ public:
   bool contains(const DOmega &v) const override { return false; }
 
   /// Intersect the ray u(t) = u0 + t*v with the rectangle, returning the
-  /// parameter interval [t_lo, t_hi] inside the box, or nullopt for a miss.
+  /// parameter interval [t_lo, t_hi] inside the box, or `nullopt` for a miss.
   std::optional<std::pair<Real, Real>>
   intersect(const DOmega &u0, const DOmega &v) const override;
 
