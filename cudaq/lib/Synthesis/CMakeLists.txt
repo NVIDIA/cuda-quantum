@@ -22,9 +22,10 @@ endif()
 
 if(NOT GMP_INCLUDE_DIR OR NOT GMP_LIBRARIES OR
    NOT MPFR_INCLUDE_DIR OR NOT MPFR_LIBRARIES)
-  message(STATUS "cudaq-synth disabled: GMP or MPFR not found "
-                 "(install libgmp-dev and libmpfr-dev to enable)")
-  return()
+  message(FATAL_ERROR
+    "CUDAQ_ENABLE_CLIFFORD_T_SYNTHESIS=ON but GMP/MPFR not found. "
+    "Install libgmp-dev and libmpfr-dev, or pass "
+    "-DCUDAQ_ENABLE_CLIFFORD_T_SYNTHESIS=OFF.")
 endif()
 
 add_cudaq_library(cudaq-synth
