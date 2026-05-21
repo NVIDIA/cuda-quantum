@@ -21,7 +21,6 @@ install(FILES
 install(FILES
   Math/Integer.h
   Math/Real.h
-  Math/Types.h
   Math/Unitary.h
   DESTINATION include/cudaq/Synthesis/Math
 )

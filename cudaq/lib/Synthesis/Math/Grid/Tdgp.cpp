@@ -52,7 +52,7 @@ TdgpStepper::TdgpStepper(Integer k, const ConvexSet &setA,
       bboxA_y_fattened_(std::move(bboxA_y_fattened)),
       bboxB_y_fattened_(std::move(bboxB_y_fattened)) {
   SYNTH_OPEN_SUB("solve_tdgp");
-  LLVM_DEBUG(cudaq::synth::dbgs() << "k=" << static_cast<i64>(k_) << '\n');
+  LLVM_DEBUG(cudaq::synth::dbgs() << "k=" << static_cast<int64_t>(k_) << '\n');
 
   // The x-anchor is a single one-shot solve: only the first solution to the
   // x-ODGP is needed as a fixed reference for the per-beta line scan. The

@@ -225,8 +225,8 @@ Fp2 fp2_pow(const Fp2Ctx &ctx, Fp2 base_elem, Integer e) {
 /// notes this is the only super-polynomial step (sec. 8, Algorithm 7.6 step
 /// 2b). Heuristic; the iteration cap is set from a digit-count power law.
 llvm::FailureOr<Integer> find_factor(const Integer &n,
-                                     i32 factoring_timeout_ms,
-                                     i32 batch_size = 128) {
+                                     int32_t factoring_timeout_ms,
+                                     int32_t batch_size = 128) {
   SYNTH_OPEN_SUB("find_factor");
   LLVM_DEBUG(cudaq::synth::dbgs()
              << "n has " << num_decimal_digits(n)
@@ -234,22 +234,22 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
   // Quick trial-division pass: catches every n with a tiny prime factor
   // without spinning up the rho machine. Cast to unsigned long matches the
   // GMP mpz_divisible_ui_p ABI; the values fit losslessly on LP64.
-  static constexpr u64 small_primes[] = {
+  static constexpr uint64_t small_primes[] = {
       2,   3,   5,   7,   11,  13,  17,  19,  23,  29,  31,  37,  41,
       43,  47,  53,  59,  61,  67,  71,  73,  79,  83,  89,  97,  101,
       103, 107, 109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167,
       173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229, 233, 239,
       241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311};
   const auto *n_mpz = n.get_mpz_t();
-  for (u64 p : small_primes) {
+  for (uint64_t p : small_primes) {
     if (mpz_divisible_ui_p(n_mpz, static_cast<unsigned long>(p))) {
       if (mpz_cmp_ui(n_mpz, static_cast<unsigned long>(p)) > 0) {
         SYNTH_CLOSE_SUCCESS("small prime " + std::to_string(p));
-        return Integer(static_cast<i64>(p));
+        return Integer(static_cast<int64_t>(p));
       }
     }
   }
-  if (n <= i64(3)) {
+  if (n <= int64_t(3)) {
     SYNTH_CLOSE_FAILURE("n <= 3");
     return llvm::failure();
   }
@@ -258,7 +258,7 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
   // comes from sqrt(pi/log(2)) / 2 in the textbook rho complexity estimate.
   size_t digits = num_decimal_digits(n);
   double pow_term = std::pow(10.0, static_cast<double>(digits) / 4.0);
-  i64 L = static_cast<i64>(pow_term * 1.1774 + 10.0);
+  int64_t L = static_cast<int64_t>(pow_term * 1.1774 + 10.0);
 
   GmpRng &rng = global_rng();
   Integer a_int = urand_between(1, n - 1, rng);
@@ -277,7 +277,7 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
 
   mpz_set(y, a_mpz);
 
-  i64 r = 1, k = 0;
+  int64_t r = 1, k = 0;
   auto start = std::chrono::steady_clock::now();
 
   auto make_result = [&](mpz_t src) -> llvm::FailureOr<Integer> {
@@ -295,7 +295,7 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
       mpz_set_ui(q, 1);
       mpz_set(y0, y);
 
-      i64 batch_end = std::min(k + static_cast<i64>(batch_size), r);
+      int64_t batch_end = std::min(k + static_cast<int64_t>(batch_size), r);
       for (; k < batch_end; ++k) {
         // y <- (y^2 + a) mod n
         mpz_mul(t, y, y);
@@ -316,7 +316,7 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
           // factors at once. Replay the batch step-by-step from the saved
           // y0 to recover the first non-trivial GCD.
           mpz_set(y, y0);
-          for (i64 j = 0; j < batch_size; ++j) {
+          for (int64_t j = 0; j < batch_size; ++j) {
             mpz_mul(t, y, y);
             mpz_add(t, t, a_mpz);
             mpz_mod(y, t, n_mpz);
@@ -365,7 +365,7 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
 /// probability >= 1/2 (Lemma C.20 / Remark C.22, citing Rabin [12]). A
 /// non-trivial Fermat witness aborts: it proves p is composite.
 llvm::FailureOr<Integer> sqrt_negative_one(const Integer &p,
-                                           i32 batch_size = 128) {
+                                           int32_t batch_size = 128) {
   if (p <= 2)
     return llvm::failure();
 
@@ -378,7 +378,7 @@ llvm::FailureOr<Integer> sqrt_negative_one(const Integer &p,
   Integer b, h, r, tmp;
   GmpRng &rng = global_rng();
 
-  for (i32 i = 0; i < batch_size; ++i) {
+  for (int32_t i = 0; i < batch_size; ++i) {
     b = urand_between(1, p_minus_1, rng);
     // h = b^((p-1)/4) mod p; then check r = h^2 == -1 mod p.
     mpz_powm(h.get_mpz_t(), b.get_mpz_t(), exp_mpz, p_mpz);
@@ -400,7 +400,7 @@ llvm::FailureOr<Integer> sqrt_negative_one(const Integer &p,
 /// is a non-residue, and computes the answer in F_p[t]/(t^2 - (b^2 - x))
 /// (Rabin [12]).
 llvm::FailureOr<Integer> root_mod(const Integer &x, const Integer &p,
-                                  i32 batch_size = 128) {
+                                  int32_t batch_size = 128) {
   Integer x_norm = x % p;
   if (x_norm < 0)
     x_norm += p;
@@ -430,7 +430,7 @@ llvm::FailureOr<Integer> root_mod(const Integer &x, const Integer &p,
   Integer b, r, candidate_base, check, tmp;
   auto &rng = global_rng();
 
-  for (i32 i = 0; i < batch_size; ++i) {
+  for (int32_t i = 0; i < batch_size; ++i) {
     b = urand_between(1, p_minus_1, rng);
 
     // Fermat test: b^(p-1) must be 1 if p is genuinely prime. A failure
@@ -631,7 +631,7 @@ DiophantineResult adj_decompose_prime(Integer p) {
     return ZOmega(-1, 0, 1, 0);
 
   LLVM_DEBUG(cudaq::synth::dbgs()
-             << "adj_decompose_prime(int): p mod 8 = " << static_cast<i64>(p & 7)
+             << "adj_decompose_prime(int): p mod 8 = " << static_cast<int64_t>(p & 7)
              << ", " << num_decimal_digits(p)
              << " digits, prime=" << is_probably_prime(p) << '\n');
 
@@ -739,8 +739,8 @@ DiophantineResult adj_decompose_prime_power(const Integer &p,
 /// allows the combination over coprime factors). Returns NoSolution if any
 /// prime power has no decomposition; returns NoSolution on diophantine
 /// timeout since an incomplete factorization cannot guarantee solvability.
-DiophantineResult adj_decompose(Integer n, i32 diophantine_timeout_ms,
-                                i32 factoring_timeout_ms,
+DiophantineResult adj_decompose(Integer n, int32_t diophantine_timeout_ms,
+                                int32_t factoring_timeout_ms,
                                 std::chrono::steady_clock::time_point start) {
   SYNTH_OPEN_SUB("adj_decompose(int)");
   if (n < 0)
@@ -802,8 +802,8 @@ DiophantineResult adj_decompose(Integer n, i32 diophantine_timeout_ms,
 /// and absorb the residual sqrt(2) factor using delta = 1 + omega
 /// (delta * conj(delta) = lambda * sqrt(2) ~ sqrt(2), Remark 3.6).
 DiophantineResult
-adj_decompose_selfassociate(const ZSqrt2 &xi, i32 diophantine_timeout_ms,
-                            i32 factoring_timeout_ms,
+adj_decompose_selfassociate(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
+                            int32_t factoring_timeout_ms,
                             std::chrono::steady_clock::time_point start) {
   if (xi == ZSqrt2{0})
     return ZOmega::from_int(0);
@@ -934,8 +934,8 @@ DiophantineResult adj_decompose_prime_power(const ZSqrt2 &eta,
 /// iteratively factor the norm |conj_sq2(eta) * eta| through Pollard-rho,
 /// adj-decompose each Z[sqrt(2)]-prime power, and combine via Lemma C.19.
 DiophantineResult
-adj_decompose_selfcoprime(const ZSqrt2 &xi, i32 diophantine_timeout_ms,
-                          i32 factoring_timeout_ms,
+adj_decompose_selfcoprime(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
+                          int32_t factoring_timeout_ms,
                           std::chrono::steady_clock::time_point start) {
   SYNTH_OPEN_SUB("adj_decompose_selfcoprime");
   LLVM_DEBUG(cudaq::synth::dbgs() << "xi=" << xi << '\n');
@@ -1003,8 +1003,8 @@ adj_decompose_selfcoprime(const ZSqrt2 &xi, i32 diophantine_timeout_ms,
 ///   eta = xi / d                     -- the self-coprime part
 /// and adj-decomposing each piece independently (Lemma C.19 allows the
 /// independent treatment). Matches Lemma C.23 / Proposition C.24.
-DiophantineResult adj_decompose(const ZSqrt2 &xi, i32 diophantine_timeout_ms,
-                                i32 factoring_timeout_ms,
+DiophantineResult adj_decompose(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
+                                int32_t factoring_timeout_ms,
                                 std::chrono::steady_clock::time_point start) {
   SYNTH_OPEN_SUB("adj_decompose(ZSqrt2)");
   if (xi == ZSqrt2{0}) {
@@ -1052,8 +1052,8 @@ DiophantineResult adj_decompose(const ZSqrt2 &xi, i32 diophantine_timeout_ms,
 /// residual unit u = xi / (conj(t) * t) is doubly positive (since both xi
 /// and conj(t)*t are), so Lemma C.2 gives u = v^2 for some v in Z[sqrt(2)],
 /// and the exact solution is t' = v * t (Lemma C.16).
-DiophantineResult diophantine(const ZSqrt2 &xi, i32 diophantine_timeout_ms,
-                              i32 factoring_timeout_ms) {
+DiophantineResult diophantine(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
+                              int32_t factoring_timeout_ms) {
   SYNTH_OPEN_SUB("diophantine");
   auto start = std::chrono::steady_clock::now();
   LLVM_DEBUG(cudaq::synth::dbgs() << "xi=" << xi << '\n');
@@ -1100,11 +1100,11 @@ DiophantineResult diophantine(const ZSqrt2 &xi, i32 diophantine_timeout_ms,
 //===----------------------------------------------------------------------===//
 
 llvm::FailureOr<DOmega>
-cudaq::synth::diophantine_dyadic(const DSqrt2 &xi, i32 diophantine_timeout,
-                                 i32 factoring_timeout) {
+cudaq::synth::diophantine_dyadic(const DSqrt2 &xi, int32_t diophantine_timeout,
+                                 int32_t factoring_timeout) {
   SYNTH_OPEN_SUB("diophantine_dyadic");
   LLVM_DEBUG(cudaq::synth::dbgs()
-             << "denom_exp=" << static_cast<i64>(xi.k())
+             << "denom_exp=" << static_cast<int64_t>(xi.k())
              << ", dioph_timeout=" << diophantine_timeout
              << "ms, fact_timeout=" << factoring_timeout << "ms\n");
 

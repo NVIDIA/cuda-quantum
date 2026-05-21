@@ -49,7 +49,7 @@ namespace cudaq::synth {
 /// @return t in D[omega] with conj(t) * t = xi, or failure() if no solution
 ///         is found within the budgets.
 llvm::FailureOr<DOmega> diophantine_dyadic(const DSqrt2 &xi,
-                                           i32 diophantine_timeout,
-                                           i32 factoring_timeout);
+                                           int32_t diophantine_timeout,
+                                           int32_t factoring_timeout);
 
 } // namespace cudaq::synth

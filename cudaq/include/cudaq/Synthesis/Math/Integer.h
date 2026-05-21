@@ -13,7 +13,7 @@
 #include <iostream>
 #include <string>
 
-#include "cudaq/Synthesis/Math/Types.h"
+#include <cstdint>
 
 //===----------------------------------------------------------------------===//
 // GMP-backed arbitrary-precision integer
@@ -33,7 +33,7 @@
 // operator overloads that mimic native integer types.
 //
 // Integer-width conventions:
-//   - Public API uses i32 / i64 (from Types.h).
+//   - Public API uses int32_t / int64_t from <cstdint> (LLVM convention).
 //   - At GMP API boundaries we cast to `long` / `unsigned long` as the
 //     library ABI demands; the casts are lossless on LP64 (Linux).
 
@@ -55,9 +55,9 @@ public:
 
   Integer() { mpz_init(value_); }
 
-  Integer(i32 val) { mpz_init_set_si(value_, static_cast<long>(val)); }
+  Integer(int32_t val) { mpz_init_set_si(value_, static_cast<long>(val)); }
 
-  Integer(i64 val) { mpz_init_set_si(value_, static_cast<long>(val)); }
+  Integer(int64_t val) { mpz_init_set_si(value_, static_cast<long>(val)); }
 
   Integer(const Integer &other) { mpz_init_set(value_, other.value_); }
 
@@ -86,12 +86,12 @@ public:
     return *this;
   }
 
-  Integer &operator=(i32 val) {
+  Integer &operator=(int32_t val) {
     mpz_set_si(value_, static_cast<long>(val));
     return *this;
   }
 
-  Integer &operator=(i64 val) {
+  Integer &operator=(int64_t val) {
     mpz_set_si(value_, static_cast<long>(val));
     return *this;
   }
@@ -100,9 +100,9 @@ public:
   // Conversions
   //===--------------------------------------------------------------------===//
 
-  explicit operator i32() const { return static_cast<i32>(mpz_get_si(value_)); }
+  explicit operator int32_t() const { return static_cast<int32_t>(mpz_get_si(value_)); }
 
-  explicit operator i64() const { return static_cast<i64>(mpz_get_si(value_)); }
+  explicit operator int64_t() const { return static_cast<int64_t>(mpz_get_si(value_)); }
 
   explicit operator double() const { return mpz_get_d(value_); }
 
@@ -180,10 +180,10 @@ public:
     return *this;
   }
 
-  // Compound assignment with i64. The mpz_*_ui helpers consume the
+  // Compound assignment with int64_t. The mpz_*_ui helpers consume the
   // absolute value of `rhs`, so we branch on the sign rather than build a
   // temporary Integer.
-  Integer &operator+=(i64 rhs) {
+  Integer &operator+=(int64_t rhs) {
     if (rhs >= 0)
       mpz_add_ui(value_, value_, static_cast<unsigned long>(rhs));
     else
@@ -191,7 +191,7 @@ public:
     return *this;
   }
 
-  Integer &operator-=(i64 rhs) {
+  Integer &operator-=(int64_t rhs) {
     if (rhs >= 0)
       mpz_sub_ui(value_, value_, static_cast<unsigned long>(rhs));
     else
@@ -199,12 +199,12 @@ public:
     return *this;
   }
 
-  Integer &operator*=(i64 rhs) {
+  Integer &operator*=(int64_t rhs) {
     mpz_mul_si(value_, value_, static_cast<long>(rhs));
     return *this;
   }
 
-  Integer &operator/=(i64 rhs) {
+  Integer &operator/=(int64_t rhs) {
     assert(rhs != 0 && "Integer::operator/=: division by zero");
     bool neg = rhs < 0;
     unsigned long mag = static_cast<unsigned long>(neg ? -rhs : rhs);
@@ -214,7 +214,7 @@ public:
     return *this;
   }
 
-  Integer &operator%=(i64 rhs) {
+  Integer &operator%=(int64_t rhs) {
     assert(rhs != 0 && "Integer::operator%=: modulo by zero");
     // C++ semantics: the remainder takes the sign of the dividend, so the
     // sign of `rhs` is irrelevant once we pass the absolute value to GMP.
@@ -275,13 +275,13 @@ public:
   // Bitwise
   //===--------------------------------------------------------------------===//
 
-  Integer operator<<(i32 shift) const {
+  Integer operator<<(int32_t shift) const {
     Integer result;
     mpz_mul_2exp(result.value_, value_, static_cast<mp_bitcnt_t>(shift));
     return result;
   }
 
-  Integer operator>>(i32 shift) const {
+  Integer operator>>(int32_t shift) const {
     Integer result;
     mpz_tdiv_q_2exp(result.value_, value_, static_cast<mp_bitcnt_t>(shift));
     return result;
@@ -319,12 +319,12 @@ public:
     return result;
   }
 
-  Integer &operator<<=(i32 shift) {
+  Integer &operator<<=(int32_t shift) {
     mpz_mul_2exp(value_, value_, static_cast<mp_bitcnt_t>(shift));
     return *this;
   }
 
-  Integer &operator>>=(i32 shift) {
+  Integer &operator>>=(int32_t shift) {
     mpz_tdiv_q_2exp(value_, value_, static_cast<mp_bitcnt_t>(shift));
     return *this;
   }
@@ -370,12 +370,12 @@ inline Integer ntz(const Integer &n) {
     return Integer(0);
 
   mp_bitcnt_t trailing_zeros = mpz_scan1(n.get_mpz_t(), 0);
-  return Integer(static_cast<i64>(trailing_zeros));
+  return Integer(static_cast<int64_t>(trailing_zeros));
 }
 
 /// Sign of x as -1, 0, or +1.
-inline i32 sign(const Integer &x) {
-  return static_cast<i32>(mpz_sgn(x.get_mpz_t()));
+inline int32_t sign(const Integer &x) {
+  return static_cast<int32_t>(mpz_sgn(x.get_mpz_t()));
 }
 
 /// Floor of the square root for a non-negative integer.
@@ -397,10 +397,10 @@ inline Integer floordiv(const Integer &x, const Integer &y) {
   return result;
 }
 
-/// floordiv overload for an i32 divisor: avoids materialising a temporary
+/// floordiv overload for an int32_t divisor: avoids materialising a temporary
 /// Integer for the common case, and -- when `y` is a positive power of two
 /// -- swaps the O(limbs) general division for a single GMP limb shift.
-inline Integer floordiv(const Integer &x, i32 y) {
+inline Integer floordiv(const Integer &x, int32_t y) {
   Integer result;
   if (y > 0 && (y & (y - 1)) == 0) {
     const unsigned k =
@@ -447,7 +447,7 @@ inline Integer gcd(Integer a, Integer b) {
 /// @param reps Number of Miller-Rabin rounds; higher values reduce the
 ///             false-positive rate. GMP only uses this for the "probably
 ///             prime" return path.
-inline bool is_probably_prime(const Integer &n, i32 reps = 4) {
+inline bool is_probably_prime(const Integer &n, int32_t reps = 4) {
   if (n == Integer(0) || n == Integer(1))
     return false;
   Integer m = n;
@@ -455,220 +455,220 @@ inline bool is_probably_prime(const Integer &n, i32 reps = 4) {
     m = -m;
   if (m < Integer(2))
     return false;
-  i32 result = static_cast<i32>(mpz_probab_prime_p(m.get_mpz_t(), reps));
+  int32_t result = static_cast<int32_t>(mpz_probab_prime_p(m.get_mpz_t(), reps));
   return result != 0; // 2 = definitely prime, 1 = probably prime, 0 = composite
 }
 
 //===----------------------------------------------------------------------===//
-// Mixed Integer / i64 arithmetic (avoid temporary Integer construction)
+// Mixed Integer / int64_t arithmetic (avoid temporary Integer construction)
 //===----------------------------------------------------------------------===//
 
-inline Integer operator+(const Integer &lhs, i64 rhs) {
+inline Integer operator+(const Integer &lhs, int64_t rhs) {
   Integer result(lhs);
   result += rhs;
   return result;
 }
-inline Integer operator+(i64 lhs, const Integer &rhs) {
+inline Integer operator+(int64_t lhs, const Integer &rhs) {
   Integer result(rhs);
   result += lhs;
   return result;
 }
-inline Integer operator-(const Integer &lhs, i64 rhs) {
+inline Integer operator-(const Integer &lhs, int64_t rhs) {
   Integer result(lhs);
   result -= rhs;
   return result;
 }
-inline Integer operator-(i64 lhs, const Integer &rhs) {
+inline Integer operator-(int64_t lhs, const Integer &rhs) {
   Integer result(lhs);
-  result -= static_cast<i64>(rhs.operator i64());
+  result -= static_cast<int64_t>(rhs.operator int64_t());
   return result;
 }
-inline Integer operator*(const Integer &lhs, i64 rhs) {
+inline Integer operator*(const Integer &lhs, int64_t rhs) {
   Integer result(lhs);
   result *= rhs;
   return result;
 }
-inline Integer operator*(i64 lhs, const Integer &rhs) {
+inline Integer operator*(int64_t lhs, const Integer &rhs) {
   Integer result(rhs);
   result *= lhs;
   return result;
 }
-inline Integer operator/(const Integer &lhs, i64 rhs) {
+inline Integer operator/(const Integer &lhs, int64_t rhs) {
   Integer result(lhs);
   result /= rhs;
   return result;
 }
-inline Integer operator/(i64 lhs, const Integer &rhs) {
+inline Integer operator/(int64_t lhs, const Integer &rhs) {
   Integer result(lhs);
   // Division by a large rhs still needs a full mpz operation.
   mpz_tdiv_q(result.get_mpz_t(), result.get_mpz_t(), rhs.get_mpz_t());
   return result;
 }
-inline Integer operator%(const Integer &lhs, i64 rhs) {
+inline Integer operator%(const Integer &lhs, int64_t rhs) {
   Integer result(lhs);
   result %= rhs;
   return result;
 }
-inline Integer operator%(i64 lhs, const Integer &rhs) {
+inline Integer operator%(int64_t lhs, const Integer &rhs) {
   Integer result(lhs);
   mpz_tdiv_r(result.get_mpz_t(), result.get_mpz_t(), rhs.get_mpz_t());
   return result;
 }
-inline Integer operator<<(i64 lhs, const Integer &rhs) {
+inline Integer operator<<(int64_t lhs, const Integer &rhs) {
   Integer temp(lhs);
-  return temp << static_cast<i32>(rhs); // potential narrowing
+  return temp << static_cast<int32_t>(rhs); // potential narrowing
 }
 
 //===----------------------------------------------------------------------===//
-// Comparison with i64 (use mpz_cmp_si directly to dodge a temporary)
+// Comparison with int64_t (use mpz_cmp_si directly to dodge a temporary)
 //===----------------------------------------------------------------------===//
 //
-// On 64-bit Linux long == i64, so the cast is lossless.
+// On 64-bit Linux long == int64_t, so the cast is lossless.
 
-inline bool operator==(const Integer &lhs, i64 rhs) {
+inline bool operator==(const Integer &lhs, int64_t rhs) {
   return mpz_cmp_si(lhs.get_mpz_t(), static_cast<long>(rhs)) == 0;
 }
-inline bool operator!=(const Integer &lhs, i64 rhs) {
+inline bool operator!=(const Integer &lhs, int64_t rhs) {
   return mpz_cmp_si(lhs.get_mpz_t(), static_cast<long>(rhs)) != 0;
 }
-inline bool operator<(const Integer &lhs, i64 rhs) {
+inline bool operator<(const Integer &lhs, int64_t rhs) {
   return mpz_cmp_si(lhs.get_mpz_t(), static_cast<long>(rhs)) < 0;
 }
-inline bool operator<=(const Integer &lhs, i64 rhs) {
+inline bool operator<=(const Integer &lhs, int64_t rhs) {
   return mpz_cmp_si(lhs.get_mpz_t(), static_cast<long>(rhs)) <= 0;
 }
-inline bool operator>(const Integer &lhs, i64 rhs) {
+inline bool operator>(const Integer &lhs, int64_t rhs) {
   return mpz_cmp_si(lhs.get_mpz_t(), static_cast<long>(rhs)) > 0;
 }
-inline bool operator>=(const Integer &lhs, i64 rhs) {
+inline bool operator>=(const Integer &lhs, int64_t rhs) {
   return mpz_cmp_si(lhs.get_mpz_t(), static_cast<long>(rhs)) >= 0;
 }
 
-inline bool operator==(i64 lhs, const Integer &rhs) {
+inline bool operator==(int64_t lhs, const Integer &rhs) {
   return mpz_cmp_si(rhs.get_mpz_t(), static_cast<long>(lhs)) == 0;
 }
-inline bool operator!=(i64 lhs, const Integer &rhs) {
+inline bool operator!=(int64_t lhs, const Integer &rhs) {
   return mpz_cmp_si(rhs.get_mpz_t(), static_cast<long>(lhs)) != 0;
 }
-inline bool operator<(i64 lhs, const Integer &rhs) {
+inline bool operator<(int64_t lhs, const Integer &rhs) {
   return mpz_cmp_si(rhs.get_mpz_t(), static_cast<long>(lhs)) > 0;
 }
-inline bool operator<=(i64 lhs, const Integer &rhs) {
+inline bool operator<=(int64_t lhs, const Integer &rhs) {
   return mpz_cmp_si(rhs.get_mpz_t(), static_cast<long>(lhs)) >= 0;
 }
-inline bool operator>(i64 lhs, const Integer &rhs) {
+inline bool operator>(int64_t lhs, const Integer &rhs) {
   return mpz_cmp_si(rhs.get_mpz_t(), static_cast<long>(lhs)) < 0;
 }
-inline bool operator>=(i64 lhs, const Integer &rhs) {
+inline bool operator>=(int64_t lhs, const Integer &rhs) {
   return mpz_cmp_si(rhs.get_mpz_t(), static_cast<long>(lhs)) <= 0;
 }
 
 //===----------------------------------------------------------------------===//
-// Bitwise operations with i64
+// Bitwise operations with int64_t
 //===----------------------------------------------------------------------===//
 
-inline Integer operator&(const Integer &lhs, i64 rhs) {
+inline Integer operator&(const Integer &lhs, int64_t rhs) {
   return lhs & Integer(rhs);
 }
-inline Integer operator|(const Integer &lhs, i64 rhs) {
+inline Integer operator|(const Integer &lhs, int64_t rhs) {
   return lhs | Integer(rhs);
 }
-inline Integer operator^(const Integer &lhs, i64 rhs) {
+inline Integer operator^(const Integer &lhs, int64_t rhs) {
   return lhs ^ Integer(rhs);
 }
 
-inline Integer operator&(i64 lhs, const Integer &rhs) {
+inline Integer operator&(int64_t lhs, const Integer &rhs) {
   return Integer(lhs) & rhs;
 }
-inline Integer operator|(i64 lhs, const Integer &rhs) {
+inline Integer operator|(int64_t lhs, const Integer &rhs) {
   return Integer(lhs) | rhs;
 }
-inline Integer operator^(i64 lhs, const Integer &rhs) {
+inline Integer operator^(int64_t lhs, const Integer &rhs) {
   return Integer(lhs) ^ rhs;
 }
 
 //===----------------------------------------------------------------------===//
-// Mixed arithmetic / comparison / bitwise with i32 (delegate to i64)
+// Mixed arithmetic / comparison / bitwise with int32_t (delegate to int64_t)
 //===----------------------------------------------------------------------===//
 
-inline Integer operator+(const Integer &lhs, i32 rhs) {
-  return lhs + static_cast<i64>(rhs);
+inline Integer operator+(const Integer &lhs, int32_t rhs) {
+  return lhs + static_cast<int64_t>(rhs);
 }
-inline Integer operator+(i32 lhs, const Integer &rhs) {
-  return static_cast<i64>(lhs) + rhs;
+inline Integer operator+(int32_t lhs, const Integer &rhs) {
+  return static_cast<int64_t>(lhs) + rhs;
 }
-inline Integer operator-(const Integer &lhs, i32 rhs) {
-  return lhs - static_cast<i64>(rhs);
+inline Integer operator-(const Integer &lhs, int32_t rhs) {
+  return lhs - static_cast<int64_t>(rhs);
 }
-inline Integer operator-(i32 lhs, const Integer &rhs) {
-  return static_cast<i64>(lhs) - rhs;
+inline Integer operator-(int32_t lhs, const Integer &rhs) {
+  return static_cast<int64_t>(lhs) - rhs;
 }
-inline Integer operator*(const Integer &lhs, i32 rhs) {
-  return lhs * static_cast<i64>(rhs);
+inline Integer operator*(const Integer &lhs, int32_t rhs) {
+  return lhs * static_cast<int64_t>(rhs);
 }
-inline Integer operator*(i32 lhs, const Integer &rhs) {
-  return static_cast<i64>(lhs) * rhs;
+inline Integer operator*(int32_t lhs, const Integer &rhs) {
+  return static_cast<int64_t>(lhs) * rhs;
 }
-inline Integer operator/(const Integer &lhs, i32 rhs) {
-  return lhs / static_cast<i64>(rhs);
+inline Integer operator/(const Integer &lhs, int32_t rhs) {
+  return lhs / static_cast<int64_t>(rhs);
 }
-inline Integer operator/(i32 lhs, const Integer &rhs) {
-  return static_cast<i64>(lhs) / rhs;
+inline Integer operator/(int32_t lhs, const Integer &rhs) {
+  return static_cast<int64_t>(lhs) / rhs;
 }
-inline Integer operator%(const Integer &lhs, i32 rhs) {
-  return lhs % static_cast<i64>(rhs);
+inline Integer operator%(const Integer &lhs, int32_t rhs) {
+  return lhs % static_cast<int64_t>(rhs);
 }
-inline Integer operator%(i32 lhs, const Integer &rhs) {
-  return static_cast<i64>(lhs) % rhs;
+inline Integer operator%(int32_t lhs, const Integer &rhs) {
+  return static_cast<int64_t>(lhs) % rhs;
 }
 
-// Comparisons with i32 -- mpz_cmp_si directly avoids constructing a
+// Comparisons with int32_t -- mpz_cmp_si directly avoids constructing a
 // temporary Integer(rhs).
-inline bool operator==(const Integer &lhs, i32 rhs) {
+inline bool operator==(const Integer &lhs, int32_t rhs) {
   return mpz_cmp_si(lhs.get_mpz_t(), static_cast<long>(rhs)) == 0;
 }
-inline bool operator!=(const Integer &lhs, i32 rhs) {
+inline bool operator!=(const Integer &lhs, int32_t rhs) {
   return mpz_cmp_si(lhs.get_mpz_t(), static_cast<long>(rhs)) != 0;
 }
-inline bool operator<(const Integer &lhs, i32 rhs) {
+inline bool operator<(const Integer &lhs, int32_t rhs) {
   return mpz_cmp_si(lhs.get_mpz_t(), static_cast<long>(rhs)) < 0;
 }
-inline bool operator<=(const Integer &lhs, i32 rhs) {
+inline bool operator<=(const Integer &lhs, int32_t rhs) {
   return mpz_cmp_si(lhs.get_mpz_t(), static_cast<long>(rhs)) <= 0;
 }
-inline bool operator>(const Integer &lhs, i32 rhs) {
+inline bool operator>(const Integer &lhs, int32_t rhs) {
   return mpz_cmp_si(lhs.get_mpz_t(), static_cast<long>(rhs)) > 0;
 }
-inline bool operator>=(const Integer &lhs, i32 rhs) {
+inline bool operator>=(const Integer &lhs, int32_t rhs) {
   return mpz_cmp_si(lhs.get_mpz_t(), static_cast<long>(rhs)) >= 0;
 }
 
-inline bool operator==(i32 lhs, const Integer &rhs) {
+inline bool operator==(int32_t lhs, const Integer &rhs) {
   return mpz_cmp_si(rhs.get_mpz_t(), static_cast<long>(lhs)) == 0;
 }
-inline bool operator!=(i32 lhs, const Integer &rhs) {
+inline bool operator!=(int32_t lhs, const Integer &rhs) {
   return mpz_cmp_si(rhs.get_mpz_t(), static_cast<long>(lhs)) != 0;
 }
-inline bool operator<(i32 lhs, const Integer &rhs) {
+inline bool operator<(int32_t lhs, const Integer &rhs) {
   return mpz_cmp_si(rhs.get_mpz_t(), static_cast<long>(lhs)) > 0;
 }
-inline bool operator<=(i32 lhs, const Integer &rhs) {
+inline bool operator<=(int32_t lhs, const Integer &rhs) {
   return mpz_cmp_si(rhs.get_mpz_t(), static_cast<long>(lhs)) >= 0;
 }
-inline bool operator>(i32 lhs, const Integer &rhs) {
+inline bool operator>(int32_t lhs, const Integer &rhs) {
   return mpz_cmp_si(rhs.get_mpz_t(), static_cast<long>(lhs)) < 0;
 }
-inline bool operator>=(i32 lhs, const Integer &rhs) {
+inline bool operator>=(int32_t lhs, const Integer &rhs) {
   return mpz_cmp_si(rhs.get_mpz_t(), static_cast<long>(lhs)) <= 0;
 }
 
-inline Integer operator&(const Integer &lhs, i32 rhs) {
+inline Integer operator&(const Integer &lhs, int32_t rhs) {
   return lhs & Integer(rhs);
 }
-inline Integer operator|(const Integer &lhs, i32 rhs) {
+inline Integer operator|(const Integer &lhs, int32_t rhs) {
   return lhs | Integer(rhs);
 }
-inline Integer operator^(const Integer &lhs, i32 rhs) {
+inline Integer operator^(const Integer &lhs, int32_t rhs) {
   return lhs ^ Integer(rhs);
 }
 

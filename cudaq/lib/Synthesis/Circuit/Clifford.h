@@ -12,7 +12,7 @@
 #include <iostream>
 
 #include "cudaq/Synthesis/Circuit/Circuit.h"
-#include "cudaq/Synthesis/Math/Types.h"
+#include <cstdint>
 
 namespace cudaq::synth {
 
@@ -77,7 +77,7 @@ enum class Axis { I = 0, H = 1, SH = 2 };
 //       (c, d) of the Clifford. Only (a, b) enter the lookup.
 
 // clang-format off
-inline constexpr std::array<std::pair<i32, i32>, 8> CONJ2_TABLE = {{
+inline constexpr std::array<std::pair<int32_t, int32_t>, 8> CONJ2_TABLE = {{
   {0, 0},
   {0, 0},
   {1, 0},
@@ -88,7 +88,7 @@ inline constexpr std::array<std::pair<i32, i32>, 8> CONJ2_TABLE = {{
   {1, 6}
 }};
 
-inline constexpr std::array<std::array<i32, 4>, 24> CONJ3_TABLE = {{
+inline constexpr std::array<std::array<int32_t, 4>, 24> CONJ3_TABLE = {{
   {0, 0, 0, 0},
   {0, 0, 1, 0},
   {0, 0, 2, 0},
@@ -115,7 +115,7 @@ inline constexpr std::array<std::array<i32, 4>, 24> CONJ3_TABLE = {{
   {1, 0, 3, 2}
 }};
 
-inline constexpr std::array<std::array<i32, 4>, 24> CINV_TABLE = {{
+inline constexpr std::array<std::array<int32_t, 4>, 24> CINV_TABLE = {{
   {0, 0, 0, 0},
   {0, 0, 3, 0},
   {0, 0, 2, 0},
@@ -142,13 +142,13 @@ inline constexpr std::array<std::array<i32, 4>, 24> CINV_TABLE = {{
   {2, 0, 1, 6}
 }};
 
-inline constexpr std::array<std::array<i32, 3>, 6> TCONJ_TABLE = {{
-  {static_cast<i32>(Axis::I), 0, 0},
-  {static_cast<i32>(Axis::I), 1, 7},
-  {static_cast<i32>(Axis::H), 3, 3},
-  {static_cast<i32>(Axis::H), 2, 0},
-  {static_cast<i32>(Axis::SH), 0, 5},
-  {static_cast<i32>(Axis::SH), 1, 4}
+inline constexpr std::array<std::array<int32_t, 3>, 6> TCONJ_TABLE = {{
+  {static_cast<int32_t>(Axis::I), 0, 0},
+  {static_cast<int32_t>(Axis::I), 1, 7},
+  {static_cast<int32_t>(Axis::H), 3, 3},
+  {static_cast<int32_t>(Axis::H), 2, 0},
+  {static_cast<int32_t>(Axis::SH), 0, 5},
+  {static_cast<int32_t>(Axis::SH), 1, 4}
 }};
 // clang-format on
 
@@ -188,7 +188,7 @@ inline constexpr std::array<std::array<i32, 3>, 6> TCONJ_TABLE = {{
 /// constexpr.
 class Clifford {
 private:
-  i32 _a, _b, _c, _d;
+  int32_t _a, _b, _c, _d;
 
   /// Bring the four exponents back into their canonical ranges after an
   /// arithmetic step that may have left them unreduced.
@@ -206,7 +206,7 @@ public:
 
   /// Defaults to the identity (0, 0, 0, 0). Inputs are reduced mod their
   /// respective range so callers do not have to pre-normalize.
-  constexpr Clifford(i32 a = 0, i32 b = 0, i32 c = 0, i32 d = 0)
+  constexpr Clifford(int32_t a = 0, int32_t b = 0, int32_t c = 0, int32_t d = 0)
       : _a(a), _b(b), _c(c), _d(d) {
     normalize();
   }
@@ -217,16 +217,16 @@ public:
 
   /// Component `a` of the (a, b, c, d) parametrization. Also the Axis index
   /// of the Matsumoto-Amano coset: 0 -> I, 1 -> H, 2 -> SH.
-  constexpr i32 a() const { return _a; }
+  constexpr int32_t a() const { return _a; }
 
   /// Component `b`: Pauli-X exponent in {0, 1}.
-  constexpr i32 b() const { return _b; }
+  constexpr int32_t b() const { return _b; }
 
   /// Component `c`: phase-gate exponent in {0, 1, 2, 3}.
-  constexpr i32 c() const { return _c; }
+  constexpr int32_t c() const { return _c; }
 
   /// Component `d`: omega global-phase exponent in {0, ..., 7}.
-  constexpr i32 d() const { return _d; }
+  constexpr int32_t d() const { return _d; }
 
   //===--------------------------------------------------------------------===//
   // I/O
@@ -278,28 +278,28 @@ public:
   //===--------------------------------------------------------------------===//
 
   /// Conjugate X^b past S^c. See CONJ2_TABLE's header comment.
-  static constexpr std::pair<i32, i32> conj2(i32 c, i32 b) {
-    i32 index = (c << 1) | b;
+  static constexpr std::pair<int32_t, int32_t> conj2(int32_t c, int32_t b) {
+    int32_t index = (c << 1) | b;
     return CONJ2_TABLE[static_cast<size_t>(index)];
   }
 
   /// Conjugate X^b * S^c past E^a. See CONJ3_TABLE's header comment.
-  static constexpr std::array<i32, 4> conj3(i32 b, i32 c, i32 a) {
-    i32 index = (a << 3) | (b << 2) | c;
+  static constexpr std::array<int32_t, 4> conj3(int32_t b, int32_t c, int32_t a) {
+    int32_t index = (a << 3) | (b << 2) | c;
     return CONJ3_TABLE[static_cast<size_t>(index)];
   }
 
   /// Invert E^a * X^b * S^c (omega^d is handled by the caller). See
   /// CINV_TABLE's header comment.
-  static constexpr std::array<i32, 4> cinv(i32 a, i32 b, i32 c) {
-    i32 index = (a << 3) | (b << 2) | c;
+  static constexpr std::array<int32_t, 4> cinv(int32_t a, int32_t b, int32_t c) {
+    int32_t index = (a << 3) | (b << 2) | c;
     return CINV_TABLE[static_cast<size_t>(index)];
   }
 
   /// Matsumoto-Amano syllable lookup for C * T. See TCONJ_TABLE's header
   /// comment.
-  static constexpr std::array<i32, 3> tconj(i32 a, i32 b) {
-    i32 index = (a << 1) | b;
+  static constexpr std::array<int32_t, 3> tconj(int32_t a, int32_t b) {
+    int32_t index = (a << 1) | b;
     return TCONJ_TABLE[static_cast<size_t>(index)];
   }
 
@@ -318,10 +318,10 @@ public:
     auto [a1, b1, c1, d1] = conj3(_b, _c, other._a);
     auto [c2, d2] = conj2(c1, other._b);
 
-    i32 new_a = _a + a1;
-    i32 new_b = b1 + other._b;
-    i32 new_c = c2 + other._c;
-    i32 new_d = d2 + d1 + _d + other._d;
+    int32_t new_a = _a + a1;
+    int32_t new_b = b1 + other._b;
+    int32_t new_c = c2 + other._c;
+    int32_t new_d = d2 + d1 + _d + other._d;
 
     return Clifford(new_a, new_b, new_c, new_d);
   }
@@ -352,8 +352,8 @@ public:
   constexpr std::pair<Axis, Clifford> decompose_tconj() const {
     auto tconj_result = tconj(_a, _b);
     Axis axis = static_cast<Axis>(tconj_result[0]);
-    i32 c1 = tconj_result[1];
-    i32 d1 = tconj_result[2];
+    int32_t c1 = tconj_result[1];
+    int32_t d1 = tconj_result[2];
 
     return {axis, Clifford(0, _b, c1 + _c, d1 + _d)};
   }
