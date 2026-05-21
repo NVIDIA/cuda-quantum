@@ -39,6 +39,15 @@ typedef struct {
   void *pre_launch_data;
   void (*post_launch_fn)(void *user_data, void *slot_dev, cudaStream_t stream);
   void *post_launch_data;
+  /// Optional sub-routing key for `function_id` collisions across workers.
+  /// When several workers share the same `function_id` but back different
+  /// captured graphs, the monitor uses (function_id, routing_key) to
+  /// disambiguate.  The runtime routing key comes from the request
+  /// payload's first 8 bytes (arg0); a worker matches only if both
+  /// function_id and routing_key match.  Set to 0 when sub-routing isn't
+  /// needed (the historical function_id-only match).
+  /// See proposals/cudaq_realtime_host_api.bs#host-path-graph-routing-key.
+  uint64_t routing_key;
 } cudaq_host_dispatch_worker_t;
 
 typedef struct {

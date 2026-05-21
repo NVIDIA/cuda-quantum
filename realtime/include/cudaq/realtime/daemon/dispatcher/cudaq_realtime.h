@@ -159,6 +159,15 @@ typedef struct {
   uint8_t dispatch_mode;         // cudaq_dispatch_mode_t value
   uint8_t reserved[3];           // padding
   cudaq_handler_schema_t schema; // function signature schema
+  // Optional sub-routing key for CUDAQ_DISPATCH_GRAPH_LAUNCH entries.  When
+  // multiple GRAPH_LAUNCH entries share the same `function_id` (the multi-
+  // instance pattern used by e.g. the QEC realtime decoder suite, where
+  // the same `enqueue_syndromes` function name fronts N distinct captured
+  // graphs -- one per decoder), the host monitor disambiguates them by
+  // `routing_key`, matching it against the request payload's first 8
+  // bytes (arg0).  Ignored when dispatch_mode != CUDAQ_DISPATCH_GRAPH_LAUNCH.
+  // See proposals/cudaq_realtime_host_api.bs#host-path-graph-routing-key.
+  uint64_t routing_key;
 } cudaq_function_entry_t;
 
 // Function table for device-side dispatch

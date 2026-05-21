@@ -38,15 +38,23 @@ lookup_function(cudaq_function_entry_t *table, size_t count,
   return nullptr;
 }
 
+// Acquire an idle GRAPH_LAUNCH worker that matches both `function_id` and
+// `routing_key`.  The routing_key parameter sub-routes within a shared
+// `function_id` -- see [host_api.bs Routing-Key Sub-filter for GRAPH_LAUNCH
+// Workers].  Workloads that don't use sub-routing pass routing_key == 0 and
+// register every worker with routing_key == 0, in which case this loop
+// degenerates to the historical `function_id`-only match.
 static int
 find_idle_graph_worker_for_function(const cudaq_host_dispatch_loop_ctx_t *ctx,
-                                    uint32_t function_id) {
+                                    uint32_t function_id,
+                                    uint64_t routing_key) {
   uint64_t mask = as_atomic_u64(ctx->idle_mask)->load(
       cuda::std::memory_order_acquire);
   while (mask != 0) {
     int worker_id = __builtin_ffsll(static_cast<long long>(mask)) - 1;
-    if (ctx->workers[static_cast<size_t>(worker_id)].function_id ==
-        function_id)
+    const cudaq_host_dispatch_worker_t &w =
+        ctx->workers[static_cast<size_t>(worker_id)];
+    if (w.function_id == function_id && w.routing_key == routing_key)
       return worker_id;
     mask &= ~(1ULL << worker_id);
   }
@@ -55,6 +63,7 @@ find_idle_graph_worker_for_function(const cudaq_host_dispatch_loop_ctx_t *ctx,
 
 struct ParsedSlot {
   uint32_t function_id = 0;
+  uint64_t routing_key = 0; // arg0 of the payload (or 0 if arg_len < 8)
   const cudaq_function_entry_t *entry = nullptr;
   bool drop = false; // bad header -- clear rx_flags and advance
   bool skip = false; // function not in our table -- advance WITHOUT clearing
@@ -71,6 +80,16 @@ parse_slot_with_function_table(void *slot_host,
     return out;
   }
   out.function_id = header->function_id;
+  // Routing-key sub-filter: read arg0 (first 8 bytes of payload) when the
+  // payload is large enough.  Workloads that don't use sub-routing leave
+  // the worker's routing_key == 0, and any arg0 (or absent arg0) still
+  // matches via the routing_key == 0 worker.  See
+  // proposals/cudaq_realtime_host_api.bs#host-path-graph-routing-key.
+  if (header->arg_len >= sizeof(uint64_t)) {
+    const uint8_t *slot_bytes = static_cast<const uint8_t *>(slot_host);
+    out.routing_key = *reinterpret_cast<const uint64_t *>(slot_bytes +
+                                                          sizeof(RPCHeader));
+  }
   out.entry = lookup_function(ctx->function_table.entries,
                               ctx->function_table.count, out.function_id);
   if (!out.entry) {
@@ -97,10 +116,11 @@ static void finish_slot_and_advance(const cudaq_host_dispatch_loop_ctx_t *ctx,
 static int acquire_graph_worker(const cudaq_host_dispatch_loop_ctx_t *ctx,
                                 bool use_function_table,
                                 const cudaq_function_entry_t *entry,
-                                uint32_t function_id) {
+                                uint32_t function_id,
+                                uint64_t routing_key) {
   if (use_function_table && entry &&
       entry->dispatch_mode == CUDAQ_DISPATCH_GRAPH_LAUNCH)
-    return find_idle_graph_worker_for_function(ctx, function_id);
+    return find_idle_graph_worker_for_function(ctx, function_id, routing_key);
   uint64_t mask =
       as_atomic_u64(ctx->idle_mask)->load(cuda::std::memory_order_acquire);
   if (mask == 0)
@@ -243,6 +263,7 @@ cudaq_host_dispatcher_loop(const cudaq_host_dispatch_loop_ctx_t *ctx) {
 
     void *slot_host = reinterpret_cast<void *>(rx_value);
     uint32_t function_id = 0;
+    uint64_t routing_key = 0;
     const cudaq_function_entry_t *entry = nullptr;
 
     // TODO: Remove non-function-table path; RPC framing is always required.
@@ -261,6 +282,7 @@ cudaq_host_dispatcher_loop(const cudaq_host_dispatch_loop_ctx_t *ctx) {
         continue;
       }
       function_id = parsed.function_id;
+      routing_key = parsed.routing_key;
       entry = parsed.entry;
     }
 
@@ -280,8 +302,8 @@ cudaq_host_dispatcher_loop(const cudaq_host_dispatch_loop_ctx_t *ctx) {
 
     if (!ctx->skip_stream_sweep)
       sweep_completed_workers(ctx);
-    int worker_id =
-        acquire_graph_worker(ctx, use_function_table, entry, function_id);
+    int worker_id = acquire_graph_worker(ctx, use_function_table, entry,
+                                         function_id, routing_key);
     if (worker_id < 0) {
       CUDAQ_REALTIME_CPU_RELAX();
       continue;
