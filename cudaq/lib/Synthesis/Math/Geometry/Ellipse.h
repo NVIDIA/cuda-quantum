@@ -229,7 +229,7 @@ public:
   intersect(const DOmega &u0, const DOmega &v) const override;
 
   /// Render at full MPFR precision (no lossy double conversion) for use
-  /// inside LLVM_DEBUG / CUDAQ_CUDAQ_SYNTH_OPEN_SUB diagnostic streams.
+  /// inside LLVM_DEBUG / CUDAQ_SYNTH_OPEN_SUB diagnostic streams.
   std::string to_string() const {
     char buf[2048];
     mpfr_snprintf(

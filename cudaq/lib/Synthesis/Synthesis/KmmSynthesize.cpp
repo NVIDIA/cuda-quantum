@@ -146,7 +146,7 @@ reduce_denomexp(const DOmegaUnitary &unitary) {
 ///      collapses TT -> S, etc., and emits the canonical minimum-T-count
 ///      representation.
 Circuit kmm_synthesize(DOmegaUnitary unitary) {
-  CUDAQ_CUDAQ_SYNTH_OPEN_SUB("kmm_synthesize");
+  CUDAQ_SYNTH_OPEN_SUB("kmm_synthesize");
   LLVM_DEBUG(cudaq::synth::dbgs()
              << "denom_exp=" << unitary.k() << " (expected T-count ~"
              << unitary.k() << ")\n");
@@ -208,7 +208,7 @@ Circuit kmm_synthesize(DOmegaUnitary unitary) {
 
   // Phase 3: normalize. Cannot fail.
   Circuit result = normalize_gates(gates);
-  CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS(
+  CUDAQ_SYNTH_CLOSE_SUCCESS(
       "final " + std::to_string(result.size()) +
       " gates, T-count=" + std::to_string(result.t_count()));
   return result;

@@ -51,7 +51,7 @@ TdgpStepper::TdgpStepper(Integer k, const ConvexSet &setA,
       bboxA_(std::move(bboxA)), bboxB_(std::move(bboxB)),
       bboxA_y_fattened_(std::move(bboxA_y_fattened)),
       bboxB_y_fattened_(std::move(bboxB_y_fattened)) {
-  CUDAQ_CUDAQ_SYNTH_OPEN_SUB("TdgpStepper");
+  CUDAQ_SYNTH_OPEN_SUB("TdgpStepper");
   LLVM_DEBUG(cudaq::synth::dbgs() << "k=" << static_cast<int64_t>(k_) << '\n');
 
   // The x-anchor is a single one-shot solve: only the first solution to the
@@ -89,12 +89,12 @@ TdgpStepper::~TdgpStepper() {
     CUDAQ_SYNTH_ACTION("Skip") << skipped_betas_ << " betas\n";
 
   if (yielded_ > 0) {
-    CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS("yielded " + std::to_string(yielded_) +
-                                    " candidates");
+    CUDAQ_SYNTH_CLOSE_SUCCESS("yielded " + std::to_string(yielded_) +
+                              " candidates");
   } else if (!close_reason_.empty()) {
-    CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE(close_reason_);
+    CUDAQ_SYNTH_CLOSE_FAILURE(close_reason_);
   } else {
-    CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("no candidates");
+    CUDAQ_SYNTH_CLOSE_FAILURE("no candidates");
   }
 }
 
