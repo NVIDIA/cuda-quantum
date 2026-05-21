@@ -25,75 +25,63 @@ class ConvexSet;
 
 namespace cudaq::synth {
 
-/// TDGP (Two-Dimensional Grid Problem) solver for finding elements in D[ω].
-///
-/// Reference: Ross & Selinger, arXiv:1403.2975, §5.1-5.7
-/// (Theorem 5.18, Propositions 5.21-5.22).
-///
-/// The two-dimensional grid problem (Definition 5.3):
-///   Given convex sets A, B ⊂ R², find u ∈ Z[ω] with u ∈ A and u● ∈ B.
-///
-/// The scaled variant (Definition 5.20) for fixed k ≥ 0:
-///   Find u ∈ (1/√2^k)Z[ω] with u ∈ A and u● ∈ B.
-///
-/// Algorithm (Theorem 5.18, combining all pieces):
-///
-/// 1. UPRIGHT PREPROCESSING: The ToUpright module finds a special grid
-///    operator G making G(A) and G●(B) upright (Theorem 5.16).
-///    The TDGP solver receives the precomputed G⁻¹, bounding boxes
-///    bboxA and bboxB of the transformed ellipses.
-///
-/// 2. REDUCTION TO UPRIGHT RECTANGLES (Lemma 5.6):
-///    By Lemma 5.5, any u ∈ Z[ω] has the form u = α + βi (even case)
-///    or u = α + βi + ω (odd case), where α, β ∈ Z[√2].
-///    The 2D grid constraints decompose into independent 1D constraints
-///    on the real and imaginary parts.
-///
-/// 3. ONE-DIMENSIONAL SOLVING:
-///    - Solve ODGP for x-coordinates: α ∈ bboxA.x, α● ∈ bboxB.x
-///    - Solve ODGP for y-coordinates: β ∈ bboxA.y, β● ∈ bboxB.y
-///    These use the bounding boxes from step 1.
-///
-/// 4. LINE SCANNING (the "line intersection" approach):
-///    For each y-solution β, parameterize a line through the candidates:
-///      z(t) = z₀ + t·v  where z₀ uses the first x-solution and v is the
-///      step direction (scaled by the grid spacing).
-///    Intersect this line with both A and B to find the valid range of t,
-///    then solve a 1D scaled ODGP with parity for t.
-///
-/// 5. FILTERING: Transform candidates back through G⁻¹ and verify
-///    membership in the original (non-upright) sets A and B.
-///
-/// The caller iterates k = 0, 1, 2, ... calling `solve_tdgp(k, ...)` for each
-/// denominator exponent until a valid solution is found. This provides
-/// enumeration in order of increasing T-count (Lemma 7.3, Proposition 5.22).
-///
-/// DEVIATION from paper: The paper handles both the even (u = α + βi)
-/// and odd (u = α + βi + ω) cases as two separate 1D grid problems
-/// (Lemma 5.6). This implementation handles both cases implicitly
-/// through the scaled-with-parity ODGP variant, using the fattened
-/// bounding boxes (bboxA_y_fattened, bboxB_y_fattened) to account
-/// for the ω-offset.
-///
-/// LAZINESS: Implemented as a hand-rolled stepper (no coroutines). The entire
-/// pipeline (x-ODGP, y-ODGP, parity-ODGP) is lazy, so early termination by
-/// the caller propagates through the full chain without wasting computation
-/// on unused solutions.
+//===----------------------------------------------------------------------===//
+// Two-Dimensional Grid Problem (TDGP)
+//===----------------------------------------------------------------------===//
+//
+// Reference: Ross & Selinger, arXiv:1403.2975, sec. 5.1-5.7
+// (Theorem 5.18, Propositions 5.21-5.22).
+//
+// Definition 5.3 / 5.20: given convex sets A, B in R^2 and a denominator
+// exponent k >= 0, find all u in (1/sqrt(2)^k) * Z[omega] with u in A and
+// u* in B, where (-)* is the sqrt(2)-conjugation.
+//
+// Algorithm shape (Theorem 5.18):
+//   1. Upright preprocessing (delegated to ToUpright): a grid operator G is
+//      computed such that G(A) and G*(B) are 1/6-upright; the TDGP solver is
+//      handed the inverse G^-1 together with the upright bounding boxes.
+//   2. Reduction to 1D problems (Lemma 5.6): any u = alpha + beta*i (even
+//      case) or u = alpha + beta*i + omega (odd case) has alpha, beta in
+//      Z[sqrt(2)], so the 2D constraint decomposes into two independent 1D
+//      ODGPs, one on the real axis and one on the imaginary axis.
+//   3. Line scan: take a single x-solution alpha_0 as an anchor, parametrise
+//      a line through the candidates as z(t) = z_0 + t * v, intersect that
+//      line with A and B to get a t-range, and run a 1D scaled-with-parity
+//      ODGP on t.
+//   4. Filter: undo the upright transform via G^-1 and re-verify membership
+//      against the original A and B. The fattened t-range used in step 3
+//      slightly over-approximates, so a small number of false positives are
+//      expected here and silently skipped.
+//
+// Deviation from paper: rather than running two separate 1D grid problems
+// for the even and odd (omega-offset) cases (Lemma 5.6), this implementation
+// folds both into the scaled-with-parity ODGP variant by fattening the y
+// bounding boxes -- see bboxA_y_fattened / bboxB_y_fattened in the
+// constructor signature.
+//
+// The caller of `solve_tdgp` iterates k = 0, 1, 2, ... until a solution is
+// found, which produces candidates in order of increasing T-count (Lemma 7.3,
+// Proposition 5.22).
+//
+// The whole pipeline (x-ODGP, y-ODGP, scaled-with-parity ODGP, this TDGP)
+// is lazy: early termination by the caller propagates through every layer
+// via RAII without performing unnecessary downstream work.
 
-/// Lazy stepper for the scaled TDGP at denominator exponent k.
+//===----------------------------------------------------------------------===//
+// TdgpStepper
+//===----------------------------------------------------------------------===//
+
+/// Stepper for the scaled TDGP at a fixed denominator exponent k.
 ///
-/// Yields all u ∈ (1/√2^k)·Z[ω] satisfying u ∈ setA and u● ∈ setB.
+/// Yields all u in (1/sqrt(2)^k) * Z[omega] satisfying u in `setA` and
+/// u* in `setB`. Composes `OdgpScaledStepper` for the beta-iteration and
+/// `OdgpScaledWithParityStepper` for the alpha-iteration on each beta line.
+/// Candidates that pass the line-scan refinement but fail the exact
+/// membership re-check (because the line-scan operates on a slightly fattened
+/// interval) are silently dropped without bumping the yield counter.
 ///
-/// Usage:
-///   for (const DOmega &z : TdgpStepper(k, ...)) { ... }
-///
-/// Composes `OdgpScaledStepper` (for the β-iteration) and
-/// `OdgpScaledWithParityStepper` (for the α-iteration per β). The
-/// transformed-membership filter `setA.contains(z_tr) && setB.contains(...)`
-/// is applied inside `next()`; rejected candidates do not increment the
-/// yield counter and are silently skipped.
-///
-/// Non-copyable, non-movable.
+/// Pointer contract matches the rest of the synth steppers: the value
+/// returned by `next()` is valid until the next call to `next()` / `++it`.
 class TdgpStepper : public StepperBase<TdgpStepper, DOmega> {
 public:
   TdgpStepper(Integer k, const ConvexSet &setA, const ConvexSet &setB,
@@ -109,7 +97,9 @@ public:
   const DOmega *next();
 
 private:
-  // Constants from constructor.
+  // Inputs captured by the constructor. setA_ and setB_ are non-owning
+  // pointers because they live in the caller's frame for the stepper's
+  // lifetime.
   Integer k_;
   const ConvexSet *setA_;
   const ConvexSet *setB_;
@@ -119,50 +109,51 @@ private:
   Interval bboxA_y_fattened_;
   Interval bboxB_y_fattened_;
 
-  // Computed once in constructor.
+  // Line-scan parameters computed in the constructor (after the one-shot
+  // x-anchor solve). alpha0_ is the anchor; dx_ is the per-step grid
+  // spacing in t; v_common_ and v_conj_ are the direction vector and its
+  // sqrt(2)-conjugate; two_pow_k_ is precomputed for the per-beta fattening
+  // factor.
   DSqrt2 alpha0_;
   DSqrt2 dx_;
   DOmega v_common_;
   DOmega v_conj_;
   Real two_pow_k_;
 
-  // β-iteration; emplaced if construction succeeds (i.e. alpha0_ exists).
+  // beta-iteration cursor. beta_gen_ is engaged once the constructor finds
+  // an x-anchor; current_beta_ / alpha_gen_ are reset and re-emplaced each
+  // time `advance_to_next_beta()` moves on.
   std::optional<OdgpScaledStepper> beta_gen_;
-  // Current β (the value most recently advanced from beta_gen_) and the
-  // alpha-iteration over it.
   DSqrt2 current_beta_;
   std::optional<OdgpScaledWithParityStepper> alpha_gen_;
 
-  // Output buffer.
+  // Buffer aliased by the pointer returned from next().
   DOmega last_sol_;
 
-  // Diagnostics / state.
+  // Termination flag plus diagnostic counters that drive the destructor's
+  // SYNTH_CLOSE_* / SYNTH_ACTION emission.
   bool exhausted_ = false;
   int yielded_ = 0;
   int skipped_betas_ = 0;
   std::string close_reason_;
 
-  /// Advance beta_gen_ to the next β with a non-empty (A,B) intersection
-  /// interval, set current_beta_, and emplace alpha_gen_. Returns false if
-  /// β-iteration is exhausted (no more candidates).
+  /// Walk beta_gen_ forward until a beta with a non-empty (A, B) line
+  /// intersection is found. On success: sets `current_beta_`, emplaces
+  /// `alpha_gen_`, and returns true. On exhaustion: returns false. Betas
+  /// whose line misses A or B are counted in `skipped_betas_`.
   bool advance_to_next_beta();
 };
 
-/// Solve the scaled TDGP for a given denominator exponent k.
+//===----------------------------------------------------------------------===//
+// Factory function
+//===----------------------------------------------------------------------===//
+
+/// Construct a TdgpStepper for the given denominator exponent.
 ///
-/// Returns a lazy stepper of all u ∈ (1/√2^k)·Z[ω] with u ∈ setA and
-/// u● ∈ setB. Solutions are produced on demand; destroy the stepper to stop
-/// enumeration early.
-///
-/// @param k Denominator exponent (determines grid scale 1/√2^k)
-/// @param setA First convex set constraint (epsilon region in `gridsynth`)
-/// @param setB Second convex set constraint (unit disk in `gridsynth`)
-/// @param opG_inv Inverse of upright transformation (from ToUpright)
-/// @param bboxA Bounding box for transformed setA
-/// @param bboxB Bounding box for transformed setB
-/// @param bboxA_y_fattened Fattened y-interval for setA (handles ω-offset)
-/// @param bboxB_y_fattened Fattened y-interval for setB (handles ω-offset)
-/// @return Lazy stepper of solutions (may be empty)
+/// `setA` and `setB` must outlive the returned stepper. `opG_inv`, the
+/// bounding boxes and the fattened y-intervals are taken by value and
+/// stored inside the stepper. Returned by prvalue so the non-movable
+/// stepper can be assigned with C++17 guaranteed copy elision.
 TdgpStepper solve_tdgp(Integer k, const ConvexSet &setA, const ConvexSet &setB,
                        const GridOp &opG_inv, Rectangle bboxA, Rectangle bboxB,
                        Interval bboxA_y_fattened, Interval bboxB_y_fattened);

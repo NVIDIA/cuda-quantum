@@ -8,19 +8,6 @@
 
 #pragma once
 
-// ---------------------------------------------------------------------------
-// StreamOps.h -- inline llvm::raw_ostream operator<< overloads for the
-// synth domain types.
-//
-// Included by the synth source files that emit LLVM_DEBUG logging so the
-// call sites can stream domain values directly (e.g.
-//   cudaq::synth::dbgs() << "k=" << unitary.k() << ", w=" << unitary.w()
-// ) without spelling .to_string() at every <<.
-//
-// Kept private to cudaq/lib/Synthesis so the public type headers do not
-// have to pull in <llvm/Support/raw_ostream.h>.
-// ---------------------------------------------------------------------------
-
 #include "Math/Geometry/Ellipse.h"
 #include "Math/Geometry/GridOp.h"
 #include "Math/Geometry/Interval.h"
@@ -35,6 +22,19 @@
 #include "cudaq/Synthesis/Math/Ring/Zsqrt2.h"
 #include "cudaq/Synthesis/Math/Unitary.h"
 #include "llvm/Support/raw_ostream.h"
+
+//===----------------------------------------------------------------------===//
+// llvm::raw_ostream operator<< overloads for the synth domain types
+//===----------------------------------------------------------------------===//
+//
+// Included by synth source files that emit LLVM_DEBUG logging so call sites
+// can stream domain values directly, e.g.
+//
+//     cudaq::synth::dbgs() << "k=" << unitary.k() << ", w=" << unitary.w();
+//
+// without having to spell `.to_string()` at each `<<`. Kept private to
+// cudaq/lib/Synthesis: the public type headers should not transitively pull
+// in <llvm/Support/raw_ostream.h>.
 
 namespace cudaq::synth {
 

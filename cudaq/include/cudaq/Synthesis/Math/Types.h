@@ -10,20 +10,21 @@
 
 #include <cstdint>
 
-/// Canonical fixed-width integer aliases for the synthesizer.
-///
-/// All synthesizer code should use these aliases instead of `int`, `long`,
-/// or `long long`. The only exceptions are:
-///
-///   - `size_t` for STL sizes and array indexing (C++ convention).
-///   - `long` / `unsigned long` in function bodies that directly call GMP/MPFR
-///     APIs (e.g. mpz_set_si, mpz_add_ui), where the library ABI mandates
-///     those types. At such `callsites` use an explicit static_cast<long> /
-///     static_cast<unsigned long> to document the boundary.
-///   - GMP/MPFR-semantic types (mp_bitcnt_t, mpfr_prec_t, gmp_randstate_t)
-///     which carry domain meaning beyond their width.
-
 namespace cudaq::synth {
+
+//===----------------------------------------------------------------------===//
+// Fixed-width integer aliases
+//===----------------------------------------------------------------------===//
+//
+// Synthesis code uses these aliases instead of `int`, `long`, or `long long`.
+// Exceptions:
+//   - `size_t` for STL sizes and array indexing (C++ convention).
+//   - `long` / `unsigned long` in function bodies that call GMP/MPFR APIs
+//     directly (e.g. mpz_set_si). At those boundaries an explicit
+//     static_cast<long> or static_cast<unsigned long> documents the
+//     library-ABI conversion.
+//   - GMP/MPFR-semantic types (mp_bitcnt_t, mpfr_prec_t, gmp_randstate_t),
+//     which carry domain meaning beyond their bit width.
 
 using i8 = std::int8_t;
 using i16 = std::int16_t;

@@ -25,12 +25,23 @@ namespace cudaq::synth {
 
 namespace {
 
+//===----------------------------------------------------------------------===//
+// Internal helpers
+//===----------------------------------------------------------------------===//
+
+/// Cached constant used in the per-beta fattening factor. Held as a static
+/// to avoid the GMP/MPFR allocation that would otherwise repeat for every
+/// beta processed.
 const Real &tdgp_ten() {
   static const Real value(10.0);
   return value;
 }
 
 } // namespace
+
+//===----------------------------------------------------------------------===//
+// TdgpStepper
+//===----------------------------------------------------------------------===//
 
 TdgpStepper::TdgpStepper(Integer k, const ConvexSet &setA,
                          const ConvexSet &setB, const GridOp &opG_inv,
@@ -43,8 +54,9 @@ TdgpStepper::TdgpStepper(Integer k, const ConvexSet &setA,
   SYNTH_OPEN_SUB("solve_tdgp");
   LLVM_DEBUG(cudaq::synth::dbgs() << "k=" << static_cast<i64>(k_) << '\n');
 
-  // x-direction: only the first solution is needed as an anchor for the
-  // line-scan step. The local stepper is destroyed at the end of this scope.
+  // The x-anchor is a single one-shot solve: only the first solution to the
+  // x-ODGP is needed as a fixed reference for the per-beta line scan. The
+  // local stepper is destroyed at the end of this block.
   {
     OdgpScaledStepper x_gen(bboxA_.I_x(), bboxB_.I_x(), k_ + 1);
     const DSqrt2 *first_x = x_gen.next();
@@ -57,16 +69,22 @@ TdgpStepper::TdgpStepper(Integer k, const ConvexSet &setA,
   }
   LLVM_DEBUG(cudaq::synth::dbgs() << "alpha0=" << alpha0_ << '\n');
 
+  // dx_ is the grid spacing in the t-parameter; v_common_ is the
+  // direction-vector image of that spacing under opG_inv (and v_conj_ its
+  // sqrt(2)-conjugate). These are loop invariants across all beta values.
   dx_ = DSqrt2::power_of_inv_sqrt2(k_);
   v_common_ = opG_inv_ * DOmega::from_dsqrt2_vector(dx_, DSqrt2{0}, k_);
   v_conj_ = v_common_.conj_sq2();
 
+  // 2^k appears in the per-beta fattening factor. Precompute once.
   two_pow_k_ = Real((Integer(1) << k_));
 
   beta_gen_.emplace(bboxA_y_fattened_, bboxB_y_fattened_, k_ + 1);
 }
 
 TdgpStepper::~TdgpStepper() {
+  // Emit the skip count (if any) just before the close line so the diagnostic
+  // tree stays well-nested under the "solve_tdgp" scope.
   if (skipped_betas_ > 0)
     SYNTH_ACTION("Skip") << skipped_betas_ << " betas\n";
 
@@ -80,6 +98,10 @@ TdgpStepper::~TdgpStepper() {
 }
 
 bool TdgpStepper::advance_to_next_beta() {
+  // Pull beta values out of beta_gen_ until one yields a non-empty
+  // (intA, intB) intersection; for that beta, materialise the inner
+  // alpha-stepper and set current_beta_ before returning. beta values whose
+  // line misses A or B entirely are counted in skipped_betas_ and skipped.
   while (true) {
     const DSqrt2 *beta = beta_gen_->next();
     if (!beta)
@@ -100,6 +122,9 @@ bool TdgpStepper::advance_to_next_beta() {
 
     DSqrt2 parity = absorb_sqrt2_power(*beta - alpha0_, k_);
 
+    // Fatten the t-interval to absorb the MPFR rounding errors accumulated
+    // along the line-intersection path. Wider intervals need less padding,
+    // hence the inverse-width scaling capped at the constant tdgp_ten().
     Real intA_width = intA.width();
     Real intB_width = intB.width();
     Real dtA = tdgp_ten() / std::max(tdgp_ten(), two_pow_k_ * intB_width);
@@ -121,6 +146,11 @@ const DOmega *TdgpStepper::next() {
   if (exhausted_)
     return nullptr;
 
+  // Two-level loop: outer over beta (driven by beta_gen_, materialised
+  // lazily via advance_to_next_beta), inner over alpha for the current
+  // beta. Candidates that survive the line scan but fail the exact in-A,
+  // in-B membership check are silently dropped (the line scan operates on
+  // a slightly fattened interval, so over-approximation is expected).
   for (;;) {
     if (!alpha_gen_) {
       if (!advance_to_next_beta()) {
@@ -131,11 +161,12 @@ const DOmega *TdgpStepper::next() {
 
     const DSqrt2 *alpha = alpha_gen_->next();
     if (!alpha) {
-      // Inner α-stepper exhausted for the current β; move to next β.
       alpha_gen_.reset();
       continue;
     }
 
+    // Map the line-scan parameter back to (alpha, beta) coordinates, build
+    // the candidate D[omega] element, and undo the upright transform.
     DSqrt2 new_alpha = *alpha * dx_ + alpha0_;
     DOmega candidate = DOmega::from_dsqrt2_vector(new_alpha, current_beta_, k_);
     DOmega z_tr = opG_inv_ * candidate;
@@ -149,9 +180,12 @@ const DOmega *TdgpStepper::next() {
       ++yielded_;
       return &last_sol_;
     }
-    // filter rejected -- continue with next α
   }
 }
+
+//===----------------------------------------------------------------------===//
+// Factory function
+//===----------------------------------------------------------------------===//
 
 TdgpStepper solve_tdgp(Integer k, const ConvexSet &setA, const ConvexSet &setB,
                        const GridOp &opG_inv, Rectangle bboxA, Rectangle bboxB,

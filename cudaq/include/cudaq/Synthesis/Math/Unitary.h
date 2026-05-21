@@ -18,68 +18,72 @@
 
 namespace cudaq::synth {
 
-/// DOmegaUnitary: A 2×2 unitary matrix with entries in D[ω], `parametrized` as:
+//===----------------------------------------------------------------------===//
+// DOmegaUnitary
+//===----------------------------------------------------------------------===//
+
+/// A 2x2 unitary with entries in D[omega], parametrised as
 ///
-///   U = [[z, -w† · ωⁿ],
-///        [w,  z† · ωⁿ]]
+///     U = [[ z,           -conj(w) * omega^n ],
+///          [ w,            conj(z) * omega^n ]]
 ///
-/// where z, w ∈ D[ω] and n ∈ Z/8Z.
+/// where z, w in D[omega] and n in Z/8Z.
 ///
-/// Reference: Ross & Selinger, arXiv:1403.2975, §7.1, equations (11)-(12),
-/// and `Kliuchnikov, Maslov, Mosca` [10].
+/// References: Ross & Selinger, arXiv:1403.2975, sec. 7.1, equations (11)
+/// and (12); Kliuchnikov, Maslov, Mosca [10].
 ///
-/// From [10], a single-qubit operator can be exactly written as a product
-/// of Clifford+T operators iff all its matrix entries belong to D[ω].
-/// The special form (12) with n = 0 is:
-///   U = [[u, -t†], [t, u†]]
-/// where u†u + t†t = 1.
+/// Theorem (from [10]): a single-qubit operator is exactly Clifford+T iff
+/// every matrix entry lies in D[omega]. The n = 0 specialisation collapses
+/// to
+///     U = [[ u, -conj(t) ], [ t, conj(u) ]]
+/// with conj(u)*u + conj(t)*t = 1. Lemma 7.2 of the paper proves that for
+/// epsilon < |1 - e^{i*pi/8}| every approximate-synthesis solution has this
+/// form (n = 0).
 ///
-/// By Lemma 7.2, for ε < |1 - e^{iπ/8}|, all solutions of the
-/// approximate synthesis problem have this form (n = 0).
+/// T-count. Determined by the least denominator exponent k shared by z and
+/// w: T-count = 2*k - 2 for k > 0, or 0 for k = 0 (Lemma 7.3). When the
+/// raw answer is 2*k, the equivalent unitary T*U*conj(T) achieves 2*k - 2
+/// and approximates equally well because R_z(theta) commutes with T.
 ///
-/// The T-count of U is determined by the least denominator exponent k
-/// of z (equivalently w): T-count = 2k-2 for k > 0, or 0 for k = 0
-/// (Lemma 7.3). If the T-count is 2k, then U' = TUT† has T-count 2k-2
-/// and approximates equally well (since R_z(θ) commutes with T).
+/// Gate operators. The `mul_by_*_from_left` family applies the standard
+/// Clifford+T generators to U by transforming (z, w, n) directly. The
+/// exact decomposition algorithm (kmm_synthesize.h) uses these to peel off
+/// gates one at a time while driving the denominator exponent down to zero.
 ///
-/// Gate multiplications (mul_by_*_from_left) implement the action of
-/// standard gates on the (z, w, n) representation. These are used by
-/// the exact decomposition algorithm (decompose_domega_unitary in
-/// kmm_synthesize.h) to peel off gates one at a time while reducing the
-/// denominator exponent.
-///
-/// from_gates() reconstructs U from a gate string, used for verification.
+/// `from_gates` reverses a gate string back to a DOmegaUnitary -- used by
+/// the verification path.
 class DOmegaUnitary {
 private:
   DOmega _z, _w;
   i32 _n;
 
 public:
-  // Constructor
+  /// Construct from explicit (z, w, n). If `k` is negative (the default),
+  /// z and w are auto-aligned to the larger of their two denominator
+  /// exponents; otherwise both are renormalised to exactly k.
   DOmegaUnitary(const DOmega &z, const DOmega &w, i32 n, i32 k = -1)
       : _z(z), _w(w), _n(n & 0b111) {
 
     if (k == -1) {
-      // Auto-align denominators
       if (_z.k() > _w.k()) {
         _w = with_denom_exp(_w, _z.k());
       } else if (_z.k() < _w.k()) {
         _z = with_denom_exp(_z, _w.k());
       }
     } else {
-      // Use specified denominator exponent
       _z = with_denom_exp(_z, k);
       _w = with_denom_exp(_w, k);
     }
   }
 
-  // Properties
+  // -- Accessors --
+
   DOmega z() const { return _z; }
   DOmega w() const { return _w; }
   i32 n() const { return _n; }
   i32 k() const { return static_cast<i32>(_w.k()); }
 
-  // Matrix representation as 2x2 array of DOmega
+  /// 2x2 matrix view with entries in D[omega] (equation (12) instantiated).
   std::array<std::array<DOmega, 2>, 2> to_matrix() const {
     DOmega m00 = _z;
     DOmega m01 = -mul_by_omega_power(_w.conj(), _n);
@@ -89,17 +93,17 @@ public:
     return {{{{m00, m01}}, {{m10, m11}}}};
   }
 
-  // Complex matrix representation (avoid intermediate arrays and extra
-  // temporaries)
+  /// 2x2 floating-point complex matrix. Avoids the intermediate DOmega
+  /// matrix by computing all four entries' real/imag coordinates with a
+  /// shared inv_scale and sqrt(2)/2 (`coords_into` amortises the MPFR
+  /// work across the four entries).
   std::array<std::array<std::complex<Real>, 2>, 2> to_complex_matrix() const {
-    // Build entries directly and use fast coord extraction with hoisted
-    // invariants.
     DOmega m00 = _z;
     DOmega m01 = -mul_by_omega_power(_w.conj(), _n);
     DOmega m10 = _w;
     DOmega m11 = mul_by_omega_power(_z.conj(), _n);
 
-    // All entries share the same denominator exponent k
+    // All four entries share the same denominator exponent k.
     const Real inv_scale = Real(1.0) / pow_sqrt2(_w.k());
     const Real sqrt2_over_2 = Real::sqrt2() / 2;
 
@@ -113,7 +117,6 @@ public:
              {{std::complex<Real>(r10, i10), std::complex<Real>(r11, i11)}}}};
   }
 
-  // Equality operator
   bool operator==(const DOmegaUnitary &other) const {
     return _z == other._z && _w == other._w && _n == other._n;
   }
@@ -122,20 +125,24 @@ public:
     return !(*this == other);
   }
 
-  // Gate multiplications from the left.
+  // -- Left multiplication by standard gates --
   //
-  // Each method computes g · U where g is a standard gate and U = *this.
-  // The transformations on (z, w, n) follow from the matrix forms:
-  //   T = `diag(1, ω)`        → (z, ω·w, n+1)
-  //   S = `diag(1, i) = T²`   → (z, i·w, n+2)
-  //   H = (1/√2)[[1,1],[1,-1]] → ((z+w)/√2, (z-w)/√2, n+4)
-  //   X = [[0,1],[1,0]]     → (w, z, n+4)
-  //   W = ω·I (global phase)→ (ω·z, ω·w, n+2)
+  // Each method computes g * U for a Clifford+T generator g. The (z, w, n)
+  // transformations follow from the matrix forms of the generators:
   //
-  // These follow from the `parametrization` U = [[z, -w†·ωⁿ], [w, z†·ωⁿ]]
-  // and the fact that g·U must again have this form.
+  //   T = diag(1, omega)         -> (z,           omega * w,         n + 1)
+  //   S = diag(1, i) = T^2       -> (z,           i * w,             n + 2)
+  //   H = (1/sqrt(2)) [[1, 1], [1, -1]]
+  //                              -> ((z + w)/sqrt(2), (z - w)/sqrt(2), n + 4)
+  //   X = [[0, 1], [1, 0]]       -> (w,           z,                 n + 4)
+  //   W = omega * I (global phase)
+  //                              -> (omega * z,  omega * w,           n + 2)
+  //
+  // The transformations are forced by the parametrisation
+  //     U = [[ z, -conj(w) * omega^n ], [ w, conj(z) * omega^n ]]
+  // together with the requirement that g * U must again have this form.
 
-  // T·U: T = `diag(1, ω)` multiplies the lower-left entry w by ω.
+  /// T * U: multiplies the lower-left entry by omega.
   DOmegaUnitary mul_by_T_from_left() const {
     return DOmegaUnitary(_z, mul_by_omega(_w), _n + 1);
   }
@@ -182,58 +189,52 @@ public:
                          _n + (m << 1));
   }
 
-  // Static factory methods
+  // -- Factories --
+
   static DOmegaUnitary identity() {
     return DOmegaUnitary(DOmega::from_int(1), DOmega::from_int(0), 0);
   }
 
-  /// Reconstruct a DOmegaUnitary from a Circuit (H, T, S, X, W).
-  /// Defined out-of-line because it requires the with_denom_exp and
-  /// to_lde free functions, which are declared after this class.
+  /// Reconstruct a DOmegaUnitary from a Circuit (gate alphabet H, T, S, X, W).
+  /// Defined out of line because it needs `with_denom_exp` and `to_lde`,
+  /// which are declared after this class.
   static DOmegaUnitary from_gates(const Circuit &circuit);
 
-  /// Returns "DOmegaUnitary(z=..., w=..., n=N)" delegating to
-  /// DOmega::to_string() for z and w. Intended for logging and debugging.
+  /// "DOmegaUnitary(z=..., w=..., n=N)" rendering for debug logging.
   std::string to_string() const {
     return "DOmegaUnitary(z=" + _z.to_string() + ", w=" + _w.to_string() +
            ", n=" + std::to_string(_n) + ")";
   }
 };
 
-// ---------------------------------------------------------------------------
+//===----------------------------------------------------------------------===//
 // Free functions on DOmegaUnitary
-// ---------------------------------------------------------------------------
+//===----------------------------------------------------------------------===//
 
-/// with_denom_exp: Return a copy of u with both z and w re-expressed at
-/// denominator exponent new_k. Overloads with_denom_exp(DOmega, Integer).
+/// Re-express u with both z and w at denominator exponent `new_k`. Overload
+/// of `with_denom_exp(DOmega, Integer)` lifted to the unitary.
 inline DOmegaUnitary with_denom_exp(const DOmegaUnitary &u, i32 new_k) {
   return DOmegaUnitary(u.z(), u.w(), u.n(), new_k);
 }
 
-/// to_lde: Return a copy of u with the minimal denominator exponent
-/// by calling to_lde(DOmega) on each of z and w independently.
-/// Overloads to_lde(DOmega).
+/// Reduce u to its least denominator exponent by independently calling
+/// to_lde(DOmega) on z and on w.
 inline DOmegaUnitary to_lde(const DOmegaUnitary &u) {
   return DOmegaUnitary(to_lde(u.z()), to_lde(u.w()), u.n());
 }
 
-// ---------------------------------------------------------------------------
-// Approximation error metrics
-// ---------------------------------------------------------------------------
+//===----------------------------------------------------------------------===//
+// Approximation-error metrics
+//===----------------------------------------------------------------------===//
 
-/// Computes the operator norm approximation error ‖R_z(θ) - U‖.
+/// Operator-norm proxy for |R_z(theta) - U|.
 ///
 /// Reference: Ross & Selinger, arXiv:1403.2975, equation (13).
 ///
-/// Constructs E = U - R_z(θ) entry-by-entry using the complex matrix of u
-/// (via to_complex_matrix()) and returns √|`det`(E)| as a proxy for the
-/// operator norm. For small ε, the two singular values of E are approximately
-/// equal, so this proxy is accurate in the regime where the synthesizer
-/// operates.
-///
-/// @param u     The approximating Clifford+T unitary
-/// @param theta Target rotation angle θ; R_z(θ) = `diag(e^{-iθ/2}, e^{iθ/2})`
-/// @return      √|`det`(U - R_z(θ))|
+/// Builds E = U - R_z(theta) entry by entry from the complex matrix of u
+/// (via `to_complex_matrix`) and returns sqrt(|det(E)|). For small epsilon
+/// the two singular values of E are approximately equal, so this proxy is
+/// accurate in the regime the synthesizer targets.
 inline Real rz_approximation_error(const DOmegaUnitary &u, const Real &theta) {
   Real half = theta / Real(2.0);
   Real c = cos(half);
@@ -241,10 +242,10 @@ inline Real rz_approximation_error(const DOmegaUnitary &u, const Real &theta) {
 
   auto M = u.to_complex_matrix();
 
-  // E = U - R_z(θ); diagonal entries absorb the subtraction,
-  // off-diagonal entries are unchanged.
-  //   R_z(θ)[0][0] = e^{-iθ/2} = c - i·s
-  //   R_z(θ)[1][1] = e^{+iθ/2} = c + i·s
+  // E = U - R_z(theta). The diagonal entries absorb the subtraction;
+  // off-diagonal entries of R_z are zero.
+  //   R_z(theta)[0][0] = e^{-i*theta/2} = c - i*s
+  //   R_z(theta)[1][1] = e^{+i*theta/2} = c + i*s
   Real e00r = M[0][0].real() - c;
   Real e00i = M[0][0].imag() + s;
   Real e01r = M[0][1].real();
@@ -254,33 +255,25 @@ inline Real rz_approximation_error(const DOmegaUnitary &u, const Real &theta) {
   Real e11r = M[1][1].real() - c;
   Real e11i = M[1][1].imag() - s;
 
-  // `det(E) = E[0][0]·E[1][1] − E[0][1]·E[1][0]`, computed component-wise.
+  // det(E) = E[0][0]*E[1][1] - E[0][1]*E[1][0], computed in (re, im) pairs.
   Real det_re = (e00r * e11r - e00i * e11i) - (e01r * e10r - e01i * e10i);
   Real det_im = (e00r * e11i + e00i * e11r) - (e01r * e10i + e01i * e10r);
 
   return sqrt(sqrt(det_re * det_re + det_im * det_im));
 }
 
-/// Compute ‖R_z(θ) - U‖ for a circuit already reconstructed as a Circuit.
-///
-/// @param circuit  Clifford+T circuit
-/// @param theta    Target rotation angle θ
-/// @return         √|`det`(U - R_z(θ))| as a decimal string
+/// Convenience wrapper: compute |R_z(theta) - U| for a circuit already
+/// realised as a Circuit. Theta is consumed as an arbitrary-precision
+/// decimal string (so callers can stay in their preferred I/O format).
 inline std::string rz_gate_sequence_error(const std::string &theta,
                                           const Circuit &circuit) {
   return rz_approximation_error(DOmegaUnitary::from_gates(circuit), Real(theta))
       .to_string();
 }
 
-/// String-API overload: parses the gate string before delegating.
-///
-/// Provided for I/O boundaries (test utilities, print tools) where the
-/// circuit is represented as a string. Inside the synthesis pipeline, prefer
-/// the Circuit overload above.
-///
-/// @param theta  Target rotation angle as an arbitrary-precision decimal string
-/// @param gates  Clifford+T gate sequence string (characters H, T, S, X, W)
-/// @return       √|`det`(U - R_z(θ))| as a decimal string
+/// String-API overload: parse the gate string before delegating. Provided
+/// for I/O boundaries (test utilities, CLI tools); inside the synthesis
+/// pipeline prefer the Circuit overload above.
 inline std::string rz_gate_sequence_error(const std::string &theta,
                                           const std::string &gates) {
   llvm::FailureOr<Circuit> circuit_or = Circuit::from_string(gates);
@@ -289,17 +282,20 @@ inline std::string rz_gate_sequence_error(const std::string &theta,
   return rz_gate_sequence_error(theta, *circuit_or);
 }
 
-// ---------------------------------------------------------------------------
-// Out-of-line DOmegaUnitary member definitions
-// ---------------------------------------------------------------------------
+//===----------------------------------------------------------------------===//
+// Out-of-line DOmegaUnitary members
+//===----------------------------------------------------------------------===//
 
 inline DOmegaUnitary DOmegaUnitary::from_gates(const Circuit &circuit) {
   DOmegaUnitary unitary = identity();
 
-  // Process gates in reverse order (right-to-left multiplication).
+  // Right-to-left application: the rightmost gate acts first on the input
+  // ket, which means we left-multiply it onto the identity first.
   for (auto it = circuit.rbegin(); it != circuit.rend(); ++it) {
     switch (*it) {
     case Gate::H:
+      // H needs one extra factor of sqrt(2) in the denominator to keep
+      // every entry inside D[omega].
       unitary =
           with_denom_exp(unitary, unitary.k() + i32(1)).mul_by_H_from_left();
       break;

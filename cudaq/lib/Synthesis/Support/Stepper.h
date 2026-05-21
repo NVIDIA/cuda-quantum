@@ -18,43 +18,47 @@
 
 namespace cudaq::synth {
 
-/// CRTP base for lazy, single-pass steppers.
+//===----------------------------------------------------------------------===//
+// StepperBase
+//===----------------------------------------------------------------------===//
+
+/// CRTP base for lazy single-pass steppers -- the synth library's
+/// coroutine-free replacement for the previous C++20 generator<T> pattern,
+/// matching plain C++17 and the LLVM/MLIR ADT conventions.
 ///
-/// A stepper is a non-coroutine replacement for the previous C++20
-/// `generator<T>` pattern, following plain C++17 and MLIR/LLVM ADT
-/// conventions. Derived classes implement
+/// Contract for derived classes: implement
 ///
 ///     const T *next();
 ///
-/// returning a pointer to the next value (valid until the next call to
-/// `next()` or the stepper's destruction), or `nullptr` when exhausted.
+/// which returns a pointer to the next value (valid until the next call to
+/// next() or the stepper's destruction) or nullptr when exhausted.
 ///
-/// `StepperBase` adds a single-pass input range interface around `next()` so
-/// that derived steppers can be used directly with range-`for`:
+/// StepperBase wraps next() in a single-pass input range so the derived
+/// stepper can be used directly with range-for and `to_vector`:
 ///
 ///     for (const T &v : MyStepper(...)) { ... }
 ///     auto vec = to_vector(MyStepper(...));
 ///
-/// The iterator type inherits from `llvm::iterator_facade_base`, matching the
-/// rest of the LLVM/MLIR codebase. Derived steppers only need to provide
-/// `next()`; the iterator/range glue is handled here.
+/// The iterator inherits from llvm::iterator_facade_base, so derived
+/// steppers do not have to hand-roll iterator boilerplate.
 ///
-/// Yielded reference contract: the pointer returned by `next()` and the
-/// reference returned by `*it` are valid until the next call to `next()` /
-/// `++it`. Callers must consume or copy the value before advancing.
+/// Pointer contract: the value returned by next() (and the reference
+/// returned by *it) is valid only until the next call to next() / ++it.
+/// Callers must consume or copy before advancing.
 ///
-/// Steppers are typically non-copyable and non-movable (they often own
-/// `mpfr_t` scratch state with no move semantics). The base class itself is
-/// trivially copyable but derived classes can delete copy/move as needed.
+/// Steppers are typically non-copyable and non-movable (they own mpfr_t
+/// scratch state that has no move semantics). The base class itself is
+/// trivially copyable; derived classes can delete copy/move as needed.
 template <typename Derived, typename T>
 class StepperBase {
 public:
   using value_type = T;
 
-  /// Single-pass input iterator over the stepper's `next()` output.
-  /// Default-constructed iterators compare equal to any iterator whose
-  /// pointer is null (i.e. an exhausted iterator), which is the `end()`
-  /// sentinel for the range.
+  /// Single-pass input iterator over the stepper's next() output. A
+  /// default-constructed iterator compares equal to any iterator whose
+  /// internal value pointer is null, which is what end() returns and what
+  /// an exhausted iterator becomes after ++ -- so the standard
+  /// `it != end()` idiom drops out naturally.
   class iterator
       : public llvm::iterator_facade_base<iterator, std::input_iterator_tag,
                                           const T> {
@@ -84,8 +88,13 @@ public:
   iterator end() const { return iterator(); }
 };
 
-/// Materialize all elements of a lazy range (a stepper or any class with
-/// `begin()` / `end()` yielding T) into a `std::vector`.
+//===----------------------------------------------------------------------===//
+// Range helpers
+//===----------------------------------------------------------------------===//
+
+/// Drain a lazy range (a stepper or anything with begin()/end()) into a
+/// std::vector. The value type is deduced from the iterator's dereference
+/// type with cv/ref qualifiers stripped.
 template <typename Range>
 auto to_vector(Range &&r) {
   using ValueT =
@@ -96,7 +105,7 @@ auto to_vector(Range &&r) {
   return result;
 }
 
-/// Get the first element from a lazy range, or `std::nullopt` if empty.
+/// First element of a lazy range, or std::nullopt if the range is empty.
 template <typename Range>
 auto first_of(Range &&r)
     -> std::optional<

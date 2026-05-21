@@ -13,24 +13,28 @@
 
 namespace cudaq::synth {
 
-/// Decomposes a DOmegaUnitary into a Clifford+T Circuit in `Matsumoto-Amano`
+//===----------------------------------------------------------------------===//
+// Exact KMM synthesis
+//===----------------------------------------------------------------------===//
+
+/// Decompose a DOmegaUnitary into a Clifford+T Circuit in Matsumoto-Amano
 /// normal form.
 ///
-/// Reference: Ross & Selinger, arXiv:1403.2975, §7.3 step 3.
-/// Uses the exact synthesis algorithm of [10].
+/// Reference: Ross & Selinger, arXiv:1403.2975, sec. 7.3 step 3, using the
+/// exact synthesis algorithm of Kliuchnikov, Maslov, Mosca [10].
 ///
-/// Algorithm:
-/// 1. Repeatedly call reduce_denomexp to peel off one gate (or short syllable)
-///    from the left, reducing the denominator exponent k by 1 each iteration.
-/// 2. When k = 0, the remaining matrix is a Clifford; decompose it into
-///    X/W/S gates via the normal-form `parametrization`.
-/// 3. Normalize the accumulated Circuit via normalize_gates() to produce
-///    the canonical `Matsumoto-Amano` form with minimum T-count.
+/// Three-phase algorithm:
+///   1. Repeatedly call `reduce_denomexp` to peel a single gate (or a
+///      short HT / SHT syllable) off the left, dropping the denominator
+///      exponent k by one per iteration.
+///   2. At k = 0 the residue is a Clifford; unwind it as X / W / S gates
+///      via the (a, b, c, d) Clifford parametrisation.
+///   3. Normalise the accumulated gate list with `normalize_gates` to land
+///      in canonical Matsumoto-Amano form with minimum T-count.
 ///
-/// The function cannot fail: all inputs from gridsynth_unitary are valid
-/// DOmegaUnitaries, and normalize_gates is total over Circuit (no unknown
-/// gate characters are possible).
-///
+/// Total over its input domain. Every DOmegaUnitary produced by
+/// gridsynth_unitary is valid input, and normalize_gates is total over
+/// Circuit values.
 Circuit kmm_synthesize(DOmegaUnitary unitary);
 
 } // namespace cudaq::synth
