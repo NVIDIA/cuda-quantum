@@ -98,7 +98,9 @@ public:
     return DSqrt2(_alpha * other._alpha, _k + other._k);
   }
 
-  // -- Ring automorphisms --
+  //===--------------------------------------------------------------------===//
+  // Ring automorphisms
+  //===--------------------------------------------------------------------===//
 
   /// sqrt(2)-conjugation. For odd k the sign flips
   /// ((-sqrt(2))^k = -sqrt(2)^k), so
@@ -110,7 +112,9 @@ public:
     return DSqrt2(_alpha.conj_sq2(), _k);
   }
 
-  // -- Derived properties --
+  //===--------------------------------------------------------------------===//
+  // Derived properties
+  //===--------------------------------------------------------------------===//
 
   /// Parity of the constant coefficient of the Z[sqrt(2)] numerator. Always
   /// 0 or 1. Used by the ODGP parity-aware variant in odgp.cpp.

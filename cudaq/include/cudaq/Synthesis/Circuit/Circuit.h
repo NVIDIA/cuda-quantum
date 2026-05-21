@@ -35,22 +35,17 @@ class Circuit {
   std::vector<Gate> gates_;
 
 public:
-  /// Empty circuit -- the identity operator.
   Circuit() = default;
 
-  /// Brace-init from a gate list: Circuit({Gate::H, Gate::T, Gate::H}).
   Circuit(std::initializer_list<Gate> g) : gates_(g) {}
 
   //===--------------------------------------------------------------------===//
   // Iteration
   //===--------------------------------------------------------------------===//
 
-  /// Forward iteration in application order (left to right).
   auto begin() const { return gates_.begin(); }
   auto end() const { return gates_.end(); }
 
-  /// Reverse iteration. Used when reconstructing a unitary from a circuit
-  /// via right-to-left gate application (see DOmegaUnitary::from_gates).
   auto rbegin() const { return gates_.rbegin(); }
   auto rend() const { return gates_.rend(); }
 
@@ -71,7 +66,10 @@ public:
   Gate operator[](size_t i) const { return gates_[i]; }
 
   /// Last gate. Calling this on an empty Circuit is undefined behaviour.
-  Gate back() const { return gates_.back(); }
+  Gate back() const { 
+    assert(!gates_.empty() && "Cannot call back() on an empty Circuit");
+    return gates_.back(); 
+  }
 
   //===--------------------------------------------------------------------===//
   // Mutation
@@ -81,7 +79,10 @@ public:
 
   /// Drop the last gate. Calling this on an empty Circuit is undefined
   /// behaviour.
-  void pop_back() { gates_.pop_back(); }
+  void pop_back() { 
+    assert(!gates_.empty() && "Cannot call pop_back() on an empty Circuit");
+    gates_.pop_back(); 
+  }
 
   /// Concatenate `rhs` onto the end.
   Circuit &operator+=(const Circuit &rhs) {
@@ -103,8 +104,7 @@ public:
   // Metrics
   //===--------------------------------------------------------------------===//
 
-  /// Number of T gates -- the T-count, i.e. the non-Clifford cost of the
-  /// circuit. O(n) scan over the gate list.
+  /// Number of T gates. O(n) scan over the gate list.
   int t_count() const {
     int n = 0;
     for (Gate g : gates_)
