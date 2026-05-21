@@ -132,7 +132,9 @@ public:
     return ZOmega(_a * x, _b * x, _c * x, _d * x);
   }
 
-  // -- Ring automorphisms --
+  //===--------------------------------------------------------------------===//
+  // Ring automorphisms
+  //===--------------------------------------------------------------------===//
 
   /// Complex conjugation (Paper Definition 3.2). Maps omega to omega^-1:
   ///     conj(a*omega^3 + b*omega^2 + c*omega + d)
@@ -147,7 +149,9 @@ public:
   ///     Grid(B) = { u in Z[omega] | conj_sq2(u) in B }   (Definition 5.1).
   ZOmega conj_sq2() const { return ZOmega(-_a, _b, -_c, _d); }
 
-  // -- Derived properties --
+  //===--------------------------------------------------------------------===//
+  // Derived properties
+  //===--------------------------------------------------------------------===//
 
   /// Full norm N(u) = conj(u) * u * conj_sq2(conj(u)) * conj_sq2(u), always
   /// a non-negative integer (Remark 3.3). Serves as the Euclidean function

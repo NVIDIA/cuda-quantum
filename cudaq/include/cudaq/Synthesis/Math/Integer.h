@@ -49,7 +49,9 @@ private:
   mpz_t value_;
 
 public:
-  // -- Construction --
+  //===--------------------------------------------------------------------===//
+  // Construction
+  //===--------------------------------------------------------------------===//
 
   Integer() { mpz_init(value_); }
 
@@ -68,7 +70,9 @@ public:
 
   bool is_odd() const { return mpz_odd_p(value_); }
 
-  // -- Assignment --
+  //===--------------------------------------------------------------------===//
+  // Assignment
+  //===--------------------------------------------------------------------===//
 
   Integer &operator=(const Integer &other) {
     if (this != &other)
@@ -92,7 +96,9 @@ public:
     return *this;
   }
 
-  // -- Conversions --
+  //===--------------------------------------------------------------------===//
+  // Conversions
+  //===--------------------------------------------------------------------===//
 
   explicit operator i32() const { return static_cast<i32>(mpz_get_si(value_)); }
 
@@ -111,7 +117,9 @@ public:
   mpz_t &get_mpz_t() { return value_; }
   const mpz_t &get_mpz_t() const { return value_; }
 
-  // -- Arithmetic --
+  //===--------------------------------------------------------------------===//
+  // Arithmetic
+  //===--------------------------------------------------------------------===//
 
   Integer operator+(const Integer &other) const {
     Integer result;
@@ -143,7 +151,9 @@ public:
     return result;
   }
 
-  // -- Compound assignment --
+  //===--------------------------------------------------------------------===//
+  // Compound assignment
+  //===--------------------------------------------------------------------===//
 
   Integer &operator+=(const Integer &other) {
     mpz_add(value_, value_, other.value_);
@@ -218,7 +228,9 @@ public:
     return *this;
   }
 
-  // -- Increment / decrement --
+  //===--------------------------------------------------------------------===//
+  // Increment / decrement
+  //===--------------------------------------------------------------------===//
 
   Integer &operator++() {
     mpz_add_ui(value_, value_, 1);
@@ -231,7 +243,9 @@ public:
     return temp;
   }
 
-  // -- Comparison --
+  //===--------------------------------------------------------------------===//
+  // Comparison
+  //===--------------------------------------------------------------------===//
 
   bool operator==(const Integer &other) const {
     return mpz_cmp(value_, other.value_) == 0;
@@ -257,7 +271,9 @@ public:
     return mpz_cmp(value_, other.value_) >= 0;
   }
 
-  // -- Bitwise --
+  //===--------------------------------------------------------------------===//
+  // Bitwise
+  //===--------------------------------------------------------------------===//
 
   Integer operator<<(i32 shift) const {
     Integer result;
@@ -318,7 +334,9 @@ public:
     return *this;
   }
 
-  // -- Unary --
+  //===--------------------------------------------------------------------===//
+  // Unary
+  //===--------------------------------------------------------------------===//
 
   Integer operator-() const {
     Integer result;
