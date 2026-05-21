@@ -291,9 +291,9 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
     SYNTH_FENCE();
     SYNTH_OPEN_SUB("k = " + std::to_string(static_cast<int64_t>(k)));
 
-    for (const DOmega &z :
-         solve_tdgp(k, *region_or, unit_disk, opG_inv, transformed.bboxA,
-                    transformed.bboxB, bboxA_y_fattened, bboxB_y_fattened)) {
+    TdgpStepper stepper(k, *region_or, unit_disk, opG_inv, transformed.bboxA,
+                        transformed.bboxB, bboxA_y_fattened, bboxB_y_fattened);
+    for (const DOmega &z : stepper) {
       // Step 2(a): residue gate.
       //
       // If conj(z) * z has residue 0 (i.e. is even in the Z[omega] residue
