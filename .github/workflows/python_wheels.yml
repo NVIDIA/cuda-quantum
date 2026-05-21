@@ -353,7 +353,8 @@ jobs:
 
             # Resolve README template placeholders that pyproject.toml leaves
             # unsubstituted (readme points at README.md.in). Without this the
-            # eval below would hit bash "bad substitution" on `${{ ... }}`.
+            # eval below would hit bash "bad substitution" on un-substituted
+            # README placeholders.
             cuda_version_conda="${{ inputs.cuda_version }}.0"
             cuda_version_conda="${cuda_version_conda/13.0.0/13.0.2}"
             sub_placeholders() {
