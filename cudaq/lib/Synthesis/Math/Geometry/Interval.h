@@ -12,22 +12,22 @@
 
 namespace cudaq::synth {
 
-/// Interval: A closed real interval [l, r].
+//===----------------------------------------------------------------------===//
+// Interval
+//===----------------------------------------------------------------------===//
+
+/// A closed real interval [l, r].
 ///
-/// Reference: Ross & Selinger, arXiv:1403.2975, §4.
+/// Reference: Ross & Selinger, arXiv:1403.2975, sec. 4. Intervals are the
+/// building blocks of the one-dimensional grid problem (Definition 4.3): the
+/// ODGP solver finds all alpha in Z[sqrt(2)] with alpha in A = [x_0, x_1]
+/// and conj_sq2(alpha) in B = [y_0, y_1].
 ///
-/// Intervals are the fundamental building blocks for one-dimensional grid
-/// problems (Definition 4.3). The ODGP solver finds all α ∈ Z[√2] with
-/// α ∈ A = [x₀, x₁] and α● ∈ B = [y₀, y₁].
+/// Solvability bounds carried over from the paper:
+///   width(A) * width(B) < 1            -- at most one solution (Lemma 4.4).
+///   width(A) * width(B) >= (1+sqrt(2))^2 -- at least one solution.
 ///
-/// Key properties from the paper:
-/// - If δΔ < 1 (where δ, Δ are interval widths), the grid problem has
-///   at most one solution (Lemma 4.4).
-/// - If δΔ ≥ (1+√2)², the grid problem has at least one solution.
-/// - The fattened interval (free function fatten) is used in the TDGP solver
-///   to handle the ω-offset variant from Lemma 5.5.
-///
-/// Degenerate intervals (a > b, i.e. width() < 0) are permitted and represent
+/// Degenerate intervals (l > r, i.e. width() < 0) are permitted and represent
 /// the empty set. The ODGP solver short-circuits to an empty result on these.
 class Interval {
 private:
@@ -42,22 +42,22 @@ public:
 
   Real width() const { return end - begin; }
 
-  /// Return true iff x lies in the closed interval [l, r].
+  /// True iff x lies in the closed interval [l, r].
   bool contains(const Real &x) const { return x >= begin && x <= end; }
 
-  /// Scale: multiply both endpoints by scale, swapping if scale < 0.
+  /// Scale: multiply both endpoints by `scale`. Negative scales swap the
+  /// endpoints so the result remains a non-degenerate (l <= r) interval.
   Interval operator*(const Real &scale) const {
     if (scale >= 0)
       return Interval(begin * scale, end * scale);
     return Interval(end * scale, begin * scale);
   }
 
-  /// Shift: translate both endpoints by shift.
+  /// Translate both endpoints by `shift`.
   Interval operator+(const Real &shift) const {
     return Interval(begin + shift, end + shift);
   }
 
-  /// Shift: translate both endpoints by -shift.
   Interval operator-(const Real &shift) const {
     return Interval(begin - shift, end - shift);
   }
@@ -67,16 +67,15 @@ public:
   }
 };
 
-// ---------------------------------------------------------------------------
+//===----------------------------------------------------------------------===//
 // Free functions on Interval
-// ---------------------------------------------------------------------------
+//===----------------------------------------------------------------------===//
 
-/// Return a copy of I expanded symmetrically by amount on each side:
-/// fatten([l, r], δ) = [l − δ, r + δ].
+/// Symmetric expansion: fatten([l, r], delta) = [l - delta, r + delta].
 ///
-/// Used in the TDGP solver (tdgp.cpp) to pad the intersection interval by
-/// a small multiple of its width, guarding against finite-precision rounding
-/// when checking whether a grid point lies on the boundary.
+/// Used by the TDGP solver to pad an intersection interval by a small
+/// multiple of its width, absorbing finite-precision rounding when checking
+/// whether a grid point lies on the boundary.
 inline Interval fatten(const Interval &I, const Real &amount) {
   return Interval(I.l() - amount, I.r() + amount);
 }

@@ -26,69 +26,55 @@ using namespace cudaq::synth;
 
 namespace {
 
-/// EpsilonRegion: the ε-region R_ε for the approximate z-rotation synthesis
-/// problem.
+//===----------------------------------------------------------------------===//
+// EpsilonRegion
+//===----------------------------------------------------------------------===//
+
+/// The epsilon-region R_epsilon for the approximate z-rotation synthesis
+/// problem (Ross & Selinger, arXiv:1403.2975, sec. 7.1, equation (14)).
 ///
-/// Reference: Ross & Selinger, arXiv:1403.2975, §7.1, equation (14).
+/// For a target rotation R_z(theta) and precision epsilon > 0, R_epsilon is
+/// the lens-shaped region
 ///
-/// For a target z-rotation
-///   R_z(θ) = `diag`(e^{-iθ/2}, e^{iθ/2})
-/// and precision ε > 0, the ε-region is
+///   R_epsilon = { u in closed unit disk | dot(u, z) >= sqrt(1 - epsilon^2/4) }
 ///
-///   R_ε = { u ∈ D̄ | u · z ≥ `sqrt`(1 - ε²/4) },
+/// where z = (cos(-theta/2), sin(-theta/2)) is the point on the unit circle
+/// corresponding to the target rotation. The dot-product condition is
+/// equivalent to |R_z(theta) - U| <= epsilon for single-qubit unitaries U
+/// (equation (13)).
 ///
-/// where
-///   z = (cos(-θ/2), sin(-θ/2))
-/// is the point on the unit circle corresponding to the target rotation, and D̄
-/// is the closed unit disc.
-///
-/// Geometrically, R_ε is the intersection of the unit disc with a half‑plane:
-/// a "lens" around z on the unit circle. The dot‑product condition
-///   u · z ≥ 1 - ε² / 2
-/// is equivalent to
-///   ‖R_z(θ) - U‖ ≤ ε
-/// for single-qubit unitaries U (equation (13) in the paper).
-///
-/// For the grid/ellipse machinery, we also maintain a *bounding ellipse* E that
-/// contains R_ε. This is what the to_upright algorithm takes as input
-/// (Theorem 5.16), and it is constructed by a specific linear transform
-/// depending on θ and ε.
-///
-/// Important: the membership test inside() still uses the *exact* half‑plane ∩
-/// disc definition of R_ε, not the ellipse approximation.
+/// The class carries both the *exact* region definition (used by contains()
+/// and intersect()) and a *bounding ellipse* that encloses R_epsilon. The
+/// ellipse feeds the upright preprocessing in to_upright() (Theorem 5.16);
+/// the exact region is what the TDGP filter ultimately checks.
 class EpsilonRegion : public ConvexSet {
 private:
-  // Threshold d = `sqrt`(1 - ε²/4) appearing in the half-plane inequality u·z ≥
-  // d.
+  // Half-plane threshold d = sqrt(1 - epsilon^2/4); the membership test is
+  // dot(u, z) >= d.
   Real dot_threshold;
 
-  // Components of the direction vector z = (cos(-θ/2), sin(-θ/2)).
+  // Components of the direction vector z = (cos(-theta/2), sin(-theta/2)).
   Real z_x;
   Real z_y;
 
-  // Ellipse that encloses R_ε, used for the grid/ellipse algorithms.
+  // Ellipse enclosing R_epsilon (input to to_upright).
   Ellipse bounding_ellipse;
 
-  /// Private constructor: takes pre-validated components.
   EpsilonRegion(Real dot_threshold_, Real z_x_, Real z_y_,
                 Ellipse bounding_ellipse_)
       : dot_threshold(std::move(dot_threshold_)), z_x(std::move(z_x_)),
         z_y(std::move(z_y_)), bounding_ellipse(std::move(bounding_ellipse_)) {}
 
-  /// Helper bundle for precomputed constants.
   struct Precomputed {
     Real dot_threshold;
     Real z_x;
     Real z_y;
   };
 
-  /// Compute:
-  ///   dot_threshold = `sqrt`(1 - ε²/4)  (= cos(arcsin(ε/2)))
-  ///   z = (cos(-θ/2), sin(-θ/2)),
-  /// using mpfr_sin_cos to obtain both trig values at once.
-  ///
-  /// The condition u · z ≥ dot_threshold is equivalent to |sin(φ)| ≤ ε/2,
-  /// where φ is the angle between u and z.
+  /// Precompute the three scalars that depend on (theta, epsilon):
+  ///   dot_threshold = sqrt(1 - epsilon^2/4) = cos(arcsin(epsilon/2))
+  ///   z             = (cos(-theta/2), sin(-theta/2))
+  /// Uses mpfr_sin_cos to get both trig values from a single argument.
   static Precomputed compute_precomputed(const Real &theta,
                                          const Real &epsilon) {
     Precomputed pre;
@@ -100,26 +86,23 @@ private:
     return pre;
   }
 
-  /// Construct the enclosing ellipse E from the already‑computed z components
-  /// and ε.  Returns failure() if the resulting parameters are not positive
-  /// definite (should not happen for valid ε > 0).
+  /// Build the enclosing ellipse from the rotation D1 by -theta/2, an
+  /// anisotropic scaling D2 = diag(64/epsilon^4, 4/epsilon^2) chosen to fit
+  /// the lens, and the rotation D3 by +theta/2 back. The resulting quadratic
+  /// form coefficients are:
   ///
-  ///   D1 = rotation by -θ/2:   [[ z_x, -z_y], [ z_y,  z_x]]
-  ///   D2 = `diag`(64/ε⁴, 4/ε²):  anisotropic scaling to fit the lens shape
-  ///   D3 = rotation by  θ/2:   [[ z_x,  z_y], [-z_y,  z_x]]
+  ///   A x^2 + 2B xy + C y^2 + Dx x + Dy y <= 1
   ///
-  /// The resulting ellipse is the image of the unit disc under D1·D2·D3,
-  /// written in the quadratic form expected by Ellipse.
+  /// Returns failure() if Ellipse::create rejects the parameters; this
+  /// should not happen for epsilon > 0.
   static llvm::FailureOr<Ellipse>
   make_bounding_ellipse(const Real &z_x, const Real &z_y,
                         const Real &dot_threshold, const Real &epsilon) {
     Real inv_eps2 = 1 / (epsilon * epsilon);
     Real inv_eps4 = inv_eps2 * inv_eps2;
-    Real lambda_x = 64 * inv_eps4;       // D2(0,0)
-    const Real &lambda_y = 4 * inv_eps2; // D2(1,1)
+    Real lambda_x = 64 * inv_eps4;       // D2(0, 0)
+    const Real &lambda_y = 4 * inv_eps2; // D2(1, 1)
 
-    // Quadratic form coefficients for the ellipse:
-    //   A x² + 2B `xy` + C y² + D x + E y ≤ 1
     Real A = lambda_x * z_x * z_x + lambda_y * z_y * z_y;
     Real B = (lambda_x - lambda_y) * z_x * z_y;
     Real C = lambda_x * z_y * z_y + lambda_y * z_x * z_x;
@@ -130,8 +113,9 @@ private:
   }
 
 public:
-  /// Factory: creates the ε-region for target angle θ and precision ε.
-  /// Returns failure() if the bounding ellipse is degenerate.
+  /// Build the epsilon-region for target angle theta and precision epsilon.
+  /// Returns failure() if the enclosing ellipse is degenerate (does not
+  /// occur for epsilon > 0).
   static llvm::FailureOr<EpsilonRegion> create(const Real &theta,
                                                const Real &epsilon) {
     Precomputed pre = compute_precomputed(theta, epsilon);
@@ -145,36 +129,29 @@ public:
 
   const Ellipse &ellipse() const { return bounding_ellipse; }
 
-  /// Exact membership test for the ε‑region R_ε:
-  ///
-  ///   u ∈ R_ε  ⇔  ‖u‖² ≤ 1   and   u · z ≥ d,
-  ///
-  /// where d = 1 - ε²/2 and z = (cos(-θ/2), sin(-θ/2)).
-  /// A small tolerance is used to compensate for MPFR rounding.
+  /// Exact membership test for R_epsilon: u is inside iff u lies in the unit
+  /// disk and dot(u, z) >= dot_threshold. The check uses exact DSqrt2
+  /// arithmetic for the disk constraint; MPFR rounding on the dot-product
+  /// side is absorbed by the cached widened bounds further downstream.
   bool contains(const DOmega &u) const override {
     Real cos_similarity = u.real() * z_x + u.imag() * z_y;
     return DSqrt2::from_domega(u.conj() * u) <= DSqrt2{1} &&
            cos_similarity >= dot_threshold;
   }
 
-  /// Intersect a ray with R_ε.
+  /// Intersect the ray u(t) = u0 + t*v with R_epsilon, returning the
+  /// parameter interval [t_lo, t_hi] for which u(t) lies inside, or nullopt
+  /// if the ray misses R_epsilon entirely.
   ///
-  /// The ray is parameterized as u(t) = u0 + t·v.
-  /// We first intersect with the unit disc:
-  ///   ‖u(t)‖² ≤ 1  ⇒  a t² + b t + c ≤ 0
-  /// and solve the quadratic a t² + b t + c = 0 for [t0, t1].
-  ///
-  /// Then intersect [t0, t1] with the half‑plane constraint u(t) · z ≥ d:
-  ///   (z·v) t ≥ d - z·u0.
-  ///
-  /// Returns [t_start, t_end] if there is a non‑empty intersection, or
-  /// std::nullopt if the ray never passes through R_ε.
+  /// The implementation does this in two stages: first intersect with the
+  /// unit disk (a quadratic in t), then intersect the resulting interval
+  /// with the half-plane dot(u(t), z) >= d (a linear in t, sign-dependent).
   std::optional<std::pair<Real, Real>>
   intersect(const DOmega &u0, const DOmega &v) const override {
     static const Real tolerance(1e-30);
     using Roots = std::pair<Real, Real>;
 
-    // Intersection with unit disc: a t² + b t + c = 0
+    // Unit-disk intersection: |u(t)|^2 <= 1 reduces to a*t^2 + b*t + c <= 0.
     DOmega a = v.conj() * v;
     DOmega b = DOmega::from_int(2) * (u0.conj() * v);
     DOmega c = u0.conj() * u0 - DOmega::from_dsqrt2(DSqrt2{1});
@@ -186,39 +163,36 @@ public:
 
     auto &&[t0, t1] = quad_solution.value();
 
-    // Half‑plane: z · u(t) ≥ d  ⇒  (z·v) t ≥ d - z·u0.
+    // Half-plane constraint: dot(u(t), z) >= d, i.e. (z . v) t >= d - (z . u0).
     Real z_dot_v = z_x * v.real() + z_y * v.imag();
     Real rhs = dot_threshold - (z_x * u0.real() + z_y * u0.imag());
 
-    // z·v > 0: inequality is t ≥ `rhs` / (z·v).
     if (z_dot_v > tolerance) {
+      // Positive slope: clip t from below by rhs / z_dot_v.
       Real t_min = std::max(t0, rhs / z_dot_v);
       if (t_min > t1)
         return std::nullopt;
       return std::make_pair(t_min, t1);
     }
 
-    // z·v < 0: inequality flips: t ≤ `rhs` / (z·v).
     if (z_dot_v < -tolerance) {
+      // Negative slope: the inequality flips, so clip t from above.
       Real t_max = std::min(t1, rhs / z_dot_v);
       if (t0 > t_max)
         return std::nullopt;
       return std::make_pair(t0, t_max);
     }
 
-    // z·v ≈ 0: the ray is (numerically) parallel to the boundary line.
-    // Then the inequality is either always satisfied or never satisfied,
-    // depending on `rhs` = d - z·u0.
+    // z . v ~= 0: the ray is (numerically) parallel to the boundary line.
+    // The half-plane is then satisfied for every t (if rhs <= 0) or for no
+    // t at all.
     if (rhs <= tolerance)
       return std::make_pair(t0, t1);
     return std::nullopt;
   }
 
-  /// Returns a compact human-readable string of the epsilon-region parameters.
-  ///
-  /// Intended for debug/trace logging only. Pass as a macro argument so
-  /// Quill's level check keeps this call lazy — it is only evaluated when
-  /// the active log level is TRACE or lower.
+  /// Compact human-readable dump of the region parameters. Intended for
+  /// LLVM_DEBUG / SYNTH_OPEN_SUB diagnostic streams; not used in hot paths.
   std::string to_string() const {
     char prefix[256];
     mpfr_snprintf(prefix, sizeof(prefix),
@@ -231,6 +205,10 @@ public:
 } // namespace
 
 namespace cudaq::synth {
+
+//===----------------------------------------------------------------------===//
+// gridsynth_unitary
+//===----------------------------------------------------------------------===//
 
 llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
                                                  const Real &epsilon,
@@ -245,10 +223,9 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
     cudaq::synth::dbgs() << "factoring_timeout=" << factoring_timeout_ms << "ms" << "\n"
   );
 
-  // ---- Step 0: Setup ----
-  // Construct the ε-region R_ε (§7.1, equation 14) and the unit disk
-  // The unit disk serves as the constraint for u● (the √2-conjugate
-  // must have norm ≤ 1 for u†u ≤ 1).
+  // Step 0: build the epsilon-region and the closed-unit-disk constraint
+  // applied to the sqrt(2)-conjugate (the latter is needed because
+  // |conj(u) * u| <= 1 only if conj_sq2(u) also lies in the unit disk).
   llvm::FailureOr<EpsilonRegion> region_or =
       EpsilonRegion::create(theta, epsilon);
   if (llvm::failed(region_or)) {
@@ -260,10 +237,10 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
 
   UnitDisk unit_disk;
 
-  // ---- Step 0b: Upright preprocessing (Theorem 5.16) ----
-  // Find a special grid operator G such that G(R_ε) and G●(D̄) are
-  // both 1/6-upright. This preprocessing enables efficient enumeration
-  // of grid points via bounding-box reduction (Lemma 5.8).
+  // Step 0b: upright preprocessing (Theorem 5.16). to_upright() finds a
+  // grid operator G such that G(R_epsilon) and conj_sq2(G)(closed unit
+  // disk) are both 1/6-upright; the resulting bounding boxes drive the
+  // efficient grid-point enumeration in Lemma 5.8.
   llvm::FailureOr<UprightResult> transformed_or =
       to_upright(region_or->ellipse(), UnitDisk::as_ellipse());
   if (llvm::failed(transformed_or)) {
@@ -272,9 +249,10 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
   }
   UprightResult &transformed = *transformed_or;
 
-  // Fatten the y-intervals of the bounding boxes by a small relative amount.
-  // This guards against numerical edge effects where valid grid points
-  // near the boundary might be missed due to floating-point rounding.
+  // Fattened y-intervals absorb the floating-point edge effects that can
+  // otherwise reject valid grid points sitting exactly on the boundary.
+  // The 1e-4 relative pad is small enough not to admit spurious candidates
+  // (the TDGP filter rechecks membership exactly).
   Real epsilon_factor = Real(1e-4);
   Interval bboxA_y_fattened =
       fatten(transformed.bboxA.I_y(),
@@ -283,8 +261,8 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
       fatten(transformed.bboxB.I_y(),
              transformed.bboxB.I_y().width() * epsilon_factor);
 
-  // Bounding-box parameters are loop-invariant across the k-search below;
-  // print them once here so each k iteration stays focused on its own data.
+  // Log the bounding-box widths once, outside the k-loop, so each iteration's
+  // log block stays focused on its own per-k data.
   LLVM_DEBUG(cudaq::synth::dbgs()
              << "bboxA=" << transformed.bboxA.I_x().width() << " x "
              << transformed.bboxA.I_y().width()
@@ -301,59 +279,59 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
   }
   GridOp opG_inv = *opG_inv_or;
 
-  // ---- Steps 1-2: Main loop over denominator exponents k ----
-  // For each k = 0, 1, 2, ..., enumerate candidates u ∈ (1/√2^k)·Z[ω]
-  // with u ∈ R_ε and u● ∈ D̄ (the scaled TDGP, Definition 5.20).
-  // The T-count of the final circuit will be 2k-2 or 2k (Lemma 7.3),
-  // so iterating k from 0 ensures optimality.
+  // Steps 1-2: main loop over denominator exponents k = 0, 1, 2, ...
+  //
+  // At each k the TDGP enumerates candidates u in (1/sqrt(2)^k) * Z[omega]
+  // with u in R_epsilon and conj_sq2(u) in the closed unit disk
+  // (Definition 5.20). The T-count of the final circuit is 2k-2 or 2k
+  // (Lemma 7.3), so scanning k from 0 upwards finds the T-optimal
+  // approximation.
   Integer k = 0;
   while (true) {
     SYNTH_FENCE();
     SYNTH_OPEN_SUB("k = " + std::to_string(static_cast<i64>(k)));
 
-    // Step 1: Solve the scaled TDGP for denominator exponent k.
-    // Returns candidates u ∈ (1/√2^k)·Z[ω] ∩ R_ε with u● ∈ D̄ lazily.
-    // Step 2: For each candidate u (here called z), attempt Diophantine
-    // completion to find w with w†w = 1 - z†z.
     for (const DOmega &z :
          solve_tdgp(k, *region_or, unit_disk, opG_inv, transformed.bboxA,
                     transformed.bboxB, bboxA_y_fattened, bboxB_y_fattened)) {
-      // Step 2(a): Check residue condition.
-      // If z†z ≡ 0 (mod 2), then ξ = 1 - z†z has odd integer part,
-      // and the Diophantine equation is known to be unsolvable
-      // (the factoring structure is incompatible). Skip such candidates.
-      // By Lemma 8.4, for the "generic" candidates from the grid problem,
-      // the value n = ξ●·ξ satisfies n ≡ 1 (mod 8) (when n ≠ 0), which
-      // is exactly the solvability condition.
+      // Step 2(a): residue gate.
+      //
+      // If conj(z) * z has residue 0 (i.e. is even in the Z[omega] residue
+      // ring), then xi = 1 - conj(z) * z lands on an odd integer part and
+      // the Diophantine equation is provably unsolvable. Lemma 8.4 says the
+      // generic grid candidates satisfy n = conj_sq2(xi) * xi == 1 (mod 8)
+      // when n != 0, which matches the solvability condition; the residue
+      // check here is the cheapest test that filters out the unsolvable
+      // ones before paying for factoring.
       if ((z * z.conj()).residue() == 0)
         continue;
 
-      // Step 2(b-c): Compute ξ = 1 - z†z ∈ D[√2] and solve t†t = ξ.
-      // DSqrt2::from_domega computes z†z as an element of D[√2]
-      // (since z†z is always real and in D[√2] for z ∈ D[ω]).
+      // Step 2(b-c): solve conj(t) * t = xi for xi = 1 - conj(z) * z in
+      // D[sqrt(2)]. DSqrt2::from_domega is well-defined because conj(z) * z
+      // is real and lies in D[sqrt(2)] for any z in D[omega].
       DSqrt2 xi = DSqrt2(1) - DSqrt2::from_domega(z.conj() * z);
       llvm::FailureOr<DOmega> w_or =
           diophantine_dyadic(xi, diophantine_timeout_ms, factoring_timeout_ms);
 
       if (llvm::succeeded(w_or)) {
-        // SUCCESS: We have z and w with z†z + w†w = 1.
-        // Construct U = [[z, -w†], [w, z†]] (equation 12, with n = 0).
+        // We now have z and w with conj(z) * z + conj(w) * w = 1, so
+        // U = [[ z, -conj(w) ], [ w, conj(z) ]] (equation (12), n = 0) is a
+        // valid Clifford+T unitary approximating R_z(theta).
 
         DOmega z_reduced = to_lde(z);
         DOmega w_reduced = to_lde(*w_or);
 
-        // Align denominator exponents of z and w to the same k.
+        // Align the two components to a common denominator exponent so the
+        // unitary's k is well-defined.
         if (z_reduced.k() > w_reduced.k())
           w_reduced = with_denom_exp(w_reduced, z_reduced.k());
         else if (z_reduced.k() < w_reduced.k())
           z_reduced = with_denom_exp(z_reduced, w_reduced.k());
 
-        // Optimization: if z + w has a lower denominator exponent than z,
-        // use the pair (z, w) directly. Otherwise, multiply w by ω to
-        // reduce the combined denominator exponent by 1.
-        // This corresponds to choosing between the two equivalent
-        // representations of the unitary that differ by a T-gate
-        // (Lemma 7.3: T-count is either 2k-2 or 2k).
+        // Pick between two equivalent unitary representations that differ
+        // by one T-gate (Lemma 7.3): if z + w admits a smaller LDE, the
+        // straight pair (z, w) wins. Otherwise rotating w by omega gains
+        // one denominator slot.
         DOmegaUnitary u_approx(DOmega::from_int(0), DOmega::from_int(0), 0);
         if (to_lde(z_reduced + w_reduced).k() < z_reduced.k())
           u_approx = DOmegaUnitary(z_reduced, w_reduced, 0);
@@ -367,13 +345,17 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
       }
     }
 
-    // No candidate at this k succeeded (either no grid points, or all
-    // Diophantine solves failed/timed out). Increment k and try again
-    // with a larger denominator exponent (higher T-count).
+    // No candidate at this k survived the Diophantine step (either no grid
+    // points or every candidate timed out / proved unsolvable). Move to the
+    // next k, accepting a larger T-count budget.
     SYNTH_CLOSE_FAILURE("no candidates");
     k++;
   }
 }
+
+//===----------------------------------------------------------------------===//
+// gridsynth
+//===----------------------------------------------------------------------===//
 
 llvm::FailureOr<Circuit> gridsynth(const Real &theta, const Real &epsilon,
                                    i32 diophantine_timeout_ms,

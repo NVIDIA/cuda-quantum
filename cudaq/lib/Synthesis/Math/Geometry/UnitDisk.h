@@ -18,60 +18,48 @@
 
 namespace cudaq::synth {
 
-/// UnitDisk: the closed unit disc D̄ = { u ∈ ℂ : |u| ≤ 1 }.
+//===----------------------------------------------------------------------===//
+// UnitDisk
+//===----------------------------------------------------------------------===//
+
+/// The closed unit disk { u in C : |u| <= 1 }.
 ///
-/// Reference: Ross & Selinger, arXiv:1403.2975, §7.2.
+/// Reference: Ross & Selinger, arXiv:1403.2975, sec. 7.2. Algorithm 7.6 looks
+/// for pairs (u, conj_sq2(u)) satisfying conj(u) * u + conj(t) * t = 1; Lemma
+/// 7.5 forces |u| <= 1 and |conj_sq2(u)| <= 1, so the closed unit disk is the
+/// `B` argument of the underlying 2D grid problem.
 ///
-/// In Algorithm 7.6, the grid problem is formulated for pairs (u, u●) with
-/// the constraint u†u + t†t = 1. Lemma 7.5 implies that a necessary condition
-/// is |u| ≤ 1 and |u●| ≤ 1, i.e. both u and its √2-conjugate u● must lie in
-/// the closed unit disc. This is where the set B = D̄ in the two-dimensional
-/// grid problem comes from.
-///
-/// Two distinct views of the same object are available:
-///   - as_ellipse(): the Ellipse representation (identity quadratic form,
-///     center at the origin), used by to_upright() for the `preprocessing`
-///     step.
-///   - inside() / intersect(): `specialised` implementations that exploit the
-///     circular symmetry directly, avoiding the general Ellipse machinery.
+/// Two views of the same object are exposed: `as_ellipse()` produces the
+/// generic Ellipse representation (used by to_upright()), while `contains()`
+/// and `intersect()` are specialised implementations that use the disk's
+/// circular symmetry directly.
 class UnitDisk : public ConvexSet {
 public:
   UnitDisk() = default;
 
-  /// The unit disc as an Ellipse object (for use with to_upright).
-  ///
-  /// The unit disc x² + y² ≤ 1 corresponds to the Ellipse with quadratic
-  /// form matrix equal to the 2×2 identity (A = D = 1, B = 0) and center
-  /// at the origin (`px` = `py` = 0).
-  ///
-  /// Implemented as a function-local static to avoid static initialization
-  /// order issues (same pattern as ZSqrt2::lambda() and GridOp::identity()).
+  /// Unit disk in Ellipse form: identity quadratic form, centre at the
+  /// origin. Function-local static avoids the static-initialization-order
+  /// pitfall (same pattern as ZSqrt2::lambda() and GridOp::identity()).
   static const Ellipse &as_ellipse() {
     static const Ellipse value = Ellipse::must_create(1.0, 0.0, 1.0, 0.0, 0.0);
     return value;
   }
 
-  /// Exact membership test: u = (x, y) ∈ D̄ ⟺ x² + y² ≤ 1.
-  ///
-  /// A small tolerance is added to guard against rounding in Real arithmetic
-  /// at the boundary. The threshold 1 + 1e-30 is cached as a static to
-  /// avoid constructing a temporary Real on every call (which would incur a
-  /// GMP allocation in the hot TDGP inner loop).
+  /// Exact membership: u is in the disk iff |u|^2 <= 1, evaluated as
+  /// conj_sq2-compatible DSqrt2 arithmetic so the comparison is exact rather
+  /// than MPFR-rounded.
   bool contains(const DOmega &u) const override {
     return DSqrt2::from_domega(u.conj() * u) <= DSqrt2{1};
   }
 
-  /// Intersect a ray u(t) = u0 + t·v with the unit disc.
+  /// Intersect the ray u(t) = u0 + t*v with the disk.
   ///
-  /// The condition ‖u(t)‖² ≤ 1 becomes a quadratic in t:
-  ///   a t² + b t + c ≤ 0
-  /// with
-  ///   a = ‖v‖²  =  v·v,
-  ///   b = 2(u0·v),
-  ///   c = ‖u0‖² − 1.
-  ///
-  /// Returns the parameter interval [t₀, t₁] where the ray lies inside the
-  /// disc, or std::nullopt if the ray misses it entirely.
+  /// |u(t)|^2 <= 1 becomes a*t^2 + b*t + c <= 0 with
+  ///     a = conj(v) * v
+  ///     b = 2 * (conj(u0) * v)
+  ///     c = conj(u0) * u0 - 1
+  /// Returns the parameter interval [t_0, t_1] inside the disk, or
+  /// std::nullopt if the ray misses.
   std::optional<std::pair<Real, Real>>
   intersect(const DOmega &u0, const DOmega &v) const override {
     DOmega a = v.conj() * v;

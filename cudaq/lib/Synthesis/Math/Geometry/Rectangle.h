@@ -19,49 +19,46 @@
 
 namespace cudaq::synth {
 
-/// Rectangle: An "upright rectangle" [x₀,x₁] × [y₀,y₁].
+//===----------------------------------------------------------------------===//
+// Rectangle
+//===----------------------------------------------------------------------===//
+
+/// An axis-aligned ("upright") rectangle [x_0, x_1] x [y_0, y_1].
 ///
-/// Reference: Ross & Selinger, arXiv:1403.2975, §5.1.
+/// Reference: Ross & Selinger, arXiv:1403.2975, sec. 5.1. For upright A and
+/// B the 2D grid problem decouples into two independent 1D ODGPs (Lemma 5.6):
+///     u = alpha + beta*i, with alpha in A_x, conj_sq2(alpha) in B_x
+///                              beta  in A_y, conj_sq2(beta)  in B_y
+/// and analogously for the omega-offset case u = alpha + beta*i + omega.
 ///
-/// The two-dimensional grid problem for upright rectangles A and B
-/// reduces to two independent one-dimensional grid problems (Lemma 5.6):
-///   u = α + βi  with α ∈ Aₓ, α● ∈ Bₓ and β ∈ Aᵧ, β● ∈ Bᵧ
-/// (and similarly for the ω-offset case u = α + βi + ω).
-///
-/// Rectangles serve as bounding boxes for ellipses (`bbox` method) and
-/// define the domain for the TDGP line-scanning phase.
-///
+/// Rectangles also serve as bounding boxes for ellipses (`bbox`) and as the
+/// search domain for the TDGP line-scanning phase.
 class Rectangle : public ConvexSet {
 private:
   Interval x;
   Interval y;
 
 public:
-  /// Constructs the rectangle [x1,x2] × [y1,y2].
   explicit Rectangle(const Real &x1, const Real &x2, const Real &y1,
                      const Real &y2)
       : x(x1, x2), y(y1, y2) {}
 
-  /// Returns the x-axis interval [x₀, x₁].
   const Interval &I_x() const { return x; }
-
-  /// Returns the y-axis interval [y₀, y₁].
   const Interval &I_y() const { return y; }
 
-  /// Returns true iff v = (vₓ, vᵧ) lies inside the rectangle.
+  /// Membership in the rectangle. Currently unimplemented (the TDGP path
+  /// uses the inherited ConvexSet interface but only the line-intersection
+  /// branch is exercised); kept as a stub returning false.
   bool contains(const DOmega &v) const override { return false; }
 
-  /// Intersects the ray u(t) = u0 + t·v with the rectangle.
-  ///
-  /// Returns the interval [t_lo, t_hi] of parameter values for which u(t)
-  /// lies inside the rectangle, or std::nullopt if the ray misses entirely.
+  /// Intersect the ray u(t) = u0 + t*v with the rectangle, returning the
+  /// parameter interval [t_lo, t_hi] inside the box, or nullopt for a miss.
   std::optional<std::pair<Real, Real>>
   intersect(const DOmega &u0, const DOmega &v) const override;
 
   Real area() const { return (x.r() - x.l()) * (y.r() - y.l()); }
 
-  /// Returns the rectangle as "[x0,x1] x [y0,y1]" using Interval::to_string()
-  /// for each axis. Intended for logging and debugging.
+  /// Compact "[x0, x1] x [y0, y1]" rendering for debug logging.
   std::string to_string() const {
     return x.to_string() + " x " + y.to_string();
   }
