@@ -26,10 +26,10 @@
 //   - Every line is auto-prefixed with `[cudaq-synth:1] ` via
 //     llvm::impl::raw_ldbg_ostream.
 //   - llvm::ScopedPrinter wraps that prefixed stream and tracks indent.
-//   - CUDAQ_SYNTH_OPEN / CUDAQ_CUDAQ_SYNTH_OPEN_SUB emit `Name {` or `* Name {`
+//   - CUDAQ_SYNTH_OPEN / CUDAQ_SYNTH_OPEN_SUB emit `Name {` or `* Name {`
 //   and bump
-//     the indent; CUDAQ_SYNTH_CLOSE / CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS /
-//     CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE unindent and emit `}` / `} -> success :
+//     the indent; CUDAQ_SYNTH_CLOSE / CUDAQ_SYNTH_CLOSE_SUCCESS /
+//     CUDAQ_SYNTH_CLOSE_FAILURE unindent and emit `}` / `} -> success :
 //     reason` / `} -> failure : reason`.
 //   - CUDAQ_SYNTH_ACTION emits a one-line `** Verb : details` event marker.
 //   - CUDAQ_SYNTH_FENCE emits a `//===---===//` horizontal rule between major
@@ -120,13 +120,13 @@ inline void fence_line() {
 
 /// Open a top-level scope: emits `Name {` and bumps the indent. Each
 /// CUDAQ_SYNTH_OPEN must be paired with exactly one CUDAQ_SYNTH_CLOSE /
-/// CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS / CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE on every
+/// CUDAQ_SYNTH_CLOSE_SUCCESS / CUDAQ_SYNTH_CLOSE_FAILURE on every
 /// exit path.
 #define CUDAQ_SYNTH_OPEN(name)                                                 \
   LLVM_DEBUG(::cudaq::synth::open_scope((name), /*sub=*/false))
 
 /// Open a nested scope: emits `* Name {` and bumps the indent.
-#define CUDAQ_CUDAQ_SYNTH_OPEN_SUB(name)                                       \
+#define CUDAQ_SYNTH_OPEN_SUB(name)                                             \
   LLVM_DEBUG(::cudaq::synth::open_scope((name), /*sub=*/true))
 
 /// Close a scope without an outcome -- bare `}`.
@@ -136,11 +136,11 @@ inline void fence_line() {
 /// implicitly convertible to llvm::StringRef (string literal, llvm::Twine
 /// expression, std::string, ...). Pass {} or "" to omit the reason and
 /// emit `} -> success` alone.
-#define CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS(reason)                                \
+#define CUDAQ_SYNTH_CLOSE_SUCCESS(reason)                                      \
   LLVM_DEBUG(::cudaq::synth::close_scope("success", (reason)))
 
 /// Close with failure: `} -> failure : reason`.
-#define CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE(reason)                                \
+#define CUDAQ_SYNTH_CLOSE_FAILURE(reason)                                      \
   LLVM_DEBUG(::cudaq::synth::close_scope("failure", (reason)))
 
 /// Horizontal rule between major iterations.
@@ -160,10 +160,10 @@ inline void fence_line() {
 #else // NDEBUG
 
 #define CUDAQ_SYNTH_OPEN(name) ((void)0)
-#define CUDAQ_CUDAQ_SYNTH_OPEN_SUB(name) ((void)0)
+#define CUDAQ_SYNTH_OPEN_SUB(name) ((void)0)
 #define CUDAQ_SYNTH_CLOSE() ((void)0)
-#define CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS(reason) ((void)0)
-#define CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE(reason) ((void)0)
+#define CUDAQ_SYNTH_CLOSE_SUCCESS(reason) ((void)0)
+#define CUDAQ_SYNTH_CLOSE_FAILURE(reason) ((void)0)
 #define CUDAQ_SYNTH_FENCE() ((void)0)
 #define CUDAQ_SYNTH_ACTION(verb)                                               \
   for (bool _synth_act = false; _synth_act; _synth_act = false)                \
