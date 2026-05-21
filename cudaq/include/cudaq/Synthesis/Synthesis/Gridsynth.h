@@ -58,9 +58,9 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(
 /// `gridsynth_unitary`, then realise it as an explicit Clifford+T circuit
 /// in Matsumoto-Amano normal form with minimum T-count via
 /// `kmm_synthesize`.
-llvm::FailureOr<Circuit>
-gridsynth(const Real &theta, const Real &epsilon,
-          int32_t diophantine_timeout_ms = details::DEFAULT_DIOPHANTINE_TIMEOUT_MS,
-          int32_t factoring_timeout_ms = details::DEFAULT_FACTORING_TIMEOUT_MS);
+llvm::FailureOr<Circuit> gridsynth(
+    const Real &theta, const Real &epsilon,
+    int32_t diophantine_timeout_ms = details::DEFAULT_DIOPHANTINE_TIMEOUT_MS,
+    int32_t factoring_timeout_ms = details::DEFAULT_FACTORING_TIMEOUT_MS);
 
 } // namespace cudaq::synth

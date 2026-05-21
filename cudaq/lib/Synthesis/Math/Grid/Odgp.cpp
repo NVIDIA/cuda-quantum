@@ -545,8 +545,9 @@ const DSqrt2 *OdgpScaledStepper::next() {
 // OdgpScaledWithParityStepper
 //===----------------------------------------------------------------------===//
 
-OdgpScaledWithParityStepper::OdgpScaledWithParityStepper(
-    Interval I, Interval J, Integer denom_exp, DSqrt2 parity_hint) {
+OdgpScaledWithParityStepper::OdgpScaledWithParityStepper(Interval I, Interval J,
+                                                         Integer denom_exp,
+                                                         DSqrt2 parity_hint) {
   CUDAQ_CUDAQ_SYNTH_OPEN_SUB("OdgpScaledWithParityStepper");
   LLVM_DEBUG(cudaq::synth::dbgs()
              << "denom_exp=" << static_cast<int64_t>(denom_exp)

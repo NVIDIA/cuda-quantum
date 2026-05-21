@@ -296,8 +296,8 @@ inline DOmegaUnitary DOmegaUnitary::from_gates(const Circuit &circuit) {
     case Gate::H:
       // H needs one extra factor of sqrt(2) in the denominator to keep
       // every entry inside D[omega].
-      unitary =
-          with_denom_exp(unitary, unitary.k() + int32_t(1)).mul_by_H_from_left();
+      unitary = with_denom_exp(unitary, unitary.k() + int32_t(1))
+                    .mul_by_H_from_left();
       break;
     case Gate::T:
       unitary = unitary.mul_by_T_from_left();

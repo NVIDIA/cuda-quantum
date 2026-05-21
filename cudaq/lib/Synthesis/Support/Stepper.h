@@ -100,9 +100,8 @@ auto to_vector(Range &&r) {
 
 /// First element of a lazy range, or std::nullopt if the range is empty.
 template <typename Range>
-auto first_of(Range &&r)
-    -> std::optional<
-        std::remove_cv_t<std::remove_reference_t<decltype(*r.begin())>>> {
+auto first_of(Range &&r) -> std::optional<
+    std::remove_cv_t<std::remove_reference_t<decltype(*r.begin())>>> {
   auto it = r.begin();
   if (it != r.end())
     return *it;

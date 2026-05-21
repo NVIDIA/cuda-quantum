@@ -142,7 +142,8 @@ public:
   ZSqrt2 operator-() const { return ZSqrt2(-_a, -_b); }
 
   /// Ring multiplication:
-  ///     (a + b*sqrt(2)) * (c + d*sqrt(2)) = (a*c + 2*b*d) + (a*d + b*c)*sqrt(2)
+  ///     (a + b*sqrt(2)) * (c + d*sqrt(2)) = (a*c + 2*b*d) + (a*d +
+  ///     b*c)*sqrt(2)
   ZSqrt2 operator*(const ZSqrt2 &other) const {
     return ZSqrt2(_a * other._a + (_b * other._b << 1),
                   _a * other._b + _b * other._a);
