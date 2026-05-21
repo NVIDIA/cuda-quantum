@@ -113,10 +113,8 @@ jobs:
           echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
           echo "nanobind_commit=$(git rev-parse @:./tpls/nanobind)" >> $GITHUB_OUTPUT
 
-      # Reproduces realtime_ci.yml's old path-filter (`realtime/**`, `.github/**`)
-      # via the GitHub PR diff API so we don't need a deep clone. On
-      # merge_group/schedule/workflow_dispatch we always run the realtime
-      # wrapper (no PR base to diff against; full coverage is expected).
+      # On PR push: realtime_changed=true only if realtime/** or .github/**
+      # changed (queried via PR diff API, no deep clone). Other events: always true.
       - id: realtime
         env:
           GH_TOKEN: ${{ github.token }}
@@ -366,11 +364,8 @@ jobs:
       build_cache: ${{ fromJson(needs.config_source_build.outputs.json).build_cache[format('{0}-cu{1}-installer', matrix.platform, matrix.cuda_version)] }}
 
   # ============================================================================
-  # Wrapped sub-workflows: these used to run as separate top-level workflows
-  # (`Basic content checks`, `CI - macOS`, `CodeQL Advanced`, `Realtime CI`).
-  # They're invoked here as reusable workflows so the CI Summary captures
-  # everything in one PR comment and a single required check (`CI / CI Summary`)
-  # can gate the merge queue.
+  # Reusable wrappers — folded in so CI Summary covers them and a single
+  # required check (`CI / CI Summary`) gates the merge queue.
   # ============================================================================
 
   basic_checks:
@@ -392,9 +387,8 @@ jobs:
     needs: metadata
     # CodeQL already scans on the PR side; skip the redundant merge_group run.
     if: github.event_name != 'merge_group'
-    # Reusable workflows cannot escalate permissions above the caller. Declare
-    # explicitly so a future top-level lockdown of ci.yml doesn't silently
-    # break the SARIF upload.
+    # Reusable workflows cannot escalate beyond the caller's permissions;
+    # declare explicitly so a ci.yml lockdown doesn't break SARIF upload.
     permissions:
       security-events: write
       packages: read
@@ -406,9 +400,7 @@ jobs:
   realtime:
     name: Realtime
     needs: metadata
-    # Path-filter: on copy-pr-bot PR pushes, skip unless realtime/** or
-    # .github/** changed. On merge_group / schedule / workflow_dispatch the
-    # metadata job set realtime_changed=true unconditionally.
+    # realtime_changed gating computed in metadata above.
     if: needs.metadata.outputs.realtime_changed == 'true'
     uses: ./.github/workflows/realtime_ci.yml
     secrets: inherit

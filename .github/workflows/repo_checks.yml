@@ -7,10 +7,7 @@
 # ============================================================================ #
 
 on:
-  # Invoked from ci.yml as a reusable workflow; also supports manual dispatch.
-  # Direct pull_request/merge_group/push triggers were removed when these
-  # checks were folded under the CI orchestrator — the CI Summary now reports
-  # the formatting/license/spelling/links status as a single rolled-up gate.
+  # Reusable workflow called from ci.yml; also runs on manual dispatch.
   workflow_call:
   workflow_dispatch:
 

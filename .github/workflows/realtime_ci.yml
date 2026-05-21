@@ -1,8 +1,6 @@
 on:
-  # Invoked from ci.yml as a reusable workflow. The path-filtering that used
-  # to live in the `push:` trigger (only realtime/** and .github/** changes
-  # cause this to run on PRs) now lives in ci.yml's metadata job, which
-  # computes a `realtime_changed` output that gates the wrapper.
+  # Reusable workflow called from ci.yml; PR-time path gating
+  # (realtime/**, .github/**) is computed in ci.yml's metadata job.
   workflow_call:
   workflow_dispatch:
     inputs:

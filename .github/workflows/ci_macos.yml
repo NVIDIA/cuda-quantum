@@ -1,8 +1,5 @@
 on:
-  # PR-side runs come in through ci.yml's `macos` wrapper job. Direct
-  # push/merge_group/schedule triggers were dropped when this workflow was
-  # folded under the CI orchestrator. deployments.yml continues to call this
-  # workflow via workflow_call for release builds.
+  # Called from ci.yml (`macos` wrapper) for PR runs; deployments.yml for releases.
   workflow_call:
     inputs:
       cache_base:
