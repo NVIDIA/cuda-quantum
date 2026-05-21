@@ -51,7 +51,7 @@ TdgpStepper::TdgpStepper(Integer k, const ConvexSet &setA,
       bboxA_(std::move(bboxA)), bboxB_(std::move(bboxB)),
       bboxA_y_fattened_(std::move(bboxA_y_fattened)),
       bboxB_y_fattened_(std::move(bboxB_y_fattened)) {
-  SYNTH_OPEN_SUB("solve_tdgp");
+  SYNTH_OPEN_SUB("TdgpStepper");
   LLVM_DEBUG(cudaq::synth::dbgs() << "k=" << static_cast<int64_t>(k_) << '\n');
 
   // The x-anchor is a single one-shot solve: only the first solution to the
@@ -84,7 +84,7 @@ TdgpStepper::TdgpStepper(Integer k, const ConvexSet &setA,
 
 TdgpStepper::~TdgpStepper() {
   // Emit the skip count (if any) just before the close line so the diagnostic
-  // tree stays well-nested under the "solve_tdgp" scope.
+  // tree stays well-nested under the "TdgpStepper" scope.
   if (skipped_betas_ > 0)
     SYNTH_ACTION("Skip") << skipped_betas_ << " betas\n";
 
@@ -181,18 +181,6 @@ const DOmega *TdgpStepper::next() {
       return &last_sol_;
     }
   }
-}
-
-//===----------------------------------------------------------------------===//
-// Factory function
-//===----------------------------------------------------------------------===//
-
-TdgpStepper solve_tdgp(Integer k, const ConvexSet &setA, const ConvexSet &setB,
-                       const GridOp &opG_inv, Rectangle bboxA, Rectangle bboxB,
-                       Interval bboxA_y_fattened, Interval bboxB_y_fattened) {
-  return TdgpStepper(std::move(k), setA, setB, opG_inv, std::move(bboxA),
-                     std::move(bboxB), std::move(bboxA_y_fattened),
-                     std::move(bboxB_y_fattened));
 }
 
 } // namespace cudaq::synth
