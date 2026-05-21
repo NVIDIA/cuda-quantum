@@ -182,12 +182,11 @@ public:
   /// `mode` selects how the inverse is obtained -- see `TransformMode`.
   /// Returns failure() if the Fallback path is taken and GridOp::inv()
   /// fails.
-  llvm::LogicalResult transform_by_gridop(const GridOp &g_local,
-                                          TransformMode mode,
-                                          const Real &preinv00,
-                                          const Real &preinv01,
-                                          const Real &preinv10,
-                                          const Real &preinv11, const Real &tol);
+  llvm::LogicalResult
+  transform_by_gridop(const GridOp &g_local, TransformMode mode,
+                      const Real &preinv00, const Real &preinv01,
+                      const Real &preinv10, const Real &preinv11,
+                      const Real &tol);
 
   /// Same as `transform_by_gridop` but with the forward-matrix entries
   /// supplied directly by the caller. `fallback_g` must be non-null when
@@ -198,8 +197,7 @@ public:
                           const Real &F10, const Real &F11,
                           const Real &preinv00, const Real &preinv01,
                           const Real &preinv10, const Real &preinv11,
-                          const Real &tol,
-                          const GridOp *fallback_g = nullptr);
+                          const Real &tol, const GridOp *fallback_g = nullptr);
 
   // -- Derived state --
 

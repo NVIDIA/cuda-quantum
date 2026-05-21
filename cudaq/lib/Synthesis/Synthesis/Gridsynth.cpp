@@ -192,7 +192,8 @@ public:
   }
 
   /// Compact human-readable dump of the region parameters. Intended for
-  /// LLVM_DEBUG / CUDAQ_CUDAQ_SYNTH_OPEN_SUB diagnostic streams; not used in hot paths.
+  /// LLVM_DEBUG / CUDAQ_CUDAQ_SYNTH_OPEN_SUB diagnostic streams; not used in
+  /// hot paths.
   std::string to_string() const {
     char prefix[256];
     mpfr_snprintf(prefix, sizeof(prefix),
@@ -215,13 +216,12 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
                                                  int32_t diophantine_timeout_ms,
                                                  int32_t factoring_timeout_ms) {
   CUDAQ_CUDAQ_SYNTH_OPEN_SUB("gridsynth_unitary");
-  LLVM_DEBUG(
-    cudaq::synth::dbgs() << "theta=" << theta << "\n";
-    cudaq::synth::dbgs() << "eps=" << epsilon << "\n";
-    cudaq::synth::dbgs() << "diophantine_timeout="
-                         << diophantine_timeout_ms << "ms" << "\n";
-    cudaq::synth::dbgs() << "factoring_timeout=" << factoring_timeout_ms << "ms" << "\n"
-  );
+  LLVM_DEBUG(cudaq::synth::dbgs() << "theta=" << theta << "\n";
+             cudaq::synth::dbgs() << "eps=" << epsilon << "\n";
+             cudaq::synth::dbgs() << "diophantine_timeout="
+                                  << diophantine_timeout_ms << "ms" << "\n";
+             cudaq::synth::dbgs()
+             << "factoring_timeout=" << factoring_timeout_ms << "ms" << "\n");
 
   // Step 0: build the epsilon-region and the closed-unit-disk constraint
   // applied to the sqrt(2)-conjugate (the latter is needed because
@@ -268,9 +268,9 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
              << transformed.bboxA.I_y().width()
              << ", bboxB=" << transformed.bboxB.I_x().width() << " x "
              << transformed.bboxB.I_y().width() << '\n');
-  LLVM_DEBUG(cudaq::synth::dbgs() << "bboxA_y_fat=" << bboxA_y_fattened.width()
-                                  << ", bboxB_y_fat=" << bboxB_y_fattened.width()
-                                  << '\n');
+  LLVM_DEBUG(cudaq::synth::dbgs()
+             << "bboxA_y_fat=" << bboxA_y_fattened.width()
+             << ", bboxB_y_fat=" << bboxB_y_fattened.width() << '\n');
 
   llvm::FailureOr<GridOp> opG_inv_or = inv(transformed.opG);
   if (llvm::failed(opG_inv_or)) {
@@ -289,7 +289,8 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
   Integer k = 0;
   while (true) {
     CUDAQ_SYNTH_FENCE();
-    CUDAQ_CUDAQ_SYNTH_OPEN_SUB("k = " + std::to_string(static_cast<int64_t>(k)));
+    CUDAQ_CUDAQ_SYNTH_OPEN_SUB("k = " +
+                               std::to_string(static_cast<int64_t>(k)));
 
     TdgpStepper stepper(k, *region_or, unit_disk, opG_inv, transformed.bboxA,
                         transformed.bboxB, bboxA_y_fattened, bboxB_y_fattened);
@@ -361,8 +362,8 @@ llvm::FailureOr<Circuit> gridsynth(const Real &theta, const Real &epsilon,
                                    int32_t diophantine_timeout_ms,
                                    int32_t factoring_timeout_ms) {
   CUDAQ_SYNTH_OPEN("gridsynth");
-  LLVM_DEBUG(cudaq::synth::dbgs() << "theta=" << theta << ", eps=" << epsilon
-                                  << '\n');
+  LLVM_DEBUG(cudaq::synth::dbgs()
+             << "theta=" << theta << ", eps=" << epsilon << '\n');
 
   llvm::FailureOr<DOmegaUnitary> u_or = gridsynth_unitary(
       theta, epsilon, diophantine_timeout_ms, factoring_timeout_ms);
@@ -373,9 +374,9 @@ llvm::FailureOr<Circuit> gridsynth(const Real &theta, const Real &epsilon,
 
   llvm::FailureOr<Circuit> circuit = kmm_synthesize(*u_or);
   if (llvm::succeeded(circuit)) {
-    CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS(std::to_string((*circuit).size()) +
-                        " gates, T-count=" +
-                        std::to_string((*circuit).t_count()));
+    CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS(
+        std::to_string((*circuit).size()) +
+        " gates, T-count=" + std::to_string((*circuit).t_count()));
   } else {
     CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("kmm_synthesize failed");
   }

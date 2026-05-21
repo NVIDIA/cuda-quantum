@@ -89,7 +89,8 @@ TdgpStepper::~TdgpStepper() {
     CUDAQ_SYNTH_ACTION("Skip") << skipped_betas_ << " betas\n";
 
   if (yielded_ > 0) {
-    CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS("yielded " + std::to_string(yielded_) + " candidates");
+    CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS("yielded " + std::to_string(yielded_) +
+                                    " candidates");
   } else if (!close_reason_.empty()) {
     CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE(close_reason_);
   } else {

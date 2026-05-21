@@ -64,8 +64,8 @@ TEST(StepperBaseTest, IteratorIsInputIterator) {
   // `const int &`.
   static_assert(
       std::is_same_v<std::iterator_traits<Iter>::value_type, const int>);
-  static_assert(std::is_same_v<std::iterator_traits<Iter>::reference,
-                               const int &>);
+  static_assert(
+      std::is_same_v<std::iterator_traits<Iter>::reference, const int &>);
 }
 
 // ============================================================

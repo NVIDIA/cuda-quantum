@@ -93,7 +93,8 @@ public:
   DSqrt2 operator-() const noexcept { return DSqrt2(-_alpha, _k); }
 
   /// Multiplication in D[sqrt(2)]:
-  ///     (alpha / sqrt(2)^k) * (beta / sqrt(2)^m) = (alpha*beta) / sqrt(2)^(k+m)
+  ///     (alpha / sqrt(2)^k) * (beta / sqrt(2)^m) = (alpha*beta) /
+  ///     sqrt(2)^(k+m)
   DSqrt2 operator*(const DSqrt2 &other) const noexcept {
     return DSqrt2(_alpha * other._alpha, _k + other._k);
   }

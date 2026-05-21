@@ -41,7 +41,8 @@
 //   3. Split xi into a self-associate part d ~ conj_sq2(d) and
 //      a self-coprime part eta with gcd(eta, conj_sq2(eta)) ~ 1  (Lemma C.23)
 //   4. Factor through integer primes -> Z[sqrt(2)]-primes
-//      -> Z[omega]                                               (Lemmas C.8-C.13)
+//      -> Z[omega]                                               (Lemmas
+//      C.8-C.13)
 //   5. adj-decompose each prime factor                           (Lemma C.20)
 //   6. Combine partial solutions, adjust the residual unit       (Lemma C.16)
 //
@@ -343,10 +344,11 @@ llvm::FailureOr<Integer> find_factor(const Integer &n,
           std::chrono::duration_cast<std::chrono::milliseconds>(now - start)
                   .count() >= factoring_timeout_ms) {
         LLVM_DEBUG(cudaq::synth::dbgs()
-                   << "exhausted budget for " << digits << "-digit number (L="
-                   << L << ", k=" << k << ")\n");
-        CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("budget exhausted (L=" + std::to_string(L) +
-                            ", k=" + std::to_string(k) + ")");
+                   << "exhausted budget for " << digits
+                   << "-digit number (L=" << L << ", k=" << k << ")\n");
+        CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE(
+            "budget exhausted (L=" + std::to_string(L) +
+            ", k=" + std::to_string(k) + ")");
         return llvm::failure();
       }
     }
@@ -631,8 +633,8 @@ DiophantineResult adj_decompose_prime(Integer p) {
     return ZOmega(-1, 0, 1, 0);
 
   LLVM_DEBUG(cudaq::synth::dbgs()
-             << "adj_decompose_prime(int): p mod 8 = " << static_cast<int64_t>(p & 7)
-             << ", " << num_decimal_digits(p)
+             << "adj_decompose_prime(int): p mod 8 = "
+             << static_cast<int64_t>(p & 7) << ", " << num_decimal_digits(p)
              << " digits, prime=" << is_probably_prime(p) << '\n');
 
   if (is_probably_prime(p)) {
@@ -769,7 +771,8 @@ DiophantineResult adj_decompose(Integer n, int32_t diophantine_timeout_ms,
             std::chrono::duration_cast<std::chrono::milliseconds>(now - start)
                 .count();
         if (elapsed >= diophantine_timeout_ms) {
-          CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("diophantine timeout while factoring");
+          CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE(
+              "diophantine timeout while factoring");
           return NoSolution{};
         }
       } else {
@@ -970,13 +973,14 @@ adj_decompose_selfcoprime(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
             std::chrono::duration_cast<std::chrono::milliseconds>(now - start)
                 .count();
         if (elapsed >= diophantine_timeout_ms) {
-          CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("diophantine timeout while factoring");
+          CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE(
+              "diophantine timeout while factoring");
           return NoSolution{};
         }
       } else {
-        LLVM_DEBUG(cudaq::synth::dbgs() << "split eta via "
-                                        << num_decimal_digits(*fac_n)
-                                        << "-digit factor\n");
+        LLVM_DEBUG(cudaq::synth::dbgs()
+                   << "split eta via " << num_decimal_digits(*fac_n)
+                   << "-digit factor\n");
         // Lift the integer factor back into Z[sqrt(2)] via gcd with xi to
         // get the actual split prime, then continue the loop.
         ZSqrt2 fac = gcd(xi, ZSqrt2{*fac_n});
@@ -1003,7 +1007,8 @@ adj_decompose_selfcoprime(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
 ///   eta = xi / d                     -- the self-coprime part
 /// and adj-decomposing each piece independently (Lemma C.19 allows the
 /// independent treatment). Matches Lemma C.23 / Proposition C.24.
-DiophantineResult adj_decompose(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
+DiophantineResult adj_decompose(const ZSqrt2 &xi,
+                                int32_t diophantine_timeout_ms,
                                 int32_t factoring_timeout_ms,
                                 std::chrono::steady_clock::time_point start) {
   CUDAQ_CUDAQ_SYNTH_OPEN_SUB("adj_decompose(ZSqrt2)");
@@ -1065,7 +1070,8 @@ DiophantineResult diophantine(const ZSqrt2 &xi, int32_t diophantine_timeout_ms,
 
   // Necessary conditions (Lemma 6.1): xi >= 0 and conj_sq2(xi) >= 0.
   if (xi < ZSqrt2{0} || xi.conj_sq2() < ZSqrt2{0}) {
-    CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("necessary conditions failed (xi<0 or xi_bullet<0)");
+    CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE(
+        "necessary conditions failed (xi<0 or xi_bullet<0)");
     return NoSolution{};
   }
 
@@ -1123,7 +1129,8 @@ cudaq::synth::diophantine_dyadic(const DSqrt2 &xi, int32_t diophantine_timeout,
       diophantine(arg, diophantine_timeout, factoring_timeout);
 
   if (!is_success(t)) {
-    CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("no solution for denom_exp=" + xi.k().to_string());
+    CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("no solution for denom_exp=" +
+                                    xi.k().to_string());
     return llvm::failure();
   }
 
@@ -1137,6 +1144,7 @@ cudaq::synth::diophantine_dyadic(const DSqrt2 &xi, int32_t diophantine_timeout,
   if (k_mod_2)
     z = z * ZOmega(0, -1, 1, 0);
 
-  CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS("solution found for denom_exp=" + xi.k().to_string());
+  CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS("solution found for denom_exp=" +
+                                  xi.k().to_string());
   return DOmega(z, k_div_2 + k_mod_2);
 }
