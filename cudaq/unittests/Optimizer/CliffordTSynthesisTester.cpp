@@ -218,3 +218,82 @@ INSTANTIATE_TEST_SUITE_P(
     });
 
 } // namespace
+
+namespace cudaq::opt::detail {
+uint64_t lastCliffordTSynthCacheHits();
+uint64_t lastCliffordTSynthCacheUniqueAngles();
+} // namespace cudaq::opt::detail
+
+namespace {
+
+// Module with one Rz op per (theta) entry.
+// Each op gets its own qubit so the rewriter can lower them independently.
+OwningOpRef<ModuleOp> buildRzListModule(MLIRContext *context,
+                                        llvm::ArrayRef<double> thetas) {
+  OpBuilder builder(context);
+  auto loc = builder.getUnknownLoc();
+  auto module = ModuleOp::create(builder, loc);
+  builder.setInsertionPointToEnd(module.getBody());
+
+  auto funcType = builder.getFunctionType({}, {});
+  auto func = func::FuncOp::create(builder, loc, "rz_dedup_test", funcType);
+  auto *entry = func.addEntryBlock();
+  builder.setInsertionPointToStart(entry);
+
+  auto refType = cudaq::quake::RefType::get(context);
+  for (double theta : thetas) {
+    Value q = cudaq::quake::AllocaOp::create(builder, loc, refType);
+    Value angle = cudaq::opt::factory::createFloatConstant(
+        loc, builder, theta, builder.getF64Type());
+    cudaq::quake::RzOp::create(builder, loc, /*isAdj=*/false, ValueRange{angle},
+                               ValueRange{}, q);
+  }
+
+  func::ReturnOp::create(builder, loc);
+  return OwningOpRef<ModuleOp>(module);
+}
+
+class CliffordTSynthesisCacheTest : public ::testing::Test {
+protected:
+  void SetUp() override {
+    context = std::make_unique<MLIRContext>();
+    context->loadDialect<arith::ArithDialect, cudaq::cc::CCDialect,
+                         func::FuncDialect, cudaq::quake::QuakeDialect>();
+  }
+
+  std::unique_ptr<MLIRContext> context;
+};
+
+// 5 Rz(pi/4) + 3 Rz(pi/3) -> gridsynth runs twice. The remaining six
+// rotations should be served from the cache.
+TEST_F(CliffordTSynthesisCacheTest, RepeatedAnglesAreDeduplicated) {
+  const double a = M_PI / 4.0;
+  const double b = M_PI / 3.0;
+  auto module = buildRzListModule(context.get(), {a, a, a, a, a, b, b, b});
+
+  PassManager pm(context.get());
+  cudaq::opt::CliffordTSynthesisOptions opts;
+  opts.epsilon = 1e-3;
+  pm.addPass(cudaq::opt::createCliffordTSynthesis(opts));
+  ASSERT_TRUE(succeeded(pm.run(*module)));
+
+  EXPECT_EQ(cudaq::opt::detail::lastCliffordTSynthCacheUniqueAngles(), 2);
+  EXPECT_EQ(cudaq::opt::detail::lastCliffordTSynthCacheHits(), 6);
+}
+
+// All distinct angles produce zero cache hits
+TEST_F(CliffordTSynthesisCacheTest, DistinctAnglesProduceNoCacheHits) {
+  auto module = buildRzListModule(
+      context.get(), {M_PI / 4.0, M_PI / 5.0, M_PI / 6.0, M_PI / 7.0});
+
+  PassManager pm(context.get());
+  cudaq::opt::CliffordTSynthesisOptions opts;
+  opts.epsilon = 1e-3;
+  pm.addPass(cudaq::opt::createCliffordTSynthesis(opts));
+  ASSERT_TRUE(succeeded(pm.run(*module)));
+
+  EXPECT_EQ(cudaq::opt::detail::lastCliffordTSynthCacheUniqueAngles(), 4);
+  EXPECT_EQ(cudaq::opt::detail::lastCliffordTSynthCacheHits(), 0);
+}
+
+} // namespace
