@@ -101,8 +101,8 @@ private:
   // Buffer aliased by the pointer returned from next().
   ZSqrt2 last_sol_;
 
-  // Drives the CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS / CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE line emitted by the
-  // destructor.
+  // Drives the CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS /
+  // CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE line emitted by the destructor.
   int yielded_ = 0;
   std::string close_reason_;
 
@@ -209,8 +209,8 @@ public:
 
 private:
   // Exactly one branch is engaged for the lifetime of the stepper.
-  std::optional<OdgpWithParityStepper> direct_;  // denom_exp == 0
-  std::optional<OdgpScaledStepper> recursive_;   // denom_exp > 0
+  std::optional<OdgpWithParityStepper> direct_; // denom_exp == 0
+  std::optional<OdgpScaledStepper> recursive_;  // denom_exp > 0
   DSqrt2 offset_;
   DSqrt2 last_sol_;
   int yielded_ = 0;

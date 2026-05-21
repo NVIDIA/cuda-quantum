@@ -66,9 +66,9 @@ public:
   Gate operator[](size_t i) const { return gates_[i]; }
 
   /// Last gate. Calling this on an empty Circuit is undefined behaviour.
-  Gate back() const { 
+  Gate back() const {
     assert(!gates_.empty() && "Cannot call back() on an empty Circuit");
-    return gates_.back(); 
+    return gates_.back();
   }
 
   //===--------------------------------------------------------------------===//
@@ -79,9 +79,9 @@ public:
 
   /// Drop the last gate. Calling this on an empty Circuit is undefined
   /// behaviour.
-  void pop_back() { 
+  void pop_back() {
     assert(!gates_.empty() && "Cannot call pop_back() on an empty Circuit");
-    gates_.pop_back(); 
+    gates_.pop_back();
   }
 
   /// Concatenate `rhs` onto the end.

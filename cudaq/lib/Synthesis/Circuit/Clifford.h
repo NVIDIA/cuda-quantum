@@ -284,14 +284,16 @@ public:
   }
 
   /// Conjugate X^b * S^c past E^a. See CONJ3_TABLE's header comment.
-  static constexpr std::array<int32_t, 4> conj3(int32_t b, int32_t c, int32_t a) {
+  static constexpr std::array<int32_t, 4> conj3(int32_t b, int32_t c,
+                                                int32_t a) {
     int32_t index = (a << 3) | (b << 2) | c;
     return CONJ3_TABLE[static_cast<size_t>(index)];
   }
 
   /// Invert E^a * X^b * S^c (omega^d is handled by the caller). See
   /// CINV_TABLE's header comment.
-  static constexpr std::array<int32_t, 4> cinv(int32_t a, int32_t b, int32_t c) {
+  static constexpr std::array<int32_t, 4> cinv(int32_t a, int32_t b,
+                                               int32_t c) {
     int32_t index = (a << 3) | (b << 2) | c;
     return CINV_TABLE[static_cast<size_t>(index)];
   }

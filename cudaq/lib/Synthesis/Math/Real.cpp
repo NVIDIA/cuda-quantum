@@ -56,7 +56,8 @@ std::string Real::to_string(int32_t digits) const {
       for (int32_t i = 0; i < static_cast<int32_t>(-exp); i++)
         result += "0";
       result += mantissa;
-    } else if (static_cast<int32_t>(exp) >= static_cast<int32_t>(mantissa.length())) {
+    } else if (static_cast<int32_t>(exp) >=
+               static_cast<int32_t>(mantissa.length())) {
       // Integer (or near-integer) needing trailing zeros before the dot.
       // e.g. exp = 5, mantissa = "12" -> "12000.0".
       result = mantissa;

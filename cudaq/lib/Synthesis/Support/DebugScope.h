@@ -26,10 +26,11 @@
 //   - Every line is auto-prefixed with `[cudaq-synth:1] ` via
 //     llvm::impl::raw_ldbg_ostream.
 //   - llvm::ScopedPrinter wraps that prefixed stream and tracks indent.
-//   - CUDAQ_SYNTH_OPEN / CUDAQ_CUDAQ_SYNTH_OPEN_SUB emit `Name {` or `* Name {` and bump
-//     the indent; CUDAQ_SYNTH_CLOSE / CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS / CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE
-//     unindent and emit `}` / `} -> success : reason` / `} -> failure :
-//     reason`.
+//   - CUDAQ_SYNTH_OPEN / CUDAQ_CUDAQ_SYNTH_OPEN_SUB emit `Name {` or `* Name {`
+//   and bump
+//     the indent; CUDAQ_SYNTH_CLOSE / CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS /
+//     CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE unindent and emit `}` / `} -> success :
+//     reason` / `} -> failure : reason`.
 //   - CUDAQ_SYNTH_ACTION emits a one-line `** Verb : details` event marker.
 //   - CUDAQ_SYNTH_FENCE emits a `//===---===//` horizontal rule between major
 //     iterations (matches the greedy rewriter's `logLineComment`).
@@ -60,8 +61,8 @@ namespace cudaq::synth {
 /// re-prefixed on every newline by raw_ldbg_ostream. Mirrors
 /// GreedyPatternRewriteDriver.cpp:400.
 inline llvm::impl::raw_ldbg_ostream &synth_os() {
-  static thread_local llvm::impl::raw_ldbg_ostream stream{
-      "[cudaq-synth:1] ", llvm::dbgs()};
+  static thread_local llvm::impl::raw_ldbg_ostream stream{"[cudaq-synth:1] ",
+                                                          llvm::dbgs()};
   return stream;
 }
 
@@ -78,9 +79,9 @@ inline llvm::ScopedPrinter &synth_logger() {
 /// flag, matching the rest of the synth call sites.
 inline llvm::raw_ostream &dbgs() { return synth_logger().startLine(); }
 
-/// Backing functions for the CUDAQ_SYNTH_OPEN / CUDAQ_SYNTH_CLOSE / CUDAQ_SYNTH_FENCE macros.
-/// Each macro expands to a single function call so the macro itself stays
-/// a single statement.
+/// Backing functions for the CUDAQ_SYNTH_OPEN / CUDAQ_SYNTH_CLOSE /
+/// CUDAQ_SYNTH_FENCE macros. Each macro expands to a single function call so
+/// the macro itself stays a single statement.
 inline void open_scope(llvm::StringRef name, bool sub) {
   auto &logger = synth_logger();
   logger.startLine();
@@ -119,12 +120,13 @@ inline void fence_line() {
 
 /// Open a top-level scope: emits `Name {` and bumps the indent. Each
 /// CUDAQ_SYNTH_OPEN must be paired with exactly one CUDAQ_SYNTH_CLOSE /
-/// CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS / CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE on every exit path.
-#define CUDAQ_SYNTH_OPEN(name)                                                       \
+/// CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS / CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE on every
+/// exit path.
+#define CUDAQ_SYNTH_OPEN(name)                                                 \
   LLVM_DEBUG(::cudaq::synth::open_scope((name), /*sub=*/false))
 
 /// Open a nested scope: emits `* Name {` and bumps the indent.
-#define CUDAQ_CUDAQ_SYNTH_OPEN_SUB(name)                                                   \
+#define CUDAQ_CUDAQ_SYNTH_OPEN_SUB(name)                                       \
   LLVM_DEBUG(::cudaq::synth::open_scope((name), /*sub=*/true))
 
 /// Close a scope without an outcome -- bare `}`.
@@ -134,11 +136,11 @@ inline void fence_line() {
 /// implicitly convertible to llvm::StringRef (string literal, llvm::Twine
 /// expression, std::string, ...). Pass {} or "" to omit the reason and
 /// emit `} -> success` alone.
-#define CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS(reason)                                            \
+#define CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS(reason)                                \
   LLVM_DEBUG(::cudaq::synth::close_scope("success", (reason)))
 
 /// Close with failure: `} -> failure : reason`.
-#define CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE(reason)                                            \
+#define CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE(reason)                                \
   LLVM_DEBUG(::cudaq::synth::close_scope("failure", (reason)))
 
 /// Horizontal rule between major iterations.
@@ -149,9 +151,9 @@ inline void fence_line() {
 /// further `<<` followed by a trailing newline. Self-gated via the
 /// LLVM_DEBUG check so it can be used outside an explicit LLVM_DEBUG
 /// block.
-#define CUDAQ_SYNTH_ACTION(verb)                                                     \
-  for (bool _synth_act = ::llvm::DebugFlag &&                                  \
-                         ::llvm::isCurrentDebugType("cudaq-synth");            \
+#define CUDAQ_SYNTH_ACTION(verb)                                               \
+  for (bool _synth_act =                                                       \
+           ::llvm::DebugFlag && ::llvm::isCurrentDebugType("cudaq-synth");     \
        _synth_act; _synth_act = false)                                         \
   ::cudaq::synth::dbgs() << "** " << (verb) << " : "
 
@@ -163,7 +165,7 @@ inline void fence_line() {
 #define CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS(reason) ((void)0)
 #define CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE(reason) ((void)0)
 #define CUDAQ_SYNTH_FENCE() ((void)0)
-#define CUDAQ_SYNTH_ACTION(verb)                                                     \
+#define CUDAQ_SYNTH_ACTION(verb)                                               \
   for (bool _synth_act = false; _synth_act; _synth_act = false)                \
   ::llvm::nulls()
 

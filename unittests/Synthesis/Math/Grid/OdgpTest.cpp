@@ -279,9 +279,9 @@ TEST(OdgpStepperTest, SnapshotEquivalence) {
   ASSERT_EQ(seq1.size(), seq2.size());
   EXPECT_GT(seq1.size(), 0u);
   for (size_t i = 0; i < seq1.size(); ++i) {
-    EXPECT_EQ(seq1[i], seq2[i]) << "Mismatch at index " << i
-                                << ": " << seq1[i].to_string() << " vs "
-                                << seq2[i].to_string();
+    EXPECT_EQ(seq1[i], seq2[i])
+        << "Mismatch at index " << i << ": " << seq1[i].to_string() << " vs "
+        << seq2[i].to_string();
     EXPECT_TRUE(in_intervals(seq1[i], I, J));
   }
 

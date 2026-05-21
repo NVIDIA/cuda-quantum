@@ -26,10 +26,10 @@ namespace {
 // reduce_denomexp dispatch uses both to choose the right T^m * H prefix
 // that drops the denominator exponent of a DOmegaUnitary by one.
 inline constexpr std::array<int32_t, 16> BIT_SHIFT = {0, 0, 1, 0, 2, 0, 1, 3,
-                                                  3, 3, 0, 2, 2, 1, 0, 0};
+                                                      3, 3, 0, 2, 2, 1, 0, 0};
 
 inline constexpr std::array<int32_t, 16> BIT_COUNT = {0, 1, 1, 2, 1, 2, 2, 3,
-                                                  1, 2, 2, 3, 2, 3, 3, 4};
+                                                      1, 2, 2, 3, 2, 3, 3, 4};
 
 //===----------------------------------------------------------------------===//
 // reduce_denomexp
@@ -74,12 +74,13 @@ reduce_denomexp(const DOmegaUnitary &unitary) {
   // 4-bit integer. residue_squared_z carries the case label below.
   int32_t residue_z = unitary.z().residue();
   int32_t residue_w = unitary.w().residue();
-  int32_t residue_squared_z = (unitary.z().u() * unitary.z().conj().u()).residue();
+  int32_t residue_squared_z =
+      (unitary.z().u() * unitary.z().conj().u()).residue();
 
   // T-power offset that aligns the lowest set bit of w to that of z. The
   // negative branch wraps mod 4 since T has order 8 modulo a sign.
   int32_t m = BIT_SHIFT[static_cast<size_t>(residue_w)] -
-          BIT_SHIFT[static_cast<size_t>(residue_z)];
+              BIT_SHIFT[static_cast<size_t>(residue_z)];
   if (m < 0)
     m += 4;
 
@@ -207,8 +208,9 @@ Circuit kmm_synthesize(DOmegaUnitary unitary) {
 
   // Phase 3: normalize. Cannot fail.
   Circuit result = normalize_gates(gates);
-  CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS("final " + std::to_string(result.size()) +
-                      " gates, T-count=" + std::to_string(result.t_count()));
+  CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS(
+      "final " + std::to_string(result.size()) +
+      " gates, T-count=" + std::to_string(result.t_count()));
   return result;
 }
 

@@ -100,9 +100,13 @@ public:
   // Conversions
   //===--------------------------------------------------------------------===//
 
-  explicit operator int32_t() const { return static_cast<int32_t>(mpz_get_si(value_)); }
+  explicit operator int32_t() const {
+    return static_cast<int32_t>(mpz_get_si(value_));
+  }
 
-  explicit operator int64_t() const { return static_cast<int64_t>(mpz_get_si(value_)); }
+  explicit operator int64_t() const {
+    return static_cast<int64_t>(mpz_get_si(value_));
+  }
 
   explicit operator double() const { return mpz_get_d(value_); }
 
@@ -455,7 +459,8 @@ inline bool is_probably_prime(const Integer &n, int32_t reps = 4) {
     m = -m;
   if (m < Integer(2))
     return false;
-  int32_t result = static_cast<int32_t>(mpz_probab_prime_p(m.get_mpz_t(), reps));
+  int32_t result =
+      static_cast<int32_t>(mpz_probab_prime_p(m.get_mpz_t(), reps));
   return result != 0; // 2 = definitely prime, 1 = probably prime, 0 = composite
 }
 

@@ -315,7 +315,7 @@ llvm::FailureOr<UprightResult> to_upright(const Ellipse &setA,
   while (!done) {
     if (llvm::failed(step_lemma(A, B, opG_l, opG_r, done))) {
       CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("step_lemma failed at iteration " +
-                          std::to_string(iterations));
+                                      std::to_string(iterations));
       return llvm::failure();
     }
     ++iterations;
@@ -351,8 +351,9 @@ llvm::FailureOr<UprightResult> to_upright(const Ellipse &setA,
              << ", uprightness_A=" << (A_upright.area() / bboxA_or->area())
              << ", uprightness_B=" << (B_upright.area() / bboxB_or->area())
              << '\n');
-  CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS("converged after " + std::to_string(iterations) +
-                      " step_lemma iterations");
+  CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS("converged after " +
+                                  std::to_string(iterations) +
+                                  " step_lemma iterations");
   return UprightResult(opG, *bboxA_or, *bboxB_or);
 }
 
