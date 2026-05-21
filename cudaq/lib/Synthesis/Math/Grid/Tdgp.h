@@ -131,7 +131,7 @@ private:
   DOmega last_sol_;
 
   // Termination flag plus diagnostic counters that drive the destructor's
-  // SYNTH_CLOSE_* / SYNTH_ACTION emission.
+  // CUDAQ_SYNTH_CLOSE_* / CUDAQ_SYNTH_ACTION emission.
   bool exhausted_ = false;
   int yielded_ = 0;
   int skipped_betas_ = 0;
