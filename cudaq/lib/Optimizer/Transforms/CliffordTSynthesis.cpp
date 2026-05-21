@@ -19,6 +19,8 @@
 #include "cudaq/Synthesis/Circuit/Gate.h"
 #include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Synthesis/Gridsynth.h"
+#include "llvm/ADT/DenseMap.h"
+#include "llvm/Support/Casting.h"
 #include "llvm/Support/LogicalResult.h"
 #endif
 
@@ -43,6 +45,44 @@ struct RotationOptions {
   std::string onDynamicAngle;
   double skipBelow;
 };
+
+struct SynthCache {
+  llvm::DenseMap<uint64_t, cudaq::synth::Circuit> entries;
+  uint64_t hits = 0;
+};
+
+// Look up theta in the cache.
+// On a miss, run gridsynth with the pass's retry schedule and insert on
+// success.
+// Failures are not cached so a follow-up invocation with the same angle
+// still emits a per-op diagnostic.
+llvm::FailureOr<cudaq::synth::Circuit>
+synthesizeRotation(double theta, const RotationOptions &opts,
+                   SynthCache &cache) {
+  uint64_t key = llvm::bit_cast<uint64_t>(theta);
+  auto it = cache.entries.find(key);
+  if (it != cache.entries.end()) {
+    ++cache.hits;
+    LLVM_DEBUG(llvm::dbgs() << "clifford-t-synthesis: cache hit for theta="
+                            << theta << '\n');
+    return it->second;
+  }
+
+  cudaq::synth::Real thetaReal(theta);
+  cudaq::synth::Real epsilonReal(opts.epsilon);
+  llvm::FailureOr<cudaq::synth::Circuit> circuit = llvm::failure();
+  for (int32_t attempt = 0; attempt <= opts.retryCount; ++attempt) {
+    circuit = cudaq::synth::gridsynth(
+        thetaReal, epsilonReal,
+        static_cast<int32_t>(opts.diophantineTimeoutMs << attempt),
+        static_cast<int32_t>(opts.factoringTimeoutMs << attempt));
+    if (llvm::succeeded(circuit))
+      break;
+  }
+  if (llvm::succeeded(circuit))
+    cache.entries.try_emplace(key, *circuit);
+  return circuit;
+}
 
 // Outcome of validateRotationOperands. The caller maps each action to a
 // LogicalResult:
@@ -101,8 +141,8 @@ PreCheck validateRotationOperands(Operation *op, Value angleVal,
 }
 
 struct RzPattern : OpRewritePattern<cudaq::quake::RzOp> {
-  RzPattern(MLIRContext *ctx, RotationOptions opts)
-      : OpRewritePattern(ctx), opts(std::move(opts)) {}
+  RzPattern(MLIRContext *ctx, RotationOptions opts, SynthCache *cache)
+      : OpRewritePattern(ctx), opts(std::move(opts)), cache(cache) {}
 
   LogicalResult matchAndRewrite(cudaq::quake::RzOp op,
                                 PatternRewriter &rewriter) const override {
@@ -117,17 +157,7 @@ struct RzPattern : OpRewritePattern<cudaq::quake::RzOp> {
       break;
     }
 
-    cudaq::synth::Real thetaReal(check.theta);
-    cudaq::synth::Real epsilonReal(opts.epsilon);
-    llvm::FailureOr<cudaq::synth::Circuit> circuit = llvm::failure();
-    for (int32_t attempt = 0; attempt <= opts.retryCount; ++attempt) {
-      circuit = cudaq::synth::gridsynth(
-          thetaReal, epsilonReal,
-          static_cast<int32_t>(opts.diophantineTimeoutMs << attempt),
-          static_cast<int32_t>(opts.factoringTimeoutMs << attempt));
-      if (llvm::succeeded(circuit))
-        break;
-    }
+    auto circuit = synthesizeRotation(check.theta, opts, *cache);
     if (llvm::failed(circuit)) {
       op.emitError("clifford-t-synthesis: gridsynth failed for theta=")
           << check.theta << " after " << (opts.retryCount + 1)
@@ -165,6 +195,7 @@ struct RzPattern : OpRewritePattern<cudaq::quake::RzOp> {
   }
 
   RotationOptions opts;
+  SynthCache *cache;
 };
 
 // Rx(theta) = H . Rz(theta) . H. The greedy driver then re-fires RzPattern
@@ -272,6 +303,26 @@ struct R1Pattern : OpRewritePattern<cudaq::quake::R1Op> {
 
 } // namespace
 
+namespace cudaq::opt::detail {
+
+namespace {
+uint64_t &mutableLastCacheHits() {
+  static uint64_t v = 0;
+  return v;
+}
+uint64_t &mutableLastCacheUniqueAngles() {
+  static uint64_t v = 0;
+  return v;
+}
+} // namespace
+
+uint64_t lastCliffordTSynthCacheHits() { return mutableLastCacheHits(); }
+uint64_t lastCliffordTSynthCacheUniqueAngles() {
+  return mutableLastCacheUniqueAngles();
+}
+
+} // namespace cudaq::opt::detail
+
 #endif // CUDAQ_HAS_CLIFFORD_T_SYNTHESIS
 
 namespace {
@@ -306,11 +357,21 @@ public:
         retryCount, onDynamicAngle.getValue(), skipBelow};
 
     MLIRContext *ctx = &getContext();
+    SynthCache synthCache;
     RewritePatternSet patterns(ctx);
-    patterns.add<R1Pattern, RxPattern, RyPattern, RzPattern>(ctx, opts);
+    patterns.add<R1Pattern, RxPattern, RyPattern>(ctx, opts);
+    patterns.add<RzPattern>(ctx, opts, &synthCache);
 
     if (failed(applyPatternsGreedily(getOperation(), std::move(patterns))))
       signalPassFailure();
+
+    cudaq::opt::detail::mutableLastCacheHits() = synthCache.hits;
+    cudaq::opt::detail::mutableLastCacheUniqueAngles() =
+        synthCache.entries.size();
+
+    LLVM_DEBUG(llvm::dbgs() << "clifford-t-synthesis: gridsynth cache size = "
+                            << synthCache.entries.size() << " unique angle(s), "
+                            << synthCache.hits << " hit(s)\n");
 #endif
   }
 };
