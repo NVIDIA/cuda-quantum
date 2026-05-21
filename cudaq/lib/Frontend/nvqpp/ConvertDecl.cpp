@@ -743,11 +743,40 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
     if (x->getInit()) {
       // At the very least, its a vector var = vec_init;
       auto initVec = popValue();
-      symbolTable.insert(x->getName(), initVec);
+      auto elementType = vecType.getElementType();
+
+      // For `std::vector<measure_handle>` locals only, allocate stack
+      // storage for the descriptor so reassignment (`v = w;`) and
+      // cross-scope mutation (`if (cond) { v = w; }`) lower to `cc.store`
+      // into a stable per-name address.
+      //
+      // Mirrors the scalar `measure_handle` allocation in the basic-type
+      // path and the `measure_handle::operator=` arm. Within a kernel scope
+      // `std::vector<measure_handle>` has `std::span<measure_handle>`-
+      // like value semantics: the `(data_ptr, size)` descriptor is what
+      // gets copied; element mutations land in the underlying storage
+      // shared between descriptors that alias the same data.
+      //
+      // For handle vectors, if the initializer is itself a pointer (from
+      // another stack-allocated handle vector), load the descriptor first
+      // so the value form (not the pointer) goes into the new alloca.
+      Value initSpan = initVec;
+      if (isa<cc::MeasureHandleType>(elementType)) {
+        if (isa<cc::PointerType>(initSpan.getType()))
+          initSpan = cc::LoadOp::create(builder, loc, initSpan);
+        Value alloca = cc::AllocaOp::create(builder, loc, vecType);
+        cc::StoreOp::create(builder, loc, initSpan, alloca);
+        symbolTable.insert(x->getName(), alloca);
+      } else {
+        symbolTable.insert(x->getName(), initVec);
+      }
 
       // Let's try to see if this was a auto var = mz(qreg)
-      // and if so, find the mz and tag it with the variable name
-      auto elementType = vecType.getElementType();
+      // and if so, find the mz and tag it with the variable name.
+      // Walk from `initSpan`: for non-handle vectors `initSpan == initVec`
+      // (no load was inserted); for handle vectors, walking the post-load
+      // value avoids the cc.load masking the underlying mz / discriminate
+      // / stdvec_init op when the initializer was a fresh measurement.
 
       // Accept both the `bool`-valued (`std::vector<bool>` form, lowered as
       // discriminate-of-measure-interface) and the handle-valued
@@ -763,19 +792,19 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
       auto attachName = [&](cudaq::quake::MeasurementInterface meas) {
         meas.setRegisterName(builder.getStringAttr(x->getName()));
       };
-      if (auto descr = initVec.getDefiningOp<cudaq::quake::DiscriminateOp>()) {
+      if (auto descr = initSpan.getDefiningOp<cudaq::quake::DiscriminateOp>()) {
         if (auto meas =
                 descr.getMeasurement()
                     .getDefiningOp<cudaq::quake::MeasurementInterface>())
           attachName(meas);
       } else if (auto meas =
-                     initVec
+                     initSpan
                          .getDefiningOp<cudaq::quake::MeasurementInterface>()) {
         attachName(meas);
       }
 
       // Did this come from a stdvec init op? If not drop out
-      auto stdVecInit = initVec.getDefiningOp<cc::StdvecInitOp>();
+      auto stdVecInit = initSpan.getDefiningOp<cc::StdvecInitOp>();
       if (!stdVecInit)
         return true;
 

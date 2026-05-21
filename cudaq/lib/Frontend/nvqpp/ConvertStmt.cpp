@@ -137,6 +137,14 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
   if (!TraverseStmt(x->getRangeInit()))
     return false;
   Value buffer = popValue();
+  // `std::vector<measure_handle>` locals are stack-allocated by
+  // `ConvertDecl.cpp`'s stdvec decl-init path and arrive here as
+  // `!cc.ptr<!cc.stdvec<!cc.measure_handle>>`. The `SpanLikeType` dispatch
+  // below needs the descriptor value, not the pointer, so normalize. The
+  // `quake::VeqType` arm is unaffected.
+  if (auto ptrTy = dyn_cast<cc::PointerType>(buffer.getType()))
+    if (isa<cc::SpanLikeType>(ptrTy.getElementType()))
+      buffer = cc::LoadOp::create(builder, loc, buffer);
   bool result = true;
   auto *body = x->getBody();
   auto *loopVar = x->getLoopVariable();
@@ -336,6 +344,9 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *x) {
         if (fnTy.getNumResults() == 1 && fnTy.getResult(0) == i1Ty)
           result = cc::CastOp::create(builder, loc, i1Ty, result);
       }
+      // Refresh `resTy` after the load so the `SpanLikeType` dispatch below
+      // sees the loaded value's type, not the original pointer type.
+      resTy = result.getType();
     }
     if (auto vecTy = dyn_cast<cc::SpanLikeType>(resTy)) {
       // Returning vector data that was allocated on the stack is not valid.

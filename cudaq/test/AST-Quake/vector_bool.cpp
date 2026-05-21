@@ -22,14 +22,17 @@ struct t1 {
 
 // clang-format off
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__t1(
-// CHECK-SAME:        %[[VAL_0:.*]]: !cc.stdvec<f64>{{.*}}) -> i1 attributes
-// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           %[[VAL_12:.*]] = quake.mz %[[VAL_1]] name "vec" : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
-// CHECK:           %[[VAL_3:.*]] = cc.stdvec_data %[[VAL_12]] : (!cc.stdvec<!cc.measure_handle>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
-// CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>) -> !cc.ptr<!cc.measure_handle>
-// CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<!cc.measure_handle>
-// CHECK:           %[[VAL_6:.*]] = quake.discriminate %[[VAL_5]] : (!cc.measure_handle) -> i1
-// CHECK:           return %[[VAL_6]] : i1
+// CHECK-SAME:      %[[ARG0:.*]]: !cc.stdvec<f64>{{.*}}) -> i1 attributes
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[ALLOCA_0]] name "vec" : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[ALLOCA_1:.*]] = cc.alloca !cc.stdvec<!cc.measure_handle>
+// CHECK:           cc.store %[[MZ_0]], %[[ALLOCA_1]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           %[[LOAD_0:.*]] = cc.load %[[ALLOCA_1]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           %[[STDVEC_DATA_0:.*]] = cc.stdvec_data %[[LOAD_0]] : (!cc.stdvec<!cc.measure_handle>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
+// CHECK:           %[[CAST_0:.*]] = cc.cast %[[STDVEC_DATA_0]] : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>) -> !cc.ptr<!cc.measure_handle>
+// CHECK:           %[[LOAD_1:.*]] = cc.load %[[CAST_0]] : !cc.ptr<!cc.measure_handle>
+// CHECK:           %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[LOAD_1]] : (!cc.measure_handle) -> i1
+// CHECK:           return %[[DISCRIMINATE_0]] : i1
 // CHECK:         }
 // CHECK-NOT:     func.func private @_ZNKSt14_Bit_referencecvbEv() -> i1
 // clang-format on

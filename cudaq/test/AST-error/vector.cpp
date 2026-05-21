@@ -22,6 +22,8 @@ struct VectorVectorReturner {
       for (std::size_t j = 0, M = v.size(); j < M; ++j)
         r[j] = v[j];
     }
+    // expected-error@+2 {{unhandled vector element type is not yet supported}}
+    // expected-error@+1 {{statement not supported in qpu kernel}}
     return result;
   }
 };

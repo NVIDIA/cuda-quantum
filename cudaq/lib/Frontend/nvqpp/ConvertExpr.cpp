@@ -45,8 +45,10 @@ Value loadHandleIfPointer(OpBuilder &builder, Location loc, Value v) {
   return v;
 }
 
-// Same intent as `loadHandleIfPointer`, but for the bulk-discriminate /
-// `to_integer` paths where the lvalue carries a `std::vector<measure_handle>`.
+// Same intent as `loadHandleIfPointer`, but for an
+// `std::vector<measure_handle>` lvalue. Handle-vector locals get stack storage
+// allocated by stdvec decl-init path; downstream consumers expecting the
+// `!cc.stdvec<!cc.measure_handle>` descriptor use this helper to normalize.
 Value loadHandleVectorIfPointer(OpBuilder &builder, Location loc, Value v) {
   if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(v.getType()))
     if (auto sv = dyn_cast<cudaq::cc::StdvecType>(ptrTy.getElementType());
@@ -1457,6 +1459,26 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
   // is called, we need to convert that to loading the size field of the pair.
   // For θ.empty(), the size is loaded and compared to zero.
   if (isInClassInNamespace(func, "vector", "std")) {
+    // `std::vector<measure_handle>::operator=` is intercepted here. Mirrors the
+    // scalar `measure_handle::operator=` arm.
+    if (auto *md = dyn_cast<clang::CXXMethodDecl>(func);
+        md && md->getOverloadedOperator() == clang::OO_Equal) {
+      // Peek the lhs type before popping; only intercept when it is the
+      // handle-vector slot pointer.
+      Value thisPeek = valueStack[valueStack.size() - 2];
+      bool isHandleVecPtr = false;
+      if (auto ptrTy = dyn_cast<cc::PointerType>(thisPeek.getType()))
+        if (auto sv = dyn_cast<cc::StdvecType>(ptrTy.getElementType()))
+          isHandleVecPtr = isa<cc::MeasureHandleType>(sv.getElementType());
+      if (isHandleVecPtr) {
+        Value rhs = loadHandleVectorIfPointer(builder, loc, popValue());
+        Value thisVal = popValue();
+        // Drop the callee value the visitor pushed for the call.
+        [[maybe_unused]] auto calleeOp = popValue();
+        cc::StoreOp::create(builder, loc, rhs, thisVal);
+        return pushValue(thisVal);
+      }
+    }
     // Get the size of the std::vector.
     auto svec = popValue();
     if (isa<cc::PointerType>(svec.getType()))
