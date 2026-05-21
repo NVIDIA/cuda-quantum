@@ -15,53 +15,49 @@
 
 #include <cmath>
 
-/// Grid synthesis algorithm for optimal Clifford+T approximation of R_z(θ).
-///
-/// Reference: Ross & Selinger, arXiv:1403.2975, Algorithm 7.6.
-
 namespace cudaq::synth {
 
+//===----------------------------------------------------------------------===//
+// Grid synthesis: optimal Clifford+T approximation of R_z(theta)
+//===----------------------------------------------------------------------===//
+//
+// Reference: Ross & Selinger, arXiv:1403.2975, Algorithm 7.6.
+
 namespace details {
-// Default timeout for the Diophantine solver.
-// If the solver exceeds this time on a particular candidate, the candidate is
-// skipped and the next one is tried. Higher values improve optimality at the
-// cost of worst-case latency.
+
+/// Per-candidate budget for the Diophantine solver. Larger values let the
+/// algorithm push through harder factorisations and find smaller-T-count
+/// solutions; the trade-off is worst-case latency per candidate. On timeout
+/// the candidate is dropped and the search moves on.
 inline constexpr i32 DEFAULT_DIOPHANTINE_TIMEOUT_MS = 200;
 
-// Default timeout for integer factoring within the Diophantine solver
-// Hard composites that exceed this timeout cause the candidate to be skipped.
+/// Per-attempt budget for Pollard-rho integer factoring inside the
+/// Diophantine solver. Hard composites that exceed this budget cause the
+/// enclosing candidate to be skipped.
 inline constexpr i32 DEFAULT_FACTORING_TIMEOUT_MS = 50;
+
 } // namespace details
 
-/// Internal `gridsynth` algorithm.
+/// Core grid-synthesis search.
 ///
-/// This is the core no-exception implementation of Algorithm 7.6.
-/// Returns failure() if the epsilon region is degenerate or the search
-/// space is exhausted before finding a valid solution.
+/// Runs Algorithm 7.6 until it produces a DOmegaUnitary approximating
+/// R_z(theta) to within `epsilon`. Returns failure() if the epsilon region
+/// is degenerate or the search exhausts its budgets without finding a valid
+/// solution.
 ///
-/// @param theta Target rotation angle R_z(θ)
-/// @param epsilon Approximation precision
-/// @param diophantine_timeout_ms Timeout for Diophantine solving
-/// @param factoring_timeout_ms Timeout for integer factoring
-/// @return The unitary as a DOmegaUnitary, or failure()
-///
+/// @param theta                  Target rotation angle.
+/// @param epsilon                Approximation precision.
+/// @param diophantine_timeout_ms Per-candidate Diophantine budget.
+/// @param factoring_timeout_ms   Per-attempt integer-factoring budget.
 llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(
     const Real &theta, const Real &epsilon,
     i32 diophantine_timeout_ms = details::DEFAULT_DIOPHANTINE_TIMEOUT_MS,
     i32 factoring_timeout_ms = details::DEFAULT_FACTORING_TIMEOUT_MS);
 
-/// Main `gridsynth` algorithm.
-///
-/// Convenience wrapper: calls `gridsynth_unitary()` to find the
-// `DOmegaUnitary`, then `kmm_synthesize()` for exact synthesis. The result
-/// is in `Matsumoto-Amano` normal form with minimum T-count.
-///
-/// @param theta Target rotation angle
-/// @param epsilon Approximation precision
-/// @param diophantine_timeout_ms Timeout for Diophantine solving
-/// @param factoring_timeout_ms Timeout for integer factoring
-/// @return The synthesized circuit or failure()
-///
+/// End-to-end gridsynth entry point: search for a DOmegaUnitary via
+/// `gridsynth_unitary`, then realise it as an explicit Clifford+T circuit
+/// in Matsumoto-Amano normal form with minimum T-count via
+/// `kmm_synthesize`.
 llvm::FailureOr<Circuit>
 gridsynth(const Real &theta, const Real &epsilon,
           i32 diophantine_timeout_ms = details::DEFAULT_DIOPHANTINE_TIMEOUT_MS,

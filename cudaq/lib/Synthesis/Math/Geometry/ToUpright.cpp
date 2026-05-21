@@ -18,15 +18,21 @@
 using namespace cudaq::synth;
 
 namespace {
-/// floorsqrt: Floor of square root for Float.
+
+/// floor(sqrt(x)) as an arbitrary-precision Integer.
 Integer floor_sqrt(const Real &x) { return floor_to_integer(sqrt(x)); }
+
 } // namespace
 
 namespace cudaq::synth {
 
+//===----------------------------------------------------------------------===//
+// apply_grid_op
+//===----------------------------------------------------------------------===//
+
 llvm::LogicalResult apply_grid_op(Ellipse &A, Ellipse &B, const GridOp &g) {
-  // Use to_real_mat rather than to_mat: avoids allocating 4 imaginary GMP
-  // objects that are never used (grid operators are real matrices).
+  // Use to_real_mat rather than to_mat: a grid operator is a real matrix,
+  // and we never read the imaginary parts -- skip allocating them.
   auto g_mat = to_real_mat(g);
   Real M00 = std::move(g_mat[0][0]);
   Real M01 = std::move(g_mat[0][1]);
@@ -37,7 +43,9 @@ llvm::LogicalResult apply_grid_op(Ellipse &A, Ellipse &B, const GridOp &g) {
   Real det = M00 * M11 - M01 * M10;
 
   if (abs(det) < tol) {
-    // Singular: both A and B fall back to exact inversion via GridOp::inv().
+    // Near-singular forward matrix: both A and B must take the Fallback
+    // (exact GridOp::inv) path; the algebraic closed-form for the inverse
+    // would lose all precision here.
     if (llvm::failed(A.transform_by_gridop_mat(TransformMode::Fallback, M00,
                                                M01, M10, M11, M00, M01, M10,
                                                M11, tol, &g)))
@@ -49,7 +57,9 @@ llvm::LogicalResult apply_grid_op(Ellipse &A, Ellipse &B, const GridOp &g) {
     return llvm::success();
   }
 
-  // Non-singular: compute F⁻¹ once using 1 division + 4 multiplications.
+  // Non-singular path: invert F algebraically once, then reuse the inverse
+  // entries for both A (Direct mode) and B (Conjugate mode). 1 division + 4
+  // multiplications instead of two independent inversions.
   Real inv_det = 1 / det;
   Real inv00 = M11 * inv_det;
   Real inv01 = -(M01 * inv_det);
@@ -61,6 +71,8 @@ llvm::LogicalResult apply_grid_op(Ellipse &A, Ellipse &B, const GridOp &g) {
                                              inv11, tol, &g)))
     return llvm::failure();
 
+  // For B we need the conjugated forward matrix, but the *inverse* is the
+  // same up to the conjugation that is folded into the Conjugate path.
   ZOmega u0c = g.u0().conj_sq2();
   ZOmega u1c = g.u1().conj_sq2();
   Real M00c, M10c, M01c, M11c;
@@ -74,6 +86,10 @@ llvm::LogicalResult apply_grid_op(Ellipse &A, Ellipse &B, const GridOp &g) {
   return llvm::success();
 }
 
+//===----------------------------------------------------------------------===//
+// reduction
+//===----------------------------------------------------------------------===//
+
 llvm::LogicalResult reduction(Ellipse &A, Ellipse &B, GridOp &opG_r,
                               const GridOp &new_opG) {
   if (llvm::failed(apply_grid_op(A, B, new_opG)))
@@ -82,10 +98,16 @@ llvm::LogicalResult reduction(Ellipse &A, Ellipse &B, GridOp &opG_r,
   return llvm::success();
 }
 
+//===----------------------------------------------------------------------===//
+// shift_ellipses
+//===----------------------------------------------------------------------===//
+
 void shift_ellipses(Ellipse &A, Ellipse &B, const Integer &n) {
+  // lambda^n acts as a scaling on a single diagonal entry; lambda^-n on the
+  // other. The B side picks up the conjugation, which is the b -> -b flip
+  // for odd n (the sqrt(2)-conjugate of lambda^n is (-1)^n * lambda^-n).
   ZSqrt2 lambda_n = pow(ZSqrt2::lambda(), n);
-  // ZSqrt2::lambda() is a unit, so inv() always succeeds.
-  ZSqrt2 lambda_inv_n = *inv(lambda_n);
+  ZSqrt2 lambda_inv_n = *inv(lambda_n); // lambda is a unit so inv always ok
   Real lambda_n_real = to_real(lambda_n);
   Real lambda_inv_n_real = to_real(lambda_inv_n);
 
@@ -98,12 +120,17 @@ void shift_ellipses(Ellipse &A, Ellipse &B, const Integer &n) {
     B.flip_b();
 }
 
+//===----------------------------------------------------------------------===//
+// step_lemma
+//===----------------------------------------------------------------------===//
+
 llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
                                GridOp &opG_r, bool &end) {
   SYNTH_OPEN_SUB("step_lemma");
   LLVM_DEBUG(cudaq::synth::dbgs() << "A=" << A << '\n');
   LLVM_DEBUG(cudaq::synth::dbgs() << "B=" << B << '\n');
 
+  // Z: ensure beta >= 0 by negating the anti-diagonal.
   if (B.b() < 0) {
     static const GridOp OP_Z(ZOmega(0, 0, 0, 1), ZOmega(0, -1, 0, 0));
     if (llvm::failed(reduction(A, B, opG_r, OP_Z))) {
@@ -124,7 +151,7 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
              << "bias_A=" << bias_A << ", bias_B=" << bias_B
              << ", pair_bias=" << pair_bias_val << '\n');
 
-  // X operation: if A.bias * B.bias < 1
+  // X: ensure z + zeta >= 0 by swapping diagonals.
   if (bias_A * bias_B < 1) {
     static const GridOp OP_X(ZOmega(0, 1, 0, 0), ZOmega(0, 0, 0, 1));
     if (llvm::failed(reduction(A, B, opG_r, OP_X))) {
@@ -137,11 +164,13 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
     return llvm::success();
   }
 
-  // Both S and Sigma use log(ZSqrt2::lambda()) — cache as a function-local
-  // static so it is computed only on the first call that reaches this point.
+  // Cached log(lambda) for the Sigma / S exponent computations. Function-
+  // local static so it is computed at most once per process and only when
+  // execution actually reaches this point.
   static const Real lambda_real = to_real(ZSqrt2::lambda());
 
-  // S operation: extreme bias values
+  // S: extreme pair-bias values. The threshold constants are the
+  // floating-point evaluations of the symbolic bounds from sec. A.1.
   if (pair_bias_val > 33.971 || pair_bias_val < 0.029437) {
     static const GridOp OP_S(ZOmega(-1, 0, 1, 1), ZOmega(1, -1, 1, 0));
     Integer n = round_to_integer(log(pair_bias_val) / log(lambda_real) / 8);
@@ -155,8 +184,9 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
     return llvm::success();
   }
 
+  // Done check is computed lazily -- only after Z/X/S have all missed, so
+  // the typical iteration pays for one comparison rather than a full skew.
   Real skew = pair_skew(A, B);
-  // Done check: computed lazily, only needed if Z/X/S didn't trigger.
   if (skew <= 15) {
     end = true;
     LLVM_DEBUG(cudaq::synth::dbgs()
@@ -165,7 +195,9 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
     return llvm::success();
   }
 
-  // Sigma operation: moderate bias values
+  // Sigma: moderate bias values. The shift is built into both halves of the
+  // running product (opG_l and opG_r) so the final accumulated operator
+  // remains a valid special grid operator.
   if (pair_bias_val > 5.8285 || pair_bias_val < 0.17157) {
     Integer n = round_to_integer(log(pair_bias_val) / log(lambda_real) / 4);
     shift_ellipses(A, B, n);
@@ -186,7 +218,8 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
     return llvm::success();
   }
 
-  // R operation: both biases in moderate range
+  // R: both per-side biases inside the moderate range; the rotation-like
+  // operator from Figure 6 of the paper applies.
   if (0.24410 <= bias_A && bias_A <= 4.0968 && 0.24410 <= bias_B &&
       bias_B <= 4.0968) {
     static const GridOp OP_R(ZOmega(0, 0, 1, 0), ZOmega(1, 0, 0, 0));
@@ -200,7 +233,7 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
     return llvm::success();
   }
 
-  // K operation: A.b >= 0 and A.bias <= 1.6969
+  // K: A.b >= 0 and the A side is the wider one (bias(A) <= 1.6969).
   if (A.b() >= 0 && bias_A <= 1.6969) {
     static const GridOp OP_K(ZOmega(-1, -1, 0, 0), ZOmega(0, -1, 1, 0));
     if (llvm::failed(reduction(A, B, opG_r, OP_K))) {
@@ -213,7 +246,7 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
     return llvm::success();
   }
 
-  // K_conj_sq2 operation: A.b >= 0 and B.bias <= 1.6969
+  // K_conj_sq2: the swapped-roles case where B is now the wider one.
   if (A.b() >= 0 && bias_B <= 1.6969) {
     static const GridOp OP_K_conj_sq2(ZOmega(1, -1, 0, 0),
                                       ZOmega(0, -1, -1, 0));
@@ -227,7 +260,8 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
     return llvm::success();
   }
 
-  // A operation: A.b >= 0
+  // A: parameterised shear (Lemma A.17). The exponent n is the floor of
+  // sqrt of the smaller bias, clamped to 1 so the operator is non-trivial.
   if (A.b() >= 0) {
     Integer n = std::max(Integer(1), floor_sqrt(std::min(bias_A, bias_B)) / 2);
     GridOp OP_A_n(ZOmega(0, 0, 0, 1), ZOmega(0, 1, 0, 2 * n));
@@ -241,7 +275,8 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
     return llvm::success();
   }
 
-  // B operation: fallback case
+  // B: catch-all (Lemma A.19) for the b < 0 <= beta case. Same n clamp as
+  // the A operator above.
   Integer n = std::max(Integer(1), floor_sqrt(std::min(bias_A, bias_B) / 2));
   GridOp OP_B_n(ZOmega(0, 0, 0, 1), ZOmega(n, 1, -n, 0));
   if (llvm::failed(reduction(A, B, opG_r, OP_B_n))) {
@@ -253,6 +288,10 @@ llvm::LogicalResult step_lemma(Ellipse &A, Ellipse &B, GridOp &opG_l,
   SYNTH_CLOSE_SUCCESS("applied B(n=" + n.to_string() + ")");
   return llvm::success();
 }
+
+//===----------------------------------------------------------------------===//
+// to_upright
+//===----------------------------------------------------------------------===//
 
 llvm::FailureOr<UprightResult> to_upright(const Ellipse &setA,
                                           const Ellipse &setB) {
@@ -282,10 +321,11 @@ llvm::FailureOr<UprightResult> to_upright(const Ellipse &setA,
     ++iterations;
   }
 
-  // opG is built from normalized ellipses; apply it to the original (non-
-  // normalized) copies to get the correct upright bboxes. shift_ellipses()
-  // modifies A/B directly in ways not captured by the D' = I^T D I congruence
-  // transform, so we cannot derive the original-upright bboxes from A/B alone.
+  // opG was built against the *normalised* ellipse pair; apply it to fresh
+  // copies of the *original* (un-normalised) inputs to compute the upright
+  // bounding boxes. Going back through A / B would not work because
+  // shift_ellipses() mutates them in ways that are not captured by the
+  // D' = I^T D I congruence transform.
   GridOp opG = opG_l * opG_r;
   Ellipse A_upright = setA;
   Ellipse B_upright = setB;

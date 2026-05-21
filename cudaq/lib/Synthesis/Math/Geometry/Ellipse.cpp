@@ -14,6 +14,10 @@
 
 namespace cudaq::synth {
 
+//===----------------------------------------------------------------------===//
+// Ellipse::transform_by_gridop / transform_by_gridop_mat
+//===----------------------------------------------------------------------===//
+
 llvm::LogicalResult
 Ellipse::transform_by_gridop(const GridOp &g_local, TransformMode mode,
                              const Real &preinv00, const Real &preinv01,
@@ -30,9 +34,9 @@ llvm::LogicalResult Ellipse::transform_by_gridop_mat(
     const Real &F11, const Real &preinv00, const Real &preinv01,
     const Real &preinv10, const Real &preinv11, const Real &tol,
     const GridOp *fallback_g) {
-  // Computes the exact inverse via GridOp::inv() and applies the transform.
-  // Used for both the Fallback mode and as a recovery path when the forward
-  // matrix is near-singular in Conjugate mode.
+  // Common path for both Fallback mode and the recovery branch of Conjugate
+  // mode: take the exact inverse via GridOp::inv() and feed it to
+  // apply_inverse_transform.
   auto apply_from_gridop_inv = [&](const GridOp &g) -> llvm::LogicalResult {
     llvm::FailureOr<GridOp> inv_or = inv(g);
     if (llvm::failed(inv_or))
@@ -50,16 +54,18 @@ llvm::LogicalResult Ellipse::transform_by_gridop_mat(
     return apply_from_gridop_inv(*fallback_g);
 
   case TransformMode::Direct:
-    // Hot path: inverse is precomputed — pass references directly, no copies.
+    // The caller already has the inverse entries; pass them through without
+    // recomputation.
     apply_inverse_transform(preinv00, preinv01, preinv10, preinv11, F00, F01,
                             F10, F11);
     return llvm::success();
 
   case TransformMode::Conjugate:
-    // Compute I = F⁻¹ algebraically from the 2×2 determinant formula.
+    // Algebraic 2x2 inverse via det(F). Fall back to the exact GridOp::inv()
+    // path only when the determinant is below `tol`, since for very small
+    // det the closed-form entries lose precision catastrophically.
     Real det = F00 * F11 - F01 * F10;
     if (abs(det) < tol) {
-      // Near-singular: fall back to the exact GridOp::inv() path.
       assert(fallback_g && "transform_by_gridop_mat: Conjugate mode with "
                            "singular matrix requires a non-null fallback "
                            "GridOp");
@@ -74,44 +80,36 @@ llvm::LogicalResult Ellipse::transform_by_gridop_mat(
   return llvm::failure();
 }
 
+//===----------------------------------------------------------------------===//
+// Ellipse::intersect
+//===----------------------------------------------------------------------===//
+
 std::optional<std::pair<Real, Real>> Ellipse::intersect(const DOmega &u0,
                                                         const DOmega &v) const {
-  // static const Real tolerance(1e-30);
-  // Real rel_x0 = u0[0] - `px`();
-  // Real rel_y0 = u0[1] - `py`();
-  // const Real &dx = v[0];
-  // const Real &dy = v[1];
-
-  // Real qa = eval_quadratic_form(dx, dy);
-  // Real qb = 2 * (a() * rel_x0 * dx + b() * (rel_x0 * dy + rel_y0 * dx) +
-  // d() * rel_y0 * dy);
-  // Real qc = eval_quadratic_form(rel_x0, rel_y0) - 1;
-
-  //// Degenerate: v is nearly in the null space of D (qa ≈ 0 → linear
-  /// equation).
-  // if (abs(qa) < tolerance) {
-  // if (abs(qb) < tolerance)
-  // return std::nullopt;
-  //// Single intersection point: move to avoid an extra GMP copy.
-  // Real t = -qc / qb;
-  // auto t2 = t;
-  // return std::make_pair(std::move(t), std::move(t2));
-  //}
-
-  // return solve_quadratic(qa, qb, qc);
+  // Currently unused: the upstream code paths route line/ray intersection
+  // through the specialised UnitDisk and EpsilonRegion overrides, not the
+  // generic Ellipse. A working implementation would solve the quadratic
+  // (v - p)^T D (v - p) <= 1 along u0 + t * v, falling back to a linear
+  // solve when the quadratic coefficient is near zero. Returning nullopt
+  // signals "no intersection" -- safe but conservative.
   return std::nullopt;
 }
+
+//===----------------------------------------------------------------------===//
+// Ellipse::apply_inverse_transform
+//===----------------------------------------------------------------------===//
 
 void Ellipse::apply_inverse_transform(const Real &I00, const Real &I01,
                                       const Real &I10, const Real &I11,
                                       const Real &F00, const Real &F01,
                                       const Real &F10, const Real &F11) {
-  // Compute D' = Iᵀ D I via the two-stage product:
-  //   T = D · I,   D' = Iᵀ · T  (exploiting the symmetry of D').
+  // D' = I^T D I, computed as the two-stage product D' = I^T * (D * I) and
+  // exploiting D' symmetry to skip computing the (1, 0) entry.
   //
-  // References to old values must be captured before any write to _a/_b/_d
-  // since the callers may pass aliased references (e.g. `preinv`* pointing into
-  // the same Ellipse).  The old_* bindings below snapshot the values.
+  // The const-ref bindings capture the old values *before* writing to the
+  // members. Callers may pass aliased references (e.g. preinv* pointing
+  // into the same Ellipse), so the writes below must not be visible to the
+  // read side of this computation.
   const Real &old_a = _a;
   const Real &old_b = _b;
   const Real &old_d = _d;
@@ -125,16 +123,15 @@ void Ellipse::apply_inverse_transform(const Real &I00, const Real &I01,
   Real new_b = tmp00 * I01 + tmp01 * I11;
   Real new_d = tmp10 * I01 + tmp11 * I11;
 
-  // Compute the new center p' = F p before writing to _p, since F entries
-  // may alias _p in pathological call sites.
+  // New centre p' = F p, snapshotted for the same aliasing reason.
   const Real &old_px = _p[0];
   const Real &old_py = _p[1];
   Real new_px = F00 * old_px + F01 * old_py;
   Real new_py = F10 * old_px + F11 * old_py;
 
-  // Move computed values into members: mpfr_swap is O(1) vs mpfr_set O(p/64).
-  // _b covers both off-diagonal entries; no separate D[1][0] synchronisation
-  // is needed because we store only three scalars.
+  // Move into the members: mpfr_swap is O(1), the corresponding mpfr_set
+  // would be O(precision/64). Only three D entries because the off-diagonal
+  // is stored once.
   _a = std::move(new_a);
   _b = std::move(new_b);
   _d = std::move(new_d);

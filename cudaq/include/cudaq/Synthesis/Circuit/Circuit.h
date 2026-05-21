@@ -18,90 +18,83 @@
 
 namespace cudaq::synth {
 
+//===----------------------------------------------------------------------===//
+// Circuit
+//===----------------------------------------------------------------------===//
+
 /// A single-qubit Clifford+T circuit: an ordered, finite sequence of gates.
 ///
-/// A Circuit represents the product U = g₁ · g₂ · … · gₙ where each gᵢ is
-/// one of the standard generators acting on a single qubit. The empty circuit
-/// is the identity operator.
+/// A Circuit represents the product U = g_1 * g_2 * ... * g_n where each
+/// g_i is one of the standard single-qubit generators (see `Gate`). The
+/// empty circuit is the identity operator.
 ///
-/// The only valid gate values are those of the Gate enum; structurally invalid
-/// sequences cannot be constructed.
+/// The gate alphabet is structurally restricted to the `Gate` enum, so
+/// invalid sequences cannot be constructed directly. The `from_string`
+/// factory is the only entry point that can fail (unknown character).
 class Circuit {
   std::vector<Gate> gates_;
 
 public:
-  /// Construct an empty circuit (identity operator).
+  /// Empty circuit -- the identity operator.
   Circuit() = default;
 
-  /// Construct a circuit from a brace-enclosed gate list, e.g.
-  /// Circuit({Gate::H, Gate::T, Gate::H}).
+  /// Brace-init from a gate list: Circuit({Gate::H, Gate::T, Gate::H}).
   Circuit(std::initializer_list<Gate> g) : gates_(g) {}
 
-  // -------------------------------------------------------------------------
-  // Iteration
-  // -------------------------------------------------------------------------
+  // -- Iteration --
 
-  /// Forward iteration over gates in application order (left to right).
+  /// Forward iteration in application order (left to right).
   auto begin() const { return gates_.begin(); }
   auto end() const { return gates_.end(); }
 
-  /// Reverse iteration, used when reconstructing a unitary from a circuit
+  /// Reverse iteration. Used when reconstructing a unitary from a circuit
   /// via right-to-left gate application (see DOmegaUnitary::from_gates).
   auto rbegin() const { return gates_.rbegin(); }
   auto rend() const { return gates_.rend(); }
 
-  // -------------------------------------------------------------------------
-  // Capacity and element access
-  // -------------------------------------------------------------------------
+  // -- Capacity and element access --
 
-  /// Number of gates in the circuit.
   size_t size() const { return gates_.size(); }
 
-  /// True iff the circuit is the identity (no gates).
+  /// True iff the circuit is the identity.
   bool empty() const { return gates_.empty(); }
 
-  /// Reserve storage for at least n gates to avoid repeated `reallocations`
-  /// when building a circuit incrementally.
+  /// Reserve storage for at least n gates so incremental builders avoid
+  /// repeated reallocations.
   void reserve(size_t n) { gates_.reserve(n); }
 
-  /// Gate at position i (0-indexed, unchecked).
+  /// Unchecked element access (0-indexed).
   Gate operator[](size_t i) const { return gates_[i]; }
 
-  /// Last gate in the circuit. Undefined `behaviour` if the circuit is empty.
+  /// Last gate. Calling this on an empty Circuit is undefined behaviour.
   Gate back() const { return gates_.back(); }
 
-  // -------------------------------------------------------------------------
-  // Mutation
-  // -------------------------------------------------------------------------
+  // -- Mutation --
 
-  /// Append a single gate at the end of the circuit.
   void push_back(Gate g) { gates_.push_back(g); }
 
-  /// Remove the last gate. Undefined `behaviour` if the circuit is empty.
+  /// Drop the last gate. Calling this on an empty Circuit is undefined
+  /// behaviour.
   void pop_back() { gates_.pop_back(); }
 
-  /// Append all gates of `rhs` to the end of this circuit (concatenation).
+  /// Concatenate `rhs` onto the end.
   Circuit &operator+=(const Circuit &rhs) {
     gates_.insert(gates_.end(), rhs.begin(), rhs.end());
     return *this;
   }
 
-  // -------------------------------------------------------------------------
-  // Comparison
-  // -------------------------------------------------------------------------
+  // -- Comparison --
 
-  /// Two circuits are equal iff they contain the same gates in the same order.
-  /// Note: unitary equivalence (equality up to global phase or Clifford
-  /// relations) is a strictly weaker condition and is not checked here.
+  /// Sequence equality. Unitary equivalence (e.g. modulo global phase or
+  /// Clifford relations) is a strictly weaker notion and is *not* checked
+  /// here.
   bool operator==(const Circuit &other) const { return gates_ == other.gates_; }
   bool operator!=(const Circuit &other) const { return !(*this == other); }
 
-  // -------------------------------------------------------------------------
-  // Metrics
-  // -------------------------------------------------------------------------
+  // -- Metrics --
 
-  /// Number of T gates in the circuit, which equals the T-count and
-  /// determines the non-Clifford cost. O(n) scan over all gates.
+  /// Number of T gates -- the T-count, i.e. the non-Clifford cost of the
+  /// circuit. O(n) scan over the gate list.
   int t_count() const {
     int n = 0;
     for (Gate g : gates_)
@@ -110,17 +103,15 @@ public:
     return n;
   }
 
-  // -------------------------------------------------------------------------
-  // Serialization
-  // -------------------------------------------------------------------------
+  // -- Serialization --
 
-  /// Serialize to a human-readable gate string (e.g. "HTSHTSH").
-  /// The empty circuit serializes to "I" (the identity sentinel).
+  /// Encode the circuit as a gate string (e.g. "HTSHTSH"). The empty
+  /// circuit becomes the single-character sentinel "I".
   std::string to_string() const;
 
-  /// Parse a gate string into a Circuit. Each character must be one of
-  /// H, S, T, X, W. The character 'I' is accepted as the identity sentinel
-  /// and produces an empty Circuit. Any other character returns failure().
+  /// Parse a gate string. Each character must be one of H, S, T, X, W; the
+  /// special character 'I' is accepted as the identity sentinel and yields
+  /// an empty Circuit. Any other character returns failure().
   static llvm::FailureOr<Circuit> from_string(std::string_view s);
 };
 
@@ -172,7 +163,7 @@ inline llvm::FailureOr<Circuit> Circuit::from_string(std::string_view s) {
       result.push_back(Gate::W);
       break;
     case 'I':
-      break; // identity sentinel — produces empty Circuit
+      break; // identity sentinel: consumed but not pushed.
     default:
       return llvm::failure();
     }
@@ -180,7 +171,7 @@ inline llvm::FailureOr<Circuit> Circuit::from_string(std::string_view s) {
   return result;
 }
 
-/// Stream a Circuit as its gate string (see Circuit::to_string()).
+/// Stream as the gate string produced by `Circuit::to_string`.
 inline std::ostream &operator<<(std::ostream &os, const Circuit &c) {
   return os << c.to_string();
 }
