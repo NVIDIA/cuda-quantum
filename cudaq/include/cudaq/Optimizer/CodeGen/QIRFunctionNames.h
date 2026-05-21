@@ -40,6 +40,12 @@ static constexpr const char QIRCustomAdjOp[] =
     "__quantum__qis__custom_unitary__adj";
 static constexpr const char QIRExpPauli[] = "__quantum__qis__exp_pauli";
 
+static constexpr const char QIRDetector[] = "__quantum__qis__detector";
+static constexpr const char QIRLogicalObservable[] =
+    "__quantum__qis__logical_observable";
+static constexpr const char QIRPairDetectors[] =
+    "__quantum__qis__pair_detectors";
+
 static constexpr const char NVQIRInvokeWithControlBits[] =
     "invokeWithControlQubits";
 static constexpr const char NVQIRInvokeRotationWithControlBits[] =
