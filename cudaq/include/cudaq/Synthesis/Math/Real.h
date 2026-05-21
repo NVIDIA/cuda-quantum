@@ -48,7 +48,9 @@ private:
   }
 
 public:
-  // -- Precision management --
+  //===--------------------------------------------------------------------===//
+  // Precision management
+  //===--------------------------------------------------------------------===//
 
   static void set_default_precision(mpfr_prec_t prec) {
     default_precision_ = prec;
@@ -63,7 +65,9 @@ public:
     return result;
   }
 
-  // -- Construction --
+  //===--------------------------------------------------------------------===//
+  // Construction
+  //===--------------------------------------------------------------------===//
 
   Real() {
     mpfr_init2(value_, default_precision_);
@@ -123,7 +127,9 @@ public:
       mpfr_clear(value_);
   }
 
-  // -- Assignment --
+  //===--------------------------------------------------------------------===//
+  // Assignment
+  //===--------------------------------------------------------------------===//
 
   /// Copy assignment. Reinitialises the destination only when precisions
   /// disagree; the common same-precision case stays at one mpfr_set.
@@ -171,7 +177,9 @@ public:
     return *this;
   }
 
-  // -- Conversions --
+  //===--------------------------------------------------------------------===//
+  // Conversions
+  //===--------------------------------------------------------------------===//
 
   explicit operator i32() const {
     return static_cast<i32>(mpfr_get_si(value_, MPFR_RNDN));
@@ -199,7 +207,9 @@ public:
     return mpfr_get_d(value_, MPFR_RNDN);
   }
 
-  // -- Arithmetic --
+  //===--------------------------------------------------------------------===//
+  // Arithmetic
+  //===--------------------------------------------------------------------===//
 
   Real operator+(const Real &other) const {
     mpfr_prec_t prec =
@@ -233,7 +243,9 @@ public:
     return result;
   }
 
-  // -- Compound assignment (Real, double, i32) --
+  //===--------------------------------------------------------------------===//
+  // Compound assignment (Real, double, i32)
+  //===--------------------------------------------------------------------===//
 
   Real &operator+=(const Real &other) {
     mpfr_add(value_, value_, other.value_, MPFR_RNDN);
@@ -291,7 +303,9 @@ public:
     return *this;
   }
 
-  // -- Increment / decrement --
+  //===--------------------------------------------------------------------===//
+  // Increment / decrement
+  //===--------------------------------------------------------------------===//
 
   Real &operator++() {
     mpfr_add_ui(value_, value_, 1, MPFR_RNDN);
@@ -315,7 +329,9 @@ public:
     return temp;
   }
 
-  // -- Comparison --
+  //===--------------------------------------------------------------------===//
+  // Comparison
+  //===--------------------------------------------------------------------===//
 
   bool operator==(const Real &other) const {
     return mpfr_equal_p(value_, other.value_) != 0;
@@ -336,7 +352,9 @@ public:
     return mpfr_greaterequal_p(value_, other.value_) != 0;
   }
 
-  // -- Unary --
+  //===--------------------------------------------------------------------===//
+  // Unary
+  //===--------------------------------------------------------------------===//
 
   Real operator-() const {
     Real result(direct_init_tag{}, mpfr_get_prec(value_));
@@ -348,7 +366,9 @@ public:
 
   bool operator!() const { return mpfr_zero_p(value_) != 0; }
 
-  // -- Classification helpers --
+  //===--------------------------------------------------------------------===//
+  // Classification helpers
+  //===--------------------------------------------------------------------===//
 
   bool is_nan() const { return mpfr_nan_p(value_) != 0; }
   bool is_inf() const { return mpfr_inf_p(value_) != 0; }
@@ -367,7 +387,9 @@ public:
   const mpfr_t &get_mpfr() const { return value_; }
   mpfr_t &get_mpfr() { return value_; }
 
-  // -- Mathematical constants --
+  //===--------------------------------------------------------------------===//
+  // Mathematical constants
+  //===--------------------------------------------------------------------===//
   //
   // Function-local statics dodge static-initialization-order issues and
   // capture the default precision in force at first use.

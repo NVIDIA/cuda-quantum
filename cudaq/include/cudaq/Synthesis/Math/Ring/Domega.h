@@ -99,7 +99,9 @@ public:
     return DOmega(_u * other._u, _k + other._k);
   }
 
-  // -- Ring automorphisms --
+  //===--------------------------------------------------------------------===//
+  // Ring automorphisms
+  //===--------------------------------------------------------------------===//
 
   /// Complex conjugation: (u / sqrt(2)^k)^* = conj(u) / sqrt(2)^k. Maps
   /// omega to omega^-1 (Paper Definition 3.2).
@@ -116,7 +118,9 @@ public:
     return DOmega(_u.conj_sq2(), _k);
   }
 
-  // -- Derived properties --
+  //===--------------------------------------------------------------------===//
+  // Derived properties
+  //===--------------------------------------------------------------------===//
 
   /// Floating-point scaling factor sqrt(2)^k.
   Real scale() const { return pow_sqrt2(_k); }

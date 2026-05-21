@@ -148,14 +148,18 @@ public:
                   _a * other._b + _b * other._a);
   }
 
-  // -- Ring automorphisms --
+  //===--------------------------------------------------------------------===//
+  // Ring automorphisms
+  //===--------------------------------------------------------------------===//
 
   /// sqrt(2)-conjugation: (a + b*sqrt(2))* = a - b*sqrt(2). Maps sqrt(2)
   /// to -sqrt(2) (Paper Definition 3.2). Used in grid problems and the
   /// Diophantine solver.
   ZSqrt2 conj_sq2() const { return ZSqrt2(_a, -_b); }
 
-  // -- Derived properties --
+  //===--------------------------------------------------------------------===//
+  // Derived properties
+  //===--------------------------------------------------------------------===//
 
   /// Parity of the constant coefficient: 0 or 1.
   i32 parity() const { return i32(_a.is_odd()); }
