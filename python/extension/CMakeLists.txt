@@ -46,6 +46,14 @@ declare_mlir_dialect_python_bindings(
     dialects/cc.py
   DIALECT_NAME cc)
 
+declare_mlir_dialect_python_bindings(
+  ADD_TO_PARENT CUDAQuantumPythonSources
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../cudaq/mlir"
+  TD_FILE dialects/QECOps.td
+  SOURCES
+    dialects/qec.py
+  DIALECT_NAME qec)
+
 if(APPLE)
   set(_quakeDialects_mlir_runtime_sources "")
   set(_quakeDialects_extra_link_libs

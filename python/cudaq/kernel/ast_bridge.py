@@ -20,7 +20,7 @@ from cudaq.mlir._mlir_libs._quakeDialects import (cudaq_runtime, load_intrinsic,
                                                   gen_vector_of_complex_constant
                                                  )
 from cudaq.kernel_types import qview
-from cudaq.mlir.dialects import arith, cc, complex, func, math, quake
+from cudaq.mlir.dialects import arith, cc, complex, func, math, qec, quake
 from cudaq.mlir.ir import (BoolAttr, Block, BlockArgument, Context, ComplexType,
                            DenseBoolArrayAttr, DenseI32ArrayAttr,
                            DenseI64ArrayAttr, DictAttr, F32Type, F64Type,
@@ -1609,6 +1609,59 @@ class PyASTBridge(ast.NodeVisitor):
                     self.emitFatalError("too many values", self.currentNode)
             groupedVals = *frontVals, values, *backVals
         return groupedVals[0] if len(groupedVals) == 1 else groupedVals
+
+    def _lowerQECOp(self, node):
+        """Lower ``cudaq.detector(...)``, ``cudaq.logical_observable(...)``,
+        and ``cudaq.detectors(prev, curr)`` to the matching ``qec.*`` MLIR op.
+        """
+        name = node.func.attr
+        isPair = (name == "detectors")
+
+        if isPair:
+            if len(node.args) != 2:
+                self.emitFatalError(
+                    "cudaq.detectors takes exactly two "
+                    "list[cudaq.measure_handle] arguments", node)
+        elif not node.args:
+            self.emitFatalError(
+                f"cudaq.{name} requires at least one "
+                f"cudaq.measure_handle argument", node)
+
+        obsIndex = 0
+        if name == "logical_observable":
+            for kw in node.keywords:
+                if kw.arg != "observable_index":
+                    continue
+                try:
+                    val = ast.literal_eval(kw.value)
+                except (ValueError, SyntaxError):
+                    val = None
+                if not isinstance(val, int) or isinstance(val, bool):
+                    self.emitFatalError(
+                        "cudaq.logical_observable requires "
+                        "observable_index to be an integer literal", node)
+                if val < 0 or val > (1 << 63) - 1:
+                    self.emitFatalError(
+                        "cudaq.logical_observable observable_index must "
+                        "be in the range [0, 2^63 - 1]", node)
+                obsIndex = val
+
+        n = len(node.args)
+        if n == 1:
+            values = [self.__groupValues(node.args, [1])]
+        else:
+            values = list(self.__groupValues(node.args, [n]))
+
+        if isPair:
+            prev, curr = values
+            qec.DetectorsOp(prev, curr)
+        elif name == "logical_observable":
+            # Skip the attribute at the default 0 so the printed IR omits
+            # the optional `index N` literal at the spec shape.
+            idxAttr = None if obsIndex == 0 else obsIndex
+            qec.ObservableOp(values, observableIndex=idxAttr)
+        else:
+            qec.DetectorOp(values)
 
     def __get_root_value(self, pyVal):
         """Strips any attribute and subscript expressions from the node to get
@@ -3635,6 +3688,10 @@ class PyASTBridge(ast.NodeVisitor):
                         self.pushValue(
                             quake.DiscriminateOp(resTy, handle).result)
                         return
+
+                    if node.func.attr in ("detector", "logical_observable",
+                                          "detectors"):
+                        return self._lowerQECOp(node)
 
                     if node.func.attr == 'adjoint' or node.func.attr == 'control':
 

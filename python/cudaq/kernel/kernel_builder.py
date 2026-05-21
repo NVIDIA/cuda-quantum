@@ -24,7 +24,7 @@ from cudaq.mlir.ir import (BoolAttr, Block, Context, Module, TypeAttr, UnitAttr,
                            FlatSymbolRefAttr)
 from cudaq.mlir.passmanager import PassManager
 from cudaq.mlir.dialects import (complex as complexDialect, arith, quake, cc,
-                                 func, math)
+                                 func, math, qec)
 from cudaq.mlir._mlir_libs._quakeDialects import (
     cudaq_runtime, gen_vector_of_complex_constant, load_intrinsic)
 from cudaq.kernel_types import qubit, qvector
@@ -1241,6 +1241,88 @@ class PyKernel(object):
         ```
         """
         return self.__measure(quake.MyOp, target, regName)
+
+    def __qecOperandValue(self, qv, opName):
+        """Normalize a builder-side QEC operand: must be a
+        ``QuakeValue`` whose MLIR type is ``!cc.measure_handle`` or
+        ``!cc.stdvec<!cc.measure_handle>`` (the value forms produced by
+        ``mz`` / ``mx`` / ``my`` for scalar and ``qvector`` targets)."""
+        if not isinstance(qv, QuakeValue):
+            emitFatalError(
+                f"kernel.{opName} arguments must be QuakeValue "
+                f"measurement handles (returned by kernel.mz / mx / my)")
+        ty = qv.mlirValue.type
+        ok = (cc.MeasureHandleType.isinstance(ty) or
+              (cc.StdvecType.isinstance(ty) and cc.MeasureHandleType.isinstance(
+                  cc.StdvecType.getElementType(ty))))
+        if not ok:
+            emitFatalError(
+                f"kernel.{opName} arguments must each be a "
+                f"cudaq.measure_handle or list[cudaq.measure_handle]")
+        return qv.mlirValue
+
+    def detector(self, *measurements):
+        """Define a detector over one or more measurement results.
+
+        A detector is a parity constraint: under noise-free execution the
+        XOR of the referenced measurements is deterministic. Each call
+        defines one detector. Arguments are :class:`QuakeValue` handles
+        returned by ``kernel.mz`` / ``mx`` / ``my`` (scalar handles or
+        handle vectors).
+        """
+        if not measurements:
+            emitFatalError("kernel.detector requires at least one "
+                           "cudaq.measure_handle argument")
+        with self.ctx, self.insertPoint, self.loc:
+            values = [
+                self.__qecOperandValue(m, "detector") for m in measurements
+            ]
+            qec.DetectorOp(values)
+
+    def logical_observable(self, *measurements, observable_index=0):
+        """Define a logical observable over one or more measurement results.
+
+        ``observable_index`` selects which logical qubit observable this
+        call defines; codes with a single logical qubit can omit it. Any
+        combination of scalar handles and handle vectors is accepted.
+        """
+        if not measurements:
+            emitFatalError("kernel.logical_observable requires at least one "
+                           "cudaq.measure_handle argument")
+        if not isinstance(observable_index, int) or isinstance(
+                observable_index, bool):
+            emitFatalError(
+                "kernel.logical_observable requires observable_index "
+                "to be an integer literal")
+        if observable_index < 0 or observable_index > (1 << 63) - 1:
+            emitFatalError(
+                "kernel.logical_observable observable_index must be in "
+                "the range [0, 2^63 - 1]")
+        with self.ctx, self.insertPoint, self.loc:
+            values = [
+                self.__qecOperandValue(m, "logical_observable")
+                for m in measurements
+            ]
+            # Skip the attribute at the default 0 so the printed IR omits
+            # the optional `index 0` literal at the spec shape.
+            idxAttr = None if observable_index == 0 else observable_index
+            qec.ObservableOp(values, observableIndex=idxAttr)
+
+    def detectors(self, prev, curr):
+        """Define N detectors by pairing two measurement vectors
+        element-wise. Standard form for cross-round detectors: each
+        detector ``i`` is the parity of ``prev[i]`` and ``curr[i]``.
+        Both arguments must be ``list[cudaq.measure_handle]`` handles
+        (returned by ``kernel.mz`` on a ``qvector``).
+        """
+        with self.ctx, self.insertPoint, self.loc:
+            prevV = self.__qecOperandValue(prev, "detectors")
+            currV = self.__qecOperandValue(curr, "detectors")
+            for v in (prevV, currV):
+                if not cc.StdvecType.isinstance(v.type):
+                    emitFatalError("kernel.detectors arguments must each be a "
+                                   "list[cudaq.measure_handle]")
+            qec.DetectorsOp(prevV, currV)
 
     def adjoint(self, otherKernel, *target_arguments):
         """
