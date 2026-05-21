@@ -25,7 +25,7 @@ mpfr_prec_t Real::default_precision_ = 256;
 /// [-4, digits), scientific notation outside that window. The sign is
 /// stripped from mpfr_get_str's output up front so the formatting branches
 /// operate on an unsigned digit string.
-std::string Real::to_string(i32 digits) const {
+std::string Real::to_string(int32_t digits) const {
   if (mpfr_zero_p(value_))
     return "0.0";
 
@@ -46,22 +46,22 @@ std::string Real::to_string(i32 digits) const {
 
   std::string result;
 
-  i32 scientific_exp = static_cast<i32>(exp) - 1;
+  int32_t scientific_exp = static_cast<int32_t>(exp) - 1;
 
   if (scientific_exp >= -4 && scientific_exp < digits) {
     if (exp <= 0) {
       // Pure fraction: "0." + |exp| zeros + mantissa.
       // e.g. exp = -2, mantissa = "1234" -> "0.001234".
       result = "0.";
-      for (i32 i = 0; i < static_cast<i32>(-exp); i++)
+      for (int32_t i = 0; i < static_cast<int32_t>(-exp); i++)
         result += "0";
       result += mantissa;
-    } else if (static_cast<i32>(exp) >= static_cast<i32>(mantissa.length())) {
+    } else if (static_cast<int32_t>(exp) >= static_cast<int32_t>(mantissa.length())) {
       // Integer (or near-integer) needing trailing zeros before the dot.
       // e.g. exp = 5, mantissa = "12" -> "12000.0".
       result = mantissa;
-      for (i32 i = static_cast<i32>(mantissa.length());
-           i < static_cast<i32>(exp); i++)
+      for (int32_t i = static_cast<int32_t>(mantissa.length());
+           i < static_cast<int32_t>(exp); i++)
         result += "0";
       result += ".0";
     } else {
@@ -85,7 +85,7 @@ std::string Real::to_string(i32 digits) const {
       result += (scientific_exp < 10 ? "0" : "");
       result += std::to_string(scientific_exp);
     } else {
-      i32 abs_exp = -scientific_exp;
+      int32_t abs_exp = -scientific_exp;
       result += "e-";
       result += (abs_exp < 10 ? "0" : "");
       result += std::to_string(abs_exp);

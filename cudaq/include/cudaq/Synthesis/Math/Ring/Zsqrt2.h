@@ -162,7 +162,7 @@ public:
   //===--------------------------------------------------------------------===//
 
   /// Parity of the constant coefficient: 0 or 1.
-  i32 parity() const { return i32(_a.is_odd()); }
+  int32_t parity() const { return int32_t(_a.is_odd()); }
 
   /// "(a, b)" rendering for debug logging.
   std::string to_string() const {

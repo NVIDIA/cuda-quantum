@@ -168,9 +168,9 @@ public:
   /// is divisible by delta iff a + b + c + d is even (Definition D.1,
   /// Remark D.2, Lemma 7.3). Uses Integer::is_odd which is a single GMP
   /// bit test per field -- no heap allocation.
-  i32 residue() const {
-    return (i32(_a.is_odd()) << 3) | (i32(_b.is_odd()) << 2) |
-           (i32(_c.is_odd()) << 1) | i32(_d.is_odd());
+  int32_t residue() const {
+    return (int32_t(_a.is_odd()) << 3) | (int32_t(_b.is_odd()) << 2) |
+           (int32_t(_c.is_odd()) << 1) | int32_t(_d.is_odd());
   }
 
   /// "(a, b, c, d)" rendering for debug logging.
@@ -216,7 +216,7 @@ inline ZOmega mul_by_omega_inv(const ZOmega &x) {
 /// Multiplication by omega^n. Direct switch over n mod 8 (omega^8 = 1) to
 /// avoid building up |n| intermediate allocations from repeated single-step
 /// applications.
-inline ZOmega mul_by_omega_power(const ZOmega &x, i32 n) {
+inline ZOmega mul_by_omega_power(const ZOmega &x, int32_t n) {
   n &= 0b111;
   switch (n) {
   case 0:

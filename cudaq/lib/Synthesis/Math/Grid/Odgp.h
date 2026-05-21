@@ -145,7 +145,7 @@ public:
 
 private:
   OdgpStepper inner_;
-  i32 parity_p_;
+  int32_t parity_p_;
   ZSqrt2 last_sol_;
   int yielded_ = 0;
 };

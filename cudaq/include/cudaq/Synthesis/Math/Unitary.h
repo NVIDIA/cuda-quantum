@@ -55,13 +55,13 @@ namespace cudaq::synth {
 class DOmegaUnitary {
 private:
   DOmega _z, _w;
-  i32 _n;
+  int32_t _n;
 
 public:
   /// Construct from explicit (z, w, n). If `k` is negative (the default),
   /// z and w are auto-aligned to the larger of their two denominator
   /// exponents; otherwise both are renormalised to exactly k.
-  DOmegaUnitary(const DOmega &z, const DOmega &w, i32 n, i32 k = -1)
+  DOmegaUnitary(const DOmega &z, const DOmega &w, int32_t n, int32_t k = -1)
       : _z(z), _w(w), _n(n & 0b111) {
 
     if (k == -1) {
@@ -80,8 +80,8 @@ public:
 
   DOmega z() const { return _z; }
   DOmega w() const { return _w; }
-  i32 n() const { return _n; }
-  i32 k() const { return static_cast<i32>(_w.k()); }
+  int32_t n() const { return _n; }
+  int32_t k() const { return static_cast<int32_t>(_w.k()); }
 
   /// 2x2 matrix view with entries in D[omega] (equation (12) instantiated).
   std::array<std::array<DOmega, 2>, 2> to_matrix() const {
@@ -151,7 +151,7 @@ public:
     return DOmegaUnitary(_z, mul_by_omega_inv(_w), _n - 1);
   }
 
-  DOmegaUnitary mul_by_T_power_from_left(i32 m) const {
+  DOmegaUnitary mul_by_T_power_from_left(int32_t m) const {
     m &= 0b111; // mod 8
     return DOmegaUnitary(_z, mul_by_omega_power(_w, m), _n + m);
   }
@@ -160,7 +160,7 @@ public:
     return DOmegaUnitary(_z, mul_by_omega_power(_w, 2), _n + 2);
   }
 
-  DOmegaUnitary mul_by_S_power_from_left(i32 m) const {
+  DOmegaUnitary mul_by_S_power_from_left(int32_t m) const {
     m &= 0b11; // mod 4
     return DOmegaUnitary(_z, mul_by_omega_power(_w, m << 1), _n + (m << 1));
   }
@@ -183,7 +183,7 @@ public:
     return DOmegaUnitary(mul_by_omega(_z), mul_by_omega(_w), _n + 2);
   }
 
-  DOmegaUnitary mul_by_W_power_from_left(i32 m) const {
+  DOmegaUnitary mul_by_W_power_from_left(int32_t m) const {
     m &= 0b111; // mod 8
     return DOmegaUnitary(mul_by_omega_power(_z, m), mul_by_omega_power(_w, m),
                          _n + (m << 1));
@@ -213,7 +213,7 @@ public:
 
 /// Re-express u with both z and w at denominator exponent `new_k`. Overload
 /// of `with_denom_exp(DOmega, Integer)` lifted to the unitary.
-inline DOmegaUnitary with_denom_exp(const DOmegaUnitary &u, i32 new_k) {
+inline DOmegaUnitary with_denom_exp(const DOmegaUnitary &u, int32_t new_k) {
   return DOmegaUnitary(u.z(), u.w(), u.n(), new_k);
 }
 
@@ -297,7 +297,7 @@ inline DOmegaUnitary DOmegaUnitary::from_gates(const Circuit &circuit) {
       // H needs one extra factor of sqrt(2) in the denominator to keep
       // every entry inside D[omega].
       unitary =
-          with_denom_exp(unitary, unitary.k() + i32(1)).mul_by_H_from_left();
+          with_denom_exp(unitary, unitary.k() + int32_t(1)).mul_by_H_from_left();
       break;
     case Gate::T:
       unitary = unitary.mul_by_T_from_left();
