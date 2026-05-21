@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
-#include "cudaq/algorithm.h"
 #include "math.h"
+#include "cudaq/algorithm.h"
 #include <gtest/gtest.h>
 #include <stdlib.h>
 

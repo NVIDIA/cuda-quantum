@@ -24,53 +24,7 @@
 
 using namespace cudaq;
 
-DefaultQPU::~DefaultQPU() = default;
-
-void DefaultQPU::enqueue(QuantumTask &task) { execution_queue->enqueue(task); }
-
-KernelThunkResultType DefaultQPU::launchKernel(const cudaq::SourceModule &src,
-                                               cudaq::KernelArgs args) {
-  ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::launchKernel");
-  auto rawFn = src.getFunctionPtr();
-  if (!rawFn)
-    throw std::runtime_error(
-        "DefaultQPU::launchKernel requires a raw kernel function pointer "
-        "for kernel '" +
-        src.getName() + "'.");
-  auto packed = args.getPacked();
-  void *argData = packed ? packed->data.data() : nullptr;
-  return rawFn->getFn()(argData, /*isRemote=*/false);
-}
-
-void DefaultQPU::configureExecutionContext(ExecutionContext &context) const {
-  ScopedTraceWithContext("DefaultPlatform::prepareExecutionContext",
-                         context.name);
-  if (noiseModel)
-    context.noiseModel = noiseModel;
-
-  context.executionManager = getDefaultExecutionManager();
-  context.executionManager->configureExecutionContext(context);
-}
-
-void DefaultQPU::beginExecution() {
-  getExecutionContext()->executionManager->beginExecution();
-}
-
-void DefaultQPU::endExecution() {
-  getExecutionContext()->executionManager->endExecution();
-}
-
-void DefaultQPU::finalizeExecutionContext(ExecutionContext &context) const {
-  ScopedTraceWithContext(context.name == "observe" ? TIMING_OBSERVE : 0,
-                         "DefaultPlatform::finalizeExecutionContext",
-                         context.name);
-  handleObservation(context);
-
-  getExecutionContext()->executionManager->finalizeExecutionContext(context);
-}
-
 namespace {
-
 /// The DefaultQuantumPlatform is a quantum_platform that provides a single
 /// simulated QPU, which delegates to the QIS ExecutionManager.
 class DefaultQuantumPlatform : public cudaq::quantum_platform {

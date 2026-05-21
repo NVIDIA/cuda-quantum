@@ -24,6 +24,7 @@ add_library(cudaq-mlir-runtime
     ArgumentConversion.cpp
     Compiler.cpp
     CompiledModuleHelper.cpp
+    JITTargetPipeline.cpp
     JIT.cpp
     RuntimeMLIR.cpp
     RuntimeCppMLIR.cpp
@@ -59,6 +60,7 @@ else()
   target_link_libraries(cudaq-mlir-runtime
     PRIVATE
       CCDialect
+      QECDialect
       QuakeDialect
       OptCodeGen
       OptTransforms

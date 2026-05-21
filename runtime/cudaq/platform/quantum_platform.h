@@ -15,9 +15,9 @@
 #include "common/NoiseModel.h"
 #include "common/ObserveResult.h"
 #include "common/ThunkInterface.h"
+#include "nvqpp_interface.h"
 #include "cudaq/remote_capabilities.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "nvqpp_interface.h"
 #include <cstring>
 #include <cxxabi.h>
 #include <functional>
@@ -174,10 +174,10 @@ public:
   void finalizeExecutionContext(cudaq::ExecutionContext &ctx) const;
 
   /// @brief Begin a new execution on this platform.
-  void beginExecution();
+  virtual void beginExecution();
 
   /// @brief End the current execution on this platform.
-  void endExecution();
+  virtual void endExecution();
 
   /// Enqueue an asynchronous sampling task.
   std::future<sample_result> enqueueAsyncTask(const std::size_t qpu_id,
@@ -192,16 +192,9 @@ public:
                  cudaq::optimizer &optimizer, const int n_params,
                  const std::size_t shots, std::size_t qpu_id = 0);
 
-  // This method is the hook for the kernel rewrites to invoke quantum kernels.
-  [[nodiscard]] KernelThunkResultType launchKernel(const SourceModule &src,
-                                                   const KernelArgs &args,
-                                                   std::size_t qpu_id = 0);
-
-  // This method launches a kernel from a ModuleOp that has already been
-  // created.
-  [[nodiscard]] KernelThunkResultType launchModule(const CompiledModule &module,
-                                                   const KernelArgs &args,
-                                                   std::size_t qpu_id);
+  [[nodiscard]] KernelThunkResultType
+  unifiedLaunchModule(const AnyModule &module, KernelArgs args,
+                      std::size_t qpu_id = 0);
 
   [[nodiscard]] CompiledModule compileModule(const SourceModule &src,
                                              const KernelArgs &args,
@@ -220,16 +213,6 @@ public:
   /// @brief Called by the runtime to notify that a new random seed value is
   /// set.
   virtual void onRandomSeedSet(std::size_t seed);
-
-  /// @brief Turn off any custom logging stream.
-  void resetLogStream();
-
-  /// @brief Get the stream for info logging.
-  // Returns null if no specific stream was set.
-  std::ostream *getLogStream();
-
-  /// @brief Set the info logging stream.
-  void setLogStream(std::ostream &logStream);
 
 protected:
   friend class cudaq::LinkedLibraryHolder;
@@ -250,11 +233,6 @@ protected:
 
   /// Name of the platform.
   std::string platformName;
-
-  /// Optional logging stream for platform output.
-  // If set, the platform and its QPUs will print info log to this stream.
-  // Otherwise, default output stream (std::cout) will be used.
-  std::ostream *platformLogStream = nullptr;
 
 private:
   // Helper to validate QPU Id

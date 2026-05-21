@@ -67,9 +67,14 @@ def ensure_not_recursive(method):
             )
 
         self._resolving_arguments = True
-        ret = method(self, *args, **kwargs)
-        self._resolving_arguments = False
-        return ret
+        try:
+            return method(self, *args, **kwargs)
+        finally:
+            # Clear the flag on every exit path. Without `finally`, an
+            # exception raised by `method` leaks `_resolving_arguments=True`
+            # to the next invocation, which then misreports the real error
+            # as a recursive-call diagnostic.
+            self._resolving_arguments = False
 
     return wrapper
 
@@ -652,6 +657,7 @@ class PyKernelDecorator(object):
 
     def process_argument(self, arg, arg_type):
         if isa_kernel_decorator(arg):
+            _validate_kernel_callable_arg(arg, arg_type)
             return DecoratorCapture(arg)
 
         arg = self.convertStringsToPauli(arg)
@@ -777,3 +783,33 @@ def _parse_ast(funcSrc: str, verbose: bool = False):
         except ImportError:
             pass
     return astModule
+
+
+def _validate_kernel_callable_arg(kernel, arg_type):
+    """
+    Validate that `kernel` matches the `arg_type` callable signature.
+    """
+    if not cc.CallableType.isinstance(arg_type):
+        emitFatalError(
+            f"Expected argument of type `{arg_type}`, got callable kernel `{kernel.name}`"
+        )
+
+    expectedFnTy = cc.CallableType.getFunctionType(arg_type)
+    actualFnTy = cc.CallableType.getFunctionType(
+        kernel.signature.get_callable_type())
+
+    if expectedFnTy == actualFnTy:
+        return
+
+    def _format(fnTy):
+        inputs_str = ", ".join(str(t) for t in fnTy.inputs)
+        results = fnTy.results
+        if results:
+            return f"({inputs_str}) -> {results[0]}"
+        else:
+            return inputs_str
+
+    emitFatalError(
+        f"Expected callable with signature {_format(expectedFnTy)}, "
+        f"got callable kernel `{kernel.name}` with signature {_format(actualFnTy)}"
+    )

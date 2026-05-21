@@ -95,8 +95,8 @@ int main() {
 // MLIR:         %[[VAL_6:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_5]] : i64]
 // MLIR:         %[[VAL_7:.*]] = quake.init_state %[[VAL_6]], %[[VAL_4]] : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
 // MLIR:         quake.delete_state %[[VAL_4]] : !cc.ptr<!quake.state>
-// MLIR:         %[[VAL_8:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> !quake.measure
-// MLIR:         %[[VAL_9:.*]] = quake.mz %[[VAL_7]] : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
+// MLIR:         %[[VAL_8:.*]] = quake.mz %[[VAL_1]] : (!quake.ref) -> !cc.measure_handle
+// MLIR:         %[[VAL_9:.*]] = quake.mz %[[VAL_7]] : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
 // MLIR:         return
 // MLIR:       }
 
@@ -109,8 +109,8 @@ int main() {
 // MLIR:         %[[VAL_6:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_5]] : i64]
 // MLIR:         %[[VAL_7:.*]] = quake.init_state %[[VAL_6]], %[[VAL_4]] : (!quake.veq<?>, !cc.ptr<!quake.state>) -> !quake.veq<?>
 // MLIR:         quake.delete_state %[[VAL_4]] : !cc.ptr<!quake.state>
-// MLIR:         %[[VAL_8:.*]] = quake.mz %[[VAL_1]] : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
-// MLIR:         %[[VAL_9:.*]] = quake.mz %[[VAL_7]] : (!quake.veq<?>) -> !cc.stdvec<!quake.measure>
+// MLIR:         %[[VAL_8:.*]] = quake.mz %[[VAL_1]] : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
+// MLIR:         %[[VAL_9:.*]] = quake.mz %[[VAL_7]] : (!quake.veq<?>) -> !cc.stdvec<!cc.measure_handle>
 // MLIR:         return
 // MLIR:       }
 // clang-format on

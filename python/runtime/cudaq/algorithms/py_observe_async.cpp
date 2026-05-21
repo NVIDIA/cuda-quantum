@@ -9,11 +9,11 @@
 #include "py_observe_async.h"
 #include "common/Environment.h"
 #include "cudaq.h"
+#include "runtime/cudaq/platform/py_alt_launch_kernel.h"
+#include "utils/OpaqueArguments.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Todo.h"
 #include "cudaq/algorithms/observe.h"
-#include "runtime/cudaq/platform/py_alt_launch_kernel.h"
-#include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -48,7 +48,7 @@ isValidObserveKernel_impl(const std::string &kernelName, MlirModule kernelMod) {
 
   // Are measurements specified?
   if (kernelFunc
-          .walk([&](quake::MeasurementInterface measure) {
+          .walk([&](cudaq::quake::MeasurementInterface measure) {
             // FIXME!! This is incorrect. If the kernel has calls, they are
             // completely ignored.
             return mlir::WalkResult::interrupt();

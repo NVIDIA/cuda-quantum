@@ -15,6 +15,11 @@
 #include "common/NoiseModel.h"
 #include "common/Resources.h"
 #include "common/ServerHelper.h"
+#include "cudaq_internal/compiler/ArgumentConversion.h"
+#include "cudaq_internal/compiler/JIT.h"
+#include "cudaq_internal/compiler/JITTargetPipeline.h"
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
+#include "nlohmann/json.hpp"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.h"
@@ -23,10 +28,6 @@
 #include "cudaq/Optimizer/Transforms/ResourceCount.h"
 #include "cudaq/Support/TargetConfig.h"
 #include "cudaq/runtime/logger/logger.h"
-#include "cudaq_internal/compiler/ArgumentConversion.h"
-#include "cudaq_internal/compiler/JIT.h"
-#include "cudaq_internal/compiler/RuntimeMLIR.h"
-#include "nlohmann/json.hpp"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Support/Base64.h"
@@ -151,72 +152,40 @@ cudaq_internal::compiler::Compiler::Compiler(
   }
 
   if (config.BackendConfig.has_value()) {
-    const auto codeGenSpec = config.getCodeGenSpec(backendConfig);
-    if (!codeGenSpec.empty()) {
-      CUDAQ_INFO("Set codegen translation: {}", codeGenSpec);
-      codegenTranslation = codeGenSpec;
+    auto pipelineConfig = cudaq_internal::compiler::JITTargetPipelineConfig::
+        createFromTargetConfig(config, backendConfig, emulate);
+    passPipelineConfig = pipelineConfig.passPipelineConfig;
+    codegenTranslation = pipelineConfig.codegenTranslation;
+    postCodeGenPasses = pipelineConfig.postCodeGenPasses;
+
+    if (!codegenTranslation.empty()) {
+      CUDAQ_INFO("Set codegen translation: {}", codegenTranslation);
       // Validate codegen configuration.
       cudaq::parseCodeGenTranslation(codegenTranslation);
     }
 
-    const std::string allowEarlyExitSetting =
-        codegenTranslation.starts_with("qir-adaptive") ? "true" : "false";
-
-    // 1. Apply all the target-agnostic high-level passes. If this is an
-    // emulation and a noise model has been set, do not erase the noise
-    // callbacks.
-    if (emulate)
-      // FIXME: Noise should eventually be enabled for emulated hardware targets
-      passPipelineConfig += ",emul-jit-prep-pipeline{erase-noise=true"
-                            " allow-early-exit=" +
-                            allowEarlyExitSetting + "}";
-    else
-      passPipelineConfig +=
-          ",hw-jit-prep-pipeline{allow-early-exit=" + allowEarlyExitSetting +
-          "}";
-
-    // 2. Apply target-specific high-level passes from the .yml file, if any.
-    if (!config.BackendConfig->JITHighLevelPipeline.empty()) {
+    if (pipelineConfig.usesTargetPassPipelineOverride) {
+      CUDAQ_INFO("Using target pass pipeline: {}", passPipelineConfig);
+    } else if (!config.BackendConfig->JITHighLevelPipeline.empty()) {
       CUDAQ_INFO("Appending JIT high level pipeline: {}",
                  config.BackendConfig->JITHighLevelPipeline);
-      passPipelineConfig += "," + config.BackendConfig->JITHighLevelPipeline;
     }
 
-    // 3. Appply the target-agnostic deployment passes. Any additional
-    // restructuring to get ready for decomposition.
-    passPipelineConfig += ",jit-deploy-pipeline";
-
-    // 4. Apply the target-specific mid-level passes. This decomposed quantum
-    // gates for a specific target machine, etc.
-    if (!config.BackendConfig->JITMidLevelPipeline.empty()) {
+    if (!pipelineConfig.usesTargetPassPipelineOverride &&
+        !config.BackendConfig->JITMidLevelPipeline.empty()) {
       CUDAQ_INFO("Appending JIT mid level pipeline: {}",
                  config.BackendConfig->JITMidLevelPipeline);
-      passPipelineConfig += "," + config.BackendConfig->JITMidLevelPipeline;
     }
 
-    // 5. Apply the target-agnostic finalization passes. This lowers the IR to
-    // CFG form.
-    // If this is not emulation, and the codegen translation is nop (dumping
-    // CUDA-Q MLIR), then we want to keep device calls as-is, to be submitted to
-    // the server for lowering and execution.
-    passPipelineConfig +=
-        ",jit-finalize-pipeline{lower-device-calls=" +
-        std::string{(codegenTranslation == "nop" && !emulate) ? "false"
-                                                              : "true"} +
-        "}";
-
-    // 6. Apply the target-specific low-level passes.
-    if (!config.BackendConfig->JITLowLevelPipeline.empty()) {
+    if (!pipelineConfig.usesTargetPassPipelineOverride &&
+        !config.BackendConfig->JITLowLevelPipeline.empty()) {
       CUDAQ_INFO("Appending JIT low level pipeline: {}",
                  config.BackendConfig->JITLowLevelPipeline);
-      passPipelineConfig += "," + config.BackendConfig->JITLowLevelPipeline;
     }
 
-    if (!config.BackendConfig->PostCodeGenPasses.empty()) {
+    if (!postCodeGenPasses.empty())
       CUDAQ_INFO("Adding post-codegen lowering pipeline: {}",
-                 config.BackendConfig->PostCodeGenPasses);
-      postCodeGenPasses = config.BackendConfig->PostCodeGenPasses;
-    }
+                 postCodeGenPasses);
   }
 
   auto disableQM = backendConfig.find("disable_qubit_mapping");
@@ -225,11 +194,7 @@ cudaq_internal::compiler::Compiler::Compiler(
     // qubit-mapping{device=bypass} to effectively disable the qubit-mapping
     // pass. Use $1 - $4 to make sure any other pass options are left
     // untouched.
-    std::regex qubitMapping(
-        "(.*)qubit-mapping\\{(.*)device=[^,\\}]+(.*)\\}(.*)");
-    std::string replacement("$1qubit-mapping{$2device=bypass$3}$4");
-    passPipelineConfig =
-        std::regex_replace(passPipelineConfig, qubitMapping, replacement);
+    cudaq_internal::compiler::setQubitMappingBypass(passPipelineConfig);
     CUDAQ_INFO("disable_qubit_mapping option found, so updated lowering "
                "pipeline to {}",
                passPipelineConfig);
@@ -431,7 +396,7 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
   // Populate conditional measurement flag in the context.
   if (emulate && executionContext && executionContext->name == "sample") {
     for (auto &artifact : moduleOp) {
-      quake::detail::QuakeFunctionAnalysis analysis{&artifact};
+      cudaq::quake::detail::QuakeFunctionAnalysis analysis{&artifact};
       auto info = analysis.getAnalysisInfo();
       if (info.empty())
         continue;
@@ -474,7 +439,7 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
             std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
         if (funcOp) {
           bool hasNamedMeasurements = false;
-          funcOp.walk([&](quake::MeasurementInterface meas) {
+          funcOp.walk([&](cudaq::quake::MeasurementInterface meas) {
             if (meas.getOptionalRegisterName().has_value()) {
               hasNamedMeasurements = true;
               return mlir::WalkResult::interrupt();

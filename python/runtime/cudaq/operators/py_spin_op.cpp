@@ -19,10 +19,10 @@
 #include <nanobind/stl/unordered_map.h>
 #include <nanobind/stl/vector.h>
 
-#include "cudaq/operators.h"
-#include "cudaq/operators/serialization.h"
 #include "py_helpers.h"
 #include "py_spin_op.h"
+#include "cudaq/operators.h"
+#include "cudaq/operators/serialization.h"
 
 namespace cudaq {
 
@@ -362,15 +362,7 @@ void bindSpinOperator(nanobind::module_ &mod) {
       .def(nanobind::self -= spin_op_term(), nanobind::is_operator())
       .def(nanobind::self *= nanobind::self, nanobind::is_operator())
       .def(nanobind::self += nanobind::self, nanobind::is_operator())
-// see issue https://github.com/pybind/pybind11/issues/1893
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wself-assign-overloaded"
-#endif
       .def(nanobind::self -= nanobind::self, nanobind::is_operator())
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 
       // right-hand arithmetics
 
