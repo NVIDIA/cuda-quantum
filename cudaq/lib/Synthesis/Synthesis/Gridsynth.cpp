@@ -192,7 +192,7 @@ public:
   }
 
   /// Compact human-readable dump of the region parameters. Intended for
-  /// LLVM_DEBUG / SYNTH_OPEN_SUB diagnostic streams; not used in hot paths.
+  /// LLVM_DEBUG / CUDAQ_CUDAQ_SYNTH_OPEN_SUB diagnostic streams; not used in hot paths.
   std::string to_string() const {
     char prefix[256];
     mpfr_snprintf(prefix, sizeof(prefix),
@@ -214,7 +214,7 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
                                                  const Real &epsilon,
                                                  int32_t diophantine_timeout_ms,
                                                  int32_t factoring_timeout_ms) {
-  SYNTH_OPEN_SUB("gridsynth_unitary");
+  CUDAQ_CUDAQ_SYNTH_OPEN_SUB("gridsynth_unitary");
   LLVM_DEBUG(
     cudaq::synth::dbgs() << "theta=" << theta << "\n";
     cudaq::synth::dbgs() << "eps=" << epsilon << "\n";
@@ -229,7 +229,7 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
   llvm::FailureOr<EpsilonRegion> region_or =
       EpsilonRegion::create(theta, epsilon);
   if (llvm::failed(region_or)) {
-    SYNTH_CLOSE_FAILURE("degenerate epsilon-region");
+    CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("degenerate epsilon-region");
     return llvm::failure();
   }
   LLVM_DEBUG(cudaq::synth::dbgs()
@@ -244,7 +244,7 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
   llvm::FailureOr<UprightResult> transformed_or =
       to_upright(region_or->ellipse(), UnitDisk::as_ellipse());
   if (llvm::failed(transformed_or)) {
-    SYNTH_CLOSE_FAILURE("to_upright preprocessing failed");
+    CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("to_upright preprocessing failed");
     return llvm::failure();
   }
   UprightResult &transformed = *transformed_or;
@@ -274,7 +274,7 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
 
   llvm::FailureOr<GridOp> opG_inv_or = inv(transformed.opG);
   if (llvm::failed(opG_inv_or)) {
-    SYNTH_CLOSE_FAILURE("inv(opG) failed");
+    CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("inv(opG) failed");
     return llvm::failure();
   }
   GridOp opG_inv = *opG_inv_or;
@@ -288,8 +288,8 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
   // approximation.
   Integer k = 0;
   while (true) {
-    SYNTH_FENCE();
-    SYNTH_OPEN_SUB("k = " + std::to_string(static_cast<int64_t>(k)));
+    CUDAQ_SYNTH_FENCE();
+    CUDAQ_CUDAQ_SYNTH_OPEN_SUB("k = " + std::to_string(static_cast<int64_t>(k)));
 
     TdgpStepper stepper(k, *region_or, unit_disk, opG_inv, transformed.bboxA,
                         transformed.bboxB, bboxA_y_fattened, bboxB_y_fattened);
@@ -339,8 +339,8 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
           u_approx = DOmegaUnitary(z_reduced, mul_by_omega(w_reduced), 0);
 
         std::string k_str = std::to_string(static_cast<int64_t>(k));
-        SYNTH_CLOSE_SUCCESS("Diophantine succeeded at k=" + k_str);
-        SYNTH_CLOSE_SUCCESS("synthesized at k=" + k_str);
+        CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS("Diophantine succeeded at k=" + k_str);
+        CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS("synthesized at k=" + k_str);
         return u_approx;
       }
     }
@@ -348,7 +348,7 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
     // No candidate at this k survived the Diophantine step (either no grid
     // points or every candidate timed out / proved unsolvable). Move to the
     // next k, accepting a larger T-count budget.
-    SYNTH_CLOSE_FAILURE("no candidates");
+    CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("no candidates");
     k++;
   }
 }
@@ -360,24 +360,24 @@ llvm::FailureOr<DOmegaUnitary> gridsynth_unitary(const Real &theta,
 llvm::FailureOr<Circuit> gridsynth(const Real &theta, const Real &epsilon,
                                    int32_t diophantine_timeout_ms,
                                    int32_t factoring_timeout_ms) {
-  SYNTH_OPEN("gridsynth");
+  CUDAQ_SYNTH_OPEN("gridsynth");
   LLVM_DEBUG(cudaq::synth::dbgs() << "theta=" << theta << ", eps=" << epsilon
                                   << '\n');
 
   llvm::FailureOr<DOmegaUnitary> u_or = gridsynth_unitary(
       theta, epsilon, diophantine_timeout_ms, factoring_timeout_ms);
   if (llvm::failed(u_or)) {
-    SYNTH_CLOSE_FAILURE("synthesis failed");
+    CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("synthesis failed");
     return llvm::failure();
   }
 
   llvm::FailureOr<Circuit> circuit = kmm_synthesize(*u_or);
   if (llvm::succeeded(circuit)) {
-    SYNTH_CLOSE_SUCCESS(std::to_string((*circuit).size()) +
+    CUDAQ_CUDAQ_SYNTH_CLOSE_SUCCESS(std::to_string((*circuit).size()) +
                         " gates, T-count=" +
                         std::to_string((*circuit).t_count()));
   } else {
-    SYNTH_CLOSE_FAILURE("kmm_synthesize failed");
+    CUDAQ_CUDAQ_SYNTH_CLOSE_FAILURE("kmm_synthesize failed");
   }
   return circuit;
 }
