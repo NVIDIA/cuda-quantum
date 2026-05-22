@@ -86,7 +86,7 @@ static async_observe_result pyObserveAsync(const std::string &shortName,
             if (cudaq::getEnvBool("CUDAQ_DUMP_JIT_IR", false))
               clonedMod->dump();
             [[maybe_unused]] auto result =
-                clean_launch_module(shortName, *clonedMod, opaques);
+                clean_launch_module(shortName, *clonedMod, nullptr, opaques);
           }),
       spin_operator, platform, shots, shortName, qpu_id);
 }

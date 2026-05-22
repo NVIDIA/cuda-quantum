@@ -18,6 +18,7 @@ using namespace cudaq;
 
 static Resources
 estimate_resources_impl(const std::string &kernelName, MlirModule kernelMod,
+                        cudaq::CompiledModule *compiled,
                         std::optional<std::function<bool()>> choice,
                         nanobind::args args) {
   auto &platform = cudaq::get_platform();
@@ -43,13 +44,12 @@ estimate_resources_impl(const std::string &kernelName, MlirModule kernelMod,
   auto rcScope = nvqir::resource_counter::make_scope(std::move(*choice));
   platform.with_execution_context(ctx, [&]() {
     [[maybe_unused]] auto result =
-        cudaq::marshal_and_launch_module(kernelName, kernelMod, args);
+        cudaq::marshal_and_launch_module(kernelName, kernelMod, compiled, args);
   });
   return nvqir::resource_counter::get_counts(rcScope);
 }
 
 void cudaq::bindCountResources(nanobind::module_ &mod) {
-  mod.def("estimate_resources_impl", estimate_resources_impl, nanobind::arg(),
-          nanobind::arg(), nanobind::arg().none(), nanobind::arg(),
+  mod.def("estimate_resources_impl", estimate_resources_impl,
           "See python documentation for estimate_resources.");
 }

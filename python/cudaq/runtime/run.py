@@ -61,8 +61,8 @@ def run(decorator, *args, shots_count=100, noise_model=None, qpu_id=0):
         raise RuntimeError(
             "Invalid `shots_count`. Must be a non-negative number.")
 
-    processedArgs, module = decorator.prepare_call(*args)
-    return cudaq_runtime.run_impl(decorator.uniqName + ".run", module,
+    processedArgs, module, compiled = decorator.prepare_call(*args)
+    return cudaq_runtime.run_impl(decorator.uniqName + ".run", module, compiled,
                                   shots_count, noise_model, qpu_id,
                                   *processedArgs)
 
@@ -117,7 +117,7 @@ Returns:
         if target.is_remote():
             raise ValueError("Noise model is not supported on hardware QPU.")
 
-    processedArgs, module = decorator.prepare_call(*args)
+    processedArgs, module, _ = decorator.prepare_call(*args)
     async_results = cudaq_runtime.run_async_impl(decorator.uniqName + ".run",
                                                  module, shots_count,
                                                  noise_model, qpu_id,

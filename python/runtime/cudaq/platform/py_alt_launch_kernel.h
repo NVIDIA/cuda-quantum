@@ -43,18 +43,23 @@ void bindAltLaunchKernel(nanobind::module_ &mod,
                          std::function<std::string()> &&);
 
 /// Launch the kernel \p kernelName from module \p module. \p runtimeArgs are
-/// the python arguments to the kernel. Pre-condition: all arguments must be
-/// resolved at this `callsite` \e prior to launching this module. In particular
-/// this means \p module is ready for beta reduction of callables. The return
-/// type is obtained from the kernel's FuncOp. \p module must be modifiable.
+/// the python arguments to the kernel. \p compiled is the long-lived
+/// CompiledModule handle (nullable; reserved for future JIT caching).
+/// Pre-condition: all arguments must be resolved at this `callsite` \e prior
+/// to launching this module. In particular this means \p module is ready for
+/// beta reduction of callables. The return type is obtained from the kernel's
+/// FuncOp. \p module must be modifiable.
 nanobind::object marshal_and_launch_module(const std::string &kernelName,
                                            MlirModule module,
+                                           CompiledModule *compiled,
                                            nanobind::args runtimeArgs);
 
 /// Pure C++ code that launches a kernel. Argument marshaling and result
-/// unmarshalling is \e not performed.
+/// unmarshalling is \e not performed. \p compiled is the long-lived
+/// CompiledModule handle (nullable; reserved for future JIT caching).
 KernelThunkResultType clean_launch_module(const std::string &kernelName,
                                           mlir::ModuleOp mod,
+                                          CompiledModule *compiled,
                                           OpaqueArguments &args);
 
 /// Marshal python arguments into an OpaqueArguments for kernel launch.

@@ -60,7 +60,7 @@ static async_sample_result sample_async_impl(
       detail::make_copyable_function(
           [opaques = std::move(opaques), kernelName, clonedMod]() mutable {
             [[maybe_unused]] auto result =
-                clean_launch_module(kernelName, *clonedMod, opaques);
+                clean_launch_module(kernelName, *clonedMod, nullptr, opaques);
           }),
       platform, kernelName, shots_count, explicit_measurements, qpu_id,
       std::move(noise_model));

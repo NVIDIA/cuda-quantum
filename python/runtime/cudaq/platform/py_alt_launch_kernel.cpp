@@ -674,10 +674,11 @@ static void appendTheResultValue(ModuleOp module, const std::string &name,
 // preserve (cache) the IR, and erase the clone after the kernel is done.
 static cudaq::KernelThunkResultType
 pyLaunchModule(const std::string &name, ModuleOp mod,
+               [[maybe_unused]] cudaq::CompiledModule *compiled,
                const std::vector<void *> &rawArgs) {
   auto clone = mod.clone();
-  auto compiled = cudaq::streamlinedCompileModule(name, clone, rawArgs, true);
-  auto res = cudaq::streamlinedLaunchModule(compiled, rawArgs);
+  auto jitted = cudaq::streamlinedCompileModule(name, clone, rawArgs, true);
+  auto res = cudaq::streamlinedLaunchModule(jitted, rawArgs);
   clone.erase();
   return res;
 }
@@ -890,6 +891,7 @@ appendResultToArgsVector(cudaq::OpaqueArguments &runtimeArgs, Type returnType,
 
 cudaq::KernelThunkResultType
 cudaq::clean_launch_module(const std::string &name, ModuleOp mod,
+                           cudaq::CompiledModule *compiled,
                            cudaq::OpaqueArguments &args) {
   // Release the GIL for MLIR compilation and JIT. PyEval_SaveThread requires
   // the GIL to be held, so guard with PyGILState_Check. Async paths invoke
@@ -901,7 +903,7 @@ cudaq::clean_launch_module(const std::string &name, ModuleOp mod,
   Type retTy = cudaq::runtime::getReturnType(kernelFunc);
   // Append space for a result, as needed, to the vector of arguments.
   auto rawArgs = appendResultToArgsVector(args, retTy, mod, name);
-  return pyLaunchModule(name, mod, rawArgs);
+  return pyLaunchModule(name, mod, compiled, rawArgs);
 }
 
 cudaq::OpaqueArguments cudaq::marshal_arguments_for_module_launch(
@@ -923,9 +925,10 @@ cudaq::OpaqueArguments cudaq::marshal_arguments_for_module_launch(
   return args;
 }
 
-nanobind::object cudaq::marshal_and_launch_module(const std::string &name,
-                                                  MlirModule module,
-                                                  nanobind::args runtimeArgs) {
+nanobind::object
+cudaq::marshal_and_launch_module(const std::string &name, MlirModule module,
+                                 cudaq::CompiledModule *compiled,
+                                 nanobind::args runtimeArgs) {
   // Marker span identifying every nested pass / scoped trace as part of the
   // JIT-time pipeline. Paired with the cudaq.pipeline.aot span emitted around
   // aot-prep-pipeline in compile_to_mlir; tooling reads the trace ancestry to
@@ -947,7 +950,8 @@ nanobind::object cudaq::marshal_and_launch_module(const std::string &name,
   Type retTy = cudaq::runtime::getReturnType(kernelFunc);
   auto args = marshal_arguments_for_module_launch(mod, runtimeArgs, kernelFunc);
 
-  [[maybe_unused]] auto resultPtr = clean_launch_module(name, mod, args);
+  [[maybe_unused]] auto resultPtr =
+      clean_launch_module(name, mod, compiled, args);
 
   if (!retTy)
     return nanobind::none();
