@@ -35,7 +35,10 @@ cudaq::CompiledModule cudaq::FermioniqQPU::compileImpl(
       (executionContext->name == "observe") ? &sampleContext : executionContext;
 
   Compiler compiler(getCompileTarget(compileCtx));
-  return runPassPipeline(compiler, compileCtx);
+  auto compiled = runPassPipeline(compiler, compileCtx);
+  if (compiler.hasWarnedNamedMeasurements())
+    executionContext->warnedNamedMeasurements = true;
+  return compiled;
 }
 
 void cudaq::FermioniqQPU::launchImpl(const cudaq::CompiledModule &compiled) {

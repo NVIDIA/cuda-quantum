@@ -49,6 +49,12 @@ public:
   /// Whether to emulate execution locally.
   bool emulate = false;
 
+  /// Issue a warning if named measurements are contained in the kernel.
+  bool warnNamedMeasurements = false;
+
+  /// Whether branching on measurement results is supported.
+  bool supportConditionalsOnMeasureResults = true;
+
   /// Construct a CompileTarget from static and runtime backend configurations.
   CompileTarget(config::TargetConfig targetConfig,
                 std::map<std::string, std::string> runtimeConfig, bool emulate);

@@ -52,6 +52,8 @@ RemoteRESTQPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
     // Get the Quake code, lowered according to config file.
     codes =
         compiler.lowerQuakeCode(executionContext, kernelName, moduleOp, args);
+    if (executionContext && compiler.hasWarnedNamedMeasurements())
+      executionContext->warnedNamedMeasurements = true;
   } else {
     const auto &compiled = std::get<CompiledModule>(module);
     kernelName = compiled.getName();

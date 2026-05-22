@@ -56,6 +56,9 @@ class Compiler {
   /// @brief Flag indicating whether we should print the IR.
   bool printIR = false;
 
+  /// Whether compilation emitted a named measurement warning.
+  bool warnedNamedMeasurements = false;
+
   mlir::ModuleOp lowerQuakeCodeBuildModule(const std::string &,
                                            mlir::ModuleOp module,
                                            mlir::MLIRContext *,
@@ -85,10 +88,14 @@ class Compiler {
       std::vector<std::pair<std::string, mlir::ModuleOp>> &modules,
       bool needJit, bool runCombineMeasurements,
       std::optional<cudaq::Resources> resourceCounts,
-      const std::vector<std::size_t> &mappingReorderIdx,
+      cudaq::CompiledModule::CompilationMetadata metadata,
       std::shared_ptr<mlir::MLIRContext> context);
 
 public:
+  /// Whether compilation emitted a warning about the presence of named
+  /// measurements.
+  bool hasWarnedNamedMeasurements() const { return warnedNamedMeasurements; }
+
   static std::pair<const void *, std::shared_ptr<mlir::MLIRContext>>
   loadQuakeCodeByName(const std::string &kernelName);
 
