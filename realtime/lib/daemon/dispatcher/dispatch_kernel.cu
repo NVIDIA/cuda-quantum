@@ -114,6 +114,11 @@ __global__ void dispatch_kernel_device_call_only(
       bool drop_slot = false;
       if (tid == 0) {
         s_have_work = false;
+        // System fence before reading rx_flags so the GPU's L2 sees any
+        // pending CPU producer writes to the pinned-mapped ring.  See
+        // the regular-path comment block below for the empirically-
+        // observed failure mode this guards against.
+        __threadfence_system();
         std::uint64_t rx_value = rx_flags[current_slot];
         // Under shared_ring_mode, scan the ring for non-zero rx_flag if
         // our cursor sees 0 (the peer may have cleared the slot at our
@@ -262,6 +267,28 @@ __global__ void dispatch_kernel_device_call_only(
     //==========================================================================
     while (!(*shutdown_flag)) {
       if (tid == 0) {
+        // System fence before reading rx_flags so the GPU's L2 sees
+        // any pending CPU producer writes to the pinned-mapped ring.
+        //
+        // The `volatile` qualifier on rx_flags prevents COMPILER
+        // caching, but does NOT guarantee GPU-side cache invalidation
+        // for mapped pinned memory; without an explicit
+        // __threadfence_system() the GPU can keep observing a stale
+        // value of rx_flags[i] for many polling iterations, causing
+        // the dispatcher to deadlock on a producer-side request that
+        // is technically published but invisible to the GPU.
+        //
+        // Empirically observed under sustained load (cuda-qx
+        // 1000-shot surface_code-1 inproc_rpc, ~30k RPCs per run): a
+        // get_corrections RPC with `function_id=0x882d5ba1` and a
+        // valid device-pointer in rx_flags[1] sat unprocessed for the
+        // full 1-second producer timeout, while a host-side
+        // heartbeat probe showed the kernel iterating at ~150 kHz --
+        // i.e. the kernel was hot-looping but stuck reading
+        // rx_flags[1]==0 from its L2 cache.  Adding
+        // __threadfence_system() here drops the failure rate from
+        // ~7% to 0 across 100 consecutive runs.
+        __threadfence_system();
         std::uint64_t rx_value = rx_flags[current_slot];
         // Under shared_ring_mode, rx_value == 0 at our cursor does NOT
         // mean "no work" -- the peer dispatcher may have cleared this
@@ -371,6 +398,12 @@ __global__ void dispatch_kernel_with_graph(
 
   while (!(*shutdown_flag)) {
     if (tid == 0) {
+      // System fence before reading rx_flags so the GPU's L2 sees any
+      // pending CPU producer writes to the pinned-mapped ring.  See the
+      // device-call-only kernel's regular-path comment for the
+      // empirically-observed failure mode this guards against (same
+      // hazard applies here -- this kernel polls rx_flags the same way).
+      __threadfence_system();
       std::uint64_t rx_value = rx_flags[current_slot];
       // Under shared_ring_mode, scan the ring for non-zero rx_flag if our
       // cursor sees 0 (the peer may have cleared the slot at our cursor).
