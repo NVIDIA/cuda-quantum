@@ -11497,6 +11497,101 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
+    [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[MeasArgs]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+    []{#classcudaq_1_1kernel__builder_1ad562a58578dd113f044e677ba8cd9348 .target}[[inline]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[detector]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[MeasArgs]{.pre}]{.n}](#_CPPv4IDpEN5cudaq14kernel_builder8detectorEvDpRR8MeasArgs "cudaq::kernel_builder::detector::MeasArgs"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[measurements]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4IDpEN5cudaq14kernel_builder8detectorEvDpRR8MeasArgs "Permalink to this definition"){.headerlink}\
+
+    :   Define a detector over one or more measurement results.
+
+        Arguments are [[[`QuakeValue`{.docutils .literal
+        .notranslate}]{.pre}]{.std
+        .std-ref}](#classcudaq_1_1QuakeValue){.reference .internal}
+        handles returned by [`mz`{.docutils .literal
+        .notranslate}]{.pre}/[`mx`{.docutils .literal
+        .notranslate}]{.pre}/[`my`{.docutils .literal
+        .notranslate}]{.pre} (scalar handles or handle vectors); any mix
+        is supported, mirroring the [`qec.detector`{.docutils .literal
+        .notranslate}]{.pre} dialect op's
+        [`Variadic<AnyTypeOf<[scalar,`{.docutils .literal
+        .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`list]>>`{.docutils .literal .notranslate}]{.pre}
+        operand surface. The [`AllDecayToQuakeValue`{.docutils .literal
+        .notranslate}]{.pre} concept keeps this variadic from competing
+        with non-[[[`QuakeValue`{.docutils .literal
+        .notranslate}]{.pre}]{.std
+        .std-ref}](#classcudaq_1_1QuakeValue){.reference .internal}
+        argument shapes (e.g. the integer-taking
+        [`logical_observable`{.docutils .literal .notranslate}]{.pre}
+        overload below).
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[MeasArgs]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+    []{#classcudaq_1_1kernel__builder_1aa2fa67b93eae02fc83b787ad06c137f9 .target}[[inline]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[logical_observable]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[MeasArgs]{.pre}]{.n}](#_CPPv4IDpEN5cudaq14kernel_builder18logical_observableEvDpRR8MeasArgs "cudaq::kernel_builder::logical_observable::MeasArgs"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[measurements]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4IDpEN5cudaq14kernel_builder18logical_observableEvDpRR8MeasArgs "Permalink to this definition"){.headerlink}\
+
+    :   Define a logical observable over one or more measurement
+        results.
+
+        The variadic-handle form uses [`observable_index`{.docutils
+        .literal .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`=`{.docutils .literal
+        .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`0`{.docutils .literal .notranslate}]{.pre}. To
+        declare a non-default index, use the [`(`{.docutils .literal
+        .notranslate}]{.pre}[[[`QuakeValue`{.docutils .literal
+        .notranslate}]{.pre}]{.std
+        .std-ref}](#classcudaq_1_1QuakeValue){.reference
+        .internal}[`,`{.docutils .literal
+        .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`std::size_t)`{.docutils .literal
+        .notranslate}]{.pre} overload below.
+        [`observable_index`{.docutils .literal .notranslate}]{.pre} must
+        be in [`[0,`{.docutils .literal
+        .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`2^63`{.docutils .literal
+        .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`-`{.docutils .literal
+        .notranslate}]{.pre}` `{.docutils .literal
+        .notranslate}[`1]`{.docutils .literal .notranslate}]{.pre}.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1kernel__builder_1a70e54a7b27a0d0419178f27bf6d0468e .target}[[inline]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[logical_observable]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[QuakeValue]{.pre}]{.n}](#_CPPv4N5cudaq10QuakeValueE "cudaq::QuakeValue"){.reference .internal}[ ]{.w}[[measurements]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[observable_index]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq14kernel_builder18logical_observableE10QuakeValueNSt6size_tE "Permalink to this definition"){.headerlink}\
+
+    :   [`logical_observable`{.docutils .literal .notranslate}]{.pre}
+        with an explicit [`observable_index`{.docutils .literal
+        .notranslate}]{.pre}. Takes a single [[[`QuakeValue`{.docutils
+        .literal .notranslate}]{.pre}]{.std
+        .std-ref}](#classcudaq_1_1QuakeValue){.reference .internal}
+        handle (typically a [`!cc.stdvec<!cc.`{.docutils .literal
+        .notranslate}]{.pre}[`measure_handle`{.docutils .literal
+        .notranslate}]{.pre}[`>`{.docutils .literal .notranslate}]{.pre}
+        from [`mz`{.docutils .literal .notranslate}]{.pre} on a
+        [`qvector`{.docutils .literal .notranslate}]{.pre}, but a scalar
+        handle is also accepted by the dialect).
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1kernel__builder_1ac41d9c8d14ea0feee3a004cfd2d10264 .target}[[inline]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[detectors]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[QuakeValue]{.pre}]{.n}](#_CPPv4N5cudaq10QuakeValueE "cudaq::QuakeValue"){.reference .internal}[ ]{.w}[[prev]{.pre}]{.n .sig-param}, [[[QuakeValue]{.pre}]{.n}](#_CPPv4N5cudaq10QuakeValueE "cudaq::QuakeValue"){.reference .internal}[ ]{.w}[[curr]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq14kernel_builder9detectorsE10QuakeValue10QuakeValue "Permalink to this definition"){.headerlink}\
+
+    :   Define N detectors by pairing two measurement vectors
+        element-wise. Standard form for cross-round detectors: each
+        detector [`i`{.docutils .literal .notranslate}]{.pre} is the
+        parity of [`prev[i]`{.docutils .literal .notranslate}]{.pre} and
+        [`curr[i]`{.docutils .literal .notranslate}]{.pre}. Both
+        arguments must be handle-list [[[`QuakeValue`{.docutils .literal
+        .notranslate}]{.pre}]{.std
+        .std-ref}](#classcudaq_1_1QuakeValue){.reference .internal}s.
+
+    ```{=html}
+    <!-- -->
+    ```
+
     []{#classcudaq_1_1kernel__builder_1a27162cfcecff29cb112fc946e98527b8 .target}[[inline]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[swap]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[QuakeValue]{.pre}]{.n}](#_CPPv4N5cudaq10QuakeValueE "cudaq::QuakeValue"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[first]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[QuakeValue]{.pre}]{.n}](#_CPPv4N5cudaq10QuakeValueE "cudaq::QuakeValue"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[second]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq14kernel_builder4swapERK10QuakeValueRK10QuakeValue "Permalink to this definition"){.headerlink}\
 
     :   SWAP operation for swapping the quantum states of two qubits.
