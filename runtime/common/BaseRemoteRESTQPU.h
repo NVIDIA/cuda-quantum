@@ -295,6 +295,7 @@ public:
         serverHelper.get(), platformPath, targetConfig, backendConfig, emulate);
     target->warnNamedMeasurements = !policy.warnedNamedMeasurements;
     target->supportConditionalsOnMeasureResults = !emulate;
+    target->storeReorderIdx = true;
     return target;
   }
 
@@ -414,9 +415,8 @@ public:
       // Launch the execution of the simulated jobs asynchronously
       future = cudaq::details::future(std::async(
           std::launch::async,
-          [&, codes, localShots, kernelName, seed, isObserve, isRun,
-           reorderIdx =
-               executionContext->reorderIdx]() mutable -> cudaq::sample_result {
+          [&, codes, localShots, kernelName, seed, isObserve,
+           isRun]() mutable -> cudaq::sample_result {
             std::vector<cudaq::ExecutionResult> results;
 
             // If seed is 0, then it has not been set.
@@ -453,7 +453,7 @@ public:
               // observe) one time each.
               for (std::size_t i = 0; i < codes.size(); i++) {
                 cudaq::ExecutionContext context("sample", localShots);
-                context.reorderIdx = reorderIdx;
+                context.reorderIdx = codes[i].mapping_reorder_idx;
                 context.executionManager = cudaq::getDefaultExecutionManager();
                 context.kernelName = kernelName;
                 context.warnedNamedMeasurements =

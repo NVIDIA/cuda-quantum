@@ -371,7 +371,9 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
     resourceCounts = std::move(*result);
   }
 
-  auto mapping_reorder_idx = extractMappingReorderIdx(moduleOp, epFunc);
+  std::vector<std::size_t> mapping_reorder_idx;
+  if (target->storeReorderIdx)
+    mapping_reorder_idx = extractMappingReorderIdx(moduleOp, epFunc);
 
   // Warn if kernel has named measurement registers (sub-registers).
   if (target->warnNamedMeasurements) {
@@ -400,20 +402,16 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
 
   if (executionContext) {
     if (executionContext->name == "sample") {
-      executionContext->reorderIdx = mapping_reorder_idx;
       // No need to add measurements only to remove them eventually
       if (target->pipelineConfig.postCodeGenPasses.find(
               "remove-measurements") == std::string::npos)
         applyPipeline("func.func(add-measurements)", moduleOp, kernelName);
-    } else {
-      executionContext->reorderIdx.clear();
     }
   }
 
   // Apply observations if necessary
   std::vector<std::pair<std::string, mlir::ModuleOp>> modules;
   if (target->pauliTermSplitObservable) {
-    mapping_reorder_idx.clear();
     applyPipeline("canonicalize,cse", moduleOp, kernelName);
     for (const auto &term : *target->pauliTermSplitObservable) {
       if (term.is_identity())
