@@ -25,17 +25,8 @@ cudaq::CompiledModule cudaq::FermioniqQPU::compileImpl(
         "Remote rest execution can only be performed via cudaq::sample(), "
         "cudaq::observe(), or cudaq::contrib::draw().");
 
-  // When the user issues an observe call, we don't want to use the default
-  // CUDA-Q behaviour that splits up the circuit into several ansatz
-  // sub circuit. Instead, we pass a "sample" context to the compiler to
-  // prevent circuit splitting. This target handles observable evaluation
-  // server-side.
-  cudaq::ExecutionContext sampleContext("sample", 1);
-  ExecutionContext *compileCtx =
-      (executionContext->name == "observe") ? &sampleContext : executionContext;
-
-  Compiler compiler(getCompileTarget(compileCtx));
-  auto compiled = runPassPipeline(compiler, compileCtx);
+  Compiler compiler(getCompileTarget(executionContext));
+  auto compiled = runPassPipeline(compiler, executionContext);
   if (compiler.hasWarnedNamedMeasurements())
     executionContext->warnedNamedMeasurements = true;
   return compiled;

@@ -412,11 +412,10 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
 
   // Apply observations if necessary
   std::vector<std::pair<std::string, mlir::ModuleOp>> modules;
-  if (executionContext && executionContext->name == "observe") {
+  if (target->pauliTermSplitObservable) {
     mapping_reorder_idx.clear();
     applyPipeline("canonicalize,cse", moduleOp, kernelName);
-    cudaq::spin_op &spin = executionContext->spin.value();
-    for (const auto &term : spin) {
+    for (const auto &term : *target->pauliTermSplitObservable) {
       if (term.is_identity())
         continue;
 

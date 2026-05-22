@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/BaseRemoteRESTQPU.h"
+#include <optional>
 
 namespace cudaq {
 
@@ -61,6 +62,19 @@ public:
       launchImpl(compiled);
     }
     return {};
+  }
+
+  using BaseRemoteRESTQPU::getCompileTarget;
+  std::unique_ptr<CompileTarget>
+  getCompileTarget(ExecutionContext *ctx) override {
+    auto target = BaseRemoteRESTQPU::getCompileTarget(ctx);
+    // This target handles observable evaluation server-side.
+    // We don't want to split up the circuit into several ansatz
+    // sub circuit.
+    if (ctx && ctx->name == "observe") {
+      target->pauliTermSplitObservable = std::nullopt;
+    }
+    return target;
   }
 
   CompiledModule compileModule(const SourceModule &src, KernelArgs args,

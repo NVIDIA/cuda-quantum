@@ -269,12 +269,19 @@ public:
   };
 
   using QPU::getCompileTarget;
-  std::unique_ptr<CompileTarget> getCompileTarget(ExecutionContext *) override {
+  std::unique_ptr<CompileTarget>
+  getCompileTarget(ExecutionContext *ctx) override {
     std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
     auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
 
-    return std::make_unique<BaseRemoteRESTQPUCompileTarget>(
+    auto target = std::make_unique<BaseRemoteRESTQPUCompileTarget>(
         serverHelper.get(), platformPath, targetConfig, backendConfig, emulate);
+    if (ctx && ctx->name == "observe") {
+      if (!ctx->spin.has_value())
+        throw std::runtime_error("observe execution requires a spin_op");
+      target->pauliTermSplitObservable = ctx->spin;
+    }
+    return target;
   }
 
   std::unique_ptr<CompileTarget>

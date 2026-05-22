@@ -8,7 +8,9 @@
 #pragma once
 
 #include "cudaq/Target/TargetConfig.h"
+#include "cudaq/operators.h"
 #include <map>
+#include <optional>
 #include <string>
 
 namespace cudaq {
@@ -54,6 +56,11 @@ public:
 
   /// Whether branching on measurement results is supported.
   bool supportConditionalsOnMeasureResults = true;
+
+  /// When set, emit one lowered module per non-identity Pauli term of this
+  /// observable. The resulting `CompiledModule` will contain a compilation
+  /// artifact for each term.
+  std::optional<cudaq::spin_op> pauliTermSplitObservable;
 
   /// Construct a CompileTarget from static and runtime backend configurations.
   CompileTarget(config::TargetConfig targetConfig,
