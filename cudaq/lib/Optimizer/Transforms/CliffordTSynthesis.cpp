@@ -8,6 +8,7 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -21,6 +22,7 @@
 #include "cudaq/Synthesis/Synthesis/Gridsynth.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/Support/Casting.h"
+#include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/LogicalResult.h"
 #endif
 
@@ -46,23 +48,49 @@ struct RotationOptions {
   double skipBelow;
 };
 
-struct SynthCache {
-  llvm::DenseMap<uint64_t, cudaq::synth::Circuit> entries;
+struct SynthState {
+  mlir::ModuleOp module;
+  llvm::DenseMap<uint64_t, mlir::FlatSymbolRefAttr> cache;
   uint64_t hits = 0;
 };
 
-// Look up theta in the cache.
-// On a miss, run gridsynth with the pass's retry schedule and insert on
-// success.
-// Failures are not cached so a follow-up invocation with the same angle
-// still emits a per-op diagnostic.
-llvm::FailureOr<cudaq::synth::Circuit>
-synthesizeRotation(double theta, const RotationOptions &opts,
-                   SynthCache &cache) {
+// Materialize a body of Clifford+T gates onto `qubit` from a synthesized
+// `Circuit`.
+void emitCircuitBody(OpBuilder &b, Location loc, Value qubit,
+                     const cudaq::synth::Circuit &circuit) {
+  for (cudaq::synth::Gate g : circuit) {
+    switch (g) {
+    case cudaq::synth::Gate::H:
+      cudaq::quake::HOp::create(b, loc, ValueRange{qubit});
+      break;
+    case cudaq::synth::Gate::S:
+      cudaq::quake::SOp::create(b, loc, ValueRange{qubit});
+      break;
+    case cudaq::synth::Gate::T:
+      cudaq::quake::TOp::create(b, loc, ValueRange{qubit});
+      break;
+    case cudaq::synth::Gate::X:
+      cudaq::quake::XOp::create(b, loc, ValueRange{qubit});
+      break;
+    case cudaq::synth::Gate::W:
+      // omega = e^{i*pi/4} global phase - dropped.
+      break;
+    }
+  }
+}
+
+// Resolve (theta, epsilon) to a private helper func that applies the
+// synthesized Clifford+T sequence to its `!quake.ref` argument. On a cache
+// miss we run gridsynth, materialize the helper at module top level, and
+// stash a FlatSymbolRefAttr so subsequent rotations with the same angle
+// just emit a func.call.
+llvm::FailureOr<mlir::FlatSymbolRefAttr>
+getOrCreateRzHelper(double theta, const RotationOptions &opts,
+                    SynthState &state) {
   uint64_t key = llvm::bit_cast<uint64_t>(theta);
-  auto it = cache.entries.find(key);
-  if (it != cache.entries.end()) {
-    ++cache.hits;
+  auto it = state.cache.find(key);
+  if (it != state.cache.end()) {
+    ++state.hits;
     LLVM_DEBUG(llvm::dbgs() << "clifford-t-synthesis: cache hit for theta="
                             << theta << '\n');
     return it->second;
@@ -79,9 +107,27 @@ synthesizeRotation(double theta, const RotationOptions &opts,
     if (llvm::succeeded(circuit))
       break;
   }
-  if (llvm::succeeded(circuit))
-    cache.entries.try_emplace(key, *circuit);
-  return circuit;
+  if (llvm::failed(circuit))
+    return llvm::failure();
+
+  MLIRContext *ctx = state.module.getContext();
+  std::string name = llvm::formatv("__cliffordt_rz_{0:x-16}", key).str();
+  Location loc = state.module.getLoc();
+  auto refType = cudaq::quake::RefType::get(ctx);
+
+  OpBuilder b(ctx);
+  b.setInsertionPointToStart(state.module.getBody());
+  auto funcOp =
+      func::FuncOp::create(b, loc, name, b.getFunctionType({refType}, {}));
+  funcOp.setPrivate();
+  Block *entry = funcOp.addEntryBlock();
+  b.setInsertionPointToStart(entry);
+  emitCircuitBody(b, loc, entry->getArgument(0), *circuit);
+  func::ReturnOp::create(b, loc);
+
+  auto symRef = mlir::FlatSymbolRefAttr::get(ctx, funcOp.getNameAttr());
+  state.cache.try_emplace(key, symRef);
+  return symRef;
 }
 
 // Outcome of validateRotationOperands. The caller maps each action to a
@@ -141,8 +187,8 @@ PreCheck validateRotationOperands(Operation *op, Value angleVal,
 }
 
 struct RzPattern : OpRewritePattern<cudaq::quake::RzOp> {
-  RzPattern(MLIRContext *ctx, RotationOptions opts, SynthCache *cache)
-      : OpRewritePattern(ctx), opts(std::move(opts)), cache(cache) {}
+  RzPattern(MLIRContext *ctx, RotationOptions opts, SynthState *state)
+      : OpRewritePattern(ctx), opts(std::move(opts)), state(state) {}
 
   LogicalResult matchAndRewrite(cudaq::quake::RzOp op,
                                 PatternRewriter &rewriter) const override {
@@ -157,8 +203,8 @@ struct RzPattern : OpRewritePattern<cudaq::quake::RzOp> {
       break;
     }
 
-    auto circuit = synthesizeRotation(check.theta, opts, *cache);
-    if (llvm::failed(circuit)) {
+    auto symRef = getOrCreateRzHelper(check.theta, opts, *state);
+    if (llvm::failed(symRef)) {
       op.emitError("clifford-t-synthesis: gridsynth failed for theta=")
           << check.theta << " after " << (opts.retryCount + 1)
           << " attempts; raise --diophantine-timeout-ms or "
@@ -166,36 +212,17 @@ struct RzPattern : OpRewritePattern<cudaq::quake::RzOp> {
       return failure();
     }
 
-    Location loc = op.getLoc();
-    Value target = op.getTarget();
-    for (cudaq::synth::Gate g : *circuit) {
-      switch (g) {
-      case cudaq::synth::Gate::H:
-        cudaq::quake::HOp::create(rewriter, loc, ValueRange{target});
-        break;
-      case cudaq::synth::Gate::S:
-        cudaq::quake::SOp::create(rewriter, loc, ValueRange{target});
-        break;
-      case cudaq::synth::Gate::T:
-        cudaq::quake::TOp::create(rewriter, loc, ValueRange{target});
-        break;
-      case cudaq::synth::Gate::X:
-        cudaq::quake::XOp::create(rewriter, loc, ValueRange{target});
-        break;
-      case cudaq::synth::Gate::W:
-        // ω = e^{iπ/4} global phase - dropped. Valid only when controls
-        // have been materialized upstream (ApplyOpSpecialization). When
-        // controlled rotations are reintroduced this must re-emit a phase pair
-        // on the outermost control qubit.
-        break;
-      }
-    }
-    rewriter.eraseOp(op);
+    // Replace the rotation with a call to the per-angle helper. Inlining
+    // every rotation site would bloat the IR by O(rotations * gate_count).
+    // Calling a shared helper keeps it at O(rotations + unique_angles *
+    // gate_count).
+    rewriter.replaceOpWithNewOp<func::CallOp>(op, *symRef, TypeRange{},
+                                              ValueRange{op.getTarget()});
     return success();
   }
 
   RotationOptions opts;
-  SynthCache *cache;
+  SynthState *state;
 };
 
 // Rx(theta) = H . Rz(theta) . H. The greedy driver then re-fires RzPattern
@@ -348,6 +375,30 @@ public:
                << " retry-count=" << retryCount << " on-dynamic-angle="
                << onDynamicAngle << " skip-below=" << skipBelow << '\n');
 
+    // Reject value-semantics IR.
+    {
+      WalkResult walk = getOperation().walk([&](Operation *op) {
+        if (!isa<cudaq::quake::RxOp, cudaq::quake::RyOp, cudaq::quake::RzOp,
+                 cudaq::quake::R1Op>(op))
+          return WalkResult::advance();
+        for (Value target :
+             cast<cudaq::quake::OperatorInterface>(op).getTargets()) {
+          if (!cudaq::quake::isQuantumReferenceType(target.getType())) {
+            op->emitError(
+                "clifford-t-synthesis: rotation target is in value-semantics "
+                "form (!quake.wire/!quake.cable); run `regtomem` to convert to "
+                "memory semantics (!quake.ref) before this pass.");
+            return WalkResult::interrupt();
+          }
+        }
+        return WalkResult::advance();
+      });
+      if (walk.wasInterrupted()) {
+        signalPassFailure();
+        return;
+      }
+    }
+
     auto prec = static_cast<mpfr_prec_t>(
         std::max<double>(64.0, std::ceil(-std::log2(epsilon) * 4.0 + 64.0)));
     cudaq::synth::Real::set_default_precision(prec);
@@ -357,21 +408,21 @@ public:
         retryCount, onDynamicAngle.getValue(), skipBelow};
 
     MLIRContext *ctx = &getContext();
-    SynthCache synthCache;
+    SynthState state;
+    state.module = getOperation();
     RewritePatternSet patterns(ctx);
     patterns.add<R1Pattern, RxPattern, RyPattern>(ctx, opts);
-    patterns.add<RzPattern>(ctx, opts, &synthCache);
+    patterns.add<RzPattern>(ctx, opts, &state);
 
     if (failed(applyPatternsGreedily(getOperation(), std::move(patterns))))
       signalPassFailure();
 
-    cudaq::opt::detail::mutableLastCacheHits() = synthCache.hits;
-    cudaq::opt::detail::mutableLastCacheUniqueAngles() =
-        synthCache.entries.size();
+    cudaq::opt::detail::mutableLastCacheHits() = state.hits;
+    cudaq::opt::detail::mutableLastCacheUniqueAngles() = state.cache.size();
 
-    LLVM_DEBUG(llvm::dbgs() << "clifford-t-synthesis: gridsynth cache size = "
-                            << synthCache.entries.size() << " unique angle(s), "
-                            << synthCache.hits << " hit(s)\n");
+    LLVM_DEBUG(llvm::dbgs() << "clifford-t-synthesis: outlined "
+                            << state.cache.size() << " unique angle(s), reused "
+                            << "via " << state.hits << " cache hit(s)\n");
 #endif
   }
 };

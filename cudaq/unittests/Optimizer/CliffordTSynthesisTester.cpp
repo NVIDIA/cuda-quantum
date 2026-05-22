@@ -15,6 +15,7 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/LogicalResult.h"
@@ -148,19 +149,38 @@ double distance(const M2 &A, const M2 &B) {
   return std::sqrt(std::abs(det));
 }
 
+void applyBlock(Block &block, ModuleOp module, M2 &U);
+
+void applyOp(Operation &op, ModuleOp module, M2 &U) {
+  if (isa<cudaq::quake::HOp>(&op)) {
+    U = mul(kH, U);
+  } else if (auto s = dyn_cast<cudaq::quake::SOp>(&op)) {
+    U = mul(s.isAdj() ? kSdg : kS, U);
+  } else if (auto t = dyn_cast<cudaq::quake::TOp>(&op)) {
+    U = mul(t.isAdj() ? kTdg : kT, U);
+  } else if (isa<cudaq::quake::XOp>(&op)) {
+    U = mul(kX, U);
+  } else if (auto call = dyn_cast<func::CallOp>(&op)) {
+    auto callee = dyn_cast_or_null<func::FuncOp>(
+        SymbolTable::lookupSymbolIn(module, call.getCalleeAttr()));
+    ASSERT_TRUE(callee != nullptr) << "callee not found in module";
+    for (Block &b : callee.getBody())
+      applyBlock(b, module, U);
+  }
+}
+
+void applyBlock(Block &block, ModuleOp module, M2 &U) {
+  for (Operation &op : block)
+    applyOp(op, module, U);
+}
+
 M2 reconstructUnitary(ModuleOp module) {
   M2 U = {1.0, 0.0, 0.0, 1.0};
-  module.walk([&](Operation *op) {
-    if (isa<cudaq::quake::HOp>(op)) {
-      U = mul(kH, U);
-    } else if (auto s = dyn_cast<cudaq::quake::SOp>(op)) {
-      U = mul(s.isAdj() ? kSdg : kS, U);
-    } else if (auto t = dyn_cast<cudaq::quake::TOp>(op)) {
-      U = mul(t.isAdj() ? kTdg : kT, U);
-    } else if (isa<cudaq::quake::XOp>(op)) {
-      U = mul(kX, U);
-    }
-  });
+  auto entry = module.lookupSymbol<func::FuncOp>("rot_test");
+  if (!entry)
+    return U;
+  for (Block &b : entry.getBody())
+    applyBlock(b, module, U);
   return U;
 }
 
@@ -294,6 +314,82 @@ TEST_F(CliffordTSynthesisCacheTest, DistinctAnglesProduceNoCacheHits) {
 
   EXPECT_EQ(cudaq::opt::detail::lastCliffordTSynthCacheUniqueAngles(), 4);
   EXPECT_EQ(cudaq::opt::detail::lastCliffordTSynthCacheHits(), 0);
+}
+
+TEST_F(CliffordTSynthesisCacheTest, RejectsValueSemanticsRotations) {
+  OpBuilder builder(context.get());
+  auto loc = builder.getUnknownLoc();
+  auto module = ModuleOp::create(builder, loc);
+  builder.setInsertionPointToEnd(module.getBody());
+
+  auto funcType = builder.getFunctionType({}, {});
+  auto func = func::FuncOp::create(builder, loc, "value_sem", funcType);
+  builder.setInsertionPointToStart(func.addEntryBlock());
+
+  auto wireType = cudaq::quake::WireType::get(context.get());
+  Value wire = cudaq::quake::NullWireOp::create(builder, loc, wireType);
+  Value angle = cudaq::opt::factory::createFloatConstant(
+      loc, builder, M_PI / 4.0, builder.getF64Type());
+  cudaq::quake::RzOp::create(
+      builder, loc, /*wires=*/TypeRange{wireType}, /*is_adj=*/false,
+      /*parameters=*/ValueRange{angle}, /*controls=*/ValueRange{},
+      /*targets=*/ValueRange{wire},
+      /*negated_qubit_controls=*/mlir::DenseBoolArrayAttr{});
+  func::ReturnOp::create(builder, loc);
+
+  OwningOpRef<ModuleOp> moduleRef(module);
+
+  std::string diagText;
+  ScopedDiagnosticHandler handler(context.get(), [&](Diagnostic &d) {
+    diagText += d.str();
+    diagText += '\n';
+    return success();
+  });
+
+  PassManager pm(context.get());
+  cudaq::opt::CliffordTSynthesisOptions opts;
+  opts.epsilon = 1e-3;
+  pm.addPass(cudaq::opt::createCliffordTSynthesis(opts));
+  EXPECT_TRUE(failed(pm.run(*moduleRef)));
+  EXPECT_NE(diagText.find("value-semantics"), std::string::npos)
+      << "expected diagnostic about value-semantics form, got: " << diagText;
+  EXPECT_NE(diagText.find("regtomem"), std::string::npos)
+      << "diagnostic should point at the `regtomem` pass, got: " << diagText;
+}
+
+TEST_F(CliffordTSynthesisCacheTest, RotationsAreOutlinedIntoHelpers) {
+  const double a = M_PI / 4.0;
+  const double b = M_PI / 3.0;
+  auto module = buildRzListModule(context.get(), {a, a, a, b, b});
+
+  PassManager pm(context.get());
+  cudaq::opt::CliffordTSynthesisOptions opts;
+  opts.epsilon = 1e-3;
+  pm.addPass(cudaq::opt::createCliffordTSynthesis(opts));
+  ASSERT_TRUE(succeeded(pm.run(*module)));
+
+  auto userFn = module->lookupSymbol<func::FuncOp>("rz_dedup_test");
+  ASSERT_TRUE(userFn) << "expected user function preserved by the pass";
+
+  int numCalls = 0;
+  int numCliffordTGatesInUser = 0;
+  userFn->walk([&](Operation *op) {
+    if (isa<func::CallOp>(op))
+      ++numCalls;
+    else if (isa<cudaq::quake::HOp, cudaq::quake::SOp, cudaq::quake::TOp,
+                 cudaq::quake::XOp>(op))
+      ++numCliffordTGatesInUser;
+  });
+  EXPECT_EQ(numCalls, 5) << "every Rz should lower to a single func.call";
+  EXPECT_EQ(numCliffordTGatesInUser, 0)
+      << "synthesized gates must live in helpers, not at the call site";
+
+  int numHelpers = 0;
+  module->walk([&](func::FuncOp f) {
+    if (f.getName().starts_with("__cliffordt_rz_"))
+      ++numHelpers;
+  });
+  EXPECT_EQ(numHelpers, 2) << "one helper per unique angle";
 }
 
 } // namespace
