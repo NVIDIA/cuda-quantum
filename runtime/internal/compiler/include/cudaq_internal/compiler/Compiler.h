@@ -9,7 +9,9 @@
 
 #include "common/CompiledModule.h"
 #include "common/KernelArgs.h"
+#include "common/SampleResult.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
+#include "cudaq/algorithms/sample/policy.h"
 #include <map>
 #include <memory>
 #include <string>
@@ -120,6 +122,11 @@ public:
   /// the context, guaranteeing it outlives the artifacts. Otherwise the
   /// context lifetime must be managed by the caller.
   cudaq::CompiledModule
+  runPassPipeline(cudaq::sample_policy &policy, const std::string &kernelName,
+                  const void *modulePtr, cudaq::KernelArgs args,
+                  std::shared_ptr<mlir::MLIRContext> context = nullptr);
+
+  cudaq::CompiledModule
   runPassPipeline(cudaq::ExecutionContext *executionContext,
                   const std::string &kernelName, const void *modulePtr,
                   cudaq::KernelArgs args,
@@ -139,6 +146,9 @@ public:
   /// Unchecked assumption: there are no other references to \p module (within
   /// the scope of this launch instance). It can be disposed and/or modified by
   /// this call in any way necessary without breaking some other kernel launch.
+  std::vector<cudaq::KernelExecution>
+  lowerQuakeCode(cudaq::sample_policy &policy, const std::string &kernelName,
+                 const void *modulePtr, cudaq::KernelArgs args);
   std::vector<cudaq::KernelExecution>
   lowerQuakeCode(cudaq::ExecutionContext *executionContext,
                  const std::string &kernelName, const void *modulePtr,

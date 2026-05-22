@@ -386,7 +386,7 @@ cudaq_internal::compiler::Compiler::assembleCompiledModule(
 }
 
 cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
-    cudaq::ExecutionContext *executionContext, const std::string &kernelName,
+    cudaq::sample_policy &policy, const std::string &kernelName,
     const void *modulePtr, cudaq::KernelArgs args,
     std::shared_ptr<mlir::MLIRContext> context) {
   mlir::ModuleOp m_module = mlir::ModuleOp::getFromOpaquePointer(modulePtr);
@@ -394,7 +394,7 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
   auto [moduleOp, epFunc] = prepareModule(kernelName, m_module, args);
 
   // Populate conditional measurement flag in the context.
-  if (emulate && executionContext && executionContext->name == "sample") {
+  if (emulate) {
     for (auto &artifact : moduleOp) {
       cudaq::quake::detail::QuakeFunctionAnalysis analysis{&artifact};
       auto info = analysis.getAnalysisInfo();
@@ -416,6 +416,56 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
 
   bool combineMeasurements = executeMainPipeline(moduleOp, kernelName);
 
+  auto mapping_reorder_idx = extractMappingReorderIdx(moduleOp, epFunc);
+
+  // Warn if kernel has named measurement registers (sub-registers).
+  if (!policy.warnedNamedMeasurements) {
+    auto funcOp = moduleOp.template lookupSymbol<mlir::func::FuncOp>(
+        std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
+    if (funcOp) {
+      bool hasNamedMeasurements = false;
+      funcOp.walk([&](cudaq::quake::MeasurementInterface meas) {
+        if (meas.getOptionalRegisterName().has_value()) {
+          hasNamedMeasurements = true;
+          return mlir::WalkResult::interrupt();
+        }
+        return mlir::WalkResult::advance();
+      });
+      if (hasNamedMeasurements) {
+        policy.warnedNamedMeasurements = true;
+        std::cerr << "WARNING: Kernel \"" << kernelName
+                  << "\" uses named measurement results "
+                  << "but is invoked in sampling mode. Support for "
+                  << "sub-registers in `sample_result` is deprecated and will "
+                  << "be removed in a future release. Use `run` to retrieve "
+                  << "individual measurement results." << std::endl;
+      }
+    }
+  }
+  // No need to add measurements only to remove them eventually
+  if (postCodeGenPasses.find("remove-measurements") == std::string::npos)
+    applyPipeline("func.func(add-measurements)", moduleOp, kernelName);
+
+  // Apply observations if necessary
+  std::vector<std::pair<std::string, mlir::ModuleOp>> modules;
+  modules.emplace_back(kernelName, moduleOp);
+
+  bool needJit = emulate;
+  return assembleCompiledModule(kernelName, modules, needJit,
+                                emulate && combineMeasurements, std::nullopt,
+                                mapping_reorder_idx, context);
+}
+
+cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
+    cudaq::ExecutionContext *executionContext, const std::string &kernelName,
+    const void *modulePtr, cudaq::KernelArgs args,
+    std::shared_ptr<mlir::MLIRContext> context) {
+  mlir::ModuleOp m_module = mlir::ModuleOp::getFromOpaquePointer(modulePtr);
+  assert(!context || context.get() == m_module.getContext());
+  auto [moduleOp, epFunc] = prepareModule(kernelName, m_module, args);
+
+  bool combineMeasurements = executeMainPipeline(moduleOp, kernelName);
+
   // We need to run resource counting preprocessing after the pass pipeline as
   // the pre-processing might change the IR structure (may interfere with
   // other passes).
@@ -429,42 +479,6 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
   }
 
   auto mapping_reorder_idx = extractMappingReorderIdx(moduleOp, epFunc);
-
-  if (executionContext) {
-    if (executionContext->name == "sample") {
-      executionContext->reorderIdx = mapping_reorder_idx;
-      // Warn if kernel has named measurement registers (sub-registers).
-      if (!executionContext->warnedNamedMeasurements) {
-        auto funcOp = moduleOp.template lookupSymbol<mlir::func::FuncOp>(
-            std::string(cudaq::runtime::cudaqGenPrefixName) + kernelName);
-        if (funcOp) {
-          bool hasNamedMeasurements = false;
-          funcOp.walk([&](cudaq::quake::MeasurementInterface meas) {
-            if (meas.getOptionalRegisterName().has_value()) {
-              hasNamedMeasurements = true;
-              return mlir::WalkResult::interrupt();
-            }
-            return mlir::WalkResult::advance();
-          });
-          if (hasNamedMeasurements) {
-            executionContext->warnedNamedMeasurements = true;
-            std::cerr
-                << "WARNING: Kernel \"" << kernelName
-                << "\" uses named measurement results "
-                << "but is invoked in sampling mode. Support for "
-                << "sub-registers in `sample_result` is deprecated and will "
-                << "be removed in a future release. Use `run` to retrieve "
-                << "individual measurement results." << std::endl;
-          }
-        }
-      }
-      // No need to add measurements only to remove them eventually
-      if (postCodeGenPasses.find("remove-measurements") == std::string::npos)
-        applyPipeline("func.func(add-measurements)", moduleOp, kernelName);
-    } else {
-      executionContext->reorderIdx.clear();
-    }
-  }
 
   // Apply observations if necessary
   std::vector<std::pair<std::string, mlir::ModuleOp>> modules;
@@ -572,6 +586,14 @@ cudaq_internal::compiler::Compiler::emitKernelExecutions(
   }
 
   return codes;
+}
+
+std::vector<cudaq::KernelExecution>
+cudaq_internal::compiler::Compiler::lowerQuakeCode(
+    cudaq::sample_policy &policy, const std::string &kernelName,
+    const void *modulePtr, cudaq::KernelArgs args) {
+  auto compiled = runPassPipeline(policy, kernelName, modulePtr, args, nullptr);
+  return emitKernelExecutions(compiled);
 }
 
 /// @brief Extract the Quake representation for the given kernel name and

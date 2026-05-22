@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "qpu.h"
+#include "algorithms/sample/policy.h"
 #include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
 #include "common/KernelArgs.h"
@@ -45,6 +46,20 @@ cudaq::QPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
   return runJITCompiledModule(compiled, args);
 }
 
+sample_result cudaq::QPU::launchKernel(sample_policy &policy,
+                                       const AnyModule &module,
+                                       KernelArgs args) {
+  throw std::runtime_error(
+      "This QPU does not support launching the sample_policy.");
+}
+
+async_sample_result cudaq::QPU::launchKernel(async_sample_policy &policy,
+                                             const AnyModule &module,
+                                             KernelArgs args) {
+  throw std::runtime_error(
+      "This QPU does not support launching the async_sample_policy.");
+}
+
 cudaq::KernelThunkResultType
 cudaq::QPU::runJITCompiledModule(const CompiledModule &compiled,
                                  KernelArgs args) {
@@ -80,6 +95,13 @@ cudaq::QPU::runJITCompiledModule(const CompiledModule &compiled,
   // Fully specialized, no result.
   funcPtr();
   return {nullptr, 0};
+}
+
+cudaq::CompiledModule cudaq::QPU::compileModule(sample_policy &,
+                                                const SourceModule &src,
+                                                KernelArgs args,
+                                                bool isEntryPoint) {
+  return compileModule(src, args, isEntryPoint);
 }
 
 cudaq::CompiledModule cudaq::QPU::compileModule(const SourceModule &src,

@@ -147,8 +147,8 @@ protected:
     requestedAllocations.clear();
   }
 
-  void finalizeExecutionContextImpl(ExecutionContext &ctx) {
-    BasicExecutionManager::finalizeExecutionContextImpl(ctx);
+  void finalizeExecutionContextImpl() {
+    BasicExecutionManager::finalizeExecutionContextImpl();
 
     if (!requestedAllocations.empty()) {
       CUDAQ_INFO("[DefaultExecutionManager] Flushing remaining {} allocations "
@@ -162,15 +162,14 @@ protected:
     }
   }
 
-  sample_result finalizeExecutionContext(const sample_policy &policy,
-                                         ExecutionContext &ctx) override {
-    finalizeExecutionContextImpl(ctx);
-    return simulator()->finalizeExecutionContext(policy, ctx);
+  sample_result finalizeExecutionContext(const sample_policy &policy) override {
+    finalizeExecutionContextImpl();
+    return simulator()->finalizeExecutionContext(policy);
   }
 
   void finalizeExecutionContext(const other_policies &policy,
                                 ExecutionContext &ctx) override {
-    finalizeExecutionContextImpl(ctx);
+    finalizeExecutionContextImpl();
     simulator()->finalizeExecutionContext(ctx);
   }
 

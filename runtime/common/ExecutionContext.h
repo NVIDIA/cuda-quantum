@@ -22,6 +22,7 @@ namespace cudaq {
 
 class SimulationState;
 class ExecutionManager;
+class KernelArgs;
 
 /// The ExecutionContext is an abstraction to indicate how a CUDA-Q kernel
 /// should be executed.
@@ -155,6 +156,9 @@ public:
   /// use it for multiple discrete calls.
   std::optional<cudaq::JitEngine> jitEng = std::nullopt;
 
+  /// @brief Dispatcher towards the policy specific launch.
+  std::function<void(const AnyModule &module, const KernelArgs &args)>
+      executeKernelApi;
   /// @endcond
 };
 
@@ -217,4 +221,33 @@ void saveArtifact(const std::string kernelName, const cudaq::JitEngine jit);
 /// Returns std::nullopt if no artifact has been saved yet.
 std::optional<JitEngine> getArtifactJit(const std::string &kernelName);
 }; // namespace compiler_artifact
+
+namespace detail {
+/// @brief Execute the given function within the given policy andexecution
+/// context.
+template <typename Policy, typename Callable, typename... Args>
+auto with_policy_and_ctx(Policy &policy, ExecutionContext &ctx, Callable &&f,
+                         Args &&...args)
+    -> std::invoke_result_t<Callable, Args...> {
+
+  // Save the outer execution context (if any) so we can restore it after.
+  auto *outerContext = getExecutionContext();
+  detail::setExecutionContext(&ctx);
+
+  // Cleanup runs after the kernel returns or throws.
+  auto cleanup = [&outerContext]() {
+    detail::resetExecutionContext();
+    if (outerContext)
+      detail::setExecutionContext(outerContext);
+  };
+
+  if constexpr (std::is_void_v<std::invoke_result_t<Callable, Args...>>) {
+    try_finally([&] { f(std::forward<Args>(args)...); }, cleanup);
+    return;
+  }
+
+  return try_finally([&] { return f(std::forward<Args>(args)...); }, cleanup);
+}
+
+} // namespace detail
 } // namespace cudaq

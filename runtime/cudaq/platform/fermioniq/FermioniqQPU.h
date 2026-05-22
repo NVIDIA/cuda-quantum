@@ -66,18 +66,24 @@ public:
   CompiledModule compileModule(const SourceModule &src, KernelArgs args,
                                bool isEntryPoint) override {
     const auto &kernelName = src.getName();
-    auto mlirArt = src.getMlir();
-    if (!mlirArt)
-      throw std::runtime_error(
-          "FermioniqBaseQPU::compileModule requires an MLIR artifact on the "
-          "SourceModule for kernel '" +
-          kernelName + "'.");
-    auto modulePtr = mlirArt->getOpaqueModulePtr();
+    auto modulePtr = compileModulePreamble(src);
     CUDAQ_INFO("FermioniqBaseQPU compiling kernel via module ({})", kernelName);
     return compileImpl(
         kernelName, [&](Compiler &compiler, ExecutionContext *ctx) {
           return compiler.runPassPipeline(ctx, kernelName, modulePtr, args);
         });
+  }
+
+  sample_result launchKernel(sample_policy &policy, const AnyModule &module,
+                             KernelArgs args) override;
+
+  async_sample_result launchKernel(async_sample_policy &policy,
+                                   const AnyModule &module,
+                                   KernelArgs args) override;
+
+  CompiledModule compileModule(sample_policy &policy, const SourceModule &src,
+                               KernelArgs args, bool isEntryPoint) override {
+    return compileModuleImpl(policy, src, args, isEntryPoint);
   }
 
 private:
@@ -86,6 +92,17 @@ private:
               std::function<CompiledModule(Compiler &, ExecutionContext *)>
                   runPassPipeline);
 
+  template <typename Policy>
+  CompiledModule compileImpl(Policy &policy, const SourceModule &src,
+                             KernelArgs args, bool isEntryPoint) {
+    const auto &kernelName = src.getName();
+    auto modulePtr = compileModulePreamble(src);
+    CUDAQ_INFO("FermioniqBaseQPU compiling kernel via module ({})", kernelName);
+    return compileImpl(
+        kernelName, [&](Compiler &compiler, ExecutionContext *ctx) {
+          return compiler.runPassPipeline(policy, kernelName, modulePtr, args);
+        });
+  }
   void launchImpl(const CompiledModule &compiled);
 };
 
