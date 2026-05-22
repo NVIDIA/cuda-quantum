@@ -206,7 +206,7 @@ using async_sample_result = async_result<sample_result>;
 
 /// @brief Wrapper for a policy to return an async_result.
 template <typename InnerPolicy>
-struct policy_wrapper {
+struct async_policy_wrapper {
   InnerPolicy inner;
   using result_type = async_result<typename InnerPolicy::result_type>;
 };

@@ -35,8 +35,8 @@ struct sample_policy {
   /// @brief The name of the kernel being executed.
   std::string kernelName;
 
-  /// @brief Whether or not to simply concatenate measurements in execution
-  /// order.
+  /// @brief Flag to indicate that a warning about named measurement registers
+  /// in sampling context has already been emitted.
   bool warnedNamedMeasurements = false;
 
   /// @brief A vector containing information about how to reorder the global
@@ -53,6 +53,6 @@ struct sample_policy {
                                    const sample_policy &policy);
 };
 
-using async_sample_policy = policy_wrapper<sample_policy>;
+using async_sample_policy = async_policy_wrapper<sample_policy>;
 
 } // namespace cudaq

@@ -74,8 +74,8 @@ def __broadcastSample(kernel,
         ctx.totalIterations = N
         ctx.batchIteration = i
         ctx.explicitMeasurements = explicit_measurements
-        policy = cudaq_runtime.sample_policy(ctx, kernel_name,
-                                             explicit_measurements)
+        policy = cudaq_runtime.SamplePolicy(ctx, kernel_name,
+                                            explicit_measurements)
         res = cudaq_runtime.launch_sample(policy, ctx, lambda: kernel(*a))
         results.append(res)
 
@@ -178,8 +178,7 @@ def sample(kernel,
     ctx.kernelName = kernel_name
     ctx.explicitMeasurements = explicit_measurements
     ctx.allowJitEngineCaching = True
-    policy = cudaq_runtime.sample_policy(ctx, kernel_name,
-                                         explicit_measurements)
+    policy = cudaq_runtime.SamplePolicy(ctx, kernel_name, explicit_measurements)
 
     counts = cudaq_runtime.SampleResult()
     while counts.get_total_shots() < shots_count:

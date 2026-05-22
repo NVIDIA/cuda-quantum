@@ -33,7 +33,7 @@ auto launch(Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
   library_mode = true;
 #endif
   if (library_mode) {
-    // async_policy (policy_wrapper) + library mode is unreachable:
+    // async_policy (async_policy_wrapper) + library mode is unreachable:
     if constexpr (requires { policy.inner; })
       throw std::logic_error("async policy must not reach library-mode path");
     else {

@@ -9,6 +9,7 @@
 #include "py_sample.h"
 #include "cudaq/algorithms/launch.h"
 #include "cudaq/algorithms/sample.h"
+#include "cudaq/algorithms/sample/policy.h"
 #include <nanobind/stl/string.h>
 
 using namespace cudaq;
@@ -42,12 +43,29 @@ static sample_result launch_sample(sample_policy &policy, ExecutionContext &ctx,
 }
 
 void cudaq::bindPySample(nanobind::module_ &mod) {
-  nanobind::class_<sample_policy>(mod, "sample_policy")
+  nanobind::class_<sample_policy>(mod, "SamplePolicy")
       .def("__init__", construct_sample_policy, nanobind::arg("ctx"),
-           nanobind::arg("kernel_name"),
-           nanobind::arg("explicit_measurements"));
+           nanobind::arg("kernel_name"), nanobind::arg("explicit_measurements"))
+      .def_prop_ro(
+          "kernel_name",
+          [](const sample_policy &policy) { return policy.kernelName; },
+          "The kernel name.")
+      .def_prop_ro(
+          "shots",
+          [](const sample_policy &policy) { return policy.options.shots; },
+          "The number of shots.")
+      .def_prop_ro("explicit_measurements",
+                   [](const sample_policy &policy) {
+                     return policy.options.explicit_measurements;
+                   })
+      .def("__repr__", [](const sample_policy &p) {
+        return cudaq_fmt::format("SamplePolicy(kernel_name='{}', shots={}, "
+                                 "explicit_measurements={})",
+                                 p.kernelName, p.options.shots,
+                                 p.options.explicit_measurements);
+      });
 
-  mod.def("launch_sample", launch_sample, "FIXME: document",
+  mod.def("launch_sample", launch_sample, "Policy based sample launch.",
           nanobind::arg("policy"), nanobind::arg("ctx"),
           nanobind::arg("callable"));
 }
