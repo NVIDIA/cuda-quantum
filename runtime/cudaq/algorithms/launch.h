@@ -48,8 +48,8 @@ auto launch(Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
 
   typename Policy::result_type result;
   auto &qpu = platform.getQPU(qpu_id);
-  ctx.executeKernelApi = [&qpu, &result, &policy, &ctx](
-                             const AnyModule &module, const KernelArgs &args) {
+  ctx.executeKernelApi = [&qpu, &result, &policy](const AnyModule &module,
+                                                  const KernelArgs &args) {
     result = qpu.launchKernel(policy, module, args);
   };
 

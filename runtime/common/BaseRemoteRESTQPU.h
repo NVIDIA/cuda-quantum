@@ -93,9 +93,12 @@ protected:
     auto modulePtr = compileModulePreamble(src);
     CUDAQ_INFO("specializing remote rest kernel via module ({}) with {} policy",
                kernelName, policy.name);
+    // Temporary hack until we have a proper way of configuring the compiler
+    // based on the policy.
+    auto ctx = cudaq::getExecutionContext();
     Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
                       noiseModel, emulate);
-    return compiler.runPassPipeline(policy, kernelName, modulePtr, args);
+    return compiler.runPassPipeline(ctx, kernelName, modulePtr, args);
   }
 
 public:
@@ -274,6 +277,9 @@ public:
                       noiseModel, emulate);
     std::vector<cudaq::KernelExecution> codes;
 
+    // Temporary hack until we have a proper way of configuring the compiler
+    // based on the policy.
+    auto ctx = cudaq::getExecutionContext();
     if (std::holds_alternative<SourceModule>(module)) {
       const auto &src = std::get<SourceModule>(module);
       kernelName = src.getName();
@@ -281,7 +287,7 @@ public:
 
       auto [moduleOp, context] = Compiler::loadQuakeCodeByName(kernelName);
 
-      codes = compiler.lowerQuakeCode(policy, kernelName, moduleOp, args);
+      codes = compiler.lowerQuakeCode(ctx, kernelName, moduleOp, args);
     } else {
       const auto &compiled = std::get<CompiledModule>(module);
       kernelName = compiled.getName();

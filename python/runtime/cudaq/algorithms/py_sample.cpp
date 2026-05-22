@@ -21,10 +21,22 @@ static void construct_sample_policy(sample_policy *self, ExecutionContext &ctx,
   self->options.shots = ctx.shots;
   self->options.explicit_measurements = explicitMeasurements;
   self->noiseModel = get_platform().get_noise(ctx.qpuId);
+  // For now the noise model has to be duplicated on the policy unfortunately.
+  // get_noise() still expects it on the execution context.
+  // TODO: Store the noise on the platform or QPU instead.
+  ctx.noiseModel = self->noiseModel;
 }
 
 static sample_result launch_sample(sample_policy &policy, ExecutionContext &ctx,
                                    nanobind::callable callable) {
+  auto &platform = get_platform();
+  if (platform.is_remote()) {
+    async_sample_policy async_policy;
+    async_policy.inner = policy;
+    auto res = detail::launch(async_policy, ctx.qpuId, ctx, platform,
+                              [&]() { callable(); });
+    return res.get();
+  }
   return detail::launch(policy, ctx.qpuId, ctx, get_platform(),
                         [&]() { callable(); });
 }
