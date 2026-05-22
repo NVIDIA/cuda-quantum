@@ -43,6 +43,9 @@ public:
     bool runsStandardFinalize = false;
     /// Whether to disable qubit mapping.
     bool disableQubitMapping = false;
+
+    /// Whether to run the add-measurements pass.
+    bool addMeasurements = false;
   };
 
   /// Pipeline configuration, populated by the constructor.

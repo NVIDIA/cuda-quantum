@@ -400,13 +400,11 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
     }
   }
 
-  if (executionContext) {
-    if (executionContext->name == "sample") {
-      // No need to add measurements only to remove them eventually
-      if (target->pipelineConfig.postCodeGenPasses.find(
-              "remove-measurements") == std::string::npos)
-        applyPipeline("func.func(add-measurements)", moduleOp, kernelName);
-    }
+  if (target->pipelineConfig.addMeasurements) {
+    // No need to add measurements only to remove them eventually
+    if (target->pipelineConfig.postCodeGenPasses.find("remove-measurements") ==
+        std::string::npos)
+      applyPipeline("func.func(add-measurements)", moduleOp, kernelName);
   }
 
   // Apply observations if necessary

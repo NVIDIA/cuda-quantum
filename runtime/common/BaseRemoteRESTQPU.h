@@ -295,6 +295,7 @@ public:
         serverHelper.get(), platformPath, targetConfig, backendConfig, emulate);
     target->warnNamedMeasurements = !policy.warnedNamedMeasurements;
     target->supportConditionalsOnMeasureResults = !emulate;
+    target->pipelineConfig.addMeasurements = true;
     target->storeReorderIdx = true;
     return target;
   }
