@@ -45,6 +45,34 @@ void reportClangError(T *astNode, clang::ItaniumMangleContext *mangler,
                       const char (&msg)[N]) {
   reportClangError(astNode, mangler->getASTContext().getDiagnostics(), msg);
 }
+
+/// `measure_handle` arrives at the bridge as either an SSA `!cc.measure_handle`
+/// (the rvalue from `mz`/`mx`/`my`, a copy/move ctor result, etc.) or as the
+/// pointer form `!cc.ptr<!cc.measure_handle>` left by lvalue access (named
+/// variable read, `operator=` LHS, struct-member-of-handle, ...). Most
+/// consumers want the value form, so funnel that normalization through one
+/// helper rather than open-coding the `dyn_cast` chain at every call site.
+inline mlir::Value loadHandleIfPointer(mlir::OpBuilder &builder,
+                                       mlir::Location loc, mlir::Value v) {
+  if (auto ptrTy = mlir::dyn_cast<cudaq::cc::PointerType>(v.getType()))
+    if (mlir::isa<cudaq::cc::MeasureHandleType>(ptrTy.getElementType()))
+      return cudaq::cc::LoadOp::create(builder, loc, v);
+  return v;
+}
+
+/// Same intent as `loadHandleIfPointer`, but for the bulk-discriminate /
+/// `to_integer` / range-for / qec.{detector,observable,pair_detectors} paths
+/// where the lvalue carries a `std::vector<measure_handle>` and `ConvertDecl`
+/// has stack-allocated a descriptor slot for it.
+inline mlir::Value loadHandleVectorIfPointer(mlir::OpBuilder &builder,
+                                             mlir::Location loc,
+                                             mlir::Value v) {
+  if (auto ptrTy = mlir::dyn_cast<cudaq::cc::PointerType>(v.getType()))
+    if (auto sv = mlir::dyn_cast<cudaq::cc::StdvecType>(ptrTy.getElementType());
+        sv && mlir::isa<cudaq::cc::MeasureHandleType>(sv.getElementType()))
+      return cudaq::cc::LoadOp::create(builder, loc, v);
+  return v;
+}
 } // namespace cudaq::details
 
 #undef TODO_BRIDGE

@@ -25,7 +25,10 @@ struct t1 {
 // CHECK-SAME:        %[[VAL_0:.*]]: !cc.stdvec<f64>{{.*}}) -> i1 attributes
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<2>
 // CHECK:           %[[VAL_12:.*]] = quake.mz %[[VAL_1]] name "vec" : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
-// CHECK:           %[[VAL_3:.*]] = cc.stdvec_data %[[VAL_12]] : (!cc.stdvec<!cc.measure_handle>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
+// CHECK:           %[[VAL_S:.*]] = cc.alloca !cc.stdvec<!cc.measure_handle>
+// CHECK:           cc.store %[[VAL_12]], %[[VAL_S]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           %[[VAL_L:.*]] = cc.load %[[VAL_S]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           %[[VAL_3:.*]] = cc.stdvec_data %[[VAL_L]] : (!cc.stdvec<!cc.measure_handle>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
 // CHECK:           %[[VAL_4:.*]] = cc.cast %[[VAL_3]] : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>) -> !cc.ptr<!cc.measure_handle>
 // CHECK:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<!cc.measure_handle>
 // CHECK:           %[[VAL_6:.*]] = quake.discriminate %[[VAL_5]] : (!cc.measure_handle) -> i1

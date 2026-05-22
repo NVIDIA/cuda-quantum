@@ -32,30 +32,6 @@ static Type getResultType(Type ty) {
 }
 
 namespace {
-// `measure_handle` arrives at the bridge as either an SSA `!cc.measure_handle`
-// (the rvalue from `mz`/`mx`/`my`, a copy/move ctor result, etc.) or as the
-// pointer form `!cc.ptr<!cc.measure_handle>` left by lvalue access (named
-// variable read, `operator=` LHS, struct-member-of-handle, ...). The
-// discrimination, copy, and `to_bools` paths all want the value form, so funnel
-// that normalization through one helper rather than open-coding the dyn_cast
-// chain at every call site.
-Value loadHandleIfPointer(OpBuilder &builder, Location loc, Value v) {
-  if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(v.getType()))
-    if (isa<cudaq::cc::MeasureHandleType>(ptrTy.getElementType()))
-      return cudaq::cc::LoadOp::create(builder, loc, v);
-  return v;
-}
-
-// Same intent as `loadHandleIfPointer`, but for the bulk-discriminate /
-// `to_integer` paths where the lvalue carries a `std::vector<measure_handle>`.
-Value loadHandleVectorIfPointer(OpBuilder &builder, Location loc, Value v) {
-  if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(v.getType()))
-    if (auto sv = dyn_cast<cudaq::cc::StdvecType>(ptrTy.getElementType());
-        sv && isa<cudaq::cc::MeasureHandleType>(sv.getElementType()))
-      return cudaq::cc::LoadOp::create(builder, loc, v);
-  return v;
-}
-
 // Same intent as `isInNamespace`, but only matches when the immediate
 // enclosing namespace is `nsName`. `isInNamespace` drills through nested
 // namespaces, so it would silently "hijack" a user-defined
