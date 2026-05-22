@@ -1,0 +1,153 @@
+on:
+  workflow_dispatch:
+    inputs:
+      cache_base:
+        required: false
+        type: string
+        description: 'The name of the branch to use as cache base.'
+        default: main
+  push:
+    branches:
+      - "pull-request/[0-9]+"
+
+name: Realtime Integration CI
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  metadata:
+    name: Retrieve build metadata
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    outputs:
+      llvm_commit: ${{ steps.repo_info.outputs.llvm_commit }}
+      nanobind_commit: ${{ steps.repo_info.outputs.nanobind_commit }}
+      cache_base: ${{ steps.cache.outputs.cache_base }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - id: repo_info
+        run: |
+          echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
+          echo "nanobind_commit=$(git rev-parse @:./tpls/nanobind)" >> $GITHUB_OUTPUT
+
+      - id: cache
+        run: echo "cache_base=${{ inputs.cache_base || 'main' }}" >> $GITHUB_OUTPUT
+
+  cuda_deps:
+    name: Load CUDA build dependencies
+    needs: metadata
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [amd64]
+        cuda_version: ['12.6', '13.0']
+    uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platforms: linux/${{ matrix.platform }}
+      dockerfile: build/devdeps.manylinux.Dockerfile
+      build_config_id: cu${{ matrix.cuda_version }}-gcc12
+      build_args: |
+        base_image=ghcr.io/nvidia/pypa/manylinux_2_28_x86_64:latest
+        cuda_version=${{ matrix.cuda_version }}
+        toolchain=gcc12
+        distro=rhel8
+        llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
+        nanobind_commit=${{ needs.metadata.outputs.nanobind_commit }}
+      registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
+      environment: ghcr-ci
+      matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-realtime
+      matrix_step_name: realtime_integration_cuda_deps
+
+  config_cuda_deps:
+    name: Configure CUDA build dependencies
+    runs-on: ubuntu-latest
+    needs: cuda_deps
+    outputs:
+      json: "${{ steps.read_json.outputs.result }}"
+    steps:
+      - uses: cloudposse/github-action-matrix-outputs-read@1.0.0
+        id: read_json
+        with:
+          matrix-step-name: realtime_integration_cuda_deps
+
+  compile:
+    name: Compile realtime-enabled CUDA-Q
+    needs: config_cuda_deps
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [amd64]
+        cuda_version: ['12.6', '13.0']
+    runs-on: linux-amd64-cpu8
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Log in to GitHub CR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build realtime integration
+        uses: ./.github/actions/run-in-docker
+        with:
+          image: ${{ fromJson(needs.config_cuda_deps.outputs.json).image_hash[format('{0}-cu{1}-realtime', matrix.platform, matrix.cuda_version)] }}
+          volume: ${{ github.workspace }}:/workspace
+          shell: bash
+          run: |
+            set -euo pipefail
+
+            cuda_version="${{ matrix.cuda_version }}"
+            export CUDA_HOME="${CUDA_HOME:-${CUDA_INSTALL_PREFIX:-/usr/local/cuda-${cuda_version}}}"
+            export CUDACXX="${CUDACXX:-${CUDA_HOME}/bin/nvcc}"
+            export CUDAHOSTCXX="${CUDAHOSTCXX:-${CXX}}"
+
+            realtime_prefix=/tmp/cudaq-realtime
+            build_root=/workspace/build-realtime-integration
+            rm -rf "${realtime_prefix}" "${build_root}"
+
+            cmake -G Ninja \
+              -S /workspace/realtime \
+              -B "${build_root}/realtime" \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_CUDA_COMPILER="${CUDACXX}" \
+              -DCUDAQ_REALTIME_BUILD_TESTS=OFF \
+              -DCUDAQ_REALTIME_BUILD_EXAMPLES=OFF \
+              -DCUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS=OFF \
+              -DCMAKE_INSTALL_PREFIX="${realtime_prefix}"
+            cmake --build "${build_root}/realtime" --target install --parallel "$(nproc)"
+
+            export CUDAQ_INSTALL_PREFIX=/tmp/cudaq-realtime-enabled
+            export CUDAQ_BUILD_TESTS=OFF
+            export CUDAQ_WERROR=ON
+
+            cd /workspace
+            git config --global --add safe.directory "*"
+            # The cached CUDA manylinux deps do not include the source-build
+            # MLIR Python binding setup; this job covers C++ realtime integration.
+            bash scripts/build_cudaq.sh -v -B "${build_root}/cudaq" -- \
+              -DCUDAQ_REALTIME_DIR="${realtime_prefix}" \
+              -DCUDAQ_ENABLE_PYTHON=OFF
+
+            cmake --build "${build_root}/cudaq" --parallel "$(nproc)"
+
+            # Fail if realtime was silently disabled in either build.
+            test -f "${realtime_prefix}/lib/libcudaq-realtime.so"
+            test -f "${realtime_prefix}/lib/libcudaq-realtime-dispatch.a"
+            test -f "${CUDAQ_INSTALL_PREFIX}/lib/libcudaq-device-call-runtime.so"
