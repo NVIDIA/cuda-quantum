@@ -29,8 +29,7 @@
 # library is not found in the location defined by the corresponding environment variable
 # *_INSTALL_PREFIX, it will be built from source and installed in that location.
 # If the LLVM libraries are built from source, the environment variable LLVM_PROJECTS
-# can be used to customize which projects are built, and pybind11 will be built and 
-# installed in the location defined by PYBIND11_INSTALL_PREFIX if necessary.
+# can be used to customize which projects are built.
 # The cuQuantum and cuTensor libraries are only installed if a suitable CUDA compiler 
 # is installed. 
 # 
@@ -395,7 +394,6 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
     echo "Installing LLVM libraries..."
     LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
     LLVM_PROJECTS="$LLVM_PROJECTS" \
-    PYBIND11_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" \
     NANOBIND_INSTALL_PREFIX="$NANOBIND_INSTALL_PREFIX" \
     Python3_EXECUTABLE="$Python3_EXECUTABLE" \
     bash "$this_file_dir/build_llvm.sh" -v

@@ -13,17 +13,17 @@
 #include "common/Executor.h"
 #include "common/KernelExecution.h"
 #include "common/Resources.h"
+#include "cudaq_internal/compiler/CompiledModuleHelper.h"
+#include "cudaq_internal/compiler/Compiler.h"
+#include "cudaq_internal/compiler/JIT.h"
+#include "nvqir/AnalysisScope.h"
+#include "nvqir/resourcecounter/ResourceCounterScope.h"
 #include "cudaq/Support/TargetConfig.h"
 #include "cudaq/platform/platform_iface.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/platform/qpu_utils.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "cudaq_internal/compiler/CompiledModuleHelper.h"
-#include "cudaq_internal/compiler/Compiler.h"
-#include "cudaq_internal/compiler/JIT.h"
-#include "nvqir/AnalysisScope.h"
-#include "nvqir/resourcecounter/ResourceCounterScope.h"
 #include <filesystem>
 #include <fstream>
 #include <netinet/in.h>
@@ -211,46 +211,6 @@ public:
     // Create the ServerHelper for this QPU and give it the backend config
     detail::initServerHelperAndExecutor(qpuName, backendConfig, targetConfig,
                                         serverHelper, executor);
-  }
-
-  /// @brief Launch the kernel. Extract the Quake code and lower to the
-  /// representation required by the targeted backend. Handle all pertinent
-  /// modifications for the execution context as well as asynchronous or
-  /// synchronous invocation.
-  KernelThunkResultType unifiedLaunchModule(const AnyModule &module,
-                                            KernelArgs args) override {
-    Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
-                      noiseModel, emulate);
-    std::string kernelName;
-    std::vector<cudaq::KernelExecution> codes;
-
-    if (std::holds_alternative<SourceModule>(module)) {
-      const auto &src = std::get<SourceModule>(module);
-      kernelName = src.getName();
-      CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
-
-      auto executionContext = cudaq::getExecutionContext();
-
-      // TODO future iterations of this should support non-void return types.
-      if (!executionContext)
-        throw std::runtime_error(
-            "Remote rest execution can only be performed via cudaq::sample(), "
-            "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
-
-      auto [moduleOp, context] = Compiler::loadQuakeCodeByName(kernelName);
-
-      // Get the Quake code, lowered according to config file.
-      codes =
-          compiler.lowerQuakeCode(executionContext, kernelName, moduleOp, args);
-    } else {
-      const auto &compiled = std::get<CompiledModule>(module);
-      kernelName = compiled.getName();
-      CUDAQ_INFO("launching remote rest kernel via module ({})", kernelName);
-      codes = compiler.emitKernelExecutions(compiled);
-    }
-
-    completeLaunchKernel(kernelName, std::move(codes));
-    return {};
   }
 
   CompiledModule compileModule(const SourceModule &src, KernelArgs args,

@@ -11,10 +11,10 @@
 #include "common/ArgumentWrapper.h"
 #include "common/FmtCore.h"
 #include "common/KernelArgs.h"
-#include "cudaq/algorithms/get_state.h"
-#include "cudaq/runtime/logger/logger.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
+#include "cudaq/algorithms/get_state.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include <nanobind/ndarray.h>
 
@@ -491,9 +491,8 @@ void cudaq::bindPyState(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
           "from_data",
           [&](nanobind::object data) {
             // Reject Python sequences (list/tuple) overload — they should be
-            // dispatched to the vector overload below. In pybind11, py::buffer
-            // excluded lists; nanobind::object accepts anything, so we must
-            // guard explicitly.
+            // dispatched to the vector overload below.
+            // nanobind::object accepts anything, so we must guard explicitly.
             if (nanobind::isinstance<nanobind::list>(data) ||
                 nanobind::isinstance<nanobind::tuple>(data))
               throw nanobind::next_overload();

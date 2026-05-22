@@ -23,6 +23,7 @@
 #include <concepts>
 #include <cstdarg>
 #include <cstddef>
+#include <cstdint>
 #include <iostream>
 #include <queue>
 #include <sstream>
@@ -109,6 +110,15 @@ protected:
   /// @brief Internal result
   cudaq::sample_result internalResult = {};
 
+  /// @brief Reference to the current circuit name.
+  std::string currentCircuitName = "";
+
+  /// @brief Get the name of the current circuit being executed.
+  std::string getCircuitName() const { return currentCircuitName; }
+
+  /// @brief Noise model to apply to the current execution.
+  const cudaq::noise_model *noiseModel = nullptr;
+
 public:
   /// @brief The constructor
   CircuitSimulator() = default;
@@ -135,10 +145,8 @@ public:
   virtual std::unique_ptr<cudaq::SimulationState>
   createStateFromData(const cudaq::state_data &) = 0;
 
-  /// @brief Set the current noise model to consider when
-  /// simulating the state. This should be overridden by
-  /// simulation strategies that support noise modeling.
-  virtual void setNoiseModel(cudaq::noise_model &noise) = 0;
+  /// @brief Get the current noise model.
+  const cudaq::noise_model *getNoiseModel() const { return noiseModel; }
 
   virtual void setRandomSeed(std::size_t seed) {
     // do nothing
@@ -272,8 +280,18 @@ public:
   /// @brief Clean up after execution ends.
   virtual void endExecution() {}
 
-  /// @brief Configure the execution context for this simulator.
-  virtual void configureExecutionContext(cudaq::ExecutionContext &context) = 0;
+  /// @brief Return true if this CircuitSimulator can
+  /// handle <psi | H | psi> instead of NVQIR applying measure
+  /// basis quantum gates to change to the Z basis and sample.
+  virtual bool canHandleObserve() { return false; }
+
+  /// @brief Set the execution context
+  void configureExecutionContext(cudaq::ExecutionContext &context) {
+    context.canHandleObserve = canHandleObserve();
+    noiseModel = context.noiseModel;
+    currentCircuitName = context.kernelName;
+    CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
+  }
 
   /// @brief Whether or not this is a state vector simulator
   virtual bool isStateVectorSimulator() const { return false; }
@@ -416,6 +434,24 @@ public:
   sample(const std::vector<std::size_t> &qubitIdxs, const int shots,
          bool includeSequentialData = true) = 0;
 
+  /// @brief Declare a `qec.detector` over one or more prior measurements,
+  /// addressed by measurement indices or identifiers assigned by this
+  /// simulator. Default no-op; QEC-capable backends override.
+  virtual void detector(const std::int64_t *indices, std::size_t count) {}
+
+  /// @brief Declare a `qec.logical_observable` over one or more prior
+  /// measurements, tagged with @p observable_index. Default no-op; QEC-capable
+  /// backends override.
+  virtual void logical_observable(const std::int64_t *indices,
+                                  std::size_t count,
+                                  std::size_t observable_index = 0) {}
+
+  /// @brief Declare N detectors element-wise over two parallel index arrays
+  /// (cross-round / pair detectors) of the same size. Default no-op;
+  /// QEC-capable backends override.
+  virtual void pair_detectors(const std::int64_t *prev,
+                              const std::int64_t *curr, std::size_t count) {}
+
   /// @brief Return the name of this CircuitSimulator
   virtual std::string name() const = 0;
 
@@ -455,10 +491,6 @@ public:
         : operationName(name), matrix(m), controls(c), targets(t),
           parameters(params) {}
   };
-
-private:
-  /// @brief Reference to the current circuit name.
-  std::string currentCircuitName = "";
 
 protected:
   /// @brief A tracker for qubit allocation
@@ -502,9 +534,6 @@ protected:
 
   /// @brief The current queue of operations to execute
   std::queue<GateApplicationTask> gateQueue;
-
-  /// @brief Get the name of the current circuit being executed.
-  std::string getCircuitName() const { return currentCircuitName; }
 
   /// @brief Get the number of shots to execute (only valid if executionContext
   /// is set)
@@ -551,11 +580,6 @@ protected:
   /// @brief Perform the actual mechanics of measuring a qubit,
   /// left as a task for concrete subtypes.
   virtual bool measureQubit(const std::size_t qubitIdx) = 0;
-
-  /// @brief Return true if this CircuitSimulator can
-  /// handle <psi | H | psi> instead of NVQIR applying measure
-  /// basis quantum gates to change to the Z basis and sample.
-  virtual bool canHandleObserve() { return false; }
 
   /// @brief Return the internal state representation. This
   /// is meant for subtypes to override
@@ -821,7 +845,6 @@ protected:
   /// @brief Flush the gate queue, run all queued gate
   /// application tasks.
   void flushGateQueueImpl() override {
-    auto executionContext = cudaq::getExecutionContext();
 
     while (!gateQueue.empty()) {
       auto &next = gateQueue.front();
@@ -841,8 +864,7 @@ protected:
           gateQueue.pop();
         throw std::runtime_error("Unknown exception in applyGate");
       }
-      if (executionContext && executionContext->noiseModel &&
-          !executionContext->noiseModel->empty()) {
+      if (getNoiseModel() && !getNoiseModel()->empty()) {
         std::vector<double> params(next.parameters.begin(),
                                    next.parameters.end());
         applyNoiseChannel(next.operationName, next.controls, next.targets,
@@ -877,15 +899,6 @@ public:
   CircuitSimulatorBase() = default;
   /// @brief The destructor
   virtual ~CircuitSimulatorBase() = default;
-
-  /// @brief Set the current noise model to consider when
-  /// simulating the state. This should be overridden by
-  /// simulation strategies that support noise modeling.
-  void setNoiseModel(cudaq::noise_model &noise) override {
-    // Fixme consider this as a warning instead of a hard error
-    throw std::runtime_error(
-        "The current backend does not support noise modeling.");
-  }
 
   /// @brief Compute the expected value of the given spin op
   /// with respect to the current state, <psi | H | psi>.
@@ -1110,13 +1123,6 @@ public:
     internalResult = {};
   }
 
-  /// @brief Set the execution context
-  void configureExecutionContext(cudaq::ExecutionContext &context) override {
-    context.canHandleObserve = canHandleObserve();
-    currentCircuitName = context.kernelName;
-    CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
-  }
-
   /// @brief Apply a pre-constructed gate task to the simulator state.
   /// Subtypes implement this to apply the gate to their state representation.
   virtual void applyGate(const GateApplicationTask &task) = 0;
@@ -1297,7 +1303,6 @@ public:
   /// context, just measure, collapse, and return the bit.
   bool mz(const std::size_t qubitIdx,
           const std::string &registerName) override {
-    auto executionContext = cudaq::getExecutionContext();
 
     // Flush the Gate Queue
     flushGateQueue();
@@ -1315,8 +1320,7 @@ public:
 
     // Apply measurement noise (if any)
     // Note: gate noises are applied during flushGateQueue
-    if (executionContext && executionContext->noiseModel &&
-        !executionContext->noiseModel->empty())
+    if (getNoiseModel() && !getNoiseModel()->empty())
       applyNoiseChannel(/*gateName=*/"mz", /*controls=*/{},
                         /*targets=*/{qubitIdx}, /*params=*/{});
 

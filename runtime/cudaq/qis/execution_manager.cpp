@@ -9,12 +9,17 @@
 #include "execution_manager.h"
 #include "common/ExecutionContext.h"
 #include "common/PluginUtils.h"
+#include "nvqir/CircuitSimulator.h"
 #include "cudaq/algorithms/policy_cpos.h"
 #include "cudaq/algorithms/policy_dispatch.h"
 
 using namespace cudaq;
 
 static ExecutionManager *execution_manager;
+
+namespace nvqir {
+CircuitSimulator *getCircuitSimulatorInternal();
+}
 
 void cudaq::setExecutionManagerInternal(ExecutionManager *em) {
   CUDAQ_INFO("external caller setting the execution manager.");
@@ -35,6 +40,10 @@ ExecutionManager *cudaq::detail::getExecutionManagerFromContext() {
   if (ctx)
     return ctx->executionManager;
   return nullptr;
+}
+
+void ExecutionManager::configureExecutionContext(ExecutionContext &ctx) {
+  nvqir::getCircuitSimulatorInternal()->configureExecutionContext(ctx);
 }
 
 void ExecutionManager::finalizeExecutionContext(ExecutionContext &ctx) {

@@ -9,8 +9,8 @@
 #include "cudaq/runtime/logger/logger.h"
 #include "common/FmtCore.h"
 #include "common/Timing.h"
-#include "cudaq/runtime/logger/tracer.h"
 #include "fmt/args.h"
+#include "cudaq/runtime/logger/tracer.h"
 #include <chrono>
 #include <complex>
 #include <ctime>

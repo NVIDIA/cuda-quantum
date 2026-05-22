@@ -32,16 +32,20 @@ def test_bug_1775():
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__test
 # CHECK-SAME:      () attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
-# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
-# CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] name "res" : (!quake.ref) -> !quake.measure
-# CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_1]] name "res" : (!quake.ref) -> !quake.measure
-# CHECK:           %[[VAL_5:.*]] = quake.discriminate %[[VAL_4]] : (!quake.measure) -> i1
-# CHECK:           cc.if(%[[VAL_5]]) {
-# CHECK:             %[[VAL_8:.*]] = quake.mz %[[VAL_1]] name "true_res" : (!quake.ref) -> !quake.measure
+# CHECK-DAG:       %[[VAL_0:.*]] = cc.undef !cc.measure_handle
+# CHECK-DAG:       %[[VAL_1:.*]] = cc.undef !cc.measure_handle
+# CHECK-DAG:       %[[VAL_2:.*]] = quake.alloca !quake.ref
+# CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_2]] name "res" : (!quake.ref) -> !cc.measure_handle
+# CHECK:           quake.h %[[VAL_2]] : (!quake.ref) -> ()
+# CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_2]] name "res" : (!quake.ref) -> !cc.measure_handle
+# CHECK:           %[[VAL_5:.*]] = quake.discriminate %[[VAL_4]] : (!cc.measure_handle) -> i1
+# CHECK:           %[[VAL_6:.*]]:2 = cc.if(%[[VAL_5]]) -> (!cc.measure_handle, !cc.measure_handle) {
+# CHECK:             %[[VAL_7:.*]] = quake.mz %[[VAL_2]] name "true_res" : (!quake.ref) -> !cc.measure_handle
+# CHECK:             cc.continue %[[VAL_7]], %[[VAL_0]] : !cc.measure_handle, !cc.measure_handle
 # CHECK:           } else {
-# CHECK:             %[[VAL_9:.*]] = quake.mz %[[VAL_1]] name "false_res" : (!quake.ref) -> !quake.measure
+# CHECK:             %[[VAL_8:.*]] = quake.mz %[[VAL_2]] name "false_res" : (!quake.ref) -> !cc.measure_handle
+# CHECK:             cc.continue %[[VAL_1]], %[[VAL_8]] : !cc.measure_handle, !cc.measure_handle
 # CHECK:           }
-# CHECK:           quake.dealloc %[[VAL_1]]
+# CHECK:           quake.dealloc %[[VAL_2]] : !quake.ref
 # CHECK:           return
 # CHECK:         }

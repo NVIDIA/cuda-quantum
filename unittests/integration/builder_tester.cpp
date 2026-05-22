@@ -1646,3 +1646,71 @@ CUDAQ_TEST(BuilderTester, checkExplicitMeasurements) {
     }
   }
 }
+
+// ----------------------------------------------------------------------------
+// QEC kernel-side operations on the programmatic builder surface.
+// ----------------------------------------------------------------------------
+
+CUDAQ_TEST(BuilderTester, checkQecDetectorScalar) {
+  auto kernel = cudaq::make_kernel();
+  auto q = kernel.qalloc();
+  auto h = kernel.mz(q);
+  kernel.detector(h);
+  EXPECT_NO_THROW(kernel.to_quake());
+}
+
+CUDAQ_TEST(BuilderTester, checkQecDetectorVector) {
+  auto kernel = cudaq::make_kernel();
+  auto qs = kernel.qalloc(4);
+  auto hs = kernel.mz(qs);
+  kernel.detector(hs);
+  EXPECT_NO_THROW(kernel.to_quake());
+}
+
+CUDAQ_TEST(BuilderTester, checkQecDetectorMixed) {
+  auto kernel = cudaq::make_kernel();
+  auto q = kernel.qalloc();
+  auto qs = kernel.qalloc(2);
+  auto h = kernel.mz(q);
+  auto hs = kernel.mz(qs);
+  kernel.detector(hs, h);
+  EXPECT_NO_THROW(kernel.to_quake());
+}
+
+CUDAQ_TEST(BuilderTester, checkQecObservableVariadic) {
+  auto kernel = cudaq::make_kernel();
+  auto q0 = kernel.qalloc();
+  auto q1 = kernel.qalloc();
+  auto h0 = kernel.mz(q0);
+  auto h1 = kernel.mz(q1);
+  kernel.logical_observable(h0, h1);
+  EXPECT_NO_THROW(kernel.to_quake());
+}
+
+CUDAQ_TEST(BuilderTester, checkQecObservableIndexed) {
+  auto kernel = cudaq::make_kernel();
+  auto qs = kernel.qalloc(3);
+  auto hs = kernel.mz(qs);
+  kernel.logical_observable(hs, /*observable_index=*/2);
+  EXPECT_NO_THROW(kernel.to_quake());
+}
+
+CUDAQ_TEST(BuilderTester, checkQecPairDetectors) {
+  auto kernel = cudaq::make_kernel();
+  auto qsA = kernel.qalloc(3);
+  auto qsB = kernel.qalloc(3);
+  auto prev = kernel.mz(qsA);
+  auto curr = kernel.mz(qsB);
+  kernel.detectors(prev, curr);
+  EXPECT_NO_THROW(kernel.to_quake());
+}
+
+CUDAQ_TEST(BuilderTester, checkQecDetectorsScalarRejected) {
+  auto kernel = cudaq::make_kernel();
+  auto q0 = kernel.qalloc();
+  auto q1 = kernel.qalloc();
+  auto h0 = kernel.mz(q0);
+  auto h1 = kernel.mz(q1);
+  kernel.detectors(h0, h1);
+  EXPECT_ANY_THROW({ kernel.to_quake(); });
+}

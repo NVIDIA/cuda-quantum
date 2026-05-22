@@ -1670,6 +1670,19 @@ def test_while_loop_sge_with_quantum_gates():
     assert len(results) == 1
     assert results[0] == 1
 
+    @cudaq.kernel
+    def kernel() -> bool:
+        q = cudaq.qvector(3)
+        val = 2
+        while val >= 0:
+            x(q[val])
+            val -= 1
+        return mz(q[0])
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == True
+
 
 def test_while_loop_sgt_workaround_still_works():
 
@@ -1685,6 +1698,19 @@ def test_while_loop_sgt_workaround_still_works():
     results = cudaq.run(kernel, shots_count=1)
     assert len(results) == 1
     assert results[0] == 1
+
+    @cudaq.kernel
+    def kernel() -> bool:
+        q = cudaq.qvector(3)
+        val = 2
+        while val > -1:
+            x(q[val])
+            val -= 1
+        return mz(q[0])
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == True
 
 
 # leave for gdb debugging

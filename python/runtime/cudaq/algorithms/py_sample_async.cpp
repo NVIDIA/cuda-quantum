@@ -8,9 +8,9 @@
 
 #include "py_sample_async.h"
 #include "common/DeviceCodeRegistry.h"
-#include "cudaq/algorithms/sample.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
+#include "cudaq/algorithms/sample.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"

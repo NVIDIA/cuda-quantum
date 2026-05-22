@@ -204,7 +204,8 @@ else:
 parallel = cudaq_runtime.parallel
 
 # Primitive Types (stubs; used only in kernels, parsed to MLIR)
-from .kernel_types import qubit, qvector, qview
+from .kernel_types import (_KERNEL_ONLY_ERROR_MESSAGE, measure_handle, qubit,
+                           qvector, qview)
 
 Pauli = cudaq_runtime.Pauli
 Kernel = PyKernel
@@ -317,6 +318,49 @@ def amplitudes(array_data):
     current simulation backend target.
     """
     return numpy.array(array_data, dtype=complex())
+
+
+def to_bools(handles):
+    """Bulk-discriminate a ``list[cudaq.measure_handle]`` into a
+    ``list[bool]``. Device-only: this Python symbol exists so kernel
+    code can call ``cudaq.to_bools(...)``; the AST bridge intercepts
+    the call and lowers it to a vector form ``quake.discriminate`` on
+    ``!cc.stdvec<!cc.measure_handle>``. Host-side invocation raises a
+    ``RuntimeError``.
+    """
+    raise RuntimeError(_KERNEL_ONLY_ERROR_MESSAGE.format("cudaq.to_bools"))
+
+
+def detector(*measurements):
+    """Define a detector over one or more measurement results.
+
+    A detector is a parity constraint: under noise-free execution the XOR of
+    the referenced measurements is deterministic. Each call defines one
+    detector. Arguments are individual ``cudaq.measure_handle`` values or a
+    single ``list[cudaq.measure_handle]``.
+    """
+    raise RuntimeError(_KERNEL_ONLY_ERROR_MESSAGE.format("cudaq.detector"))
+
+
+def logical_observable(*measurements, observable_index=0):
+    """Define a logical observable over one or more measurement results.
+
+    The variadic form uses ``observable_index = 0``. Codes with ``k``
+    logical qubits should pass a single ``list[cudaq.measure_handle]`` and
+    an explicit ``observable_index`` for each observable ``0..k-1``.
+    """
+    raise RuntimeError(
+        _KERNEL_ONLY_ERROR_MESSAGE.format("cudaq.logical_observable"))
+
+
+def detectors(prev, curr):
+    """Define N detectors by pairing two measurement vectors element-wise.
+
+    Standard form for cross-round detectors: each detector ``i`` is the
+    parity of ``prev[i]`` and ``curr[i]``. Size agreement between ``prev``
+    and ``curr`` is checked at runtime.
+    """
+    raise RuntimeError(_KERNEL_ONLY_ERROR_MESSAGE.format("cudaq.detectors"))
 
 
 def __clearKernelRegistries():

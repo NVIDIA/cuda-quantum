@@ -9,8 +9,8 @@
 
 // #include "common/ExecutionContext.h"
 // #include "common/Future.h"
-#include "cudaq/platform.h"
 #include "orca_qpu.h"
+#include "cudaq/platform.h"
 
 namespace cudaq::orca {
 

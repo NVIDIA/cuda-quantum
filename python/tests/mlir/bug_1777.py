@@ -44,11 +44,11 @@ def test_bug_1777():
 # CHECK:           } do {
 # CHECK:           ^bb0(%[[VAL_12:.*]]: i64, %[[VAL_13:.*]]: i64, %[[VAL_14:.*]]: i1):
 # CHECK:             %[[VAL_15:.*]] = quake.extract_ref %[[VAL_6]]{{\[}}%[[VAL_12]]] : (!quake.veq<2>, i64) -> !quake.ref
-# CHECK:             %[[VAL_16:.*]] = quake.mz %[[VAL_15]] name "res" : (!quake.ref) -> !quake.measure
-# CHECK:             %[[VAL_17:.*]] = quake.discriminate %[[VAL_16]] : (!quake.measure) -> i1
+# CHECK:             %[[VAL_16:.*]] = quake.mz %[[VAL_15]] name "res" : (!quake.ref) -> !cc.measure_handle
+# CHECK:             %[[VAL_17:.*]] = quake.discriminate %[[VAL_16]] : (!cc.measure_handle) -> i1
 # CHECK:             %[[VAL_18:.*]] = arith.cmpi eq, %[[VAL_17]], %[[VAL_0]] : i1
 # CHECK:             cc.if(%[[VAL_18]]) {
-# CHECK:               %[[VAL_19:.*]] = quake.mz %[[VAL_6]] name "inner_mz" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+# CHECK:               %[[VAL_19:.*]] = quake.mz %[[VAL_6]] name "inner_mz" : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
 # CHECK:             } else {
 # CHECK:             }
 # CHECK:             cc.continue %[[VAL_12]], %[[VAL_12]], %[[VAL_17]] : i64, i64, i1
@@ -57,8 +57,8 @@ def test_bug_1777():
 # CHECK:             %[[VAL_23:.*]] = arith.addi %[[VAL_20]], %[[VAL_1]] : i64
 # CHECK:             cc.continue %[[VAL_23]], %[[VAL_21]], %[[VAL_22]] : i64, i64, i1
 # CHECK:           }
-# CHECK:           cc.if(%[[VAL_7]]#2) {
-# CHECK:             %[[VAL_26:.*]] = quake.mz %[[VAL_6]] name "outer_mz" : (!quake.veq<2>) -> !cc.stdvec<!quake.measure>
+# CHECK:           cc.if(%[[VAL_24:.*]]#2) {
+# CHECK:             %[[VAL_25:.*]] = quake.mz %[[VAL_6]] name "outer_mz" : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
 # CHECK:           } else {
 # CHECK:           }
 # CHECK:           quake.dealloc %[[VAL_6]] : !quake.veq<2>

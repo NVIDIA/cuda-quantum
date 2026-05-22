@@ -14,9 +14,9 @@
 #ifdef CUDAQ_HAS_CUDA
 #include "cuda_runtime_api.h"
 #endif
+#include "distributed/mpi_plugin.h"
 #include "cudaq/platform.h"
 #include "cudaq/simulators.h"
-#include "distributed/mpi_plugin.h"
 #include <dlfcn.h>
 #include <filesystem>
 #include <map>

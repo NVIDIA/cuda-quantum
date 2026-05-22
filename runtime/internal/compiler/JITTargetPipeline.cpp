@@ -84,25 +84,31 @@ cudaq_internal::compiler::JITTargetPipelineConfig::createFromTargetConfig(
   const std::string allowEarlyExit =
       pipelineConfig.codegenTranslation.starts_with("qir-adaptive") ? "true"
                                                                     : "false";
+  const std::string noLoopUnroll =
+      pipelineConfig.codegenTranslation == "nop" ? " no-loop-unroll=true" : "";
 
   if (emulate)
     appendPipelineStage(pipelineConfig.passPipelineConfig,
                         "emul-jit-prep-pipeline{erase-noise=true "
                         "allow-early-exit=" +
-                            allowEarlyExit + "}");
+                            allowEarlyExit + noLoopUnroll + "}");
   else
-    appendPipelineStage(
-        pipelineConfig.passPipelineConfig,
-        "hw-jit-prep-pipeline{allow-early-exit=" + allowEarlyExit + "}");
+    appendPipelineStage(pipelineConfig.passPipelineConfig,
+                        "hw-jit-prep-pipeline{allow-early-exit=" +
+                            allowEarlyExit + noLoopUnroll + "}");
 
   const std::string lowerDeviceCalls =
       (pipelineConfig.codegenTranslation == "nop" && !emulate) ? "false"
                                                                : "true";
+  const std::string deployStage =
+      pipelineConfig.codegenTranslation == "nop"
+          ? "jit-deploy-pipeline{no-loop-unroll=true}"
+          : "jit-deploy-pipeline";
   appendPipelineStage(
       pipelineConfig.passPipelineConfig,
       backendConfig.getPassPipeline(
-          "jit-deploy-pipeline", "jit-finalize-pipeline{lower-device-calls=" +
-                                     lowerDeviceCalls + "}"));
+          deployStage, "jit-finalize-pipeline{lower-device-calls=" +
+                           lowerDeviceCalls + "}"));
   substitutePipelinePlaceholders(pipelineConfig.passPipelineConfig,
                                  runtimeConfig);
   pipelineConfig.runsStandardFinalize = true;

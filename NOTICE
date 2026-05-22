@@ -39,12 +39,12 @@ See also <https://gitlab.com/libeigen/eigen/-/blob/master/COPYING.README>.
 
 ----------------------------------------------------------------
 
-PyBind11 - BSD-style license
-<https://github.com/pybind/pybind11>
+nanobind - BSD 3-Clause license
+<https://github.com/wjakob/nanobind>
 
-Copyright (c) 2016 Wenzel Jakob and pybind11 contributors.
+Copyright (c) 2022 Wenzel Jakob.
 The source code is based on the work originally developed by Wenzel Jakob
-License at <https://github.com/pybind/pybind11/blob/master/LICENSE>
+License at <https://github.com/wjakob/nanobind/blob/master/LICENSE>
 
 ----------------------------------------------------------------
 

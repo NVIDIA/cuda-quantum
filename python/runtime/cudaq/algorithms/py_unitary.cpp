@@ -7,9 +7,9 @@
  ******************************************************************************/
 
 #include "py_unitary.h"
-#include "cudaq/algorithms/unitary.h"
 #include "runtime/cudaq/operators/py_helpers.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
+#include "cudaq/algorithms/unitary.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 
 using namespace cudaq;

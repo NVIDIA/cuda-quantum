@@ -10,8 +10,8 @@
 
 #include "common/ExecutionContext.h"
 #include "common/Resources.h"
-#include "cudaq/platform.h"
 #include "nvqir/resourcecounter/ResourceCounterScope.h"
+#include "cudaq/platform.h"
 
 namespace cudaq {
 namespace details {
