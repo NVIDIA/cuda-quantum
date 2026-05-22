@@ -223,7 +223,7 @@ std::optional<JitEngine> getArtifactJit(const std::string &kernelName);
 }; // namespace compiler_artifact
 
 namespace detail {
-/// @brief Execute the given function within the given policy andexecution
+/// @brief Execute the given function within the given policy and execution
 /// context.
 template <typename Policy, typename Callable, typename... Args>
 auto with_policy_and_ctx(Policy &policy, ExecutionContext &ctx, Callable &&f,
