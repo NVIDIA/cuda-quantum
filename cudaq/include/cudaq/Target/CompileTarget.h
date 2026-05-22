@@ -57,6 +57,13 @@ public:
   /// Whether branching on measurement results is supported.
   bool supportConditionalsOnMeasureResults = true;
 
+  /// Whether to generate resource counts.
+  ///
+  /// When true, the compiler will generate resource counts during compilation
+  /// and simplify the IR to remove all quantum operations already accounted
+  /// for in the counts.
+  bool generateResourceCounts = false;
+
   /// When set, emit one lowered module per non-identity Pauli term of this
   /// observable. The resulting `CompiledModule` will contain a compilation
   /// artifact for each term.

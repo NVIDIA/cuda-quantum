@@ -280,6 +280,8 @@ public:
       if (!ctx->spin.has_value())
         throw std::runtime_error("observe execution requires a spin_op");
       target->pauliTermSplitObservable = ctx->spin;
+    } else if (ctx && ctx->name == "resource-count") {
+      target->generateResourceCounts = true;
     }
     return target;
   }
