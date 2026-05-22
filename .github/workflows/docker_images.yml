@@ -635,7 +635,7 @@ jobs:
           tags: ${{ steps.cudaqdev_metadata.outputs.tags }}
           labels: ${{ steps.cudaqdev_metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}
-          push: true
+          push: ${{ inputs.environment != '' }}
 
       - name: Extract ccache from release build
         timeout-minutes: 15
