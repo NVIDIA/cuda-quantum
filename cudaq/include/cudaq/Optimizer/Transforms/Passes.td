@@ -495,6 +495,17 @@ def EraseNopCalls : Pass<"erase-nop-calls"> {
   }];
 }
 
+def EraseQEC : Pass<"erase-qec"> {
+  let summary = "Erase QEC detector and observable operations.";
+  let description = [{
+    Removes `qec.detector`, `qec.observable`, and `qec.pair_detectors` operations
+    from the IR. These are side-effecting declaration ops: they record a
+    parity-check or logical-observable relationship over prior measurement
+    results so a detector error model can be built from the kernel. This pass
+    strips them.
+  }];
+}
+
 def EraseVectorCopyCtor : Pass<"erase-vector-copy-ctor"> {
   let summary = "Erase unneeded vector copy ctor idiom after inlining.";
   let description = [{

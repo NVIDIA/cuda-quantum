@@ -901,6 +901,21 @@ LogicalResult cudaq::quake::DiscriminateOp::verify() {
   return success();
 }
 
+void cudaq::quake::DiscriminateOp::getEffects(
+    SmallVectorImpl<SideEffects::EffectInstance<MemoryEffects::Effect>>
+        &effects) {
+  if (isa<cudaq::cc::StdvecType>(getMeasurement().getType()))
+    effects.emplace_back(MemoryEffects::Read::get(),
+                         SideEffects::DefaultResource::get());
+}
+
+mlir::Speculation::Speculatability
+cudaq::quake::DiscriminateOp::getSpeculatability() {
+  return isa<cudaq::cc::StdvecType>(getMeasurement().getType())
+             ? Speculation::NotSpeculatable
+             : Speculation::Speculatable;
+}
+
 LogicalResult cudaq::quake::BundleCableOp::verify() {
   auto ty = cast<cudaq::quake::CableType>(getResult().getType());
   if (getWires().size() != ty.getSize())

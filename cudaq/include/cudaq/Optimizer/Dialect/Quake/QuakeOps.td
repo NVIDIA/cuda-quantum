@@ -1176,7 +1176,9 @@ def MzOp : Measurement<"mz"> {
   let extraClassDeclaration = OpBaseDeclaration;
 }
 
-def quake_DiscriminateOp : QuakeOp<"discriminate", [Pure]> {
+def quake_DiscriminateOp : QuakeOp<"discriminate",
+    [DeclareOpInterfaceMethods<MemoryEffectsOpInterface>,
+     DeclareOpInterfaceMethods<ConditionallySpeculatable>]> {
   let summary = "Converts a measurement to a classical integral value.";
   let description = [{
     Quake's measurement operators return a value of type `!quake.measure` or,
@@ -1187,8 +1189,17 @@ def quake_DiscriminateOp : QuakeOp<"discriminate", [Pure]> {
 
     While a measurement of a wire changes/corrupts the state of the wire, the
     model maintains that the classical measurement value is non-volatile.
-    Multiple applications of discriminate on the same value will yield the
-    same result for a given result type.
+    Multiple applications of discriminate on the same scalar measurement
+    handle yield the same result, so the scalar form is treated as pure.
+
+    The vector form (`!cc.stdvec<!cc.measure_handle>` or
+    `!cc.stdvec<!quake.measure>`) operates on a `(data_ptr, size)`
+    descriptor that aliases mutable backing storage; storing a new handle
+    into a slot through that storage changes the result of a subsequent
+    discriminate of the same descriptor. The vector form therefore
+    declares a `MemoryEffects::Read` effect and is not speculatable, so
+    CSE/LICM cannot fold or hoist it across writes to the backing
+    storage.
   }];
 
   let arguments = (ins

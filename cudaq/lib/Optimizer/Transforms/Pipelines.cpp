@@ -104,6 +104,7 @@ static void
 createHardwareTargetPrepPipeline(OpPassManager &pm,
                                  const TargetPrepPipelineOptions &options) {
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseNoise());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseQEC());
   createTargetPrepPipeline(pm, options);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createStatePreparation());
 }
