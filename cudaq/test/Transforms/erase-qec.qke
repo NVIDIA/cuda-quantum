@@ -1,0 +1,55 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --erase-qec --split-input-file %s | \
+// RUN:   FileCheck --implicit-check-not="qec." %s
+
+func.func @qec_kernel(%h0 : !cc.measure_handle,
+                      %h1 : !cc.measure_handle,
+                      %v : !cc.stdvec<!cc.measure_handle>) -> i1 {
+  %q = quake.alloca !quake.ref
+  quake.h %q : (!quake.ref) -> ()
+  %m = quake.mz %q : (!quake.ref) -> !quake.measure
+  qec.detector %h0 : !cc.measure_handle
+  qec.detector %h0, %h1 : !cc.measure_handle, !cc.measure_handle
+  qec.detector %v : !cc.stdvec<!cc.measure_handle>
+  qec.observable %h0 : !cc.measure_handle
+  qec.observable %v index 1 : !cc.stdvec<!cc.measure_handle>
+  qec.pair_detectors %v, %v : !cc.stdvec<!cc.measure_handle>, !cc.stdvec<!cc.measure_handle>
+  %r = quake.discriminate %m : (!quake.measure) -> i1
+  return %r : i1
+}
+
+// CHECK-LABEL:   func.func @qec_kernel(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !cc.measure_handle,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !cc.measure_handle,
+// CHECK-SAME:      %[[ARG2:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !cc.stdvec<!cc.measure_handle>) -> i1 {
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.h %[[ALLOCA_0]] : (!quake.ref) -> ()
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[ALLOCA_0]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[MZ_0]] : (!quake.measure) -> i1
+// CHECK:           return %[[DISCRIMINATE_0]] : i1
+// CHECK:         }
+
+// -----
+
+func.func @no_qec_kernel() -> i1 {
+  %q = quake.alloca !quake.ref
+  quake.h %q : (!quake.ref) -> ()
+  %m = quake.mz %q : (!quake.ref) -> !quake.measure
+  %r = quake.discriminate %m : (!quake.measure) -> i1
+  return %r : i1
+}
+
+// CHECK-LABEL:   func.func @no_qec_kernel() -> i1 {
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.h %[[ALLOCA_0]] : (!quake.ref) -> ()
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[ALLOCA_0]] : (!quake.ref) -> !quake.measure
+// CHECK:           %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[MZ_0]] : (!quake.measure) -> i1
+// CHECK:           return %[[DISCRIMINATE_0]] : i1
+// CHECK:         }
