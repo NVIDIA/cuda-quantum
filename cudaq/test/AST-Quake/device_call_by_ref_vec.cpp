@@ -17,7 +17,7 @@ void readVector(const std::vector<int> &in, int seed);
 
 
 // clang-format off
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_byRefVecKernel._Z14byRefVecKernelSt6vectorIiSaIiEES1_(
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_byRefVecKernel._Z14byRefVecKernel{{.*}}(
 // CHECK-SAME:      %[[ARG0:.*]]: !cc.stdvec<i32>,
 // CHECK-SAME:      %[[ARG1:.*]]: !cc.stdvec<i32>) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[CONSTANT_0:.*]] = arith.constant 13 : i32
@@ -25,17 +25,17 @@ void readVector(const std::vector<int> &in, int seed);
 // CHECK:           %[[ALLOCA_0:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[CONSTANT_1]], %[[ALLOCA_0]] : !cc.ptr<i32>
 // CHECK:           %[[LOAD_0:.*]] = cc.load %[[ALLOCA_0]] : !cc.ptr<i32>
-// CHECK:           cc.device_call @_Z10fillVectorRSt6vectorIiSaIiEEi(%[[ARG0]], %[[LOAD_0]]) : (!cc.stdvec<i32>, i32) -> () {by_ref_vec_arg_indices = array<i64: 0>}
+// CHECK:           cc.device_call @_Z10fillVector{{.*}}i(%[[ARG0]], %[[LOAD_0]]) : (!cc.stdvec<i32>, i32) -> () {by_ref_vec_arg_indices = array<i64: 0>}
 // CHECK:           %[[ALLOCA_1:.*]] = cc.alloca i32
 // CHECK:           cc.store %[[CONSTANT_0]], %[[ALLOCA_1]] : !cc.ptr<i32>
 // CHECK:           %[[LOAD_1:.*]] = cc.load %[[ALLOCA_1]] : !cc.ptr<i32>
-// CHECK:           cc.device_call @_Z10readVectorRKSt6vectorIiSaIiEEi(%[[ARG1]], %[[LOAD_1]]) : (!cc.stdvec<i32>, i32) -> ()
+// CHECK:           cc.device_call @_Z10readVector{{.*}}i(%[[ARG1]], %[[LOAD_1]]) : (!cc.stdvec<i32>, i32) -> ()
 // CHECK:           return
 // CHECK:         }
-// CHECK:         func.func private @_Z10fillVectorRSt6vectorIiSaIiEEi(!cc.stdvec<i32>, i32) attributes {"cudaq-devicecall"}
-// CHECK:         func.func private @_Z10readVectorRKSt6vectorIiSaIiEEi(!cc.stdvec<i32>, i32) attributes {"cudaq-devicecall"}
+// CHECK:         func.func private @_Z10fillVector{{.*}}i(!cc.stdvec<i32>, i32) attributes {"cudaq-devicecall"}
+// CHECK:         func.func private @_Z10readVector{{.*}}i(!cc.stdvec<i32>, i32) attributes {"cudaq-devicecall"}
 
-// CHECK-LABEL:   func.func @_Z14byRefVecKernelSt6vectorIiSaIiEES1_(
+// CHECK-LABEL:   func.func @_Z14byRefVecKernel{{.*}}(
 // CHECK-SAME:      %[[ARG0:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>>,
 // CHECK-SAME:      %[[ARG1:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i32>, !cc.ptr<i32>, !cc.ptr<i32>}>>) attributes {no_this} {
 // CHECK:           return
