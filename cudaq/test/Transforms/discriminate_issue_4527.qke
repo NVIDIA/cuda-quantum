@@ -1,0 +1,83 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --cse %s | FileCheck %s
+
+func.func @vector_handle_discriminate_with_store(%h0: !cc.measure_handle, %h1: !cc.measure_handle) -> (!cc.stdvec<i1>, !cc.stdvec<i1>) {
+  %c2 = arith.constant 2 : i64
+  %data = cc.alloca !cc.array<!cc.measure_handle x 2>
+  %slot0 = cc.cast %data : (!cc.ptr<!cc.array<!cc.measure_handle x 2>>) -> !cc.ptr<!cc.measure_handle>
+  %slot1 = cc.compute_ptr %data[1] : (!cc.ptr<!cc.array<!cc.measure_handle x 2>>) -> !cc.ptr<!cc.measure_handle>
+  cc.store %h0, %slot0 : !cc.ptr<!cc.measure_handle>
+  cc.store %h0, %slot1 : !cc.ptr<!cc.measure_handle>
+  %dataPtr = cc.cast %data : (!cc.ptr<!cc.array<!cc.measure_handle x 2>>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
+  %vec = cc.stdvec_init %dataPtr, %c2 : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.stdvec<!cc.measure_handle>
+  %bits0 = quake.discriminate %vec : (!cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<i1>
+  cc.store %h1, %slot1 : !cc.ptr<!cc.measure_handle>
+  %bits1 = quake.discriminate %vec : (!cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<i1>
+  return %bits0, %bits1 : !cc.stdvec<i1>, !cc.stdvec<i1>
+}
+
+// CHECK-LABEL:   func.func @vector_handle_discriminate_with_store(
+// CHECK-SAME:      %[[ARG0:.*]]: !cc.measure_handle,
+// CHECK-SAME:      %[[ARG1:.*]]: !cc.measure_handle) -> (!cc.stdvec<i1>, !cc.stdvec<i1>) {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 2 : i64
+// CHECK:           %[[ALLOCA_0:.*]] = cc.alloca !cc.array<!cc.measure_handle x 2>
+// CHECK:           %[[CAST_0:.*]] = cc.cast %[[ALLOCA_0]] : (!cc.ptr<!cc.array<!cc.measure_handle x 2>>) -> !cc.ptr<!cc.measure_handle>
+// CHECK:           %[[COMPUTE_PTR_0:.*]] = cc.compute_ptr %[[ALLOCA_0]][1] : (!cc.ptr<!cc.array<!cc.measure_handle x 2>>) -> !cc.ptr<!cc.measure_handle>
+// CHECK:           cc.store %[[ARG0]], %[[CAST_0]] : !cc.ptr<!cc.measure_handle>
+// CHECK:           cc.store %[[ARG0]], %[[COMPUTE_PTR_0]] : !cc.ptr<!cc.measure_handle>
+// CHECK:           %[[CAST_1:.*]] = cc.cast %[[ALLOCA_0]] : (!cc.ptr<!cc.array<!cc.measure_handle x 2>>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
+// CHECK:           %[[STDVEC_INIT_0:.*]] = cc.stdvec_init %[[CAST_1]], %[[CONSTANT_0]] : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[STDVEC_INIT_0]] : (!cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<i1>
+// CHECK:           cc.store %[[ARG1]], %[[COMPUTE_PTR_0]] : !cc.ptr<!cc.measure_handle>
+// CHECK:           %[[DISCRIMINATE_1:.*]] = quake.discriminate %[[STDVEC_INIT_0]] : (!cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<i1>
+// CHECK:           return %[[DISCRIMINATE_0]], %[[DISCRIMINATE_1]] : !cc.stdvec<i1>, !cc.stdvec<i1>
+// CHECK:         }
+
+
+func.func @scalar_handle_discriminate_folds(%h: !cc.measure_handle)-> (i1, i1) {
+  %a = quake.discriminate %h : (!cc.measure_handle) -> i1
+  %b = quake.discriminate %h : (!cc.measure_handle) -> i1
+  return %a, %b : i1, i1
+}
+
+// CHECK-LABEL:   func.func @scalar_handle_discriminate_folds(
+// CHECK-SAME:      %[[ARG0:.*]]: !cc.measure_handle) -> (i1, i1) {
+// CHECK:           %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[ARG0]] : (!cc.measure_handle) -> i1
+// CHECK:           return %[[DISCRIMINATE_0]], %[[DISCRIMINATE_0]] : i1, i1
+// CHECK:         }
+
+
+func.func @vector_handle_discriminate_no_store_folds(%h: !cc.measure_handle) -> (!cc.stdvec<i1>, !cc.stdvec<i1>) {
+  %c2 = arith.constant 2 : i64
+  %data = cc.alloca !cc.array<!cc.measure_handle x 2>
+  %slot0 = cc.cast %data : (!cc.ptr<!cc.array<!cc.measure_handle x 2>>) -> !cc.ptr<!cc.measure_handle>
+  %slot1 = cc.compute_ptr %data[1] : (!cc.ptr<!cc.array<!cc.measure_handle x 2>>) -> !cc.ptr<!cc.measure_handle>
+  cc.store %h, %slot0 : !cc.ptr<!cc.measure_handle>
+  cc.store %h, %slot1 : !cc.ptr<!cc.measure_handle>
+  %dataPtr = cc.cast %data : (!cc.ptr<!cc.array<!cc.measure_handle x 2>>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
+  %vec = cc.stdvec_init %dataPtr, %c2 : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.stdvec<!cc.measure_handle>
+  %bits0 = quake.discriminate %vec : (!cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<i1>
+  %bits1 = quake.discriminate %vec : (!cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<i1>
+  return %bits0, %bits1 : !cc.stdvec<i1>, !cc.stdvec<i1>
+}
+
+// CHECK-LABEL:   func.func @vector_handle_discriminate_no_store_folds(
+// CHECK-SAME:      %[[ARG0:.*]]: !cc.measure_handle) -> (!cc.stdvec<i1>, !cc.stdvec<i1>) {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 2 : i64
+// CHECK:           %[[ALLOCA_0:.*]] = cc.alloca !cc.array<!cc.measure_handle x 2>
+// CHECK:           %[[CAST_0:.*]] = cc.cast %[[ALLOCA_0]] : (!cc.ptr<!cc.array<!cc.measure_handle x 2>>) -> !cc.ptr<!cc.measure_handle>
+// CHECK:           %[[COMPUTE_PTR_0:.*]] = cc.compute_ptr %[[ALLOCA_0]][1] : (!cc.ptr<!cc.array<!cc.measure_handle x 2>>) -> !cc.ptr<!cc.measure_handle>
+// CHECK:           cc.store %[[ARG0]], %[[CAST_0]] : !cc.ptr<!cc.measure_handle>
+// CHECK:           cc.store %[[ARG0]], %[[COMPUTE_PTR_0]] : !cc.ptr<!cc.measure_handle>
+// CHECK:           %[[CAST_1:.*]] = cc.cast %[[ALLOCA_0]] : (!cc.ptr<!cc.array<!cc.measure_handle x 2>>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
+// CHECK:           %[[STDVEC_INIT_0:.*]] = cc.stdvec_init %[[CAST_1]], %[[CONSTANT_0]] : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[STDVEC_INIT_0]] : (!cc.stdvec<!cc.measure_handle>) -> !cc.stdvec<i1>
+// CHECK:           return %[[DISCRIMINATE_0]], %[[DISCRIMINATE_0]] : !cc.stdvec<i1>, !cc.stdvec<i1>
+// CHECK:         }

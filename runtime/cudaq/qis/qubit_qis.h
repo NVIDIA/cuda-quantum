@@ -574,6 +574,77 @@ inline std::vector<bool> to_bools(const std::vector<measure_result> &results) {
 #endif
 }
 
+// QEC kernel-side operations: `cudaq::detector`, `cudaq::logical_observable`,
+// and `cudaq::detectors` - they consume `measure_handle`, which is itself
+// MLIR-mode only. The AST bridge intercepts every call inside `__qpu__`
+// kernels and lowers it to the corresponding `qec.*` MLIR op. The inline bodies
+// below are never reached in a built kernel; reaching one means the bridge
+// missed an interception path, so they throw to fail loudly instead of
+// producing wrong results.
+#ifndef CUDAQ_LIBRARY_MODE
+
+namespace details {
+template <typename T>
+concept any_measure_result_or_vec =
+    std::is_same_v<std::remove_cvref_t<T>, measure_result> ||
+    std::is_same_v<std::remove_cvref_t<T>, std::vector<measure_result>>;
+} // namespace details
+
+/// @brief Define a detector over one or more measurement results.
+///
+/// A detector is a parity constraint: under noise-free execution the XOR of
+/// the referenced measurements is deterministic. Each argument is either an
+/// individual `cudaq::measure_result` or a
+/// `std::vector<cudaq::measure_result>`, or any combination.
+template <typename... MeasArgs>
+  requires(sizeof...(MeasArgs) >= 1) &&
+          (details::any_measure_result_or_vec<MeasArgs> && ...)
+void detector(MeasArgs &&...ms) {
+  ((void)ms, ...);
+  throw std::runtime_error(details::kQpuOnlyHostScopeError);
+}
+
+/// @brief Define a logical observable over one or more measurement results.
+///
+/// A logical observable is a binary sum of measurement results that equals
+/// the outcome of measuring a logical operator. Each argument is either an
+/// individual `cudaq::measure_result` or a
+/// `std::vector<cudaq::measure_result>`, or any combination. Codes
+/// with `k` logical qubits should pair a single
+/// `std::vector<cudaq::measure_result>` with an explicit `observable_index`
+/// for each observable `0..k-1` (see the `(vector, std::size_t)` overload).
+template <typename... MeasArgs>
+  requires(sizeof...(MeasArgs) >= 1) &&
+          (details::any_measure_result_or_vec<MeasArgs> && ...)
+void logical_observable(MeasArgs &&...ms) {
+  ((void)ms, ...);
+  throw std::runtime_error(details::kQpuOnlyHostScopeError);
+}
+
+// Disambiguate from the variadic when an explicit `observable_index` is
+// passed (the variadic rejects integer arguments via its concept). The
+// `observable_index` parameter is non-defaulted to keep
+// `logical_observable(vec)` unambiguously routed through the variadic.
+inline void logical_observable(const std::vector<measure_result> &ms,
+                               std::size_t observable_index) {
+  (void)ms;
+  (void)observable_index;
+  throw std::runtime_error(details::kQpuOnlyHostScopeError);
+}
+
+/// @brief Define N detectors by pairing two measurement vectors element-wise.
+///
+/// Standard form for cross-round detectors: each detector `i` is the parity
+/// of `prev[i]` and `curr[i]`.
+inline void detectors(const std::vector<measure_result> &prev,
+                      const std::vector<measure_result> &curr) {
+  (void)prev;
+  (void)curr;
+  throw std::runtime_error(details::kQpuOnlyHostScopeError);
+}
+
+#endif // !CUDAQ_LIBRARY_MODE
+
 // This concept tests if `Kernel` is a `Callable` that takes the arguments,
 // `Args`, and returns `void`.
 template <typename Kernel, typename... Args>
