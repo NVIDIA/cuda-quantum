@@ -47,9 +47,8 @@ void reportClangError(T *astNode, clang::ItaniumMangleContext *mangler,
 }
 
 /// `measure_handle` arrives at the bridge as either an SSA `!cc.measure_handle`
-/// (the rvalue from `mz`/`mx`/`my`, a copy/move ctor result, etc.) or as the
-/// pointer form `!cc.ptr<!cc.measure_handle>` left by lvalue access (named
-/// variable read, `operator=` LHS, struct-member-of-handle, ...). Most
+/// or as the pointer form `!cc.ptr<!cc.measure_handle>` left by lvalue access
+/// (named variable read, `operator=` LHS, struct-member-of-handle, ...). Most
 /// consumers want the value form, so funnel that normalization through one
 /// helper rather than open-coding the `dyn_cast` chain at every call site.
 inline mlir::Value loadHandleIfPointer(mlir::OpBuilder &builder,
