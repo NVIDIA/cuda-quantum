@@ -139,11 +139,12 @@ jobs:
 
             cd /workspace
             git config --global --add safe.directory "*"
-            # The cached CUDA manylinux deps do not include the source-build
-            # MLIR Python binding setup; this job covers C++ realtime integration.
+            # Disable Python and REST support so this job stays focused on
+            # realtime integration with the cached CUDA manylinux deps.
             bash scripts/build_cudaq.sh -v -B "${build_root}/cudaq" -- \
               -DCUDAQ_REALTIME_DIR="${realtime_prefix}" \
-              -DCUDAQ_ENABLE_PYTHON=OFF
+              -DCUDAQ_ENABLE_PYTHON=OFF \
+              -DCUDAQ_ENABLE_REST=OFF
 
             cmake --build "${build_root}/cudaq" --parallel "$(nproc)"
 
