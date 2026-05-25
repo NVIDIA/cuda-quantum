@@ -8,21 +8,22 @@
 
 // RUN: cudaq-opt --basis-conversion="basis=h,s,t,rx,ry,rz,x,y,z,x(1)" %s | FileCheck %s
 
-// CHECK-LABEL: func.func @one_control_s_t
+// CHECK-LABEL: func.func @one_control_s_t(
+// CHECK-SAME: %[[CTRL:.*]]: !quake.ref, %[[TARGET:.*]]: !quake.ref
 func.func @one_control_s_t(%ctrl: !quake.ref, %target: !quake.ref) {
   quake.s [%ctrl] %target : (!quake.ref, !quake.ref) -> ()
   quake.t [%ctrl] %target : (!quake.ref, !quake.ref) -> ()
   // CHECK-NOT: quake.s [
   // CHECK-NOT: quake.t [
   // CHECK: quake.rz
-  // CHECK: quake.x
+  // CHECK: quake.x [%[[CTRL]]] %[[TARGET]]
   // CHECK: quake.rz
-  // CHECK: quake.x
+  // CHECK: quake.x [%[[CTRL]]] %[[TARGET]]
   // CHECK: quake.rz
   // CHECK: quake.rz
-  // CHECK: quake.x
+  // CHECK: quake.x [%[[CTRL]]] %[[TARGET]]
   // CHECK: quake.rz
-  // CHECK: quake.x
+  // CHECK: quake.x [%[[CTRL]]] %[[TARGET]]
   // CHECK: quake.rz
   return
 }
