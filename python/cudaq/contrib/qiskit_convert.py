@@ -70,6 +70,16 @@ def _has_quantum_circuit_definition(operation):
     return definition is not None and hasattr(definition, "data")
 
 
+def _has_open_controls(operation):
+    num_ctrl_qubits = getattr(operation, "num_ctrl_qubits", 0)
+    if num_ctrl_qubits == 0:
+        return False
+    ctrl_state = getattr(operation, "ctrl_state", None)
+    if ctrl_state is None:
+        return False
+    return ctrl_state != (1 << num_ctrl_qubits) - 1
+
+
 @dataclass(frozen=True)
 class _GateSpec:
     num_qubits: int | None
@@ -342,6 +352,16 @@ def _emit_instruction(kernel, qubits, instruction, circuit, q_mapping, depth):
     if op_name == "u0":
         raise ValueError("Gate 'u0' is not supported. Cannot convert Qiskit "
                          "circuit to CUDA-Q kernel.")
+
+    if _has_open_controls(operation) and _has_quantum_circuit_definition(
+            operation):
+        # Qiskit represents open controls by deriving a definition that wraps
+        # the closed-control operation with X gates on each open control.
+        definition = operation.definition
+        for nested_instruction in definition.data:
+            _emit_instruction(kernel, qubits, nested_instruction, definition,
+                              q_indices, depth + 1)
+        return
 
     if not _is_qiskit_standard_operation(
             operation) and _has_quantum_circuit_definition(operation):

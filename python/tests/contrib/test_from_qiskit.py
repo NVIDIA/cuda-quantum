@@ -337,6 +337,67 @@ class TestFromQiskit:
         assert resources.get("cr1", 0) == 1
         assert resources.get("cx", 0) == 1
 
+    def test_open_control_cx_expands_definition(self):
+        """Test Qiskit open-control CX expands through its definition."""
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1, ctrl_state=0)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        assert counts["01"] == 1000
+
+    def test_open_control_ccx_expands_definition(self):
+        """Test Qiskit open-control CCX expands through its definition."""
+        qc = QuantumCircuit(3)
+        qc.x(0)
+        qc.ccx(0, 1, 2, ctrl_state=1)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        assert counts["101"] == 1000
+
+    def test_open_control_mcx_expands_definition(self):
+        """Test Qiskit open-control MCX expands through its definition."""
+        qc = QuantumCircuit(5)
+        qc.x(1)
+        qc.x(3)
+        qc.mcx([0, 1, 2, 3], 4, ctrl_state=0b1010)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        assert counts["01011"] == 1000
+
+    def test_csdg_cancels_cs(self):
+        """Test CSDG emits the adjoint of CS."""
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.h(1)
+        qc.cs(0, 1)
+        qc.csdg(0, 1)
+        qc.h(1)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        assert counts["10"] == 1000
+
+    def test_ctdg_cancels_ct(self):
+        """Test CTDG emits the adjoint of CT."""
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.h(1)
+        qc.append(Gate("ct", 2, []), [0, 1])
+        qc.append(Gate("ctdg", 2, []), [0, 1])
+        qc.h(1)
+
+        kernel = cudaq.contrib.from_qiskit(qc)
+        counts = cudaq.sample(kernel)
+
+        assert counts["10"] == 1000
+
     def test_u3_gate(self):
         """Test conversion of U3 gate."""
         qc = QuantumCircuit(1)
