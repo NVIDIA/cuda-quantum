@@ -104,51 +104,32 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
-      - name: Build realtime integration
-        uses: ./.github/actions/run-in-docker
+      - name: Set up context for buildx
+        run: |
+          docker context create builder_context
+
+      - name: Set up buildx runner
+        uses: docker/setup-buildx-action@v3
         with:
-          image: ${{ fromJson(needs.config_cuda_deps.outputs.json).image_hash[format('{0}-cu{1}-realtime', matrix.platform, matrix.cuda_version)] }}
-          volume: ${{ github.workspace }}:/workspace
-          shell: bash
-          run: |
-            set -euo pipefail
+          endpoint: builder_context
+          version: v0.19.0
+          buildkitd-config: /etc/buildkit/buildkitd.toml
+          driver-opts: |
+            network=host
+            image=moby/buildkit:v0.19.0
 
-            cuda_version="${{ matrix.cuda_version }}"
-            export CUDA_HOME="${CUDA_HOME:-${CUDA_INSTALL_PREFIX:-/usr/local/cuda-${cuda_version}}}"
-            export CUDACXX="${CUDACXX:-${CUDA_HOME}/bin/nvcc}"
-            export CUDAHOSTCXX="${CUDAHOSTCXX:-${CXX}}"
+      - name: Setup proxy cache
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: false
 
-            realtime_prefix=/tmp/cudaq-realtime
-            build_root=/workspace/build-realtime-integration
-            rm -rf "${realtime_prefix}" "${build_root}"
-
-            cmake -G Ninja \
-              -S /workspace/realtime \
-              -B "${build_root}/realtime" \
-              -DCMAKE_BUILD_TYPE=Release \
-              -DCMAKE_CUDA_COMPILER="${CUDACXX}" \
-              -DCUDAQ_REALTIME_BUILD_TESTS=OFF \
-              -DCUDAQ_REALTIME_BUILD_EXAMPLES=OFF \
-              -DCUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS=OFF \
-              -DCMAKE_INSTALL_PREFIX="${realtime_prefix}"
-            cmake --build "${build_root}/realtime" --target install --parallel "$(nproc)"
-
-            export CUDAQ_INSTALL_PREFIX=/tmp/cudaq-realtime-enabled
-            export CUDAQ_BUILD_TESTS=OFF
-            export CUDAQ_WERROR=ON
-
-            cd /workspace
-            git config --global --add safe.directory "*"
-            # Disable Python and REST support so this job stays focused on
-            # realtime integration with the cached CUDA manylinux deps.
-            bash scripts/build_cudaq.sh -v -B "${build_root}/cudaq" -- \
-              -DCUDAQ_REALTIME_DIR="${realtime_prefix}" \
-              -DCUDAQ_ENABLE_PYTHON=OFF \
-              -DCUDAQ_ENABLE_REST=OFF
-
-            cmake --build "${build_root}/cudaq" --parallel "$(nproc)"
-
-            # Fail if realtime was silently disabled in either build.
-            test -f "${realtime_prefix}/lib/libcudaq-realtime.so"
-            test -f "${realtime_prefix}/lib/libcudaq-realtime-dispatch.a"
-            test -f "${CUDAQ_INSTALL_PREFIX}/lib/libcudaq-device-call-runtime.so"
+      - name: Build realtime integration
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/release/cudaq.realtime-integration.Dockerfile
+          target: realtime-integration
+          platforms: linux/${{ matrix.platform }}
+          build-args: |
+            base_image=${{ fromJson(needs.config_cuda_deps.outputs.json).image_hash[format('{0}-cu{1}-realtime', matrix.platform, matrix.cuda_version)] }}
+            python_version=3.12
