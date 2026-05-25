@@ -2514,7 +2514,8 @@ following command to build CUDA-Q:
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
-    CUDAQ_ENABLE_STATIC_LINKING=TRUE \
+    CUDAQ_STATIC_CXX_RUNTIME=TRUE \
+    CUDAQ_STATIC_DEPS=TRUE \
     CUDAQ_REQUIRE_OPENMP=TRUE \
     CUDAQ_WERROR=TRUE \
     CUDAQ_PYTHON_SUPPORT=OFF \

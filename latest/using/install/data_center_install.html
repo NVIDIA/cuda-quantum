@@ -1468,7 +1468,8 @@ checking that the wheel tag (i.e. the file name ending of the <code class="code 
 <span id="cudaq-cpp-from-source"></span><h2>C++ Support<a class="headerlink" href="#c-support" title="Permalink to this heading">¶</a></h2>
 <p>From within the folder where you cloned the CUDA-Q repository, run the following
 command to build CUDA-Q:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDAQ_ENABLE_STATIC_LINKING</span><span class="o">=</span>TRUE<span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CUDAQ_STATIC_CXX_RUNTIME</span><span class="o">=</span>TRUE<span class="w"> </span><span class="se">\</span>
+<span class="nv">CUDAQ_STATIC_DEPS</span><span class="o">=</span>TRUE<span class="w"> </span><span class="se">\</span>
 <span class="nv">CUDAQ_REQUIRE_OPENMP</span><span class="o">=</span>TRUE<span class="w"> </span><span class="se">\</span>
 <span class="nv">CUDAQ_WERROR</span><span class="o">=</span>TRUE<span class="w"> </span><span class="se">\</span>
 <span class="nv">CUDAQ_PYTHON_SUPPORT</span><span class="o">=</span>OFF<span class="w"> </span><span class="se">\</span>
