@@ -35,7 +35,7 @@ RUN set -euo pipefail; \
       cuda_packages=$(echo "${cuda_packages}" | tr ' ' '\n' | xargs -I {} echo {}-${cuda_suffix}); \
       rm -f /etc/apt/sources.list.d/cuda.list; \
       apt-get update; \
-      apt-get install -y --no-install-recommends ca-certificates wget; \
+      apt-get install -y --no-install-recommends ca-certificates wget g++; \
       wget -q "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/${arch_folder}/cuda-keyring_1.1-1_all.deb"; \
       dpkg -i cuda-keyring_1.1-1_all.deb; \
       apt-get update; \
@@ -79,11 +79,10 @@ RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
 RUN set -euo pipefail; \
     export CUDA_HOME="${CUDA_HOME:-${CUDA_INSTALL_PREFIX:-/usr/local/cuda-${cuda_version}}}"; \
     export CUDACXX="${CUDACXX:-${CUDA_HOME}/bin/nvcc}"; \
-    export CUDAHOSTCXX="${CUDAHOSTCXX:-${CXX:-}}"; \
-    if [ -z "${CUDAHOSTCXX}" ]; then echo "CUDAHOSTCXX or CXX must be set."; exit 1; fi; \
     realtime_prefix=/tmp/cudaq-realtime; \
     build_root=/tmp/build-realtime-integration; \
     rm -rf "${realtime_prefix}" "${build_root}"; \
+    unset CUDAHOSTCXX; \
     cmake -G Ninja \
       -S /cuda-quantum/realtime \
       -B "${build_root}/realtime" \
@@ -97,6 +96,8 @@ RUN set -euo pipefail; \
     export CUDAQ_INSTALL_PREFIX=/tmp/cudaq-realtime-enabled; \
     export CUDAQ_BUILD_TESTS=OFF; \
     export CUDAQ_WERROR=ON; \
+    export CUDAHOSTCXX="${CXX:-}"; \
+    if [ -z "${CUDAHOSTCXX}" ]; then echo "CXX must be set for the CUDA-Q build."; exit 1; fi; \
     cd /cuda-quantum; \
     git config --global --add safe.directory "*"; \
     bash scripts/build_cudaq.sh -v -B "${build_root}/cudaq" -- \
