@@ -40,7 +40,9 @@ if (CUDAQ_REALTIME_DIR)
     PATHS "${CUDAQ_REALTIME_DIR}"
     NO_DEFAULT_PATH)
 else()
-  find_dependency(cudaq-realtime CONFIG QUIET)
+  # Do not use find_dependency here: it inherits find_package(CUDAQ REQUIRED)
+  # and would make realtime mandatory for CUDA-Q installs that do not use it.
+  find_package(cudaq-realtime CONFIG QUIET)
 endif()
 
 get_filename_component(PARENT_DIRECTORY ${CUDAQ_CMAKE_DIR} DIRECTORY)
