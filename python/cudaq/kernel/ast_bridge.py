@@ -20,7 +20,7 @@ from cudaq.mlir._mlir_libs._quakeDialects import (cudaq_runtime, load_intrinsic,
                                                   gen_vector_of_complex_constant
                                                  )
 from cudaq.kernel_types import qview
-from cudaq.mlir.dialects import arith, cc, complex, func, math, quake
+from cudaq.mlir.dialects import arith, cc, complex, func, math, qec, quake
 from cudaq.mlir.ir import (BoolAttr, Block, BlockArgument, Context, ComplexType,
                            DenseBoolArrayAttr, DenseI32ArrayAttr,
                            DenseI64ArrayAttr, DictAttr, F32Type, F64Type,
@@ -28,9 +28,11 @@ from cudaq.mlir.ir import (BoolAttr, Block, BlockArgument, Context, ComplexType,
                            InsertionPoint, IntegerAttr, IntegerType, Location,
                            Module, StringAttr, SymbolTable, TypeAttr, UnitAttr)
 from cudaq.mlir.passmanager import PassManager
+from cudaq.util import trace
 from .analysis import ValidateArgumentAnnotations, ValidateReturnStatements
 from .kernel_signature import KernelSignature
-from .utils import (Color, globalRegisteredOperations, globalRegisteredTypes,
+from .utils import (Color, boundaryDiagnostic, containsMeasureHandle,
+                    globalRegisteredOperations, globalRegisteredTypes,
                     nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType,
                     getMLIRContext, is_recovered_value_ok,
                     recover_value_of_or_none, cudaq__unique_attr_name,
@@ -366,7 +368,8 @@ class PyASTBridge(ast.NodeVisitor):
                  uniqueId=None,
                  kernelModuleName=None,
                  locationOffset=('', 0),
-                 verbose=False):
+                 verbose=False,
+                 cudaqAliases=None):
         """The constructor. Initializes the `mlir.Value` stack, the
         `mlir.Context`, and the `mlir.Module` that we will be building upon.
         This class keeps track of a symbol table, which maps variable names to
@@ -385,6 +388,9 @@ class PyASTBridge(ast.NodeVisitor):
         self.uniqueId = uniqueId
         self.defFrame = defFrame
         self.kernelModuleName = kernelModuleName
+        # Set of names that refer to the cudaq module, including aliases
+        # from `import cudaq as <alias>`.
+        self.cudaqAliases = cudaqAliases if cudaqAliases else {'cudaq'}
         self.ctx = getMLIRContext()
         self.loc = Location.unknown(context=self.ctx)
         self.module = Module.create(self.loc)
@@ -402,6 +408,11 @@ class PyASTBridge(ast.NodeVisitor):
         self.isSubscriptRoot = False
         self.verbose = verbose
         self.currentNode = None
+
+    def isCudaqName(self, name):
+        """Return True if `name` is 'cudaq' or a known alias for the cudaq
+        module (e.g. from ``import cudaq as cq``)."""
+        return name in self.cudaqAliases
 
     def debug_msg(self, msg, node=None):
         if self.verbose:
@@ -580,6 +591,10 @@ class PyASTBridge(ast.NodeVisitor):
     def __arithmetic_to_bool(self, value):
         """Converts an integer or floating point value to a bool by comparing it
         to zero."""
+        # `measure_handle` coerces to `bool` via `quake.discriminate` at every
+        # `bool`-coercion context. This branch covers `if`/`while`/`not`/`and`/
+        # `or` truthiness tests whose operand is a handle.
+        value = self.__discriminateIfMeasureHandle(value, self.currentNode)
         if self.getIntegerType(1) == value.type:
             return value
         if IntegerType.isinstance(value.type):
@@ -608,6 +623,25 @@ class PyASTBridge(ast.NodeVisitor):
         """
         if ty == operand.type:
             return operand
+        i1Type = self.getIntegerType(1)
+        # `measure_handle` -> scalar arithmetic target is a user-defined
+        # coercion: insert a `quake.discriminate` then continue with the
+        # usual promotion / demotion rules. The bool case (`i1`) is the
+        # primary contract; the wider-integer and float cases also automatically
+        # discriminate. `i8` also covers element stores into a `list[bool]`,
+        # which the bridge backs with `i8` storage but logically owns as bool.
+        if cc.MeasureHandleType.isinstance(
+                operand.type) and (IntegerType.isinstance(ty) or
+                                   F32Type.isinstance(ty) or
+                                   F64Type.isinstance(ty)):
+            disc = self.__discriminateIfMeasureHandle(operand, self.currentNode)
+            return self.changeOperandToType(ty, disc, allowDemotion)
+        if (cc.StdvecType.isinstance(ty) and
+                cc.StdvecType.getElementType(ty) == i1Type and
+                cc.StdvecType.isinstance(operand.type) and
+                cc.MeasureHandleType.isinstance(
+                    cc.StdvecType.getElementType(operand.type))):
+            return self.__discriminateIfMeasureHandle(operand, self.currentNode)
         if cc.CallableType.isinstance(ty):
             fctTy = cc.CallableType.getFunctionType(ty)
             if fctTy == operand.type:
@@ -807,6 +841,64 @@ class PyASTBridge(ast.NodeVisitor):
 
     def __isMeasurementGate(self, id):
         return id in ['mx', 'my', 'mz']
+
+    def __isProvablyUnboundHandleSource(self, value):
+        """Return True if `value` provably comes from a default-constructed
+        `cudaq.measure_handle()` that was never bound by `mz`/`mx`/`my`.
+        """
+
+        # The MLIR Python bindings return two different wrapper kinds
+        # depending on how we reach an op: `Value.owner` and
+        # `Value.operands[i].owner` give a raw `mlir.ir.Operation`
+        # (whose `.name` is the dialect op name string), while
+        # `OpOperand.owner` returned from `Value.uses` gives a generated
+        # `OpView` subclass (e.g. `_LoadOp`) whose op name lives on the
+        # `OPERATION_NAME` *class* attribute and *not* on `.name`. This
+        # helper handles both shapes uniformly.
+        def _opName(o):
+            n = getattr(o, 'name', None)
+            return n if isinstance(n, str) else getattr(o, 'OPERATION_NAME',
+                                                        None)
+
+        if not hasattr(value, 'owner'):
+            return False
+        defName = _opName(value.owner)
+        if defName == 'cc.undef':
+            return True
+        if defName != 'cc.load':
+            return False
+        ptr = value.owner.operands[0]
+        if not hasattr(ptr, 'owner') or _opName(ptr.owner) != 'cc.alloca':
+            return False
+        sawStore = False
+        for use in ptr.uses:
+            if _opName(use.owner) != 'cc.store':
+                continue
+            sawStore = True
+            stored = use.owner.operands[0]
+            if not hasattr(stored, 'owner') or _opName(
+                    stored.owner) != 'cc.undef':
+                return False
+        return sawStore
+
+    def __discriminateIfMeasureHandle(self, value, node):
+        """If `value` is a `!cc.measure_handle` (or `stdvec` thereof) at a
+        `bool`-coercion context, insert a `quake.discriminate` and return
+        the `i1`/`stdvec<i1>` result.
+        """
+        if value is None:
+            return value
+        ty = value.type
+        if cc.MeasureHandleType.isinstance(ty):
+            if self.__isProvablyUnboundHandleSource(value):
+                self.emitFatalError(
+                    'discriminating an unbound measurement handle', node)
+            return quake.DiscriminateOp(self.getIntegerType(1), value).result
+        if cc.StdvecType.isinstance(ty) and cc.MeasureHandleType.isinstance(
+                cc.StdvecType.getElementType(ty)):
+            return quake.DiscriminateOp(
+                cc.StdvecType.get(self.getIntegerType(1)), value).result
+        return value
 
     def __isUnitaryGate(self, id):
         return (self.__isSimpleGate(id) or self.__isRotationGate(id) or
@@ -1251,7 +1343,10 @@ class PyASTBridge(ast.NodeVisitor):
         """
         msg = None
         try:
-            return mlirTypeFromAnnotation(annotation, self.ctx, raiseError=True)
+            return mlirTypeFromAnnotation(annotation,
+                                          self.ctx,
+                                          raiseError=True,
+                                          cudaqAliases=self.cudaqAliases)
         except RuntimeError as e:
             msg = str(e)
 
@@ -1515,6 +1610,59 @@ class PyASTBridge(ast.NodeVisitor):
             groupedVals = *frontVals, values, *backVals
         return groupedVals[0] if len(groupedVals) == 1 else groupedVals
 
+    def _lowerQECOp(self, node):
+        """Lower ``cudaq.detector(...)``, ``cudaq.logical_observable(...)``,
+        and ``cudaq.detectors(prev, curr)`` to the matching ``qec.*`` MLIR op.
+        """
+        name = node.func.attr
+        isPair = (name == "detectors")
+
+        if isPair:
+            if len(node.args) != 2:
+                self.emitFatalError(
+                    "cudaq.detectors takes exactly two "
+                    "list[cudaq.measure_handle] arguments", node)
+        elif not node.args:
+            self.emitFatalError(
+                f"cudaq.{name} requires at least one "
+                f"cudaq.measure_handle argument", node)
+
+        obsIndex = 0
+        if name == "logical_observable":
+            for kw in node.keywords:
+                if kw.arg != "observable_index":
+                    continue
+                try:
+                    val = ast.literal_eval(kw.value)
+                except (ValueError, SyntaxError):
+                    val = None
+                if not isinstance(val, int) or isinstance(val, bool):
+                    self.emitFatalError(
+                        "cudaq.logical_observable requires "
+                        "observable_index to be an integer literal", node)
+                if val < 0 or val > (1 << 63) - 1:
+                    self.emitFatalError(
+                        "cudaq.logical_observable observable_index must "
+                        "be in the range [0, 2^63 - 1]", node)
+                obsIndex = val
+
+        n = len(node.args)
+        if n == 1:
+            values = [self.__groupValues(node.args, [1])]
+        else:
+            values = list(self.__groupValues(node.args, [n]))
+
+        if isPair:
+            prev, curr = values
+            qec.DetectorsOp(prev, curr)
+        elif name == "logical_observable":
+            # Skip the attribute at the default 0 so the printed IR omits
+            # the optional `index N` literal at the spec shape.
+            idxAttr = None if obsIndex == 0 else obsIndex
+            qec.ObservableOp(values, observableIndex=idxAttr)
+        else:
+            qec.DetectorOp(values)
+
     def __get_root_value(self, pyVal):
         """Strips any attribute and subscript expressions from the node to get
         the root node that the expression accesses.
@@ -1596,6 +1744,7 @@ class PyASTBridge(ast.NodeVisitor):
                     f"{msg} - use `.copy(deep)` to create a new list",
                     self.currentNode)
 
+    @trace.traced("ast_bridge.visit_module")
     def visit_Module(self, node):
         return super().generic_visit(node)
 
@@ -1634,6 +1783,7 @@ class PyASTBridge(ast.NodeVisitor):
         self.currentNode = parentNode
         self.indent_level -= 1
 
+    @trace.traced("ast_bridge.visit_function_def")
     def visit_FunctionDef(self, node):
         """Create an MLIR `func.FuncOp` for the given FunctionDef AST node. For
         the top-level FunctionDef, this will add the `FuncOp` to the `ModuleOp`
@@ -1649,7 +1799,10 @@ class PyASTBridge(ast.NodeVisitor):
 
         if self.buildingFunctionBody:
             for decorator in getattr(node, 'decorator_list', []):
-                if _get_qualified_name(decorator) in ('cudaq.kernel', 'kernel'):
+                qname = _get_qualified_name(decorator)
+                if qname == 'kernel' or (
+                        qname is not None and qname.endswith('.kernel') and
+                        self.isCudaqName(qname[:qname.rfind('.kernel')])):
                     self.emitFatalError(
                         "nested @cudaq.kernel definitions are not allowed",
                         node)
@@ -1681,17 +1834,30 @@ class PyASTBridge(ast.NodeVisitor):
             # function name
             fullName = nvqppPrefix + self.name
 
+            # Determine whether this kernel will be an entry point (no quantum
+            # types in the signature). Run this check before creating the
+            # `FuncOp` so a rejection does not leave an orphaned op in the module.
+            anyQuantumType = any(
+                self.isQuantumType(ty) for ty in self.signature.arg_types)
+            if not anyQuantumType:
+                # `cudaq::measure_handle` is device-only and must not appear
+                # either directly or transitively in the parameter or return
+                # position of an entry-point kernel.
+                for argTy in self.signature.arg_types:
+                    if containsMeasureHandle(argTy):
+                        self.emitFatalError(boundaryDiagnostic, node)
+                if (self.signature.return_type and
+                        containsMeasureHandle(self.signature.return_type)):
+                    self.emitFatalError(boundaryDiagnostic, node)
+
             # Create the FuncOp
             f = func.FuncOp(fullName,
                             self.signature.get_lifted_type(),
                             loc=self.loc)
             self.kernelFuncOp = f
-
+            f.attributes.__setitem__('cudaq-kernel', UnitAttr.get())
             # Set this kernel as an entry point if the argument types are
             # classical only
-            anyQuantumType = any(
-                self.isQuantumType(ty) for ty in self.signature.arg_types)
-            f.attributes.__setitem__('cudaq-kernel', UnitAttr.get())
             if not anyQuantumType:
                 f.attributes.__setitem__('cudaq-entrypoint', UnitAttr.get())
 
@@ -1728,7 +1894,10 @@ class PyASTBridge(ast.NodeVisitor):
                 # errors on assignments that may lead to unexpected behavior
                 # (i.e. behavior not following expected Python behavior).
                 self.buildingFunctionBody = True
-                [self.visit(n) for n in node.body]
+                with trace.span("ast_bridge.visit_function_body",
+                                statement_count=len(node.body)):
+                    for n in node.body:
+                        self.visit(n)
                 # Add the return operation
                 if not self.hasTerminator(entry_block):
                     # If the function has a known (non-None) return type, emit
@@ -2183,7 +2352,7 @@ class PyASTBridge(ast.NodeVisitor):
                                                         node.attr), node)
                 return
 
-            if node.value.id == 'cudaq':
+            if self.isCudaqName(node.value.id):
                 if node.attr in [
                         'DepolarizationChannel', 'AmplitudeDampingChannel',
                         'PhaseFlipChannel', 'BitFlipChannel', 'PhaseDamping',
@@ -2653,16 +2822,37 @@ class PyASTBridge(ast.NodeVisitor):
         # do not walk the FunctionDef decorator_list arguments
         if isinstance(node.func, ast.Attribute):
             self.debug_msg(lambda: f'[(Inline) Visit Attribute]', node.func)
-            if hasattr(
-                    node.func.value, 'id'
-            ) and node.func.value.id == 'cudaq' and node.func.attr == 'kernel':
+            if hasattr(node.func.value, 'id') and self.isCudaqName(
+                    node.func.value.id) and node.func.attr == 'kernel':
                 return
+
+            def isExactCudaqDbgAstCall(func_node: ast.AST) -> bool:
+                """Return True iff `func_node` is the exact AST shape for
+                ``<cudaq_alias>.dbg.ast.<name>``.
+
+                Runtime attribute lookup follows lazy aliases (e.g. ``cudaq.ast``
+                resolves to ``cudaq.dbg.ast`` via ``_LAZY_SUBMODULES``), so
+                `devKey` is not a sufficient check. Walk the literal node
+                structure instead."""
+                if not isinstance(func_node, ast.Attribute):
+                    return False
+                if not isinstance(
+                        func_node.value,
+                        ast.Attribute) or func_node.value.attr != 'ast':
+                    return False
+                if not isinstance(
+                        func_node.value.value,
+                        ast.Attribute) or func_node.value.value.attr != 'dbg':
+                    return False
+                root = func_node.value.value.value
+                return isinstance(root, ast.Name) and self.isCudaqName(root.id)
 
             devKey, name = resolveQualifiedName(node.func)
             if devKey:
 
                 # Handle debug functions
-                if devKey == 'cudaq.dbg.ast':
+                if devKey == 'cudaq.dbg.ast' and isExactCudaqDbgAstCall(
+                        node.func):
                     # Handle a debug print statement
                     arg = self.__groupValues(node.args, [1])
                     self.__insertDbgStmt(arg, name)
@@ -2757,12 +2947,12 @@ class PyASTBridge(ast.NodeVisitor):
 
                 totalSize = arith.SubIOp(endVal, startVal).result
                 if isDecrementing:
-                    roundingOffset = arith.AddIOp(stepVal, one)
+                    roundingOffset = arith.AddIOp(stepVal, one).result
                 else:
-                    roundingOffset = arith.SubIOp(stepVal, one)
-                totalSize = arith.AddIOp(totalSize, roundingOffset)
+                    roundingOffset = arith.SubIOp(stepVal, one).result
+                totalSize = arith.AddIOp(totalSize, roundingOffset).result
                 totalSize = arith.MaxSIOp(
-                    zero,
+                    zero.result,
                     arith.DivSIOp(totalSize, stepVal).result).result
 
                 # Create an array of i64 of the total size
@@ -2778,7 +2968,7 @@ class PyASTBridge(ast.NodeVisitor):
                 # but we also need to keep track of a counter
                 counter = cc.AllocaOp(cc.PointerType.get(iTy),
                                       TypeAttr.get(iTy)).result
-                cc.StoreOp(zero, counter)
+                cc.StoreOp(zero.result, counter)
 
                 def bodyBuilder(iterVar):
                     loadedCounter = cc.LoadOp(counter).result
@@ -2787,7 +2977,8 @@ class PyASTBridge(ast.NodeVisitor):
                         DenseI32ArrayAttr.get([kDynamicPtrIndex],
                                               context=self.ctx))
                     cc.StoreOp(iterVar, eleAddr)
-                    incrementedCounter = arith.AddIOp(loadedCounter, one).result
+                    incrementedCounter = arith.AddIOp(loadedCounter,
+                                                      one.result).result
                     cc.StoreOp(incrementedCounter, counter)
 
                 self.createMonotonicForLoop(bodyBuilder,
@@ -2913,10 +3104,6 @@ class PyASTBridge(ast.NodeVisitor):
 
             if self.__isMeasurementGate(node.func.id):
                 registerName = self.currentAssignVariableName
-                # If `registerName` is None, then we know that we are not
-                # assigning this measure result to anything so we therefore
-                # should not push it on the stack
-                pushResultToStack = registerName != None or self.walkingReturnNode
 
                 # By default we set the `register_name` for the measurement to
                 # the assigned variable name (if there is one). But the use
@@ -2936,35 +3123,22 @@ class PyASTBridge(ast.NodeVisitor):
 
                 qubits = self.__groupValues(node.args, [(1, -1)])
                 label = registerName or None
+                # `mx`/`my`/`mz` are the single measurement API: they emit
+                # `quake.{mx,my,mz}` producing `!cc.measure_handle` (scalar)
+                # or `!cc.stdvec<!cc.measure_handle>` (vector form on a
+                # `qvector`/`qview`).
+                handleEleTy = cc.MeasureHandleType.get()
                 if len(qubits) == 1 and quake.RefType.isinstance(
                         qubits[0].type):
-                    measTy = quake.MeasureType.get()
-                    resTy = self.getIntegerType(1)
+                    measTy = handleEleTy
                 else:
-                    total_size = 0
-                    all_known = True
-                    for q in qubits:
-                        if quake.isConstantQuantumRefType(q.type):
-                            total_size += quake.getAllocationSize(q.type)
-                        else:
-                            all_known = False
-                    if all_known and total_size > 0:
-                        measTy = quake.MeasurementsType.get(total_size)
-                    else:
-                        measTy = quake.MeasurementsType.get()
-                    resTy = cc.StdvecType.get(self.getIntegerType(1))
-                measureResult = processQuantumOperation(
-                    node.func.id.title(), [],
-                    qubits,
-                    measTy,
-                    broadcast=False,
-                    registerName=label).result
-
-                # FIXME: needs to be revised when we properly distinguish
-                # measurement types
-                if pushResultToStack:
-                    self.pushValue(
-                        quake.DiscriminateOp(resTy, measureResult).result)
+                    measTy = cc.StdvecType.get(handleEleTy)
+                handle = processQuantumOperation(node.func.id.title(), [],
+                                                 qubits,
+                                                 measTy,
+                                                 broadcast=False,
+                                                 registerName=label).result
+                self.pushValue(handle)
                 return
 
             if node.func.id == 'swap':
@@ -3033,6 +3207,20 @@ class PyASTBridge(ast.NodeVisitor):
                                                   allowDemotion=True)
                 self.pushValue(casted)
                 return
+
+            elif node.func.id == 'bool':
+                # explicit `bool(h)` is one of the sanctioned coercion contexts
+                # on a `!cc.measure_handle`, lowering to `quake.discriminate`.
+                value = self.__groupValues(node.args, [1])
+                if cc.MeasureHandleType.isinstance(value.type):
+                    self.pushValue(
+                        self.__discriminateIfMeasureHandle(value, node))
+                    return
+                if value.type == self.getIntegerType(1):
+                    self.pushValue(value)
+                    return
+                self.emitFatalError(f"unhandled function call - {node.func.id}",
+                                    node)
 
             elif node.func.id == 'list':
                 # The expected Python behavior is that a constructor call
@@ -3344,7 +3532,7 @@ class PyASTBridge(ast.NodeVisitor):
                     self.emitFatalError(
                         f"unsupported NumPy call ({node.func.attr})", node)
 
-                if node.func.value.id == 'cudaq':
+                if self.isCudaqName(node.func.value.id):
                     if node.func.attr == 'complex':
                         self.__groupValues(node.args, [0])
                         self.pushValue(self.simulationDType())
@@ -3418,16 +3606,21 @@ class PyASTBridge(ast.NodeVisitor):
                             arrTy = cc.ArrayType.get(eleTy)
                             ptrArrTy = cc.PointerType.get(arrTy)
                             data = cc.StdvecDataOp(ptrArrTy, value).result
-                            size = cc.StdvecSizeOp(self.getIntegerType(),
-                                                   value).result
-                            numQubits = math.CountTrailingZerosOp(size).result
+                            intTy = self.getIntegerType()
+                            size = cc.StdvecSizeOp(intTy, value).result
+                            stateTy = cc.PointerType.get(cc.StateType.get())
+                            state = quake.CreateStateOp(stateTy, data,
+                                                        size).result
+                            numQubits = quake.GetNumberOfQubitsOp(intTy,
+                                                                  state).result
                             # Dynamic checking that the state is normalized is
                             # done at the library layer.
                             veqTy = quake.VeqType.get()
                             qubits = quake.AllocaOp(veqTy,
                                                     size=numQubits).result
-                            init = quake.InitializeStateOp(veqTy, qubits,
-                                                           data).result
+                            init = quake.InitializeStateOp(
+                                veqTy, qubits, state).result
+                            deleteState = quake.DeleteStateOp(state)
                             self.pushValue(init)
                             return
 
@@ -3460,6 +3653,45 @@ class PyASTBridge(ast.NodeVisitor):
                             )
                         self.pushValue(quake.AllocaOp(self.getRefType()).result)
                         return
+
+                    if node.func.attr == "measure_handle":
+                        # `cudaq.measure_handle()`, i.e. the default
+                        # constructor produces an unbound handle. Materialize
+                        # a fresh `!cc.measure_handle` SSA value via
+                        # `cc.undef`.
+                        if len(node.args) != 0 or node.keywords:
+                            self.emitFatalError(
+                                'cudaq.measure_handle() takes no arguments',
+                                node)
+                        self.pushValue(
+                            cc.UndefOp(cc.MeasureHandleType.get()).result)
+                        return
+
+                    if node.func.attr == "to_bools":
+                        # `cudaq.to_bools` is the bulk counterpart to the
+                        # per-element `measure_handle -> bool` coercion.
+                        # Lower to a vector form `quake.discriminate` on the
+                        # handle vector.
+                        if len(node.args) != 1 or node.keywords:
+                            self.emitFatalError(
+                                'cudaq.to_bools expects a single argument',
+                                node)
+                        handle = self.__groupValues(node.args, [1])
+                        ty = handle.type
+                        if not (cc.StdvecType.isinstance(ty) and
+                                cc.MeasureHandleType.isinstance(
+                                    cc.StdvecType.getElementType(ty))):
+                            self.emitFatalError(
+                                'cudaq.to_bools expects a '
+                                'list[cudaq.measure_handle] argument', node)
+                        resTy = cc.StdvecType.get(self.getIntegerType(1))
+                        self.pushValue(
+                            quake.DiscriminateOp(resTy, handle).result)
+                        return
+
+                    if node.func.attr in ("detector", "logical_observable",
+                                          "detectors"):
+                        return self._lowerQECOp(node)
 
                     if node.func.attr == 'adjoint' or node.func.attr == 'control':
 
@@ -3572,25 +3804,31 @@ class PyASTBridge(ast.NodeVisitor):
                         # The first argument must be the Kraus channel
                         numParams, key = 0, None
                         if (isinstance(node.args[0], ast.Attribute) and
-                                node.args[0].value.id == 'cudaq' and
+                                self.isCudaqName(node.args[0].value.id) and
                                 node.args[0].attr in supportedChannels):
 
                             cudaq_module = importlib.import_module('cudaq')
                             channel_class = getattr(cudaq_module,
                                                     node.args[0].attr)
-                            numParams = channel_class.num_parameters
+                            numParams = (channel_class.num_parameters
+                                         if hasattr(channel_class,
+                                                    'num_parameters') else
+                                         channel_class.get_num_parameters())
                             key = self.getConstantInt(hash(channel_class))
                         elif isinstance(node.args[0], ast.Name):
                             arg = recover_value_of_or_none(
                                 node.args[0].id, self.defFrame)
                             if (arg and isinstance(arg, type) and issubclass(
                                     arg, cudaq_runtime.KrausChannel)):
-                                if not hasattr(arg, 'num_parameters'):
+                                if (not hasattr(arg, 'num_parameters') and
+                                        not hasattr(arg, 'get_num_parameters')):
                                     self.emitFatalError(
                                         'apply_noise kraus channels must have '
                                         '`num_parameters` constant class '
                                         'attribute specified.')
-                                numParams = arg.num_parameters
+                                numParams = (arg.num_parameters if hasattr(
+                                    arg, 'num_parameters') else
+                                             arg.get_num_parameters())
                                 key = self.getConstantInt(hash(arg))
                         if key is None:
                             self.emitFatalError(
@@ -3633,7 +3871,17 @@ class PyASTBridge(ast.NodeVisitor):
                         return
 
                     if node.func.attr == 'to_integer':
+                        # `cudaq.to_integer` consumes a `list[bool]`
                         boolVec = self.__groupValues(node.args, [1])
+                        if (cc.StdvecType.isinstance(boolVec.type) and
+                                cc.MeasureHandleType.isinstance(
+                                    cc.StdvecType.getElementType(
+                                        boolVec.type))):
+                            self.emitFatalError(
+                                '`cudaq.to_integer` does not accept a '
+                                '`list[cudaq.measure_handle]`; compose with '
+                                '`cudaq.to_integer(cudaq.to_bools(handles))`',
+                                node)
                         args = convertArguments(
                             [cc.StdvecType.get(self.getIntegerType(1))],
                             [boolVec])
@@ -3788,12 +4036,16 @@ class PyASTBridge(ast.NodeVisitor):
         the MLIR.
 
         By simple, we mean expressions like `[expr(iter) for iter in iterable]`
-        or `myList = [exprThatReturns(iter) for iter in iterable]`.
+        or `myList = [exprThatReturns(iter) for iter in iterable]`, optionally
+        with `if` filter clause.
         """
         if len(node.generators) > 1:
             self.emitFatalError(
                 "CUDA-Q only supports single generators for list comprehension.",
                 node)
+
+        if_clauses = node.generators[0].ifs
+        hasFilter = len(if_clauses) > 0
 
         self.visit(node.generators[0].iter)
         iterable = self.popValue()
@@ -3832,6 +4084,15 @@ class PyASTBridge(ast.NodeVisitor):
             # This loop could be marked as invariant if we didn't use
             # `visit_For`, but that would be premature optimization.
             self.visit_For(forNode)
+
+        def evalFilter():
+            cond = None
+            for if_node in if_clauses:
+                self.visit(if_node)
+                this_cond = self.__arithmetic_to_bool(self.popValue())
+                cond = this_cond if cond is None else arith.AndIOp(
+                    cond, this_cond).result
+            return cond
 
         target_types = {}
 
@@ -3996,6 +4257,10 @@ class PyASTBridge(ast.NodeVisitor):
                     if pyval.func.attr == 'ctrl' or pyval.func.attr == 'adj':
                         process_void_list()
                         return None
+                    if (pyval.func.attr == 'measure_handle' and
+                            isinstance(pyval.func.value, ast.Name) and
+                            pyval.func.value.id == 'cudaq'):
+                        return cc.MeasureHandleType.get()
                 self.emitFatalError("unsupported call in list comprehension",
                                     node)
             elif isinstance(pyval, ast.Compare):
@@ -4031,10 +4296,11 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         if quake.RefType.isinstance(listElemTy):
-            if quake.VeqType.isinstance(orig_iterable_type):
+            if quake.VeqType.isinstance(orig_iterable_type) and not hasFilter:
                 self.pushValue(iterable)
                 return
-            if cc.StdvecType.isinstance(orig_iterable_type):
+            if (cc.StdvecType.isinstance(orig_iterable_type) or
+                    quake.VeqType.isinstance(orig_iterable_type)):
                 i64Ty = self.getIntegerType()
                 veqTy = self.getVeqType()
                 c0 = self.getConstantInt(0)
@@ -4047,18 +4313,39 @@ class PyASTBridge(ast.NodeVisitor):
 
                 def bodyBuilder(args):
                     i, curr_veq = args[0], args[1]
-                    elem_addr = cc.ComputePtrOp(
-                        cc.PointerType.get(iterTy), iterable, [i],
-                        DenseI32ArrayAttr.get([kDynamicPtrIndex],
-                                              context=self.ctx))
-                    idx_val = cc.LoadOp(elem_addr).result
+                    if quake.VeqType.isinstance(iterable.type):
+                        idx_val = quake.ExtractRefOp(iterTy,
+                                                     iterable,
+                                                     -1,
+                                                     index=i).result
+                    else:
+                        elem_addr = cc.ComputePtrOp(
+                            cc.PointerType.get(iterTy), iterable, [i],
+                            DenseI32ArrayAttr.get([kDynamicPtrIndex],
+                                                  context=self.ctx))
+                        idx_val = cc.LoadOp(elem_addr).result
                     self.symbolTable.beginBlock()
                     self.__deconstructAssignment(node.generators[0].target,
                                                  idx_val)
-                    self.visit(node.elt)
-                    ref = self.popValue()
+                    if hasFilter:
+                        cond = evalFilter()
+                        ifOp = cc.IfOp([veqTy], cond, [])
+                        thenBlock = Block.create_at_start(ifOp.thenRegion, [])
+                        with InsertionPoint(thenBlock):
+                            self.visit(node.elt)
+                            ref = self.popValue()
+                            appended = quake.ConcatOp(veqTy,
+                                                      [curr_veq, ref]).result
+                            cc.ContinueOp([appended])
+                        elseBlock = Block.create_at_start(ifOp.elseRegion, [])
+                        with InsertionPoint(elseBlock):
+                            cc.ContinueOp([curr_veq])
+                        new_veq = ifOp.result
+                    else:
+                        self.visit(node.elt)
+                        ref = self.popValue()
+                        new_veq = quake.ConcatOp(veqTy, [curr_veq, ref]).result
                     self.symbolTable.endBlock()
-                    new_veq = quake.ConcatOp(veqTy, [curr_veq, ref]).result
                     cc.ContinueOp([i, new_veq])
 
                 loop = self.createForLoop(
@@ -4080,47 +4367,72 @@ class PyASTBridge(ast.NodeVisitor):
                                 TypeAttr.get(listElemTy),
                                 seqSize=iterableSize).result
 
-        # General case of
-        # `listVar = [expr(i) for i in iterable]`
-        # Need to think of this as
-        # `listVar = stdvec(iterable.size)`
-        # `for i, r in enumerate(listVar):`
-        # `   listVar[i] = expr(r)`
-        def bodyBuilder(iterVar):
-            self.symbolTable.beginBlock()
+        def extractIterVal(iterVar):
             if quake.VeqType.isinstance(iterable.type):
-                iterVal = quake.ExtractRefOp(iterTy,
-                                             iterable,
-                                             -1,
-                                             index=iterVar).result
-            else:
-                eleAddr = cc.ComputePtrOp(
-                    cc.PointerType.get(iterTy), iterable, [iterVar],
-                    DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
-                iterVal = cc.LoadOp(eleAddr).result
+                return quake.ExtractRefOp(iterTy, iterable, -1,
+                                          index=iterVar).result
+            eleAddr = cc.ComputePtrOp(
+                cc.PointerType.get(iterTy), iterable, [iterVar],
+                DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
+            return cc.LoadOp(eleAddr).result
 
-            # We don't do support anything within list comprehensions that would
-            # require being careful about assigning references, so simply
-            # adding them to the symbol table is enough for list comprehension.
-            self.__deconstructAssignment(node.generators[0].target, iterVal)
+        def storeElementAt(storeIdx):
             self.visit(node.elt)
             element = self.popValue()
-            # We do need to be careful, however, about validating the list
-            # elements.
+            # We do need to be careful about validating the list elements.
             self.__validate_container_entry(element, node.elt)
-
             listValueAddr = cc.ComputePtrOp(
-                cc.PointerType.get(listElemTy), listValue, [iterVar],
+                cc.PointerType.get(listElemTy), listValue, [storeIdx],
                 DenseI32ArrayAttr.get([kDynamicPtrIndex], context=self.ctx))
             element = self.changeOperandToType(listElemTy,
                                                element,
                                                allowDemotion=False)
             cc.StoreOp(element, listValueAddr)
-            self.symbolTable.endBlock()
 
-        self.createInvariantForLoop(bodyBuilder, iterableSize)
-        res = cc.StdvecInitOp(resultVecTy, listValue,
-                              length=iterableSize).result
+        if not hasFilter:
+
+            def bodyBuilder(iterVar):
+                self.symbolTable.beginBlock()
+                iterVal = extractIterVal(iterVar)
+                self.__deconstructAssignment(node.generators[0].target, iterVal)
+                storeElementAt(iterVar)
+                self.symbolTable.endBlock()
+
+            self.createInvariantForLoop(bodyBuilder, iterableSize)
+            res = cc.StdvecInitOp(resultVecTy, listValue,
+                                  length=iterableSize).result
+            self.pushValue(res)
+            return
+
+        i64Ty = self.getIntegerType()
+        c0 = self.getConstantInt(0)
+        c1 = self.getConstantInt(1)
+
+        def filteredBodyBuilder(args):
+            i, count = args[0], args[1]
+            self.symbolTable.beginBlock()
+            iterVal = extractIterVal(i)
+            self.__deconstructAssignment(node.generators[0].target, iterVal)
+            cond = evalFilter()
+            ifOp = cc.IfOp([i64Ty], cond, [])
+            thenBlock = Block.create_at_start(ifOp.thenRegion, [])
+            with InsertionPoint(thenBlock):
+                storeElementAt(count)
+                cc.ContinueOp([arith.AddIOp(count, c1).result])
+            elseBlock = Block.create_at_start(ifOp.elseRegion, [])
+            with InsertionPoint(elseBlock):
+                cc.ContinueOp([count])
+            nextCount = ifOp.result
+            self.symbolTable.endBlock()
+            cc.ContinueOp([i, nextCount])
+
+        loop = self.createForLoop(
+            [i64Ty, i64Ty],
+            filteredBodyBuilder, [c0, c0], lambda args: arith.CmpIOp(
+                IntegerAttr.get(i64Ty, 2), args[0], iterableSize).result,
+            lambda args: [arith.AddIOp(args[0], c1).result, args[1]])
+        finalCount = loop.results[1]
+        res = cc.StdvecInitOp(resultVecTy, listValue, length=finalCount).result
         self.pushValue(res)
         return
 
@@ -4724,6 +5036,11 @@ class PyASTBridge(ast.NodeVisitor):
 
             # TODO: the In/NotIn case should be recursive such that we can
             # search for a list in a list of lists.
+            # `mz(q1) == mz(q2)` (or with one side being a handle and the
+            # other a `bool`): discriminate each handle to `i1` first and let
+            # `convert_arithmetic_types` finish the integer comparison.
+            item1 = self.__discriminateIfMeasureHandle(item1, node)
+            item2 = self.__discriminateIfMeasureHandle(item2, node)
             item1, item2 = convert_arithmetic_types(item1, item2)
             iCondPred = self.getIntegerAttr(iTy, 0)
             fCondPred = self.getIntegerAttr(iTy, 1)
@@ -4731,10 +5048,10 @@ class PyASTBridge(ast.NodeVisitor):
             if ComplexType.isinstance(item1.type):
                 reComp = arith.CmpFOp(fCondPred,
                                       complex.ReOp(item1).result,
-                                      complex.ReOp(item2).result)
+                                      complex.ReOp(item2).result).result
                 imComp = arith.CmpFOp(fCondPred,
                                       complex.ImOp(item1).result,
-                                      complex.ImOp(item2).result)
+                                      complex.ImOp(item2).result).result
                 return arith.AndIOp(reComp, imComp).result
             elif IntegerType.isinstance(item1.type):
                 return arith.CmpIOp(iCondPred, item1, item2).result
@@ -4853,6 +5170,30 @@ class PyASTBridge(ast.NodeVisitor):
 
             return
 
+    def visit_IfExp(self, node):
+        """Reject ternary `a if cond else b`. Discriminate any handle test
+        first so the `discriminating an unbound measurement handle`
+        diagnostic still fires when applicable; the surface diagnostic for
+        the unsupported construct is unchanged."""
+        self.visit(node.test)
+        if self.valueStack.currentNumValues > 0:
+            test = self.popValue()
+            self.__discriminateIfMeasureHandle(test, node)
+        self.emitFatalError(
+            "CUDA-Q does not currently support ternary IfExp expressions", node)
+
+    def visit_Assert(self, node):
+        """Reject `assert h`. Discriminate any handle test first so the
+        `discriminating an unbound measurement handle` diagnostic still
+        fires when applicable; the surface diagnostic for the unsupported
+        construct is unchanged."""
+        self.visit(node.test)
+        if self.valueStack.currentNumValues > 0:
+            test = self.popValue()
+            self.__discriminateIfMeasureHandle(test, node)
+        self.emitFatalError(
+            "CUDA-Q does not currently support Assert expressions", node)
+
     def visit_If(self, node):
         """Map a Python `ast.If` node to an if statement operation in the CC
         dialect."""
@@ -4897,7 +5238,23 @@ class PyASTBridge(ast.NodeVisitor):
             return
 
         self.walkingReturnNode = True
-        self.visit(node.value)
+        # If we are returning a tuple expression with a struct return type,
+        # signal `visit_Tuple` to coerce each element to its expected member
+        # type before assembling the struct. Without this, an intermediate
+        # struct whose element types include `!cc.measure_handle` is built
+        # and survives to QIR lowering, where it fails to legalize even
+        # though the outer struct is later coerced to the expected type.
+        expectedRet = self.signature.return_type
+        if (isinstance(node.value, ast.Tuple) and expectedRet is not None and
+                cc.StructType.isinstance(expectedRet) and
+                len(cc.StructType.getTypes(expectedRet)) == len(
+                    node.value.elts)):
+            self._tupleReturnExpectedEleTys = cc.StructType.getTypes(
+                expectedRet)
+        try:
+            self.visit(node.value)
+        finally:
+            self._tupleReturnExpectedEleTys = None
         self.walkingReturnNode = False
 
         if self.valueStack.currentNumValues == 0:
@@ -4977,11 +5334,25 @@ class PyASTBridge(ast.NodeVisitor):
     def visit_Tuple(self, node):
         """Map tuples in the Python AST to equivalents in MLIR."""
 
+        # Consume any expected element types set by an outer caller (e.g.
+        # `visit_Return` for a tuple-returning kernel) so per-element type
+        # coercion happens before the struct is assembled. Reset to `None`
+        # immediately so nested tuples in the element visits below do not
+        # inherit this caller's expectations.
+        expectedEleTys = getattr(self, '_tupleReturnExpectedEleTys', None)
+        self._tupleReturnExpectedEleTys = None
+
         [self.visit(el) for el in node.elts]
         elementValues = self.popAllValues(len(node.elts))
         elementValues.reverse()
         for idx, value in enumerate(elementValues):
             self.__validate_container_entry(value, node.elts[idx])
+        if expectedEleTys is not None and len(expectedEleTys) == len(
+                elementValues):
+            elementValues = [
+                self.changeOperandToType(eleTy, val, allowDemotion=True)
+                for eleTy, val in zip(expectedEleTys, elementValues)
+            ]
         struct = self.__createStructWithKnownValues(elementValues)
         self.pushValue(struct)
 
@@ -5066,6 +5437,13 @@ class PyASTBridge(ast.NodeVisitor):
 
         This method handles arithmetic operations between values.
         """
+
+        # `measure_handle` operands in arithmetic context discriminate
+        # through `bool` first. Pre-discriminating here lets
+        # `__get_superior_type` and the `isArithmeticType` check below treat
+        # handles uniformly with any other `i1`-valued operand.
+        left = self.__discriminateIfMeasureHandle(left, self.currentNode)
+        right = self.__discriminateIfMeasureHandle(right, self.currentNode)
 
         # type promotion for anything except pow to match Python behavior
         if not issubclass(nodeType, ast.Pow):
@@ -5379,28 +5757,42 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
     lineNumberOffset = kwargs['location'] if 'location' in kwargs else ('', 0)
     kernelModuleName = kwargs[
         'kernelModuleName'] if 'kernelModuleName' in kwargs else None
+    cudaqAliases = kwargs.get('cudaqAliases', None)
 
-    # Initialize the captured arguments list to be populated by the AST Bridge.
-    signature.captured_args = []
-    # Create the AST Bridge
-    bridge = PyASTBridge(signature,
-                         defFrame,
-                         uniqueId=uniqueId,
-                         verbose=verbose,
-                         locationOffset=lineNumberOffset,
-                         kernelModuleName=kernelModuleName)
+    # Build the AOT Quake Module for this kernel. Wrapped in a single span so
+    # the tracer can separate Python-AST-to-MLIR construction from the AOT
+    # pass pipeline that runs immediately after.
+    with trace.span("ast_bridge.build_module"):
+        # Initialize the captured arguments list to be populated by the AST Bridge.
+        signature.captured_args = []
+        with trace.span("ast_bridge.create_bridge"):
+            bridge = PyASTBridge(signature,
+                                 defFrame,
+                                 uniqueId=uniqueId,
+                                 verbose=verbose,
+                                 locationOffset=lineNumberOffset,
+                                 kernelModuleName=kernelModuleName,
+                                 cudaqAliases=cudaqAliases)
+        with trace.span("ast_bridge.validate_argument_annotations"):
+            ValidateArgumentAnnotations(bridge).visit(astModule)
+        with trace.span("ast_bridge.validate_return_statements"):
+            ValidateReturnStatements(bridge).visit(astModule)
+        bridge.visit(astModule)
 
-    ValidateArgumentAnnotations(bridge).visit(astModule)
-    ValidateReturnStatements(bridge).visit(astModule)
-
-    # Build the AOT Quake Module for this kernel.
-    bridge.visit(astModule)
-
-    # Precompile (simplify) the Module.
+    # Precompile (simplify) the Module. Run via `cudaq_runtime.runPassManager`
+    # so `TracePassInstrumentation` is installed (matching the JIT-side
+    # install at `runtime/internal/compiler/RuntimePyMLIR.cpp`). Without this,
+    # AOT passes execute through upstream MLIR's `pm.run()` without a tracer
+    # attached and per-pass wall-time cannot be attributed.
+    #
+    # The `cudaq.pipeline.aot` span is the marker tooling uses to identify
+    # pass events as AOT-pipeline (paired with `cudaq.pipeline.jit` emitted
+    # from `QPU.cpp` `lower_to_qir_llvm`).
     pm = PassManager.parse("builtin.module(aot-prep-pipeline)",
                            context=bridge.ctx)
     try:
-        pm.run(bridge.module)
+        with trace.span("cudaq.pipeline.aot"):
+            cudaq_runtime.runPassManager(pm, bridge.module)
     except:
         raise RuntimeError(f"could not compile code for '{bridge.name}'.")
 
@@ -5410,8 +5802,13 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
     if verbose:
         print(bridge.module)
     # Clear the live operations cache. This avoids python crashing with
-    # stale references being cached.
-    bridge.module.context._clear_live_operations()
+    # stale references being cached. (MLIR 22+ may expose this as
+    # clear_live_operations instead of _clear_live_operations.)
+    ctx = bridge.module.context
+    clear_fn = getattr(ctx, '_clear_live_operations', None) or getattr(
+        ctx, 'clear_live_operations', None)
+    if clear_fn is not None:
+        clear_fn()
     # The only MLIR code object wrapped & tracked ought to be `newMod` now.
     cudaq_runtime.set_data_layout(bridge.module)
     return bridge.module

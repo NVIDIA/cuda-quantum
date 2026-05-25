@@ -181,6 +181,46 @@ CUDAQ_TEST(KernelsTester, checkFromState) {
   }
 }
 
+CUDAQ_TEST(KernelsTester, checkFromStateBasis) {
+  auto verifyBasis = [](std::size_t numQubits, std::size_t idx) {
+    std::vector<std::complex<double>> state(1ULL << numQubits, 0.0);
+    state[idx] = 1.0;
+    auto kernel = cudaq::make_kernel();
+    auto qubits = kernel.qalloc(numQubits);
+    cudaq::from_state(kernel, qubits, state);
+    auto ss = cudaq::get_state(kernel);
+    for (std::size_t i = 0; i < state.size(); i++)
+      EXPECT_NEAR(std::abs(ss[i] - state[i]), 0.0, 1e-6);
+  };
+
+  for (std::size_t idx = 0; idx < 8; idx++)
+    verifyBasis(3, idx);
+
+  verifyBasis(4, 0);
+  verifyBasis(4, 5);
+  verifyBasis(4, 15);
+
+  {
+    std::vector<std::complex<double>> zero(8, 0.0);
+    auto kernel = cudaq::make_kernel();
+    auto qubits = kernel.qalloc(3);
+    EXPECT_THROW(cudaq::from_state(kernel, qubits, zero),
+                 std::invalid_argument);
+  }
+
+  {
+    constexpr std::size_t numQubits = 16;
+    std::vector<std::complex<double>> state(1ULL << numQubits, 0.0);
+    state[0] = 1.0;
+    auto kernel = cudaq::make_kernel();
+    auto qubits = kernel.qalloc(numQubits);
+    cudaq::from_state(kernel, qubits, state);
+    auto counts = cudaq::sample(kernel);
+    EXPECT_EQ(counts.size(), 1u);
+    EXPECT_EQ(counts.begin()->first, std::string(numQubits, '0'));
+  }
+}
+
 CUDAQ_TEST(KernelsTester, checkSampleBug2937) {
   constexpr int qubit_count = 20;
   auto kernel = cudaq::make_kernel();

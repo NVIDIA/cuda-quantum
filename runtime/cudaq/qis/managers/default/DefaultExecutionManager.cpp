@@ -6,12 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "nvqir/CircuitSimulator.h"
 #include "cudaq/operators.h"
 #include "cudaq/qis/managers/BasicExecutionManager.h"
 #include "cudaq/qis/qudit.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "nvqir/CircuitSimulator.h"
 #include "llvm/ADT/StringSwitch.h"
 #include <span>
 
@@ -147,13 +147,8 @@ protected:
     requestedAllocations.clear();
   }
 
-  void configureExecutionContext(ExecutionContext &ctx) override {
-    BasicExecutionManager::configureExecutionContext(ctx);
-    simulator()->configureExecutionContext(ctx);
-  }
-
-  void finalizeExecutionContext(ExecutionContext &ctx) override {
-    BasicExecutionManager::finalizeExecutionContext(ctx);
+  void finalizeExecutionContextImpl(ExecutionContext &ctx) {
+    BasicExecutionManager::finalizeExecutionContextImpl(ctx);
 
     if (!requestedAllocations.empty()) {
       CUDAQ_INFO("[DefaultExecutionManager] Flushing remaining {} allocations "
@@ -165,6 +160,17 @@ protected:
       simulator()->allocateQubits(requestedAllocations.size());
       requestedAllocations.clear();
     }
+  }
+
+  sample_result finalizeExecutionContext(const sample_policy &policy,
+                                         ExecutionContext &ctx) override {
+    finalizeExecutionContextImpl(ctx);
+    return simulator()->finalizeExecutionContext(policy, ctx);
+  }
+
+  void finalizeExecutionContext(const other_policies &policy,
+                                ExecutionContext &ctx) override {
+    finalizeExecutionContextImpl(ctx);
     simulator()->finalizeExecutionContext(ctx);
   }
 
@@ -277,9 +283,9 @@ protected:
     simulator()->flushGateQueue();
   }
 
-  void measureSpinOp(const cudaq::spin_op &op) override {
+  cudaq::SpinMeasureResult measureSpinOp(const cudaq::spin_op &op) override {
     flushRequestedAllocations();
-    simulator()->measureSpinOp(op);
+    return simulator()->measureSpinOp(op);
   }
 
 public:

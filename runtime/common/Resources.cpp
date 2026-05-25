@@ -87,19 +87,24 @@ void Resources::appendInstruction(const std::string &name,
   for (auto q : allQubits)
     perQubitDepth[q] = newDepth;
 
-  // Update 2Q metrics only for exactly-2-qubit gates.
-  if (allQubits.size() == 2) {
-    twoQubitGateCount++;
-    std::size_t maxDepth2Q = 0;
-    for (auto q : allQubits)
-      maxDepth2Q = std::max(maxDepth2Q, perQubitDepth2Q[q]);
-    std::size_t newDepth2Q = maxDepth2Q + 1;
-    for (auto q : allQubits)
-      perQubitDepth2Q[q] = newDepth2Q;
-  }
+  // Track gate count and depth by arity (total qubit count = controls +
+  // targets, distinct from nControls used in the Instruction key).
+  auto arity = allQubits.size();
+  gateCountByArity[arity]++;
+  auto &arityDepthMap = perQubitDepthByArity[arity];
+  std::size_t maxArityDepth = 0;
+  for (auto q : allQubits)
+    maxArityDepth = std::max(maxArityDepth, arityDepthMap[q]);
+  std::size_t newArityDepth = maxArityDepth + 1;
+  for (auto q : allQubits)
+    arityDepthMap[q] = newArityDepth;
 }
 
 std::size_t Resources::getNumQubits() const { return numQubits; }
+
+void Resources::setNumQubits(std::size_t n) { numQubits = n; }
+
+std::size_t Resources::getNumUsedQubits() const { return perQubitDepth.size(); }
 
 std::size_t Resources::getCircuitDepth() const {
   std::size_t maxDepth = 0;
@@ -108,15 +113,41 @@ std::size_t Resources::getCircuitDepth() const {
   return maxDepth;
 }
 
-std::size_t Resources::getCircuitDepth2Q() const {
+std::size_t Resources::getGateCountByArity(std::size_t arity) const {
+  auto it = gateCountByArity.find(arity);
+  return it != gateCountByArity.end() ? it->second : 0;
+}
+
+std::size_t Resources::getDepthByArity(std::size_t arity) const {
+  auto it = perQubitDepthByArity.find(arity);
+  if (it == perQubitDepthByArity.end())
+    return 0;
   std::size_t maxDepth = 0;
-  for (auto &[qubit, depth] : perQubitDepth2Q)
+  for (auto &[qubit, depth] : it->second)
     maxDepth = std::max(maxDepth, depth);
   return maxDepth;
 }
 
-std::size_t Resources::getTwoQubitGateCount() const {
-  return twoQubitGateCount;
+std::size_t Resources::getMultiQubitGateCount() const {
+  std::size_t total = 0;
+  for (auto &[arity, count] : gateCountByArity)
+    if (arity >= 2)
+      total += count;
+  return total;
+}
+
+std::size_t Resources::getMultiQubitDepth() const {
+  std::size_t maxDepth = 0;
+  for (auto &[arity, depthMap] : perQubitDepthByArity)
+    if (arity >= 2)
+      for (auto &[qubit, depth] : depthMap)
+        maxDepth = std::max(maxDepth, depth);
+  return maxDepth;
+}
+
+const std::map<std::size_t, std::size_t> &
+Resources::getGateCountsByArity() const {
+  return gateCountByArity;
 }
 
 const std::unordered_map<std::size_t, std::size_t> &
@@ -124,17 +155,12 @@ Resources::getPerQubitDepth() const {
   return perQubitDepth;
 }
 
-const std::unordered_map<std::size_t, std::size_t> &
-Resources::getPerQubitDepth2Q() const {
-  return perQubitDepth2Q;
-}
-
 void Resources::dump(std::ostream &os) const {
   os << "Total # of gates: " << totalGates;
   os << ", total # of qubits: " << numQubits;
   os << ", circuit depth: " << getCircuitDepth();
-  os << ", 2Q gate count: " << twoQubitGateCount;
-  os << ", 2Q depth: " << getCircuitDepth2Q();
+  os << ", multi-Q gate count: " << getMultiQubitGateCount();
+  os << ", multi-Q depth: " << getMultiQubitDepth();
   os << "\n";
   os << "{ ";
   os << "\n  ";
@@ -157,8 +183,8 @@ void Resources::clear() {
   numQubits = 0;
   totalGates = 0;
   perQubitDepth.clear();
-  perQubitDepth2Q.clear();
-  twoQubitGateCount = 0;
+  gateCountByArity.clear();
+  perQubitDepthByArity.clear();
 }
 
 void Resources::addQubit() { numQubits++; }

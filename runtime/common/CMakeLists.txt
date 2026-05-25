@@ -12,6 +12,7 @@ set(LIBRARY_NAME cudaq-common)
 set(COMMON_EXTRA_DEPS "")
 set(COMMON_RUNTIME_SRC
   CodeGenConfig.cpp
+  cudaq_json.cpp
   CustomOp.cpp
   DeviceCodeRegistry.cpp
   Environment.cpp
@@ -19,6 +20,7 @@ set(COMMON_RUNTIME_SRC
   Executor.cpp
   ExtraPayloadProvider.cpp
   Future.cpp
+  KernelExecution.cpp
   NoiseModel.cpp
   RecordLogParser.cpp
   Resources.cpp
@@ -26,7 +28,8 @@ set(COMMON_RUNTIME_SRC
   SampleResult.cpp
   ServerHelper.cpp
   Trace.cpp
-  CompiledKernel.cpp
+  CompiledModule.cpp
+  KernelArgs.cpp
   "${CMAKE_BINARY_DIR}/runtime/common/Version.cpp"
 )
 
@@ -48,8 +51,6 @@ target_include_directories(${LIBRARY_NAME}
 target_link_libraries(${LIBRARY_NAME}
   PUBLIC
     cudaq-operator
-    # TODO: This is because the JitEngine is in the ExecutionContext
-    cudaq-mlir-runtime-headers
   PRIVATE
     cudaq-logger
     fmt::fmt-header-only
@@ -57,10 +58,16 @@ target_link_libraries(${LIBRARY_NAME}
 
 # Bug in GCC 12 leads to spurious warnings (-Wrestrict)
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105329
+# Scope to CXX-language compiles via a generator expression so the flag
+# does NOT propagate through cmake's PUBLIC interface options into nvcc
+# command lines for consumer CUDA targets. nvcc forwards host options to
+# its own host compiler, which can be a different gcc than CMAKE_CXX_COMPILER
+# (e.g. CMAKE_CXX_COMPILER=gcc-12 but CMAKE_CUDA_HOST_COMPILER=gcc-13, where
+# gcc-13 has removed --param=evrp-mode= and would error on it).
 if (CMAKE_COMPILER_IS_GNUCXX
   AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12.0.0
   AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13.0.0)
-  target_compile_options(${LIBRARY_NAME} PUBLIC --param=evrp-mode=legacy)
+  target_compile_options(${LIBRARY_NAME} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:--param=evrp-mode=legacy>)
 endif()
 
 # We can only build the RestClient support if we have OpenSSL

@@ -9,11 +9,11 @@
 #include "LinkedLibraryHolder.h"
 #include "common/FmtCore.h"
 #include "common/PluginUtils.h"
+#include "nvqir/CircuitSimulator.h"
 #include "cudaq/Support/TargetConfigYaml.h"
-#include "cudaq/platform.h"
+#include "cudaq/platform/quantum_platform.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/target_control.h"
-#include "nvqir/CircuitSimulator.h"
 #include <fstream>
 #include <regex>
 #include <sstream>
@@ -27,6 +27,10 @@ void __nvqir__setSimulatorInitCallback(void (*)());
 
 // Our hook into configuring the quantum platform.
 extern "C" void setQuantumPlatformInitCallback(void (*)());
+
+namespace cudaq::mpi {
+void set_communicator(void *comm);
+}
 
 namespace cudaq {
 
@@ -185,10 +189,13 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
 
   CUDAQ_INFO("Init: Library Path is {}.", cudaqLibPath.string());
 
-  // We have to ensure that nvqir and cudaq are loaded
+  // Load nvqir, cudaq, and the default execution manager. The em cannot
+  // be a needed dep of libcudaq.so (circular dependency), but downstream
+  // libraries like cuda-qx reference its symbols at dlopen time.
   std::vector<std::filesystem::path> libPaths{
       cudaqLibPath / fmt::format("libnvqir.{}", libSuffix),
-      cudaqLibPath / fmt::format("libcudaq.{}", libSuffix)};
+      cudaqLibPath / fmt::format("libcudaq.{}", libSuffix),
+      cudaqLibPath / fmt::format("libcudaq-em-default.{}", libSuffix)};
 
   const char *dynlibs_var = std::getenv("CUDAQ_DYNLIBS");
   if (dynlibs_var != nullptr) {
@@ -497,6 +504,15 @@ void LinkedLibraryHolder::setTarget(
   } else {
     resetExecutionManagerInternal();
   }
+
+  // If the config (kwargs) contains comm_handle, set it.
+  if (extraConfig.contains("comm_handle")) {
+    intptr_t commPtr = std::stoll(extraConfig["comm_handle"]);
+    CUDAQ_INFO("Setting communicator for target {} with pointer value {}",
+               targetName, commPtr);
+    cudaq::mpi::set_communicator(reinterpret_cast<void *>(commPtr));
+  }
+
   targetInitialized = true;
   // Deregister lazy init callbacks now that a target is configured.
   __nvqir__setSimulatorInitCallback(nullptr);
@@ -508,22 +524,6 @@ std::vector<RuntimeTarget> LinkedLibraryHolder::getTargets() const {
   for (auto &[name, target] : targets)
     ret.emplace_back(target);
   return ret;
-}
-
-void python::detail::switchToResourceCounterSimulator() {
-  nvqir::switchToResourceCounterSimulator();
-}
-
-void python::detail::stopUsingResourceCounterSimulator() {
-  nvqir::stopUsingResourceCounterSimulator();
-}
-
-void python::detail::setChoiceFunction(std::function<bool()> choice) {
-  nvqir::setChoiceFunction(choice);
-}
-
-Resources *python::detail::getResourceCounts() {
-  return nvqir::getResourceCounts();
 }
 
 std::string python::getTransportLayer(LinkedLibraryHolder *holder) {

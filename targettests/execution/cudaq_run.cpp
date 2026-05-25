@@ -56,7 +56,7 @@ struct vector_mz_test {
 #ifdef CUDAQ_LIBRARY_MODE
     return cudaq::measure_result::to_bool_vector(mz(q));
 #else
-    return mz(q);
+    return cudaq::to_bools(mz(q));
 #endif
   }
 };

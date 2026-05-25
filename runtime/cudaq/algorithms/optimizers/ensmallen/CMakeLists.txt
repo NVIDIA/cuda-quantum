@@ -10,7 +10,11 @@ set(LIBRARY_NAME cudaq-ensmallen)
 
 set (CUDAQ_TPLS_DIR ${CMAKE_SOURCE_DIR}/tpls)
 
-set(BLA_STATIC ON)
+if(DEFINED ENV{BLAS_INSTALL_PREFIX})
+  find_library(BLAS_LIBRARIES blas
+    HINTS "$ENV{BLAS_INSTALL_PREFIX}" "$ENV{BLAS_INSTALL_PREFIX}/lib"
+    REQUIRED)
+endif()
 find_package(BLAS REQUIRED)
 
 add_library(${LIBRARY_NAME} SHARED ensmallen.cpp)

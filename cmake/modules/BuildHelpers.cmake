@@ -8,29 +8,42 @@
 
 include_guard()
 
+function(_cudaq_check_openmp_usable RESULT_VAR)
+    find_package(OpenMP)
+    if(NOT OpenMP_CXX_FOUND)
+        set(${RESULT_VAR} FALSE PARENT_SCOPE)
+        return()
+    endif()
+    include(CheckCXXCompilerFlag)
+    set(CMAKE_REQUIRED_FLAGS "${OpenMP_CXX_FLAGS}")
+    check_cxx_compiler_flag("${OpenMP_CXX_FLAGS}" CUDAQ_HAS_OPENMP_FLAG)
+    unset(CMAKE_REQUIRED_FLAGS)
+    set(${RESULT_VAR} ${CUDAQ_HAS_OPENMP_FLAG} PARENT_SCOPE)
+endfunction()
+
 # If OpenMP is enabled and found, adds the necessary compile definitions to the
 # given target, and the necessary dependencies to the given list of dependencies.
 function(add_openmp_configurations TARGET_NAME DEPENDENCIES)
-    find_package(OpenMP)
-    if(OpenMP_CXX_FOUND)
+    _cudaq_check_openmp_usable(_openmp_usable)
+    if(_openmp_usable)
         message(STATUS "OpenMP Found. Adding build flags to target ${TARGET_NAME}: ${OpenMP_CXX_FLAGS}.")
         list(APPEND ${DEPENDENCIES} OpenMP::OpenMP_CXX)
-        set(${DEPENDENCIES} "${${DEPENDENCIES}}" PARENT_SCOPE) 
+        set(${DEPENDENCIES} "${${DEPENDENCIES}}" PARENT_SCOPE)
         target_compile_definitions(${TARGET_NAME} PRIVATE HAS_OPENMP)
     elseif (CUDAQ_REQUIRE_OPENMP)
-        message(FATAL_ERROR "OpenMP not found.")
+        message(FATAL_ERROR "OpenMP not found or compiler rejects OpenMP flags.")
     endif()
 endfunction()
 
 # If OpenMP is enabled and found, adds the necessary compile definitions to the
 # interface dependencies of the given target.
 function(add_openmp_interface_definitions TARGET_NAME)
-    find_package(OpenMP)
-    if(OpenMP_CXX_FOUND)
+    _cudaq_check_openmp_usable(_openmp_usable)
+    if(_openmp_usable)
         message(STATUS "OpenMP Found. Adding interface definitions to target ${TARGET_NAME}.")
         target_compile_definitions(${TARGET_NAME} INTERFACE HAS_OPENMP)
     elseif (CUDAQ_REQUIRE_OPENMP)
-        message(FATAL_ERROR "OpenMP not found.")
+        message(FATAL_ERROR "OpenMP not found or compiler rejects OpenMP flags.")
     endif()
 endfunction()
 

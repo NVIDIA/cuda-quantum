@@ -32,9 +32,9 @@ the CC dialect.
 
 The dialects for Quake and CC are defined in
 
-[Quake](https://github.com/NVIDIA/cuda-quantum/blob/main/include/cudaq/Optimizer/Dialect/Quake/QuakeOps.td)
+[Quake](https://github.com/NVIDIA/cuda-quantum/blob/main/cudaq/include/cudaq/Optimizer/Dialect/Quake/QuakeOps.td)
 
-[CC](https://github.com/NVIDIA/cuda-quantum/blob/main/include/cudaq/Optimizer/Dialect/CC/CCOps.td)
+[CC](https://github.com/NVIDIA/cuda-quantum/blob/main/cudaq/include/cudaq/Optimizer/Dialect/CC/CCOps.td)
 
 We have designed the compiler to be modular, and the compiler workflow itself is
 composed of a set of tools (executables) that achieve a specific task.

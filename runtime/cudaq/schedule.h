@@ -9,9 +9,9 @@
 #pragma once
 #include <complex>
 #include <cstddef>
-#include <cudaq.h>
 #include <functional>
 #include <iterator>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -52,7 +52,7 @@ private:
 public:
   // Default constructor (empty schedule)
   schedule() = default;
-  schedule(pointer ptr) : ptr(ptr){};
+  schedule(pointer ptr) : ptr(ptr) {};
 
   /// @brief Constructor.
   /// @param steps: The sequence of steps in the schedule. Restricted to a
