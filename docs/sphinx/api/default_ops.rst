@@ -455,6 +455,51 @@ Adjoint and Controlled Operations
         // The qubits ctrl_1, ctrl_2, and target are now in a state
         // (|000> + exp(iπ/4)|111>) / √2.
 
+For parameterized gates such as the rotation gates :code:`rx`, :code:`ry`,
+:code:`rz`, :code:`r1`, and :code:`u3`, the gate parameters precede the
+qubit arguments. The last qubit is the target; any preceding qubits are
+control qubits.
+
+.. tab:: Python
+
+    .. code-block:: python
+
+        # Allocate qubits in a |0> state.
+        ctrl, target = cudaq.qubit(), cudaq.qubit()
+        # Put `ctrl` into the |1> state so the controlled rotation fires.
+        x(ctrl)
+
+        # Apply a controlled rx rotation by `angle` on `target`,
+        # conditioned on `ctrl` being in the |1> state.
+        # Argument order: parameters first, then control(s), then target.
+        angle = 0.5
+        rx.ctrl(angle, ctrl, target)
+
+        # Multiple controls: all preceding qubits are controls,
+        # the last qubit is the target.
+        ctrl_1, ctrl_2 = cudaq.qubit(), cudaq.qubit()
+        rz.ctrl(angle, ctrl_1, ctrl_2, target)
+
+.. tab:: C++
+
+    .. code-block:: cpp
+
+        // Allocate qubits in a |0> state.
+        cudaq::qubit ctrl, target;
+        // Put `ctrl` into the |1> state so the controlled rotation fires.
+        x(ctrl);
+
+        // Apply a controlled rx rotation by `angle` on `target`,
+        // conditioned on `ctrl` being in the |1> state.
+        // Argument order: parameters first, then control(s), then target.
+        double angle = 0.5;
+        rx<cudaq::ctrl>(angle, ctrl, target);
+
+        // Multiple controls: all preceding qubits are controls,
+        // the last qubit is the target.
+        cudaq::qubit ctrl_1, ctrl_2;
+        rz<cudaq::ctrl>(angle, ctrl_1, ctrl_2, target);
+
 
 Following common convention, by default the transformation is applied to the target qubit(s)
 if all control qubits are in a :code:`|1>` state. 
