@@ -76,7 +76,7 @@ jobs:
 
   compile:
     name: Compile realtime-enabled CUDA-Q
-    needs: config_cuda_deps
+    needs: [metadata, config_cuda_deps]
     strategy:
       fail-fast: false
       matrix:
