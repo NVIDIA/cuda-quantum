@@ -53,6 +53,8 @@ RUN echo "Building MLIR bindings for python${python_version}" && \
 
 # The manylinux wheel Python provides extension-module support but not an
 # embeddable libpython target, so keep Python linkage in the wheel mode.
+# This Docker-only source build also links bundled CPR/curl with static OpenSSL;
+# add libdl locally for OpenSSL dlfcn objects without changing shared CMake.
 RUN set -euo pipefail; \
     cuda_version="${CUDA_VERSION}"; \
     python_exe="$(which python${python_version})"; \
@@ -81,6 +83,7 @@ RUN set -euo pipefail; \
     bash scripts/build_cudaq.sh -v -B "${build_root}/cudaq" -- \
       -DCUDAQ_REALTIME_DIR="${realtime_prefix}" \
       -DSKBUILD=ON \
+      -DCMAKE_CXX_STANDARD_LIBRARIES=-ldl \
       -DPython_EXECUTABLE="${python_exe}" \
       -DPython3_EXECUTABLE="${python_exe}"; \
     cmake --build "${build_root}/cudaq" --parallel "$(nproc)"; \
