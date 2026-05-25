@@ -32,9 +32,10 @@ int main() {
   auto counts = cudaq::estimate_resources([&](){ return i++ < 5; }, kernel);
   counts.dump();
 
-  // CHECK: Total # of gates: 11
+  // CHECK: Total # of gates: 17
   // CHECK-DAG: h :  6
   // CHECK-DAG: rz :  5
+  // CHECK-DAG: mz :  6
 
   return 0;
 }
