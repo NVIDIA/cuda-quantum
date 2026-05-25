@@ -51,6 +51,8 @@ RUN echo "Building MLIR bindings for python${python_version}" && \
     bash /scripts/build_mlir_python_bindings.sh
 # END duplicated MLIR Python setup from cudaq.wheel.Dockerfile.
 
+# The manylinux wheel Python provides extension-module support but not an
+# embeddable libpython target, so keep Python linkage in the wheel mode.
 RUN set -euo pipefail; \
     cuda_version="${CUDA_VERSION}"; \
     python_exe="$(which python${python_version})"; \
@@ -78,6 +80,7 @@ RUN set -euo pipefail; \
     git config --global --add safe.directory "*"; \
     bash scripts/build_cudaq.sh -v -B "${build_root}/cudaq" -- \
       -DCUDAQ_REALTIME_DIR="${realtime_prefix}" \
+      -DSKBUILD=ON \
       -DPython_EXECUTABLE="${python_exe}" \
       -DPython3_EXECUTABLE="${python_exe}"; \
     cmake --build "${build_root}/cudaq" --parallel "$(nproc)"; \
