@@ -98,8 +98,20 @@ def _parse_qasm2_rotation_ops(qasm):
             for m in re.finditer(r'\b(r[xyz])\(([^)]+)\)', body)]
 
 
+def _assert_qasm2_s_or_t_adjoint(asm, direct_gate, rz_angle):
+    body = asm[asm.index('qreg'):]
+    if f"{direct_gate} var0[0];" in body:
+        return
+
+    ops = _parse_qasm2_rotation_ops(asm)
+    assert len(ops) == 1
+    gate, angle = ops[0]
+    assert gate == "rz"
+    assert math.isclose(angle, rz_angle, rel_tol=1e-5)
+
+
 def test_translate_builder_adjoint_s_openqasm():
-    # adjoint(s) should produce the direct OpenQASM s-dagger gate.
+    # adjoint(s) may be preserved as s-dagger or lowered to the equivalent rz.
     def inner():
         k, q = cudaq.make_kernel(cudaq.qubit)
         k.s(q)
@@ -107,8 +119,7 @@ def test_translate_builder_adjoint_s_openqasm():
 
     asm = _adjoint_openqasm(inner)
     assert "OPENQASM 2.0;" in asm
-    body = asm[asm.index('qreg'):]
-    assert "sdg var0[0];" in body
+    _assert_qasm2_s_or_t_adjoint(asm, "sdg", -math.pi / 2)
 
 
 def test_translate_builder_adjoint_rx_openqasm():
@@ -160,7 +171,7 @@ def test_translate_builder_adjoint_rz_openqasm():
 
 
 def test_translate_builder_adjoint_t_openqasm():
-    # adjoint(t) should produce the direct OpenQASM t-dagger gate.
+    # adjoint(t) may be preserved as t-dagger or lowered to the equivalent rz.
     def inner():
         k, q = cudaq.make_kernel(cudaq.qubit)
         k.t(q)
@@ -168,5 +179,4 @@ def test_translate_builder_adjoint_t_openqasm():
 
     asm = _adjoint_openqasm(inner)
     assert "OPENQASM 2.0;" in asm
-    body = asm[asm.index('qreg'):]
-    assert "tdg var0[0];" in body
+    _assert_qasm2_s_or_t_adjoint(asm, "tdg", -math.pi / 4)
