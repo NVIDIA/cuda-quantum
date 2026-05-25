@@ -342,11 +342,8 @@ static LogicalResult checkAndExtractControls(cudaq::quake::OperatorInterface op,
   static cudaq::DecompositionPatternTypeRegistry::Add<PATTERN##Type> CONCAT(   \
       TEMPNAME_, PATTERN)(#PATTERN, "");
 
-// NOTE: The controlled patterns SToR1, TToR1, R1ToU3, and U3ToRotations handle
-// arbitrary control counts and are registered with (n) metadata. Bare S/T use
-// separate metadata so a target can preserve bare S/T while decomposing
-// controlled forms. R1ToRz explicitly rejects controlled ops and uses bare
-// metadata.
+// Bare S/T must stay separate from controlled S/T so targets can preserve
+// bare Clifford+T gates without accepting all controlled forms.
 
 //===----------------------------------------------------------------------===//
 // HOp decompositions
@@ -826,6 +823,39 @@ REGISTER_DECOMPOSITION_PATTERN(SToR1Bare, "s", "r1");
 // quake.s [control] target
 // ────────────────────────────────────
 // quake.r1(π/2) [control] target
+struct SToR1OneControlType; // forward declare the pattern type, defined in
+                            // the macro below
+struct SToR1OneControl : public cudaq::DecompositionPattern<SToR1OneControlType,
+                                                            cudaq::quake::SOp> {
+  using cudaq::DecompositionPattern<SToR1OneControlType,
+                                    cudaq::quake::SOp>::DecompositionPattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::SOp op,
+                                PatternRewriter &rewriter) const override {
+    if (failed(checkNumControls(op, 1)))
+      return failure();
+
+    auto loc = op->getLoc();
+    auto angle = createConstant(loc, op.isAdj() ? -M_PI_2 : M_PI_2,
+                                rewriter.getF64Type(), rewriter);
+
+    SmallVector<Value> controls(op.getControls());
+    Value target = op.getTarget();
+    QuakeOperatorCreator qRewriter(rewriter);
+    qRewriter.create<cudaq::quake::R1Op>(loc, angle, controls, target);
+
+    qRewriter.selectWiresAndReplaceUses(op, controls, target);
+    rewriter.eraseOp(op);
+    return success();
+  }
+};
+// One-control S/T can lower through CR1ToCX because the target basis includes
+// x(1).
+REGISTER_DECOMPOSITION_PATTERN(SToR1OneControl, "s(1)", "r1(1)");
+
+// quake.s [control] target
+// ────────────────────────────────────
+// quake.r1(π/2) [control] target
 //
 // Adding this gate equivalence will enable further decomposition via other
 // patterns such as controlled-r1 to cnot.
@@ -941,6 +971,36 @@ struct TToR1Bare
   }
 };
 REGISTER_DECOMPOSITION_PATTERN(TToR1Bare, "t", "r1");
+
+// quake.t [control] target
+// ────────────────────────────────────
+// quake.r1(π/4) [control] target
+struct TToR1OneControlType; // forward declare the pattern type, defined in
+                            // the macro below
+struct TToR1OneControl : public cudaq::DecompositionPattern<TToR1OneControlType,
+                                                            cudaq::quake::TOp> {
+  using cudaq::DecompositionPattern<TToR1OneControlType,
+                                    cudaq::quake::TOp>::DecompositionPattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::TOp op,
+                                PatternRewriter &rewriter) const override {
+    if (failed(checkNumControls(op, 1)))
+      return failure();
+
+    auto loc = op->getLoc();
+    auto angle = createConstant(loc, op.isAdj() ? -M_PI_4 : M_PI_4,
+                                rewriter.getF64Type(), rewriter);
+    SmallVector<Value> controls(op.getControls());
+    Value target = op.getTarget();
+    QuakeOperatorCreator qRewriter(rewriter);
+    qRewriter.create<cudaq::quake::R1Op>(loc, angle, controls, target);
+
+    qRewriter.selectWiresAndReplaceUses(op, controls, target);
+    rewriter.eraseOp(op);
+    return success();
+  }
+};
+REGISTER_DECOMPOSITION_PATTERN(TToR1OneControl, "t(1)", "r1(1)");
 
 // quake.t [control] target
 // ────────────────────────────────────

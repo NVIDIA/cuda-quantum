@@ -116,6 +116,11 @@ DecompositionGraph createTestGraph() {
   auto pattern_x_adj = std::make_unique<PatternTypeTest>(
       "pattern_x_adj", "x<adj>", std::vector<llvm::StringRef>{"x"});
 
+  auto pattern_s_any_to_r1_any = std::make_unique<PatternTypeTest>(
+      "pattern_s_any_to_r1_any", "s(n)", std::vector<llvm::StringRef>{"r1(n)"});
+  auto pattern_s_one_to_r1_one = std::make_unique<PatternTypeTest>(
+      "pattern_s_one_to_r1_one", "s(1)", std::vector<llvm::StringRef>{"r1(1)"});
+
   llvm::StringMap<std::unique_ptr<cudaq::DecompositionPatternType>> patterns;
   patterns.insert({pattern_x1->getPatternName(), std::move(pattern_x1)});
   patterns.insert({pattern_x2->getPatternName(), std::move(pattern_x2)});
@@ -129,6 +134,10 @@ DecompositionGraph createTestGraph() {
   patterns.insert({pattern_zh1->getPatternName(), std::move(pattern_zh1)});
   patterns.insert({pattern_zh2->getPatternName(), std::move(pattern_zh2)});
   patterns.insert({pattern_x_adj->getPatternName(), std::move(pattern_x_adj)});
+  patterns.insert({pattern_s_any_to_r1_any->getPatternName(),
+                   std::move(pattern_s_any_to_r1_any)});
+  patterns.insert({pattern_s_one_to_r1_one->getPatternName(),
+                   std::move(pattern_s_one_to_r1_one)});
   return DecompositionGraph(std::move(patterns));
 }
 
@@ -356,6 +365,26 @@ TEST_F(DummyDecompositionPatternSelectionTest,
   EXPECT_EQ(selectedPatterns, exp);
 }
 
+TEST_F(DummyDecompositionPatternSelectionTest,
+       BareR1DoesNotProveUnboundedR1Reachable) {
+  std::vector<std::string> targetBasis{"r1"};
+  auto selectedPatterns = selectPatterns(targetBasis);
+
+  EXPECT_EQ(std::find(selectedPatterns.begin(), selectedPatterns.end(),
+                      "pattern_s_any_to_r1_any"),
+            selectedPatterns.end());
+}
+
+TEST_F(DummyDecompositionPatternSelectionTest,
+       UnboundedR1BasisCoversConcreteControlledR1) {
+  std::vector<std::string> targetBasis{"r1(n)"};
+  auto selectedPatterns = selectPatterns(targetBasis);
+
+  EXPECT_NE(std::find(selectedPatterns.begin(), selectedPatterns.end(),
+                      "pattern_s_one_to_r1_one"),
+            selectedPatterns.end());
+}
+
 //===----------------------------------------------------------------------===//
 // Test selectDecompositionPatterns on the registered decomposition graph
 //===----------------------------------------------------------------------===//
@@ -448,15 +477,21 @@ TEST_F(FullDecompositionPatternSelectionTest, SelectAdjointRotationPatterns) {
 }
 
 TEST_F(FullDecompositionPatternSelectionTest,
-       SelectsPatternsForControlledSTWhenOnlyBareSTAreLegal) {
+       SelectsOnlyOneControlSTLoweringForFTQCLogicalBasis) {
   std::vector<std::string> targetBasis{"h",  "s", "t", "rx", "ry",
                                        "rz", "x", "y", "z",  "x(1)"};
   auto selectedPatterns = selectPatterns(targetBasis);
 
-  EXPECT_NE(
+  EXPECT_NE(std::find(selectedPatterns.begin(), selectedPatterns.end(),
+                      "SToR1OneControl"),
+            selectedPatterns.end());
+  EXPECT_NE(std::find(selectedPatterns.begin(), selectedPatterns.end(),
+                      "TToR1OneControl"),
+            selectedPatterns.end());
+  EXPECT_EQ(
       std::find(selectedPatterns.begin(), selectedPatterns.end(), "SToR1"),
       selectedPatterns.end());
-  EXPECT_NE(
+  EXPECT_EQ(
       std::find(selectedPatterns.begin(), selectedPatterns.end(), "TToR1"),
       selectedPatterns.end());
 }

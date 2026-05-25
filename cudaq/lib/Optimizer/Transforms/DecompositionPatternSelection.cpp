@@ -57,13 +57,13 @@ struct OperatorInfo {
     return numControls == std::numeric_limits<std::size_t>::max();
   }
 
-  /// Check if this gate matches another, treating unbounded (n) control
-  /// count as a wildcard that matches any concrete count.
-  bool matches(const OperatorInfo &other) const {
+  /// Check if this gate covers another gate.
+  bool covers(const OperatorInfo &other) const {
     if (name != other.name || isAdj != other.isAdj)
       return false;
-    constexpr auto unbounded = std::numeric_limits<std::size_t>::max();
-    if (numControls == unbounded || other.numControls == unbounded)
+    // Pattern metadata may use (n) as a wildcard, but target legality is
+    // directional: x(n) covers x(1), while x(1) does not cover x(n).
+    if (isUnbounded())
       return true;
     return numControls == other.numControls;
   }
@@ -71,13 +71,7 @@ struct OperatorInfo {
   /// Check if this basis entry makes another gate legal, matching
   /// ConversionTarget semantics. A concrete basis entry does not make an
   /// unbounded source pattern legal.
-  bool makesLegal(const OperatorInfo &other) const {
-    if (name != other.name || isAdj != other.isAdj)
-      return false;
-    if (isUnbounded())
-      return true;
-    return numControls == other.numControls;
-  }
+  bool makesLegal(const OperatorInfo &other) const { return covers(other); }
 };
 
 struct BasisTarget : public ConversionTarget {
@@ -189,12 +183,11 @@ public:
   }
 
   /// Return all patterns that have the given gate as one of their targets.
-  /// Uses OperatorInfo::matches() to handle unbounded (n) control counts.
   llvm::SmallVector<std::string>
   incomingPatterns(const OperatorInfo &gate) const {
     llvm::SmallVector<std::string> result;
     for (const auto &[key, patterns] : targetToPatterns) {
-      if (key.matches(gate))
+      if (gate.covers(key))
         result.append(patterns.begin(), patterns.end());
     }
     return result;
@@ -294,10 +287,10 @@ private:
       auto it = visitedGates.find(gate);
       if (it != visitedGates.end())
         return it->second;
-      // Scan for wildcard matches (either side could be unbounded).
+      // Scan for wildcard matches.
       std::size_t best = std::numeric_limits<std::size_t>::max();
       for (const auto &[visited, dist] : visitedGates) {
-        if (visited.matches(gate))
+        if (visited.covers(gate))
           best = std::min(best, dist);
       }
       return best;

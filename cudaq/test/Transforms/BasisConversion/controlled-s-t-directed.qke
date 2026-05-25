@@ -1,0 +1,28 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --basis-conversion="basis=h,s,t,rx,ry,rz,x,y,z,x(1)" %s | FileCheck %s
+
+// CHECK-LABEL: func.func @one_control_s_t
+func.func @one_control_s_t(%ctrl: !quake.ref, %target: !quake.ref) {
+  quake.s [%ctrl] %target : (!quake.ref, !quake.ref) -> ()
+  quake.t [%ctrl] %target : (!quake.ref, !quake.ref) -> ()
+  // CHECK-NOT: quake.s [
+  // CHECK-NOT: quake.t [
+  // CHECK: quake.rz
+  // CHECK: quake.x
+  // CHECK: quake.rz
+  // CHECK: quake.x
+  // CHECK: quake.rz
+  // CHECK: quake.rz
+  // CHECK: quake.x
+  // CHECK: quake.rz
+  // CHECK: quake.x
+  // CHECK: quake.rz
+  return
+}
