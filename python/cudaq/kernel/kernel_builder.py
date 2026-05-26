@@ -58,7 +58,7 @@ def __generalOperation(self,
     opCtor = getattr(quake, '{}Op'.format(opName.title()))
     if hasattr(self, 'qkeModule'):
         del self.qkeModule
-    self._compiled_module = None
+    self._compiled_module = cudaq_runtime.CompiledModulePtr()
 
     if quake.RefType.isinstance(target.mlirValue.type):
         opCtor([], parameters, controls, [target.mlirValue], is_adj=isAdj)
@@ -196,7 +196,7 @@ def __generalCustomOperation(self, opName, *args):
     qubits = []
     if hasattr(self, 'qkeModule'):
         del self.qkeModule
-    self._compiled_module = None
+    self._compiled_module = cudaq_runtime.CompiledModulePtr()
     with self.insertPoint, self.loc:
         for arg in args:
             if isinstance(arg, QuakeValue):
@@ -270,7 +270,7 @@ class PyKernel(object):
         # noise classes)
         self.appliedNoiseChannels = []
 
-        self._compiled_module = None
+        self._compiled_module = cudaq_runtime.CompiledModulePtr()
 
         with self.ctx, InsertionPoint(self.module.body), self.loc:
             self.mlirArgTypes = [
@@ -685,7 +685,7 @@ class PyKernel(object):
         """
         if hasattr(self, 'qkeModule'):
             del self.qkeModule
-        self._compiled_module = None
+        self._compiled_module = cudaq_runtime.CompiledModulePtr()
         with self.insertPoint, self.loc:
             if isinstance(target, cc.CreateLambdaOp):
                 otherFuncCloned = target
@@ -1764,7 +1764,7 @@ class PyKernel(object):
         self.compile()
         specialized = cudaq_runtime.cloneModule(self.qkeModule)
         cudaq_runtime.marshal_and_launch_module(self.name, specialized,
-                                                self._compiled_module,
+                                                self._compiled_module, "call",
                                                 *processedArgs)
 
     def __getattr__(self, attr_name):

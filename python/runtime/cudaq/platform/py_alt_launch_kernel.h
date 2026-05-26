@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/CompiledModule.h"
 #include "utils/OpaqueArguments.h"
 #include "utils/PyTypes.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
@@ -18,10 +19,16 @@
 #include <nanobind/stl/function.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
+#include <optional>
 #include <string>
 #include <vector>
 
 namespace cudaq {
+
+/// A Python-owned mutable handle to a CompiledModule. Python passes one of
+/// these through the launch entry points so that C++ can install (cache) a
+/// JIT-compiled module and reuse it on subsequent calls.
+using CompiledModulePtr = std::shared_ptr<CompiledModule>;
 
 /// @brief Set current architecture's data layout attribute on a module.
 void setDataLayout(MlirModule module);
@@ -51,7 +58,8 @@ void bindAltLaunchKernel(nanobind::module_ &mod,
 /// FuncOp. \p module must be modifiable.
 nanobind::object marshal_and_launch_module(const std::string &kernelName,
                                            MlirModule module,
-                                           CompiledModule *compiled,
+                                           CompiledModulePtr *compiled,
+                                           const std::string &launchInfo,
                                            nanobind::args runtimeArgs);
 
 /// Pure C++ code that launches a kernel. Argument marshaling and result
@@ -59,7 +67,8 @@ nanobind::object marshal_and_launch_module(const std::string &kernelName,
 /// CompiledModule handle (nullable; reserved for future JIT caching).
 KernelThunkResultType clean_launch_module(const std::string &kernelName,
                                           mlir::ModuleOp mod,
-                                          CompiledModule *compiled,
+                                          CompiledModulePtr *compiled,
+                                          const std::string &launchInfo,
                                           OpaqueArguments &args);
 
 /// Marshal python arguments into an OpaqueArguments for kernel launch.

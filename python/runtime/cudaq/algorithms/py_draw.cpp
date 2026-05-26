@@ -16,13 +16,13 @@
 /// launch \p kernel.
 static std::string pyDraw(const std::string &format,
                           const std::string &shortName, MlirModule mod,
-                          cudaq::CompiledModule *compiled,
+                          cudaq::CompiledModulePtr *compiled,
                           nanobind::args runtimeArgs) {
   if (format != "ascii" && format != "latex")
     throw std::runtime_error("format argument must be \"ascii\" or \"latex\".");
 
   auto f = [=]() {
-    return cudaq::marshal_and_launch_module(shortName, mod, compiled,
+    return cudaq::marshal_and_launch_module(shortName, mod, compiled, "draw",
                                             runtimeArgs);
   };
   if (format == "ascii")
@@ -35,7 +35,7 @@ void cudaq::bindPyDraw(nanobind::module_ &mod) {
   mod.def(
       "draw_impl",
       [](const std::string &format, const std::string &shortName,
-         MlirModule mod, cudaq::CompiledModule *compiled,
+         MlirModule mod, cudaq::CompiledModulePtr *compiled,
          nanobind::args runtimeArgs) {
         return pyDraw(format, shortName, mod, compiled, runtimeArgs);
       },

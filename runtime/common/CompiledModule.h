@@ -186,6 +186,10 @@ public:
   struct CompilationMetadata {
     /// Qubit reorder indices emitted by the qubit-mapping pass.
     std::vector<std::size_t> reorderIdx;
+    /// Tag of the most launch flow (e.g., "run", "draw", "sample") that
+    /// produced this CompiledModule.
+    std::string launchMode;
+    // TODO: Add hash of initial module to serve as cache key.
   };
 
   // --- Queries ---
@@ -245,6 +249,7 @@ public:
   const std::string &getName() const { return name; }
   const ResultInfo &getResultInfo() const { return resultInfo; }
   const CompilationMetadata &getMetadata() const { return metadata; }
+  CompilationMetadata &getMutableMetadata() { return metadata; }
 
 protected:
   FatQuakeModule(std::string kernelName);

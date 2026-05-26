@@ -139,7 +139,7 @@ class PyKernelDecorator(object):
         self.verbose = verbose
         # Caches the `qkeModule` property once compiled
         self._cached_qkeModule = None
-        self._compiled_module = None
+        self._compiled_module = cudaq_runtime.CompiledModulePtr()
         self.defFrame = _recover_defining_frame()
         # Whether we are currently resolving arguments to self. Used to detect
         # (and prevent) recursive kernel calls.
@@ -580,8 +580,8 @@ class PyKernelDecorator(object):
             arguments.
         `module` : Module
             A clone of the MLIR module to be used for kernel execution.
-        `compiled` : CompiledModule | None
-            The kernel's CompiledModule handle (may be None).
+        `compiled` : CompiledModulePtr
+            The kernel's CompiledModule slot (in/out).
         """
         processed_args = self.process_call_arguments(
             *args, allow_no_args=allow_no_args)
@@ -637,7 +637,7 @@ class PyKernelDecorator(object):
 
         processed_args, module, compiled = self.prepare_call(*args)
         return cudaq_runtime.marshal_and_launch_module(self.uniqName, module,
-                                                       compiled,
+                                                       compiled, "call",
                                                        *processed_args)
 
     def beta_reduction(self, isEntryPoint, *args):

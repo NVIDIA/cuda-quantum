@@ -41,7 +41,7 @@ using namespace cudaq;
 // std::optional types for all nullable parameters instead.
 static ptsbe::sample_result
 pySamplePTSBE(const std::string &shortName, MlirModule module,
-              cudaq::CompiledModule *compiled, std::size_t shots_count,
+              cudaq::CompiledModulePtr *compiled, std::size_t shots_count,
               noise_model noiseModel,
               std::optional<std::size_t> max_trajectories,
               std::optional<std::shared_ptr<ptsbe::PTSSamplingStrategy>>
@@ -77,8 +77,8 @@ pySamplePTSBE(const std::string &shortName, MlirModule module,
     nanobind::gil_scoped_release release;
     result = ptsbe::detail::runSamplingPTSBE(
         [&]() mutable {
-          [[maybe_unused]] auto res =
-              clean_launch_module(shortName, mod, compiled, opaques);
+          [[maybe_unused]] auto res = clean_launch_module(
+              shortName, mod, compiled, "ptsbe.sample", opaques);
         },
         platform, shortName, shots_count, ptsbe_options);
   } catch (const std::exception &e) {
@@ -146,7 +146,7 @@ pySampleAsyncPTSBE(const std::string &shortName, MlirModule module,
   return AsyncPTSBESampleResultImpl(ptsbe::detail::runSamplingAsyncPTSBE(
       [opaques = std::move(opaques), kernelName, mod = mod.clone()]() mutable {
         [[maybe_unused]] auto result =
-            clean_launch_module(kernelName, mod, nullptr, opaques);
+            clean_launch_module(kernelName, mod, nullptr, "", opaques);
       },
       platform, kernelName, shots_count, ptsbe_options, /*qpu_id=*/0,
       noiseModel));
@@ -402,7 +402,7 @@ void cudaq::bindSamplePTSBE(nanobind::module_ &mod) {
 
   // PTSBE sample implementation
   ptsbe.def("sample_impl", pySamplePTSBE, nanobind::arg("kernel_name"),
-            nanobind::arg("module"), nanobind::arg("compiled").none(),
+            nanobind::arg("module"), nanobind::arg("compiled"),
             nanobind::arg("shots_count"), nanobind::arg("noise_model"),
             nanobind::arg("max_trajectories").none(),
             nanobind::arg("sampling_strategy").none(),

@@ -59,7 +59,7 @@ getFuncOpAndCheckResult(mlir::ModuleOp mod, const std::string &shortName) {
 
 static details::RunResultSpan
 pyRunTheKernel(const std::string &name, quantum_platform &platform,
-               mlir::ModuleOp mod, CompiledModule *compiled,
+               mlir::ModuleOp mod, CompiledModulePtr *compiled,
                std::size_t shots_count, std::size_t qpu_id,
                OpaqueArguments &opaques, bool allowCaching) {
   if (!name.ends_with(".run"))
@@ -87,7 +87,7 @@ pyRunTheKernel(const std::string &name, quantum_platform &platform,
   auto results = details::runTheKernel(
       [&]() mutable {
         [[maybe_unused]] auto result =
-            clean_launch_module(name, mod, compiled, opaques);
+            clean_launch_module(name, mod, compiled, "run", opaques);
       },
       platform, name, name, shots_count, layoutInfo, qpu_id, allowCaching);
 
@@ -104,7 +104,7 @@ pyReadResults(details::RunResultSpan results, mlir::ModuleOp mod,
 /// @brief Run `cudaq::run` on the provided kernel.
 static std::vector<nanobind::object>
 run_impl(const std::string &shortName, MlirModule module,
-         cudaq::CompiledModule *compiled, std::size_t shots_count,
+         cudaq::CompiledModulePtr *compiled, std::size_t shots_count,
          std::optional<noise_model> noise_model, std::size_t qpu_id,
          nanobind::args runtimeArgs) {
   if (shots_count == 0)
@@ -246,7 +246,7 @@ run_async_impl(const std::string &shortName, MlirModule module,
 /// @brief Bind the run cudaq function.
 void cudaq::bindPyRun(nanobind::module_ &mod) {
   mod.def("run_impl", run_impl, nanobind::arg(), nanobind::arg(),
-          nanobind::arg().none(), nanobind::arg(), nanobind::arg().none(),
+          nanobind::arg(), nanobind::arg(), nanobind::arg().none(),
           nanobind::arg(), nanobind::arg(),
           R"#(
 Run the provided `kernel` with the given kernel arguments over the specified
