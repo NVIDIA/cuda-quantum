@@ -100,8 +100,6 @@ if __name__ == "__main__":
     loc = os.path.abspath(__file__)
     pytest.main([loc, "-rP"])
 
-
-
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__static_empty_slice..0x
 # CHECK:           %[[CONSTANT_0:.*]] = arith.constant 0 : i64
 # CHECK:           %[[CONSTANT_1:.*]] = arith.constant 1 : i64
@@ -124,7 +122,6 @@ if __name__ == "__main__":
 # CHECK:               cc.condition %[[CMPI_0]](%[[VAL_0]] : i64)
 # CHECK:             } do {
 # CHECK: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__dynamic_empty_slice..0x
 # CHECK:           %[[CONSTANT_0:.*]] = arith.constant 0 : i64
