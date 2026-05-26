@@ -102,7 +102,7 @@ struct ForwardConstantVeqSizePattern
 };
 
 // %3 = cc.undef !quake.veq<?>
-// %4 = quake.veq_size %3 : (!quake.veq<?>) -> 164
+// %4 = quake.veq_size %3 : (!quake.veq<?>) -> i64
 // ────────────────────────────────────────────────
 // %4 = constant 0 : i64
 struct ForwardEmptyVeqSizePattern
