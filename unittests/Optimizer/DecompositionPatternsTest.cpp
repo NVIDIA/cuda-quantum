@@ -487,6 +487,15 @@ TEST_F(DecompositionPatternsTest, SAndTToR1AcceptDynamicControlsWhenNEnabled) {
   EXPECT_EQ(countOps<cudaq::quake::R1Op>(tModule), 1u);
 }
 
+TEST_F(DecompositionPatternsTest, R1ToRzDoesNotRewriteAdjointR1) {
+  auto module = createTestModule(context.get(), "r1<adj>");
+
+  ASSERT_TRUE(succeeded(applySinglePattern(module, "R1ToRz", {})));
+
+  EXPECT_EQ(countOps<cudaq::quake::R1Op>(module), 1u);
+  EXPECT_EQ(countOps<cudaq::quake::RzOp>(module), 0u);
+}
+
 // Test 4: Verify pattern decompositions produce only target gates
 TEST_F(DecompositionPatternsTest, DecompositionProducesOnlyTargetGates) {
   auto patternEntries = cudaq::DecompositionPatternTypeRegistry::entries();

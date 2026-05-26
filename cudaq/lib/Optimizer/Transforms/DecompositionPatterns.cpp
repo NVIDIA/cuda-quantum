@@ -607,7 +607,7 @@ struct R1ToRz
 
   LogicalResult matchAndRewrite(cudaq::quake::R1Op r1Op,
                                 PatternRewriter &rewriter) const override {
-    if (!r1Op.getControls().empty())
+    if (r1Op.isAdj() || !r1Op.getControls().empty())
       return failure();
 
     rewriter.replaceOpWithNewOp<cudaq::quake::RzOp>(
