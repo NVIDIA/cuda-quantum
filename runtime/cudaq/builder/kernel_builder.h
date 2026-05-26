@@ -11,6 +11,7 @@
 #include "cudaq/builder/QuakeValue.h"
 #include "cudaq/host_config.h"
 #include "cudaq/qis/modifiers.h"
+#include "cudaq/qis/pauli_word.h"
 #include "cudaq/qis/qvector.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cstring>
@@ -36,7 +37,6 @@ class PassManager;
 } // namespace mlir
 
 namespace cudaq {
-class pauli_word;
 
 std::string get_quake_by_name(const std::string &);
 
@@ -224,6 +224,20 @@ CUDAQ_DETAILS_MEASURE_DECLARATION(mx)
 CUDAQ_DETAILS_MEASURE_DECLARATION(my)
 CUDAQ_DETAILS_MEASURE_DECLARATION(mz)
 
+/// @brief Declare a detector over one or more measurement results.
+void detector(mlir::ImplicitLocOpBuilder &builder,
+              const std::vector<QuakeValue> &measurements);
+
+/// @brief Declare a logical observable over one or more measurement results.
+void logical_observable(mlir::ImplicitLocOpBuilder &builder,
+                        const std::vector<QuakeValue> &measurements,
+                        std::size_t observableIndex);
+
+/// @brief Declare N detectors by pairing two measurement vectors
+/// element-wise.
+void detectors(mlir::ImplicitLocOpBuilder &builder, QuakeValue &prev,
+               QuakeValue &curr);
+
 void exp_pauli(mlir::ImplicitLocOpBuilder &builder, const QuakeValue &theta,
                const std::vector<QuakeValue> &qubits,
                const std::string &pauliWord);
@@ -385,6 +399,12 @@ concept AllAreQuakeValues =
      std::is_same_v<
          std::remove_reference_t<std::tuple_element<0, std::tuple<Ts...>>>,
          QuakeValue>);
+
+// Sibling of `AllAreQuakeValues` that actually rejects mixed packs of two or
+// more arguments.
+template <class... Ts>
+concept AllDecayToQuakeValue =
+    (std::is_same_v<std::decay_t<Ts>, QuakeValue> && ...);
 
 template <typename... Args>
 class kernel_builder : public details::kernel_builder_base {
@@ -659,6 +679,52 @@ public:
   CUDAQ_BUILDER_ADD_MEASURE(mx)
   CUDAQ_BUILDER_ADD_MEASURE(my)
   CUDAQ_BUILDER_ADD_MEASURE(mz)
+
+  /// @brief Define a detector over one or more measurement results.
+  ///
+  /// Arguments are `QuakeValue` handles returned by `mz`/`mx`/`my`
+  /// (scalar handles or handle vectors); any mix is supported, mirroring
+  /// the `qec.detector` dialect op's `Variadic<AnyTypeOf<[scalar, list]>>`
+  /// operand surface. The `AllDecayToQuakeValue` concept keeps this
+  /// variadic from competing with non-`QuakeValue` argument shapes (e.g.
+  /// the integer-taking `logical_observable` overload below).
+  template <typename... MeasArgs>
+    requires(sizeof...(MeasArgs) >= 1) && AllDecayToQuakeValue<MeasArgs...>
+  void detector(MeasArgs &&...measurements) {
+    std::vector<QuakeValue> values{std::forward<MeasArgs>(measurements)...};
+    details::detector(*opBuilder, values);
+  }
+
+  /// @brief Define a logical observable over one or more measurement
+  /// results.
+  ///
+  /// The variadic-handle form uses `observable_index = 0`. To declare a
+  /// non-default index, use the `(QuakeValue, std::size_t)` overload
+  /// below. `observable_index` must be in `[0, 2^63 - 1]`.
+  template <typename... MeasArgs>
+    requires(sizeof...(MeasArgs) >= 1) && AllDecayToQuakeValue<MeasArgs...>
+  void logical_observable(MeasArgs &&...measurements) {
+    std::vector<QuakeValue> values{std::forward<MeasArgs>(measurements)...};
+    details::logical_observable(*opBuilder, values, /*observableIndex=*/0);
+  }
+
+  /// @brief `logical_observable` with an explicit `observable_index`.
+  /// Takes a single `QuakeValue` handle (typically a
+  /// `!cc.stdvec<!cc.measure_handle>` from `mz` on a `qvector`, but a
+  /// scalar handle is also accepted by the dialect).
+  void logical_observable(QuakeValue measurements,
+                          std::size_t observable_index) {
+    std::vector<QuakeValue> values{measurements};
+    details::logical_observable(*opBuilder, values, observable_index);
+  }
+
+  /// @brief Define N detectors by pairing two measurement vectors
+  /// element-wise. Standard form for cross-round detectors: each
+  /// detector `i` is the parity of `prev[i]` and `curr[i]`. Both
+  /// arguments must be handle-list `QuakeValue`s.
+  void detectors(QuakeValue prev, QuakeValue curr) {
+    details::detectors(*opBuilder, prev, curr);
+  }
 
   /// @brief SWAP operation for swapping the quantum states of two qubits.
   void swap(const QuakeValue &first, const QuakeValue &second) {

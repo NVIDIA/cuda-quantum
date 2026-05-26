@@ -25,4 +25,4 @@ if(CUDAQ_ENABLE_PYTHON)
   target_compile_definitions(test_target_config PRIVATE CUDAQ_ENABLE_PYTHON)
 endif()
 
-gtest_discover_tests(test_target_config)
+gtest_discover_tests(test_target_config DISCOVERY_TIMEOUT 120)

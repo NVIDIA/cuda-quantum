@@ -9,14 +9,13 @@
 #pragma once
 
 #include "OrcaExecutor.h"
-#include "common/ExecutionContext.h"
-#include "common/Future.h"
-#include "common/RestClient.h"
-#include "common/ServerHelper.h"
 #include "cudaq/platform/qpu.h"
-#include "orca_qpu.h"
+#include "cudaq/utils/cudaq_utils.h"
+#include "cudaq/utils/owning_ptr.h"
+#include <filesystem>
 
 namespace cudaq {
+class ServerHelper;
 
 /// @brief The OrcaRemoteRESTQPU is a subtype of QPU that enables the
 /// execution of CUDA-Q kernels on remotely hosted quantum computing
@@ -42,17 +41,13 @@ protected:
   /// @brief Pointer to the concrete Executor for this QPU
   std::unique_ptr<OrcaExecutor> executor;
 
-  /// @brief Pointer to the concrete ServerHelper, provides
+  /// @brief Pointer to the forward declared ServerHelper, provides
   /// specific JSON payloads and POST/GET URL paths.
-  std::unique_ptr<ServerHelper> serverHelper;
+  cudaq::owning_ptr<ServerHelper> serverHelper;
 
   /// @brief Mapping of general key-values for backend
   /// configuration.
   std::map<std::string, std::string> backendConfig;
-
-private:
-  /// @brief RestClient used for HTTP requests.
-  RestClient client;
 
 public:
   /// @brief The constructor
@@ -74,10 +69,7 @@ public:
   }
 
   /// @brief Enqueue a quantum task on the asynchronous execution queue.
-  void enqueue(cudaq::QuantumTask &task) override {
-    CUDAQ_INFO("OrcaRemoteRESTQPU: Enqueue Task on QPU {}", qpu_id);
-    execution_queue->enqueue(task);
-  }
+  void enqueue(cudaq::QuantumTask &task) override;
 
   /// @brief Return true if the current backend is a simulator
   bool isSimulator() override { return emulate; }
@@ -105,14 +97,17 @@ public:
   /// @brief Launch the kernel. Handle all pertinent modifications for the
   /// execution context.
   [[nodiscard]] KernelThunkResultType
-  launchKernel(const std::string &kernelName, KernelThunkType kernelFunc,
-               void *args, std::uint64_t voidStarSize,
-               std::uint64_t resultOffset,
-               const std::vector<void *> &rawArgs) override {
-    return launchKernelCommon(kernelName, kernelFunc, args);
-  }
+  unifiedLaunchModule(const AnyModule &module, KernelArgs args) override {
+    if (!std::holds_alternative<SourceModule>(module))
+      throw std::runtime_error(
+          "OrcaRemoteRESTQPU does not support pre-compiled module launch.");
 
-  void launchKernel(const std::string &kernelName,
-                    const std::vector<void *> &rawArgs) override;
+    const auto &src = std::get<SourceModule>(module);
+    auto rawFn = src.getFunctionPtr();
+    KernelThunkType kernelFunc = rawFn ? rawFn->getFn() : nullptr;
+    auto packed = args.getPacked();
+    void *argData = packed ? packed->data.data() : nullptr;
+    return launchKernelCommon(src.getName(), kernelFunc, argData);
+  }
 };
 } // namespace cudaq

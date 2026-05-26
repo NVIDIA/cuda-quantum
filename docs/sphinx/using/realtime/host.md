@@ -136,36 +136,45 @@ RX/TX kernels can be replaced with different transport mechanisms
 5. **Transport independence**:
 The protocol works with HSB, `libibverbs`, or proprietary transports
 
-For use cases where latency is more important than transport independence, see
+For use cases where lowest possible latency is needed, see
 [Unified Dispatch Mode](#unified-dispatch-mode) which combines all three kernels
-into one.
+into one while retaining transport independence through a pluggable launch
+function.
 
 ## Unified Dispatch Mode
 
 The **unified dispatch mode** (`CUDAQ_KERNEL_UNIFIED`) is an alternative to the
-3-kernel architecture that combines RDMA receive, RPC dispatch, and RDMA transmit
-into a single GPU kernel.  By eliminating the inter-kernel ring-buffer flag
-hand-off between RX, dispatch, and TX kernels, the unified kernel reduces
-round-trip latency for simple (non-cooperative) RPC handlers.
+3-kernel architecture that combines receive, RPC dispatch, and transmit into a
+single GPU kernel.  By eliminating the inter-kernel ring-buffer flag handoff
+between RX, dispatch, and TX kernels, the unified kernel reduces round-trip
+latency for simple (non-cooperative) RPC handlers.
 
 ### Architecture
 
-In unified mode, a single GPU thread:
+In unified mode, a single GPU thread runs a transport-provided kernel that
+combines receive, dispatch, and transmit into one tight loop:
 
-1. Polls the `DOCA` completion queue (`CQ`) for an incoming RDMA message
+1. Polls for an incoming message (transport-specific mechanism)
 2. Parses the `RPCHeader` from the receive buffer
 3. Looks up and calls the registered handler in-place
 4. Writes the `RPCResponse` header (overwriting the request header)
-5. Sends the response via `DOCA` `BlueFlame`
-6. Re-posts the receive work queue entry (`WQE`)
+5. Sends the response (transport-specific mechanism)
+6. Re-posts the receive buffer for the next message
 
 The symmetric ring layout means the response overwrites the request in the same
 buffer slot.  `RPCHeader` fields (`request_id`, `ptp_timestamp`) are saved to
 registers before the handler runs.
 
-### Transport-Agnostic API, Transport-Specific Implementation
+For example, the `HSB`/`DOCA` transport implementation polls a `DOCA` completion
+queue (`CQ`) in step 1, sends via `DOCA` `BlueFlame` in step 5, and re-posts a `DOCA`
+receive `WQE` in step 6.  Other transport implementations would substitute
+their own receive and send primitives.
 
-The dispatcher host API remains transport-agnostic.  Unified mode introduces:
+### Transport-Agnostic Design
+
+The unified dispatch mode is fully transport-agnostic, just like the 3-kernel
+mode.  The core dispatcher library (`libcudaq-realtime.so`) has no dependency
+on any specific transport (no `DOCA`, no `HSB`).  Unified mode introduces:
 
 - `CUDAQ_KERNEL_UNIFIED` -- a new `cudaq_kernel_type_t` enum value
 - `cudaq_unified_launch_fn_t` -- a launch function type that receives an opaque
@@ -173,13 +182,15 @@ The dispatcher host API remains transport-agnostic.  Unified mode introduces:
 - `cudaq_dispatcher_set_unified_launch()` -- wires the launch function and
     transport context to the dispatcher
 
-The transport-specific details (`DOCA` `QP` handles, memory keys, ring buffer
-addresses) are packed into an opaque struct (`HSB_doca_transport_ctx` for the
-HSB/`DOCA` implementation) and passed through the `void* transport_ctx`
-pointer.  A different transport could define its own context struct and launch
-function, and the dispatcher would manage it identically.  The bridge returns a
-`cudaq_unified_dispatch_ctx_t` bundle containing the launch function pointer
-and the opaque transport context, keeping the dispatcher API fully transport-agnostic.
+Transport-specific details are packed into an opaque struct and passed through
+the `void* transport_ctx` pointer.  The transport provider supplies both the
+context struct and the launch function implementation.  For example, the
+`HSB`/`DOCA` transport packs `DOCA` `QP` handles, memory keys, and ring buffer
+addresses into a `doca_transport_ctx` and provides
+`hololink_launch_unified_dispatch` as the launch function (compiled into
+`libcudaq-realtime-bridge-hololink.so`).  A different transport would define
+its own context struct and launch function; the dispatcher manages them
+identically without any transport-specific knowledge.
 
 ### When to Use Which Mode
 
@@ -190,12 +201,13 @@ and the opaque transport context, keeping the dispatcher API fully transport-agn
 
 - Required for cooperative handlers that use `grid.sync()`
 
-- Best choice when transport independence is a priority
+- Supports `CUDAQ_DISPATCH_GRAPH_LAUNCH` mode
 
 **Unified mode** (`CUDAQ_KERNEL_UNIFIED`):
 
 - Lowest latency for regular (non-cooperative) handlers
-- Transport-specific kernel implementation (currently `DOCA`/HSB)
+- Transport-agnostic API -- the transport provides a pluggable launch function
+  and opaque context (e.g., `HSB`/`DOCA` supplies `hololink_launch_unified_dispatch`)
 - Single-thread, single-block kernel -- no inter-kernel synchronization overhead
 - Not compatible with cooperative handlers or `CUDAQ_DISPATCH_GRAPH_LAUNCH`
 
@@ -232,12 +244,12 @@ When `kernel_type == CUDAQ_KERNEL_UNIFIED`:
 
 ```cpp
 // Pack DOCA transport handles
-HSB_doca_transport_ctx ctx;
-ctx.gpu_dev_qp     = HSB_get_gpu_dev_qp(transceiver);
-ctx.rx_ring_data   = HSB_get_rx_ring_data_addr(transceiver);
-ctx.rx_ring_stride_sz  = HSB_get_page_size(transceiver);
-ctx.rx_ring_mkey   = htonl(HSB_get_rkey(transceiver));
-ctx.rx_ring_stride_num = HSB_get_num_pages(transceiver);
+hololink_doca_transport_ctx ctx;
+ctx.gpu_dev_qp     = hololink_get_gpu_dev_qp(transceiver);
+ctx.rx_ring_data   = hololink_get_rx_ring_data_addr(transceiver);
+ctx.rx_ring_stride_sz  = hololink_get_page_size(transceiver);
+ctx.rx_ring_mkey   = htonl(hololink_get_rkey(transceiver));
+ctx.rx_ring_stride_num = hololink_get_num_pages(transceiver);
 ctx.frame_size     = frame_size;
 
 // Configure dispatcher for unified mode
@@ -248,7 +260,7 @@ config.dispatch_mode   = CUDAQ_DISPATCH_DEVICE_CALL;
 
 cudaq_dispatcher_create(manager, &config, &dispatcher);
 cudaq_dispatcher_set_unified_launch(
-    dispatcher, &HSB_launch_unified_dispatch, &ctx);
+    dispatcher, &hololink_launch_unified_dispatch, &ctx);
 cudaq_dispatcher_set_function_table(dispatcher, &table);
 cudaq_dispatcher_set_control(dispatcher, d_shutdown_flag, d_stats);
 cudaq_dispatcher_start(dispatcher);
@@ -262,7 +274,7 @@ proprietary transport) places incoming RPC messages into RX slots and retrieves
 responses from TX slots.
 The dispatcher polls RX flags (see Message completion note), looks up a
 handler by `function_id`, executes it on the GPU, and writes a response into the
-same slot. `HSB`'s RX/TX kernels handle device I/O; the dispatch kernel sits
+same slot. The transport's RX/TX components handle I/O; the dispatch kernel sits
 in the middle and runs the decoder handler.
 
 ## Scope

@@ -9,8 +9,8 @@
 #include "PasqalServerHelper.h"
 #include "PasqalUtils.h"
 #include "common/AnalogHamiltonian.h"
+#include "nlohmann/json.hpp"
 #include "cudaq/runtime/logger/logger.h"
-
 #include <cstdlib>
 #include <unordered_set>
 

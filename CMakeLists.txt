@@ -40,7 +40,7 @@ endif()
 # CMP0116: Ninja generators transform `DEPFILE`s from `add_custom_command()`
 # New in CMake 3.20. https://cmake.org/cmake/help/latest/policy/CMP0116.html
 if(POLICY CMP0116)
-  cmake_policy(SET CMP0116 OLD)
+  cmake_policy(SET CMP0116 NEW)
 endif()
 
 # Project setup
@@ -82,15 +82,6 @@ endif()
 # Enable the REST code by default.
 if (NOT DEFINED CUDAQ_ENABLE_REST)
   set(CUDAQ_ENABLE_REST ON CACHE BOOL "Enable building REST client & server.")
-endif()
-
-# Enable the remote simulator by default.
-if (CUDAQ_ENABLE_REST AND NOT DEFINED CUDAQ_ENABLE_REMOTE_SIM)
-  set(CUDAQ_ENABLE_REMOTE_SIM ON CACHE BOOL "Enable building cudaq-qpud.")
-  # Optionally enable the tests that use cudaq-qpud.
-  if (NOT DEFINED CUDAQ_TEST_REMOTE_SIM)
-    set(CUDAQ_TEST_REMOTE_SIM ON CACHE BOOL "Run remote-sim tests.")
-  endif()
 endif()
 
 # Enable Amazon Braket backends by default.
@@ -135,12 +126,20 @@ if (NOT DEFINED CUDAQ_ENABLE_SCALEWAY_BACKEND)
   set(CUDAQ_ENABLE_SCALEWAY_BACKEND ON CACHE BOOL "Enable building the Scaleway target.")
 endif()
 
+# Enable qBraid target by default.
+if (NOT DEFINED CUDAQ_ENABLE_QBRAID_BACKEND)
+  set(CUDAQ_ENABLE_QBRAID_BACKEND ON CACHE BOOL "Enable building the qBraid target.")
+endif()
+
 # Generate a CompilationDatabase (compile_commands.json file) for our build,
 # for use by clang_complete, YouCompleteMe, etc.
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 
 if(NOT LLVM_VERSION_MAJOR)
-  set(LLVM_VERSION_MAJOR 16)
+  set(LLVM_VERSION_MAJOR 22)
+endif()
+if(NOT LLVM_VERSION_MINOR)
+  set(LLVM_VERSION_MINOR 1)
 endif()
 
 find_package(Git QUIET)
@@ -182,6 +181,27 @@ if (${CUDAQ_FORCE_COLORED_OUTPUT})
     endif ()
 endif ()
 
+add_compile_options(-Wno-error=deprecated-declarations)
+# Use plain -Wno- (not -Wno-error=) so GCC silently ignores it when unsupported.
+# Guard with check_cxx_compiler_flag so Apple Clang (which errors on unknown
+# -Wno- options) doesn't see it if the warning doesn't exist there.
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag(-Wno-uninitialized-const-pointer
+                        CUDAQ_HAS_WNO_UNINITIALIZED_CONST_POINTER)
+if (CUDAQ_HAS_WNO_UNINITIALIZED_CONST_POINTER)
+  add_compile_options(-Wno-uninitialized-const-pointer)
+endif()
+# GCC 12 headers emit false-positive diagnostics (e.g. char_traits.h,
+# stl_algobase.h) when compiled with Clang using GCC's sysroot.
+check_cxx_compiler_flag(-Wno-restrict CUDAQ_HAS_WNO_RESTRICT)
+if (CUDAQ_HAS_WNO_RESTRICT)
+  add_compile_options(-Wno-restrict)
+endif()
+# -Wstringop-overflow and -Wstringop-overread are GCC-only; check_cxx_compiler_flag caching is unreliable here.
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  add_compile_options(-Wno-stringop-overflow -Wno-stringop-overread)
+endif()
+
 # Certain build configurations may be set directly in the environment.
 # This facilitates some of the packaging (e.g. python packages built based on the pyproject.toml).
 # These are cached so they persist across cmake runs without needing the env vars set again.
@@ -191,18 +211,6 @@ endif()
 if(NOT BLAS_LIBRARIES AND EXISTS "$ENV{BLAS_INSTALL_PREFIX}/libblas.a")
   # CACHE INTERNAL is needed due to how FindBLAS.cmake works...
   SET(BLAS_LIBRARIES "$ENV{BLAS_INSTALL_PREFIX}/libblas.a" CACHE INTERNAL "")
-endif()
-if(NOT CUSTATEVEC_ROOT)
-  SET(CUSTATEVEC_ROOT "$ENV{CUQUANTUM_INSTALL_PREFIX}" CACHE PATH "Path to cuStateVec installation")
-endif()
-if(NOT CUTENSORNET_ROOT)
-  SET(CUTENSORNET_ROOT "$ENV{CUQUANTUM_INSTALL_PREFIX}" CACHE PATH "Path to cuTensorNet installation")
-endif()
-if(NOT CUDENSITYMAT_ROOT)
-  SET(CUDENSITYMAT_ROOT "$ENV{CUQUANTUM_INSTALL_PREFIX}" CACHE PATH "Path to cuDensityMat installation")
-endif()
-if(NOT CUTENSOR_ROOT)
-  SET(CUTENSOR_ROOT "$ENV{CUTENSOR_INSTALL_PREFIX}" CACHE PATH "Path to cuTensor installation")
 endif()
 if(NOT ZLIB_ROOT)
   SET(ZLIB_ROOT "$ENV{ZLIB_INSTALL_PREFIX}" CACHE PATH "Path to zlib installation")
@@ -241,9 +249,9 @@ SET(CMAKE_SKIP_INSTALL_RPATH FALSE)
 SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 if(APPLE)
-  SET(CMAKE_INSTALL_RPATH "@loader_path;@loader_path/lib;@loader_path/lib/plugins;@loader_path/../lib;@loader_path/../lib/plugins;@executable_path;@executable_path/lib;@executable_path/lib/plugins;@executable_path/../lib;@executable_path/../lib/plugins")
+  SET(CMAKE_INSTALL_RPATH "@loader_path;@loader_path/lib;@loader_path/lib/plugins;@loader_path/../lib;@loader_path/../lib/plugins;@loader_path/../cudaq/mlir/_mlir_libs;@loader_path/../python/cudaq/mlir/_mlir_libs;@executable_path;@executable_path/lib;@executable_path/lib/plugins;@executable_path/../lib;@executable_path/../lib/plugins;@executable_path/../cudaq/mlir/_mlir_libs;@executable_path/../python/cudaq/mlir/_mlir_libs")
 else()
-  SET(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/lib/plugins:$ORIGIN/../lib:$ORIGIN/../lib/plugins")
+  SET(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/lib/plugins:$ORIGIN/../lib:$ORIGIN/../lib/plugins:$ORIGIN/../cudaq/mlir/_mlir_libs:$ORIGIN/../python/cudaq/mlir/_mlir_libs")
 endif()
 
 SET(BLA_STATIC ON)
@@ -274,6 +282,7 @@ else()
   # B. Using LLVM/MLIR dylibs. This won't work until later versions of LLVM are used as
   #    the first versions of this setting did not appropriately link all libraries to the dylibs.
   add_link_options("-Wl,-flat_namespace")
+  add_link_options("-Wl,-undefined,dynamic_lookup")
 endif()
 
 # Detect sysroot for C++ stdlib headers/libs. Critical on macOS where a custom-built
@@ -337,10 +346,10 @@ endif()
 # using `LLVM_VERSION_MAJOR`, e.g. "-LLVM_VERSION_MAJOR=16".  Note that this
 # version variable is set to the latest LLVM version by default, and setting it
 # to an older version might break the project.
-find_package(LLVM ${LLVM_VERSION_MAJOR} CONFIG QUIET)
+find_package(LLVM ${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR} CONFIG QUIET)
 
 if(NOT LLVM_DIR)
-  message(STATUS "LLVM_DIR not found, will try with llvm-config executable.")
+  message(STATUS "LLVM_DIR not found for ${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR}, will try with llvm-config executable.")
 
   macro(find_llvm_config name version_major)
     set(extra_args ${ARGN})
@@ -398,7 +407,7 @@ if(NOT LLVM_DIR)
       "Could not find suitable llvm-config(-${LLVM_VERSION_MAJOR}).\
       \nTry providing valid -DLLVM_DIR=/path/to/llvm/lib/cmake/llvm.")
   else()
-    find_package(LLVM ${LLVM_VERSION_MAJOR} REQUIRED CONFIG
+    find_package(LLVM ${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR} REQUIRED CONFIG
       HINTS ${LLVM_CONFIG_CMAKE_DIR} NO_DEFAULT_PATH)
   endif()
 endif()
@@ -449,7 +458,7 @@ set(MLIR_BINARY_DIR ${CMAKE_BINARY_DIR})
 
 list(APPEND CMAKE_MODULE_PATH "${MLIR_CMAKE_DIR}")
 list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/modules")
 
 include(TableGen)
 include(AddLLVM)
@@ -479,12 +488,12 @@ set(LLVM_LIT_ARGS "${LIT_ARGS_DEFAULT}" CACHE STRING "Default options for lit")
 message(STATUS "Build type is ${CMAKE_BUILD_TYPE}")
 
 set(CUDAQ_MAIN_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}) # --src-root
-set(CUDAQ_MAIN_INCLUDE_DIR ${CUDAQ_MAIN_SRC_DIR}/include)
+set(CUDAQ_MAIN_INCLUDE_DIR ${CUDAQ_MAIN_SRC_DIR}/cudaq/include)
 
 set(CUDAQ_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(CUDAQ_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(CUDAQ_CMAKE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-set(CUDAQ_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/include)
+set(CUDAQ_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/cudaq/include)
 set(CUDAQ_LIBRARY_DIR ${CMAKE_BINARY_DIR}/lib)
 set(CUDAQ_TOOLS_DIR ${CMAKE_BINARY_DIR}/bin)
 
@@ -501,8 +510,8 @@ endif()
 
 # Add CUDA Quantum files to the include path
 include_directories(BEFORE
-  ${CUDAQ_SOURCE_DIR}/include
-  ${CUDAQ_BINARY_DIR}/include)
+  ${CUDAQ_SOURCE_DIR}/cudaq/include
+  ${CUDAQ_BINARY_DIR}/cudaq/include)
 
 # Installing the headers and docs needs to depend on generating any public
 # tablegen'd targets.
@@ -528,8 +537,8 @@ execute_process(COMMAND git rev-parse --verify HEAD
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE CUDA_QUANTUM_COMMIT_SHA OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-configure_file("${CMAKE_SOURCE_DIR}/include/cudaq/Support/Version.h.in"
-               "${CUDAQ_BINARY_DIR}/include/cudaq/Support/Version.h" @ONLY)
+configure_file("${CMAKE_SOURCE_DIR}/runtime/common/Version.cpp.in"
+               "${CMAKE_BINARY_DIR}/runtime/common/Version.cpp" @ONLY)
 
 # Check optional dependencies
 # ==============================================================================
@@ -556,7 +565,10 @@ if(POLICY CMP0146)
 endif()
 add_subdirectory(tpls/fmt)
 cmake_policy(POP)
-include_directories(SYSTEM tpls/json/include)
+include_directories(SYSTEM tpls/json/single_include)
+include_directories(SYSTEM tpls/json/single_include_fwd)
+install(FILES tpls/json/single_include_fwd/nlohmann/json_fwd.hpp
+  DESTINATION include/nlohmann)
 
 # Add spdlog
 set(SPDLOG_BUILD_SHARED OFF)
@@ -600,12 +612,6 @@ if (NOT CUDAQ_DISABLE_RUNTIME)
     PROPERTIES
       INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${LIBQPP_INCLUDE}")
   add_openmp_interface_definitions(libqpp)
-endif()
-
-if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
-  # The asio submodule doesn't use cmake, so use find_path for it.
-  find_path(ASIO_INCLUDE_DIR asio.hpp PATHS tpls/asio/asio/include)
-  add_subdirectory(tpls/Crow)
 endif()
 
 # Check for CUDA Support
@@ -655,6 +661,14 @@ if(CMAKE_CUDA_COMPILER)
   message(STATUS "Cuda language found.")
 endif()
 
+# cuQuantum / cuTensor component discovery
+if (CUDA_FOUND)
+  find_package(cuStateVec)
+  find_package(cuTensor)
+  find_package(cuTensorNet)
+  find_package(cuDensityMat)
+endif()
+
 # Code coverage setup
 # ==============================================================================
 if(CUDAQ_ENABLE_CC)
@@ -669,12 +683,10 @@ endif(CUDAQ_ENABLE_CC)
 # ==============================================================================
 
 add_subdirectory(cmake)
-add_subdirectory(include)
-add_subdirectory(lib)
+add_subdirectory(cudaq)
 if (NOT CUDAQ_DISABLE_RUNTIME)
   add_subdirectory(runtime)
 endif()
-add_subdirectory(tools)
 add_subdirectory(utils)
 
 if(CUDAQ_BUILD_TESTS)
@@ -683,60 +695,44 @@ endif()
 
 if (CUDAQ_ENABLE_PYTHON)
   find_package(Python 3 COMPONENTS Interpreter Development)
+  find_package(Python3 COMPONENTS Interpreter Development)
 
-  # Apply specific patch to pybind11 for our documentation.
-  # Only apply the patch if not already applied.
-  execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind.h.diff --ignore-whitespace --reverse --check
-                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                  RESULT_VARIABLE GIT_PATCH_RESULT
-                  ERROR_QUIET)
-  if (NOT GIT_PATCH_RESULT EQUAL "0")
-    execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind.h.diff --ignore-whitespace
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                    RESULT_VARIABLE GIT_PATCH_RESULT)
-  endif()
-  if (NOT GIT_PATCH_RESULT EQUAL "0")
-    message(FATAL_ERROR "Applying patch to submodule failed with ${GIT_PATCH_RESULT}, please update patch")
-  endif()
+  add_subdirectory(tpls/nanobind)
 
-  # Apply patch to fix LTO flag bug with Clang (https://github.com/pybind/pybind11/issues/5098)
-  execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind11Common.cmake.diff --ignore-whitespace --reverse --check
-                  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                  RESULT_VARIABLE GIT_PATCH_RESULT
-                  ERROR_QUIET)
-  if (NOT GIT_PATCH_RESULT EQUAL "0")
-    execute_process(COMMAND ${GIT_EXECUTABLE} -C tpls/pybind11/ apply ../customizations/pybind11/pybind11Common.cmake.diff --ignore-whitespace
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                    RESULT_VARIABLE GIT_PATCH_RESULT)
-  endif()
-  if (NOT GIT_PATCH_RESULT EQUAL "0")
-    message(FATAL_ERROR "Applying LTO patch to submodule failed with ${GIT_PATCH_RESULT}, please update patch")
-  endif()
-
-  # Regarding the use of PyBind, we need to be careful that the same STL is used for any
-  # Python bindings generated as part of the CUDA-Q build and bindings generated for
-  # third party CUDA-Q libraries; see also https://github.com/pybind/pybind11/issues/1262
-  add_subdirectory(tpls/pybind11)
   add_subdirectory(python)
 endif()
 
 if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
+  include(CheckCXXCompilerFlag)
   umbrella_lit_testsuite_begin(check-all)
   set(INSTALL_GTEST OFF)
   add_subdirectory(tpls/googletest-src)
+  # Turn off character-conversion warning in gtest for clang compilers
+  include(CheckCXXCompilerFlag)
+  check_cxx_compiler_flag(-Wno-character-conversion CUDAQ_HAS_WNO_CHARACTER_CONVERSION)
+  if (CUDAQ_HAS_WNO_CHARACTER_CONVERSION)
+    target_compile_options(gtest PUBLIC -Wno-character-conversion)
+  endif()
   # Bug in GCC 12 leads to spurious warnings (-Wrestrict)
   # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105329
   if (CMAKE_COMPILER_IS_GNUCXX
     AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12.0.0
     AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13.0.0)
-    target_compile_options(gtest PUBLIC --param=evrp-mode=legacy)
+    # Keep this GCC 12 workaround CXX-only. If it propagates to CUDA tests that
+    # link gtest_main, such as test_gpu_get_state, nvcc may forward it to a
+    # different CUDA host compiler where the option is invalid.
+    target_compile_options(gtest PUBLIC $<$<COMPILE_LANGUAGE:CXX>:--param=evrp-mode=legacy>)
   endif()
   if (CMAKE_CXX_COMPILER_ID MATCHES "^(Apple)?Clang$")
     target_compile_options(gtest PUBLIC -Wno-covered-switch-default)
+    check_cxx_compiler_flag("-Wno-character-conversion"
+                            CUDAQ_SUPPORTS_WNO_CHARACTER_CONVERSION)
+    if (CUDAQ_SUPPORTS_WNO_CHARACTER_CONVERSION)
+      target_compile_options(gtest PUBLIC -Wno-character-conversion)
+    endif()
   endif()
   include(GoogleTest)
   include(CTest)
-  add_subdirectory(test)
   if (NOT CUDAQ_DISABLE_RUNTIME)
     add_subdirectory(targettests)
     add_subdirectory(unittests)

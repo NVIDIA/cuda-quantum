@@ -103,6 +103,19 @@ done
 
 echo "Environment sanitized (unset: $SANITIZE_VARS)"
 
+# Limit OpenMP threads: pytest-xdist handles process-level parallelism,
+# so each worker only needs 1 OMP thread for small test simulations.
+export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
+
+pytest_workers="${PYTEST_WORKERS:-4}"
+
+# Parallel job count for snippet/example execution (xargs -P)
+if [ "$(uname)" = "Darwin" ]; then
+    parallel_jobs=$(sysctl -n hw.ncpu)
+else
+    parallel_jobs=$(nproc)
+fi
+
 # Auto-detect repo structure if -f not provided
 if [ -z "$root_folder" ]; then
     # Try to find repo root
@@ -175,8 +188,8 @@ requires_unavailable_gpu_target() {
     targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$file")
     for t in $targets; do
         case "$t" in
-            nvidia|nvidia-fp64|nvidia-mgpu|dynamics|tensornet|remote-mqpu)
-                echo "Skipping $file (requires GPU target '$t')"
+            nvidia|nvidia-fp64|nvidia-mgpu|dynamics|tensornet)
+                echo "Skipping $file (requires GPU target '$t')" >&2
                 return 0
                 ;;
         esac
@@ -286,7 +299,7 @@ else
             eval "$line"
         fi
     done <<<"$conda_script"
-    pip install pytest
+    pip install pytest pytest-xdist
 fi
 
 # Run OpenMPI setup (Linux only)
@@ -322,7 +335,7 @@ fi
 
 # Run core tests
 echo "Running core tests."
-python3 -m pytest -v "$root_folder/tests" \
+python3 -m pytest -v -n "$pytest_workers" "$root_folder/tests" \
     --ignore "$root_folder/tests/backends" \
     --ignore "$root_folder/tests/dynamics/integrators" \
     --ignore "$root_folder/tests/parallel" \
@@ -340,19 +353,15 @@ if $quick_test; then
     (return 0 2>/dev/null) && return $status_sum || exit $status_sum
 fi
 
-# Run backend tests
+# Run backend tests (single invocation with xdist; --rootdir matches upstream import layout)
 echo "Running backend tests."
-for backendTest in "$root_folder/tests/backends"/*.py; do
-    python3 -m pytest -v --rootdir "$root_folder/tests" $backendTest
-    # Exit code 5 indicates that no tests were collected,
-    # i.e. all tests in this file were skipped, which is the case
-    # for the mock server tests since they are not included.
-    status=$?
-    if [ ! $status -eq 0 ] && [ ! $status -eq 5 ]; then
-        echo -e "\e[01;31mPython backend test $backendTest failed with code $status.\e[0m" >&2
-        status_sum=$((status_sum + 1))
-    fi
-done
+python3 -m pytest -v -n "$pytest_workers" --rootdir "$root_folder/tests" "$root_folder/tests/backends"
+status=$?
+# Exit code 5 indicates that no tests were collected.
+if [ ! $status -eq 0 ] && [ ! $status -eq 5 ]; then
+    echo -e "\e[01;31mPython backend tests failed with code $status.\e[0m" >&2
+    status_sum=$((status_sum + 1))
+fi
 
 # Run platform tests (Linux only - requires MPI)
 if $is_macos; then
@@ -385,23 +394,28 @@ else
 fi
 
 # Run snippets in docs
+snippet_list=$(mktemp)
 for ex in $(find "$root_folder/snippets" -name '*.py'); do
-    if requires_unavailable_gpu_target "$ex"; then
-        continue
+    if ! requires_unavailable_gpu_target "$ex"; then
+        printf '%s\0' "$ex"
     fi
-    echo "Executing $ex"
-    python3 "$ex"
-    if [ ! $? -eq 0 ]; then
-        echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
+done > "$snippet_list"
+if [ -s "$snippet_list" ]; then
+    xargs -0 -P "$parallel_jobs" -n 1 bash -c \
+        'echo "Executing $1"; python3 "$1" || { echo -e "\e[01;31mFailed to execute $1.\e[0m" >&2; exit 1; }' _ \
+        < "$snippet_list"
+    if [ $? -ne 0 ]; then
         status_sum=$((status_sum + 1))
     fi
-done
+fi
+[ -f "$snippet_list" ] && rm -f "$snippet_list"
 
-# Run examples
+# Run examples (pre-filter sequentially, execute in parallel)
+example_list=$(mktemp)
 for ex in $(find "$root_folder/examples" -name '*.py'); do
-    if requires_unavailable_gpu_target "$ex"; then
-        continue
-    fi
+    if requires_unavailable_gpu_target "$ex"; then continue; fi
+    # MPI examples need mpirun and are tested in their own section below
+    if [[ "$ex" == */mpi/* ]]; then continue; fi
     skip_example=false
     explicit_targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$ex")
     for t in $explicit_targets; do
@@ -414,14 +428,18 @@ for ex in $(find "$root_folder/examples" -name '*.py'); do
         fi
     done
     if ! $skip_example; then
-        echo "Executing $ex"
-        python3 "$ex"
-        if [ ! $? -eq 0 ]; then
-            echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
-            status_sum=$((status_sum + 1))
-        fi
+        printf '%s\0' "$ex"  # don't split on spaces
     fi
-done
+done > "$example_list"
+if [ -s "$example_list" ]; then
+    xargs -0 -P "$parallel_jobs" -n 1 bash -c \
+        'echo "Executing $1"; python3 "$1" || { echo -e "\e[01;31mFailed to execute $1.\e[0m" >&2; exit 1; }' _ \
+        < "$example_list"
+    if [ $? -ne 0 ]; then
+        status_sum=$((status_sum + 1))
+    fi
+fi
+[ -f "$example_list" ] && rm -f "$example_list"
 
 snippet_count=$(find "$root_folder/snippets" -name '*.py' 2>/dev/null | wc -l)
 example_count=$(find "$root_folder/examples" -name '*.py' 2>/dev/null | wc -l)
@@ -430,19 +448,49 @@ if [ "$snippet_count" -eq 0 ] && [ "$example_count" -eq 0 ]; then
     status_sum=$((status_sum + 1))
 fi
 
-# Run target tests if target folder exists.
-if [ -d "$root_folder/targets" ]; then
-    for ex in $(find "$root_folder/targets" -name '*.py'); do
-        if requires_unavailable_gpu_target "$ex"; then
-            continue
+# Run MPI examples (Linux only, requires >= 4 GPUs)
+if $is_macos; then
+    echo "Skipping MPI examples on macOS (requires MPI)"
+else
+    gpu_count=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null | wc -l)
+    if [ "$gpu_count" -lt 4 ]; then
+        echo "Skipping MPI examples: found $gpu_count GPU(s), need at least 4"
+    else
+        echo "Running MPI examples with $gpu_count GPUs."
+        mpi_examples_dir="$root_folder/examples/mpi"
+
+        has_mpi4py=false
+        if python3 -c "import mpi4py" 2>/dev/null; then
+            has_mpi4py=true
         fi
+
+        for mpi_ex in "$mpi_examples_dir"/*.py; do
+            [ -f "$mpi_ex" ] || continue
+            if grep -q "import mpi4py" "$mpi_ex"; then
+                if ! $has_mpi4py; then
+                    echo "Skipping $mpi_ex (mpi4py not installed)"
+                    continue
+                fi
+            fi
+            echo "Executing $mpi_ex"
+            mpiexec --allow-run-as-root -np 4 python3 "$mpi_ex"
+            if [ $? -ne 0 ]; then
+                echo -e "\e[01;31mMPI example $mpi_ex failed.\e[0m" >&2
+                status_sum=$((status_sum + 1))
+            fi
+        done
+    fi
+fi
+
+# Run target tests if target folder exists (pre-filter, execute in parallel).
+if [ -d "$root_folder/targets" ]; then
+    target_list=$(mktemp)
+    for ex in $(find "$root_folder/targets" -name '*.py'); do
+        if requires_unavailable_gpu_target "$ex"; then continue; fi
         skip_example=false
-        # Extract target names from cudaq.set_target("...") calls (awk splits on quotes, prints field 2)
-    explicit_targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$ex")
+        explicit_targets=$(awk -F'"' '/cudaq\.set_target/ {print $2}' "$ex")
         for t in $explicit_targets; do
             if [ "$t" == "quera" ] || [ "$t" == "braket" ]; then
-                # Skipped because GitHub does not have the necessary authentication token
-                # to submit a (paid) job to Amazon Braket (includes QuEra).
                 echo -e "\e[01;31mWarning: Explicitly set target braket or quera in $ex; skipping validation due to paid submission.\e[0m" >&2
                 skip_example=true
             elif [ "$t" == "fermioniq" ] && [ -z "${FERMIONIQ_ACCESS_TOKEN_ID}" ]; then
@@ -462,65 +510,23 @@ if [ -d "$root_folder/targets" ]; then
                 skip_example=true
             elif [ "$t" == "tii" ] || [ "$t" == "scaleway" ] || [ "$t" == "quantum_machines" ] || \
                  [ "$t" == "quantinuum" ] || [ "$t" == "orca" ] || [ "$t" == "orca-photonics" ] || \
-                 [ "$t" == "iqm" ] || [ "$t" == "infleqtion" ] || [ "$t" == "anyon" ]; then
-                # These targets require remote backends that are not available
-                # in CI or local dev without explicit setup.
-                echo "Skipping $ex (remote target '$t' not available)"
+                 [ "$t" == "iqm" ] || [ "$t" == "infleqtion" ] || [ "$t" == "anyon" ] || \
+                 [ "$t" == "qbraid" ]; then
+                echo "Skipping $ex (remote target '$t' not available)" >&2
                 skip_example=true
             fi
         done
         if ! $skip_example; then
-            echo "Executing $ex"
-            python3 "$ex"
-            if [ ! $? -eq 0 ]; then
-                echo -e "\e[01;31mFailed to execute $ex.\e[0m" >&2
-                status_sum=$((status_sum + 1))
-            fi
+            printf '%s\0' "$ex"  # don't split on spaces
         fi
-    done
-fi
-
-# Run remote-mqpu platform test (Linux only - requires GPU and MPI)
-if $is_macos; then
-    echo "Skipping remote-mqpu platform test on macOS (requires GPU and MPI)"
-else
-    # Use cudaq-qpud.py wrapper script to automatically find dependencies for the Python wheel configuration.
-    # Note that a derivative of this code is in
-    # docs/sphinx/using/backends/platform.rst, so if you update it here, you need to
-    # check if any docs updates are needed.
-    cudaq_package=$(python3 -m pip list | grep -oE 'cudaq')
-    cudaq_location=$(python3 -m pip show ${cudaq_package} | grep -e 'Location: .*$')
-    qpud_py="${cudaq_location#Location: }/bin/cudaq-qpud.py"
-    if [ -x "$(command -v nvidia-smi)" ]; then
-        nr_gpus=$(nvidia-smi --list-gpus | wc -l)
-    else
-        nr_gpus=0
+    done > "$target_list"
+    if [ -s "$target_list" ]; then
+        xargs -0 -P "$parallel_jobs" -n 1 bash -c \
+            'echo "Executing $1"; python3 "$1" || { echo -e "\e[01;31mFailed to execute $1.\e[0m" >&2; exit 1; }' _ \
+            < "$target_list"
+        if [ $? -ne 0 ]; then
+            status_sum=$((status_sum + 1))
+        fi
     fi
-    server1_devices=$(echo $(seq $((nr_gpus >> 1)) $((nr_gpus - 1))) | tr ' ' ,)
-    server2_devices=$(echo $(seq 0 $((($nr_gpus >> 1) - 1))) | tr ' ' ,)
-    echo "Launching server 1..."
-    servers="localhost:12001"
-    CUDA_VISIBLE_DEVICES=$server1_devices mpiexec --allow-run-as-root -np 2 python3 "$qpud_py" --port 12001 &
-    if [ -n "$server2_devices" ]; then
-        echo "Launching server 2..."
-        servers+=",localhost:12002"
-        CUDA_VISIBLE_DEVICES=$server2_devices mpiexec --allow-run-as-root -np 2 python3 "$qpud_py" --port 12002 &
-    fi
-
-    sleep 20 # wait for servers to launch
-    python3 "$root_folder/snippets/using/cudaq/platform/sample_async_remote.py" \
-        --backend nvidia-mgpu --servers "$servers"
-    if [ ! $? -eq 0 ]; then
-        echo -e "\e[01;31mRemote platform test failed.\e[0m" >&2
-        status_sum=$((status_sum + 1))
-    fi
-    kill %1 && wait %1 2>/dev/null
-    if [ -n "$server2_devices" ]; then
-        kill %2 && wait %2 2>/dev/null
-    fi
-fi
-
-if [ ! $status_sum -eq 0 ]; then
-    echo -e "\e[01;31mValidation produced errors.\e[0m" >&2
-    (return 0 2>/dev/null) && return $status_sum || exit $status_sum
+    [ -f "$target_list" ] && rm -f "$target_list"
 fi

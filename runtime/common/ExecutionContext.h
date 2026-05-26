@@ -8,11 +8,11 @@
 
 #pragma once
 
+#include "CompiledModule.h"
 #include "Future.h"
 #include "NoiseModel.h"
 #include "SampleResult.h"
 #include "Trace.h"
-#include "common/JIT.h"
 #include "cudaq/algorithms/optimizer.h"
 #include "cudaq/operators.h"
 #include <optional>
@@ -85,19 +85,6 @@ public:
   /// @brief Pointer to simulation-specific simulation data.
   std::unique_ptr<SimulationState> simulationState;
 
-  /// @brief A map of basis-state amplitudes
-  // The list of basis state is set before kernel launch and the map is filled
-  // by the executor platform.
-  std::optional<std::map<std::vector<int>, std::complex<double>>>
-      amplitudeMaps = std::nullopt;
-
-  /// @brief List of pairs of states to compute the overlap
-  std::optional<std::pair<const SimulationState *, const SimulationState *>>
-      overlapComputeStates = std::nullopt;
-
-  /// @brief Overlap results
-  std::optional<std::complex<double>> overlapResult = std::nullopt;
-
   /// @brief When run under the tracer context, persist the traced quantum
   /// resources here.
   Trace kernelTrace;
@@ -166,7 +153,7 @@ public:
 
   /// @brief For performance, a launcher may cache the JIT execution engine and
   /// use it for multiple discrete calls.
-  std::optional<JitEngine> jitEng = std::nullopt;
+  std::optional<cudaq::JitEngine> jitEng = std::nullopt;
 
   /// @endcond
 };
@@ -218,16 +205,16 @@ void enablePersistentJITEngine();
 void disablePersistentJITEngine();
 bool isPersistingJITEngine();
 
-/// Checks that the compiler artifact (if present) can be reused
-/// for the given explicit launch arguments.
-///
-/// `argsCreatorPtr` must point to the `.argsCreator` function from `jit`
+/// Checks that the compiler artifact (if present) can be reused for the
+/// given kernel. Throws if a different kernel name was previously saved.
 void checkArtifactReuse(const std::string kernelName,
-                        const std::vector<void *> &args, const JitEngine jit,
-                        std::function<void *()> argsCreatorThunk);
+                        const cudaq::JitEngine jit);
 
-void saveArtifact(const std::string kernelName, const std::vector<void *> &args,
-                  const JitEngine jit,
-                  std::function<void *()> argsCreatorThunk);
+void saveArtifact(const std::string kernelName, const cudaq::JitEngine jit);
+
+/// Returns the saved JIT engine if one is present for \p kernelName.
+/// Throws if a different kernel name was previously saved.
+/// Returns std::nullopt if no artifact has been saved yet.
+std::optional<JitEngine> getArtifactJit(const std::string &kernelName);
 }; // namespace compiler_artifact
 } // namespace cudaq

@@ -70,4 +70,21 @@ std::string get_quake_by_name(const std::string &kernelName,
 std::string
 get_quake_by_name(const std::string &kernelName, bool throwException,
                   std::optional<std::string> knownMangledArgs = std::nullopt);
+
+/// Get the name of a plain old function that is marked as a quantum kernel.
+inline std::string get_kernel_function_name(std::string &&name) {
+  return "function_" + std::move(name);
+}
+
+inline std::string get_quake(std::string &&functionName,
+                             const std::string &knownMangledArgs) {
+  return get_quake_by_name(get_kernel_function_name(std::move(functionName)),
+                           knownMangledArgs);
+}
+
+typedef std::size_t (*KernelArgsCreator)(void **, void **);
+KernelArgsCreator getArgsCreator(const std::string &kernelName);
+
+bool kernelHasConditionalFeedback(const std::string &kernelName);
+
 } // namespace cudaq

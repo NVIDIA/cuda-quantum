@@ -72,6 +72,15 @@ void hololink_close(hololink_transceiver_t handle);
  */
 void hololink_blocking_monitor(hololink_transceiver_t handle);
 
+/**
+ * Force CPU+GPU accessible allocation for ring flags and data only.
+ * Does NOT change CQ/QP UMEMs or TX kernel handler (BlueFlame preserved).
+ * Must be called after create and before start().
+ * Required when a CPU thread needs to read ring flags/data directly
+ * (e.g. HOST_LOOP dispatcher on Grace-Blackwell dGPU).
+ */
+void hololink_set_cpu_ring_buffers(hololink_transceiver_t handle, int enable);
+
 //==============================================================================
 // QP information (for RDMA setup)
 //==============================================================================

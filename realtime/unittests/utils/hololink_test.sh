@@ -67,7 +67,7 @@ NUM_PAGES=128
 CONTROL_PORT=8193
 FORWARD=false
 UNIFIED=false
-
+HOST_DISPATCH=false
 # Build parallelism
 JOBS=$(nproc 2>/dev/null || echo 8)
 
@@ -135,6 +135,7 @@ while [[ $# -gt 0 ]]; do
         --gpu)              GPU_ID="$2"; shift ;;
         --forward)          FORWARD=true ;;
         --unified)          UNIFIED=true ;;
+        --cpu)              HOST_DISPATCH=true ;;
         --timeout)          TIMEOUT="$2"; shift ;;
         --num-messages)     NUM_MESSAGES="$2"; shift ;;
         --payload-size)     PAYLOAD_SIZE="$2"; shift ;;
@@ -209,6 +210,14 @@ do_build() {
     local target_arch="amd64"
     if [[ "$arch" == "aarch64" ]]; then
         target_arch="arm64"
+    fi
+
+    # Ensure nvcc is on PATH for detect_cuda_arch() and cmake check_language(CUDA).
+    if [[ -x /usr/local/cuda/bin/nvcc ]]; then
+        case ":$PATH:" in
+            *":/usr/local/cuda/bin:"*) ;;
+            *) export PATH="/usr/local/cuda/bin:$PATH" ;;
+        esac
     fi
 
     # Detect highest CUDA arch supported by nvcc
@@ -448,6 +457,9 @@ do_run() {
     fi
     if $UNIFIED; then
         bridge_args+=(--unified)
+    fi
+    if $HOST_DISPATCH; then
+        bridge_args+=(--cpu)
     fi
     CUDA_MODULE_LOADING=EAGER "$bridge_bin" "${bridge_args[@]}" > /tmp/bridge.log 2>&1 &
     BRIDGE_PID=$!

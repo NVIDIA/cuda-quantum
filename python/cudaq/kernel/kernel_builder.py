@@ -24,16 +24,18 @@ from cudaq.mlir.ir import (BoolAttr, Block, Context, Module, TypeAttr, UnitAttr,
                            FlatSymbolRefAttr)
 from cudaq.mlir.passmanager import PassManager
 from cudaq.mlir.dialects import (complex as complexDialect, arith, quake, cc,
-                                 func, math)
+                                 func, math, qec)
 from cudaq.mlir._mlir_libs._quakeDialects import (
     cudaq_runtime, gen_vector_of_complex_constant, load_intrinsic)
 from cudaq.kernel_types import qubit, qvector
+from cudaq.util import trace
 from .common.fermionic_swap import fermionic_swap_builder
 from .common.givens import givens_builder
 from .kernel_decorator import DecoratorCapture, LinkedKernelCapture, isa_kernel_decorator
 from .quake_value import QuakeValue
-from .utils import (emitFatalError, emitWarning, nvqppPrefix, getMLIRContext,
-                    recover_func_op, mlirTypeToPyType, cudaq__unique_attr_name,
+from .utils import (boundaryDiagnostic, containsMeasureHandle, emitFatalError,
+                    emitWarning, nvqppPrefix, getMLIRContext, recover_func_op,
+                    mlirTypeToPyType, cudaq__unique_attr_name,
                     mlirTypeFromPyType, emitErrorIfInvalidPauli,
                     globalRegisteredOperations)
 
@@ -272,6 +274,14 @@ class PyKernel(object):
                 for argType in
                 [self.__processArgType(ty) for ty in argTypeList]
             ]
+
+            # `cudaq.make_kernel(...)` produces an entry-point kernel by
+            # construction. Reject any handle-containing parameter type before
+            # tagging so the AST-bridge boundary check (which never runs on
+            # this path) cannot be sidestepped via `cudaq.make_kernel`.
+            for argTy in self.mlirArgTypes:
+                if containsMeasureHandle(argTy):
+                    emitFatalError(boundaryDiagnostic)
 
             self.funcOp = func.FuncOp(self.funcName, (self.mlirArgTypes, []),
                                       loc=self.loc)
@@ -653,7 +663,6 @@ class PyKernel(object):
                 cloned = otherST[calleeName].operation.clone()
                 if 'cudaq-entrypoint' in cloned.operation.attributes:
                     cloned.operation.attributes.__delitem__('cudaq-entrypoint')
-                print("adding", cloned)
                 currentModule.body.append(cloned)
 
                 visitAllCallOps(cloned)
@@ -682,6 +691,12 @@ class PyKernel(object):
                 otherFuncCloned, otherModule = self.__cloneOrGetFunction(
                     target.name, self.module, target)
                 assert isinstance(otherFuncCloned, func.FuncOp)
+                # Same as __addAllCalledFunctionsRecursively does for
+                # transitively called functions: a sub-kernel merged into this
+                # module is no longer an `entrypoint`.
+                if 'cudaq-entrypoint' in otherFuncCloned.operation.attributes:
+                    otherFuncCloned.operation.attributes.__delitem__(
+                        'cudaq-entrypoint')
                 self.__addAllCalledFunctionsRecursively(otherFuncCloned,
                                                         self.module,
                                                         otherModule)
@@ -727,7 +742,7 @@ class PyKernel(object):
                 "cse,quake-add-metadata),quake-propagate-metadata)",
                 context=self.ctx)
             cloned = cudaq_runtime.cloneModule(self.module)
-            pm.run(cloned)
+            cudaq_runtime.runPassManager(pm, cloned)
             return str(cloned)
         return str(self.module)
 
@@ -866,15 +881,18 @@ class PyKernel(object):
                                        size=initializer.mlirValue).result)
 
                 if cc.StdvecType.isinstance(initializer.mlirValue.type):
-                    size = cc.StdvecSizeOp(self.getIntegerType(),
-                                           initializer.mlirValue).result
                     value = initializer.mlirValue
                     eleTy = cc.StdvecType.getElementType(value.type)
-                    numQubits = math.CountTrailingZerosOp(size).result
-                    qubits = quake.AllocaOp(veqTy, size=numQubits).result
                     ptrTy = cc.PointerType.get(eleTy)
                     data = cc.StdvecDataOp(ptrTy, value).result
-                    init = quake.InitializeStateOp(veqTy, qubits, data).result
+                    intTy = self.getIntegerType()
+                    size = cc.StdvecSizeOp(intTy, value).result
+                    stateTy = cc.PointerType.get(cc.StateType.get())
+                    state = quake.CreateStateOp(stateTy, data, size).result
+                    numQubits = quake.GetNumberOfQubitsOp(intTy, state).result
+                    qubits = quake.AllocaOp(veqTy, size=numQubits).result
+                    init = quake.InitializeStateOp(veqTy, qubits, state).result
+                    deleteState = quake.DeleteStateOp(state)
                     return self.__createQuakeValue(init)
 
                 # State pointer
@@ -1110,6 +1128,22 @@ class PyKernel(object):
                     'reset operation broadcasting on qvector not supported yet.'
                 )
 
+    def __measure(self, opClass, target, regName):
+        """Common implementation for `mz` / `mx` / `my`. Emits the measurement
+        op of class `opClass` against `target`, optionally tagging the result
+        with `regName`, and returns the result as a :class:`QuakeValue`."""
+        with self.ctx, self.insertPoint, self.loc:
+            measTy = cc.MeasureHandleType.get()
+            if quake.VeqType.isinstance(target.mlirValue.type):
+                measTy = cc.StdvecType.get(measTy)
+            if regName is not None:
+                res = opClass(measTy, [], [target.mlirValue],
+                              registerName=StringAttr.get(regName,
+                                                          context=self.ctx))
+            else:
+                res = opClass(measTy, [], [target.mlirValue])
+            return self.__createQuakeValue(res.measOut)
+
     def mz(self, target, regName=None):
         """
         Measure the given qubit or qubits in the Z-basis. The optional
@@ -1120,15 +1154,16 @@ class PyKernel(object):
 
         Args:
         target (:class:`QuakeValue`): The qubit or qubits to measure.
-        register_name (Optional[:obj:`str`]): The optional name to provide the 
-            results of the measurement. Defaults to an empty string. 
+        register_name (Optional[:obj:`str`]): The optional name to provide the
+            results of the measurement. Defaults to ``None``, in which case
+            no register name is attached to the measurement op.
 
         Returns:
         :class:`QuakeValue`: A handle to this measurement operation in the MLIR.
 
         Note:
-        Measurements may be applied both mid-circuit and at the end of 
-        the circuit. Conditional logic on mid-circuit measurements is no longer 
+        Measurements may be applied both mid-circuit and at the end of
+        the circuit. Conditional logic on mid-circuit measurements is no longer
         supported.
 
         ```python
@@ -1140,23 +1175,7 @@ class PyKernel(object):
             kernel.mz(target=qubit))
         ```
         """
-        with self.ctx, self.insertPoint, self.loc:
-            i1Ty = IntegerType.get_signless(1)
-            qubitTy = target.mlirValue.type
-            retTy = i1Ty
-            measTy = quake.MeasureType.get()
-            stdvecTy = cc.StdvecType.get(i1Ty)
-            if quake.VeqType.isinstance(target.mlirValue.type):
-                retTy = stdvecTy
-                measTy = cc.StdvecType.get(measTy)
-            if regName is not None:
-                res = quake.MzOp(measTy, [], [target.mlirValue],
-                                 registerName=StringAttr.get(regName,
-                                                             context=self.ctx))
-            else:
-                res = quake.MzOp(measTy, [], [target.mlirValue])
-            disc = quake.DiscriminateOp(retTy, res)
-            return self.__createQuakeValue(disc.result)
+        return self.__measure(quake.MzOp, target, regName)
 
     def mx(self, target, regName=None):
         """
@@ -1168,15 +1187,16 @@ class PyKernel(object):
 
         Args:
         target (:class:`QuakeValue`): The qubit or qubits to measure.
-        register_name (Optional[:obj:`str`]): The optional name to provide the 
-            results of the measurement. Defaults to an empty string. 
+        register_name (Optional[:obj:`str`]): The optional name to provide the
+            results of the measurement. Defaults to ``None``, in which case
+            no register name is attached to the measurement op.
 
         Returns:
         :class:`QuakeValue`: A handle to this measurement operation in the MLIR.
 
         Note:
-        Measurements may be applied both mid-circuit and at the end of 
-        the circuit. Conditional logic on mid-circuit measurements is no longer 
+        Measurements may be applied both mid-circuit and at the end of
+        the circuit. Conditional logic on mid-circuit measurements is no longer
         supported.
 
         ```python
@@ -1187,23 +1207,7 @@ class PyKernel(object):
             kernel.mx(qubit))
         ```
         """
-        with self.ctx, self.insertPoint, self.loc:
-            i1Ty = IntegerType.get_signless(1)
-            qubitTy = target.mlirValue.type
-            retTy = i1Ty
-            measTy = quake.MeasureType.get()
-            stdvecTy = cc.StdvecType.get(i1Ty)
-            if quake.VeqType.isinstance(target.mlirValue.type):
-                retTy = stdvecTy
-                measTy = cc.StdvecType.get(measTy)
-            if regName is not None:
-                res = quake.MxOp(measTy, [], [target.mlirValue],
-                                 registerName=StringAttr.get(regName,
-                                                             context=self.ctx))
-            else:
-                res = quake.MxOp(measTy, [], [target.mlirValue])
-            disc = quake.DiscriminateOp(retTy, res)
-            return self.__createQuakeValue(disc.result)
+        return self.__measure(quake.MxOp, target, regName)
 
     def my(self, target, regName=None):
         """
@@ -1215,15 +1219,16 @@ class PyKernel(object):
 
         Args:
         target (:class:`QuakeValue`): The qubit or qubits to measure.
-        register_name (Optional[:obj:`str`]): The optional name to provide the 
-            results of the measurement. Defaults to an empty string. 
+        register_name (Optional[:obj:`str`]): The optional name to provide the
+            results of the measurement. Defaults to ``None``, in which case
+            no register name is attached to the measurement op.
 
         Returns:
         :class:`QuakeValue`: A handle to this measurement operation in the MLIR.
 
         Note:
-        Measurements may be applied both mid-circuit and at the end of 
-        the circuit. Conditional logic on mid-circuit measurements is no longer 
+        Measurements may be applied both mid-circuit and at the end of
+        the circuit. Conditional logic on mid-circuit measurements is no longer
         supported.
 
         ```python
@@ -1235,23 +1240,89 @@ class PyKernel(object):
             kernel.my(qubit))
         ```
         """
+        return self.__measure(quake.MyOp, target, regName)
+
+    def __qecOperandValue(self, qv, opName):
+        """Normalize a builder-side QEC operand: must be a
+        ``QuakeValue`` whose MLIR type is ``!cc.measure_handle`` or
+        ``!cc.stdvec<!cc.measure_handle>`` (the value forms produced by
+        ``mz`` / ``mx`` / ``my`` for scalar and ``qvector`` targets)."""
+        if not isinstance(qv, QuakeValue):
+            emitFatalError(
+                f"kernel.{opName} arguments must be QuakeValue "
+                f"measurement handles (returned by kernel.mz / mx / my)")
+        ty = qv.mlirValue.type
+        ok = (cc.MeasureHandleType.isinstance(ty) or
+              (cc.StdvecType.isinstance(ty) and cc.MeasureHandleType.isinstance(
+                  cc.StdvecType.getElementType(ty))))
+        if not ok:
+            emitFatalError(
+                f"kernel.{opName} arguments must each be a "
+                f"cudaq.measure_handle or list[cudaq.measure_handle]")
+        return qv.mlirValue
+
+    def detector(self, *measurements):
+        """Define a detector over one or more measurement results.
+
+        A detector is a parity constraint: under noise-free execution the
+        XOR of the referenced measurements is deterministic. Each call
+        defines one detector. Arguments are :class:`QuakeValue` handles
+        returned by ``kernel.mz`` / ``mx`` / ``my`` (scalar handles or
+        handle vectors).
+        """
+        if not measurements:
+            emitFatalError("kernel.detector requires at least one "
+                           "cudaq.measure_handle argument")
         with self.ctx, self.insertPoint, self.loc:
-            i1Ty = IntegerType.get_signless(1)
-            qubitTy = target.mlirValue.type
-            retTy = i1Ty
-            measTy = quake.MeasureType.get()
-            stdvecTy = cc.StdvecType.get(i1Ty)
-            if quake.VeqType.isinstance(target.mlirValue.type):
-                retTy = stdvecTy
-                measTy = cc.StdvecType.get(measTy)
-            if regName is not None:
-                res = quake.MyOp(measTy, [], [target.mlirValue],
-                                 registerName=StringAttr.get(regName,
-                                                             context=self.ctx))
-            else:
-                res = quake.MyOp(measTy, [], [target.mlirValue])
-            disc = quake.DiscriminateOp(retTy, res)
-            return self.__createQuakeValue(disc.result)
+            values = [
+                self.__qecOperandValue(m, "detector") for m in measurements
+            ]
+            qec.DetectorOp(values)
+
+    def logical_observable(self, *measurements, observable_index=0):
+        """Define a logical observable over one or more measurement results.
+
+        ``observable_index`` selects which logical qubit observable this
+        call defines; codes with a single logical qubit can omit it. Any
+        combination of scalar handles and handle vectors is accepted.
+        """
+        if not measurements:
+            emitFatalError("kernel.logical_observable requires at least one "
+                           "cudaq.measure_handle argument")
+        if not isinstance(observable_index, int) or isinstance(
+                observable_index, bool):
+            emitFatalError(
+                "kernel.logical_observable requires observable_index "
+                "to be an integer literal")
+        if observable_index < 0 or observable_index > (1 << 63) - 1:
+            emitFatalError(
+                "kernel.logical_observable observable_index must be in "
+                "the range [0, 2^63 - 1]")
+        with self.ctx, self.insertPoint, self.loc:
+            values = [
+                self.__qecOperandValue(m, "logical_observable")
+                for m in measurements
+            ]
+            # Skip the attribute at the default 0 so the printed IR omits
+            # the optional `index 0` literal at the spec shape.
+            idxAttr = None if observable_index == 0 else observable_index
+            qec.ObservableOp(values, observableIndex=idxAttr)
+
+    def detectors(self, prev, curr):
+        """Define N detectors by pairing two measurement vectors
+        element-wise. Standard form for cross-round detectors: each
+        detector ``i`` is the parity of ``prev[i]`` and ``curr[i]``.
+        Both arguments must be ``list[cudaq.measure_handle]`` handles
+        (returned by ``kernel.mz`` on a ``qvector``).
+        """
+        with self.ctx, self.insertPoint, self.loc:
+            prevV = self.__qecOperandValue(prev, "detectors")
+            currV = self.__qecOperandValue(curr, "detectors")
+            for v in (prevV, currV):
+                if not cc.StdvecType.isinstance(v.type):
+                    emitFatalError("kernel.detectors arguments must each be a "
+                                   "list[cudaq.measure_handle]")
+            qec.DetectorsOp(prevV, currV)
 
     def adjoint(self, otherKernel, *target_arguments):
         """
@@ -1546,11 +1617,23 @@ class PyKernel(object):
             emitFatalError("Noise channel parameter must be float")
 
     @staticmethod
+    def _get_num_parameters(noise_channel):
+        """Return the `num_parameters` for a noise channel class,
+        supporting both the attribute (custom channels) and the
+        method (nanobind-bound built-in channels)."""
+        if hasattr(noise_channel, 'num_parameters'):
+            return noise_channel.num_parameters
+        if hasattr(noise_channel, 'get_num_parameters'):
+            return noise_channel.get_num_parameters()
+        return None
+
+    @staticmethod
     def _validate_noise_channel_probability_params(noise_channel, param_values):
         """
         Raise `RuntimeError` if any `param` is a constant float outside [0, 1].
         """
-        if not hasattr(noise_channel, 'num_parameters'):
+        if not (hasattr(noise_channel, 'num_parameters') or
+                hasattr(noise_channel, 'get_num_parameters')):
             return
         for p in param_values:
             if isinstance(p, (int, float)):
@@ -1570,17 +1653,19 @@ class PyKernel(object):
             self.appliedNoiseChannels.append(noise_channel)
 
         if not issubclass(noise_channel, cudaq_runtime.KrausChannel):
-            if not hasattr(noise_channel, 'num_parameters'):
+            if not (hasattr(noise_channel, 'num_parameters') or
+                    hasattr(noise_channel, 'get_num_parameters')):
                 emitFatalError(
                     'apply_noise kraus channels must have `num_parameters` '
                     'constant class attribute specified.')
 
+            n_params = self._get_num_parameters(noise_channel)
             # We needs to have noise channel parameters + qubit arguments
             if isinstance(args[0], list):
-                if len(args[0]) != noise_channel.num_parameters:
+                if len(args[0]) != n_params:
                     emitFatalError(f"Invalid number of arguments passed to "
                                    f"apply_noise for channel `{noise_channel}`")
-            elif len(args) <= noise_channel.num_parameters:
+            elif len(args) <= n_params:
                 emitFatalError(f"Invalid number of arguments passed to "
                                f"apply_noise for channel `{noise_channel}`")
 
@@ -1604,11 +1689,12 @@ class PyKernel(object):
                         emitFatalError("Invalid qubit operand type")
                     target_qubits.append(p.mlirValue)
             else:
-                param_values = args[:noise_channel.num_parameters]
+                n_params = self._get_num_parameters(noise_channel)
+                param_values = args[:n_params]
                 self._validate_noise_channel_probability_params(
                     noise_channel, param_values)
                 for i, p in enumerate(args):
-                    if i < noise_channel.num_parameters:
+                    if i < n_params:
                         noise_channel_params.append(
                             self.process_channel_param(p))
                     else:
@@ -1624,6 +1710,7 @@ class PyKernel(object):
             quake.ApplyNoiseOp([params], [asVeq],
                                key=self.getConstantInt(channel_key))
 
+    @trace.traced
     def compile(self):
         """
         A `PyKernel` can be dynamically extended up until it is reified to be
@@ -1635,7 +1722,8 @@ class PyKernel(object):
             pm = PassManager.parse("builtin.module(aot-prep-pipeline)",
                                    context=ctx)
             try:
-                pm.run(self.qkeModule)
+                with trace.span("cudaq.pipeline.aot"):
+                    cudaq_runtime.runPassManager(pm, self.qkeModule)
             except:
                 raise RuntimeError("could not compile code for '" +
                                    self.uniqName + "'.")

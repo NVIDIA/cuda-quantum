@@ -40,7 +40,7 @@ enum class TraceInstructionType {
 /// @brief Single operation in the PTSBE execution trace.
 ///
 /// Stores gate, noise channel, or measurement info with plain qubit indices.
-/// This is the user-facing trace type exposed to Python via pybind11.
+/// This is the user-facing trace type exposed to Python via nanobind.
 ///
 struct TraceInstruction {
   /// @brief Instruction category (Gate, Noise, or Measurement)

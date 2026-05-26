@@ -14,8 +14,9 @@
 #ifdef CUDAQ_HAS_CUDA
 #include "cuda_runtime_api.h"
 #endif
-#include "cudaq/platform.h"
 #include "distributed/mpi_plugin.h"
+#include "cudaq/platform.h"
+#include "cudaq/simulators.h"
 #include <dlfcn.h>
 #include <filesystem>
 #include <map>
@@ -179,6 +180,39 @@ std::pair<void *, std::size_t> comm_dup() {
   return std::make_pair(dupComm->commPtr, dupComm->commSize);
 }
 
+void *split_communicator(int color, const std::optional<int> &key) {
+  if (!is_initialized())
+    throw std::runtime_error(
+        "MPI must be initialized before calling split_communicator.");
+  auto *commPlugin = getMpiPlugin();
+  cudaqDistributedCommunicator_t *newComm = nullptr;
+  cudaqDistributedCommunicator_t *comm = commPlugin->getComm();
+  const auto splitStatus =
+      commPlugin->get()->CommSplit(comm, color, key.value_or(rank()), &newComm);
+  if (splitStatus != 0 || newComm == nullptr)
+    throw std::runtime_error("Failed to split the MPI communicator.");
+  return newComm->commPtr;
+}
+
+void set_communicator(void *comm) {
+  if (!is_initialized())
+    throw std::runtime_error(
+        "MPI must be initialized before calling set_communicator.");
+  auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
+  auto *asMpiSim = dynamic_cast<nvqir::MpiCircuitSimulator *>(circuitSimulator);
+  if (!asMpiSim) {
+    // Output a warning and return if the current simulator doesn't support
+    // MPI-based distributed simulation.
+    CUDAQ_WARN("The current circuit simulator '{}' does not support MPI-based "
+               "distributed simulation. Ignoring the set_communicator call.",
+               circuitSimulator->name());
+    return;
+  }
+
+  asMpiSim->setMpiCommunicator(
+      comm, static_cast<int>(getMpiPlugin()->getComm()->commSize));
+}
+
 void finalize() {
   // Inform the simulator that we are
   // about to run MPI Finalize
@@ -270,7 +304,7 @@ void __nvqpp_initializer_list_to_vector_bool(std::vector<bool> &result,
                                              char *initList, std::size_t size) {
   // result is a sret return value. Make sure it is default initialized. Takes
   // advantage of default empty vector being all 0s.
-  std::memset(&result, 0, sizeof(result));
+  std::memset(static_cast<void *>(&result), 0, sizeof(result));
   // Allocate space.
   result.reserve(size);
   // Copy in the initialization list data.

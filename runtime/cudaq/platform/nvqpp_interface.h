@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "common/JIT.h"
+#include "common/CompiledModule.h"
 #include "common/ThunkInterface.h"
 #include <optional>
 #include <string>
@@ -43,6 +43,7 @@ streamlinedLaunchKernel(const char *kernelName,
 hybridLaunchKernel(const char *kernelName, KernelThunkType kernel, void *args,
                    std::uint64_t argsSize, std::uint64_t resultOffset,
                    const std::vector<void *> &rawArgs);
+} // extern "C"
 
 //===----------------------------------------------------------------------===//
 // Launch module entry points.
@@ -53,24 +54,13 @@ hybridLaunchKernel(const char *kernelName, KernelThunkType kernel, void *args,
 // directly.
 //===----------------------------------------------------------------------===//
 
-// Streamlined interface for launching kernels. Argument synthesis and JIT
-// compilation *must* happen on the local machine. The caller must provide an
-// mlir::ModuleOp and the short name of the entry point kernel function to be
-// called,
+// Streamlined interface for launching kernels.
 [[nodiscard]] KernelThunkResultType
-streamlinedLaunchModule(const char *kernelName, mlir::ModuleOp moduleOp,
+streamlinedLaunchModule(const CompiledModule &compiled,
                         const std::vector<void *> &rawArgs);
 
-} // extern "C"
-
-// Convenience overload.
-[[nodiscard]] KernelThunkResultType
-streamlinedLaunchModule(const std::string &kernelName, mlir::ModuleOp moduleOp,
-                        const std::vector<void *> &rawArgs);
-
-[[nodiscard]] void *streamlinedSpecializeModule(
-    const std::string &kernelName, mlir::ModuleOp moduleOp,
-    const std::vector<void *> &rawArgs,
-    std::optional<cudaq::JitEngine> &cachedEngine, bool isEntryPoint);
+[[nodiscard]] CompiledModule
+streamlinedCompileModule(const std::string &kernelName, mlir::ModuleOp moduleOp,
+                         const std::vector<void *> &rawArgs, bool isEntryPoint);
 
 } // namespace cudaq

@@ -17,7 +17,7 @@
 #   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:ext -f docker/build/devdeps.ext.Dockerfile .
 
 ARG cuda_version=12.6
-ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:gcc11-main
+ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:gcc12-main
 ARG ompidev_image=ghcr.io/nvidia/cuda-quantum-devdeps:cu12-ompi-main
 FROM $ompidev_image AS ompibuild
 ARG cuda_version
@@ -36,9 +36,12 @@ ARG cuda_version
 ENV CUDA_VERSION=${cuda_version}
 
 # When a dialogue box would be needed during install, assume default configurations.
-# Set here to avoid setting it for all install commands. 
+# Set here to avoid setting it for all install commands.
 # Given as arg to make sure that this value is only set during build but not in the launched container.
 ARG DEBIAN_FRONTEND=noninteractive
+# Tolerate transient apt mirror failures.
+RUN echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries \
+    && echo 'Acquire::Retries::Delay::Maximum "30";' >> /etc/apt/apt.conf.d/80-retries
 RUN apt update && apt-get install -y --no-install-recommends ca-certificates wget build-essential \
     && apt-get upgrade -y libc-bin libcap2 \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
@@ -183,7 +186,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     else \
         cupy_version=13.4.1; \
     fi && \
-    python3 -m pip install --break-system-packages cupy-cuda$(echo $CUDA_VERSION | cut -d . -f1)x==${cupy_version} cuquantum-cu$(echo $CUDA_VERSION | cut -d . -f1)==26.1.0 && \
+    python3 -m pip install --break-system-packages cupy-cuda$(echo $CUDA_VERSION | cut -d . -f1)x==${cupy_version} cuquantum-cu$(echo $CUDA_VERSION | cut -d . -f1)==26.3.1 && \
     if [ "$(python3 --version | grep -o [0-9\.]* | cut -d . -f -2)" != "3.12" ]; then \
         echo "expecting Python version 3.12"; \
     fi

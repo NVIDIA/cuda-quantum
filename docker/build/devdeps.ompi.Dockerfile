@@ -28,6 +28,10 @@ ENV COMMON_COMPILER_FLAGS="-march=x86-64-v3 -mtune=generic -O2 -pipe"
 ENV COMMON_COMPILER_FLAGS_ARM="-march=armv8-a -mtune=generic -O2 -pipe"
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
 
+# Tolerate transient apt mirror failures.
+RUN echo 'Acquire::Retries "5";' > /etc/apt/apt.conf.d/80-retries \
+    && echo 'Acquire::Retries::Delay::Maximum "30";' >> /etc/apt/apt.conf.d/80-retries
+
 # 1 - Install basic tools needed for the builds
 
 RUN apt-get update && apt-get install -y --no-install-recommends \

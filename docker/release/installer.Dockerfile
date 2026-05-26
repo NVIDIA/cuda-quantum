@@ -29,8 +29,9 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
 # [Installer]
 FROM additional_components_${additional_components} AS assets
 
-# Install makeself
-RUN git clone --filter=tree:0 https://github.com/megastep/makeself /makeself && \
+# Install makeself and pigz (parallel gzip for faster installer compression)
+RUN dnf install -y --nobest --setopt=install_weak_deps=False pigz && \
+    git clone --filter=tree:0 https://github.com/megastep/makeself /makeself && \
     cd /makeself && git checkout release-2.5.0 && \
     ln -s /makeself/makeself.sh /usr/local/bin/makeself && \
     ln -s /makeself/makeself-header.sh /usr/local/bin/makeself-header.sh

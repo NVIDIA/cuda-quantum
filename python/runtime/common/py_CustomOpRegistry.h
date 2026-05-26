@@ -6,11 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <pybind11/pybind11.h>
-
-namespace py = pybind11;
+#include <nanobind/nanobind.h>
 
 namespace cudaq {
 /// @brief Bind the custom operation registry to Python.
-void bindCustomOpRegistry(py::module &mod);
+void bindCustomOpRegistry(nanobind::module_ &mod);
 } // namespace cudaq

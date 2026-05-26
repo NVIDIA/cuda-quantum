@@ -8,6 +8,7 @@
 
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
+#include "nlohmann/json.hpp"
 #include "cudaq/Support/Version.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
@@ -19,6 +20,7 @@
 #include <sstream>
 #include <thread>
 #include <unordered_set>
+
 using json = nlohmann::json;
 
 namespace cudaq {

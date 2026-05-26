@@ -9,8 +9,9 @@
 #include "CuDensityMatState.h"
 #include "CuDensityMatTimeStepper.h"
 #include "CuDensityMatUtils.h"
-#include "cudaq/algorithms/integrator.h"
 #include "test_Mocks.h"
+#include "cudaq/algorithms/integrator.h"
+#include "cudaq/utils/cudaq_utils.h"
 #include <cmath>
 #include <gtest/gtest.h>
 #include <iostream>

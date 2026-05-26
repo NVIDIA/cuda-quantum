@@ -10,6 +10,7 @@
 #include "ObserveResult.h"
 #include "RestClient.h"
 #include "ServerHelper.h"
+#include "nlohmann/json.hpp"
 #include "cudaq/runtime/logger/logger.h"
 #include <thread>
 

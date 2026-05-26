@@ -28,16 +28,7 @@ constexpr bool isTupleRecursivelyDefined() {
 
 namespace __internal__ {
 std::string demangle_kernel(const char *);
-bool isLibraryMode(const std::string &);
 extern bool globalFalse;
-class TargetSetter {
-public:
-  TargetSetter(const char *backend);
-};
-
-#ifdef NVQPP_TARGET_BACKEND_CONFIG
-inline TargetSetter targetSetter(NVQPP_TARGET_BACKEND_CONFIG);
-#endif
 } // namespace __internal__
 
 // Simple test to see if the QuantumKernel template
@@ -104,11 +95,6 @@ template <typename QuantumKernel, typename... Args>
 std::string get_kernel_template_member_name() {
   return "instance_" + internal::get_kernel_name_from_type<QuantumKernel>() +
          internal::expand_parameter_pack<Args...>();
-}
-
-/// Get the name of a plain old function that is marked as a quantum kernel.
-inline std::string get_kernel_function_name(std::string &&name) {
-  return "function_" + std::move(name);
 }
 
 inline std::string get_kernel_function_name(const std::string &name) {
@@ -182,17 +168,6 @@ inline std::string get_quake(std::string &&functionName) {
   return get_quake_by_name(get_kernel_function_name(std::move(functionName)));
 }
 
-inline std::string get_quake(std::string &&functionName,
-                             const std::string &knownMangledArgs) {
-  return get_quake_by_name(get_kernel_function_name(std::move(functionName)),
-                           knownMangledArgs);
-}
-
-typedef std::size_t (*KernelArgsCreator)(void **, void **);
-KernelArgsCreator getArgsCreator(const std::string &kernelName);
-
-bool kernelHasConditionalFeedback(const std::string &kernelName);
-
 /// @brief Set a custom noise model for simulation. The caller must also call
 /// `cudaq::unset_noise` before `model` gets deallocated or goes out of scope.
 void set_noise(const cudaq::noise_model &model);
@@ -210,79 +185,9 @@ std::size_t get_random_seed();
 /// @brief The number of available GPUs.
 int num_available_gpus();
 
-namespace mpi {
-/// @brief Return true if CUDA-Q has MPI plugin support.
-bool available();
-
-/// @brief Initialize MPI if available. This function
-/// is a no-op if there CUDA-Q has not been built
-/// against MPI.
-void initialize();
-
-/// @brief Initialize MPI if available. This function
-/// is a no-op if there CUDA-Q has not been built
-/// against MPI. Takes program arguments as input.
-void initialize(int argc, char **argv);
-
-/// @brief Return the rank of the calling process.
-int rank();
-
-/// @brief Return the number of MPI ranks.
-int num_ranks();
-
-/// @brief Return true if MPI is already initialized, false otherwise.
-bool is_initialized();
-
-namespace details {
-#define CUDAQ_ALL_REDUCE_DEF(TYPE, BINARY)                                     \
-  TYPE allReduce(const TYPE &, const BINARY<TYPE> &);
-
-CUDAQ_ALL_REDUCE_DEF(float, std::plus)
-CUDAQ_ALL_REDUCE_DEF(float, std::multiplies)
-
-CUDAQ_ALL_REDUCE_DEF(double, std::plus)
-CUDAQ_ALL_REDUCE_DEF(double, std::multiplies)
-
-} // namespace details
-
-/// @brief Reduce all values across ranks with the specified binary function.
-template <typename T, typename BinaryFunction>
-T all_reduce(const T &localValue, const BinaryFunction &function) {
-  return details::allReduce(localValue, function);
-}
-
-/// @brief Gather all vector data (floating point numbers) locally into the
-/// provided global vector.
-///
-/// Global vector must be sized to fit all vector
-/// elements coming from individual ranks.
-void all_gather(std::vector<double> &global, const std::vector<double> &local);
-
-/// @brief Gather all vector data (integers) locally into the provided
-/// global vector.
-///
-/// Global vector must be sized to fit all
-/// vector elements coming from individual ranks.
-void all_gather(std::vector<int> &global, const std::vector<int> &local);
-
-/// @brief Broadcast a vector from a process (rootRank) to all other processes.
-void broadcast(std::vector<double> &data, int rootRank);
-
-/// @brief Broadcast a string from a process (rootRank) to all other processes.
-void broadcast(std::string &data, int rootRank);
-
-/// @brief Duplicate the communicator. Returns the new communicator (as a void*)
-/// and its size.
-std::pair<void *, std::size_t> comm_dup();
-
-/// @brief Finalize MPI. This function
-/// is a no-op if there CUDA-Q has not been built
-/// against MPI.
-void finalize();
-
-} // namespace mpi
-
 } // namespace cudaq
+
+#include "cudaq/cudaq_mpi.h"
 
 // Users should get sample by default
 #include "cudaq/algorithms/sample.h"
@@ -294,3 +199,5 @@ void finalize();
 #include "cudaq/algorithms/get_state.h"
 // Users should get device.h by default
 #include "cudaq/driver/device.h"
+// Users should get apply_noise by default
+#include "cudaq/apply_noise.h"

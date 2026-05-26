@@ -11,9 +11,11 @@
 #include "common/ExecutionContext.h"
 #include "common/ObserveResult.h"
 #include "cudaq/algorithms/broadcast.h"
+#include "cudaq/algorithms/observe/policy.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
+#include "cudaq/platform.h"
 #include <functional>
 #include <ranges>
 #include <type_traits>
@@ -28,9 +30,6 @@ bool is_initialized();
 template <typename T, typename Func>
 T all_reduce(const T &, const Func &);
 } // namespace mpi
-
-/// @brief Return type for asynchronous observation.
-using async_observe_result = async_result<observe_result>;
 
 namespace parallel {
 /// @brief Multi-GPU Multi-Node (MPI)
@@ -48,21 +47,6 @@ template <typename QuantumKernel, typename... Args>
 concept ObserveCallValid =
     ValidArgumentsPassed<QuantumKernel, Args...> &&
     HasVoidReturnType<std::invoke_result_t<QuantumKernel, Args...>>;
-
-/// @brief Observe options to provide as an argument to the `observe()`,
-/// `async_observe()` functions.
-/// @param shots number of shots to run for the given kernel, or -1 if not
-/// applicable.
-/// @param noise noise model to use for the sample operation
-/// @param num_trajectories is the optional number of trajectories to be used
-/// when computing the expectation values in the presence of noise. This
-/// parameter is only applied to simulation backends that support noisy
-/// simulation of trajectories.
-struct observe_options {
-  int shots = -1;
-  cudaq::noise_model noise;
-  std::optional<std::size_t> num_trajectories;
-};
 
 namespace details {
 

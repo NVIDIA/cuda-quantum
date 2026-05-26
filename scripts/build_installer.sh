@@ -312,9 +312,11 @@ mkdir -p "$output_dir"
 
 echo "Creating self-extracting archive..."
 if $verbose; then
-  makeself_args="--gzip --sha256"
+  compress_flag=$(command -v pigz &>/dev/null && echo "--pigz" || echo "--gzip")
+  makeself_args="$compress_flag --sha256"
 else
-  makeself_args="--gzip --sha256 --quiet"
+  compress_flag=$(command -v pigz &>/dev/null && echo "--pigz" || echo "--gzip")
+  makeself_args="$compress_flag --sha256 --quiet"
 fi
 
 # Add license if available

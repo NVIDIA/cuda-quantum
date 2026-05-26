@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "run.h"
-#include "common/LayoutInfo.h"
 #include "common/RecordLogParser.h"
 #include "common/Timing.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -16,8 +15,9 @@
 cudaq::details::RunResultSpan cudaq::details::runTheKernel(
     std::function<void()> &&kernel, quantum_platform &platform,
     const std::string &kernel_name, const std::string &original_name,
-    std::size_t shots, const LayoutInfoType &layoutInfo, std::size_t qpu_id,
-    bool allowCaching) {
+    std::size_t shots,
+    const cudaq_internal::compiler::LayoutInfoType &layoutInfo,
+    std::size_t qpu_id, bool allowCaching) {
   ScopedTraceWithContext(cudaq::TIMING_RUN, "runTheKernel");
   // 1. Clear the outputLog.
   auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
@@ -28,8 +28,7 @@ cudaq::details::RunResultSpan cudaq::details::runTheKernel(
     throw std::runtime_error("`run` is not yet supported on this target.");
 
   // 2. Launch the kernel on the QPU.
-  if (platform.is_remote() || platform.is_emulated() ||
-      platform.get_remote_capabilities().isRemoteSimulator) {
+  if (platform.is_remote() || platform.is_emulated()) {
     // In a remote simulator execution or hardware emulation environment, set
     // the `run` context name and number of iterations (shots)
     cudaq::ExecutionContext ctx("run", shots, qpu_id);

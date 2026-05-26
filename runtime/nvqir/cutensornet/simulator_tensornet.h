@@ -7,9 +7,10 @@
  ******************************************************************************/
 
 #pragma once
-#include "cudaq.h"
 #include "simulator_cutensornet.h"
 #include "tn_simulation_state.h"
+#include "cudaq/cudaq_mpi.h"
+#include "cudaq/runtime/logger/cudaq_fmt.h"
 
 // Forward declaration
 #ifdef TENSORNET_FP32
@@ -20,7 +21,8 @@ extern "C" nvqir::CircuitSimulator *getCircuitSimulator_tensornet();
 
 namespace nvqir {
 template <typename ScalarType = double>
-class SimulatorTensorNet : public SimulatorTensorNetBase<ScalarType> {
+class SimulatorTensorNet : public SimulatorTensorNetBase<ScalarType>,
+                           public nvqir::MpiCircuitSimulator {
   using SimulatorTensorNetBase<ScalarType>::m_cutnHandle;
   using SimulatorTensorNetBase<
       ScalarType>::m_maxControlledRankForFullTensorExpansion;
@@ -38,7 +40,7 @@ public:
     // the Getting Started section of the cuTensorNet library documentation
     // (Installation and Compilation).
     if (cudaq::mpi::is_initialized()) {
-      initCuTensornetComm(m_cutnHandle);
+      initCuTensornetComm(m_cutnHandle, mpiCommPtr, mpiCommSizeBytes);
       m_cutnMpiInitialized = true;
     }
 
@@ -58,6 +60,14 @@ public:
                  m_maxControlledRankForFullTensorExpansion, maxControlledRank);
       m_maxControlledRankForFullTensorExpansion = maxControlledRank;
     }
+  }
+
+  bool setMpiCommunicator(void *comm, int commSizeBytes) override {
+    mpiCommPtr = comm;
+    mpiCommSizeBytes = commSizeBytes;
+    initCuTensornetComm(m_cutnHandle, mpiCommPtr, mpiCommSizeBytes);
+    m_cutnMpiInitialized = true;
+    return true;
   }
 
   // Nothing to do for state preparation
@@ -84,6 +94,13 @@ public:
     LOG_API_TIME();
     return std::make_unique<TensorNetSimulationState<ScalarType>>(
         std::move(m_state), scratchPad, m_cutnHandle, m_randomEngine);
+  }
+
+  std::unique_ptr<cudaq::SimulationState>
+  createStateFromData(const cudaq::state_data &data) override {
+    return std::make_unique<TensorNetSimulationState<ScalarType>>(
+               nullptr, scratchPad, m_cutnHandle, m_randomEngine)
+        ->createFromData(data);
   }
 
   void addQubitsToState(std::size_t numQubits, const void *ptr) override {
@@ -188,5 +205,7 @@ private:
 #endif
   /// @brief Has cuTensorNet MPI been initialized?
   bool m_cutnMpiInitialized = false;
+  static inline void *mpiCommPtr = nullptr;
+  static inline int mpiCommSizeBytes = 0;
 };
 } // namespace nvqir

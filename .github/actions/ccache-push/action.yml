@@ -1,0 +1,165 @@
+name: ccache-push
+description: Push ccache data to GHCR via ORAS
+
+inputs:
+  cache-key:
+    description: 'Tag prefix for the ccache artifact, e.g. arm64-build, amd64-devenv'
+    required: true
+  cache-path:
+    description: 'Path to the ccache data directory to push (e.g. ~/.ccache)'
+    required: true
+  registry-token:
+    description: 'GitHub token for GHCR authentication'
+    required: true
+  pr-number:
+    description: 'PR number for tag. Auto-detected from ref_name when empty.'
+    required: false
+    default: ''
+  miss-threshold:
+    description: 'Skip push if ccache miss rate is below this percentage. Set to 0 to always push.'
+    required: false
+    default: '5'
+  ref-name:
+    description: 'Branch name used for tag when not a PR build'
+    required: false
+    default: ${{ github.ref_name }}
+  upload-log:
+    description: 'Upload the ccache log file as a short-lived artifact for debugging'
+    required: false
+    default: 'false'
+
+outputs:
+  pushed:
+    description: 'Whether the ccache artifact was pushed'
+    value: ${{ steps.push.outputs.pushed }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Push ccache to GHCR
+      id: push
+      continue-on-error: true
+      shell: bash
+      run: |
+        cache_path="${{ inputs.cache-path }}"
+        miss_threshold="${{ inputs.miss-threshold }}"
+
+        # Validate cache path has content
+        if [ ! -d "$cache_path" ] || [ -z "$(ls -A "$cache_path" 2>/dev/null)" ]; then
+          echo "No ccache data found at $cache_path; skipping push."
+          echo "pushed=false" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        # Print stats for visibility: prefer _build_stats.txt from Docker
+        # export, fall back to querying ccache on the host (native builds).
+        stats_output=""
+        stats_file="$cache_path/_build_stats.txt"
+        if [ -f "$stats_file" ]; then
+          echo "=== ccache stats (from Docker build) ==="
+          stats_output=$(cat "$stats_file")
+          echo "$stats_output"
+        elif command -v ccache &>/dev/null; then
+          echo "=== ccache stats ==="
+          stats_output=$(ccache -s 2>/dev/null || true)
+          echo "$stats_output"
+        fi
+
+        # Use ccache's miss rate to decide whether the cache is worth saving.
+        # File-count growth is a poor proxy: a small percentage change can still
+        # represent hundreds of missed compile results in a large cache.
+        cacheable_calls=$(echo "$stats_output" | awk '/^Cacheable calls:/ {print $3; exit}')
+        cache_misses=$(echo "$stats_output" | awk '/^  Misses:/ {print $2; exit}')
+        miss_pct=""
+        if [[ "$cacheable_calls" =~ ^[0-9]+$ ]] && \
+           [[ "$cache_misses" =~ ^[0-9]+$ ]] && \
+           [ "$cacheable_calls" -gt 0 ]; then
+          miss_pct=$((cache_misses * 100 / cacheable_calls))
+          echo "Cache miss rate: ${miss_pct}% (${cache_misses} misses / ${cacheable_calls} cacheable calls)"
+        fi
+
+        # Always push on the default branch to keep the baseline fresh.
+        # This includes merge queue runs, which are the only path into
+        # main (no workflow triggers on direct push-to-main).
+        default_branch="${{ github.event.repository.default_branch }}"
+        default_branch="${default_branch:-main}"
+        if [ "${{ github.event_name }}" = "merge_group" ] || [ "${{ github.ref_name }}" = "$default_branch" ]; then
+          is_default_branch=true
+        else
+          is_default_branch=false
+        fi
+
+        if $is_default_branch; then
+          echo "On default branch ($default_branch); always pushing to keep baseline fresh."
+        elif [ "$miss_threshold" -gt 0 ] 2>/dev/null; then
+          if [ -z "$miss_pct" ]; then
+            echo "No ccache miss rate available; pushing cache."
+          elif [ "$miss_pct" -lt "$miss_threshold" ]; then
+            echo "Cache miss rate ${miss_pct}% is below threshold ${miss_threshold}%; skipping push."
+            echo "pushed=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+        fi
+
+        # Extract log and stats from cache dir before tarring so they
+        # don't bloat the GHCR artifact. The log is placed where the
+        # upload-artifact step expects it.
+        if [ -f "$cache_path/ccache.log" ]; then
+          mv "$cache_path/ccache.log" "${GITHUB_WORKSPACE:-$(pwd)}/ccache.log"
+        fi
+        rm -f "$stats_file" "$cache_path/_restore_file_count.txt"
+
+        # Determine tag
+        repo_owner=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+        platform=$([ "$(uname)" = "Darwin" ] && echo macos || echo linux)
+        image="ghcr.io/${repo_owner}/cuda-quantum-${platform}-ccache"
+        cache_key="${{ inputs.cache-key }}"
+
+        # Merge queue runs tag with the target branch (e.g. "main") so
+        # the baseline cache stays fresh for future builds.
+        if [ "${{ github.event_name }}" = "merge_group" ]; then
+          # base_ref looks like "refs/heads/main"; strip the prefix
+          merge_target="${{ github.event.merge_group.base_ref }}"
+          tag="${cache_key}-$(echo "${merge_target#refs/heads/}" | tr '/' '-')"
+        else
+          # Try to find a PR number: check the input, then the event
+          # context, then parse it from the ref name. Ref names can be
+          # pull-request/XXXX or gh-readonly-queue/BRANCH/pr-XXXX-SHA.
+          pr_number="${{ inputs.pr-number }}"
+          pr_number="${pr_number:-${{ github.event.pull_request.number }}}"
+          if [ -z "$pr_number" ] && \
+             [[ "${{ github.ref_name }}" =~ (pull-request/|.*/pr-)([0-9]+) ]]; then
+            pr_number="${BASH_REMATCH[2]}"
+          fi
+
+          if [ -n "$pr_number" ]; then
+            tag="${cache_key}-pr-${pr_number}"
+          else
+            # Replace slashes so the tag is valid for OCI registries
+            tag="${cache_key}-$(echo "${{ inputs.ref-name }}" | tr '/' '-')"
+          fi
+        fi
+
+        # Tar the contents of the cache directory (not the directory itself)
+        tar -czf ccache-data.tar.gz -C "$cache_path" .
+        echo "ccache tarball size: $(du -sh ccache-data.tar.gz | cut -f1) (uncompressed: $(du -sh "$cache_path" | cut -f1))"
+        echo "${{ inputs.registry-token }}" | oras login ghcr.io -u ${{ github.actor }} --password-stdin
+        oras push "$image:$tag" ccache-data.tar.gz
+        rm -f ccache-data.tar.gz
+        echo "Pushed ccache to $image:$tag"
+        echo "pushed=true" >> $GITHUB_OUTPUT
+
+    - name: Generate unique artifact name
+      if: always() && inputs.upload-log == 'true'
+      id: artifact
+      shell: bash
+      run: echo "name=ccache-log-${{ inputs.cache-key }}-$RANDOM" >> $GITHUB_OUTPUT
+
+    - name: Upload ccache log
+      if: always() && inputs.upload-log == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ steps.artifact.outputs.name }}
+        path: ${{ github.workspace }}/ccache.log
+        retention-days: 1
+        if-no-files-found: ignore

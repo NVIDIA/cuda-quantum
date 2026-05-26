@@ -14,12 +14,13 @@
 #include <bitset>
 #include <fstream>
 #include <map>
+#include <nlohmann/json.hpp>
 #include <thread>
 
 namespace cudaq {
 
 class HorizonServerHelper : public ServerHelper {
-  std::string url = "http://localhost:62450";
+  std::string url = "http://localhost:62452";
 
 public:
   const std::string name() const override { return "horizon"; }

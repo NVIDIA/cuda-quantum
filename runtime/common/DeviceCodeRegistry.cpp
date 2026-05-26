@@ -6,11 +6,13 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq.h"
+#include "DeviceCodeRegistry.h"
+#include "cudaq/qis/qkernel.h"
 #include "cudaq/runtime/logger/logger.h"
+#include <algorithm>
 #include <map>
+#include <mutex>
 #include <shared_mutex>
-#include <string>
 #include <vector>
 
 // Shared mutex to guard concurrent access to global kernel data (e.g.,
@@ -141,10 +143,6 @@ bool cudaq::detail::isKernelGenerated(const std::string &kernelName) {
   std::shared_lock<std::shared_mutex> lock(globalRegistryMutex);
   return std::find(kernelRegistry.begin(), kernelRegistry.end(), kernelName) !=
          kernelRegistry.end();
-}
-
-bool cudaq::__internal__::isLibraryMode(const std::string &kernelname) {
-  return !detail::isKernelGenerated(kernelname);
 }
 
 //===----------------------------------------------------------------------===//

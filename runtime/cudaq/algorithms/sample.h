@@ -11,10 +11,11 @@
 #include "common/ExecutionContext.h"
 #include "common/SampleResult.h"
 #include "cudaq/algorithms/broadcast.h"
+#include "cudaq/algorithms/sample/options.h"
+#include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
-
-constexpr int DEFAULT_NUM_SHOTS = 1000;
+#include "cudaq/platform.h"
 
 namespace cudaq {
 bool kernelHasConditionalFeedback(const std::string &);
@@ -38,9 +39,6 @@ inline bool hasConditionalFeedback(const std::string &kernelName,
   return false;
 }
 } // namespace detail
-
-/// @brief Return type for asynchronous sampling.
-using async_sample_result = async_result<sample_result>;
 
 /// @brief Define a combined sample function validation concept.
 /// These concepts provide much better error messages than old-school SFINAE
@@ -109,9 +107,7 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
   // Indicate that this is an asynchronous execution.
   ctx.asyncExec = futureResult != nullptr;
 
-  auto isRemoteSimulator = platform.get_remote_capabilities().isRemoteSimulator;
-  auto isQuantumDevice =
-      !isRemoteSimulator && (platform.is_remote() || platform.is_emulated());
+  auto isQuantumDevice = (platform.is_remote() || platform.is_emulated());
 
   // Loop until all shots are returned.
   cudaq::sample_result counts;
@@ -228,18 +224,6 @@ auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
       details::future(platform.enqueueAsyncTask(qpu_id, task)));
 }
 } // namespace details
-
-/// @brief Sample options to provide to the sample() / async_sample() functions
-///
-/// @param shots number of shots to run for the given kernel
-/// @param noise noise model to use for the sample operation
-/// @param explicit_measurements whether or not to form the global register
-/// based on user-supplied measurement order.
-struct sample_options {
-  std::size_t shots = DEFAULT_NUM_SHOTS;
-  cudaq::noise_model noise;
-  bool explicit_measurements = false;
-};
 
 /// @overload
 /// @brief Sample the given quantum kernel expression and return the

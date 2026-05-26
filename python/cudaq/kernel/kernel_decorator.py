@@ -9,6 +9,7 @@
 import ast
 import inspect
 import json
+import types
 from functools import wraps
 from cudaq.kernel.utils import emitWarning
 import numpy as np
@@ -16,14 +17,17 @@ import sys
 
 from cudaq.handlers import get_target_handler
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cudaq.util import trace
 from cudaq.mlir.dialects import cc, func
 from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, FunctionType,
                            IntegerType, NoneType, TypeAttr, UnitAttr, Module,
                            Type)
 from .analysis import FunctionDefVisitor
-from .kernel_signature import CapturedLinkedKernel, CapturedVariable, KernelSignature
+from .kernel_signature import (CapturedLinkedKernel, CapturedVariable,
+                               KernelSignature)
 from .ast_bridge import compile_to_mlir
-from .utils import (emitFatalError, emitErrorIfInvalidPauli, get_module_name,
+from .utils import (emitFatalError, emitErrorIfInvalidPauli,
+                    get_function_source_or_raise, get_module_name,
                     globalRegisteredTypes, mlirTypeFromPyType, mlirTypeToPyType,
                     nvqppPrefix, getMLIRContext, recover_func_op,
                     recover_value_of)
@@ -63,9 +67,14 @@ def ensure_not_recursive(method):
             )
 
         self._resolving_arguments = True
-        ret = method(self, *args, **kwargs)
-        self._resolving_arguments = False
-        return ret
+        try:
+            return method(self, *args, **kwargs)
+        finally:
+            # Clear the flag on every exit path. Without `finally`, an
+            # exception raised by `method` leaks `_resolving_arguments=True`
+            # to the next invocation, which then misreports the real error
+            # as a recursive-call diagnostic.
+            self._resolving_arguments = False
 
     return wrapper
 
@@ -179,9 +188,21 @@ class PyKernelDecorator(object):
             for name, var in parentVars.items():
                 self._add_global_scoped_var(name, var)
 
+            # Detect aliases for the cudaq module (e.g. `import cudaq as cq`).
+            # Collect all names that refer to the cudaq module so the AST
+            # bridge can recognize them alongside the canonical 'cudaq' name.
+            # Check both local and global scope since the alias may be at
+            # module level while the kernel is defined inside a function.
+            self.cudaqAliases = {'cudaq'}
+            for scope in (parentVars, self.parentFrame.f_globals):
+                for vname, var in scope.items():
+                    if (isinstance(var, types.ModuleType) and
+                            getattr(var, '__name__', None) == 'cudaq'):
+                        self.cudaqAliases.add(vname)
+
             self.astModule = _parse_ast(self.funcSrc, self.verbose)
             self.signature = KernelSignature.parse_from_ast(
-                self.astModule, self.name)
+                self.astModule, self.name, cudaqAliases=self.cudaqAliases)
             self.uniqueId = id(self)
             self.uniqName = self.name + ".." + hex(self.uniqueId)
 
@@ -241,6 +262,7 @@ class PyKernelDecorator(object):
         handler = get_target_handler()
         return not handler.skip_compilation()
 
+    @trace.traced
     def compile(self):
         """
         Compile the Python AST to portable Quake.
@@ -252,8 +274,8 @@ class PyKernelDecorator(object):
         if not self.supports_compilation():
             emitFatalError(
                 f"Cannot compile kernel '{self.name}': target handler "
-                f"'{cudaq_runtime.get_target().name}' does not support compilation"
-            )
+                f"'{cudaq_runtime.get_target().name}' does not support "
+                f"compilation")
 
         self._cached_qkeModule = compile_to_mlir(
             id(self),
@@ -263,7 +285,8 @@ class PyKernelDecorator(object):
             verbose=self.verbose,
             location=self.location,
             kernelName=self.name,
-            kernelModuleName=self.kernelModuleName)
+            kernelModuleName=self.kernelModuleName,
+            cudaqAliases=getattr(self, 'cudaqAliases', None))
 
         # recursively compile any captured kernels if required
         for captured_arg in self.signature.captured_args:
@@ -288,7 +311,7 @@ class PyKernelDecorator(object):
         for op in newMod.body:
             if isinstance(op, func.FuncOp):
                 for attr in op.attributes:
-                    if 'cudaq-entrypoint' == attr.name:
+                    if 'cudaq-entrypoint' == attr:
                         name = op.name.value.removeprefix(nvqppPrefix)
                         break
 
@@ -310,7 +333,7 @@ class PyKernelDecorator(object):
         for op in newMod.body:
             if isinstance(op, func.FuncOp):
                 for attr in op.attributes:
-                    if 'cudaq-entrypoint' == attr.name:
+                    if 'cudaq-entrypoint' == attr:
                         name = op.name.value.removeprefix(nvqppPrefix)
                         break
 
@@ -530,19 +553,20 @@ class PyKernelDecorator(object):
             for arg, arg_type in zip(args, self.arg_types())
         ]
 
-        # If we're compiling a kernel that's not an entry point, allowing compiling
-        # without providing all arguments
+        # If we're compiling a kernel that's not an entry point, allowing
+        # compiling without providing all arguments
         if allow_no_args:
             expected = len(self.arg_types(include_captured=False))
             actual = len(args)
             if actual != 0 and actual != expected:
                 raise RuntimeError(
-                    "Cannot partially reduce a python kernel! Must either provide all arguments or no arguments."
-                )
+                    "Cannot partially reduce a python kernel! Must either "
+                    "provide all arguments or no arguments.")
             [args.append(None) for k in range(actual, expected)]
 
         return args
 
+    @trace.traced
     def prepare_call(self, *args, allow_no_args=False):
         """
         Process call site arguments, capture lifted arguments and retrieve
@@ -551,7 +575,8 @@ class PyKernelDecorator(object):
         # Returns:
 
         `processed_args` : list
-            The list of processed runtime arguments, including captured arguments, 
+            The list of processed runtime arguments, including captured
+            arguments.
         `module` : Module
             A clone of the MLIR module to be used for kernel execution.
         """
@@ -560,7 +585,8 @@ class PyKernelDecorator(object):
         # append captured arguments
         processed_args.extend(self.resolve_captured_arguments())
 
-        module = cudaq_runtime.cloneModule(self.qkeModule)
+        with trace.span("kernel.clone_module"):
+            module = cudaq_runtime.cloneModule(self.qkeModule)
 
         return processed_args, module
 
@@ -629,17 +655,9 @@ class PyKernelDecorator(object):
                                                        isEntryPoint,
                                                        *processed_args)
 
-    def delete_cache_execution_engine(self, key):
-        """
-        Delete the `ExecutionEngine` cache given by a cache key.
-        """
-        # Make sure this hasn't already been cleaned up as we're winding down
-        if (cudaq_runtime is not None and
-                cudaq_runtime.delete_cache_execution_engine is not None):
-            cudaq_runtime.delete_cache_execution_engine(key)
-
     def process_argument(self, arg, arg_type):
         if isa_kernel_decorator(arg):
+            _validate_kernel_callable_arg(arg, arg_type)
             return DecoratorCapture(arg)
 
         arg = self.convertStringsToPauli(arg)
@@ -731,14 +749,7 @@ def isa_kernel_decorator(object):
 def _get_source(function):
     if function is None:
         return None, None
-    # Get the function source location
-    location = (inspect.getfile(function), inspect.getsourcelines(function)[1])
-    # Get the function source
-    src = inspect.getsource(function)
-    # Strip off the extra tabs
-    leadingSpaces = len(src) - len(src.lstrip())
-    src = '\n'.join([line[leadingSpaces:] for line in src.split('\n')])
-    return src, location
+    return get_function_source_or_raise(function)
 
 
 def _recover_defining_frame():
@@ -772,3 +783,33 @@ def _parse_ast(funcSrc: str, verbose: bool = False):
         except ImportError:
             pass
     return astModule
+
+
+def _validate_kernel_callable_arg(kernel, arg_type):
+    """
+    Validate that `kernel` matches the `arg_type` callable signature.
+    """
+    if not cc.CallableType.isinstance(arg_type):
+        emitFatalError(
+            f"Expected argument of type `{arg_type}`, got callable kernel `{kernel.name}`"
+        )
+
+    expectedFnTy = cc.CallableType.getFunctionType(arg_type)
+    actualFnTy = cc.CallableType.getFunctionType(
+        kernel.signature.get_callable_type())
+
+    if expectedFnTy == actualFnTy:
+        return
+
+    def _format(fnTy):
+        inputs_str = ", ".join(str(t) for t in fnTy.inputs)
+        results = fnTy.results
+        if results:
+            return f"({inputs_str}) -> {results[0]}"
+        else:
+            return inputs_str
+
+    emitFatalError(
+        f"Expected callable with signature {_format(expectedFnTy)}, "
+        f"got callable kernel `{kernel.name}` with signature {_format(actualFnTy)}"
+    )
