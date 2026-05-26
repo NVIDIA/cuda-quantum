@@ -59,7 +59,7 @@ public:
       // ??? How is this correct? The controls are not changed?!
       cudaq::quake::CustomUnitaryConstantOp::create(
           rewriter, loc, op.getMatrixAttr(), op.getIsAdj(), op.getParameters(),
-          op.getControls(), op.getTargets());
+          op.getControls(), op.getTargets(), {});
     } else {
       Op::create(rewriter, loc, op.getIsAdj(), op.getParameters(),
                  op.getControls(), op.getTargets());
@@ -87,21 +87,23 @@ struct ApplyControlNegationsPass
     auto funcOp = getOperation();
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    patterns.insert<ReplaceNegativeControl<cudaq::quake::XOp>,
-                    ReplaceNegativeControl<cudaq::quake::YOp>,
-                    ReplaceNegativeControl<cudaq::quake::ZOp>,
-                    ReplaceNegativeControl<cudaq::quake::HOp>,
-                    ReplaceNegativeControl<cudaq::quake::SOp>,
-                    ReplaceNegativeControl<cudaq::quake::TOp>,
-                    ReplaceNegativeControl<cudaq::quake::RxOp>,
-                    ReplaceNegativeControl<cudaq::quake::RyOp>,
-                    ReplaceNegativeControl<cudaq::quake::RzOp>,
-                    ReplaceNegativeControl<cudaq::quake::R1Op>,
-                    ReplaceNegativeControl<cudaq::quake::U3Op>,
-                    ReplaceNegativeControl<cudaq::quake::SwapOp>,
-                    ReplaceNegativeControl<cudaq::quake::ExpPauliOp>,
-                    ReplaceNegativeControl<cudaq::quake::CustomUnitaryCallOp>>(
-        ctx);
+    patterns
+        .insert<ReplaceNegativeControl<cudaq::quake::XOp>,
+                ReplaceNegativeControl<cudaq::quake::YOp>,
+                ReplaceNegativeControl<cudaq::quake::ZOp>,
+                ReplaceNegativeControl<cudaq::quake::HOp>,
+                ReplaceNegativeControl<cudaq::quake::SOp>,
+                ReplaceNegativeControl<cudaq::quake::TOp>,
+                ReplaceNegativeControl<cudaq::quake::RxOp>,
+                ReplaceNegativeControl<cudaq::quake::RyOp>,
+                ReplaceNegativeControl<cudaq::quake::RzOp>,
+                ReplaceNegativeControl<cudaq::quake::R1Op>,
+                ReplaceNegativeControl<cudaq::quake::U3Op>,
+                ReplaceNegativeControl<cudaq::quake::SwapOp>,
+                ReplaceNegativeControl<cudaq::quake::ExpPauliOp>,
+                ReplaceNegativeControl<cudaq::quake::CustomUnitaryCallOp>,
+                ReplaceNegativeControl<cudaq::quake::CustomUnitaryConstantOp>>(
+            ctx);
     ConversionTarget target(*ctx);
     target.addLegalDialect<cudaq::cc::CCDialect, arith::ArithDialect,
                            LLVM::LLVMDialect>();
