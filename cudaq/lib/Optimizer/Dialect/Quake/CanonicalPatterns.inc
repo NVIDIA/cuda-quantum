@@ -117,8 +117,11 @@ struct ForwardEmptyVeqSizePattern
     if (veqTy.hasSpecifiedSize())
       return failure();
     auto undef = veqSize.getVeq().getDefiningOp<cudaq::cc::UndefOp>();
-    if (!undef)
-      return failure();
+    if (!undef) {
+      auto poison = veqSize.getVeq().getDefiningOp<cudaq::cc::PoisonOp>();
+      if (!poison)
+        return failure();
+    }
     rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(veqSize,
                                                       veqSize.getType(), 0);
     return success();
