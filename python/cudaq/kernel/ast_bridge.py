@@ -4616,7 +4616,7 @@ class PyASTBridge(ast.NodeVisitor):
                 # Upper bound is exclusive in Python and inclusive in Quake
                 upperVal = arith.SubIOp(upperVal, self.getConstantInt(1)).result
                 dyna = IntegerAttr.get(self.getIntegerType(), -1)
-                cond = arith.CmpIOp(IntegerAttr.get(self.getIntegerType(), 5),
+                cond = arith.CmpIOp(IntegerAttr.get(self.getIntegerType(), 3),
                                     lowerVal, upperVal)
                 ifOp = cc.IfOp([self.getVeqType()], cond, [])
                 thenBlock = Block.create_at_start(ifOp.thenRegion, [])

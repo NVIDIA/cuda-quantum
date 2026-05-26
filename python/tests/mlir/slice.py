@@ -107,7 +107,7 @@ if __name__ == "__main__":
 # CHECK:           %[[CONSTANT_1:.*]] = arith.constant 1 : i64
 # CHECK:           %[[SCOPE_0:.*]] = cc.scope -> (i64) {
 # CHECK:             %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<5>
-# CHECK:             %[[POISON_0:.*]] = cc.poison !quake.veq<?>
+# CHECK:             %[[POISON_0:.*]] = cc.undef !quake.veq<?>
 # CHECK:             %[[LOOP_0:.*]] = cc.loop while ((%[[VAL_0:.*]] = %[[CONSTANT_0]]) -> (i64)) {
 # CHECK:               %[[CMPI_0:.*]] = arith.cmpi slt, %[[VAL_0]], %[[CONSTANT_0]] : i64
 # CHECK:               cc.condition %[[CMPI_0]](%[[VAL_0]] : i64)
@@ -136,7 +136,7 @@ if __name__ == "__main__":
 # CHECK:             %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[MZ_0]] : (!cc.measure_handle) -> i1
 # CHECK:             %[[CAST_0:.*]] = cc.cast unsigned %[[DISCRIMINATE_0]] : (i1) -> i64
 # CHECK:             %[[SUBI_0:.*]] = arith.subi %[[CAST_0]], %[[CONSTANT_1]] : i64
-# CHECK:             %[[CMPI_0:.*]] = arith.cmpi sle, %[[SUBI_0]], %[[CONSTANT_0]] : i64
+# CHECK:             %[[CMPI_0:.*]] = arith.cmpi sge, %[[SUBI_0]], %[[CONSTANT_0]] : i64
 # CHECK:             %[[IF_0:.*]] = cc.if(%[[CMPI_0]]) -> !quake.veq<?> {
 # CHECK:               %[[SUBVEQ_0:.*]] = quake.subveq %[[ALLOCA_0]], 0, %[[SUBI_0]] : (!quake.veq<5>, i64) -> !quake.veq<?>
 # CHECK:               cc.continue %[[SUBVEQ_0]] : !quake.veq<?>
@@ -149,7 +149,7 @@ if __name__ == "__main__":
 # CHECK:               %[[CMPI_1:.*]] = arith.cmpi slt, %[[VAL_0]], %[[VEQ_SIZE_0]] : i64
 # CHECK:               cc.condition %[[CMPI_1]](%[[VAL_0]] : i64)
 # CHECK:             } do {
-# CHECK: [5, 5, 5, 5, 5, 5, 5, 5, 5, 5]
+# CHECK: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__dynamic_notempty_slice..0x
 # CHECK:           %[[CONSTANT_0:.*]] = arith.constant 0 : i64
@@ -175,7 +175,7 @@ if __name__ == "__main__":
 # CHECK:             %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[MZ_0]] : (!cc.measure_handle) -> i1
 # CHECK:             %[[CAST_0:.*]] = cc.cast unsigned %[[DISCRIMINATE_0]] : (i1) -> i64
 # CHECK:             %[[SUBI_0:.*]] = arith.subi %[[CAST_0]], %[[CONSTANT_1]] : i64
-# CHECK:             %[[CMPI_1:.*]] = arith.cmpi sle, %[[SUBI_0]], %[[CONSTANT_0]] : i64
+# CHECK:             %[[CMPI_1:.*]] = arith.cmpi sge, %[[SUBI_0]], %[[CONSTANT_0]] : i64
 # CHECK:             %[[IF_0:.*]] = cc.if(%[[CMPI_1]]) -> !quake.veq<?> {
 # CHECK:               %[[SUBVEQ_0:.*]] = quake.subveq %[[ALLOCA_0]], 0, %[[SUBI_0]] : (!quake.veq<5>, i64) -> !quake.veq<?>
 # CHECK:               cc.continue %[[SUBVEQ_0]] : !quake.veq<?>
