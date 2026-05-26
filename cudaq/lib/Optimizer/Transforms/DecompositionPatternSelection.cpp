@@ -362,11 +362,12 @@ private:
     /// Compute the maximum distance from a pattern's targets to the basis
     /// gates.
     auto getPatternDist = [&](const ResolvedVariant &variant) {
-      std::vector<std::size_t> targetDistances;
+      std::size_t maxDistance = 0;
       for (const auto &targetGate : variant.targetOps)
-        targetDistances.push_back(
-            findGateDist(OperatorInfo(llvm::StringRef(targetGate))));
-      return *std::max_element(targetDistances.begin(), targetDistances.end());
+        maxDistance =
+            std::max(maxDistance,
+                     findGateDist(OperatorInfo(llvm::StringRef(targetGate))));
+      return maxDistance;
     };
 
     while (!gatesToVisit.empty()) {

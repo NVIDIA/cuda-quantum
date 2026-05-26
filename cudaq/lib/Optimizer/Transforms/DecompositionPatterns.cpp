@@ -256,31 +256,6 @@ private:
 };
 } // namespace
 
-/// Check whether the operation has the correct number of controls.
-///
-/// Note: This function assumes that the operation has already been tested for
-/// reference semantics.
-static LogicalResult checkNumControls(cudaq::quake::OperatorInterface op,
-                                      std::size_t requiredNumControls) {
-  auto opControls = op.getControls();
-  if (opControls.size() > requiredNumControls)
-    return failure();
-
-  // Compute the number of controls
-  std::size_t numControls = 0;
-  for (auto control : opControls) {
-    if (auto veq = dyn_cast<cudaq::quake::VeqType>(control.getType())) {
-      if (!veq.hasSpecifiedSize())
-        return failure();
-      numControls += veq.getSize();
-      continue;
-    }
-    numControls += 1;
-  }
-
-  return numControls == requiredNumControls ? success() : failure();
-}
-
 static std::optional<std::size_t>
 getKnownNumControls(cudaq::quake::OperatorInterface op) {
   std::size_t numControls = 0;
@@ -294,6 +269,20 @@ getKnownNumControls(cudaq::quake::OperatorInterface op) {
     numControls += 1;
   }
   return numControls;
+}
+
+/// Check whether the operation has the correct number of controls.
+///
+/// Note: This function assumes that the operation has already been tested for
+/// reference semantics.
+static LogicalResult checkNumControls(cudaq::quake::OperatorInterface op,
+                                      std::size_t requiredNumControls) {
+  if (op.getControls().size() > requiredNumControls)
+    return failure();
+
+  auto numControls = getKnownNumControls(op);
+  return numControls && *numControls == requiredNumControls ? success()
+                                                            : failure();
 }
 
 /// Check whether the operation has the correct number of controls. This

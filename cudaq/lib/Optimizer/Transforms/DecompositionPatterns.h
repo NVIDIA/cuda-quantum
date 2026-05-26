@@ -64,16 +64,6 @@ public:
   /// when a bare operation should also rewrite.
   virtual llvm::ArrayRef<DecompositionPatternVariant> getVariants() const = 0;
 
-  /// Get the source operation this pattern matches and decomposes.
-  virtual llvm::StringRef getSourceOp() const {
-    return getVariants().front().sourceOp;
-  }
-
-  /// Get the target operations this pattern may produce
-  virtual llvm::ArrayRef<std::string> getTargetOps() const {
-    return getVariants().front().targetOps;
-  }
-
   /// Get the name of the pattern.
   virtual llvm::StringRef getPatternName() const = 0;
 

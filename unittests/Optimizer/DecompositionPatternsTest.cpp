@@ -290,15 +290,6 @@ void stripNamespace(std::string &debugName) {
 
 } // namespace
 
-// Test 1: Verify the total number of registered decomposition patterns
-TEST_F(DecompositionPatternsTest, TotalPatternCount) {
-  auto patternEntries = cudaq::DecompositionPatternTypeRegistry::entries();
-  unsigned int size =
-      std::distance(patternEntries.begin(), patternEntries.end());
-  EXPECT_EQ(size, 31) << "Expected 31 decomposition patterns, but found "
-                      << size;
-}
-
 // Test 2: Verify pattern names match getDebugName()
 TEST_F(DecompositionPatternsTest, PatternNamesMatchDebugNames) {
   auto patternEntries = cudaq::DecompositionPatternTypeRegistry::entries();

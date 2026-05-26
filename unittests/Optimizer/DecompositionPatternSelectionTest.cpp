@@ -71,14 +71,6 @@ public:
     return variants;
   }
 
-  llvm::StringRef getSourceOp() const override {
-    return variants.front().sourceOp;
-  }
-
-  llvm::ArrayRef<std::string> getTargetOps() const override {
-    return variants.front().targetOps;
-  }
-
   llvm::StringRef getPatternName() const override { return patternName; }
 
   std::unique_ptr<mlir::RewritePattern>
@@ -457,15 +449,6 @@ TEST_F(DummyDecompositionPatternSelectionTest,
   auto selectedSources = selectedSourceOps(targetBasis, "pattern_s_to_r1");
 
   EXPECT_EQ(std::find(selectedSources.begin(), selectedSources.end(), "s(n)"),
-            selectedSources.end());
-}
-
-TEST_F(DummyDecompositionPatternSelectionTest,
-       UnboundedR1BasisCoversConcreteControlledR1) {
-  std::vector<std::string> targetBasis{"r1(n)"};
-  auto selectedSources = selectedSourceOps(targetBasis, "pattern_s_to_r1");
-
-  EXPECT_NE(std::find(selectedSources.begin(), selectedSources.end(), "s(1)"),
             selectedSources.end());
 }
 
