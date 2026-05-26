@@ -691,7 +691,7 @@ static cudaq::KernelThunkResultType pyLaunchModule(
     auto func = cudaq::getKernelFuncOp(mod, name);
     mlir::Type resultTy = cudaq::runtime::getReturnType(func);
     auto hasResult = !!resultTy;
-    size_t num_args = rawArgs.size() - hasResult ? 1 : 0;
+    size_t num_args = rawArgs.size() - (hasResult ? 1 : 0);
     // Check for args synthesized.
     if (num_args != func.getArgumentTypes().size())
       return false;
