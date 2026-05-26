@@ -4616,13 +4616,23 @@ class PyASTBridge(ast.NodeVisitor):
                 # Upper bound is exclusive
                 upperVal = arith.SubIOp(upperVal, self.getConstantInt(1)).result
                 dyna = IntegerAttr.get(self.getIntegerType(), -1)
-                self.pushValue(
-                    quake.SubVeqOp(self.getVeqType(),
-                                   var,
-                                   dyna,
-                                   dyna,
-                                   lower=lowerVal,
-                                   upper=upperVal).result)
+                cond = arith.CmpIOp(IntegerAttr.get(self.getIntegerType(), 2),
+                                    lowerVal, upperVal)
+                ifOp = cc.IfOp([self.getVeqType()], cond, [])
+                thenBlock = Block.create_at_start(ifOp.thenRegion, [])
+                with InsertionPoint(thenBlock):
+                    subv = quake.SubVeqOp(self.getVeqType(),
+                                          var,
+                                          dyna,
+                                          dyna,
+                                          lower=lowerVal,
+                                          upper=upperVal)
+                    cc.ContinueOp([subv.result])
+                elseBlock = Block.create_at_start(ifOp.elseRegion, [])
+                with InsertionPoint(elseBlock):
+                    subv = cc.UndefOp(self.getVeqType())
+                    cc.ContinueOp([subv.result])
+                self.pushValue(ifOp.result)
             elif cc.StdvecType.isinstance(var.type):
                 eleTy = cc.StdvecType.getElementType(var.type)
                 # Use `i8` for boolean elements

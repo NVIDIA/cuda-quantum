@@ -80,7 +80,7 @@ public:
   }
 };
 
-// %4 = quake.veq_size %3 : (!quake.veq<10>) -> 164
+// %4 = quake.veq_size %3 : (!quake.veq<10>) -> i64
 // ────────────────────────────────────────────────
 // %4 = constant 10 : i64
 struct ForwardConstantVeqSizePattern
@@ -97,6 +97,30 @@ struct ForwardConstantVeqSizePattern
     auto resTy = veqSize.getType();
     rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(veqSize, resTy,
                                                       veqTy.getSize());
+    return success();
+  }
+};
+
+// %3 = cc.undef !quake.veq<?>
+// %4 = quake.veq_size %3 : (!quake.veq<?>) -> 164
+// ────────────────────────────────────────────────
+// %4 = constant 0 : i64
+struct ForwardEmptyVeqSizePattern
+    : public OpRewritePattern<cudaq::quake::VeqSizeOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::VeqSizeOp veqSize,
+                                PatternRewriter &rewriter) const override {
+    auto veqTy = dyn_cast<cudaq::quake::VeqType>(veqSize.getVeq().getType());
+    if (!veqTy)
+      return failure();
+    if (veqTy.hasSpecifiedSize())
+      return failure();
+    auto undef = veqSize.getVeq().getDefiningOp<cudaq::cc::UndefOp>();
+    if (!undef)
+      return failure();
+    rewriter.replaceOpWithNewOp<arith::ConstantIntOp>(veqSize,
+                                                      veqSize.getType(), 0);
     return success();
   }
 };
