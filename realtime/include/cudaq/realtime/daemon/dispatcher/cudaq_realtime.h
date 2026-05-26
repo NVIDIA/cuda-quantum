@@ -14,6 +14,16 @@
 
 #include "cudaq/realtime/daemon/dispatcher/rpc_wire_format.h"
 
+// Visibility marker for entry points that consumers reach via dlsym(RTLD_DEFAULT,
+// ...) at runtime.  libcudaq-realtime-dispatch.a is built with hidden visibility
+// + -Wl,--exclude-libs=ALL, so by default its symbols stay hidden inside the
+// final binary even when the archive is absorbed.  Marking individual symbols
+// with default visibility opts them back into the binary's dynamic symbol table
+// (when --export-dynamic is in effect on the linker command line for the exe),
+// so a separately-loaded .so can resolve them by name without any explicit
+// setter / constructor-shim plumbing on the consumer side.
+#define CUDAQ_REALTIME_DISPATCH_API __attribute__((visibility("default")))
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -184,8 +194,13 @@ typedef void (*cudaq_dispatch_launch_fn_t)(
     volatile int *shutdown_flag, uint64_t *stats, size_t num_slots,
     uint32_t num_blocks, uint32_t threads_per_block, cudaStream_t stream);
 
-// Default dispatch kernel launch helpers (from libcudaq-realtime-dispatch.a)
-void cudaq_launch_dispatch_kernel_regular(
+// Default dispatch kernel launch helpers (from libcudaq-realtime-dispatch.a).
+// Marked CUDAQ_REALTIME_DISPATCH_API so the symbol stays in the dynamic table
+// after the archive is absorbed into a binary; consumer .so's that dlsym() it
+// at runtime (e.g. cuda-qx's libcudaq-qec-realtime-decoding.so) can then
+// resolve it without any explicit setter/constructor-shim plumbing on the
+// consumer side.
+CUDAQ_REALTIME_DISPATCH_API void cudaq_launch_dispatch_kernel_regular(
     volatile uint64_t *rx_flags, volatile uint64_t *tx_flags, uint8_t *rx_data,
     uint8_t *tx_data, size_t rx_stride_sz, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
@@ -409,7 +424,12 @@ cudaq_dispatch_kernel_cooperative_query_occupancy(int *out_blocks,
 // cudaq_dispatch_kernel_set_shared_ring_mode(1) before starting the
 // dispatcher.  The HOST_LOOP path reads config.shared_ring_mode directly
 // and does NOT require this call.
-cudaError_t cudaq_dispatch_kernel_set_shared_ring_mode(uint32_t enabled);
+//
+// CUDAQ_REALTIME_DISPATCH_API: see cudaq_launch_dispatch_kernel_regular for
+// the rationale -- consumers (e.g. cuda-qx's libcudaq-qec-realtime-decoding.so)
+// resolve this entry point via dlsym(RTLD_DEFAULT, ...) at runtime.
+CUDAQ_REALTIME_DISPATCH_API cudaError_t
+cudaq_dispatch_kernel_set_shared_ring_mode(uint32_t enabled);
 
 #ifdef __cplusplus
 }

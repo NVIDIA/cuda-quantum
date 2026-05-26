@@ -542,14 +542,14 @@ extern "C" cudaError_t cudaq_dispatch_kernel_cooperative_query_occupancy(
   return cudaSuccess;
 }
 
-extern "C" cudaError_t
+extern "C" CUDAQ_REALTIME_DISPATCH_API cudaError_t
 cudaq_dispatch_kernel_set_shared_ring_mode(uint32_t enabled) {
   return cudaMemcpyToSymbol(cudaq::realtime::g_dispatch_shared_ring_mode,
                             &enabled, sizeof(enabled), 0,
                             cudaMemcpyHostToDevice);
 }
 
-extern "C" void cudaq_launch_dispatch_kernel_regular(
+extern "C" CUDAQ_REALTIME_DISPATCH_API void cudaq_launch_dispatch_kernel_regular(
     volatile std::uint64_t* rx_flags,
     volatile std::uint64_t* tx_flags,
     std::uint8_t* rx_data,
