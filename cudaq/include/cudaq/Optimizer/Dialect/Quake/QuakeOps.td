@@ -1766,17 +1766,17 @@ def ZOp : OneTargetOp<"z", [Hermitian]> {
   }];
 }
 
-def CustomUnitarySymbolOp :
-    QuakeOperator<"custom_op", [], (ins SymbolRefAttr:$generator)> {
-  let summary = "Custom unitary operation.";
+def CustomUnitaryCallOp : QuakeOperator<"custom_unitary_call", [],
+    (ins SymbolRefAttr:$generator)> {
+  let summary = "Custom unitary call operation.";
   let description = [{
     Custom unitary operation leveraging a `SymbolRefAttr` describing the
-    unitary data generator function. 
+    unitary data generator function.
   }];
 
   let builders = [
-    OpBuilder<(ins "mlir::SymbolRefAttr":$generator, 
-                   "mlir::UnitAttr":$is_adj,
+    OpBuilder<(ins "mlir::SymbolRefAttr":$generator,
+                   "bool":$is_adj,
                    "mlir::ValueRange":$parameters,
                    "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$targets,
@@ -1788,55 +1788,53 @@ def CustomUnitarySymbolOp :
                    "bool":$is_adj,
                    "mlir::ValueRange":$parameters,
                    "mlir::ValueRange":$controls,
-                   "mlir::ValueRange":$targets,
-                   "mlir::DenseBoolArrayAttr":$negates), [{
-      return build($_builder, $_state, mlir::TypeRange{}, generator, is_adj, 
-                   parameters, controls, targets, negates);
+                   "mlir::ValueRange":$targets), [{
+      return build($_builder, $_state, generator, is_adj, parameters, controls,
+                   targets, {});
     }]>,
     OpBuilder<(ins "mlir::SymbolRefAttr":$generator,
-                   "bool":$is_adj,
-                   "mlir::ValueRange":$parameters,
                    "mlir::ValueRange":$controls,
                    "mlir::ValueRange":$targets), [{
-      return build($_builder, $_state, generator, is_adj, parameters, 
-                   controls, targets, {});
-    }]>,
-    OpBuilder<(ins "mlir::SymbolRefAttr":$generator,
-                   "mlir::ValueRange":$parameters,
-                   "mlir::ValueRange":$controls,
-                   "mlir::ValueRange":$targets), [{
-      return build($_builder, $_state, generator,  /*is_adj=*/false, 
-                   parameters, controls, targets);
-    }]>,
-    OpBuilder<(ins "mlir::SymbolRefAttr":$generator,
-                   "bool":$is_adj,
-                   "mlir::ValueRange":$controls,
-                   "mlir::ValueRange":$targets), [{
-      return build($_builder, $_state, generator,  is_adj, 
+      return build($_builder, $_state, generator,  /*is_adj=*/false,
                    mlir::ValueRange{}, controls, targets);
-    }]>,
-    OpBuilder<(ins "mlir::SymbolRefAttr":$generator,
-                   "mlir::ValueRange":$controls,
-                   "mlir::ValueRange":$targets), [{
-      return build($_builder, $_state, generator,  /*is_adj=*/false, controls,
-                   targets);
-    }]>,
-    OpBuilder<(ins "mlir::SymbolRefAttr":$generator, "bool":$is_adj,
-                   "mlir::ValueRange":$targets), [{
-      return build($_builder, $_state, generator, is_adj, mlir::ValueRange{},
-                   targets);
-    }]>,
-    OpBuilder<(ins "mlir::SymbolRefAttr":$generator,
-                   "mlir::ValueRange":$targets), [{
-      return build($_builder, $_state, generator, /*is_adj=*/false, targets);
     }]>
   ];
 
-  let assemblyFormat = [{ $generator
-    ( `<` `adj` $is_adj^ `>` )? ( `(` $parameters^ `)` )?
-      (`[` $controls^ (`neg` $negated_qubit_controls^ )? `]`)?
-      $targets `:` functional-type(operands, results) attr-dict
+  let assemblyFormat = [{
+    $generator (`<` `adj` $is_adj^ `>` )? ( `(` $parameters^ `)`)?
+       (`[` $controls^ (`neg` $negated_qubit_controls^ )? `]`)?
+       $targets `:` functional-type(operands, results) attr-dict
   }];
+
+  let hasVerifier = 1;
+}
+
+def CustomUnitaryConstantOp : QuakeOperator<"custom_unitary_constant", [],
+    (ins SymbolRefAttr:$matrix)> {
+  let summary = "Custom unitary constant operation.";
+  let description = [{
+    Custom unitary operation that references the unitary constant data.
+  }];
+
+  let builders = [
+    OpBuilder<(ins "mlir::SymbolRefAttr":$matrix,
+                   "bool":$is_adj,
+                   "mlir::ValueRange":$parameters,
+                   "mlir::ValueRange":$controls,
+                   "mlir::ValueRange":$targets,
+                   "mlir::DenseBoolArrayAttr":$negates), [{
+      return build($_builder, $_state, mlir::TypeRange{}, matrix, is_adj,
+                   parameters, controls, targets, negates);
+    }]>
+  ];
+
+  let assemblyFormat = [{
+    $matrix (`<` `adj` $is_adj^ `>` )? ( `(` $parameters^ `)`)?
+       (`[` $controls^ (`neg` $negated_qubit_controls^ )? `]`)?
+       $targets `:` functional-type(operands, results) attr-dict
+  }];
+
+  let hasVerifier = 1;
 }
 
 //===----------------------------------------------------------------------===//

@@ -2053,8 +2053,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
                                Block &block) {
           Value ref = cudaq::quake::ExtractRefOp::create(builder, loc, target,
                                                          block.getArgument(0));
-          cudaq::quake::CustomUnitarySymbolOp::create(builder, loc, srefAttr,
-                                                      ValueRange(), ref);
+          cudaq::quake::CustomUnitaryCallOp::create(builder, loc, srefAttr,
+                                                    ValueRange{}, ref);
         };
         cudaq::opt::factory::createInvariantLoop(builder, loc, rank,
                                                  bodyBuilder);
@@ -2072,7 +2072,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         for (auto p : operands.take_front(paramCount))
           if (isa<cudaq::cc::PointerType>(p.getType()))
             params.push_back(cudaq::cc::LoadOp::create(builder, loc, p));
-        cudaq::quake::CustomUnitarySymbolOp::create(
+        cudaq::quake::CustomUnitaryCallOp::create(
             builder, loc, srefAttr, isAdjoint, params, ctrls, targets, negs);
       }
       return true;
