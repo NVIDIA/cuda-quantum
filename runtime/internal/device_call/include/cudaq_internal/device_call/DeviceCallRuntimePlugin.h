@@ -8,6 +8,10 @@
 
 #pragma once
 
+namespace cudaq {
+struct RuntimeTarget;
+}
+
 namespace cudaq_internal::device_call {
 
 // Internal plugin boundary used by cudaq::realtime.  The public realtime API
@@ -19,6 +23,8 @@ public:
 
   // Configure the device_call runtime from cudaq::realtime::initialize.
   virtual void initialize(int argc, char **argv) = 0;
+  // Validate the initialized runtime against the selected CUDA-Q target.
+  virtual void validate(const cudaq::RuntimeTarget *) {}
   // Tear down device_call runtime: e.g., any service data created by
   // initialize.
   virtual void finalize() = 0;

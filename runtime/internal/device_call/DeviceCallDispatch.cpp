@@ -752,6 +752,11 @@ void initializeDeviceCallRuntime(int argc, char **argv) {
   getRuntimeModeActions(mode).initialize();
 }
 
+bool isGpuDispatchRuntimeConfigured() {
+  return DeviceCallDriver::instance().configuredMode() ==
+         DeviceCallRuntimeMode::ServiceGpuDispatch;
+}
+
 //  finalize resources for the selected runtime mode.
 void finalizeDeviceCallRuntime() {
   CUDAQ_DBG("[device-call] finalize runtime API");

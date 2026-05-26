@@ -12,6 +12,7 @@
 #if defined(CUDAQ_ENABLE_REALTIME)
 #include "common/PluginUtils.h"
 #include "cudaq_internal/device_call/DeviceCallRuntimePlugin.h"
+#include "cudaq/platform.h"
 #endif
 
 #include <stdexcept>
@@ -58,6 +59,9 @@ namespace cudaq::realtime {
 void initialize(int argc, char **argv) {
 #if defined(CUDAQ_ENABLE_REALTIME)
   getRealtimeRuntimePlugin().initialize(argc, argv);
+  // Validate the initialized runtime against the selected CUDA-Q target.
+  getRealtimeRuntimePlugin().validate(
+      cudaq::get_platform().get_runtime_target());
 #else
   (void)argc;
   (void)argv;
