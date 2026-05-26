@@ -15,8 +15,7 @@ sample_result RemoteRESTQPU::launchKernel(sample_policy &policy,
                                           const AnyModule &module,
                                           KernelArgs args) {
   CUDAQ_INFO("RemoteRESTQPU::launchKernel {}", policy.name);
-  std::string kernelName;
-  auto codes = compileKernelExecutions(policy, module, args, kernelName);
+  auto [kernelName, codes] = compileKernelExecutions(policy, module, args);
   return completeLaunchKernel(policy, kernelName, std::move(codes));
 }
 
@@ -24,8 +23,8 @@ async_sample_result RemoteRESTQPU::launchKernel(async_sample_policy &policy,
                                                 const AnyModule &module,
                                                 KernelArgs args) {
   CUDAQ_INFO("RemoteRESTQPU::launchKernel async {}", policy.inner.name);
-  std::string kernelName;
-  auto codes = compileKernelExecutions(policy.inner, module, args, kernelName);
+  auto [kernelName, codes] =
+      compileKernelExecutions(policy.inner, module, args);
   return completeLaunchKernel(policy, kernelName, std::move(codes));
 }
 

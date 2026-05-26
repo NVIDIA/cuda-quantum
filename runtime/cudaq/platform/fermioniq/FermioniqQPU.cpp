@@ -78,8 +78,7 @@ void cudaq::FermioniqQPU::launchImpl(const cudaq::CompiledModule &compiled) {
 cudaq::sample_result
 cudaq::FermioniqQPU::launchKernel(cudaq::sample_policy &policy,
                                   const AnyModule &module, KernelArgs args) {
-  std::string kernelName;
-  auto codes = compileKernelExecutions(policy, module, args, kernelName);
+  auto [kernelName, codes] = compileKernelExecutions(policy, module, args);
   CUDAQ_INFO("FermioniqBaseQPU launching kernel ({}) with policy {}",
              kernelName, policy.name);
   if (codes.size() != 1)
@@ -91,8 +90,8 @@ cudaq::FermioniqQPU::launchKernel(cudaq::sample_policy &policy,
 cudaq::async_sample_result
 cudaq::FermioniqQPU::launchKernel(cudaq::async_sample_policy &policy,
                                   const AnyModule &module, KernelArgs args) {
-  std::string kernelName;
-  auto codes = compileKernelExecutions(policy.inner, module, args, kernelName);
+  auto [kernelName, codes] =
+      compileKernelExecutions(policy.inner, module, args);
   CUDAQ_INFO("FermioniqBaseQPU launching kernel ({}) with policy {}",
              kernelName, policy.inner.name);
   if (codes.size() != 1)

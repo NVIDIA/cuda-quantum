@@ -270,13 +270,13 @@ public:
   /// configured pass pipeline; pre-compiled modules are emitted directly.
   /// The resolved kernel name is returned via @p kernelName.
   template <typename Policy>
-  std::vector<cudaq::KernelExecution>
+  std::pair<std::string, std::vector<cudaq::KernelExecution>>
   compileKernelExecutions(Policy &policy, const AnyModule &module,
-                          KernelArgs args, std::string &kernelName) {
+                          KernelArgs args) {
     Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
                       noiseModel, emulate);
     std::vector<cudaq::KernelExecution> codes;
-
+    std::string kernelName;
     // Temporary hack until we have a proper way of configuring the compiler
     // based on the policy.
     auto ctx = cudaq::getExecutionContext();
@@ -295,7 +295,7 @@ public:
       codes = compiler.emitKernelExecutions(compiled);
     }
 
-    return codes;
+    return {kernelName, codes};
   }
 
   void completeLaunchKernel(const std::string &kernelName,
