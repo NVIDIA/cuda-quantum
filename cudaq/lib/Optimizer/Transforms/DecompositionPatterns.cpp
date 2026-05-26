@@ -14,6 +14,7 @@
 #include "llvm/Support/TypeName.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Rewrite/FrozenRewritePatternSet.h"
+#include <optional>
 
 /**
  * This file contains the decomposition patterns that match single gates and
@@ -280,6 +281,21 @@ static LogicalResult checkNumControls(cudaq::quake::OperatorInterface op,
   return numControls == requiredNumControls ? success() : failure();
 }
 
+static std::optional<std::size_t>
+getKnownNumControls(cudaq::quake::OperatorInterface op) {
+  std::size_t numControls = 0;
+  for (auto control : op.getControls()) {
+    if (auto veq = dyn_cast<cudaq::quake::VeqType>(control.getType())) {
+      if (!veq.hasSpecifiedSize())
+        return std::nullopt;
+      numControls += veq.getSize();
+      continue;
+    }
+    numControls += 1;
+  }
+  return numControls;
+}
+
 /// Check whether the operation has the correct number of controls. This
 /// function take as input a mutable array reference, `controls`, which must
 /// have the size equal to the number of controls. If the operation has `veq`s
@@ -316,26 +332,26 @@ static LogicalResult checkAndExtractControls(cudaq::quake::OperatorInterface op,
 #define CONCAT(a, b) CONCAT_INNER(a, b)
 #define CONCAT_INNER(a, b) a##b
 
-/// Macro to register a decomposition pattern with its metadata
-/// Usage: REGISTER_DECOMPOSITION_PATTERN(PatternName, "source_op", "target1",
-/// "target2", ...)
-/// where "source_op" is the operation that the pattern matches and
-/// {"target1", "target2", ...} are the operations that the pattern may produce.
+/// Macro helpers to register a decomposition pattern with variant metadata.
+/// Each variant is a graph edge from one source op to one or more target ops.
 #undef REGISTER_DECOMPOSITION_PATTERN
-#define REGISTER_DECOMPOSITION_PATTERN(PATTERN, SOURCE_OP, ...)                \
+#define DECOMP_VARIANT(SOURCE_OP, ...)                                         \
+  cudaq::DecompositionPatternVariant(SOURCE_OP, {__VA_ARGS__})
+#define REGISTER_DECOMPOSITION_PATTERN(PATTERN, ...)                           \
   struct PATTERN##Type : public cudaq::DecompositionPatternType {              \
     using cudaq::DecompositionPatternType::DecompositionPatternType;           \
-    llvm::StringRef getSourceOp() const override { return SOURCE_OP; }         \
-    llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {            \
-      static constexpr llvm::StringRef ops[] = {__VA_ARGS__};                  \
-      return ops;                                                              \
+    llvm::ArrayRef<cudaq::DecompositionPatternVariant>                         \
+    getVariants() const override {                                             \
+      static const std::vector<cudaq::DecompositionPatternVariant> variants =  \
+          {__VA_ARGS__};                                                       \
+      return variants;                                                         \
     }                                                                          \
     llvm::StringRef getPatternName() const override { return #PATTERN; }       \
     std::unique_ptr<mlir::RewritePattern>                                      \
-    create(mlir::MLIRContext *context,                                         \
-           mlir::PatternBenefit benefit = 1) const override {                  \
+    create(mlir::MLIRContext *context, mlir::PatternBenefit benefit = 1,       \
+           llvm::ArrayRef<std::string> enabledSourceOps = {}) const override { \
       std::unique_ptr<mlir::RewritePattern> pattern =                          \
-          RewritePattern::create<PATTERN>(context, benefit);                   \
+          RewritePattern::create<PATTERN>(context, benefit, enabledSourceOps); \
       return pattern;                                                          \
     }                                                                          \
   };                                                                           \
@@ -391,7 +407,7 @@ struct HToPhasedRx
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(HToPhasedRx, "h", "phased_rx");
+REGISTER_DECOMPOSITION_PATTERN(HToPhasedRx, DECOMP_VARIANT("h", "phased_rx"));
 
 // quake.exp_pauli(theta) target pauliWord
 // ───────────────────────────────────
@@ -575,8 +591,9 @@ struct ExpPauliDecomposition
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(ExpPauliDecomposition, "exp_pauli", "rx", "h",
-                               "x(1)", "rz");
+REGISTER_DECOMPOSITION_PATTERN(ExpPauliDecomposition,
+                               DECOMP_VARIANT("exp_pauli", "rx", "h", "x(1)",
+                                              "rz"));
 
 // Naive mapping of R1 to Rz, ignoring the global phase.
 // This is only expected to work with full inlining and
@@ -599,7 +616,7 @@ struct R1ToRz
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(R1ToRz, "r1", "rz");
+REGISTER_DECOMPOSITION_PATTERN(R1ToRz, DECOMP_VARIANT("r1", "rz"));
 
 // Naive mapping of R1 to U3
 // quake.r1(λ) [control] target
@@ -614,6 +631,10 @@ struct R1ToU3
 
   LogicalResult matchAndRewrite(cudaq::quake::R1Op r1Op,
                                 PatternRewriter &rewriter) const override {
+    if (!this->sourceOpEnabled("r1", getKnownNumControls(r1Op),
+                               !r1Op.getControls().empty()))
+      return failure();
+
     Location loc = r1Op->getLoc();
     Value zero = createConstant(loc, 0.0, rewriter.getF64Type(), rewriter);
     std::array<Value, 3> parameters = {zero, zero, r1Op.getParameters()[0]};
@@ -622,7 +643,7 @@ struct R1ToU3
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(R1ToU3, "r1(n)", "u3(n)");
+REGISTER_DECOMPOSITION_PATTERN(R1ToU3, DECOMP_VARIANT("r1(n)", "u3(n)"));
 
 // quake.r1<adj> (θ) target
 // ─────────────────────────────────
@@ -659,7 +680,7 @@ struct R1AdjToR1
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(R1AdjToR1, "r1<adj>", "r1");
+REGISTER_DECOMPOSITION_PATTERN(R1AdjToR1, DECOMP_VARIANT("r1<adj>", "r1"));
 
 // quake.swap a, b
 // ───────────────────────────────────
@@ -690,7 +711,7 @@ struct SwapToCX
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(SwapToCX, "swap", "x(1)");
+REGISTER_DECOMPOSITION_PATTERN(SwapToCX, DECOMP_VARIANT("swap", "x(1)"));
 
 // quake.h control, target
 // ───────────────────────────────────
@@ -734,7 +755,8 @@ struct CHToCX
 };
 // TODO: Technically, this pattern also produces s<adj> and t<adj> ops, but we
 // currently don't treat them as distinct from their non-adjoint counterparts.
-REGISTER_DECOMPOSITION_PATTERN(CHToCX, "h(1)", "s", "h", "t", "x(1)");
+REGISTER_DECOMPOSITION_PATTERN(CHToCX,
+                               DECOMP_VARIANT("h(1)", "s", "h", "t", "x(1)"));
 
 //===----------------------------------------------------------------------===//
 // SOp decompositions
@@ -787,75 +809,11 @@ struct SToPhasedRx
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(SToPhasedRx, "s", "phased_rx");
+REGISTER_DECOMPOSITION_PATTERN(SToPhasedRx, DECOMP_VARIANT("s", "phased_rx"));
 
-// quake.s target
+// quake.s [controls] target
 // ────────────────────────────────────
-// quake.r1(π/2) target
-struct SToR1BareType; // forward declare the pattern type, defined in the macro
-                      // below
-struct SToR1Bare
-    : public cudaq::DecompositionPattern<SToR1BareType, cudaq::quake::SOp> {
-  using cudaq::DecompositionPattern<SToR1BareType,
-                                    cudaq::quake::SOp>::DecompositionPattern;
-
-  LogicalResult matchAndRewrite(cudaq::quake::SOp op,
-                                PatternRewriter &rewriter) const override {
-    if (!op.getControls().empty())
-      return failure();
-
-    auto loc = op->getLoc();
-    auto angle = createConstant(loc, op.isAdj() ? -M_PI_2 : M_PI_2,
-                                rewriter.getF64Type(), rewriter);
-
-    SmallVector<Value> noControls;
-    Value target = op.getTarget();
-    QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<cudaq::quake::R1Op>(loc, angle, noControls, target);
-
-    qRewriter.selectWiresAndReplaceUses(op, target);
-    rewriter.eraseOp(op);
-    return success();
-  }
-};
-REGISTER_DECOMPOSITION_PATTERN(SToR1Bare, "s", "r1");
-
-// quake.s [control] target
-// ────────────────────────────────────
-// quake.r1(π/2) [control] target
-struct SToR1OneControlType; // forward declare the pattern type, defined in
-                            // the macro below
-struct SToR1OneControl : public cudaq::DecompositionPattern<SToR1OneControlType,
-                                                            cudaq::quake::SOp> {
-  using cudaq::DecompositionPattern<SToR1OneControlType,
-                                    cudaq::quake::SOp>::DecompositionPattern;
-
-  LogicalResult matchAndRewrite(cudaq::quake::SOp op,
-                                PatternRewriter &rewriter) const override {
-    if (failed(checkNumControls(op, 1)))
-      return failure();
-
-    auto loc = op->getLoc();
-    auto angle = createConstant(loc, op.isAdj() ? -M_PI_2 : M_PI_2,
-                                rewriter.getF64Type(), rewriter);
-
-    SmallVector<Value> controls(op.getControls());
-    Value target = op.getTarget();
-    QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<cudaq::quake::R1Op>(loc, angle, controls, target);
-
-    qRewriter.selectWiresAndReplaceUses(op, controls, target);
-    rewriter.eraseOp(op);
-    return success();
-  }
-};
-// One-control S/T can lower through CR1ToCX because the target basis includes
-// x(1).
-REGISTER_DECOMPOSITION_PATTERN(SToR1OneControl, "s(1)", "r1(1)");
-
-// quake.s [control] target
-// ────────────────────────────────────
-// quake.r1(π/2) [control] target
+// quake.r1(π/2) [controls] target
 //
 // Adding this gate equivalence will enable further decomposition via other
 // patterns such as controlled-r1 to cnot.
@@ -868,7 +826,9 @@ struct SToR1
 
   LogicalResult matchAndRewrite(cudaq::quake::SOp op,
                                 PatternRewriter &rewriter) const override {
-    if (op.getControls().empty())
+    std::optional<std::size_t> numControls = getKnownNumControls(op);
+    bool isBare = op.getControls().empty();
+    if (!this->sourceOpEnabled("s", numControls, !isBare))
       return failure();
 
     // Op info
@@ -881,12 +841,17 @@ struct SToR1
     QuakeOperatorCreator qRewriter(rewriter);
     qRewriter.create<cudaq::quake::R1Op>(loc, angle, controls, target);
 
-    qRewriter.selectWiresAndReplaceUses(op, controls, target);
+    if (isBare)
+      qRewriter.selectWiresAndReplaceUses(op, target);
+    else
+      qRewriter.selectWiresAndReplaceUses(op, controls, target);
     rewriter.eraseOp(op);
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(SToR1, "s(n)", "r1(n)");
+REGISTER_DECOMPOSITION_PATTERN(SToR1, DECOMP_VARIANT("s", "r1"),
+                               DECOMP_VARIANT("s(1)", "r1(1)"),
+                               DECOMP_VARIANT("s(n)", "r1(n)"));
 
 //===----------------------------------------------------------------------===//
 // TOp decompositions
@@ -940,71 +905,11 @@ struct TToPhasedRx
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(TToPhasedRx, "t", "phased_rx");
+REGISTER_DECOMPOSITION_PATTERN(TToPhasedRx, DECOMP_VARIANT("t", "phased_rx"));
 
-// quake.t target
+// quake.t [controls] target
 // ────────────────────────────────────
-// quake.r1(π/4) target
-struct TToR1BareType; // forward declare the pattern type, defined in the macro
-                      // below
-struct TToR1Bare
-    : public cudaq::DecompositionPattern<TToR1BareType, cudaq::quake::TOp> {
-  using cudaq::DecompositionPattern<TToR1BareType,
-                                    cudaq::quake::TOp>::DecompositionPattern;
-
-  LogicalResult matchAndRewrite(cudaq::quake::TOp op,
-                                PatternRewriter &rewriter) const override {
-    if (!op.getControls().empty())
-      return failure();
-
-    auto loc = op->getLoc();
-    auto angle = createConstant(loc, op.isAdj() ? -M_PI_4 : M_PI_4,
-                                rewriter.getF64Type(), rewriter);
-    SmallVector<Value> noControls;
-    Value target = op.getTarget();
-    QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<cudaq::quake::R1Op>(loc, angle, noControls, target);
-
-    qRewriter.selectWiresAndReplaceUses(op, target);
-    rewriter.eraseOp(op);
-    return success();
-  }
-};
-REGISTER_DECOMPOSITION_PATTERN(TToR1Bare, "t", "r1");
-
-// quake.t [control] target
-// ────────────────────────────────────
-// quake.r1(π/4) [control] target
-struct TToR1OneControlType; // forward declare the pattern type, defined in
-                            // the macro below
-struct TToR1OneControl : public cudaq::DecompositionPattern<TToR1OneControlType,
-                                                            cudaq::quake::TOp> {
-  using cudaq::DecompositionPattern<TToR1OneControlType,
-                                    cudaq::quake::TOp>::DecompositionPattern;
-
-  LogicalResult matchAndRewrite(cudaq::quake::TOp op,
-                                PatternRewriter &rewriter) const override {
-    if (failed(checkNumControls(op, 1)))
-      return failure();
-
-    auto loc = op->getLoc();
-    auto angle = createConstant(loc, op.isAdj() ? -M_PI_4 : M_PI_4,
-                                rewriter.getF64Type(), rewriter);
-    SmallVector<Value> controls(op.getControls());
-    Value target = op.getTarget();
-    QuakeOperatorCreator qRewriter(rewriter);
-    qRewriter.create<cudaq::quake::R1Op>(loc, angle, controls, target);
-
-    qRewriter.selectWiresAndReplaceUses(op, controls, target);
-    rewriter.eraseOp(op);
-    return success();
-  }
-};
-REGISTER_DECOMPOSITION_PATTERN(TToR1OneControl, "t(1)", "r1(1)");
-
-// quake.t [control] target
-// ────────────────────────────────────
-// quake.r1(π/4) [control] target
+// quake.r1(π/4) [controls] target
 //
 // Adding this gate equivalence will enable further decomposition via other
 // patterns such as controlled-r1 to cnot.
@@ -1017,7 +922,9 @@ struct TToR1
 
   LogicalResult matchAndRewrite(cudaq::quake::TOp op,
                                 PatternRewriter &rewriter) const override {
-    if (op.getControls().empty())
+    std::optional<std::size_t> numControls = getKnownNumControls(op);
+    bool isBare = op.getControls().empty();
+    if (!this->sourceOpEnabled("t", numControls, !isBare))
       return failure();
 
     // Op info
@@ -1029,12 +936,17 @@ struct TToR1
     QuakeOperatorCreator qRewriter(rewriter);
     qRewriter.create<cudaq::quake::R1Op>(loc, angle, controls, target);
 
-    qRewriter.selectWiresAndReplaceUses(op, controls, target);
+    if (isBare)
+      qRewriter.selectWiresAndReplaceUses(op, target);
+    else
+      qRewriter.selectWiresAndReplaceUses(op, controls, target);
     rewriter.eraseOp(op);
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(TToR1, "t(n)", "r1(n)");
+REGISTER_DECOMPOSITION_PATTERN(TToR1, DECOMP_VARIANT("t", "r1"),
+                               DECOMP_VARIANT("t(1)", "r1(1)"),
+                               DECOMP_VARIANT("t(n)", "r1(n)"));
 
 //===----------------------------------------------------------------------===//
 // XOp decompositions
@@ -1084,7 +996,7 @@ struct CXToCZ
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(CXToCZ, "x(1)", "h", "z(1)");
+REGISTER_DECOMPOSITION_PATTERN(CXToCZ, DECOMP_VARIANT("x(1)", "h", "z(1)"));
 
 // quake.x [controls] target
 // ──────────────────────────────────
@@ -1119,7 +1031,7 @@ struct CCXToCCZ
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(CCXToCCZ, "x(2)", "h", "z(2)");
+REGISTER_DECOMPOSITION_PATTERN(CCXToCCZ, DECOMP_VARIANT("x(2)", "h", "z(2)"));
 
 // quake.x target
 // ───────────────────────────────
@@ -1155,7 +1067,7 @@ struct XToPhasedRx
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(XToPhasedRx, "x", "phased_rx");
+REGISTER_DECOMPOSITION_PATTERN(XToPhasedRx, DECOMP_VARIANT("x", "phased_rx"));
 
 //===----------------------------------------------------------------------===//
 // YOp decompositions
@@ -1196,7 +1108,7 @@ struct YToPhasedRx
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(YToPhasedRx, "y", "phased_rx");
+REGISTER_DECOMPOSITION_PATTERN(YToPhasedRx, DECOMP_VARIANT("y", "phased_rx"));
 
 // quake.y [control] target
 // ───────────────────────────────────
@@ -1237,7 +1149,7 @@ struct CYToCX
 };
 // TODO: Technically, this pattern also produces s<adj> ops, but we currently
 // don't treat it as distinct from their non-adjoint counterparts.
-REGISTER_DECOMPOSITION_PATTERN(CYToCX, "y(1)", "s", "x(1)");
+REGISTER_DECOMPOSITION_PATTERN(CYToCX, DECOMP_VARIANT("y(1)", "s", "x(1)"));
 
 //===----------------------------------------------------------------------===//
 // ZOp decompositions
@@ -1317,7 +1229,7 @@ struct CCZToCX
 };
 // TODO: Technically, this pattern also produces t<adj> ops, but we currently
 // don't treat it as distinct from their non-adjoint counterparts.
-REGISTER_DECOMPOSITION_PATTERN(CCZToCX, "z(2)", "t", "x(1)");
+REGISTER_DECOMPOSITION_PATTERN(CCZToCX, DECOMP_VARIANT("z(2)", "t", "x(1)"));
 
 // quake.z [control] target
 // ──────────────────────────────────
@@ -1364,7 +1276,7 @@ struct CZToCX
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(CZToCX, "z(1)", "h", "x(1)");
+REGISTER_DECOMPOSITION_PATTERN(CZToCX, DECOMP_VARIANT("z(1)", "h", "x(1)"));
 
 // quake.z target
 // ──────────────────────────────────
@@ -1412,7 +1324,7 @@ struct ZToPhasedRx
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(ZToPhasedRx, "z", "phased_rx");
+REGISTER_DECOMPOSITION_PATTERN(ZToPhasedRx, DECOMP_VARIANT("z", "phased_rx"));
 
 //===----------------------------------------------------------------------===//
 // R1Op decompositions
@@ -1472,7 +1384,7 @@ struct CR1ToCX
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(CR1ToCX, "r1(1)", "r1", "x(1)");
+REGISTER_DECOMPOSITION_PATTERN(CR1ToCX, DECOMP_VARIANT("r1(1)", "r1", "x(1)"));
 
 // quake.r1(λ) target
 // ──────────────────────────────────
@@ -1524,7 +1436,7 @@ struct R1ToPhasedRx
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(R1ToPhasedRx, "r1", "phased_rx");
+REGISTER_DECOMPOSITION_PATTERN(R1ToPhasedRx, DECOMP_VARIANT("r1", "phased_rx"));
 
 //===----------------------------------------------------------------------===//
 // RxOp decompositions
@@ -1586,7 +1498,8 @@ struct CRxToCX
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(CRxToCX, "rx(1)", "s", "x(1)", "ry", "rz");
+REGISTER_DECOMPOSITION_PATTERN(CRxToCX, DECOMP_VARIANT("rx(1)", "s", "x(1)",
+                                                       "ry", "rz"));
 
 // quake.rx(θ) target
 // ───────────────────────────────
@@ -1625,7 +1538,7 @@ struct RxToPhasedRx
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(RxToPhasedRx, "rx", "phased_rx");
+REGISTER_DECOMPOSITION_PATTERN(RxToPhasedRx, DECOMP_VARIANT("rx", "phased_rx"));
 
 // quake.rx<adj> (θ) target
 // ─────────────────────────────────
@@ -1663,7 +1576,7 @@ struct RxAdjToRx
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(RxAdjToRx, "rx<adj>", "rx");
+REGISTER_DECOMPOSITION_PATTERN(RxAdjToRx, DECOMP_VARIANT("rx<adj>", "rx"));
 
 //===----------------------------------------------------------------------===//
 // RyOp decompositions
@@ -1717,7 +1630,7 @@ struct CRyToCX
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(CRyToCX, "ry(1)", "ry", "x(1)");
+REGISTER_DECOMPOSITION_PATTERN(CRyToCX, DECOMP_VARIANT("ry(1)", "ry", "x(1)"));
 
 // quake.ry(θ) target
 // ─────────────────────────────────
@@ -1756,7 +1669,7 @@ struct RyToPhasedRx
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(RyToPhasedRx, "ry", "phased_rx");
+REGISTER_DECOMPOSITION_PATTERN(RyToPhasedRx, DECOMP_VARIANT("ry", "phased_rx"));
 
 // quake.ry<adj> (θ) target
 // ─────────────────────────────────
@@ -1794,7 +1707,7 @@ struct RyAdjToRy
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(RyAdjToRy, "ry<adj>", "ry");
+REGISTER_DECOMPOSITION_PATTERN(RyAdjToRy, DECOMP_VARIANT("ry<adj>", "ry"));
 
 //===----------------------------------------------------------------------===//
 // RzOp decompositions
@@ -1848,7 +1761,7 @@ struct CRzToCX
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(CRzToCX, "rz(1)", "rz", "x(1)");
+REGISTER_DECOMPOSITION_PATTERN(CRzToCX, DECOMP_VARIANT("rz(1)", "rz", "x(1)"));
 
 // quake.rz(θ) target
 // ──────────────────────────────────
@@ -1900,7 +1813,7 @@ struct RzToPhasedRx
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(RzToPhasedRx, "rz", "phased_rx");
+REGISTER_DECOMPOSITION_PATTERN(RzToPhasedRx, DECOMP_VARIANT("rz", "phased_rx"));
 
 // quake.rz<adj> (θ) target
 // ─────────────────────────────────
@@ -1938,7 +1851,7 @@ struct RzAdjToRz
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(RzAdjToRz, "rz<adj>", "rz");
+REGISTER_DECOMPOSITION_PATTERN(RzAdjToRz, DECOMP_VARIANT("rz<adj>", "rz"));
 
 //===----------------------------------------------------------------------===//
 // U3Op decompositions
@@ -1960,6 +1873,10 @@ struct U3ToRotations : public cudaq::DecompositionPattern<U3ToRotationsType,
 
   LogicalResult matchAndRewrite(cudaq::quake::U3Op op,
                                 PatternRewriter &rewriter) const override {
+    if (!this->sourceOpEnabled("u3", getKnownNumControls(op),
+                               !op.getControls().empty()))
+      return failure();
+
     // Op info
     Location loc = op->getLoc();
     Value target = op.getTarget();
@@ -1993,7 +1910,8 @@ struct U3ToRotations : public cudaq::DecompositionPattern<U3ToRotationsType,
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(U3ToRotations, "u3(n)", "rz(n)", "rx(n)");
+REGISTER_DECOMPOSITION_PATTERN(U3ToRotations,
+                               DECOMP_VARIANT("u3(n)", "rz(n)", "rx(n)"));
 
 } // namespace
 

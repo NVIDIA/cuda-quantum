@@ -14,7 +14,10 @@
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include <algorithm>
+#include <map>
+#include <optional>
 #include <queue>
+#include <set>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -25,13 +28,13 @@ namespace {
 // ConversionTarget and OperatorInfo, parsed from target basis strings such as
 // ["x", "x(1)", "z"]
 struct OperatorInfo {
-  StringRef name;
+  std::string name;
   std::size_t numControls;
   bool isAdj;
 
   OperatorInfo(StringRef infoStr) : name(), numControls(0), isAdj(false) {
     auto nameEnd = infoStr.find_first_of("(<");
-    name = infoStr.take_front(nameEnd);
+    name = infoStr.take_front(nameEnd).str();
     if (nameEnd < infoStr.size())
       infoStr = infoStr.drop_front(nameEnd);
 
@@ -57,6 +60,17 @@ struct OperatorInfo {
     return numControls == std::numeric_limits<std::size_t>::max();
   }
 
+  std::string str() const {
+    std::string result = name;
+    if (isAdj)
+      result += "<adj>";
+    if (isUnbounded())
+      result += "(n)";
+    else if (numControls != 0)
+      result += "(" + std::to_string(numControls) + ")";
+    return result;
+  }
+
   /// Check if this gate covers another gate.
   bool covers(const OperatorInfo &other) const {
     if (name != other.name || isAdj != other.isAdj)
@@ -74,6 +88,21 @@ struct OperatorInfo {
   bool makesLegal(const OperatorInfo &other) const { return covers(other); }
 };
 
+static std::optional<std::size_t>
+getKnownNumControls(cudaq::quake::OperatorInterface op) {
+  std::size_t numControls = 0;
+  for (auto control : op.getControls()) {
+    if (auto veq = dyn_cast<cudaq::quake::VeqType>(control.getType())) {
+      if (!veq.hasSpecifiedSize())
+        return std::nullopt;
+      numControls += veq.getSize();
+      continue;
+    }
+    numControls += 1;
+  }
+  return numControls;
+}
+
 struct BasisTarget : public ConversionTarget {
 
   BasisTarget(MLIRContext &context, ArrayRef<std::string> targetBasis)
@@ -90,11 +119,13 @@ struct BasisTarget : public ConversionTarget {
     addDynamicallyLegalDialect<cudaq::quake::QuakeDialect>([&](Operation *op) {
       if (auto optor = dyn_cast<cudaq::quake::OperatorInterface>(op)) {
         auto name = optor->getName().stripDialect();
+        auto numControls = getKnownNumControls(optor);
         for (auto info : legalOperatorSet) {
           if (info.name != name)
             continue;
-          if (info.numControls == unbounded ||
-              optor.getControls().size() == info.numControls)
+          if (info.numControls == unbounded)
+            return true;
+          if (numControls && *numControls == info.numControls)
             return true;
         }
         return false;
@@ -158,6 +189,19 @@ class DecompositionGraph {
 public:
   DecompositionGraph() = default;
 
+  using PatternSelection = std::map<std::string, std::vector<std::string>>;
+
+  struct VariantEdge {
+    std::string patternName;
+    cudaq::DecompositionPatternVariant variant;
+  };
+
+  struct ResolvedVariant {
+    std::string patternName;
+    std::string sourceOp;
+    llvm::SmallVector<std::string> targetOps;
+  };
+
   /// Construct a decomposition pattern graph from a collection of pattern
   /// types.
   DecompositionGraph(
@@ -166,9 +210,12 @@ public:
       : patternTypes(std::move(patterns)) {
     // Build the graph from pattern metadata
     for (const auto &pattern : patternTypes) {
-      auto targetGates = pattern.getValue()->getTargetOps();
-      for (const auto &targetGate : targetGates)
-        targetToPatterns[targetGate].push_back(pattern.getKey().str());
+      const auto variants = pattern.getValue()->getVariants();
+      for (const auto &variant : variants) {
+        for (const auto &targetGate : variant.targetOps)
+          targetToVariants[OperatorInfo(llvm::StringRef(targetGate))].push_back(
+              VariantEdge{pattern.getKey().str(), variant});
+      }
     }
   }
 
@@ -182,13 +229,27 @@ public:
     return DecompositionGraph(std::move(patterns));
   }
 
-  /// Return all patterns that have the given gate as one of their targets.
-  llvm::SmallVector<std::string>
-  incomingPatterns(const OperatorInfo &gate) const {
-    llvm::SmallVector<std::string> result;
-    for (const auto &[key, patterns] : targetToPatterns) {
-      if (gate.covers(key))
-        result.append(patterns.begin(), patterns.end());
+  /// Return all variants that have the given gate as one of their targets.
+  llvm::SmallVector<ResolvedVariant>
+  incomingVariants(const OperatorInfo &gate) const {
+    llvm::SmallVector<ResolvedVariant> result;
+    for (const auto &[targetInfo, variants] : targetToVariants) {
+      if (gate.covers(targetInfo)) {
+        for (const auto &variant : variants)
+          result.push_back(resolveVariant(variant, std::nullopt));
+        continue;
+      }
+
+      // A concrete controlled gate can prove the corresponding (n) target
+      // reachable for that same arity. Bare gates intentionally do not promote
+      // to (n).
+      if (!targetInfo.isUnbounded() || gate.isUnbounded() ||
+          gate.numControls == 0 || targetInfo.name != gate.name ||
+          targetInfo.isAdj != gate.isAdj)
+        continue;
+
+      for (const auto &variant : variants)
+        result.push_back(resolveVariant(variant, gate.numControls));
     }
     return result;
   }
@@ -213,15 +274,17 @@ public:
           computePatternSelection(basisGates, disabledPatterns);
     }
 
-    for (const auto &patternName : patternSelectionCache[hashVal]) {
+    for (const auto &[patternName, enabledSources] :
+         patternSelectionCache[hashVal]) {
       const auto &pattern = getPatternType(patternName);
-      // Patterns with unbounded (n) control counts get lower benefit so
-      // that specific patterns (e.g., CR1ToCX for r1(1)) are preferred
-      // when both match the same op.
-      OperatorInfo sourceInfo(pattern->getSourceOp());
-      PatternBenefit benefit = sourceInfo.isUnbounded() ? 1 : 2;
-      patterns.add(pattern->create(patterns.getContext(), benefit));
+      patterns.add(pattern->create(patterns.getContext(), 1, enabledSources));
     }
+  }
+
+  PatternSelection selectPatternSourceOps(
+      const std::unordered_set<OperatorInfo> &basisGates,
+      const std::unordered_set<std::string> &disabledPatterns = {}) const {
+    return computePatternSelection(basisGates, disabledPatterns);
   }
 
 private:
@@ -242,8 +305,8 @@ private:
   ///
   /// @param basisGates The set of basis gates to decompose to
   /// @param disabledPatterns The patterns to disable
-  /// @return A vector of selected pattern names
-  std::vector<std::string> computePatternSelection(
+  /// @return Selected source variants grouped by pattern name.
+  PatternSelection computePatternSelection(
       const std::unordered_set<OperatorInfo> &basisGates,
       const std::unordered_set<std::string> &disabledPatterns) const {
 
@@ -252,7 +315,7 @@ private:
     struct GateDistancePair {
       OperatorInfo gate;
       std::size_t distance;
-      std::optional<std::string> outgoingPattern;
+      std::optional<ResolvedVariant> outgoingVariant;
 
       bool operator<(const GateDistancePair &other) const {
         // We want to order by smallest distance, so we invert the comparison
@@ -262,8 +325,8 @@ private:
 
     // Map: visited gate -> distance from the basis gates
     std::unordered_map<OperatorInfo, std::size_t> visitedGates;
-    // The set of selected patterns to return
-    std::vector<std::string> selectedPatterns;
+    // The set of selected pattern source variants to return.
+    std::map<std::string, std::set<std::string>> selectedPatterns;
     // Priority queue of gates to visit, sorted by smallest distance from the
     // basis gates
     std::priority_queue<GateDistancePair> gatesToVisit;
@@ -298,16 +361,16 @@ private:
 
     /// Compute the maximum distance from a pattern's targets to the basis
     /// gates.
-    auto getPatternDist = [&](const auto &pattern) {
-      auto targetGates = pattern->getTargetOps();
+    auto getPatternDist = [&](const ResolvedVariant &variant) {
       std::vector<std::size_t> targetDistances;
-      for (const auto &targetGate : targetGates)
-        targetDistances.push_back(findGateDist(targetGate));
+      for (const auto &targetGate : variant.targetOps)
+        targetDistances.push_back(
+            findGateDist(OperatorInfo(llvm::StringRef(targetGate))));
       return *std::max_element(targetDistances.begin(), targetDistances.end());
     };
 
     while (!gatesToVisit.empty()) {
-      auto [gate, dist, outgoingPattern] = gatesToVisit.top();
+      auto [gate, dist, outgoingVariant] = gatesToVisit.top();
       gatesToVisit.pop();
 
       auto [_, success] = visitedGates.insert({gate, dist});
@@ -316,26 +379,52 @@ private:
         continue;
       }
 
-      if (outgoingPattern.has_value()) {
+      if (outgoingVariant.has_value()) {
         if (isBasisGate(gate))
           continue;
-        selectedPatterns.push_back(*outgoingPattern);
+        selectedPatterns[outgoingVariant->patternName].insert(
+            outgoingVariant->sourceOp);
       }
 
-      for (const auto &patternName : incomingPatterns(gate)) {
-        if (disabledPatterns.contains(patternName)) {
+      for (const auto &variant : incomingVariants(gate)) {
+        if (disabledPatterns.contains(variant.patternName)) {
           // Ignore disabled patterns
           continue;
         }
-        const auto &pattern = getPatternType(patternName);
-        std::size_t dist = getPatternDist(pattern);
+        std::size_t dist = getPatternDist(variant);
         if (dist < std::numeric_limits<std::size_t>::max()) {
-          gatesToVisit.push({pattern->getSourceOp(), dist + 1, patternName});
+          gatesToVisit.push({OperatorInfo(llvm::StringRef(variant.sourceOp)),
+                             dist + 1, variant});
         }
       }
     }
 
-    return selectedPatterns;
+    PatternSelection result;
+    for (const auto &[patternName, sourceOps] : selectedPatterns)
+      result[patternName] =
+          std::vector<std::string>(sourceOps.begin(), sourceOps.end());
+    return result;
+  }
+
+  static std::string resolveOp(llvm::StringRef op,
+                               std::optional<std::size_t> numControls) {
+    if (!numControls)
+      return op.str();
+    OperatorInfo info(op);
+    if (!info.isUnbounded())
+      return op.str();
+    info.numControls = *numControls;
+    return info.str();
+  }
+
+  static ResolvedVariant
+  resolveVariant(const VariantEdge &edge,
+                 std::optional<std::size_t> numControls) {
+    ResolvedVariant result{
+        edge.patternName, resolveOp(edge.variant.sourceOp, numControls), {}};
+    for (const auto &targetOp : edge.variant.targetOps)
+      result.targetOps.push_back(resolveOp(targetOp, numControls));
+    return result;
   }
 
   //===--------------------------------------------------------------------===//
@@ -346,8 +435,8 @@ private:
   llvm::StringMap<std::unique_ptr<cudaq::DecompositionPatternType>>
       patternTypes;
 
-  /// Map: target gate -> patterns that produce it
-  std::unordered_map<OperatorInfo, SmallVector<std::string>> targetToPatterns;
+  /// Map: target gate -> variants that produce it
+  std::unordered_map<OperatorInfo, SmallVector<VariantEdge>> targetToVariants;
 
   //===--------------------------------------------------------------------===//
   // Other data (cache)
@@ -355,8 +444,7 @@ private:
 
   /// Cache for `selectPatterns`: hash of basis gates, disabled patterns,
   /// enabled patterns -> selected patterns
-  std::unordered_map<std::size_t, std::vector<std::string>>
-      patternSelectionCache;
+  std::unordered_map<std::size_t, PatternSelection> patternSelectionCache;
 };
 } // namespace
 
