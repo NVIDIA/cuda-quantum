@@ -81,9 +81,7 @@ protected:
   /// @brief Subtype-specific method for performing qudit reset.
   virtual void resetQudit(const QuditInfo &q) = 0;
 
-  void finalizeExecutionContextImpl(ExecutionContext &ctx) {
-    assert(&ctx == cudaq::getExecutionContext() &&
-           "cannot finalize non-current execution context");
+  void finalizeExecutionContextImpl() {
     ScopedTraceWithContext("BasicExecutionManager::finalizeExecutionContext");
     synchronize();
   }

@@ -75,4 +75,29 @@ void cudaq::FermioniqQPU::launchImpl(const cudaq::CompiledModule &compiled) {
   completeLaunchKernel(compiled.getName(), std::move(codes));
 }
 
+cudaq::sample_result
+cudaq::FermioniqQPU::launchKernel(cudaq::sample_policy &policy,
+                                  const AnyModule &module, KernelArgs args) {
+  auto [kernelName, codes] = compileKernelExecutions(policy, module, args);
+  CUDAQ_INFO("FermioniqBaseQPU launching kernel ({}) with policy {}",
+             kernelName, policy.name);
+  if (codes.size() != 1)
+    throw std::runtime_error("Provider only allows 1 circuit at a time.");
+
+  return completeLaunchKernel(policy, kernelName, std::move(codes));
+}
+
+cudaq::async_sample_result
+cudaq::FermioniqQPU::launchKernel(cudaq::async_sample_policy &policy,
+                                  const AnyModule &module, KernelArgs args) {
+  auto [kernelName, codes] =
+      compileKernelExecutions(policy.inner, module, args);
+  CUDAQ_INFO("FermioniqBaseQPU launching kernel ({}) with policy {}",
+             kernelName, policy.inner.name);
+  if (codes.size() != 1)
+    throw std::runtime_error("Provider only allows 1 circuit at a time.");
+
+  return completeLaunchKernel(policy, kernelName, std::move(codes));
+}
+
 CUDAQ_REGISTER_TYPE(cudaq::QPU, cudaq::FermioniqQPU, fermioniq)
