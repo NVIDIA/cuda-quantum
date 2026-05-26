@@ -328,9 +328,8 @@ cudaq_internal::compiler::Compiler::assembleCompiledModule(
 }
 
 cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
-    cudaq::ExecutionContext *executionContext, const std::string &kernelName,
-    const void *modulePtr, cudaq::KernelArgs args,
-    std::shared_ptr<mlir::MLIRContext> context) {
+    const std::string &kernelName, const void *modulePtr,
+    cudaq::KernelArgs args, std::shared_ptr<mlir::MLIRContext> context) {
   mlir::ModuleOp m_module = mlir::ModuleOp::getFromOpaquePointer(modulePtr);
   assert(!context || context.get() == m_module.getContext());
   auto [moduleOp, epFunc] = prepareModule(kernelName, m_module, args);
@@ -520,10 +519,9 @@ cudaq_internal::compiler::Compiler::emitKernelExecutions(
 /// platform directory for the targeted backend.
 std::vector<cudaq::KernelExecution>
 cudaq_internal::compiler::Compiler::lowerQuakeCode(
-    cudaq::ExecutionContext *executionContext, const std::string &kernelName,
-    const void *modulePtr, cudaq::KernelArgs args) {
-  auto compiled =
-      runPassPipeline(executionContext, kernelName, modulePtr, args);
+    const std::string &kernelName, const void *modulePtr,
+    cudaq::KernelArgs args) {
+  auto compiled = runPassPipeline(kernelName, modulePtr, args);
   return emitKernelExecutions(compiled);
 }
 

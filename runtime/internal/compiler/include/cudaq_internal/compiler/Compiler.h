@@ -112,8 +112,7 @@ public:
   /// the context, guaranteeing it outlives the artifacts. Otherwise the
   /// context lifetime must be managed by the caller.
   cudaq::CompiledModule
-  runPassPipeline(cudaq::ExecutionContext *executionContext,
-                  const std::string &kernelName, const void *modulePtr,
+  runPassPipeline(const std::string &kernelName, const void *modulePtr,
                   cudaq::KernelArgs args,
                   std::shared_ptr<mlir::MLIRContext> context = nullptr);
 
@@ -132,8 +131,7 @@ public:
   /// the scope of this launch instance). It can be disposed and/or modified by
   /// this call in any way necessary without breaking some other kernel launch.
   std::vector<cudaq::KernelExecution>
-  lowerQuakeCode(cudaq::ExecutionContext *executionContext,
-                 const std::string &kernelName, const void *modulePtr,
+  lowerQuakeCode(const std::string &kernelName, const void *modulePtr,
                  cudaq::KernelArgs args);
 };
 

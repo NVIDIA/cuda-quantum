@@ -91,27 +91,12 @@ protected:
     auto modulePtr = compileModulePreamble(src);
     CUDAQ_INFO("specializing remote rest kernel via module ({}) with {} policy",
                kernelName, policy.name);
-    // Temporary hack until we have a proper way of configuring the compiler
-    // based on the policy.
-    auto ctx = cudaq::getExecutionContext();
     Compiler compiler(getCompileTarget(policy));
-    return compiler.runPassPipeline(ctx, kernelName, modulePtr, args);
-  }
-  // Overload for sample policy
-  CompiledModule compileModuleImpl(sample_policy &policy,
-                                   const SourceModule &src, KernelArgs args,
-                                   bool isEntryPoint) {
-    const auto &kernelName = src.getName();
-    auto modulePtr = compileModulePreamble(src);
-    CUDAQ_INFO("specializing remote rest kernel via module ({}) with {} policy",
-               kernelName, policy.name);
-    // Temporary hack until we have a proper way of configuring the compiler
-    // based on the policy.
-    auto ctx = cudaq::getExecutionContext();
-    Compiler compiler(getCompileTarget(policy));
-    auto compiled = compiler.runPassPipeline(ctx, kernelName, modulePtr, args);
-    if (compiler.hasWarnedNamedMeasurements())
-      policy.warnedNamedMeasurements = true;
+    auto compiled = compiler.runPassPipeline(kernelName, modulePtr, args);
+    if constexpr (std::is_same_v<Policy, sample_policy>) {
+      if (compiler.hasWarnedNamedMeasurements())
+        policy.warnedNamedMeasurements = true;
+    }
     return compiled;
   }
 
@@ -271,6 +256,11 @@ public:
   using QPU::getCompileTarget;
   std::unique_ptr<CompileTarget>
   getCompileTarget(ExecutionContext *ctx) override {
+    if (!ctx)
+      throw std::runtime_error(
+          "Remote rest execution can only be performed via cudaq::sample(), "
+          "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
+
     std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
     auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
 
@@ -305,19 +295,9 @@ public:
     const auto &kernelName = src.getName();
     auto modulePtr = compileModulePreamble(src);
     CUDAQ_INFO("specializing remote rest kernel via module ({})", kernelName);
-    auto executionContext = cudaq::getExecutionContext();
 
-    // TODO future iterations of this should support non-void return types.
-    if (!executionContext)
-      throw std::runtime_error(
-          "Remote rest execution can only be performed via cudaq::sample(), "
-          "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
-
-    Compiler compiler(getCompileTarget(executionContext));
-    auto compiled =
-        compiler.runPassPipeline(executionContext, kernelName, modulePtr, args);
-    if (compiler.hasWarnedNamedMeasurements())
-      executionContext->warnedNamedMeasurements = true;
+    Compiler compiler(getCompileTarget(getExecutionContext()));
+    auto compiled = compiler.runPassPipeline(kernelName, modulePtr, args);
     return compiled;
   }
 
@@ -337,9 +317,6 @@ public:
     Compiler compiler(getCompileTarget(policy));
     std::vector<cudaq::KernelExecution> codes;
     std::string kernelName;
-    // Temporary hack until we have a proper way of configuring the compiler
-    // based on the policy.
-    auto ctx = cudaq::getExecutionContext();
     if (std::holds_alternative<SourceModule>(module)) {
       const auto &src = std::get<SourceModule>(module);
       kernelName = src.getName();
@@ -347,9 +324,11 @@ public:
 
       auto [moduleOp, context] = Compiler::loadQuakeCodeByName(kernelName);
 
-      codes = compiler.lowerQuakeCode(ctx, kernelName, moduleOp, args);
-      if (ctx && compiler.hasWarnedNamedMeasurements())
-        ctx->warnedNamedMeasurements = true;
+      codes = compiler.lowerQuakeCode(kernelName, moduleOp, args);
+      if constexpr (std::is_same_v<Policy, sample_policy>) {
+        if (compiler.hasWarnedNamedMeasurements())
+          policy.warnedNamedMeasurements = true;
+      }
     } else {
       const auto &compiled = std::get<CompiledModule>(module);
       kernelName = compiled.getName();
@@ -457,9 +436,6 @@ public:
                 context.reorderIdx = codes[i].mapping_reorder_idx;
                 context.executionManager = cudaq::getDefaultExecutionManager();
                 context.kernelName = kernelName;
-                context.warnedNamedMeasurements =
-                    executionContext ? executionContext->warnedNamedMeasurements
-                                     : false;
                 assert(codes[i].jit);
                 cudaq::platform::with_execution_context(
                     context, [&]() { codes[i].jit->run(kernelName); });
@@ -567,6 +543,8 @@ public:
     // observe) one time each.
     for (std::size_t i = 0; i < codes.size(); i++) {
       cudaq::ExecutionContext context("sample", localShots);
+      // Avoid emitting the warning again during execution
+      context.warnedNamedMeasurements = policy.warnedNamedMeasurements;
       sample_policy localPolicy;
       localPolicy.options.shots = localShots;
       localPolicy.reorderIdx = std::move(codes[i].mapping_reorder_idx);

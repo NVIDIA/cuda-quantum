@@ -15,30 +15,15 @@ cudaq::FermioniqQPU::~FermioniqQPU() = default;
 
 cudaq::CompiledModule cudaq::FermioniqQPU::compileImpl(
     const std::string &kernelName,
-    std::function<cudaq::CompiledModule(cudaq_internal::compiler::Compiler &,
-                                        cudaq::ExecutionContext *)>
+    std::function<cudaq::CompiledModule(cudaq_internal::compiler::Compiler &)>
         runPassPipeline) {
-  auto *executionContext = getExecutionContext();
-  // TODO future iterations of this should support non-void return types.
-  if (!executionContext)
-    throw std::runtime_error(
-        "Remote rest execution can only be performed via cudaq::sample(), "
-        "cudaq::observe(), or cudaq::contrib::draw().");
-
-  Compiler compiler(getCompileTarget(executionContext));
-  auto compiled = runPassPipeline(compiler, executionContext);
-  if (compiler.hasWarnedNamedMeasurements())
-    executionContext->warnedNamedMeasurements = true;
+  Compiler compiler(getCompileTarget(getExecutionContext()));
+  auto compiled = runPassPipeline(compiler);
   return compiled;
 }
 
 void cudaq::FermioniqQPU::launchImpl(const cudaq::CompiledModule &compiled) {
   auto *executionContext = getExecutionContext();
-  // TODO future iterations of this should support non-void return types.
-  if (!executionContext)
-    throw std::runtime_error(
-        "Remote rest execution can only be performed via cudaq::sample(), "
-        "cudaq::observe(), or cudaq::contrib::draw().");
 
   Compiler compiler(getCompileTarget(executionContext));
   auto codes = compiler.emitKernelExecutions(compiled);

@@ -49,11 +49,10 @@ public:
       const auto &kernelName = src.getName();
       CUDAQ_INFO("FermioniqBaseQPU launching kernel ({})", kernelName);
       auto [quakeModule, context] = Compiler::loadQuakeCodeByName(kernelName);
-      auto compiled = compileImpl(
-          kernelName, [&](Compiler &compiler, ExecutionContext *ctx) {
-            return compiler.runPassPipeline(ctx, kernelName, quakeModule, args,
-                                            std::move(context));
-          });
+      auto compiled = compileImpl(kernelName, [&](Compiler &compiler) {
+        return compiler.runPassPipeline(kernelName, quakeModule, args,
+                                        std::move(context));
+      });
       launchImpl(compiled);
     } else {
       const auto &compiled = std::get<CompiledModule>(module);
@@ -71,7 +70,7 @@ public:
     // This target handles observable evaluation server-side.
     // We don't want to split up the circuit into several ansatz
     // sub circuit.
-    if (ctx && ctx->name == "observe") {
+    if (ctx->name == "observe") {
       target->pauliTermSplitObservable = std::nullopt;
     }
     return target;
@@ -82,10 +81,9 @@ public:
     const auto &kernelName = src.getName();
     auto modulePtr = compileModulePreamble(src);
     CUDAQ_INFO("FermioniqBaseQPU compiling kernel via module ({})", kernelName);
-    return compileImpl(
-        kernelName, [&](Compiler &compiler, ExecutionContext *ctx) {
-          return compiler.runPassPipeline(ctx, kernelName, modulePtr, args);
-        });
+    return compileImpl(kernelName, [&](Compiler &compiler) {
+      return compiler.runPassPipeline(kernelName, modulePtr, args);
+    });
   }
 
   sample_result launchKernel(sample_policy &policy, const AnyModule &module,
@@ -103,8 +101,7 @@ public:
 private:
   CompiledModule
   compileImpl(const std::string &kernelName,
-              std::function<CompiledModule(Compiler &, ExecutionContext *)>
-                  runPassPipeline);
+              std::function<CompiledModule(Compiler &)> runPassPipeline);
 
   template <typename Policy>
   CompiledModule compileImpl(Policy &policy, const SourceModule &src,
@@ -112,10 +109,14 @@ private:
     const auto &kernelName = src.getName();
     auto modulePtr = compileModulePreamble(src);
     CUDAQ_INFO("FermioniqBaseQPU compiling kernel via module ({})", kernelName);
-    return compileImpl(
-        kernelName, [&](Compiler &compiler, ExecutionContext *ctx) {
-          return compiler.runPassPipeline(policy, kernelName, modulePtr, args);
-        });
+    return compileImpl(kernelName, [&](Compiler &compiler) {
+      auto res = compiler.runPassPipeline(kernelName, modulePtr, args);
+      if constexpr (std::is_same_v<Policy, sample_policy>) {
+        if (compiler.hasWarnedNamedMeasurements())
+          policy.warnedNamedMeasurements = true;
+      }
+      return res;
+    });
   }
   void launchImpl(const CompiledModule &compiled);
 };
