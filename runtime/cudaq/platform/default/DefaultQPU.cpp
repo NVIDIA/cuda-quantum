@@ -52,7 +52,6 @@ cudaq::DefaultQPU::launchKernel(async_sample_policy &policy,
                                 cudaq::KernelArgs args) {
   throw std::runtime_error(
       "DefaultQPU does not support launching the async_sample_policy.");
-  return async_sample_result{};
 }
 
 void cudaq::DefaultQPU::configureExecutionContext(

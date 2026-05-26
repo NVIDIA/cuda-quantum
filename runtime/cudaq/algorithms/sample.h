@@ -137,9 +137,9 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
     auto noise = platform.get_noise(qpu_id);
     std::optional<noise_model> noise_opt =
         noise ? std::make_optional(*noise) : std::nullopt;
-    auto restult = runSamplingAsync(wrappedKernel, platform, kernelName, shots,
-                                    explicitMeasurements, qpu_id, noise_opt);
-    return restult.get();
+    auto result = runSamplingAsync(wrappedKernel, platform, kernelName, shots,
+                                   explicitMeasurements, qpu_id, noise_opt);
+    return result.get();
   }
 
   // Create the execution context.

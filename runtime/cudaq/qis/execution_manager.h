@@ -18,7 +18,6 @@
 #include "cudaq/qis/measure_handle.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <deque>
-#include <iostream>
 #include <string_view>
 #include <vector>
 
