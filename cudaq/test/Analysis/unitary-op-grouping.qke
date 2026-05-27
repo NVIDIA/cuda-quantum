@@ -1,0 +1,48 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+
+// RUN: cudaq-opt %s --test-unitary-op-grouping -o /dev/null 2>&1 | FileCheck %s
+
+module {
+  func.func @simple(%q0: !quake.ref, %q1: !quake.ref, %theta: f64) attributes {"cudaq-kernel"} {
+    quake.h %q0 : (!quake.ref) -> ()
+    quake.x %q1 : (!quake.ref) -> ()
+    %m = quake.mz %q0 : (!quake.ref) -> !cc.measure_handle
+    quake.z %q0 : (!quake.ref) -> ()
+    %c0 = arith.constant 0 : i64
+    quake.rx (%theta) %q1 : (f64, !quake.ref) -> ()
+    return
+  }
+
+  func.func @nested_if(%q0: !quake.ref, %q1: !quake.ref, %flag: i1) attributes {"cudaq-kernel"} {
+    cc.if(%flag) {
+      quake.h %q0 : (!quake.ref) -> ()
+      quake.x %q1 : (!quake.ref) -> ()
+    } else {
+      quake.z %q0 : (!quake.ref) -> ()
+    }
+    return
+  }
+}
+
+// CHECK-LABEL: func @simple
+// CHECK:       unitary group #0 -- found 2 ops
+// CHECK-NEXT:    quake.h
+// CHECK-NEXT:    quake.x
+// CHECK:       unitary group #1 -- found 1 ops
+// CHECK-NEXT:    quake.z
+// CHECK:       unitary group #2 -- found 1 ops
+// CHECK-NEXT:    quake.rx
+
+// CHECK-LABEL: func @nested_if
+// CHECK:       unitary group #0 -- found 2 ops
+// CHECK-NEXT:    quake.h
+// CHECK-NEXT:    quake.x
+// CHECK:       unitary group #1 -- found 1 ops
+// CHECK-NEXT:    quake.z

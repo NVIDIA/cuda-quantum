@@ -21,6 +21,7 @@ if (CUDAQ_DISABLE_RUNTIME)
 endif()
 
 add_subdirectory(plugin)
+add_subdirectory(lib)
 
 configure_lit_site_cfg(
   ${CMAKE_CURRENT_SOURCE_DIR}/lit.site.cfg.py.in
