@@ -21,7 +21,12 @@ namespace {
 /// obtains its address. Loading on demand keeps the analysis engine
 /// self-contained.
 void ensurePluginLoaded(const std::string &plugin_name) {
-  const std::string lib = "libnvqir-" + plugin_name + ".so";
+#ifdef __APPLE__
+  constexpr const char *libExt = ".dylib";
+#else
+  constexpr const char *libExt = ".so";
+#endif
+  const std::string lib = "libnvqir-" + plugin_name + libExt;
   void *handle = dlopen(lib.c_str(), RTLD_NOW | RTLD_GLOBAL);
   if (!handle) {
     const char *err = dlerror();
