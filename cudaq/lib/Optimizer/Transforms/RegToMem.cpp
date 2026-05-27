@@ -40,6 +40,7 @@ static unsigned successorIndex(Operation *terminator, Block *successor) {
 }
 
 using BlockSet = SmallPtrSet<Block *, 4>;
+using OpSet = SmallPtrSet<Operation *, 4>;
 
 namespace {
 /// Register to memory analysis.
@@ -152,6 +153,7 @@ private:
         result.push_back(v);
     return result;
   }
+
   void performAnalysis(func::FuncOp func) {
     collectBorrowWires(func);
     func.walk([&](Operation *op) {
@@ -278,12 +280,22 @@ private:
 };
 
 template <typename OP>
+void safeEraseOp(PatternRewriter &rewriter, OP op, OpSet &cleanups) {
+  // NB: `op` may still have uses as only uses by certain operations were
+  // updated to this point. If it is still used, defer erasing until the end
+  // of the pass.
+  if (op->use_empty())
+    rewriter.eraseOp(op);
+  cleanups.insert(op.getOperation());
+}
+
+template <typename OP>
 class CollapseWrappers : public OpRewritePattern<OP> {
 public:
   using Base = OpRewritePattern<OP>;
   explicit CollapseWrappers(MLIRContext *ctx, RegToMemAnalysis &analysis,
-                            ArrayRef<Value> allocas)
-      : Base(ctx), analysis(analysis), allocas(allocas) {}
+                            ArrayRef<Value> allocas, OpSet &cleanups)
+      : Base(ctx), analysis(analysis), allocas(allocas), cleanups(cleanups) {}
 
   LogicalResult matchAndRewrite(OP op,
                                 PatternRewriter &rewriter) const override {
@@ -303,8 +315,8 @@ public:
     };
     auto eraseWrapUsers = [&](auto op) {
       for (auto *usr : op->getUsers())
-        if (isa<cudaq::quake::WrapOp>(usr))
-          rewriter.eraseOp(usr);
+        if (auto wrap = dyn_cast<cudaq::quake::WrapOp>(usr))
+	   safeEraseOp(rewriter, wrap, cleanups);
     };
 
     if constexpr (cudaq::quake::isMeasure<OP>) {
@@ -315,31 +327,32 @@ public:
           OP::create(rewriter, loc, ArrayRef<Type>{op.getMeasOut().getType()},
                      args, nameAttr);
       op.getResult(0).replaceAllUsesWith(newOp.getResult(0));
-      rewriter.eraseOp(op);
+      safeEraseOp(rewriter, op, cleanups);
     } else if constexpr (std::is_same_v<OP, cudaq::quake::ResetOp>) {
       // Reset is a special case.
       auto targ = findLookupValue(op.getTargets());
       eraseWrapUsers(op);
       cudaq::quake::ResetOp::create(rewriter, loc, TypeRange{}, targ);
-      rewriter.eraseOp(op);
+      safeEraseOp(rewriter, op, cleanups);
     } else if constexpr (std::is_same_v<OP, cudaq::quake::SinkOp>) {
       auto targ = findLookupValue(op.getTarget());
       rewriter.replaceOpWithNewOp<cudaq::quake::DeallocOp>(op, targ);
     } else if constexpr (std::is_same_v<OP, cudaq::quake::ReturnWireOp>) {
-      rewriter.eraseOp(op);
+      safeEraseOp(rewriter, op, cleanups);
     } else {
       auto ctrls = collect(op.getControls());
       auto targs = collect(op.getTargets());
       eraseWrapUsers(op);
       OP::create(rewriter, loc, op.getIsAdj(), op.getParameters(), ctrls, targs,
                  op.getNegatedQubitControlsAttr());
-      rewriter.eraseOp(op);
+      safeEraseOp(rewriter, op, cleanups);
     }
     return success();
   }
 
   RegToMemAnalysis &analysis;
   ArrayRef<Value> allocas;
+  OpSet &cleanups;
 };
 
 struct EraseWiresBranch : public OpRewritePattern<cf::BranchOp> {
@@ -393,8 +406,9 @@ struct EraseWiresCondBranch : public OpRewritePattern<cf::CondBranchOp> {
 
 struct EraseWiresIf : public OpRewritePattern<cudaq::cc::IfOp> {
   explicit EraseWiresIf(MLIRContext *ctx, RegToMemAnalysis &analysis,
-                        ArrayRef<Value> allocas)
-      : OpRewritePattern(ctx), analysis(analysis), allocas(allocas) {}
+                        ArrayRef<Value> allocas, OpSet &cleanups)
+      : OpRewritePattern(ctx), analysis(analysis), allocas(allocas),
+        cleanups(cleanups) {}
 
   // Rewriting the cc.if operation is done in a single step here. It can
   // probably be decomposed into smaller steps. We eliminate the original
@@ -451,7 +465,7 @@ struct EraseWiresIf : public OpRewritePattern<cudaq::cc::IfOp> {
               if (!cudaq::quake::isLinearType(v.getType()))
                 newOpnds.push_back(v);
             cudaq::cc::ContinueOp::create(builder, cont.getLoc(), newOpnds);
-            rewriter.eraseOp(cont);
+            safeEraseOp(rewriter, cont, cleanups);
           }
     };
     replaceArgsContinues(newIf.getThenRegion(), origThenArgs);
@@ -478,6 +492,7 @@ struct EraseWiresIf : public OpRewritePattern<cudaq::cc::IfOp> {
 
   RegToMemAnalysis &analysis;
   ArrayRef<Value> allocas;
+  OpSet &cleanups;
 };
 
 #define NOWRAP(OP) CollapseWrappers<cudaq::quake::OP>
@@ -547,10 +562,11 @@ public:
     };
     BlockSet fixupBlocks;
     RewritePatternSet patterns(ctx);
+    OpSet cleanups;
     patterns.insert<NOWRAP_QUANTUM_OPS, CollapseWrappers<cudaq::quake::ResetOp>,
                     CollapseWrappers<cudaq::quake::ReturnWireOp>,
                     CollapseWrappers<cudaq::quake::SinkOp>, EraseWiresIf>(
-        ctx, analysis, allocas);
+        ctx, analysis, allocas, cleanups);
     patterns.insert<EraseWiresBranch, EraseWiresCondBranch>(ctx, fixupBlocks);
     ConversionTarget target(*ctx);
     target
@@ -568,22 +584,34 @@ public:
     LLVM_DEBUG(llvm::dbgs() << "After converting to memory SSA form:\n"
                             << func << "\n\n");
 
-    // 4) Cleanup all the block arguments, NullWireOp, or UnwrapOp.
+    // 4) Cleanup all the block arguments, any deferred Ops, and any source Ops.
     cleanupBlocks(fixupBlocks);
+    for (auto *op : cleanups)
+      if (op->use_empty()) {
+        LLVM_DEBUG(llvm::dbgs() << *op << " was deferred and erased.\n");
+        op->erase();
+      } else {
+        op->emitOpError("cannot erase op as it still has uses.");
+        signalPassFailure();
+        return;
+      }
     func.walk([&](Operation *op) -> WalkResult {
       if (isa<cudaq::quake::NullWireOp, cudaq::quake::BorrowWireOp,
               cudaq::quake::UnwrapOp>(op) &&
-          op->getUses().empty()) {
+          op->use_empty()) {
         op->erase();
         return WalkResult::skip();
       }
       if (isa<func::ReturnOp>(op) && !borrowAllocas.empty()) {
+        // If we had borrow wires, promote them to reference allocations and
+        // make sure that we pair the deallocations here.
         OpBuilder builder(op);
         for (auto v : borrowAllocas)
           cudaq::quake::DeallocOp::create(builder, func.getLoc(), v);
       }
       return WalkResult::advance();
     });
+
     LLVM_DEBUG(llvm::dbgs() << "After cleanup:\n" << func << "\n\n");
   }
 
