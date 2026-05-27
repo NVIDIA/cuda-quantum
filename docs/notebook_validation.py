@@ -54,8 +54,6 @@ LONG_RUNNING_NOTEBOOKS = [
     "uccsd_wf_ansatz.ipynb",
 ]
 
-EXTERNAL_NETWORK_NOTEBOOKS = []
-
 
 def validate(notebook_filename, available_backends):
     """
@@ -72,11 +70,6 @@ def validate(notebook_filename, available_backends):
     base_name = os.path.basename(notebook_filename)
     has_gpu = 'nvidia' in available_backends
     if not has_gpu and base_name in GPU_REQUIRED_NOTEBOOKS:
-        return False
-
-    # Notebooks that depend on external network services (HF, etc.) are too
-    # flaky for CI and are unconditionally skipped during validation.
-    if base_name in EXTERNAL_NETWORK_NOTEBOOKS:
         return False
 
     # Collect all set_target calls
