@@ -358,6 +358,7 @@ def test_ionq_dem_from_kernel_target_independent():
     @cudaq.kernel
     def kernel():
         q = cudaq.qubit()
+        x(q)
         cudaq.apply_noise(cudaq.XError, 0.1, q)
         m = mz(q)
         cudaq.detector(m)
@@ -366,6 +367,9 @@ def test_ionq_dem_from_kernel_target_independent():
     dem_text = cudaq.dem_from_kernel(kernel, noise_model=noise)
     assert "error(0.1" in dem_text
     assert "D0" in dem_text
+
+    counts = cudaq.sample(kernel)
+    assert counts['1'] == 1000
 
 
 @pytest.mark.skip_macos_arm64_jit

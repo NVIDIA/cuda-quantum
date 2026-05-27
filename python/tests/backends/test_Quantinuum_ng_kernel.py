@@ -220,6 +220,28 @@ def test_quantinuum_state_preparation():
     assert not '11' in counts
 
 
+def test_quantinuum_dem_from_kernel_target_independent():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        q0, q1, q2 = cudaq.qubit(), cudaq.qubit(), cudaq.qubit()
+        x(q0)
+        x(q1)
+        x(q2)
+        m0 = mz(q0)
+        m1 = mz(q1)
+        m2 = mz(q2)
+        cudaq.detector(m0, m1, m2)
+        cudaq.logical_observable(m0)
+        return m0 ^ m1 ^ m2
+
+    dem_text = cudaq.dem_from_kernel(kernel)
+    print(dem_text)
+    results = cudaq.run(kernel, shots_count=10)
+    assert len(results) == 10
+    assert all(1 == r for r in results)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
