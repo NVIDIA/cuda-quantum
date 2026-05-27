@@ -11,7 +11,7 @@
 #include "common/FmtCore.h"
 #include "common/RuntimeTarget.h"
 #include "helpers/MQPUUtils.h"
-#include "cudaq/Target/StaticConfigYaml.h"
+#include "cudaq/Target/TargetConfigYaml.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/simulators.h"
@@ -103,7 +103,7 @@ private:
     std::ifstream configFile(configFilePath.string());
     std::string configContents((std::istreambuf_iterator<char>(configFile)),
                                std::istreambuf_iterator<char>());
-    cudaq::config::StaticConfig config;
+    cudaq::config::TargetConfig config;
     llvm::yaml::Input Input(configContents.c_str());
     Input >> config;
 

@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Target/StaticConfigYaml.h"
+#include "cudaq/Target/TargetConfigYaml.h"
 #include "llvm/Support/Allocator.h"
 #include "llvm/Support/Base64.h"
 #include "llvm/Support/CommandLine.h"
@@ -162,7 +162,7 @@ static std::string processSimBackendConfig(
 }
 
 std::string cudaq::config::processRuntimeArgs(
-    const cudaq::config::StaticConfig &config,
+    const cudaq::config::TargetConfig &config,
     const std::map<std::string, std::string> &args) {
   std::stringstream output;
   if (config.BackendConfig.has_value())
@@ -355,8 +355,8 @@ void MappingTraits<cudaq::config::BackendFeatureMap>::mapping(
   io.mapRequired("config", info.Config);
 }
 
-void MappingTraits<cudaq::config::StaticConfig>::mapping(
-    IO &io, cudaq::config::StaticConfig &info) {
+void MappingTraits<cudaq::config::TargetConfig>::mapping(
+    IO &io, cudaq::config::TargetConfig &info) {
   io.mapRequired("name", info.Name);
   io.mapRequired("description", info.Description);
   io.mapOptional("warning", info.WarningMsg);
@@ -366,8 +366,8 @@ void MappingTraits<cudaq::config::StaticConfig>::mapping(
   io.mapOptional("configuration-matrix", info.ConfigMap);
 }
 
-std::string MappingTraits<cudaq::config::StaticConfig>::validate(
-    IO &io, cudaq::config::StaticConfig &info) {
+std::string MappingTraits<cudaq::config::TargetConfig>::validate(
+    IO &io, cudaq::config::TargetConfig &info) {
   // There should only ever be 1 machine-configuration entry in the target
   // arguments.
   unsigned count = 0;

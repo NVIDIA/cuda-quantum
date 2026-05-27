@@ -26,7 +26,7 @@
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Optimizer/Transforms/ResourceCount.h"
-#include "cudaq/Target/StaticConfig.h"
+#include "cudaq/Target/TargetConfig.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/Bitcode/BitcodeReader.h"
@@ -128,7 +128,7 @@ cudaq_internal::compiler::Compiler::loadQuakeCodeByName(
 cudaq_internal::compiler::Compiler::Compiler(
     cudaq::ServerHelper *serverHelper,
     const std::map<std::string, std::string> &backendConfig,
-    cudaq::config::StaticConfig &config, const cudaq::noise_model *noiseModel,
+    cudaq::config::TargetConfig &config, const cudaq::noise_model *noiseModel,
     bool emulate)
     : emulate(emulate) {
 

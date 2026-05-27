@@ -157,7 +157,7 @@ struct BackendFeatureMap {
 };
 
 /// Schema of the target configuration file.
-class StaticConfig {
+class TargetConfig {
 public:
   /// Target name
   std::string Name;
@@ -183,7 +183,7 @@ public:
 
 /// Process the target configuration into a `nvq++` compatible script according
 /// to the provided compile time (C++)/runtime (Python) target arguments.
-std::string processRuntimeArgs(const StaticConfig &config,
+std::string processRuntimeArgs(const TargetConfig &config,
                                const std::map<std::string, std::string> &args);
 
 } // namespace cudaq::config

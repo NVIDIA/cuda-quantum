@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Target/StaticConfigYaml.h"
+#include "cudaq/Target/TargetConfigYaml.h"
 #include "llvm/Support/Allocator.h"
 #include "llvm/Support/Base64.h"
 #include "llvm/Support/CommandLine.h"
@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
       std::exit(ec.value());
     }
   }
-  cudaq::config::StaticConfig config;
+  cudaq::config::TargetConfig config;
   llvm::yaml::Input Input(*(fileOrErr.get()));
   Input >> config;
 

@@ -18,7 +18,7 @@
 #include "cudaq_internal/compiler/JIT.h"
 #include "nvqir/AnalysisScope.h"
 #include "nvqir/resourcecounter/ResourceCounterScope.h"
-#include "cudaq/Target/StaticConfig.h"
+#include "cudaq/Target/TargetConfig.h"
 #include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/platform/platform_iface.h"
 #include "cudaq/platform/qpu.h"
@@ -72,7 +72,7 @@ protected:
   bool emulate = false;
 
   /// @brief The target configuration
-  cudaq::config::StaticConfig targetConfig;
+  cudaq::config::TargetConfig targetConfig;
 
   const void *compileModulePreamble(const SourceModule &src) const {
     const auto &kernelName = src.getName();

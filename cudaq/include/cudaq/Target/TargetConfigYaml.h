@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "cudaq/Target/StaticConfig.h"
+#include "cudaq/Target/TargetConfig.h"
 #include "llvm/Support/YAMLTraits.h"
 
 // These structs can be used in a vector.
@@ -59,9 +59,9 @@ struct MappingTraits<cudaq::config::BackendFeatureMap> {
 };
 
 template <>
-struct MappingTraits<cudaq::config::StaticConfig> {
-  static void mapping(IO &io, cudaq::config::StaticConfig &info);
-  static std::string validate(IO &io, cudaq::config::StaticConfig &info);
+struct MappingTraits<cudaq::config::TargetConfig> {
+  static void mapping(IO &io, cudaq::config::TargetConfig &info);
+  static std::string validate(IO &io, cudaq::config::TargetConfig &info);
 };
 
 template <>

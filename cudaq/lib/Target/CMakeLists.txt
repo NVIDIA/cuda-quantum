@@ -8,7 +8,7 @@
 
 # LLVM-free library: config data structures and helpers.
 add_library(CUDAQTargetConfig
-  StaticConfig.cpp
+  TargetConfig.cpp
 )
 target_include_directories(CUDAQTargetConfig PUBLIC
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/cudaq/include>

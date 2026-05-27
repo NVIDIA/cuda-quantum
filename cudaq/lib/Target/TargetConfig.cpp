@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Target/StaticConfig.h"
+#include "cudaq/Target/TargetConfig.h"
 #include <regex>
 
-std::string cudaq::config::StaticConfig::getCodeGenSpec(
+std::string cudaq::config::TargetConfig::getCodeGenSpec(
     const std::map<std::string, std::string> &targetArgs) const {
   // Check whether we have a per-machine config
   const auto machineConfigIter = std::find_if(
