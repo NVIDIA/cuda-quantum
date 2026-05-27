@@ -13065,6 +13065,15 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
+    []{#classcudaq_1_1quantum__platform_1a2f26e567ff7602ea89156755e68943ee .target}[[bool]{.pre}]{.kt}[ ]{.w}[[[is_library_mode]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform15is_library_modeEv "Permalink to this definition"){.headerlink}\
+
+    :   True if the active target runs without the MLIR/QIR kernel
+        launch path.
+
+    ```{=html}
+    <!-- -->
+    ```
+
     []{#classcudaq_1_1quantum__platform_1a944aa5d4b452d275778dcb5f91da3b53 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[reset_noise]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform11reset_noiseENSt6size_tE "Permalink to this definition"){.headerlink}\
 
     :   Turn off any noise models.
