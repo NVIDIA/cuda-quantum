@@ -38,10 +38,12 @@ struct DecompositionPatternVariant {
                     [](llvm::StringRef op) { return op.str(); });
   }
 
-  DecompositionPatternVariant(llvm::StringRef sourceOp,
-                              std::initializer_list<llvm::StringRef> targetOps)
+  DecompositionPatternVariant(std::initializer_list<llvm::StringRef> ops)
       : DecompositionPatternVariant(
-            sourceOp, llvm::ArrayRef<llvm::StringRef>(targetOps)) {}
+            *ops.begin(),
+            llvm::ArrayRef<llvm::StringRef>(ops.begin() + 1, ops.end())) {
+    assert(ops.size() > 0 && "source op is required");
+  }
 
   std::string sourceOp;
   std::vector<std::string> targetOps;

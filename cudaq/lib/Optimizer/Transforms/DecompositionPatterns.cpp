@@ -321,33 +321,31 @@ static LogicalResult checkAndExtractControls(cudaq::quake::OperatorInterface op,
 #define CONCAT(a, b) CONCAT_INNER(a, b)
 #define CONCAT_INNER(a, b) a##b
 
-template <typename... TargetOps>
-static std::vector<cudaq::DecompositionPatternVariant>
-makeDecompositionPatternVariants(llvm::StringRef sourceOp,
-                                 TargetOps... targetOps) {
-  return {cudaq::DecompositionPatternVariant(sourceOp,
-                                             {llvm::StringRef(targetOps)...})};
-}
-
-template <typename... Variants>
-static std::vector<cudaq::DecompositionPatternVariant>
-makeDecompositionPatternVariants(cudaq::DecompositionPatternVariant variant,
-                                 Variants... variants) {
-  return {variant, variants...};
-}
-
-/// Macro helpers to register a decomposition pattern with variant metadata.
-/// Each variant is a graph edge from one source op to one or more target ops.
+/// Macro helper to register a decomposition pattern with its metadata.
+///
+/// A pattern is composed of one or multiple variants. Each argument after the
+/// pattern name is one variant, written as a brace-enclosed list where the
+/// first element is the source op and the remaining elements are the target
+/// ops.
+///
+/// Single variant:
+/// ```
+/// REGISTER_DECOMPOSITION_PATTERN(PatternName, {"source_op", "target1",
+/// "target2"})
+/// ```
+/// Multiple variants:
+/// ```
+/// REGISTER_DECOMPOSITION_PATTERN(PatternName, {"source_op",    "target1"},
+/// {"source_op(1)", "target1(1)"})
+/// ```
 #undef REGISTER_DECOMPOSITION_PATTERN
-#define DECOMP_VARIANT(SOURCE_OP, ...)                                         \
-  cudaq::DecompositionPatternVariant(SOURCE_OP, {__VA_ARGS__})
 #define REGISTER_DECOMPOSITION_PATTERN(PATTERN, ...)                           \
   struct PATTERN##Type : public cudaq::DecompositionPatternType {              \
     using cudaq::DecompositionPatternType::DecompositionPatternType;           \
     llvm::ArrayRef<cudaq::DecompositionPatternVariant>                         \
     getVariants() const override {                                             \
       static const std::vector<cudaq::DecompositionPatternVariant> variants =  \
-          makeDecompositionPatternVariants(__VA_ARGS__);                       \
+          {__VA_ARGS__};                                                       \
       return variants;                                                         \
     }                                                                          \
     llvm::StringRef getPatternName() const override { return #PATTERN; }       \
@@ -411,7 +409,7 @@ struct HToPhasedRx
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(HToPhasedRx, "h", "phased_rx");
+REGISTER_DECOMPOSITION_PATTERN(HToPhasedRx, {"h", "phased_rx"});
 
 // quake.exp_pauli(theta) target pauliWord
 // ───────────────────────────────────
@@ -595,8 +593,8 @@ struct ExpPauliDecomposition
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(ExpPauliDecomposition, "exp_pauli", "rx", "h",
-                               "x(1)", "rz");
+REGISTER_DECOMPOSITION_PATTERN(ExpPauliDecomposition,
+                               {"exp_pauli", "rx", "h", "x(1)", "rz"});
 
 // Naive mapping of R1 to Rz, ignoring the global phase.
 // This is only expected to work with full inlining and
@@ -619,7 +617,7 @@ struct R1ToRz
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(R1ToRz, "r1", "rz");
+REGISTER_DECOMPOSITION_PATTERN(R1ToRz, {"r1", "rz"});
 
 // Naive mapping of R1 to U3
 // quake.r1(λ) [control] target
@@ -647,7 +645,7 @@ struct R1ToU3
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(R1ToU3, "r1(n)", "u3(n)");
+REGISTER_DECOMPOSITION_PATTERN(R1ToU3, {"r1(n)", "u3(n)"});
 
 // quake.r1<adj> (θ) target
 // ─────────────────────────────────
@@ -684,7 +682,7 @@ struct R1AdjToR1
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(R1AdjToR1, "r1<adj>", "r1");
+REGISTER_DECOMPOSITION_PATTERN(R1AdjToR1, {"r1<adj>", "r1"});
 
 // quake.swap a, b
 // ───────────────────────────────────
@@ -715,7 +713,7 @@ struct SwapToCX
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(SwapToCX, "swap", "x(1)");
+REGISTER_DECOMPOSITION_PATTERN(SwapToCX, {"swap", "x(1)"});
 
 // quake.h control, target
 // ───────────────────────────────────
@@ -759,7 +757,7 @@ struct CHToCX
 };
 // TODO: Technically, this pattern also produces s<adj> and t<adj> ops, but we
 // currently don't treat them as distinct from their non-adjoint counterparts.
-REGISTER_DECOMPOSITION_PATTERN(CHToCX, "h(1)", "s", "h", "t", "x(1)");
+REGISTER_DECOMPOSITION_PATTERN(CHToCX, {"h(1)", "s", "h", "t", "x(1)"});
 
 //===----------------------------------------------------------------------===//
 // SOp decompositions
@@ -812,7 +810,7 @@ struct SToPhasedRx
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(SToPhasedRx, "s", "phased_rx");
+REGISTER_DECOMPOSITION_PATTERN(SToPhasedRx, {"s", "phased_rx"});
 
 // quake.s [controls] target
 // ────────────────────────────────────
@@ -851,9 +849,8 @@ struct SToR1
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(SToR1, DECOMP_VARIANT("s", "r1"),
-                               DECOMP_VARIANT("s(1)", "r1(1)"),
-                               DECOMP_VARIANT("s(n)", "r1(n)"));
+REGISTER_DECOMPOSITION_PATTERN(SToR1, {"s", "r1"}, {"s(1)", "r1(1)"},
+                               {"s(n)", "r1(n)"});
 
 //===----------------------------------------------------------------------===//
 // TOp decompositions
@@ -907,7 +904,7 @@ struct TToPhasedRx
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(TToPhasedRx, "t", "phased_rx");
+REGISTER_DECOMPOSITION_PATTERN(TToPhasedRx, {"t", "phased_rx"});
 
 // quake.t [controls] target
 // ────────────────────────────────────
@@ -945,9 +942,8 @@ struct TToR1
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(TToR1, DECOMP_VARIANT("t", "r1"),
-                               DECOMP_VARIANT("t(1)", "r1(1)"),
-                               DECOMP_VARIANT("t(n)", "r1(n)"));
+REGISTER_DECOMPOSITION_PATTERN(TToR1, {"t", "r1"}, {"t(1)", "r1(1)"},
+                               {"t(n)", "r1(n)"});
 
 //===----------------------------------------------------------------------===//
 // XOp decompositions
@@ -997,7 +993,7 @@ struct CXToCZ
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(CXToCZ, "x(1)", "h", "z(1)");
+REGISTER_DECOMPOSITION_PATTERN(CXToCZ, {"x(1)", "h", "z(1)"});
 
 // quake.x [controls] target
 // ──────────────────────────────────
@@ -1032,7 +1028,7 @@ struct CCXToCCZ
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(CCXToCCZ, "x(2)", "h", "z(2)");
+REGISTER_DECOMPOSITION_PATTERN(CCXToCCZ, {"x(2)", "h", "z(2)"});
 
 // quake.x target
 // ───────────────────────────────
@@ -1068,7 +1064,7 @@ struct XToPhasedRx
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(XToPhasedRx, "x", "phased_rx");
+REGISTER_DECOMPOSITION_PATTERN(XToPhasedRx, {"x", "phased_rx"});
 
 //===----------------------------------------------------------------------===//
 // YOp decompositions
@@ -1109,7 +1105,7 @@ struct YToPhasedRx
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(YToPhasedRx, "y", "phased_rx");
+REGISTER_DECOMPOSITION_PATTERN(YToPhasedRx, {"y", "phased_rx"});
 
 // quake.y [control] target
 // ───────────────────────────────────
@@ -1150,7 +1146,7 @@ struct CYToCX
 };
 // TODO: Technically, this pattern also produces s<adj> ops, but we currently
 // don't treat it as distinct from their non-adjoint counterparts.
-REGISTER_DECOMPOSITION_PATTERN(CYToCX, "y(1)", "s", "x(1)");
+REGISTER_DECOMPOSITION_PATTERN(CYToCX, {"y(1)", "s", "x(1)"});
 
 //===----------------------------------------------------------------------===//
 // ZOp decompositions
@@ -1230,7 +1226,7 @@ struct CCZToCX
 };
 // TODO: Technically, this pattern also produces t<adj> ops, but we currently
 // don't treat it as distinct from their non-adjoint counterparts.
-REGISTER_DECOMPOSITION_PATTERN(CCZToCX, "z(2)", "t", "x(1)");
+REGISTER_DECOMPOSITION_PATTERN(CCZToCX, {"z(2)", "t", "x(1)"});
 
 // quake.z [control] target
 // ──────────────────────────────────
@@ -1277,7 +1273,7 @@ struct CZToCX
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(CZToCX, "z(1)", "h", "x(1)");
+REGISTER_DECOMPOSITION_PATTERN(CZToCX, {"z(1)", "h", "x(1)"});
 
 // quake.z target
 // ──────────────────────────────────
@@ -1325,7 +1321,7 @@ struct ZToPhasedRx
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(ZToPhasedRx, "z", "phased_rx");
+REGISTER_DECOMPOSITION_PATTERN(ZToPhasedRx, {"z", "phased_rx"});
 
 //===----------------------------------------------------------------------===//
 // R1Op decompositions
@@ -1385,7 +1381,7 @@ struct CR1ToCX
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(CR1ToCX, "r1(1)", "r1", "x(1)");
+REGISTER_DECOMPOSITION_PATTERN(CR1ToCX, {"r1(1)", "r1", "x(1)"});
 
 // quake.r1(λ) target
 // ──────────────────────────────────
@@ -1437,7 +1433,7 @@ struct R1ToPhasedRx
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(R1ToPhasedRx, "r1", "phased_rx");
+REGISTER_DECOMPOSITION_PATTERN(R1ToPhasedRx, {"r1", "phased_rx"});
 
 //===----------------------------------------------------------------------===//
 // RxOp decompositions
@@ -1499,7 +1495,7 @@ struct CRxToCX
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(CRxToCX, "rx(1)", "s", "x(1)", "ry", "rz");
+REGISTER_DECOMPOSITION_PATTERN(CRxToCX, {"rx(1)", "s", "x(1)", "ry", "rz"});
 
 // quake.rx(θ) target
 // ───────────────────────────────
@@ -1538,7 +1534,7 @@ struct RxToPhasedRx
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(RxToPhasedRx, "rx", "phased_rx");
+REGISTER_DECOMPOSITION_PATTERN(RxToPhasedRx, {"rx", "phased_rx"});
 
 // quake.rx<adj> (θ) target
 // ─────────────────────────────────
@@ -1576,8 +1572,7 @@ struct RxAdjToRx
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(RxAdjToRx, "rx<adj>", "rx");
-
+REGISTER_DECOMPOSITION_PATTERN(RxAdjToRx, {"rx<adj>", "rx"});
 //===----------------------------------------------------------------------===//
 // RyOp decompositions
 //===----------------------------------------------------------------------===//
@@ -1630,7 +1625,7 @@ struct CRyToCX
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(CRyToCX, "ry(1)", "ry", "x(1)");
+REGISTER_DECOMPOSITION_PATTERN(CRyToCX, {"ry(1)", "ry", "x(1)"});
 
 // quake.ry(θ) target
 // ─────────────────────────────────
@@ -1669,7 +1664,7 @@ struct RyToPhasedRx
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(RyToPhasedRx, "ry", "phased_rx");
+REGISTER_DECOMPOSITION_PATTERN(RyToPhasedRx, {"ry", "phased_rx"});
 
 // quake.ry<adj> (θ) target
 // ─────────────────────────────────
@@ -1707,7 +1702,7 @@ struct RyAdjToRy
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(RyAdjToRy, "ry<adj>", "ry");
+REGISTER_DECOMPOSITION_PATTERN(RyAdjToRy, {"ry<adj>", "ry"});
 
 //===----------------------------------------------------------------------===//
 // RzOp decompositions
@@ -1761,7 +1756,7 @@ struct CRzToCX
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(CRzToCX, "rz(1)", "rz", "x(1)");
+REGISTER_DECOMPOSITION_PATTERN(CRzToCX, {"rz(1)", "rz", "x(1)"});
 
 // quake.rz(θ) target
 // ──────────────────────────────────
@@ -1813,7 +1808,7 @@ struct RzToPhasedRx
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(RzToPhasedRx, "rz", "phased_rx");
+REGISTER_DECOMPOSITION_PATTERN(RzToPhasedRx, {"rz", "phased_rx"});
 
 // quake.rz<adj> (θ) target
 // ─────────────────────────────────
@@ -1851,7 +1846,7 @@ struct RzAdjToRz
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(RzAdjToRz, "rz<adj>", "rz");
+REGISTER_DECOMPOSITION_PATTERN(RzAdjToRz, {"rz<adj>", "rz"});
 
 //===----------------------------------------------------------------------===//
 // U3Op decompositions
@@ -1909,7 +1904,7 @@ struct U3ToRotations : public cudaq::DecompositionPattern<U3ToRotationsType,
     return success();
   }
 };
-REGISTER_DECOMPOSITION_PATTERN(U3ToRotations, "u3(n)", "rz(n)", "rx(n)");
+REGISTER_DECOMPOSITION_PATTERN(U3ToRotations, {"u3(n)", "rz(n)", "rx(n)"});
 
 } // namespace
 
