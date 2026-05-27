@@ -106,9 +106,8 @@ protected:
   /// Source `g(n)` means controlled forms of any arity. It intentionally does
   /// not match bare `g`.
   bool sourceOpEnabled(llvm::StringRef bareSourceOp,
-                       std::optional<std::size_t> numControls,
-                       bool hasControls) const {
-    if (!hasControls)
+                       std::optional<std::size_t> numControls) const {
+    if (numControls.has_value() && *numControls == 0)
       return sourceOpEnabled(bareSourceOp);
 
     std::string sourcePrefix = bareSourceOp.str();
