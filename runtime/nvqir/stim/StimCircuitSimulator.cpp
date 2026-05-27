@@ -8,6 +8,7 @@
 
 #include "common/FmtCore.h"
 #include "nvqir/CircuitSimulator.h"
+#include "nvqir/RecordedCircuit.h"
 #include "stim.h"
 #include <cmath>
 #include <numeric>
@@ -33,7 +34,8 @@ struct StimNoiseType {
 /// @brief The StimCircuitSimulator implements the CircuitSimulator
 /// base class to provide a simulator delegating to the Stim library from
 /// https://github.com/quantumlib/Stim.
-class StimCircuitSimulator : public nvqir::CircuitSimulatorBase<double> {
+class StimCircuitSimulator : public nvqir::CircuitSimulatorBase<double>,
+                             public nvqir::RecordedCircuit {
 protected:
   // Follow Stim naming convention (W) for bit width (required for templates).
   static constexpr std::size_t W = stim::MAX_BITWORD_WIDTH;
@@ -711,6 +713,26 @@ public:
       if (!targets.empty())
         recordedCircuit.safe_append_u("DETECTOR", targets);
   }
+
+  /// @brief Return the chronological index of the most-recent `mz`.
+  std::int64_t getMeasureIndex() const override {
+    auto pending = static_cast<std::int64_t>(sampleQubits.size());
+    auto committed = static_cast<std::int64_t>(num_measurements);
+    auto total = committed + pending;
+    if (total == 0)
+      return std::numeric_limits<std::int64_t>::max();
+    return total - 1;
+  }
+
+  /// @brief `nvqir::RecordedCircuit` override - hands the accumulated
+  /// `stim::Circuit` for direct consumption by
+  /// `stim::ErrorAnalyzer::circuit_to_detector_error_model`.
+  const stim::Circuit *circuit() const override { return &recordedCircuit; }
+
+  /// @brief `nvqir::RecordedCircuit` override - drops the accumulated
+  /// `recordedCircuit` so the next analysis run on this thread starts with
+  /// an empty circuit. Called from `nvqir::dem::make_scope`'s `on_enter`.
+  void reset() override { recordedCircuit = stim::Circuit(); }
 
   bool isStateVectorSimulator() const override { return false; }
 

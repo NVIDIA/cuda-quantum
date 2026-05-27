@@ -25,6 +25,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
+#include <limits>
 #include <queue>
 #include <sstream>
 #include <stdexcept>
@@ -439,6 +440,14 @@ public:
   virtual cudaq::ExecutionResult
   sample(const std::vector<std::size_t> &qubitIdxs, const int shots,
          bool includeSequentialData = true) = 0;
+
+  /// @brief Return the chronological index of the most-recent `mz` performed
+  /// on this simulator. Used by the JIT-path runtime entries
+  /// `__quantum__qis__mz` / `__quantum__qis__mz__to__register` to populate a
+  /// `Result*` whose integer payload identifies the measurement.
+  virtual std::int64_t getMeasureIndex() const {
+    return std::numeric_limits<std::int64_t>::max();
+  }
 
   /// @brief Declare a `qec.detector` over one or more prior measurements,
   /// addressed by measurement indices or identifiers assigned by this

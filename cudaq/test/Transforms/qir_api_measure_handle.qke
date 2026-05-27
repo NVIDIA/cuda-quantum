@@ -8,11 +8,13 @@
 
 // RUN: cudaq-opt --convert-to-qir-api %s | FileCheck %s
 // RUN: cudaq-opt --convert-to-qir-api -canonicalize %s | FileCheck --check-prefix=CHECK-E2E %s
+// RUN: cudaq-opt "--convert-to-qir-api=api=adaptive-profile:1.0 opaque-pointer=true" %s | FileCheck --check-prefix=ADAPT %s
 
 // The module-level `llvm.data_layout` is what `FuseCastCascade` consults to
 // gate the `ptr -> int -> ptr` fold; bridge-emitted modules always carry
 // the attribute, hand-typed lit modules opt in here so the canonicalizer
 // can collapse the legitimate `Result* -> i64 -> ptr<i1>` chain.
+
 module attributes {llvm.data_layout = "e-p:64:64"} {
 
 // -----
@@ -27,17 +29,14 @@ func.func @scalar_handle() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"}
 
 // CHECK-LABEL:   func.func @scalar_handle() -> i1
 // CHECK:           %[[VAL_Q:.*]] = call @__quantum__rt__qubit_allocate()
-// CHECK:           %[[VAL_R:.*]] = call @__quantum__qis__mz__to__register(%[[VAL_Q]], {{%.*}}) {{.*}} -> !cc.ptr<!llvm.struct<"Result", opaque>>
-// `MeasurementOpPattern` casts the QIR call's `Result*` to the converted
-// `i64` payload, and `DiscriminateOpToCallRewrite` casts back to
-// `!cc.ptr<i1>`. The two pointer endpoints (`Result*` and `ptr<i1>`) are
-// joined by an i64 round-trip whose only purpose was the handle ABI; the
-// `FuseCastCascade` `ptr -> int -> ptr` rule collapses the chain into a
-// single pointer cast that lowers to `llvm.bitcast`. This avoids the
-// `llvm.ptrtoint` that the NVQIR profile verifier rejects.
-// CHECK:           %[[VAL_P:.*]] = cc.cast %[[VAL_R]] : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> !cc.ptr<i1>
-// CHECK:           %[[VAL_B:.*]] = cc.load %[[VAL_P]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_H:.*]] = call @__quantum__qis__mz_handle__to__register({{.*}}) {{.*}} -> i64
+// CHECK:           %[[VAL_R:.*]] = cc.cast %[[VAL_H]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:           %[[VAL_B:.*]] = call @__quantum__rt__read_result(%[[VAL_R]]) : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> i1
 // CHECK:           return %[[VAL_B]] : i1
+// ADAPT-LABEL:   func.func @scalar_handle() -> i1
+// ADAPT:           call @__quantum__qis__mz__body({{.*}}) {{.*}} : (!cc.ptr<none>, !cc.ptr<none>) -> ()
+// ADAPT:           %[[VAL_B:.*]] = call @__quantum__rt__read_result({{.*}}) : (!cc.ptr<none>) -> i1
+// ADAPT:           return %[[VAL_B]] : i1
 
 // -----
 // Function signatures with handle parameter and return.
@@ -180,9 +179,7 @@ func.func @handle_stdvec_consume(%v: !cc.stdvec<!cc.measure_handle>) -> i1 attri
 
 // -----
 // End-to-end guard: a follow-up canonicalize pass after convert-to-qir-api
-// must preserve the same Result* -> ptr<i1> collapse. The narrow integer-hop
-// non-fold case is already covered in cast_fold.qke.
-
+// must preserve the handle-form lowering.
 func.func @scalar_handle_e2e() -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   %0 = quake.alloca !quake.ref
   %m = quake.mz %0 name "h" : (!quake.ref) -> !cc.measure_handle
@@ -192,12 +189,14 @@ func.func @scalar_handle_e2e() -> i1 attributes {"cudaq-entrypoint", "cudaq-kern
 
 // CHECK-E2E-LABEL:   func.func @scalar_handle_e2e() -> i1
 // CHECK-E2E:           %[[VAL_Q:.*]] = call @__quantum__rt__qubit_allocate()
-// CHECK-E2E:           %[[VAL_R:.*]] = call @__quantum__qis__mz__to__register({{.*}})
-// CHECK-E2E-SAME:        -> !cc.ptr<!llvm.struct<"Result", opaque>>
-// CHECK-E2E:           %[[VAL_P:.*]] = cc.cast %[[VAL_R]] : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> !cc.ptr<i1>
-// CHECK-E2E-NOT:       cc.cast {{.*}} : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> i64
-// CHECK-E2E-NOT:       cc.cast {{.*}} : (i64) -> !cc.ptr<i1>
-// CHECK-E2E:           %[[VAL_B:.*]] = cc.load %[[VAL_P]] : !cc.ptr<i1>
+// CHECK-E2E:           %[[VAL_H:.*]] = call @__quantum__qis__mz_handle__to__register({{.*}}) {{.*}} -> i64
+// CHECK-E2E:           %[[VAL_R:.*]] = cc.cast %[[VAL_H]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK-E2E:           %[[VAL_B:.*]] = call @__quantum__rt__read_result(%[[VAL_R]]) : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> i1
+// CHECK-E2E-NOT:       cc.load
 // CHECK-E2E:           return %[[VAL_B]] : i1
+// ADAPT-LABEL:   func.func @scalar_handle_e2e() -> i1
+// ADAPT:           %[[VAL_B:.*]] = call @__quantum__rt__read_result({{.*}}) : (!cc.ptr<none>) -> i1
+// ADAPT-NOT:       cc.load
+// ADAPT:           return %[[VAL_B]] : i1
 
 }

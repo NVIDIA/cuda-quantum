@@ -48,6 +48,9 @@ inline static constexpr std::string_view GetCircuitSimulatorSymbol =
 static thread_local std::map<Qubit *, Result *> measQB2Res;
 static thread_local std::map<Result *, Qubit *> measRes2QB;
 static thread_local std::map<Result *, Result> measRes2Val;
+static thread_local std::map<std::int64_t, Result> measHandle2Val;
+static thread_local std::map<std::int64_t, std::int64_t> measHandle2Index;
+static thread_local std::int64_t nextMeasureHandle = 0;
 
 /// @brief Provide a holder for externally created
 /// CircuitSimulator pointers (like from Python) that
@@ -713,6 +716,11 @@ bool __quantum__qis__read_result__body(Result *result) {
   auto iter = measRes2Val.find(result);
   if (iter != measRes2Val.end())
     return iter->second;
+  auto handle =
+      static_cast<std::int64_t>(reinterpret_cast<std::intptr_t>(result));
+  auto handleIter = measHandle2Val.find(handle);
+  if (handleIter != measHandle2Val.end())
+    return handleIter->second;
   return ResultZeroVal;
 }
 
@@ -726,6 +734,26 @@ Result *__quantum__qis__mz__to__register(Qubit *q, const char *name) {
   ScopedTraceWithContext("NVQIR::mz", qI, regName);
   auto b = nvqir::getCircuitSimulatorInternal()->mz(qI, regName);
   return b ? ResultOne : ResultZero;
+}
+
+// Handle-form measurement variant.
+std::int64_t __quantum__qis__mz_handle__to__register(Qubit *q,
+                                                     const char *name) {
+  std::string regName(name);
+  auto qI = qubitToSizeT(q);
+  ScopedTraceWithContext("NVQIR::mz_handle", qI, regName);
+  auto *sim = nvqir::getCircuitSimulatorInternal();
+  auto b = sim->mz(qI, regName);
+  auto idx = sim->getMeasureIndex();
+  auto handle = nextMeasureHandle++;
+  // Keep the handle's discriminated bit separate from the chronological
+  // measurement index.
+  measHandle2Val[handle] = b;
+  measHandle2Index[handle] = idx;
+  Result *r = reinterpret_cast<Result *>(static_cast<std::intptr_t>(handle));
+  measRes2QB[r] = q;
+  measRes2Val[r] = b;
+  return handle;
 }
 
 void __quantum__qis__exp_pauli(double theta, Array *qubits, char *pauliWord) {
@@ -783,12 +811,16 @@ static std::vector<std::size_t> safeArrayToVectorSizeT(Array *arr) {
   return arrayToVectorSizeT(arr);
 }
 
-// Each `Result*` in the incoming buffer is the bit pattern of an `i64`
-// chronological measurement index (the runtime representation of
-// `!cc.measure_handle` post-conversion); it is NOT a heap `Result` object and
-// must not be dereferenced.
+// Each `Result*` in the incoming buffer is the bit pattern of an `i64` measure
+// handle. Handles produced by `mz_handle__to__register` are resolved through
+// `measHandle2Index`; hand-written QIR that already uses chronological indices
+// continues to pass those indices through unchanged.
 static inline std::int64_t resultPtrToMeasureIndex(Result *r) {
-  return static_cast<std::int64_t>(reinterpret_cast<std::intptr_t>(r));
+  auto handle = static_cast<std::int64_t>(reinterpret_cast<std::intptr_t>(r));
+  auto iter = measHandle2Index.find(handle);
+  if (iter != measHandle2Index.end())
+    return iter->second;
+  return handle;
 }
 
 // Validate the `(results, count)` pair from the QIR side and return the
@@ -1229,6 +1261,9 @@ void __quantum__rt__clear_result_maps() {
   measQB2Res.clear();
   measRes2QB.clear();
   measRes2Val.clear();
+  measHandle2Val.clear();
+  measHandle2Index.clear();
+  nextMeasureHandle = 0;
 }
 
 /// This is the generalized version of invoke that does not use a va_list
