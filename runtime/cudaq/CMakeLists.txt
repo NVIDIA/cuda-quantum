@@ -100,6 +100,7 @@ endif()
 
 add_subdirectory(qis/managers)
 add_subdirectory(algorithms)
+add_subdirectory(analysis)
 add_subdirectory(platform)
 add_subdirectory(builder)
 add_subdirectory(domains)
