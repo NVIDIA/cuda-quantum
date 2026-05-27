@@ -8,6 +8,7 @@
 
 #include "cudaq/algorithms/dem.h"
 #include "common/CompiledModule.h"
+#include "common/DeviceCodeRegistry.h"
 #include "common/ExecutionContext.h"
 #include "common/KernelArgs.h"
 #include "common/NoiseModel.h"
@@ -24,6 +25,14 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+
+// Normally injected at the end of every QIR entry-point by
+// `insertSetupAndCleanupOperations`, but only when the lowering pipeline
+// contains QIR profile path. The DEM JIT path uses `addAOTPipelineConvertToQIR`
+// instead, so the cleanup is not auto-injected and we must invoke it explicitly
+// to clear thread-local `measHandle2Val` / `measHandle2Index` /
+// `nextMeasureHandle` between successive `dem_from_kernel` calls.
+extern "C" void __quantum__rt__clear_result_maps();
 
 namespace cudaq::details {
 
@@ -115,6 +124,12 @@ std::string runDemFromKernelImpl(const std::string &kernelName,
                                  const cudaq::noise_model *noise,
                                  const std::function<void()> &kernel,
                                  std::string plugin_name) {
+
+  if (cudaq::kernelHasConditionalFeedback(kernelName))
+    throw std::runtime_error(
+        "`cudaq::dem_from_kernel`: kernel '" + kernelName +
+        "' branches on a measurement result. DEM analysis not supported.");
+
   cudaq::ExecutionContext ctx("dem");
   ctx.kernelName = kernelName;
   ctx.qpuId = cudaq::getCurrentQpuId();
@@ -129,9 +144,10 @@ std::string runDemFromKernelImpl(const std::string &kernelName,
   stim::Circuit recorded;
   {
     if (nvqir::AnalysisScope::is_active())
-      throw std::runtime_error("`cudaq::dem_from_kernel`: launching an "
-                               "analysis primitive from inside another "
-                               "analysis primitive is not supported.");
+      throw std::runtime_error(
+          "`cudaq::dem_from_kernel`: re-entrant analysis on the same "
+          "thread is not supported (another analysis primitive is already "
+          "active).");
 
     std::lock_guard<std::mutex> serialize(demMutex());
 
@@ -163,7 +179,12 @@ std::string runDemFromKernelImpl(const std::string &kernelName,
             recorded = *recorder.circuit();
           });
         },
-        [&]() { ctx.executeKernelApi = nullptr; });
+        [&]() {
+          ctx.executeKernelApi = nullptr;
+          // Clear thread-local measurement-handle maps populated by
+          // `__quantum__qis__mz_handle__to__register`.
+          __quantum__rt__clear_result_maps();
+        });
   }
 
   stim::DetectorErrorModel stimDem =

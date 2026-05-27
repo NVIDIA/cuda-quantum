@@ -9,7 +9,7 @@
 #pragma once
 
 // Forward declaration only. Consumers that need to dereference the returned
-// pointer include `<stim.h>` directly..
+// pointer include `<stim.h>` directly.
 namespace stim {
 struct Circuit;
 } // namespace stim

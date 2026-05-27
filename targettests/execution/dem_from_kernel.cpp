@@ -8,9 +8,10 @@
 
 // RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
 
+#include <cctype>
+#include <cstdio>
 #include <cudaq.h>
 #include <cudaq/algorithms/dem.h>
-#include <cstdio>
 #include <exception>
 #include <string>
 
@@ -145,6 +146,19 @@ struct nonClifford {
   }
 };
 
+// Branches on a measurement result.
+struct conditionalKernel {
+  void operator()() __qpu__ {
+    cudaq::qubit q0, q1;
+    h(q0);
+    auto m0 = mz(q0);
+    if (m0)
+      x(q1);
+    auto m1 = mz(q1);
+    cudaq::detector(m0, m1);
+  }
+};
+
 // ---------------------------------------------------------------------------
 // Test runner
 // ---------------------------------------------------------------------------
@@ -171,7 +185,8 @@ static std::size_t maxIndexAfter(const std::string &haystack, char prefix) {
   long maxIdx = -1;
   for (std::size_t i = 0; i + 1 < haystack.size(); ++i) {
     // A target letter is preceded by whitespace and followed by a digit.
-    if (haystack[i] != prefix || !std::isdigit(haystack[i + 1]))
+    if (haystack[i] != prefix ||
+        !std::isdigit(static_cast<unsigned char>(haystack[i + 1])))
       continue;
     if (i > 0) {
       char prev = haystack[i - 1];
@@ -180,7 +195,8 @@ static std::size_t maxIndexAfter(const std::string &haystack, char prefix) {
     }
     long idx = 0;
     std::size_t j = i + 1;
-    while (j < haystack.size() && std::isdigit(haystack[j])) {
+    while (j < haystack.size() &&
+           std::isdigit(static_cast<unsigned char>(haystack[j]))) {
       idx = idx * 10 + (haystack[j] - '0');
       ++j;
     }
@@ -195,14 +211,13 @@ static const cudaq::noise_model g_emptyNoise{};
 template <typename Kernel, typename... Args>
 static void runCase(const char *label, Kernel &&kernel, Args &&...args) {
   try {
-    std::string demText = cudaq::dem_from_kernel(
-        std::forward<Kernel>(kernel), &g_emptyNoise,
-        std::forward<Args>(args)...);
+    std::string demText =
+        cudaq::dem_from_kernel(std::forward<Kernel>(kernel), &g_emptyNoise,
+                               std::forward<Args>(args)...);
     // Tally distinct DEM instructions.
-    std::printf(
-        "%s errors=%zu detectors=%zu observables=%zu\n", label,
-        countOccurrences(demText, "error("), maxIndexAfter(demText, 'D'),
-        maxIndexAfter(demText, 'L'));
+    std::printf("%s errors=%zu detectors=%zu observables=%zu\n", label,
+                countOccurrences(demText, "error("),
+                maxIndexAfter(demText, 'D'), maxIndexAfter(demText, 'L'));
   } catch (const std::exception &e) {
     std::printf("%s THREW: %s\n", label, e.what());
   }
@@ -222,12 +237,11 @@ static void runTrivial() {
 template <typename Kernel, typename... Args>
 static void runNoNoiseCase(const char *label, Kernel &&kernel, Args &&...args) {
   try {
-    std::string demText = cudaq::dem_from_kernel(
-        std::forward<Kernel>(kernel), std::forward<Args>(args)...);
-    std::printf(
-        "%s errors=%zu detectors=%zu observables=%zu\n", label,
-        countOccurrences(demText, "error("), maxIndexAfter(demText, 'D'),
-        maxIndexAfter(demText, 'L'));
+    std::string demText = cudaq::dem_from_kernel(std::forward<Kernel>(kernel),
+                                                 std::forward<Args>(args)...);
+    std::printf("%s errors=%zu detectors=%zu observables=%zu\n", label,
+                countOccurrences(demText, "error("),
+                maxIndexAfter(demText, 'D'), maxIndexAfter(demText, 'L'));
   } catch (const std::exception &e) {
     std::printf("%s THREW: %s\n", label, e.what());
   }
@@ -270,6 +284,11 @@ int main() {
   // Vectorized stdvec form producing the same shape as MEM_EXP_2R.
   runCase("VECTORIZED", vectorizedDetectors{});
 
+  // Measurement-dependent control flow must be rejected with a clear
+  // diagnostic. The single-trajectory recorded circuit cannot represent
+  // measurement-conditional gates.
+  runNoNoiseCase("CONDITIONAL", conditionalKernel{});
+
   // Non-Clifford gate must surface as a Stim diagnostic.
   runNoNoiseCase("NON_CLIFFORD", nonClifford{});
 
@@ -284,4 +303,5 @@ int main() {
 // CHECK: THREE_MZ errors=2 detectors=1 observables=1
 // CHECK: MEM_EXP_2R errors=4 detectors=3 observables=1
 // CHECK: VECTORIZED errors=4 detectors=3 observables=1
+// CHECK: CONDITIONAL THREW: {{.*}}branches on a measurement{{.*}}
 // CHECK: NON_CLIFFORD THREW: {{.*}}Clifford{{.*}}

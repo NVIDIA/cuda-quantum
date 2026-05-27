@@ -229,5 +229,22 @@ def test_dem_and_run():
     assert all(False == r for r in results)
 
 
+def test_conditional_feedback_rejected():
+
+    @cudaq.kernel
+    def kernel():
+        q0 = cudaq.qubit()
+        q1 = cudaq.qubit()
+        h(q0)
+        m0 = mz(q0)
+        if m0:
+            x(q1)
+        m1 = mz(q1)
+        cudaq.detector(m0, m1)
+
+    with pytest.raises(RuntimeError, match=r"branches on a measurement"):
+        cudaq.dem_from_kernel(kernel)
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

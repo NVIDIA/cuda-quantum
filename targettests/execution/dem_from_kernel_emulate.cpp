@@ -63,7 +63,8 @@ static std::size_t countOccurrences(const std::string &haystack,
 static std::size_t maxIndexAfter(const std::string &haystack, char prefix) {
   long maxIdx = -1;
   for (std::size_t i = 0; i + 1 < haystack.size(); ++i) {
-    if (haystack[i] != prefix || !std::isdigit(haystack[i + 1]))
+    if (haystack[i] != prefix ||
+        !std::isdigit(static_cast<unsigned char>(haystack[i + 1])))
       continue;
     if (i > 0) {
       char prev = haystack[i - 1];
@@ -72,7 +73,8 @@ static std::size_t maxIndexAfter(const std::string &haystack, char prefix) {
     }
     long idx = 0;
     std::size_t j = i + 1;
-    while (j < haystack.size() && std::isdigit(haystack[j])) {
+    while (j < haystack.size() &&
+           std::isdigit(static_cast<unsigned char>(haystack[j]))) {
       idx = idx * 10 + (haystack[j] - '0');
       ++j;
     }

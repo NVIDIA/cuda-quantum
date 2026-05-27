@@ -442,9 +442,9 @@ public:
          bool includeSequentialData = true) = 0;
 
   /// @brief Return the chronological index of the most-recent `mz` performed
-  /// on this simulator. Used by the JIT-path runtime entries
-  /// `__quantum__qis__mz` / `__quantum__qis__mz__to__register` to populate a
-  /// `Result*` whose integer payload identifies the measurement.
+  /// on this simulator. Called from `__quantum__qis__mz_handle__to__register`
+  /// to record the index portion of the `measure_handle` it returns so QEC
+  /// adapters can resolve handles back to measurement positions.
   virtual std::int64_t getMeasureIndex() const {
     return std::numeric_limits<std::int64_t>::max();
   }
