@@ -307,6 +307,7 @@ public:
           rewriter.eraseOp(usr);
     };
 
+    auto wireTy = cudaq::quake::WireType::get(rewriter.getContext());
     if constexpr (cudaq::quake::isMeasure<OP>) {
       auto args = collect(op.getOperands());
       auto nameAttr = op.getRegisterNameAttr();
@@ -321,7 +322,9 @@ public:
       auto targ = findLookupValue(op.getTargets());
       eraseWrapUsers(op);
       cudaq::quake::ResetOp::create(rewriter, loc, TypeRange{}, targ);
-      rewriter.eraseOp(op);
+      Value unwrap =
+          cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, targ);
+      rewriter.replaceOp(op, {unwrap});
     } else if constexpr (std::is_same_v<OP, cudaq::quake::SinkOp>) {
       auto targ = findLookupValue(op.getTarget());
       rewriter.replaceOpWithNewOp<cudaq::quake::DeallocOp>(op, targ);
@@ -333,7 +336,14 @@ public:
       eraseWrapUsers(op);
       OP::create(rewriter, loc, op.getIsAdj(), op.getParameters(), ctrls, targs,
                  op.getNegatedQubitControlsAttr());
-      rewriter.eraseOp(op);
+      SmallVector<Value> unwraps;
+      for (auto t : ctrls)
+        unwraps.push_back(
+            cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, t));
+      for (auto t : targs)
+        unwraps.push_back(
+            cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, t));
+      rewriter.replaceOp(op, unwraps);
     }
     return success();
   }
