@@ -12,23 +12,51 @@
 #include <nanobind/stl/tuple.h>
 #include <nanobind/stl/vector.h>
 
-#include "common/JsonConvert.h"
+#include "py_optimizer.h"
+#include "py_utils.h"
 #include "cudaq/algorithms/gradients/central_difference.h"
 #include "cudaq/algorithms/gradients/forward_difference.h"
 #include "cudaq/algorithms/gradients/parameter_shift.h"
+#include "cudaq/algorithms/optimizer.h"
 #include "cudaq/algorithms/optimizers/ensmallen/ensmallen.h"
 #include "cudaq/algorithms/optimizers/nlopt/nlopt.h"
-#include "py_optimizer.h"
-#include "py_utils.h"
 
 namespace cudaq {
 
-/// @brief optimization_result is a typedef for std::tuple<double,
-/// std::vector<double>> which is automatically converted by nanobind's
-/// stl/tuple type caster.
+/// Wrapper exposed as OptimizationResult so cudaq_runtime.OptimizationResult
+/// exists for re-export and type hints. optimize() returns a plain tuple
+/// (opt_value, opt_params); this type can wrap that for structured access.
+struct OptimizationResultPy {
+  double opt_value = 0.0;
+  std::vector<double> optimal_parameters;
+
+  OptimizationResultPy() = default;
+  OptimizationResultPy(double v, std::vector<double> p)
+      : opt_value(v), optimal_parameters(std::move(p)) {}
+  explicit OptimizationResultPy(const optimization_result &r)
+      : opt_value(std::get<0>(r)), optimal_parameters(std::get<1>(r)) {}
+};
+
 void bindOptimizationResult(nanobind::module_ &mod) {
-  mod.attr("OptimizationResult") =
-      nanobind::handle(reinterpret_cast<PyObject *>(&PyTuple_Type));
+  nanobind::class_<OptimizationResultPy>(
+      mod, "OptimizationResult",
+      "Result of an optimization: (opt_value, optimal_parameters). "
+      "optimize() returns a tuple; this type is for type hints and wrapping.")
+      .def(nanobind::init<double, std::vector<double>>(),
+           nanobind::arg("opt_value"), nanobind::arg("optimal_parameters"))
+      .def(nanobind::init<const optimization_result &>(),
+           "Wrap a tuple (opt_value, optimal_parameters).")
+      .def_ro("opt_value", &OptimizationResultPy::opt_value)
+      .def_ro("optimal_parameters", &OptimizationResultPy::optimal_parameters)
+      .def("__getitem__",
+           [](const OptimizationResultPy &self, size_t i) -> nanobind::object {
+             if (i == 0)
+               return nanobind::cast(self.opt_value);
+             if (i == 1)
+               return nanobind::cast(self.optimal_parameters);
+             throw std::out_of_range("OptimizationResult index out of range");
+           })
+      .def("__len__", [](const OptimizationResultPy &) { return 2; });
 }
 
 void bindGradientStrategies(nanobind::module_ &mod) {
@@ -43,18 +71,6 @@ void bindGradientStrategies(nanobind::module_ &mod) {
   nanobind::class_<gradients::central_difference, gradient>(gradients_submodule,
                                                             "CentralDifference")
       .def(nanobind::init<>())
-      .def(
-          "to_json",
-          [](const gradients::central_difference &p) { return json(p).dump(); },
-          "Convert gradient to JSON string")
-      .def_static(
-          "from_json",
-          [](const std::string &j) {
-            gradients::central_difference p;
-            from_json(json::parse(j), p);
-            return p;
-          },
-          "Convert JSON string to gradient")
       .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
@@ -73,18 +89,6 @@ void bindGradientStrategies(nanobind::module_ &mod) {
                                                             "ForwardDifference")
       .def(nanobind::init<>())
       .def(
-          "to_json",
-          [](const gradients::forward_difference &p) { return json(p).dump(); },
-          "Convert gradient to JSON string")
-      .def_static(
-          "from_json",
-          [](const std::string &j) {
-            gradients::forward_difference p;
-            from_json(json::parse(j), p);
-            return p;
-          },
-          "Convert JSON string to gradient")
-      .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
              nanobind::callable &func, double funcAtX) {
@@ -101,18 +105,6 @@ void bindGradientStrategies(nanobind::module_ &mod) {
   nanobind::class_<gradients::parameter_shift, gradient>(gradients_submodule,
                                                          "ParameterShift")
       .def(nanobind::init<>())
-      .def(
-          "to_json",
-          [](const gradients::parameter_shift &p) { return json(p).dump(); },
-          "Convert gradient to JSON string")
-      .def_static(
-          "from_json",
-          [](const std::string &j) {
-            gradients::parameter_shift p;
-            from_json(json::parse(j), p);
-            return p;
-          },
-          "Convert JSON string to gradient")
       .def(
           "compute",
           [](cudaq::gradient &grad, const std::vector<double> &x,
@@ -138,17 +130,6 @@ nanobind::class_<OptimizerT, optimizer> addPyOptimizer(nanobind::module_ &mod,
                                                        std::string &&name) {
   return nanobind::class_<OptimizerT, optimizer>(mod, name.c_str())
       .def(nanobind::init<>())
-      .def(
-          "to_json", [](const OptimizerT &p) { return json(p).dump(); },
-          "Convert optimizer to JSON string")
-      .def_static(
-          "from_json",
-          [](const std::string &j) {
-            OptimizerT p;
-            from_json(json::parse(j), p);
-            return p;
-          },
-          "Convert JSON string to optimizer")
       .def_rw("max_iterations", &OptimizerT::max_eval, R"doc(
           int: Maximum number of optimizer iterations (default: unlimited).
 
@@ -156,8 +137,24 @@ nanobind::class_<OptimizerT, optimizer> addPyOptimizer(nanobind::module_ &mod,
           the optimizer will perform. If not set, the optimizer may run until 
           convergence or until another stopping criterion is met.
           )doc")
-      .def_rw("initial_parameters", &OptimizerT::initial_parameters,
-              R"doc(
+      .def_prop_rw(
+          "initial_parameters",
+          [](OptimizerT &self) -> nanobind::object {
+            if (self.initial_parameters.has_value())
+              return nanobind::cast(self.initial_parameters.value());
+            return nanobind::none();
+          },
+          [](OptimizerT &self, nanobind::object vals) {
+            if (vals.is_none()) {
+              self.initial_parameters = std::nullopt;
+              return;
+            }
+            std::vector<double> v;
+            for (auto val : vals)
+              v.push_back(nanobind::cast<double>(val));
+            self.initial_parameters = std::move(v);
+          },
+          R"doc(
           list[float]: Initial values for the optimization parameters (optional).
 
           Provides a starting point for the optimization. If not specified, the 
@@ -170,7 +167,24 @@ nanobind::class_<OptimizerT, optimizer> addPyOptimizer(nanobind::module_ &mod,
 
                   optimizer.initial_parameters = [0.5, -0.3, 1.2]
           )doc")
-      .def_rw("lower_bounds", &OptimizerT::lower_bounds, R"doc(
+      .def_prop_rw(
+          "lower_bounds",
+          [](OptimizerT &self) -> nanobind::object {
+            if (self.lower_bounds.has_value())
+              return nanobind::cast(self.lower_bounds.value());
+            return nanobind::none();
+          },
+          [](OptimizerT &self, nanobind::object vals) {
+            if (vals.is_none()) {
+              self.lower_bounds = std::nullopt;
+              return;
+            }
+            std::vector<double> v;
+            for (auto val : vals)
+              v.push_back(nanobind::cast<double>(val));
+            self.lower_bounds = std::move(v);
+          },
+          R"doc(
           list[float]: Lower bounds for optimization parameters (optional).
 
           Constrains the search space by specifying minimum allowed values for 
@@ -182,7 +196,24 @@ nanobind::class_<OptimizerT, optimizer> addPyOptimizer(nanobind::module_ &mod,
 
                   optimizer.lower_bounds = [-2.0, -2.0]  # For 2D problem
           )doc")
-      .def_rw("upper_bounds", &OptimizerT::upper_bounds, R"doc(
+      .def_prop_rw(
+          "upper_bounds",
+          [](OptimizerT &self) -> nanobind::object {
+            if (self.upper_bounds.has_value())
+              return nanobind::cast(self.upper_bounds.value());
+            return nanobind::none();
+          },
+          [](OptimizerT &self, nanobind::object vals) {
+            if (vals.is_none()) {
+              self.upper_bounds = std::nullopt;
+              return;
+            }
+            std::vector<double> v;
+            for (auto val : vals)
+              v.push_back(nanobind::cast<double>(val));
+            self.upper_bounds = std::move(v);
+          },
+          R"doc(
           list[float]: Upper bounds for optimization parameters (optional).
 
           Constrains the search space by specifying maximum allowed values for 

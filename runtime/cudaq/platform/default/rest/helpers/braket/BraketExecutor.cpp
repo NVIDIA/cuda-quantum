@@ -9,6 +9,7 @@
 #include "common/BraketExecutor.h"
 #include "common/BraketServerHelper.h"
 #include "common/FmtCore.h"
+#include "nlohmann/json.hpp"
 
 #include <aws/braket/model/Association.h>
 #include <aws/braket/model/AssociationType.h>
@@ -132,7 +133,7 @@ void BraketExecutor::setOutputNames(const KernelExecution &codeToExecute,
   assert(braketServerHelper);
   auto config = braketServerHelper->getConfig();
 
-  auto output_names = codeToExecute.output_names.dump();
+  auto output_names = codeToExecute.output_names->dump();
   config["output_names." + taskId] = output_names;
 
   braketServerHelper->setOutputNames(taskId, output_names);

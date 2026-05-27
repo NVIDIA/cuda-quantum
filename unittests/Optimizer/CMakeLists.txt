@@ -31,14 +31,14 @@ target_link_libraries(OptimizerUnitTests
 
 target_include_directories(OptimizerUnitTests
   PRIVATE ${CMAKE_SOURCE_DIR}/runtime
-  PRIVATE ${CMAKE_SOURCE_DIR}/lib/Optimizer/Transforms
+  PRIVATE ${CMAKE_SOURCE_DIR}/cudaq/lib/Optimizer/Transforms
 )
 
 # MLIR/LLVM is built without RTTI, so we must disable it here too
 # to avoid linker errors (undefined typeinfo for base classes)
 target_compile_options(OptimizerUnitTests PRIVATE -fno-rtti)
 
-gtest_discover_tests(OptimizerUnitTests)
+gtest_discover_tests(OptimizerUnitTests DISCOVERY_TIMEOUT 120)
 
 add_executable(test_quake_synth QuakeSynthTester.cpp)
 target_link_libraries(test_quake_synth

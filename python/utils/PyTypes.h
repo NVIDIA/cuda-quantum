@@ -19,18 +19,11 @@ namespace py_ext {
 /// Includes `complex`, `numpy.complex64`, `numpy.complex128`.
 class Complex : public nanobind::object {
 public:
-  NB_OBJECT_DEFAULT(Complex, object, "complex", isComplex_)
-
-  // NOLINTNEXTLINE(google-explicit-constructor)
-  Complex(const nanobind::object &o)
-      : object(nanobind::steal(convert_(o.ptr()))) {
-    if (!m_ptr)
-      throw nanobind::python_error();
-  }
+  NB_OBJECT_DEFAULT(Complex, nanobind::object, "complex", isComplex_)
 
   Complex(double real, double imag)
-      : object(nanobind::steal(PyComplex_FromDoubles(real, imag))) {
-    if (!m_ptr) {
+      : nanobind::object(nanobind::steal(PyComplex_FromDoubles(real, imag))) {
+    if (!ptr()) {
       throw std::runtime_error("Could not allocate complex object!");
     }
   }
@@ -46,12 +39,12 @@ public:
 
   // NOLINTNEXTLINE(google-explicit-constructor)
   operator std::complex<double>() {
-    auto value = PyComplex_AsCComplex(m_ptr);
+    auto value = PyComplex_AsCComplex(ptr());
     return std::complex<double>(value.real, value.imag);
   }
   // NOLINTNEXTLINE(google-explicit-constructor)
   operator std::complex<float>() {
-    auto value = PyComplex_AsCComplex(m_ptr);
+    auto value = PyComplex_AsCComplex(ptr());
     return std::complex<float>(value.real, value.imag);
   }
 
@@ -66,18 +59,6 @@ public:
     }
     return false;
   }
-
-  static PyObject *convert_(PyObject *o) {
-    PyObject *ret = nullptr;
-    if (isComplex_(o)) {
-      double real = PyComplex_RealAsDouble(o);
-      double imag = PyComplex_ImagAsDouble(o);
-      ret = PyComplex_FromDoubles(real, imag);
-    } else {
-      PyErr_SetString(PyExc_TypeError, "Unexpected type");
-    }
-    return ret;
-  }
 };
 
 /// Extended python float object.
@@ -85,35 +66,27 @@ public:
 /// Includes `float`, `numpy.float64`, `numpy.float32`.
 class Float : public nanobind::object {
 public:
-  NB_OBJECT_DEFAULT(Float, object, "float", isFloat_)
-
-  // Converting constructor
-  // NOLINTNEXTLINE(google-explicit-constructor)
-  Float(const nanobind::object &o)
-      : object(nanobind::steal(convert_(o.ptr()))) {
-    if (!m_ptr)
-      throw nanobind::python_error();
-  }
+  NB_OBJECT_DEFAULT(Float, nanobind::object, "float", isFloat_)
 
   // Allow implicit conversion from float/double:
   // NOLINTNEXTLINE(google-explicit-constructor)
   Float(float value)
-      : object(nanobind::steal(PyFloat_FromDouble((double)value))) {
-    if (!m_ptr) {
+      : nanobind::object(nanobind::steal(PyFloat_FromDouble((double)value))) {
+    if (!ptr()) {
       throw std::runtime_error("Could not allocate float object!");
     }
   }
   // NOLINTNEXTLINE(google-explicit-constructor)
   Float(double value = .0)
-      : object(nanobind::steal(PyFloat_FromDouble((double)value))) {
-    if (!m_ptr) {
+      : nanobind::object(nanobind::steal(PyFloat_FromDouble((double)value))) {
+    if (!ptr()) {
       throw std::runtime_error("Could not allocate float object!");
     }
   }
   // NOLINTNEXTLINE(google-explicit-constructor)
-  operator float() const { return (float)PyFloat_AsDouble(m_ptr); }
+  operator float() const { return (float)PyFloat_AsDouble(ptr()); }
   // NOLINTNEXTLINE(google-explicit-constructor)
-  operator double() const { return (double)PyFloat_AsDouble(m_ptr); }
+  operator double() const { return (double)PyFloat_AsDouble(ptr()); }
 
   static bool isFloat_(PyObject *o) {
     if (PyFloat_Check(o)) {
@@ -126,16 +99,6 @@ public:
     }
     return false;
   }
-
-  static PyObject *convert_(PyObject *o) {
-    PyObject *ret = nullptr;
-    if (isFloat_(o)) {
-      ret = PyFloat_FromDouble(PyFloat_AsDouble(o));
-    } else {
-      PyErr_SetString(PyExc_TypeError, "Unexpected type");
-    }
-    return ret;
-  }
 };
 
 /// Extended python int object.
@@ -143,31 +106,25 @@ public:
 /// Includes `int`, `numpy.intXXX`.
 class Int : public nanobind::object {
 public:
-  NB_OBJECT_DEFAULT(Int, object, "int", isInt_)
-
-  // Converting constructor
-  // NOLINTNEXTLINE(google-explicit-constructor)
-  Int(const nanobind::object &o) : object(nanobind::steal(convert_(o.ptr()))) {
-    if (!m_ptr)
-      throw nanobind::python_error();
-  }
+  NB_OBJECT_DEFAULT(Int, nanobind::object, "int", isInt_)
 
   // Allow implicit conversion from int:
   // NOLINTNEXTLINE(google-explicit-constructor)
-  Int(long value) : object(nanobind::steal(PyLong_FromLong((long)value))) {
-    if (!m_ptr) {
+  Int(long value)
+      : nanobind::object(nanobind::steal(PyLong_FromLong((long)value))) {
+    if (!ptr()) {
       throw std::runtime_error("Could not allocate int object!");
     }
   }
 
   // NOLINTNEXTLINE(google-explicit-constructor)
-  operator std::int8_t() const { return (std::int8_t)PyLong_AsLong(m_ptr); }
+  operator std::int8_t() const { return (std::int8_t)PyLong_AsLong(ptr()); }
   // NOLINTNEXTLINE(google-explicit-constructor)
-  operator std::int16_t() const { return (std::int16_t)PyLong_AsLong(m_ptr); }
+  operator std::int16_t() const { return (std::int16_t)PyLong_AsLong(ptr()); }
   // NOLINTNEXTLINE(google-explicit-constructor)
-  operator std::int32_t() const { return (std::int32_t)PyLong_AsLong(m_ptr); }
+  operator std::int32_t() const { return (std::int32_t)PyLong_AsLong(ptr()); }
   // NOLINTNEXTLINE(google-explicit-constructor)
-  operator std::int64_t() const { return (std::int64_t)PyLong_AsLong(m_ptr); }
+  operator std::int64_t() const { return (std::int64_t)PyLong_AsLong(ptr()); }
 
   static bool isInt_(PyObject *o) {
     if (PyLong_Check(o)) {
@@ -180,16 +137,6 @@ public:
       return true;
     }
     return false;
-  }
-
-  static PyObject *convert_(PyObject *o) {
-    PyObject *ret = nullptr;
-    if (isInt_(o)) {
-      ret = PyLong_FromLong(PyLong_AsLong(o));
-    } else {
-      PyErr_SetString(PyExc_TypeError, "Unexpected type");
-    }
-    return ret;
   }
 };
 

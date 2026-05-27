@@ -157,6 +157,22 @@ def test_iqm_u3_ctrl_decomposition():
     result = cudaq.sample(kernel)
 
 
+def test_iqm_ccx_qvec_slice_control():
+
+    @cudaq.kernel
+    def check_mcx():
+        qubits = cudaq.qvector(4)
+        x.ctrl(qubits[1:3], qubits[0])
+
+    @cudaq.kernel
+    def check_mcx1():
+        qubits = cudaq.qvector(4)
+        x.ctrl(qubits[1:4], qubits[0])
+
+    cudaq.sample(check_mcx)
+    cudaq.sample(check_mcx1)
+
+
 def test_IQM_state_preparation():
     shots = 10000
 

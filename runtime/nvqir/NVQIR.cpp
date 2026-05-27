@@ -12,12 +12,9 @@
 #include "common/ExecutionContext.h"
 #include "common/PluginUtils.h"
 #include "common/Trace.h"
-#include "cudaq/platform.h"
 #include "cudaq/qis/qudit.h"
 #include "cudaq/qis/state.h"
 #include "cudaq/runtime/logger/logger.h"
-// TODO: do we want to avoid including this here?
-#include "resourcecounter/ResourceCounter.h"
 #include <cmath>
 #include <complex>
 #include <sstream>
@@ -40,7 +37,6 @@
 
 // Is the library initialized?
 thread_local bool initialized = false;
-thread_local bool using_resource_counter = false;
 thread_local nvqir::CircuitSimulator *simulator;
 inline static constexpr std::string_view GetCircuitSimulatorSymbol =
     "getCircuitSimulator";
@@ -91,12 +87,16 @@ void __nvqir__setSimulatorInitCallback(void (*callback)()) {
 
 namespace nvqir {
 
+// Defined in AnalysisScope.cpp; non-null when a `nvqir::AnalysisScope` is
+// active on the current thread.
+extern thread_local CircuitSimulator *activeAnalysisSimulator;
+
 /// @brief Return the single simulation backend pointer, create if not created
 /// already.
 /// @return
 CircuitSimulator *getCircuitSimulatorInternal() {
-  if (using_resource_counter)
-    return getResourceCounterSimulator();
+  if (activeAnalysisSimulator)
+    return activeAnalysisSimulator;
 
   if (simulator)
     return simulator;
@@ -125,15 +125,6 @@ CircuitSimulator *getCircuitSimulatorInternal() {
   CUDAQ_INFO("Creating the {} backend.", simulator->name());
   return simulator;
 }
-
-void switchToResourceCounterSimulator() { using_resource_counter = true; }
-
-void stopUsingResourceCounterSimulator() {
-  using_resource_counter = false;
-  getResourceCounterSimulator()->setToZeroState();
-}
-
-bool isUsingResourceCounterSimulator() { return using_resource_counter; }
 
 void setRandomSeed(std::size_t seed) {
   getCircuitSimulatorInternal()->setRandomSeed(seed);
@@ -792,6 +783,65 @@ static std::vector<std::size_t> safeArrayToVectorSizeT(Array *arr) {
   return arrayToVectorSizeT(arr);
 }
 
+// Each `Result*` in the incoming buffer is the bit pattern of an `i64`
+// chronological measurement index (the runtime representation of
+// `!cc.measure_handle` post-conversion); it is NOT a heap `Result` object and
+// must not be dereferenced.
+static inline std::int64_t resultPtrToMeasureIndex(Result *r) {
+  return static_cast<std::int64_t>(reinterpret_cast<std::intptr_t>(r));
+}
+
+// Validate the `(results, count)` pair from the QIR side and return the
+// indices as `std::vector<int64_t>`.
+static std::vector<std::int64_t> resultArrayToIndices(Result **results,
+                                                      std::int64_t count) {
+  if (count < 0)
+    throw std::invalid_argument("QEC: count must be non-negative, got " +
+                                std::to_string(count));
+  if (count > 0 && !results)
+    throw std::invalid_argument("QEC: results pointer is null with count=" +
+                                std::to_string(count));
+  std::vector<std::int64_t> indices;
+  indices.reserve(static_cast<std::size_t>(count));
+  for (std::int64_t i = 0; i < count; i++)
+    indices.push_back(resultPtrToMeasureIndex(results[i]));
+  return indices;
+}
+
+void __quantum__qis__detector(Result **results, std::int64_t count) {
+  auto indices = resultArrayToIndices(results, count);
+  nvqir::getCircuitSimulatorInternal()->detector(indices.data(),
+                                                 indices.size());
+}
+
+void __quantum__qis__logical_observable(Result **results, std::int64_t count,
+                                        std::int64_t observable_index) {
+  if (observable_index < 0)
+    throw std::invalid_argument(
+        std::string("QEC: `observable_index` must be non-negative, got ") +
+        std::to_string(observable_index));
+  auto indices = resultArrayToIndices(results, count);
+  nvqir::getCircuitSimulatorInternal()->logical_observable(
+      indices.data(), indices.size(),
+      static_cast<std::size_t>(observable_index));
+}
+
+void __quantum__qis__pair_detectors(Result **prev_results,
+                                    std::int64_t prev_count,
+                                    Result **curr_results,
+                                    std::int64_t curr_count) {
+  if (prev_count != curr_count)
+    throw std::invalid_argument(
+        std::string("QEC: `pair_detectors` requires equal-length `prev` and "
+                    "`curr` measurement arrays, got `prev_count`=") +
+        std::to_string(prev_count) +
+        " `curr_count`=" + std::to_string(curr_count));
+  auto prev = resultArrayToIndices(prev_results, prev_count);
+  auto curr = resultArrayToIndices(curr_results, curr_count);
+  nvqir::getCircuitSimulatorInternal()->pair_detectors(prev.data(), curr.data(),
+                                                       prev.size());
+}
+
 // It may not always be possible for the compiler to reduce a program fully to
 // QIR. In such cases, code generation may elect to produce a trap in the
 // kernel, which calls this function. The trap should explain the issue to the
@@ -817,7 +867,7 @@ void __quantum__qis__apply_kraus_channel_double(std::int64_t krausChannelKey,
   if (!ctx)
     return;
 
-  auto *noise = ctx->noiseModel;
+  auto *noise = nvqir::getCircuitSimulatorInternal()->getNoiseModel();
   if (cudaq::isInTracerMode()) {
     std::vector<double> paramVec(params, params + numParams);
     std::vector<cudaq::QuditInfo> targets;
@@ -855,7 +905,7 @@ __quantum__qis__apply_kraus_channel_float(std::int64_t krausChannelKey,
   if (!ctx)
     return;
 
-  auto *noise = ctx->noiseModel;
+  auto *noise = nvqir::getCircuitSimulatorInternal()->getNoiseModel();
   if (cudaq::isInTracerMode()) {
     std::vector<double> paramVec;
     paramVec.reserve(numParams);
@@ -1046,86 +1096,6 @@ static std::vector<Pauli> extractPauliTermIds(Array *paulis) {
     pauliIds.emplace_back(tmp);
   }
   return pauliIds;
-}
-
-/// @brief QIR function measuring the qubit state in the given Pauli basis.
-/// @param pauli_arr
-/// @param qubits
-/// @return
-Result *__quantum__qis__measure__body(Array *pauli_arr, Array *qubits) {
-  CUDAQ_INFO("NVQIR measuring in pauli basis");
-  ScopedTraceWithContext("NVQIR::observe_measure_body");
-
-  auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
-  auto *currentContext = cudaq::getExecutionContext();
-
-  // Some backends may better handle the observe task.
-  // Let's give them that opportunity.
-  if (currentContext->canHandleObserve) {
-    circuitSimulator->flushGateQueue();
-    auto result = circuitSimulator->observe(currentContext->spin.value());
-    currentContext->expectationValue = result.expectation();
-    currentContext->result = result.raw_data();
-    return ResultZero;
-  }
-
-  const auto paulis = extractPauliTermIds(pauli_arr);
-  std::vector<std::size_t> qubits_to_measure;
-  std::vector<std::pair<std::string, std::size_t>> reverser;
-  for (size_t i = 0; i < paulis.size(); ++i) {
-    const auto pauli = paulis[i];
-    switch (pauli) {
-    case Pauli::Pauli_I:
-      break;
-    case Pauli::Pauli_X: {
-
-      circuitSimulator->h(i);
-      qubits_to_measure.push_back(i);
-      reverser.push_back({"X", i});
-      break;
-    }
-    case Pauli::Pauli_Y: {
-      double angle = M_PI_2;
-      circuitSimulator->rx(angle, i);
-      qubits_to_measure.push_back(i);
-      reverser.push_back({"Y", i});
-
-      break;
-    }
-    case Pauli::Pauli_Z: {
-      qubits_to_measure.push_back(i);
-      break;
-    }
-    }
-  }
-
-  circuitSimulator->flushGateQueue();
-  int shots = 0;
-  if (currentContext->shots > 0) {
-    shots = currentContext->shots;
-  }
-
-  // Sample and give the data to the context
-  cudaq::ExecutionResult result =
-      circuitSimulator->sample(qubits_to_measure, shots);
-  currentContext->expectationValue = result.expectationValue;
-  currentContext->result = cudaq::sample_result(result);
-
-  // Reverse the measurements bases change.
-  if (!reverser.empty()) {
-    CUDAQ_INFO("NVQIR reverse pauli bases change for measurement.");
-    for (auto it = reverser.rbegin(); it != reverser.rend(); ++it) {
-      if (it->first == "X") {
-        circuitSimulator->h(it->second);
-      } else if (it->first == "Y") {
-        double angle = -M_PI_2;
-        circuitSimulator->rx(angle, it->second);
-      }
-    }
-    circuitSimulator->flushGateQueue();
-  }
-
-  return ResultZero;
 }
 
 /// @brief Implementation of first order trotterization

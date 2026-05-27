@@ -52,7 +52,7 @@ private:
 public:
   // Default constructor (empty schedule)
   schedule() = default;
-  schedule(pointer ptr) : ptr(ptr){};
+  schedule(pointer ptr) : ptr(ptr) {};
 
   /// @brief Constructor.
   /// @param steps: The sequence of steps in the schedule. Restricted to a

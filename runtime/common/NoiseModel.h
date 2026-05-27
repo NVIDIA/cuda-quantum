@@ -589,7 +589,9 @@ public:
                    const kraus_channel &channel) {
     std::vector<std::string> names;
     std::apply(
-        [&](const auto &...elements) { (names.push_back(elements.name), ...); },
+        [&](const auto &...elements) {
+          (names.emplace_back(elements.name), ...);
+        },
         std::tuple<QuantumOp...>());
     for (auto &name : names)
       add_channel(name, qubits, channel);
@@ -601,7 +603,9 @@ public:
   void add_channel(const PredicateFuncTy &pred) {
     std::vector<std::string> names;
     std::apply(
-        [&](const auto &...elements) { (names.push_back(elements.name), ...); },
+        [&](const auto &...elements) {
+          (names.emplace_back(elements.name), ...);
+        },
         std::tuple<QuantumOp...>());
     for (auto &name : names)
       add_channel(name, pred);
@@ -614,7 +618,9 @@ public:
                              int numControls = 0) {
     std::vector<std::string> names;
     std::apply(
-        [&](const auto &...elements) { (names.push_back(elements.name), ...); },
+        [&](const auto &...elements) {
+          (names.emplace_back(elements.name), ...);
+        },
         std::tuple<QuantumOp...>());
     for (auto &name : names)
       add_all_qubit_channel(name, channel, numControls);
@@ -636,7 +642,8 @@ public:
                const std::vector<std::size_t> &controlQubits = {},
                const std::vector<double> &params = {}) const {
     QuantumOp op;
-    return get_channels(op.name, targetQubits, controlQubits, params);
+    return get_channels(std::string(op.name), targetQubits, controlQubits,
+                        params);
   }
 };
 

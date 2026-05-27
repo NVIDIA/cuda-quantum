@@ -19,7 +19,7 @@ add_library(quantum_lib
 
 target_include_directories(quantum_lib
   PRIVATE
-    ${PYTHON_INCLUDE_DIRS}
+    ${Python3_INCLUDE_DIRS}
 )
 
 # Dependencies: quantum_lib uses nvq++ as its compiler, so we need the full

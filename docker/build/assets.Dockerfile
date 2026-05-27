@@ -56,8 +56,8 @@ ADD scripts/build_llvm.sh /cuda-quantum/scripts/build_llvm.sh
 ADD cmake/caches/LLVM.cmake /cuda-quantum/cmake/caches/LLVM.cmake
 ADD tpls/customizations/llvm /cuda-quantum/tpls/customizations/llvm
 ADD .gitmodules /cuda-quantum/.gitmodules
-ADD .git/modules/tpls/pybind11/HEAD /.git_modules/tpls/pybind11/HEAD
 ADD .git/modules/tpls/llvm/HEAD /.git_modules/tpls/llvm/HEAD
+ADD .git/modules/tpls/nanobind/HEAD /.git_modules/tpls/nanobind/HEAD
 
 # This is a hack so that we do not need to rebuild the prerequisites 
 # whenever we pick up a new CUDA-Q commit (which is always in CI).
@@ -72,7 +72,7 @@ RUN cd /cuda-quantum && git init && \
         fi; \
     done && git submodule init && git submodule
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' \
+    LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' BOOTSTRAP_LLVM=true \
     bash scripts/install_prerequisites.sh -t llvm -e qrmi
 
 # Validate that the built toolchain and libraries have no GCC dependencies.
@@ -104,8 +104,7 @@ ADD "docs/sphinx/examples" /cuda-quantum/docs/sphinx/examples
 ADD "docs/sphinx/applications" /cuda-quantum/docs/sphinx/applications
 ADD "docs/sphinx/targets" /cuda-quantum/docs/sphinx/targets
 ADD "docs/sphinx/snippets" /cuda-quantum/docs/sphinx/snippets
-ADD "include" /cuda-quantum/include
-ADD "lib" /cuda-quantum/lib
+ADD "cudaq" /cuda-quantum/cudaq
 ADD "runtime" /cuda-quantum/runtime
 ADD "scripts/build_cudaq.sh" /cuda-quantum/scripts/build_cudaq.sh
 ADD "scripts/migrate_assets.sh" /cuda-quantum/scripts/migrate_assets.sh
@@ -113,8 +112,6 @@ ADD "scripts/cudaq_set_env.sh" /cuda-quantum/scripts/cudaq_set_env.sh
 ADD "scripts/build_installer.sh" /cuda-quantum/scripts/build_installer.sh
 ADD "scripts/set_env_defaults.sh" /cuda-quantum/scripts/set_env_defaults.sh
 ADD "targettests" /cuda-quantum/targettests
-ADD "test" /cuda-quantum/test
-ADD "tools" /cuda-quantum/tools
 ADD "tpls/customizations" /cuda-quantum/tpls/customizations
 ADD "tpls/json" /cuda-quantum/tpls/json
 ADD "unittests" /cuda-quantum/unittests
@@ -152,7 +149,8 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     # Make sure that the variables and arguments configured here match
     # the ones in the install_prerequisites.sh invocation in the prereqs stage!
     ## [>CUDAQuantumCppBuild]
-    CUDAQ_ENABLE_STATIC_LINKING=TRUE \
+    CUDAQ_STATIC_CXX_RUNTIME=TRUE \
+    CUDAQ_STATIC_DEPS=TRUE \
     CUDAQ_REQUIRE_OPENMP=TRUE \
     CUDAQ_WERROR=TRUE \
     CUDAQ_PYTHON_SUPPORT=OFF \
@@ -196,10 +194,8 @@ FROM prereqs AS python_build
 ADD pyproject.toml.cu* /cuda-quantum/
 ADD "python" /cuda-quantum/python
 ADD "cmake" /cuda-quantum/cmake
-ADD "include" /cuda-quantum/include
-ADD "lib" /cuda-quantum/lib
+ADD "cudaq" /cuda-quantum/cudaq
 ADD "runtime" /cuda-quantum/runtime
-ADD "tools" /cuda-quantum/tools
 ADD "tpls/customizations" /cuda-quantum/tpls/customizations
 ADD "tpls/json" /cuda-quantum/tpls/json
 ADD "utils" /cuda-quantum/utils
@@ -250,7 +246,7 @@ RUN cd /cuda-quantum && \
     bash scripts/install_prerequisites.sh -t llvm -e qrmi && \
     CC="$LLVM_INSTALL_PREFIX/bin/clang" \
     CXX="$LLVM_INSTALL_PREFIX/bin/clang++" \
-    FC="$LLVM_INSTALL_PREFIX/bin/flang-new" \
+    FC="$LLVM_INSTALL_PREFIX/bin/flang" \
     python3 -m build --wheel && \
     echo "=== ccache stats (python_build) ===" && (ccache -s 2>/dev/null || true)
     ## [<CUDAQuantumPythonBuild]
@@ -351,8 +347,8 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
         filtered=" --filter-out MixedLanguage/cuda-1"; \
 	filtered+="|AST-Quake/calling_convention|test_argument_conversion"; \
     fi && \
-    "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/test \
-        --param nvqpp_site_config=build/test/lit.site.cfg.py ${filtered} && \
+    "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/cudaq/test \
+        --param nvqpp_site_config=build/cudaq/test/lit.site.cfg.py ${filtered} && \
     # FIXME: Some tests are still failing when building against libc++
     # tracked in https://github.com/NVIDIA/cuda-quantum/issues/1712
     filtered=" --filter-out Kernel/inline-qpu-func|execution/vector_bool_parameters" && \

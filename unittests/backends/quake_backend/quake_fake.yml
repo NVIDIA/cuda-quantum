@@ -19,7 +19,7 @@ config:
   link-libs: ["-lcudaq-rest-qpu"]
   # Define the JIT lowering pipeline
   jit-high-level-pipeline: "expand-measurements"
-  jit-low-level-pipeline: "return-to-output-log,func.func(eliminate-dead-heap-copy),symbol-dce"
+  jit-low-level-pipeline: "return-to-output-log,symbol-dce"
   # Tell the rest-qpu that we are simply dumping CUDA-Q MLIR code.
   codegen-emission: nop
   # Library mode is only for simulators, physical backends must turn this off

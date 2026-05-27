@@ -8,11 +8,11 @@
 
 #pragma once
 
-#include "cudaq/Optimizer/Builder/Factory.h"
-#include "cudaq/algorithms/run.h"
-#include "utils/NanobindAdaptors.h"
 #include "utils/OpaqueArguments.h"
 #include "utils/PyTypes.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
+#include "cudaq/algorithms/run.h"
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/complex.h>
 #include <nanobind/stl/function.h>

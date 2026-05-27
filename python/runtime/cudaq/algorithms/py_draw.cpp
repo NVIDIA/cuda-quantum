@@ -7,9 +7,9 @@
  ******************************************************************************/
 
 #include "py_draw.h"
+#include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "cudaq/algorithms/draw.h"
 #include "cudaq/platform/nvqpp_interface.h"
-#include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 
 /// @brief Run `cudaq::contrib::draw`'s string overload on the provided kernel.
 /// \p kernel is a kernel decorator object and \p args are the arguments to

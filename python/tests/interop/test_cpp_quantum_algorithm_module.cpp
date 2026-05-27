@@ -6,10 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq.h"
-#include "cudaq/algorithms/sample.h"
 #include "quantum_lib/quantum_lib.h"
 #include "runtime/interop/PythonCppInterop.h"
+#include "cudaq/qis/qkernel.h"
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/vector.h>
 

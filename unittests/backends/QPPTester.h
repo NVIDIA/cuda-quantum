@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "common/ExecutionContext.h"
+#include "cudaq/algorithms/sample/policy.h"
 #include <string>
 #include <vector>
 
@@ -20,10 +21,9 @@ public:
     // a quick set-reset to trigger sampling
     this->configureExecutionContext(ctx);
     cudaq::detail::setExecutionContext(&ctx);
-    this->finalizeExecutionContext(ctx);
+    auto sampleResults = this->finalizeExecutionContext(cudaq::sample_policy{});
     cudaq::detail::resetExecutionContext();
 
-    auto sampleResults = ctx.result;
     return sampleResults.begin()->first;
   }
 

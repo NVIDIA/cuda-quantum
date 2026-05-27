@@ -35,4 +35,4 @@ int main() {
 
 // CHECK: 110
 
-// FAIL: failed to legalize operation 'quake.custom_op'
+// FAIL: failed to legalize operation 'quake.custom_unitary_constant'
