@@ -44,32 +44,17 @@ pattern = r"set_target\(\s*(\\?['\"])([^'\"]+)\1(?:\s*,\s*option\s*=\s*(\\?['\"]
 # These cannot run on CPU-only systems even with fallback logic
 GPU_REQUIRED_NOTEBOOKS = [
     'afqmc.ipynb',  # AFQMC algorithm, times out on CPU
-    'digitized_counterdiabatic_qaoa.ipynb',  # QAOA optimization, times out on CPU
-    'qm_mm_pe.ipynb',  # VQE+SCF with many iterations, times out on CPU
-    'vqe_advanced.ipynb',  # VQE optimization with `mqpu`, requires multi-GPU
-    'edge_detection.ipynb',  # Requires CuPy
     'entanglement_acc_hamiltonian_simulation.ipynb',  # Requires CuPy
     'skqd.ipynb',  # Requires CuPy
-    'divisive_clustering_coresets.ipynb',  # Multi-GPU MPI demo
-    'quantum_pagerank.ipynb',  # Requires dynamics target
 ]
 
 # Notebooks for which we set a longer timeout.
 LONG_RUNNING_NOTEBOOKS = [
-    "divisive_clustering_coresets.ipynb",
-    "hybrid_quantum_neural_networks.ipynb",
-    "qm_mm_pe.ipynb",
     "qsci.ipynb",
     "uccsd_wf_ansatz.ipynb",
-    "vqe_advanced.ipynb",
 ]
 
-# TODO: investigate and fix notebook in CI
-EXTERNAL_NETWORK_NOTEBOOKS = [
-    # Downloads `Floki00/qc_unitary_3qubit` from Hugging Face via
-    # DiffusionPipeline.from_pretrained — has timed out at >35 min in CI.
-    "unitary_compilation_diffusion_models.ipynb",
-]
+EXTERNAL_NETWORK_NOTEBOOKS = []
 
 
 def validate(notebook_filename, available_backends):
