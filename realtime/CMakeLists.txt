@@ -129,11 +129,6 @@ if (CUDA_FOUND)
     ${CMAKE_CURRENT_BINARY_DIR}/cmake/cudaq-realtime-config.cmake
     INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime)
 
-  write_basic_package_version_file(
-    ${CMAKE_CURRENT_BINARY_DIR}/cmake/cudaq-realtime-config-version.cmake
-    VERSION 0.1.0
-    COMPATIBILITY SameMajorVersion)
-
   install(EXPORT cudaq-realtime-targets
     FILE cudaq-realtime-targets.cmake
     NAMESPACE cudaq::
@@ -141,7 +136,6 @@ if (CUDA_FOUND)
 
   install(FILES
     ${CMAKE_CURRENT_BINARY_DIR}/cmake/cudaq-realtime-config.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/cmake/cudaq-realtime-config-version.cmake
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cudaq-realtime)
 endif()
 
