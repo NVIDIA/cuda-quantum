@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "cudaq/Support/TargetConfig.h"
+#include "cudaq/Target/StaticConfig.h"
 #include "cudaq/host_config.h"
 #include <map>
 #include <string>
@@ -32,7 +32,7 @@ struct RuntimeTarget {
   // Simulation precision
   simulation_precision precision;
   // Backend configuration (as specified in the target config YAML file)
-  config::TargetConfig config;
+  config::StaticConfig config;
   // The backend configuration map, used to store additional
   // key-value pairs for the backend configuration specified in the command-line
   // (C++) or the set_target call (Python).

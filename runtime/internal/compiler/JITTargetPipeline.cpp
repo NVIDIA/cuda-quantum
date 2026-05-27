@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq_internal/compiler/JITTargetPipeline.h"
-#include "cudaq/Support/TargetConfig.h"
+#include "cudaq/Target/StaticConfig.h"
 #include <cctype>
 #include <regex>
 
@@ -61,7 +61,7 @@ void cudaq_internal::compiler::setQubitMappingBypass(std::string &pipeline) {
 
 cudaq_internal::compiler::JITTargetPipelineConfig
 cudaq_internal::compiler::JITTargetPipelineConfig::createFromTargetConfig(
-    const cudaq::config::TargetConfig &config,
+    const cudaq::config::StaticConfig &config,
     const std::map<std::string, std::string> &runtimeConfig, bool emulate) {
   JITTargetPipelineConfig pipelineConfig;
   if (!config.BackendConfig.has_value())

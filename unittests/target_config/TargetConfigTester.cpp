@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Support/TargetConfigYaml.h"
+#include "cudaq/Target/StaticConfigYaml.h"
 #include <gtest/gtest.h>
 
 TEST(TargetConfigTester, checkMachineList) {
@@ -39,7 +39,7 @@ target-arguments:
           codegen-emission: qir-adaptive:1.0:int_computations,float_computations
 )";
 
-  cudaq::config::TargetConfig config;
+  cudaq::config::StaticConfig config;
   llvm::yaml::Input Input(configYmlContents.c_str());
   Input >> config;
   // No machine, use default
@@ -84,7 +84,7 @@ target-arguments:
           codegen-emission: qir-adaptive:1.0:int_computations,float_computations
 )";
 
-  cudaq::config::TargetConfig config;
+  cudaq::config::StaticConfig config;
   llvm::yaml::Input Input(configYmlContents.c_str());
   Input >> config;
   // No machine, use default

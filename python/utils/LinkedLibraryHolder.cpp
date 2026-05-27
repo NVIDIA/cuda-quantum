@@ -10,7 +10,7 @@
 #include "common/FmtCore.h"
 #include "common/PluginUtils.h"
 #include "nvqir/CircuitSimulator.h"
-#include "cudaq/Support/TargetConfigYaml.h"
+#include "cudaq/Target/StaticConfigYaml.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/target_control.h"
@@ -135,7 +135,7 @@ void findAvailableTargets(
       const std::string configFileContent(
           (std::istreambuf_iterator<char>(inFile)),
           std::istreambuf_iterator<char>());
-      cudaq::config::TargetConfig config;
+      cudaq::config::StaticConfig config;
       llvm::yaml::Input Input(configFileContent.c_str());
       Input >> config;
       CUDAQ_INFO("Found Target {} with config file {}", targetName, fileName);

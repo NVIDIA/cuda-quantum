@@ -11,15 +11,15 @@
 #include "common/RuntimeTarget.h"
 #include "common/ServerHelper.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
-#include "cudaq/Support/TargetConfig.h"
-#include "cudaq/Support/TargetConfigYaml.h"
+#include "cudaq/Target/StaticConfig.h"
+#include "cudaq/Target/StaticConfigYaml.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "llvm/Support/Base64.h"
 
 using namespace cudaq;
 
 void detail::parseTargetConfigYml(const std::string &yamlContent,
-                                  config::TargetConfig &targetConfig) {
+                                  config::StaticConfig &targetConfig) {
   llvm::yaml::Input Input(yamlContent.c_str());
   Input >> targetConfig;
 }
@@ -38,7 +38,7 @@ bool detail::isAnalogHamiltonianKernel(const std::string &kernelName) {
 void detail::initServerHelperAndExecutor(
     const std::string &qpuName,
     const std::map<std::string, std::string> &backendConfig,
-    const config::TargetConfig &targetConfig,
+    const config::StaticConfig &targetConfig,
     owning_ptr<ServerHelper> &serverHelper,
     std::unique_ptr<Executor> &executor) {
   // Create the ServerHelper for this QPU and give it the backend config.

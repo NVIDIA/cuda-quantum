@@ -21,7 +21,7 @@ struct KernelExecution;
 class ExecutionContext;
 class noise_model;
 namespace config {
-class TargetConfig;
+class StaticConfig;
 }
 } // namespace cudaq
 
@@ -106,7 +106,7 @@ public:
 
   Compiler(cudaq::ServerHelper *,
            const std::map<std::string, std::string> &backendConfig,
-           cudaq::config::TargetConfig &config,
+           cudaq::config::StaticConfig &config,
            const cudaq::noise_model *noiseModel, bool emulate);
   ~Compiler();
 

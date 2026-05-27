@@ -20,14 +20,14 @@ namespace cudaq {
 class Executor;
 class ServerHelper;
 namespace config {
-class TargetConfig;
+class StaticConfig;
 } // namespace config
 
 namespace detail {
 /// @brief Parses @p yamlContent as a target backend YAML configuration and
 /// deserializes the result into @p targetConfig.
 void parseTargetConfigYml(const std::string &yamlContent,
-                          config::TargetConfig &targetConfig);
+                          config::StaticConfig &targetConfig);
 
 /// @brief Decodes the base64-encoded string @p encoded and returns the
 /// decoded result.  Throws std::runtime_error on malformed input.
@@ -45,7 +45,7 @@ bool isAnalogHamiltonianKernel(const std::string &kernelName);
 void initServerHelperAndExecutor(
     const std::string &qpuName,
     const std::map<std::string, std::string> &backendConfig,
-    const config::TargetConfig &targetConfig,
+    const config::StaticConfig &targetConfig,
     owning_ptr<ServerHelper> &serverHelper,
     std::unique_ptr<Executor> &executor);
 } // namespace detail

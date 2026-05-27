@@ -10,7 +10,7 @@
 #include "common/ExecutionContext.h"
 #include "common/RuntimeTarget.h"
 #include "common/Timing.h"
-#include "cudaq/Support/TargetConfigYaml.h"
+#include "cudaq/Target/StaticConfigYaml.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -57,7 +57,7 @@ private:
     // If runtimeTarget was pre-populated (e.g., by the Python
     // LinkedLibraryHolder), use its already-parsed config to avoid re-reading
     // the YAML file from disk.
-    cudaq::config::TargetConfig config;
+    cudaq::config::StaticConfig config;
     if (runtimeTarget) {
       config = runtimeTarget->config;
       runtimeTarget->runtimeConfig = configMap;

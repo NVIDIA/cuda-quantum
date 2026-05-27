@@ -6,17 +6,14 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_mlir_library(CUDAQSupport
-  Plugin.cpp
+# LLVM-free library: config data structures and helpers.
+add_library(CUDAQTargetConfig
+  StaticConfig.cpp
+)
+target_include_directories(CUDAQTargetConfig PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/cudaq/include>
+  $<INSTALL_INTERFACE:include>
+)
+install(TARGETS CUDAQTargetConfig EXPORT cudaq-targets DESTINATION lib)
 
-  ADDITIONAL_HEADER_DIRS
-  ${MLIR_MAIN_INCLUDE_DIR}/mlir/Pass
-
-  DEPENDS
-  mlir-generic-headers
-
-  LINK_LIBS PUBLIC
-  MLIRAnalysis
-  MLIRIR
-  )
-
+add_subdirectory(Yaml)

@@ -9,7 +9,7 @@
 #pragma once
 
 #include "common/RuntimeTarget.h"
-#include "cudaq/Support/TargetConfig.h"
+#include "cudaq/Target/StaticConfig.h"
 #include "cudaq/host_config.h"
 #include <filesystem>
 #include <map>

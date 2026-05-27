@@ -11,7 +11,7 @@
 #include <string>
 
 namespace cudaq::config {
-class TargetConfig;
+class StaticConfig;
 }
 
 namespace cudaq_internal::compiler {
@@ -20,7 +20,7 @@ namespace cudaq_internal::compiler {
 struct JITTargetPipelineConfig {
   /// Build the staged JIT target pipeline or exact target override.
   static JITTargetPipelineConfig createFromTargetConfig(
-      const cudaq::config::TargetConfig &config,
+      const cudaq::config::StaticConfig &config,
       const std::map<std::string, std::string> &runtimeConfig, bool emulate);
 
   /// MLIR pass pipeline to run.

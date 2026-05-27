@@ -6,12 +6,13 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-
-add_llvm_library(CUDAQTargetConfigUtil
-  TargetConfig.cpp
+# LLVM-dependent library: YAML serialization and runtime argument processing.
+add_llvm_library(CUDAQTargetConfigYaml
+  StaticConfigYaml.cpp
 
   DISABLE_LLVM_LINK_LLVM_DYLIB
 
   LINK_COMPONENTS
   Support
-  )
+)
+target_link_libraries(CUDAQTargetConfigYaml PUBLIC CUDAQTargetConfig)
