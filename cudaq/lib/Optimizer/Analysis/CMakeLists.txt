@@ -11,10 +11,4 @@ add_cudaq_library(OptAnalysis
   
   DEPENDS
     QuakeDialect
-
-#  LINK_LIBS PUBLIC
-#    MLIRIR
-#    MLIRParser
-#    CCDialect
-#    QuakeDialect
 )
