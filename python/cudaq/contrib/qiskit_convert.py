@@ -53,7 +53,7 @@ def _noop(kernel, qs, params):
 
 
 def _sx(kernel, qs, params):
-    # SX = e^(iπ/4) · RX(π/2). Global phase is unobservable for sampling.
+    # SX = e^(iπ/4) · RX(π/2). Global phase has no effect on sampling.
     kernel.rx(np.pi / 2, qs[0])
 
 
@@ -81,7 +81,7 @@ def _r(kernel, qs, params):
 
 
 def _csdg(kernel, qs, params):
-    # CS† = diag(1, 1, 1, -i) = CR1(-π/2)
+    # CS† is the diagonal matrix (1, 1, 1, -i) = CR1(-π/2)
     kernel.cr1(-np.pi / 2, qs[0], qs[1])
 
 
@@ -163,7 +163,7 @@ def _ryy(kernel, qs, params):
 
 
 def _rzx(kernel, qs, params):
-    # H on target maps Z⊗X into Z⊗Z: RZX = H_t · RZZ · H_t.
+    # H on target maps Z⊗X into Z⊗Z: `RZX` = H_t · RZZ · H_t.
     theta = params[0]
     kernel.h(qs[1])
     _rzz(kernel, qs, [theta])
@@ -178,7 +178,7 @@ def _ecr(kernel, qs, params):
 
 
 def _xx_plus_yy(kernel, qs, params):
-    # Reproduces Qiskit's XXPlusYYGate decomposition.
+    # Reproduces the `XXPlusYYGate` decomposition as defined in Qiskit.
     theta, beta = params
     kernel.rz(beta, qs[0])
     kernel.rz(-np.pi / 2, qs[1])
@@ -197,7 +197,7 @@ def _xx_plus_yy(kernel, qs, params):
 
 
 def _xx_minus_yy(kernel, qs, params):
-    # Reproduces Qiskit's XXMinusYYGate decomposition.
+    # Reproduces the `XXMinusYYGate` decomposition as defined in Qiskit.
     theta, beta = params
     kernel.rz(-beta, qs[1])
     kernel.rz(-np.pi / 2, qs[0])
@@ -216,7 +216,8 @@ def _xx_minus_yy(kernel, qs, params):
 
 
 def _rccx(kernel, qs, params):
-    # Relative-phase Toffoli (Margolus), Qiskit's RCCXGate.
+    # Relative-phase Toffoli (also called the `Margolus` gate, exposed as
+    # `RCCXGate` in Qiskit).
     kernel.h(qs[2])
     kernel.t(qs[2])
     kernel.cx(qs[1], qs[2])
@@ -329,10 +330,11 @@ _GATE_HANDLERS = {
 def _apply_instruction(kernel, qs, operation):
     """Apply a Qiskit `Instruction` on the given CUDA-Q qubits.
 
-    Dispatches by `operation.name` using `_GATE_HANDLERS`. For gates not in the
-    table, recurses into `operation.definition` — this covers custom gates,
-    controlled gates with non-default `ctrl_state`, `initialize`, and any
-    gate Qiskit expresses via its standard decomposition library.
+    Dispatches by `operation.name` using `_GATE_HANDLERS`. For gates not in
+    the table, recursively descends into `operation.definition` — this
+    covers custom gates, controlled gates with non-default `ctrl_state`,
+    `initialize`, and any gate that Qiskit expresses via its standard
+    decomposition library.
 
     Returns True on success; False if the gate (and its decomposition) cannot
     be handled.
@@ -369,8 +371,9 @@ def from_qiskit(qiskit_circuit):
     Each instruction is dispatched to a direct CUDA-Q equivalent when one
     exists, or to a decomposition built from supported CUDA-Q gates
     otherwise. Gates not listed below fall back to recursive expansion via
-    Qiskit's own `Instruction.definition`, so custom / composite gates are
-    also supported as long as they bottom out in known primitives.
+    the `Instruction.definition` attribute provided by Qiskit, so custom
+    and composite gates are also supported as long as they bottom out in
+    known primitives.
 
     Args:
         `qiskit_circuit`: A `Qiskit.QuantumCircuit` instance.
@@ -408,13 +411,11 @@ def from_qiskit(qiskit_circuit):
     for instruction in qiskit_circuit.data:
         operation = instruction.operation
         qs = [
-            qubits[qiskit_circuit.find_bit(q).index]
-            for q in instruction.qubits
+            qubits[qiskit_circuit.find_bit(q).index] for q in instruction.qubits
         ]
 
         if not _apply_instruction(kernel, qs, operation):
-            raise ValueError(
-                f"Gate '{operation.name}' is not supported. "
-                f"Cannot convert Qiskit circuit to CUDA-Q kernel.")
+            raise ValueError(f"Gate '{operation.name}' is not supported. "
+                             f"Cannot convert Qiskit circuit to CUDA-Q kernel.")
 
     return kernel
