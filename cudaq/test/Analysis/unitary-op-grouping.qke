@@ -39,6 +39,27 @@ module {
 // CHECK-NEXT:    quake.z
 // CHECK:       unitary group #2 -- found 1 ops
 // CHECK-NEXT:    quake.rx
+// CHECK:       blocks:
+// CHECK-NEXT:    block #0 -- contains 3 unitary groups
+// CHECK:       op membership:
+// CHECK-NEXT:    quake.h -> group #0
+// CHECK-NEXT:    quake.x -> group #0
+// CHECK-NEXT:    quake.mz -> none
+// CHECK-NEXT:    quake.z -> group #1
+// CHECK-NEXT:    arith.constant -> none
+// CHECK-NEXT:    quake.rx -> group #2
+// CHECK-NEXT:    func.return -> none
+// CHECK:       adjacent inSameGroup checks:
+// CHECK-NEXT:    quake.h, quake.x -> true
+// CHECK-NEXT:    quake.x, quake.mz -> false
+// CHECK-NEXT:    quake.mz, quake.z -> false
+// CHECK-NEXT:    quake.z, arith.constant -> false
+// CHECK-NEXT:    arith.constant, quake.rx -> false
+// CHECK-NEXT:    quake.rx, func.return -> false
+// CHECK:       group membership consistency checks:
+// CHECK-NEXT:    group #0 first/last -> true
+// CHECK-NEXT:    group #0 first, group #1 first -> false
+// CHECK-NEXT:    group #1 first, group #2 first -> false
 
 // CHECK-LABEL: func @nested_if
 // CHECK:       unitary group #0 -- found 2 ops
@@ -46,3 +67,22 @@ module {
 // CHECK-NEXT:    quake.x
 // CHECK:       unitary group #1 -- found 1 ops
 // CHECK-NEXT:    quake.z
+// CHECK:       blocks:
+// CHECK-NEXT:    block #0 -- contains 1 unitary groups
+// CHECK-NEXT:    block #1 -- contains 1 unitary groups
+// CHECK:       op membership:
+// CHECK-NEXT:    cc.if -> none
+// CHECK-NEXT:    quake.h -> group #0
+// CHECK-NEXT:    quake.x -> group #0
+// CHECK-NEXT:    cc.continue -> none
+// CHECK-NEXT:    quake.z -> group #1
+// CHECK-NEXT:    cc.continue -> none
+// CHECK-NEXT:    func.return -> none
+// CHECK:       adjacent inSameGroup checks:
+// CHECK-NEXT:    quake.h, quake.x -> true
+// CHECK-NEXT:    quake.x, cc.continue -> false
+// CHECK-NEXT:    quake.z, cc.continue -> false
+// CHECK-NEXT:    cc.if, func.return -> false
+// CHECK:       group membership consistency checks:
+// CHECK-NEXT:    group #0 first/last -> true
+// CHECK-NEXT:    group #0 first, group #1 first -> false

@@ -39,6 +39,12 @@ struct UnitaryOpGroupingAnalysis {
 
   const UnitaryOpGroups &getGroups() const { return groups; }
 
+  const mlir::Block *getBlockForGroup(const UnitaryOpGroup &group) const;
+  const UnitaryOpGroup *getGroupContainingOp(mlir::Operation *op) const;
+  llvm::SmallVector<const UnitaryOpGroup *>
+  getGroupsIn(const mlir::Block *block) const;
+  bool inSameGroup(mlir::Operation *op1, mlir::Operation *op2) const;
+
 private:
   void performAnalysis(mlir::Operation *operation);
   void scanRegion(mlir::Region &region);

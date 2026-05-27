@@ -8,6 +8,7 @@
 
 #include "cudaq/Optimizer/Analysis/UnitaryOpGrouping.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -31,9 +32,10 @@ static bool isUnitaryOp(Operation *op) {
 /// 2) If the current group is non-empty, we have have a UnitaryOpsGroup to
 ///    populate. We create the struct and then push it back to the
 ///    UnitaryOpGroups vector.
-static void flushGroupIfNonEmpty(cudaq::quake::detail::UnitaryOpGroups &groups,
-                                 Block &block,
-                                 SmallVectorImpl<Operation *> &currUnitaryOps) {
+static void
+flushGroupIfNonEmpty(cudaq::quake::detail::UnitaryOpGroups &groups,
+                     Block &block,
+                     llvm::SmallVectorImpl<Operation *> &currUnitaryOps) {
   if (currUnitaryOps.empty())
     return;
 
@@ -51,8 +53,49 @@ static void flushGroupIfNonEmpty(cudaq::quake::detail::UnitaryOpGroups &groups,
 }
 } // namespace
 
+const mlir::Block *
+cudaq::quake::detail::UnitaryOpGroupingAnalysis::getBlockForGroup(
+    const UnitaryOpGroup &group) const {
+  return group.block;
+}
+
+const cudaq::quake::detail::UnitaryOpGroup *
+cudaq::quake::detail::UnitaryOpGroupingAnalysis::getGroupContainingOp(
+    mlir::Operation *op) const {
+  if (!op || !isUnitaryOp(op))
+    return nullptr;
+
+  for (const UnitaryOpGroup &group : groups)
+    if (llvm::is_contained(group.ops, op))
+      return &group;
+
+  return nullptr;
+}
+
+llvm::SmallVector<const cudaq::quake::detail::UnitaryOpGroup *>
+cudaq::quake::detail::UnitaryOpGroupingAnalysis::getGroupsIn(
+    const mlir::Block *block) const {
+  llvm::SmallVector<const UnitaryOpGroup *> groupsInBlock;
+  for (const UnitaryOpGroup &group : groups) {
+    if (group.block == block)
+      groupsInBlock.push_back(&group);
+  }
+  return groupsInBlock;
+}
+
+bool cudaq::quake::detail::UnitaryOpGroupingAnalysis::inSameGroup(
+    mlir::Operation *op1, mlir::Operation *op2) const {
+  if (!op1 || !op2 || !isUnitaryOp(op1) || !isUnitaryOp(op2))
+    return false;
+
+  const UnitaryOpGroup *group1 = getGroupContainingOp(op1);
+  const UnitaryOpGroup *group2 = getGroupContainingOp(op2);
+
+  return group1 && group2 && group1 == group2;
+}
+
 void cudaq::quake::detail::UnitaryOpGroupingAnalysis::scanBlock(Block &block) {
-  SmallVector<Operation *> currUnitaryOps;
+  llvm::SmallVector<Operation *> currUnitaryOps;
 
   for (Operation &op : block) {
     if (isUnitaryOp(&op)) {
