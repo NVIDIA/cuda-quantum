@@ -241,6 +241,21 @@ int main() {
   runNoNoiseCase("DEMO_NO_NOISE", demoKernel);
   runNoNoiseCase("DEMO_ROUNDS_NO_NOISE", demoKernel2, 2);
 
+  // Test the builder path
+  {
+    auto kernel = cudaq::make_kernel();
+    auto q = kernel.qalloc();
+    auto m = kernel.mz(q);
+    kernel.detector(m);
+    kernel.logical_observable(m);
+    auto qsA = kernel.qalloc(2);
+    auto qsB = kernel.qalloc(2);
+    auto prev = kernel.mz(qsA);
+    auto curr = kernel.mz(qsB);
+    kernel.detectors(prev, curr);
+    runNoNoiseCase("BUILDER", kernel);
+  }
+
   // Single noisy qubit, single detector: one X_ERROR mechanism, one
   // detector reference. No observable.
   runCase("SINGLE_NOISY", singleNoisyDetector{});
@@ -264,6 +279,7 @@ int main() {
 // CHECK: TRIVIAL errors=0 detectors=0 observables=0
 // CHECK: DEMO_NO_NOISE errors=0 detectors=1 observables=1
 // CHECK: DEMO_ROUNDS_NO_NOISE errors=0 detectors=6 observables=1
+// CHECK: BUILDER errors=0 detectors=3 observables=1
 // CHECK: SINGLE_NOISY errors=1 detectors=1 observables=0
 // CHECK: THREE_MZ errors=2 detectors=1 observables=1
 // CHECK: MEM_EXP_2R errors=4 detectors=3 observables=1
