@@ -37,6 +37,14 @@ def _summary(dem_text: str) -> dict:
     }
 
 
+@pytest.fixture(autouse=True)
+def reset_run_clear():
+    cudaq.reset_target()
+    yield
+    cudaq.__clearKernelRegistries()
+    cudaq.reset_target()
+
+
 def test_trivial_empty_dem():
     """Kernel without QEC declarations yields an empty DEM."""
 
@@ -199,6 +207,26 @@ def test_emulate_target_independent():
         }
     finally:
         cudaq.reset_target()
+
+
+def test_dem_and_run():
+
+    @cudaq.kernel
+    def kernel() -> bool:
+        q = cudaq.qvector(2)
+        h(q[0])
+        x.ctrl(q[0], q[1])
+        m = mz(q)
+        cudaq.detector(m)
+        return m[0] ^ m[1]
+
+    dem_text = cudaq.dem_from_kernel(kernel)
+    summary = _summary(dem_text)
+    assert summary == {"errors": 0, "detectors": 1, "observables": 0}
+
+    results = cudaq.run(kernel, shots_count=10)
+    assert len(results) == 10
+    assert all(False == r for r in results)
 
 
 if __name__ == "__main__":

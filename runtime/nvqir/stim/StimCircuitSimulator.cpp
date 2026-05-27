@@ -731,8 +731,11 @@ public:
 
   /// @brief `nvqir::RecordedCircuit` override - drops the accumulated
   /// `recordedCircuit` so the next analysis run on this thread starts with
-  /// an empty circuit. Called from `nvqir::dem::make_scope`'s `on_enter`.
-  void reset() override { recordedCircuit = stim::Circuit(); }
+  /// an empty simulator state.
+  void reset() override {
+    recordedCircuit = stim::Circuit();
+    deallocateState();
+  }
 
   bool isStateVectorSimulator() const override { return false; }
 

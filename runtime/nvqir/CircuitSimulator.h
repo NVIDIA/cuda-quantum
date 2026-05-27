@@ -588,6 +588,7 @@ protected:
     deallocateStateImpl();
     auto empty = std::queue<GateApplicationTask>{};
     std::swap(gateQueue, empty);
+    tracker.reset();
     nQubitsAllocated = 0;
     stateDimension = 0;
   }

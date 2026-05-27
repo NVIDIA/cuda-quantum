@@ -43,25 +43,22 @@ AnalysisScope make_scope(std::string plugin_name) {
   // consumer also linked the plugin's target.
   ensurePluginLoaded(plugin_name);
 
-  // There is no `on_exit` because the simulator is shared across CUDA-Q
-  // infrastructure and clearing state on exit could break a follow-up
-  // `cudaq::sample` call.
-  //
   // The cast to `nvqir::RecordedCircuit` is the contract check: only
   // backends that implement the capability interface can drive DEM
   // analysis.
   std::string name = "dem";
+  auto resetRecordedCircuit = [](CircuitSimulator &sim) {
+    if (auto *recorder = dynamic_cast<RecordedCircuit *>(&sim))
+      recorder->reset();
+    else
+      throw std::runtime_error(
+          "`nvqir::dem::make_scope`: plugin simulator does not implement "
+          "`nvqir::RecordedCircuit` and therefore cannot drive DEM "
+          "analysis.");
+  };
   return AnalysisScope::from_plugin(
       std::move(name), std::move(plugin_name),
-      {.on_enter = [](CircuitSimulator &sim) {
-        if (auto *recorder = dynamic_cast<RecordedCircuit *>(&sim))
-          recorder->reset();
-        else
-          throw std::runtime_error(
-              "`nvqir::dem::make_scope`: plugin simulator does not implement "
-              "`nvqir::RecordedCircuit` and therefore cannot drive DEM "
-              "analysis.");
-      }});
+      {.on_enter = resetRecordedCircuit, .on_exit = resetRecordedCircuit});
 }
 
 } // namespace nvqir::dem
