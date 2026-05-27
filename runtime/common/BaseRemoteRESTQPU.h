@@ -152,10 +152,10 @@ public:
     // by the analysis simulator (e.g. a `choice` function that calls
     // `cudaq::sample`) could launch a second kernel through this transport
     // while the outer scope is still active.
-    if (nvqir::AnalysisScope::is_active() && context.name != "resource-count")
-      throw std::runtime_error(
-          "Illegal use of resource counter simulator! (Did you attempt to run "
-          "a kernel inside of a choice function?)");
+    if (nvqir::AnalysisScope::is_active() && context.name != "resource-count" &&
+        context.name != "dem")
+      throw std::runtime_error("Illegal use of an analysis simulator (resource "
+                               "counter / DEM) on a remote QPU.");
 
     CUDAQ_INFO("Remote Rest QPU preparing execution context for {}",
                context.name);
@@ -243,10 +243,20 @@ public:
 
   CompiledModule compileModule(const SourceModule &src, KernelArgs args,
                                bool isEntryPoint) override {
+    // `cudaq::dem_from_kernel` is target-independent. For the Python
+    // entry-point, `streamlinedCompileModule` (called from
+    // `marshal_and_launch_module`) routes here before `unifiedLaunchModule`
+    // ever sees the `SourceModule`, so the C++-side short-circuit in
+    // `RemoteRESTQPU::unifiedLaunchModule` does not cover this path. Delegate
+    // to the base `QPU::compileModule` so the registered "default"
+    // `ModuleLauncher` JITs the kernel through `addAOTPipelineConvertToQIR`.
+    auto *executionContext = cudaq::getExecutionContext();
+    if (executionContext && executionContext->name == "dem")
+      return QPU::compileModule(src, args, isEntryPoint);
+
     const auto &kernelName = src.getName();
     auto modulePtr = compileModulePreamble(src);
     CUDAQ_INFO("specializing remote rest kernel via module ({})", kernelName);
-    auto executionContext = cudaq::getExecutionContext();
 
     // TODO future iterations of this should support non-void return types.
     if (!executionContext)

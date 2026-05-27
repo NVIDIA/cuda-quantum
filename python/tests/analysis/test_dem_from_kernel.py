@@ -157,5 +157,49 @@ def test_non_clifford_raises():
         cudaq.dem_from_kernel(kernel)
 
 
+def test_make_kernel_builder():
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc()
+    m = kernel.mz(q)
+    kernel.detector(m)
+    kernel.logical_observable(m)
+
+    # Cross-round pair
+    qsA = kernel.qalloc(2)
+    qsB = kernel.qalloc(2)
+    prev = kernel.mz(qsA)
+    curr = kernel.mz(qsB)
+    kernel.detectors(prev, curr)
+
+    dem_text = cudaq.dem_from_kernel(kernel)
+    assert _summary(dem_text) == {"errors": 0, "detectors": 3, "observables": 1}
+
+
+def test_emulate_target_independent():
+    """The DEM analysis runs through Stim regardless of the active target.
+
+    Sets a hardware emulate target, then verifies a simple kernel still
+    produces a DEM with the expected detector and observable references.
+    """
+    cudaq.set_target("ionq", emulate=True)
+    try:
+
+        @cudaq.kernel
+        def kernel():
+            q = cudaq.qubit()
+            m = mz(q)
+            cudaq.detector(m)
+            cudaq.logical_observable(m)
+
+        dem_text = cudaq.dem_from_kernel(kernel)
+        assert _summary(dem_text) == {
+            "errors": 0,
+            "detectors": 1,
+            "observables": 1
+        }
+    finally:
+        cudaq.reset_target()
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
