@@ -8,21 +8,8 @@
 
 #pragma once
 
-#include "common/ObserveResult.h"
-#include "cudaq/algorithms/observe/options.h"
+#include <nanobind/nanobind.h>
 
 namespace cudaq {
-
-/// @brief Tag and options for computing expectation values.
-struct observe_policy {
-  /// @brief The name of the policy.
-  static constexpr char name[] = "observe";
-
-  /// Associated result type for synchronous APIs keyed off this policy.
-  using result_type = observe_result;
-
-  /// Observe options.
-  observe_options options;
-};
-
+void bindPySample(nanobind::module_ &mod);
 } // namespace cudaq

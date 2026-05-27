@@ -129,6 +129,11 @@ public:
   ///  Get the number of QPUs available with this platform.
   std::size_t num_qpus() const { return platformQPUs.size(); }
 
+  QPU &getQPU(std::size_t qpu_id = 0) const {
+    validateQpuId(qpu_id);
+    return *(platformQPUs[qpu_id].get());
+  }
+
   /// Return whether this platform is a simulator.
   bool is_simulator(std::size_t qpu_id = 0) const;
 
@@ -162,6 +167,9 @@ public:
   // any other user-defined settings (nvq++ target option compile flags or
   // `set_target` arguments).
   const RuntimeTarget *get_runtime_target() const;
+
+  /// True if the active target runs without the MLIR/QIR kernel launch path.
+  bool is_library_mode() const;
 
   /// @brief Turn off any noise models.
   void reset_noise(std::size_t qpu_id = 0);

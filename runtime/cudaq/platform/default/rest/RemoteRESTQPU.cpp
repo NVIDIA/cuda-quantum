@@ -11,6 +11,23 @@
 using namespace cudaq;
 cudaq::RemoteRESTQPU::~RemoteRESTQPU() = default;
 
+sample_result RemoteRESTQPU::launchKernel(sample_policy &policy,
+                                          const AnyModule &module,
+                                          KernelArgs args) {
+  CUDAQ_INFO("RemoteRESTQPU::launchKernel {}", policy.name);
+  auto [kernelName, codes] = compileKernelExecutions(policy, module, args);
+  return completeLaunchKernel(policy, kernelName, std::move(codes));
+}
+
+async_sample_result RemoteRESTQPU::launchKernel(async_sample_policy &policy,
+                                                const AnyModule &module,
+                                                KernelArgs args) {
+  CUDAQ_INFO("RemoteRESTQPU::launchKernel async {}", policy.inner.name);
+  auto [kernelName, codes] =
+      compileKernelExecutions(policy.inner, module, args);
+  return completeLaunchKernel(policy, kernelName, std::move(codes));
+}
+
 KernelThunkResultType
 RemoteRESTQPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
   Compiler compiler(serverHelper.get(), backendConfig, targetConfig, noiseModel,
