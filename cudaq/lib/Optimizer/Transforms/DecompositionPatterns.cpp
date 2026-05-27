@@ -23,13 +23,8 @@
  * Each pattern definition contains 3 elements:
  * 1. The pattern itself, which defines what ops to match and how to replace
  * them. It must inherit from DecompositionPattern<PatternType, Op>.
- * 2. The pattern type, which contains the pattern metadata. It must inherit
- * from DecompositionPatternType.
- * 3. A call to the CUDAQ_REGISTER_TYPE macro to register the pattern in the
- * registry.
- *
- * Writing 2 and 3 manually is a bit verbose. The REGISTER_DECOMPOSITION_PATTERN
- * macro can be used for this purpose instead.
+ * 2. A call to the REGISTER_DECOMPOSITION_PATTERN macro to register the pattern
+ * in the registry and define its metadata.
  */
 
 using namespace mlir;
@@ -341,13 +336,9 @@ static LogicalResult checkAndExtractControls(cudaq::quake::OperatorInterface op,
 #undef REGISTER_DECOMPOSITION_PATTERN
 #define REGISTER_DECOMPOSITION_PATTERN(PATTERN, ...)                           \
   struct PATTERN##Type : public cudaq::DecompositionPatternType {              \
-    using cudaq::DecompositionPatternType::DecompositionPatternType;           \
-    llvm::ArrayRef<cudaq::DecompositionPatternVariant>                         \
-    getVariants() const override {                                             \
-      static const std::vector<cudaq::DecompositionPatternVariant> variants =  \
-          {__VA_ARGS__};                                                       \
-      return variants;                                                         \
-    }                                                                          \
+    PATTERN##Type()                                                            \
+        : cudaq::DecompositionPatternType(                                     \
+              std::vector<cudaq::DecompositionPatternVariant>{__VA_ARGS__}) {} \
     llvm::StringRef getPatternName() const override { return #PATTERN; }       \
     std::unique_ptr<mlir::RewritePattern>                                      \
     create(mlir::MLIRContext *context, mlir::PatternBenefit benefit = 1,       \

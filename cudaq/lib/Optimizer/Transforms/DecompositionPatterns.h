@@ -26,16 +26,56 @@ class RewritePatternSet;
 
 namespace cudaq {
 
+namespace detail {
+/// A structured representation of a `"g[<adj>][(<number-of-controls> | `n`)]"`
+/// string.
+struct OperatorInfo {
+  std::string name;
+  std::size_t numControls;
+  bool isAdj;
+
+  OperatorInfo(llvm::StringRef infoStr);
+  OperatorInfo() = default;
+
+  bool operator==(const OperatorInfo &other) const = default;
+
+  bool isUnbounded() const;
+
+  /// Return the join of two `OperatorInfo`s, if it exists.
+  ///
+  /// Two `OperatorInfo`s can be joined if
+  ///  - one of them is empty, in which case the other is returned, or
+  ///  - they have the same name and same `isAdj`, and either:
+  ///     - they have the same number of controls, in which case `this ==
+  ///     either`, or
+  //      - at least one is unbounded, in which case the join is whichever has
+  //      unbounded controls.
+  std::optional<OperatorInfo> join(const OperatorInfo &other) const;
+
+  std::string str() const;
+
+  /// Check if this gate covers another gate.
+  bool covers(const OperatorInfo &other) const;
+
+  /// Check if this basis entry makes another gate legal, matching
+  /// ConversionTarget semantics. A concrete basis entry does not make an
+  /// unbounded source pattern legal.
+  bool makesLegal(const OperatorInfo &other) const { return covers(other); }
+};
+} // namespace detail
+
 //===----------------------------------------------------------------------===//
 // Base classes for decomposition patterns
 //===----------------------------------------------------------------------===//
 
 struct DecompositionPatternVariant {
+  /// Construct from an explicit source op and a list of target ops.
   DecompositionPatternVariant(llvm::StringRef sourceOp,
                               llvm::ArrayRef<llvm::StringRef> targetOps)
-      : sourceOp(sourceOp.str()) {
-    llvm::transform(targetOps, std::back_inserter(this->targetOps),
-                    [](llvm::StringRef op) { return op.str(); });
+      : sourceOp(sourceOp) {
+    llvm::transform(
+        targetOps, std::back_inserter(this->targetOps),
+        [](llvm::StringRef op) { return detail::OperatorInfo(op); });
   }
 
   DecompositionPatternVariant(std::initializer_list<llvm::StringRef> ops)
@@ -45,27 +85,45 @@ struct DecompositionPatternVariant {
     assert(ops.size() > 0 && "source op is required");
   }
 
-  std::string sourceOp;
-  std::vector<std::string> targetOps;
+  detail::OperatorInfo sourceOp;
+  std::vector<detail::OperatorInfo> targetOps;
 };
 
 /// Base class for pattern types to enable registration via the llvm::Registry
 /// system. Stores the pattern metadata and provides a factory method to create
 /// new instances of the pattern.
 ///
-/// Register decomposition patterns using
-/// CUDAQ_REGISTER_TYPE(cudaq::DecompositionPatternType, MyPatternType,
-/// pattern_name)
-/// where pattern_name is the same as MyPatternType().getPatternName().
+/// Use the REGISTER_DECOMPOSITION_PATTERN macro to register a pattern type.
 class DecompositionPatternType {
 public:
   using RegistryType = llvm::Registry<DecompositionPatternType>;
-  virtual ~DecompositionPatternType() = default;
+  DecompositionPatternType(std::vector<DecompositionPatternVariant> variants_)
+      : variants(std::move(variants_)) {
+    for (const auto &variant : variants) {
+      auto join = sourceOp.join(variant.sourceOp);
+      assert(join.has_value() &&
+             "all source ops of pattern variants must be joinable");
+      sourceOp = *join;
 
-  /// Get the source/target variants this pattern can implement. Source variants
-  /// use `g(n)` for controlled forms only; add a separate `g` source variant
-  /// when a bare operation should also rewrite.
-  virtual llvm::ArrayRef<DecompositionPatternVariant> getVariants() const = 0;
+      // Join all target ops of variants together. This is quadratic in the
+      // number of target ops, but realistically there won't be >10 of those.
+      for (const auto &targetOp : variant.targetOps) {
+        bool inserted = false;
+        for (auto &existingTargetOp : targetOps) {
+          auto join = existingTargetOp.join(targetOp);
+          if (join.has_value()) {
+            existingTargetOp = *join;
+            inserted = true;
+            break;
+          }
+        }
+        if (!inserted) {
+          targetOps.push_back(targetOp);
+        }
+      }
+    }
+  }
+  virtual ~DecompositionPatternType() = default;
 
   /// Get the name of the pattern.
   virtual llvm::StringRef getPatternName() const = 0;
@@ -74,6 +132,11 @@ public:
   virtual std::unique_ptr<mlir::RewritePattern>
   create(mlir::MLIRContext *context, mlir::PatternBenefit benefit = 1,
          llvm::ArrayRef<std::string> enabledSourceOps = {}) const = 0;
+
+private:
+  std::vector<DecompositionPatternVariant> variants;
+  detail::OperatorInfo sourceOp;
+  std::vector<detail::OperatorInfo> targetOps;
 };
 
 /// Base class for all decomposition patterns. All decomposition patterns must

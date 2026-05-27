@@ -23,70 +23,68 @@
 
 using namespace mlir;
 
+cudaq::detail::OperatorInfo::OperatorInfo(llvm::StringRef infoStr)
+    : name(), numControls(0), isAdj(false) {
+  auto nameEnd = infoStr.find_first_of("(<");
+  name = infoStr.take_front(nameEnd).str();
+  if (nameEnd < infoStr.size())
+    infoStr = infoStr.drop_front(nameEnd);
+
+  if (infoStr.consume_front("<adj>"))
+    isAdj = true;
+
+  if (infoStr.consume_front("(")) {
+    infoStr = infoStr.ltrim();
+    if (infoStr.consume_front("n"))
+      numControls = std::numeric_limits<std::size_t>::max();
+    else
+      infoStr.consumeInteger(10, numControls);
+    assert(infoStr.trim().consume_front(")"));
+  }
+}
+
+bool cudaq::detail::OperatorInfo::isUnbounded() const {
+  return numControls == std::numeric_limits<std::size_t>::max();
+}
+
+std::optional<cudaq::detail::OperatorInfo>
+cudaq::detail::OperatorInfo::join(const OperatorInfo &other) const {
+  if (name.empty())
+    return other;
+  if (other.name.empty())
+    return *this;
+  if (name != other.name)
+    return std::nullopt;
+  if (isUnbounded())
+    return *this;
+  if (other.isUnbounded())
+    return other;
+  return std::nullopt;
+}
+
+std::string cudaq::detail::OperatorInfo::str() const {
+  std::string result = name;
+  if (isAdj)
+    result += "<adj>";
+  if (isUnbounded())
+    result += "(n)";
+  else if (numControls != 0)
+    result += "(" + std::to_string(numControls) + ")";
+  return result;
+}
+
+/// Check if this gate covers another gate.
+bool cudaq::detail::OperatorInfo::covers(const OperatorInfo &other) const {
+  if (name != other.name || isAdj != other.isAdj)
+    return false;
+  // Pattern metadata may use (n) as a wildcard, but target legality is
+  // directional: x(n) covers x(1), while x(1) does not cover x(n).
+  if (isUnbounded())
+    return true;
+  return numControls == other.numControls;
+}
+
 namespace {
-
-// ConversionTarget and OperatorInfo, parsed from target basis strings such as
-// ["x", "x(1)", "z"]
-struct OperatorInfo {
-  std::string name;
-  std::size_t numControls;
-  bool isAdj;
-
-  OperatorInfo(StringRef infoStr) : name(), numControls(0), isAdj(false) {
-    auto nameEnd = infoStr.find_first_of("(<");
-    name = infoStr.take_front(nameEnd).str();
-    if (nameEnd < infoStr.size())
-      infoStr = infoStr.drop_front(nameEnd);
-
-    if (infoStr.consume_front("<adj>"))
-      isAdj = true;
-
-    if (infoStr.consume_front("(")) {
-      infoStr = infoStr.ltrim();
-      if (infoStr.consume_front("n"))
-        numControls = std::numeric_limits<std::size_t>::max();
-      else
-        infoStr.consumeInteger(10, numControls);
-      assert(infoStr.trim().consume_front(")"));
-    }
-  }
-
-  bool operator==(const OperatorInfo &other) const {
-    return name == other.name && numControls == other.numControls &&
-           isAdj == other.isAdj;
-  }
-
-  bool isUnbounded() const {
-    return numControls == std::numeric_limits<std::size_t>::max();
-  }
-
-  std::string str() const {
-    std::string result = name;
-    if (isAdj)
-      result += "<adj>";
-    if (isUnbounded())
-      result += "(n)";
-    else if (numControls != 0)
-      result += "(" + std::to_string(numControls) + ")";
-    return result;
-  }
-
-  /// Check if this gate covers another gate.
-  bool covers(const OperatorInfo &other) const {
-    if (name != other.name || isAdj != other.isAdj)
-      return false;
-    // Pattern metadata may use (n) as a wildcard, but target legality is
-    // directional: x(n) covers x(1), while x(1) does not cover x(n).
-    if (isUnbounded())
-      return true;
-    return numControls == other.numControls;
-  }
-
-  /// Check if this basis entry makes another gate legal, matching
-  /// ConversionTarget semantics. A concrete basis entry does not make an
-  /// unbounded source pattern legal.
-  bool makesLegal(const OperatorInfo &other) const { return covers(other); }
-};
 
 struct BasisTarget : public ConversionTarget {
 
