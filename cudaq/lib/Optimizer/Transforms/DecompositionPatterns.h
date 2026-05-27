@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.h"
 #define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/STLExtras.h"
@@ -163,6 +164,13 @@ void populateWithAllDecompositionPatterns(mlir::RewritePatternSet &patterns);
 std::unique_ptr<mlir::ConversionTarget>
 createBasisTarget(mlir::MLIRContext &context,
                   mlir::ArrayRef<std::string> targetBasis);
+
+/// Get the number of controls to the operation, if known.
+///
+/// The size of the control vector may be unspecified, in which case this
+/// function returns std::nullopt.
+std::optional<std::size_t>
+getKnownNumControls(cudaq::quake::OperatorInterface op);
 
 using DecompositionPatternTypeRegistry =
     llvm::Registry<DecompositionPatternType>;

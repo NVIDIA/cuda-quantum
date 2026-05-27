@@ -88,21 +88,6 @@ struct OperatorInfo {
   bool makesLegal(const OperatorInfo &other) const { return covers(other); }
 };
 
-static std::optional<std::size_t>
-getKnownNumControls(cudaq::quake::OperatorInterface op) {
-  std::size_t numControls = 0;
-  for (auto control : op.getControls()) {
-    if (auto veq = dyn_cast<cudaq::quake::VeqType>(control.getType())) {
-      if (!veq.hasSpecifiedSize())
-        return std::nullopt;
-      numControls += veq.getSize();
-      continue;
-    }
-    numControls += 1;
-  }
-  return numControls;
-}
-
 struct BasisTarget : public ConversionTarget {
 
   BasisTarget(MLIRContext &context, ArrayRef<std::string> targetBasis)
@@ -119,7 +104,7 @@ struct BasisTarget : public ConversionTarget {
     addDynamicallyLegalDialect<cudaq::quake::QuakeDialect>([&](Operation *op) {
       if (auto optor = dyn_cast<cudaq::quake::OperatorInterface>(op)) {
         auto name = optor->getName().stripDialect();
-        auto numControls = getKnownNumControls(optor);
+        auto numControls = cudaq::getKnownNumControls(optor);
         for (auto info : legalOperatorSet) {
           if (info.name != name)
             continue;
