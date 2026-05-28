@@ -685,6 +685,10 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
     // Must be local simulator
     if (!platform.is_simulator() || platform.is_emulated())
       return false;
+    // TODO: would be nice to check for args synthesized via an attribute
+    // rather than a fragile arg size check. This relies on an assumption
+    // that arg sizes are validated so the only case that the arg sizes
+    // don't match is for synthesized kernels.
     auto func = cudaq::getKernelFuncOp(mod, name);
     mlir::Type resultTy = cudaq::runtime::getReturnType(func);
     auto hasResult = !!resultTy;
@@ -704,7 +708,11 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
   }
 
   assert(compiled);
-  if (*compiled)
+  // Cache hit only if the cached module's entry point matches this launch's.
+  // The same _compiled_module slot is shared across launch paths (.call,
+  // .run, .draw, …); a previous launch on a different path leaves a module
+  // whose .argsCreator has the wrong ABI for this one.
+  if (*compiled && (*compiled)->getName() == name)
     return cudaq::streamlinedLaunchModule(**compiled, rawArgs);
 
   auto clone = mod.clone();
