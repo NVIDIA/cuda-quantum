@@ -729,9 +729,15 @@ public:
   /// `stim::ErrorAnalyzer::circuit_to_detector_error_model`.
   const stim::Circuit *circuit() const override { return &recordedCircuit; }
 
+  /// @brief `nvqir::RecordedCircuit` override - moves the accumulated
+  /// `recordedCircuit` out of the simulator. The internal buffer is left in
+  /// a valid, empty state. Avoids the per-call deep copy of every recorded
+  /// gate / noise channel / detector.
+  stim::Circuit release() override { return std::move(recordedCircuit); }
+
   /// @brief `nvqir::RecordedCircuit` override - drops the accumulated
-  /// `recordedCircuit` so the next analysis run on this thread starts with
-  /// an empty simulator state.
+  /// `recordedCircuit` AND deallocates the tableau / sample-simulator state
+  /// so the next analysis run on this thread starts from a clean slate.
   void reset() override {
     recordedCircuit = stim::Circuit();
     deallocateState();

@@ -176,7 +176,8 @@ std::string runDemFromKernelImpl(const std::string &kernelName,
         [&]() {
           withDemExecutionContext(ctx, [&]() {
             kernel();
-            recorded = *recorder.circuit();
+            // Move the recorded circuit out of the simulator.
+            recorded = recorder.release();
           });
         },
         [&]() {
@@ -201,9 +202,11 @@ std::string runDemFromKernelImpl(const std::string &kernelName,
 
 } // namespace
 
-/// `extern "C"` entry point resolved by `cudaq::details::runDemFromKernel`
-/// via `dlopen` + `dlsym` on `libcudaq-analysis.so`.
-extern "C" std::string cudaq_runDemFromKernel(
+/// External-linkage forwarder whose signature matches
+/// `cudaq::details::DemFromKernelFn` exactly. Its address is the function
+/// pointer that the C-linkage selector returns; the implementation itself
+/// stays in the anonymous namespace.
+std::string runDemFromKernelForExport(
     const std::string &kernelName, cudaq::quantum_platform &platform,
     const cudaq::noise_model *noise, const std::function<void()> &wrappedKernel,
     const std::string &plugin_name) {
@@ -212,3 +215,10 @@ extern "C" std::string cudaq_runDemFromKernel(
 }
 
 } // namespace cudaq::details
+
+/// `extern "C"` selector returns a C++ function pointer so the header can call
+/// into the implementation without the indirected function itself needing C
+/// linkage.
+extern "C" cudaq::details::DemFromKernelFn *cudaq_getDemFromKernelFunc() {
+  return &cudaq::details::runDemFromKernelForExport;
+}

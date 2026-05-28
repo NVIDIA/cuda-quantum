@@ -24,8 +24,14 @@ struct RecordedCircuit {
   /// @brief Pointer to the simulator's accumulated `stim::Circuit`.
   virtual const stim::Circuit *circuit() const = 0;
 
-  /// @brief Drop the accumulated circuit so the next analysis run starts
-  /// from an empty state.
+  /// @brief Move the accumulated `stim::Circuit` out of the simulator,
+  /// leaving the simulator with an empty recorded circuit.
+  virtual stim::Circuit release() = 0;
+
+  /// @brief Drop the accumulated circuit AND any per-execution simulator
+  /// state so the next analysis run starts from a clean slate. Heavier
+  /// than `release()`: also deallocates the underlying tableau / sample
+  /// state when the backend has it.
   virtual void reset() = 0;
 };
 

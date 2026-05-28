@@ -10,8 +10,10 @@
 #include "nvqir/CircuitSimulator.h"
 #include "nvqir/RecordedCircuit.h"
 #include <dlfcn.h>
+#include <mutex>
 #include <stdexcept>
 #include <string>
+#include <unordered_set>
 #include <utility>
 
 namespace nvqir::dem {
@@ -26,6 +28,13 @@ void ensurePluginLoaded(const std::string &plugin_name) {
 #else
   constexpr const char *libExt = ".so";
 #endif
+  static std::mutex cacheMutex;
+  static std::unordered_set<std::string> loadedPlugins;
+  {
+    std::lock_guard<std::mutex> g(cacheMutex);
+    if (loadedPlugins.count(plugin_name))
+      return;
+  }
   const std::string lib = "libnvqir-" + plugin_name + libExt;
   void *handle = dlopen(lib.c_str(), RTLD_NOW | RTLD_GLOBAL);
   if (!handle) {
@@ -33,6 +42,10 @@ void ensurePluginLoaded(const std::string &plugin_name) {
     throw std::runtime_error(
         "`nvqir::dem::make_scope`: failed to load NVQIR plugin '" + lib +
         "': " + (err ? err : "unknown dlerror"));
+  }
+  {
+    std::lock_guard<std::mutex> g(cacheMutex);
+    loadedPlugins.insert(plugin_name);
   }
 }
 } // namespace
@@ -56,6 +69,10 @@ AnalysisScope make_scope(std::string plugin_name) {
           "`nvqir::RecordedCircuit` and therefore cannot drive DEM "
           "analysis.");
   };
+  // Both hooks call `reset()` intentionally:
+  // - `on_enter` guarantees a clean simulator regardless of what a prior
+  //   call (which may have ended abnormally) left behind.
+  // - `on_exit` runs on every exit path including exceptions
   return AnalysisScope::from_plugin(
       std::move(name), std::move(plugin_name),
       {.on_enter = resetRecordedCircuit, .on_exit = resetRecordedCircuit});

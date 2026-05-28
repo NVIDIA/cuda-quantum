@@ -135,6 +135,18 @@ __qpu__ void demoKernel2(int nRounds) {
   cudaq::logical_observable(m0, m1, m2);
 }
 
+__qpu__ void demoKernel3(int nRounds) {
+  cudaq::qvector qvec(3);
+  x(qvec);
+  auto mvec = mz(qvec);
+  for (int round = 0; round < nRounds; round++) {
+    auto m_new = mz(qvec);
+    cudaq::detectors(m_new, mvec);
+    mvec = m_new;
+  }
+  cudaq::logical_observable(mvec[0], mvec[1], mvec[2]);
+}
+
 // Non-Clifford gate: should throw "Clifford only" diagnostic because
 // Stim cannot simulate non-Clifford gates.
 struct nonClifford {
@@ -254,6 +266,7 @@ int main() {
   // Detector / logical-observable source examples without any noise model.
   runNoNoiseCase("DEMO_NO_NOISE", demoKernel);
   runNoNoiseCase("DEMO_ROUNDS_NO_NOISE", demoKernel2, 2);
+  runNoNoiseCase("DEMO_VEC_ROUNDS_NO_NOISE", demoKernel3, 2);
 
   // Test the builder path
   {
@@ -298,6 +311,7 @@ int main() {
 // CHECK: TRIVIAL errors=0 detectors=0 observables=0
 // CHECK: DEMO_NO_NOISE errors=0 detectors=1 observables=1
 // CHECK: DEMO_ROUNDS_NO_NOISE errors=0 detectors=6 observables=1
+// CHECK: DEMO_VEC_ROUNDS_NO_NOISE errors=0 detectors=6 observables=1
 // CHECK: BUILDER errors=0 detectors=3 observables=1
 // CHECK: SINGLE_NOISY errors=1 detectors=1 observables=0
 // CHECK: THREE_MZ errors=2 detectors=1 observables=1

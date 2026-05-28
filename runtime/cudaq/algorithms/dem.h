@@ -8,11 +8,10 @@
 
 #pragma once
 
+#include "common/PluginUtils.h"
 #include "cudaq/platform.h"
 #include <concepts>
-#include <dlfcn.h>
 #include <functional>
-#include <stdexcept>
 #include <string>
 #include <utility>
 
@@ -24,58 +23,30 @@ namespace cudaq {
 
 namespace details {
 
-/// @brief `extern "C"` entry point for DEM analysis, defined in
-/// `libcudaq-analysis.so`. Resolved at first call via `dlopen` + `dlsym` so
-/// that consumers who never invoke `dem_from_kernel` pay zero startup cost
-/// (no eager `libstim.so` load, no transitive plugin pulls).
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
-#endif
-extern "C" std::string cudaq_runDemFromKernel(
-    const std::string &kernelName, cudaq::quantum_platform &platform,
-    const cudaq::noise_model *noise, const std::function<void()> &wrappedKernel,
-    const std::string &plugin_name);
-#if defined(__clang__)
-#pragma clang diagnostic pop
-#endif
+/// @brief Signature of the analysis-side entry point exposed by
+/// `libcudaq-analysis`.
+using DemFromKernelFn = std::string(const std::string &kernelName,
+                                    cudaq::quantum_platform &platform,
+                                    const cudaq::noise_model *noise,
+                                    const std::function<void()> &wrappedKernel,
+                                    const std::string &plugin_name);
 
 /// @brief Type-erased core of `dem_from_kernel`. Header-only inline body
-/// `dlopen`s `libcudaq-analysis.so` on demand and forwards to
-/// `cudaq_runDemFromKernel`. The shared library is resolved once per
-/// process (function-local static cache).
+/// resolves `cudaq_getDemFromKernelFunc` on the first use, caches the returned
+/// function pointer in a function-local static, and forwards.
 inline std::string runDemFromKernel(const std::string &kernelName,
                                     cudaq::quantum_platform &platform,
                                     const cudaq::noise_model *noise,
                                     const std::function<void()> &wrappedKernel,
                                     std::string plugin_name = "stim") {
-  using FnT = decltype(&cudaq_runDemFromKernel);
-  static FnT fn = []() -> FnT {
+  static DemFromKernelFn *fn = cudaq::getUniquePluginInstance<DemFromKernelFn>(
+      "cudaq_getDemFromKernelFunc",
 #if defined(__APPLE__)
-    constexpr const char *kLib = "libcudaq-analysis.dylib";
+      "libcudaq-analysis.dylib"
 #else
-    constexpr const char *kLib = "libcudaq-analysis.so";
+      "libcudaq-analysis.so"
 #endif
-    constexpr const char *kSym = "cudaq_runDemFromKernel";
-    void *handle = dlopen(kLib, RTLD_NOW | RTLD_GLOBAL);
-    if (!handle) {
-      const char *err = dlerror();
-      throw std::runtime_error(
-          std::string("`cudaq::dem_from_kernel`: failed to load '") + kLib +
-          "' (does this CUDA-Q distribution include the DEM analysis "
-          "engine?): " +
-          (err ? err : "unknown dlerror"));
-    }
-    void *sym = dlsym(handle, kSym);
-    if (!sym) {
-      const char *err = dlerror();
-      throw std::runtime_error(
-          std::string("`cudaq::dem_from_kernel`: '") + kLib +
-          "' is missing the entry point '" + kSym +
-          "' (CUDA-Q version mismatch?): " + (err ? err : "unknown dlerror"));
-    }
-    return reinterpret_cast<FnT>(sym);
-  }();
+  );
   return fn(kernelName, platform, noise, wrappedKernel, plugin_name);
 }
 
