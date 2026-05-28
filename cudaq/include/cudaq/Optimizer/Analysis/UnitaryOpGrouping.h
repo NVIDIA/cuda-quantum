@@ -77,7 +77,9 @@ private:
   void performAnalysis(mlir::Operation *operation);
   void scanRegion(mlir::Region &region);
   void scanBlock(mlir::Block &block);
-  void buildLookupTables();
+  void flushGroupIfNonEmpty(
+      mlir::Block &block,
+      llvm::SmallVectorImpl<mlir::Operation *> &currUnitaryOps);
 
   UnitaryOpGroups groups;
   llvm::DenseMap<mlir::Operation *, unsigned> opToGroupIndex;

@@ -25,16 +25,18 @@ static bool isUnitaryOp(Operation *op) {
 /// added to the current group of unitary ops. So, we do one of two things.
 /// 1) If the current group is empty, we don't do anything and just return
 /// 2) If the current group is non-empty, we have have a UnitaryOpsGroup to
-///    populate. We create the struct and then push it back to the
-///    UnitaryOpGroups vector.
-static void
-flushGroupIfNonEmpty(cudaq::quake::detail::UnitaryOpGroups &groups,
-                     Block &block,
-                     llvm::SmallVectorImpl<Operation *> &currUnitaryOps) {
+///    populate. We create the struct, push it back to the UnitaryOpGroups
+///    vector, and update the lookup tables for the new group.
+void cudaq::quake::detail::UnitaryOpGroupingAnalysis::flushGroupIfNonEmpty(
+    Block &block, llvm::SmallVectorImpl<Operation *> &currUnitaryOps) {
   if (currUnitaryOps.empty())
     return;
 
-  cudaq::quake::detail::UnitaryOpGroup group;
+  // size of groups before insertion is the index of the new group to be
+  // inserted.
+  unsigned groupIndex = static_cast<unsigned>(groups.size());
+
+  UnitaryOpGroup group;
   group.block = &block;
   group.ops.append(currUnitaryOps.begin(), currUnitaryOps.end());
 
@@ -42,24 +44,14 @@ flushGroupIfNonEmpty(cudaq::quake::detail::UnitaryOpGroups &groups,
                           << " op(s)\n");
 
   groups.push_back(std::move(group));
+
+  /// populate lookup tables now that new group has been created.
+  const UnitaryOpGroup &insertedGroup = groups.back();
+  blockToGroupIndices[insertedGroup.block].push_back(groupIndex);
+  for (Operation *op : insertedGroup.ops)
+    opToGroupIndex.try_emplace(op, groupIndex);
+
   currUnitaryOps.clear();
-}
-
-/// Maps 1) each unitary op to its corresponding group
-///      2) each block to a vector of group indices contained within that block
-///         - group indices are indices into the UnitaryOpGroups group vector
-void cudaq::quake::detail::UnitaryOpGroupingAnalysis::buildLookupTables() {
-  opToGroupIndex.clear();
-  blockToGroupIndices.clear();
-
-  for (auto indexedGroup : llvm::enumerate(groups)) {
-    unsigned groupIndex = static_cast<unsigned>(indexedGroup.index());
-    const UnitaryOpGroup &group = indexedGroup.value();
-
-    blockToGroupIndices[group.block].push_back(groupIndex);
-    for (Operation *op : group.ops)
-      opToGroupIndex.try_emplace(op, groupIndex);
-  }
 }
 
 const mlir::Block *
@@ -123,10 +115,10 @@ void cudaq::quake::detail::UnitaryOpGroupingAnalysis::scanBlock(Block &block) {
       continue;
     }
 
-    flushGroupIfNonEmpty(groups, block, currUnitaryOps);
+    flushGroupIfNonEmpty(block, currUnitaryOps);
   }
 
-  flushGroupIfNonEmpty(groups, block, currUnitaryOps);
+  flushGroupIfNonEmpty(block, currUnitaryOps);
 }
 
 void cudaq::quake::detail::UnitaryOpGroupingAnalysis::scanRegion(
@@ -155,8 +147,6 @@ void cudaq::quake::detail::UnitaryOpGroupingAnalysis::performAnalysis(
   /// regions
   for (Region &region : funcOp->getRegions())
     scanRegion(region);
-
-  buildLookupTables();
 
   LLVM_DEBUG(llvm::dbgs() << "Found " << groups.size()
                           << " unitary group(s)\n");
