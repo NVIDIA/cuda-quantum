@@ -57,11 +57,12 @@ cudaq::detail::OperatorInfo::join(const OperatorInfo &other) const {
     return *this;
   if (isAdj != other.isAdj || name != other.name)
     return std::nullopt;
-  if (isUnbounded())
+  if (numControls == other.numControls)
     return *this;
-  if (other.isUnbounded())
-    return other;
-  return std::nullopt;
+  // Mismatching arities: promote to unbounded
+  OperatorInfo result = *this;
+  result.numControls = UNBOUNDED;
+  return result;
 }
 
 std::string cudaq::detail::OperatorInfo::str() const {

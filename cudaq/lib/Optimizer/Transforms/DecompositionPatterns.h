@@ -43,15 +43,13 @@ struct OperatorInfo {
 
   bool isUnbounded() const;
 
-  /// Return the join of two `OperatorInfo`s, if it exists.
+  /// Return the join (least upper bound) of two `OperatorInfo`s, if it exists.
   ///
   /// Two `OperatorInfo`s can be joined if
   ///  - one of them is empty, in which case the other is returned, or
-  ///  - they have the same name and same `isAdj`, and either:
-  ///     - they have the same number of controls, in which case `this ==
-  ///     either`, or
-  //      - at least one is unbounded, in which case the join is whichever has
-  //      unbounded controls.
+  ///  - they have the same name and same `isAdj`. The result is then:
+  ///     - either of them, if they have the same number of controls,
+  ///     - the unbounded ("n") version of the op otherwise.
   std::optional<OperatorInfo> join(const OperatorInfo &other) const;
 
   std::string str() const;
@@ -103,6 +101,10 @@ public:
   /// Get the target operations this pattern may produce
   const std::vector<detail::OperatorInfo> &getTargetOps() const {
     return targetOps;
+  }
+
+  const std::vector<DecompositionPatternVariant> &getVariants() const {
+    return variants;
   }
 
   /// Return all variants that could emit the given target gate.

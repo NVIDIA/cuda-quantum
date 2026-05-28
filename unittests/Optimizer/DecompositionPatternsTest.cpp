@@ -222,13 +222,14 @@ instantiatePatternType(StringRef patternName) {
 }
 
 LogicalResult applySinglePattern(ModuleOp module, StringRef patternName,
-                                 ArrayRef<std::string> enabledSourceOps) {
+                                 ArrayRef<std::size_t> disabledControlCounts) {
   auto patternType = instantiatePatternType(patternName);
   if (!patternType)
     return failure();
 
   RewritePatternSet patterns(module->getContext());
-  patterns.add(patternType->create(module->getContext(), 1, enabledSourceOps));
+  patterns.add(
+      patternType->create(module->getContext(), 1, disabledControlCounts));
   FrozenRewritePatternSet frozenPatterns(std::move(patterns));
   return applyPatternsGreedily(module, frozenPatterns);
 }
@@ -335,14 +336,14 @@ TEST_F(DecompositionPatternsTest, MetadataConsistency) {
         << "Pattern '" << patternName << "' has no variants";
 
     for (const auto &variant : variants) {
-      EXPECT_FALSE(variant.sourceOp.empty())
+      EXPECT_FALSE(variant.sourceOp.name.empty())
           << "Pattern '" << patternName << "' has empty source gate";
 
       EXPECT_FALSE(variant.targetOps.empty())
           << "Pattern '" << patternName << "' has empty target gates";
 
       for (const auto &targetGate : variant.targetOps) {
-        EXPECT_FALSE(targetGate.empty())
+        EXPECT_FALSE(targetGate.name.empty())
             << "Pattern '" << patternName << "' has empty target gate in list";
       }
     }
@@ -366,7 +367,7 @@ TEST_F(DecompositionPatternsTest, SAndTToR1AdvertiseVariants) {
   auto collectSources = [](const cudaq::DecompositionPatternType &patternType) {
     std::vector<std::string> sources;
     for (const auto &variant : patternType.getVariants())
-      sources.push_back(variant.sourceOp);
+      sources.push_back(variant.sourceOp.str());
     std::sort(sources.begin(), sources.end());
     return sources;
   };
@@ -378,52 +379,52 @@ TEST_F(DecompositionPatternsTest, SAndTToR1AdvertiseVariants) {
 }
 
 TEST_F(DecompositionPatternsTest, R1ToU3RespectsEnabledSourceVariants) {
-  std::vector<std::string> enabledSources{"r1(1)"};
+  std::vector<std::size_t> disabledControlCounts{0, 2};
 
   auto bareModule = createTestModule(context.get(), "r1");
-  ASSERT_TRUE(
-      succeeded(applySinglePattern(bareModule, "R1ToU3", enabledSources)));
+  ASSERT_TRUE(succeeded(
+      applySinglePattern(bareModule, "R1ToU3", disabledControlCounts)));
   auto bareGates = collectGateTypesInModule(bareModule);
   EXPECT_TRUE(bareGates.contains("r1"));
   EXPECT_FALSE(bareGates.contains("u3"));
 
   auto oneControlModule = createTestModule(context.get(), "r1(1)");
   ASSERT_TRUE(succeeded(
-      applySinglePattern(oneControlModule, "R1ToU3", enabledSources)));
+      applySinglePattern(oneControlModule, "R1ToU3", disabledControlCounts)));
   auto oneControlGates = collectGateTypesInModule(oneControlModule);
   EXPECT_TRUE(oneControlGates.contains("u3(1)"));
   EXPECT_FALSE(oneControlGates.contains("r1(1)"));
 
   auto twoControlModule = createTestModule(context.get(), "r1(2)");
   ASSERT_TRUE(succeeded(
-      applySinglePattern(twoControlModule, "R1ToU3", enabledSources)));
+      applySinglePattern(twoControlModule, "R1ToU3", disabledControlCounts)));
   auto twoControlGates = collectGateTypesInModule(twoControlModule);
   EXPECT_TRUE(twoControlGates.contains("r1(2)"));
   EXPECT_FALSE(twoControlGates.contains("u3(2)"));
 }
 
 TEST_F(DecompositionPatternsTest, U3ToRotationsRespectsEnabledSourceVariants) {
-  std::vector<std::string> enabledSources{"u3(1)"};
+  std::vector<std::size_t> disabledControlCounts{0, 2};
 
   auto bareModule = createTestModule(context.get(), "u3");
   ASSERT_TRUE(succeeded(
-      applySinglePattern(bareModule, "U3ToRotations", enabledSources)));
+      applySinglePattern(bareModule, "U3ToRotations", disabledControlCounts)));
   auto bareGates = collectGateTypesInModule(bareModule);
   EXPECT_TRUE(bareGates.contains("u3"));
   EXPECT_FALSE(bareGates.contains("rz"));
   EXPECT_FALSE(bareGates.contains("rx"));
 
   auto oneControlModule = createTestModule(context.get(), "u3(1)");
-  ASSERT_TRUE(succeeded(
-      applySinglePattern(oneControlModule, "U3ToRotations", enabledSources)));
+  ASSERT_TRUE(succeeded(applySinglePattern(oneControlModule, "U3ToRotations",
+                                           disabledControlCounts)));
   auto oneControlGates = collectGateTypesInModule(oneControlModule);
   EXPECT_TRUE(oneControlGates.contains("rz(1)"));
   EXPECT_TRUE(oneControlGates.contains("rx(1)"));
   EXPECT_FALSE(oneControlGates.contains("u3(1)"));
 
   auto twoControlModule = createTestModule(context.get(), "u3(2)");
-  ASSERT_TRUE(succeeded(
-      applySinglePattern(twoControlModule, "U3ToRotations", enabledSources)));
+  ASSERT_TRUE(succeeded(applySinglePattern(twoControlModule, "U3ToRotations",
+                                           disabledControlCounts)));
   auto twoControlGates = collectGateTypesInModule(twoControlModule);
   EXPECT_TRUE(twoControlGates.contains("u3(2)"));
   EXPECT_FALSE(twoControlGates.contains("rz(2)"));
@@ -431,25 +432,25 @@ TEST_F(DecompositionPatternsTest, U3ToRotationsRespectsEnabledSourceVariants) {
 }
 
 TEST_F(DecompositionPatternsTest, UnboundedSourceVariantsDoNotMatchBareGates) {
-  std::vector<std::string> r1EnabledSources{"r1(n)"};
+  std::vector<std::size_t> r1DisabledControlCounts{0};
   auto bareR1Module = createTestModule(context.get(), "r1");
-  ASSERT_TRUE(
-      succeeded(applySinglePattern(bareR1Module, "R1ToU3", r1EnabledSources)));
+  ASSERT_TRUE(succeeded(
+      applySinglePattern(bareR1Module, "R1ToU3", r1DisabledControlCounts)));
   auto bareR1Gates = collectGateTypesInModule(bareR1Module);
   EXPECT_TRUE(bareR1Gates.contains("r1"));
   EXPECT_FALSE(bareR1Gates.contains("u3"));
 
   auto controlledR1Module = createTestModule(context.get(), "r1(2)");
-  ASSERT_TRUE(succeeded(
-      applySinglePattern(controlledR1Module, "R1ToU3", r1EnabledSources)));
+  ASSERT_TRUE(succeeded(applySinglePattern(controlledR1Module, "R1ToU3",
+                                           r1DisabledControlCounts)));
   auto controlledR1Gates = collectGateTypesInModule(controlledR1Module);
   EXPECT_TRUE(controlledR1Gates.contains("u3(2)"));
   EXPECT_FALSE(controlledR1Gates.contains("r1(2)"));
 
-  std::vector<std::string> u3EnabledSources{"u3(n)"};
+  std::vector<std::size_t> u3DisabledControlCounts{0};
   auto bareU3Module = createTestModule(context.get(), "u3");
-  ASSERT_TRUE(succeeded(
-      applySinglePattern(bareU3Module, "U3ToRotations", u3EnabledSources)));
+  ASSERT_TRUE(succeeded(applySinglePattern(bareU3Module, "U3ToRotations",
+                                           u3DisabledControlCounts)));
   auto bareU3Gates = collectGateTypesInModule(bareU3Module);
   EXPECT_TRUE(bareU3Gates.contains("u3"));
   EXPECT_FALSE(bareU3Gates.contains("rz"));
@@ -457,7 +458,7 @@ TEST_F(DecompositionPatternsTest, UnboundedSourceVariantsDoNotMatchBareGates) {
 
   auto controlledU3Module = createTestModule(context.get(), "u3(2)");
   ASSERT_TRUE(succeeded(applySinglePattern(controlledU3Module, "U3ToRotations",
-                                           u3EnabledSources)));
+                                           u3DisabledControlCounts)));
   auto controlledU3Gates = collectGateTypesInModule(controlledU3Module);
   EXPECT_TRUE(controlledU3Gates.contains("rz(2)"));
   EXPECT_TRUE(controlledU3Gates.contains("rx(2)"));
@@ -465,15 +466,13 @@ TEST_F(DecompositionPatternsTest, UnboundedSourceVariantsDoNotMatchBareGates) {
 }
 
 TEST_F(DecompositionPatternsTest, SAndTToR1AcceptDynamicControlsWhenNEnabled) {
-  std::vector<std::string> sEnabledSources{"s(n)"};
   auto sModule = createDynamicControlGateModule(context.get(), "s");
-  ASSERT_TRUE(succeeded(applySinglePattern(sModule, "SToR1", sEnabledSources)));
+  ASSERT_TRUE(succeeded(applySinglePattern(sModule, "SToR1", {})));
   EXPECT_EQ(countOps<cudaq::quake::SOp>(sModule), 0u);
   EXPECT_EQ(countOps<cudaq::quake::R1Op>(sModule), 1u);
 
-  std::vector<std::string> tEnabledSources{"t(n)"};
   auto tModule = createDynamicControlGateModule(context.get(), "t");
-  ASSERT_TRUE(succeeded(applySinglePattern(tModule, "TToR1", tEnabledSources)));
+  ASSERT_TRUE(succeeded(applySinglePattern(tModule, "TToR1", {})));
   EXPECT_EQ(countOps<cudaq::quake::TOp>(tModule), 0u);
   EXPECT_EQ(countOps<cudaq::quake::R1Op>(tModule), 1u);
 }
@@ -495,8 +494,10 @@ TEST_F(DecompositionPatternsTest, DecompositionProducesOnlyTargetGates) {
     std::string patternName = entry.getName().str();
     auto patternType = entry.instantiate();
     for (const auto &variant : patternType->getVariants()) {
-      std::string sourceGate = variant.sourceOp;
-      auto targetGates = llvm::ArrayRef<std::string>(variant.targetOps);
+      std::string sourceGate = variant.sourceOp.str();
+      std::vector<std::string> targetGates;
+      for (const auto &targetGate : variant.targetOps)
+        targetGates.push_back(targetGate.str());
 
       // Create a test module with the source gate
       auto module = createTestModule(context.get(), sourceGate);

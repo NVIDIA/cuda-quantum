@@ -255,7 +255,7 @@ protected:
     auto pattern = graph.constructPattern(selectedPatternName, context.get(),
                                           operatorInfoSet);
     return std::unique_ptr<PatternTest>(
-        dyn_cast<PatternTest>(pattern.release()));
+        static_cast<PatternTest *>(pattern.release()));
   }
 
   std::unique_ptr<MLIRContext> context;
@@ -444,8 +444,8 @@ TEST_F(DummyDecompositionPatternSelectionTest,
   std::vector<std::string> targetBasis{"s", "r1(1)"};
   auto pattern = constructPattern(targetBasis, "pattern_s_to_r1");
 
-  std::vector<std::string> exp{0};
-  EXPECT_EQ(pattern->getDisabledControlCounts(), exp);
+  std::vector<std::size_t> exp{0};
+  EXPECT_EQ(pattern->getDisabledControlCounts(), llvm::ArrayRef(exp));
 }
 
 TEST_F(DummyDecompositionPatternSelectionTest,
@@ -453,7 +453,7 @@ TEST_F(DummyDecompositionPatternSelectionTest,
   std::vector<std::string> targetBasis{"r1(n)"};
   auto pattern = constructPattern(targetBasis, "pattern_s_to_r1");
 
-  std::vector<std::size_t> exp{};
+  llvm::ArrayRef<std::size_t> exp{};
   EXPECT_EQ(pattern->getDisabledControlCounts(), exp);
 }
 
@@ -561,12 +561,12 @@ TEST_F(FullDecompositionPatternSelectionTest,
       std::find(selectedPatterns.begin(), selectedPatterns.end(), "TToR1"),
       selectedPatterns.end());
 
-  auto selectedSSources = constructPattern(targetBasis, "SToR1");
-  auto selectedTSources = constructPattern(targetBasis, "TToR1");
-  std::vector<std::string> expS{"s(1)"};
-  std::vector<std::string> expT{"t(1)"};
-  EXPECT_EQ(selectedSSources, expS);
-  EXPECT_EQ(selectedTSources, expT);
+  auto sPattern = constructPattern(targetBasis, "SToR1");
+  auto tPattern = constructPattern(targetBasis, "TToR1");
+  std::vector<std::size_t> expS{0};
+  std::vector<std::size_t> expT{0};
+  EXPECT_EQ(sPattern->getDisabledControlCounts(), llvm::ArrayRef(expS));
+  EXPECT_EQ(tPattern->getDisabledControlCounts(), llvm::ArrayRef(expT));
 }
 
 } // namespace
