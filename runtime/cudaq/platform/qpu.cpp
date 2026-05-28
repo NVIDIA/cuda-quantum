@@ -16,7 +16,6 @@
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "mlir/IR/BuiltinOps.h"
 #include <cstring>
 #include <stdexcept>
 
@@ -113,10 +112,6 @@ cudaq::QPU::getCompileTarget(ExecutionContext *context) {
 }
 std::unique_ptr<cudaq::CompileTarget>
 cudaq::QPU::getCompileTarget(sample_policy &) {
-  return getCompileTarget();
-}
-std::unique_ptr<cudaq::CompileTarget>
-cudaq::QPU::getCompileTarget(async_sample_policy &) {
   return getCompileTarget();
 }
 

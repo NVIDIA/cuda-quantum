@@ -70,11 +70,11 @@ cudaq::CompileTarget::CompileTarget(
         backendConfig.TargetPassPipeline, "Pass pipeline (overridden)");
   } else {
     pipelineConfig.runsStandardFinalize = true;
-    pipelineConfig.JITHighLevelPipeline =
+    pipelineConfig.highLevelPipeline =
         prepPipeline(backendConfig.JITHighLevelPipeline, "JIT high level");
-    pipelineConfig.JITMidLevelPipeline =
+    pipelineConfig.midLevelPipeline =
         prepPipeline(backendConfig.JITMidLevelPipeline, "JIT mid level");
-    pipelineConfig.JITLowLevelPipeline =
+    pipelineConfig.lowLevelPipeline =
         prepPipeline(backendConfig.JITLowLevelPipeline, "JIT low level");
   }
   auto codegenTranslation = targetConfig.getCodeGenSpec(runtimeConfig);

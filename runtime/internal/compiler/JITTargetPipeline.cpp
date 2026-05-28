@@ -61,11 +61,11 @@ cudaq_internal::compiler::getPassPipeline(const cudaq::CompileTarget &target) {
   const std::string finalizeStage =
       "jit-finalize-pipeline{lower-device-calls=" + lowerDeviceCalls + "}";
 
-  appendPipelineStage(passPipeline, pipelineConfig.JITHighLevelPipeline);
+  appendPipelineStage(passPipeline, pipelineConfig.highLevelPipeline);
   appendPipelineStage(passPipeline, deployStage);
-  appendPipelineStage(passPipeline, pipelineConfig.JITMidLevelPipeline);
+  appendPipelineStage(passPipeline, pipelineConfig.midLevelPipeline);
   appendPipelineStage(passPipeline, finalizeStage);
-  appendPipelineStage(passPipeline, pipelineConfig.JITLowLevelPipeline);
+  appendPipelineStage(passPipeline, pipelineConfig.lowLevelPipeline);
 
   // Handle disable_qubit_mapping runtime option.
   if (pipelineConfig.disableQubitMapping) {

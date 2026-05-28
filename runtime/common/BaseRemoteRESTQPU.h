@@ -252,7 +252,7 @@ public:
   };
 
   using QPU::getCompileTarget;
-  std::unique_ptr<CompileTarget> getCompileTarget() override {
+  std::unique_ptr<CompileTarget> getCompileTarget(ExecutionContext *) override {
     std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
     auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
 

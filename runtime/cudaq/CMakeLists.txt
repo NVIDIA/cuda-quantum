@@ -65,6 +65,7 @@ if (CUDA_FOUND)
       cudaq-ensmallen
       cudaq-mlir-runtime-headers # Public until compilation is moved out of the QPUs
       cudaq-logger
+      CUDAQTargetConfig
     PRIVATE
       MLIRIR
       nvqir
@@ -90,6 +91,7 @@ else()
       cudaq-ensmallen
       cudaq-mlir-runtime-headers # Public until compilation is moved out of the QPUs
       cudaq-logger
+      CUDAQTargetConfig
     PRIVATE
       MLIRIR
       nvqir

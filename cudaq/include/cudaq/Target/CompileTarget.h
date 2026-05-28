@@ -25,9 +25,9 @@ public:
     std::string overridePassPipeline;
 
     /// Compilation pipeline to insert at the appropriate stages.
-    std::string JITHighLevelPipeline;
-    std::string JITMidLevelPipeline;
-    std::string JITLowLevelPipeline;
+    std::string highLevelPipeline;
+    std::string midLevelPipeline;
+    std::string lowLevelPipeline;
 
     /// Code generation emission selected by the target.
     std::string codegenTranslation;
