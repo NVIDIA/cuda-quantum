@@ -104,7 +104,7 @@ CUDAQ_TEST(IQMTester, processResultsAppliesReorderIdxFromConfig) {
   std::string jobIdCopy = jobId;
   auto result = serverHelper->processResults(response, jobIdCopy);
 
-  // After reordering, the dominant bitstring must be "010".
+  // After reordering, the dominant bitstring must be "001".
   std::string mostFrequent;
   std::size_t bestCount = 0;
   for (auto &[bits, n] : result.to_map()) {
