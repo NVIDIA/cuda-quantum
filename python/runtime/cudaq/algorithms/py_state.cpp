@@ -174,7 +174,7 @@ static state get_state_impl(const std::string &shortName, MlirModule mod,
                             cudaq::CompiledModulePtr *compiled,
                             nanobind::args args) {
   auto closure = [=]() {
-    return marshal_and_launch_module(shortName, mod, compiled, "state", args);
+    return marshal_and_launch_module(shortName, mod, compiled, args);
   };
   return details::extractState(std::move(closure));
 }
@@ -197,11 +197,11 @@ static std::future<state> get_state_async_impl(const std::string &shortName,
         delete p;
       });
   return details::runGetStateAsync(
-      detail::make_copyable_function([opaques = std::move(opaques), kernelName,
-                                      clonedMod]() mutable {
-        [[maybe_unused]] auto result =
-            clean_launch_module(kernelName, *clonedMod, nullptr, "", opaques);
-      }),
+      detail::make_copyable_function(
+          [opaques = std::move(opaques), kernelName, clonedMod]() mutable {
+            [[maybe_unused]] auto result =
+                clean_launch_module(kernelName, *clonedMod, nullptr, opaques);
+          }),
       platform, qpu_id);
 }
 

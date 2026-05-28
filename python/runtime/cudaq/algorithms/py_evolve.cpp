@@ -66,7 +66,7 @@ pyEvolve(state initial_state, nanobind::object kernel,
         auto *argData = new cudaq::OpaqueArguments();
         valueArgument(*argData, &state);
         [[maybe_unused]] auto result =
-            clean_launch_module(kernelName, kernelMod, nullptr, "", *argData);
+            clean_launch_module(kernelName, kernelMod, nullptr, *argData);
         delete argData;
       },
       spin_ops, shots_count);
@@ -98,7 +98,7 @@ pyEvolve(state initial_state, std::vector<nanobind::object> kernels,
       auto *argData = new cudaq::OpaqueArguments();
       valueArgument(*argData, &state);
       [[maybe_unused]] auto result =
-          clean_launch_module(kernelName, kernelMod, nullptr, "", *argData);
+          clean_launch_module(kernelName, kernelMod, nullptr, *argData);
       delete argData;
     });
   }
@@ -147,7 +147,7 @@ pyEvolveAsync(state initial_state, nanobind::object kernel,
         auto *argData = new cudaq::OpaqueArguments();
         valueArgument(*argData, &state);
         [[maybe_unused]] auto result =
-            clean_launch_module(kernelName, kernelMod, nullptr, "", *argData);
+            clean_launch_module(kernelName, kernelMod, nullptr, *argData);
         delete argData;
       },
       spin_ops, qpu_id, noise_model, shots_count);
@@ -182,8 +182,8 @@ pyEvolveAsync(state initial_state, std::vector<nanobind::object> kernels,
         [kernelMod = std::move(kernelMod), kernelName](state state) mutable {
           cudaq::OpaqueArguments argData;
           valueArgument(argData, &state);
-          [[maybe_unused]] auto result = clean_launch_module(
-              kernelName, kernelMod, nullptr, "evolve", argData);
+          [[maybe_unused]] auto result =
+              clean_launch_module(kernelName, kernelMod, nullptr, argData);
         });
   }
 

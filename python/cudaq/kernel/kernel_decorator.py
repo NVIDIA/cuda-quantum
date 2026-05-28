@@ -637,7 +637,7 @@ class PyKernelDecorator(object):
 
         processed_args, module, compiled = self.prepare_call(*args)
         return cudaq_runtime.marshal_and_launch_module(self.uniqName, module,
-                                                       compiled, "call",
+                                                       compiled,
                                                        *processed_args)
 
     def beta_reduction(self, isEntryPoint, *args):

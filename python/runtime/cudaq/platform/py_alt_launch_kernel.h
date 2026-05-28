@@ -57,7 +57,6 @@ void bindAltLaunchKernel(nanobind::module_ &mod,
 nanobind::object marshal_and_launch_module(const std::string &kernelName,
                                            MlirModule module,
                                            CompiledModulePtr *compiled,
-                                           const std::string &launchInfo,
                                            nanobind::args runtimeArgs);
 
 /// Pure C++ code that launches a kernel. Argument marshaling and result
@@ -65,7 +64,6 @@ nanobind::object marshal_and_launch_module(const std::string &kernelName,
 KernelThunkResultType clean_launch_module(const std::string &kernelName,
                                           mlir::ModuleOp mod,
                                           CompiledModulePtr *compiled,
-                                          const std::string &launchInfo,
                                           OpaqueArguments &args);
 
 /// Marshal python arguments into an OpaqueArguments for kernel launch.

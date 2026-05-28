@@ -1764,7 +1764,7 @@ class PyKernel(object):
         self.compile()
         specialized = cudaq_runtime.cloneModule(self.qkeModule)
         cudaq_runtime.marshal_and_launch_module(self.name, specialized,
-                                                self._compiled_module, "call",
+                                                self._compiled_module,
                                                 *processedArgs)
 
     def __getattr__(self, attr_name):

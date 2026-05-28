@@ -22,7 +22,7 @@ static std::string pyDraw(const std::string &format,
     throw std::runtime_error("format argument must be \"ascii\" or \"latex\".");
 
   auto f = [=]() {
-    return cudaq::marshal_and_launch_module(shortName, mod, compiled, "draw",
+    return cudaq::marshal_and_launch_module(shortName, mod, compiled,
                                             runtimeArgs);
   };
   if (format == "ascii")

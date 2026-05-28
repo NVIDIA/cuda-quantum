@@ -80,11 +80,11 @@ def translate(kernel, *args, format="qir:0.1"):
                 f"Invalid number of arguments passed to translate. "
                 f"{suppliedArgs} given, {formals} formally declared, and "
                 f"{launchArgsReq} required.")
-    processedArgs, module, compiled = decorator.prepare_call(*args)
+    processedArgs, module, _ = decorator.prepare_call(*args)
     if launchArgsReq != len(processedArgs):
         deducedArgs = len(processedArgs) - suppliedArgs
         raise RuntimeError(f"Invalid number of arguments passed to translate. "
                            f"{suppliedArgs} given, {deducedArgs} deduced, and "
                            f"{launchArgsReq} required.")
-    return cudaq_runtime.translate_impl(decorator.uniqName, module, compiled,
-                                        format, *processedArgs)
+    return cudaq_runtime.translate_impl(decorator.uniqName, module, format,
+                                        *processedArgs)

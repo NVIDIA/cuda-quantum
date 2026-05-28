@@ -87,7 +87,7 @@ pyRunTheKernel(const std::string &name, quantum_platform &platform,
   auto results = details::runTheKernel(
       [&]() mutable {
         [[maybe_unused]] auto result =
-            clean_launch_module(name, mod, compiled, "run", opaques);
+            clean_launch_module(name, mod, compiled, opaques);
       },
       platform, name, name, shots_count, layoutInfo, qpu_id, allowCaching);
 

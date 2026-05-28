@@ -382,8 +382,7 @@ cudaq_internal::compiler::Compiler::assembleCompiledModule(
   }
 
   return cudaq_internal::compiler::CompiledModuleHelper::createCompiledModule(
-      kernelName, {}, std::move(artifacts),
-      {.reorderIdx = mappingReorderIdx, .launchMode = ""});
+      kernelName, {}, std::move(artifacts), {.reorderIdx = mappingReorderIdx});
 }
 
 cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(

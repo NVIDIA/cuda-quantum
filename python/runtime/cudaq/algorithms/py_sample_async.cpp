@@ -57,11 +57,11 @@ static async_sample_result sample_async_impl(
       // (1) no Python data access is allowed in this lambda body.
       // (2) This lambda might be executed multiple times, e.g, when
       // the kernel contains measurement feedback.
-      detail::make_copyable_function([opaques = std::move(opaques), kernelName,
-                                      clonedMod]() mutable {
-        [[maybe_unused]] auto result =
-            clean_launch_module(kernelName, *clonedMod, nullptr, "", opaques);
-      }),
+      detail::make_copyable_function(
+          [opaques = std::move(opaques), kernelName, clonedMod]() mutable {
+            [[maybe_unused]] auto result =
+                clean_launch_module(kernelName, *clonedMod, nullptr, opaques);
+          }),
       platform, kernelName, shots_count, explicit_measurements, qpu_id,
       std::move(noise_model));
 }

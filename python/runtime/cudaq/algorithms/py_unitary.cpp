@@ -20,8 +20,7 @@ static nanobind::object get_unitary_impl(const std::string &shortName,
                                          cudaq::CompiledModulePtr *compiled,
                                          nanobind::args args) {
   auto f = [=]() {
-    return cudaq::marshal_and_launch_module(shortName, module, compiled,
-                                            "unitary", args);
+    return cudaq::marshal_and_launch_module(shortName, module, compiled, args);
   };
 
   // Return as numpy array (dim, dim), complex128

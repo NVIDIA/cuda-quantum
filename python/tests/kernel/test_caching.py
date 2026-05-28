@@ -14,12 +14,12 @@ import pytest
 import cudaq
 
 # ---------------------------------------------------------------------------
-# Cacheable launch modes — one test per launchInfo tag.
+# Cacheable launch modes — one test per launch path.
 # ---------------------------------------------------------------------------
 
 
 def test_cache_mode_call():
-    """Direct invocation: launchInfo='call'."""
+    """Direct invocation."""
 
     @cudaq.kernel
     def flip() -> bool:
@@ -45,7 +45,7 @@ def test_cache_mode_sample():
 
 
 def test_cache_mode_draw():
-    """cudaq.draw -> launchInfo='draw'."""
+    """cudaq.draw."""
 
     @cudaq.kernel
     def bell():
@@ -61,7 +61,7 @@ def test_cache_mode_draw():
 
 
 def test_cache_mode_get_state():
-    """cudaq.get_state -> launchInfo='state'."""
+    """cudaq.get_state."""
 
     @cudaq.kernel
     def fixed():
@@ -74,7 +74,7 @@ def test_cache_mode_get_state():
 
 
 def test_cache_mode_get_unitary():
-    """cudaq.get_unitary -> launchInfo='unitary'."""
+    """cudaq.get_unitary."""
 
     @cudaq.kernel
     def h_kernel():
@@ -87,7 +87,7 @@ def test_cache_mode_get_unitary():
 
 
 def test_cache_mode_run():
-    """cudaq.run -> launchInfo='run'."""
+    """cudaq.run."""
 
     @cudaq.kernel
     def count_ones(n: int) -> int:
@@ -109,7 +109,7 @@ def test_cache_mode_run():
 
 
 def test_cache_mode_builder():
-    """PyKernel (builder) uses its own _compiled_module slot, launchInfo='call'."""
+    """PyKernel (builder) uses its own _compiled_module slot."""
 
     kernel = cudaq.make_kernel()
     qreg = kernel.qalloc(3)

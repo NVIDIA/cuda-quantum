@@ -24,10 +24,9 @@
 using namespace mlir;
 
 /// @brief Run `cudaq::translate` on the provided kernel.
-static std::string
-translate_impl(const std::string &shortName, MlirModule module,
-               [[maybe_unused]] cudaq::CompiledModulePtr *compiled,
-               const std::string &format, nanobind::args runtimeArguments) {
+static std::string translate_impl(const std::string &shortName,
+                                  MlirModule module, const std::string &format,
+                                  nanobind::args runtimeArguments) {
   // Marker span identifying every nested pass / scoped trace as part of the
   // JIT-time pipeline triggered by cudaq.translate. The primary JIT marker
   // for kernel-call / sample / observe / estimate_resources lives in

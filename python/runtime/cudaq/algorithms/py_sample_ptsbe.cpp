@@ -79,8 +79,8 @@ pySamplePTSBE(const std::string &shortName, MlirModule module,
     nanobind::gil_scoped_release release;
     result = ptsbe::detail::runSamplingPTSBE(
         [&]() mutable {
-          [[maybe_unused]] auto res = clean_launch_module(
-              shortName, mod, compiled, "ptsbe.sample", opaques);
+          [[maybe_unused]] auto res =
+              clean_launch_module(shortName, mod, compiled, opaques);
         },
         platform, shortName, shots_count, ptsbe_options);
   } catch (const std::exception &e) {
@@ -148,7 +148,7 @@ pySampleAsyncPTSBE(const std::string &shortName, MlirModule module,
   return AsyncPTSBESampleResultImpl(ptsbe::detail::runSamplingAsyncPTSBE(
       [opaques = std::move(opaques), kernelName, mod = mod.clone()]() mutable {
         [[maybe_unused]] auto result =
-            clean_launch_module(kernelName, mod, nullptr, "", opaques);
+            clean_launch_module(kernelName, mod, nullptr, opaques);
       },
       platform, kernelName, shots_count, ptsbe_options, /*qpu_id=*/0,
       noiseModel));

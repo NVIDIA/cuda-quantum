@@ -672,21 +672,18 @@ static void appendTheResultValue(ModuleOp module, const std::string &name,
 // Launching the module \p mod will modify its content, such as by argument
 // synthesis into the entry-point kernel. Make a clone before we launch to
 // preserve (cache) the IR, and erase the clone after the kernel is done.
-static cudaq::KernelThunkResultType pyLaunchModule(
-    const std::string &name, ModuleOp mod, cudaq::CompiledModulePtr *compiled,
-    const std::string &launchInfo, const std::vector<void *> &rawArgs) {
-  // TODO: replace the launchInfo string with structured compilation-target
-  // information once it's captured upstream.
+static cudaq::KernelThunkResultType
+pyLaunchModule(const std::string &name, ModuleOp mod,
+               cudaq::CompiledModulePtr *compiled,
+               const std::vector<void *> &rawArgs) {
   bool is_cachable = [&]() {
-    // Must have a slot to read/write the cache from.
+    // Must have a slot to read/write the cache from. Callers opt out of the
+    // cache by passing nullptr.
     if (!compiled)
       return false;
     auto &platform = cudaq::get_platform();
     // Must be local simulator
     if (!platform.is_simulator() || platform.is_emulated())
-      return false;
-    // Must be a launch mode that supports caching
-    if (launchInfo.empty())
       return false;
     auto func = cudaq::getKernelFuncOp(mod, name);
     mlir::Type resultTy = cudaq::runtime::getReturnType(func);
@@ -707,14 +704,13 @@ static cudaq::KernelThunkResultType pyLaunchModule(
   }
 
   assert(compiled);
-  if (*compiled && (*compiled)->getMetadata().launchMode == launchInfo)
+  if (*compiled)
     return cudaq::streamlinedLaunchModule(**compiled, rawArgs);
 
   auto clone = mod.clone();
   auto jitted = cudaq::streamlinedCompileModule(name, clone, rawArgs, true);
   auto res = cudaq::streamlinedLaunchModule(jitted, rawArgs);
   *compiled = std::make_shared<cudaq::CompiledModule>(std::move(jitted));
-  (*compiled)->getMutableMetadata().launchMode = launchInfo;
   clone.erase();
   return res;
 }
@@ -925,9 +921,10 @@ appendResultToArgsVector(cudaq::OpaqueArguments &runtimeArgs, Type returnType,
   return runtimeArgs.getArgs();
 }
 
-cudaq::KernelThunkResultType cudaq::clean_launch_module(
-    const std::string &name, ModuleOp mod, cudaq::CompiledModulePtr *compiled,
-    const std::string &launchInfo, cudaq::OpaqueArguments &args) {
+cudaq::KernelThunkResultType
+cudaq::clean_launch_module(const std::string &name, ModuleOp mod,
+                           cudaq::CompiledModulePtr *compiled,
+                           cudaq::OpaqueArguments &args) {
   // Release the GIL for MLIR compilation and JIT. PyEval_SaveThread requires
   // the GIL to be held, so guard with PyGILState_Check. Async paths invoke
   // this from worker threads that never held the GIL.
@@ -938,7 +935,7 @@ cudaq::KernelThunkResultType cudaq::clean_launch_module(
   Type retTy = cudaq::runtime::getReturnType(kernelFunc);
   // Append space for a result, as needed, to the vector of arguments.
   auto rawArgs = appendResultToArgsVector(args, retTy, mod, name);
-  return pyLaunchModule(name, mod, compiled, launchInfo, rawArgs);
+  return pyLaunchModule(name, mod, compiled, rawArgs);
 }
 
 cudaq::OpaqueArguments cudaq::marshal_arguments_for_module_launch(
@@ -963,7 +960,6 @@ cudaq::OpaqueArguments cudaq::marshal_arguments_for_module_launch(
 nanobind::object
 cudaq::marshal_and_launch_module(const std::string &name, MlirModule module,
                                  cudaq::CompiledModulePtr *compiled,
-                                 const std::string &launchInfo,
                                  nanobind::args runtimeArgs) {
   // Marker span identifying every nested pass / scoped trace as part of the
   // JIT-time pipeline. Paired with the cudaq.pipeline.aot span emitted around
@@ -987,7 +983,7 @@ cudaq::marshal_and_launch_module(const std::string &name, MlirModule module,
   auto args = marshal_arguments_for_module_launch(mod, runtimeArgs, kernelFunc);
 
   [[maybe_unused]] auto resultPtr =
-      clean_launch_module(name, mod, compiled, launchInfo, args);
+      clean_launch_module(name, mod, compiled, args);
 
   if (!retTy)
     return nanobind::none();
