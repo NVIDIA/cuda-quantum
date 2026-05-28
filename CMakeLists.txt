@@ -89,6 +89,26 @@ if (NOT DEFINED CUDAQ_ENABLE_BRAKET_BACKEND)
   set(CUDAQ_ENABLE_BRAKET_BACKEND ON CACHE BOOL "Enable building AWS SDK for Amazon Braket backends.")
 endif()
 
+# Enable Anyon target by default.
+if (NOT DEFINED CUDAQ_ENABLE_ANYON_BACKEND)
+  set(CUDAQ_ENABLE_ANYON_BACKEND ON CACHE BOOL "Enable building the Anyon target.")
+endif()
+
+# Enable IonQ target by default.
+if (NOT DEFINED CUDAQ_ENABLE_IONQ_BACKEND)
+  set(CUDAQ_ENABLE_IONQ_BACKEND ON CACHE BOOL "Enable building the IonQ target.")
+endif()
+
+# Enable IQM target by default.
+if (NOT DEFINED CUDAQ_ENABLE_IQM_BACKEND)
+  set(CUDAQ_ENABLE_IQM_BACKEND ON CACHE BOOL "Enable building the IQM target.")
+endif()
+
+# Enable OQC target by default.
+if (NOT DEFINED CUDAQ_ENABLE_OQC_BACKEND)
+  set(CUDAQ_ENABLE_OQC_BACKEND ON CACHE BOOL "Enable building the OQC target.")
+endif()
+
 # Enable Pasqal target by default.
 if (NOT DEFINED CUDAQ_ENABLE_PASQAL_BACKEND)
   set(CUDAQ_ENABLE_PASQAL_BACKEND ON CACHE BOOL "Enable building the Pasqal target.")
