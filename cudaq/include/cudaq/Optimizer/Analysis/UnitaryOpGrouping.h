@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/SmallVector.h"
 #include "mlir/Support/TypeID.h"
 
@@ -49,7 +50,11 @@ private:
   void performAnalysis(mlir::Operation *operation);
   void scanRegion(mlir::Region &region);
   void scanBlock(mlir::Block &block);
+  void buildLookupTables();
 
   UnitaryOpGroups groups;
+  llvm::DenseMap<mlir::Operation *, unsigned> opToGroupIndex;
+  llvm::DenseMap<const mlir::Block *, llvm::SmallVector<unsigned>>
+      blockToGroupIndices;
 };
 } // namespace cudaq::quake::detail

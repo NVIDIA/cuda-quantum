@@ -53,6 +53,23 @@ flushGroupIfNonEmpty(cudaq::quake::detail::UnitaryOpGroups &groups,
 }
 } // namespace
 
+/// Maps 1) each unitary op to its corresponding group
+///      2) each block to a vector of group indices contained within that block
+///         - group indices are indices into the UnitaryOpGroups group vector
+void cudaq::quake::detail::UnitaryOpGroupingAnalysis::buildLookupTables() {
+  opToGroupIndex.clear();
+  blockToGroupIndices.clear();
+
+  for (auto indexedGroup : llvm::enumerate(groups)) {
+    unsigned groupIndex = static_cast<unsigned>(indexedGroup.index());
+    const UnitaryOpGroup &group = indexedGroup.value();
+
+    blockToGroupIndices[group.block].push_back(groupIndex);
+    for (Operation *op : group.ops)
+      opToGroupIndex.try_emplace(op, groupIndex);
+  }
+}
+
 const mlir::Block *
 cudaq::quake::detail::UnitaryOpGroupingAnalysis::getBlockForGroup(
     const UnitaryOpGroup &group) const {
@@ -62,36 +79,47 @@ cudaq::quake::detail::UnitaryOpGroupingAnalysis::getBlockForGroup(
 const cudaq::quake::detail::UnitaryOpGroup *
 cudaq::quake::detail::UnitaryOpGroupingAnalysis::getGroupContainingOp(
     mlir::Operation *op) const {
-  if (!op || !isUnitaryOp(op))
+  if (!op)
     return nullptr;
 
-  for (const UnitaryOpGroup &group : groups)
-    if (llvm::is_contained(group.ops, op))
-      return &group;
+  auto iter = opToGroupIndex.find(op);
+  if (iter == opToGroupIndex.end())
+    return nullptr;
 
-  return nullptr;
+  return &groups[iter->second];
 }
 
 llvm::SmallVector<const cudaq::quake::detail::UnitaryOpGroup *>
 cudaq::quake::detail::UnitaryOpGroupingAnalysis::getGroupsIn(
     const mlir::Block *block) const {
   llvm::SmallVector<const UnitaryOpGroup *> groupsInBlock;
-  for (const UnitaryOpGroup &group : groups) {
-    if (group.block == block)
-      groupsInBlock.push_back(&group);
-  }
+  if (!block)
+    return groupsInBlock;
+
+  auto iter = blockToGroupIndices.find(block);
+  if (iter == blockToGroupIndices.end())
+    return groupsInBlock;
+
+  for (unsigned groupIndex : iter->second)
+    groupsInBlock.push_back(&groups[groupIndex]);
+
   return groupsInBlock;
 }
 
 bool cudaq::quake::detail::UnitaryOpGroupingAnalysis::inSameGroup(
     mlir::Operation *op1, mlir::Operation *op2) const {
-  if (!op1 || !op2 || !isUnitaryOp(op1) || !isUnitaryOp(op2))
+  if (!op1 || !op2)
     return false;
 
-  const UnitaryOpGroup *group1 = getGroupContainingOp(op1);
-  const UnitaryOpGroup *group2 = getGroupContainingOp(op2);
+  auto group1 = opToGroupIndex.find(op1);
+  if (group1 == opToGroupIndex.end())
+    return false;
 
-  return group1 && group2 && group1 == group2;
+  auto group2 = opToGroupIndex.find(op2);
+  if (group2 == opToGroupIndex.end())
+    return false;
+
+  return group1->second == group2->second;
 }
 
 void cudaq::quake::detail::UnitaryOpGroupingAnalysis::scanBlock(Block &block) {
@@ -135,6 +163,8 @@ void cudaq::quake::detail::UnitaryOpGroupingAnalysis::performAnalysis(
   /// regions
   for (Region &region : funcOp->getRegions())
     scanRegion(region);
+
+  buildLookupTables();
 
   LLVM_DEBUG(llvm::dbgs() << "Found " << groups.size()
                           << " unitary group(s)\n");
