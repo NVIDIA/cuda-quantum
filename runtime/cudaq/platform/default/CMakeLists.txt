@@ -34,7 +34,7 @@ target_link_libraries(${LIBRARY_NAME}
   PUBLIC
     pthread cudaq-em-default cudaq-operator cudaq-common cudaq-logger
   PRIVATE
-     cudaq CUDAQTargetConfigUtil cudaq-qpu-default)
+     cudaq CUDAQTargetConfigYaml cudaq-qpu-default)
 
 install(TARGETS ${LIBRARY_NAME}
   EXPORT cudaq-platform-default-targets DESTINATION lib)
