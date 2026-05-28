@@ -13,6 +13,9 @@
 
 namespace cudaq {
 
+class ExecutionManager;
+class ExecutionContext;
+
 /// @brief Tag and options for computing expectation values.
 struct observe_policy {
   /// @brief The name of the policy.
@@ -23,6 +26,11 @@ struct observe_policy {
 
   /// Observe options.
   observe_options options;
+
+  friend observe_result
+  finalize_execution_manager_impl(ExecutionManager &mgr,
+                                  const observe_policy &policy,
+                                  ExecutionContext &ctx);
 };
 
 } // namespace cudaq
