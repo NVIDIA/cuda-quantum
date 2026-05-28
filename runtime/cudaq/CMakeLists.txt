@@ -72,7 +72,7 @@ if (CUDA_FOUND)
       nvqir
       fmt::fmt-header-only
       CUDA::cudart_static
-      CUDAQTargetConfigUtil
+      CUDAQTargetConfigYaml
   )
 
   target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_CUDA)
@@ -98,7 +98,7 @@ else()
       MLIRIR
       nvqir
       fmt::fmt-header-only
-      CUDAQTargetConfigUtil
+      CUDAQTargetConfigYaml
   )
 endif()
 

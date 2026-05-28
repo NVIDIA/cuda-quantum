@@ -140,8 +140,10 @@ private:
       if (auto alloc = dyn_cast<cudaq::cc::AllocaOp>(a))
         v = alloc.getResult();
       for (auto *u : a->getUsers()) {
-        // Don't convert quake.custom_op as it has ambiguous semantics.
-        if (isa<cudaq::quake::CustomUnitarySymbolOp>(u) ||
+        // Don't convert quake.custom unitary ops as they have ambiguous
+        // semantics.
+        if (isa<cudaq::quake::CustomUnitaryCallOp,
+                cudaq::quake::CustomUnitaryConstantOp>(u) ||
             (!isMemoryUse(u) && !nonEscapingDef(u, v))) {
           add = nullptr;
           break;

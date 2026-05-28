@@ -6,6 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+# Undoing the setting of CUDAQ_LIBRARY_MODE for the backends directory.
+get_directory_property(defs COMPILE_DEFINITIONS)
+list(REMOVE_ITEM defs CUDAQ_LIBRARY_MODE)
+set_directory_properties(PROPERTIES COMPILE_DEFINITIONS "${defs}")
+
+
 # List of libraries to link with by default to create a test executable
 set(default_backend_unittest_libs
   fmt::fmt-header-only

@@ -46,6 +46,10 @@ void ExecutionManager::configureExecutionContext(ExecutionContext &ctx) {
   nvqir::getCircuitSimulatorInternal()->configureExecutionContext(ctx);
 }
 
+void ExecutionManager::configureExecutionContext(const sample_policy &policy) {
+  nvqir::getCircuitSimulatorInternal()->configureExecutionContext(policy);
+}
+
 void ExecutionManager::finalizeExecutionContext(ExecutionContext &ctx) {
   policies::withPolicy(ctx.name, [&](auto policy) {
     policies::visitResult(

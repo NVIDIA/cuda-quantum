@@ -223,12 +223,12 @@ def __generalCustomOperation(self, opName, *args):
                 gen_vector_of_complex_constant(self.loc, self.module,
                                                globalName, unitary.tolist())
 
-        quake.CustomUnitarySymbolOp([],
-                                    generator=FlatSymbolRefAttr.get(globalName),
-                                    parameters=[],
-                                    controls=controls,
-                                    targets=targets,
-                                    is_adj=False)
+        quake.CustomUnitaryConstantOp([],
+                                      matrix=FlatSymbolRefAttr.get(globalName),
+                                      parameters=[],
+                                      controls=controls,
+                                      targets=targets,
+                                      is_adj=False)
         return
 
 
