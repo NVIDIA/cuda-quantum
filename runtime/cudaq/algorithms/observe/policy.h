@@ -15,6 +15,9 @@ namespace cudaq {
 
 /// @brief Tag and options for computing expectation values.
 struct observe_policy {
+  /// @brief The name of the policy.
+  static constexpr char name[] = "observe";
+
   /// Associated result type for synchronous APIs keyed off this policy.
   using result_type = observe_result;
 

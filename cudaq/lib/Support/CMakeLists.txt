@@ -20,4 +20,3 @@ add_mlir_library(CUDAQSupport
   MLIRIR
   )
 
-add_subdirectory(Config)

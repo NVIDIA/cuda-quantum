@@ -93,13 +93,12 @@ cudaq::sample_result sampleJitCode(ExecutionEngine *jit,
                                    const std::string &kernelName) {
   auto &p = cudaq::get_platform();
   return cudaq::details::runSampling(
-             [&]() {
-               auto err = jit->invokePacked(cudaq::runtime::cudaqGenPrefixName +
-                                            kernelName);
-               ASSERT_TRUE(!err);
-             },
-             p, kernelName, 1000, /*explicitMeasurements=*/false)
-      .value();
+      [&]() {
+        auto err =
+            jit->invokePacked(cudaq::runtime::cudaqGenPrefixName + kernelName);
+        ASSERT_TRUE(!err);
+      },
+      p, kernelName, 1000, /*explicitMeasurements=*/false);
 }
 
 /// @brief Run observation on the JIT compiled kernel function

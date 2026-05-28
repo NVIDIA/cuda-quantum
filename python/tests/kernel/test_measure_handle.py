@@ -26,16 +26,14 @@ def reset_run_clear():
 
 
 def test_host_construction_raises_runtime_error():
-    with pytest.raises(
-            RuntimeError,
-            match=r"^device-only; usable only inside @cudaq\.kernel$"):
+    with pytest.raises(RuntimeError,
+                       match="can be used only in CUDA-Q kernels"):
         cudaq.measure_handle()
 
 
 def test_host_to_bools_raises_runtime_error():
-    with pytest.raises(
-            RuntimeError,
-            match=r"^device-only; usable only inside @cudaq\.kernel$"):
+    with pytest.raises(RuntimeError,
+                       match="can be used only in CUDA-Q kernels"):
         cudaq.to_bools([])
 
 
@@ -339,6 +337,31 @@ def test_int_handle_in_arithmetic_promotes_through_bool():
     results = cudaq.run(k, shots_count=1)
     assert len(results) == 1
     assert results[0] == 2
+
+
+def test_handle_vector_issue_4527():
+
+    @cudaq.kernel
+    def k() -> int:
+        qv = cudaq.qvector(2)
+        combined = [cudaq.measure_handle() for _ in range(2)]
+        x(qv[0])
+        h0 = mz(qv[0])
+        h1 = mz(qv[1])
+        combined[0] = h0
+        combined[1] = h1
+        first = cudaq.to_integer(cudaq.to_bools(combined))
+        x(qv[0])
+        h2 = mz(qv[0])
+        h3 = mz(qv[1])
+        combined[0] = h2
+        combined[1] = h3
+        second = cudaq.to_integer(cudaq.to_bools(combined))
+        return first * 16 + second
+
+    results = cudaq.run(k, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 16
 
 
 # leave for gdb debugging

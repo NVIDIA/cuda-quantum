@@ -10,7 +10,7 @@
 #include "common/ExecutionContext.h"
 #include "common/RuntimeTarget.h"
 #include "common/Timing.h"
-#include "cudaq/Support/TargetConfigYaml.h"
+#include "cudaq/Target/TargetConfigYaml.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/runtime/logger/logger.h"
