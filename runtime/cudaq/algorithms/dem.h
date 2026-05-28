@@ -8,7 +8,6 @@
 
 #pragma once
 
-#include "common/PluginUtils.h"
 #include "cudaq/platform.h"
 #include <concepts>
 #include <functional>
@@ -19,38 +18,18 @@ namespace cudaq {
 class noise_model;
 } // namespace cudaq
 
+namespace cudaq::details {
+
+/// @brief Type-erased core of `dem_from_kernel`.
+std::string runDemFromKernel(const std::string &kernelName,
+                             cudaq::quantum_platform &platform,
+                             const cudaq::noise_model *noise,
+                             const std::function<void()> &wrappedKernel,
+                             const std::string &plugin_name = "stim");
+
+} // namespace cudaq::details
+
 namespace cudaq {
-
-namespace details {
-
-/// @brief Signature of the analysis-side entry point exposed by
-/// `libcudaq-analysis`.
-using DemFromKernelFn = std::string(const std::string &kernelName,
-                                    cudaq::quantum_platform &platform,
-                                    const cudaq::noise_model *noise,
-                                    const std::function<void()> &wrappedKernel,
-                                    const std::string &plugin_name);
-
-/// @brief Type-erased core of `dem_from_kernel`. Header-only inline body
-/// resolves `cudaq_getDemFromKernelFunc` on the first use, caches the returned
-/// function pointer in a function-local static, and forwards.
-inline std::string runDemFromKernel(const std::string &kernelName,
-                                    cudaq::quantum_platform &platform,
-                                    const cudaq::noise_model *noise,
-                                    const std::function<void()> &wrappedKernel,
-                                    std::string plugin_name = "stim") {
-  static DemFromKernelFn *fn = cudaq::getUniquePluginInstance<DemFromKernelFn>(
-      "cudaq_getDemFromKernelFunc",
-#if defined(__APPLE__)
-      "libcudaq-analysis.dylib"
-#else
-      "libcudaq-analysis.so"
-#endif
-  );
-  return fn(kernelName, platform, noise, wrappedKernel, plugin_name);
-}
-
-} // namespace details
 
 /// @brief Run DEM (Detector Error Model) analysis over a CUDA-Q kernel and
 /// return the resulting model as a UTF-8 string in Stim's standard

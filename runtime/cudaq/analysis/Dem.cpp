@@ -38,12 +38,6 @@ namespace cudaq::details {
 
 namespace {
 
-std::string runDemFromKernelImpl(const std::string &kernelName,
-                                 cudaq::quantum_platform &,
-                                 const cudaq::noise_model *noise,
-                                 const std::function<void()> &kernel,
-                                 std::string plugin_name);
-
 /// Serialize concurrent `dem_from_kernel` calls across threads.
 ///
 /// `nvqir::AnalysisScope` claims a thread-local slot, but the simulator
@@ -119,11 +113,13 @@ void withDemExecutionContext(cudaq::ExecutionContext &ctx,
   cudaq::detail::try_finally(std::forward<Callable>(callable), cleanup);
 }
 
-std::string runDemFromKernelImpl(const std::string &kernelName,
-                                 cudaq::quantum_platform &,
-                                 const cudaq::noise_model *noise,
-                                 const std::function<void()> &kernel,
-                                 std::string plugin_name) {
+} // namespace
+
+std::string runDemFromKernel(const std::string &kernelName,
+                             cudaq::quantum_platform &,
+                             const cudaq::noise_model *noise,
+                             const std::function<void()> &kernel,
+                             const std::string &plugin_name) {
 
   if (cudaq::kernelHasConditionalFeedback(kernelName))
     throw std::runtime_error(
@@ -153,7 +149,7 @@ std::string runDemFromKernelImpl(const std::string &kernelName,
 
     // RAII: scope releases the thread-local override on every exit path,
     // including exceptions thrown from the kernel.
-    auto demScope = nvqir::dem::make_scope(std::move(plugin_name));
+    auto demScope = nvqir::dem::make_scope(plugin_name);
 
     auto &recorder =
         dynamic_cast<nvqir::RecordedCircuit &>(demScope.simulator());
@@ -200,25 +196,4 @@ std::string runDemFromKernelImpl(const std::string &kernelName,
   return stimDem.str();
 }
 
-} // namespace
-
-/// External-linkage forwarder whose signature matches
-/// `cudaq::details::DemFromKernelFn` exactly. Its address is the function
-/// pointer that the C-linkage selector returns; the implementation itself
-/// stays in the anonymous namespace.
-std::string runDemFromKernelForExport(
-    const std::string &kernelName, cudaq::quantum_platform &platform,
-    const cudaq::noise_model *noise, const std::function<void()> &wrappedKernel,
-    const std::string &plugin_name) {
-  return runDemFromKernelImpl(kernelName, platform, noise, wrappedKernel,
-                              plugin_name);
-}
-
 } // namespace cudaq::details
-
-/// `extern "C"` selector returns a C++ function pointer so the header can call
-/// into the implementation without the indirected function itself needing C
-/// linkage.
-extern "C" cudaq::details::DemFromKernelFn *cudaq_getDemFromKernelFunc() {
-  return &cudaq::details::runDemFromKernelForExport;
-}
