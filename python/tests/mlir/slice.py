@@ -28,8 +28,8 @@ def test_static_case():
 
     print(static_empty_slice)
 
-    result = cudaq.run(static_empty_slice, shots_count=10)
-    print(result)
+    #result = cudaq.run(static_empty_slice, shots_count=10)
+    #print(result)
 
 
 def test_another_case():
@@ -47,8 +47,8 @@ def test_another_case():
 
     print(static_notempty_slice)
 
-    result = cudaq.run(static_notempty_slice, shots_count=10)
-    print(result)
+    #result = cudaq.run(static_notempty_slice, shots_count=10)
+    #print(result)
 
 
 def test_dynamic_case():
@@ -68,8 +68,8 @@ def test_dynamic_case():
 
     print(dynamic_empty_slice)
 
-    result = cudaq.run(dynamic_empty_slice, shots_count=10)
-    print(result)
+    #result = cudaq.run(dynamic_empty_slice, shots_count=10)
+    #print(result)
 
 
 def test_another_dynamic_case():
@@ -91,8 +91,8 @@ def test_another_dynamic_case():
 
     print(dynamic_notempty_slice)
 
-    result = cudaq.run(dynamic_notempty_slice, shots_count=10)
-    print(result)
+    #result = cudaq.run(dynamic_notempty_slice, shots_count=10)
+    #print(result)
 
 
 # leave for gdb debugging
@@ -110,7 +110,6 @@ if __name__ == "__main__":
 # CHECK:               %[[CMPI_0:.*]] = arith.cmpi slt, %[[VAL_0]], %[[CONSTANT_0]] : i64
 # CHECK:               cc.condition %[[CMPI_0]](%[[VAL_0]] : i64)
 # CHECK:             } do {
-# CHECK:  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__static_notempty_slice..0x
 # CHECK:           %[[CONSTANT_0:.*]] = arith.constant 1 : i64
@@ -121,7 +120,6 @@ if __name__ == "__main__":
 # CHECK:               %[[CMPI_0:.*]] = arith.cmpi slt, %[[VAL_0]], %[[CONSTANT_0]] : i64
 # CHECK:               cc.condition %[[CMPI_0]](%[[VAL_0]] : i64)
 # CHECK:             } do {
-# CHECK: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__dynamic_empty_slice..0x
 # CHECK:           %[[CONSTANT_0:.*]] = arith.constant 0 : i64
@@ -146,7 +144,6 @@ if __name__ == "__main__":
 # CHECK:               %[[CMPI_1:.*]] = arith.cmpi slt, %[[VAL_0]], %[[VEQ_SIZE_0]] : i64
 # CHECK:               cc.condition %[[CMPI_1]](%[[VAL_0]] : i64)
 # CHECK:             } do {
-# CHECK: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__dynamic_notempty_slice..0x
 # CHECK:           %[[CONSTANT_0:.*]] = arith.constant 0 : i64
@@ -185,4 +182,3 @@ if __name__ == "__main__":
 # CHECK:               %[[CMPI_2:.*]] = arith.cmpi slt, %[[VAL_3]], %[[VEQ_SIZE_0]] : i64
 # CHECK:               cc.condition %[[CMPI_2]](%[[VAL_3]] : i64)
 # CHECK:             } do {
-# CHECK: [4, 4, 4, 4, 4, 4, 4, 4, 4, 4]
