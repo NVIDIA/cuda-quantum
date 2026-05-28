@@ -108,7 +108,9 @@ bool cudaq::quake::detail::UnitaryOpGroupingAnalysis::inSameGroup(
 
 /// Scan a single block and form groups from maximal contiguous runs of
 /// unitary operations. Any non-unitary operation terminates the current run,
-/// but it is not added to a group itself.
+/// but it is not added to a group itself. If that non-unitary operation owns
+/// nested regions, those regions are scanned immediately after the current
+/// block-local run is flushed.
 void cudaq::quake::detail::UnitaryOpGroupingAnalysis::scanBlock(Block &block) {
   llvm::SmallVector<Operation *> currUnitaryOps;
 
@@ -119,25 +121,23 @@ void cudaq::quake::detail::UnitaryOpGroupingAnalysis::scanBlock(Block &block) {
     }
 
     flushGroupIfNonEmpty(block, currUnitaryOps);
+
+    // Nested regions, such as cc.if branches or cc.loop bodies, are scanned as
+    // independent regions at the parent op boundary; this prevents groups
+    // across the parent control-flow op.
+    for (Region &nestedRegion : op.getRegions())
+      scanRegion(nestedRegion);
   }
 
   flushGroupIfNonEmpty(block, currUnitaryOps);
 }
 
-/// Scan every block in a region, then recursively scan nested regions owned by
-/// operations in those blocks. Nested regions are analyzed independently, so
-/// groups are never formed across parent/child region boundaries.
+/// Scan every block in a region. Nested regions are reached from scanBlock when
+/// their owning operation is encountered.
 void cudaq::quake::detail::UnitaryOpGroupingAnalysis::scanRegion(
     Region &region) {
-  for (Block &block : region) {
+  for (Block &block : region)
     scanBlock(block);
-
-    // Nested regions, such as cc.if branches or cc.loop bodies, are scanned as
-    // independent blocks. MVP 1 never groups across the parent control-flow op.
-    for (Operation &op : block)
-      for (Region &nestedRegion : op.getRegions())
-        scanRegion(nestedRegion);
-  }
 }
 
 void cudaq::quake::detail::UnitaryOpGroupingAnalysis::performAnalysis(
