@@ -21,7 +21,6 @@
 
 using namespace mlir;
 
-namespace {
 static bool isUnitaryOp(Operation *op) {
   return op->hasTrait<cudaq::QuantumGate>() && !isa<cudaq::quake::ResetOp>(op);
 }
@@ -51,7 +50,6 @@ flushGroupIfNonEmpty(cudaq::quake::detail::UnitaryOpGroups &groups,
   groups.push_back(std::move(group));
   currUnitaryOps.clear();
 }
-} // namespace
 
 /// Maps 1) each unitary op to its corresponding group
 ///      2) each block to a vector of group indices contained within that block
