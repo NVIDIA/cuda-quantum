@@ -3442,6 +3442,16 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     if (isVectorOfQubitRefs)
       return true;
     if (ctorName == "complex") {
+      // `_Complex T` is not modeled; only handle `complex<T>(re, im)`.
+      if (x->getNumArgs() != 2 || valueStack.size() < 2) {
+        reportClangError(
+            x, mangler,
+            "unsupported std::complex constructor; for imaginary literals "
+            "such as `1.0i`, add `using namespace std::complex_literals;` so "
+            "the literal has type std::complex<double>");
+        raisedError = true;
+        return false;
+      }
       Value imag = popValue();
       Value real = popValue();
       return pushValue(mlir::complex::CreateOp::create(
