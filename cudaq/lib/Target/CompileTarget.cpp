@@ -52,7 +52,11 @@ cudaq::CompileTarget::CompileTarget(
     return;
 
   const auto &backendConfig = *targetConfig.BackendConfig;
-  pipelineConfig.hasConfiguredPassPipeline = backendConfig.hasPassPipeline();
+  if (!backendConfig.hasPassPipeline()) {
+    // TODO: this means that Remote QPUs with no customisation at all will not
+    // run ANY passes. Is this okay?
+    pipelineConfig.skipTargetLoweringPipeline = true;
+  }
 
   auto prepPipeline = [&](const std::string &stage,
                           const std::string &stageName) {
@@ -65,11 +69,9 @@ cudaq::CompileTarget::CompileTarget(
   };
 
   if (!backendConfig.TargetPassPipeline.empty()) {
-    pipelineConfig.runsStandardFinalize = false;
     pipelineConfig.overridePassPipeline = prepPipeline(
         backendConfig.TargetPassPipeline, "Pass pipeline (overridden)");
   } else {
-    pipelineConfig.runsStandardFinalize = true;
     pipelineConfig.highLevelPipeline =
         prepPipeline(backendConfig.JITHighLevelPipeline, "JIT high level");
     pipelineConfig.midLevelPipeline =
