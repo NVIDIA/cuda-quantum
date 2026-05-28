@@ -153,14 +153,15 @@ protected:
 
   cudaq::sample_result
   finalizeExecutionContext(const cudaq::sample_policy &policy) override {
-    return cudaq::sample_result();
+    throw std::runtime_error(fmt::format(
+        "[dynamics target] {} policy is not supported.", policy.name));
   }
 
   cudaq::observe_result
-  finalizeExecutionContext(const cudaq::observe_policy &,
+  finalizeExecutionContext(const cudaq::observe_policy &policy,
                            cudaq::ExecutionContext &ctx) override {
-    finalizeExecutionContextImpl(ctx);
-    return cudaq::observe_result();
+    throw std::runtime_error(fmt::format(
+        "[dynamics target] {} policy is not supported.", policy.name));
   }
 
   void finalizeExecutionContext(const cudaq::other_policies &policy,

@@ -1049,7 +1049,7 @@ protected:
           results.emplace_back(data.to_map(), term.get_term_id(), exp);
           sum += term.evaluate_coefficient().real() * exp;
         }
-      };
+      }
 
       auto data = cudaq::sample_result(sum, results);
       return cudaq::observe_result(sum, H, data);

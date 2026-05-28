@@ -12,7 +12,6 @@
 #include "nvqir/CircuitSimulator.h"
 #include "cudaq/algorithms/policy_cpos.h"
 #include "cudaq/algorithms/policy_dispatch.h"
-#include <stdexcept>
 
 using namespace cudaq;
 
