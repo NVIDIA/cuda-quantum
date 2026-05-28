@@ -106,6 +106,9 @@ bool cudaq::quake::detail::UnitaryOpGroupingAnalysis::inSameGroup(
   return group1->second == group2->second;
 }
 
+/// Scan a single block and form groups from maximal contiguous runs of
+/// unitary operations. Any non-unitary operation terminates the current run,
+/// but it is not added to a group itself.
 void cudaq::quake::detail::UnitaryOpGroupingAnalysis::scanBlock(Block &block) {
   llvm::SmallVector<Operation *> currUnitaryOps;
 
@@ -121,6 +124,9 @@ void cudaq::quake::detail::UnitaryOpGroupingAnalysis::scanBlock(Block &block) {
   flushGroupIfNonEmpty(block, currUnitaryOps);
 }
 
+/// Scan every block in a region, then recursively scan nested regions owned by
+/// operations in those blocks. Nested regions are analyzed independently, so
+/// groups are never formed across parent/child region boundaries.
 void cudaq::quake::detail::UnitaryOpGroupingAnalysis::scanRegion(
     Region &region) {
   for (Block &block : region) {
