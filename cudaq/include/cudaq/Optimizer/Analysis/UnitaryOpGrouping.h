@@ -54,10 +54,10 @@ struct UnitaryOpGroupingAnalysis {
   /// Return the block that contains \p group.
   const mlir::Block *getBlockForGroup(const UnitaryOpGroup &group) const;
 
-  /// Return the group containing \p op, or nullptr if \p op is not grouped.
+  /// Return the group containing \p op, or `nullptr` if \p op is not grouped.
   ///
   /// Non-unitary operations, null operations, and operations from outside the
-  /// analyzed function return nullptr.
+  /// analyzed function return `nullptr`.
   const UnitaryOpGroup *getGroupContainingOp(mlir::Operation *op) const;
 
   /// Return the unitary groups contained in \p block.
