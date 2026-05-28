@@ -36,8 +36,6 @@ flushGroupIfNonEmpty(cudaq::quake::detail::UnitaryOpGroups &groups,
 
   cudaq::quake::detail::UnitaryOpGroup group;
   group.block = &block;
-  group.firstOp = currUnitaryOps.front();
-  group.lastOp = currUnitaryOps.back();
   group.ops.append(currUnitaryOps.begin(), currUnitaryOps.end());
 
   LLVM_DEBUG(llvm::dbgs() << "Found unitary group with " << group.ops.size()

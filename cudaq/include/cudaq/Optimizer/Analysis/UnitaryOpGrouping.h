@@ -23,8 +23,6 @@ struct UnitaryOpGroup {
   UnitaryOpGroup() = default;
 
   mlir::Block *block = nullptr;
-  mlir::Operation *firstOp = nullptr;
-  mlir::Operation *lastOp = nullptr;
   llvm::SmallVector<mlir::Operation *> ops;
 };
 
