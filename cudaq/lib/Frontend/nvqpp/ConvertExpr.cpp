@@ -1447,6 +1447,66 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     }
   }
 
+  // Intercept `std::vector<measure_handle>::operator=` before the generic
+  // `vector` member-function dispatch below (which would `popValue` the
+  // `this` slot, load it eagerly, and then fall through to the TODO at the
+  // bottom). Issue #4601: without this intercept, `prev = curr;` in a kernel
+  // crashes `cudaq-quake`.
+  //
+  // Only the lvalue-RHS form is handled here (`prev = curr;`, the pattern in
+  // the issue's loop reproducer). The RHS arrives as a pointer to the slot
+  // holding the descriptor; we deep-copy its buffer via
+  // `__nvqpp_vectorCopyCtor` and store a fresh descriptor into the LHS slot.
+  // The deep copy is required because (per PR #4573 review) the RHS buffer
+  // may go out of scope before the LHS does. The rvalue-RHS form
+  // (`prev = mz(qv);`) is not supported: clang descends into libstdc++'s
+  // `vector::operator=(vector&&)` body and trips on its constexpr
+  // `_S_nothrow_move()` dispatch helper, which is a pre-existing limitation
+  // of the bridge unrelated to `measure_handle`.
+  if (isInClassInNamespace(func, "vector", "std")) {
+    if (auto *md = dyn_cast<clang::CXXMethodDecl>(func);
+        md && md->getOverloadedOperator() == clang::OO_Equal &&
+        valueStack.size() >= 3) {
+      // Stack order is [callee, thisPtr, rhs]. Peek the `this` slot's type
+      // without consuming the stack so non-`measure_handle` element types
+      // fall through to the generic dispatch.
+      Value thisTop = valueStack[valueStack.size() - 2];
+      auto thisPtrTy = dyn_cast<cc::PointerType>(thisTop.getType());
+      auto lhsStdvecTy =
+          thisPtrTy ? dyn_cast<cc::StdvecType>(thisPtrTy.getElementType())
+                    : cc::StdvecType();
+      if (lhsStdvecTy &&
+          isa<cc::MeasureHandleType>(lhsStdvecTy.getElementType())) {
+        Value rhs = popValue();
+        Value thisVal = popValue();
+        [[maybe_unused]] auto calleeOp = popValue();
+        if (!isa<cc::PointerType>(rhs.getType()))
+          TODO_loc(loc,
+                   "assignment to std::vector<measure_handle> from an rvalue");
+        auto irBuilder = cudaq::IRBuilder::atBlockEnd(module.getBody());
+        if (failed(irBuilder.loadIntrinsic(module, "__nvqpp_vectorCopyCtor")))
+          module.emitError("failed to load intrinsic");
+        Value rhsDescr = cc::LoadOp::create(builder, loc, rhs);
+        auto i8PtrTy = cc::PointerType::get(builder.getI8Type());
+        Value srcData =
+            cc::StdvecDataOp::create(builder, loc, i8PtrTy, rhsDescr);
+        Value size = cc::StdvecSizeOp::create(builder, loc,
+                                              builder.getI64Type(), rhsDescr);
+        IRBuilder irb(builder);
+        Value eltSize =
+            irb.getByteSizeOfType(loc, lhsStdvecTy.getElementType());
+        Value heap = func::CallOp::create(builder, loc, i8PtrTy,
+                                          "__nvqpp_vectorCopyCtor",
+                                          ValueRange{srcData, size, eltSize})
+                         .getResult(0);
+        Value newDescr = cc::StdvecInitOp::create(builder, loc, lhsStdvecTy,
+                                                  ValueRange{heap, size});
+        cc::StoreOp::create(builder, loc, newDescr, thisVal);
+        return pushValue(thisVal);
+      }
+    }
+  }
+
   // Dealing with our std::vector as a view data structures. If we have some θ
   // with the type `std::vector<double/float/int>`, and in the kernel, θ.size()
   // is called, we need to convert that to loading the size field of the pair.

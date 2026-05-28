@@ -18,7 +18,7 @@
 #include "cudaq_internal/compiler/JIT.h"
 #include "nvqir/AnalysisScope.h"
 #include "nvqir/resourcecounter/ResourceCounterScope.h"
-#include "cudaq/Support/TargetConfig.h"
+#include "cudaq/Target/TargetConfig.h"
 #include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/platform/platform_iface.h"
 #include "cudaq/platform/qpu.h"

@@ -19,7 +19,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/InitAllDialects.h"
 #include "cudaq/Optimizer/InitAllPasses.h"
-#include "cudaq/Support/TargetConfig.h"
+#include "cudaq/Target/TargetConfig.h"
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
 #include "cudaq/Verifier/QIRSpec.h"
 #include "cudaq/runtime/logger/cudaq_fmt.h"

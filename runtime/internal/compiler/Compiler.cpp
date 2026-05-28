@@ -26,7 +26,7 @@
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Optimizer/Transforms/ResourceCount.h"
-#include "cudaq/Support/TargetConfig.h"
+#include "cudaq/Target/TargetConfig.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/Bitcode/BitcodeReader.h"
