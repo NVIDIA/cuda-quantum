@@ -143,20 +143,6 @@ if(NOT TARGET cudaq::cudaq)
     include("${CUDAQ_CMAKE_DIR}/CUDAQTargets.cmake")
 endif()
 
-foreach(_cudaq_config DEBUG RELEASE RELWITHDEBINFO MINSIZEREL NOCONFIG)
-  get_target_property(_cudaq_link_deps cudaq::cudaq
-    IMPORTED_LINK_DEPENDENT_LIBRARIES_${_cudaq_config})
-  if (_cudaq_link_deps MATCHES "cudaq::cudaq-realtime" AND
-      NOT TARGET cudaq::cudaq-realtime)
-    message(FATAL_ERROR
-      "This CUDA-Q install was built with realtime support, but the "
-      "cudaq-realtime package was not found. Set CUDAQ_REALTIME_DIR to the "
-      "installed realtime prefix or add it to CMAKE_PREFIX_PATH.")
-  endif()
-endforeach()
-unset(_cudaq_config)
-unset(_cudaq_link_deps)
-
 function(cudaq_set_target TARGETNAME)
   message(STATUS "CUDA Quantum Target = ${TARGETNAME}")
   target_link_libraries(cudaq::cudaq INTERFACE cudaq::cudaq-${TARGETNAME}-target)
