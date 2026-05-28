@@ -10,6 +10,7 @@
 #include "CuDensityMatContext.h"
 #include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatState.h"
+#include "ObserveResult.h"
 #include "common/FmtCore.h"
 #include "cudaq/cudaq_mpi.h"
 #include "cudaq/distributed/mpi_plugin.h"
@@ -153,6 +154,13 @@ protected:
   cudaq::sample_result
   finalizeExecutionContext(const cudaq::sample_policy &policy) override {
     return cudaq::sample_result();
+  }
+
+  cudaq::observe_result
+  finalizeExecutionContext(const cudaq::observe_policy &,
+                           cudaq::ExecutionContext &ctx) override {
+    finalizeExecutionContextImpl(ctx);
+    return cudaq::observe_result();
   }
 
   void finalizeExecutionContext(const cudaq::other_policies &policy,

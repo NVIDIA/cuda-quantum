@@ -12,6 +12,7 @@
 #include "nvqir/CircuitSimulator.h"
 #include "cudaq/algorithms/policy_cpos.h"
 #include "cudaq/algorithms/policy_dispatch.h"
+#include <stdexcept>
 
 using namespace cudaq;
 
@@ -55,6 +56,10 @@ void ExecutionManager::finalizeExecutionContext(ExecutionContext &ctx) {
     policies::visitResult(
         [&]() { return cudaq::finalize_execution_manager(*this, policy, ctx); },
         [&](sample_result &&r) { ctx.result = std::move(r); },
+        [&](observe_result &&r) {
+          ctx.result = r.raw_data();
+          ctx.expectationValue = r.expectation();
+        },
         [&](policies::void_result &&r) {});
   });
 }

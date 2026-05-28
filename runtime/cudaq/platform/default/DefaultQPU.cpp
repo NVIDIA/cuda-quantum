@@ -78,7 +78,5 @@ void cudaq::DefaultQPU::finalizeExecutionContext(
   ScopedTraceWithContext(context.name == "observe" ? TIMING_OBSERVE : 0,
                          "DefaultPlatform::finalizeExecutionContext",
                          context.name);
-  handleObservation(context);
-
   getExecutionContext()->executionManager->finalizeExecutionContext(context);
 }
