@@ -59,25 +59,3 @@ bool cudaq::config::BackendEndConfigEntry::hasPassPipeline() const {
   return !TargetPassPipeline.empty() || !JITHighLevelPipeline.empty() ||
          !JITMidLevelPipeline.empty() || !JITLowLevelPipeline.empty();
 }
-
-std::string cudaq::config::BackendEndConfigEntry::getPassPipeline(
-    std::string_view deployStage, std::string_view finalizeStage) const {
-  if (!TargetPassPipeline.empty())
-    return TargetPassPipeline;
-
-  std::string pipeline;
-  auto append = [&](std::string_view stage) {
-    if (stage.empty())
-      return;
-    if (!pipeline.empty())
-      pipeline += ",";
-    pipeline += stage;
-  };
-
-  append(JITHighLevelPipeline);
-  append(deployStage);
-  append(JITMidLevelPipeline);
-  append(finalizeStage);
-  append(JITLowLevelPipeline);
-  return pipeline;
-}
