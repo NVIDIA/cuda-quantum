@@ -625,7 +625,7 @@ struct R1ToU3
                                 PatternRewriter &rewriter) const override {
     // Dijkstra selects concrete source variants such as r1(1) from this
     // pattern's r1(n) metadata. Only rewrite variants selected for this pass.
-    if (!this->sourceOpEnabled("r1", cudaq::getKnownNumControls(r1Op)))
+    if (!isEnabled(cudaq::getKnownNumControls(r1Op)))
       return failure();
 
     Location loc = r1Op->getLoc();
@@ -819,7 +819,7 @@ struct SToR1
   LogicalResult matchAndRewrite(cudaq::quake::SOp op,
                                 PatternRewriter &rewriter) const override {
     std::optional<std::size_t> numControls = cudaq::getKnownNumControls(op);
-    if (!this->sourceOpEnabled("s", numControls))
+    if (!isEnabled(numControls))
       return failure();
 
     // Op info
@@ -913,7 +913,7 @@ struct TToR1
   LogicalResult matchAndRewrite(cudaq::quake::TOp op,
                                 PatternRewriter &rewriter) const override {
     std::optional<std::size_t> numControls = cudaq::getKnownNumControls(op);
-    if (!this->sourceOpEnabled("t", numControls))
+    if (!isEnabled(numControls))
       return failure();
 
     // Op info
@@ -1859,7 +1859,7 @@ struct U3ToRotations : public cudaq::DecompositionPattern<U3ToRotationsType,
 
   LogicalResult matchAndRewrite(cudaq::quake::U3Op op,
                                 PatternRewriter &rewriter) const override {
-    if (!this->sourceOpEnabled("u3", cudaq::getKnownNumControls(op)))
+    if (!isEnabled(cudaq::getKnownNumControls(op)))
       return failure();
 
     // Op info

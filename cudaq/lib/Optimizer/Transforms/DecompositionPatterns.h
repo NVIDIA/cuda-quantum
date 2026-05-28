@@ -153,44 +153,25 @@ public:
       : mlir::OpRewritePattern<Op>(context, benefit) {}
 
   DecompositionPattern(mlir::MLIRContext *context, mlir::PatternBenefit benefit,
-                       llvm::ArrayRef<std::string> enabledSourceOps)
+                       llvm::ArrayRef<std::size_t> disabledControlCounts)
       : mlir::OpRewritePattern<Op>(context, benefit),
-        enabledSourceOps(enabledSourceOps.begin(), enabledSourceOps.end()) {}
+        disabledControlCounts(disabledControlCounts.begin(),
+                              disabledControlCounts.end()) {}
 
   /// Set the debug name to the registered name
   void initialize() { this->setDebugName(PatternType().getPatternName()); }
 
 protected:
-  bool sourceOpEnabled(llvm::StringRef sourceOp) const {
-    return enabledSourceOps.empty() ||
-           llvm::is_contained(enabledSourceOps, sourceOp);
-  }
-
-  /// Check selected source variants for a possibly controlled gate.
-  /// Patterns with source variants such as `g`, `g(1)`, and `g(n)` should use
-  /// this helper so `matchAndRewrite` follows the decomposition graph result.
-  /// Source `g(n)` means controlled forms of any arity. It intentionally does
-  /// not match bare `g`.
-  bool sourceOpEnabled(llvm::StringRef bareSourceOp,
-                       std::optional<std::size_t> numControls) const {
-    if (numControls.has_value() && *numControls == 0)
-      return sourceOpEnabled(bareSourceOp);
-
-    std::string sourcePrefix = bareSourceOp.str();
-    std::string unboundedSource = sourcePrefix + "(n)";
-    if (!numControls)
-      return sourceOpEnabled(unboundedSource);
-
-    if (*numControls == 0)
-      return sourceOpEnabled(bareSourceOp);
-
-    std::string concreteSource =
-        sourcePrefix + "(" + std::to_string(*numControls) + ")";
-    return sourceOpEnabled(unboundedSource) || sourceOpEnabled(concreteSource);
+  /// Check if a pattern is enabled for a given number of controls.
+  bool isEnabled(std::optional<std::size_t> numControls) const {
+    return std::find(
+               disabledControlCounts.begin(), disabledControlCounts.end(),
+               numControls.value_or(std::numeric_limits<std::size_t>::max())) ==
+           disabledControlCounts.end();
   }
 
 private:
-  std::vector<std::string> enabledSourceOps;
+  std::vector<std::size_t> disabledControlCounts;
 };
 
 /// Select subset of patterns relevant to decomposing to the given target basis.
