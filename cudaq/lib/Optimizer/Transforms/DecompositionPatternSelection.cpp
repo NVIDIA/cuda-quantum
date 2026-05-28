@@ -363,9 +363,9 @@ private:
 
     /// Compute the maximum distance from a pattern's targets to the basis
     /// gates.
-    auto getPatternDist = [&](const auto &pattern) {
+    auto getPatternDist = [&](const auto &variant) {
       std::size_t maxDistance = 0;
-      for (const auto &targetGate : pattern->getTargetOps())
+      for (const auto &targetGate : variant.targetOps)
         maxDistance = std::max(maxDistance, findGateDist(targetGate));
       return maxDistance;
     };
@@ -389,11 +389,12 @@ private:
           continue;
         }
         const auto &pattern = getPatternType(patternName);
-        std::size_t dist = getPatternDist(pattern);
-        if (dist < UNBOUNDED) {
-          for (const auto &sourceOp : pattern->backpropagate(gate))
-            if (!isBasisGate(sourceOp) && !visitedGates.contains(sourceOp))
-              gatesToVisit.push({sourceOp, dist + 1, patternName});
+        for (const auto &variant : pattern->findCoveringVariants(gate)) {
+          std::size_t dist = getPatternDist(variant);
+          auto sourceOp = variant.sourceOp;
+          if (dist < UNBOUNDED && !isBasisGate(sourceOp) &&
+              !visitedGates.contains(sourceOp))
+            gatesToVisit.push({sourceOp, dist + 1, patternName});
         }
       }
     }
@@ -478,14 +479,15 @@ cudaq::DecompositionPatternType::DecompositionPatternType(
   }
 }
 
-llvm::SmallVector<cudaq::detail::OperatorInfo>
-cudaq::DecompositionPatternType::backpropagate(
+llvm::SmallVector<cudaq::DecompositionPatternVariant>
+cudaq::DecompositionPatternType::findCoveringVariants(
     const cudaq::detail::OperatorInfo &targetGate) const {
-  llvm::SmallVector<cudaq::detail::OperatorInfo> result;
+  llvm::SmallVector<DecompositionPatternVariant> result;
   for (const auto &variant : variants) {
     for (const auto &targetOp : variant.targetOps) {
       if (targetOp.covers(targetGate)) {
-        result.push_back(variant.sourceOp);
+        result.push_back(variant);
+        break;
       }
     }
   }

@@ -105,13 +105,9 @@ public:
     return targetOps;
   }
 
-  /// Backpropagate the possible source operations for a given target operation
-  /// according to the pattern variants.
-  ///
-  /// The returned operations will all be of the same type, but may differ in
-  /// the number of controls.
-  llvm::SmallVector<detail::OperatorInfo>
-  backpropagate(const detail::OperatorInfo &targetGate) const;
+  /// Return all variants that could emit the given target gate.
+  llvm::SmallVector<DecompositionPatternVariant>
+  findCoveringVariants(const detail::OperatorInfo &targetGate) const;
 
   /// Get the name of the pattern.
   virtual llvm::StringRef getPatternName() const = 0;
