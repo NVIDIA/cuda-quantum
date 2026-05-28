@@ -9,6 +9,8 @@
 #pragma once
 
 #include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.h"
+#include <cstddef>
+#include <llvm/ADT/SmallVector.h>
 #define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/STLExtras.h"
@@ -56,11 +58,6 @@ struct OperatorInfo {
 
   /// Check if this gate covers another gate.
   bool covers(const OperatorInfo &other) const;
-
-  /// Check if this basis entry makes another gate legal, matching
-  /// ConversionTarget semantics. A concrete basis entry does not make an
-  /// unbounded source pattern legal.
-  bool makesLegal(const OperatorInfo &other) const { return covers(other); }
 };
 } // namespace detail
 
@@ -97,33 +94,24 @@ struct DecompositionPatternVariant {
 class DecompositionPatternType {
 public:
   using RegistryType = llvm::Registry<DecompositionPatternType>;
-  DecompositionPatternType(std::vector<DecompositionPatternVariant> variants_)
-      : variants(std::move(variants_)) {
-    for (const auto &variant : variants) {
-      auto join = sourceOp.join(variant.sourceOp);
-      assert(join.has_value() &&
-             "all source ops of pattern variants must be joinable");
-      sourceOp = *join;
-
-      // Join all target ops of variants together. This is quadratic in the
-      // number of target ops, but realistically there won't be >10 of those.
-      for (const auto &targetOp : variant.targetOps) {
-        bool inserted = false;
-        for (auto &existingTargetOp : targetOps) {
-          auto join = existingTargetOp.join(targetOp);
-          if (join.has_value()) {
-            existingTargetOp = *join;
-            inserted = true;
-            break;
-          }
-        }
-        if (!inserted) {
-          targetOps.push_back(targetOp);
-        }
-      }
-    }
-  }
+  DecompositionPatternType(std::vector<DecompositionPatternVariant> variants_);
   virtual ~DecompositionPatternType() = default;
+
+  /// Get the source operation this pattern matches and decomposes.
+  const detail::OperatorInfo &getSourceOp() const { return sourceOp; }
+
+  /// Get the target operations this pattern may produce
+  const std::vector<detail::OperatorInfo> &getTargetOps() const {
+    return targetOps;
+  }
+
+  /// Backpropagate the possible source operations for a given target operation
+  /// according to the pattern variants.
+  ///
+  /// The returned operations will all be of the same type, but may differ in
+  /// the number of controls.
+  llvm::SmallVector<detail::OperatorInfo>
+  backpropagate(const detail::OperatorInfo &targetGate) const;
 
   /// Get the name of the pattern.
   virtual llvm::StringRef getPatternName() const = 0;
@@ -131,7 +119,7 @@ public:
   /// Create a new instance of the pattern.
   virtual std::unique_ptr<mlir::RewritePattern>
   create(mlir::MLIRContext *context, mlir::PatternBenefit benefit = 1,
-         llvm::ArrayRef<std::string> enabledSourceOps = {}) const = 0;
+         llvm::ArrayRef<std::size_t> disabledControlCounts = {}) const = 0;
 
 private:
   std::vector<DecompositionPatternVariant> variants;

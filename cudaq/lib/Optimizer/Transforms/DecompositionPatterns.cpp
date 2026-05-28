@@ -342,9 +342,9 @@ static LogicalResult checkAndExtractControls(cudaq::quake::OperatorInterface op,
     llvm::StringRef getPatternName() const override { return #PATTERN; }       \
     std::unique_ptr<mlir::RewritePattern>                                      \
     create(mlir::MLIRContext *context, mlir::PatternBenefit benefit = 1,       \
-           llvm::ArrayRef<std::string> enabledSourceOps = {}) const override { \
+           llvm::ArrayRef<std::size_t> disabledCtrlCnts = {}) const override { \
       std::unique_ptr<mlir::RewritePattern> pattern =                          \
-          RewritePattern::create<PATTERN>(context, benefit, enabledSourceOps); \
+          RewritePattern::create<PATTERN>(context, benefit, disabledCtrlCnts); \
       return pattern;                                                          \
     }                                                                          \
   };                                                                           \

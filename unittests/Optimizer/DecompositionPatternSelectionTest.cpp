@@ -30,19 +30,22 @@
 using namespace mlir;
 
 namespace {
+
+using OperatorInfo = cudaq::detail::OperatorInfo;
+
 /// A mock pattern class
 class PatternTest : public mlir::RewritePattern {
 public:
   PatternTest(llvm::StringRef patternName,
-              llvm::ArrayRef<std::string> enabledSourceOps,
+              llvm::ArrayRef<std::size_t> disabledControlCounts,
               MLIRContext *context)
       : mlir::RewritePattern(patternName, 0, context, {}),
-        enabledSourceOps(enabledSourceOps) {
+        disabledControlCounts(disabledControlCounts) {
     setDebugName(patternName);
   }
 
-  llvm::ArrayRef<std::string> getEnabledSourceOps() const {
-    return enabledSourceOps;
+  llvm::ArrayRef<std::size_t> getDisabledControlCounts() const {
+    return disabledControlCounts;
   }
 
   LogicalResult matchAndRewrite(Operation *op,
@@ -51,7 +54,7 @@ public:
   }
 
 private:
-  std::vector<std::string> enabledSourceOps;
+  std::vector<std::size_t> disabledControlCounts;
 };
 
 /// A mock pattern type for testing.
@@ -59,30 +62,26 @@ class PatternTypeTest : public cudaq::DecompositionPatternType {
 public:
   PatternTypeTest(llvm::StringRef patternName, llvm::StringRef sourceOp,
                   std::vector<llvm::StringRef> targetOps)
-      : patternName(patternName),
-        variants{cudaq::DecompositionPatternVariant(sourceOp, targetOps)} {}
+      : cudaq::DecompositionPatternType(
+            {cudaq::DecompositionPatternVariant(sourceOp, targetOps)}),
+        patternName(patternName) {}
 
   PatternTypeTest(llvm::StringRef patternName,
                   std::vector<cudaq::DecompositionPatternVariant> variants)
-      : patternName(patternName), variants(std::move(variants)) {}
-
-  llvm::ArrayRef<cudaq::DecompositionPatternVariant>
-  getVariants() const override {
-    return variants;
-  }
+      : cudaq::DecompositionPatternType(std::move(variants)),
+        patternName(patternName) {}
 
   llvm::StringRef getPatternName() const override { return patternName; }
 
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context, mlir::PatternBenefit benefit = 1,
-         llvm::ArrayRef<std::string> enabledSourceOps = {}) const override {
-    return std::make_unique<PatternTest>(patternName, enabledSourceOps,
+  std::unique_ptr<mlir::RewritePattern> create(
+      mlir::MLIRContext *context, mlir::PatternBenefit benefit = 1,
+      llvm::ArrayRef<std::size_t> disabledControlCounts = {}) const override {
+    return std::make_unique<PatternTest>(patternName, disabledControlCounts,
                                          context);
   };
 
 private:
   llvm::StringRef patternName;
-  std::vector<cudaq::DecompositionPatternVariant> variants;
 };
 
 /// Create a test decomposition graph with the following patterns. The arrow
@@ -246,20 +245,17 @@ protected:
     return selectedPatterns;
   }
 
-  std::vector<std::string>
-  selectedSourceOps(const std::vector<std::string> &targetBasis,
-                    llvm::StringRef selectedPatternName) {
+  std::unique_ptr<PatternTest>
+  constructPattern(const std::vector<std::string> &targetBasis,
+                   llvm::StringRef selectedPatternName) {
     std::unordered_set<OperatorInfo> operatorInfoSet;
     for (const auto &target : targetBasis)
       operatorInfoSet.insert(OperatorInfo(target));
 
-    auto selectedPatternSources = graph.selectPatternSourceOps(operatorInfoSet);
-    auto it = selectedPatternSources.find(selectedPatternName.str());
-    if (it == selectedPatternSources.end())
-      return {};
-    auto selectedSources = it->second;
-    std::sort(selectedSources.begin(), selectedSources.end());
-    return selectedSources;
+    auto pattern = graph.constructPattern(selectedPatternName, context.get(),
+                                          operatorInfoSet);
+    return std::unique_ptr<PatternTest>(
+        dyn_cast<PatternTest>(pattern.release()));
   }
 
   std::unique_ptr<MLIRContext> context;
@@ -444,30 +440,21 @@ TEST_F(DummyDecompositionPatternSelectionTest,
 }
 
 TEST_F(DummyDecompositionPatternSelectionTest,
-       BareR1DoesNotProveUnboundedR1Reachable) {
-  std::vector<std::string> targetBasis{"r1"};
-  auto selectedSources = selectedSourceOps(targetBasis, "pattern_s_to_r1");
-
-  EXPECT_EQ(std::find(selectedSources.begin(), selectedSources.end(), "s(n)"),
-            selectedSources.end());
-}
-
-TEST_F(DummyDecompositionPatternSelectionTest,
-       VariantSelectionDisablesLegalSourceOnly) {
+       PatternConstructionDisablesLegalSource) {
   std::vector<std::string> targetBasis{"s", "r1(1)"};
-  auto selectedSources = selectedSourceOps(targetBasis, "pattern_s_to_r1");
+  auto pattern = constructPattern(targetBasis, "pattern_s_to_r1");
 
-  std::vector<std::string> exp{"s(1)"};
-  EXPECT_EQ(selectedSources, exp);
+  std::vector<std::string> exp{0};
+  EXPECT_EQ(pattern->getDisabledControlCounts(), exp);
 }
 
 TEST_F(DummyDecompositionPatternSelectionTest,
-       VariantSelectionCanSelectMoreThanTwoSources) {
+       PatternConstructionCanSelectMoreThanTwoSources) {
   std::vector<std::string> targetBasis{"r1(n)"};
-  auto selectedSources = selectedSourceOps(targetBasis, "pattern_s_to_r1");
+  auto pattern = constructPattern(targetBasis, "pattern_s_to_r1");
 
-  std::vector<std::string> exp{"s", "s(1)", "s(n)"};
-  EXPECT_EQ(selectedSources, exp);
+  std::vector<std::size_t> exp{};
+  EXPECT_EQ(pattern->getDisabledControlCounts(), exp);
 }
 
 //===----------------------------------------------------------------------===//
@@ -574,8 +561,8 @@ TEST_F(FullDecompositionPatternSelectionTest,
       std::find(selectedPatterns.begin(), selectedPatterns.end(), "TToR1"),
       selectedPatterns.end());
 
-  auto selectedSSources = selectedSourceOps(targetBasis, "SToR1");
-  auto selectedTSources = selectedSourceOps(targetBasis, "TToR1");
+  auto selectedSSources = constructPattern(targetBasis, "SToR1");
+  auto selectedTSources = constructPattern(targetBasis, "TToR1");
   std::vector<std::string> expS{"s(1)"};
   std::vector<std::string> expT{"t(1)"};
   EXPECT_EQ(selectedSSources, expS);
