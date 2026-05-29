@@ -23,6 +23,7 @@ header:
     - '**/*.patch'
     - '**/*.config'
     - '**/*.svg'
+    - 'skills/**/*.sig'  # signed skill bundle manifests; cannot carry a header
     - '**/.*'
     - '**/.*/**'
     - '**/Doxyfile.in'
