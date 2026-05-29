@@ -50,7 +50,6 @@
 #include <nanobind/stl/complex.h>
 #include <nanobind/stl/function.h>
 #include <nanobind/stl/map.h>
-#include <nanobind/stl/optional.h>
 #include <nanobind/stl/pair.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
@@ -676,7 +675,7 @@ static cudaq::KernelThunkResultType
 pyLaunchModule(const std::string &name, ModuleOp mod,
                cudaq::CompiledModule *compiled,
                const std::vector<void *> &rawArgs) {
-  bool is_cachable = [&]() {
+  bool isCachable = [&]() {
     // Must have a slot to read/write the cache from. Callers opt out of the
     // cache by passing nullptr.
     if (!compiled)
@@ -692,32 +691,24 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
     auto func = cudaq::getKernelFuncOp(mod, name);
     mlir::Type resultTy = cudaq::runtime::getReturnType(func);
     auto hasResult = !!resultTy;
-    size_t num_args = rawArgs.size() - (hasResult ? 1 : 0);
+    size_t numArgs = rawArgs.size() - (hasResult ? 1 : 0);
     // Check for args synthesized.
-    if (num_args != func.getArgumentTypes().size())
+    if (numArgs != func.getArgumentTypes().size())
       return false;
     return true;
   }();
 
-  if (!is_cachable) {
-    auto clone = mod.clone();
-    auto jitted = cudaq::streamlinedCompileModule(name, clone, rawArgs, true);
-    auto res = cudaq::streamlinedLaunchModule(jitted, rawArgs);
-    clone.erase();
-    return res;
-  }
-
   // Cache hit only if the cached module's entry point matches this launch's.
-  // The same _compiled_module slot is shared across launch paths (.call,
-  // .run, .draw, …); a previous launch on a different path leaves a module
-  // whose .argsCreator has the wrong ABI for this one.
-  if (compiled->getName() == name)
+  // Notably, run has a different entry point so can't share a cache with
+  // other launch modes.
+  if (isCachable && compiled->getName() == name)
     return cudaq::streamlinedLaunchModule(*compiled, rawArgs);
 
   auto clone = mod.clone();
   auto jitted = cudaq::streamlinedCompileModule(name, clone, rawArgs, true);
   auto res = cudaq::streamlinedLaunchModule(jitted, rawArgs);
-  *compiled = std::move(jitted);
+  if (isCachable)
+    *compiled = std::move(jitted);
   clone.erase();
   return res;
 }

@@ -186,7 +186,7 @@ public:
   struct CompilationMetadata {
     /// Qubit reorder indices emitted by the qubit-mapping pass.
     std::vector<std::size_t> reorderIdx;
-    // TODO: Add hash of initial module to serve as cache key.
+    // TODO: Add hash of target to check against for cache reusability
   };
 
   // --- Queries ---
