@@ -45,8 +45,8 @@ Tier 1 validation passed with observations. NVSkills-Eval ran 9 checks and found
 Top findings:
 
 - MEDIUM SCHEMA/body_recommended_section: Missing recommended section: '## Examples' (`skills/cudaq-guide/SKILL.md`)
-- MEDIUM SECURITY/Unknown (SDI-2): The skill declares the Bash tool, which allows execution of arbitrary shell commands on the user's system. For a documen (`SKILL.md:8`)
-- MEDIUM SECURITY/Unknown (SQP-2): The troubleshooting and QPU sections instruct users to set provider credentials as environment variables without any gui (`SKILL.md:288`)
+- MEDIUM SECURITY/Unknown (SDI-2): The Bash tool is declared in an onboarding/documentation guide skill, which primarily serves to present installation ins (`SKILL.md:8`)
+- MEDIUM SECURITY/Unknown (SQP-2): The QPU section instructs users to set provider credentials as environment variables but does not warn them about the se (`SKILL.md:177`)
 - LOW SCHEMA/author_format: Author must be of the form 'Name <email@host>' (`skills/cudaq-guide/SKILL.md`)
 
 ## Tier 2: Deduplication Summary
