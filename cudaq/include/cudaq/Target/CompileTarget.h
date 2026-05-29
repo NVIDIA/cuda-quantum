@@ -8,7 +8,9 @@
 #pragma once
 
 #include "cudaq/Target/TargetConfig.h"
+#include "cudaq/operators.h"
 #include <map>
+#include <optional>
 #include <string>
 
 namespace cudaq {
@@ -41,6 +43,9 @@ public:
     bool runsStandardFinalize = false;
     /// Whether to disable qubit mapping.
     bool disableQubitMapping = false;
+
+    /// Whether to run the add-measurements pass.
+    bool addMeasurements = false;
   };
 
   /// Pipeline configuration, populated by the constructor.
@@ -48,6 +53,28 @@ public:
 
   /// Whether to emulate execution locally.
   bool emulate = false;
+
+  /// Issue a warning if named measurements are contained in the kernel.
+  bool warnNamedMeasurements = false;
+
+  /// Whether branching on measurement results is supported.
+  bool supportConditionalsOnMeasureResults = true;
+
+  /// Whether to retrieve mapping reorder indices from MLIR and store it as
+  /// compiled metadata.
+  bool storeReorderIdx = false;
+
+  /// Whether to generate resource counts.
+  ///
+  /// When true, the compiler will generate resource counts during compilation
+  /// and simplify the IR to remove all quantum operations already accounted
+  /// for in the counts.
+  bool generateResourceCounts = false;
+
+  /// When set, emit one lowered module per non-identity Pauli term of this
+  /// observable. The resulting `CompiledModule` will contain a compilation
+  /// artifact for each term.
+  std::optional<cudaq::spin_op> pauliTermSplitObservable;
 
   /// Construct a CompileTarget from static and runtime backend configurations.
   CompileTarget(config::TargetConfig targetConfig,
