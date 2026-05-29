@@ -380,6 +380,10 @@ Adjoint and Controlled Operations
     The :code:`ctrl` method of any gate can be used to apply the transformation
     conditional on the state of one or more control qubits, see also this 
     `Wikipedia entry <https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gates>`__.
+    In the argument list, control qubits come before the target qubit, which is always last.
+    For parameterized gates such as the rotation gates :code:`rx`, :code:`ry`,
+    :code:`rz`, :code:`r1`, and :code:`u3`, the gate parameters come first, preceding
+    any qubit arguments.
 
     .. code-block:: python
 
@@ -436,6 +440,10 @@ Adjoint and Controlled Operations
     The template argument :code:`cudaq::ctrl` can be used to apply the transformation
     conditional on the state of one or more control qubits, see also this 
     `Wikipedia entry <https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gates>`__.
+    In the argument list, control qubits come before the target qubit, which is always last.
+    For parameterized gates such as the rotation gates :code:`rx`, :code:`ry`,
+    :code:`rz`, :code:`r1`, and :code:`u3`, the gate parameters come first, preceding
+    any qubit arguments.
 
     .. code-block:: cpp
 
