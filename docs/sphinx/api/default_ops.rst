@@ -463,6 +463,7 @@ Adjoint and Controlled Operations
         // The qubits ctrl_1, ctrl_2, and target are now in a state
         // (|000> + exp(iπ/4)|111>) / √2.
 
+
 Following common convention, by default the transformation is applied to the target qubit(s)
 if all control qubits are in a :code:`|1>` state. 
 However, that behavior can be changed to instead apply the transformation when a control qubit is in 
