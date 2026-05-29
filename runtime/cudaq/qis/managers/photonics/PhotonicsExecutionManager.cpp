@@ -159,18 +159,16 @@ protected:
   void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {}
 
   /// @brief Process results into the execution context
-  void finalizeExecutionContextImpl(std::vector<std::size_t> &ids,
-                                    ExecutionContext &ctx) {
-    BasicExecutionManager::finalizeExecutionContextImpl(ctx);
+  void finalizeExecutionContextImpl(std::vector<std::size_t> &ids) {
+    BasicExecutionManager::finalizeExecutionContextImpl();
     for (auto &s : sampleQudits) {
       ids.push_back(s.id);
     }
   }
 
-  sample_result finalizeExecutionContext(const sample_policy &policy,
-                                         ExecutionContext &ctx) override {
+  sample_result finalizeExecutionContext(const sample_policy &policy) override {
     std::vector<std::size_t> ids;
-    finalizeExecutionContextImpl(ids, ctx);
+    finalizeExecutionContextImpl(ids);
     // Photonics kernels measure explicitly via `mz()`; `sampleQudits` is
     // populated by `measureQudit`. An empty list means no measurement was
     // recorded - either the kernel completed without an `mz()` or it threw
@@ -182,7 +180,7 @@ protected:
     if (sampleQudits.empty())
       return sample_result{};
     CUDAQ_INFO("Sampling");
-    auto shots = ctx.shots;
+    auto shots = policy.options.shots;
     auto sampleResult =
         qpp::sample(shots, state, ids, sampleQudits.front().levels);
     cudaq::ExecutionResult counts;
@@ -203,10 +201,16 @@ protected:
     return result;
   }
 
+  observe_result finalizeExecutionContext(const observe_policy &,
+                                          ExecutionContext &ctx) override {
+    throw std::runtime_error(
+        "observe policy not supported for this photonics simulator.");
+  }
+
   void finalizeExecutionContext(const other_policies &policy,
                                 ExecutionContext &ctx) override {
     std::vector<std::size_t> ids;
-    finalizeExecutionContextImpl(ids, ctx);
+    finalizeExecutionContextImpl(ids);
 
     if (ctx.name == "extract-state") {
       CUDAQ_INFO("Extracting state");

@@ -22,6 +22,7 @@
 #include "runtime/cudaq/algorithms/py_optimizer.h"
 #include "runtime/cudaq/algorithms/py_resource_count.h"
 #include "runtime/cudaq/algorithms/py_run.h"
+#include "runtime/cudaq/algorithms/py_sample.h"
 #include "runtime/cudaq/algorithms/py_sample_async.h"
 #include "runtime/cudaq/algorithms/py_sample_ptsbe.h"
 #include "runtime/cudaq/algorithms/py_state.h"
@@ -134,6 +135,7 @@ NB_MODULE(_quakeDialects, m) {
   bindPyRunAsync(cudaqRuntime);
   bindPyTranslate(cudaqRuntime);
   bindCountResources(cudaqRuntime);
+  bindPySample(cudaqRuntime);
   bindSampleAsync(cudaqRuntime);
   bindSamplePTSBE(cudaqRuntime);
   bindObserveAsync(cudaqRuntime);

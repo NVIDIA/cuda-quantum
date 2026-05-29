@@ -743,11 +743,39 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
     if (x->getInit()) {
       // At the very least, its a vector var = vec_init;
       auto initVec = popValue();
-      symbolTable.insert(x->getName(), initVec);
+      auto elementType = vecType.getElementType();
+
+      // For `std::vector<measure_handle>` locals, allocate a descriptor stack
+      // slot and store the initializer descriptor into it. This makes the
+      // variable an lvalue in the memory domain (like scalar `measure_handle`
+      // locals already are), so that subsequent reassignment lowers as
+      // `cc.load`/`cc.store` against a stable per-name address rather than
+      // requiring SSA-renaming of the descriptor value.
+      //
+      // Other element types (notably `std::vector<bool>` and numeric vectors)
+      // keep the existing value-domain symbol-table entry; their assignment
+      // story is unchanged by this patch.
+      bool isHandleVec = isa<cc::MeasureHandleType>(elementType);
+      if (isHandleVec) {
+        // The initializer may itself be a pointer-form lvalue (e.g. reading
+        // another handle-vector local). Normalize to the descriptor value
+        // before storing.
+        Value initDescr = initVec;
+        if (isa<cc::PointerType>(initDescr.getType()))
+          initDescr = cc::LoadOp::create(builder, loc, initDescr);
+        Value slot = cc::AllocaOp::create(builder, loc, vecType);
+        cc::StoreOp::create(builder, loc, initDescr, slot);
+        symbolTable.insert(x->getName(), slot);
+        // For register-name tagging below, walk from the descriptor value
+        // form (not the slot pointer) so the defining-op chain matches the
+        // pre-existing logic.
+        initVec = initDescr;
+      } else {
+        symbolTable.insert(x->getName(), initVec);
+      }
 
       // Let's try to see if this was a auto var = mz(qreg)
       // and if so, find the mz and tag it with the variable name
-      auto elementType = vecType.getElementType();
 
       // Accept both the `bool`-valued (`std::vector<bool>` form, lowered as
       // discriminate-of-measure-interface) and the handle-valued
@@ -755,7 +783,6 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
       // interface directly) shapes.
       bool isI1Bits = elementType.isIntOrFloat() &&
                       elementType.getIntOrFloatBitWidth() == 1;
-      bool isHandleVec = isa<cc::MeasureHandleType>(elementType);
       if (!isI1Bits && !isHandleVec)
         return true;
 
