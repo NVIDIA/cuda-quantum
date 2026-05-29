@@ -44,7 +44,7 @@ Tier 1 validation passed. NVSkills-Eval ran 9 checks and found 0 total findings.
 
 Notable observations:
 
-- SECURITY: No security vulnerabilities detected (secrets, API keys, credentials)
+- SECURITY: no findings reported.
 - SCHEMA: Found skill manifest: SKILL.md
 - VERSION: No semantic version label present; resource will use commit-hash history (opting back out of an existing label is allowed)
 - PII: Scanning 1 files for PII
