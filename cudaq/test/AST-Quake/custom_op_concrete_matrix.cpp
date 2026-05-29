@@ -28,8 +28,8 @@ __qpu__ void kernel_1() {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_kernel_1._Z8kernel_1v() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
 // CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
 // CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
-// CHECK:           quake.custom_op @__nvqpp__mlirgen__function_custom_h_generator_1._Z20custom_h_generator_{{.*}}vectorId{{.*}}.rodata_{{[0-9]+}} %[[VAL_0]] : (!quake.ref) -> ()
-// CHECK:           quake.custom_op @__nvqpp__mlirgen__function_custom_cnot_generator_2._Z23custom_cnot_generator_{{.*}}vectorId{{.*}}.rodata_{{[0-9]+}} %[[VAL_0]], %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.custom_unitary_constant @__nvqpp__mlirgen__function_custom_h_generator_1._Z20custom_h_generator_{{.*}}vectorId{{.*}}.rodata_{{[0-9]+}} %[[VAL_0]] : (!quake.ref) -> ()
+// CHECK:           quake.custom_unitary_constant @__nvqpp__mlirgen__function_custom_cnot_generator_2._Z23custom_cnot_generator_{{.*}}vectorId{{.*}}.rodata_{{[0-9]+}} %[[VAL_0]], %[[VAL_1]] : (!quake.ref, !quake.ref) -> ()
 // CHECK:           return
 // CHECK:         }
 

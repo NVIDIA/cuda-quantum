@@ -210,7 +210,9 @@ def ClassicalOptimization : Pass<"classical-optimization"> {
     Option<"allowClosedInterval", "allow-closed-interval", "bool",
       /*default=*/"true", "Allow loop iterations on a closed interval.">,
     Option<"allowBreak", "allow-early-exit", "bool", /*default=*/"false",
-      "Allow unrolling of loop with early exit (i.e. break statement).">
+      "Allow unrolling of loop with early exit (i.e. break statement).">,
+    Option<"disableLoopUnrolling", "no-loop-unroll", "bool", /*default=*/"false",
+      "Disable loop unrolling and preserve cc.loop operations.">
   ];
 }
 
@@ -446,6 +448,17 @@ def EraseNopCalls : Pass<"erase-nop-calls"> {
   let description = [{
     The code may contain marker function calls that do not generate any actual
     code. These calls are NOPs that will be erased by this pass.
+  }];
+}
+
+def EraseQEC : Pass<"erase-qec"> {
+  let summary = "Erase QEC detector and observable operations.";
+  let description = [{
+    Removes `qec.detector`, `qec.observable`, and `qec.pair_detectors` operations
+    from the IR. These are side-effecting declaration ops: they record a
+    parity-check or logical-observable relationship over prior measurement
+    results so a detector error model can be built from the kernel. This pass
+    strips them.
   }];
 }
 

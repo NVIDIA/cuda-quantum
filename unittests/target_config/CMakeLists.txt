@@ -13,7 +13,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
 endif()
 target_link_libraries(test_target_config
   PRIVATE
-    CUDAQTargetConfigUtil
+    CUDAQTargetConfigYaml
     gtest_main
 )
 

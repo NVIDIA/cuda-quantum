@@ -9,6 +9,7 @@
 #include "CodeGenOps.h"
 #include "PassDetails.h"
 #include "nlohmann/json.hpp"
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -16,6 +17,7 @@
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h"
 #include "cudaq/Optimizer/CodeGen/QuakeToExecMgr.h"
+#include "cudaq/Optimizer/Dialect/QEC/QECOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h" // for GlobalizeArrayValues
 #include "llvm/Support/Debug.h"
 #include "mlir/Pass/PassManager.h"
@@ -194,13 +196,13 @@ struct QIRAPITypeConverter : public TypeConverter {
     return cudaq::cc::StructType::get(ty.getContext(), mems);
   }
 
-  Type getQubitType(MLIRContext *ctx) {
+  Type getQubitType(MLIRContext *ctx) const {
     return cudaq::cg::getQubitType(ctx, useOpaque);
   }
-  Type getArrayType(MLIRContext *ctx) {
+  Type getArrayType(MLIRContext *ctx) const {
     return cudaq::cg::getArrayType(ctx, useOpaque);
   }
-  Type getResultType(MLIRContext *ctx) {
+  Type getResultType(MLIRContext *ctx) const {
     return cudaq::cg::getResultType(ctx, useOpaque);
   }
 
@@ -1184,15 +1186,14 @@ struct UnwrapOpErase : public OpConversionPattern<cudaq::quake::UnwrapOp> {
 //===----------------------------------------------------------------------===//
 
 template <typename M>
-struct CustomUnitaryOpPattern
-    : public QubitHelperConversionPattern<M,
-                                          cudaq::quake::CustomUnitarySymbolOp> {
+struct CustomUnitaryOpPattern : public QubitHelperConversionPattern<
+                                    M, cudaq::quake::CustomUnitaryConstantOp> {
   using Base =
-      QubitHelperConversionPattern<M, cudaq::quake::CustomUnitarySymbolOp>;
+      QubitHelperConversionPattern<M, cudaq::quake::CustomUnitaryConstantOp>;
   using Base::Base;
 
   LogicalResult
-  matchAndRewrite(cudaq::quake::CustomUnitarySymbolOp unitary,
+  matchAndRewrite(cudaq::quake::CustomUnitaryConstantOp unitary,
                   Base::OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     if (!unitary.getParameters().empty())
@@ -1249,9 +1250,9 @@ struct CustomUnitaryOpPattern
     }
 
     // Fetch the unitary matrix generator for this custom operation
-    auto generatorSym = unitary.getGenerator();
-    StringRef generatorName = generatorSym.getRootReference();
-    const auto customOpName = extractCustomNamePart(generatorName);
+    auto matrixSym = unitary.getMatrix();
+    StringRef matrixName = matrixSym.getRootReference();
+    const auto customOpName = extractCustomNamePart(matrixName);
 
     // Create a global string for the unitary name.
     auto nameOp = createGlobalCString(unitary, loc, rewriter, customOpName);
@@ -1259,9 +1260,9 @@ struct CustomUnitaryOpPattern
     auto complex64Ty = ComplexType::get(rewriter.getF64Type());
     auto complex64PtrTy = cudaq::cc::PointerType::get(complex64Ty);
     auto globalObj = cast<cudaq::cc::GlobalOp>(
-        unitary->getParentOfType<ModuleOp>().lookupSymbol(generatorName));
+        unitary->getParentOfType<ModuleOp>().lookupSymbol(matrixName));
     auto addrOp = cudaq::cc::AddressOfOp::create(
-        rewriter, loc, globalObj.getType(), generatorName);
+        rewriter, loc, globalObj.getType(), matrixName);
     auto unitaryData =
         cudaq::cc::CastOp::create(rewriter, loc, complex64PtrTy, addrOp);
 
@@ -2201,6 +2202,210 @@ static void commonQuakeHandlingPatterns(RewritePatternSet &patterns,
 }
 
 //===----------------------------------------------------------------------===//
+// QEC declaration-op lowering patterns.
+//===----------------------------------------------------------------------===//
+
+namespace {
+
+// Materialize the `Result*` post-conversion type expected by the QIR
+// runtime ABI.
+static Type getQIRResultPtrType(const TypeConverter *converter,
+                                MLIRContext *ctx) {
+  return static_cast<const QIRAPITypeConverter *>(converter)->getResultType(
+      ctx);
+}
+
+// Compute a `(Result**, i64 size)` pair for a variadic measurement-handle
+// operand list. Three shapes are handled:
+//
+//   1. Single `!cc.stdvec<i64>` operand — pass through `(data, size)`
+//      with no copy.
+//   2. All `i64` (scalar) operands — allocate a `Result*[N]` buffer and
+//      store each operand cast to `Result*`. Count is statically known.
+//   3. Mixed scalar + stdvec, or multiple vectors — allocate a dynamic-
+//      size `Result*[total]` buffer and copy each stdvec via a counted
+//      `cc.loop` while storing each scalar at the running offset.
+static std::pair<Value, Value>
+packMeasurementHandles(Location loc, ConversionPatternRewriter &rewriter,
+                       Type resultPtrTy, ValueRange operands) {
+  auto i64Ty = rewriter.getI64Type();
+  auto ptrToPtrTy = cudaq::cc::PointerType::get(resultPtrTy);
+
+  // Single-stdvec fast path: zero-copy pass-through.
+  if (operands.size() == 1 &&
+      isa<cudaq::cc::StdvecType>(operands.front().getType())) {
+    Value vec = operands.front();
+    auto stdvecTy = cast<cudaq::cc::StdvecType>(vec.getType());
+    auto dataPtrTy = cudaq::cc::PointerType::get(
+        cudaq::cc::ArrayType::get(stdvecTy.getElementType()));
+    Value data = cudaq::cc::StdvecDataOp::create(rewriter, loc, dataPtrTy, vec);
+    Value size = cudaq::cc::StdvecSizeOp::create(rewriter, loc, i64Ty, vec);
+    Value asPtrPtr = cudaq::cc::CastOp::create(rewriter, loc, ptrToPtrTy, data);
+    return {asPtrPtr, size};
+  }
+
+  // All-scalar fast path: static count, no loops.
+  if (llvm::all_of(operands,
+                   [](Value v) { return isa<IntegerType>(v.getType()); })) {
+    auto count = static_cast<std::int64_t>(operands.size());
+    Value countVal = arith::ConstantIntOp::create(rewriter, loc, count, 64);
+    Value buf =
+        cudaq::cc::AllocaOp::create(rewriter, loc, resultPtrTy, countVal);
+    for (auto pair : llvm::enumerate(operands)) {
+      auto idx = static_cast<std::int32_t>(pair.index());
+      Value resultPtr =
+          cudaq::cc::CastOp::create(rewriter, loc, resultPtrTy, pair.value());
+      Value eltPtr = cudaq::cc::ComputePtrOp::create(
+          rewriter, loc, ptrToPtrTy, buf,
+          ArrayRef<cudaq::cc::ComputePtrArg>{idx});
+      cudaq::cc::StoreOp::create(rewriter, loc, resultPtr, eltPtr);
+    }
+    Value bufAsPtrPtr =
+        cudaq::cc::CastOp::create(rewriter, loc, ptrToPtrTy, buf);
+    return {bufAsPtrPtr, countVal};
+  }
+
+  // General path: dynamic total size, mixed scalars + vectors (or multiple
+  // vectors). Compute total size first so the alloca dominates every store.
+  Value totalSize = arith::ConstantIntOp::create(rewriter, loc, 0, 64);
+  Value one = arith::ConstantIntOp::create(rewriter, loc, 1, 64);
+  for (Value v : operands) {
+    Value contribution =
+        isa<IntegerType>(v.getType())
+            ? one
+            : cudaq::cc::StdvecSizeOp::create(rewriter, loc, i64Ty, v)
+                  .getResult();
+    totalSize = arith::AddIOp::create(rewriter, loc, totalSize, contribution);
+  }
+  Value buf =
+      cudaq::cc::AllocaOp::create(rewriter, loc, resultPtrTy, totalSize);
+  Value offset = arith::ConstantIntOp::create(rewriter, loc, 0, 64);
+  for (Value v : operands) {
+    if (isa<IntegerType>(v.getType())) {
+      Value resultPtr =
+          cudaq::cc::CastOp::create(rewriter, loc, resultPtrTy, v);
+      Value dest = cudaq::cc::ComputePtrOp::create(
+          rewriter, loc, ptrToPtrTy, buf,
+          ArrayRef<cudaq::cc::ComputePtrArg>{offset});
+      cudaq::cc::StoreOp::create(rewriter, loc, resultPtr, dest);
+      offset = arith::AddIOp::create(rewriter, loc, offset, one);
+    } else {
+      auto stdvecTy = cast<cudaq::cc::StdvecType>(v.getType());
+      auto eltTy = stdvecTy.getElementType();
+      auto dataPtrTy =
+          cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(eltTy));
+      Value srcData =
+          cudaq::cc::StdvecDataOp::create(rewriter, loc, dataPtrTy, v);
+      Value srcSize = cudaq::cc::StdvecSizeOp::create(rewriter, loc, i64Ty, v);
+      Value baseOffset = offset;
+      cudaq::opt::factory::createInvariantLoop(
+          rewriter, loc, srcSize,
+          [&](OpBuilder &builder, Location loc, Region &, Block &block) {
+            Value iv = block.getArgument(0);
+            Value srcEltPtr = cudaq::cc::ComputePtrOp::create(
+                builder, loc, cudaq::cc::PointerType::get(eltTy), srcData,
+                ArrayRef<cudaq::cc::ComputePtrArg>{iv});
+            Value srcVal = cudaq::cc::LoadOp::create(builder, loc, srcEltPtr);
+            Value resultPtr =
+                cudaq::cc::CastOp::create(builder, loc, resultPtrTy, srcVal);
+            Value destIdx = arith::AddIOp::create(builder, loc, baseOffset, iv);
+            Value destPtr = cudaq::cc::ComputePtrOp::create(
+                builder, loc, ptrToPtrTy, buf,
+                ArrayRef<cudaq::cc::ComputePtrArg>{destIdx});
+            cudaq::cc::StoreOp::create(builder, loc, resultPtr, destPtr);
+          });
+      offset = arith::AddIOp::create(rewriter, loc, offset, srcSize);
+    }
+  }
+  Value bufAsPtrPtr = cudaq::cc::CastOp::create(rewriter, loc, ptrToPtrTy, buf);
+  return {bufAsPtrPtr, totalSize};
+}
+
+// Helper to extract `(Result**, size)` from a single stdvec operand.
+static std::pair<Value, Value> unpackStdvec(Location loc,
+                                            ConversionPatternRewriter &rewriter,
+                                            Type resultPtrTy, Value vec) {
+  auto i64Ty = rewriter.getI64Type();
+  auto ptrToPtrTy = cudaq::cc::PointerType::get(resultPtrTy);
+  auto stdvecTy = cast<cudaq::cc::StdvecType>(vec.getType());
+  auto dataPtrTy = cudaq::cc::PointerType::get(
+      cudaq::cc::ArrayType::get(stdvecTy.getElementType()));
+  Value data = cudaq::cc::StdvecDataOp::create(rewriter, loc, dataPtrTy, vec);
+  Value size = cudaq::cc::StdvecSizeOp::create(rewriter, loc, i64Ty, vec);
+  Value asPtrPtr = cudaq::cc::CastOp::create(rewriter, loc, ptrToPtrTy, data);
+  return {asPtrPtr, size};
+}
+
+struct DetectorOpConversion
+    : public OpConversionPattern<cudaq::qec::DetectorOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::qec::DetectorOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = op.getLoc();
+    auto resultPtrTy =
+        getQIRResultPtrType(getTypeConverter(), rewriter.getContext());
+    auto [buf, count] = packMeasurementHandles(loc, rewriter, resultPtrTy,
+                                               adaptor.getMeasurements());
+    rewriter.replaceOpWithNewOp<func::CallOp>(
+        op, TypeRange{}, cudaq::opt::QIRDetector, ValueRange{buf, count});
+    return success();
+  }
+};
+
+struct ObservableOpConversion
+    : public OpConversionPattern<cudaq::qec::ObservableOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::qec::ObservableOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = op.getLoc();
+    auto resultPtrTy =
+        getQIRResultPtrType(getTypeConverter(), rewriter.getContext());
+    auto [buf, count] = packMeasurementHandles(loc, rewriter, resultPtrTy,
+                                               adaptor.getMeasurements());
+    Value obsIdx = arith::ConstantIntOp::create(rewriter, loc,
+                                                op.getObservableIndex(), 64);
+    rewriter.replaceOpWithNewOp<func::CallOp>(op, TypeRange{},
+                                              cudaq::opt::QIRLogicalObservable,
+                                              ValueRange{buf, count, obsIdx});
+    return success();
+  }
+};
+
+struct PairDetectorsOpConversion
+    : public OpConversionPattern<cudaq::qec::DetectorsOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult
+  matchAndRewrite(cudaq::qec::DetectorsOp op, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    auto loc = op.getLoc();
+    auto resultPtrTy =
+        getQIRResultPtrType(getTypeConverter(), rewriter.getContext());
+    auto [prevBuf, prevSize] =
+        unpackStdvec(loc, rewriter, resultPtrTy, adaptor.getPrev());
+    auto [currBuf, currSize] =
+        unpackStdvec(loc, rewriter, resultPtrTy, adaptor.getCurr());
+    rewriter.replaceOpWithNewOp<func::CallOp>(
+        op, TypeRange{}, cudaq::opt::QIRPairDetectors,
+        ValueRange{prevBuf, prevSize, currBuf, currSize});
+    return success();
+  }
+};
+
+} // namespace
+
+static void commonQECHandlingPatterns(RewritePatternSet &patterns,
+                                      TypeConverter &typeConverter,
+                                      MLIRContext *ctx) {
+  patterns.insert<DetectorOpConversion, ObservableOpConversion,
+                  PairDetectorsOpConversion>(typeConverter, ctx);
+}
+
+//===----------------------------------------------------------------------===//
 // Modifier classes
 //===----------------------------------------------------------------------===//
 
@@ -2252,6 +2457,7 @@ struct FullQIR {
         QuantumGatePattern<Self, cudaq::quake::YOp>,
         QuantumGatePattern<Self, cudaq::quake::ZOp>>(typeConverter, ctx);
     commonQuakeHandlingPatterns(patterns, typeConverter, ctx);
+    commonQECHandlingPatterns(patterns, typeConverter, ctx);
     commonClassicalHandlingPatterns(patterns, typeConverter, ctx);
   }
 
@@ -2321,6 +2527,7 @@ struct AnyProfileQIR {
         QuantumGatePattern<Self, cudaq::quake::YOp>,
         QuantumGatePattern<Self, cudaq::quake::ZOp>>(typeConverter, ctx);
     commonQuakeHandlingPatterns(patterns, typeConverter, ctx);
+    commonQECHandlingPatterns(patterns, typeConverter, ctx);
     commonClassicalHandlingPatterns(patterns, typeConverter, ctx);
   }
 
@@ -2407,7 +2614,8 @@ struct QuakeToQIRAPIPass
                            cf::ControlFlowDialect, func::FuncDialect,
                            LLVM::LLVMDialect>();
     target.addIllegalDialect<cudaq::quake::QuakeDialect,
-                             cudaq::codegen::CodeGenDialect>();
+                             cudaq::codegen::CodeGenDialect,
+                             cudaq::qec::QECDialect>();
     target.addLegalOp<cudaq::codegen::MaterializeConstantArrayOp>();
     target.addDynamicallyLegalOp<func::FuncOp>([&](func::FuncOp fn) {
       return !needsTypeConversion(fn.getFunctionType()) &&

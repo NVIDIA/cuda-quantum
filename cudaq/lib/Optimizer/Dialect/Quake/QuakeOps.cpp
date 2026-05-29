@@ -734,8 +734,8 @@ void cudaq::quake::SubVeqOp::getCanonicalizationPatterns(
 
 void cudaq::quake::VeqSizeOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
-  patterns.add<FoldInitStateSizePattern, ForwardConstantVeqSizePattern>(
-      context);
+  patterns.add<FoldInitStateSizePattern, ForwardConstantVeqSizePattern,
+               ForwardEmptyVeqSizePattern>(context);
 }
 
 //===----------------------------------------------------------------------===//
@@ -899,6 +899,21 @@ LogicalResult cudaq::quake::DiscriminateOp::verify() {
           "must return integral type when discriminating exactly one qubit");
   }
   return success();
+}
+
+void cudaq::quake::DiscriminateOp::getEffects(
+    SmallVectorImpl<SideEffects::EffectInstance<MemoryEffects::Effect>>
+        &effects) {
+  if (isa<cudaq::cc::StdvecType>(getMeasurement().getType()))
+    effects.emplace_back(MemoryEffects::Read::get(),
+                         SideEffects::DefaultResource::get());
+}
+
+mlir::Speculation::Speculatability
+cudaq::quake::DiscriminateOp::getSpeculatability() {
+  return isa<cudaq::cc::StdvecType>(getMeasurement().getType())
+             ? Speculation::NotSpeculatable
+             : Speculation::Speculatable;
 }
 
 LogicalResult cudaq::quake::BundleCableOp::verify() {
@@ -1164,7 +1179,28 @@ void cudaq::quake::ZOp::getOperatorMatrix(Matrix &matrix) {
   matrix.assign({1, 0, 0, -1});
 }
 
-void cudaq::quake::CustomUnitarySymbolOp::getOperatorMatrix(Matrix &matrix) {}
+void cudaq::quake::CustomUnitaryCallOp::getOperatorMatrix(Matrix &matrix) {}
+
+LogicalResult cudaq::quake::CustomUnitaryCallOp::verify() {
+  auto gen = getGenerator();
+  auto fn = SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(*this, gen);
+  if (!fn)
+    return emitOpError("symbol must be a func.func");
+  return verifyWireResultsAreLinear(getOperation());
+}
+
+void cudaq::quake::CustomUnitaryConstantOp::getOperatorMatrix(Matrix &matrix) {
+  // We could get the data from the global here.
+}
+
+LogicalResult cudaq::quake::CustomUnitaryConstantOp::verify() {
+  auto mat = getMatrix();
+  auto fn =
+      SymbolTable::lookupNearestSymbolFrom<cudaq::cc::GlobalOp>(*this, mat);
+  if (!fn)
+    return emitOpError("symbol must be a cc.global");
+  return verifyWireResultsAreLinear(getOperation());
+}
 
 //===----------------------------------------------------------------------===//
 
@@ -1250,9 +1286,12 @@ void cudaq::quake::getOperatorEffectsImpl(EffectsVectorImpl &effects,
 // This is a workaround for ODS generating these member function declarations
 // but not having a way to define them in the ODS.
 // clang-format off
-#define GATE_OPS(MACRO) MACRO(XOp) MACRO(YOp) MACRO(ZOp) MACRO(HOp) MACRO(SOp) \
-  MACRO(TOp) MACRO(SwapOp) MACRO(U2Op) MACRO(U3Op) MACRO(R1Op) MACRO(RxOp)     \
-  MACRO(RyOp) MACRO(RzOp) MACRO(PhasedRxOp) MACRO(CustomUnitarySymbolOp)
+#define BUILTIN_GATE_OPS(MACRO) MACRO(XOp) MACRO(YOp) MACRO(ZOp) MACRO(HOp)    \
+  MACRO(SOp) MACRO(TOp) MACRO(SwapOp) MACRO(U2Op) MACRO(U3Op) MACRO(R1Op)      \
+  MACRO(RxOp) MACRO(RyOp) MACRO(RzOp) MACRO(PhasedRxOp)
+#define CUSTOM_GATE_OPS(MACRO) MACRO(CustomUnitaryCallOp)                      \
+  MACRO(CustomUnitaryConstantOp)
+#define GATE_OPS(MACRO) BUILTIN_GATE_OPS(MACRO) CUSTOM_GATE_OPS(MACRO)
 #define MEASURE_OPS(MACRO) MACRO(MxOp) MACRO(MyOp) MACRO(MzOp)
 #define QUANTUM_OPS(MACRO) MACRO(ResetOp) MACRO(ExpPauliOp) GATE_OPS(MACRO)    \
   MEASURE_OPS(MACRO)
@@ -1273,7 +1312,7 @@ QUANTUM_OPS(INSTANTIATE_CALLBACKS)
     return verifyWireResultsAreLinear(getOperation());                         \
   }
 
-#define VERIFY_OPS(MACRO) GATE_OPS(MACRO) WIRE_OPS(MACRO)
+#define VERIFY_OPS(MACRO) BUILTIN_GATE_OPS(MACRO) WIRE_OPS(MACRO)
 
 VERIFY_OPS(INSTANTIATE_LINEAR_TYPE_VERIFY)
 

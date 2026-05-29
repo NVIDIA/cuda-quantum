@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "TargetConfig.h"
+#include "cudaq/Target/TargetConfig.h"
 #include "llvm/Support/YAMLTraits.h"
 
 // These structs can be used in a vector.

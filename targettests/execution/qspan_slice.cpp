@@ -7,18 +7,17 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --emulate %s -o %t --target anyon && %t | FileCheck %s
-// RUN: nvq++ --emulate %s -o %t --target anyon --anyon-machine berkeley-25q && %t | FileCheck %s
-// RUN: nvq++ --emulate %s -o %t --target ionq && %t | FileCheck %s
-// RUN: nvq++ --emulate %s -o %t --target iqm && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s
-// RUN: nvq++ --emulate %s -o %t --target oqc && %t | FileCheck %s
+// RUN: if %anyon_avail; then nvq++ --emulate %s -o %t --target anyon && %t | FileCheck %s; fi
+// RUN: if %anyon_avail; then nvq++ --emulate %s -o %t --target anyon --anyon-machine berkeley-25q && %t | FileCheck %s; fi
+// RUN: if %ionq_avail; then nvq++ --emulate %s -o %t --target ionq && %t | FileCheck %s; fi
+// RUN: if %iqm_avail; then nvq++ --emulate %s -o %t --target iqm && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s; fi
+// RUN: if %oqc_avail; then nvq++ --emulate %s -o %t --target oqc && %t | FileCheck %s; fi
 // RUN: nvq++ --emulate %s -o %t --target quantinuum && %t | FileCheck %s
-// RUN: if %qci_avail; then \
-// RUN: nvq++ --emulate %s -o %t --target qci && %t | FileCheck %s; fi
+// RUN: if %qci_avail; then nvq++ --emulate %s -o %t --target qci && %t | FileCheck %s; fi
 
 // Tests for --disable-qubit-mapping:
-// RUN: nvq++ -v %s -o %t --target oqc --emulate --disable-qubit-mapping && CUDAQ_MLIR_PRINT_EACH_PASS=1 %t 2>&1 | FileCheck --check-prefix=DISABLE %s
-// RUN: nvq++ -v %s -o %t --target iqm --emulate --disable-qubit-mapping && CUDAQ_MLIR_PRINT_EACH_PASS=1 IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt %t 2>&1 | FileCheck --check-prefix=DISABLE %s
+// RUN: if %oqc_avail; then nvq++ -v %s -o %t --target oqc --emulate --disable-qubit-mapping && CUDAQ_MLIR_PRINT_EACH_PASS=1 %t 2>&1 | FileCheck --check-prefix=DISABLE %s; fi
+// RUN: if %iqm_avail; then nvq++ -v %s -o %t --target iqm --emulate --disable-qubit-mapping && CUDAQ_MLIR_PRINT_EACH_PASS=1 IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt %t 2>&1 | FileCheck --check-prefix=DISABLE %s; fi
 // clang-format on
 
 #include <cudaq.h>

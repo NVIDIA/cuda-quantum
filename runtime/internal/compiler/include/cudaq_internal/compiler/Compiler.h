@@ -10,19 +10,14 @@
 #include "common/CompiledModule.h"
 #include "common/KernelArgs.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
-#include <map>
+#include "cudaq/Target/CompileTarget.h"
 #include <memory>
 #include <string>
 #include <vector>
 
 namespace cudaq {
-class ServerHelper;
 struct KernelExecution;
 class ExecutionContext;
-class noise_model;
-namespace config {
-class TargetConfig;
-}
 } // namespace cudaq
 
 namespace mlir {
@@ -38,18 +33,6 @@ class FuncOp;
 namespace cudaq_internal::compiler {
 
 class Compiler {
-
-  /// @brief The Pass pipeline string, configured by the
-  /// QPU configuration file in the platform path.
-  std::string passPipelineConfig = "canonicalize";
-
-  /// @brief Name of code generation target (e.g. `qir-adaptive`, `qir-base`,
-  /// `qasm2`, `iqm`)
-  std::string codegenTranslation = "";
-
-  /// @brief Additional passes to run after the codegen-specific passes
-  std::string postCodeGenPasses = "";
-
   /// @brief Flag indicating whether we should perform the passes in a
   /// single-threaded environment, useful for debug. Similar to
   /// `-mlir-disable-threading` for `cudaq-opt`.
@@ -66,6 +49,9 @@ class Compiler {
 
   /// @brief Flag indicating whether we should emulate execution locally.
   bool emulate = false;
+
+  /// @brief The compile target configuration containing the compile options.
+  std::unique_ptr<cudaq::CompileTarget> target;
 
   /// @brief Flag indicating whether we should print the IR.
   bool printIR = false;
@@ -87,9 +73,11 @@ class Compiler {
                 cudaq::KernelArgs args);
 
   /// Delay combine-measurements for emulation, then run the main pass
-  /// pipeline.  Returns true when combine-measurements was delayed.
-  bool executeMainPipeline(mlir::ModuleOp moduleOp,
-                           const std::string &kernelName);
+  /// pipeline.  Returns
+  ///  - whether combine-measurements was delayed,
+  ///  - the pass pipeline that was executed.
+  std::pair<bool, std::string>
+  executeMainPipeline(mlir::ModuleOp moduleOp, const std::string &kernelName);
 
   /// Create JIT and MLIR artifacts and assemble a CompiledModule.
   cudaq::CompiledModule assembleCompiledModule(
@@ -104,10 +92,7 @@ public:
   static std::pair<const void *, std::shared_ptr<mlir::MLIRContext>>
   loadQuakeCodeByName(const std::string &kernelName);
 
-  Compiler(cudaq::ServerHelper *,
-           const std::map<std::string, std::string> &backendConfig,
-           cudaq::config::TargetConfig &config,
-           const cudaq::noise_model *noiseModel, bool emulate);
+  Compiler(std::unique_ptr<cudaq::CompileTarget> &&target);
   ~Compiler();
 
   /// @brief Compile the given module and return a `CompiledModule`.
@@ -144,4 +129,14 @@ public:
                  const std::string &kernelName, const void *modulePtr,
                  cudaq::KernelArgs args);
 };
+
+/// Get the pass pipeline string for the given compile target.
+///
+/// If `target.pipelineConfig.overridePassPipeline` is set, returns it directly
+/// (full override, interleave stages are ignored). Otherwise builds: [high]
+/// [,deployStage] [,mid] [,finalizeStage] [,low] where deployStage and
+/// finalizeStage are fixed stages interleaved between the config-provided
+/// stages. Pass empty strings to skip them.
+std::string getPassPipeline(const cudaq::CompileTarget &target);
+
 } // namespace cudaq_internal::compiler
