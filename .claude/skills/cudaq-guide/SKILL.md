@@ -1,5 +1,5 @@
 ---
-name: "cudaq-guide"
+name: "cudaq-guide-test"
 title: "Cuda Quantum"
 description: "CUDA-Q onboarding guide for installation, test programs, GPU simulation, QPU hardware, and quantum applications."
 version: "1.0.0"
