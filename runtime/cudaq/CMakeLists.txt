@@ -18,6 +18,7 @@ add_library(${LIBRARY_NAME}
     algorithms/evolve.cpp
     algorithms/run.cpp
     algorithms/schedule.cpp
+    analysis/Dem.cpp
     platform/common/QuantumExecutionQueue.cpp
     platform/qpu.cpp
     platform/qpu_utils.cpp
@@ -100,7 +101,6 @@ endif()
 
 add_subdirectory(qis/managers)
 add_subdirectory(algorithms)
-add_subdirectory(analysis)
 add_subdirectory(platform)
 add_subdirectory(builder)
 add_subdirectory(domains)

@@ -8,7 +8,6 @@
 
 #include "common/FmtCore.h"
 #include "nvqir/CircuitSimulator.h"
-#include "nvqir/RecordedCircuit.h"
 #include "stim.h"
 #include <cmath>
 #include <numeric>
@@ -34,8 +33,7 @@ struct StimNoiseType {
 /// @brief The StimCircuitSimulator implements the CircuitSimulator
 /// base class to provide a simulator delegating to the Stim library from
 /// https://github.com/quantumlib/Stim.
-class StimCircuitSimulator : public nvqir::CircuitSimulatorBase<double>,
-                             public nvqir::RecordedCircuit {
+class StimCircuitSimulator : public nvqir::CircuitSimulatorBase<double> {
 protected:
   // Follow Stim naming convention (W) for bit width (required for templates).
   static constexpr std::size_t W = stim::MAX_BITWORD_WIDTH;
@@ -209,6 +207,21 @@ protected:
     ExecutionResult result(counts);
     result.sequentialData = std::move(sequentialData);
     getExecutionContext()->result = result;
+  }
+
+  /// @brief Compute the detector error model from the accumulated
+  /// `recordedCircuit` and return it as `.dem` text.
+  std::string generateDem() override {
+    stim::DetectorErrorModel dem =
+        stim::ErrorAnalyzer::circuit_to_detector_error_model(
+            recordedCircuit,
+            /*decompose_errors=*/false,
+            /*fold_loops=*/false,
+            /*allow_gauge_detectors=*/false,
+            /*approximate_disjoint_errors_threshold=*/0,
+            /*ignore_decomposition_failures=*/false,
+            /*block_decomposition_from_introducing_remnant_edges=*/false);
+    return dem.str();
   }
 
   /// @brief Override the default sized allocation of qubits
@@ -722,25 +735,6 @@ public:
     if (total == 0)
       return std::numeric_limits<std::int64_t>::max();
     return total - 1;
-  }
-
-  /// @brief `nvqir::RecordedCircuit` override - hands the accumulated
-  /// `stim::Circuit` for direct consumption by
-  /// `stim::ErrorAnalyzer::circuit_to_detector_error_model`.
-  const stim::Circuit *circuit() const override { return &recordedCircuit; }
-
-  /// @brief `nvqir::RecordedCircuit` override - moves the accumulated
-  /// `recordedCircuit` out of the simulator. The internal buffer is left in
-  /// a valid, empty state. Avoids the per-call deep copy of every recorded
-  /// gate / noise channel / detector.
-  stim::Circuit release() override { return std::move(recordedCircuit); }
-
-  /// @brief `nvqir::RecordedCircuit` override - drops the accumulated
-  /// `recordedCircuit` AND deallocates the tableau / sample-simulator state
-  /// so the next analysis run on this thread starts from a clean slate.
-  void reset() override {
-    recordedCircuit = stim::Circuit();
-    deallocateState();
   }
 
   bool isStateVectorSimulator() const override { return false; }

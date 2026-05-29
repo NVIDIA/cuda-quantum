@@ -49,7 +49,7 @@ void cudaq::FermioniqQPU::launchImpl(const cudaq::CompiledModule &compiled) {
         "Remote rest execution can only be performed via cudaq::sample(), "
         "cudaq::observe(), or cudaq::contrib::draw().");
 
-  auto codes = compiler.emitKernelExecutions(compiled);
+  auto codes = compiler.emitKernelExecutions(compiled, executionContext);
 
   if (codes.size() != 1)
     throw std::runtime_error("Provider only allows 1 circuit at a time.");

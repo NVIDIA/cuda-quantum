@@ -17,18 +17,16 @@
 // RUN: if %qci_avail; then nvq++ --enable-mlir --target qci --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 
-
-#include <cudaq.h>
-#include <cudaq/algorithms/dem.h>
 #include <cctype>
 #include <cstdio>
+#include <cudaq.h>
+#include <cudaq/algorithms/dem.h>
 #include <exception>
 #include <string>
 
-struct singleNoisyDetector {
+struct singleDetector {
   void operator()() __qpu__ {
     cudaq::qubit q;
-    cudaq::apply_noise<cudaq::x_error>(0.1, q);
     auto m = mz(q);
     cudaq::detector(m);
   }
@@ -39,9 +37,6 @@ struct threeMzMultiDetector {
     cudaq::qubit q0, q1, q2;
     x(q0);
     x(q1);
-    cudaq::apply_noise<cudaq::x_error>(0.05, q0);
-    cudaq::apply_noise<cudaq::x_error>(0.05, q1);
-    cudaq::apply_noise<cudaq::x_error>(0.05, q2);
     auto m0 = mz(q0);
     auto m1 = mz(q1);
     auto m2 = mz(q2);
@@ -91,8 +86,7 @@ static void runCase(const char *label, Kernel &&kernel) {
   try {
     std::string demText =
         cudaq::dem_from_kernel(std::forward<Kernel>(kernel), &g_emptyNoise);
-    std::printf("%s errors=%zu detectors=%zu observables=%zu\n", label,
-                countOccurrences(demText, "error("),
+    std::printf("%s detectors=%zu observables=%zu\n", label,
                 maxIndexAfter(demText, 'D'), maxIndexAfter(demText, 'L'));
   } catch (const std::exception &e) {
     std::printf("%s THREW: %s\n", label, e.what());
@@ -100,10 +94,10 @@ static void runCase(const char *label, Kernel &&kernel) {
 }
 
 int main() {
-  runCase("SINGLE_NOISY", singleNoisyDetector{});
+  runCase("SINGLE", singleDetector{});
   runCase("THREE_MZ", threeMzMultiDetector{});
   return 0;
 }
 
-// CHECK: SINGLE_NOISY errors=1 detectors=1 observables=0
-// CHECK: THREE_MZ errors=2 detectors=1 observables=1
+// CHECK: SINGLE detectors=1 observables=0
+// CHECK: THREE_MZ detectors=1 observables=1

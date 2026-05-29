@@ -171,6 +171,13 @@ public:
   /// https://arxiv.org/pdf/2407.13826.
   virtual void generateMSM() {}
 
+  /// @brief For simulators that support detector error model (DEM) analysis,
+  /// compute the DEM from the recorded circuit and return it as `.dem` text.
+  virtual std::string generateDem() {
+    throw std::runtime_error(
+        "Detector error model (DEM) analysis not supported.");
+  }
+
   /// @brief Apply exp(-i theta PauliTensorProd) to the underlying state.
   /// This must be provided by subclasses.
   virtual void applyExpPauli(double theta,
@@ -1106,6 +1113,9 @@ protected:
     if (context.name == "msm") {
       generateMSM();
     }
+
+    if (context.name == "dem")
+      context.dem_text = generateDem();
   }
 
 public:

@@ -27,7 +27,6 @@ install (FILES nvqir/AnalysisScope.h
                nvqir/CircuitSimulator.h
                nvqir/Gates.h
                nvqir/QIRTypes.h
-               nvqir/RecordedCircuit.h
         DESTINATION include/nvqir)
 install (FILES nvqir/resourcecounter/ResourceCounterScope.h
         DESTINATION include/nvqir/resourcecounter)

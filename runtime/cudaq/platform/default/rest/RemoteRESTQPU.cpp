@@ -57,7 +57,8 @@ RemoteRESTQPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
     const auto &compiled = std::get<CompiledModule>(module);
     kernelName = compiled.getName();
     CUDAQ_INFO("launching remote rest kernel via module ({})", kernelName);
-    codes = compiler.emitKernelExecutions(compiled);
+    codes =
+        compiler.emitKernelExecutions(compiled, cudaq::getExecutionContext());
   }
 
   completeLaunchKernel(kernelName, std::move(codes));

@@ -108,6 +108,14 @@ std::vector<std::size_t> extractMappingReorderIdx(mlir::ModuleOp moduleOp,
   }
   return mapping_reorder_idx;
 }
+
+bool isResourceCountContext(const cudaq::ExecutionContext *ctx) {
+  return ctx && ctx->name == "resource-count";
+}
+
+bool isDemContext(const cudaq::ExecutionContext *ctx) {
+  return ctx && ctx->name == "dem";
+}
 } // namespace
 
 std::pair<const void *, std::shared_ptr<mlir::MLIRContext>>
@@ -414,13 +422,15 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
     }
   }
 
-  bool combineMeasurements = executeMainPipeline(moduleOp, kernelName);
+  bool combineMeasurements = false;
+  if (!isDemContext(executionContext))
+    combineMeasurements = executeMainPipeline(moduleOp, kernelName);
 
   // We need to run resource counting preprocessing after the pass pipeline as
   // the pre-processing might change the IR structure (may interfere with
   // other passes).
   std::optional<cudaq::Resources> resourceCounts;
-  if (executionContext && executionContext->name == "resource-count") {
+  if (isResourceCountContext(executionContext)) {
     auto result = cudaq::opt::countResourcesFromIR(moduleOp);
     if (failed(result))
       throw std::runtime_error(
@@ -515,8 +525,8 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
     modules.emplace_back(kernelName, moduleOp);
   }
 
-  bool needJit = emulate || (executionContext &&
-                             executionContext->name == "resource-count");
+  const bool needJit = emulate || isResourceCountContext(executionContext) ||
+                       isDemContext(executionContext);
   return assembleCompiledModule(
       kernelName, modules, needJit, emulate && combineMeasurements,
       std::move(resourceCounts), mapping_reorder_idx, context);
@@ -524,10 +534,9 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
 
 std::vector<cudaq::KernelExecution>
 cudaq_internal::compiler::Compiler::emitKernelExecutions(
-    const cudaq::CompiledModule &compiled) {
-  // Get the code gen translation
-  auto translation =
-      cudaq_internal::compiler::getTranslation(codegenTranslation);
+    const cudaq::CompiledModule &compiled,
+    cudaq::ExecutionContext *executionContext) {
+  const bool emitTargetCode = !isDemContext(executionContext);
 
   // Apply user-specified codegen
   std::vector<cudaq::KernelExecution> codes;
@@ -537,24 +546,29 @@ cudaq_internal::compiler::Compiler::emitKernelExecutions(
             mlirArtifact);
 
     std::string codeStr;
-    llvm::raw_string_ostream outStr(codeStr);
-    if (disableMLIRthreading)
-      moduleOpI.getContext()->disableMultithreading();
-    if (codegenTranslation.starts_with("qir")) {
-      if (failed(translation(moduleOpI, codegenTranslation, outStr,
-                             postCodeGenPasses, printIR,
-                             enablePrintMLIREachPass, enablePassStatistics)))
-        throw std::runtime_error("Could not successfully translate to " +
-                                 codegenTranslation + ".");
-    } else {
-      if (failed(translation(moduleOpI, outStr, postCodeGenPasses, printIR,
-                             enablePrintMLIREachPass, enablePassStatistics)))
-        throw std::runtime_error("Could not successfully translate to " +
-                                 codegenTranslation + ".");
-    }
+    nlohmann::json j;
+    if (emitTargetCode) {
+      auto translation =
+          cudaq_internal::compiler::getTranslation(codegenTranslation);
+      llvm::raw_string_ostream outStr(codeStr);
+      if (disableMLIRthreading)
+        moduleOpI.getContext()->disableMultithreading();
+      if (codegenTranslation.starts_with("qir")) {
+        if (failed(translation(moduleOpI, codegenTranslation, outStr,
+                               postCodeGenPasses, printIR,
+                               enablePrintMLIREachPass, enablePassStatistics)))
+          throw std::runtime_error("Could not successfully translate to " +
+                                   codegenTranslation + ".");
+      } else {
+        if (failed(translation(moduleOpI, outStr, postCodeGenPasses, printIR,
+                               enablePrintMLIREachPass, enablePassStatistics)))
+          throw std::runtime_error("Could not successfully translate to " +
+                                   codegenTranslation + ".");
+      }
 
-    // Form an output_names mapping from codeStr
-    nlohmann::json j = formOutputNames(codegenTranslation, moduleOpI, codeStr);
+      // Form an output_names mapping from codeStr
+      j = formOutputNames(codegenTranslation, moduleOpI, codeStr);
+    }
 
     // Retrieve pre-computed JIT engine and resource counts (if any).
     std::optional<cudaq::JitEngine> optionalJit;
@@ -584,7 +598,7 @@ cudaq_internal::compiler::Compiler::lowerQuakeCode(
     const void *modulePtr, cudaq::KernelArgs args) {
   auto compiled =
       runPassPipeline(executionContext, kernelName, modulePtr, args, nullptr);
-  return emitKernelExecutions(compiled);
+  return emitKernelExecutions(compiled, executionContext);
 }
 
 mlir::ModuleOp cudaq_internal::compiler::Compiler::lowerQuakeCodeBuildModule(

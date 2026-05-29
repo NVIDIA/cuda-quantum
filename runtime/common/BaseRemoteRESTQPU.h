@@ -243,17 +243,7 @@ public:
 
   CompiledModule compileModule(const SourceModule &src, KernelArgs args,
                                bool isEntryPoint) override {
-    // `cudaq::dem_from_kernel` is target-independent. For the Python
-    // entry-point, `streamlinedCompileModule` (called from
-    // `marshal_and_launch_module`) routes here before `unifiedLaunchModule`
-    // ever sees the `SourceModule`, so the C++-side short-circuit in
-    // `RemoteRESTQPU::unifiedLaunchModule` does not cover this path. Delegate
-    // to the base `QPU::compileModule` so the registered "default"
-    // `ModuleLauncher` JITs the kernel through `addAOTPipelineConvertToQIR`.
     auto *executionContext = cudaq::getExecutionContext();
-    if (executionContext && executionContext->name == "dem")
-      return QPU::compileModule(src, args, isEntryPoint);
-
     const auto &kernelName = src.getName();
     auto modulePtr = compileModulePreamble(src);
     CUDAQ_INFO("specializing remote rest kernel via module ({})", kernelName);
@@ -302,7 +292,7 @@ public:
       const auto &compiled = std::get<CompiledModule>(module);
       kernelName = compiled.getName();
       CUDAQ_INFO("launching remote rest kernel via module ({})", kernelName);
-      codes = compiler.emitKernelExecutions(compiled);
+      codes = compiler.emitKernelExecutions(compiled, ctx);
     }
 
     return {kernelName, codes};
@@ -332,6 +322,18 @@ public:
           std::move(codes[0].resourceCounts.value()));
       cudaq::platform::with_execution_context(
           context, [&]() { codes[0].jit->run(kernelName); });
+      return;
+    }
+
+    if (executionContext->name == "dem") {
+      cudaq::ExecutionContext context("dem");
+      context.executionManager = cudaq::getDefaultExecutionManager();
+      context.noiseModel = executionContext->noiseModel;
+      context.qpuId = executionContext->qpuId;
+      assert(codes.size() == 1 && codes[0].jit);
+      cudaq::platform::with_execution_context(
+          context, [&]() { codes[0].jit->run(kernelName); });
+      executionContext->dem_text = std::move(context.dem_text);
       return;
     }
 

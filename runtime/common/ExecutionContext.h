@@ -159,6 +159,9 @@ public:
   /// @brief Dispatcher towards the policy specific launch.
   std::function<void(const AnyModule &module, const KernelArgs &args)>
       executeKernelApi;
+
+  /// @brief Slot for the detector error model, as `.dem` text.
+  std::string dem_text;
   /// @endcond
 };
 

@@ -127,8 +127,12 @@ public:
 
   /// @brief Emit target-specific code for each `MlirArtifact` in the
   /// `CompiledModule` and produce `KernelExecution` objects.
+  ///
+  /// The execution context determines whether target transport code is needed
+  /// or whether a local analysis JIT artifact is sufficient.
   std::vector<cudaq::KernelExecution>
-  emitKernelExecutions(const cudaq::CompiledModule &compiled);
+  emitKernelExecutions(const cudaq::CompiledModule &compiled,
+                       cudaq::ExecutionContext *executionContext);
 
   /// Compile the quake code passed via ModuleOp and lower it to the code format
   /// required for the specific backend.
