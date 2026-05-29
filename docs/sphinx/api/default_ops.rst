@@ -399,11 +399,17 @@ Adjoint and Controlled Operations
 
         # Set the state of `target` to |1>:
         x(target)
-        # Apply the transformation T only if both 
+        # Apply the transformation T only if both
         # control qubits are in a |1> state:
         t.ctrl([ctrl_1, ctrl_2], target)
         # The qubits ctrl_1, ctrl_2, and target are now in a state
         # (|000> + exp(iπ/4)|111>) / √2.
+
+        # For parametric gates (rx, ry, rz, r1), the rotation angle is passed
+        # as the first argument, before the control qubit(s) and the target:
+        rx.ctrl(math.pi / 2, ctrl_1, target)
+        ry.ctrl(math.pi / 4, ctrl_1, target)
+        rz.ctrl(math.pi / 8, ctrl_1, target)
 
 .. tab:: C++
 
@@ -449,11 +455,17 @@ Adjoint and Controlled Operations
 
         // Set the state of `target` to |1>:
         x(target);
-        // Apply the transformation T only if both 
+        // Apply the transformation T only if both
         // control qubits are in a |1> state:
         t<cudaq::ctrl>(ctrl_1, ctrl_2, target);
         // The qubits ctrl_1, ctrl_2, and target are now in a state
         // (|000> + exp(iπ/4)|111>) / √2.
+
+        // For parametric gates (rx, ry, rz, r1), the rotation angle is passed
+        // as the first argument, before the control qubit(s) and the target:
+        rx<cudaq::ctrl>(M_PI_2, ctrl_1, target);
+        ry<cudaq::ctrl>(M_PI_4, ctrl_1, target);
+        rz<cudaq::ctrl>(M_PI / 8, ctrl_1, target);
 
 
 Following common convention, by default the transformation is applied to the target qubit(s)
