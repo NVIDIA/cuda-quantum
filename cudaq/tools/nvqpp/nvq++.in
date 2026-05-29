@@ -50,6 +50,92 @@ function add_pass_to_pipeline {
 	fi
 }
 
+function user_plugin_scope {
+	if [ -n "${XDG_DATA_HOME}" ]; then
+		echo "${XDG_DATA_HOME}/cudaq/plugins"
+	else
+		echo "${HOME}/.local/share/cudaq/plugins"
+	fi
+}
+
+function print_target_names_in_dir {
+	local target_dir="$1"
+	if [ ! -d "${target_dir}" ]; then
+		return
+	fi
+	for file in "${target_dir}"/*.yml; do
+		if [ -f "${file}" ]; then
+			basename "${file}" | sed -e 's/\.yml$//'
+		fi
+	done
+}
+
+function print_plugin_target_names_in_scope {
+	local plugin_scope="$1"
+	if [ ! -d "${plugin_scope}" ]; then
+		return
+	fi
+	for plugin_root in "${plugin_scope}"/*; do
+		if [ -d "${plugin_root}" ]; then
+			print_target_names_in_dir "${plugin_root}/targets"
+		fi
+	done
+}
+
+function target_config_files_in_dir {
+	local target_dir="$1"
+	if [ ! -d "${target_dir}" ]; then
+		return
+	fi
+	for file in "${target_dir}"/*.yml; do
+		if [ -f "${file}" ]; then
+			echo "${file}"
+		fi
+	done
+}
+
+function plugin_target_config_files_in_scope {
+	local plugin_scope="$1"
+	if [ ! -d "${plugin_scope}" ]; then
+		return
+	fi
+	for plugin_root in "${plugin_scope}"/*; do
+		if [ -d "${plugin_root}" ]; then
+			target_config_files_in_dir "${plugin_root}/targets"
+		fi
+	done
+}
+
+function resolve_target_config_file {
+	local target_name="$1"
+	RESOLVED_TARGET_CONFIG_YML_FILE="${install_dir}/targets/${target_name}.yml"
+	RESOLVED_TARGET_PLUGIN_LIB_DIR=
+	if [ -f "${RESOLVED_TARGET_CONFIG_YML_FILE}" ]; then
+		return 0
+	fi
+
+	local user_scope
+	user_scope="$(user_plugin_scope)"
+	for plugin_scope in "${user_scope}" "${install_dir}/plugins"; do
+		if [ ! -d "${plugin_scope}" ]; then
+			continue
+		fi
+		for plugin_root in "${plugin_scope}"/*; do
+			if [ ! -d "${plugin_root}" ]; then
+				continue
+			fi
+			local plugin_config="${plugin_root}/targets/${target_name}.yml"
+			if [ -f "${plugin_config}" ]; then
+				RESOLVED_TARGET_CONFIG_YML_FILE="${plugin_config}"
+				RESOLVED_TARGET_PLUGIN_LIB_DIR="${plugin_root}/lib"
+				return 0
+			fi
+		done
+	done
+
+	return 1
+}
+
 # Function that groups and handles all of our -f* and -fno-* flags.
 function f_option_handling {
 	case $1 in
@@ -128,12 +214,19 @@ function f_option_handling {
 }
 
 function list_targets {
-	ls -I *.cpp -1 ${install_dir}/targets/ | grep ".yml$" | sed -e 's/\.yml$//'
+	{
+		print_target_names_in_dir "${install_dir}/targets"
+		print_plugin_target_names_in_scope "$(user_plugin_scope)"
+		print_plugin_target_names_in_scope "${install_dir}/plugins"
+	} | awk '!seen[$0]++'
 	exit 0
 }
 
 function list_simulators {
-	for file in $(grep -L "platform-qpu" $(ls ${install_dir}/targets/*.yml)) ; do
+	for file in \
+		$(target_config_files_in_dir "${install_dir}/targets") \
+		$(plugin_target_config_files_in_scope "$(user_plugin_scope)") \
+		$(plugin_target_config_files_in_scope "${install_dir}/plugins"); do
 		if ! grep -q "library-mode-execution-manager" $file ; then
 			echo $(basename $file | cut -d "." -f 1)
 		fi
@@ -141,10 +234,9 @@ function list_simulators {
 }
 
 function get_simulation_backend {
-	config_file="${install_dir}/targets/$1.yml"
-	if [ -f "$config_file" ]; then
+	if resolve_target_config_file "$1"; then
 		OUT_CONFIG_FILENAME=$(mktemp nvqppTargetBuildConfig.XXXXXX)
-		run ${TOOLBIN}cudaq-target-conf -o ${OUT_CONFIG_FILENAME} $config_file
+		run ${TOOLBIN}cudaq-target-conf -o ${OUT_CONFIG_FILENAME} ${RESOLVED_TARGET_CONFIG_YML_FILE}
 		TMPFILES="${TMPFILES} ${OUT_CONFIG_FILENAME}"
 		line=$(grep "NVQIR_SIMULATION_BACKEND=" "${OUT_CONFIG_FILENAME}")
 		if [ $? -eq 0 ]; then
@@ -696,9 +788,13 @@ COMPILER_FLAGS="${CPPSTD} ${COMPILER_FLAGS}"
 # platform library name, and any boolean flags, and setup
 # the resultant binary to target that specified backend.
 if [ -n "${TARGET_CONFIG}" ]; then
-	TARGET_CONFIG_YML_FILE="${install_dir}/targets/${TARGET_CONFIG}.yml"
 	GEN_TARGET_BACKEND=false
-	if [ -f "${TARGET_CONFIG_YML_FILE}" ]; then
+	if resolve_target_config_file "${TARGET_CONFIG}"; then
+		TARGET_CONFIG_YML_FILE="${RESOLVED_TARGET_CONFIG_YML_FILE}"
+		if [ -n "${RESOLVED_TARGET_PLUGIN_LIB_DIR}" ] && [ -d "${RESOLVED_TARGET_PLUGIN_LIB_DIR}" ]; then
+			LINKER_FLAGS="${LINKER_FLAGS} -Wl,-rpath,${RESOLVED_TARGET_PLUGIN_LIB_DIR}"
+			LINKDIRS="${LINKDIRS} -L${RESOLVED_TARGET_PLUGIN_LIB_DIR}"
+		fi
 		OUT_CONFIG_FILENAME=$(mktemp nvqppTargetBuildConfig.XXXXXX)
 		run ${TOOLBIN}cudaq-target-conf --arg="base64_"$(echo -n "${TARGET_ARGS[@]}" | base64 --wrap=0) -o ${OUT_CONFIG_FILENAME} ${TARGET_CONFIG_YML_FILE}
 		# Load the generated config variables
