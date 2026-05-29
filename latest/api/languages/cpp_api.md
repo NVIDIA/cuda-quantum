@@ -12827,6 +12827,15 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
+    []{#classcudaq_1_1QPU_1a8d6f7545a2657dff9dd71576c282c404 .target}[[virtual]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[unique_ptr]{.pre}]{.n}[[\<]{.pre}]{.p}[[CompileTarget]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[[getCompileTarget]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[sample_policy]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[policy]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU16getCompileTargetER13sample_policy "Permalink to this definition"){.headerlink}\
+
+    :   Get the compile target of the [[QPU]{.std
+        .std-ref}](#classcudaq_1_1QPU){.reference .internal}.
+
+    ```{=html}
+    <!-- -->
+    ```
+
     []{#classcudaq_1_1QPU_1ab4915615be5d425122d93d59ac1a22cd .target}[[inline]{.pre}]{.k}[ ]{.w}[[virtual]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[onRandomSeedSet]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[seed]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU15onRandomSeedSetENSt6size_tE "Permalink to this definition"){.headerlink}\
 
     :   Notify the [[QPU]{.std .std-ref}](#classcudaq_1_1QPU){.reference
