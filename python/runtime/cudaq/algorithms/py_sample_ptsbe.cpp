@@ -41,7 +41,7 @@ using namespace cudaq;
 // std::optional types for all nullable parameters instead.
 static ptsbe::sample_result
 pySamplePTSBE(const std::string &shortName, MlirModule module,
-              nanobind::handle compiledHandle, std::size_t shots_count,
+              cudaq::CompiledModule *compiled, std::size_t shots_count,
               noise_model noiseModel,
               std::optional<std::size_t> max_trajectories,
               std::optional<std::shared_ptr<ptsbe::PTSSamplingStrategy>>
@@ -51,8 +51,6 @@ pySamplePTSBE(const std::string &shortName, MlirModule module,
               nanobind::args runtimeArgs) {
   if (shots_count == 0)
     return ptsbe::sample_result();
-
-  auto *compiled = nanobind::inst_ptr<cudaq::CompiledModulePtr>(compiledHandle);
 
   ptsbe::PTSBEOptions ptsbe_options;
   ptsbe_options.return_execution_data = return_execution_data;
@@ -80,7 +78,7 @@ pySamplePTSBE(const std::string &shortName, MlirModule module,
     result = ptsbe::detail::runSamplingPTSBE(
         [&]() mutable {
           [[maybe_unused]] auto res =
-              clean_launch_module(shortName, mod, compiled, opaques);
+              clean_launch_module(shortName, mod, opaques, compiled);
         },
         platform, shortName, shots_count, ptsbe_options);
   } catch (const std::exception &e) {
@@ -148,7 +146,7 @@ pySampleAsyncPTSBE(const std::string &shortName, MlirModule module,
   return AsyncPTSBESampleResultImpl(ptsbe::detail::runSamplingAsyncPTSBE(
       [opaques = std::move(opaques), kernelName, mod = mod.clone()]() mutable {
         [[maybe_unused]] auto result =
-            clean_launch_module(kernelName, mod, nullptr, opaques);
+            clean_launch_module(kernelName, mod, opaques);
       },
       platform, kernelName, shots_count, ptsbe_options, /*qpu_id=*/0,
       noiseModel));

@@ -674,7 +674,7 @@ static void appendTheResultValue(ModuleOp module, const std::string &name,
 // preserve (cache) the IR, and erase the clone after the kernel is done.
 static cudaq::KernelThunkResultType
 pyLaunchModule(const std::string &name, ModuleOp mod,
-               cudaq::CompiledModulePtr *compiled,
+               cudaq::CompiledModule *compiled,
                const std::vector<void *> &rawArgs) {
   bool is_cachable = [&]() {
     // Must have a slot to read/write the cache from. Callers opt out of the
@@ -707,18 +707,17 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
     return res;
   }
 
-  assert(compiled);
   // Cache hit only if the cached module's entry point matches this launch's.
   // The same _compiled_module slot is shared across launch paths (.call,
   // .run, .draw, …); a previous launch on a different path leaves a module
   // whose .argsCreator has the wrong ABI for this one.
-  if (*compiled && (*compiled)->getName() == name)
-    return cudaq::streamlinedLaunchModule(**compiled, rawArgs);
+  if (compiled->getName() == name)
+    return cudaq::streamlinedLaunchModule(*compiled, rawArgs);
 
   auto clone = mod.clone();
   auto jitted = cudaq::streamlinedCompileModule(name, clone, rawArgs, true);
   auto res = cudaq::streamlinedLaunchModule(jitted, rawArgs);
-  *compiled = std::make_shared<cudaq::CompiledModule>(std::move(jitted));
+  *compiled = std::move(jitted);
   clone.erase();
   return res;
 }
@@ -931,8 +930,8 @@ appendResultToArgsVector(cudaq::OpaqueArguments &runtimeArgs, Type returnType,
 
 cudaq::KernelThunkResultType
 cudaq::clean_launch_module(const std::string &name, ModuleOp mod,
-                           cudaq::CompiledModulePtr *compiled,
-                           cudaq::OpaqueArguments &args) {
+                           cudaq::OpaqueArguments &args,
+                           cudaq::CompiledModule *compiled) {
   // Release the GIL for MLIR compilation and JIT. PyEval_SaveThread requires
   // the GIL to be held, so guard with PyGILState_Check. Async paths invoke
   // this from worker threads that never held the GIL.
@@ -967,8 +966,8 @@ cudaq::OpaqueArguments cudaq::marshal_arguments_for_module_launch(
 
 nanobind::object
 cudaq::marshal_and_launch_module(const std::string &name, MlirModule module,
-                                 cudaq::CompiledModulePtr *compiled,
-                                 nanobind::args runtimeArgs) {
+                                 nanobind::args runtimeArgs,
+                                 cudaq::CompiledModule *compiled) {
   // Marker span identifying every nested pass / scoped trace as part of the
   // JIT-time pipeline. Paired with the cudaq.pipeline.aot span emitted around
   // aot-prep-pipeline in compile_to_mlir; tooling reads the trace ancestry to
@@ -991,7 +990,7 @@ cudaq::marshal_and_launch_module(const std::string &name, MlirModule module,
   auto args = marshal_arguments_for_module_launch(mod, runtimeArgs, kernelFunc);
 
   [[maybe_unused]] auto resultPtr =
-      clean_launch_module(name, mod, compiled, args);
+      clean_launch_module(name, mod, args, compiled);
 
   if (!retTy)
     return nanobind::none();
@@ -1213,6 +1212,7 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
   getTransportLayer = std::move(getTL);
 
   nanobind::class_<cudaq::CompiledModule>(mod, "CompiledModule")
+      .def(nanobind::init<>())
       .def_prop_ro(
           "entry_point",
           [](const cudaq::CompiledModule &ck) {
@@ -1223,18 +1223,16 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
                    &cudaq::CompiledModule::isFullySpecialized,
                    "Whether all arguments have been specialized.");
 
-  nanobind::class_<cudaq::CompiledModulePtr>(mod, "CompiledModulePtr")
-      .def(nanobind::init<>())
-      .def("empty",
-           [](const cudaq::CompiledModulePtr &p) { return p == nullptr; })
-      .def("clear", [](cudaq::CompiledModulePtr &p) { p.reset(); });
-
   mod.def("lower_to_codegen", lower_to_codegen,
           "Lower a kernel module to CC dialect. Never launches the kernel.");
 
   mod.def("clean_launch_module", cudaq::clean_launch_module,
+          nanobind::arg("kernel_name"), nanobind::arg("module"),
+          nanobind::arg("args"), nanobind::arg("compiled").none() = nullptr,
           "Launch a kernel. Does not perform other mischief.");
   mod.def("marshal_and_launch_module", cudaq::marshal_and_launch_module,
+          nanobind::arg("kernel_name"), nanobind::arg("module"),
+          nanobind::arg("args"), nanobind::arg("compiled").none() = nullptr,
           "Launch a kernel. Marshaling of arguments and unmarshalling of "
           "results is performed.");
   mod.def("marshal_and_retain_module", marshal_and_retain_module,

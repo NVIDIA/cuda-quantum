@@ -171,10 +171,10 @@ static std::vector<int> bitStringToIntVec(const std::string &bitString) {
 
 /// @brief Run `cudaq::get_state` on the provided kernel and spin operator.
 static state get_state_impl(const std::string &shortName, MlirModule mod,
-                            cudaq::CompiledModulePtr *compiled,
+                            cudaq::CompiledModule *compiled,
                             nanobind::args args) {
   auto closure = [=]() {
-    return marshal_and_launch_module(shortName, mod, compiled, args);
+    return marshal_and_launch_module(shortName, mod, args, compiled);
   };
   return details::extractState(std::move(closure));
 }
@@ -200,7 +200,7 @@ static std::future<state> get_state_async_impl(const std::string &shortName,
       detail::make_copyable_function(
           [opaques = std::move(opaques), kernelName, clonedMod]() mutable {
             [[maybe_unused]] auto result =
-                clean_launch_module(kernelName, *clonedMod, nullptr, opaques);
+                clean_launch_module(kernelName, *clonedMod, opaques);
           }),
       platform, qpu_id);
 }
@@ -842,7 +842,7 @@ index pair.
   mod.def(
       "get_state_impl",
       [&](const std::string &shortName, MlirModule module,
-          cudaq::CompiledModulePtr *compiled, nanobind::args args) {
+          cudaq::CompiledModule *compiled, nanobind::args args) {
         // Check for unsupported cases.
         if (holder.getTarget().name == "orca-photonics")
           throw std::runtime_error(

@@ -246,7 +246,6 @@ public:
   const std::string &getName() const { return name; }
   const ResultInfo &getResultInfo() const { return resultInfo; }
   const CompilationMetadata &getMetadata() const { return metadata; }
-  CompilationMetadata &getMutableMetadata() { return metadata; }
 
 protected:
   FatQuakeModule(std::string kernelName);
@@ -277,6 +276,9 @@ private:
 
   CompiledModule(std::string kernelName)
       : FatQuakeModule(std::move(kernelName)) {}
+
+public:
+  CompiledModule() : FatQuakeModule(std::string{}) {}
 };
 
 /// Bundle of artifacts that define a CUDA-Q kernel to be compiled and executed.

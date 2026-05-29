@@ -47,7 +47,7 @@ estimate_resources_impl(const std::string &kernelName, MlirModule kernelMod,
     // fire while the kernel is freshly JIT-compiled. A cached binary would
     // bypass them.
     [[maybe_unused]] auto result =
-        cudaq::marshal_and_launch_module(kernelName, kernelMod, nullptr, args);
+        cudaq::marshal_and_launch_module(kernelName, kernelMod, args);
   });
   return nvqir::resource_counter::get_counts(rcScope);
 }
