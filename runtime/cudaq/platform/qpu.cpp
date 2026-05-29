@@ -16,7 +16,6 @@
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "mlir/IR/BuiltinOps.h"
 #include <cstring>
 #include <stdexcept>
 
@@ -102,6 +101,18 @@ cudaq::CompiledModule cudaq::QPU::compileModule(sample_policy &,
                                                 KernelArgs args,
                                                 bool isEntryPoint) {
   return compileModule(src, args, isEntryPoint);
+}
+
+std::unique_ptr<cudaq::CompileTarget> cudaq::QPU::getCompileTarget() {
+  return getCompileTarget(getExecutionContext());
+}
+std::unique_ptr<cudaq::CompileTarget>
+cudaq::QPU::getCompileTarget(ExecutionContext *context) {
+  throw std::runtime_error("no CompileTarget defined for this QPU");
+}
+std::unique_ptr<cudaq::CompileTarget>
+cudaq::QPU::getCompileTarget(sample_policy &) {
+  return getCompileTarget();
 }
 
 cudaq::CompiledModule cudaq::QPU::compileModule(const SourceModule &src,

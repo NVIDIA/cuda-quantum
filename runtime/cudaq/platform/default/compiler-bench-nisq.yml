@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-name: circuit-opt-bench
+name: compiler-bench-nisq
 description: "CZ-basis decomposition with optional SABRE routing for compiler benchmarking"
 
 target-arguments:
@@ -17,8 +17,12 @@ target-arguments:
 
 config:
   nvqir-simulation-backend: qpp
-  # Target mid-level stage: decompose to a CX routing basis, prepare wire
-  # metadata, optionally route, then lower routed two-qubit work to CZ. With no
-  # device argument, routing is bypassed.
-  jit-mid-level-pipeline: "decomposition{basis=h,rx,ry,rz,x,x(1)},func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=%DEVICE:bypass%},func.func(regtomem),decomposition{basis=h,rx,ry,rz,x,z(1)}"
+  # Target mid-level stage: decompose to a CX routing basis before allocation
+  # cleanup, prepare wire metadata, optionally route, then decompose again after
+  # regtomem to lower routed two-qubit work to CZ. The second decomposition is
+  # needed because qubit-mapping can introduce SWAP/CX work after the first
+  # decomposition. `quake-to-cc-prep` rewrites mx/my to quake gates plus mz
+  # before final decomposition so resource counting sees the normalized
+  # CZ/rotation basis. With no device argument, routing is bypassed.
+  jit-mid-level-pipeline: "decomposition{basis=h,rx,ry,rz,x,x(1)},func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=%DEVICE:bypass%},func.func(regtomem),quake-to-cc-prep,decomposition{basis=h,rx,ry,rz,x,z(1)}"
   library-mode: false

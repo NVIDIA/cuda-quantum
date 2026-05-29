@@ -13,6 +13,7 @@
 #include "common/KernelArgs.h"
 #include "common/Registry.h"
 #include "common/ThunkInterface.h"
+#include "cudaq/Target/CompileTarget.h"
 #include "cudaq/algorithms/policies.h"
 #include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/remote_capabilities.h"
@@ -152,6 +153,15 @@ public:
 
   [[nodiscard]] virtual KernelThunkResultType
   unifiedLaunchModule(const AnyModule &module, KernelArgs args);
+
+  /// Get the compile target of the QPU
+  // Overload for sample policy
+  [[nodiscard]] virtual std::unique_ptr<CompileTarget>
+  getCompileTarget(sample_policy &policy);
+  // Overloads for currently unsupported policies (to be removed).
+  [[nodiscard]] virtual std::unique_ptr<CompileTarget> getCompileTarget();
+  [[nodiscard]] virtual std::unique_ptr<CompileTarget>
+  getCompileTarget(ExecutionContext *context);
 
   [[nodiscard]] virtual CompiledModule
   compileModule(const SourceModule &src, KernelArgs args, bool isEntryPoint);

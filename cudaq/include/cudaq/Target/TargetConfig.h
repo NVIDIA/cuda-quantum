@@ -129,15 +129,6 @@ struct BackendEndConfigEntry {
 
   /// Returns true if any pass pipeline fields are configured.
   bool hasPassPipeline() const;
-
-  /// Build the target pass pipeline string from configuration fields.
-  /// If TargetPassPipeline is set, returns it directly (full override,
-  /// interleave stages are ignored).
-  /// Otherwise builds: [high] [,deployStage] [,mid] [,finalizeStage] [,low]
-  /// where deployStage and finalizeStage are fixed stages interleaved
-  /// between the config-provided stages. Pass empty strings to skip them.
-  std::string getPassPipeline(std::string_view deployStage = {},
-                              std::string_view finalizeStage = {}) const;
 };
 
 /// Feature option mapping for NVIDIA target.

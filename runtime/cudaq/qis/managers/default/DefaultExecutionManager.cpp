@@ -167,6 +167,12 @@ protected:
     return simulator()->finalizeExecutionContext(policy);
   }
 
+  observe_result finalizeExecutionContext(const observe_policy &policy,
+                                          ExecutionContext &ctx) override {
+    finalizeExecutionContextImpl();
+    return simulator()->finalizeExecutionContext(policy, ctx);
+  }
+
   void finalizeExecutionContext(const other_policies &policy,
                                 ExecutionContext &ctx) override {
     finalizeExecutionContextImpl();
