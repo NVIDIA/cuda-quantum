@@ -21,6 +21,7 @@
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/VirtualFileSystem.h"
 #include "llvm/Support/raw_ostream.h"
+#include <fstream>
 #include <sstream>
 
 #define DEBUG_TYPE "target-config"
@@ -258,6 +259,46 @@ std::string cudaq::config::processRuntimeArgs(
   return output.str();
 }
 
+std::string
+cudaq::config::substitutePluginRoot(std::string yamlContent,
+                                    const std::filesystem::path &pluginRoot) {
+  static constexpr std::string_view token = "%PLUGIN_ROOT%";
+  const auto rootPath =
+      pluginRoot.empty() ? std::filesystem::current_path() : pluginRoot;
+  const auto root =
+      std::filesystem::absolute(rootPath).lexically_normal().string();
+
+  std::size_t pos = 0;
+  while ((pos = yamlContent.find(token, pos)) != std::string::npos) {
+    yamlContent.replace(pos, token.size(), root);
+    pos += root.size();
+  }
+
+  return yamlContent;
+}
+
+cudaq::config::TargetConfig
+cudaq::config::parseTargetConfig(std::string yamlContent,
+                                 const std::filesystem::path &pluginRoot) {
+  auto substitutedYamlContent =
+      cudaq::config::substitutePluginRoot(std::move(yamlContent), pluginRoot);
+  cudaq::config::TargetConfig config;
+  llvm::yaml::Input Input(substitutedYamlContent.c_str());
+  Input >> config;
+  return config;
+}
+
+cudaq::config::TargetConfig
+cudaq::config::loadTargetConfig(const std::filesystem::path &configPath,
+                                const std::filesystem::path &pluginRoot) {
+  std::ifstream configFile(configPath.string());
+  std::string yamlContent((std::istreambuf_iterator<char>(configFile)),
+                          std::istreambuf_iterator<char>());
+  const auto root =
+      pluginRoot.empty() ? configPath.parent_path().parent_path() : pluginRoot;
+  return cudaq::config::parseTargetConfig(std::move(yamlContent), root);
+}
+
 namespace llvm {
 namespace yaml {
 void ScalarBitSetTraits<cudaq::config::TargetFeatureFlag>::bitset(
@@ -342,6 +383,7 @@ void MappingTraits<cudaq::config::BackendEndConfigEntry>::mapping(
   io.mapOptional("preprocessor-defines", info.PreprocessorDefines);
   io.mapOptional("compiler-flags", info.CompilerFlags);
   io.mapOptional("link-libs", info.LinkLibs);
+  io.mapOptional("plugin-libraries", info.PluginLibraries);
   io.mapOptional("linker-flags", info.LinkerFlags);
   io.mapOptional("nvqir-simulation-backend", info.SimulationBackend);
   io.mapOptional("rules", info.ConditionalBuildConfigs);
@@ -364,6 +406,11 @@ void MappingTraits<cudaq::config::TargetConfig>::mapping(
   io.mapOptional("gpu-requirements", info.GpuRequired);
   io.mapOptional("config", info.BackendConfig);
   io.mapOptional("configuration-matrix", info.ConfigMap);
+  // Flatten config.plugin-libraries for callers that need only the target-level
+  // runtime payload list.
+  if (info.PluginLibraries.empty() && info.BackendConfig &&
+      !info.BackendConfig->PluginLibraries.empty())
+    info.PluginLibraries = info.BackendConfig->PluginLibraries;
 }
 
 std::string MappingTraits<cudaq::config::TargetConfig>::validate(

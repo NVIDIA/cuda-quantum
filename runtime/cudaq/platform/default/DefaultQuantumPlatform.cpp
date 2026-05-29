@@ -10,13 +10,12 @@
 #include "common/ExecutionContext.h"
 #include "common/RuntimeTarget.h"
 #include "common/Timing.h"
-#include "cudaq/Support/TargetConfigYaml.h"
+#include "cudaq/Support/TargetConfig.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <filesystem>
-#include <fstream>
 
 /// This file defines the default, library mode, quantum platform. Its goal is
 /// to create a single QPU that is added to the quantum_platform which delegates
@@ -73,11 +72,7 @@ private:
         return;
       }
 
-      std::ifstream configFile(configFilePath.string());
-      std::string configContents((std::istreambuf_iterator<char>(configFile)),
-                                 std::istreambuf_iterator<char>());
-      llvm::yaml::Input Input(configContents.c_str());
-      Input >> config;
+      config = cudaq::config::loadTargetConfig(configFilePath);
       runtimeTarget = std::make_unique<cudaq::RuntimeTarget>();
       runtimeTarget->config = config;
       runtimeTarget->name = mutableBackend;

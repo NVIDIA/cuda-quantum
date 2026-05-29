@@ -11,13 +11,12 @@
 #include "common/FmtCore.h"
 #include "common/RuntimeTarget.h"
 #include "helpers/MQPUUtils.h"
-#include "cudaq/Support/TargetConfigYaml.h"
+#include "cudaq/Support/TargetConfig.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/simulators.h"
 #include "llvm/Support/Base64.h"
 #include <filesystem>
-#include <fstream>
 
 // Note: LLVM_INSTANTIATE_REGISTRY(cudaq::QPU::RegistryType) is intentionally
 // NOT placed here. The canonical QPU registry instance lives in
@@ -100,12 +99,7 @@ private:
     // Don't try to load something that doesn't exist.
     if (!std::filesystem::exists(configFilePath))
       return "";
-    std::ifstream configFile(configFilePath.string());
-    std::string configContents((std::istreambuf_iterator<char>(configFile)),
-                               std::istreambuf_iterator<char>());
-    cudaq::config::TargetConfig config;
-    llvm::yaml::Input Input(configContents.c_str());
-    Input >> config;
+    auto config = cudaq::config::loadTargetConfig(configFilePath);
 
     if (config.BackendConfig.has_value() &&
         !config.BackendConfig->PlatformQpu.empty()) {

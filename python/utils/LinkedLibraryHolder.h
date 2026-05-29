@@ -33,6 +33,19 @@ void findAvailableTargets(
     std::unordered_map<std::string, RuntimeTarget> &simulationTargets,
     const std::filesystem::path &libDir = {});
 
+/// @brief Validate that @p pkgRoot looks like an external-plugin layout (it
+/// must exist and contain a `targets/` subdirectory) and then scan it,
+/// registering every YAML it finds with @p targets and @p simulationTargets.
+///
+/// Used by `cudaq.register_backend_path(...)` to make an out-of-tree plugin
+/// package's targets visible to the runtime. Throws `std::runtime_error`
+/// with the offending path in the message on validation failure so callers
+/// can attribute the failure to a specific entry point / package.
+void registerBackendPath(
+    const std::filesystem::path &pkgRoot,
+    std::unordered_map<std::string, RuntimeTarget> &targets,
+    std::unordered_map<std::string, RuntimeTarget> &simulationTargets);
+
 /// @brief The LinkedLibraryHolder provides a mechanism for
 /// dynamically loading and storing the required plugin libraries
 /// for the CUDA-Q runtime within the Python runtime.
@@ -116,6 +129,16 @@ public:
 
   /// @brief Reset the target back to the default.
   void resetTarget();
+
+  /// @brief Register an external plugin package root. The directory must
+  /// exist and contain a `targets/` subdirectory; every YAML found there
+  /// is added to the holder's target list. Throws `std::runtime_error`
+  /// (with @p pkgRoot in the message) on validation failure.
+  ///
+  /// Intended to be called from `cudaq.register_backend_path(...)` —
+  /// typically inside a `cudaq.backends` entry-point function shipped by
+  /// a plugin's Python wrapper.
+  void registerBackendPath(const std::filesystem::path &pkgRoot);
 };
 
 namespace python {

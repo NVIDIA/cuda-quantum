@@ -12,7 +12,6 @@
 #include "common/ServerHelper.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Support/TargetConfig.h"
-#include "cudaq/Support/TargetConfigYaml.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "llvm/Support/Base64.h"
 
@@ -20,8 +19,7 @@ using namespace cudaq;
 
 void detail::parseTargetConfigYml(const std::string &yamlContent,
                                   config::TargetConfig &targetConfig) {
-  llvm::yaml::Input Input(yamlContent.c_str());
-  Input >> targetConfig;
+  targetConfig = config::parseTargetConfig(yamlContent);
 }
 
 std::string detail::decodeBase64(const std::string &encoded) {

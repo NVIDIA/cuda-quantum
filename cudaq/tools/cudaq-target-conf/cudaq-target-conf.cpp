@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Support/TargetConfigYaml.h"
+#include "cudaq/Support/TargetConfig.h"
 #include "llvm/Support/Allocator.h"
 #include "llvm/Support/Base64.h"
 #include "llvm/Support/CommandLine.h"
@@ -20,8 +20,8 @@
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/VirtualFileSystem.h"
-#include "llvm/Support/YAMLTraits.h"
 #include "llvm/Support/raw_ostream.h"
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <unistd.h>
@@ -120,9 +120,11 @@ int main(int argc, char **argv) {
       std::exit(ec.value());
     }
   }
-  cudaq::config::TargetConfig config;
-  llvm::yaml::Input Input(*(fileOrErr.get()));
-  Input >> config;
+  auto configContents = fileOrErr.get()->getBuffer().str();
+  const auto pluginRoot = std::filesystem::path(inputConfigFile.getValue())
+                              .parent_path()
+                              .parent_path();
+  auto config = cudaq::config::parseTargetConfig(configContents, pluginRoot);
 
   // Verify GPU requirement
   if (!skipGpuCheck && config.GpuRequired && countGPUs() <= 0) {

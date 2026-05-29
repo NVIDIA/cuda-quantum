@@ -127,14 +127,24 @@ except Exception:
         print("Could not find a suitable cuQuantum Python package.")
     pass
 
-# Discover external backends
+# Discover external backends. Each `cudaq.backends` entry point is a zero-arg
+# callable shipped by a plugin package; conventionally it calls
+# `cudaq.register_backend_path(<pkg_root>)` to register its targets. Errors are
+# surfaced as warnings (with the entry-point name + traceback) rather than
+# silently swallowed — a broken plugin should be visible.
 try:
     from importlib.metadata import entry_points as _entry_points
+    import warnings as _warnings
+    import traceback as _traceback
     for _ep in _entry_points(group='cudaq.backends'):
         try:
             _ep.load()()
         except Exception:
-            pass
+            _warnings.warn(
+                f"cudaq.backends entry point {_ep.name!r} failed to load:\n"
+                f"{_traceback.format_exc()}",
+                stacklevel=1,
+            )
 except Exception:
     pass
 
@@ -256,6 +266,7 @@ reset_target = cudaq_runtime.reset_target
 has_target = cudaq_runtime.has_target
 get_target = cudaq_runtime.get_target
 get_targets = cudaq_runtime.get_targets
+register_backend_path = cudaq_runtime.register_backend_path
 set_random_seed = cudaq_runtime.set_random_seed
 mpi = cudaq_runtime.mpi
 num_available_gpus = cudaq_runtime.num_available_gpus
