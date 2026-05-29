@@ -34,14 +34,11 @@ cudaq::CompiledModule cudaq::FermioniqQPU::compileImpl(
   ExecutionContext *compileCtx =
       (executionContext->name == "observe") ? &sampleContext : executionContext;
 
-  Compiler compiler(serverHelper.get(), backendConfig, targetConfig, noiseModel,
-                    emulate);
+  Compiler compiler(getCompileTarget(compileCtx));
   return runPassPipeline(compiler, compileCtx);
 }
 
 void cudaq::FermioniqQPU::launchImpl(const cudaq::CompiledModule &compiled) {
-  Compiler compiler(serverHelper.get(), backendConfig, targetConfig, noiseModel,
-                    emulate);
   auto *executionContext = getExecutionContext();
   // TODO future iterations of this should support non-void return types.
   if (!executionContext)
@@ -49,6 +46,7 @@ void cudaq::FermioniqQPU::launchImpl(const cudaq::CompiledModule &compiled) {
         "Remote rest execution can only be performed via cudaq::sample(), "
         "cudaq::observe(), or cudaq::contrib::draw().");
 
+  Compiler compiler(getCompileTarget(executionContext));
   auto codes = compiler.emitKernelExecutions(compiled, executionContext);
 
   if (codes.size() != 1)

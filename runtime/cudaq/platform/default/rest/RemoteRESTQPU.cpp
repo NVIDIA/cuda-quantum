@@ -30,8 +30,9 @@ async_sample_result RemoteRESTQPU::launchKernel(async_sample_policy &policy,
 
 KernelThunkResultType
 RemoteRESTQPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
-  Compiler compiler(serverHelper.get(), backendConfig, targetConfig, noiseModel,
-                    emulate);
+  auto executionContext = cudaq::getExecutionContext();
+  Compiler compiler(getCompileTarget());
+
   std::string kernelName;
   std::vector<cudaq::KernelExecution> codes;
 
@@ -39,8 +40,6 @@ RemoteRESTQPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
     const auto &src = std::get<SourceModule>(module);
     kernelName = src.getName();
     CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
-
-    auto executionContext = cudaq::getExecutionContext();
 
     // TODO future iterations of this should support non-void return types.
     if (!executionContext)

@@ -275,12 +275,19 @@ public:
       cudaq::policies::visitResult(
           [&]() { return finalize_simulation_circuit(*this, policy, ctx); },
           [&](cudaq::sample_result &&r) { ctx.result = std::move(r); },
+          [&](cudaq::observe_result &&r) {
+            ctx.result = r.raw_data();
+            ctx.expectationValue = r.expectation();
+          },
           [&](cudaq::policies::void_result &&r) {});
     });
   }
 
   virtual void finalizeExecutionContext(const cudaq::other_policies &policy,
                                         cudaq::ExecutionContext &ctx) {}
+  virtual cudaq::observe_result
+  finalizeExecutionContext(const cudaq::observe_policy &policy,
+                           cudaq::ExecutionContext &ctx) = 0;
   virtual cudaq::sample_result
   finalizeExecutionContext(const cudaq::sample_policy &policy) = 0;
 
@@ -1032,6 +1039,38 @@ protected:
   void finalizeExecutionContextImpl() {
     // Flush the queue if there are any gates to apply
     flushGateQueue();
+  }
+
+  cudaq::observe_result
+  finalizeExecutionContext(const cudaq::observe_policy &,
+                           cudaq::ExecutionContext &ctx) override {
+    finalizeExecutionContextImpl();
+    if (!ctx.spin.has_value())
+      throw std::runtime_error("[observe] ExecutionContext specified without a "
+                               "cudaq::spin_op.");
+
+    std::vector<cudaq::ExecutionResult> results;
+    cudaq::spin_op &H = ctx.spin.value();
+    assert(cudaq::spin_op::canonicalize(H) == H);
+
+    if (ctx.canHandleObserve) {
+      auto [exp, data] = measureSpinOp(H);
+      return cudaq::observe_result(exp, H, data);
+    } else {
+      double sum = 0.0;
+      for (const auto &term : H) {
+        if (term.is_identity())
+          sum += term.evaluate_coefficient().real();
+        else {
+          auto [exp, data] = measureSpinOp(term);
+          results.emplace_back(data.to_map(), term.get_term_id(), exp);
+          sum += term.evaluate_coefficient().real() * exp;
+        }
+      }
+
+      auto data = cudaq::sample_result(sum, results);
+      return cudaq::observe_result(sum, H, data);
+    }
   }
 
   cudaq::sample_result

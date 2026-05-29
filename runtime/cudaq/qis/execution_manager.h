@@ -126,6 +126,8 @@ public:
 
   virtual void finalizeExecutionContext(const other_policies &policy,
                                         ExecutionContext &ctx) {}
+  virtual observe_result finalizeExecutionContext(const observe_policy &policy,
+                                                  ExecutionContext &ctx) = 0;
   virtual sample_result
   finalizeExecutionContext(const sample_policy &policy) = 0;
 
@@ -231,6 +233,13 @@ public:
 inline sample_result finalize_execution_manager_impl(
     ExecutionManager &mgr, const sample_policy &policy, ExecutionContext &ctx) {
   return mgr.finalizeExecutionContext(policy);
+}
+
+inline observe_result
+finalize_execution_manager_impl(ExecutionManager &mgr,
+                                const observe_policy &policy,
+                                ExecutionContext &ctx) {
+  return mgr.finalizeExecutionContext(policy, ctx);
 }
 
 inline void finalize_execution_manager_impl(ExecutionManager &mgr,

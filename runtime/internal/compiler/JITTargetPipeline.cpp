@@ -6,9 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq_internal/compiler/JITTargetPipeline.h"
-#include "cudaq/Target/TargetConfig.h"
-#include <cctype>
+#include "cudaq_internal/compiler/Compiler.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <regex>
 
 static void appendPipelineStage(std::string &pipeline,
@@ -20,97 +19,63 @@ static void appendPipelineStage(std::string &pipeline,
   pipeline += stage;
 }
 
-void cudaq_internal::compiler::substitutePipelinePlaceholders(
-    std::string &pipeline,
-    const std::map<std::string, std::string> &runtimeConfig) {
-  std::string::size_type pos = 0;
-  while (pos < pipeline.size()) {
-    auto start = pipeline.find('%', pos);
-    if (start == std::string::npos)
-      break;
-    auto end = pipeline.find('%', start + 1);
-    if (end == std::string::npos)
-      break;
-    auto token = pipeline.substr(start + 1, end - start - 1);
-    auto colon = token.find(':');
-    auto key = (colon != std::string::npos) ? token.substr(0, colon) : token;
-
-    std::string lower;
-    for (char c : key)
-      lower += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-    auto it = runtimeConfig.find(lower);
-
-    if (it != runtimeConfig.end()) {
-      pipeline.replace(start, end - start + 1, it->second);
-      pos = start + it->second.size();
-    } else if (colon != std::string::npos) {
-      auto defaultVal = token.substr(colon + 1);
-      pipeline.replace(start, end - start + 1, defaultVal);
-      pos = start + defaultVal.size();
-    } else {
-      pos = end + 1;
-    }
-  }
-}
-
-void cudaq_internal::compiler::setQubitMappingBypass(std::string &pipeline) {
+/// Rewrite `qubit-mapping{...device=...}` to use `device=bypass`.
+static void setQubitMappingBypass(std::string &pipeline) {
   std::regex qubitMapping("(.*)qubit-mapping\\{(.*)device=[^,\\}]+(.*)\\}(.*)");
   std::string replacement("$1qubit-mapping{$2device=bypass$3}$4");
   pipeline = std::regex_replace(pipeline, qubitMapping, replacement);
 }
 
-cudaq_internal::compiler::JITTargetPipelineConfig
-cudaq_internal::compiler::JITTargetPipelineConfig::createFromTargetConfig(
-    const cudaq::config::TargetConfig &config,
-    const std::map<std::string, std::string> &runtimeConfig, bool emulate) {
-  JITTargetPipelineConfig pipelineConfig;
-  if (!config.BackendConfig.has_value())
-    return pipelineConfig;
-
-  pipelineConfig.hasBackendConfig = true;
-  const auto &backendConfig = *config.BackendConfig;
-  pipelineConfig.hasConfiguredPassPipeline = backendConfig.hasPassPipeline();
-  pipelineConfig.codegenTranslation = config.getCodeGenSpec(runtimeConfig);
-  pipelineConfig.postCodeGenPasses = backendConfig.PostCodeGenPasses;
-
-  if (!backendConfig.TargetPassPipeline.empty()) {
-    pipelineConfig.passPipelineConfig = backendConfig.TargetPassPipeline;
-    pipelineConfig.usesTargetPassPipelineOverride = true;
-    substitutePipelinePlaceholders(pipelineConfig.passPipelineConfig,
-                                   runtimeConfig);
-    return pipelineConfig;
-  }
-
+std::string
+cudaq_internal::compiler::getPassPipeline(const cudaq::CompileTarget &target) {
+  const auto &pipelineConfig = target.pipelineConfig;
   const std::string allowEarlyExit =
       pipelineConfig.codegenTranslation.starts_with("qir-adaptive") ? "true"
                                                                     : "false";
   const std::string noLoopUnroll =
       pipelineConfig.codegenTranslation == "nop" ? " no-loop-unroll=true" : "";
 
-  if (emulate)
-    appendPipelineStage(pipelineConfig.passPipelineConfig,
-                        "emul-jit-prep-pipeline{erase-noise=true "
-                        "allow-early-exit=" +
-                            allowEarlyExit + noLoopUnroll + "}");
+  std::string passPipeline = "canonicalize";
+
+  if (!pipelineConfig.overridePassPipeline.empty()) {
+    passPipeline = pipelineConfig.overridePassPipeline;
+    target.updatePassPipeline(passPipeline);
+    return passPipeline;
+  }
+
+  if (target.emulate)
+    appendPipelineStage(passPipeline, "emul-jit-prep-pipeline{erase-noise=true "
+                                      "allow-early-exit=" +
+                                          allowEarlyExit + noLoopUnroll + "}");
   else
-    appendPipelineStage(pipelineConfig.passPipelineConfig,
-                        "hw-jit-prep-pipeline{allow-early-exit=" +
-                            allowEarlyExit + noLoopUnroll + "}");
+    appendPipelineStage(passPipeline, "hw-jit-prep-pipeline{allow-early-exit=" +
+                                          allowEarlyExit + noLoopUnroll + "}");
 
   const std::string lowerDeviceCalls =
-      (pipelineConfig.codegenTranslation == "nop" && !emulate) ? "false"
-                                                               : "true";
+      (pipelineConfig.codegenTranslation == "nop" && !target.emulate) ? "false"
+                                                                      : "true";
   const std::string deployStage =
       pipelineConfig.codegenTranslation == "nop"
           ? "jit-deploy-pipeline{no-loop-unroll=true}"
           : "jit-deploy-pipeline";
-  appendPipelineStage(
-      pipelineConfig.passPipelineConfig,
-      backendConfig.getPassPipeline(
-          deployStage, "jit-finalize-pipeline{lower-device-calls=" +
-                           lowerDeviceCalls + "}"));
-  substitutePipelinePlaceholders(pipelineConfig.passPipelineConfig,
-                                 runtimeConfig);
-  pipelineConfig.runsStandardFinalize = true;
-  return pipelineConfig;
+  const std::string finalizeStage =
+      "jit-finalize-pipeline{lower-device-calls=" + lowerDeviceCalls + "}";
+
+  appendPipelineStage(passPipeline, pipelineConfig.highLevelPipeline);
+  appendPipelineStage(passPipeline, deployStage);
+  appendPipelineStage(passPipeline, pipelineConfig.midLevelPipeline);
+  appendPipelineStage(passPipeline, finalizeStage);
+  appendPipelineStage(passPipeline, pipelineConfig.lowLevelPipeline);
+
+  // Handle disable_qubit_mapping runtime option.
+  if (pipelineConfig.disableQubitMapping) {
+    setQubitMappingBypass(passPipeline);
+    CUDAQ_INFO("disable_qubit_mapping option found, so updated lowering "
+               "pipeline to {}",
+               passPipeline);
+  }
+
+  target.updatePassPipeline(passPipeline);
+
+  return passPipeline;
 }

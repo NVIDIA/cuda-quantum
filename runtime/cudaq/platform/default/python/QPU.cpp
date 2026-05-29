@@ -15,8 +15,8 @@
 #include "common/Timing.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
+#include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/JIT.h"
-#include "cudaq_internal/compiler/JITTargetPipeline.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "nvqir/resourcecounter/ResourceCounterScope.h"
@@ -28,6 +28,7 @@
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Optimizer/Transforms/ResourceCount.h"
+#include "cudaq/Target/CompileTarget.h"
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
 #include "cudaq/platform.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -112,11 +113,12 @@ static bool runTargetPassPipeline(mlir::ModuleOp module) {
   auto *rt = cudaq::get_platform().get_runtime_target();
   if (!rt)
     return false;
-  auto pipelineConfig =
-      cudaq_internal::compiler::JITTargetPipelineConfig::createFromTargetConfig(
-          rt->config, rt->runtimeConfig, cudaq::is_emulated_platform());
+  cudaq::CompileTarget ct(rt->config, rt->runtimeConfig,
+                          cudaq::is_emulated_platform());
+  const auto &pipelineConfig = ct.pipelineConfig;
   if (!pipelineConfig.hasConfiguredPassPipeline)
     return false;
+  auto passPipeline = cudaq_internal::compiler::getPassPipeline(ct);
 
   auto *ctx = module.getContext();
   PassManager pm(ctx);
@@ -124,8 +126,7 @@ static bool runTargetPassPipeline(mlir::ModuleOp module) {
   pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
   std::string errMsg;
   llvm::raw_string_ostream errOS(errMsg);
-  if (mlir::failed(mlir::parsePassPipeline(pipelineConfig.passPipelineConfig,
-                                           pm, errOS)))
+  if (mlir::failed(mlir::parsePassPipeline(passPipeline, pm, errOS)))
     throw std::runtime_error("Failed to parse target pipeline: " + errMsg);
   if (failed(cudaq::runPassManagerReleasingGIL(pm, module)))
     throw std::runtime_error("Pass pipeline failed.");
