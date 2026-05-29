@@ -338,6 +338,13 @@ jobs:
             ~/miniconda3/bin/conda init bash
             source ~/.bashrc
 
+            # conda-libmamba-solver 26.4.0 enables sharded repodata by default,
+            # and its threaded shard cache races on its sqlite store, failing the
+            # `conda install` of mpi4py/openmpi below with
+            # "sqlite3.OperationalError: database is locked". Disable sharding so
+            # conda uses classic repodata.json (slower, but reliable in CI).
+            export CONDA_PLUGINS_USE_SHARDED_REPODATA=0
+
             # Accept Anaconda's non-interactive ToS for the default channels;
             # `conda create -n cudaq-env python=...` below hits pkgs/main.
             conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
