@@ -10,23 +10,31 @@
 #include "nlohmann/json.hpp"
 #include "cudaq/runtime/logger/cudaq_fmt.h"
 #include <memory>
+#include <optional>
 
 cudaq::FermioniqQPU::~FermioniqQPU() = default;
 
-cudaq::CompiledModule cudaq::FermioniqQPU::compileImpl(
-    const std::string &kernelName,
-    std::function<cudaq::CompiledModule(cudaq_internal::compiler::Compiler &)>
-        runPassPipeline) {
-  Compiler compiler(getCompileTarget(getExecutionContext()));
-  auto compiled = runPassPipeline(compiler);
-  return compiled;
-}
-
-void cudaq::FermioniqQPU::launchImpl(const cudaq::CompiledModule &compiled) {
+cudaq::KernelThunkResultType
+cudaq::FermioniqQPU::unifiedLaunchModule(const AnyModule &module,
+                                         KernelArgs args) {
   auto *executionContext = getExecutionContext();
-
   Compiler compiler(getCompileTarget(executionContext));
-  auto codes = compiler.emitKernelExecutions(compiled);
+  std::optional<CompiledModule> compiled;
+
+  if (std::holds_alternative<SourceModule>(module)) {
+    const auto &src = std::get<SourceModule>(module);
+    const auto &kernelName = src.getName();
+    CUDAQ_INFO("FermioniqBaseQPU launching kernel ({})", kernelName);
+    auto [quakeModule, context] = Compiler::loadQuakeCodeByName(kernelName);
+    compiled = compiler.runPassPipeline(kernelName, quakeModule, args,
+                                        std::move(context));
+  } else {
+    compiled = std::get<CompiledModule>(module);
+    CUDAQ_INFO("FermioniqBaseQPU launching kernel via module ({})",
+               compiled->getName());
+  }
+
+  auto codes = compiler.emitKernelExecutions(*compiled);
 
   if (codes.size() != 1)
     throw std::runtime_error("Provider only allows 1 circuit at a time.");
@@ -49,7 +57,8 @@ void cudaq::FermioniqQPU::launchImpl(const cudaq::CompiledModule &compiled) {
     codes[0].user_data = user_data;
   }
 
-  completeLaunchKernel(compiled.getName(), std::move(codes));
+  completeLaunchKernel(compiled->getName(), std::move(codes));
+  return {};
 }
 
 cudaq::sample_result

@@ -43,25 +43,7 @@ public:
   }
 
   KernelThunkResultType unifiedLaunchModule(const AnyModule &module,
-                                            KernelArgs args) override {
-    if (std::holds_alternative<SourceModule>(module)) {
-      const auto &src = std::get<SourceModule>(module);
-      const auto &kernelName = src.getName();
-      CUDAQ_INFO("FermioniqBaseQPU launching kernel ({})", kernelName);
-      auto [quakeModule, context] = Compiler::loadQuakeCodeByName(kernelName);
-      auto compiled = compileImpl(kernelName, [&](Compiler &compiler) {
-        return compiler.runPassPipeline(kernelName, quakeModule, args,
-                                        std::move(context));
-      });
-      launchImpl(compiled);
-    } else {
-      const auto &compiled = std::get<CompiledModule>(module);
-      CUDAQ_INFO("FermioniqBaseQPU launching kernel via module ({})",
-                 compiled.getName());
-      launchImpl(compiled);
-    }
-    return {};
-  }
+                                            KernelArgs args) override;
 
   using BaseRemoteRESTQPU::getCompileTarget;
   std::unique_ptr<CompileTarget>
@@ -76,49 +58,12 @@ public:
     return target;
   }
 
-  CompiledModule compileModule(const SourceModule &src, KernelArgs args,
-                               bool isEntryPoint) override {
-    const auto &kernelName = src.getName();
-    auto modulePtr = compileModulePreamble(src);
-    CUDAQ_INFO("FermioniqBaseQPU compiling kernel via module ({})", kernelName);
-    return compileImpl(kernelName, [&](Compiler &compiler) {
-      return compiler.runPassPipeline(kernelName, modulePtr, args);
-    });
-  }
-
   sample_result launchKernel(sample_policy &policy, const AnyModule &module,
                              KernelArgs args) override;
 
   async_sample_result launchKernel(async_sample_policy &policy,
                                    const AnyModule &module,
                                    KernelArgs args) override;
-
-  CompiledModule compileModule(sample_policy &policy, const SourceModule &src,
-                               KernelArgs args, bool isEntryPoint) override {
-    return compileModuleImpl(policy, src, args, isEntryPoint);
-  }
-
-private:
-  CompiledModule
-  compileImpl(const std::string &kernelName,
-              std::function<CompiledModule(Compiler &)> runPassPipeline);
-
-  template <typename Policy>
-  CompiledModule compileImpl(Policy &policy, const SourceModule &src,
-                             KernelArgs args, bool isEntryPoint) {
-    const auto &kernelName = src.getName();
-    auto modulePtr = compileModulePreamble(src);
-    CUDAQ_INFO("FermioniqBaseQPU compiling kernel via module ({})", kernelName);
-    return compileImpl(kernelName, [&](Compiler &compiler) {
-      auto res = compiler.runPassPipeline(kernelName, modulePtr, args);
-      if constexpr (std::is_same_v<Policy, sample_policy>) {
-        if (compiler.hasWarnedNamedMeasurements())
-          policy.warnedNamedMeasurements = true;
-      }
-      return res;
-    });
-  }
-  void launchImpl(const CompiledModule &compiled);
 };
 
 } // namespace cudaq
