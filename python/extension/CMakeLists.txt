@@ -59,7 +59,7 @@ if(APPLE)
   set(_quakeDialects_extra_link_libs
     cudaq-mlir-runtime
     MLIRPass
-    CUDAQTargetConfigUtil
+    CUDAQTargetConfig
     cudaq-python-interop
     cudaq-platform-default
   )
@@ -80,7 +80,7 @@ else()
     OptCodeGen
     OptTransforms
     MLIRPass
-    CUDAQTargetConfigUtil
+    CUDAQTargetConfig
     cudaq-python-interop
     cudaq-platform-default
     cudaq-qir-verifier

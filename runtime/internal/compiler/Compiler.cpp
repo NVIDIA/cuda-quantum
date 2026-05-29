@@ -7,17 +7,14 @@
  ******************************************************************************/
 
 #include "cudaq_internal/compiler/Compiler.h"
-#include "common/CodeGenConfig.h"
 #include "common/DeviceCodeRegistry.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "common/FmtCore.h"
-#include "common/NoiseModel.h"
+#include "common/KernelExecution.h"
 #include "common/Resources.h"
-#include "common/ServerHelper.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/JIT.h"
-#include "cudaq_internal/compiler/JITTargetPipeline.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "nlohmann/json.hpp"
 #include "cudaq/Optimizer/Builder/Runtime.h"
@@ -26,8 +23,9 @@
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Optimizer/Transforms/ResourceCount.h"
-#include "cudaq/Support/TargetConfig.h"
+#include "cudaq/Target/TargetConfig.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "cudaq/utils/cudaq_utils.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/Support/Base64.h"
@@ -35,14 +33,12 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/IR/BuiltinOps.h"
-#include "mlir/IR/ImplicitLocOpBuilder.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/Parser/Parser.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Pass/PassRegistry.h"
 #include "mlir/Transforms/Passes.h"
-#include <functional>
 #include <memory>
 #include <optional>
 #include <regex>
@@ -126,11 +122,10 @@ cudaq_internal::compiler::Compiler::loadQuakeCodeByName(
 }
 
 cudaq_internal::compiler::Compiler::Compiler(
-    cudaq::ServerHelper *serverHelper,
-    const std::map<std::string, std::string> &backendConfig,
-    cudaq::config::TargetConfig &config, const cudaq::noise_model *noiseModel,
-    bool emulate)
-    : emulate(emulate) {
+    std::unique_ptr<cudaq::CompileTarget> &&target_)
+    : target(std::move(target_)) {
+  assert(target && "target cannot be null");
+  emulate = target->emulate;
 
   cudaq_internal::compiler::initializeMLIR();
 
@@ -150,61 +145,6 @@ cudaq_internal::compiler::Compiler::Compiler(
   if (enablePrintMLIREachPass) {
     disableMLIRthreading = true;
   }
-
-  if (config.BackendConfig.has_value()) {
-    auto pipelineConfig = cudaq_internal::compiler::JITTargetPipelineConfig::
-        createFromTargetConfig(config, backendConfig, emulate);
-    passPipelineConfig = pipelineConfig.passPipelineConfig;
-    codegenTranslation = pipelineConfig.codegenTranslation;
-    postCodeGenPasses = pipelineConfig.postCodeGenPasses;
-
-    if (!codegenTranslation.empty()) {
-      CUDAQ_INFO("Set codegen translation: {}", codegenTranslation);
-      // Validate codegen configuration.
-      cudaq::parseCodeGenTranslation(codegenTranslation);
-    }
-
-    if (pipelineConfig.usesTargetPassPipelineOverride) {
-      CUDAQ_INFO("Using target pass pipeline: {}", passPipelineConfig);
-    } else if (!config.BackendConfig->JITHighLevelPipeline.empty()) {
-      CUDAQ_INFO("Appending JIT high level pipeline: {}",
-                 config.BackendConfig->JITHighLevelPipeline);
-    }
-
-    if (!pipelineConfig.usesTargetPassPipelineOverride &&
-        !config.BackendConfig->JITMidLevelPipeline.empty()) {
-      CUDAQ_INFO("Appending JIT mid level pipeline: {}",
-                 config.BackendConfig->JITMidLevelPipeline);
-    }
-
-    if (!pipelineConfig.usesTargetPassPipelineOverride &&
-        !config.BackendConfig->JITLowLevelPipeline.empty()) {
-      CUDAQ_INFO("Appending JIT low level pipeline: {}",
-                 config.BackendConfig->JITLowLevelPipeline);
-    }
-
-    if (!postCodeGenPasses.empty())
-      CUDAQ_INFO("Adding post-codegen lowering pipeline: {}",
-                 postCodeGenPasses);
-  }
-
-  auto disableQM = backendConfig.find("disable_qubit_mapping");
-  if (disableQM != backendConfig.end() && disableQM->second == "true") {
-    // Replace the qubit-mapping{device=<>} with
-    // qubit-mapping{device=bypass} to effectively disable the qubit-mapping
-    // pass. Use $1 - $4 to make sure any other pass options are left
-    // untouched.
-    cudaq_internal::compiler::setQubitMappingBypass(passPipelineConfig);
-    CUDAQ_INFO("disable_qubit_mapping option found, so updated lowering "
-               "pipeline to {}",
-               passPipelineConfig);
-  }
-
-  std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
-  std::filesystem::path platformPath =
-      cudaqLibPath.parent_path().parent_path() / "targets";
-
-  serverHelper->updatePassPipeline(platformPath, passPipelineConfig);
 }
 
 cudaq_internal::compiler::Compiler::~Compiler() = default;
@@ -324,8 +264,10 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
   return {moduleOp, epFunc};
 }
 
-bool cudaq_internal::compiler::Compiler::executeMainPipeline(
+std::pair<bool, std::string>
+cudaq_internal::compiler::Compiler::executeMainPipeline(
     mlir::ModuleOp moduleOp, const std::string &kernelName) {
+  auto passPipelineConfig = getPassPipeline(*target);
   auto combineMeasurements =
       passPipelineConfig.find("combine-measurements") != std::string::npos;
   if (emulate && combineMeasurements) {
@@ -338,7 +280,7 @@ bool cudaq_internal::compiler::Compiler::executeMainPipeline(
                passPipelineConfig);
   }
   applyPipeline(passPipelineConfig, moduleOp, kernelName);
-  return combineMeasurements;
+  return {combineMeasurements, passPipelineConfig};
 }
 
 cudaq::CompiledModule
@@ -357,8 +299,8 @@ cudaq_internal::compiler::Compiler::assembleCompiledModule(
       auto jitArtifacts =
           cudaq_internal::compiler::CompiledModuleHelper::createJitArtifacts(
               kernelName,
-              cudaq_internal::compiler::createJITEngine(clonedModule,
-                                                        codegenTranslation),
+              cudaq_internal::compiler::createJITEngine(
+                  clonedModule, target->pipelineConfig.codegenTranslation),
               {},
               /*isFullySpecialized=*/true);
       assert(jitArtifacts.size() == 1);
@@ -414,7 +356,8 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
     }
   }
 
-  bool combineMeasurements = executeMainPipeline(moduleOp, kernelName);
+  auto [combineMeasurements, passPipeline] =
+      executeMainPipeline(moduleOp, kernelName);
 
   // We need to run resource counting preprocessing after the pass pipeline as
   // the pre-processing might change the IR structure (may interfere with
@@ -459,7 +402,8 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
         }
       }
       // No need to add measurements only to remove them eventually
-      if (postCodeGenPasses.find("remove-measurements") == std::string::npos)
+      if (target->pipelineConfig.postCodeGenPasses.find(
+              "remove-measurements") == std::string::npos)
         applyPipeline("func.func(add-measurements)", moduleOp, kernelName);
     } else {
       executionContext->reorderIdx.clear();
@@ -502,7 +446,7 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
       // introduce gates that aren't supported by the backend, so we need to
       // re-run the gate set mapping if that existed in the original pass
       // pipeline.
-      auto csvSplit = cudaq::split(passPipelineConfig, ',');
+      auto csvSplit = cudaq::split(passPipeline, ',');
       for (auto &pass : csvSplit)
         if (pass.ends_with("-gate-set-mapping"))
           applyPipeline(pass, tmpModuleOp, kernelName);
@@ -525,6 +469,8 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
 std::vector<cudaq::KernelExecution>
 cudaq_internal::compiler::Compiler::emitKernelExecutions(
     const cudaq::CompiledModule &compiled) {
+  const auto &codegenTranslation = target->pipelineConfig.codegenTranslation;
+  const auto &postCodeGenPasses = target->pipelineConfig.postCodeGenPasses;
   // Get the code gen translation
   auto translation =
       cudaq_internal::compiler::getTranslation(codegenTranslation);
@@ -583,7 +529,7 @@ cudaq_internal::compiler::Compiler::lowerQuakeCode(
     cudaq::ExecutionContext *executionContext, const std::string &kernelName,
     const void *modulePtr, cudaq::KernelArgs args) {
   auto compiled =
-      runPassPipeline(executionContext, kernelName, modulePtr, args, nullptr);
+      runPassPipeline(executionContext, kernelName, modulePtr, args);
   return emitKernelExecutions(compiled);
 }
 

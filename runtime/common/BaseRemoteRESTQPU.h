@@ -13,12 +13,13 @@
 #include "common/Executor.h"
 #include "common/KernelExecution.h"
 #include "common/Resources.h"
+#include "common/ServerHelper.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/JIT.h"
 #include "nvqir/AnalysisScope.h"
 #include "nvqir/resourcecounter/ResourceCounterScope.h"
-#include "cudaq/Support/TargetConfig.h"
+#include "cudaq/Target/TargetConfig.h"
 #include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/platform/platform_iface.h"
 #include "cudaq/platform/qpu.h"
@@ -27,6 +28,7 @@
 #include "cudaq/utils/cudaq_utils.h"
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -53,10 +55,6 @@ protected:
 
   /// @brief The name of the QPU being targeted
   std::string qpuName;
-
-  /// @brief Name of code generation target (e.g. `qir-adaptive`, `qir-base`,
-  /// `qasm2`, `iqm`)
-  std::string codegenTranslation = "";
 
   // Pointer to the concrete Executor for this QPU
   std::unique_ptr<cudaq::Executor> executor;
@@ -96,8 +94,7 @@ protected:
     // Temporary hack until we have a proper way of configuring the compiler
     // based on the policy.
     auto ctx = cudaq::getExecutionContext();
-    Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
-                      noiseModel, emulate);
+    Compiler compiler(getCompileTarget(policy));
     return compiler.runPassPipeline(ctx, kernelName, modulePtr, args);
   }
 
@@ -229,16 +226,38 @@ public:
                                   std::istreambuf_iterator<char>());
     detail::parseTargetConfigYml(configYmlContents, targetConfig);
 
-    // Keep a local copy for capability queries like
-    // supportsConditionalFeedback(). The Compiler computes and validates the
-    // full codegen configuration for lowering.
-    codegenTranslation = targetConfig.getCodeGenSpec(backendConfig);
-
     // Set the qpu name
     qpuName = mutableBackend;
     // Create the ServerHelper for this QPU and give it the backend config
     detail::initServerHelperAndExecutor(qpuName, backendConfig, targetConfig,
                                         serverHelper, executor);
+  }
+
+  class BaseRemoteRESTQPUCompileTarget : public CompileTarget {
+  public:
+    BaseRemoteRESTQPUCompileTarget(
+        cudaq::ServerHelper *serverHelper, std::filesystem::path platformPath,
+        cudaq::config::TargetConfig targetConfig,
+        std::map<std::string, std::string> runtimeConfig, bool emulate)
+        : CompileTarget(targetConfig, runtimeConfig, emulate),
+          serverHelper(serverHelper), platformPath(platformPath) {}
+
+    void updatePassPipeline(std::string &passPipeline) const override {
+      serverHelper->updatePassPipeline(platformPath, passPipeline);
+    }
+
+  private:
+    cudaq::ServerHelper *serverHelper;
+    std::filesystem::path platformPath;
+  };
+
+  using QPU::getCompileTarget;
+  std::unique_ptr<CompileTarget> getCompileTarget(ExecutionContext *) override {
+    std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
+    auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
+
+    return std::make_unique<BaseRemoteRESTQPUCompileTarget>(
+        serverHelper.get(), platformPath, targetConfig, backendConfig, emulate);
   }
 
   CompiledModule compileModule(const SourceModule &src, KernelArgs args,
@@ -254,8 +273,7 @@ public:
           "Remote rest execution can only be performed via cudaq::sample(), "
           "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
 
-    Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
-                      noiseModel, emulate);
+    Compiler compiler(getCompileTarget());
     return compiler.runPassPipeline(executionContext, kernelName, modulePtr,
                                     args);
   }
@@ -273,8 +291,7 @@ public:
   std::pair<std::string, std::vector<cudaq::KernelExecution>>
   compileKernelExecutions(Policy &policy, const AnyModule &module,
                           KernelArgs args) {
-    Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
-                      noiseModel, emulate);
+    Compiler compiler(getCompileTarget(policy));
     std::vector<cudaq::KernelExecution> codes;
     std::string kernelName;
     // Temporary hack until we have a proper way of configuring the compiler
