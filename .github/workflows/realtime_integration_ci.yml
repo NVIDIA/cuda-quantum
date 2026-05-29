@@ -9,6 +9,9 @@ on:
   push:
     branches:
       - "pull-request/[0-9]+"
+  merge_group:
+    types:
+      - checks_requested
 
 name: Realtime Integration CI
 
