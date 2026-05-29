@@ -483,7 +483,6 @@ std::vector<cudaq::KernelExecution>
 cudaq_internal::compiler::Compiler::emitKernelExecutions(
     const cudaq::CompiledModule &compiled,
     cudaq::ExecutionContext *executionContext) {
-  const bool emitTargetCode = !isDemContext(executionContext);
   const auto &codegenTranslation = target->pipelineConfig.codegenTranslation;
   const auto &postCodeGenPasses = target->pipelineConfig.postCodeGenPasses;
 
@@ -496,7 +495,8 @@ cudaq_internal::compiler::Compiler::emitKernelExecutions(
 
     std::string codeStr;
     nlohmann::json j;
-    if (emitTargetCode) {
+    // No need to emit target-specific code for DEM contexts
+    if (!isDemContext(executionContext)) {
       auto translation =
           cudaq_internal::compiler::getTranslation(codegenTranslation);
       llvm::raw_string_ostream outStr(codeStr);
@@ -546,7 +546,7 @@ cudaq_internal::compiler::Compiler::lowerQuakeCode(
     cudaq::ExecutionContext *executionContext, const std::string &kernelName,
     const void *modulePtr, cudaq::KernelArgs args) {
   auto compiled =
-      runPassPipeline(executionContext, kernelName, modulePtr, args, nullptr);
+      runPassPipeline(executionContext, kernelName, modulePtr, args);
   return emitKernelExecutions(compiled, executionContext);
 }
 

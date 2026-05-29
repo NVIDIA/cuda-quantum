@@ -262,10 +262,10 @@ public:
 
   CompiledModule compileModule(const SourceModule &src, KernelArgs args,
                                bool isEntryPoint) override {
-    auto *executionContext = cudaq::getExecutionContext();
     const auto &kernelName = src.getName();
     auto modulePtr = compileModulePreamble(src);
     CUDAQ_INFO("specializing remote rest kernel via module ({})", kernelName);
+    auto *executionContext = cudaq::getExecutionContext();
 
     // TODO future iterations of this should support non-void return types.
     if (!executionContext)
