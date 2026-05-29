@@ -136,7 +136,12 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
   auto loc = toLocation(x);
   if (!TraverseStmt(x->getRangeInit()))
     return false;
-  Value buffer = popValue();
+  // `std::vector<measure_handle>` locals are stack-allocated by
+  // `ConvertDecl.cpp` and arrive here as `!cc.ptr<!cc.stdvec<...>>`; the
+  // `SpanLikeType` dispatch below needs the descriptor value, not the slot
+  // pointer. Other handle-vec consumers in `ConvertExpr.cpp` call the same
+  // helper. The `quake::VeqType` arm is unaffected.
+  Value buffer = loadHandleVectorIfPointer(builder, loc, popValue());
   bool result = true;
   auto *body = x->getBody();
   auto *loopVar = x->getLoopVariable();

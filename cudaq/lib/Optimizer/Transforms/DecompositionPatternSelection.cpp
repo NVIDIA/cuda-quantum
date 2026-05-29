@@ -14,66 +14,79 @@
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include <algorithm>
+#include <map>
+#include <optional>
 #include <queue>
+#include <set>
 #include <unordered_map>
 #include <unordered_set>
 
 using namespace mlir;
 
+constexpr std::size_t UNBOUNDED = std::numeric_limits<std::size_t>::max();
+
+cudaq::detail::OperatorInfo::OperatorInfo(llvm::StringRef infoStr)
+    : name(), numControls(0), isAdj(false) {
+  auto nameEnd = infoStr.find_first_of("(<");
+  name = infoStr.take_front(nameEnd).str();
+  if (nameEnd < infoStr.size())
+    infoStr = infoStr.drop_front(nameEnd);
+
+  if (infoStr.consume_front("<adj>"))
+    isAdj = true;
+
+  if (infoStr.consume_front("(")) {
+    infoStr = infoStr.ltrim();
+    if (infoStr.consume_front("n"))
+      numControls = UNBOUNDED;
+    else
+      infoStr.consumeInteger(10, numControls);
+    assert(infoStr.trim().consume_front(")"));
+  }
+}
+
+bool cudaq::detail::OperatorInfo::isUnbounded() const {
+  return numControls == UNBOUNDED;
+}
+
+std::optional<cudaq::detail::OperatorInfo>
+cudaq::detail::OperatorInfo::join(const OperatorInfo &other) const {
+  if (name.empty())
+    return other;
+  if (other.name.empty())
+    return *this;
+  if (isAdj != other.isAdj || name != other.name)
+    return std::nullopt;
+  if (numControls == other.numControls)
+    return *this;
+  // Mismatching arities: promote to unbounded
+  OperatorInfo result = *this;
+  result.numControls = UNBOUNDED;
+  return result;
+}
+
+std::string cudaq::detail::OperatorInfo::str() const {
+  std::string result = name;
+  if (isAdj)
+    result += "<adj>";
+  if (isUnbounded())
+    result += "(n)";
+  else if (numControls != 0)
+    result += "(" + std::to_string(numControls) + ")";
+  return result;
+}
+
+/// Check if this gate covers another gate.
+bool cudaq::detail::OperatorInfo::covers(const OperatorInfo &other) const {
+  return join(other) == *this;
+}
+
 namespace {
-
-// ConversionTarget and OperatorInfo, parsed from target basis strings such as
-// ["x", "x(1)", "z"]
-struct OperatorInfo {
-  StringRef name;
-  std::size_t numControls;
-  bool isAdj;
-
-  OperatorInfo(StringRef infoStr) : name(), numControls(0), isAdj(false) {
-    auto nameEnd = infoStr.find_first_of("(<");
-    name = infoStr.take_front(nameEnd);
-    if (nameEnd < infoStr.size())
-      infoStr = infoStr.drop_front(nameEnd);
-
-    if (infoStr.consume_front("<adj>"))
-      isAdj = true;
-
-    if (infoStr.consume_front("(")) {
-      infoStr = infoStr.ltrim();
-      if (infoStr.consume_front("n"))
-        numControls = std::numeric_limits<std::size_t>::max();
-      else
-        infoStr.consumeInteger(10, numControls);
-      assert(infoStr.trim().consume_front(")"));
-    }
-  }
-
-  bool operator==(const OperatorInfo &other) const {
-    return name == other.name && numControls == other.numControls &&
-           isAdj == other.isAdj;
-  }
-
-  bool isUnbounded() const {
-    return numControls == std::numeric_limits<std::size_t>::max();
-  }
-
-  /// Check if this gate matches another, treating unbounded (n) control
-  /// count as a wildcard that matches any concrete count.
-  bool matches(const OperatorInfo &other) const {
-    if (name != other.name || isAdj != other.isAdj)
-      return false;
-    constexpr auto unbounded = std::numeric_limits<std::size_t>::max();
-    if (numControls == unbounded || other.numControls == unbounded)
-      return true;
-    return numControls == other.numControls;
-  }
-};
 
 struct BasisTarget : public ConversionTarget {
 
   BasisTarget(MLIRContext &context, ArrayRef<std::string> targetBasis)
       : ConversionTarget(context) {
-    constexpr std::size_t unbounded = std::numeric_limits<std::size_t>::max();
 
     // Parse the list of target operations and build a set of legal operations
     for (const std::string &targetInfo : targetBasis)
@@ -85,11 +98,13 @@ struct BasisTarget : public ConversionTarget {
     addDynamicallyLegalDialect<cudaq::quake::QuakeDialect>([&](Operation *op) {
       if (auto optor = dyn_cast<cudaq::quake::OperatorInterface>(op)) {
         auto name = optor->getName().stripDialect();
+        auto numControls = cudaq::getKnownNumControls(optor);
         for (auto info : legalOperatorSet) {
           if (info.name != name)
             continue;
-          if (info.numControls == unbounded ||
-              optor.getControls().size() == info.numControls)
+          if (info.numControls == UNBOUNDED)
+            return true;
+          if (numControls && *numControls == info.numControls)
             return true;
         }
         return false;
@@ -107,7 +122,7 @@ struct BasisTarget : public ConversionTarget {
     });
   }
 
-  SmallVector<OperatorInfo, 8> legalOperatorSet;
+  SmallVector<cudaq::detail::OperatorInfo, 8> legalOperatorSet;
 };
 
 } // namespace
@@ -118,8 +133,8 @@ struct BasisTarget : public ConversionTarget {
 
 namespace std {
 template <>
-struct hash<OperatorInfo> {
-  std::size_t operator()(const OperatorInfo &info) const {
+struct hash<cudaq::detail::OperatorInfo> {
+  std::size_t operator()(const cudaq::detail::OperatorInfo &info) const {
     return llvm::hash_combine(info.name, info.numControls, info.isAdj);
   }
 };
@@ -137,6 +152,19 @@ std::size_t computeSetHash(const std::unordered_set<T> &set) {
   return llvm::hash_combine_range(hashes.begin(), hashes.end());
 }
 
+/// Get all control arities in the basis gates that match the given gate type.
+static std::vector<std::size_t> getExistingControlCounts(
+    const cudaq::detail::OperatorInfo &gate,
+    const std::unordered_set<cudaq::detail::OperatorInfo> &basisGates) {
+  std::vector<std::size_t> result;
+  for (const auto &basisGate : basisGates) {
+    if (basisGate.name == gate.name && basisGate.isAdj == gate.isAdj) {
+      result.push_back(basisGate.numControls);
+    }
+  }
+  return result;
+}
+
 namespace {
 //===----------------------------------------------------------------------===//
 // Decomposition Graph for Pattern Selection
@@ -150,6 +178,8 @@ namespace {
 /// nodes are gate types and hyperedges are rewrite patterns connecting the
 /// matched gate type to all newly inserted gate types.
 class DecompositionGraph {
+  using OperatorInfo = cudaq::detail::OperatorInfo;
+
 public:
   DecompositionGraph() = default;
 
@@ -177,15 +207,30 @@ public:
     return DecompositionGraph(std::move(patterns));
   }
 
-  /// Return all patterns that have the given gate as one of their targets.
-  /// Uses OperatorInfo::matches() to handle unbounded (n) control counts.
+  /// Return all patterns that have the given gate (or its unbounded version) as
+  /// one of their targets.
   llvm::SmallVector<std::string>
   incomingPatterns(const OperatorInfo &gate) const {
     llvm::SmallVector<std::string> result;
-    for (const auto &[key, patterns] : targetToPatterns) {
-      if (key.matches(gate))
-        result.append(patterns.begin(), patterns.end());
+    auto it = targetToPatterns.find(gate);
+    if (it != targetToPatterns.end())
+      result.append(it->second.begin(), it->second.end());
+
+    if (gate.isUnbounded())
+      return result;
+
+    // Add patterns for the unbounded version of the gate.
+    auto unboundedGate = gate;
+    unboundedGate.numControls = UNBOUNDED;
+    std::set<std::string> knownPatterns(result.begin(), result.end());
+    it = targetToPatterns.find(unboundedGate);
+    if (it != targetToPatterns.end()) {
+      for (const auto &pattern : it->second) {
+        if (!knownPatterns.contains(pattern))
+          result.push_back(pattern);
+      }
     }
+
     return result;
   }
 
@@ -193,7 +238,7 @@ public:
   /// gates.
   ///
   /// The result of the pattern selection are cached, so that successive calls
-  /// with the same arguments will be O(1).
+  /// with the same arguments will be fast.
   ///
   /// @param patterns The pattern set to add the selected patterns to
   /// @param basisGates The basis gates to decompose to
@@ -210,22 +255,36 @@ public:
     }
 
     for (const auto &patternName : patternSelectionCache[hashVal]) {
-      const auto &pattern = getPatternType(patternName);
-      // Patterns with unbounded (n) control counts get lower benefit so
-      // that specific patterns (e.g., CR1ToCX for r1(1)) are preferred
-      // when both match the same op.
-      OperatorInfo sourceInfo(pattern->getSourceOp());
-      PatternBenefit benefit = sourceInfo.isUnbounded() ? 1 : 2;
-      patterns.add(pattern->create(patterns.getContext(), benefit));
+      auto ctx = patterns.getContext();
+      patterns.add(constructPattern(patternName, ctx, basisGates));
     }
   }
 
 private:
   const std::unique_ptr<cudaq::DecompositionPatternType> &
-  getPatternType(const std::string &patternName) const {
+  getPatternType(llvm::StringRef patternName) const {
     auto patternType = patternTypes.find(patternName);
     assert(patternType != patternTypes.end() && "pattern not found");
     return patternType->getValue();
+  }
+
+  std::unique_ptr<mlir::RewritePattern>
+  constructPattern(llvm::StringRef patternName, mlir::MLIRContext *context,
+                   const std::unordered_set<OperatorInfo> &basisGates) const {
+    const auto &pattern = getPatternType(patternName);
+    // Patterns with unbounded (n) control counts get lower benefit so
+    // that specific patterns (e.g., CR1ToCX for r1(1)) are preferred
+    // when both match the same op.
+    auto sourceInfo = pattern->getSourceOp();
+    PatternBenefit benefit;
+    std::vector<std::size_t> disabledControlCounts;
+    if (sourceInfo.isUnbounded()) {
+      benefit = 1;
+      disabledControlCounts = getExistingControlCounts(sourceInfo, basisGates);
+    } else {
+      benefit = 2;
+    }
+    return pattern->create(context, benefit, disabledControlCounts);
   }
 
   /// Use Dijkstra's algorithm to compute the shortest decomposition path from
@@ -264,6 +323,19 @@ private:
     // basis gates
     std::priority_queue<GateDistancePair> gatesToVisit;
 
+    auto isBasisGate = [&](const cudaq::detail::OperatorInfo &gate) {
+      if (basisGates.contains(gate))
+        return true;
+      if (gate.isUnbounded())
+        return false;
+      // Check for unbounded version of the gate.
+      auto unboundedGate = gate;
+      unboundedGate.numControls = UNBOUNDED;
+      if (basisGates.contains(unboundedGate))
+        return true;
+      return false;
+    };
+
     // Initialize the priority queue with the basis gates
     for (const auto &gate : basisGates) {
       gatesToVisit.push({gate, 0, std::nullopt});
@@ -276,23 +348,27 @@ private:
       auto it = visitedGates.find(gate);
       if (it != visitedGates.end())
         return it->second;
-      // Scan for wildcard matches (either side could be unbounded).
-      std::size_t best = std::numeric_limits<std::size_t>::max();
-      for (const auto &[visited, dist] : visitedGates) {
-        if (visited.matches(gate))
-          best = std::min(best, dist);
-      }
-      return best;
+
+      if (gate.isUnbounded())
+        return UNBOUNDED;
+
+      // Check for distance of the unbounded version of the gate.
+      auto unboundedGate = gate;
+      unboundedGate.numControls = UNBOUNDED;
+      it = visitedGates.find(unboundedGate);
+      if (it != visitedGates.end())
+        return it->second;
+
+      return UNBOUNDED;
     };
 
     /// Compute the maximum distance from a pattern's targets to the basis
     /// gates.
-    auto getPatternDist = [&](const auto &pattern) {
-      auto targetGates = pattern->getTargetOps();
-      std::vector<std::size_t> targetDistances;
-      for (const auto &targetGate : targetGates)
-        targetDistances.push_back(findGateDist(targetGate));
-      return *std::max_element(targetDistances.begin(), targetDistances.end());
+    auto getPatternDist = [&](const auto &variant) {
+      std::size_t maxDistance = 0;
+      for (const auto &targetGate : variant.targetOps)
+        maxDistance = std::max(maxDistance, findGateDist(targetGate));
+      return maxDistance;
     };
 
     while (!gatesToVisit.empty()) {
@@ -305,9 +381,8 @@ private:
         continue;
       }
 
-      if (outgoingPattern.has_value()) {
+      if (outgoingPattern.has_value())
         selectedPatterns.push_back(*outgoingPattern);
-      }
 
       for (const auto &patternName : incomingPatterns(gate)) {
         if (disabledPatterns.contains(patternName)) {
@@ -315,9 +390,12 @@ private:
           continue;
         }
         const auto &pattern = getPatternType(patternName);
-        std::size_t dist = getPatternDist(pattern);
-        if (dist < std::numeric_limits<std::size_t>::max()) {
-          gatesToVisit.push({pattern->getSourceOp(), dist + 1, patternName});
+        for (const auto &variant : pattern->findCoveringVariants(gate)) {
+          std::size_t dist = getPatternDist(variant);
+          auto sourceOp = variant.sourceOp;
+          if (dist < UNBOUNDED && !isBasisGate(sourceOp) &&
+              !visitedGates.contains(sourceOp))
+            gatesToVisit.push({sourceOp, dist + 1, patternName});
         }
       }
     }
@@ -334,7 +412,8 @@ private:
       patternTypes;
 
   /// Map: target gate -> patterns that produce it
-  std::unordered_map<OperatorInfo, SmallVector<std::string>> targetToPatterns;
+  std::unordered_map<cudaq::detail::OperatorInfo, SmallVector<std::string>>
+      targetToPatterns;
 
   //===--------------------------------------------------------------------===//
   // Other data (cache)
@@ -344,6 +423,8 @@ private:
   /// enabled patterns -> selected patterns
   std::unordered_map<std::size_t, std::vector<std::string>>
       patternSelectionCache;
+
+  friend class BaseDecompositionPatternSelectionTest;
 };
 } // namespace
 
@@ -363,10 +444,53 @@ void cudaq::selectDecompositionPatterns(
 
   // Convert targetBasis, disabledPatterns and enabledPatterns to sets for O(1)
   // lookup
-  std::unordered_set<OperatorInfo> basisGatesSet(
+  std::unordered_set<detail::OperatorInfo> basisGatesSet(
       target.legalOperatorSet.begin(), target.legalOperatorSet.end());
   std::unordered_set<std::string> disabledPatternsSet(disabledPatterns.begin(),
                                                       disabledPatterns.end());
 
   return graph.selectPatterns(patterns, basisGatesSet, disabledPatternsSet);
+}
+
+cudaq::DecompositionPatternType::DecompositionPatternType(
+    std::vector<DecompositionPatternVariant> variants_)
+    : variants(std::move(variants_)) {
+  for (const auto &variant : variants) {
+    auto join = sourceOp.join(variant.sourceOp);
+    assert(join.has_value() &&
+           "all source ops of pattern variants must be joinable");
+    sourceOp = *join;
+
+    // Join all target ops of variants together. This is quadratic in the
+    // number of target ops, but realistically there won't be >10 of those.
+    for (const auto &targetOp : variant.targetOps) {
+      bool inserted = false;
+      for (auto &existingTargetOp : targetOps) {
+        auto join = existingTargetOp.join(targetOp);
+        if (join.has_value()) {
+          existingTargetOp = *join;
+          inserted = true;
+          break;
+        }
+      }
+      if (!inserted) {
+        targetOps.push_back(targetOp);
+      }
+    }
+  }
+}
+
+llvm::SmallVector<cudaq::DecompositionPatternVariant>
+cudaq::DecompositionPatternType::findCoveringVariants(
+    const cudaq::detail::OperatorInfo &targetGate) const {
+  llvm::SmallVector<DecompositionPatternVariant> result;
+  for (const auto &variant : variants) {
+    for (const auto &targetOp : variant.targetOps) {
+      if (targetOp.covers(targetGate)) {
+        result.push_back(variant);
+        break;
+      }
+    }
+  }
+  return result;
 }

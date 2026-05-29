@@ -6,6 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+# Undoing the setting of CUDAQ_LIBRARY_MODE for the backends directory.
+get_directory_property(defs COMPILE_DEFINITIONS)
+list(REMOVE_ITEM defs CUDAQ_LIBRARY_MODE)
+set_directory_properties(PROPERTIES COMPILE_DEFINITIONS "${defs}")
+
+
 # List of libraries to link with by default to create a test executable
 set(default_backend_unittest_libs
   fmt::fmt-header-only
@@ -78,14 +84,22 @@ endfunction()
 
 find_package(Python COMPONENTS Interpreter)
 if (OPENSSL_FOUND AND CUDAQ_ENABLE_PYTHON AND CUDAQ_TEST_MOCK_SERVERS)
-  add_subdirectory(anyon)
+  if (CUDAQ_ENABLE_ANYON_BACKEND)
+    add_subdirectory(anyon)
+  endif()
   if (CUDAQ_ENABLE_BRAKET_BACKEND)
     add_subdirectory(braket)
   endif()
   add_subdirectory(infleqtion)
-  add_subdirectory(ionq)
-  add_subdirectory(iqm)
-  add_subdirectory(oqc)
+  if (CUDAQ_ENABLE_IONQ_BACKEND)
+    add_subdirectory(ionq)
+  endif()
+  if (CUDAQ_ENABLE_IQM_BACKEND)
+    add_subdirectory(iqm)
+  endif()
+  if (CUDAQ_ENABLE_OQC_BACKEND)
+    add_subdirectory(oqc)
+  endif()
   if (CUDAQ_ENABLE_QCI_BACKEND)
     add_subdirectory(qci)
   endif()

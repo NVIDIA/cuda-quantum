@@ -65,12 +65,13 @@ if (CUDA_FOUND)
       cudaq-ensmallen
       cudaq-mlir-runtime-headers # Public until compilation is moved out of the QPUs
       cudaq-logger
+      CUDAQTargetConfig
     PRIVATE
       MLIRIR
       nvqir
       fmt::fmt-header-only
       CUDA::cudart_static
-      CUDAQTargetConfigUtil
+      CUDAQTargetConfigYaml
   )
 
   target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_CUDA)
@@ -90,11 +91,12 @@ else()
       cudaq-ensmallen
       cudaq-mlir-runtime-headers # Public until compilation is moved out of the QPUs
       cudaq-logger
+      CUDAQTargetConfig
     PRIVATE
       MLIRIR
       nvqir
       fmt::fmt-header-only
-      CUDAQTargetConfigUtil
+      CUDAQTargetConfigYaml
   )
 endif()
 
