@@ -9,7 +9,7 @@ NVIDIA <br>
 ### License/Terms of Use: <br>
 Apache-2.0 <br>
 ## Use Case: <br>
-Developers and engineers use this skill to onboard to the CUDA-Q quantum-classical programming platform, covering installation, kernel writing, GPU-accelerated simulation, QPU hardware connection, and parallel execution. <br>
+Developers and engineers use this skill to onboard onto the CUDA-Q quantum computing platform, covering installation, kernel writing, GPU-accelerated simulation, QPU hardware connection, and application development. <br>
 
 ### Deployment Geography for Use: <br>
 Global <br>
