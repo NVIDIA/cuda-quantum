@@ -100,7 +100,8 @@ def to_cupy(state, dtype=None):
 
     arrays = []
     for tensor in state.getTensors():
-        mem = cp.cuda.UnownedMemory(tensor.data(), 1024, owner=None)
+        sizeBytes = tensor.get_num_elements() * tensor.get_element_size()
+        mem = cp.cuda.UnownedMemory(tensor.data(), sizeBytes, owner=state)
         memptr = cp.cuda.MemoryPointer(mem, offset=0)
         arrays.append(cp.ndarray(tensor.extents, dtype=dtype, memptr=memptr))
     return arrays
