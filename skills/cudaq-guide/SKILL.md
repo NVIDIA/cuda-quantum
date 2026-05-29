@@ -6,7 +6,7 @@ version: "1.0.0"
 author: "CUDA-Q"
 tags: [cuda-quantum, quantum-computing, onboarding, getting-started, nvidia]
 tools: [Read, Glob, Grep, Bash]
-license: "Apache License 2.0"
+license: "Apache-2.0"
 compatibility: "Python 3.10+, C++ 20"
 metadata:
     author: "CUDA-Q"
