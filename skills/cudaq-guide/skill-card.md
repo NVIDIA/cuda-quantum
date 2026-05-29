@@ -7,9 +7,9 @@ This skill is ready for commercial/non-commercial use. <br>
 NVIDIA <br>
 
 ### License/Terms of Use: <br>
-Apache-2.0 <br>
+Apache 2.0 <br>
 ## Use Case: <br>
-Developers and engineers use this skill to onboard onto the CUDA-Q quantum computing platform, covering installation, kernel writing, GPU-accelerated simulation, QPU hardware connection, and application development. <br>
+Developers and engineers use this skill to get started with the CUDA-Q quantum-classical programming platform, covering installation, writing quantum kernels, GPU-accelerated simulation, connecting to QPU hardware, and exploring built-in applications. <br>
 
 ### Deployment Geography for Use: <br>
 Global <br>
@@ -20,14 +20,17 @@ Mitigation: Review and scan skill before deployment. <br>
 
 ## Reference(s): <br>
 - [CUDA-Q Documentation](https://nvidia.github.io/cuda-quantum/) <br>
-- [CUDA-Q Simulation Backends](https://nvidia.github.io/cuda-quantum/latest/using/backends/simulators.html) <br>
+- [Simulation Backends](https://nvidia.github.io/cuda-quantum/latest/using/backends/simulators.html) <br>
 
 
 ## Skill Output: <br>
-**Output Type(s):** [Shell commands, Configuration instructions, Code] <br>
+**Output Type(s):** [Configuration instructions, Shell commands, Code] <br>
 **Output Format:** [Markdown with inline code blocks] <br>
 **Output Parameters:** [1D] <br>
 **Other Properties Related to Output:** [None] <br>
+
+## Evaluation Tasks: <br>
+NVSkills-Eval 3-Tier Evaluation (Tier 1: 9 static validation checks, 0 findings; Tier 2: 2 deduplication checks, 0 findings; Tier 3 live agent evaluation: not available). <br>
 
 ## Evaluation Metrics Used: <br>
 Reported benchmark dimensions: <br>

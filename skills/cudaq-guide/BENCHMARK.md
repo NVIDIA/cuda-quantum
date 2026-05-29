@@ -9,7 +9,7 @@ This benchmark summarizes 3-Tier Evaluation from NVSkills-Eval results for the s
 - Skill: `cudaq-guide`
 - Evaluation date: 2026-05-29
 - NVSkills-Eval profile: `external`
-- Overall verdict: FAIL
+- Overall verdict: PASS
 - Tier 3 live agent evaluation: not available in this report
 
 ## Agents Used
@@ -40,25 +40,25 @@ Tier 3 dimension rollup was not available in this report.
 
 ## Tier 1: Static Validation Summary
 
-Tier 1 validation passed with observations. NVSkills-Eval ran 9 checks and found 4 total findings.
+Tier 1 validation passed. NVSkills-Eval ran 9 checks and found 0 total findings.
 
-Top findings:
+Notable observations:
 
-- MEDIUM SCHEMA/body_recommended_section: Missing recommended section: '## Examples' (`skills/cudaq-guide/SKILL.md`)
-- MEDIUM SECURITY/Unknown (SDI-2): The Bash tool is declared in an onboarding/documentation guide skill, which primarily serves to present installation ins (`SKILL.md:8`)
-- MEDIUM SECURITY/Unknown (SQP-2): The QPU section instructs users to set provider credentials as environment variables but does not warn them about the se (`SKILL.md:177`)
-- LOW SCHEMA/author_format: Author must be of the form 'Name <email@host>' (`skills/cudaq-guide/SKILL.md`)
+- SECURITY: No security vulnerabilities detected (secrets, API keys, credentials)
+- SCHEMA: Found skill manifest: SKILL.md
+- VERSION: No semantic version label present; resource will use commit-hash history (opting back out of an existing label is allowed)
+- PII: Scanning 1 files for PII
+- LICENSE: no findings reported.
 
 ## Tier 2: Deduplication Summary
 
-Tier 2 validation reported findings. NVSkills-Eval ran 2 checks and found 1 total findings.
+Tier 2 validation passed. NVSkills-Eval ran 2 checks and found 0 total findings.
 
-Top findings:
+Notable observations:
 
-- HIGH DUPLICATE/duplicate: Duplicate content found within SKILL.md:
-  "## CUDA-Q Getting Started Guide" in SKILL.md (lines 1-6)
-  vs "## Instructions" in SKILL.md (lines 21-28) (`SKILL.md:1`)
+- Context Deduplication: Collected 1 file(s)
+- Inter-Skill Deduplication: Parsed skill 'cudaq-guide': 112 char description
 
 ## Publication Recommendation
 
-The skill should be reviewed before NVSkills-Eval publication. Skill owners should address the findings above and rerun NVSkills-Eval to refresh this benchmark.
+The skill is suitable to proceed toward NVSkills-Eval publication based on this benchmark. Skill owners should keep this file with the skill and refresh it when the evaluation dataset, skill behavior, or target agents materially change.
