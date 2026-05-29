@@ -6,18 +6,14 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-include(HandleLLVMOptions)
+add_custom_target(cudaq-install-plugin)
+configure_file("cudaq-install-plugin.in"
+               "${CUDAQ_BINARY_DIR}/bin/cudaq-install-plugin"
+               FILE_PERMISSIONS
+                 OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                 GROUP_READ GROUP_EXECUTE
+                 WORLD_READ WORLD_EXECUTE
+               @ONLY)
 
-if (NOT CUDAQ_DISABLE_TOOLS)
-  add_subdirectory(cudaq-opt)
-  add_subdirectory(cudaq-translate)
-
-  if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
-    add_subdirectory(cudaq-lsp-server)
-    add_subdirectory(cudaq-quake)
-    add_subdirectory(fixup-linkage)
-    add_subdirectory(nvqpp)
-    add_subdirectory(cudaq-target-conf)
-    add_subdirectory(cudaq-install-plugin)
-  endif()
-endif()
+install(PROGRAMS ${CUDAQ_BINARY_DIR}/bin/cudaq-install-plugin
+        DESTINATION bin)

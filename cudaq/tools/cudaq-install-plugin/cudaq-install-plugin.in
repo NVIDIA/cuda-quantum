@@ -1,0 +1,247 @@
+#!/bin/bash
+
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+set -euo pipefail
+
+function usage {
+	cat <<'HELP'
+Usage:
+  cudaq-install-plugin [--copy] [--system] <path>
+  cudaq-install-plugin --uninstall <name>
+  cudaq-install-plugin --list
+
+Install a CUDA-Q plugin directory so nvq++ can discover its targets.
+
+Options:
+  --copy          Copy the plugin directory instead of symlinking it.
+  --system        Install into the CUDA-Q installation's plugins directory.
+  --uninstall     Remove a plugin from both user and system plugin scopes.
+  --list          List installed plugins from both scopes.
+  -h, --help      Print this help.
+  --version       Print version information.
+HELP
+}
+
+function error_exit {
+	echo "cudaq-install-plugin: $1" >&2
+	exit 1
+}
+
+install_dir="$(
+	cd -- "$(dirname "$0")/.." >/dev/null 2>&1
+	pwd -P
+)"
+
+function user_plugin_scope {
+	if [ -n "${XDG_DATA_HOME:-}" ]; then
+		echo "${XDG_DATA_HOME}/cudaq/plugins"
+	else
+		if [ -z "${HOME:-}" ]; then
+			error_exit "HOME must be set when XDG_DATA_HOME is not set"
+		fi
+		echo "${HOME}/.local/share/cudaq/plugins"
+	fi
+}
+
+function system_plugin_scope {
+	echo "${install_dir}/plugins"
+}
+
+function validate_plugin_name {
+	local name="$1"
+	if [ -z "${name}" ] || [ "${name}" = "." ] || [ "${name}" = ".." ] || [[ "${name}" == */* ]]; then
+		error_exit "invalid plugin name: ${name}"
+	fi
+}
+
+function validate_plugin_root {
+	local plugin_root="$1"
+	if [ ! -d "${plugin_root}/targets" ]; then
+		error_exit "plugin root must contain a targets directory: ${plugin_root}"
+	fi
+
+	for target_yaml in "${plugin_root}"/targets/*.yml; do
+		if [ -f "${target_yaml}" ]; then
+			return
+		fi
+	done
+
+	error_exit "plugin root must contain at least one target YAML: ${plugin_root}/targets"
+}
+
+function list_scope {
+	local label="$1"
+	local scope="$2"
+	if [ ! -d "${scope}" ]; then
+		return
+	fi
+
+	for plugin_root in "${scope}"/*; do
+		if [ -d "${plugin_root}" ] || [ -L "${plugin_root}" ]; then
+			printf "%s\t%s\t%s\n" "${label}" "$(basename "${plugin_root}")" "${plugin_root}"
+		fi
+	done
+}
+
+function list_plugins {
+	list_scope "user" "$(user_plugin_scope)"
+	list_scope "system" "$(system_plugin_scope)"
+}
+
+function uninstall_plugin {
+	local name="$1"
+	validate_plugin_name "${name}"
+
+	local removed=false
+	for scope in "$(user_plugin_scope)" "$(system_plugin_scope)"; do
+		local installed_path="${scope}/${name}"
+		if [ -e "${installed_path}" ] || [ -L "${installed_path}" ]; then
+			rm -rf -- "${installed_path}"
+			removed=true
+		fi
+	done
+
+	if ! ${removed}; then
+		error_exit "plugin is not installed: ${name}"
+	fi
+}
+
+function install_plugin {
+	local source_path="$1"
+	local scope="$2"
+	local mode="$3"
+
+	if [ ! -d "${source_path}" ]; then
+		error_exit "plugin root does not exist: ${source_path}"
+	fi
+
+	local source_abs
+	source_abs="$(
+		cd -- "${source_path}" >/dev/null 2>&1
+		pwd -P
+	)"
+	validate_plugin_root "${source_abs}"
+
+	local plugin_name
+	plugin_name="$(basename "${source_abs}")"
+	validate_plugin_name "${plugin_name}"
+
+	local destination="${scope}/${plugin_name}"
+	mkdir -p "${scope}"
+	if [ -e "${destination}" ] || [ -L "${destination}" ]; then
+		error_exit "destination already exists: ${destination}"
+	fi
+
+	if [ "${mode}" = "copy" ]; then
+		cp -R "${source_abs}" "${destination}"
+	else
+		ln -s "${source_abs}" "${destination}"
+	fi
+}
+
+function set_action {
+	local next_action="$1"
+	if [ "${action}" != "install" ]; then
+		error_exit "only one action may be specified"
+	fi
+	action="${next_action}"
+}
+
+action="install"
+copy_mode="symlink"
+install_scope="$(user_plugin_scope)"
+plugin_path=
+plugin_name=
+saw_copy=false
+saw_system=false
+
+while [ "$#" -gt 0 ]; do
+	case "$1" in
+	-h|--help)
+		usage
+		exit 0
+		;;
+	--version)
+		echo "cudaq-install-plugin Version @CUDA_QUANTUM_VERSION@"
+		exit 0
+		;;
+	--list)
+		set_action "list"
+		shift
+		;;
+	--uninstall)
+		set_action "uninstall"
+		shift
+		if [ "$#" -eq 0 ]; then
+			error_exit "--uninstall requires a plugin name"
+		fi
+		plugin_name="$1"
+		shift
+		;;
+	--copy)
+		copy_mode="copy"
+		saw_copy=true
+		shift
+		;;
+	--system)
+		install_scope="$(system_plugin_scope)"
+		saw_system=true
+		shift
+		;;
+	--)
+		shift
+		while [ "$#" -gt 0 ]; do
+			if [ -n "${plugin_path}" ]; then
+				error_exit "expected one plugin path"
+			fi
+			plugin_path="$1"
+			shift
+		done
+		;;
+	-*)
+		error_exit "unknown option: $1"
+		;;
+	*)
+		if [ -n "${plugin_path}" ]; then
+			error_exit "expected one plugin path"
+		fi
+		plugin_path="$1"
+		shift
+		;;
+	esac
+done
+
+if [ "$#" -gt 0 ]; then
+	error_exit "unexpected argument: $1"
+fi
+
+case "${action}" in
+list)
+	if [ -n "${plugin_path}" ] || [ -n "${plugin_name}" ] || ${saw_copy} || ${saw_system}; then
+		error_exit "--list cannot be combined with other arguments"
+	fi
+	list_plugins
+	;;
+uninstall)
+	if [ -n "${plugin_path}" ] || ${saw_copy} || ${saw_system}; then
+		error_exit "--uninstall cannot be combined with install options"
+	fi
+	uninstall_plugin "${plugin_name}"
+	;;
+install)
+	if [ -z "${plugin_path}" ]; then
+		error_exit "missing plugin path"
+	fi
+	install_plugin "${plugin_path}" "${install_scope}" "${copy_mode}"
+	;;
+*)
+	error_exit "internal error: unknown action ${action}"
+	;;
+esac
