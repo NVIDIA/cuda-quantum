@@ -74,8 +74,8 @@ public:
   /// Whether to create local JIT artifacts even when not emulating the target.
   ///
   /// Analysis contexts that execute locally, but are entered through a remote
-  /// platform, use this to run the lowered kernel under the analysis simulator
-  /// instead of submitting it to the remote executor.
+  /// platform, use this to run the kernel under the analysis simulator instead
+  /// of submitting it to the remote executor.
   bool generateJitArtifacts = false;
 
   /// Whether to translate MLIR artifacts into target transport code.
@@ -84,11 +84,13 @@ public:
   /// artifact and do not need a QIR/QASM payload for the remote backend.
   bool emitTargetCode = true;
 
-  /// Whether target-prep pipelines should keep `quake.apply_noise` operations.
-  bool preserveNoiseOps = false;
-
-  /// Whether target-prep pipelines should keep QEC detector/observable ops.
-  bool preserveQecOps = false;
+  /// Whether to run the target lowering pipeline before building artifacts.
+  ///
+  /// Local analysis contexts (e.g. DEM extraction) set this to false: they JIT
+  /// the kernel directly for an analysis simulator, which consumes the kernel's
+  /// QEC and noise operations at runtime. The target lowering pipeline would
+  /// otherwise erase those operations or fail to legalize them during codegen.
+  bool runTargetLoweringPipeline = true;
 
   /// When set, emit one lowered module per non-identity Pauli term of this
   /// observable. The resulting `CompiledModule` will contain a compilation

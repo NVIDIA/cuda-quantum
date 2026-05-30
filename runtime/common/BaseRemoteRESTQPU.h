@@ -275,8 +275,7 @@ public:
     } else if (ctx && ctx->name == "dem") {
       target->generateJitArtifacts = true;
       target->emitTargetCode = false;
-      target->preserveNoiseOps = true;
-      target->preserveQecOps = true;
+      target->runTargetLoweringPipeline = false;
     }
     return target;
   }

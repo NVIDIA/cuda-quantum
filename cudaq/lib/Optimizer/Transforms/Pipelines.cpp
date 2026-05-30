@@ -18,9 +18,6 @@ struct TargetPrepPipelineOptions
   PassOptions::Option<bool> eraseNoise{
       *this, "erase-noise", llvm::cl::desc("Erase apply noise calls."),
       llvm::cl::init(true)};
-  PassOptions::Option<bool> eraseQec{
-      *this, "erase-qec", llvm::cl::desc("Erase QEC detector/observable ops."),
-      llvm::cl::init(true)};
   PassOptions::Option<bool> applyConstProp{
       *this, "apply-const-prop",
       llvm::cl::desc("Enable constant propagation in apply specialization."),
@@ -98,10 +95,8 @@ static void createTargetPrepPipeline(OpPassManager &pm,
 static void
 createHardwareTargetPrepPipeline(OpPassManager &pm,
                                  const TargetPrepPipelineOptions &options) {
-  if (options.eraseNoise)
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseNoise());
-  if (options.eraseQec)
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseQEC());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseNoise());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseQEC());
   createTargetPrepPipeline(pm, options);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createStatePreparation());
 }

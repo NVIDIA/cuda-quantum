@@ -355,8 +355,16 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
     }
   }
 
-  auto [combineMeasurements, passPipeline] =
-      executeMainPipeline(moduleOp, kernelName);
+  // DEM and other local-analysis contexts JIT the kernel directly for an
+  // analysis simulator and must skip the target lowering pipeline, which would
+  // erase or fail to legalize the QEC/noise ops the analysis depends on.
+  bool combineMeasurements = false;
+  std::string passPipeline;
+  if (target->runTargetLoweringPipeline) {
+    auto pipelineResult = executeMainPipeline(moduleOp, kernelName);
+    combineMeasurements = pipelineResult.first;
+    passPipeline = std::move(pipelineResult.second);
+  }
 
   // We need to run resource counting preprocessing after the pass pipeline as
   // the pre-processing might change the IR structure (may interfere with

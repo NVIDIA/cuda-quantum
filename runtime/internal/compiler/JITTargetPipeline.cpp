@@ -34,8 +34,6 @@ cudaq_internal::compiler::getPassPipeline(const cudaq::CompileTarget &target) {
                                                                     : "false";
   const std::string noLoopUnroll =
       pipelineConfig.codegenTranslation == "nop" ? " no-loop-unroll=true" : "";
-  const std::string eraseNoise = target.preserveNoiseOps ? "false" : "true";
-  const std::string eraseQec = target.preserveQecOps ? "false" : "true";
 
   std::string passPipeline = "canonicalize";
 
@@ -46,16 +44,12 @@ cudaq_internal::compiler::getPassPipeline(const cudaq::CompileTarget &target) {
   }
 
   if (target.emulate)
-    appendPipelineStage(passPipeline,
-                        "emul-jit-prep-pipeline{erase-noise=" + eraseNoise +
-                            " "
-                            "allow-early-exit=" +
-                            allowEarlyExit + noLoopUnroll + "}");
+    appendPipelineStage(passPipeline, "emul-jit-prep-pipeline{erase-noise=true "
+                                      "allow-early-exit=" +
+                                          allowEarlyExit + noLoopUnroll + "}");
   else
-    appendPipelineStage(passPipeline,
-                        "hw-jit-prep-pipeline{erase-noise=" + eraseNoise +
-                            " erase-qec=" + eraseQec + " allow-early-exit=" +
-                            allowEarlyExit + noLoopUnroll + "}");
+    appendPipelineStage(passPipeline, "hw-jit-prep-pipeline{allow-early-exit=" +
+                                          allowEarlyExit + noLoopUnroll + "}");
 
   const std::string lowerDeviceCalls =
       (pipelineConfig.codegenTranslation == "nop" && !target.emulate) ? "false"
