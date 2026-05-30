@@ -31,12 +31,6 @@
 
 using namespace llvm;
 
-#ifdef CUDAQ_INCLUDE_TESTS
-namespace cudaq::test {
-void registerTestUnitaryOpGroupingPass();
-} // namespace cudaq::test
-#endif
-
 /// Dialect extension to allow inlining of the MLIR defined LLVM-IR dialects
 /// which lacks inlining support out of the box.
 class InlinerExtension
