@@ -44,6 +44,13 @@ kDynamicPtrIndex: int = -2147483648
 # This file reproduces the cudaq::kernel_builder in Python
 
 
+def clearCache(self):
+    if hasattr(self, 'qkeModule'):
+        del self.qkeModule
+    if hasattr(self, '_compiled_module'):
+        del self._compiled_module
+
+
 def __generalOperation(self,
                        opName,
                        parameters,
@@ -56,9 +63,7 @@ def __generalOperation(self,
     internal PyKernel MLIR ModuleOp.
     """
     opCtor = getattr(quake, '{}Op'.format(opName.title()))
-    if hasattr(self, 'qkeModule'):
-        del self.qkeModule
-    self._compiled_module = cudaq_runtime.CompiledModule()
+    self.clearCache()
 
     if quake.RefType.isinstance(target.mlirValue.type):
         opCtor([], parameters, controls, [target.mlirValue], is_adj=isAdj)
@@ -194,9 +199,7 @@ def __generalCustomOperation(self, opName, *args):
     numTargets = int(np.log2(np.sqrt(unitary.size)))
 
     qubits = []
-    if hasattr(self, 'qkeModule'):
-        del self.qkeModule
-    self._compiled_module = cudaq_runtime.CompiledModule()
+    self.clearCache()
     with self.insertPoint, self.loc:
         for arg in args:
             if isinstance(arg, QuakeValue):
@@ -269,8 +272,6 @@ class PyKernel(object):
         # List of in-place applied noise channels (rather than pre-registered
         # noise classes)
         self.appliedNoiseChannels = []
-
-        self._compiled_module = cudaq_runtime.CompiledModule()
 
         with self.ctx, InsertionPoint(self.module.body), self.loc:
             self.mlirArgTypes = [
@@ -683,9 +684,7 @@ class PyKernel(object):
         recursively for all required function operations and add them to the
         module.
         """
-        if hasattr(self, 'qkeModule'):
-            del self.qkeModule
-        self._compiled_module = cudaq_runtime.CompiledModule()
+        self.clearCache()
         with self.insertPoint, self.loc:
             if isinstance(target, cc.CreateLambdaOp):
                 otherFuncCloned = target
@@ -1715,6 +1714,13 @@ class PyKernel(object):
             quake.ApplyNoiseOp([params], [asVeq],
                                key=self.getConstantInt(channel_key))
 
+    def get_or_create_compiled_module(self):
+        """Return the kernel's CompiledModule cache slot, creating an empty
+        one on first access."""
+        if not hasattr(self, '_compiled_module'):
+            self._compiled_module = cudaq_runtime.CompiledModule()
+        return self._compiled_module
+
     @trace.traced
     def compile(self):
         """
@@ -1845,10 +1851,11 @@ class PyKernel(object):
 
         self.compile()
         specialized = cudaq_runtime.cloneModule(self.qkeModule)
-        cudaq_runtime.marshal_and_launch_module(self.name,
-                                                specialized,
-                                                *processedArgs,
-                                                compiled=self._compiled_module)
+        cudaq_runtime.marshal_and_launch_module(
+            self.name,
+            specialized,
+            *processedArgs,
+            compiled=self.get_or_create_compiled_module())
 
     def __getattr__(self, attr_name):
         # Search attributes in instance, class, base classes

@@ -139,7 +139,6 @@ class PyKernelDecorator(object):
         self.verbose = verbose
         # Caches the `qkeModule` property once compiled
         self._cached_qkeModule = None
-        self._compiled_module = cudaq_runtime.CompiledModule()
         self.defFrame = _recover_defining_frame()
         # Whether we are currently resolving arguments to self. Used to detect
         # (and prevent) recursive kernel calls.
@@ -591,7 +590,14 @@ class PyKernelDecorator(object):
         with trace.span("kernel.clone_module"):
             module = cudaq_runtime.cloneModule(self.qkeModule)
 
-        return processed_args, module, self._compiled_module
+        return processed_args, module, self.get_or_create_compiled_module()
+
+    def get_or_create_compiled_module(self):
+        """Return the kernel's CompiledModule cache slot, creating an empty
+        one on first access."""
+        if not hasattr(self, '_compiled_module'):
+            self._compiled_module = cudaq_runtime.CompiledModule()
+        return self._compiled_module
 
     def get_none_type(self):
         if self._cached_qkeModule:
