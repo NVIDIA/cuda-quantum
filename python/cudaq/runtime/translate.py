@@ -80,7 +80,7 @@ def translate(kernel, *args, format="qir:0.1"):
                 f"Invalid number of arguments passed to translate. "
                 f"{suppliedArgs} given, {formals} formally declared, and "
                 f"{launchArgsReq} required.")
-    processedArgs, module, _ = decorator.prepare_call(*args)
+    processedArgs, module = decorator.prepare_call(*args)
     if launchArgsReq != len(processedArgs):
         deducedArgs = len(processedArgs) - suppliedArgs
         raise RuntimeError(f"Invalid number of arguments passed to translate. "

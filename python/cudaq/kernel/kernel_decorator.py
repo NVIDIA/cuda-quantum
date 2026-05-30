@@ -579,8 +579,6 @@ class PyKernelDecorator(object):
             arguments.
         `module` : Module
             A clone of the MLIR module to be used for kernel execution.
-        `compiled` : CompiledModule
-            The kernel's CompiledModule slot (in/out).
         """
         processed_args = self.process_call_arguments(
             *args, allow_no_args=allow_no_args)
@@ -590,9 +588,9 @@ class PyKernelDecorator(object):
         with trace.span("kernel.clone_module"):
             module = cudaq_runtime.cloneModule(self.qkeModule)
 
-        return processed_args, module, self.get_or_create_compiled_module()
+        return processed_args, module
 
-    def get_or_create_compiled_module(self):
+    def cachedCompiledModule(self):
         """Return the kernel's CompiledModule cache slot, creating an empty
         one on first access."""
         if not hasattr(self, '_compiled_module'):
@@ -641,11 +639,12 @@ class PyKernelDecorator(object):
         if args and self.formal_arity() != len(args):
             emitFatalError("wrong number of arguments provided")
 
-        processed_args, module, compiled = self.prepare_call(*args)
-        return cudaq_runtime.marshal_and_launch_module(self.uniqName,
-                                                       module,
-                                                       *processed_args,
-                                                       compiled=compiled)
+        processed_args, module = self.prepare_call(*args)
+        return cudaq_runtime.marshal_and_launch_module(
+            self.uniqName,
+            module,
+            *processed_args,
+            compiled=self.cachedCompiledModule())
 
     def beta_reduction(self, isEntryPoint, *args):
         """
@@ -659,7 +658,7 @@ class PyKernelDecorator(object):
         passed to algorithms written in C++ that call back to these Python
         kernels in a functional composition.
         """
-        processed_args, module, _ = self.prepare_call(*args, allow_no_args=True)
+        processed_args, module = self.prepare_call(*args, allow_no_args=True)
         return cudaq_runtime.marshal_and_retain_module(self.uniqName, module,
                                                        isEntryPoint,
                                                        *processed_args)

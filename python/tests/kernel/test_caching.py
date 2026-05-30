@@ -13,6 +13,16 @@ import pytest
 
 import cudaq
 
+
+def assert_cached(kernel):
+    """A cacheable launch must leave the kernel's slot populated with a module
+    that was actually compiled (non-default name)."""
+    assert hasattr(kernel, '_compiled_module'), \
+        "no _compiled_module slot was installed after launch"
+    assert kernel._compiled_module.name != "", \
+        "_compiled_module slot was installed but never written"
+
+
 # ---------------------------------------------------------------------------
 # Cacheable launch modes — one test per launch path.
 # ---------------------------------------------------------------------------
@@ -29,6 +39,7 @@ def test_cache_mode_call():
 
     for _ in range(3):
         assert flip() is True
+    assert_cached(flip)
 
 
 def test_cache_mode_sample():
@@ -42,6 +53,7 @@ def test_cache_mode_sample():
 
     for _ in range(3):
         assert cudaq.sample(ones, shots_count=1).count("111") == 1
+    assert_cached(ones)
 
 
 def test_cache_mode_draw():
@@ -58,6 +70,7 @@ def test_cache_mode_draw():
     # Repeated draws should be stable.
     assert cudaq.draw(bell) == drawn
     assert cudaq.draw(bell) == drawn
+    assert_cached(bell)
 
 
 def test_cache_mode_get_state():
@@ -71,6 +84,7 @@ def test_cache_mode_get_state():
     s1 = np.array(cudaq.get_state(fixed))
     s2 = np.array(cudaq.get_state(fixed))
     np.testing.assert_allclose(s1, s2)
+    assert_cached(fixed)
 
 
 def test_cache_mode_get_unitary():

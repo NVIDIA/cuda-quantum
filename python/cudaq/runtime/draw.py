@@ -19,8 +19,9 @@ def _detail_draw(format, decorator, *args):
                            str(len(args)) + " given and " +
                            str(decorator.formal_arity()) + " expected.")
     # Must handle arguments exactly like this is a `callsite` to the decorator.
-    processedArgs, module, compiled = decorator.prepare_call(*args)
-    return cudaq_runtime.draw_impl(format, decorator.uniqName, module, compiled,
+    processedArgs, module = decorator.prepare_call(*args)
+    return cudaq_runtime.draw_impl(format, decorator.uniqName, module,
+                                   decorator.cachedCompiledModule(),
                                    *processedArgs)
 
 

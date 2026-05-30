@@ -1210,6 +1210,9 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
             return reinterpret_cast<std::uintptr_t>(ck.getJit()->getFn());
           },
           "The address of the JIT-compiled entry point.")
+      .def_prop_ro("name", &cudaq::CompiledModule::getName,
+                   "The kernel name this module was compiled for. Empty for a "
+                   "default-constructed (uninstalled) module.")
       .def_prop_ro("is_fully_specialized",
                    &cudaq::CompiledModule::isFullySpecialized,
                    "Whether all arguments have been specialized.");

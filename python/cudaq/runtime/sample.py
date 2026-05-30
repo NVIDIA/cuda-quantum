@@ -267,7 +267,7 @@ def sample_async(decorator,
         if target.is_remote():
             raise ValueError("Noise model is not supported on hardware QPU.")
 
-    processedArgs, module, _ = decorator.prepare_call(*args)
+    processedArgs, module = decorator.prepare_call(*args)
 
     _detail_check_conditionals_on_measure(kernel)
 

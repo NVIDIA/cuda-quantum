@@ -1714,7 +1714,7 @@ class PyKernel(object):
             quake.ApplyNoiseOp([params], [asVeq],
                                key=self.getConstantInt(channel_key))
 
-    def get_or_create_compiled_module(self):
+    def cachedCompiledModule(self):
         """Return the kernel's CompiledModule cache slot, creating an empty
         one on first access."""
         if not hasattr(self, '_compiled_module'):
@@ -1855,7 +1855,7 @@ class PyKernel(object):
             self.name,
             specialized,
             *processedArgs,
-            compiled=self.get_or_create_compiled_module())
+            compiled=self.cachedCompiledModule())
 
     def __getattr__(self, attr_name):
         # Search attributes in instance, class, base classes
