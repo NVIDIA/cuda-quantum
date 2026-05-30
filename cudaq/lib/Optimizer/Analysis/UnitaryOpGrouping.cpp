@@ -126,18 +126,11 @@ void cudaq::quake::detail::UnitaryOpGroupingAnalysis::scanBlock(Block &block) {
     // independent regions at the parent op boundary; this prevents groups
     // across the parent control-flow op.
     for (Region &nestedRegion : op.getRegions())
-      scanRegion(nestedRegion);
+      for (Block &nestedBlock : nestedRegion)
+        scanBlock(nestedBlock);
   }
 
   flushGroupIfNonEmpty(block, currUnitaryOps);
-}
-
-/// Scan every block in a region. Nested regions are reached from scanBlock when
-/// their owning operation is encountered.
-void cudaq::quake::detail::UnitaryOpGroupingAnalysis::scanRegion(
-    Region &region) {
-  for (Block &block : region)
-    scanBlock(block);
 }
 
 void cudaq::quake::detail::UnitaryOpGroupingAnalysis::performAnalysis(
@@ -149,10 +142,11 @@ void cudaq::quake::detail::UnitaryOpGroupingAnalysis::performAnalysis(
   LLVM_DEBUG(llvm::dbgs() << "Function to analyze: " << funcOp.getName()
                           << '\n');
 
-  /// initially start with the func op region, then recursively scan nested
-  /// regions
+  /// Initially start with the func op region, then scanBlock recursively
+  /// descends into any nested regions.
   for (Region &region : funcOp->getRegions())
-    scanRegion(region);
+    for (Block &block : region)
+      scanBlock(block);
 
   LLVM_DEBUG(llvm::dbgs() << "Found " << groups.size()
                           << " unitary group(s)\n");

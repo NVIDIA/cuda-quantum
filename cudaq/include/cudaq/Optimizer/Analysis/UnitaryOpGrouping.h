@@ -75,7 +75,6 @@ struct UnitaryOpGroupingAnalysis {
 
 private:
   void performAnalysis(mlir::Operation *operation);
-  void scanRegion(mlir::Region &region);
   void scanBlock(mlir::Block &block);
   void flushGroupIfNonEmpty(
       mlir::Block &block,
