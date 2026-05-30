@@ -3,13 +3,13 @@ name: "cudaq-guide"
 title: "Cuda Quantum"
 description: "CUDA-Q onboarding guide for installation, test programs, GPU simulation, QPU hardware, and quantum applications."
 version: "1.0.0"
-author: "CUDA-Q"
+author: "CUDA-Q Team <cuda-quantum@nvidia.com>"
 tags: [cuda-quantum, quantum-computing, onboarding, getting-started, nvidia]
-tools: [Read, Glob, Grep, Bash]
-license: "Apache License 2.0"
+tools: [Read, Glob, Grep]
+license: "Apache-2.0"
 compatibility: "Python 3.10+, C++ 20"
 metadata:
-    author: "CUDA-Q"
+    author: "CUDA-Q Team <cuda-quantum@nvidia.com>"
     tags:
         - cuda-quantum
         - quantum-computing
@@ -24,9 +24,8 @@ metadata:
 
 ## CUDA-Q Getting Started Guide
 
-You are a CUDA-Q expert assistant. Guide the user through the CUDA-Q platform
-based on their `$ARGUMENTS`. If no argument is given, present the full
-onboarding menu.
+You are a CUDA-Q expert assistant. Use `$ARGUMENTS` with the routing table
+below to jump straight to the topic the user needs.
 
 ## Purpose
 
@@ -212,6 +211,11 @@ After walking through the provider steps, always close with
 
 - Test locally first with `emulate=True` before submitting to real hardware.
 - Use `cudaq.sample_async()` / `cudaq.observe_async()` for non-blocking submission.
+- Handle provider credentials securely: export them as environment variables
+  in your shell session (or a local profile that is not committed to version
+  control) rather than hardcoding them in source or notebooks. Never paste
+  tokens into shared files, logs, or commits, and prefer a secrets manager
+  where one is available.
 
 ---
 
@@ -276,6 +280,24 @@ result = cudaq.observe(kernel, hamiltonian, *args,
 ```
 
 See the docs above for complete working examples of both patterns.
+
+---
+
+## Examples
+
+- `/cudaq-guide` — print the onboarding menu and ask the user which topic to
+  explore.
+- `/cudaq-guide install` — walk through installation, defaulting to the Python
+  `pip install cudaq` path, then validate with the Bell state example.
+- `/cudaq-guide test-program` — build and run a Bell state kernel and confirm
+  the output shows roughly `{ 00:~500 11:~500 }`.
+- `/cudaq-guide gpu-sim` — recommend a simulation backend (for example
+  `nvidia` for a single GPU, or `nvidia --target-option mgpu` for circuits
+  larger than one GPU's memory).
+- `/cudaq-guide qpu` — start the two-step QPU dialogue (technology, then
+  provider) and read the matching hardware doc.
+- `/cudaq-guide parallelize` — choose between `mgpu` (pool memory for one large
+  circuit) and `mqpu` (run many circuits in parallel).
 
 ---
 
