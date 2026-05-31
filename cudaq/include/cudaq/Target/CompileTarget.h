@@ -86,10 +86,10 @@ public:
 
   /// Whether to run the target lowering pipeline before building artifacts.
   ///
-  /// Local analysis contexts (e.g. DEM extraction) set this to false: they JIT
-  /// the kernel directly for an analysis simulator, which consumes the kernel's
-  /// QEC and noise operations at runtime. The target lowering pipeline would
-  /// otherwise erase those operations or fail to legalize them during codegen.
+  /// Local analysis contexts set this to false: they JIT the kernel directly
+  /// for an analysis simulator. The target lowering pipeline would otherwise
+  /// erase operations such as noise or QEC, or fail to legalize them during
+  /// code generation.
   bool runTargetLoweringPipeline = true;
 
   /// When set, emit one lowered module per non-identity Pauli term of this
