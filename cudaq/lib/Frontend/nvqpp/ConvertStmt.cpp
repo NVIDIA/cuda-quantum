@@ -335,6 +335,16 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *x) {
       // necessarily an explicit cast or promotion node in the AST.)
       auto load = cc::LoadOp::create(builder, loc, result);
       result = load.getResult();
+      // A `std::vector<measure_handle>` local is a descriptor slot, so it
+      // arrives here in pointer form. After promoting it to a value, refresh
+      // `resTy` to the loaded vector type so the `SpanLikeType` branch below
+      // copies the vector contents to the heap before returning. Without the
+      // refresh that branch tests the stale pointer type and is skipped,
+      // returning a descriptor that aliases a buffer freed when the callee
+      // returns.
+      if (auto sv = dyn_cast<cc::StdvecType>(result.getType());
+          sv && isa<cc::MeasureHandleType>(sv.getElementType()))
+        resTy = result.getType();
       if (load.getType() == builder.getI8Type()) {
         auto fnTy = load->getParentOfType<func::FuncOp>().getFunctionType();
         auto i1Ty = builder.getI1Type();
