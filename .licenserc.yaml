@@ -24,6 +24,7 @@ header:
     - '**/*.config'
     - '**/*.svg'
     - 'skills/**/*.sig'  # signed skill bundle manifests; cannot carry a header
+    - 'skills/**/evals/**'  # skill eval datasets/fixtures (evals.json is JSON; no header possible)
     - '**/.*'
     - '**/.*/**'
     - '**/Doxyfile.in'

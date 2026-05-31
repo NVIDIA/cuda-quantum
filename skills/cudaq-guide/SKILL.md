@@ -2,7 +2,7 @@
 name: "cudaq-guide"
 title: "Cuda Quantum"
 description: "CUDA-Q onboarding guide for installation, test programs, GPU simulation, QPU hardware, and quantum applications."
-version: "1.0.0"
+version: "1.0.1"
 author: "CUDA-Q Team <cuda-quantum@nvidia.com>"
 tags: [cuda-quantum, quantum-computing, onboarding, getting-started, nvidia]
 tools: [Read, Glob, Grep]

@@ -787,12 +787,10 @@ if ${ENABLE_KERNEL_EXECUTION}; then
 		else
 			KERNEL_EXECUTION_OPTIONS="{${AUTO_GENERATE_RUN_OPTION}}"
 		fi
-		RUN_HACKERY=""
 	elif [[ -n "${KERNEL_EXECUTION_KIND}" ]]; then
 		KERNEL_EXECUTION_OPTIONS="{${KERNEL_EXECUTION_KIND}}"
-		RUN_HACKERY=""
 	fi
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "kernel-execution${KERNEL_EXECUTION_OPTIONS}${RUN_HACKERY}")
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "kernel-execution${KERNEL_EXECUTION_OPTIONS}")
 fi
 if ${ENABLE_AGGRESSIVE_INLINE}; then
 	RUN_OPT=true
@@ -841,7 +839,7 @@ fi
 
 # Set up relocatable linking flags (used to merge quantum + classical objects).
 # On macOS, use -nostdlib to prevent implicit -lc++ linking. If the configured
-# linker does not support -r (e.g., LLVM 16's ld64.lld), fall back to the
+# linker does not support -r (e.g., LLVM 22.1.4's ld64.lld), fall back to the
 # system ld. Suppress the default config to avoid injecting -rpath which is
 # incompatible with -r.
 NOSTDLIB_FLAG=""
