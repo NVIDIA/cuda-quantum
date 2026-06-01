@@ -226,23 +226,11 @@ static void updateExecutionContext(mlir::ModuleOp module) {
 }
 
 static std::optional<cudaq::JitEngine>
-alreadyBuiltJITCode(const std::string &name) {
+alreadyBuiltJITCode(const std::string &) {
   auto *currentExecCtx = cudaq::getExecutionContext();
-  if (currentExecCtx && currentExecCtx->allowJitEngineCaching) {
-    auto jit = currentExecCtx->jitEng;
-    if (jit && cudaq::compiler_artifact::isPersistingJITEngine()) {
-      CUDAQ_INFO("Loading previously compiled JIT engine for {}. This will "
-                 "re-run the previous job, discarding any changes to the "
-                 "kernel, arguments or launch configuration.",
-                 currentExecCtx->kernelName);
-      cudaq::compiler_artifact::checkArtifactReuse(name, jit.value());
-    }
-    return jit;
-  }
-
-  // Fallback for callers without an ExecutionContext (e.g. direct kernel
-  // calls): look up the artifact saved by a previous compilation.
-  return cudaq::compiler_artifact::getArtifactJit(name);
+  if (currentExecCtx && currentExecCtx->allowJitEngineCaching)
+    return currentExecCtx->jitEng;
+  return std::nullopt;
 }
 
 /// In a sample launch context, the (`JIT` compiled) execution engine may be
@@ -375,7 +363,6 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     // 4. Lower to QIR and JIT compile.
     auto jit = cudaq_internal::compiler::createJITEngine(module, "qir:");
     cacheJITForPerformance(jit);
-    cudaq::compiler_artifact::saveArtifact(name, jit);
 
     auto jitArtifacts =
         cudaq_internal::compiler::CompiledModuleHelper::createJitArtifacts(

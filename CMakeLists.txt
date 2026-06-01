@@ -747,6 +747,37 @@ if (CUDA_FOUND)
   find_package(cuDensityMat)
 endif()
 
+set(CUDAQ_REALTIME_DIR "" CACHE PATH
+    "Path to an installed cudaq-realtime prefix. Enables CUDA-Q realtime integration when set.")
+set(CUDAQ_ENABLE_REALTIME FALSE)
+if (CUDAQ_REALTIME_DIR)
+  if (NOT CUDA_FOUND)
+    message(FATAL_ERROR
+      "CUDAQ_REALTIME_DIR requires CUDA support, but CUDA was not found.")
+  endif()
+
+  find_package(cudaq-realtime CONFIG REQUIRED
+    PATHS "${CUDAQ_REALTIME_DIR}"
+    NO_DEFAULT_PATH)
+
+  if (NOT TARGET cudaq::cudaq-realtime)
+    message(FATAL_ERROR
+      "The realtime package at CUDAQ_REALTIME_DIR=${CUDAQ_REALTIME_DIR} "
+      "does not define target cudaq::cudaq-realtime.")
+  endif()
+  if (NOT TARGET cudaq::cudaq-realtime-dispatch)
+    message(FATAL_ERROR
+      "The realtime package at CUDAQ_REALTIME_DIR=${CUDAQ_REALTIME_DIR} "
+      "does not define target cudaq::cudaq-realtime-dispatch.")
+  endif()
+
+  set(CUDAQ_ENABLE_REALTIME TRUE)
+  message(STATUS "CUDA-Q realtime integration enabled from: ${CUDAQ_REALTIME_DIR}")
+else()
+  message(STATUS
+    "CUDA-Q realtime integration disabled. Set CUDAQ_REALTIME_DIR to an installed cudaq-realtime prefix to enable it.")
+endif()
+
 # Code coverage setup
 # ==============================================================================
 if(CUDAQ_ENABLE_CC)

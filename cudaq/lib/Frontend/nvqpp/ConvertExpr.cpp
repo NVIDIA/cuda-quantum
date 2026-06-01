@@ -429,6 +429,50 @@ classDeclFromTemplateArgument(clang::FunctionDecl &func,
   return nullptr;
 }
 
+static bool isStdVectorType(clang::QualType type) {
+  const auto canonicalType = type.getCanonicalType();
+  const auto *recordDecl = canonicalType.getTypePtr()->getAsCXXRecordDecl();
+  return recordDecl && recordDecl->getName() == "vector" &&
+         cudaq::isInNamespace(recordDecl, "std");
+}
+
+static const clang::FunctionProtoType *
+functionProtoTypeFromDeviceCallTarget(clang::QualType type) {
+  auto canonicalType = type.getCanonicalType();
+  if (auto *pointerType = canonicalType->getAs<clang::PointerType>())
+    canonicalType = pointerType->getPointeeType().getCanonicalType();
+  if (auto *referenceType = canonicalType->getAs<clang::ReferenceType>())
+    canonicalType = referenceType->getPointeeType().getCanonicalType();
+  return canonicalType->getAs<clang::FunctionProtoType>();
+}
+
+static DenseI64ArrayAttr
+buildByRefVecArgIndicesAttr(OpBuilder &builder, clang::CallExpr *call,
+                            std::size_t targetArgIndex) {
+  const auto *prototype = functionProtoTypeFromDeviceCallTarget(
+      call->getArg(targetArgIndex)->IgnoreParenImpCasts()->getType());
+  if (!prototype)
+    return {};
+
+  SmallVector<std::int64_t> indices;
+  for (unsigned i = 0, e = prototype->getNumParams(); i < e; ++i) {
+    const auto paramType = prototype->getParamType(i);
+    const auto *refType = paramType->getAs<clang::LValueReferenceType>();
+    if (!refType)
+      continue;
+
+    const clang::QualType pointeeType = refType->getPointeeType();
+    if (pointeeType.isConstQualified() || !isStdVectorType(pointeeType))
+      continue;
+
+    indices.push_back(i);
+  }
+
+  if (indices.empty())
+    return {};
+  return builder.getDenseI64ArrayAttr(indices);
+}
+
 /// Is this type name one of the `cudaq` types that map to a VeqType?
 static bool isCudaQType(StringRef tn) {
   return tn == "qreg" || tn == "qspan" || tn == "qarray" || tn == "qview" ||
@@ -2540,22 +2584,25 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
 
       auto callArgs = convertKernelArgs(loc, argsOffset, processedArgs,
                                         devFuncTy.getInputs(), x);
+      const auto byRefVecArgIndices =
+          buildByRefVecArgIndicesAttr(builder, x, argsOffset - 1);
 
       auto devCall = [&]() {
         if (maybeGPULaunchParams) {
-          auto [numBlocks, numThreads] = maybeGPULaunchParams.value();
-          Value blocks = arith::ConstantIntOp::create(
+          const auto [numBlocks, numThreads] = maybeGPULaunchParams.value();
+          const Value blocks = arith::ConstantIntOp::create(
               builder, loc, builder.getI64Type(), numBlocks);
-          Value threadsPerBlock = arith::ConstantIntOp::create(
+          const Value threadsPerBlock = arith::ConstantIntOp::create(
               builder, loc, builder.getI64Type(), numThreads);
-          return cc::DeviceCallOp::create(builder, loc, devFuncTy.getResults(),
-                                          symbol, ValueRange{blocks},
-                                          ValueRange{threadsPerBlock}, deviceId,
-                                          callArgs, ArrayAttr{}, ArrayAttr{});
+          return cc::DeviceCallOp::create(
+              builder, loc, devFuncTy.getResults(), symbol, ValueRange{blocks},
+              ValueRange{threadsPerBlock}, deviceId, callArgs, ArrayAttr{},
+              ArrayAttr{}, byRefVecArgIndices);
         }
-        return cc::DeviceCallOp::create(
-            builder, loc, devFuncTy.getResults(), symbol, ValueRange{},
-            ValueRange{}, deviceId, callArgs, ArrayAttr{}, ArrayAttr{});
+        return cc::DeviceCallOp::create(builder, loc, devFuncTy.getResults(),
+                                        symbol, ValueRange{}, ValueRange{},
+                                        deviceId, callArgs, ArrayAttr{},
+                                        ArrayAttr{}, byRefVecArgIndices);
       }();
       if (devFuncTy.getResults().empty())
         return true;
