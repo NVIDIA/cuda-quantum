@@ -2009,19 +2009,26 @@ class PyASTBridge(ast.NodeVisitor):
             containerFuncArg = (not self.buildingFunctionBody and
                                 (cc.StructType.isinstance(varTy) or
                                  cc.StdvecType.isinstance(varTy)))
-            # FIXME: Measurement results are stored as values
-            # to preserve their origin from discriminate.
-            # This should be revised when we introduce the proper
-            # type distinction.
-            measurementResult = (hasattr(val, 'owner') and
-                                 hasattr(val.owner, 'name') and
-                                 val.owner.name == 'quake.discriminate')
             # FIXME: Consider storing vectors and callables as pointers like
             # other variables.
-            storeAsVal = (containerFuncArg or measurementResult or
-                          self.isQuantumType(varTy) or
+            # A local `!cc.stdvec<!cc.measure_handle>` is backed by a stack slot
+            # (like a scalar `!cc.measure_handle`) so it can be reassigned from a
+            # child block. Function-argument handle vectors stay value-backed via
+            # `containerFuncArg`; every other vector stays value-backed so
+            # reassigning a general list across scopes is still rejected.
+            # See https://github.com/NVIDIA/cuda-quantum/issues/4601.
+            # Discriminated measurement results (`i1` / `stdvec<i1>` produced by
+            # `quake.discriminate`) are stored like any other value: the
+            # `!cc.measure_handle` type now carries the "is a measurement"
+            # distinction, so they no longer need a value-storage carve-out to
+            # preserve their discriminate origin.
+            isLocalHandleVec = (cc.StdvecType.isinstance(varTy) and
+                                cc.MeasureHandleType.isinstance(
+                                    cc.StdvecType.getElementType(varTy)))
+            storeAsVal = (containerFuncArg or self.isQuantumType(varTy) or
                           cc.CallableType.isinstance(varTy) or
-                          cc.StdvecType.isinstance(varTy))
+                          (cc.StdvecType.isinstance(varTy) and
+                           not isLocalHandleVec))
             # Nothing should ever produce a pointer to a type we store as value
             # in the symbol table.
             assert (not storeAsVal or not cc.PointerType.isinstance(val.type))
