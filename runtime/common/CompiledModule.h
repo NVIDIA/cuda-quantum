@@ -270,6 +270,9 @@ protected:
 /// pointers. Build instances with
 /// `cudaq_internal::compiler::CompiledModuleHelper`.
 class CompiledModule : public FatQuakeModule {
+public:
+  using CompilationMetadata = FatQuakeModule::CompilationMetadata;
+
 private:
   friend class cudaq_internal::compiler::CompiledModuleHelper;
 
