@@ -42,6 +42,10 @@ estimate_resources_impl(const std::string &kernelName, MlirModule kernelMod,
   // every exit path, including exceptions thrown by the JIT'd kernel.
   auto rcScope = nvqir::resource_counter::make_scope(std::move(*choice));
   platform.with_execution_context(ctx, [&]() {
+    // Pass nullptr for the compiled slot to disable JIT-artifact caching:
+    // the resource-counter hooks are installed in the scope above and only
+    // fire while the kernel is freshly JIT-compiled. A cached binary would
+    // bypass them.
     [[maybe_unused]] auto result =
         cudaq::marshal_and_launch_module(kernelName, kernelMod, args);
   });
@@ -49,7 +53,8 @@ estimate_resources_impl(const std::string &kernelName, MlirModule kernelMod,
 }
 
 void cudaq::bindCountResources(nanobind::module_ &mod) {
-  mod.def("estimate_resources_impl", estimate_resources_impl, nanobind::arg(),
-          nanobind::arg(), nanobind::arg().none(), nanobind::arg(),
+  mod.def("estimate_resources_impl", estimate_resources_impl,
+          nanobind::arg("kernel_name"), nanobind::arg("kernel_mod"),
+          nanobind::arg("choice").none(), nanobind::arg("args"),
           "See python documentation for estimate_resources.");
 }

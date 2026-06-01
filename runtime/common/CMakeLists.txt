@@ -110,4 +110,3 @@ if(EXISTS "$ENV{CURL_INSTALL_PREFIX}/cacert.pem")
   # Also include it as an install target
   install(FILES "$ENV{CURL_INSTALL_PREFIX}/cacert.pem" DESTINATION .)
 endif()
-

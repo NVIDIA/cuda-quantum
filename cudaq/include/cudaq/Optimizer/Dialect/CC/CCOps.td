@@ -1882,7 +1882,11 @@ def cc_DeviceCallOp : CCOp<"device_call",
     Optional<AnySignlessInteger>:$device,
     Variadic<AnyType>:$args,
     OptionalAttr<DictArrayAttr>:$arg_attrs,
-    OptionalAttr<DictArrayAttr>:$res_attrs
+    OptionalAttr<DictArrayAttr>:$res_attrs,
+    // Indices into `args` whose original C++ callee parameters were
+    // non-const `std::vector<T>&`. The attribute preserves by-reference
+    // vector intent that is otherwise lost after lowering to `!cc.stdvec<T>`.
+    OptionalAttr<DenseI64ArrayAttr>:$by_ref_vec_arg_indices
   );
   let results = (outs Variadic<AnyType>);
   let assemblyFormat = [{
@@ -1898,19 +1902,20 @@ def cc_DeviceCallOp : CCOp<"device_call",
                    "mlir::ValueRange":$values), [{
       return build($_builder, $_state, resTys, callee, mlir::ValueRange{},
         mlir::ValueRange{},  mlir::Value{}, values, mlir::ArrayAttr{},
-        mlir::ArrayAttr{});
+        mlir::ArrayAttr{}, mlir::DenseI64ArrayAttr{});
     }]>,
     OpBuilder<(ins "mlir::TypeRange":$resTys, "mlir::StringRef":$callee,
                    "mlir::Value":$device, "mlir::ValueRange":$values), [{
       return build($_builder, $_state, resTys, callee, mlir::ValueRange{},
         mlir::ValueRange{}, device, values, mlir::ArrayAttr{},
-        mlir::ArrayAttr{});
+        mlir::ArrayAttr{}, mlir::DenseI64ArrayAttr{});
     }]>,
     OpBuilder<(ins "mlir::TypeRange":$resTys, "mlir::StringRef":$callee,
                    "mlir::ValueRange":$blocks, "mlir::ValueRange":$threads,
                    "mlir::ValueRange":$values), [{
       return build($_builder, $_state, resTys, callee, blocks, threads,
-        mlir::Value{}, values, mlir::ArrayAttr{}, mlir::ArrayAttr{});
+        mlir::Value{}, values, mlir::ArrayAttr{}, mlir::ArrayAttr{},
+        mlir::DenseI64ArrayAttr{});
     }]>
   ];
 
