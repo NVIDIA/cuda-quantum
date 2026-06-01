@@ -57,6 +57,24 @@ __qpu__ std::vector<bool> loop_carry_last() {
   return cudaq::to_bools(prev);
 }
 
+// Returning a `std::vector<measure_handle>` local by value must copy the buffer
+// to the heap on return; otherwise the caller's binding aliases the callee's
+// buffer, which is freed when the callee returns.  The callee measures and
+// returns the handle vector, and the caller copy-initializes a local from that
+// by-value return.
+__qpu__ std::vector<cudaq::measure_result>
+measure_and_return(cudaq::qview<> qv) {
+  auto r = mz(qv);
+  return r;
+}
+
+__qpu__ std::vector<bool> return_by_value() {
+  cudaq::qvector qv(2);
+  x(qv[0]);                        // |10>
+  auto s = measure_and_return(qv); // copy-init from a by-value return
+  return cudaq::to_bools(s);
+}
+
 int main() {
   {
     auto bits = outer_outlives_inner();
@@ -72,7 +90,15 @@ int main() {
       std::cout << b;
     std::cout << "\n";
   }
+  {
+    auto bits = return_by_value();
+    std::cout << "ret:";
+    for (bool b : bits)
+      std::cout << b;
+    std::cout << "\n";
+  }
 }
 
 // CHECK: outer:01
 // CHECK: carry:10
+// CHECK: ret:10

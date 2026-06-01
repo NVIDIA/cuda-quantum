@@ -65,6 +65,12 @@ function f_option_handling {
 	-fdevice-code-loading)
 		ENABLE_DEVICE_CODE_LOADER=true
 		;;
+	-fno-realtime-lowering)
+		ENABLE_REALTIME_LOWERING=false
+		;;
+	-frealtime-lowering)
+		ENABLE_REALTIME_LOWERING=true
+		;;
 	-fno-unwind-lowering)
 		ENABLE_UNWIND_LOWERING=false
 		;;
@@ -218,6 +224,9 @@ function show_help {
 -f[no-]device-code-loading
 	Enable/disable device code loading pass.
 
+-f[no-]realtime-lowering
+	Enable/disable realtime device_call lowering and link the realtime runtime.
+
 -f[no-]unwind-lowering
 	Enable/disable unwind lowering pass.
 
@@ -311,6 +320,7 @@ if [ ! -f "${install_dir}/include/cudaq.h" ]; then
 			INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/runtime/include"
 			INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/tpls/json/single_include_fwd"
 			INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/runtime/internal/compiler/include"
+			INCLUDES="${INCLUDES} -I @CMAKE_SOURCE_DIR@/runtime/internal/device_call/include"
 		fi
 	else
 		error_exit "Invalid CUDA-Q install configuration."
@@ -404,6 +414,7 @@ ENABLE_ARRAY_CONVERSION=true
 ENABLE_VARIABLE_COALESCE=true
 ENABLE_UNWIND_LOWERING=true
 ENABLE_DEVICE_CODE_LOADER=true
+ENABLE_REALTIME_LOWERING=false
 ENABLE_KERNEL_EXECUTION=true
 KERNEL_EXECUTION_KIND=
 AUTO_GENERATE_RUN_OPTION=
@@ -728,6 +739,13 @@ if ${ENABLE_MLIR_LIB_LINKING}; then
     LINKLIBS="${LINKLIBS} -lcudaq-mlir-runtime -lcudaq-builder"
 fi
 
+if ${ENABLE_REALTIME_LOWERING}; then
+    if [ -z "@CUDAQ_DEVICE_CALL_RUNTIME_LINK_LIBS@" ]; then
+        error_exit "-frealtime-lowering requires CUDA-Q to be built with realtime support."
+    fi
+    LINKLIBS="${LINKLIBS} @CUDAQ_DEVICE_CALL_RUNTIME_LINK_LIBS@"
+fi
+
 # Set the execution manager and the platform
 LINKLIBS="${LINKLIBS} -lcudaq-em-${LIBRARY_MODE_EXECUTION_MANAGER}"
 LINKLIBS="${LINKLIBS} -lcudaq-platform-${PLATFORM_LIBRARY}"
@@ -787,12 +805,10 @@ if ${ENABLE_KERNEL_EXECUTION}; then
 		else
 			KERNEL_EXECUTION_OPTIONS="{${AUTO_GENERATE_RUN_OPTION}}"
 		fi
-		RUN_HACKERY=""
 	elif [[ -n "${KERNEL_EXECUTION_KIND}" ]]; then
 		KERNEL_EXECUTION_OPTIONS="{${KERNEL_EXECUTION_KIND}}"
-		RUN_HACKERY=""
 	fi
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "kernel-execution${KERNEL_EXECUTION_OPTIONS}${RUN_HACKERY}")
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "kernel-execution${KERNEL_EXECUTION_OPTIONS}")
 fi
 if ${ENABLE_AGGRESSIVE_INLINE}; then
 	RUN_OPT=true
@@ -819,8 +835,15 @@ if ${ENABLE_LOWER_TO_CFG}; then
 	RUN_OPT=true
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "expand-measurements,lower-to-cfg")
 fi
+if ${ENABLE_REALTIME_LOWERING}; then
+	RUN_OPT=true
+fi
 if ${RUN_OPT}; then
-	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "distributed-device-call{${INSERT_DEFAULT_DEVICE_CALL_IMPL}},canonicalize,cse")
+	DISTRIBUTED_DEVICE_CALL_OPTIONS="${INSERT_DEFAULT_DEVICE_CALL_IMPL}"
+	if ${ENABLE_REALTIME_LOWERING}; then
+		DISTRIBUTED_DEVICE_CALL_OPTIONS="${DISTRIBUTED_DEVICE_CALL_OPTIONS} realtime=1"
+	fi
+	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "distributed-device-call{${DISTRIBUTED_DEVICE_CALL_OPTIONS}},canonicalize,cse")
 fi
 
 # If TARGET_PASS_PIPELINE is set, then use that exact pipeline (while still
