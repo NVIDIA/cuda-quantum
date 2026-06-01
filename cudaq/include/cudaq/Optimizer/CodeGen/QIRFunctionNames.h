@@ -19,6 +19,8 @@ static constexpr const char QIRMeasureBody[] = "__quantum__qis__mz__body";
 static constexpr const char QIRMeasure[] = "__quantum__qis__mz";
 static constexpr const char QIRMeasureToRegister[] =
     "__quantum__qis__mz__to__register";
+static constexpr const char QIRMeasureHandleToRegister[] =
+    "__quantum__qis__mz_handle__to__register";
 static constexpr const char QIRResetBody[] = "__quantum__qis__reset__body";
 static constexpr const char QIRReset[] = "__quantum__qis__reset";
 

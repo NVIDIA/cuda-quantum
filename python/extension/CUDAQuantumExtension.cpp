@@ -29,6 +29,7 @@
 #include "runtime/cudaq/algorithms/py_translate.h"
 #include "runtime/cudaq/algorithms/py_unitary.h"
 #include "runtime/cudaq/algorithms/py_utils.h"
+#include "runtime/cudaq/analysis/py_dem.h"
 #include "runtime/cudaq/operators/py_boson_op.h"
 #include "runtime/cudaq/operators/py_fermion_op.h"
 #include "runtime/cudaq/operators/py_handlers.h"
@@ -135,6 +136,7 @@ NB_MODULE(_quakeDialects, m) {
   bindPyRunAsync(cudaqRuntime);
   bindPyTranslate(cudaqRuntime);
   bindCountResources(cudaqRuntime);
+  bindDemFromKernel(cudaqRuntime);
   bindPySample(cudaqRuntime);
   bindSampleAsync(cudaqRuntime);
   bindSamplePTSBE(cudaqRuntime);

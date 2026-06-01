@@ -101,6 +101,15 @@ static void specializeKernel(const std::string &name, ModuleOp module,
 /// Run the target compilation pipeline for Python MLIR kernels. Returns true
 /// when the target pipeline already ran standard finalization.
 static bool runTargetPassPipeline(mlir::ModuleOp module) {
+  // The per-target pipeline (e.g. `quantinuum-gate-set-mapping`) marks the
+  // `qec` dialect illegal but provides no patterns, so it would reject
+  // `qec.detector` / `qec.observable` / `qec.pair_detectors` ops that DEM
+  // analysis must preserve. Skipping it here lets the subsequent JIT lower QEC
+  // ops to runtime calls correctly. Returning false signals the caller that no
+  // standard finalization ran, so the caller still schedules
+  // `createTargetFinalizePipeline` itself.
+  if (auto *ctx = cudaq::getExecutionContext(); ctx && ctx->name == "dem")
+    return false;
   auto *rt = cudaq::get_platform().get_runtime_target();
   if (!rt)
     return false;

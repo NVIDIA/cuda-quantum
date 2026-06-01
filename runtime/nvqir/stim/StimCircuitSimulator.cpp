@@ -209,6 +209,21 @@ protected:
     getExecutionContext()->result = result;
   }
 
+  /// @brief Compute the detector error model from the accumulated
+  /// `recordedCircuit` and return it as `.dem` text.
+  std::string generateDem() override {
+    stim::DetectorErrorModel dem =
+        stim::ErrorAnalyzer::circuit_to_detector_error_model(
+            recordedCircuit,
+            /*decompose_errors=*/false,
+            /*fold_loops=*/false,
+            /*allow_gauge_detectors=*/false,
+            /*approximate_disjoint_errors_threshold=*/0,
+            /*ignore_decomposition_failures=*/false,
+            /*block_decomposition_from_introducing_remnant_edges=*/false);
+    return dem.str();
+  }
+
   /// @brief Override the default sized allocation of qubits
   /// here to be a bit more efficient than the default implementation
   void addQubitsToState(std::size_t qubitCount,
@@ -710,6 +725,16 @@ public:
     for (const auto &targets : all_targets)
       if (!targets.empty())
         recordedCircuit.safe_append_u("DETECTOR", targets);
+  }
+
+  /// @brief Return the chronological index of the most-recent `mz`.
+  std::int64_t getMeasureIndex() const override {
+    auto pending = static_cast<std::int64_t>(sampleQubits.size());
+    auto committed = static_cast<std::int64_t>(num_measurements);
+    auto total = committed + pending;
+    if (total == 0)
+      return std::numeric_limits<std::int64_t>::max();
+    return total - 1;
   }
 
   bool isStateVectorSimulator() const override { return false; }

@@ -14,6 +14,7 @@ set(NVQIR_RUNTIME_SRC
   AnalysisScope.cpp
   QIRTypes.cpp
   NVQIR.cpp
+  dem/DemScope.cpp
   resourcecounter/ResourceCounter.cpp
   ../cudaq/qis/state.cpp
 )
