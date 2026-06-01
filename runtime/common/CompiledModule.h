@@ -186,6 +186,7 @@ public:
   struct CompilationMetadata {
     /// Qubit reorder indices emitted by the qubit-mapping pass.
     std::vector<std::size_t> reorderIdx;
+    // TODO: Add hash of target to check against for cache reusability
   };
 
   // --- Queries ---
@@ -278,6 +279,9 @@ private:
 
   CompiledModule(std::string kernelName)
       : FatQuakeModule(std::move(kernelName)) {}
+
+public:
+  CompiledModule() : FatQuakeModule(std::string{}) {}
 };
 
 /// Bundle of artifacts that define a CUDA-Q kernel to be compiled and executed.
