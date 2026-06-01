@@ -107,7 +107,8 @@ def sample(kernel,
         argSets = __createArgumentSet(*args)
         results = []
         for argSet in argSets:
-            processedArgs, module, compiled = decorator.prepare_call(*argSet)
+            processedArgs, module = decorator.prepare_call(*argSet)
+            compiled = decorator.cachedCompiledModule()
             result = cudaq_runtime.ptsbe.sample_impl(
                 decorator.uniqName, module, compiled, shots_count, noise_model,
                 max_trajectories, sampling_strategy, shot_allocation,
@@ -115,7 +116,8 @@ def sample(kernel,
             results.append(result)
         return results
 
-    processedArgs, module, compiled = decorator.prepare_call(*args)
+    processedArgs, module = decorator.prepare_call(*args)
+    compiled = decorator.cachedCompiledModule()
     return cudaq_runtime.ptsbe.sample_impl(
         decorator.uniqName, module, compiled, shots_count, noise_model,
         max_trajectories, sampling_strategy, shot_allocation,
@@ -162,7 +164,7 @@ def sample_async(kernel,
     if noise_model is None:
         noise_model = cudaq_runtime.NoiseModel()
 
-    processedArgs, module, _ = decorator.prepare_call(*args)
+    processedArgs, module = decorator.prepare_call(*args)
 
     impl = cudaq_runtime.ptsbe.sample_async_impl(
         decorator.uniqName, module, shots_count, noise_model, max_trajectories,
