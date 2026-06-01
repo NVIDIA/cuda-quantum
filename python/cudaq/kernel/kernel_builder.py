@@ -44,13 +44,6 @@ kDynamicPtrIndex: int = -2147483648
 # This file reproduces the cudaq::kernel_builder in Python
 
 
-def clearCache(self):
-    if hasattr(self, 'qkeModule'):
-        del self.qkeModule
-    if hasattr(self, '_compiled_module'):
-        del self._compiled_module
-
-
 def __generalOperation(self,
                        opName,
                        parameters,
@@ -1713,6 +1706,12 @@ class PyKernel(object):
             channel_key = hash(noise_channel)
             quake.ApplyNoiseOp([params], [asVeq],
                                key=self.getConstantInt(channel_key))
+
+    def clearCache(self):
+        if hasattr(self, 'qkeModule'):
+            del self.qkeModule
+        if hasattr(self, '_compiled_module'):
+            del self._compiled_module
 
     def cachedCompiledModule(self):
         """Return the kernel's CompiledModule cache slot, creating an empty
