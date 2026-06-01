@@ -60,10 +60,6 @@ int main(int argc, char **argv) {
   cudaq::registerAllCLOptions();
   cudaq::registerAllPasses();
 
-#ifdef CUDAQ_INCLUDE_TESTS
-  cudaq::test::registerTestUnitaryOpGroupingPass();
-#endif
-
   // See if we have been asked to load a pass plugin,
   // if so load it.
   std::vector<std::string> args(&argv[0], &argv[0] + argc);
