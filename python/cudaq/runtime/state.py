@@ -47,6 +47,7 @@ def get_state(kernel, *args):
         decorator = mk_decorator(kernel)
     processedArgs, module = decorator.prepare_call(*args)
     return cudaq_runtime.get_state_impl(decorator.uniqName, module,
+                                        decorator.cachedCompiledModule(),
                                         *processedArgs)
 
 
