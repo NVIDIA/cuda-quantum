@@ -6,7 +6,9 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --canonicalize %s | FileCheck %s
+// py-frontend-cleanup hoists quake.veq_size into the cc.if branches; the
+// following canonicalize folds the exposed branch-local sizes.
+// RUN: cudaq-opt --py-frontend-cleanup --canonicalize %s | FileCheck %s
 
 func.func @veq_size_if(%cond : i1, %hi : i64) -> i64 {
   %q = quake.alloca !quake.veq<5>
@@ -34,5 +36,5 @@ func.func @veq_size_if(%cond : i1, %hi : i64) -> i64 {
 // CHECK:             %[[UNDEF_0:.*]] = cc.undef !quake.veq<?>
 // CHECK:             cc.continue %[[UNDEF_0]], %[[CONSTANT_0]] : !quake.veq<?>, i64
 // CHECK:           }
-// CHECK:           return %[[VAL_0:.*]]#1 : i64
+// CHECK:           return %[[IF_0]]#1 : i64
 // CHECK:         }

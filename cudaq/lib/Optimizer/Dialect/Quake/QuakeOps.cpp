@@ -735,8 +735,7 @@ void cudaq::quake::SubVeqOp::getCanonicalizationPatterns(
 void cudaq::quake::VeqSizeOp::getCanonicalizationPatterns(
     RewritePatternSet &patterns, MLIRContext *context) {
   patterns.add<FoldInitStateSizePattern, ForwardConstantVeqSizePattern,
-               ForwardEmptyVeqSizePattern, HoistVeqSizeThroughIfPattern>(
-      context);
+               ForwardEmptyVeqSizePattern>(context);
 }
 
 //===----------------------------------------------------------------------===//
