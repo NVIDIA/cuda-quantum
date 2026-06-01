@@ -1,0 +1,47 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --expand-control-veqs %s | FileCheck %s
+
+// Test that expand-control-veqs handles veq<?> from RelaxSizeOp.
+// This pattern arises from the Python JIT path: q[0:n] produces a subveq
+// canonicalized to veq<N> wrapped in RelaxSizeOp -> veq<?>.
+
+func.func @relaxsize_1() {
+  %q = quake.alloca !quake.veq<2>
+  %sub = quake.subveq %q, 0, 0 : (!quake.veq<2>) -> !quake.veq<1>
+  %relaxed = quake.relax_size %sub : (!quake.veq<1>) -> !quake.veq<?>
+  %target = quake.extract_ref %q[1] : (!quake.veq<2>) -> !quake.ref
+  quake.x [%relaxed] %target : (!quake.veq<?>, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @relaxsize_1() {
+// CHECK:         %[[VEQ:.*]] = quake.alloca !quake.veq<2>
+// CHECK:         %[[SUB:.*]] = quake.subveq %[[VEQ]], 0, 0 : (!quake.veq<2>) -> !quake.veq<1>
+// CHECK:         %[[TARGET:.*]] = quake.extract_ref %[[VEQ]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:         %[[CTRL:.*]] = quake.extract_ref %[[SUB]][0] : (!quake.veq<1>) -> !quake.ref
+// CHECK:         quake.x [%[[CTRL]]] %[[TARGET]] : (!quake.ref, !quake.ref) -> ()
+
+func.func @relaxsize_3() {
+  %q = quake.alloca !quake.veq<4>
+  %sub = quake.subveq %q, 0, 2 : (!quake.veq<4>) -> !quake.veq<3>
+  %relaxed = quake.relax_size %sub : (!quake.veq<3>) -> !quake.veq<?>
+  %target = quake.extract_ref %q[3] : (!quake.veq<4>) -> !quake.ref
+  quake.x [%relaxed] %target : (!quake.veq<?>, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @relaxsize_3() {
+// CHECK:         %[[VEQ:.*]] = quake.alloca !quake.veq<4>
+// CHECK:         %[[SUB:.*]] = quake.subveq %[[VEQ]], 0, 2 : (!quake.veq<4>) -> !quake.veq<3>
+// CHECK:         %[[TARGET:.*]] = quake.extract_ref %[[VEQ]][3] : (!quake.veq<4>) -> !quake.ref
+// CHECK:         %[[C0:.*]] = quake.extract_ref %[[SUB]][0] : (!quake.veq<3>) -> !quake.ref
+// CHECK:         %[[C1:.*]] = quake.extract_ref %[[SUB]][1] : (!quake.veq<3>) -> !quake.ref
+// CHECK:         %[[C2:.*]] = quake.extract_ref %[[SUB]][2] : (!quake.veq<3>) -> !quake.ref
+// CHECK:         quake.x [%[[C0]], %[[C1]], %[[C2]]] %[[TARGET]] : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()

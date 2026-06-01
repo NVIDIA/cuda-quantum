@@ -8,19 +8,18 @@
 
 #include "py_resource_count.h"
 #include "common/Resources.h"
+#include "nvqir/resourcecounter/ResourceCounterScope.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
-#include "utils/LinkedLibraryHolder.h"
-#include "mlir/Bindings/Python/PybindAdaptors.h"
-#include <pybind11/functional.h>
-
-namespace py = pybind11;
+#include "mlir/Bindings/Python/NanobindAdaptors.h"
+#include <nanobind/stl/function.h>
+#include <nanobind/stl/optional.h>
 
 using namespace cudaq;
 
 static Resources
 estimate_resources_impl(const std::string &kernelName, MlirModule kernelMod,
                         std::optional<std::function<bool()>> choice,
-                        py::args args) {
+                        nanobind::args args) {
   auto &platform = cudaq::get_platform();
   args = simplifiedValidateInputArguments(args);
 
@@ -28,9 +27,6 @@ estimate_resources_impl(const std::string &kernelName, MlirModule kernelMod,
   ctx.kernelName = kernelName;
   // Indicate that this is not an async exec
   ctx.asyncExec = false;
-
-  // Use the resource counter simulator
-  python::detail::switchToResourceCounterSimulator();
 
   // Set the choice function for the simulator
   if (!choice) {
@@ -41,26 +37,19 @@ estimate_resources_impl(const std::string &kernelName, MlirModule kernelMod,
       return rand(gen);
     };
   }
-  python::detail::setChoiceFunction(*choice);
 
-  try {
-    platform.with_execution_context(ctx, [&]() {
-      [[maybe_unused]] auto result =
-          cudaq::marshal_and_launch_module(kernelName, kernelMod, args);
-    });
-  } catch (...) {
-    python::detail::stopUsingResourceCounterSimulator();
-    throw;
-  }
-
-  // Save and clone counts data
-  Resources counts = *python::detail::getResourceCounts();
-  // Switch simulators back
-  python::detail::stopUsingResourceCounterSimulator();
-  return counts;
+  // RAII: scope is released (and the resource-counter state cleared) on
+  // every exit path, including exceptions thrown by the JIT'd kernel.
+  auto rcScope = nvqir::resource_counter::make_scope(std::move(*choice));
+  platform.with_execution_context(ctx, [&]() {
+    [[maybe_unused]] auto result =
+        cudaq::marshal_and_launch_module(kernelName, kernelMod, args);
+  });
+  return nvqir::resource_counter::get_counts(rcScope);
 }
 
-void cudaq::bindCountResources(py::module &mod) {
-  mod.def("estimate_resources_impl", estimate_resources_impl,
+void cudaq::bindCountResources(nanobind::module_ &mod) {
+  mod.def("estimate_resources_impl", estimate_resources_impl, nanobind::arg(),
+          nanobind::arg(), nanobind::arg().none(), nanobind::arg(),
           "See python documentation for estimate_resources.");
 }

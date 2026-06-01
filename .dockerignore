@@ -1,0 +1,17 @@
+# NOTE: Do not exclude .git here. The build_cudaq.sh script uses
+# git rev-parse to find the repo root, and devdeps.Dockerfile /
+# assets.Dockerfile ADD files from .git/modules/. The CI checkout
+# is shallow (fetch-depth: 1) so .git is small.
+build
+Build
+__pycache__
+*.o
+*.a
+*.so
+.cache
+.vscode
+.idea
+dist
+wheelhouse
+docs/sphinx/_doxygen
+docs/sphinx/_mdgen

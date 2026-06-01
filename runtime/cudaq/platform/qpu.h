@@ -9,26 +9,30 @@
 #pragma once
 
 #include "QuantumExecutionQueue.h"
+#include "common/CompiledModule.h"
+#include "common/KernelArgs.h"
 #include "common/Registry.h"
 #include "common/ThunkInterface.h"
-#include "common/Timing.h"
-#include "cudaq/qis/execution_manager.h"
-#include "cudaq/qis/qubit_qis.h"
+#include "cudaq/Target/CompileTarget.h"
+#include "cudaq/algorithms/policies.h"
+#include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/remote_capabilities.h"
-#include "cudaq/runtime/logger/logger.h"
-#include "cudaq/utils/cudaq_utils.h"
 
 namespace mlir {
-class ModuleOp;
 class Type;
 } // namespace mlir
 
 namespace cudaq {
 class gradient;
 class optimizer;
+class noise_model;
+class ExecutionContext;
 
-/// Expose the function that will return the current ExecutionManager
-ExecutionManager *getExecutionManager();
+// forward declare the spin_op type
+template <typename T>
+class sum_op;
+class spin_handler;
+typedef sum_op<spin_handler> spin_op;
 
 /// A CUDA-Q QPU is an abstraction on the quantum processing unit which executes
 /// quantum kernel expressions. The QPU exposes certain information about the
@@ -54,54 +58,10 @@ protected:
   /// @brief Check if the current execution context is a `spin_op` observation
   /// and perform state-preparation circuit measurement based on the `spin_op`
   /// terms.
-  void handleObservation(ExecutionContext &context) const {
-    // The reason for the 2 if checks is simply to do a flushGateQueue() before
-    // initiating the trace.
-    bool execute = context.name == "observe";
-    if (execute) {
-      ScopedTraceWithContext(cudaq::TIMING_OBSERVE,
-                             "handleObservation flushGateQueue()");
-      getExecutionManager()->flushGateQueue();
-    }
-    if (execute) {
-      ScopedTraceWithContext(cudaq::TIMING_OBSERVE,
-                             "QPU::handleObservation (after flush)");
-      double sum = 0.0;
-      if (!context.spin.has_value())
-        throw std::runtime_error("[QPU] Observe ExecutionContext specified "
-                                 "without a cudaq::spin_op.");
+  void handleObservation(ExecutionContext &context) const;
 
-      std::vector<cudaq::ExecutionResult> results;
-      cudaq::spin_op &H = context.spin.value();
-      assert(cudaq::spin_op::canonicalize(H) == H);
-
-      // If the backend supports the observe task, let it compute the
-      // expectation value instead of manually looping over terms, applying
-      // basis change ops, and computing <ZZ..ZZZ>
-      if (context.canHandleObserve) {
-        auto [exp, data] = cudaq::measure(H);
-        context.expectationValue = exp;
-        context.result = data;
-      } else {
-
-        // Loop over each term and compute coeff * <term>
-        for (const auto &term : H) {
-          if (term.is_identity())
-            sum += term.evaluate_coefficient().real();
-          else {
-            // This takes a longer time for the first iteration unless
-            // flushGateQueue() is called above.
-            auto [exp, data] = cudaq::measure(term);
-            results.emplace_back(data.to_map(), term.get_term_id(), exp);
-            sum += term.evaluate_coefficient().real() * exp;
-          }
-        };
-
-        context.expectationValue = sum;
-        context.result = cudaq::sample_result(sum, results);
-      }
-    }
-  }
+  [[nodiscard]] static KernelThunkResultType
+  runJITCompiledModule(const CompiledModule &compiled, KernelArgs args);
 
 public:
   /// The constructor, initializes the execution queue
@@ -184,34 +144,31 @@ public:
                          cudaq::optimizer &optimizer, const int n_params,
                          const std::size_t shots) {}
 
-  /// Launch the kernel with given name (to extract its Quake representation).
-  /// The raw function pointer is also provided, as are the runtime arguments,
-  /// as a struct-packed void pointer and its corresponding size.
-  [[nodiscard]] virtual KernelThunkResultType
-  launchKernel(const std::string &name, KernelThunkType kernelFunc, void *args,
-               std::uint64_t, std::uint64_t,
-               const std::vector<void *> &rawArgs) = 0;
+  virtual sample_result launchKernel(sample_policy &policy,
+                                     const AnyModule &module, KernelArgs args);
 
-  /// Launch the kernel with given name and argument arrays.
-  // This is intended for any QPUs whereby we need to JIT-compile the kernel
-  // with argument synthesis. The QPU implementation must override this.
-  virtual void launchKernel(const std::string &name,
-                            const std::vector<void *> &rawArgs) {
-    if (!isRemote())
-      throw std::runtime_error("Wrong kernel launch point: Attempt to launch "
-                               "kernel in streamlined for JIT mode on local "
-                               "simulated QPU. This is not supported.");
-  }
+  virtual async_sample_result launchKernel(async_sample_policy &policy,
+                                           const AnyModule &module,
+                                           KernelArgs args);
 
   [[nodiscard]] virtual KernelThunkResultType
-  launchModule(const std::string &name, mlir::ModuleOp module,
-               const std::vector<void *> &rawArgs);
+  unifiedLaunchModule(const AnyModule &module, KernelArgs args);
 
-  [[nodiscard]] virtual void *
-  specializeModule(const std::string &name, mlir::ModuleOp module,
-                   const std::vector<void *> &rawArgs,
-                   std::optional<cudaq::JitEngine> &cachedEngine,
-                   bool isEntryPoint);
+  /// Get the compile target of the QPU
+  // Overload for sample policy
+  [[nodiscard]] virtual std::unique_ptr<CompileTarget>
+  getCompileTarget(sample_policy &policy);
+  // Overload for currently unsupported policies (to be removed).
+  [[nodiscard]] virtual std::unique_ptr<CompileTarget>
+  getCompileTarget(ExecutionContext *context);
+
+  [[nodiscard]] virtual CompiledModule
+  compileModule(const SourceModule &src, KernelArgs args, bool isEntryPoint);
+
+  [[nodiscard]] virtual CompiledModule compileModule(sample_policy &,
+                                                     const SourceModule &src,
+                                                     KernelArgs args,
+                                                     bool isEntryPoint);
 
   /// @brief Notify the QPU that a new random seed value is set.
   /// By default do nothing, let subclasses override.
@@ -221,13 +178,10 @@ public:
 struct ModuleLauncher : public registry::RegisteredType<ModuleLauncher> {
   virtual ~ModuleLauncher() = default;
 
-  virtual KernelThunkResultType
-  launchModule(const std::string &name, mlir::ModuleOp module,
-               const std::vector<void *> &rawArgs) = 0;
-  virtual void *specializeModule(const std::string &name, mlir::ModuleOp module,
-                                 const std::vector<void *> &rawArgs,
-                                 std::optional<cudaq::JitEngine> &cachedEngine,
-                                 bool isEntryPoint) = 0;
+  /// Compile (specialize + JIT) a kernel module and return a ready-to-execute
+  /// CompiledModule.
+  virtual CompiledModule compileModule(const SourceModule &src, KernelArgs args,
+                                       bool isEntryPoint) = 0;
 };
 
 } // namespace cudaq

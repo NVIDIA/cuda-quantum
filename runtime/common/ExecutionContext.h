@@ -8,11 +8,11 @@
 
 #pragma once
 
+#include "CompiledModule.h"
 #include "Future.h"
 #include "NoiseModel.h"
 #include "SampleResult.h"
 #include "Trace.h"
-#include "common/JIT.h"
 #include "cudaq/algorithms/optimizer.h"
 #include "cudaq/operators.h"
 #include <optional>
@@ -22,6 +22,7 @@ namespace cudaq {
 
 class SimulationState;
 class ExecutionManager;
+class KernelArgs;
 
 /// The ExecutionContext is an abstraction to indicate how a CUDA-Q kernel
 /// should be executed.
@@ -84,19 +85,6 @@ public:
 
   /// @brief Pointer to simulation-specific simulation data.
   std::unique_ptr<SimulationState> simulationState;
-
-  /// @brief A map of basis-state amplitudes
-  // The list of basis state is set before kernel launch and the map is filled
-  // by the executor platform.
-  std::optional<std::map<std::vector<int>, std::complex<double>>>
-      amplitudeMaps = std::nullopt;
-
-  /// @brief List of pairs of states to compute the overlap
-  std::optional<std::pair<const SimulationState *, const SimulationState *>>
-      overlapComputeStates = std::nullopt;
-
-  /// @brief Overlap results
-  std::optional<std::complex<double>> overlapResult = std::nullopt;
 
   /// @brief When run under the tracer context, persist the traced quantum
   /// resources here.
@@ -166,8 +154,11 @@ public:
 
   /// @brief For performance, a launcher may cache the JIT execution engine and
   /// use it for multiple discrete calls.
-  std::optional<JitEngine> jitEng = std::nullopt;
+  std::optional<cudaq::JitEngine> jitEng = std::nullopt;
 
+  /// @brief Dispatcher towards the policy specific launch.
+  std::function<void(const AnyModule &module, const KernelArgs &args)>
+      executeKernelApi;
   /// @endcond
 };
 
@@ -218,16 +209,45 @@ void enablePersistentJITEngine();
 void disablePersistentJITEngine();
 bool isPersistingJITEngine();
 
-/// Checks that the compiler artifact (if present) can be reused
-/// for the given explicit launch arguments.
-///
-/// `argsCreatorPtr` must point to the `.argsCreator` function from `jit`
+/// Checks that the compiler artifact (if present) can be reused for the
+/// given kernel. Throws if a different kernel name was previously saved.
 void checkArtifactReuse(const std::string kernelName,
-                        const std::vector<void *> &args, const JitEngine jit,
-                        std::function<void *()> argsCreatorThunk);
+                        const cudaq::JitEngine jit);
 
-void saveArtifact(const std::string kernelName, const std::vector<void *> &args,
-                  const JitEngine jit,
-                  std::function<void *()> argsCreatorThunk);
+void saveArtifact(const std::string kernelName, const cudaq::JitEngine jit);
+
+/// Returns the saved JIT engine if one is present for \p kernelName.
+/// Throws if a different kernel name was previously saved.
+/// Returns std::nullopt if no artifact has been saved yet.
+std::optional<JitEngine> getArtifactJit(const std::string &kernelName);
 }; // namespace compiler_artifact
+
+namespace detail {
+/// @brief Execute the given function within the given policy and execution
+/// context.
+template <typename Policy, typename Callable, typename... Args>
+auto with_policy_and_ctx(Policy &policy, ExecutionContext &ctx, Callable &&f,
+                         Args &&...args)
+    -> std::invoke_result_t<Callable, Args...> {
+
+  // Save the outer execution context (if any) so we can restore it after.
+  auto *outerContext = getExecutionContext();
+  detail::setExecutionContext(&ctx);
+
+  // Cleanup runs after the kernel returns or throws.
+  auto cleanup = [&outerContext]() {
+    detail::resetExecutionContext();
+    if (outerContext)
+      detail::setExecutionContext(outerContext);
+  };
+
+  if constexpr (std::is_void_v<std::invoke_result_t<Callable, Args...>>) {
+    try_finally([&] { f(std::forward<Args>(args)...); }, cleanup);
+    return;
+  }
+
+  return try_finally([&] { return f(std::forward<Args>(args)...); }, cleanup);
+}
+
+} // namespace detail
 } // namespace cudaq

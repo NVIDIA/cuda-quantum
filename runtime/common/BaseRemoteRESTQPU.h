@@ -8,23 +8,27 @@
 
 #pragma once
 
-#include "NoiseModel.h"
-#include "common/Compiler.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "common/Executor.h"
-#include "common/ExtraPayloadProvider.h"
-#include "common/JIT.h"
+#include "common/KernelExecution.h"
 #include "common/Resources.h"
-#include "cudaq.h"
-#include "cudaq/Optimizer/Builder/Runtime.h"
-#include "cudaq/Support/TargetConfigYaml.h"
-#include "cudaq/platform.h"
+#include "common/ServerHelper.h"
+#include "cudaq_internal/compiler/CompiledModuleHelper.h"
+#include "cudaq_internal/compiler/Compiler.h"
+#include "cudaq_internal/compiler/JIT.h"
+#include "nvqir/AnalysisScope.h"
+#include "nvqir/resourcecounter/ResourceCounterScope.h"
+#include "cudaq/Target/TargetConfig.h"
+#include "cudaq/algorithms/sample/policy.h"
+#include "cudaq/platform/platform_iface.h"
 #include "cudaq/platform/qpu.h"
-#include "cudaq/platform/quantum_platform.h"
+#include "cudaq/platform/qpu_utils.h"
 #include "cudaq/runtime/logger/logger.h"
-#include "llvm/Support/Base64.h"
+#include "cudaq/utils/cudaq_utils.h"
+#include <filesystem>
 #include <fstream>
+#include <memory>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -32,14 +36,17 @@
 namespace nvqir {
 // QIR helper to retrieve the output log.
 std::string_view getQirOutputLog();
-void setResourceCounts(cudaq::Resources &&);
-bool isUsingResourceCounterSimulator();
 } // namespace nvqir
 
 namespace cudaq {
+void set_random_seed(std::size_t seed);
+std::size_t get_random_seed();
+class noise_model;
 
 class BaseRemoteRESTQPU : public QPU {
 protected:
+  using Compiler = cudaq_internal::compiler::Compiler;
+
   /// The number of shots
   std::optional<int> nShots;
 
@@ -49,16 +56,12 @@ protected:
   /// @brief The name of the QPU being targeted
   std::string qpuName;
 
-  /// @brief Name of code generation target (e.g. `qir-adaptive`, `qir-base`,
-  /// `qasm2`, `iqm`)
-  std::string codegenTranslation = "";
-
   // Pointer to the concrete Executor for this QPU
   std::unique_ptr<cudaq::Executor> executor;
 
-  /// @brief Pointer to the concrete ServerHelper, provides
+  /// @brief Pointer to the forward declared ServerHelper, provides
   /// specific JSON payloads and POST/GET URL paths.
-  std::unique_ptr<cudaq::ServerHelper> serverHelper;
+  cudaq::owning_ptr<cudaq::ServerHelper> serverHelper;
 
   /// @brief Mapping of general key-values for backend configuration.
   std::map<std::string, std::string> backendConfig;
@@ -68,6 +71,34 @@ protected:
 
   /// @brief The target configuration
   cudaq::config::TargetConfig targetConfig;
+
+  const void *compileModulePreamble(const SourceModule &src) const {
+    const auto &kernelName = src.getName();
+    auto mlirArt = src.getMlir();
+    if (!mlirArt)
+      throw std::runtime_error(
+          "compileModulePreamble requires an MLIR artifact on "
+          "the SourceModule for kernel '" +
+          kernelName + "'.");
+    auto modulePtr = mlirArt->getOpaqueModulePtr();
+    return modulePtr;
+  }
+
+  template <typename Policy>
+  CompiledModule compileModuleImpl(Policy &policy, const SourceModule &src,
+                                   KernelArgs args, bool isEntryPoint) {
+    const auto &kernelName = src.getName();
+    auto modulePtr = compileModulePreamble(src);
+    CUDAQ_INFO("specializing remote rest kernel via module ({}) with {} policy",
+               kernelName, policy.name);
+    Compiler compiler(getCompileTarget(policy));
+    auto compiled = compiler.runPassPipeline(kernelName, modulePtr, args);
+    if constexpr (std::is_same_v<Policy, sample_policy>) {
+      if (compiler.hasWarnedNamedMeasurements())
+        policy.warnedNamedMeasurements = true;
+    }
+    return compiled;
+  }
 
 public:
   /// @brief The constructor
@@ -116,14 +147,11 @@ public:
   /// Store the execution context for launchKernel
   void
   configureExecutionContext(cudaq::ExecutionContext &context) const override {
-    // This check ensures that a kernel is not called whilst actively being
-    // used for resource counting (implying that the kernel was somehow
-    // invoked from inside the choice function). This check may want to
-    // be expanded more broadly to ensure that the execution context is
-    // always fully reset, implying the end of the invocation, being being
-    // set again, signaling a new invocation.
-    if (nvqir::isUsingResourceCounterSimulator() &&
-        context.name != "resource-count")
+    // Re-entry guard for analysis scopes. Without this, a host callback issued
+    // by the analysis simulator (e.g. a `choice` function that calls
+    // `cudaq::sample`) could launch a second kernel through this transport
+    // while the outer scope is still active.
+    if (nvqir::AnalysisScope::is_active() && context.name != "resource-count")
       throw std::runtime_error(
           "Illegal use of resource counter simulator! (Did you attempt to run "
           "a kernel inside of a choice function?)");
@@ -176,10 +204,7 @@ public:
         // No need to decode trivial true/false values
         if (split[i + 1].starts_with("base64_")) {
           split[i + 1].erase(0, 7); // erase "base64_"
-          std::vector<char> decoded_vec;
-          if (auto err = llvm::decodeBase64(split[i + 1], decoded_vec))
-            throw std::runtime_error("DecodeBase64 error");
-          std::string decodedStr(decoded_vec.data(), decoded_vec.size());
+          std::string decodedStr = detail::decodeBase64(split[i + 1]);
           CUDAQ_INFO("Decoded {} parameter from '{}' to '{}'", split[i],
                      split[i + 1], decodedStr);
           backendConfig.insert({split[i], decodedStr});
@@ -201,125 +226,117 @@ public:
     std::ifstream configFile(configFilePath.string());
     std::string configYmlContents((std::istreambuf_iterator<char>(configFile)),
                                   std::istreambuf_iterator<char>());
-    llvm::yaml::Input Input(configYmlContents.c_str());
-    Input >> targetConfig;
-
-    // Keep a local copy for capability queries like
-    // supportsConditionalFeedback(). The Compiler computes and validates the
-    // full codegen configuration for lowering.
-    codegenTranslation = targetConfig.getCodeGenSpec(backendConfig);
+    detail::parseTargetConfigYml(configYmlContents, targetConfig);
 
     // Set the qpu name
     qpuName = mutableBackend;
     // Create the ServerHelper for this QPU and give it the backend config
-    serverHelper = cudaq::registry::get<cudaq::ServerHelper>(qpuName);
-    if (!serverHelper) {
-      throw std::runtime_error("ServerHelper not found for target: " + qpuName);
+    detail::initServerHelperAndExecutor(qpuName, backendConfig, targetConfig,
+                                        serverHelper, executor);
+  }
+
+  class BaseRemoteRESTQPUCompileTarget : public CompileTarget {
+  public:
+    BaseRemoteRESTQPUCompileTarget(
+        cudaq::ServerHelper *serverHelper, std::filesystem::path platformPath,
+        cudaq::config::TargetConfig targetConfig,
+        std::map<std::string, std::string> runtimeConfig, bool emulate)
+        : CompileTarget(targetConfig, runtimeConfig, emulate),
+          serverHelper(serverHelper), platformPath(platformPath) {}
+
+    void updatePassPipeline(std::string &passPipeline) const override {
+      serverHelper->updatePassPipeline(platformPath, passPipeline);
     }
 
-    serverHelper->initialize(backendConfig);
-    CUDAQ_INFO("Retrieving executor with name {}", qpuName);
-    CUDAQ_INFO("Is this executor registered? {}",
-               cudaq::registry::isRegistered<cudaq::Executor>(qpuName));
-    executor = cudaq::registry::isRegistered<cudaq::Executor>(qpuName)
-                   ? cudaq::registry::get<cudaq::Executor>(qpuName)
-                   : std::make_unique<cudaq::Executor>();
+  private:
+    cudaq::ServerHelper *serverHelper;
+    std::filesystem::path platformPath;
+  };
 
-    // Give the server helper to the executor
-    executor->setServerHelper(serverHelper.get());
-
-    // Construct the runtime target
-    RuntimeTarget runtimeTarget;
-    runtimeTarget.config = targetConfig;
-    runtimeTarget.name = mutableBackend;
-    runtimeTarget.description = targetConfig.Description;
-    runtimeTarget.runtimeConfig = backendConfig;
-    serverHelper->setRuntimeTarget(runtimeTarget);
-  }
-
-  void launchKernel(const std::string &kernelName,
-                    const std::vector<void *> &rawArgs) override {
-    CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
-
-    auto executionContext = cudaq::getExecutionContext();
-
-    // TODO future iterations of this should support non-void return types.
-    if (!executionContext)
+  using QPU::getCompileTarget;
+  std::unique_ptr<CompileTarget>
+  getCompileTarget(ExecutionContext *ctx) override {
+    if (!ctx)
       throw std::runtime_error(
           "Remote rest execution can only be performed via cudaq::sample(), "
           "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
 
-    // Get the Quake code, lowered according to config file.
-    Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
-                      noiseModel, emulate);
-    auto codes = compiler.lowerQuakeCode(executionContext, kernelName, rawArgs);
-    completeLaunchKernel(kernelName, std::move(codes));
+    std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
+    auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
+
+    auto target = std::make_unique<BaseRemoteRESTQPUCompileTarget>(
+        serverHelper.get(), platformPath, targetConfig, backendConfig, emulate);
+    if (ctx && ctx->name == "observe") {
+      if (!ctx->spin.has_value())
+        throw std::runtime_error("observe execution requires a spin_op");
+      target->pauliTermSplitObservable = ctx->spin;
+    } else if (ctx && ctx->name == "resource-count") {
+      target->generateResourceCounts = true;
+    }
+    return target;
   }
 
-  /// @brief Launch the kernel. Extract the Quake code and lower to the
-  /// representation required by the targeted backend. Handle all pertinent
-  /// modifications for the execution context as well as asynchronous or
-  /// synchronous invocation.
-  KernelThunkResultType
-  launchKernel(const std::string &kernelName, KernelThunkType kernelFunc,
-               void *args, std::uint64_t voidStarSize,
-               std::uint64_t resultOffset,
-               const std::vector<void *> &rawArgs) override {
-    CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
+  std::unique_ptr<CompileTarget>
+  getCompileTarget(sample_policy &policy) override {
+    std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
+    auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
 
-    auto executionContext = cudaq::getExecutionContext();
-
-    // TODO future iterations of this should support non-void return types.
-    if (!executionContext)
-      throw std::runtime_error(
-          "Remote rest execution can only be performed via cudaq::sample(), "
-          "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
-
-    // Get the Quake code, lowered according to config file.
-    // FIXME: For python, we reach here with rawArgs being empty and args having
-    // the arguments. Python should be using the streamlined argument synthesis,
-    // but apparently it isn't. This works around that bug.
-    Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
-                      noiseModel, emulate);
-    auto codes =
-        rawArgs.empty()
-            ? compiler.lowerQuakeCode(executionContext, kernelName, args)
-            : compiler.lowerQuakeCode(executionContext, kernelName, rawArgs);
-    completeLaunchKernel(kernelName, std::move(codes));
-
-    // NB: Kernel should/will never return dynamic results.
-    return {};
+    auto target = std::make_unique<BaseRemoteRESTQPUCompileTarget>(
+        serverHelper.get(), platformPath, targetConfig, backendConfig, emulate);
+    target->warnNamedMeasurements = !policy.warnedNamedMeasurements;
+    target->supportConditionalsOnMeasureResults = !emulate;
+    target->pipelineConfig.addMeasurements = true;
+    target->storeReorderIdx = true;
+    return target;
   }
 
-  KernelThunkResultType
-  launchModule(const std::string &kernelName, mlir::ModuleOp module,
-               const std::vector<void *> &rawArgs) override {
-    CUDAQ_INFO("launching remote rest kernel via module ({})", kernelName);
-
-    auto executionContext = cudaq::getExecutionContext();
-
-    // TODO future iterations of this should support non-void return types.
-    if (!executionContext)
-      throw std::runtime_error(
-          "Remote rest execution can only be performed via cudaq::sample(), "
-          "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
-
-    Compiler compiler(serverHelper.get(), backendConfig, targetConfig,
-                      noiseModel, emulate);
-    completeLaunchKernel(
-        kernelName,
-        compiler.lowerQuakeCode(executionContext, kernelName, module, rawArgs));
-    return {};
-  }
-
-  void *specializeModule(const std::string &kernelName, mlir::ModuleOp module,
-                         const std::vector<void *> &rawArgs,
-                         std::optional<cudaq::JitEngine> &cachedEngine,
-                         bool isEntryPoint) override {
+  CompiledModule compileModule(const SourceModule &src, KernelArgs args,
+                               bool isEntryPoint) override {
+    const auto &kernelName = src.getName();
+    auto modulePtr = compileModulePreamble(src);
     CUDAQ_INFO("specializing remote rest kernel via module ({})", kernelName);
-    throw std::runtime_error(
-        "NYI: Remote rest execution via Python/C++ interop.");
-    return nullptr;
+
+    Compiler compiler(getCompileTarget(getExecutionContext()));
+    auto compiled = compiler.runPassPipeline(kernelName, modulePtr, args);
+    return compiled;
+  }
+
+  CompiledModule compileModule(sample_policy &policy, const SourceModule &src,
+                               KernelArgs args, bool isEntryPoint) override {
+    return compileModuleImpl(policy, src, args, isEntryPoint);
+  }
+
+  /// @brief Build the list of kernel executions for the given module under
+  /// a specific sampling policy. Source modules are lowered through the
+  /// configured pass pipeline; pre-compiled modules are emitted directly.
+  /// The resolved kernel name is returned via @p kernelName.
+  template <typename Policy>
+  std::pair<std::string, std::vector<cudaq::KernelExecution>>
+  compileKernelExecutions(Policy &policy, const AnyModule &module,
+                          KernelArgs args) {
+    Compiler compiler(getCompileTarget(policy));
+    std::vector<cudaq::KernelExecution> codes;
+    std::string kernelName;
+    if (std::holds_alternative<SourceModule>(module)) {
+      const auto &src = std::get<SourceModule>(module);
+      kernelName = src.getName();
+      CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
+
+      auto [moduleOp, context] = Compiler::loadQuakeCodeByName(kernelName);
+
+      codes = compiler.lowerQuakeCode(kernelName, moduleOp, args);
+      if constexpr (std::is_same_v<Policy, sample_policy>) {
+        if (compiler.hasWarnedNamedMeasurements())
+          policy.warnedNamedMeasurements = true;
+      }
+    } else {
+      const auto &compiled = std::get<CompiledModule>(module);
+      kernelName = compiled.getName();
+      CUDAQ_INFO("launching remote rest kernel via module ({})", kernelName);
+      codes = compiler.emitKernelExecutions(compiled);
+    }
+
+    return {kernelName, codes};
   }
 
   void completeLaunchKernel(const std::string &kernelName,
@@ -332,7 +349,7 @@ public:
       cudaq::ExecutionContext context("tracer");
       context.executionManager = cudaq::getDefaultExecutionManager();
       assert(codes[0].jit);
-      cudaq::get_platform().with_execution_context(
+      cudaq::platform::with_execution_context(
           context, [&]() { codes[0].jit->run(kernelName); });
       executionContext->kernelTrace = std::move(context.kernelTrace);
       return;
@@ -342,8 +359,9 @@ public:
       cudaq::ExecutionContext context("resource-count");
       context.executionManager = cudaq::getDefaultExecutionManager();
       assert(codes.size() == 1 && codes[0].jit && codes[0].resourceCounts);
-      nvqir::setResourceCounts(std::move(codes[0].resourceCounts.value()));
-      cudaq::get_platform().with_execution_context(
+      nvqir::resource_counter::prepopulate(
+          std::move(codes[0].resourceCounts.value()));
+      cudaq::platform::with_execution_context(
           context, [&]() { codes[0].jit->run(kernelName); });
       return;
     }
@@ -364,15 +382,21 @@ public:
     cudaq::details::future future;
     if (emulate) {
 
+      // TODO: This assert demonstrates that we are never expected to return a
+      // future in emulation mode. We are launching a new thread just to wait
+      // for its execution to finish below. We need to make this work without
+      // the thread as the executionContext is crossing the thread boundary
+      // which is not thread safe in the general case.
+      assert(!executionContext->asyncExec);
+
       // Fetch the thread-specific seed outside and then pass it inside.
       std::size_t seed = cudaq::get_random_seed();
 
       // Launch the execution of the simulated jobs asynchronously
       future = cudaq::details::future(std::async(
           std::launch::async,
-          [&, codes, localShots, kernelName, seed, isObserve, isRun,
-           reorderIdx =
-               executionContext->reorderIdx]() mutable -> cudaq::sample_result {
+          [&, codes, localShots, kernelName, seed, isObserve,
+           isRun]() mutable -> cudaq::sample_result {
             std::vector<cudaq::ExecutionResult> results;
 
             // If seed is 0, then it has not been set.
@@ -409,14 +433,11 @@ public:
               // observe) one time each.
               for (std::size_t i = 0; i < codes.size(); i++) {
                 cudaq::ExecutionContext context("sample", localShots);
-                context.reorderIdx = reorderIdx;
+                context.reorderIdx = codes[i].mapping_reorder_idx;
                 context.executionManager = cudaq::getDefaultExecutionManager();
                 context.kernelName = kernelName;
-                context.warnedNamedMeasurements =
-                    executionContext ? executionContext->warnedNamedMeasurements
-                                     : false;
                 assert(codes[i].jit);
-                cudaq::get_platform().with_execution_context(
+                cudaq::platform::with_execution_context(
                     context, [&]() { codes[i].jit->run(kernelName); });
 
                 if (isObserve) {
@@ -462,6 +483,85 @@ public:
 
     // Otherwise make this synchronous
     executionContext->result = future.get();
+  }
+
+  async_sample_result
+  completeLaunchKernel(async_sample_policy &policy,
+                       const std::string &kernelName,
+                       std::vector<cudaq::KernelExecution> &&codes) {
+    // Get the current execution context and number of shots
+    std::size_t localShots = 1000;
+    if (policy.inner.options.shots != std::numeric_limits<std::size_t>::max() &&
+        policy.inner.options.shots != 0)
+      localShots = policy.inner.options.shots;
+
+    executor->setShots(localShots);
+
+    auto executionContext = cudaq::getExecutionContext();
+    // Execute the codes produced in quake lowering
+    // Allow developer to disable remote sending (useful for debugging IR)
+    assert(!emulate);
+    if (getEnvBool("DISABLE_REMOTE_SEND", false))
+      return {};
+    // Cannot be observe and run at the same time
+    const cudaq::details::ExecutionContextType execType =
+        cudaq::details::ExecutionContextType::sample;
+
+    auto future = executor->execute(codes, execType,
+                                    &executionContext->invocationResultBuffer);
+    return async_sample_result(std::move(future));
+  }
+
+  sample_result
+  completeLaunchKernel(sample_policy &policy, const std::string &kernelName,
+                       std::vector<cudaq::KernelExecution> &&codes) {
+
+    // Get the current execution context and number of shots
+    std::size_t localShots = 1000;
+    if (policy.options.shots != std::numeric_limits<std::size_t>::max() &&
+        policy.options.shots != 0)
+      localShots = policy.options.shots;
+
+    executor->setShots(localShots);
+
+    // If emulation requested, then just grab the function and invoke it with
+    // the simulator
+    assert(emulate);
+
+    // Fetch the thread-specific seed outside and then pass it inside.
+    std::size_t seed = cudaq::get_random_seed();
+
+    // Launch the execution of the simulated jobs asynchronously
+    std::vector<cudaq::ExecutionResult> results;
+
+    // If seed is 0, then it has not been set.
+    if (seed > 0)
+      cudaq::set_random_seed(seed);
+
+    // Otherwise, this is a non-adaptive sampling or observe.
+    // We run the kernel(s) (multiple kernels if this is a multi-term
+    // observe) one time each.
+    for (std::size_t i = 0; i < codes.size(); i++) {
+      cudaq::ExecutionContext context("sample", localShots);
+      // Avoid emitting the warning again during execution
+      context.warnedNamedMeasurements = policy.warnedNamedMeasurements;
+      sample_policy localPolicy;
+      localPolicy.options.shots = localShots;
+      localPolicy.reorderIdx = std::move(codes[i].mapping_reorder_idx);
+      localPolicy.kernelName = kernelName;
+      assert(codes[i].jit);
+      auto result = detail::with_policy_and_ctx(localPolicy, context, [&]() {
+        return cudaq::ExecutionManager::with_default_em(
+            localPolicy, [&]() { codes[i].jit->run(kernelName); });
+      });
+
+      // For each register, add the context results into result.
+      for (auto &regName : result.register_names()) {
+        results.emplace_back(result.to_map(regName), regName);
+        results.back().sequentialData = result.sequential_data(regName);
+      }
+    }
+    return cudaq::sample_result(results);
   }
 };
 

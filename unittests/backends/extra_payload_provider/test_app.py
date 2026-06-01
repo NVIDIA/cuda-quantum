@@ -18,7 +18,7 @@ if __name__ == "__main__":
 
 # Set the target
 cudaq.set_target('horizon',
-                 url='http://localhost:62450',
+                 url='http://localhost:62452',
                  extra_payload_provider='sunrise')
 
 

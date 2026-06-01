@@ -13,7 +13,7 @@ from typing import Callable
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def run_and_clear_registries():
     yield
     cudaq.__clearKernelRegistries()
 
@@ -205,7 +205,7 @@ def test_list_update_failures():
     # return values with dynamically sized element types are not yet supported
     with pytest.raises(RuntimeError) as e:
         cudaq.run(get_MyTuple, [0, 0])
-    assert 'Tuple size mismatch' in str(e.value)
+    assert 'Unsupported element type in struct type' in str(e.value)
 
     with pytest.raises(RuntimeError) as e:
 
@@ -1150,25 +1150,25 @@ def test_disallow_value_updates():
     assert 'variable defined in parent scope cannot be modified' in str(e.value)
     assert '(offending source -> c = qs[1])' in str(e.value)
 
-    # TODO: The reason we cannot currently support this is
-    # because we store measurement results as values in the
-    # symbol table. This should be changed and supported when
-    # we do the change to properly distinguish measurement
-    # types from booleans.
-    with pytest.raises(RuntimeError) as e:
+    # Reassigning a `measure_handle`-typed variable across scopes is
+    # supported now that `mz` returns `cudaq.measure_handle` instead of
+    # `bool`: the symbol-table slot has handle type, the inner-scope
+    # store binds a fresh handle, and the bool-coercion at `return res`
+    # discriminates exactly once. Previously this case was disallowed
+    # because measurement results were stored as raw `i1` values in the
+    # symbol table.
+    @cudaq.kernel
+    def test2() -> bool:
+        qs = cudaq.qvector(2)
+        res = mz(qs[0])
+        if True:
+            x(qs[1])
+            res = mz(qs[1])
+        return res
 
-        @cudaq.kernel
-        def test2() -> bool:
-            qs = cudaq.qvector(2)
-            res = mz(qs[0])
-            if True:
-                x(qs[1])
-                res = mz(qs[1])
-            return res
-
-        test2()
-    assert 'variable defined in parent scope cannot be modified' in str(e.value)
-    assert '(offending source -> res = mz(qs[1]))' in str(e.value)
+    # `qs[1]` is flipped to |1> and re-measured, then bound to `res`; the
+    # bool-coercion at the return discriminates exactly once and yields True.
+    assert cudaq.run(test2, shots_count=1)[0] == True
 
 
 def test_var_scopes():

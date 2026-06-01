@@ -8,12 +8,12 @@
 
 set(LIBRARY_NAME cudaq)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
-set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 # Create the CUDA-Q Library
 add_library(${LIBRARY_NAME}
   SHARED
     cudaq.cpp
+    realtime.cpp
     target_control.cpp
     algorithms/draw.cpp
     algorithms/evolve.cpp
@@ -21,11 +21,12 @@ add_library(${LIBRARY_NAME}
     algorithms/schedule.cpp
     platform/common/QuantumExecutionQueue.cpp
     platform/qpu.cpp
+    platform/qpu_utils.cpp
     platform/qpu_state.cpp
     platform/quantum_platform.cpp
+    platform/platform_iface.cpp
     qis/execution_manager_c_api.cpp
     qis/execution_manager.cpp
-    qis/remote_state.cpp
     qis/state.cpp
     utils/cudaq_utils.cpp
     distributed/mpi_plugin.cpp
@@ -45,14 +46,16 @@ add_library(${LIBRARY_NAME}
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 
 if (CUDA_FOUND)
-  enable_language(CUDA)
-  find_package(CUDAToolkit REQUIRED)
-
+  set(_cudaq_cuda_build_includes "")
+  foreach(_cuda_inc IN LISTS CUDAToolkit_INCLUDE_DIRS)
+    list(APPEND _cudaq_cuda_build_includes "$<BUILD_INTERFACE:${_cuda_inc}>")
+  endforeach()
   target_include_directories(${LIBRARY_NAME}
     PUBLIC $<INSTALL_INTERFACE:include>
+            $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime/include>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
-            $<BUILD_INTERFACE:${CUDAToolkit_INCLUDE_DIRS}>
+            ${_cudaq_cuda_build_includes}
     PRIVATE . ptsbe ptsbe/strategies)
 
   target_link_libraries(${LIBRARY_NAME}
@@ -62,19 +65,23 @@ if (CUDA_FOUND)
       cudaq-common
       cudaq-nlopt
       cudaq-ensmallen
-      MLIRIR
-    PRIVATE
-      nvqir
+      cudaq-mlir-runtime-headers # Public until compilation is moved out of the QPUs
       cudaq-logger
+      CUDAQTargetConfig
+    PRIVATE
+      MLIRIR
+      nvqir
       fmt::fmt-header-only
       CUDA::cudart_static
-      CUDAQTargetConfigUtil
+      CUDAQTargetConfigYaml
   )
 
   target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_CUDA)
+
 else()
   target_include_directories(${LIBRARY_NAME}
     PUBLIC $<INSTALL_INTERFACE:include>
+            $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime/include>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
     PRIVATE . ptsbe ptsbe/strategies)
@@ -86,13 +93,21 @@ else()
       cudaq-common
       cudaq-nlopt
       cudaq-ensmallen
-      MLIRIR
-    PRIVATE
-      nvqir
+      cudaq-mlir-runtime-headers # Public until compilation is moved out of the QPUs
       cudaq-logger
+      CUDAQTargetConfig
+    PRIVATE
+      MLIRIR
+      nvqir
       fmt::fmt-header-only
-      CUDAQTargetConfigUtil
+      CUDAQTargetConfigYaml
   )
+endif()
+
+if (CUDAQ_ENABLE_REALTIME)
+  target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_ENABLE_REALTIME)
+  target_include_directories(${LIBRARY_NAME} PRIVATE
+    ${CMAKE_SOURCE_DIR}/runtime/internal/device_call/include)
 endif()
 
 add_subdirectory(qis/managers)

@@ -8,8 +8,9 @@ matrix:
 
 - name: markdown
   sources:
-  # Exclude third-party code (tpls/) and build artifacts
-  - '**/*.md|!tpls/**/*.md|!_skbuild/**/*.md|!build/**/*.md|!build_*/**/*.md'
+  # Exclude third-party code (tpls/), build artifacts, and signed skill bundles
+  # (skills/ content is fixed by skill.oms.sig and must not be modified).
+  - '**/*.md|!tpls/**/*.md|!_skbuild/**/*.md|!build/**/*.md|!build_*/**/*.md|!skills/**/*.md'
   glob_flags: N|G|B
   expect_match: false
   aspell:
@@ -138,7 +139,7 @@ matrix:
 - name: cxx_headers
   sources:
   # Exclude test directories, third-party code (tpls/), vendored nlopt, and build artifacts
-  - '**/*.h|!test/**/*.h|!targettests/**/*.h|!tpls/**/*.h|!runtime/cudaq/algorithms/optimizers/nlopt/nlopt-src/**/*.h|!_skbuild/**/*.h|!build/**/*.h|!build_*/**/*.h'
+  - '**/*.h|!cudaq/test/**/*.h|!targettests/**/*.h|!tpls/**/*.h|!runtime/cudaq/algorithms/optimizers/nlopt/nlopt-src/**/*.h|!_skbuild/**/*.h|!build/**/*.h|!build_*/**/*.h'
   glob_flags: N|G|B
   expect_match: false
   aspell:
@@ -263,7 +264,7 @@ matrix:
   sources:
   # Exclude test directories, third-party code (tpls/), build artifacts, sphinx config,
   # and files with f-string syntax that pyspelling's parser can't handle
-  - '**/*.py|!python/tests/**/*.py|!test/**/*.py|!targettests/**/*.py|!tpls/**/*.py|!_skbuild/**/*.py|!build/**/*.py|!build_*/**/*.py|!_version.py|!docs/sphinx/conf.py|!utils/mock_qpu/qci/__init__.py'
+  - '**/*.py|!python/tests/**/*.py|!cudaq/test/**/*.py|!targettests/**/*.py|!tpls/**/*.py|!_skbuild/**/*.py|!build/**/*.py|!build_*/**/*.py|!_version.py|!docs/sphinx/conf.py|!utils/mock_qpu/qci/__init__.py'
   glob_flags: N|G|B
   expect_match: false
   aspell:

@@ -14,7 +14,7 @@ import cudaq
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def set_up_target():
     cudaq.set_target("orca-photonics")
     yield
     cudaq.__clearKernelRegistries()

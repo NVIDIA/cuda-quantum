@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "cudaq.h"
+#include "cudaq/cudaq_mpi.h"
 #include "cutensornet.h"
 #include "tensornet_spin_op.h"
 
@@ -296,7 +296,7 @@ void SimulatorTensorNetBase<ScalarType>::applyNoiseChannel(
     return;
 
   // Do nothing if no noise model
-  if (!executionContext->noiseModel)
+  if (!this->getNoiseModel())
     return;
 
   // Get the name as a string
@@ -305,7 +305,7 @@ void SimulatorTensorNetBase<ScalarType>::applyNoiseChannel(
   qubits.insert(qubits.end(), targets.begin(), targets.end());
 
   // Get the Kraus channels specified for this gate and qubits
-  auto krausChannels = executionContext->noiseModel->get_channels(
+  auto krausChannels = this->getNoiseModel()->get_channels(
       gName, targets, controls, params);
 
   // If none, do nothing
@@ -491,6 +491,13 @@ SimulatorTensorNetBase<ScalarType>::observe(const cudaq::spin_op &ham) {
 
   assert(cudaq::spin_op::canonicalize(ham) == ham);
   LOG_API_TIME();
+  // Empty observables can arise when terms are distributed across more workers
+  // than the operator contains. Their expectation value is always zero.
+  if (ham.num_terms() == 0) {
+    std::vector<cudaq::ExecutionResult> results;
+    cudaq::sample_result perTermData(0.0, results);
+    return cudaq::observe_result(0.0, ham, perTermData);
+  }
   prepareQubitTensorState();
   if (!m_reuseContractionPathObserve) {
     // If contraction path reuse is disabled, convert spin_op to

@@ -12,15 +12,18 @@
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
 #include "cudaq/platform.h"
+#include "cudaq/qis/measure_handle.h"
 #include "cudaq/qis/modifiers.h"
 #include "cudaq/qis/pauli_word.h"
 #include "cudaq/qis/qarray.h"
 #include "cudaq/qis/qkernel.h"
 #include "cudaq/qis/qreg.h"
 #include "cudaq/qis/qvector.h"
+#include "cudaq/utils/cudaq_utils.h"
 #include <algorithm>
 #include <cstring>
 #include <functional>
+#include <stdexcept>
 
 #define __qpu__ __attribute__((annotate("quantum")))
 
@@ -135,7 +138,7 @@ void oneQubitApplyControlledRange(QubitRange &ctrls, qubit &target) {
 #define CUDAQ_QIS_ONE_TARGET_QUBIT_(NAME)                                      \
   namespace types {                                                            \
   struct NAME {                                                                \
-    inline static const std::string name{#NAME};                               \
+    static constexpr std::string_view name{#NAME};                             \
   };                                                                           \
   }                                                                            \
   template <typename mod = base, typename... QubitArgs>                        \
@@ -223,7 +226,7 @@ void oneQubitSingleParameterControlledRange(ScalarAngle angle,
 #define CUDAQ_QIS_PARAM_ONE_TARGET_(NAME)                                      \
   namespace types {                                                            \
   struct NAME {                                                                \
-    inline static const std::string name{#NAME};                               \
+    static constexpr std::string_view name{#NAME};                             \
   };                                                                           \
   }                                                                            \
   template <typename mod = base, typename ScalarAngle, typename... QubitArgs>  \
@@ -247,7 +250,7 @@ CUDAQ_QIS_PARAM_ONE_TARGET_(r1)
 
 namespace types {
 struct u3 {
-  inline static const std::string name{"u3"};
+  static constexpr std::string_view name{"u3"};
 };
 } // namespace types
 
@@ -297,7 +300,7 @@ void u3(ScalarAngle theta, ScalarAngle phi, ScalarAngle lambda,
 // Define the swap gate instruction and control versions of it
 namespace types {
 struct swap {
-  inline static const std::string name{"swap"};
+  static constexpr std::string_view name{"swap"};
 };
 } // namespace types
 
@@ -420,22 +423,47 @@ void exp_pauli(QuantumRegister &ctrls, double theta, const char *pauliWord,
                                false, spin_op::from_word(pauliWord));
 }
 
+// `mz`/`mx`/`my` are `__qpu__`-only entry points. In MLIR mode the bridge
+// intercepts every call to these functions inside a `__qpu__` kernel and emits
+// the corresponding `quake.{mz, mx, my}` op directly, so the inline body never
+// runs in a built kernel; we therefore throw so host-scope misuse
+// fails loudly instead of returning a meaningless value.
+namespace details {
+inline constexpr const char *kQpuOnlyHostScopeError =
+    "Not allowed on host code; usable only inside a `__qpu__` kernel.";
+}
+
 /// @brief Measure an individual qubit, return 0,1 as `bool`
 inline measure_result mz(qubit &q) {
+#ifdef CUDAQ_LIBRARY_MODE
   return getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
+#else
+  (void)q;
+  throw std::runtime_error(details::kQpuOnlyHostScopeError);
+#endif
 }
 
 /// @brief Measure an individual qubit in `x` basis, return 0,1 as `bool`
 inline measure_result mx(qubit &q) {
+#ifdef CUDAQ_LIBRARY_MODE
   h(q);
   return getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
+#else
+  (void)q;
+  throw std::runtime_error(details::kQpuOnlyHostScopeError);
+#endif
 }
 
-// Measure an individual qubit in `y` basis, return 0,1 as `bool`
+/// @brief Measure an individual qubit in `y` basis, return 0,1 as `bool`
 inline measure_result my(qubit &q) {
+#ifdef CUDAQ_LIBRARY_MODE
   r1(-M_PI_2, q);
   h(q);
   return getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
+#else
+  (void)q;
+  throw std::runtime_error(details::kQpuOnlyHostScopeError);
+#endif
 }
 
 inline void reset(qubit &q) {
@@ -518,11 +546,104 @@ inline std::int64_t to_integer(const std::vector<measure_result> &bits) {
   return ret;
 }
 
+// `measure_result` is a class-like type in both library mode and MLIR mode, so
+// this `vector<bool>` overload is a genuinely distinct signature.
+inline std::int64_t to_integer(const std::vector<bool> &bits) {
+  std::int64_t ret = 0;
+  for (std::size_t i = 0; i < bits.size(); i++) {
+    if (bits[i]) {
+      ret |= 1UL << i;
+    }
+  }
+  return ret;
+}
+
 inline std::int64_t to_integer(const std::string &arg) {
   std::string bitString{arg};
   std::reverse(bitString.begin(), bitString.end());
   return std::stoull(bitString, nullptr, 2);
 }
+
+// Bulk discrimination of a handle vector.
+inline std::vector<bool> to_bools(const std::vector<measure_result> &results) {
+#ifdef CUDAQ_LIBRARY_MODE
+  return measure_result::to_bool_vector(results);
+#else
+  (void)results;
+  throw std::runtime_error(details::kQpuOnlyHostScopeError);
+#endif
+}
+
+// QEC kernel-side operations: `cudaq::detector`, `cudaq::logical_observable`,
+// and `cudaq::detectors` - they consume `measure_handle`, which is itself
+// MLIR-mode only. The AST bridge intercepts every call inside `__qpu__`
+// kernels and lowers it to the corresponding `qec.*` MLIR op. The inline bodies
+// below are never reached in a built kernel; reaching one means the bridge
+// missed an interception path, so they throw to fail loudly instead of
+// producing wrong results.
+#ifndef CUDAQ_LIBRARY_MODE
+
+namespace details {
+template <typename T>
+concept any_measure_result_or_vec =
+    std::is_same_v<std::remove_cvref_t<T>, measure_result> ||
+    std::is_same_v<std::remove_cvref_t<T>, std::vector<measure_result>>;
+} // namespace details
+
+/// @brief Define a detector over one or more measurement results.
+///
+/// A detector is a parity constraint: under noise-free execution the XOR of
+/// the referenced measurements is deterministic. Each argument is either an
+/// individual `cudaq::measure_result` or a
+/// `std::vector<cudaq::measure_result>`, or any combination.
+template <typename... MeasArgs>
+  requires(sizeof...(MeasArgs) >= 1) &&
+          (details::any_measure_result_or_vec<MeasArgs> && ...)
+void detector(MeasArgs &&...ms) {
+  ((void)ms, ...);
+  throw std::runtime_error(details::kQpuOnlyHostScopeError);
+}
+
+/// @brief Define a logical observable over one or more measurement results.
+///
+/// A logical observable is a binary sum of measurement results that equals
+/// the outcome of measuring a logical operator. Each argument is either an
+/// individual `cudaq::measure_result` or a
+/// `std::vector<cudaq::measure_result>`, or any combination. Codes
+/// with `k` logical qubits should pair a single
+/// `std::vector<cudaq::measure_result>` with an explicit `observable_index`
+/// for each observable `0..k-1` (see the `(vector, std::size_t)` overload).
+template <typename... MeasArgs>
+  requires(sizeof...(MeasArgs) >= 1) &&
+          (details::any_measure_result_or_vec<MeasArgs> && ...)
+void logical_observable(MeasArgs &&...ms) {
+  ((void)ms, ...);
+  throw std::runtime_error(details::kQpuOnlyHostScopeError);
+}
+
+// Disambiguate from the variadic when an explicit `observable_index` is
+// passed (the variadic rejects integer arguments via its concept). The
+// `observable_index` parameter is non-defaulted to keep
+// `logical_observable(vec)` unambiguously routed through the variadic.
+inline void logical_observable(const std::vector<measure_result> &ms,
+                               std::size_t observable_index) {
+  (void)ms;
+  (void)observable_index;
+  throw std::runtime_error(details::kQpuOnlyHostScopeError);
+}
+
+/// @brief Define N detectors by pairing two measurement vectors element-wise.
+///
+/// Standard form for cross-round detectors: each detector `i` is the parity
+/// of `prev[i]` and `curr[i]`.
+inline void detectors(const std::vector<measure_result> &prev,
+                      const std::vector<measure_result> &curr) {
+  (void)prev;
+  (void)curr;
+  throw std::runtime_error(details::kQpuOnlyHostScopeError);
+}
+
+#endif // !CUDAQ_LIBRARY_MODE
 
 // This concept tests if `Kernel` is a `Callable` that takes the arguments,
 // `Args`, and returns `void`.
@@ -778,7 +899,7 @@ void applyQuantumOperation(const std::string &gateName,
         "cudaq does not support broadcast for multi-qubit operations.");
 
   // Operation on correct number of targets, no controls, possible broadcast
-  if ((std::is_same_v<mod, base> || std::is_same_v<mod, adj>)&&NumT == 1) {
+  if ((std::is_same_v<mod, base> || std::is_same_v<mod, adj>) && NumT == 1) {
     for (auto &qubit : qubits)
       getExecutionManager()->apply(gateName, parameters, {}, {qubit},
                                    std::is_same_v<mod, adj>);
@@ -826,126 +947,7 @@ void genericApplicator(const std::string &gateName, Args &&...args) {
       tuple_slice_last<sizeof...(Args) - NUMP>(std::forward_as_tuple(args...)));
 }
 
-template <typename T, typename... RotationT, typename... QuantumT,
-          std::size_t NumPProvided = sizeof...(RotationT),
-          std::enable_if_t<T::num_parameters == NumPProvided, std::size_t> = 0>
-void applyNoiseImpl(const std::tuple<RotationT...> &paramTuple,
-                    const std::tuple<QuantumT...> &quantumTuple) {
-  auto &platform = get_platform();
-  const auto *noiseModel = platform.get_noise();
-
-  // per-spec, no noise model provided, emit warning, no application
-  if (!noiseModel)
-    return details::warn("apply_noise called but no noise model provided.");
-
-  std::vector<double> parameters;
-  cudaq::tuple_for_each(paramTuple,
-                        [&](auto &&element) { parameters.push_back(element); });
-  std::vector<QuditInfo> qubits;
-  // auto argTuple = std::forward_as_tuple(args...);
-  cudaq::tuple_for_each(quantumTuple, [&qubits](auto &&element) {
-    if constexpr (details::IsQubitType<decltype(element)>::value) {
-      qubits.push_back(qubitToQuditInfo(element));
-    } else {
-      for (auto &qq : element) {
-        qubits.push_back(qubitToQuditInfo(qq));
-      }
-    }
-  });
-
-  if (qubits.size() != T::num_targets) {
-    throw std::invalid_argument("Incorrect number of target qubits. Expected " +
-                                std::to_string(T::num_targets) + ", got " +
-                                std::to_string(qubits.size()));
-  }
-
-  auto channel = noiseModel->template get_channel<T>(parameters);
-  // per spec - caller provides noise model, but channel not registered,
-  // warning generated, no channel application.
-  if (channel.empty())
-    return;
-
-  getExecutionManager()->applyNoise(channel, qubits);
-}
 } // namespace cudaq::details
-
-namespace cudaq {
-
-// Apply noise with runtime vector of parameters
-template <typename... Args>
-constexpr bool any_float = std::disjunction_v<
-    std::is_floating_point<std::remove_cv_t<std::remove_reference_t<Args>>>...>;
-
-#ifdef CUDAQ_REMOTE_SIM
-#define TARGET_OK_FOR_APPLY_NOISE false
-#else
-#define TARGET_OK_FOR_APPLY_NOISE true
-#endif
-
-template <typename T, typename... Q>
-  requires(std::derived_from<T, cudaq::kraus_channel> && !any_float<Q...> &&
-           TARGET_OK_FOR_APPLY_NOISE)
-void apply_noise(const std::vector<double> &params, Q &&...args) {
-  auto &platform = get_platform();
-  const auto *noiseModel = platform.get_noise();
-
-  // per-spec, no noise model provided, emit warning, no application
-  if (!noiseModel)
-    return details::warn("apply_noise called but no noise model provided. "
-                         "skipping kraus channel application.");
-
-  std::vector<QuditInfo> qubits;
-  auto argTuple = std::forward_as_tuple(args...);
-  cudaq::tuple_for_each(argTuple, [&qubits](auto &&element) {
-    if constexpr (details::IsQubitType<decltype(element)>::value) {
-      qubits.push_back(qubitToQuditInfo(element));
-    } else {
-      for (auto &qq : element) {
-        qubits.push_back(qubitToQuditInfo(qq));
-      }
-    }
-  });
-
-  auto channel = noiseModel->template get_channel<T>(params);
-  // per spec - caller provides noise model, but channel not registered,
-  // warning generated, no channel application.
-  if (channel.empty())
-    return;
-  getExecutionManager()->applyNoise(channel, qubits);
-}
-
-class kraus_channel;
-
-template <unsigned len, typename A, typename... As>
-constexpr unsigned count_leading_floats() {
-  if constexpr (std::is_floating_point_v<std::remove_cvref_t<A>>) {
-    return count_leading_floats<len + 1, As...>();
-  } else {
-    return len;
-  }
-}
-template <unsigned len>
-constexpr unsigned count_leading_floats() {
-  return len;
-}
-
-template <typename... Args>
-constexpr bool any_vector_of_float = std::disjunction_v<std::is_same<
-    std::vector<double>, std::remove_cv_t<std::remove_reference_t<Args>>>...>;
-
-template <typename T, typename... Args>
-  requires(std::derived_from<T, cudaq::kraus_channel> &&
-           !any_vector_of_float<Args...> && TARGET_OK_FOR_APPLY_NOISE)
-void apply_noise(Args &&...args) {
-  constexpr auto ctor_arity = count_leading_floats<0, Args...>();
-  constexpr auto qubit_arity = sizeof...(args) - ctor_arity;
-
-  details::applyNoiseImpl<T>(
-      details::tuple_slice<ctor_arity>(std::forward_as_tuple(args...)),
-      details::tuple_slice_last<qubit_arity>(std::forward_as_tuple(args...)));
-}
-
-} // namespace cudaq
 
 #define __qop__ __attribute__((annotate("user_custom_quantum_operation")))
 

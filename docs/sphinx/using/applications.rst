@@ -2,6 +2,7 @@ CUDA-Q Applications
 ====================
 
 This page contains a number of different applications implemented using CUDA-Q. All notebooks can be found `here. <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/applications/python>`_
+To run these applications without a local installation, run the `CUDA-Q application Hub launchable <https://www.nvidia.com/cudaq-apps/>`_.
 
 
 .. when adding applications
@@ -291,7 +292,7 @@ This page contains a number of different applications implemented using CUDA-Q. 
         <img src="../_static/app_title_images/quantum_pagerank_preview.png" alt="Quantum Pagerank Preview" class="notebook-image">
     </div> 
 
-    <div class="notebook-entry" data-tags="chemistry,noisless">
+    <div class="notebook-entry" data-tags="chemistry,noiseless">
         <a href="../applications/python/uccsd_wf_ansatz.html" class="notebook-title">UCCSD Wavefunction Ansatz</a>
         <div class="notebook-content">
             Learn how to implement the UCCSD wavefunction ansatz using CUDA-Q.
@@ -307,7 +308,7 @@ This page contains a number of different applications implemented using CUDA-Q. 
         <img src="../_static/app_title_images/mps_encoding.png" alt="MPS Encoding" class="notebook-image">
     </div>
 
-    <div class="notebook-entry" data-tags="chemistry,noisless">
+    <div class="notebook-entry" data-tags="chemistry,noiseless">
         <a href="../applications/python/qm_mm_pe.html" class="notebook-title">QM/MM simulation: VQE within a Polarizable Embedded Framework.</a>
         <div class="notebook-content">
             Learn how to implement QM/MM with PE framework using CUDA-Q.

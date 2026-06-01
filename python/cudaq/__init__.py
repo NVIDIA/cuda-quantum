@@ -27,7 +27,7 @@ if multiprocessing.get_start_method(allow_none=True) is None:
 # CUDA Library Path Configuration
 # ============================================================================ #
 def _configure_cuda_library_paths() -> None:
-    """    
+    """
     Sets the `CUDAQ_DYNLIBS` environment variable with paths to required
     CUDA libraries based on the detected CUDA version.
     """
@@ -127,6 +127,46 @@ except Exception:
         print("Could not find a suitable cuQuantum Python package.")
     pass
 
+
+def _patch_mlir_isinstance() -> None:
+    import builtins
+
+    from .mlir._mlir_libs import _mlir as _mlir_ext
+    ir = _mlir_ext.ir
+    value_base = getattr(ir, "Value", None)
+    py_isinstance = builtins.isinstance
+    for name in dir(ir):
+        cls = getattr(ir, name)
+        if not py_isinstance(cls, type) or "isinstance" in cls.__dict__:
+            continue
+        static_typeid = None
+        try:
+            static_typeid = cls.static_typeid
+        except Exception:
+            pass
+        if static_typeid is not None:
+
+            def _isinstance(other, _tid=static_typeid):
+                try:
+                    return other.typeid == _tid
+                except Exception:
+                    return False
+        elif value_base is not None and cls is not value_base and \
+                issubclass(cls, value_base):
+
+            def _isinstance(other, _cls=cls, _isinst=py_isinstance):
+                try:
+                    return _isinst(other.maybe_downcast(), _cls)
+                except Exception:
+                    return False
+        else:
+            continue
+        setattr(cls, "isinstance", staticmethod(_isinstance))
+
+
+_patch_mlir_isinstance()
+del _patch_mlir_isinstance
+
 # ============================================================================ #
 # Module Imports
 # ============================================================================ #
@@ -164,7 +204,8 @@ else:
 parallel = cudaq_runtime.parallel
 
 # Primitive Types (stubs; used only in kernels, parsed to MLIR)
-from .kernel_types import qubit, qvector, qview
+from .kernel_types import (_KERNEL_ONLY_ERROR_MESSAGE, measure_handle, qubit,
+                           qvector, qview)
 
 Pauli = cudaq_runtime.Pauli
 Kernel = PyKernel
@@ -188,12 +229,6 @@ from .operators.manipulation import OperatorArithmetics
 # needs to be imported, since otherwise e.g. evaluate is not defined
 import cudaq.operators.expressions
 from .operators.super_op import SuperOperator
-
-# Time evolution API
-from .dynamics.schedule import Schedule
-from .dynamics.evolution import evolve, evolve_async
-from .dynamics.integrators import *
-from .dynamics.helpers import IntermediateResultSave
 
 InitialStateType = cudaq_runtime.InitialStateType
 
@@ -267,7 +302,7 @@ def synthesize(kernel, *args):
 
 def complex():
     """
-    Return the data type for the current simulation backend, 
+    Return the data type for the current simulation backend,
     either `numpy.complex128` or `numpy.complex64`.
     """
     target = get_target()
@@ -279,10 +314,53 @@ def complex():
 
 def amplitudes(array_data):
     """
-    Create a state array with the appropriate data type for the 
-    current simulation backend target. 
+    Create a state array with the appropriate data type for the
+    current simulation backend target.
     """
     return numpy.array(array_data, dtype=complex())
+
+
+def to_bools(handles):
+    """Bulk-discriminate a ``list[cudaq.measure_handle]`` into a
+    ``list[bool]``. Device-only: this Python symbol exists so kernel
+    code can call ``cudaq.to_bools(...)``; the AST bridge intercepts
+    the call and lowers it to a vector form ``quake.discriminate`` on
+    ``!cc.stdvec<!cc.measure_handle>``. Host-side invocation raises a
+    ``RuntimeError``.
+    """
+    raise RuntimeError(_KERNEL_ONLY_ERROR_MESSAGE.format("cudaq.to_bools"))
+
+
+def detector(*measurements):
+    """Define a detector over one or more measurement results.
+
+    A detector is a parity constraint: under noise-free execution the XOR of
+    the referenced measurements is deterministic. Each call defines one
+    detector. Arguments are individual ``cudaq.measure_handle`` values or a
+    single ``list[cudaq.measure_handle]``.
+    """
+    raise RuntimeError(_KERNEL_ONLY_ERROR_MESSAGE.format("cudaq.detector"))
+
+
+def logical_observable(*measurements, observable_index=0):
+    """Define a logical observable over one or more measurement results.
+
+    The variadic form uses ``observable_index = 0``. Codes with ``k``
+    logical qubits should pass a single ``list[cudaq.measure_handle]`` and
+    an explicit ``observable_index`` for each observable ``0..k-1``.
+    """
+    raise RuntimeError(
+        _KERNEL_ONLY_ERROR_MESSAGE.format("cudaq.logical_observable"))
+
+
+def detectors(prev, curr):
+    """Define N detectors by pairing two measurement vectors element-wise.
+
+    Standard form for cross-round detectors: each detector ``i`` is the
+    parity of ``prev[i]`` and ``curr[i]``. Size agreement between ``prev``
+    and ``curr`` is checked at runtime.
+    """
+    raise RuntimeError(_KERNEL_ONLY_ERROR_MESSAGE.format("cudaq.detectors"))
 
 
 def __clearKernelRegistries():
@@ -290,10 +368,85 @@ def __clearKernelRegistries():
     globalRegisteredOperations.clear()
 
 
-# Expose chemistry domain functions
-from .domains import chemistry
-from .kernels import uccsd
-from .dbg import ast
+# Lazy-loaded modules. The `dynamics`, `kernels`, and `domains` packages pull
+# in heavy dependencies that most users don't need on every import. Rather
+# than importing them eagerly, we defer them until first access via
+# `__getattr__` (PEP 562). Known names are mapped explicitly below;
+# star-import names (like integrator classes) fall through to
+# `_DEFERRED_STAR_MODULES` so new exports are picked up automatically.
+
+_LAZY_ATTRS = {
+    'Schedule': '.dynamics.schedule',
+    'evolve': '.dynamics.evolution',
+    'evolve_async': '.dynamics.evolution',
+    'IntermediateResultSave': '.dynamics.helpers',
+}
+
+_LAZY_SUBMODULES = {
+    'chemistry': '.domains.chemistry',
+    'uccsd': '.kernels.uccsd',
+    'ast': '.dbg.ast',
+}
+
+_DEFERRED_STAR_MODULES = [
+    '.dynamics.integrators',
+]
+
+
+def __getattr__(name):
+    import importlib
+
+    if name in _LAZY_ATTRS:
+        mod = importlib.import_module(_LAZY_ATTRS[name], __name__)
+        val = getattr(mod, name)
+        globals()[name] = val
+        return val
+
+    if name in _LAZY_SUBMODULES:
+        mod = importlib.import_module(_LAZY_SUBMODULES[name], __name__)
+        globals()[name] = mod
+        return mod
+
+    # Fallback: try deferred star-import modules.
+    for mod_path in _DEFERRED_STAR_MODULES:
+        mod = importlib.import_module(mod_path, __name__)
+        if hasattr(mod, name):
+            val = getattr(mod, name)
+            globals()[name] = val
+            return val
+
+    # Fallback: try importing as a cudaq submodule (e.g., `cudaq.kernels`,
+    # `cudaq.dynamics`). This handles sub-packages that were previously
+    # accessible as side effects of eager imports.
+    try:
+        mod = importlib.import_module(f'.{name}', __name__)
+        globals()[name] = mod
+        return mod
+    except ImportError:
+        pass
+
+    raise AttributeError(f"module 'cudaq' has no attribute {name!r}")
+
+
+def __dir__():
+    """Includes lazy-loaded names so tab-completion matches pre-lazy behavior.
+
+    This triggers the deferred star-module imports (e.g.
+    ``dynamics.integrators``) on first tab-completion, so there is a one-time
+    performance cost in interactive sessions.
+    """
+    import importlib
+    names = list(globals().keys())
+    names.extend(_LAZY_ATTRS.keys())
+    names.extend(_LAZY_SUBMODULES.keys())
+    for mod_path in _DEFERRED_STAR_MODULES:
+        try:
+            mod = importlib.import_module(mod_path, __name__)
+            names.extend(getattr(mod, '__all__', dir(mod)))
+        except ImportError:
+            pass
+    return names
+
 
 # ============================================================================ #
 # Command Line Argument Parsing

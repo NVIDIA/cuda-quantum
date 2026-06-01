@@ -9,6 +9,7 @@
 from ..integrator import BaseTimeStepper, BaseIntegrator
 from .builtin_integrators import cuDensityMatTimeStepper, cuDensityMatSuperOpTimeStepper
 from ...mlir._mlir_libs._quakeDialects import cudaq_runtime
+from typing import Optional
 import numpy, math
 
 has_dynamics = True
@@ -31,7 +32,9 @@ class ScipyZvodeIntegrator(BaseIntegrator[cudaq_runtime.State]):
     rtol = 1e-6
     order = 12
 
-    def __init__(self, stepper: BaseTimeStepper[cudaq_runtime.State], **kwargs):
+    def __init__(self,
+                 stepper: Optional[BaseTimeStepper[cudaq_runtime.State]] = None,
+                 **kwargs):
         if not has_dynamics:
             raise ImportError(
                 'CUDA-Q is missing dynamics support. Please check your installation'
@@ -39,14 +42,10 @@ class ScipyZvodeIntegrator(BaseIntegrator[cudaq_runtime.State]):
         if not has_scipy:
             raise ImportError("scipy is required to use this integrator.")
         super().__init__(**kwargs)
-        self.stepper = stepper
+        # Store the user-provided stepper so it survives `set_system()` calls.
+        self._user_provided_stepper = stepper
         self.is_density_state = None
         self.batchSize = None
-
-    def __init__(self, **kwargs):
-        if not has_scipy:
-            raise ImportError("scipy is required to use this integrator.")
-        super().__init__(**kwargs)
 
     def compute_rhs(self, t, vec):
         state = cudaq_runtime.State.from_data(vec)

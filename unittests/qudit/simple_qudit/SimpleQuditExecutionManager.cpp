@@ -8,13 +8,14 @@
 
 #include "common/ExecutionContext.h"
 #include "common/FmtCore.h"
+#include "common/SampleResult.h"
 #include "cudaq/runtime/logger/logger.h"
 
+#include "qpp.h"
 #include "cudaq/operators.h"
 #include "cudaq/qis/managers/BasicExecutionManager.h"
 #include "cudaq/qis/qudit.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "qpp.h"
 #include <complex>
 #include <cstring>
 #include <functional>
@@ -57,30 +58,35 @@ protected:
   void deallocateQudit(const cudaq::QuditInfo &q) override {}
   void deallocateQudits(const std::vector<cudaq::QuditInfo> &qudits) override {}
 
-  void finalizeExecutionContext(ExecutionContext &ctx) override {
-    BasicExecutionManager::finalizeExecutionContext(ctx);
+  sample_result finalizeExecutionContext(const sample_policy &policy) override {
+    BasicExecutionManager::finalizeExecutionContextImpl();
 
-    if (ctx.name == "sample") {
-      std::vector<std::size_t> ids;
-      for (auto &s : sampleQudits) {
-        ids.push_back(s.id);
-      }
-      auto sampleResult =
-          qpp::sample(ctx.shots, state, ids, sampleQudits.begin()->levels);
-
-      ExecutionResult execResult;
-      for (auto [result, count] : sampleResult) {
-        std::cout << fmt::format("Sample {} : {}", result, count) << "\n";
-        // Populate counts dictionary. FIXME - handle qudits with >= 10 levels
-        // better.
-        std::string resultStr;
-        resultStr.reserve(result.size());
-        for (auto x : result)
-          resultStr += std::to_string(x);
-        execResult.counts[resultStr] = count;
-      }
-      ctx.result.append(execResult);
+    std::vector<std::size_t> ids;
+    for (auto &s : sampleQudits) {
+      ids.push_back(s.id);
     }
+    auto sampleResult = qpp::sample(policy.options.shots, state, ids,
+                                    sampleQudits.begin()->levels);
+
+    ExecutionResult execResult;
+    for (auto [result, count] : sampleResult) {
+      std::cout << fmt::format("Sample {} : {}", result, count) << "\n";
+      // Populate counts dictionary. FIXME - handle qudits with >= 10 levels
+      // better.
+      std::string resultStr;
+      resultStr.reserve(result.size());
+      for (auto x : result)
+        resultStr += std::to_string(x);
+      execResult.counts[resultStr] = count;
+    }
+    sample_result result;
+    result.append(execResult);
+    return result;
+  }
+
+  observe_result finalizeExecutionContext(const observe_policy &,
+                                          ExecutionContext &) override {
+    throw std::runtime_error("observe is not implemented for SimpleQudit.");
   }
 
   void endExecution() override {
@@ -115,7 +121,9 @@ protected:
     return measurement_result;
   }
 
-  void measureSpinOp(const cudaq::spin_op &) override {}
+  cudaq::SpinMeasureResult measureSpinOp(const cudaq::spin_op &) override {
+    return cudaq::SpinMeasureResult(0.0, {});
+  }
 
 public:
   SimpleQuditExecutionManager() {

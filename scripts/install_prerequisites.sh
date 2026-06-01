@@ -29,9 +29,8 @@
 # library is not found in the location defined by the corresponding environment variable
 # *_INSTALL_PREFIX, it will be built from source and installed in that location.
 # If the LLVM libraries are built from source, the environment variable LLVM_PROJECTS
-# can be used to customize which projects are built, and pybind11 will be built and 
-# installed in the location defined by PYBIND11_INSTALL_PREFIX if necessary.
-# The cuQuantum and cuTensor libraries are only installed if a suitable CUDA compiler 
+# can be used to customize which projects are built.
+# The cuQuantum and cuTensor libraries are only installed if a suitable CUDA compiler
 # is installed. 
 # 
 # By default, all prerequisites outlined above are installed even if the
@@ -59,17 +58,29 @@ BLAS_TARBALL_URL="http://www.netlib.org/blas/blas-${BLAS_VERSION}.tgz"
 PERL_VERSION=5.38.2
 PERL_TARBALL_URL="https://www.cpan.org/src/5.0/perl-${PERL_VERSION}.tar.gz"
 
-OPENSSL_VERSION=3.5.1
+OPENSSL_VERSION=3.6.2
 OPENSSL_TARBALL_URL="https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz"
 
-CURL_VERSION=8.5.0
-CURL_VERSION_UNDERSCORE=curl-8_5_0
+CURL_VERSION=8.20.0
+CURL_VERSION_UNDERSCORE=curl-8_20_0
 CURL_TARBALL_URL="https://github.com/curl/curl/releases/download/${CURL_VERSION_UNDERSCORE}/curl-${CURL_VERSION}.tar.gz"
 CACERT_URL="https://curl.se/ca/cacert.pem"
 CACERT_SHA256_URL="${CACERT_URL}.sha256"
 
 AWS_SDK_CPP_URL="https://github.com/aws/aws-sdk-cpp"
 AWS_SDK_CPP_REF="1.11.454"
+
+# QRMI pre-built C artifacts for Pasqal QRMI connector
+QRMI_RELEASE_REPO=${QRMI_RELEASE_REPO:-qiskit-community/qrmi}
+QRMI_RELEASE_TAG=${QRMI_RELEASE_TAG:-v0.12.0}
+QRMI_RELEASE_VERSION=${QRMI_RELEASE_TAG#v}
+QRMI_RELEASE_BASE="https://github.com/${QRMI_RELEASE_REPO}/releases/download/${QRMI_RELEASE_TAG}"
+QRMI_ARCHIVE="libqrmi-${QRMI_RELEASE_VERSION}-el8-x86_64.tar.gz"
+QRMI_UNPACK_DIR="libqrmi-${QRMI_RELEASE_VERSION}"
+# NOTE: This needs to be updated whenever the pre-built artifacts are updated. The SHA-256 can be computed with:
+#   wget -O qrmi.tar.gz "${QRMI_RELEASE_BASE}/${QRMI_ARCHIVE}"
+#   sha256sum qrmi.tar.gz | awk '{print $1}'
+QRMI_ARCHIVE_SHA256=${QRMI_ARCHIVE_SHA256:-2986150d4f55e1f6566bef16d9fb3897ca04dd7eaa681865f7ef244f298a6746}
 
 # Process command line arguments
 toolchain=''
@@ -175,6 +186,13 @@ if $lock_mode; then
     "url=${AWS_SDK_CPP_URL}" \
     "ref=${AWS_SDK_CPP_REF}"
 
+  # [QRMI] Pre-built C artifacts for Pasqal QRMI connector
+  # Keep this in sync with the QRMI section in the installation path below.
+  add_lock_line "qrmi" \
+    "type=tar" \
+    "url=${QRMI_RELEASE_BASE}/${QRMI_ARCHIVE}" \
+    "version=${QRMI_RELEASE_VERSION}" \
+    "sha256=${QRMI_ARCHIVE_SHA256}"
 
   echo "Prerequisites lockfile written to ${LOCK_FILE}."
   (return 0 2>/dev/null) && return 0 || exit 0
@@ -231,6 +249,10 @@ function prepare_exit {
 set -e
 trap 'prepare_exit && ((return 0 2>/dev/null) && return 1 || exit 1)' EXIT
 this_file_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [ "$(uname)" = "Darwin" ] && [ -x "$(command -v xcrun)" ]; then
+  export SDKROOT="${SDKROOT:-$(xcrun --show-sdk-path)}"
+fi
 
 # [Toolchain] CMake, ninja and C/C++ compiler
 if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
@@ -300,11 +322,10 @@ if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
 fi
 
 # [Zlib] Needed to build LLVM with zlib support (used by linker)
-# [Minizip] Needed by rest_server for archive handling
 # Build both from source for consistency across platforms.
 if [ -n "$ZLIB_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep zlib)" ]; then
-  if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libz.a" ] || [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libminizip.a" ]; then
-    echo "Installing libz and minizip..."
+  if [ ! -f "$ZLIB_INSTALL_PREFIX/lib/libz.a" ]; then
+    echo "Installing libz..."
     temp_install_if_command_unknown wget wget
     temp_install_if_command_unknown make make
     temp_install_if_command_unknown automake automake
@@ -324,23 +345,28 @@ if [ -n "$ZLIB_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep zlib)" ]
     CC="$CC" CFLAGS="-fPIC" \
     ./configure --prefix="$ZLIB_INSTALL_PREFIX" --static
     make CC="$CC" && make install
-    cd contrib/minizip
-    # On macOS with Homebrew, set up environment for autoreconf:
-    # - Add Homebrew's m4 macros to aclocal search path
-    # - Point LIBTOOLIZE to glibtoolize (Homebrew's GNU libtoolize)
-    if [ "$(uname)" = "Darwin" ] && [ -x "$(command -v brew)" ]; then
-      export ACLOCAL_PATH="$(brew --prefix)/share/aclocal${ACLOCAL_PATH:+:$ACLOCAL_PATH}"
-      export LIBTOOLIZE=glibtoolize
-    fi
-    autoreconf --install
-    CC="$CC" CFLAGS="-fPIC" \
-    ./configure --prefix="$ZLIB_INSTALL_PREFIX" --disable-shared
-    make CC="$CC" && make install
 
     popd
     remove_temp_installs
   else
-    echo "libz and minizip already installed in $ZLIB_INSTALL_PREFIX."
+    echo "libz already installed in $ZLIB_INSTALL_PREFIX."
+  fi
+fi
+
+# [nanobind] Needed for MLIR Python bindings (MLIR 22+)
+# Install nanobind independently of the LLVM build so that it is available
+# even when LLVM is restored from cache.
+if [ -n "$NANOBIND_INSTALL_PREFIX" ]; then
+  if [ ! -d "$NANOBIND_INSTALL_PREFIX" ] || [ -z "$(ls -A "$NANOBIND_INSTALL_PREFIX"/* 2> /dev/null)" ]; then
+    echo "Building nanobind..."
+    cd "$this_file_dir" && cd $(git rev-parse --show-toplevel)
+    git submodule update --init --recursive --recommend-shallow --single-branch tpls/nanobind
+    mkdir -p "tpls/nanobind/build" && cd "tpls/nanobind/build"
+    cmake -G Ninja ../ -DCMAKE_INSTALL_PREFIX="$NANOBIND_INSTALL_PREFIX" -DNB_TEST=False
+    cmake --build . --target install --config Release
+    cd "$working_dir"
+  else
+    echo "nanobind already installed in $NANOBIND_INSTALL_PREFIX."
   fi
 fi
 
@@ -350,21 +376,23 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
     echo "Installing LLVM libraries..."
     LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
     LLVM_PROJECTS="$LLVM_PROJECTS" \
-    PYBIND11_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" \
+    NANOBIND_INSTALL_PREFIX="$NANOBIND_INSTALL_PREFIX" \
     Python3_EXECUTABLE="$Python3_EXECUTABLE" \
     bash "$this_file_dir/build_llvm.sh" -v
-  else 
+  else
     echo "LLVM already installed in $LLVM_INSTALL_PREFIX."
   fi
 
-  if [ "$toolchain" = "llvm" ]; then
+  if [ "$toolchain" = "llvm" ] || [ "$(uname)" = "Darwin" ]; then
     #rm -rf "$llvm_stage1_tmpdir"
-    export CC="$LLVM_INSTALL_PREFIX/bin/clang" 
+    export CC="$LLVM_INSTALL_PREFIX/bin/clang"
     export CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
-    export FC="$LLVM_INSTALL_PREFIX/bin/flang-new"
     echo "Configured C compiler: $CC"
     echo "Configured C++ compiler: $CXX"
-    echo "Configured Fortran compiler: $FC"
+    if [ -x "$LLVM_INSTALL_PREFIX/bin/flang" ]; then
+      export FC="$LLVM_INSTALL_PREFIX/bin/flang"
+      echo "Configured Fortran compiler: $FC"
+    fi
   fi
 fi
 
@@ -385,7 +413,12 @@ if [ -n "$BLAS_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep blas)" ]
     # See also: https://github.com/NVIDIA/cuda-quantum/issues/452
     wget "${BLAS_TARBALL_URL}"
     tar -xzvf "blas-${BLAS_VERSION}.tgz" && cd BLAS-3.11.0
-    make FC="${FC:-gfortran}"
+    if [ toolchain == "gcc12" ]; then
+      make FC="${FC:-gfortran}"
+    else
+      make FC="${FC:-gfortran}" FFLAGS="-O2"
+    fi
+
     mkdir -p "$BLAS_INSTALL_PREFIX"
     mv blas_*.a "$BLAS_INSTALL_PREFIX/libblas.a"
 
@@ -575,38 +608,26 @@ if [ -n "$QRMI_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep qrmi)" ]
     temp_install_if_command_unknown wget wget
     pushd "$PREREQS_BUILD_DIR"
 
-    QRMI_RELEASE_REPO=${QRMI_RELEASE_REPO:-qiskit-community/qrmi}
-    QRMI_RELEASE_TAG=${QRMI_RELEASE_TAG:-v0.12.0}
-    QRMI_RELEASE_VERSION=${QRMI_RELEASE_TAG#v}
-    qrmi_release_base="https://github.com/${QRMI_RELEASE_REPO}/releases/download/${QRMI_RELEASE_TAG}"
-    qrmi_archive="libqrmi-${QRMI_RELEASE_VERSION}-el8-x86_64.tar.gz" # Note: el8 build works on Ubuntu 18.04+.
-    qrmi_unpack_dir="libqrmi-${QRMI_RELEASE_VERSION}"
-
-    # NOTE: This needs to be updated whenever the pre-built artifacts are updated. The SHA-256 can be computed with:
-    #   wget -O qrmi.tar.gz "${qrmi_release_base}/${qrmi_archive}"
-    #   sha256sum qrmi.tar.gz | awk '{print $1}' 
-    QRMI_ARCHIVE_SHA256="2986150d4f55e1f6566bef16d9fb3897ca04dd7eaa681865f7ef244f298a6746"
-
     mkdir -p "$QRMI_INSTALL_PREFIX/include" "$QRMI_INSTALL_PREFIX/lib64"
-    wget "${qrmi_release_base}/${qrmi_archive}" -O "${qrmi_archive}"
+    wget "${QRMI_RELEASE_BASE}/${QRMI_ARCHIVE}" -O "${QRMI_ARCHIVE}"
 
     if [ -x "$(command -v sha256sum)" ]; then
-      computed_sha256="$(sha256sum "${qrmi_archive}" | awk '{print $1}')"
+      computed_sha256="$(sha256sum "${QRMI_ARCHIVE}" | awk '{print $1}')"
     else
-      computed_sha256="$(shasum -a 256 "${qrmi_archive}" | awk '{print $1}')"
+      computed_sha256="$(shasum -a 256 "${QRMI_ARCHIVE}" | awk '{print $1}')"
     fi
     if [ "$computed_sha256" != "$QRMI_ARCHIVE_SHA256" ]; then
-      echo -e "\e[01;31mError: SHA-256 checksum mismatch for ${qrmi_archive}.\e[0m" >&2
+      echo -e "\e[01;31mError: SHA-256 checksum mismatch for ${QRMI_ARCHIVE}.\e[0m" >&2
       echo "Expected: $QRMI_ARCHIVE_SHA256" >&2
       echo "Got:      $computed_sha256" >&2
       rm -f "${qrmi_archive}"
       (return 1 2>/dev/null) && return 1 || exit 1
     fi
 
-    tar -xzf "${qrmi_archive}"
-    cp "${qrmi_unpack_dir}/qrmi.h" "$qrmi_header"
-    cp "${qrmi_unpack_dir}/libqrmi.so" "$qrmi_library"
-    rm -rf "${qrmi_archive}" "${qrmi_unpack_dir}"
+    tar -xzf "${QRMI_ARCHIVE}"
+    cp "${QRMI_UNPACK_DIR}/qrmi.h" "$qrmi_header"
+    cp "${QRMI_UNPACK_DIR}/libqrmi.so" "$qrmi_library"
+    rm -rf "${QRMI_ARCHIVE}" "${QRMI_UNPACK_DIR}"
 
     popd
     remove_temp_installs

@@ -122,12 +122,13 @@ jobs:
       - name: Determine build arguments
         id: build_info
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           repo_owner=${{ github.repository_owner }}
           registry=${{ vars.registry || 'localhost:5000' }}
           image_name=$registry/${repo_owner,,}/${{ vars.packages_prefix }}open-mpi
           echo "image_name=$image_name" >> $GITHUB_OUTPUT
 
-          docker pull ${{ inputs.ompidev_image }} # to get the tag
+          retry docker pull ${{ inputs.ompidev_image }} # to get the tag
           dev_tag=`docker inspect ${{ inputs.ompidev_image }} --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"'`
           echo "image_tag=${dev_tag#ompi-}" >> $GITHUB_OUTPUT
           docker image rm ${{ inputs.ompidev_image }}
@@ -171,7 +172,7 @@ jobs:
         if: needs.metadata.outputs.runner != 'ubuntu-latest'
         uses: nv-gha-runners/setup-proxy-cache@main
         with:
-          enable-apt: true
+          enable-apt: false
 
       - name: Build Open MPI
         id: docker_build
@@ -275,18 +276,19 @@ jobs:
       - name: Load prerequisites
         id: prereqs
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           if ${{ steps.restore.outcome != 'skipped' }}; then
             load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
             base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
             echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
             # Push the image to the local registry to make it available within
             # the containered environment that docker/build-push-action uses.
-            docker push $base_image
+            retry docker push $base_image
             rm -rf "${{ inputs.devdeps_archive }}"
           elif ${{ inputs.devdeps_image != '' }}; then
             base_image=${{ inputs.devdeps_image }}
             echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
-            docker pull $base_image
+            retry docker pull $base_image
           else
             echo "::error file=docker_images.yml::Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build."
             exit 1
@@ -328,7 +330,16 @@ jobs:
         if: needs.metadata.outputs.runner != 'ubuntu-latest'
         uses: nv-gha-runners/setup-proxy-cache@main
         with:
-          enable-apt: true
+          enable-apt: false
+
+      - name: Set up ccache and ORAS
+        uses: ./.github/actions/ccache-setup
+
+      - name: Restore ccache from GHCR
+        uses: ./.github/actions/ccache-restore
+        with:
+          cache-key: ${{ needs.metadata.outputs.platform_tag }}-cudaqdev
+          registry-token: ${{ github.token }}
 
       - name: Extract metadata
         id: metadata
@@ -347,6 +358,8 @@ jobs:
         with:
           context: .
           file: ./docker/build/cudaq.dev.Dockerfile
+          build-contexts: |
+            ccache-data=/tmp/ccache-data
           build-args: |
             base_image=${{ steps.prereqs.outputs.base_image }}
             install="CMAKE_BUILD_TYPE=Debug"
@@ -356,6 +369,33 @@ jobs:
           platforms: ${{ inputs.platforms }}
           push: ${{ inputs.environment != '' }}
           outputs: ${{ steps.prereqs.outputs.docker_output }}
+
+      - name: Extract ccache from build
+        timeout-minutes: 15
+        continue-on-error: true
+        run: |
+          mkdir -p /tmp/ccache-export
+          docker buildx build \
+            -f ./docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-arg base_image=${{ steps.prereqs.outputs.base_image }} \
+            --build-arg install="CMAKE_BUILD_TYPE=Debug" \
+            --build-arg git_source_sha=${{ github.sha }} \
+            --target ccache-export \
+            --output type=local,dest=/tmp/ccache-export \
+            2>&1 | tail -20
+          if [ -f /tmp/ccache-export/ccache.tar ]; then
+            mkdir -p /tmp/ccache-export/ccache
+            tar xf /tmp/ccache-export/ccache.tar -C /tmp/ccache-export/ccache
+            rm -f /tmp/ccache-export/ccache.tar
+          fi
+
+      - name: Push ccache to GHCR
+        uses: ./.github/actions/ccache-push
+        with:
+          cache-key: ${{ needs.metadata.outputs.platform_tag }}-cudaqdev
+          cache-path: /tmp/ccache-export/ccache
+          registry-token: ${{ github.token }}
 
       - name: Write matrix outputs
         uses: cloudposse/github-action-matrix-outputs-write@1.0.0
@@ -508,9 +548,13 @@ jobs:
           cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
           deprecation_notice=""
           image_tag=${platform_tag:+$platform_tag-}${cuda_major:+cu${cuda_major}-}
-          if ${{ github.event.pull_request.number != '' }} || [ -n "$(echo ${{ github.ref_name }} | grep pull-request/)" ]; then
-            pr_number=`echo ${{ github.ref_name }} | grep -o [0-9]*`
-            image_tag+=pr-${pr_number:-${{ github.event.pull_request.number }}}
+          pr_number="${{ github.event.pull_request.number }}"
+          if [ -z "$pr_number" ] && \
+             [[ "${{ github.ref_name }}" =~ (pull-request/|.*/pr-)([0-9]+) ]]; then
+            pr_number="${BASH_REMATCH[2]}"
+          fi
+          if [ -n "$pr_number" ]; then
+            image_tag+=pr-${pr_number}
           elif ${{ github.ref_type == 'branch' && github.ref_name == 'main' }}; then
             image_tag+=latest
           elif ${{ needs.metadata.outputs.is_versioned == 'true' }}; then
@@ -553,7 +597,16 @@ jobs:
         if: needs.metadata.outputs.runner != 'ubuntu-latest'
         uses: nv-gha-runners/setup-proxy-cache@main
         with:
-          enable-apt: true
+          enable-apt: false
+
+      - name: Set up ccache and ORAS
+        uses: ./.github/actions/ccache-setup
+
+      - name: Restore ccache from GHCR
+        uses: ./.github/actions/ccache-restore
+        with:
+          cache-key: ${{ needs.metadata.outputs.platform_tag }}-cudaq-release
+          registry-token: ${{ github.token }}
 
       - name: Extract cuda-quantum-dev metadata
         id: cudaqdev_metadata
@@ -575,6 +628,8 @@ jobs:
         with:
           context: .
           file: ./docker/build/cudaq.dev.Dockerfile
+          build-contexts: |
+            ccache-data=/tmp/ccache-data
           build-args: |
             base_image=${{ steps.prereqs.outputs.devdeps_image }}
             install="CMAKE_BUILD_TYPE=Release CUDA_QUANTUM_VERSION=${{ steps.prereqs.outputs.image_tag }}"
@@ -583,6 +638,33 @@ jobs:
           labels: ${{ steps.cudaqdev_metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}
           push: true
+
+      - name: Extract ccache from release build
+        timeout-minutes: 15
+        continue-on-error: true
+        run: |
+          mkdir -p /tmp/ccache-export
+          docker buildx build \
+            -f ./docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-arg base_image=${{ steps.prereqs.outputs.devdeps_image }} \
+            --build-arg install="CMAKE_BUILD_TYPE=Release CUDA_QUANTUM_VERSION=${{ steps.prereqs.outputs.image_tag }}" \
+            --build-arg git_source_sha=${{ github.sha }} \
+            --target ccache-export \
+            --output type=local,dest=/tmp/ccache-export \
+            2>&1 | tail -20
+          if [ -f /tmp/ccache-export/ccache.tar ]; then
+            mkdir -p /tmp/ccache-export/ccache
+            tar xf /tmp/ccache-export/ccache.tar -C /tmp/ccache-export/ccache
+            rm -f /tmp/ccache-export/ccache.tar
+          fi
+
+      - name: Push ccache to GHCR
+        uses: ./.github/actions/ccache-push
+        with:
+          cache-key: ${{ needs.metadata.outputs.platform_tag }}-cudaq-release
+          cache-path: /tmp/ccache-export/ccache
+          registry-token: ${{ github.token }}
 
       - name: Install Cosign
         if: inputs.environment
@@ -736,12 +818,13 @@ jobs:
       - name: Build documentation
         id: docs_build
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           if ${{ steps.restore_cudaq.outcome != 'skipped' }}; then
             load_output=`docker load --input "${{ needs.cudaq_image.outputs.tar_archive }}"`
             cudaq_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
           else
             cudaq_image=${{ needs.cudaq_image.outputs.image_hash }}
-            docker pull $cudaq_image
+            retry docker pull $cudaq_image
           fi
 
           image_tag=`docker inspect $cudaq_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"' | sed -E 's/^(arm64-|amd64-)//'`
@@ -754,7 +837,7 @@ jobs:
             cudaqdev_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
           else
             cudaqdev_image=${{ needs.cudaqdev_image.outputs.image_hash }}
-            docker pull $cudaqdev_image
+            retry docker pull $cudaqdev_image
           fi
 
           docker run --rm -dit --network host --name cuda-quantum-dev $cudaqdev_image
@@ -845,12 +928,13 @@ jobs:
 
       - name: Validate cuda-quantum image
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           if ${{ steps.restore.outcome != 'skipped' }}; then
             load_output=`docker load --input "${{ needs.cudaq_image.outputs.tar_archive }}"`
             cudaq_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
           else
             cudaq_image=${{ needs.cudaq_image.outputs.image_hash }}
-            docker pull $cudaq_image
+            retry docker pull $cudaq_image
           fi
 
           docker run --rm -dit --name cuda-quantum $cudaq_image
@@ -858,7 +942,7 @@ jobs:
           docker cp docs/notebook_validation.py cuda-quantum:"/home/cudaq/notebook_validation.py"
           # In containers without GPU support, UCX does not work properly since it is configured to work with GPU-support.
           # Hence, don't enforce UCX when running these tests.
-          docker exec cuda-quantum bash -c "python3 -m pip install --break-system-packages pandas scipy seaborn h5py contfrac"
+          retry docker exec cuda-quantum bash -c "python3 -m pip install --break-system-packages pandas scipy seaborn h5py contfrac"
           docker exec cuda-quantum bash -c "sudo apt install -y python3-venv"
           (docker exec cuda-quantum bash -c "unset OMPI_MCA_pml && set -o pipefail && bash validate_installation.sh | tee /tmp/validation.out") && passed=true || passed=false
           docker cp cuda-quantum:"/tmp/validation.out" /tmp/validation.out
@@ -958,7 +1042,13 @@ jobs:
           keys+=" ${{ needs.cudaq_image.outputs.tar_cache }}"
           keys+=" ${{ needs.ompi_image.outputs.tar_cache }}"
           echo "$keys" >> cache_keys.txt
-          echo "artifact_name=${{ needs.validation.outputs.artifact_id }}_cache_keys" >> $GITHUB_OUTPUT
+          # Fall back to platform/cuda matrix dimensions when validation's
+          # artifact_id is unset (e.g. validation failed before job_summary),
+          # otherwise multiple matrix legs collide on the bare "_cache_keys"
+          # artifact name and `upload-artifact` returns 409 Conflict.
+          artifact_id="${{ needs.validation.outputs.artifact_id }}"
+          fallback="image_${{ needs.metadata.outputs.platform_tag }}_cu$(echo '${{ inputs.cuda_version }}' | cut -d . -f1)"
+          echo "artifact_name=${artifact_id:-$fallback}_cache_keys" >> $GITHUB_OUTPUT
 
       - uses: actions/upload-artifact@v4
         with:

@@ -11,10 +11,12 @@
 #include "common/ExecutionContext.h"
 #include "common/SampleResult.h"
 #include "cudaq/algorithms/broadcast.h"
+#include "cudaq/algorithms/launch.h"
+#include "cudaq/algorithms/sample/options.h"
+#include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
-
-constexpr int DEFAULT_NUM_SHOTS = 1000;
+#include "cudaq/platform.h"
 
 namespace cudaq {
 bool kernelHasConditionalFeedback(const std::string &);
@@ -39,9 +41,6 @@ inline bool hasConditionalFeedback(const std::string &kernelName,
 }
 } // namespace detail
 
-/// @brief Return type for asynchronous sampling.
-using async_sample_result = async_result<sample_result>;
-
 /// @brief Define a combined sample function validation concept.
 /// These concepts provide much better error messages than old-school SFINAE
 template <typename QuantumKernel, typename... Args>
@@ -51,15 +50,19 @@ concept SampleCallValid =
 
 namespace details {
 
-/// @brief Take the input KernelFunctor (a lambda that captures runtime
-/// arguments and invokes the quantum kernel) and invoke the sampling process.
+/// @brief Validate sampling arguments, populate the given execution context
+/// and sample policy, and (in library mode) trace the kernel to detect any
+/// mid-circuit conditional feedback.
+/// @param ctx The execution context to populate (must already be constructed
+/// with name "sample").
+/// @param policy The sample policy to populate.
 template <typename KernelFunctor>
-std::optional<sample_result>
-runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
-            const std::string &kernelName, int shots, bool explicitMeasurements,
-            std::size_t qpu_id = 0, details::future *futureResult = nullptr,
-            std::size_t batchIteration = 0, std::size_t totalBatchIters = 0) {
-
+void samplePreamble(ExecutionContext &ctx, sample_policy &policy,
+                    KernelFunctor &&wrappedKernel, quantum_platform &platform,
+                    const std::string &kernelName, int shots,
+                    bool explicitMeasurements, std::size_t qpu_id,
+                    std::size_t batchIteration = 0,
+                    std::size_t totalBatchIters = 0) {
   if (cudaq::detail::hasConditionalFeedback(kernelName))
     throw std::runtime_error(
         "`cudaq::sample` and `cudaq::sample_async` no longer support kernels "
@@ -72,12 +75,20 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
     throw std::runtime_error("The sampling option `explicit_measurements` is "
                              "not supported on this target.");
 
-  // Create the execution context.
-  ExecutionContext ctx("sample", shots, qpu_id);
   ctx.kernelName = kernelName;
   ctx.batchIteration = batchIteration;
   ctx.totalIterations = totalBatchIters;
   ctx.explicitMeasurements = explicitMeasurements;
+
+  policy.kernelName = kernelName;
+  policy.options.shots = shots;
+  policy.options.explicit_measurements = explicitMeasurements;
+  policy.noiseModel = platform.get_noise(qpu_id);
+
+  // For now the noise model has to be duplicated on the policy unfortunately.
+  // get_noise() still expects it on the execution context.
+  // TODO: Store the noise on the platform or QPU instead.
+  ctx.noiseModel = policy.noiseModel;
 
 #ifdef CUDAQ_LIBRARY_MODE
   // If we have a kernel that has its quake code registered, we
@@ -105,39 +116,63 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
     }
   }
 #endif
+}
 
-  // Indicate that this is an asynchronous execution.
-  ctx.asyncExec = futureResult != nullptr;
+template <typename KernelFunctor>
+auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
+                      const std::string &kernelName, int shots,
+                      bool explicitMeasurements = false, std::size_t qpu_id = 0,
+                      std::optional<noise_model> noise = std::nullopt);
 
-  auto isRemoteSimulator = platform.get_remote_capabilities().isRemoteSimulator;
-  auto isQuantumDevice =
-      !isRemoteSimulator && (platform.is_remote() || platform.is_emulated());
+/// @brief Take the input KernelFunctor (a lambda that captures runtime
+/// arguments and invokes the quantum kernel) and invoke the sampling process.
+template <typename KernelFunctor>
+sample_result
+runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
+            const std::string &kernelName, int shots, bool explicitMeasurements,
+            std::size_t qpu_id = 0, std::size_t batchIteration = 0,
+            std::size_t totalBatchIters = 0) {
+
+  if (platform.is_remote(qpu_id)) {
+    auto noise = platform.get_noise(qpu_id);
+    std::optional<noise_model> noise_opt =
+        noise ? std::make_optional(*noise) : std::nullopt;
+    auto result = runSamplingAsync(wrappedKernel, platform, kernelName, shots,
+                                   explicitMeasurements, qpu_id, noise_opt);
+    return result.get();
+  }
+
+  // Create the execution context.
+  ExecutionContext ctx("sample", shots, qpu_id);
+  sample_policy policy;
+  samplePreamble(ctx, policy, std::forward<KernelFunctor>(wrappedKernel),
+                 platform, kernelName, shots, explicitMeasurements, qpu_id,
+                 batchIteration, totalBatchIters);
+
+  auto isQuantumDevice = platform.is_emulated(qpu_id);
 
   // Loop until all shots are returned.
   cudaq::sample_result counts;
-  while (counts.get_total_shots() < static_cast<std::size_t>(shots)) {
-    platform.with_execution_context(ctx,
-                                    std::forward<KernelFunctor>(wrappedKernel));
-    if (futureResult) {
-      *futureResult = ctx.futureResult;
-      return std::nullopt;
-    }
 
-    // If target is hardware backend, need to launch only once, hence exit early
+  while (counts.get_total_shots() < static_cast<std::size_t>(shots)) {
+    auto result = detail::launch(policy, qpu_id, ctx, platform,
+                                 std::forward<KernelFunctor>(wrappedKernel));
+
+    // If target is hardware backend, need to launch only once, hence exit
+    // early
     if (isQuantumDevice)
-      return ctx.result;
+      return result;
 
     if (counts.get_total_shots() == 0)
-      counts = std::move(ctx.result); // optimize for first iteration
+      counts = std::move(result); // optimize for first iteration
     else
-      counts += ctx.result;
+      counts += result;
 
-    ctx.result.clear();
     if (counts.get_total_shots() == 0) {
       if (explicitMeasurements)
         throw std::runtime_error(
-            "The sampling option `explicit_measurements` is not supported on a "
-            "kernel without any measurement operation.");
+            "The sampling option `explicit_measurements` is not supported on "
+            "a kernel without any measurement operation.");
       printf("WARNING: this kernel invocation produced 0 shots worth "
              "of results when executed. Exiting shot loop to avoid "
              "infinite loop.");
@@ -164,8 +199,8 @@ runSampling(KernelFunctor &&wrappedKernel, quantum_platform &platform,
 template <typename KernelFunctor>
 auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
                       const std::string &kernelName, int shots,
-                      bool explicitMeasurements = false, std::size_t qpu_id = 0,
-                      std::optional<noise_model> noise = std::nullopt) {
+                      bool explicitMeasurements, std::size_t qpu_id,
+                      std::optional<noise_model> noise) {
   if (qpu_id >= platform.num_qpus()) {
     throw std::invalid_argument("Provided qpu_id " + std::to_string(qpu_id) +
                                 " is invalid (must be < " +
@@ -173,29 +208,27 @@ auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
                                 " i.e. platform.num_qpus())");
   }
 
+#ifndef CUDAQ_LIBRARY_MODE
   // Treat an empty noise model as "no noise".
   const bool hasNoise = noise.has_value() && !noise->empty();
-
   // If we are remote, then create the sampling executor with `cudaq::future`
   // provided. Note: noise model is not supported on remote platforms.
   if (platform.is_remote(qpu_id)) {
     if (hasNoise)
       throw std::runtime_error(
           "Noise model is not supported on remote platforms.");
-    details::future futureResult;
-    details::runSampling(std::forward<KernelFunctor>(wrappedKernel), platform,
-                         kernelName, shots, explicitMeasurements, qpu_id,
-                         &futureResult);
-    return async_sample_result(std::move(futureResult));
-  }
 
-  // For local platforms, create an asynchronous task that properly handles the
-  // noise model lifecycle:
-  // 1. Capture noise model BY VALUE in the task (extends lifetime)
-  // 2. Set noise model at the START of the task (before
-  // configureExecutionContext)
-  // 3. Reset noise model at the END of the task (including on exception)
-  // This avoids dangling pointers and global state pollution.
+    // Create the execution context.
+    ExecutionContext ctx("sample", shots, qpu_id);
+    async_sample_policy async_policy;
+    samplePreamble(ctx, async_policy.inner,
+                   std::forward<KernelFunctor>(wrappedKernel), platform,
+                   kernelName, shots, explicitMeasurements, qpu_id);
+    return detail::launch(async_policy, qpu_id, ctx, platform,
+                          std::forward<KernelFunctor>(wrappedKernel));
+  }
+#endif
+
   KernelExecutionTask task(
       [qpu_id, explicitMeasurements, shots, kernelName, &platform,
        noise = std::move(noise),
@@ -206,7 +239,7 @@ auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
         if (hasNoise)
           platform.set_noise(&noise.value(), qpu_id);
 
-        std::optional<sample_result> result;
+        sample_result result;
         try {
           result = details::runSampling(kernel, platform, kernelName, shots,
                                         explicitMeasurements, qpu_id);
@@ -221,25 +254,13 @@ auto runSamplingAsync(KernelFunctor &&wrappedKernel, quantum_platform &platform,
         if (hasNoise)
           platform.reset_noise(qpu_id);
 
-        return result.value();
+        return result;
       });
 
   return async_sample_result(
       details::future(platform.enqueueAsyncTask(qpu_id, task)));
 }
 } // namespace details
-
-/// @brief Sample options to provide to the sample() / async_sample() functions
-///
-/// @param shots number of shots to run for the given kernel
-/// @param noise noise model to use for the sample operation
-/// @param explicit_measurements whether or not to form the global register
-/// based on user-supplied measurement order.
-struct sample_options {
-  std::size_t shots = DEFAULT_NUM_SHOTS;
-  cudaq::noise_model noise;
-  bool explicit_measurements = false;
-};
 
 /// @overload
 /// @brief Sample the given quantum kernel expression and return the
@@ -267,10 +288,9 @@ sample_result sample(QuantumKernel &&kernel, Args &&...args) {
   auto &platform = cudaq::get_platform();
   auto kernelName = cudaq::getKernelName(kernel);
   return details::runSampling(
-             [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
-             kernelName, /*shots=*/DEFAULT_NUM_SHOTS,
-             /*explicitMeasurements=*/false)
-      .value();
+      [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
+      kernelName, /*shots=*/DEFAULT_NUM_SHOTS,
+      /*explicitMeasurements=*/false);
 }
 
 /// @overload
@@ -300,9 +320,8 @@ auto sample(std::size_t shots, QuantumKernel &&kernel, Args &&...args) {
   auto &platform = cudaq::get_platform();
   auto kernelName = cudaq::getKernelName(kernel);
   return details::runSampling(
-             [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
-             kernelName, shots, /*explicitMeasurements=*/false)
-      .value();
+      [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
+      kernelName, shots, /*explicitMeasurements=*/false);
 }
 
 /// @brief Sample the given quantum kernel expression and return the
@@ -332,12 +351,16 @@ sample_result sample(const sample_options &options, QuantumKernel &&kernel,
   auto &platform = cudaq::get_platform();
   auto shots = options.shots;
   auto kernelName = cudaq::getKernelName(kernel);
-  if (!options.noise.empty())
+  if (!options.noise.empty()) {
     platform.set_noise(&options.noise);
+    CUDAQ_INFO("Setting noise model onto the platform");
+  }
   auto ret = details::runSampling(
-                 [&]() mutable { kernel(std::forward<Args>(args)...); },
-                 platform, kernelName, shots, options.explicit_measurements)
-                 .value();
+      [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
+      kernelName, shots, options.explicit_measurements);
+  if (!options.noise.empty()) {
+    CUDAQ_INFO("Resetting noise model from the platform");
+  }
   platform.reset_noise();
   return ret;
 }
@@ -494,12 +517,11 @@ std::vector<sample_result> sample(QuantumKernel &&kernel,
           Args &...singleIterParameters) -> sample_result {
     auto kernelName = cudaq::getKernelName(kernel);
     auto ret = details::runSampling(
-                   [&kernel, &singleIterParameters...]() mutable {
-                     kernel(std::forward<Args>(singleIterParameters)...);
-                   },
-                   platform, kernelName, /*shots=*/DEFAULT_NUM_SHOTS,
-                   /*explicitMeasurements=*/false, qpuId, nullptr, counter, N)
-                   .value();
+        [&kernel, &singleIterParameters...]() mutable {
+          kernel(std::forward<Args>(singleIterParameters)...);
+        },
+        platform, kernelName, /*shots=*/DEFAULT_NUM_SHOTS,
+        /*explicitMeasurements=*/false, qpuId, counter, N);
     return ret;
   };
 
@@ -531,12 +553,11 @@ std::vector<sample_result> sample(std::size_t shots, QuantumKernel &&kernel,
           Args &...singleIterParameters) -> sample_result {
     auto kernelName = cudaq::getKernelName(kernel);
     auto ret = details::runSampling(
-                   [&kernel, &singleIterParameters...]() mutable {
-                     kernel(std::forward<Args>(singleIterParameters)...);
-                   },
-                   platform, kernelName, shots, /*explicitMeasurements=*/false,
-                   qpuId, nullptr, counter, N)
-                   .value();
+        [&kernel, &singleIterParameters...]() mutable {
+          kernel(std::forward<Args>(singleIterParameters)...);
+        },
+        platform, kernelName, shots, /*explicitMeasurements=*/false, qpuId,
+        counter, N);
     return ret;
   };
 
@@ -574,12 +595,10 @@ std::vector<sample_result> sample(const sample_options &options,
           Args &...singleIterParameters) -> sample_result {
     auto kernelName = cudaq::getKernelName(kernel);
     auto ret = details::runSampling(
-                   [&kernel, &singleIterParameters...]() mutable {
-                     kernel(std::forward<Args>(singleIterParameters)...);
-                   },
-                   platform, kernelName, shots, explicit_mz, qpuId, nullptr,
-                   counter, N)
-                   .value();
+        [&kernel, &singleIterParameters...]() mutable {
+          kernel(std::forward<Args>(singleIterParameters)...);
+        },
+        platform, kernelName, shots, explicit_mz, qpuId, counter, N);
     return ret;
   };
 
@@ -613,12 +632,11 @@ sample_n(QuantumKernel &&kernel, ArgumentSet<Args...> &&params) {
           Args &...singleIterParameters) -> sample_result {
     auto kernelName = cudaq::getKernelName(kernel);
     auto ret = details::runSampling(
-                   [&kernel, &singleIterParameters...]() mutable {
-                     kernel(std::forward<Args>(singleIterParameters)...);
-                   },
-                   platform, kernelName, /*shots=*/DEFAULT_NUM_SHOTS,
-                   /*explicitMeasurements=*/false, qpuId, nullptr, counter, N)
-                   .value();
+        [&kernel, &singleIterParameters...]() mutable {
+          kernel(std::forward<Args>(singleIterParameters)...);
+        },
+        platform, kernelName, /*shots=*/DEFAULT_NUM_SHOTS,
+        /*explicitMeasurements=*/false, qpuId, counter, N);
     return ret;
   };
 
@@ -651,12 +669,11 @@ sample_n(std::size_t shots, QuantumKernel &&kernel,
           Args &...singleIterParameters) -> sample_result {
     auto kernelName = cudaq::getKernelName(kernel);
     auto ret = details::runSampling(
-                   [&kernel, &singleIterParameters...]() mutable {
-                     kernel(std::forward<Args>(singleIterParameters)...);
-                   },
-                   platform, kernelName, shots, /*explicitMeasurements=*/false,
-                   qpuId, nullptr, counter, N)
-                   .value();
+        [&kernel, &singleIterParameters...]() mutable {
+          kernel(std::forward<Args>(singleIterParameters)...);
+        },
+        platform, kernelName, shots, /*explicitMeasurements=*/false, qpuId,
+        counter, N);
     return ret;
   };
 

@@ -87,10 +87,11 @@ class KernelSignature:
 
     @staticmethod
     def parse_from_ast(ast_module: ast.Module,
-                       kernel_name: str) -> "KernelSignature":
+                       kernel_name: str,
+                       cudaqAliases=None) -> "KernelSignature":
         """
         Parse the signature of a CUDA-Q kernel from a Python AST.
-        
+
         This does not perform any capture analysis (typically done during MLIR
         compilation) and thus does not populate `captured_args`, the list of
         arguments captured by the kernel.
@@ -110,11 +111,14 @@ class KernelSignature:
             return ty
 
         arg_types = [
-            assert_not_none(_mlir_type_from_annotation(annotation), name)
+            assert_not_none(
+                _mlir_type_from_annotation(annotation,
+                                           cudaqAliases=cudaqAliases), name)
             for name, annotation in visitor.arg_annotations
         ]
         return_type = _mlir_type_from_annotation(visitor.return_annotation,
-                                                 acceptNoneType=False)
+                                                 acceptNoneType=False,
+                                                 cudaqAliases=cudaqAliases)
         return KernelSignature(arg_types=arg_types, return_type=return_type)
 
     def add_variable_capture(self, name: str, capture_type: mlir.Type):
@@ -196,22 +200,27 @@ class KernelSignature:
 
 
 @overload
-def _mlir_type_from_annotation(
-        annotation, acceptNoneType: Literal[True] = ...) -> mlir.Type:
+def _mlir_type_from_annotation(annotation,
+                               acceptNoneType: Literal[True] = ...,
+                               cudaqAliases=None) -> mlir.Type:
     ...
 
 
 @overload
-def _mlir_type_from_annotation(
-        annotation, acceptNoneType: Literal[False]) -> Optional[mlir.Type]:
+def _mlir_type_from_annotation(annotation,
+                               acceptNoneType: Literal[False],
+                               cudaqAliases=None) -> Optional[mlir.Type]:
     ...
 
 
 def _mlir_type_from_annotation(annotation,
-                               acceptNoneType: bool = True
-                              ) -> Optional[mlir.Type]:
+                               acceptNoneType: bool = True,
+                               cudaqAliases=None) -> Optional[mlir.Type]:
     is_none_type = isinstance(annotation,
                               ast.Constant) and annotation.value is None
     if annotation is None or (not acceptNoneType and is_none_type):
         return None
-    return mlirTypeFromAnnotation(annotation, getMLIRContext(), raiseError=True)
+    return mlirTypeFromAnnotation(annotation,
+                                  getMLIRContext(),
+                                  raiseError=True,
+                                  cudaqAliases=cudaqAliases)

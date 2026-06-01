@@ -22,7 +22,7 @@ skipIfNoMQPU = pytest.mark.skipif(
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def set_up_target():
     cudaq.set_target('nvidia-mqpu')
     try:
         assert cudaq.get_target().num_qpus(

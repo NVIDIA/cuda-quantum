@@ -67,8 +67,8 @@ We define three API layers as illustrated below:
 │ Audience:   Hardware vendors + core developers                     │
 │            (NOT for users / external libs to depend on)            │
 │ Headers:    "cudaq_internal/<module>/<hdr>.h"  (or cudaq_dev/...)  │
-│ Namespace:  cudaq::<module>::...  (module lowercase)               │
-│             cudaq::<module>::detail = NON-public                   │
+│ Namespace:  cudaq_internal::<module>::...  (module lowercase)      │
+│             cudaq_internal::<module>::detail = private             │
 │ Naming:     CamelCase (or consistent module convention)            │
 └────────────────────────────────────────────────────────────────────┘
                           ▲
@@ -78,8 +78,8 @@ We define three API layers as illustrated below:
 │ Level 3: Internal Private APIs                                     │
 ├────────────────────────────────────────────────────────────────────┤
 │ Audience:   Module implementers only                               │
-│ Headers:    module-local (e.g., <module>/src/, include-private/)   │
-│ Namespace:  typically in cudaq::<module>::detail (recommended)     │
+│ Headers:    module local (e.g., <module>/src/, include-private/)   │
+│ Namespace:  typically in cudaq_internal::<module>::detail          │
 │ Naming:     unconstrained; keep consistent within module           │
 └────────────────────────────────────────────────────────────────────┘
 ```
@@ -167,9 +167,9 @@ shipped user headers as required by `nvq++` compilation.
 
 #### 3.2.4 Namespaces
 
-- Declarations live under a module namespace nested in `cudaq`:
-  - `namespace cudaq::<module_name> { ... }` where `<module_name>` is lowercase
-    Examples: `cudaq::compiler`, `cudaq::cudaq_fmt`
+- Declarations live under a module namespace nested in `cudaq_internal`:
+  - `namespace cudaq_internal::<module_name> { ... }` where `<module_name>` is lowercase
+    Examples: `cudaq_internal::compiler`, `cudaq_internal::device_code`
 - Nested namespaces follow the same visibility convention: they are public
 except for the `detail` namespace.
 
@@ -256,7 +256,7 @@ namespace cudaq {
 Internal module API:
 
 ```cpp
-namespace cudaq::compiler {
+namespace cudaq_internal::compiler {
   class PassPipeline;
 
   namespace detail {
@@ -264,3 +264,59 @@ namespace cudaq::compiler {
   }
 }
 ```
+
+---
+
+## 5. Physical file layout
+
+### 5.1 Internal modules
+
+Internal modules shall be laid out according to the following structure:
+
+```text
+runtime
+   ├── internal
+        ├── compiler
+        │      ├── CMakeLists.txt
+        │      ├── *.cpp
+        │      ├── include/cudaq_internal/compiler/*.h
+        ├── device_code
+        │      ├── CMakeLists.txt
+        │      ├── *.cpp
+        │      ├── include/cudaq_internal/device_code/*.h
+```
+
+Most noticeably, header files shall not be under a common include root.
+This is so that adding a dependency to a given module, using CMake `target_link_libraries`,
+only gives visibility to the public headers of that module.
+
+The concern for `nvq++` users is different. The expectation is that `nvq++` finds
+automatically all the required headers, even those from internal modules
+included transitively. We do not know ahead of time which headers will be used,
+and we do not expect users to provide this information, so we have to assume
+that all headers could be used.
+
+CMake's `INSTALL_INTERFACE` and `BUILD_INTERFACE` will be leveraged to meet these
+requirements. They allow for a different header file layout for build and install
+environment.
+
+Example:
+
+```cmake
+target_include_directories(cudaq-mlir-runtime
+  PUBLIC
+    $<INSTALL_INTERFACE:include>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime/internal/compiler/include>
+  PRIVATE .)
+```
+
+---
+
+## 6. Additional conventions
+
+This documented primarily aims at defining conventions on APIs and modules.
+Of particular relevance are the following rules from the LLVM coding standard
+that we shall strive to follow.
+
+- [Use Namespace Qualifiers to Define Previously Declared Symbols](https://llvm.org/docs/CodingStandards.html#use-namespace-qualifiers-to-define-previously-declared-symbols)
+- [Restrict Visibility](https://llvm.org/docs/CodingStandards.html#restrict-visibility)

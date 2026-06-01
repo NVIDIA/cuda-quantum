@@ -41,7 +41,6 @@ countJobGetRequests = 0
 # Keep track of created decoder configurations
 createdDecoderConfigs = {}
 
-llvm.initialize()
 llvm.initialize_native_target()
 llvm.initialize_native_asmprinter()
 target = llvm.Target.from_default_triple()
@@ -161,11 +160,13 @@ async def create_job(job: dict):
     items = job.get("data", {}).get("attributes", {}).get("definition",
                                                           {}).get("items", [])
 
-    device_name = job.get("data",
-                          {}).get("attributes",
-                                  {}).get("definition",
-                                          {}).get("backend_config",
-                                                  {}).get("device_name", "")
+    backend_config = job.get("data",
+                             {}).get("attributes",
+                                     {}).get("definition",
+                                             {}).get("backend_config", {})
+    # `QuantinuumConfig` uses "device_name"; `HeliosConfig` uses "system_name"
+    device_name = backend_config.get("device_name", "") or backend_config.get(
+        "system_name", "")
     if verbose:
         print("Job data =", job)
         print("Device name =", device_name)

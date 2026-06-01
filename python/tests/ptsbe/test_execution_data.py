@@ -147,6 +147,26 @@ def test_execution_data_includes_mz_noise():
     assert data.count_instructions(Measurement) >= 1
 
 
+def test_noise_instruction_exposes_params_and_channel(bell_kernel):
+    noise = cudaq.NoiseModel()
+    noise.add_channel("h", [0], cudaq.DepolarizationChannel(0.05))
+    result = cudaq.ptsbe.sample(
+        bell_kernel,
+        noise_model=noise,
+        shots_count=100,
+        return_execution_data=True,
+    )
+    data = result.ptsbe_execution_data
+    Noise = cudaq.ptsbe.TraceInstructionType.Noise
+    noises = [i for i in data.instructions if i.type == Noise]
+    assert len(noises) == 1
+    (inst,) = noises
+    assert inst.params == [0.05]
+    assert inst.channel is not None
+    assert inst.channel.noise_type == cudaq.NoiseModelType.DepolarizationChannel
+    assert len(inst.channel.get_ops()) == 4
+
+
 def test_execution_data_includes_apply_noise(kernel_with_apply_noise):
     result = cudaq.ptsbe.sample(
         kernel_with_apply_noise,

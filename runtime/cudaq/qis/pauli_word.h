@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <ctype.h>
 #include <string>
+#include <vector>
 
 namespace cudaq {
 

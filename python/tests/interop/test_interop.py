@@ -10,7 +10,7 @@ import cudaq, pytest
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def run_and_clear_registries():
     yield
     cudaq.__clearKernelRegistries()
 
@@ -194,6 +194,30 @@ def test_cpp_kernel_from_python_3():
         call_c_twice()
 
     call_call_c_twice()
+
+
+def test_cpp_kernel_from_python_4():
+    """Regression test for issue #2348."""
+    pytest.importorskip('cudaq_test_cpp_algo')
+
+    import qlib
+
+    # Sanity checks
+    print(qlib.qstd.qft)
+    print(qlib.qstd.another)
+
+    @cudaq.kernel
+    def callQftAndAnother():
+        q = cudaq.qvector(4)
+        qlib.qstd.qft(q)
+        h(q)
+        qlib.qstd.another(q, 2)
+
+    callQftAndAnother()
+
+    counts = cudaq.sample(callQftAndAnother)
+    counts.dump()
+    assert len(counts) == 1 and '0010' in counts
 
 
 def test_callbacks():

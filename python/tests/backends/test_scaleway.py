@@ -21,7 +21,7 @@ pytestmark = pytest.mark.skip("Scaleway credentials required")
 
 
 @pytest.fixture(scope="session", autouse=True)
-def do_something():
+def set_up_target():
     cudaq.set_target("scaleway",
                      machine="EMU-CUDAQ-64C-512M",
                      max_duration="5m",

@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "cudaq/runtime/logger/cudaq_fmt.h"
 #include "nlohmann/json.hpp"
+#include "cudaq/runtime/logger/cudaq_fmt.h"
 #include <optional>
 #include <string>
 #include <vector>

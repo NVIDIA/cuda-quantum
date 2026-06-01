@@ -1,0 +1,272 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-translate --convert-to=qir %s | FileCheck %s
+
+func.func private @bar(!cc.callable<(!quake.veq<3>) -> ()>, !quake.veq<3>)
+func.func private @corge(!quake.veq<3>)
+func.func private @waldo(!cc.callable<(!quake.veq<3>) -> i32>, !quake.veq<3>) -> i32
+func.func private @fred(!quake.veq<3>) -> i16
+func.func private @garply(!cc.callable<(!quake.veq<3>) -> f64>, !quake.veq<3>, i64) -> f64
+func.func private @plugh(!quake.veq<3>, i32) -> f32
+
+func.func @foo(%0: !cc.callable<(!quake.veq<3>) -> ()>) {
+  %1 = quake.alloca !quake.veq<3>
+  %2 = cc.callable_func %0 : (!cc.callable<(!quake.veq<3>) -> ()>) -> ((!quake.veq<3>) -> ())
+  call_indirect %2(%1) : (!quake.veq<3>) -> ()
+  return
+}
+
+// CHECK-LABEL: define void @foo({ ptr, ptr } 
+// CHECK-SAME:                                %[[VAL_0:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_1:.*]] = tail call ptr @__quantum__rt__qubit_allocate_array(i64 3)
+// CHECK:         %[[VAL_4:.*]] = extractvalue { ptr, ptr } %[[VAL_0]], 0
+// CHECK:         tail call void %[[VAL_4]](ptr %[[VAL_1]])
+// CHECK:         tail call void @__quantum__rt__qubit_release_array(ptr %[[VAL_1]])
+// CHECK:         ret void
+// CHECK:       }
+
+func.func @baz(%0: !cc.ptr<!cc.callable<(!quake.veq<3>) -> ()>>) {
+  %1 = cc.instantiate_callable @bar() : () -> !cc.callable<(!quake.veq<3>) -> ()>
+  cc.store %1 , %0 : !cc.ptr<!cc.callable<(!quake.veq<3>) -> ()>>
+  return
+}
+
+// CHECK-LABEL: define void @baz(ptr writeonly captures(none)
+// CHECK-SAME:                                                     %[[VAL_0:.*]]) local_unnamed_addr
+// CHECK:         %[[VAL_1:.*]] = alloca {}, align 8
+// CHECK:         store ptr @bar, ptr %[[VAL_0]], align 8
+// CHECK:         %[[VAL_4:.*]] = getelementptr inbounds nuw i8, ptr %[[VAL_0]], i64 8
+// CHECK:         store ptr %[[VAL_1]], ptr %[[VAL_4]], align 8
+// CHECK:         ret void
+// CHECK:       }
+
+func.func @thud(%2 : !cc.ptr<!cc.callable<(!quake.veq<3>) -> ()>>) {
+  %0 = cc.instantiate_callable @corge() nocapture : () -> !cc.callable<(!quake.veq<3>) -> ()>
+  %1 = quake.alloca !quake.veq<3>
+  cc.store %0, %2 : !cc.ptr<!cc.callable<(!quake.veq<3>) -> ()>>
+  cc.call_callable %0, %1 : (!cc.callable<(!quake.veq<3>) -> ()>, !quake.veq<3>) -> ()
+  return
+}
+
+// CHECK-LABEL: define void @thud(ptr writeonly captures(none)
+// CHECK-SAME:                                                      %[[VAL_0:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_1:.*]] = tail call ptr @__quantum__rt__qubit_allocate_array(i64 3)
+// CHECK:         store ptr @corge, ptr %[[VAL_0]], align 8
+// CHECK:         %[[VAL_5:.*]] = getelementptr inbounds nuw i8, ptr %[[VAL_0]], i64 8
+// CHECK:         store ptr null, ptr %[[VAL_5]], align 8
+// CHECK:         tail call void @corge(ptr %[[VAL_1]])
+// CHECK:         tail call void @__quantum__rt__qubit_release_array(ptr %[[VAL_1]])
+// CHECK:         ret void
+// CHECK:       }
+
+func.func @qux(%0 : !cc.callable<(!quake.veq<3>) -> ()>, %1 : !quake.veq<3>) {
+  cc.call_callable %0, %1 : (!cc.callable<(!quake.veq<3>) -> ()>, !quake.veq<3>) -> ()
+  return
+}
+
+// CHECK-LABEL: define void @qux({ ptr, ptr } 
+// CHECK-SAME:       %[[VAL_0:.*]], ptr %[[VAL_2:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_3:.*]] = extractvalue { ptr, ptr } %[[VAL_0]], 0
+// CHECK:         %[[VAL_4:.*]] = extractvalue { ptr, ptr } %[[VAL_0]], 1
+// CHECK:         %[[VAL_5:.*]] = icmp eq ptr %[[VAL_4]], null
+// CHECK:         br i1 %[[VAL_5]], label %[[VAL_6:.*]], label %[[VAL_7:.*]]
+// CHECK:       {{[0-9]+}}:
+// CHECK:         tail call void %[[VAL_3]](ptr %[[VAL_2]])
+// CHECK:         br label %[[VAL_10:.*]]
+// CHECK:       {{[0-9]+}}:
+// CHECK:         tail call void %[[VAL_3]]({ ptr, ptr } %[[VAL_0]], ptr %[[VAL_2]])
+// CHECK:         br label %[[VAL_10]]
+// CHECK:       {{[0-9]+}}:
+// CHECK:         ret void
+// CHECK:       }
+
+func.func @grault(%0 : !cc.ptr<!cc.callable<(!quake.veq<3>) -> ()>>, %1 : !quake.veq<3>) {
+  %2 = cc.load %0 : !cc.ptr<!cc.callable<(!quake.veq<3>) -> ()>>
+  cc.call_callable %2, %1 : (!cc.callable<(!quake.veq<3>) -> ()>, !quake.veq<3>) -> ()
+  return
+}
+
+// CHECK-LABEL: define void @grault(ptr readonly captures(none)
+// CHECK-SAME:       %[[VAL_0:.*]], ptr %[[VAL_2:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_4:.*]] = load ptr, ptr %[[VAL_0]], align 8
+// CHECK:         %[[VAL_5:.*]] = getelementptr inbounds nuw i8, ptr %[[VAL_0]], i64 8
+// CHECK:         %[[VAL_6:.*]] = load ptr, ptr %[[VAL_5]], align 8
+// CHECK:         %[[VAL_7:.*]] = icmp eq ptr %[[VAL_6]], null
+// CHECK:         br i1 %[[VAL_7]], label %[[VAL_8:.*]], label %[[VAL_9:.*]]
+// CHECK:       {{[0-9]+}}:
+// CHECK:         tail call void %[[VAL_4]](ptr %[[VAL_2]])
+// CHECK:         br label %[[VAL_12:.*]]
+// CHECK:       {{[0-9]+}}:
+// CHECK:         %[[VAL_13:.*]] = insertvalue { ptr, ptr } poison, ptr %[[VAL_4]], 0
+// CHECK:         %[[VAL_14:.*]] = insertvalue { ptr, ptr } %[[VAL_13]], ptr %[[VAL_6]], 1
+// CHECK:         tail call void %[[VAL_4]]({ ptr, ptr } %[[VAL_14]], ptr %[[VAL_2]])
+// CHECK:         br label %[[VAL_12]]
+// CHECK:       {{[0-9]+}}:
+// CHECK:         ret void
+// CHECK:       }
+
+func.func @quux(%0 : !cc.callable<(!quake.veq<3>) -> i32>, %1 : !quake.veq<3>) -> i32 {
+  %2 = cc.call_callable %0, %1 : (!cc.callable<(!quake.veq<3>) -> i32>, !quake.veq<3>) -> i32
+  return %2 : i32
+}
+
+// CHECK-LABEL: define i32 @quux({ ptr, ptr } 
+// CHECK-SAME:     %[[VAL_0:.*]], ptr %[[VAL_2:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_3:.*]] = extractvalue { ptr, ptr } %[[VAL_0]], 0
+// CHECK:         %[[VAL_4:.*]] = extractvalue { ptr, ptr } %[[VAL_0]], 1
+// CHECK:         %[[VAL_5:.*]] = icmp eq ptr %[[VAL_4]], null
+// CHECK:         br i1 %[[VAL_5]], label %[[VAL_6:.*]], label %[[VAL_7:.*]]
+// CHECK:       {{[0-9]+}}:
+// CHECK:         %[[VAL_10:.*]] = tail call i32 %[[VAL_3]](ptr %[[VAL_2]])
+// CHECK:         br label %[[VAL_11:.*]]
+// CHECK:       {{[0-9]+}}:
+// CHECK:         %[[VAL_13:.*]] = tail call i32 %[[VAL_3]]({ ptr, ptr } %[[VAL_0]], ptr %[[VAL_2]])
+// CHECK:         br label %[[VAL_11]]
+// CHECK:       {{[0-9]+}}:
+// CHECK:         %[[VAL_14:.*]] = phi i32 [ %[[VAL_13]], %{{[0-9]+}} ], [ %[[VAL_10]], %{{[0-9]+}} ]
+// CHECK:         ret i32 %[[VAL_14]]
+// CHECK:       }
+
+func.func private @ae(!cc.callable<(!quake.veq<3>) -> i32>)
+
+func.func @aloha() {
+  %0 = arith.constant 32 : i32
+  %1 = cc.instantiate_callable @waldo(%0) : (i32) -> !cc.callable<(!quake.veq<3>) -> i32>
+  call @ae(%1) : (!cc.callable<(!quake.veq<3>) -> i32>) -> ()
+  return
+}
+
+// CHECK-LABEL: define void @aloha() local_unnamed_addr {
+// CHECK:         %[[VAL_0:.*]] = alloca { i32 }, align 8
+// CHECK:         store i32 32, ptr %[[VAL_0]], align 8
+// CHECK:         %[[VAL_3:.*]] = insertvalue { ptr, ptr } { ptr @waldo, ptr undef }, ptr %[[VAL_0]], 1
+// CHECK:         call void @ae({ ptr, ptr } %[[VAL_3]])
+// CHECK:         ret void
+// CHECK:       }
+
+func.func @ahupuaa(%0 : !cc.callable<(!quake.veq<3>) -> i16>, %1 : !quake.veq<3>) -> i16 {
+  %2 = cc.call_callable %0, %1 : (!cc.callable<(!quake.veq<3>) -> i16>, !quake.veq<3>) -> i16
+  return %2 : i16
+}
+
+// CHECK-LABEL: define i16 @ahupuaa({ ptr, ptr } 
+// CHECK-SAME:      %[[VAL_0:.*]], ptr %[[VAL_2:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_3:.*]] = extractvalue { ptr, ptr } %[[VAL_0]], 0
+// CHECK:         %[[VAL_4:.*]] = extractvalue { ptr, ptr } %[[VAL_0]], 1
+// CHECK:         %[[VAL_5:.*]] = icmp eq ptr %[[VAL_4]], null
+// CHECK:         br i1 %[[VAL_5]], label %[[VAL_6:.*]], label %[[VAL_7:.*]]
+// CHECK:       {{[0-9]+}}:
+// CHECK:         %[[VAL_10:.*]] = tail call i16 %[[VAL_3]](ptr %[[VAL_2]])
+// CHECK:         br label %[[VAL_11:.*]]
+// CHECK:       {{[0-9]+}}:
+// CHECK:         %[[VAL_13:.*]] = tail call i16 %[[VAL_3]]({ ptr, ptr } %[[VAL_0]], ptr %[[VAL_2]])
+// CHECK:         br label %[[VAL_11]]
+// CHECK:       {{[0-9]+}}:
+// CHECK:         %[[VAL_14:.*]] = phi i16 [ %[[VAL_13]], %{{[0-9]+}} ], [ %[[VAL_10]], %{{[0-9]+}} ]
+// CHECK:         ret i16 %[[VAL_14]]
+// CHECK:       }
+
+func.func private @akamai(!cc.callable<(!quake.veq<3>) -> i16>)
+
+func.func @aina() {
+  %0 = cc.instantiate_callable @fred() nocapture : () -> !cc.callable<(!quake.veq<3>) -> i16>
+  call @akamai(%0) : (!cc.callable<(!quake.veq<3>) -> i16>) -> ()
+  return
+}
+
+// CHECK-LABEL: define void @aina() local_unnamed_addr {
+// CHECK:         tail call void @akamai({ ptr, ptr } { ptr @fred, ptr null })
+// CHECK:         ret void
+// CHECK:       }
+
+func.func @akua(%0: !cc.callable<(!quake.veq<3>) -> f64>, %1: !quake.veq<3>, %2: i64) -> f64 {
+  %3 = cc.call_callable %0, %1 : (!cc.callable<(!quake.veq<3>) -> f64>, !quake.veq<3>) -> f64
+  return %3 : f64
+}
+
+// CHECK-LABEL: define double @akua({ ptr, ptr } 
+// CHECK-SAME:     %[[VAL_0:.*]], ptr %[[VAL_2:.*]], i64 %[[VAL_3:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_4:.*]] = extractvalue { ptr, ptr } %[[VAL_0]], 0
+// CHECK:         %[[VAL_5:.*]] = extractvalue { ptr, ptr } %[[VAL_0]], 1
+// CHECK:         %[[VAL_6:.*]] = icmp eq ptr %[[VAL_5]], null
+// CHECK:         br i1 %[[VAL_6]], label %[[VAL_7:.*]], label %[[VAL_8:.*]]
+// CHECK:       {{[0-9]+}}:
+// CHECK:         %[[VAL_11:.*]] = tail call double %[[VAL_4]](ptr %[[VAL_2]])
+// CHECK:         br label %[[VAL_12:.*]]
+// CHECK:       {{[0-9]+}}:
+// CHECK:         %[[VAL_14:.*]] = tail call double %[[VAL_4]]({ ptr, ptr } %[[VAL_0]], ptr %[[VAL_2]])
+// CHECK:         br label %[[VAL_12]]
+// CHECK:       {{[0-9]+}}:
+// CHECK:         %[[VAL_15:.*]] = phi double [ %[[VAL_14]], %{{[0-9]+}} ], [ %[[VAL_11]], %{{[0-9]+}} ]
+// CHECK:         ret double %[[VAL_15]]
+// CHECK:       }
+
+func.func private @alii(!cc.callable<(!quake.veq<3>) -> f64>)
+
+func.func @ala(%0: i32, %1: i32) {
+  %2 = cc.instantiate_callable @garply(%0, %1) : (i32, i32) -> !cc.callable<(!quake.veq<3>) -> f64>
+  call @alii(%2) : (!cc.callable<(!quake.veq<3>) -> f64>) -> ()
+  return
+}
+
+// CHECK-LABEL: define void @ala(i32 
+// CHECK-SAME:      %[[VAL_0:.*]], i32 %[[VAL_1:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_2:.*]] = alloca { i32, i32 }, align 8
+// CHECK:         store i32 %[[VAL_0]], ptr %[[VAL_2]], align 8
+// CHECK:         %[[VAL_4:.*]] = getelementptr inbounds nuw i8, ptr %[[VAL_2]], i64 4
+// CHECK:         store i32 %[[VAL_1]], ptr %[[VAL_4]], align 4
+// CHECK:         %[[VAL_6:.*]] = insertvalue { ptr, ptr } { ptr @garply, ptr undef }, ptr %[[VAL_2]], 1
+// CHECK:         call void @alii({ ptr, ptr } %[[VAL_6]])
+// CHECK:         ret void
+// CHECK:       }
+
+func.func @aole(%0 : !cc.callable<(!quake.veq<3>, i32) -> f32>, %1 : !quake.veq<3>, %2: i32) -> f32 {
+  %3 = cc.call_callable %0, %1, %2 : (!cc.callable<(!quake.veq<3>, i32) -> f32>, !quake.veq<3>, i32) -> f32
+  return %3 : f32
+}
+
+// CHECK-LABEL: define float @aole({ ptr, ptr } 
+// CHECK-SAME:      %[[VAL_0:.*]], ptr %[[VAL_2:.*]], i32 %[[VAL_3:.*]]) local_unnamed_addr {
+// CHECK:         %[[VAL_4:.*]] = extractvalue { ptr, ptr } %[[VAL_0]], 0
+// CHECK:         %[[VAL_5:.*]] = extractvalue { ptr, ptr } %[[VAL_0]], 1
+// CHECK:         %[[VAL_6:.*]] = icmp eq ptr %[[VAL_5]], null
+// CHECK:         br i1 %[[VAL_6]], label %[[VAL_7:.*]], label %[[VAL_8:.*]]
+// CHECK:       {{[0-9]+}}:
+// CHECK:         %[[VAL_11:.*]] = tail call float %[[VAL_4]](ptr %[[VAL_2]], i32 %[[VAL_3]])
+// CHECK:         br label %[[VAL_12:.*]]
+// CHECK:       {{[0-9]+}}:
+// CHECK:         %[[VAL_14:.*]] = tail call float %[[VAL_4]]({ ptr, ptr } %[[VAL_0]], ptr %[[VAL_2]], i32 %[[VAL_3]])
+// CHECK:         br label %[[VAL_12]]
+// CHECK:       {{[0-9]+}}:
+// CHECK:         %[[VAL_15:.*]] = phi float [ %[[VAL_14]], %{{[0-9]+}} ], [ %[[VAL_11]], %{{[0-9]+}} ]
+// CHECK:         ret float %[[VAL_15]]
+// CHECK:       }
+
+func.func private @aumakua(!cc.callable<(!quake.veq<3>, i32) -> f32>)
+
+func.func @auau() {
+  %0 = cc.instantiate_callable @plugh() nocapture : () -> !cc.callable<(!quake.veq<3>, i32) -> f32>
+  call @aumakua(%0) : (!cc.callable<(!quake.veq<3>, i32) -> f32>) -> ()
+  return
+}
+
+// CHECK-LABEL: define void @auau() local_unnamed_addr {
+// CHECK:         tail call void @aumakua({ ptr, ptr } { ptr @plugh, ptr null })
+// CHECK:         ret void
+// CHECK:       }
+
+// Using a function value is not (yet) supported.
+//
+// func.func @xyzzy(%0: (!quake.veq<3>) -> ()) {
+//   %0 = cc.instantiate_callable %0() : () -> !cc.callable<(!quake.veq<3>) -> ()>
+//   %1 = quake.alloca !quake.veq<3>
+//   cc.call_callable %0, %1 : (!cc.callable<(!quake.veq<3>) -> ()>, !quake.veq<3>) -> ()
+//   return
+// }
+
