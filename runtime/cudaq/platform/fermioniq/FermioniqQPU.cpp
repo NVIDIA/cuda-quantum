@@ -10,46 +10,31 @@
 #include "nlohmann/json.hpp"
 #include "cudaq/runtime/logger/cudaq_fmt.h"
 #include <memory>
+#include <optional>
 
 cudaq::FermioniqQPU::~FermioniqQPU() = default;
 
-cudaq::CompiledModule cudaq::FermioniqQPU::compileImpl(
-    const std::string &kernelName,
-    std::function<cudaq::CompiledModule(cudaq_internal::compiler::Compiler &,
-                                        cudaq::ExecutionContext *)>
-        runPassPipeline) {
+cudaq::KernelThunkResultType
+cudaq::FermioniqQPU::unifiedLaunchModule(const AnyModule &module,
+                                         KernelArgs args) {
   auto *executionContext = getExecutionContext();
-  // TODO future iterations of this should support non-void return types.
-  if (!executionContext)
-    throw std::runtime_error(
-        "Remote rest execution can only be performed via cudaq::sample(), "
-        "cudaq::observe(), or cudaq::contrib::draw().");
+  Compiler compiler(getCompileTarget(executionContext));
+  std::optional<CompiledModule> compiled;
 
-  // When the user issues an observe call, we don't want to use the default
-  // CUDA-Q behaviour that splits up the circuit into several ansatz
-  // sub circuit. Instead, we pass a "sample" context to the compiler to
-  // prevent circuit splitting. This target handles observable evaluation
-  // server-side.
-  cudaq::ExecutionContext sampleContext("sample", 1);
-  ExecutionContext *compileCtx =
-      (executionContext->name == "observe") ? &sampleContext : executionContext;
+  if (std::holds_alternative<SourceModule>(module)) {
+    const auto &src = std::get<SourceModule>(module);
+    const auto &kernelName = src.getName();
+    CUDAQ_INFO("FermioniqBaseQPU launching kernel ({})", kernelName);
+    auto [quakeModule, context] = Compiler::loadQuakeCodeByName(kernelName);
+    compiled = compiler.runPassPipeline(kernelName, quakeModule, args,
+                                        std::move(context));
+  } else {
+    compiled = std::get<CompiledModule>(module);
+    CUDAQ_INFO("FermioniqBaseQPU launching kernel via module ({})",
+               compiled->getName());
+  }
 
-  Compiler compiler(serverHelper.get(), backendConfig, targetConfig, noiseModel,
-                    emulate);
-  return runPassPipeline(compiler, compileCtx);
-}
-
-void cudaq::FermioniqQPU::launchImpl(const cudaq::CompiledModule &compiled) {
-  Compiler compiler(serverHelper.get(), backendConfig, targetConfig, noiseModel,
-                    emulate);
-  auto *executionContext = getExecutionContext();
-  // TODO future iterations of this should support non-void return types.
-  if (!executionContext)
-    throw std::runtime_error(
-        "Remote rest execution can only be performed via cudaq::sample(), "
-        "cudaq::observe(), or cudaq::contrib::draw().");
-
-  auto codes = compiler.emitKernelExecutions(compiled);
+  auto codes = compiler.emitKernelExecutions(*compiled);
 
   if (codes.size() != 1)
     throw std::runtime_error("Provider only allows 1 circuit at a time.");
@@ -72,7 +57,33 @@ void cudaq::FermioniqQPU::launchImpl(const cudaq::CompiledModule &compiled) {
     codes[0].user_data = user_data;
   }
 
-  completeLaunchKernel(compiled.getName(), std::move(codes));
+  completeLaunchKernel(compiled->getName(), std::move(codes));
+  return {};
+}
+
+cudaq::sample_result
+cudaq::FermioniqQPU::launchKernel(cudaq::sample_policy &policy,
+                                  const AnyModule &module, KernelArgs args) {
+  auto [kernelName, codes] = compileKernelExecutions(policy, module, args);
+  CUDAQ_INFO("FermioniqBaseQPU launching kernel ({}) with policy {}",
+             kernelName, policy.name);
+  if (codes.size() != 1)
+    throw std::runtime_error("Provider only allows 1 circuit at a time.");
+
+  return completeLaunchKernel(policy, kernelName, std::move(codes));
+}
+
+cudaq::async_sample_result
+cudaq::FermioniqQPU::launchKernel(cudaq::async_sample_policy &policy,
+                                  const AnyModule &module, KernelArgs args) {
+  auto [kernelName, codes] =
+      compileKernelExecutions(policy.inner, module, args);
+  CUDAQ_INFO("FermioniqBaseQPU launching kernel ({}) with policy {}",
+             kernelName, policy.inner.name);
+  if (codes.size() != 1)
+    throw std::runtime_error("Provider only allows 1 circuit at a time.");
+
+  return completeLaunchKernel(policy, kernelName, std::move(codes));
 }
 
 CUDAQ_REGISTER_TYPE(cudaq::QPU, cudaq::FermioniqQPU, fermioniq)

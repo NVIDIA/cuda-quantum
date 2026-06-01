@@ -56,8 +56,7 @@ def __generalOperation(self,
     internal PyKernel MLIR ModuleOp.
     """
     opCtor = getattr(quake, '{}Op'.format(opName.title()))
-    if hasattr(self, 'qkeModule'):
-        del self.qkeModule
+    self.clearCache()
 
     if quake.RefType.isinstance(target.mlirValue.type):
         opCtor([], parameters, controls, [target.mlirValue], is_adj=isAdj)
@@ -193,8 +192,7 @@ def __generalCustomOperation(self, opName, *args):
     numTargets = int(np.log2(np.sqrt(unitary.size)))
 
     qubits = []
-    if hasattr(self, 'qkeModule'):
-        del self.qkeModule
+    self.clearCache()
     with self.insertPoint, self.loc:
         for arg in args:
             if isinstance(arg, QuakeValue):
@@ -223,12 +221,12 @@ def __generalCustomOperation(self, opName, *args):
                 gen_vector_of_complex_constant(self.loc, self.module,
                                                globalName, unitary.tolist())
 
-        quake.CustomUnitarySymbolOp([],
-                                    generator=FlatSymbolRefAttr.get(globalName),
-                                    parameters=[],
-                                    controls=controls,
-                                    targets=targets,
-                                    is_adj=False)
+        quake.CustomUnitaryConstantOp([],
+                                      matrix=FlatSymbolRefAttr.get(globalName),
+                                      parameters=[],
+                                      controls=controls,
+                                      targets=targets,
+                                      is_adj=False)
         return
 
 
@@ -679,8 +677,7 @@ class PyKernel(object):
         recursively for all required function operations and add them to the
         module.
         """
-        if hasattr(self, 'qkeModule'):
-            del self.qkeModule
+        self.clearCache()
         with self.insertPoint, self.loc:
             if isinstance(target, cc.CreateLambdaOp):
                 otherFuncCloned = target
@@ -1710,6 +1707,19 @@ class PyKernel(object):
             quake.ApplyNoiseOp([params], [asVeq],
                                key=self.getConstantInt(channel_key))
 
+    def clearCache(self):
+        if hasattr(self, 'qkeModule'):
+            del self.qkeModule
+        if hasattr(self, '_compiled_module'):
+            del self._compiled_module
+
+    def cachedCompiledModule(self):
+        """Return the kernel's CompiledModule cache slot, creating an empty
+        one on first access."""
+        if not hasattr(self, '_compiled_module'):
+            self._compiled_module = cudaq_runtime.CompiledModule()
+        return self._compiled_module
+
     @trace.traced
     def compile(self):
         """
@@ -1840,8 +1850,11 @@ class PyKernel(object):
 
         self.compile()
         specialized = cudaq_runtime.cloneModule(self.qkeModule)
-        cudaq_runtime.marshal_and_launch_module(self.name, specialized,
-                                                *processedArgs)
+        cudaq_runtime.marshal_and_launch_module(
+            self.name,
+            specialized,
+            *processedArgs,
+            compiled=self.cachedCompiledModule())
 
     def __getattr__(self, attr_name):
         # Search attributes in instance, class, base classes

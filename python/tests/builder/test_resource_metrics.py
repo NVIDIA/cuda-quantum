@@ -148,7 +148,7 @@ def test_multi_qvector_depth():
 
 def test_num_qubits_and_used_qubits():
     """num_qubits = allocated, num_used_qubits = gate-touched."""
-    cudaq.set_target('circuit-opt-bench', device='path(5)')
+    cudaq.set_target('compiler-bench-nisq', device='path(5)')
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(5)
     kernel.cx(q[0], q[4])

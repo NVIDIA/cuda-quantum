@@ -267,15 +267,21 @@ public:
       cudaq::policies::visitResult(
           [&]() { return finalize_simulation_circuit(*this, policy, ctx); },
           [&](cudaq::sample_result &&r) { ctx.result = std::move(r); },
+          [&](cudaq::observe_result &&r) {
+            ctx.result = r.raw_data();
+            ctx.expectationValue = r.expectation();
+          },
           [&](cudaq::policies::void_result &&r) {});
     });
   }
 
   virtual void finalizeExecutionContext(const cudaq::other_policies &policy,
                                         cudaq::ExecutionContext &ctx) {}
-  virtual cudaq::sample_result
-  finalizeExecutionContext(const cudaq::sample_policy &policy,
+  virtual cudaq::observe_result
+  finalizeExecutionContext(const cudaq::observe_policy &policy,
                            cudaq::ExecutionContext &ctx) = 0;
+  virtual cudaq::sample_result
+  finalizeExecutionContext(const cudaq::sample_policy &policy) = 0;
 
   /// @brief Clean up after execution ends.
   virtual void endExecution() {}
@@ -284,6 +290,13 @@ public:
   /// handle <psi | H | psi> instead of NVQIR applying measure
   /// basis quantum gates to change to the Z basis and sample.
   virtual bool canHandleObserve() { return false; }
+
+  /// @brief Set the execution context
+  void configureExecutionContext(const cudaq::sample_policy &policy) {
+    noiseModel = policy.noiseModel;
+    currentCircuitName = policy.kernelName;
+    CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
+  }
 
   /// @brief Set the execution context
   void configureExecutionContext(cudaq::ExecutionContext &context) {
@@ -1006,21 +1019,49 @@ public:
 
 protected:
   /// @brief Reset the current execution context.
-  void finalizeExecutionContextImpl(cudaq::ExecutionContext &context) {
-    // Get the ExecutionContext name
-    auto execContextName = context.name;
-
+  void finalizeExecutionContextImpl() {
     // Flush the queue if there are any gates to apply
     flushGateQueue();
   }
 
+  cudaq::observe_result
+  finalizeExecutionContext(const cudaq::observe_policy &,
+                           cudaq::ExecutionContext &ctx) override {
+    finalizeExecutionContextImpl();
+    if (!ctx.spin.has_value())
+      throw std::runtime_error("[observe] ExecutionContext specified without a "
+                               "cudaq::spin_op.");
+
+    std::vector<cudaq::ExecutionResult> results;
+    cudaq::spin_op &H = ctx.spin.value();
+    assert(cudaq::spin_op::canonicalize(H) == H);
+
+    if (ctx.canHandleObserve) {
+      auto [exp, data] = measureSpinOp(H);
+      return cudaq::observe_result(exp, H, data);
+    } else {
+      double sum = 0.0;
+      for (const auto &term : H) {
+        if (term.is_identity())
+          sum += term.evaluate_coefficient().real();
+        else {
+          auto [exp, data] = measureSpinOp(term);
+          results.emplace_back(data.to_map(), term.get_term_id(), exp);
+          sum += term.evaluate_coefficient().real() * exp;
+        }
+      }
+
+      auto data = cudaq::sample_result(sum, results);
+      return cudaq::observe_result(sum, H, data);
+    }
+  }
+
   cudaq::sample_result
-  finalizeExecutionContext(const cudaq::sample_policy &policy,
-                           cudaq::ExecutionContext &context) override {
-    finalizeExecutionContextImpl(context);
+  finalizeExecutionContext(const cudaq::sample_policy &policy) override {
+    finalizeExecutionContextImpl();
 
     // Sample the state over the specified number of shots
-    if (sampleQubits.empty() && !context.explicitMeasurements) {
+    if (sampleQubits.empty() && !policy.options.explicit_measurements) {
       sampleQubits.resize(getNumQubits());
       if (sampleQubits.empty())
         throw std::runtime_error(
@@ -1060,9 +1101,9 @@ protected:
     // Reorder the global register (if necessary). This might be necessary if
     // the mapping pass had run and we want to undo the shuffle that occurred
     // during mapping.
-    if (!context.reorderIdx.empty()) {
-      internalResult.reorder(context.reorderIdx);
-      context.reorderIdx.clear();
+    if (!policy.reorderIdx.empty()) {
+      internalResult.reorder(policy.reorderIdx);
+      policy.reorderIdx.clear();
     }
 
     // Clear the sample bits for the next run
@@ -1078,7 +1119,7 @@ protected:
                                 cudaq::ExecutionContext &context) override {
     if (nQubitsAllocated == 0)
       return;
-    finalizeExecutionContextImpl(context);
+    finalizeExecutionContextImpl();
 
     // Set the state data if requested.
     if (context.name == "extract-state") {
@@ -1468,9 +1509,8 @@ namespace cudaq {
 
 inline sample_result
 finalize_simulation_circuit_impl(nvqir::CircuitSimulator &sim,
-                                 const sample_policy &policy,
-                                 ExecutionContext &ctx) {
-  return sim.finalizeExecutionContext(policy, ctx);
+                                 const sample_policy &policy) {
+  return sim.finalizeExecutionContext(policy);
 }
 
 } // namespace cudaq

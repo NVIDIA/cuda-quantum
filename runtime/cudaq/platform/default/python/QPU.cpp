@@ -15,8 +15,8 @@
 #include "common/Timing.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
+#include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/JIT.h"
-#include "cudaq_internal/compiler/JITTargetPipeline.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "nvqir/resourcecounter/ResourceCounterScope.h"
@@ -28,6 +28,7 @@
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Optimizer/Transforms/ResourceCount.h"
+#include "cudaq/Target/CompileTarget.h"
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
 #include "cudaq/platform.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -103,11 +104,12 @@ static bool runTargetPassPipeline(mlir::ModuleOp module) {
   auto *rt = cudaq::get_platform().get_runtime_target();
   if (!rt)
     return false;
-  auto pipelineConfig =
-      cudaq_internal::compiler::JITTargetPipelineConfig::createFromTargetConfig(
-          rt->config, rt->runtimeConfig, cudaq::is_emulated_platform());
+  cudaq::CompileTarget ct(rt->config, rt->runtimeConfig,
+                          cudaq::is_emulated_platform());
+  const auto &pipelineConfig = ct.pipelineConfig;
   if (!pipelineConfig.hasConfiguredPassPipeline)
     return false;
+  auto passPipeline = cudaq_internal::compiler::getPassPipeline(ct);
 
   auto *ctx = module.getContext();
   PassManager pm(ctx);
@@ -115,8 +117,7 @@ static bool runTargetPassPipeline(mlir::ModuleOp module) {
   pm.addInstrumentation(std::make_unique<cudaq::TracePassInstrumentation>());
   std::string errMsg;
   llvm::raw_string_ostream errOS(errMsg);
-  if (mlir::failed(mlir::parsePassPipeline(pipelineConfig.passPipelineConfig,
-                                           pm, errOS)))
+  if (mlir::failed(mlir::parsePassPipeline(passPipeline, pm, errOS)))
     throw std::runtime_error("Failed to parse target pipeline: " + errMsg);
   if (failed(cudaq::runPassManagerReleasingGIL(pm, module)))
     throw std::runtime_error("Pass pipeline failed.");
@@ -216,23 +217,11 @@ static void updateExecutionContext(mlir::ModuleOp module) {
 }
 
 static std::optional<cudaq::JitEngine>
-alreadyBuiltJITCode(const std::string &name) {
+alreadyBuiltJITCode(const std::string &) {
   auto *currentExecCtx = cudaq::getExecutionContext();
-  if (currentExecCtx && currentExecCtx->allowJitEngineCaching) {
-    auto jit = currentExecCtx->jitEng;
-    if (jit && cudaq::compiler_artifact::isPersistingJITEngine()) {
-      CUDAQ_INFO("Loading previously compiled JIT engine for {}. This will "
-                 "re-run the previous job, discarding any changes to the "
-                 "kernel, arguments or launch configuration.",
-                 currentExecCtx->kernelName);
-      cudaq::compiler_artifact::checkArtifactReuse(name, jit.value());
-    }
-    return jit;
-  }
-
-  // Fallback for callers without an ExecutionContext (e.g. direct kernel
-  // calls): look up the artifact saved by a previous compilation.
-  return cudaq::compiler_artifact::getArtifactJit(name);
+  if (currentExecCtx && currentExecCtx->allowJitEngineCaching)
+    return currentExecCtx->jitEng;
+  return std::nullopt;
 }
 
 /// In a sample launch context, the (`JIT` compiled) execution engine may be
@@ -365,7 +354,6 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     // 4. Lower to QIR and JIT compile.
     auto jit = cudaq_internal::compiler::createJITEngine(module, "qir:");
     cacheJITForPerformance(jit);
-    cudaq::compiler_artifact::saveArtifact(name, jit);
 
     auto jitArtifacts =
         cudaq_internal::compiler::CompiledModuleHelper::createJitArtifacts(

@@ -53,7 +53,7 @@ public:
   /// operation. The 'control' and 'adjoint' variations are handled by
   /// `ApplySpecialization` pass.
   virtual void
-  emitDecomposedFuncOp(cudaq::quake::CustomUnitarySymbolOp customOp,
+  emitDecomposedFuncOp(cudaq::quake::CustomUnitaryConstantOp customOp,
                        PatternRewriter &rewriter, std::string funcName) = 0;
   bool isAboveThreshold(double value) { return std::abs(value) > TOL; };
   virtual ~Decomposer() = default;
@@ -97,7 +97,7 @@ struct OneQubitOpZYZ : public Decomposer {
     angles.gamma = sum - diff;
   }
 
-  void emitDecomposedFuncOp(cudaq::quake::CustomUnitarySymbolOp customOp,
+  void emitDecomposedFuncOp(cudaq::quake::CustomUnitaryConstantOp customOp,
                             PatternRewriter &rewriter,
                             std::string funcName) override {
     auto parentModule = customOp->getParentOfType<ModuleOp>();
@@ -339,7 +339,7 @@ struct TwoQubitOpKAK : public Decomposer {
                                  TOL));
   }
 
-  void emitDecomposedFuncOp(cudaq::quake::CustomUnitarySymbolOp customOp,
+  void emitDecomposedFuncOp(cudaq::quake::CustomUnitaryConstantOp customOp,
                             PatternRewriter &rewriter,
                             std::string funcName) override {
     auto a0 = OneQubitOpZYZ(components.a0);
@@ -446,16 +446,16 @@ struct TwoQubitOpKAK : public Decomposer {
 };
 
 class CustomUnitaryPattern
-    : public OpRewritePattern<cudaq::quake::CustomUnitarySymbolOp> {
+    : public OpRewritePattern<cudaq::quake::CustomUnitaryConstantOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(cudaq::quake::CustomUnitarySymbolOp customOp,
+  LogicalResult matchAndRewrite(cudaq::quake::CustomUnitaryConstantOp customOp,
                                 PatternRewriter &rewriter) const override {
     auto parentModule = customOp->getParentOfType<ModuleOp>();
     /// Get the global constant holding the concrete matrix corresponding to
     /// this custom operation invocation
-    StringRef generatorName = customOp.getGenerator().getRootReference();
+    StringRef generatorName = customOp.getMatrix().getRootReference();
     auto globalOp =
         parentModule.lookupSymbol<cudaq::cc::GlobalOp>(generatorName);
     /// The decomposed sequence of quantum operations are in a function

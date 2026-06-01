@@ -13,6 +13,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
 add_library(${LIBRARY_NAME}
   SHARED
     cudaq.cpp
+    realtime.cpp
     target_control.cpp
     algorithms/draw.cpp
     algorithms/evolve.cpp
@@ -51,6 +52,7 @@ if (CUDA_FOUND)
   endforeach()
   target_include_directories(${LIBRARY_NAME}
     PUBLIC $<INSTALL_INTERFACE:include>
+            $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime/include>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
             ${_cudaq_cuda_build_includes}
@@ -65,18 +67,21 @@ if (CUDA_FOUND)
       cudaq-ensmallen
       cudaq-mlir-runtime-headers # Public until compilation is moved out of the QPUs
       cudaq-logger
+      CUDAQTargetConfig
     PRIVATE
       MLIRIR
       nvqir
       fmt::fmt-header-only
       CUDA::cudart_static
-      CUDAQTargetConfigUtil
+      CUDAQTargetConfigYaml
   )
 
   target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_CUDA)
+
 else()
   target_include_directories(${LIBRARY_NAME}
     PUBLIC $<INSTALL_INTERFACE:include>
+            $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime/include>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
             $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/tpls/eigen>
     PRIVATE . ptsbe ptsbe/strategies)
@@ -90,12 +95,19 @@ else()
       cudaq-ensmallen
       cudaq-mlir-runtime-headers # Public until compilation is moved out of the QPUs
       cudaq-logger
+      CUDAQTargetConfig
     PRIVATE
       MLIRIR
       nvqir
       fmt::fmt-header-only
-      CUDAQTargetConfigUtil
+      CUDAQTargetConfigYaml
   )
+endif()
+
+if (CUDAQ_ENABLE_REALTIME)
+  target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_ENABLE_REALTIME)
+  target_include_directories(${LIBRARY_NAME} PRIVATE
+    ${CMAKE_SOURCE_DIR}/runtime/internal/device_call/include)
 endif()
 
 add_subdirectory(qis/managers)

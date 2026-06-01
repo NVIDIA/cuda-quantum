@@ -51,6 +51,7 @@ target_include_directories(${LIBRARY_NAME}
 target_link_libraries(${LIBRARY_NAME}
   PUBLIC
     cudaq-operator
+    CUDAQTargetConfig
   PRIVATE
     cudaq-logger
     fmt::fmt-header-only
@@ -109,4 +110,3 @@ if(EXISTS "$ENV{CURL_INSTALL_PREFIX}/cacert.pem")
   # Also include it as an install target
   install(FILES "$ENV{CURL_INSTALL_PREFIX}/cacert.pem" DESTINATION .)
 endif()
-

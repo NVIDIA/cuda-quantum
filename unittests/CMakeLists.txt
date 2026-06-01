@@ -152,6 +152,26 @@ create_tests_with_backend(qpp backends/QPPTester.cpp)
 create_tests_with_backend(dm backends/QPPDMTester.cpp)
 create_tests_with_backend(stim backends/StimTester.cpp)
 
+if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
+  add_executable(test_device_call_dispatch
+    device_call/DeviceCallDispatchTester.cu)
+  set_target_properties(test_device_call_dispatch PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+    ENABLE_EXPORTS ON)
+  target_include_directories(test_device_call_dispatch
+    PRIVATE
+      .)
+  target_link_libraries(test_device_call_dispatch
+    PRIVATE
+      cudaq-device-call-runtime
+      cudaq::cudaq-realtime-dispatch
+      CUDA::cudart_static
+      gtest_main)
+  gtest_discover_tests(test_device_call_dispatch
+    PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu"
+    DISCOVERY_TIMEOUT 120)
+endif()
+
 if (cuStateVec_FOUND)
   find_program(NVIDIA_SMI "nvidia-smi")
   if(${NVIDIA_SMI} STREQUAL "NVIDIA_SMI-NOTFOUND")

@@ -12,6 +12,9 @@
 #include "common/NoiseModel.h"
 #include "cudaq/host_config.h"
 #include "cudaq/qis/qubit_qis.h"
+// Realtime declarations are always present; calls warn when realtime support is
+// disabled at build time.
+#include "cudaq/realtime.h"
 #include <string>
 #include <tuple>
 #include <type_traits>

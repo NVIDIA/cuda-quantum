@@ -32,30 +32,6 @@ static Type getResultType(Type ty) {
 }
 
 namespace {
-// `measure_handle` arrives at the bridge as either an SSA `!cc.measure_handle`
-// (the rvalue from `mz`/`mx`/`my`, a copy/move ctor result, etc.) or as the
-// pointer form `!cc.ptr<!cc.measure_handle>` left by lvalue access (named
-// variable read, `operator=` LHS, struct-member-of-handle, ...). The
-// discrimination, copy, and `to_bools` paths all want the value form, so funnel
-// that normalization through one helper rather than open-coding the dyn_cast
-// chain at every call site.
-Value loadHandleIfPointer(OpBuilder &builder, Location loc, Value v) {
-  if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(v.getType()))
-    if (isa<cudaq::cc::MeasureHandleType>(ptrTy.getElementType()))
-      return cudaq::cc::LoadOp::create(builder, loc, v);
-  return v;
-}
-
-// Same intent as `loadHandleIfPointer`, but for the bulk-discriminate /
-// `to_integer` paths where the lvalue carries a `std::vector<measure_handle>`.
-Value loadHandleVectorIfPointer(OpBuilder &builder, Location loc, Value v) {
-  if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(v.getType()))
-    if (auto sv = dyn_cast<cudaq::cc::StdvecType>(ptrTy.getElementType());
-        sv && isa<cudaq::cc::MeasureHandleType>(sv.getElementType()))
-      return cudaq::cc::LoadOp::create(builder, loc, v);
-  return v;
-}
-
 // Same intent as `isInNamespace`, but only matches when the immediate
 // enclosing namespace is `nsName`. `isInNamespace` drills through nested
 // namespaces, so it would silently "hijack" a user-defined
@@ -451,6 +427,50 @@ classDeclFromTemplateArgument(clang::FunctionDecl &func,
         return lvalueRefTy->getPointeeType().getTypePtr()->getAsCXXRecordDecl();
     }
   return nullptr;
+}
+
+static bool isStdVectorType(clang::QualType type) {
+  const auto canonicalType = type.getCanonicalType();
+  const auto *recordDecl = canonicalType.getTypePtr()->getAsCXXRecordDecl();
+  return recordDecl && recordDecl->getName() == "vector" &&
+         cudaq::isInNamespace(recordDecl, "std");
+}
+
+static const clang::FunctionProtoType *
+functionProtoTypeFromDeviceCallTarget(clang::QualType type) {
+  auto canonicalType = type.getCanonicalType();
+  if (auto *pointerType = canonicalType->getAs<clang::PointerType>())
+    canonicalType = pointerType->getPointeeType().getCanonicalType();
+  if (auto *referenceType = canonicalType->getAs<clang::ReferenceType>())
+    canonicalType = referenceType->getPointeeType().getCanonicalType();
+  return canonicalType->getAs<clang::FunctionProtoType>();
+}
+
+static DenseI64ArrayAttr
+buildByRefVecArgIndicesAttr(OpBuilder &builder, clang::CallExpr *call,
+                            std::size_t targetArgIndex) {
+  const auto *prototype = functionProtoTypeFromDeviceCallTarget(
+      call->getArg(targetArgIndex)->IgnoreParenImpCasts()->getType());
+  if (!prototype)
+    return {};
+
+  SmallVector<std::int64_t> indices;
+  for (unsigned i = 0, e = prototype->getNumParams(); i < e; ++i) {
+    const auto paramType = prototype->getParamType(i);
+    const auto *refType = paramType->getAs<clang::LValueReferenceType>();
+    if (!refType)
+      continue;
+
+    const clang::QualType pointeeType = refType->getPointeeType();
+    if (pointeeType.isConstQualified() || !isStdVectorType(pointeeType))
+      continue;
+
+    indices.push_back(i);
+  }
+
+  if (indices.empty())
+    return {};
+  return builder.getDenseI64ArrayAttr(indices);
 }
 
 /// Is this type name one of the `cudaq` types that map to a VeqType?
@@ -1471,6 +1491,66 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
     }
   }
 
+  // Intercept `std::vector<measure_handle>::operator=` before the generic
+  // `vector` member-function dispatch below (which would `popValue` the
+  // `this` slot, load it eagerly, and then fall through to the TODO at the
+  // bottom). Issue #4601: without this intercept, `prev = curr;` in a kernel
+  // crashes `cudaq-quake`.
+  //
+  // Only the lvalue-RHS form is handled here (`prev = curr;`, the pattern in
+  // the issue's loop reproducer). The RHS arrives as a pointer to the slot
+  // holding the descriptor; we deep-copy its buffer via
+  // `__nvqpp_vectorCopyCtor` and store a fresh descriptor into the LHS slot.
+  // The deep copy is required because (per PR #4573 review) the RHS buffer
+  // may go out of scope before the LHS does. The rvalue-RHS form
+  // (`prev = mz(qv);`) is not supported: clang descends into libstdc++'s
+  // `vector::operator=(vector&&)` body and trips on its constexpr
+  // `_S_nothrow_move()` dispatch helper, which is a pre-existing limitation
+  // of the bridge unrelated to `measure_handle`.
+  if (isInClassInNamespace(func, "vector", "std")) {
+    if (auto *md = dyn_cast<clang::CXXMethodDecl>(func);
+        md && md->getOverloadedOperator() == clang::OO_Equal &&
+        valueStack.size() >= 3) {
+      // Stack order is [callee, thisPtr, rhs]. Peek the `this` slot's type
+      // without consuming the stack so non-`measure_handle` element types
+      // fall through to the generic dispatch.
+      Value thisTop = valueStack[valueStack.size() - 2];
+      auto thisPtrTy = dyn_cast<cc::PointerType>(thisTop.getType());
+      auto lhsStdvecTy =
+          thisPtrTy ? dyn_cast<cc::StdvecType>(thisPtrTy.getElementType())
+                    : cc::StdvecType();
+      if (lhsStdvecTy &&
+          isa<cc::MeasureHandleType>(lhsStdvecTy.getElementType())) {
+        Value rhs = popValue();
+        Value thisVal = popValue();
+        [[maybe_unused]] auto calleeOp = popValue();
+        if (!isa<cc::PointerType>(rhs.getType()))
+          TODO_loc(loc,
+                   "assignment to std::vector<measure_handle> from an rvalue");
+        auto irBuilder = cudaq::IRBuilder::atBlockEnd(module.getBody());
+        if (failed(irBuilder.loadIntrinsic(module, "__nvqpp_vectorCopyCtor")))
+          module.emitError("failed to load intrinsic");
+        Value rhsDescr = cc::LoadOp::create(builder, loc, rhs);
+        auto i8PtrTy = cc::PointerType::get(builder.getI8Type());
+        Value srcData =
+            cc::StdvecDataOp::create(builder, loc, i8PtrTy, rhsDescr);
+        Value size = cc::StdvecSizeOp::create(builder, loc,
+                                              builder.getI64Type(), rhsDescr);
+        IRBuilder irb(builder);
+        Value eltSize =
+            irb.getByteSizeOfType(loc, lhsStdvecTy.getElementType());
+        Value heap = func::CallOp::create(builder, loc, i8PtrTy,
+                                          "__nvqpp_vectorCopyCtor",
+                                          ValueRange{srcData, size, eltSize})
+                         .getResult(0);
+        Value newDescr = cc::StdvecInitOp::create(builder, loc, lhsStdvecTy,
+                                                  ValueRange{heap, size});
+        cc::StoreOp::create(builder, loc, newDescr, thisVal);
+        return pushValue(thisVal);
+      }
+    }
+  }
+
   // Dealing with our std::vector as a view data structures. If we have some θ
   // with the type `std::vector<double/float/int>`, and in the kernel, θ.size()
   // is called, we need to convert that to loading the size field of the pair.
@@ -2053,8 +2133,8 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
                                Block &block) {
           Value ref = cudaq::quake::ExtractRefOp::create(builder, loc, target,
                                                          block.getArgument(0));
-          cudaq::quake::CustomUnitarySymbolOp::create(builder, loc, srefAttr,
-                                                      ValueRange(), ref);
+          cudaq::quake::CustomUnitaryCallOp::create(builder, loc, srefAttr,
+                                                    ValueRange{}, ref);
         };
         cudaq::opt::factory::createInvariantLoop(builder, loc, rank,
                                                  bodyBuilder);
@@ -2072,7 +2152,7 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         for (auto p : operands.take_front(paramCount))
           if (isa<cudaq::cc::PointerType>(p.getType()))
             params.push_back(cudaq::cc::LoadOp::create(builder, loc, p));
-        cudaq::quake::CustomUnitarySymbolOp::create(
+        cudaq::quake::CustomUnitaryCallOp::create(
             builder, loc, srefAttr, isAdjoint, params, ctrls, targets, negs);
       }
       return true;
@@ -2504,22 +2584,25 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
 
       auto callArgs = convertKernelArgs(loc, argsOffset, processedArgs,
                                         devFuncTy.getInputs(), x);
+      const auto byRefVecArgIndices =
+          buildByRefVecArgIndicesAttr(builder, x, argsOffset - 1);
 
       auto devCall = [&]() {
         if (maybeGPULaunchParams) {
-          auto [numBlocks, numThreads] = maybeGPULaunchParams.value();
-          Value blocks = arith::ConstantIntOp::create(
+          const auto [numBlocks, numThreads] = maybeGPULaunchParams.value();
+          const Value blocks = arith::ConstantIntOp::create(
               builder, loc, builder.getI64Type(), numBlocks);
-          Value threadsPerBlock = arith::ConstantIntOp::create(
+          const Value threadsPerBlock = arith::ConstantIntOp::create(
               builder, loc, builder.getI64Type(), numThreads);
-          return cc::DeviceCallOp::create(builder, loc, devFuncTy.getResults(),
-                                          symbol, ValueRange{blocks},
-                                          ValueRange{threadsPerBlock}, deviceId,
-                                          callArgs, ArrayAttr{}, ArrayAttr{});
+          return cc::DeviceCallOp::create(
+              builder, loc, devFuncTy.getResults(), symbol, ValueRange{blocks},
+              ValueRange{threadsPerBlock}, deviceId, callArgs, ArrayAttr{},
+              ArrayAttr{}, byRefVecArgIndices);
         }
-        return cc::DeviceCallOp::create(
-            builder, loc, devFuncTy.getResults(), symbol, ValueRange{},
-            ValueRange{}, deviceId, callArgs, ArrayAttr{}, ArrayAttr{});
+        return cc::DeviceCallOp::create(builder, loc, devFuncTy.getResults(),
+                                        symbol, ValueRange{}, ValueRange{},
+                                        deviceId, callArgs, ArrayAttr{},
+                                        ArrayAttr{}, byRefVecArgIndices);
       }();
       if (devFuncTy.getResults().empty())
         return true;

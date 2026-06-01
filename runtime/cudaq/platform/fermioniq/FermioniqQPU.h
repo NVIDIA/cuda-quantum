@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/BaseRemoteRESTQPU.h"
+#include <optional>
 
 namespace cudaq {
 
@@ -42,51 +43,27 @@ public:
   }
 
   KernelThunkResultType unifiedLaunchModule(const AnyModule &module,
-                                            KernelArgs args) override {
-    if (std::holds_alternative<SourceModule>(module)) {
-      const auto &src = std::get<SourceModule>(module);
-      const auto &kernelName = src.getName();
-      CUDAQ_INFO("FermioniqBaseQPU launching kernel ({})", kernelName);
-      auto [quakeModule, context] = Compiler::loadQuakeCodeByName(kernelName);
-      auto compiled = compileImpl(
-          kernelName, [&](Compiler &compiler, ExecutionContext *ctx) {
-            return compiler.runPassPipeline(ctx, kernelName, quakeModule, args,
-                                            std::move(context));
-          });
-      launchImpl(compiled);
-    } else {
-      const auto &compiled = std::get<CompiledModule>(module);
-      CUDAQ_INFO("FermioniqBaseQPU launching kernel via module ({})",
-                 compiled.getName());
-      launchImpl(compiled);
+                                            KernelArgs args) override;
+
+  using BaseRemoteRESTQPU::getCompileTarget;
+  std::unique_ptr<CompileTarget>
+  getCompileTarget(ExecutionContext *ctx) override {
+    auto target = BaseRemoteRESTQPU::getCompileTarget(ctx);
+    // This target handles observable evaluation server-side.
+    // We don't want to split up the circuit into several ansatz
+    // sub circuit.
+    if (ctx->name == "observe") {
+      target->pauliTermSplitObservable = std::nullopt;
     }
-    return {};
+    return target;
   }
 
-  CompiledModule compileModule(const SourceModule &src, KernelArgs args,
-                               bool isEntryPoint) override {
-    const auto &kernelName = src.getName();
-    auto mlirArt = src.getMlir();
-    if (!mlirArt)
-      throw std::runtime_error(
-          "FermioniqBaseQPU::compileModule requires an MLIR artifact on the "
-          "SourceModule for kernel '" +
-          kernelName + "'.");
-    auto modulePtr = mlirArt->getOpaqueModulePtr();
-    CUDAQ_INFO("FermioniqBaseQPU compiling kernel via module ({})", kernelName);
-    return compileImpl(
-        kernelName, [&](Compiler &compiler, ExecutionContext *ctx) {
-          return compiler.runPassPipeline(ctx, kernelName, modulePtr, args);
-        });
-  }
+  sample_result launchKernel(sample_policy &policy, const AnyModule &module,
+                             KernelArgs args) override;
 
-private:
-  CompiledModule
-  compileImpl(const std::string &kernelName,
-              std::function<CompiledModule(Compiler &, ExecutionContext *)>
-                  runPassPipeline);
-
-  void launchImpl(const CompiledModule &compiled);
+  async_sample_result launchKernel(async_sample_policy &policy,
+                                   const AnyModule &module,
+                                   KernelArgs args) override;
 };
 
 } // namespace cudaq

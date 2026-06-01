@@ -89,6 +89,26 @@ if (NOT DEFINED CUDAQ_ENABLE_BRAKET_BACKEND)
   set(CUDAQ_ENABLE_BRAKET_BACKEND ON CACHE BOOL "Enable building AWS SDK for Amazon Braket backends.")
 endif()
 
+# Enable Anyon target by default.
+if (NOT DEFINED CUDAQ_ENABLE_ANYON_BACKEND)
+  set(CUDAQ_ENABLE_ANYON_BACKEND ON CACHE BOOL "Enable building the Anyon target.")
+endif()
+
+# Enable IonQ target by default.
+if (NOT DEFINED CUDAQ_ENABLE_IONQ_BACKEND)
+  set(CUDAQ_ENABLE_IONQ_BACKEND ON CACHE BOOL "Enable building the IonQ target.")
+endif()
+
+# Enable IQM target by default.
+if (NOT DEFINED CUDAQ_ENABLE_IQM_BACKEND)
+  set(CUDAQ_ENABLE_IQM_BACKEND ON CACHE BOOL "Enable building the IQM target.")
+endif()
+
+# Enable OQC target by default.
+if (NOT DEFINED CUDAQ_ENABLE_OQC_BACKEND)
+  set(CUDAQ_ENABLE_OQC_BACKEND ON CACHE BOOL "Enable building the OQC target.")
+endif()
+
 # Enable Pasqal target by default.
 if (NOT DEFINED CUDAQ_ENABLE_PASQAL_BACKEND)
   set(CUDAQ_ENABLE_PASQAL_BACKEND ON CACHE BOOL "Enable building the Pasqal target.")
@@ -172,6 +192,64 @@ option(CUDAQ_DISABLE_CPP_FRONTEND "Build without the CUDA-Q C++ Clang-based Fron
 option(CUDAQ_ENABLE_CC "Enable CUDA-Q code coverage generation." OFF)
 option(CUDAQ_REQUIRE_OPENMP "Fail the build if OpenMP is not found." OFF)
 option(CUDAQ_ENABLE_SANITIZERS "Enable Address Sanitizer (ASan) and Undefined Behavior Sanitizer (UBSan)." OFF)
+
+# Sub-projects that can be enabled independently, in the style of
+# LLVM_ENABLE_PROJECTS. Accepts a semicolon-separated list.
+set(CUDAQ_ALL_PROJECTS "cudaq;runtime;python")
+set(CUDAQ_ENABLE_PROJECTS "" CACHE STRING
+    "Semicolon-separated list of CUDA-Q sub-projects to build. Valid values: ${CUDAQ_ALL_PROJECTS}. Defaults to 'cudaq;runtime' (plus 'python' if CUDAQ_ENABLE_PYTHON is set).")
+
+# Back-compat: if CUDAQ_ENABLE_PROJECTS wasn't given, derive it from the
+# legacy per-project flags so existing build scripts keep working, and warn
+# the user that those flags are deprecated.
+if(NOT CUDAQ_ENABLE_PROJECTS)
+  set(CUDAQ_ENABLE_PROJECTS "cudaq")
+  if(NOT CUDAQ_DISABLE_RUNTIME)
+    list(APPEND CUDAQ_ENABLE_PROJECTS "runtime")
+  endif()
+  if(CUDAQ_ENABLE_PYTHON)
+    list(APPEND CUDAQ_ENABLE_PROJECTS "python")
+  endif()
+
+  if(CUDAQ_DISABLE_RUNTIME)
+    message(DEPRECATION
+      "CUDAQ_DISABLE_RUNTIME is deprecated. Use CUDAQ_ENABLE_PROJECTS to "
+      "control which sub-projects are built (omit 'runtime' to disable it).")
+  endif()
+  if(DEFINED CUDAQ_ENABLE_PYTHON)
+    message(DEPRECATION
+      "CUDAQ_ENABLE_PYTHON is deprecated. Use CUDAQ_ENABLE_PROJECTS to "
+      "control which sub-projects are built (include 'python' to enable it).")
+  endif()
+endif()
+
+foreach(_proj IN LISTS CUDAQ_ENABLE_PROJECTS)
+  if(NOT _proj IN_LIST CUDAQ_ALL_PROJECTS)
+    message(FATAL_ERROR
+      "Unknown project '${_proj}' in CUDAQ_ENABLE_PROJECTS. "
+      "Valid: ${CUDAQ_ALL_PROJECTS}.")
+  endif()
+endforeach()
+
+# python depends on the MLIR dialects in cudaq/ and on runtime symbols.
+if("python" IN_LIST CUDAQ_ENABLE_PROJECTS)
+  foreach(_dep cudaq runtime)
+    if(NOT _dep IN_LIST CUDAQ_ENABLE_PROJECTS)
+      message(STATUS "CUDAQ_ENABLE_PROJECTS: adding implied dep '${_dep}' (required by python).")
+      list(APPEND CUDAQ_ENABLE_PROJECTS ${_dep})
+    endif()
+  endforeach()
+endif()
+
+# Map CUDAQ_ENABLE_PROJECTS onto the legacy per-project flags so the rest of
+# this file and sub-CMakes keep working unchanged.
+if(NOT "runtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
+  set(CUDAQ_DISABLE_RUNTIME ON CACHE BOOL "" FORCE)
+endif()
+if("python" IN_LIST CUDAQ_ENABLE_PROJECTS)
+  set(CUDAQ_ENABLE_PYTHON ON CACHE BOOL "" FORCE)
+endif()
+
 # Backward compatibility: map the old CUDAQ_ENABLE_STATIC_LINKING to the two
 # new flags. Check both -D (cmake variable) and environment variable paths.
 # Setting cache variables here means the option() calls below will respect
@@ -546,7 +624,7 @@ configure_file("${CMAKE_SOURCE_DIR}/runtime/common/Version.cpp.in"
 # ==============================================================================
 
 find_package(OpenSSL)
-if (NOT CUDAQ_SKIP_MPI)
+if (NOT CUDAQ_SKIP_MPI AND "runtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
   find_package(MPI COMPONENTS CXX)
   if (MPI_FOUND)
     message(STATUS "MPI CXX Found: ${MPIEXEC}")
@@ -669,6 +747,37 @@ if (CUDA_FOUND)
   find_package(cuDensityMat)
 endif()
 
+set(CUDAQ_REALTIME_DIR "" CACHE PATH
+    "Path to an installed cudaq-realtime prefix. Enables CUDA-Q realtime integration when set.")
+set(CUDAQ_ENABLE_REALTIME FALSE)
+if (CUDAQ_REALTIME_DIR)
+  if (NOT CUDA_FOUND)
+    message(FATAL_ERROR
+      "CUDAQ_REALTIME_DIR requires CUDA support, but CUDA was not found.")
+  endif()
+
+  find_package(cudaq-realtime CONFIG REQUIRED
+    PATHS "${CUDAQ_REALTIME_DIR}"
+    NO_DEFAULT_PATH)
+
+  if (NOT TARGET cudaq::cudaq-realtime)
+    message(FATAL_ERROR
+      "The realtime package at CUDAQ_REALTIME_DIR=${CUDAQ_REALTIME_DIR} "
+      "does not define target cudaq::cudaq-realtime.")
+  endif()
+  if (NOT TARGET cudaq::cudaq-realtime-dispatch)
+    message(FATAL_ERROR
+      "The realtime package at CUDAQ_REALTIME_DIR=${CUDAQ_REALTIME_DIR} "
+      "does not define target cudaq::cudaq-realtime-dispatch.")
+  endif()
+
+  set(CUDAQ_ENABLE_REALTIME TRUE)
+  message(STATUS "CUDA-Q realtime integration enabled from: ${CUDAQ_REALTIME_DIR}")
+else()
+  message(STATUS
+    "CUDA-Q realtime integration disabled. Set CUDAQ_REALTIME_DIR to an installed cudaq-realtime prefix to enable it.")
+endif()
+
 # Code coverage setup
 # ==============================================================================
 if(CUDAQ_ENABLE_CC)
@@ -683,8 +792,10 @@ endif(CUDAQ_ENABLE_CC)
 # ==============================================================================
 
 add_subdirectory(cmake)
-add_subdirectory(cudaq)
-if (NOT CUDAQ_DISABLE_RUNTIME)
+if("cudaq" IN_LIST CUDAQ_ENABLE_PROJECTS)
+  add_subdirectory(cudaq)
+endif()
+if("runtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
   add_subdirectory(runtime)
 endif()
 add_subdirectory(utils)
@@ -693,7 +804,7 @@ if(CUDAQ_BUILD_TESTS)
   enable_testing()
 endif()
 
-if (CUDAQ_ENABLE_PYTHON)
+if("python" IN_LIST CUDAQ_ENABLE_PROJECTS)
   find_package(Python 3 COMPONENTS Interpreter Development)
   find_package(Python3 COMPONENTS Interpreter Development)
 

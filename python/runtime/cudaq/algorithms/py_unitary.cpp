@@ -17,9 +17,10 @@ using namespace cudaq;
 /// Compute the unitary of this kernel module.
 static nanobind::object get_unitary_impl(const std::string &shortName,
                                          MlirModule module,
+                                         cudaq::CompiledModule *compiled,
                                          nanobind::args args) {
   auto f = [=]() {
-    return cudaq::marshal_and_launch_module(shortName, module, args);
+    return cudaq::marshal_and_launch_module(shortName, module, args, compiled);
   };
 
   // Return as numpy array (dim, dim), complex128

@@ -30,17 +30,31 @@
 using namespace mlir;
 
 namespace {
+
+using OperatorInfo = cudaq::detail::OperatorInfo;
+
 /// A mock pattern class
 class PatternTest : public mlir::RewritePattern {
 public:
-  PatternTest(llvm::StringRef patternName, MLIRContext *context)
-      : mlir::RewritePattern(patternName, 0, context, {}) {
+  PatternTest(llvm::StringRef patternName,
+              llvm::ArrayRef<std::size_t> disabledControlCounts,
+              MLIRContext *context)
+      : mlir::RewritePattern(patternName, 0, context, {}),
+        disabledControlCounts(disabledControlCounts) {
     setDebugName(patternName);
   }
+
+  llvm::ArrayRef<std::size_t> getDisabledControlCounts() const {
+    return disabledControlCounts;
+  }
+
   LogicalResult matchAndRewrite(Operation *op,
                                 PatternRewriter &rewriter) const override {
     return failure();
   }
+
+private:
+  std::vector<std::size_t> disabledControlCounts;
 };
 
 /// A mock pattern type for testing.
@@ -48,26 +62,26 @@ class PatternTypeTest : public cudaq::DecompositionPatternType {
 public:
   PatternTypeTest(llvm::StringRef patternName, llvm::StringRef sourceOp,
                   std::vector<llvm::StringRef> targetOps)
-      : patternName(patternName), sourceOp(sourceOp), targetOps(targetOps) {}
+      : cudaq::DecompositionPatternType(
+            {cudaq::DecompositionPatternVariant(sourceOp, targetOps)}),
+        patternName(patternName) {}
 
-  llvm::StringRef getSourceOp() const override { return sourceOp; }
-
-  llvm::ArrayRef<llvm::StringRef> getTargetOps() const override {
-    return targetOps;
-  }
+  PatternTypeTest(llvm::StringRef patternName,
+                  std::vector<cudaq::DecompositionPatternVariant> variants)
+      : cudaq::DecompositionPatternType(std::move(variants)),
+        patternName(patternName) {}
 
   llvm::StringRef getPatternName() const override { return patternName; }
 
-  std::unique_ptr<mlir::RewritePattern>
-  create(mlir::MLIRContext *context,
-         mlir::PatternBenefit benefit = 1) const override {
-    return std::make_unique<PatternTest>(patternName, context);
+  std::unique_ptr<mlir::RewritePattern> create(
+      mlir::MLIRContext *context, mlir::PatternBenefit benefit = 1,
+      llvm::ArrayRef<std::size_t> disabledControlCounts = {}) const override {
+    return std::make_unique<PatternTest>(patternName, disabledControlCounts,
+                                         context);
   };
 
 private:
   llvm::StringRef patternName;
-  llvm::StringRef sourceOp;
-  std::vector<llvm::StringRef> targetOps;
 };
 
 /// Create a test decomposition graph with the following patterns. The arrow
@@ -116,6 +130,13 @@ DecompositionGraph createTestGraph() {
   auto pattern_x_adj = std::make_unique<PatternTypeTest>(
       "pattern_x_adj", "x<adj>", std::vector<llvm::StringRef>{"x"});
 
+  auto pattern_s_any_to_r1_any = std::make_unique<PatternTypeTest>(
+      "pattern_s_to_r1",
+      std::vector<cudaq::DecompositionPatternVariant>{
+          cudaq::DecompositionPatternVariant("s", {"r1"}),
+          cudaq::DecompositionPatternVariant("s(1)", {"r1(1)"}),
+          cudaq::DecompositionPatternVariant("s(n)", {"r1(n)"})});
+
   llvm::StringMap<std::unique_ptr<cudaq::DecompositionPatternType>> patterns;
   patterns.insert({pattern_x1->getPatternName(), std::move(pattern_x1)});
   patterns.insert({pattern_x2->getPatternName(), std::move(pattern_x2)});
@@ -129,6 +150,8 @@ DecompositionGraph createTestGraph() {
   patterns.insert({pattern_zh1->getPatternName(), std::move(pattern_zh1)});
   patterns.insert({pattern_zh2->getPatternName(), std::move(pattern_zh2)});
   patterns.insert({pattern_x_adj->getPatternName(), std::move(pattern_x_adj)});
+  patterns.insert({pattern_s_any_to_r1_any->getPatternName(),
+                   std::move(pattern_s_any_to_r1_any)});
   return DecompositionGraph(std::move(patterns));
 }
 
@@ -175,6 +198,27 @@ protected:
     return target->isLegal(operation_ptr).has_value();
   }
 
+  template <typename Op>
+  bool isLegalWithControlType(const std::unique_ptr<ConversionTarget> &target,
+                              Type controlType) {
+    auto loc = UnknownLoc::get(context.get());
+    auto module = ModuleOp::create(loc);
+    OpBuilder builder(module.getBodyRegion());
+
+    auto funcType = builder.getFunctionType({controlType}, {});
+    auto func = func::FuncOp::create(builder, loc, "test_func", funcType);
+    auto *entryBlock = func.addEntryBlock();
+    builder.setInsertionPointToStart(entryBlock);
+
+    SmallVector<Value> controls{entryBlock->getArgument(0)};
+    auto wireType = cudaq::quake::WireType::get(context.get());
+    auto targetQubit = cudaq::quake::AllocaOp::create(builder, loc, wireType);
+    SmallVector<Value> targets{targetQubit};
+
+    auto op = Op::create(builder, loc, controls, targets);
+    return target->isLegal(op.getOperation()).has_value();
+  }
+
   /// Run `selectPatterns` on the current decomposition graph and return the
   /// selected patterns as a vector of sorted pattern names.
   std::vector<std::string>
@@ -199,6 +243,19 @@ protected:
     }
     std::sort(selectedPatterns.begin(), selectedPatterns.end());
     return selectedPatterns;
+  }
+
+  std::unique_ptr<PatternTest>
+  constructPattern(const std::vector<std::string> &targetBasis,
+                   llvm::StringRef selectedPatternName) {
+    std::unordered_set<OperatorInfo> operatorInfoSet;
+    for (const auto &target : targetBasis)
+      operatorInfoSet.insert(OperatorInfo(target));
+
+    auto pattern = graph.constructPattern(selectedPatternName, context.get(),
+                                          operatorInfoSet);
+    return std::unique_ptr<PatternTest>(
+        static_cast<PatternTest *>(pattern.release()));
   }
 
   std::unique_ptr<MLIRContext> context;
@@ -265,6 +322,32 @@ TEST_F(BaseDecompositionPatternSelectionTest,
   EXPECT_TRUE(isLegal<cudaq::quake::XOp>(target, 1));
   EXPECT_TRUE(isLegal<cudaq::quake::XOp>(target, 2));
   EXPECT_TRUE(isLegal<cudaq::quake::XOp>(target, 10));
+}
+
+TEST_F(BaseDecompositionPatternSelectionTest,
+       BasisTargetCountsFixedSizeVeqControls) {
+  auto veq2 = cudaq::quake::VeqType::get(context.get(), 2);
+
+  auto oneControlTarget = cudaq::createBasisTarget(*context, {"x(1)"});
+  EXPECT_FALSE(
+      isLegalWithControlType<cudaq::quake::XOp>(oneControlTarget, veq2));
+
+  auto twoControlTarget = cudaq::createBasisTarget(*context, {"x(2)"});
+  EXPECT_TRUE(
+      isLegalWithControlType<cudaq::quake::XOp>(twoControlTarget, veq2));
+}
+
+TEST_F(BaseDecompositionPatternSelectionTest,
+       BasisTargetTreatsUnsizedVeqAsUnboundedOnly) {
+  auto unsizedVeq = cudaq::quake::VeqType::getUnsized(context.get());
+
+  auto concreteTarget = cudaq::createBasisTarget(*context, {"x(2)"});
+  EXPECT_FALSE(
+      isLegalWithControlType<cudaq::quake::XOp>(concreteTarget, unsizedVeq));
+
+  auto unboundedTarget = cudaq::createBasisTarget(*context, {"x(n)"});
+  EXPECT_TRUE(
+      isLegalWithControlType<cudaq::quake::XOp>(unboundedTarget, unsizedVeq));
 }
 
 //===----------------------------------------------------------------------===//
@@ -356,6 +439,24 @@ TEST_F(DummyDecompositionPatternSelectionTest,
   EXPECT_EQ(selectedPatterns, exp);
 }
 
+TEST_F(DummyDecompositionPatternSelectionTest,
+       PatternConstructionDisablesLegalSource) {
+  std::vector<std::string> targetBasis{"s", "r1(1)"};
+  auto pattern = constructPattern(targetBasis, "pattern_s_to_r1");
+
+  std::vector<std::size_t> exp{0};
+  EXPECT_EQ(pattern->getDisabledControlCounts(), llvm::ArrayRef(exp));
+}
+
+TEST_F(DummyDecompositionPatternSelectionTest,
+       PatternConstructionCanSelectMoreThanTwoSources) {
+  std::vector<std::string> targetBasis{"r1(n)"};
+  auto pattern = constructPattern(targetBasis, "pattern_s_to_r1");
+
+  llvm::ArrayRef<std::size_t> exp{};
+  EXPECT_EQ(pattern->getDisabledControlCounts(), exp);
+}
+
 //===----------------------------------------------------------------------===//
 // Test selectDecompositionPatterns on the registered decomposition graph
 //===----------------------------------------------------------------------===//
@@ -371,7 +472,7 @@ TEST_F(FullDecompositionPatternSelectionTest, DecomposeCCXToCZ) {
 // Regression: multi-hop chain where intermediate gates (t, z(2)) are not
 // in the basis but are reachable through further patterns.
 // Chain: x(2) -> CCXToCCZ -> {h,z(2)} -> CCZToCX -> {t,x(1)}
-//        t -> TToR1 -> {r1(1)} -> CR1ToCX -> {r1,x(1)}
+//        t -> TToR1 -> {r1} -> R1ToRz -> {rz}
 //        r1 -> R1ToU3 -> {u3} -> U3ToRotations -> {rz,rx}
 TEST_F(FullDecompositionPatternSelectionTest, DecomposeCCXDeepChain) {
   std::vector<std::string> targetBasis{"h", "rx", "ry", "rz", "x", "x(1)"};
@@ -445,6 +546,27 @@ TEST_F(FullDecompositionPatternSelectionTest, SelectAdjointRotationPatterns) {
   EXPECT_NE(
       std::find(selectedPatterns.begin(), selectedPatterns.end(), "RzAdjToRz"),
       selectedPatterns.end());
+}
+
+TEST_F(FullDecompositionPatternSelectionTest,
+       SelectsOnlyOneControlSTLoweringForFTQCLogicalBasis) {
+  std::vector<std::string> targetBasis{"h",  "s", "t", "rx", "ry",
+                                       "rz", "x", "y", "z",  "x(1)"};
+  auto selectedPatterns = selectPatterns(targetBasis);
+
+  EXPECT_NE(
+      std::find(selectedPatterns.begin(), selectedPatterns.end(), "SToR1"),
+      selectedPatterns.end());
+  EXPECT_NE(
+      std::find(selectedPatterns.begin(), selectedPatterns.end(), "TToR1"),
+      selectedPatterns.end());
+
+  auto sPattern = constructPattern(targetBasis, "SToR1");
+  auto tPattern = constructPattern(targetBasis, "TToR1");
+  std::vector<std::size_t> expS{0};
+  std::vector<std::size_t> expT{0};
+  EXPECT_EQ(sPattern->getDisabledControlCounts(), llvm::ArrayRef(expS));
+  EXPECT_EQ(tPattern->getDisabledControlCounts(), llvm::ArrayRef(expT));
 }
 
 } // namespace
