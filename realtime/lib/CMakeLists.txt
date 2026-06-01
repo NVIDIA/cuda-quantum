@@ -15,3 +15,4 @@ install(DIRECTORY ${CUDAQ_REALTIME_INCLUDE_DIR}/cudaq
 )
 
 add_subdirectory(daemon)
+add_subdirectory(cpu_transport)
