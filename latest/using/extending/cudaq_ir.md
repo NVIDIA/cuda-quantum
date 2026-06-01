@@ -2271,76 +2271,48 @@ which prints:
 ::: highlight
     ; ModuleID = 'LLVMDialectModule'
     source_filename = "LLVMDialectModule"
-    target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+    target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
     target triple = "x86_64-unknown-linux-gnu"
 
-    %Array = type opaque
-    %Qubit = type opaque
-    %Result = type opaque
-
-    declare void @invokeWithControlQubits(i64, void (%Array*, %Qubit*)*, ...) local_unnamed_addr
-
-    declare void @__quantum__qis__x__ctl(%Array*, %Qubit*)
-
-    declare %Result* @__quantum__qis__mz(%Qubit*) local_unnamed_addr
-
-    declare void @__quantum__rt__qubit_release_array(%Array*) local_unnamed_addr
-
-    declare i64 @__quantum__rt__array_get_size_1d(%Array*) local_unnamed_addr
-
-    declare void @__quantum__qis__h(%Qubit*) local_unnamed_addr
-
-    declare i8* @__quantum__rt__array_get_element_ptr_1d(%Array*, i64) local_unnamed_addr
-
-    declare %Array* @__quantum__rt__qubit_allocate_array(i64) local_unnamed_addr
-
-    define void @__nvqpp__mlirgen__ghz(i32 %0) local_unnamed_addr {
-      %2 = sext i32 %0 to i64
-      %3 = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 %2)
-      %4 = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %3, i64 0)
-      %5 = bitcast i8* %4 to %Qubit**
-      %6 = load %Qubit*, %Qubit** %5, align 8
-      tail call void @__quantum__qis__h(%Qubit* %6)
-      %7 = add i32 %0, -1
-      %8 = icmp sgt i32 %7, 0
-      br i1 %8, label %.lr.ph.preheader, label %._crit_edge
-
-    .lr.ph.preheader:                                 ; preds = %1
-      %wide.trip.count = zext i32 %7 to i64
-      br label %.lr.ph
-
-    .lr.ph:                                           ; preds = %.lr.ph.preheader, %.lr.ph
-      %indvars.iv = phi i64 [ 0, %.lr.ph.preheader ], [ %indvars.iv.next, %.lr.ph ]
-      %9 = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %3, i64 %indvars.iv)
-      %10 = bitcast i8* %9 to %Qubit**
-      %11 = load %Qubit*, %Qubit** %10, align 8
-      %indvars.iv.next = add nuw nsw i64 %indvars.iv, 1
-      %12 = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %3, i64 %indvars.iv.next)
-      %13 = bitcast i8* %12 to %Qubit**
-      %14 = load %Qubit*, %Qubit** %13, align 8
-      tail call void (i64, void (%Array*, %Qubit*)*, ...) @invokeWithControlQubits(i64 1, void (%Array*, %Qubit*)* nonnull @__quantum__qis__x__ctl, %Qubit* %11, %Qubit* %14)
-      %exitcond.not = icmp eq i64 %indvars.iv.next, %wide.trip.count
-      br i1 %exitcond.not, label %._crit_edge, label %.lr.ph
-
-    ._crit_edge:                                      ; preds = %.lr.ph, %1
-      %15 = tail call i64 @__quantum__rt__array_get_size_1d(%Array* %3)
-      %16 = icmp sgt i64 %15, 0
-      br i1 %16, label %.lr.ph3, label %._crit_edge4
-
-    .lr.ph3:                                          ; preds = %._crit_edge, %.lr.ph3
-      %17 = phi i64 [ %22, %.lr.ph3 ], [ 0, %._crit_edge ]
-      %18 = tail call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %3, i64 %17)
-      %19 = bitcast i8* %18 to %Qubit**
-      %20 = load %Qubit*, %Qubit** %19, align 8
-      %21 = tail call %Result* @__quantum__qis__mz(%Qubit* %20)
-      %22 = add nuw nsw i64 %17, 1
-      %exitcond5.not = icmp eq i64 %22, %15
-      br i1 %exitcond5.not, label %._crit_edge4, label %.lr.ph3
-
-    ._crit_edge4:                                     ; preds = %.lr.ph3, %._crit_edge
-      tail call void @__quantum__rt__qubit_release_array(%Array* %3)
+    define void @__nvqpp__mlirgen__ghz() local_unnamed_addr {
+      %1 = tail call ptr @__quantum__rt__qubit_allocate_array(i64 5)
+      %2 = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %1, i64 0)
+      %3 = load ptr, ptr %2, align 8
+      tail call void @__quantum__qis__h(ptr %3)
+      %4 = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %1, i64 1)
+      %5 = load ptr, ptr %4, align 8
+      tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, ptr nonnull @__quantum__qis__x__ctl, ptr %3, ptr %5)
+      %6 = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %1, i64 2)
+      %7 = load ptr, ptr %6, align 8
+      tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, ptr nonnull @__quantum__qis__x__ctl, ptr %5, ptr %7)
+      %8 = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %1, i64 3)
+      %9 = load ptr, ptr %8, align 8
+      tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, ptr nonnull @__quantum__qis__x__ctl, ptr %7, ptr %9)
+      %10 = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %1, i64 4)
+      %11 = load ptr, ptr %10, align 8
+      tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, ptr nonnull @__quantum__qis__x__ctl, ptr %9, ptr %11)
+      %12 = tail call ptr @__quantum__qis__mz(ptr %3)
+      %13 = tail call ptr @__quantum__qis__mz(ptr %5)
+      %14 = tail call ptr @__quantum__qis__mz(ptr %7)
+      %15 = tail call ptr @__quantum__qis__mz(ptr %9)
+      %16 = tail call ptr @__quantum__qis__mz(ptr %11)
+      tail call void @__quantum__rt__qubit_release_array(ptr %1)
       ret void
     }
+
+    declare ptr @__quantum__rt__qubit_allocate_array(i64) local_unnamed_addr
+
+    declare void @__quantum__rt__qubit_release_array(ptr) local_unnamed_addr
+
+    declare ptr @__quantum__rt__array_get_element_ptr_1d(ptr, i64) local_unnamed_addr
+
+    declare void @__quantum__qis__x__ctl(ptr, ptr)
+
+    declare void @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, ptr, ...) local_unnamed_addr
+
+    declare void @__quantum__qis__h(ptr) local_unnamed_addr
+
+    declare ptr @__quantum__qis__mz(ptr) local_unnamed_addr
 
     !llvm.module.flags = !{!0}
 

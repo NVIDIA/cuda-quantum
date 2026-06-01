@@ -1521,7 +1521,11 @@ enables one to create a superposition of computational basis states.</p>
 </div>
 <p>The <code class="code docutils literal notranslate"><span class="pre">ctrl</span></code> method of any gate can be used to apply the transformation
 conditional on the state of one or more control qubits, see also this
-<a class="reference external" href="https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gates">Wikipedia entry</a>.</p>
+<a class="reference external" href="https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gates">Wikipedia entry</a>.
+In the argument list, control qubits come before the target qubit, which is always last.
+For parameterized gates such as the rotation gates <code class="code docutils literal notranslate"><span class="pre">rx</span></code>, <code class="code docutils literal notranslate"><span class="pre">ry</span></code>,
+<code class="code docutils literal notranslate"><span class="pre">rz</span></code>, <code class="code docutils literal notranslate"><span class="pre">r1</span></code>, and <code class="code docutils literal notranslate"><span class="pre">u3</span></code>, the gate parameters come first, preceding
+any qubit arguments.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create a kernel and allocate qubits in a |0&gt; state.</span>
 <span class="n">ctrl_1</span><span class="p">,</span> <span class="n">ctrl_2</span><span class="p">,</span> <span class="n">target</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">(),</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">(),</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
 <span class="c1"># Create a superposition.</span>
@@ -1543,6 +1547,12 @@ conditional on the state of one or more control qubits, see also this
 <span class="n">t</span><span class="o">.</span><span class="n">ctrl</span><span class="p">([</span><span class="n">ctrl_1</span><span class="p">,</span> <span class="n">ctrl_2</span><span class="p">],</span> <span class="n">target</span><span class="p">)</span>
 <span class="c1"># The qubits ctrl_1, ctrl_2, and target are now in a state</span>
 <span class="c1"># (|000&gt; + exp(iπ/4)|111&gt;) / √2.</span>
+
+<span class="c1"># For parametric gates (rx, ry, rz, r1), the rotation angle is passed</span>
+<span class="c1"># as the first argument, before the control qubit(s) and the target:</span>
+<span class="n">rx</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">ctrl_1</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+<span class="n">ry</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">4</span><span class="p">,</span> <span class="n">ctrl_1</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+<span class="n">rz</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">8</span><span class="p">,</span> <span class="n">ctrl_1</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1567,7 +1577,11 @@ conditional on the state of one or more control qubits, see also this
 </div>
 <p>The template argument <code class="code docutils literal notranslate"><span class="pre">cudaq::ctrl</span></code> can be used to apply the transformation
 conditional on the state of one or more control qubits, see also this
-<a class="reference external" href="https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gates">Wikipedia entry</a>.</p>
+<a class="reference external" href="https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gates">Wikipedia entry</a>.
+In the argument list, control qubits come before the target qubit, which is always last.
+For parameterized gates such as the rotation gates <code class="code docutils literal notranslate"><span class="pre">rx</span></code>, <code class="code docutils literal notranslate"><span class="pre">ry</span></code>,
+<code class="code docutils literal notranslate"><span class="pre">rz</span></code>, <code class="code docutils literal notranslate"><span class="pre">r1</span></code>, and <code class="code docutils literal notranslate"><span class="pre">u3</span></code>, the gate parameters come first, preceding
+any qubit arguments.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Allocate qubits in a |0&gt; state.</span>
 <span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">ctrl_1</span><span class="p">,</span><span class="w"> </span><span class="n">ctrl_2</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">;</span>
 <span class="c1">// Create a superposition.</span>
@@ -1589,6 +1603,12 @@ conditional on the state of one or more control qubits, see also this
 <span class="n">t</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">ctrl_1</span><span class="p">,</span><span class="w"> </span><span class="n">ctrl_2</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">);</span>
 <span class="c1">// The qubits ctrl_1, ctrl_2, and target are now in a state</span>
 <span class="c1">// (|000&gt; + exp(iπ/4)|111&gt;) / √2.</span>
+
+<span class="c1">// For parametric gates (rx, ry, rz, r1), the rotation angle is passed</span>
+<span class="c1">// as the first argument, before the control qubit(s) and the target:</span>
+<span class="n">rx</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">M_PI_2</span><span class="p">,</span><span class="w"> </span><span class="n">ctrl_1</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">);</span>
+<span class="n">ry</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">M_PI_4</span><span class="p">,</span><span class="w"> </span><span class="n">ctrl_1</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">);</span>
+<span class="n">rz</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">M_PI</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">8</span><span class="p">,</span><span class="w"> </span><span class="n">ctrl_1</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">);</span>
 </pre></div>
 </div>
 </div>

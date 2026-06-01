@@ -2579,7 +2579,14 @@ The [`ctrl`{.code .docutils .literal .notranslate}]{.pre} method of any
 gate can be used to apply the transformation conditional on the state of
 one or more control qubits, see also this [Wikipedia
 entry](https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gates){.reference
-.external}.
+.external}. In the argument list, control qubits come before the target
+qubit, which is always last. For parameterized gates such as the
+rotation gates [`rx`{.code .docutils .literal .notranslate}]{.pre},
+[`ry`{.code .docutils .literal .notranslate}]{.pre}, [`rz`{.code
+.docutils .literal .notranslate}]{.pre}, [`r1`{.code .docutils .literal
+.notranslate}]{.pre}, and [`u3`{.code .docutils .literal
+.notranslate}]{.pre}, the gate parameters come first, preceding any
+qubit arguments.
 
 ::: {.highlight-python .notranslate}
 ::: highlight
@@ -2604,6 +2611,12 @@ entry](https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gates){.refer
     t.ctrl([ctrl_1, ctrl_2], target)
     # The qubits ctrl_1, ctrl_2, and target are now in a state
     # (|000> + exp(iπ/4)|111>) / √2.
+
+    # For parametric gates (rx, ry, rz, r1), the rotation angle is passed
+    # as the first argument, before the control qubit(s) and the target:
+    rx.ctrl(math.pi / 2, ctrl_1, target)
+    ry.ctrl(math.pi / 4, ctrl_1, target)
+    rz.ctrl(math.pi / 8, ctrl_1, target)
 :::
 :::
 :::
@@ -2639,7 +2652,14 @@ The template argument [`cudaq::ctrl`{.code .docutils .literal
 .notranslate}]{.pre} can be used to apply the transformation conditional
 on the state of one or more control qubits, see also this [Wikipedia
 entry](https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gates){.reference
-.external}.
+.external}. In the argument list, control qubits come before the target
+qubit, which is always last. For parameterized gates such as the
+rotation gates [`rx`{.code .docutils .literal .notranslate}]{.pre},
+[`ry`{.code .docutils .literal .notranslate}]{.pre}, [`rz`{.code
+.docutils .literal .notranslate}]{.pre}, [`r1`{.code .docutils .literal
+.notranslate}]{.pre}, and [`u3`{.code .docutils .literal
+.notranslate}]{.pre}, the gate parameters come first, preceding any
+qubit arguments.
 
 ::: {.highlight-cpp .notranslate}
 ::: highlight
@@ -2664,6 +2684,12 @@ entry](https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gates){.refer
     t<cudaq::ctrl>(ctrl_1, ctrl_2, target);
     // The qubits ctrl_1, ctrl_2, and target are now in a state
     // (|000> + exp(iπ/4)|111>) / √2.
+
+    // For parametric gates (rx, ry, rz, r1), the rotation angle is passed
+    // as the first argument, before the control qubit(s) and the target:
+    rx<cudaq::ctrl>(M_PI_2, ctrl_1, target);
+    ry<cudaq::ctrl>(M_PI_4, ctrl_1, target);
+    rz<cudaq::ctrl>(M_PI / 8, ctrl_1, target);
 :::
 :::
 :::
