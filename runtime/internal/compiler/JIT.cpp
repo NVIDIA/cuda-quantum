@@ -143,14 +143,21 @@ insertResultMapCleanupOperations(Operation *module,
     auto &blocks = func.getBlocks();
     if (blocks.empty())
       continue;
+    // Clear on entry so each execution starts from a clean slate regardless of
+    // how a prior execution exited.
     {
       OpBuilder builder(&*blocks.begin(), blocks.begin()->begin());
       auto loc = builder.getUnknownLoc();
       mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{voidTy},
                                  clearResultMapsSymbol, mlir::ValueRange{});
     }
-    {
-      OpBuilder builder(std::prev(blocks.end())->getTerminator());
+    // Clear before every return, not just the last block's terminator, so the
+    // maps are reset on all exit paths of a multi-block function.
+    for (Block &block : blocks) {
+      auto *terminator = block.getTerminator();
+      if (!isa<LLVM::ReturnOp>(terminator))
+        continue;
+      OpBuilder builder(terminator);
       auto loc = builder.getUnknownLoc();
       mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{voidTy},
                                  clearResultMapsSymbol, mlir::ValueRange{});

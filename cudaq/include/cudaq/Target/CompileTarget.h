@@ -69,14 +69,14 @@ public:
   /// When true, the compiler will generate resource counts during compilation
   /// and simplify the IR to remove all quantum operations already accounted
   /// for in the counts.
-  bool generateResourceCounts = false;
+  bool emitResourceCounts = false;
 
   /// Whether to create local JIT artifacts even when not emulating the target.
   ///
   /// Analysis contexts that execute locally, but are entered through a remote
   /// platform, use this to run the kernel under the analysis simulator instead
   /// of submitting it to the remote executor.
-  bool generateJitArtifacts = false;
+  bool emitJit = false;
 
   /// Whether to translate MLIR artifacts into target transport code.
   ///

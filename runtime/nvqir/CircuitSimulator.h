@@ -173,6 +173,9 @@ public:
 
   /// @brief For simulators that support detector error model (DEM) analysis,
   /// compute the DEM from the recorded circuit and return it as `.dem` text.
+  ///
+  /// `.dem` is the Detector Error Model text format defined by Stim; only the
+  /// `stim` backend currently implements this.
   virtual std::string generateDem() {
     throw std::runtime_error(
         "Detector error model (DEM) analysis not supported.");

@@ -271,9 +271,9 @@ public:
         throw std::runtime_error("observe execution requires a spin_op");
       target->pauliTermSplitObservable = ctx->spin;
     } else if (ctx && ctx->name == "resource-count") {
-      target->generateResourceCounts = true;
+      target->emitResourceCounts = true;
     } else if (ctx && ctx->name == "dem") {
-      target->generateJitArtifacts = true;
+      target->emitJit = true;
       target->emitTargetCode = false;
       target->runTargetLoweringPipeline = false;
     }

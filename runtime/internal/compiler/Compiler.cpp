@@ -370,7 +370,7 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
   // the pre-processing might change the IR structure (may interfere with
   // other passes).
   std::optional<cudaq::Resources> resourceCounts;
-  if (target->generateResourceCounts) {
+  if (target->emitResourceCounts) {
     auto result = cudaq::opt::countResourcesFromIR(moduleOp);
     if (failed(result))
       throw std::runtime_error(
@@ -461,8 +461,7 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
     modules.emplace_back(kernelName, moduleOp);
   }
 
-  bool needJit =
-      emulate || target->generateResourceCounts || target->generateJitArtifacts;
+  bool needJit = emulate || target->emitResourceCounts || target->emitJit;
   return assembleCompiledModule(
       kernelName, modules, needJit, emulate && combineMeasurements,
       std::move(resourceCounts), {.reorderIdx = mapping_reorder_idx}, context);
