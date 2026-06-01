@@ -84,34 +84,50 @@ if (NOT DEFINED CUDAQ_ENABLE_REST)
   set(CUDAQ_ENABLE_REST ON CACHE BOOL "Enable building REST client & server.")
 endif()
 
+# CUDAQ_ENABLE_ALL_BACKEND, if defined, becomes the default value used for
+# every per-backend CUDAQ_ENABLE_<NAME>_BACKEND flag below. Individual
+# per-backend flags can still be overridden on the command line to opt in
+# or out of specific backends.
+#
+# Examples:
+#   # Disable every backend:
+#   cmake -DCUDAQ_ENABLE_ALL_BACKEND=OFF ..
+#   # Disable every backend except IonQ:
+#   cmake -DCUDAQ_ENABLE_ALL_BACKEND=OFF -DCUDAQ_ENABLE_IONQ_BACKEND=ON ..
+if (DEFINED CUDAQ_ENABLE_ALL_BACKEND)
+  set(_cudaq_backend_default ${CUDAQ_ENABLE_ALL_BACKEND})
+else()
+  set(_cudaq_backend_default ON)
+endif()
+
 # Enable Amazon Braket backends by default.
 if (NOT DEFINED CUDAQ_ENABLE_BRAKET_BACKEND)
-  set(CUDAQ_ENABLE_BRAKET_BACKEND ON CACHE BOOL "Enable building AWS SDK for Amazon Braket backends.")
+  set(CUDAQ_ENABLE_BRAKET_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building AWS SDK for Amazon Braket backends.")
 endif()
 
 # Enable Anyon target by default.
 if (NOT DEFINED CUDAQ_ENABLE_ANYON_BACKEND)
-  set(CUDAQ_ENABLE_ANYON_BACKEND ON CACHE BOOL "Enable building the Anyon target.")
+  set(CUDAQ_ENABLE_ANYON_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Anyon target.")
 endif()
 
 # Enable IonQ target by default.
 if (NOT DEFINED CUDAQ_ENABLE_IONQ_BACKEND)
-  set(CUDAQ_ENABLE_IONQ_BACKEND ON CACHE BOOL "Enable building the IonQ target.")
+  set(CUDAQ_ENABLE_IONQ_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the IonQ target.")
 endif()
 
 # Enable IQM target by default.
 if (NOT DEFINED CUDAQ_ENABLE_IQM_BACKEND)
-  set(CUDAQ_ENABLE_IQM_BACKEND ON CACHE BOOL "Enable building the IQM target.")
+  set(CUDAQ_ENABLE_IQM_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the IQM target.")
 endif()
 
 # Enable OQC target by default.
 if (NOT DEFINED CUDAQ_ENABLE_OQC_BACKEND)
-  set(CUDAQ_ENABLE_OQC_BACKEND ON CACHE BOOL "Enable building the OQC target.")
+  set(CUDAQ_ENABLE_OQC_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the OQC target.")
 endif()
 
 # Enable Pasqal target by default.
 if (NOT DEFINED CUDAQ_ENABLE_PASQAL_BACKEND)
-  set(CUDAQ_ENABLE_PASQAL_BACKEND ON CACHE BOOL "Enable building the Pasqal target.")
+  set(CUDAQ_ENABLE_PASQAL_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Pasqal target.")
 endif()
 
 # Enable Pasqal QRMI connector by default only on Linux builds.
@@ -128,28 +144,75 @@ endif()
 
 # Enable Quantum Circuits, Inc. (QCI) target by default.
 if (NOT DEFINED CUDAQ_ENABLE_QCI_BACKEND)
-  set(CUDAQ_ENABLE_QCI_BACKEND ON CACHE BOOL "Enable building the Quantum Circuits, Inc. target.")
+  set(CUDAQ_ENABLE_QCI_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Quantum Circuits, Inc. target.")
 endif()
 
 # Enable TII target by default.
 if (NOT DEFINED CUDAQ_ENABLE_TII_BACKEND)
-  set(CUDAQ_ENABLE_TII_BACKEND ON CACHE BOOL "Enable building the TII target.")
+  set(CUDAQ_ENABLE_TII_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the TII target.")
 endif()
 
 # Enable Quantum Machines target by default.
 if (NOT DEFINED CUDAQ_ENABLE_QUANTUM_MACHINES_BACKEND)
-  set(CUDAQ_ENABLE_QUANTUM_MACHINES_BACKEND ON CACHE BOOL "Enable building the Quantum Machines target.")
+  set(CUDAQ_ENABLE_QUANTUM_MACHINES_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Quantum Machines target.")
 endif()
 
 # Enable Scaleway target by default.
 if (NOT DEFINED CUDAQ_ENABLE_SCALEWAY_BACKEND)
-  set(CUDAQ_ENABLE_SCALEWAY_BACKEND ON CACHE BOOL "Enable building the Scaleway target.")
+  set(CUDAQ_ENABLE_SCALEWAY_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Scaleway target.")
 endif()
 
 # Enable qBraid target by default.
 if (NOT DEFINED CUDAQ_ENABLE_QBRAID_BACKEND)
-  set(CUDAQ_ENABLE_QBRAID_BACKEND ON CACHE BOOL "Enable building the qBraid target.")
+  set(CUDAQ_ENABLE_QBRAID_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the qBraid target.")
 endif()
+
+# =============================================================================
+# CUDAQ_EXTERNAL_PROJECTS
+# -----------------------------------------------------------------------------
+# Plug additional sub-projects into the CUDA-Q build, mirroring LLVM's
+# LLVM_EXTERNAL_PROJECTS pattern.
+#
+# Inputs
+#   CUDAQ_EXTERNAL_PROJECTS
+#       Semicolon-separated list of project names to include in the build.
+#       Each name is a free-form identifier; dashes are allowed.
+#
+#   CUDAQ_EXTERNAL_<UPPER_NAME>_SOURCE_DIR
+#       Absolute path to the source directory containing the project's
+#       CMakeLists.txt. Required for every name listed in
+#       CUDAQ_EXTERNAL_PROJECTS. <UPPER_NAME> is the project name uppercased
+#       with dashes converted to underscores (e.g. project "my-tool"
+#       -> CUDAQ_EXTERNAL_MY_TOOL_SOURCE_DIR).
+#
+# Build layout
+#   Each external project is added via add_subdirectory() after the in-tree
+#   sub-projects (cudaq/, runtime/, python/), so externals may depend on
+#   CUDA-Q targets. The binary directory for each project is placed at
+#   ${CMAKE_BINARY_DIR}/external/<name>.
+#
+# Diagnostics
+#   * Listing a project without setting its SOURCE_DIR is a fatal error.
+#   * A SOURCE_DIR that does not contain a CMakeLists.txt is a fatal error.
+#
+# Examples
+#   # Single external project:
+#   cmake -DCUDAQ_EXTERNAL_PROJECTS="my-tool" \
+#         -DCUDAQ_EXTERNAL_MY_TOOL_SOURCE_DIR=/path/to/my-tool ..
+#
+#   # Multiple external projects:
+#   cmake -DCUDAQ_EXTERNAL_PROJECTS="foo;bar" \
+#         -DCUDAQ_EXTERNAL_FOO_SOURCE_DIR=/path/to/foo \
+#         -DCUDAQ_EXTERNAL_BAR_SOURCE_DIR=/path/to/bar ..
+# =============================================================================
+set(CUDAQ_EXTERNAL_PROJECTS "" CACHE STRING
+    "Semicolon-separated list of external projects to add to the CUDA-Q build.")
+foreach(_cudaq_ext_proj IN LISTS CUDAQ_EXTERNAL_PROJECTS)
+  string(TOUPPER "${_cudaq_ext_proj}" _cudaq_ext_upper)
+  string(REGEX REPLACE "-" "_" _cudaq_ext_upper "${_cudaq_ext_upper}")
+  set(CUDAQ_EXTERNAL_${_cudaq_ext_upper}_SOURCE_DIR "" CACHE PATH
+      "Source directory for external project '${_cudaq_ext_proj}'.")
+endforeach()
 
 # Generate a CompilationDatabase (compile_commands.json file) for our build,
 # for use by clang_complete, YouCompleteMe, etc.
@@ -812,6 +875,29 @@ if("python" IN_LIST CUDAQ_ENABLE_PROJECTS)
 
   add_subdirectory(python)
 endif()
+
+# Add any external projects requested via CUDAQ_EXTERNAL_PROJECTS. Each entry's
+# source directory must be supplied through the per-project cache variable
+# `CUDAQ_EXTERNAL_<UPPER_NAME>_SOURCE_DIR`. The binary directory for each is
+# placed under `${CMAKE_BINARY_DIR}/external/<name>`.
+foreach(_cudaq_ext_proj IN LISTS CUDAQ_EXTERNAL_PROJECTS)
+  string(TOUPPER "${_cudaq_ext_proj}" _cudaq_ext_upper)
+  string(REGEX REPLACE "-" "_" _cudaq_ext_upper "${_cudaq_ext_upper}")
+  set(_cudaq_ext_src "${CUDAQ_EXTERNAL_${_cudaq_ext_upper}_SOURCE_DIR}")
+  if(NOT _cudaq_ext_src)
+    message(FATAL_ERROR
+      "CUDAQ_EXTERNAL_PROJECTS lists '${_cudaq_ext_proj}' but "
+      "CUDAQ_EXTERNAL_${_cudaq_ext_upper}_SOURCE_DIR is not set.")
+  endif()
+  if(NOT EXISTS "${_cudaq_ext_src}/CMakeLists.txt")
+    message(FATAL_ERROR
+      "External project '${_cudaq_ext_proj}' source dir '${_cudaq_ext_src}' "
+      "does not contain a CMakeLists.txt.")
+  endif()
+  message(STATUS "Adding external project '${_cudaq_ext_proj}' from ${_cudaq_ext_src}")
+  add_subdirectory("${_cudaq_ext_src}"
+                   "${CMAKE_BINARY_DIR}/external/${_cudaq_ext_proj}")
+endforeach()
 
 if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
   include(CheckCXXCompilerFlag)
