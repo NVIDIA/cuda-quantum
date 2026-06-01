@@ -143,7 +143,7 @@ public:
   /// https://arxiv.org/pdf/2407.13826.
   std::optional<std::pair<std::size_t, std::size_t>> msm_dimensions;
 
-  bool allowJitEngineCaching = false;
+  bool allowCompiledModuleCaching = false;
 
   bool useParametricJit = false;
 
@@ -154,7 +154,7 @@ public:
 
   /// @brief For performance, a launcher may cache the JIT execution engine and
   /// use it for multiple discrete calls.
-  std::optional<cudaq::JitEngine> jitEng = std::nullopt;
+  std::optional<cudaq::CompiledModule> cachedCompiledModule = std::nullopt;
 
   /// @brief Dispatcher towards the policy specific launch.
   std::function<void(const AnyModule &module, const KernelArgs &args)>

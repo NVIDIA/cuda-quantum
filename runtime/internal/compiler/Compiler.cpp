@@ -40,6 +40,7 @@
 #include "mlir/Pass/PassRegistry.h"
 #include "mlir/Transforms/Passes.h"
 #include <memory>
+#include <mlir/IR/OwningOpRef.h>
 #include <optional>
 #include <regex>
 
@@ -471,29 +472,32 @@ cudaq_internal::compiler::Compiler::emitKernelExecutions(
   // Apply user-specified codegen
   std::vector<cudaq::KernelExecution> codes;
   for (const auto &[name, mlirArtifact] : compiled.getMlirArtifacts()) {
-    auto moduleOpI =
+    mlir::OwningOpRef<ModuleOp> compiled_module =
         cudaq_internal::compiler::CompiledModuleHelper::getMlirModuleOp(
-            mlirArtifact);
+            mlirArtifact)
+            .clone();
 
     std::string codeStr;
     llvm::raw_string_ostream outStr(codeStr);
     if (disableMLIRthreading)
-      moduleOpI.getContext()->disableMultithreading();
+      compiled_module->getContext()->disableMultithreading();
     if (codegenTranslation.starts_with("qir")) {
-      if (failed(translation(moduleOpI, codegenTranslation, outStr,
+      if (failed(translation(*compiled_module, codegenTranslation, outStr,
                              postCodeGenPasses, printIR,
                              enablePrintMLIREachPass, enablePassStatistics)))
         throw std::runtime_error("Could not successfully translate to " +
                                  codegenTranslation + ".");
     } else {
-      if (failed(translation(moduleOpI, outStr, postCodeGenPasses, printIR,
-                             enablePrintMLIREachPass, enablePassStatistics)))
+      if (failed(translation(*compiled_module, outStr, postCodeGenPasses,
+                             printIR, enablePrintMLIREachPass,
+                             enablePassStatistics)))
         throw std::runtime_error("Could not successfully translate to " +
                                  codegenTranslation + ".");
     }
 
     // Form an output_names mapping from codeStr
-    nlohmann::json j = formOutputNames(codegenTranslation, moduleOpI, codeStr);
+    nlohmann::json j =
+        formOutputNames(codegenTranslation, *compiled_module, codeStr);
 
     // Retrieve pre-computed JIT engine and resource counts (if any).
     std::optional<cudaq::JitEngine> optionalJit;

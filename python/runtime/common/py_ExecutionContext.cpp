@@ -43,15 +43,15 @@ void bindExecutionContext(nanobind::module_ &mod) {
       .def_rw("explicitMeasurements",
               &cudaq::ExecutionContext::explicitMeasurements)
       .def_rw("allowJitEngineCaching",
-              &cudaq::ExecutionContext::allowJitEngineCaching)
+              &cudaq::ExecutionContext::allowCompiledModuleCaching)
       .def_rw("useParametricJit", &cudaq::ExecutionContext::useParametricJit)
       .def_ro("invocationResultBuffer",
               &cudaq::ExecutionContext::invocationResultBuffer)
       .def("unset_jit_engine",
            [&](cudaq::ExecutionContext &execCtx) {
-             if (execCtx.jitEng) {
-               execCtx.jitEng = std::nullopt;
-               execCtx.allowJitEngineCaching = false;
+             if (execCtx.cachedCompiledModule) {
+               execCtx.cachedCompiledModule = std::nullopt;
+               execCtx.allowCompiledModuleCaching = false;
              }
            })
       .def("setSpinOperator",
