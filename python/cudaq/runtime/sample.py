@@ -7,11 +7,11 @@
 # ============================================================================ #
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
-from cudaq.kernel.kernel_builder import PyKernel
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
-from cudaq.kernel.utils import mlirTypeToPyType, nvqppPrefix
+from cudaq.kernel.utils import mlirTypeToPyType
 from cudaq.util import trace
-from .utils import __isBroadcast, __createArgumentSet
+from .utils import (__isBroadcast, __createArgumentSet,
+                    _kernel_has_conditionals_on_measure)
 
 # Maintain a dictionary of queued `async` sample kernels.This dictionary is used
 # to keep the `mlir::ModuleOp` alive so the interpreter doesn't garbage collect
@@ -83,27 +83,14 @@ def __broadcastSample(kernel,
 
 
 def _detail_check_conditionals_on_measure(kernel):
-    has_conditionals_on_measure_result = False
-    if isa_kernel_decorator(kernel):
-        if kernel.return_type is not None:
-            raise RuntimeError(
-                f"The `sample` API only supports kernels that return None "
-                f"(void). Kernel '{kernel.name}' has return type "
-                f"'{mlirTypeToPyType(kernel.return_type)}'. Consider using `run` for kernels "
-                f"that return values.")
-        # Only check for kernels that can be compiled, not library-mode kernels (e.g., photonics)
-        if kernel.supports_compilation():
-            for operation in kernel.qkeModule.body.operations:
-                op_name = getattr(operation.name,
-                                  'value', operation.name) if hasattr(
-                                      operation, 'name') else None
-                if (op_name == nvqppPrefix + kernel.uniqName and
-                        'qubitMeasurementFeedback' in operation.attributes):
-                    has_conditionals_on_measure_result = True
-    elif isinstance(kernel, PyKernel) and kernel.conditionalOnMeasure:
-        has_conditionals_on_measure_result = True
+    if isa_kernel_decorator(kernel) and kernel.return_type is not None:
+        raise RuntimeError(
+            f"The `sample` API only supports kernels that return None "
+            f"(void). Kernel '{kernel.name}' has return type "
+            f"'{mlirTypeToPyType(kernel.return_type)}'. Consider using `run` for kernels "
+            f"that return values.")
 
-    if has_conditionals_on_measure_result:
+    if _kernel_has_conditionals_on_measure(kernel):
         raise RuntimeError(
             f"`cudaq.sample` and `cudaq.sample_async` no longer support "
             f"kernels that branch on measurement results. Kernel "

@@ -356,14 +356,22 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
     }
   }
 
-  auto [combineMeasurements, passPipeline] =
-      executeMainPipeline(moduleOp, kernelName);
+  // DEM and other local-analysis contexts JIT the kernel directly for an
+  // analysis simulator and must skip the target lowering pipeline, which would
+  // erase or fail to legalize the QEC/noise ops the analysis depends on.
+  bool combineMeasurements = false;
+  std::string passPipeline;
+  if (target->runTargetLoweringPipeline) {
+    auto pipelineResult = executeMainPipeline(moduleOp, kernelName);
+    combineMeasurements = pipelineResult.first;
+    passPipeline = std::move(pipelineResult.second);
+  }
 
   // We need to run resource counting preprocessing after the pass pipeline as
   // the pre-processing might change the IR structure (may interfere with
   // other passes).
   std::optional<cudaq::Resources> resourceCounts;
-  if (target->generateResourceCounts) {
+  if (target->emitResourceCounts) {
     auto result = cudaq::opt::countResourcesFromIR(moduleOp);
     if (failed(result))
       throw std::runtime_error(
@@ -454,7 +462,7 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
     modules.emplace_back(kernelName, moduleOp);
   }
 
-  bool needJit = emulate || target->generateResourceCounts;
+  bool needJit = emulate || target->emitResourceCounts || target->emitJit;
   return assembleCompiledModule(
       kernelName, modules, needJit, emulate && combineMeasurements,
       std::move(resourceCounts), {.reorderIdx = mapping_reorder_idx}, context);
@@ -465,9 +473,6 @@ cudaq_internal::compiler::Compiler::emitKernelExecutions(
     const cudaq::CompiledModule &compiled) {
   const auto &codegenTranslation = target->pipelineConfig.codegenTranslation;
   const auto &postCodeGenPasses = target->pipelineConfig.postCodeGenPasses;
-  // Get the code gen translation
-  auto translation =
-      cudaq_internal::compiler::getTranslation(codegenTranslation);
 
   // Apply user-specified codegen
   std::vector<cudaq::KernelExecution> codes;
@@ -478,26 +483,31 @@ cudaq_internal::compiler::Compiler::emitKernelExecutions(
             .clone();
 
     std::string codeStr;
-    llvm::raw_string_ostream outStr(codeStr);
-    if (disableMLIRthreading)
-      compiled_module->getContext()->disableMultithreading();
-    if (codegenTranslation.starts_with("qir")) {
-      if (failed(translation(*compiled_module, codegenTranslation, outStr,
-                             postCodeGenPasses, printIR,
-                             enablePrintMLIREachPass, enablePassStatistics)))
-        throw std::runtime_error("Could not successfully translate to " +
-                                 codegenTranslation + ".");
-    } else {
-      if (failed(translation(*compiled_module, outStr, postCodeGenPasses,
-                             printIR, enablePrintMLIREachPass,
-                             enablePassStatistics)))
-        throw std::runtime_error("Could not successfully translate to " +
-                                 codegenTranslation + ".");
-    }
+    nlohmann::json j;
+    if (target->emitTargetCode) {
+      // Get the code gen translation
+      auto translation =
+          cudaq_internal::compiler::getTranslation(codegenTranslation);
+      llvm::raw_string_ostream outStr(codeStr);
+      if (disableMLIRthreading)
+        compiled_module->getContext()->disableMultithreading();
+      if (codegenTranslation.starts_with("qir")) {
+        if (failed(translation(*compiled_module, codegenTranslation, outStr,
+                               postCodeGenPasses, printIR,
+                               enablePrintMLIREachPass, enablePassStatistics)))
+          throw std::runtime_error("Could not successfully translate to " +
+                                   codegenTranslation + ".");
+      } else {
+        if (failed(translation(*compiled_module, outStr, postCodeGenPasses,
+                               printIR, enablePrintMLIREachPass,
+                               enablePassStatistics)))
+          throw std::runtime_error("Could not successfully translate to " +
+                                   codegenTranslation + ".");
+      }
 
-    // Form an output_names mapping from codeStr
-    nlohmann::json j =
-        formOutputNames(codegenTranslation, *compiled_module, codeStr);
+      // Form an output_names mapping from codeStr
+      j = formOutputNames(codegenTranslation, *compiled_module, codeStr);
+    }
 
     // Retrieve pre-computed JIT engine and resource counts (if any).
     std::optional<cudaq::JitEngine> optionalJit;

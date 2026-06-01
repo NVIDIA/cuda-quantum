@@ -69,7 +69,28 @@ public:
   /// When true, the compiler will generate resource counts during compilation
   /// and simplify the IR to remove all quantum operations already accounted
   /// for in the counts.
-  bool generateResourceCounts = false;
+  bool emitResourceCounts = false;
+
+  /// Whether to create local JIT artifacts even when not emulating the target.
+  ///
+  /// Analysis contexts that execute locally, but are entered through a remote
+  /// platform, use this to run the kernel under the analysis simulator instead
+  /// of submitting it to the remote executor.
+  bool emitJit = false;
+
+  /// Whether to translate MLIR artifacts into target transport code.
+  ///
+  /// Local analysis contexts can set this to false when they only need the JIT
+  /// artifact and do not need a QIR/QASM payload for the remote backend.
+  bool emitTargetCode = true;
+
+  /// Whether to run the target lowering pipeline before building artifacts.
+  ///
+  /// Local analysis contexts set this to false: they JIT the kernel directly
+  /// for an analysis simulator. The target lowering pipeline would otherwise
+  /// erase operations such as noise or QEC, or fail to legalize them during
+  /// code generation.
+  bool runTargetLoweringPipeline = true;
 
   /// When set, emit one lowered module per non-identity Pauli term of this
   /// observable. The resulting `CompiledModule` will contain a compilation

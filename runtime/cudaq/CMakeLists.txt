@@ -19,6 +19,7 @@ add_library(${LIBRARY_NAME}
     algorithms/evolve.cpp
     algorithms/run.cpp
     algorithms/schedule.cpp
+    analysis/Dem.cpp
     platform/common/QuantumExecutionQueue.cpp
     platform/qpu.cpp
     platform/qpu_utils.cpp

@@ -151,10 +151,10 @@ public:
     // by the analysis simulator (e.g. a `choice` function that calls
     // `cudaq::sample`) could launch a second kernel through this transport
     // while the outer scope is still active.
-    if (nvqir::AnalysisScope::is_active() && context.name != "resource-count")
-      throw std::runtime_error(
-          "Illegal use of resource counter simulator! (Did you attempt to run "
-          "a kernel inside of a choice function?)");
+    if (nvqir::AnalysisScope::is_active() && context.name != "resource-count" &&
+        context.name != "dem")
+      throw std::runtime_error("Illegal use of an analysis simulator (resource "
+                               "counter / DEM) on a remote QPU.");
 
     CUDAQ_INFO("Remote Rest QPU preparing execution context for {}",
                context.name);
@@ -271,7 +271,11 @@ public:
         throw std::runtime_error("observe execution requires a spin_op");
       target->pauliTermSplitObservable = ctx->spin;
     } else if (ctx && ctx->name == "resource-count") {
-      target->generateResourceCounts = true;
+      target->emitResourceCounts = true;
+    } else if (ctx && ctx->name == "dem") {
+      target->emitJit = true;
+      target->emitTargetCode = false;
+      target->runTargetLoweringPipeline = false;
     }
     return target;
   }
@@ -363,6 +367,18 @@ public:
           std::move(codes[0].resourceCounts.value()));
       cudaq::platform::with_execution_context(
           context, [&]() { codes[0].jit->run(kernelName); });
+      return;
+    }
+
+    if (executionContext->name == "dem") {
+      cudaq::ExecutionContext context("dem");
+      context.executionManager = cudaq::getDefaultExecutionManager();
+      context.noiseModel = executionContext->noiseModel;
+      context.qpuId = executionContext->qpuId;
+      assert(codes.size() == 1 && codes[0].jit);
+      cudaq::platform::with_execution_context(
+          context, [&]() { codes[0].jit->run(kernelName); });
+      executionContext->dem_text = std::move(context.dem_text);
       return;
     }
 
