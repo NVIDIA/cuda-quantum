@@ -225,26 +225,6 @@ static void updateExecutionContext(mlir::ModuleOp module) {
   }
 }
 
-static std::optional<cudaq::JitEngine>
-alreadyBuiltJITCode(const std::string &) {
-  auto *currentExecCtx = cudaq::getExecutionContext();
-  if (currentExecCtx && currentExecCtx->allowJitEngineCaching)
-    return currentExecCtx->jitEng;
-  return std::nullopt;
-}
-
-/// In a sample launch context, the (`JIT` compiled) execution engine may be
-/// cached so that it can be called many times in a loop without being
-/// recompiled. This exploits the fact that the arguments processed at the
-/// sample callsite are invariant by the definition of a `CUDA-Q` kernel.
-static void cacheJITForPerformance(cudaq::JitEngine jit) {
-  auto *currentExecCtx = cudaq::getExecutionContext();
-  if (currentExecCtx && currentExecCtx->allowJitEngineCaching) {
-    if (!currentExecCtx->jitEng)
-      currentExecCtx->jitEng = jit;
-  }
-}
-
 /// When the execution context is "resource-count", extract gate counts and
 /// depth metrics from the optimized MLIR IR. Pre-counted gates are erased
 /// from the module, so the subsequent JIT compiles a near-empty module.
@@ -323,14 +303,6 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
       closureArgs = rawArgs;
     }
 
-    if (auto jit = alreadyBuiltJITCode(name)) {
-      auto jitArtifacts =
-          cudaq_internal::compiler::CompiledModuleHelper::createJitArtifacts(
-              name, *jit, resultInfo, isFullySpecialized);
-      return cudaq_internal::compiler::CompiledModuleHelper::
-          createCompiledModule(name, resultInfo, jitArtifacts);
-    }
-
     // 1. Check that this call is sane.
     if (enablePythonCodegenDump)
       module.dump();
@@ -362,7 +334,6 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
 
     // 4. Lower to QIR and JIT compile.
     auto jit = cudaq_internal::compiler::createJITEngine(module, "qir:");
-    cacheJITForPerformance(jit);
 
     auto jitArtifacts =
         cudaq_internal::compiler::CompiledModuleHelper::createJitArtifacts(
