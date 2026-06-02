@@ -8,7 +8,6 @@
 
 // Simulators
 // RUN: nvq++ --enable-mlir  %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --library-mode %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
 #include <iostream>

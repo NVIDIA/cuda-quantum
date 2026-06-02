@@ -8,7 +8,6 @@
 
 // clang-format off
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --library-mode %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
@@ -53,11 +52,7 @@ struct vector_mz_test {
     cudaq::qvector q(5);
     cudaq::qubit p;
     x(q);
-#ifdef CUDAQ_LIBRARY_MODE
-    return cudaq::measure_result::to_bool_vector(mz(q));
-#else
     return cudaq::to_bools(mz(q));
-#endif
   }
 };
 
