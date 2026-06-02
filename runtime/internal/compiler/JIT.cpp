@@ -50,7 +50,18 @@
 
 using namespace mlir;
 
-static void insertSetupAndCleanupOperations(Operation *module) {
+static SmallVector<LLVM::LLVMFuncOp>
+collectEntryPointFunctions(Operation *module) {
+  SmallVector<LLVM::LLVMFuncOp> funcs;
+  module->walk([&](LLVM::LLVMFuncOp func) {
+    if (func->hasAttr(cudaq::entryPointAttrName))
+      funcs.push_back(func);
+  });
+  return funcs;
+}
+
+static void insertWireSetSetupAndCleanupOperations(
+    Operation *module, const SmallVector<LLVM::LLVMFuncOp> &funcs) {
   OpBuilder modBuilder(module);
   auto *context = module->getContext();
   auto arrayQubitTy = cudaq::cg::getLLVMArrayType(context);
@@ -72,17 +83,7 @@ static void insertSetupAndCleanupOperations(Operation *module) {
       cudaq::opt::factory::createLLVMFunctionSymbol(
           cudaq::opt::QIRsetDynamicQubitManagement, {voidTy}, {boolTy},
           dyn_cast<ModuleOp>(module));
-  FlatSymbolRefAttr clearResultMapsSymbol =
-      cudaq::opt::factory::createLLVMFunctionSymbol(
-          cudaq::opt::QIRClearResultMaps, {voidTy}, {},
-          dyn_cast<ModuleOp>(module));
-
-  // Iterate through all operations in the ModuleOp
-  SmallVector<LLVM::LLVMFuncOp> funcs;
-  module->walk([&](LLVM::LLVMFuncOp func) { funcs.push_back(func); });
-  for (auto &func : funcs) {
-    if (!func->hasAttr(cudaq::entryPointAttrName))
-      continue;
+  for (auto func : funcs) {
     std::int64_t num_qubits = -1;
     if (auto requiredQubits = func->getAttrOfType<StringAttr>(
             cudaq::opt::qir0_1::RequiredQubitsAttrName))
@@ -124,8 +125,43 @@ static void insertSetupAndCleanupOperations(Operation *module) {
     mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{voidTy},
                                setDynamicSymbol,
                                mlir::ValueRange{origMode.getResult()});
-    mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{voidTy},
-                               clearResultMapsSymbol, mlir::ValueRange{});
+  }
+}
+
+static void
+insertResultMapCleanupOperations(Operation *module,
+                                 const SmallVector<LLVM::LLVMFuncOp> &funcs) {
+  OpBuilder modBuilder(module);
+  auto *context = module->getContext();
+  auto voidTy = LLVM::LLVMVoidType::get(context);
+  FlatSymbolRefAttr clearResultMapsSymbol =
+      cudaq::opt::factory::createLLVMFunctionSymbol(
+          cudaq::opt::QIRClearResultMaps, {voidTy}, {},
+          dyn_cast<ModuleOp>(module));
+
+  for (auto func : funcs) {
+    auto &blocks = func.getBlocks();
+    if (blocks.empty())
+      continue;
+    // Clear on entry so each execution starts from a clean slate regardless of
+    // how a prior execution exited.
+    {
+      OpBuilder builder(&*blocks.begin(), blocks.begin()->begin());
+      auto loc = builder.getUnknownLoc();
+      mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{voidTy},
+                                 clearResultMapsSymbol, mlir::ValueRange{});
+    }
+    // Clear before every return, not just the last block's terminator, so the
+    // maps are reset on all exit paths of a multi-block function.
+    for (Block &block : blocks) {
+      auto *terminator = block.getTerminator();
+      if (!isa<LLVM::ReturnOp>(terminator))
+        continue;
+      OpBuilder builder(terminator);
+      auto loc = builder.getUnknownLoc();
+      mlir::LLVM::CallOp::create(builder, loc, mlir::TypeRange{voidTy},
+                                 clearResultMapsSymbol, mlir::ValueRange{});
+    }
   }
 }
 
@@ -211,8 +247,10 @@ cudaq_internal::compiler::createJITEngine(ModuleOp &moduleOp,
 
     // Insert necessary calls to qubit allocations and qubit releases if the
     // original module contained WireSetOp's.
+    const auto entryPointFuncs = collectEntryPointFunctions(module);
     if (containsWireSet)
-      insertSetupAndCleanupOperations(module);
+      insertWireSetSetupAndCleanupOperations(module, entryPointFuncs);
+    insertResultMapCleanupOperations(module, entryPointFuncs);
 
     auto llvmModule = translateModuleToLLVMIR(module, llvmContext);
     if (!llvmModule)

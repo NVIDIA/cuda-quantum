@@ -22,10 +22,6 @@ std::string_view getQirOutputLog();
 void clearQirOutputLog();
 } // namespace nvqir
 
-namespace {
-class PersistJITEngine {};
-} // namespace
-
 namespace cudaq {
 
 void bindExecutionContext(nanobind::module_ &mod) {
@@ -47,15 +43,15 @@ void bindExecutionContext(nanobind::module_ &mod) {
       .def_rw("explicitMeasurements",
               &cudaq::ExecutionContext::explicitMeasurements)
       .def_rw("allowJitEngineCaching",
-              &cudaq::ExecutionContext::allowJitEngineCaching)
+              &cudaq::ExecutionContext::allowCompiledModuleCaching)
       .def_rw("useParametricJit", &cudaq::ExecutionContext::useParametricJit)
       .def_ro("invocationResultBuffer",
               &cudaq::ExecutionContext::invocationResultBuffer)
       .def("unset_jit_engine",
            [&](cudaq::ExecutionContext &execCtx) {
-             if (execCtx.jitEng) {
-               execCtx.jitEng = std::nullopt;
-               execCtx.allowJitEngineCaching = false;
+             if (execCtx.cachedCompiledModule) {
+               execCtx.cachedCompiledModule = std::nullopt;
+               execCtx.allowCompiledModuleCaching = false;
              }
            })
       .def("setSpinOperator",
@@ -139,24 +135,5 @@ void bindExecutionContext(nanobind::module_ &mod) {
     std::memcpy(view.buf, origBuffer, bufferSize);
     PyBuffer_Release(&view);
   });
-
-  nanobind::class_<PersistJITEngine>(
-      mod, "reuse_compiler_artifacts",
-      "Within this context, CUDAQ will blindly reuse compiled objects."
-      "It is up to the user to ensure that there are never two distinct"
-      "computations launched within a single context.")
-      .def(nanobind::init<>())
-      .def("__enter__",
-           [](PersistJITEngine &ctx) -> void {
-             cudaq::compiler_artifact::enablePersistentJITEngine();
-           })
-      .def(
-          "__exit__",
-          [](PersistJITEngine &ctx, nanobind::object type,
-             nanobind::object value, nanobind::object traceback) {
-            cudaq::compiler_artifact::disablePersistentJITEngine();
-          },
-          nanobind::arg("type").none(), nanobind::arg("value").none(),
-          nanobind::arg("traceback").none());
 }
 } // namespace cudaq

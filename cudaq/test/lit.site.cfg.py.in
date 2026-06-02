@@ -8,6 +8,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+import os
 import sys
 
 # Helper function to convert cmake variable boolean definitions to True/False.
@@ -26,6 +27,10 @@ config.cudaq_tools_dir = lit_config.substitute("@CUDAQ_TOOLS_DIR@")
 config.cudaq_intrinsic_modules_dir = "@CUDAQ_INTRINSIC_MODULES_DIR@"
 config.cudaq_llvm_tools_dir = "@CMAKE_BINARY_DIR@/bin"
 config.cudaq_lib_dir = "@CMAKE_BINARY_DIR@/lib"
+config.cudaq_shlib_prefix = "@CMAKE_SHARED_LIBRARY_PREFIX@"
+config.cudaq_shlib_ext = "@CMAKE_SHARED_LIBRARY_SUFFIX@"
+config.cudaq_device_call_realtime_libs = list(filter(None,
+    "@CUDAQ_DEVICE_CALL_REALTIME_LIBS@".split(";")))
 config.cudaq_target_dir = "@CMAKE_BINARY_DIR@/targets"
 config.cudaq_plugin_ext = "@LLVM_PLUGIN_EXT@"
 config.python_executable = "@PYTHON_EXECUTABLE@"
@@ -43,6 +48,15 @@ if cmake_boolvar_to_bool(config.cuda_found):
 config.cudaq_has_clifford_t_synthesis = "@CUDAQ_HAS_CLIFFORD_T_SYNTHESIS@"
 if cmake_boolvar_to_bool(config.cudaq_has_clifford_t_synthesis):
   config.available_features.add('clifford-t-synthesis')
+if (cmake_boolvar_to_bool(config.cuda_found) and
+    config.cudaq_device_call_realtime_libs and
+    all(os.path.exists(lib)
+        for lib in config.cudaq_device_call_realtime_libs)):
+  config.available_features.add('device-call-realtime-lib')
+
+config.test_remote_sim = "@CUDAQ_TEST_REMOTE_SIM@"
+if cmake_boolvar_to_bool(config.test_remote_sim):
+  config.available_features.add('remote-sim')
 
 import lit.llvm
 lit.llvm.initialize(lit_config, config)

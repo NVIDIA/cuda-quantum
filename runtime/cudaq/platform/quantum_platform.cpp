@@ -16,11 +16,7 @@
 #include "cudaq/platform/qpu.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "mlir/IR/BuiltinOps.h"
-#include <iostream>
-#include <shared_mutex>
 #include <string>
-#include <thread>
-#include <unordered_map>
 
 using namespace cudaq_internal::compiler;
 
@@ -346,6 +342,35 @@ cudaq::streamlinedLaunchModule(const CompiledModule &compiled,
   return platform.unifiedLaunchModule(compiled, {rawArgs}, qpu_id);
 }
 
+/// In a sample launch context, the (`JIT` compiled) CompiledModule may be
+/// cached so that it can be called many times in a loop without being
+/// recompiled. This exploits the fact that the arguments processed at the
+/// sample callsite are invariant by the definition of a `CUDA-Q` kernel.
+template <std::invocable F>
+  requires std::is_invocable_r_v<cudaq::CompiledModule, F>
+static cudaq::CompiledModule with_compiled_module_cache(F &&f) {
+  auto *currentExecCtx = cudaq::getExecutionContext();
+
+  auto getCache = [currentExecCtx]() -> std::optional<cudaq::CompiledModule> {
+    if (currentExecCtx && currentExecCtx->allowCompiledModuleCaching)
+      return currentExecCtx->cachedCompiledModule;
+    return std::nullopt;
+  };
+  auto saveCache = [currentExecCtx](cudaq::CompiledModule compiled) {
+    if (currentExecCtx && currentExecCtx->allowCompiledModuleCaching) {
+      if (!currentExecCtx->cachedCompiledModule)
+        currentExecCtx->cachedCompiledModule = compiled;
+    }
+  };
+
+  auto cachedModule = getCache();
+  if (cachedModule)
+    return *cachedModule;
+  auto compiled = f();
+  saveCache(compiled);
+  return compiled;
+}
+
 cudaq::CompiledModule cudaq::streamlinedCompileModule(
     const std::string &kernelName, mlir::ModuleOp moduleOp,
     const std::vector<void *> &rawArgs, bool isEntryPoint) {
@@ -353,8 +378,17 @@ cudaq::CompiledModule cudaq::streamlinedCompileModule(
                          rawArgs.size());
   auto &platform = *getQuantumPlatformInternal();
   std::size_t qpu_id = getCurrentQpuId();
-  SourceModule src{kernelName, moduleOp.getAsOpaquePointer()};
-  return platform.compileModule(src, {rawArgs}, qpu_id, isEntryPoint);
+  // Only cache on local simulators
+  auto cacheable =
+      platform.is_simulator(qpu_id) && !platform.is_emulated(qpu_id);
+  if (!cacheable) {
+    SourceModule src{kernelName, moduleOp.getAsOpaquePointer()};
+    return platform.compileModule(src, {rawArgs}, qpu_id, isEntryPoint);
+  }
+  return with_compiled_module_cache([&]() {
+    SourceModule src{kernelName, moduleOp.getAsOpaquePointer()};
+    return platform.compileModule(src, {rawArgs}, qpu_id, isEntryPoint);
+  });
 }
 
 cudaq::KernelThunkResultType
