@@ -10,6 +10,7 @@
 #include "common/ExecutionContext.h"
 #include "common/Timing.h"
 #include "cudaq/algorithms/policies.h"
+#include "cudaq/platform.h"
 #include "cudaq/runtime/logger/logger.h"
 
 cudaq::DefaultQPU::~DefaultQPU() = default;
@@ -71,6 +72,25 @@ cudaq::DefaultQPU::launchKernel(async_observe_policy &policy,
                                 cudaq::KernelArgs args) {
   throw std::runtime_error(
       "DefaultQPU does not support launching the async_observe_policy.");
+}
+
+std::unique_ptr<cudaq::CompileTarget>
+cudaq::DefaultQPU::getCompileTarget(const sample_policy &policy) {
+  // A python-only target suffices, as C++ compilation is done AOT
+  return getDefaultPythonCompileTarget(policy);
+}
+
+std::unique_ptr<cudaq::CompileTarget>
+cudaq::DefaultQPU::getCompileTarget(const observe_policy &policy) {
+  // A python-only target suffices, as C++ compilation is done AOT
+  return getDefaultPythonCompileTarget(policy);
+}
+
+std::unique_ptr<cudaq::CompileTarget>
+cudaq::DefaultQPU::getCompileTarget(const other_policies &policy,
+                                    ExecutionContext *context) {
+  // A python-only target suffices, as C++ compilation is done AOT
+  return getDefaultPythonCompileTarget(policy, context);
 }
 
 void cudaq::DefaultQPU::configureExecutionContext(

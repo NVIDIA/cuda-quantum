@@ -13,6 +13,7 @@
 #include "common/FmtCore.h"
 #include "common/KernelExecution.h"
 #include "common/Resources.h"
+#include "common/Timing.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "cudaq_internal/compiler/JIT.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
@@ -399,6 +400,7 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
     const std::string &kernelName, const void *modulePtr,
     cudaq::KernelArgs args, bool isEntryPoint,
     std::shared_ptr<mlir::MLIRContext> context) {
+  ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "Compiler::runPassPipeline");
   mlir::ModuleOp m_module = mlir::ModuleOp::getFromOpaquePointer(modulePtr);
   assert(!context || context.get() == m_module.getContext());
   auto [moduleOp, epFunc, isFullySpecialized] =

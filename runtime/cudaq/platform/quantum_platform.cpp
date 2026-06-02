@@ -8,6 +8,7 @@
 
 #include "cudaq/platform/quantum_platform.h"
 #include "common/CompiledModule.h"
+#include "common/Environment.h"
 #include "common/ExecutionContext.h"
 #include "common/PluginUtils.h"
 #include "common/RuntimeTarget.h"
@@ -88,6 +89,59 @@ const noise_model *quantum_platform::get_noise(std::size_t qpu_id) {
 void quantum_platform::reset_noise(std::size_t qpu_id) {
   validateQpuId(qpu_id);
   set_noise(nullptr, qpu_id);
+}
+
+static std::unique_ptr<cudaq::CompileTarget>
+getDefaultPythonCompileTargetImpl() {
+  auto *platform = getQuantumPlatformInternal();
+
+  const bool enablePythonCodegenDump =
+      cudaq::getEnvBool("CUDAQ_PYTHON_CODEGEN_DUMP", false);
+  if (enablePythonCodegenDump) {
+    CUDAQ_WARN("CUDAQ_PYTHON_CODEGEN_DUMP is no longer supported and will be "
+               "ignored. Use CUDAQ_MLIR_PRINT_EACH_PASS instead.");
+  }
+  std::unique_ptr<cudaq::CompileTarget> ct;
+  auto *rt = platform->get_runtime_target();
+  if (!rt) {
+    ct = std::make_unique<cudaq::CompileTarget>();
+    ct->pipelineConfig.skipTargetLoweringPipeline = true;
+  } else {
+    ct = std::make_unique<cudaq::CompileTarget>(rt->config, rt->runtimeConfig,
+                                                platform->is_emulated());
+  }
+
+  bool isLocalSimulator = !(platform->is_remote() || platform->is_emulated());
+
+  ct->fullySpecialize = !isLocalSimulator;
+  ct->supportDeviceCalls = true;
+  ct->argumentSynthChangeSemantics = false;
+  ct->pipelineConfig.codegenTranslation = "qir:";
+  ct->emitJit = true;
+  return ct;
+}
+
+std::unique_ptr<cudaq::CompileTarget>
+getDefaultPythonCompileTarget(const sample_policy &) {
+  return getDefaultPythonCompileTargetImpl();
+}
+std::unique_ptr<cudaq::CompileTarget>
+getDefaultPythonCompileTarget(const observe_policy &) {
+  return getDefaultPythonCompileTargetImpl();
+}
+std::unique_ptr<cudaq::CompileTarget>
+getDefaultPythonCompileTarget(const other_policies &,
+                              ExecutionContext *context) {
+  auto ct = getDefaultPythonCompileTargetImpl();
+
+  if (context && context->name == "dem") {
+    ct->emitJit = true;
+    ct->emitTargetCode = false;
+    ct->pipelineConfig.skipTargetLoweringPipeline = true;
+  }
+  ct->emitResourceCounts = context && context->name == "resource-count";
+
+  return ct;
 }
 
 std::future<sample_result>
@@ -227,23 +281,28 @@ quantum_platform::unifiedLaunchModule(const AnyModule &module, KernelArgs args,
   return qpu->unifiedLaunchModule(module, args);
 }
 
-CompiledModule quantum_platform::compileModule(const SourceModule &src,
-                                               const KernelArgs &args,
-                                               std::size_t qpu_id,
-                                               bool isEntryPoint) {
+std::unique_ptr<cudaq::CompileTarget>
+quantum_platform::getCompileTarget(const cudaq::other_policies &policy,
+                                   ExecutionContext *ctx, std::size_t qpu_id) {
   validateQpuId(qpu_id);
   auto &qpu = platformQPUs[qpu_id];
-  auto ctx = cudaq::getExecutionContext();
-  if (!ctx)
-    return qpu->compileModule(other_policies{}, src, args, isEntryPoint);
+  return qpu->getCompileTarget(policy, ctx);
+}
 
-  return cudaq::policies::withPolicy(ctx->name, [&](auto policy) {
-    using Policy = std::decay_t<decltype(policy)>;
-    if constexpr (std::is_same_v<Policy, observe_policy>) {
-      policy.spin = ctx->spin.value();
-    }
-    return qpu->compileModule(policy, src, args, isEntryPoint);
-  });
+std::unique_ptr<cudaq::CompileTarget>
+quantum_platform::getCompileTarget(const sample_policy &policy,
+                                   std::size_t qpu_id) {
+  validateQpuId(qpu_id);
+  auto &qpu = platformQPUs[qpu_id];
+  return qpu->getCompileTarget(policy);
+}
+
+std::unique_ptr<cudaq::CompileTarget>
+quantum_platform::getCompileTarget(const observe_policy &policy,
+                                   std::size_t qpu_id) {
+  validateQpuId(qpu_id);
+  auto &qpu = platformQPUs[qpu_id];
+  return qpu->getCompileTarget(policy);
 }
 
 void quantum_platform::onRandomSeedSet(std::size_t seed) {
@@ -347,55 +406,6 @@ cudaq::streamlinedLaunchModule(const CompiledModule &compiled,
   auto &platform = *getQuantumPlatformInternal();
   std::size_t qpu_id = getCurrentQpuId();
   return platform.unifiedLaunchModule(compiled, {rawArgs}, qpu_id);
-}
-
-/// In a sample launch context, the (`JIT` compiled) CompiledModule may be
-/// cached so that it can be called many times in a loop without being
-/// recompiled. This exploits the fact that the arguments processed at the
-/// sample callsite are invariant by the definition of a `CUDA-Q` kernel.
-template <std::invocable F>
-  requires std::is_invocable_r_v<cudaq::CompiledModule, F>
-static cudaq::CompiledModule with_compiled_module_cache(F &&f) {
-  auto *currentExecCtx = cudaq::getExecutionContext();
-
-  auto getCache = [currentExecCtx]() -> std::optional<cudaq::CompiledModule> {
-    if (currentExecCtx && currentExecCtx->allowCompiledModuleCaching)
-      return currentExecCtx->cachedCompiledModule;
-    return std::nullopt;
-  };
-  auto saveCache = [currentExecCtx](cudaq::CompiledModule compiled) {
-    if (currentExecCtx && currentExecCtx->allowCompiledModuleCaching) {
-      if (!currentExecCtx->cachedCompiledModule)
-        currentExecCtx->cachedCompiledModule = compiled;
-    }
-  };
-
-  auto cachedModule = getCache();
-  if (cachedModule)
-    return *cachedModule;
-  auto compiled = f();
-  saveCache(compiled);
-  return compiled;
-}
-
-cudaq::CompiledModule cudaq::streamlinedCompileModule(
-    const std::string &kernelName, mlir::ModuleOp moduleOp,
-    const std::vector<void *> &rawArgs, bool isEntryPoint) {
-  ScopedTraceWithContext("streamlinedCompileModule", kernelName,
-                         rawArgs.size());
-  auto &platform = *getQuantumPlatformInternal();
-  std::size_t qpu_id = getCurrentQpuId();
-  // Only cache on local simulators
-  auto cacheable =
-      platform.is_simulator(qpu_id) && !platform.is_emulated(qpu_id);
-  if (!cacheable) {
-    SourceModule src{kernelName, moduleOp.getAsOpaquePointer()};
-    return platform.compileModule(src, {rawArgs}, qpu_id, isEntryPoint);
-  }
-  return with_compiled_module_cache([&]() {
-    SourceModule src{kernelName, moduleOp.getAsOpaquePointer()};
-    return platform.compileModule(src, {rawArgs}, qpu_id, isEntryPoint);
-  });
 }
 
 cudaq::KernelThunkResultType

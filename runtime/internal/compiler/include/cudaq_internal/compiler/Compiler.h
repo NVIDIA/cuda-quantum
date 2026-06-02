@@ -11,6 +11,7 @@
 #include "common/KernelArgs.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq/Target/CompileTarget.h"
+#include "cudaq/algorithms/sample/policy.h"
 #include <memory>
 #include <string>
 #include <vector>
@@ -133,5 +134,27 @@ public:
 /// finalizeStage are fixed stages interleaved between the config-provided
 /// stages. Pass empty strings to skip them.
 std::string getPassPipeline(const cudaq::CompileTarget &target);
+
+/// Compile a source module for the given policy, compile target and
+/// arguments.
+template <typename Policy>
+cudaq::CompiledModule
+compileModule(Policy *policy, std::unique_ptr<cudaq::CompileTarget> &&target,
+              const cudaq::SourceModule &src, cudaq::KernelArgs args,
+              bool isEntryPoint = true) {
+  const auto &kernelName = src.getName();
+  auto modulePtr = src.getMlirOpaqueModulePtr();
+  assert(modulePtr && "Compiler::compileModule requires an MLIR artifact");
+
+  Compiler compiler(std::move(target));
+  auto compiled =
+      compiler.runPassPipeline(kernelName, modulePtr, args, isEntryPoint);
+
+  if constexpr (std::is_same_v<Policy, cudaq::sample_policy>) {
+    if (compiler.hasWarnedNamedMeasurements())
+      policy->warnedNamedMeasurements = true;
+  }
+  return compiled;
+}
 
 } // namespace cudaq_internal::compiler

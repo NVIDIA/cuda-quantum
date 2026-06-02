@@ -10,8 +10,6 @@
 
 #include "common/CompiledModule.h"
 #include "common/ThunkInterface.h"
-#include <optional>
-#include <string>
 #include <vector>
 
 namespace mlir {
@@ -58,9 +56,5 @@ hybridLaunchKernel(const char *kernelName, KernelThunkType kernel, void *args,
 [[nodiscard]] KernelThunkResultType
 streamlinedLaunchModule(const CompiledModule &compiled,
                         const std::vector<void *> &rawArgs);
-
-[[nodiscard]] CompiledModule
-streamlinedCompileModule(const std::string &kernelName, mlir::ModuleOp moduleOp,
-                         const std::vector<void *> &rawArgs, bool isEntryPoint);
 
 } // namespace cudaq
