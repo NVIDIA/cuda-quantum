@@ -376,11 +376,22 @@ jobs:
               line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\1${{ inputs.python_version }}/g")
               # Install the wheel file
               line=${line//pip install cuda-quantum-cu${cuda_major}/pip install ${cudaq_wheel}}
-              eval "$line"
+              echo "+ $line"
+              # Fail loudly on the failing command. Without this a failed
+              # `conda install` is swallowed and only surfaces ~60 lines later
+              # as a misleading "mpirun: command not found".
+              if ! eval "$line"; then
+                echo "::error file=python_wheel.yml::conda install step failed: $line"
+                exit 1
+              fi
             done <<< "$conda_script"
-            ompi_script="$(awk '/(Begin ompi setup)/{flag=1;next}/(End ompi setup)/{flag=0}flag' $metadata | grep . | sed '/^```/d')" 
+            ompi_script="$(awk '/(Begin ompi setup)/{flag=1;next}/(End ompi setup)/{flag=0}flag' $metadata | grep . | sed '/^```/d')"
             while IFS= read -r line; do
-                eval "$line"
+                echo "+ $line"
+                if ! eval "$line"; then
+                  echo "::error file=python_wheel.yml::ompi setup step failed: $line"
+                  exit 1
+                fi
             done <<< "$ompi_script"
 
             # Run the MPI test
