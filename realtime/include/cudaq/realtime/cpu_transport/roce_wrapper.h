@@ -39,7 +39,7 @@ typedef enum {
   CPU_ROCE_TX_MODE_SEND_FOR_FPGA = 0,
   /// Phase 2: cpu_roce caller ↔ daemon.  TX issues
   /// IBV_WR_RDMA_WRITE_WITH_IMM targeting the peer's rx_data using the
-  /// peer's rkey; slot index carried in the IMM.
+  /// peer's `rkey`; slot index carried in the IMM.
   CPU_ROCE_TX_MODE_WRITE_WITH_IMM_FOR_PEER = 1,
 } cpu_roce_tx_mode_t;
 
@@ -69,11 +69,11 @@ cpu_roce_transceiver_t cpu_roce_create_transceiver(
 /// if the transceiver is still running.
 void cpu_roce_destroy_transceiver(cpu_roce_transceiver_t handle);
 
-/// Open the ibv device, build PD/CQs/QP/MRs, allocate rings, pre-post recv
+/// Open the `ibv` device, build PD/CQs/QP/MRs, allocate rings, pre-post `recv`
 /// WQEs, transition to RTS.  Returns 1 on success, 0 on failure.
 int cpu_roce_start(cpu_roce_transceiver_t handle);
 
-/// Signal exit, join I/O threads, release ibv/memory resources.
+/// Signal exit, join I/O threads, release `ibv`/memory resources.
 /// Idempotent.  Safe to call from any thread.
 void cpu_roce_close(cpu_roce_transceiver_t handle);
 
@@ -105,7 +105,7 @@ void cpu_roce_set_unified_dispatch(cpu_roce_transceiver_t handle,
 /// Local QP number assigned by ibv_create_qp.  Pass to peer.
 uint32_t cpu_roce_get_qp_number(cpu_roce_transceiver_t handle);
 
-/// rkey of our rx_data MR.  Peer uses this to RDMA-write into our RX ring.
+/// `rkey` of our rx_data MR.  Peer uses this to RDMA-write into our RX ring.
 uint32_t cpu_roce_get_rkey(cpu_roce_transceiver_t handle);
 
 /// IOVA base of the externally-visible rx_data buffer.  Peer addresses
