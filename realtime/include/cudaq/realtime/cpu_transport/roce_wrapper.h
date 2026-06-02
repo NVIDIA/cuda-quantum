@@ -15,7 +15,8 @@
 ///   - hsb_bridge_cpu     (Phase 1, FPGA-facing; default tx_mode_send_for_fpga)
 ///   - CpuRoceChannel     (Phase 2, plugged into PR #4565's DeviceCallChannel
 ///                         framework; tx_mode_write_with_imm_for_peer)
-///   - cpu_roce_test_daemon (Phase 2 service-end; tx_mode_write_with_imm_for_peer)
+///   - cpu_roce_test_daemon (Phase 2 service-end;
+///   tx_mode_write_with_imm_for_peer)
 
 #ifndef CPU_ROCE_WRAPPER_H
 #define CPU_ROCE_WRAPPER_H
@@ -59,11 +60,10 @@ typedef enum {
 /// non-zero (the addresses the peer's `cpu_roce_get_rx_ring_data_addr`
 /// returned + `cpu_roce_get_rkey` returned, exchanged out-of-band).
 cpu_roce_transceiver_t cpu_roce_create_transceiver(
-    const char *device_name, int ib_port, unsigned tx_ibv_qp,
-    size_t frame_size, size_t page_size, unsigned num_pages,
-    const char *peer_ip, int forward, int rx_only, int tx_only, int unified,
-    cpu_roce_tx_mode_t tx_mode, uint64_t peer_rx_base_addr,
-    uint32_t peer_rx_rkey);
+    const char *device_name, int ib_port, unsigned tx_ibv_qp, size_t frame_size,
+    size_t page_size, unsigned num_pages, const char *peer_ip, int forward,
+    int rx_only, int tx_only, int unified, cpu_roce_tx_mode_t tx_mode,
+    uint64_t peer_rx_base_addr, uint32_t peer_rx_rkey);
 
 /// Destroy the transceiver.  Idempotent.  Implicitly calls cpu_roce_close
 /// if the transceiver is still running.

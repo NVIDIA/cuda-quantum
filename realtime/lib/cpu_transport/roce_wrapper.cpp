@@ -30,11 +30,10 @@ CpuRoceTransceiver *as_cpp(cpu_roce_transceiver_t h) {
 extern "C" {
 
 cpu_roce_transceiver_t cpu_roce_create_transceiver(
-    const char *device_name, int ib_port, unsigned tx_ibv_qp,
-    size_t frame_size, size_t page_size, unsigned num_pages,
-    const char *peer_ip, int forward, int rx_only, int tx_only, int unified,
-    cpu_roce_tx_mode_t tx_mode, uint64_t peer_rx_base_addr,
-    uint32_t peer_rx_rkey) {
+    const char *device_name, int ib_port, unsigned tx_ibv_qp, size_t frame_size,
+    size_t page_size, unsigned num_pages, const char *peer_ip, int forward,
+    int rx_only, int tx_only, int unified, cpu_roce_tx_mode_t tx_mode,
+    uint64_t peer_rx_base_addr, uint32_t peer_rx_rkey) {
   try {
     // Translate the C enum to the C++ enum.  An out-of-range value falls
     // through to the FPGA default — the constructor will validate further.
@@ -44,8 +43,8 @@ cpu_roce_transceiver_t cpu_roce_create_transceiver(
             : CpuRoceTxMode::kSendForFpga;
     auto *t = new CpuRoceTransceiver(
         device_name, static_cast<unsigned>(ib_port), tx_ibv_qp, frame_size,
-        page_size, num_pages, peer_ip, forward != 0, rx_only != 0,
-        tx_only != 0, unified != 0, cpp_mode, peer_rx_base_addr, peer_rx_rkey);
+        page_size, num_pages, peer_ip, forward != 0, rx_only != 0, tx_only != 0,
+        unified != 0, cpp_mode, peer_rx_base_addr, peer_rx_rkey);
     return t;
   } catch (const std::exception &e) {
     std::fprintf(stderr, "cpu_roce_create_transceiver: %s\n", e.what());

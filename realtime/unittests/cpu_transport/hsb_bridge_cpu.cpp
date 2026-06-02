@@ -102,7 +102,8 @@ bool parse_args(int argc, char **argv, CpuBridgeConfig &cfg) {
     else if (starts_with(a, "--peer-ip="))
       cfg.peer_ip = a.substr(10);
     else if (starts_with(a, "--remote-qp="))
-      cfg.remote_qp = static_cast<unsigned>(std::stoul(a.substr(12), nullptr, 0));
+      cfg.remote_qp =
+          static_cast<unsigned>(std::stoul(a.substr(12), nullptr, 0));
     else if (starts_with(a, "--num-pages="))
       cfg.num_pages = static_cast<unsigned>(std::stoul(a.substr(12)));
     else if (starts_with(a, "--page-size="))
@@ -175,9 +176,9 @@ int main(int argc, char **argv) {
   const std::size_t frame_size =
       sizeof(cudaq::realtime::RPCHeader) + cfg.payload_size;
 
-  const char *mode_str = cfg.forward     ? "FORWARD"
-                         : cfg.unified   ? "UNIFIED"
-                                         : "3-thread";
+  const char *mode_str = cfg.forward   ? "FORWARD"
+                         : cfg.unified ? "UNIFIED"
+                                       : "3-thread";
 
   std::cout << "=== HSB CPU Bridge (Phase 1) ===" << std::endl;
   std::cout << "Device:        " << cfg.device << std::endl;
@@ -201,8 +202,8 @@ int main(int argc, char **argv) {
   const int tx_only = 0;
   cpu_roce_transceiver_t xcvr = cpu_roce_create_transceiver(
       cfg.device.c_str(), /*ib_port=*/1, cfg.remote_qp, frame_size,
-      cfg.page_size, cfg.num_pages, cfg.peer_ip.c_str(),
-      cfg.forward ? 1 : 0, rx_only, tx_only, cfg.unified ? 1 : 0,
+      cfg.page_size, cfg.num_pages, cfg.peer_ip.c_str(), cfg.forward ? 1 : 0,
+      rx_only, tx_only, cfg.unified ? 1 : 0,
       /*tx_mode=*/CPU_ROCE_TX_MODE_SEND_FOR_FPGA,
       /*peer_rx_base_addr=*/0, /*peer_rx_rkey=*/0);
   if (!xcvr) {
@@ -258,10 +259,10 @@ int main(int argc, char **argv) {
         cpu_roce_get_rx_ring_flag_addr(xcvr));
     dctx.ringbuffer.tx_flags_host = reinterpret_cast<volatile uint64_t *>(
         cpu_roce_get_tx_ring_flag_addr(xcvr));
-    dctx.ringbuffer.rx_data_host = reinterpret_cast<uint8_t *>(
-        cpu_roce_get_rx_ring_data_addr(xcvr));
-    dctx.ringbuffer.tx_data_host = reinterpret_cast<uint8_t *>(
-        cpu_roce_get_tx_ring_data_addr(xcvr));
+    dctx.ringbuffer.rx_data_host =
+        reinterpret_cast<uint8_t *>(cpu_roce_get_rx_ring_data_addr(xcvr));
+    dctx.ringbuffer.tx_data_host =
+        reinterpret_cast<uint8_t *>(cpu_roce_get_tx_ring_data_addr(xcvr));
     dctx.ringbuffer.rx_stride_sz = cfg.page_size;
     dctx.ringbuffer.tx_stride_sz = cfg.page_size;
     dctx.config.num_slots = cfg.num_pages;
@@ -277,9 +278,8 @@ int main(int argc, char **argv) {
     dctx.stats_counter = &packets_dispatched;
     dctx.skip_stream_sweep = true; // no graph workers, no streams to sweep
 
-    dispatcher_thread = std::thread([&dctx]() {
-      cudaq_host_dispatcher_loop(&dctx);
-    });
+    dispatcher_thread =
+        std::thread([&dctx]() { cudaq_host_dispatcher_loop(&dctx); });
   }
 
   // ------------------------------------------------------------------------
@@ -290,8 +290,7 @@ int main(int argc, char **argv) {
   // orchestration script (hsb_test_cpu.sh, mirrored from hololink_test.sh)
   // uses strict regexes like 'QP Number: 0x\K...' to parse it.
   std::cout << "\n=== Bridge Ready ===" << std::endl;
-  std::cout << "  QP Number: 0x" << std::hex << our_qp << std::dec
-            << std::endl;
+  std::cout << "  QP Number: 0x" << std::hex << our_qp << std::dec << std::endl;
   std::cout << "  RKey: " << our_rkey << std::endl;
   std::cout << "  Buffer Addr: 0x" << std::hex << our_buffer << std::dec
             << std::endl;
@@ -302,8 +301,7 @@ int main(int argc, char **argv) {
   // ------------------------------------------------------------------------
   // [5] Run the transceiver I/O threads on the main thread until shutdown.
   // ------------------------------------------------------------------------
-  std::thread xcvr_monitor(
-      [xcvr]() { cpu_roce_blocking_monitor(xcvr); });
+  std::thread xcvr_monitor([xcvr]() { cpu_roce_blocking_monitor(xcvr); });
 
   // Timeout / signal wait loop.
   auto t0 = std::chrono::steady_clock::now();

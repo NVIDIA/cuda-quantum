@@ -56,7 +56,8 @@ constexpr std::uint64_t encode_wr_id(std::uint32_t slot,
 constexpr std::uint32_t decode_slot(std::uint64_t wr_id) {
   return static_cast<std::uint32_t>(wr_id & 0xFFFFFFFFu);
 }
-[[maybe_unused]] constexpr std::uint32_t decode_generation(std::uint64_t wr_id) {
+[[maybe_unused]] constexpr std::uint32_t
+decode_generation(std::uint64_t wr_id) {
   return static_cast<std::uint32_t>(wr_id >> 32);
 }
 
@@ -257,7 +258,10 @@ bool CpuRoceTransceiver::Impl::find_roce_v2_gid() {
     const std::uint8_t *raw = entry.gid.raw;
     bool prefix_zero = true;
     for (int b = 0; b < 10; ++b)
-      if (raw[b] != 0) { prefix_zero = false; break; }
+      if (raw[b] != 0) {
+        prefix_zero = false;
+        break;
+      }
     if (!prefix_zero)
       continue;
     if (raw[10] != 0xff || raw[11] != 0xff)
@@ -275,7 +279,8 @@ bool CpuRoceTransceiver::Impl::find_roce_v2_gid() {
 
 bool CpuRoceTransceiver::Impl::allocate_rings() {
   const std::size_t page_sz = static_cast<std::size_t>(sysconf(_SC_PAGESIZE));
-  const std::size_t data_bytes = static_cast<std::size_t>(stride_num) * stride_sz;
+  const std::size_t data_bytes =
+      static_cast<std::size_t>(stride_num) * stride_sz;
   const std::size_t flags_bytes =
       static_cast<std::size_t>(stride_num) * sizeof(std::uint64_t);
 
@@ -291,7 +296,8 @@ bool CpuRoceTransceiver::Impl::allocate_rings() {
 }
 
 bool CpuRoceTransceiver::Impl::register_mrs() {
-  const std::size_t data_bytes = static_cast<std::size_t>(stride_num) * stride_sz;
+  const std::size_t data_bytes =
+      static_cast<std::size_t>(stride_num) * stride_sz;
 
   // RX ring is RDMA-write target: needs LOCAL_WRITE + REMOTE_WRITE.  rkey is
   // exported to the peer (FPGA via HSB control plane, or peer transceiver
@@ -313,12 +319,14 @@ bool CpuRoceTransceiver::Impl::register_mrs() {
   // for both local reads (Send source) and local writes (Recv target).
   // post_initial_recv_wqes(), forward_loop, and any other code that
   // builds an SGE referencing rx_data_mr->lkey must follow this rule.
-  rx_data_mr = ibv_reg_mr_iova(pd, rx_data, data_bytes, /*iova=*/0,
-                               IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE);
+  rx_data_mr =
+      ibv_reg_mr_iova(pd, rx_data, data_bytes, /*iova=*/0,
+                      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE);
   if (!rx_data_mr) {
-    std::fprintf(stderr,
-                 "CpuRoceTransceiver: ibv_reg_mr_iova(rx_data) failed errno=%d\n",
-                 errno);
+    std::fprintf(
+        stderr,
+        "CpuRoceTransceiver: ibv_reg_mr_iova(rx_data) failed errno=%d\n",
+        errno);
     return false;
   }
   rkey = rx_data_mr->rkey;
@@ -367,8 +375,8 @@ bool CpuRoceTransceiver::Impl::create_qp_and_cqs() {
 
   qp = ibv_create_qp(pd, &init);
   if (!qp) {
-    std::fprintf(stderr,
-                 "CpuRoceTransceiver: ibv_create_qp failed errno=%d\n", errno);
+    std::fprintf(stderr, "CpuRoceTransceiver: ibv_create_qp failed errno=%d\n",
+                 errno);
     return false;
   }
   qp_number = qp->qp_num;
@@ -415,9 +423,9 @@ bool CpuRoceTransceiver::Impl::post_initial_recv_wqes() {
 
     ibv_recv_wr *bad = nullptr;
     if (ibv_post_recv(qp, &wr, &bad) != 0) {
-      std::fprintf(stderr,
-                   "CpuRoceTransceiver: ibv_post_recv slot=%u failed errno=%d\n",
-                   slot, errno);
+      std::fprintf(
+          stderr, "CpuRoceTransceiver: ibv_post_recv slot=%u failed errno=%d\n",
+          slot, errno);
       return false;
     }
   }
@@ -512,8 +520,8 @@ void CpuRoceTransceiver::Impl::rx_loop() {
     }
     const std::uint32_t slot = decode_slot(wc.wr_id);
     if (slot >= stride_num) {
-      std::fprintf(stderr, "CpuRoceTransceiver: RX bad slot=%u (>= %u)\n",
-                   slot, stride_num);
+      std::fprintf(stderr, "CpuRoceTransceiver: RX bad slot=%u (>= %u)\n", slot,
+                   stride_num);
       continue;
     }
 
@@ -529,9 +537,9 @@ void CpuRoceTransceiver::Impl::rx_loop() {
     }
 
     // Publish: writing the data address (non-zero) signals "fresh data".
-    __atomic_store_n(&flag,
-                     reinterpret_cast<std::uint64_t>(rx_data + slot * stride_sz),
-                     __ATOMIC_RELEASE);
+    __atomic_store_n(
+        &flag, reinterpret_cast<std::uint64_t>(rx_data + slot * stride_sz),
+        __ATOMIC_RELEASE);
 
     // Re-post the recv WQE for this slot so future inbound writes have
     // somewhere to land.  IOVA-based addr (see post_initial_recv_wqes).
@@ -548,9 +556,10 @@ void CpuRoceTransceiver::Impl::rx_loop() {
     wr.next = nullptr;
     ibv_recv_wr *bad = nullptr;
     if (ibv_post_recv(qp, &wr, &bad) != 0) {
-      std::fprintf(stderr,
-                   "CpuRoceTransceiver: ibv_post_recv re-arm slot=%u failed errno=%d\n",
-                   slot, errno);
+      std::fprintf(
+          stderr,
+          "CpuRoceTransceiver: ibv_post_recv re-arm slot=%u failed errno=%d\n",
+          slot, errno);
       // Continue rather than break; the next CQE may still be processable.
     }
   }
@@ -574,9 +583,10 @@ void CpuRoceTransceiver::Impl::forward_loop() {
   while (exit_flag.load(std::memory_order_acquire) == 0) {
     int n = ibv_poll_cq(rq_cq, 1, &wc);
     if (n < 0) {
-      std::fprintf(stderr,
-                   "CpuRoceTransceiver(forward): ibv_poll_cq(rq) failed errno=%d\n",
-                   errno);
+      std::fprintf(
+          stderr,
+          "CpuRoceTransceiver(forward): ibv_poll_cq(rq) failed errno=%d\n",
+          errno);
       break;
     }
     if (n == 0) {
@@ -584,10 +594,11 @@ void CpuRoceTransceiver::Impl::forward_loop() {
       continue;
     }
     if (wc.status != IBV_WC_SUCCESS) {
-      std::fprintf(stderr,
-                   "CpuRoceTransceiver(forward): RX CQE status=%d (%s) wr_id=%lu\n",
-                   wc.status, ibv_wc_status_str(wc.status),
-                   static_cast<unsigned long>(wc.wr_id));
+      std::fprintf(
+          stderr,
+          "CpuRoceTransceiver(forward): RX CQE status=%d (%s) wr_id=%lu\n",
+          wc.status, ibv_wc_status_str(wc.status),
+          static_cast<unsigned long>(wc.wr_id));
       continue;
     }
     const std::uint32_t slot = decode_slot(wc.wr_id);
@@ -622,17 +633,19 @@ void CpuRoceTransceiver::Impl::forward_loop() {
     ibv_send_wr *bad_send = nullptr;
     if (ibv_post_send(qp, &swr, &bad_send) != 0) {
       std::fprintf(stderr,
-                   "CpuRoceTransceiver(forward): ibv_post_send slot=%u failed errno=%d\n",
+                   "CpuRoceTransceiver(forward): ibv_post_send slot=%u failed "
+                   "errno=%d\n",
                    slot, errno);
     }
     if (signal_this) {
       int drained = ibv_poll_cq(sq_cq, kSignalEvery, swc);
       for (int k = 0; k < drained; ++k) {
         if (swc[k].status != IBV_WC_SUCCESS) {
-          std::fprintf(stderr,
-                       "CpuRoceTransceiver(forward): SQ CQE wr_id=%lu status=%d (%s)\n",
-                       (unsigned long)swc[k].wr_id, swc[k].status,
-                       ibv_wc_status_str(swc[k].status));
+          std::fprintf(
+              stderr,
+              "CpuRoceTransceiver(forward): SQ CQE wr_id=%lu status=%d (%s)\n",
+              (unsigned long)swc[k].wr_id, swc[k].status,
+              ibv_wc_status_str(swc[k].status));
         }
       }
     }
@@ -654,7 +667,8 @@ void CpuRoceTransceiver::Impl::forward_loop() {
     ibv_recv_wr *bad_recv = nullptr;
     if (ibv_post_recv(qp, &rwr, &bad_recv) != 0) {
       std::fprintf(stderr,
-                   "CpuRoceTransceiver(forward): ibv_post_recv re-arm slot=%u failed errno=%d\n",
+                   "CpuRoceTransceiver(forward): ibv_post_recv re-arm slot=%u "
+                   "failed errno=%d\n",
                    slot, errno);
     }
   }
@@ -725,9 +739,9 @@ void CpuRoceTransceiver::Impl::tx_loop() {
 
     ibv_send_wr *bad = nullptr;
     if (ibv_post_send(qp, &swr, &bad) != 0) {
-      std::fprintf(stderr,
-                   "CpuRoceTransceiver: ibv_post_send slot=%u failed errno=%d\n",
-                   slot, errno);
+      std::fprintf(
+          stderr, "CpuRoceTransceiver: ibv_post_send slot=%u failed errno=%d\n",
+          slot, errno);
       // Restore the flag so the producer doesn't lose track of an in-flight
       // request that we failed to actually ship.
       __atomic_store_n(&flag, addr, __ATOMIC_RELEASE);
@@ -757,9 +771,10 @@ void CpuRoceTransceiver::Impl::unified_loop() {
   while (exit_flag.load(std::memory_order_acquire) == 0) {
     int n = ibv_poll_cq(rq_cq, 1, &wc);
     if (n < 0) {
-      std::fprintf(stderr,
-                   "CpuRoceTransceiver(unified): ibv_poll_cq(rq) failed errno=%d\n",
-                   errno);
+      std::fprintf(
+          stderr,
+          "CpuRoceTransceiver(unified): ibv_poll_cq(rq) failed errno=%d\n",
+          errno);
       break;
     }
     if (n == 0) {
@@ -812,7 +827,8 @@ void CpuRoceTransceiver::Impl::unified_loop() {
       ibv_send_wr *bad = nullptr;
       if (ibv_post_send(qp, &swr, &bad) != 0) {
         std::fprintf(stderr,
-                     "CpuRoceTransceiver(unified): ibv_post_send slot=%u failed errno=%d\n",
+                     "CpuRoceTransceiver(unified): ibv_post_send slot=%u "
+                     "failed errno=%d\n",
                      slot, errno);
       }
       if (signal_this) {
@@ -836,7 +852,8 @@ void CpuRoceTransceiver::Impl::unified_loop() {
     ibv_recv_wr *rbad = nullptr;
     if (ibv_post_recv(qp, &rwr, &rbad) != 0) {
       std::fprintf(stderr,
-                   "CpuRoceTransceiver(unified): ibv_post_recv re-arm slot=%u failed errno=%d\n",
+                   "CpuRoceTransceiver(unified): ibv_post_recv re-arm slot=%u "
+                   "failed errno=%d\n",
                    slot, errno);
     }
   }
@@ -871,7 +888,8 @@ void CpuRoceTransceiver::Impl::release_resources() noexcept {
     ibv_close_device(ctx);
     ctx = nullptr;
   }
-  const std::size_t data_bytes = static_cast<std::size_t>(stride_num) * stride_sz;
+  const std::size_t data_bytes =
+      static_cast<std::size_t>(stride_num) * stride_sz;
   if (rx_data) {
     munlock(rx_data, data_bytes);
     free(rx_data);
@@ -904,8 +922,8 @@ void CpuRoceTransceiver::Impl::release_resources() noexcept {
 CpuRoceTransceiver::CpuRoceTransceiver(
     const char *ibv_name, unsigned ibv_port, unsigned tx_ibv_qp,
     std::size_t cu_frame_size, std::size_t cu_page_size, unsigned pages,
-    const char *peer_ip, bool forward, bool rx_only, bool tx_only,
-    bool unified, CpuRoceTxMode tx_mode, std::uint64_t peer_rx_base_addr,
+    const char *peer_ip, bool forward, bool rx_only, bool tx_only, bool unified,
+    CpuRoceTxMode tx_mode, std::uint64_t peer_rx_base_addr,
     std::uint32_t peer_rx_rkey)
     : impl_(std::make_unique<Impl>()) {
   const int mode_count = (forward ? 1 : 0) + (rx_only ? 1 : 0) +
@@ -992,9 +1010,11 @@ void CpuRoceTransceiver::blocking_monitor() {
 
   // Mode selection (mutual exclusion was already enforced at construction).
   if (impl_->forward) {
-    impl_->forward_thread = std::thread([impl = impl_.get()] { impl->forward_loop(); });
+    impl_->forward_thread =
+        std::thread([impl = impl_.get()] { impl->forward_loop(); });
   } else if (impl_->unified) {
-    impl_->unified_thread = std::thread([impl = impl_.get()] { impl->unified_loop(); });
+    impl_->unified_thread =
+        std::thread([impl = impl_.get()] { impl->unified_loop(); });
   } else {
     // Normal three-thread layout (the §4.2 default).  tx_only / rx_only
     // skip one or the other thread; the consumer / dispatcher is on a

@@ -22,15 +22,14 @@
 #include <cstring>
 
 using cudaq::realtime::fnv1a_hash;
-using cudaq::realtime::RPCHeader;
-using cudaq::realtime::RPCResponse;
 using cudaq::realtime::RPC_MAGIC_REQUEST;
 using cudaq::realtime::RPC_MAGIC_RESPONSE;
+using cudaq::realtime::RPCHeader;
+using cudaq::realtime::RPCResponse;
 
 namespace {
 
-constexpr std::uint32_t RPC_INCREMENT_FUNCTION_ID =
-    fnv1a_hash("rpc_increment");
+constexpr std::uint32_t RPC_INCREMENT_FUNCTION_ID = fnv1a_hash("rpc_increment");
 
 /// Host-side increment handler.  Signature matches `cudaq_host_rpc_fn_t`:
 ///   void (*)(void *slot_host, size_t slot_size)
@@ -47,8 +46,8 @@ constexpr std::uint32_t RPC_INCREMENT_FUNCTION_ID =
 /// Wire-compatible with the device-side handler: same function_id, same
 /// payload semantics (add 1 to each byte), same first-8-bytes PTP echo
 /// (preserved by the RPCResponse.ptp_timestamp copy from the header).
-extern "C" void
-rpc_increment_handler_host(void *slot_host, std::size_t slot_size) {
+extern "C" void rpc_increment_handler_host(void *slot_host,
+                                           std::size_t slot_size) {
   auto *header = static_cast<RPCHeader *>(slot_host);
   if (header->magic != RPC_MAGIC_REQUEST)
     return; // dispatcher already filtered, but be defensive
@@ -96,8 +95,8 @@ rpc_increment_handler_host(void *slot_host, std::size_t slot_size) {
 /// Unlike the device-side variant this takes an entry pointer that lives
 /// in plain host memory (the function table is in host memory for
 /// HOST_CALL).
-extern "C" void setup_rpc_increment_function_table_host(
-    cudaq_function_entry_t *h_entries) {
+extern "C" void
+setup_rpc_increment_function_table_host(cudaq_function_entry_t *h_entries) {
   std::memset(h_entries, 0, sizeof(cudaq_function_entry_t));
   h_entries[0].handler.host_fn = &rpc_increment_handler_host;
   h_entries[0].function_id = RPC_INCREMENT_FUNCTION_ID;
