@@ -1,0 +1,142 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-translate --convert-to=qir-adaptive %s | FileCheck --implicit-check-not="@malloc" --implicit-check-not="@free" --implicit-check-not="store i8" %s
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__function_repro._Z5reprov.run = "__nvqpp__mlirgen__function_repro._Z5reprov.run.entry"}} {
+  func.func @__nvqpp__mlirgen__function_repro._Z5reprov.run() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, quake.cudaq_run = [i32]} {
+    %c7_i64 = arith.constant 7 : i64
+    %c6_i64 = arith.constant 6 : i64
+    %c5_i64 = arith.constant 5 : i64
+    %c4_i64 = arith.constant 4 : i64
+    %c3_i64 = arith.constant 3 : i64
+    %c2_i64 = arith.constant 2 : i64
+    %false = arith.constant false
+    %c8_i64 = arith.constant 8 : i64
+    %c1_i32 = arith.constant 1 : i32
+    %c0_i32 = arith.constant 0 : i32
+    %c1_i64 = arith.constant 1 : i64
+    %c0_i64 = arith.constant 0 : i64
+    %0 = cc.scope -> (i32) {
+      %1 = quake.alloca !quake.veq<8>
+      %2 = quake.extract_ref %1[0] : (!quake.veq<8>) -> !quake.ref
+      quake.h %2 : (!quake.ref) -> ()
+      %3 = quake.extract_ref %1[1] : (!quake.veq<8>) -> !quake.ref
+      quake.h %3 : (!quake.ref) -> ()
+      %4 = quake.extract_ref %1[2] : (!quake.veq<8>) -> !quake.ref
+      quake.h %4 : (!quake.ref) -> ()
+      %5 = quake.extract_ref %1[3] : (!quake.veq<8>) -> !quake.ref
+      quake.h %5 : (!quake.ref) -> ()
+      %6 = quake.extract_ref %1[4] : (!quake.veq<8>) -> !quake.ref
+      quake.h %6 : (!quake.ref) -> ()
+      %7 = quake.extract_ref %1[5] : (!quake.veq<8>) -> !quake.ref
+      quake.h %7 : (!quake.ref) -> ()
+      %8 = quake.extract_ref %1[6] : (!quake.veq<8>) -> !quake.ref
+      quake.h %8 : (!quake.ref) -> ()
+      %9 = quake.extract_ref %1[7] : (!quake.veq<8>) -> !quake.ref
+      quake.h %9 : (!quake.ref) -> ()
+      %10 = cc.scope -> (!cc.stdvec<i1>) {
+        %16 = cc.alloca !cc.array<i8 x 8>
+        %17 = func.call @opaque_source(%c0_i64) : (i64) -> i64
+        %18 = cc.cast %16 : (!cc.ptr<!cc.array<i8 x 8>>) -> !cc.ptr<i8>
+        %19 = arith.andi %17, %c1_i64 : i64
+        %20 = arith.cmpi ne, %19, %c0_i64 : i64
+        %21 = cc.cast unsigned %20 : (i1) -> i8
+        cc.store %21, %18 : !cc.ptr<i8>
+        %22 = cc.compute_ptr %16[1] : (!cc.ptr<!cc.array<i8 x 8>>) -> !cc.ptr<i8>
+        %23 = arith.shrui %17, %c1_i64 : i64
+        %24 = arith.andi %23, %c1_i64 : i64
+        %25 = arith.cmpi ne, %24, %c0_i64 : i64
+        %26 = cc.cast unsigned %25 : (i1) -> i8
+        cc.store %26, %22 : !cc.ptr<i8>
+        %27 = cc.compute_ptr %16[2] : (!cc.ptr<!cc.array<i8 x 8>>) -> !cc.ptr<i8>
+        %28 = arith.shrui %17, %c2_i64 : i64
+        %29 = arith.andi %28, %c1_i64 : i64
+        %30 = arith.cmpi ne, %29, %c0_i64 : i64
+        %31 = cc.cast unsigned %30 : (i1) -> i8
+        cc.store %31, %27 : !cc.ptr<i8>
+        %32 = cc.compute_ptr %16[3] : (!cc.ptr<!cc.array<i8 x 8>>) -> !cc.ptr<i8>
+        %33 = arith.shrui %17, %c3_i64 : i64
+        %34 = arith.andi %33, %c1_i64 : i64
+        %35 = arith.cmpi ne, %34, %c0_i64 : i64
+        %36 = cc.cast unsigned %35 : (i1) -> i8
+        cc.store %36, %32 : !cc.ptr<i8>
+        %37 = cc.compute_ptr %16[4] : (!cc.ptr<!cc.array<i8 x 8>>) -> !cc.ptr<i8>
+        %38 = arith.shrui %17, %c4_i64 : i64
+        %39 = arith.andi %38, %c1_i64 : i64
+        %40 = arith.cmpi ne, %39, %c0_i64 : i64
+        %41 = cc.cast unsigned %40 : (i1) -> i8
+        cc.store %41, %37 : !cc.ptr<i8>
+        %42 = cc.compute_ptr %16[5] : (!cc.ptr<!cc.array<i8 x 8>>) -> !cc.ptr<i8>
+        %43 = arith.shrui %17, %c5_i64 : i64
+        %44 = arith.andi %43, %c1_i64 : i64
+        %45 = arith.cmpi ne, %44, %c0_i64 : i64
+        %46 = cc.cast unsigned %45 : (i1) -> i8
+        cc.store %46, %42 : !cc.ptr<i8>
+        %47 = cc.compute_ptr %16[6] : (!cc.ptr<!cc.array<i8 x 8>>) -> !cc.ptr<i8>
+        %48 = arith.shrui %17, %c6_i64 : i64
+        %49 = arith.andi %48, %c1_i64 : i64
+        %50 = arith.cmpi ne, %49, %c0_i64 : i64
+        %51 = cc.cast unsigned %50 : (i1) -> i8
+        cc.store %51, %47 : !cc.ptr<i8>
+        %52 = cc.compute_ptr %16[7] : (!cc.ptr<!cc.array<i8 x 8>>) -> !cc.ptr<i8>
+        %53 = arith.shrui %17, %c7_i64 : i64
+        %54 = arith.andi %53, %c1_i64 : i64
+        %55 = arith.cmpi ne, %54, %c0_i64 : i64
+        %56 = cc.cast unsigned %55 : (i1) -> i8
+        cc.store %56, %52 : !cc.ptr<i8>
+        %57 = func.call @malloc(%c8_i64) : (i64) -> !cc.ptr<i8>
+        func.call @llvm.memcpy.p0.p0.i64(%57, %18, %c8_i64, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+        %58 = cc.stdvec_init %57, %c8_i64 : (!cc.ptr<i8>, i64) -> !cc.stdvec<i1>
+        cc.continue %58 : !cc.stdvec<i1>
+      }
+      %11 = cc.stdvec_data %10 : (!cc.stdvec<i1>) -> !cc.ptr<i8>
+      %12 = cc.stdvec_size %10 : (!cc.stdvec<i1>) -> i64
+      %13 = cc.alloca i8[%12 : i64]
+      %14 = cc.cast %13 : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+      func.call @llvm.memcpy.p0.p0.i64(%14, %11, %12, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
+      func.call @free(%11) : (!cc.ptr<i8>) -> ()
+      %15:2 = cc.loop while ((%arg0 = %c0_i32, %arg1 = %c0_i64) -> (i32, i64)) {
+        %16 = arith.cmpi ult, %arg1, %12 : i64
+        cc.condition %16(%arg0, %arg1 : i32, i64)
+      } do {
+      ^bb0(%arg0: i32, %arg1: i64):
+        %16 = cc.compute_ptr %13[%arg1] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+        %17 = cc.load %16 : !cc.ptr<i8>
+        %18 = cc.cast %17 : (i8) -> i1
+        %19 = cc.if(%18) -> i32 {
+          %20 = quake.extract_ref %1[%arg1] : (!quake.veq<8>, i64) -> !quake.ref
+          quake.x %20 : (!quake.ref) -> ()
+          %21 = arith.addi %arg0, %c1_i32 : i32
+          cc.continue %21 : i32
+        } else {
+          cc.continue %arg0 : i32
+        }
+        cc.continue %19, %arg1 : i32, i64
+      } step {
+      ^bb0(%arg0: i32, %arg1: i64):
+        %16 = arith.addi %arg1, %c1_i64 : i64
+        cc.continue %arg0, %16 : i32, i64
+      }
+      quake.dealloc %1 : !quake.veq<8>
+      cc.continue %15#0 : i32
+    }
+    cc.log_output %0 : i32
+    return
+  }
+  func.func private @opaque_source(i64) -> i64
+  func.func private @llvm.memcpy.p0.p0.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1)
+  func.func private @malloc(i64) -> !cc.ptr<i8>
+  func.func private @free(!cc.ptr<i8>)
+}
+
+// CHECK-LABEL: define void @__nvqpp__mlirgen__function_repro._Z5reprov.run()
+// CHECK:         call void @__quantum__qis__h__body
+// CHECK:         call i64 @opaque_source
+// CHECK:         call void @__quantum__qis__x__body
+// CHECK:         call void @__quantum__rt__int_record_output
+// CHECK:         ret void
