@@ -114,6 +114,7 @@ void createTargetCodegenPipeline(PassManager &pm,
   auto tgt = StringRef(options.target).split(':').first;
   opts.allowDynamicResult = tgt == "qir" || tgt == "qir-full";
   pm.addPass(cudaq::opt::createReturnToOutputLog(opts));
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseVectorCopyCtor());
   pm.addPass(createConvertMathToFuncs());
   pm.addPass(createSymbolDCEPass());
   pm.addPass(cudaq::opt::createCCToLLVM());
