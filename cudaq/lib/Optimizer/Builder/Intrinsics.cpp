@@ -77,6 +77,15 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     {cudaq::runtime::deviceCodeHolderAdd, {}, R"#(
   llvm.func @__cudaq_deviceCodeHolderAdd(!llvm.ptr, !llvm.ptr) attributes {sym_visibility = "private"}
 )#"},
+    {cudaq::runtime::deviceCallAcquireRealtimeFrame, {}, R"#(
+  func.func private @__cudaq_device_call_acquire_realtime_frame(i32, i32, i64, i64, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>) -> i32
+)#"},
+    {cudaq::runtime::deviceCallDispatchRealtimeFrame, {}, R"#(
+  func.func private @__cudaq_device_call_dispatch_realtime_frame(!cc.ptr<i8>, !cc.ptr<i64>) -> i32
+)#"},
+    {cudaq::runtime::deviceCallSafelyReleaseRealtimeFrame, {}, R"#(
+  func.func private @__cudaq_device_call_safely_release_realtime_frame(!cc.ptr<i8>) -> ()
+)#"},
 
     {cudaq::runtime::getLinkableKernelKey, {}, R"#(
   func.func private @__cudaq_getLinkableKernelKey(!cc.ptr<i8>) -> i64
@@ -245,10 +254,6 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     cc.store %size, %szptr : !cc.ptr<i64>
     return
   }
-)#"},
-
-    {cudaq::runtime::callDeviceCallback, {}, R"#(
-  func.func private @__nvqpp__device_callback_run(i64, !cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, i64, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
 )#"},
 
     {cudaq::runtime::extractDevPtr, {}, R"#(
@@ -631,6 +636,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__qis__reset(!qir_qubit)
   func.func private @__quantum__qis__mz(!qir_qubit) -> !qir_result
   func.func private @__quantum__qis__mz__to__register(!qir_qubit, !qir_charptr) -> !qir_result
+  func.func private @__quantum__qis__mz_handle__to__register(!qir_qubit, !qir_charptr) -> i64
   func.func private @__quantum__qis__swap(!qir_qubit, !qir_qubit)
   func.func private @__quantum__qis__rx(f64, !qir_qubit)
   func.func private @__quantum__qis__phased_rx(f64, f64, !qir_qubit)
@@ -638,6 +644,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__qis__rz(f64, !qir_qubit)
   func.func private @__quantum__qis__r1(f64, !qir_qubit)
   func.func private @__quantum__qis__exp_pauli(f64, !qir_array, !qir_charptr)
+  func.func private @__quantum__rt__read_result(!qir_result) -> i1
 )#"},
 
     // Choose one of the two QIR typing conventions. Opaque pointers are the

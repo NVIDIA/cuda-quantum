@@ -143,7 +143,7 @@ public:
   /// https://arxiv.org/pdf/2407.13826.
   std::optional<std::pair<std::size_t, std::size_t>> msm_dimensions;
 
-  bool allowJitEngineCaching = false;
+  bool allowCompiledModuleCaching = false;
 
   bool useParametricJit = false;
 
@@ -154,11 +154,14 @@ public:
 
   /// @brief For performance, a launcher may cache the JIT execution engine and
   /// use it for multiple discrete calls.
-  std::optional<cudaq::JitEngine> jitEng = std::nullopt;
+  std::optional<cudaq::CompiledModule> cachedCompiledModule = std::nullopt;
 
   /// @brief Dispatcher towards the policy specific launch.
   std::function<void(const AnyModule &module, const KernelArgs &args)>
       executeKernelApi;
+
+  /// @brief Slot for the detector error model, as `.dem` text.
+  std::string dem_text;
   /// @endcond
 };
 
@@ -198,31 +201,7 @@ void setExecutionContext(ExecutionContext *ctx);
 /// Use `quantum_platform::with_execution_context` instead of setting/resetting
 /// the execution context manually.
 void resetExecutionContext();
-} // namespace detail
 
-namespace compiler_artifact {
-/// Saves and reuses the JITEngine across launches
-///
-/// This will exhibit undefined behavior if the launch arguments/context
-/// in any way differs from the saved launch.
-void enablePersistentJITEngine();
-void disablePersistentJITEngine();
-bool isPersistingJITEngine();
-
-/// Checks that the compiler artifact (if present) can be reused for the
-/// given kernel. Throws if a different kernel name was previously saved.
-void checkArtifactReuse(const std::string kernelName,
-                        const cudaq::JitEngine jit);
-
-void saveArtifact(const std::string kernelName, const cudaq::JitEngine jit);
-
-/// Returns the saved JIT engine if one is present for \p kernelName.
-/// Throws if a different kernel name was previously saved.
-/// Returns std::nullopt if no artifact has been saved yet.
-std::optional<JitEngine> getArtifactJit(const std::string &kernelName);
-}; // namespace compiler_artifact
-
-namespace detail {
 /// @brief Execute the given function within the given policy and execution
 /// context.
 template <typename Policy, typename Callable, typename... Args>

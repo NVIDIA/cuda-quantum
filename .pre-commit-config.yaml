@@ -53,6 +53,9 @@ repos:
       - id: markdownlint
         name: Markdown linting
         files: '\.md$'
+        # skills/ holds cryptographically signed skill bundles (see skill.oms.sig);
+        # their content must not be reformatted or the signature is invalidated.
+        exclude: '^skills/'
         args: ['--config', '.github/pre-commit/md_lint_config.yml']
 
   # Standard quality checks

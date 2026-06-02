@@ -1029,7 +1029,13 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
           cudaq::opt::createCombineQuantumAllocations());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addNestedPass<func::FuncOp>(createCSEPass());
-    pm.addPass(cudaq::opt::createConvertToQIR());
+    // Route through the modern QIR API pipeline so QEC ops added by the C++
+    // builder lower to their runtime entries. The legacy `createConvertToQIR`
+    // (a single-shot Quake -> LLVM pass scoped to QIR version 0.1) carries
+    // no QEC patterns. The `createCCToLLVM` step that the legacy pass folded in
+    // is now scheduled explicitly.
+    cudaq::opt::addConvertToQIRAPIPipeline(pm, "full");
+    pm.addPass(cudaq::opt::createCCToLLVM());
     pm.addPass(createCanonicalizerPass());
 
     auto enablePrintMLIREachPass =

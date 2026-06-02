@@ -108,19 +108,20 @@ def sample(kernel,
         results = []
         for argSet in argSets:
             processedArgs, module = decorator.prepare_call(*argSet)
+            compiled = decorator.cachedCompiledModule()
             result = cudaq_runtime.ptsbe.sample_impl(
-                decorator.uniqName, module, shots_count, noise_model,
+                decorator.uniqName, module, compiled, shots_count, noise_model,
                 max_trajectories, sampling_strategy, shot_allocation,
                 return_execution_data, include_sequential_data, *processedArgs)
             results.append(result)
         return results
 
     processedArgs, module = decorator.prepare_call(*args)
-
+    compiled = decorator.cachedCompiledModule()
     return cudaq_runtime.ptsbe.sample_impl(
-        decorator.uniqName, module, shots_count, noise_model, max_trajectories,
-        sampling_strategy, shot_allocation, return_execution_data,
-        include_sequential_data, *processedArgs)
+        decorator.uniqName, module, compiled, shots_count, noise_model,
+        max_trajectories, sampling_strategy, shot_allocation,
+        return_execution_data, include_sequential_data, *processedArgs)
 
 
 @trace.traced
