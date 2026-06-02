@@ -2472,8 +2472,9 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         vecPtr = cc::StdvecDataOp::create(builder, loc, ptrTy, args[0]);
         auto bits = svecTy.getElementType().getIntOrFloatBitWidth();
         assert(bits > 0);
-        auto scale = arith::ConstantIntOp::create(
-            builder, loc, args[1].getType(), (bits + 7) / 8);
+        auto scale =
+            arith::ConstantIntOp::create(builder, loc, args[1].getType(),
+                                         cudaq::opt::convertBitsToBytes(bits));
         offset = arith::MulIOp::create(builder, loc, scale, args[1]);
       } else {
         ptrTy = cc::PointerType::get(eleTy);
