@@ -21,6 +21,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <mutex>
 #include <stdexcept>
 #include <thread>
 #include <vector>
@@ -132,6 +133,15 @@ struct CpuRoceTransceiver::Impl {
   std::thread forward_thread;
   std::thread unified_thread;
 
+  // Serializes shutdown.  blocking_monitor() and close() can run on
+  // different threads (the bridge blocks in blocking_monitor() on one
+  // thread and calls close() from a signal handler / dtor on another), so
+  // both could otherwise race on the same std::thread::join().  The mutex
+  // makes each joinable()+join() pair atomic, and resources_released
+  // guards release_resources() so it runs exactly once.
+  std::mutex lifecycle_mutex;
+  bool resources_released = false;
+
   // -- unified-mode dispatch hook (set by set_unified_dispatch) --
   CpuRoceTransceiver::UnifiedDispatchFn unified_fn = nullptr;
   void *unified_ctx = nullptr;
@@ -176,6 +186,18 @@ struct CpuRoceTransceiver::Impl {
   void unified_loop();
 
   void release_resources() noexcept;
+
+  // Join all worker threads exactly once.  Holds lifecycle_mutex so the
+  // joinable()+join() pairs can't race between blocking_monitor() and
+  // close() (concurrent join() on the same std::thread is UB).  Threads
+  // that were never spawned are default-constructed and joinable() is
+  // false, so they're skipped.
+  void join_all_workers() noexcept;
+
+  // Release ibv / pinned-memory resources exactly once, even if close() is
+  // called multiple times or concurrently (e.g. an explicit close()
+  // followed by the destructor's close()).
+  void release_resources_once() noexcept;
 };
 
 // ----------------------------------------------------------------------------
@@ -915,6 +937,28 @@ void CpuRoceTransceiver::Impl::release_resources() noexcept {
   started = false;
 }
 
+void CpuRoceTransceiver::Impl::join_all_workers() noexcept {
+  std::lock_guard<std::mutex> lk(lifecycle_mutex);
+  // Under the lock, each joinable() check and its join() are atomic with
+  // respect to the other caller, so a given thread is joined exactly once.
+  if (forward_thread.joinable())
+    forward_thread.join();
+  if (unified_thread.joinable())
+    unified_thread.join();
+  if (rx_thread.joinable())
+    rx_thread.join();
+  if (tx_thread.joinable())
+    tx_thread.join();
+}
+
+void CpuRoceTransceiver::Impl::release_resources_once() noexcept {
+  std::lock_guard<std::mutex> lk(lifecycle_mutex);
+  if (resources_released)
+    return;
+  resources_released = true;
+  release_resources();
+}
+
 // ============================================================================
 // Public API
 // ============================================================================
@@ -1026,16 +1070,9 @@ void CpuRoceTransceiver::blocking_monitor() {
   }
 
   // Block until close() is called (or workers exit on their own due to a
-  // fatal CQE error etc.).  Joining each present thread is enough; the
-  // others are default-constructed and joinable() returns false on them.
-  if (impl_->forward_thread.joinable())
-    impl_->forward_thread.join();
-  if (impl_->unified_thread.joinable())
-    impl_->unified_thread.join();
-  if (impl_->rx_thread.joinable())
-    impl_->rx_thread.join();
-  if (impl_->tx_thread.joinable())
-    impl_->tx_thread.join();
+  // fatal CQE error etc.).  join_all_workers() is mutex-protected so a
+  // concurrent close() on another thread can't race these joins.
+  impl_->join_all_workers();
   impl_->monitor_running = false;
 }
 
@@ -1051,23 +1088,18 @@ void CpuRoceTransceiver::close() {
   if (!impl_)
     return;
   // Signal exit BEFORE joining; the worker loops poll exit_flag with
-  // ACQUIRE semantics, so a RELEASE store here will be observed.
+  // ACQUIRE semantics, so a RELEASE store here will be observed.  This must
+  // happen before we contend for lifecycle_mutex: if blocking_monitor() is
+  // already holding the mutex inside its join, setting the flag first lets
+  // those workers exit so its join (and thus our lock acquisition) can
+  // complete.
   impl_->exit_flag.store(1, std::memory_order_release);
 
-  // Join workers if they're running and we're not the calling thread of
-  // blocking_monitor (which will join them itself).  We join here as the
-  // safety net for the destructor path where close() is the only thing
-  // that runs cleanup.
-  if (impl_->forward_thread.joinable())
-    impl_->forward_thread.join();
-  if (impl_->unified_thread.joinable())
-    impl_->unified_thread.join();
-  if (impl_->rx_thread.joinable())
-    impl_->rx_thread.join();
-  if (impl_->tx_thread.joinable())
-    impl_->tx_thread.join();
-
-  impl_->release_resources();
+  // Join workers, then release resources -- both serialized and run-once.
+  // Safe whether close() is the calling thread of blocking_monitor(), a
+  // separate shutdown thread, or the destructor.
+  impl_->join_all_workers();
+  impl_->release_resources_once();
 }
 
 std::uint32_t CpuRoceTransceiver::get_qp_number() const {
