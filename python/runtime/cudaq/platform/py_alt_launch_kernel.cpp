@@ -685,8 +685,8 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
     if (!platform.is_simulator() || platform.is_emulated())
       return false;
     auto func = cudaq::getKernelFuncOp(mod, name);
-    // Fully synthesized kernels are one-off specializations; caching by name
-    // would collide across distinct specializations of the same source.
+    // TODO: currently, synthesis is all-or-nothing, but if arg-by-arg
+    // synthesis is supported, then that will need to be detected
     if (cudaq::opt::marshal::isFullySynthesized(func))
       return false;
     // Caching for kernels with lifted arguments is not currently supported.

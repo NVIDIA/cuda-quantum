@@ -290,8 +290,7 @@ def test_kernel_with_unused_argument():
     assert k(7) is True
     # Documented limitation: cache slot stays empty because every formal
     # arg is dead, so isFullySynthesized() reports true.
-    assert (not hasattr(k, '_compiled_module')
-            or k._compiled_module.name == "")
+    assert (not hasattr(k, '_compiled_module') or k._compiled_module.name == "")
 
 
 def test_captured_kernel_change_reflected_after_first_launch():
@@ -323,5 +322,5 @@ def test_captured_kernel_change_reflected_after_first_launch():
     # The parent kernel must not have been cached — caching would freeze the
     # captured-kernel body inside the JIT artifact and the rebind above would
     # silently no-op.
-    assert (not hasattr(outer, '_compiled_module')
-            or outer._compiled_module.name == "")
+    assert (not hasattr(outer, '_compiled_module') or
+            outer._compiled_module.name == "")
