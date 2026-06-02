@@ -6,10 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %s -o %t && %t | FileCheck %s
 // What is the following bit of script for precisely?
 // RUN: if [ $(echo | cut -c4- ) -ge 20 ]; then \
-// RUN:   nvq++ --enable-mlir %s -o %t && %t | FileCheck %s; \
+// RUN:   nvq++ %s -o %t && %t | FileCheck %s; \
 // RUN: fi
 
 #include "include/include.h"

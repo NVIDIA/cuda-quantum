@@ -10,7 +10,7 @@
 // Verify that mixing mz/mx/my in a sampled kernel produces bitstrings that
 // include all measured qubits.
 
-// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %s -o %t && %t | FileCheck %s
 
 #include <cassert>
 #include <cudaq.h>
