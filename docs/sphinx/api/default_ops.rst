@@ -500,6 +500,13 @@ Negating the polarity of control qubits is similarly supported when using :code:
 Measurements on Qubits
 =============================
 
+The measurement operations :code:`mz`, :code:`mx`, and :code:`my` return a
+measurement handle rather than a bare classical value:
+:code:`cudaq::measure_handle` in C++ (also available as the alias
+:code:`cudaq::measure_result`), and the :code:`measure_handle` type in
+Python. See :doc:`../using/examples/measuring_kernels` for how to discriminate
+handles and the host-device boundary rule.
+
 :code:`mz`
 ---------------------
 
