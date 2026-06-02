@@ -22,8 +22,6 @@ config:
   jit-mid-level-pipeline: "lower-to-cfg,iqm-gate-set-mapping,func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=file(%QPU_ARCH%)},func.func(delay-measurements,regtomem),iqm-gate-set-mapping"
   # Tell the rest-qpu that we are generating IQM JSON.
   codegen-emission: iqm
-  # Library mode is only for simulators, physical backends must turn this off
-  library-mode: false
 
 target-arguments:
   - key: server-url

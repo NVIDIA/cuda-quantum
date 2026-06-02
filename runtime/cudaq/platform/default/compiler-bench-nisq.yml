@@ -25,4 +25,3 @@ config:
   # before final decomposition so resource counting sees the normalized
   # CZ/rotation basis. With no device argument, routing is bypassed.
   jit-mid-level-pipeline: "decomposition{basis=h,rx,ry,rz,x,x(1)},func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=%DEVICE:bypass%},func.func(regtomem),quake-to-cc-prep,decomposition{basis=h,rx,ry,rz,x,z(1)}"
-  library-mode: false
