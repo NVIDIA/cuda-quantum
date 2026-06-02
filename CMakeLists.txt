@@ -261,11 +261,16 @@ option(CUDAQ_ENABLE_CC "Enable CUDA-Q code coverage generation." OFF)
 option(CUDAQ_REQUIRE_OPENMP "Fail the build if OpenMP is not found." OFF)
 option(CUDAQ_ENABLE_SANITIZERS "Enable Address Sanitizer (ASan) and Undefined Behavior Sanitizer (UBSan)." OFF)
 
+# Check for CUDA Support
+# ==============================================================================
+include(CheckLanguage)
+check_language(CUDA)
+
 # Sub-projects that can be enabled independently, in the style of
 # LLVM_ENABLE_PROJECTS. Accepts a semicolon-separated list.
-set(CUDAQ_ALL_PROJECTS "cudaq;runtime;python")
+set(CUDAQ_ALL_PROJECTS "cudaq;runtime;python;realtime")
 set(CUDAQ_ENABLE_PROJECTS "" CACHE STRING
-    "Semicolon-separated list of CUDA-Q sub-projects to build. Valid values: ${CUDAQ_ALL_PROJECTS}. Defaults to 'cudaq;runtime' (plus 'python' if CUDAQ_ENABLE_PYTHON is set).")
+    "Semicolon-separated list of CUDA-Q sub-projects to build. Valid values: ${CUDAQ_ALL_PROJECTS}. Defaults to 'cudaq;runtime' (plus 'python' if CUDAQ_ENABLE_PYTHON is set, and 'realtime' when CUDA is found).")
 
 # Back-compat: if CUDAQ_ENABLE_PROJECTS wasn't given, derive it from the
 # legacy per-project flags so existing build scripts keep working, and warn
@@ -277,6 +282,9 @@ if(NOT CUDAQ_ENABLE_PROJECTS)
   endif()
   if(CUDAQ_ENABLE_PYTHON)
     list(APPEND CUDAQ_ENABLE_PROJECTS "python")
+  endif()
+  if(CMAKE_CUDA_COMPILER)
+    list(APPEND CUDAQ_ENABLE_PROJECTS "realtime")
   endif()
 
   if(CUDAQ_DISABLE_RUNTIME)
@@ -760,10 +768,8 @@ if (NOT CUDAQ_DISABLE_RUNTIME)
   add_openmp_interface_definitions(libqpp)
 endif()
 
-# Check for CUDA Support
+# CUDA language configuration
 # ==============================================================================
-include(CheckLanguage)
-check_language(CUDA)
 set(CUDA_FOUND FALSE)
 # Generate -gencode arch=compute_XX,code=sm_XX for list of supported
 # arch values.
@@ -815,35 +821,18 @@ if (CUDA_FOUND)
   find_package(cuDensityMat)
 endif()
 
-set(CUDAQ_REALTIME_DIR "" CACHE PATH
-    "Path to an installed cudaq-realtime prefix. Enables CUDA-Q realtime integration when set.")
 set(CUDAQ_ENABLE_REALTIME FALSE)
-if (CUDAQ_REALTIME_DIR)
+if ("realtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
   if (NOT CUDA_FOUND)
     message(FATAL_ERROR
-      "CUDAQ_REALTIME_DIR requires CUDA support, but CUDA was not found.")
-  endif()
-
-  find_package(cudaq-realtime CONFIG REQUIRED
-    PATHS "${CUDAQ_REALTIME_DIR}"
-    NO_DEFAULT_PATH)
-
-  if (NOT TARGET cudaq::cudaq-realtime)
-    message(FATAL_ERROR
-      "The realtime package at CUDAQ_REALTIME_DIR=${CUDAQ_REALTIME_DIR} "
-      "does not define target cudaq::cudaq-realtime.")
-  endif()
-  if (NOT TARGET cudaq::cudaq-realtime-dispatch)
-    message(FATAL_ERROR
-      "The realtime package at CUDAQ_REALTIME_DIR=${CUDAQ_REALTIME_DIR} "
-      "does not define target cudaq::cudaq-realtime-dispatch.")
+      "The \"realtime\" project requires CUDA support, but CUDA was not found.")
   endif()
 
   set(CUDAQ_ENABLE_REALTIME TRUE)
-  message(STATUS "CUDA-Q realtime integration enabled from: ${CUDAQ_REALTIME_DIR}")
+  message(STATUS "CUDA-Q realtime integration enabled from the source tree.")
 else()
   message(STATUS
-    "CUDA-Q realtime integration disabled. Set CUDAQ_REALTIME_DIR to an installed cudaq-realtime prefix to enable it.")
+    "CUDA-Q realtime integration disabled. Include \"realtime\" in CUDAQ_ENABLE_PROJECTS to enable it.")
 endif()
 
 # Code coverage setup
@@ -862,6 +851,9 @@ endif(CUDAQ_ENABLE_CC)
 add_subdirectory(cmake)
 if("cudaq" IN_LIST CUDAQ_ENABLE_PROJECTS)
   add_subdirectory(cudaq)
+endif()
+if("realtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
+  add_subdirectory(realtime)
 endif()
 if("runtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
   add_subdirectory(runtime)

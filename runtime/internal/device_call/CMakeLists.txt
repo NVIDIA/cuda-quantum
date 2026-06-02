@@ -12,8 +12,9 @@ target_include_directories(cudaq-device-call-runtime-headers INTERFACE
   $<INSTALL_INTERFACE:include>)
 
 if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
-  target_link_libraries(cudaq-device-call-runtime-headers INTERFACE
-    cudaq::cudaq-realtime)
+  target_include_directories(cudaq-device-call-runtime-headers INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/realtime/include>
+    $<BUILD_INTERFACE:${CUDAToolkit_INCLUDE_DIRS}>)
 
   add_library(cudaq-device-call-runtime
     SHARED

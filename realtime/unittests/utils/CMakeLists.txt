@@ -167,7 +167,7 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
 
   # Hololink wrapper static library (compiled by g++, isolates fmt)
   add_library(hololink_wrapper_generic STATIC
-    ${CMAKE_SOURCE_DIR}/lib/daemon/bridge/hololink/hololink_wrapper.cpp)
+    ${CUDAQ_REALTIME_SOURCE_DIR}/lib/daemon/bridge/hololink/hololink_wrapper.cpp)
 
   target_include_directories(hololink_wrapper_generic
     PRIVATE
@@ -189,7 +189,7 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
 
   set_target_properties(rpc_increment_ft PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
-    CUDA_STANDARD 17)
+    CUDA_STANDARD 20)
 
   target_include_directories(rpc_increment_ft PRIVATE
     ${CUDAQ_REALTIME_INCLUDE_DIR}

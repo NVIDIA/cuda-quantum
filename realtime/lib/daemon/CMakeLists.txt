@@ -20,6 +20,7 @@ if(CUDA_FOUND)
   )
 
   add_library(cudaq-realtime SHARED ${CUDAQ_REALTIME_SOURCES})
+  add_library(cudaq::cudaq-realtime ALIAS cudaq-realtime)
   
   target_include_directories(cudaq-realtime
     PUBLIC
@@ -40,7 +41,6 @@ if(CUDA_FOUND)
   set_target_properties(cudaq-realtime PROPERTIES LINK_FLAGS_RELEASE "-s")
 
   set_target_properties(cudaq-realtime PROPERTIES
-    CUDA_SEPARABLE_COMPILATION ON
     POSITION_INDEPENDENT_CODE ON
     LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
   )
@@ -54,6 +54,7 @@ if(CUDA_FOUND)
   add_library(cudaq-realtime-dispatch STATIC
     dispatcher/dispatch_kernel.cu
   )
+  add_library(cudaq::cudaq-realtime-dispatch ALIAS cudaq-realtime-dispatch)
   set_target_properties(cudaq-realtime-dispatch
     PROPERTIES
     LINK_FLAGS_RELEASE "-Wl,--exclude-libs=ALL")
@@ -93,10 +94,11 @@ if(CUDA_FOUND)
   # ============================================================================
   # Compiled with nvcc so libcu++ (<cuda/std/atomic>) works without extra
   # include paths. Host-only code; no device code in this TU.
-  add_library(cudaq-realtime-host-dispatch STATIC
+  add_library(cudaq-realtime-host-dispatch SHARED
     dispatcher/host_dispatcher.cu
     dispatcher/host_dispatcher_capi.cu
   )
+  add_library(cudaq::cudaq-realtime-host-dispatch ALIAS cudaq-realtime-host-dispatch)
 
   target_include_directories(cudaq-realtime-host-dispatch
     PUBLIC
@@ -112,13 +114,13 @@ if(CUDA_FOUND)
   set_target_properties(cudaq-realtime-host-dispatch PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
     POSITION_INDEPENDENT_CODE ON
-    ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
   )
 
   install(TARGETS cudaq-realtime-host-dispatch
     EXPORT cudaq-realtime-targets
     COMPONENT realtime-lib
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   )
   if (CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS)
     add_subdirectory(bridge/hololink)

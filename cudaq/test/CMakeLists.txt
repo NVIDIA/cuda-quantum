@@ -81,14 +81,14 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME AND NOT CUDAQ_DISABLE_CPP_FRONTEND AND
         cudaq-device-call-runtime
         cudaq-device-call-runtime-headers
         cudaq::cudaq-realtime-dispatch
-        CUDA::cudart)
+        CUDA::cudart_static)
     target_compile_options(${target} PRIVATE
       $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>)
     set_target_properties(${target}
       PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
-        CUDA_RUNTIME_LIBRARY Shared
+        CUDA_RUNTIME_LIBRARY Static
         CUDA_STANDARD 20
         CXX_STANDARD 20
         LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)

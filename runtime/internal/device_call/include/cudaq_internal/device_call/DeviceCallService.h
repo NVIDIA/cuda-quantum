@@ -167,5 +167,12 @@ using DeviceCallServicePluginInfoFn = DeviceCallServicePluginInfo (*)();
 // Default service discovery entry point. Service artifacts may also expose
 // suffixed variants with the same signature for tests or multi-service
 // deployments, e.g. cudaqGetDeviceCallServicePluginInfo_<name>.
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
+#endif
 extern "C" cudaq_internal::device_call::DeviceCallServicePluginInfo
 cudaqGetDeviceCallServicePluginInfo();
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif

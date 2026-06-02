@@ -44,7 +44,10 @@ config.cuda_found = "@CUDA_FOUND@"
 if cmake_boolvar_to_bool(config.cuda_found):
   config.available_features.add('nvcc')
 
+config.cuda_gpu_available = os.system("nvidia-smi >/dev/null 2>&1") == 0
+
 if (cmake_boolvar_to_bool(config.cuda_found) and
+    config.cuda_gpu_available and
     config.cudaq_device_call_realtime_libs and
     all(os.path.exists(lib)
         for lib in config.cudaq_device_call_realtime_libs)):

@@ -937,6 +937,88 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
+  realtime_validation_config:
+    name: Configure realtime validation
+    needs: assets
+    if: ${{ fromJson(needs.assets.outputs.docker_images).info_files[0] != null }}
+    runs-on: ubuntu-latest
+
+    outputs:
+      matrix: ${{ steps.validation.outputs.matrix }}
+
+    steps:
+      - name: Prepare realtime validation
+        id: validation
+        shell: bash
+        env:
+          DOCKER_IMAGES: ${{ needs.assets.outputs.docker_images }}
+        run: |
+          # Deployment image artifacts usually reference multi-platform
+          # manifests. Expand each artifact into one x86 and/or Arm GPU run
+          # based on the platform metadata recorded by Deployments.
+          matrix=$(echo "$DOCKER_IMAGES" | jq -c '
+            [
+              .info_files[] as $info_file
+              | .[$info_file] as $image
+              | ["amd64", "arm64"][] as $arch
+              | select($image.platform | contains("linux/" + $arch))
+              | {
+                  info_file: $info_file,
+                  arch: $arch,
+                  display_arch: (if $arch == "amd64" then "x86" else "Arm" end),
+                  image_hash: $image.image_hash
+                }
+            ]
+          ')
+
+          echo "matrix={\"include\":$matrix}" >> $GITHUB_OUTPUT
+
+  realtime_validation:
+    name: Realtime validation (${{ matrix.display_arch }}, ${{ matrix.info_file }})
+    needs: [assets, realtime_validation_config]
+    if: ${{ needs.realtime_validation_config.outputs.matrix != '' }}
+    # This job is advisory. Realtime coverage should be visible during
+    # Publishing, but failures must not block release creation or cleanup.
+    continue-on-error: true
+    runs-on: linux-${{ matrix.arch }}-gpu-a100-latest-1
+    permissions:
+      packages: read
+
+    strategy:
+      matrix: ${{ fromJson(needs.realtime_validation_config.outputs.matrix) }}
+      fail-fast: false
+
+    container:
+      image: ${{ matrix.image_hash }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+      options: --user root
+      env:
+        NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
+        TERM: xterm
+
+    steps:
+      - name: Run realtime tests
+        shell: bash
+        run: |
+          cd /workspaces/cuda-quantum
+
+          if [ ! -d build/cudaq/test ]; then
+            echo "::error::CUDA-Q build test tree not found in dev image."
+            exit 1
+          fi
+
+          # First validate that the filter selects tests. Without
+          # --allow-empty-runs, this fails if no realtime tests are discovered.
+          "$LLVM_INSTALL_PREFIX/bin/llvm-lit" --no-execute build/cudaq/test \
+            --param nvqpp_site_config=build/cudaq/test/lit.site.cfg.py \
+            --filter 'device_call_realtime'
+
+          "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/cudaq/test \
+            --param nvqpp_site_config=build/cudaq/test/lit.site.cfg.py \
+            --filter 'device_call_realtime'
+
   image_validation_config:
     name: Configure image validation
     needs: cudaq_images

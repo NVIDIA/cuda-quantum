@@ -106,6 +106,7 @@ ADD "docs/sphinx/targets" /cuda-quantum/docs/sphinx/targets
 ADD "docs/sphinx/snippets" /cuda-quantum/docs/sphinx/snippets
 ADD "cudaq" /cuda-quantum/cudaq
 ADD "runtime" /cuda-quantum/runtime
+ADD "realtime" /cuda-quantum/realtime
 ADD "scripts/build_cudaq.sh" /cuda-quantum/scripts/build_cudaq.sh
 ADD "scripts/migrate_assets.sh" /cuda-quantum/scripts/migrate_assets.sh
 ADD "scripts/cudaq_set_env.sh" /cuda-quantum/scripts/cudaq_set_env.sh
@@ -196,6 +197,7 @@ ADD "python" /cuda-quantum/python
 ADD "cmake" /cuda-quantum/cmake
 ADD "cudaq" /cuda-quantum/cudaq
 ADD "runtime" /cuda-quantum/runtime
+ADD "realtime" /cuda-quantum/realtime
 ADD "tpls/customizations" /cuda-quantum/tpls/customizations
 ADD "tpls/json" /cuda-quantum/tpls/json
 ADD "utils" /cuda-quantum/utils

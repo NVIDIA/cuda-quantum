@@ -10,21 +10,29 @@ cmake_minimum_required(VERSION 3.22 FATAL_ERROR)
 
 include(FetchContent)
 
-# Set a default build type if none was specified. Must set this before
-# project().
-set(CMAKE_BUILD_TYPE "Release" CACHE STRING
-    "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel")
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  set(CUDAQ_REALTIME_STANDALONE_BUILD TRUE)
+else()
+  set(CUDAQ_REALTIME_STANDALONE_BUILD FALSE)
+endif()
 
-# Set a default install prefix if none was specified.
-set(CMAKE_INSTALL_PREFIX "$ENV{HOME}/.cudaq_realtime" CACHE STRING
-    "Install path prefix, prepended onto install directories")
+if(CUDAQ_REALTIME_STANDALONE_BUILD)
+  # Set a default build type if none was specified. Must set this before
+  # project().
+  set(CMAKE_BUILD_TYPE "Release" CACHE STRING
+      "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel")
+
+  # Set a default install prefix if none was specified.
+  set(CMAKE_INSTALL_PREFIX "$ENV{HOME}/.cudaq_realtime" CACHE STRING
+      "Install path prefix, prepended onto install directories")
+endif()
 
 # Project setup
 # ==============================================================================
 
-# Check if core is built as a standalone project.
-project(cudaq-realtime)
-set(CUDAQ_REALTIME_STANDALONE_BUILD TRUE)
+if(CUDAQ_REALTIME_STANDALONE_BUILD)
+  project(cudaq-realtime)
+endif()
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
@@ -45,71 +53,105 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # Options
 # ==============================================================================
 
+set(_cudaq_realtime_build_tests_default ON)
+if(NOT CUDAQ_REALTIME_STANDALONE_BUILD)
+  set(_cudaq_realtime_build_tests_default OFF)
+endif()
+
 option(CUDAQ_REALTIME_BUILD_TESTS
-       "Generate build targets for the CUDAQ real-time unit tests" ON)
+       "Generate build targets for the CUDAQ real-time unit tests"
+       ${_cudaq_realtime_build_tests_default})
 option(CUDAQ_REALTIME_BUILD_EXAMPLES
        "Generate build targets for the CUDAQ real-time example programs" ON)
 option(CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS
        "Build Hololink bridge/emulator/playback tools (requires hololink)."
        OFF)
 
+set(_host_compiler_opts_list "")
+if(CUDAQ_REALTIME_STANDALONE_BUILD)
+  list(APPEND _host_compiler_opts_list "-fPIC")
+endif()
+
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64" AND
+   CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12 AND
+     CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13)
+    # CUDA 12.x nvcc cannot parse GCC 12 AVX512BF16 headers. GCC 12
+    # models BF16 vectors as short/HI-vector builtins; GCC 13 switched
+    # these intrinsics to __bf16/BF-vector modes.
+    list(APPEND _host_compiler_opts_list
+      "-D_AVX512BF16INTRIN_H_INCLUDED"
+      "-D_AVX512BF16VLINTRIN_H_INCLUDED")
+  endif()
+
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12)
+    # -mno-amx-tile alone is insufficient: the AMX intrinsic headers use
+    # #pragma GCC target("amx-*") which re-enables the builtins that nvcc
+    # cannot parse. Pre-define the include guards to skip those headers.
+    list(APPEND _host_compiler_opts_list
+      "-mno-amx-tile"
+      "-D_AMXTILEINTRIN_H_INCLUDED"
+      "-D_AMXBF16INTRIN_H_INCLUDED"
+      "-D_AMXINT8INTRIN_H_INCLUDED"
+      "-D_AMXFP16INTRIN_H_INCLUDED"
+      "-D_AMXCOMPLEXINTRIN_H_INCLUDED")
+  endif()
+endif()
+
+list(JOIN _host_compiler_opts_list "," _host_compiler_opts)
+
 # Check for CUDA Support (ref: cuda-quantum/CMakeLists.txt)
 # ==============================================================================
-include(CheckLanguage)
-check_language(CUDA)
-set(CUDA_FOUND FALSE)
-# Generate -gencode arch=compute_XX,code=sm_XX for list of supported
-# arch values.
-# List should be sorted in increasing order.
-function(CUDA_get_gencode_args out_args_string arch_values)
-  # allow the user to pass the list like a normal variable
-  set(arch_list ${arch_values} ${ARGN})
-  set(out "")
-  foreach(arch IN LISTS arch_list)
-    set(out "${out} -gencode arch=compute_${arch},code=sm_${arch}")
-  endforeach(arch)
+if(CUDAQ_REALTIME_STANDALONE_BUILD)
+  include(CheckLanguage)
+  check_language(CUDA)
+  set(CUDA_FOUND FALSE)
+  # Generate -gencode arch=compute_XX,code=sm_XX for list of supported
+  # arch values.
+  # List should be sorted in increasing order.
+  function(CUDA_get_gencode_args out_args_string arch_values)
+    # allow the user to pass the list like a normal variable
+    set(arch_list ${arch_values} ${ARGN})
+    set(out "")
+    foreach(arch IN LISTS arch_list)
+      set(out "${out} -gencode arch=compute_${arch},code=sm_${arch}")
+    endforeach(arch)
 
-  # Repeat the last one as to ensure the generation of PTX for most
-  # recent virtual architecture for forward compatibility
-  list(GET arch_list -1 last_arch)
-  set(out "${out} -gencode arch=compute_${last_arch},code=compute_${last_arch}")
-  set(${out_args_string} ${out} PARENT_SCOPE)
-endfunction()
+    # Repeat the last one as to ensure the generation of PTX for most
+    # recent virtual architecture for forward compatibility
+    list(GET arch_list -1 last_arch)
+    set(out "${out} -gencode arch=compute_${last_arch},code=compute_${last_arch}")
+    set(${out_args_string} ${out} PARENT_SCOPE)
+  endfunction()
 
-if(CMAKE_CUDA_COMPILER)
-  if (NOT CUDA_TARGET_ARCHS)
-    if (CUDAToolkit_VERSION VERSION_LESS 13.0)
-      # Ampere, Hopper
-      set(CUDA_TARGET_ARCHS  "80;90")
-    else()
-      # Ampere, Hopper, Blackwell
-      set(CUDA_TARGET_ARCHS  "80;90;100")
+  if(CMAKE_CUDA_COMPILER)
+    find_package(CUDAToolkit REQUIRED)
+    if (NOT CUDA_TARGET_ARCHS)
+      if (CUDAToolkit_VERSION VERSION_LESS 13.0)
+        # Ampere, Hopper
+        set(CUDA_TARGET_ARCHS  "80;90")
+      else()
+        # Ampere, Hopper, Blackwell
+        set(CUDA_TARGET_ARCHS  "80;90;100")
+      endif()
     endif()
-  endif()
-  CUDA_get_gencode_args(CUDA_gencode_flags ${CUDA_TARGET_ARCHS})
-  set(_host_compiler_opts "-fPIC")
-  if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
-    # -mno-amx-tile alone is insufficient with GCC 13+: the AMX intrinsic
-    # headers use #pragma GCC target("amx-tile") which re-enables the
-    # builtins that nvcc cannot parse.  Pre-define the include guards to
-    # prevent these headers from being processed at all.
-    string(APPEND _host_compiler_opts ",-mno-amx-tile")
-    foreach(_amx_guard _AMXTILEINTRIN_H_INCLUDED
-                       _AMXBF16INTRIN_H_INCLUDED
-                       _AMXINT8INTRIN_H_INCLUDED
-                       _AMXFP16INTRIN_H_INCLUDED
-                       _AMXCOMPLEXINTRIN_H_INCLUDED)
-      string(APPEND _host_compiler_opts ",-D${_amx_guard}")
-    endforeach()
-  endif()
-  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -shared -std=c++17 ${CUDA_gencode_flags} --compiler-options ${_host_compiler_opts}")
+    CUDA_get_gencode_args(CUDA_gencode_flags ${CUDA_TARGET_ARCHS})
+    # Keep realtime CUDA sources on C++17. nvcc's C++20 frontend can hit an
+    # internal compiler error in libstdc++ headers when compiling the standalone
+    # realtime tests, including test_host_dispatcher.cu, on the CI toolchain.
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -shared -std=c++17 ${CUDA_gencode_flags} --compiler-options ${_host_compiler_opts}")
 
-  enable_language(CUDA)
-  set(CUDA_FOUND TRUE)
-  set(CMAKE_CUDA_STANDARD 17)
-  set(CMAKE_CUDA_STANDARD_REQUIRED TRUE)
+    enable_language(CUDA)
+    set(CUDA_FOUND TRUE)
+    set(CMAKE_CUDA_STANDARD 17)
+    set(CMAKE_CUDA_STANDARD_REQUIRED TRUE)
+    message(STATUS "Cuda language found.")
+  endif()
+elseif(CUDA_FOUND)
   find_package(CUDAToolkit REQUIRED)
-  message(STATUS "Cuda language found.")
+  if(_host_compiler_opts)
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -ccbin=${CMAKE_CXX_COMPILER} --compiler-options ${_host_compiler_opts}")
+  endif()
 endif()
 
 # External Dependencies 
@@ -117,9 +159,12 @@ endif()
 
 find_package(Threads REQUIRED)
 
-# Enable static linking of the C++ standard library to avoid dependency issues when distributing the library.
-SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
-SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
+if(CUDAQ_REALTIME_STANDALONE_BUILD)
+  # Standalone realtime owns its distribution linker policy. Integrated CUDA-Q
+  # builds inherit the top-level CUDA-Q runtime/dependency link settings.
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
+endif()
 
 add_subdirectory(lib)
 
