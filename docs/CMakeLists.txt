@@ -17,7 +17,7 @@
 #   LAUNCH_COMMAND <COMMAND>: the command to launch the test (e.g., mpirun)
 function(add_nvqpp_test TEST_NAME SOURCE_LOCATION)
   cmake_parse_arguments(PARSED_ARGS "" "TARGET;LABELS;SOURCE_DIR;LAUNCH_COMMAND;APPLICATION_ARGS;TARGET_OPTION;EXTRA_COMPILE_ARGS;MIN_GPUS" "" ${ARGN})
-  set(NVQPP_COMPILE_ARGS "--library-mode -I${CMAKE_SOURCE_DIR}/runtime/include")
+  set(NVQPP_COMPILE_ARGS "-I${CMAKE_SOURCE_DIR}/runtime/include")
   if(PARSED_ARGS_TARGET)
     set(NVQPP_COMPILE_ARGS "${NVQPP_COMPILE_ARGS} --target ${PARSED_ARGS_TARGET}")
     if (PARSED_ARGS_TARGET_OPTION)
