@@ -230,25 +230,45 @@ bool CpuRoceTransceiver::Impl::open_ib_device() {
 }
 
 bool CpuRoceTransceiver::Impl::find_roce_v2_gid() {
-  // Scan GIDs on the chosen port for the first RoCEv2 entry (matches HSB's
-  // RoceReceiver and GpuRoceTransceiver behavior).  Stores the index in
-  // gid_index for later use in modify_qp(RTR).
-  for (std::uint32_t i = 0;; ++i) {
+  // Scan GIDs on the chosen port for an IPv4-mapped RoCEv2 entry — the
+  // GID format HSB uses (and therefore what the FPGA's RoCEv2 stack
+  // expects).  The IPv4-mapped IPv6 wire format is:
+  //   bytes 0-9  = 0
+  //   bytes 10-11 = 0xFFFF
+  //   bytes 12-15 = IPv4 address (network byte order)
+  //
+  // We compare on `entry.gid.raw[]` to stay endianness-independent — some
+  // libibverbs versions byte-swap `interface_id` to host order despite
+  // the `__be64` typedef, others leave the wire bytes as-is.
+  //
+  // The loop terminates on `r == ENODATA` (end of GID table) or on any
+  // other ibv error.  Hard cap at 256 as a belt-and-braces safety
+  // (gid_tbl_len is well below this on any real NIC).
+  constexpr std::uint32_t kMaxGidIndex = 256;
+  for (std::uint32_t i = 0; i < kMaxGidIndex; ++i) {
     ibv_gid_entry entry{};
     int r = ibv_query_gid_ex(ctx, ibv_port, i, &entry, 0);
-    if (r != 0 && errno != ENODATA)
-      break;
+    if (r == ENODATA)
+      break; // walked past the last entry
+    if (r != 0)
+      break; // some other ibv error — give up
     if (entry.gid_type != IBV_GID_TYPE_ROCE_V2)
       continue;
-    if (entry.gid.global.subnet_prefix != 0)
+    const std::uint8_t *raw = entry.gid.raw;
+    bool prefix_zero = true;
+    for (int b = 0; b < 10; ++b)
+      if (raw[b] != 0) { prefix_zero = false; break; }
+    if (!prefix_zero)
       continue;
-    if ((entry.gid.global.interface_id & 0xFFFFFFFFull) != 0xFFFF0000ull)
+    if (raw[10] != 0xff || raw[11] != 0xff)
       continue;
     gid_index = i;
     return true;
   }
   std::fprintf(stderr,
-               "CpuRoceTransceiver: no RoCEv2 GID found on %s port %u\n",
+               "CpuRoceTransceiver: no IPv4-mapped RoCEv2 GID found on %s "
+               "port %u (did you add the IPv4 address to the interface and "
+               "wait for the GID to populate?)\n",
                ibv_name, ibv_port);
   return false;
 }
