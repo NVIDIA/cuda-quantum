@@ -103,6 +103,10 @@ uint32_t cpu_roce_get_rkey(cpu_roce_transceiver_t handle) {
   return handle ? as_cpp(handle)->get_rkey() : 0;
 }
 
+uint64_t cpu_roce_get_buffer_addr(cpu_roce_transceiver_t handle) {
+  return handle ? as_cpp(handle)->external_frame_memory() : 0;
+}
+
 void *cpu_roce_get_rx_ring_data_addr(cpu_roce_transceiver_t handle) {
   return handle ? static_cast<void *>(as_cpp(handle)->get_rx_ring_data_addr())
                 : nullptr;

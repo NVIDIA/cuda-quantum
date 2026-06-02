@@ -65,6 +65,10 @@ struct CpuBridgeConfig {
                               // emulator's increment-handler stimulus
   int timeout_sec = 60;
   bool unified = false;
+  bool forward = false; // CpuRoceTransceiver forward mode: RX thread loops
+                        // every incoming slot back to the peer; no dispatch,
+                        // no HOST_CALL.  Wire-RTT baseline; mutually
+                        // exclusive with --unified.
 };
 
 bool starts_with(const std::string &s, const char *prefix) {
@@ -89,7 +93,9 @@ bool parse_args(int argc, char **argv, CpuBridgeConfig &cfg) {
           << "  --page-size=N       Per-slot stride in bytes (default: 384)\n"
           << "  --payload-size=N    RPC payload bytes (default: 24)\n"
           << "  --timeout=N         Run timeout in seconds (default: 60)\n"
-          << "  --unified           Use single-thread unified RX+dispatch+TX\n";
+          << "  --unified           Use single-thread unified RX+dispatch+TX\n"
+          << "  --forward           Echo every incoming slot back to peer "
+             "(wire-RTT baseline, no dispatch)\n";
       return false;
     } else if (starts_with(a, "--device="))
       cfg.device = a.substr(9);
@@ -107,6 +113,8 @@ bool parse_args(int argc, char **argv, CpuBridgeConfig &cfg) {
       cfg.timeout_sec = std::stoi(a.substr(10));
     else if (a == "--unified")
       cfg.unified = true;
+    else if (a == "--forward")
+      cfg.forward = true;
     else {
       std::cerr << "Unknown argument: " << a << "  (use --help)" << std::endl;
       return false;
@@ -155,6 +163,22 @@ int main(int argc, char **argv) {
   std::signal(SIGINT, on_signal);
   std::signal(SIGTERM, on_signal);
 
+  if (cfg.unified && cfg.forward) {
+    std::cerr << "ERROR: --unified and --forward are mutually exclusive"
+              << std::endl;
+    return 1;
+  }
+
+  // RPC frame = RPCHeader (24B) + payload.  Passed to the transceiver as
+  // cu_frame_size, which is the SGE length on every TX (Send / Write-With-
+  // Imm) so we don't transmit unused slot tail bytes.
+  const std::size_t frame_size =
+      sizeof(cudaq::realtime::RPCHeader) + cfg.payload_size;
+
+  const char *mode_str = cfg.forward     ? "FORWARD"
+                         : cfg.unified   ? "UNIFIED"
+                                         : "3-thread";
+
   std::cout << "=== HSB CPU Bridge (Phase 1) ===" << std::endl;
   std::cout << "Device:        " << cfg.device << std::endl;
   std::cout << "Peer IP:       " << cfg.peer_ip << std::endl;
@@ -162,21 +186,23 @@ int main(int argc, char **argv) {
             << std::endl;
   std::cout << "Pages:         " << cfg.num_pages << std::endl;
   std::cout << "Page size:     " << cfg.page_size << " bytes" << std::endl;
-  std::cout << "Mode:          " << (cfg.unified ? "UNIFIED" : "3-thread")
-            << std::endl;
+  std::cout << "Frame size:    " << frame_size << " bytes" << std::endl;
+  std::cout << "Mode:          " << mode_str << std::endl;
 
   // ------------------------------------------------------------------------
-  // [1] Create CpuRoceTransceiver.  In default (3-thread) mode the host
-  //     dispatcher consumes RX flags / produces TX flags; in unified mode
-  //     the transceiver's unified_loop does both inline.
+  // [1] Create CpuRoceTransceiver.
+  //     3-thread: cudaq_host_dispatcher_loop consumes RX flags / produces TX
+  //               flags; transceiver's RX+TX threads do the wire I/O.
+  //     unified:  transceiver's unified_loop does RX + dispatch + TX inline.
+  //     forward:  transceiver's forward_loop echoes every RX slot back to
+  //               the peer; no host dispatcher needed.
   // ------------------------------------------------------------------------
-  const int forward = 0;
   const int rx_only = 0;
   const int tx_only = 0;
   cpu_roce_transceiver_t xcvr = cpu_roce_create_transceiver(
-      cfg.device.c_str(), /*ib_port=*/1, cfg.remote_qp, cfg.page_size,
-      cfg.page_size, cfg.num_pages, cfg.peer_ip.c_str(), forward, rx_only,
-      tx_only, cfg.unified ? 1 : 0,
+      cfg.device.c_str(), /*ib_port=*/1, cfg.remote_qp, frame_size,
+      cfg.page_size, cfg.num_pages, cfg.peer_ip.c_str(),
+      cfg.forward ? 1 : 0, rx_only, tx_only, cfg.unified ? 1 : 0,
       /*tx_mode=*/CPU_ROCE_TX_MODE_SEND_FOR_FPGA,
       /*peer_rx_base_addr=*/0, /*peer_rx_rkey=*/0);
   if (!xcvr) {
@@ -192,12 +218,17 @@ int main(int argc, char **argv) {
 
   const uint32_t our_qp = cpu_roce_get_qp_number(xcvr);
   const uint32_t our_rkey = cpu_roce_get_rkey(xcvr);
+  const uint64_t our_buffer = cpu_roce_get_buffer_addr(xcvr); // always 0 with
+                                                              // iova=0 MR
+                                                              // registration
 
   // ------------------------------------------------------------------------
-  // [2] Set up the HOST_CALL function table (always one entry: increment).
+  // [2] Set up the HOST_CALL function table.  Skipped in forward mode (no
+  //     dispatch happens there).
   // ------------------------------------------------------------------------
   cudaq_function_entry_t h_entries[1];
-  setup_rpc_increment_function_table_host(h_entries);
+  if (!cfg.forward)
+    setup_rpc_increment_function_table_host(h_entries);
 
   // ------------------------------------------------------------------------
   // [3] Mode-specific wiring.
@@ -206,7 +237,11 @@ int main(int argc, char **argv) {
   std::atomic<int> dispatcher_shutdown{0};
   cudaq_host_dispatch_loop_ctx_t dctx{};
   uint64_t packets_dispatched = 0;
-  if (cfg.unified) {
+  if (cfg.forward) {
+    // Forward: the transceiver's forward_loop echoes every RX slot back
+    // to the peer.  No dispatcher, no callback to install.  cu_frame_size
+    // determines the bytes-on-wire.
+  } else if (cfg.unified) {
     // Unified: install the dispatch closure; the transceiver's unified
     // thread will invoke it.  No cudaq_host_dispatcher_loop needed.
     cpu_roce_set_unified_dispatch(xcvr, &unified_dispatch_cb,
@@ -258,10 +293,8 @@ int main(int argc, char **argv) {
   std::cout << "  QP Number: 0x" << std::hex << our_qp << std::dec
             << std::endl;
   std::cout << "  RKey: " << our_rkey << std::endl;
-  std::cout << "  Buffer Addr: 0x0" << std::endl; // ibv_reg_mr convention:
-                                                  // peer addresses slots by
-                                                  // offset from 0, MR
-                                                  // identified by rkey.
+  std::cout << "  Buffer Addr: 0x" << std::hex << our_buffer << std::dec
+            << std::endl;
   std::cout << "\nWaiting (Ctrl+C to stop, timeout=" << cfg.timeout_sec
             << "s)..." << std::endl;
   std::cout.flush();
@@ -291,7 +324,9 @@ int main(int argc, char **argv) {
   //     then join both.
   // ------------------------------------------------------------------------
   std::cout << "\n=== Shutting down ===" << std::endl;
-  if (!cfg.unified) {
+  // Only the 3-thread mode runs a separate host-dispatcher thread.
+  const bool runs_dispatcher = !cfg.unified && !cfg.forward;
+  if (runs_dispatcher) {
     dispatcher_shutdown.store(1, std::memory_order_release);
     if (dispatcher_thread.joinable())
       dispatcher_thread.join();
@@ -300,7 +335,7 @@ int main(int argc, char **argv) {
   if (xcvr_monitor.joinable())
     xcvr_monitor.join();
 
-  if (!cfg.unified)
+  if (runs_dispatcher)
     std::cout << "Packets dispatched: " << packets_dispatched << std::endl;
 
   cpu_roce_destroy_transceiver(xcvr);

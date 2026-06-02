@@ -53,6 +53,7 @@ DO_SETUP_NETWORK=false
 DO_RUN=true
 VERIFY=true
 UNIFIED=false
+FORWARD=false
 
 # Directory defaults.  Per the plan we point at the current HSB source
 # checkout at /workspaces/holoscan-sensor-bridge (not the legacy
@@ -89,7 +90,11 @@ Usage: hsb_test_cpu.sh [options]
 
 Modes:
   --emulate              Use FPGA emulator (3-tool mode, no FPGA needed)
-  --unified              Run hsb_bridge_cpu with --unified
+  --unified              Run hsb_bridge_cpu with --unified (single thread
+                         RX+dispatch+TX)
+  --forward              Run hsb_bridge_cpu with --forward (wire-RTT
+                         baseline; bridge echoes every slot, no dispatch).
+                         Mutually exclusive with --unified.
 
 Actions:
   --build                Build all required tools before running
@@ -129,6 +134,7 @@ while [[ $# -gt 0 ]]; do
         --no-run)           DO_RUN=false ;;
         --no-verify)        VERIFY=false ;;
         --unified)          UNIFIED=true ;;
+        --forward)          FORWARD=true ;;
         --hololink-dir)     HOLOLINK_DIR="$2"; shift ;;
         --cuda-quantum-dir) CUDA_QUANTUM_DIR="$2"; shift ;;
         --bin-dir)          BIN_DIR="$2"; shift ;;
@@ -427,7 +433,10 @@ do_run() {
         FPGA_TARGET_IP="$FPGA_IP"
     fi
 
-    echo "--- Starting bridge (mode: $(if $UNIFIED; then echo "UNIFIED"; else echo "3-thread"; fi)) ---"
+    local mode_name="3-thread"
+    if $UNIFIED; then mode_name="UNIFIED"; fi
+    if $FORWARD; then mode_name="FORWARD"; fi
+    echo "--- Starting bridge (mode: $mode_name) ---"
     > /tmp/bridge.log
     local bridge_args=(
         --device="$IB_DEVICE"
@@ -440,6 +449,9 @@ do_run() {
     )
     if $UNIFIED; then
         bridge_args+=(--unified)
+    fi
+    if $FORWARD; then
+        bridge_args+=(--forward)
     fi
     "$bridge_bin" "${bridge_args[@]}" > /tmp/bridge.log 2>&1 &
     BRIDGE_PID=$!
@@ -496,6 +508,11 @@ do_run() {
     if ! $VERIFY; then
         playback_args+=(--no-verify)
     fi
+    if $FORWARD; then
+        # Tells playback to expect echoed RPC_MAGIC_REQUEST instead of
+        # converted RPC_MAGIC_RESPONSE, and to skip the +1 payload check.
+        playback_args+=(--forward)
+    fi
 
     "$playback_bin" "${playback_args[@]}"
     PLAYBACK_EXIT=$?
@@ -516,9 +533,18 @@ do_run() {
 # Main
 # ============================================================================
 
+if $UNIFIED && $FORWARD; then
+    echo "ERROR: --unified and --forward are mutually exclusive" >&2
+    exit 1
+fi
+
 echo "=== HSB CPU Bridge Test ==="
 echo "Mode: $(if $EMULATE; then echo "emulated"; else echo "FPGA"; fi)"
-echo "Dispatch: $(if $UNIFIED; then echo "UNIFIED"; else echo "3-thread"; fi)"
+echo -n "Dispatch: "
+if   $FORWARD; then echo "FORWARD"
+elif $UNIFIED; then echo "UNIFIED"
+else                echo "3-thread"
+fi
 
 if [ -n "$BIN_DIR" ]; then
    if $DO_BUILD; then

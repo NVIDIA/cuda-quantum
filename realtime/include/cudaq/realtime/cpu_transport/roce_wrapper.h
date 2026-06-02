@@ -108,6 +108,11 @@ uint32_t cpu_roce_get_qp_number(cpu_roce_transceiver_t handle);
 /// rkey of our rx_data MR.  Peer uses this to RDMA-write into our RX ring.
 uint32_t cpu_roce_get_rkey(cpu_roce_transceiver_t handle);
 
+/// IOVA base of the externally-visible rx_data buffer.  Peer addresses
+/// our slots by remote_addr = cpu_roce_get_buffer_addr() + slot*stride.
+/// Currently equals the virtual address of rx_data (plain ibv_reg_mr).
+uint64_t cpu_roce_get_buffer_addr(cpu_roce_transceiver_t handle);
+
 //==============================================================================
 // Ring buffer accessors (mirroring hololink_wrapper.h's surface)
 //==============================================================================

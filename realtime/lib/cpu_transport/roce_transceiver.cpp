@@ -297,13 +297,22 @@ bool CpuRoceTransceiver::Impl::register_mrs() {
   // exported to the peer (FPGA via HSB control plane, or peer transceiver
   // via out-of-band rendezvous).
   //
-  // CRITICAL: register with iova=0 so the peer's remote_addr=0+slot*stride
-  // resolves to "start of rx_data + slot*stride" on our side.  This matches
-  // the convention exposed via external_frame_memory() (= 0) and the
-  // "Buffer Addr: 0x0" line we print to stdout.  If we used plain
-  // ibv_reg_mr (which sets iova=virtual_addr), the peer would have to use
-  // our virtual address — which we don't want to leak across the wire and
-  // can't safely use anyway.
+  // Register with iova=0 so the peer addresses our slots by offset alone:
+  //   remote_addr = 0 + slot*stride_sz
+  // Why iova=0 and not iova=vaddr?  The HSB library enforces a hard limit
+  // PAGES(highest_address) <= UINT32_MAX where PAGES = >> 7, so the
+  // highest addressed byte must be below 2^39 = 512 GB.  Modern Linux on
+  // aarch64 returns virtual addresses in the 48-bit range, well past
+  // 512 GB, so vaddr-as-iova would trip the HSB limit at runtime in the
+  // playback tool.
+  //
+  // CRITICAL consequence: on this mlx5/libibverbs stack, local SGEs that
+  // reference this MR via its lkey must use IOVA-based addresses
+  // (0 + slot*stride_sz), NOT virtual addresses (rx_data + slot*stride_sz).
+  // The NIC validates the SGE addr against the iova range [0, data_bytes)
+  // for both local reads (Send source) and local writes (Recv target).
+  // post_initial_recv_wqes(), forward_loop, and any other code that
+  // builds an SGE referencing rx_data_mr->lkey must follow this rule.
   rx_data_mr = ibv_reg_mr_iova(pd, rx_data, data_bytes, /*iova=*/0,
                                IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE);
   if (!rx_data_mr) {
@@ -315,8 +324,10 @@ bool CpuRoceTransceiver::Impl::register_mrs() {
   rkey = rx_data_mr->rkey;
 
   // TX ring is local-only (we read from it to populate Send / Write
-  // payloads); peer never addresses it.  Plain ibv_reg_mr is fine — local
-  // SGEs use the actual virtual address regardless of iova choice.
+  // payloads); peer never addresses it.  Plain ibv_reg_mr (iova=vaddr) is
+  // fine — SGEs from tx_loop reference tx_data_mr->lkey with vaddr-based
+  // addresses, and there's no IOVA-vs-vaddr conflict because tx_data isn't
+  // remotely addressable.
   tx_data_mr = ibv_reg_mr(pd, tx_data, data_bytes, IBV_ACCESS_LOCAL_WRITE);
   if (!tx_data_mr) {
     std::fprintf(stderr,
@@ -385,9 +396,14 @@ bool CpuRoceTransceiver::Impl::post_initial_recv_wqes() {
   // Pre-post stride_num receive WQEs, each pointing at one specific slot in
   // rx_data with wr_id encoding the slot.  When the peer's RDMA writes
   // complete, the CQE's wr_id tells us which slot was written into.
+  //
+  // SGE addr is IOVA-based (slot*stride_sz, offset from iova=0), NOT
+  // vaddr-based.  Required because rx_data_mr is registered with iova=0
+  // and the mlx5 NIC validates local SGE addrs against the iova range.
+  // See register_mrs() for the rationale.
   for (std::uint32_t slot = 0; slot < stride_num; ++slot) {
     ibv_sge sge{};
-    sge.addr = reinterpret_cast<std::uintptr_t>(rx_data + slot * stride_sz);
+    sge.addr = static_cast<std::uint64_t>(slot) * stride_sz;
     sge.length = static_cast<std::uint32_t>(stride_sz);
     sge.lkey = rx_data_mr->lkey;
 
@@ -518,13 +534,10 @@ void CpuRoceTransceiver::Impl::rx_loop() {
                      __ATOMIC_RELEASE);
 
     // Re-post the recv WQE for this slot so future inbound writes have
-    // somewhere to land.  We do this immediately rather than waiting for
-    // the consumer to fully drain, because the recv queue is what the NIC
-    // dequeues from on incoming Write-With-Imm.  The flag handshake above
-    // ensures we don't overwrite a slot that still has fresh data.
+    // somewhere to land.  IOVA-based addr (see post_initial_recv_wqes).
     generation[slot]++;
     ibv_sge sge{};
-    sge.addr = reinterpret_cast<std::uintptr_t>(rx_data + slot * stride_sz);
+    sge.addr = static_cast<std::uint64_t>(slot) * stride_sz;
     sge.length = static_cast<std::uint32_t>(stride_sz);
     sge.lkey = rx_data_mr->lkey;
 
@@ -548,34 +561,56 @@ void CpuRoceTransceiver::Impl::forward_loop() {
   // from the same slot.  No rx_flag/tx_flag handshake involved (we do the
   // wire round-trip directly).  Mirrors the GPU forward kernel.
   std::vector<std::uint32_t> generation(stride_num, 1);
+
+  // SQ drain via signal-every-N (same pattern as tx_loop).  Required
+  // because the SQ slots are only freed when a signaled WQE completes
+  // (and sweeps preceding unsignaled WQEs).  Without this, after
+  // max_send_wr (= stride_num) sends, ibv_post_send returns ENOMEM.
+  constexpr int kSignalEvery = 16;
+  std::uint32_t since_signal = 0;
+  ibv_wc swc[kSignalEvery]{};
+
   ibv_wc wc{};
   while (exit_flag.load(std::memory_order_acquire) == 0) {
     int n = ibv_poll_cq(rq_cq, 1, &wc);
-    if (n < 0)
+    if (n < 0) {
+      std::fprintf(stderr,
+                   "CpuRoceTransceiver(forward): ibv_poll_cq(rq) failed errno=%d\n",
+                   errno);
       break;
+    }
     if (n == 0) {
       cpu_relax();
       continue;
     }
-    if (wc.status != IBV_WC_SUCCESS)
+    if (wc.status != IBV_WC_SUCCESS) {
+      std::fprintf(stderr,
+                   "CpuRoceTransceiver(forward): RX CQE status=%d (%s) wr_id=%lu\n",
+                   wc.status, ibv_wc_status_str(wc.status),
+                   static_cast<unsigned long>(wc.wr_id));
       continue;
+    }
     const std::uint32_t slot = decode_slot(wc.wr_id);
-    if (slot >= stride_num)
+    if (slot >= stride_num) {
+      std::fprintf(stderr, "CpuRoceTransceiver(forward): bad slot=%u\n", slot);
       continue;
+    }
 
-    // Re-send the slot's bytes back to the peer.  TX verb depends on
-    // tx_mode (matches the TX thread's logic in the tx_loop todo).
-    ibv_sge sge{};
-    sge.addr = reinterpret_cast<std::uintptr_t>(rx_data + slot * stride_sz);
-    sge.length = static_cast<std::uint32_t>(stride_sz);
-    sge.lkey = rx_data_mr->lkey;
+    // Re-send the slot's bytes back to the peer.  IOVA-based addr (see
+    // register_mrs / post_initial_recv_wqes).  Length uses cu_frame_size
+    // for parity with tx_loop and the GPU bridge's forward kernel.
+    ibv_sge send_sge{};
+    send_sge.addr = static_cast<std::uint64_t>(slot) * stride_sz;
+    send_sge.length = static_cast<std::uint32_t>(cu_frame_size);
+    send_sge.lkey = rx_data_mr->lkey;
 
     ibv_send_wr swr{};
     swr.wr_id = wc.wr_id;
-    swr.sg_list = &sge;
+    swr.sg_list = &send_sge;
     swr.num_sge = 1;
-    swr.send_flags = 0; // unsignalled; we don't poll SQ in forward mode
     swr.next = nullptr;
+    const bool signal_this = (++since_signal % kSignalEvery) == 0;
+    swr.send_flags = signal_this ? IBV_SEND_SIGNALED : 0;
     if (tx_mode == CpuRoceTxMode::kWriteWithImmForPeer) {
       swr.opcode = IBV_WR_RDMA_WRITE_WITH_IMM;
       swr.wr.rdma.remote_addr = peer_rx_base_addr + slot * stride_sz;
@@ -584,18 +619,44 @@ void CpuRoceTransceiver::Impl::forward_loop() {
     } else {
       swr.opcode = IBV_WR_SEND;
     }
-    ibv_send_wr *bad = nullptr;
-    (void)ibv_post_send(qp, &swr, &bad);
+    ibv_send_wr *bad_send = nullptr;
+    if (ibv_post_send(qp, &swr, &bad_send) != 0) {
+      std::fprintf(stderr,
+                   "CpuRoceTransceiver(forward): ibv_post_send slot=%u failed errno=%d\n",
+                   slot, errno);
+    }
+    if (signal_this) {
+      int drained = ibv_poll_cq(sq_cq, kSignalEvery, swc);
+      for (int k = 0; k < drained; ++k) {
+        if (swc[k].status != IBV_WC_SUCCESS) {
+          std::fprintf(stderr,
+                       "CpuRoceTransceiver(forward): SQ CQE wr_id=%lu status=%d (%s)\n",
+                       (unsigned long)swc[k].wr_id, swc[k].status,
+                       ibv_wc_status_str(swc[k].status));
+        }
+      }
+    }
 
-    // Re-post the recv WQE for the same slot.
+    // Re-post the recv WQE for this slot.  SEPARATE SGE from the send:
+    // recv buffer must be sized to stride_sz to accept any future inbound
+    // write (which might be larger than the original cu_frame_size).
+    // IOVA-based addr (see register_mrs).
     generation[slot]++;
+    ibv_sge recv_sge{};
+    recv_sge.addr = static_cast<std::uint64_t>(slot) * stride_sz;
+    recv_sge.length = static_cast<std::uint32_t>(stride_sz);
+    recv_sge.lkey = rx_data_mr->lkey;
     ibv_recv_wr rwr{};
     rwr.wr_id = encode_wr_id(slot, generation[slot]);
-    rwr.sg_list = &sge;
+    rwr.sg_list = &recv_sge;
     rwr.num_sge = 1;
     rwr.next = nullptr;
-    ibv_recv_wr *rbad = nullptr;
-    (void)ibv_post_recv(qp, &rwr, &rbad);
+    ibv_recv_wr *bad_recv = nullptr;
+    if (ibv_post_recv(qp, &rwr, &bad_recv) != 0) {
+      std::fprintf(stderr,
+                   "CpuRoceTransceiver(forward): ibv_post_recv re-arm slot=%u failed errno=%d\n",
+                   slot, errno);
+    }
   }
 }
 
@@ -629,10 +690,13 @@ void CpuRoceTransceiver::Impl::tx_loop() {
 
     // Build the send WQE.  Use the slot's data address as the SGE source;
     // the slot index is encoded in the IMM for Write-With-Imm mode (so the
-    // peer can decode which slot the bytes belong to).
+    // peer can decode which slot the bytes belong to).  SGE length uses
+    // cu_frame_size (the actual RPC frame size, RPCHeader + payload),
+    // NOT stride_sz (the full slot), so we don't transmit unused slot
+    // tail bytes.  Matches the GPU bridge's "frame_size" convention.
     ibv_sge sge{};
     sge.addr = addr;
-    sge.length = static_cast<std::uint32_t>(stride_sz);
+    sge.length = static_cast<std::uint32_t>(cu_frame_size);
     sge.lkey = local_tx_lkey;
 
     ibv_send_wr swr{};
@@ -760,7 +824,7 @@ void CpuRoceTransceiver::Impl::unified_loop() {
     // Re-arm the recv WQE for this slot.
     generation[slot]++;
     ibv_sge rsge{};
-    rsge.addr = reinterpret_cast<std::uintptr_t>(rx_data + slot * stride_sz);
+    rsge.addr = static_cast<std::uint64_t>(slot) * stride_sz;
     rsge.length = static_cast<std::uint32_t>(stride_sz);
     rsge.lkey = rx_data_mr->lkey;
 
@@ -992,7 +1056,12 @@ std::uint32_t CpuRoceTransceiver::get_qp_number() const {
 
 std::uint32_t CpuRoceTransceiver::get_rkey() const { return impl_->rkey; }
 
-std::uint64_t CpuRoceTransceiver::external_frame_memory() const { return 0; }
+std::uint64_t CpuRoceTransceiver::external_frame_memory() const {
+  // rx_data_mr is registered with iova=0; peer addresses slots by offset
+  // alone.  See register_mrs() for why iova=0 (HSB 32-bit page address
+  // limit forces it).
+  return 0;
+}
 
 std::uint8_t *CpuRoceTransceiver::get_rx_ring_data_addr() const {
   return impl_->rx_data;
