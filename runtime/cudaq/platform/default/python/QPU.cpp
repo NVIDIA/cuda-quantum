@@ -21,6 +21,7 @@
 #include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "nvqir/resourcecounter/ResourceCounterScope.h"
 #include "runtime/cudaq/platform/PythonSignalCheck.h"
+#include "cudaq/Optimizer/Builder/Marshal.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -266,7 +267,6 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
       throw std::runtime_error("no kernel named " + name + " found in module");
     mlir::Type resultTy = cudaq::runtime::getReturnType(funcOp);
 
-    const bool hasResult = !!resultTy;
     auto resultInfo =
         cudaq_internal::compiler::CompiledModuleHelper::createResultInfo(
             resultTy, isEntryPoint, module);
@@ -287,9 +287,8 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
         args.hasTypeErased() ? *args.getTypeErased() : std::span<void *const>();
 
     // Special handling in case the arguments were already synthesized
-    size_t numArgs = rawArgs.size() - (hasResult ? 1 : 0);
     if (isEntryPoint && isLocalSimulator &&
-        numArgs == fromFuncTy.getNumInputs()) {
+        !cudaq::opt::marshal::isFullySynthesized(funcOp)) {
       closureArgsVec = std::vector(rawArgs.begin(), rawArgs.end());
       for (auto [i, ty] : llvm::enumerate(fromFuncTy.getInputs())) {
         if (!isa<cudaq::cc::CallableType>(ty)) {
