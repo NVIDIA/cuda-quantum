@@ -19,9 +19,8 @@ SET(CMAKE_SHARED_LINKER_FLAGS "")
 # calls reach the inline bodies in `runtime/cudaq/qis/qubit_qis.h` on the
 # host.
 #
-# The user-facing `--library-mode` flag has been removed, but the macro it
-# used to set survives as an internal implementation detail for host
-# execution (`orca-photonics`).
+# The user-facing `--library-mode` flag has been removed, but the macro it set
+# survives as an internal implementation detail.
 add_compile_definitions(CUDAQ_LIBRARY_MODE)
 
 # ctest's PROCESSORS property tells the scheduler how many CPU slots each test
