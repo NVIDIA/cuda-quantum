@@ -242,7 +242,6 @@ public:
     std::filesystem::path platformPath;
   };
 
-  using QPU::getCompileTarget;
   std::unique_ptr<CompileTarget>
   getCompileTarget(ExecutionContext *ctx) override {
     if (!ctx)
@@ -281,6 +280,7 @@ public:
     target->supportConditionalsOnMeasureResults = !emulate;
     target->pipelineConfig.addMeasurements = true;
     target->storeReorderIdx = true;
+    target->pipelineConfig.replaceStateWithKernel = true;
     return target;
   }
 
