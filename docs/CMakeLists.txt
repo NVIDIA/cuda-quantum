@@ -164,7 +164,7 @@ if (MPI_CXX_FOUND AND cuTensorNet_FOUND)
     LABELS "gpu_required;mgpus_required")
 endif()
 
-add_nvqpp_test(photonics_sim targets/cpp/photonics.cpp TARGET orca-photonics)
+add_nvqpp_test(photonics_sim targets/cpp/photonics.cpp TARGET orca-photonics LIBRARY_MODE)
 
 # Only add the python tests if we built the python API
 if (CUDAQ_ENABLE_PYTHON)
