@@ -142,7 +142,32 @@ public:
   /// Open the ibv device, build PD/CQs/QP/MRs, allocate pinned ring
   /// memory, pre-post recv WQEs, transition the QP to RTR (or RTS for
   /// full-duplex).  Returns true on success.
+  ///
+  /// Equivalent to setup() followed by connect() using the tx_ibv_qp /
+  /// peer_ip / peer_rx_rkey supplied at construction.  Use this when the
+  /// peer's QP number is already known at construction time (Phase 1
+  /// bridge↔FPGA, where the FPGA's QP is fixed).
   bool start();
+
+  /// Phase 2 two-step connection bring-up (when the peer's QP number is
+  /// NOT known at construction — the circular dependency of a bidirectional
+  /// RDMA handshake).  Split from start() so a transceiver can learn its own
+  /// QP number / rkey, exchange them with the peer out-of-band, and only
+  /// then connect.
+  ///
+  /// setup(): open device, build PD/CQs/QP/MRs, allocate rings, pre-post
+  /// recv WQEs, transition the QP to INIT.  After this returns true,
+  /// get_qp_number()/get_rkey() are valid and can be sent to the peer.
+  /// Does NOT transition to RTR/RTS (no peer info needed yet).
+  bool setup();
+
+  /// connect(): transition the (already setup()) QP INIT -> RTR -> RTS using
+  /// the now-known peer QP number, peer IPv4 (its RoCEv2 GID is derived from
+  /// this), and — for tx_mode == kWriteWithImmForPeer — the peer's rx_data
+  /// rkey.  Must be called after setup() and before blocking_monitor().
+  /// Returns true on success.
+  bool connect(unsigned peer_qp, const char *peer_ip,
+               std::uint32_t peer_rx_rkey);
 
   /// Spawn the RX/TX (or single unified) thread(s).  Returns when close()
   /// is called.  Idempotent: a second call returns immediately if the

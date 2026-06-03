@@ -67,6 +67,29 @@ int cpu_roce_start(cpu_roce_transceiver_t handle) {
   }
 }
 
+int cpu_roce_setup(cpu_roce_transceiver_t handle) {
+  if (!handle)
+    return 0;
+  try {
+    return as_cpp(handle)->setup() ? 1 : 0;
+  } catch (const std::exception &e) {
+    std::fprintf(stderr, "cpu_roce_setup: %s\n", e.what());
+    return 0;
+  }
+}
+
+int cpu_roce_connect(cpu_roce_transceiver_t handle, unsigned peer_qp,
+                     const char *peer_ip, uint32_t peer_rx_rkey) {
+  if (!handle)
+    return 0;
+  try {
+    return as_cpp(handle)->connect(peer_qp, peer_ip, peer_rx_rkey) ? 1 : 0;
+  } catch (const std::exception &e) {
+    std::fprintf(stderr, "cpu_roce_connect: %s\n", e.what());
+    return 0;
+  }
+}
+
 void cpu_roce_close(cpu_roce_transceiver_t handle) {
   if (handle)
     as_cpp(handle)->close();

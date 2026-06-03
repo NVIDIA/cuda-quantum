@@ -70,8 +70,22 @@ cpu_roce_transceiver_t cpu_roce_create_transceiver(
 void cpu_roce_destroy_transceiver(cpu_roce_transceiver_t handle);
 
 /// Open the `ibv` device, build PD/CQs/QP/MRs, allocate rings, pre-post `recv`
-/// WQEs, transition to RTS.  Returns 1 on success, 0 on failure.
+/// WQEs, transition to RTS.  Returns 1 on success, 0 on failure.  Uses the
+/// peer QP/ip/rkey fixed at construction (Phase 1 path).
 int cpu_roce_start(cpu_roce_transceiver_t handle);
+
+/// Phase 2 split bring-up for the bidirectional RDMA handshake.
+/// cpu_roce_setup(): build everything up to QP INIT (peer not needed yet);
+/// after success, cpu_roce_get_qp_number()/cpu_roce_get_rkey() are valid to
+/// exchange with the peer.  Returns 1 on success, 0 on failure.
+int cpu_roce_setup(cpu_roce_transceiver_t handle);
+
+/// cpu_roce_connect(): transition the setup() QP to RTR/RTS using the now-
+/// known peer QP number, peer IPv4 (RoCEv2 GID derived from it), and (for
+/// tx_mode=WRITE_WITH_IMM_FOR_PEER) the peer's rx_data rkey.  Returns 1 on
+/// success, 0 on failure.
+int cpu_roce_connect(cpu_roce_transceiver_t handle, unsigned peer_qp,
+                     const char *peer_ip, uint32_t peer_rx_rkey);
 
 /// Signal exit, join I/O threads, release `ibv`/memory resources.
 /// Idempotent.  Safe to call from any thread.
