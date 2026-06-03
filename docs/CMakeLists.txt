@@ -15,7 +15,6 @@
 #   TARGET_OPTION <Option>: extra option for the target
 #   SOURCE_DIR <DIR>: the directory that SOURCE_LOCATION is relative to (if not the default)
 #   LAUNCH_COMMAND <COMMAND>: the command to launch the test (e.g., mpirun)
-#   LIBRARY_MODE: compile in library mode instead of the default MLIR mode
 function(add_nvqpp_test TEST_NAME SOURCE_LOCATION)
   cmake_parse_arguments(PARSED_ARGS "" "TARGET;LABELS;SOURCE_DIR;LAUNCH_COMMAND;APPLICATION_ARGS;TARGET_OPTION;EXTRA_COMPILE_ARGS;MIN_GPUS" "" ${ARGN})
   set(NVQPP_COMPILE_ARGS "-I${CMAKE_SOURCE_DIR}/runtime/include")
@@ -55,7 +54,7 @@ add_nvqpp_test(ExpVals examples/cpp/basics/expectation_values.cpp)
 add_nvqpp_test(MidCircuitMeasurements examples/cpp/basics/mid_circuit_measurement.cpp)
 add_nvqpp_test(MeasuringKernels examples/cpp/measuring_kernels.cpp)
 add_nvqpp_test(PhaseEstimation applications/cpp/phase_estimation.cpp)
-add_nvqpp_test(Grover applications/cpp/grover.cpp LIBRARY_MODE)
+add_nvqpp_test(Grover applications/cpp/grover.cpp)
 add_nvqpp_test(QAOA applications/cpp/qaoa_maxcut.cpp)
 add_nvqpp_test(VQEH2 applications/cpp/vqe_h2.cpp)
 add_nvqpp_test(AmplitudeEstimation applications/cpp/amplitude_estimation.cpp)
@@ -165,7 +164,7 @@ if (MPI_CXX_FOUND AND cuTensorNet_FOUND)
     LABELS "gpu_required;mgpus_required")
 endif()
 
-add_nvqpp_test(photonics_sim targets/cpp/photonics.cpp TARGET orca-photonics LIBRARY_MODE)
+add_nvqpp_test(photonics_sim targets/cpp/photonics.cpp TARGET orca-photonics)
 
 # Only add the python tests if we built the python API
 if (CUDAQ_ENABLE_PYTHON)
