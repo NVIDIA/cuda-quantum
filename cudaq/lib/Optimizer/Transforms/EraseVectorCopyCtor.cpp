@@ -253,7 +253,7 @@ public:
     rewriter.eraseOp(copyTo);
     rewriter.eraseOp(freeHeap);
     rewriter.replaceOpWithNewOp<cudaq::cc::UndefOp>(
-        call, call->getResult(0).getType());
+        call, call.getResult(0).getType());
     return success();
   }
 };
