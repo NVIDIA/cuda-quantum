@@ -64,6 +64,10 @@ on:
         required: false
         type: string
         description: The name of the GitHub environment within which to execute the workflow. A protected non-default environment should be specified when the workflow pushes images to the registry.
+      ccache_key:
+        required: false
+        type: string
+        description: If set, restore/persist a ccache under this key. Requires the Dockerfile to expose a ccache-data build context and a ccache-export stage.
     outputs:
       image_hash:
         description: "The name and digest of the docker image that was deployed to the registry, which can be used to retrieve it independently of any tag updates."
@@ -347,6 +351,18 @@ jobs:
           restore-keys: |
             ${{ steps.cache.outputs.local_buildcache_key }}
 
+      - name: Set up ccache
+        if: inputs.ccache_key != ''
+        uses: ./.github/actions/ccache-setup
+
+      - name: Restore ccache from GHCR
+        if: inputs.ccache_key != ''
+        uses: ./.github/actions/ccache-restore
+        with:
+          cache-key: ${{ inputs.ccache_key }}
+          output-path: /tmp/ccache-data
+          registry-token: ${{ github.token }}
+
       - name: Build ${{ needs.metadata.outputs.image_title }} image
         id: docker_build
         uses: docker/build-push-action@v5
@@ -356,6 +372,7 @@ jobs:
           target: ${{ inputs.build_target }}
           build-args: |
             ${{ inputs.build_args }}
+          build-contexts: ${{ inputs.ccache_key != '' && 'ccache-data=/tmp/ccache-data' || '' }}
           tags: ${{ needs.metadata.outputs.image_tags }}
           labels: ${{ needs.metadata.outputs.image_labels }}
           platforms: ${{ inputs.platforms }}
@@ -366,6 +383,31 @@ jobs:
           cache-to: ${{ steps.cache.outputs.cache_to }}
           push: ${{ steps.cache.outputs.push_to_registry == 'true' }}
           outputs: ${{ steps.cache.outputs.docker_output }}
+
+      - name: Extract and persist ccache
+        if: inputs.ccache_key != ''
+        timeout-minutes: 15
+        continue-on-error: true
+        run: |
+          args=()
+          while IFS= read -r a; do [ -n "$a" ] && args+=(--build-arg "$a"); done <<< "${{ inputs.build_args }}"
+          mkdir -p /tmp/ccache-export
+          docker buildx build -f ./docker/${{ needs.metadata.outputs.dockerfile }} . \
+            --build-context ccache-data=/tmp/ccache-data \
+            "${args[@]}" \
+            --target ccache-export --output type=local,dest=/tmp/ccache-export 2>&1 | tail -20
+          [ -f /tmp/ccache-export/ccache.tar ] || { echo "No ccache.tar produced; skipping push."; exit 0; }
+          mkdir -p /tmp/ccache-export/ccache
+          tar xf /tmp/ccache-export/ccache.tar -C /tmp/ccache-export/ccache
+
+      - name: Push ccache to GHCR
+        if: inputs.ccache_key != ''
+        continue-on-error: true
+        uses: ./.github/actions/ccache-push
+        with:
+          cache-key: ${{ inputs.ccache_key }}
+          cache-path: /tmp/ccache-export/ccache
+          registry-token: ${{ github.token }}
 
       - name: Install Cosign
         if: steps.cache.outputs.push_to_registry == 'true'
