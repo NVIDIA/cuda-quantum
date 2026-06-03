@@ -163,6 +163,37 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
       cudaq::cudaq-realtime-dispatch
       CUDA::cudart_static
       gtest_main)
+
+  # cpu_roce DeviceCallChannel test + its service-side daemon. Only when the
+  # CPU RoCE transport (libibverbs) is available; the fixture itself GTEST_SKIPs
+  # unless the loopback test topology is provided via environment variables.
+  if (TARGET cudaq::cudaq-realtime-cpu-transport)
+    add_executable(cpu_roce_test_daemon
+      device_call/cpu_roce_test_daemon.cpp)
+    target_include_directories(cpu_roce_test_daemon
+      PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
+    # host-dispatch.a contains relocatable device code (host_dispatcher.cu); the
+    # final link must run the CUDA device-link step even though this target has
+    # no .cu sources. Same "bridge as .cpp with CUDA device linking" pattern as
+    # the realtime hololink/hsb bridge tools.
+    set_target_properties(cpu_roce_test_daemon PROPERTIES
+      LINKER_LANGUAGE CUDA
+      CUDA_SEPARABLE_COMPILATION ON
+      CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+    target_link_libraries(cpu_roce_test_daemon
+      PRIVATE
+        cudaq::cudaq-realtime-cpu-transport
+        cudaq::cudaq-realtime-host-dispatch
+        CUDA::cudart_static
+        Threads::Threads)
+
+    target_sources(test_device_call_dispatch
+      PRIVATE device_call/CpuRoceChannelTester.cpp)
+    target_compile_definitions(test_device_call_dispatch
+      PRIVATE CPU_ROCE_DAEMON_PATH="$<TARGET_FILE:cpu_roce_test_daemon>")
+    add_dependencies(test_device_call_dispatch cpu_roce_test_daemon)
+  endif()
+
   gtest_discover_tests(test_device_call_dispatch
     PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu"
     DISCOVERY_TIMEOUT 120)
