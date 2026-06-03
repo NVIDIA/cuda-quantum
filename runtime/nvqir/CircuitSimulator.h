@@ -277,7 +277,11 @@ public:
     cudaq::policies::withPolicy(ctx.name, [&](auto policy) {
       cudaq::policies::visitResult(
           [&]() { return finalize_simulation_circuit(*this, policy, ctx); },
-          [&](cudaq::sample_result &&r) {}, [&](cudaq::observe_result &&r) {},
+          [&](cudaq::sample_result &&r) { ctx.result = std::move(r); },
+          [&](cudaq::observe_result &&r) {
+            ctx.result = r.raw_data();
+            ctx.expectationValue = r.expectation();
+          },
           [&](cudaq::policies::void_result &&r) {});
     });
   }
