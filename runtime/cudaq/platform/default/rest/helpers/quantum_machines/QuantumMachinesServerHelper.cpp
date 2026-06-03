@@ -28,7 +28,7 @@ namespace cudaq {
 /// @brief The QuantumMachinesServerHelper class extends the ServerHelper class
 /// to handle interactions with the Quantum Machines server for submitting and
 /// retrieving quantum computation jobs.
-class QuantumMachinesServerHelper : public ServerHelper {
+class QuantumMachinesServerHelper : public ServerHelper, public QirServerHelper  {
   static constexpr const char *DEFAULT_URL = "https://api.quantum-machines.com";
   static constexpr const char *DEFAULT_VERSION = "v1.0.0";
   static constexpr const char *DEFAULT_EXECUTOR = "mock";
@@ -76,6 +76,29 @@ public:
                backendConfig);
   }
 
+  inline std::string kernelExecutionToString(const KernelExecution &ke) {
+    std::ostringstream ss;
+    ss << "KernelExecution {\n";
+    ss << "  name: " << ke.name << "\n";
+    ss << "  code:\n" << ke.code << "\n";
+
+    ss << "  jit: " << (ke.jit.has_value() ? "<present>" : "<none>") << "\n";
+    ss << "  resourceCounts: "
+      << (ke.resourceCounts.has_value() ? "<present>" : "<none>") << "\n";
+
+    ss << "  output_names: " << ke.output_names.get().dump(2) << "\n";
+    ss << "  user_data: " << ke.user_data.get().dump(2) << "\n";
+
+    ss << "  mapping_reorder_idx: [";
+    for (std::size_t i = 0; i < ke.mapping_reorder_idx.size(); ++i)
+      ss << ke.mapping_reorder_idx[i]
+        << (i + 1 < ke.mapping_reorder_idx.size() ? ", " : "");
+    ss << "]\n";
+
+    ss << "}";
+    return ss.str();
+  }
+
   /// @brief Creates a quantum computation job using the provided kernel
   /// executions and returns the corresponding payload.
   // A Server Job Payload consists of a job post URL path, the headers,
@@ -84,12 +107,22 @@ public:
   //    std::tuple<std::string, RestHeaders, std::vector<ServerMessage>>;
   ServerJobPayload
   createJob(std::vector<KernelExecution> &circuitCodes) override {
-    CUDAQ_INFO("In createJob. code: {}", circuitCodes[0].code);
+    CUDAQ_INFO("In createJob. code: {}", kernelExecutionToString(circuitCodes[0]));
+    auto toBool = [](const std::string &value) {
+        return value == "True" || value == "true" || value == "1";
+      };
+    bool disableQubitMapping = toBool(backendConfig["disable-qubit-mapping"]);
+    auto *executionContext = cudaq::getExecutionContext();
+    const std::string requestType =
+        executionContext ? executionContext->name : "unknown";
+    const bool isRunRequest = requestType == "run";
     ServerMessage job;
     job["content"] = circuitCodes[0].code;
-    job["source"] = "oq2";
+    job["source"] = "quake";
     job["shots"] = shots;
     job["executor"] = backendConfig["executor"];
+    job["disable-qubit-mapping"] = disableQubitMapping;
+    job["output_format"] = isRunRequest ? "qir-raw" : "histogram";
     RestHeaders headers = getHeaders();
     std::string path = backendConfig["url"] + "/v1/execute";
     return std::make_tuple(path, headers, std::vector<ServerMessage>{job});
@@ -157,11 +190,12 @@ public:
     return std::chrono::seconds(1);
   }
 
-  std::string extractOutputLog(ServerMessage &jobResponse,
-                                                       std::string &jobId) {
-    CUDAQ_INFO("extractOutputLog: {}, {}", jobId, jobResponse.dump());
+
+  std::string extractOutputLog(ServerMessage &postJobResponse,
+                               std::string &jobId) override {
+    CUDAQ_INFO("extractOutputLog: {}, {}", jobId, postJobResponse.dump());
     //TODO: implement
-    return "";
+    return "1";
   }
 
 };
