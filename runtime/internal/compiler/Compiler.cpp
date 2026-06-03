@@ -557,7 +557,7 @@ mlir::ModuleOp cudaq_internal::compiler::Compiler::lowerQuakeCodeBuildModule(
     mlir::StringRef kernelName = [fullFuncName]() {
       mlir::StringRef retVal = fullFuncName;
       // TODO - clean this up to not have to do this. Considering the
-      // module's map, or cudaq::details::getKernelName(). But make sure it
+      // module's map, or cudaq::detail::getKernelName(). But make sure it
       // works for standard C++ functions.
 
       // Only get the portion before the first ".".

@@ -16,7 +16,7 @@
 #include <string>
 #include <utility>
 
-namespace cudaq::details {
+namespace cudaq::detail {
 
 std::string runDemFromKernel(const std::string &kernelName,
                              cudaq::quantum_platform &platform,
@@ -46,4 +46,4 @@ std::string runDemFromKernel(const std::string &kernelName,
   return std::move(ctx.dem_text);
 }
 
-} // namespace cudaq::details
+} // namespace cudaq::detail

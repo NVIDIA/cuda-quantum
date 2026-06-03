@@ -176,7 +176,7 @@ static state get_state_impl(const std::string &shortName, MlirModule mod,
   auto closure = [=]() {
     return marshal_and_launch_module(shortName, mod, args, compiled);
   };
-  return details::extractState(std::move(closure));
+  return detail::extractState(std::move(closure));
 }
 
 static std::future<state> get_state_async_impl(const std::string &shortName,
@@ -196,7 +196,7 @@ static std::future<state> get_state_async_impl(const std::string &shortName,
         p->erase();
         delete p;
       });
-  return details::runGetStateAsync(
+  return detail::runGetStateAsync(
       detail::make_copyable_function(
           [opaques = std::move(opaques), kernelName, clonedMod]() mutable {
             [[maybe_unused]] auto result =
@@ -240,7 +240,7 @@ state pyGetStateQPU(const std::string &kernelName, MlirModule kernelMod,
 }
 
 state pyGetStateLibraryMode(nanobind::object kernel, nanobind::args args) {
-  return details::extractState([&]() mutable {
+  return detail::extractState([&]() mutable {
     if (0 == args.size())
       kernel();
     else {
