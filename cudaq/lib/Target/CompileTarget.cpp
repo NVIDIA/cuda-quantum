@@ -53,8 +53,6 @@ cudaq::CompileTarget::CompileTarget(
 
   const auto &backendConfig = *targetConfig.BackendConfig;
   if (!backendConfig.hasPassPipeline()) {
-    // TODO: this means that Remote QPUs with no customisation at all will not
-    // run ANY passes. Is this okay?
     pipelineConfig.skipTargetLoweringPipeline = true;
   }
 

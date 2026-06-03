@@ -442,10 +442,8 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
   std::optional<cudaq::Resources> resourceCounts;
   if (target->emitResourceCounts) {
     auto result = cudaq::opt::countResourcesFromIR(moduleOp);
-    if (failed(result))
-      throw std::runtime_error(
-          "Could not successfully apply resource count preprocess.");
-    resourceCounts = std::move(*result);
+    if (succeeded(result))
+      resourceCounts = std::move(*result);
   }
 
   std::vector<std::size_t> mapping_reorder_idx;
