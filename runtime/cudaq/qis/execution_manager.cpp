@@ -10,6 +10,7 @@
 #include "common/ExecutionContext.h"
 #include "common/PluginUtils.h"
 #include "nvqir/CircuitSimulator.h"
+#include "cudaq/algorithms/observe/policy.h"
 #include "cudaq/algorithms/policy_cpos.h"
 #include "cudaq/algorithms/policy_dispatch.h"
 
@@ -50,15 +51,17 @@ void ExecutionManager::configureExecutionContext(const sample_policy &policy) {
   nvqir::getCircuitSimulatorInternal()->configureExecutionContext(policy);
 }
 
+void ExecutionManager::configureExecutionContext(const observe_policy &policy) {
+  if (auto *ctx = getExecutionContext())
+    configureExecutionContext(*ctx);
+  nvqir::getCircuitSimulatorInternal()->configureExecutionContext(policy);
+}
+
 void ExecutionManager::finalizeExecutionContext(ExecutionContext &ctx) {
   policies::withPolicy(ctx.name, [&](auto policy) {
     policies::visitResult(
         [&]() { return cudaq::finalize_execution_manager(*this, policy, ctx); },
-        [&](sample_result &&r) { ctx.result = std::move(r); },
-        [&](observe_result &&r) {
-          ctx.result = r.raw_data();
-          ctx.expectationValue = r.expectation();
-        },
+        [&](sample_result &&r) {}, [&](observe_result &&r) {},
         [&](policies::void_result &&r) {});
   });
 }

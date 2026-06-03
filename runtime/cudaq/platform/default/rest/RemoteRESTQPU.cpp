@@ -11,7 +11,7 @@
 using namespace cudaq;
 cudaq::RemoteRESTQPU::~RemoteRESTQPU() = default;
 
-sample_result RemoteRESTQPU::launchKernel(sample_policy &policy,
+sample_result RemoteRESTQPU::launchKernel(const sample_policy &policy,
                                           const AnyModule &module,
                                           KernelArgs args) {
   CUDAQ_INFO("RemoteRESTQPU::launchKernel {}", policy.name);
@@ -19,9 +19,26 @@ sample_result RemoteRESTQPU::launchKernel(sample_policy &policy,
   return completeLaunchKernel(policy, kernelName, std::move(codes));
 }
 
-async_sample_result RemoteRESTQPU::launchKernel(async_sample_policy &policy,
-                                                const AnyModule &module,
-                                                KernelArgs args) {
+async_sample_result
+RemoteRESTQPU::launchKernel(const async_sample_policy &policy,
+                            const AnyModule &module, KernelArgs args) {
+  CUDAQ_INFO("RemoteRESTQPU::launchKernel async {}", policy.inner.name);
+  auto [kernelName, codes] =
+      compileKernelExecutions(policy.inner, module, args);
+  return completeLaunchKernel(policy, kernelName, std::move(codes));
+}
+
+observe_result RemoteRESTQPU::launchKernel(const observe_policy &policy,
+                                           const AnyModule &module,
+                                           KernelArgs args) {
+  CUDAQ_INFO("RemoteRESTQPU::launchKernel {}", policy.name);
+  auto [kernelName, codes] = compileKernelExecutions(policy, module, args);
+  return completeLaunchKernel(policy, kernelName, std::move(codes));
+}
+
+async_observe_result RemoteRESTQPU::launchKernel(async_observe_policy &policy,
+                                                 const AnyModule &module,
+                                                 KernelArgs args) {
   CUDAQ_INFO("RemoteRESTQPU::launchKernel async {}", policy.inner.name);
   auto [kernelName, codes] =
       compileKernelExecutions(policy.inner, module, args);

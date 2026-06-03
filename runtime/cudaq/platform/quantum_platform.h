@@ -38,6 +38,10 @@ namespace detail {
 class TargetSetter;
 }
 
+namespace details {
+class with_platform_in_library_mode;
+}
+
 /// Typedefs for defining the connectivity structure of a QPU
 using QubitEdge = std::pair<std::size_t, std::size_t>;
 using QubitConnectivity = std::vector<QubitEdge>;
@@ -243,9 +247,34 @@ protected:
   std::string platformName;
 
 private:
+  friend class details::with_platform_in_library_mode;
+
   // Helper to validate QPU Id
   void validateQpuId(std::size_t qpuId) const;
+
+  int libraryModeOverride = 0;
 };
+
+namespace details {
+
+/// @brief RAII guard that temporarily forces
+/// `quantum_platform::is_library_mode()` to return true for non-QIR algorithm
+/// functors (e.g. evolve observe lambdas).
+class with_platform_in_library_mode {
+  quantum_platform &platform_;
+
+public:
+  explicit with_platform_in_library_mode(quantum_platform &platform)
+      : platform_(platform) {
+    ++platform_.libraryModeOverride;
+  }
+  ~with_platform_in_library_mode() { --platform_.libraryModeOverride; }
+  with_platform_in_library_mode(const with_platform_in_library_mode &) = delete;
+  with_platform_in_library_mode &
+  operator=(const with_platform_in_library_mode &) = delete;
+};
+
+} // namespace details
 
 /// Entry point for the auto-generated kernel execution path. TODO: Needs to be
 /// tied to the quantum platform instance somehow. Note that the compiler cannot

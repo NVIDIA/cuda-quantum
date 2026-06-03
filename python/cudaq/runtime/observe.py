@@ -31,23 +31,21 @@ def __broadcastObserve(kernel, spin_operator, *args, shots_count=0, qpu_id=0):
     argSet = __createArgumentSet(*args)
     N = len(argSet)
     results = []
+    kernel_name = kernel.name if hasattr(kernel, 'name') else ''
     ctx = cudaq_runtime.ExecutionContext('observe', shots_count, qpu_id)
     ctx.totalIterations = N
     ctx.setSpinOperator(spin_operator)
+    ctx.kernelName = kernel_name
     has_vector_args = isa_kernel_decorator(kernel) and any(
         hasattr(a, 'shape') and len(a.shape) == 2 for a in args)
     if has_vector_args:
         ctx.allowJitEngineCaching = True
         ctx.useParametricJit = True
+    policy = cudaq_runtime.ObservePolicy(ctx, kernel_name, spin_operator)
     for i, a in enumerate(argSet):
         ctx.batchIteration = i
-        with ctx:
-            kernel(*a)
-        res = ctx.result
         results.append(
-            cudaq_runtime.ObserveResult(
-                __resolveExpectationValue(ctx, spin_operator, res),
-                spin_operator, res))
+            cudaq_runtime.launch_observe(policy, ctx, lambda a=a: kernel(*a)))
     if has_vector_args:
         ctx.unset_jit_engine()
     return results
@@ -195,13 +193,10 @@ def observe(kernel,
                 raise RuntimeError(
                     "num_trajectories is provided without a noise_model.")
             ctx.numberTrajectories = num_trajectories
-        with ctx:
-            kernel(*args)
-        res = ctx.result
-
-        expVal = __resolveExpectationValue(ctx, localOp, res)
-
-        observeResult = cudaq_runtime.ObserveResult(expVal, localOp, res)
+        kernel_name = kernel.name if hasattr(kernel, 'name') else ''
+        policy = cudaq_runtime.ObservePolicy(ctx, kernel_name, localOp)
+        observeResult = cudaq_runtime.launch_observe(
+            policy, ctx, lambda args=args: kernel(*args))
         if not isinstance(spin_operator, list):
             if noise_model != None:
                 cudaq_runtime.unset_noise()

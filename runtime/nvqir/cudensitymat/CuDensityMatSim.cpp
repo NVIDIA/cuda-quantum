@@ -158,8 +158,7 @@ protected:
   }
 
   cudaq::observe_result
-  finalizeExecutionContext(const cudaq::observe_policy &policy,
-                           cudaq::ExecutionContext &ctx) override {
+  finalizeExecutionContext(const cudaq::observe_policy &policy) override {
     throw std::runtime_error(fmt::format(
         "[dynamics target] {} policy is not supported.", policy.name));
   }
