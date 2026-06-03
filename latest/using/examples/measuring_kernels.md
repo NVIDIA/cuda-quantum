@@ -87,6 +87,8 @@ latest
         -   [Measurements](quantum_operations.html#measurements){.reference
             .internal}
     -   [Measuring Kernels](#){.current .reference .internal}
+        -   [Measurement Handles](#measurement-handles){.reference
+            .internal}
         -   [Mid-circuit Measurement and Conditional
             Logic](#mid-circuit-measurement-and-conditional-logic){.reference
             .internal}
@@ -202,6 +204,10 @@ latest
             -   [Inspecting Execution
                 Data](ptsbe.html#inspecting-execution-data){.reference
                 .internal}
+    -   [Detector Error Models](dem_from_kernel.html){.reference
+        .internal}
+        -   [Limitations](dem_from_kernel.html#limitations){.reference
+            .internal}
     -   [Constructing Operators](operators.html){.reference .internal}
         -   [Constructing Spin
             Operators](operators.html#constructing-spin-operators){.reference
@@ -1615,6 +1621,9 @@ latest
             .internal}
         -   [Algorithms](../../api/languages/cpp_api.html#algorithms){.reference
             .internal}
+        -   [Quantum Error
+            Correction](../../api/languages/cpp_api.html#quantum-error-correction){.reference
+            .internal}
         -   [Platform](../../api/languages/cpp_api.html#platform){.reference
             .internal}
         -   [Utilities](../../api/languages/cpp_api.html#utilities){.reference
@@ -1701,6 +1710,24 @@ latest
                 .internal}
             -   [[`estimate_resources()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.estimate_resources){.reference
+                .internal}
+            -   [[`dem_from_kernel()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.dem_from_kernel){.reference
+                .internal}
+        -   [Quantum Error
+            Correction](../../api/languages/python_api.html#quantum-error-correction){.reference
+            .internal}
+            -   [[`detector()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.detector){.reference
+                .internal}
+            -   [[`detectors()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.detectors){.reference
+                .internal}
+            -   [[`logical_observable()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.logical_observable){.reference
+                .internal}
+            -   [[`to_bools()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.to_bools){.reference
                 .internal}
         -   [Backend
             Configuration](../../api/languages/python_api.html#backend-configuration){.reference
@@ -1834,6 +1861,9 @@ latest
                 .internal}
             -   [[`qvector`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.qvector){.reference
+                .internal}
+            -   [[`measure_handle`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.measure_handle){.reference
                 .internal}
             -   [[`ComplexMatrix`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.ComplexMatrix){.reference
@@ -2127,6 +2157,46 @@ C++
 :::
 :::
 :::
+:::
+
+::: {#measurement-handles .section}
+## Measurement Handles[¶](#measurement-handles "Permalink to this heading"){.headerlink}
+
+In CUDA-Q, [`mz`{.code .docutils .literal .notranslate}]{.pre},
+[`mx`{.code .docutils .literal .notranslate}]{.pre}, and [`my`{.code
+.docutils .literal .notranslate}]{.pre} return a *measurement handle*
+--- [`cudaq::measure_handle`{.code .docutils .literal
+.notranslate}]{.pre} in C++ (with the alias
+[`cudaq::measure_result`{.code .docutils .literal .notranslate}]{.pre}),
+and the [`measure_handle`{.code .docutils .literal .notranslate}]{.pre}
+type in Python --- rather than a classical value. Measuring a single
+qubit returns one handle; measuring a [`qvector`{.code .docutils
+.literal .notranslate}]{.pre} returns a vector of handles. A handle
+records a measurement event and defers reading its classical value, so
+the same measurement can drive mid-circuit conditional logic and
+quantum-error-correction declarations (see [[Detector Error
+Models]{.doc}](dem_from_kernel.html){.reference .internal}).
+
+A handle is *discriminated* into its classical bit by using it in a
+boolean context inside the kernel --- for example the [`if`{.code
+.docutils .literal .notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`(b0)`{.code .docutils .literal .notranslate}]{.pre} test
+in the mid-circuit example below. To read a whole vector of handles at
+once, discriminate it in bulk with [`to_bools`{.code .docutils .literal
+.notranslate}]{.pre} (yielding a [`list[bool]`{.code .docutils .literal
+.notranslate}]{.pre} / [`std::vector<bool>`{.code .docutils .literal
+.notranslate}]{.pre}) or [`to_integer`{.code .docutils .literal
+.notranslate}]{.pre} (packing the bits little-endian into an integer).
+The C++ mid-circuit example below returns [`to_bools(mz(q))`{.code
+.docutils .literal .notranslate}]{.pre}; a Python kernel typed to return
+[`list[bool]`{.code .docutils .literal .notranslate}]{.pre}
+discriminates a returned handle vector automatically.
+
+A handle cannot cross the host-device boundary without being
+discriminated: convert it to a boolean, [`list[bool]`{.code .docutils
+.literal .notranslate}]{.pre} / [`std::vector<bool>`{.code .docutils
+.literal .notranslate}]{.pre}, or integer inside the kernel before
+returning it.
 :::
 
 ::: {#mid-circuit-measurement-and-conditional-logic .section}

@@ -148,6 +148,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/measuring_kernels.html">   Measuring Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/measuring_kernels.html#measurement-handles">Measurement Handles</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/measuring_kernels.html#mid-circuit-measurement-and-conditional-logic">Mid-circuit Measurement and Conditional Logic</a></li>
 </ul>
 </li>
@@ -218,6 +219,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/examples/ptsbe.html#inspecting-execution-data">Inspecting Execution Data</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/examples/dem_from_kernel.html">   Detector Error Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/dem_from_kernel.html#limitations">Limitations</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/operators.html">   Constructing Operators</a><ul>
@@ -965,6 +970,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#noise-modeling">Noise Modeling</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#kernel-builder">Kernel Builder</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#algorithms">Algorithms</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#quantum-error-correction">Quantum Error Correction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#platform">Platform</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#utilities">Utilities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#namespaces">Namespaces</a></li>
@@ -1002,6 +1008,14 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#quantum-error-correction">Quantum Error Correction</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.detector"><code class="docutils literal notranslate"><span class="pre">detector()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.detectors"><code class="docutils literal notranslate"><span class="pre">detectors()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.logical_observable"><code class="docutils literal notranslate"><span class="pre">logical_observable()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.to_bools"><code class="docutils literal notranslate"><span class="pre">to_bools()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#backend-configuration">Backend Configuration</a><ul>
@@ -1055,6 +1069,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.qvector"><code class="docutils literal notranslate"><span class="pre">qvector</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.measure_handle"><code class="docutils literal notranslate"><span class="pre">measure_handle</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
@@ -1521,12 +1536,12 @@ Generating Krylov state U^11...
 <p>The data in the plot below was gathered by averaging over 5 runs on a NVIDIA H100 GPU and an Intel Xeon Platinum 8480CL CPU with 224 threads. The only thing that changed between the 2 data points was <code class="docutils literal notranslate"><span class="pre">vectorized_pj_on_gpu</span> <span class="pre">=</span> <span class="pre">True</span></code> and <code class="docutils literal notranslate"><span class="pre">vectorized_pj_on_gpu</span> <span class="pre">=</span> <span class="pre">False</span></code></p>
 <p>This substantial acceleration comes from: - <strong>Parallel Pauli string evaluation</strong> across thousands of basis states simultaneously - <strong>Vectorized matrix element computation</strong> leveraging CUDA cores - <strong>GPU-optimized sparse linear algebra</strong> via cuSPARSE library for eigenvalue solving</p>
 <p>The speedup becomes increasingly critical as the Krylov dimension grows, since the computational subspace dimension (and thus the matrix size) scales exponentially with k. For higher k values, GPU acceleration transforms previously intractable postprocessing into feasible computation times.</p>
-<p><img alt="14e885edc1e749cca5eebe3e0c5e4d31" class="no-scaled-link" src="../../_images/speedup.png" style="width: 500px;" /></p>
+<p><img alt="b81fdc5dc73a4d409a3a58d537d5742e" class="no-scaled-link" src="../../_images/speedup.png" style="width: 500px;" /></p>
 </section>
 <section id="Postprocessing-Scale-Up-and-Scale-Out:-Linear-Operator-Approach,-Multi-GPU-Multi-Node">
 <h2>Postprocessing Scale-Up and Scale-Out: Linear Operator Approach, Multi-GPU Multi-Node<a class="headerlink" href="#Postprocessing-Scale-Up-and-Scale-Out:-Linear-Operator-Approach,-Multi-GPU-Multi-Node" title="Permalink to this heading">¶</a></h2>
 <p>The plots below were generated using <code class="docutils literal notranslate"><span class="pre">distributed_eigsh()</span></code> with the Hamiltonian of an active site of a GPCR (G protein-coupled receptor) molecule. This demonstrates scaling behavior on a problem with a much larger computational subspace than the 22-qubit demo above.</p>
-<div style="display: flex; gap: 10px;"><p><img alt="51210a5d1b2c4cf5b13437266fff3cdf" class="no-scaled-link" src="../../_images/strong_scaling_timing.jpeg" style="width: 450px;" /> <img alt="4c051a5d66e142e2a43a5736994cf8aa" class="no-scaled-link" src="../../_images/efficiency.jpeg" style="width: 450px;" /></p>
+<div style="display: flex; gap: 10px;"><p><img alt="4334051a55654debbc915d4a62ec43c8" class="no-scaled-link" src="../../_images/strong_scaling_timing.jpeg" style="width: 450px;" /> <img alt="2e80dc27d60b407dbeedd297d205eaea" class="no-scaled-link" src="../../_images/efficiency.jpeg" style="width: 450px;" /></p>
 </div><section id="Saving-Hamiltonian-Data">
 <h3>Saving Hamiltonian Data<a class="headerlink" href="#Saving-Hamiltonian-Data" title="Permalink to this heading">¶</a></h3>
 <p>To run the multi-GPU solver, we first save the Hamiltonian data (pauli words, coefficients) and the sampled basis states so they can be loaded by each MPI rank.</p>

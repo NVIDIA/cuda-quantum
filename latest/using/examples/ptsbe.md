@@ -88,6 +88,9 @@ latest
             .internal}
     -   [Measuring Kernels](measuring_kernels.html){.reference
         .internal}
+        -   [Measurement
+            Handles](measuring_kernels.html#measurement-handles){.reference
+            .internal}
         -   [Mid-circuit Measurement and Conditional
             Logic](measuring_kernels.html#mid-circuit-measurement-and-conditional-logic){.reference
             .internal}
@@ -200,6 +203,10 @@ latest
                 .internal}
             -   [Inspecting Execution
                 Data](#inspecting-execution-data){.reference .internal}
+    -   [Detector Error Models](dem_from_kernel.html){.reference
+        .internal}
+        -   [Limitations](dem_from_kernel.html#limitations){.reference
+            .internal}
     -   [Constructing Operators](operators.html){.reference .internal}
         -   [Constructing Spin
             Operators](operators.html#constructing-spin-operators){.reference
@@ -1613,6 +1620,9 @@ latest
             .internal}
         -   [Algorithms](../../api/languages/cpp_api.html#algorithms){.reference
             .internal}
+        -   [Quantum Error
+            Correction](../../api/languages/cpp_api.html#quantum-error-correction){.reference
+            .internal}
         -   [Platform](../../api/languages/cpp_api.html#platform){.reference
             .internal}
         -   [Utilities](../../api/languages/cpp_api.html#utilities){.reference
@@ -1699,6 +1709,24 @@ latest
                 .internal}
             -   [[`estimate_resources()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.estimate_resources){.reference
+                .internal}
+            -   [[`dem_from_kernel()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.dem_from_kernel){.reference
+                .internal}
+        -   [Quantum Error
+            Correction](../../api/languages/python_api.html#quantum-error-correction){.reference
+            .internal}
+            -   [[`detector()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.detector){.reference
+                .internal}
+            -   [[`detectors()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.detectors){.reference
+                .internal}
+            -   [[`logical_observable()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.logical_observable){.reference
+                .internal}
+            -   [[`to_bools()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.to_bools){.reference
                 .internal}
         -   [Backend
             Configuration](../../api/languages/python_api.html#backend-configuration){.reference
@@ -1832,6 +1860,9 @@ latest
                 .internal}
             -   [[`qvector`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.qvector){.reference
+                .internal}
+            -   [[`measure_handle`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.measure_handle){.reference
                 .internal}
             -   [[`ComplexMatrix`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.ComplexMatrix){.reference
@@ -2024,8 +2055,8 @@ latest
 Previous](../../examples/python/noisy_simulations.html "Noisy Simulation"){.btn
 .btn-neutral .float-left accesskey="p"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](operators.html "Operators"){.btn .btn-neutral
-.float-right accesskey="n"}
+aria-hidden="true"}](dem_from_kernel.html "Detector Error Models"){.btn
+.btn-neutral .float-right accesskey="n"}
 :::
 
 ------------------------------------------------------------------------
@@ -2666,8 +2697,8 @@ Performance Computing, Networking, Storage and Analysis. 2025.
 Previous](../../examples/python/noisy_simulations.html "Noisy Simulation"){.btn
 .btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](operators.html "Operators"){.btn .btn-neutral
-.float-right accesskey="n" rel="next"}
+aria-hidden="true"}](dem_from_kernel.html "Detector Error Models"){.btn
+.btn-neutral .float-right accesskey="n" rel="next"}
 :::
 
 ------------------------------------------------------------------------

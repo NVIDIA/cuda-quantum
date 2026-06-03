@@ -98,6 +98,9 @@ latest
     -   [Measuring
         Kernels](../../using/examples/measuring_kernels.html){.reference
         .internal}
+        -   [Measurement
+            Handles](../../using/examples/measuring_kernels.html#measurement-handles){.reference
+            .internal}
         -   [Mid-circuit Measurement and Conditional
             Logic](../../using/examples/measuring_kernels.html#mid-circuit-measurement-and-conditional-logic){.reference
             .internal}
@@ -223,6 +226,11 @@ latest
             -   [Inspecting Execution
                 Data](../../using/examples/ptsbe.html#inspecting-execution-data){.reference
                 .internal}
+    -   [Detector Error
+        Models](../../using/examples/dem_from_kernel.html){.reference
+        .internal}
+        -   [Limitations](../../using/examples/dem_from_kernel.html#limitations){.reference
+            .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -1654,6 +1662,8 @@ latest
         -   [Noise Modeling](#noise-modeling){.reference .internal}
         -   [Kernel Builder](#kernel-builder){.reference .internal}
         -   [Algorithms](#algorithms){.reference .internal}
+        -   [Quantum Error
+            Correction](#quantum-error-correction){.reference .internal}
         -   [Platform](#platform){.reference .internal}
         -   [Utilities](#utilities){.reference .internal}
         -   [Namespaces](#namespaces){.reference .internal}
@@ -1729,6 +1739,24 @@ latest
                 .internal}
             -   [[`estimate_resources()`{.docutils .literal
                 .notranslate}]{.pre}](python_api.html#cudaq.estimate_resources){.reference
+                .internal}
+            -   [[`dem_from_kernel()`{.docutils .literal
+                .notranslate}]{.pre}](python_api.html#cudaq.dem_from_kernel){.reference
+                .internal}
+        -   [Quantum Error
+            Correction](python_api.html#quantum-error-correction){.reference
+            .internal}
+            -   [[`detector()`{.docutils .literal
+                .notranslate}]{.pre}](python_api.html#cudaq.detector){.reference
+                .internal}
+            -   [[`detectors()`{.docutils .literal
+                .notranslate}]{.pre}](python_api.html#cudaq.detectors){.reference
+                .internal}
+            -   [[`logical_observable()`{.docutils .literal
+                .notranslate}]{.pre}](python_api.html#cudaq.logical_observable){.reference
+                .internal}
+            -   [[`to_bools()`{.docutils .literal
+                .notranslate}]{.pre}](python_api.html#cudaq.to_bools){.reference
                 .internal}
         -   [Backend
             Configuration](python_api.html#backend-configuration){.reference
@@ -1859,6 +1887,9 @@ latest
                 .internal}
             -   [[`qvector`{.docutils .literal
                 .notranslate}]{.pre}](python_api.html#cudaq.qvector){.reference
+                .internal}
+            -   [[`measure_handle`{.docutils .literal
+                .notranslate}]{.pre}](python_api.html#cudaq.measure_handle){.reference
                 .internal}
             -   [[`ComplexMatrix`{.docutils .literal
                 .notranslate}]{.pre}](python_api.html#cudaq.ComplexMatrix){.reference
@@ -9929,6 +9960,94 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
+[]{#classcudaq_1_1measure__handle .target}[[class]{.pre}]{.k}[ ]{.w}[[[measure_handle]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq14measure_handleE "Permalink to this definition"){.headerlink}\
+
+:   Handle for a measurement event with deferred discrimination.
+
+    [[[`measure_handle`{.docutils .literal .notranslate}]{.pre}]{.std
+    .std-ref}](#classcudaq_1_1measure__handle){.reference .internal} is
+    the return type of [`mz`{.docutils .literal .notranslate}]{.pre},
+    [`my`{.docutils .literal .notranslate}]{.pre}, and [`mx`{.docutils
+    .literal .notranslate}]{.pre}. [[[`measure_handle`{.docutils
+    .literal .notranslate}]{.pre}]{.std
+    .std-ref}](#classcudaq_1_1measure__handle){.reference .internal}
+    lowers to the IR alias [`!cc.`{.docutils .literal
+    .notranslate}]{.pre}[[[`measure_handle`{.docutils .literal
+    .notranslate}]{.pre}]{.std
+    .std-ref}](#classcudaq_1_1measure__handle){.reference .internal}
+    during AST -\> Quake conversion and is converted to the bare
+    [`i64`{.docutils .literal .notranslate}]{.pre} payload by the QIR
+    API conversion's type converter.
+
+    A default-constructed [[[`measure_handle`{.docutils .literal
+    .notranslate}]{.pre}]{.std
+    .std-ref}](#classcudaq_1_1measure__handle){.reference .internal} is
+    *unbound*: it has not been produced by any [`mz`{.docutils .literal
+    .notranslate}]{.pre}/[`mx`{.docutils .literal
+    .notranslate}]{.pre}/[`my`{.docutils .literal .notranslate}]{.pre}
+    call, and its [`index`{.docutils .literal .notranslate}]{.pre}
+    carries the sentinel
+    [`std::numeric_limits<std::int64_t>::max()`{.docutils .literal
+    .notranslate}]{.pre}.
+
+```{=html}
+<!-- -->
+```
+
+[]{#execution__manager_8h_1a29426c5816b1ec1bded388f1138c7af3 .target}[[using]{.pre}]{.k}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[measure_result]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[[measure_handle]{.pre}]{.n}](#_CPPv4N5cudaq14measure_handleE "cudaq::measure_handle"){.reference .internal}[¶](#_CPPv4N5cudaq14measure_resultE "Permalink to this definition"){.headerlink}\
+
+:   
+
+The measurement operations [`mz`{.docutils .literal .notranslate}]{.pre}
+/ [`mx`{.docutils .literal .notranslate}]{.pre} / [`my`{.docutils
+.literal .notranslate}]{.pre} return a
+[`cudaq::measure_handle`{.docutils .literal .notranslate}]{.pre} (also
+available under the alias [`cudaq::measure_result`{.docutils .literal
+.notranslate}]{.pre}) rather than a bare classical value. Inside a
+kernel the handle converts to a classical value implicitly (the compiler
+intercepts the coercion), which defers discrimination. The helpers below
+discriminate a vector of handles.
+
+[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[bool]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[to_bools]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[measure_result]{.pre}]{.n}](#_CPPv4N5cudaq14measure_resultE "cudaq::measure_result"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[results]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq8to_boolsERKNSt6vectorI14measure_resultEE "Permalink to this definition"){.headerlink}\
+
+:   Discriminate a vector of measurement handles into their boolean
+    outcomes. Used inside a kernel (where the compiler intercepts the
+    call); at host scope the handles must already have been
+    discriminated.
+
+```{=html}
+<!-- -->
+```
+
+[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[int64_t]{.pre}]{.n}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[to_integer]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[measure_result]{.pre}]{.n}](#_CPPv4N5cudaq14measure_resultE "cudaq::measure_result"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[bits]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq10to_integerERKNSt6vectorI14measure_resultEE "Permalink to this definition"){.headerlink}\
+
+:   
+
+```{=html}
+<!-- -->
+```
+
+[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[int64_t]{.pre}]{.n}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[to_integer]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[bool]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[bits]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq10to_integerERKNSt6vectorIbEE "Permalink to this definition"){.headerlink}\
+
+:   
+
+```{=html}
+<!-- -->
+```
+
+[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[int64_t]{.pre}]{.n}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[to_integer]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[bitstring]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq10to_integerERKNSt6stringE "Permalink to this definition"){.headerlink}\
+
+:   Interpret a sequence of measurement outcomes as a little-endian
+    unsigned integer (bit [`i`{.docutils .literal .notranslate}]{.pre}
+    has weight [`2^i`{.docutils .literal .notranslate}]{.pre}).
+    Overloads accept a vector of handles, a vector of [`bool`{.docutils
+    .literal .notranslate}]{.pre}, or a bitstring such as
+    [`"011"`{.docutils .literal .notranslate}]{.pre}.
+
+```{=html}
+<!-- -->
+```
+
 []{#classcudaq_1_1SimulationState .target}[[class]{.pre}]{.k}[ ]{.w}[[[SimulationState]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq15SimulationStateE "Permalink to this definition"){.headerlink}\
 
 :   The [[[`SimulationState`{.docutils .literal
@@ -11567,9 +11686,11 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
         .literal .notranslate}]{.pre}]{.std
         .std-ref}](#classcudaq_1_1QuakeValue){.reference .internal}
         handle (typically a [`!cc.stdvec<!cc.`{.docutils .literal
-        .notranslate}]{.pre}[`measure_handle`{.docutils .literal
-        .notranslate}]{.pre}[`>`{.docutils .literal .notranslate}]{.pre}
-        from [`mz`{.docutils .literal .notranslate}]{.pre} on a
+        .notranslate}]{.pre}[[[`measure_handle`{.docutils .literal
+        .notranslate}]{.pre}]{.std
+        .std-ref}](#classcudaq_1_1measure__handle){.reference
+        .internal}[`>`{.docutils .literal .notranslate}]{.pre} from
+        [`mz`{.docutils .literal .notranslate}]{.pre} on a
         [`qvector`{.docutils .literal .notranslate}]{.pre}, but a scalar
         handle is also accepted by the dialect).
 
@@ -12623,6 +12744,109 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
         signature the Argument Mapper function object that maps the
         parameters to concrete arguments for the quantum kernel.
     :::
+
+```{=html}
+<!-- -->
+```
+
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+[]{#dem_8h_1aecd215fa18f2b3228c4ce099d426ed37 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[dem_from_kernel]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelEDpRR4Args "cudaq::dem_from_kernel::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[noise_model]{.pre}]{.n}](#_CPPv4N5cudaq11noise_modelE "cudaq::noise_model"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[noise]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelEDpRR4Args "cudaq::dem_from_kernel::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelEDpRR4Args "Permalink to this definition"){.headerlink}\
+
+:   Run DEM (Detector Error Model) analysis over a CUDA-Q kernel and
+    return the resulting model as a UTF-8 string in Stim's standard
+    [file
+    format](https://github.com/quantumlib/Stim/blob/main/doc/file_format_dem_detector_error_model.md){.reference
+    .external}.
+
+    ::: {.admonition .note}
+    Note
+
+    The active CUDA-Q target / platform is not modified; the analysis
+    simulator is purely an internal override.
+    :::
+
+    Parameters[:]{.colon}
+
+    :   -   **kernel** -- Any callable that can be invoked with
+            [`args`{.docutils .literal .notranslate}]{.pre} (CUDA-Q
+            kernel, lambda, or kernel-builder).
+
+        -   **noise** -- Optional noise model layered on per
+            [[[`cudaq::noise_model`{.docutils .literal
+            .notranslate}]{.pre}]{.std
+            .std-ref}](#classcudaq_1_1noise__model){.reference
+            .internal} semantics.
+
+        -   **args** -- Arguments forwarded to the kernel invocation.
+
+```{=html}
+<!-- -->
+```
+
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[QuantumKernel]{.pre}]{.n}]{.sig-name .descname}[[,]{.pre}]{.p}[ ]{.w}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+[]{#dem_8h_1a1794cf82cce56758fd0c2381a63bbbe1 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[dem_from_kernel]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[QuantumKernel]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelDpRR4Args "cudaq::dem_from_kernel::QuantumKernel"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[kernel]{.pre}]{.n .sig-param}, [[[Args]{.pre}]{.n}](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelDpRR4Args "cudaq::dem_from_kernel::Args"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[args]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelDpRR4Args "Permalink to this definition"){.headerlink}\
+
+:   Convenience overload for the no-noise case.
+:::
+
+::: {#quantum-error-correction .section}
+## Quantum Error Correction[¶](#quantum-error-correction "Permalink to this heading"){.headerlink}
+
+These kernel-side declarations annotate a circuit with detectors and
+logical observables so a detector error model (DEM) can be extracted
+with [`cudaq::dem_from_kernel`{.docutils .literal .notranslate}]{.pre}.
+They are intercepted by the compiler inside [`__qpu__`{.docutils
+.literal .notranslate}]{.pre} kernels and lower to the [`qec`{.docutils
+.literal .notranslate}]{.pre} dialect; for backends that do not consume
+them they are erased before execution.
+
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[MeasArgs]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[detector]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[MeasArgs]{.pre}]{.n}](#_CPPv4IDpEN5cudaq8detectorEvDpRR8MeasArgs "cudaq::detector::MeasArgs"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[ms]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4IDpEN5cudaq8detectorEvDpRR8MeasArgs "Permalink to this definition"){.headerlink}\
+
+:   Declare one detector as the parity of the referenced measurements.
+    Each argument is a [`cudaq::measure_result`{.docutils .literal
+    .notranslate}]{.pre} or a
+    [`std::vector<cudaq::measure_result>`{.docutils .literal
+    .notranslate}]{.pre}. A detector is a parity constraint that is
+    deterministic under noise-free execution.
+
+```{=html}
+<!-- -->
+```
+
+[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[detectors]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[measure_result]{.pre}]{.n}](#_CPPv4N5cudaq14measure_resultE "cudaq::measure_result"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[prev]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[measure_result]{.pre}]{.n}](#_CPPv4N5cudaq14measure_resultE "cudaq::measure_result"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[curr]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq9detectorsERKNSt6vectorI14measure_resultEERKNSt6vectorI14measure_resultEE "Permalink to this definition"){.headerlink}\
+
+:   Declare N detectors at once by pairing two equal-length handle
+    vectors element-wise ([`detector(prev[i],`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`curr[i])`{.docutils .literal .notranslate}]{.pre} for
+    each [`i`{.docutils .literal .notranslate}]{.pre}); the standard
+    form for cross-round detectors. Length agreement is enforced at
+    runtime.
+
+```{=html}
+<!-- -->
+```
+
+[[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[MeasArgs]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[logical_observable]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[MeasArgs]{.pre}]{.n}](#_CPPv4IDpEN5cudaq18logical_observableEvDpRR8MeasArgs "cudaq::logical_observable::MeasArgs"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[\...]{.pre}]{.p}[ ]{.w}[[ms]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4IDpEN5cudaq18logical_observableEvDpRR8MeasArgs "Permalink to this definition"){.headerlink}\
+
+:   
+
+```{=html}
+<!-- -->
+```
+
+[[void]{.pre}]{.kt}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[logical_observable]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[measure_result]{.pre}]{.n}](#_CPPv4N5cudaq14measure_resultE "cudaq::measure_result"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[ms]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[observable_index]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq18logical_observableERKNSt6vectorI14measure_resultEENSt6size_tE "Permalink to this definition"){.headerlink}\
+
+:   Declare one logical observable as the parity of the referenced
+    measurements. The variadic form uses observable index [`0`{.docutils
+    .literal .notranslate}]{.pre}; codes with [`k`{.docutils .literal
+    .notranslate}]{.pre} logical qubits use the [`(vector,`{.docutils
+    .literal .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`observable_index)`{.docutils .literal
+    .notranslate}]{.pre} overload to declare observables
+    [`0..k-1`{.docutils .literal .notranslate}]{.pre}.
 :::
 
 ::: {#platform .section}

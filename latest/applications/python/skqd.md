@@ -98,6 +98,9 @@ latest
     -   [Measuring
         Kernels](../../using/examples/measuring_kernels.html){.reference
         .internal}
+        -   [Measurement
+            Handles](../../using/examples/measuring_kernels.html#measurement-handles){.reference
+            .internal}
         -   [Mid-circuit Measurement and Conditional
             Logic](../../using/examples/measuring_kernels.html#mid-circuit-measurement-and-conditional-logic){.reference
             .internal}
@@ -223,6 +226,11 @@ latest
             -   [Inspecting Execution
                 Data](../../using/examples/ptsbe.html#inspecting-execution-data){.reference
                 .internal}
+    -   [Detector Error
+        Models](../../using/examples/dem_from_kernel.html){.reference
+        .internal}
+        -   [Limitations](../../using/examples/dem_from_kernel.html#limitations){.reference
+            .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -1614,6 +1622,9 @@ latest
             .internal}
         -   [Algorithms](../../api/languages/cpp_api.html#algorithms){.reference
             .internal}
+        -   [Quantum Error
+            Correction](../../api/languages/cpp_api.html#quantum-error-correction){.reference
+            .internal}
         -   [Platform](../../api/languages/cpp_api.html#platform){.reference
             .internal}
         -   [Utilities](../../api/languages/cpp_api.html#utilities){.reference
@@ -1700,6 +1711,24 @@ latest
                 .internal}
             -   [[`estimate_resources()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.estimate_resources){.reference
+                .internal}
+            -   [[`dem_from_kernel()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.dem_from_kernel){.reference
+                .internal}
+        -   [Quantum Error
+            Correction](../../api/languages/python_api.html#quantum-error-correction){.reference
+            .internal}
+            -   [[`detector()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.detector){.reference
+                .internal}
+            -   [[`detectors()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.detectors){.reference
+                .internal}
+            -   [[`logical_observable()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.logical_observable){.reference
+                .internal}
+            -   [[`to_bools()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.to_bools){.reference
                 .internal}
         -   [Backend
             Configuration](../../api/languages/python_api.html#backend-configuration){.reference
@@ -1833,6 +1862,9 @@ latest
                 .internal}
             -   [[`qvector`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.qvector){.reference
+                .internal}
+            -   [[`measure_handle`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.measure_handle){.reference
                 .internal}
             -   [[`ComplexMatrix`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.ComplexMatrix){.reference
@@ -2592,7 +2624,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![14e885edc1e749cca5eebe3e0c5e4d31](../../_images/speedup.png){.no-scaled-link
+![b81fdc5dc73a4d409a3a58d537d5742e](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2606,9 +2638,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![51210a5d1b2c4cf5b13437266fff3cdf](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![4334051a55654debbc915d4a62ec43c8](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![4c051a5d66e142e2a43a5736994cf8aa](../../_images/efficiency.jpeg){.no-scaled-link
+![2e80dc27d60b407dbeedd297d205eaea](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 

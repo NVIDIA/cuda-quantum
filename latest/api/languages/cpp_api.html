@@ -145,6 +145,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/measuring_kernels.html">   Measuring Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/measuring_kernels.html#measurement-handles">Measurement Handles</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/measuring_kernels.html#mid-circuit-measurement-and-conditional-logic">Mid-circuit Measurement and Conditional Logic</a></li>
 </ul>
 </li>
@@ -215,6 +216,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/examples/ptsbe.html#inspecting-execution-data">Inspecting Execution Data</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/examples/dem_from_kernel.html">   Detector Error Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/dem_from_kernel.html#limitations">Limitations</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/operators.html">   Constructing Operators</a><ul>
@@ -962,6 +967,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#noise-modeling">Noise Modeling</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#kernel-builder">Kernel Builder</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#algorithms">Algorithms</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#quantum-error-correction">Quantum Error Correction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#platform">Platform</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#utilities">Utilities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#namespaces">Namespaces</a></li>
@@ -999,6 +1005,14 @@
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="python_api.html#quantum-error-correction">Quantum Error Correction</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.detector"><code class="docutils literal notranslate"><span class="pre">detector()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.detectors"><code class="docutils literal notranslate"><span class="pre">detectors()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.logical_observable"><code class="docutils literal notranslate"><span class="pre">logical_observable()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.to_bools"><code class="docutils literal notranslate"><span class="pre">to_bools()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="python_api.html#backend-configuration">Backend Configuration</a><ul>
@@ -1052,6 +1066,7 @@
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.qvector"><code class="docutils literal notranslate"><span class="pre">qvector</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.measure_handle"><code class="docutils literal notranslate"><span class="pre">measure_handle</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
@@ -6427,6 +6442,51 @@ Given a quantum kernel with void return type, sample the corresponding quantum c
 </dd></dl>
 
 <dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14measure_handleE">
+<span class="target" id="classcudaq_1_1measure__handle"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">measure_handle</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq14measure_handleE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Handle for a measurement event with deferred discrimination. </p>
+<p><code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1measure__handle"><span class="std std-ref"><span class="pre">measure_handle</span></span></a></code> is the return type of <code class="docutils literal notranslate"><span class="pre">mz</span></code>, <code class="docutils literal notranslate"><span class="pre">my</span></code>, and <code class="docutils literal notranslate"><span class="pre">mx</span></code>. <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1measure__handle"><span class="std std-ref"><span class="pre">measure_handle</span></span></a></code> lowers to the IR alias <code class="docutils literal notranslate"><span class="pre">!cc.</span><a class="reference internal" href="#classcudaq_1_1measure__handle"><span class="std std-ref"><span class="pre">measure_handle</span></span></a></code> during AST -&gt; Quake conversion and is converted to the bare <code class="docutils literal notranslate"><span class="pre">i64</span></code> payload by the QIR API conversion’s type converter.</p>
+<p>A default-constructed <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1measure__handle"><span class="std std-ref"><span class="pre">measure_handle</span></span></a></code> is <em>unbound</em>: it has not been produced by any <code class="docutils literal notranslate"><span class="pre">mz</span></code>/<code class="docutils literal notranslate"><span class="pre">mx</span></code>/<code class="docutils literal notranslate"><span class="pre">my</span></code> call, and its <code class="docutils literal notranslate"><span class="pre">index</span></code> carries the sentinel <code class="docutils literal notranslate"><span class="pre">std::numeric_limits&lt;std::int64_t&gt;::max()</span></code>. </p>
+</dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq14measure_resultE">
+<span class="target" id="execution__manager_8h_1a29426c5816b1ec1bded388f1138c7af3"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">measure_result</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq14measure_handleE" title="cudaq::measure_handle"><span class="n"><span class="pre">measure_handle</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq14measure_resultE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<p>The measurement operations <code class="docutils literal notranslate"><span class="pre">mz</span></code> / <code class="docutils literal notranslate"><span class="pre">mx</span></code> / <code class="docutils literal notranslate"><span class="pre">my</span></code> return a
+<code class="docutils literal notranslate"><span class="pre">cudaq::measure_handle</span></code> (also available under the alias
+<code class="docutils literal notranslate"><span class="pre">cudaq::measure_result</span></code>) rather than a bare classical value. Inside a kernel the
+handle converts to a classical value implicitly (the compiler intercepts the
+coercion), which defers discrimination. The helpers below discriminate a
+vector of handles.</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq8to_boolsERKNSt6vectorI14measure_resultEE">
+<span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">to_bools</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq14measure_resultE" title="cudaq::measure_result"><span class="n"><span class="pre">measure_result</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">results</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq8to_boolsERKNSt6vectorI14measure_resultEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Discriminate a vector of measurement handles into their boolean outcomes.
+Used inside a kernel (where the compiler intercepts the call); at host
+scope the handles must already have been discriminated.</p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq10to_integerERKNSt6vectorI14measure_resultEE">
+<span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">int64_t</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">to_integer</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq14measure_resultE" title="cudaq::measure_result"><span class="n"><span class="pre">measure_result</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">bits</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq10to_integerERKNSt6vectorI14measure_resultEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq10to_integerERKNSt6vectorIbEE">
+<span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">int64_t</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">to_integer</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">bits</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq10to_integerERKNSt6vectorIbEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq10to_integerERKNSt6stringE">
+<span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">int64_t</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">to_integer</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">bitstring</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq10to_integerERKNSt6stringE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Interpret a sequence of measurement outcomes as a little-endian unsigned
+integer (bit <code class="docutils literal notranslate"><span class="pre">i</span></code> has weight <code class="docutils literal notranslate"><span class="pre">2^i</span></code>). Overloads accept a vector of
+handles, a vector of <code class="docutils literal notranslate"><span class="pre">bool</span></code>, or a bitstring such as <code class="docutils literal notranslate"><span class="pre">&quot;011&quot;</span></code>.</p>
+</dd></dl>
+
+<dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq15SimulationStateE">
 <span class="target" id="classcudaq_1_1SimulationState"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">SimulationState</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq15SimulationStateE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>The <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1SimulationState"><span class="std std-ref"><span class="pre">SimulationState</span></span></a></code> interface provides and extension point for concrete circuit simulation sub-types to describe their underlying quantum state data in an efficient manner. The <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1SimulationState"><span class="std std-ref"><span class="pre">SimulationState</span></span></a></code> provides a handle on the data for clients, with data remaining on GPU device or CPU memory. The primary goal of this type and its sub-types is to minimize data transfers for the state. </p>
@@ -7521,7 +7581,7 @@ like this:</p>
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq14kernel_builder18logical_observableE10QuakeValueNSt6size_tE">
 <span class="target" id="classcudaq_1_1kernel__builder_1a70e54a7b27a0d0419178f27bf6d0468e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">logical_observable</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq10QuakeValueE" title="cudaq::QuakeValue"><span class="n"><span class="pre">QuakeValue</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">measurements</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">observable_index</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14kernel_builder18logical_observableE10QuakeValueNSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p><code class="docutils literal notranslate"><span class="pre">logical_observable</span></code> with an explicit <code class="docutils literal notranslate"><span class="pre">observable_index</span></code>. Takes a single <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref"><span class="pre">QuakeValue</span></span></a></code> handle (typically a <code class="docutils literal notranslate"><span class="pre">!cc.stdvec&lt;!cc.</span><span class="pre">measure_handle</span><span class="pre">&gt;</span></code> from <code class="docutils literal notranslate"><span class="pre">mz</span></code> on a <code class="docutils literal notranslate"><span class="pre">qvector</span></code>, but a scalar handle is also accepted by the dialect). </p>
+<dd><p><code class="docutils literal notranslate"><span class="pre">logical_observable</span></code> with an explicit <code class="docutils literal notranslate"><span class="pre">observable_index</span></code>. Takes a single <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1QuakeValue"><span class="std std-ref"><span class="pre">QuakeValue</span></span></a></code> handle (typically a <code class="docutils literal notranslate"><span class="pre">!cc.stdvec&lt;!cc.</span><a class="reference internal" href="#classcudaq_1_1measure__handle"><span class="std std-ref"><span class="pre">measure_handle</span></span></a><span class="pre">&gt;</span></code> from <code class="docutils literal notranslate"><span class="pre">mz</span></code> on a <code class="docutils literal notranslate"><span class="pre">qvector</span></code>, but a scalar handle is also accepted by the dialect). </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -8174,6 +8234,70 @@ like this:</p>
 </dd></dl>
 
 </div>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelEDpRR4Args">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">QuantumKernel</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Args</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="dem_8h_1aecd215fa18f2b3228c4ce099d426ed37"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">dem_from_kernel</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelEDpRR4Args" title="cudaq::dem_from_kernel::QuantumKernel"><span class="n"><span class="pre">QuantumKernel</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">kernel</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq11noise_modelE" title="cudaq::noise_model"><span class="n"><span class="pre">noise_model</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">noise</span></span>, <a class="reference internal" href="#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelEDpRR4Args" title="cudaq::dem_from_kernel::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelEDpRR4Args" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Run DEM (Detector Error Model) analysis over a CUDA-Q kernel and return the resulting model as a UTF-8 string in Stim’s standard <a class="reference external" href="https://github.com/quantumlib/Stim/blob/main/doc/file_format_dem_detector_error_model.md"> file format</a>. </p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The active CUDA-Q target / platform is not modified; the analysis simulator is purely an internal override.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>kernel</strong> – Any callable that can be invoked with <code class="docutils literal notranslate"><span class="pre">args</span></code> (CUDA-Q kernel, lambda, or kernel-builder). </p></li>
+<li><p><strong>noise</strong> – Optional noise model layered on per <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1noise__model"><span class="std std-ref"><span class="pre">cudaq::noise_model</span></span></a></code> semantics. </p></li>
+<li><p><strong>args</strong> – Arguments forwarded to the kernel invocation. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelDpRR4Args">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">QuantumKernel</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Args</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="dem_8h_1a1794cf82cce56758fd0c2381a63bbbe1"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">dem_from_kernel</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelDpRR4Args" title="cudaq::dem_from_kernel::QuantumKernel"><span class="n"><span class="pre">QuantumKernel</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">kernel</span></span>, <a class="reference internal" href="#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelDpRR4Args" title="cudaq::dem_from_kernel::Args"><span class="n"><span class="pre">Args</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">args</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelDpRR4Args" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Convenience overload for the no-noise case. </p>
+</dd></dl>
+
+</section>
+<section id="quantum-error-correction">
+<h2>Quantum Error Correction<a class="headerlink" href="#quantum-error-correction" title="Permalink to this heading">¶</a></h2>
+<p>These kernel-side declarations annotate a circuit with detectors and logical
+observables so a detector error model (DEM) can be extracted with
+<code class="docutils literal notranslate"><span class="pre">cudaq::dem_from_kernel</span></code>. They are intercepted by the compiler
+inside <code class="docutils literal notranslate"><span class="pre">__qpu__</span></code> kernels and lower to the <code class="docutils literal notranslate"><span class="pre">qec</span></code> dialect; for
+backends that do not consume them they are erased before execution.</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4IDpEN5cudaq8detectorEvDpRR8MeasArgs">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">MeasArgs</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">detector</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4IDpEN5cudaq8detectorEvDpRR8MeasArgs" title="cudaq::detector::MeasArgs"><span class="n"><span class="pre">MeasArgs</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ms</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4IDpEN5cudaq8detectorEvDpRR8MeasArgs" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Declare one detector as the parity of the referenced measurements. Each
+argument is a <code class="docutils literal notranslate"><span class="pre">cudaq::measure_result</span></code> or a
+<code class="docutils literal notranslate"><span class="pre">std::vector&lt;cudaq::measure_result&gt;</span></code>. A detector is a parity constraint
+that is deterministic under noise-free execution.</p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq9detectorsERKNSt6vectorI14measure_resultEERKNSt6vectorI14measure_resultEE">
+<span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">detectors</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq14measure_resultE" title="cudaq::measure_result"><span class="n"><span class="pre">measure_result</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">prev</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq14measure_resultE" title="cudaq::measure_result"><span class="n"><span class="pre">measure_result</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">curr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq9detectorsERKNSt6vectorI14measure_resultEERKNSt6vectorI14measure_resultEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Declare N detectors at once by pairing two equal-length handle vectors
+element-wise (<code class="docutils literal notranslate"><span class="pre">detector(prev[i],</span> <span class="pre">curr[i])</span></code> for each <code class="docutils literal notranslate"><span class="pre">i</span></code>); the standard
+form for cross-round detectors. Length agreement is enforced at runtime.</p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4IDpEN5cudaq18logical_observableEvDpRR8MeasArgs">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">MeasArgs</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">logical_observable</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4IDpEN5cudaq18logical_observableEvDpRR8MeasArgs" title="cudaq::logical_observable::MeasArgs"><span class="n"><span class="pre">MeasArgs</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">ms</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4IDpEN5cudaq18logical_observableEvDpRR8MeasArgs" title="Permalink to this definition">¶</a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq18logical_observableERKNSt6vectorI14measure_resultEENSt6size_tE">
+<span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">logical_observable</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq14measure_resultE" title="cudaq::measure_result"><span class="n"><span class="pre">measure_result</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ms</span></span>, <span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">observable_index</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq18logical_observableERKNSt6vectorI14measure_resultEENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Declare one logical observable as the parity of the referenced
+measurements. The variadic form uses observable index <code class="docutils literal notranslate"><span class="pre">0</span></code>; codes with
+<code class="docutils literal notranslate"><span class="pre">k</span></code> logical qubits use the <code class="docutils literal notranslate"><span class="pre">(vector,</span> <span class="pre">observable_index)</span></code> overload to
+declare observables <code class="docutils literal notranslate"><span class="pre">0..k-1</span></code>.</p>
 </dd></dl>
 
 </section>

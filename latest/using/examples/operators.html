@@ -35,7 +35,7 @@
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
     <link rel="next" title="Optimizing Performance" href="../../examples/python/performance_optimizations.html" />
-    <link rel="prev" title="Pre-Trajectory Sampling with Batch Execution (PTSBE)" href="ptsbe.html" /> 
+    <link rel="prev" title="Detector Error Models" href="dem_from_kernel.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -147,6 +147,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="measuring_kernels.html">   Measuring Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="measuring_kernels.html#measurement-handles">Measurement Handles</a></li>
 <li class="toctree-l3"><a class="reference internal" href="measuring_kernels.html#mid-circuit-measurement-and-conditional-logic">Mid-circuit Measurement and Conditional Logic</a></li>
 </ul>
 </li>
@@ -217,6 +218,10 @@
 <li class="toctree-l4"><a class="reference internal" href="ptsbe.html#inspecting-execution-data">Inspecting Execution Data</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="dem_from_kernel.html">   Detector Error Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="dem_from_kernel.html#limitations">Limitations</a></li>
 </ul>
 </li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">   Constructing Operators</a><ul>
@@ -964,6 +969,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#noise-modeling">Noise Modeling</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#kernel-builder">Kernel Builder</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#algorithms">Algorithms</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#quantum-error-correction">Quantum Error Correction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#platform">Platform</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#utilities">Utilities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/cpp_api.html#namespaces">Namespaces</a></li>
@@ -1001,6 +1007,14 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#quantum-error-correction">Quantum Error Correction</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.detector"><code class="docutils literal notranslate"><span class="pre">detector()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.detectors"><code class="docutils literal notranslate"><span class="pre">detectors()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.logical_observable"><code class="docutils literal notranslate"><span class="pre">logical_observable()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.to_bools"><code class="docutils literal notranslate"><span class="pre">to_bools()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#backend-configuration">Backend Configuration</a><ul>
@@ -1054,6 +1068,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.qvector"><code class="docutils literal notranslate"><span class="pre">qvector</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.measure_handle"><code class="docutils literal notranslate"><span class="pre">measure_handle</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
@@ -1154,7 +1169,7 @@
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="ptsbe.html" class="btn btn-neutral float-left" title="Pre-Trajectory Sampling with Batch Execution (PTSBE)" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="dem_from_kernel.html" class="btn btn-neutral float-left" title="Detector Error Models" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="../../examples/python/performance_optimizations.html" class="btn btn-neutral float-right" title="Optimizing Performance" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
@@ -1230,7 +1245,7 @@ operation acting on qubit 0. The example below demonstrates how to construct the
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="ptsbe.html" class="btn btn-neutral float-left" title="Pre-Trajectory Sampling with Batch Execution (PTSBE)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="dem_from_kernel.html" class="btn btn-neutral float-left" title="Detector Error Models" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="../../examples/python/performance_optimizations.html" class="btn btn-neutral float-right" title="Optimizing Performance" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

@@ -145,6 +145,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/measuring_kernels.html">   Measuring Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/measuring_kernels.html#measurement-handles">Measurement Handles</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/examples/measuring_kernels.html#mid-circuit-measurement-and-conditional-logic">Mid-circuit Measurement and Conditional Logic</a></li>
 </ul>
 </li>
@@ -215,6 +216,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/examples/ptsbe.html#inspecting-execution-data">Inspecting Execution Data</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/examples/dem_from_kernel.html">   Detector Error Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../using/examples/dem_from_kernel.html#limitations">Limitations</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/examples/operators.html">   Constructing Operators</a><ul>
@@ -962,6 +967,7 @@
 <li class="toctree-l3"><a class="reference internal" href="cpp_api.html#noise-modeling">Noise Modeling</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cpp_api.html#kernel-builder">Kernel Builder</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cpp_api.html#algorithms">Algorithms</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cpp_api.html#quantum-error-correction">Quantum Error Correction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cpp_api.html#platform">Platform</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cpp_api.html#utilities">Utilities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cpp_api.html#namespaces">Namespaces</a></li>
@@ -999,6 +1005,14 @@
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#quantum-error-correction">Quantum Error Correction</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.detector"><code class="docutils literal notranslate"><span class="pre">detector()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.detectors"><code class="docutils literal notranslate"><span class="pre">detectors()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.logical_observable"><code class="docutils literal notranslate"><span class="pre">logical_observable()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.to_bools"><code class="docutils literal notranslate"><span class="pre">to_bools()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#backend-configuration">Backend Configuration</a><ul>
@@ -1052,6 +1066,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.qvector"><code class="docutils literal notranslate"><span class="pre">qvector</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cudaq.measure_handle"><code class="docutils literal notranslate"><span class="pre">measure_handle</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
@@ -1772,6 +1787,80 @@ function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
 <dd class="field-odd"><p><a class="reference internal" href="#cudaq.Resources" title="cudaq.Resources"><code class="xref py py-class docutils literal notranslate"><span class="pre">Resources</span></code></a></p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cudaq.dem_from_kernel">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">dem_from_kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.dem_from_kernel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a detector error model (DEM) from a CUDA-Q kernel.</p>
+<p>Runs <code class="code docutils literal notranslate"><span class="pre">kernel</span></code> under the internal <code class="code docutils literal notranslate"><span class="pre">&quot;dem&quot;</span></code> execution context, captures
+the recorded circuit from the backend, and returns Stim’s standard
+<code class="code docutils literal notranslate"><span class="pre">.dem</span></code> text via <code class="code docutils literal notranslate"><span class="pre">stim::DetectorErrorModel::str()</span></code>. The active CUDA-Q
+target is unaffected; the analysis simulator is an internal,
+thread-local override.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>kernel</strong> (<a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a>) – The <a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a> to analyze.</p></li>
+<li><p><strong>*arguments</strong> – Concrete argument values forwarded to the kernel invocation.</p></li>
+<li><p><strong>noise_model</strong> (<a class="reference internal" href="#cudaq.NoiseModel" title="cudaq.NoiseModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">NoiseModel</span></code></a>, optional) – Noise model layered on
+top of any <code class="code docutils literal notranslate"><span class="pre">apply_noise</span></code> ops already present in the kernel.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>UTF-8 string in Stim’s standard <code class="code docutils literal notranslate"><span class="pre">.dem</span></code> file format. Consumers
+that need a structured DEM can parse it with
+<code class="code docutils literal notranslate"><span class="pre">stim.DetectorErrorModel(text)</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="quantum-error-correction">
+<h2>Quantum Error Correction<a class="headerlink" href="#quantum-error-correction" title="Permalink to this heading">¶</a></h2>
+<p>These functions are called inside an <code class="docutils literal notranslate"><span class="pre">&#64;cudaq.kernel</span></code> body to declare
+detectors and logical observables for detector-error-model generation with
+<code class="docutils literal notranslate"><span class="pre">cudaq.dem_from_kernel</span></code>, and to discriminate measurement handles. They are
+intercepted by the compiler; calling them at host scope raises
+<code class="docutils literal notranslate"><span class="pre">RuntimeError</span></code>. (<code class="docutils literal notranslate"><span class="pre">cudaq.to_integer</span></code> is likewise available inside kernels
+to pack discriminated bits into an integer.)</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="cudaq.detector">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">detector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">measurements</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.detector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define a detector over one or more measurement results.</p>
+<p>A detector is a parity constraint: under noise-free execution the XOR of
+the referenced measurements is deterministic. Each call defines one
+detector. Arguments are individual <code class="docutils literal notranslate"><span class="pre">cudaq.measure_handle</span></code> values or a
+single <code class="docutils literal notranslate"><span class="pre">list[cudaq.measure_handle]</span></code>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cudaq.detectors">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">detectors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">curr</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.detectors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define N detectors by pairing two measurement vectors element-wise.</p>
+<p>Standard form for cross-round detectors: each detector <code class="docutils literal notranslate"><span class="pre">i</span></code> is the
+parity of <code class="docutils literal notranslate"><span class="pre">prev[i]</span></code> and <code class="docutils literal notranslate"><span class="pre">curr[i]</span></code>. Size agreement between <code class="docutils literal notranslate"><span class="pre">prev</span></code>
+and <code class="docutils literal notranslate"><span class="pre">curr</span></code> is checked at runtime.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cudaq.logical_observable">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">logical_observable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">measurements</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observable_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.logical_observable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define a logical observable over one or more measurement results.</p>
+<p>The variadic form uses <code class="docutils literal notranslate"><span class="pre">observable_index</span> <span class="pre">=</span> <span class="pre">0</span></code>. Codes with <code class="docutils literal notranslate"><span class="pre">k</span></code>
+logical qubits should pass a single <code class="docutils literal notranslate"><span class="pre">list[cudaq.measure_handle]</span></code> and
+an explicit <code class="docutils literal notranslate"><span class="pre">observable_index</span></code> for each observable <code class="docutils literal notranslate"><span class="pre">0..k-1</span></code>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cudaq.to_bools">
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">to_bools</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handles</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.to_bools" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bulk-discriminate a <code class="docutils literal notranslate"><span class="pre">list[cudaq.measure_handle]</span></code> into a
+<code class="docutils literal notranslate"><span class="pre">list[bool]</span></code>. Device-only: this Python symbol exists so kernel
+code can call <code class="docutils literal notranslate"><span class="pre">cudaq.to_bools(...)</span></code>; the AST bridge intercepts
+the call and lowers it to a vector form <code class="docutils literal notranslate"><span class="pre">quake.discriminate</span></code> on
+<code class="docutils literal notranslate"><span class="pre">!cc.stdvec&lt;!cc.measure_handle&gt;</span></code>. Host-side invocation raises a
+<code class="docutils literal notranslate"><span class="pre">RuntimeError</span></code>.</p>
 </dd></dl>
 
 </section>
@@ -3599,7 +3688,7 @@ on multiple degrees of freedom.</p></li>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.State.from_data">
-<span class="sig-name descname"><span class="pre">from_data</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object</span> <span class="pre">at</span> <span class="pre">0x3a80a70&gt;</span></em><a class="headerlink" href="#cudaq.State.from_data" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">from_data</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#cudaq.State.from_data" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -3854,6 +3943,22 @@ Qubits can be created individually or as part of larger registers.</p>
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">qvector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.qvector" title="Permalink to this definition">¶</a></dt>
 <dd><p>An owning, dynamically sized container for qubits. The semantics of the
 <code class="code docutils literal notranslate"><span class="pre">qvector</span></code> follows that of a <code class="code docutils literal notranslate"><span class="pre">std::vector</span></code> or list for qubits.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cudaq.measure_handle">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">measure_handle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.measure_handle" title="Permalink to this definition">¶</a></dt>
+<dd><p>A handle to a measurement event recorded inside a CUDA-Q kernel.</p>
+<p>Returned by <code class="docutils literal notranslate"><span class="pre">mz</span></code> / <code class="docutils literal notranslate"><span class="pre">mx</span></code> / <code class="docutils literal notranslate"><span class="pre">my</span></code> inside an <code class="docutils literal notranslate"><span class="pre">&#64;cudaq.kernel</span></code> body
+(scalar form on a single qubit; vector form on a <code class="docutils literal notranslate"><span class="pre">qvector</span></code> /
+<code class="docutils literal notranslate"><span class="pre">qview</span></code>). The classical outcome is read by coercing the handle to
+<code class="docutils literal notranslate"><span class="pre">bool</span></code> in any Python <code class="docutils literal notranslate"><span class="pre">bool</span></code> context, and the AST bridge inserts a
+<code class="docutils literal notranslate"><span class="pre">quake.discriminate</span></code> at the coercion site.
+<code class="docutils literal notranslate"><span class="pre">cudaq.to_bools(handles)</span></code> is the bulk counterpart on a
+<code class="docutils literal notranslate"><span class="pre">list[measure_handle]</span></code>.</p>
+<p>Instantiating <code class="docutils literal notranslate"><span class="pre">cudaq.measure_handle()</span></code> at host scope raises
+<code class="docutils literal notranslate"><span class="pre">KernelTypeError</span></code> (a <code class="docutils literal notranslate"><span class="pre">RuntimeError</span></code> subclass) since it is
+device-only.</p>
 </dd></dl>
 
 <dl class="py class">

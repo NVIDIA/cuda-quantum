@@ -142,6 +142,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="using/examples/measuring_kernels.html">   Measuring Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="using/examples/measuring_kernels.html#measurement-handles">Measurement Handles</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/examples/measuring_kernels.html#mid-circuit-measurement-and-conditional-logic">Mid-circuit Measurement and Conditional Logic</a></li>
 </ul>
 </li>
@@ -212,6 +213,10 @@
 <li class="toctree-l4"><a class="reference internal" href="using/examples/ptsbe.html#inspecting-execution-data">Inspecting Execution Data</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="using/examples/dem_from_kernel.html">   Detector Error Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="using/examples/dem_from_kernel.html#limitations">Limitations</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="using/examples/operators.html">   Constructing Operators</a><ul>
@@ -959,6 +964,7 @@
 <li class="toctree-l3"><a class="reference internal" href="api/languages/cpp_api.html#noise-modeling">Noise Modeling</a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/languages/cpp_api.html#kernel-builder">Kernel Builder</a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/languages/cpp_api.html#algorithms">Algorithms</a></li>
+<li class="toctree-l3"><a class="reference internal" href="api/languages/cpp_api.html#quantum-error-correction">Quantum Error Correction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/languages/cpp_api.html#platform">Platform</a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/languages/cpp_api.html#utilities">Utilities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="api/languages/cpp_api.html#namespaces">Namespaces</a></li>
@@ -996,6 +1002,14 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#quantum-error-correction">Quantum Error Correction</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.detector"><code class="docutils literal notranslate"><span class="pre">detector()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.detectors"><code class="docutils literal notranslate"><span class="pre">detectors()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.logical_observable"><code class="docutils literal notranslate"><span class="pre">logical_observable()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.to_bools"><code class="docutils literal notranslate"><span class="pre">to_bools()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="api/languages/python_api.html#backend-configuration">Backend Configuration</a><ul>
@@ -1049,6 +1063,7 @@
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.qvector"><code class="docutils literal notranslate"><span class="pre">qvector</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.measure_handle"><code class="docutils literal notranslate"><span class="pre">measure_handle</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="api/languages/python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
@@ -1535,6 +1550,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq9CusvStateE">cudaq::CusvState (C++ class)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelDpRR4Args">cudaq::dem_from_kernel (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0DpEN5cudaq15dem_from_kernelENSt6stringERR13QuantumKernelPKN5cudaq11noise_modelEDpRR4Args">[1]</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15depolarization1E">cudaq::depolarization1 (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15depolarization2E">cudaq::depolarization2 (C++ class)</a>
@@ -1566,6 +1583,10 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7details17KernelBuilderType6createEPN4mlir11MLIRContextE">cudaq::details::KernelBuilderType::create (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq7details17KernelBuilderType17KernelBuilderTypeERRNSt8functionIFN4mlir4TypeEPN4mlir11MLIRContextEEEE">cudaq::details::KernelBuilderType::KernelBuilderType (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4IDpEN5cudaq8detectorEvDpRR8MeasArgs">cudaq::detector (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq9detectorsERKNSt6vectorI14measure_resultEERKNSt6vectorI14measure_resultEE">cudaq::detectors (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq20diag_matrix_callbackE">cudaq::diag_matrix_callback (C++ class)</a>
 </li>
@@ -1827,6 +1848,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq22KrausTrajectoryBuilder13setSelectionsENSt6vectorI14KrausSelectionEE">cudaq::KrausTrajectoryBuilder::setSelections (C++ function)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4IDpEN5cudaq18logical_observableEvDpRR8MeasArgs">cudaq::logical_observable (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq18logical_observableERKNSt6vectorI14measure_resultEENSt6size_tE">[1]</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15matrix_callbackE">cudaq::matrix_callback (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14matrix_handlerE">cudaq::matrix_handler (C++ class)</a>
@@ -1878,6 +1901,10 @@
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14matrix_op_termE">cudaq::matrix_op_term (C++ type)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq22mdiag_operator_handlerE">cudaq::mdiag_operator_handler (C++ class)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14measure_handleE">cudaq::measure_handle (C++ class)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14measure_resultE">cudaq::measure_result (C++ type)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3mpiE">cudaq::mpi (C++ type)</a>
 </li>
@@ -2029,12 +2056,12 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq10product_op14const_iteratormlEv">cudaq::product_op::const_iterator::operator* (C++ function)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq10product_op14const_iteratorppEi">cudaq::product_op::const_iterator::operator++ (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq10product_op14const_iteratorppEv">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq10product_op14const_iteratormmEi">cudaq::product_op::const_iterator::operator-- (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq10product_op14const_iteratormmEv">[1]</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq10product_op14const_iteratorptEv">cudaq::product_op::const_iterator::operator-&gt; (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq10product_op14const_iteratoreqERK14const_iterator">cudaq::product_op::const_iterator::operator== (C++ function)</a>
@@ -2713,6 +2740,10 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq15TensorStateDataE">cudaq::TensorStateData (C++ type)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq8to_boolsERKNSt6vectorI14measure_resultEE">cudaq::to_bools (C++ function)</a>
+</li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq10to_integerERKNSt6stringE">cudaq::to_integer (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq10to_integerERKNSt6vectorI14measure_resultEE">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq10to_integerERKNSt6vectorIbEE">[2]</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq5TraceE">cudaq::Trace (C++ class)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq11unset_noiseEv">cudaq::unset_noise (C++ function)</a>
@@ -2767,6 +2798,8 @@
         <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperatorTerm.degrees">(cudaq.operators.spin.SpinOperatorTerm property)</a>
 </li>
       </ul></li>
+      <li><a href="api/languages/python_api.html#cudaq.dem_from_kernel">dem_from_kernel() (in module cudaq)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.Depolarization1">Depolarization1 (class in cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.Depolarization2">Depolarization2 (class in cudaq)</a>
@@ -2777,11 +2810,15 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.Resources.depth_for_arity">depth_for_arity (cudaq.Resources attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.Target.description">description (cudaq.Target property)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult.deserialize">deserialize (cudaq.SampleResult attribute)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.detector">detector() (in module cudaq)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.detectors">detectors() (in module cudaq)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.boson.BosonOperator.distribute_terms">distribute_terms (cudaq.operators.boson.BosonOperator attribute)</a>
 
@@ -3153,8 +3190,12 @@
 </li>
       <li><a href="api/languages/python_api.html#cudaq.SuperOperator.left_right_multiply">left_right_multiply (cudaq.SuperOperator attribute)</a>
 </li>
+      <li><a href="api/languages/python_api.html#cudaq.logical_observable">logical_observable() (in module cudaq)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.ptsbe.ShotAllocationType.LOW_WEIGHT_BIAS">LOW_WEIGHT_BIAS (cudaq.ptsbe.ShotAllocationType attribute)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/python_api.html#cudaq.optimizers.Adam.lower_bounds">lower_bounds (cudaq.optimizers.Adam property)</a>
 
       <ul>
@@ -3221,10 +3262,12 @@
       </ul></li>
       <li><a href="api/languages/cpp_api.html#_CPPv419mdiag_sparse_matrix">mdiag_sparse_matrix (C++ type)</a>
 </li>
-      <li><a href="api/languages/python_api.html#cudaq.ptsbe.KrausTrajectory.measurement_counts">measurement_counts (cudaq.ptsbe.KrausTrajectory property)</a>
+      <li><a href="api/languages/python_api.html#cudaq.measure_handle">measure_handle (class in cudaq)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/languages/python_api.html#cudaq.ptsbe.KrausTrajectory.measurement_counts">measurement_counts (cudaq.ptsbe.KrausTrajectory property)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.merge_kernel">merge_kernel() (cudaq.PyKernelDecorator method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.merge_quake_source">merge_quake_source() (cudaq.PyKernelDecorator method)</a>
@@ -3618,6 +3661,8 @@
         <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperatorTerm.term_id">(cudaq.operators.spin.SpinOperatorTerm property)</a>
 </li>
       </ul></li>
+      <li><a href="api/languages/python_api.html#cudaq.to_bools">to_bools() (in module cudaq)</a>
+</li>
       <li><a href="api/languages/python_api.html#cudaq.Resources.to_dict">to_dict (cudaq.Resources attribute)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.spin.SpinOperator.to_json">to_json (cudaq.operators.spin.SpinOperator attribute)</a>
