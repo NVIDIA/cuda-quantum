@@ -226,6 +226,11 @@ static void createPythonAOTPipeline(OpPassManager &pm,
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLiftArrayAlloc());
   pm.addPass(cudaq::opt::createQuakePropagateMetadata());
   pm.addPass(cudaq::opt::createGlobalizeArrayValues());
+  // Python-only cleanup of front-end (AST bridge) residue. Runs after
+  // constant-propagation (so statically-empty slices have already had their
+  // cc.if folded away) and immediately before the canonicalize below, which
+  // performs the actual veq_size folds this pass exposes.
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createPyFrontendCleanup());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createGetConcreteMatrix());
 }

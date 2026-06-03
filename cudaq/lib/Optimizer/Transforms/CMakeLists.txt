@@ -58,6 +58,7 @@ add_cudaq_library(OptTransforms
   PhaseFolding.cpp
   Pipelines.cpp
   PruneCtrlRelations.cpp
+  PyFrontendCleanup.cpp
   PySynthCallableBlockArgs.cpp
   QuakePropagateMetadata.cpp
   QuakeSimplify.cpp
