@@ -23,13 +23,12 @@ struct ScalarReturn {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ScalarReturn() -> i1
 // CHECK:           %[[VAL_Q:.*]] = call @__quantum__rt__qubit_allocate()
 // CHECK:           call @__quantum__qis__h(%[[VAL_Q]])
-// CHECK:           %[[VAL_R:.*]] = call @__quantum__qis__mz(%[[VAL_Q]]) {{.*}} -> !cc.ptr<!llvm.struct<"Result", opaque>>
-// CHECK:           %[[VAL_I:.*]] = cc.cast %[[VAL_R]] : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> i64
+// CHECK:           %[[VAL_I:.*]] = call @__quantum__qis__mz_handle__to__register(%[[VAL_Q]], {{.*}}) {{.*}} -> i64
 // CHECK:           %[[VAL_S:.*]] = cc.alloca i64
 // CHECK:           cc.store %[[VAL_I]], %[[VAL_S]] : !cc.ptr<i64>
 // CHECK:           %[[VAL_L:.*]] = cc.load %[[VAL_S]] : !cc.ptr<i64>
-// CHECK:           %[[VAL_P:.*]] = cc.cast %[[VAL_L]] : (i64) -> !cc.ptr<i1>
-// CHECK:           %[[VAL_B:.*]] = cc.load %[[VAL_P]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_P:.*]] = cc.cast %[[VAL_L]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:           %[[VAL_B:.*]] = call @__quantum__rt__read_result(%[[VAL_P]]) : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> i1
 // CHECK:           return %[[VAL_B]] : i1
 // CHECK:         }
 
@@ -52,9 +51,9 @@ struct VectorReturn {
 // CHECK:           cc.loop while
 // CHECK:             %[[V_QP2:.*]] = func.call @__quantum__rt__array_get_element_ptr_1d(%[[V_ARR]], %{{.*}})
 // CHECK:             %[[V_Q2:.*]] = cc.load %[[V_QP2]]
-// CHECK:             %[[V_R:.*]] = func.call @__quantum__qis__mz(%[[V_Q2]]){{.*}}!llvm.struct<"Result"
-// CHECK:             %[[V_RP:.*]] = cc.cast %[[V_R]] : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> !cc.ptr<i1>
-// CHECK:             %[[V_B:.*]] = cc.load %[[V_RP]]
+// CHECK:             %[[V_R:.*]] = func.call @__quantum__qis__mz_handle__to__register(%[[V_Q2]], {{.*}}) {{.*}} -> i64
+// CHECK:             %[[V_RP:.*]] = cc.cast %[[V_R]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:             %[[V_B:.*]] = func.call @__quantum__rt__read_result(%[[V_RP]]) : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> i1
 // CHECK:             %[[V_SP:.*]] = cc.compute_ptr %[[V_BUF]][%{{.*}}]
 // CHECK:             %[[V_BB:.*]] = cc.cast unsigned %[[V_B]] : (i1) -> i8
 // CHECK:             cc.store %[[V_BB]], %[[V_SP]]

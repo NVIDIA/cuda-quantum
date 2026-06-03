@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/BaseRemoteRESTQPU.h"
+#include <optional>
 
 namespace cudaq {
 
@@ -42,36 +43,19 @@ public:
   }
 
   KernelThunkResultType unifiedLaunchModule(const AnyModule &module,
-                                            KernelArgs args) override {
-    if (std::holds_alternative<SourceModule>(module)) {
-      const auto &src = std::get<SourceModule>(module);
-      const auto &kernelName = src.getName();
-      CUDAQ_INFO("FermioniqBaseQPU launching kernel ({})", kernelName);
-      auto [quakeModule, context] = Compiler::loadQuakeCodeByName(kernelName);
-      auto compiled = compileImpl(
-          kernelName, [&](Compiler &compiler, ExecutionContext *ctx) {
-            return compiler.runPassPipeline(ctx, kernelName, quakeModule, args,
-                                            std::move(context));
-          });
-      launchImpl(compiled);
-    } else {
-      const auto &compiled = std::get<CompiledModule>(module);
-      CUDAQ_INFO("FermioniqBaseQPU launching kernel via module ({})",
-                 compiled.getName());
-      launchImpl(compiled);
-    }
-    return {};
-  }
+                                            KernelArgs args) override;
 
-  CompiledModule compileModule(const SourceModule &src, KernelArgs args,
-                               bool isEntryPoint) override {
-    const auto &kernelName = src.getName();
-    auto modulePtr = compileModulePreamble(src);
-    CUDAQ_INFO("FermioniqBaseQPU compiling kernel via module ({})", kernelName);
-    return compileImpl(
-        kernelName, [&](Compiler &compiler, ExecutionContext *ctx) {
-          return compiler.runPassPipeline(ctx, kernelName, modulePtr, args);
-        });
+  using BaseRemoteRESTQPU::getCompileTarget;
+  std::unique_ptr<CompileTarget>
+  getCompileTarget(ExecutionContext *ctx) override {
+    auto target = BaseRemoteRESTQPU::getCompileTarget(ctx);
+    // This target handles observable evaluation server-side.
+    // We don't want to split up the circuit into several ansatz
+    // sub circuit.
+    if (ctx->name == "observe") {
+      target->pauliTermSplitObservable = std::nullopt;
+    }
+    return target;
   }
 
   sample_result launchKernel(sample_policy &policy, const AnyModule &module,
@@ -80,30 +64,6 @@ public:
   async_sample_result launchKernel(async_sample_policy &policy,
                                    const AnyModule &module,
                                    KernelArgs args) override;
-
-  CompiledModule compileModule(sample_policy &policy, const SourceModule &src,
-                               KernelArgs args, bool isEntryPoint) override {
-    return compileModuleImpl(policy, src, args, isEntryPoint);
-  }
-
-private:
-  CompiledModule
-  compileImpl(const std::string &kernelName,
-              std::function<CompiledModule(Compiler &, ExecutionContext *)>
-                  runPassPipeline);
-
-  template <typename Policy>
-  CompiledModule compileImpl(Policy &policy, const SourceModule &src,
-                             KernelArgs args, bool isEntryPoint) {
-    const auto &kernelName = src.getName();
-    auto modulePtr = compileModulePreamble(src);
-    CUDAQ_INFO("FermioniqBaseQPU compiling kernel via module ({})", kernelName);
-    return compileImpl(
-        kernelName, [&](Compiler &compiler, ExecutionContext *ctx) {
-          return compiler.runPassPipeline(policy, kernelName, modulePtr, args);
-        });
-  }
-  void launchImpl(const CompiledModule &compiled);
 };
 
 } // namespace cudaq

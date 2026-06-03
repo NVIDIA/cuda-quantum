@@ -101,6 +101,15 @@ static void specializeKernel(const std::string &name, ModuleOp module,
 /// Run the target compilation pipeline for Python MLIR kernels. Returns true
 /// when the target pipeline already ran standard finalization.
 static bool runTargetPassPipeline(mlir::ModuleOp module) {
+  // The per-target pipeline (e.g. `quantinuum-gate-set-mapping`) marks the
+  // `qec` dialect illegal but provides no patterns, so it would reject
+  // `qec.detector` / `qec.observable` / `qec.pair_detectors` ops that DEM
+  // analysis must preserve. Skipping it here lets the subsequent JIT lower QEC
+  // ops to runtime calls correctly. Returning false signals the caller that no
+  // standard finalization ran, so the caller still schedules
+  // `createTargetFinalizePipeline` itself.
+  if (auto *ctx = cudaq::getExecutionContext(); ctx && ctx->name == "dem")
+    return false;
   auto *rt = cudaq::get_platform().get_runtime_target();
   if (!rt)
     return false;
@@ -216,38 +225,6 @@ static void updateExecutionContext(mlir::ModuleOp module) {
   }
 }
 
-static std::optional<cudaq::JitEngine>
-alreadyBuiltJITCode(const std::string &name) {
-  auto *currentExecCtx = cudaq::getExecutionContext();
-  if (currentExecCtx && currentExecCtx->allowJitEngineCaching) {
-    auto jit = currentExecCtx->jitEng;
-    if (jit && cudaq::compiler_artifact::isPersistingJITEngine()) {
-      CUDAQ_INFO("Loading previously compiled JIT engine for {}. This will "
-                 "re-run the previous job, discarding any changes to the "
-                 "kernel, arguments or launch configuration.",
-                 currentExecCtx->kernelName);
-      cudaq::compiler_artifact::checkArtifactReuse(name, jit.value());
-    }
-    return jit;
-  }
-
-  // Fallback for callers without an ExecutionContext (e.g. direct kernel
-  // calls): look up the artifact saved by a previous compilation.
-  return cudaq::compiler_artifact::getArtifactJit(name);
-}
-
-/// In a sample launch context, the (`JIT` compiled) execution engine may be
-/// cached so that it can be called many times in a loop without being
-/// recompiled. This exploits the fact that the arguments processed at the
-/// sample callsite are invariant by the definition of a `CUDA-Q` kernel.
-static void cacheJITForPerformance(cudaq::JitEngine jit) {
-  auto *currentExecCtx = cudaq::getExecutionContext();
-  if (currentExecCtx && currentExecCtx->allowJitEngineCaching) {
-    if (!currentExecCtx->jitEng)
-      currentExecCtx->jitEng = jit;
-  }
-}
-
 /// When the execution context is "resource-count", extract gate counts and
 /// depth metrics from the optimized MLIR IR. Pre-counted gates are erased
 /// from the module, so the subsequent JIT compiles a near-empty module.
@@ -326,14 +303,6 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
       closureArgs = rawArgs;
     }
 
-    if (auto jit = alreadyBuiltJITCode(name)) {
-      auto jitArtifacts =
-          cudaq_internal::compiler::CompiledModuleHelper::createJitArtifacts(
-              name, *jit, resultInfo, isFullySpecialized);
-      return cudaq_internal::compiler::CompiledModuleHelper::
-          createCompiledModule(name, resultInfo, jitArtifacts);
-    }
-
     // 1. Check that this call is sane.
     if (enablePythonCodegenDump)
       module.dump();
@@ -365,8 +334,6 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
 
     // 4. Lower to QIR and JIT compile.
     auto jit = cudaq_internal::compiler::createJITEngine(module, "qir:");
-    cacheJITForPerformance(jit);
-    cudaq::compiler_artifact::saveArtifact(name, jit);
 
     auto jitArtifacts =
         cudaq_internal::compiler::CompiledModuleHelper::createJitArtifacts(

@@ -57,9 +57,10 @@ jobs:
           echo "internal_images=$(echo $internal_images)" >> $GITHUB_OUTPUT
           echo "external_images=$(echo $external_images)" >> $GITHUB_OUTPUT
 
+  # Prune only after a successful push, so a failed push can't strip the mirror.
   delete_images:
     name: Delete old images on GHCR
-    needs: ghcr_config
+    needs: [ghcr_config, push_images]
     runs-on: ubuntu-latest
     permissions:
       packages: write
@@ -81,17 +82,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
-      - name: Delete old images
+      - name: Delete old untagged images
         uses: actions/delete-package-versions@v5
-        with: 
+        with:
           package-name: ${{ fromJson(needs.ghcr_config.outputs.external_images)[format('{0}', matrix.image)].package_name }}
           package-type: 'container'
-          min-versions-to-keep: 1 # the used action does not support 0 here
+          # Untagged only, with a large floor so live image children survive.
+          delete-only-untagged-versions: 'true'
+          min-versions-to-keep: 400
         continue-on-error: true
 
   push_images:
     name: Push new images to GHCR
-    needs: [ghcr_config, delete_images]
+    needs: ghcr_config
     runs-on: ubuntu-latest
     permissions:
       packages: write
@@ -112,6 +115,12 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
       - name: Set up context for buildx
         run: |

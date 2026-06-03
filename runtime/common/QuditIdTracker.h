@@ -28,6 +28,11 @@ public:
   QuditIdTracker() = default;
   QuditIdTracker(const QuditIdTracker &) = delete;
 
+  void reset() {
+    currentId = 0;
+    recycledQudits.clear();
+  }
+
   /// @brief Return the next available index, take from the recycled qudit
   /// identifiers if possible.
   std::size_t getNextIndex() {

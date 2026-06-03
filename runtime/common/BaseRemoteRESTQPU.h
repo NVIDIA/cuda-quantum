@@ -91,11 +91,13 @@ protected:
     auto modulePtr = compileModulePreamble(src);
     CUDAQ_INFO("specializing remote rest kernel via module ({}) with {} policy",
                kernelName, policy.name);
-    // Temporary hack until we have a proper way of configuring the compiler
-    // based on the policy.
-    auto ctx = cudaq::getExecutionContext();
     Compiler compiler(getCompileTarget(policy));
-    return compiler.runPassPipeline(ctx, kernelName, modulePtr, args);
+    auto compiled = compiler.runPassPipeline(kernelName, modulePtr, args);
+    if constexpr (std::is_same_v<Policy, sample_policy>) {
+      if (compiler.hasWarnedNamedMeasurements())
+        policy.warnedNamedMeasurements = true;
+    }
+    return compiled;
   }
 
 public:
@@ -149,10 +151,10 @@ public:
     // by the analysis simulator (e.g. a `choice` function that calls
     // `cudaq::sample`) could launch a second kernel through this transport
     // while the outer scope is still active.
-    if (nvqir::AnalysisScope::is_active() && context.name != "resource-count")
-      throw std::runtime_error(
-          "Illegal use of resource counter simulator! (Did you attempt to run "
-          "a kernel inside of a choice function?)");
+    if (nvqir::AnalysisScope::is_active() && context.name != "resource-count" &&
+        context.name != "dem")
+      throw std::runtime_error("Illegal use of an analysis simulator (resource "
+                               "counter / DEM) on a remote QPU.");
 
     CUDAQ_INFO("Remote Rest QPU preparing execution context for {}",
                context.name);
@@ -252,12 +254,44 @@ public:
   };
 
   using QPU::getCompileTarget;
-  std::unique_ptr<CompileTarget> getCompileTarget(ExecutionContext *) override {
+  std::unique_ptr<CompileTarget>
+  getCompileTarget(ExecutionContext *ctx) override {
+    if (!ctx)
+      throw std::runtime_error(
+          "Remote rest execution can only be performed via cudaq::sample(), "
+          "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
+
     std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
     auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
 
-    return std::make_unique<BaseRemoteRESTQPUCompileTarget>(
+    auto target = std::make_unique<BaseRemoteRESTQPUCompileTarget>(
         serverHelper.get(), platformPath, targetConfig, backendConfig, emulate);
+    if (ctx && ctx->name == "observe") {
+      if (!ctx->spin.has_value())
+        throw std::runtime_error("observe execution requires a spin_op");
+      target->pauliTermSplitObservable = ctx->spin;
+    } else if (ctx && ctx->name == "resource-count") {
+      target->emitResourceCounts = true;
+    } else if (ctx && ctx->name == "dem") {
+      target->emitJit = true;
+      target->emitTargetCode = false;
+      target->runTargetLoweringPipeline = false;
+    }
+    return target;
+  }
+
+  std::unique_ptr<CompileTarget>
+  getCompileTarget(sample_policy &policy) override {
+    std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
+    auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
+
+    auto target = std::make_unique<BaseRemoteRESTQPUCompileTarget>(
+        serverHelper.get(), platformPath, targetConfig, backendConfig, emulate);
+    target->warnNamedMeasurements = !policy.warnedNamedMeasurements;
+    target->supportConditionalsOnMeasureResults = !emulate;
+    target->pipelineConfig.addMeasurements = true;
+    target->storeReorderIdx = true;
+    return target;
   }
 
   CompiledModule compileModule(const SourceModule &src, KernelArgs args,
@@ -265,17 +299,10 @@ public:
     const auto &kernelName = src.getName();
     auto modulePtr = compileModulePreamble(src);
     CUDAQ_INFO("specializing remote rest kernel via module ({})", kernelName);
-    auto executionContext = cudaq::getExecutionContext();
 
-    // TODO future iterations of this should support non-void return types.
-    if (!executionContext)
-      throw std::runtime_error(
-          "Remote rest execution can only be performed via cudaq::sample(), "
-          "cudaq::observe(), cudaq::run(), or cudaq::contrib::draw().");
-
-    Compiler compiler(getCompileTarget());
-    return compiler.runPassPipeline(executionContext, kernelName, modulePtr,
-                                    args);
+    Compiler compiler(getCompileTarget(getExecutionContext()));
+    auto compiled = compiler.runPassPipeline(kernelName, modulePtr, args);
+    return compiled;
   }
 
   CompiledModule compileModule(sample_policy &policy, const SourceModule &src,
@@ -294,9 +321,6 @@ public:
     Compiler compiler(getCompileTarget(policy));
     std::vector<cudaq::KernelExecution> codes;
     std::string kernelName;
-    // Temporary hack until we have a proper way of configuring the compiler
-    // based on the policy.
-    auto ctx = cudaq::getExecutionContext();
     if (std::holds_alternative<SourceModule>(module)) {
       const auto &src = std::get<SourceModule>(module);
       kernelName = src.getName();
@@ -304,7 +328,11 @@ public:
 
       auto [moduleOp, context] = Compiler::loadQuakeCodeByName(kernelName);
 
-      codes = compiler.lowerQuakeCode(ctx, kernelName, moduleOp, args);
+      codes = compiler.lowerQuakeCode(kernelName, moduleOp, args);
+      if constexpr (std::is_same_v<Policy, sample_policy>) {
+        if (compiler.hasWarnedNamedMeasurements())
+          policy.warnedNamedMeasurements = true;
+      }
     } else {
       const auto &compiled = std::get<CompiledModule>(module);
       kernelName = compiled.getName();
@@ -342,6 +370,18 @@ public:
       return;
     }
 
+    if (executionContext->name == "dem") {
+      cudaq::ExecutionContext context("dem");
+      context.executionManager = cudaq::getDefaultExecutionManager();
+      context.noiseModel = executionContext->noiseModel;
+      context.qpuId = executionContext->qpuId;
+      assert(codes.size() == 1 && codes[0].jit);
+      cudaq::platform::with_execution_context(
+          context, [&]() { codes[0].jit->run(kernelName); });
+      executionContext->dem_text = std::move(context.dem_text);
+      return;
+    }
+
     // Get the current execution context and number of shots
     std::size_t localShots = 1000;
     if (executionContext->shots != std::numeric_limits<std::size_t>::max() &&
@@ -371,9 +411,8 @@ public:
       // Launch the execution of the simulated jobs asynchronously
       future = cudaq::details::future(std::async(
           std::launch::async,
-          [&, codes, localShots, kernelName, seed, isObserve, isRun,
-           reorderIdx =
-               executionContext->reorderIdx]() mutable -> cudaq::sample_result {
+          [&, codes, localShots, kernelName, seed, isObserve,
+           isRun]() mutable -> cudaq::sample_result {
             std::vector<cudaq::ExecutionResult> results;
 
             // If seed is 0, then it has not been set.
@@ -410,12 +449,9 @@ public:
               // observe) one time each.
               for (std::size_t i = 0; i < codes.size(); i++) {
                 cudaq::ExecutionContext context("sample", localShots);
-                context.reorderIdx = reorderIdx;
+                context.reorderIdx = codes[i].mapping_reorder_idx;
                 context.executionManager = cudaq::getDefaultExecutionManager();
                 context.kernelName = kernelName;
-                context.warnedNamedMeasurements =
-                    executionContext ? executionContext->warnedNamedMeasurements
-                                     : false;
                 assert(codes[i].jit);
                 cudaq::platform::with_execution_context(
                     context, [&]() { codes[i].jit->run(kernelName); });
@@ -523,6 +559,8 @@ public:
     // observe) one time each.
     for (std::size_t i = 0; i < codes.size(); i++) {
       cudaq::ExecutionContext context("sample", localShots);
+      // Avoid emitting the warning again during execution
+      context.warnedNamedMeasurements = policy.warnedNamedMeasurements;
       sample_policy localPolicy;
       localPolicy.options.shots = localShots;
       localPolicy.reorderIdx = std::move(codes[i].mapping_reorder_idx);

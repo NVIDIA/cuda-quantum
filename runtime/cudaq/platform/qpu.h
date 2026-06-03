@@ -158,8 +158,7 @@ public:
   // Overload for sample policy
   [[nodiscard]] virtual std::unique_ptr<CompileTarget>
   getCompileTarget(sample_policy &policy);
-  // Overloads for currently unsupported policies (to be removed).
-  [[nodiscard]] virtual std::unique_ptr<CompileTarget> getCompileTarget();
+  // Overload for currently unsupported policies (to be removed).
   [[nodiscard]] virtual std::unique_ptr<CompileTarget>
   getCompileTarget(ExecutionContext *context);
 
