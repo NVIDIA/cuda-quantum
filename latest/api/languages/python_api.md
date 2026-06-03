@@ -98,6 +98,9 @@ latest
     -   [Measuring
         Kernels](../../using/examples/measuring_kernels.html){.reference
         .internal}
+        -   [Measurement
+            Handles](../../using/examples/measuring_kernels.html#measurement-handles){.reference
+            .internal}
         -   [Mid-circuit Measurement and Conditional
             Logic](../../using/examples/measuring_kernels.html#mid-circuit-measurement-and-conditional-logic){.reference
             .internal}
@@ -223,6 +226,11 @@ latest
             -   [Inspecting Execution
                 Data](../../using/examples/ptsbe.html#inspecting-execution-data){.reference
                 .internal}
+    -   [Detector Error
+        Models](../../using/examples/dem_from_kernel.html){.reference
+        .internal}
+        -   [Limitations](../../using/examples/dem_from_kernel.html#limitations){.reference
+            .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -1656,6 +1664,9 @@ latest
         -   [Kernel Builder](cpp_api.html#kernel-builder){.reference
             .internal}
         -   [Algorithms](cpp_api.html#algorithms){.reference .internal}
+        -   [Quantum Error
+            Correction](cpp_api.html#quantum-error-correction){.reference
+            .internal}
         -   [Platform](cpp_api.html#platform){.reference .internal}
         -   [Utilities](cpp_api.html#utilities){.reference .internal}
         -   [Namespaces](cpp_api.html#namespaces){.reference .internal}
@@ -1728,6 +1739,23 @@ latest
                 .internal}
             -   [[`estimate_resources()`{.docutils .literal
                 .notranslate}]{.pre}](#cudaq.estimate_resources){.reference
+                .internal}
+            -   [[`dem_from_kernel()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.dem_from_kernel){.reference
+                .internal}
+        -   [Quantum Error
+            Correction](#quantum-error-correction){.reference .internal}
+            -   [[`detector()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.detector){.reference
+                .internal}
+            -   [[`detectors()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.detectors){.reference
+                .internal}
+            -   [[`logical_observable()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.logical_observable){.reference
+                .internal}
+            -   [[`to_bools()`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.to_bools){.reference
                 .internal}
         -   [Backend Configuration](#backend-configuration){.reference
             .internal}
@@ -1850,6 +1878,9 @@ latest
                 .notranslate}]{.pre}](#cudaq.qreg){.reference .internal}
             -   [[`qvector`{.docutils .literal
                 .notranslate}]{.pre}](#cudaq.qvector){.reference
+                .internal}
+            -   [[`measure_handle`{.docutils .literal
+                .notranslate}]{.pre}](#cudaq.measure_handle){.reference
                 .internal}
             -   [[`ComplexMatrix`{.docutils .literal
                 .notranslate}]{.pre}](#cudaq.ComplexMatrix){.reference
@@ -2174,6 +2205,11 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         Python's intrinsic dynamism, it allows Python kernels to be
         specialized and passed to algorithms written in C++ that call
         back to these Python kernels in a functional composition.
+
+    [[cachedCompiledModule]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.cachedCompiledModule "Permalink to this definition"){.headerlink}
+
+    :   Return the kernel's CompiledModule cache slot, creating an empty
+        one on first access.
 
     [[captured_variables]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.captured_variables "Permalink to this definition"){.headerlink}
 
@@ -2939,6 +2975,127 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
     :   [[`Resources`{.xref .py .py-class .docutils .literal
         .notranslate}]{.pre}](#cudaq.Resources "cudaq.Resources"){.reference
         .internal}
+
+```{=html}
+<!-- -->
+```
+
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[dem_from_kernel]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[noise_model]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.dem_from_kernel "Permalink to this definition"){.headerlink}
+
+:   Generate a detector error model (DEM) from a CUDA-Q kernel.
+
+    Runs [`kernel`{.code .docutils .literal .notranslate}]{.pre} under
+    the internal [`"dem"`{.code .docutils .literal .notranslate}]{.pre}
+    execution context, captures the recorded circuit from the backend,
+    and returns Stim's standard [`.dem`{.code .docutils .literal
+    .notranslate}]{.pre} text via
+    [`stim::DetectorErrorModel::str()`{.code .docutils .literal
+    .notranslate}]{.pre}. The active CUDA-Q target is unaffected; the
+    analysis simulator is an internal, thread-local override.
+
+    Parameters[:]{.colon}
+
+    :   -   **kernel** ([[`Kernel`{.xref .py .py-class .docutils
+            .literal
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal}) -- The [[`Kernel`{.xref .py .py-class .docutils
+            .literal
+            .notranslate}]{.pre}](#cudaq.Kernel "cudaq.Kernel"){.reference
+            .internal} to analyze.
+
+        -   **\*arguments** -- Concrete argument values forwarded to the
+            kernel invocation.
+
+        -   **noise_model** ([[`NoiseModel`{.xref .py .py-class
+            .docutils .literal
+            .notranslate}]{.pre}](#cudaq.NoiseModel "cudaq.NoiseModel"){.reference
+            .internal}, optional) -- Noise model layered on top of any
+            [`apply_noise`{.code .docutils .literal .notranslate}]{.pre}
+            ops already present in the kernel.
+
+    Returns[:]{.colon}
+
+    :   UTF-8 string in Stim's standard [`.dem`{.code .docutils .literal
+        .notranslate}]{.pre} file format. Consumers that need a
+        structured DEM can parse it with
+        [`stim.DetectorErrorModel(text)`{.code .docutils .literal
+        .notranslate}]{.pre}.
+:::
+
+::: {#quantum-error-correction .section}
+## Quantum Error Correction[¶](#quantum-error-correction "Permalink to this heading"){.headerlink}
+
+These functions are called inside an [`@cudaq.kernel`{.docutils .literal
+.notranslate}]{.pre} body to declare detectors and logical observables
+for detector-error-model generation with
+[`cudaq.dem_from_kernel`{.docutils .literal .notranslate}]{.pre}, and to
+discriminate measurement handles. They are intercepted by the compiler;
+calling them at host scope raises [`RuntimeError`{.docutils .literal
+.notranslate}]{.pre}. ([`cudaq.to_integer`{.docutils .literal
+.notranslate}]{.pre} is likewise available inside kernels to pack
+discriminated bits into an integer.)
+
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[detector]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[measurements]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.detector "Permalink to this definition"){.headerlink}
+
+:   Define a detector over one or more measurement results.
+
+    A detector is a parity constraint: under noise-free execution the
+    XOR of the referenced measurements is deterministic. Each call
+    defines one detector. Arguments are individual
+    [`cudaq.measure_handle`{.docutils .literal .notranslate}]{.pre}
+    values or a single [`list[cudaq.measure_handle]`{.docutils .literal
+    .notranslate}]{.pre}.
+
+```{=html}
+<!-- -->
+```
+
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[detectors]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[prev]{.pre}]{.n}*, *[[curr]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.detectors "Permalink to this definition"){.headerlink}
+
+:   Define N detectors by pairing two measurement vectors element-wise.
+
+    Standard form for cross-round detectors: each detector
+    [`i`{.docutils .literal .notranslate}]{.pre} is the parity of
+    [`prev[i]`{.docutils .literal .notranslate}]{.pre} and
+    [`curr[i]`{.docutils .literal .notranslate}]{.pre}. Size agreement
+    between [`prev`{.docutils .literal .notranslate}]{.pre} and
+    [`curr`{.docutils .literal .notranslate}]{.pre} is checked at
+    runtime.
+
+```{=html}
+<!-- -->
+```
+
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[logical_observable]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[measurements]{.pre}]{.n}*, *[[observable_index]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.logical_observable "Permalink to this definition"){.headerlink}
+
+:   Define a logical observable over one or more measurement results.
+
+    The variadic form uses [`observable_index`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`=`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`0`{.docutils .literal .notranslate}]{.pre}. Codes
+    with [`k`{.docutils .literal .notranslate}]{.pre} logical qubits
+    should pass a single [`list[cudaq.measure_handle]`{.docutils
+    .literal .notranslate}]{.pre} and an explicit
+    [`observable_index`{.docutils .literal .notranslate}]{.pre} for each
+    observable [`0..k-1`{.docutils .literal .notranslate}]{.pre}.
+
+```{=html}
+<!-- -->
+```
+
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[to_bools]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[handles]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.to_bools "Permalink to this definition"){.headerlink}
+
+:   Bulk-discriminate a [`list[cudaq.measure_handle]`{.docutils .literal
+    .notranslate}]{.pre} into a [`list[bool]`{.docutils .literal
+    .notranslate}]{.pre}. Device-only: this Python symbol exists so
+    kernel code can call [`cudaq.to_bools(...)`{.docutils .literal
+    .notranslate}]{.pre}; the AST bridge intercepts the call and lowers
+    it to a vector form [`quake.discriminate`{.docutils .literal
+    .notranslate}]{.pre} on [`!cc.stdvec<!cc.measure_handle>`{.docutils
+    .literal .notranslate}]{.pre}. Host-side invocation raises a
+    [`RuntimeError`{.docutils .literal .notranslate}]{.pre}.
 :::
 
 ::: {#backend-configuration .section}
@@ -6188,6 +6345,34 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
     the [`qvector`{.code .docutils .literal .notranslate}]{.pre} follows
     that of a [`std::vector`{.code .docutils .literal
     .notranslate}]{.pre} or list for qubits.
+
+```{=html}
+<!-- -->
+```
+
+*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[measure_handle]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.measure_handle "Permalink to this definition"){.headerlink}
+
+:   A handle to a measurement event recorded inside a CUDA-Q kernel.
+
+    Returned by [`mz`{.docutils .literal .notranslate}]{.pre} /
+    [`mx`{.docutils .literal .notranslate}]{.pre} / [`my`{.docutils
+    .literal .notranslate}]{.pre} inside an [`@cudaq.kernel`{.docutils
+    .literal .notranslate}]{.pre} body (scalar form on a single qubit;
+    vector form on a [`qvector`{.docutils .literal .notranslate}]{.pre}
+    / [`qview`{.docutils .literal .notranslate}]{.pre}). The classical
+    outcome is read by coercing the handle to [`bool`{.docutils .literal
+    .notranslate}]{.pre} in any Python [`bool`{.docutils .literal
+    .notranslate}]{.pre} context, and the AST bridge inserts a
+    [`quake.discriminate`{.docutils .literal .notranslate}]{.pre} at the
+    coercion site. [`cudaq.to_bools(handles)`{.docutils .literal
+    .notranslate}]{.pre} is the bulk counterpart on a
+    [`list[measure_handle]`{.docutils .literal .notranslate}]{.pre}.
+
+    Instantiating [`cudaq.measure_handle()`{.docutils .literal
+    .notranslate}]{.pre} at host scope raises
+    [`KernelTypeError`{.docutils .literal .notranslate}]{.pre} (a
+    [`RuntimeError`{.docutils .literal .notranslate}]{.pre} subclass)
+    since it is device-only.
 
 ```{=html}
 <!-- -->

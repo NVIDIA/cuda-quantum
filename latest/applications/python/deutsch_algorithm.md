@@ -98,6 +98,9 @@ latest
     -   [Measuring
         Kernels](../../using/examples/measuring_kernels.html){.reference
         .internal}
+        -   [Measurement
+            Handles](../../using/examples/measuring_kernels.html#measurement-handles){.reference
+            .internal}
         -   [Mid-circuit Measurement and Conditional
             Logic](../../using/examples/measuring_kernels.html#mid-circuit-measurement-and-conditional-logic){.reference
             .internal}
@@ -223,6 +226,11 @@ latest
             -   [Inspecting Execution
                 Data](../../using/examples/ptsbe.html#inspecting-execution-data){.reference
                 .internal}
+    -   [Detector Error
+        Models](../../using/examples/dem_from_kernel.html){.reference
+        .internal}
+        -   [Limitations](../../using/examples/dem_from_kernel.html#limitations){.reference
+            .internal}
     -   [Constructing
         Operators](../../using/examples/operators.html){.reference
         .internal}
@@ -1609,6 +1617,9 @@ latest
             .internal}
         -   [Algorithms](../../api/languages/cpp_api.html#algorithms){.reference
             .internal}
+        -   [Quantum Error
+            Correction](../../api/languages/cpp_api.html#quantum-error-correction){.reference
+            .internal}
         -   [Platform](../../api/languages/cpp_api.html#platform){.reference
             .internal}
         -   [Utilities](../../api/languages/cpp_api.html#utilities){.reference
@@ -1695,6 +1706,24 @@ latest
                 .internal}
             -   [[`estimate_resources()`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.estimate_resources){.reference
+                .internal}
+            -   [[`dem_from_kernel()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.dem_from_kernel){.reference
+                .internal}
+        -   [Quantum Error
+            Correction](../../api/languages/python_api.html#quantum-error-correction){.reference
+            .internal}
+            -   [[`detector()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.detector){.reference
+                .internal}
+            -   [[`detectors()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.detectors){.reference
+                .internal}
+            -   [[`logical_observable()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.logical_observable){.reference
+                .internal}
+            -   [[`to_bools()`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.to_bools){.reference
                 .internal}
         -   [Backend
             Configuration](../../api/languages/python_api.html#backend-configuration){.reference
@@ -1828,6 +1857,9 @@ latest
                 .internal}
             -   [[`qvector`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.qvector){.reference
+                .internal}
+            -   [[`measure_handle`{.docutils .literal
+                .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.measure_handle){.reference
                 .internal}
             -   [[`ComplexMatrix`{.docutils .literal
                 .notranslate}]{.pre}](../../api/languages/python_api.html#cudaq.ComplexMatrix){.reference
@@ -2171,7 +2203,7 @@ number, the result is 0 otherwise 1.
 ::: {#Quantum-oracles .section}
 ## Quantum oracles[¶](#Quantum-oracles "Permalink to this heading"){.headerlink}
 
-![cd9d4188d760498f9777a530784cad33](../../_images/oracle.png){.no-scaled-link
+![e73271e07e9c4020aa9970bb265ce379](../../_images/oracle.png){.no-scaled-link
 style="width: 300px; height: 150px;"}
 
 Suppose we have [\\(f(x): \\{0,1\\} \\longrightarrow \\{0,1\\}\\)]{.math
@@ -2277,7 +2309,7 @@ balanced function? If constant, [\\(f(0) = f(1)\\)]{.math .notranslate
 We step through the circuit diagram below and follow the math after the
 application of each gate.
 
-![4d349c3d51bc4a3faf1951a7a9ae9982](../../_images/deutsch.png){.no-scaled-link
+![9137091e5c08457396e1fe05207ad4cc](../../_images/deutsch.png){.no-scaled-link
 style="width: 500px; height: 210px;"}
 
 ::: {.math .notranslate .nohighlight}

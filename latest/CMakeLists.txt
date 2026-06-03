@@ -15,9 +15,15 @@
 #   TARGET_OPTION <Option>: extra option for the target
 #   SOURCE_DIR <DIR>: the directory that SOURCE_LOCATION is relative to (if not the default)
 #   LAUNCH_COMMAND <COMMAND>: the command to launch the test (e.g., mpirun)
+#   LIBRARY_MODE: compile in library mode instead of the default MLIR mode
 function(add_nvqpp_test TEST_NAME SOURCE_LOCATION)
-  cmake_parse_arguments(PARSED_ARGS "" "TARGET;LABELS;SOURCE_DIR;LAUNCH_COMMAND;APPLICATION_ARGS;TARGET_OPTION;EXTRA_COMPILE_ARGS;MIN_GPUS" "" ${ARGN})
-  set(NVQPP_COMPILE_ARGS "--library-mode -I${CMAKE_SOURCE_DIR}/runtime/include")
+  cmake_parse_arguments(PARSED_ARGS "LIBRARY_MODE" "TARGET;LABELS;SOURCE_DIR;LAUNCH_COMMAND;APPLICATION_ARGS;TARGET_OPTION;EXTRA_COMPILE_ARGS;MIN_GPUS" "" ${ARGN})
+  # Snippets compile in MLIR mode by default.
+  if(PARSED_ARGS_LIBRARY_MODE)
+    set(NVQPP_COMPILE_ARGS "--library-mode -I${CMAKE_SOURCE_DIR}/runtime/include")
+  else()
+    set(NVQPP_COMPILE_ARGS "--enable-mlir -I${CMAKE_SOURCE_DIR}/runtime/include")
+  endif()
   if(PARSED_ARGS_TARGET)
     set(NVQPP_COMPILE_ARGS "${NVQPP_COMPILE_ARGS} --target ${PARSED_ARGS_TARGET}")
     if (PARSED_ARGS_TARGET_OPTION)
@@ -52,8 +58,9 @@ endfunction()
 add_nvqpp_test(GHZ examples/cpp/basics/static_kernel.cpp)
 add_nvqpp_test(ExpVals examples/cpp/basics/expectation_values.cpp)
 add_nvqpp_test(MidCircuitMeasurements examples/cpp/basics/mid_circuit_measurement.cpp)
+add_nvqpp_test(MeasuringKernels examples/cpp/measuring_kernels.cpp)
 add_nvqpp_test(PhaseEstimation applications/cpp/phase_estimation.cpp)
-add_nvqpp_test(Grover applications/cpp/grover.cpp)
+add_nvqpp_test(Grover applications/cpp/grover.cpp LIBRARY_MODE)
 add_nvqpp_test(QAOA applications/cpp/qaoa_maxcut.cpp)
 add_nvqpp_test(VQEH2 applications/cpp/vqe_h2.cpp)
 add_nvqpp_test(AmplitudeEstimation applications/cpp/amplitude_estimation.cpp)
@@ -81,6 +88,9 @@ add_nvqpp_test(PTSBE_BellDepol bell_circuit_under_depol_noise.cpp SOURCE_DIR ${P
 add_nvqpp_test(PTSBE_InspectData inspect_execution_data.cpp SOURCE_DIR ${PTSBE_CPP_SNIPPET_DIR})
 add_nvqpp_test(PTSBE_SamplingStrategies sampling_strategies.cpp SOURCE_DIR ${PTSBE_CPP_SNIPPET_DIR})
 add_nvqpp_test(PTSBE_ShotAllocation shot_allocation.cpp SOURCE_DIR ${PTSBE_CPP_SNIPPET_DIR})
+
+set(DEM_CPP_SNIPPET_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp/using/examples/dem)
+add_nvqpp_test(DEM_FromKernel dem_from_kernel.cpp SOURCE_DIR ${DEM_CPP_SNIPPET_DIR})
 
 if (cuDensityMat_FOUND)
   add_nvqpp_test(Dynamics_Snippets using/backends/dynamics.cpp SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/cpp/ TARGET dynamics LABELS gpu_required)  
@@ -160,7 +170,7 @@ if (MPI_CXX_FOUND AND cuTensorNet_FOUND)
     LABELS "gpu_required;mgpus_required")
 endif()
 
-add_nvqpp_test(photonics_sim targets/cpp/photonics.cpp TARGET orca-photonics)
+add_nvqpp_test(photonics_sim targets/cpp/photonics.cpp TARGET orca-photonics LIBRARY_MODE)
 
 # Only add the python tests if we built the python API
 if (CUDAQ_ENABLE_PYTHON)
@@ -198,6 +208,9 @@ if (CUDAQ_ENABLE_PYTHON)
   add_pycudaq_test(PTSBE_InspectData inspect_execution_data.py SOURCE_DIR ${PTSBE_PY_SNIPPET_DIR})
   add_pycudaq_test(PTSBE_SamplingStrategies sampling_strategies.py SOURCE_DIR ${PTSBE_PY_SNIPPET_DIR})
   add_pycudaq_test(PTSBE_ShotAllocation shot_allocation.py SOURCE_DIR ${PTSBE_PY_SNIPPET_DIR})
+
+  set(DEM_PY_SNIPPET_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python/using/examples/dem)
+  add_pycudaq_test(DEM_FromKernel dem_from_kernel.py SOURCE_DIR ${DEM_PY_SNIPPET_DIR})
 
   if (CUDA_FOUND)
     add_pycudaq_test(EvolveDynamics using/backends/dynamics.py LABELS gpu_required SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)

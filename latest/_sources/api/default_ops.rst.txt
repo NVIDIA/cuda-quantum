@@ -380,6 +380,10 @@ Adjoint and Controlled Operations
     The :code:`ctrl` method of any gate can be used to apply the transformation
     conditional on the state of one or more control qubits, see also this 
     `Wikipedia entry <https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gates>`__.
+    In the argument list, control qubits come before the target qubit, which is always last.
+    For parameterized gates such as the rotation gates :code:`rx`, :code:`ry`,
+    :code:`rz`, :code:`r1`, and :code:`u3`, the gate parameters come first, preceding
+    any qubit arguments.
 
     .. code-block:: python
 
@@ -399,11 +403,17 @@ Adjoint and Controlled Operations
 
         # Set the state of `target` to |1>:
         x(target)
-        # Apply the transformation T only if both 
+        # Apply the transformation T only if both
         # control qubits are in a |1> state:
         t.ctrl([ctrl_1, ctrl_2], target)
         # The qubits ctrl_1, ctrl_2, and target are now in a state
         # (|000> + exp(iπ/4)|111>) / √2.
+
+        # For parametric gates (rx, ry, rz, r1), the rotation angle is passed
+        # as the first argument, before the control qubit(s) and the target:
+        rx.ctrl(math.pi / 2, ctrl_1, target)
+        ry.ctrl(math.pi / 4, ctrl_1, target)
+        rz.ctrl(math.pi / 8, ctrl_1, target)
 
 .. tab:: C++
 
@@ -430,6 +440,10 @@ Adjoint and Controlled Operations
     The template argument :code:`cudaq::ctrl` can be used to apply the transformation
     conditional on the state of one or more control qubits, see also this 
     `Wikipedia entry <https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gates>`__.
+    In the argument list, control qubits come before the target qubit, which is always last.
+    For parameterized gates such as the rotation gates :code:`rx`, :code:`ry`,
+    :code:`rz`, :code:`r1`, and :code:`u3`, the gate parameters come first, preceding
+    any qubit arguments.
 
     .. code-block:: cpp
 
@@ -449,11 +463,17 @@ Adjoint and Controlled Operations
 
         // Set the state of `target` to |1>:
         x(target);
-        // Apply the transformation T only if both 
+        // Apply the transformation T only if both
         // control qubits are in a |1> state:
         t<cudaq::ctrl>(ctrl_1, ctrl_2, target);
         // The qubits ctrl_1, ctrl_2, and target are now in a state
         // (|000> + exp(iπ/4)|111>) / √2.
+
+        // For parametric gates (rx, ry, rz, r1), the rotation angle is passed
+        // as the first argument, before the control qubit(s) and the target:
+        rx<cudaq::ctrl>(M_PI_2, ctrl_1, target);
+        ry<cudaq::ctrl>(M_PI_4, ctrl_1, target);
+        rz<cudaq::ctrl>(M_PI / 8, ctrl_1, target);
 
 
 Following common convention, by default the transformation is applied to the target qubit(s)
@@ -479,6 +499,13 @@ Negating the polarity of control qubits is similarly supported when using :code:
 
 Measurements on Qubits
 =============================
+
+The measurement operations :code:`mz`, :code:`mx`, and :code:`my` return a
+measurement handle rather than a bare classical value:
+:code:`cudaq::measure_handle` in C++ (also available as the alias
+:code:`cudaq::measure_result`), and the :code:`measure_handle` type in
+Python. See :doc:`../using/examples/measuring_kernels` for how to discriminate
+handles and the host-device boundary rule.
 
 :code:`mz`
 ---------------------

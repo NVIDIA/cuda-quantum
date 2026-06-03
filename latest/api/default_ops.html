@@ -147,6 +147,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../using/examples/measuring_kernels.html">   Measuring Kernels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../using/examples/measuring_kernels.html#measurement-handles">Measurement Handles</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../using/examples/measuring_kernels.html#mid-circuit-measurement-and-conditional-logic">Mid-circuit Measurement and Conditional Logic</a></li>
 </ul>
 </li>
@@ -217,6 +218,10 @@
 <li class="toctree-l4"><a class="reference internal" href="../using/examples/ptsbe.html#inspecting-execution-data">Inspecting Execution Data</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../using/examples/dem_from_kernel.html">   Detector Error Models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../using/examples/dem_from_kernel.html#limitations">Limitations</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../using/examples/operators.html">   Constructing Operators</a><ul>
@@ -964,6 +969,7 @@
 <li class="toctree-l3"><a class="reference internal" href="languages/cpp_api.html#noise-modeling">Noise Modeling</a></li>
 <li class="toctree-l3"><a class="reference internal" href="languages/cpp_api.html#kernel-builder">Kernel Builder</a></li>
 <li class="toctree-l3"><a class="reference internal" href="languages/cpp_api.html#algorithms">Algorithms</a></li>
+<li class="toctree-l3"><a class="reference internal" href="languages/cpp_api.html#quantum-error-correction">Quantum Error Correction</a></li>
 <li class="toctree-l3"><a class="reference internal" href="languages/cpp_api.html#platform">Platform</a></li>
 <li class="toctree-l3"><a class="reference internal" href="languages/cpp_api.html#utilities">Utilities</a></li>
 <li class="toctree-l3"><a class="reference internal" href="languages/cpp_api.html#namespaces">Namespaces</a></li>
@@ -1001,6 +1007,14 @@
 <li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.draw"><code class="docutils literal notranslate"><span class="pre">draw()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.translate"><code class="docutils literal notranslate"><span class="pre">translate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.estimate_resources"><code class="docutils literal notranslate"><span class="pre">estimate_resources()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.dem_from_kernel"><code class="docutils literal notranslate"><span class="pre">dem_from_kernel()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="languages/python_api.html#quantum-error-correction">Quantum Error Correction</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.detector"><code class="docutils literal notranslate"><span class="pre">detector()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.detectors"><code class="docutils literal notranslate"><span class="pre">detectors()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.logical_observable"><code class="docutils literal notranslate"><span class="pre">logical_observable()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.to_bools"><code class="docutils literal notranslate"><span class="pre">to_bools()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="languages/python_api.html#backend-configuration">Backend Configuration</a><ul>
@@ -1054,6 +1068,7 @@
 <li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.qubit"><code class="docutils literal notranslate"><span class="pre">qubit</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.qreg"><code class="docutils literal notranslate"><span class="pre">qreg</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.qvector"><code class="docutils literal notranslate"><span class="pre">qvector</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.measure_handle"><code class="docutils literal notranslate"><span class="pre">measure_handle</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.ComplexMatrix"><code class="docutils literal notranslate"><span class="pre">ComplexMatrix</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.SampleResult"><code class="docutils literal notranslate"><span class="pre">SampleResult</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="languages/python_api.html#cudaq.AsyncSampleResult"><code class="docutils literal notranslate"><span class="pre">AsyncSampleResult</span></code></a></li>
@@ -1521,7 +1536,11 @@ enables one to create a superposition of computational basis states.</p>
 </div>
 <p>The <code class="code docutils literal notranslate"><span class="pre">ctrl</span></code> method of any gate can be used to apply the transformation
 conditional on the state of one or more control qubits, see also this
-<a class="reference external" href="https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gates">Wikipedia entry</a>.</p>
+<a class="reference external" href="https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gates">Wikipedia entry</a>.
+In the argument list, control qubits come before the target qubit, which is always last.
+For parameterized gates such as the rotation gates <code class="code docutils literal notranslate"><span class="pre">rx</span></code>, <code class="code docutils literal notranslate"><span class="pre">ry</span></code>,
+<code class="code docutils literal notranslate"><span class="pre">rz</span></code>, <code class="code docutils literal notranslate"><span class="pre">r1</span></code>, and <code class="code docutils literal notranslate"><span class="pre">u3</span></code>, the gate parameters come first, preceding
+any qubit arguments.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create a kernel and allocate qubits in a |0&gt; state.</span>
 <span class="n">ctrl_1</span><span class="p">,</span> <span class="n">ctrl_2</span><span class="p">,</span> <span class="n">target</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">(),</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">(),</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
 <span class="c1"># Create a superposition.</span>
@@ -1543,6 +1562,12 @@ conditional on the state of one or more control qubits, see also this
 <span class="n">t</span><span class="o">.</span><span class="n">ctrl</span><span class="p">([</span><span class="n">ctrl_1</span><span class="p">,</span> <span class="n">ctrl_2</span><span class="p">],</span> <span class="n">target</span><span class="p">)</span>
 <span class="c1"># The qubits ctrl_1, ctrl_2, and target are now in a state</span>
 <span class="c1"># (|000&gt; + exp(iπ/4)|111&gt;) / √2.</span>
+
+<span class="c1"># For parametric gates (rx, ry, rz, r1), the rotation angle is passed</span>
+<span class="c1"># as the first argument, before the control qubit(s) and the target:</span>
+<span class="n">rx</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">ctrl_1</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+<span class="n">ry</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">4</span><span class="p">,</span> <span class="n">ctrl_1</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+<span class="n">rz</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">8</span><span class="p">,</span> <span class="n">ctrl_1</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -1567,7 +1592,11 @@ conditional on the state of one or more control qubits, see also this
 </div>
 <p>The template argument <code class="code docutils literal notranslate"><span class="pre">cudaq::ctrl</span></code> can be used to apply the transformation
 conditional on the state of one or more control qubits, see also this
-<a class="reference external" href="https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gates">Wikipedia entry</a>.</p>
+<a class="reference external" href="https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gates">Wikipedia entry</a>.
+In the argument list, control qubits come before the target qubit, which is always last.
+For parameterized gates such as the rotation gates <code class="code docutils literal notranslate"><span class="pre">rx</span></code>, <code class="code docutils literal notranslate"><span class="pre">ry</span></code>,
+<code class="code docutils literal notranslate"><span class="pre">rz</span></code>, <code class="code docutils literal notranslate"><span class="pre">r1</span></code>, and <code class="code docutils literal notranslate"><span class="pre">u3</span></code>, the gate parameters come first, preceding
+any qubit arguments.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Allocate qubits in a |0&gt; state.</span>
 <span class="n">cudaq</span><span class="o">::</span><span class="n">qubit</span><span class="w"> </span><span class="n">ctrl_1</span><span class="p">,</span><span class="w"> </span><span class="n">ctrl_2</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">;</span>
 <span class="c1">// Create a superposition.</span>
@@ -1589,6 +1618,12 @@ conditional on the state of one or more control qubits, see also this
 <span class="n">t</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">ctrl_1</span><span class="p">,</span><span class="w"> </span><span class="n">ctrl_2</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">);</span>
 <span class="c1">// The qubits ctrl_1, ctrl_2, and target are now in a state</span>
 <span class="c1">// (|000&gt; + exp(iπ/4)|111&gt;) / √2.</span>
+
+<span class="c1">// For parametric gates (rx, ry, rz, r1), the rotation angle is passed</span>
+<span class="c1">// as the first argument, before the control qubit(s) and the target:</span>
+<span class="n">rx</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">M_PI_2</span><span class="p">,</span><span class="w"> </span><span class="n">ctrl_1</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">);</span>
+<span class="n">ry</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">M_PI_4</span><span class="p">,</span><span class="w"> </span><span class="n">ctrl_1</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">);</span>
+<span class="n">rz</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">M_PI</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">8</span><span class="p">,</span><span class="w"> </span><span class="n">ctrl_1</span><span class="p">,</span><span class="w"> </span><span class="n">target</span><span class="p">);</span>
 </pre></div>
 </div>
 </div>
@@ -1615,6 +1650,12 @@ Negating the polarity of control qubits is similarly supported when using <code 
 </section>
 <section id="measurements-on-qubits">
 <h2>Measurements on Qubits<a class="headerlink" href="#measurements-on-qubits" title="Permalink to this heading">¶</a></h2>
+<p>The measurement operations <code class="code docutils literal notranslate"><span class="pre">mz</span></code>, <code class="code docutils literal notranslate"><span class="pre">mx</span></code>, and <code class="code docutils literal notranslate"><span class="pre">my</span></code> return a
+measurement handle rather than a bare classical value:
+<code class="code docutils literal notranslate"><span class="pre">cudaq::measure_handle</span></code> in C++ (also available as the alias
+<code class="code docutils literal notranslate"><span class="pre">cudaq::measure_result</span></code>), and the <code class="code docutils literal notranslate"><span class="pre">measure_handle</span></code> type in
+Python. See <a class="reference internal" href="../using/examples/measuring_kernels.html"><span class="doc">Measuring Kernels</span></a> for how to discriminate
+handles and the host-device boundary rule.</p>
 <section id="mz">
 <h3><code class="code docutils literal notranslate"><span class="pre">mz</span></code><a class="headerlink" href="#mz" title="Permalink to this heading">¶</a></h3>
 <p>This operation measures a qubit with respect to the computational basis,

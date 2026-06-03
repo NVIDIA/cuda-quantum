@@ -97,6 +97,9 @@ latest
     -   [Measuring
         Kernels](../using/examples/measuring_kernels.html){.reference
         .internal}
+        -   [Measurement
+            Handles](../using/examples/measuring_kernels.html#measurement-handles){.reference
+            .internal}
         -   [Mid-circuit Measurement and Conditional
             Logic](../using/examples/measuring_kernels.html#mid-circuit-measurement-and-conditional-logic){.reference
             .internal}
@@ -221,6 +224,11 @@ latest
             -   [Inspecting Execution
                 Data](../using/examples/ptsbe.html#inspecting-execution-data){.reference
                 .internal}
+    -   [Detector Error
+        Models](../using/examples/dem_from_kernel.html){.reference
+        .internal}
+        -   [Limitations](../using/examples/dem_from_kernel.html#limitations){.reference
+            .internal}
     -   [Constructing
         Operators](../using/examples/operators.html){.reference
         .internal}
@@ -1647,6 +1655,9 @@ latest
             .internal}
         -   [Algorithms](languages/cpp_api.html#algorithms){.reference
             .internal}
+        -   [Quantum Error
+            Correction](languages/cpp_api.html#quantum-error-correction){.reference
+            .internal}
         -   [Platform](languages/cpp_api.html#platform){.reference
             .internal}
         -   [Utilities](languages/cpp_api.html#utilities){.reference
@@ -1731,6 +1742,24 @@ latest
                 .internal}
             -   [[`estimate_resources()`{.docutils .literal
                 .notranslate}]{.pre}](languages/python_api.html#cudaq.estimate_resources){.reference
+                .internal}
+            -   [[`dem_from_kernel()`{.docutils .literal
+                .notranslate}]{.pre}](languages/python_api.html#cudaq.dem_from_kernel){.reference
+                .internal}
+        -   [Quantum Error
+            Correction](languages/python_api.html#quantum-error-correction){.reference
+            .internal}
+            -   [[`detector()`{.docutils .literal
+                .notranslate}]{.pre}](languages/python_api.html#cudaq.detector){.reference
+                .internal}
+            -   [[`detectors()`{.docutils .literal
+                .notranslate}]{.pre}](languages/python_api.html#cudaq.detectors){.reference
+                .internal}
+            -   [[`logical_observable()`{.docutils .literal
+                .notranslate}]{.pre}](languages/python_api.html#cudaq.logical_observable){.reference
+                .internal}
+            -   [[`to_bools()`{.docutils .literal
+                .notranslate}]{.pre}](languages/python_api.html#cudaq.to_bools){.reference
                 .internal}
         -   [Backend
             Configuration](languages/python_api.html#backend-configuration){.reference
@@ -1864,6 +1893,9 @@ latest
                 .internal}
             -   [[`qvector`{.docutils .literal
                 .notranslate}]{.pre}](languages/python_api.html#cudaq.qvector){.reference
+                .internal}
+            -   [[`measure_handle`{.docutils .literal
+                .notranslate}]{.pre}](languages/python_api.html#cudaq.measure_handle){.reference
                 .internal}
             -   [[`ComplexMatrix`{.docutils .literal
                 .notranslate}]{.pre}](languages/python_api.html#cudaq.ComplexMatrix){.reference
@@ -2579,7 +2611,14 @@ The [`ctrl`{.code .docutils .literal .notranslate}]{.pre} method of any
 gate can be used to apply the transformation conditional on the state of
 one or more control qubits, see also this [Wikipedia
 entry](https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gates){.reference
-.external}.
+.external}. In the argument list, control qubits come before the target
+qubit, which is always last. For parameterized gates such as the
+rotation gates [`rx`{.code .docutils .literal .notranslate}]{.pre},
+[`ry`{.code .docutils .literal .notranslate}]{.pre}, [`rz`{.code
+.docutils .literal .notranslate}]{.pre}, [`r1`{.code .docutils .literal
+.notranslate}]{.pre}, and [`u3`{.code .docutils .literal
+.notranslate}]{.pre}, the gate parameters come first, preceding any
+qubit arguments.
 
 ::: {.highlight-python .notranslate}
 ::: highlight
@@ -2604,6 +2643,12 @@ entry](https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gates){.refer
     t.ctrl([ctrl_1, ctrl_2], target)
     # The qubits ctrl_1, ctrl_2, and target are now in a state
     # (|000> + exp(iπ/4)|111>) / √2.
+
+    # For parametric gates (rx, ry, rz, r1), the rotation angle is passed
+    # as the first argument, before the control qubit(s) and the target:
+    rx.ctrl(math.pi / 2, ctrl_1, target)
+    ry.ctrl(math.pi / 4, ctrl_1, target)
+    rz.ctrl(math.pi / 8, ctrl_1, target)
 :::
 :::
 :::
@@ -2639,7 +2684,14 @@ The template argument [`cudaq::ctrl`{.code .docutils .literal
 .notranslate}]{.pre} can be used to apply the transformation conditional
 on the state of one or more control qubits, see also this [Wikipedia
 entry](https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gates){.reference
-.external}.
+.external}. In the argument list, control qubits come before the target
+qubit, which is always last. For parameterized gates such as the
+rotation gates [`rx`{.code .docutils .literal .notranslate}]{.pre},
+[`ry`{.code .docutils .literal .notranslate}]{.pre}, [`rz`{.code
+.docutils .literal .notranslate}]{.pre}, [`r1`{.code .docutils .literal
+.notranslate}]{.pre}, and [`u3`{.code .docutils .literal
+.notranslate}]{.pre}, the gate parameters come first, preceding any
+qubit arguments.
 
 ::: {.highlight-cpp .notranslate}
 ::: highlight
@@ -2664,6 +2716,12 @@ entry](https://en.wikipedia.org/wiki/Quantum_logic_gate#Controlled_gates){.refer
     t<cudaq::ctrl>(ctrl_1, ctrl_2, target);
     // The qubits ctrl_1, ctrl_2, and target are now in a state
     // (|000> + exp(iπ/4)|111>) / √2.
+
+    // For parametric gates (rx, ry, rz, r1), the rotation angle is passed
+    // as the first argument, before the control qubit(s) and the target:
+    rx<cudaq::ctrl>(M_PI_2, ctrl_1, target);
+    ry<cudaq::ctrl>(M_PI_4, ctrl_1, target);
+    rz<cudaq::ctrl>(M_PI / 8, ctrl_1, target);
 :::
 :::
 :::
@@ -2703,6 +2761,19 @@ quantum kernel.
 
 ::: {#measurements-on-qubits .section}
 ## Measurements on Qubits[¶](#measurements-on-qubits "Permalink to this heading"){.headerlink}
+
+The measurement operations [`mz`{.code .docutils .literal
+.notranslate}]{.pre}, [`mx`{.code .docutils .literal
+.notranslate}]{.pre}, and [`my`{.code .docutils .literal
+.notranslate}]{.pre} return a measurement handle rather than a bare
+classical value: [`cudaq::measure_handle`{.code .docutils .literal
+.notranslate}]{.pre} in C++ (also available as the alias
+[`cudaq::measure_result`{.code .docutils .literal .notranslate}]{.pre}),
+and the [`measure_handle`{.code .docutils .literal .notranslate}]{.pre}
+type in Python. See [[Measuring
+Kernels]{.doc}](../using/examples/measuring_kernels.html){.reference
+.internal} for how to discriminate handles and the host-device boundary
+rule.
 
 ::: {#mz .section}
 ### [`mz`{.code .docutils .literal .notranslate}]{.pre}[¶](#mz "Permalink to this heading"){.headerlink}
