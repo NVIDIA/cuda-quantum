@@ -36,6 +36,11 @@ target-arguments:
     type: string
     platform-arg: executor
     help-string: "Specify the executor to run. Default is mock"
+  - key: disable-qubit-mapping
+    required: false
+    platform-arg: disable-qubit-mapping
+    type: string
+    help-string: "Disable qubit mapping (mapping will run on the backend). Default is false"
   - key: api_key
     required: false
     type: string
