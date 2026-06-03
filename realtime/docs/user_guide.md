@@ -208,3 +208,49 @@ Please make sure the `IB` device name (`--device`) is correct, i.e., the one con
 ### Error "`Failed to get remote MAC.`"
 
 Please make sure the IP address of the `HSB` FPGA (`--fpga-ip`) is correct. For example, we can do a quick `ping` test to check the connectivity.
+
+### High latency or latency spikes in HSB validation
+
+If the HSB validation passes but the average or maximum PTP latency is higher
+than expected, first verify that the GPU and RoCE path are idle before starting
+the validation run.
+
+- Run `nvidia-smi` before starting `validate.sh` and stop any stale GPU
+  processes. The `Processes` table should report `No running processes found`.
+- Inspect `ptp_latency.csv`. The first packet is included in the latency
+  summary and is commonly the slowest packet in the run. Use the CSV to
+  distinguish a single startup outlier from repeated latency spikes.
+- Save the full validation log and `ptp_latency.csv` when collecting data for
+  debugging.
+- Capture NIC, InfiniBand, GPU, and kernel diagnostics before and after the
+  validation run to check for congestion, retries, GPU activity, and driver
+  messages. Replace `enP2p1s0f1np1` and `roceP2p1s0f1` with the Ethernet and
+  InfiniBand device names for the port connected to the HSB FPGA:
+
+  ```bash
+  # Before the validation run
+  ethtool -S enP2p1s0f1np1 > /tmp/eth_before.txt
+  cat /sys/class/infiniband/roceP2p1s0f1/ports/1/hw_counters/* > /tmp/hw_before.txt
+  cat /sys/class/infiniband/roceP2p1s0f1/ports/1/counters/* > /tmp/cnt_before.txt
+  nvidia-smi -q > /tmp/smi_before.txt
+  nvidia-smi dmon -s pucvmet -c 60 -d 1 > /tmp/dmon.log &
+  DMON_PID=$!
+
+  # Run validate.sh here.
+
+  # After the validation run
+  kill "$DMON_PID"
+  ethtool -S enP2p1s0f1np1 > /tmp/eth_after.txt
+  cat /sys/class/infiniband/roceP2p1s0f1/ports/1/hw_counters/* > /tmp/hw_after.txt
+  cat /sys/class/infiniband/roceP2p1s0f1/ports/1/counters/* > /tmp/cnt_after.txt
+  nvidia-smi -q > /tmp/smi_after.txt
+  dmesg -T --since "2 minutes ago" > /tmp/dmesg.log
+
+  diff /tmp/eth_before.txt /tmp/eth_after.txt
+  diff /tmp/hw_before.txt /tmp/hw_after.txt
+  diff /tmp/cnt_before.txt /tmp/cnt_after.txt
+  ```
+
+- Note whether the HSB FPGA is connected directly to the host with a QSFP
+  cable or through a switch. Include this topology information when comparing
+  results across systems.
