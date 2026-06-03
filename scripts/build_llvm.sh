@@ -209,6 +209,14 @@ fi
 #  -DLLVM_TARGETS_TO_BUILD='"$targets_to_build"' \
 #  -DLIBOMPTARGET_DEVICE_ARCHITECTURES=sm_70,sm_75,sm_80
 # maybe:  -DLLVM_RUNTIME_TARGETS='nvptx64-nvidia-cuda' \
+# Route compiles through ccache when available for cross-run caching.
+ccache_cmake_args=""
+if command -v ccache >/dev/null 2>&1; then
+  ccache_cmake_args=" \
+    -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
+fi
+
 cmake_args=" \
   -DLLVM_DEFAULT_TARGET_TRIPLE='"$(bash $LLVM_SOURCE/llvm/cmake/config.guess)"' \
   -DLLVM_TARGETS_TO_BUILD=host \
@@ -223,6 +231,7 @@ cmake_args=" \
   -DMLIR_ENABLE_BINDINGS_PYTHON=$mlir_python_bindings \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   -DCMAKE_CXX_FLAGS='"$LLVM_EXTRA_CXX_FLAGS"' \
+  $ccache_cmake_args \
   -Dnanobind_DIR=$NANOBIND_INSTALL_PREFIX/nanobind/cmake"
 
 if [ "$(uname)" = "Darwin" ]; then
