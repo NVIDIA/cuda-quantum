@@ -60,3 +60,8 @@ target-arguments:
     type: string
     platform-arg: simulator_duration
     help-string: "The duration of simulation. Relevant only if the executor is set to 'simulator'."
+  - key: extra-payload-provider
+    required: false
+    type: string
+    platform-arg: extra_payload_provider
+    help-string: "Specify the extra payload provider if any."
