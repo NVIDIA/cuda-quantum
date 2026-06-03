@@ -27,7 +27,13 @@ standard form for cross-round detectors); and
 The example below is a three-qubit bit-flip memory experiment: each round
 measures the data qubits and pairs them with the previous round via
 ``detectors``, with a final ``logical_observable`` reading out the register.
-In-kernel ``apply_noise`` seeds the error mechanisms.
+In-kernel ``apply_noise`` seeds the error mechanisms. Each call applies a
+single-qubit bit-flip channel (``cudaq::x_error`` in C++, ``cudaq.XError`` in
+Python) that applies a Pauli ``X`` with the given probability, so a flipped
+data qubit shows up as a parity change in the next ``detectors`` pair. 
+See the :doc:`C++ </api/languages/cpp_api>` and 
+:doc:`Python </api/languages/python_api>` API references for ``apply_noise``
+and the other predefined noise channels.
 
 .. tab:: Python
 
@@ -63,6 +69,20 @@ The ``.dem`` text is a list of independent error mechanisms. Each
 ``error(p) D... L...`` line gives one mechanism: its probability ``p``, the
 detectors it flips (its *symptoms*, ``D``), and the logical observables it
 flips (its *frame changes*, ``L``).
+
+Output DEM: With two rounds and three data qubits, there are six independent
+``error`` mechanisms: one bit-flip per qubit per round at the in-kernel
+probability ``0.01`` (printed at full floating-point precision). Each error
+flips one detector together with the logical observable ``L0``:
+
+.. code-block:: text
+
+    error(0.01000000000000000021) D0 L0
+    error(0.01000000000000000021) D1 L0
+    error(0.01000000000000000021) D2 L0
+    error(0.01000000000000000021) D3 L0
+    error(0.01000000000000000021) D4 L0
+    error(0.01000000000000000021) D5 L0
 
 Limitations
 ------------
