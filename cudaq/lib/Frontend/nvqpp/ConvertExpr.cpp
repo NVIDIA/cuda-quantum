@@ -363,11 +363,51 @@ static bool isExclaimOperator(clang::OverloadedOperatorKind kind) {
 static void castToSameType(OpBuilder builder, Location loc,
                            const clang::Type *lhsType, Value &lhs,
                            const clang::Type *rhsType, Value &rhs) {
-  if (lhs.getType().getIntOrFloatBitWidth() ==
-      rhs.getType().getIntOrFloatBitWidth())
+  if (lhsType == rhsType)
     return;
   auto lhsTy = lhs.getType();
   auto rhsTy = rhs.getType();
+  if (lhsTy == rhsTy)
+    return;
+  if (isa<ComplexType>(lhsTy) || isa<ComplexType>(rhsTy)) {
+    auto widenComplex = [&](const clang::Type *lEleTy,
+                            const clang::Type *rEleTy) {
+      Value lre = complex::ReOp::create(builder, loc, lhs);
+      Value lim = complex::ImOp::create(builder, loc, lhs);
+      Value rre = complex::ReOp::create(builder, loc, rhs);
+      Value rim = complex::ImOp::create(builder, loc, rhs);
+      castToSameType(builder, loc, lEleTy, lre, rEleTy, rre);
+      castToSameType(builder, loc, lEleTy, lim, rEleTy, rim);
+      auto cmplxTy = ComplexType::get(lre.getType());
+      lhs = complex::CreateOp::create(builder, loc, cmplxTy, lre, lim);
+      rhs = complex::CreateOp::create(builder, loc, cmplxTy, rre, rim);
+    };
+    auto promoteToComplex = [&](const clang::Type *cmplxTy, Value cmplx,
+                                const clang::Type *otherTy, Value &other) {
+      Value dummy = complex::ReOp::create(builder, loc, cmplx);
+      Value otherDummy = other;
+      castToSameType(builder, loc, cmplxTy, dummy, otherTy, otherDummy);
+      auto newTy = ComplexType::get(dummy.getType());
+      Value zero = arith::getZeroConstant(builder, loc, dummy.getType());
+      other = complex::CreateOp::create(builder, loc, newTy, otherDummy, zero);
+    };
+    if (isa<ComplexType>(lhsTy) && isa<ComplexType>(rhsTy)) {
+      widenComplex(
+          cast<clang::ComplexType>(lhsType)->getElementType().getTypePtr(),
+          cast<clang::ComplexType>(rhsType)->getElementType().getTypePtr());
+      return;
+    }
+    if (isa<ComplexType>(lhsTy)) {
+      promoteToComplex(
+          cast<clang::ComplexType>(lhsType)->getElementType().getTypePtr(), lhs,
+          rhsType, rhs);
+      return;
+    }
+    promoteToComplex(
+        cast<clang::ComplexType>(rhsType)->getElementType().getTypePtr(), rhs,
+        lhsType, lhs);
+    return;
+  }
   if (isa<IntegerType>(lhsTy) && isa<IntegerType>(rhsTy)) {
     if (lhsTy.getIntOrFloatBitWidth() < rhsTy.getIntOrFloatBitWidth()) {
       auto mode = (lhsType && lhsType->isUnsignedIntegerOrEnumerationType())
@@ -519,6 +559,19 @@ bool QuakeBridgeVisitor::VisitFloatingLiteral(clang::FloatingLiteral *x) {
   auto fltVal = x->getValue();
   return pushValue(
       opt::factory::createFloatConstant(loc, builder, fltVal, fltTy));
+}
+
+bool QuakeBridgeVisitor::VisitImaginaryLiteral(clang::ImaginaryLiteral *x) {
+  auto loc = toLocation(x->getSourceRange());
+  auto *subExpr = x->getSubExpr();
+  auto *fltLit = cast<clang::FloatingLiteral>(subExpr);
+  auto bltTy = cast<clang::BuiltinType>(fltLit->getType().getTypePtr());
+  auto fltTy = cast<FloatType>(builtinTypeToType(bltTy));
+  auto cmplxTy = ComplexType::get(fltTy);
+  auto imag = popValue();
+  auto zero = arith::getZeroConstant(builder, loc, imag.getType());
+  return pushValue(
+      complex::CreateOp::create(builder, loc, cmplxTy, zero, imag));
 }
 
 bool QuakeBridgeVisitor::VisitCXXBoolLiteralExpr(clang::CXXBoolLiteralExpr *x) {
@@ -1082,6 +1135,8 @@ bool QuakeBridgeVisitor::VisitBinaryOperator(clang::BinaryOperator *x) {
                  x->getRHS()->getType().getTypePtrOrNull(), rhs);
   switch (x->getOpcode()) {
   case clang::BinaryOperatorKind::BO_Add: {
+    if (x->getType()->isAnyComplexType())
+      return pushValue(complex::AddOp::create(builder, loc, lhs, rhs));
     if (x->getType()->isIntegerType())
       return pushValue(arith::AddIOp::create(builder, loc, lhs, rhs));
     if (x->getType()->isFloatingType())
@@ -1095,10 +1150,12 @@ bool QuakeBridgeVisitor::VisitBinaryOperator(clang::BinaryOperator *x) {
       return pushValue(arith::RemSIOp::create(builder, loc, lhs, rhs));
     }
     if (x->getType()->isFloatingType())
-      return pushValue(arith::AddFOp::create(builder, loc, lhs, rhs));
-    TODO_loc(loc, "error in bo_add binary op");
+      return pushValue(arith::RemFOp::create(builder, loc, lhs, rhs));
+    TODO_loc(loc, "error in bo_rem binary op");
   }
   case clang::BinaryOperatorKind::BO_Sub: {
+    if (x->getType()->isAnyComplexType())
+      return pushValue(complex::SubOp::create(builder, loc, lhs, rhs));
     if (x->getType()->isIntegerType())
       return pushValue(arith::SubIOp::create(builder, loc, lhs, rhs));
     if (x->getType()->isFloatingType())
@@ -1107,6 +1164,8 @@ bool QuakeBridgeVisitor::VisitBinaryOperator(clang::BinaryOperator *x) {
   }
 
   case clang::BinaryOperatorKind::BO_Mul: {
+    if (x->getType()->isAnyComplexType())
+      return pushValue(complex::MulOp::create(builder, loc, lhs, rhs));
     if (x->getType()->isIntegerType())
       return pushValue(arith::MulIOp::create(builder, loc, lhs, rhs));
     if (x->getType()->isFloatingType())
@@ -1115,6 +1174,8 @@ bool QuakeBridgeVisitor::VisitBinaryOperator(clang::BinaryOperator *x) {
   }
 
   case clang::BinaryOperatorKind::BO_Div: {
+    if (x->getType()->isAnyComplexType())
+      return pushValue(complex::DivOp::create(builder, loc, lhs, rhs));
     if (x->getType()->isIntegerType()) {
       if (x->getType()->isUnsignedIntegerOrEnumerationType())
         return pushValue(arith::DivUIOp::create(builder, loc, lhs, rhs));
@@ -3490,10 +3551,13 @@ bool QuakeBridgeVisitor::VisitCXXConstructExpr(clang::CXXConstructExpr *x) {
     if (isVectorOfQubitRefs)
       return true;
     if (ctorName == "complex") {
-      Value imag = popValue();
-      Value real = popValue();
-      return pushValue(mlir::complex::CreateOp::create(
-          builder, loc, ComplexType::get(real.getType()), real, imag));
+      if (x->getNumArgs() == 2) {
+        Value imag = popValue();
+        Value real = popValue();
+        return pushValue(mlir::complex::CreateOp::create(
+            builder, loc, ComplexType::get(real.getType()), real, imag));
+      }
+      return x->getNumArgs() == 1 && isa<ComplexType>(peekValue().getType());
     }
     if (ctorName == "function") {
       // Are we converting a lambda expr to a std::function?
