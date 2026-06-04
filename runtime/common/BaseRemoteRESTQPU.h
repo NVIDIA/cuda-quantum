@@ -429,40 +429,32 @@ public:
       std::size_t seed = cudaq::get_random_seed();
 
       // Launch the execution of the simulated jobs asynchronously
-      future = cudaq::detail::future(std::async(
-          std::launch::async,
-          [&, codes, localShots, kernelName,
-           seed]() mutable -> cudaq::sample_result {
-            std::vector<cudaq::ExecutionResult> results;
+      future = cudaq::detail::future(
+          std::async(std::launch::async,
+                     [&, codes, localShots, kernelName,
+                      seed]() mutable -> cudaq::sample_result {
+                       std::vector<cudaq::ExecutionResult> results;
 
-            // If seed is 0, then it has not been set.
-            if (seed > 0)
-              cudaq::set_random_seed(seed);
+                       // If seed is 0, then it has not been set.
+                       if (seed > 0)
+                         cudaq::set_random_seed(seed);
 
-            const bool hasConditionals =
-                executionContext
-                    ? executionContext->hasConditionalsOnMeasureResults
-                    : false;
+                       // Validate the execution logic: cudaq::run kernels
+                       // should only generate one JIT'ed kernel.
+                       assert(codes.size() == 1 && codes[0].jit);
+                       executor->setShots(1); // run one shot at a time
 
-            if (hasConditionals)
-              throw std::runtime_error("error: spin_ops not yet supported with "
-                                       "kernels containing conditionals");
-            // Validate the execution logic: cudaq::run kernels should only
-            // generate one JIT'ed kernel.
-            assert(codes.size() == 1 && codes[0].jit);
-            executor->setShots(1); // run one shot at a time
+                       // If this is executed via cudaq::run, then you have to
+                       // run the code localShots times
+                       for (std::size_t shot = 0; shot < localShots; shot++)
+                         codes[0].jit->run(kernelName);
 
-            // If this is executed via cudaq::run, then you have to run the
-            // code localShots times
-            for (std::size_t shot = 0; shot < localShots; shot++)
-              codes[0].jit->run(kernelName);
-
-            // Get QIR output log
-            const auto qirOutputLog = nvqir::getQirOutputLog();
-            executionContext->invocationResultBuffer.assign(
-                qirOutputLog.begin(), qirOutputLog.end());
-            return cudaq::sample_result();
-          }));
+                       // Get QIR output log
+                       const auto qirOutputLog = nvqir::getQirOutputLog();
+                       executionContext->invocationResultBuffer.assign(
+                           qirOutputLog.begin(), qirOutputLog.end());
+                       return cudaq::sample_result();
+                     }));
 
     } else {
       // Execute the codes produced in quake lowering

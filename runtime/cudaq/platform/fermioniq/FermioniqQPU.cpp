@@ -69,7 +69,10 @@ cudaq::FermioniqQPU::launchKernel(const cudaq::observe_policy &policy,
     throw std::runtime_error("Provider only allows 1 circuit at a time.");
 
   attachFermioniqObservable(codes[0], policy.spin);
-  return completeLaunchKernel(policy, kernelName, std::move(codes));
+  auto result = completeLaunchKernel(policy, kernelName, std::move(codes));
+  auto expectation = result.raw_data().expectation(GlobalRegisterName);
+  return cudaq::observe_result(expectation, result.get_spin(),
+                               result.raw_data());
 }
 
 cudaq::async_observe_result
