@@ -58,6 +58,33 @@ ib_to_netdev() {
   ls "/sys/class/infiniband/$1/device/net/" 2>/dev/null | head -1 || true
 }
 
+# After `ip addr add`, the kernel creates the IPv4-mapped RoCEv2 GID a moment
+# later (notably slower right after a cold boot), and the transceiver's GID
+# lookup fails if it runs before the GID appears.  Poll the IB device's GID
+# table until an IPv4-mapped ("...:ffff:....:....") RoCEv2 GID shows up, and
+# re-assert the address if a transient event dropped it.  This is the step
+# plain `ip addr add` was missing after a power cycle.
+wait_for_roce_gid() {
+  local ib_dev="$1" netdev="$2" ip="$3"
+  local deadline=$((SECONDS + 20)) i g t
+  while ((SECONDS < deadline)); do
+    if ! ip -o -4 addr show dev "$netdev" 2>/dev/null | grep -q "${ip}/"; then
+      sudo ip addr add "${ip}/24" dev "$netdev" 2>/dev/null || true
+    fi
+    for i in $(seq 0 31); do
+      g="$(cat "/sys/class/infiniband/$ib_dev/ports/1/gids/$i" 2>/dev/null)" || continue
+      t="$(cat "/sys/class/infiniband/$ib_dev/ports/1/gid_attrs/types/$i" 2>/dev/null)" || true
+      if [[ "$g" == *":ffff:"* && "$t" == *"v2"* ]]; then
+        echo "    $ib_dev: RoCEv2 IPv4 GID ready (gid[$i]=$g)"
+        return 0
+      fi
+    done
+    sleep 0.3
+  done
+  echo "    ERROR: $ib_dev: no IPv4 RoCEv2 GID for $ip after 20s" >&2
+  return 1
+}
+
 configure_port() {
   local ib_dev="$1" ip="$2"
   local netdev
@@ -77,8 +104,9 @@ configure_port() {
   sudo ip link set "$netdev" mtu "$MTU" 2>/dev/null || true
   sudo ip addr flush dev "$netdev" 2>/dev/null || true
   sudo ip addr add "${ip}/24" dev "$netdev"
-  # The IPv4-mapped RoCEv2 GID becomes available once the netdev has the IP;
-  # the transceiver auto-selects it.
+  # Block until the IPv4-mapped RoCEv2 GID is actually populated (see above),
+  # otherwise the transceiver's GID lookup can race the kernel after a boot.
+  wait_for_roce_gid "$ib_dev" "$netdev" "$ip"
 }
 
 if [[ -z "$CHANNEL_DEVICE" || -z "$DAEMON_DEVICE" ]]; then

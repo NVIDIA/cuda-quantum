@@ -268,6 +268,36 @@ do_build() {
 # source so the script stays standalone)
 # ============================================================================
 
+# After `ip addr add`, the kernel creates the IPv4-mapped RoCEv2 GID a moment
+# later (slower right after a cold boot).  CpuRoceTransceiver requires that
+# IPv4-mapped ("...:ffff:....:....") RoCEv2 GID specifically -- the always-
+# present fe80 link-local v2 GID is NOT sufficient -- so poll until it appears,
+# re-asserting the address if a transient event dropped it.  Without this the
+# bridge can lose a cold-boot race and report "no IPv4-mapped RoCEv2 GID found".
+wait_for_roce_gid() {
+    local ib_dev="$1" iface="$2" ip="$3"
+    local deadline=$((SECONDS + 20)) portdir i g t
+    while ((SECONDS < deadline)); do
+        if ! ip -o -4 addr show dev "$iface" 2>/dev/null | grep -q "${ip}/"; then
+            sudo ip addr add "${ip}/24" dev "$iface" 2>/dev/null || true
+        fi
+        for portdir in /sys/class/infiniband/${ib_dev}/ports/*; do
+            [[ -d "$portdir" ]] || continue
+            for i in $(seq 0 31); do
+                g="$(cat "${portdir}/gids/$i" 2>/dev/null)" || continue
+                t="$(cat "${portdir}/gid_attrs/types/$i" 2>/dev/null)" || true
+                if [[ "$g" == *":ffff:"* && "$t" == *"v2"* ]]; then
+                    echo "    RoCEv2 IPv4 GID ready for $ib_dev ($(basename "$portdir"), gid[$i]=$g)"
+                    return 0
+                fi
+            done
+        done
+        sleep 0.3
+    done
+    echo "    ERROR: no IPv4 RoCEv2 GID for $ib_dev ($ip) after 20s" >&2
+    return 1
+}
+
 setup_port() {
     local iface="$1"
     local ip="$2"
@@ -296,24 +326,27 @@ setup_port() {
         ib_dev=$(basename "$(ls -d /sys/class/net/$iface/device/infiniband/* 2>/dev/null | head -1)" 2>/dev/null || true)
     fi
     if [[ -n "$ib_dev" ]]; then
+        # If the port exposes no RoCEv2 GID at all (e.g. it is in IB mode),
+        # switch it to Ethernet/RoCE mode first so the IPv4 GID can be created.
         local has_rocev2=false
         for f in /sys/class/infiniband/${ib_dev}/ports/*/gid_attrs/types/*; do
             if [[ -f "$f" ]] && grep -q "RoCE v2" "$f" 2>/dev/null; then
                 has_rocev2=true; break
             fi
         done
-        if $has_rocev2; then
-            echo "    RoCEv2 GID available for $ib_dev"
-        elif command -v rdma &>/dev/null && rdma link set --help &>/dev/null; then
+        if ! $has_rocev2 && command -v rdma &>/dev/null && rdma link set --help &>/dev/null; then
             local port_count
             port_count=$(ls -d "/sys/class/infiniband/${ib_dev}/ports/"* 2>/dev/null | wc -l)
             for p in $(seq 1 "$port_count"); do
                 sudo rdma link set "${ib_dev}/${p}" type eth || true
             done
             echo "    RoCEv2 mode configured for $ib_dev"
-        else
-            echo "    WARNING: Could not verify RoCEv2 mode for $ib_dev"
         fi
+        # Wait for the IPv4-mapped RoCEv2 GID for the address just assigned
+        # (matching only "any RoCE v2 GID" here would pass on the link-local
+        # fe80 entry before the IPv4 GID exists -- the cold-boot race fixed in
+        # cpu_roce_device_call_test.sh).
+        wait_for_roce_gid "$ib_dev" "$iface" "$ip"
     fi
 
     if command -v mlnx_qos &>/dev/null; then
