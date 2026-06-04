@@ -105,7 +105,7 @@ Common
 .. doxygenclass:: cudaq::ExecutionContext
     :members:
 
-.. doxygenclass:: cudaq::details::future
+.. doxygenclass:: cudaq::detail::future
     :members:
 
 .. doxygenclass:: cudaq::async_result
@@ -307,10 +307,10 @@ Kernel Builder
 .. doxygenclass:: cudaq::QuakeValue
     :members:
 
-.. doxygenclass:: cudaq::details::kernel_builder_base
+.. doxygenclass:: cudaq::detail::kernel_builder_base
     :members:
 
-.. doxygenclass:: cudaq::details::KernelBuilderType
+.. doxygenclass:: cudaq::detail::KernelBuilderType
     :members:
 
 Algorithms
@@ -435,7 +435,7 @@ Namespaces
 .. doxygennamespace:: cudaq::contrib
     :desc-only:
 
-.. doxygennamespace:: cudaq::details
+.. doxygennamespace:: cudaq::detail
     :desc-only:
 
 .. doxygennamespace:: cudaq::registry

@@ -2755,59 +2755,59 @@ latest
 |     member)](api/languages        |     class)](api/lan               |
 | /cpp_api.html#_CPPv4N5cudaq22depo | guages/cpp_api.html#_CPPv4N5cudaq |
 | larization_channel11num_targetsE) | 5ptsbe23OrderedSamplingStrategyE) |
-| -   [cudaq::details (C++          | -   [cudaq::ptsb                  |
-|     type)](api/languages/cpp      | e::OrderedSamplingStrategy::clone |
-| _api.html#_CPPv4N5cudaq7detailsE) |     (C++                          |
-| -   [cudaq::details::future (C++  |     function)](api/languages/c    |
+| -   [cudaq::detail (C++           | -   [cudaq::ptsb                  |
+|     type)](api/languages/cp       | e::OrderedSamplingStrategy::clone |
+| p_api.html#_CPPv4N5cudaq6detailE) |     (C++                          |
+| -   [cudaq::detail::future (C++   |     function)](api/languages/c    |
 |                                   | pp_api.html#_CPPv4NK5cudaq5ptsbe2 |
-|  class)](api/languages/cpp_api.ht | 3OrderedSamplingStrategy5cloneEv) |
-| ml#_CPPv4N5cudaq7details6futureE) | -   [cudaq::ptsbe::OrderedSampl   |
+|   class)](api/languages/cpp_api.h | 3OrderedSamplingStrategy5cloneEv) |
+| tml#_CPPv4N5cudaq6detail6futureE) | -   [cudaq::ptsbe::OrderedSampl   |
 | -                                 | ingStrategy::generateTrajectories |
-|   [cudaq::details::future::future |     (C++                          |
+|    [cudaq::detail::future::future |     (C++                          |
 |     (C++                          |     function)](api/lang           |
-|     functio                       | uages/cpp_api.html#_CPPv4NK5cudaq |
-| n)](api/languages/cpp_api.html#_C | 5ptsbe23OrderedSamplingStrategy20 |
-| PPv4N5cudaq7details6future6future | generateTrajectoriesENSt4spanIKN6 |
+|     functi                        | uages/cpp_api.html#_CPPv4NK5cudaq |
+| on)](api/languages/cpp_api.html#_ | 5ptsbe23OrderedSamplingStrategy20 |
+| CPPv4N5cudaq6detail6future6future | generateTrajectoriesENSt4spanIKN6 |
 | ERNSt6vectorI3JobEERNSt6stringERN | detail10NoisePointEEENSt6size_tE) |
 | St3mapINSt6stringENSt6stringEEE), | -   [cudaq::pts                   |
-|     [\[1\]](api/lang              | be::OrderedSamplingStrategy::name |
-| uages/cpp_api.html#_CPPv4N5cudaq7 |     (C++                          |
-| details6future6futureERR6future), |     function)](api/languages/     |
-|     [\[2\]]                       | cpp_api.html#_CPPv4NK5cudaq5ptsbe |
-| (api/languages/cpp_api.html#_CPPv | 23OrderedSamplingStrategy4nameEv) |
-| 4N5cudaq7details6future6futureEv) | -                                 |
-| -   [cu                           |    [cudaq::ptsbe::OrderedSampling |
-| daq::details::kernel_builder_base | Strategy::OrderedSamplingStrategy |
+|     [\[1\]](api/lan               | be::OrderedSamplingStrategy::name |
+| guages/cpp_api.html#_CPPv4N5cudaq |     (C++                          |
+| 6detail6future6futureERR6future), |     function)](api/languages/     |
+|     [\[2\]                        | cpp_api.html#_CPPv4NK5cudaq5ptsbe |
+| ](api/languages/cpp_api.html#_CPP | 23OrderedSamplingStrategy4nameEv) |
+| v4N5cudaq6detail6future6futureEv) | -                                 |
+| -   [c                            |    [cudaq::ptsbe::OrderedSampling |
+| udaq::detail::kernel_builder_base | Strategy::OrderedSamplingStrategy |
 |     (C++                          |     (C++                          |
-|     class)](api/l                 |     function)](                   |
-| anguages/cpp_api.html#_CPPv4N5cud | api/languages/cpp_api.html#_CPPv4 |
-| aq7details19kernel_builder_baseE) | N5cudaq5ptsbe23OrderedSamplingStr |
-| -   [cudaq::details::             | ategy23OrderedSamplingStrategyEv) |
+|     class)](api/                  |     function)](                   |
+| languages/cpp_api.html#_CPPv4N5cu | api/languages/cpp_api.html#_CPPv4 |
+| daq6detail19kernel_builder_baseE) | N5cudaq5ptsbe23OrderedSamplingStr |
+| -   [cudaq::detail::              | ategy23OrderedSamplingStrategyEv) |
 | kernel_builder_base::operator\<\< | -                                 |
 |     (C++                          |  [cudaq::ptsbe::OrderedSamplingSt |
-|     function)](api/langua         | rategy::\~OrderedSamplingStrategy |
-| ges/cpp_api.html#_CPPv4N5cudaq7de |     (C++                          |
-| tails19kernel_builder_baselsERNSt |     function)](api/langua         |
+|     function)](api/langu          | rategy::\~OrderedSamplingStrategy |
+| ages/cpp_api.html#_CPPv4N5cudaq6d |     (C++                          |
+| etail19kernel_builder_baselsERNSt |     function)](api/langua         |
 | 7ostreamERK19kernel_builder_base) | ges/cpp_api.html#_CPPv4N5cudaq5pt |
-| -   [                             | sbe23OrderedSamplingStrategyD0Ev) |
-| cudaq::details::KernelBuilderType | -   [cudaq::pts                   |
+| -                                 | sbe23OrderedSamplingStrategyD0Ev) |
+| [cudaq::detail::KernelBuilderType | -   [cudaq::pts                   |
 |     (C++                          | be::ProbabilisticSamplingStrategy |
-|     class)](api                   |     (C++                          |
-| /languages/cpp_api.html#_CPPv4N5c |     class)](api/languages         |
-| udaq7details17KernelBuilderTypeE) | /cpp_api.html#_CPPv4N5cudaq5ptsbe |
-| -   [cudaq::d                     | 29ProbabilisticSamplingStrategyE) |
-| etails::KernelBuilderType::create | -   [cudaq::ptsbe::Pro            |
+|     class)](ap                    |     (C++                          |
+| i/languages/cpp_api.html#_CPPv4N5 |     class)](api/languages         |
+| cudaq6detail17KernelBuilderTypeE) | /cpp_api.html#_CPPv4N5cudaq5ptsbe |
+| -   [cudaq::                      | 29ProbabilisticSamplingStrategyE) |
+| detail::KernelBuilderType::create | -   [cudaq::ptsbe::Pro            |
 |     (C++                          | babilisticSamplingStrategy::clone |
-|     function)                     |     (C++                          |
-| ](api/languages/cpp_api.html#_CPP |                                   |
-| v4N5cudaq7details17KernelBuilderT |  function)](api/languages/cpp_api |
+|     function                      |     (C++                          |
+| )](api/languages/cpp_api.html#_CP |                                   |
+| Pv4N5cudaq6detail17KernelBuilderT |  function)](api/languages/cpp_api |
 | ype6createEPN4mlir11MLIRContextE) | .html#_CPPv4NK5cudaq5ptsbe29Proba |
-| -   [cudaq::details::Ker          | bilisticSamplingStrategy5cloneEv) |
+| -   [cudaq::detail::Ker           | bilisticSamplingStrategy5cloneEv) |
 | nelBuilderType::KernelBuilderType | -                                 |
 |     (C++                          | [cudaq::ptsbe::ProbabilisticSampl |
-|     function)](api/lang           | ingStrategy::generateTrajectories |
-| uages/cpp_api.html#_CPPv4N5cudaq7 |     (C++                          |
-| details17KernelBuilderType17Kerne |     function)](api/languages/     |
+|     function)](api/lan            | ingStrategy::generateTrajectories |
+| guages/cpp_api.html#_CPPv4N5cudaq |     (C++                          |
+| 6detail17KernelBuilderType17Kerne |     function)](api/languages/     |
 | lBuilderTypeERRNSt8functionIFN4ml | cpp_api.html#_CPPv4NK5cudaq5ptsbe |
 | ir4TypeEPN4mlir11MLIRContextEEEE) | 29ProbabilisticSamplingStrategy20 |
 | -   [cudaq::detector (C++         | generateTrajectoriesENSt4spanIKN6 |
@@ -3335,10 +3335,10 @@ latest
 | -   [cuda                         |     function)                     |
 | q::kernel_builder::kernel_builder | ](api/languages/cpp_api.html#_CPP |
 |     (C++                          | v4NK5cudaq10QuakeValue7inverseEv) |
-|     function)](api/languages/cpp_ | -   [cudaq::QuakeValue::isStdVec  |
-| api.html#_CPPv4N5cudaq14kernel_bu |     (C++                          |
-| ilder14kernel_builderERNSt6vector |     function)                     |
-| IN7details17KernelBuilderTypeEEE) | ](api/languages/cpp_api.html#_CPP |
+|     function)](api/languages/cpp  | -   [cudaq::QuakeValue::isStdVec  |
+| _api.html#_CPPv4N5cudaq14kernel_b |     (C++                          |
+| uilder14kernel_builderERNSt6vecto |     function)                     |
+| rIN6detail17KernelBuilderTypeEEE) | ](api/languages/cpp_api.html#_CPP |
 | -   [cudaq::k                     | v4N5cudaq10QuakeValue8isStdVecEv) |
 | ernel_builder::logical_observable | -                                 |
 |     (C++                          |    [cudaq::QuakeValue::operator\* |
