@@ -35,7 +35,7 @@ async_sample_result runAsyncSampling(TBIParameters &parameters,
   cudaq::ExecutionContext ctx("sample", shots, qpu_id);
 
   // Indicate that this is an async exec
-  cudaq::details::future futureResult;
+  cudaq::detail::future futureResult;
   ctx.asyncExec = true;
 
   auto &platform = get_platform();

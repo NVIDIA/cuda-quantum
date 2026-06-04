@@ -209,9 +209,6 @@ function show_help {
 -shared
 	Create a shared library during linking.
 
---enable-mlir
-	Enable and generate MLIR code for CUDA-Q kernels.
-
 --clang-verbose | -clang-verbose
 	Enable the verbose option (-v) to the C++ compiler.
 
@@ -460,9 +457,7 @@ if [[ ! -z "${CUDAQ_DEFAULT_SIMULATOR}" ]]; then
 	done
 fi
 
-# We default to LIBRARY_MODE, physical
-# Quantum Targets can override this to turn on
-# our MLIR compilation workflow.
+# Kept for orca-photonics.
 LIBRARY_MODE=false
 
 CXX=${LLVMBIN}clang++${llvm_suffix}
@@ -537,8 +532,6 @@ while [ $# -ne 0 ]; do
 		;;
 	--emit-qir | -emit-qir)
 		EMIT_QIR=true
-		# NOTE: QIR is not emitted in library mode, so automatically apply '--enable-mlir'
-		LIBRARY_MODE=false
 		;;
 	--emulate | -emulate)
 		CUDAQ_EMULATE_REMOTE=true
@@ -589,12 +582,6 @@ while [ $# -ne 0 ]; do
 		;;
 	-shared)
 		LINKER_FLAGS="${LINKER_FLAGS} -shared"
-		;;
-	--enable-mlir)
-		LIBRARY_MODE=false
-		;;
-	--library-mode)
-		LIBRARY_MODE=true
 		;;
 	--clang-verbose | -clang-verbose)
 		CLANG_VERBOSE="-v"
@@ -885,7 +872,7 @@ for i in ${SRCS}; do
 	file_with_suffix=$(basename $i)
 	file=${file_with_suffix%.*}
 
-	# If LIBRARY_MODE explicitly requested, then
+	# If the target enables library mode (orca-photonics), then
 	# simply compile with the classical compiler.
 	if ${LIBRARY_MODE}; then
 		run ${CXX} ${CLANG_VERBOSE} ${CLANG_RESOURCE_DIR} ${COMPILER_FLAGS} ${PREPROCESSOR_DEFINES} ${INCLUDES} ${ARGS} -o ${file}.o -c $i

@@ -241,7 +241,7 @@ void bindSpinOperator(nanobind::module_ &mod) {
             dimension_map dims = dimensions.value_or(dimension_map());
             parameter_map pm = params.value_or(parameter_map());
             auto cmat = self.to_matrix(dims, pm, invert_order);
-            return details::cmat_to_numpy(cmat);
+            return detail::cmat_to_numpy(cmat);
           },
           nanobind::arg("dimensions").none() = nanobind::none(),
           nanobind::arg("parameters").none() = nanobind::none(),
@@ -257,9 +257,9 @@ void bindSpinOperator(nanobind::module_ &mod) {
           [](const spin_op &self, dimension_map dimensions,
              nanobind::kwargs kwargs) {
             bool invert_order;
-            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            auto pm = detail::kwargs_to_param_map(kwargs, invert_order);
             auto cmat = self.to_matrix(dimensions, pm, invert_order);
-            return details::cmat_to_numpy(cmat);
+            return detail::cmat_to_numpy(cmat);
           },
           "Returns the matrix representation of the operator."
           "The matrix is ordered according to the convention (endianness) "
@@ -271,9 +271,9 @@ void bindSpinOperator(nanobind::module_ &mod) {
           "to_matrix",
           [](const spin_op &self, nanobind::kwargs kwargs) {
             bool invert_order;
-            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            auto pm = detail::kwargs_to_param_map(kwargs, invert_order);
             auto cmat = self.to_matrix(dimension_map(), pm, invert_order);
-            return details::cmat_to_numpy(cmat);
+            return detail::cmat_to_numpy(cmat);
           },
           "Returns the matrix representation of the operator, passing "
           "parameters as keyword arguments.")
@@ -303,7 +303,7 @@ void bindSpinOperator(nanobind::module_ &mod) {
           [](const spin_op &self, dimension_map dimensions,
              nanobind::kwargs kwargs) {
             bool invert_order;
-            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            auto pm = detail::kwargs_to_param_map(kwargs, invert_order);
             return self.to_sparse_matrix(dimensions, pm, invert_order);
           },
           "Return the sparse matrix representation of the operator. This "
@@ -461,7 +461,7 @@ void bindSpinOperator(nanobind::module_ &mod) {
       .def(
           "trim",
           [](spin_op &self, double tol, nanobind::kwargs kwargs) {
-            return self.trim(tol, details::kwargs_to_param_map(kwargs));
+            return self.trim(tol, detail::kwargs_to_param_map(kwargs));
           },
           "Removes all terms from the sum for which the absolute value of the "
           "coefficient is below "
@@ -773,7 +773,7 @@ void bindSpinOperator(nanobind::module_ &mod) {
             dimension_map dims = dimensions.value_or(dimension_map());
             parameter_map pm = params.value_or(parameter_map());
             auto cmat = self.to_matrix(dims, pm, invert_order);
-            return details::cmat_to_numpy(cmat);
+            return detail::cmat_to_numpy(cmat);
           },
           nanobind::arg("dimensions").none() = nanobind::none(),
           nanobind::arg("parameters").none() = nanobind::none(),
@@ -789,9 +789,9 @@ void bindSpinOperator(nanobind::module_ &mod) {
           [](const spin_op_term &self, dimension_map dimensions,
              nanobind::kwargs kwargs) {
             bool invert_order;
-            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            auto pm = detail::kwargs_to_param_map(kwargs, invert_order);
             auto cmat = self.to_matrix(dimensions, pm, invert_order);
-            return details::cmat_to_numpy(cmat);
+            return detail::cmat_to_numpy(cmat);
           },
           "Returns the matrix representation of the operator."
           "The matrix is ordered according to the convention (endianness) "
@@ -803,9 +803,9 @@ void bindSpinOperator(nanobind::module_ &mod) {
           "to_matrix",
           [](const spin_op_term &self, nanobind::kwargs kwargs) {
             bool invert_order;
-            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            auto pm = detail::kwargs_to_param_map(kwargs, invert_order);
             auto cmat = self.to_matrix(dimension_map(), pm, invert_order);
-            return details::cmat_to_numpy(cmat);
+            return detail::cmat_to_numpy(cmat);
           },
           "Returns the matrix representation of the operator, passing "
           "parameters as keyword arguments.")
@@ -835,7 +835,7 @@ void bindSpinOperator(nanobind::module_ &mod) {
           [](const spin_op_term &self, dimension_map dimensions,
              nanobind::kwargs kwargs) {
             bool invert_order;
-            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            auto pm = detail::kwargs_to_param_map(kwargs, invert_order);
             return self.to_sparse_matrix(dimensions, pm, invert_order);
           },
           "Return the sparse matrix representation of the operator. This "

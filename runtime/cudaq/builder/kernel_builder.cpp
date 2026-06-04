@@ -42,7 +42,7 @@ using namespace mlir;
 // FIXME: include the header file and type out the namespace in every definition
 // below as appropriate and get rid of wrapping the entire file in this
 // namespace.
-namespace cudaq::details {
+namespace cudaq::detail {
 
 /// @brief Track unique measurement register names.
 static std::size_t regCounter = 0;
@@ -1212,4 +1212,4 @@ std::ostream &operator<<(std::ostream &stream,
   return stream << builder.to_quake();
 }
 
-} // namespace cudaq::details
+} // namespace cudaq::detail

@@ -32,7 +32,7 @@ using real = double;
 
 using complex = std::complex<real>;
 
-namespace __internal__ {
+namespace detail {
 /// @brief Static initializer that wires up the runtime target backend on
 /// program startup. `nvq++` defines `NVQPP_TARGET_BACKEND_CONFIG` for
 /// `gen-target-backend: true` targets so that including any public CUDA-Q
@@ -49,6 +49,6 @@ public:
 #ifdef NVQPP_TARGET_BACKEND_CONFIG
 inline TargetSetter targetSetter(NVQPP_TARGET_BACKEND_CONFIG);
 #endif
-} // namespace __internal__
+} // namespace detail
 
 } // namespace cudaq

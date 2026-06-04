@@ -162,10 +162,14 @@ void cudaq::opt::addAggressiveInlining(OpPassManager &pm, bool fatalChecks) {
   llvm::StringMap<OpPassManager> opPipelines;
   pm.addPass(cudaq::opt::createConvertToDirectCalls());
   pm.addPass(createInlinerPass(opPipelines, defaultInlinerOptPipeline));
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseVectorCopyCtor());
   if (fatalChecks)
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createCheckKernelCalls());
-  pm.addPass(createCanonicalizerPass());
+  // Cleanup after inlining. We want to remove any copies between buffers for
+  // the original called function returning a span to the calling function as
+  // they are now the same function.
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseVectorCopyCtor());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
 }
 
 namespace {

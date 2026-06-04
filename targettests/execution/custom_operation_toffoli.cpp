@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %s -o %t && %t | FileCheck %s
 // RUN: nvq++ --target quantinuum --emulate %s -o %t && %t %s 2>&1 | FileCheck %s -check-prefix=FAIL
 // clang-format on
 

@@ -18,7 +18,7 @@ namespace cudaq {
 class noise_model;
 } // namespace cudaq
 
-namespace cudaq::details {
+namespace cudaq::detail {
 
 /// @brief Type-erased core of `dem_from_kernel`.
 std::string runDemFromKernel(const std::string &kernelName,
@@ -27,7 +27,7 @@ std::string runDemFromKernel(const std::string &kernelName,
                              const std::function<void()> &wrappedKernel,
                              const std::string &plugin_name = "stim");
 
-} // namespace cudaq::details
+} // namespace cudaq::detail
 
 namespace cudaq {
 
@@ -51,7 +51,7 @@ std::string dem_from_kernel(QuantumKernel &&kernel,
                             const cudaq::noise_model *noise, Args &&...args) {
   auto &platform = cudaq::get_platform();
   auto kernelName = cudaq::getKernelName(kernel);
-  return details::runDemFromKernel(kernelName, platform, noise, [&]() mutable {
+  return detail::runDemFromKernel(kernelName, platform, noise, [&]() mutable {
     kernel(std::forward<Args>(args)...);
   });
 }

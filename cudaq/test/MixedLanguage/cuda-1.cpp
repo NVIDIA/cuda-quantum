@@ -9,7 +9,7 @@
 // REQUIRES: nvcc
 
 // RUN: (nvcc -c -Xcompiler -fPIC %p/cuda-1.cu -o %t.o && \
-// RUN: nvq++ --enable-mlir %s %t.o -L `dirname $(which nvcc)`/../lib64 -lcudart -o %t && echo "Success") | \
+// RUN: nvq++ %s %t.o -L `dirname $(which nvcc)`/../lib64 -lcudart -o %t && echo "Success") | \
 // RUN: FileCheck %s
 
 // CHECK-LABEL: Success

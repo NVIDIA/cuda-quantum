@@ -28,6 +28,18 @@ inline bool isCodegenArgumentGather(std::size_t kind) {
   return kind == 0 || kind == 2;
 }
 
+/// A kernel is fully synthesized when it has at least one formal argument
+/// and every formal argument has been folded into the body (no uses remain).
+inline bool isFullySynthesized(mlir::func::FuncOp funcOp) {
+  auto args = funcOp.getArguments();
+  if (args.empty())
+    return false;
+  for (mlir::Value arg : args)
+    if (!arg.use_empty())
+      return false;
+  return true;
+}
+
 inline bool isStateType(mlir::Type ty) {
   if (auto ptrTy = dyn_cast<cc::PointerType>(ty))
     return isa<cudaq::quake::StateType>(ptrTy.getElementType());
