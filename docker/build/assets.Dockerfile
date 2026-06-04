@@ -71,9 +71,21 @@ RUN cd /cuda-quantum && git init && \
             $(cat /.git_modules/$local_path/HEAD) $local_path; \
         fi; \
     done && git submodule init && git submodule
-RUN cd /cuda-quantum && source scripts/configure_build.sh && \
+# Seed CCACHE_DIR from the injected cache so a layer-cache miss reuses objects
+# from a previous run instead of rebuilding the whole LLVM toolchain.
+ENV CCACHE_DIR=/root/.ccache
+ENV CCACHE_BASEDIR=/cuda-quantum
+ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros,pch_defines
+ENV CCACHE_COMPILERCHECK=content
+ENV CCACHE_MAXSIZE=25G
+RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
+    if [ -d /tmp/ccache-import ] && [ "$(ls -A /tmp/ccache-import 2>/dev/null)" ]; then \
+        mkdir -p "$CCACHE_DIR" && cp -a /tmp/ccache-import/. "$CCACHE_DIR/" && (ccache -z 2>/dev/null || true); \
+    else mkdir -p "$CCACHE_DIR"; fi && \
+    cd /cuda-quantum && source scripts/configure_build.sh && \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' BOOTSTRAP_LLVM=true \
-    bash scripts/install_prerequisites.sh -t llvm -e qrmi
+    bash scripts/install_prerequisites.sh -t llvm -e qrmi && \
+    (ccache -s 2>/dev/null || true)
 
 # Validate that the built toolchain and libraries have no GCC dependencies.
 RUN source /cuda-quantum/scripts/configure_build.sh && \
@@ -367,6 +379,14 @@ RUN tar cf /ccache.tar -C /root/.ccache .
 
 FROM scratch AS ccache-export
 COPY --from=ccache-tar /ccache.tar /
+
+# Same export but rooted at prereqs, for build_target=prereqs jobs that only
+# build the LLVM toolchain (CI source_build). Build with --target ccache-export-prereqs.
+FROM prereqs AS ccache-tar-prereqs
+RUN tar cf /ccache.tar -C /root/.ccache .
+
+FROM scratch AS ccache-export-prereqs
+COPY --from=ccache-tar-prereqs /ccache.tar /
 
 FROM cpp_tests
 COPY --from=python_tests /wheelhouse /cuda-quantum/wheelhouse
