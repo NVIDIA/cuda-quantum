@@ -184,6 +184,7 @@ from .runtime.run import run_async
 from .runtime import ptsbe
 from .runtime.translate import translate
 from .runtime.state import (get_state, get_state_async, to_cupy)
+from .runtime.encoding import amplitude_encode, angular_encode
 from .runtime.draw import draw
 from .runtime.unitary import get_unitary
 from .runtime.resource_count import estimate_resources
