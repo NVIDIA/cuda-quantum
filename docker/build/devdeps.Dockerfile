@@ -21,6 +21,9 @@
 # [Operating System]
 ARG base_image=ubuntu:24.04
 
+# ccache cache injected by CI via --build-context ccache-data (empty by default).
+FROM scratch AS ccache-data
+
 # [CUDA-Q Dependencies]
 FROM ${base_image} AS prereqs
 SHELL ["/bin/bash", "-c"]
@@ -87,7 +90,18 @@ RUN cd /cuda-quantum && git init && \
 ADD scripts/bootstrap_prerequisites.sh /cuda-quantum/scripts/bootstrap_prerequisites.sh
 ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites.sh
 ADD scripts/set_env_defaults.sh /cuda-quantum/scripts/set_env_defaults.sh
-RUN if [ "$toolchain" = "llvm" ]; then \
+# Seed CCACHE_DIR from the injected cache so a layer-cache miss reuses objects
+# from a previous run. Needs the build_llvm.sh ccache launcher (PR #4484).
+ENV CCACHE_DIR=/root/.ccache
+ENV CCACHE_BASEDIR=/cuda-quantum
+ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros,pch_defines
+ENV CCACHE_COMPILERCHECK=content
+ENV CCACHE_MAXSIZE=10G
+RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
+    if [ -d /tmp/ccache-import ] && [ "$(ls -A /tmp/ccache-import 2>/dev/null)" ]; then \
+        mkdir -p "$CCACHE_DIR" && cp -a /tmp/ccache-import/. "$CCACHE_DIR/" && (ccache -z 2>/dev/null || true); \
+    else mkdir -p "$CCACHE_DIR"; fi && \
+    if [ "$toolchain" = "llvm" ]; then \
         export LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;compiler-rt' && \
         apt-get update && apt-get install -y --no-install-recommends clang lld && \
         CC=clang CXX=clang++ bash /cuda-quantum/scripts/bootstrap_prerequisites.sh && \
@@ -96,6 +110,7 @@ RUN if [ "$toolchain" = "llvm" ]; then \
         export LLVM_PROJECTS='clang;lld;mlir;python-bindings;compiler-rt' && \
         bash /cuda-quantum/scripts/install_prerequisites.sh -t ${toolchain}; \
     fi && \
+    (ccache -s 2>/dev/null || true) && \
     apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 ## [Dev Dependencies]
@@ -114,7 +129,7 @@ RUN if [ "$(uname -m)" == "x86_64" ]; then \
     fi
 
 # [CUDA-Q Dev Environment]
-FROM ${base_image}
+FROM ${base_image} AS devdeps
 SHELL ["/bin/bash", "-c"]
 
 # When a dialogue box would be needed during install, assume default configurations.
@@ -191,3 +206,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 python3
         sphinx-copybutton==0.5.2 sphinx_inline_tabs==2023.4.21 enum-tools[sphinx] breathe==4.34.0 \
         nbsphinx==0.9.2 sphinx_gallery==0.13.0 myst-parser==1.0.0 ipykernel==6.29.4 notebook==7.3.2 \
         ipywidgets==8.1.5 sphinx-tags==0.4
+
+# ccache export for CI: build --target ccache-export --output type=local,dest=<dir>.
+# Tarred to avoid slow per-file BuildKit export. Sourced from prereqs (the LLVM build).
+FROM prereqs AS ccache-tar
+RUN tar cf /ccache.tar -C "$CCACHE_DIR" .
+
+FROM scratch AS ccache-export
+COPY --from=ccache-tar /ccache.tar /
+
+# Default target stays the devdeps image; callers pass no --target.
+FROM devdeps

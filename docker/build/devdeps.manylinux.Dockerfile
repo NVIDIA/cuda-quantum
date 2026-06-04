@@ -21,7 +21,9 @@
 # There are currently no multi-platform manylinux images available.
 # See https://github.com/pypa/manylinux/issues/1306.
 ARG base_image=quay.io/pypa/manylinux_2_28_x86_64:latest
-FROM ${base_image}
+# ccache cache injected by CI via --build-context ccache-data (empty by default).
+FROM scratch AS ccache-data
+FROM ${base_image} AS devdeps
 
 ARG distro=rhel8
 ARG llvm_commit
@@ -76,10 +78,27 @@ ADD ./scripts/build_llvm.sh /scripts/build_llvm.sh
 ADD ./scripts/build_mlir_python_bindings.sh /scripts/build_mlir_python_bindings.sh
 ADD ./cmake/caches/LLVM.cmake /cmake/caches/LLVM.cmake
 ADD ./tpls/customizations/llvm/ /tpls/customizations/llvm/
-RUN LLVM_PROJECTS='clang;lld;mlir' LLVM_SOURCE=/llvm-project \
+# Seed CCACHE_DIR from the injected cache so a layer-cache miss reuses objects
+# from a previous run. Needs the build_llvm.sh ccache launcher (PR #4484).
+ENV CCACHE_DIR=/root/.ccache
+ENV CCACHE_BASEDIR=/llvm-project
+ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros,pch_defines
+ENV CCACHE_COMPILERCHECK=content
+ENV CCACHE_MAXSIZE=10G
+RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
+    if [ -d /tmp/ccache-import ] && [ "$(ls -A /tmp/ccache-import 2>/dev/null)" ]; then \
+        echo "Importing ccache data..." && \
+        mkdir -p "$CCACHE_DIR" && cp -a /tmp/ccache-import/. "$CCACHE_DIR/" && \
+        ccache -z 2>/dev/null || true; \
+    else \
+        echo "No ccache data injected; starting from an empty cache." && \
+        mkdir -p "$CCACHE_DIR"; \
+    fi && \
+    LLVM_PROJECTS='clang;lld;mlir' LLVM_SOURCE=/llvm-project \
     LLVM_CMAKE_CACHE=/cmake/caches/LLVM.cmake \
     LLVM_CMAKE_PATCHES=/tpls/customizations/llvm \
-    bash /scripts/build_llvm.sh -c Release -v
+    bash /scripts/build_llvm.sh -c Release -v && \
+    (ccache -s 2>/dev/null || true)
     # The build directory at /llvm-project/build is intentionally retained:
     # build_mlir_python_bindings.sh reuses it in the wheel container to add
     # the python-binding targets per Python version without recompiling
@@ -120,3 +139,14 @@ ENV QRMI_INSTALL_PREFIX=/usr/local/qrmi
 ENV CUQUANTUM_INSTALL_PREFIX=/usr/local/cuquantum
 ENV CUTENSOR_INSTALL_PREFIX=/usr/local/cutensor
 RUN bash /scripts/install_prerequisites.sh
+
+# ccache export for CI: build --target ccache-export --output type=local,dest=<dir>.
+# Tarred to avoid slow per-file BuildKit export of thousands of entries.
+FROM devdeps AS ccache-tar
+RUN tar cf /ccache.tar -C "$CCACHE_DIR" .
+
+FROM scratch AS ccache-export
+COPY --from=ccache-tar /ccache.tar /
+
+# Default target stays the devdeps image; callers pass no --target.
+FROM devdeps
