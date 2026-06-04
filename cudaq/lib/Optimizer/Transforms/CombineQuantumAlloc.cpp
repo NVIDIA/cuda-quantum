@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
@@ -113,6 +114,13 @@ public:
     func::FuncOp func = getOperation();
     LLVM_DEBUG(llvm::dbgs() << "Function before combining quake alloca:\n"
                             << func << "\n\n");
+
+    if (func->hasAttr(cudaq::opt::disableQubitCombineAttrName)) {
+      LLVM_DEBUG(llvm::dbgs()
+                 << "Combining quake alloca is disabled for " << func.getName()
+                 << " as it contains scoped qubits.\n");
+      return;
+    }
 
     // 1. Scan the top-level of the function for all alloca operations. Exit if
     // any of them are parametric.
