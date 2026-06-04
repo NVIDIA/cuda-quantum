@@ -249,6 +249,12 @@ public:
     // Defensive: clear any stale response flag for this slot before reuse.
     __atomic_store_n(&rxFlags[slot], std::uint64_t{0}, __ATOMIC_RELEASE);
 
+    // Zero the full transmitted range before writing.  The transceiver's TX
+    // SGE length is the whole slot stride, so any bytes beyond [RPCHeader |
+    // args] would otherwise carry stale ring contents from a previous message
+    // onto the wire.  The daemon only reads arg_len, but we must not transmit
+    // uninitialized/stale memory.
+    std::memset(reinterpret_cast<void *>(txAddr), 0, txStride);
     // Copy [RPCHeader | args] into the TX ring slot and publish it.
     std::memcpy(reinterpret_cast<void *>(txAddr), state->requestScratch.data(),
                 state->requestScratch.size());

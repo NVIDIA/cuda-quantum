@@ -276,6 +276,12 @@ do_build() {
 # bridge can lose a cold-boot race and report "no IPv4-mapped RoCEv2 GID found".
 wait_for_roce_gid() {
     local ib_dev="$1" iface="$2" ip="$3"
+    # Match the IPv4-mapped GID for THIS exact address (e.g. 192.168.0.1 ->
+    # ":ffff:c0a8:0001"), not just any IPv4-mapped v2 GID, so we don't lock onto
+    # the wrong SGID on a multi-IP port.
+    local a b c d want
+    IFS=. read -r a b c d <<<"$ip"
+    want=$(printf ":ffff:%02x%02x:%02x%02x" "$a" "$b" "$c" "$d")
     local deadline=$((SECONDS + 20)) portdir i g t
     while ((SECONDS < deadline)); do
         if ! ip -o -4 addr show dev "$iface" 2>/dev/null | grep -q "${ip}/"; then
@@ -286,15 +292,15 @@ wait_for_roce_gid() {
             for i in $(seq 0 31); do
                 g="$(cat "${portdir}/gids/$i" 2>/dev/null)" || continue
                 t="$(cat "${portdir}/gid_attrs/types/$i" 2>/dev/null)" || true
-                if [[ "$g" == *":ffff:"* && "$t" == *"v2"* ]]; then
-                    echo "    RoCEv2 IPv4 GID ready for $ib_dev ($(basename "$portdir"), gid[$i]=$g)"
+                if [[ "$g" == *"$want"* && "$t" == *"v2"* ]]; then
+                    echo "    RoCEv2 IPv4 GID ready for $ib_dev $ip ($(basename "$portdir"), gid[$i]=$g)"
                     return 0
                 fi
             done
         done
         sleep 0.3
     done
-    echo "    ERROR: no IPv4 RoCEv2 GID for $ib_dev ($ip) after 20s" >&2
+    echo "    ERROR: no RoCEv2 GID for $ib_dev ($ip) after 20s" >&2
     return 1
 }
 

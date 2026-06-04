@@ -138,6 +138,12 @@ static int acquire_graph_worker(const cudaq_host_dispatch_loop_ctx_t *ctx,
 
 static void
 sweep_completed_workers(const cudaq_host_dispatch_loop_ctx_t *ctx) {
+  // HOST_CALL dispatch uses no graph worker pool, so idle_mask/workers are
+  // null and num_workers is 0.  Guard against that here (not just via the
+  // caller's skip_stream_sweep flag) so a future caller can't crash on a null
+  // idle_mask if they forget to set it.
+  if (!ctx->idle_mask || !ctx->workers || ctx->num_workers == 0)
+    return;
   uint64_t busy =
       ~as_atomic_u64(ctx->idle_mask)->load(cuda::std::memory_order_acquire);
   busy &= (1ULL << ctx->num_workers) - 1;

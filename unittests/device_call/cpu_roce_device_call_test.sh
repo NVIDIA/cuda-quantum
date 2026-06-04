@@ -66,6 +66,12 @@ ib_to_netdev() {
 # plain `ip addr add` was missing after a power cycle.
 wait_for_roce_gid() {
   local ib_dev="$1" netdev="$2" ip="$3"
+  # Match the IPv4-mapped GID for THIS exact address (e.g. 10.0.0.1 ->
+  # ":ffff:0a00:0001"), not just any IPv4-mapped v2 GID, so we don't lock onto
+  # the wrong SGID on a multi-IP port.
+  local a b c d want
+  IFS=. read -r a b c d <<<"$ip"
+  want=$(printf ":ffff:%02x%02x:%02x%02x" "$a" "$b" "$c" "$d")
   local deadline=$((SECONDS + 20)) i g t
   while ((SECONDS < deadline)); do
     if ! ip -o -4 addr show dev "$netdev" 2>/dev/null | grep -q "${ip}/"; then
@@ -74,14 +80,14 @@ wait_for_roce_gid() {
     for i in $(seq 0 31); do
       g="$(cat "/sys/class/infiniband/$ib_dev/ports/1/gids/$i" 2>/dev/null)" || continue
       t="$(cat "/sys/class/infiniband/$ib_dev/ports/1/gid_attrs/types/$i" 2>/dev/null)" || true
-      if [[ "$g" == *":ffff:"* && "$t" == *"v2"* ]]; then
-        echo "    $ib_dev: RoCEv2 IPv4 GID ready (gid[$i]=$g)"
+      if [[ "$g" == *"$want"* && "$t" == *"v2"* ]]; then
+        echo "    $ib_dev: RoCEv2 IPv4 GID ready for $ip (gid[$i]=$g)"
         return 0
       fi
     done
     sleep 0.3
   done
-  echo "    ERROR: $ib_dev: no IPv4 RoCEv2 GID for $ip after 20s" >&2
+  echo "    ERROR: $ib_dev: no RoCEv2 GID for $ip after 20s" >&2
   return 1
 }
 
