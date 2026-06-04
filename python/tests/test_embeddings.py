@@ -11,10 +11,10 @@ import os
 import cudaq
 from cudaq.kernels.embeddings import amplitude_encode, angular_encode
 
-
 # ===================================================================== #
 #                       amplitude_encode tests                          #
 # ===================================================================== #
+
 
 def test_amplitude_encode_basic_power_of_2():
     """4-element vector (already 2^2) should encode without padding."""
@@ -138,6 +138,7 @@ def test_amplitude_encode_error_zero_vector():
 # ===================================================================== #
 #                        angular_encode tests                           #
 # ===================================================================== #
+
 
 def test_angular_encode_ry():
     """Basic Ry angular encoding should produce correct circuit."""

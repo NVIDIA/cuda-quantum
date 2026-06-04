@@ -81,10 +81,9 @@ def amplitude_encode(data, pad=None):
     # Normalize to unit L2 norm.
     norm = numpy.linalg.norm(arr)
     if norm == 0.0:
-        raise ValueError(
-            "Cannot normalize a zero vector. "
-            "Input data (including any padding) must contain "
-            "at least one non-zero value.")
+        raise ValueError("Cannot normalize a zero vector. "
+                         "Input data (including any padding) must contain "
+                         "at least one non-zero value.")
     arr = arr / norm
 
     return State.from_data(arr)
@@ -152,16 +151,14 @@ def angular_encode(kernel, qubits, data, num_qubits, rotation='Y'):
     """
     rotation = rotation.upper()
     if rotation not in ('X', 'Y', 'Z'):
-        raise ValueError(
-            f"Invalid rotation axis '{rotation}'. "
-            "Must be 'X', 'Y', or 'Z'.")
+        raise ValueError(f"Invalid rotation axis '{rotation}'. "
+                         "Must be 'X', 'Y', or 'Z'.")
 
     # Validate length when data is a plain Python list / array.
     if isinstance(data, (list, numpy.ndarray)):
         if num_qubits < len(data):
-            raise ValueError(
-                f"num_qubits ({num_qubits}) must be >= len(data) "
-                f"({len(data)}).")
+            raise ValueError(f"num_qubits ({num_qubits}) must be >= len(data) "
+                             f"({len(data)}).")
 
     # Select the rotation gate method on the kernel.
     gate_map = {
