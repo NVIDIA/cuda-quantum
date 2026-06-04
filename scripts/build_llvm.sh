@@ -204,7 +204,15 @@ if "${CXX:-c++}" --version 2>&1 | grep -q "Free Software Foundation"; then
   LLVM_EXTRA_CXX_FLAGS="$LLVM_EXTRA_CXX_FLAGS -fno-gnu-unique"
 fi
 
-# Some flags that may be useful to build a GPU-offload-capable compiler: 
+# Use ccache to skip recompiling unchanged objects when it's available.
+ccache_cmake_args=""
+if command -v ccache >/dev/null 2>&1; then
+  ccache_cmake_args=" \
+    -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+    -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
+fi
+
+# Some flags that may be useful to build a GPU-offload-capable compiler:
 # targets_to_build="host;NVPTX"
 #  -DLLVM_TARGETS_TO_BUILD='"$targets_to_build"' \
 #  -DLIBOMPTARGET_DEVICE_ARCHITECTURES=sm_70,sm_75,sm_80
@@ -223,6 +231,7 @@ cmake_args=" \
   -DMLIR_ENABLE_BINDINGS_PYTHON=$mlir_python_bindings \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   -DCMAKE_CXX_FLAGS='"$LLVM_EXTRA_CXX_FLAGS"' \
+  $ccache_cmake_args \
   -Dnanobind_DIR=$NANOBIND_INSTALL_PREFIX/nanobind/cmake"
 
 if [ "$(uname)" = "Darwin" ]; then
