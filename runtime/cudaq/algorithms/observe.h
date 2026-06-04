@@ -146,7 +146,7 @@ auto runObservationAsync(KernelFunctor &&wrappedKernel, const spin_op &H,
       [&, H, qpu_id, shots, kernelName,
        kernel = std::forward<KernelFunctor>(wrappedKernel)]() mutable {
         return detail::runObservation(kernel, H, platform, shots, kernelName,
-                                       qpu_id)
+                                      qpu_id)
             .raw_data();
       });
 
