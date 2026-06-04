@@ -3635,7 +3635,13 @@ class PyASTBridge(ast.NodeVisitor):
 
                         if (IntegerType.isinstance(value.type)):
                             # handle `cudaq.qvector(n)`
-                            ty = self.getVeqType()
+                            veq_size = None
+                            size_node = node.args[0]
+                            if (isinstance(size_node, ast.Constant) and
+                                    isinstance(size_node.value, int)):
+                                veq_size = size_node.value
+                            ty = (self.getVeqType(veq_size) if veq_size
+                                  is not None else self.getVeqType())
                             qubits = quake.AllocaOp(ty, size=value).result
                             self.pushValue(qubits)
                             return

@@ -9,10 +9,17 @@
 from cudaq.kernel_types import _KERNEL_ONLY_ERROR_MESSAGE
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.util import trace
-import cupy as cp
 import numpy as np
 
 State = cudaq_runtime.State
+
+
+def _cupy():
+    try:
+        import cupy as cp
+        return cp
+    except ImportError:
+        return None
 
 
 def _simulation_complex_dtype():
@@ -34,10 +41,15 @@ def _as_amplitude_vector(data, dtype):
     if isinstance(data, State):
         return np, np.asarray(data, dtype=dtype).ravel()
 
-    if isinstance(data, cp.ndarray):
+    cp = _cupy()
+    if cp is not None and isinstance(data, cp.ndarray):
         if data.ndim != 1:
             raise ValueError("amplitude_encode: expected a 1D vector.")
         return cp, cp.asarray(data, dtype=dtype).ravel()
+
+    if type(data).__module__ == 'cupy':
+        raise ImportError("amplitude_encode: CuPy is required for CuPy arrays. "
+                          "Install cupy-cuda13x or pass a NumPy array/list.")
 
     if isinstance(data, (list, tuple)):
         return np, np.asarray(data, dtype=dtype).ravel()

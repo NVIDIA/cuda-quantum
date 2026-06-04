@@ -10,8 +10,14 @@
 
 #include "kernel_builder.h"
 #include <complex>
+#include <functional>
+#include <span>
+#include <stdexcept>
 
 namespace cudaq {
+
+/// @brief Rotation axis for ``cudaq::angular_encode``.
+enum class RotationAxis { X, Y, Z };
 
 namespace detail {
 
@@ -51,6 +57,47 @@ std::vector<double> getAlphaZ(const std::span<double> data,
 /// the `kth` qubit.
 std::vector<double> getAlphaY(const std::span<double> data,
                               std::size_t numQubits, std::size_t k);
+
+template <typename Kernel>
+void applyAxisRotation(Kernel &kernel, RotationAxis axis, QuakeValue &theta,
+                       QuakeValue &qubit) {
+  switch (axis) {
+  case RotationAxis::X:
+    kernel.rx(theta, qubit);
+    break;
+  case RotationAxis::Y:
+    kernel.ry(theta, qubit);
+    break;
+  case RotationAxis::Z:
+    kernel.rz(theta, qubit);
+    break;
+  }
+}
+
+template <typename Kernel>
+void applyAxisRotation(Kernel &kernel, RotationAxis axis, double theta,
+                       QuakeValue &qubit) {
+  switch (axis) {
+  case RotationAxis::X:
+    kernel.rx(theta, qubit);
+    break;
+  case RotationAxis::Y:
+    kernel.ry(theta, qubit);
+    break;
+  case RotationAxis::Z:
+    kernel.rz(theta, qubit);
+    break;
+  }
+}
+
+inline void validateAngularEncodeSizes(std::optional<std::size_t> qSize,
+                                       std::size_t numAngles) {
+  if (qSize && *qSize != numAngles)
+    throw std::runtime_error(
+        "cudaq.angular_encode: number of angles must match the number of "
+        "qubits");
+}
+
 } // namespace detail
 
 /// @brief Decompose the input state vector data to a set of
@@ -145,6 +192,47 @@ auto from_state(const std::span<std::complex<double>> data) {
   auto qubits = kernel->qalloc(numQubits);
   from_state(*kernel.get(), qubits, data);
   return kernel;
+}
+
+/// @brief Encode classical features as single-qubit rotation gates.
+///
+/// Applies ``rx``, ``ry``, or ``rz`` (per ``rotation``) on each qubit in ``q``
+/// with the corresponding angle from ``angles``. For use with
+/// ``cudaq::kernel_builder`` only.
+///
+/// @param kernel The kernel builder recording the circuit.
+/// @param q A ``qvector`` register to encode into.
+/// @param angles Rotation angles as a ``std::vector<double>`` kernel argument.
+/// @param rotation Rotation axis (default ``RotationAxis::Y``).
+template <typename Kernel>
+void angular_encode(Kernel &&kernel, QuakeValue &q, QuakeValue &angles,
+                    RotationAxis rotation = RotationAxis::Y) {
+  if (!angles.isStdVec())
+    throw std::runtime_error(
+        "cudaq.angular_encode: angles must be std::vector<double>");
+
+  std::function<void(QuakeValue &)> body = [&](QuakeValue &i) {
+    detail::applyAxisRotation(kernel, rotation, angles[i], q[i]);
+  };
+  kernel.for_loop(0, q.size(), std::move(body));
+}
+
+/// @brief Encode with a fixed list of angles known at kernel-build time.
+template <typename Kernel>
+void angular_encode(Kernel &&kernel, QuakeValue &q,
+                    std::span<const double> angles,
+                    RotationAxis rotation = RotationAxis::Y) {
+  detail::validateAngularEncodeSizes(q.constantSize(), angles.size());
+  for (std::size_t i = 0; i < angles.size(); ++i)
+    detail::applyAxisRotation(kernel, rotation, angles[i], q[i]);
+}
+
+/// @brief Encode with a ``std::vector`` of compile-time angles.
+template <typename Kernel>
+void angular_encode(Kernel &&kernel, QuakeValue &q,
+                    const std::vector<double> &angles,
+                    RotationAxis rotation = RotationAxis::Y) {
+  angular_encode(kernel, q, std::span<const double>(angles), rotation);
 }
 
 } // namespace cudaq
