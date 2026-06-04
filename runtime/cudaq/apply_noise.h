@@ -11,7 +11,7 @@
 #include "cudaq/platform.h"
 #include "cudaq/qis/qubit_qis.h"
 
-namespace cudaq::details {
+namespace cudaq::detail {
 
 template <typename T, typename... RotationT, typename... QuantumT,
           std::size_t NumPProvided = sizeof...(RotationT),
@@ -23,14 +23,14 @@ void applyNoiseImpl(const std::tuple<RotationT...> &paramTuple,
 
   // per-spec, no noise model provided, emit warning, no application
   if (!noiseModel)
-    return details::warn("apply_noise called but no noise model provided.");
+    return detail::warn("apply_noise called but no noise model provided.");
 
   std::vector<double> parameters;
   cudaq::tuple_for_each(paramTuple,
                         [&](auto &&element) { parameters.push_back(element); });
   std::vector<QuditInfo> qubits;
   cudaq::tuple_for_each(quantumTuple, [&qubits](auto &&element) {
-    if constexpr (details::IsQubitType<decltype(element)>::value) {
+    if constexpr (detail::IsQubitType<decltype(element)>::value) {
       qubits.push_back(qubitToQuditInfo(element));
     } else {
       for (auto &qq : element) {
@@ -53,7 +53,7 @@ void applyNoiseImpl(const std::tuple<RotationT...> &paramTuple,
 
   getExecutionManager()->applyNoise(channel, qubits);
 }
-} // namespace cudaq::details
+} // namespace cudaq::detail
 
 namespace cudaq {
 
@@ -76,13 +76,13 @@ void apply_noise(const std::vector<double> &params, Q &&...args) {
 
   // per-spec, no noise model provided, emit warning, no application
   if (!noiseModel)
-    return details::warn("apply_noise called but no noise model provided. "
-                         "skipping kraus channel application.");
+    return detail::warn("apply_noise called but no noise model provided. "
+                        "skipping kraus channel application.");
 
   std::vector<QuditInfo> qubits;
   auto argTuple = std::forward_as_tuple(args...);
   cudaq::tuple_for_each(argTuple, [&qubits](auto &&element) {
-    if constexpr (details::IsQubitType<decltype(element)>::value) {
+    if constexpr (detail::IsQubitType<decltype(element)>::value) {
       qubits.push_back(qubitToQuditInfo(element));
     } else {
       for (auto &qq : element) {
@@ -125,9 +125,9 @@ void apply_noise(Args &&...args) {
   constexpr auto ctor_arity = count_leading_floats<0, Args...>();
   constexpr auto qubit_arity = sizeof...(args) - ctor_arity;
 
-  details::applyNoiseImpl<T>(
-      details::tuple_slice<ctor_arity>(std::forward_as_tuple(args...)),
-      details::tuple_slice_last<qubit_arity>(std::forward_as_tuple(args...)));
+  detail::applyNoiseImpl<T>(
+      detail::tuple_slice<ctor_arity>(std::forward_as_tuple(args...)),
+      detail::tuple_slice_last<qubit_arity>(std::forward_as_tuple(args...)));
 }
 
 } // namespace cudaq

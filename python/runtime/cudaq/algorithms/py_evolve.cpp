@@ -60,7 +60,7 @@ pyEvolve(state initial_state, nanobind::object kernel,
     spin_ops.push_back(observable(params));
   }
 
-  auto res = __internal__::evolve(
+  auto res = detail::evolve(
       initial_state,
       [kernelMod, kernelName](state state) mutable {
         auto *argData = new cudaq::OpaqueArguments();
@@ -112,8 +112,8 @@ pyEvolve(state initial_state, std::vector<nanobind::object> kernels,
     spin_ops.push_back(std::move(ops));
   }
 
-  return __internal__::evolve(initial_state, launchFcts, spin_ops, shots_count,
-                              save_intermediate_states);
+  return detail::evolve(initial_state, launchFcts, spin_ops, shots_count,
+                        save_intermediate_states);
 }
 
 template <typename numeric_type>
@@ -141,7 +141,7 @@ pyEvolveAsync(state initial_state, nanobind::object kernel,
   }
 
   nanobind::gil_scoped_release release;
-  return __internal__::evolve_async(
+  return detail::evolve_async(
       initial_state,
       [kernelMod, kernelName](state state) mutable {
         auto *argData = new cudaq::OpaqueArguments();
@@ -197,9 +197,9 @@ pyEvolveAsync(state initial_state, std::vector<nanobind::object> kernels,
   }
 
   nanobind::gil_scoped_release release;
-  return __internal__::evolve_async(initial_state, launchFcts, spin_ops, qpu_id,
-                                    noise_model, shots_count,
-                                    save_intermediate_states);
+  return detail::evolve_async(initial_state, launchFcts, spin_ops, qpu_id,
+                              noise_model, shots_count,
+                              save_intermediate_states);
 }
 
 #define DEFINE_PARAM_TYPE_OVERLOAD_VEC(type, pyMod)                            \

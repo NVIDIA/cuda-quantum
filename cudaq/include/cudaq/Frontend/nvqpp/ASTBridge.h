@@ -30,7 +30,7 @@
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/InitAllDialects.h"
 
-namespace cudaq::details {
+namespace cudaq::detail {
 /// Report a clang error diagnostic. Note that the message must be a string
 /// literal. \p astNode is a node from the clang AST with source location
 /// information.
@@ -72,7 +72,7 @@ inline mlir::Value loadHandleVectorIfPointer(mlir::OpBuilder &builder,
       return cudaq::cc::LoadOp::create(builder, loc, v);
   return v;
 }
-} // namespace cudaq::details
+} // namespace cudaq::detail
 
 #undef TODO_BRIDGE
 #undef TODO_x
@@ -80,8 +80,8 @@ inline mlir::Value loadHandleVectorIfPointer(mlir::OpBuilder &builder,
 #if defined(NDEBUG) || defined(CUDAQ_NOTRACEBACKS)
 #define TODO_BRIDGE(MlirLoc, ToDoXPtr, ToDoMangler, ToDoMsg, ToDoFile,         \
                     ToDoLine)                                                  \
-  cudaq::details::reportClangError(ToDoXPtr, ToDoMangler,                      \
-                                   ToDoMsg " is not yet supported");
+  cudaq::detail::reportClangError(ToDoXPtr, ToDoMangler,                       \
+                                  ToDoMsg " is not yet supported");
 #else
 #define TODO_BRIDGE(MlirLoc, ToDoXPtr, ToDoMangler, ToDoMsg, ToDoFile,         \
                     ToDoLine)                                                  \
@@ -89,8 +89,8 @@ inline mlir::Value loadHandleVectorIfPointer(mlir::OpBuilder &builder,
     mlir::emitError(MlirLoc, llvm::Twine(ToDoFile ":" TODOQUOTE(               \
                                  ToDoLine) ": not yet implemented: ") +        \
                                  ToDoMsg);                                     \
-    cudaq::details::reportClangError(ToDoXPtr, ToDoMangler,                    \
-                                     ToDoMsg " is not yet supported");         \
+    cudaq::detail::reportClangError(ToDoXPtr, ToDoMangler,                     \
+                                    ToDoMsg " is not yet supported");          \
   } while (false);
 #endif
 
@@ -120,7 +120,7 @@ mlir::Location toSourceLocation(mlir::MLIRContext *ctx,
                                 clang::ASTContext *astCtx,
                                 const clang::SourceRange &srcRange);
 
-namespace details {
+namespace detail {
 
 /// Use the name mangler to create a unique name for this declaration. This
 /// unique name can be used to unique the MLIR name of a quantum kernel.
@@ -193,7 +193,7 @@ public:
   /// to identify the kernel class from which the function was extracted.
   std::string generateCudaqKernelName(const clang::FunctionDecl *func) {
     return getCudaqKernelName(
-        cudaq::details::getTagNameOfFunctionDecl(func, mangler));
+        cudaq::detail::getTagNameOfFunctionDecl(func, mangler));
   }
   std::string generateCudaqKernelName(const EmittedFunctionPair &emittedFunc) {
     if (emittedFunc.first.starts_with(runtime::cudaqGenPrefixName))
@@ -697,7 +697,7 @@ private:
   bool allowUnknownRecordType : 1 = false;
   bool initializerIsGlobal : 1 = false;
 };
-} // namespace details
+} // namespace detail
 
 //===----------------------------------------------------------------------===//
 // ASTBridgeAction
@@ -771,7 +771,7 @@ public:
     /// properly communicated through the pass pipeline and prevents lossy
     /// pipelines which erase private declarations.
     void addFunctionDecl(const clang::FunctionDecl *funcDecl,
-                         details::QuakeBridgeVisitor &visitor,
+                         detail::QuakeBridgeVisitor &visitor,
                          mlir::FunctionType funcTy, mlir::StringRef devFuncName,
                          bool isDecl);
 

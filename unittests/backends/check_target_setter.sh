@@ -78,11 +78,11 @@ for entry in "${EXAMPLES[@]}"; do
   # Fallback: when `nm` cannot list the symbol (e.g. stripped binary), look for
   # the backend config literal nvq++ embeds in `.rodata` via NVQPP_TARGET_BACKEND_CONFIG.
   marker="${target};emulate;false;disable_qubit_mapping;false"
-  if grep -qE 'cudaq::__internal__::targetSetter' <<<"$syms" ||
+  if grep -qE 'cudaq::detail::targetSetter' <<<"$syms" ||
       LC_ALL=C grep -aFq "$marker" "$out"; then
     echo "PASS: $src has TargetSetter ctor (target=$target)"
   else
-    echo "FAIL: $src is missing cudaq::__internal__::targetSetter (target=$target)"
+    echo "FAIL: $src is missing cudaq::detail::targetSetter (target=$target)"
     echo "      Runtime backend wiring will not run; expect a segfault on launch."
     echo "      Diagnostic: nm tool: ${nm_tool:-<none>}"
     echo "      Diagnostic: backend config marker not found: $marker"
