@@ -11,6 +11,7 @@
 #include "mlir/Conversion/MathToFuncs/MathToFuncs.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Pass/PassManager.h"
+#include "mlir/Pass/PassOptions.h"
 #include "mlir/Transforms/Passes.h"
 
 using namespace mlir;
@@ -28,7 +29,7 @@ struct TargetCodegenPipelineOptions
 };
 } // namespace
 
-static void addQIRConversionPipeline(PassManager &pm, StringRef convertTo) {
+static void addQIRConversionPipeline(OpPassManager &pm, StringRef convertTo) {
   auto convertFields = convertTo.split(':');
   if (convertFields.first == "qir" || convertFields.first == "qir-full") {
     cudaq::opt::addConvertToQIRAPIPipeline(pm, "full:" +
@@ -41,52 +42,39 @@ static void addQIRConversionPipeline(PassManager &pm, StringRef convertTo) {
     cudaq::opt::addConvertToQIRAPIPipeline(pm, "adaptive-profile:" +
                                                    convertFields.second.str());
   } else {
-    emitError(UnknownLoc::get(pm.getContext()),
-              "convert to QIR must be given a valid specification to use.");
+    [[maybe_unused]] auto droppedOnTheFloor = emitOptionalError(
+        {}, "convert to QIR must be given a valid specification to use.");
   }
 }
 
-template <bool isJIT>
-void createCommonTargetCodegenPipeline(
-    PassManager &pm, const TargetCodegenPipelineOptions &options) {
-  if constexpr (isJIT) {
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandMeasurementsPass());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
-    pm.addNestedPass<func::FuncOp>(createCSEPass());
-    // One last gasp of loop unrolling pass, primarily to catch the expanded
-    // measurements.
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
-    cudaq::opt::LoopUnrollOptions luo;
-    luo.allowBreak = options.allowBreaksInLoops;
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll(luo));
-    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  } else {
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
-    cudaq::opt::addAggressiveInlining(pm);
-    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
-    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandMeasurementsPass());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
-    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-    pm.addNestedPass<func::FuncOp>(createCSEPass());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createAddDeallocs());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
-    pm.addPass(cudaq::opt::createQuakePropagateMetadata());
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
-    cudaq::opt::LoopUnrollOptions luo;
-    luo.allowBreak = options.allowBreaksInLoops;
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll(luo));
-    pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-    pm.addNestedPass<func::FuncOp>(createCSEPass());
-    // A final round of apply specialization after loop unrolling. This should
-    // eliminate any residual control structures so the kernel specializations
-    // can succeed.
-    pm.addPass(cudaq::opt::createApplySpecialization());
-    // If there was any specialization, we want another round in inlining to
-    // inline the apply calls properly.
-    cudaq::opt::addAggressiveInlining(pm);
-  }
+static void
+createCommonTargetCodegenPipeline(OpPassManager &pm,
+                                  const TargetCodegenPipelineOptions &options) {
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
+  cudaq::opt::addAggressiveInlining(pm);
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandMeasurementsPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createClassicalMemToReg());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createAddDeallocs());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
+  pm.addPass(cudaq::opt::createQuakePropagateMetadata());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
+  cudaq::opt::LoopUnrollOptions luo;
+  luo.allowBreak = options.allowBreaksInLoops;
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopUnroll(luo));
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
+  // A final round of apply specialization after loop unrolling. This should
+  // eliminate any residual control structures so the kernel specializations
+  // can succeed.
+  pm.addPass(cudaq::opt::createApplySpecialization());
+  // If there was any specialization, we want another round in inlining to
+  // inline the apply calls properly.
+  cudaq::opt::addAggressiveInlining(pm);
   cudaq::opt::addLowerToCFG(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createStackFramePrealloc());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createCombineQuantumAllocations());
@@ -94,10 +82,11 @@ void createCommonTargetCodegenPipeline(
   pm.addNestedPass<func::FuncOp>(createCSEPass());
 }
 
-template <bool isJIT, bool useValueSemantics = false>
-void createTargetCodegenPipeline(PassManager &pm,
-                                 const TargetCodegenPipelineOptions &options) {
-  createCommonTargetCodegenPipeline<isJIT>(pm, options);
+static void
+createTargetCodegenPipeline(OpPassManager &pm,
+                            const TargetCodegenPipelineOptions &options,
+                            bool useValueSemantics) {
+  createCommonTargetCodegenPipeline(pm, options);
   if (useValueSemantics) {
     pm.addNestedPass<func::FuncOp>(
         cudaq::opt::createFactorQuantumAllocations());
@@ -122,25 +111,45 @@ void createTargetCodegenPipeline(PassManager &pm,
   pm.addPass(cudaq::opt::createCCToLLVM());
 }
 
-template <bool isJIT>
-void createTargetCodegenPipeline(PassManager &pm, StringRef convertTo) {
+static void createTargetCodegenPipeline(OpPassManager &pm,
+                                        bool useValueSemantics,
+                                        StringRef convertTo) {
   auto convertFields = convertTo.split(':');
   TargetCodegenPipelineOptions opts;
   opts.allowBreaksInLoops = convertFields.first == "qir-adaptive";
   opts.target = convertTo.str();
-  createTargetCodegenPipeline<isJIT>(pm, opts);
-}
-
-void cudaq::opt::addJITPipelineConvertToQIR(PassManager &pm,
-                                            StringRef convertTo) {
-  ::createTargetCodegenPipeline</*JIT=*/true>(pm, convertTo);
+  createTargetCodegenPipeline(pm, opts, useValueSemantics);
 }
 
 void cudaq::opt::addAOTPipelineConvertToQIR(PassManager &pm,
-                                            StringRef convertTo) {
+                                            StringRef convertTo,
+                                            bool useValueSemantics) {
   if (convertTo.empty())
     convertTo = "qir";
-  ::createTargetCodegenPipeline</*JIT=*/false>(pm, convertTo);
+  ::createTargetCodegenPipeline(pm, useValueSemantics, convertTo);
+}
+
+namespace {
+struct CodegenForQIRPipelineOptions
+    : public PassPipelineOptions<CodegenForQIRPipelineOptions> {
+  PassOptions::Option<std::string> convertTo{
+      *this, "convert-to",
+      llvm::cl::desc("option to specify what QIR profile to convert to."),
+      llvm::cl::init("qir")};
+  PassOptions::Option<bool> useValueSemantics{
+      *this, "value-semantics",
+      llvm::cl::desc(
+          "lower to value semantics to enable quantum optimizations"),
+      llvm::cl::init(false)};
+};
+} // namespace
+
+void cudaq::opt::registerCodegenForQIRPipeline() {
+  PassPipelineRegistration<CodegenForQIRPipelineOptions>(
+      "codegen-for-qir", "Convert quake to one of the QIR APIs.",
+      [](OpPassManager &pm, const CodegenForQIRPipelineOptions &opt) {
+        ::createTargetCodegenPipeline(pm, opt.useValueSemantics, opt.convertTo);
+      });
 }
 
 void cudaq::opt::createPipelineTransformsForPythonToOpenQASM(

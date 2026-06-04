@@ -809,6 +809,7 @@ public:
   void processOpWithRegions(Operation *parent,
                             const MemoryAnalysis &memAnalysis,
                             SmallPtrSetImpl<Operation *> &cleanUps) {
+    ++numProcessOpWithRegionsCalls;
     auto *ctx = &getContext();
     auto wireTy = cudaq::quake::WireType::get(ctx);
     auto qrefTy = cudaq::quake::RefType::get(ctx);
@@ -1130,6 +1131,7 @@ public:
     SmallPtrSet<Block *, 8> blocksVisited;
     SmallVector<Value> liveInBlock;
     while (!worklist.empty()) {
+      ++numWorklistIterations;
       Block *block = worklist.front();
       worklist.pop_front();
       // Check terminator is threading live-out of parent values.
@@ -1154,8 +1156,10 @@ public:
       // blocks not yet visited to the worklist.
       blocksVisited.insert(block);
       for (auto *pred : preds)
-        if (!blocksVisited.count(pred))
+        if (!blocksVisited.count(pred)) {
+          blocksVisited.insert(pred);
           worklist.push_back(pred);
+        }
     } // end of worklist loop
 
     if (dataFlow.hasLiveOutOfParent()) {

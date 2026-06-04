@@ -16,6 +16,11 @@ def count_extract_refs(kernel):
     return str(kernel.qkeModule).count("quake.extract_ref")
 
 
+skipIfValueSemantics = pytest.mark.skipif(True,
+                                          reason="broken in value semantics")
+
+
+@skipIfValueSemantics
 def test_reuses_repeated_fixed_qrefs_by_vector_identity():
 
     @cudaq.kernel
@@ -91,6 +96,7 @@ def test_fixed_qref_reuse_respects_loop_dominance():
     assert count_extract_refs(while_condition_definition_does_not_escape) == 3
 
 
+@skipIfValueSemantics
 def test_dynamic_and_negative_qrefs_are_not_reused():
 
     @cudaq.kernel

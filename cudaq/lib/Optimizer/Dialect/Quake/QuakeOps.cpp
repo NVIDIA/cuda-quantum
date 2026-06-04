@@ -165,6 +165,11 @@ LogicalResult cudaq::quake::AllocaOp::verify() {
     if (resTy.hasSpecifiedSize()) {
       if (getSize())
         return emitOpError("unexpected size operand");
+      // Make a check consistent with below in this case. Same TODO comment
+      // applies here.
+      std::int64_t specSize = resTy.getSize();
+      if (specSize < 0)
+        return emitOpError("expected a non-negative integer size.");
     } else {
       if (auto size = getSize()) {
         if (auto cnt =
@@ -490,6 +495,8 @@ void cudaq::quake::ConcatOp::getCanonicalizationPatterns(
 }
 
 LogicalResult cudaq::quake::ConcatOp::verify() {
+  if (!getTargets().size())
+    return failure();
   bool isUnspecified = false;
   std::size_t size = 0;
   for (auto tq : getTargets()) {

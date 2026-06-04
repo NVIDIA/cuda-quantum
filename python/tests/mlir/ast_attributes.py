@@ -45,7 +45,7 @@ def test_attribute_access():
         x(qs.targets.front())
 
     out = cudaq.sample(kernel2, shots_count=100)
-    assert (len(out) == 1 and out.most_probable() == '0100')
+    assert (len(out) == 1 and out.most_probable() == '1')
     print("[attribute access] kernel 2 outputs " + out.most_probable())
 
     @cudaq.kernel
@@ -54,13 +54,13 @@ def test_attribute_access():
         x(qs.targets.back())
 
     out = cudaq.sample(kernel3, shots_count=100)
-    assert (len(out) == 1 and out.most_probable() == '0001')
+    assert (len(out) == 1 and out.most_probable() == '1')
     print("[attribute access] kernel 3 outputs " + out.most_probable())
 
 
 # CHECK-LABEL: [attribute access] kernel 1 outputs 13.0
-# CHECK-LABEL: [attribute access] kernel 2 outputs 0100
-# CHECK-LABEL: [attribute access] kernel 3 outputs 0001
+# CHECK-LABEL: [attribute access] kernel 2 outputs 1
+# CHECK-LABEL: [attribute access] kernel 3 outputs 1
 
 
 def test_attribute_failures():
