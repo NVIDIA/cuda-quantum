@@ -29,6 +29,7 @@ To run these applications without a local installation, run the `CUDA-Q applicat
    /applications/python/mps_encoding
    /applications/python/skqd
    /applications/python/entanglement_acc_hamiltonian_simulation
+   /applications/python/ptsbe
 
 .. |:spellcheck-enable:| replace:: \
 
@@ -176,6 +177,13 @@ To run these applications without a local installation, run the `CUDA-Q applicat
             Learn how entanglement growth can *reduce* the Trotter error of the first-order product formula (PF1), recovering the result from the [paper](https://www.nature.com/articles/s41567-025-02945-2) using NVIDIA CUDA-Q.
         </div>
         <img src="../_static/app_title_images/entanglement_acc_hamiltonian_simulation_preview.png" alt="PF1 error decreases as entanglement spreads" class="notebook-image">
+    </div>
+
+    <div class="notebook-entry" data-tags="fundamental,noisy,gpu">
+        <a href="../applications/python/ptsbe.html" class="notebook-title">Noisy Circuit Simulation with PTSBE</a>
+        <div class="notebook-content">
+            Pre-Trajectory Sampling with Batch Execution (PTSBE) is an efficient method for sampling from noisy quantum circuits. Rather than simulating the full density matrix, PTSBE pre-samples unique noise trajectories and batches many shots across them, yielding orders-of-magnitude speedups for large shot counts. Based on the SC25 paper by Patti et al. (https://arxiv.org/abs/2504.16297).
+        </div>
     </div>
 
     <script>
