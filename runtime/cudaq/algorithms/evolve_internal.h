@@ -37,7 +37,7 @@ evolve_result evolve(state initial_state, QuantumKernel &&kernel,
   if (observables.size() == 0)
     return evolve_result(final_state);
 
-  details::with_platform_in_library_mode libraryMode(cudaq::get_platform());
+  with_platform_in_library_mode libraryMode(cudaq::get_platform());
   auto prepare_state = [final_state]() { auto qs = qvector<2>(final_state); };
   std::vector<observe_result> final_expectations;
   for (auto observable : observables) {
@@ -74,7 +74,7 @@ evolve_result evolve(state initial_state, std::vector<QuantumKernel> &kernels,
       }
     }
     if (observables.size() > 0) {
-      details::with_platform_in_library_mode libraryMode(cudaq::get_platform());
+      with_platform_in_library_mode libraryMode(cudaq::get_platform());
       std::vector<observe_result> expectations = {};
       auto prepare_state = [intermediate_states]() {
         auto qs = qvector<2>(intermediate_states.back());
@@ -110,7 +110,7 @@ evolve_async(state initial_state, QuantumKernel &&kernel,
        &platform]() mutable {
         if (noise_model.has_value())
           platform.set_noise(&noise_model.value());
-        details::with_platform_in_library_mode libraryMode(platform);
+        with_platform_in_library_mode libraryMode(platform);
         auto result = evolve(initial_state, func, observables, shots_count);
         if (noise_model.has_value())
           platform.set_noise(nullptr);
@@ -137,7 +137,7 @@ evolve_async(state initial_state, std::vector<QuantumKernel> kernels,
        shots_count, &platform, save_intermediate_states]() mutable {
         if (noise_model.has_value())
           platform.set_noise(&noise_model.value());
-        details::with_platform_in_library_mode libraryMode(platform);
+        with_platform_in_library_mode libraryMode(platform);
         auto result = evolve(initial_state, kernels, observables, shots_count,
                              save_intermediate_states);
         if (noise_model.has_value())

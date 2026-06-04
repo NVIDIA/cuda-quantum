@@ -581,7 +581,7 @@ public:
       return {};
 
     auto future =
-        executor->execute(codes, cudaq::details::ExecutionContextType::observe,
+        executor->execute(codes, cudaq::detail::ExecutionContextType::observe,
                           &executionContext->invocationResultBuffer);
     return async_observe_result(std::move(future), &policy.inner.spin);
   }
