@@ -132,6 +132,8 @@ jobs:
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       checkout_submodules: true
       environment: ghcr-ci
+      ccache_key: devdeps-${{ matrix.platform }}-${{ matrix.toolchain }}
+      pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
       matrix_step_name: dev_environment_devdeps
@@ -161,6 +163,8 @@ jobs:
         nanobind_commit=${{ needs.metadata.outputs.nanobind_commit }}
       registry_cache_from: ${{ inputs.cache_base || needs.metadata.outputs.cache_base }}
       environment: ghcr-ci
+      ccache_key: manylinux-${{ matrix.platform }}-cu${{ matrix.cuda_version }}-gcc12
+      pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
       # needed only for the cloudposse GitHub action
       matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-python
       matrix_step_name: dev_environment_wheeldeps
