@@ -1,0 +1,119 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --add-dealloc --canonicalize --factor-quantum-alloc --dqe --cominbine-quantum-alloc %s | cudaq-opt | FileCheck %s
+
+func.func @smiling_lettuce() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %c5_i64 = arith.constant 5 : i64
+  %0 = quake.alloca !quake.veq<?>[%c5_i64 : i64]
+  %c0_i64 = arith.constant 0 : i64
+  %1 = quake.veq_size %0 : (!quake.veq<?>) -> i64
+  %c0_i64_0 = arith.constant 0 : i64
+  %2 = arith.cmpi slt, %c0_i64, %c0_i64_0 : i64
+  %3 = arith.addi %c0_i64, %1 : i64
+  %4 = arith.select %2, %3, %c0_i64 : i64
+  %5 = quake.extract_ref %0[%4] : (!quake.veq<?>, i64) -> !quake.ref
+  quake.h %5 : (!quake.ref) -> ()
+  quake.h %5 : (!quake.ref) -> ()
+  quake.dealloc %0 : !quake.veq<?>
+
+  %c5_i64_1 = arith.constant 5 : i64
+  %6 = quake.alloca !quake.veq<?>[%c5_i64_1 : i64]
+  %c0_i64_2 = arith.constant 0 : i64
+  %7 = quake.veq_size %6 : (!quake.veq<?>) -> i64
+  %c0_i64_3 = arith.constant 0 : i64
+  %8 = arith.cmpi slt, %c0_i64_2, %c0_i64_3 : i64
+  %9 = arith.addi %c0_i64_2, %7 : i64
+  %10 = arith.select %8, %9, %c0_i64_2 : i64
+  %11 = quake.extract_ref %6[%10] : (!quake.veq<?>, i64) -> !quake.ref
+  quake.h %11 : (!quake.ref) -> ()
+  quake.h %11 : (!quake.ref) -> ()
+  quake.dealloc %6 : !quake.veq<?>
+
+  %c5_i64_4 = arith.constant 5 : i64
+  %12 = quake.alloca !quake.veq<?>[%c5_i64_4 : i64]
+  %c0_i64_5 = arith.constant 0 : i64
+  %13 = quake.veq_size %12 : (!quake.veq<?>) -> i64
+  %c0_i64_6 = arith.constant 0 : i64
+  %14 = arith.cmpi slt, %c0_i64_5, %c0_i64_6 : i64
+  %15 = arith.addi %c0_i64_5, %13 : i64
+  %16 = arith.select %14, %15, %c0_i64_5 : i64
+  %17 = quake.extract_ref %12[%16] : (!quake.veq<?>, i64) -> !quake.ref
+  quake.h %17 : (!quake.ref) -> ()
+  %measOut = quake.mz %17 : (!quake.ref) -> !quake.measure
+  return
+}
+
+// CHECK-LABEL:   func.func @smiling_lettuce()
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<3>
+// CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[ALLOCA_0]][0] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           quake.h %[[EXTRACT_REF_0]] : (!quake.ref) -> ()
+// CHECK:           quake.h %[[EXTRACT_REF_0]] : (!quake.ref) -> ()
+// CHECK:           %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[ALLOCA_0]][1] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           quake.h %[[EXTRACT_REF_1]] : (!quake.ref) -> ()
+// CHECK:           quake.h %[[EXTRACT_REF_1]] : (!quake.ref) -> ()
+// CHECK:           %[[EXTRACT_REF_2:.*]] = quake.extract_ref %[[ALLOCA_0]][2] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           quake.h %[[EXTRACT_REF_2]] : (!quake.ref) -> ()
+// CHECK:           %[[MZ_0:.*]] = quake.mz %[[EXTRACT_REF_2]] : (!quake.ref) -> !quake.measure
+// CHECK:           quake.dealloc %[[ALLOCA_0]] : !quake.veq<3>
+// CHECK:           return
+
+func.func @squirrel_tomahawk() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %2 = quake.null_wire
+  %3 = quake.null_wire
+  %4 = quake.null_wire
+  %5 = quake.h %0 : (!quake.wire) -> !quake.wire
+  %6 = quake.h %5 : (!quake.wire) -> !quake.wire
+  quake.sink %6 : !quake.wire
+  quake.sink %1 : !quake.wire
+  quake.sink %2 : !quake.wire
+  quake.sink %3 : !quake.wire
+  quake.sink %4 : !quake.wire
+  %7 = quake.null_wire
+  %8 = quake.null_wire
+  %9 = quake.null_wire
+  %10 = quake.null_wire
+  %11 = quake.null_wire
+  %12 = quake.h %7 : (!quake.wire) -> !quake.wire
+  %13 = quake.h %12 : (!quake.wire) -> !quake.wire
+  quake.sink %13 : !quake.wire
+  quake.sink %8 : !quake.wire
+  quake.sink %9 : !quake.wire
+  quake.sink %10 : !quake.wire
+  quake.sink %11 : !quake.wire
+  %14 = quake.null_wire
+  %15 = quake.null_wire
+  %16 = quake.null_wire
+  %17 = quake.null_wire
+  %18 = quake.null_wire
+  %19 = quake.h %14 : (!quake.wire) -> !quake.wire
+  %measOut, %wires = quake.mz %19 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.sink %wires : !quake.wire
+  quake.sink %15 : !quake.wire
+  quake.sink %16 : !quake.wire
+  quake.sink %17 : !quake.wire
+  quake.sink %18 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @squirrel_tomahawk()
+// CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
+// CHECK:           %[[H_0:.*]] = quake.h %[[NULL_WIRE_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[H_1:.*]] = quake.h %[[H_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.sink %[[H_1]] : !quake.wire
+// CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
+// CHECK:           %[[H_2:.*]] = quake.h %[[NULL_WIRE_1]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[H_3:.*]] = quake.h %[[H_2]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.sink %[[H_3]] : !quake.wire
+// CHECK:           %[[NULL_WIRE_2:.*]] = quake.null_wire
+// CHECK:           %[[H_4:.*]] = quake.h %[[NULL_WIRE_2]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_0:.*]], %[[MZ_0:.*]] = quake.mz %[[H_4]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           quake.sink %[[MZ_0]] : !quake.wire
+// CHECK:           return
