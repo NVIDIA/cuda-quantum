@@ -68,6 +68,11 @@ on:
         required: false
         type: string
         description: If set, restore/persist a ccache under this key. Requires the Dockerfile to expose a ccache-data build context and a ccache-export stage.
+      ccache_export_target:
+        required: false
+        type: string
+        default: ccache-export
+        description: Dockerfile stage to build when extracting the ccache (use a build_target-specific export stage, e.g. ccache-export-prereqs).
     outputs:
       image_hash:
         description: "The name and digest of the docker image that was deployed to the registry, which can be used to retrieve it independently of any tag updates."
@@ -396,7 +401,7 @@ jobs:
           docker buildx build -f ./docker/${{ needs.metadata.outputs.dockerfile }} . \
             --build-context ccache-data=/tmp/ccache-data \
             "${args[@]}" \
-            --target ccache-export --output type=local,dest=/tmp/ccache-export 2>&1 | tail -20
+            --target ${{ inputs.ccache_export_target }} --output type=local,dest=/tmp/ccache-export 2>&1 | tail -20
           [ -f /tmp/ccache-export/ccache.tar ] || { echo "No ccache.tar produced; skipping push."; exit 0; }
           mkdir -p /tmp/ccache-export/ccache
           tar xf /tmp/ccache-export/ccache.tar -C /tmp/ccache-export/ccache
