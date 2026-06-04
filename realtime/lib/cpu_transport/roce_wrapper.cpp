@@ -117,6 +117,12 @@ void cpu_roce_set_unified_dispatch(cpu_roce_transceiver_t handle,
       reinterpret_cast<CpuRoceTransceiver::UnifiedDispatchFn>(fn), context);
 }
 
+void cpu_roce_set_local_ip(cpu_roce_transceiver_t handle,
+                           const char *local_ip) {
+  if (handle)
+    as_cpp(handle)->set_local_ip(local_ip);
+}
+
 uint32_t cpu_roce_get_qp_number(cpu_roce_transceiver_t handle) {
   return handle ? as_cpp(handle)->get_qp_number() : 0;
 }

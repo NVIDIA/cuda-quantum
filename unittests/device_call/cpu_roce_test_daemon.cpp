@@ -251,6 +251,9 @@ int main(int argc, char **argv) {
     std::cerr << "ERROR: transceiver create failed" << std::endl;
     return 1;
   }
+  // Pin the source GID to our configured local address (right SGID on a
+  // multi-IP port).
+  cpu_roce_set_local_ip(xcvr, cfg.local_ip.c_str());
   if (!cpu_roce_setup(xcvr)) {
     std::cerr << "ERROR: transceiver setup() failed" << std::endl;
     return 1;

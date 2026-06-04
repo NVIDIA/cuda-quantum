@@ -112,6 +112,12 @@ void cpu_roce_set_unified_dispatch(cpu_roce_transceiver_t handle,
                                    cpu_roce_unified_dispatch_fn_t fn,
                                    void *context);
 
+/// Optionally pin the local source GID to a specific IPv4 address (must be
+/// called before cpu_roce_setup/cpu_roce_start).  Unset/null/empty => first
+/// IPv4-mapped RoCEv2 GID on the port (correct on single-IP ports); set it on a
+/// multi-IP port so the source GID matches the intended address.
+void cpu_roce_set_local_ip(cpu_roce_transceiver_t handle, const char *local_ip);
+
 //==============================================================================
 // QP / rkey for rendezvous
 //==============================================================================

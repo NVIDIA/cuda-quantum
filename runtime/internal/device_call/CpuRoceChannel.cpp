@@ -138,6 +138,10 @@ public:
       throw DeviceCallError(DeviceCallStatus::NotInitialized,
                             "cpu_roce channel: transceiver create failed");
 
+    // Pin the source GID to our configured local address so we pick the right
+    // SGID even on a multi-IP port.
+    cpu_roce_set_local_ip(xcvr, localIp.c_str());
+
     if (!cpu_roce_setup(xcvr))
       throw DeviceCallError(DeviceCallStatus::NotInitialized,
                             "cpu_roce channel: transceiver setup() failed");

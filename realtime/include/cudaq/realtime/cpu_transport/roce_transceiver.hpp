@@ -198,6 +198,13 @@ public:
   /// outlive blocking_monitor().  No-op when not in unified mode.
   void set_unified_dispatch(UnifiedDispatchFn fn, void *context);
 
+  /// Optionally pin the local source GID to a specific IPv4 address.  Must be
+  /// called before setup()/start().  When unset, the transceiver selects the
+  /// first IPv4-mapped RoCEv2 GID on the port (correct on single-IP ports);
+  /// set this on a multi-IP port so the source GID matches the intended
+  /// address.  Empty/null clears it (first-GID behaviour).
+  void set_local_ip(const char *local_ip);
+
   // ===========================================================================
   // Local QP / rkey for the HSB control plane (Phase 1) or out-of-band
   // rendezvous (Phase 2).  Populated by start().
