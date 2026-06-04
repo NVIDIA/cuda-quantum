@@ -10,7 +10,6 @@
 #include "common/FmtCore.h"
 #include "common/PluginUtils.h"
 #include "nvqir/CircuitSimulator.h"
-#include "cudaq/Support/TargetConfigYaml.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/target_control.h"
@@ -136,9 +135,10 @@ void findAvailableTargets(
       const std::string configFileContent(
           (std::istreambuf_iterator<char>(inFile)),
           std::istreambuf_iterator<char>());
-      cudaq::config::TargetConfig config;
-      llvm::yaml::Input Input(configFileContent.c_str());
-      Input >> config;
+      const auto pluginRoot =
+          libDir.empty() ? targetPath.parent_path() : libDir.parent_path();
+      auto config =
+          cudaq::config::parseTargetConfig(configFileContent, pluginRoot);
       CUDAQ_INFO("Found Target {} with config file {}", targetName, fileName);
       const std::string defaultTargetConfigStr =
           cudaq::config::processRuntimeArgs(config, {});
@@ -149,7 +149,7 @@ void findAvailableTargets(
       auto resolvedLibDir =
           libDir.empty() ? targetPath.parent_path() / "lib" : libDir;
       if (!libDir.empty())
-        target.serverHelperLibDir = libDir.string();
+        target.pluginLibDir = libDir.string();
       parseRuntimeTarget(resolvedLibDir, target, defaultTargetConfigStr);
       CUDAQ_INFO("Found Target: {} -> (sim={}, platform={})", targetName,
                  target.simulatorName, target.platformName);
@@ -159,6 +159,29 @@ void findAvailableTargets(
       simulationTargets.emplace(targetName, target);
     }
   }
+}
+
+void registerBackendPath(
+    const std::filesystem::path &pkgRoot,
+    std::unordered_map<std::string, RuntimeTarget> &targets,
+    std::unordered_map<std::string, RuntimeTarget> &simulationTargets) {
+  if (!std::filesystem::exists(pkgRoot))
+    throw std::runtime_error(
+        "register_backend_path: directory does not exist: " + pkgRoot.string());
+  if (!std::filesystem::is_directory(pkgRoot))
+    throw std::runtime_error("register_backend_path: not a directory: " +
+                             pkgRoot.string());
+
+  auto targetPath = pkgRoot / "targets";
+  if (!std::filesystem::is_directory(targetPath))
+    throw std::runtime_error(
+        "register_backend_path: missing 'targets/' subdirectory under " +
+        pkgRoot.string());
+
+  auto libDir = pkgRoot / "lib";
+  CUDAQ_INFO("register_backend_path: loading external backends from '{}'.",
+             pkgRoot.string());
+  findAvailableTargets(targetPath, targets, simulationTargets, libDir);
 }
 
 LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
@@ -193,22 +216,22 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
 
   const char *backendPathVar = std::getenv("CUDAQ_BACKEND_PATH");
   if (backendPathVar) {
+    // Back-compat: a colon-separated list of plugin roots, equivalent to
+    // calling registerBackendPath() on each. Prefer the Python API
+    // `cudaq.register_backend_path(...)` going forward — per-package
+    // failures are attributable there, but here a malformed entry takes
+    // down the whole list.
     std::string entry;
     std::stringstream ss(backendPathVar);
     while (std::getline(ss, entry, ':')) {
       if (entry.empty())
         continue;
-      std::filesystem::path pkgRoot(entry);
-      auto extTargetPath = pkgRoot / "targets";
-      auto extLibDir = pkgRoot / "lib";
-      if (!std::filesystem::is_directory(extTargetPath)) {
-        CUDAQ_INFO("CUDAQ_BACKEND_PATH entry '{}': no targets/ dir, skipping.",
-                   entry);
-        continue;
+      try {
+        cudaq::registerBackendPath(entry, targets, simulationTargets);
+      } catch (const std::exception &e) {
+        CUDAQ_INFO("CUDAQ_BACKEND_PATH entry '{}' skipped: {}", entry,
+                   e.what());
       }
-      CUDAQ_INFO("Loading external backends from '{}'.", entry);
-      findAvailableTargets(extTargetPath, targets, simulationTargets,
-                           extLibDir);
     }
   }
 
@@ -399,6 +422,11 @@ std::string LinkedLibraryHolder::resolveDefaultTarget() {
   return resolved;
 }
 
+void LinkedLibraryHolder::registerBackendPath(
+    const std::filesystem::path &pkgRoot) {
+  cudaq::registerBackendPath(pkgRoot, targets, simulationTargets);
+}
+
 void LinkedLibraryHolder::resetTarget() {
   defaultTarget = resolveDefaultTarget();
   currentTarget = defaultTarget;
@@ -469,6 +497,43 @@ void LinkedLibraryHolder::setTarget(
       cudaq::config::processRuntimeArgs(target.config, extraConfig);
   parseRuntimeTarget(cudaqLibPath, target, targetConfigStr);
 
+  for (const auto &pluginLibrary : target.config.PluginLibraries) {
+    std::filesystem::path pluginLibraryPath(pluginLibrary);
+    std::vector<std::filesystem::path> candidatePaths;
+    if (pluginLibraryPath.is_absolute()) {
+      candidatePaths.push_back(pluginLibraryPath);
+    } else {
+      candidatePaths.push_back(cudaqLibPath / pluginLibraryPath);
+      if (!target.pluginLibDir.empty())
+        candidatePaths.push_back(std::filesystem::path(target.pluginLibDir) /
+                                 pluginLibraryPath);
+    }
+
+    std::filesystem::path resolvedPluginPath;
+    for (const auto &candidatePath : candidatePaths) {
+      if (std::filesystem::exists(candidatePath)) {
+        resolvedPluginPath = candidatePath;
+        break;
+      }
+    }
+
+    if (resolvedPluginPath.empty()) {
+      std::string searchedPaths;
+      for (const auto &candidatePath : candidatePaths) {
+        if (!searchedPaths.empty())
+          searchedPaths += ", ";
+        searchedPaths += candidatePath.string();
+      }
+      throw std::runtime_error(fmt::format(
+          "Unable to find plugin library '{}' for target '{}'. Searched: {}",
+          pluginLibrary, targetName, searchedPaths));
+    }
+
+    CUDAQ_INFO("Loading plugin library '{}' for target '{}'.",
+               resolvedPluginPath.string(), targetName);
+    ensureLibLoaded(resolvedPluginPath);
+  }
+
   CUDAQ_INFO("Setting target={} (sim={}, platform={})", targetName,
              target.simulatorName, target.platformName);
   std::string simName = target.simulatorName;
@@ -506,9 +571,9 @@ void LinkedLibraryHolder::setTarget(
       fmt::format("libcudaq-serverhelper-{}.{}", targetName, libSuffix);
   auto potentialServerHelperPath = cudaqLibPath / soName;
   if (!std::filesystem::exists(potentialServerHelperPath) &&
-      !target.serverHelperLibDir.empty())
+      !target.pluginLibDir.empty())
     potentialServerHelperPath =
-        std::filesystem::path(target.serverHelperLibDir) / soName;
+        std::filesystem::path(target.pluginLibDir) / soName;
   if (std::filesystem::exists(potentialServerHelperPath) &&
       !libHandles.count(potentialServerHelperPath.string())) {
     void *serverHelperHandle = dlopen(
@@ -520,12 +585,8 @@ void LinkedLibraryHolder::setTarget(
   for (auto &[key, value] : extraConfig)
     backendConfigStr += fmt::format(";{};{}", key, value);
 
-  if (!target.serverHelperLibDir.empty()) {
-    auto ymlPath =
-        std::filesystem::path(target.serverHelperLibDir).parent_path() /
-        "targets" / (targetName + ".yml");
+  if (auto ymlPath = target.pluginYamlPath(); !ymlPath.empty())
     backendConfigStr += fmt::format(";__yml_path;{}", ymlPath.string());
-  }
 
   platform->setTargetBackend(backendConfigStr);
   setQuantumPlatformInternal(platform);

@@ -1,3 +1,5 @@
+#include <unordered_map>
+
 /*******************************************************************************
  * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
@@ -6,14 +8,16 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#ifdef CUDAQ_ENABLE_PYTHON
 #include "LinkedLibraryHolder.h"
-#endif
+#include "common/RuntimeTarget.h"
 #include "cudaq/Support/TargetConfigYaml.h"
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
+#include <unordered_map>
 
+// All ExternalBackendTester tests require CUDAQ_ENABLE_PYTHON
 #ifdef CUDAQ_ENABLE_PYTHON
 class ExternalBackendTester : public ::testing::Test {
 protected:
@@ -143,7 +147,7 @@ target-arguments:
             "qir-adaptive:1.0:int_computations,float_computations");
 }
 
-TEST_F(ExternalBackendTester, setsServerHelperLibDir) {
+TEST_F(ExternalBackendTester, setsPluginLibDir) {
   auto root = createBackendPackage("my-backend");
 
   std::unordered_map<std::string, cudaq::RuntimeTarget> targets, simTargets;
@@ -151,8 +155,7 @@ TEST_F(ExternalBackendTester, setsServerHelperLibDir) {
                               root / "lib");
 
   ASSERT_EQ(targets.count("my-backend"), 1);
-  EXPECT_EQ(targets.at("my-backend").serverHelperLibDir,
-            (root / "lib").string());
+  EXPECT_EQ(targets.at("my-backend").pluginLibDir, (root / "lib").string());
   EXPECT_EQ(targets.at("my-backend").name, "my-backend");
 }
 
@@ -167,10 +170,8 @@ TEST_F(ExternalBackendTester, backendPathMultipleEntries) {
 
   ASSERT_EQ(targets.count("backend-a"), 1);
   ASSERT_EQ(targets.count("backend-b"), 1);
-  EXPECT_EQ(targets.at("backend-a").serverHelperLibDir,
-            (rootA / "lib").string());
-  EXPECT_EQ(targets.at("backend-b").serverHelperLibDir,
-            (rootB / "lib").string());
+  EXPECT_EQ(targets.at("backend-a").pluginLibDir, (rootA / "lib").string());
+  EXPECT_EQ(targets.at("backend-b").pluginLibDir, (rootB / "lib").string());
 }
 
 TEST_F(ExternalBackendTester, serverHelperPathResolvesToLibDir) {
@@ -182,12 +183,12 @@ TEST_F(ExternalBackendTester, serverHelperPathResolvesToLibDir) {
 
   ASSERT_EQ(targets.count("my-backend"), 1);
   const auto &target = targets.at("my-backend");
-  auto resolvedPath = std::filesystem::path(target.serverHelperLibDir) /
+  auto resolvedPath = std::filesystem::path(target.pluginLibDir) /
                       ("libcudaq-serverhelper-" + target.name + ".so");
   EXPECT_TRUE(std::filesystem::exists(resolvedPath));
 }
 
-TEST_F(ExternalBackendTester, reconstructYmlPathFromServerHelperLibDir) {
+TEST_F(ExternalBackendTester, pluginYamlPath_resolvesToTargetsDir) {
   auto root = createBackendPackage("my-backend");
 
   std::unordered_map<std::string, cudaq::RuntimeTarget> targets, simTargets;
@@ -196,11 +197,174 @@ TEST_F(ExternalBackendTester, reconstructYmlPathFromServerHelperLibDir) {
 
   ASSERT_EQ(targets.count("my-backend"), 1);
   const auto &target = targets.at("my-backend");
-  ASSERT_FALSE(target.serverHelperLibDir.empty());
+  ASSERT_FALSE(target.pluginLibDir.empty());
 
-  auto ymlPath =
-      std::filesystem::path(target.serverHelperLibDir).parent_path() /
-      "targets" / (target.name + ".yml");
+  auto ymlPath = target.pluginYamlPath();
+  EXPECT_EQ(ymlPath, root / "targets" / "my-backend.yml");
   EXPECT_TRUE(std::filesystem::exists(ymlPath));
 }
+
+// -- B1: registerBackendPath -------------------------------------------------
+
+TEST_F(ExternalBackendTester, registerBackendPath_addsTargets) {
+  auto root = createBackendPackage("my-backend");
+
+  std::unordered_map<std::string, cudaq::RuntimeTarget> targets, simTargets;
+  cudaq::registerBackendPath(root, targets, simTargets);
+
+  ASSERT_EQ(targets.count("my-backend"), 1);
+  EXPECT_EQ(targets.at("my-backend").name, "my-backend");
+  EXPECT_EQ(targets.at("my-backend").pluginLibDir, (root / "lib").string());
+}
+
+TEST_F(ExternalBackendTester, registerBackendPath_rejectsMissingPath) {
+  auto bogus = tmpRoot / "does-not-exist";
+  std::unordered_map<std::string, cudaq::RuntimeTarget> targets, simTargets;
+  try {
+    cudaq::registerBackendPath(bogus, targets, simTargets);
+    FAIL() << "expected runtime_error";
+  } catch (const std::runtime_error &e) {
+    EXPECT_NE(std::string(e.what()).find(bogus.string()), std::string::npos)
+        << "error message should mention the bad path: " << e.what();
+  }
+}
+
+TEST_F(ExternalBackendTester, registerBackendPath_rejectsMissingTargetsDir) {
+  // Create a root that exists but has no targets/ subdir.
+  auto root = tmpRoot / "no-targets";
+  std::filesystem::create_directories(root);
+
+  std::unordered_map<std::string, cudaq::RuntimeTarget> targets, simTargets;
+  try {
+    cudaq::registerBackendPath(root, targets, simTargets);
+    FAIL() << "expected runtime_error";
+  } catch (const std::runtime_error &e) {
+    EXPECT_NE(std::string(e.what()).find(root.string()), std::string::npos)
+        << "error message should mention the offending path: " << e.what();
+  }
+}
+
+TEST_F(ExternalBackendTester, pluginLibrariesFieldIsParsed) {
+  auto root = tmpRoot / "pluginlibtest";
+  auto targetsDir = root / "targets";
+  auto libDir = root / "lib";
+  std::filesystem::create_directories(targetsDir);
+  std::filesystem::create_directories(libDir);
+
+  // Write a YAML with plugin-libraries
+  std::ofstream(targetsDir / "my-backend.yml") << R"(
+name: my-backend
+description: Plugin-libraries test
+target-arguments: []
+config:
+  platform-qpu: remote_rest
+  library-mode: false
+  plugin-libraries:
+    - libdummy1.so
+    - libdummy2.so
+)";
+
+  std::unordered_map<std::string, cudaq::RuntimeTarget> targets, simTargets;
+  cudaq::findAvailableTargets(targetsDir, targets, simTargets, libDir);
+
+  ASSERT_EQ(targets.count("my-backend"), 1);
+  const auto &target = targets.at("my-backend");
+  const auto &libs = target.config.PluginLibraries;
+  ASSERT_EQ(libs.size(), 2);
+  EXPECT_EQ(libs[0], "libdummy1.so");
+  EXPECT_EQ(libs[1], "libdummy2.so");
+}
+
+TEST_F(ExternalBackendTester, pluginLibrariesAreDlopenedOnSetTarget) {
+  auto root = tmpRoot / "pluginlibdltest";
+  auto targetsDir = root / "targets";
+  auto libDir = root / "lib";
+  std::filesystem::create_directories(targetsDir);
+  std::filesystem::create_directories(libDir);
+
+  auto pluginPath = std::filesystem::path(CUDAQ_DLOPEN_SENTINEL_PLUGIN_PATH);
+  auto pluginFileName = std::string(CUDAQ_DLOPEN_SENTINEL_PLUGIN_FILENAME);
+  std::filesystem::copy_file(pluginPath, libDir / pluginFileName,
+                             std::filesystem::copy_options::overwrite_existing);
+
+  auto sentinelPath = tmpRoot / "plugin-dlopen.sentinel";
+  std::filesystem::remove(sentinelPath);
+  setenv("CUDAQ_DLOPEN_SENTINEL_PATH", sentinelPath.c_str(), 1);
+
+  // Write a YAML with plugin-libraries
+  std::ofstream(targetsDir / "my-backend.yml") << R"(
+name: my-backend
+description: Plugin-libraries dlopen test
+target-arguments: []
+config:
+  nvqir-simulation-backend: qpp
+  library-mode: false
+  plugin-libraries:
+    - )" << pluginFileName << R"(
+)";
+
+  // Register the backend
+  cudaq::LinkedLibraryHolder holder;
+  holder.registerBackendPath(root);
+
+  EXPECT_FALSE(std::filesystem::exists(sentinelPath));
+  EXPECT_NO_THROW(holder.setTarget("my-backend"));
+  EXPECT_TRUE(std::filesystem::exists(sentinelPath));
+  unsetenv("CUDAQ_DLOPEN_SENTINEL_PATH");
+}
+
+TEST_F(ExternalBackendTester,
+       pluginRootTokenIsSubstitutedWhenTargetsAreScanned) {
+  auto root = tmpRoot / "pluginroottest";
+  auto targetsDir = root / "targets";
+  auto libDir = root / "lib";
+  auto dataDir = root / "data";
+  std::filesystem::create_directories(targetsDir);
+  std::filesystem::create_directories(libDir);
+  std::filesystem::create_directories(dataDir);
+
+  const auto expectedTopology = (root / "data" / "topology.txt").string();
+  std::ofstream(dataDir / "topology.txt") << "topology\n";
+  std::ofstream(targetsDir / "my-backend.yml") << R"(
+name: my-backend
+description: Plugin-root substitution test
+target-arguments: []
+config:
+  nvqir-simulation-backend: qpp
+  jit-mid-level-pipeline: "map{device=file(%PLUGIN_ROOT%/data/topology.txt)}"
+  preprocessor-defines:
+    - "-DTOPOLOGY=%PLUGIN_ROOT%/data/topology.txt"
+)";
+
+  std::unordered_map<std::string, cudaq::RuntimeTarget> targets, simTargets;
+  cudaq::findAvailableTargets(targetsDir, targets, simTargets, libDir);
+
+  ASSERT_EQ(targets.count("my-backend"), 1);
+  const auto &config = targets.at("my-backend").config;
+  ASSERT_TRUE(config.BackendConfig.has_value());
+  EXPECT_EQ(config.BackendConfig->JITMidLevelPipeline,
+            "map{device=file(" + expectedTopology + ")}");
+  ASSERT_EQ(config.BackendConfig->PreprocessorDefines.size(), 1);
+  EXPECT_EQ(config.BackendConfig->PreprocessorDefines.front(),
+            "-DTOPOLOGY=" + expectedTopology);
+}
+
+TEST(TargetConfigTester, pluginRootTokenSubstitutionReplacesAllOccurrences) {
+  const std::string yaml = R"(
+name: token-test
+description: Token substitution test
+config:
+  jit-mid-level-pipeline: "%PLUGIN_ROOT%/a:%PLUGIN_ROOT%/b"
+)";
+
+  const auto substituted = cudaq::config::substitutePluginRoot(
+      yaml, std::filesystem::path("/opt/cudaq/plugins/token-test"));
+
+  EXPECT_NE(substituted.find("/opt/cudaq/plugins/token-test/a"),
+            std::string::npos);
+  EXPECT_NE(substituted.find("/opt/cudaq/plugins/token-test/b"),
+            std::string::npos);
+  EXPECT_EQ(substituted.find("%PLUGIN_ROOT%"), std::string::npos);
+}
+
 #endif // CUDAQ_ENABLE_PYTHON

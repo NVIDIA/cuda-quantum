@@ -25,7 +25,6 @@
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <filesystem>
-#include <fstream>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -203,10 +202,7 @@ public:
       configFilePath = platformPath / fileName;
     }
     CUDAQ_INFO("Config file path = {}", configFilePath.string());
-    std::ifstream configFile(configFilePath.string());
-    std::string configYmlContents((std::istreambuf_iterator<char>(configFile)),
-                                  std::istreambuf_iterator<char>());
-    detail::parseTargetConfigYml(configYmlContents, targetConfig);
+    targetConfig = cudaq::config::loadTargetConfig(configFilePath);
 
     // Keep a local copy for capability queries like
     // supportsConditionalFeedback(). The Compiler computes and validates the
