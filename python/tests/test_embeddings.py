@@ -1,4 +1,4 @@
-"""Tests for cudaq.kernels.embeddings (amplitude_encode & angular_encode)."""
+"""Tests for cudaq.contrib.embeddings (amplitude_encode & angular_encode)."""
 
 import numpy as np
 import math
@@ -9,7 +9,7 @@ import os
 # Ensure we can import from the installed cudaq package
 # ---------------------------------------------------------------------------
 import cudaq
-from cudaq.kernels.embeddings import amplitude_encode, angular_encode
+from cudaq.contrib.embeddings import amplitude_encode, angular_encode
 
 # ===================================================================== #
 #                       amplitude_encode tests                          #

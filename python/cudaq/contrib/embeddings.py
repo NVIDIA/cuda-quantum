@@ -131,7 +131,7 @@ def angular_encode(kernel, qubits, data, num_qubits, rotation='Y'):
             data = [0.1, 0.2, 0.3]
             kernel = cudaq.make_kernel()
             qubits = kernel.qalloc(3)
-            cudaq.kernels.angular_encode(
+            cudaq.contrib.angular_encode(
                 kernel, qubits, data, 3, rotation='Y')
             print(cudaq.draw(kernel))
             #      ╭─────────╮
@@ -145,7 +145,7 @@ def angular_encode(kernel, qubits, data, num_qubits, rotation='Y'):
             # --- With parameterized kernel ---
             kernel, params = cudaq.make_kernel(list)
             qubits = kernel.qalloc(3)
-            cudaq.kernels.angular_encode(
+            cudaq.contrib.angular_encode(
                 kernel, qubits, params, 3, rotation='Y')
             print(cudaq.draw(kernel, [0.1, 0.2, 0.3]))
     """
