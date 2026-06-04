@@ -53,14 +53,13 @@ namespace detail {
 
 /// @brief Validate observe arguments and populate the execution context and
 /// observe policy.
-template <typename KernelFunctor>
-void observePreamble(ExecutionContext &ctx, observe_policy &policy,
-                     KernelFunctor &&, quantum_platform &platform,
-                     const std::string &kernelName, int shots,
-                     const cudaq::spin_op &H, std::size_t qpu_id,
-                     std::size_t batchIteration = 0,
-                     std::size_t totalBatchIters = 0,
-                     std::optional<std::size_t> numTrajectories = {}) {
+inline void observePreamble(ExecutionContext &ctx, observe_policy &policy,
+                            quantum_platform &platform,
+                            const std::string &kernelName, int shots,
+                            const cudaq::spin_op &H, std::size_t qpu_id,
+                            std::size_t batchIteration = 0,
+                            std::size_t totalBatchIters = 0,
+                            std::optional<std::size_t> numTrajectories = {}) {
   ctx.kernelName = kernelName;
   ctx.spin = cudaq::spin_op::canonicalize(H);
   if (shots > 0)
@@ -97,7 +96,6 @@ observe_result
 runObservation(KernelFunctor &&k, const cudaq::spin_op &H,
                quantum_platform &platform, int shots,
                const std::string &kernelName, std::size_t qpu_id = 0,
-               detail::future *futureResult = nullptr,
                std::size_t batchIteration = 0, std::size_t totalBatchIters = 0,
                std::optional<std::size_t> numTrajectories = {}) {
 
@@ -109,9 +107,8 @@ runObservation(KernelFunctor &&k, const cudaq::spin_op &H,
 
   ExecutionContext ctx("observe", shots, qpu_id);
   observe_policy policy;
-  observePreamble(ctx, policy, std::forward<KernelFunctor>(k), platform,
-                  kernelName, shots, H, qpu_id, batchIteration, totalBatchIters,
-                  numTrajectories);
+  observePreamble(ctx, policy, platform, kernelName, shots, H, qpu_id,
+                  batchIteration, totalBatchIters, numTrajectories);
 
   return detail::launch(policy, qpu_id, ctx, platform,
                         std::forward<KernelFunctor>(k));
@@ -137,9 +134,8 @@ auto runObservationAsync(KernelFunctor &&wrappedKernel, const spin_op &H,
   if (platform.is_remote(qpu_id)) {
     ExecutionContext ctx("observe", shots, qpu_id);
     async_observe_policy async_policy;
-    observePreamble(ctx, async_policy.inner,
-                    std::forward<KernelFunctor>(wrappedKernel), platform,
-                    kernelName, shots, H, qpu_id);
+    observePreamble(ctx, async_policy.inner, platform, kernelName, shots, H,
+                    qpu_id);
     return detail::launch(async_policy, qpu_id, ctx, platform,
                           std::forward<KernelFunctor>(wrappedKernel));
   }
@@ -377,7 +373,6 @@ observe_result observe(const observe_options &options, QuantumKernel &&kernel,
   auto ret = detail::runObservation(
       [&kernel, &args...]() mutable { kernel(std::forward<Args>(args)...); }, H,
       platform, shots, kernelName, /*qpu_id=*/0,
-      /*futureResult=*/nullptr,
       /*batchIteration=*/0,
       /*totalBatchIters=*/0, options.num_trajectories);
 
@@ -454,7 +449,7 @@ std::vector<observe_result> observe(QuantumKernel &&kernel, const spin_op &H,
         [&kernel, &singleIterParameters...]() mutable {
           kernel(std::forward<Args>(singleIterParameters)...);
         },
-        H, platform, /*shots=*/-1, kernelName, qpuId, nullptr, counter, N);
+        H, platform, /*shots=*/-1, kernelName, qpuId, counter, N);
   };
 
   // Broadcast the executions and return the results.
@@ -528,7 +523,7 @@ std::vector<observe_result> observe(cudaq::observe_options &options,
         [&kernel, &singleIterParameters...]() mutable {
           kernel(std::forward<Args>(singleIterParameters)...);
         },
-        H, platform, shots, kernelName, qpuId, nullptr, counter, N,
+        H, platform, shots, kernelName, qpuId, counter, N,
         options.num_trajectories);
   };
 

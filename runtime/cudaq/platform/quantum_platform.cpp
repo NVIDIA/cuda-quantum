@@ -238,6 +238,10 @@ CompiledModule quantum_platform::compileModule(const SourceModule &src,
     return qpu->compileModule(other_policies{}, src, args, isEntryPoint);
 
   return cudaq::policies::withPolicy(ctx->name, [&](auto policy) {
+    using Policy = std::decay_t<decltype(policy)>;
+    if constexpr (std::is_same_v<Policy, observe_policy>) {
+      policy.spin = ctx->spin.value();
+    }
     return qpu->compileModule(policy, src, args, isEntryPoint);
   });
 }

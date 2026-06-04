@@ -51,22 +51,6 @@ def __broadcastObserve(kernel, spin_operator, *args, shots_count=0, qpu_id=0):
     return results
 
 
-def __resolveExpectationValue(ctx, spin_operator, sample_result):
-    exp_val = ctx.getExpectationValue()
-    if exp_val is not None:
-        return exp_val
-
-    total = 0.0
-    for term in spin_operator:
-        if term.is_identity():
-            total += term.evaluate_coefficient().real
-        else:
-            total += (sample_result.expectation(term.term_id) *
-                      term.evaluate_coefficient().real)
-
-    return total
-
-
 @trace.traced
 def observe(kernel,
             spin_operator,

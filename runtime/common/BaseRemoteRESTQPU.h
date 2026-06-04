@@ -304,6 +304,7 @@ public:
   getCompileTarget(const observe_policy &policy) override {
     auto target = std::make_unique<BaseRemoteRESTQPUCompileTarget>(
         serverHelper.get(), targetConfig, backendConfig, emulate);
+    target->warnNamedMeasurements = !policy.warnedNamedMeasurements;
     target->pauliTermSplitObservable = policy.spin;
     return target;
   }
@@ -601,7 +602,6 @@ public:
       cudaq::set_random_seed(seed);
 
     std::vector<cudaq::ExecutionResult> results;
-    auto reorderIdx = policy.reorderIdx;
     for (std::size_t i = 0; i < codes.size(); i++) {
       cudaq::ExecutionContext context("sample", localShots);
       // Avoid emitting the warning again during execution
