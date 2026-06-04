@@ -56,12 +56,13 @@ get_property(test_cudaq_libraries GLOBAL PROPERTY CUDAQ_RUNTIME_LIBS)
 set(NVQPP_TEST_DEPENDS
     CircuitCheck
     cudaq-opt
-    cudaq-translate
-    FileCheck
-    test_argument_conversion
-    CustomPassPlugin
-    cudaq-target-conf
     cudaq-rest-qpu
+    cudaq-target-conf
+    cudaq-translate
+    CustomPassPlugin
+    FileCheck
+    nvq++
+    test_argument_conversion
 )
 
 if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME AND NOT CUDAQ_DISABLE_CPP_FRONTEND AND
