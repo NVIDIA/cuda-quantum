@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --add-dealloc --canonicalize --factor-quantum-alloc --dqe --combine-quantum-alloc %s | cudaq-opt | FileCheck %s
+// RUN: cudaq-opt --add-dealloc --canonicalize --factor-quantum-alloc --dqe --combine-quantum-alloc %s | FileCheck %s
 
 func.func @smiling_lettuce() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   %c5_i64 = arith.constant 5 : i64
