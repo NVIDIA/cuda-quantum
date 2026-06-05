@@ -186,6 +186,8 @@ public:
   struct CompilationMetadata {
     /// Qubit reorder indices emitted by the qubit-mapping pass.
     std::vector<std::size_t> reorderIdx;
+    /// Whether the kernel has conditional feedback on measure results.
+    bool hasConditionalsOnMeasureResults = false;
     // TODO: Add hash of target to check against for cache reusability
   };
 
@@ -302,6 +304,9 @@ public:
   /// mlir::ModuleOp::getAsOpaquePointer() and its lifetime must outlive
   /// the `SourceModule` instance.
   SourceModule(std::string kernelName, const void *mlirModuleOpaquePtr);
+
+  /// Get the opaque pointer to the main MLIR artifact if it exists.
+  const void *getMlirOpaqueModulePtr() const;
 };
 
 // TODO: remove once C++ launch can be cleanly split into compilation + launch.
