@@ -54,6 +54,7 @@ void ExecutionManager::configureExecutionContext(const sample_policy &policy) {
 void ExecutionManager::configureExecutionContext(const observe_policy &policy) {
   if (auto *ctx = getExecutionContext())
     configureExecutionContext(*ctx);
+
   nvqir::getCircuitSimulatorInternal()->configureExecutionContext(policy);
 }
 

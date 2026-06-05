@@ -47,7 +47,7 @@ async_observe_result RemoteRESTQPU::launchKernel(async_observe_policy &policy,
 
 KernelThunkResultType
 RemoteRESTQPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
-  Compiler compiler(getCompileTarget(getExecutionContext()));
+  Compiler compiler(getCompileTarget(other_policies{}, getExecutionContext()));
 
   std::string kernelName;
   std::optional<CompiledModule> compiled;

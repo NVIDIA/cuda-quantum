@@ -138,7 +138,8 @@ cudaq::CompiledModule cudaq::QPU::compileModule(const observe_policy &,
 }
 
 std::unique_ptr<cudaq::CompileTarget>
-cudaq::QPU::getCompileTarget(ExecutionContext *context) {
+cudaq::QPU::getCompileTarget(const other_policies &,
+                             ExecutionContext *context) {
   auto launcher = registry::get<ModuleLauncher>("default");
   if (!launcher)
     throw std::runtime_error(
@@ -154,7 +155,7 @@ cudaq::QPU::getCompileTarget(const sample_policy &) {
 std::unique_ptr<cudaq::CompileTarget>
 cudaq::QPU::getCompileTarget(const observe_policy &) {
   throw std::runtime_error(
-      "no CompileTarget defined for sample_policy this QPU");
+      "no CompileTarget defined for observe_policy this QPU");
 }
 
 cudaq::CompiledModule cudaq::QPU::compileModule(const other_policies &,

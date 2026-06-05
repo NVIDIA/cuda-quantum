@@ -14,9 +14,7 @@
 #include "common/Registry.h"
 #include "common/ThunkInterface.h"
 #include "cudaq/Target/CompileTarget.h"
-#include "cudaq/algorithms/observe/policy.h"
 #include "cudaq/algorithms/policies.h"
-#include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/remote_capabilities.h"
 
 namespace mlir {
@@ -165,7 +163,7 @@ public:
   getCompileTarget(const observe_policy &policy);
   // Overload for currently unsupported policies (to be removed).
   [[nodiscard]] virtual std::unique_ptr<CompileTarget>
-  getCompileTarget(ExecutionContext *context);
+  getCompileTarget(const other_policies &, ExecutionContext *context);
 
   [[nodiscard]] virtual CompiledModule compileModule(const other_policies &,
                                                      const SourceModule &src,
