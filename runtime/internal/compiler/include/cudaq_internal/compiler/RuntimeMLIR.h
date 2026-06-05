@@ -117,4 +117,8 @@ void initializeLangMLIR();
 /// RuntimeCppMLIR.cpp / RuntimePyMLIR.cpp so the host language can wrap
 /// the call with any required interpreter-lock handling.
 mlir::LogicalResult runPassManager(mlir::PassManager &pm, mlir::Operation *op);
+
+/// Configure the pass manager according to environment variables
+void configurePassManagerFromEnv(mlir::PassManager &pm);
+
 } // namespace cudaq_internal::compiler
