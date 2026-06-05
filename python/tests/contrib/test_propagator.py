@@ -211,3 +211,18 @@ def test_open_system_propagator_shape():
     )
 
     assert computed.shape == (4, 4)
+
+
+@pytest.mark.skipif(
+    not _has_dynamics_backend(),
+    reason="cudaq.contrib.propagator requires the dynamics backend")
+def test_propagator_multi_degree_of_freedom():
+    hamiltonian = 0.25 * spin.z(0) + 0.5 * spin.x(1) + 0.75 * spin.z(2)
+    dimensions = {0: 2, 1: 2, 2: 2}
+    schedule = Schedule([0.0, 0.4], ["t"])
+
+    actual = cudaq.contrib.propagator(hamiltonian, dimensions, schedule)
+
+    expected = scipy.linalg.expm(-1j * hamiltonian.to_matrix(dimensions) * 0.4)
+
+    np.testing.assert_allclose(actual, expected, atol=1e-5)
