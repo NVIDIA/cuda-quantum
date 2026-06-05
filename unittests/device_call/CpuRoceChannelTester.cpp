@@ -7,8 +7,9 @@
  ******************************************************************************/
 
 /// @file CpuRoceChannelTester.cpp
-/// @brief GoogleTest fixture for the cpu_roce DeviceCallChannel, linked into
-///        the existing test_device_call_dispatch binary.
+/// @brief GoogleTest fixture for the cpu_roce DeviceCallChannel, built as the
+///        standalone test_cpu_roce_device_call binary (kept separate from
+///        test_device_call_dispatch so it can be compiled on its own).
 ///
 /// Exercises the full RDMA device_call round-trip:
 ///   CpuRoceChannel (caller, this process)  <-- RoCE -->  cpu_roce_test_daemon

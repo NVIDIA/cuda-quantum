@@ -142,8 +142,8 @@ echo "Daemon:  $DAEMON_DEVICE @ $DAEMON_IP"
 echo "Build:   $BUILD_DIR"
 
 if [[ "$DO_BUILD" == "1" ]]; then
-  echo "--- Building cpu_roce_test_daemon + test_device_call_dispatch ---"
-  cmake --build "$BUILD_DIR" --target cpu_roce_test_daemon test_device_call_dispatch
+  echo "--- Building cpu_roce_test_daemon + test_cpu_roce_device_call ---"
+  cmake --build "$BUILD_DIR" --target cpu_roce_test_daemon test_cpu_roce_device_call
 fi
 
 if [[ "$DO_SETUP_NETWORK" == "1" ]]; then
@@ -231,7 +231,7 @@ if [[ "$DO_APP" == "1" ]]; then
   exit $?
 fi
 
-TEST_BIN="$BUILD_DIR/unittests/test_device_call_dispatch"
+TEST_BIN="$BUILD_DIR/unittests/test_cpu_roce_device_call"
 if [[ ! -x "$TEST_BIN" ]]; then
   echo "ERROR: test binary not found: $TEST_BIN (run with --build)" >&2
   exit 1

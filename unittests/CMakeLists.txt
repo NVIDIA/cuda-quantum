@@ -164,6 +164,10 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
       CUDA::cudart_static
       gtest_main)
 
+  gtest_discover_tests(test_device_call_dispatch
+    PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu"
+    DISCOVERY_TIMEOUT 120)
+
   # cpu_roce DeviceCallChannel test + its service-side daemon. Only when the
   # CPU RoCE transport (libibverbs) is available; the fixture itself GTEST_SKIPs
   # unless the loopback test topology is provided via environment variables.
@@ -187,16 +191,38 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
         CUDA::cudart_static
         Threads::Threads)
 
-    target_sources(test_device_call_dispatch
-      PRIVATE device_call/CpuRoceChannelTester.cpp)
-    target_compile_definitions(test_device_call_dispatch
+    # The cpu_roce GoogleTest fixture builds as its OWN executable rather than
+    # being linked into test_device_call_dispatch, so it can be compiled
+    # independently of DeviceCallDispatchTester.cu. This lets the build-only CI
+    # job compile-check just this harness (target test_cpu_roce_device_call)
+    # without pulling in the shared-memory device_call test, which #4565 keeps
+    # out of CI by design. CUDA device-link pattern matches cpu_roce_test_daemon
+    # (links the realtime dispatch static lib's relocatable device code).
+    add_executable(test_cpu_roce_device_call
+      device_call/CpuRoceChannelTester.cpp)
+    target_include_directories(test_cpu_roce_device_call
+      PRIVATE
+        .)
+    set_target_properties(test_cpu_roce_device_call PROPERTIES
+      LINKER_LANGUAGE CUDA
+      CUDA_SEPARABLE_COMPILATION ON
+      CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+    target_link_libraries(test_cpu_roce_device_call
+      PRIVATE
+        cudaq-device-call-runtime
+        cudaq::cudaq-realtime-dispatch
+        CUDA::cudart_static
+        gtest_main)
+    target_compile_definitions(test_cpu_roce_device_call
       PRIVATE CPU_ROCE_DAEMON_PATH="$<TARGET_FILE:cpu_roce_test_daemon>")
-    add_dependencies(test_device_call_dispatch cpu_roce_test_daemon)
+    add_dependencies(test_cpu_roce_device_call cpu_roce_test_daemon)
+    # PRE_TEST discovery so the build-only CI job never executes the binary at
+    # build time (no RDMA NIC there); ctest still enumerates it at test time.
+    gtest_discover_tests(test_cpu_roce_device_call
+      PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu"
+      DISCOVERY_TIMEOUT 120
+      DISCOVERY_MODE PRE_TEST)
   endif()
-
-  gtest_discover_tests(test_device_call_dispatch
-    PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu"
-    DISCOVERY_TIMEOUT 120)
 endif()
 
 if (cuStateVec_FOUND)
