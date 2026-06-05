@@ -10,6 +10,10 @@
 # https://github.com/llvm/llvm-project/blob/main/clang/cmake/caches/Release.cmake
 
 # General LLVM build settings
+# Disable precompiled headers: flang's PCH compiles produce ccache hits that are
+# incompatible across the 2-stage bootstrap (the stage-1 clang/PCH is regenerated
+# each run), which crashes clang on a warm ccache restore. No PCH => stable ccache.
+set(CMAKE_DISABLE_PRECOMPILE_HEADERS ON CACHE BOOL "")
 set(LLVM_ENABLE_BINDINGS OFF CACHE BOOL "")
 set(LLVM_OPTIMIZED_TABLEGEN ON CACHE BOOL "")
 set(LLVM_INSTALL_UTILS ON CACHE BOOL "")
