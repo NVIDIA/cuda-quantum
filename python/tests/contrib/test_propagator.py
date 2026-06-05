@@ -177,6 +177,7 @@ def test_open_system_propagator_amplitude_damping():
         {0: 2},
         schedule,
         collapse_operators=collapse_operators,
+        collapse_operator_adjoints=[np.sqrt(gamma) * spin.plus(0)],
     )
 
     expected = scipy_linalg.expm(
@@ -198,6 +199,7 @@ def test_open_system_propagator_shape():
         {0: 2},
         schedule,
         collapse_operators=collapse_operators,
+        collapse_operator_adjoints=[np.sqrt(gamma) * spin.plus(0)],
     )
 
     assert computed.shape == (4, 4)

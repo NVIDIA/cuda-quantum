@@ -28,7 +28,7 @@ def _state_to_matrix(state, dimension: int) -> np.ndarray:
         raise RuntimeError("Expected propagator state with size "
                            f"{expected_size}, got {data.size}.")
 
-    return data.reshape((dimension, dimension))
+    return data.reshape((dimension, dimension)).T
 
 
 def _closed_system_generator(hamiltonian):
@@ -39,15 +39,16 @@ def _closed_system_generator(hamiltonian):
     return generator
 
 
-def _open_system_generator(hamiltonian, collapse_operators):
+def _open_system_generator(hamiltonian, collapse_operators,
+                           collapse_operator_adjoint_ops):
     import cudaq
 
     generator = cudaq.SuperOperator()
     generator += cudaq.SuperOperator.left_multiply(-1j * hamiltonian)
     generator += cudaq.SuperOperator.right_multiply(1j * hamiltonian)
 
-    for collapse_operator in collapse_operators:
-        collapse_operator_dagger = collapse_operator.dagger()
+    for collapse_operator, collapse_operator_dagger in zip(
+            collapse_operators, collapse_operator_adjoint_ops):
         collapse_operator_product = collapse_operator_dagger * collapse_operator
 
         generator += cudaq.SuperOperator.left_right_multiply(
@@ -77,6 +78,7 @@ def propagator(
     schedule,
     *,
     collapse_operators=None,
+    collapse_operator_adjoint_ops=None,
     store_intermediate_results: bool = False,
     integrator=None,
     max_batch_size: Optional[int] = None,
@@ -98,6 +100,8 @@ def propagator(
         schedule: CUDA-Q dynamics schedule.
         collapse_operators: Optional sequence of Lindblad collapse operators.
             If provided, the helper returns the Lindblad map.
+        collapse_operator_adjoint_ops: Optional sequence containing the adjoint
+            of each collapse operator.
         store_intermediate_results: If True, return propagators at the
             intermediate schedule points saved by the dynamics backend.
         integrator: Optional dynamics integrator.
@@ -118,7 +122,18 @@ def propagator(
 
     collapse_operators = [] if collapse_operators is None else list(
         collapse_operators)
+    collapse_operator_adjoint_ops = ([] if collapse_operator_adjoint_ops is None
+                                     else list(collapse_operator_adjoint_ops))
+
+    if collapse_operator_adjoint_ops and len(
+            collapse_operator_adjoint_ops) != len(collapse_operators):
+        raise ValueError("collapse_operator_adjoint_ops must have the same "
+                         "length as collapse_operators.")
+
     open_system = len(collapse_operators) > 0
+    if open_system and not collapse_operator_adjoint_ops:
+        raise ValueError("collapse_operator_adjoint_ops must be provided for "
+                         "open-system propagators.")
 
     system_dimension = _total_dimension(dimensions)
     propagator_dimension = (system_dimension * system_dimension
@@ -129,7 +144,9 @@ def propagator(
 
     if open_system:
         generators = [
-            _open_system_generator(h, collapse_operators) for h in hamiltonians
+            _open_system_generator(h, collapse_operators,
+                                   collapse_operator_adjoint_ops)
+            for h in hamiltonians
         ]
     else:
         generators = [_closed_system_generator(h) for h in hamiltonians]
