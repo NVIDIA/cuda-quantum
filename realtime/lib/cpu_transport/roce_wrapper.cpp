@@ -36,11 +36,11 @@ cpu_roce_transceiver_t cpu_roce_create_transceiver(
     uint64_t peer_rx_base_addr, uint32_t peer_rx_rkey) {
   try {
     // Translate the C enum to the C++ enum.  An out-of-range value falls
-    // through to the FPGA default — the constructor will validate further.
+    // through to the Send default — the constructor will validate further.
     const CpuRoceTxMode cpp_mode =
-        (tx_mode == CPU_ROCE_TX_MODE_WRITE_WITH_IMM_FOR_PEER)
-            ? CpuRoceTxMode::kWriteWithImmForPeer
-            : CpuRoceTxMode::kSendForFpga;
+        (tx_mode == CPU_ROCE_TX_MODE_RDMA_WRITE_WITH_IMM)
+            ? CpuRoceTxMode::kRdmaWriteWithImm
+            : CpuRoceTxMode::kRdmaSend;
     auto *t = new CpuRoceTransceiver(
         device_name, static_cast<unsigned>(ib_port), tx_ibv_qp, frame_size,
         page_size, num_pages, peer_ip, forward != 0, rx_only != 0, tx_only != 0,

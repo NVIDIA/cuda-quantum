@@ -7,32 +7,38 @@
  ******************************************************************************/
 
 // CpuRoceChannel — a DeviceCallChannel that carries device_call RPCs over a
-// pure-CPU RoCEv2 RDMA wire using the Phase 1 CpuRoceTransceiver.  It is the
-// caller (device_call origin) end of the wire; the service end is a separate
-// process (the test daemon, or eventually a real HSB-enabled FPGA).
+// pure-CPU RoCEv2 RDMA wire using the CpuRoceTransceiver.  It is the caller
+// (device_call origin / requester) end of the wire and plays the FPGA role on
+// the wire; the service end is a separate process (the test daemon, or
+// eventually a real decoder/bridge).  A real HSB-enabled FPGA could stand in
+// for this channel unchanged, since the channel speaks the FPGA's wire pattern.
 //
-// Wire pattern (asymmetric, FPGA-compatible):
-//   - caller -> service : IBV_WR_SEND  (the service, e.g. an FPGA, can only
-//                         *receive* Sends).  Our transceiver TX therefore uses
-//                         tx_mode=kSendForFpga.
-//   - service -> caller : IBV_WR_RDMA_WRITE_WITH_IMM into our rx ring (the
-//                         service, e.g. an FPGA, *transmits* Writes).  Our
-//                         transceiver RX consumes those.
+// Wire pattern (asymmetric, mirrors a real FPGA <-> bridge):
+//   - caller -> service : IBV_WR_RDMA_WRITE_WITH_IMM into the service's rx
+//                         ring (the caller pushes requests the way an FPGA
+//                         RDMA-Writes syndromes).  Our transceiver TX uses
+//                         tx_mode=kRdmaWriteWithImm, so we need the service's
+//                         rx_data rkey (from the rendezvous) at connect().
+//   - service -> caller : IBV_WR_SEND into our pre-posted recv WQEs (the
+//                         service Sends responses the way a bridge Sends
+//                         corrections to an FPGA, which receives Sends only).
+//                         Our transceiver RX consumes those.
 //
 // QP/rkey rendezvous: connected (UC) QPs require each end to know the other's
 // QP number before any traffic flows, so a one-way "daemon prints, caller
 // reads" handshake is insufficient.  We do a minimal bidirectional TCP swap of
 // {qp, rkey, roce-ipv4} inside initialize(), between the transceiver's setup()
-// (mints our QP/rkey) and connect() (needs the peer's QP/rkey).  No HSB / no
-// Hololink dependency.  For a real FPGA service the same setup()/connect() seam
-// is driven instead by the HSB control plane (authenticate/configure_roce);
-// only this rendezvous step changes, not the data-plane wire.
+// (mints our QP/rkey) and connect() (needs the peer's QP + rx_data rkey).  No
+// HSB / no Hololink dependency.  For a real FPGA caller the same setup()/
+// connect() seam is driven instead by the HSB control plane
+// (authenticate/configure_roce); only this rendezvous step changes, not the
+// data-plane wire.
 //
 // Slot correlation (v1): the daemon's host dispatcher mirrors its rx slot to
-// its tx slot, and our transceiver's RX currently decodes the slot from the
-// recv-WQE wr_id (FIFO order) rather than the Write-With-Imm imm_data.  Both
-// are only correct for *in-order* traffic.  To keep this correct without
-// changing the (already-merged) host dispatcher or the transceiver,
+// its tx slot.  Our request Write carries the slot in imm_data, and our RX of
+// the service's Send decodes the slot from the recv-WQE wr_id (FIFO order).
+// Both ends are only correct for *in-order* traffic.  To keep this correct
+// without changing the (already-merged) host dispatcher or the transceiver,
 // dispatchFrame serializes response-bearing dispatch and assigns the ring slot
 // at dispatch time in round-robin order, so the daemon's FIFO rx slot always
 // equals our slot.  request_id stays globally monotonic for
@@ -71,8 +77,9 @@ namespace {
 using namespace cudaq_internal::device_call;
 
 // Wire-format of one direction of the QP/rkey rendezvous.  All fields are in
-// network byte order on the socket.  rx_base is omitted because our rx_data MR
-// is registered with iova=0, so the peer addresses slots by offset alone.
+// network byte order on the socket.  rx_base is omitted because each end's
+// rx_data MR is registered with iova=0, so the writer addresses the peer's
+// slots by offset alone (we Write requests using the peer's rkey below).
 struct RendezvousInfo {
   std::uint32_t qp_number = 0;
   std::uint32_t rkey = 0;
@@ -125,14 +132,17 @@ public:
     const std::size_t frameSize = slotSize;
 
     // Construct the caller-end transceiver via the public C wrapper.
-    // tx_mode=SEND_FOR_FPGA: we Send requests; we receive the service's
-    // Write-With-Imm responses.  The peer QP is not known until the rendezvous,
-    // so we pass 0 here and supply the real value to cpu_roce_connect()
-    // (cpu_roce_start() is not used in the setup()/connect() flow).
+    // tx_mode=RDMA_WRITE_WITH_IMM: we Write requests into the service's rx ring
+    // (like an FPGA pushing syndromes); we receive the service's Sends as
+    // responses.  The peer QP and rx_data rkey are not known until the
+    // rendezvous, so we pass 0 here and supply the real rkey to
+    // cpu_roce_connect() (cpu_roce_start() is not used in the setup()/connect()
+    // flow).  peer_rx_base_addr stays 0: the service registers its rx_data MR
+    // with iova=0, so we address its slots by offset alone.
     xcvr = cpu_roce_create_transceiver(
         ibDevice.c_str(), /*ib_port=*/1, /*tx_ibv_qp=*/0u, frameSize, slotSize,
         numSlots, /*peer_ip=*/"0.0.0.0", /*forward=*/0, /*rx_only=*/0,
-        /*tx_only=*/0, /*unified=*/0, CPU_ROCE_TX_MODE_SEND_FOR_FPGA,
+        /*tx_only=*/0, /*unified=*/0, CPU_ROCE_TX_MODE_RDMA_WRITE_WITH_IMM,
         /*peer_rx_base_addr=*/0, /*peer_rx_rkey=*/0);
     if (!xcvr)
       throw DeviceCallError(DeviceCallStatus::NotInitialized,
@@ -165,9 +175,11 @@ public:
                "peer{{qp={} rkey={} ip={}}}",
                self.qp_number, self.rkey, peer.qp_number, peer.rkey, peerIpStr);
 
-    // connect(): INIT -> RTR -> RTS using the peer's QP + IP.  We Send (don't
-    // Write) so we do not need the peer's rkey here.
-    if (!cpu_roce_connect(xcvr, peer.qp_number, peerIpStr, /*peer_rx_rkey=*/0))
+    // connect(): INIT -> RTR -> RTS using the peer's QP + IP.  We Write
+    // requests into the service's rx ring, so we pass the service's rx_data
+    // rkey (learned from the rendezvous) here.
+    if (!cpu_roce_connect(xcvr, peer.qp_number, peerIpStr,
+                          /*peer_rx_rkey=*/peer.rkey))
       throw DeviceCallError(DeviceCallStatus::NotInitialized,
                             "cpu_roce channel: transceiver connect() failed");
 
@@ -247,8 +259,8 @@ public:
 
     // If this slot still has an outstanding fire-and-forget whose response we
     // never read, drain that late (zero-length) response before reuse.  The
-    // service Writes a response for every request, including fire-and-forget;
-    // that write targets this slot and, if left, would be read as THIS
+    // service Sends a response for every request, including fire-and-forget;
+    // that Send lands in this slot and, if left, would be read as THIS
     // request's response (carrying the stale request_id).  Wait for it to land,
     // then clear it.
     if (ffPending[slot]) {
@@ -297,7 +309,7 @@ public:
       return 0;
     }
 
-    // Wait for the service's Write-With-Imm response to land in our rx slot.
+    // Wait for the service's Send response to land in our rx slot.
     if (!waitFlagNonZero(rxFlags[slot], "rx"))
       throw DeviceCallError(DeviceCallStatus::Timeout,
                             "cpu_roce timed out waiting for response");
@@ -508,9 +520,9 @@ private:
   std::mutex dispatchMutex; // v1: serialize wire round-trips
   std::uint32_t rrCounter = 0;
   // Per-slot tracking of an outstanding fire-and-forget whose (ignored)
-  // zero-length response has not yet been drained.  The service Writes a
-  // response for *every* request, including fire-and-forget; that late write
-  // targets this slot, so we must drain it before reusing the slot or it would
+  // zero-length response has not yet been drained.  The service Sends a
+  // response for *every* request, including fire-and-forget; that late Send
+  // lands in this slot, so we must drain it before reusing the slot or it would
   // be read as the next request's response (with the stale request_id).  Sized
   // to numSlots in initialize().
   std::vector<char> ffPending;

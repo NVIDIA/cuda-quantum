@@ -50,20 +50,22 @@
 
 namespace cudaq::realtime::bridge {
 
-/// Which RDMA wire verb the TX path uses.  The RX path is identical for
-/// both modes (consume RDMA_WRITE_WITH_IMMEDIATE via a pre-posted recv WQE).
+/// Which RDMA wire verb this transceiver's TX path issues.  Names the verb the
+/// transmitter uses, not a peer role: whoever sets the mode is the source.  The
+/// RX path is identical for both modes (an inbound Send or Write-With-Imm is
+/// consumed via a pre-posted recv WQE).
 enum class CpuRoceTxMode {
-  /// Phase 1: bridge-to-FPGA.  The FPGA's HSB IP receives Sends only, so
-  /// our TX path issues `IBV_WR_SEND`.  Default for backward compatibility
-  /// with the existing FPGA-facing test harness.
-  kSendForFpga,
+  /// TX issues `IBV_WR_SEND`.  Use when the peer consumes Sends via pre-posted
+  /// recv WQEs -- e.g. an FPGA's HSB IP (which can only receive Sends), or a
+  /// CpuRoceTransceiver acting as the responder.  Default.
+  kRdmaSend,
 
-  /// Phase 2: cpu_roce caller-to-daemon (or daemon-to-caller).  Both
-  /// endpoints are CpuRoceTransceivers and both can receive Writes.  TX
-  /// uses `IBV_WR_RDMA_WRITE_WITH_IMM` targeting the peer's pre-known
-  /// `rx_data` base + slot offset using the peer's rkey, with the slot
-  /// index carried in the IMM data so the peer can decode it.
-  kWriteWithImmForPeer,
+  /// TX issues `IBV_WR_RDMA_WRITE_WITH_IMM`, targeting the peer's `rx_data`
+  /// base + slot offset using the peer's rkey, with the slot index carried in
+  /// the IMM so the peer can decode it.  Use when the peer's memory is the
+  /// write target -- e.g. an FPGA pushing syndromes, or a CpuRoceTransceiver
+  /// acting as the requester.
+  kRdmaWriteWithImm,
 };
 
 /// Pure-CPU RDMA RoCEv2 transceiver.  Mirrors the public API surface of
@@ -108,26 +110,26 @@ public:
   ///                              CPU analogue of GpuRoceTransceiver's
   ///                              --unified GPU kernel.  Mutually exclusive
   ///                              with forward / rx_only / tx_only.
-  /// \param tx_mode               Which wire verb the TX path uses (see
-  ///                              CpuRoceTxMode).  Default is kSendForFpga
-  ///                              for backward-compatible Phase 1 use against
-  ///                              the FPGA, which can only receive Sends.
-  /// \param peer_rx_base_addr     Used when tx_mode == kWriteWithImmForPeer.
+  /// \param tx_mode               Which wire verb the TX path issues (see
+  ///                              CpuRoceTxMode).  Default is kRdmaSend.
+  /// \param peer_rx_base_addr     Used when tx_mode == kRdmaWriteWithImm.
   ///                              The base virtual address of the peer's
   ///                              rx_data ring; our TX issues
   ///                              IBV_WR_RDMA_WRITE_WITH_IMM with
   ///                              remote_addr = peer_rx_base_addr +
-  ///                              slot * cu_page_size.  Ignored for
-  ///                              kSendForFpga.
-  /// \param peer_rx_rkey          Used when tx_mode == kWriteWithImmForPeer.
+  ///                              slot * cu_page_size.  May be 0 (peer rx_data
+  ///                              MR is registered with iova=0).  Ignored for
+  ///                              kRdmaSend.
+  /// \param peer_rx_rkey          Used when tx_mode == kRdmaWriteWithImm.
   ///                              The rkey associated with the peer's
-  ///                              rx_data MR.  Ignored for kSendForFpga.
+  ///                              rx_data MR; typically supplied later via
+  ///                              connect().  Ignored for kRdmaSend.
   CpuRoceTransceiver(const char *ibv_name, unsigned ibv_port,
                      unsigned tx_ibv_qp, std::size_t cu_frame_size,
                      std::size_t cu_page_size, unsigned pages,
                      const char *peer_ip, bool forward, bool rx_only,
                      bool tx_only, bool unified,
-                     CpuRoceTxMode tx_mode = CpuRoceTxMode::kSendForFpga,
+                     CpuRoceTxMode tx_mode = CpuRoceTxMode::kRdmaSend,
                      std::uint64_t peer_rx_base_addr = 0,
                      std::uint32_t peer_rx_rkey = 0);
 
@@ -163,7 +165,7 @@ public:
 
   /// connect(): transition the (already setup()) QP INIT -> RTR -> RTS using
   /// the now-known peer QP number, peer IPv4 (its RoCEv2 GID is derived from
-  /// this), and — for tx_mode == kWriteWithImmForPeer — the peer's rx_data
+  /// this), and — for tx_mode == kRdmaWriteWithImm — the peer's rx_data
   /// rkey.  Must be called after setup() and before blocking_monitor().
   /// Returns true on success.
   bool connect(unsigned peer_qp, const char *peer_ip,

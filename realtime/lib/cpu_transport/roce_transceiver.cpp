@@ -98,7 +98,7 @@ struct CpuRoceTransceiver::Impl {
   bool rx_only = false;
   bool tx_only = false;
   bool unified = false;
-  CpuRoceTxMode tx_mode = CpuRoceTxMode::kSendForFpga;
+  CpuRoceTxMode tx_mode = CpuRoceTxMode::kRdmaSend;
   std::uint64_t peer_rx_base_addr = 0;
   std::uint32_t peer_rx_rkey = 0;
   // Optional local IPv4 used to disambiguate the source GID in
@@ -693,7 +693,7 @@ void CpuRoceTransceiver::Impl::forward_loop() {
     swr.next = nullptr;
     const bool signal_this = (++since_signal % signal_every) == 0;
     swr.send_flags = signal_this ? IBV_SEND_SIGNALED : 0;
-    if (tx_mode == CpuRoceTxMode::kWriteWithImmForPeer) {
+    if (tx_mode == CpuRoceTxMode::kRdmaWriteWithImm) {
       swr.opcode = IBV_WR_RDMA_WRITE_WITH_IMM;
       swr.wr.rdma.remote_addr = peer_rx_base_addr + slot * stride_sz;
       swr.wr.rdma.rkey = peer_rx_rkey;
@@ -841,18 +841,18 @@ void CpuRoceTransceiver::Impl::tx_loop() {
     // free max_send_wr capacity; other WQEs are unsignaled.
     const bool signal_this = (++since_signal % signal_every) == 0;
     swr.send_flags = signal_this ? IBV_SEND_SIGNALED : 0;
-    if (tx_mode == CpuRoceTxMode::kWriteWithImmForPeer) {
-      // Phase 2 wire pattern.  remote_addr = peer_rx_base + slot*stride;
-      // peer decodes the slot from imm_data (which is in network byte
-      // order on the wire).
+    if (tx_mode == CpuRoceTxMode::kRdmaWriteWithImm) {
+      // Write directly into the peer's rx_data ring: remote_addr =
+      // peer_rx_base + slot*stride; the peer decodes the slot from imm_data
+      // (network byte order on the wire).
       swr.opcode = IBV_WR_RDMA_WRITE_WITH_IMM;
       swr.wr.rdma.remote_addr = peer_rx_base_addr + slot * stride_sz;
       swr.wr.rdma.rkey = peer_rx_rkey;
       swr.imm_data = htonl(slot);
     } else {
-      // Phase 1 wire pattern (FPGA-facing).  FPGA's HSB IP receives Sends;
-      // slot is identified on the peer side by which pre-posted recv WQE
-      // the Send consumed (peer's wr_id encoding).
+      // Send into the peer's pre-posted recv WQE (e.g. an FPGA's HSB IP, which
+      // receives Sends only).  The slot is identified on the peer side by which
+      // recv WQE the Send consumed (peer's wr_id encoding).
       swr.opcode = IBV_WR_SEND;
     }
 
@@ -962,7 +962,7 @@ void CpuRoceTransceiver::Impl::unified_loop() {
       swr.next = nullptr;
       const bool signal_this = (++since_signal % signal_every) == 0;
       swr.send_flags = signal_this ? IBV_SEND_SIGNALED : 0;
-      if (tx_mode == CpuRoceTxMode::kWriteWithImmForPeer) {
+      if (tx_mode == CpuRoceTxMode::kRdmaWriteWithImm) {
         swr.opcode = IBV_WR_RDMA_WRITE_WITH_IMM;
         swr.wr.rdma.remote_addr = peer_rx_base_addr + slot * stride_sz;
         swr.wr.rdma.rkey = peer_rx_rkey;
@@ -1107,7 +1107,7 @@ CpuRoceTransceiver::CpuRoceTransceiver(
     throw std::invalid_argument(
         "CpuRoceTransceiver: forward / rx_only / tx_only / unified are "
         "mutually exclusive (at most one may be true)");
-  // For tx_mode=kWriteWithImmForPeer we intentionally do NOT require
+  // For tx_mode=kRdmaWriteWithImm we intentionally do NOT require
   // peer_rx_base_addr / peer_rx_rkey to be non-zero at construction:
   //   - peer_rx_base_addr == 0 is the correct, valid base, because the peer's
   //     rx_data MR is registered with iova=0 (see register_mrs); the peer
@@ -1190,16 +1190,15 @@ bool CpuRoceTransceiver::connect(unsigned peer_qp, const char *peer_ip,
   if (impl_->started)
     return true;
   // Adopt the now-known peer parameters, then transition INIT -> RTR -> RTS.
-  if (impl_->tx_mode == CpuRoceTxMode::kWriteWithImmForPeer &&
-      peer_rx_rkey == 0) {
+  if (impl_->tx_mode == CpuRoceTxMode::kRdmaWriteWithImm && peer_rx_rkey == 0) {
     std::fprintf(stderr,
-                 "CpuRoceTransceiver::connect: tx_mode=kWriteWithImmForPeer "
+                 "CpuRoceTransceiver::connect: tx_mode=kRdmaWriteWithImm "
                  "requires a non-zero peer rx_data rkey\n");
     return false;
   }
   impl_->tx_ibv_qp = peer_qp;
   impl_->peer_ip = peer_ip;
-  if (impl_->tx_mode == CpuRoceTxMode::kWriteWithImmForPeer)
+  if (impl_->tx_mode == CpuRoceTxMode::kRdmaWriteWithImm)
     impl_->peer_rx_rkey = peer_rx_rkey;
   if (!impl_->transition_qp_to_rtr_rts()) {
     impl_->release_resources();

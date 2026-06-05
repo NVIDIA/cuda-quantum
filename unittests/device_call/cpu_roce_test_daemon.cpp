@@ -9,18 +9,20 @@
 /// @file cpu_roce_test_daemon.cpp
 /// @brief Test-only service-side daemon for the cpu_roce DeviceCallChannel.
 ///
-/// This is the *service* end of the device_call RDMA wire: it receives the
-/// CpuRoceChannel's Sends, dispatches them through libcudaq-realtime's
-/// CUDAQ_DISPATCH_HOST_CALL host dispatcher to plain-C++ handlers, and Writes
-/// the responses back to the caller's rx ring with RDMA Write-With-Imm.  It is
-/// the asymmetric-A counterpart of the channel:
+/// This is the *service* end of the device_call RDMA wire and plays the
+/// bridge/decoder role: it receives the CpuRoceChannel's RDMA Writes
+/// (requests), dispatches them through libcudaq-realtime's
+/// CUDAQ_DISPATCH_HOST_CALL host dispatcher to plain-C++ handlers, and Sends
+/// the responses back to the caller's rx ring.  It is the counterpart of the
+/// channel:
 ///
-///   channel --IBV_WR_SEND-->            daemon   (request)
-///   channel <--IBV_WR_RDMA_WRITE_WITH_IMM-- daemon (response)
+///   channel --IBV_WR_RDMA_WRITE_WITH_IMM--> daemon  (request)
+///   channel <--IBV_WR_SEND--                daemon  (response)
 ///
-/// so it stands in for a real HSB-enabled FPGA service (FPGAs receive Sends and
-/// transmit Writes) without the FPGA.  It is NOT a production deliverable; a
-/// real daemon with dlopen-able handlers, logging, etc. is a future phase.
+/// This mirrors a real FPGA <-> bridge: the FPGA (here, the channel) Writes
+/// syndromes and receives Sends; the bridge (here, the daemon) receives Writes
+/// and Sends corrections.  It is NOT a production deliverable; a real daemon
+/// with dlopen-able handlers, logging, etc. is a future phase.
 ///
 /// QP/rkey rendezvous: connected (UC) QPs need a bidirectional exchange, so the
 /// daemon runs a tiny TCP rendezvous *server* (the mirror of the channel's
@@ -286,16 +288,15 @@ int main(int argc, char **argv) {
   std::cout << "Page size:  " << cfg.page_size << " bytes" << std::endl;
 
   // [1] Construct the service-end transceiver via the public C wrapper.
-  //     tx_mode=WRITE_WITH_IMM_FOR_PEER: we Write responses back; we receive
-  //     the channel's Sends.  peer_rx_base_addr=0 matches the channel's iova=0
-  //     rx_data MR (it addresses slots by offset alone); the channel's rkey is
-  //     learned at rendezvous and supplied to cpu_roce_connect().
+  //     tx_mode=RDMA_SEND: we Send responses back (like a bridge Sending
+  //     corrections to an FPGA); we receive the channel's RDMA Writes as
+  //     requests.  We don't Write to the channel, so we need no peer rx_data
+  //     rkey here or at connect().
   cpu_roce_transceiver_t xcvr = cpu_roce_create_transceiver(
       cfg.device.c_str(), /*ib_port=*/1, /*tx_ibv_qp=*/0u, frame_size,
       cfg.page_size, cfg.num_pages, /*peer_ip=*/"0.0.0.0", /*forward=*/0,
-      /*rx_only=*/0, /*tx_only=*/0, /*unified=*/0,
-      CPU_ROCE_TX_MODE_WRITE_WITH_IMM_FOR_PEER, /*peer_rx_base_addr=*/0,
-      /*peer_rx_rkey=*/0);
+      /*rx_only=*/0, /*tx_only=*/0, /*unified=*/0, CPU_ROCE_TX_MODE_RDMA_SEND,
+      /*peer_rx_base_addr=*/0, /*peer_rx_rkey=*/0);
   if (!xcvr) {
     std::cerr << "ERROR: transceiver create failed" << std::endl;
     return 1;
@@ -375,8 +376,10 @@ int main(int argc, char **argv) {
   std::cout << "Rendezvous: peer qp=0x" << std::hex << peer_qp << " rkey=0x"
             << peer_rkey << std::dec << " ip=" << peer_ip << std::endl;
 
-  // [5] connect(): we Write to the channel's rx ring, so we need its rkey.
-  if (!cpu_roce_connect(xcvr, peer_qp, peer_ip, peer_rkey)) {
+  // [5] connect(): we Send responses (we do not Write to the channel), so no
+  //     peer rx_data rkey is needed.  peer_rkey is still received at rendezvous
+  //     for protocol symmetry but is unused on this (Send) side.
+  if (!cpu_roce_connect(xcvr, peer_qp, peer_ip, /*peer_rx_rkey=*/0)) {
     std::cerr << "ERROR: transceiver connect() failed" << std::endl;
     return 1;
   }

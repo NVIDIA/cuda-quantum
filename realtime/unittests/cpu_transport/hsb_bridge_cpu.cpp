@@ -204,7 +204,7 @@ int main(int argc, char **argv) {
       cfg.device.c_str(), /*ib_port=*/1, cfg.remote_qp, frame_size,
       cfg.page_size, cfg.num_pages, cfg.peer_ip.c_str(), cfg.forward ? 1 : 0,
       rx_only, tx_only, cfg.unified ? 1 : 0,
-      /*tx_mode=*/CPU_ROCE_TX_MODE_SEND_FOR_FPGA,
+      /*tx_mode=*/CPU_ROCE_TX_MODE_RDMA_SEND,
       /*peer_rx_base_addr=*/0, /*peer_rx_rkey=*/0);
   if (!xcvr) {
     std::cerr << "ERROR: cpu_roce_create_transceiver failed" << std::endl;
