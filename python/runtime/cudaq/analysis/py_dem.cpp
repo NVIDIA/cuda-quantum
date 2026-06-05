@@ -36,8 +36,10 @@ static std::string dem_from_kernel_impl(const std::string &kernelName,
           [[maybe_unused]] auto result =
               cudaq::marshal_and_launch_module(kernelName, kernelMod, args);
         });
+  } catch (nanobind::python_error &) {
+    throw; // keep real Python exceptions (e.g. from argument marshalling)
   } catch (const std::exception &e) {
-    throw std::runtime_error(e.what());
+    throw std::runtime_error(e.what()); // dem_from_kernel reports via RuntimeError
   } catch (...) {
     throw std::runtime_error(
         "cudaq::dem_from_kernel failed: the kernel uses an operation the Stim "
