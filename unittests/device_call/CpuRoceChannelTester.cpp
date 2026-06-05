@@ -71,6 +71,8 @@ using cudaq::realtime::fnv1a_hash;
 
 constexpr std::uint32_t AddThemFunctionId = fnv1a_hash("addThem");
 constexpr std::uint32_t NoopFunctionId = fnv1a_hash("noop");
+constexpr std::uint32_t AccumulateFunctionId = fnv1a_hash("accumulate");
+constexpr std::uint32_t SumFunctionId = fnv1a_hash("sum");
 constexpr std::uint32_t Slots = 8;
 constexpr std::uint64_t SlotSize = 256;
 
@@ -290,6 +292,45 @@ TEST_F(CpuRoceDispatchTest, DispatchesNoopFireAndForget) {
     EXPECT_EQ(0u, responseLen);
     __cudaq_device_call_safely_release_realtime_frame(frame);
   }
+}
+
+TEST_F(CpuRoceDispatchTest, FireAndForgetDoesNotPoisonLaterResponses) {
+  // Regression test for the late-RX-response poisoning bug: the service Writes
+  // a (zero-length) response for every fire-and-forget request, and that late
+  // write must be drained before its slot is reused -- otherwise a subsequent
+  // response-bearing call on the same slot reads the stale fire-and-forget
+  // response (wrong request_id) and fails validation.  Fire many
+  // fire-and-forget accumulate(i) with distinct payloads (forcing slot reuse
+  // far past the ring depth), then query the running sum: any poisoned/dropped
+  // accumulate makes the sum wrong or the sum() dispatch fail.
+  constexpr int kN = 2000;
+  std::int64_t expected = 0;
+  for (int i = 0; i < kN; ++i) {
+    void *frame = nullptr, *req = nullptr, *resp = nullptr;
+    ASSERT_EQ(0, __cudaq_device_call_acquire_realtime_frame(
+                     0, AccumulateFunctionId, sizeof(std::int64_t), 0, &frame,
+                     &req, &resp));
+    *static_cast<std::int64_t *>(req) = i;
+    expected += i;
+    std::uint64_t responseLen = 0;
+    ASSERT_EQ(0,
+              __cudaq_device_call_dispatch_realtime_frame(frame, &responseLen));
+    __cudaq_device_call_safely_release_realtime_frame(frame);
+  }
+
+  // Response-bearing sum() is dispatched after all the fire-and-forget
+  // accumulates (the daemon processes its receive ring in order), so it
+  // observes the full total.
+  void *frame = nullptr, *req = nullptr, *resp = nullptr;
+  ASSERT_EQ(0, __cudaq_device_call_acquire_realtime_frame(0, SumFunctionId, 0,
+                                                          sizeof(std::int64_t),
+                                                          &frame, &req, &resp));
+  std::uint64_t responseLen = 0;
+  ASSERT_EQ(0,
+            __cudaq_device_call_dispatch_realtime_frame(frame, &responseLen));
+  EXPECT_EQ(sizeof(std::int64_t), responseLen);
+  EXPECT_EQ(expected, *static_cast<std::int64_t *>(resp));
+  __cudaq_device_call_safely_release_realtime_frame(frame);
 }
 
 TEST_F(CpuRoceDispatchTest, DispatchesAddThemConcurrentlyAcrossThreads) {

@@ -180,6 +180,9 @@ public:
     rxFlags = cpu_roce_get_rx_ring_flag_addr(xcvr);
     rxStride = cpu_roce_get_page_size(xcvr);
 
+    ffPending.assign(numSlots, 0);
+    ffPendingRequestId.assign(numSlots, 0);
+
     // Run the transceiver RX/TX loops on a background thread.
     monitorThread = std::thread([this] { cpu_roce_blocking_monitor(xcvr); });
     started = true;
@@ -242,6 +245,22 @@ public:
     const std::uint32_t slot = rrCounter % numSlots;
     rrCounter = (rrCounter + 1u) % numSlots;
 
+    // If this slot still has an outstanding fire-and-forget whose response we
+    // never read, drain that late (zero-length) response before reuse.  The
+    // service Writes a response for every request, including fire-and-forget;
+    // that write targets this slot and, if left, would be read as THIS
+    // request's response (carrying the stale request_id).  Wait for it to land,
+    // then clear it.
+    if (ffPending[slot]) {
+      if (waitFlagNonZero(rxFlags[slot], "rx-drain"))
+        __atomic_store_n(&rxFlags[slot], std::uint64_t{0}, __ATOMIC_RELEASE);
+      else
+        CUDAQ_DBG("[device-call] cpu_roce fire-and-forget drain timed out "
+                  "slot={} requestId={}",
+                  slot, ffPendingRequestId[slot]);
+      ffPending[slot] = 0;
+    }
+
     const std::uint64_t txAddr =
         reinterpret_cast<std::uint64_t>(txData) + slot * txStride;
     const std::uint64_t rxAddr =
@@ -269,8 +288,14 @@ public:
               slot, state->requestId, state->functionId,
               state->responseCapacity == 0);
 
-    if (state->responseCapacity == 0)
-      return 0; // fire-and-forget
+    if (state->responseCapacity == 0) {
+      // Async fire-and-forget: return immediately per the device_call contract.
+      // Mark the slot so its next reuse drains the service's late zero-length
+      // response (see the drain above) before overwriting the slot.
+      ffPending[slot] = 1;
+      ffPendingRequestId[slot] = state->requestId;
+      return 0;
+    }
 
     // Wait for the service's Write-With-Imm response to land in our rx slot.
     if (!waitFlagNonZero(rxFlags[slot], "rx"))
@@ -482,6 +507,14 @@ private:
 
   std::mutex dispatchMutex; // v1: serialize wire round-trips
   std::uint32_t rrCounter = 0;
+  // Per-slot tracking of an outstanding fire-and-forget whose (ignored)
+  // zero-length response has not yet been drained.  The service Writes a
+  // response for *every* request, including fire-and-forget; that late write
+  // targets this slot, so we must drain it before reusing the slot or it would
+  // be read as the next request's response (with the stale request_id).  Sized
+  // to numSlots in initialize().
+  std::vector<char> ffPending;
+  std::vector<std::uint32_t> ffPendingRequestId;
   std::atomic<std::uint32_t> requestIdCounter{1};
 };
 

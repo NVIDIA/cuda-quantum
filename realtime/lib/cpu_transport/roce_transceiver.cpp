@@ -759,66 +759,67 @@ void CpuRoceTransceiver::Impl::tx_loop() {
   // post the wire verb, advance.  Periodically drain the SQ CQ so we
   // never block on max_send_wr.
   const std::uint32_t mask = stride_num - 1;
-  std::uint64_t scan_idx = 0;
+  std::uint64_t wqe_idx = 0;
 
-  // inflight[slot]: a send for this slot is posted and not yet completed.  We
-  // must not re-post it, and -- crucially -- tx_flag[slot] is cleared only when
-  // the send COMPLETES, not when we claim the slot.  Clearing on completion is
-  // what lets the producer (which only reuses a slot once tx_flag[slot] == 0)
-  // know the NIC is done reading tx_data[slot]; otherwise a fast producer such
-  // as a burst of fire-and-forget requests that never wait for a response could
-  // overwrite the slot while an in-flight send is still DMA-reading it.
-  std::vector<char> inflight(stride_num, 0);
-  // Posted sends not yet reaped; bounds the SQ so we never overflow
-  // max_send_wr (= stride_num) and ENOMEM.  Every send is signaled, so each
-  // completion frees exactly one slot.
+  // SQ CQ drain: signal every N WQEs so the drain frees max_send_wr capacity.
+  // N MUST be <= the SQ depth (max_send_wr = stride_num); otherwise the SQ
+  // fills with unreaped unsignaled WQEs before the first signaled reap and
+  // ibv_post_send returns ENOMEM.  Scale N with the ring (half the depth,
+  // capped at 16) so small rings (e.g. the device_call 8-slot channel) stay
+  // correct while large rings keep an amortized batch size.
+  //
+  // NOTE: tx_flag[slot] is cleared at *claim* (below), NOT on send completion.
+  // A completion-gated clear is unsafe here because tx_flag carries the slot's
+  // data address (constant per slot): a service that re-publishes the same slot
+  // without waiting -- e.g. the host dispatcher under a fire-and-forget flood
+  // -- is then indistinguishable from a stale completion, so the completion
+  // would wipe the freshly-published flag and silently drop that response.
+  // Reuse safety is instead the caller's responsibility: it only reuses a slot
+  // after the prior request's response/drain, which implies that send already
+  // landed.
+  constexpr int kSignalCap = 16;
+  std::uint32_t signal_every = stride_num / 2;
+  if (signal_every < 1)
+    signal_every = 1;
+  if (signal_every > static_cast<std::uint32_t>(kSignalCap))
+    signal_every = static_cast<std::uint32_t>(kSignalCap);
+  std::uint32_t since_signal = 0;
+  // Posted sends not yet reaped; bounds the SQ so a fast producer (e.g. a burst
+  // of fire-and-forget requests) cannot overflow max_send_wr and ENOMEM.  Each
+  // signaled completion frees ~signal_every WQEs.
   std::uint32_t unreaped = 0;
-  constexpr int kCqBatch = 16;
-  ibv_wc swc[kCqBatch]{};
-
-  // Reap SQ completions: each completed send releases its slot back to the
-  // producer (clear tx_flag) and clears the in-flight marker.  wr_id == slot.
-  const auto drain_sq = [&]() -> int {
-    const int n = ibv_poll_cq(sq_cq, kCqBatch, swc);
-    for (int k = 0; k < n; ++k) {
-      const std::uint32_t s = static_cast<std::uint32_t>(swc[k].wr_id) & mask;
-      if (swc[k].status != IBV_WC_SUCCESS) {
-        std::fprintf(stderr,
-                     "CpuRoceTransceiver: TX CQE slot=%u status=%d (%s)\n", s,
-                     swc[k].status, ibv_wc_status_str(swc[k].status));
-      }
-      inflight[s] = 0;
-      __atomic_store_n((volatile std::uint64_t *)&tx_flags[s],
-                       static_cast<std::uint64_t>(0), __ATOMIC_RELEASE);
-      if (unreaped > 0)
-        unreaped--;
-    }
-    return n;
-  };
+  ibv_wc swc[kSignalCap]{};
 
   while (exit_flag.load(std::memory_order_acquire) == 0) {
-    // Reap completions first so finished slots free up for the producer and
-    // the SQ budget recovers promptly.
-    drain_sq();
-
-    const std::uint32_t slot = static_cast<std::uint32_t>(scan_idx & mask);
-    scan_idx++;
+    const std::uint32_t slot = static_cast<std::uint32_t>(wqe_idx & mask);
     auto &flag = *(volatile std::uint64_t *)&tx_flags[slot];
     const std::uint64_t addr = __atomic_load_n(&flag, __ATOMIC_ACQUIRE);
-    if (addr == 0 || inflight[slot]) {
+    if (addr == 0) {
       cpu_relax();
       continue;
     }
 
-    // Backpressure: never exceed the SQ depth.  Block-drain until a completion
-    // frees room (every send is signaled, so completions always arrive).
+    // Backpressure: ensure the SQ has room before posting.  Drain (blocking on
+    // the signaled completions, which always arrive because we signal at least
+    // every stride_num/2 WQEs) until the in-flight count drops below the SQ
+    // depth.  Without this the SQ fills with unreaped unsignaled WQEs and the
+    // next post ENOMEMs.
     while (unreaped >= stride_num) {
-      if (drain_sq() == 0) {
+      const int n = ibv_poll_cq(sq_cq, kSignalCap, swc);
+      if (n > 0) {
+        const std::uint32_t freed =
+            static_cast<std::uint32_t>(n) * signal_every;
+        unreaped = unreaped > freed ? unreaped - freed : 0;
+      } else {
         if (exit_flag.load(std::memory_order_acquire) != 0)
           return;
         cpu_relax();
       }
     }
+
+    // Claim: clear the flag so we don't re-post this slot.  The caller must not
+    // reuse the slot until its response/drain confirms this send landed.
+    __atomic_store_n(&flag, static_cast<std::uint64_t>(0), __ATOMIC_RELEASE);
 
     // Build the send WQE.  Use the slot's data address as the SGE source;
     // the slot index is encoded in the IMM for Write-With-Imm mode (so the
@@ -836,9 +837,10 @@ void CpuRoceTransceiver::Impl::tx_loop() {
     swr.sg_list = &sge;
     swr.num_sge = 1;
     swr.next = nullptr;
-    // Signal every send: the completion is what tells us the NIC is done
-    // reading tx_data[slot], at which point drain_sq() clears tx_flag[slot].
-    swr.send_flags = IBV_SEND_SIGNALED;
+    // Signal completion every signal_every WQEs so we can drain the SQ CQ and
+    // free max_send_wr capacity; other WQEs are unsignaled.
+    const bool signal_this = (++since_signal % signal_every) == 0;
+    swr.send_flags = signal_this ? IBV_SEND_SIGNALED : 0;
     if (tx_mode == CpuRoceTxMode::kWriteWithImmForPeer) {
       // Phase 2 wire pattern.  remote_addr = peer_rx_base + slot*stride;
       // peer decodes the slot from imm_data (which is in network byte
@@ -861,13 +863,24 @@ void CpuRoceTransceiver::Impl::tx_loop() {
           stderr,
           "CpuRoceTransceiver: ibv_post_send slot=%u failed rc=%d errno=%d\n",
           slot, post_rc, errno);
-      // Leave tx_flag set and the slot not-in-flight so we retry it; back off
-      // so a stuck QP can't flood the log / burn a core at full tilt.
+      // Restore the flag so the producer doesn't lose track of an in-flight
+      // request we failed to ship; back off so a stuck QP can't flood the log.
+      __atomic_store_n(&flag, addr, __ATOMIC_RELEASE);
       std::this_thread::sleep_for(std::chrono::milliseconds(2));
       continue;
     }
-    inflight[slot] = 1;
     ++unreaped;
+
+    // Drain opportunistically after a signaled WQE (non-blocking poll).
+    if (signal_this) {
+      const int n = ibv_poll_cq(sq_cq, kSignalCap, swc);
+      if (n > 0) {
+        const std::uint32_t freed =
+            static_cast<std::uint32_t>(n) * signal_every;
+        unreaped = unreaped > freed ? unreaped - freed : 0;
+      }
+    }
+    wqe_idx++;
   }
 }
 
@@ -1106,6 +1119,15 @@ CpuRoceTransceiver::CpuRoceTransceiver(
   if (pages == 0 || (pages & (pages - 1)) != 0)
     throw std::invalid_argument(
         "CpuRoceTransceiver: pages must be a non-zero power of two");
+
+  // The TX and forward SGEs transmit cu_frame_size bytes out of a slot whose
+  // stride is cu_page_size, so a frame larger than the slot would read past the
+  // slot -- and, for the last slot, past the registered MR.  Require a non-zero
+  // frame that fits within one slot.
+  if (cu_frame_size == 0 || cu_frame_size > cu_page_size)
+    throw std::invalid_argument("CpuRoceTransceiver: cu_frame_size must be "
+                                "non-zero and <= cu_page_size "
+                                "(the per-slot stride)");
 
   impl_->ibv_name = ibv_name;
   impl_->ibv_port = ibv_port;

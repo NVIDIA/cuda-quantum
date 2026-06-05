@@ -131,6 +131,55 @@ extern "C" void noopHost(void *slot, std::size_t /*slot_size*/) {
   response->ptp_timestamp = ptp;
 }
 
+// Running total for the fire-and-forget regression test below.  The host
+// dispatcher is single-threaded, so a relaxed atomic is sufficient.
+std::atomic<std::int64_t> g_accum{0};
+
+// accumulate(int64 v) -> void (fire-and-forget): adds v to g_accum.  Paired
+// with sum() so a test can detect a fire-and-forget request whose late response
+// poisoned a later response-bearing call (a corrupted/missing accumulate makes
+// the queried sum wrong).
+extern "C" void accumulateHost(void *slot, std::size_t /*slot_size*/) {
+  auto *header = static_cast<RPCHeader *>(slot);
+  if (header->magic != RPC_MAGIC_REQUEST)
+    return;
+  const std::uint32_t request_id = header->request_id;
+  const std::uint64_t ptp = header->ptp_timestamp;
+  if (header->arg_len >= sizeof(std::int64_t)) {
+    std::int64_t v = 0;
+    std::memcpy(&v, static_cast<std::uint8_t *>(slot) + sizeof(RPCHeader),
+                sizeof(v));
+    g_accum.fetch_add(v, std::memory_order_relaxed);
+  }
+  auto *response = static_cast<RPCResponse *>(slot);
+  response->magic = RPC_MAGIC_RESPONSE;
+  response->status = 0;
+  response->result_len = 0;
+  response->request_id = request_id;
+  response->ptp_timestamp = ptp;
+}
+
+// sum() -> int64: returns the running accumulate total.
+extern "C" void sumHost(void *slot, std::size_t slot_size) {
+  auto *header = static_cast<RPCHeader *>(slot);
+  if (header->magic != RPC_MAGIC_REQUEST)
+    return;
+  const std::uint32_t request_id = header->request_id;
+  const std::uint64_t ptp = header->ptp_timestamp;
+  const std::int64_t total = g_accum.load(std::memory_order_relaxed);
+  const std::int32_t status =
+      (slot_size >= sizeof(RPCResponse) + sizeof(std::int64_t)) ? 0 : 1;
+  auto *response = static_cast<RPCResponse *>(slot);
+  response->magic = RPC_MAGIC_RESPONSE;
+  response->status = status;
+  response->result_len = status == 0 ? sizeof(std::int64_t) : 0;
+  response->request_id = request_id;
+  response->ptp_timestamp = ptp;
+  if (status == 0)
+    std::memcpy(static_cast<std::uint8_t *>(slot) + sizeof(RPCResponse), &total,
+                sizeof(total));
+}
+
 // ---------------------------------------------------------------------------
 // Argument parsing
 // ---------------------------------------------------------------------------
@@ -332,8 +381,8 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  // [6] Build the HOST_CALL function table: addThem, noop.
-  cudaq_function_entry_t entries[2];
+  // [6] Build the HOST_CALL function table: addThem, noop, accumulate, sum.
+  cudaq_function_entry_t entries[4];
   std::memset(entries, 0, sizeof(entries));
   entries[0].handler.host_fn = &addThemHost;
   entries[0].function_id = fnv1a_hash("addThem");
@@ -347,6 +396,18 @@ int main(int argc, char **argv) {
   entries[1].dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
   entries[1].schema.num_args = 0;
   entries[1].schema.num_results = 0;
+  entries[2].handler.host_fn = &accumulateHost;
+  entries[2].function_id = fnv1a_hash("accumulate");
+  entries[2].dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
+  entries[2].schema.num_args = 1;
+  entries[2].schema.num_results = 0;
+  entries[2].schema.args[0].type_id = CUDAQ_TYPE_ARRAY_UINT8;
+  entries[3].handler.host_fn = &sumHost;
+  entries[3].function_id = fnv1a_hash("sum");
+  entries[3].dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
+  entries[3].schema.num_args = 0;
+  entries[3].schema.num_results = 1;
+  entries[3].schema.results[0].type_id = CUDAQ_TYPE_ARRAY_UINT8;
 
   // [7] Wire the host dispatcher to the transceiver rings (3-thread layout,
   //     identical to hsb_bridge_cpu but tx_mode=Write on the transceiver).
@@ -369,7 +430,7 @@ int main(int argc, char **argv) {
   dctx.config.dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
   dctx.config.skip_tx_markers = 1;
   dctx.function_table.entries = entries;
-  dctx.function_table.count = 2;
+  dctx.function_table.count = 4;
   dctx.shutdown_flag = &dispatcher_shutdown;
   dctx.stats_counter = &packets_dispatched;
   dctx.skip_stream_sweep = true;
