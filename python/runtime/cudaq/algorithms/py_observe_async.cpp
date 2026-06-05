@@ -80,7 +80,7 @@ static async_observe_result pyObserveAsync(const std::string &shortName,
         p->erase();
         delete p;
       });
-  return details::runObservationAsync(
+  return detail::runObservationAsync(
       detail::make_copyable_function(
           [opaques = std::move(opaques), shortName, clonedMod]() mutable {
             if (cudaq::getEnvBool("CUDAQ_DUMP_JIT_IR", false))
@@ -131,7 +131,7 @@ pyObservePar(const PyParType &type, const std::string &shortName,
           "[cudaq::observe warning] distributed observe requested but only 1 "
           "QPU available. no speedup expected.\n");
     nanobind::gil_scoped_release release;
-    return details::distributeComputations(
+    return detail::distributeComputations(
         [&](std::size_t i, const spin_op &op) {
           nanobind::gil_scoped_acquire acquire;
           return pyObserveAsync(shortName, module, op, i, shots, args);
@@ -156,7 +156,7 @@ pyObservePar(const PyParType &type, const std::string &shortName,
 
   // Distribute locally, i.e. to the local nodes QPUs
   nanobind::gil_scoped_release release;
-  auto localRankResult = details::distributeComputations(
+  auto localRankResult = detail::distributeComputations(
       [&](std::size_t i, const spin_op &op) {
         nanobind::gil_scoped_acquire acquire;
         return pyObserveAsync(shortName, module, op, i, shots, args);

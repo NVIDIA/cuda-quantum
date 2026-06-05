@@ -479,7 +479,7 @@ static bool isCudaQType(StringRef tn) {
          tn == "qvector";
 }
 
-namespace cudaq::details {
+namespace cudaq::detail {
 /// Is \p x the `operator()` function?
 static bool isCallOperator(clang::CXXOperatorCallExpr *x) {
   return cudaq::isCallOperator(x->getOperator());
@@ -2472,8 +2472,9 @@ bool QuakeBridgeVisitor::VisitCallExpr(clang::CallExpr *x) {
         vecPtr = cc::StdvecDataOp::create(builder, loc, ptrTy, args[0]);
         auto bits = svecTy.getElementType().getIntOrFloatBitWidth();
         assert(bits > 0);
-        auto scale = arith::ConstantIntOp::create(
-            builder, loc, args[1].getType(), (bits + 7) / 8);
+        auto scale =
+            arith::ConstantIntOp::create(builder, loc, args[1].getType(),
+                                         cudaq::opt::convertBitsToBytes(bits));
         offset = arith::MulIOp::create(builder, loc, scale, args[1]);
       } else {
         ptrTy = cc::PointerType::get(eleTy);
@@ -3752,4 +3753,4 @@ bool QuakeBridgeVisitor::VisitStringLiteral(clang::StringLiteral *x) {
       builder, toLocation(x), strLitTy, builder.getStringAttr(x->getString())));
 }
 
-} // namespace cudaq::details
+} // namespace cudaq::detail

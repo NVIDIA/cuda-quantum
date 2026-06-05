@@ -151,10 +151,10 @@ public:
     // by the analysis simulator (e.g. a `choice` function that calls
     // `cudaq::sample`) could launch a second kernel through this transport
     // while the outer scope is still active.
-    if (nvqir::AnalysisScope::is_active() && context.name != "resource-count")
-      throw std::runtime_error(
-          "Illegal use of resource counter simulator! (Did you attempt to run "
-          "a kernel inside of a choice function?)");
+    if (nvqir::AnalysisScope::is_active() && context.name != "resource-count" &&
+        context.name != "dem")
+      throw std::runtime_error("Illegal use of an analysis simulator (resource "
+                               "counter / DEM) on a remote QPU.");
 
     CUDAQ_INFO("Remote Rest QPU preparing execution context for {}",
                context.name);
@@ -271,7 +271,11 @@ public:
         throw std::runtime_error("observe execution requires a spin_op");
       target->pauliTermSplitObservable = ctx->spin;
     } else if (ctx && ctx->name == "resource-count") {
-      target->generateResourceCounts = true;
+      target->emitResourceCounts = true;
+    } else if (ctx && ctx->name == "dem") {
+      target->emitJit = true;
+      target->emitTargetCode = false;
+      target->runTargetLoweringPipeline = false;
     }
     return target;
   }
@@ -366,6 +370,18 @@ public:
       return;
     }
 
+    if (executionContext->name == "dem") {
+      cudaq::ExecutionContext context("dem");
+      context.executionManager = cudaq::getDefaultExecutionManager();
+      context.noiseModel = executionContext->noiseModel;
+      context.qpuId = executionContext->qpuId;
+      assert(codes.size() == 1 && codes[0].jit);
+      cudaq::platform::with_execution_context(
+          context, [&]() { codes[0].jit->run(kernelName); });
+      executionContext->dem_text = std::move(context.dem_text);
+      return;
+    }
+
     // Get the current execution context and number of shots
     std::size_t localShots = 1000;
     if (executionContext->shots != std::numeric_limits<std::size_t>::max() &&
@@ -379,7 +395,7 @@ public:
 
     // If emulation requested, then just grab the function and invoke it with
     // the simulator
-    cudaq::details::future future;
+    cudaq::detail::future future;
     if (emulate) {
 
       // TODO: This assert demonstrates that we are never expected to return a
@@ -393,7 +409,7 @@ public:
       std::size_t seed = cudaq::get_random_seed();
 
       // Launch the execution of the simulated jobs asynchronously
-      future = cudaq::details::future(std::async(
+      future = cudaq::detail::future(std::async(
           std::launch::async,
           [&, codes, localShots, kernelName, seed, isObserve,
            isRun]() mutable -> cudaq::sample_result {
@@ -466,10 +482,10 @@ public:
         return;
       // Cannot be observe and run at the same time
       assert(!isObserve || !isRun);
-      const cudaq::details::ExecutionContextType execType =
-          isRun       ? cudaq::details::ExecutionContextType::run
-          : isObserve ? cudaq::details::ExecutionContextType::observe
-                      : cudaq::details::ExecutionContextType::sample;
+      const cudaq::detail::ExecutionContextType execType =
+          isRun       ? cudaq::detail::ExecutionContextType::run
+          : isObserve ? cudaq::detail::ExecutionContextType::observe
+                      : cudaq::detail::ExecutionContextType::sample;
 
       future = executor->execute(codes, execType,
                                  &executionContext->invocationResultBuffer);
@@ -504,8 +520,8 @@ public:
     if (getEnvBool("DISABLE_REMOTE_SEND", false))
       return {};
     // Cannot be observe and run at the same time
-    const cudaq::details::ExecutionContextType execType =
-        cudaq::details::ExecutionContextType::sample;
+    const cudaq::detail::ExecutionContextType execType =
+        cudaq::detail::ExecutionContextType::sample;
 
     auto future = executor->execute(codes, execType,
                                     &executionContext->invocationResultBuffer);

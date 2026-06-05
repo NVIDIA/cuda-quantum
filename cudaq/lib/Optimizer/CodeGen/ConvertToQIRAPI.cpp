@@ -820,6 +820,26 @@ struct DiscriminateOpRewrite
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = disc.getLoc();
     Value m = adaptor.getMeasurement();
+    // Handle-form: the operand is the opaque i64 handle produced by
+    // `mz_handle__to__register`. Round-trip it through `Result*` and call
+    // the QIR runtime's canonical `__quantum__rt__read_result` reader, which
+    // looks the bit up under the inttoptr-encoded key the handle entry
+    // populated.
+    if (isa<IntegerType>(m.getType())) {
+      auto ctx = rewriter.getContext();
+      auto resultPtrTy =
+          static_cast<const QIRAPITypeConverter *>(getTypeConverter())
+              ->getResultType(ctx);
+      auto resAsPtr = cudaq::cc::CastOp::create(rewriter, loc, resultPtrTy, m);
+      rewriter.replaceOpWithNewOp<func::CallOp>(disc, rewriter.getI1Type(),
+                                                cudaq::opt::qir1_0::ReadResult,
+                                                ValueRange{resAsPtr});
+      return success();
+    }
+    // Non-handle path: legacy `Result* -> ptr<i1>; load` pattern. Safe
+    // because the only producer of `Result*` outside the handle path is
+    // the sentinel-returning `mz` / `mz__to__register`, where
+    // `Result = bool` and the pointer is dereferenceable.
     auto i1PtrTy = cudaq::cc::PointerType::get(rewriter.getI1Type());
     auto cast = cudaq::cc::CastOp::create(rewriter, loc, i1PtrTy, m);
     rewriter.replaceOpWithNewOp<cudaq::cc::LoadOp>(disc, cast);
@@ -844,12 +864,19 @@ struct DiscriminateOpToCallRewrite
     // expected by the QIR read-result functions.
     SmallVector<Value> operands{adaptor.getOperands().begin(),
                                 adaptor.getOperands().end()};
-    if (operands.size() == 1 && isa<IntegerType>(operands.front().getType())) {
+    const bool operandIsHandle =
+        operands.size() == 1 && isa<IntegerType>(operands.front().getType());
+    if (operandIsHandle) {
       auto resultTy = M::getResultType(rewriter.getContext());
       operands.front() =
           cudaq::cc::CastOp::create(rewriter, loc, resultTy, operands.front());
     }
-    if constexpr (M::discriminateToClassical) {
+    // For handle-form callers, the i64 payload is an opaque runtime handle.
+    // Loading through `Result*` as if it were `bool*` (the legacy bitcast+load
+    // pattern below) would dereference an integer-encoded pointer and segfault.
+    // The read-result runtime call recovers the bit without exposing the QEC
+    // chronological index contract to ordinary `discriminate(handle)`.
+    if (operandIsHandle || M::discriminateToClassical) {
       if constexpr (M::qirVersion == QirVersion::version_1_0) {
         rewriter.replaceOpWithNewOp<func::CallOp>(
             disc, rewriter.getI1Type(), cudaq::opt::qir1_0::ReadResult,
@@ -1489,20 +1516,39 @@ struct MeasurementOpPattern : public OpConversionPattern<cudaq::quake::MzOp> {
                             adaptor.getTargets().end()};
     auto functionName = M::getQIRMeasure();
 
-    // Handle-form measurements produce a `!cc.measure_handle` SSA value
-    // whose converted type is `i64`. The QIR measurement function still
-    // returns `Result*`, so we bridge the call's `Result*` result to the
-    // converted `i64` payload via `cc.cast`.
+    // Handle-form measurements produce a `!cc.measure_handle` SSA value whose
+    // converted type is `i64`. Route handle-form callers to the sibling runtime
+    // entry `__quantum__qis__mz_handle__to__register`; ordinary discrimination
+    // treats the return value as an opaque handle, while QEC runtime calls map
+    // it to a chronological measurement index.
     const bool measOutIsHandle =
         isa<cudaq::cc::MeasureHandleType>(mz.getMeasOut().getType());
 
     // Are we using the measurement that returns a result?
     if constexpr (M::mzReturnsResultType) {
-      // Yes, the measurement results the result, so we can use a
-      // straightforward codegen pattern. Use either the mz or the
-      // mz_to_register call (with the name as an extra argument) and forward
-      // the result of the call as the result.
+      // Handle-form gets its own runtime entry that returns `i64` directly.
+      if (measOutIsHandle) {
+        StringRef runtimeRegisterName =
+            mz->getAttr(cudaq::opt::MzAssignedNameAttrName)
+                ? regNameAttr.getValue()
+                : StringRef{};
+        auto cstringGlobal =
+            createGlobalCString(mz, loc, rewriter, runtimeRegisterName);
+        args.push_back(cstringGlobal);
+        auto i64Ty = rewriter.getI64Type();
+        auto call = func::CallOp::create(
+            rewriter, loc, i64Ty, cudaq::opt::QIRMeasureHandleToRegister, args);
+        call->setAttr(cudaq::opt::QIRRegisterNameAttr, regNameAttr);
+        SmallVector<Value> replaceVals;
+        replaceVals.push_back(call.getResult(0));
+        auto assundry = filterArgs(mz, adaptor.getTargets());
+        replaceVals.append(assundry.begin(), assundry.end());
+        rewriter.replaceOp(mz, replaceVals);
+        return success();
+      }
 
+      // Non-handle path: use the standard mz / mz__to__register call and
+      // forward its `Result*` result unchanged.
       if (mz->getAttr(cudaq::opt::MzAssignedNameAttrName)) {
         functionName = cudaq::opt::QIRMeasureToRegister;
         auto cstringGlobal =
@@ -1514,13 +1560,7 @@ struct MeasurementOpPattern : public OpConversionPattern<cudaq::quake::MzOp> {
           func::CallOp::create(rewriter, loc, resultTy, functionName, args);
       auto assundry = filterArgs(mz, adaptor.getTargets());
       SmallVector<Value> replaceVals;
-      if (measOutIsHandle) {
-        auto i64Ty = rewriter.getI64Type();
-        replaceVals.push_back(
-            cudaq::cc::CastOp::create(rewriter, loc, i64Ty, call.getResult(0)));
-      } else {
-        replaceVals.append(call.getResults().begin(), call.getResults().end());
-      }
+      replaceVals.append(call.getResults().begin(), call.getResults().end());
       replaceVals.append(assundry.begin(), assundry.end());
       rewriter.replaceOp(mz, replaceVals);
       call->setAttr(cudaq::opt::QIRRegisterNameAttr, regNameAttr);

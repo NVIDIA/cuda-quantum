@@ -48,6 +48,7 @@ inline static constexpr std::string_view GetCircuitSimulatorSymbol =
 static thread_local std::map<Qubit *, Result *> measQB2Res;
 static thread_local std::map<Result *, Qubit *> measRes2QB;
 static thread_local std::map<Result *, Result> measRes2Val;
+static thread_local std::vector<std::int64_t> measHandle2Index;
 
 /// @brief Provide a holder for externally created
 /// CircuitSimulator pointers (like from Python) that
@@ -728,6 +729,25 @@ Result *__quantum__qis__mz__to__register(Qubit *q, const char *name) {
   return b ? ResultOne : ResultZero;
 }
 
+// Handle-form measurement variant.
+std::int64_t __quantum__qis__mz_handle__to__register(Qubit *q,
+                                                     const char *name) {
+  std::string regName(name);
+  auto qI = qubitToSizeT(q);
+  ScopedTraceWithContext("NVQIR::mz_handle", qI, regName);
+  auto *sim = nvqir::getCircuitSimulatorInternal();
+  auto b = sim->mz(qI, regName);
+  auto idx = sim->getMeasureIndex();
+  // The handle is the dense index of this measurement; record its chronological
+  // measurement index.
+  auto handle = static_cast<std::int64_t>(measHandle2Index.size());
+  measHandle2Index.push_back(idx);
+  Result *r = reinterpret_cast<Result *>(static_cast<std::intptr_t>(handle));
+  measRes2QB[r] = q;
+  measRes2Val[r] = b;
+  return handle;
+}
+
 void __quantum__qis__exp_pauli(double theta, Array *qubits, char *pauliWord) {
   struct CLikeString {
     char *ptr = nullptr;
@@ -783,12 +803,16 @@ static std::vector<std::size_t> safeArrayToVectorSizeT(Array *arr) {
   return arrayToVectorSizeT(arr);
 }
 
-// Each `Result*` in the incoming buffer is the bit pattern of an `i64`
-// chronological measurement index (the runtime representation of
-// `!cc.measure_handle` post-conversion); it is NOT a heap `Result` object and
-// must not be dereferenced.
+// Each `Result*` in the incoming buffer is the bit pattern of an `i64` measure
+// handle. Handles produced by `mz_handle__to__register` are resolved through
+// `measHandle2Index`; hand-written QIR that already uses chronological indices
+// continues to pass those indices through unchanged.
 static inline std::int64_t resultPtrToMeasureIndex(Result *r) {
-  return static_cast<std::int64_t>(reinterpret_cast<std::intptr_t>(r));
+  auto handle = static_cast<std::int64_t>(reinterpret_cast<std::intptr_t>(r));
+  if (handle >= 0 &&
+      handle < static_cast<std::int64_t>(measHandle2Index.size()))
+    return measHandle2Index[handle];
+  return handle;
 }
 
 // Validate the `(results, count)` pair from the QIR side and return the
@@ -887,7 +911,7 @@ void __quantum__qis__apply_kraus_channel_double(std::int64_t krausChannelKey,
   }
 
   if (!noise)
-    return cudaq::details::warn(
+    return cudaq::detail::warn(
         "apply_noise called but no noise model provided.");
 
   std::vector<double> paramVec(params, params + numParams);
@@ -928,7 +952,7 @@ __quantum__qis__apply_kraus_channel_float(std::int64_t krausChannelKey,
   }
 
   if (!noise)
-    return cudaq::details::warn(
+    return cudaq::detail::warn(
         "apply_noise called but no noise model provided.");
 
   std::vector<float> paramVec(params, params + numParams);
@@ -1229,6 +1253,7 @@ void __quantum__rt__clear_result_maps() {
   measQB2Res.clear();
   measRes2QB.clear();
   measRes2Val.clear();
+  measHandle2Index.clear();
 }
 
 /// This is the generalized version of invoke that does not use a va_list

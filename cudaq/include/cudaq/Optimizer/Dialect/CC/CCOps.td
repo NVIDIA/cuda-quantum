@@ -96,7 +96,14 @@ def cc_ScopeOp : CCOp<"scope",
     using BodyBuilderFn =
         llvm::function_ref<void(mlir::OpBuilder &, mlir::Location)>;
 
-    bool hasAllocation(bool quantumAllocs = true);
+    // Determine if the scope has any allocation.
+    bool hasAllocation();
+
+    // Determine if the scope has a classical allocation, ignoring quantum.
+    bool hasClassicalAllocation();
+    
+    // Determine if the scope has a quantum allocation, ignoring classical.
+    bool hasQuantumAllocation();
   }];
 }
 

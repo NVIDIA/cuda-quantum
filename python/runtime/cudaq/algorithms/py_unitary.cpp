@@ -25,7 +25,7 @@ static nanobind::object get_unitary_impl(const std::string &shortName,
 
   // Return as numpy array (dim, dim), complex128
   auto temp = contrib::get_unitary_cmat(std::move(f));
-  return details::cmat_to_numpy(temp);
+  return detail::cmat_to_numpy(temp);
 }
 
 /// Bind the get_unitary cudaq function

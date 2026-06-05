@@ -99,7 +99,7 @@ SpanHandle Tracer::beginSpan(const TraceContext &ctx, std::string_view name,
                              std::string_view category) {
   const bool tagFound = (tag != 0) && cudaq::isTimingTagEnabled(tag);
   const bool traceOn =
-      cudaq::details::should_log(cudaq::details::LogLevel::trace);
+      cudaq::detail::should_log(cudaq::detail::LogLevel::trace);
   const bool progCapture = programmaticCapture.load(std::memory_order_relaxed);
   if (!(tagFound || traceOn || progCapture))
     return {};

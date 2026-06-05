@@ -57,7 +57,7 @@ Value cudaq::cc::getByteSizeOfType(OpBuilder &builder, Location loc, Type ty,
 
   // Handle primitive types with constant sizes.
   auto primSize = [](auto ty) -> unsigned {
-    return (ty.getIntOrFloatBitWidth() + 7) / 8;
+    return cudaq::opt::convertBitsToBytes(ty.getIntOrFloatBitWidth());
   };
   auto rawSize =
       TypeSwitch<Type, std::optional<std::int32_t>>(ty)
@@ -2018,26 +2018,38 @@ void cudaq::cc::ScopeOp::getSuccessorRegions(
 
 // If quantumAllocs, then just look for any allocate memory effect. Otherwise,
 // look for any allocate memory other than from the quake dialect.
-template <bool quantumAllocs>
+template <bool quantumAllocs, bool classicalAllocs>
 bool hasAllocation(Region &region) {
   for (auto &block : region)
     for (auto &op : block) {
       if (auto mem = dyn_cast<MemoryEffectOpInterface>(op))
-        if (mem.hasEffect<MemoryEffects::Allocate>())
-          if (quantumAllocs || !isa<cudaq::quake::AllocaOp>(op))
+        if (mem.hasEffect<MemoryEffects::Allocate>()) {
+          if (quantumAllocs && isa<cudaq::quake::AllocaOp>(op))
             return true;
+          if (classicalAllocs && !isa<cudaq::quake::AllocaOp>(op))
+            return true;
+        }
       if (!isa<cudaq::cc::ScopeOp>(op))
         for (auto &opReg : op.getRegions())
-          if (hasAllocation<quantumAllocs>(opReg))
+          if (hasAllocation<quantumAllocs, classicalAllocs>(opReg))
             return true;
     }
   return false;
 }
 
-bool cudaq::cc::ScopeOp::hasAllocation(bool quantumAllocs) {
-  if (quantumAllocs)
-    return ::hasAllocation</*quantumAllocs=*/true>(getRegion());
-  return ::hasAllocation</*quantumAllocs=*/false>(getRegion());
+bool cudaq::cc::ScopeOp::hasAllocation() {
+  return ::hasAllocation</*quantumAllocs=*/true, /*classicalAllocs=*/true>(
+      getRegion());
+}
+
+bool cudaq::cc::ScopeOp::hasClassicalAllocation() {
+  return ::hasAllocation</*quantumAllocs=*/false, /*classicalAllocs=*/true>(
+      getRegion());
+}
+
+bool cudaq::cc::ScopeOp::hasQuantumAllocation() {
+  return ::hasAllocation</*quantumAllocs=*/true, /*classicalAllocs=*/false>(
+      getRegion());
 }
 
 namespace {

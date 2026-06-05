@@ -13,7 +13,7 @@
 
 namespace cudaq::opt {
 
-namespace internal {
+namespace detail {
 
 template <typename A>
 concept isOpTestFunction =
@@ -36,7 +36,7 @@ bool hasCharacteristic(A &&test, mlir::Operation &op) {
   return test(op);
 }
 
-} // namespace internal
+} // namespace detail
 
 //===----------------------------------------------------------------------===//
 // Some predefined recursive tests on Regions of Ops.
@@ -44,13 +44,13 @@ bool hasCharacteristic(A &&test, mlir::Operation &op) {
 
 /// hasQuantum recursively tests for an Op with the QuantumGate trait.
 inline bool hasQuantum(mlir::Operation &op) {
-  return internal::hasCharacteristic(
+  return detail::hasCharacteristic(
       [](mlir::Operation &op) { return op.hasTrait<QuantumGate>(); }, op);
 }
 
 /// hasCallOp recursively tests for an Op that has call-like semantics.
 inline bool hasCallOp(mlir::Operation &op) {
-  return internal::hasCharacteristic(
+  return detail::hasCharacteristic(
       [](mlir::Operation &op) { return mlir::isa<mlir::CallOpInterface>(op); },
       op);
 }
@@ -62,7 +62,7 @@ inline bool hasCallOp(A &op) {
 
 /// hasMeasureOp recursively tests for the presence of measurement operations.
 inline bool hasMeasureOp(mlir::Operation &op) {
-  return internal::hasCharacteristic(
+  return detail::hasCharacteristic(
       [](mlir::Operation &op) {
         return mlir::isa<cudaq::quake::MeasurementInterface>(op);
       },

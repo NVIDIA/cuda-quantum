@@ -32,7 +32,7 @@ LayoutInfoType getLayoutInfo(const std::string &name, void *opt_module);
 
 namespace cudaq {
 
-namespace details {
+namespace detail {
 // The span-like structure for the results of a `cudaq::run` kernel run. The
 // span is a variable number of typed result values. These values will be stored
 // in a contiguous buffer, the start of which is `data`. The size of the buffer
@@ -105,7 +105,7 @@ void (*get_run_entry_point(qkernel<R(As...)>, const std::string &name))(As...) {
 }
 #endif
 
-} // namespace details
+} // namespace detail
 
 /// @brief Run a kernel \p shots number of times and return a `std::vector` of
 /// results.
@@ -137,17 +137,17 @@ run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args) {
   }
 #else
   // Launch the kernel in the appropriate context.
-  std::string kernelName{details::getKernelName(kernel)};
+  std::string kernelName{detail::getKernelName(kernel)};
   cudaq_internal::compiler::LayoutInfoType layoutInfo =
       cudaq_internal::compiler::getLayoutInfo(kernelName, nullptr);
-  details::RunResultSpan span = details::runTheKernel(
+  detail::RunResultSpan span = detail::runTheKernel(
       [&]() mutable {
         auto *runKernel =
-            details::get_run_entry_point(qkernel{kernel}, kernelName);
+            detail::get_run_entry_point(qkernel{kernel}, kernelName);
         (*runKernel)(std::forward<ARGS>(args)...);
       },
       platform, kernelName, kernelName, shots, layoutInfo);
-  details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
+  detail::resultSpanToVectorViaOwnership<ResultTy>(results, span);
 #endif
   return results;
 }
@@ -190,18 +190,18 @@ run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel,
 #else
   // Launch the kernel in the appropriate context.
   platform.set_noise(&noise_model);
-  std::string kernelName{details::getKernelName(kernel)};
+  std::string kernelName{detail::getKernelName(kernel)};
   cudaq_internal::compiler::LayoutInfoType layoutInfo =
       cudaq_internal::compiler::getLayoutInfo(kernelName, nullptr);
-  details::RunResultSpan span = details::runTheKernel(
+  detail::RunResultSpan span = detail::runTheKernel(
       [&]() mutable {
         auto *runKernel =
-            details::get_run_entry_point(qkernel{kernel}, kernelName);
+            detail::get_run_entry_point(qkernel{kernel}, kernelName);
         (*runKernel)(std::forward<ARGS>(args)...);
       },
       platform, kernelName, kernelName, shots, layoutInfo);
   platform.reset_noise();
-  details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
+  detail::resultSpanToVectorViaOwnership<ResultTy>(results, span);
 #endif
   return results;
 }
@@ -252,18 +252,18 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
         }
         p.set_value(std::move(res));
 #else
-        const std::string kernelName{details::getKernelName(kernel)};
+        const std::string kernelName{detail::getKernelName(kernel)};
         cudaq_internal::compiler::LayoutInfoType layoutInfo =
             cudaq_internal::compiler::getLayoutInfo(kernelName, nullptr);
-        details::RunResultSpan span = details::runTheKernel(
+        detail::RunResultSpan span = detail::runTheKernel(
             [&]() mutable {
               auto *runKernel =
-                  details::get_run_entry_point(qkernel{kernel}, kernelName);
+                  detail::get_run_entry_point(qkernel{kernel}, kernelName);
               (*runKernel)(std::forward<ARGS>(args)...);
             },
             platform, kernelName, kernelName, shots, layoutInfo, qpu_id);
         std::vector<ResultTy> results;
-        details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
+        detail::resultSpanToVectorViaOwnership<ResultTy>(results, span);
         p.set_value(std::move(results));
 #endif
       });
@@ -324,19 +324,19 @@ run_async(std::size_t qpu_id, std::size_t shots,
         p.set_value(std::move(res));
 #else
         platform.set_noise(&noise_model);
-        const std::string kernelName{details::getKernelName(kernel)};
+        const std::string kernelName{detail::getKernelName(kernel)};
         cudaq_internal::compiler::LayoutInfoType layoutInfo =
             cudaq_internal::compiler::getLayoutInfo(kernelName, nullptr);
-        details::RunResultSpan span = details::runTheKernel(
+        detail::RunResultSpan span = detail::runTheKernel(
             [&]() mutable {
               auto *runKernel =
-                  details::get_run_entry_point(qkernel{kernel}, kernelName);
+                  detail::get_run_entry_point(qkernel{kernel}, kernelName);
               (*runKernel)(std::forward<ARGS>(args)...);
             },
             platform, kernelName, kernelName, shots, layoutInfo, qpu_id);
         platform.reset_noise();
         std::vector<ResultTy> results;
-        details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
+        detail::resultSpanToVectorViaOwnership<ResultTy>(results, span);
         p.set_value(std::move(results));
 #endif
       });

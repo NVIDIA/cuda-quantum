@@ -21,6 +21,7 @@
 #include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "nvqir/resourcecounter/ResourceCounterScope.h"
 #include "runtime/cudaq/platform/PythonSignalCheck.h"
+#include "cudaq/Optimizer/Builder/Marshal.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -101,6 +102,15 @@ static void specializeKernel(const std::string &name, ModuleOp module,
 /// Run the target compilation pipeline for Python MLIR kernels. Returns true
 /// when the target pipeline already ran standard finalization.
 static bool runTargetPassPipeline(mlir::ModuleOp module) {
+  // The per-target pipeline (e.g. `quantinuum-gate-set-mapping`) marks the
+  // `qec` dialect illegal but provides no patterns, so it would reject
+  // `qec.detector` / `qec.observable` / `qec.pair_detectors` ops that DEM
+  // analysis must preserve. Skipping it here lets the subsequent JIT lower QEC
+  // ops to runtime calls correctly. Returning false signals the caller that no
+  // standard finalization ran, so the caller still schedules
+  // `createTargetFinalizePipeline` itself.
+  if (auto *ctx = cudaq::getExecutionContext(); ctx && ctx->name == "dem")
+    return false;
   auto *rt = cudaq::get_platform().get_runtime_target();
   if (!rt)
     return false;
@@ -216,26 +226,6 @@ static void updateExecutionContext(mlir::ModuleOp module) {
   }
 }
 
-static std::optional<cudaq::JitEngine>
-alreadyBuiltJITCode(const std::string &) {
-  auto *currentExecCtx = cudaq::getExecutionContext();
-  if (currentExecCtx && currentExecCtx->allowJitEngineCaching)
-    return currentExecCtx->jitEng;
-  return std::nullopt;
-}
-
-/// In a sample launch context, the (`JIT` compiled) execution engine may be
-/// cached so that it can be called many times in a loop without being
-/// recompiled. This exploits the fact that the arguments processed at the
-/// sample callsite are invariant by the definition of a `CUDA-Q` kernel.
-static void cacheJITForPerformance(cudaq::JitEngine jit) {
-  auto *currentExecCtx = cudaq::getExecutionContext();
-  if (currentExecCtx && currentExecCtx->allowJitEngineCaching) {
-    if (!currentExecCtx->jitEng)
-      currentExecCtx->jitEng = jit;
-  }
-}
-
 /// When the execution context is "resource-count", extract gate counts and
 /// depth metrics from the optimized MLIR IR. Pre-counted gates are erased
 /// from the module, so the subsequent JIT compiles a near-empty module.
@@ -277,7 +267,6 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
       throw std::runtime_error("no kernel named " + name + " found in module");
     mlir::Type resultTy = cudaq::runtime::getReturnType(funcOp);
 
-    const bool hasResult = !!resultTy;
     auto resultInfo =
         cudaq_internal::compiler::CompiledModuleHelper::createResultInfo(
             resultTy, isEntryPoint, module);
@@ -298,9 +287,8 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
         args.hasTypeErased() ? *args.getTypeErased() : std::span<void *const>();
 
     // Special handling in case the arguments were already synthesized
-    size_t numArgs = rawArgs.size() - (hasResult ? 1 : 0);
     if (isEntryPoint && isLocalSimulator &&
-        numArgs == fromFuncTy.getNumInputs()) {
+        !cudaq::opt::marshal::isFullySynthesized(funcOp)) {
       closureArgsVec = std::vector(rawArgs.begin(), rawArgs.end());
       for (auto [i, ty] : llvm::enumerate(fromFuncTy.getInputs())) {
         if (!isa<cudaq::cc::CallableType>(ty)) {
@@ -312,14 +300,6 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
     } else {
       // Avoid copying
       closureArgs = rawArgs;
-    }
-
-    if (auto jit = alreadyBuiltJITCode(name)) {
-      auto jitArtifacts =
-          cudaq_internal::compiler::CompiledModuleHelper::createJitArtifacts(
-              name, *jit, resultInfo, isFullySpecialized);
-      return cudaq_internal::compiler::CompiledModuleHelper::
-          createCompiledModule(name, resultInfo, jitArtifacts);
     }
 
     // 1. Check that this call is sane.
@@ -353,7 +333,6 @@ struct PythonLauncher : public cudaq::ModuleLauncher {
 
     // 4. Lower to QIR and JIT compile.
     auto jit = cudaq_internal::compiler::createJITEngine(module, "qir:");
-    cacheJITForPerformance(jit);
 
     auto jitArtifacts =
         cudaq_internal::compiler::CompiledModuleHelper::createJitArtifacts(

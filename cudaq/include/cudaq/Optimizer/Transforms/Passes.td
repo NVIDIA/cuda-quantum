@@ -281,6 +281,14 @@ def ConvertToDirectCalls : Pass<"indirect-to-direct-calls", "mlir::ModuleOp"> {
   let dependentDialects = ["cudaq::cc::CCDialect"];
 }
 
+def DeadQuantumElimination : Pass<"dqe"> {
+  let summary = "Dead quantum elimination (DQE).";
+  let description = [{
+    Eliminate any clearly dead quantum (`!quake.ref` or `!quake.wire`)
+    allocations from the IR. (quantum here means some flavor of qudit.)
+  }];
+}
+
 def DeadStoreRemoval : Pass<"dead-store-removal"> {
   let summary = "Dead store removal (DSR).";
   let description = [{
@@ -1100,6 +1108,25 @@ def PruneCtrlRelations : Pass<"pruned-ctrl-form", "mlir::func::FuncOp"> {
       %5 = y [%ctrl] %3 : (!control, !wire) -> !wire
       %new.0 = from_ctrl %ctrl : (!control) -> !wire
     ```
+  }];
+}
+
+def PyFrontendCleanup : Pass<"py-frontend-cleanup", "mlir::func::FuncOp"> {
+  let summary = "Clean up IR residue specific to the Python AST bridge.";
+  let description = [{
+    This pass tidies up IR constructs produced only by the Python front-end
+    (the AST bridge). It runs as part of the Python AOT pipeline and must be
+    followed by `canonicalize`, which completes the folds it exposes.
+
+    Currently it folds `quake.veq_size` of a `cc.if` result whose branches may
+    yield an empty veq (`cc.undef`/`cc.poison`). When the `cc.if` condition is
+    not a compile-time constant the `cc.if` cannot be folded away, leaving a
+    `quake.veq_size` that reads a possibly-undef veq. The pass hoists the
+    `quake.veq_size` into both branches as an extra `i64` result so each
+    computes the size of its own branch-local veq. It only exposes those
+    branch-local veqs; the resulting folds (`quake.veq_size` of an undef/poison
+    veq to 0, or of a sized veq to a constant) are performed by the Quake
+    canonicalization patterns.
   }];
 }
 

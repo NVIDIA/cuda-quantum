@@ -684,17 +684,15 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
     // Must be local simulator
     if (!platform.is_simulator() || platform.is_emulated())
       return false;
-    // TODO: would be nice to check for args synthesized via an attribute
-    // rather than a fragile arg size check. This relies on an assumption
-    // that arg sizes are validated so the only case that the arg sizes
-    // don't match is for synthesized kernels.
     auto func = cudaq::getKernelFuncOp(mod, name);
-    mlir::Type resultTy = cudaq::runtime::getReturnType(func);
-    auto hasResult = !!resultTy;
-    size_t numArgs = rawArgs.size() - (hasResult ? 1 : 0);
-    // Check for args synthesized.
-    if (numArgs != func.getArgumentTypes().size())
+    // TODO: currently, synthesis is all-or-nothing, but if arg-by-arg
+    // synthesis is supported, then that will need to be detected
+    if (cudaq::opt::marshal::isFullySynthesized(func))
       return false;
+    // Caching for kernels with lifted arguments is not currently supported.
+    for (unsigned i = 0; i < func.getNumArguments(); ++i)
+      if (func.getArgAttr(i, "quake.pylifted"))
+        return false;
     return true;
   }();
 
