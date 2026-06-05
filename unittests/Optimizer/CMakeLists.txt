@@ -49,7 +49,6 @@ target_link_libraries(AnalysisPassUnitTests
     MLIRArithDialect
     MLIRFuncDialect
     MLIRIR
-    MLIRLoopLikeInterface
     QuakeDialect
     CCDialect
     OptAnalysis
