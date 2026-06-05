@@ -76,17 +76,19 @@ std::atomic<int> g_shutdown{0};
 void on_signal(int) { g_shutdown.store(1, std::memory_order_release); }
 
 // ---------------------------------------------------------------------------
-// HOST_CALL handlers.  Signature: cudaq_host_rpc_fn_t(void *slot, size_t).
-// The dispatcher pre-copies the rx slot into the tx slot and hands us the tx
-// slot; we rewrite it in place: read RPCHeader+args, write RPCResponse+result.
+// HOST_CALL handlers.  Two-pointer cudaq_host_rpc_fn_t(const void *rx_slot,
+// void *tx_slot, size_t): read RPCHeader+args from rx_slot, write
+// RPCResponse+result into tx_slot, echoing request_id/ptp_timestamp.  The two
+// slots are distinct buffers (separate RX/TX rings).
 // ---------------------------------------------------------------------------
 
 // addThem(int32 a, int32 b) -> int32 (a + b).  Wire: args = [a:4][b:4];
 // result = [sum:4].  This matches the CUDA-Q compiler's marshaling for
 // `int addThem(int, int)`, so the same handler serves both the GoogleTest
 // caller and a compiler-lowered device_call.
-extern "C" void addThemHost(void *slot, std::size_t slot_size) {
-  auto *header = static_cast<RPCHeader *>(slot);
+extern "C" void addThemHost(const void *rx_slot, void *tx_slot,
+                            std::size_t slot_size) {
+  const auto *header = static_cast<const RPCHeader *>(rx_slot);
   if (header->magic != RPC_MAGIC_REQUEST)
     return;
 
@@ -99,7 +101,8 @@ extern "C" void addThemHost(void *slot, std::size_t slot_size) {
   if (arg_len >= 2 * sizeof(std::int32_t) &&
       slot_size >= sizeof(RPCResponse) + sizeof(std::int32_t)) {
     std::int32_t a = 0, b = 0;
-    auto *args = static_cast<std::uint8_t *>(slot) + sizeof(RPCHeader);
+    const auto *args =
+        static_cast<const std::uint8_t *>(rx_slot) + sizeof(RPCHeader);
     std::memcpy(&a, args, sizeof(a));
     std::memcpy(&b, args + sizeof(a), sizeof(b));
     sum = a + b;
@@ -107,27 +110,28 @@ extern "C" void addThemHost(void *slot, std::size_t slot_size) {
     status = 1; // InvalidArgument
   }
 
-  auto *response = static_cast<RPCResponse *>(slot);
+  auto *response = static_cast<RPCResponse *>(tx_slot);
   response->magic = RPC_MAGIC_RESPONSE;
   response->status = status;
   response->result_len = status == 0 ? sizeof(std::int32_t) : 0;
   response->request_id = request_id;
   response->ptp_timestamp = ptp;
   if (status == 0)
-    std::memcpy(static_cast<std::uint8_t *>(slot) + sizeof(RPCResponse), &sum,
-                sizeof(sum));
+    std::memcpy(static_cast<std::uint8_t *>(tx_slot) + sizeof(RPCResponse),
+                &sum, sizeof(sum));
 }
 
 // noop() -> void.  Used for fire-and-forget; still writes a (zero-length)
 // response because the host dispatcher always publishes a tx slot.  The caller
 // channel ignores it on the fire-and-forget path.
-extern "C" void noopHost(void *slot, std::size_t /*slot_size*/) {
-  auto *header = static_cast<RPCHeader *>(slot);
+extern "C" void noopHost(const void *rx_slot, void *tx_slot,
+                         std::size_t /*slot_size*/) {
+  const auto *header = static_cast<const RPCHeader *>(rx_slot);
   if (header->magic != RPC_MAGIC_REQUEST)
     return;
   const std::uint32_t request_id = header->request_id;
   const std::uint64_t ptp = header->ptp_timestamp;
-  auto *response = static_cast<RPCResponse *>(slot);
+  auto *response = static_cast<RPCResponse *>(tx_slot);
   response->magic = RPC_MAGIC_RESPONSE;
   response->status = 0;
   response->result_len = 0;
@@ -143,19 +147,21 @@ std::atomic<std::int64_t> g_accum{0};
 // with sum() so a test can detect a fire-and-forget request whose late response
 // poisoned a later response-bearing call (a corrupted/missing accumulate makes
 // the queried sum wrong).
-extern "C" void accumulateHost(void *slot, std::size_t /*slot_size*/) {
-  auto *header = static_cast<RPCHeader *>(slot);
+extern "C" void accumulateHost(const void *rx_slot, void *tx_slot,
+                               std::size_t /*slot_size*/) {
+  const auto *header = static_cast<const RPCHeader *>(rx_slot);
   if (header->magic != RPC_MAGIC_REQUEST)
     return;
   const std::uint32_t request_id = header->request_id;
   const std::uint64_t ptp = header->ptp_timestamp;
   if (header->arg_len >= sizeof(std::int64_t)) {
     std::int64_t v = 0;
-    std::memcpy(&v, static_cast<std::uint8_t *>(slot) + sizeof(RPCHeader),
+    std::memcpy(&v,
+                static_cast<const std::uint8_t *>(rx_slot) + sizeof(RPCHeader),
                 sizeof(v));
     g_accum.fetch_add(v, std::memory_order_relaxed);
   }
-  auto *response = static_cast<RPCResponse *>(slot);
+  auto *response = static_cast<RPCResponse *>(tx_slot);
   response->magic = RPC_MAGIC_RESPONSE;
   response->status = 0;
   response->result_len = 0;
@@ -164,8 +170,9 @@ extern "C" void accumulateHost(void *slot, std::size_t /*slot_size*/) {
 }
 
 // sum() -> int64: returns the running accumulate total.
-extern "C" void sumHost(void *slot, std::size_t slot_size) {
-  auto *header = static_cast<RPCHeader *>(slot);
+extern "C" void sumHost(const void *rx_slot, void *tx_slot,
+                        std::size_t slot_size) {
+  const auto *header = static_cast<const RPCHeader *>(rx_slot);
   if (header->magic != RPC_MAGIC_REQUEST)
     return;
   const std::uint32_t request_id = header->request_id;
@@ -173,15 +180,15 @@ extern "C" void sumHost(void *slot, std::size_t slot_size) {
   const std::int64_t total = g_accum.load(std::memory_order_relaxed);
   const std::int32_t status =
       (slot_size >= sizeof(RPCResponse) + sizeof(std::int64_t)) ? 0 : 1;
-  auto *response = static_cast<RPCResponse *>(slot);
+  auto *response = static_cast<RPCResponse *>(tx_slot);
   response->magic = RPC_MAGIC_RESPONSE;
   response->status = status;
   response->result_len = status == 0 ? sizeof(std::int64_t) : 0;
   response->request_id = request_id;
   response->ptp_timestamp = ptp;
   if (status == 0)
-    std::memcpy(static_cast<std::uint8_t *>(slot) + sizeof(RPCResponse), &total,
-                sizeof(total));
+    std::memcpy(static_cast<std::uint8_t *>(tx_slot) + sizeof(RPCResponse),
+                &total, sizeof(total));
 }
 
 // ---------------------------------------------------------------------------

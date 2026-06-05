@@ -13,7 +13,7 @@
 /// This is the cpu_roce analogue of cudaq/test/NVQPP/device_call_realtime_*.cpp
 /// (which prove the shared-memory / host-dispatch channels through the
 /// compiler).  It compiles a real __qpu__ kernel with
-///   nvq++ --target qpp-cpu -frealtime-lowering --enable-mlir
+///   nvq++ --target qpp-cpu -frealtime-lowering
 /// so cudaq::device_call() is lowered to the realtime
 /// acquire/marshal/dispatch/release ABI, then selects the cpu_roce channel at
 /// runtime with --cudaq-device-call=cpu_roce.

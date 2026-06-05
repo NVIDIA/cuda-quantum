@@ -179,7 +179,7 @@ run_app_test() {
   trap cleanup_app RETURN
 
   echo "--- Compiling device_call app (nvq++ -frealtime-lowering) ---"
-  "$nvqpp" --target qpp-cpu -frealtime-lowering --enable-mlir \
+  "$nvqpp" --target qpp-cpu -frealtime-lowering \
     "$app_src" -o "$workdir/cpu_roce_app" || {
     echo "ERROR: nvq++ compile failed" >&2; return 1; }
 
