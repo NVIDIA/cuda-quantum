@@ -135,6 +135,38 @@ def test_float64_use():
     t = np.cos(np.float64(np.pi / 2 + 1))
     assert is_close(t, float_np_use())
 
+    # Use a float inside np in a kernel (tan)
+    @cudaq.kernel
+    def float_np_use() -> np.float64:
+        return np.tan(np.float64(0.25))
+
+    t = np.tan(np.float64(0.25))
+    assert is_close(t, float_np_use())
+
+    # Use a float inside np in a kernel (asin)
+    @cudaq.kernel
+    def float_np_use() -> np.float64:
+        return np.asin(np.float64(0.25))
+
+    t = np.asin(np.float64(0.25))
+    assert is_close(t, float_np_use())
+
+    # Use a float inside np in a kernel (acos)
+    @cudaq.kernel
+    def float_np_use() -> np.float64:
+        return np.acos(np.float64(0.25))
+
+    t = np.acos(np.float64(0.25))
+    assert is_close(t, float_np_use())
+
+    # Use a float inside np in a kernel (atan)
+    @cudaq.kernel
+    def float_np_use() -> np.float64:
+        return np.atan(np.float64(0.25))
+
+    t = np.atan(np.float64(0.25))
+    assert is_close(t, float_np_use())
+
     # Use a float inside np in a kernel (sqrt)
     @cudaq.kernel
     def float_np_use() -> np.float64:
@@ -157,6 +189,14 @@ def test_float64_use():
         return np.exp(np.float64(np.pi / 2 + 1))
 
     t = np.exp(np.float64(np.pi / 2 + 1))
+    assert is_close(t, float_np_use())
+
+    # Use a float inside np in a kernel (log)
+    @cudaq.kernel
+    def float_np_use() -> np.float64:
+        return np.log(np.float64(np.pi / 2 + 1))
+
+    t = np.log(np.float64(np.pi / 2 + 1))
     assert is_close(t, float_np_use())
 
 
@@ -224,6 +264,38 @@ def test_float32_use():
     t = np.cos(np.float32(np.pi / 2 + 1))
     assert is_close(t, float_np_use())
 
+    # Use a float inside np in a kernel (tan)
+    @cudaq.kernel
+    def float_np_use() -> np.float32:
+        return np.tan(np.float32(0.25))
+
+    t = np.tan(np.float32(0.25))
+    assert is_close(t, float_np_use())
+
+    # Use a float inside np in a kernel (asin)
+    @cudaq.kernel
+    def float_np_use() -> np.float32:
+        return np.asin(np.float32(0.25))
+
+    t = np.asin(np.float32(0.25))
+    assert is_close(t, float_np_use())
+
+    # Use a float inside np in a kernel (acos)
+    @cudaq.kernel
+    def float_np_use() -> np.float32:
+        return np.acos(np.float32(0.25))
+
+    t = np.acos(np.float32(0.25))
+    assert is_close(t, float_np_use())
+
+    # Use a float inside np in a kernel (atan)
+    @cudaq.kernel
+    def float_np_use() -> np.float32:
+        return np.atan(np.float32(0.25))
+
+    t = np.atan(np.float32(0.25))
+    assert is_close(t, float_np_use())
+
     # Use a float inside np in a kernel (sqrt)
     @cudaq.kernel
     def float_np_use() -> np.float32:
@@ -246,6 +318,14 @@ def test_float32_use():
         return np.exp(np.float32(np.pi / 2 + 1))
 
     t = np.exp(np.float32(np.pi / 2 + 1))
+    assert is_close(t, float_np_use())
+
+    # Use a float inside np in a kernel (log)
+    @cudaq.kernel
+    def float_np_use() -> np.float32:
+        return np.log(np.float32(np.pi / 2 + 1))
+
+    t = np.log(np.float32(np.pi / 2 + 1))
     assert is_close(t, float_np_use())
 
 
