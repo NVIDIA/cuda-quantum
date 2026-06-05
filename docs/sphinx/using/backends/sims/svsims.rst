@@ -159,8 +159,6 @@ The multi-node multi-GPU simulator expects to run within an MPI context.
 To execute a program on the multi-node multi-GPU NVIDIA target, use the following commands 
 (adjust the value of the :code:`-np` flag as needed to reflect available GPU resources on your system):
 
-See the `Divisive Clustering <https://nvidia.github.io/cuda-quantum/latest/applications/python/divisive_clustering_coresets.html>`__ application to see how this backend can be used in practice.
-
 .. tab:: Python
 
     Double precision simulation:
