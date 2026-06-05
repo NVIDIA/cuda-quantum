@@ -171,9 +171,9 @@ void cudaq_internal::compiler::Compiler::applyPipeline(
     throw std::runtime_error("Remote rest platform Quake lowering failed.");
 }
 
-bool eraseNonCallableArguments(std::span<void *const> &rawArgs,
-                               std::vector<void *> &closureArgs,
-                               mlir::func::FuncOp funcOp) {
+static bool eraseNonCallableArguments(std::span<void *const> &rawArgs,
+                                      std::vector<void *> &closureArgs,
+                                      mlir::func::FuncOp funcOp) {
   bool isFullySpecialized = true;
 
   // Special handling in case the arguments were already synthesized

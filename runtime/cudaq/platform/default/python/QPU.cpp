@@ -146,11 +146,11 @@ std::string cudaq::detail::lower_to_openqasm(const std::string &name,
     ctx->disableMultithreading();
     pm.enableIRPrinting();
   }
-  if (failed(cudaq_internal::compiler::runPassManager(pm, module)))
+  if (failed(cudaq_internal::compiler::runPassManager(pm, compiled_module)))
     throw std::runtime_error("Pass pipeline failed.");
   std::string result;
   llvm::raw_string_ostream os(result);
-  if (mlir::failed(cudaq::translateToOpenQASM(module, os)))
+  if (mlir::failed(cudaq::translateToOpenQASM(compiled_module, os)))
     return "{translation failed}";
   os.flush();
   return result;

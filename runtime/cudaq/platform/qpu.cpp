@@ -71,7 +71,7 @@ cudaq::QPU::runJITCompiledModule(const CompiledModule &compiled,
         compiled.getMetadata().hasConditionalsOnMeasureResults;
 
     if (ctx->name == "resource-count" && compiled.getResources()) {
-      nvqir::resource_counter::prepopulate(std::move(*compiled.getResources()));
+      nvqir::resource_counter::prepopulate(*compiled.getResources());
     }
   }
 
