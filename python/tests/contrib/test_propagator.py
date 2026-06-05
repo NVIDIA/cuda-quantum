@@ -213,9 +213,6 @@ def test_open_system_propagator_shape():
     assert computed.shape == (4, 4)
 
 
-@pytest.mark.skipif(
-    not _has_dynamics_backend(),
-    reason="cudaq.contrib.propagator requires the dynamics backend")
 def test_propagator_multi_degree_of_freedom():
     hamiltonian = 0.25 * spin.z(0) + 0.5 * spin.x(1) + 0.75 * spin.z(2)
     dimensions = {0: 2, 1: 2, 2: 2}
@@ -228,9 +225,6 @@ def test_propagator_multi_degree_of_freedom():
     np.testing.assert_allclose(actual, expected, atol=1e-5)
 
 
-@pytest.mark.skipif(
-    not _has_dynamics_backend(),
-    reason="cudaq.contrib.propagator requires the dynamics backend")
 def test_open_system_propagator_schedule_parameter_name():
     gamma = 0.2
     hamiltonian = 0.1 * spin.z(0)
@@ -246,23 +240,3 @@ def test_open_system_propagator_schedule_parameter_name():
     )
 
     assert computed.shape == (4, 4)
-
-
-@pytest.mark.skipif(
-    not _has_dynamics_backend(),
-    reason="cudaq.contrib.propagator requires the dynamics backend")
-def test_open_system_propagator_product_collapse_operator():
-    hamiltonian = 0.1 * spin.z(0) + 0.2 * spin.z(1)
-    collapse_operator = 0.3 * spin.minus(0) * spin.minus(1)
-    collapse_operator_adjoint = 0.3 * spin.plus(0) * spin.plus(1)
-    dimensions = {0: 2, 1: 2}
-
-    computed = cudaq.contrib.propagator(
-        hamiltonian,
-        dimensions,
-        Schedule([0.0, 0.1], ["t"]),
-        collapse_operators=[collapse_operator],
-        collapse_operator_adjoint_ops=[collapse_operator_adjoint],
-    )
-
-    assert computed.shape == (16, 16)

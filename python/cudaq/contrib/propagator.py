@@ -27,6 +27,15 @@ def _identity_state(dimension: int):
     return cudaq.State.from_data(identity)
 
 
+def _basis_states(dimension: int):
+    states = []
+    for index in range(dimension):
+        data = np.zeros(dimension, dtype=np.complex128)
+        data[index] = 1.0
+        states.append(cudaq.State.from_data(data))
+    return states
+
+
 def _state_to_matrix(state, dimension: int) -> np.ndarray:
     data = np.array(state).reshape(-1)
     expected_size = dimension * dimension
@@ -70,6 +79,14 @@ def _extract_propagator(result, dimension: int,
         ]
 
     return _state_to_matrix(result.final_state(), dimension)
+
+
+def _extract_batched_basis_propagator(results):
+    columns = [
+        np.array(single_result.final_state()).reshape(-1)
+        for single_result in results
+    ]
+    return np.column_stack(columns)
 
 
 def propagator(
@@ -151,7 +168,14 @@ def propagator(
     else:
         generators = [_closed_system_generator(h) for h in hamiltonians]
 
-    initial_states = [_identity_state(propagator_dimension) for _ in generators]
+    if open_system:
+        initial_states = [
+            _basis_states(propagator_dimension) for _ in generators
+        ]
+    else:
+        initial_states = [
+            _identity_state(propagator_dimension) for _ in generators
+        ]
 
     save_mode = (cudaq.IntermediateResultSave.ALL if store_intermediate_results
                  else cudaq.IntermediateResultSave.NONE)
@@ -167,6 +191,14 @@ def propagator(
         integrator=integrator,
         max_batch_size=max_batch_size,
     )
+
+    if open_system:
+        if is_batched:
+            return [
+                _extract_batched_basis_propagator(single_result)
+                for single_result in result
+            ]
+        return _extract_batched_basis_propagator(result)
 
     if is_batched:
         return [
