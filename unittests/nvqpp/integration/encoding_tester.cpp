@@ -12,7 +12,8 @@
 #include <span>
 #include <vector>
 
-using namespace cudaq;
+using cudaq::state;
+using cudaq::contrib::amplitude_encode;
 
 // Amplitude encoding builds a state vector; density-matrix backends differ.
 #ifndef CUDAQ_BACKEND_STIM

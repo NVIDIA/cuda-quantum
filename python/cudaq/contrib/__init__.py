@@ -6,4 +6,5 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+from .encoding import amplitude_encode, angular_encode
 from .qiskit_convert import from_qiskit, from_qasm

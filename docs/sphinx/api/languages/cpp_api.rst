@@ -193,25 +193,6 @@ vector of handles.
 
 .. doxygenfunction:: cudaq::get_state(QuantumKernel &&kernel, Args&&... args)
 
-Quantum Embeddings
-==================
-
-.. doxygenfunction:: cudaq::amplitude_encode(std::span<const double> data, std::complex<double> pad)
-.. doxygenfunction:: cudaq::amplitude_encode(std::span<const float> data, std::complex<double> pad)
-.. doxygenfunction:: cudaq::amplitude_encode(std::span<const std::complex<double>> data, std::complex<double> pad)
-.. doxygenfunction:: cudaq::amplitude_encode(std::span<const std::complex<float>> data, std::complex<double> pad)
-.. doxygenfunction:: cudaq::amplitude_encode(const state &data, std::complex<double> pad)
-
-Kernel-builder angular encoding (``cudaq/builder/kernels.h``):
-
-.. doxygenenum:: cudaq::RotationAxis
-
-.. doxygenfunction:: cudaq::angular_encode(Kernel &&kernel, QuakeValue &q, QuakeValue &angles, RotationAxis rotation)
-
-.. doxygenfunction:: cudaq::angular_encode(Kernel &&kernel, QuakeValue &q, std::span<const double> angles, RotationAxis rotation)
-
-.. doxygenfunction:: cudaq::angular_encode(Kernel &&kernel, QuakeValue &q, const std::vector<double> &angles, RotationAxis rotation)
-
 .. doxygenclass:: cudaq::Resources
 
 .. doxygentypedef:: cudaq::complex_matrix::value_type
@@ -439,6 +420,20 @@ Utilities
 .. doxygenfunction:: cudaq::contrib::draw(QuantumKernel &&kernel, Args&&... args)
 
 .. doxygenfunction:: cudaq::contrib::get_unitary_cmat(QuantumKernel &&kernel, Args&&... args)
+
+.. doxygenfunction:: cudaq::contrib::amplitude_encode(std::span<const double> data, std::complex<double> pad)
+.. doxygenfunction:: cudaq::contrib::amplitude_encode(std::span<const float> data, std::complex<double> pad)
+.. doxygenfunction:: cudaq::contrib::amplitude_encode(std::span<const std::complex<double>> data, std::complex<double> pad)
+.. doxygenfunction:: cudaq::contrib::amplitude_encode(std::span<const std::complex<float>> data, std::complex<double> pad)
+.. doxygenfunction:: cudaq::contrib::amplitude_encode(const state &data, std::complex<double> pad)
+
+.. doxygenenum:: cudaq::contrib::RotationAxis
+
+.. doxygenfunction:: cudaq::contrib::angular_encode(Kernel &&kernel, QuakeValue &q, QuakeValue &angles, RotationAxis rotation)
+
+.. doxygenfunction:: cudaq::contrib::angular_encode(Kernel &&kernel, QuakeValue &q, std::span<const double> angles, RotationAxis rotation)
+
+.. doxygenfunction:: cudaq::contrib::angular_encode(Kernel &&kernel, QuakeValue &q, const std::vector<double> &angles, RotationAxis rotation)
     
 Namespaces 
 ===========

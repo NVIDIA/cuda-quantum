@@ -6,22 +6,36 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+import sys
+
 import pytest
 
 import cudaq
 
+skip_kernel_draw_on_macos = pytest.mark.skipif(
+    sys.platform == 'darwin',
+    reason='@cudaq.kernel draw needs LLVM host target (see set_data_layout)')
+
+
+@pytest.fixture(autouse=True)
+def reset_target():
+    cudaq.reset_target()
+    yield
+    cudaq.__clearKernelRegistries()
+
 
 def test_angular_encode_host_raises():
     with pytest.raises(RuntimeError, match="only in CUDA-Q kernels"):
-        cudaq.angular_encode(None, [])
+        cudaq.contrib.angular_encode(None, [])
 
 
+@skip_kernel_draw_on_macos
 def test_angular_encode_draw_ry():
 
     @cudaq.kernel
     def kernel(angles: list[float]):
         q = cudaq.qvector(3)
-        cudaq.angular_encode(q, angles, rotation='Y')
+        cudaq.contrib.angular_encode(q, angles, rotation='Y')
 
     drawn = cudaq.draw(kernel, [0.1, 0.2, 0.3])
     expected = """     ╭─────────╮
@@ -35,12 +49,13 @@ q2 : ┤ ry(0.3) ├
     assert drawn == expected
 
 
+@skip_kernel_draw_on_macos
 def test_angular_encode_draw_rx():
 
     @cudaq.kernel
     def kernel(angles: list[float]):
         q = cudaq.qvector(2)
-        cudaq.angular_encode(q, angles, rotation='X')
+        cudaq.contrib.angular_encode(q, angles, rotation='X')
 
     drawn = cudaq.draw(kernel, [0.5, 1.0])
     assert 'rx(0.5)' in drawn
@@ -53,7 +68,7 @@ def test_angular_encode_mismatched_static_angles():
         @cudaq.kernel
         def kernel():
             q = cudaq.qvector(2)
-            cudaq.angular_encode(q, [0.1, 0.2, 0.3], rotation='Y')
+            cudaq.contrib.angular_encode(q, [0.1, 0.2, 0.3], rotation='Y')
 
         kernel.compile()
 

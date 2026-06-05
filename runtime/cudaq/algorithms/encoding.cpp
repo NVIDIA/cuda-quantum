@@ -11,7 +11,7 @@
 #include <cmath>
 #include <stdexcept>
 
-namespace cudaq {
+namespace cudaq::contrib {
 namespace {
 
 std::size_t nextPowerOfTwo(std::size_t n) {
@@ -130,4 +130,4 @@ state amplitude_encode(const state &data, std::complex<double> pad) {
   return fromNormalizedVector(std::move(vec));
 }
 
-} // namespace cudaq
+} // namespace cudaq::contrib

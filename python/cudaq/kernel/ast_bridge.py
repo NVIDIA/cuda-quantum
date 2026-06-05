@@ -414,6 +414,17 @@ class PyASTBridge(ast.NodeVisitor):
         module (e.g. from ``import cudaq as cq``)."""
         return name in self.cudaqAliases
 
+    def cudaqContribCallAttr(self, node):
+        """Return the contrib attribute name for ``cudaq.contrib.<name>(...)``."""
+        if not isinstance(node.func, ast.Attribute):
+            return None
+        inner = node.func.value
+        if not (isinstance(inner, ast.Attribute) and inner.attr == 'contrib' and
+                isinstance(inner.value, ast.Name) and
+                self.isCudaqName(inner.value.id)):
+            return None
+        return node.func.attr
+
     def debug_msg(self, msg, node=None):
         if self.verbose:
             print(f'{self.indent * self.indent_level}{msg()}')
@@ -1664,49 +1675,51 @@ class PyASTBridge(ast.NodeVisitor):
             qec.DetectorOp(values)
 
     def _lowerAngularEncode(self, node):
-        """Lower ``cudaq.angular_encode(q, angles, rotation='Y')`` to per-qubit
-        ``rx``/``ry``/``rz`` gates."""
+        """Lower ``cudaq.contrib.angular_encode(q, angles, rotation='Y')`` to
+        per-qubit ``rx``/``ry``/``rz`` gates."""
         rotation_gates = {'X': 'Rx', 'Y': 'Ry', 'Z': 'Rz'}
         rotation = 'Y'
         for kw in node.keywords:
             if kw.arg != 'rotation':
                 self.emitFatalError(
-                    f"cudaq.angular_encode: unknown keyword '{kw.arg}'", node)
+                    f"cudaq.contrib.angular_encode: unknown keyword '{kw.arg}'",
+                    node)
             try:
                 rotation = ast.literal_eval(kw.value)
             except (ValueError, SyntaxError):
                 rotation = None
             if not isinstance(rotation, str):
                 self.emitFatalError(
-                    "cudaq.angular_encode: rotation must be a string literal",
-                    node)
+                    "cudaq.contrib.angular_encode: rotation must be a string "
+                    "literal", node)
         rotation_key = rotation.upper()
         if rotation_key not in rotation_gates:
             self.emitFatalError(
-                f"cudaq.angular_encode: unsupported rotation '{rotation}' "
-                "(expected 'X', 'Y', or 'Z')", node)
+                f"cudaq.contrib.angular_encode: unsupported rotation "
+                f"'{rotation}' (expected 'X', 'Y', or 'Z')", node)
         op_ctor = getattr(quake, f'{rotation_gates[rotation_key]}Op')
 
         if len(node.args) != 2:
-            self.emitFatalError("cudaq.angular_encode expects (q, angles)",
-                                node)
+            self.emitFatalError(
+                "cudaq.contrib.angular_encode expects (q, angles)", node)
 
         q, angles = self.__groupValues(node.args, [1, 1])
         if not quake.VeqType.isinstance(q.type):
             self.emitFatalError(
-                "cudaq.angular_encode: first argument must be a "
+                "cudaq.contrib.angular_encode: first argument must be a "
                 "cudaq.qvector or qview", node)
         if not cc.StdvecType.isinstance(angles.type):
             self.emitFatalError(
-                "cudaq.angular_encode: angles must be a list[float]", node)
+                "cudaq.contrib.angular_encode: angles must be a list[float]",
+                node)
 
         if (quake.VeqType.hasSpecifiedSize(q.type) and
                 isinstance(node.args[1], ast.List)):
             q_size = quake.VeqType.getSize(q.type)
             if len(node.args[1].elts) != q_size:
                 self.emitFatalError(
-                    "cudaq.angular_encode: number of angles must match "
-                    "the number of qubits", node)
+                    "cudaq.contrib.angular_encode: number of angles must "
+                    "match the number of qubits", node)
 
         float_ty = self.getFloatType()
         angle_ele_ty = cc.StdvecType.getElementType(angles.type)
@@ -3490,6 +3503,10 @@ class PyASTBridge(ast.NodeVisitor):
                 self.emitFatalError(f'unsupported function {node.func.attr}',
                                     node)
 
+            contrib_attr = self.cudaqContribCallAttr(node)
+            if contrib_attr == 'angular_encode':
+                return self._lowerAngularEncode(node)
+
             if isinstance(node.func.value, ast.Name):
 
                 if node.func.value.id in ['numpy', 'np']:
@@ -3640,9 +3657,12 @@ class PyASTBridge(ast.NodeVisitor):
                             if (isinstance(size_node, ast.Constant) and
                                     isinstance(size_node.value, int)):
                                 veq_size = size_node.value
-                            ty = (self.getVeqType(veq_size) if veq_size
-                                  is not None else self.getVeqType())
-                            qubits = quake.AllocaOp(ty, size=value).result
+                            if veq_size is not None:
+                                qubits = quake.AllocaOp(
+                                    self.getVeqType(veq_size)).result
+                            else:
+                                qubits = quake.AllocaOp(self.getVeqType(),
+                                                        size=value).result
                             self.pushValue(qubits)
                             return
 
@@ -3732,9 +3752,6 @@ class PyASTBridge(ast.NodeVisitor):
                             )
                         self.pushValue(quake.AllocaOp(self.getRefType()).result)
                         return
-
-                    if node.func.attr == "angular_encode":
-                        return self._lowerAngularEncode(node)
 
                     if node.func.attr == "measure_handle":
                         # `cudaq.measure_handle()`, i.e. the default
