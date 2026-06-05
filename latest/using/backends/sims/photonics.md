@@ -2130,7 +2130,7 @@ C++
 ::: {.tab-content .docutils}
 ::: {.highlight-bash .notranslate}
 ::: highlight
-    nvq++ --library-mode --target orca-photonics program.cpp [...] -o program.x
+    nvq++ --target orca-photonics program.cpp [...] -o program.x
 :::
 :::
 :::

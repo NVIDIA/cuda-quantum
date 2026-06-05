@@ -2990,7 +2990,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     ::: {.breathe-sectiondef .docutils .container}
     Public Static Functions
 
-    []{#classcudaq_1_1spin__handler_1a64915b94f15f22983521199fe390beed .target}[[static]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[detail]{.pre}]{.n}[[::]{.pre}]{.p}[[EigenSparseMatrix]{.pre}]{.n}[ ]{.w}[[[to_sparse_matrix]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[pauli]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[coeff]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[1.]{.pre}]{.m}, [[bool]{.pre}]{.kt}[ ]{.w}[[invert_order]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[)]{.sig-paren}[¶](#_CPPv4N5cudaq12spin_handler16to_sparse_matrixERKNSt6stringENSt7complexIdEEb "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1spin__handler_1a64915b94f15f22983521199fe390beed .target}[[static]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[detail]{.pre}]{.n}](#_CPPv4N5cudaq6detailE "cudaq::detail"){.reference .internal}[[::]{.pre}]{.p}[[EigenSparseMatrix]{.pre}]{.n}[ ]{.w}[[[to_sparse_matrix]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[pauli]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[coeff]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[1.]{.pre}]{.m}, [[bool]{.pre}]{.kt}[ ]{.w}[[invert_order]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[)]{.sig-paren}[¶](#_CPPv4N5cudaq12spin_handler16to_sparse_matrixERKNSt6stringENSt7complexIdEEb "Permalink to this definition"){.headerlink}\
 
     :   Computes the sparse matrix representation of a Pauli string. By
         default, the ordering of the matrix matches the ordering of the
@@ -8785,7 +8785,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1ExecutionContext_1a53330c89e4b1c462523dabe7edc6b696 .target}[[[details]{.pre}]{.n}](#_CPPv4N5cudaq7detailsE "cudaq::details"){.reference .internal}[[::]{.pre}]{.p}[[[future]{.pre}]{.n}](#_CPPv4N5cudaq7details6futureE "cudaq::details::future"){.reference .internal}[ ]{.w}[[[futureResult]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq16ExecutionContext12futureResultE "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1ExecutionContext_1af89b03047d14f03a429b25f59e5e4cd4 .target}[[[detail]{.pre}]{.n}](#_CPPv4N5cudaq6detailE "cudaq::detail"){.reference .internal}[[::]{.pre}]{.p}[[[future]{.pre}]{.n}](#_CPPv4N5cudaq6detail6futureE "cudaq::detail::future"){.reference .internal}[ ]{.w}[[[futureResult]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq16ExecutionContext12futureResultE "Permalink to this definition"){.headerlink}\
 
     :   When execution asynchronously, store the expected results as a
         cudaq::future here.
@@ -8946,7 +8946,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 <!-- -->
 ```
 
-[]{#classcudaq_1_1details_1_1future .target}[[class]{.pre}]{.k}[ ]{.w}[[[future]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq7details6futureE "Permalink to this definition"){.headerlink}\
+[]{#classcudaq_1_1detail_1_1future .target}[[class]{.pre}]{.k}[ ]{.w}[[[future]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq6detail6futureE "Permalink to this definition"){.headerlink}\
 
 :   The future type models the expected result of a CUDA-Q kernel
     execution under a specific execution context. This type is returned
@@ -8963,7 +8963,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     ::: {.breathe-sectiondef .docutils .container}
     Public Functions
 
-    []{#classcudaq_1_1details_1_1future_1a8a3afaa7207cba1092a88568d2bc2d14 .target}[[[future]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[default]{.pre}]{.k}[¶](#_CPPv4N5cudaq7details6future6futureEv "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1detail_1_1future_1a1b613ce1668f670ba40d944a554baeea .target}[[[future]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[default]{.pre}]{.k}[¶](#_CPPv4N5cudaq6detail6future6futureEv "Permalink to this definition"){.headerlink}\
 
     :   The constructor.
 
@@ -8971,7 +8971,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1details_1_1future_1aefd8a6533355358a082435396fe3a56a .target}[[[future]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[future]{.pre}]{.n}](#_CPPv4N5cudaq7details6future6futureERR6future "cudaq::details::future::future"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[)]{.sig-paren}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[default]{.pre}]{.k}[¶](#_CPPv4N5cudaq7details6future6futureERR6future "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1detail_1_1future_1a86ebb6820901ea24662fe57efbab8d8e .target}[[[future]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[future]{.pre}]{.n}](#_CPPv4N5cudaq6detail6future6futureERR6future "cudaq::detail::future::future"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[)]{.sig-paren}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[default]{.pre}]{.k}[¶](#_CPPv4N5cudaq6detail6future6futureERR6future "Permalink to this definition"){.headerlink}\
 
     :   move constructor
 
@@ -8979,7 +8979,7 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
-    []{#classcudaq_1_1details_1_1future_1a19fc0a152a0df1e22d915f170c4e84d8 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[future]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[Job]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[\_jobs]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[qpuNameIn]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[map]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[config]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq7details6future6futureERNSt6vectorI3JobEERNSt6stringERNSt3mapINSt6stringENSt6stringEEE "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1detail_1_1future_1a4480cd68d532cfe0893b12e73c661545 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[future]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[Job]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[\_jobs]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[qpuNameIn]{.pre}]{.n .sig-param}, [[std]{.pre}]{.n}[[::]{.pre}]{.p}[[map]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[config]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq6detail6future6futureERNSt6vectorI3JobEERNSt6stringERNSt3mapINSt6stringENSt6stringEEE "Permalink to this definition"){.headerlink}\
 
     :   The constructor, takes all info required to be able to retrieve
         results at a later date, even after file persistence.
@@ -8995,9 +8995,8 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
 :   the [[async_result]{.std
     .std-ref}](#classcudaq_1_1async__result){.reference .internal} type
     is a user facing, future-like type that is returned from CUDA-Q
-    public asynchronous API functions. It wraps a
-    [[details::future]{.std
-    .std-ref}](#classcudaq_1_1details_1_1future){.reference .internal}
+    public asynchronous API functions. It wraps a [[detail::future]{.std
+    .std-ref}](#classcudaq_1_1detail_1_1future){.reference .internal}
     type, which can itself be constructed from a std::future or a
     collection of data pertinent to remote [[QPU]{.std
     .std-ref}](#classcudaq_1_1QPU){.reference .internal} REST
@@ -11488,12 +11487,12 @@ discriminate a vector of handles.
 ## Kernel Builder[¶](#kernel-builder "Permalink to this heading"){.headerlink}
 
 [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[\...]{.pre}]{.p}[[[Args]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
-[]{#classcudaq_1_1kernel__builder .target}[[class]{.pre}]{.k}[ ]{.w}[[[kernel_builder]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[details]{.pre}]{.n}](#_CPPv4N5cudaq7detailsE "cudaq::details"){.reference .internal}[[::]{.pre}]{.p}[[[kernel_builder_base]{.pre}]{.n}](#_CPPv4N5cudaq7details19kernel_builder_baseE "cudaq::details::kernel_builder_base"){.reference .internal}[¶](#_CPPv4IDpEN5cudaq14kernel_builderE "Permalink to this definition"){.headerlink}\
+[]{#classcudaq_1_1kernel__builder .target}[[class]{.pre}]{.k}[ ]{.w}[[[kernel_builder]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[:]{.pre}]{.p}[ ]{.w}[[public]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[detail]{.pre}]{.n}](#_CPPv4N5cudaq6detailE "cudaq::detail"){.reference .internal}[[::]{.pre}]{.p}[[[kernel_builder_base]{.pre}]{.n}](#_CPPv4N5cudaq6detail19kernel_builder_baseE "cudaq::detail::kernel_builder_base"){.reference .internal}[¶](#_CPPv4IDpEN5cudaq14kernel_builderE "Permalink to this definition"){.headerlink}\
 
 :   ::: {.breathe-sectiondef .docutils .container}
     Public Functions
 
-    []{#classcudaq_1_1kernel__builder_1abeef4b926dd7f39ec1264903d92be8a0 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[kernel_builder]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[details]{.pre}]{.n}](#_CPPv4N5cudaq7detailsE "cudaq::details"){.reference .internal}[[::]{.pre}]{.p}[[[KernelBuilderType]{.pre}]{.n}](#_CPPv4N5cudaq7details17KernelBuilderTypeE "cudaq::details::KernelBuilderType"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[types]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq14kernel_builder14kernel_builderERNSt6vectorIN7details17KernelBuilderTypeEEE "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1kernel__builder_1a922eb41748ec21bd317d696f9bc3ca1e .target}[[inline]{.pre}]{.k}[ ]{.w}[[[kernel_builder]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[detail]{.pre}]{.n}](#_CPPv4N5cudaq6detailE "cudaq::detail"){.reference .internal}[[::]{.pre}]{.p}[[[KernelBuilderType]{.pre}]{.n}](#_CPPv4N5cudaq6detail17KernelBuilderTypeE "cudaq::detail::KernelBuilderType"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[types]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq14kernel_builder14kernel_builderERNSt6vectorIN6detail17KernelBuilderTypeEEE "Permalink to this definition"){.headerlink}\
 
     :   The constructor, takes the input [`KernelBuilderType`{.docutils
         .literal .notranslate}]{.pre}s which is used to create the MLIR
@@ -12019,11 +12018,11 @@ discriminate a vector of handles.
 <!-- -->
 ```
 
-[]{#classcudaq_1_1details_1_1kernel__builder__base .target}[[class]{.pre}]{.k}[ ]{.w}[[[kernel_builder_base]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq7details19kernel_builder_baseE "Permalink to this definition"){.headerlink}\
+[]{#classcudaq_1_1detail_1_1kernel__builder__base .target}[[class]{.pre}]{.k}[ ]{.w}[[[kernel_builder_base]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq6detail19kernel_builder_baseE "Permalink to this definition"){.headerlink}\
 
 :   The [[[`kernel_builder_base`{.docutils .literal
     .notranslate}]{.pre}]{.std
-    .std-ref}](#classcudaq_1_1details_1_1kernel__builder__base){.reference
+    .std-ref}](#classcudaq_1_1detail_1_1kernel__builder__base){.reference
     .internal} provides a base type for the templated kernel builder so
     that we can get a single handle on an instance within the runtime.
 
@@ -12033,7 +12032,7 @@ discriminate a vector of handles.
     ::: {.breathe-sectiondef .docutils .container}
     Friends
 
-    []{#classcudaq_1_1details_1_1kernel__builder__base_1a3b4d8b805718a31695e63c798775ab55 .target}[[friend]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[ostream]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[[operator]{.pre}]{.k}[[\<\<]{.pre}]{.o}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[ostream]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[stream]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[kernel_builder_base]{.pre}]{.n}](#_CPPv4N5cudaq7details19kernel_builder_baseE "cudaq::details::kernel_builder_base"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[builder]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq7details19kernel_builder_baselsERNSt7ostreamERK19kernel_builder_base "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1detail_1_1kernel__builder__base_1a3b4d8b805718a31695e63c798775ab55 .target}[[friend]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[ostream]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[[operator]{.pre}]{.k}[[\<\<]{.pre}]{.o}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[ostream]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[stream]{.pre}]{.n .sig-param}, [[const]{.pre}]{.k}[ ]{.w}[[[kernel_builder_base]{.pre}]{.n}](#_CPPv4N5cudaq6detail19kernel_builder_baseE "cudaq::detail::kernel_builder_base"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[builder]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq6detail19kernel_builder_baselsERNSt7ostreamERK19kernel_builder_base "Permalink to this definition"){.headerlink}\
 
     :   Write the [[kernel_builder]{.std
         .std-ref}](#classcudaq_1_1kernel__builder){.reference .internal}
@@ -12045,20 +12044,20 @@ discriminate a vector of handles.
 <!-- -->
 ```
 
-[]{#classcudaq_1_1details_1_1KernelBuilderType .target}[[class]{.pre}]{.k}[ ]{.w}[[[KernelBuilderType]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq7details17KernelBuilderTypeE "Permalink to this definition"){.headerlink}\
+[]{#classcudaq_1_1detail_1_1KernelBuilderType .target}[[class]{.pre}]{.k}[ ]{.w}[[[KernelBuilderType]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq6detail17KernelBuilderTypeE "Permalink to this definition"){.headerlink}\
 
 :   The [`kernel_builder::Type`{.docutils .literal .notranslate}]{.pre}
     allows us to track input C++ types representing the quake function
     argument types in a way that does not expose MLIR Type to the CUDA-Q
     code. This type keeps track of a functor that generates the MLIR
     Type in implementation code when [[create()]{.std
-    .std-ref}](#classcudaq_1_1details_1_1KernelBuilderType_1ae62efe009d225bfc935230fd0d74fca7){.reference
+    .std-ref}](#classcudaq_1_1detail_1_1KernelBuilderType_1a17b261ea50f31261c858f1290f8056a6){.reference
     .internal} is invoked.
 
     ::: {.breathe-sectiondef .docutils .container}
     Public Functions
 
-    []{#classcudaq_1_1details_1_1KernelBuilderType_1a4dadceff6c1aaa5620aa246e037c4856 .target}[[[KernelBuilderType]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[function]{.pre}]{.n}[[\<]{.pre}]{.p}[[mlir]{.pre}]{.n}[[::]{.pre}]{.p}[[Type]{.pre}]{.n}[[(]{.pre}]{.p}[[mlir]{.pre}]{.n}[[::]{.pre}]{.p}[[MLIRContext]{.pre}]{.n}[ ]{.w}[[\*]{.pre}]{.p}[[ctx]{.pre}]{.n}[[)]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[f]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq7details17KernelBuilderType17KernelBuilderTypeERRNSt8functionIFN4mlir4TypeEPN4mlir11MLIRContextEEEE "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1detail_1_1KernelBuilderType_1a9d1eeafd382f54dec329a186bf76a069 .target}[[[KernelBuilderType]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[function]{.pre}]{.n}[[\<]{.pre}]{.p}[[mlir]{.pre}]{.n}[[::]{.pre}]{.p}[[Type]{.pre}]{.n}[[(]{.pre}]{.p}[[mlir]{.pre}]{.n}[[::]{.pre}]{.p}[[MLIRContext]{.pre}]{.n}[ ]{.w}[[\*]{.pre}]{.p}[[ctx]{.pre}]{.n}[[)]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[f]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq6detail17KernelBuilderType17KernelBuilderTypeERRNSt8functionIFN4mlir4TypeEPN4mlir11MLIRContextEEEE "Permalink to this definition"){.headerlink}\
 
     :   The constructor, take the Type generation functor.
 
@@ -12066,7 +12065,7 @@ discriminate a vector of handles.
     <!-- -->
     ```
 
-    []{#classcudaq_1_1details_1_1KernelBuilderType_1ae62efe009d225bfc935230fd0d74fca7 .target}[[mlir]{.pre}]{.n}[[::]{.pre}]{.p}[[Type]{.pre}]{.n}[ ]{.w}[[[create]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[mlir]{.pre}]{.n}[[::]{.pre}]{.p}[[MLIRContext]{.pre}]{.n}[ ]{.w}[[\*]{.pre}]{.p}[[ctx]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq7details17KernelBuilderType6createEPN4mlir11MLIRContextE "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1detail_1_1KernelBuilderType_1a17b261ea50f31261c858f1290f8056a6 .target}[[mlir]{.pre}]{.n}[[::]{.pre}]{.p}[[Type]{.pre}]{.n}[ ]{.w}[[[create]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[mlir]{.pre}]{.n}[[::]{.pre}]{.p}[[MLIRContext]{.pre}]{.n}[ ]{.w}[[\*]{.pre}]{.p}[[ctx]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq6detail17KernelBuilderType6createEPN4mlir11MLIRContextE "Permalink to this definition"){.headerlink}\
 
     :   Create the MLIR Type.
     :::
@@ -13677,7 +13676,7 @@ them they are erased before execution.
 <!-- -->
 ```
 
-[]{#namespacecudaq_1_1details .target}[[namespace]{.pre}]{.k}[ ]{.w}[[[details]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq7detailsE "Permalink to this definition"){.headerlink}\
+[]{#namespacecudaq_1_1detail .target}[[namespace]{.pre}]{.k}[ ]{.w}[[[detail]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq6detailE "Permalink to this definition"){.headerlink}\
 
 :   
 
