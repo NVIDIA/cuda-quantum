@@ -25,9 +25,8 @@ def _state_to_matrix(state, dimension: int) -> np.ndarray:
     expected_size = dimension * dimension
 
     if data.size != expected_size:
-        raise RuntimeError(
-            "Expected propagator state with size "
-            f"{expected_size}, got {data.size}.")
+        raise RuntimeError("Expected propagator state with size "
+                           f"{expected_size}, got {data.size}.")
 
     return data.reshape((dimension, dimension))
 
@@ -84,16 +83,35 @@ def propagator(
 ):
     """Compute dynamics propagators.
 
-    For closed-system dynamics, computes the matrix U satisfying
+    For closed-system dynamics, computes the matrix U satisfying the
+    Schrodinger-picture propagator equation with initial condition U(t0) = I.
 
-        dU/dt = -i H(t) U,  U(t_initial) = I.
+    For open-system dynamics with collapse operators, computes the Lindblad
+    map S with initial condition S(t0) = I. This map acts on vectorized density
+    matrices and propagates rho(t0) to rho(t).
 
-    For open-system dynamics with collapse operators, computes the
-    superoperator propagator S satisfying
+    Args:
+        hamiltonian: CUDA-Q operator H(t), or a sequence of operators for
+            batched propagator computation.
+        dimensions: Mapping from degree-of-freedom index to local dimension.
+        schedule: CUDA-Q dynamics schedule.
+        collapse_operators: Optional sequence of Lindblad collapse operators.
+            If provided, the helper returns the Lindblad map.
+        store_intermediate_results: If True, return propagators at the
+            intermediate schedule points saved by the dynamics backend.
+        integrator: Optional dynamics integrator.
+        max_batch_size: Optional maximum batch size for the dynamics backend.
 
-        d vec(rho)/dt = L(t) vec(rho),  S(t_initial) = I,
+    Returns:
+        For closed-system dynamics, returns a dense complex NumPy array with
+        shape ``(dim, dim)``.
 
-    where L(t) is the Lindblad generator.
+        For open-system dynamics, returns a dense complex NumPy array with
+        shape ``(dim**2, dim**2)``.
+
+        If ``store_intermediate_results`` is True, returns a list of dense
+        matrices. For a sequence of Hamiltonians, returns one such result per
+        Hamiltonian.
     """
     import cudaq
 
@@ -117,9 +135,8 @@ def propagator(
 
     initial_states = [_identity_state(propagator_dimension) for _ in generators]
 
-    save_mode = (cudaq.IntermediateResultSave.ALL
-                 if store_intermediate_results else
-                 cudaq.IntermediateResultSave.NONE)
+    save_mode = (cudaq.IntermediateResultSave.ALL if store_intermediate_results
+                 else cudaq.IntermediateResultSave.NONE)
 
     result = cudaq.evolve(
         generators if is_batched else generators[0],
