@@ -63,6 +63,8 @@ public:
         getValueOrDefault(config, "version", DEFAULT_VERSION);
     backendConfig["executor"] =
         getValueOrDefault(config, "executor", DEFAULT_EXECUTOR);
+    backendConfig["qubit-mapping-mode"] =
+        getValueOrDefault(config, "qubit-mapping-mode", "local-get-latest");
     // Check for API key in config, then fall back to environment variable
     std::string apiKey = getValueOrDefault(config, "api_key", "");
     if (apiKey.empty()) {
@@ -108,10 +110,6 @@ public:
   ServerJobPayload
   createJob(std::vector<KernelExecution> &circuitCodes) override {
     CUDAQ_INFO("In createJob. code: {}", kernelExecutionToString(circuitCodes[0]));
-    auto toBool = [](const std::string &value) {
-        return value == "True" || value == "true" || value == "1";
-      };
-    bool disableQubitMapping = toBool(backendConfig["disable-qubit-mapping"]);
     auto *executionContext = cudaq::getExecutionContext();
     const std::string requestType =
         executionContext ? executionContext->name : "unknown";
@@ -121,7 +119,7 @@ public:
     job["source"] = "quake";
     job["shots"] = shots;
     job["executor"] = backendConfig["executor"];
-    job["disable-qubit-mapping"] = disableQubitMapping;
+    job["qubit_mapping_mode"] = backendConfig["qubit-mapping-mode"];
     job["output_format"] = isRunRequest ? "qir-raw" : "histogram";
     RestHeaders headers = getHeaders();
     std::string path = backendConfig["url"] + "/v1/execute";
@@ -197,6 +195,48 @@ public:
     //TODO: implement
     return "1";
   }
+
+  void updatePassPipeline(
+    const std::filesystem::path &platformPath, std::string &passPipeline) override {
+      CUDAQ_INFO("updatePassPipeline: platformPath: {}, passPipeline: {}", platformPath.string(), passPipeline);
+      std::string mappingMode = backendConfig["qubit-mapping-mode"];
+      if (mappingMode == "backend") {
+        // If mapping is done on the backend, we have to remove the SABRE mapping pass from the pipeline, and we don't need to provide a qpu config file for the mapping pass.
+        passPipeline = std::regex_replace(passPipeline, std::regex(",qubit-mapping{device=file(%QPU_ARCH%)"), "");
+        CUDAQ_INFO("After removing mapping pass, updated pass pipeline: {}", passPipeline);
+        return;
+      }
+      std::filesystem::path qpuConfigPath = platformPath / "mapping/quantum_machines" / "latest_qpu_config.txt";
+      std::string machineconfigFilePath = qpuConfigPath.string();
+      if (mappingMode == "local-get-latest") {
+        // If mapping is done locally with the latest qpu config from the backend, we need to get the latest qpu config file from the backend and provide that to the mapping pass.
+        // Get the latest qpu config file from the backend and set quantumArchitectureFilePath to its path
+        try {
+          // Create a RestClient and get the latest qpu config from backendConfig["url"]+"/v1/config/qubits" from the backend
+          // Store the response in a file in the platformPath / "mapping/quantum_machines" directory, and set quantumArchitectureFilePath to that file path
+          RestClient client;
+          client.setVerbose(true); 
+          auto headers = getHeaders();
+          auto response = client.getRawText(backendConfig["url"], "/v1/config/qubits", headers);
+          std::string qpuConfig = response;
+          CUDAQ_INFO("Updated configuration: {}", qpuConfig);
+          std::filesystem::create_directories(qpuConfigPath.parent_path());
+          std::ofstream outFile(qpuConfigPath);
+          outFile << qpuConfig;
+          outFile.close();
+
+        } catch (const std::exception &e) {
+          throw std::runtime_error("Failed to get latest qpu config from backend: " +
+                                    std::string(e.what()));
+          }
+      } 
+      else if (mappingMode != "local-file") {
+        throw std::runtime_error("qubit-mapping-mode: " + mappingMode + " is not supported. Supported modes are 'local-file', 'local-get-latest', and 'backend'.");
+      }
+      passPipeline =
+          std::regex_replace(passPipeline, std::regex("%QPU_ARCH%"), machineconfigFilePath);
+      CUDAQ_INFO("Updated pass pipeline: {}", passPipeline);
+    }
 
 };
 

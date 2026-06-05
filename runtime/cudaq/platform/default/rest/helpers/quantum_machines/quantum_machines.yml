@@ -19,7 +19,7 @@ config:
   # Add preprocessor defines to compilation
   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
   # Define the JIT lowering pipeline
-  jit-mid-level-pipeline: "decomposition{enable-patterns=CHToCX,RzAdjToRz,CCZToCX,CR1ToCX,SwapToCX,CRxToCX,CRyToCX,CRzToCX},quake-to-cc-prep,func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements)"
+  jit-mid-level-pipeline: "decomposition{enable-patterns=CHToCX,RzAdjToRz,CCZToCX,CR1ToCX,SwapToCX,CRxToCX,CRyToCX,CRzToCX},quake-to-cc-prep,func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements),qubit-mapping{device=file(%QPU_ARCH%)}"
   # Tell the rest-qpu that the required output format is quake.
   codegen-emission: nop
   # Library mode is only for simulators, physical backends must turn this off
@@ -38,9 +38,9 @@ target-arguments:
     help-string: "Specify the executor to run. Default is mock"
   - key: disable-qubit-mapping
     required: false
-    platform-arg: disable-qubit-mapping
+    platform-arg: qubit-mapping-mode
     type: string
-    help-string: "Disable qubit mapping (mapping will run on the backend). Default is false"
+    help-string: "'local-file': manually edited file located at <>, 'local-get-latest': use the local SABRE mapping algorithm, get the latest qpu config from the backend, 'backend': assign qubits in the backend, as part of the compilation process. Default is 'local-get-latest'."
   - key: api_key
     required: false
     type: string
