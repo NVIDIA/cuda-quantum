@@ -22,8 +22,6 @@ config:
   jit-mid-level-pipeline: "lower-to-cfg,anyon-%Q_GATE%-set-mapping,func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=file(%QPU_ARCH%)},func.func(regtomem)"
   # Tell the rest-qpu that we are generating Adaptive QIR.
   codegen-emission: qir-adaptive
-  # Library mode is only for simulators, physical backends must turn this off
-  library-mode: false
 
 target-arguments:
   - key: url

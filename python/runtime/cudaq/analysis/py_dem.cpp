@@ -27,11 +27,10 @@ static std::string dem_from_kernel_impl(const std::string &kernelName,
   args = simplifiedValidateInputArguments(args);
 
   const cudaq::noise_model *noisePtr = noise ? &(*noise) : nullptr;
-  return cudaq::details::runDemFromKernel(
-      kernelName, platform, noisePtr, [&]() {
-        [[maybe_unused]] auto result =
-            cudaq::marshal_and_launch_module(kernelName, kernelMod, args);
-      });
+  return cudaq::detail::runDemFromKernel(kernelName, platform, noisePtr, [&]() {
+    [[maybe_unused]] auto result =
+        cudaq::marshal_and_launch_module(kernelName, kernelMod, args);
+  });
 }
 
 void cudaq::bindDemFromKernel(nanobind::module_ &mod) {

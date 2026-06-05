@@ -173,8 +173,7 @@ cudaq::dynamics::CuDensityMatOpConverter::createElementaryOperator(
 
   const bool isBatched = elemOps.size() > 1 && !allSame;
   // We should have validated the batching compatibility.
-  assert(!isBatched ||
-         cudaq::__internal__::checkBatchingCompatibility(elemOps));
+  assert(!isBatched || cudaq::detail::checkBatchingCompatibility(elemOps));
 
   auto subspaceExtents = getSubspaceExtents(modeExtents, elemOps[0].degrees());
   cudaq::dimension_map dimensions = convertDimensions(modeExtents);

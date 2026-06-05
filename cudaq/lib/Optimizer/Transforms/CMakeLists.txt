@@ -24,6 +24,7 @@ add_cudaq_library(OptTransforms
   CombineMeasurements.cpp
   CombineQuantumAlloc.cpp
   ConstantPropagation.cpp
+  DeadQuantumElimination.cpp
   DeadStoreRemoval.cpp
   Decomposition.cpp
   DecompositionPatterns.cpp

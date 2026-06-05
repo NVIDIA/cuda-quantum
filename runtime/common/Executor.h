@@ -45,10 +45,10 @@ public:
 
   /// @brief Execute the provided quantum codes and return a future object
   /// The caller can make this synchronous by just immediately calling .get().
-  virtual details::future
+  virtual detail::future
   execute(std::vector<KernelExecution> &codesToExecute,
-          cudaq::details::ExecutionContextType execType =
-              cudaq::details::ExecutionContextType::sample,
+          cudaq::detail::ExecutionContextType execType =
+              cudaq::detail::ExecutionContextType::sample,
           std::vector<char> *rawOutput = nullptr);
 };
 

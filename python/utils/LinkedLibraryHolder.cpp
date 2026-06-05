@@ -161,16 +161,16 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
   ScopedTraceWithContext("LinkedLibraryHolder::constructor");
   CUDAQ_INFO("Init infrastructure for pythonic builder.");
 
-  if (!cudaq::__internal__::canModifyTarget())
+  if (!cudaq::detail::canModifyTarget())
     return;
 
-  cudaq::__internal__::CUDAQLibraryData data;
+  cudaq::detail::CUDAQLibraryData data;
 #if defined(__APPLE__) && defined(__MACH__)
   libSuffix = "dylib";
-  cudaq::__internal__::getCUDAQLibraryPath(&data);
+  cudaq::detail::getCUDAQLibraryPath(&data);
 #else
   libSuffix = "so";
-  dl_iterate_phdr(cudaq::__internal__::getCUDAQLibraryPath, &data);
+  dl_iterate_phdr(cudaq::detail::getCUDAQLibraryPath, &data);
 #endif
 
   std::filesystem::path nvqirLibPath{data.path};
@@ -426,7 +426,7 @@ void LinkedLibraryHolder::setTarget(
     std::map<std::string, std::string> extraConfig) {
   // Do not set the default target if the disallow
   // flag has been set.
-  if (!cudaq::__internal__::canModifyTarget())
+  if (!cudaq::detail::canModifyTarget())
     return;
 
   auto iter = targets.find(targetName);
@@ -527,7 +527,7 @@ std::vector<RuntimeTarget> LinkedLibraryHolder::getTargets() const {
 }
 
 std::string python::getTransportLayer(LinkedLibraryHolder *holder) {
-  if (holder && cudaq::__internal__::canModifyTarget()) {
+  if (holder && cudaq::detail::canModifyTarget()) {
     auto runtimeTarget = holder->getTarget();
     const std::string codegenEmission =
         runtimeTarget.config.getCodeGenSpec(runtimeTarget.runtimeConfig);

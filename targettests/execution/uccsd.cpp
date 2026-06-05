@@ -14,7 +14,7 @@
 // RUN: if %oqc_avail; then nvq++ --target oqc  --emulate %s -o %t && %t | FileCheck %s; fi
 // RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
 // RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t | FileCheck %s; fi
-// RUN: nvq++ --enable-mlir %s -o %t
+// RUN: nvq++ %s -o %t
 // clang-format on
 
 #include <cudaq.h>
