@@ -28,8 +28,20 @@ def _identity_state(dimension: int):
     return cudaq.State.from_data(identity)
 
 
+def _basis_state(index: int, dimension: int):
+    import cudaq
+
+    data = np.zeros(dimension, dtype=np.complex128)
+    data[index] = 1.0
+    return cudaq.State.from_data(data)
+
+
+def _state_data(state) -> np.ndarray:
+    return np.array(state).reshape(-1)
+
+
 def _state_to_matrix(state, dimension: int) -> np.ndarray:
-    data = np.array(state).reshape(-1)
+    data = _state_data(state)
     expected_size = dimension * dimension
 
     if data.size != expected_size:
@@ -55,12 +67,13 @@ def _open_system_generator(hamiltonian, collapse_operators,
     generator += cudaq.SuperOperator.left_multiply(-1j * hamiltonian)
     generator += cudaq.SuperOperator.right_multiply(1j * hamiltonian)
 
-    for collapse_operator, collapse_operator_dagger in zip(
+    for collapse_operator, collapse_operator_adjoint in zip(
             collapse_operators, collapse_operator_adjoint_ops):
-        collapse_operator_product = collapse_operator_dagger * collapse_operator
+        collapse_operator_product = (collapse_operator_adjoint *
+                                     collapse_operator)
 
         generator += cudaq.SuperOperator.left_right_multiply(
-            collapse_operator, collapse_operator_dagger)
+            collapse_operator, collapse_operator_adjoint)
         generator += cudaq.SuperOperator.left_multiply(
             -0.5 * collapse_operator_product)
         generator += cudaq.SuperOperator.right_multiply(
@@ -69,8 +82,8 @@ def _open_system_generator(hamiltonian, collapse_operators,
     return generator
 
 
-def _extract_propagator(result, dimension: int,
-                        store_intermediate_results: bool):
+def _extract_closed_system_propagator(result, dimension: int,
+                                      store_intermediate_results: bool):
     if store_intermediate_results:
         return [
             _state_to_matrix(state, dimension)
@@ -78,6 +91,61 @@ def _extract_propagator(result, dimension: int,
         ]
 
     return _state_to_matrix(result.final_state(), dimension)
+
+
+def _stack_columns(states) -> np.ndarray:
+    return np.column_stack([_state_data(state) for state in states])
+
+
+def _extract_open_system_propagator(results, store_intermediate_results: bool):
+    if store_intermediate_results:
+        intermediate_states = [
+            result.intermediate_states() for result in results
+        ]
+        if not intermediate_states:
+            return []
+
+        num_intermediate_states = len(intermediate_states[0])
+        return [
+            _stack_columns(
+                [column_states[index]
+                 for column_states in intermediate_states])
+            for index in range(num_intermediate_states)
+        ]
+
+    return _stack_columns([result.final_state() for result in results])
+
+
+def _evolve_open_system_propagator(
+    generator,
+    dimensions,
+    schedule,
+    liouville_dimension: int,
+    store_intermediate_results: bool,
+    integrator,
+    max_batch_size: Optional[int],
+):
+    import cudaq
+
+    save_mode = (cudaq.IntermediateResultSave.ALL if store_intermediate_results
+                 else cudaq.IntermediateResultSave.NONE)
+
+    results = []
+    for column_index in range(liouville_dimension):
+        results.append(
+            cudaq.evolve(
+                generator,
+                dimensions,
+                schedule,
+                _basis_state(column_index, liouville_dimension),
+                collapse_operators=[],
+                observables=[],
+                store_intermediate_results=save_mode,
+                integrator=integrator,
+                max_batch_size=max_batch_size,
+            ))
+
+    return _extract_open_system_propagator(results, store_intermediate_results)
 
 
 def propagator(
@@ -109,7 +177,7 @@ def propagator(
         collapse_operators: Optional sequence of Lindblad collapse operators.
             If provided, the helper returns the Lindblad map.
         collapse_operator_adjoint_ops: Optional sequence containing the adjoint
-            of each collapse operator.
+            operator for each collapse operator.
         store_intermediate_results: If True, return propagators at the
             intermediate schedule points saved by the dynamics backend.
         integrator: Optional dynamics integrator.
@@ -144,22 +212,32 @@ def propagator(
                          "open-system propagators.")
 
     system_dimension = _total_dimension(dimensions)
-    propagator_dimension = (system_dimension * system_dimension
-                            if open_system else system_dimension)
 
     is_batched = isinstance(hamiltonian, Sequence)
     hamiltonians = list(hamiltonian) if is_batched else [hamiltonian]
 
     if open_system:
+        liouville_dimension = system_dimension * system_dimension
         generators = [
             _open_system_generator(h, collapse_operators,
                                    collapse_operator_adjoint_ops)
             for h in hamiltonians
         ]
-    else:
-        generators = [_closed_system_generator(h) for h in hamiltonians]
+        results = [
+            _evolve_open_system_propagator(
+                generator,
+                dimensions,
+                schedule,
+                liouville_dimension,
+                store_intermediate_results,
+                integrator,
+                max_batch_size,
+            ) for generator in generators
+        ]
+        return results if is_batched else results[0]
 
-    initial_states = [_identity_state(propagator_dimension) for _ in generators]
+    generators = [_closed_system_generator(h) for h in hamiltonians]
+    initial_states = [_identity_state(system_dimension) for _ in generators]
 
     save_mode = (cudaq.IntermediateResultSave.ALL if store_intermediate_results
                  else cudaq.IntermediateResultSave.NONE)
@@ -178,10 +256,10 @@ def propagator(
 
     if is_batched:
         return [
-            _extract_propagator(single_result, propagator_dimension,
-                                store_intermediate_results)
+            _extract_closed_system_propagator(single_result, system_dimension,
+                                              store_intermediate_results)
             for single_result in result
         ]
 
-    return _extract_propagator(result, propagator_dimension,
-                               store_intermediate_results)
+    return _extract_closed_system_propagator(result, system_dimension,
+                                             store_intermediate_results)
