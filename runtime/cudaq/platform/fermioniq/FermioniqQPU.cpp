@@ -26,7 +26,7 @@ cudaq::FermioniqQPU::unifiedLaunchModule(const AnyModule &module,
     const auto &kernelName = src.getName();
     CUDAQ_INFO("FermioniqBaseQPU launching kernel ({})", kernelName);
     auto [quakeModule, context] = Compiler::loadQuakeCodeByName(kernelName);
-    compiled = compiler.runPassPipeline(kernelName, quakeModule, args,
+    compiled = compiler.runPassPipeline(kernelName, quakeModule, args, true,
                                         std::move(context));
   } else {
     compiled = std::get<CompiledModule>(module);
@@ -55,6 +55,12 @@ cudaq::FermioniqQPU::unifiedLaunchModule(const AnyModule &module,
     }
     user_data["observable"] = obs;
     codes[0].user_data = user_data;
+  }
+
+  // Propagate metadata from the compiled artifact to the execution context.
+  if (auto ctx = getExecutionContext()) {
+    ctx->hasConditionalsOnMeasureResults =
+        compiled->getMetadata().hasConditionalsOnMeasureResults;
   }
 
   completeLaunchKernel(compiled->getName(), std::move(codes));

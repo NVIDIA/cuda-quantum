@@ -33,7 +33,7 @@ RemoteRESTQPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
   Compiler compiler(getCompileTarget(getExecutionContext()));
 
   std::string kernelName;
-  std::vector<cudaq::KernelExecution> codes;
+  std::optional<CompiledModule> compiled;
 
   if (std::holds_alternative<SourceModule>(module)) {
     const auto &src = std::get<SourceModule>(module);
@@ -43,12 +43,20 @@ RemoteRESTQPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
     auto [moduleOp, context] = Compiler::loadQuakeCodeByName(kernelName);
 
     // Get the Quake code, lowered according to config file.
-    codes = compiler.lowerQuakeCode(kernelName, moduleOp, args);
+    compiled = compiler.runPassPipeline(kernelName, moduleOp, args, true,
+                                        std::move(context));
   } else {
-    const auto &compiled = std::get<CompiledModule>(module);
-    kernelName = compiled.getName();
+    compiled = std::get<CompiledModule>(module);
+    kernelName = compiled->getName();
     CUDAQ_INFO("launching remote rest kernel via module ({})", kernelName);
-    codes = compiler.emitKernelExecutions(compiled);
+  }
+
+  auto codes = compiler.emitKernelExecutions(*compiled);
+
+  // Propagate metadata from the compiled artifact to the execution context.
+  if (auto ctx = getExecutionContext()) {
+    ctx->hasConditionalsOnMeasureResults =
+        compiled->getMetadata().hasConditionalsOnMeasureResults;
   }
 
   completeLaunchKernel(kernelName, std::move(codes));
