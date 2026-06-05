@@ -44,10 +44,7 @@ struct QppDmState : public cudaq::SimulationState {
         reinterpret_cast<std::complex<double> *>(other.getTensor().data),
         other.getTensor().extents[0], other.getTensor().extents[1]);
 
-    // For qubit systems, F(rho,sigma) = tr(rho*sigma) + 2 *
-    // sqrt(det(rho)*det(sigma))
-    auto detprod = rho.determinant() * sigma.determinant();
-    return (rho * sigma).trace().real() + 2 * std::sqrt(detprod.real());
+    return (rho.adjoint() * sigma).trace();
   }
 
   std::complex<double>

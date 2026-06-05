@@ -17,7 +17,7 @@
 #include <stdexcept>
 #include <type_traits>
 
-namespace cudaq::details {
+namespace cudaq::detail {
 /// Tag type used to dispatch the index-taking `measure_handle` constructor,
 /// so `measure_handle{42}` cannot be compiled in user code. The tag surface is
 /// reserved for internal runtime use. Inside `__qpu__` regions the
@@ -25,7 +25,7 @@ namespace cudaq::details {
 /// `!cc.measure_handle` SSA values directly.
 struct handle_index_t {};
 inline constexpr handle_index_t handle_index{};
-} // namespace cudaq::details
+} // namespace cudaq::detail
 
 namespace cudaq {
 
@@ -44,7 +44,7 @@ class measure_handle {
 public:
   measure_handle() noexcept : index(std::numeric_limits<std::int64_t>::max()) {}
 
-  explicit measure_handle(details::handle_index_t, std::int64_t idx)
+  explicit measure_handle(detail::handle_index_t, std::int64_t idx)
       : index(idx) {}
 
   // The bridge intercepts every `bool` coercion of a `measure_handle` and

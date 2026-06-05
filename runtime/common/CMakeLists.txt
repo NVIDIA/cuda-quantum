@@ -51,6 +51,7 @@ target_include_directories(${LIBRARY_NAME}
 target_link_libraries(${LIBRARY_NAME}
   PUBLIC
     cudaq-operator
+    CUDAQTargetConfig
   PRIVATE
     cudaq-logger
     fmt::fmt-header-only
@@ -79,7 +80,7 @@ if(OPENSSL_FOUND)
   if(APPLE)
     target_link_libraries(${LIBRARY_NAME} PRIVATE cpr::cpr ZLIB::ZLIB)
   else()
-    target_link_libraries(${LIBRARY_NAME} PRIVATE cpr::cpr -Wl,--start-group ZLIB::ZLIB)
+    target_link_libraries(${LIBRARY_NAME} PRIVATE cpr::cpr -Wl,--start-group ZLIB::ZLIB ${CMAKE_DL_LIBS})
   endif()
   target_compile_definitions(${LIBRARY_NAME} PRIVATE -DCUDAQ_RESTCLIENT_AVAILABLE)
   # Override the global flat_namespace for this library. cudaq-common doesn't need
@@ -109,4 +110,3 @@ if(EXISTS "$ENV{CURL_INSTALL_PREFIX}/cacert.pem")
   # Also include it as an install target
   install(FILES "$ENV{CURL_INSTALL_PREFIX}/cacert.pem" DESTINATION .)
 endif()
-

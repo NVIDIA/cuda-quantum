@@ -52,13 +52,13 @@ struct FormatArgument {
   static void appendCString(void *store, const void *value);
 };
 
-namespace details {
+namespace detail {
 std::string format_packed(const std::string_view message,
                           const std::span<const FormatArgument> &arr);
 
 void print_packed(const std::string_view message,
                   const std::span<const FormatArgument> &arr);
-} // namespace details
+} // namespace detail
 
 //
 // Functions substitutes for fmt::format and fmt::print
@@ -67,7 +67,7 @@ template <typename... Args>
 std::string format(const std::string_view message, Args &&...args) {
   auto array = std::array<FormatArgument, sizeof...(Args)>{
       FormatArgument(std::forward<Args>(args))...};
-  return details::format_packed(
+  return detail::format_packed(
       message, std::span<const FormatArgument>(array.data(), array.size()));
 }
 
@@ -75,7 +75,7 @@ template <typename... Args>
 void print(const std::string_view message, Args &&...args) {
   auto array = std::array<FormatArgument, sizeof...(Args)>{
       FormatArgument(std::forward<Args>(args))...};
-  return details::print_packed(
+  return detail::print_packed(
       message, std::span<const FormatArgument>(array.data(), array.size()));
 }
 

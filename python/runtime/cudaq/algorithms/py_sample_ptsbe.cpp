@@ -8,6 +8,8 @@
 
 #include "py_sample_ptsbe.h"
 #include "common/DeviceCodeRegistry.h"
+#include "runtime/cudaq/platform/py_alt_launch_kernel.h"
+#include "utils/OpaqueArguments.h"
 #include "cudaq/ptsbe/KrausSelection.h"
 #include "cudaq/ptsbe/KrausTrajectory.h"
 #include "cudaq/ptsbe/PTSBEExecutionData.h"
@@ -19,8 +21,6 @@
 #include "cudaq/ptsbe/strategies/ExhaustiveSamplingStrategy.h"
 #include "cudaq/ptsbe/strategies/OrderedSamplingStrategy.h"
 #include "cudaq/ptsbe/strategies/ProbabilisticSamplingStrategy.h"
-#include "runtime/cudaq/platform/py_alt_launch_kernel.h"
-#include "utils/OpaqueArguments.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/CAPI/IR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -41,7 +41,8 @@ using namespace cudaq;
 // std::optional types for all nullable parameters instead.
 static ptsbe::sample_result
 pySamplePTSBE(const std::string &shortName, MlirModule module,
-              std::size_t shots_count, noise_model noiseModel,
+              cudaq::CompiledModule *compiled, std::size_t shots_count,
+              noise_model noiseModel,
               std::optional<std::size_t> max_trajectories,
               std::optional<std::shared_ptr<ptsbe::PTSSamplingStrategy>>
                   sampling_strategy,
@@ -77,7 +78,7 @@ pySamplePTSBE(const std::string &shortName, MlirModule module,
     result = ptsbe::detail::runSamplingPTSBE(
         [&]() mutable {
           [[maybe_unused]] auto res =
-              clean_launch_module(shortName, mod, opaques);
+              clean_launch_module(shortName, mod, opaques, compiled);
         },
         platform, shortName, shots_count, ptsbe_options);
   } catch (const std::exception &e) {
@@ -400,15 +401,16 @@ void cudaq::bindSamplePTSBE(nanobind::module_ &mod) {
            "Block until the PTSBE sampling result is available and return it.");
 
   // PTSBE sample implementation
-  ptsbe.def(
-      "sample_impl", pySamplePTSBE, nanobind::arg("kernel_name"),
-      nanobind::arg("module"), nanobind::arg("shots_count"),
-      nanobind::arg("noise_model"), nanobind::arg("max_trajectories").none(),
-      nanobind::arg("sampling_strategy").none(),
-      nanobind::arg("shot_allocation").none(),
-      nanobind::arg("return_execution_data"),
-      nanobind::arg("include_sequential_data"), nanobind::arg("arguments"),
-      R"pbdoc(
+  ptsbe.def("sample_impl", pySamplePTSBE, nanobind::arg("kernel_name"),
+            nanobind::arg("module"), nanobind::arg("compiled"),
+            nanobind::arg("shots_count"), nanobind::arg("noise_model"),
+            nanobind::arg("max_trajectories").none(),
+            nanobind::arg("sampling_strategy").none(),
+            nanobind::arg("shot_allocation").none(),
+            nanobind::arg("return_execution_data"),
+            nanobind::arg("include_sequential_data"),
+            nanobind::arg("arguments"),
+            R"pbdoc(
 Run PTSBE sampling on the provided kernel.
 
 Args:

@@ -7,9 +7,9 @@
  ******************************************************************************/
 
 #include "ServerHelper.h"
+#include "nlohmann/json.hpp"
 #include "cudaq/platform/qpu_utils.h"
 #include "cudaq/utils/owning_ptr.h"
-#include "nlohmann/json.hpp"
 
 namespace cudaq {
 

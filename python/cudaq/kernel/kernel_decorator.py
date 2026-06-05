@@ -67,9 +67,14 @@ def ensure_not_recursive(method):
             )
 
         self._resolving_arguments = True
-        ret = method(self, *args, **kwargs)
-        self._resolving_arguments = False
-        return ret
+        try:
+            return method(self, *args, **kwargs)
+        finally:
+            # Clear the flag on every exit path. Without `finally`, an
+            # exception raised by `method` leaks `_resolving_arguments=True`
+            # to the next invocation, which then misreports the real error
+            # as a recursive-call diagnostic.
+            self._resolving_arguments = False
 
     return wrapper
 
@@ -585,6 +590,13 @@ class PyKernelDecorator(object):
 
         return processed_args, module
 
+    def cachedCompiledModule(self):
+        """Return the kernel's CompiledModule cache slot, creating an empty
+        one on first access."""
+        if not hasattr(self, '_compiled_module'):
+            self._compiled_module = cudaq_runtime.CompiledModule()
+        return self._compiled_module
+
     def get_none_type(self):
         if self._cached_qkeModule:
             context = self._cached_qkeModule.context
@@ -628,10 +640,11 @@ class PyKernelDecorator(object):
             emitFatalError("wrong number of arguments provided")
 
         processed_args, module = self.prepare_call(*args)
-
-        result = cudaq_runtime.marshal_and_launch_module(
-            self.uniqName, module, *processed_args)
-        return result
+        return cudaq_runtime.marshal_and_launch_module(
+            self.uniqName,
+            module,
+            *processed_args,
+            compiled=self.cachedCompiledModule())
 
     def beta_reduction(self, isEntryPoint, *args):
         """

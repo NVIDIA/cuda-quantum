@@ -13,9 +13,9 @@
 
 // Quantum emulators
 // RUN: nvq++ -target quantinuum -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
-// RUN: nvq++ -target ionq       -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
-// RUN: nvq++ -target oqc        -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target iqm      --emulate -fkernel-exec-kind=2 %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt %t | FileCheck %s
+// RUN: if %ionq_avail; then nvq++ --target ionq -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s ; fi
+// RUN: if %oqc_avail; then nvq++ --target oqc -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s ; fi
+// RUN: if %iqm_avail; then nvq++ --target iqm      --emulate -fkernel-exec-kind=2 %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt %t | FileCheck %s; fi
 // RUN: if %qci_avail; then nvq++ --target qci -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 
@@ -52,7 +52,7 @@ int STEPS = 4; // set to around 100 for `nvidia` target
 // Compile and run with:
 // clang-format off
 // ```
-// nvq++ --enable-mlir -v trotter_kernel_mode.cpp -o trotter.x --target nvidia && ./trotter.x
+// nvq++ -v trotter_kernel_mode.cpp -o trotter.x --target nvidia && ./trotter.x
 // ```
 // clang-format on
 

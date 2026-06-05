@@ -1,0 +1,19 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: compiler-bench-ftqc-logical
+description: "Logical FTQC benchmark target lowering to a pre-synthesis Clifford+T and rotation basis for resource counting"
+
+config:
+  nvqir-simulation-backend: qpp
+  # Target mid-level stage: clean up quantum allocation form, restore
+  # memory-semantics IR for resource counting, then enforce the logical FTQC
+  # basis. The basis preserves T-family gates and unresolved single-qubit
+  # rotations for layer-one FTQC metrics.
+  jit-mid-level-pipeline: "func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg),func.func(regtomem),decomposition{basis=h,s,t,rx,ry,rz,x,y,z,x(1)}"
+  

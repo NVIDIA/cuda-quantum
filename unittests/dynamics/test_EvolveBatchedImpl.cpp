@@ -37,7 +37,7 @@ TEST(BatchedEvolveTester, checkSimple) {
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
 
   cudaq::integrators::runge_kutta integrator(4, 0.01);
-  auto results = cudaq::__internal__::evolveBatched(
+  auto results = cudaq::detail::evolveBatched(
       {ham1, ham2}, dims, schedule, {initialState1, initialState2}, integrator,
       {}, {pauliZ}, cudaq::IntermediateResultSave::ExpectationValue);
 
@@ -106,7 +106,7 @@ TEST(BatchedEvolveTester, checkMultiTerms) {
       std::make_pair(initial_state_vec.data(), initial_state_vec.size()));
   cudaq::integrators::runge_kutta integrator(4, 0.001);
 
-  auto results = cudaq::__internal__::evolveBatched(
+  auto results = cudaq::detail::evolveBatched(
       {hamiltonian1, hamiltonian2}, dims, schedule,
       {initialState, initialState}, integrator, {},
       {cavity_occ_op, atom_occ_op},
@@ -161,7 +161,7 @@ TEST(BatchedEvolveTester, checkDifferentOperators) {
       std::vector<std::complex<double>>{M_SQRT1_2, M_SQRT1_2});
 
   cudaq::integrators::runge_kutta integrator(4, 0.01);
-  auto results = cudaq::__internal__::evolveBatched(
+  auto results = cudaq::detail::evolveBatched(
       {ham1, ham2}, dims, schedule, {initialState1, initialState2}, integrator,
       {}, {pauliZ, pauliX}, cudaq::IntermediateResultSave::ExpectationValue);
 
@@ -216,7 +216,7 @@ TEST(BatchedEvolveTester, checkBatchedCollapseOps) {
   }
 
   cudaq::integrators::runge_kutta integrator(4, 0.01);
-  auto results = cudaq::__internal__::evolveBatched(
+  auto results = cudaq::detail::evolveBatched(
       batchedHams, dimensions, schedule, initialStates, integrator,
       batchedCollapsedOps, {cudaq::sum_op<cudaq::matrix_handler>(hamiltonian)},
       cudaq::IntermediateResultSave::ExpectationValue);
@@ -297,7 +297,7 @@ TEST(BatchedEvolveTester, checkBatchedDifferentCollapseOps) {
   }
 
   cudaq::integrators::runge_kutta integrator(4, 0.01);
-  auto results = cudaq::__internal__::evolveBatched(
+  auto results = cudaq::detail::evolveBatched(
       batchedHams, dimensions, schedule, initialStates, integrator,
       batchedCollapsedOps, {cudaq::sum_op<cudaq::matrix_handler>(hamiltonian)},
       cudaq::IntermediateResultSave::ExpectationValue);
@@ -356,7 +356,7 @@ TEST(BatchedEvolveTester, checkTimeDependentHamiltonian) {
   cudaq::sum_op<cudaq::matrix_handler> pauliZ(pauliZ_t);
 
   cudaq::integrators::runge_kutta integrator(4, 0.01);
-  auto results = cudaq::__internal__::evolveBatched(
+  auto results = cudaq::detail::evolveBatched(
       batchedHams, dims, schedule, initialStates, integrator, {}, {pauliZ},
       cudaq::IntermediateResultSave::ExpectationValue);
 
@@ -427,7 +427,7 @@ TEST(BatchedEvolveTester, checkTimeDependentCollapsedOps) {
   }
 
   cudaq::integrators::runge_kutta integrator(4, 0.01);
-  auto results = cudaq::__internal__::evolveBatched(
+  auto results = cudaq::detail::evolveBatched(
       batchedHams, dimensions, schedule, initialStates, integrator,
       batchedCollapsedOps, {cudaq::sum_op<cudaq::matrix_handler>(hamiltonian)},
       cudaq::IntermediateResultSave::ExpectationValue);
@@ -490,7 +490,7 @@ TEST(BatchedEvolveTester, checkCallbackTensorOpSimple) {
   cudaq::product_op<cudaq::matrix_handler> pauliZ_t = cudaq::spin_op::z(0);
   cudaq::sum_op<cudaq::matrix_handler> pauliZ(pauliZ_t);
 
-  auto results = cudaq::__internal__::evolveBatched(
+  auto results = cudaq::detail::evolveBatched(
       batchedHams, dims, schedule, initialStates, integrator, {}, {pauliZ},
       cudaq::IntermediateResultSave::ExpectationValue);
 
@@ -561,7 +561,7 @@ TEST(BatchedEvolveTester, checkCallbackTensorOpDifferentFuncs) {
   cudaq::product_op<cudaq::matrix_handler> pauliZ_t = cudaq::spin_op::z(0);
   cudaq::sum_op<cudaq::matrix_handler> pauliZ(pauliZ_t);
 
-  auto results = cudaq::__internal__::evolveBatched(
+  auto results = cudaq::detail::evolveBatched(
       batchedHams, dims, schedule, initialStates, integrator, {}, {pauliZ},
       cudaq::IntermediateResultSave::ExpectationValue);
 
@@ -615,7 +615,7 @@ TEST(BatchedEvolveTester, checkSuperopSimple) {
   cudaq::schedule schedule(cudaq::linspace(0.0, 1.0, numSteps), {"t"});
   cudaq::product_op<cudaq::matrix_handler> pauliZ_t = cudaq::spin_op::z(0);
   cudaq::sum_op<cudaq::matrix_handler> pauliZ(pauliZ_t);
-  auto results = cudaq::__internal__::evolveBatched(
+  auto results = cudaq::detail::evolveBatched(
       sups, dims, schedule, initialStates, integrator, {pauliZ},
       cudaq::IntermediateResultSave::ExpectationValue);
 
@@ -696,7 +696,7 @@ TEST(BatchedEvolveTester, checkSuperopMasterEquation) {
   }
 
   cudaq::integrators::runge_kutta integrator(4, 0.01);
-  auto results = cudaq::__internal__::evolveBatched(
+  auto results = cudaq::detail::evolveBatched(
       batchedSups, dimensions, schedule, initialStates, integrator,
       {cudaq::sum_op<cudaq::matrix_handler>(ham)},
       cudaq::IntermediateResultSave::ExpectationValue);
@@ -787,7 +787,7 @@ TEST(BatchedEvolveTester, checkParamSweep) {
   }
 
   cudaq::integrators::runge_kutta integrator(4);
-  auto results = cudaq::__internal__::evolveBatched(
+  auto results = cudaq::detail::evolveBatched(
       batchedHams, dims, schedule, initialStates, integrator, {}, {},
       cudaq::IntermediateResultSave::None);
   EXPECT_EQ(results.size(), amplitudes.size() * dragAmplitudes.size());
@@ -832,7 +832,7 @@ TEST(BatchedEvolveTester, checkIntermediateResultSaveAll) {
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
 
   cudaq::integrators::runge_kutta integrator(4, 0.01);
-  auto results = cudaq::__internal__::evolveBatched(
+  auto results = cudaq::detail::evolveBatched(
       {ham1, ham2}, dims, schedule, {initialState1, initialState2}, integrator,
       {}, {pauliZ}, cudaq::IntermediateResultSave::All);
 
@@ -876,7 +876,7 @@ TEST(BatchedEvolveTester, checkIntermediateResultSaveNoneWithObservables) {
       cudaq::state::from_data(std::vector<std::complex<double>>{1.0, 0.0});
 
   cudaq::integrators::runge_kutta integrator(4, 0.01);
-  auto results = cudaq::__internal__::evolveBatched(
+  auto results = cudaq::detail::evolveBatched(
       {ham1, ham2}, dims, schedule, {initialState1, initialState2}, integrator,
       {}, {pauliZ}, cudaq::IntermediateResultSave::None);
 
@@ -966,7 +966,7 @@ TEST(BatchedEvolveTester, checkCoefficientMismatchAfterSorting) {
   cudaq::sum_op<cudaq::matrix_handler> obsZ1(cudaq::spin_op::z(1));
 
   cudaq::integrators::runge_kutta integrator(4, 0.01);
-  auto results = cudaq::__internal__::evolveBatched(
+  auto results = cudaq::detail::evolveBatched(
       {ham1, ham2}, dims, schedule, {initialState, initialState}, integrator,
       {}, {obsZ0, obsZ1}, cudaq::IntermediateResultSave::ExpectationValue);
 

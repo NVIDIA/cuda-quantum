@@ -11,10 +11,10 @@
 #include "common/ArgumentWrapper.h"
 #include "common/FmtCore.h"
 #include "common/KernelArgs.h"
-#include "cudaq/algorithms/get_state.h"
-#include "cudaq/runtime/logger/logger.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
+#include "cudaq/algorithms/get_state.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include <nanobind/ndarray.h>
 
@@ -171,11 +171,12 @@ static std::vector<int> bitStringToIntVec(const std::string &bitString) {
 
 /// @brief Run `cudaq::get_state` on the provided kernel and spin operator.
 static state get_state_impl(const std::string &shortName, MlirModule mod,
+                            cudaq::CompiledModule *compiled,
                             nanobind::args args) {
   auto closure = [=]() {
-    return marshal_and_launch_module(shortName, mod, args);
+    return marshal_and_launch_module(shortName, mod, args, compiled);
   };
-  return details::extractState(std::move(closure));
+  return detail::extractState(std::move(closure));
 }
 
 static std::future<state> get_state_async_impl(const std::string &shortName,
@@ -195,7 +196,7 @@ static std::future<state> get_state_async_impl(const std::string &shortName,
         p->erase();
         delete p;
       });
-  return details::runGetStateAsync(
+  return detail::runGetStateAsync(
       detail::make_copyable_function(
           [opaques = std::move(opaques), kernelName, clonedMod]() mutable {
             [[maybe_unused]] auto result =
@@ -239,7 +240,7 @@ state pyGetStateQPU(const std::string &kernelName, MlirModule kernelMod,
 }
 
 state pyGetStateLibraryMode(nanobind::object kernel, nanobind::args args) {
-  return details::extractState([&]() mutable {
+  return detail::extractState([&]() mutable {
     if (0 == args.size())
       kernel();
     else {
@@ -841,7 +842,7 @@ index pair.
   mod.def(
       "get_state_impl",
       [&](const std::string &shortName, MlirModule module,
-          nanobind::args args) {
+          cudaq::CompiledModule *compiled, nanobind::args args) {
         // Check for unsupported cases.
         if (holder.getTarget().name == "orca-photonics")
           throw std::runtime_error(
@@ -849,7 +850,7 @@ index pair.
 
         if (is_remote_platform() || is_emulated_platform())
           return pyGetStateQPU(shortName, module, args);
-        return get_state_impl(shortName, module, args);
+        return get_state_impl(shortName, module, compiled, args);
       },
       "See the python documentation for get_state.");
 
