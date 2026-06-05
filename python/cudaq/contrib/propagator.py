@@ -12,6 +12,7 @@ from collections.abc import Mapping, Sequence
 from typing import Optional
 import uuid
 
+import cudaq
 import numpy as np
 
 
@@ -23,8 +24,6 @@ def _total_dimension(dimensions: Mapping[int, int]) -> int:
 
 
 def _identity_state(dimension: int):
-    import cudaq
-
     identity = np.eye(dimension, dtype=np.complex128).reshape(-1)
     return cudaq.State.from_data(identity)
 
@@ -41,8 +40,6 @@ def _state_to_matrix(state, dimension: int) -> np.ndarray:
 
 
 def _closed_system_generator(hamiltonian):
-    import cudaq
-
     generator = cudaq.SuperOperator()
     generator += cudaq.SuperOperator.left_multiply(-1j * hamiltonian)
     return generator
@@ -82,7 +79,6 @@ def _open_system_matrix(hamiltonian, dimensions, collapse_operators,
 
 def _open_system_generator(hamiltonian, dimensions, collapse_operators,
                            collapse_operator_adjoint_ops):
-    import cudaq
     from cudaq import operators
 
     system_dimension = _total_dimension(dimensions)
@@ -165,8 +161,6 @@ def propagator(
         matrices. For a sequence of Hamiltonians, returns one such result per
         Hamiltonian.
     """
-    import cudaq
-
     collapse_operators = [] if collapse_operators is None else list(
         collapse_operators)
     collapse_operator_adjoint_ops = ([] if collapse_operator_adjoint_ops is None
