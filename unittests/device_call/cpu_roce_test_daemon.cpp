@@ -81,8 +81,10 @@ void on_signal(int) { g_shutdown.store(1, std::memory_order_release); }
 // slot; we rewrite it in place: read RPCHeader+args, write RPCResponse+result.
 // ---------------------------------------------------------------------------
 
-// addThem(int64 a, int64 b) -> int64 (a + b).  Wire: args = [a:8][b:8];
-// result = [sum:8].
+// addThem(int32 a, int32 b) -> int32 (a + b).  Wire: args = [a:4][b:4];
+// result = [sum:4].  This matches the CUDA-Q compiler's marshaling for
+// `int addThem(int, int)`, so the same handler serves both the GoogleTest
+// caller and a compiler-lowered device_call.
 extern "C" void addThemHost(void *slot, std::size_t slot_size) {
   auto *header = static_cast<RPCHeader *>(slot);
   if (header->magic != RPC_MAGIC_REQUEST)
@@ -92,11 +94,11 @@ extern "C" void addThemHost(void *slot, std::size_t slot_size) {
   const std::uint64_t ptp = header->ptp_timestamp;
   const std::uint32_t arg_len = header->arg_len;
 
-  std::int64_t sum = 0;
+  std::int32_t sum = 0;
   std::int32_t status = 0;
-  if (arg_len >= 2 * sizeof(std::int64_t) &&
-      slot_size >= sizeof(RPCResponse) + sizeof(std::int64_t)) {
-    std::int64_t a = 0, b = 0;
+  if (arg_len >= 2 * sizeof(std::int32_t) &&
+      slot_size >= sizeof(RPCResponse) + sizeof(std::int32_t)) {
+    std::int32_t a = 0, b = 0;
     auto *args = static_cast<std::uint8_t *>(slot) + sizeof(RPCHeader);
     std::memcpy(&a, args, sizeof(a));
     std::memcpy(&b, args + sizeof(a), sizeof(b));
@@ -108,7 +110,7 @@ extern "C" void addThemHost(void *slot, std::size_t slot_size) {
   auto *response = static_cast<RPCResponse *>(slot);
   response->magic = RPC_MAGIC_RESPONSE;
   response->status = status;
-  response->result_len = status == 0 ? sizeof(std::int64_t) : 0;
+  response->result_len = status == 0 ? sizeof(std::int32_t) : 0;
   response->request_id = request_id;
   response->ptp_timestamp = ptp;
   if (status == 0)

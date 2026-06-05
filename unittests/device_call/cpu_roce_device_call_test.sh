@@ -7,19 +7,27 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.    #
 # ============================================================================ #
 #
-# Orchestrates the cpu_roce DeviceCallChannel test (CpuRoceDispatchTest) over a
-# two-port RoCE loopback.  The GoogleTest fixture itself spawns the
-# cpu_roce_test_daemon subprocess and performs the bidirectional QP/rkey
-# rendezvous; this script only (1) optionally configures the two NIC ports,
-# (2) exports the test topology via environment variables, and (3) runs the
-# fixture.  Mirrors the spirit of hsb_test_cpu.sh but is much simpler because
-# there is no separate emulator/playback to manage.
+# Orchestrates the cpu_roce DeviceCallChannel tests over a two-port RoCE
+# loopback.  Two modes:
+#
+#   default       Run the GoogleTest fixture (CpuRoceDispatchTest).  The fixture
+#                 itself spawns the cpu_roce_test_daemon and drives the channel
+#                 by hand-calling the device_call ABI.
+#   --app         Run the compiler-driven proof: nvq++-compile a real __qpu__
+#                 app (cpu_roce_device_call_app.cpp) whose cudaq::device_call is
+#                 lowered to the realtime ABI, spawn the daemon, run the app with
+#                 --cudaq-device-call=cpu_roce, and check it prints 42.  This is
+#                 the cpu_roce analogue of the NVQPP device_call lit tests that
+#                 prove the shared-memory / host-dispatch channels.
+#
+# In both modes this script optionally (1) configures the two NIC ports and
+# (2) builds the needed targets.  Mirrors the spirit of hsb_test_cpu.sh.
 #
 # Usage:
 #   cpu_roce_device_call_test.sh \
 #       --channel-device mlx5_0 --channel-ip 10.0.0.1 \
 #       --daemon-device  mlx5_1 --daemon-ip  10.0.0.2 \
-#       [--setup-network] [--build] [--build-dir DIR] [--mtu 4200]
+#       [--app] [--setup-network] [--build] [--build-dir DIR] [--mtu 4200]
 #
 # A loopback cable between the two ports (or two ports on the same NIC) is
 # assumed.  The two ports must be different so the caller and the service can
@@ -35,7 +43,13 @@ BUILD_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." 2>/dev/null && pwd)/build
 MTU=4200
 DO_SETUP_NETWORK=0
 DO_BUILD=0
+DO_APP=0
 GTEST_FILTER="CpuRoceDispatchTest.*"
+# Ring geometry shared by the --app caller (channel) and the daemon (service).
+# slot-size MUST equal the daemon's page-size and slots MUST be <= num-pages so
+# the channel's per-slot RDMA writes land in valid daemon ring slots.
+APP_SLOTS=64
+APP_SLOT_SIZE=384
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -48,8 +62,9 @@ while [[ $# -gt 0 ]]; do
     --filter)         GTEST_FILTER="$2"; shift 2;;
     --setup-network)  DO_SETUP_NETWORK=1; shift;;
     --build)          DO_BUILD=1; shift;;
+    --app)            DO_APP=1; shift;;
     -h|--help)
-      sed -n '2,40p' "${BASH_SOURCE[0]}"; exit 0;;
+      sed -n '2,46p' "${BASH_SOURCE[0]}"; exit 0;;
     *) echo "Unknown argument: $1" >&2; exit 1;;
   esac
 done
@@ -135,6 +150,85 @@ if [[ "$DO_SETUP_NETWORK" == "1" ]]; then
   echo "--- Configuring network ---"
   configure_port "$CHANNEL_DEVICE" "$CHANNEL_IP"
   configure_port "$DAEMON_DEVICE" "$DAEMON_IP"
+fi
+
+# --app mode: nvq++-compile the device_call app, spawn the daemon ourselves
+# (the app is not the GoogleTest fixture, so the script owns the daemon), run
+# the app over cpu_roce, and verify it prints 42.  This exercises the actual
+# compiler lowering (cudaq::device_call -> realtime acquire/dispatch/release),
+# which the hand-written GoogleTest fixture bypasses.
+run_app_test() {
+  local script_dir nvqpp app_src daemon_bin libdir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  nvqpp="$BUILD_DIR/bin/nvq++"
+  app_src="$script_dir/cpu_roce_device_call_app.cpp"
+  daemon_bin="$BUILD_DIR/unittests/cpu_roce_test_daemon"
+  libdir="$BUILD_DIR/lib"
+
+  [[ -x "$nvqpp" ]] || { echo "ERROR: nvq++ not found: $nvqpp" >&2; return 1; }
+  [[ -f "$app_src" ]] || { echo "ERROR: app source not found: $app_src" >&2; return 1; }
+  [[ -x "$daemon_bin" ]] || { echo "ERROR: daemon not found: $daemon_bin (run with --build)" >&2; return 1; }
+
+  local workdir; workdir="$(mktemp -d)"
+  local daemon_pid=""
+  # shellcheck disable=SC2317
+  cleanup_app() {
+    [[ -n "$daemon_pid" ]] && kill "$daemon_pid" 2>/dev/null || true
+    rm -rf "$workdir" 2>/dev/null || true
+  }
+  trap cleanup_app RETURN
+
+  echo "--- Compiling device_call app (nvq++ -frealtime-lowering) ---"
+  "$nvqpp" --target qpp-cpu -frealtime-lowering --enable-mlir \
+    "$app_src" -o "$workdir/cpu_roce_app" || {
+    echo "ERROR: nvq++ compile failed" >&2; return 1; }
+
+  echo "--- Starting daemon (service) on $DAEMON_DEVICE @ $DAEMON_IP ---"
+  LD_LIBRARY_PATH="$libdir:${LD_LIBRARY_PATH:-}" "$daemon_bin" \
+    --device="$DAEMON_DEVICE" --local-ip="$DAEMON_IP" --rendezvous-port=0 \
+    --num-pages="$APP_SLOTS" --page-size="$APP_SLOT_SIZE" --timeout=120 \
+    > "$workdir/daemon.log" 2>&1 &
+  daemon_pid=$!
+
+  # Wait for the daemon to publish its rendezvous endpoint (or die).
+  local port="" deadline=$((SECONDS + 20))
+  while ((SECONDS < deadline)); do
+    if ! kill -0 "$daemon_pid" 2>/dev/null; then
+      echo "ERROR: daemon exited during startup:" >&2
+      cat "$workdir/daemon.log" >&2; return 1
+    fi
+    port="$(sed -n 's/.*CPU_ROCE_DAEMON_READY port=\([0-9]*\).*/\1/p' \
+              "$workdir/daemon.log" 2>/dev/null | head -1)"
+    [[ -n "$port" ]] && break
+    sleep 0.3
+  done
+  [[ -n "$port" ]] || { echo "ERROR: daemon never became ready" >&2; cat "$workdir/daemon.log" >&2; return 1; }
+  echo "  daemon ready: rendezvous port=$port"
+
+  echo "--- Running app over cpu_roce (channel $CHANNEL_DEVICE @ $CHANNEL_IP) ---"
+  local out rc
+  out="$(LD_LIBRARY_PATH="$libdir:${LD_LIBRARY_PATH:-}" "$workdir/cpu_roce_app" \
+    --cudaq-device-call=cpu_roce \
+    --cudaq-device-call-slots="$APP_SLOTS" \
+    --cudaq-device-call-slot-size="$APP_SLOT_SIZE" \
+    "ib-device=$CHANNEL_DEVICE" "local-ip=$CHANNEL_IP" \
+    "rendezvous-host=$DAEMON_IP" "rendezvous-port=$port" 2>&1)"
+  rc=$?
+  echo "$out"
+
+  if [[ $rc -eq 0 ]] \
+     && grep -q "device_call int result = 42" <<<"$out" \
+     && grep -q "device_call measured integer result = 42" <<<"$out"; then
+    echo "=== PASS: device_call over cpu_roce returned 42 (compiler-lowered) ==="
+    return 0
+  fi
+  echo "=== FAIL: app rc=$rc or output missing the expected 42 results ===" >&2
+  return 1
+}
+
+if [[ "$DO_APP" == "1" ]]; then
+  run_app_test
+  exit $?
 fi
 
 TEST_BIN="$BUILD_DIR/unittests/test_device_call_dispatch"

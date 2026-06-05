@@ -248,23 +248,24 @@ protected:
       daemon->stop();
   }
 
-  // Single synchronous addThem(a, b) -> a + b round-trip.
-  std::int64_t addThem(std::int64_t a, std::int64_t b) {
+  // Single synchronous addThem(a, b) -> a + b round-trip.  int32 args/result
+  // match the CUDA-Q compiler ABI for `int addThem(int, int)`.
+  std::int32_t addThem(std::int32_t a, std::int32_t b) {
     void *frame = nullptr, *req = nullptr, *resp = nullptr;
     EXPECT_EQ(0, __cudaq_device_call_acquire_realtime_frame(
-                     0, AddThemFunctionId, 2 * sizeof(std::int64_t),
-                     sizeof(std::int64_t), &frame, &req, &resp));
+                     0, AddThemFunctionId, 2 * sizeof(std::int32_t),
+                     sizeof(std::int32_t), &frame, &req, &resp));
     EXPECT_NE(nullptr, frame);
-    auto *args = static_cast<std::int64_t *>(req);
+    auto *args = static_cast<std::int32_t *>(req);
     args[0] = a;
     args[1] = b;
     std::uint64_t responseLen = 0;
     const std::int32_t status =
         __cudaq_device_call_dispatch_realtime_frame(frame, &responseLen);
-    std::int64_t out = 0;
+    std::int32_t out = 0;
     if (status == 0) {
-      EXPECT_EQ(sizeof(std::int64_t), responseLen);
-      out = *static_cast<std::int64_t *>(resp);
+      EXPECT_EQ(sizeof(std::int32_t), responseLen);
+      out = *static_cast<std::int32_t *>(resp);
     }
     __cudaq_device_call_safely_release_realtime_frame(frame);
     EXPECT_EQ(0, status);
@@ -278,7 +279,7 @@ protected:
 
 TEST_F(CpuRoceDispatchTest, DispatchesAddThemSynchronously) {
   for (int i = 0; i < 1000; ++i)
-    EXPECT_EQ(static_cast<std::int64_t>(i) + 7, addThem(i, 7));
+    EXPECT_EQ(i + 7, addThem(i, 7));
 }
 
 TEST_F(CpuRoceDispatchTest, DispatchesNoopFireAndForget) {
@@ -343,7 +344,7 @@ TEST_F(CpuRoceDispatchTest, DispatchesAddThemConcurrentlyAcrossThreads) {
   for (int t = 0; t < kThreads; ++t)
     threads.emplace_back([&, t] {
       for (int i = 0; i < kPerThread; ++i) {
-        const std::int64_t a = t * 1000 + i, b = 5;
+        const std::int32_t a = t * 1000 + i, b = 5;
         if (addThem(a, b) != a + b)
           failures.fetch_add(1, std::memory_order_relaxed);
       }
@@ -362,7 +363,7 @@ TEST_F(CpuRoceDispatchTest, MeasuresDispatchLatency) {
   us.reserve(kIters);
   for (int i = 0; i < kIters; ++i) {
     const auto t0 = std::chrono::steady_clock::now();
-    EXPECT_EQ(static_cast<std::int64_t>(i) + 3, addThem(i, 3));
+    EXPECT_EQ(i + 3, addThem(i, 3));
     const auto t1 = std::chrono::steady_clock::now();
     us.push_back(
         std::chrono::duration_cast<std::chrono::nanoseconds>(t1 - t0).count() /
@@ -380,15 +381,15 @@ TEST_F(CpuRoceDispatchTest, RecoversCleanlyWhenServiceRestarts) {
   // A few good round-trips, then kill the daemon and confirm the next
   // response-bearing dispatch fails (timeout / error) rather than hanging.
   for (int i = 0; i < 10; ++i)
-    EXPECT_EQ(static_cast<std::int64_t>(i), addThem(i, 0));
+    EXPECT_EQ(i, addThem(i, 0));
 
   daemon->stop();
 
   void *frame = nullptr, *req = nullptr, *resp = nullptr;
   ASSERT_EQ(0, __cudaq_device_call_acquire_realtime_frame(
-                   0, AddThemFunctionId, 2 * sizeof(std::int64_t),
-                   sizeof(std::int64_t), &frame, &req, &resp));
-  auto *args = static_cast<std::int64_t *>(req);
+                   0, AddThemFunctionId, 2 * sizeof(std::int32_t),
+                   sizeof(std::int32_t), &frame, &req, &resp));
+  auto *args = static_cast<std::int32_t *>(req);
   args[0] = 1;
   args[1] = 2;
   std::uint64_t responseLen = 0;
