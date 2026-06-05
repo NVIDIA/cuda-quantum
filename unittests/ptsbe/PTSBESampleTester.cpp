@@ -143,21 +143,15 @@ CUDAQ_TEST(PTSBESampleTest, ValidateKernelNoThrowForValidContext) {
 }
 
 CUDAQ_TEST(PTSBESampleTest, WarnNamedRegisters) {
-  // __global__ only: no warning
+  // __global__ only: no named registers detected.
   cudaq::ExecutionContext globalCtx("tracer");
   globalCtx.kernelTrace.appendMeasurement("mz", {{2, 0}}, "__global__");
-  detail::warnNamedRegisters("testKernel", globalCtx);
-  EXPECT_FALSE(globalCtx.warnedNamedMeasurements);
+  EXPECT_FALSE(detail::warnNamedRegisters("testKernel", globalCtx));
 
-  // Named register: sets flag
+  // Named register: detected.
   cudaq::ExecutionContext namedCtx("tracer");
   namedCtx.kernelTrace.appendMeasurement("mz", {{2, 0}}, "my_register");
-  detail::warnNamedRegisters("testKernel", namedCtx);
-  EXPECT_TRUE(namedCtx.warnedNamedMeasurements);
-
-  // Second call is a no-op (flag already set)
-  detail::warnNamedRegisters("testKernel", namedCtx);
-  EXPECT_TRUE(namedCtx.warnedNamedMeasurements);
+  EXPECT_TRUE(detail::warnNamedRegisters("testKernel", namedCtx));
 }
 
 // ============================================================================

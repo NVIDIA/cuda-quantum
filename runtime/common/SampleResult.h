@@ -10,6 +10,7 @@
 
 #include <optional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -293,5 +294,17 @@ public:
   /// @return
   static bool has_even_parity(std::string_view bitString);
 };
+
+/// @brief Emit a one-time deprecation warning that @p kernelName uses named
+/// measurement results in a context where named sub-registers are not
+/// preserved.
+///
+/// The warning is emitted once per process; every subsequent call is a no-op,
+/// regardless of the kernel name.
+///
+/// @param kernelName The name of the kernel that uses named measurements.
+/// @param detail Optional explanatory text for warning message.
+void emitNamedMeasurementsWarning(const std::string &kernelName,
+                                  std::string_view detail = "");
 
 } // namespace cudaq

@@ -57,8 +57,10 @@ namespace cudaq::ptsbe::detail {
 void validatePTSBEKernel(const std::string &kernelName,
                          const ExecutionContext &ctx);
 
-/// @brief Warn if kernel uses named measurement registers. PTSBE outputs a
-void warnNamedRegisters(const std::string &kernelName, ExecutionContext &ctx);
+/// @brief Warn if the kernel uses named measurement registers. PTSBE outputs a
+/// single global register, so named sub-registers are not preserved.
+bool warnNamedRegisters(const std::string &kernelName,
+                        const ExecutionContext &ctx);
 
 /// @brief Validate platform preconditions for PTSBE execution
 void validatePTSBEPreconditions(

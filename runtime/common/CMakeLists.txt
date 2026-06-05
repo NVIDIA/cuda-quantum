@@ -21,6 +21,7 @@ set(COMMON_RUNTIME_SRC
   ExtraPayloadProvider.cpp
   Future.cpp
   KernelExecution.cpp
+  NamedMeasurementWarning.cpp
   NoiseModel.cpp
   RecordLogParser.cpp
   Resources.cpp

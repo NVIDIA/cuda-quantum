@@ -772,17 +772,8 @@ protected:
     auto execResult = sample(sampleQubits, getNumShotsToExec());
 
     // Warn if there are named measurement registers beyond `__global__`
-    if (!executionContext->warnedNamedMeasurements &&
-        registerNameToMeasuredQubit.size() > 1) {
-      executionContext->warnedNamedMeasurements = true;
-      std::cerr
-          << "WARNING: Kernel \"" << executionContext->kernelName
-          << "\" uses named measurement results but is "
-             "invoked in sampling mode. Support for sub-registers in "
-             "`sample_result` is deprecated and will be removed in a future "
-             "release. Use `run` to retrieve individual measurement results."
-          << std::endl;
-    }
+    if (registerNameToMeasuredQubit.size() > 1)
+      cudaq::emitNamedMeasurementsWarning(executionContext->kernelName);
 
     if (registerNameToMeasuredQubit.empty()) {
       internalResult.append(execResult, executionContext->explicitMeasurements);
