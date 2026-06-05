@@ -2919,7 +2919,7 @@ def test_named_reg_in_sample(capfd):
 
     cudaq.sample(baz)
     captured = capfd.readouterr()
-    assert "WARNING" in captured.err
+    assert "[warning]" in captured.err
 
 
 # TODO: Update when `ApplyOpSpecialization` can handle multi-argument loops

@@ -25,4 +25,5 @@ int main() {
   return 0;
 }
 
-// CHECK: WARNING: Kernel "test_kernel" uses named measurement results
+// CHECK: [warning]
+// CHECK: Kernel "test_kernel" uses named measurement results

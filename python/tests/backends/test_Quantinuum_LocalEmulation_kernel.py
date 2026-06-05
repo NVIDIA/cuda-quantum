@@ -438,7 +438,7 @@ def test_named_reg_in_sample(capfd):
 
     cudaq.sample(foo).dump()
     captured = capfd.readouterr()
-    assert "WARNING" in captured.err
+    assert "[warning]" in captured.err
 
 
 def test_sample_with_conditional():
