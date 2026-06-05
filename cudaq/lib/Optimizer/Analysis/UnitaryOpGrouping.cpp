@@ -28,7 +28,7 @@ static bool isUnitaryOp(Operation *op) {
 ///    populate. We create the struct, push it back to the UnitaryOpGroups
 ///    vector, and update the lookup tables for the new group.
 void cudaq::quake::detail::UnitaryOpGroupingAnalysis::flushGroupIfNonEmpty(
-    Block &block, llvm::SmallVectorImpl<Operation *> &currUnitaryOps) {
+    Block &block, mlir::SmallVectorImpl<Operation *> &currUnitaryOps) {
   if (currUnitaryOps.empty())
     return;
 
@@ -73,10 +73,10 @@ cudaq::quake::detail::UnitaryOpGroupingAnalysis::getGroupContainingOp(
   return &groups[iter->second];
 }
 
-llvm::SmallVector<const cudaq::quake::detail::UnitaryOpGroup *>
+mlir::SmallVector<const cudaq::quake::detail::UnitaryOpGroup *>
 cudaq::quake::detail::UnitaryOpGroupingAnalysis::getGroupsIn(
     const mlir::Block *block) const {
-  llvm::SmallVector<const UnitaryOpGroup *> groupsInBlock;
+  mlir::SmallVector<const UnitaryOpGroup *> groupsInBlock;
   if (!block)
     return groupsInBlock;
 
@@ -112,7 +112,7 @@ bool cudaq::quake::detail::UnitaryOpGroupingAnalysis::inSameGroup(
 /// nested regions, those regions are scanned immediately after the current
 /// block-local run is flushed.
 void cudaq::quake::detail::UnitaryOpGroupingAnalysis::scanBlock(Block &block) {
-  llvm::SmallVector<Operation *> currUnitaryOps;
+  mlir::SmallVector<Operation *> currUnitaryOps;
 
   for (Operation &op : block) {
     if (isUnitaryOp(&op)) {

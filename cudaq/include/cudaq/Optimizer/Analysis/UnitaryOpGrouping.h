@@ -9,7 +9,7 @@
 #pragma once
 
 #include "llvm/ADT/DenseMap.h"
-#include "llvm/ADT/SmallVector.h"
+#include "mlir/Support/LLVM.h"
 #include "mlir/Support/TypeID.h"
 
 namespace mlir {
@@ -23,10 +23,10 @@ struct UnitaryOpGroup {
   UnitaryOpGroup() = default;
 
   mlir::Block *block = nullptr;
-  llvm::SmallVector<mlir::Operation *> ops;
+  mlir::SmallVector<mlir::Operation *> ops;
 };
 
-using UnitaryOpGroups = llvm::SmallVector<cudaq::quake::detail::UnitaryOpGroup>;
+using UnitaryOpGroups = mlir::SmallVector<cudaq::quake::detail::UnitaryOpGroup>;
 
 /// Analysis to group unitary operations within blocks.
 ///
@@ -64,7 +64,7 @@ struct UnitaryOpGroupingAnalysis {
   ///
   /// Returns an empty vector when \p block is null or no groups were found in
   /// the block.
-  llvm::SmallVector<const UnitaryOpGroup *>
+  mlir::SmallVector<const UnitaryOpGroup *>
   getGroupsIn(const mlir::Block *block) const;
 
   /// Return true if both operations are in the same unitary group.
@@ -78,11 +78,11 @@ private:
   void scanBlock(mlir::Block &block);
   void flushGroupIfNonEmpty(
       mlir::Block &block,
-      llvm::SmallVectorImpl<mlir::Operation *> &currUnitaryOps);
+      mlir::SmallVectorImpl<mlir::Operation *> &currUnitaryOps);
 
   UnitaryOpGroups groups;
   llvm::DenseMap<mlir::Operation *, unsigned> opToGroupIndex;
-  llvm::DenseMap<const mlir::Block *, llvm::SmallVector<unsigned>>
+  llvm::DenseMap<const mlir::Block *, mlir::SmallVector<unsigned>>
       blockToGroupIndices;
 };
 } // namespace cudaq::quake::detail
