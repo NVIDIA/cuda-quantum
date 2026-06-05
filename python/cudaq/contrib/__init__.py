@@ -7,3 +7,4 @@
 # ============================================================================ #
 
 from .qiskit_convert import from_qiskit, from_qasm
+from .propagator import propagator
