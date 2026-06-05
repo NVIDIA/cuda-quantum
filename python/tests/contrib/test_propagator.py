@@ -150,3 +150,56 @@ def test_propagator_noncommuting_time_dependent_hamiltonian():
     expected = _solve_propagator_reference(hamiltonian_matrix, t_final)
 
     np.testing.assert_allclose(computed, expected, atol=1e-4)
+
+
+def _amplitude_damping_liouvillian(gamma):
+    sigma_minus = np.array([[0.0, 0.0], [1.0, 0.0]], dtype=np.complex128)
+    sigma_plus = sigma_minus.conj().T
+    identity = np.eye(2, dtype=np.complex128)
+
+    collapse_product = sigma_plus @ sigma_minus
+
+    return (
+        gamma * np.kron(sigma_minus.conj(), sigma_minus)
+        - 0.5 * gamma * np.kron(identity, collapse_product)
+        - 0.5 * gamma * np.kron(collapse_product.T, identity)
+    )
+
+
+def test_open_system_propagator_amplitude_damping():
+    gamma = 0.2
+    t_final = 0.7
+
+    hamiltonian = 0.0 * spin.z(0)
+    collapse_operators = [np.sqrt(gamma) * spin.minus(0)]
+    schedule = Schedule(np.linspace(0.0, t_final, 21), ["t"])
+
+    computed = cudaq.contrib.propagator(
+        hamiltonian,
+        {0: 2},
+        schedule,
+        collapse_operators=collapse_operators,
+    )
+
+    expected = scipy_linalg.expm(_amplitude_damping_liouvillian(gamma) *
+                                 t_final)
+
+    np.testing.assert_allclose(computed, expected, atol=1e-4)
+
+
+def test_open_system_propagator_shape():
+    gamma = 0.1
+    t_final = 0.3
+
+    hamiltonian = 0.0 * spin.z(0)
+    collapse_operators = [np.sqrt(gamma) * spin.minus(0)]
+    schedule = Schedule(np.linspace(0.0, t_final, 11), ["t"])
+
+    computed = cudaq.contrib.propagator(
+        hamiltonian,
+        {0: 2},
+        schedule,
+        collapse_operators=collapse_operators,
+    )
+
+    assert computed.shape == (4, 4)
