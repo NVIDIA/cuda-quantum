@@ -453,8 +453,11 @@ void cudaq::packArgs(
               handleStructMemberVariable<style>(allocatedArg, offsets[i],
                                                 memberTys[i], elements[i]);
           } else {
-            nanobind::dict attributes =
-                nanobind::cast<nanobind::dict>(arg.attr("__annotations__"));
+            // Read field annotations from the struct's class. On Python
+            // 3.14 (PEP 749) `__annotations__` is no longer accessible on
+            // instances, only on the class, so go through `__class__`.
+            nanobind::dict attributes = nanobind::cast<nanobind::dict>(
+                arg.attr("__class__").attr("__annotations__"));
             for (std::size_t i = 0;
                  const auto &[attr_name, unused] : attributes) {
               nanobind::object attr_value =
