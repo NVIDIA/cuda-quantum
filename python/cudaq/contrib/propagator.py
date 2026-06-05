@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from typing import Optional
-import uuid
 
 import cudaq
 import numpy as np
@@ -45,62 +44,20 @@ def _closed_system_generator(hamiltonian):
     return generator
 
 
-def _operator_matrix(operator, dimensions: Mapping[int, int], **parameters):
-    if parameters:
-        return np.asarray(operator.to_matrix(dimensions, **parameters),
-                          dtype=np.complex128)
-    return np.asarray(operator.to_matrix(dimensions), dtype=np.complex128)
-
-
-def _open_system_matrix(hamiltonian, dimensions, collapse_operators,
-                        collapse_operator_adjoint_ops, **parameters):
-    system_dimension = _total_dimension(dimensions)
-    identity = np.eye(system_dimension, dtype=np.complex128)
-
-    hamiltonian_matrix = _operator_matrix(hamiltonian, dimensions, **parameters)
-
-    matrix = -1j * np.kron(identity, hamiltonian_matrix)
-    matrix += 1j * np.kron(hamiltonian_matrix.T, identity)
+def _open_system_generator(hamiltonian, collapse_operators,
+                           collapse_operator_adjoint_ops):
+    generator = cudaq.SuperOperator()
+    generator += cudaq.SuperOperator.left_multiply(-1j * hamiltonian)
+    generator += cudaq.SuperOperator.right_multiply(1j * hamiltonian)
 
     for collapse_operator, collapse_operator_adjoint in zip(
             collapse_operators, collapse_operator_adjoint_ops):
-        collapse_matrix = _operator_matrix(collapse_operator, dimensions,
-                                           **parameters)
-        collapse_adjoint_matrix = _operator_matrix(collapse_operator_adjoint,
-                                                   dimensions, **parameters)
-        collapse_product = collapse_adjoint_matrix @ collapse_matrix
+        collapse_product = collapse_operator_adjoint * collapse_operator
+        generator += cudaq.SuperOperator.left_right_multiply(
+            collapse_operator, collapse_operator_adjoint)
+        generator += cudaq.SuperOperator.left_multiply(-0.5 * collapse_product)
+        generator += cudaq.SuperOperator.right_multiply(-0.5 * collapse_product)
 
-        matrix += np.kron(collapse_matrix.conj(), collapse_matrix)
-        matrix += -0.5 * np.kron(identity, collapse_product)
-        matrix += -0.5 * np.kron(collapse_product.T, identity)
-
-    return matrix
-
-
-def _open_system_generator(hamiltonian, dimensions, collapse_operators,
-                           collapse_operator_adjoint_ops):
-    from cudaq import operators
-
-    system_dimension = _total_dimension(dimensions)
-    propagator_dimension = system_dimension * system_dimension
-    operator_id = f"propagator_open_system_{uuid.uuid4().hex}"
-
-    def create(dimension=propagator_dimension, **parameters):
-        if dimension != propagator_dimension:
-            raise ValueError("Unexpected open-system propagator dimension.")
-        return _open_system_matrix(
-            hamiltonian,
-            dimensions,
-            collapse_operators,
-            collapse_operator_adjoint_ops,
-            **parameters,
-        )
-
-    operators.define(operator_id, [propagator_dimension], create)
-    generator_matrix = operators.instantiate(operator_id, 0)
-
-    generator = cudaq.SuperOperator()
-    generator += cudaq.SuperOperator.left_multiply(generator_matrix)
     return generator
 
 
@@ -179,9 +136,7 @@ def propagator(
     system_dimension = _total_dimension(dimensions)
     propagator_dimension = (system_dimension * system_dimension
                             if open_system else system_dimension)
-    evolution_dimensions = ({
-        0: propagator_dimension
-    } if open_system else dimensions)
+    evolution_dimensions = dimensions
 
     is_batched = isinstance(hamiltonian,
                             Sequence) and not hasattr(hamiltonian, "to_matrix")
@@ -189,7 +144,7 @@ def propagator(
 
     if open_system:
         generators = [
-            _open_system_generator(h, dimensions, collapse_operators,
+            _open_system_generator(h, collapse_operators,
                                    collapse_operator_adjoint_ops)
             for h in hamiltonians
         ]
