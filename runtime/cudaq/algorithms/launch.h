@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
 #include "common/KernelArgs.h"
 #include "cudaq/platform.h"
@@ -49,7 +50,7 @@ auto launch(Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
 
   typename Policy::result_type result;
   auto &qpu = platform.getQPU(qpu_id);
-  ctx.executeKernelApi = [&qpu, &result, &policy](const AnyModule &module,
+  ctx.executeKernelApi = [&qpu, &result, &policy](const CompiledModule &module,
                                                   const KernelArgs &args) {
     result = qpu.launchKernel(policy, module, args);
   };

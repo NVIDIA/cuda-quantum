@@ -204,7 +204,7 @@ public:
                  const std::size_t shots, std::size_t qpu_id = 0);
 
   [[nodiscard]] KernelThunkResultType
-  unifiedLaunchModule(const AnyModule &module, KernelArgs args,
+  unifiedLaunchModule(const CompiledModule &module, KernelArgs args,
                       std::size_t qpu_id = 0);
 
   template <typename Policy>

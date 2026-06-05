@@ -14,7 +14,6 @@
 #include "common/KernelExecution.h"
 #include "common/Resources.h"
 #include "common/ServerHelper.h"
-#include "cudaq_internal/compiler/Compiler.h"
 #include "nvqir/AnalysisScope.h"
 #include "nvqir/resourcecounter/ResourceCounterScope.h"
 #include "cudaq/Target/TargetConfig.h"
@@ -56,8 +55,6 @@ inline observe_result observeResultFromCounts(const observe_policy &policy,
 
 class BaseRemoteRESTQPU : public QPU {
 protected:
-  using Compiler = cudaq_internal::compiler::Compiler;
-
   /// The number of shots
   std::optional<int> nShots;
 
@@ -278,47 +275,6 @@ public:
     target->pauliTermSplitObservable = policy.spin;
     target->pipelineConfig.replaceStateWithKernel = true;
     return target;
-  }
-
-  /// @brief Build the list of kernel executions for the given module under
-  /// a specific sampling policy. Source modules are lowered through the
-  /// configured pass pipeline; pre-compiled modules are emitted directly.
-  /// The resolved kernel name is returned via @p kernelName.
-  template <typename Policy>
-  std::pair<std::string, std::vector<cudaq::KernelExecution>>
-  compileKernelExecutions(Policy &policy, const AnyModule &module,
-                          KernelArgs args) {
-    Compiler compiler(getCompileTarget(policy));
-    std::string kernelName;
-    std::optional<CompiledModule> compiled;
-    if (std::holds_alternative<SourceModule>(module)) {
-      const auto &src = std::get<SourceModule>(module);
-      kernelName = src.getName();
-      CUDAQ_INFO("launching remote rest kernel ({})", kernelName);
-
-      auto [moduleOp, context] = Compiler::loadQuakeCodeByName(kernelName);
-
-      compiled = compiler.runPassPipeline(kernelName, moduleOp, args, true,
-                                          std::move(context));
-      if constexpr (std::is_same_v<Policy, sample_policy>) {
-        if (compiler.hasWarnedNamedMeasurements())
-          policy.warnedNamedMeasurements = true;
-      }
-    } else {
-      compiled = std::get<CompiledModule>(module);
-      kernelName = compiled->getName();
-      CUDAQ_INFO("launching remote rest kernel via module ({})", kernelName);
-    }
-
-    auto codes = compiler.emitKernelExecutions(*compiled);
-
-    // Propagate metadata from the compiled artifact to the execution context.
-    if (auto ctx = getExecutionContext()) {
-      ctx->hasConditionalsOnMeasureResults =
-          compiled->getMetadata().hasConditionalsOnMeasureResults;
-    }
-
-    return {kernelName, codes};
   }
 
   void completeLaunchKernel(const std::string &kernelName,

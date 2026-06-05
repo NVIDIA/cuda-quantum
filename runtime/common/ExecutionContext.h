@@ -157,7 +157,7 @@ public:
   std::optional<cudaq::CompiledModule> cachedCompiledModule = std::nullopt;
 
   /// @brief Dispatcher towards the policy specific launch.
-  std::function<void(const AnyModule &module, const KernelArgs &args)>
+  std::function<void(const CompiledModule &module, const KernelArgs &args)>
       executeKernelApi;
 
   /// @brief Slot for the detector error model, as `.dem` text.

@@ -25,39 +25,33 @@ using namespace cudaq_internal::compiler;
 using namespace cudaq;
 
 cudaq::KernelThunkResultType
-cudaq::QPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
-  if (std::holds_alternative<SourceModule>(module))
-    throw std::runtime_error(
-        "This QPU does not support launching uncompiled SourceModule kernels; "
-        "subclasses must override unifiedLaunchModule.");
-
-  const auto &compiled = std::get<CompiledModule>(module);
-  return runJITCompiledModule(compiled, args);
+cudaq::QPU::unifiedLaunchModule(const CompiledModule &module, KernelArgs args) {
+  return runJITCompiledModule(module, args);
 }
 
 sample_result cudaq::QPU::launchKernel(const sample_policy &policy,
-                                       const AnyModule &module,
+                                       const CompiledModule &module,
                                        KernelArgs args) {
   throw std::runtime_error(
       "This QPU does not support launching the sample_policy.");
 }
 
 async_sample_result cudaq::QPU::launchKernel(const async_sample_policy &policy,
-                                             const AnyModule &module,
+                                             const CompiledModule &module,
                                              KernelArgs args) {
   throw std::runtime_error(
       "This QPU does not support launching the async_sample_policy.");
 }
 
 observe_result cudaq::QPU::launchKernel(const observe_policy &policy,
-                                        const AnyModule &module,
+                                        const CompiledModule &module,
                                         KernelArgs args) {
   throw std::runtime_error(
       "This QPU does not support launching the observe_policy.");
 }
 
 async_observe_result cudaq::QPU::launchKernel(async_observe_policy &policy,
-                                              const AnyModule &module,
+                                              const CompiledModule &module,
                                               KernelArgs args) {
   throw std::runtime_error(
       "This QPU does not support launching the async_observe_policy.");

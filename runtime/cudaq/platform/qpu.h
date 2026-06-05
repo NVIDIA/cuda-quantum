@@ -139,21 +139,23 @@ public:
                          const std::size_t shots) {}
 
   virtual sample_result launchKernel(const sample_policy &policy,
-                                     const AnyModule &module, KernelArgs args);
+                                     const CompiledModule &module,
+                                     KernelArgs args);
 
   virtual async_sample_result launchKernel(const async_sample_policy &policy,
-                                           const AnyModule &module,
+                                           const CompiledModule &module,
                                            KernelArgs args);
 
   virtual observe_result launchKernel(const observe_policy &policy,
-                                      const AnyModule &module, KernelArgs args);
+                                      const CompiledModule &module,
+                                      KernelArgs args);
 
   virtual async_observe_result launchKernel(async_observe_policy &policy,
-                                            const AnyModule &module,
+                                            const CompiledModule &module,
                                             KernelArgs args);
 
   [[nodiscard]] virtual KernelThunkResultType
-  unifiedLaunchModule(const AnyModule &module, KernelArgs args);
+  unifiedLaunchModule(const CompiledModule &module, KernelArgs args);
 
   /// Get the compile target of the QPU for the given policy.
   [[nodiscard]] virtual std::unique_ptr<CompileTarget>

@@ -91,23 +91,15 @@ public:
   void setTargetBackend(const std::string &backend) override;
 
   [[nodiscard]] KernelThunkResultType
-  launchKernelCommon(const std::string &kernelName, KernelThunkType kernelFunc,
-                     void *args);
+  launchKernelCommon(const std::string &kernelName, void *args);
 
   /// @brief Launch the kernel. Handle all pertinent modifications for the
   /// execution context.
   [[nodiscard]] KernelThunkResultType
-  unifiedLaunchModule(const AnyModule &module, KernelArgs args) override {
-    if (!std::holds_alternative<SourceModule>(module))
-      throw std::runtime_error(
-          "OrcaRemoteRESTQPU does not support pre-compiled module launch.");
-
-    const auto &src = std::get<SourceModule>(module);
-    auto rawFn = src.getFunctionPtr();
-    KernelThunkType kernelFunc = rawFn ? rawFn->getFn() : nullptr;
+  unifiedLaunchModule(const CompiledModule &module, KernelArgs args) override {
     auto packed = args.getPacked();
     void *argData = packed ? packed->data.data() : nullptr;
-    return launchKernelCommon(src.getName(), kernelFunc, argData);
+    return launchKernelCommon(module.getName(), argData);
   }
 };
 } // namespace cudaq

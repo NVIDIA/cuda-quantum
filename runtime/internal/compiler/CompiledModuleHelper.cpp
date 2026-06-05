@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
+#include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/LayoutInfo.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -95,4 +96,17 @@ CompiledModule CompiledModuleHelper::createCompiledModule(
   return compiled;
 }
 
+void CompiledModuleHelper::ensureMlirArtifactsExist(
+    cudaq::CompiledModule &module, Compiler &compiler, cudaq::KernelArgs args) {
+  if (!module.getMlirArtifacts().empty())
+    return;
+
+  auto [moduleOp, context] =
+      cudaq_internal::compiler::Compiler::loadQuakeCodeByName(module.getName());
+
+  auto compiled = compiler.runPassPipeline(module.getName(), moduleOp, args,
+                                           true, std::move(context));
+  for (const auto &[name, artifact] : compiled.getArtifacts())
+    module.addArtifact(name, std::move(artifact));
+}
 } // namespace cudaq_internal::compiler

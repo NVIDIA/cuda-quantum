@@ -8,6 +8,7 @@
 #pragma once
 
 #include "common/CompiledModule.h"
+#include "common/KernelArgs.h"
 #include <memory>
 
 namespace mlir {
@@ -17,6 +18,8 @@ class ModuleOp;
 } // namespace mlir
 
 namespace cudaq_internal::compiler {
+
+class Compiler;
 
 /// Compiler-side helper for `cudaq::CompiledModule`: static factory methods and
 /// utilities that depend on MLIR but pair with the MLIR-free `CompiledModule`
@@ -76,6 +79,12 @@ public:
       std::string name, cudaq::ResultInfo resultInfo,
       std::vector<NamedCompiledArtifact> compiledArtifacts,
       cudaq::CompiledModule::CompilationMetadata metadata = {});
+
+  /// Ensure that the module has an MLIR artifact. If it doesn't, load it using
+  /// `loadQuakeCodeByName` and compile it.
+  static void ensureMlirArtifactsExist(cudaq::CompiledModule &module,
+                                       Compiler &compiler,
+                                       cudaq::KernelArgs args);
 };
 
 } // namespace cudaq_internal::compiler

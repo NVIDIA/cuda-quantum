@@ -274,8 +274,8 @@ quantum_platform::get_remote_capabilities(std::size_t qpu_id) const {
 }
 
 KernelThunkResultType
-quantum_platform::unifiedLaunchModule(const AnyModule &module, KernelArgs args,
-                                      std::size_t qpu_id) {
+quantum_platform::unifiedLaunchModule(const CompiledModule &module,
+                                      KernelArgs args, std::size_t qpu_id) {
   validateQpuId(qpu_id);
   auto &qpu = platformQPUs[qpu_id];
   return qpu->unifiedLaunchModule(module, args);
@@ -338,13 +338,16 @@ cudaq::altLaunchKernel(const char *kernelName,
   std::string kernName = kernelName;
   KernelArgs args{KernelArgs::PackedArgs{kernelArgs, argsSize, resultOffset}};
   SourceModule src{kernName, kernelFunc};
+  // TODO: we are bypassing the compiler to avoid a dependency on the compiler.
+  // This delays compilation until inside the QPU.
+  CompiledModule compiled{src};
   auto ctx = cudaq::getExecutionContext();
   if (ctx && ctx->executeKernelApi) {
-    ctx->executeKernelApi(src, args);
+    ctx->executeKernelApi(compiled, args);
     return {};
   }
   std::size_t qpu_id = cudaq::getCurrentQpuId();
-  return platform.unifiedLaunchModule(src, args, qpu_id);
+  return platform.unifiedLaunchModule(compiled, args, qpu_id);
 }
 
 cudaq::KernelThunkResultType
@@ -355,14 +358,18 @@ cudaq::streamlinedLaunchKernel(const char *kernelName,
   std::string kernName = kernelName;
   KernelArgs args{rawArgs};
   SourceModule src{kernName};
+  // TODO: we are bypassing the compiler to avoid a dependency on the compiler.
+  // This delays compilation until inside the QPU.
+  CompiledModule compiled{src};
   auto ctx = cudaq::getExecutionContext();
   if (ctx && ctx->executeKernelApi) {
-    ctx->executeKernelApi(src, args);
+    ctx->executeKernelApi(compiled, args);
     return {};
   }
   auto &platform = *getQuantumPlatformInternal();
   std::size_t qpu_id = cudaq::getCurrentQpuId();
-  [[maybe_unused]] auto r = platform.unifiedLaunchModule(src, args, qpu_id);
+  [[maybe_unused]] auto r =
+      platform.unifiedLaunchModule(compiled, args, qpu_id);
   // NB: The streamlined launch will never return results. Use alt or hybrid if
   // the kernel returns results.
   return {};
@@ -394,6 +401,9 @@ cudaq::hybridLaunchKernel(const char *kernelName, cudaq::KernelThunkType kernel,
   const std::string kernName = kernelName;
   std::size_t qpu_id = cudaq::getCurrentQpuId();
   SourceModule src{kernName, kernel};
+  // TODO: we are bypassing the compiler to avoid a dependency on the compiler.
+  // This delays compilation until inside the QPU.
+  CompiledModule compiled{src};
 
   KernelArgs kargs = platform.is_remote(qpu_id)
                          ? KernelArgs{rawArgs}
@@ -401,14 +411,15 @@ cudaq::hybridLaunchKernel(const char *kernelName, cudaq::KernelThunkType kernel,
 
   auto ctx = cudaq::getExecutionContext();
   if (ctx && ctx->executeKernelApi) {
-    ctx->executeKernelApi(src, kargs);
+    ctx->executeKernelApi(compiled, kargs);
     return {};
   }
 
   if (platform.is_remote(qpu_id)) {
     // This path should never call a kernel that returns results.
-    [[maybe_unused]] auto r = platform.unifiedLaunchModule(src, kargs, qpu_id);
+    [[maybe_unused]] auto r =
+        platform.unifiedLaunchModule(compiled, kargs, qpu_id);
     return {};
   }
-  return platform.unifiedLaunchModule(src, kargs, qpu_id);
+  return platform.unifiedLaunchModule(compiled, kargs, qpu_id);
 }
