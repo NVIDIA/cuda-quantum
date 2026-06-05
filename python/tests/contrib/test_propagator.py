@@ -226,3 +226,23 @@ def test_propagator_multi_degree_of_freedom():
     expected = scipy.linalg.expm(-1j * hamiltonian.to_matrix(dimensions) * 0.4)
 
     np.testing.assert_allclose(actual, expected, atol=1e-5)
+
+
+@pytest.mark.skipif(
+    not _has_dynamics_backend(),
+    reason="cudaq.contrib.propagator requires the dynamics backend")
+def test_open_system_propagator_schedule_parameter_name():
+    gamma = 0.2
+    hamiltonian = 0.1 * spin.z(0)
+    collapse_operator = np.sqrt(gamma) * spin.minus(0)
+    collapse_operator_adjoint = np.sqrt(gamma) * spin.plus(0)
+
+    computed = cudaq.contrib.propagator(
+        hamiltonian,
+        {0: 2},
+        Schedule([0.0, 0.1], ["time"]),
+        collapse_operators=[collapse_operator],
+        collapse_operator_adjoint_ops=[collapse_operator_adjoint],
+    )
+
+    assert computed.shape == (4, 4)

@@ -85,7 +85,7 @@ def _open_system_generator(hamiltonian, dimensions, collapse_operators,
     propagator_dimension = system_dimension * system_dimension
     operator_id = f"propagator_open_system_{uuid.uuid4().hex}"
 
-    def create(t=0.0, dimension=propagator_dimension):
+    def create(dimension=propagator_dimension, **parameters):
         if dimension != propagator_dimension:
             raise ValueError("Unexpected open-system propagator dimension.")
         return _open_system_matrix(
@@ -93,7 +93,7 @@ def _open_system_generator(hamiltonian, dimensions, collapse_operators,
             dimensions,
             collapse_operators,
             collapse_operator_adjoint_ops,
-            t=t,
+            **parameters,
         )
 
     operators.define(operator_id, [propagator_dimension], create)
