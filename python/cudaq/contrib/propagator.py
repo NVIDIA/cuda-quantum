@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from typing import Optional
+import uuid
 
 import numpy as np
 
@@ -28,20 +29,8 @@ def _identity_state(dimension: int):
     return cudaq.State.from_data(identity)
 
 
-def _basis_state(index: int, dimension: int):
-    import cudaq
-
-    data = np.zeros(dimension, dtype=np.complex128)
-    data[index] = 1.0
-    return cudaq.State.from_data(data)
-
-
-def _state_data(state) -> np.ndarray:
-    return np.array(state).reshape(-1)
-
-
 def _state_to_matrix(state, dimension: int) -> np.ndarray:
-    data = _state_data(state)
+    data = np.array(state).reshape(-1)
     expected_size = dimension * dimension
 
     if data.size != expected_size:
@@ -59,31 +48,68 @@ def _closed_system_generator(hamiltonian):
     return generator
 
 
-def _open_system_generator(hamiltonian, collapse_operators,
-                           collapse_operator_adjoint_ops):
-    import cudaq
+def _operator_matrix(operator, dimensions: Mapping[int, int], **parameters):
+    if parameters:
+        return np.asarray(operator.to_matrix(dimensions, **parameters),
+                          dtype=np.complex128)
+    return np.asarray(operator.to_matrix(dimensions), dtype=np.complex128)
 
-    generator = cudaq.SuperOperator()
-    generator += cudaq.SuperOperator.left_multiply(-1j * hamiltonian)
-    generator += cudaq.SuperOperator.right_multiply(1j * hamiltonian)
+
+def _open_system_matrix(hamiltonian, dimensions, collapse_operators,
+                        collapse_operator_adjoint_ops, **parameters):
+    system_dimension = _total_dimension(dimensions)
+    identity = np.eye(system_dimension, dtype=np.complex128)
+
+    hamiltonian_matrix = _operator_matrix(hamiltonian, dimensions, **parameters)
+
+    matrix = -1j * np.kron(identity, hamiltonian_matrix)
+    matrix += 1j * np.kron(hamiltonian_matrix.T, identity)
 
     for collapse_operator, collapse_operator_adjoint in zip(
             collapse_operators, collapse_operator_adjoint_ops):
-        collapse_operator_product = (collapse_operator_adjoint *
-                                     collapse_operator)
+        collapse_matrix = _operator_matrix(collapse_operator, dimensions,
+                                           **parameters)
+        collapse_adjoint_matrix = _operator_matrix(collapse_operator_adjoint,
+                                                   dimensions, **parameters)
+        collapse_product = collapse_adjoint_matrix @ collapse_matrix
 
-        generator += cudaq.SuperOperator.left_right_multiply(
-            collapse_operator, collapse_operator_adjoint)
-        generator += cudaq.SuperOperator.left_multiply(
-            -0.5 * collapse_operator_product)
-        generator += cudaq.SuperOperator.right_multiply(
-            -0.5 * collapse_operator_product)
+        matrix += np.kron(collapse_matrix.conj(), collapse_matrix)
+        matrix += -0.5 * np.kron(identity, collapse_product)
+        matrix += -0.5 * np.kron(collapse_product.T, identity)
 
+    return matrix
+
+
+def _open_system_generator(hamiltonian, dimensions, collapse_operators,
+                           collapse_operator_adjoint_ops):
+    import cudaq
+    from cudaq import operators
+
+    system_dimension = _total_dimension(dimensions)
+    propagator_dimension = system_dimension * system_dimension
+    operator_id = f"propagator_open_system_{uuid.uuid4().hex}"
+
+    def create(t=0.0, dimension=propagator_dimension):
+        if dimension != propagator_dimension:
+            raise ValueError("Unexpected open-system propagator dimension.")
+        return _open_system_matrix(
+            hamiltonian,
+            dimensions,
+            collapse_operators,
+            collapse_operator_adjoint_ops,
+            t=t,
+        )
+
+    operators.define(operator_id, [propagator_dimension], create)
+    generator_matrix = operators.instantiate(operator_id, 0)
+
+    generator = cudaq.SuperOperator()
+    generator += cudaq.SuperOperator.left_multiply(generator_matrix)
     return generator
 
 
-def _extract_closed_system_propagator(result, dimension: int,
-                                      store_intermediate_results: bool):
+def _extract_propagator(result, dimension: int,
+                        store_intermediate_results: bool):
     if store_intermediate_results:
         return [
             _state_to_matrix(state, dimension)
@@ -91,61 +117,6 @@ def _extract_closed_system_propagator(result, dimension: int,
         ]
 
     return _state_to_matrix(result.final_state(), dimension)
-
-
-def _stack_columns(states) -> np.ndarray:
-    return np.column_stack([_state_data(state) for state in states])
-
-
-def _extract_open_system_propagator(results, store_intermediate_results: bool):
-    if store_intermediate_results:
-        intermediate_states = [
-            result.intermediate_states() for result in results
-        ]
-        if not intermediate_states:
-            return []
-
-        num_intermediate_states = len(intermediate_states[0])
-        return [
-            _stack_columns(
-                [column_states[index]
-                 for column_states in intermediate_states])
-            for index in range(num_intermediate_states)
-        ]
-
-    return _stack_columns([result.final_state() for result in results])
-
-
-def _evolve_open_system_propagator(
-    generator,
-    dimensions,
-    schedule,
-    liouville_dimension: int,
-    store_intermediate_results: bool,
-    integrator,
-    max_batch_size: Optional[int],
-):
-    import cudaq
-
-    save_mode = (cudaq.IntermediateResultSave.ALL if store_intermediate_results
-                 else cudaq.IntermediateResultSave.NONE)
-
-    results = []
-    for column_index in range(liouville_dimension):
-        results.append(
-            cudaq.evolve(
-                generator,
-                dimensions,
-                schedule,
-                _basis_state(column_index, liouville_dimension),
-                collapse_operators=[],
-                observables=[],
-                store_intermediate_results=save_mode,
-                integrator=integrator,
-                max_batch_size=max_batch_size,
-            ))
-
-    return _extract_open_system_propagator(results, store_intermediate_results)
 
 
 def propagator(
@@ -212,39 +183,33 @@ def propagator(
                          "open-system propagators.")
 
     system_dimension = _total_dimension(dimensions)
+    propagator_dimension = (system_dimension * system_dimension
+                            if open_system else system_dimension)
+    evolution_dimensions = ({
+        0: propagator_dimension
+    } if open_system else dimensions)
 
-    is_batched = isinstance(hamiltonian, Sequence)
+    is_batched = isinstance(hamiltonian,
+                            Sequence) and not hasattr(hamiltonian, "to_matrix")
     hamiltonians = list(hamiltonian) if is_batched else [hamiltonian]
 
     if open_system:
-        liouville_dimension = system_dimension * system_dimension
         generators = [
-            _open_system_generator(h, collapse_operators,
+            _open_system_generator(h, dimensions, collapse_operators,
                                    collapse_operator_adjoint_ops)
             for h in hamiltonians
         ]
-        results = [
-            _evolve_open_system_propagator(
-                generator,
-                dimensions,
-                schedule,
-                liouville_dimension,
-                store_intermediate_results,
-                integrator,
-                max_batch_size,
-            ) for generator in generators
-        ]
-        return results if is_batched else results[0]
+    else:
+        generators = [_closed_system_generator(h) for h in hamiltonians]
 
-    generators = [_closed_system_generator(h) for h in hamiltonians]
-    initial_states = [_identity_state(system_dimension) for _ in generators]
+    initial_states = [_identity_state(propagator_dimension) for _ in generators]
 
     save_mode = (cudaq.IntermediateResultSave.ALL if store_intermediate_results
                  else cudaq.IntermediateResultSave.NONE)
 
     result = cudaq.evolve(
         generators if is_batched else generators[0],
-        dimensions,
+        evolution_dimensions,
         schedule,
         initial_states if is_batched else initial_states[0],
         collapse_operators=[],
@@ -256,10 +221,10 @@ def propagator(
 
     if is_batched:
         return [
-            _extract_closed_system_propagator(single_result, system_dimension,
-                                              store_intermediate_results)
+            _extract_propagator(single_result, propagator_dimension,
+                                store_intermediate_results)
             for single_result in result
         ]
 
-    return _extract_closed_system_propagator(result, system_dimension,
-                                             store_intermediate_results)
+    return _extract_propagator(result, propagator_dimension,
+                               store_intermediate_results)
