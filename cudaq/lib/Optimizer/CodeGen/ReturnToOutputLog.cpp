@@ -203,7 +203,8 @@ public:
                                    cudaq::opt::QIRBoolSpanRecordOutput,
                                    ArrayRef<Value>{rawData, size});
             } else {
-              std::int32_t byteSize = (intTy.getWidth() + 7) / 8;
+              std::int32_t byteSize =
+                  cudaq::opt::convertBitsToBytes(intTy.getWidth());
               Value elemSize =
                   arith::ConstantIntOp::create(rewriter, loc, byteSize, 32);
               func::CallOp::create(rewriter, loc, TypeRange{},

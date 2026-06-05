@@ -72,27 +72,16 @@ protected:
   /// @brief The target configuration
   cudaq::config::TargetConfig targetConfig;
 
-  const void *compileModulePreamble(const SourceModule &src) const {
-    const auto &kernelName = src.getName();
-    auto mlirArt = src.getMlir();
-    if (!mlirArt)
-      throw std::runtime_error(
-          "compileModulePreamble requires an MLIR artifact on "
-          "the SourceModule for kernel '" +
-          kernelName + "'.");
-    auto modulePtr = mlirArt->getOpaqueModulePtr();
-    return modulePtr;
-  }
-
   template <typename Policy>
   CompiledModule compileModuleImpl(Policy &policy, const SourceModule &src,
                                    KernelArgs args, bool isEntryPoint) {
     const auto &kernelName = src.getName();
-    auto modulePtr = compileModulePreamble(src);
+    auto modulePtr = src.getMlirOpaqueModulePtr();
     CUDAQ_INFO("specializing remote rest kernel via module ({}) with {} policy",
                kernelName, policy.name);
     Compiler compiler(getCompileTarget(policy));
-    auto compiled = compiler.runPassPipeline(kernelName, modulePtr, args);
+    auto compiled =
+        compiler.runPassPipeline(kernelName, modulePtr, args, isEntryPoint);
     if constexpr (std::is_same_v<Policy, sample_policy>) {
       if (compiler.hasWarnedNamedMeasurements())
         policy.warnedNamedMeasurements = true;
@@ -253,7 +242,6 @@ public:
     std::filesystem::path platformPath;
   };
 
-  using QPU::getCompileTarget;
   std::unique_ptr<CompileTarget>
   getCompileTarget(ExecutionContext *ctx) override {
     if (!ctx)
@@ -266,6 +254,7 @@ public:
 
     auto target = std::make_unique<BaseRemoteRESTQPUCompileTarget>(
         serverHelper.get(), platformPath, targetConfig, backendConfig, emulate);
+    target->pipelineConfig.replaceStateWithKernel = true;
     if (ctx && ctx->name == "observe") {
       if (!ctx->spin.has_value())
         throw std::runtime_error("observe execution requires a spin_op");
@@ -275,7 +264,7 @@ public:
     } else if (ctx && ctx->name == "dem") {
       target->emitJit = true;
       target->emitTargetCode = false;
-      target->runTargetLoweringPipeline = false;
+      target->pipelineConfig.skipTargetLoweringPipeline = true;
     }
     return target;
   }
@@ -291,18 +280,18 @@ public:
     target->supportConditionalsOnMeasureResults = !emulate;
     target->pipelineConfig.addMeasurements = true;
     target->storeReorderIdx = true;
+    target->pipelineConfig.replaceStateWithKernel = true;
     return target;
   }
 
   CompiledModule compileModule(const SourceModule &src, KernelArgs args,
                                bool isEntryPoint) override {
     const auto &kernelName = src.getName();
-    auto modulePtr = compileModulePreamble(src);
+    auto modulePtr = src.getMlirOpaqueModulePtr();
     CUDAQ_INFO("specializing remote rest kernel via module ({})", kernelName);
 
     Compiler compiler(getCompileTarget(getExecutionContext()));
-    auto compiled = compiler.runPassPipeline(kernelName, modulePtr, args);
-    return compiled;
+    return compiler.runPassPipeline(kernelName, modulePtr, args, isEntryPoint);
   }
 
   CompiledModule compileModule(sample_policy &policy, const SourceModule &src,
@@ -319,8 +308,8 @@ public:
   compileKernelExecutions(Policy &policy, const AnyModule &module,
                           KernelArgs args) {
     Compiler compiler(getCompileTarget(policy));
-    std::vector<cudaq::KernelExecution> codes;
     std::string kernelName;
+    std::optional<CompiledModule> compiled;
     if (std::holds_alternative<SourceModule>(module)) {
       const auto &src = std::get<SourceModule>(module);
       kernelName = src.getName();
@@ -328,16 +317,24 @@ public:
 
       auto [moduleOp, context] = Compiler::loadQuakeCodeByName(kernelName);
 
-      codes = compiler.lowerQuakeCode(kernelName, moduleOp, args);
+      compiled = compiler.runPassPipeline(kernelName, moduleOp, args, true,
+                                          std::move(context));
       if constexpr (std::is_same_v<Policy, sample_policy>) {
         if (compiler.hasWarnedNamedMeasurements())
           policy.warnedNamedMeasurements = true;
       }
     } else {
-      const auto &compiled = std::get<CompiledModule>(module);
-      kernelName = compiled.getName();
+      compiled = std::get<CompiledModule>(module);
+      kernelName = compiled->getName();
       CUDAQ_INFO("launching remote rest kernel via module ({})", kernelName);
-      codes = compiler.emitKernelExecutions(compiled);
+    }
+
+    auto codes = compiler.emitKernelExecutions(*compiled);
+
+    // Propagate metadata from the compiled artifact to the execution context.
+    if (auto ctx = getExecutionContext()) {
+      ctx->hasConditionalsOnMeasureResults =
+          compiled->getMetadata().hasConditionalsOnMeasureResults;
     }
 
     return {kernelName, codes};
@@ -347,8 +344,8 @@ public:
                             std::vector<cudaq::KernelExecution> &&codes) {
     auto executionContext = cudaq::getExecutionContext();
 
-    // After performing lowerQuakeCode, check to see if we are simply drawing
-    // the circuit. If so, perform the trace here and then return.
+    // Check to see if we are simply drawing the circuit. If so, perform the
+    // trace here and then return.
     if (executionContext->name == "tracer" && codes.size() == 1) {
       cudaq::ExecutionContext context("tracer");
       context.executionManager = cudaq::getDefaultExecutionManager();
@@ -395,7 +392,7 @@ public:
 
     // If emulation requested, then just grab the function and invoke it with
     // the simulator
-    cudaq::details::future future;
+    cudaq::detail::future future;
     if (emulate) {
 
       // TODO: This assert demonstrates that we are never expected to return a
@@ -409,7 +406,7 @@ public:
       std::size_t seed = cudaq::get_random_seed();
 
       // Launch the execution of the simulated jobs asynchronously
-      future = cudaq::details::future(std::async(
+      future = cudaq::detail::future(std::async(
           std::launch::async,
           [&, codes, localShots, kernelName, seed, isObserve,
            isRun]() mutable -> cudaq::sample_result {
@@ -482,10 +479,10 @@ public:
         return;
       // Cannot be observe and run at the same time
       assert(!isObserve || !isRun);
-      const cudaq::details::ExecutionContextType execType =
-          isRun       ? cudaq::details::ExecutionContextType::run
-          : isObserve ? cudaq::details::ExecutionContextType::observe
-                      : cudaq::details::ExecutionContextType::sample;
+      const cudaq::detail::ExecutionContextType execType =
+          isRun       ? cudaq::detail::ExecutionContextType::run
+          : isObserve ? cudaq::detail::ExecutionContextType::observe
+                      : cudaq::detail::ExecutionContextType::sample;
 
       future = executor->execute(codes, execType,
                                  &executionContext->invocationResultBuffer);
@@ -520,8 +517,8 @@ public:
     if (getEnvBool("DISABLE_REMOTE_SEND", false))
       return {};
     // Cannot be observe and run at the same time
-    const cudaq::details::ExecutionContextType execType =
-        cudaq::details::ExecutionContextType::sample;
+    const cudaq::detail::ExecutionContextType execType =
+        cudaq::detail::ExecutionContextType::sample;
 
     auto future = executor->execute(codes, execType,
                                     &executionContext->invocationResultBuffer);

@@ -621,7 +621,7 @@ ArrayAttr genRecursiveConstantArray(OpBuilder &builder,
     };
   } else if (auto intTy = dyn_cast<IntegerType>(eleTy)) {
     unsigned width = intTy.getWidth();
-    stepBy = (width + 7) / 8;
+    stepBy = cudaq::opt::convertBitsToBytes(width);
     genAttr = [=](char *p) -> Attribute {
       std::uint64_t val = 0;
       switch (width) {

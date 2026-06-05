@@ -99,6 +99,29 @@ def test_state_vector_to_cupy():
     assert np.isclose(stateInCuPy[2], 0., atol=1e-3)
 
 
+def test_state_vector_to_cupy_exports_full_buffer():
+    cudaq.set_target('nvidia')
+    try:
+        kernel = cudaq.make_kernel()
+        q = kernel.qalloc(10)
+        kernel.h(q[0])
+        for i in range(9):
+            kernel.cx(q[i], q[i + 1])
+
+        state = cudaq.get_state(kernel)
+        tensor = state.getTensors()[0]
+        expectedSize = tensor.get_num_elements() * tensor.get_element_size()
+
+        stateInCuPy = cudaq.to_cupy(state)[0]
+
+        assert stateInCuPy.data.mem.size == expectedSize
+        assert np.isclose(stateInCuPy[0], 1. / np.sqrt(2.), atol=1e-3)
+        assert np.isclose(stateInCuPy[-1], 1. / np.sqrt(2.), atol=1e-3)
+        assert np.isclose(stateInCuPy[1], 0., atol=1e-3)
+    finally:
+        cudaq.reset_target()
+
+
 def test_cupy_to_state():
     cudaq.set_target('nvidia')
     cp_data = cp.array([.707107, 0, 0, .707107], dtype=cp.complex64)

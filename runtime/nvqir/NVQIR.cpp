@@ -911,7 +911,7 @@ void __quantum__qis__apply_kraus_channel_double(std::int64_t krausChannelKey,
   }
 
   if (!noise)
-    return cudaq::details::warn(
+    return cudaq::detail::warn(
         "apply_noise called but no noise model provided.");
 
   std::vector<double> paramVec(params, params + numParams);
@@ -952,7 +952,7 @@ __quantum__qis__apply_kraus_channel_float(std::int64_t krausChannelKey,
   }
 
   if (!noise)
-    return cudaq::details::warn(
+    return cudaq::detail::warn(
         "apply_noise called but no noise model provided.");
 
   std::vector<float> paramVec(params, params + numParams);

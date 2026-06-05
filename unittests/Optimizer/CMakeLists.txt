@@ -40,6 +40,34 @@ target_compile_options(OptimizerUnitTests PRIVATE -fno-rtti)
 
 gtest_discover_tests(OptimizerUnitTests DISCOVERY_TIMEOUT 120)
 
+add_executable(AnalysisPassUnitTests
+  UnitaryOpGroupingTest.cpp
+)
+
+target_link_libraries(AnalysisPassUnitTests
+  PRIVATE
+    MLIRArithDialect
+    MLIRFuncDialect
+    MLIRIR
+    MLIRLoopLikeInterface
+    QuakeDialect
+    CCDialect
+    OptAnalysis
+    gtest_main
+)
+
+gtest_discover_tests(AnalysisPassUnitTests 
+  PROPERTIES LABELS "analysis-passes"
+  DISCOVERY_TIMEOUT 120)
+
+add_custom_target(check-analysis-passes
+  COMMAND ${CMAKE_CTEST_COMMAND} -L analysis-passes
+  DEPENDS AnalysisPassUnitTests
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)
+
+set_target_properties(check-analysis-passes PROPERTIES FOLDER "Tests")
+
 add_executable(test_quake_synth QuakeSynthTester.cpp)
 target_link_libraries(test_quake_synth
   PRIVATE 
