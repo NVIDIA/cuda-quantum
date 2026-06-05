@@ -87,8 +87,9 @@ def propagator(
     Schrodinger-picture propagator equation with initial condition U(t0) = I.
 
     For open-system dynamics with collapse operators, computes the Lindblad
-    map S with initial condition S(t0) = I. This map acts on vectorized density
-    matrices and propagates rho(t0) to rho(t).
+    map S with initial condition S(t0) = I. This map acts on density
+    matrices after matrix-to-vector reshaping and propagates rho(t0) to
+    rho(t).
 
     Args:
         hamiltonian: CUDA-Q operator H(t), or a sequence of operators for

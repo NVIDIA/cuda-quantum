@@ -159,11 +159,9 @@ def _amplitude_damping_liouvillian(gamma):
 
     collapse_product = sigma_plus @ sigma_minus
 
-    return (
-        gamma * np.kron(sigma_minus.conj(), sigma_minus)
-        - 0.5 * gamma * np.kron(identity, collapse_product)
-        - 0.5 * gamma * np.kron(collapse_product.T, identity)
-    )
+    return (gamma * np.kron(sigma_minus.conj(), sigma_minus) -
+            0.5 * gamma * np.kron(identity, collapse_product) -
+            0.5 * gamma * np.kron(collapse_product.T, identity))
 
 
 def test_open_system_propagator_amplitude_damping():
@@ -181,8 +179,8 @@ def test_open_system_propagator_amplitude_damping():
         collapse_operators=collapse_operators,
     )
 
-    expected = scipy_linalg.expm(_amplitude_damping_liouvillian(gamma) *
-                                 t_final)
+    expected = scipy_linalg.expm(
+        _amplitude_damping_liouvillian(gamma) * t_final)
 
     np.testing.assert_allclose(computed, expected, atol=1e-4)
 
