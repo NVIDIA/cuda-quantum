@@ -41,9 +41,21 @@ struct broadcast_register {
 };
 
 // CHECK-LABEL: func.func @__nvqpp__mlirgen__broadcast_register
-// CHECK:           quake.alloca !quake.veq<4>
-// CHECK:           cc.loop while
-// CHECK:           quake.x %{{.*}} : (!quake.ref) -> ()
+// CHECK:           %[[Q:.*]] = quake.alloca !quake.veq<4>
+// CHECK:           %[[SIZE:.*]] = quake.veq_size %[[Q]] : (!quake.veq<4>) -> i64
+// CHECK:           %{{.*}} = cc.loop while ((%[[I:.*]] = %{{.*}}) -> (i64)) {
+// CHECK:             %[[CMP:.*]] = arith.cmpi slt, %[[I]], %{{.*}} : i64
+// CHECK:             cc.condition %[[CMP]](%[[I]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[IARG:.*]]: i64):
+// CHECK:             %[[REF:.*]] = quake.extract_ref %[[Q]][%[[IARG]]] : (!quake.veq<4>, i64) -> !quake.ref
+// CHECK:             quake.x %[[REF]] : (!quake.ref) -> ()
+// CHECK:             cc.continue %[[IARG]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[ISTEP:.*]]: i64):
+// CHECK:             %{{.*}} = arith.addi %[[ISTEP]], %{{.*}} : i64
+// CHECK:           } {invariant}
+// CHECK:           return
 
 // Broadcast: even with <cudaq::ctrl>, passing a single register still
 // broadcasts (the ctrl modifier is ignored for a single-veq operand).
@@ -55,9 +67,23 @@ struct ctrl_broadcast_register {
 };
 
 // CHECK-LABEL: func.func @__nvqpp__mlirgen__ctrl_broadcast_register
-// CHECK:           quake.alloca !quake.veq<4>
-// CHECK:           cc.loop while
-// CHECK:           quake.x %{{.*}} : (!quake.ref) -> ()
+// CHECK:           %[[Q:.*]] = quake.alloca !quake.veq<4>
+// CHECK:           %[[SIZE:.*]] = quake.veq_size %[[Q]] : (!quake.veq<4>) -> i64
+// CHECK:           %{{.*}} = cc.loop while ((%[[I:.*]] = %{{.*}}) -> (i64)) {
+// CHECK:             %[[CMP:.*]] = arith.cmpi slt, %[[I]], %{{.*}} : i64
+// CHECK:             cc.condition %[[CMP]](%[[I]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[IARG:.*]]: i64):
+// CHECK:             %[[REF:.*]] = quake.extract_ref %[[Q]][%[[IARG]]] : (!quake.veq<4>, i64) -> !quake.ref
+// CHECK:             quake.x %[[REF]] : (!quake.ref) -> ()
+// CHECK:             cc.continue %[[IARG]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[ISTEP:.*]]: i64):
+// CHECK:             %{{.*}} = arith.addi %[[ISTEP]], %{{.*}} : i64
+// CHECK:           } {invariant}
+// CHECK:           return
+// The ctrl modifier is ignored for a single veq, so no controlled form
+// (quake.x [ ... ]) is ever emitted.
 // CHECK-NOT:       quake.x [%
 
 // Control: <cudaq::ctrl> with multiple refs — first N-1 are controls, last
@@ -70,8 +96,11 @@ struct ctrl_individual {
 };
 
 // CHECK-LABEL: func.func @__nvqpp__mlirgen__ctrl_individual
-// CHECK:           quake.alloca !quake.veq<4>
-// CHECK:           quake.x [%{{.*}}, %{{.*}}] %{{.*}} : (!quake.ref, !quake.ref, !quake.ref) -> ()
+// CHECK:           %[[Q:.*]] = quake.alloca !quake.veq<4>
+// CHECK:           %[[R0:.*]] = quake.extract_ref %[[Q]][0] : (!quake.veq<4>) -> !quake.ref
+// CHECK:           %[[R1:.*]] = quake.extract_ref %[[Q]][1] : (!quake.veq<4>) -> !quake.ref
+// CHECK:           %[[R2:.*]] = quake.extract_ref %[[Q]][2] : (!quake.veq<4>) -> !quake.ref
+// CHECK:           quake.x [%[[R0]], %[[R1]]] %[[R2]] : (!quake.ref, !quake.ref, !quake.ref) -> ()
 // CHECK:           return
 
 // Implicit control: passing a qvector followed by a qubit selects the
