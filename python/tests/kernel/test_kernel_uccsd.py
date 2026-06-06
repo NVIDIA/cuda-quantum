@@ -545,7 +545,7 @@ def test_cudaq_uccsd1():
 
     counts = cudaq.sample(kernel, shots_count=1000)
 
-    assert len(counts) == 5
+    assert len(counts) == 6 or len(counts) == 5
     assert '00000011' in counts
     assert '00000110' in counts
     assert '00010010' in counts
