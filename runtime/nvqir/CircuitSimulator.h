@@ -872,6 +872,23 @@ protected:
                                  const std::vector<std::size_t> &controls,
                                  const std::vector<std::size_t> &targets,
                                  const std::vector<double> &params) {
+    // Do nothing if no execution context
+    if (!cudaq::getExecutionContext())
+      return;
+
+    // Do nothing if no noise model
+    auto noiseModel = getNoiseModel();
+    if (!noiseModel)
+      return;
+
+    // Get the Kraus channels specified for this gate and qubits
+    auto krausChannels = noiseModel->get_channels(std::string(gateName),
+                                                  targets, controls, params);
+
+    // If none, do nothing
+    if (krausChannels.empty())
+      return;
+
     CUDAQ_WARN("Applying noise is not supported on {} simulator.", name());
   }
 
