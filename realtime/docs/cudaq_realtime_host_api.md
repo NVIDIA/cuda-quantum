@@ -355,7 +355,7 @@ TX Slot: | RPCResponse | response payload bytes |
 ```
 
 Payload encoding details (type system, multi-argument encoding, bit-packing,
-and QEC-specific examples) are defined in `cudaq_realtime_message_protocol.bs`.
+and QEC-specific examples) are defined in `cudaq_realtime_message_protocol.md`.
 
 Magic values (little-endian 32-bit):
 
@@ -381,7 +381,7 @@ struct RPCResponse {
 };
 ```
 
-Both structs are 24 bytes, packed with no padding. See `cudaq_realtime_message_protocol.bs`
+Both structs are 24 bytes, packed with no padding. See `cudaq_realtime_message_protocol.md`
 for `request_id` and `ptp_timestamp` semantics.
 
 Payload conventions:

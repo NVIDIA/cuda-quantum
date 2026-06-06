@@ -11,9 +11,9 @@ CUDA-Q Realtime, including connectivity to a
 
 - A host system with NVIDIA GPU and ConnectX-7/BlueField NIC.
 
-- A FPGA, programmed with `HSB` IP and connected to the NIC.
+- An FPGA, programmed with `HSB` IP and connected to the NIC.
 
-> **_NOTE:_** We recommended using NVIDIA ConnectX-7 as prior generations
+> **_NOTE:_** We recommend using NVIDIA ConnectX-7 as prior generations
 may not have all the required capabilities.
 
 ### Software Components
@@ -26,7 +26,7 @@ may not have all the required capabilities.
 with `gpunetio` support.
 
 > **_NOTE:_** `DOCA` is required to run the end-to-end validation with FPGA
-using the builtin `HSB` support of CUDA-Q realtime.
+using the built-in `HSB` support of CUDA-Q Realtime.
 
 <!--- -->
 
@@ -61,10 +61,23 @@ Please refer to this [section](#using-docker) for instructions.
 
 2. Load `HSB` IP bit-file to the FPGA
 
-    The bit-file for supported FPGA vendors
-    can be found [here](https://edge.urm.nvidia.com/artifactory/sw-holoscan-thirdparty-generic-local/QEC/HSB-2.6.0-EA/).
+    The HSB 2.6.0-EA RFSoC artifacts are split across two locations:
 
-    > **_NOTE:_** Please make sure set up the [host system](https://docs.nvidia.com/holoscan/sensor-bridge/latest/setup.html)
+    - The [HSB-2.6.0-EA URM directory](https://edge.urm.nvidia.com/artifactory/sw-holoscan-thirdparty-generic-local/QEC/HSB-2.6.0-EA/)
+      contains the prebuilt `nvqlink_rfsoc_v2603.bit` bit-file and the
+      `pynq_rfsoc_2603_EA_release.zip` RFSoC PYNQ reference-design archive.
+    - The matching `nv_hsb_ip` source directory is in the
+      [Holoscan Sensor Bridge `release-2.6.0-EA` branch](https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/release-2.6.0-EA/fpga/nv_hsb_ip).
+
+    When building the RFSoC project from the PYNQ archive, place the
+    `nv_hsb_ip` directory from that release branch at the same level as
+    the archive's `pynq` directory. Do not mix `nv_hsb_ip` from an older
+    HSB release with the HSB 2.6.0-EA RFSoC collateral. The included RFSoC
+    PYNQ build project targets `xczu48dr-ffvg1517-2-e`; for another RFSoC
+    part, update the Vivado part and constraints in
+    `pynq/rfsoc-pynq/build/build.tcl` and rebuild the bit-file.
+
+    > **_NOTE:_** Please make sure to set up the [host system](https://docs.nvidia.com/holoscan/sensor-bridge/latest/setup.html)
     and the `HSB` FPGA device [IP address](https://docs.nvidia.com/holoscan/sensor-bridge/latest/architecture.html#datachannel-enumeration-and-ip-address-configuration)
     (if not already done so).
 

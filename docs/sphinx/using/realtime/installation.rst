@@ -39,8 +39,13 @@ Setup
 
   - Follow the instructions given by the installer for post-installation steps to set environment variables.
 
-  - Load HSB IP bit-file to the FPGA.
-    The bit-file for supported FPGA vendors can be found `here <https://edge.urm.nvidia.com/artifactory/sw-holoscan-thirdparty-generic-local/QEC/HSB-2.6.0-EA/>`__.
+  - Load the HSB IP bit-file to the FPGA.
+    The HSB 2.6.0-EA RFSoC artifacts are split across two locations. The `HSB-2.6.0-EA URM directory <https://edge.urm.nvidia.com/artifactory/sw-holoscan-thirdparty-generic-local/QEC/HSB-2.6.0-EA/>`__ contains the prebuilt ``nvqlink_rfsoc_v2603.bit`` bit-file and the ``pynq_rfsoc_2603_EA_release.zip`` RFSoC PYNQ reference-design archive.
+    The matching ``nv_hsb_ip`` source directory is in the `Holoscan Sensor Bridge release-2.6.0-EA branch <https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/release-2.6.0-EA/fpga/nv_hsb_ip>`__.
+
+    When building the RFSoC project from the PYNQ archive, place the ``nv_hsb_ip`` directory from that release branch at the same level as the archive's ``pynq`` directory.
+    Do not mix ``nv_hsb_ip`` from an older HSB release with the HSB 2.6.0-EA RFSoC collateral.
+    The included RFSoC PYNQ build project targets ``xczu48dr-ffvg1517-2-e``; for another RFSoC part, update the Vivado part and constraints in ``pynq/rfsoc-pynq/build/build.tcl`` and rebuild the bit-file.
 
   .. note:: 
 
@@ -114,7 +119,7 @@ The validation includes checking the data correctness and measuring the round-tr
 
 .. tab:: Using Custom Networking Layer
 
-  To measure the latency with a custom networking implementation, a stimulus (data generation) tool must the implemented that sends data to CUDA-Q realtime according to the custom networking protocol.
+  To measure latency with a custom networking implementation, implement a stimulus (data generation) tool that sends data to CUDA-Q Realtime according to the custom networking protocol.
   
   For example, in the HSB-based implementation, we use the `ptp_timestamp` field in the `RPCHeader` / `RPCResponse` (see the message protocol documentation) to capture the timestamp for latency analysis. Specifically, the stimulus tool (FPGA) stores the 'send' timestamp in the `RPCHeader` (incoming message), which will be echoed by the GPU in the outgoing `RPCResponse` after processing it (e.g., with the RPC handler). Using the Integrated Logic Analyzer timestamp when the FPGA receives the response from the GPU, we can compute the round-trip latency.
   `This file <https://github.com/NVIDIA/cuda-quantum/tree/main/realtime/unittests/utils/hololink_fpga_playback.cpp>`__ contains an example of such a data generation tool.

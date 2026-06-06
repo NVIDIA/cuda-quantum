@@ -18,7 +18,7 @@ using RDMA (Remote Direct Memory Access) via ConnectX NIC's. In the context of
 quantum error correction, HSB is one example of a transport mechanism that
 connects the quantum control system (typically an FPGA) to GPU-based decoders.
 
-**Repository**: [`nvidia-holoscan`/`holoscan-sensor-bridge` (`nvqlink` branch)](https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/nvqlink)
+**Repository**: [`nvidia-holoscan`/`holoscan-sensor-bridge` (`2.6.0-EA2` tag)](https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/2.6.0-EA2)
 
 HSB handles:
 
@@ -392,7 +392,7 @@ struct RPCResponse {
 };
 ```
 
-Both structs are 24 bytes, packed with no padding. See `cudaq_realtime_message_protocol.bs`
+Both structs are 24 bytes, packed with no padding. See `cudaq_realtime_message_protocol.md`
 for `request_id` and `ptp_timestamp` semantics.
 
 Payload conventions:
