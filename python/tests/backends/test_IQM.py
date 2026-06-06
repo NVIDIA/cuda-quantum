@@ -279,8 +279,9 @@ def test_2q_unitary_synthesis():
         custom_cnot(qubits[0], qubits[1])
 
     counts = cudaq.sample(bell_pair)
-    # Gives result like { 00:500 01:0 10:0 11:500 }
-    assert counts['01'] == 0 and counts['10'] == 0
+    # Gives result like { 00:500 01:0 10:0 11:500 } or { 00:500 11:500 }
+    assert ('01' not in counts or counts['01'] == 0) and ('10' not in counts or
+                                                          counts['10'] == 0)
 
     cudaq.register_operation(
         "custom_cz", np.array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0,
@@ -296,7 +297,10 @@ def test_2q_unitary_synthesis():
         x(controls)
 
     counts = cudaq.sample(ctrl_z_kernel)
-    assert counts["0010011"] == 1000
+    # The 5th qubit in `qubits` is not referenced and may be deleted
+    assert ("0010011" in counts and
+            counts["0010011"] == 1000) or ("001011" in counts and
+                                           counts["001011"] == 1000)
 
 
 def test_explicit_measurement():
