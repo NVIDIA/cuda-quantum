@@ -605,7 +605,7 @@ if (MPI_CXX_FOUND)
 endif()
 
 add_subdirectory(backends)
-add_subdirectory(Optimizer)
+add_subdirectory(cudaq/unittests)
 add_subdirectory(output_record)
 add_subdirectory(target_config)
 add_subdirectory(logger)
