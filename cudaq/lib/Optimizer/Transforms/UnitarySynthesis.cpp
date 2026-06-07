@@ -353,8 +353,11 @@ struct TwoQubitOpKAK : public Decomposer {
     auto parentModule = customOp->getParentOfType<ModuleOp>();
     Location loc = customOp->getLoc();
     auto targets = customOp.getTargets();
-    auto funcTy =
-        FunctionType::get(parentModule.getContext(), targets.getTypes(), {});
+    /// This 2-qubit decomposer always emits a 2-qubit replacement function. The
+    /// arity is fixed to 2 (not taken from `customOp`) so that it stays correct
+    /// when invoked as a base case of the recursive QSD on a larger operation.
+    SmallVector<Type, 2> argTys(2, targets[0].getType());
+    auto funcTy = FunctionType::get(parentModule.getContext(), argTys, {});
     auto insPt = rewriter.saveInsertionPoint();
     rewriter.setInsertionPointToStart(parentModule.getBody());
     auto func = func::FuncOp::create(rewriter, parentModule->getLoc(), funcName,
@@ -445,6 +448,296 @@ struct TwoQubitOpKAK : public Decomposer {
   }
 };
 
+/// Result for the Cosine-Sine decomposition of a `2m x 2m` unitary.
+/// `U = blockDiag(l0, l1) * [[C, -S], [S, C]] * blockDiag(r0, r1)` where the
+/// `l*`, `r*` are `m x m` unitaries and `C = diag(c)`, `S = diag(s)` satisfy
+/// `c^2 + s^2 = 1` element-wise.
+struct CSDComponents {
+  Eigen::MatrixXcd l0, l1, r0, r1;
+  Eigen::VectorXd c, s;
+};
+
+/// Deterministically extend a set of orthonormal columns to a full unitary by
+/// projecting the standard basis vectors onto the orthogonal complement. Used
+/// to fill the columns of a singular-vector basis that are left undetermined by
+/// degenerate (repeated) singular values, e.g. for permutation-like operators
+/// such as Toffoli.
+Eigen::MatrixXcd completeUnitaryBasis(const Eigen::MatrixXcd &defined, int n) {
+  Eigen::MatrixXcd basis = defined;
+  int col = static_cast<int>(basis.cols());
+  for (int i = 0; i < n && col < n; ++i) {
+    Eigen::VectorXcd v = Eigen::VectorXcd::Zero(n);
+    v(i) = 1.0;
+    if (col > 0)
+      v -= basis.leftCols(col) * (basis.leftCols(col).adjoint() * v);
+    double nv = v.norm();
+    if (nv > TOL) {
+      basis.conservativeResize(n, col + 1);
+      basis.col(col) = v / nv;
+      ++col;
+    }
+  }
+  return basis;
+}
+
+/// Compute the Cosine-Sine decomposition of a `2m x 2m` unitary.
+/// Eigen has no built-in CSD, so it is assembled from the SVD of the top-left
+/// block. The right singular vectors are shared by both block rows, which lets
+/// us recover the remaining factors. Degenerate singular values are handled via
+/// `completeUnitaryBasis`. Ref: arXiv quant-ph/0404089.
+CSDComponents cosineSineDecomposition(const Eigen::MatrixXcd &u) {
+  int m = static_cast<int>(u.rows()) / 2;
+  Eigen::MatrixXcd u00 = u.topLeftCorner(m, m);
+  Eigen::MatrixXcd u01 = u.topRightCorner(m, m);
+  Eigen::MatrixXcd u11 = u.bottomRightCorner(m, m);
+  Eigen::MatrixXcd u10 = u.bottomLeftCorner(m, m);
+  Eigen::JacobiSVD<Eigen::MatrixXcd> svd(u00, Eigen::ComputeFullU |
+                                                  Eigen::ComputeFullV);
+  Eigen::MatrixXcd l0 = svd.matrixU();
+  Eigen::MatrixXcd v = svd.matrixV();
+  Eigen::MatrixXcd r0 = v.adjoint();
+  Eigen::VectorXd c = svd.singularValues().cwiseMin(1.0).cwiseMax(0.0);
+  Eigen::VectorXd s(m);
+  for (int k = 0; k < m; ++k)
+    s(k) = std::sqrt(std::max(0.0, 1.0 - c(k) * c(k)));
+  /// `u10 * v = l1 * diag(s)`; recover `l1` column-by-column, completing the
+  /// columns belonging to (near-)zero sines.
+  Eigen::MatrixXcd mCols = u10 * v;
+  Eigen::MatrixXcd l1 = Eigen::MatrixXcd::Zero(m, m);
+  std::vector<int> defined;
+  for (int k = 0; k < m; ++k)
+    if (s(k) > TOL) {
+      l1.col(k) = mCols.col(k) / s(k);
+      defined.push_back(k);
+    }
+  if (static_cast<int>(defined.size()) < m) {
+    Eigen::MatrixXcd known(m, defined.size());
+    for (size_t i = 0; i < defined.size(); ++i)
+      known.col(i) = l1.col(defined[i]);
+    Eigen::MatrixXcd full = completeUnitaryBasis(known, m);
+    std::vector<bool> isDefined(m, false);
+    for (int d : defined)
+      isDefined[d] = true;
+    int next = static_cast<int>(defined.size());
+    for (int k = 0; k < m; ++k)
+      if (!isDefined[k])
+        l1.col(k) = full.col(next++);
+  }
+  /// `r1` from `u11 = l1 diag(c) r1` where cosine dominates, otherwise from
+  /// `u01 = -l0 diag(s) r1`.
+  Eigen::MatrixXcd fromC = l1.adjoint() * u11;
+  Eigen::MatrixXcd fromS = -(l0.adjoint() * u01);
+  Eigen::MatrixXcd r1(m, m);
+  for (int k = 0; k < m; ++k) {
+    if (c(k) >= s(k))
+      r1.row(k) = fromC.row(k) / c(k);
+    else
+      r1.row(k) = fromS.row(k) / s(k);
+  }
+#ifndef NDEBUG
+  Eigen::MatrixXcd cMat = c.cast<std::complex<double>>().asDiagonal();
+  Eigen::MatrixXcd sMat = s.cast<std::complex<double>>().asDiagonal();
+  Eigen::MatrixXcd ld = Eigen::MatrixXcd::Zero(2 * m, 2 * m);
+  ld.topLeftCorner(m, m) = l0;
+  ld.bottomRightCorner(m, m) = l1;
+  Eigen::MatrixXcd rd = Eigen::MatrixXcd::Zero(2 * m, 2 * m);
+  rd.topLeftCorner(m, m) = r0;
+  rd.bottomRightCorner(m, m) = r1;
+  Eigen::MatrixXcd cs(2 * m, 2 * m);
+  cs.topLeftCorner(m, m) = cMat;
+  cs.topRightCorner(m, m) = -sMat;
+  cs.bottomLeftCorner(m, m) = sMat;
+  cs.bottomRightCorner(m, m) = cMat;
+  assert((ld * cs * rd).isApprox(u, TOL) && "CSD reconstruction failed");
+#endif
+  return {l0, l1, r0, r1, c, s};
+}
+
+/// Demultiplex a quantum multiplexor `blockDiag(a, b)` (two `m x m` unitaries
+/// selected by the most-significant qubit) into
+/// `(I2 (x) v) * blockDiag(d, d^dagger) * (I2 (x) w)`, where `blockDiag(d,
+/// d^dagger)` is a uniformly-controlled Rz on the multiplexor qubit. The
+/// returned `angles` are the corresponding Rz rotation angles.
+/// Ref: arXiv quant-ph/0406176.
+void demultiplex(const Eigen::MatrixXcd &a, const Eigen::MatrixXcd &b,
+                 Eigen::MatrixXcd &vOut, Eigen::MatrixXcd &wOut,
+                 std::vector<double> &angles) {
+  int m = static_cast<int>(a.rows());
+  /// `a * b^dagger` is unitary (hence normal); its complex Schur form is
+  /// diagonal with unitary Schur vectors, giving an orthonormal eigenbasis.
+  Eigen::MatrixXcd x = a * b.adjoint();
+  Eigen::ComplexSchur<Eigen::MatrixXcd> schur(x);
+  vOut = schur.matrixU();
+  Eigen::VectorXcd d(m);
+  angles.resize(m);
+  for (int k = 0; k < m; ++k) {
+    double phi = std::arg(schur.matrixT()(k, k));
+    d(k) = std::exp(std::complex<double>(0.0, phi / 2.0));
+    /// quake `Rz(theta)` applies `exp(-i theta/2)` on the |0> branch; matching
+    /// the |0> branch phase `exp(i phi/2)` of `d` requires `theta = -phi`.
+    angles[k] = -phi;
+  }
+  Eigen::MatrixXcd dMat = d.asDiagonal();
+  wOut = dMat * vOut.adjoint() * b;
+  assert((vOut * dMat * wOut).isApprox(a, TOL) &&
+         (vOut * dMat.adjoint() * wOut).isApprox(b, TOL) &&
+         "demultiplexing failed");
+}
+
+/// Recursive Quantum Shannon Decomposition (QSD) for an arbitrary `n`-qubit
+/// (`2^n x 2^n`) unitary with `n >= 3`. One level of QSD splits the unitary,
+/// via a Cosine-Sine decomposition and two multiplexor demultiplexings, into
+/// four `(n-1)`-qubit unitaries and three uniformly-controlled rotations
+/// (Rz, Ry, Rz) acting on the most-significant qubit. The four sub-unitaries
+/// are synthesized recursively, with `TwoQubitOpKAK` and `OneQubitOpZYZ` as the
+/// base cases. Each factorization step is exact, so no global phase correction
+/// is needed at this level (the base cases track their own global phase).
+/// Refs: arXiv quant-ph/0404089, arXiv quant-ph/0406176.
+struct NQubitOpQSD : public Decomposer {
+  Eigen::MatrixXcd targetMatrix;
+  size_t numQubits;
+  /// `targetMatrix = (I (x) vL) * muxRz(muxRzLeft) * (I (x) wL) * muxRy(muxRy)
+  ///               * (I (x) vR) * muxRz(muxRzRight) * (I (x) wR)`
+  Eigen::MatrixXcd vL, wL, vR, wR;
+  std::vector<double> muxRzLeft, muxRy, muxRzRight;
+
+  void decompose() override {
+    auto csd = cosineSineDecomposition(targetMatrix);
+    demultiplex(csd.r0, csd.r1, vR, wR, muxRzRight);
+    demultiplex(csd.l0, csd.l1, vL, wL, muxRzLeft);
+    int m = static_cast<int>(targetMatrix.rows()) / 2;
+    muxRy.resize(m);
+    for (int k = 0; k < m; ++k)
+      muxRy[k] = 2.0 * std::atan2(csd.s(k), csd.c(k));
+  }
+
+  /// Emit a uniformly-controlled rotation (multiplexed Rz or Ry) on `target`
+  /// controlled by `controls` (most-significant first), using the optimal
+  /// gray-code construction. For `k` controls this emits `2^k` rotations and
+  /// exactly `2^k` CNOTs -- the minimum for a uniformly-controlled rotation --
+  /// rather than the `2^{k+1}-2` CNOTs produced by a naive recursive split
+  /// (which inserts a redundant CNOT pair at every recursion boundary). The
+  /// per-state angles are mapped to the gray-code rotation angles through the
+  /// Walsh-Hadamard-like transform, and the CNOT after rotation `i` targets the
+  /// control flipped between gray(i) and gray(i+1). Refs: Möttönen et al.
+  /// (arXiv quant-ph/0407010), Shende-Bullock-Markov (arXiv quant-ph/0406176).
+  void emitMux(const std::vector<double> &angles, ArrayRef<Value> controls,
+               Value target, bool isRy, PatternRewriter &rewriter, Location loc,
+               FloatType floatTy) {
+    auto emitRot = [&](double angle) {
+      if (!isAboveThreshold(angle))
+        return;
+      auto a =
+          cudaq::opt::factory::createFloatConstant(loc, rewriter, angle, floatTy);
+      if (isRy)
+        cudaq::quake::RyOp::create(rewriter, loc, a, ValueRange{}, target);
+      else
+        cudaq::quake::RzOp::create(rewriter, loc, a, ValueRange{}, target);
+    };
+    size_t k = controls.size();
+    // Base case: a plain (uncontrolled) rotation.
+    if (k == 0) {
+      emitRot(angles[0]);
+      return;
+    }
+    size_t n = angles.size(); // == 2^k
+    // Transform the desired per-state angles into the gray-code rotation
+    // angles: theta'_i = 2^{-k} * sum_j (-1)^{<gray(i), j>} * angles[j].
+    std::vector<double> theta(n, 0.0);
+    for (size_t i = 0; i < n; ++i) {
+      size_t gi = i ^ (i >> 1); // binary-reflected gray code of i
+      double acc = 0.0;
+      for (size_t j = 0; j < n; ++j) {
+        int sign = (__builtin_popcountll(gi & j) & 1) ? -1 : 1;
+        acc += sign * angles[j];
+      }
+      theta[i] = acc / static_cast<double>(n);
+    }
+    // Emit `R(theta'_i)` followed by a single CNOT whose control is the qubit
+    // flipped between gray(i) and gray(i+1). `controls` is most-significant
+    // first, so bit position `p` (0 == least significant) maps to
+    // `controls[k-1-p]`. The closing CNOT (i == n-1) flips the most-significant
+    // control, returning the accumulated control parity to the identity.
+    for (size_t i = 0; i < n; ++i) {
+      emitRot(theta[i]);
+      size_t flipBit = (i == n - 1) ? (k - 1) : __builtin_ctzll(i + 1);
+      Value ctrl = controls[k - 1 - flipBit];
+      cudaq::quake::XOp::create(rewriter, loc, ctrl, target);
+    }
+  }
+
+  /// Synthesize an `(n-1)`-qubit sub-unitary into its own replacement function,
+  /// dispatching to the appropriate decomposer for the base cases.
+  void emitChild(const Eigen::MatrixXcd &matrix,
+                 cudaq::quake::CustomUnitaryConstantOp customOp,
+                 PatternRewriter &rewriter, std::string funcName) {
+    size_t childQubits = numQubits - 1;
+    if (childQubits == 1) {
+      Eigen::Matrix2cd m2 = matrix;
+      OneQubitOpZYZ(m2).emitDecomposedFuncOp(customOp, rewriter, funcName);
+    } else if (childQubits == 2) {
+      TwoQubitOpKAK(matrix).emitDecomposedFuncOp(customOp, rewriter, funcName);
+    } else {
+      NQubitOpQSD(matrix).emitDecomposedFuncOp(customOp, rewriter, funcName);
+    }
+  }
+
+  void emitDecomposedFuncOp(cudaq::quake::CustomUnitaryConstantOp customOp,
+                            PatternRewriter &rewriter,
+                            std::string funcName) override {
+    emitChild(wR, customOp, rewriter, funcName + "wr");
+    emitChild(vR, customOp, rewriter, funcName + "vr");
+    emitChild(wL, customOp, rewriter, funcName + "wl");
+    emitChild(vL, customOp, rewriter, funcName + "vl");
+    auto parentModule = customOp->getParentOfType<ModuleOp>();
+    Location loc = customOp->getLoc();
+    auto targets = customOp.getTargets();
+    /// This decomposer emits a `numQubits`-qubit replacement function. The arity
+    /// is taken from `numQubits` (not from `customOp`) so that it stays correct
+    /// when QSD is invoked recursively on an `(n-1)`-qubit sub-unitary of a
+    /// larger parent operation.
+    SmallVector<Type> argTys(numQubits, targets[0].getType());
+    auto funcTy = FunctionType::get(parentModule.getContext(), argTys, {});
+    auto insPt = rewriter.saveInsertionPoint();
+    rewriter.setInsertionPointToStart(parentModule.getBody());
+    auto func = func::FuncOp::create(rewriter, parentModule->getLoc(), funcName,
+                                     funcTy);
+    func.setPrivate();
+    auto *block = func.addEntryBlock();
+    rewriter.setInsertionPointToStart(block);
+    auto arguments = func.getArguments();
+    FloatType floatTy = rewriter.getF64Type();
+    /// `arguments[0]` is the most-significant qubit (the multiplexor target),
+    /// `arguments[1..n-1]` carry the `(n-1)`-qubit sub-unitaries and act as the
+    /// controls for the multiplexed rotations.
+    Value top = arguments[0];
+    SmallVector<Value> lower(arguments.begin() + 1, arguments.end());
+    auto applyChild = [&](std::string name) {
+      cudaq::quake::ApplyOp::create(
+          rewriter, loc, TypeRange{},
+          SymbolRefAttr::get(rewriter.getContext(), name), false, ValueRange{},
+          ValueRange(lower));
+    };
+    /// Operator notation is right-to-left, so the right-most factor is emitted
+    /// first.
+    applyChild(funcName + "wr");
+    emitMux(muxRzRight, lower, top, false, rewriter, loc, floatTy);
+    applyChild(funcName + "vr");
+    emitMux(muxRy, lower, top, true, rewriter, loc, floatTy);
+    applyChild(funcName + "wl");
+    emitMux(muxRzLeft, lower, top, false, rewriter, loc, floatTy);
+    applyChild(funcName + "vl");
+    func::ReturnOp::create(rewriter, loc);
+    rewriter.restoreInsertionPoint(insPt);
+  }
+
+  NQubitOpQSD(const Eigen::MatrixXcd &vec) {
+    targetMatrix = vec;
+    numQubits = static_cast<size_t>(std::llround(std::log2(vec.rows())));
+    decompose();
+  }
+};
+
 class CustomUnitaryPattern
     : public OpRewritePattern<cudaq::quake::CustomUnitaryConstantOp> {
 public:
@@ -472,18 +765,19 @@ public:
         customOp.emitWarning("The custom operation matrix must be unitary.");
         return failure();
       }
-      switch (dimension) {
-      case 2: {
+      if (dimension == 2) {
         auto zyz = OneQubitOpZYZ(unitary);
         zyz.emitDecomposedFuncOp(customOp, rewriter, funcName);
-      } break;
-      case 4: {
+      } else if (dimension == 4) {
         auto kak = TwoQubitOpKAK(unitary);
         kak.emitDecomposedFuncOp(customOp, rewriter, funcName);
-      } break;
-      default:
-        customOp.emitWarning(
-            "Decomposition of only 1 and 2 qubit custom operations supported.");
+      } else if (dimension >= 8 && (dimension & (dimension - 1)) == 0) {
+        /// Recursive Quantum Shannon Decomposition for 3+ qubit operations.
+        auto qsd = NQubitOpQSD(unitary);
+        qsd.emitDecomposedFuncOp(customOp, rewriter, funcName);
+      } else {
+        customOp.emitWarning("Decomposition supports custom operations on a "
+                             "power-of-two matrix dimension only.");
         return failure();
       }
     }

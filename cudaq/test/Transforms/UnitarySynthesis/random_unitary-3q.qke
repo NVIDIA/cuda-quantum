@@ -1,0 +1,48 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --unitary-synthesis %s | FileCheck %s
+
+// A 3-qubit (8x8) custom operation is lowered with the recursive Quantum Shannon
+// Decomposition. One QSD level produces four 2-qubit sub-unitaries (synthesized
+// with the KAK base case) and three uniformly-controlled rotations (Rz, Ry, Rz)
+// on the most-significant qubit. Each multiplexor has two controls and is emitted
+// with the optimal gray-code construction (2^k = 4 CNOTs), so the top-level kernel
+// contains 3 x 4 = 12 CNOTs (vs. 18 for a naive recursive split). This test checks
+// the structure of the lowering; the random matrix is
+// `scipy.stats.unitary_group.rvs(8, random_state=13)`.
+
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel8 = "__nvqpp__mlirgen__kernel8_PyKernelEntryPointRewrite"}} {
+  func.func @__nvqpp__mlirgen__kernel8() attributes {"cudaq-entrypoint"} {
+    %0 = quake.alloca !quake.veq<3>
+    %1 = quake.extract_ref %0[2] : (!quake.veq<3>) -> !quake.ref
+    %2 = quake.extract_ref %0[1] : (!quake.veq<3>) -> !quake.ref
+    %3 = quake.extract_ref %0[0] : (!quake.veq<3>) -> !quake.ref
+    quake.custom_unitary_constant @__nvqpp__mlirgen__op8_generator_3.rodata %1, %2, %3 : (!quake.ref, !quake.ref, !quake.ref) -> ()
+    return
+  }
+  cc.global constant private @__nvqpp__mlirgen__op8_generator_3.rodata (dense<[(-0.32811703523753666,0.20886693551076796), (0.015081033733140414,0.29563616327296321), (-0.14408099006262623,-0.087285674801579116), (0.41234447280572695,-0.050627500383102708), (0.070217229021284105,0.12651654654841873), (0.26715505357424701,0.4676307003712008), (0.055229946833265958,0.12618665641722951), (-0.4510153467167603,-0.16352661682947872), (0.68106167874087542,-0.20134308905216175), (0.064703884811906753,0.25961479437047069), (-0.090191793367747936,-0.34576922856050762), (-0.085123793919528179,0.11352191007867603), (-0.026047670517529771,-0.30534945896221305), (0.034599765294994922,0.19938573558840661), (0.1696436183932987,-0.17460697118612534), (-0.25317561136182382,-0.13406074118523195), (0.058634085344821243,0.37537534215130269), (0.58849910379169024,-0.16690754643960795), (0.061743292288093679,-0.027031293623703385), (0.41206713235918263,0.29048456640152431), (-0.35706542826160464,-0.15643894038312914), (-0.18709326411453922,-0.005863773504590622), (-0.0083016811830623899,-0.11353378457117716), (0.14122501392214565,-0.053217142926837907), (-0.066882280284063081,0.16062957727189847), (-0.0036070552453005,-0.044819320958340333), (-0.51416416941739296,-0.53712681438097676), (-0.03678004817519967,0.16521795288455057), (0.11205341527749821,0.41333901661495964), (-0.15322453034970662,-0.38277515247654492), (0.16157327254647846,-0.057122415499565954), (-0.051124054384720244,0.028304047331808115), (-0.28601444364803286,0.085183481696976662), (-0.30295367253124639,-0.23867447869799574), (0.083613291315611765,-0.29984187715563765), (0.079755064559798916,-0.16673588083417026), (-0.050763309213866577,-0.46100530620393937), (-0.29653663167782612,0.074298114223709827), (0.025655627182491227,-0.32979258909731823), (-0.25951636536786238,0.38184803703761683), (-0.146128206520168,-0.13440418638709448), (0.31745446339743005,-0.066770906963187729), (-0.20224943367605186,-0.3696018286100245), (-0.0013203514416599491,-0.38532421768383102), (0.30067853769771435,-0.36380715526135099), (0.0035225887713405367,0.095456109990851509), (-0.21364992228613364,0.30177008335365957), (0.35837548368366212,-0.17979867567411992), (-0.1070520602033586,-0.15711557345263277), (0.2108412169890613,0.23029764615194817), (0.038471894558263227,0.056513604878089513), (-0.05362663481674481,-0.41852249917632967), (-0.1759647730298429,0.21272352049105173), (-0.33987753646738877,0.19318218391208936), (0.63409540284244437,-0.10197919136840665), (0.19494412188993454,0.064201373531039954), (-0.026498601883499954,0.066211873583851472), (0.14308247154633405,0.3043493675404223), (0.032953041020585175,0.079696746575897884), (-0.12932852797308547,-0.38346352112906762), (-0.18276652995489165,0.047831173511520574), (-0.32256271900994288,-0.3232704406419894), (-0.44025523185648779,-0.16431085806603576), (-0.36762302291505283,-0.33225553546208225)]> : tensor<64xcomplex<f64>>) : !cc.array<complex<f64> x 64>
+}
+
+// The generated kernel acts on all three qubits (the most-significant qubit is
+// the first argument / multiplexor target). It applies the four 2-qubit
+// sub-unitaries (KAK base case) on the lower two qubits and three
+// uniformly-controlled rotations (Rz, Ry, Rz) on the most-significant qubit.
+// CHECK-LABEL:   func.func private @__nvqpp__mlirgen__op8_generator_3.kernel(
+// CHECK-SAME:      %[[Q0:.*]]: !quake.ref, %[[Q1:.*]]: !quake.ref, %[[Q2:.*]]: !quake.ref
+// CHECK-DAG:       quake.apply @__nvqpp__mlirgen__op8_generator_3.kernelwr %[[Q1]], %[[Q2]]
+// CHECK-DAG:       quake.apply @__nvqpp__mlirgen__op8_generator_3.kernelvr %[[Q1]], %[[Q2]]
+// CHECK-DAG:       quake.apply @__nvqpp__mlirgen__op8_generator_3.kernelwl %[[Q1]], %[[Q2]]
+// CHECK-DAG:       quake.apply @__nvqpp__mlirgen__op8_generator_3.kernelvl %[[Q1]], %[[Q2]]
+// CHECK-DAG:       quake.ry (%{{.*}}) %[[Q0]]
+// CHECK-DAG:       quake.rz (%{{.*}}) %[[Q0]]
+// CHECK-DAG:       quake.x {{\[}}%[[Q2]]] %[[Q0]]
+
+// The original entry point now calls the generated kernel on all three qubits.
+// CHECK:         func.func @__nvqpp__mlirgen__kernel8()
+// CHECK:           quake.apply @__nvqpp__mlirgen__op8_generator_3.kernel %{{.*}}, %{{.*}}, %{{.*}}
