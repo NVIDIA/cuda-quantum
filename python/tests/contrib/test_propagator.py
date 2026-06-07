@@ -185,7 +185,6 @@ def test_open_system_propagator_amplitude_damping():
         {0: 2},
         schedule,
         collapse_operators=collapse_operators,
-        collapse_operator_adjoint_ops=[np.sqrt(gamma) * spin.plus(0)],
     )
 
     expected = scipy_linalg.expm(
@@ -207,7 +206,6 @@ def test_open_system_propagator_shape():
         {0: 2},
         schedule,
         collapse_operators=collapse_operators,
-        collapse_operator_adjoint_ops=[np.sqrt(gamma) * spin.plus(0)],
     )
 
     assert computed.shape == (4, 4)
@@ -229,14 +227,11 @@ def test_open_system_propagator_schedule_parameter_name():
     gamma = 0.2
     hamiltonian = 0.1 * spin.z(0)
     collapse_operator = np.sqrt(gamma) * spin.minus(0)
-    collapse_operator_adjoint = np.sqrt(gamma) * spin.plus(0)
-
     computed = cudaq.contrib.propagator(
         hamiltonian,
         {0: 2},
         Schedule([0.0, 0.1], ["time"]),
         collapse_operators=[collapse_operator],
-        collapse_operator_adjoint_ops=[collapse_operator_adjoint],
     )
 
     assert computed.shape == (4, 4)
