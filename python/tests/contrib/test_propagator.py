@@ -214,11 +214,11 @@ def test_open_system_propagator_shape():
 def test_propagator_multi_degree_of_freedom():
     hamiltonian = 0.25 * spin.z(0) + 0.5 * spin.x(1) + 0.75 * spin.z(2)
     dimensions = {0: 2, 1: 2, 2: 2}
-    schedule = Schedule([0.0, 0.4], ["t"])
+    schedule = Schedule(np.linspace(0.0, 0.4, 21), ["t"])
 
     actual = cudaq.contrib.propagator(hamiltonian, dimensions, schedule)
 
-    expected = scipy.linalg.expm(-1j * hamiltonian.to_matrix(dimensions) * 0.4)
+    expected = scipy_linalg.expm(-1j * hamiltonian.to_matrix(dimensions) * 0.4)
 
     np.testing.assert_allclose(actual, expected, atol=1e-5)
 

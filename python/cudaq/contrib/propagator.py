@@ -150,7 +150,7 @@ def propagator(
         evolution_dimensions,
         schedule,
         initial_states if is_batched else initial_states[0],
-        collapse_operators=[],
+        collapse_operators=collapse_operators,
         observables=[],
         store_intermediate_results=save_mode,
         integrator=integrator,
