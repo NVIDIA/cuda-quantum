@@ -334,9 +334,12 @@ def test_3q_unitary_synthesis():
         x(q)
         toffoli(q[0], q[1], q[2])
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.sample(test_toffoli)
-    assert "Remote rest platform Quake lowering failed." in repr(e)
+    # The 3-qubit custom operation is now lowered via Quantum Shannon
+    # decomposition, so the kernel runs on the emulated hardware target.
+    # Starting from |111>, the Toffoli flips the target back to |110>.
+    counts = cudaq.sample(test_toffoli)
+    assert len(counts) == 1
+    assert "110" in counts
 
 
 @requires_openfermion()

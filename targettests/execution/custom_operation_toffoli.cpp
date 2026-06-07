@@ -8,7 +8,7 @@
 
 // clang-format off
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t %s 2>&1 | FileCheck %s -check-prefix=FAIL
+// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
@@ -34,5 +34,3 @@ int main() {
 }
 
 // CHECK: 110
-
-// FAIL: failed to legalize operation 'quake.custom_unitary_constant'
