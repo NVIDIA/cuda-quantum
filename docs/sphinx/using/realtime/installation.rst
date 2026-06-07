@@ -40,11 +40,12 @@ Setup
   - Follow the instructions given by the installer for post-installation steps to set environment variables.
 
   - Load the HSB IP bit-file to the FPGA.
-    The HSB 2.6.0-EA RFSoC artifacts are split across two locations. The `HSB-2.6.0-EA URM directory <https://edge.urm.nvidia.com/artifactory/sw-holoscan-thirdparty-generic-local/QEC/HSB-2.6.0-EA/>`__ contains the prebuilt ``nvqlink_rfsoc_v2603.bit`` bit-file and the ``pynq_rfsoc_2603_EA_release.zip`` RFSoC PYNQ reference-design archive.
+    The HSB 2.6.0-EA RFSoC artifacts are split across two locations.
+    The `HSB 2.6.0-EA artifact directory <https://edge.urm.nvidia.com/artifactory/sw-holoscan-thirdparty-generic-local/QEC/HSB-2.6.0-EA/>`__ contains the pre-built ``nvqlink_rfsoc_v2603.bit`` bit-file and the ``pynq_rfsoc_2603_EA_release.zip`` RFSoC PYNQ reference-design archive.
     The matching ``nv_hsb_ip`` source directory is in the `Holoscan Sensor Bridge release-2.6.0-EA branch <https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/release-2.6.0-EA/fpga/nv_hsb_ip>`__.
 
     When building the RFSoC project from the PYNQ archive, place the ``nv_hsb_ip`` directory from that release branch at the same level as the archive's ``pynq`` directory.
-    Do not mix ``nv_hsb_ip`` from an older HSB release with the HSB 2.6.0-EA RFSoC collateral.
+    Do not mix ``nv_hsb_ip`` from an older HSB release with the HSB 2.6.0-EA RFSoC files.
     The included RFSoC PYNQ build project targets ``xczu48dr-ffvg1517-2-e``; for another RFSoC part, update the Vivado part and constraints in ``pynq/rfsoc-pynq/build/build.tcl`` and rebuild the bit-file.
 
   .. note:: 

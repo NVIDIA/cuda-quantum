@@ -1,19 +1,19 @@
 # Steps to execute the NVQLink latency demo
 
-The HSB 2.6.0-EA RFSoC collateral is split across two locations. The
-[HSB-2.6.0-EA URM directory](https://edge.urm.nvidia.com/artifactory/sw-holoscan-thirdparty-generic-local/QEC/HSB-2.6.0-EA/)
-contains the prebuilt `nvqlink_rfsoc_v2603.bit` bit-file and the
+The HSB 2.6.0-EA RFSoC files are split across two locations. The
+[HSB 2.6.0-EA artifact directory](https://edge.urm.nvidia.com/artifactory/sw-holoscan-thirdparty-generic-local/QEC/HSB-2.6.0-EA/)
+contains the pre-built `nvqlink_rfsoc_v2603.bit` bit-file and the
 `pynq_rfsoc_2603_EA_release.zip` RFSoC PYNQ reference-design archive.
 The zip archive contains the RFSoC top-level RTL, Vivado build scripts,
-Integrated Logic Analyzer (`ILA`) and latency scripts, and a prebuilt
+Integrated Logic Analyzer (`ILA`) and latency scripts, and a pre-built
 `pynq_rfsoc_v2603.bit`, but it does not contain the `nv_hsb_ip` source
-directory required by its README.
+directory required by the archive's build instructions.
 
 Download the matching `nv_hsb_ip` source directory from the
 [Holoscan Sensor Bridge `release-2.6.0-EA` branch](https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/release-2.6.0-EA/fpga/nv_hsb_ip).
 When building the RFSoC project from the PYNQ archive, place `nv_hsb_ip`
 as a sibling of the archive's `pynq` directory. Do not mix `nv_hsb_ip`
-from an older HSB release with the HSB 2.6.0-EA RFSoC collateral.
+from an older HSB release with the HSB 2.6.0-EA RFSoC files.
 The included RFSoC PYNQ build project targets `xczu48dr-ffvg1517-2-e`;
 for another RFSoC part, update `pynq/rfsoc-pynq/build/build.tcl` and constraints.
 
