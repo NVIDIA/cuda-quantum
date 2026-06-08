@@ -663,7 +663,7 @@ jobs:
                   if [ "$(uname)" = "Linux" ] && [ "$(uname -m)" = "x86_64" ] && \
                      [ -f "${QRMI_INSTALL_PREFIX:-/usr/local/qrmi}/lib64/libqrmi.so" ]; then
                     PASQAL_MACHINE_TARGET=qrmi \
-                    SLURM_JOB_QPU_RESOURCES=EMU_FREE \
+                    QRMI_JOB_QPU_RESOURCES=EMU_FREE \
                     EMU_FREE_QRMI_PASQAL_CLOUD_PROJECT_ID=$PASQAL_PROJECT_ID \
                     python3 "$filename" 1> /dev/null
                     test_status=$?
