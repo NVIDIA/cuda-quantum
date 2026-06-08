@@ -56,7 +56,7 @@ documents the `cpu_roce` channel.
 
 ## The `cpu_roce` channel
 
-`cpu_roce` carries `device_call` RPCs over a **pure-CPU RoCEv2 RDMA** transport,
+`cpu_roce` carries `device_call` RPCs over a **pure-CPU `RoCEv2` RDMA** transport,
 landing payloads directly in host memory at microsecond latency. It is an
 *external* channel: unlike the in-process channels, its service runs in a
 **separate process** (or a real FPGA) reached over the network. The transport is
@@ -99,7 +99,7 @@ bare `key=value` tokens on the same command line:
 ```
 
 - `ib-device`: the channel's local IB device
-- `local-ip`: the channel's RoCE IPv4
+- `local-ip`: the channel's RoCE `IPv4`
 - `rendezvous-host` / `rendezvous-port`: where the service's rendezvous server
   is listening
 - the slot count/size must match the service's ring geometry

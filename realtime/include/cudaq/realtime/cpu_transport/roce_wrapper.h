@@ -60,7 +60,7 @@ typedef enum {
 ///
 /// `peer_rx_base_addr` and `peer_rx_rkey` are ignored unless `tx_mode` is
 /// CPU_ROCE_TX_MODE_RDMA_WRITE_WITH_IMM.  `peer_rx_base_addr` may be 0 (the
-/// peer's rx_data MR is registered with iova=0, so slots are addressed by
+/// peer's rx_data MR is registered with `iova=0`, so slots are addressed by
 /// offset alone); `peer_rx_rkey` is typically supplied later via
 /// cpu_roce_connect() once learned from the out-of-band rendezvous.
 cpu_roce_transceiver_t cpu_roce_create_transceiver(

@@ -60,7 +60,6 @@ Holoscan
 Homebrew
 IB
 INIT
-IPv
 IQM
 InfiniBand
 Infleqtion
@@ -147,7 +146,6 @@ RTR
 RTS
 Realtime
 RoCE
-RoCEv
 SDK
 SLED
 SLES
@@ -304,7 +302,6 @@ integrators
 interferometer
 interoperational
 intrinsics
-iova
 iterable
 iteratively
 kets
