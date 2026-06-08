@@ -90,18 +90,18 @@ if(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(CMAKE_REQUIRED_INCLUDES "${QRMI_INCLUDE_DIR}")
     set(_qrmi_version_check_source_lines
       "#include <qrmi.h>"
-      "#if !defined(QRMI_VERSION) || (QRMI_VERSION < QRMI_VERSION_NUMERIC(0,12,0))"
-      "#error QRMI version must be >= 0.12.0"
+      "#if !defined(QRMI_VERSION) || (QRMI_VERSION < QRMI_VERSION_NUMERIC(0,15,0))"
+      "#error QRMI version must be >= 0.15.0"
       "#endif"
       "int main() {}")
     string(JOIN "\n" _qrmi_version_check_source ${_qrmi_version_check_source_lines})
     check_cxx_source_compiles("${_qrmi_version_check_source}"
-      CUDAQ_QRMI_VERSION_GTE_0_12_0)
+      CUDAQ_QRMI_VERSION_GTE_0_15_0)
     unset(CMAKE_REQUIRED_INCLUDES)
 
-    if(NOT CUDAQ_QRMI_VERSION_GTE_0_12_0)
+    if(NOT CUDAQ_QRMI_VERSION_GTE_0_15_0)
       message(WARNING
-        "Pasqal QRMI connector requires QRMI version >= 0.12.0; "
+        "Pasqal QRMI connector requires QRMI version >= 0.15.0; "
         "building pasqal target without QRMI mode support.")
     else()
       message(STATUS "Enabling Pasqal QRMI mode support in pasqal target.")
