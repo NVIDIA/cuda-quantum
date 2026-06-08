@@ -7,12 +7,12 @@
  ******************************************************************************/
 
 #include "cudaq/platform/quantum_platform.h"
-#include "algorithms/sample/policy.h"
 #include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
 #include "common/PluginUtils.h"
 #include "common/RuntimeTarget.h"
 #include "cudaq/Target/TargetConfig.h"
+#include "cudaq/algorithms/policy_dispatch.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -234,11 +234,16 @@ CompiledModule quantum_platform::compileModule(const SourceModule &src,
   validateQpuId(qpu_id);
   auto &qpu = platformQPUs[qpu_id];
   auto ctx = cudaq::getExecutionContext();
-  if (ctx && ctx->name == "sample") {
-    sample_policy policy;
+  if (!ctx)
+    return qpu->compileModule(other_policies{}, src, args, isEntryPoint);
+
+  return cudaq::policies::withPolicy(ctx->name, [&](auto policy) {
+    using Policy = std::decay_t<decltype(policy)>;
+    if constexpr (std::is_same_v<Policy, observe_policy>) {
+      policy.spin = ctx->spin.value();
+    }
     return qpu->compileModule(policy, src, args, isEntryPoint);
-  }
-  return qpu->compileModule(src, args, isEntryPoint);
+  });
 }
 
 void quantum_platform::onRandomSeedSet(std::size_t seed) {
@@ -279,6 +284,8 @@ const RuntimeTarget *quantum_platform::get_runtime_target() const {
 }
 
 bool quantum_platform::is_library_mode() const {
+  if (libraryModeOverride > 0)
+    return true;
   const auto *rt = get_runtime_target();
   if (!rt || !rt->config.BackendConfig)
     return false;

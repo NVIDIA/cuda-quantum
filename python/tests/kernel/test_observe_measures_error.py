@@ -6,21 +6,19 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-add_cudaq_dialect_library(CCDialect
-  CCDialect.cpp
-  CCOps.cpp
-  CCTypes.cpp
+import cudaq
+import pytest
+from cudaq import spin
 
-  DEPENDS
-    CCDialectIncGen
-    CCOpsIncGen
-    CCTypesIncGen
 
-  LINK_LIBS PUBLIC
-    MLIRComplexDialect
-    MLIRControlFlowDialect
-    MLIRFuncDialect
-    MLIRLLVMDialect
-    MLIRLoopLikeInterface
-    MLIRIR
-)
+def test_observe_kernel_with_measures_fails():
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(1)
+    kernel.h(q[0])
+    kernel.mz(q[0])
+
+    with pytest.raises(
+            RuntimeError,
+            match=r"kernels passed to observe cannot have measurements specified"
+    ):
+        cudaq.observe(kernel, spin.z(0), shots_count=100)
