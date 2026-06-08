@@ -7,8 +7,9 @@
 # ============================================================================ #
 
 add_cudaq_library(OptAnalysis
-  UnitaryOpGrouping.cpp 
-  
+  UnitaryOpGrouping.cpp
+
   DEPENDS
+    CCDialect
     QuakeDialect
 )
