@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --enable-mlir %s -o %t && %t | grep lookhere | FileCheck %s
+// RUN: nvq++ %s -o %t && %t | grep lookhere | FileCheck %s
 
 #include <iostream>
 #include <cudaq.h>

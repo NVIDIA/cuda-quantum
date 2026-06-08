@@ -10,11 +10,11 @@
 
 #include "common/ExecutionContext.h"
 #include "common/Resources.h"
-#include "cudaq/platform.h"
 #include "nvqir/resourcecounter/ResourceCounterScope.h"
+#include "cudaq/platform.h"
 
 namespace cudaq {
-namespace details {
+namespace detail {
 
 /// @brief Take the input KernelFunctor (a lambda that captures runtime
 /// arguments and invokes the quantum kernel) and invoke the resource estimation
@@ -38,7 +38,7 @@ Resources run_estimate_resources(KernelFunctor &&wrappedKernel,
                                   std::forward<KernelFunctor>(wrappedKernel));
   return nvqir::resource_counter::get_counts(rcScope);
 }
-} // namespace details
+} // namespace detail
 
 /// @brief Given any CUDA-Q kernel and its associated runtime arguments,
 /// return the resources that this kernel will use. This does not execute the
@@ -57,7 +57,7 @@ Resources estimate_resources(QuantumKernel &&kernel, Args &&...args) {
   std::mt19937 gen(seed);
   std::uniform_int_distribution<> rand(0, 1);
   auto choice = [&]() { return rand(gen); };
-  return details::run_estimate_resources(
+  return detail::run_estimate_resources(
       [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
       kernelName, choice);
 }
@@ -78,7 +78,7 @@ Resources estimate_resources(std::function<bool()> choice,
                              QuantumKernel &&kernel, Args &&...args) {
   auto &platform = cudaq::get_platform();
   auto kernelName = cudaq::getKernelName(kernel);
-  return details::run_estimate_resources(
+  return detail::run_estimate_resources(
       [&]() mutable { kernel(std::forward<Args>(args)...); }, platform,
       kernelName, choice);
 }

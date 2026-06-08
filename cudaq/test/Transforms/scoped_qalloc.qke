@@ -1,0 +1,63 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --lower-to-cfg --combine-quantum-alloc --canonicalize --symbol-dce %s | FileCheck %s
+
+module {
+  func.func @__nvqpp__mlirgen__main_kernel..0x71bec5c78650.run(%arg0: !cc.callable<() -> i64>) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, quake.cudaq_run = [i64]} {
+    %0 = cc.scope -> (i64) {
+      %5 = quake.alloca !quake.veq<10>
+      %6 = quake.extract_ref %5[0] : (!quake.veq<10>) -> !quake.ref
+      quake.h %6 : (!quake.ref) -> ()
+      %7 = quake.extract_ref %5[0] : (!quake.veq<10>) -> !quake.ref
+      %measOut = quake.mz %7 : (!quake.ref) -> !cc.measure_handle
+      %8 = quake.discriminate %measOut : (!cc.measure_handle) -> i1
+      %9 = cc.cast unsigned %8 : (i1) -> i64
+      quake.dealloc %5 : !quake.veq<10>
+      cc.continue %9 : i64
+    }
+    %1 = cc.scope -> (i64) {
+      %5 = quake.alloca !quake.veq<10>
+      %6 = quake.extract_ref %5[0] : (!quake.veq<10>) -> !quake.ref
+      quake.h %6 : (!quake.ref) -> ()
+      %7 = quake.extract_ref %5[0] : (!quake.veq<10>) -> !quake.ref
+      %measOut = quake.mz %7 : (!quake.ref) -> !cc.measure_handle
+      %8 = quake.discriminate %measOut : (!cc.measure_handle) -> i1
+      %9 = cc.cast unsigned %8 : (i1) -> i64
+      quake.dealloc %5 : !quake.veq<10>
+      cc.continue %9 : i64
+    }
+    %2 = cc.scope -> (i64) {
+      %5 = quake.alloca !quake.veq<10>
+      %6 = quake.extract_ref %5[0] : (!quake.veq<10>) -> !quake.ref
+      quake.h %6 : (!quake.ref) -> ()
+      %7 = quake.extract_ref %5[0] : (!quake.veq<10>) -> !quake.ref
+      %measOut = quake.mz %7 : (!quake.ref) -> !cc.measure_handle
+      %8 = quake.discriminate %measOut : (!cc.measure_handle) -> i1
+      %9 = cc.cast unsigned %8 : (i1) -> i64
+      quake.dealloc %5 : !quake.veq<10>
+      cc.continue %9 : i64
+    }
+    %3 = arith.addi %0, %1 : i64
+    %4 = arith.addi %3, %2 : i64
+    cc.log_output %4 : i64
+    return
+  }
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__main_kernel..0x71bec5c78650.run(
+// CHECK-SAME:      cc.no_qubit_combine
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<10>
+// CHECK:           quake.dealloc %[[ALLOCA_0]] : !quake.veq<10>
+// CHECK:           %[[ALLOCA_1:.*]] = quake.alloca !quake.veq<10>
+// CHECK:           quake.dealloc %[[ALLOCA_1]] : !quake.veq<10>
+// CHECK:           %[[ALLOCA_2:.*]] = quake.alloca !quake.veq<10>
+// CHECK:           quake.dealloc %[[ALLOCA_2]] : !quake.veq<10>
+// CHECK-NOT:       quake.alloca
+// CHECK:           return
+

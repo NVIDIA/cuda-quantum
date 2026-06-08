@@ -7,11 +7,11 @@
 # ============================================================================ #
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
-from cudaq.kernel.kernel_builder import PyKernel
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
-from cudaq.kernel.utils import mlirTypeToPyType, nvqppPrefix
+from cudaq.kernel.utils import mlirTypeToPyType
 from cudaq.util import trace
-from .utils import __isBroadcast, __createArgumentSet
+from .utils import (__isBroadcast, __createArgumentSet,
+                    _kernel_has_conditionals_on_measure)
 
 # Maintain a dictionary of queued `async` sample kernels.This dictionary is used
 # to keep the `mlir::ModuleOp` alive so the interpreter doesn't garbage collect
@@ -68,40 +68,29 @@ def __broadcastSample(kernel,
     N = len(argSet)
     results = []
     for i, a in enumerate(argSet):
+        kernel_name = kernel.name if hasattr(kernel, 'name') else ''
         ctx = cudaq_runtime.ExecutionContext('sample', shots_count)
+        ctx.kernelName = kernel_name
         ctx.totalIterations = N
         ctx.batchIteration = i
         ctx.explicitMeasurements = explicit_measurements
-        with ctx:
-            kernel(*a)
-        res = ctx.result
+        policy = cudaq_runtime.SamplePolicy(ctx, kernel_name,
+                                            explicit_measurements)
+        res = cudaq_runtime.launch_sample(policy, ctx, lambda: kernel(*a))
         results.append(res)
 
     return results
 
 
 def _detail_check_conditionals_on_measure(kernel):
-    has_conditionals_on_measure_result = False
-    if isa_kernel_decorator(kernel):
-        if kernel.return_type is not None:
-            raise RuntimeError(
-                f"The `sample` API only supports kernels that return None "
-                f"(void). Kernel '{kernel.name}' has return type "
-                f"'{mlirTypeToPyType(kernel.return_type)}'. Consider using `run` for kernels "
-                f"that return values.")
-        # Only check for kernels that can be compiled, not library-mode kernels (e.g., photonics)
-        if kernel.supports_compilation():
-            for operation in kernel.qkeModule.body.operations:
-                op_name = getattr(operation.name,
-                                  'value', operation.name) if hasattr(
-                                      operation, 'name') else None
-                if (op_name == nvqppPrefix + kernel.uniqName and
-                        'qubitMeasurementFeedback' in operation.attributes):
-                    has_conditionals_on_measure_result = True
-    elif isinstance(kernel, PyKernel) and kernel.conditionalOnMeasure:
-        has_conditionals_on_measure_result = True
+    if isa_kernel_decorator(kernel) and kernel.return_type is not None:
+        raise RuntimeError(
+            f"The `sample` API only supports kernels that return None "
+            f"(void). Kernel '{kernel.name}' has return type "
+            f"'{mlirTypeToPyType(kernel.return_type)}'. Consider using `run` for kernels "
+            f"that return values.")
 
-    if has_conditionals_on_measure_result:
+    if _kernel_has_conditionals_on_measure(kernel):
         raise RuntimeError(
             f"`cudaq.sample` and `cudaq.sample_async` no longer support "
             f"kernels that branch on measurement results. Kernel "
@@ -171,25 +160,26 @@ def sample(kernel,
         cudaq_runtime.unset_noise()
         return res
 
+    kernel_name = kernel.name if hasattr(kernel, 'name') else ''
     ctx = cudaq_runtime.ExecutionContext("sample", shots_count)
-    ctx.kernelName = kernel.name if hasattr(kernel, 'name') else ''
+    ctx.kernelName = kernel_name
     ctx.explicitMeasurements = explicit_measurements
     ctx.allowJitEngineCaching = True
+    policy = cudaq_runtime.SamplePolicy(ctx, kernel_name, explicit_measurements)
 
     counts = cudaq_runtime.SampleResult()
     while counts.get_total_shots() < shots_count:
-        with ctx:
-            kernel(*args)
+        result = cudaq_runtime.launch_sample(policy, ctx, lambda: kernel(*args))
         # If the platform is a hardware QPU, launch only once
         countsTotalIsZero = counts.get_total_shots() == 0
-        resultTotalWasReached = ctx.result.get_total_shots() == shots_count
+        resultTotalWasReached = result.get_total_shots() == shots_count
         if (countsTotalIsZero and
                 resultTotalWasReached) or cudaq_runtime.isQuantumDevice():
             # Early return for case where all shots were gathered the first time
             # through this loop.This avoids an additional copy.
             cudaq_runtime.unset_noise()
-            return ctx.result
-        counts += ctx.result
+            return result
+        counts += result
         if counts.get_total_shots() == 0:
             if explicit_measurements:
                 raise RuntimeError(
@@ -199,7 +189,6 @@ def sample(kernel,
                   "results when executed. Exiting shot loop to avoid infinite "
                   "loop.")
             break
-        ctx.result.clear()
     cudaq_runtime.unset_noise()
     ctx.unset_jit_engine()
     return counts

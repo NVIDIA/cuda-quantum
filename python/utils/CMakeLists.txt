@@ -18,7 +18,7 @@ target_link_libraries(cudaq-py-utils PRIVATE
   cudaq 
   cudaq-logger
   fmt::fmt-header-only 
-  CUDAQTargetConfigUtil 
+  CUDAQTargetConfigYaml
   cudaq-common
 )
 target_include_directories(cudaq-py-utils PUBLIC 

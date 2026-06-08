@@ -1391,8 +1391,7 @@ def test_inner_functions():
                 x(q)
 
         fct()
-        # FIXME: aggregate-element typing does not currently auto-discriminate, so coerce explicitly.
-        return i, bool(mz(q))
+        return i, mz(q)
 
     out = cudaq.run(test1, True, False, shots_count=10)
     assert all(res == (True, False) for res in out)

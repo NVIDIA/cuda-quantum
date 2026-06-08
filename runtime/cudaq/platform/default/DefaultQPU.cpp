@@ -9,6 +9,7 @@
 #include "DefaultQPU.h"
 #include "common/ExecutionContext.h"
 #include "common/Timing.h"
+#include "cudaq/algorithms/policies.h"
 #include "cudaq/runtime/logger/logger.h"
 
 cudaq::DefaultQPU::~DefaultQPU() = default;
@@ -36,6 +37,42 @@ cudaq::DefaultQPU::unifiedLaunchModule(const cudaq::AnyModule &module,
   return rawFn->getFn()(argData, /*isRemote=*/false);
 }
 
+cudaq::sample_result
+cudaq::DefaultQPU::launchKernel(const cudaq::sample_policy &policy,
+                                const cudaq::AnyModule &module,
+                                cudaq::KernelArgs args) {
+  CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
+  return cudaq::ExecutionManager::with_default_em(
+      policy,
+      [this, &module, &args]() { this->unifiedLaunchModule(module, args); });
+}
+
+cudaq::async_sample_result
+cudaq::DefaultQPU::launchKernel(const async_sample_policy &policy,
+                                const cudaq::AnyModule &module,
+                                cudaq::KernelArgs args) {
+  throw std::runtime_error(
+      "DefaultQPU does not support launching the async_sample_policy.");
+}
+
+cudaq::observe_result
+cudaq::DefaultQPU::launchKernel(const cudaq::observe_policy &policy,
+                                const cudaq::AnyModule &module,
+                                cudaq::KernelArgs args) {
+  CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
+  return cudaq::ExecutionManager::with_default_em(
+      policy,
+      [this, &module, &args]() { this->unifiedLaunchModule(module, args); });
+}
+
+cudaq::async_observe_result
+cudaq::DefaultQPU::launchKernel(async_observe_policy &policy,
+                                const cudaq::AnyModule &module,
+                                cudaq::KernelArgs args) {
+  throw std::runtime_error(
+      "DefaultQPU does not support launching the async_observe_policy.");
+}
+
 void cudaq::DefaultQPU::configureExecutionContext(
     ExecutionContext &context) const {
   ScopedTraceWithContext("DefaultPlatform::prepareExecutionContext",
@@ -60,7 +97,5 @@ void cudaq::DefaultQPU::finalizeExecutionContext(
   ScopedTraceWithContext(context.name == "observe" ? TIMING_OBSERVE : 0,
                          "DefaultPlatform::finalizeExecutionContext",
                          context.name);
-  handleObservation(context);
-
   getExecutionContext()->executionManager->finalizeExecutionContext(context);
 }

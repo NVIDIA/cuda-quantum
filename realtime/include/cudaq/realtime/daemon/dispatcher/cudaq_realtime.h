@@ -62,8 +62,16 @@ typedef enum {
 } cudaq_kernel_type_t;
 
 // Dispatch invocation mode.
-// For CUDAQ_DISPATCH_PATH_HOST only GRAPH_LAUNCH is dispatched; DEVICE_CALL and
-// HOST_CALL table entries are dropped (slot cleared and advanced).
+//
+// On CUDAQ_DISPATCH_PATH_HOST:
+//   - GRAPH_LAUNCH: launched on a graph worker (worker pool, cudaGraphLaunch).
+//   - HOST_CALL:    invoked synchronously inline as a plain C++ function via
+//                   entry->handler.host_fn.  Bypasses the worker pool.  No
+//                   CUDA graph required.  Use for GPU-less bridges (e.g. the
+//                   CPU RoCE transport in lib/cpu_transport/) or for
+//                   handlers whose work fits on a single CPU thread.
+//   - DEVICE_CALL:  table entries are dropped (DEVICE_CALL belongs on the
+//                   GPU dispatch path).
 typedef enum {
   CUDAQ_DISPATCH_DEVICE_CALL = 0,
   CUDAQ_DISPATCH_GRAPH_LAUNCH = 1,

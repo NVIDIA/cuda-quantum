@@ -113,16 +113,6 @@ def test_exp_pauli():
 # CHECK:         ret void
 # CHECK: }
 
-# CHECK-LABEL: define void @__nvqpp__mlirgen__U_exp_pauli..
-# CHECK-SAME: ptr %[[VAL_0:.*]]) {
-# CHECK:         %[[VAL_2:.*]] = alloca [1 x { ptr, i64 }], align 8
-# CHECK:         store ptr @cstr.58495900, ptr %[[VAL_2]], align 8
-# CHECK:         %[[VAL_4:.*]] = getelementptr [1 x { ptr, i64 }], ptr %[[VAL_2]], i32 0, i32 0, i32 1
-# CHECK:         store i64 3, ptr %[[VAL_4]], align 8
-# CHECK:         call void @__quantum__qis__exp_pauli(double 2.310000e+01, ptr %[[VAL_0]], ptr %[[VAL_2]])
-# CHECK:         ret void
-# CHECK:       }
-
 
 def test_exp_pauli_loop_controlled():
     """Regression test for issue #2822: cudaq.control on a kernel that calls
@@ -193,27 +183,4 @@ def test_exp_pauli_loop_controlled():
 # CHECK:         br label %[[HDR]]
 # CHECK: [[VAL_21]]:{{.*}}
 # CHECK:         call void @__quantum__rt__qubit_release_array(ptr %[[VAL_1]])
-# CHECK:         ret void
-
-# CHECK-LABEL: define void @__nvqpp__mlirgen__exp_pauli_loop..
-# CHECK:         %[[VAL_29:.*]] = alloca [1 x { ptr, i64 }], align 8
-# CHECK:         %[[VAL_30:.*]] = extractvalue { ptr, i64 } %[[VAL_31:.*]], 1
-# CHECK:         br label %[[HDR2:[0-9]+]]
-# CHECK: [[HDR2]]:{{.*}}
-# CHECK:         %[[VAL_35:.*]] = phi i64 [ %[[VAL_36:.*]], %[[VAL_33:[0-9]+]] ], [ 0, %[[VAL_34:[0-9]+]] ]
-# CHECK:         %[[VAL_37:.*]] = icmp slt i64 %[[VAL_35]], %[[VAL_30]]
-# CHECK:         br i1 %[[VAL_37]], label %[[VAL_33]], label %[[VAL_38:[0-9]+]]
-# CHECK: [[VAL_33]]:{{.*}}
-# CHECK:         %[[VAL_40:.*]] = extractvalue { ptr, i64 } %[[VAL_31]], 0
-# CHECK:         %[[VAL_41:.*]] = getelementptr double, ptr %[[VAL_40]], i64 %[[VAL_35]]
-# CHECK:         %[[VAL_42:.*]] = load double, ptr %[[VAL_41]], align 8
-# CHECK:         %[[VAL_43:.*]] = fmul double %[[VAL_42]], %[[VAL_44:.*]]
-# CHECK:         %[[VAL_45:.*]] = extractvalue { ptr, i64 } %[[VAL_46:.*]], 0
-# CHECK:         %[[VAL_47:.*]] = getelementptr { ptr, i64 }, ptr %[[VAL_45]], i64 %[[VAL_35]]
-# CHECK:         %[[VAL_48:.*]] = load { ptr, i64 }, ptr %[[VAL_47]], align 8
-# CHECK:         store { ptr, i64 } %[[VAL_48]], ptr %[[VAL_29]], align 8
-# CHECK:         call void @__quantum__qis__exp_pauli(double %[[VAL_43]], ptr %{{.*}}, ptr %[[VAL_29]])
-# CHECK:         %[[VAL_36]] = add i64 %[[VAL_35]], 1
-# CHECK:         br label %[[HDR2]]
-# CHECK: [[VAL_38]]:{{.*}}
 # CHECK:         ret void

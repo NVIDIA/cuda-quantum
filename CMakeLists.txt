@@ -84,19 +84,60 @@ if (NOT DEFINED CUDAQ_ENABLE_REST)
   set(CUDAQ_ENABLE_REST ON CACHE BOOL "Enable building REST client & server.")
 endif()
 
+# CUDAQ_ENABLE_ALL_BACKEND, if defined, becomes the default value used for
+# every per-backend CUDAQ_ENABLE_<NAME>_BACKEND flag below. Individual
+# per-backend flags can still be overridden on the command line to opt in
+# or out of specific backends.
+#
+# Examples:
+#   # Disable every backend:
+#   cmake -DCUDAQ_ENABLE_ALL_BACKEND=OFF ..
+#   # Disable every backend except IonQ:
+#   cmake -DCUDAQ_ENABLE_ALL_BACKEND=OFF -DCUDAQ_ENABLE_IONQ_BACKEND=ON ..
+if (DEFINED CUDAQ_ENABLE_ALL_BACKEND)
+  set(_cudaq_backend_default ${CUDAQ_ENABLE_ALL_BACKEND})
+else()
+  set(_cudaq_backend_default ON)
+endif()
+
 # Enable Amazon Braket backends by default.
 if (NOT DEFINED CUDAQ_ENABLE_BRAKET_BACKEND)
-  set(CUDAQ_ENABLE_BRAKET_BACKEND ON CACHE BOOL "Enable building AWS SDK for Amazon Braket backends.")
+  set(CUDAQ_ENABLE_BRAKET_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building AWS SDK for Amazon Braket backends.")
+endif()
+
+# Enable Anyon target by default.
+if (NOT DEFINED CUDAQ_ENABLE_ANYON_BACKEND)
+  set(CUDAQ_ENABLE_ANYON_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Anyon target.")
+endif()
+
+# Enable IonQ target by default.
+if (NOT DEFINED CUDAQ_ENABLE_IONQ_BACKEND)
+  set(CUDAQ_ENABLE_IONQ_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the IonQ target.")
+endif()
+
+# Enable IQM target by default.
+if (NOT DEFINED CUDAQ_ENABLE_IQM_BACKEND)
+  set(CUDAQ_ENABLE_IQM_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the IQM target.")
+endif()
+
+# Enable OQC target by default.
+if (NOT DEFINED CUDAQ_ENABLE_OQC_BACKEND)
+  set(CUDAQ_ENABLE_OQC_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the OQC target.")
 endif()
 
 # Enable Pasqal target by default.
 if (NOT DEFINED CUDAQ_ENABLE_PASQAL_BACKEND)
-  set(CUDAQ_ENABLE_PASQAL_BACKEND ON CACHE BOOL "Enable building the Pasqal target.")
+  set(CUDAQ_ENABLE_PASQAL_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Pasqal target.")
 endif()
 
-# Enable Pasqal QRMI connector by default only on Linux builds.
+# Enable Pasqal QRMI connector by default only on Linux builds, and only when
+# the Pasqal backend itself is enabled. Both behaviors can be overridden by
+# explicitly passing -DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=ON/OFF on the cmake
+# command line.
 if (NOT DEFINED CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR)
-  if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  if (NOT CUDAQ_ENABLE_PASQAL_BACKEND)
+    set(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR OFF CACHE BOOL "Enable building the Pasqal QRMI connector.")
+  elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR ON CACHE BOOL "Enable building the Pasqal QRMI connector.")
   else()
     set(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR OFF CACHE BOOL "Enable building the Pasqal QRMI connector.")
@@ -108,28 +149,75 @@ endif()
 
 # Enable Quantum Circuits, Inc. (QCI) target by default.
 if (NOT DEFINED CUDAQ_ENABLE_QCI_BACKEND)
-  set(CUDAQ_ENABLE_QCI_BACKEND ON CACHE BOOL "Enable building the Quantum Circuits, Inc. target.")
+  set(CUDAQ_ENABLE_QCI_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Quantum Circuits, Inc. target.")
 endif()
 
 # Enable TII target by default.
 if (NOT DEFINED CUDAQ_ENABLE_TII_BACKEND)
-  set(CUDAQ_ENABLE_TII_BACKEND ON CACHE BOOL "Enable building the TII target.")
+  set(CUDAQ_ENABLE_TII_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the TII target.")
 endif()
 
 # Enable Quantum Machines target by default.
 if (NOT DEFINED CUDAQ_ENABLE_QUANTUM_MACHINES_BACKEND)
-  set(CUDAQ_ENABLE_QUANTUM_MACHINES_BACKEND ON CACHE BOOL "Enable building the Quantum Machines target.")
+  set(CUDAQ_ENABLE_QUANTUM_MACHINES_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Quantum Machines target.")
 endif()
 
 # Enable Scaleway target by default.
 if (NOT DEFINED CUDAQ_ENABLE_SCALEWAY_BACKEND)
-  set(CUDAQ_ENABLE_SCALEWAY_BACKEND ON CACHE BOOL "Enable building the Scaleway target.")
+  set(CUDAQ_ENABLE_SCALEWAY_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Scaleway target.")
 endif()
 
 # Enable qBraid target by default.
 if (NOT DEFINED CUDAQ_ENABLE_QBRAID_BACKEND)
-  set(CUDAQ_ENABLE_QBRAID_BACKEND ON CACHE BOOL "Enable building the qBraid target.")
+  set(CUDAQ_ENABLE_QBRAID_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the qBraid target.")
 endif()
+
+# =============================================================================
+# CUDAQ_EXTERNAL_PROJECTS
+# -----------------------------------------------------------------------------
+# Plug additional sub-projects into the CUDA-Q build, mirroring LLVM's
+# LLVM_EXTERNAL_PROJECTS pattern.
+#
+# Inputs
+#   CUDAQ_EXTERNAL_PROJECTS
+#       Semicolon-separated list of project names to include in the build.
+#       Each name is a free-form identifier; dashes are allowed.
+#
+#   CUDAQ_EXTERNAL_<UPPER_NAME>_SOURCE_DIR
+#       Absolute path to the source directory containing the project's
+#       CMakeLists.txt. Required for every name listed in
+#       CUDAQ_EXTERNAL_PROJECTS. <UPPER_NAME> is the project name uppercased
+#       with dashes converted to underscores (e.g. project "my-tool"
+#       -> CUDAQ_EXTERNAL_MY_TOOL_SOURCE_DIR).
+#
+# Build layout
+#   Each external project is added via add_subdirectory() after the in-tree
+#   sub-projects (cudaq/, runtime/, python/), so externals may depend on
+#   CUDA-Q targets. The binary directory for each project is placed at
+#   ${CMAKE_BINARY_DIR}/external/<name>.
+#
+# Diagnostics
+#   * Listing a project without setting its SOURCE_DIR is a fatal error.
+#   * A SOURCE_DIR that does not contain a CMakeLists.txt is a fatal error.
+#
+# Examples
+#   # Single external project:
+#   cmake -DCUDAQ_EXTERNAL_PROJECTS="my-tool" \
+#         -DCUDAQ_EXTERNAL_MY_TOOL_SOURCE_DIR=/path/to/my-tool ..
+#
+#   # Multiple external projects:
+#   cmake -DCUDAQ_EXTERNAL_PROJECTS="foo;bar" \
+#         -DCUDAQ_EXTERNAL_FOO_SOURCE_DIR=/path/to/foo \
+#         -DCUDAQ_EXTERNAL_BAR_SOURCE_DIR=/path/to/bar ..
+# =============================================================================
+set(CUDAQ_EXTERNAL_PROJECTS "" CACHE STRING
+    "Semicolon-separated list of external projects to add to the CUDA-Q build.")
+foreach(_cudaq_ext_proj IN LISTS CUDAQ_EXTERNAL_PROJECTS)
+  string(TOUPPER "${_cudaq_ext_proj}" _cudaq_ext_upper)
+  string(REGEX REPLACE "-" "_" _cudaq_ext_upper "${_cudaq_ext_upper}")
+  set(CUDAQ_EXTERNAL_${_cudaq_ext_upper}_SOURCE_DIR "" CACHE PATH
+      "Source directory for external project '${_cudaq_ext_proj}'.")
+endforeach()
 
 # Generate a CompilationDatabase (compile_commands.json file) for our build,
 # for use by clang_complete, YouCompleteMe, etc.
@@ -172,6 +260,83 @@ option(CUDAQ_DISABLE_CPP_FRONTEND "Build without the CUDA-Q C++ Clang-based Fron
 option(CUDAQ_ENABLE_CC "Enable CUDA-Q code coverage generation." OFF)
 option(CUDAQ_REQUIRE_OPENMP "Fail the build if OpenMP is not found." OFF)
 option(CUDAQ_ENABLE_SANITIZERS "Enable Address Sanitizer (ASan) and Undefined Behavior Sanitizer (UBSan)." OFF)
+
+# Sub-projects that can be enabled independently, in the style of
+# LLVM_ENABLE_PROJECTS. Accepts a semicolon-separated list.
+set(CUDAQ_ALL_PROJECTS "cudaq;runtime;python")
+set(CUDAQ_ENABLE_PROJECTS "" CACHE STRING
+    "Semicolon-separated list of CUDA-Q sub-projects to build. Valid values: ${CUDAQ_ALL_PROJECTS}. Defaults to 'cudaq;runtime' (plus 'python' if CUDAQ_ENABLE_PYTHON is set).")
+
+# Back-compat: if CUDAQ_ENABLE_PROJECTS wasn't given, derive it from the
+# legacy per-project flags so existing build scripts keep working, and warn
+# the user that those flags are deprecated.
+if(NOT CUDAQ_ENABLE_PROJECTS)
+  set(CUDAQ_ENABLE_PROJECTS "cudaq")
+  if(NOT CUDAQ_DISABLE_RUNTIME)
+    list(APPEND CUDAQ_ENABLE_PROJECTS "runtime")
+  endif()
+  if(CUDAQ_ENABLE_PYTHON)
+    list(APPEND CUDAQ_ENABLE_PROJECTS "python")
+  endif()
+
+  if(CUDAQ_DISABLE_RUNTIME)
+    message(DEPRECATION
+      "CUDAQ_DISABLE_RUNTIME is deprecated. Use CUDAQ_ENABLE_PROJECTS to "
+      "control which sub-projects are built (omit 'runtime' to disable it).")
+  endif()
+  if(DEFINED CUDAQ_ENABLE_PYTHON)
+    message(DEPRECATION
+      "CUDAQ_ENABLE_PYTHON is deprecated. Use CUDAQ_ENABLE_PROJECTS to "
+      "control which sub-projects are built (include 'python' to enable it).")
+  endif()
+endif()
+
+foreach(_proj IN LISTS CUDAQ_ENABLE_PROJECTS)
+  if(NOT _proj IN_LIST CUDAQ_ALL_PROJECTS)
+    message(FATAL_ERROR
+      "Unknown project '${_proj}' in CUDAQ_ENABLE_PROJECTS. "
+      "Valid: ${CUDAQ_ALL_PROJECTS}.")
+  endif()
+endforeach()
+
+# python depends on the MLIR dialects in cudaq/ and on runtime symbols.
+if("python" IN_LIST CUDAQ_ENABLE_PROJECTS)
+  foreach(_dep cudaq runtime)
+    if(NOT _dep IN_LIST CUDAQ_ENABLE_PROJECTS)
+      message(STATUS "CUDAQ_ENABLE_PROJECTS: adding implied dep '${_dep}' (required by python).")
+      list(APPEND CUDAQ_ENABLE_PROJECTS ${_dep})
+    endif()
+  endforeach()
+endif()
+
+# Map CUDAQ_ENABLE_PROJECTS onto the legacy per-project flags so the rest of
+# this file and sub-CMakes keep working unchanged.
+if(NOT "runtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
+  set(CUDAQ_DISABLE_RUNTIME ON CACHE BOOL "" FORCE)
+endif()
+if("python" IN_LIST CUDAQ_ENABLE_PROJECTS)
+  set(CUDAQ_ENABLE_PYTHON ON CACHE BOOL "" FORCE)
+endif()
+
+# Backward compatibility: map the old CUDAQ_ENABLE_STATIC_LINKING to the two
+# new flags. Check both -D (cmake variable) and environment variable paths.
+# Setting cache variables here means the option() calls below will respect
+# them (option() does not overwrite existing cache entries).
+if(NOT DEFINED CUDAQ_ENABLE_STATIC_LINKING)
+  set(CUDAQ_ENABLE_STATIC_LINKING "$ENV{CUDAQ_ENABLE_STATIC_LINKING}")
+endif()
+if(CUDAQ_ENABLE_STATIC_LINKING)
+  if(NOT DEFINED CUDAQ_STATIC_CXX_RUNTIME)
+    set(CUDAQ_STATIC_CXX_RUNTIME ON CACHE BOOL "Set via deprecated CUDAQ_ENABLE_STATIC_LINKING")
+  endif()
+  if(NOT DEFINED CUDAQ_STATIC_DEPS)
+    set(CUDAQ_STATIC_DEPS ON CACHE BOOL "Set via deprecated CUDAQ_ENABLE_STATIC_LINKING")
+  endif()
+  message(DEPRECATION "CUDAQ_ENABLE_STATIC_LINKING is deprecated. "
+    "Use CUDAQ_STATIC_CXX_RUNTIME and/or CUDAQ_STATIC_DEPS instead.")
+endif()
+option(CUDAQ_STATIC_CXX_RUNTIME "Statically link libstdc++ and libgcc into CUDA-Q libraries." OFF)
+option(CUDAQ_STATIC_DEPS "Prefer static archives for external dependencies (zlib, OpenSSL, curl, BLAS)." OFF)
 option (CUDAQ_FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." FALSE)
 if (${CUDAQ_FORCE_COLORED_OUTPUT})
     if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
@@ -208,23 +373,14 @@ endif()
 if(NOT LLVM_DIR AND EXISTS "$ENV{LLVM_INSTALL_PREFIX}/lib/cmake/llvm")
   SET(LLVM_DIR "$ENV{LLVM_INSTALL_PREFIX}/lib/cmake/llvm" CACHE PATH "Path to LLVM CMake config")
 endif()
-if(NOT BLAS_LIBRARIES AND EXISTS "$ENV{BLAS_INSTALL_PREFIX}/libblas.a")
-  # CACHE INTERNAL is needed due to how FindBLAS.cmake works...
-  SET(BLAS_LIBRARIES "$ENV{BLAS_INSTALL_PREFIX}/libblas.a" CACHE INTERNAL "")
-endif()
 if(NOT ZLIB_ROOT)
   SET(ZLIB_ROOT "$ENV{ZLIB_INSTALL_PREFIX}" CACHE PATH "Path to zlib installation")
 endif()
 if(NOT OPENSSL_ROOT_DIR)
   SET(OPENSSL_ROOT_DIR "$ENV{OPENSSL_INSTALL_PREFIX}" CACHE PATH "Path to OpenSSL installation")
 endif()
-if (NOT crypto_LIBRARY AND CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND EXISTS "$ENV{OPENSSL_INSTALL_PREFIX}/lib64/libcrypto.a")
-  SET(crypto_LIBRARY "$ENV{OPENSSL_INSTALL_PREFIX}/lib64/libcrypto.a" CACHE INTERNAL "")
-elseif(NOT crypto_LIBRARY AND NOT CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" AND EXISTS "$ENV{OPENSSL_INSTALL_PREFIX}/lib/libcrypto.a")
-  SET(crypto_LIBRARY "$ENV{OPENSSL_INSTALL_PREFIX}/lib/libcrypto.a" CACHE INTERNAL "")
-endif()
-if (NOT crypto_INCLUDE_DIR AND EXISTS "$ENV{OPENSSL_INSTALL_PREFIX}/include")
-  SET(crypto_INCLUDE_DIR "$ENV{OPENSSL_INSTALL_PREFIX}/include" CACHE INTERNAL "")
+if(DEFINED ENV{OPENSSL_INSTALL_PREFIX} AND NOT "$ENV{OPENSSL_INSTALL_PREFIX}" STREQUAL "")
+  list(APPEND CMAKE_PREFIX_PATH "$ENV{OPENSSL_INSTALL_PREFIX}")
 endif()
 if(NOT CURL_ROOT AND EXISTS "$ENV{CURL_INSTALL_PREFIX}/lib/cmake/CURL/CURLConfig.cmake")
   # Point to custom curl installation - CMake will use its config files
@@ -252,14 +408,6 @@ if(APPLE)
   SET(CMAKE_INSTALL_RPATH "@loader_path;@loader_path/lib;@loader_path/lib/plugins;@loader_path/../lib;@loader_path/../lib/plugins;@loader_path/../cudaq/mlir/_mlir_libs;@loader_path/../python/cudaq/mlir/_mlir_libs;@executable_path;@executable_path/lib;@executable_path/lib/plugins;@executable_path/../lib;@executable_path/../lib/plugins;@executable_path/../cudaq/mlir/_mlir_libs;@executable_path/../python/cudaq/mlir/_mlir_libs")
 else()
   SET(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/lib/plugins:$ORIGIN/../lib:$ORIGIN/../lib/plugins:$ORIGIN/../cudaq/mlir/_mlir_libs:$ORIGIN/../python/cudaq/mlir/_mlir_libs")
-endif()
-
-SET(BLA_STATIC ON)
-if(NOT DEFINED ZLIB_USE_STATIC_LIBS)
-  SET(ZLIB_USE_STATIC_LIBS TRUE)
-endif()
-if(NOT DEFINED OPENSSL_USE_STATIC_LIBS)
-  SET(OPENSSL_USE_STATIC_LIBS TRUE)
 endif()
 
 # Platform-specific linker flags
@@ -296,10 +444,7 @@ if(NOT DEFINED CUDAQ_SYSROOT_PATH AND APPLE)
   )
 endif()
 
-if(NOT DEFINED CUDAQ_ENABLE_STATIC_LINKING)
-  SET(CUDAQ_ENABLE_STATIC_LINKING $ENV{CUDAQ_ENABLE_STATIC_LINKING})
-endif()
-if (CUDAQ_ENABLE_STATIC_LINKING)
+if (CUDAQ_STATIC_CXX_RUNTIME)
   # Using -static-libgcc -static-libstdc++ offers more fine grained control here
   # then using -static (for exe) and -staic-pie (for linker).
   # At the time of writing, there wasn't any benefit to using those over -static.
@@ -318,14 +463,17 @@ if (CUDAQ_ENABLE_STATIC_LINKING)
   # to 1, to avoid some of these issues.
   # We don't set these configurations here, since the LLVM runtime libraries that we
   # build from source are already configured to hide symbols and include dependencies.
-  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
-  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
-  SET(OPENSSL_USE_STATIC_LIBS TRUE)
-  SET(ZLIB_USE_STATIC_LIBS TRUE)
-  set(CURL_STATICLIB ON)
-  message(STATUS "CUDA Quantum static linking enabled.")
-else()
-  message(STATUS "CUDA Quantum static linking disabled.")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
+  message(STATUS "Static C++ runtime linking enabled.")
+endif()
+
+if (CUDAQ_STATIC_DEPS)
+  set(BLA_STATIC ON)
+  set(ZLIB_USE_STATIC_LIBS TRUE)
+  set(OPENSSL_USE_STATIC_LIBS TRUE)
+  set(CURL_USE_STATIC_LIBS TRUE)
+  message(STATUS "Static external dependencies enabled.")
 endif()
 
 # ZLIB is required when we build LLVM with zlib support.
@@ -488,12 +636,12 @@ set(LLVM_LIT_ARGS "${LIT_ARGS_DEFAULT}" CACHE STRING "Default options for lit")
 message(STATUS "Build type is ${CMAKE_BUILD_TYPE}")
 
 set(CUDAQ_MAIN_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}) # --src-root
-set(CUDAQ_MAIN_INCLUDE_DIR ${CUDAQ_MAIN_SRC_DIR}/include)
+set(CUDAQ_MAIN_INCLUDE_DIR ${CUDAQ_MAIN_SRC_DIR}/cudaq/include)
 
 set(CUDAQ_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(CUDAQ_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(CUDAQ_CMAKE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-set(CUDAQ_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/include)
+set(CUDAQ_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/cudaq/include)
 set(CUDAQ_LIBRARY_DIR ${CMAKE_BINARY_DIR}/lib)
 set(CUDAQ_TOOLS_DIR ${CMAKE_BINARY_DIR}/bin)
 
@@ -510,8 +658,8 @@ endif()
 
 # Add CUDA Quantum files to the include path
 include_directories(BEFORE
-  ${CUDAQ_SOURCE_DIR}/include
-  ${CUDAQ_BINARY_DIR}/include)
+  ${CUDAQ_SOURCE_DIR}/cudaq/include
+  ${CUDAQ_BINARY_DIR}/cudaq/include)
 
 # Installing the headers and docs needs to depend on generating any public
 # tablegen'd targets.
@@ -544,7 +692,7 @@ configure_file("${CMAKE_SOURCE_DIR}/runtime/common/Version.cpp.in"
 # ==============================================================================
 
 find_package(OpenSSL)
-if (NOT CUDAQ_SKIP_MPI)
+if (NOT CUDAQ_SKIP_MPI AND "runtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
   find_package(MPI COMPONENTS CXX)
   if (MPI_FOUND)
     message(STATUS "MPI CXX Found: ${MPIEXEC}")
@@ -580,8 +728,6 @@ target_compile_options(spdlog PRIVATE -Wno-covered-switch-default)
 
 if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
   # Look for CURL
-  set(CURL_STATICLIB ON)
-  set(CURL_USE_STATIC_LIBS TRUE)
   find_package(CURL COMPONENTS HTTP HTTPS)
 
   if (CURL_FOUND)
@@ -669,6 +815,37 @@ if (CUDA_FOUND)
   find_package(cuDensityMat)
 endif()
 
+set(CUDAQ_REALTIME_DIR "" CACHE PATH
+    "Path to an installed cudaq-realtime prefix. Enables CUDA-Q realtime integration when set.")
+set(CUDAQ_ENABLE_REALTIME FALSE)
+if (CUDAQ_REALTIME_DIR)
+  if (NOT CUDA_FOUND)
+    message(FATAL_ERROR
+      "CUDAQ_REALTIME_DIR requires CUDA support, but CUDA was not found.")
+  endif()
+
+  find_package(cudaq-realtime CONFIG REQUIRED
+    PATHS "${CUDAQ_REALTIME_DIR}"
+    NO_DEFAULT_PATH)
+
+  if (NOT TARGET cudaq::cudaq-realtime)
+    message(FATAL_ERROR
+      "The realtime package at CUDAQ_REALTIME_DIR=${CUDAQ_REALTIME_DIR} "
+      "does not define target cudaq::cudaq-realtime.")
+  endif()
+  if (NOT TARGET cudaq::cudaq-realtime-dispatch)
+    message(FATAL_ERROR
+      "The realtime package at CUDAQ_REALTIME_DIR=${CUDAQ_REALTIME_DIR} "
+      "does not define target cudaq::cudaq-realtime-dispatch.")
+  endif()
+
+  set(CUDAQ_ENABLE_REALTIME TRUE)
+  message(STATUS "CUDA-Q realtime integration enabled from: ${CUDAQ_REALTIME_DIR}")
+else()
+  message(STATUS
+    "CUDA-Q realtime integration disabled. Set CUDAQ_REALTIME_DIR to an installed cudaq-realtime prefix to enable it.")
+endif()
+
 # Code coverage setup
 # ==============================================================================
 if(CUDAQ_ENABLE_CC)
@@ -683,19 +860,19 @@ endif(CUDAQ_ENABLE_CC)
 # ==============================================================================
 
 add_subdirectory(cmake)
-add_subdirectory(include)
-add_subdirectory(lib)
-if (NOT CUDAQ_DISABLE_RUNTIME)
+if("cudaq" IN_LIST CUDAQ_ENABLE_PROJECTS)
+  add_subdirectory(cudaq)
+endif()
+if("runtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
   add_subdirectory(runtime)
 endif()
-add_subdirectory(tools)
 add_subdirectory(utils)
 
 if(CUDAQ_BUILD_TESTS)
   enable_testing()
 endif()
 
-if (CUDAQ_ENABLE_PYTHON)
+if("python" IN_LIST CUDAQ_ENABLE_PROJECTS)
   find_package(Python 3 COMPONENTS Interpreter Development)
   find_package(Python3 COMPONENTS Interpreter Development)
 
@@ -703,6 +880,29 @@ if (CUDAQ_ENABLE_PYTHON)
 
   add_subdirectory(python)
 endif()
+
+# Add any external projects requested via CUDAQ_EXTERNAL_PROJECTS. Each entry's
+# source directory must be supplied through the per-project cache variable
+# `CUDAQ_EXTERNAL_<UPPER_NAME>_SOURCE_DIR`. The binary directory for each is
+# placed under `${CMAKE_BINARY_DIR}/external/<name>`.
+foreach(_cudaq_ext_proj IN LISTS CUDAQ_EXTERNAL_PROJECTS)
+  string(TOUPPER "${_cudaq_ext_proj}" _cudaq_ext_upper)
+  string(REGEX REPLACE "-" "_" _cudaq_ext_upper "${_cudaq_ext_upper}")
+  set(_cudaq_ext_src "${CUDAQ_EXTERNAL_${_cudaq_ext_upper}_SOURCE_DIR}")
+  if(NOT _cudaq_ext_src)
+    message(FATAL_ERROR
+      "CUDAQ_EXTERNAL_PROJECTS lists '${_cudaq_ext_proj}' but "
+      "CUDAQ_EXTERNAL_${_cudaq_ext_upper}_SOURCE_DIR is not set.")
+  endif()
+  if(NOT EXISTS "${_cudaq_ext_src}/CMakeLists.txt")
+    message(FATAL_ERROR
+      "External project '${_cudaq_ext_proj}' source dir '${_cudaq_ext_src}' "
+      "does not contain a CMakeLists.txt.")
+  endif()
+  message(STATUS "Adding external project '${_cudaq_ext_proj}' from ${_cudaq_ext_src}")
+  add_subdirectory("${_cudaq_ext_src}"
+                   "${CMAKE_BINARY_DIR}/external/${_cudaq_ext_proj}")
+endforeach()
 
 if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
   include(CheckCXXCompilerFlag)
@@ -735,7 +935,6 @@ if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
   endif()
   include(GoogleTest)
   include(CTest)
-  add_subdirectory(test)
   if (NOT CUDAQ_DISABLE_RUNTIME)
     add_subdirectory(targettests)
     add_subdirectory(unittests)

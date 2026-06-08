@@ -7,9 +7,6 @@
  ******************************************************************************/
 
 #include "cudaq.h"
-#include "cudaq/Support/Version.h"
-#include "cudaq/platform/orca/orca_qpu.h"
-#include "cudaq/runtime/logger/logger.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "runtime/common/py_AnalogHamiltonian.h"
 #include "runtime/common/py_CustomOpRegistry.h"
@@ -21,16 +18,19 @@
 #include "runtime/common/py_SampleResult.h"
 #include "runtime/cudaq/algorithms/py_draw.h"
 #include "runtime/cudaq/algorithms/py_evolve.h"
+#include "runtime/cudaq/algorithms/py_observe.h"
 #include "runtime/cudaq/algorithms/py_observe_async.h"
 #include "runtime/cudaq/algorithms/py_optimizer.h"
 #include "runtime/cudaq/algorithms/py_resource_count.h"
 #include "runtime/cudaq/algorithms/py_run.h"
+#include "runtime/cudaq/algorithms/py_sample.h"
 #include "runtime/cudaq/algorithms/py_sample_async.h"
 #include "runtime/cudaq/algorithms/py_sample_ptsbe.h"
 #include "runtime/cudaq/algorithms/py_state.h"
 #include "runtime/cudaq/algorithms/py_translate.h"
 #include "runtime/cudaq/algorithms/py_unitary.h"
 #include "runtime/cudaq/algorithms/py_utils.h"
+#include "runtime/cudaq/analysis/py_dem.h"
 #include "runtime/cudaq/operators/py_boson_op.h"
 #include "runtime/cudaq/operators/py_fermion_op.h"
 #include "runtime/cudaq/operators/py_handlers.h"
@@ -49,6 +49,9 @@
 #include "runtime/mlir/py_register_dialects.h"
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/OpaqueArguments.h"
+#include "cudaq/Support/Version.h"
+#include "cudaq/platform/orca/orca_qpu.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/CAPI/Pass.h"
 #include "mlir/Parser/Parser.h"
@@ -134,6 +137,9 @@ NB_MODULE(_quakeDialects, m) {
   bindPyRunAsync(cudaqRuntime);
   bindPyTranslate(cudaqRuntime);
   bindCountResources(cudaqRuntime);
+  bindDemFromKernel(cudaqRuntime);
+  bindPySample(cudaqRuntime);
+  bindPyObserve(cudaqRuntime);
   bindSampleAsync(cudaqRuntime);
   bindSamplePTSBE(cudaqRuntime);
   bindObserveAsync(cudaqRuntime);

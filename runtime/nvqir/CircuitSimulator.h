@@ -23,7 +23,9 @@
 #include <concepts>
 #include <cstdarg>
 #include <cstddef>
+#include <cstdint>
 #include <iostream>
+#include <limits>
 #include <queue>
 #include <sstream>
 #include <stdexcept>
@@ -169,6 +171,16 @@ public:
   /// https://arxiv.org/pdf/2407.13826.
   virtual void generateMSM() {}
 
+  /// @brief For simulators that support detector error model (DEM) analysis,
+  /// compute the DEM from the recorded circuit and return it as `.dem` text.
+  ///
+  /// `.dem` is the Detector Error Model text format defined by Stim; only the
+  /// `stim` backend currently implements this.
+  virtual std::string generateDem() {
+    throw std::runtime_error(
+        "Detector error model (DEM) analysis not supported.");
+  }
+
   /// @brief Apply exp(-i theta PauliTensorProd) to the underlying state.
   /// This must be provided by subclasses.
   virtual void applyExpPauli(double theta,
@@ -266,15 +278,20 @@ public:
       cudaq::policies::visitResult(
           [&]() { return finalize_simulation_circuit(*this, policy, ctx); },
           [&](cudaq::sample_result &&r) { ctx.result = std::move(r); },
+          [&](cudaq::observe_result &&r) {
+            ctx.result = r.raw_data();
+            ctx.expectationValue = r.expectation();
+          },
           [&](cudaq::policies::void_result &&r) {});
     });
   }
 
   virtual void finalizeExecutionContext(const cudaq::other_policies &policy,
                                         cudaq::ExecutionContext &ctx) {}
+  virtual cudaq::observe_result
+  finalizeExecutionContext(const cudaq::observe_policy &policy) = 0;
   virtual cudaq::sample_result
-  finalizeExecutionContext(const cudaq::sample_policy &policy,
-                           cudaq::ExecutionContext &ctx) = 0;
+  finalizeExecutionContext(const cudaq::sample_policy &policy) = 0;
 
   /// @brief Clean up after execution ends.
   virtual void endExecution() {}
@@ -283,6 +300,21 @@ public:
   /// handle <psi | H | psi> instead of NVQIR applying measure
   /// basis quantum gates to change to the Z basis and sample.
   virtual bool canHandleObserve() { return false; }
+
+  /// @brief Set the execution context
+  void configureExecutionContext(const cudaq::sample_policy &policy) {
+    noiseModel = policy.noiseModel;
+    currentCircuitName = policy.kernelName;
+    CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
+  }
+
+  /// @brief Set the execution context
+  void configureExecutionContext(const cudaq::observe_policy &policy) {
+    noiseModel = policy.noiseModel;
+    currentCircuitName = policy.kernelName;
+    policy.canHandleObserve = canHandleObserve();
+    CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
+  }
 
   /// @brief Set the execution context
   void configureExecutionContext(cudaq::ExecutionContext &context) {
@@ -433,6 +465,32 @@ public:
   sample(const std::vector<std::size_t> &qubitIdxs, const int shots,
          bool includeSequentialData = true) = 0;
 
+  /// @brief Return the chronological index of the most-recent `mz` performed
+  /// on this simulator. Called from `__quantum__qis__mz_handle__to__register`
+  /// to record the index portion of the `measure_handle` it returns so QEC
+  /// adapters can resolve handles back to measurement positions.
+  virtual std::int64_t getMeasureIndex() const {
+    return std::numeric_limits<std::int64_t>::max();
+  }
+
+  /// @brief Declare a `qec.detector` over one or more prior measurements,
+  /// addressed by measurement indices or identifiers assigned by this
+  /// simulator. Default no-op; QEC-capable backends override.
+  virtual void detector(const std::int64_t *indices, std::size_t count) {}
+
+  /// @brief Declare a `qec.logical_observable` over one or more prior
+  /// measurements, tagged with @p observable_index. Default no-op; QEC-capable
+  /// backends override.
+  virtual void logical_observable(const std::int64_t *indices,
+                                  std::size_t count,
+                                  std::size_t observable_index = 0) {}
+
+  /// @brief Declare N detectors element-wise over two parallel index arrays
+  /// (cross-round / pair detectors) of the same size. Default no-op;
+  /// QEC-capable backends override.
+  virtual void pair_detectors(const std::int64_t *prev,
+                              const std::int64_t *curr, std::size_t count) {}
+
   /// @brief Return the name of this CircuitSimulator
   virtual std::string name() const = 0;
 
@@ -554,6 +612,7 @@ protected:
     deallocateStateImpl();
     auto empty = std::queue<GateApplicationTask>{};
     std::swap(gateQueue, empty);
+    tracker.reset();
     nQubitsAllocated = 0;
     stateDimension = 0;
   }
@@ -820,6 +879,23 @@ protected:
                                  const std::vector<std::size_t> &controls,
                                  const std::vector<std::size_t> &targets,
                                  const std::vector<double> &params) {
+    // Do nothing if no execution context
+    if (!cudaq::getExecutionContext())
+      return;
+
+    // Do nothing if no noise model
+    auto noiseModel = getNoiseModel();
+    if (!noiseModel)
+      return;
+
+    // Get the Kraus channels specified for this gate and qubits
+    auto krausChannels = noiseModel->get_channels(std::string(gateName),
+                                                  targets, controls, params);
+
+    // If none, do nothing
+    if (krausChannels.empty())
+      return;
+
     CUDAQ_WARN("Applying noise is not supported on {} simulator.", name());
   }
 
@@ -987,21 +1063,44 @@ public:
 
 protected:
   /// @brief Reset the current execution context.
-  void finalizeExecutionContextImpl(cudaq::ExecutionContext &context) {
-    // Get the ExecutionContext name
-    auto execContextName = context.name;
-
+  void finalizeExecutionContextImpl() {
     // Flush the queue if there are any gates to apply
     flushGateQueue();
   }
 
+  cudaq::observe_result
+  finalizeExecutionContext(const cudaq::observe_policy &policy) override {
+    finalizeExecutionContextImpl();
+
+    std::vector<cudaq::ExecutionResult> results;
+    const cudaq::spin_op &H = policy.spin;
+    assert(cudaq::spin_op::canonicalize(H) == H);
+
+    if (policy.canHandleObserve) {
+      auto [exp, data] = measureSpinOp(H);
+      return cudaq::observe_result(exp, H, data);
+    }
+    double sum = 0.0;
+    for (const auto &term : H) {
+      if (term.is_identity())
+        sum += term.evaluate_coefficient().real();
+      else {
+        auto [exp, data] = measureSpinOp(term);
+        results.emplace_back(data.to_map(), term.get_term_id(), exp);
+        sum += term.evaluate_coefficient().real() * exp;
+      }
+    }
+
+    auto data = cudaq::sample_result(sum, results);
+    return cudaq::observe_result(sum, H, data);
+  }
+
   cudaq::sample_result
-  finalizeExecutionContext(const cudaq::sample_policy &policy,
-                           cudaq::ExecutionContext &context) override {
-    finalizeExecutionContextImpl(context);
+  finalizeExecutionContext(const cudaq::sample_policy &policy) override {
+    finalizeExecutionContextImpl();
 
     // Sample the state over the specified number of shots
-    if (sampleQubits.empty() && !context.explicitMeasurements) {
+    if (sampleQubits.empty() && !policy.options.explicit_measurements) {
       sampleQubits.resize(getNumQubits());
       if (sampleQubits.empty())
         throw std::runtime_error(
@@ -1041,9 +1140,9 @@ protected:
     // Reorder the global register (if necessary). This might be necessary if
     // the mapping pass had run and we want to undo the shuffle that occurred
     // during mapping.
-    if (!context.reorderIdx.empty()) {
-      internalResult.reorder(context.reorderIdx);
-      context.reorderIdx.clear();
+    if (!policy.reorderIdx.empty()) {
+      internalResult.reorder(policy.reorderIdx);
+      policy.reorderIdx.clear();
     }
 
     // Clear the sample bits for the next run
@@ -1059,7 +1158,7 @@ protected:
                                 cudaq::ExecutionContext &context) override {
     if (nQubitsAllocated == 0)
       return;
-    finalizeExecutionContextImpl(context);
+    finalizeExecutionContextImpl();
 
     // Set the state data if requested.
     if (context.name == "extract-state") {
@@ -1075,6 +1174,9 @@ protected:
     if (context.name == "msm") {
       generateMSM();
     }
+
+    if (context.name == "dem")
+      context.dem_text = generateDem();
   }
 
 public:
@@ -1449,9 +1551,8 @@ namespace cudaq {
 
 inline sample_result
 finalize_simulation_circuit_impl(nvqir::CircuitSimulator &sim,
-                                 const sample_policy &policy,
-                                 ExecutionContext &ctx) {
-  return sim.finalizeExecutionContext(policy, ctx);
+                                 const sample_policy &policy) {
+  return sim.finalizeExecutionContext(policy);
 }
 
 } // namespace cudaq

@@ -27,6 +27,21 @@ public:
   /// synchronous invocation.
   KernelThunkResultType unifiedLaunchModule(const AnyModule &module,
                                             KernelArgs args) override;
+
+  sample_result launchKernel(const sample_policy &policy,
+                             const AnyModule &module, KernelArgs args) override;
+
+  async_sample_result launchKernel(const async_sample_policy &policy,
+                                   const AnyModule &module,
+                                   KernelArgs args) override;
+
+  observe_result launchKernel(const observe_policy &policy,
+                              const AnyModule &module,
+                              KernelArgs args) override;
+
+  async_observe_result launchKernel(async_observe_policy &policy,
+                                    const AnyModule &module,
+                                    KernelArgs args) override;
 };
 
 } // namespace cudaq

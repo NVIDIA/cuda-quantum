@@ -26,16 +26,14 @@ def reset_run_clear():
 
 
 def test_host_construction_raises_runtime_error():
-    with pytest.raises(
-            RuntimeError,
-            match=r"^device-only; usable only inside @cudaq\.kernel$"):
+    with pytest.raises(RuntimeError,
+                       match="can be used only in CUDA-Q kernels"):
         cudaq.measure_handle()
 
 
 def test_host_to_bools_raises_runtime_error():
-    with pytest.raises(
-            RuntimeError,
-            match=r"^device-only; usable only inside @cudaq\.kernel$"):
+    with pytest.raises(RuntimeError,
+                       match="can be used only in CUDA-Q kernels"):
         cudaq.to_bools([])
 
 
@@ -278,6 +276,17 @@ def test_boundary_handle_in_callable_parameter_is_admissible():
     k.compile()
 
 
+def test_boundary_handle_vector_via_alias_is_rejected():
+    import cudaq as cq
+
+    @cq.kernel
+    def k(hs: list[cq.measure_handle]):
+        pass
+
+    with pytest.raises(RuntimeError, match=re.escape(_BOUNDARY_DIAG)):
+        k.compile()
+
+
 def test_boundary_make_kernel_handle_arg_is_rejected():
     # `cudaq.make_kernel(...)` constructs an entry-point FuncOp directly
     # without going through the AST-bridge boundary check. The boundary rule
@@ -328,6 +337,85 @@ def test_int_handle_in_arithmetic_promotes_through_bool():
     results = cudaq.run(k, shots_count=1)
     assert len(results) == 1
     assert results[0] == 2
+
+
+def test_handle_vector_issue_4527():
+
+    @cudaq.kernel
+    def k() -> int:
+        qv = cudaq.qvector(2)
+        combined = [cudaq.measure_handle() for _ in range(2)]
+        x(qv[0])
+        h0 = mz(qv[0])
+        h1 = mz(qv[1])
+        combined[0] = h0
+        combined[1] = h1
+        first = cudaq.to_integer(cudaq.to_bools(combined))
+        x(qv[0])
+        h2 = mz(qv[0])
+        h3 = mz(qv[1])
+        combined[0] = h2
+        combined[1] = h3
+        second = cudaq.to_integer(cudaq.to_bools(combined))
+        return first * 16 + second
+
+    results = cudaq.run(k, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 16
+
+
+# ---------------------------------------------------------------------------
+# Cross-scope reassignment of a `list[measure_handle]`.
+# ---------------------------------------------------------------------------
+
+
+def test_handle_vector_cross_round_reassignment_in_loop():
+
+    @cudaq.kernel
+    def k() -> list[bool]:
+        qv = cudaq.qvector(3)
+        x(qv)
+        mvec = mz(qv)
+        for _ in range(2):
+            m_new = mz(qv)
+            mvec = m_new
+        return mvec
+
+    results = cudaq.run(k, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == [True, True, True]
+
+
+def test_handle_vector_reassignment_in_conditional():
+
+    @cudaq.kernel
+    def k() -> list[bool]:
+        qv = cudaq.qvector(2)
+        mvec = mz(qv)
+        if True:
+            x(qv)
+            mvec = mz(qv)
+        return mvec
+
+    results = cudaq.run(k, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == [True, True]
+
+
+def test_discriminated_bool_cross_scope_reassignment():
+
+    @cudaq.kernel
+    def k() -> bool:
+        qs = cudaq.qvector(2)
+        b = bool(mz(qs[0]))
+        if True:
+            x(qs[1])
+            b = bool(mz(qs[1]))
+        return b
+
+    results = cudaq.run(k, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == True
 
 
 # leave for gdb debugging

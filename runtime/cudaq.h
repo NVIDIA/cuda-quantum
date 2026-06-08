@@ -12,24 +12,27 @@
 #include "common/NoiseModel.h"
 #include "cudaq/host_config.h"
 #include "cudaq/qis/qubit_qis.h"
+// Realtime declarations are always present; calls warn when realtime support is
+// disabled at build time.
+#include "cudaq/realtime.h"
 #include <string>
 #include <tuple>
 #include <type_traits>
 
 namespace cudaq {
-namespace details {
+namespace detail {
 // Test std::tuple layout.
 constexpr bool isTupleRecursivelyDefined() {
   std::tuple<double, int, char> t;
   return static_cast<void *>(&std::get<double>(t)) != static_cast<void *>(&t);
 }
 [[maybe_unused]] static bool TupleIsReverse = isTupleRecursivelyDefined();
-} // namespace details
+} // namespace detail
 
-namespace __internal__ {
+namespace detail {
 std::string demangle_kernel(const char *);
 extern bool globalFalse;
-} // namespace __internal__
+} // namespace detail
 
 // Simple test to see if the QuantumKernel template
 // type is a `cudaq::builder` with `operator()(Args...)`
@@ -46,7 +49,7 @@ struct hasCallMethod<
     T, typename std::void_t<decltype(std::declval<T>().operator())>>
     : std::true_type {};
 
-namespace internal {
+namespace detail {
 /// @brief Define some template types to inspect
 /// the argument structure of the input QuantumKernel type
 template <typename T>
@@ -80,21 +83,21 @@ std::string expand_parameter_pack() {
   return (get_kernel_name_from_type<Arg>() + ... +
           get_kernel_name_from_type<Args>());
 }
-} // namespace internal
+} // namespace detail
 
 /// The typical case. The kernel is a C++ callable class, QuantumKernel. Use
 /// this when the kernel is a template class, lambda, or plain old class.
 template <typename QuantumKernel>
 std::string get_kernel_name() {
-  return internal::get_kernel_name_from_type<QuantumKernel>();
+  return detail::get_kernel_name_from_type<QuantumKernel>();
 }
 
 /// Get the name of the kernel when the kernel has a template `operator()`
 /// function. The resolved template arguments must be provided as `Args`.
 template <typename QuantumKernel, typename... Args>
 std::string get_kernel_template_member_name() {
-  return "instance_" + internal::get_kernel_name_from_type<QuantumKernel>() +
-         internal::expand_parameter_pack<Args...>();
+  return "instance_" + detail::get_kernel_name_from_type<QuantumKernel>() +
+         detail::expand_parameter_pack<Args...>();
 }
 
 inline std::string get_kernel_function_name(const std::string &name) {
@@ -105,13 +108,13 @@ inline std::string get_kernel_function_name(const std::string &name) {
 /// quantum kernel. The template arguments must be supplied as `Args`.
 template <typename... Args>
 std::string get_kernel_template_function_name(std::string &&funcName) {
-  std::string name = internal::expand_parameter_pack<Args...>();
+  std::string name = detail::expand_parameter_pack<Args...>();
   return "instance_function_" + std::move(funcName) + name;
 }
 
 template <typename... Args>
 std::string get_kernel_template_function_name(const std::string &funcName) {
-  std::string name = internal::expand_parameter_pack<Args...>();
+  std::string name = detail::expand_parameter_pack<Args...>();
   return "instance_function_" + funcName + name;
 }
 
@@ -122,8 +125,8 @@ template <typename MemberArg0, typename... MemberArgs, typename QuantumKernel,
                            bool> = true>
 std::string get_quake(QuantumKernel &&kernel) {
   // See comment below.
-  if (__internal__::globalFalse) {
-    using ArgsTuple = typename internal::KernelCallArgs<
+  if (detail::globalFalse) {
+    using ArgsTuple = typename detail::KernelCallArgs<
         decltype(&std::remove_reference_t<QuantumKernel>::template
                  operator()<MemberArg0, MemberArgs...>)>::ArgsTuple;
     ArgsTuple args;
@@ -146,8 +149,8 @@ std::string get_quake(QuantumKernel &&kernel) {
     // template class instantiation. The globalFalse flag, ensures this code
     // does not execute. However the compiler will respect the template
     // specialization and not optimize it away.
-    if (__internal__::globalFalse) {
-      using ArgsTuple = typename internal::KernelCallArgs<
+    if (detail::globalFalse) {
+      using ArgsTuple = typename detail::KernelCallArgs<
           decltype(&std::remove_reference_t<QuantumKernel>::operator())>::
           ArgsTuple;
       ArgsTuple args;

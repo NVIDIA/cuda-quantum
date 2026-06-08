@@ -9,6 +9,7 @@
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 #include "cudaq/realtime/daemon/dispatcher/host_dispatcher.h"
 
+#include <cstring>
 #include <cuda/std/atomic>
 
 using atomic_uint64_sys = cuda::std::atomic<uint64_t>;
@@ -111,6 +112,39 @@ static void finish_slot_and_advance(const cudaq_host_dispatch_loop_ctx_t *ctx,
     as_atomic_u64(ctx->live_dispatched)
         ->fetch_add(1, cuda::std::memory_order_relaxed);
   current_slot = (current_slot + 1) % num_slots;
+}
+
+// CUDAQ_DISPATCH_HOST_CALL handler: synchronous pure-C++ dispatch.  No GPU
+// graph worker is acquired (HOST_CALL bypasses the worker pool entirely).
+// Semantics match the user-facing `cudaq_host_rpc_fn_t(void *slot, size_t)`
+// ABI: the host_fn reads RPCHeader+args from `slot`, writes RPCResponse+
+// result back into the same slot.  Since our dispatcher uses separate
+// RX/TX rings (host-loop bridge requirement), we first memcpy the RX slot
+// into the TX slot so the in-place rewrite produces the response in the
+// TX ring where the consumer (e.g. CpuRoceTransceiver TX thread or
+// Hololink TX kernel) expects it.
+static void handle_host_call(const cudaq_host_dispatch_loop_ctx_t *ctx,
+                             const cudaq_function_entry_t *entry,
+                             void *slot_host, size_t current_slot) {
+  if (!entry || !entry->handler.host_fn)
+    return;
+  const size_t rx_stride = ctx->ringbuffer.rx_stride_sz;
+  const size_t tx_stride = ctx->ringbuffer.tx_stride_sz;
+  // Use the smaller of the two strides as the safe copy size; in practice
+  // RX and TX strides are equal (the bridge configures both from the same
+  // slot_size), so this is just defensive against a future asymmetric
+  // configuration.
+  const size_t copy_bytes = rx_stride < tx_stride ? rx_stride : tx_stride;
+  uint8_t *tx_slot = ctx->ringbuffer.tx_data_host + current_slot * tx_stride;
+  std::memcpy(tx_slot, slot_host, copy_bytes);
+  entry->handler.host_fn(tx_slot, tx_stride);
+  // Publish: writing the slot's address to tx_flag signals "fresh data" to
+  // the consumer.  No in-flight sentinel needed because this entire path
+  // is synchronous from the consumer's POV (the store happens after the
+  // host_fn has already filled tx_slot).
+  as_atomic_u64(ctx->ringbuffer.tx_flags_host)[current_slot].store(
+      reinterpret_cast<uint64_t>(tx_slot),
+      cuda::std::memory_order_release);
 }
 
 static int acquire_graph_worker(const cudaq_host_dispatch_loop_ctx_t *ctx,
@@ -286,6 +320,17 @@ cudaq_host_dispatcher_loop(const cudaq_host_dispatch_loop_ctx_t *ctx) {
       entry = parsed.entry;
     }
 
+    // Mode dispatch.  HOST_CALL is handled synchronously inline (no graph
+    // worker pool).  DEVICE_CALL slots are dropped on the host loop (the
+    // header comment in cudaq_realtime.h documents this — device calls
+    // belong on the GPU dispatch path).  GRAPH_LAUNCH falls through to the
+    // worker-pool path below.
+    if (entry && entry->dispatch_mode == CUDAQ_DISPATCH_HOST_CALL) {
+      handle_host_call(ctx, entry, slot_host, current_slot);
+      finish_slot_and_advance(ctx, current_slot, num_slots,
+                              packets_dispatched);
+      continue;
+    }
     if (entry && entry->dispatch_mode != CUDAQ_DISPATCH_GRAPH_LAUNCH) {
       if (ctx->config.shared_ring_mode) {
         // Entry is in our table but is not a GRAPH_LAUNCH (e.g. a DEVICE_CALL

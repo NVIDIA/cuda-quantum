@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import Iterator, overload
 
-_KERNEL_ONLY_ERROR_MESSAGE = "Type '{}' can only be used within a CUDA-Q kernel."
+_KERNEL_ONLY_ERROR_MESSAGE = "'{}' can be used only in CUDA-Q kernels"
 
 
 class KernelTypeError(RuntimeError):
@@ -48,11 +48,9 @@ class measure_handle(KernelType):
     ``list[measure_handle]``.
 
     Instantiating ``cudaq.measure_handle()`` at host scope raises
-    ``RuntimeError`` (it is device-only).
+    ``KernelTypeError`` (a ``RuntimeError`` subclass) since it is
+    device-only.
     """
-
-    def __new__(cls, *args, **kwargs):
-        raise RuntimeError("device-only; usable only inside @cudaq.kernel")
 
     def __init__(self) -> None:
         ...

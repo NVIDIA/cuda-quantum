@@ -7,11 +7,11 @@
  ******************************************************************************/
 
 #include "cudaq.h"
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/algorithm.h"
-#include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -92,28 +92,26 @@ LogicalResult lowerToLLVMDialect(ModuleOp module) {
 cudaq::sample_result sampleJitCode(ExecutionEngine *jit,
                                    const std::string &kernelName) {
   auto &p = cudaq::get_platform();
-  return cudaq::details::runSampling(
-             [&]() {
-               auto err = jit->invokePacked(cudaq::runtime::cudaqGenPrefixName +
-                                            kernelName);
-               ASSERT_TRUE(!err);
-             },
-             p, kernelName, 1000, /*explicitMeasurements=*/false)
-      .value();
+  return cudaq::detail::runSampling(
+      [&]() {
+        auto err =
+            jit->invokePacked(cudaq::runtime::cudaqGenPrefixName + kernelName);
+        ASSERT_TRUE(!err);
+      },
+      p, kernelName, 1000, /*explicitMeasurements=*/false);
 }
 
 /// @brief Run observation on the JIT compiled kernel function
 cudaq::observe_result observeJitCode(ExecutionEngine *jit, cudaq::spin_op &h,
                                      const std::string &kernelName) {
   auto &p = cudaq::get_platform();
-  return cudaq::details::runObservation(
-             [&]() {
-               auto err = jit->invokePacked(cudaq::runtime::cudaqGenPrefixName +
-                                            kernelName);
-               ASSERT_TRUE(!err);
-             },
-             h, p, /*shots=*/-1, "")
-      .value();
+  return cudaq::detail::runObservation(
+      [&]() {
+        auto err =
+            jit->invokePacked(cudaq::runtime::cudaqGenPrefixName + kernelName);
+        ASSERT_TRUE(!err);
+      },
+      h, p, /*shots=*/-1, "");
 }
 
 TEST(QuakeSynthTests, checkSimpleIntegerInput) {

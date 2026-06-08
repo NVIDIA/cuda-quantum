@@ -10,10 +10,10 @@
 
 #include "common/DeviceCodeRegistry.h"
 #include "common/ExecutionContext.h"
-#include "cudaq/concepts.h"
 #include "qkernel.h"
+#include "cudaq/concepts.h"
 
-namespace cudaq::details {
+namespace cudaq::detail {
 
 #ifdef CUDAQ_LIBRARY_MODE
 template <typename QuantumKernel>
@@ -44,19 +44,19 @@ template <typename QuantumKernel>
 std::string getKernelName(QuantumKernel &&kernel) {
   if constexpr (has_name<QuantumKernel>::value) {
     // kernel_builder kernel: need to JIT code to get it registered.
-    static_cast<cudaq::details::kernel_builder_base &>(kernel).jitCode();
+    static_cast<cudaq::detail::kernel_builder_base &>(kernel).jitCode();
     return kernel.name();
   } else {
     // R (S::operator())(Args..) or R(*)(Args...) kernels are registered
     // and made linkable in GenDeviceCodeLoader pass.
     auto qKernel =
-        cudaq::details::createQKernel(std::forward<QuantumKernel>(kernel));
+        cudaq::detail::createQKernel(std::forward<QuantumKernel>(kernel));
     auto key = cudaq::registry::__cudaq_getLinkableKernelKey(&qKernel);
     auto name = cudaq::registry::getLinkableKernelNameOrNull(key);
     if (!name)
-      return __internal__::demangle_kernel(typeid(kernel).name());
+      return detail::demangle_kernel(typeid(kernel).name());
     return name;
   }
 }
 
-} // namespace cudaq::details
+} // namespace cudaq::detail

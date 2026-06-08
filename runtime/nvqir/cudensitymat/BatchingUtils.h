@@ -12,7 +12,7 @@
 
 namespace cudaq {
 
-namespace __internal__ {
+namespace detail {
 // Helper to determine if the list of operators can be batched together
 // for evolution.
 bool checkBatchingCompatibility(
@@ -24,5 +24,5 @@ bool checkBatchingCompatibility(
 bool checkBatchingCompatibility(const std::vector<super_op> &listSuperOp);
 bool checkBatchingCompatibility(
     const std::vector<cudaq::matrix_handler> &elemOps);
-} // namespace __internal__
+} // namespace detail
 } // namespace cudaq
