@@ -36,11 +36,11 @@ target-arguments:
     type: string
     platform-arg: executor
     help-string: "Specify the executor to run. Default is mock"
-  - key: disable-qubit-mapping
+  - key: qubit_mapping_mode
     required: false
-    platform-arg: qubit-mapping-mode
+    platform-arg: qubit_mapping_mode
     type: string
-    help-string: "'local-file': manually edited file located at <>, 'local-get-latest': use the local SABRE mapping algorithm, get the latest qpu config from the backend, 'backend': assign qubits in the backend, as part of the compilation process. Default is 'local-get-latest'."
+    help-string: "'local_file': manually edited file located at <>, 'local_get_latest': use the local SABRE mapping algorithm, get the latest qpu config from the backend, 'backend': assign qubits in the backend, as part of the compilation process. Default is 'local_get_latest'."
   - key: api_key
     required: false
     type: string

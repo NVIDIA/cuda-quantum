@@ -63,8 +63,8 @@ public:
         getValueOrDefault(config, "version", DEFAULT_VERSION);
     backendConfig["executor"] =
         getValueOrDefault(config, "executor", DEFAULT_EXECUTOR);
-    backendConfig["qubit-mapping-mode"] =
-        getValueOrDefault(config, "qubit-mapping-mode", "local-get-latest");
+    backendConfig["qubit_mapping_mode"] =
+        getValueOrDefault(config, "qubit_mapping_mode", "local_get_latest");
     // Check for API key in config, then fall back to environment variable
     std::string apiKey = getValueOrDefault(config, "api_key", "");
     if (apiKey.empty()) {
@@ -119,7 +119,7 @@ public:
     job["source"] = "quake";
     job["shots"] = shots;
     job["executor"] = backendConfig["executor"];
-    job["qubit_mapping_mode"] = backendConfig["qubit-mapping-mode"];
+    job["qubit_mapping_mode"] = backendConfig["qubit_mapping_mode"];
     job["output_format"] = isRunRequest ? "qir-raw" : "histogram";
     RestHeaders headers = getHeaders();
     std::string path = backendConfig["url"] + "/v1/execute";
@@ -167,7 +167,7 @@ public:
   cudaq::sample_result processResults(ServerMessage &getJobResponse,
                                       std::string &jobId) override {
     CUDAQ_INFO("Sample results: {}", getJobResponse.dump());
-    auto samplesJson = getJobResponse["samples"];
+    auto samplesJson = getJobResponse["results"];
     cudaq::CountsDictionary counts;
     for (auto &item : samplesJson.items()) {
       std::string bitstring = item.key();
@@ -199,16 +199,17 @@ public:
   void updatePassPipeline(
     const std::filesystem::path &platformPath, std::string &passPipeline) override {
       CUDAQ_INFO("updatePassPipeline: platformPath: {}, passPipeline: {}", platformPath.string(), passPipeline);
-      std::string mappingMode = backendConfig["qubit-mapping-mode"];
+      std::string mappingMode = backendConfig["qubit_mapping_mode"];
       if (mappingMode == "backend") {
         // If mapping is done on the backend, we have to remove the SABRE mapping pass from the pipeline, and we don't need to provide a qpu config file for the mapping pass.
-        passPipeline = std::regex_replace(passPipeline, std::regex(",qubit-mapping{device=file(%QPU_ARCH%)"), "");
+        //passPipeline = std::regex_replace(passPipeline, std::regex(",qubit-mapping\\\\{device=file(%QPU_ARCH%)\\\\}"), "");
+        passPipeline = "decomposition{enable-patterns=CHToCX,RzAdjToRz,CCZToCX,CR1ToCX,SwapToCX,CRxToCX,CRyToCX,CRzToCX},quake-to-cc-prep,func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements)";
         CUDAQ_INFO("After removing mapping pass, updated pass pipeline: {}", passPipeline);
         return;
       }
       std::filesystem::path qpuConfigPath = platformPath / "mapping/quantum_machines" / "latest_qpu_config.txt";
       std::string machineconfigFilePath = qpuConfigPath.string();
-      if (mappingMode == "local-get-latest") {
+      if (mappingMode == "local_get_latest") {
         // If mapping is done locally with the latest qpu config from the backend, we need to get the latest qpu config file from the backend and provide that to the mapping pass.
         // Get the latest qpu config file from the backend and set quantumArchitectureFilePath to its path
         try {
@@ -230,8 +231,8 @@ public:
                                     std::string(e.what()));
           }
       } 
-      else if (mappingMode != "local-file") {
-        throw std::runtime_error("qubit-mapping-mode: " + mappingMode + " is not supported. Supported modes are 'local-file', 'local-get-latest', and 'backend'.");
+      else if (mappingMode != "local_file") {
+        throw std::runtime_error("qubit_mapping_mode: " + mappingMode + " is not supported. Supported modes are 'local-file', 'local-get-latest', and 'backend'.");
       }
       passPipeline =
           std::regex_replace(passPipeline, std::regex("%QPU_ARCH%"), machineconfigFilePath);
