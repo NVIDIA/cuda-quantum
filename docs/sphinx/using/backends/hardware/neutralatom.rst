@@ -305,7 +305,7 @@ The job submission process is the same as for the ``pasqal`` target.
 
 .. code:: bash
 
-    export SLURM_JOB_QPU_RESOURCES=EMU_FREE
+    export QRMI_JOB_QPU_RESOURCES=EMU_FREE
 
 .. tab:: Python
 

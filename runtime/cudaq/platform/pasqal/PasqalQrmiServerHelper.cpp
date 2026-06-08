@@ -19,19 +19,17 @@ namespace cudaq {
 
 PasqalQrmiServerHelper::ModeConfig PasqalQrmiServerHelper::resolveConfig() {
   ModeConfig modeConfig;
-  // QRMI mode currently always runs under Slurm, and SLURM_JOB_QPU_RESOURCES is
-  // present. Backend name is taken only from that environment variable.
-  if (auto *slurmResources = std::getenv("SLURM_JOB_QPU_RESOURCES")) {
-    std::string resources = slurmResources;
-    auto firstComma = resources.find(',');
-    modeConfig.backendName = resources.substr(0, firstComma);
-    if (modeConfig.backendName.empty())
-      throw std::runtime_error("Pasqal QRMI mode requires a backend name, but "
-                               "SLURM_JOB_QPU_RESOURCES is empty.");
-  } else {
+  auto resources = qrmi::splitList(
+      qrmi::jobEnv("QRMI_JOB_QPU_RESOURCES", "SLURM_JOB_QPU_RESOURCES"));
+  if (resources.empty()) {
     throw std::runtime_error(
-        "Pasqal QRMI mode requires SLURM_JOB_QPU_RESOURCES.");
+        "Pasqal QRMI mode requires QRMI_JOB_QPU_RESOURCES or legacy "
+        "SLURM_JOB_QPU_RESOURCES.");
   }
+  modeConfig.backendName = resources.front();
+  if (modeConfig.backendName.empty())
+    throw std::runtime_error("Pasqal QRMI mode requires a backend name, but "
+                             "QRMI_JOB_QPU_RESOURCES is empty.");
 
   return modeConfig;
 }

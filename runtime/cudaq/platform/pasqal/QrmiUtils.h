@@ -50,19 +50,33 @@ inline void ensureSuccess(QrmiReturnCode rc, std::string_view context) {
     throw std::runtime_error(std::string(context) + ": " + lastError());
 }
 
-inline std::vector<std::string> splitCsv(const char *value) {
+inline std::string listDelimiter() {
+  auto *delimiter = std::getenv("QRMI_LIST_DELIMITER");
+  if (delimiter && delimiter[0] != '\0')
+    return delimiter;
+  return ",";
+}
+
+inline const char *jobEnv(const char *name, const char *legacyName) {
+  if (auto *value = std::getenv(name))
+    return value;
+  return std::getenv(legacyName);
+}
+
+inline std::vector<std::string> splitList(const char *value) {
   if (!value)
     return {};
   std::vector<std::string> out;
   std::string csv(value);
+  auto delimiter = listDelimiter();
   std::size_t begin = 0;
   while (begin <= csv.size()) {
-    auto end = csv.find(',', begin);
+    auto end = csv.find(delimiter, begin);
     out.push_back(
         csv.substr(begin, end == std::string::npos ? end : end - begin));
     if (end == std::string::npos)
       break;
-    begin = end + 1;
+    begin = end + delimiter.size();
   }
   return out;
 }
@@ -74,21 +88,24 @@ inline QrmiResourceType parseResourceType(const std::string &resourceType) {
     return QRMI_RESOURCE_TYPE_PASQAL_LOCAL;
 
   throw std::runtime_error("Unsupported QRMI resource type '" + resourceType +
-                           "' in SLURM_JOB_QPU_TYPES. Supported values are "
+                           "' in QRMI_JOB_QPU_TYPES. Supported values are "
                            "pasqal-cloud and pasqal-local.");
 }
 
 inline QrmiResourceType resolveResourceType(const std::string &backendName) {
-  auto resources = splitCsv(std::getenv("SLURM_JOB_QPU_RESOURCES"));
+  auto resources =
+      splitList(jobEnv("QRMI_JOB_QPU_RESOURCES", "SLURM_JOB_QPU_RESOURCES"));
   if (resources.empty()) {
     throw std::runtime_error(
-        "QRMI mode requires SLURM_JOB_QPU_RESOURCES to resolve backend type.");
+        "QRMI mode requires QRMI_JOB_QPU_RESOURCES or legacy "
+        "SLURM_JOB_QPU_RESOURCES to resolve backend type.");
   }
 
-  auto types = splitCsv(std::getenv("SLURM_JOB_QPU_TYPES"));
+  auto types = splitList(jobEnv("QRMI_JOB_QPU_TYPES", "SLURM_JOB_QPU_TYPES"));
   if (types.empty()) {
     throw std::runtime_error(
-        "QRMI mode requires SLURM_JOB_QPU_TYPES to resolve backend type.");
+        "QRMI mode requires QRMI_JOB_QPU_TYPES or legacy SLURM_JOB_QPU_TYPES "
+        "to resolve backend type.");
   }
 
   for (std::size_t idx = 0; idx < resources.size(); ++idx) {
@@ -96,14 +113,14 @@ inline QrmiResourceType resolveResourceType(const std::string &backendName) {
       if (idx >= types.size()) {
         throw std::runtime_error("QRMI backend '" + backendName +
                                  "' has no matching entry in "
-                                 "SLURM_JOB_QPU_TYPES.");
+                                 "QRMI_JOB_QPU_TYPES.");
       }
       return parseResourceType(types[idx]);
     }
   }
 
   throw std::runtime_error("QRMI backend '" + backendName +
-                           "' is not present in SLURM_JOB_QPU_RESOURCES.");
+                           "' is not present in QRMI_JOB_QPU_RESOURCES.");
 }
 
 inline bool taskInProgress(QrmiTaskStatus status);
@@ -124,6 +141,8 @@ public:
     ensureSuccess(qrmi_resource_acquire(resource_.get(), &acquisitionTokenRaw),
                   "qrmi_resource_acquire()");
     acquisitionToken_.reset(acquisitionTokenRaw);
+    acquisitionTokenEnvName_ = backendName_ + "_QRMI_JOB_ACQUISITION_TOKEN";
+    setenv(acquisitionTokenEnvName_.c_str(), acquisitionToken_.get(), 1);
   }
 
   ResourceSession(const ResourceSession &) = delete;
@@ -135,8 +154,10 @@ public:
     if (!resource_ || !acquisitionToken_)
       return;
     auto rc = qrmi_resource_release(resource_.get(), acquisitionToken_.get());
-    if (rc == QRMI_RETURN_CODE_SUCCESS)
+    if (rc == QRMI_RETURN_CODE_SUCCESS) {
+      unsetenv(acquisitionTokenEnvName_.c_str());
       acquisitionToken_.reset();
+    }
   }
 
   std::string startTask(QrmiPayload &payload) {
@@ -214,6 +235,7 @@ public:
 
 private:
   std::string backendName_;
+  std::string acquisitionTokenEnvName_;
   ResourcePtr resource_;
   StringPtr acquisitionToken_;
 };
