@@ -106,13 +106,12 @@ cudaq::observe_result observeJitCode(ExecutionEngine *jit, cudaq::spin_op &h,
                                      const std::string &kernelName) {
   auto &p = cudaq::get_platform();
   return cudaq::detail::runObservation(
-             [&]() {
-               auto err = jit->invokePacked(cudaq::runtime::cudaqGenPrefixName +
-                                            kernelName);
-               ASSERT_TRUE(!err);
-             },
-             h, p, /*shots=*/-1, "")
-      .value();
+      [&]() {
+        auto err =
+            jit->invokePacked(cudaq::runtime::cudaqGenPrefixName + kernelName);
+        ASSERT_TRUE(!err);
+      },
+      h, p, /*shots=*/-1, "");
 }
 
 TEST(QuakeSynthTests, checkSimpleIntegerInput) {
