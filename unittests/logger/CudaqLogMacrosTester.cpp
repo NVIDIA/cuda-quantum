@@ -40,15 +40,15 @@ template <typename Fn>
 std::string captureLogStdout(Fn fn) {
   testing::internal::CaptureStdout();
   fn();
-  cudaq::details::flushLogs();
+  cudaq::detail::flushLogs();
   return stripAnsi(testing::internal::GetCapturedStdout());
 }
 
 class LogMacrosTest : public ::testing::Test {
 protected:
-  void SetUp() override { saved = cudaq::details::getLogLevel(); }
-  void TearDown() override { cudaq::details::setLogLevel(saved); }
-  cudaq::details::LogLevel saved = cudaq::details::LogLevel::warn;
+  void SetUp() override { saved = cudaq::detail::getLogLevel(); }
+  void TearDown() override { cudaq::detail::setLogLevel(saved); }
+  cudaq::detail::LogLevel saved = cudaq::detail::LogLevel::warn;
 };
 
 } // namespace
@@ -58,25 +58,25 @@ protected:
 // ---------------------------------------------------------------------------
 
 TEST_F(LogMacrosTest, InfoEmitsWhenInfoEnabled) {
-  cudaq::details::setLogLevel(cudaq::details::LogLevel::info);
+  cudaq::detail::setLogLevel(cudaq::detail::LogLevel::info);
   const std::string out = captureLogStdout([] { CUDAQ_INFO("hello info"); });
   EXPECT_NE(out.find("hello info"), std::string::npos) << out;
 }
 
 TEST_F(LogMacrosTest, InfoSuppressedWhenWarnEnabled) {
-  cudaq::details::setLogLevel(cudaq::details::LogLevel::warn);
+  cudaq::detail::setLogLevel(cudaq::detail::LogLevel::warn);
   const std::string out = captureLogStdout([] { CUDAQ_INFO("hello info"); });
   EXPECT_EQ(out.find("hello info"), std::string::npos) << out;
 }
 
 TEST_F(LogMacrosTest, WarnEmitsWhenWarnEnabled) {
-  cudaq::details::setLogLevel(cudaq::details::LogLevel::warn);
+  cudaq::detail::setLogLevel(cudaq::detail::LogLevel::warn);
   const std::string out = captureLogStdout([] { CUDAQ_WARN("hello warn"); });
   EXPECT_NE(out.find("hello warn"), std::string::npos) << out;
 }
 
 TEST_F(LogMacrosTest, WarnSuppressedWhenErrorEnabled) {
-  cudaq::details::setLogLevel(cudaq::details::LogLevel::error);
+  cudaq::detail::setLogLevel(cudaq::detail::LogLevel::error);
   const std::string out = captureLogStdout([] { CUDAQ_WARN("hello warn"); });
   EXPECT_EQ(out.find("hello warn"), std::string::npos) << out;
 }
@@ -86,13 +86,13 @@ TEST_F(LogMacrosTest, WarnSuppressedWhenErrorEnabled) {
 // ---------------------------------------------------------------------------
 
 TEST_F(LogMacrosTest, InfoIncludesFileBasename) {
-  cudaq::details::setLogLevel(cudaq::details::LogLevel::info);
+  cudaq::detail::setLogLevel(cudaq::detail::LogLevel::info);
   const std::string out = captureLogStdout([] { CUDAQ_INFO("with location"); });
   EXPECT_NE(out.find("CudaqLogMacrosTester.cpp:"), std::string::npos) << out;
 }
 
 TEST_F(LogMacrosTest, InfoIncludesLineNumber) {
-  cudaq::details::setLogLevel(cudaq::details::LogLevel::info);
+  cudaq::detail::setLogLevel(cudaq::detail::LogLevel::info);
   const int expectedLine = __LINE__ + 1;
   const std::string out = captureLogStdout([] { CUDAQ_INFO("with location"); });
   const std::string needle = ":" + std::to_string(expectedLine) + "]";
@@ -104,13 +104,13 @@ TEST_F(LogMacrosTest, InfoIncludesLineNumber) {
 // ---------------------------------------------------------------------------
 
 TEST_F(LogMacrosTest, InfoFormatsSingleArg) {
-  cudaq::details::setLogLevel(cudaq::details::LogLevel::info);
+  cudaq::detail::setLogLevel(cudaq::detail::LogLevel::info);
   const std::string out = captureLogStdout([] { CUDAQ_INFO("x={}", 42); });
   EXPECT_NE(out.find("x=42"), std::string::npos) << out;
 }
 
 TEST_F(LogMacrosTest, InfoFormatsMixedArgs) {
-  cudaq::details::setLogLevel(cudaq::details::LogLevel::info);
+  cudaq::detail::setLogLevel(cudaq::detail::LogLevel::info);
   const std::string out = captureLogStdout(
       [] { CUDAQ_INFO("{} - {} - {}", 1, std::string{"two"}, 3.5); });
   EXPECT_NE(out.find("1 - two - 3.5"), std::string::npos) << out;
@@ -121,17 +121,17 @@ TEST_F(LogMacrosTest, InfoFormatsMixedArgs) {
 // ---------------------------------------------------------------------------
 
 TEST_F(LogMacrosTest, ErrorThrowsRuntimeError) {
-  cudaq::details::setLogLevel(cudaq::details::LogLevel::error);
+  cudaq::detail::setLogLevel(cudaq::detail::LogLevel::error);
   // Capture stdout to swallow the error log line so it doesn't pollute the
   // test output.
   testing::internal::CaptureStdout();
   EXPECT_THROW(CUDAQ_ERROR("oops"), std::runtime_error);
-  cudaq::details::flushLogs();
+  cudaq::detail::flushLogs();
   (void)testing::internal::GetCapturedStdout();
 }
 
 TEST_F(LogMacrosTest, ErrorWhatMatchesMessage) {
-  cudaq::details::setLogLevel(cudaq::details::LogLevel::error);
+  cudaq::detail::setLogLevel(cudaq::detail::LogLevel::error);
   testing::internal::CaptureStdout();
   try {
     CUDAQ_ERROR("specific text");
@@ -139,19 +139,19 @@ TEST_F(LogMacrosTest, ErrorWhatMatchesMessage) {
   } catch (const std::runtime_error &e) {
     EXPECT_STREQ(e.what(), "specific text");
   }
-  cudaq::details::flushLogs();
+  cudaq::detail::flushLogs();
   (void)testing::internal::GetCapturedStdout();
 }
 
 TEST_F(LogMacrosTest, ErrorLogsAtErrorLevel) {
-  cudaq::details::setLogLevel(cudaq::details::LogLevel::error);
+  cudaq::detail::setLogLevel(cudaq::detail::LogLevel::error);
   testing::internal::CaptureStdout();
   try {
     CUDAQ_ERROR("boom");
   } catch (const std::runtime_error &) {
     // expected; we're after the side-effect log line
   }
-  cudaq::details::flushLogs();
+  cudaq::detail::flushLogs();
   const std::string out = stripAnsi(testing::internal::GetCapturedStdout());
   EXPECT_NE(out.find("boom"), std::string::npos) << out;
 }
@@ -161,7 +161,7 @@ TEST_F(LogMacrosTest, ErrorLogsAtErrorLevel) {
 // ---------------------------------------------------------------------------
 
 TEST_F(LogMacrosTest, InfoArgsNotEvaluatedWhenSuppressed) {
-  cudaq::details::setLogLevel(cudaq::details::LogLevel::warn);
+  cudaq::detail::setLogLevel(cudaq::detail::LogLevel::warn);
   int counter = 0;
   CUDAQ_INFO("{}", [&counter] {
     ++counter;
@@ -171,14 +171,14 @@ TEST_F(LogMacrosTest, InfoArgsNotEvaluatedWhenSuppressed) {
 }
 
 TEST_F(LogMacrosTest, InfoArgsEvaluatedWhenEnabled) {
-  cudaq::details::setLogLevel(cudaq::details::LogLevel::info);
+  cudaq::detail::setLogLevel(cudaq::detail::LogLevel::info);
   int counter = 0;
   testing::internal::CaptureStdout();
   CUDAQ_INFO("{}", [&counter] {
     ++counter;
     return 1;
   }());
-  cudaq::details::flushLogs();
+  cudaq::detail::flushLogs();
   (void)testing::internal::GetCapturedStdout();
   EXPECT_EQ(counter, 1);
 }
@@ -189,7 +189,7 @@ TEST_F(LogMacrosTest, InfoArgsEvaluatedWhenEnabled) {
 
 #ifndef CUDAQ_DEBUG
 TEST_F(LogMacrosTest, DbgIsNoopWhenDebugUndefined) {
-  cudaq::details::setLogLevel(cudaq::details::LogLevel::trace);
+  cudaq::detail::setLogLevel(cudaq::detail::LogLevel::trace);
   int counter = 0;
   CUDAQ_DBG("{}", [&counter] {
     ++counter;

@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "qpu.h"
+#include "algorithms/sample/policy.h"
 #include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
 #include "common/KernelArgs.h"
@@ -15,7 +16,6 @@
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "mlir/IR/BuiltinOps.h"
 #include <cstring>
 #include <stdexcept>
 
@@ -45,11 +45,36 @@ cudaq::QPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
   return runJITCompiledModule(compiled, args);
 }
 
+sample_result cudaq::QPU::launchKernel(sample_policy &policy,
+                                       const AnyModule &module,
+                                       KernelArgs args) {
+  throw std::runtime_error(
+      "This QPU does not support launching the sample_policy.");
+}
+
+async_sample_result cudaq::QPU::launchKernel(async_sample_policy &policy,
+                                             const AnyModule &module,
+                                             KernelArgs args) {
+  throw std::runtime_error(
+      "This QPU does not support launching the async_sample_policy.");
+}
+
 cudaq::KernelThunkResultType
 cudaq::QPU::runJITCompiledModule(const CompiledModule &compiled,
                                  KernelArgs args) {
   ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::runJITCompiledModule",
                          compiled.getName());
+
+  // Propagate metadata from the compiled artifact to the execution context.
+  if (auto ctx = getExecutionContext()) {
+    ctx->hasConditionalsOnMeasureResults =
+        compiled.getMetadata().hasConditionalsOnMeasureResults;
+
+    if (ctx->name == "resource-count" && compiled.getResources()) {
+      nvqir::resource_counter::prepopulate(*compiled.getResources());
+    }
+  }
+
   auto rawArgs = args.getTypeErased().value_or(std::span<void *const>{});
   auto funcPtr = compiled.getJit()->getFn();
   const auto &resultInfo = compiled.getResultInfo();
@@ -80,6 +105,28 @@ cudaq::QPU::runJITCompiledModule(const CompiledModule &compiled,
   // Fully specialized, no result.
   funcPtr();
   return {nullptr, 0};
+}
+
+cudaq::CompiledModule cudaq::QPU::compileModule(sample_policy &,
+                                                const SourceModule &src,
+                                                KernelArgs args,
+                                                bool isEntryPoint) {
+  return compileModule(src, args, isEntryPoint);
+}
+
+std::unique_ptr<cudaq::CompileTarget>
+cudaq::QPU::getCompileTarget(ExecutionContext *context) {
+  auto launcher = registry::get<ModuleLauncher>("default");
+  if (!launcher)
+    throw std::runtime_error(
+        "No ModuleLauncher registered with name 'default'. This may be a "
+        "result of attempting to use `compileModule` outside Python.");
+  return launcher->getCompileTarget(context);
+}
+std::unique_ptr<cudaq::CompileTarget>
+cudaq::QPU::getCompileTarget(sample_policy &) {
+  throw std::runtime_error(
+      "no CompileTarget defined for sample_policy this QPU");
 }
 
 cudaq::CompiledModule cudaq::QPU::compileModule(const SourceModule &src,

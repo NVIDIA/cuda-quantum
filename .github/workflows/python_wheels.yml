@@ -315,11 +315,8 @@ jobs:
               exit 1
             fi
 
-      # TODO: enable
-      # if: matrix.os_image == 'redhat/ubi9:9.2'
-      # once conda license issues are resolved
       - name: Run Python MPI tests
-        if: false
+        if: matrix.os_image == 'redhat/ubi9:9.6'
         uses: ./.github/actions/run-in-docker
         with:
           image: wheel_validation:local
@@ -341,6 +338,18 @@ jobs:
             ~/miniconda3/bin/conda init bash
             source ~/.bashrc
 
+            # conda-libmamba-solver 26.4.0 enables sharded repodata by default,
+            # and its threaded shard cache races on its sqlite store, failing the
+            # `conda install` of mpi4py/openmpi below with
+            # "sqlite3.OperationalError: database is locked". Disable sharding so
+            # conda uses classic repodata.json (slower, but reliable in CI).
+            export CONDA_PLUGINS_USE_SHARDED_REPODATA=0
+
+            # Accept Anaconda's non-interactive ToS for the default channels;
+            # `conda create -n cudaq-env python=...` below hits pkgs/main.
+            conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+            conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+
             # Extract the setup script from Python wheel's readme
             cudaq_wheel=/tmp/cuda_quantum_cu*-manylinux_*_$(uname -m).whl
             wheelname=${cudaq_wheel##*/} && archive_name=${wheelname%.*}.zip 
@@ -349,18 +358,40 @@ jobs:
             unzip $tmploc/$archive_name -d $tmploc/cudaq_wheel && rm -rf $tmploc/$archive_name
             metadata=$tmploc/cudaq_wheel/*.dist-info/METADATA
 
+            # Resolve README template placeholders that pyproject.toml leaves
+            # unsubstituted (readme points at README.md.in). Without this the
+            # eval below would hit bash "bad substitution" on un-substituted
+            # README placeholders.
+            cuda_version_conda="${{ inputs.cuda_version }}.0"
+            cuda_version_conda="${cuda_version_conda/13.0.0/13.0.2}"
+            sub_placeholders() {
+              sed -E -e "s/\\\$\\{\\{[[:space:]]*cuda_version_conda[[:space:]]*\\}\\}/${cuda_version_conda}/g" \
+                     -e "s/\\\$\\{\\{[[:space:]]*package_name[[:space:]]*\\}\\}/cuda-quantum-cu${cuda_major}/g"
+            }
+
             # Parse README content to install openmpi
-            conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' $metadata | grep . | sed '/^```/d')" 
+            conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' $metadata | grep . | sed '/^```/d' | sub_placeholders)"
             while IFS= read -r line; do
               # Replace Python version
               line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\1${{ inputs.python_version }}/g")
               # Install the wheel file
               line=${line//pip install cuda-quantum-cu${cuda_major}/pip install ${cudaq_wheel}}
-              eval "$line"
+              echo "+ $line"
+              # Fail loudly on the failing command. Without this a failed
+              # `conda install` is swallowed and only surfaces ~60 lines later
+              # as a misleading "mpirun: command not found".
+              if ! eval "$line"; then
+                echo "::error file=python_wheel.yml::conda install step failed: $line"
+                exit 1
+              fi
             done <<< "$conda_script"
-            ompi_script="$(awk '/(Begin ompi setup)/{flag=1;next}/(End ompi setup)/{flag=0}flag' $metadata | grep . | sed '/^```/d')" 
+            ompi_script="$(awk '/(Begin ompi setup)/{flag=1;next}/(End ompi setup)/{flag=0}flag' $metadata | grep . | sed '/^```/d')"
             while IFS= read -r line; do
-                eval "$line"
+                echo "+ $line"
+                if ! eval "$line"; then
+                  echo "::error file=python_wheel.yml::ompi setup step failed: $line"
+                  exit 1
+                fi
             done <<< "$ompi_script"
 
             # Run the MPI test

@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // RUN: nvq++ %s -o %t --target quantinuum --emulate && %t 2>&1 | FileCheck %s
-// RUN: nvq++ %s -o %t --target oqc --emulate && %t 2>&1 | FileCheck %s
+// RUN: if %oqc_avail; then nvq++ %s -o %t --target oqc --emulate && %t 2>&1 | FileCheck %s; fi
 
 #include <cudaq.h>
 #include <iostream>

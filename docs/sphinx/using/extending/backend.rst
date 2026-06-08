@@ -229,9 +229,7 @@ Create a ``YAML`` configuration file for your target:
       # Tell the rest-qpu that we are generating QIR base profile.
       # As of the time of this writing, qasm2, qir-base and qir-adaptive are supported.
       codegen-emission: qir-base
-      # Library mode is only for simulators, physical backends must turn this off
-      library-mode: false
-    
+
     # Some examples of target arguments are shown below.
     # You do not need to add any arguments for your backend if you do not need them.
     target-arguments:

@@ -46,12 +46,20 @@ declare_mlir_dialect_python_bindings(
     dialects/cc.py
   DIALECT_NAME cc)
 
+declare_mlir_dialect_python_bindings(
+  ADD_TO_PARENT CUDAQuantumPythonSources
+  ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../cudaq/mlir"
+  TD_FILE dialects/QECOps.td
+  SOURCES
+    dialects/qec.py
+  DIALECT_NAME qec)
+
 if(APPLE)
   set(_quakeDialects_mlir_runtime_sources "")
   set(_quakeDialects_extra_link_libs
     cudaq-mlir-runtime
     MLIRPass
-    CUDAQTargetConfigUtil
+    CUDAQTargetConfig
     cudaq-python-interop
     cudaq-platform-default
   )
@@ -72,7 +80,7 @@ else()
     OptCodeGen
     OptTransforms
     MLIRPass
-    CUDAQTargetConfigUtil
+    CUDAQTargetConfig
     cudaq-python-interop
     cudaq-platform-default
     cudaq-qir-verifier
@@ -96,9 +104,11 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/algorithms/py_evolve.cpp
     ../runtime/cudaq/algorithms/py_observe_async.cpp
     ../runtime/cudaq/algorithms/py_optimizer.cpp
+    ../runtime/cudaq/algorithms/py_sample.cpp
     ../runtime/cudaq/algorithms/py_sample_async.cpp
     ../runtime/cudaq/algorithms/py_sample_ptsbe.cpp
     ../runtime/cudaq/algorithms/py_resource_count.cpp
+    ../runtime/cudaq/analysis/py_dem.cpp
     ../runtime/cudaq/algorithms/py_run.cpp
     ../../runtime/cudaq/algorithms/run.cpp      # Common Python and C++ implementation of run
     ../runtime/cudaq/algorithms/py_state.cpp

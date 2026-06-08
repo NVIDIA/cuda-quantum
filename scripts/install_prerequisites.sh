@@ -29,9 +29,8 @@
 # library is not found in the location defined by the corresponding environment variable
 # *_INSTALL_PREFIX, it will be built from source and installed in that location.
 # If the LLVM libraries are built from source, the environment variable LLVM_PROJECTS
-# can be used to customize which projects are built, and pybind11 will be built and 
-# installed in the location defined by PYBIND11_INSTALL_PREFIX if necessary.
-# The cuQuantum and cuTensor libraries are only installed if a suitable CUDA compiler 
+# can be used to customize which projects are built.
+# The cuQuantum and cuTensor libraries are only installed if a suitable CUDA compiler
 # is installed. 
 # 
 # By default, all prerequisites outlined above are installed even if the
@@ -59,11 +58,11 @@ BLAS_TARBALL_URL="http://www.netlib.org/blas/blas-${BLAS_VERSION}.tgz"
 PERL_VERSION=5.38.2
 PERL_TARBALL_URL="https://www.cpan.org/src/5.0/perl-${PERL_VERSION}.tar.gz"
 
-OPENSSL_VERSION=3.5.1
+OPENSSL_VERSION=3.6.2
 OPENSSL_TARBALL_URL="https://www.openssl.org/source/openssl-${OPENSSL_VERSION}.tar.gz"
 
-CURL_VERSION=8.5.0
-CURL_VERSION_UNDERSCORE=curl-8_5_0
+CURL_VERSION=8.20.0
+CURL_VERSION_UNDERSCORE=curl-8_20_0
 CURL_TARBALL_URL="https://github.com/curl/curl/releases/download/${CURL_VERSION_UNDERSCORE}/curl-${CURL_VERSION}.tar.gz"
 CACERT_URL="https://curl.se/ca/cacert.pem"
 CACERT_SHA256_URL="${CACERT_URL}.sha256"
@@ -377,7 +376,6 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
     echo "Installing LLVM libraries..."
     LLVM_INSTALL_PREFIX="$LLVM_INSTALL_PREFIX" \
     LLVM_PROJECTS="$LLVM_PROJECTS" \
-    PYBIND11_INSTALL_PREFIX="$PYBIND11_INSTALL_PREFIX" \
     NANOBIND_INSTALL_PREFIX="$NANOBIND_INSTALL_PREFIX" \
     Python3_EXECUTABLE="$Python3_EXECUTABLE" \
     bash "$this_file_dir/build_llvm.sh" -v

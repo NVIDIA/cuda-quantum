@@ -8,16 +8,18 @@
 
 #pragma once
 
-#include "cudaq/Optimizer/Builder/Factory.h"
-#include "cudaq/algorithms/run.h"
+#include "common/CompiledModule.h"
 #include "utils/OpaqueArguments.h"
 #include "utils/PyTypes.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
+#include "cudaq/algorithms/run.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/complex.h>
 #include <nanobind/stl/function.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -49,13 +51,15 @@ void bindAltLaunchKernel(nanobind::module_ &mod,
 /// type is obtained from the kernel's FuncOp. \p module must be modifiable.
 nanobind::object marshal_and_launch_module(const std::string &kernelName,
                                            MlirModule module,
-                                           nanobind::args runtimeArgs);
+                                           nanobind::args runtimeArgs,
+                                           CompiledModule *compiled = nullptr);
 
 /// Pure C++ code that launches a kernel. Argument marshaling and result
 /// unmarshalling is \e not performed.
 KernelThunkResultType clean_launch_module(const std::string &kernelName,
                                           mlir::ModuleOp mod,
-                                          OpaqueArguments &args);
+                                          OpaqueArguments &args,
+                                          CompiledModule *compiled = nullptr);
 
 /// Marshal python arguments into an OpaqueArguments for kernel launch.
 /// Encodes arguments in the runtime ABI layout for direct local simulation,

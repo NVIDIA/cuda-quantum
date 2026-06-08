@@ -21,17 +21,16 @@ void SpdlogTraceBackend::onBegin(const TraceEvent &) {}
 
 void SpdlogTraceBackend::onEnd(const TraceEvent &e, uint64_t durUs) {
   const bool tagFound = (e.tag != 0) && cudaq::isTimingTagEnabled(e.tag);
-  if (!tagFound && !details::should_log(details::LogLevel::trace))
+  if (!tagFound && !detail::should_log(detail::LogLevel::trace))
     return;
 
   double duration = static_cast<double>(durUs) / 1000.0;
   std::string tagStr = tagFound ? cudaq_fmt::format("[tag={}] ", e.tag) : "";
   std::string sourceInfo =
-      e.ctx.fileName
-          ? cudaq_fmt::format("[{}:{}] ",
-                              details::pathToFileName(e.ctx.fileName),
-                              e.ctx.lineNo)
-          : "";
+      e.ctx.fileName ? cudaq_fmt::format("[{}:{}] ",
+                                         detail::pathToFileName(e.ctx.fileName),
+                                         e.ctx.lineNo)
+                     : "";
   auto str = cudaq_fmt::format(
       "{}{}{}{} executed in {} ms.{}",
       e.depth > 0 ? std::string(e.depth, '-') + " " : "", tagStr, sourceInfo,
@@ -39,7 +38,7 @@ void SpdlogTraceBackend::onEnd(const TraceEvent &e, uint64_t durUs) {
   if (tagFound)
     cudaq::log(str);
   else
-    details::trace(str);
+    detail::trace(str);
 }
 
 } // namespace cudaq

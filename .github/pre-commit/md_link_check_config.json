@@ -16,6 +16,12 @@
           "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
           "Accept-Language": "en-US,en;q=0.9"
         }
+      },
+      {
+        "urls": ["https://www.mpich.org/"],
+        "headers": {
+          "User-Agent": "curl/8.0"
+        }
       }
     ],
     "ignorePatterns": [
@@ -24,6 +30,10 @@
       },
       {
         "pattern": "^https://gcc.gnu.org/"
+      },
+      {
+        "_comment": "Cloudflare blocks programmatic clients (TLS fingerprint, not UA); no header workaround possible. Verified with curl + lychee + markdown-link-check across multiple UAs.",
+        "pattern": "^https://en\\.cppreference\\.com/"
       },
       {
         "pattern": "^https://epubs.siam.org/doi/10.1137/S0097539796300921"

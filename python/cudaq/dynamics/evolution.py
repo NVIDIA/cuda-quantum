@@ -45,12 +45,40 @@ def _taylor_series_expm(op_matrix: NDArray[numpy.complexfloating],
     return result
 
 
+def _validate_system_dimensions(dimensions: Mapping[int, int]):
+    actual_degrees = set(dimensions.keys())
+    expected_degrees = set(range(len(dimensions)))
+    if actual_degrees != expected_degrees:
+        raise ValueError(
+            "`dimensions` must define contiguous degrees starting at 0.")
+
+
+def _validate_operator_degrees(operator: Operator, dimensions: Mapping[int,
+                                                                       int]):
+    operator_degrees = set(operator.degrees)
+    missing_degrees = operator_degrees - set(dimensions.keys())
+    if missing_degrees:
+        raise ValueError(
+            f"operator degrees {sorted(missing_degrees)} are not present in the provided dimensions"
+        )
+
+
+def _canonicalize_operator_to_dimensions(
+        operator: Operator, dimensions: Mapping[int, int]) -> Operator:
+    _validate_operator_degrees(operator, dimensions)
+    system_operator = operator.copy()
+    system_operator.canonicalize(set(dimensions.keys()))
+    return system_operator
+
+
 def _compute_step_matrix(hamiltonian: Operator,
                          dimensions: Mapping[int, int],
                          parameters: Mapping[str, NumericType],
                          dt: float,
                          use_gpu: bool = False) -> NDArray[complexfloating]:
-    op_matrix = hamiltonian.to_matrix(dimensions, **parameters)
+    op_matrix = hamiltonian.to_matrix(dimensions,
+                                      invert_order=True,
+                                      **parameters)
     op_matrix = -1j * op_matrix * dt
 
     if use_gpu:
@@ -68,7 +96,7 @@ def _add_noise_channel_for_step(step_kernel_name: str,
                                 parameters: Mapping[str,
                                                     NumericType], dt: float):
     for collapse_op in collapse_operators:
-        L = collapse_op.to_matrix(dimensions, **parameters)
+        L = collapse_op.to_matrix(dimensions, invert_order=True, **parameters)
         G = -0.5 * numpy.dot(L.conj().T, L)
         M0 = G * dt + numpy.eye(2**len(dimensions))
         M1 = numpy.sqrt(dt) * L
@@ -237,7 +265,15 @@ def evolve_single(
             "collapse operators can only be defined when using the dynamics or density-matrix-cpu target"
         )
 
-    num_qubits = len(hamiltonian.degrees)
+    _validate_system_dimensions(dimensions)
+    num_qubits = len(dimensions)
+    hamiltonian = _canonicalize_operator_to_dimensions(hamiltonian, dimensions)
+    collapse_operators = [
+        _canonicalize_operator_to_dimensions(op, dimensions)
+        for op in collapse_operators
+    ]
+    for observable in observables:
+        _validate_operator_degrees(observable, dimensions)
     parameters = [mapping for mapping in schedule]
     schedule.reset()
     tlist = [schedule.current_step for _ in schedule]
@@ -527,7 +563,15 @@ def evolve_single_async(
         raise ValueError(
             "collapse operators can only be defined when using the dynamics or density-matrix-cpu target"
         )
-    num_qubits = len(hamiltonian.degrees)
+    _validate_system_dimensions(dimensions)
+    num_qubits = len(dimensions)
+    hamiltonian = _canonicalize_operator_to_dimensions(hamiltonian, dimensions)
+    collapse_operators = [
+        _canonicalize_operator_to_dimensions(op, dimensions)
+        for op in collapse_operators
+    ]
+    for observable in observables:
+        _validate_operator_degrees(observable, dimensions)
     parameters = [mapping for mapping in schedule]
     schedule.reset()
     tlist = [schedule.current_step for _ in schedule]

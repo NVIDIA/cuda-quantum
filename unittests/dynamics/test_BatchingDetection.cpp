@@ -25,7 +25,7 @@ TEST(BatchingDetectionTester, checkPositive) {
                 (2 * M_PI * 0.5 *
                  (cudaq::boson_op::annihilate(0) * cudaq::boson_op::create(1) +
                   cudaq::boson_op::create(0) * cudaq::boson_op::annihilate(1)));
-    EXPECT_TRUE(cudaq::__internal__::checkBatchingCompatibility({ham1, ham2}));
+    EXPECT_TRUE(cudaq::detail::checkBatchingCompatibility({ham1, ham2}));
   }
   {
     // swapping the order of the terms should not matter
@@ -41,7 +41,7 @@ TEST(BatchingDetectionTester, checkPositive) {
           cudaq::boson_op::create(0) * cudaq::boson_op::annihilate(1))) +
         (2 * M_PI * cudaq::matrix_op::number(1)) +
         (2 * M_PI * cudaq::matrix_op::number(0));
-    EXPECT_TRUE(cudaq::__internal__::checkBatchingCompatibility({ham1, ham2}));
+    EXPECT_TRUE(cudaq::detail::checkBatchingCompatibility({ham1, ham2}));
   }
   {
     // Different operators (on same degree of freedom) should not matter
@@ -56,7 +56,7 @@ TEST(BatchingDetectionTester, checkPositive) {
                 (2 * M_PI * 0.5 *
                  (cudaq::spin::x(0) * cudaq::boson_op::create(1) +
                   cudaq::spin::z(0) * cudaq::boson_op::annihilate(1)));
-    EXPECT_TRUE(cudaq::__internal__::checkBatchingCompatibility({ham1, ham2}));
+    EXPECT_TRUE(cudaq::detail::checkBatchingCompatibility({ham1, ham2}));
   }
 
   {
@@ -82,7 +82,7 @@ TEST(BatchingDetectionTester, checkPositive) {
                 (mod_func *
                  (cudaq::boson_op::annihilate(0) * cudaq::boson_op::create(1) +
                   cudaq::boson_op::create(0) * cudaq::boson_op::annihilate(1)));
-    EXPECT_TRUE(cudaq::__internal__::checkBatchingCompatibility({ham1, ham2}));
+    EXPECT_TRUE(cudaq::detail::checkBatchingCompatibility({ham1, ham2}));
   }
 
   {
@@ -125,7 +125,7 @@ TEST(BatchingDetectionTester, checkPositive) {
                 (2 * M_PI * 0.5 *
                  (cudaq::boson_op::annihilate(0) * displacement(1) +
                   displacement(0) * cudaq::boson_op::annihilate(1)));
-    EXPECT_TRUE(cudaq::__internal__::checkBatchingCompatibility({ham1, ham2}));
+    EXPECT_TRUE(cudaq::detail::checkBatchingCompatibility({ham1, ham2}));
   }
 }
 
@@ -135,7 +135,7 @@ TEST(BatchingDetectionTester, checkNegative) {
     cudaq::sum_op<cudaq::matrix_handler> ham1(2 * M_PI * cudaq::spin_op::x(0));
     cudaq::sum_op<cudaq::matrix_handler> ham2(2 * M_PI * cudaq::spin_op::x(0) +
                                               2 * M_PI * cudaq::spin_op::y(0));
-    EXPECT_FALSE(cudaq::__internal__::checkBatchingCompatibility({ham1, ham2}));
+    EXPECT_FALSE(cudaq::detail::checkBatchingCompatibility({ham1, ham2}));
   }
   {
     // Term acts on different degrees of freedom
@@ -151,7 +151,7 @@ TEST(BatchingDetectionTester, checkNegative) {
                 (2 * M_PI * 0.5 *
                  (cudaq::boson_op::annihilate(0) * cudaq::boson_op::create(2) +
                   cudaq::boson_op::create(0) * cudaq::boson_op::annihilate(2)));
-    EXPECT_FALSE(cudaq::__internal__::checkBatchingCompatibility({ham1, ham2}));
+    EXPECT_FALSE(cudaq::detail::checkBatchingCompatibility({ham1, ham2}));
   }
   {
     // Same degrees, but not compatible (2-body op vs multiplication of 1-body
@@ -175,6 +175,6 @@ TEST(BatchingDetectionTester, checkNegative) {
     cudaq::sum_op<cudaq::matrix_handler> ham1(cudaq::spin::x(0) *
                                               cudaq::spin::z(1));
     cudaq::sum_op<cudaq::matrix_handler> ham2(two_body_op({0, 1}));
-    EXPECT_FALSE(cudaq::__internal__::checkBatchingCompatibility({ham1, ham2}));
+    EXPECT_FALSE(cudaq::detail::checkBatchingCompatibility({ham1, ham2}));
   }
 }

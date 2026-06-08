@@ -13,6 +13,8 @@
 #include <gtest/gtest.h>
 
 #include "CUDAQTestUtils.h"
+#include "common/ServerHelper.h"
+#include "nlohmann/json.hpp"
 #include "cudaq/algorithm.h"
 
 CUDAQ_TEST(IQMTester, executeOneMeasuredQubitProgram) {
@@ -69,6 +71,51 @@ CUDAQ_TEST(IQMTester, executeMultipleMeasuredQubitsProgram) {
   auto counts = cudaq::sample(kernel);
   EXPECT_GE(counts.size(), 2);
   EXPECT_LE(counts.size(), 4);
+}
+
+// Regression test for https://github.com/NVIDIA/cuda-quantum/issues/4621
+// The IQM server returns counts ordered by physical qubit. When the
+// qubit-mapping pass picks a non-identity virtual->physical placement, the
+// helper must permute the bitstring back to the user's virtual qubit
+// allocation order. That permutation is communicated to the server helper
+// through `reorderIdx.<jobId>` entries in the backend config, which
+// `parseConfigForCommonParams` parses into `ServerHelper::reorderIdx`. If
+// `initialize()` forgets to call that, the helper returns physical-ordered
+// bitstrings (the bug).
+CUDAQ_TEST(IQMTester, processResultsAppliesReorderIdxFromConfig) {
+  auto serverHelper = cudaq::registry::get<cudaq::ServerHelper>("iqm");
+  ASSERT_TRUE(serverHelper);
+
+  const std::string jobId = "test-job-id";
+  // sample_result::reorder semantics: newBits[i] = oldBits[idx[i]].
+  // With idx = [1, 2, 0] and physical bitstring "100", the reordered
+  // (virtual-order) bitstring is "001".
+  cudaq::BackendConfig config;
+  config["url"] = "http://localhost:62443";
+  config["reorderIdx." + jobId] = "[1, 2, 0]";
+  serverHelper->initialize(config);
+
+  cudaq::ServerMessage response = {
+      {"status", "ready"},
+      {"counts_batch",
+       cudaq::ServerMessage::array(
+           {{{"counts", {{"100", 1000}}}, {"measurement_keys", {"m_0"}}}})}};
+
+  std::string jobIdCopy = jobId;
+  auto result = serverHelper->processResults(response, jobIdCopy);
+
+  // After reordering, the dominant bitstring must be "001".
+  std::string mostFrequent;
+  std::size_t bestCount = 0;
+  for (auto &[bits, n] : result.to_map()) {
+    if (n > bestCount) {
+      bestCount = n;
+      mostFrequent = bits;
+    }
+  }
+  EXPECT_EQ(mostFrequent, "001")
+      << "IQMServerHelper did not apply reorderIdx from backend config "
+      << "(see GitHub issue #4621). Got \"" << mostFrequent << "\".";
 }
 
 // Setting an arbitrary string in the IQM_TOKEN environment variable must
