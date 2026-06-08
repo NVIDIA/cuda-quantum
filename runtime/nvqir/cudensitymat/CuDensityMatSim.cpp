@@ -10,6 +10,7 @@
 #include "CuDensityMatContext.h"
 #include "CuDensityMatErrorHandling.h"
 #include "CuDensityMatState.h"
+#include "ObserveResult.h"
 #include "common/FmtCore.h"
 #include "cudaq/cudaq_mpi.h"
 #include "cudaq/distributed/mpi_plugin.h"
@@ -151,10 +152,16 @@ protected:
   }
 
   cudaq::sample_result
-  finalizeExecutionContext(const cudaq::sample_policy &policy,
+  finalizeExecutionContext(const cudaq::sample_policy &policy) override {
+    throw std::runtime_error(fmt::format(
+        "[dynamics target] {} policy is not supported.", policy.name));
+  }
+
+  cudaq::observe_result
+  finalizeExecutionContext(const cudaq::observe_policy &policy,
                            cudaq::ExecutionContext &ctx) override {
-    finalizeExecutionContextImpl(ctx);
-    return cudaq::sample_result();
+    throw std::runtime_error(fmt::format(
+        "[dynamics target] {} policy is not supported.", policy.name));
   }
 
   void finalizeExecutionContext(const cudaq::other_policies &policy,

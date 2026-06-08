@@ -17,9 +17,9 @@
 #include <nanobind/stl/unordered_map.h>
 #include <nanobind/stl/vector.h>
 
-#include "cudaq/operators.h"
 #include "py_handlers.h"
 #include "py_helpers.h"
+#include "cudaq/operators.h"
 
 namespace cudaq {
 
@@ -82,7 +82,7 @@ void bindOperatorHandlers(nanobind::module_ &mod) {
             dimension_map dims = dimensions.value_or(dimension_map());
             parameter_map pm = params.value_or(parameter_map());
             auto cmat = self.to_matrix(dims, pm);
-            return details::cmat_to_numpy(cmat);
+            return detail::cmat_to_numpy(cmat);
           },
           nanobind::arg("dimensions") = nanobind::none(),
           nanobind::arg("parameters") = nanobind::none(),
@@ -93,8 +93,8 @@ void bindOperatorHandlers(nanobind::module_ &mod) {
              std::optional<dimension_map> dimensions, nanobind::kwargs kwargs) {
             dimension_map dims = dimensions.value_or(dimension_map());
             auto cmat =
-                self.to_matrix(dims, details::kwargs_to_param_map(kwargs));
-            return details::cmat_to_numpy(cmat);
+                self.to_matrix(dims, detail::kwargs_to_param_map(kwargs));
+            return detail::cmat_to_numpy(cmat);
           },
           nanobind::arg("dimensions") = nanobind::none(),
           nanobind::arg("kwargs"),
@@ -115,9 +115,9 @@ void bindOperatorHandlers(nanobind::module_ &mod) {
             }));
             if (overwrite)
               matrix_handler::remove_definition(operator_id);
-            matrix_handler::define(
-                std::move(operator_id), std::move(expected_dimensions), func,
-                details::kwargs_to_param_description(kwargs));
+            matrix_handler::define(std::move(operator_id),
+                                   std::move(expected_dimensions), func,
+                                   detail::kwargs_to_param_description(kwargs));
           },
           nanobind::arg("operator_id"), nanobind::arg("expected_dimensions"),
           nanobind::arg("callback"), nanobind::arg("overwrite") = false,
@@ -146,7 +146,7 @@ void bindOperatorHandlers(nanobind::module_ &mod) {
             dimension_map dims = dimensions.value_or(dimension_map());
             parameter_map pm = params.value_or(parameter_map());
             auto cmat = self.to_matrix(dims, pm);
-            return details::cmat_to_numpy(cmat);
+            return detail::cmat_to_numpy(cmat);
           },
           nanobind::arg("dimensions") = nanobind::none(),
           nanobind::arg("parameters") = nanobind::none(),
@@ -157,8 +157,8 @@ void bindOperatorHandlers(nanobind::module_ &mod) {
              nanobind::kwargs kwargs) {
             dimension_map dims = dimensions.value_or(dimension_map());
             auto cmat =
-                self.to_matrix(dims, details::kwargs_to_param_map(kwargs));
-            return details::cmat_to_numpy(cmat);
+                self.to_matrix(dims, detail::kwargs_to_param_map(kwargs));
+            return detail::cmat_to_numpy(cmat);
           },
           nanobind::arg("dimensions") = nanobind::none(),
           nanobind::arg("kwargs"),
@@ -185,7 +185,7 @@ void bindOperatorHandlers(nanobind::module_ &mod) {
             dimension_map dims = dimensions.value_or(dimension_map());
             parameter_map pm = params.value_or(parameter_map());
             auto cmat = self.to_matrix(dims, pm);
-            return details::cmat_to_numpy(cmat);
+            return detail::cmat_to_numpy(cmat);
           },
           nanobind::arg("dimensions") = nanobind::none(),
           nanobind::arg("parameters") = nanobind::none(),
@@ -196,8 +196,8 @@ void bindOperatorHandlers(nanobind::module_ &mod) {
              std::optional<dimension_map> dimensions, nanobind::kwargs kwargs) {
             dimension_map dims = dimensions.value_or(dimension_map());
             auto cmat =
-                self.to_matrix(dims, details::kwargs_to_param_map(kwargs));
-            return details::cmat_to_numpy(cmat);
+                self.to_matrix(dims, detail::kwargs_to_param_map(kwargs));
+            return detail::cmat_to_numpy(cmat);
           },
           nanobind::arg("dimensions") = nanobind::none(),
           nanobind::arg("kwargs"),
@@ -225,7 +225,7 @@ void bindOperatorHandlers(nanobind::module_ &mod) {
             dimension_map dims = dimensions.value_or(dimension_map());
             parameter_map pm = params.value_or(parameter_map());
             auto cmat = self.to_matrix(dims, pm);
-            return details::cmat_to_numpy(cmat);
+            return detail::cmat_to_numpy(cmat);
           },
           nanobind::arg("dimensions") = nanobind::none(),
           nanobind::arg("parameters") = nanobind::none(),
@@ -236,8 +236,8 @@ void bindOperatorHandlers(nanobind::module_ &mod) {
              nanobind::kwargs kwargs) {
             dimension_map dims = dimensions.value_or(dimension_map());
             auto cmat =
-                self.to_matrix(dims, details::kwargs_to_param_map(kwargs));
-            return details::cmat_to_numpy(cmat);
+                self.to_matrix(dims, detail::kwargs_to_param_map(kwargs));
+            return detail::cmat_to_numpy(cmat);
           },
           nanobind::arg("dimensions") = nanobind::none(),
           nanobind::arg("kwargs"),

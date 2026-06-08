@@ -17,14 +17,10 @@ SET(CMAKE_SHARED_LINKER_FLAGS "")
 # call `cudaq::sample(myKernel)` directly from C++ test code, with no `nvq++`
 # / `cudaq-quake` step. The AST bridge never runs, so measurement and gate
 # calls reach the inline bodies in `runtime/cudaq/qis/qubit_qis.h` on the
-# host. That is the same execution model as library mode, but without the
-# `CUDAQ_LIBRARY_MODE` macro the headers' MLIR-mode branches are selected
-# and any future trap on host invocation breaks the test binaries silently.
+# host.
 #
-# This is a temporary workaround until library mode is removed and a proper
-# runtime-isolation harness replaces it. Defining the macro at directory
-# scope routes every target below this point through the library-mode
-# inline bodies that work on host today.
+# The user-facing `--library-mode` flag has been removed, but the macro it set
+# survives as an internal implementation detail.
 add_compile_definitions(CUDAQ_LIBRARY_MODE)
 
 # ctest's PROCESSORS property tells the scheduler how many CPU slots each test
@@ -151,6 +147,26 @@ endmacro()
 create_tests_with_backend(qpp backends/QPPTester.cpp)
 create_tests_with_backend(dm backends/QPPDMTester.cpp)
 create_tests_with_backend(stim backends/StimTester.cpp)
+
+if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
+  add_executable(test_device_call_dispatch
+    device_call/DeviceCallDispatchTester.cu)
+  set_target_properties(test_device_call_dispatch PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+    ENABLE_EXPORTS ON)
+  target_include_directories(test_device_call_dispatch
+    PRIVATE
+      .)
+  target_link_libraries(test_device_call_dispatch
+    PRIVATE
+      cudaq-device-call-runtime
+      cudaq::cudaq-realtime-dispatch
+      CUDA::cudart_static
+      gtest_main)
+  gtest_discover_tests(test_device_call_dispatch
+    PROPERTIES LABELS "gpu_required" RESOURCE_LOCK "gpu"
+    DISCOVERY_TIMEOUT 120)
+endif()
 
 if (cuStateVec_FOUND)
   find_program(NVIDIA_SMI "nvidia-smi")

@@ -14,9 +14,9 @@
 #ifdef CUDAQ_HAS_CUDA
 #include "cuda_runtime_api.h"
 #endif
+#include "distributed/mpi_plugin.h"
 #include "cudaq/platform.h"
 #include "cudaq/simulators.h"
-#include "distributed/mpi_plugin.h"
 #include <dlfcn.h>
 #include <filesystem>
 #include <map>
@@ -130,7 +130,7 @@ bool is_initialized() {
   return commPlugin->is_initialized();
 }
 
-namespace details {
+namespace detail {
 
 #define CUDAQ_ALL_REDUCE_IMPL(TYPE, BINARY, REDUCE_OP)                         \
   TYPE allReduce(const TYPE &local, const BINARY<TYPE> &) {                    \
@@ -149,7 +149,7 @@ CUDAQ_ALL_REDUCE_IMPL(float, std::multiplies, PROD)
 CUDAQ_ALL_REDUCE_IMPL(double, std::plus, SUM)
 CUDAQ_ALL_REDUCE_IMPL(double, std::multiplies, PROD)
 
-} // namespace details
+} // namespace detail
 
 #define CUDAQ_ALL_GATHER_IMPL(TYPE)                                            \
   void all_gather(std::vector<TYPE> &global, const std::vector<TYPE> &local) { \
@@ -227,7 +227,7 @@ void finalize() {
 
 } // namespace cudaq::mpi
 
-namespace cudaq::__internal__ {
+namespace cudaq::detail {
 std::map<std::string, std::string> runtime_registered_mlir;
 std::string demangle_kernel(const char *name) {
   return quantum_platform::demangle(name);
@@ -238,7 +238,7 @@ TargetSetter::TargetSetter(const char *backend) {
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(std::string(backend));
 }
-} // namespace cudaq::__internal__
+} // namespace cudaq::detail
 
 //===----------------------------------------------------------------------===//
 
@@ -281,7 +281,7 @@ int num_available_gpus() {
   return nDevices;
 }
 
-namespace __internal__ {
+namespace detail {
 void cudaqCtrlCHandler(int signal) {
   printf(" CTRL-C caught in cudaq runtime.\n");
   std::exit(1);
@@ -294,7 +294,7 @@ __attribute__((constructor)) void startSigIntHandler() {
   sigIntHandler.sa_flags = 0;
   sigaction(SIGINT, &sigIntHandler, NULL);
 }
-} // namespace __internal__
+} // namespace detail
 
 } // namespace cudaq
 

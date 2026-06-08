@@ -6,12 +6,12 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "nvqir/CircuitSimulator.h"
 #include "cudaq/operators.h"
 #include "cudaq/qis/managers/BasicExecutionManager.h"
 #include "cudaq/qis/qudit.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "nvqir/CircuitSimulator.h"
 #include "llvm/ADT/StringSwitch.h"
 #include <span>
 
@@ -147,13 +147,8 @@ protected:
     requestedAllocations.clear();
   }
 
-  void configureExecutionContext(ExecutionContext &ctx) override {
-    BasicExecutionManager::configureExecutionContext(ctx);
-    simulator()->configureExecutionContext(ctx);
-  }
-
-  void finalizeExecutionContextImpl(ExecutionContext &ctx) {
-    BasicExecutionManager::finalizeExecutionContextImpl(ctx);
+  void finalizeExecutionContextImpl() {
+    BasicExecutionManager::finalizeExecutionContextImpl();
 
     if (!requestedAllocations.empty()) {
       CUDAQ_INFO("[DefaultExecutionManager] Flushing remaining {} allocations "
@@ -167,15 +162,20 @@ protected:
     }
   }
 
-  sample_result finalizeExecutionContext(const sample_policy &policy,
-                                         ExecutionContext &ctx) override {
-    finalizeExecutionContextImpl(ctx);
+  sample_result finalizeExecutionContext(const sample_policy &policy) override {
+    finalizeExecutionContextImpl();
+    return simulator()->finalizeExecutionContext(policy);
+  }
+
+  observe_result finalizeExecutionContext(const observe_policy &policy,
+                                          ExecutionContext &ctx) override {
+    finalizeExecutionContextImpl();
     return simulator()->finalizeExecutionContext(policy, ctx);
   }
 
   void finalizeExecutionContext(const other_policies &policy,
                                 ExecutionContext &ctx) override {
-    finalizeExecutionContextImpl(ctx);
+    finalizeExecutionContextImpl();
     simulator()->finalizeExecutionContext(ctx);
   }
 

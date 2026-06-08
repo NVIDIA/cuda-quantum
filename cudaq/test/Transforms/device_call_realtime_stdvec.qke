@@ -1,0 +1,395 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -pass-pipeline='builtin.module(canonicalize,distributed-device-call{realtime=1},cse,canonicalize)' %s | FileCheck %s
+
+// CHECK-LABEL:   func.func @stdvecInputKernel(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !cc.stdvec<i32>,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: i32) -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 11 : i64
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 1 : i64
+// CHECK:           %[[CONSTANT_2:.*]] = arith.constant 0 : i64
+// CHECK:           %[[CONSTANT_3:.*]] = arith.constant 0 : i32
+// CHECK:           %[[CONSTANT_4:.*]] = arith.constant -126072298 : i32
+// CHECK:           %[[CONSTANT_5:.*]] = arith.constant -4 : i64
+// CHECK:           %[[CONSTANT_6:.*]] = arith.constant 4 : i64
+// CHECK:           %[[CONSTANT_7:.*]] = arith.constant 8 : i64
+// CHECK:           %[[STDVEC_SIZE_0:.*]] = cc.stdvec_size %[[ARG0]] : (!cc.stdvec<i32>) -> i64
+// CHECK:           %[[MULI_0:.*]] = arith.muli %[[STDVEC_SIZE_0]], %[[CONSTANT_6]] : i64
+// CHECK:           %[[ADDI_0:.*]] = arith.addi %[[MULI_0]], %[[CONSTANT_0]] : i64
+// CHECK:           %[[ANDI_0:.*]] = arith.andi %[[ADDI_0]], %[[CONSTANT_5]] : i64
+// CHECK:           %[[ADDI_1:.*]] = arith.addi %[[ANDI_0]], %[[CONSTANT_6]] : i64
+// CHECK:           %[[ALLOCA_0:.*]] = cc.alloca !cc.ptr<i8>
+// CHECK:           %[[ALLOCA_1:.*]] = cc.alloca !cc.ptr<i8>
+// CHECK:           %[[ALLOCA_2:.*]] = cc.alloca !cc.ptr<i8>
+// CHECK:           %[[ALLOCA_3:.*]] = cc.alloca i64
+// CHECK:           cc.store %[[CONSTANT_2]], %[[ALLOCA_3]] : !cc.ptr<i64>
+// CHECK:           %[[VAL_0:.*]] = call @__cudaq_device_call_acquire_realtime_frame(%[[CONSTANT_3]], %[[CONSTANT_4]], %[[ADDI_1]], %[[CONSTANT_6]], %[[ALLOCA_0]], %[[ALLOCA_1]], %[[ALLOCA_2]]) : (i32, i32, i64, i64, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>) -> i32
+// CHECK:           %[[CMPI_0:.*]] = arith.cmpi ne, %[[VAL_0]], %[[CONSTANT_3]] : i32
+// CHECK:           cc.if(%[[CMPI_0]]) {
+// CHECK:             %[[CAST_0:.*]] = cc.cast signed %[[VAL_0]] : (i32) -> i64
+// CHECK:             func.call @__quantum__qis__trap(%[[CAST_0]]) : (i64) -> ()
+// CHECK:           }
+// CHECK:           %[[LOAD_0:.*]] = cc.load %[[ALLOCA_0]] : !cc.ptr<!cc.ptr<i8>>
+// CHECK:           %[[LOAD_1:.*]] = cc.load %[[ALLOCA_1]] : !cc.ptr<!cc.ptr<i8>>
+// CHECK:           %[[CAST_1:.*]] = cc.cast %[[LOAD_1]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
+// CHECK:           %[[LOAD_2:.*]] = cc.load %[[ALLOCA_2]] : !cc.ptr<!cc.ptr<i8>>
+// CHECK:           %[[STDVEC_DATA_0:.*]] = cc.stdvec_data %[[ARG0]] : (!cc.stdvec<i32>) -> !cc.ptr<!cc.array<i32 x ?>>
+// CHECK:           %[[CAST_2:.*]] = cc.cast %[[LOAD_1]] : (!cc.ptr<i8>) -> !cc.ptr<i64>
+// CHECK:           cc.store %[[STDVEC_SIZE_0]], %[[CAST_2]] : !cc.ptr<i64>
+// CHECK:           %[[LOOP_0:.*]] = cc.loop while ((%[[VAL_1:.*]] = %[[CONSTANT_2]]) -> (i64)) {
+// CHECK:             %[[CMPI_1:.*]] = arith.cmpi slt, %[[VAL_1]], %[[STDVEC_SIZE_0]] : i64
+// CHECK:             cc.condition %[[CMPI_1]](%[[VAL_1]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_2:.*]]: i64):
+// CHECK:             %[[COMPUTE_PTR_0:.*]] = cc.compute_ptr %[[STDVEC_DATA_0]]{{\[}}%[[VAL_2]]] : (!cc.ptr<!cc.array<i32 x ?>>, i64) -> !cc.ptr<i32>
+// CHECK:             %[[LOAD_3:.*]] = cc.load %[[COMPUTE_PTR_0]] : !cc.ptr<i32>
+// CHECK:             %[[MULI_1:.*]] = arith.muli %[[VAL_2]], %[[CONSTANT_6]] : i64
+// CHECK:             %[[ADDI_2:.*]] = arith.addi %[[MULI_1]], %[[CONSTANT_7]] : i64
+// CHECK:             %[[COMPUTE_PTR_1:.*]] = cc.compute_ptr %[[CAST_1]]{{\[}}%[[ADDI_2]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+// CHECK:             %[[CAST_3:.*]] = cc.cast %[[COMPUTE_PTR_1]] : (!cc.ptr<i8>) -> !cc.ptr<i32>
+// CHECK:             cc.store %[[LOAD_3]], %[[CAST_3]] : !cc.ptr<i32>
+// CHECK:             cc.continue %[[VAL_2]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_3:.*]]: i64):
+// CHECK:             %[[ADDI_3:.*]] = arith.addi %[[VAL_3]], %[[CONSTANT_1]] : i64
+// CHECK:             cc.continue %[[ADDI_3]] : i64
+// CHECK:           } {invariant}
+// CHECK:           %[[COMPUTE_PTR_2:.*]] = cc.compute_ptr %[[CAST_1]]{{\[}}%[[ANDI_0]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+// CHECK:           %[[CAST_4:.*]] = cc.cast %[[COMPUTE_PTR_2]] : (!cc.ptr<i8>) -> !cc.ptr<i32>
+// CHECK:           cc.store %[[ARG1]], %[[CAST_4]] : !cc.ptr<i32>
+// CHECK:           %[[VAL_4:.*]] = call @__cudaq_device_call_dispatch_realtime_frame(%[[LOAD_0]], %[[ALLOCA_3]]) : (!cc.ptr<i8>, !cc.ptr<i64>) -> i32
+// CHECK:           %[[CMPI_2:.*]] = arith.cmpi ne, %[[VAL_4]], %[[CONSTANT_3]] : i32
+// CHECK:           cc.if(%[[CMPI_2]]) {
+// CHECK:             func.call @__cudaq_device_call_safely_release_realtime_frame(%[[LOAD_0]]) : (!cc.ptr<i8>) -> ()
+// CHECK:             %[[CAST_5:.*]] = cc.cast signed %[[VAL_4]] : (i32) -> i64
+// CHECK:             func.call @__quantum__qis__trap(%[[CAST_5]]) : (i64) -> ()
+// CHECK:           }
+// CHECK:           %[[CAST_6:.*]] = cc.cast %[[LOAD_2]] : (!cc.ptr<i8>) -> !cc.ptr<i32>
+// CHECK:           %[[LOAD_4:.*]] = cc.load %[[CAST_6]] : !cc.ptr<i32>
+// CHECK:           call @__cudaq_device_call_safely_release_realtime_frame(%[[LOAD_0]]) : (!cc.ptr<i8>) -> ()
+// CHECK:           return %[[LOAD_4]] : i32
+// CHECK:         }
+func.func @stdvecInputKernel(%arg0 : !cc.stdvec<i32>, %arg1 : i32) -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = cc.device_call @sumIntVector(%arg0, %arg1) : (!cc.stdvec<i32>, i32) -> i32
+  return %0 : i32
+}
+
+// CHECK-LABEL:   func.func @stdvecBoolInputKernel(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !cc.stdvec<i1>) -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 4 : i64
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 1 : i64
+// CHECK:           %[[CONSTANT_2:.*]] = arith.constant 0 : i64
+// CHECK:           %[[CONSTANT_3:.*]] = arith.constant 0 : i32
+// CHECK:           %[[CONSTANT_4:.*]] = arith.constant 952074011 : i32
+// CHECK:           %[[CONSTANT_5:.*]] = arith.constant 8 : i64
+// CHECK:           %[[STDVEC_SIZE_0:.*]] = cc.stdvec_size %[[ARG0]] : (!cc.stdvec<i1>) -> i64
+// CHECK:           %[[ADDI_0:.*]] = arith.addi %[[STDVEC_SIZE_0]], %[[CONSTANT_5]] : i64
+// CHECK:           %[[ALLOCA_0:.*]] = cc.alloca !cc.ptr<i8>
+// CHECK:           %[[ALLOCA_1:.*]] = cc.alloca !cc.ptr<i8>
+// CHECK:           %[[ALLOCA_2:.*]] = cc.alloca !cc.ptr<i8>
+// CHECK:           %[[ALLOCA_3:.*]] = cc.alloca i64
+// CHECK:           cc.store %[[CONSTANT_2]], %[[ALLOCA_3]] : !cc.ptr<i64>
+// CHECK:           %[[VAL_0:.*]] = call @__cudaq_device_call_acquire_realtime_frame(%[[CONSTANT_3]], %[[CONSTANT_4]], %[[ADDI_0]], %[[CONSTANT_0]], %[[ALLOCA_0]], %[[ALLOCA_1]], %[[ALLOCA_2]]) : (i32, i32, i64, i64, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>) -> i32
+// CHECK:           %[[CMPI_0:.*]] = arith.cmpi ne, %[[VAL_0]], %[[CONSTANT_3]] : i32
+// CHECK:           cc.if(%[[CMPI_0]]) {
+// CHECK:             %[[CAST_0:.*]] = cc.cast signed %[[VAL_0]] : (i32) -> i64
+// CHECK:             func.call @__quantum__qis__trap(%[[CAST_0]]) : (i64) -> ()
+// CHECK:           }
+// CHECK:           %[[LOAD_0:.*]] = cc.load %[[ALLOCA_0]] : !cc.ptr<!cc.ptr<i8>>
+// CHECK:           %[[LOAD_1:.*]] = cc.load %[[ALLOCA_1]] : !cc.ptr<!cc.ptr<i8>>
+// CHECK:           %[[CAST_1:.*]] = cc.cast %[[LOAD_1]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
+// CHECK:           %[[LOAD_2:.*]] = cc.load %[[ALLOCA_2]] : !cc.ptr<!cc.ptr<i8>>
+// CHECK:           %[[STDVEC_DATA_0:.*]] = cc.stdvec_data %[[ARG0]] : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i1 x ?>>
+// CHECK:           %[[CAST_2:.*]] = cc.cast %[[LOAD_1]] : (!cc.ptr<i8>) -> !cc.ptr<i64>
+// CHECK:           cc.store %[[STDVEC_SIZE_0]], %[[CAST_2]] : !cc.ptr<i64>
+// CHECK:           %[[LOOP_0:.*]] = cc.loop while ((%[[VAL_1:.*]] = %[[CONSTANT_2]]) -> (i64)) {
+// CHECK:             %[[CMPI_1:.*]] = arith.cmpi slt, %[[VAL_1]], %[[STDVEC_SIZE_0]] : i64
+// CHECK:             cc.condition %[[CMPI_1]](%[[VAL_1]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_2:.*]]: i64):
+// CHECK:             %[[COMPUTE_PTR_0:.*]] = cc.compute_ptr %[[STDVEC_DATA_0]]{{\[}}%[[VAL_2]]] : (!cc.ptr<!cc.array<i1 x ?>>, i64) -> !cc.ptr<i1>
+// CHECK:             %[[LOAD_3:.*]] = cc.load %[[COMPUTE_PTR_0]] : !cc.ptr<i1>
+// CHECK:             %[[ADDI_1:.*]] = arith.addi %[[VAL_2]], %[[CONSTANT_5]] : i64
+// CHECK:             %[[CAST_3:.*]] = cc.cast unsigned %[[LOAD_3]] : (i1) -> i8
+// CHECK:             %[[COMPUTE_PTR_1:.*]] = cc.compute_ptr %[[CAST_1]]{{\[}}%[[ADDI_1]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+// CHECK:             cc.store %[[CAST_3]], %[[COMPUTE_PTR_1]] : !cc.ptr<i8>
+// CHECK:             cc.continue %[[VAL_2]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_3:.*]]: i64):
+// CHECK:             %[[ADDI_2:.*]] = arith.addi %[[VAL_3]], %[[CONSTANT_1]] : i64
+// CHECK:             cc.continue %[[ADDI_2]] : i64
+// CHECK:           } {invariant}
+// CHECK:           %[[VAL_4:.*]] = call @__cudaq_device_call_dispatch_realtime_frame(%[[LOAD_0]], %[[ALLOCA_3]]) : (!cc.ptr<i8>, !cc.ptr<i64>) -> i32
+// CHECK:           %[[CMPI_2:.*]] = arith.cmpi ne, %[[VAL_4]], %[[CONSTANT_3]] : i32
+// CHECK:           cc.if(%[[CMPI_2]]) {
+// CHECK:             func.call @__cudaq_device_call_safely_release_realtime_frame(%[[LOAD_0]]) : (!cc.ptr<i8>) -> ()
+// CHECK:             %[[CAST_4:.*]] = cc.cast signed %[[VAL_4]] : (i32) -> i64
+// CHECK:             func.call @__quantum__qis__trap(%[[CAST_4]]) : (i64) -> ()
+// CHECK:           }
+// CHECK:           %[[CAST_5:.*]] = cc.cast %[[LOAD_2]] : (!cc.ptr<i8>) -> !cc.ptr<i32>
+// CHECK:           %[[LOAD_4:.*]] = cc.load %[[CAST_5]] : !cc.ptr<i32>
+// CHECK:           call @__cudaq_device_call_safely_release_realtime_frame(%[[LOAD_0]]) : (!cc.ptr<i8>) -> ()
+// CHECK:           return %[[LOAD_4]] : i32
+// CHECK:         }
+func.func @stdvecBoolInputKernel(%arg0 : !cc.stdvec<i1>) -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %0 = cc.device_call @countBoolVector(%arg0) : (!cc.stdvec<i1>) -> i32
+  return %0 : i32
+}
+
+// CHECK-LABEL:   func.func @stdvecMeasureKernel(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !cc.stdvec<!cc.measure_handle>,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: i64) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 15 : i64
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 1 : i64
+// CHECK:           %[[CONSTANT_2:.*]] = arith.constant 0 : i32
+// CHECK:           %[[CONSTANT_3:.*]] = arith.constant -345395668 : i32
+// CHECK:           %[[CONSTANT_4:.*]] = arith.constant 0 : i64
+// CHECK:           %[[CONSTANT_5:.*]] = arith.constant -8 : i64
+// CHECK:           %[[CONSTANT_6:.*]] = arith.constant 8 : i64
+// CHECK:           %[[STDVEC_SIZE_0:.*]] = cc.stdvec_size %[[ARG0]] : (!cc.stdvec<!cc.measure_handle>) -> i64
+// CHECK:           %[[ADDI_0:.*]] = arith.addi %[[STDVEC_SIZE_0]], %[[CONSTANT_0]] : i64
+// CHECK:           %[[ANDI_0:.*]] = arith.andi %[[ADDI_0]], %[[CONSTANT_5]] : i64
+// CHECK:           %[[ADDI_1:.*]] = arith.addi %[[ANDI_0]], %[[CONSTANT_6]] : i64
+// CHECK:           %[[ALLOCA_0:.*]] = cc.alloca !cc.ptr<i8>
+// CHECK:           %[[ALLOCA_1:.*]] = cc.alloca !cc.ptr<i8>
+// CHECK:           %[[ALLOCA_2:.*]] = cc.alloca !cc.ptr<i8>
+// CHECK:           %[[ALLOCA_3:.*]] = cc.alloca i64
+// CHECK:           cc.store %[[CONSTANT_4]], %[[ALLOCA_3]] : !cc.ptr<i64>
+// CHECK:           %[[VAL_0:.*]] = call @__cudaq_device_call_acquire_realtime_frame(%[[CONSTANT_2]], %[[CONSTANT_3]], %[[ADDI_1]], %[[CONSTANT_4]], %[[ALLOCA_0]], %[[ALLOCA_1]], %[[ALLOCA_2]]) : (i32, i32, i64, i64, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>) -> i32
+// CHECK:           %[[CMPI_0:.*]] = arith.cmpi ne, %[[VAL_0]], %[[CONSTANT_2]] : i32
+// CHECK:           cc.if(%[[CMPI_0]]) {
+// CHECK:             %[[CAST_0:.*]] = cc.cast signed %[[VAL_0]] : (i32) -> i64
+// CHECK:             func.call @__quantum__qis__trap(%[[CAST_0]]) : (i64) -> ()
+// CHECK:           }
+// CHECK:           %[[LOAD_0:.*]] = cc.load %[[ALLOCA_0]] : !cc.ptr<!cc.ptr<i8>>
+// CHECK:           %[[LOAD_1:.*]] = cc.load %[[ALLOCA_1]] : !cc.ptr<!cc.ptr<i8>>
+// CHECK:           %[[CAST_1:.*]] = cc.cast %[[LOAD_1]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
+// CHECK:           %[[STDVEC_DATA_0:.*]] = cc.stdvec_data %[[ARG0]] : (!cc.stdvec<!cc.measure_handle>) -> !cc.ptr<!cc.array<!cc.measure_handle x ?>>
+// CHECK:           %[[CAST_2:.*]] = cc.cast %[[LOAD_1]] : (!cc.ptr<i8>) -> !cc.ptr<i64>
+// CHECK:           cc.store %[[STDVEC_SIZE_0]], %[[CAST_2]] : !cc.ptr<i64>
+// CHECK:           %[[LOOP_0:.*]] = cc.loop while ((%[[VAL_1:.*]] = %[[CONSTANT_4]]) -> (i64)) {
+// CHECK:             %[[CMPI_1:.*]] = arith.cmpi slt, %[[VAL_1]], %[[STDVEC_SIZE_0]] : i64
+// CHECK:             cc.condition %[[CMPI_1]](%[[VAL_1]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_2:.*]]: i64):
+// CHECK:             %[[COMPUTE_PTR_0:.*]] = cc.compute_ptr %[[STDVEC_DATA_0]]{{\[}}%[[VAL_2]]] : (!cc.ptr<!cc.array<!cc.measure_handle x ?>>, i64) -> !cc.ptr<!cc.measure_handle>
+// CHECK:             %[[LOAD_2:.*]] = cc.load %[[COMPUTE_PTR_0]] : !cc.ptr<!cc.measure_handle>
+// CHECK:             %[[DISCRIMINATE_0:.*]] = quake.discriminate %[[LOAD_2]] : (!cc.measure_handle) -> i1
+// CHECK:             %[[ADDI_2:.*]] = arith.addi %[[VAL_2]], %[[CONSTANT_6]] : i64
+// CHECK:             %[[CAST_3:.*]] = cc.cast unsigned %[[DISCRIMINATE_0]] : (i1) -> i8
+// CHECK:             %[[COMPUTE_PTR_1:.*]] = cc.compute_ptr %[[CAST_1]]{{\[}}%[[ADDI_2]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+// CHECK:             cc.store %[[CAST_3]], %[[COMPUTE_PTR_1]] : !cc.ptr<i8>
+// CHECK:             cc.continue %[[VAL_2]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_3:.*]]: i64):
+// CHECK:             %[[ADDI_3:.*]] = arith.addi %[[VAL_3]], %[[CONSTANT_1]] : i64
+// CHECK:             cc.continue %[[ADDI_3]] : i64
+// CHECK:           } {invariant}
+// CHECK:           %[[COMPUTE_PTR_2:.*]] = cc.compute_ptr %[[CAST_1]]{{\[}}%[[ANDI_0]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+// CHECK:           %[[CAST_4:.*]] = cc.cast %[[COMPUTE_PTR_2]] : (!cc.ptr<i8>) -> !cc.ptr<i64>
+// CHECK:           cc.store %[[ARG1]], %[[CAST_4]] : !cc.ptr<i64>
+// CHECK:           %[[VAL_4:.*]] = call @__cudaq_device_call_dispatch_realtime_frame(%[[LOAD_0]], %[[ALLOCA_3]]) : (!cc.ptr<i8>, !cc.ptr<i64>) -> i32
+// CHECK:           %[[CMPI_2:.*]] = arith.cmpi ne, %[[VAL_4]], %[[CONSTANT_2]] : i32
+// CHECK:           cc.if(%[[CMPI_2]]) {
+// CHECK:             func.call @__cudaq_device_call_safely_release_realtime_frame(%[[LOAD_0]]) : (!cc.ptr<i8>) -> ()
+// CHECK:             %[[CAST_5:.*]] = cc.cast signed %[[VAL_4]] : (i32) -> i64
+// CHECK:             func.call @__quantum__qis__trap(%[[CAST_5]]) : (i64) -> ()
+// CHECK:           }
+// CHECK:           call @__cudaq_device_call_safely_release_realtime_frame(%[[LOAD_0]]) : (!cc.ptr<i8>) -> ()
+// CHECK:           return
+// CHECK:         }
+func.func @stdvecMeasureKernel(%arg0 : !cc.stdvec<!cc.measure_handle>, %arg1 : i64) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  cc.device_call @enqueueMeasures(%arg0, %arg1) : (!cc.stdvec<!cc.measure_handle>, i64) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @stdvecBoolOutputKernel(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !cc.stdvec<i1>,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: i1) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 6 : i64
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 1 : i64
+// CHECK:           %[[CONSTANT_2:.*]] = arith.constant 0 : i64
+// CHECK:           %[[CONSTANT_3:.*]] = arith.constant 0 : i32
+// CHECK:           %[[CONSTANT_4:.*]] = arith.constant 2024542220 : i32
+// CHECK:           %[[CONSTANT_5:.*]] = arith.constant 9 : i64
+// CHECK:           %[[STDVEC_SIZE_0:.*]] = cc.stdvec_size %[[ARG0]] : (!cc.stdvec<i1>) -> i64
+// CHECK:           %[[ALLOCA_0:.*]] = cc.alloca !cc.ptr<i8>
+// CHECK:           %[[ALLOCA_1:.*]] = cc.alloca !cc.ptr<i8>
+// CHECK:           %[[ALLOCA_2:.*]] = cc.alloca !cc.ptr<i8>
+// CHECK:           %[[ALLOCA_3:.*]] = cc.alloca i64
+// CHECK:           cc.store %[[CONSTANT_2]], %[[ALLOCA_3]] : !cc.ptr<i64>
+// CHECK:           %[[VAL_0:.*]] = call @__cudaq_device_call_acquire_realtime_frame(%[[CONSTANT_3]], %[[CONSTANT_4]], %[[CONSTANT_5]], %[[STDVEC_SIZE_0]], %[[ALLOCA_0]], %[[ALLOCA_1]], %[[ALLOCA_2]]) : (i32, i32, i64, i64, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>) -> i32
+// CHECK:           %[[CMPI_0:.*]] = arith.cmpi ne, %[[VAL_0]], %[[CONSTANT_3]] : i32
+// CHECK:           cc.if(%[[CMPI_0]]) {
+// CHECK:             %[[CAST_0:.*]] = cc.cast signed %[[VAL_0]] : (i32) -> i64
+// CHECK:             func.call @__quantum__qis__trap(%[[CAST_0]]) : (i64) -> ()
+// CHECK:           }
+// CHECK:           %[[LOAD_0:.*]] = cc.load %[[ALLOCA_0]] : !cc.ptr<!cc.ptr<i8>>
+// CHECK:           %[[LOAD_1:.*]] = cc.load %[[ALLOCA_1]] : !cc.ptr<!cc.ptr<i8>>
+// CHECK:           %[[CAST_1:.*]] = cc.cast %[[LOAD_1]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
+// CHECK:           %[[LOAD_2:.*]] = cc.load %[[ALLOCA_2]] : !cc.ptr<!cc.ptr<i8>>
+// CHECK:           %[[CAST_2:.*]] = cc.cast %[[LOAD_2]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
+// CHECK:           %[[CAST_3:.*]] = cc.cast %[[LOAD_1]] : (!cc.ptr<i8>) -> !cc.ptr<i64>
+// CHECK:           cc.store %[[STDVEC_SIZE_0]], %[[CAST_3]] : !cc.ptr<i64>
+// CHECK:           %[[COMPUTE_PTR_0:.*]] = cc.compute_ptr %[[CAST_1]][8] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+// CHECK:           %[[CAST_4:.*]] = cc.cast %[[COMPUTE_PTR_0]] : (!cc.ptr<i8>) -> !cc.ptr<i1>
+// CHECK:           cc.store %[[ARG1]], %[[CAST_4]] : !cc.ptr<i1>
+// CHECK:           %[[VAL_1:.*]] = call @__cudaq_device_call_dispatch_realtime_frame(%[[LOAD_0]], %[[ALLOCA_3]]) : (!cc.ptr<i8>, !cc.ptr<i64>) -> i32
+// CHECK:           %[[CMPI_1:.*]] = arith.cmpi ne, %[[VAL_1]], %[[CONSTANT_3]] : i32
+// CHECK:           cc.if(%[[CMPI_1]]) {
+// CHECK:             func.call @__cudaq_device_call_safely_release_realtime_frame(%[[LOAD_0]]) : (!cc.ptr<i8>) -> ()
+// CHECK:             %[[CAST_5:.*]] = cc.cast signed %[[VAL_1]] : (i32) -> i64
+// CHECK:             func.call @__quantum__qis__trap(%[[CAST_5]]) : (i64) -> ()
+// CHECK:           }
+// CHECK:           %[[LOAD_3:.*]] = cc.load %[[ALLOCA_3]] : !cc.ptr<i64>
+// CHECK:           %[[CMPI_2:.*]] = arith.cmpi ne, %[[LOAD_3]], %[[STDVEC_SIZE_0]] : i64
+// CHECK:           cc.if(%[[CMPI_2]]) {
+// CHECK:             func.call @__cudaq_device_call_safely_release_realtime_frame(%[[LOAD_0]]) : (!cc.ptr<i8>) -> ()
+// CHECK:             func.call @__quantum__qis__trap(%[[CONSTANT_0]]) : (i64) -> ()
+// CHECK:           }
+// CHECK:           %[[STDVEC_DATA_0:.*]] = cc.stdvec_data %[[ARG0]] : (!cc.stdvec<i1>) -> !cc.ptr<!cc.array<i1 x ?>>
+// CHECK:           %[[CAST_6:.*]] = cc.cast %[[STDVEC_DATA_0]] : (!cc.ptr<!cc.array<i1 x ?>>) -> !cc.ptr<!cc.array<i8 x ?>>
+// CHECK:           %[[LOOP_0:.*]] = cc.loop while ((%[[VAL_2:.*]] = %[[CONSTANT_2]]) -> (i64)) {
+// CHECK:             %[[CMPI_3:.*]] = arith.cmpi slt, %[[VAL_2]], %[[STDVEC_SIZE_0]] : i64
+// CHECK:             cc.condition %[[CMPI_3]](%[[VAL_2]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_3:.*]]: i64):
+// CHECK:             %[[COMPUTE_PTR_1:.*]] = cc.compute_ptr %[[CAST_2]]{{\[}}%[[VAL_3]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+// CHECK:             %[[LOAD_4:.*]] = cc.load %[[COMPUTE_PTR_1]] : !cc.ptr<i8>
+// CHECK:             %[[COMPUTE_PTR_2:.*]] = cc.compute_ptr %[[CAST_6]]{{\[}}%[[VAL_3]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+// CHECK:             cc.store %[[LOAD_4]], %[[COMPUTE_PTR_2]] : !cc.ptr<i8>
+// CHECK:             cc.continue %[[VAL_3]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_4:.*]]: i64):
+// CHECK:             %[[ADDI_0:.*]] = arith.addi %[[VAL_4]], %[[CONSTANT_1]] : i64
+// CHECK:             cc.continue %[[ADDI_0]] : i64
+// CHECK:           } {invariant}
+// CHECK:           call @__cudaq_device_call_safely_release_realtime_frame(%[[LOAD_0]]) : (!cc.ptr<i8>) -> ()
+// CHECK:           return
+// CHECK:         }
+func.func @stdvecBoolOutputKernel(%arg0 : !cc.stdvec<i1>, %arg1 : i1) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  cc.device_call @getCorrections(%arg0, %arg1) : (!cc.stdvec<i1>, i1) -> () {by_ref_vec_arg_indices = array<i64: 0>}
+  return
+}
+
+// CHECK-LABEL:   func.func @stdvecI32OutputKernel(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !cc.stdvec<i32>,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !cc.stdvec<i32>,
+// CHECK-SAME:      %[[ARG2:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: i32) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 6 : i64
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 19 : i64
+// CHECK:           %[[CONSTANT_2:.*]] = arith.constant 1 : i64
+// CHECK:           %[[CONSTANT_3:.*]] = arith.constant 0 : i64
+// CHECK:           %[[CONSTANT_4:.*]] = arith.constant 0 : i32
+// CHECK:           %[[CONSTANT_5:.*]] = arith.constant 1446610828 : i32
+// CHECK:           %[[CONSTANT_6:.*]] = arith.constant -4 : i64
+// CHECK:           %[[CONSTANT_7:.*]] = arith.constant 4 : i64
+// CHECK:           %[[CONSTANT_8:.*]] = arith.constant 16 : i64
+// CHECK:           %[[STDVEC_SIZE_0:.*]] = cc.stdvec_size %[[ARG1]] : (!cc.stdvec<i32>) -> i64
+// CHECK:           %[[MULI_0:.*]] = arith.muli %[[STDVEC_SIZE_0]], %[[CONSTANT_7]] : i64
+// CHECK:           %[[ADDI_0:.*]] = arith.addi %[[MULI_0]], %[[CONSTANT_1]] : i64
+// CHECK:           %[[ANDI_0:.*]] = arith.andi %[[ADDI_0]], %[[CONSTANT_6]] : i64
+// CHECK:           %[[ADDI_1:.*]] = arith.addi %[[ANDI_0]], %[[CONSTANT_7]] : i64
+// CHECK:           %[[STDVEC_SIZE_1:.*]] = cc.stdvec_size %[[ARG0]] : (!cc.stdvec<i32>) -> i64
+// CHECK:           %[[MULI_1:.*]] = arith.muli %[[STDVEC_SIZE_1]], %[[CONSTANT_7]] : i64
+// CHECK:           %[[ALLOCA_0:.*]] = cc.alloca !cc.ptr<i8>
+// CHECK:           %[[ALLOCA_1:.*]] = cc.alloca !cc.ptr<i8>
+// CHECK:           %[[ALLOCA_2:.*]] = cc.alloca !cc.ptr<i8>
+// CHECK:           %[[ALLOCA_3:.*]] = cc.alloca i64
+// CHECK:           cc.store %[[CONSTANT_3]], %[[ALLOCA_3]] : !cc.ptr<i64>
+// CHECK:           %[[VAL_0:.*]] = call @__cudaq_device_call_acquire_realtime_frame(%[[CONSTANT_4]], %[[CONSTANT_5]], %[[ADDI_1]], %[[MULI_1]], %[[ALLOCA_0]], %[[ALLOCA_1]], %[[ALLOCA_2]]) : (i32, i32, i64, i64, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>) -> i32
+// CHECK:           %[[CMPI_0:.*]] = arith.cmpi ne, %[[VAL_0]], %[[CONSTANT_4]] : i32
+// CHECK:           cc.if(%[[CMPI_0]]) {
+// CHECK:             %[[CAST_0:.*]] = cc.cast signed %[[VAL_0]] : (i32) -> i64
+// CHECK:             func.call @__quantum__qis__trap(%[[CAST_0]]) : (i64) -> ()
+// CHECK:           }
+// CHECK:           %[[LOAD_0:.*]] = cc.load %[[ALLOCA_0]] : !cc.ptr<!cc.ptr<i8>>
+// CHECK:           %[[LOAD_1:.*]] = cc.load %[[ALLOCA_1]] : !cc.ptr<!cc.ptr<i8>>
+// CHECK:           %[[CAST_1:.*]] = cc.cast %[[LOAD_1]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
+// CHECK:           %[[LOAD_2:.*]] = cc.load %[[ALLOCA_2]] : !cc.ptr<!cc.ptr<i8>>
+// CHECK:           %[[CAST_2:.*]] = cc.cast %[[LOAD_2]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
+// CHECK:           %[[CAST_3:.*]] = cc.cast %[[LOAD_1]] : (!cc.ptr<i8>) -> !cc.ptr<i64>
+// CHECK:           cc.store %[[STDVEC_SIZE_1]], %[[CAST_3]] : !cc.ptr<i64>
+// CHECK:           %[[STDVEC_DATA_0:.*]] = cc.stdvec_data %[[ARG1]] : (!cc.stdvec<i32>) -> !cc.ptr<!cc.array<i32 x ?>>
+// CHECK:           %[[COMPUTE_PTR_0:.*]] = cc.compute_ptr %[[CAST_1]][8] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+// CHECK:           %[[CAST_4:.*]] = cc.cast %[[COMPUTE_PTR_0]] : (!cc.ptr<i8>) -> !cc.ptr<i64>
+// CHECK:           cc.store %[[STDVEC_SIZE_0]], %[[CAST_4]] : !cc.ptr<i64>
+// CHECK:           %[[LOOP_0:.*]] = cc.loop while ((%[[VAL_1:.*]] = %[[CONSTANT_3]]) -> (i64)) {
+// CHECK:             %[[CMPI_1:.*]] = arith.cmpi slt, %[[VAL_1]], %[[STDVEC_SIZE_0]] : i64
+// CHECK:             cc.condition %[[CMPI_1]](%[[VAL_1]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_2:.*]]: i64):
+// CHECK:             %[[COMPUTE_PTR_1:.*]] = cc.compute_ptr %[[STDVEC_DATA_0]]{{\[}}%[[VAL_2]]] : (!cc.ptr<!cc.array<i32 x ?>>, i64) -> !cc.ptr<i32>
+// CHECK:             %[[LOAD_3:.*]] = cc.load %[[COMPUTE_PTR_1]] : !cc.ptr<i32>
+// CHECK:             %[[MULI_2:.*]] = arith.muli %[[VAL_2]], %[[CONSTANT_7]] : i64
+// CHECK:             %[[ADDI_2:.*]] = arith.addi %[[MULI_2]], %[[CONSTANT_8]] : i64
+// CHECK:             %[[COMPUTE_PTR_2:.*]] = cc.compute_ptr %[[CAST_1]]{{\[}}%[[ADDI_2]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+// CHECK:             %[[CAST_5:.*]] = cc.cast %[[COMPUTE_PTR_2]] : (!cc.ptr<i8>) -> !cc.ptr<i32>
+// CHECK:             cc.store %[[LOAD_3]], %[[CAST_5]] : !cc.ptr<i32>
+// CHECK:             cc.continue %[[VAL_2]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_3:.*]]: i64):
+// CHECK:             %[[ADDI_3:.*]] = arith.addi %[[VAL_3]], %[[CONSTANT_2]] : i64
+// CHECK:             cc.continue %[[ADDI_3]] : i64
+// CHECK:           } {invariant}
+// CHECK:           %[[COMPUTE_PTR_3:.*]] = cc.compute_ptr %[[CAST_1]]{{\[}}%[[ANDI_0]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+// CHECK:           %[[CAST_6:.*]] = cc.cast %[[COMPUTE_PTR_3]] : (!cc.ptr<i8>) -> !cc.ptr<i32>
+// CHECK:           cc.store %[[ARG2]], %[[CAST_6]] : !cc.ptr<i32>
+// CHECK:           %[[VAL_4:.*]] = call @__cudaq_device_call_dispatch_realtime_frame(%[[LOAD_0]], %[[ALLOCA_3]]) : (!cc.ptr<i8>, !cc.ptr<i64>) -> i32
+// CHECK:           %[[CMPI_2:.*]] = arith.cmpi ne, %[[VAL_4]], %[[CONSTANT_4]] : i32
+// CHECK:           cc.if(%[[CMPI_2]]) {
+// CHECK:             func.call @__cudaq_device_call_safely_release_realtime_frame(%[[LOAD_0]]) : (!cc.ptr<i8>) -> ()
+// CHECK:             %[[CAST_7:.*]] = cc.cast signed %[[VAL_4]] : (i32) -> i64
+// CHECK:             func.call @__quantum__qis__trap(%[[CAST_7]]) : (i64) -> ()
+// CHECK:           }
+// CHECK:           %[[LOAD_4:.*]] = cc.load %[[ALLOCA_3]] : !cc.ptr<i64>
+// CHECK:           %[[CMPI_3:.*]] = arith.cmpi ne, %[[LOAD_4]], %[[MULI_1]] : i64
+// CHECK:           cc.if(%[[CMPI_3]]) {
+// CHECK:             func.call @__cudaq_device_call_safely_release_realtime_frame(%[[LOAD_0]]) : (!cc.ptr<i8>) -> ()
+// CHECK:             func.call @__quantum__qis__trap(%[[CONSTANT_0]]) : (i64) -> ()
+// CHECK:           }
+// CHECK:           %[[STDVEC_DATA_1:.*]] = cc.stdvec_data %[[ARG0]] : (!cc.stdvec<i32>) -> !cc.ptr<!cc.array<i32 x ?>>
+// CHECK:           %[[CAST_8:.*]] = cc.cast %[[STDVEC_DATA_1]] : (!cc.ptr<!cc.array<i32 x ?>>) -> !cc.ptr<!cc.array<i8 x ?>>
+// CHECK:           %[[LOOP_1:.*]] = cc.loop while ((%[[VAL_5:.*]] = %[[CONSTANT_3]]) -> (i64)) {
+// CHECK:             %[[CMPI_4:.*]] = arith.cmpi slt, %[[VAL_5]], %[[MULI_1]] : i64
+// CHECK:             cc.condition %[[CMPI_4]](%[[VAL_5]] : i64)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_6:.*]]: i64):
+// CHECK:             %[[COMPUTE_PTR_4:.*]] = cc.compute_ptr %[[CAST_2]]{{\[}}%[[VAL_6]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+// CHECK:             %[[LOAD_5:.*]] = cc.load %[[COMPUTE_PTR_4]] : !cc.ptr<i8>
+// CHECK:             %[[COMPUTE_PTR_5:.*]] = cc.compute_ptr %[[CAST_8]]{{\[}}%[[VAL_6]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
+// CHECK:             cc.store %[[LOAD_5]], %[[COMPUTE_PTR_5]] : !cc.ptr<i8>
+// CHECK:             cc.continue %[[VAL_6]] : i64
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[VAL_7:.*]]: i64):
+// CHECK:             %[[ADDI_4:.*]] = arith.addi %[[VAL_7]], %[[CONSTANT_2]] : i64
+// CHECK:             cc.continue %[[ADDI_4]] : i64
+// CHECK:           } {invariant}
+// CHECK:           call @__cudaq_device_call_safely_release_realtime_frame(%[[LOAD_0]]) : (!cc.ptr<i8>) -> ()
+// CHECK:           return
+// CHECK:         }
+// CHECK:         func.func private @sumIntVector(!cc.stdvec<i32>, i32) -> i32 attributes {"cudaq-devicecall"}
+// CHECK:         func.func private @countBoolVector(!cc.stdvec<i1>) -> i32 attributes {"cudaq-devicecall"}
+// CHECK:         func.func private @enqueueMeasures(!cc.stdvec<!cc.measure_handle>, i64) attributes {"cudaq-devicecall"}
+// CHECK:         func.func private @getCorrections(!cc.stdvec<i1>, i1) attributes {"cudaq-devicecall"}
+// CHECK:         func.func private @incrementIntVector(!cc.stdvec<i32>, !cc.stdvec<i32>, i32) attributes {"cudaq-devicecall"}
+// CHECK:         func.func private @__cudaq_device_call_acquire_realtime_frame(i32, i32, i64, i64, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>, !cc.ptr<!cc.ptr<i8>>) -> i32
+// CHECK:         func.func private @__cudaq_device_call_dispatch_realtime_frame(!cc.ptr<i8>, !cc.ptr<i64>) -> i32
+// CHECK:         func.func private @__cudaq_device_call_safely_release_realtime_frame(!cc.ptr<i8>)
+// CHECK:         func.func private @__quantum__qis__trap(i64)
+func.func @stdvecI32OutputKernel(%arg0 : !cc.stdvec<i32>, %arg1 : !cc.stdvec<i32>, %arg2 : i32) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  cc.device_call @incrementIntVector(%arg0, %arg1, %arg2) : (!cc.stdvec<i32>, !cc.stdvec<i32>, i32) -> () {by_ref_vec_arg_indices = array<i64: 0>}
+  return
+}
+
+func.func private @sumIntVector(!cc.stdvec<i32>, i32) -> i32 attributes {"cudaq-devicecall"}
+func.func private @countBoolVector(!cc.stdvec<i1>) -> i32 attributes {"cudaq-devicecall"}
+func.func private @enqueueMeasures(!cc.stdvec<!cc.measure_handle>, i64) attributes {"cudaq-devicecall"}
+func.func private @getCorrections(!cc.stdvec<i1>, i1) attributes {"cudaq-devicecall"}
+func.func private @incrementIntVector(!cc.stdvec<i32>, !cc.stdvec<i32>, i32) attributes {"cudaq-devicecall"}

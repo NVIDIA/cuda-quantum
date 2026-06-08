@@ -36,6 +36,7 @@ protected:
   /// @brief Measure the qubit and return the result. Collapse the
   /// state vector.
   bool measureQubit(const std::size_t index) override {
+    resourceCounts.appendInstruction("mz", {}, std::vector<std::size_t>{index});
     assert(choice);
     auto measure = choice();
     CUDAQ_INFO("Measure of {} returned {}", index, measure);
@@ -85,14 +86,6 @@ public:
   void setToZeroState() override {
     resourceCounts.clear();
     prepopulated = false;
-  }
-
-  void configureExecutionContext(cudaq::ExecutionContext &context) override {
-    if (context.name != "resource-count")
-      throw std::runtime_error(
-          "Illegal use of resource counter simulator! (Did you attempt to run "
-          "a kernel inside of a choice function?)");
-    this->CircuitSimulatorBase::configureExecutionContext(context);
   }
 
   cudaq::Resources *getResourceCounts() { return &this->resourceCounts; }

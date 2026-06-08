@@ -15,7 +15,7 @@
 #include <map>
 
 namespace cudaq {
-namespace details {
+namespace detail {
 
 /// @brief The execution context of a server job.
 // Depending on the type, we may process the return data from the server
@@ -102,18 +102,18 @@ private:
 
 std::ostream &operator<<(std::ostream &os, future &f);
 std::istream &operator>>(std::istream &os, future &f);
-} // namespace details
+} // namespace detail
 
 /// @brief the async_result type is a user facing, future-like
 /// type that is returned from CUDA-Q public asynchronous
-/// API functions. It wraps a details::future type, which can
+/// API functions. It wraps a detail::future type, which can
 /// itself be constructed from a std::future or a collection of
 /// data pertinent to remote QPU REST invocation.
 template <typename T>
 class async_result {
 protected:
   /// @brief The future holding data required to get the results later.
-  details::future result;
+  detail::future result;
 
   /// @brief A spin operator, used for observe future tasks
   std::optional<spin_op> spinOp;
@@ -126,7 +126,7 @@ public:
       spinOp.value().canonicalize();
     }
   }
-  async_result(details::future &&f, const spin_op *op = nullptr)
+  async_result(detail::future &&f, const spin_op *op = nullptr)
       : result(std::move(f)) {
     if (op) {
       spinOp = *op;
@@ -203,5 +203,12 @@ using async_observe_result = async_result<observe_result>;
 
 /// @brief Return type for asynchronous sampling.
 using async_sample_result = async_result<sample_result>;
+
+/// @brief Wrapper for a policy to return an async_result.
+template <typename InnerPolicy>
+struct async_policy_wrapper {
+  InnerPolicy inner;
+  using result_type = async_result<typename InnerPolicy::result_type>;
+};
 
 } // namespace cudaq

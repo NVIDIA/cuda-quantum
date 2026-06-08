@@ -17,10 +17,10 @@
 #include <nanobind/stl/unordered_map.h>
 #include <nanobind/stl/vector.h>
 
-#include "cudaq/operators.h"
-#include "cudaq/operators/serialization.h"
 #include "py_helpers.h"
 #include "py_matrix_op.h"
+#include "cudaq/operators.h"
+#include "cudaq/operators/serialization.h"
 
 namespace cudaq {
 
@@ -166,7 +166,7 @@ void bindMatrixOperator(nanobind::module_ &mod) {
             dimension_map dims = dimensions.value_or(dimension_map());
             parameter_map pm = params.value_or(parameter_map());
             auto cmat = self.to_matrix(dims, pm, invert_order);
-            return details::cmat_to_numpy(cmat);
+            return detail::cmat_to_numpy(cmat);
           },
           nanobind::arg("dimensions").none() = nanobind::none(),
           nanobind::arg("parameters").none() = nanobind::none(),
@@ -183,9 +183,9 @@ void bindMatrixOperator(nanobind::module_ &mod) {
           [](const matrix_op &self, dimension_map dimensions,
              nanobind::kwargs kwargs) {
             bool invert_order;
-            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            auto pm = detail::kwargs_to_param_map(kwargs, invert_order);
             auto cmat = self.to_matrix(dimensions, pm, invert_order);
-            return details::cmat_to_numpy(cmat);
+            return detail::cmat_to_numpy(cmat);
           },
           "Returns the matrix representation of the operator."
           "The matrix is ordered according to the convention (endianness) "
@@ -197,9 +197,9 @@ void bindMatrixOperator(nanobind::module_ &mod) {
           "to_matrix",
           [](const matrix_op &self, nanobind::kwargs kwargs) {
             bool invert_order;
-            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            auto pm = detail::kwargs_to_param_map(kwargs, invert_order);
             auto cmat = self.to_matrix(dimension_map(), pm, invert_order);
-            return details::cmat_to_numpy(cmat);
+            return detail::cmat_to_numpy(cmat);
           },
           "Returns the matrix representation of the operator, passing "
           "parameters as keyword arguments.")
@@ -251,15 +251,7 @@ void bindMatrixOperator(nanobind::module_ &mod) {
       .def(nanobind::self -= matrix_op_term(), nanobind::is_operator())
       .def(nanobind::self *= nanobind::self, nanobind::is_operator())
       .def(nanobind::self += nanobind::self, nanobind::is_operator())
-// see issue https://github.com/pybind/pybind11/issues/1893
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wself-assign-overloaded"
-#endif
       .def(nanobind::self -= nanobind::self, nanobind::is_operator())
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 
       // right-hand arithmetics
 
@@ -340,7 +332,7 @@ void bindMatrixOperator(nanobind::module_ &mod) {
       .def(
           "trim",
           [](matrix_op &self, double tol, nanobind::kwargs kwargs) {
-            return self.trim(tol, details::kwargs_to_param_map(kwargs));
+            return self.trim(tol, detail::kwargs_to_param_map(kwargs));
           },
           "Removes all terms from the sum for which the absolute value of the "
           "coefficient is below "
@@ -467,7 +459,7 @@ void bindMatrixOperator(nanobind::module_ &mod) {
             dimension_map dims = dimensions.value_or(dimension_map());
             parameter_map pm = params.value_or(parameter_map());
             auto cmat = self.to_matrix(dims, pm, invert_order);
-            return details::cmat_to_numpy(cmat);
+            return detail::cmat_to_numpy(cmat);
           },
           nanobind::arg("dimensions").none() = nanobind::none(),
           nanobind::arg("parameters").none() = nanobind::none(),
@@ -483,9 +475,9 @@ void bindMatrixOperator(nanobind::module_ &mod) {
           [](const matrix_op_term &self, dimension_map dimensions,
              nanobind::kwargs kwargs) {
             bool invert_order;
-            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            auto pm = detail::kwargs_to_param_map(kwargs, invert_order);
             auto cmat = self.to_matrix(dimensions, pm, invert_order);
-            return details::cmat_to_numpy(cmat);
+            return detail::cmat_to_numpy(cmat);
           },
           "Returns the matrix representation of the operator."
           "The matrix is ordered according to the convention (endianness) "
@@ -497,9 +489,9 @@ void bindMatrixOperator(nanobind::module_ &mod) {
           "to_matrix",
           [](const matrix_op_term &self, nanobind::kwargs kwargs) {
             bool invert_order;
-            auto pm = details::kwargs_to_param_map(kwargs, invert_order);
+            auto pm = detail::kwargs_to_param_map(kwargs, invert_order);
             auto cmat = self.to_matrix(dimension_map(), pm, invert_order);
-            return details::cmat_to_numpy(cmat);
+            return detail::cmat_to_numpy(cmat);
           },
           "Returns the matrix representation of the operator, passing "
           "parameters as keyword arguments.")

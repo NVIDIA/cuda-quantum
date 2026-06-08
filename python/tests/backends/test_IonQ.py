@@ -394,6 +394,26 @@ def test_shot_wise_output(mock_target, mock_noise, memory, expect_shots):
 
 
 @pytest.mark.skip_macos_arm64_jit
+def test_ionq_dem_from_kernel_target_independent():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qubit()
+        x(q)
+        cudaq.apply_noise(cudaq.XError, 0.1, q)
+        m = mz(q)
+        cudaq.detector(m)
+
+    noise = cudaq.NoiseModel()
+    dem_text = cudaq.dem_from_kernel(kernel, noise_model=noise)
+    assert "error(0.1" in dem_text
+    assert "D0" in dem_text
+
+    counts = cudaq.sample(kernel)
+    assert counts['1'] == 1000
+
+
+@pytest.mark.skip_macos_arm64_jit
 def test_ionq_estimate_resources_with_kernel_launch_in_choice():
     # Regression: a `choice` callback that itself launches a kernel via
     # `cudaq::sample` while `cudaq::estimate_resources` is in flight must

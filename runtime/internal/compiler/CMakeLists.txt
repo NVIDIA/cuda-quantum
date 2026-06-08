@@ -44,7 +44,7 @@ target_link_libraries(cudaq-mlir-runtime
   PRIVATE
     cudaq-common
     $<$<NOT:$<PLATFORM_ID:Darwin>>:cudaq-qir-verifier>
-    CUDAQTargetConfigUtil
+    CUDAQTargetConfig
     cudaq-logger
     fmt::fmt-header-only
 )
@@ -60,6 +60,7 @@ else()
   target_link_libraries(cudaq-mlir-runtime
     PRIVATE
       CCDialect
+      QECDialect
       QuakeDialect
       OptCodeGen
       OptTransforms

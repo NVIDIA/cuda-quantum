@@ -20,9 +20,6 @@ config:
   # Add preprocessor defines to compilation
   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
 
-  # Library mode must be off for remote backends.
-  library-mode: false
-
   # Add the rest-qpu library to the link list
   link-libs: ["-lcudaq-rest-qpu"]
 

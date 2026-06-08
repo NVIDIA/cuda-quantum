@@ -24,6 +24,13 @@ public:
   KernelThunkResultType unifiedLaunchModule(const cudaq::AnyModule &module,
                                             cudaq::KernelArgs args) override;
 
+  sample_result launchKernel(sample_policy &policy, const AnyModule &module,
+                             KernelArgs args) override;
+
+  async_sample_result launchKernel(async_sample_policy &policy,
+                                   const AnyModule &module,
+                                   KernelArgs args) override;
+
   void configureExecutionContext(ExecutionContext &context) const override;
   void beginExecution() override;
   void endExecution() override;

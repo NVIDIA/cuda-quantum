@@ -20,6 +20,20 @@ public:
   RemoteRESTQPU() : BaseRemoteRESTQPU() {}
   RemoteRESTQPU(RemoteRESTQPU &&) = delete;
   ~RemoteRESTQPU() override;
+
+  /// @brief Launch the kernel. Extract the Quake code and lower to the
+  /// representation required by the targeted backend. Handle all pertinent
+  /// modifications for the execution context as well as asynchronous or
+  /// synchronous invocation.
+  KernelThunkResultType unifiedLaunchModule(const AnyModule &module,
+                                            KernelArgs args) override;
+
+  sample_result launchKernel(sample_policy &policy, const AnyModule &module,
+                             KernelArgs args) override;
+
+  async_sample_result launchKernel(async_sample_policy &policy,
+                                   const AnyModule &module,
+                                   KernelArgs args) override;
 };
 
 } // namespace cudaq

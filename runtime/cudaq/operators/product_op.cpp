@@ -15,9 +15,9 @@
 #include <utility>
 
 #include "common/EigenSparse.h"
-#include "cudaq/operators.h"
 #include "evaluation.h"
 #include "helpers.h"
+#include "cudaq/operators.h"
 
 namespace cudaq {
 

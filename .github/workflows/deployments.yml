@@ -76,7 +76,6 @@ jobs:
       pull_request_base: ${{ steps.pr_info.outputs.pr_base }}
       pull_request_commit: ${{ steps.pr_info.outputs.merge_commit }}
       llvm_commit: ${{ steps.build_config.outputs.llvm_commit }}
-      pybind11_commit: ${{ steps.build_config.outputs.pybind11_commit }}
       nanobind_commit: ${{ steps.build_config.outputs.nanobind_commit }}
       cache_base: ${{ steps.build_info.outputs.cache_base }}
       cache_target: ${{ steps.build_info.outputs.cache_target }}
@@ -189,7 +188,6 @@ jobs:
         id: build_config
         run: |
           echo "llvm_commit=$(git rev-parse @:./tpls/llvm)" >> $GITHUB_OUTPUT
-          echo "pybind11_commit=$(git rev-parse @:./tpls/pybind11)" >> $GITHUB_OUTPUT
           echo "nanobind_commit=$(git rev-parse @:./tpls/nanobind)" >> $GITHUB_OUTPUT
 
           if ${{ github.event_name != 'workflow_run' || steps.pr_info.outputs.pr_number != '' }}; then
@@ -252,7 +250,6 @@ jobs:
         toolchain=gcc12
         distro=rhel8
         llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
-        pybind11_commit=${{ needs.metadata.outputs.pybind11_commit }}
         nanobind_commit=${{ needs.metadata.outputs.nanobind_commit }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
@@ -378,23 +375,6 @@ jobs:
       - name: Print config.outputs.json
         run: |
           echo '${{ steps.read_json.outputs.result }}'
-
-  coverage:
-    name: Update code coverage
-    if: ${{ ! inputs.devcontainer_only }}
-    needs: [metadata, config]
-    strategy:
-      matrix:
-        platform: [amd64]
-        toolchain: [llvm]
-      fail-fast: false
-    uses: ./.github/workflows/generate_cc.yml
-    secrets:
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-    with:
-      platform: linux/${{ matrix.platform }}
-      devdeps_image: ${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-{1}', matrix.platform, matrix.toolchain)] }}
-      export_environment: false
 
   extdevdeps:
     name: Create dev environment
@@ -622,6 +602,17 @@ jobs:
           set -euo pipefail
           DIGESTS_JSON='${{ steps.metadata.outputs.digests_json }}'
 
+          # Retry registry-hitting commands; nvcr.io/ghcr.io occasionally
+          # return transient 5xx from their auth/proxy endpoints.
+          retry() {
+            for n in 1 2 3 4 5; do
+              "$@" && return 0
+              [ "$n" -eq 5 ] && return 1
+              echo "Command '$*' failed (attempt $n/5); retrying in $((10*n))s..." >&2
+              sleep $((10*n))
+            done
+          }
+
           cuda="${{ matrix.cuda }}"
           cuda_major="${cuda%%.*}"
 
@@ -644,8 +635,8 @@ jobs:
           echo "Stitching debug image with tag: $stitched_tag"
           echo "References: $refs"
 
-          docker buildx imagetools create --tag "$stitched_tag" $refs
-          digest=$(docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }')
+          retry docker buildx imagetools create --tag "$stitched_tag" $refs
+          digest=$(retry docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }')
           stitched_output=$(cat stitched_digests.json 2>/dev/null || echo '{}')
           stitched_output=$(echo "$stitched_output" | jq --arg key "dev-cu${cuda_major}" --arg val "$registry@$digest" '. + {($key): $val}')
           echo "$stitched_output" | tee stitched_digests.json
@@ -654,6 +645,17 @@ jobs:
         run: |
           set -euo pipefail
           DIGESTS_JSON='${{ steps.metadata.outputs.digests_json }}'
+
+          # Retry registry-hitting commands; nvcr.io/ghcr.io occasionally
+          # return transient 5xx from their auth/proxy endpoints.
+          retry() {
+            for n in 1 2 3 4 5; do
+              "$@" && return 0
+              [ "$n" -eq 5 ] && return 1
+              echo "Command '$*' failed (attempt $n/5); retrying in $((10*n))s..." >&2
+              sleep $((10*n))
+            done
+          }
 
           cuda="${{ matrix.cuda }}"
           cuda_major="${cuda%%.*}"
@@ -688,7 +690,7 @@ jobs:
             image_tag+=pr-${pr_number}
           elif ${{ github.ref_type == 'branch' && github.ref_name == 'main' }}; then
             image_tag+="latest"
-          elif "$is_versioned" == "true"; then
+          elif [[ "$is_versioned" == "true" ]]; then
             image_tag+=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
           else
             image_tag+=`echo ${{ github.ref_name }} | tr '/' '-'`
@@ -702,8 +704,8 @@ jobs:
           echo "Stitching release image with tag: $stitched_tag"
           echo "References: $refs"
 
-          docker buildx imagetools create --tag "$stitched_tag" $refs
-          digest=$(docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }')
+          retry docker buildx imagetools create --tag "$stitched_tag" $refs
+          digest=$(retry docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }')
           stitched_output=$(cat stitched_digests.json 2>/dev/null || echo '{}')
           stitched_output=$(echo "$stitched_output" | jq --arg key "base-cu${cuda_major}" --arg val "$registry@$digest" '. + {($key): $val}')
           echo "$stitched_output" | tee stitched_digests.json

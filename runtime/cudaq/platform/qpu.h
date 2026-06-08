@@ -13,6 +13,9 @@
 #include "common/KernelArgs.h"
 #include "common/Registry.h"
 #include "common/ThunkInterface.h"
+#include "cudaq/Target/CompileTarget.h"
+#include "cudaq/algorithms/policies.h"
+#include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/remote_capabilities.h"
 
 namespace mlir {
@@ -141,11 +144,31 @@ public:
                          cudaq::optimizer &optimizer, const int n_params,
                          const std::size_t shots) {}
 
+  virtual sample_result launchKernel(sample_policy &policy,
+                                     const AnyModule &module, KernelArgs args);
+
+  virtual async_sample_result launchKernel(async_sample_policy &policy,
+                                           const AnyModule &module,
+                                           KernelArgs args);
+
   [[nodiscard]] virtual KernelThunkResultType
   unifiedLaunchModule(const AnyModule &module, KernelArgs args);
 
+  /// Get the compile target of the QPU
+  // Overload for sample policy
+  [[nodiscard]] virtual std::unique_ptr<CompileTarget>
+  getCompileTarget(sample_policy &policy);
+  // Overload for currently unsupported policies (to be removed).
+  [[nodiscard]] virtual std::unique_ptr<CompileTarget>
+  getCompileTarget(ExecutionContext *context);
+
   [[nodiscard]] virtual CompiledModule
   compileModule(const SourceModule &src, KernelArgs args, bool isEntryPoint);
+
+  [[nodiscard]] virtual CompiledModule compileModule(sample_policy &,
+                                                     const SourceModule &src,
+                                                     KernelArgs args,
+                                                     bool isEntryPoint);
 
   /// @brief Notify the QPU that a new random seed value is set.
   /// By default do nothing, let subclasses override.
@@ -159,6 +182,9 @@ struct ModuleLauncher : public registry::RegisteredType<ModuleLauncher> {
   /// CompiledModule.
   virtual CompiledModule compileModule(const SourceModule &src, KernelArgs args,
                                        bool isEntryPoint) = 0;
+
+  virtual std::unique_ptr<CompileTarget>
+  getCompileTarget(ExecutionContext *context) = 0;
 };
 
 } // namespace cudaq

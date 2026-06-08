@@ -38,7 +38,7 @@ int num_ranks();
 /// @brief Return true if MPI is already initialized, false otherwise.
 bool is_initialized();
 
-namespace details {
+namespace detail {
 #define CUDAQ_ALL_REDUCE_DEF(TYPE, BINARY)                                     \
   TYPE allReduce(const TYPE &, const BINARY<TYPE> &);
 
@@ -48,12 +48,12 @@ CUDAQ_ALL_REDUCE_DEF(float, std::multiplies)
 CUDAQ_ALL_REDUCE_DEF(double, std::plus)
 CUDAQ_ALL_REDUCE_DEF(double, std::multiplies)
 
-} // namespace details
+} // namespace detail
 
 /// @brief Reduce all values across ranks with the specified binary function.
 template <typename T, typename BinaryFunction>
 T all_reduce(const T &localValue, const BinaryFunction &function) {
-  return details::allReduce(localValue, function);
+  return detail::allReduce(localValue, function);
 }
 
 /// @brief Gather all vector data (floating point numbers) locally into the
