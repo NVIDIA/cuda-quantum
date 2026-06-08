@@ -160,8 +160,8 @@ enum class RotationAxis { X, Y, Z };
 namespace detail {
 
 template <typename Kernel>
-void applyAxisRotation(Kernel &kernel, RotationAxis axis, QuakeValue &theta,
-                       QuakeValue &qubit) {
+void applyAxisRotation(Kernel &kernel, RotationAxis axis, QuakeValue theta,
+                       QuakeValue qubit) {
   switch (axis) {
   case RotationAxis::X:
     kernel.rx(theta, qubit);
@@ -177,7 +177,7 @@ void applyAxisRotation(Kernel &kernel, RotationAxis axis, QuakeValue &theta,
 
 template <typename Kernel>
 void applyAxisRotation(Kernel &kernel, RotationAxis axis, double theta,
-                       QuakeValue &qubit) {
+                       QuakeValue qubit) {
   switch (axis) {
   case RotationAxis::X:
     kernel.rx(theta, qubit);

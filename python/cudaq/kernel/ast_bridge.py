@@ -415,7 +415,7 @@ class PyASTBridge(ast.NodeVisitor):
         return name in self.cudaqAliases
 
     def cudaqContribCallAttr(self, node):
-        """Return the contrib attribute name for ``cudaq.contrib.<name>(...)``."""
+        """Return the ``contrib`` attribute name for ``cudaq.contrib.<name>(...)``."""
         if not isinstance(node.func, ast.Attribute):
             return None
         inner = node.func.value

@@ -25,19 +25,19 @@ namespace contrib {
 /// \f$\mathbf{x} = (x_0, \ldots, x_{d-1})\f$ (real or complex), the procedure
 /// is:
 ///
-/// 1. **Pad** to length \f$N = 2^n\f$ with \f$n = \lceil \log_2 d \rceil\f$.
+/// 1. **Pad** to length \f$N = 2^n\f$ for the smallest \f$n\f$ with \f$2^n \ge
+/// d\f$.
 ///    The padded vector \f$\mathbf{x}'\f$ satisfies \f$x'_i = x_i\f$ for
 ///    \f$i < d\f$ and \f$x'_i = \texttt{pad}\f$ for \f$d \le i < N\f$.
 ///
-/// 2. **Normalize** with the Euclidean (L2) norm
-///    \f$\|\mathbf{x}'\|_2 = \sqrt{\sum_{i=0}^{N-1} |x'_i|^2}\f$ (must be
-///    non-zero). Coefficients are \f$\alpha_i = x'_i / \|\mathbf{x}'\|_2\f$.
+/// 2. **Normalize** with the Euclidean (L2) norm (must be non-zero).
+///    Coefficients are \f$α_i = x'_i / \|\mathbf{x}'\|_2\f$.
 ///
 /// 3. **Form the state** in the \f$n\f$-qubit computational basis:
-///    \f$|\psi\rangle = \sum_{i=0}^{N-1} \alpha_i |i\rangle\f$, where
-///    \f$|i\rangle\f$ is the basis ket with index \f$i\f$ in binary.
+///    \f$|\psi\rangle = \sum_{i=0}^{N-1} α_i |i\rangle\f$, where
+///    \f$|i\rangle\f$ is the basis ``ket`` with index \f$i\f$ in binary.
 ///
-/// The returned ``cudaq::state`` stores \f$\alpha_i\f$ in little-endian index
+/// The returned ``cudaq::state`` stores \f$α_i\f$ in little-endian index
 /// order (consistent with ``qvector(state)``). Real inputs are promoted to
 /// complex amplitudes with zero imaginary part before padding.
 ///

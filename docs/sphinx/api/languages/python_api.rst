@@ -74,7 +74,7 @@ Kernel Execution
 .. autofunction:: cudaq::estimate_resources
 .. autofunction:: cudaq::dem_from_kernel
 
-Contrib
+``cudaq.contrib``
 =============================
 
 Quantum Embeddings

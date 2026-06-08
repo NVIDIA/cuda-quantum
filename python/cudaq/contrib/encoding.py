@@ -77,19 +77,19 @@ def amplitude_encode(
     :math:`\mathbf{x} = (x_0, \ldots, x_{d-1})` (real or complex), the
     procedure is:
 
-    1. **Pad** to length :math:`N = 2^n` with :math:`n = \lceil \log_2 d \rceil`.
+    1. **Pad** to length :math:`N = 2^n` for the smallest :math:`n` with
+       :math:`N \ge d`.
        The padded vector :math:`\mathbf{x}'` satisfies :math:`x'_i = x_i` for
        :math:`i < d` and :math:`x'_i = \texttt{pad}` for :math:`d \le i < N`.
 
-    2. **Normalize** with the Euclidean (L2) norm
-       :math:`\|\mathbf{x}'\|_2 = \sqrt{\sum_{i=0}^{N-1} |x'_i|^2}` (must be
-       non-zero). Coefficients are :math:`\alpha_i = x'_i / \|\mathbf{x}'\|_2`.
+    2. **Normalize** with the Euclidean (L2) norm (must be non-zero).
+       Coefficients are :math:`α_i = x'_i / \|\mathbf{x}'\|_2`.
 
     3. **Form the state** in the :math:`n`-qubit computational basis:
-       :math:`|\psi\rangle = \sum_{i=0}^{N-1} \alpha_i |i\rangle`, where
-       :math:`|i\rangle` is the basis ket with index :math:`i` in binary.
+       :math:`|\psi\rangle = \sum_{i=0}^{N-1} α_i |i\rangle`, where
+       :math:`|i\rangle` is the basis ``ket`` with index :math:`i` in binary.
 
-    The returned :class:`State` stores :math:`\alpha_i` in little-endian index
+    The returned :class:`State` stores :math:`α_i` in little-endian index
     order (consistent with ``cudaq.State`` / ``qvector(state)``). Real inputs are
     promoted to complex amplitudes with zero imaginary part before padding.
 
@@ -111,7 +111,7 @@ def amplitude_encode(
     # Example:
     For ``data = [0.5, 0.5, 0.5]`` and ``pad = 0``, padding gives
     :math:`\mathbf{x}' = (0.5, 0.5, 0.5, 0)` and
-    :math:`|\psi\rangle = \frac{1}{\sqrt{3}}(|0\rangle + |1\rangle + |2\rangle)`.
+    :math:`|\psi\rangle = (|0\rangle + |1\rangle + |2\rangle) / √3`.
 
     ``state = cudaq.contrib.amplitude_encode([0.5, 0.5, 0.5], pad=0)``
     """
@@ -199,30 +199,30 @@ def angular_encode(kernel_or_q, q_or_angles, angles=None, *, rotation='Y'):
     Encode classical features as single-qubit rotation gates inside a kernel.
 
     Angular (rotation) encoding maps a classical angle vector
-    :math:`\boldsymbol{\theta} = (\theta_0, \ldots, \theta_{n-1})` to an
+    (:math:`θ_0`, :math:`\ldots`, :math:`θ_{n-1}`) to an
     :math:`n`-qubit product state by applying one parameterized rotation per
-    qubit. Starting from :math:`|0\rangle^{\otimes n}`, the encoded state is
+    qubit. Starting from the :math:`n`-fold product of :math:`|0\rangle`, the
+    encoded state is
 
     .. math::
 
        |\psi\rangle
-       = \bigotimes_{i=0}^{n-1} R_{\mathrm{axis}}(\theta_i)\,|0\rangle
-       = \prod_{i=0}^{n-1} R_{\mathrm{axis}}(\theta_i)\,|0\rangle_i,
+       = \prod_{i=0}^{n-1} R_{\mathrm{axis}}(θ_i)\,|0\rangle_i,
 
-    where the product applies :math:`R_{\mathrm{axis}}(\theta_i)` on qubit
+    where the product applies :math:`R_{\mathrm{axis}}(θ_i)` on qubit
     :math:`i` and leaves other qubits unchanged. CUDA-Q uses the standard Pauli
     rotation convention
 
     .. math::
 
-       R_P(\theta) = e^{-i \theta P / 2}, \quad P \in \{X, Y, Z\},
+       R_P(θ) = e^{-i θ P / 2}, \quad P \in \{X, Y, Z\},
 
     implemented as ``rx(θ)``, ``ry(θ)``, or ``rz(θ)`` when
     ``rotation`` is ``'X'``, ``'Y'``, or ``'Z'`` respectively (default ``'Y'``).
 
     For example, ``rotation='Y'`` on qubit :math:`i` gives
-    :math:`R_Y(\theta_i)|0\rangle = \cos(\theta_i/2)|0\rangle +
-    \sin(\theta_i/2)|1\rangle`.
+    :math:`R_Y(θ_i)|0\rangle = \cos(θ_i/2)|0\rangle +
+    \sin(θ_i/2)|1\rangle`.
 
     The number of angles must match the number of qubits in ``q`` when the
     register size is known at compile time.

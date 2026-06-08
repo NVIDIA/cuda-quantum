@@ -25,7 +25,6 @@ Cartesian
 CentOS
 Conda
 ConnectX
-Contrib
 CuPy
 DCO
 DGX
@@ -208,7 +207,6 @@ canonicalization
 canonicalize
 canonicalizer
 canonicalizes
-ceil
 centroid
 centroids
 codebase
@@ -217,7 +215,6 @@ comparators
 composability
 composable
 constructible
-contrib
 controlled
 coprocessing
 coprocessor
@@ -291,10 +288,8 @@ hadamard
 hamiltonian
 handoff
 heisenberg
-heta
 homogenous
 iff
-igotimes
 increment
 incrementing
 initializer
@@ -310,10 +305,8 @@ interoperational
 intrinsics
 iterable
 iteratively
-ket
 kets
 krylov
-lceil
 libunwind
 linker
 linkers
@@ -322,7 +315,6 @@ lookup
 lookups
 loopback
 lossy
-lpha
 lvalue
 macOS
 makefiles
@@ -343,7 +335,6 @@ nvq
 observables
 optimizer
 optimizers
-otimes
 pagerank
 parallelization
 parallelize
@@ -376,7 +367,6 @@ qudits
 queryable
 qumode
 qumodes
-rac
 reStructuredText
 realtime
 reconfigurable
@@ -400,7 +390,6 @@ shifters
 splitter
 splitters
 sqale
-sqrt
 statevector
 struct
 structs
