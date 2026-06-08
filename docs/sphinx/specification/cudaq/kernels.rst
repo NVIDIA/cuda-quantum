@@ -59,6 +59,12 @@ Kernels can be composed of the following:
   * Classical control flow constructs from the classical language (:code:`if`, :code:`for`, :code:`while`, etc.)
   * Stack variable declarations for supported types. 
   * Arithmetic operations on integer and floating point stack variables
+  * Calls to a defined set of standard mathematical functions on floating-point
+    operands: the real-valued, angle-producing functions :code:`sin`,
+    :code:`cos`, :code:`tan`, :code:`asin`, :code:`acos`, :code:`atan`,
+    :code:`sqrt`, :code:`exp`, and :code:`log` (in C++, the corresponding
+    :code:`std::` functions; in Python, the corresponding :code:`numpy`
+    functions)
   * Coherent conditional execution - :code:`if ( boolExprFromQubitMeasurement ) { x (another_qubit); }` 
   * Syntax for common quantum programming patterns (e.g. compute-action-uncompute).
 
