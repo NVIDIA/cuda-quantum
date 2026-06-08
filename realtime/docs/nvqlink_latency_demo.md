@@ -1,21 +1,13 @@
 # Steps to execute the NVQLink latency demo
 
-The HSB 2.6.0-EA RFSoC files are split across two locations. The
-[HSB 2.6.0-EA artifact directory](https://edge.urm.nvidia.com/artifactory/sw-holoscan-thirdparty-generic-local/QEC/HSB-2.6.0-EA/)
-contains the pre-built `nvqlink_rfsoc_v2603.bit` bit-file and the
-`pynq_rfsoc_2603_EA_release.zip` RFSoC PYNQ reference-design archive.
-The zip archive contains the RFSoC top-level RTL, Vivado build scripts,
-Integrated Logic Analyzer (`ILA`) and latency scripts, and a pre-built
-`pynq_rfsoc_v2603.bit`, but it does not contain the `nv_hsb_ip` source
-directory required by the archive's build instructions.
+Start from the HSB FPGA artifacts described in the
+[CUDA-Q Realtime installation docs](https://nvidia.github.io/cuda-quantum/latest/using/realtime/installation.html#realtime-hsb-fpga-artifacts).
+For this demo, use the packaged RFSoC PYNQ reference design and place the
+matching `nv_hsb_ip` RTL source as described there.
 
-Download the matching `nv_hsb_ip` source directory from the
-[Holoscan Sensor Bridge `release-2.6.0-EA` branch](https://github.com/nvidia-holoscan/holoscan-sensor-bridge/tree/release-2.6.0-EA/fpga/nv_hsb_ip).
-When building the RFSoC project from the PYNQ archive, place `nv_hsb_ip`
-as a sibling of the archive's `pynq` directory. Do not mix `nv_hsb_ip`
-from an older HSB release with the HSB 2.6.0-EA RFSoC files.
-The included RFSoC PYNQ build project targets `xczu48dr-ffvg1517-2-e`;
-for another RFSoC part, update `pynq/rfsoc-pynq/build/build.tcl` and constraints.
+The RFSoC PYNQ archive contains the top-level RTL, Vivado build scripts,
+Integrated Logic Analyzer (`ILA`) and latency scripts, and the pre-built
+bit-file for the packaged RFSoC example.
 
 More details about how the `Holoscan Sensor Bridge` (`HSB`) IP can be incorporated
 can be found [here](https://docs.nvidia.com/holoscan/sensor-bridge/latest/fpga_index.html)
@@ -30,7 +22,7 @@ the capabilities required.
 
 ## Steps to do the experiment
 
-1. Load the bit-file into the FPGA.
+1. Load the packaged RFSoC example bit-file into the FPGA.
 2. Setup the host to run the experiment.
 Mainly the IP address of the NIC needs to be set to `192.168.0.101`.
 More details can be found at the
