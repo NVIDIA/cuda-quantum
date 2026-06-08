@@ -815,8 +815,10 @@ class PyASTBridge(ast.NodeVisitor):
             type) or F32Type.isinstance(type) or ComplexType.isinstance(type)
 
     def __isSupportedNumpyFunction(self, id):
-        return id in ['sin', 'cos', 'tan', 'asin', 'acos', 'atan',
-                      'sqrt', 'ceil', 'exp', 'log']
+        return id in [
+            'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'sqrt', 'ceil', 'exp',
+            'log'
+        ]
 
     def __isSupportedVectorFunction(self, id):
         return id in ['front', 'back', 'append']
