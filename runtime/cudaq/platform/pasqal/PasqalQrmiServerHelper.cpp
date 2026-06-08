@@ -26,6 +26,8 @@ PasqalQrmiServerHelper::ModeConfig PasqalQrmiServerHelper::resolveConfig() {
         "Pasqal QRMI mode requires QRMI_JOB_QPU_RESOURCES or legacy "
         "SLURM_JOB_QPU_RESOURCES.");
   }
+  // QRMI can expose multiple requested resources. CUDA-Q's Pasqal integration
+  // currently targets a single backend, so use the first resource for now.
   modeConfig.backendName = resources.front();
   if (modeConfig.backendName.empty())
     throw std::runtime_error("Pasqal QRMI mode requires a backend name, but "
