@@ -43,6 +43,8 @@ T convertBitsToBytes(T bits) {
   return (bits + 7) / 8;
 }
 
+constexpr const char disableQubitCombineAttrName[] = "cc.no_qubit_combine";
+
 namespace factory {
 
 constexpr const char targetTripleAttrName[] = "llvm.triple";

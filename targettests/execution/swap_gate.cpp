@@ -16,7 +16,7 @@
 // RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
 // RUN: if %braket_avail; then nvq++ --target braket --emulate %s -o %t && %t | FileCheck %s; fi
 // RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t | FileCheck %s; fi
-// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include "cudaq.h"

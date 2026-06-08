@@ -25,7 +25,7 @@ namespace cudaq {
 bool isTimingTagEnabled(int tag);
 
 // Keep all spdlog headers hidden in the implementation file.
-namespace details {
+namespace detail {
 // This enum must match spdlog::level enums. This is checked via static_assert
 // in logger.cpp.
 enum class LogLevel { trace, debug, info, warn, error };
@@ -70,7 +70,7 @@ void logMessage(LogLevel logLevel, const std::string_view message,
                        packedArgs.data(), packedArgs.size()),
                    fileName, lineNo);
 }
-} // namespace details
+} // namespace detail
 
 /// These types seek to enable automated injection of the source location of the
 /// `cudaq::info()` or `debug()` call. The actual formatting is out-of-line in
@@ -81,9 +81,9 @@ void logMessage(LogLevel logLevel, const std::string_view message,
     NAME(const std::string_view message, Args &&...args,                       \
          const char *fileName = __builtin_FILE(),                              \
          int lineNo = __builtin_LINE()) {                                      \
-      if (details::should_log(details::LogLevel::NAME))                        \
-        details::logMessage(details::LogLevel::NAME, message, fileName,        \
-                            lineNo, std::forward<Args>(args)...);              \
+      if (detail::should_log(detail::LogLevel::NAME))                          \
+        detail::logMessage(detail::LogLevel::NAME, message, fileName, lineNo,  \
+                           std::forward<Args>(args)...);                       \
     }                                                                          \
   };                                                                           \
   template <typename... Args>                                                  \
@@ -108,7 +108,7 @@ template <typename... Args>
 void log(const std::string_view message, Args &&...args) {
   std::array<cudaq_fmt::FormatArgument, sizeof...(Args)> packedArgs{
       cudaq_fmt::FormatArgument(std::forward<Args>(args))...};
-  details::logWithTimestampPacked(
+  detail::logWithTimestampPacked(
       message, std::span<const cudaq_fmt::FormatArgument>(packedArgs.data(),
                                                           packedArgs.size()));
 }
@@ -141,7 +141,7 @@ private:
         for (std::size_t i = 0; i < nArgs; i++)
           argsMsg += (i != nArgs - 1) ? "{}, " : "{}}})";
       }
-      return details::formatMessage(argsMsg, std::forward<Args>(args)...);
+      return detail::formatMessage(argsMsg, std::forward<Args>(args)...);
     }
   }
 
@@ -151,7 +151,7 @@ public:
   ScopedTrace(TraceContext ctx, const int tag, const std::string &name,
               Args &&...args) {
     const bool tagFound = (tag != 0) && cudaq::isTimingTagEnabled(tag);
-    if (!tagFound && !details::should_log(details::LogLevel::trace) &&
+    if (!tagFound && !detail::should_log(detail::LogLevel::trace) &&
         !Tracer::instance().isCaptureEnabled())
       return;
     std::string argsMsg = formatArgsMsg(tagFound, std::forward<Args>(args)...);
@@ -177,14 +177,14 @@ public:
 
 #define CUDAQ_WARN(...)                                                        \
   do {                                                                         \
-    if (::cudaq::details::should_log(::cudaq::details::LogLevel::warn)) {      \
+    if (::cudaq::detail::should_log(::cudaq::detail::LogLevel::warn)) {        \
       ::cudaq::warn(__VA_ARGS__);                                              \
     }                                                                          \
   } while (false)
 
 #define CUDAQ_INFO(...)                                                        \
   do {                                                                         \
-    if (::cudaq::details::should_log(::cudaq::details::LogLevel::info)) {      \
+    if (::cudaq::detail::should_log(::cudaq::detail::LogLevel::info)) {        \
       ::cudaq::info(__VA_ARGS__);                                              \
     }                                                                          \
   } while (false)
@@ -192,7 +192,7 @@ public:
 #ifdef CUDAQ_DEBUG
 #define CUDAQ_DBG(...)                                                         \
   do {                                                                         \
-    if (::cudaq::details::should_log(::cudaq::details::LogLevel::debug)) {     \
+    if (::cudaq::detail::should_log(::cudaq::detail::LogLevel::debug)) {       \
       ::cudaq::debug(__VA_ARGS__);                                             \
     }                                                                          \
   } while (false)
@@ -223,6 +223,6 @@ public:
 //     std::filesystem::path file = loc.file_name();
 //     msg = "[" + file.filename().string() + ":" + std::to_string(loc.line()) +
 //           "] " + msg;
-//     details::info(msg);
+//     detail::info(msg);
 //   }
 // };

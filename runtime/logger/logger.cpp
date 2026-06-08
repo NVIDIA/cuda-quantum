@@ -100,7 +100,7 @@ __attribute__((constructor)) void initializeLogger() {
   configureTracerFromEnv();
 }
 
-namespace details {
+namespace detail {
 void trace(const std::string_view msg) { spdlog::trace(msg); }
 void info(const std::string_view msg) { spdlog::info(msg); }
 void warn(const std::string_view msg) { spdlog::warn(msg); }
@@ -150,7 +150,7 @@ std::string pathToFileName(const std::string_view fullFilePath) {
 void logMessagePacked(LogLevel logLevel, const std::string_view message,
                       const std::span<const cudaq_fmt::FormatArgument> &args,
                       const char *fileName, int lineNo) {
-  auto msg = cudaq_fmt::details::format_packed(message, args);
+  auto msg = cudaq_fmt::detail::format_packed(message, args);
   msg = "[" + pathToFileName(fileName) + ":" + std::to_string(lineNo) + "] " +
         msg;
 
@@ -185,10 +185,10 @@ void logWithTimestampPacked(
                    now_tm.tm_hour, now_tm.tm_min,
                    std::chrono::round<std::chrono::milliseconds>(
                        timestamp.time_since_epoch()),
-                   cudaq_fmt::details::format_packed(message, args));
+                   cudaq_fmt::detail::format_packed(message, args));
 }
 
-} // namespace details
+} // namespace detail
 } // namespace cudaq
 
 namespace cudaq_fmt {
@@ -264,7 +264,7 @@ CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(std::vector<std::complex<double>>);
 #undef CUDAQ_INSTANTIATE_FORMAT_ARGUMENT
 #undef CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT
 
-namespace details {
+namespace detail {
 
 void print_packed(const std::string_view message,
                   const std::span<const FormatArgument> &args) {
@@ -286,5 +286,5 @@ std::string format_packed(const std::string_view fmt_str,
   return ::fmt::vformat(fmt_str, store);
 }
 
-} // namespace details
+} // namespace detail
 } // namespace cudaq_fmt

@@ -234,11 +234,6 @@ do
     if [ -n "$intended_target" ]; then
         echo "Intended for execution on $intended_target backend."
     fi
-    use_library_mode=$(sed -e '/^$/,$d' "$ex" | grep -o '^//[[:space:]]*nvq++.*-library-mode' | head -1)
-    if [ -n "$use_library_mode" ]; then
-        nvqpp_extra_options="--library-mode"
-    fi
-
     for t in $requested_backends
     do
         # Skipping dynamics examples if target is not dynamics and ex is dynamics

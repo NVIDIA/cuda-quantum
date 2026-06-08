@@ -76,13 +76,13 @@ public:
     }
 
     // We don't want to modify the platform, indicate so
-    cudaq::__internal__::disableTargetModification();
+    cudaq::detail::disableTargetModification();
 
     // Import the cudaq python chemistry module
     auto cudaqModule = nanobind::module_::import_(ChemistryModuleName);
 
     // Reset it
-    cudaq::__internal__::enableTargetModification();
+    cudaq::detail::enableTargetModification();
 
     // Setup the active space if requested.
     nanobind::object nElectrons = nanobind::none();

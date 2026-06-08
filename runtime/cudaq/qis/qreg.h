@@ -22,18 +22,18 @@
 
 namespace cudaq {
 
-namespace details {
+namespace detail {
 /// `qreg<N>` for N < 1 should be a compile error
 template <std::size_t N>
 concept ValidQregSize = N > 0;
-} // namespace details
+} // namespace detail
 
 /// @brief A `qreg` is a container for qudits. This container can be dynamic or
 /// compile-time-size specified. By default, the `qreg` is constructed as a
 /// dynamic register (vector-like) of qubits (2-level). This can be changed via
 /// the `qreg` type template parameters.
 template <std::size_t N = dyn, std::size_t Levels = 2>
-  requires(details::ValidQregSize<N>)
+  requires(detail::ValidQregSize<N>)
 class [[deprecated(
     "The qreg type is deprecated in favor of qvector (for dynamic lengths) and "
     "qarray (for constant lengths).")]] qreg {

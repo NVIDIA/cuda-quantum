@@ -24,6 +24,7 @@ add_cudaq_library(OptTransforms
   CombineMeasurements.cpp
   CombineQuantumAlloc.cpp
   ConstantPropagation.cpp
+  DeadQuantumElimination.cpp
   DeadStoreRemoval.cpp
   Decomposition.cpp
   DecompositionPatterns.cpp
@@ -58,6 +59,7 @@ add_cudaq_library(OptTransforms
   PhaseFolding.cpp
   Pipelines.cpp
   PruneCtrlRelations.cpp
+  PyFrontendCleanup.cpp
   PySynthCallableBlockArgs.cpp
   QuakePropagateMetadata.cpp
   QuakeSimplify.cpp

@@ -478,8 +478,9 @@ __qpu__ bool Peppermint() {
 // QIR:         call void @__quantum__qis__h(ptr %[[VAL_24]])
 // QIR:         %[[VAL_31:.*]] = call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_11]], i64 %{{.*}})
 // QIR:         %[[VAL_32:.*]] = load ptr, ptr %[[VAL_31]]
-// QIR:         %[[VAL_33:.*]] = call ptr @__quantum__qis__mz(ptr %[[VAL_32]])
-// QIR:         %[[VAL_36:.*]] = load i1, ptr %[[VAL_33]]
+// QIR:         %[[VAL_33:.*]] = call i64 @__quantum__qis__mz_handle__to__register(ptr %[[VAL_32]], ptr nonnull @cstr.00)
+// QIR:         %[[VAL_33_PTR:.*]] = inttoptr i64 %[[VAL_33]] to ptr
+// QIR:         %[[VAL_36:.*]] = call i1 @__quantum__rt__read_result(ptr %[[VAL_33_PTR]])
 // QIR:         %[[VAL_41:.*]] = call ptr @malloc(i64 %[[VAL_13]])
 // QIR:         call void @llvm.memcpy.p0.p0.i64(ptr {{.*}}%[[VAL_41]], ptr nonnull {{.*}}%{{.*}}, i64 %[[VAL_13]], i1 false)
 // QIR:         %[[VAL_43:.*]] = insertvalue { ptr, i64 } undef, ptr %[[VAL_41]], 0
@@ -513,8 +514,9 @@ __qpu__ bool Peppermint() {
 // QIR:         call void @__quantum__qis__h(ptr %[[VAL_24]])
 // QIR:         %[[VAL_31:.*]] = call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_11]], i64 %{{.*}})
 // QIR:         %[[VAL_32:.*]] = load ptr, ptr %[[VAL_31]]
-// QIR:         %[[VAL_33:.*]] = call ptr @__quantum__qis__mz(ptr %[[VAL_32]])
-// QIR:         %[[VAL_36:.*]] = load i1, ptr %[[VAL_33]]
+// QIR:         %[[VAL_33:.*]] = call i64 @__quantum__qis__mz_handle__to__register(ptr %[[VAL_32]], ptr nonnull @cstr.00)
+// QIR:         %[[VAL_33_PTR:.*]] = inttoptr i64 %[[VAL_33]] to ptr
+// QIR:         %[[VAL_36:.*]] = call i1 @__quantum__rt__read_result(ptr %[[VAL_33_PTR]])
 // QIR:         %[[VAL_41:.*]] = call ptr @malloc(i64 %[[VAL_13]])
 // QIR:         call void @llvm.memcpy.p0.p0.i64(ptr {{.*}}%[[VAL_41]], ptr nonnull {{.*}}%{{.*}}, i64 %[[VAL_13]], i1 false)
 // QIR:         %[[VAL_43:.*]] = insertvalue { ptr, i64 } undef, ptr %[[VAL_41]], 0
@@ -564,8 +566,9 @@ __qpu__ bool Peppermint() {
 // QIR:         call void @__quantum__qis__h(ptr %[[VAL_45]])
 // QIR:         %[[VAL_52:.*]] = call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_32]], i64 %{{.*}})
 // QIR:         %[[VAL_53:.*]] = load ptr, ptr %[[VAL_52]]
-// QIR:         %[[VAL_54:.*]] = call ptr @__quantum__qis__mz(ptr %[[VAL_53]])
-// QIR:         %[[VAL_57:.*]] = load i1, ptr %[[VAL_54]]
+// QIR:         %[[VAL_54:.*]] = call i64 @__quantum__qis__mz_handle__to__register(ptr %[[VAL_53]], ptr nonnull @cstr.00)
+// QIR:         %[[VAL_54_PTR:.*]] = inttoptr i64 %[[VAL_54]] to ptr
+// QIR:         %[[VAL_57:.*]] = call i1 @__quantum__rt__read_result(ptr %[[VAL_54_PTR]])
 // QIR:         %[[VAL_62:.*]] = call ptr @malloc(i64 %[[VAL_34]])
 // QIR:         call void @llvm.memcpy.p0.p0.i64(ptr {{.*}}%[[VAL_62]], ptr nonnull {{.*}}%{{.*}}, i64 %[[VAL_34]], i1 false)
 // QIR:         %[[VAL_64:.*]] = insertvalue { ptr, i64 } undef, ptr %[[VAL_62]], 0
@@ -594,8 +597,9 @@ __qpu__ bool Peppermint() {
 // QIR:         call void @__quantum__qis__h(ptr %[[VAL_20]])
 // QIR:         %[[VAL_22:.*]] = call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_9]], i64 0)
 // QIR:         %[[VAL_23:.*]] = load ptr, ptr %[[VAL_22]]
-// QIR:         %[[VAL_24:.*]] = call ptr @__quantum__qis__mz(ptr %[[VAL_23]])
-// QIR:         %[[VAL_27:.*]] = load i1, ptr %[[VAL_24]]
+// QIR:         %[[VAL_24:.*]] = call i64 @__quantum__qis__mz_handle__to__register(ptr %[[VAL_23]], ptr nonnull @cstr.00)
+// QIR:         %[[VAL_24_PTR:.*]] = inttoptr i64 %[[VAL_24]] to ptr
+// QIR:         %[[VAL_27:.*]] = call i1 @__quantum__rt__read_result(ptr %[[VAL_24_PTR]])
 // QIR:         call void @__quantum__rt__qubit_release_array(ptr %[[VAL_9]])
 // QIR:         ret i1 %[[VAL_27]]
 // QIR:       }
@@ -620,8 +624,9 @@ __qpu__ bool Peppermint() {
 // QIR:         call void @__quantum__qis__h(ptr %[[VAL_20]])
 // QIR:         %[[VAL_22:.*]] = call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_9]], i64 0)
 // QIR:         %[[VAL_23:.*]] = load ptr, ptr %[[VAL_22]]
-// QIR:         %[[VAL_24:.*]] = call ptr @__quantum__qis__mz(ptr %[[VAL_23]])
-// QIR:         %[[VAL_27:.*]] = load i1, ptr %[[VAL_24]]
+// QIR:         %[[VAL_24:.*]] = call i64 @__quantum__qis__mz_handle__to__register(ptr %[[VAL_23]], ptr nonnull @cstr.00)
+// QIR:         %[[VAL_24_PTR:.*]] = inttoptr i64 %[[VAL_24]] to ptr
+// QIR:         %[[VAL_27:.*]] = call i1 @__quantum__rt__read_result(ptr %[[VAL_24_PTR]])
 // QIR:         call void @__quantum__rt__qubit_release_array(ptr %[[VAL_9]])
 // QIR:         ret i1 %[[VAL_27]]
 // QIR:       }
@@ -646,8 +651,9 @@ __qpu__ bool Peppermint() {
 // QIR:         call void @__quantum__qis__h(ptr %[[VAL_22]])
 // QIR:         %[[VAL_29:.*]] = call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_9]], i64 %{{.*}})
 // QIR:         %[[VAL_30:.*]] = load ptr, ptr %[[VAL_29]]
-// QIR:         %[[VAL_31:.*]] = call ptr @__quantum__qis__mz(ptr %[[VAL_30]])
-// QIR:         %[[VAL_34:.*]] = load i1, ptr %[[VAL_31]]
+// QIR:         %[[VAL_31:.*]] = call i64 @__quantum__qis__mz_handle__to__register(ptr %[[VAL_30]], ptr nonnull @cstr.00)
+// QIR:         %[[VAL_31_PTR:.*]] = inttoptr i64 %[[VAL_31]] to ptr
+// QIR:         %[[VAL_34:.*]] = call i1 @__quantum__rt__read_result(ptr %[[VAL_31_PTR]])
 // QIR:         %[[VAL_39:.*]] = call ptr @malloc(i64 %[[VAL_11]])
 // QIR:         call void @llvm.memcpy.p0.p0.i64(ptr {{.*}}%[[VAL_39]], ptr nonnull {{.*}}%{{.*}}, i64 %[[VAL_11]], i1 false)
 // QIR:         %[[VAL_41:.*]] = insertvalue { ptr, i64 } undef, ptr %[[VAL_39]], 0
@@ -676,8 +682,9 @@ __qpu__ bool Peppermint() {
 // QIR:         call void @__quantum__qis__h(ptr %[[VAL_22]])
 // QIR:         %[[VAL_29:.*]] = call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_9]], i64 %{{.*}})
 // QIR:         %[[VAL_30:.*]] = load ptr, ptr %[[VAL_29]]
-// QIR:         %[[VAL_31:.*]] = call ptr @__quantum__qis__mz(ptr %[[VAL_30]])
-// QIR:         %[[VAL_34:.*]] = load i1, ptr %[[VAL_31]]
+// QIR:         %[[VAL_31:.*]] = call i64 @__quantum__qis__mz_handle__to__register(ptr %[[VAL_30]], ptr nonnull @cstr.00)
+// QIR:         %[[VAL_31_PTR:.*]] = inttoptr i64 %[[VAL_31]] to ptr
+// QIR:         %[[VAL_34:.*]] = call i1 @__quantum__rt__read_result(ptr %[[VAL_31_PTR]])
 // QIR:         %[[VAL_39:.*]] = call ptr @malloc(i64 %[[VAL_11]])
 // QIR:         call void @llvm.memcpy.p0.p0.i64(ptr {{.*}}%[[VAL_39]], ptr nonnull {{.*}}%{{.*}}, i64 %[[VAL_11]], i1 false)
 // QIR:         %[[VAL_41:.*]] = insertvalue { ptr, i64 } undef, ptr %[[VAL_39]], 0
@@ -696,8 +703,9 @@ __qpu__ bool Peppermint() {
 // QIR:         call void @__nvqpp_cudaq_state_delete(ptr %[[VAL_4]])
 // QIR:         %[[VAL_7:.*]] = call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_5]], i64 0)
 // QIR:         %[[VAL_9:.*]] = load ptr, ptr %[[VAL_7]]
-// QIR:         %[[VAL_10:.*]] = call ptr @__quantum__qis__mz(ptr %[[VAL_9]])
-// QIR:         %[[VAL_13:.*]] = load i1, ptr %[[VAL_10]]
+// QIR:         %[[VAL_10:.*]] = call i64 @__quantum__qis__mz_handle__to__register(ptr %[[VAL_9]], ptr nonnull @cstr.00)
+// QIR:         %[[VAL_10_PTR:.*]] = inttoptr i64 %[[VAL_10]] to ptr
+// QIR:         %[[VAL_13:.*]] = call i1 @__quantum__rt__read_result(ptr %[[VAL_10_PTR]])
 // QIR:         call void @__quantum__rt__qubit_release_array(ptr %[[VAL_5]])
 // QIR:         ret i1 %[[VAL_13]]
 // QIR:       }
@@ -712,8 +720,9 @@ __qpu__ bool Peppermint() {
 // QIR:         call void @__nvqpp_cudaq_state_delete(ptr %[[VAL_4]])
 // QIR:         %[[VAL_7:.*]] = call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_5]], i64 0)
 // QIR:         %[[VAL_9:.*]] = load ptr, ptr %[[VAL_7]]
-// QIR:         %[[VAL_10:.*]] = call ptr @__quantum__qis__mz(ptr %[[VAL_9]])
-// QIR:         %[[VAL_13:.*]] = load i1, ptr %[[VAL_10]]
+// QIR:         %[[VAL_10:.*]] = call i64 @__quantum__qis__mz_handle__to__register(ptr %[[VAL_9]], ptr nonnull @cstr.00)
+// QIR:         %[[VAL_10_PTR:.*]] = inttoptr i64 %[[VAL_10]] to ptr
+// QIR:         %[[VAL_13:.*]] = call i1 @__quantum__rt__read_result(ptr %[[VAL_10_PTR]])
 // QIR:         call void @__quantum__rt__qubit_release_array(ptr %[[VAL_5]])
 // QIR:         ret i1 %[[VAL_13]]
 // QIR:       }

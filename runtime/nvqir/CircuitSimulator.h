@@ -25,6 +25,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
+#include <limits>
 #include <queue>
 #include <sstream>
 #include <stdexcept>
@@ -169,6 +170,16 @@ public:
   /// Note: Measurement Syndrome Matrix is defined in
   /// https://arxiv.org/pdf/2407.13826.
   virtual void generateMSM() {}
+
+  /// @brief For simulators that support detector error model (DEM) analysis,
+  /// compute the DEM from the recorded circuit and return it as `.dem` text.
+  ///
+  /// `.dem` is the Detector Error Model text format defined by Stim; only the
+  /// `stim` backend currently implements this.
+  virtual std::string generateDem() {
+    throw std::runtime_error(
+        "Detector error model (DEM) analysis not supported.");
+  }
 
   /// @brief Apply exp(-i theta PauliTensorProd) to the underlying state.
   /// This must be provided by subclasses.
@@ -447,6 +458,14 @@ public:
   sample(const std::vector<std::size_t> &qubitIdxs, const int shots,
          bool includeSequentialData = true) = 0;
 
+  /// @brief Return the chronological index of the most-recent `mz` performed
+  /// on this simulator. Called from `__quantum__qis__mz_handle__to__register`
+  /// to record the index portion of the `measure_handle` it returns so QEC
+  /// adapters can resolve handles back to measurement positions.
+  virtual std::int64_t getMeasureIndex() const {
+    return std::numeric_limits<std::int64_t>::max();
+  }
+
   /// @brief Declare a `qec.detector` over one or more prior measurements,
   /// addressed by measurement indices or identifiers assigned by this
   /// simulator. Default no-op; QEC-capable backends override.
@@ -586,6 +605,7 @@ protected:
     deallocateStateImpl();
     auto empty = std::queue<GateApplicationTask>{};
     std::swap(gateQueue, empty);
+    tracker.reset();
     nQubitsAllocated = 0;
     stateDimension = 0;
   }
@@ -852,6 +872,23 @@ protected:
                                  const std::vector<std::size_t> &controls,
                                  const std::vector<std::size_t> &targets,
                                  const std::vector<double> &params) {
+    // Do nothing if no execution context
+    if (!cudaq::getExecutionContext())
+      return;
+
+    // Do nothing if no noise model
+    auto noiseModel = getNoiseModel();
+    if (!noiseModel)
+      return;
+
+    // Get the Kraus channels specified for this gate and qubits
+    auto krausChannels = noiseModel->get_channels(std::string(gateName),
+                                                  targets, controls, params);
+
+    // If none, do nothing
+    if (krausChannels.empty())
+      return;
+
     CUDAQ_WARN("Applying noise is not supported on {} simulator.", name());
   }
 
@@ -1135,6 +1172,9 @@ protected:
     if (context.name == "msm") {
       generateMSM();
     }
+
+    if (context.name == "dem")
+      context.dem_text = generateDem();
   }
 
 public:
