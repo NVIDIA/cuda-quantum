@@ -9,7 +9,7 @@
 if (CUDAQ_ENABLE_ANYON_BACKEND)
   add_subdirectory(anyon)
 endif()
-if (AWSSDK_ROOT)
+if (AWSSDK_ROOT AND CUDAQ_ENABLE_BRAKET_BACKEND)
   add_subdirectory(braket)
 endif()
 add_subdirectory(infleqtion)
