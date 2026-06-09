@@ -27,7 +27,6 @@
         <script src="_static/clipboard.min.js"></script>
         <script src="_static/copybutton.js"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
         <script src="_static/filter.js"></script>
     <script src="_static/js/theme.js"></script>
     <script src="_static/searchtools.js"></script>
@@ -293,12 +292,6 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="using/applications.html">   Applications</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="applications/python/qaoa.html">Max-Cut with QAOA</a></li>
-<li class="toctree-l2"><a class="reference internal" href="applications/python/digitized_counterdiabatic_qaoa.html">Molecular docking via DC-QAOA</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/digitized_counterdiabatic_qaoa.html#Setting-up-the-Molecular-Docking-Problem">Setting up the Molecular Docking Problem</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/digitized_counterdiabatic_qaoa.html#CUDA-Q-Implementation">CUDA-Q Implementation</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="applications/python/krylov.html">Multi-reference Quantum Krylov Algorithm - <span class="math notranslate nohighlight">\(H_2\)</span> Molecule</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/krylov.html#Setup">Setup</a></li>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/krylov.html#Computing-the-matrix-elements">Computing the matrix elements</a></li>
@@ -314,30 +307,6 @@
 <li class="toctree-l3"><a class="reference internal" href="applications/python/qsci.html#Reference">Reference</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="applications/python/bernstein_vazirani.html">Bernstein-Vazirani Algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/bernstein_vazirani.html#Classical-case">Classical case</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/bernstein_vazirani.html#Quantum-case">Quantum case</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/bernstein_vazirani.html#Implementing-in-CUDA-Q">Implementing in CUDA-Q</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="applications/python/cost_minimization.html">Cost Minimization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="applications/python/deutsch_algorithm.html">Deutsch’s Algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/deutsch_algorithm.html#XOR-\oplus">XOR <span class="math notranslate nohighlight">\(\oplus\)</span></a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/deutsch_algorithm.html#Quantum-oracles">Quantum oracles</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/deutsch_algorithm.html#Phase-oracle">Phase oracle</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/deutsch_algorithm.html#Quantum-parallelism">Quantum parallelism</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/deutsch_algorithm.html#Deutsch's-Algorithm:">Deutsch’s Algorithm:</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="applications/python/divisive_clustering_coresets.html">Divisive Clustering With Coresets Using CUDA-Q</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/divisive_clustering_coresets.html#Data-preprocessing">Data preprocessing</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/divisive_clustering_coresets.html#Quantum-functions">Quantum functions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/divisive_clustering_coresets.html#Divisive-Clustering-Function">Divisive Clustering Function</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/divisive_clustering_coresets.html#QAOA-Implementation">QAOA Implementation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/divisive_clustering_coresets.html#Scaling-simulations-with-CUDA-Q">Scaling simulations with CUDA-Q</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="applications/python/hybrid_quantum_neural_networks.html">Hybrid Quantum Neural Networks</a></li>
 <li class="toctree-l2"><a class="reference internal" href="applications/python/hadamard_test.html">Using the Hadamard Test to Determine Quantum Krylov Subspace Decomposition Matrix Elements</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/hadamard_test.html#Numerical-result-as-a-reference:">Numerical result as a reference:</a></li>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/hadamard_test.html#Using-Sample-to-perform-the-Hadamard-test">Using <code class="docutils literal notranslate"><span class="pre">Sample</span></code> to perform the Hadamard test</a></li>
@@ -371,47 +340,11 @@
 <li class="toctree-l3"><a class="reference internal" href="applications/python/hamiltonian_simulation.html#Relevant-references">Relevant references</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="applications/python/quantum_fourier_transform.html">Quantum Fourier Transform</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited">Quantum Fourier Transform revisited</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="applications/python/quantum_teleportation.html">Quantum Teleporation</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/quantum_teleportation.html#Teleportation-explained">Teleportation explained</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="applications/python/quantum_volume.html">Quantum Volume</a></li>
 <li class="toctree-l2"><a class="reference internal" href="applications/python/readout_error_mitigation.html">Readout Error Mitigation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/readout_error_mitigation.html#Inverse-confusion-matrix-from-single-qubit-noise-model">Inverse confusion matrix from single-qubit noise model</a></li>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/readout_error_mitigation.html#Inverse-confusion-matrix-from-k-local-confusion-matrices">Inverse confusion matrix from k local confusion matrices</a></li>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/readout_error_mitigation.html#Inverse-of-full-confusion-matrix">Inverse of full confusion matrix</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="applications/python/unitary_compilation_diffusion_models.html">Compiling Unitaries Using Diffusion Models</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/unitary_compilation_diffusion_models.html#Diffusion-model-pipeline">Diffusion model pipeline</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/unitary_compilation_diffusion_models.html#Setup-and-load-models">Setup and load models</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="applications/python/unitary_compilation_diffusion_models.html#Load-discrete-model">Load discrete model</a></li>
-<li class="toctree-l4"><a class="reference internal" href="applications/python/unitary_compilation_diffusion_models.html#Load-continuous-model">Load continuous model</a></li>
-<li class="toctree-l4"><a class="reference internal" href="applications/python/unitary_compilation_diffusion_models.html#Create-helper-functions">Create helper functions</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/unitary_compilation_diffusion_models.html#Unitary-compilation">Unitary compilation</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="applications/python/unitary_compilation_diffusion_models.html#Random-unitary">Random unitary</a></li>
-<li class="toctree-l4"><a class="reference internal" href="applications/python/unitary_compilation_diffusion_models.html#Discrete-model">Discrete model</a></li>
-<li class="toctree-l4"><a class="reference internal" href="applications/python/unitary_compilation_diffusion_models.html#Continuous-model">Continuous model</a></li>
-<li class="toctree-l4"><a class="reference internal" href="applications/python/unitary_compilation_diffusion_models.html#Quantum-Fourier-transform">Quantum Fourier transform</a></li>
-<li class="toctree-l4"><a class="reference internal" href="applications/python/unitary_compilation_diffusion_models.html#XXZ-Hamiltonian-evolution">XXZ-Hamiltonian evolution</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need">Choosing the circuit you need</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="applications/python/vqe_advanced.html">VQE with gradients, active spaces, and gate fusion</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/vqe_advanced.html#The-Basics-of-VQE">The Basics of VQE</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/vqe_advanced.html#Installing/Loading-Relevant-Packages">Installing/Loading Relevant Packages</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/vqe_advanced.html#Implementing-VQE-in-CUDA-Q">Implementing VQE in CUDA-Q</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/vqe_advanced.html#Parallel-Parameter-Shift-Gradients">Parallel Parameter Shift Gradients</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/vqe_advanced.html#Using-an-Active-Space">Using an Active Space</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/vqe_advanced.html#Gate-Fusion-for-Larger-Circuits">Gate Fusion for Larger Circuits</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="applications/python/afqmc.html">Quantum Enhanced Auxiliary Field Quantum Monte Carlo</a><ul>
@@ -421,44 +354,6 @@
 <li class="toctree-l3"><a class="reference internal" href="applications/python/afqmc.html#Preparation-of-the-molecular-Hamiltonian">Preparation of the molecular Hamiltonian</a></li>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/afqmc.html#Preparation-of-the-trial-wave-function">Preparation of the trial wave function</a></li>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/afqmc.html#Setup-of-the-AFQMC-parameters">Setup of the AFQMC parameters</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="applications/python/adapt_qaoa.html">ADAPT-QAOA algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/adapt_qaoa.html#Simulation-input:">Simulation input:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/adapt_qaoa.html#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:">The problem Hamiltonian <span class="math notranslate nohighlight">\(H_C\)</span> of the max-cut graph:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/adapt_qaoa.html#Th-operator-pool-A_j:">Th operator pool <span class="math notranslate nohighlight">\(A_j\)</span>:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/adapt_qaoa.html#The-commutator-[H_C,A_j]:">The commutator <span class="math notranslate nohighlight">\([H_C,A_j]\)</span>:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:">Beginning of ADAPT-QAOA iteration:</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="applications/python/adapt_vqe.html">ADAPT-VQE algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/adapt_vqe.html#Classical-pre-processing">Classical pre-processing</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/adapt_vqe.html#Jordan-Wigner:">Jordan Wigner:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/adapt_vqe.html#UCCSD-operator-pool">UCCSD operator pool</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="applications/python/adapt_vqe.html#Single-excitation">Single excitation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="applications/python/adapt_vqe.html#Double-excitation">Double excitation</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/adapt_vqe.html#Commutator-[H,-A_i]">Commutator [<span class="math notranslate nohighlight">\(H\)</span>, <span class="math notranslate nohighlight">\(A_i\)</span>]</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/adapt_vqe.html#Reference-State:">Reference State:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/adapt_vqe.html#Quantum-kernels:">Quantum kernels:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/adapt_vqe.html#Beginning-of-ADAPT-VQE:">Beginning of ADAPT-VQE:</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="applications/python/edge_detection.html">Quantum edge detection</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/edge_detection.html#Image">Image</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/edge_detection.html#Quantum-Probability-Image-Encoding-(QPIE):">Quantum Probability Image Encoding (QPIE):</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="applications/python/edge_detection.html#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.">Below we show how to encode an image using QPIE in cudaq.</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/edge_detection.html#Flexible-Representation-of-Quantum-Images-(FRQI):">Flexible Representation of Quantum Images (FRQI):</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="applications/python/edge_detection.html#Building-the-FRQI-State:">Building the FRQI State:</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/edge_detection.html#Quantum-Hadamard-Edge-Detection-(QHED)">Quantum Hadamard Edge Detection (QHED)</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="applications/python/edge_detection.html#Post-processing">Post-processing</a></li>
-</ul>
-</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="applications/python/shors.html">Factoring Integers With Shor’s Algorithm</a><ul>
@@ -485,25 +380,6 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="applications/python/grovers.html">Grover’s Algorithm</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/grovers.html#Overview">Overview</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/grovers.html#Problem">Problem</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/grovers.html#Structure-of-Grover's-Algorithm">Structure of Grover’s Algorithm</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="applications/python/grovers.html#Step-1:-Preparation">Step 1: Preparation</a></li>
-<li class="toctree-l4"><a class="reference internal" href="applications/python/grovers.html#Good-and-Bad-States">Good and Bad States</a></li>
-<li class="toctree-l4"><a class="reference internal" href="applications/python/grovers.html#Step-2:-Oracle-application">Step 2: Oracle application</a></li>
-<li class="toctree-l4"><a class="reference internal" href="applications/python/grovers.html#Step-3:-Amplitude-amplification">Step 3: Amplitude amplification</a></li>
-<li class="toctree-l4"><a class="reference internal" href="applications/python/grovers.html#Steps-4-and-5:-Iteration-and-measurement">Steps 4 and 5: Iteration and measurement</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="applications/python/quantum_pagerank.html">Quantum PageRank</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/quantum_pagerank.html#Problem-Definition">Problem Definition</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/quantum_pagerank.html#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics">Simulating Quantum PageRank by CUDA-Q dynamics</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/quantum_pagerank.html#Breakdown-of-Terms">Breakdown of Terms</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="applications/python/uccsd_wf_ansatz.html">The UCCSD Wavefunction ansatz</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/uccsd_wf_ansatz.html#What-is-UCCSD?">What is UCCSD?</a></li>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/uccsd_wf_ansatz.html#Implementation-in-Quantum-Computing">Implementation in Quantum Computing</a></li>
@@ -513,22 +389,6 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="applications/python/mps_encoding.html">Approximate State Preparation using MPS Sequential Encoding</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="applications/python/mps_encoding.html#Ran's-approach">Ran’s approach</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="applications/python/qm_mm_pe.html">QM/MM simulation: VQE within a Polarizable Embedded Framework.</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/qm_mm_pe.html#Key-concepts:">Key concepts:</a></li>
-<li class="toctree-l3"><a class="reference internal" href="applications/python/qm_mm_pe.html#PE-VQE-SCF-Algorithm-Steps">PE-VQE-SCF Algorithm Steps</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="applications/python/qm_mm_pe.html#Step-1:-Initialize-(Classical-pre-processing)">Step 1: Initialize (Classical pre-processing)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="applications/python/qm_mm_pe.html#Step-2:-Build-the-Hamiltonian">Step 2: Build the Hamiltonian</a></li>
-<li class="toctree-l4"><a class="reference internal" href="applications/python/qm_mm_pe.html#Step-3:-Run-VQE">Step 3: Run VQE</a></li>
-<li class="toctree-l4"><a class="reference internal" href="applications/python/qm_mm_pe.html#Step-4:-Update-Environment">Step 4: Update Environment</a></li>
-<li class="toctree-l4"><a class="reference internal" href="applications/python/qm_mm_pe.html#Step-5:-Self-Consistency-Loop">Step 5: Self-Consistency Loop</a></li>
-<li class="toctree-l4"><a class="reference internal" href="applications/python/qm_mm_pe.html#Requirments:">Requirments:</a></li>
-<li class="toctree-l4"><a class="reference internal" href="applications/python/qm_mm_pe.html#Example-1:-LiH-with-2-water-molecules.">Example 1: LiH with 2 water molecules.</a></li>
-<li class="toctree-l4"><a class="reference internal" href="applications/python/qm_mm_pe.html#VQE,-update-environment,-and-scf-loop.">VQE, update environment, and scf loop.</a></li>
-<li class="toctree-l4"><a class="reference internal" href="applications/python/qm_mm_pe.html#Example-2:-NH3-with-46-water-molecule-using-active-space.">Example 2: NH3 with 46 water molecule using active space.</a></li>
-</ul>
-</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="applications/python/skqd.html">Sample-Based Krylov Quantum Diagonalization (SKQD)</a><ul>
@@ -791,6 +651,25 @@
 <li class="toctree-l4"><a class="reference internal" href="using/realtime/protocol.html#qec-terminology">QEC Terminology</a></li>
 <li class="toctree-l4"><a class="reference internal" href="using/realtime/protocol.html#qec-decoder-handler">QEC Decoder Handler</a></li>
 <li class="toctree-l4"><a class="reference internal" href="using/realtime/protocol.html#decoding-rounds">Decoding Rounds</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="using/realtime/cpu_transport.html">CPU RoCE Transport</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="using/realtime/cpu_transport.html#c-abi">C ABI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/realtime/cpu_transport.html#two-phase-bring-up-setup-connect">Two-phase bring-up (<code class="docutils literal notranslate"><span class="pre">setup</span></code> / <code class="docutils literal notranslate"><span class="pre">connect</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/realtime/cpu_transport.html#tx-modes">TX modes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/realtime/cpu_transport.html#testing-hsb-bridge-cpu">Testing (<code class="docutils literal notranslate"><span class="pre">hsb_bridge_cpu</span></code>)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="using/realtime/device_call.html">Device Call Channels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="using/realtime/device_call.html#the-device-call-model">The <code class="docutils literal notranslate"><span class="pre">device_call</span></code> model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/realtime/device_call.html#selecting-a-channel">Selecting a channel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/realtime/device_call.html#the-cpu-roce-channel">The <code class="docutils literal notranslate"><span class="pre">cpu_roce</span></code> channel</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="using/realtime/device_call.html#wire-pattern-fpga-compatible">Wire pattern (FPGA-compatible)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/realtime/device_call.html#connection-setup">Connection setup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/realtime/device_call.html#running-it">Running it</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/realtime/device_call.html#test-harness">Test harness</a></li>
 </ul>
 </li>
 </ul>

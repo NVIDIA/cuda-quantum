@@ -373,16 +373,6 @@ latest
                 Integrators](../../using/examples/dynamics_examples.html#numerical-integrators){.reference
                 .internal}
 -   [Applications](../../using/applications.html){.reference .internal}
-    -   [Max-Cut with QAOA](qaoa.html){.reference .internal}
-    -   [Molecular docking via
-        DC-QAOA](digitized_counterdiabatic_qaoa.html){.reference
-        .internal}
-        -   [Setting up the Molecular Docking
-            Problem](digitized_counterdiabatic_qaoa.html#Setting-up-the-Molecular-Docking-Problem){.reference
-            .internal}
-        -   [CUDA-Q
-            Implementation](digitized_counterdiabatic_qaoa.html#CUDA-Q-Implementation){.reference
-            .internal}
     -   [Multi-reference Quantum Krylov Algorithm - [\\(H_2\\)]{.math
         .notranslate .nohighlight} Molecule](krylov.html){.reference
         .internal}
@@ -409,56 +399,6 @@ latest
         -   [5. Compare results](#5.-Compare-results){.reference
             .internal}
         -   [Reference](#Reference){.reference .internal}
-    -   [Bernstein-Vazirani
-        Algorithm](bernstein_vazirani.html){.reference .internal}
-        -   [Classical
-            case](bernstein_vazirani.html#Classical-case){.reference
-            .internal}
-        -   [Quantum
-            case](bernstein_vazirani.html#Quantum-case){.reference
-            .internal}
-        -   [Implementing in
-            CUDA-Q](bernstein_vazirani.html#Implementing-in-CUDA-Q){.reference
-            .internal}
-    -   [Cost Minimization](cost_minimization.html){.reference
-        .internal}
-    -   [Deutsch's Algorithm](deutsch_algorithm.html){.reference
-        .internal}
-        -   [XOR [\\(\\oplus\\)]{.math .notranslate
-            .nohighlight}](deutsch_algorithm.html#XOR-\oplus){.reference
-            .internal}
-        -   [Quantum
-            oracles](deutsch_algorithm.html#Quantum-oracles){.reference
-            .internal}
-        -   [Phase
-            oracle](deutsch_algorithm.html#Phase-oracle){.reference
-            .internal}
-        -   [Quantum
-            parallelism](deutsch_algorithm.html#Quantum-parallelism){.reference
-            .internal}
-        -   [Deutsch's
-            Algorithm:](deutsch_algorithm.html#Deutsch's-Algorithm:){.reference
-            .internal}
-    -   [Divisive Clustering With Coresets Using
-        CUDA-Q](divisive_clustering_coresets.html){.reference .internal}
-        -   [Data
-            preprocessing](divisive_clustering_coresets.html#Data-preprocessing){.reference
-            .internal}
-        -   [Quantum
-            functions](divisive_clustering_coresets.html#Quantum-functions){.reference
-            .internal}
-        -   [Divisive Clustering
-            Function](divisive_clustering_coresets.html#Divisive-Clustering-Function){.reference
-            .internal}
-        -   [QAOA
-            Implementation](divisive_clustering_coresets.html#QAOA-Implementation){.reference
-            .internal}
-        -   [Scaling simulations with
-            CUDA-Q](divisive_clustering_coresets.html#Scaling-simulations-with-CUDA-Q){.reference
-            .internal}
-    -   [Hybrid Quantum Neural
-        Networks](hybrid_quantum_neural_networks.html){.reference
-        .internal}
     -   [Using the Hadamard Test to Determine Quantum Krylov Subspace
         Decomposition Matrix Elements](hadamard_test.html){.reference
         .internal}
@@ -530,16 +470,6 @@ latest
         -   [Relevant
             references](hamiltonian_simulation.html#Relevant-references){.reference
             .internal}
-    -   [Quantum Fourier
-        Transform](quantum_fourier_transform.html){.reference .internal}
-        -   [Quantum Fourier Transform
-            revisited](quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited){.reference
-            .internal}
-    -   [Quantum Teleporation](quantum_teleportation.html){.reference
-        .internal}
-        -   [Teleportation
-            explained](quantum_teleportation.html#Teleportation-explained){.reference
-            .internal}
     -   [Quantum Volume](quantum_volume.html){.reference .internal}
     -   [Readout Error
         Mitigation](readout_error_mitigation.html){.reference .internal}
@@ -551,65 +481,6 @@ latest
             .internal}
         -   [Inverse of full confusion
             matrix](readout_error_mitigation.html#Inverse-of-full-confusion-matrix){.reference
-            .internal}
-    -   [Compiling Unitaries Using Diffusion
-        Models](unitary_compilation_diffusion_models.html){.reference
-        .internal}
-        -   [Diffusion model
-            pipeline](unitary_compilation_diffusion_models.html#Diffusion-model-pipeline){.reference
-            .internal}
-        -   [Setup and load
-            models](unitary_compilation_diffusion_models.html#Setup-and-load-models){.reference
-            .internal}
-            -   [Load discrete
-                model](unitary_compilation_diffusion_models.html#Load-discrete-model){.reference
-                .internal}
-            -   [Load continuous
-                model](unitary_compilation_diffusion_models.html#Load-continuous-model){.reference
-                .internal}
-            -   [Create helper
-                functions](unitary_compilation_diffusion_models.html#Create-helper-functions){.reference
-                .internal}
-        -   [Unitary
-            compilation](unitary_compilation_diffusion_models.html#Unitary-compilation){.reference
-            .internal}
-            -   [Random
-                unitary](unitary_compilation_diffusion_models.html#Random-unitary){.reference
-                .internal}
-            -   [Discrete
-                model](unitary_compilation_diffusion_models.html#Discrete-model){.reference
-                .internal}
-            -   [Continuous
-                model](unitary_compilation_diffusion_models.html#Continuous-model){.reference
-                .internal}
-            -   [Quantum Fourier
-                transform](unitary_compilation_diffusion_models.html#Quantum-Fourier-transform){.reference
-                .internal}
-            -   [XXZ-Hamiltonian
-                evolution](unitary_compilation_diffusion_models.html#XXZ-Hamiltonian-evolution){.reference
-                .internal}
-        -   [Choosing the circuit you
-            need](unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need){.reference
-            .internal}
-    -   [VQE with gradients, active spaces, and gate
-        fusion](vqe_advanced.html){.reference .internal}
-        -   [The Basics of
-            VQE](vqe_advanced.html#The-Basics-of-VQE){.reference
-            .internal}
-        -   [Installing/Loading Relevant
-            Packages](vqe_advanced.html#Installing/Loading-Relevant-Packages){.reference
-            .internal}
-        -   [Implementing VQE in
-            CUDA-Q](vqe_advanced.html#Implementing-VQE-in-CUDA-Q){.reference
-            .internal}
-        -   [Parallel Parameter Shift
-            Gradients](vqe_advanced.html#Parallel-Parameter-Shift-Gradients){.reference
-            .internal}
-        -   [Using an Active
-            Space](vqe_advanced.html#Using-an-Active-Space){.reference
-            .internal}
-        -   [Gate Fusion for Larger
-            Circuits](vqe_advanced.html#Gate-Fusion-for-Larger-Circuits){.reference
             .internal}
     -   [Quantum Enhanced Auxiliary Field Quantum Monte
         Carlo](afqmc.html){.reference .internal}
@@ -631,71 +502,6 @@ latest
         -   [Setup of the AFQMC
             parameters](afqmc.html#Setup-of-the-AFQMC-parameters){.reference
             .internal}
-    -   [ADAPT-QAOA algorithm](adapt_qaoa.html){.reference .internal}
-        -   [Simulation
-            input:](adapt_qaoa.html#Simulation-input:){.reference
-            .internal}
-        -   [The problem Hamiltonian [\\(H_C\\)]{.math .notranslate
-            .nohighlight} of the max-cut
-            graph:](adapt_qaoa.html#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:){.reference
-            .internal}
-        -   [Th operator pool [\\(A_j\\)]{.math .notranslate
-            .nohighlight}:](adapt_qaoa.html#Th-operator-pool-A_j:){.reference
-            .internal}
-        -   [The commutator [\\(\[H_C,A_j\]\\)]{.math .notranslate
-            .nohighlight}:](adapt_qaoa.html#The-commutator-%5BH_C,A_j%5D:){.reference
-            .internal}
-        -   [Beginning of ADAPT-QAOA
-            iteration:](adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:){.reference
-            .internal}
-    -   [ADAPT-VQE algorithm](adapt_vqe.html){.reference .internal}
-        -   [Classical
-            pre-processing](adapt_vqe.html#Classical-pre-processing){.reference
-            .internal}
-        -   [Jordan Wigner:](adapt_vqe.html#Jordan-Wigner:){.reference
-            .internal}
-        -   [UCCSD operator
-            pool](adapt_vqe.html#UCCSD-operator-pool){.reference
-            .internal}
-            -   [Single
-                excitation](adapt_vqe.html#Single-excitation){.reference
-                .internal}
-            -   [Double
-                excitation](adapt_vqe.html#Double-excitation){.reference
-                .internal}
-        -   [Commutator \[[\\(H\\)]{.math .notranslate .nohighlight},
-            [\\(A_i\\)]{.math .notranslate
-            .nohighlight}\]](adapt_vqe.html#Commutator-%5BH,-A_i%5D){.reference
-            .internal}
-        -   [Reference
-            State:](adapt_vqe.html#Reference-State:){.reference
-            .internal}
-        -   [Quantum
-            kernels:](adapt_vqe.html#Quantum-kernels:){.reference
-            .internal}
-        -   [Beginning of
-            ADAPT-VQE:](adapt_vqe.html#Beginning-of-ADAPT-VQE:){.reference
-            .internal}
-    -   [Quantum edge detection](edge_detection.html){.reference
-        .internal}
-        -   [Image](edge_detection.html#Image){.reference .internal}
-        -   [Quantum Probability Image Encoding
-            (QPIE):](edge_detection.html#Quantum-Probability-Image-Encoding-(QPIE):){.reference
-            .internal}
-            -   [Below we show how to encode an image using QPIE in
-                cudaq.](edge_detection.html#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.){.reference
-                .internal}
-        -   [Flexible Representation of Quantum Images
-            (FRQI):](edge_detection.html#Flexible-Representation-of-Quantum-Images-(FRQI):){.reference
-            .internal}
-            -   [Building the FRQI
-                State:](edge_detection.html#Building-the-FRQI-State:){.reference
-                .internal}
-        -   [Quantum Hadamard Edge Detection
-            (QHED)](edge_detection.html#Quantum-Hadamard-Edge-Detection-(QHED)){.reference
-            .internal}
-            -   [Post-processing](edge_detection.html#Post-processing){.reference
-                .internal}
     -   [Factoring Integers With Shor's
         Algorithm](shors.html){.reference .internal}
         -   [Shor's algorithm](shors.html#Shor's-algorithm){.reference
@@ -746,37 +552,6 @@ latest
             -   [(e) Generate electronic Hamiltonian using
                 UHF](generate_fermionic_ham.html#(e)-Generate-electronic-Hamiltonian-using-UHF){.reference
                 .internal}
-    -   [Grover's Algorithm](grovers.html){.reference .internal}
-        -   [Overview](grovers.html#Overview){.reference .internal}
-        -   [Problem](grovers.html#Problem){.reference .internal}
-        -   [Structure of Grover's
-            Algorithm](grovers.html#Structure-of-Grover's-Algorithm){.reference
-            .internal}
-            -   [Step 1:
-                Preparation](grovers.html#Step-1:-Preparation){.reference
-                .internal}
-            -   [Good and Bad
-                States](grovers.html#Good-and-Bad-States){.reference
-                .internal}
-            -   [Step 2: Oracle
-                application](grovers.html#Step-2:-Oracle-application){.reference
-                .internal}
-            -   [Step 3: Amplitude
-                amplification](grovers.html#Step-3:-Amplitude-amplification){.reference
-                .internal}
-            -   [Steps 4 and 5: Iteration and
-                measurement](grovers.html#Steps-4-and-5:-Iteration-and-measurement){.reference
-                .internal}
-    -   [Quantum PageRank](quantum_pagerank.html){.reference .internal}
-        -   [Problem
-            Definition](quantum_pagerank.html#Problem-Definition){.reference
-            .internal}
-        -   [Simulating Quantum PageRank by CUDA-Q
-            dynamics](quantum_pagerank.html#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics){.reference
-            .internal}
-        -   [Breakdown of
-            Terms](quantum_pagerank.html#Breakdown-of-Terms){.reference
-            .internal}
     -   [The UCCSD Wavefunction ansatz](uccsd_wf_ansatz.html){.reference
         .internal}
         -   [What is
@@ -795,39 +570,6 @@ latest
         -   [Ran's
             approach](mps_encoding.html#Ran's-approach){.reference
             .internal}
-    -   [QM/MM simulation: VQE within a Polarizable Embedded
-        Framework.](qm_mm_pe.html){.reference .internal}
-        -   [Key concepts:](qm_mm_pe.html#Key-concepts:){.reference
-            .internal}
-        -   [PE-VQE-SCF Algorithm
-            Steps](qm_mm_pe.html#PE-VQE-SCF-Algorithm-Steps){.reference
-            .internal}
-            -   [Step 1: Initialize (Classical
-                pre-processing)](qm_mm_pe.html#Step-1:-Initialize-(Classical-pre-processing)){.reference
-                .internal}
-            -   [Step 2: Build the
-                Hamiltonian](qm_mm_pe.html#Step-2:-Build-the-Hamiltonian){.reference
-                .internal}
-            -   [Step 3: Run
-                VQE](qm_mm_pe.html#Step-3:-Run-VQE){.reference
-                .internal}
-            -   [Step 4: Update
-                Environment](qm_mm_pe.html#Step-4:-Update-Environment){.reference
-                .internal}
-            -   [Step 5: Self-Consistency
-                Loop](qm_mm_pe.html#Step-5:-Self-Consistency-Loop){.reference
-                .internal}
-            -   [Requirments:](qm_mm_pe.html#Requirments:){.reference
-                .internal}
-            -   [Example 1: LiH with 2 water
-                molecules.](qm_mm_pe.html#Example-1:-LiH-with-2-water-molecules.){.reference
-                .internal}
-            -   [VQE, update environment, and scf
-                loop.](qm_mm_pe.html#VQE,-update-environment,-and-scf-loop.){.reference
-                .internal}
-            -   [Example 2: NH3 with 46 water molecule using active
-                space.](qm_mm_pe.html#Example-2:-NH3-with-46-water-molecule-using-active-space.){.reference
-                .internal}
     -   [Sample-Based Krylov Quantum Diagonalization
         (SKQD)](skqd.html){.reference .internal}
         -   [Why SKQD?](skqd.html#Why-SKQD?){.reference .internal}
@@ -1302,6 +1044,46 @@ latest
                 .internal}
             -   [Decoding
                 Rounds](../../using/realtime/protocol.html#decoding-rounds){.reference
+                .internal}
+    -   [CPU RoCE
+        Transport](../../using/realtime/cpu_transport.html){.reference
+        .internal}
+        -   [C
+            ABI](../../using/realtime/cpu_transport.html#c-abi){.reference
+            .internal}
+        -   [Two-phase bring-up ([`setup`{.docutils .literal
+            .notranslate}]{.pre} / [`connect`{.docutils .literal
+            .notranslate}]{.pre})](../../using/realtime/cpu_transport.html#two-phase-bring-up-setup-connect){.reference
+            .internal}
+        -   [TX
+            modes](../../using/realtime/cpu_transport.html#tx-modes){.reference
+            .internal}
+        -   [Testing ([`hsb_bridge_cpu`{.docutils .literal
+            .notranslate}]{.pre})](../../using/realtime/cpu_transport.html#testing-hsb-bridge-cpu){.reference
+            .internal}
+    -   [Device Call
+        Channels](../../using/realtime/device_call.html){.reference
+        .internal}
+        -   [The [`device_call`{.docutils .literal .notranslate}]{.pre}
+            model](../../using/realtime/device_call.html#the-device-call-model){.reference
+            .internal}
+        -   [Selecting a
+            channel](../../using/realtime/device_call.html#selecting-a-channel){.reference
+            .internal}
+        -   [The [`cpu_roce`{.docutils .literal .notranslate}]{.pre}
+            channel](../../using/realtime/device_call.html#the-cpu-roce-channel){.reference
+            .internal}
+            -   [Wire pattern
+                (FPGA-compatible)](../../using/realtime/device_call.html#wire-pattern-fpga-compatible){.reference
+                .internal}
+            -   [Connection
+                setup](../../using/realtime/device_call.html#connection-setup){.reference
+                .internal}
+            -   [Running
+                it](../../using/realtime/device_call.html#running-it){.reference
+                .internal}
+            -   [Test
+                harness](../../using/realtime/device_call.html#test-harness){.reference
                 .internal}
 -   [CUDA-QX](../../using/cudaqx/cudaqx.html){.reference .internal}
     -   [CUDA-Q
@@ -2059,7 +1841,7 @@ latest
 Previous](krylov.html "Multi-reference Quantum Krylov Algorithm - \(H_2\) Molecule"){.btn
 .btn-neutral .float-left accesskey="p"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](bernstein_vazirani.html "Bernstein-Vazirani Algorithm"){.btn
+aria-hidden="true"}](hadamard_test.html "Using the Hadamard Test to Determine Quantum Krylov Subspace Decomposition Matrix Elements"){.btn
 .btn-neutral .float-right accesskey="n"}
 :::
 
@@ -2464,7 +2246,7 @@ and Y. O. Nakagawa (2023) arXiv: 2302.11320
 Previous](krylov.html "Multi-reference Quantum Krylov Algorithm - \(H_2\) Molecule"){.btn
 .btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](bernstein_vazirani.html "Bernstein-Vazirani Algorithm"){.btn
+aria-hidden="true"}](hadamard_test.html "Using the Hadamard Test to Determine Quantum Krylov Subspace Decomposition Matrix Elements"){.btn
 .btn-neutral .float-right accesskey="n" rel="next"}
 :::
 

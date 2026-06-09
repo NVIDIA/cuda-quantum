@@ -356,17 +356,6 @@ latest
                 Integrators](examples/dynamics_examples.html#numerical-integrators){.reference
                 .internal}
 -   [Applications](#){.current .reference .internal}
-    -   [Max-Cut with QAOA](../applications/python/qaoa.html){.reference
-        .internal}
-    -   [Molecular docking via
-        DC-QAOA](../applications/python/digitized_counterdiabatic_qaoa.html){.reference
-        .internal}
-        -   [Setting up the Molecular Docking
-            Problem](../applications/python/digitized_counterdiabatic_qaoa.html#Setting-up-the-Molecular-Docking-Problem){.reference
-            .internal}
-        -   [CUDA-Q
-            Implementation](../applications/python/digitized_counterdiabatic_qaoa.html#CUDA-Q-Implementation){.reference
-            .internal}
     -   [Multi-reference Quantum Krylov Algorithm - [\\(H_2\\)]{.math
         .notranslate .nohighlight}
         Molecule](../applications/python/krylov.html){.reference
@@ -398,60 +387,6 @@ latest
             .internal}
         -   [Reference](../applications/python/qsci.html#Reference){.reference
             .internal}
-    -   [Bernstein-Vazirani
-        Algorithm](../applications/python/bernstein_vazirani.html){.reference
-        .internal}
-        -   [Classical
-            case](../applications/python/bernstein_vazirani.html#Classical-case){.reference
-            .internal}
-        -   [Quantum
-            case](../applications/python/bernstein_vazirani.html#Quantum-case){.reference
-            .internal}
-        -   [Implementing in
-            CUDA-Q](../applications/python/bernstein_vazirani.html#Implementing-in-CUDA-Q){.reference
-            .internal}
-    -   [Cost
-        Minimization](../applications/python/cost_minimization.html){.reference
-        .internal}
-    -   [Deutsch's
-        Algorithm](../applications/python/deutsch_algorithm.html){.reference
-        .internal}
-        -   [XOR [\\(\\oplus\\)]{.math .notranslate
-            .nohighlight}](../applications/python/deutsch_algorithm.html#XOR-\oplus){.reference
-            .internal}
-        -   [Quantum
-            oracles](../applications/python/deutsch_algorithm.html#Quantum-oracles){.reference
-            .internal}
-        -   [Phase
-            oracle](../applications/python/deutsch_algorithm.html#Phase-oracle){.reference
-            .internal}
-        -   [Quantum
-            parallelism](../applications/python/deutsch_algorithm.html#Quantum-parallelism){.reference
-            .internal}
-        -   [Deutsch's
-            Algorithm:](../applications/python/deutsch_algorithm.html#Deutsch's-Algorithm:){.reference
-            .internal}
-    -   [Divisive Clustering With Coresets Using
-        CUDA-Q](../applications/python/divisive_clustering_coresets.html){.reference
-        .internal}
-        -   [Data
-            preprocessing](../applications/python/divisive_clustering_coresets.html#Data-preprocessing){.reference
-            .internal}
-        -   [Quantum
-            functions](../applications/python/divisive_clustering_coresets.html#Quantum-functions){.reference
-            .internal}
-        -   [Divisive Clustering
-            Function](../applications/python/divisive_clustering_coresets.html#Divisive-Clustering-Function){.reference
-            .internal}
-        -   [QAOA
-            Implementation](../applications/python/divisive_clustering_coresets.html#QAOA-Implementation){.reference
-            .internal}
-        -   [Scaling simulations with
-            CUDA-Q](../applications/python/divisive_clustering_coresets.html#Scaling-simulations-with-CUDA-Q){.reference
-            .internal}
-    -   [Hybrid Quantum Neural
-        Networks](../applications/python/hybrid_quantum_neural_networks.html){.reference
-        .internal}
     -   [Using the Hadamard Test to Determine Quantum Krylov Subspace
         Decomposition Matrix
         Elements](../applications/python/hadamard_test.html){.reference
@@ -525,18 +460,6 @@ latest
         -   [Relevant
             references](../applications/python/hamiltonian_simulation.html#Relevant-references){.reference
             .internal}
-    -   [Quantum Fourier
-        Transform](../applications/python/quantum_fourier_transform.html){.reference
-        .internal}
-        -   [Quantum Fourier Transform
-            revisited](../applications/python/quantum_fourier_transform.html#Quantum-Fourier-Transform-revisited){.reference
-            .internal}
-    -   [Quantum
-        Teleporation](../applications/python/quantum_teleportation.html){.reference
-        .internal}
-        -   [Teleportation
-            explained](../applications/python/quantum_teleportation.html#Teleportation-explained){.reference
-            .internal}
     -   [Quantum
         Volume](../applications/python/quantum_volume.html){.reference
         .internal}
@@ -551,66 +474,6 @@ latest
             .internal}
         -   [Inverse of full confusion
             matrix](../applications/python/readout_error_mitigation.html#Inverse-of-full-confusion-matrix){.reference
-            .internal}
-    -   [Compiling Unitaries Using Diffusion
-        Models](../applications/python/unitary_compilation_diffusion_models.html){.reference
-        .internal}
-        -   [Diffusion model
-            pipeline](../applications/python/unitary_compilation_diffusion_models.html#Diffusion-model-pipeline){.reference
-            .internal}
-        -   [Setup and load
-            models](../applications/python/unitary_compilation_diffusion_models.html#Setup-and-load-models){.reference
-            .internal}
-            -   [Load discrete
-                model](../applications/python/unitary_compilation_diffusion_models.html#Load-discrete-model){.reference
-                .internal}
-            -   [Load continuous
-                model](../applications/python/unitary_compilation_diffusion_models.html#Load-continuous-model){.reference
-                .internal}
-            -   [Create helper
-                functions](../applications/python/unitary_compilation_diffusion_models.html#Create-helper-functions){.reference
-                .internal}
-        -   [Unitary
-            compilation](../applications/python/unitary_compilation_diffusion_models.html#Unitary-compilation){.reference
-            .internal}
-            -   [Random
-                unitary](../applications/python/unitary_compilation_diffusion_models.html#Random-unitary){.reference
-                .internal}
-            -   [Discrete
-                model](../applications/python/unitary_compilation_diffusion_models.html#Discrete-model){.reference
-                .internal}
-            -   [Continuous
-                model](../applications/python/unitary_compilation_diffusion_models.html#Continuous-model){.reference
-                .internal}
-            -   [Quantum Fourier
-                transform](../applications/python/unitary_compilation_diffusion_models.html#Quantum-Fourier-transform){.reference
-                .internal}
-            -   [XXZ-Hamiltonian
-                evolution](../applications/python/unitary_compilation_diffusion_models.html#XXZ-Hamiltonian-evolution){.reference
-                .internal}
-        -   [Choosing the circuit you
-            need](../applications/python/unitary_compilation_diffusion_models.html#Choosing-the-circuit-you-need){.reference
-            .internal}
-    -   [VQE with gradients, active spaces, and gate
-        fusion](../applications/python/vqe_advanced.html){.reference
-        .internal}
-        -   [The Basics of
-            VQE](../applications/python/vqe_advanced.html#The-Basics-of-VQE){.reference
-            .internal}
-        -   [Installing/Loading Relevant
-            Packages](../applications/python/vqe_advanced.html#Installing/Loading-Relevant-Packages){.reference
-            .internal}
-        -   [Implementing VQE in
-            CUDA-Q](../applications/python/vqe_advanced.html#Implementing-VQE-in-CUDA-Q){.reference
-            .internal}
-        -   [Parallel Parameter Shift
-            Gradients](../applications/python/vqe_advanced.html#Parallel-Parameter-Shift-Gradients){.reference
-            .internal}
-        -   [Using an Active
-            Space](../applications/python/vqe_advanced.html#Using-an-Active-Space){.reference
-            .internal}
-        -   [Gate Fusion for Larger
-            Circuits](../applications/python/vqe_advanced.html#Gate-Fusion-for-Larger-Circuits){.reference
             .internal}
     -   [Quantum Enhanced Auxiliary Field Quantum Monte
         Carlo](../applications/python/afqmc.html){.reference .internal}
@@ -632,78 +495,6 @@ latest
         -   [Setup of the AFQMC
             parameters](../applications/python/afqmc.html#Setup-of-the-AFQMC-parameters){.reference
             .internal}
-    -   [ADAPT-QAOA
-        algorithm](../applications/python/adapt_qaoa.html){.reference
-        .internal}
-        -   [Simulation
-            input:](../applications/python/adapt_qaoa.html#Simulation-input:){.reference
-            .internal}
-        -   [The problem Hamiltonian [\\(H_C\\)]{.math .notranslate
-            .nohighlight} of the max-cut
-            graph:](../applications/python/adapt_qaoa.html#The-problem-Hamiltonian-H_C-of-the-max-cut-graph:){.reference
-            .internal}
-        -   [Th operator pool [\\(A_j\\)]{.math .notranslate
-            .nohighlight}:](../applications/python/adapt_qaoa.html#Th-operator-pool-A_j:){.reference
-            .internal}
-        -   [The commutator [\\(\[H_C,A_j\]\\)]{.math .notranslate
-            .nohighlight}:](../applications/python/adapt_qaoa.html#The-commutator-%5BH_C,A_j%5D:){.reference
-            .internal}
-        -   [Beginning of ADAPT-QAOA
-            iteration:](../applications/python/adapt_qaoa.html#Beginning-of-ADAPT-QAOA-iteration:){.reference
-            .internal}
-    -   [ADAPT-VQE
-        algorithm](../applications/python/adapt_vqe.html){.reference
-        .internal}
-        -   [Classical
-            pre-processing](../applications/python/adapt_vqe.html#Classical-pre-processing){.reference
-            .internal}
-        -   [Jordan
-            Wigner:](../applications/python/adapt_vqe.html#Jordan-Wigner:){.reference
-            .internal}
-        -   [UCCSD operator
-            pool](../applications/python/adapt_vqe.html#UCCSD-operator-pool){.reference
-            .internal}
-            -   [Single
-                excitation](../applications/python/adapt_vqe.html#Single-excitation){.reference
-                .internal}
-            -   [Double
-                excitation](../applications/python/adapt_vqe.html#Double-excitation){.reference
-                .internal}
-        -   [Commutator \[[\\(H\\)]{.math .notranslate .nohighlight},
-            [\\(A_i\\)]{.math .notranslate
-            .nohighlight}\]](../applications/python/adapt_vqe.html#Commutator-%5BH,-A_i%5D){.reference
-            .internal}
-        -   [Reference
-            State:](../applications/python/adapt_vqe.html#Reference-State:){.reference
-            .internal}
-        -   [Quantum
-            kernels:](../applications/python/adapt_vqe.html#Quantum-kernels:){.reference
-            .internal}
-        -   [Beginning of
-            ADAPT-VQE:](../applications/python/adapt_vqe.html#Beginning-of-ADAPT-VQE:){.reference
-            .internal}
-    -   [Quantum edge
-        detection](../applications/python/edge_detection.html){.reference
-        .internal}
-        -   [Image](../applications/python/edge_detection.html#Image){.reference
-            .internal}
-        -   [Quantum Probability Image Encoding
-            (QPIE):](../applications/python/edge_detection.html#Quantum-Probability-Image-Encoding-(QPIE):){.reference
-            .internal}
-            -   [Below we show how to encode an image using QPIE in
-                cudaq.](../applications/python/edge_detection.html#Below-we-show-how-to-encode-an-image-using-QPIE-in-cudaq.){.reference
-                .internal}
-        -   [Flexible Representation of Quantum Images
-            (FRQI):](../applications/python/edge_detection.html#Flexible-Representation-of-Quantum-Images-(FRQI):){.reference
-            .internal}
-            -   [Building the FRQI
-                State:](../applications/python/edge_detection.html#Building-the-FRQI-State:){.reference
-                .internal}
-        -   [Quantum Hadamard Edge Detection
-            (QHED)](../applications/python/edge_detection.html#Quantum-Hadamard-Edge-Detection-(QHED)){.reference
-            .internal}
-            -   [Post-processing](../applications/python/edge_detection.html#Post-processing){.reference
-                .internal}
     -   [Factoring Integers With Shor's
         Algorithm](../applications/python/shors.html){.reference
         .internal}
@@ -757,43 +548,6 @@ latest
             -   [(e) Generate electronic Hamiltonian using
                 UHF](../applications/python/generate_fermionic_ham.html#(e)-Generate-electronic-Hamiltonian-using-UHF){.reference
                 .internal}
-    -   [Grover's
-        Algorithm](../applications/python/grovers.html){.reference
-        .internal}
-        -   [Overview](../applications/python/grovers.html#Overview){.reference
-            .internal}
-        -   [Problem](../applications/python/grovers.html#Problem){.reference
-            .internal}
-        -   [Structure of Grover's
-            Algorithm](../applications/python/grovers.html#Structure-of-Grover's-Algorithm){.reference
-            .internal}
-            -   [Step 1:
-                Preparation](../applications/python/grovers.html#Step-1:-Preparation){.reference
-                .internal}
-            -   [Good and Bad
-                States](../applications/python/grovers.html#Good-and-Bad-States){.reference
-                .internal}
-            -   [Step 2: Oracle
-                application](../applications/python/grovers.html#Step-2:-Oracle-application){.reference
-                .internal}
-            -   [Step 3: Amplitude
-                amplification](../applications/python/grovers.html#Step-3:-Amplitude-amplification){.reference
-                .internal}
-            -   [Steps 4 and 5: Iteration and
-                measurement](../applications/python/grovers.html#Steps-4-and-5:-Iteration-and-measurement){.reference
-                .internal}
-    -   [Quantum
-        PageRank](../applications/python/quantum_pagerank.html){.reference
-        .internal}
-        -   [Problem
-            Definition](../applications/python/quantum_pagerank.html#Problem-Definition){.reference
-            .internal}
-        -   [Simulating Quantum PageRank by CUDA-Q
-            dynamics](../applications/python/quantum_pagerank.html#Simulating-Quantum-PageRank-by-CUDA-Q-dynamics){.reference
-            .internal}
-        -   [Breakdown of
-            Terms](../applications/python/quantum_pagerank.html#Breakdown-of-Terms){.reference
-            .internal}
     -   [The UCCSD Wavefunction
         ansatz](../applications/python/uccsd_wf_ansatz.html){.reference
         .internal}
@@ -815,41 +569,6 @@ latest
         -   [Ran's
             approach](../applications/python/mps_encoding.html#Ran's-approach){.reference
             .internal}
-    -   [QM/MM simulation: VQE within a Polarizable Embedded
-        Framework.](../applications/python/qm_mm_pe.html){.reference
-        .internal}
-        -   [Key
-            concepts:](../applications/python/qm_mm_pe.html#Key-concepts:){.reference
-            .internal}
-        -   [PE-VQE-SCF Algorithm
-            Steps](../applications/python/qm_mm_pe.html#PE-VQE-SCF-Algorithm-Steps){.reference
-            .internal}
-            -   [Step 1: Initialize (Classical
-                pre-processing)](../applications/python/qm_mm_pe.html#Step-1:-Initialize-(Classical-pre-processing)){.reference
-                .internal}
-            -   [Step 2: Build the
-                Hamiltonian](../applications/python/qm_mm_pe.html#Step-2:-Build-the-Hamiltonian){.reference
-                .internal}
-            -   [Step 3: Run
-                VQE](../applications/python/qm_mm_pe.html#Step-3:-Run-VQE){.reference
-                .internal}
-            -   [Step 4: Update
-                Environment](../applications/python/qm_mm_pe.html#Step-4:-Update-Environment){.reference
-                .internal}
-            -   [Step 5: Self-Consistency
-                Loop](../applications/python/qm_mm_pe.html#Step-5:-Self-Consistency-Loop){.reference
-                .internal}
-            -   [Requirments:](../applications/python/qm_mm_pe.html#Requirments:){.reference
-                .internal}
-            -   [Example 1: LiH with 2 water
-                molecules.](../applications/python/qm_mm_pe.html#Example-1:-LiH-with-2-water-molecules.){.reference
-                .internal}
-            -   [VQE, update environment, and scf
-                loop.](../applications/python/qm_mm_pe.html#VQE,-update-environment,-and-scf-loop.){.reference
-                .internal}
-            -   [Example 2: NH3 with 46 water molecule using active
-                space.](../applications/python/qm_mm_pe.html#Example-2:-NH3-with-46-water-molecule-using-active-space.){.reference
-                .internal}
     -   [Sample-Based Krylov Quantum Diagonalization
         (SKQD)](../applications/python/skqd.html){.reference .internal}
         -   [Why
@@ -1311,6 +1030,42 @@ latest
                 .internal}
             -   [Decoding
                 Rounds](realtime/protocol.html#decoding-rounds){.reference
+                .internal}
+    -   [CPU RoCE Transport](realtime/cpu_transport.html){.reference
+        .internal}
+        -   [C ABI](realtime/cpu_transport.html#c-abi){.reference
+            .internal}
+        -   [Two-phase bring-up ([`setup`{.docutils .literal
+            .notranslate}]{.pre} / [`connect`{.docutils .literal
+            .notranslate}]{.pre})](realtime/cpu_transport.html#two-phase-bring-up-setup-connect){.reference
+            .internal}
+        -   [TX modes](realtime/cpu_transport.html#tx-modes){.reference
+            .internal}
+        -   [Testing ([`hsb_bridge_cpu`{.docutils .literal
+            .notranslate}]{.pre})](realtime/cpu_transport.html#testing-hsb-bridge-cpu){.reference
+            .internal}
+    -   [Device Call Channels](realtime/device_call.html){.reference
+        .internal}
+        -   [The [`device_call`{.docutils .literal .notranslate}]{.pre}
+            model](realtime/device_call.html#the-device-call-model){.reference
+            .internal}
+        -   [Selecting a
+            channel](realtime/device_call.html#selecting-a-channel){.reference
+            .internal}
+        -   [The [`cpu_roce`{.docutils .literal .notranslate}]{.pre}
+            channel](realtime/device_call.html#the-cpu-roce-channel){.reference
+            .internal}
+            -   [Wire pattern
+                (FPGA-compatible)](realtime/device_call.html#wire-pattern-fpga-compatible){.reference
+                .internal}
+            -   [Connection
+                setup](realtime/device_call.html#connection-setup){.reference
+                .internal}
+            -   [Running
+                it](realtime/device_call.html#running-it){.reference
+                .internal}
+            -   [Test
+                harness](realtime/device_call.html#test-harness){.reference
                 .internal}
 -   [CUDA-QX](cudaqx/cudaqx.html){.reference .internal}
     -   [CUDA-Q Solvers](cudaqx/cudaqx.html#cuda-q-solvers){.reference
@@ -2051,7 +1806,7 @@ latest
 Previous](../examples/python/dynamics/control.html "Control"){.btn
 .btn-neutral .float-left accesskey="p"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](../applications/python/qaoa.html "Max-Cut with QAOA"){.btn
+aria-hidden="true"}](../applications/python/krylov.html "Multi-reference Quantum Krylov Algorithm - \(H_2\) Molecule"){.btn
 .btn-neutral .float-right accesskey="n"}
 :::
 
@@ -2128,32 +1883,6 @@ Neutral Atom
 :::
 :::
 
-::: {.notebook-entry tags="optimization,noiseless,gpu"}
-[QAOA for Max Cut
-Problem](../applications/python/qaoa.html){.notebook-title}
-
-::: notebook-content
-Learn the theory behind the Quantum Approximate Optimization Algorithm
-(QAOA) and how it can be used to solve the Max Cut problem.
-:::
-
-![QAOA
-Preview](../_static/app_title_images/qaoa_preview.png){.notebook-image}
-:::
-
-::: {.notebook-entry tags="chemistry,optimization,noiseless,gpu"}
-[Digitized Counterdiabatic
-QAOA](../applications/python/digitized_counterdiabatic_qaoa.html){.notebook-title}
-
-::: notebook-content
-Learn how the DC-QAOA algorithm is used to predict molecules that might
-be good candidates for drugs based on their interactions with proteins.
-:::
-
-![DC-QAOA
-Preview](../_static/app_title_images/dcqaoa_preview.png){.notebook-image}
-:::
-
 ::: {.notebook-entry tags="chemistry,noiseless,mqpu"}
 [Krylov Subspace
 Methods](../applications/python/krylov.html){.notebook-title}
@@ -2191,62 +1920,6 @@ Learn how to implement the Sample-Based Krylov Quantum Diagonalization
 :::
 :::
 
-::: {.notebook-entry tags="cpu,fundamental,noiseless,gpu"}
-[The Bernstein-Vazirani
-Algorithm](../applications/python/bernstein_vazirani.html){.notebook-title}
-
-::: notebook-content
-Learn a famous quantum algorithm that provides intuition for why
-exponential speedups can be achieved with quantum computers.
-:::
-
-![BV
-Preview](../_static/app_title_images/bv_preview.png){.notebook-image}
-:::
-
-::: {.notebook-entry tags="cpu,fundamental,noiseless,gpu"}
-[Deutsch\'s
-Algorithm](../applications/python/deutsch_algorithm.html){.notebook-title}
-
-::: notebook-content
-Learn how quantum computers can provide an exponential speedup for
-identifying if a Boolean function is constant or balanced.
-:::
-
-![DJ
-Preview](../_static/app_title_images/dj_preview.png){.notebook-image}
-:::
-
-::: {.notebook-entry tags="qforai,noiseless,mgpu,collab"}
-[Divisive Clustering with
-Coresets](../applications/python/divisive_clustering_coresets.html){.notebook-title}
-
-::: notebook-content
-Explore an implementation of the work in this paper
-(https://arxiv.org/abs/2402.01529) which looks at ways to cluster large
-data sets on quantum computers using a data reduction technique called
-coresets. This notebook includes the full workflow, a QAOA
-implementation, and an example of using the `mgpu` backend to scale the
-problem to greater qubit numbers.
-:::
-
-![Clustering
-Preview](../_static/app_title_images/clustering_preview.png){.notebook-image}
-:::
-
-::: {.notebook-entry tags="qforai,noiseless,gpu"}
-[Hybrid Quantum Neural
-Networks](../applications/python/hybrid_quantum_neural_networks.html){.notebook-title}
-
-::: notebook-content
-Learn how to implement Neural Network composed of a traditional PyTorch
-layer and a quantum layer added with CUDA-Q
-:::
-
-![HQNN
-Preview](../_static/app_title_images/hqnn_preview.png){.notebook-image}
-:::
-
 ::: {.notebook-entry tags="fundamental,noiseless,gpu,mqpu"}
 [The Hadamard
 Test](../applications/python/hadamard_test.html){.notebook-title}
@@ -2274,35 +1947,6 @@ the Heisenberg model.
 
 ![Trotter
 Preview](../_static/app_title_images/trotter_preview.png){.notebook-image}
-:::
-
-::: {.notebook-entry tags="cpu,fundamental,noiseless,gpu"}
-[The Quantum Fourier
-Transform](../applications/python/quantum_fourier_transform.html){.notebook-title}
-
-::: notebook-content
-The Quantum Fourier transform (QFT) is a fundamental quantum algorithm
-that is also an important subroutine of quantum phase estimation,
-Shor\'s, and other quantum algorithms. Learn the basics of the QFT and
-how to implement it in CUDA-Q.
-:::
-
-![QFT
-Preview](../_static/app_title_images/qft_preview.png){.notebook-image}
-:::
-
-::: {.notebook-entry tags="cpu,fundamental,noiseless,gpu"}
-[Quantum
-Teleportation](../applications/python/quantum_teleportation.html){.notebook-title}
-
-::: notebook-content
-Quantum teleportation is one of the strange phenomena that makes quantum
-computing so interesting. Learn how teleportation works and how it is
-implemented in CUDA-Q.
-:::
-
-![Quantum Teleportation
-Preview](../_static/app_title_images/teleport_preview.png){.notebook-image}
 :::
 
 ::: {.notebook-entry tags="fundamental,noisy,density"}
@@ -2335,36 +1979,6 @@ readout error mitigation tutorial.
 Preview](../_static/app_title_images/readout_preview.png){.notebook-image}
 :::
 
-::: {.notebook-entry tags="aiforq,noiseless,gpu"}
-[Compiling Unitaries with Diffusion
-Models](../applications/python/unitary_compilation_diffusion_models.html){.notebook-title}
-
-::: notebook-content
-Implementing quantum circuits to apply arbitrary unitary operations is a
-complex task. This tutorial explores an AI for quantum application where
-a diffusion model can be used to compile unitaries.
-:::
-
-![Diffusion Model
-Preview](../_static/app_title_images/diffusion_preview.png){.notebook-image}
-:::
-
-::: {.notebook-entry tags="chemistry,noiseless,mqpu"}
-[The Variational Quantum
-Eigensolver](../applications/python/vqe_advanced.html){.notebook-title}
-
-::: notebook-content
-The variational quantum eigensolver is a hybrid quantum classical
-algorithm for predicting the ground state of a Hamiltonian. Learn how to
-predict molecular energies with the VQE in CUDA-Q using active spaces,
-how to parallelize gradient evaluation, and how to use performance
-optimizations like gate fusion.
-:::
-
-![VQE
-Preview](../_static/app_title_images/vqe_preview.png){.notebook-image}
-:::
-
 ::: {.notebook-entry tags="chemistry,noiseless,gpu,collab"}
 [Quantum Enhanced Auxiliary Field Quantum Monte
 Carlo](../applications/python/afqmc.html){.notebook-title}
@@ -2377,47 +1991,6 @@ NVIDIA and BASF collaborated to implement this technique.
 
 ![AFQMC
 Preview](../_static/app_title_images/afmqc_preview.png){.notebook-image}
-:::
-
-::: {.notebook-entry tags="optimization,noiseless,gpu"}
-[ADAPT QAOA](../applications/python/adapt_qaoa.html){.notebook-title}
-
-::: notebook-content
-Learn how to implement the Adaptive Derivative-Assembled Pseudo-Trotter
-(ADAPT) ansatz QAOA using CUDA-Q. The method iteratively builds an
-ansatz to more efficiently converge to the ground state of a problem
-Hamiltonian.
-:::
-
-![ADAPT
-Preview](../_static/app_title_images/adapt_qaoa_preview.png){.notebook-image}
-:::
-
-::: {.notebook-entry tags="chemistry,noiseless,gpu"}
-[ADAPT VQE](../applications/python/adapt_vqe.html){.notebook-title}
-
-::: notebook-content
-Learn how to implement the Adaptive Derivative-Assembled Pseudo-Trotter
-(ADAPT) to predict molecular ground state energies. The method
-iteratively builds an ansatz to more efficiently converge compared to
-traditional VQE.
-:::
-
-![ADAPT VQE
-Preview](../_static/app_title_images/adaptvqe_preview.png){.notebook-image}
-:::
-
-::: {.notebook-entry tags="qforai,noiseless,gpu"}
-[Quantum Edge
-Detection](../applications/python/edge_detection.html){.notebook-title}
-
-::: notebook-content
-Learn how to encode image data with a quantum circuit and use a quantum
-algorithm to identify object boundaries in an image.
-:::
-
-![Edge Detection
-Preview](../_static/app_title_images/edgedetection_preview.png){.notebook-image}
 :::
 
 ::: {.notebook-entry tags="fundamental,noiseless,gpu,cpu"}
@@ -2445,33 +2018,6 @@ hamiltonian using CUDA-Q.
 Hamiltonian](../_static/app_title_images/electronic-ham.png){.notebook-image}
 :::
 
-::: {.notebook-entry tags="cpu,fundamental,noiseless,gpu"}
-[Grover\'s
-Algorithm](../applications/python/grovers.html){.notebook-title}
-
-::: notebook-content
-Learn how quantum computers can quadratically speed up searching through
-an unstructured database by amplifying the probability of finding the
-desired item.
-:::
-
-![DJ
-Preview](../_static/app_title_images/grovers_preview.png){.notebook-image}
-:::
-
-::: {.notebook-entry tags="dynamics,noiseless,gpu"}
-[Quantum
-Pagerank](../applications/python/quantum_pagerank.html){.notebook-title}
-
-::: notebook-content
-Quantum stochastic walk using dynamic simulation demonstrated by the
-Quantum PageRank algorithm for social network analysis.
-:::
-
-![Quantum Pagerank
-Preview](../_static/app_title_images/quantum_pagerank_preview.png){.notebook-image}
-:::
-
 ::: {.notebook-entry tags="chemistry,noiseless"}
 [UCCSD Wavefunction
 Ansatz](../applications/python/uccsd_wf_ansatz.html){.notebook-title}
@@ -2496,16 +2042,19 @@ Learn how to approximately prepare quantum states via MPS using CUDA-Q.
 Encoding](../_static/app_title_images/mps_encoding.png){.notebook-image}
 :::
 
-::: {.notebook-entry tags="chemistry,noiseless"}
-[QM/MM simulation: VQE within a Polarizable Embedded
-Framework.](../applications/python/qm_mm_pe.html){.notebook-title}
+::: {.notebook-entry tags="gpu, dynamics, noiseless"}
+[Entanglement Accelerates Quantum
+Simulation](../applications/python/entanglement_acc_hamiltonian_simulation){.notebook-title}
 
 ::: notebook-content
-Learn how to implement QM/MM with PE framework using CUDA-Q.
+Learn how entanglement growth can \*reduce\* the Trotter error of the
+first-order product formula (PF1), recovering the result from the
+\[paper\](https://www.nature.com/articles/s41567-025-02945-2) using
+NVIDIA CUDA-Q.
 :::
 
-![QM/MM partitioning in the PE
-model.](../_static/app_title_images/qmmm-pe.png){.notebook-image}
+![PF1 error decreases as entanglement
+spreads](../_static/app_title_images/entanglement_acc_hamiltonian_simulation_preview.png){.notebook-image}
 :::
 
 ::: {.notebook-entry tags="fundamental,noisy,gpu"}
@@ -2521,21 +2070,6 @@ for large shot counts. Based on the SC25 paper by Patti et al.
 (https://arxiv.org/abs/2504.16297).
 :::
 :::
-
-::: {.notebook-entry tags="gpu, dynamics, noiseless"}
-[Entanglement Accelerates Quantum
-Simulation](../applications/python/entanglement_acc_hamiltonian_simulation){.notebook-title}
-
-::: notebook-content
-Learn how entanglement growth can \*reduce\* the Trotter error of the
-first-order product formula (PF1), recovering the result from the
-\[paper\](https://www.nature.com/articles/s41567-025-02945-2) using
-NVIDIA CUDA-Q.
-:::
-
-![PF1 error decreases as entanglement
-spreads](../_static/app_title_images/entanglement_acc_hamiltonian_simulation_preview.png){.notebook-image}
-:::
 :::
 
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
@@ -2543,7 +2077,7 @@ spreads](../_static/app_title_images/entanglement_acc_hamiltonian_simulation_pre
 Previous](../examples/python/dynamics/control.html "Control"){.btn
 .btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](../applications/python/qaoa.html "Max-Cut with QAOA"){.btn
+aria-hidden="true"}](../applications/python/krylov.html "Multi-reference Quantum Krylov Algorithm - \(H_2\) Molecule"){.btn
 .btn-neutral .float-right accesskey="n" rel="next"}
 :::
 
