@@ -24,6 +24,8 @@
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Optimizer/Transforms/ResourceCount.h"
+#include "cudaq/algorithms/observe/policy.h"
+#include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "llvm/ADT/SmallSet.h"
@@ -451,7 +453,6 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
         return mlir::WalkResult::advance();
       });
       if (hasNamedMeasurements) {
-        warnedNamedMeasurements = true;
         std::cerr << "WARNING: Kernel \"" << kernelName
                   << "\" uses named measurement results "
                   << "but is invoked in sampling mode. Support for "
@@ -574,7 +575,8 @@ cudaq_internal::compiler::Compiler::emitKernelExecutions(
 
     auto mapping_reorder_idx = compiled.getMetadata().reorderIdx;
     codes.emplace_back(name, codeStr, optionalJit, optionalResourceCounts, j,
-                       mapping_reorder_idx);
+                       mapping_reorder_idx,
+                       compiled.getMetadata().hasConditionalsOnMeasureResults);
   }
 
   return codes;
@@ -702,3 +704,24 @@ mlir::ModuleOp cudaq_internal::compiler::Compiler::lowerQuakeCodeBuildModule(
   }
   return moduleOp;
 }
+
+// Explicit template instantiations, required to link the calls to the compiler
+// from `cudaq::detail::launch` (see runtime/cudaq/algorithms/launch.h).
+template cudaq::CompiledModule
+cudaq_internal::compiler::compileModule<cudaq::sample_policy>(
+    const cudaq::sample_policy &, std::unique_ptr<cudaq::CompileTarget>,
+    const cudaq::SourceModule &, cudaq::KernelArgs, bool);
+template cudaq::CompiledModule
+cudaq_internal::compiler::compileModule<cudaq::observe_policy>(
+    const cudaq::observe_policy &, std::unique_ptr<cudaq::CompileTarget>,
+    const cudaq::SourceModule &, cudaq::KernelArgs, bool);
+template cudaq::CompiledModule cudaq_internal::compiler::compileModule<
+    cudaq::async_policy_wrapper<cudaq::sample_policy>>(
+    const cudaq::async_policy_wrapper<cudaq::sample_policy> &,
+    std::unique_ptr<cudaq::CompileTarget>, const cudaq::SourceModule &,
+    cudaq::KernelArgs, bool);
+template cudaq::CompiledModule cudaq_internal::compiler::compileModule<
+    cudaq::async_policy_wrapper<cudaq::observe_policy>>(
+    const cudaq::async_policy_wrapper<cudaq::observe_policy> &,
+    std::unique_ptr<cudaq::CompileTarget>, const cudaq::SourceModule &,
+    cudaq::KernelArgs, bool);

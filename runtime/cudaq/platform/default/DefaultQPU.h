@@ -21,7 +21,7 @@ public:
 
   void enqueue(QuantumTask &task) override;
 
-  KernelThunkResultType unifiedLaunchModule(const cudaq::CompiledModule &module,
+  KernelThunkResultType unifiedLaunchModule(const cudaq::AnyModule &module,
                                             cudaq::KernelArgs args) override;
 
   sample_result launchKernel(const sample_policy &policy,
@@ -36,7 +36,7 @@ public:
                               const CompiledModule &module,
                               KernelArgs args) override;
 
-  async_observe_result launchKernel(async_observe_policy &policy,
+  async_observe_result launchKernel(const async_observe_policy &policy,
                                     const CompiledModule &module,
                                     KernelArgs args) override;
 

@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/BaseRemoteRESTQPU.h"
+#include "common/CompiledModule.h"
 
 namespace cudaq {
 
@@ -25,7 +26,7 @@ public:
   /// representation required by the targeted backend. Handle all pertinent
   /// modifications for the execution context as well as asynchronous or
   /// synchronous invocation.
-  KernelThunkResultType unifiedLaunchModule(const CompiledModule &module,
+  KernelThunkResultType unifiedLaunchModule(const AnyModule &module,
                                             KernelArgs args) override;
 
   sample_result launchKernel(const sample_policy &policy,
@@ -40,7 +41,7 @@ public:
                               const CompiledModule &module,
                               KernelArgs args) override;
 
-  async_observe_result launchKernel(async_observe_policy &policy,
+  async_observe_result launchKernel(const async_observe_policy &policy,
                                     const CompiledModule &module,
                                     KernelArgs args) override;
 };

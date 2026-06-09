@@ -144,6 +144,9 @@ public:
   public:
     /// Get the opaque pointer to the MLIR module.
     const void *getOpaqueModulePtr() const { return modulePtr; }
+
+    /// Get the owning reference to the containing `MLIRContext` (may be null).
+    std::shared_ptr<mlir::MLIRContext> getContext() const { return context; }
   };
 
   /// Pre-compiled kernel, stored as a raw function pointer.
@@ -268,6 +271,8 @@ protected:
 /// Contains either a `nvq++`-compiled function pointer or an MLIR module,
 /// depending on the provenance of the kernel.
 class SourceModule : public FatQuakeModule {
+  friend class cudaq_internal::compiler::CompiledModuleHelper;
+
 public:
   SourceModule(std::string kernelName)
       : FatQuakeModule(std::move(kernelName)) {}
@@ -314,5 +319,7 @@ public:
   CompiledModule() : FatQuakeModule(std::string{}) {}
   explicit CompiledModule(SourceModule src) : FatQuakeModule(std::move(src)) {}
 };
+
+using AnyModule = std::variant<SourceModule, CompiledModule>;
 
 } // namespace cudaq

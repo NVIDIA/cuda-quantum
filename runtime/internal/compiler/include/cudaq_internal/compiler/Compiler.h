@@ -12,6 +12,7 @@
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq/Target/CompileTarget.h"
 #include "cudaq/algorithms/sample/policy.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <memory>
 #include <string>
 #include <vector>
@@ -57,9 +58,6 @@ class Compiler {
   /// @brief Flag indicating whether we should print the IR.
   bool printIR = false;
 
-  /// Whether compilation emitted a named measurement warning.
-  bool warnedNamedMeasurements = false;
-
   mlir::ModuleOp lowerQuakeCodeBuildModule(const std::string &,
                                            mlir::ModuleOp module,
                                            mlir::MLIRContext *,
@@ -94,10 +92,6 @@ class Compiler {
       std::shared_ptr<mlir::MLIRContext> context);
 
 public:
-  /// Whether compilation emitted a warning about the presence of named
-  /// measurements.
-  bool hasWarnedNamedMeasurements() const { return warnedNamedMeasurements; }
-
   const cudaq::CompileTarget &getTarget() const { return *target; }
 
   static std::pair<const void *, std::shared_ptr<mlir::MLIRContext>>
@@ -143,17 +137,32 @@ compileModule(const Policy &policy,
               std::unique_ptr<cudaq::CompileTarget> target,
               const cudaq::SourceModule &src, cudaq::KernelArgs args,
               bool isEntryPoint = true) {
+  if (!target->overrideAOTCompilation && src.getFunctionPtr()) {
+    // We are allowed to use the AOT-compiled module as-is, so nothing to do.
+    CUDAQ_INFO("No JIT compilation required. Using AOT-compiled module as-is.");
+    return cudaq::CompiledModule{src};
+  }
+
   const auto &kernelName = src.getName();
-  auto modulePtr = src.getMlirOpaqueModulePtr();
-  assert(modulePtr && "Compiler::compileModule requires an MLIR artifact");
+  auto mlirArt = src.getMlir();
+  if (!mlirArt.has_value()) {
+    auto srcOwned = src;
+    CompiledModuleHelper::loadMlirArtifacts(srcOwned);
+    mlirArt = srcOwned.getMlir();
+  }
+
+  assert(mlirArt.has_value() &&
+         "Compiler::compileModule requires an MLIR artifact");
 
   Compiler compiler(std::move(target));
   auto compiled =
-      compiler.runPassPipeline(kernelName, modulePtr, args, isEntryPoint);
+      compiler.runPassPipeline(kernelName, mlirArt->getOpaqueModulePtr(), args,
+                               isEntryPoint, mlirArt->getContext());
 
   if constexpr (std::is_same_v<Policy, cudaq::sample_policy>) {
-    if (compiler.hasWarnedNamedMeasurements())
-      policy.warnedNamedMeasurements = true;
+    // Any warning would have been emitted by the compiler. Silence further
+    // warnings.
+    policy.warnedNamedMeasurements = true;
   }
   return compiled;
 }

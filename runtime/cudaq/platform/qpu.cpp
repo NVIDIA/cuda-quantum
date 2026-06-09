@@ -25,8 +25,9 @@ using namespace cudaq_internal::compiler;
 using namespace cudaq;
 
 cudaq::KernelThunkResultType
-cudaq::QPU::unifiedLaunchModule(const CompiledModule &module, KernelArgs args) {
-  return runJITCompiledModule(module, args);
+cudaq::QPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
+  throw std::runtime_error(
+      "This QPU does not support launching the other_policies.");
 }
 
 sample_result cudaq::QPU::launchKernel(const sample_policy &policy,
@@ -50,9 +51,9 @@ observe_result cudaq::QPU::launchKernel(const observe_policy &policy,
       "This QPU does not support launching the observe_policy.");
 }
 
-async_observe_result cudaq::QPU::launchKernel(async_observe_policy &policy,
-                                              const CompiledModule &module,
-                                              KernelArgs args) {
+async_observe_result
+cudaq::QPU::launchKernel(const async_observe_policy &policy,
+                         const CompiledModule &module, KernelArgs args) {
   throw std::runtime_error(
       "This QPU does not support launching the async_observe_policy.");
 }

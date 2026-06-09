@@ -6,9 +6,9 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Undoing the setting of CUDAQ_LIBRARY_MODE for the backends directory.
+# Undoing the setting of CUDAQ_LIBRARY_MODE and CUDAQ_DISABLE_JIT_COMPILER for the backends directory.
 get_directory_property(defs COMPILE_DEFINITIONS)
-list(REMOVE_ITEM defs CUDAQ_LIBRARY_MODE)
+list(REMOVE_ITEM defs CUDAQ_LIBRARY_MODE CUDAQ_DISABLE_JIT_COMPILER)
 set_directory_properties(PROPERTIES COMPILE_DEFINITIONS "${defs}")
 
 

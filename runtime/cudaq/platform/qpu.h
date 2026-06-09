@@ -150,12 +150,12 @@ public:
                                       const CompiledModule &module,
                                       KernelArgs args);
 
-  virtual async_observe_result launchKernel(async_observe_policy &policy,
+  virtual async_observe_result launchKernel(const async_observe_policy &policy,
                                             const CompiledModule &module,
                                             KernelArgs args);
 
   [[nodiscard]] virtual KernelThunkResultType
-  unifiedLaunchModule(const CompiledModule &module, KernelArgs args);
+  unifiedLaunchModule(const AnyModule &module, KernelArgs args);
 
   /// Get the compile target of the QPU for the given policy.
   [[nodiscard]] virtual std::unique_ptr<CompileTarget>

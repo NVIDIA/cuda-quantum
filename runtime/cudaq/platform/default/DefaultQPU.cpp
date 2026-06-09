@@ -21,13 +21,20 @@ void cudaq::DefaultQPU::enqueue(QuantumTask &task) {
 }
 
 cudaq::KernelThunkResultType
-cudaq::DefaultQPU::unifiedLaunchModule(const cudaq::CompiledModule &module,
+cudaq::DefaultQPU::unifiedLaunchModule(const cudaq::AnyModule &module,
                                        cudaq::KernelArgs args) {
   ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::unifiedLaunchModule");
 
-  auto rawFn = module.getFunctionPtr();
-  if (!rawFn)
-    return runJITCompiledModule(module, args);
+  std::optional<FatQuakeModule::FunctionPtrArtifact> rawFn;
+  if (std::holds_alternative<SourceModule>(module)) {
+    rawFn = std::get<SourceModule>(module).getFunctionPtr();
+    assert(rawFn && "SourceModule must have a valid AOT-compiled thunk");
+  } else {
+    auto &compiled = std::get<CompiledModule>(module);
+    rawFn = compiled.getFunctionPtr();
+    if (!rawFn)
+      return runJITCompiledModule(compiled, args);
+  }
 
   auto packed = args.getPacked();
   void *argData = packed ? packed->data.data() : nullptr;
@@ -63,7 +70,7 @@ cudaq::DefaultQPU::launchKernel(const cudaq::observe_policy &policy,
 }
 
 cudaq::async_observe_result
-cudaq::DefaultQPU::launchKernel(async_observe_policy &policy,
+cudaq::DefaultQPU::launchKernel(const async_observe_policy &policy,
                                 const cudaq::CompiledModule &module,
                                 cudaq::KernelArgs args) {
   throw std::runtime_error(
@@ -72,24 +79,18 @@ cudaq::DefaultQPU::launchKernel(async_observe_policy &policy,
 
 std::unique_ptr<cudaq::CompileTarget>
 cudaq::DefaultQPU::getCompileTarget(const sample_policy &policy) {
-  // Currently this is only used for Python kernels, as C++ kernels skip JIT
-  // compilation and call the AOT-generated function directly.
-  return getDefaultPythonCompileTarget(policy);
+  return getDefaultCompileTarget(policy);
 }
 
 std::unique_ptr<cudaq::CompileTarget>
 cudaq::DefaultQPU::getCompileTarget(const observe_policy &policy) {
-  // Currently this is only used for Python kernels, as C++ kernels skip JIT
-  // compilation and call the AOT-generated function directly.
-  return getDefaultPythonCompileTarget(policy);
+  return getDefaultCompileTarget(policy);
 }
 
 std::unique_ptr<cudaq::CompileTarget>
 cudaq::DefaultQPU::getCompileTarget(const other_policies &policy,
                                     ExecutionContext *context) {
-  // Currently this is only used for Python kernels, as C++ kernels skip JIT
-  // compilation and call the AOT-generated function directly.
-  return getDefaultPythonCompileTarget(policy, context);
+  return getDefaultCompileTarget(policy, context);
 }
 
 void cudaq::DefaultQPU::configureExecutionContext(

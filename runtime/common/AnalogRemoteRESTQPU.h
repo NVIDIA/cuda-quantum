@@ -26,9 +26,14 @@ public:
 
   /// @brief Launch a kernel with the given arguments
   /// Only analog Hamiltonian kernels are supported
-  KernelThunkResultType unifiedLaunchModule(const CompiledModule &module,
+  KernelThunkResultType unifiedLaunchModule(const AnyModule &module,
                                             KernelArgs args) override {
-    const auto &kernelName = module.getName();
+    if (!std::holds_alternative<SourceModule>(module))
+      throw std::runtime_error(
+          "AnalogRemoteRESTQPU does not support pre-compiled module launch.");
+
+    const auto &src = std::get<SourceModule>(module);
+    const auto &kernelName = src.getName();
     auto executionContext = cudaq::getExecutionContext();
 
     if (!cudaq::detail::isAnalogHamiltonianKernel(kernelName))
@@ -44,9 +49,7 @@ public:
     std::string name = kernelName;
     const auto packed = args.getPacked();
     std::string strArgs = packed ? (char *)packed->data.data() : "";
-    std::vector<std::size_t> mapping_reorder_idx;
-    codes.emplace_back(name, strArgs, std::nullopt, std::nullopt,
-                       mapping_reorder_idx);
+    codes.push_back(KernelExecution{.name = name, .code = strArgs});
 
     if (executionContext) {
       executor->setShots(executionContext->shots);

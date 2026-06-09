@@ -157,7 +157,7 @@ public:
   std::optional<cudaq::CompiledModule> cachedCompiledModule = std::nullopt;
 
   /// @brief Dispatcher towards the policy specific launch.
-  std::function<void(const CompiledModule &module, const KernelArgs &args)>
+  std::function<void(const AnyModule &module, const KernelArgs &args)>
       executeKernelApi;
 
   /// @brief Slot for the detector error model, as `.dem` text.
@@ -205,8 +205,8 @@ void resetExecutionContext();
 /// @brief Execute the given function within the given policy and execution
 /// context.
 template <typename Policy, typename Callable, typename... Args>
-auto with_policy_and_ctx(Policy &policy, ExecutionContext &ctx, Callable &&f,
-                         Args &&...args)
+auto with_policy_and_ctx(const Policy &policy, ExecutionContext &ctx,
+                         Callable &&f, Args &&...args)
     -> std::invoke_result_t<Callable, Args...> {
 
   // Save the outer execution context (if any) so we can restore it after.

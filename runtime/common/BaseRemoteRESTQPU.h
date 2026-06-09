@@ -246,6 +246,7 @@ public:
     auto target = std::make_unique<BaseRemoteRESTQPUCompileTarget>(
         serverHelper.get(), targetConfig, backendConfig, emulate);
     target->pipelineConfig.replaceStateWithKernel = true;
+    target->overrideAOTCompilation = true;
     if (ctx && ctx->name == "resource-count") {
       target->emitResourceCounts = true;
     } else if (ctx && ctx->name == "dem") {
@@ -265,6 +266,7 @@ public:
     target->pipelineConfig.addMeasurements = true;
     target->storeReorderIdx = true;
     target->pipelineConfig.replaceStateWithKernel = true;
+    target->overrideAOTCompilation = true;
     return target;
   }
 
@@ -272,6 +274,7 @@ public:
   getCompileTarget(const observe_policy &policy) override {
     auto target = std::make_unique<BaseRemoteRESTQPUCompileTarget>(
         serverHelper.get(), targetConfig, backendConfig, emulate);
+    target->overrideAOTCompilation = true;
     target->pauliTermSplitObservable = policy.spin;
     target->pipelineConfig.replaceStateWithKernel = true;
     return target;
@@ -284,9 +287,11 @@ public:
     // Check to see if we are simply drawing the circuit. If so, perform the
     // trace here and then return.
     if (executionContext->name == "tracer" && codes.size() == 1) {
+      assert(codes[0].jit);
       cudaq::ExecutionContext context("tracer");
       context.executionManager = cudaq::getDefaultExecutionManager();
-      assert(codes[0].jit);
+      context.hasConditionalsOnMeasureResults =
+          codes[0].hasConditionalsOnMeasureResults;
       cudaq::platform::with_execution_context(
           context, [&]() { codes[0].jit->run(kernelName); });
       executionContext->kernelTrace = std::move(context.kernelTrace);
@@ -294,9 +299,11 @@ public:
     }
 
     if (executionContext->name == "resource-count") {
+      assert(codes.size() == 1 && codes[0].jit && codes[0].resourceCounts);
       cudaq::ExecutionContext context("resource-count");
       context.executionManager = cudaq::getDefaultExecutionManager();
-      assert(codes.size() == 1 && codes[0].jit && codes[0].resourceCounts);
+      context.hasConditionalsOnMeasureResults =
+          codes[0].hasConditionalsOnMeasureResults;
       nvqir::resource_counter::prepopulate(
           std::move(codes[0].resourceCounts.value()));
       cudaq::platform::with_execution_context(
@@ -305,11 +312,13 @@ public:
     }
 
     if (executionContext->name == "dem") {
+      assert(codes.size() == 1 && codes[0].jit);
       cudaq::ExecutionContext context("dem");
       context.executionManager = cudaq::getDefaultExecutionManager();
       context.noiseModel = executionContext->noiseModel;
       context.qpuId = executionContext->qpuId;
-      assert(codes.size() == 1 && codes[0].jit);
+      context.hasConditionalsOnMeasureResults =
+          codes[0].hasConditionalsOnMeasureResults;
       cudaq::platform::with_execution_context(
           context, [&]() { codes[0].jit->run(kernelName); });
       executionContext->dem_text = std::move(context.dem_text);
@@ -450,6 +459,8 @@ public:
       cudaq::ExecutionContext context("sample", localShots);
       // Avoid emitting the warning again during execution
       context.warnedNamedMeasurements = policy.warnedNamedMeasurements;
+      context.hasConditionalsOnMeasureResults =
+          codes[i].hasConditionalsOnMeasureResults;
       sample_policy localPolicy;
       localPolicy.options.shots = localShots;
       localPolicy.reorderIdx = std::move(codes[i].mapping_reorder_idx);
@@ -470,7 +481,7 @@ public:
   }
 
   async_observe_result
-  completeLaunchKernel(async_observe_policy &policy,
+  completeLaunchKernel(const async_observe_policy &policy,
                        const std::string &kernelName,
                        std::vector<cudaq::KernelExecution> &&codes) {
     std::size_t localShots = 1000;
@@ -508,7 +519,11 @@ public:
     std::vector<cudaq::ExecutionResult> results;
     for (std::size_t i = 0; i < codes.size(); i++) {
       cudaq::ExecutionContext context("sample", localShots);
-      // Avoid emitting the warning again during execution
+      context.hasConditionalsOnMeasureResults =
+          codes[i].hasConditionalsOnMeasureResults;
+      // Any warning would have been emitted during JIT compilation. Silence
+      // further warnings.
+      context.warnedNamedMeasurements = true;
       sample_policy localPolicy;
       localPolicy.options.shots = localShots;
       localPolicy.reorderIdx = std::move(codes[i].mapping_reorder_idx);

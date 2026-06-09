@@ -23,6 +23,10 @@ SET(CMAKE_SHARED_LINKER_FLAGS "")
 # survives as an internal implementation detail.
 add_compile_definitions(CUDAQ_LIBRARY_MODE)
 
+# Disable JIT compilation as it is not needed (and we would otherwise have to
+# link in the compiler library for no reason)
+add_compile_definitions(CUDAQ_DISABLE_JIT_COMPILER)
+
 # ctest's PROCESSORS property tells the scheduler how many CPU slots each test
 # occupies. Without it, `ctest -j N` launches N OpenMP-parallel tests at once
 # (2N threads competing for N cores). This value is only applied to tests that
