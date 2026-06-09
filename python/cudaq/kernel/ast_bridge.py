@@ -745,6 +745,14 @@ class PyASTBridge(ast.NodeVisitor):
                                  sint=operand_width != 1,
                                  zint=operand_width == 1).result
 
+        # Match nvq++/kernel_builder: relax veq<N> to veq<?> when passing to
+        # a callee that expects an unsized qview/qvector.
+        if (quake.VeqType.isinstance(ty) and
+                quake.VeqType.isinstance(operand.type) and
+                not quake.VeqType.hasSpecifiedSize(ty) and
+                quake.VeqType.hasSpecifiedSize(operand.type)):
+            return quake.RelaxSizeOp(ty, operand).result
+
         self.emitFatalError(
             f'cannot convert value of type {operand.type} '
             f'to the requested type {ty}', self.currentNode)

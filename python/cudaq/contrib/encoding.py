@@ -69,7 +69,7 @@ def amplitude_encode(
     *,
     pad: complex | float = 0,
 ) -> State:
-    """
+    r"""
     Map classical features to a normalized quantum state by amplitude encoding.
 
     Amplitude encoding represents a classical feature vector as the amplitudes
@@ -195,7 +195,7 @@ def _angular_encode_builder(kernel, q, angles, *, rotation='Y'):
 
 
 def angular_encode(kernel_or_q, q_or_angles, angles=None, *, rotation='Y'):
-    """
+    r"""
     Encode classical features as single-qubit rotation gates inside a kernel.
 
     Angular (rotation) encoding maps a classical angle vector
