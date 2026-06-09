@@ -48,7 +48,6 @@ fi
 # (target, source-relative-path) pairs to check. Extend when new
 # `gen-target-backend: true` analog targets land an example here.
 EXAMPLES=("${pasqal_examples[@]}" "${quera_examples[@]}")
-echo "Examples: ${EXAMPLES[@]}" >&2
 
 TMPDIR="$(mktemp -d -t target_setter_check_XXXX)"
 trap 'rm -rf "$TMPDIR"' EXIT
