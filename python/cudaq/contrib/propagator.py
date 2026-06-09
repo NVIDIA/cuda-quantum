@@ -16,6 +16,7 @@ import numpy as np
 
 
 def _total_dimension(dimensions: Mapping[int, int]) -> int:
+    """Return the product of all local Hilbert-space dimensions."""
     dimension = 1
     for local_dimension in dimensions.values():
         dimension *= local_dimension
@@ -23,11 +24,13 @@ def _total_dimension(dimensions: Mapping[int, int]) -> int:
 
 
 def _identity_state(dimension: int):
+    """Return |I> used to evolve closed-system propagators directly."""
     identity = np.eye(dimension, dtype=np.complex128).reshape(-1)
     return cudaq.State.from_data(identity)
 
 
 def _basis_states(dimension: int):
+    """Return Liouville basis states used to reconstruct Lindblad maps."""
     states = []
     for index in range(dimension):
         data = np.zeros(dimension, dtype=np.complex128)
@@ -37,6 +40,7 @@ def _basis_states(dimension: int):
 
 
 def _state_to_matrix(state, dimension: int) -> np.ndarray:
+    """Convert a vectorized propagated identity state back to a matrix."""
     data = np.array(state).reshape(-1)
     expected_size = dimension * dimension
 
@@ -48,6 +52,7 @@ def _state_to_matrix(state, dimension: int) -> np.ndarray:
 
 
 def _closed_system_generator(hamiltonian):
+    """Represent dU/dt = -i H U as left multiplication by -i H."""
     generator = cudaq.SuperOperator()
     generator += cudaq.SuperOperator.left_multiply(-1j * hamiltonian)
     return generator
@@ -55,6 +60,7 @@ def _closed_system_generator(hamiltonian):
 
 def _extract_propagator(result, dimension: int,
                         store_intermediate_results: bool):
+    """Extract closed-system propagators from a CUDA-Q evolve result."""
     if store_intermediate_results:
         return [
             _state_to_matrix(state, dimension)
@@ -65,11 +71,37 @@ def _extract_propagator(result, dimension: int,
 
 
 def _extract_batched_basis_propagator(results):
+    """Stack evolved Liouville basis states into a dense Lindblad map."""
     columns = [
         np.array(single_result.final_state()).reshape(-1)
         for single_result in results
     ]
     return np.column_stack(columns)
+
+
+def _is_operator_like(value) -> bool:
+    """Return True for CUDA-Q operators accepted by the dynamics backend."""
+    return hasattr(value, "to_matrix")
+
+
+def _is_collapse_operator_batch(collapse_operators) -> bool:
+    """Return True when collapse operators are grouped per Hamiltonian."""
+    return bool(collapse_operators) and not _is_operator_like(
+        collapse_operators[0])
+
+
+def _collapse_operator_batches(collapse_operators, batch_size: int):
+    """Broadcast collapse operators to match the Hamiltonian batch size."""
+    if not collapse_operators:
+        return [[] for _ in range(batch_size)]
+
+    if _is_collapse_operator_batch(collapse_operators):
+        if len(collapse_operators) != batch_size:
+            raise ValueError("Batched collapse_operators must have the same "
+                             "length as the Hamiltonian batch.")
+        return [list(ops) for ops in collapse_operators]
+
+    return [collapse_operators for _ in range(batch_size)]
 
 
 def propagator(
@@ -117,16 +149,18 @@ def propagator(
     """
     collapse_operators = [] if collapse_operators is None else list(
         collapse_operators)
-    open_system = len(collapse_operators) > 0
+
+    is_batched = isinstance(hamiltonian,
+                            Sequence) and not hasattr(hamiltonian, "to_matrix")
+    hamiltonians = list(hamiltonian) if is_batched else [hamiltonian]
+    collapse_operator_batches = _collapse_operator_batches(
+        collapse_operators, len(hamiltonians))
+    open_system = any(collapse_operator_batches)
 
     system_dimension = _total_dimension(dimensions)
     propagator_dimension = (system_dimension * system_dimension
                             if open_system else system_dimension)
     evolution_dimensions = dimensions
-
-    is_batched = isinstance(hamiltonian,
-                            Sequence) and not hasattr(hamiltonian, "to_matrix")
-    hamiltonians = list(hamiltonian) if is_batched else [hamiltonian]
 
     if open_system:
         generators = hamiltonians
@@ -145,12 +179,17 @@ def propagator(
     save_mode = (cudaq.IntermediateResultSave.ALL if store_intermediate_results
                  else cudaq.IntermediateResultSave.NONE)
 
+    evolve_collapse_operators = []
+    if open_system:
+        evolve_collapse_operators = (collapse_operator_batches if is_batched
+                                     else collapse_operator_batches[0])
+
     result = cudaq.evolve(
         generators if is_batched else generators[0],
         evolution_dimensions,
         schedule,
         initial_states if is_batched else initial_states[0],
-        collapse_operators=collapse_operators,
+        collapse_operators=evolve_collapse_operators,
         observables=[],
         store_intermediate_results=save_mode,
         integrator=integrator,

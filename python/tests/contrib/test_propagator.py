@@ -235,3 +235,76 @@ def test_open_system_propagator_schedule_parameter_name():
     )
 
     assert computed.shape == (4, 4)
+
+
+def test_open_system_propagator_nonzero_hamiltonian():
+    gamma = 0.2
+    omega = 0.5
+    t_final = 0.7
+
+    hamiltonian = 0.5 * omega * spin.z(0)
+    collapse_operators = [np.sqrt(gamma) * spin.minus(0)]
+    schedule = Schedule(np.linspace(0.0, t_final, 21), ["t"])
+
+    computed = cudaq.contrib.propagator(
+        hamiltonian,
+        {0: 2},
+        schedule,
+        collapse_operators=collapse_operators,
+    )
+
+    liouvillian = _amplitude_damping_liouvillian(gamma)
+    hamiltonian_matrix = hamiltonian.to_matrix({0: 2})
+    coherent = (-1j * np.kron(np.eye(2), hamiltonian_matrix) +
+                1j * np.kron(hamiltonian_matrix.T, np.eye(2)))
+    expected = scipy_linalg.expm((coherent + liouvillian) * t_final)
+
+    np.testing.assert_allclose(computed, expected, atol=1e-4)
+
+
+def test_open_system_propagator_batched_shared_collapse_operators():
+    gamma = 0.2
+    t_final = 0.7
+    omegas = [0.2, 0.5]
+
+    hamiltonians = [0.5 * omega * spin.z(0) for omega in omegas]
+    collapse_operators = [np.sqrt(gamma) * spin.minus(0)]
+    schedule = Schedule(np.linspace(0.0, t_final, 21), ["t"])
+
+    computed = cudaq.contrib.propagator(
+        hamiltonians,
+        {0: 2},
+        schedule,
+        collapse_operators=collapse_operators,
+    )
+
+    assert len(computed) == len(hamiltonians)
+    for actual, hamiltonian in zip(computed, hamiltonians):
+        hamiltonian_matrix = hamiltonian.to_matrix({0: 2})
+        coherent = (-1j * np.kron(np.eye(2), hamiltonian_matrix) +
+                    1j * np.kron(hamiltonian_matrix.T, np.eye(2)))
+        expected = scipy_linalg.expm(
+            (coherent + _amplitude_damping_liouvillian(gamma)) * t_final)
+        np.testing.assert_allclose(actual, expected, atol=1e-4)
+
+
+def test_open_system_propagator_batched_collapse_operator_lists():
+    gammas = [0.1, 0.2]
+    t_final = 0.7
+
+    hamiltonians = [0.0 * spin.z(0), 0.0 * spin.z(0)]
+    collapse_operators = [[np.sqrt(gamma) * spin.minus(0)] for gamma in gammas]
+    schedule = Schedule(np.linspace(0.0, t_final, 21), ["t"])
+
+    computed = cudaq.contrib.propagator(
+        hamiltonians,
+        {0: 2},
+        schedule,
+        collapse_operators=collapse_operators,
+    )
+
+    assert len(computed) == len(gammas)
+    for actual, gamma in zip(computed, gammas):
+        expected = scipy_linalg.expm(
+            _amplitude_damping_liouvillian(gamma) * t_final)
+        np.testing.assert_allclose(actual, expected, atol=1e-4)
