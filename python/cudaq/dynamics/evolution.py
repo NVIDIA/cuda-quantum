@@ -319,15 +319,30 @@ def evolve_single(
         kernels = [kernel for kernel in evolution]
         save_intermediate_states = store_intermediate_results == IntermediateResultSave.ALL
         if len(observables) == 0:
-            return cudaq_runtime.evolve(initial_state, kernels,
-                                        save_intermediate_states)
+            if len(collapse_operators) > 0:
+                cudaq_runtime.set_noise(noise)
+                try:
+                    return cudaq_runtime.evolve(
+                        initial_state,
+                        kernels,
+                        save_intermediate_states=save_intermediate_states)
+                finally:
+                    cudaq_runtime.unset_noise()
+            return cudaq_runtime.evolve(
+                initial_state,
+                kernels,
+                save_intermediate_states=save_intermediate_states)
         if len(collapse_operators) > 0:
             cudaq_runtime.set_noise(noise)
-        result = cudaq_runtime.evolve(initial_state, kernels, parameters,
-                                      observable_spinops, shots_count,
-                                      save_intermediate_states)
-        cudaq_runtime.unset_noise()
-        return result
+            try:
+                return cudaq_runtime.evolve(initial_state, kernels, parameters,
+                                            observable_spinops, shots_count,
+                                            save_intermediate_states)
+            finally:
+                cudaq_runtime.unset_noise()
+        return cudaq_runtime.evolve(initial_state, kernels, parameters,
+                                    observable_spinops, shots_count,
+                                    save_intermediate_states)
     else:
         kernel = next(
             _evolution_kernel(
@@ -337,14 +352,24 @@ def evolve_single(
                 parameters,
                 register_kraus_channel=add_noise_channel_for_step))
         if len(observables) == 0:
+            if len(collapse_operators) > 0:
+                cudaq_runtime.set_noise(noise)
+                try:
+                    return cudaq_runtime.evolve(initial_state, kernel)
+                finally:
+                    cudaq_runtime.unset_noise()
             return cudaq_runtime.evolve(initial_state, kernel)
         # FIXME: permit to compute expectation values for operators defined as matrix
         if len(collapse_operators) > 0:
             cudaq_runtime.set_noise(noise)
-        result = cudaq_runtime.evolve(initial_state, kernel, parameters[-1],
-                                      observable_spinops, shots_count)
-        cudaq_runtime.unset_noise()
-        return result
+            try:
+                return cudaq_runtime.evolve(initial_state, kernel,
+                                            parameters[-1], observable_spinops,
+                                            shots_count)
+            finally:
+                cudaq_runtime.unset_noise()
+        return cudaq_runtime.evolve(initial_state, kernel, parameters[-1],
+                                    observable_spinops, shots_count)
 
 
 # Top level API for the CUDA-Q master equation solver.
@@ -596,8 +621,20 @@ def evolve_single_async(
             split_into_steps=True,
             register_kraus_channel=add_noise_channel_for_step)
         kernels = [kernel for kernel in evolution]
+        save_intermediate_states = store_intermediate_results == IntermediateResultSave.ALL
         if len(observables) == 0:
-            return cudaq_runtime.evolve_async(initial_state, kernels)
+            if len(collapse_operators) > 0:
+                return cudaq_runtime.evolve_async(
+                    initial_state,
+                    kernels,
+                    noise_model=noise,
+                    shots_count=shots_count,
+                    save_intermediate_states=save_intermediate_states)
+            return cudaq_runtime.evolve_async(
+                initial_state,
+                kernels,
+                shots_count=shots_count,
+                save_intermediate_states=save_intermediate_states)
         if len(collapse_operators) > 0:
             return cudaq_runtime.evolve_async(initial_state,
                                               kernels,
@@ -619,6 +656,11 @@ def evolve_single_async(
                 parameters,
                 register_kraus_channel=add_noise_channel_for_step))
         if len(observables) == 0:
+            if len(collapse_operators) > 0:
+                return cudaq_runtime.evolve_async(initial_state,
+                                                  kernel,
+                                                  noise_model=noise,
+                                                  shots_count=shots_count)
             return cudaq_runtime.evolve_async(initial_state, kernel)
         # FIXME: permit to compute expectation values for operators defined as matrix
         if len(collapse_operators) > 0:
