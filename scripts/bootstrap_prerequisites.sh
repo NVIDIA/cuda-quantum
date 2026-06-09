@@ -72,7 +72,7 @@ AWS_SDK_CPP_REF="1.11.454"
 
 # QRMI pre-built C artifacts for Pasqal QRMI connector
 QRMI_RELEASE_REPO=${QRMI_RELEASE_REPO:-qiskit-community/qrmi}
-QRMI_RELEASE_TAG=${QRMI_RELEASE_TAG:-0.15.0}
+QRMI_RELEASE_TAG=${QRMI_RELEASE_TAG:-0.16.0}
 QRMI_RELEASE_VERSION=${QRMI_RELEASE_TAG#v}
 QRMI_RELEASE_BASE="https://github.com/${QRMI_RELEASE_REPO}/releases/download/${QRMI_RELEASE_TAG}"
 QRMI_ARCHIVE="libqrmi-${QRMI_RELEASE_VERSION}-el8-x86_64.tar.gz"
@@ -80,7 +80,7 @@ QRMI_UNPACK_DIR="libqrmi-${QRMI_RELEASE_VERSION}"
 # NOTE: This needs to be updated whenever the pre-built artifacts are updated. The SHA-256 can be computed with:
 #   wget -O qrmi.tar.gz "${QRMI_RELEASE_BASE}/${QRMI_ARCHIVE}"
 #   sha256sum qrmi.tar.gz | awk '{print $1}'
-QRMI_ARCHIVE_SHA256=${QRMI_ARCHIVE_SHA256:-508f8ad56c151c4f3a87f4ee06025fd00ab0999032533a9607789a3362e98c95}
+QRMI_ARCHIVE_SHA256=${QRMI_ARCHIVE_SHA256:-3adcffb489220e47f45601c21ffbb426bd7999ccc92306de6f2229ed8ba785fe}
 
 # Process command line arguments
 toolchain=''

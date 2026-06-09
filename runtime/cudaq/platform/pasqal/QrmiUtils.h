@@ -57,12 +57,6 @@ inline std::string listDelimiter() {
   return ",";
 }
 
-inline const char *jobEnv(const char *name, const char *legacyName) {
-  if (auto *value = std::getenv(name))
-    return value;
-  return std::getenv(legacyName);
-}
-
 inline std::vector<std::string> splitList(const char *value) {
   if (!value)
     return {};
@@ -93,19 +87,16 @@ inline QrmiResourceType parseResourceType(const std::string &resourceType) {
 }
 
 inline QrmiResourceType resolveResourceType(const std::string &backendName) {
-  auto resources =
-      splitList(jobEnv("QRMI_JOB_QPU_RESOURCES", "SLURM_JOB_QPU_RESOURCES"));
+  auto resources = splitList(std::getenv("QRMI_JOB_QPU_RESOURCES"));
   if (resources.empty()) {
     throw std::runtime_error(
-        "QRMI mode requires QRMI_JOB_QPU_RESOURCES or legacy "
-        "SLURM_JOB_QPU_RESOURCES to resolve backend type.");
+        "QRMI mode requires QRMI_JOB_QPU_RESOURCES to resolve backend type.");
   }
 
-  auto types = splitList(jobEnv("QRMI_JOB_QPU_TYPES", "SLURM_JOB_QPU_TYPES"));
+  auto types = splitList(std::getenv("QRMI_JOB_QPU_TYPES"));
   if (types.empty()) {
-    throw std::runtime_error(
-        "QRMI mode requires QRMI_JOB_QPU_TYPES or legacy SLURM_JOB_QPU_TYPES "
-        "to resolve backend type.");
+    throw std::runtime_error("QRMI mode requires QRMI_JOB_QPU_TYPES "
+                             "to resolve backend type.");
   }
 
   for (std::size_t idx = 0; idx < resources.size(); ++idx) {

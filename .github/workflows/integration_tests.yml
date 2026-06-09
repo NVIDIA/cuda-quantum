@@ -664,6 +664,7 @@ jobs:
                      [ -f "${QRMI_INSTALL_PREFIX:-/usr/local/qrmi}/lib64/libqrmi.so" ]; then
                     PASQAL_MACHINE_TARGET=qrmi \
                     QRMI_JOB_QPU_RESOURCES=EMU_FREE \
+                    QRMI_JOB_QPU_TYPES=pasqal-cloud \
                     EMU_FREE_QRMI_PASQAL_CLOUD_PROJECT_ID=$PASQAL_PROJECT_ID \
                     python3 "$filename" 1> /dev/null
                     test_status=$?

@@ -306,6 +306,7 @@ The job submission process is the same as for the ``pasqal`` target.
 .. code:: bash
 
     export QRMI_JOB_QPU_RESOURCES=EMU_FREE
+    export QRMI_JOB_QPU_TYPES=pasqal-cloud
 
 .. tab:: Python
 

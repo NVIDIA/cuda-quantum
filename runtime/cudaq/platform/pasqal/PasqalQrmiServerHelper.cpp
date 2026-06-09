@@ -19,12 +19,10 @@ namespace cudaq {
 
 PasqalQrmiServerHelper::ModeConfig PasqalQrmiServerHelper::resolveConfig() {
   ModeConfig modeConfig;
-  auto resources = qrmi::splitList(
-      qrmi::jobEnv("QRMI_JOB_QPU_RESOURCES", "SLURM_JOB_QPU_RESOURCES"));
+  auto resources = qrmi::splitList(std::getenv("QRMI_JOB_QPU_RESOURCES"));
   if (resources.empty()) {
     throw std::runtime_error(
-        "Pasqal QRMI mode requires QRMI_JOB_QPU_RESOURCES or legacy "
-        "SLURM_JOB_QPU_RESOURCES.");
+        "Pasqal QRMI mode requires QRMI_JOB_QPU_RESOURCES.");
   }
   // QRMI can expose multiple requested resources. CUDA-Q's Pasqal integration
   // currently targets a single backend, so use the first resource for now.
