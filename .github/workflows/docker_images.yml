@@ -202,7 +202,17 @@ jobs:
         env:
           DIGEST: ${{ steps.docker_build.outputs.digest }}
           TAGS: ${{ steps.metadata.outputs.tags }}
-        run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
+        # Retry to ride out transient OIDC/Fulcio network failures (e.g. a TLS
+        # handshake timeout that expires the OIDC token). Each attempt fetches a
+        # fresh token, avoiding "expired_token" from cosign's in-process retries.
+        run: |
+          n=0
+          until cosign sign --yes --recursive "${TAGS}@${DIGEST}"; do
+            n=$((n+1))
+            [ $n -ge 5 ] && { echo "::error::cosign sign failed after $n attempts"; exit 1; }
+            echo "cosign sign attempt $n failed; retrying in $((15*n))s..."
+            sleep $((15*n))
+          done
 
       - name: Cache cuda-quantum image
         if: steps.build_info.outputs.tar_cache && steps.build_info.outputs.tar_archive
@@ -417,7 +427,17 @@ jobs:
         env:
           DIGEST: ${{ steps.docker_build.outputs.digest }}
           TAGS: ${{ steps.metadata.outputs.tags }}
-        run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
+        # Retry to ride out transient OIDC/Fulcio network failures (e.g. a TLS
+        # handshake timeout that expires the OIDC token). Each attempt fetches a
+        # fresh token, avoiding "expired_token" from cosign's in-process retries.
+        run: |
+          n=0
+          until cosign sign --yes --recursive "${TAGS}@${DIGEST}"; do
+            n=$((n+1))
+            [ $n -ge 5 ] && { echo "::error::cosign sign failed after $n attempts"; exit 1; }
+            echo "cosign sign attempt $n failed; retrying in $((15*n))s..."
+            sleep $((15*n))
+          done
 
       - name: Cache cuda-quantum-dev image
         if: steps.prereqs.outputs.tar_cache && steps.prereqs.outputs.tar_archive
@@ -677,7 +697,17 @@ jobs:
         env:
           DIGEST: ${{ steps.release_build.outputs.digest }}
           TAGS: ${{ steps.cudaqdev_metadata.outputs.tags }}
-        run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
+        # Retry to ride out transient OIDC/Fulcio network failures (e.g. a TLS
+        # handshake timeout that expires the OIDC token). Each attempt fetches a
+        # fresh token, avoiding "expired_token" from cosign's in-process retries.
+        run: |
+          n=0
+          until cosign sign --yes --recursive "${TAGS}@${DIGEST}"; do
+            n=$((n+1))
+            [ $n -ge 5 ] && { echo "::error::cosign sign failed after $n attempts"; exit 1; }
+            echo "cosign sign attempt $n failed; retrying in $((15*n))s..."
+            sleep $((15*n))
+          done
 
       - name: Log in to NGC
         if: needs.metadata.outputs.push_to_ngc == 'true'
@@ -745,7 +775,17 @@ jobs:
         env:
           DIGEST: ${{ steps.cudaq_build.outputs.digest }}
           TAGS: ${{ steps.cudaq_metadata.outputs.tags }}
-        run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
+        # Retry to ride out transient OIDC/Fulcio network failures (e.g. a TLS
+        # handshake timeout that expires the OIDC token). Each attempt fetches a
+        # fresh token, avoiding "expired_token" from cosign's in-process retries.
+        run: |
+          n=0
+          until cosign sign --yes --recursive "${TAGS}@${DIGEST}"; do
+            n=$((n+1))
+            [ $n -ge 5 ] && { echo "::error::cosign sign failed after $n attempts"; exit 1; }
+            echo "cosign sign attempt $n failed; retrying in $((15*n))s..."
+            sleep $((15*n))
+          done
 
       - name: Install NGC CLI
         if: inputs.environment && needs.metadata.outputs.push_to_ngc == 'true'
