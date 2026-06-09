@@ -42,20 +42,9 @@ inline bool is_simulator_platform() {
   return getQuantumPlatformInternal()->is_simulator();
 }
 
-inline std::unique_ptr<cudaq::CompileTarget>
-get_compile_target(const cudaq::sample_policy &policy) {
+template <typename Policy>
+std::unique_ptr<cudaq::CompileTarget> get_compile_target(const Policy &policy) {
   return getQuantumPlatformInternal()->getCompileTarget(policy);
-}
-
-inline std::unique_ptr<cudaq::CompileTarget>
-get_compile_target(const cudaq::observe_policy &policy) {
-  return getQuantumPlatformInternal()->getCompileTarget(policy);
-}
-
-inline std::unique_ptr<cudaq::CompileTarget>
-get_compile_target(const cudaq::other_policies &policy) {
-  auto *ctx = cudaq::getExecutionContext();
-  return getQuantumPlatformInternal()->getCompileTarget(policy, ctx);
 }
 
 /// Get the default compile target configuration used when JITing for Python.

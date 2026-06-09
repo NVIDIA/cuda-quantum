@@ -76,20 +76,23 @@ cudaq::DefaultQPU::launchKernel(async_observe_policy &policy,
 
 std::unique_ptr<cudaq::CompileTarget>
 cudaq::DefaultQPU::getCompileTarget(const sample_policy &policy) {
-  // A python-only target suffices, as C++ compilation is done AOT
+  // Currently this is only used for Python kernels, as C++ kernels skip JIT
+  // compilation and call the AOT-generated function directly.
   return getDefaultPythonCompileTarget(policy);
 }
 
 std::unique_ptr<cudaq::CompileTarget>
 cudaq::DefaultQPU::getCompileTarget(const observe_policy &policy) {
-  // A python-only target suffices, as C++ compilation is done AOT
+  // Currently this is only used for Python kernels, as C++ kernels skip JIT
+  // compilation and call the AOT-generated function directly.
   return getDefaultPythonCompileTarget(policy);
 }
 
 std::unique_ptr<cudaq::CompileTarget>
 cudaq::DefaultQPU::getCompileTarget(const other_policies &policy,
                                     ExecutionContext *context) {
-  // A python-only target suffices, as C++ compilation is done AOT
+  // Currently this is only used for Python kernels, as C++ kernels skip JIT
+  // compilation and call the AOT-generated function directly.
   return getDefaultPythonCompileTarget(policy, context);
 }
 

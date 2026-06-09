@@ -17,6 +17,7 @@
 #include "common/ThunkInterface.h"
 #include "nvqpp_interface.h"
 #include "cudaq/Target/CompileTarget.h"
+#include "cudaq/platform/qpu.h"
 #include "cudaq/remote_capabilities.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cstring>
@@ -206,13 +207,22 @@ public:
   unifiedLaunchModule(const AnyModule &module, KernelArgs args,
                       std::size_t qpu_id = 0);
 
+  template <typename Policy>
   [[nodiscard]] std::unique_ptr<cudaq::CompileTarget>
-  getCompileTarget(const cudaq::sample_policy &policy, std::size_t qpu_id = 0);
-  [[nodiscard]] std::unique_ptr<cudaq::CompileTarget>
-  getCompileTarget(const cudaq::observe_policy &policy, std::size_t qpu_id = 0);
+  getCompileTarget(const Policy &policy, std::size_t qpu_id = 0) {
+    validateQpuId(qpu_id);
+    auto &qpu = platformQPUs[qpu_id];
+    return qpu->getCompileTarget(policy);
+  }
+
   [[nodiscard]] std::unique_ptr<cudaq::CompileTarget>
   getCompileTarget(const cudaq::other_policies &policy,
-                   ExecutionContext *context, std::size_t qpu_id = 0);
+                   std::size_t qpu_id = 0) {
+    auto *ctx = getExecutionContext();
+    validateQpuId(qpu_id);
+    auto &qpu = platformQPUs[qpu_id];
+    return qpu->getCompileTarget(policy, ctx);
+  }
 
   /// List all available platforms
   static std::vector<std::string> list_platforms();

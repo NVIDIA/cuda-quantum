@@ -281,30 +281,6 @@ quantum_platform::unifiedLaunchModule(const AnyModule &module, KernelArgs args,
   return qpu->unifiedLaunchModule(module, args);
 }
 
-std::unique_ptr<cudaq::CompileTarget>
-quantum_platform::getCompileTarget(const cudaq::other_policies &policy,
-                                   ExecutionContext *ctx, std::size_t qpu_id) {
-  validateQpuId(qpu_id);
-  auto &qpu = platformQPUs[qpu_id];
-  return qpu->getCompileTarget(policy, ctx);
-}
-
-std::unique_ptr<cudaq::CompileTarget>
-quantum_platform::getCompileTarget(const sample_policy &policy,
-                                   std::size_t qpu_id) {
-  validateQpuId(qpu_id);
-  auto &qpu = platformQPUs[qpu_id];
-  return qpu->getCompileTarget(policy);
-}
-
-std::unique_ptr<cudaq::CompileTarget>
-quantum_platform::getCompileTarget(const observe_policy &policy,
-                                   std::size_t qpu_id) {
-  validateQpuId(qpu_id);
-  auto &qpu = platformQPUs[qpu_id];
-  return qpu->getCompileTarget(policy);
-}
-
 void quantum_platform::onRandomSeedSet(std::size_t seed) {
   // Send on the notification to all QPUs.
   for (auto &qpu : platformQPUs)
