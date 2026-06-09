@@ -263,9 +263,9 @@ option(CUDAQ_ENABLE_SANITIZERS "Enable Address Sanitizer (ASan) and Undefined Be
 
 # Sub-projects that can be enabled independently, in the style of
 # LLVM_ENABLE_PROJECTS. Accepts a semicolon-separated list.
-set(CUDAQ_ALL_PROJECTS "cudaq;runtime;python")
+set(CUDAQ_ALL_PROJECTS "cudaq;runtime;python;realtime")
 set(CUDAQ_ENABLE_PROJECTS "" CACHE STRING
-    "Semicolon-separated list of CUDA-Q sub-projects to build. Valid values: ${CUDAQ_ALL_PROJECTS}. Defaults to 'cudaq;runtime' (plus 'python' if CUDAQ_ENABLE_PYTHON is set).")
+    "Semicolon-separated list of CUDA-Q sub-projects to build. Valid values: ${CUDAQ_ALL_PROJECTS}. Defaults to 'cudaq;runtime' (plus 'python' if CUDAQ_ENABLE_PYTHON is set). Include 'realtime' to build source-tree realtime; set CUDAQ_REALTIME_DIR to use an installed realtime package.")
 
 # Back-compat: if CUDAQ_ENABLE_PROJECTS wasn't given, derive it from the
 # legacy per-project flags so existing build scripts keep working, and warn
@@ -824,6 +824,13 @@ if (CUDAQ_REALTIME_DIR)
       "CUDAQ_REALTIME_DIR requires CUDA support, but CUDA was not found.")
   endif()
 
+  if ("realtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
+    message(WARNING
+      "Both CUDAQ_REALTIME_DIR and 'realtime' in CUDAQ_ENABLE_PROJECTS were provided. "
+      "Using CUDAQ_REALTIME_DIR=${CUDAQ_REALTIME_DIR} and skipping the source-tree realtime build.")
+    list(REMOVE_ITEM CUDAQ_ENABLE_PROJECTS "realtime")
+  endif()
+
   find_package(cudaq-realtime CONFIG REQUIRED
     PATHS "${CUDAQ_REALTIME_DIR}"
     NO_DEFAULT_PATH)
@@ -841,9 +848,17 @@ if (CUDAQ_REALTIME_DIR)
 
   set(CUDAQ_ENABLE_REALTIME TRUE)
   message(STATUS "CUDA-Q realtime integration enabled from: ${CUDAQ_REALTIME_DIR}")
+elseif ("realtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
+  if (NOT CUDA_FOUND)
+    message(FATAL_ERROR
+      "The \"realtime\" project requires CUDA support, but CUDA was not found.")
+  endif()
+
+  set(CUDAQ_ENABLE_REALTIME TRUE)
+  message(STATUS "CUDA-Q realtime integration enabled from the source tree.")
 else()
   message(STATUS
-    "CUDA-Q realtime integration disabled. Set CUDAQ_REALTIME_DIR to an installed cudaq-realtime prefix to enable it.")
+    "CUDA-Q realtime integration disabled. Include \"realtime\" in CUDAQ_ENABLE_PROJECTS to enable it.")
 endif()
 
 # Code coverage setup
@@ -867,6 +882,9 @@ endif()
 
 if("cudaq" IN_LIST CUDAQ_ENABLE_PROJECTS)
   add_subdirectory(cudaq)
+endif()
+if("realtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
+  add_subdirectory(realtime)
 endif()
 if("runtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
   add_subdirectory(runtime)

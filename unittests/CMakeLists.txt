@@ -150,6 +150,7 @@ create_tests_with_backend(stim backends/StimTester.cpp)
 
 if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
   add_executable(test_device_call_dispatch
+    device_call/DeviceCallDispatchTester.cpp
     device_call/DeviceCallDispatchTester.cu)
   set_target_properties(test_device_call_dispatch PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON

@@ -33,6 +33,9 @@ add_library(cudaq-realtime-cpu-transport STATIC
   roce_transceiver.cpp  # class CpuRoceTransceiver: ibv setup, RX/TX threads, ring lifecycle
   roce_wrapper.cpp      # extern-C shim used by bridge tools and CpuRoceChannel
 )
+# Source-tree CUDA-Q integration uses the same cudaq:: target names
+# that installed exports provide.
+add_library(cudaq::cudaq-realtime-cpu-transport ALIAS cudaq-realtime-cpu-transport)
 
 target_include_directories(cudaq-realtime-cpu-transport
   PUBLIC

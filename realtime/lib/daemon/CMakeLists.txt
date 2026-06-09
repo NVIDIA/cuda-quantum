@@ -20,6 +20,9 @@ if(CUDA_FOUND)
   )
 
   add_library(cudaq-realtime SHARED ${CUDAQ_REALTIME_SOURCES})
+  # Source-tree CUDA-Q integration uses the same cudaq:: target names
+  # that installed exports provide.
+  add_library(cudaq::cudaq-realtime ALIAS cudaq-realtime)
   
   target_include_directories(cudaq-realtime
     PUBLIC
@@ -54,6 +57,9 @@ if(CUDA_FOUND)
   add_library(cudaq-realtime-dispatch STATIC
     dispatcher/dispatch_kernel.cu
   )
+  # Source-tree CUDA-Q integration uses the same cudaq:: target names
+  # that installed exports provide.
+  add_library(cudaq::cudaq-realtime-dispatch ALIAS cudaq-realtime-dispatch)
   set_target_properties(cudaq-realtime-dispatch
     PROPERTIES
     LINK_FLAGS_RELEASE "-Wl,--exclude-libs=ALL")
@@ -97,6 +103,9 @@ if(CUDA_FOUND)
     dispatcher/host_dispatcher.cu
     dispatcher/host_dispatcher_capi.cu
   )
+  # Source-tree CUDA-Q integration uses the same cudaq:: target names
+  # that installed exports provide.
+  add_library(cudaq::cudaq-realtime-host-dispatch ALIAS cudaq-realtime-host-dispatch)
 
   target_include_directories(cudaq-realtime-host-dispatch
     PUBLIC
