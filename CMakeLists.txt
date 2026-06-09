@@ -860,6 +860,11 @@ endif(CUDAQ_ENABLE_CC)
 # ==============================================================================
 
 add_subdirectory(cmake)
+
+if(CUDAQ_BUILD_TESTS)
+  enable_testing()
+endif()
+
 if("cudaq" IN_LIST CUDAQ_ENABLE_PROJECTS)
   add_subdirectory(cudaq)
 endif()
@@ -867,10 +872,6 @@ if("runtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
   add_subdirectory(runtime)
 endif()
 add_subdirectory(utils)
-
-if(CUDAQ_BUILD_TESTS)
-  enable_testing()
-endif()
 
 if("python" IN_LIST CUDAQ_ENABLE_PROJECTS)
   find_package(Python 3 COMPONENTS Interpreter Development)

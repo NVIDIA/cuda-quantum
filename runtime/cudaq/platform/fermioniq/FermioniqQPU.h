@@ -32,38 +32,31 @@ public:
     }
   }
 
-  /// Reset the execution context
-  virtual void
-  finalizeExecutionContext(ExecutionContext &context) const override {
-    // set the pre-computed expectation value.
-    if (context.name == "observe") {
-      auto expectation = context.result.expectation(GlobalRegisterName);
-      context.expectationValue = expectation;
-    }
-  }
-
-  KernelThunkResultType unifiedLaunchModule(const AnyModule &module,
-                                            KernelArgs args) override;
-
   using BaseRemoteRESTQPU::getCompileTarget;
   std::unique_ptr<CompileTarget>
-  getCompileTarget(ExecutionContext *ctx) override {
-    auto target = BaseRemoteRESTQPU::getCompileTarget(ctx);
+  getCompileTarget(const observe_policy &policy) override {
+    auto target = BaseRemoteRESTQPU::getCompileTarget(policy);
     // This target handles observable evaluation server-side.
     // We don't want to split up the circuit into several ansatz
     // sub circuit.
-    if (ctx->name == "observe") {
-      target->pauliTermSplitObservable = std::nullopt;
-    }
+    target->pauliTermSplitObservable = std::nullopt;
     return target;
   }
 
-  sample_result launchKernel(sample_policy &policy, const AnyModule &module,
-                             KernelArgs args) override;
+  sample_result launchKernel(const sample_policy &policy,
+                             const AnyModule &module, KernelArgs args) override;
 
-  async_sample_result launchKernel(async_sample_policy &policy,
+  async_sample_result launchKernel(const async_sample_policy &policy,
                                    const AnyModule &module,
                                    KernelArgs args) override;
+
+  observe_result launchKernel(const observe_policy &policy,
+                              const AnyModule &module,
+                              KernelArgs args) override;
+
+  async_observe_result launchKernel(async_observe_policy &policy,
+                                    const AnyModule &module,
+                                    KernelArgs args) override;
 };
 
 } // namespace cudaq
