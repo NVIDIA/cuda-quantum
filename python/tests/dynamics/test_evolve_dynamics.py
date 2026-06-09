@@ -84,6 +84,84 @@ def test_euler_integrator():
     np.testing.assert_allclose(expected_answer, expt, 1e-3)
 
 
+def test_evolve_async_dynamics_target():
+    """Test async evolution on the dynamics target."""
+    steps = np.linspace(0, 0.1, 3)
+    hamiltonian = operators.number(0)
+    dimensions = {0: 2}
+    save_all = cudaq.IntermediateResultSave.ALL
+    save_expectations = cudaq.IntermediateResultSave.EXPECTATION_VALUE
+    psi0_ = cp.zeros(2, dtype=cp.complex128)
+    psi0_[1] = 1.0
+    psi0 = cudaq.State.from_data(psi0_)
+
+    expected = cudaq.evolve(hamiltonian, dimensions, Schedule(steps, ["t"]),
+                            psi0)
+    evolution_result = cudaq.evolve_async(hamiltonian, dimensions,
+                                          Schedule(steps, ["t"]), psi0).get()
+
+    assert len(evolution_result.intermediate_states()) == 1
+    np.testing.assert_allclose(np.array(evolution_result.final_state()),
+                               np.array(expected.final_state()),
+                               atol=1e-12)
+
+    expected = cudaq.evolve(hamiltonian,
+                            dimensions,
+                            Schedule(steps, ["t"]),
+                            psi0,
+                            store_intermediate_results=save_all)
+    evolution_result = cudaq.evolve_async(
+        hamiltonian,
+        dimensions,
+        Schedule(steps, ["t"]),
+        psi0,
+        store_intermediate_results=save_all).get()
+
+    assert len(evolution_result.intermediate_states()) == len(steps)
+    np.testing.assert_allclose(np.array(evolution_result.final_state()),
+                               np.array(expected.final_state()),
+                               atol=1e-12)
+
+    expected = cudaq.evolve(hamiltonian,
+                            dimensions,
+                            Schedule(steps, ["t"]),
+                            psi0,
+                            observables=[hamiltonian],
+                            store_intermediate_results=save_expectations)
+    evolution_result = cudaq.evolve_async(
+        hamiltonian,
+        dimensions,
+        Schedule(steps, ["t"]),
+        psi0,
+        observables=[hamiltonian],
+        store_intermediate_results=save_expectations).get()
+
+    assert len(evolution_result.intermediate_states()) == 1
+    assert len(evolution_result.expectation_values()) == len(steps)
+    expected_values = [[obs.expectation()
+                        for obs in step]
+                       for step in expected.expectation_values()]
+    actual_values = [[obs.expectation()
+                      for obs in step]
+                     for step in evolution_result.expectation_values()]
+    np.testing.assert_allclose(actual_values, expected_values, atol=1e-12)
+
+
+def test_evolve_async_dynamics_target_propagates_errors():
+    """Test async dynamics errors are reported through get()."""
+    steps = np.linspace(0, 0.1, 3)
+    schedule = Schedule(steps, ["t"])
+    hamiltonian = operators.number(0)
+    psi0_ = cp.zeros(2, dtype=cp.complex128)
+    psi0_[1] = 1.0
+    psi0 = cudaq.State.from_data(psi0_)
+
+    result = cudaq.evolve_async(hamiltonian, {1: 2}, schedule, psi0)
+
+    with pytest.raises(Exception):
+        result.get()
+
+
 def test_save_all_intermediate_states():
     """
     Test save all option for intermediate states

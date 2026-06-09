@@ -16,6 +16,7 @@
 #include "cudaq/platform.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
 #include "cudaq/schedule.h"
+#include <exception>
 
 namespace cudaq {
 class base_integrator;
@@ -164,7 +165,11 @@ evolve_async(std::function<evolve_result()> evolveFunctor,
 
   QuantumTask wrapped = detail::make_copyable_function(
       [p = std::move(promise), evolveFunctor]() mutable {
-        p.set_value(evolveFunctor());
+        try {
+          p.set_value(evolveFunctor());
+        } catch (...) {
+          p.set_exception(std::current_exception());
+        }
       });
 
   platform.enqueueAsyncTask(qpu_id, wrapped);
