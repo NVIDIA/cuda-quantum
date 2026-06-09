@@ -334,22 +334,22 @@ def test_math_functions():
     assert is_close(np.tan(0.5), f_tan())
 
     @cudaq.kernel
-    def f_asin() -> np.float64:
-        return np.asin(np.float64(0.5))
+    def f_arcsin() -> np.float64:
+        return np.arcsin(np.float64(0.5))
 
-    assert is_close(np.arcsin(0.5), f_asin())
-
-    @cudaq.kernel
-    def f_acos() -> np.float64:
-        return np.acos(np.float64(0.5))
-
-    assert is_close(np.arccos(0.5), f_acos())
+    assert is_close(np.arcsin(0.5), f_arcsin())
 
     @cudaq.kernel
-    def f_atan() -> np.float64:
-        return np.atan(np.float64(0.5))
+    def f_arccos() -> np.float64:
+        return np.arccos(np.float64(0.5))
 
-    assert is_close(np.arctan(0.5), f_atan())
+    assert is_close(np.arccos(0.5), f_arccos())
+
+    @cudaq.kernel
+    def f_arctan() -> np.float64:
+        return np.arctan(np.float64(0.5))
+
+    assert is_close(np.arctan(0.5), f_arctan())
 
     @cudaq.kernel
     def f_sqrt() -> np.float64:
