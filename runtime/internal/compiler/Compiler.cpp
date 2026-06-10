@@ -17,7 +17,6 @@
 #include "cudaq_internal/compiler/JIT.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "nlohmann/json.hpp"
-#include "cudaq/Optimizer/Builder/Marshal.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.h"
@@ -227,7 +226,7 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
       cudaq_internal::compiler::ArgumentConverter argCon(kernelName, moduleOp);
       // Must stay in scope as `eraseNonCallableArguments` may populate it
       std::vector<void *> closureArgs;
-      if (cudaq::opt::marshal::isFullySynthesized(epFunc)) {
+      if (cudaq::opt::factory::isFullySynthesized(epFunc)) {
         // Already fully specialized, nothing to do.
         isFullySpecialized = true;
       } else if (isEntryPoint && !target->fullySpecialize) {

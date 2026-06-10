@@ -48,12 +48,12 @@ configure_lit_site_cfg(
   ${PATHS_FOR_PLUGINS}
 )
 
-set(NVQPP_TEST_PARAMS
-  nvqpp_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg.py)
+set(CUDAQ_TEST_PARAMS
+  cudaq_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg.py)
 
 get_property(test_cudaq_libraries GLOBAL PROPERTY CUDAQ_RUNTIME_LIBS)
 
-set(NVQPP_TEST_DEPENDS
+set(CUDAQ_TEST_DEPENDS
     CircuitCheck
     cudaq-opt
     cudaq-rest-qpu
@@ -101,12 +101,12 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME AND NOT CUDAQ_DISABLE_CPP_FRONTEND AND
     list(GET _shim_parts 1 _shim_source)
     add_cudaq_device_call_realtime_shim(
       ${_shim_target} ${CMAKE_CURRENT_SOURCE_DIR}/${_shim_source})
-    list(APPEND NVQPP_TEST_DEPENDS ${_shim_target})
+    list(APPEND CUDAQ_TEST_DEPENDS ${_shim_target})
   endforeach()
 endif()
 
 if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
-  set(NVQPP_TEST_DEPENDS ${NVQPP_TEST_DEPENDS}
+  set(CUDAQ_TEST_DEPENDS ${CUDAQ_TEST_DEPENDS}
     cudaq-quake
     fixup-linkage
     nvq++
@@ -114,34 +114,34 @@ if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
   )
 endif()
 
-add_custom_target(nvqpp-test-depends DEPENDS ${NVQPP_TEST_DEPENDS})
-set_target_properties(nvqpp-test-depends PROPERTIES FOLDER "Tests")
+add_custom_target(cudaq-test-depends DEPENDS ${CUDAQ_TEST_DEPENDS})
+set_target_properties(cudaq-test-depends PROPERTIES FOLDER "Tests")
 
-add_lit_testsuite(check-nvqpp "Running the nvqpp regression tests"
+add_lit_testsuite(check-cudaq "Running the cudaq regression tests"
   ${CMAKE_CURRENT_BINARY_DIR}
-  PARAMS ${NVQPP_TEST_PARAMS}
-  DEPENDS ${NVQPP_TEST_DEPENDS}
+  PARAMS ${CUDAQ_TEST_PARAMS}
+  DEPENDS ${CUDAQ_TEST_DEPENDS}
 )
-set_target_properties(check-nvqpp PROPERTIES FOLDER "Tools")
+set_target_properties(check-cudaq PROPERTIES FOLDER "Tools")
 
 # In case of standalone builds.
-if (NVQPP_STANDALONE_BUILD)
+if (CUDAQ_STANDALONE_BUILD)
   add_lit_testsuites(NVQPP ${CMAKE_CURRENT_BINARY_DIR}
-    PARAMS ${NVQPP_TEST_PARAMS}
-    DEPENDS ${NVQPP_TEST_DEPENDS}
+    PARAMS ${CUDAQ_TEST_PARAMS}
+    DEPENDS ${CUDAQ_TEST_DEPENDS}
     FOLDER "Tests/Subdirectories"
   )
 else()
   add_lit_testsuites(NVQPP ${CMAKE_CURRENT_SOURCE_DIR}
-    PARAMS ${NVQPP_TEST_PARAMS}
-    DEPENDS ${NVQPP_TEST_DEPENDS}
+    PARAMS ${CUDAQ_TEST_PARAMS}
+    DEPENDS ${CUDAQ_TEST_DEPENDS}
     FOLDER "Tests/Subdirectories"
   )
 endif()
 
-# Add nvqpp tests to the ctest suite
-add_test(NAME ctest-nvqpp
-  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target check-nvqpp
+# Add cudaq tests to the ctest suite
+add_test(NAME ctest-cudaq
+  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target check-cudaq
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 # This test runs llvm-lit internally with parallelism, so have ctest
 # reserve all processors to prevent concurrent scheduling.
@@ -150,7 +150,7 @@ ProcessorCount(NPROC)
 if(NPROC EQUAL 0)
   set(NPROC 1)
 endif()
-set_tests_properties(ctest-nvqpp PROPERTIES
+set_tests_properties(ctest-cudaq PROPERTIES
   TIMEOUT 3600
   PROCESSORS ${NPROC})
 

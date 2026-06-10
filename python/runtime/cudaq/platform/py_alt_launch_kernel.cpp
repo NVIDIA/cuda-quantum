@@ -19,7 +19,6 @@
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/OpaqueArguments.h"
 #include "utils/PyTypes.h"
-#include "cudaq/Optimizer/Builder/Marshal.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
@@ -687,7 +686,7 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
     auto func = cudaq::getKernelFuncOp(mod, name);
     // TODO: currently, synthesis is all-or-nothing, but if arg-by-arg
     // synthesis is supported, then that will need to be detected
-    if (cudaq::opt::marshal::isFullySynthesized(func))
+    if (cudaq::opt::factory::isFullySynthesized(func))
       return false;
     // Caching for kernels with lifted arguments is not currently supported.
     for (unsigned i = 0; i < func.getNumArguments(); ++i)

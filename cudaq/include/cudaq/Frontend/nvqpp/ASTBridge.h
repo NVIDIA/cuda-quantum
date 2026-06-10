@@ -328,6 +328,7 @@ public:
                            DataRecursionQueue *q = nullptr);
   bool VisitDeclRefExpr(clang::DeclRefExpr *x);
   bool VisitFloatingLiteral(clang::FloatingLiteral *x);
+  bool VisitImaginaryLiteral(clang::ImaginaryLiteral *x);
 
   // Cast operations.
   bool TraverseCastExpr(clang::CastExpr *x, DataRecursionQueue *q = nullptr);
