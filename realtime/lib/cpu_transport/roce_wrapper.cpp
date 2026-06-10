@@ -36,11 +36,11 @@ cpu_roce_transceiver_t cpu_roce_create_transceiver(
     uint64_t peer_rx_base_addr, uint32_t peer_rx_rkey) {
   try {
     // Translate the C enum to the C++ enum.  An out-of-range value falls
-    // through to the FPGA default — the constructor will validate further.
+    // through to the Send default — the constructor will validate further.
     const CpuRoceTxMode cpp_mode =
-        (tx_mode == CPU_ROCE_TX_MODE_WRITE_WITH_IMM_FOR_PEER)
-            ? CpuRoceTxMode::kWriteWithImmForPeer
-            : CpuRoceTxMode::kSendForFpga;
+        (tx_mode == CPU_ROCE_TX_MODE_RDMA_WRITE_WITH_IMM)
+            ? CpuRoceTxMode::kRdmaWriteWithImm
+            : CpuRoceTxMode::kRdmaSend;
     auto *t = new CpuRoceTransceiver(
         device_name, static_cast<unsigned>(ib_port), tx_ibv_qp, frame_size,
         page_size, num_pages, peer_ip, forward != 0, rx_only != 0, tx_only != 0,
@@ -63,6 +63,29 @@ int cpu_roce_start(cpu_roce_transceiver_t handle) {
     return as_cpp(handle)->start() ? 1 : 0;
   } catch (const std::exception &e) {
     std::fprintf(stderr, "cpu_roce_start: %s\n", e.what());
+    return 0;
+  }
+}
+
+int cpu_roce_setup(cpu_roce_transceiver_t handle) {
+  if (!handle)
+    return 0;
+  try {
+    return as_cpp(handle)->setup() ? 1 : 0;
+  } catch (const std::exception &e) {
+    std::fprintf(stderr, "cpu_roce_setup: %s\n", e.what());
+    return 0;
+  }
+}
+
+int cpu_roce_connect(cpu_roce_transceiver_t handle, unsigned peer_qp,
+                     const char *peer_ip, uint32_t peer_rx_rkey) {
+  if (!handle)
+    return 0;
+  try {
+    return as_cpp(handle)->connect(peer_qp, peer_ip, peer_rx_rkey) ? 1 : 0;
+  } catch (const std::exception &e) {
+    std::fprintf(stderr, "cpu_roce_connect: %s\n", e.what());
     return 0;
   }
 }
@@ -92,6 +115,12 @@ void cpu_roce_set_unified_dispatch(cpu_roce_transceiver_t handle,
   // reinterpret is safe.
   as_cpp(handle)->set_unified_dispatch(
       reinterpret_cast<CpuRoceTransceiver::UnifiedDispatchFn>(fn), context);
+}
+
+void cpu_roce_set_local_ip(cpu_roce_transceiver_t handle,
+                           const char *local_ip) {
+  if (handle)
+    as_cpp(handle)->set_local_ip(local_ip);
 }
 
 uint32_t cpu_roce_get_qp_number(cpu_roce_transceiver_t handle) {

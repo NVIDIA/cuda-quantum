@@ -6,31 +6,48 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-#
+
 # Usage: check_target_setter.sh <nvq++_path> <docs_cpp_dir>
 
 set -euo pipefail
 
-if [[ $# -ne 2 ]]; then
+if [[ $# -eq 2 ]]; then
+  NVQPP="$1"
+  DOCS_CPP_DIR="$2"
+else
+  # Use the hardcoded settings from config time.
+  NVQPP="@CMAKE_BINARY_DIR@/bin/nvq++"
+  DOCS_CPP_DIR="@CMAKE_SOURCE_DIR@/docs/sphinx/targets/cpp"
   echo "Usage: $0 <nvq++_path> <docs_cpp_dir>" >&2
-  exit 2
+  #exit 2
 fi
-
-NVQPP="$1"
-DOCS_CPP_DIR="$2"
 
 if [[ ! -x "$NVQPP" ]]; then
   echo "nvq++ not found or not executable: $NVQPP" >&2
   exit 2
 fi
 
+
+if @CUDAQ_ENABLE_PASQAL_BACKEND_BOOL@ ; then
+  pasqal_examples=(
+    "pasqal pasqal.cpp"
+  )
+else
+  pasqal_examples=()
+fi
+
+if @CUDAQ_ENABLE_BRAKET_BACKEND_BOOL@ ; then
+  quera_examples=(
+    "quera  quera_basic.cpp"
+    "quera  quera_intro.cpp"
+  )
+else
+  quera_examples=()
+fi
+
 # (target, source-relative-path) pairs to check. Extend when new
 # `gen-target-backend: true` analog targets land an example here.
-EXAMPLES=(
-  "pasqal pasqal.cpp"
-  "quera  quera_basic.cpp"
-  "quera  quera_intro.cpp"
-)
+EXAMPLES=("${pasqal_examples[@]}" "${quera_examples[@]}")
 
 TMPDIR="$(mktemp -d -t target_setter_check_XXXX)"
 trap 'rm -rf "$TMPDIR"' EXIT
