@@ -19,7 +19,7 @@ config:
   # Add preprocessor defines to compilation
   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
   # Define the JIT lowering pipeline
-  jit-mid-level-pipeline: "decomposition{enable-patterns=CHToCX,RzAdjToRz,CCZToCX,CR1ToCX,SwapToCX,CRxToCX,CRyToCX,CRzToCX},quake-to-cc-prep,func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements),qubit-mapping{device=file(%QPU_ARCH%)}"
+  jit-mid-level-pipeline: "decomposition{enable-patterns=CHToCX,RzAdjToRz,CCZToCX,CR1ToCX,SwapToCX,CRxToCX,CRyToCX,CRzToCX},quake-to-cc-prep"
   # Tell the rest-qpu that the required output format is quake.
   codegen-emission: nop
   # Library mode is only for simulators, physical backends must turn this off
