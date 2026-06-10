@@ -70,8 +70,21 @@ def _extract_propagator(result, dimension: int,
     return _state_to_matrix(result.final_state(), dimension)
 
 
-def _extract_batched_basis_propagator(results):
-    """Stack evolved Liouville basis states into a dense Lindblad map."""
+def _extract_batched_basis_propagator(results,
+                                      store_intermediate_results: bool):
+    """Stack evolved `Liouville` basis states into dense Lindblad maps."""
+    if store_intermediate_results:
+        intermediate_states = [
+            list(single_result.intermediate_states())
+            for single_result in results
+        ]
+        return [
+            np.column_stack(
+                np.array(states[time_index]).reshape(-1)
+                for states in intermediate_states)
+            for time_index in range(len(intermediate_states[0]))
+        ]
+
     columns = [
         np.array(single_result.final_state()).reshape(-1)
         for single_result in results
@@ -215,10 +228,11 @@ def propagator(
             return [
                 _extract_batched_basis_propagator(
                     result[index * propagator_dimension:(index + 1) *
-                           propagator_dimension])
+                           propagator_dimension], store_intermediate_results)
                 for index in range(len(generators))
             ]
-        return _extract_batched_basis_propagator(result)
+        return _extract_batched_basis_propagator(result,
+                                                 store_intermediate_results)
 
     if is_batched:
         return [

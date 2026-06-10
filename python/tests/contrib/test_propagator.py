@@ -308,3 +308,26 @@ def test_open_system_propagator_batched_collapse_operator_lists():
         expected = scipy_linalg.expm(
             _amplitude_damping_liouvillian(gamma) * t_final)
         np.testing.assert_allclose(actual, expected, atol=1e-4)
+
+
+def test_open_system_propagator_intermediate_results():
+    gamma = 0.2
+    times = np.linspace(0.0, 0.7, 6)
+
+    hamiltonian = 0.0 * spin.z(0)
+    collapse_operators = [np.sqrt(gamma) * spin.minus(0)]
+    schedule = Schedule(times, ["t"])
+
+    computed = cudaq.contrib.propagator(
+        hamiltonian,
+        {0: 2},
+        schedule,
+        collapse_operators=collapse_operators,
+        store_intermediate_results=True,
+    )
+
+    assert len(computed) == len(times)
+    for actual, time in zip(computed, times):
+        expected = scipy_linalg.expm(
+            _amplitude_damping_liouvillian(gamma) * time)
+        np.testing.assert_allclose(actual, expected, atol=1e-4)
