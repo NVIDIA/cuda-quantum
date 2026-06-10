@@ -71,6 +71,28 @@ def _canonicalize_operator_to_dimensions(
     return system_operator
 
 
+def _canonicalize_initial_state(initial_state: InitialStateArgT,
+                                num_qubits: int) -> InitialStateArgT:
+    if not isinstance(initial_state, InitialState):
+        return initial_state
+
+    state_size = 2**num_qubits
+    if initial_state == InitialState.ZERO:
+        state_data = numpy.zeros(state_size, dtype=numpy.complex128)
+        state_data[0] = 1.0
+    elif initial_state == InitialState.UNIFORM:
+        state_data = (1. / numpy.sqrt(state_size)) * numpy.ones(
+            state_size, dtype=numpy.complex128)
+    else:
+        raise ValueError("Unsupported initial state type")
+
+    sim_name = cudaq_runtime.get_target().simulator.strip()
+    if sim_name == "dm":
+        return cudaq_runtime.State.from_data(
+            numpy.outer(state_data, numpy.conj(state_data)))
+    return cudaq_runtime.State.from_data(state_data)
+
+
 def _compute_step_matrix(hamiltonian: Operator,
                          dimensions: Mapping[int, int],
                          parameters: Mapping[str, NumericType],
@@ -289,24 +311,7 @@ def evolve_single(
         step_parameters, dt)
     if shots_count is None:
         shots_count = -1
-    if isinstance(initial_state, InitialState):
-        # This is an initial state enum, create concrete state.
-        state_size = 2**num_qubits
-        if initial_state == InitialState.ZERO:
-            state_data = numpy.zeros(state_size, dtype=numpy.complex128)
-            state_data[0] = 1.0
-        elif initial_state == InitialState.UNIFORM:
-            state_data = (1. / numpy.sqrt(state_size)) * numpy.ones(
-                state_size, dtype=numpy.complex128)
-        else:
-            raise ValueError("Unsupported initial state type")
-
-        sim_name = cudaq_runtime.get_target().simulator.strip()
-        if sim_name == "dm":
-            initial_state = cudaq_runtime.State.from_data(
-                numpy.outer(state_data, numpy.conj(state_data)))
-        else:
-            initial_state = cudaq_runtime.State.from_data(state_data)
+    initial_state = _canonicalize_initial_state(initial_state, num_qubits)
 
     if store_intermediate_results != IntermediateResultSave.NONE:
         evolution = _evolution_kernel(
@@ -612,6 +617,7 @@ def evolve_single_async(
         step_parameters, dt)
     if shots_count is None:
         shots_count = -1
+    initial_state = _canonicalize_initial_state(initial_state, num_qubits)
     if store_intermediate_results != IntermediateResultSave.NONE:
         evolution = _evolution_kernel(
             num_qubits,
