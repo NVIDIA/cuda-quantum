@@ -14,8 +14,10 @@
 
 #include "cudaq/realtime/daemon/dispatcher/rpc_wire_format.h"
 
-// Visibility marker for entry points that consumers reach via dlsym(RTLD_DEFAULT,
-// ...) at runtime.  libcudaq-realtime-dispatch.a is built with hidden visibility
+// Visibility marker for entry points that consumers reach via
+// dlsym(RTLD_DEFAULT,
+// ...) at runtime.  libcudaq-realtime-dispatch.a is built with hidden
+// visibility
 // + -Wl,--exclude-libs=ALL, so by default its symbols stay hidden inside the
 // final binary even when the archive is absorbed.  Marking individual symbols
 // with default visibility opts them back into the binary's dynamic symbol table
