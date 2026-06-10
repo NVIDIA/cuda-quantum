@@ -24,18 +24,6 @@
 using namespace cudaq_internal::compiler;
 using namespace cudaq;
 
-CUDAQ_INSTANTIATE_REGISTRY(cudaq::ModuleLauncher::RegistryType)
-
-// Bridge so the Python extension can register PythonLauncher into this DSO's
-// registry. CUDA-Q Registry uses static inline Head/Tail, so each DSO that
-// instantiates the template gets its own copy; launchModule runs in this DSO
-// and reads the empty list. Registering via this function adds to our list.
-extern "C" void cudaq_add_module_launcher_node(void *node_ptr) {
-  using Node = cudaq::Registry<cudaq::ModuleLauncher>::node;
-  cudaq::Registry<cudaq::ModuleLauncher>::add_node(
-      static_cast<Node *>(node_ptr));
-}
-
 cudaq::KernelThunkResultType
 cudaq::QPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
   if (std::holds_alternative<SourceModule>(module))
@@ -123,51 +111,20 @@ cudaq::QPU::runJITCompiledModule(const CompiledModule &compiled,
   return {nullptr, 0};
 }
 
-cudaq::CompiledModule cudaq::QPU::compileModule(const sample_policy &,
-                                                const SourceModule &src,
-                                                KernelArgs args,
-                                                bool isEntryPoint) {
-  return compileModule(other_policies{}, src, args, isEntryPoint);
-}
-
-cudaq::CompiledModule cudaq::QPU::compileModule(const observe_policy &,
-                                                const SourceModule &src,
-                                                KernelArgs args,
-                                                bool isEntryPoint) {
-  return compileModule(other_policies{}, src, args, isEntryPoint);
-}
-
-std::unique_ptr<cudaq::CompileTarget>
-cudaq::QPU::getCompileTarget(const other_policies &,
-                             ExecutionContext *context) {
-  auto launcher = registry::get<ModuleLauncher>("default");
-  if (!launcher)
-    throw std::runtime_error(
-        "No ModuleLauncher registered with name 'default'. This may be a "
-        "result of attempting to use `compileModule` outside Python.");
-  return launcher->getCompileTarget(context);
-}
 std::unique_ptr<cudaq::CompileTarget>
 cudaq::QPU::getCompileTarget(const sample_policy &) {
   throw std::runtime_error(
-      "no CompileTarget defined for sample_policy this QPU");
+      "no CompileTarget defined for sample_policy on this QPU");
 }
+
 std::unique_ptr<cudaq::CompileTarget>
 cudaq::QPU::getCompileTarget(const observe_policy &) {
   throw std::runtime_error(
-      "no CompileTarget defined for observe_policy this QPU");
+      "no CompileTarget defined for observe_policy on this QPU");
 }
 
-cudaq::CompiledModule cudaq::QPU::compileModule(const other_policies &,
-                                                const SourceModule &src,
-                                                KernelArgs args,
-                                                bool isEntryPoint) {
-  auto launcher = registry::get<ModuleLauncher>("default");
-  if (!launcher)
-    throw std::runtime_error(
-        "No ModuleLauncher registered with name 'default'. This may be a "
-        "result of attempting to use `compileModule` outside Python.");
-  ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::compileModule",
-                         src.getName());
-  return launcher->compileModule(src, args, isEntryPoint);
+std::unique_ptr<cudaq::CompileTarget>
+cudaq::QPU::getCompileTarget(const other_policies &olicy, ExecutionContext *) {
+  throw std::runtime_error(
+      "no CompileTarget defined for other_policies on this QPU");
 }
