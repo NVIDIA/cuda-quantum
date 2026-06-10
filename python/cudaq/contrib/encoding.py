@@ -108,7 +108,7 @@ def amplitude_encode(
           a 1D vector.
       TypeError: If ``data`` has an unsupported type.
 
-    See ``cudaq.contrib.examples`` for runnable examples.
+    See ``cudaq.contrib.examples`` for complete examples.
     """
     dtype = _simulation_complex_dtype()
     xp, vec = _as_amplitude_vector(data, dtype)
@@ -246,7 +246,7 @@ def angular_encode(kernel_or_q, q_or_angles, angles=None, *, rotation='Y'):
       ValueError: Invalid ``rotation`` or angle/qubit count mismatch (builder).
       TypeError: Invalid builder arguments.
 
-    See ``cudaq.contrib.examples`` for runnable examples.
+    See ``cudaq.contrib.examples`` for complete examples.
     """
     from cudaq.kernel.kernel_builder import PyKernel
 
