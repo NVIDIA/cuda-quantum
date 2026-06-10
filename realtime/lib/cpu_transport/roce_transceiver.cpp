@@ -23,6 +23,7 @@
 #include <cstring>
 #include <mutex>
 #include <stdexcept>
+#include <string>
 #include <thread>
 #include <vector>
 
@@ -97,9 +98,14 @@ struct CpuRoceTransceiver::Impl {
   bool rx_only = false;
   bool tx_only = false;
   bool unified = false;
-  CpuRoceTxMode tx_mode = CpuRoceTxMode::kSendForFpga;
+  CpuRoceTxMode tx_mode = CpuRoceTxMode::kRdmaSend;
   std::uint64_t peer_rx_base_addr = 0;
   std::uint32_t peer_rx_rkey = 0;
+  // Optional local IPv4 used to disambiguate the source GID in
+  // find_roce_v2_gid().  Empty => first IPv4-mapped RoCEv2 GID on the port,
+  // which is correct on single-IP ports but can pick the wrong SGID on a
+  // multi-IP port; set it (via set_local_ip) to match a specific address.
+  std::string local_ip;
 
   // -- ibv resources populated by start() --
   ibv_context *ctx = nullptr;
@@ -123,7 +129,8 @@ struct CpuRoceTransceiver::Impl {
   std::uint32_t stride_num = 0;
 
   // -- runtime state --
-  bool started = false;
+  bool setup_done = false; // QP created + INIT + recvs posted (pre-connect)
+  bool started = false;    // QP fully connected (RTR/RTS); I/O may run
   bool monitor_running = false;
   std::atomic<int> exit_flag{0};
 
@@ -288,6 +295,15 @@ bool CpuRoceTransceiver::Impl::find_roce_v2_gid() {
       continue;
     if (raw[10] != 0xff || raw[11] != 0xff)
       continue;
+    // If a local IP was configured, require the GID's IPv4 (raw[12..15]) to
+    // match it, so on a multi-IP port we select the source GID for the
+    // configured address rather than just the first IPv4-mapped one.
+    if (!local_ip.empty()) {
+      in_addr want{};
+      if (inet_pton(AF_INET, local_ip.c_str(), &want) == 1 &&
+          std::memcmp(raw + 12, &want.s_addr, 4) != 0)
+        continue;
+    }
     gid_index = i;
     return true;
   }
@@ -520,6 +536,19 @@ void CpuRoceTransceiver::Impl::rx_loop() {
 
   // Polling loop: poll one CQE at a time for simplicity (we can batch in a
   // follow-up if profiling shows the CQE-read overhead is meaningful).
+  //
+  // Buffer-lifecycle note: we re-arm the slot's receive WQE immediately after
+  // publishing rx_flag, NOT after the consumer releases the slot.  Deferring
+  // the re-post until release would (in theory) prevent the NIC from
+  // overwriting rx_data[slot] while the consumer is still reading -- but it
+  // breaks the fire-and-forget pattern, where the service writes a response the
+  // caller never reads: those slots are never released, so a deferred re-post
+  // would starve the receive queue and drop subsequent messages.  The realized
+  // safety instead relies on the v1 contract -- a paced/serialized sender plus
+  // the channel's defensive rx_flag clear on slot reuse -- so a slot's next
+  // message never arrives before the consumer is done with the current one.
+  // A sender that wraps the ring faster than the consumer drains it would need
+  // double-buffering or a credit scheme (out of scope for v1).
   ibv_wc wc{};
   while (exit_flag.load(std::memory_order_acquire) == 0) {
     int n = ibv_poll_cq(rq_cq, 1, &wc);
@@ -547,10 +576,9 @@ void CpuRoceTransceiver::Impl::rx_loop() {
       continue;
     }
 
-    // Slot publish handshake: wait for consumer to release the slot (set
-    // rx_flag[slot] to 0).  This matches the GPU rx_only kernel's
-    // back-pressure loop.  Yield to the scheduler periodically in case the
-    // consumer is genuinely slow.
+    // Slot publish handshake: wait for the consumer to release the slot (set
+    // rx_flag[slot] to 0).  This matches the GPU rx_only kernel's back-pressure
+    // loop.  Yield to the scheduler periodically in case the consumer is slow.
     auto &flag = *(volatile std::uint64_t *)&rx_flags[slot];
     while (__atomic_load_n(&flag, __ATOMIC_ACQUIRE) != 0) {
       if (exit_flag.load(std::memory_order_acquire) != 0)
@@ -593,13 +621,19 @@ void CpuRoceTransceiver::Impl::forward_loop() {
   // wire round-trip directly).  Mirrors the GPU forward kernel.
   std::vector<std::uint32_t> generation(stride_num, 1);
 
-  // SQ drain via signal-every-N (same pattern as tx_loop).  Required
-  // because the SQ slots are only freed when a signaled WQE completes
-  // (and sweeps preceding unsignaled WQEs).  Without this, after
-  // max_send_wr (= stride_num) sends, ibv_post_send returns ENOMEM.
-  constexpr int kSignalEvery = 16;
+  // SQ drain via signal-every-N (same pattern as tx_loop).  N is scaled to the
+  // ring depth (<= the SQ depth = stride_num) and paired with an explicit
+  // pre-post backpressure drain, so a small ring or delayed completions can't
+  // fill the SQ with unreaped WQEs and make ibv_post_send ENOMEM.
+  constexpr int kSignalCap = 16;
+  std::uint32_t signal_every = stride_num / 2;
+  if (signal_every < 1)
+    signal_every = 1;
+  if (signal_every > static_cast<std::uint32_t>(kSignalCap))
+    signal_every = static_cast<std::uint32_t>(kSignalCap);
   std::uint32_t since_signal = 0;
-  ibv_wc swc[kSignalEvery]{};
+  std::uint32_t unreaped = 0;
+  ibv_wc swc[kSignalCap]{};
 
   ibv_wc wc{};
   while (exit_flag.load(std::memory_order_acquire) == 0) {
@@ -629,6 +663,21 @@ void CpuRoceTransceiver::Impl::forward_loop() {
       continue;
     }
 
+    // Backpressure: drain the SQ before posting if it's at capacity so we never
+    // overflow max_send_wr (signaled completions always arrive eventually).
+    while (unreaped >= stride_num) {
+      const int d = ibv_poll_cq(sq_cq, kSignalCap, swc);
+      if (d > 0) {
+        const std::uint32_t freed =
+            static_cast<std::uint32_t>(d) * signal_every;
+        unreaped = unreaped > freed ? unreaped - freed : 0;
+      } else {
+        if (exit_flag.load(std::memory_order_acquire) != 0)
+          return;
+        cpu_relax();
+      }
+    }
+
     // Re-send the slot's bytes back to the peer.  IOVA-based addr (see
     // register_mrs / post_initial_recv_wqes).  Length uses cu_frame_size
     // for parity with tx_loop and the GPU bridge's forward kernel.
@@ -642,9 +691,9 @@ void CpuRoceTransceiver::Impl::forward_loop() {
     swr.sg_list = &send_sge;
     swr.num_sge = 1;
     swr.next = nullptr;
-    const bool signal_this = (++since_signal % kSignalEvery) == 0;
+    const bool signal_this = (++since_signal % signal_every) == 0;
     swr.send_flags = signal_this ? IBV_SEND_SIGNALED : 0;
-    if (tx_mode == CpuRoceTxMode::kWriteWithImmForPeer) {
+    if (tx_mode == CpuRoceTxMode::kRdmaWriteWithImm) {
       swr.opcode = IBV_WR_RDMA_WRITE_WITH_IMM;
       swr.wr.rdma.remote_addr = peer_rx_base_addr + slot * stride_sz;
       swr.wr.rdma.rkey = peer_rx_rkey;
@@ -658,9 +707,16 @@ void CpuRoceTransceiver::Impl::forward_loop() {
                    "CpuRoceTransceiver(forward): ibv_post_send slot=%u failed "
                    "errno=%d\n",
                    slot, errno);
+    } else {
+      ++unreaped;
     }
     if (signal_this) {
-      int drained = ibv_poll_cq(sq_cq, kSignalEvery, swc);
+      int drained = ibv_poll_cq(sq_cq, kSignalCap, swc);
+      if (drained > 0) {
+        const std::uint32_t freed =
+            static_cast<std::uint32_t>(drained) * signal_every;
+        unreaped = unreaped > freed ? unreaped - freed : 0;
+      }
       for (int k = 0; k < drained; ++k) {
         if (swc[k].status != IBV_WC_SUCCESS) {
           std::fprintf(
@@ -705,12 +761,34 @@ void CpuRoceTransceiver::Impl::tx_loop() {
   const std::uint32_t mask = stride_num - 1;
   std::uint64_t wqe_idx = 0;
 
-  // SQ CQ drain: signal every N WQEs (matches "signal-every-N" pattern
-  // from §9 open questions; N=16 is a common starting point and amortizes
-  // the CQE cost across batches without bloating the in-flight window).
-  constexpr int kSignalEvery = 16;
+  // SQ CQ drain: signal every N WQEs so the drain frees max_send_wr capacity.
+  // N MUST be <= the SQ depth (max_send_wr = stride_num); otherwise the SQ
+  // fills with unreaped unsignaled WQEs before the first signaled reap and
+  // ibv_post_send returns ENOMEM.  Scale N with the ring (half the depth,
+  // capped at 16) so small rings (e.g. the device_call 8-slot channel) stay
+  // correct while large rings keep an amortized batch size.
+  //
+  // NOTE: tx_flag[slot] is cleared at *claim* (below), NOT on send completion.
+  // A completion-gated clear is unsafe here because tx_flag carries the slot's
+  // data address (constant per slot): a service that re-publishes the same slot
+  // without waiting -- e.g. the host dispatcher under a fire-and-forget flood
+  // -- is then indistinguishable from a stale completion, so the completion
+  // would wipe the freshly-published flag and silently drop that response.
+  // Reuse safety is instead the caller's responsibility: it only reuses a slot
+  // after the prior request's response/drain, which implies that send already
+  // landed.
+  constexpr int kSignalCap = 16;
+  std::uint32_t signal_every = stride_num / 2;
+  if (signal_every < 1)
+    signal_every = 1;
+  if (signal_every > static_cast<std::uint32_t>(kSignalCap))
+    signal_every = static_cast<std::uint32_t>(kSignalCap);
   std::uint32_t since_signal = 0;
-  ibv_wc swc[kSignalEvery]{};
+  // Posted sends not yet reaped; bounds the SQ so a fast producer (e.g. a burst
+  // of fire-and-forget requests) cannot overflow max_send_wr and ENOMEM.  Each
+  // signaled completion frees ~signal_every WQEs.
+  std::uint32_t unreaped = 0;
+  ibv_wc swc[kSignalCap]{};
 
   while (exit_flag.load(std::memory_order_acquire) == 0) {
     const std::uint32_t slot = static_cast<std::uint32_t>(wqe_idx & mask);
@@ -720,9 +798,28 @@ void CpuRoceTransceiver::Impl::tx_loop() {
       cpu_relax();
       continue;
     }
-    // Claim: clear the flag.  Producer must wait for the flag to be 0
-    // before publishing again into the same slot.
-    __atomic_store_n(&flag, 0, __ATOMIC_RELEASE);
+
+    // Backpressure: ensure the SQ has room before posting.  Drain (blocking on
+    // the signaled completions, which always arrive because we signal at least
+    // every stride_num/2 WQEs) until the in-flight count drops below the SQ
+    // depth.  Without this the SQ fills with unreaped unsignaled WQEs and the
+    // next post ENOMEMs.
+    while (unreaped >= stride_num) {
+      const int n = ibv_poll_cq(sq_cq, kSignalCap, swc);
+      if (n > 0) {
+        const std::uint32_t freed =
+            static_cast<std::uint32_t>(n) * signal_every;
+        unreaped = unreaped > freed ? unreaped - freed : 0;
+      } else {
+        if (exit_flag.load(std::memory_order_acquire) != 0)
+          return;
+        cpu_relax();
+      }
+    }
+
+    // Claim: clear the flag so we don't re-post this slot.  The caller must not
+    // reuse the slot until its response/drain confirms this send landed.
+    __atomic_store_n(&flag, static_cast<std::uint64_t>(0), __ATOMIC_RELEASE);
 
     // Build the send WQE.  Use the slot's data address as the SGE source;
     // the slot index is encoded in the IMM for Write-With-Imm mode (so the
@@ -740,42 +837,48 @@ void CpuRoceTransceiver::Impl::tx_loop() {
     swr.sg_list = &sge;
     swr.num_sge = 1;
     swr.next = nullptr;
-    // Signal completion every kSignalEvery WQEs so we can drain the SQ CQ
-    // and free up max_send_wr capacity.  Other WQEs are unsignalled.
-    const bool signal_this = (++since_signal % kSignalEvery) == 0;
+    // Signal completion every signal_every WQEs so we can drain the SQ CQ and
+    // free max_send_wr capacity; other WQEs are unsignaled.
+    const bool signal_this = (++since_signal % signal_every) == 0;
     swr.send_flags = signal_this ? IBV_SEND_SIGNALED : 0;
-    if (tx_mode == CpuRoceTxMode::kWriteWithImmForPeer) {
-      // Phase 2 wire pattern.  remote_addr = peer_rx_base + slot*stride;
-      // peer decodes the slot from imm_data (which is in network byte
-      // order on the wire).
+    if (tx_mode == CpuRoceTxMode::kRdmaWriteWithImm) {
+      // Write directly into the peer's rx_data ring: remote_addr =
+      // peer_rx_base + slot*stride; the peer decodes the slot from imm_data
+      // (network byte order on the wire).
       swr.opcode = IBV_WR_RDMA_WRITE_WITH_IMM;
       swr.wr.rdma.remote_addr = peer_rx_base_addr + slot * stride_sz;
       swr.wr.rdma.rkey = peer_rx_rkey;
       swr.imm_data = htonl(slot);
     } else {
-      // Phase 1 wire pattern (FPGA-facing).  FPGA's HSB IP receives Sends;
-      // slot is identified on the peer side by which pre-posted recv WQE
-      // the Send consumed (peer's wr_id encoding).
+      // Send into the peer's pre-posted recv WQE (e.g. an FPGA's HSB IP, which
+      // receives Sends only).  The slot is identified on the peer side by which
+      // recv WQE the Send consumed (peer's wr_id encoding).
       swr.opcode = IBV_WR_SEND;
     }
 
     ibv_send_wr *bad = nullptr;
-    if (ibv_post_send(qp, &swr, &bad) != 0) {
+    const int post_rc = ibv_post_send(qp, &swr, &bad);
+    if (post_rc != 0) {
       std::fprintf(
-          stderr, "CpuRoceTransceiver: ibv_post_send slot=%u failed errno=%d\n",
-          slot, errno);
+          stderr,
+          "CpuRoceTransceiver: ibv_post_send slot=%u failed rc=%d errno=%d\n",
+          slot, post_rc, errno);
       // Restore the flag so the producer doesn't lose track of an in-flight
-      // request that we failed to actually ship.
+      // request we failed to ship; back off so a stuck QP can't flood the log.
       __atomic_store_n(&flag, addr, __ATOMIC_RELEASE);
+      std::this_thread::sleep_for(std::chrono::milliseconds(2));
       continue;
     }
+    ++unreaped;
 
-    // Drain SQ CQ opportunistically when we just signalled a WQE.  The
-    // poll is non-blocking (returns 0 immediately if nothing's ready).
+    // Drain opportunistically after a signaled WQE (non-blocking poll).
     if (signal_this) {
-      int n = ibv_poll_cq(sq_cq, kSignalEvery, swc);
-      (void)n; // we don't track per-send completion semantics; CQEs are
-               // just consumed to free max_send_wr capacity.
+      const int n = ibv_poll_cq(sq_cq, kSignalCap, swc);
+      if (n > 0) {
+        const std::uint32_t freed =
+            static_cast<std::uint32_t>(n) * signal_every;
+        unreaped = unreaped > freed ? unreaped - freed : 0;
+      }
     }
     wqe_idx++;
   }
@@ -784,10 +887,18 @@ void CpuRoceTransceiver::Impl::tx_loop() {
 void CpuRoceTransceiver::Impl::unified_loop() {
   // Single thread: RX CQE → dispatch → TX in one body, no flag handshake.
   std::vector<std::uint32_t> generation(stride_num, 1);
-  // SQ-CQ drain on a signal-every-N schedule (same as tx_loop).
-  constexpr int kSignalEvery = 16;
+  // SQ-CQ drain on a signal-every-N schedule (same as tx_loop), scaled to the
+  // ring depth and paired with a pre-post backpressure drain so a small ring or
+  // delayed completions can't overflow max_send_wr.
+  constexpr int kSignalCap = 16;
+  std::uint32_t signal_every = stride_num / 2;
+  if (signal_every < 1)
+    signal_every = 1;
+  if (signal_every > static_cast<std::uint32_t>(kSignalCap))
+    signal_every = static_cast<std::uint32_t>(kSignalCap);
   std::uint32_t since_signal = 0;
-  ibv_wc swc[kSignalEvery]{};
+  std::uint32_t unreaped = 0;
+  ibv_wc swc[kSignalCap]{};
 
   ibv_wc wc{};
   while (exit_flag.load(std::memory_order_acquire) == 0) {
@@ -826,6 +937,19 @@ void CpuRoceTransceiver::Impl::unified_loop() {
 
     // Send the response on the wire if the callback produced one.
     if (resp_bytes > 0) {
+      // Backpressure: drain the SQ before posting if it's at capacity.
+      while (unreaped >= stride_num) {
+        const int d = ibv_poll_cq(sq_cq, kSignalCap, swc);
+        if (d > 0) {
+          const std::uint32_t freed =
+              static_cast<std::uint32_t>(d) * signal_every;
+          unreaped = unreaped > freed ? unreaped - freed : 0;
+        } else {
+          if (exit_flag.load(std::memory_order_acquire) != 0)
+            return;
+          cpu_relax();
+        }
+      }
       ibv_sge sge{};
       sge.addr = reinterpret_cast<std::uintptr_t>(tx_slot);
       sge.length = static_cast<std::uint32_t>(resp_bytes);
@@ -836,9 +960,9 @@ void CpuRoceTransceiver::Impl::unified_loop() {
       swr.sg_list = &sge;
       swr.num_sge = 1;
       swr.next = nullptr;
-      const bool signal_this = (++since_signal % kSignalEvery) == 0;
+      const bool signal_this = (++since_signal % signal_every) == 0;
       swr.send_flags = signal_this ? IBV_SEND_SIGNALED : 0;
-      if (tx_mode == CpuRoceTxMode::kWriteWithImmForPeer) {
+      if (tx_mode == CpuRoceTxMode::kRdmaWriteWithImm) {
         swr.opcode = IBV_WR_RDMA_WRITE_WITH_IMM;
         swr.wr.rdma.remote_addr = peer_rx_base_addr + slot * stride_sz;
         swr.wr.rdma.rkey = peer_rx_rkey;
@@ -852,10 +976,16 @@ void CpuRoceTransceiver::Impl::unified_loop() {
                      "CpuRoceTransceiver(unified): ibv_post_send slot=%u "
                      "failed errno=%d\n",
                      slot, errno);
+      } else {
+        ++unreaped;
       }
       if (signal_this) {
-        int drained = ibv_poll_cq(sq_cq, kSignalEvery, swc);
-        (void)drained;
+        int drained = ibv_poll_cq(sq_cq, kSignalCap, swc);
+        if (drained > 0) {
+          const std::uint32_t freed =
+              static_cast<std::uint32_t>(drained) * signal_every;
+          unreaped = unreaped > freed ? unreaped - freed : 0;
+        }
       }
     }
 
@@ -935,6 +1065,7 @@ void CpuRoceTransceiver::Impl::release_resources() noexcept {
     tx_flags = nullptr;
   }
   started = false;
+  setup_done = false;
 }
 
 void CpuRoceTransceiver::Impl::join_all_workers() noexcept {
@@ -976,14 +1107,27 @@ CpuRoceTransceiver::CpuRoceTransceiver(
     throw std::invalid_argument(
         "CpuRoceTransceiver: forward / rx_only / tx_only / unified are "
         "mutually exclusive (at most one may be true)");
-  if (tx_mode == CpuRoceTxMode::kWriteWithImmForPeer &&
-      (peer_rx_base_addr == 0 || peer_rx_rkey == 0))
-    throw std::invalid_argument(
-        "CpuRoceTransceiver: tx_mode=kWriteWithImmForPeer requires "
-        "peer_rx_base_addr and peer_rx_rkey to be non-zero");
+  // For tx_mode=kRdmaWriteWithImm we intentionally do NOT require
+  // peer_rx_base_addr / peer_rx_rkey to be non-zero at construction:
+  //   - peer_rx_base_addr == 0 is the correct, valid base, because the peer's
+  //     rx_data MR is registered with iova=0 (see register_mrs); the peer
+  //     addresses slots by offset alone (remote_addr = 0 + slot*stride).
+  //   - peer_rx_rkey is typically unknown until the bidirectional rendezvous,
+  //     so it is supplied later via connect(), which validates it is non-zero
+  //     for the Write path.  (The start() convenience path routes through
+  //     connect(), so it is covered too.)
   if (pages == 0 || (pages & (pages - 1)) != 0)
     throw std::invalid_argument(
         "CpuRoceTransceiver: pages must be a non-zero power of two");
+
+  // The TX and forward SGEs transmit cu_frame_size bytes out of a slot whose
+  // stride is cu_page_size, so a frame larger than the slot would read past the
+  // slot -- and, for the last slot, past the registered MR.  Require a non-zero
+  // frame that fits within one slot.
+  if (cu_frame_size == 0 || cu_frame_size > cu_page_size)
+    throw std::invalid_argument("CpuRoceTransceiver: cu_frame_size must be "
+                                "non-zero and <= cu_page_size "
+                                "(the per-slot stride)");
 
   impl_->ibv_name = ibv_name;
   impl_->ibv_port = ibv_port;
@@ -1010,13 +1154,14 @@ CpuRoceTransceiver::~CpuRoceTransceiver() {
   }
 }
 
-bool CpuRoceTransceiver::start() {
-  if (impl_->started)
+bool CpuRoceTransceiver::setup() {
+  if (impl_->setup_done)
     return true;
   // Sequence:  open device -> alloc + register rings -> create QP+CQs ->
-  // INIT -> pre-post recv WQEs -> RTR -> RTS.  On any failure unwind
-  // everything via release_resources so a second start() call won't trip
-  // over half-built state.
+  // INIT -> pre-post recv WQEs.  Stops at INIT; does NOT transition to
+  // RTR/RTS (that needs the peer QP, which connect() supplies).  On any
+  // failure unwind everything via release_resources so a second call won't
+  // trip over half-built state.
   bool ok = impl_->open_ib_device() && impl_->find_roce_v2_gid() &&
             impl_->allocate_rings() && impl_->register_mrs() &&
             impl_->create_qp_and_cqs() && impl_->transition_qp_to_init();
@@ -1031,12 +1176,47 @@ bool CpuRoceTransceiver::start() {
       return false;
     }
   }
+  impl_->setup_done = true;
+  return true;
+}
+
+bool CpuRoceTransceiver::connect(unsigned peer_qp, const char *peer_ip,
+                                 std::uint32_t peer_rx_rkey) {
+  if (!impl_->setup_done) {
+    std::fprintf(stderr,
+                 "CpuRoceTransceiver::connect: setup() must succeed first\n");
+    return false;
+  }
+  if (impl_->started)
+    return true;
+  // Adopt the now-known peer parameters, then transition INIT -> RTR -> RTS.
+  if (impl_->tx_mode == CpuRoceTxMode::kRdmaWriteWithImm && peer_rx_rkey == 0) {
+    std::fprintf(stderr,
+                 "CpuRoceTransceiver::connect: tx_mode=kRdmaWriteWithImm "
+                 "requires a non-zero peer rx_data rkey\n");
+    return false;
+  }
+  impl_->tx_ibv_qp = peer_qp;
+  impl_->peer_ip = peer_ip;
+  if (impl_->tx_mode == CpuRoceTxMode::kRdmaWriteWithImm)
+    impl_->peer_rx_rkey = peer_rx_rkey;
   if (!impl_->transition_qp_to_rtr_rts()) {
     impl_->release_resources();
     return false;
   }
   impl_->started = true;
   return true;
+}
+
+bool CpuRoceTransceiver::start() {
+  // Backward-compatible one-shot: setup() + connect() using the peer info
+  // fixed at construction (Phase 1 bridge↔FPGA path, where the FPGA QP is
+  // already known).
+  if (impl_->started)
+    return true;
+  if (!setup())
+    return false;
+  return connect(impl_->tx_ibv_qp, impl_->peer_ip, impl_->peer_rx_rkey);
 }
 
 void CpuRoceTransceiver::blocking_monitor() {
@@ -1082,6 +1262,12 @@ void CpuRoceTransceiver::set_unified_dispatch(UnifiedDispatchFn fn,
     return;
   impl_->unified_fn = fn;
   impl_->unified_ctx = context;
+}
+
+void CpuRoceTransceiver::set_local_ip(const char *local_ip) {
+  if (!impl_)
+    return;
+  impl_->local_ip = local_ip ? local_ip : "";
 }
 
 void CpuRoceTransceiver::close() {

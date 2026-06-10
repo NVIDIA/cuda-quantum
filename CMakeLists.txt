@@ -860,6 +860,11 @@ endif(CUDAQ_ENABLE_CC)
 # ==============================================================================
 
 add_subdirectory(cmake)
+
+if(CUDAQ_BUILD_TESTS)
+  enable_testing()
+endif()
+
 if("cudaq" IN_LIST CUDAQ_ENABLE_PROJECTS)
   add_subdirectory(cudaq)
 endif()
@@ -868,15 +873,20 @@ if("runtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
 endif()
 add_subdirectory(utils)
 
-if(CUDAQ_BUILD_TESTS)
-  enable_testing()
-endif()
-
 if("python" IN_LIST CUDAQ_ENABLE_PROJECTS)
   find_package(Python 3 COMPONENTS Interpreter Development)
   find_package(Python3 COMPONENTS Interpreter Development)
 
-  add_subdirectory(tpls/nanobind)
+  # Locate nanobind via find_package. Default to the vendored copy under
+  # tpls/nanobind unless the user points nanobind_DIR (or CMAKE_PREFIX_PATH)
+  # at an alternative install (e.g. one from `pip install nanobind`).
+  # No version constraint here: the vendored tree has no
+  # nanobind-config-version.cmake (that file is only emitted by an install),
+  # so requesting a version would always fail against the in-tree copy.
+  if (NOT nanobind_DIR)
+    set(nanobind_DIR "${CMAKE_SOURCE_DIR}/tpls/nanobind/cmake")
+  endif()
+  find_package(nanobind CONFIG REQUIRED)
 
   add_subdirectory(python)
 endif()

@@ -468,6 +468,9 @@ Parameters:
     - `CUDAQ_DISPATCH_DEVICE_CALL`: direct `__device__` handler call (lowest latency)
     - `CUDAQ_DISPATCH_GRAPH_LAUNCH`: CUDA graph launch from device code
     (requires `sm_90+`, Hopper or later GPUs)
+    - `CUDAQ_DISPATCH_HOST_CALL`: plain C++ host callback
+    (`cudaq_host_rpc_fn_t`), invoked synchronously on the host dispatch path
+    (`CUDAQ_DISPATCH_PATH_HOST`); not processed by the device path
 - `out_dispatcher`: receives the created dispatcher handle.
 
 Call this before wiring ring buffers, function tables, or control state.

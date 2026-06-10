@@ -23,7 +23,6 @@
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Optimizer/Transforms/ResourceCount.h"
-#include "cudaq/Target/TargetConfig.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "llvm/ADT/SmallSet.h"
@@ -166,19 +165,33 @@ void cudaq_internal::compiler::Compiler::applyPipeline(
     throw std::runtime_error(
         "Remote rest platform failed to add passes to pipeline (" + errMsg +
         ").");
-  if (disableMLIRthreading || enablePrintMLIREachPass)
-    contextPtr->disableMultithreading();
-  if (enablePrintMLIREachPass)
-    pm.enableIRPrinting();
   if (failed(cudaq_internal::compiler::runPassManager(pm,
                                                       moduleOp.getOperation())))
     throw std::runtime_error("Remote rest platform Quake lowering failed.");
 }
 
-std::pair<mlir::ModuleOp, mlir::func::FuncOp>
+static bool eraseNonCallableArguments(std::span<void *const> &rawArgs,
+                                      std::vector<void *> &closureArgs,
+                                      mlir::func::FuncOp funcOp) {
+  bool isFullySpecialized = true;
+
+  FunctionType fromFuncTy = funcOp.getFunctionType();
+  closureArgs = std::vector(rawArgs.begin(), rawArgs.end());
+  for (auto [i, ty] : llvm::enumerate(fromFuncTy.getInputs())) {
+    if (!isa<cudaq::cc::CallableType>(ty)) {
+      isFullySpecialized = false;
+      closureArgs[i] = nullptr;
+    }
+  }
+  rawArgs = closureArgs;
+  return isFullySpecialized;
+}
+
+std::tuple<mlir::ModuleOp, mlir::func::FuncOp, bool>
 cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
                                                   mlir::ModuleOp m_module,
-                                                  cudaq::KernelArgs args) {
+                                                  cudaq::KernelArgs args,
+                                                  bool isEntryPoint) {
   auto *contextPtr = m_module.getContext();
 
   auto origFn = m_module.template lookupSymbol<mlir::func::FuncOp>(
@@ -190,6 +203,7 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
   auto epFunc =
       moduleOp.template lookupSymbol<mlir::func::FuncOp>(origFn.getName());
   const bool isPython = moduleOp->hasAttr(cudaq::runtime::pythonUniqueAttrName);
+  bool isFullySpecialized = true;
   auto rawArgs = args.getTypeErased();
   auto packed = args.getPacked();
   if (!args.empty()) {
@@ -210,6 +224,16 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
       // `num_qubits` functions and their substitutions created
       // from a kernel and arguments that generated a state argument.
       cudaq_internal::compiler::ArgumentConverter argCon(kernelName, moduleOp);
+      // Must stay in scope as `eraseNonCallableArguments` may populate it
+      std::vector<void *> closureArgs;
+      if (cudaq::opt::factory::isFullySynthesized(epFunc)) {
+        // Already fully specialized, nothing to do.
+        isFullySpecialized = true;
+      } else if (isEntryPoint && !target->fullySpecialize) {
+        // We disable specialization by erasing args that should not be inlined
+        isFullySpecialized =
+            eraseNonCallableArguments(*rawArgs, closureArgs, epFunc);
+      }
       argCon.gen(*rawArgs);
 
       // Store kernel and substitution strings on the stack.
@@ -231,8 +255,8 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
                                                     kernels.end()};
       mlir::SmallVector<mlir::StringRef> substRefs{substs.begin(),
                                                    substs.end()};
-      pm.addPass(
-          cudaq::opt::createArgumentSynthesisPass(kernelRefs, substRefs));
+      pm.addPass(cudaq::opt::createArgumentSynthesisPass(
+          kernelRefs, substRefs, target->argumentSynthChangeSemantics));
       pm.addNestedPass<mlir::func::FuncOp>(mlir::createCanonicalizerPass());
       pm.addPass(
           cudaq::opt::createLambdaLifting({.constantPropagation = true}));
@@ -243,9 +267,27 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
       pm.addPass(
           cudaq::opt::createApplySpecialization({.constantPropagation = true}));
       cudaq::opt::addAggressiveInlining(pm);
-      pm.addNestedPass<mlir::func::FuncOp>(
-          cudaq::opt::createReplaceStateWithKernel());
-      cudaq::opt::addAggressiveInlining(pm);
+
+      // Lower cc.device_calls
+      if (target->supportDeviceCalls) {
+        pm.addPass(cudaq::opt::createDistributedDeviceCall());
+        pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+      }
+
+      if (target->pipelineConfig.replaceStateWithKernel) {
+        pm.addNestedPass<mlir::func::FuncOp>(
+            cudaq::opt::createReplaceStateWithKernel());
+        cudaq::opt::addAggressiveInlining(pm);
+      }
+
+      bool hasResult = !!cudaq::runtime::getReturnType(epFunc);
+      // Run GKE to generate `.thunk` / `.argsCreator` when the kernel has a
+      // result or any unspecialized arguments so they can be properly marshaled
+      if (isEntryPoint && (hasResult || !isFullySpecialized)) {
+        pm.addPass(cudaq::opt::createGenerateKernelExecution(
+            {.positNullary = isFullySpecialized, .ignoreHostFunction = true}));
+        pm.addPass(cudaq::opt::createRunSemanticsHackery());
+      }
       pm.addPass(mlir::createSymbolDCEPass());
     } else if (packed) {
       CUDAQ_INFO("Run Quake Synth.\n");
@@ -253,21 +295,21 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
           cudaq::opt::createQuakeSynthesizer(kernelName, packed->data.data()));
     }
     pm.addPass(mlir::createCanonicalizerPass());
-    if (disableMLIRthreading || enablePrintMLIREachPass)
-      moduleOp.getContext()->disableMultithreading();
-    if (enablePrintMLIREachPass)
-      pm.enableIRPrinting();
     if (failed(cudaq_internal::compiler::runPassManager(
             pm, moduleOp.getOperation())))
-      throw std::runtime_error("Could not successfully apply quake-synth.");
+      throw std::runtime_error(
+          "Could not successfully apply kernel specialization.");
   }
 
-  return {moduleOp, epFunc};
+  return {moduleOp, epFunc, isFullySpecialized};
 }
 
 std::pair<bool, std::string>
 cudaq_internal::compiler::Compiler::executeMainPipeline(
     mlir::ModuleOp moduleOp, const std::string &kernelName) {
+  if (target->pipelineConfig.skipTargetLoweringPipeline) {
+    return {false, ""};
+  }
   auto passPipelineConfig = getPassPipeline(*target);
   auto combineMeasurements =
       passPipelineConfig.find("combine-measurements") != std::string::npos;
@@ -288,25 +330,37 @@ cudaq::CompiledModule
 cudaq_internal::compiler::Compiler::assembleCompiledModule(
     const std::string &kernelName,
     std::vector<std::pair<std::string, mlir::ModuleOp>> &modules, bool needJit,
-    bool runCombineMeasurements, std::optional<cudaq::Resources> resourceCounts,
+    bool isFullySpecialized, bool isEntryPoint, bool runCombineMeasurements,
+    std::optional<cudaq::Resources> resourceCounts,
     cudaq::CompiledModule::CompilationMetadata metadata,
     std::shared_ptr<mlir::MLIRContext> context) {
   std::vector<
       cudaq_internal::compiler::CompiledModuleHelper::NamedCompiledArtifact>
       artifacts;
+  cudaq::ResultInfo resultInfo;
   if (needJit) {
     for (auto &[name, module] : modules) {
       auto clonedModule = module.clone();
+      std::string fullName = cudaq::runtime::cudaqGenPrefixName + kernelName;
+      auto funcOp = module.template lookupSymbol<mlir::func::FuncOp>(fullName);
+      mlir::Type resultTy = cudaq::runtime::getReturnType(funcOp);
+      resultInfo =
+          cudaq_internal::compiler::CompiledModuleHelper::createResultInfo(
+              resultTy, isEntryPoint, module);
       auto jitArtifacts =
           cudaq_internal::compiler::CompiledModuleHelper::createJitArtifacts(
               kernelName,
               cudaq_internal::compiler::createJITEngine(
                   clonedModule, target->pipelineConfig.codegenTranslation),
-              {},
-              /*isFullySpecialized=*/true);
-      assert(jitArtifacts.size() == 1);
+              resultInfo, isFullySpecialized);
+      // The first artifact is the kernel entry point; rename it to the
+      // per-module name (relevant for the multi-module observe path where the
+      // module name is a Pauli term id)
+      assert(!jitArtifacts.empty());
+      assert(jitArtifacts[0].first == kernelName);
       jitArtifacts[0].first = name;
-      artifacts.push_back(std::move(jitArtifacts[0]));
+      for (auto &jitArtifact : jitArtifacts)
+        artifacts.push_back(std::move(jitArtifact));
       if (resourceCounts)
         artifacts.push_back(
             cudaq_internal::compiler::CompiledModuleHelper::
@@ -325,47 +379,47 @@ cudaq_internal::compiler::Compiler::assembleCompiledModule(
   }
 
   return cudaq_internal::compiler::CompiledModuleHelper::createCompiledModule(
-      kernelName, {}, std::move(artifacts), std::move(metadata));
+      kernelName, std::move(resultInfo), std::move(artifacts),
+      std::move(metadata));
+}
+
+static bool hasConditionalsOnMeasureResults(mlir::ModuleOp moduleOp) {
+  return std::any_of(moduleOp.begin(), moduleOp.end(), [](auto &innerOp) {
+    cudaq::quake::detail::QuakeFunctionAnalysis analysis{&innerOp};
+    auto info = analysis.getAnalysisInfo();
+    if (info.empty())
+      return false;
+    auto result = info[&innerOp];
+    return result.hasConditionalsOnMeasure;
+  });
 }
 
 cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
     const std::string &kernelName, const void *modulePtr,
-    cudaq::KernelArgs args, std::shared_ptr<mlir::MLIRContext> context) {
+    cudaq::KernelArgs args, bool isEntryPoint,
+    std::shared_ptr<mlir::MLIRContext> context) {
   mlir::ModuleOp m_module = mlir::ModuleOp::getFromOpaquePointer(modulePtr);
   assert(!context || context.get() == m_module.getContext());
-  auto [moduleOp, epFunc] = prepareModule(kernelName, m_module, args);
+  auto [moduleOp, epFunc, isFullySpecialized] =
+      prepareModule(kernelName, m_module, args, isEntryPoint);
+
+  bool hasConditionalsOnMeasRes = hasConditionalsOnMeasureResults(moduleOp);
 
   // Populate conditional measurement flag in the context.
-  if (!target->supportConditionalsOnMeasureResults) {
-    for (auto &artifact : moduleOp) {
-      cudaq::quake::detail::QuakeFunctionAnalysis analysis{&artifact};
-      auto info = analysis.getAnalysisInfo();
-      if (info.empty())
-        continue;
-      auto result = info[&artifact];
-      if (result.hasConditionalsOnMeasure) {
-        throw std::runtime_error(
-            "`cudaq::sample` and `cudaq::sample_async` no longer support "
-            "kernels "
-            "that branch on measurement results. Kernel '" +
-            kernelName +
-            "' uses conditional feedback. Use `cudaq::run` or "
-            "`cudaq::run_async` "
-            "instead. See CUDA-Q documentation for migration guide.");
-      }
-    }
+  if (hasConditionalsOnMeasRes &&
+      !target->supportConditionalsOnMeasureResults) {
+    throw std::runtime_error(
+        "`cudaq::sample` and `cudaq::sample_async` no longer support "
+        "kernels "
+        "that branch on measurement results. Kernel '" +
+        kernelName +
+        "' uses conditional feedback. Use `cudaq::run` or "
+        "`cudaq::run_async` "
+        "instead. See CUDA-Q documentation for migration guide.");
   }
 
-  // DEM and other local-analysis contexts JIT the kernel directly for an
-  // analysis simulator and must skip the target lowering pipeline, which would
-  // erase or fail to legalize the QEC/noise ops the analysis depends on.
-  bool combineMeasurements = false;
-  std::string passPipeline;
-  if (target->runTargetLoweringPipeline) {
-    auto pipelineResult = executeMainPipeline(moduleOp, kernelName);
-    combineMeasurements = pipelineResult.first;
-    passPipeline = std::move(pipelineResult.second);
-  }
+  auto [combineMeasurements, passPipeline] =
+      executeMainPipeline(moduleOp, kernelName);
 
   // We need to run resource counting preprocessing after the pass pipeline as
   // the pre-processing might change the IR structure (may interfere with
@@ -373,10 +427,8 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
   std::optional<cudaq::Resources> resourceCounts;
   if (target->emitResourceCounts) {
     auto result = cudaq::opt::countResourcesFromIR(moduleOp);
-    if (failed(result))
-      throw std::runtime_error(
-          "Could not successfully apply resource count preprocess.");
-    resourceCounts = std::move(*result);
+    if (succeeded(result))
+      resourceCounts = std::move(*result);
   }
 
   std::vector<std::size_t> mapping_reorder_idx;
@@ -438,10 +490,6 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
       mlir::PassManager pm(contextPtr);
       pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createObserveAnsatzPass(
           term.get_binary_symplectic_form()));
-      if (disableMLIRthreading || enablePrintMLIREachPass)
-        tmpModuleOp.getContext()->disableMultithreading();
-      if (enablePrintMLIREachPass)
-        pm.enableIRPrinting();
       if (failed(cudaq_internal::compiler::runPassManager(
               pm, tmpModuleOp.getOperation())))
         throw std::runtime_error("Could not apply measurements to ansatz.");
@@ -464,8 +512,11 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
 
   bool needJit = emulate || target->emitResourceCounts || target->emitJit;
   return assembleCompiledModule(
-      kernelName, modules, needJit, emulate && combineMeasurements,
-      std::move(resourceCounts), {.reorderIdx = mapping_reorder_idx}, context);
+      kernelName, modules, needJit, isFullySpecialized, isEntryPoint,
+      emulate && combineMeasurements, std::move(resourceCounts),
+      {.reorderIdx = mapping_reorder_idx,
+       .hasConditionalsOnMeasureResults = hasConditionalsOnMeasRes},
+      context);
 }
 
 std::vector<cudaq::KernelExecution>
@@ -525,18 +576,6 @@ cudaq_internal::compiler::Compiler::emitKernelExecutions(
   }
 
   return codes;
-}
-
-/// @brief Extract the Quake representation for the given kernel name and
-/// lower it to the code format required for the specific backend. The
-/// lowering process is controllable via the configuration file in the
-/// platform directory for the targeted backend.
-std::vector<cudaq::KernelExecution>
-cudaq_internal::compiler::Compiler::lowerQuakeCode(
-    const std::string &kernelName, const void *modulePtr,
-    cudaq::KernelArgs args) {
-  auto compiled = runPassPipeline(kernelName, modulePtr, args);
-  return emitKernelExecutions(compiled);
 }
 
 mlir::ModuleOp cudaq_internal::compiler::Compiler::lowerQuakeCodeBuildModule(
@@ -641,7 +680,8 @@ mlir::ModuleOp cudaq_internal::compiler::Compiler::lowerQuakeCodeBuildModule(
     // `get-concrete-matrix` passes.
     if (auto lfunc = dyn_cast<mlir::func::FuncOp>(op)) {
       bool skip = lfunc.getName().ends_with(".thunk");
-      if (!skip && !deviceCallCallees.contains(lfunc.getName().str()))
+      if (!skip && mangledNameMap &&
+          !deviceCallCallees.contains(lfunc.getName().str()))
         for (auto &entry : mangledNameMap)
           if (lfunc.getName() ==
               cast<mlir::StringAttr>(entry.getValue()).getValue()) {
