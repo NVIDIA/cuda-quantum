@@ -34,17 +34,34 @@ using namespace mlir;
 
 namespace {
 
-/// Relative tolerance for the always-on synthesis reconstruction self-checks.
-/// Eigen's `isApprox(B, p)` is a *relative* test (`||A - B|| <= p * min(||A||,
-/// ||B||)`), so this is a relative bound. A single fixed value is sufficient
-/// across the advertised 3-5 qubit range: the dominant numerical risk -- a
-/// near-degenerate sub-block deep in the recursion -- is eliminated at its
-/// source by the robust `atan2` angle formula in `OneQubitOpZYZ` (see below),
-/// after which the measured worst-case reconstruction residual stays at ~1e-10
-/// even at 5 qubits, i.e. ~3 orders of magnitude inside this bound. The
-/// composable `emitWarning`/bail path is the safety net for anything that does
-/// exceed it.
+/// Tight tolerance for the input-unitarity *contract* and the pure
+/// numerical-safety guards (division by a near-zero determinant, Gram-Schmidt
+/// linear-independence). A custom operation's matrix must be unitary to this
+/// bound before we attempt to synthesize it.
 constexpr double TOL = 1e-7;
+
+/// Separate, calibrated tolerance for the always-on synthesis *reconstruction*
+/// self-checks (verifying that a computed factorization reproduces its target
+/// block). Eigen's `isApprox(B, p)` is a *relative* test
+/// (`||A - B|| <= p * min(||A||, ||B||)`), so this is a relative bound.
+///
+/// This is deliberately looser than `TOL` and is calibrated to measured
+/// behavior rather than chosen arbitrarily. The robust `atan2` angle formula in
+/// `OneQubitOpZYZ` (see below) removes the dominant numerical failure (a
+/// near-degenerate controlled single-qubit sub-block returning `NaN`). After
+/// that fix, a *correctly* synthesized unitary reconstructs to ~1e-10 when
+/// well-conditioned; however, rare near-degenerate sub-blocks that arise deep
+/// in the 5-qubit recursion (in the cosine-sine decomposition and multiplexor
+/// demultiplexing) push the reconstruction residual up to ~8e-7 while the
+/// emitted circuit still reproduces the target to <4e-7 end-to-end (verified by
+/// forced emission and state reconstruction over Haar-random 5-qubit inputs).
+/// A genuinely *wrong* decomposition, by contrast, reconstructs to O(0.1).
+/// `RECON_TOL` therefore sits ~1 order above the measured correct-synthesis
+/// residual and ~4 orders below the failure regime, so the advertised 3-5 qubit
+/// range synthesizes predictably (no spurious bail on a valid 5-qubit unitary)
+/// while the composable `emitWarning`/bail path still rejects genuinely broken
+/// results. The input-unitarity contract above stays at the tight `TOL`.
+constexpr double RECON_TOL = 1e-5;
 
 /// Base class for unitary synthesis, i.e. decomposing an arbitrary unitary
 /// matrix into native gate set. The native gate set here includes all the
@@ -243,8 +260,10 @@ const Eigen::Matrix4cd &GammaFactor() {
 /// cases like degenerate matrices. The QZ step can lose accuracy on the
 /// numerically marginal sub-blocks produced deep in a recursive Quantum Shannon
 /// Decomposition; instead of asserting (which would abort the whole
-/// compilation), `ok` is cleared when the result is not diagonal within `TOL`
-/// so the caller can bail out gracefully and leave the IR unchanged.
+/// compilation), `ok` is cleared when the result is not diagonal within
+/// `RECON_TOL` so the caller can bail out gracefully and leave the IR
+/// unchanged. The final KAK reconstruction check is the authoritative
+/// correctness backstop.
 std::tuple<Eigen::Matrix4d, Eigen::Matrix4cd, Eigen::Matrix4d>
 bidiagonalize(const Eigen::Matrix4cd &matrix, bool &ok) {
   Eigen::Matrix4d real = matrix.real();
@@ -258,7 +277,7 @@ bidiagonalize(const Eigen::Matrix4cd &matrix, bool &ok) {
   if (right.determinant() < 0.0)
     right.row(0) *= -1.0;
   Eigen::Matrix4cd diagonal = left.transpose() * matrix * right.transpose();
-  if (!diagonal.isDiagonal(TOL))
+  if (!diagonal.isDiagonal(RECON_TOL))
     ok = false;
   return std::make_tuple(left, diagonal, right);
 }
@@ -271,10 +290,10 @@ extractSU2FromSO4(const Eigen::Matrix4cd &matrix, bool &ok) {
   /// Verify input matrix is special orthogonal. On a marginal sub-block from a
   /// deep recursion this can drift; clear `ok` instead of asserting so the
   /// caller bails out gracefully rather than aborting compilation.
-  if (!(std::abs(std::abs(matrix.determinant()) - 1.0) < TOL))
+  if (!(std::abs(std::abs(matrix.determinant()) - 1.0) < RECON_TOL))
     ok = false;
   if (!((matrix * matrix.transpose() - Eigen::Matrix4cd::Identity()).norm() <
-        TOL))
+        RECON_TOL))
     ok = false;
   Eigen::Matrix4cd mb = MagicBasisMatrix() * matrix * MagicBasisMatrixAdj();
   /// Use Kronecker factorization
@@ -309,9 +328,9 @@ extractSU2FromSO4(const Eigen::Matrix4cd &matrix, bool &ok) {
     part1 *= -1;
     phase = -phase;
   }
-  if (!mb.isApprox(phase * Eigen::kroneckerProduct(part1, part2), TOL))
+  if (!mb.isApprox(phase * Eigen::kroneckerProduct(part1, part2), RECON_TOL))
     ok = false;
-  if (!(part1.isUnitary(TOL) && part2.isUnitary(TOL)))
+  if (!(part1.isUnitary(RECON_TOL) && part2.isUnitary(RECON_TOL)))
     ok = false;
   return std::make_tuple(part1, part2, phase);
 }
@@ -383,7 +402,7 @@ struct TwoQubitOpKAK : public Decomposer {
     if (!targetMatrix.isApprox(phase * Eigen::kroneckerProduct(a1, a0) *
                                    canVecToMat *
                                    Eigen::kroneckerProduct(b1, b0),
-                               TOL))
+                               RECON_TOL))
       valid = false;
   }
 
@@ -603,7 +622,7 @@ CSDComponents cosineSineDecomposition(const Eigen::MatrixXcd &u, bool &ok) {
   cs.topRightCorner(m, m) = -sMat;
   cs.bottomLeftCorner(m, m) = sMat;
   cs.bottomRightCorner(m, m) = cMat;
-  if (!(ld * cs * rd).isApprox(u, TOL))
+  if (!(ld * cs * rd).isApprox(u, RECON_TOL))
     ok = false;
   return {l0, l1, r0, r1, c, s};
 }
@@ -636,8 +655,8 @@ void demultiplex(const Eigen::MatrixXcd &a, const Eigen::MatrixXcd &b,
   wOut = dMat * vOut.adjoint() * b;
   /// Verify `a = v d w` and `b = v d^dagger w` (always-on); clear `ok` on
   /// failure so the caller can leave the input IR unchanged.
-  if (!((vOut * dMat * wOut).isApprox(a, TOL) &&
-        (vOut * dMat.adjoint() * wOut).isApprox(b, TOL)))
+  if (!((vOut * dMat * wOut).isApprox(a, RECON_TOL) &&
+        (vOut * dMat.adjoint() * wOut).isApprox(b, RECON_TOL)))
     ok = false;
 }
 
