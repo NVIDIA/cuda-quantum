@@ -79,9 +79,10 @@ def _extract_batched_basis_propagator(results,
             for single_result in results
         ]
         return [
-            np.column_stack(
+            np.column_stack([
                 np.array(states[time_index]).reshape(-1)
-                for states in intermediate_states)
+                for states in intermediate_states
+            ])
             for time_index in range(len(intermediate_states[0]))
         ]
 
