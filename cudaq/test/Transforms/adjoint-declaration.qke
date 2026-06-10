@@ -1,0 +1,25 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt %s --apply-op-specialization | FileCheck %s
+
+module {
+  func.func @prep(%arg0: !quake.ref) attributes {"cudaq-kernel"}
+
+  func.func @kernel() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    %0 = quake.alloca !quake.ref
+    quake.apply<adj> @prep %0 : (!quake.ref) -> ()
+    return
+  }
+}
+
+// CHECK-NOT: @prep.adj
+// CHECK: func.func @prep(
+// CHECK-NOT: @prep.adj
+// CHECK: quake.apply<adj> @prep
+// CHECK-NOT: @prep.adj

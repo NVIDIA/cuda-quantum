@@ -542,9 +542,16 @@ public:
                                                      std::string &&funcName) {
     ModuleOp module = getOperation();
     auto loc = func.getLoc();
-    auto &funcBody = func.getBody();
 
     // Check our restrictions.
+    if (func.isDeclaration()) {
+      LLVM_DEBUG(llvm::dbgs()
+                 << "cannot make adjoint of declaration-only kernel: "
+                 << func.getName() << "\n");
+      return failure();
+    }
+
+    auto &funcBody = func.getBody();
     if (regionHasUnstructuredControlFlow(funcBody)) {
       LLVM_DEBUG(
           llvm::dbgs()
