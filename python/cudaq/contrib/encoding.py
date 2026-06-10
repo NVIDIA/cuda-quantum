@@ -86,8 +86,8 @@ def amplitude_encode(
        Coefficients are :math:`α_i = x'_i / \|\mathbf{x}'\|_2`.
 
     3. **Form the state** in the :math:`n`-qubit computational basis:
-       :math:`|\psi\rangle = \sum_{i=0}^{N-1} α_i |i\rangle`, where
-       :math:`|i\rangle` is the basis ``ket`` with index :math:`i` in binary.
+       :math:`|\psi⟩ = \sum_{i=0}^{N-1} α_i |i⟩`, where
+       :math:`|i⟩` is the basis ``ket`` with index :math:`i` in binary.
 
     The returned :class:`State` stores :math:`α_i` in little-endian index
     order (consistent with ``cudaq.State`` / ``qvector(state)``). Real inputs are
@@ -108,12 +108,7 @@ def amplitude_encode(
           a 1D vector.
       TypeError: If ``data`` has an unsupported type.
 
-    # Example:
-    For ``data = [0.5, 0.5, 0.5]`` and ``pad = 0``, padding gives
-    :math:`\mathbf{x}' = (0.5, 0.5, 0.5, 0)` and
-    :math:`|\psi\rangle = (|0\rangle + |1\rangle + |2\rangle) / √3`.
-
-    ``state = cudaq.contrib.amplitude_encode([0.5, 0.5, 0.5], pad=0)``
+    See ``cudaq.contrib.examples`` for runnable examples.
     """
     dtype = _simulation_complex_dtype()
     xp, vec = _as_amplitude_vector(data, dtype)
@@ -201,13 +196,13 @@ def angular_encode(kernel_or_q, q_or_angles, angles=None, *, rotation='Y'):
     Angular (rotation) encoding maps a classical angle vector
     (:math:`θ_0`, :math:`\ldots`, :math:`θ_{n-1}`) to an
     :math:`n`-qubit product state by applying one parameterized rotation per
-    qubit. Starting from the :math:`n`-fold product of :math:`|0\rangle`, the
+    qubit. Starting from the :math:`n`-fold product of :math:`|0⟩`, the
     encoded state is
 
     .. math::
 
-       |\psi\rangle
-       = \prod_{i=0}^{n-1} R_{\mathrm{axis}}(θ_i)\,|0\rangle_i,
+       |ψ⟩
+       = \prod_{i=0}^{n-1} R_{\mathrm{axis}}(θ_i)\,|0⟩_i,
 
     where the product applies :math:`R_{\mathrm{axis}}(θ_i)` on qubit
     :math:`i` and leaves other qubits unchanged. CUDA-Q uses the standard Pauli
@@ -221,8 +216,8 @@ def angular_encode(kernel_or_q, q_or_angles, angles=None, *, rotation='Y'):
     ``rotation`` is ``'X'``, ``'Y'``, or ``'Z'`` respectively (default ``'Y'``).
 
     For example, ``rotation='Y'`` on qubit :math:`i` gives
-    :math:`R_Y(θ_i)|0\rangle = \cos(θ_i/2)|0\rangle +
-    \sin(θ_i/2)|1\rangle`.
+    :math:`R_Y(θ_i)|0⟩ = \cos(θ_i/2)|0⟩ +
+    \sin(θ_i/2)|1⟩`.
 
     The number of angles must match the number of qubits in ``q`` when the
     register size is known at compile time.
@@ -251,16 +246,7 @@ def angular_encode(kernel_or_q, q_or_angles, angles=None, *, rotation='Y'):
       ValueError: Invalid ``rotation`` or angle/qubit count mismatch (builder).
       TypeError: Invalid builder arguments.
 
-    # Example (kernel language):
-    ``@cudaq.kernel``
-    ``def kernel(angles: list[float]):``
-    ``    q = cudaq.qvector(3)``
-    ``    cudaq.contrib.angular_encode(q, angles, rotation='Y')``
-
-    # Example (builder):
-    ``kernel = cudaq.make_kernel()``
-    ``q = kernel.qalloc(3)``
-    ``cudaq.contrib.angular_encode(kernel, q, [0.1, 0.2, 0.3], rotation='Y')``
+    See ``cudaq.contrib.examples`` for runnable examples.
     """
     from cudaq.kernel.kernel_builder import PyKernel
 
