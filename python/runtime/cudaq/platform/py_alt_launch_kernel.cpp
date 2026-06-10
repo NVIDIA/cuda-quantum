@@ -714,8 +714,9 @@ compileModuleImpl(const std::string &name, ModuleOp mod,
     auto *ctx = cudaq::getExecutionContext();
     if (!ctx) {
       auto target = cudaq::get_compile_target(cudaq::other_policies{});
-      return cudaq_internal::compiler::compileModule<void>(
-          nullptr, std::move(target), src, {rawArgs}, isEntryPoint);
+      return cudaq_internal::compiler::compileModule(cudaq::other_policies{},
+                                                     std::move(target), src,
+                                                     {rawArgs}, isEntryPoint);
     }
 
     return cudaq::policies::withPolicy(ctx->name, [&](auto policy) {

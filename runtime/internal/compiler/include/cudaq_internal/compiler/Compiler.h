@@ -139,7 +139,8 @@ std::string getPassPipeline(const cudaq::CompileTarget &target);
 /// arguments.
 template <typename Policy>
 cudaq::CompiledModule
-compileModule(Policy *policy, std::unique_ptr<cudaq::CompileTarget> target,
+compileModule(const Policy &policy,
+              std::unique_ptr<cudaq::CompileTarget> target,
               const cudaq::SourceModule &src, cudaq::KernelArgs args,
               bool isEntryPoint = true) {
   const auto &kernelName = src.getName();
@@ -152,7 +153,7 @@ compileModule(Policy *policy, std::unique_ptr<cudaq::CompileTarget> target,
 
   if constexpr (std::is_same_v<Policy, cudaq::sample_policy>) {
     if (compiler.hasWarnedNamedMeasurements())
-      policy->warnedNamedMeasurements = true;
+      policy.warnedNamedMeasurements = true;
   }
   return compiled;
 }
