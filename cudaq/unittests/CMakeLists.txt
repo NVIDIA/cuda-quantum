@@ -41,6 +41,7 @@ function(add_cudaq_unittest test_name test_label)
     set(multiValueArgs
         SOURCES
         INCLUDES
+        LINK_OPTS
         LINKED_LIBS
         COMPILE_OPTS
         COMPILE_DEFS
@@ -67,6 +68,14 @@ function(add_cudaq_unittest test_name test_label)
                 gtest_main
         )
     endif()
+
+    if (USER_ARG_LINK_OPTS)
+        target_link_options(${test_name}
+            PRIVATE
+                ${USER_ARG_LINK_OPTS}
+        )
+    endif()
+
 
     if (USER_ARG_COMPILE_DEFS)
         target_compile_definitions(${test_name}
