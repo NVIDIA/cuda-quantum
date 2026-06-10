@@ -161,10 +161,16 @@ typedef struct {
   uint8_t *tx_data_host;
 } cudaq_ringbuffer_t;
 
-// Host RPC callback: reads RPCHeader + args from slot, writes RPCResponse +
-// result. slot_host is the host pointer to the slot (same layout as device
-// slot).
-typedef void (*cudaq_host_rpc_fn_t)(void *slot_host, size_t slot_size);
+// Host RPC callback for CUDAQ_DISPATCH_HOST_CALL.  The handler reads the
+// RPCHeader + args from `rx_slot` (the inbound request, read-only) and writes
+// the RPCResponse + result into `tx_slot` (the outbound slot the transport will
+// send).  The two slots are distinct host buffers (separate RX/TX rings), so
+// the handler must echo any preserved header fields (e.g. request_id,
+// ptp_timestamp) from rx_slot into tx_slot explicitly.  `slot_size` is the
+// usable byte size of each slot (RX and TX strides are equal by configuration;
+// the smaller of the two is passed defensively).
+typedef void (*cudaq_host_rpc_fn_t)(const void *rx_slot, void *tx_slot,
+                                    size_t slot_size);
 
 // Unified function table entry with schema
 typedef struct {

@@ -317,6 +317,18 @@ getOrAddFunc(mlir::Location loc, mlir::StringRef funcName,
              mlir::FunctionType funcTy, mlir::ModuleOp module);
 
 void mergeModules(mlir::ModuleOp into, mlir::ModuleOp from);
+
+/// A kernel is fully synthesized when it has at least one formal argument
+/// and every formal argument has been folded into the body (no uses remain).
+inline bool isFullySynthesized(mlir::func::FuncOp funcOp) {
+  auto args = funcOp.getArguments();
+  if (args.empty())
+    return false;
+  for (mlir::Value arg : args)
+    if (!arg.use_empty())
+      return false;
+  return true;
+}
 } // namespace factory
 
 std::size_t getDataSize(llvm::DataLayout &dataLayout, mlir::Type ty);

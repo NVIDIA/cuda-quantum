@@ -119,9 +119,32 @@ if (OPENSSL_FOUND AND CUDAQ_ENABLE_PYTHON AND CUDAQ_TEST_MOCK_SERVERS)
   add_subdirectory(extra_payload_provider)
   add_subdirectory(quake_backend)
 endif()
-add_subdirectory(pasqal)
+if (CUDAQ_ENABLE_PASQAL_BACKEND)
+  add_subdirectory(pasqal)
+endif()
 add_subdirectory(qpp_observe)
-add_subdirectory(quera)
+if (AWSSDK_ROOT AND CUDAQ_ENABLE_BRAKET_BACKEND)
+  add_subdirectory(quera)
+endif()
+
+if (CUDAQ_ENABLE_PASQAL_BACKEND)
+  set(CUDAQ_ENABLE_PASQAL_BACKEND_BOOL "true")
+else()
+  set(CUDAQ_ENABLE_PASQAL_BACKEND_BOOL "false")
+endif()
+if (AWSSDK_ROOT AND CUDAQ_ENABLE_BRAKET_BACKEND)
+  set(CUDAQ_ENABLE_BRAKET_BACKEND_BOOL "true")
+else()
+  set(CUDAQ_ENABLE_BRAKET_BACKEND_BOOL "false")
+endif()
+
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/check_target_setter.sh.in"
+               "${CMAKE_CURRENT_BINARY_DIR}/check_target_setter.sh"
+               FILE_PERMISSIONS
+	              OWNER_READ OWNER_WRITE OWNER_EXECUTE
+	              GROUP_READ GROUP_EXECUTE
+	              WORLD_READ WORLD_EXECUTE
+	       @ONLY)
 
 # Verify nvq++ emits the static `TargetSetter` initializer for every
 # `gen-target-backend: true` example. Without it, analog target binaries
@@ -129,7 +152,7 @@ add_subdirectory(quera)
 add_test(
   NAME backend_target_setter_check
   COMMAND
-    ${CMAKE_CURRENT_SOURCE_DIR}/check_target_setter.sh
+    ${CMAKE_CURRENT_BINARY_DIR}/check_target_setter.sh
     ${CMAKE_BINARY_DIR}/bin/nvq++
     ${CMAKE_SOURCE_DIR}/docs/sphinx/targets/cpp
 )

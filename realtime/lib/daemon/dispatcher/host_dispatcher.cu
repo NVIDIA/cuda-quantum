@@ -116,13 +116,12 @@ static void finish_slot_and_advance(const cudaq_host_dispatch_loop_ctx_t *ctx,
 
 // CUDAQ_DISPATCH_HOST_CALL handler: synchronous pure-C++ dispatch.  No GPU
 // graph worker is acquired (HOST_CALL bypasses the worker pool entirely).
-// Semantics match the user-facing `cudaq_host_rpc_fn_t(void *slot, size_t)`
-// ABI: the host_fn reads RPCHeader+args from `slot`, writes RPCResponse+
-// result back into the same slot.  Since our dispatcher uses separate
-// RX/TX rings (host-loop bridge requirement), we first memcpy the RX slot
-// into the TX slot so the in-place rewrite produces the response in the
-// TX ring where the consumer (e.g. CpuRoceTransceiver TX thread or
-// Hololink TX kernel) expects it.
+// Two-pointer ABI (`cudaq_host_rpc_fn_t(const void *rx, void *tx, size_t)`):
+// the dispatcher hands the handler the RX slot (inbound request) and the TX
+// slot (outbound response) directly, so the handler reads the request from RX
+// and writes its response straight into the TX ring where the consumer (e.g.
+// CpuRoceTransceiver TX thread or Hololink TX kernel) expects it -- no
+// intermediate RX->TX copy.
 static void handle_host_call(const cudaq_host_dispatch_loop_ctx_t *ctx,
                              const cudaq_function_entry_t *entry,
                              void *slot_host, size_t current_slot) {
@@ -130,14 +129,12 @@ static void handle_host_call(const cudaq_host_dispatch_loop_ctx_t *ctx,
     return;
   const size_t rx_stride = ctx->ringbuffer.rx_stride_sz;
   const size_t tx_stride = ctx->ringbuffer.tx_stride_sz;
-  // Use the smaller of the two strides as the safe copy size; in practice
-  // RX and TX strides are equal (the bridge configures both from the same
-  // slot_size), so this is just defensive against a future asymmetric
-  // configuration.
-  const size_t copy_bytes = rx_stride < tx_stride ? rx_stride : tx_stride;
+  // Usable slot size handed to the handler.  RX and TX strides are equal (the
+  // bridge configures both from the same slot_size); the smaller is passed
+  // defensively against a future asymmetric configuration.
+  const size_t slot_size = rx_stride < tx_stride ? rx_stride : tx_stride;
   uint8_t *tx_slot = ctx->ringbuffer.tx_data_host + current_slot * tx_stride;
-  std::memcpy(tx_slot, slot_host, copy_bytes);
-  entry->handler.host_fn(tx_slot, tx_stride);
+  entry->handler.host_fn(slot_host, tx_slot, slot_size);
   // Publish: writing the slot's address to tx_flag signals "fresh data" to
   // the consumer.  No in-flight sentinel needed because this entire path
   // is synchronous from the consumer's POV (the store happens after the
@@ -164,6 +161,12 @@ static int acquire_graph_worker(const cudaq_host_dispatch_loop_ctx_t *ctx,
 
 static void
 sweep_completed_workers(const cudaq_host_dispatch_loop_ctx_t *ctx) {
+  // HOST_CALL dispatch uses no graph worker pool, so idle_mask/workers are
+  // null and num_workers is 0.  Guard against that here (not just via the
+  // caller's skip_stream_sweep flag) so a future caller can't crash on a null
+  // idle_mask if they forget to set it.
+  if (!ctx->idle_mask || !ctx->workers || ctx->num_workers == 0)
+    return;
   uint64_t busy =
       ~as_atomic_u64(ctx->idle_mask)->load(cuda::std::memory_order_acquire);
   busy &= (1ULL << ctx->num_workers) - 1;
