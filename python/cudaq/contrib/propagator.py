@@ -30,7 +30,7 @@ def _identity_state(dimension: int):
 
 
 def _basis_states(dimension: int):
-    """Return Liouville basis states used to reconstruct Lindblad maps."""
+    """Return `Liouville` basis states used to reconstruct Lindblad maps."""
     states = []
     for index in range(dimension):
         data = np.zeros(dimension, dtype=np.complex128)
@@ -40,7 +40,7 @@ def _basis_states(dimension: int):
 
 
 def _state_to_matrix(state, dimension: int) -> np.ndarray:
-    """Convert a vectorized propagated identity state back to a matrix."""
+    """Convert a `vectorized` propagated identity state back to a matrix."""
     data = np.array(state).reshape(-1)
     expected_size = dimension * dimension
 
@@ -52,7 +52,7 @@ def _state_to_matrix(state, dimension: int) -> np.ndarray:
 
 
 def _closed_system_generator(hamiltonian):
-    """Represent dU/dt = -i H U as left multiplication by -i H."""
+    """Represent `dU/dt = -i H U` as left multiplication by `-i H`."""
     generator = cudaq.SuperOperator()
     generator += cudaq.SuperOperator.left_multiply(-1j * hamiltonian)
     return generator
