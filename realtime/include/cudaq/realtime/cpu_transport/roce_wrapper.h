@@ -31,16 +31,19 @@ extern "C" {
 /// Opaque handle to CpuRoceTransceiver.
 typedef void *cpu_roce_transceiver_t;
 
-/// Which RDMA wire verb the TX path uses.  Mirrors CpuRoceTxMode in
-/// roce_transceiver.hpp.
+/// Which RDMA wire verb this transceiver's TX path uses.  Names the verb the
+/// transmitter issues, not a peer role; whoever sets the mode is the source.
+/// Mirrors CpuRoceTxMode in roce_transceiver.hpp.
 typedef enum {
-  /// Phase 1: bridge-to-FPGA.  TX issues IBV_WR_SEND because the FPGA's
-  /// HSB IP can only receive Sends.
-  CPU_ROCE_TX_MODE_SEND_FOR_FPGA = 0,
-  /// Phase 2: cpu_roce caller ↔ daemon.  TX issues
-  /// IBV_WR_RDMA_WRITE_WITH_IMM targeting the peer's rx_data using the
-  /// peer's `rkey`; slot index carried in the IMM.
-  CPU_ROCE_TX_MODE_WRITE_WITH_IMM_FOR_PEER = 1,
+  /// TX issues IBV_WR_SEND.  Use when the peer consumes Sends via pre-posted
+  /// recv WQEs (e.g. an FPGA's HSB IP, which can only receive Sends; or a
+  /// CpuRoceTransceiver acting as the responder).
+  CPU_ROCE_TX_MODE_RDMA_SEND = 0,
+  /// TX issues IBV_WR_RDMA_WRITE_WITH_IMM, targeting the peer's rx_data ring
+  /// using the peer's `rkey` (supplied at connect); slot index carried in the
+  /// IMM.  Use when the peer's memory is the write target (e.g. an FPGA
+  /// pushing syndromes, or a CpuRoceTransceiver acting as the requester).
+  CPU_ROCE_TX_MODE_RDMA_WRITE_WITH_IMM = 1,
 } cpu_roce_tx_mode_t;
 
 //==============================================================================
@@ -48,17 +51,18 @@ typedef enum {
 //==============================================================================
 
 /// Construct a new transceiver.  Returns NULL on invalid arguments
-/// (mutually-exclusive forward/rx_only/tx_only/unified, missing peer_rx_*
-/// for kWriteWithImmForPeer, non-power-of-two num_pages).  Does not start
-/// the transport; call cpu_roce_start() next.
+/// (mutually-exclusive forward/rx_only/tx_only/unified, non-power-of-two
+/// num_pages, frame larger than a slot).  Does not start the transport; call
+/// cpu_roce_start() next.
 ///
 /// `forward`, `rx_only`, `tx_only`, `unified` are bool-as-int (0 = false,
 /// non-zero = true).  At most one may be true.
 ///
 /// `peer_rx_base_addr` and `peer_rx_rkey` are ignored unless `tx_mode` is
-/// CPU_ROCE_TX_MODE_WRITE_WITH_IMM_FOR_PEER, in which case they must be
-/// non-zero (the addresses the peer's `cpu_roce_get_rx_ring_data_addr`
-/// returned + `cpu_roce_get_rkey` returned, exchanged out-of-band).
+/// CPU_ROCE_TX_MODE_RDMA_WRITE_WITH_IMM.  `peer_rx_base_addr` may be 0 (the
+/// peer's rx_data MR is registered with `iova=0`, so slots are addressed by
+/// offset alone); `peer_rx_rkey` is typically supplied later via
+/// cpu_roce_connect() once learned from the out-of-band rendezvous.
 cpu_roce_transceiver_t cpu_roce_create_transceiver(
     const char *device_name, int ib_port, unsigned tx_ibv_qp, size_t frame_size,
     size_t page_size, unsigned num_pages, const char *peer_ip, int forward,
@@ -70,8 +74,22 @@ cpu_roce_transceiver_t cpu_roce_create_transceiver(
 void cpu_roce_destroy_transceiver(cpu_roce_transceiver_t handle);
 
 /// Open the `ibv` device, build PD/CQs/QP/MRs, allocate rings, pre-post `recv`
-/// WQEs, transition to RTS.  Returns 1 on success, 0 on failure.
+/// WQEs, transition to RTS.  Returns 1 on success, 0 on failure.  Uses the
+/// peer QP/ip/rkey fixed at construction (Phase 1 path).
 int cpu_roce_start(cpu_roce_transceiver_t handle);
+
+/// Phase 2 split bring-up for the bidirectional RDMA handshake.
+/// cpu_roce_setup(): build everything up to QP INIT (peer not needed yet);
+/// after success, cpu_roce_get_qp_number()/cpu_roce_get_rkey() are valid to
+/// exchange with the peer.  Returns 1 on success, 0 on failure.
+int cpu_roce_setup(cpu_roce_transceiver_t handle);
+
+/// cpu_roce_connect(): transition the setup() QP to RTR/RTS using the now-
+/// known peer QP number, peer IPv4 (RoCEv2 GID derived from it), and (for
+/// tx_mode=CPU_ROCE_TX_MODE_RDMA_WRITE_WITH_IMM) the peer's rx_data rkey.
+/// Returns 1 on success, 0 on failure.
+int cpu_roce_connect(cpu_roce_transceiver_t handle, unsigned peer_qp,
+                     const char *peer_ip, uint32_t peer_rx_rkey);
 
 /// Signal exit, join I/O threads, release `ibv`/memory resources.
 /// Idempotent.  Safe to call from any thread.
@@ -97,6 +115,12 @@ typedef size_t (*cpu_roce_unified_dispatch_fn_t)(void *context,
 void cpu_roce_set_unified_dispatch(cpu_roce_transceiver_t handle,
                                    cpu_roce_unified_dispatch_fn_t fn,
                                    void *context);
+
+/// Optionally pin the local source GID to a specific IPv4 address (must be
+/// called before cpu_roce_setup/cpu_roce_start).  Unset/null/empty => first
+/// IPv4-mapped RoCEv2 GID on the port (correct on single-IP ports); set it on a
+/// multi-IP port so the source GID matches the intended address.
+void cpu_roce_set_local_ip(cpu_roce_transceiver_t handle, const char *local_ip);
 
 //==============================================================================
 // QP / rkey for rendezvous

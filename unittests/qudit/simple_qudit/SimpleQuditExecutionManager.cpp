@@ -84,8 +84,7 @@ protected:
     return result;
   }
 
-  observe_result finalizeExecutionContext(const observe_policy &,
-                                          ExecutionContext &) override {
+  observe_result finalizeExecutionContext(const observe_policy &) override {
     throw std::runtime_error("observe is not implemented for SimpleQudit.");
   }
 

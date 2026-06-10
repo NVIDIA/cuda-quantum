@@ -6,21 +6,19 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-include(HandleLLVMOptions)
-add_subdirectory(default)
-if (OPENSSL_FOUND)
-  add_subdirectory(orca)
-endif()
-if (CUDAQ_ENABLE_REST)
-  add_subdirectory(mqpu)
-endif()
+import cudaq
+import pytest
+from cudaq import spin
 
-add_subdirectory(fermioniq)
 
-if (AWSSDK_ROOT AND CUDAQ_ENABLE_BRAKET_BACKEND)
-  add_subdirectory(quera)
-endif()
+def test_observe_kernel_with_measures_fails():
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(1)
+    kernel.h(q[0])
+    kernel.mz(q[0])
 
-if (CUDAQ_ENABLE_PASQAL_BACKEND)
-  add_subdirectory(pasqal)
-endif()
+    with pytest.raises(
+            RuntimeError,
+            match=r"kernels passed to observe cannot have measurements specified"
+    ):
+        cudaq.observe(kernel, spin.z(0), shots_count=100)

@@ -346,8 +346,8 @@ public:
         tuplesAreReversed = !opt->isZero();
       }
     }
-    if (cudaq::isInNamespace(x, "cudaq") &&
-        cudaq::isInNamespace(x, "details") && x->getName() == "_nvqpp_sizeof") {
+    if (cudaq::isInNamespace(x, "cudaq") && cudaq::isInNamespace(x, "detail") &&
+        x->getName() == "_nvqpp_sizeof") {
       // This constexpr is the sizeof a pauli_word and a std::string.
       auto opt =
           x->getAnyInitializer()->getIntegerConstantExpr(x->getASTContext());
