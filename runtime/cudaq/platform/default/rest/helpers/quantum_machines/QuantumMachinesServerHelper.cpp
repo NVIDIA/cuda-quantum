@@ -193,52 +193,52 @@ public:
                                std::string &jobId) override {
     CUDAQ_INFO("extractOutputLog: {}, {}", jobId, postJobResponse.dump());
     //TODO: implement
-    return "1";
+    return postJobResponse["results"];
   }
 
   void updatePassPipeline(
-    const std::filesystem::path &platformPath, std::string &passPipeline) override {
-      CUDAQ_INFO("updatePassPipeline: platformPath: {}, passPipeline: {}", platformPath.string(), passPipeline);
-      std::string mappingMode = backendConfig["qubit_mapping_mode"];
-      if (mappingMode == "backend") {
-        // If mapping is done on the backend, we have to remove the SABRE mapping pass from the pipeline, and we don't need to provide a qpu config file for the mapping pass.
-        //passPipeline = std::regex_replace(passPipeline, std::regex(",qubit-mapping\\\\{device=file(%QPU_ARCH%)\\\\}"), "");
-        passPipeline = "decomposition{enable-patterns=CHToCX,RzAdjToRz,CCZToCX,CR1ToCX,SwapToCX,CRxToCX,CRyToCX,CRzToCX},quake-to-cc-prep,func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements)";
-        CUDAQ_INFO("After removing mapping pass, updated pass pipeline: {}", passPipeline);
-        return;
-      }
-      std::filesystem::path qpuConfigPath = platformPath / "mapping/quantum_machines" / "latest_qpu_config.txt";
-      std::string machineconfigFilePath = qpuConfigPath.string();
-      if (mappingMode == "local_get_latest") {
-        // If mapping is done locally with the latest qpu config from the backend, we need to get the latest qpu config file from the backend and provide that to the mapping pass.
-        // Get the latest qpu config file from the backend and set quantumArchitectureFilePath to its path
-        try {
-          // Create a RestClient and get the latest qpu config from backendConfig["url"]+"/v1/config/qubits" from the backend
-          // Store the response in a file in the platformPath / "mapping/quantum_machines" directory, and set quantumArchitectureFilePath to that file path
-          RestClient client;
-          client.setVerbose(true); 
-          auto headers = getHeaders();
-          auto response = client.getRawText(backendConfig["url"], "/v1/config/qubits", headers);
-          std::string qpuConfig = response;
-          CUDAQ_INFO("Updated configuration: {}", qpuConfig);
-          std::filesystem::create_directories(qpuConfigPath.parent_path());
-          std::ofstream outFile(qpuConfigPath);
-          outFile << qpuConfig;
-          outFile.close();
-
-        } catch (const std::exception &e) {
-          throw std::runtime_error("Failed to get latest qpu config from backend: " +
-                                    std::string(e.what()));
-          }
-      } 
-      else if (mappingMode != "local_file") {
-        throw std::runtime_error("qubit_mapping_mode: " + mappingMode + " is not supported. Supported modes are 'local-file', 'local-get-latest', and 'backend'.");
-      }
-      passPipeline =
-          std::regex_replace(passPipeline, std::regex("%QPU_ARCH%"), machineconfigFilePath);
-      CUDAQ_INFO("Updated pass pipeline: {}", passPipeline);
+  const std::filesystem::path &platformPath, std::string &passPipeline) override {
+    CUDAQ_INFO("updatePassPipeline: platformPath: {}, passPipeline: {}", platformPath.string(), passPipeline);
+    std::string mappingMode = backendConfig["qubit_mapping_mode"];
+    if (mappingMode == "backend") {
+      // Adding a simple "tail": do not run any qubit mapping.
+      passPipeline += ",func.func(expand-control-veqs,combine-quantum-alloc,canonicalize,combine-measurements)";
+      CUDAQ_INFO("After removing mapping pass, updated pass pipeline: {}", passPipeline);
+      return;
     }
+    std::filesystem::path qpuConfigPath = platformPath / "mapping/quantum_machines" / "latest_qpu_config.txt";
+    std::string machineconfigFilePath = qpuConfigPath.string();
+    if (mappingMode == "local_get_latest") {
+      // If mapping is done locally with the latest qpu config from the backend, we need to get the latest qpu config file from the backend and provide that to the mapping pass.
+      // Get the latest qpu config file from the backend and set quantumArchitectureFilePath to its path
+      try {
+        // Create a RestClient and get the latest qpu config from backendConfig["url"]+"/v1/config/qubits" from the backend
+        // Store the response in a file in the platformPath / "mapping/quantum_machines" directory, and set quantumArchitectureFilePath to that file path
+        RestClient client;
+        client.setVerbose(true); 
+        auto headers = getHeaders();
+        auto response = client.getRawText(backendConfig["url"], "/v1/config/qubits", headers);
+        std::string qpuConfig = response;
+        CUDAQ_INFO("Updated configuration: {}", qpuConfig);
+        std::filesystem::create_directories(qpuConfigPath.parent_path());
+        std::ofstream outFile(qpuConfigPath);
+        outFile << qpuConfig;
+        outFile.close();
 
+      } catch (const std::exception &e) {
+        throw std::runtime_error("Failed to get latest qpu config from backend: " +
+                                  std::string(e.what()));
+        }
+    } 
+    else if (mappingMode != "local_file") {
+      throw std::runtime_error("qubit_mapping_mode: " + mappingMode + " is not supported. Supported modes are 'local-file', 'local-get-latest', and 'backend'.");
+    }
+    // Add the pipelines that ar responsible for qubit mapping, and adjust he file path
+    passPipeline += ",func.func(expand-control-veqs,add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=file(%QPU_ARCH%)},func.func(regtomem)";
+    passPipeline =
+        std::regex_replace(passPipeline, std::regex("%QPU_ARCH%"), machineconfigFilePath);
+    CUDAQ_INFO("Updated pass pipeline: {}", passPipeline);
+  }
 };
 
 } // namespace cudaq
