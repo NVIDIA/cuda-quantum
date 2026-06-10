@@ -184,11 +184,25 @@ def propagator(
         evolve_collapse_operators = (collapse_operator_batches if is_batched
                                      else collapse_operator_batches[0])
 
+    evolve_generators = generators if is_batched else generators[0]
+    evolve_initial_states = initial_states if is_batched else initial_states[0]
+
+    if open_system and is_batched:
+        evolve_generators = []
+        evolve_initial_states = []
+        evolve_collapse_operators = []
+        for generator, basis_states, collapse_batch in zip(
+                generators, initial_states, collapse_operator_batches):
+            for basis_state in basis_states:
+                evolve_generators.append(generator)
+                evolve_initial_states.append(basis_state)
+                evolve_collapse_operators.append(collapse_batch)
+
     result = cudaq.evolve(
-        generators if is_batched else generators[0],
+        evolve_generators,
         evolution_dimensions,
         schedule,
-        initial_states if is_batched else initial_states[0],
+        evolve_initial_states,
         collapse_operators=evolve_collapse_operators,
         observables=[],
         store_intermediate_results=save_mode,
@@ -199,8 +213,10 @@ def propagator(
     if open_system:
         if is_batched:
             return [
-                _extract_batched_basis_propagator(single_result)
-                for single_result in result
+                _extract_batched_basis_propagator(
+                    result[index * propagator_dimension:(index + 1) *
+                           propagator_dimension])
+                for index in range(len(generators))
             ]
         return _extract_batched_basis_propagator(result)
 
