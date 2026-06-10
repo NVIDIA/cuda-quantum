@@ -93,7 +93,9 @@ if(CMAKE_CUDA_COMPILER)
     GTest::gtest_main
     CUDA::cudart
     cudaq-realtime
+    cudaq-realtime-dispatch
     cudaq-realtime-host-dispatch
+    ${CUDADEVRT_LIBRARY}
   )
   add_dependencies(CudaqRealtimeUnitTests test_host_dispatcher)
   gtest_discover_tests(test_host_dispatcher
@@ -101,29 +103,6 @@ if(CMAKE_CUDA_COMPILER)
   )
   message(STATUS "  - test_host_dispatcher (host dispatcher loop)")
 
-  # Shared-ring-mode end-to-end test: HOST_LOOP + DEVICE_LOOP on ONE ring.
-  add_executable(test_shared_ring_dispatchers test_shared_ring_dispatchers.cu)
-  set_target_properties(test_shared_ring_dispatchers PROPERTIES
-    CUDA_SEPARABLE_COMPILATION ON
-    CUDA_STANDARD 17
-  )
-  target_include_directories(test_shared_ring_dispatchers PRIVATE
-    ${CUDAToolkit_INCLUDE_DIRS}
-    ${CUDAQ_REALTIME_INCLUDE_DIR}
-  )
-  target_link_libraries(test_shared_ring_dispatchers PRIVATE
-    GTest::gtest_main
-    CUDA::cudart
-    cudaq-realtime
-    cudaq-realtime-dispatch
-    cudaq-realtime-host-dispatch
-    ${CUDADEVRT_LIBRARY}
-  )
-  add_dependencies(CudaqRealtimeUnitTests test_shared_ring_dispatchers)
-  gtest_discover_tests(test_shared_ring_dispatchers
-    TEST_PREFIX "test_shared_ring_dispatchers."
-  )
-  message(STATUS "  - test_shared_ring_dispatchers (HOST_LOOP + DEVICE_LOOP on one ring)")
 endif()
 
 # ==============================================================================
