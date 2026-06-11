@@ -54,6 +54,10 @@ function(add_cudaq_unittest test_name test_label)
         ${USER_ARG_SOURCES}
     )
 
+    set_target_properties(${test_name}
+        PROPERTIES BUILD_WITH_INSTALL_RPATH FALSE
+    )
+
     if (USER_ARG_INCLUDES)
         target_include_directories(${test_name}
             PRIVATE
@@ -77,12 +81,13 @@ function(add_cudaq_unittest test_name test_label)
     endif()
 
 
-    if (USER_ARG_COMPILE_DEFS)
-        target_compile_definitions(${test_name}
-            PRIVATE
-                ${USER_ARG_COMPILE_DEFS}
-        )
-    endif()
+    # Preserve the host-side kernel-builder behavior these tests had under
+    # top-level unittests, where CUDAQ_LIBRARY_MODE was defined directory-wide.
+    target_compile_definitions(${test_name}
+        PRIVATE
+            CUDAQ_LIBRARY_MODE
+            ${USER_ARG_COMPILE_DEFS}
+    )
 
     if (USER_ARG_COMPILE_OPTS)
         target_compile_options(${test_name}
