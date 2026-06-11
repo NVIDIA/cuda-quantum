@@ -1,0 +1,20 @@
+on:
+  # Nightly refresh of the registry build caches for the dev dependencies
+  # (devdeps / wheeldeps / source_build / openmpi). On completion the reusable core's
+  # `dispatch` job kicks off deployments-devcontainer-nightly.yml (devcontainer_only),
+  # mirroring the original schedule -> self-dispatch chain.
+  schedule:
+    - cron: "0 14 * * *"
+
+name: Deployments - devdeps nightly # do not change name without updating workflow_run triggers
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  devdeps:
+    uses: ./.github/workflows/deployments-impl.yml
+    secrets: inherit
+    # All inputs use their defaults; github.event_name == 'schedule' drives the
+    # cache-refresh behavior and the follow-up dispatch in the reusable core.

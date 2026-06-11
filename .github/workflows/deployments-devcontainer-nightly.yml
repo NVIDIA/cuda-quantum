@@ -1,0 +1,64 @@
+on:
+  # Builds and pushes the nightly dev container image. This is dispatched by the
+  # deployments-devdeps-nightly.yml run (via the reusable core's `dispatch` job) with
+  # devcontainer_only=true, reproducing the original scheduled self-dispatch. The
+  # workflow_dispatch trigger + inputs below are required to receive that dispatch (and
+  # allow manual runs).
+  workflow_dispatch:
+    inputs:
+      update_registry_cache:
+        type: boolean
+        description: Create or update the build caches on the container registry. The build terminates after that and no images are pushed.
+        required: false
+        default: false
+      cache_base:
+        required: false
+        type: string
+        description: 'The name of the branch to use as cache base.'
+        default: main
+      platforms:
+        type: string
+        description: The platforms to build the Docker images for. A semicolon separated list creates a separate list for each platform, whereas a comma separate list creates a multi-platform build.
+        required: false
+        default: default
+      devcontainer_only:
+        type: boolean
+        description: Build and push only the dev container image.
+        required: false
+        default: true
+      create_release:
+        type: string
+        description: Create a GitHub release with the given version number (e.g. 0.3.0). A GitHub release with that version must not exist already.
+        required: false
+        default: ''
+      include_macos:
+        type: boolean
+        description: Build and include macOS wheels and installer.
+        required: false
+        default: true
+      run_publishing_after:
+        type: boolean
+        description: When this deployment completes successfully, automatically trigger the Publishing workflow.
+        required: false
+        default: false
+
+name: Deployments - devcontainer nightly # do not change name without updating workflow_run triggers
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  devcontainer:
+    uses: ./.github/workflows/deployments-impl.yml
+    secrets: inherit
+    with:
+      # Same passthrough as deployments.yml: this page is only ever triggered via
+      # workflow_dispatch, so the inputs flow straight through to the reusable core.
+      update_registry_cache: ${{ inputs.update_registry_cache }}
+      devcontainer_only: ${{ inputs.devcontainer_only }}
+      run_publishing_after: ${{ inputs.run_publishing_after }}
+      include_macos: ${{ inputs.include_macos }}
+      cache_base: ${{ inputs.cache_base }}
+      platforms: ${{ inputs.platforms }}
+      create_release: ${{ inputs.create_release }}

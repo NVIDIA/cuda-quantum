@@ -16,6 +16,8 @@ on:
   workflow_run:
     workflows:
       - Deployments
+      - Deployments - devdeps nightly
+      - Deployments - devcontainer nightly
       - CI
     branches:
       - 'main'
