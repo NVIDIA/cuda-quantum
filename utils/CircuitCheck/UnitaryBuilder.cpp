@@ -8,6 +8,7 @@
 
 #include "UnitaryBuilder.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.h"
+#include <algorithm>
 #include <numeric>
 
 using namespace cudaq;
@@ -203,7 +204,14 @@ void UnitaryBuilder::applyOperator(ArrayRef<Complex> m, unsigned numTargets,
     applyControlledMatrix(m, qubits);
     return;
   }
-  applyMatrix(m, numTargets, qubits);
+  // Multi-target gate. `OperatorInterface` matrices index the first target as
+  // the most-significant qubit, whereas the index math in `applyMatrix` treats
+  // its first qubit as least-significant. Reverse the target qubits (the
+  // trailing `numTargets` operands; any controls come first and keep their
+  // order) to reconcile the two conventions.
+  SmallVector<Qubit, 16> reordered(qubits.begin(), qubits.end());
+  std::reverse(reordered.end() - numTargets, reordered.end());
+  applyMatrix(m, numTargets, reordered);
 }
 
 void UnitaryBuilder::growMatrix(unsigned numQubits) {
