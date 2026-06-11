@@ -75,11 +75,22 @@ struct AssignWireIndicesPass
     if (!func->hasAttr(cudaq::entryPointAttrName))
       return;
 
-    // TODO: someday we may want to allow calls to non-quantum functions
+    // Only bail out if there are calls to quantum kernels; non-quantum calls
+    // are allowed through.
     if (cudaq::opt::hasCallOp(func)) {
-      func.emitRemark(
-          "AssignWireIndicesPass function has calls, pass will not be run.");
-      return;
+      auto module = func->getParentOfType<ModuleOp>();
+      bool hasQuantumCall = false;
+      func.walk([&](func::CallOp call) {
+        if (auto callee =
+                module.lookupSymbol<func::FuncOp>(call.getCallee()))
+          if (callee->hasAttr(cudaq::kernelAttrName))
+            hasQuantumCall = true;
+      });
+      if (hasQuantumCall) {
+        func.emitRemark(
+            "AssignWireIndicesPass function has calls, pass will not be run.");
+        return;
+      }
     }
 
     auto *ctx = &getContext();
