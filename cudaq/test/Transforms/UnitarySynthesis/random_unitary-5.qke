@@ -35,162 +35,248 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel8 = "__nvqp
 // with the optimal 2-control gray-code form, 12 CNOTs total). The remaining
 // passes (`--canonicalize --apply-op-specialization --aggressive-inlining`)
 // inline that generated kernel into the entry point, yielding the flat gate
-// sequence below. The order is checked exactly (no -DAG) and matches the
-// hand-inlined `synth_kernel8` reference in
-// python/tests/custom/test_qsd_decomposition.py. %[[Q0]] is the most-
-// significant qubit (multiplexor target); %[[Q1]] and %[[Q2]] are the lower
-// two qubits that carry the 2-qubit sub-unitaries and act as the controls.
+// sequence below. The order is checked exactly (no -DAG); the CHECK lines were
+// produced with LLVM's `mlir/utils/generate-test-checks.py` and each rotation
+// angle is matched to its first five decimals (`{{[0-9]*}}` absorbs the
+// remaining low-order digits), so the structure and angles are verified while
+// staying robust to last-ULP differences across platforms/BLAS. %[[Q0]] is the
+// most-significant qubit (multiplexor target, wire [0]); %[[Q1]] and %[[Q2]]
+// (wires [1] and [2]) carry the 2-qubit sub-unitaries and act as the controls.
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel8()
-// CHECK:           %[[Q2:.*]] = quake.extract_ref %{{.*}}[2]
-// CHECK:           %[[Q1:.*]] = quake.extract_ref %{{.*}}[1]
-// CHECK:           %[[Q0:.*]] = quake.extract_ref %{{.*}}[0]
-// CHECK:           quake.rz (%{{.*}}) %[[Q0]]
-// CHECK:           quake.ry (%{{.*}}) %[[Q0]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q0]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.ry (%{{.*}}) %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.h %[[Q1]]
-// CHECK:           quake.h %[[Q0]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]]
-// CHECK:           quake.h %[[Q0]]
-// CHECK:           quake.h %[[Q1]]
-// CHECK:           quake.rx (%{{.*}}) %[[Q1]]
-// CHECK:           quake.rx (%{{.*}}) %[[Q0]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]]
-// CHECK:           quake.rx (%{{.*}}) %[[Q0]]
-// CHECK:           quake.rx (%{{.*}}) %[[Q1]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q0]]
-// CHECK:           quake.ry (%{{.*}}) %[[Q0]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q0]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.ry (%{{.*}}) %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.r1 (%{{.*}}) %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q2]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q2]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q2]]
-// CHECK:           quake.x {{\[}}%[[Q1]]] %[[Q2]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q2]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q2]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q2]]
-// CHECK:           quake.x {{\[}}%[[Q1]]] %[[Q2]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q0]]
-// CHECK:           quake.ry (%{{.*}}) %[[Q0]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q0]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.ry (%{{.*}}) %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.h %[[Q1]]
-// CHECK:           quake.h %[[Q0]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]]
-// CHECK:           quake.h %[[Q0]]
-// CHECK:           quake.h %[[Q1]]
-// CHECK:           quake.rx (%{{.*}}) %[[Q1]]
-// CHECK:           quake.rx (%{{.*}}) %[[Q0]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]]
-// CHECK:           quake.rx (%{{.*}}) %[[Q0]]
-// CHECK:           quake.rx (%{{.*}}) %[[Q1]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q0]]
-// CHECK:           quake.ry (%{{.*}}) %[[Q0]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q0]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.ry (%{{.*}}) %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.r1 (%{{.*}}) %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.ry (%{{.*}}) %[[Q2]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q2]]
-// CHECK:           quake.ry (%{{.*}}) %[[Q2]]
-// CHECK:           quake.x {{\[}}%[[Q1]]] %[[Q2]]
-// CHECK:           quake.ry (%{{.*}}) %[[Q2]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q2]]
-// CHECK:           quake.ry (%{{.*}}) %[[Q2]]
-// CHECK:           quake.x {{\[}}%[[Q1]]] %[[Q2]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q0]]
-// CHECK:           quake.ry (%{{.*}}) %[[Q0]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q0]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.ry (%{{.*}}) %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.h %[[Q1]]
-// CHECK:           quake.h %[[Q0]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]]
-// CHECK:           quake.h %[[Q0]]
-// CHECK:           quake.h %[[Q1]]
-// CHECK:           quake.rx (%{{.*}}) %[[Q1]]
-// CHECK:           quake.rx (%{{.*}}) %[[Q0]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]]
-// CHECK:           quake.rx (%{{.*}}) %[[Q0]]
-// CHECK:           quake.rx (%{{.*}}) %[[Q1]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q0]]
-// CHECK:           quake.ry (%{{.*}}) %[[Q0]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q0]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.ry (%{{.*}}) %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.r1 (%{{.*}}) %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q2]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q2]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q2]]
-// CHECK:           quake.x {{\[}}%[[Q1]]] %[[Q2]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q2]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q2]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q2]]
-// CHECK:           quake.x {{\[}}%[[Q1]]] %[[Q2]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q0]]
-// CHECK:           quake.ry (%{{.*}}) %[[Q0]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q0]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.ry (%{{.*}}) %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.h %[[Q1]]
-// CHECK:           quake.h %[[Q0]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]]
-// CHECK:           quake.h %[[Q0]]
-// CHECK:           quake.h %[[Q1]]
-// CHECK:           quake.rx (%{{.*}}) %[[Q1]]
-// CHECK:           quake.rx (%{{.*}}) %[[Q0]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]]
-// CHECK:           quake.rx (%{{.*}}) %[[Q0]]
-// CHECK:           quake.rx (%{{.*}}) %[[Q1]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q0]]
-// CHECK:           quake.ry (%{{.*}}) %[[Q0]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q0]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.ry (%{{.*}}) %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
-// CHECK:           quake.r1 (%{{.*}}) %[[Q1]]
-// CHECK:           quake.rz (%{{.*}}) %[[Q1]]
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel8() attributes {"cudaq-entrypoint"} {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 1.64825{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_1:.*]] = arith.constant 1.74719{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_2:.*]] = arith.constant 2.04337{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_3:.*]] = arith.constant 2.89245{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_4:.*]] = arith.constant 1.10141{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_5:.*]] = arith.constant -1.66837{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_6:.*]] = arith.constant -3.06812{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_7:.*]] = arith.constant 1.46088{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_8:.*]] = arith.constant 2.50544{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_9:.*]] = arith.constant 1.11129{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_10:.*]] = arith.constant 1.58017{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_11:.*]] = arith.constant 2.99811{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_12:.*]] = arith.constant 0.18747{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_13:.*]] = arith.constant -4.67490{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_14:.*]] = arith.constant 0.48300{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_15:.*]] = arith.constant -1.38876{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_16:.*]] = arith.constant 1.38876{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_17:.*]] = arith.constant -2.35872{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_18:.*]] = arith.constant 2.01899{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_19:.*]] = arith.constant -2.98677{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_20:.*]] = arith.constant -1.23836{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_21:.*]] = arith.constant 1.78259{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_22:.*]] = arith.constant -4.66855{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_23:.*]] = arith.constant -4.22441{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_24:.*]] = arith.constant 2.13983{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_25:.*]] = arith.constant -1.51435{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_26:.*]] = arith.constant -0.43462{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_27:.*]] = arith.constant 2.51066{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_28:.*]] = arith.constant -3.92640{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_29:.*]] = arith.constant -0.24251{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_30:.*]] = arith.constant -2.21012{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_31:.*]] = arith.constant -1.70503{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_32:.*]] = arith.constant -0.52738{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_33:.*]] = arith.constant 0.52738{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_34:.*]] = arith.constant -2.65163{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_35:.*]] = arith.constant 2.78258{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_36:.*]] = arith.constant -3.25114{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_37:.*]] = arith.constant -3.54723{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_38:.*]] = arith.constant 0.45266{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_39:.*]] = arith.constant -2.48837{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_40:.*]] = arith.constant -1.98313{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_41:.*]] = arith.constant 0.34758{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_42:.*]] = arith.constant 1.76508{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_43:.*]] = arith.constant -0.66726{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_44:.*]] = arith.constant 1.67912{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_45:.*]] = arith.constant -3.98996{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_46:.*]] = arith.constant 0.67632{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_47:.*]] = arith.constant -3.00758{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_48:.*]] = arith.constant 1.49858{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_49:.*]] = arith.constant 1.02377{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_50:.*]] = arith.constant -1.02377{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_51:.*]] = arith.constant 2.02882{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_52:.*]] = arith.constant 1.39916{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_53:.*]] = arith.constant -3.95158{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_54:.*]] = arith.constant 0.21658{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_55:.*]] = arith.constant 1.75408{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_56:.*]] = arith.constant 1.32746{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_57:.*]] = arith.constant 0.23194{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_58:.*]] = arith.constant 1.71952{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_59:.*]] = arith.constant -0.64864{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_60:.*]] = arith.constant -0.76832{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_61:.*]] = arith.constant 1.71443{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_62:.*]] = arith.constant 0.71099{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_63:.*]] = arith.constant 2.02336{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_64:.*]] = arith.constant 1.57079{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_65:.*]] = arith.constant -1.43766{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_66:.*]] = arith.constant 2.75315{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_67:.*]] = arith.constant 0.36866{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_68:.*]] = arith.constant -1.57079{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_69:.*]] = arith.constant -0.36866{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_70:.*]] = arith.constant 0.06239{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_71:.*]] = arith.constant -0.01532{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_72:.*]] = arith.constant -0.56964{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_73:.*]] = arith.constant -1.56247{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_74:.*]] = arith.constant 1.17726{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_75:.*]] = arith.constant -0.32248{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_76:.*]] = arith.constant -0.00489{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_77:.*]] = arith.constant -0.69940{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_78:.*]] = arith.constant -0.47465{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_79:.*]] = arith.constant -0.78275{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_80:.*]] = arith.constant 1.83874{{[0-9]*}} : f64
+// CHECK:           %[[CONSTANT_81:.*]] = arith.constant -0.14081{{[0-9]*}} : f64
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<3>
+// CHECK:           %[[Q2:.*]] = quake.extract_ref %[[ALLOCA_0]][2] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           %[[Q1:.*]] = quake.extract_ref %[[ALLOCA_0]][1] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           %[[Q0:.*]] = quake.extract_ref %[[ALLOCA_0]][0] : (!quake.veq<3>) -> !quake.ref
+// CHECK:           quake.rz (%[[CONSTANT_60]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[CONSTANT_61]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_62]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_57]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[CONSTANT_58]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_59]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.h %[[Q1]] : (!quake.ref) -> ()
+// CHECK:           quake.h %[[Q0]] : (!quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_63]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.h %[[Q0]] : (!quake.ref) -> ()
+// CHECK:           quake.h %[[Q1]] : (!quake.ref) -> ()
+// CHECK:           quake.rx (%[[CONSTANT_64]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rx (%[[CONSTANT_64]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_65]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rx (%[[CONSTANT_68]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rx (%[[CONSTANT_68]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_66]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_54]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[CONSTANT_55]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_56]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_51]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[CONSTANT_52]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_53]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.r1 (%[[CONSTANT_67]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_69]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_70]]) %[[Q2]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q2]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_71]]) %[[Q2]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q1]]] %[[Q2]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_72]]) %[[Q2]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q2]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_73]]) %[[Q2]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q1]]] %[[Q2]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_43]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[CONSTANT_44]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_45]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_40]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[CONSTANT_41]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_42]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.h %[[Q1]] : (!quake.ref) -> ()
+// CHECK:           quake.h %[[Q0]] : (!quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_46]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.h %[[Q0]] : (!quake.ref) -> ()
+// CHECK:           quake.h %[[Q1]] : (!quake.ref) -> ()
+// CHECK:           quake.rx (%[[CONSTANT_64]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rx (%[[CONSTANT_64]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_47]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rx (%[[CONSTANT_68]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rx (%[[CONSTANT_68]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_48]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_37]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[CONSTANT_38]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_39]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_34]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[CONSTANT_35]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_36]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.r1 (%[[CONSTANT_49]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_50]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[CONSTANT_74]]) %[[Q2]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q2]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[CONSTANT_75]]) %[[Q2]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q1]]] %[[Q2]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[CONSTANT_76]]) %[[Q2]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q2]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[CONSTANT_77]]) %[[Q2]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q1]]] %[[Q2]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_26]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[CONSTANT_27]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_28]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_23]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[CONSTANT_24]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_25]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.h %[[Q1]] : (!quake.ref) -> ()
+// CHECK:           quake.h %[[Q0]] : (!quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_29]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.h %[[Q0]] : (!quake.ref) -> ()
+// CHECK:           quake.h %[[Q1]] : (!quake.ref) -> ()
+// CHECK:           quake.rx (%[[CONSTANT_64]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rx (%[[CONSTANT_64]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_30]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rx (%[[CONSTANT_68]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rx (%[[CONSTANT_68]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_31]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_20]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[CONSTANT_21]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_22]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_17]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[CONSTANT_18]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_19]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.r1 (%[[CONSTANT_32]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_33]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_78]]) %[[Q2]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q2]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_79]]) %[[Q2]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q1]]] %[[Q2]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_80]]) %[[Q2]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q2]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_81]]) %[[Q2]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q1]]] %[[Q2]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_9]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[CONSTANT_10]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_11]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_6]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[CONSTANT_7]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_8]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.h %[[Q1]] : (!quake.ref) -> ()
+// CHECK:           quake.h %[[Q0]] : (!quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_12]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.h %[[Q0]] : (!quake.ref) -> ()
+// CHECK:           quake.h %[[Q1]] : (!quake.ref) -> ()
+// CHECK:           quake.rx (%[[CONSTANT_64]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rx (%[[CONSTANT_64]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_13]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rx (%[[CONSTANT_68]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rx (%[[CONSTANT_68]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_14]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1]] : (!quake.ref, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_3]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[CONSTANT_4]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_5]]) %[[Q0]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_0]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[CONSTANT_1]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_2]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.r1 (%[[CONSTANT_15]]) %[[Q1]] : (f64, !quake.ref) -> ()
+// CHECK:           quake.rz (%[[CONSTANT_16]]) %[[Q1]] : (f64, !quake.ref) -> ()
 // CHECK:           return
+// CHECK:         }

@@ -656,11 +656,14 @@ operations, each operating on 2 qubits.
       :end-before: [End Docs]
 
 
-.. note:: 
+.. note::
 
   When a custom operation is used on hardware backends, it is synthesized to a
-  set of native quantum operations. Currently, only 1-qubit and 2-qubit custom 
-  operations are supported on hardware backends.
+  set of native quantum operations. Custom operations on 1 and 2 qubits use the
+  Euler (ZYZ) decomposition and the Cartan (KAK) decomposition, respectively.
+  Operations on 3, 4, and 5 qubits are synthesized with the recursive Quantum
+  Shannon Decomposition. Custom operations on 6 or more qubits (matrix dimension
+  greater than 32) are not yet supported and are left unchanged.
 
 
 Photonic Operations on Qudits

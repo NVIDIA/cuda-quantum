@@ -21,6 +21,7 @@ CPTP
 CPU
 CPUs
 CUDA
+Cartan
 Cartesian
 CentOS
 Conda
@@ -68,6 +69,7 @@ JIT
 JSON
 Jupyter
 JupyterLab
+KAK
 Kagome
 Kraus
 Kutta
@@ -170,6 +172,7 @@ Verilog
 WQEs
 WSL
 Xcode
+ZYZ
 Zener
 accessor
 acknowledgement
