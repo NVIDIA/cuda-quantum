@@ -483,6 +483,78 @@ jobs:
           retention-days: 1
           if-no-files-found: warn
 
+  gpu_validation:
+    # Merge-queue gate: run the Python test suite against the GPU (nvidia)
+    # statevector simulator. Regressions that only manifest on the nvidia
+    # target pass on qpp-cpu and so escape per-PR CI, which has no GPU. This
+    # reuses the wheel built by build_wheel and runs a single representative
+    # config (amd64 / Python 3.11 / CUDA 12.6) to limit A100 runner cost.
+    name: Validate wheel on GPU (nvidia simulator)
+    needs: build_wheel
+    if: inputs.platform == 'linux/amd64' && inputs.python_version == '3.11' && inputs.cuda_version == '12.6'
+    runs-on: linux-amd64-gpu-a100-latest-1
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Log in to GitHub CR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Load cuda-quantum wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.build_wheel.outputs.artifact_name }}
+
+      - name: Build wheel test image
+        run: |
+          # ubuntu:22.04 is the Python 3.11 validation image (see
+          # config/validation_config.json). Mirror the `validation` job and use
+          # the GHCR-mirrored base to limit pull rate on public registries.
+          repo_owner=${{ github.repository_owner }}
+          base_image=ghcr.io/${repo_owner,,}/ubuntu:22.04
+          wheelname=`echo cuda_quantum*-manylinux_*_$(uname -m).whl`
+          docker build --network host -t wheel_validation:local -f docker/test/wheels/ubuntu.Dockerfile . \
+            --build-arg base_image=$base_image \
+            --build-arg python_version=${{ inputs.python_version }} \
+            --build-arg cuda_quantum_wheel=$wheelname \
+            --build-arg preinstalled_modules="numpy pytest psutil" \
+            --build-arg pip_install_flags=
+
+      - name: Run Python tests on nvidia simulator
+        # On the A100 runner, run-in-docker auto-adds `--gpus all` (it detects
+        # nvidia-smi on the host), so the container can reach the GPU.
+        uses: ./.github/actions/run-in-docker
+        with:
+          image: wheel_validation:local
+          shell: bash
+          run: |
+            # Force the GPU statevector backend. Tests that set their own target
+            # override this; the rest run on nvidia instead of the qpp-cpu default.
+            export CUDAQ_DEFAULT_SIMULATOR=nvidia
+
+            # Fail loudly if the GPU / nvidia target is unavailable, so a missing
+            # GPU can't masquerade as a clean "everything skipped" run.
+            python${{ inputs.python_version }} -c "import cudaq; cudaq.set_target('nvidia'); k=cudaq.make_kernel(); q=k.qalloc(2); k.h(q[0]); k.cx(q[0], q[1]); c=cudaq.sample(k); assert c, 'nvidia target returned no samples'; print('nvidia target OK:', c)"
+
+            # Mirror the CPU suite selection: full python/tests minus backends
+            # (need mock QPUs) and contrib (needs qiskit).
+            python${{ inputs.python_version }} -m pytest -v --durations=0 /tmp/tests/ \
+              --ignore /tmp/tests/backends \
+              --ignore /tmp/tests/contrib
+            pytest_status=$?
+            if [ ! $pytest_status -eq 0 ]; then
+              echo "::error file=python_wheels.yml::Python tests on the nvidia simulator failed with status $pytest_status."
+              exit 1
+            fi
+
   staging:
     name: Staging
     needs: [build_wheel, validation]
