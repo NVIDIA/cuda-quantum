@@ -1285,7 +1285,7 @@ public:
 /// the custom operations ought to be decomposed by a separate pass and should
 /// never reach here.
 class CustomUnitaryOpRewrite
-    : public ConvertOpToLLVMPattern<cudaq::quake::CustomUnitarySymbolOp> {
+    : public ConvertOpToLLVMPattern<cudaq::quake::CustomUnitaryConstantOp> {
 public:
   using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
 
@@ -1323,7 +1323,7 @@ public:
   }
 
   LogicalResult
-  matchAndRewrite(cudaq::quake::CustomUnitarySymbolOp op, OpAdaptor adaptor,
+  matchAndRewrite(cudaq::quake::CustomUnitaryConstantOp op, OpAdaptor adaptor,
                   ConversionPatternRewriter &rewriter) const override {
     auto loc = op.getLoc();
     auto parentModule = op->getParentOfType<ModuleOp>();
@@ -1379,7 +1379,7 @@ public:
     }
 
     // Fetch the unitary matrix generator for this custom operation
-    auto sref = op.getGenerator();
+    auto sref = op.getMatrix();
     StringRef generatorName = sref.getRootReference();
     auto globalOp =
         parentModule.lookupSymbol<cudaq::cc::GlobalOp>(generatorName);

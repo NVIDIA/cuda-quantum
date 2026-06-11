@@ -30,7 +30,7 @@
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/InitAllDialects.h"
 
-namespace cudaq::details {
+namespace cudaq::detail {
 /// Report a clang error diagnostic. Note that the message must be a string
 /// literal. \p astNode is a node from the clang AST with source location
 /// information.
@@ -45,7 +45,34 @@ void reportClangError(T *astNode, clang::ItaniumMangleContext *mangler,
                       const char (&msg)[N]) {
   reportClangError(astNode, mangler->getASTContext().getDiagnostics(), msg);
 }
-} // namespace cudaq::details
+
+/// `measure_handle` arrives at the bridge as either an SSA `!cc.measure_handle`
+/// or as the pointer form `!cc.ptr<!cc.measure_handle>` left by lvalue access
+/// (named variable read, `operator=` LHS, struct-member-of-handle, ...). Most
+/// consumers want the value form, so funnel that normalization through one
+/// helper rather than open-coding the `dyn_cast` chain at every call site.
+inline mlir::Value loadHandleIfPointer(mlir::OpBuilder &builder,
+                                       mlir::Location loc, mlir::Value v) {
+  if (auto ptrTy = mlir::dyn_cast<cudaq::cc::PointerType>(v.getType()))
+    if (mlir::isa<cudaq::cc::MeasureHandleType>(ptrTy.getElementType()))
+      return cudaq::cc::LoadOp::create(builder, loc, v);
+  return v;
+}
+
+/// Same intent as `loadHandleIfPointer`, but for the bulk-discriminate /
+/// `to_integer` / range-for / qec.{detector,observable,pair_detectors} paths
+/// where the lvalue carries a `std::vector<measure_handle>` and `ConvertDecl`
+/// has stack-allocated a descriptor slot for it.
+inline mlir::Value loadHandleVectorIfPointer(mlir::OpBuilder &builder,
+                                             mlir::Location loc,
+                                             mlir::Value v) {
+  if (auto ptrTy = mlir::dyn_cast<cudaq::cc::PointerType>(v.getType()))
+    if (auto sv = mlir::dyn_cast<cudaq::cc::StdvecType>(ptrTy.getElementType());
+        sv && mlir::isa<cudaq::cc::MeasureHandleType>(sv.getElementType()))
+      return cudaq::cc::LoadOp::create(builder, loc, v);
+  return v;
+}
+} // namespace cudaq::detail
 
 #undef TODO_BRIDGE
 #undef TODO_x
@@ -53,8 +80,8 @@ void reportClangError(T *astNode, clang::ItaniumMangleContext *mangler,
 #if defined(NDEBUG) || defined(CUDAQ_NOTRACEBACKS)
 #define TODO_BRIDGE(MlirLoc, ToDoXPtr, ToDoMangler, ToDoMsg, ToDoFile,         \
                     ToDoLine)                                                  \
-  cudaq::details::reportClangError(ToDoXPtr, ToDoMangler,                      \
-                                   ToDoMsg " is not yet supported");
+  cudaq::detail::reportClangError(ToDoXPtr, ToDoMangler,                       \
+                                  ToDoMsg " is not yet supported");
 #else
 #define TODO_BRIDGE(MlirLoc, ToDoXPtr, ToDoMangler, ToDoMsg, ToDoFile,         \
                     ToDoLine)                                                  \
@@ -62,8 +89,8 @@ void reportClangError(T *astNode, clang::ItaniumMangleContext *mangler,
     mlir::emitError(MlirLoc, llvm::Twine(ToDoFile ":" TODOQUOTE(               \
                                  ToDoLine) ": not yet implemented: ") +        \
                                  ToDoMsg);                                     \
-    cudaq::details::reportClangError(ToDoXPtr, ToDoMangler,                    \
-                                     ToDoMsg " is not yet supported");         \
+    cudaq::detail::reportClangError(ToDoXPtr, ToDoMangler,                     \
+                                    ToDoMsg " is not yet supported");          \
   } while (false);
 #endif
 
@@ -93,7 +120,7 @@ mlir::Location toSourceLocation(mlir::MLIRContext *ctx,
                                 clang::ASTContext *astCtx,
                                 const clang::SourceRange &srcRange);
 
-namespace details {
+namespace detail {
 
 /// Use the name mangler to create a unique name for this declaration. This
 /// unique name can be used to unique the MLIR name of a quantum kernel.
@@ -166,7 +193,7 @@ public:
   /// to identify the kernel class from which the function was extracted.
   std::string generateCudaqKernelName(const clang::FunctionDecl *func) {
     return getCudaqKernelName(
-        cudaq::details::getTagNameOfFunctionDecl(func, mangler));
+        cudaq::detail::getTagNameOfFunctionDecl(func, mangler));
   }
   std::string generateCudaqKernelName(const EmittedFunctionPair &emittedFunc) {
     if (emittedFunc.first.starts_with(runtime::cudaqGenPrefixName))
@@ -301,6 +328,7 @@ public:
                            DataRecursionQueue *q = nullptr);
   bool VisitDeclRefExpr(clang::DeclRefExpr *x);
   bool VisitFloatingLiteral(clang::FloatingLiteral *x);
+  bool VisitImaginaryLiteral(clang::ImaginaryLiteral *x);
 
   // Cast operations.
   bool TraverseCastExpr(clang::CastExpr *x, DataRecursionQueue *q = nullptr);
@@ -670,7 +698,7 @@ private:
   bool allowUnknownRecordType : 1 = false;
   bool initializerIsGlobal : 1 = false;
 };
-} // namespace details
+} // namespace detail
 
 //===----------------------------------------------------------------------===//
 // ASTBridgeAction
@@ -744,7 +772,7 @@ public:
     /// properly communicated through the pass pipeline and prevents lossy
     /// pipelines which erase private declarations.
     void addFunctionDecl(const clang::FunctionDecl *funcDecl,
-                         details::QuakeBridgeVisitor &visitor,
+                         detail::QuakeBridgeVisitor &visitor,
                          mlir::FunctionType funcTy, mlir::StringRef devFuncName,
                          bool isDecl);
 

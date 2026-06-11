@@ -8,8 +8,9 @@ matrix:
 
 - name: markdown
   sources:
-  # Exclude third-party code (tpls/) and build artifacts
-  - '**/*.md|!tpls/**/*.md|!_skbuild/**/*.md|!build/**/*.md|!build_*/**/*.md'
+  # Exclude third-party code (tpls/), build artifacts, and signed skill bundles
+  # (skills/ content is fixed by skill.oms.sig and must not be modified).
+  - '**/*.md|!tpls/**/*.md|!_skbuild/**/*.md|!build/**/*.md|!build_*/**/*.md|!skills/**/*.md'
   glob_flags: N|G|B
   expect_match: false
   aspell:

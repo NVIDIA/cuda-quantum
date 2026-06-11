@@ -84,7 +84,7 @@ KernelThunkResultType cudaq::OrcaRemoteRESTQPU::launchKernelCommon(
         ctx->name == "tracer"))
     throw std::runtime_error(ctx->name + " is not supported on this target");
 
-  details::future future;
+  detail::future future;
   future = executor->execute(params, kernelName);
 
   // Keep this asynchronous if requested

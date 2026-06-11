@@ -17,8 +17,6 @@ config:
   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
   # Add the fermioniq-qpu library to the link list
   link-libs: ["-lcudaq-fermioniq-qpu"]
-  # Library mode is only for simulators, physical backends must turn this off
-  library-mode: false
   jit-high-level-pipeline: "expand-measurements"
   jit-mid-level-pipeline: "fermioniq-gate-set-mapping"
   # Tell the rest-qpu that we are generating QIR.

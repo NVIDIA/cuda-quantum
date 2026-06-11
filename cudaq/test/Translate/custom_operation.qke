@@ -15,8 +15,8 @@ module {
     quake.h %0 : (!quake.ref) -> ()
     // NB: the custom sans "adj" in the name is called with the <adj> modifier,
     // while the custom with "adj" in the name is called with no modifiers.
-    quake.custom_op @__nvqpp__mlirgen__function_custom_s_generator_1._Z20custom_s_generator_1RKSt6vectorIdSaIdEE.rodata_0<adj> %0 : (!quake.ref) -> ()
-    quake.custom_op @__nvqpp__mlirgen__function_custom_s_adj_generator_1._Z24custom_s_adj_generator_1RKSt6vectorIdSaIdEE.rodata_1 %0 : (!quake.ref) -> ()
+    quake.custom_unitary_constant @__nvqpp__mlirgen__function_custom_s_generator_1._Z20custom_s_generator_1RKSt6vectorIdSaIdEE.rodata_0<adj> %0 : (!quake.ref) -> ()
+    quake.custom_unitary_constant @__nvqpp__mlirgen__function_custom_s_adj_generator_1._Z24custom_s_adj_generator_1RKSt6vectorIdSaIdEE.rodata_1 %0 : (!quake.ref) -> ()
     quake.h %0 : (!quake.ref) -> ()
     %measOut = quake.mz %0 : (!quake.ref) -> !quake.measure
     return

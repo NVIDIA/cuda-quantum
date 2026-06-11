@@ -30,4 +30,6 @@ install (FILES nvqir/AnalysisScope.h
         DESTINATION include/nvqir)
 install (FILES nvqir/resourcecounter/ResourceCounterScope.h
         DESTINATION include/nvqir/resourcecounter)
+install (FILES nvqir/dem/DemScope.h
+        DESTINATION include/nvqir/dem)
 install (FILES cudaq.h DESTINATION include)

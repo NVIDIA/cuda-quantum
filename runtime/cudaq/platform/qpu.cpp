@@ -7,6 +7,9 @@
  ******************************************************************************/
 
 #include "qpu.h"
+#include "algorithms/observe/policy.h"
+#include "algorithms/policies.h"
+#include "algorithms/sample/policy.h"
 #include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
 #include "common/KernelArgs.h"
@@ -15,24 +18,11 @@
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "mlir/IR/BuiltinOps.h"
 #include <cstring>
 #include <stdexcept>
 
 using namespace cudaq_internal::compiler;
 using namespace cudaq;
-
-CUDAQ_INSTANTIATE_REGISTRY(cudaq::ModuleLauncher::RegistryType)
-
-// Bridge so the Python extension can register PythonLauncher into this DSO's
-// registry. CUDA-Q Registry uses static inline Head/Tail, so each DSO that
-// instantiates the template gets its own copy; launchModule runs in this DSO
-// and reads the empty list. Registering via this function adds to our list.
-extern "C" void cudaq_add_module_launcher_node(void *node_ptr) {
-  using Node = cudaq::Registry<cudaq::ModuleLauncher>::node;
-  cudaq::Registry<cudaq::ModuleLauncher>::add_node(
-      static_cast<Node *>(node_ptr));
-}
 
 cudaq::KernelThunkResultType
 cudaq::QPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
@@ -45,11 +35,50 @@ cudaq::QPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
   return runJITCompiledModule(compiled, args);
 }
 
+sample_result cudaq::QPU::launchKernel(const sample_policy &policy,
+                                       const AnyModule &module,
+                                       KernelArgs args) {
+  throw std::runtime_error(
+      "This QPU does not support launching the sample_policy.");
+}
+
+async_sample_result cudaq::QPU::launchKernel(const async_sample_policy &policy,
+                                             const AnyModule &module,
+                                             KernelArgs args) {
+  throw std::runtime_error(
+      "This QPU does not support launching the async_sample_policy.");
+}
+
+observe_result cudaq::QPU::launchKernel(const observe_policy &policy,
+                                        const AnyModule &module,
+                                        KernelArgs args) {
+  throw std::runtime_error(
+      "This QPU does not support launching the observe_policy.");
+}
+
+async_observe_result cudaq::QPU::launchKernel(async_observe_policy &policy,
+                                              const AnyModule &module,
+                                              KernelArgs args) {
+  throw std::runtime_error(
+      "This QPU does not support launching the async_observe_policy.");
+}
+
 cudaq::KernelThunkResultType
 cudaq::QPU::runJITCompiledModule(const CompiledModule &compiled,
                                  KernelArgs args) {
   ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::runJITCompiledModule",
                          compiled.getName());
+
+  // Propagate metadata from the compiled artifact to the execution context.
+  if (auto ctx = getExecutionContext()) {
+    ctx->hasConditionalsOnMeasureResults =
+        compiled.getMetadata().hasConditionalsOnMeasureResults;
+
+    if (ctx->name == "resource-count" && compiled.getResources()) {
+      nvqir::resource_counter::prepopulate(*compiled.getResources());
+    }
+  }
+
   auto rawArgs = args.getTypeErased().value_or(std::span<void *const>{});
   auto funcPtr = compiled.getJit()->getFn();
   const auto &resultInfo = compiled.getResultInfo();
@@ -82,64 +111,20 @@ cudaq::QPU::runJITCompiledModule(const CompiledModule &compiled,
   return {nullptr, 0};
 }
 
-cudaq::CompiledModule cudaq::QPU::compileModule(const SourceModule &src,
-                                                KernelArgs args,
-                                                bool isEntryPoint) {
-  auto launcher = registry::get<ModuleLauncher>("default");
-  if (!launcher)
-    throw std::runtime_error(
-        "No ModuleLauncher registered with name 'default'. This may be a "
-        "result of attempting to use `compileModule` outside Python.");
-  ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::compileModule",
-                         src.getName());
-  return launcher->compileModule(src, args, isEntryPoint);
+std::unique_ptr<cudaq::CompileTarget>
+cudaq::QPU::getCompileTarget(const sample_policy &) {
+  throw std::runtime_error(
+      "no CompileTarget defined for sample_policy on this QPU");
 }
 
-void QPU::handleObservation(ExecutionContext &context) const {
-  // The reason for the 2 if checks is simply to do a flushGateQueue() before
-  // initiating the trace.
-  bool execute = context.name == "observe";
-  if (execute) {
-    ScopedTraceWithContext(cudaq::TIMING_OBSERVE,
-                           "handleObservation flushGateQueue()");
-    getExecutionManager()->flushGateQueue();
-  }
-  if (execute) {
-    ScopedTraceWithContext(cudaq::TIMING_OBSERVE,
-                           "QPU::handleObservation (after flush)");
-    double sum = 0.0;
-    if (!context.spin.has_value())
-      throw std::runtime_error("[QPU] Observe ExecutionContext specified "
-                               "without a cudaq::spin_op.");
+std::unique_ptr<cudaq::CompileTarget>
+cudaq::QPU::getCompileTarget(const observe_policy &) {
+  throw std::runtime_error(
+      "no CompileTarget defined for observe_policy on this QPU");
+}
 
-    std::vector<cudaq::ExecutionResult> results;
-    cudaq::spin_op &H = context.spin.value();
-    assert(cudaq::spin_op::canonicalize(H) == H);
-
-    // If the backend supports the observe task, let it compute the
-    // expectation value instead of manually looping over terms, applying
-    // basis change ops, and computing <ZZ..ZZZ>
-    if (context.canHandleObserve) {
-      auto [exp, data] = cudaq::measure(H);
-      context.expectationValue = exp;
-      context.result = data;
-    } else {
-
-      // Loop over each term and compute coeff * <term>
-      for (const auto &term : H) {
-        if (term.is_identity())
-          sum += term.evaluate_coefficient().real();
-        else {
-          // This takes a longer time for the first iteration unless
-          // flushGateQueue() is called above.
-          auto [exp, data] = cudaq::measure(term);
-          results.emplace_back(data.to_map(), term.get_term_id(), exp);
-          sum += term.evaluate_coefficient().real() * exp;
-        }
-      };
-
-      context.expectationValue = sum;
-      context.result = cudaq::sample_result(sum, results);
-    }
-  }
+std::unique_ptr<cudaq::CompileTarget>
+cudaq::QPU::getCompileTarget(const other_policies &olicy, ExecutionContext *) {
+  throw std::runtime_error(
+      "no CompileTarget defined for other_policies on this QPU");
 }

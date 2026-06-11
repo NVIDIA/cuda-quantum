@@ -9,15 +9,17 @@
 // This code is from Issue 251.
 
 // clang-format off
-// RUN: nvq++ --target anyon      --emulate %s -o %t && %t
+// RUN: if %anyon_avail; then nvq++ --target anyon --emulate %s -o %t && %t; fi
 // RUN: nvq++ --target infleqtion --emulate %s -o %t && %t
-// RUN: nvq++ --target ionq       --emulate %s -o %t && %t
-// RUN: nvq++ --target iqm        --emulate %s -o %t
-// RUN: IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t
-// RUN: IQM_QPU_QA=%iqm_tests_dir/Crystal_20.txt %t
-// RUN: IQM_QPU_QA=%iqm_tests_dir/Crystal_54.txt %t
-// RUN: nvq++ --target oqc        --emulate %s -o %t && %t
-// RUN: nvq++ --target qbraid     --emulate %s -o %t && %t
+// RUN: if %ionq_avail; then nvq++ --target ionq --emulate %s -o %t && %t; fi
+// RUN: if %iqm_avail; then \
+// RUN:   nvq++ --target iqm --emulate %s -o %t && \
+// RUN:   IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t && \
+// RUN:   IQM_QPU_QA=%iqm_tests_dir/Crystal_20.txt %t && \
+// RUN:   IQM_QPU_QA=%iqm_tests_dir/Crystal_54.txt %t ; \
+// RUN: fi
+// RUN: if %oqc_avail; then nvq++ --target oqc --emulate %s -o %t && %t; fi
+// RUN: if %qbraid_avail; then nvq++ --target qbraid --emulate %s -o %t && %t; fi
 // RUN: nvq++ --target quantinuum --emulate %s -o %t && %t
 // RUN: if %braket_avail; then nvq++ --target braket --emulate %s -o %t && %t; fi
 // RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t; fi

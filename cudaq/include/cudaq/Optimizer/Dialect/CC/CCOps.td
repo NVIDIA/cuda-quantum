@@ -96,7 +96,14 @@ def cc_ScopeOp : CCOp<"scope",
     using BodyBuilderFn =
         llvm::function_ref<void(mlir::OpBuilder &, mlir::Location)>;
 
-    bool hasAllocation(bool quantumAllocs = true);
+    // Determine if the scope has any allocation.
+    bool hasAllocation();
+
+    // Determine if the scope has a classical allocation, ignoring quantum.
+    bool hasClassicalAllocation();
+    
+    // Determine if the scope has a quantum allocation, ignoring classical.
+    bool hasQuantumAllocation();
   }];
 }
 
@@ -1818,8 +1825,8 @@ def cc_NoInlineCallOp : CCOp<"noinline_call",
     [CallOpInterface, SymbolUserOpInterface]> {
   let summary = "Create a call that the inliner will not inline.";
   let description = [{
-    The MLIR inliner in LLVM 16 is too smart and will inline trivial calls.
-    Moreover, there is no mechanism in this version of MLIR to stop the inliner
+    The MLIR inliner in LLVM is too smart and will inline trivial calls.
+    Moreover, there is no mechanism in MLIR to stop the inliner
     from inlining these trivial functions.
 
     The cc.noinline_call is therefore a special op that prevents the inliner
@@ -1882,7 +1889,11 @@ def cc_DeviceCallOp : CCOp<"device_call",
     Optional<AnySignlessInteger>:$device,
     Variadic<AnyType>:$args,
     OptionalAttr<DictArrayAttr>:$arg_attrs,
-    OptionalAttr<DictArrayAttr>:$res_attrs
+    OptionalAttr<DictArrayAttr>:$res_attrs,
+    // Indices into `args` whose original C++ callee parameters were
+    // non-const `std::vector<T>&`. The attribute preserves by-reference
+    // vector intent that is otherwise lost after lowering to `!cc.stdvec<T>`.
+    OptionalAttr<DenseI64ArrayAttr>:$by_ref_vec_arg_indices
   );
   let results = (outs Variadic<AnyType>);
   let assemblyFormat = [{
@@ -1898,19 +1909,20 @@ def cc_DeviceCallOp : CCOp<"device_call",
                    "mlir::ValueRange":$values), [{
       return build($_builder, $_state, resTys, callee, mlir::ValueRange{},
         mlir::ValueRange{},  mlir::Value{}, values, mlir::ArrayAttr{},
-        mlir::ArrayAttr{});
+        mlir::ArrayAttr{}, mlir::DenseI64ArrayAttr{});
     }]>,
     OpBuilder<(ins "mlir::TypeRange":$resTys, "mlir::StringRef":$callee,
                    "mlir::Value":$device, "mlir::ValueRange":$values), [{
       return build($_builder, $_state, resTys, callee, mlir::ValueRange{},
         mlir::ValueRange{}, device, values, mlir::ArrayAttr{},
-        mlir::ArrayAttr{});
+        mlir::ArrayAttr{}, mlir::DenseI64ArrayAttr{});
     }]>,
     OpBuilder<(ins "mlir::TypeRange":$resTys, "mlir::StringRef":$callee,
                    "mlir::ValueRange":$blocks, "mlir::ValueRange":$threads,
                    "mlir::ValueRange":$values), [{
       return build($_builder, $_state, resTys, callee, blocks, threads,
-        mlir::Value{}, values, mlir::ArrayAttr{}, mlir::ArrayAttr{});
+        mlir::Value{}, values, mlir::ArrayAttr{}, mlir::ArrayAttr{},
+        mlir::DenseI64ArrayAttr{});
     }]>
   ];
 

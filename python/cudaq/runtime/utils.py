@@ -9,12 +9,36 @@ from __future__ import annotations
 
 from cudaq.kernel.kernel_builder import PyKernel
 from cudaq.kernel.kernel_decorator import isa_kernel_decorator
-from cudaq.kernel.utils import mlirTypeToPyType
+from cudaq.kernel.utils import mlirTypeToPyType, nvqppPrefix
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import cc
 
 import numpy as np
 from typing import List
+
+
+def _kernel_has_conditionals_on_measure(kernel) -> bool:
+    """Return True if @p kernel branches on a measurement result.
+
+    Shared by primitives that need to reject measurement-dependent
+    control flow with their own diagnostic. The caller is responsible for
+    raising the API-specific error message; this helper only returns the
+    boolean detection result.
+    """
+    if isa_kernel_decorator(kernel):
+        if not kernel.supports_compilation():
+            return False
+        for operation in kernel.qkeModule.body.operations:
+            op_name = getattr(operation.name,
+                              'value', operation.name) if hasattr(
+                                  operation, 'name') else None
+            if (op_name == nvqppPrefix + kernel.uniqName and
+                    'qubitMeasurementFeedback' in operation.attributes):
+                return True
+        return False
+    if isinstance(kernel, PyKernel):
+        return kernel.conditionalOnMeasure
+    return False
 
 
 def __isBroadcast(kernel, *args):

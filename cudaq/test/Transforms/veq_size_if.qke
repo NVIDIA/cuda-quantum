@@ -1,0 +1,40 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// py-frontend-cleanup hoists quake.veq_size into the cc.if branches; the
+// following canonicalize folds the exposed branch-local sizes.
+// RUN: cudaq-opt --py-frontend-cleanup --canonicalize %s | FileCheck %s
+
+func.func @veq_size_if(%cond : i1, %hi : i64) -> i64 {
+  %q = quake.alloca !quake.veq<5>
+  %slice = cc.if(%cond) -> !quake.veq<?> {
+    %sub = quake.subveq %q, 0, %hi : (!quake.veq<5>, i64) -> !quake.veq<?>
+    cc.continue %sub : !quake.veq<?>
+  } else {
+    %undef = cc.undef !quake.veq<?>
+    cc.continue %undef : !quake.veq<?>
+  }
+  %size = quake.veq_size %slice : (!quake.veq<?>) -> i64
+  return %size : i64
+}
+
+// CHECK-LABEL:   func.func @veq_size_if(
+// CHECK-SAME:      %[[ARG0:.*]]: i1,
+// CHECK-SAME:      %[[ARG1:.*]]: i64) -> i64 {
+// CHECK:           %[[CONSTANT_0:.*]] = arith.constant 0 : i64
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<5>
+// CHECK:           %[[IF_0:.*]]:2 = cc.if(%[[ARG0]]) -> (!quake.veq<?>, i64) {
+// CHECK:             %[[SUBVEQ_0:.*]] = quake.subveq %[[ALLOCA_0]], 0, %[[ARG1]] : (!quake.veq<5>, i64) -> !quake.veq<?>
+// CHECK:             %[[VEQ_SIZE_0:.*]] = quake.veq_size %[[SUBVEQ_0]] : (!quake.veq<?>) -> i64
+// CHECK:             cc.continue %[[SUBVEQ_0]], %[[VEQ_SIZE_0]] : !quake.veq<?>, i64
+// CHECK:           } else {
+// CHECK:             %[[UNDEF_0:.*]] = cc.undef !quake.veq<?>
+// CHECK:             cc.continue %[[UNDEF_0]], %[[CONSTANT_0]] : !quake.veq<?>, i64
+// CHECK:           }
+// CHECK:           return %[[IF_0]]#1 : i64
+// CHECK:         }

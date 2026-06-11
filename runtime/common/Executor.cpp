@@ -14,9 +14,9 @@
 #include "cudaq/runtime/logger/logger.h"
 
 namespace cudaq {
-details::future Executor::execute(std::vector<KernelExecution> &codesToExecute,
-                                  cudaq::details::ExecutionContextType execType,
-                                  std::vector<char> *rawOutput) {
+detail::future Executor::execute(std::vector<KernelExecution> &codesToExecute,
+                                 cudaq::detail::ExecutionContextType execType,
+                                 std::vector<char> *rawOutput) {
 
   serverHelper->setShots(shots);
 
@@ -29,7 +29,7 @@ details::future Executor::execute(std::vector<KernelExecution> &codesToExecute,
 
   auto config = serverHelper->getConfig();
 
-  std::vector<details::future::Job> ids;
+  std::vector<detail::future::Job> ids;
   for (std::size_t i = 0; auto &job : jobs) {
     CUDAQ_INFO("Job (name={}) created, posting to {}", codesToExecute[i].name,
                jobPostPath);
@@ -59,7 +59,7 @@ details::future Executor::execute(std::vector<KernelExecution> &codesToExecute,
 
   config.insert({"shots", std::to_string(shots)});
   std::string name = serverHelper->name();
-  return details::future(ids, name, config, execType, rawOutput);
+  return detail::future(ids, name, config, execType, rawOutput);
 }
 
 Executor::Executor() : client(std::make_unique<RestClient>()) {}

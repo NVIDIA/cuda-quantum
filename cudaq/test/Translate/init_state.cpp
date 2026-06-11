@@ -33,7 +33,7 @@ struct kernel {
 // CHECK:         %[[VAL_9:.*]] = phi i64 [ %[[VAL_10:.*]], %[[VAL_6]] ], [ 0, %[[VAL_8]] ]
 // CHECK:         %[[VAL_11:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_2]], i64 %[[VAL_9]])
 // CHECK:         %[[VAL_13:.*]] = load ptr, ptr %[[VAL_11]], align 8
-// CHECK:         %[[VAL_14:.*]] = tail call ptr @__quantum__qis__mz__to__register(ptr %[[VAL_13]], ptr nonnull @cstr.726573756C7400)
+// CHECK:         %[[VAL_14:.*]] = tail call i64 @__quantum__qis__mz_handle__to__register(ptr %[[VAL_13]], ptr nonnull @cstr.726573756C7400)
 // CHECK:         %[[VAL_10]] = add nuw nsw i64 %[[VAL_9]], 1
 // CHECK:         %[[VAL_16:.*]] = icmp eq i64 %[[VAL_10]], %[[VAL_4]]
 // CHECK:         br i1 %[[VAL_16]], label %[[VAL_7]], label %[[VAL_6]]

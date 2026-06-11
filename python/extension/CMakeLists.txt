@@ -59,7 +59,7 @@ if(APPLE)
   set(_quakeDialects_extra_link_libs
     cudaq-mlir-runtime
     MLIRPass
-    CUDAQTargetConfigUtil
+    CUDAQTargetConfig
     cudaq-python-interop
     cudaq-platform-default
   )
@@ -80,7 +80,7 @@ else()
     OptCodeGen
     OptTransforms
     MLIRPass
-    CUDAQTargetConfigUtil
+    CUDAQTargetConfig
     cudaq-python-interop
     cudaq-platform-default
     cudaq-qir-verifier
@@ -102,11 +102,14 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/common/py_AnalogHamiltonian.cpp
     ../runtime/cudaq/algorithms/py_draw.cpp
     ../runtime/cudaq/algorithms/py_evolve.cpp
+    ../runtime/cudaq/algorithms/py_observe.cpp
     ../runtime/cudaq/algorithms/py_observe_async.cpp
     ../runtime/cudaq/algorithms/py_optimizer.cpp
+    ../runtime/cudaq/algorithms/py_sample.cpp
     ../runtime/cudaq/algorithms/py_sample_async.cpp
     ../runtime/cudaq/algorithms/py_sample_ptsbe.cpp
     ../runtime/cudaq/algorithms/py_resource_count.cpp
+    ../runtime/cudaq/analysis/py_dem.cpp
     ../runtime/cudaq/algorithms/py_run.cpp
     ../../runtime/cudaq/algorithms/run.cpp      # Common Python and C++ implementation of run
     ../runtime/cudaq/algorithms/py_state.cpp
@@ -323,15 +326,6 @@ if(APPLE)
   set(_origin_prefix "@loader_path")
 else()
   set(_origin_prefix "$ORIGIN")
-endif()
-
-## Retain all linked libraries (e.g. libcudaq) so that static initializers
-## (ModuleLauncher registry and PythonLauncher registration) run and resolve
-## in the same process. Without --no-as-needed the linker may drop libcudaq
-## and the launcher is never registered.
-if(CUDAQ_FORCE_LINK_FLAG)
-  target_link_options(CUDAQuantumPythonCAPI PRIVATE
-    ${CUDAQ_FORCE_LINK_FLAG})
 endif()
 
 if (NOT SKBUILD)

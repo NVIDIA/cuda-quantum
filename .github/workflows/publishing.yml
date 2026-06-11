@@ -1102,6 +1102,23 @@ jobs:
           name: x86_64-cu${{ steps.config.outputs.cuda_major }}-installer
           path: /tmp/install
 
+      - name: Verify installer integrity (re-fetch if corrupt)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_NAME: x86_64-cu${{ steps.config.outputs.cuda_major }}-installer
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          installer=/tmp/install/install_cuda_quantum_cu${{ steps.config.outputs.cuda_major }}.x86_64
+          # makeself --check verifies the embedded sha256 and archive size without
+          # extracting. A truncated artifact download otherwise surfaces later as a
+          # cryptic "Unexpected archive size" failure when the installer runs.
+          if ! bash "$installer" --check; then
+            echo "::warning::Installer failed integrity check after download; re-fetching artifact."
+            rm -rf /tmp/install && mkdir -p /tmp/install
+            retry gh run download ${{ github.run_id }} -R ${{ github.repository }} -n "$ARTIFACT_NAME" -D /tmp/install
+            bash "$installer" --check
+          fi
+
       - name: Runtime dependencies (apt)
         if: startsWith(matrix.os_image, 'ubuntu')
         run: |

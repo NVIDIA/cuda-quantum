@@ -13,6 +13,8 @@
 #include "common/KernelArgs.h"
 #include "common/Registry.h"
 #include "common/ThunkInterface.h"
+#include "cudaq/Target/CompileTarget.h"
+#include "cudaq/algorithms/policies.h"
 #include "cudaq/remote_capabilities.h"
 
 namespace mlir {
@@ -51,11 +53,6 @@ protected:
 
   /// @brief Noise model specified for QPU execution.
   const noise_model *noiseModel = nullptr;
-
-  /// @brief Check if the current execution context is a `spin_op` observation
-  /// and perform state-preparation circuit measurement based on the `spin_op`
-  /// terms.
-  void handleObservation(ExecutionContext &context) const;
 
   [[nodiscard]] static KernelThunkResultType
   runJITCompiledModule(const CompiledModule &compiled, KernelArgs args);
@@ -141,24 +138,35 @@ public:
                          cudaq::optimizer &optimizer, const int n_params,
                          const std::size_t shots) {}
 
+  virtual sample_result launchKernel(const sample_policy &policy,
+                                     const AnyModule &module, KernelArgs args);
+
+  virtual async_sample_result launchKernel(const async_sample_policy &policy,
+                                           const AnyModule &module,
+                                           KernelArgs args);
+
+  virtual observe_result launchKernel(const observe_policy &policy,
+                                      const AnyModule &module, KernelArgs args);
+
+  virtual async_observe_result launchKernel(async_observe_policy &policy,
+                                            const AnyModule &module,
+                                            KernelArgs args);
+
   [[nodiscard]] virtual KernelThunkResultType
   unifiedLaunchModule(const AnyModule &module, KernelArgs args);
 
-  [[nodiscard]] virtual CompiledModule
-  compileModule(const SourceModule &src, KernelArgs args, bool isEntryPoint);
+  /// Get the compile target of the QPU for the given policy.
+  [[nodiscard]] virtual std::unique_ptr<CompileTarget>
+  getCompileTarget(const sample_policy &policy);
+  [[nodiscard]] virtual std::unique_ptr<CompileTarget>
+  getCompileTarget(const observe_policy &policy);
+  // Overload for currently unsupported policies (to be removed).
+  [[nodiscard]] virtual std::unique_ptr<CompileTarget>
+  getCompileTarget(const other_policies &policy, ExecutionContext *context);
 
   /// @brief Notify the QPU that a new random seed value is set.
   /// By default do nothing, let subclasses override.
   virtual void onRandomSeedSet(std::size_t seed) {}
-};
-
-struct ModuleLauncher : public registry::RegisteredType<ModuleLauncher> {
-  virtual ~ModuleLauncher() = default;
-
-  /// Compile (specialize + JIT) a kernel module and return a ready-to-execute
-  /// CompiledModule.
-  virtual CompiledModule compileModule(const SourceModule &src, KernelArgs args,
-                                       bool isEntryPoint) = 0;
 };
 
 } // namespace cudaq

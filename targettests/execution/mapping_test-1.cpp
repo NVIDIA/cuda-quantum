@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2> %t.txt | FileCheck %s &&  FileCheck --check-prefix=QUAKE %s < %t.txt; status=$?; rm -f %t.txt; exit "$status"
-// RUN: nvq++ %s -o %t --target iqm --emulate --mapping-file "%iqm_tests_dir/Crystal_5.txt" && %t | FileCheck %s
+// RUN: if %oqc_avail; then nvq++ %s -o %t --target oqc --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2> %t.txt | FileCheck %s &&  FileCheck --check-prefix=QUAKE %s < %t.txt; status=$?; rm -f %t.txt; exit "$status"; fi
+// RUN: if %iqm_avail; then nvq++ %s -o %t --target iqm --emulate --mapping-file "%iqm_tests_dir/Crystal_5.txt" && %t | FileCheck %s; fi
 // clang-format on
 
 #include <cudaq.h>

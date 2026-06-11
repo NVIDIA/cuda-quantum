@@ -72,7 +72,10 @@ struct DetectorVector {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__DetectorVector()
 // CHECK:           %[[VAL_QS:.*]] = quake.alloca !quake.veq<4>
 // CHECK:           %[[VAL_HS:.*]] = quake.mz %[[VAL_QS]] name "handles" : (!quake.veq<4>) -> !cc.stdvec<!cc.measure_handle>
-// CHECK:           qec.detector %[[VAL_HS]] : !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[VAL_HSA:.*]] = cc.alloca !cc.stdvec<!cc.measure_handle>
+// CHECK:           cc.store %[[VAL_HS]], %[[VAL_HSA]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           %[[VAL_HSL:.*]] = cc.load %[[VAL_HSA]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           qec.detector %[[VAL_HSL]] : !cc.stdvec<!cc.measure_handle>
 // CHECK-NOT:       quake.discriminate
 // CHECK:           return
 // CHECK:         }
@@ -94,7 +97,10 @@ struct DetectorMixed {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__DetectorMixed()
 // CHECK:           %[[VAL_M:.*]] = quake.mz %{{.*}} name "h" : (!quake.ref) -> !cc.measure_handle
 // CHECK:           %[[VAL_HS:.*]] = quake.mz %{{.*}} name "hs" : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
-// CHECK:           qec.detector %[[VAL_HS]], %{{.*}} : !cc.stdvec<!cc.measure_handle>, !cc.measure_handle
+// CHECK:           %[[VAL_HSA:.*]] = cc.alloca !cc.stdvec<!cc.measure_handle>
+// CHECK:           cc.store %[[VAL_HS]], %[[VAL_HSA]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           %[[VAL_HSL:.*]] = cc.load %[[VAL_HSA]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           qec.detector %[[VAL_HSL]], %{{.*}} : !cc.stdvec<!cc.measure_handle>, !cc.measure_handle
 // CHECK:           return
 // CHECK:         }
 
@@ -133,7 +139,10 @@ struct ObservableVectorDefault {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ObservableVectorDefault()
 // CHECK:           %[[VAL_HS:.*]] = quake.mz %{{.*}} name "handles"
-// CHECK:           qec.observable %[[VAL_HS]] : !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[VAL_HSA:.*]] = cc.alloca !cc.stdvec<!cc.measure_handle>
+// CHECK:           cc.store %[[VAL_HS]], %[[VAL_HSA]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           %[[VAL_HSL:.*]] = cc.load %[[VAL_HSA]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           qec.observable %[[VAL_HSL]] : !cc.stdvec<!cc.measure_handle>
 // CHECK-NOT:       index
 // CHECK:           return
 // CHECK:         }
@@ -152,7 +161,10 @@ struct ObservableVectorIndexed {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ObservableVectorIndexed()
 // CHECK:           %[[VAL_HS:.*]] = quake.mz %{{.*}} name "handles"
-// CHECK:           qec.observable %[[VAL_HS]] index 2 : !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[VAL_HSA:.*]] = cc.alloca !cc.stdvec<!cc.measure_handle>
+// CHECK:           cc.store %[[VAL_HS]], %[[VAL_HSA]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           %[[VAL_HSL:.*]] = cc.load %[[VAL_HSA]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           qec.observable %[[VAL_HSL]] index 2 : !cc.stdvec<!cc.measure_handle>
 // CHECK:           return
 // CHECK:         }
 
@@ -208,7 +220,10 @@ struct ObservableMixed {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__ObservableMixed()
 // CHECK:           %[[VAL_M:.*]] = quake.mz %{{.*}} name "h" : (!quake.ref) -> !cc.measure_handle
 // CHECK:           %[[VAL_HS:.*]] = quake.mz %{{.*}} name "hs" : (!quake.veq<2>) -> !cc.stdvec<!cc.measure_handle>
-// CHECK:           qec.observable %[[VAL_HS]], %{{.*}} : !cc.stdvec<!cc.measure_handle>, !cc.measure_handle
+// CHECK:           %[[VAL_HSA:.*]] = cc.alloca !cc.stdvec<!cc.measure_handle>
+// CHECK:           cc.store %[[VAL_HS]], %[[VAL_HSA]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           %[[VAL_HSL:.*]] = cc.load %[[VAL_HSA]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           qec.observable %[[VAL_HSL]], %{{.*}} : !cc.stdvec<!cc.measure_handle>, !cc.measure_handle
 // CHECK-NOT:       index
 // CHECK:           return
 // CHECK:         }
@@ -257,8 +272,14 @@ struct PairDetectors {
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__PairDetectors()
 // CHECK:           %[[VAL_P:.*]] = quake.mz %{{.*}} name "prev" : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[VAL_PA:.*]] = cc.alloca !cc.stdvec<!cc.measure_handle>
+// CHECK:           cc.store %[[VAL_P]], %[[VAL_PA]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
 // CHECK:           %[[VAL_C:.*]] = quake.mz %{{.*}} name "curr" : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
-// CHECK:           qec.pair_detectors %[[VAL_P]], %[[VAL_C]] : <!cc.measure_handle>, <!cc.measure_handle>
+// CHECK:           %[[VAL_CA:.*]] = cc.alloca !cc.stdvec<!cc.measure_handle>
+// CHECK:           cc.store %[[VAL_C]], %[[VAL_CA]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           %[[VAL_PL:.*]] = cc.load %[[VAL_PA]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           %[[VAL_CL:.*]] = cc.load %[[VAL_CA]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           qec.pair_detectors %[[VAL_PL]], %[[VAL_CL]] : <!cc.measure_handle>, <!cc.measure_handle>
 // CHECK:           return
 // CHECK:         }
 
@@ -356,7 +377,10 @@ struct RepCodeD3 {
 // CHECK:             }
 // CHECK:           }
 // CHECK:           %[[MZ_2:.*]] = quake.mz %[[ALLOCA_1]] name "readout" : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
-// CHECK:           qec.observable %[[MZ_2]] : !cc.stdvec<!cc.measure_handle>
+// CHECK:           %[[ALLOCA_R:.*]] = cc.alloca !cc.stdvec<!cc.measure_handle>
+// CHECK:           cc.store %[[MZ_2]], %[[ALLOCA_R]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           %[[LOAD_R:.*]] = cc.load %[[ALLOCA_R]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           qec.observable %[[LOAD_R]] : !cc.stdvec<!cc.measure_handle>
 // CHECK:           return
 // CHECK:         }
 

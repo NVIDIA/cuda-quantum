@@ -105,7 +105,7 @@ Common
 .. doxygenclass:: cudaq::ExecutionContext
     :members:
 
-.. doxygenclass:: cudaq::details::future
+.. doxygenclass:: cudaq::detail::future
     :members:
 
 .. doxygenclass:: cudaq::async_result
@@ -131,6 +131,31 @@ Common
 .. doxygenfunction:: cudaq::run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel, ARGS &&...args)
 .. doxygenfunction:: cudaq::run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel, ARGS &&...args)
 .. doxygenfunction:: cudaq::run_async(std::size_t qpu_id, std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel, ARGS &&...args)
+
+.. doxygenclass:: cudaq::measure_handle
+
+.. doxygentypedef:: cudaq::measure_result
+
+The measurement operations ``mz`` / ``mx`` / ``my`` return a
+``cudaq::measure_handle`` (also available under the alias
+``cudaq::measure_result``) rather than a bare classical value. Inside a kernel the
+handle converts to a classical value implicitly (the compiler intercepts the
+coercion), which defers discrimination. The helpers below discriminate a
+vector of handles.
+
+.. cpp:function:: std::vector<bool> cudaq::to_bools(const std::vector<measure_result> &results)
+
+    Discriminate a vector of measurement handles into their boolean outcomes.
+    Used inside a kernel (where the compiler intercepts the call); at host
+    scope the handles must already have been discriminated.
+
+.. cpp:function:: std::int64_t cudaq::to_integer(const std::vector<measure_result> &bits)
+.. cpp:function:: std::int64_t cudaq::to_integer(const std::vector<bool> &bits)
+.. cpp:function:: std::int64_t cudaq::to_integer(const std::string &bitstring)
+
+    Interpret a sequence of measurement outcomes as a little-endian unsigned
+    integer (bit ``i`` has weight ``2^i``). Overloads accept a vector of
+    handles, a vector of ``bool``, or a bitstring such as ``"011"``.
 
 .. doxygenclass:: cudaq::SimulationState
 
@@ -282,10 +307,10 @@ Kernel Builder
 .. doxygenclass:: cudaq::QuakeValue
     :members:
 
-.. doxygenclass:: cudaq::details::kernel_builder_base
+.. doxygenclass:: cudaq::detail::kernel_builder_base
     :members:
 
-.. doxygenclass:: cudaq::details::KernelBuilderType
+.. doxygenclass:: cudaq::detail::KernelBuilderType
     :members:
 
 Algorithms
@@ -313,6 +338,39 @@ Algorithms
 
 .. doxygenclass:: cudaq::gradients::forward_difference
     :members:
+
+.. doxygenfunction:: cudaq::dem_from_kernel(QuantumKernel &&kernel, const cudaq::noise_model *noise, Args &&...args)
+.. doxygenfunction:: cudaq::dem_from_kernel(QuantumKernel &&kernel, Args &&...args)
+
+Quantum Error Correction
+========================
+
+These kernel-side declarations annotate a circuit with detectors and logical
+observables so a detector error model (DEM) can be extracted with
+``cudaq::dem_from_kernel``. They are intercepted by the compiler
+inside ``__qpu__`` kernels and lower to the ``qec`` dialect; for
+backends that do not consume them they are erased before execution.
+
+.. cpp:function:: template <typename... MeasArgs> void cudaq::detector(MeasArgs &&...ms)
+
+    Declare one detector as the parity of the referenced measurements. Each
+    argument is a ``cudaq::measure_result`` or a
+    ``std::vector<cudaq::measure_result>``. A detector is a parity constraint
+    that is deterministic under noise-free execution.
+
+.. cpp:function:: void cudaq::detectors(const std::vector<measure_result> &prev, const std::vector<measure_result> &curr)
+
+    Declare N detectors at once by pairing two equal-length handle vectors
+    element-wise (``detector(prev[i], curr[i])`` for each ``i``); the standard
+    form for cross-round detectors. Length agreement is enforced at runtime.
+
+.. cpp:function:: template <typename... MeasArgs> void cudaq::logical_observable(MeasArgs &&...ms)
+.. cpp:function:: void cudaq::logical_observable(const std::vector<measure_result> &ms, std::size_t observable_index)
+
+    Declare one logical observable as the parity of the referenced
+    measurements. The variadic form uses observable index ``0``; codes with
+    ``k`` logical qubits use the ``(vector, observable_index)`` overload to
+    declare observables ``0..k-1``.
 
 Platform
 =========
@@ -377,7 +435,7 @@ Namespaces
 .. doxygennamespace:: cudaq::contrib
     :desc-only:
 
-.. doxygennamespace:: cudaq::details
+.. doxygennamespace:: cudaq::detail
     :desc-only:
 
 .. doxygennamespace:: cudaq::registry

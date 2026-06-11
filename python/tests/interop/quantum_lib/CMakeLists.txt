@@ -9,7 +9,7 @@
 set(CMAKE_CXX_COMPILER "${CMAKE_BINARY_DIR}/bin/nvq++")
 
 set(CMAKE_CXX_COMPILE_OBJECT
-  "<CMAKE_CXX_COMPILER> -fPIC --enable-mlir --disable-mlir-links <DEFINES> <INCLUDES> -o <OBJECT> -c <SOURCE>")
+  "<CMAKE_CXX_COMPILER> -fPIC --disable-mlir-links <DEFINES> <INCLUDES> -o <OBJECT> -c <SOURCE>")
 
 # FIXME Error with SHARED, it pulls in all the mlir libraries anyway
 add_library(quantum_lib

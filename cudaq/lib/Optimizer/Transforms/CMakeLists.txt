@@ -24,6 +24,7 @@ add_cudaq_library(OptTransforms
   CombineMeasurements.cpp
   CombineQuantumAlloc.cpp
   ConstantPropagation.cpp
+  DeadQuantumElimination.cpp
   DeadStoreRemoval.cpp
   Decomposition.cpp
   DecompositionPatterns.cpp
@@ -32,6 +33,7 @@ add_cudaq_library(OptTransforms
   DistributedDeviceCall.cpp
   EraseNoise.cpp
   EraseNopCalls.cpp
+  EraseQEC.cpp
   EraseVectorCopyCtor.cpp
   ExpandControlVeqs.cpp
   ExpandMeasurements.cpp
@@ -57,6 +59,7 @@ add_cudaq_library(OptTransforms
   PhaseFolding.cpp
   Pipelines.cpp
   PruneCtrlRelations.cpp
+  PyFrontendCleanup.cpp
   PySynthCallableBlockArgs.cpp
   QuakePropagateMetadata.cpp
   QuakeSimplify.cpp
@@ -80,12 +83,14 @@ add_cudaq_library(OptTransforms
   DEPENDS
     OptTransformsPassIncGen
     CCDialect
+    QECDialect
     QuakeDialect
     
   LINK_LIBS PUBLIC
     CCDialect
     MLIRIR
     OptimBuilder
+    QECDialect
     QuakeDialect
 )
 

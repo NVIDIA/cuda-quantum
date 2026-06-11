@@ -42,7 +42,7 @@ using namespace mlir;
 // FIXME: include the header file and type out the namespace in every definition
 // below as appropriate and get rid of wrapping the entire file in this
 // namespace.
-namespace cudaq::details {
+namespace cudaq::detail {
 
 /// @brief Track unique measurement register names.
 static std::size_t regCounter = 0;
@@ -1029,7 +1029,13 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
           cudaq::opt::createCombineQuantumAllocations());
     pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
     pm.addNestedPass<func::FuncOp>(createCSEPass());
-    pm.addPass(cudaq::opt::createConvertToQIR());
+    // Route through the modern QIR API pipeline so QEC ops added by the C++
+    // builder lower to their runtime entries. The legacy `createConvertToQIR`
+    // (a single-shot Quake -> LLVM pass scoped to QIR version 0.1) carries
+    // no QEC patterns. The `createCCToLLVM` step that the legacy pass folded in
+    // is now scheduled explicitly.
+    cudaq::opt::addConvertToQIRAPIPipeline(pm, "full");
+    pm.addPass(cudaq::opt::createCCToLLVM());
     pm.addPass(createCanonicalizerPass());
 
     auto enablePrintMLIREachPass =
@@ -1206,4 +1212,4 @@ std::ostream &operator<<(std::ostream &stream,
   return stream << builder.to_quake();
 }
 
-} // namespace cudaq::details
+} // namespace cudaq::detail

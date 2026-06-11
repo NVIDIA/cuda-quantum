@@ -8,6 +8,7 @@
 
 #include "cudaq/Verifier/NVQIRCalls.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
+#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 
@@ -32,6 +33,11 @@ constexpr const char *nvqirFuncs[] = {
     cudaq::createCudaqStateFromDataF64,
     cudaq::deleteCudaqState};
 
+constexpr const char *deviceCallFuncs[] = {
+    cudaq::runtime::deviceCallAcquireRealtimeFrame,
+    cudaq::runtime::deviceCallDispatchRealtimeFrame,
+    cudaq::runtime::deviceCallSafelyReleaseRealtimeFrame};
+
 constexpr const char *libcFuncs[] = {"malloc", "free", "memcpy", "memset"};
 
 // Helper function to verify that \p name is a valid NVQIR function and can be
@@ -54,6 +60,8 @@ static bool isVerifiedFunction(StringRef name,
   // collections, consider it invalid.
   return std::find(std::begin(nvqirFuncs), std::end(nvqirFuncs), name) !=
              std::end(nvqirFuncs) ||
+         std::find(std::begin(deviceCallFuncs), std::end(deviceCallFuncs),
+                   name) != std::end(deviceCallFuncs) ||
          std::find(std::begin(libcFuncs), std::end(libcFuncs), name) !=
              std::end(libcFuncs) ||
          std::find(goldenFuncs.begin(), goldenFuncs.end(), name) !=

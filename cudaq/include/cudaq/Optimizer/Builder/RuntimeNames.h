@@ -69,9 +69,13 @@ static constexpr const char bindingDeconstructString[] =
     "__nvqpp_deconstructString";
 static constexpr const char enableCudaqRun[] = "quake.cudaq_run";
 
-// Runtime layer of a `device_call` application.
-static constexpr const char callDeviceCallback[] =
-    "__nvqpp__device_callback_run";
+// Runtime layer of a `device_call` application based on CUDA-Q Realtime.
+static constexpr const char deviceCallAcquireRealtimeFrame[] =
+    "__cudaq_device_call_acquire_realtime_frame";
+static constexpr const char deviceCallDispatchRealtimeFrame[] =
+    "__cudaq_device_call_dispatch_realtime_frame";
+static constexpr const char deviceCallSafelyReleaseRealtimeFrame[] =
+    "__cudaq_device_call_safely_release_realtime_frame";
 static constexpr const char extractDevPtr[] =
     "__nvqpp__device_extract_device_ptr";
 

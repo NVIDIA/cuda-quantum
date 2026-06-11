@@ -364,6 +364,60 @@ def test_handle_vector_issue_4527():
     assert results[0] == 16
 
 
+# ---------------------------------------------------------------------------
+# Cross-scope reassignment of a `list[measure_handle]`.
+# ---------------------------------------------------------------------------
+
+
+def test_handle_vector_cross_round_reassignment_in_loop():
+
+    @cudaq.kernel
+    def k() -> list[bool]:
+        qv = cudaq.qvector(3)
+        x(qv)
+        mvec = mz(qv)
+        for _ in range(2):
+            m_new = mz(qv)
+            mvec = m_new
+        return mvec
+
+    results = cudaq.run(k, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == [True, True, True]
+
+
+def test_handle_vector_reassignment_in_conditional():
+
+    @cudaq.kernel
+    def k() -> list[bool]:
+        qv = cudaq.qvector(2)
+        mvec = mz(qv)
+        if True:
+            x(qv)
+            mvec = mz(qv)
+        return mvec
+
+    results = cudaq.run(k, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == [True, True]
+
+
+def test_discriminated_bool_cross_scope_reassignment():
+
+    @cudaq.kernel
+    def k() -> bool:
+        qs = cudaq.qvector(2)
+        b = bool(mz(qs[0]))
+        if True:
+            x(qs[1])
+            b = bool(mz(qs[1]))
+        return b
+
+    results = cudaq.run(k, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == True
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     import os

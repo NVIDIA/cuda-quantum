@@ -79,9 +79,8 @@ namespace detail {
 ///        @c finalize_simulation_circuit_impl overload exists for type @p T.
 template <class T>
 concept has_sim_custom_finalize =
-    requires(nvqir::CircuitSimulator &sim, const T &policy,
-             cudaq::ExecutionContext &ctx) {
-      finalize_simulation_circuit_impl(sim, policy, ctx);
+    requires(nvqir::CircuitSimulator &sim, const T &policy) {
+      finalize_simulation_circuit_impl(sim, policy);
     };
 
 /// @brief CPO function object for CircuitSimulator finalization.
@@ -93,7 +92,7 @@ struct finalize_simulation_circuit_fn {
   decltype(auto) operator()(nvqir::CircuitSimulator &sim, const Policy &policy,
                             cudaq::ExecutionContext &ctx) const {
     if constexpr (has_sim_custom_finalize<Policy>) {
-      return finalize_simulation_circuit_impl(sim, policy, ctx);
+      return finalize_simulation_circuit_impl(sim, policy);
     } else {
       return finalize_simulation_circuit_impl(sim, ctx);
     }

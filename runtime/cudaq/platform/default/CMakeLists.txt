@@ -34,7 +34,7 @@ target_link_libraries(${LIBRARY_NAME}
   PUBLIC
     pthread cudaq-em-default cudaq-operator cudaq-common cudaq-logger
   PRIVATE
-     cudaq CUDAQTargetConfigUtil cudaq-qpu-default)
+     cudaq CUDAQTargetConfigYaml cudaq-qpu-default)
 
 install(TARGETS ${LIBRARY_NAME}
   EXPORT cudaq-platform-default-targets DESTINATION lib)
@@ -49,7 +49,8 @@ if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
 endif()
   
 add_target_config(opt-test)
-add_target_config(circuit-opt-bench)
+add_target_config(compiler-bench-nisq)
+add_target_config(compiler-bench-ftqc-logical)
 
 if (cuStateVec_FOUND)
   add_target_config(nvidia)

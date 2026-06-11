@@ -13,7 +13,7 @@
 #include <nanobind/ndarray.h>
 #include <nanobind/stl/complex.h>
 
-namespace cudaq::details {
+namespace cudaq::detail {
 
 cudaq::parameter_map kwargs_to_param_map(const nanobind::kwargs &kwargs) {
   cudaq::parameter_map params;
@@ -60,4 +60,4 @@ nanobind::object cmat_to_numpy(complex_matrix &cmat) {
       .cast();
 };
 
-} // namespace cudaq::details
+} // namespace cudaq::detail

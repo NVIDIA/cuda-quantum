@@ -444,6 +444,36 @@ def test_listcomp_default_handle_pre_allocation():
 # CHECK-NOT:       quake.discriminate
 # CHECK:           return
 
+# ---------------------------------------------------------------------------
+# Cross-round reassignment of a `list[measure_handle]`.
+# ---------------------------------------------------------------------------
+
+
+def test_handle_vector_cross_round_reassignment():
+
+    @cudaq.kernel
+    def kernel_handle_vec_cross_round():
+        qv = cudaq.qvector(3)
+        x(qv)
+        mvec = mz(qv)
+        for _ in range(2):
+            m_new = mz(qv)
+            mvec = m_new
+        use = mvec[0]
+
+    print(kernel_handle_vec_cross_round)
+
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_handle_vec_cross_round
+# CHECK-SAME:      attributes {"cudaq-entrypoint"
+# CHECK:           %[[VEQ:.*]] = quake.alloca !quake.veq<3>
+# CHECK:           %[[MVEC:.*]] = quake.mz %[[VEQ]] name "mvec" : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
+# CHECK:           cc.loop while
+# CHECK:             %[[MNEW:.*]] = quake.mz %[[VEQ]] name "m_new" : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
+# CHECK:             cc.continue {{.*}}%[[MNEW]], %[[MNEW]]
+# CHECK-NOT:       quake.discriminate
+# CHECK:           return
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)

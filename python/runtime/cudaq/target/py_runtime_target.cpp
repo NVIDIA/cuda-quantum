@@ -196,7 +196,7 @@ void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
         // If we're in an environment that disallows target changes, do nothing.
         // For example, this can happen when running C++ with an embedded Python
         // plugin.
-        if (!cudaq::__internal__::canModifyTarget())
+        if (!cudaq::detail::canModifyTarget())
           return;
         registerSetTargetCallback(callback, id);
         // Execute the callback on the current target
@@ -209,7 +209,7 @@ void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
       "unregister_set_target_callback",
       [](const std::string &id) {
         // If we're in an environment that disallows target changes, do nothing.
-        if (!cudaq::__internal__::canModifyTarget())
+        if (!cudaq::detail::canModifyTarget())
           return;
         unregisterSetTargetCallback(id);
       },

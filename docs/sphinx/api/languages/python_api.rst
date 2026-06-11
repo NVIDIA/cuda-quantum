@@ -72,6 +72,22 @@ Kernel Execution
 .. autofunction:: cudaq::draw
 .. autofunction:: cudaq::translate
 .. autofunction:: cudaq::estimate_resources
+.. autofunction:: cudaq::dem_from_kernel
+
+Quantum Error Correction
+=============================
+
+These functions are called inside an ``@cudaq.kernel`` body to declare
+detectors and logical observables for detector-error-model generation with
+``cudaq.dem_from_kernel``, and to discriminate measurement handles. They are
+intercepted by the compiler; calling them at host scope raises
+``RuntimeError``. (``cudaq.to_integer`` is likewise available inside kernels
+to pack discriminated bits into an integer.)
+
+.. autofunction:: cudaq::detector
+.. autofunction:: cudaq::detectors
+.. autofunction:: cudaq::logical_observable
+.. autofunction:: cudaq::to_bools
 
 Backend Configuration
 =============================
@@ -258,6 +274,8 @@ Data Types
 .. autoclass:: cudaq::qubit
 .. autoclass:: cudaq::qreg
 .. autoclass:: cudaq::qvector
+
+.. autoclass:: cudaq::measure_handle
 
 .. autoclass:: cudaq::ComplexMatrix
     :members:

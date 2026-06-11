@@ -1,6 +1,6 @@
 // Compile and run with:
 // ```
-// nvq++ --library-mode --target orca-photonics photonics_tbi_sample.cpp
+// nvq++ --target orca-photonics photonics_tbi_sample.cpp
 // ./a.out
 // ```
 

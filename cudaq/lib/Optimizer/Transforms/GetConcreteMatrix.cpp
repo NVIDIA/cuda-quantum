@@ -23,12 +23,12 @@ using namespace mlir;
 namespace {
 
 class CustomUnitaryPattern
-    : public OpRewritePattern<cudaq::quake::CustomUnitarySymbolOp> {
+    : public OpRewritePattern<cudaq::quake::CustomUnitaryCallOp> {
 
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  LogicalResult matchAndRewrite(cudaq::quake::CustomUnitarySymbolOp customOp,
+  LogicalResult matchAndRewrite(cudaq::quake::CustomUnitaryCallOp customOp,
                                 PatternRewriter &rewriter) const override {
 
     // Check if the generator associated with custom operation is a function. If
@@ -62,7 +62,7 @@ public:
         parentModule.lookupSymbol<cudaq::cc::GlobalOp>(concreteMatrix);
 
     if (ccGlobalOp) {
-      rewriter.replaceOpWithNewOp<cudaq::quake::CustomUnitarySymbolOp>(
+      rewriter.replaceOpWithNewOp<cudaq::quake::CustomUnitaryConstantOp>(
           customOp,
           FlatSymbolRefAttr::get(parentModule.getContext(), concreteMatrix),
           customOp.getIsAdj(), customOp.getParameters(), customOp.getControls(),

@@ -281,6 +281,14 @@ def ConvertToDirectCalls : Pass<"indirect-to-direct-calls", "mlir::ModuleOp"> {
   let dependentDialects = ["cudaq::cc::CCDialect"];
 }
 
+def DeadQuantumElimination : Pass<"dqe"> {
+  let summary = "Dead quantum elimination (DQE).";
+  let description = [{
+    Eliminate any clearly dead quantum (`!quake.ref` or `!quake.wire`)
+    allocations from the IR. (quantum here means some flavor of qudit.)
+  }];
+}
+
 def DeadStoreRemoval : Pass<"dead-store-removal"> {
   let summary = "Dead store removal (DSR).";
   let description = [{
@@ -423,14 +431,20 @@ def DistributedDeviceCall : Pass<"distributed-device-call", "mlir::ModuleOp"> {
     distributed memory model.
   }];
 
-  let dependentDialects = ["mlir::LLVM::LLVMDialect"];
+  // Realtime `stdvec` lowering may materialize `quake.discriminate` when
+  // converting measurement-handle vectors to boolean payload bytes.
+  let dependentDialects = ["mlir::LLVM::LLVMDialect",
+                           "cudaq::quake::QuakeDialect"];
 
   let options = [
     Option<"insertTrapImplementation", "insert-trap", "bool",
       /*default=*/"false",
       "Enable pass to insert a default implementation (runtime trap) for "
       "device call (default=false). The default implementation has weak "
-      "linkage, i.e., allowed to be overridden at link time.">
+      "linkage, i.e., allowed to be overridden at link time.">,
+    Option<"realtimeLowering", "realtime", "bool",
+      /*default=*/"false",
+      "Lower device calls to the realtime device-call frame ABI.">
   ];
 }
 
@@ -448,6 +462,17 @@ def EraseNopCalls : Pass<"erase-nop-calls"> {
   let description = [{
     The code may contain marker function calls that do not generate any actual
     code. These calls are NOPs that will be erased by this pass.
+  }];
+}
+
+def EraseQEC : Pass<"erase-qec"> {
+  let summary = "Erase QEC detector and observable operations.";
+  let description = [{
+    Removes `qec.detector`, `qec.observable`, and `qec.pair_detectors` operations
+    from the IR. These are side-effecting declaration ops: they record a
+    parity-check or logical-observable relationship over prior measurement
+    results so a detector error model can be built from the kernel. This pass
+    strips them.
   }];
 }
 
@@ -1083,6 +1108,25 @@ def PruneCtrlRelations : Pass<"pruned-ctrl-form", "mlir::func::FuncOp"> {
       %5 = y [%ctrl] %3 : (!control, !wire) -> !wire
       %new.0 = from_ctrl %ctrl : (!control) -> !wire
     ```
+  }];
+}
+
+def PyFrontendCleanup : Pass<"py-frontend-cleanup", "mlir::func::FuncOp"> {
+  let summary = "Clean up IR residue specific to the Python AST bridge.";
+  let description = [{
+    This pass tidies up IR constructs produced only by the Python front-end
+    (the AST bridge). It runs as part of the Python AOT pipeline and must be
+    followed by `canonicalize`, which completes the folds it exposes.
+
+    Currently it folds `quake.veq_size` of a `cc.if` result whose branches may
+    yield an empty veq (`cc.undef`/`cc.poison`). When the `cc.if` condition is
+    not a compile-time constant the `cc.if` cannot be folded away, leaving a
+    `quake.veq_size` that reads a possibly-undef veq. The pass hoists the
+    `quake.veq_size` into both branches as an extra `i64` result so each
+    computes the size of its own branch-local veq. It only exposes those
+    branch-local veqs; the resulting folds (`quake.veq_size` of an undef/poison
+    veq to 0, or of a sized veq to a constant) are performed by the Quake
+    canonicalization patterns.
   }];
 }
 

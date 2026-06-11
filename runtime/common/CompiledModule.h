@@ -186,6 +186,9 @@ public:
   struct CompilationMetadata {
     /// Qubit reorder indices emitted by the qubit-mapping pass.
     std::vector<std::size_t> reorderIdx;
+    /// Whether the kernel has conditional feedback on measure results.
+    bool hasConditionalsOnMeasureResults = false;
+    // TODO: Add hash of target to check against for cache reusability
   };
 
   // --- Queries ---
@@ -270,11 +273,17 @@ protected:
 /// pointers. Build instances with
 /// `cudaq_internal::compiler::CompiledModuleHelper`.
 class CompiledModule : public FatQuakeModule {
+public:
+  using CompilationMetadata = FatQuakeModule::CompilationMetadata;
+
 private:
   friend class cudaq_internal::compiler::CompiledModuleHelper;
 
   CompiledModule(std::string kernelName)
       : FatQuakeModule(std::move(kernelName)) {}
+
+public:
+  CompiledModule() : FatQuakeModule(std::string{}) {}
 };
 
 /// Bundle of artifacts that define a CUDA-Q kernel to be compiled and executed.
@@ -295,6 +304,9 @@ public:
   /// mlir::ModuleOp::getAsOpaquePointer() and its lifetime must outlive
   /// the `SourceModule` instance.
   SourceModule(std::string kernelName, const void *mlirModuleOpaquePtr);
+
+  /// Get the opaque pointer to the main MLIR artifact if it exists.
+  const void *getMlirOpaqueModulePtr() const;
 };
 
 // TODO: remove once C++ launch can be cleanly split into compilation + launch.

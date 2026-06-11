@@ -372,6 +372,26 @@ jobs:
           name: ${{ needs.build_installer.outputs.artifact_name }}
           path: /tmp/install
 
+      - name: Verify installer integrity (re-fetch if corrupt)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_NAME: ${{ needs.build_installer.outputs.artifact_name }}
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          installer=/tmp/install/install_cuda_quantum_cu$(echo ${{ inputs.cuda_version }} | cut -d . -f1).$(uname -m)
+          # The artifact bundles both the installer and the wheel. A partial
+          # download can drop either: a truncated installer surfaces later as a
+          # cryptic "Unexpected archive size", and a missing installer/wheel as an
+          # ADD "not found" inside the docker build. makeself --check verifies the
+          # installer's embedded sha256 and archive size without extracting.
+          wheel_present() { ls /tmp/install/cuda_quantum*$(uname -m).whl >/dev/null 2>&1; }
+          if ! bash "$installer" --check || ! wheel_present; then
+            echo "::warning::Installer/wheel incomplete after download; re-fetching artifact."
+            rm -rf /tmp/install && mkdir -p /tmp/install
+            retry gh run download ${{ github.run_id }} -R ${{ github.repository }} -n "$ARTIFACT_NAME" -D /tmp/install
+            bash "$installer" --check && wheel_present
+          fi
+
       - name: Install in clean environment
         run: |
           config='${{ needs.create_test_config.outputs.json }}'

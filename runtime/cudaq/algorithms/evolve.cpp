@@ -15,7 +15,7 @@
 #include <random>
 #include <sstream>
 #include <string>
-namespace cudaq::__internal__ {
+namespace cudaq::detail {
 
 evolve_result evolveSingle(const cudaq::rydberg_hamiltonian &hamiltonian,
                            const cudaq::schedule &schedule,
@@ -94,4 +94,4 @@ evolve_result evolveSingle(const cudaq::rydberg_hamiltonian &hamiltonian,
   return evolve_result(sampleResults);
 }
 
-} // namespace cudaq::__internal__
+} // namespace cudaq::detail

@@ -551,3 +551,70 @@ struct CallableParamTakingHandle {
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__CallableParamTakingHandle(
 // CHECK-SAME:      %{{.*}}: !cc.indirect_callable<(!cc.measure_handle) -> ()>
 // CHECK-SAME:      attributes {"cudaq-entrypoint", "cudaq-kernel"
+
+// ---------------------------------------------------------------------------
+// `std::vector<measure_handle>::operator=`  (issue #4601)
+// ---------------------------------------------------------------------------
+// Two shapes are intercepted:
+//   * lvalue RHS  (`prev = curr;`)       => deep-copy via
+//                                            `__nvqpp_vectorCopyCtor`, then
+//                                            store the new descriptor into
+//                                            the LHS slot.  Needed because
+//                                            the RHS buffer may go out of
+//                                            scope before the LHS does
+//                                            (see PR #4573 review).
+//   * rvalue RHS  (`prev = mz(qv);`)     => the RHS descriptor is freshly
+//                                            produced and not aliased, so we
+//                                            elide the copy and store the
+//                                            descriptor directly into the
+//                                            LHS slot.
+
+struct HandleVecAssignFromLvalue {
+  void operator()() __qpu__ {
+    cudaq::qvector qv(2);
+    auto prev = mz(qv);
+    auto curr = mz(qv);
+    prev = curr;
+    (void)prev;
+  }
+};
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__HandleVecAssignFromLvalue()
+// CHECK:           %[[HV_C8:.*]] = arith.constant 8 : i64
+// CHECK:           %[[HV_PREV_SLOT:.*]] = cc.alloca !cc.stdvec<!cc.measure_handle>
+// CHECK:           cc.store %{{.*}}, %[[HV_PREV_SLOT]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           %[[HV_CURR_SLOT:.*]] = cc.alloca !cc.stdvec<!cc.measure_handle>
+// CHECK:           cc.store %{{.*}}, %[[HV_CURR_SLOT]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           %[[HV_RHS:.*]] = cc.load %[[HV_CURR_SLOT]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           %[[HV_D:.*]] = cc.stdvec_data %[[HV_RHS]] : (!cc.stdvec<!cc.measure_handle>) -> !cc.ptr<i8>
+// CHECK:           %[[HV_S:.*]] = cc.stdvec_size %[[HV_RHS]] : (!cc.stdvec<!cc.measure_handle>) -> i64
+// CHECK:           %[[HV_H:.*]] = call @__nvqpp_vectorCopyCtor(%[[HV_D]], %[[HV_S]], %[[HV_C8]]) : (!cc.ptr<i8>, i64, i64) -> !cc.ptr<i8>
+// CHECK:           %[[HV_NEW:.*]] = cc.stdvec_init %[[HV_H]], %[[HV_S]] : (!cc.ptr<i8>, i64) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:           cc.store %[[HV_NEW]], %[[HV_PREV_SLOT]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           return
+// CHECK:         }
+
+struct HandleVecCrossRoundLoop {
+  void operator()(int nRounds) __qpu__ {
+    cudaq::qvector ancillas(2);
+    auto prev = mz(ancillas);
+    for (int r = 1; r < nRounds; r++) {
+      auto curr = mz(ancillas);
+      prev = curr;
+    }
+  }
+};
+
+// The loop pattern from issue #4601 must produce a deep-copy at the carry
+// (`prev = curr;`) so that `prev` doesn't dangle into the next iteration.
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__HandleVecCrossRoundLoop(
+// CHECK:           %[[L_PREV:.*]] = cc.alloca !cc.stdvec<!cc.measure_handle>
+// CHECK:           cc.store %{{.*}}, %[[L_PREV]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:           cc.loop while
+// CHECK:           } do {
+// CHECK:             %[[L_CURR:.*]] = cc.alloca !cc.stdvec<!cc.measure_handle>
+// CHECK:             cc.store %{{.*}}, %[[L_CURR]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:             %[[L_RHS:.*]] = cc.load %[[L_CURR]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>
+// CHECK:             %{{.*}} = func.call @__nvqpp_vectorCopyCtor(
+// CHECK:             %[[L_NEW:.*]] = cc.stdvec_init %{{.*}}, %{{.*}} : (!cc.ptr<i8>, i64) -> !cc.stdvec<!cc.measure_handle>
+// CHECK:             cc.store %[[L_NEW]], %[[L_PREV]] : !cc.ptr<!cc.stdvec<!cc.measure_handle>>

@@ -553,7 +553,7 @@ public:
     }
     // cudaq::quake::ApplyOp implements CallOpInterface but can be handled below
     // by toggling isAdj. Reject any other call-like op that we cannot invert.
-    if (cudaq::opt::internal::hasCharacteristic(
+    if (cudaq::opt::detail::hasCharacteristic(
             [](Operation &op) {
               return isa<mlir::CallOpInterface>(op) &&
                      !isa<cudaq::quake::ApplyOp>(op);
@@ -562,7 +562,7 @@ public:
       LLVM_DEBUG(llvm::dbgs() << "cannot make adjoint of kernel with calls\n");
       return failure();
     }
-    if (cudaq::opt::internal::hasCharacteristic(
+    if (cudaq::opt::detail::hasCharacteristic(
             [](Operation &op) {
               return isa<cudaq::cc::CreateLambdaOp,
                          cudaq::cc::InstantiateCallableOp>(op);

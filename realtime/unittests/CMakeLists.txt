@@ -110,3 +110,8 @@ if (CUDAQ_REALTIME_ENABLE_HOLOLINK_TOOLS)
   add_subdirectory(utils)
   add_subdirectory(bridge_interface/hololink)
 endif()
+
+# CPU RoCE transport (Phase 1 of cpu_transport umbrella).
+# Self-gates on TARGET cudaq-realtime-cpu-transport so this is harmless when
+# libibverbs is not available.
+add_subdirectory(cpu_transport)

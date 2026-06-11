@@ -43,14 +43,23 @@ public:
             ValueRange{op.getControls()[negationIter.index()]});
 
     if constexpr (std::is_same_v<Op, cudaq::quake::ExpPauliOp>) {
+      // ??? How is this correct? The controls are not changed?!
       cudaq::quake::ExpPauliOp::create(
           rewriter, loc, TypeRange{}, op.getIsAdjAttr(), op.getParameters(),
           op.getControls(), op.getTargets(), op.getNegatedQubitControlsAttr(),
           op.getPauli(), op.getPauliLiteralAttr());
     } else if constexpr (std::is_same_v<Op,
-                                        cudaq::quake::CustomUnitarySymbolOp>) {
-      Op::create(rewriter, loc, op.getGeneratorAttr(), op.getIsAdj(),
-                 op.getParameters(), op.getControls(), op.getTargets());
+                                        cudaq::quake::CustomUnitaryCallOp>) {
+      // ??? How is this correct? The controls are not changed?!
+      cudaq::quake::CustomUnitaryCallOp::create(
+          rewriter, loc, op.getGeneratorAttr(), op.getIsAdj(),
+          op.getParameters(), op.getControls(), op.getTargets());
+    } else if constexpr (std::is_same_v<
+                             Op, cudaq::quake::CustomUnitaryConstantOp>) {
+      // ??? How is this correct? The controls are not changed?!
+      cudaq::quake::CustomUnitaryConstantOp::create(
+          rewriter, loc, op.getMatrixAttr(), op.getIsAdj(), op.getParameters(),
+          op.getControls(), op.getTargets(), {});
     } else {
       Op::create(rewriter, loc, op.getIsAdj(), op.getParameters(),
                  op.getControls(), op.getTargets());
@@ -92,7 +101,8 @@ struct ApplyControlNegationsPass
                 ReplaceNegativeControl<cudaq::quake::U3Op>,
                 ReplaceNegativeControl<cudaq::quake::SwapOp>,
                 ReplaceNegativeControl<cudaq::quake::ExpPauliOp>,
-                ReplaceNegativeControl<cudaq::quake::CustomUnitarySymbolOp>>(
+                ReplaceNegativeControl<cudaq::quake::CustomUnitaryCallOp>,
+                ReplaceNegativeControl<cudaq::quake::CustomUnitaryConstantOp>>(
             ctx);
     ConversionTarget target(*ctx);
     target.addLegalDialect<cudaq::cc::CCDialect, arith::ArithDialect,

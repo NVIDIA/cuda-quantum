@@ -32,7 +32,7 @@
 
 namespace cudaq {
 
-namespace details {
+namespace detail {
 void warn(const std::string_view msg);
 }
 
@@ -428,7 +428,7 @@ void exp_pauli(QuantumRegister &ctrls, double theta, const char *pauliWord,
 // the corresponding `quake.{mz, mx, my}` op directly, so the inline body never
 // runs in a built kernel; we therefore throw so host-scope misuse
 // fails loudly instead of returning a meaningless value.
-namespace details {
+namespace detail {
 inline constexpr const char *kQpuOnlyHostScopeError =
     "Not allowed on host code; usable only inside a `__qpu__` kernel.";
 }
@@ -439,7 +439,7 @@ inline measure_result mz(qubit &q) {
   return getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
 #else
   (void)q;
-  throw std::runtime_error(details::kQpuOnlyHostScopeError);
+  throw std::runtime_error(detail::kQpuOnlyHostScopeError);
 #endif
 }
 
@@ -450,7 +450,7 @@ inline measure_result mx(qubit &q) {
   return getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
 #else
   (void)q;
-  throw std::runtime_error(details::kQpuOnlyHostScopeError);
+  throw std::runtime_error(detail::kQpuOnlyHostScopeError);
 #endif
 }
 
@@ -462,7 +462,7 @@ inline measure_result my(qubit &q) {
   return getExecutionManager()->measure(QuditInfo{q.n_levels(), q.id()});
 #else
   (void)q;
-  throw std::runtime_error(details::kQpuOnlyHostScopeError);
+  throw std::runtime_error(detail::kQpuOnlyHostScopeError);
 #endif
 }
 
@@ -570,7 +570,7 @@ inline std::vector<bool> to_bools(const std::vector<measure_result> &results) {
   return measure_result::to_bool_vector(results);
 #else
   (void)results;
-  throw std::runtime_error(details::kQpuOnlyHostScopeError);
+  throw std::runtime_error(detail::kQpuOnlyHostScopeError);
 #endif
 }
 
@@ -583,12 +583,12 @@ inline std::vector<bool> to_bools(const std::vector<measure_result> &results) {
 // producing wrong results.
 #ifndef CUDAQ_LIBRARY_MODE
 
-namespace details {
+namespace detail {
 template <typename T>
 concept any_measure_result_or_vec =
     std::is_same_v<std::remove_cvref_t<T>, measure_result> ||
     std::is_same_v<std::remove_cvref_t<T>, std::vector<measure_result>>;
-} // namespace details
+} // namespace detail
 
 /// @brief Define a detector over one or more measurement results.
 ///
@@ -598,10 +598,10 @@ concept any_measure_result_or_vec =
 /// `std::vector<cudaq::measure_result>`, or any combination.
 template <typename... MeasArgs>
   requires(sizeof...(MeasArgs) >= 1) &&
-          (details::any_measure_result_or_vec<MeasArgs> && ...)
+          (detail::any_measure_result_or_vec<MeasArgs> && ...)
 void detector(MeasArgs &&...ms) {
   ((void)ms, ...);
-  throw std::runtime_error(details::kQpuOnlyHostScopeError);
+  throw std::runtime_error(detail::kQpuOnlyHostScopeError);
 }
 
 /// @brief Define a logical observable over one or more measurement results.
@@ -615,10 +615,10 @@ void detector(MeasArgs &&...ms) {
 /// for each observable `0..k-1` (see the `(vector, std::size_t)` overload).
 template <typename... MeasArgs>
   requires(sizeof...(MeasArgs) >= 1) &&
-          (details::any_measure_result_or_vec<MeasArgs> && ...)
+          (detail::any_measure_result_or_vec<MeasArgs> && ...)
 void logical_observable(MeasArgs &&...ms) {
   ((void)ms, ...);
-  throw std::runtime_error(details::kQpuOnlyHostScopeError);
+  throw std::runtime_error(detail::kQpuOnlyHostScopeError);
 }
 
 // Disambiguate from the variadic when an explicit `observable_index` is
@@ -629,7 +629,7 @@ inline void logical_observable(const std::vector<measure_result> &ms,
                                std::size_t observable_index) {
   (void)ms;
   (void)observable_index;
-  throw std::runtime_error(details::kQpuOnlyHostScopeError);
+  throw std::runtime_error(detail::kQpuOnlyHostScopeError);
 }
 
 /// @brief Define N detectors by pairing two measurement vectors element-wise.
@@ -640,7 +640,7 @@ inline void detectors(const std::vector<measure_result> &prev,
                       const std::vector<measure_result> &curr) {
   (void)prev;
   (void)curr;
-  throw std::runtime_error(details::kQpuOnlyHostScopeError);
+  throw std::runtime_error(detail::kQpuOnlyHostScopeError);
 }
 
 #endif // !CUDAQ_LIBRARY_MODE
@@ -751,7 +751,7 @@ std::vector<T> slice_vector(std::vector<T> &original, std::size_t start,
 
 #define CUDAQ_MOD_TEMPLATE template <typename mod = base, typename... Args>
 
-namespace cudaq::details {
+namespace cudaq::detail {
 
 template <typename T>
 using remove_cvref = std::remove_cv_t<std::remove_reference_t<T>>;
@@ -836,9 +836,9 @@ struct is_fixed_size_container<cudaq::qarray_base> : std::true_type {};
 // 2. Compile-time qubit counting logic
 template <typename T>
 constexpr std::size_t count_qubits_compile_time() {
-  if constexpr (details::IsQubitType<T>::value) {
+  if constexpr (detail::IsQubitType<T>::value) {
     return 1;
-  } else if constexpr (details::IsQarrayType<T>::value) {
+  } else if constexpr (detail::IsQarrayType<T>::value) {
     return std::tuple_size<std::decay_t<T>>::value;
   } else {
     return 0; // Dynamic containers handled at runtime
@@ -947,7 +947,7 @@ void genericApplicator(const std::string &gateName, Args &&...args) {
       tuple_slice_last<sizeof...(Args) - NUMP>(std::forward_as_tuple(args...)));
 }
 
-} // namespace cudaq::details
+} // namespace cudaq::detail
 
 #define __qop__ __attribute__((annotate("user_custom_quantum_operation")))
 
@@ -976,8 +976,8 @@ void genericApplicator(const std::string &gateName, Args &&...args) {
      * execution.*/                                                            \
     cudaq::customOpRegistry::getInstance()                                     \
         .registerOperation<CONCAT(NAME, _operation)>(#NAME);                   \
-    details::genericApplicator<mod, NUMT, NUMP>(#NAME,                         \
-                                                std::forward<Args>(args)...);  \
+    detail::genericApplicator<mod, NUMT, NUMP>(#NAME,                          \
+                                               std::forward<Args>(args)...);   \
   }                                                                            \
   }                                                                            \
   __qop__ std::vector<std::complex<double>> CONCAT(NAME,                       \

@@ -25,12 +25,11 @@ func.func @detector_scalar() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
 // CHECK:           %[[VAL_0:.*]] = call @__quantum__rt__qubit_allocate() : () -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
 // CHECK:           %[[ADDRESS_OF_0:.*]] = cc.address_of @cstr.6800 : !cc.ptr<!llvm.array<2 x i8>>
 // CHECK:           %[[CAST_0:.*]] = cc.cast %[[ADDRESS_OF_0]] : (!cc.ptr<!llvm.array<2 x i8>>) -> !cc.ptr<i8>
-// CHECK:           %[[VAL_1:.*]] = call @__quantum__qis__mz__to__register(%[[VAL_0]], %[[CAST_0]]) {registerName = "h"} : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<i8>) -> !cc.ptr<!llvm.struct<"Result", opaque>>
-// CHECK:           %[[CAST_1:.*]] = cc.cast %[[VAL_1]] : (!cc.ptr<!llvm.struct<"Result", opaque>>) -> i64
+// CHECK:           %[[VAL_1:.*]] = call @__quantum__qis__mz_handle__to__register(%[[VAL_0]], %[[CAST_0]]) {registerName = "h"} : (!cc.ptr<!llvm.struct<"Qubit", opaque>>, !cc.ptr<i8>) -> i64
 // CHECK:           %[[ALLOCA_0:.*]] = cc.alloca !cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x 1>
-// CHECK:           %[[CAST_2:.*]] = cc.cast %[[CAST_1]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
+// CHECK:           %[[CAST_1:.*]] = cc.cast %[[VAL_1]] : (i64) -> !cc.ptr<!llvm.struct<"Result", opaque>>
 // CHECK:           %[[CAST_3:.*]] = cc.cast %[[ALLOCA_0]] : (!cc.ptr<!cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x 1>>) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
-// CHECK:           cc.store %[[CAST_2]], %[[CAST_3]] : !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
+// CHECK:           cc.store %[[CAST_1]], %[[CAST_3]] : !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
 // CHECK:           %[[CAST_4:.*]] = cc.cast %[[ALLOCA_0]] : (!cc.ptr<!cc.array<!cc.ptr<!llvm.struct<"Result", opaque>> x 1>>) -> !cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>
 // CHECK:           call @__quantum__qis__detector(%[[CAST_4]], %[[CONSTANT_0]]) : (!cc.ptr<!cc.ptr<!llvm.struct<"Result", opaque>>>, i64) -> ()
 // CHECK:           return

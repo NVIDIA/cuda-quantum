@@ -36,6 +36,7 @@ protected:
   /// @brief Measure the qubit and return the result. Collapse the
   /// state vector.
   bool measureQubit(const std::size_t index) override {
+    resourceCounts.appendInstruction("mz", {}, std::vector<std::size_t>{index});
     assert(choice);
     auto measure = choice();
     CUDAQ_INFO("Measure of {} returned {}", index, measure);

@@ -25,7 +25,7 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
-namespace cudaq::details {
+namespace cudaq::detail {
 
 std::vector<std::size_t> grayCode(std::size_t numBits) {
   std::vector<std::size_t> result(1ULL << numBits);
@@ -148,7 +148,7 @@ std::vector<double> getAlphaY(const std::span<double> data,
   }
   return angles;
 }
-} // namespace cudaq::details
+} // namespace cudaq::detail
 
 class StateGateBuilder {
 public:
@@ -210,8 +210,8 @@ public:
       auto numControls = j - 1;
       auto target = j - 1;
       auto alphaK = std::same_as<Op, cudaq::quake::RyOp>
-                        ? cudaq::details::getAlphaY(angles, numQubits, k)
-                        : cudaq::details::getAlphaZ(angles, numQubits, k);
+                        ? cudaq::detail::getAlphaY(angles, numQubits, k)
+                        : cudaq::detail::getAlphaZ(angles, numQubits, k);
       applyRotation<Op>(alphaK, numControls, target);
     }
   }
@@ -262,13 +262,13 @@ private:
     // we use assumes the opposite.
     auto qubitIndex = [&](std::size_t i) { return numQubits - i - 1; };
 
-    auto thetas = cudaq::details::convertAngles(alphas);
+    auto thetas = cudaq::detail::convertAngles(alphas);
     if (numControls == 0) {
       builder.applyRotationOp<Op>(thetas[0], qubitIndex(target));
       return;
     }
 
-    auto controlIndices = cudaq::details::getControlIndices(numControls);
+    auto controlIndices = cudaq::detail::getControlIndices(numControls);
     assert(thetas.size() == controlIndices.size());
     for (auto [i, c] : llvm::enumerate(controlIndices)) {
       builder.applyRotationOp<Op>(thetas[i], qubitIndex(target));

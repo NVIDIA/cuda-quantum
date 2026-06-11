@@ -11,7 +11,13 @@ if (APPLE)
   set(CUDAQ_IS_APPLE "true")
 endif()
 
+set(CUDAQ_DEVICE_CALL_RUNTIME_LINK_LIBS "")
+if (CUDAQ_ENABLE_REALTIME)
+  set(CUDAQ_DEVICE_CALL_RUNTIME_LINK_LIBS "-lcudaq-device-call-runtime")
+endif()
+
 add_custom_target(nvq++)
+add_dependencies(nvq++ cudaq-builder nvqir-qpp)
 configure_file("nvq++.in"
                "${CUDAQ_BINARY_DIR}/bin/nvq++" 
                FILE_PERMISSIONS

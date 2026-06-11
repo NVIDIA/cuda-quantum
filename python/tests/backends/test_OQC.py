@@ -351,7 +351,10 @@ def test_2q_unitary_synthesis():
         x(controls)
 
     counts = cudaq.sample(ctrl_z_kernel)
-    assert counts["0010011"] == 1000
+    # The 5th qubit in `qubits` is not referenced and may be deleted
+    assert ("0010011" in counts and
+            counts["0010011"] == 1000) or ("001011" in counts and
+                                           counts["001011"] == 1000)
 
 
 def test_explicit_measurement():

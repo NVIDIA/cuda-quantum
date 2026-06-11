@@ -602,6 +602,17 @@ jobs:
           set -euo pipefail
           DIGESTS_JSON='${{ steps.metadata.outputs.digests_json }}'
 
+          # Retry registry-hitting commands; nvcr.io/ghcr.io occasionally
+          # return transient 5xx from their auth/proxy endpoints.
+          retry() {
+            for n in 1 2 3 4 5; do
+              "$@" && return 0
+              [ "$n" -eq 5 ] && return 1
+              echo "Command '$*' failed (attempt $n/5); retrying in $((10*n))s..." >&2
+              sleep $((10*n))
+            done
+          }
+
           cuda="${{ matrix.cuda }}"
           cuda_major="${cuda%%.*}"
 
@@ -624,8 +635,8 @@ jobs:
           echo "Stitching debug image with tag: $stitched_tag"
           echo "References: $refs"
 
-          docker buildx imagetools create --tag "$stitched_tag" $refs
-          digest=$(docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }')
+          retry docker buildx imagetools create --tag "$stitched_tag" $refs
+          digest=$(retry docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }')
           stitched_output=$(cat stitched_digests.json 2>/dev/null || echo '{}')
           stitched_output=$(echo "$stitched_output" | jq --arg key "dev-cu${cuda_major}" --arg val "$registry@$digest" '. + {($key): $val}')
           echo "$stitched_output" | tee stitched_digests.json
@@ -634,6 +645,17 @@ jobs:
         run: |
           set -euo pipefail
           DIGESTS_JSON='${{ steps.metadata.outputs.digests_json }}'
+
+          # Retry registry-hitting commands; nvcr.io/ghcr.io occasionally
+          # return transient 5xx from their auth/proxy endpoints.
+          retry() {
+            for n in 1 2 3 4 5; do
+              "$@" && return 0
+              [ "$n" -eq 5 ] && return 1
+              echo "Command '$*' failed (attempt $n/5); retrying in $((10*n))s..." >&2
+              sleep $((10*n))
+            done
+          }
 
           cuda="${{ matrix.cuda }}"
           cuda_major="${cuda%%.*}"
@@ -668,7 +690,7 @@ jobs:
             image_tag+=pr-${pr_number}
           elif ${{ github.ref_type == 'branch' && github.ref_name == 'main' }}; then
             image_tag+="latest"
-          elif "$is_versioned" == "true"; then
+          elif [[ "$is_versioned" == "true" ]]; then
             image_tag+=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
           else
             image_tag+=`echo ${{ github.ref_name }} | tr '/' '-'`
@@ -682,8 +704,8 @@ jobs:
           echo "Stitching release image with tag: $stitched_tag"
           echo "References: $refs"
 
-          docker buildx imagetools create --tag "$stitched_tag" $refs
-          digest=$(docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }')
+          retry docker buildx imagetools create --tag "$stitched_tag" $refs
+          digest=$(retry docker buildx imagetools inspect "$stitched_tag" | awk '/^Digest:/ { print $2 }')
           stitched_output=$(cat stitched_digests.json 2>/dev/null || echo '{}')
           stitched_output=$(echo "$stitched_output" | jq --arg key "base-cu${cuda_major}" --arg val "$registry@$digest" '. + {($key): $val}')
           echo "$stitched_output" | tee stitched_digests.json

@@ -49,10 +49,10 @@ class PasqalExecutor : public Executor {
 public:
   ~PasqalExecutor() override = default;
 
-  details::future execute(std::vector<KernelExecution> &codesToExecute,
-                          cudaq::details::ExecutionContextType execType =
-                              cudaq::details::ExecutionContextType::sample,
-                          std::vector<char> *rawOutput = nullptr) override {
+  detail::future execute(std::vector<KernelExecution> &codesToExecute,
+                         cudaq::detail::ExecutionContextType execType =
+                             cudaq::detail::ExecutionContextType::sample,
+                         std::vector<char> *rawOutput = nullptr) override {
     auto *helper = dynamic_cast<PasqalServerHelper *>(serverHelper);
     if (!helper) {
       throw std::runtime_error("PasqalExecutor expected PasqalServerHelper but "
@@ -80,7 +80,7 @@ public:
         "Pasqal QRMI mode requested (machine=qrmi), but CUDA-Q was built "
         "without QRMI support.");
 #else  // QRMI mode implementation below
-    if (execType != cudaq::details::ExecutionContextType::sample) {
+    if (execType != cudaq::detail::ExecutionContextType::sample) {
       throw std::runtime_error(
           "Pasqal QRMI mode supports sampling execution only.");
     }
@@ -125,7 +125,7 @@ public:
           return sample_result(results);
         });
 
-    return details::future(std::move(worker));
+    return detail::future(std::move(worker));
 #endif // end if QRMI mode
   }
 };

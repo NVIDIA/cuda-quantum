@@ -16,6 +16,7 @@
 #include "cudaq/platform.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
 #include "cudaq/schedule.h"
+#include <exception>
 
 namespace cudaq {
 class base_integrator;
@@ -23,7 +24,7 @@ class base_integrator;
 /// @brief Return type for asynchronous `evolve_async`.
 using async_evolve_result = std::future<evolve_result>;
 
-namespace __internal__ {
+namespace detail {
 // Internal methods for evolve implementation on circuit simulators.
 
 /// @brief Evolve from an initial state to the final state, no intermediate
@@ -37,6 +38,7 @@ evolve_result evolve(state initial_state, QuantumKernel &&kernel,
   if (observables.size() == 0)
     return evolve_result(final_state);
 
+  with_platform_in_library_mode libraryMode(cudaq::get_platform());
   auto prepare_state = [final_state]() { auto qs = qvector<2>(final_state); };
   std::vector<observe_result> final_expectations;
   for (auto observable : observables) {
@@ -73,6 +75,7 @@ evolve_result evolve(state initial_state, std::vector<QuantumKernel> &kernels,
       }
     }
     if (observables.size() > 0) {
+      with_platform_in_library_mode libraryMode(cudaq::get_platform());
       std::vector<observe_result> expectations = {};
       auto prepare_state = [intermediate_states]() {
         auto qs = qvector<2>(intermediate_states.back());
@@ -106,12 +109,19 @@ evolve_async(state initial_state, QuantumKernel &&kernel,
       [p = std::move(promise), func = std::forward<QuantumKernel>(kernel),
        initial_state, observables, noise_model, shots_count,
        &platform]() mutable {
-        if (noise_model.has_value())
-          platform.set_noise(&noise_model.value());
-        auto result = evolve(initial_state, func, observables, shots_count);
-        if (noise_model.has_value())
-          platform.set_noise(nullptr);
-        p.set_value(std::move(result));
+        try {
+          if (noise_model.has_value())
+            platform.set_noise(&noise_model.value());
+          with_platform_in_library_mode libraryMode(platform);
+          auto result = evolve(initial_state, func, observables, shots_count);
+          if (noise_model.has_value())
+            platform.set_noise(nullptr);
+          p.set_value(std::move(result));
+        } catch (...) {
+          if (noise_model.has_value())
+            platform.set_noise(nullptr);
+          p.set_exception(std::current_exception());
+        }
       });
 
   platform.enqueueAsyncTask(qpu_id, wrapped);
@@ -132,13 +142,20 @@ evolve_async(state initial_state, std::vector<QuantumKernel> kernels,
   QuantumTask wrapped = detail::make_copyable_function(
       [p = std::move(promise), kernels, initial_state, observables, noise_model,
        shots_count, &platform, save_intermediate_states]() mutable {
-        if (noise_model.has_value())
-          platform.set_noise(&noise_model.value());
-        auto result = evolve(initial_state, kernels, observables, shots_count,
-                             save_intermediate_states);
-        if (noise_model.has_value())
-          platform.set_noise(nullptr);
-        p.set_value(std::move(result));
+        try {
+          if (noise_model.has_value())
+            platform.set_noise(&noise_model.value());
+          with_platform_in_library_mode libraryMode(platform);
+          auto result = evolve(initial_state, kernels, observables, shots_count,
+                               save_intermediate_states);
+          if (noise_model.has_value())
+            platform.set_noise(nullptr);
+          p.set_value(std::move(result));
+        } catch (...) {
+          if (noise_model.has_value())
+            platform.set_noise(nullptr);
+          p.set_exception(std::current_exception());
+        }
       });
 
   platform.enqueueAsyncTask(qpu_id, wrapped);
@@ -160,7 +177,11 @@ evolve_async(std::function<evolve_result()> evolveFunctor,
 
   QuantumTask wrapped = detail::make_copyable_function(
       [p = std::move(promise), evolveFunctor]() mutable {
-        p.set_value(evolveFunctor());
+        try {
+          p.set_value(evolveFunctor());
+        } catch (...) {
+          p.set_exception(std::current_exception());
+        }
       });
 
   platform.enqueueAsyncTask(qpu_id, wrapped);
@@ -251,5 +272,5 @@ evolve_result evolveSingle(const cudaq::rydberg_hamiltonian &hamiltonian,
                            const cudaq::schedule &schedule,
                            std::optional<int> shots_count = std::nullopt);
 
-} // namespace __internal__
+} // namespace detail
 } // namespace cudaq

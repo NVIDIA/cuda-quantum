@@ -22,6 +22,7 @@ namespace cudaq {
 
 class SimulationState;
 class ExecutionManager;
+class KernelArgs;
 
 /// The ExecutionContext is an abstraction to indicate how a CUDA-Q kernel
 /// should be executed.
@@ -76,7 +77,7 @@ public:
 
   /// @brief When execution asynchronously, store the expected results as a
   /// cudaq::future here.
-  details::future futureResult;
+  detail::future futureResult;
 
   /// @brief Construct a `async_sample_result` so as to pass across Python
   /// boundary
@@ -142,7 +143,7 @@ public:
   /// https://arxiv.org/pdf/2407.13826.
   std::optional<std::pair<std::size_t, std::size_t>> msm_dimensions;
 
-  bool allowJitEngineCaching = false;
+  bool allowCompiledModuleCaching = false;
 
   bool useParametricJit = false;
 
@@ -153,8 +154,14 @@ public:
 
   /// @brief For performance, a launcher may cache the JIT execution engine and
   /// use it for multiple discrete calls.
-  std::optional<cudaq::JitEngine> jitEng = std::nullopt;
+  std::optional<cudaq::CompiledModule> cachedCompiledModule = std::nullopt;
 
+  /// @brief Dispatcher towards the policy specific launch.
+  std::function<void(const AnyModule &module, const KernelArgs &args)>
+      executeKernelApi;
+
+  /// @brief Slot for the detector error model, as `.dem` text.
+  std::string dem_text;
   /// @endcond
 };
 
@@ -194,27 +201,32 @@ void setExecutionContext(ExecutionContext *ctx);
 /// Use `quantum_platform::with_execution_context` instead of setting/resetting
 /// the execution context manually.
 void resetExecutionContext();
+
+/// @brief Execute the given function within the given policy and execution
+/// context.
+template <typename Policy, typename Callable, typename... Args>
+auto with_policy_and_ctx(Policy &policy, ExecutionContext &ctx, Callable &&f,
+                         Args &&...args)
+    -> std::invoke_result_t<Callable, Args...> {
+
+  // Save the outer execution context (if any) so we can restore it after.
+  auto *outerContext = getExecutionContext();
+  detail::setExecutionContext(&ctx);
+
+  // Cleanup runs after the kernel returns or throws.
+  auto cleanup = [&outerContext]() {
+    detail::resetExecutionContext();
+    if (outerContext)
+      detail::setExecutionContext(outerContext);
+  };
+
+  if constexpr (std::is_void_v<std::invoke_result_t<Callable, Args...>>) {
+    try_finally([&] { f(std::forward<Args>(args)...); }, cleanup);
+    return;
+  }
+
+  return try_finally([&] { return f(std::forward<Args>(args)...); }, cleanup);
+}
+
 } // namespace detail
-
-namespace compiler_artifact {
-/// Saves and reuses the JITEngine across launches
-///
-/// This will exhibit undefined behavior if the launch arguments/context
-/// in any way differs from the saved launch.
-void enablePersistentJITEngine();
-void disablePersistentJITEngine();
-bool isPersistingJITEngine();
-
-/// Checks that the compiler artifact (if present) can be reused for the
-/// given kernel. Throws if a different kernel name was previously saved.
-void checkArtifactReuse(const std::string kernelName,
-                        const cudaq::JitEngine jit);
-
-void saveArtifact(const std::string kernelName, const cudaq::JitEngine jit);
-
-/// Returns the saved JIT engine if one is present for \p kernelName.
-/// Throws if a different kernel name was previously saved.
-/// Returns std::nullopt if no artifact has been saved yet.
-std::optional<JitEngine> getArtifactJit(const std::string &kernelName);
-}; // namespace compiler_artifact
 } // namespace cudaq

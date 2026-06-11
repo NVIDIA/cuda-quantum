@@ -1,0 +1,17 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: not cudaq-opt --basis-conversion="basis=h,s,t,rx,ry,rz,x,y,z,x(1)" %s 2>&1 | FileCheck %s
+
+// CHECK: failed to legalize operation 'quake.t'
+func.func @two_control_t(%ctrl0: !quake.ref, %ctrl1: !quake.ref,
+                         %target: !quake.ref) {
+  quake.t [%ctrl0, %ctrl1] %target
+      : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
