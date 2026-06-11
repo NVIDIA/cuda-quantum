@@ -100,3 +100,5 @@ function(add_cudaq_unittest test_name test_label)
 
     set_property(GLOBAL APPEND PROPERTY CUDAQ_UNIT_TEST_TARGETS ${test_name})
 endfunction(add_cudaq_unittest)
+
+add_subdirectory(Optimizer)
