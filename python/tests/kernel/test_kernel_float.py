@@ -143,28 +143,28 @@ def test_float64_use():
     t = np.tan(np.float64(0.25))
     assert is_close(t, float_np_use())
 
-    # Use a float inside np in a kernel (asin)
+    # Use a float inside np in a kernel (arcsin)
     @cudaq.kernel
     def float_np_use() -> np.float64:
-        return np.asin(np.float64(0.25))
+        return np.arcsin(np.float64(0.25))
 
-    t = np.asin(np.float64(0.25))
+    t = np.arcsin(np.float64(0.25))
     assert is_close(t, float_np_use())
 
-    # Use a float inside np in a kernel (acos)
+    # Use a float inside np in a kernel (arccos)
     @cudaq.kernel
     def float_np_use() -> np.float64:
-        return np.acos(np.float64(0.25))
+        return np.arccos(np.float64(0.25))
 
-    t = np.acos(np.float64(0.25))
+    t = np.arccos(np.float64(0.25))
     assert is_close(t, float_np_use())
 
-    # Use a float inside np in a kernel (atan)
+    # Use a float inside np in a kernel (arctan)
     @cudaq.kernel
     def float_np_use() -> np.float64:
-        return np.atan(np.float64(0.25))
+        return np.arctan(np.float64(0.25))
 
-    t = np.atan(np.float64(0.25))
+    t = np.arctan(np.float64(0.25))
     assert is_close(t, float_np_use())
 
     # Use a float inside np in a kernel (sqrt)
@@ -272,28 +272,28 @@ def test_float32_use():
     t = np.tan(np.float32(0.25))
     assert is_close(t, float_np_use())
 
-    # Use a float inside np in a kernel (asin)
+    # Use a float inside np in a kernel (arcsin)
     @cudaq.kernel
     def float_np_use() -> np.float32:
-        return np.asin(np.float32(0.25))
+        return np.arcsin(np.float32(0.25))
 
-    t = np.asin(np.float32(0.25))
+    t = np.arcsin(np.float32(0.25))
     assert is_close(t, float_np_use())
 
-    # Use a float inside np in a kernel (acos)
+    # Use a float inside np in a kernel (arccos)
     @cudaq.kernel
     def float_np_use() -> np.float32:
-        return np.acos(np.float32(0.25))
+        return np.arccos(np.float32(0.25))
 
-    t = np.acos(np.float32(0.25))
+    t = np.arccos(np.float32(0.25))
     assert is_close(t, float_np_use())
 
-    # Use a float inside np in a kernel (atan)
+    # Use a float inside np in a kernel (arctan)
     @cudaq.kernel
     def float_np_use() -> np.float32:
-        return np.atan(np.float32(0.25))
+        return np.arctan(np.float32(0.25))
 
-    t = np.atan(np.float32(0.25))
+    t = np.arctan(np.float32(0.25))
     assert is_close(t, float_np_use())
 
     # Use a float inside np in a kernel (sqrt)

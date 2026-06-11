@@ -816,8 +816,8 @@ class PyASTBridge(ast.NodeVisitor):
 
     def __isSupportedNumpyFunction(self, id):
         return id in [
-            'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'sqrt', 'ceil',
-            'exp', 'log'
+            'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'arcsin', 'arccos',
+            'arctan', 'sqrt', 'ceil', 'exp', 'log'
         ]
 
     def __isSupportedVectorFunction(self, id):
@@ -3515,7 +3515,7 @@ class PyASTBridge(ast.NodeVisitor):
                             return
                         self.pushValue(math.TanOp(value).result)
                         return
-                    if node.func.attr == 'asin':
+                    if node.func.attr in ['asin', 'arcsin']:
                         if ComplexType.isinstance(value.type):
                             self.emitFatalError(
                                 f"numpy call ({node.func.attr}) is not "
@@ -3523,7 +3523,7 @@ class PyASTBridge(ast.NodeVisitor):
                             return
                         self.pushValue(math.AsinOp(value).result)
                         return
-                    if node.func.attr == 'acos':
+                    if node.func.attr in ['acos', 'arccos']:
                         if ComplexType.isinstance(value.type):
                             self.emitFatalError(
                                 f"numpy call ({node.func.attr}) is not "
@@ -3531,7 +3531,7 @@ class PyASTBridge(ast.NodeVisitor):
                             return
                         self.pushValue(math.AcosOp(value).result)
                         return
-                    if node.func.attr == 'atan':
+                    if node.func.attr in ['atan', 'arctan']:
                         if ComplexType.isinstance(value.type):
                             self.emitFatalError(
                                 f"numpy call ({node.func.attr}) is not "
