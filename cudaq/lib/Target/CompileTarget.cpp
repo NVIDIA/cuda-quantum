@@ -52,10 +52,6 @@ cudaq::CompileTarget::CompileTarget(
     return;
 
   const auto &backendConfig = *targetConfig.BackendConfig;
-  if (!backendConfig.hasPassPipeline()) {
-    pipelineConfig.skipTargetLoweringPipeline = true;
-  }
-
   auto prepPipeline = [&](const std::string &stage,
                           const std::string &stageName) {
     std::string pipeline = stage;

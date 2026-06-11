@@ -207,11 +207,16 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
   bool isFullySpecialized = true;
   auto rawArgs = args.getTypeErased();
   auto packed = args.getPacked();
-  if (!args.empty()) {
+  const bool runKernelSpecialization =
+      !args.empty() || (isPython && isEntryPoint);
+  if (runKernelSpecialization) {
     mlir::PassManager pm(contextPtr);
-    if (isPython && rawArgs)
+    if (isPython) {
+      std::span<void *const> mergeArgs =
+          rawArgs ? *rawArgs : std::span<void *const>{};
       cudaq_internal::compiler::mergeAllCallableClosures(moduleOp, kernelName,
-                                                         *rawArgs);
+                                                         mergeArgs);
+    }
 
     // Mark all newly merged kernels private, and leave the entry point alone.
     for (auto &op : moduleOp)
@@ -219,7 +224,7 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
         if (f != epFunc)
           f.setPrivate();
 
-    if (rawArgs) {
+    if (rawArgs || (isPython && isEntryPoint && !packed)) {
       CUDAQ_INFO("Run Argument Synth.\n");
       // For quantum devices, we generate a collection of `init` and
       // `num_qubits` functions and their substitutions created
@@ -230,12 +235,15 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
       if (cudaq::opt::factory::isFullySynthesized(epFunc)) {
         // Already fully specialized, nothing to do.
         isFullySpecialized = true;
-      } else if (isEntryPoint && !target->fullySpecialize) {
+      } else if (isEntryPoint && !target->fullySpecialize && rawArgs) {
         // We disable specialization by erasing args that should not be inlined
         isFullySpecialized =
             eraseNonCallableArguments(*rawArgs, closureArgs, epFunc);
       }
-      argCon.gen(*rawArgs);
+      if (rawArgs)
+        argCon.gen(*rawArgs);
+      else
+        argCon.gen(std::span<void *const>{});
 
       // Store kernel and substitution strings on the stack.
       // We pass string references to the `createArgumentSynthesisPass`.

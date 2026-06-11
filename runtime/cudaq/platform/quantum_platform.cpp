@@ -112,6 +112,8 @@ getDefaultPythonCompileTargetImpl() {
   }
 
   bool isLocalSimulator = !(platform->is_remote() || platform->is_emulated());
+  if (isLocalSimulator && ct->pipelineConfig.midLevelPipeline.empty())
+    ct->pipelineConfig.skipTargetLoweringPipeline = true;
 
   ct->fullySpecialize = !isLocalSimulator;
   ct->supportDeviceCalls = true;
