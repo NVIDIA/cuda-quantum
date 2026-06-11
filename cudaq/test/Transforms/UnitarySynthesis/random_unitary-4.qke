@@ -10,6 +10,7 @@
 // platform-specific math library implementations.
 // UNSUPPORTED: system-darwin
 // RUN: cudaq-opt --unitary-synthesis --canonicalize --apply-op-specialization --aggressive-inlining %s | FileCheck %s
+// RUN: cudaq-opt --unitary-synthesis --canonicalize --apply-op-specialization --aggressive-inlining %s | CircuitCheck %s
 
 module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel2 = "__nvqpp__mlirgen__kernel2_PyKernelEntryPointRewrite"}} {
   func.func @__nvqpp__mlirgen__kernel2() attributes {"cudaq-entrypoint"} {
