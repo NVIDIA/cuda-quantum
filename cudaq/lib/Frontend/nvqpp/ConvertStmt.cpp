@@ -253,8 +253,8 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
                         builder, loc, builder.getI1Type(), /*value=*/0);
                   }
                 }
-              cc::StoreOp::create(builder, loc, atOffset, iterVar);
             }
+            cc::StoreOp::create(builder, loc, atOffset, iterVar);
           }
         }
         if (!TraverseStmt(static_cast<clang::Stmt *>(body))) {
