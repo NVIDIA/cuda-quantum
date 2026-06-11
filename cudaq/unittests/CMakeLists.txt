@@ -11,10 +11,12 @@ add_custom_target(CudaQUnitTests)
 # that we create with the `add_cudaq_unittest` function. We will use this 
 # property to add the tests to the `CudaQUnitTests` target and to create custom 
 # targets for each test that we can run with 
-# `{make,ninja, cmake --build build -target} check-<test_label>`.
+# `{make,ninja, cmake --build build -target} check-<check_target_name>`.
 set_property(GLOBAL PROPERTY CUDAQ_UNIT_TEST_TARGETS "")
 
 
+# this function creates a custom target for a unit test that we can run with 
+# `{make,ninja, cmake --build build -target} check-<check_target_name>`. 
 function(create_cudaq_unittest_check_target test_name check_target_name)
     add_custom_target(check-${check_target_name}
         COMMAND $<TARGET_FILE:${test_name}>
@@ -33,9 +35,8 @@ endfunction(create_cudaq_unittest_check_target)
 # - compile options
 # - compile definitions 
 # for the test. 
-# The test will be added to the `CudaQUnitTests` target, and a custom target will 
-# be created for it that we can run with `make check-<test_label>`.
-function(add_cudaq_unittest test_name test_label)
+# The test will be added as a dependency to the `CudaQUnitTests` target.
+function(add_cudaq_unittest test_name)
     set(options)
     set(oneValueArgs)
     set(multiValueArgs
