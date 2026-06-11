@@ -238,16 +238,23 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
               // pointer element type (`i1`) disagree and the verifier rejects
               // the module. A `measure_handle` loop variable
               // (`for (auto b : mz(reg))`) keeps the handle and is unaffected.
-              //
-              // TODO(NVIDIA/cuda-quantum#4479): this does not diagnose
-              // discriminating an unbound handle. Definite-assignment analysis
-              // for `measure_handle` is tracked there.
               if (auto iterPtrTy = dyn_cast<cc::PointerType>(iterVar.getType()))
-                if (iterPtrTy.getElementType() == builder.getI1Type())
-                  atOffset = cudaq::quake::DiscriminateOp::create(
-                      builder, loc, builder.getI1Type(), atOffset);
+                if (iterPtrTy.getElementType() == builder.getI1Type()) {
+                  llvm::SmallPtrSet<Value, 4> visited;
+                  if (isBoundHandleVector(buffer, visited)) {
+                    atOffset = cudaq::quake::DiscriminateOp::create(
+                        builder, loc, builder.getI1Type(), atOffset);
+                  } else {
+                    reportClangError(
+                        x, mangler, "discriminating an unbound measure_handle");
+                    // Substitute a well-typed `i1` so the shared store below
+                    // stays valid, and let traversal succeed.
+                    atOffset = arith::ConstantIntOp::create(
+                        builder, loc, builder.getI1Type(), /*value=*/0);
+                  }
+                }
+              cc::StoreOp::create(builder, loc, atOffset, iterVar);
             }
-            cc::StoreOp::create(builder, loc, atOffset, iterVar);
           }
         }
         if (!TraverseStmt(static_cast<clang::Stmt *>(body))) {
