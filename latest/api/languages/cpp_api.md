@@ -12812,7 +12812,8 @@ them they are erased before execution.
     []{#classcudaq_1_1QPU_1aab2349600fade270b8ef0d51f07e1318 .target}[[virtual]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[unique_ptr]{.pre}]{.n}[[\<]{.pre}]{.p}[[CompileTarget]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[[getCompileTarget]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[sample_policy]{.pre}]{.n}[ ]{.w}[[&]{.pre}]{.p}[[policy]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU16getCompileTargetERK13sample_policy "Permalink to this definition"){.headerlink}\
 
     :   Get the compile target of the [[QPU]{.std
-        .std-ref}](#classcudaq_1_1QPU){.reference .internal}.
+        .std-ref}](#classcudaq_1_1QPU){.reference .internal} for the
+        given policy.
 
     ```{=html}
     <!-- -->
