@@ -81,8 +81,7 @@ struct AssignWireIndicesPass
       auto module = func->getParentOfType<ModuleOp>();
       bool hasQuantumCall = false;
       func.walk([&](func::CallOp call) {
-        if (auto callee =
-                module.lookupSymbol<func::FuncOp>(call.getCallee()))
+        if (auto callee = module.lookupSymbol<func::FuncOp>(call.getCallee()))
           if (callee->hasAttr(cudaq::kernelAttrName))
             hasQuantumCall = true;
       });
