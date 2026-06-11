@@ -14,9 +14,7 @@
 #include "common/KernelExecution.h"
 #include "common/Resources.h"
 #include "common/ServerHelper.h"
-#include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq_internal/compiler/Compiler.h"
-#include "cudaq_internal/compiler/JIT.h"
 #include "nvqir/AnalysisScope.h"
 #include "nvqir/resourcecounter/ResourceCounterScope.h"
 #include "cudaq/Target/TargetConfig.h"
@@ -84,23 +82,6 @@ protected:
 
   /// @brief The target configuration
   cudaq::config::TargetConfig targetConfig;
-
-  template <typename Policy>
-  CompiledModule compileModuleImpl(Policy &policy, const SourceModule &src,
-                                   KernelArgs args, bool isEntryPoint) {
-    const auto &kernelName = src.getName();
-    auto modulePtr = src.getMlirOpaqueModulePtr();
-    CUDAQ_INFO("specializing remote rest kernel via module ({}) with {} policy",
-               kernelName, policy.name);
-    Compiler compiler(getCompileTarget(policy));
-    auto compiled =
-        compiler.runPassPipeline(kernelName, modulePtr, args, isEntryPoint);
-    if constexpr (std::is_same_v<Policy, sample_policy>) {
-      if (compiler.hasWarnedNamedMeasurements())
-        policy.warnedNamedMeasurements = true;
-    }
-    return compiled;
-  }
 
 public:
   /// @brief The constructor
@@ -297,29 +278,6 @@ public:
     target->pauliTermSplitObservable = policy.spin;
     target->pipelineConfig.replaceStateWithKernel = true;
     return target;
-  }
-
-  CompiledModule compileModule(const other_policies &policy,
-                               const SourceModule &src, KernelArgs args,
-                               bool isEntryPoint) override {
-    const auto &kernelName = src.getName();
-    auto modulePtr = src.getMlirOpaqueModulePtr();
-    CUDAQ_INFO("specializing remote rest kernel via module ({})", kernelName);
-
-    Compiler compiler(getCompileTarget(policy, getExecutionContext()));
-    return compiler.runPassPipeline(kernelName, modulePtr, args, isEntryPoint);
-  }
-
-  CompiledModule compileModule(const sample_policy &policy,
-                               const SourceModule &src, KernelArgs args,
-                               bool isEntryPoint) override {
-    return compileModuleImpl(policy, src, args, isEntryPoint);
-  }
-
-  CompiledModule compileModule(const observe_policy &policy,
-                               const SourceModule &src, KernelArgs args,
-                               bool isEntryPoint) override {
-    return compileModuleImpl(policy, src, args, isEntryPoint);
   }
 
   /// @brief Build the list of kernel executions for the given module under
