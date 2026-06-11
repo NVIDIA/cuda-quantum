@@ -37,6 +37,7 @@ COPY docs/sphinx/applications/python /tmp/applications/
 COPY docs/sphinx/targets/python /tmp/targets/
 COPY docs/sphinx/snippets/python /tmp/snippets/
 COPY python/tests /tmp/tests/
+COPY python/utils /tmp/utils/
 COPY python/README*.md /tmp/
 
 RUN sed -ie 's/include-system-site-packages\s*=\s*false/include-system-site-packages = true/g' "$VIRTUAL_ENV/pyvenv.cfg"
