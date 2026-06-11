@@ -68,12 +68,7 @@ using namespace cudaq;
 
 static std::unique_ptr<LinkedLibraryHolder> holder;
 
-extern "C" void cudaq_ensure_default_launcher_linked(void);
-
 NB_MODULE(_quakeDialects, m) {
-  // Ensure the TU that registers PythonLauncher ("default") is linked so
-  // kernel launches work without an explicit set_target().
-  cudaq_ensure_default_launcher_linked();
   holder = std::make_unique<LinkedLibraryHolder>();
 
   bindRegisterDialects(m);

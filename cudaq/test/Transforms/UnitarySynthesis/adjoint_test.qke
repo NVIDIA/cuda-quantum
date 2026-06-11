@@ -7,6 +7,7 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --unitary-synthesis --canonicalize %s | FileCheck %s
+// RUN: cudaq-opt --unitary-synthesis --canonicalize --apply-op-specialization --aggressive-inlining %s | CircuitCheck %s
 
 module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel = "__nvqpp__mlirgen__kernel_PyKernelEntryPointRewrite"}} {
   func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint"} {
