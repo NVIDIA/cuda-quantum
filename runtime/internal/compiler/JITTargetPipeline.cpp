@@ -47,17 +47,34 @@ cudaq_internal::compiler::getPassPipeline(const cudaq::CompileTarget &target) {
     appendPipelineStage(passPipeline, "emul-jit-prep-pipeline{erase-noise=true "
                                       "allow-early-exit=" +
                                           allowEarlyExit + noLoopUnroll + "}");
-  else
+  else {
+    // Local simulators apply unitaries natively; skip synthesis (it drops
+    // global phase, breaking controlled custom ops). Hardware keeps it.
+    const std::string noUnitarySynthesis =
+        pipelineConfig.nativeGateSet ? " no-unitary-synthesis=true" : "";
     appendPipelineStage(passPipeline, "hw-jit-prep-pipeline{allow-early-exit=" +
-                                          allowEarlyExit + noLoopUnroll + "}");
+                                          allowEarlyExit + noLoopUnroll +
+                                          noUnitarySynthesis + "}");
+  }
 
   const std::string lowerDeviceCalls =
       (pipelineConfig.codegenTranslation == "nop" && !target.emulate) ? "false"
                                                                       : "true";
-  const std::string deployStage =
-      pipelineConfig.codegenTranslation == "nop"
-          ? "jit-deploy-pipeline{no-loop-unroll=true}"
-          : "jit-deploy-pipeline";
+  // Local simulators support multi-controlled gates natively; skip
+  // decomposition (its ancillas show up as extra measured qubits). Else keep
+  // it.
+  std::vector<std::string> deployOpts;
+  if (pipelineConfig.codegenTranslation == "nop")
+    deployOpts.push_back("no-loop-unroll=true");
+  if (pipelineConfig.nativeGateSet)
+    deployOpts.push_back("no-native-gate-decomposition=true");
+  std::string deployStage = "jit-deploy-pipeline";
+  if (!deployOpts.empty()) {
+    deployStage += "{";
+    for (std::size_t i = 0; i < deployOpts.size(); ++i)
+      deployStage += (i ? " " : "") + deployOpts[i];
+    deployStage += "}";
+  }
   const std::string finalizeStage =
       "jit-finalize-pipeline{lower-device-calls=" + lowerDeviceCalls + "}";
 

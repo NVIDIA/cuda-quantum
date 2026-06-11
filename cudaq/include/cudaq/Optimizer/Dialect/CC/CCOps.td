@@ -1819,6 +1819,8 @@ def cc_CallableClosureOp : CCOp<"callable_closure", [Pure]> {
   let assemblyFormat = [{
     $callable `:` functional-type(operands, results) attr-dict
   }];
+
+  let hasCanonicalizer = 1;
 }
 
 def cc_NoInlineCallOp : CCOp<"noinline_call",

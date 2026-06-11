@@ -11,6 +11,14 @@ import os
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def reset_target_after_test():
+    # This test leaves a remote target set; reset it so it does not leak to
+    # other tests under pytest-xdist.
+    yield
+    cudaq.reset_target()
+
+
 def test_register_callback():
     cudaq.set_target("density-matrix-cpu")
 

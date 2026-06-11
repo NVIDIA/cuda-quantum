@@ -113,6 +113,9 @@ getDefaultPythonCompileTargetImpl() {
 
   bool isLocalSimulator = !(platform->is_remote() || platform->is_emulated());
 
+  // Local simulators apply arbitrary gates natively, so skip the hardware gate
+  // lowering. Hardware and hardware emulation keep it.
+  ct->pipelineConfig.nativeGateSet = isLocalSimulator;
   ct->fullySpecialize = !isLocalSimulator;
   ct->supportDeviceCalls = true;
   ct->argumentSynthChangeSemantics = false;

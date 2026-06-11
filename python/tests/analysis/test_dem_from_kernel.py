@@ -151,6 +151,7 @@ def test_memory_experiment_two_rounds():
     assert summary == {"errors": 4, "detectors": 3, "observables": 1}
 
 
+@pytest.mark.skip_macos_arm64_jit
 def test_non_clifford_raises():
     """Non-Clifford gate triggers a Clifford-only diagnostic from Stim."""
 

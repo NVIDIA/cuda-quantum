@@ -31,6 +31,12 @@ struct TargetPrepPipelineOptions
       *this, "no-loop-unroll",
       llvm::cl::desc("Disable loop unrolling and preserve cc.loop operations."),
       llvm::cl::init(false)};
+  PassOptions::Option<bool> disableUnitarySynthesis{
+      *this, "no-unitary-synthesis",
+      llvm::cl::desc("Skip unitary synthesis for targets that apply unitaries "
+                     "natively (e.g. simulators); it drops global phase, "
+                     "breaking controlled custom ops."),
+      llvm::cl::init(false)};
 };
 
 struct TargetDeployPipelineOptions
@@ -38,6 +44,12 @@ struct TargetDeployPipelineOptions
   PassOptions::Option<bool> disableLoopUnrolling{
       *this, "no-loop-unroll",
       llvm::cl::desc("Disable loop unrolling and preserve cc.loop operations."),
+      llvm::cl::init(false)};
+  PassOptions::Option<bool> disableNativeGateDecomposition{
+      *this, "no-native-gate-decomposition",
+      llvm::cl::desc("Skip u3-to-rotations and multi-control decomposition for "
+                     "targets that support them natively (e.g. simulators); "
+                     "decomposition adds ancillas and drops global phase."),
       llvm::cl::init(false)};
 };
 
@@ -85,7 +97,8 @@ static void createTargetPrepPipeline(OpPassManager &pm,
       {options.disableLoopUnrolling});
   pm.addPass(cudaq::opt::createGlobalizeArrayValues());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addPass(cudaq::opt::createUnitarySynthesis());
+  if (!options.disableUnitarySynthesis)
+    pm.addPass(cudaq::opt::createUnitarySynthesis());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addPass(cudaq::opt::createApplySpecialization(
       {.constantPropagation = options.applyConstProp}));
@@ -149,9 +162,12 @@ createTargetDeployPipeline(OpPassManager &pm,
   cudaq::opt::createClassicalOptimizationPipeline(
       pm, std::nullopt, std::nullopt, std::nullopt,
       {options.disableLoopUnrolling});
-  cudaq::opt::addDecomposition(pm, {std::string("U3ToRotations")});
+  if (!options.disableNativeGateDecomposition)
+    cudaq::opt::addDecomposition(pm, {std::string("U3ToRotations")});
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createMultiControlDecomposition());
+  if (!options.disableNativeGateDecomposition)
+    pm.addNestedPass<func::FuncOp>(
+        cudaq::opt::createMultiControlDecomposition());
 }
 
 /// Register the standard deployment pipeline run for ALL target machines. This

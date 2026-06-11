@@ -56,6 +56,12 @@ public:
 
     /// Whether to run the add-measurements pass.
     bool addMeasurements = false;
+
+    /// True for local simulators that apply arbitrary unitaries and
+    /// multi-controlled gates natively, so hardware gate lowering (u3 and
+    /// multi-control decomposition, unitary synthesis) is skipped. Must stay
+    /// false for hardware and emulation, which require the lowering.
+    bool nativeGateSet = false;
   };
 
   /// Pipeline configuration, populated by the constructor.

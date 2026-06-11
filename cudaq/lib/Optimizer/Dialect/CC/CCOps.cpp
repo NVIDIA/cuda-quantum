@@ -2515,6 +2515,44 @@ void cudaq::cc::CallableFuncOp::getCanonicalizationPatterns(
 }
 
 //===----------------------------------------------------------------------===//
+// CallableClosureOp
+//===----------------------------------------------------------------------===//
+
+namespace {
+// Fold `callable_closure(instantiate_callable(args))` to `args`; the round-trip
+// is the identity. Exposing the captured values helps later analyses.
+struct CallableClosureOpPattern
+    : public OpRewritePattern<cudaq::cc::CallableClosureOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::cc::CallableClosureOp closure,
+                                PatternRewriter &rewriter) const override {
+    auto instance =
+        closure.getCallable().getDefiningOp<cudaq::cc::InstantiateCallableOp>();
+    if (!instance)
+      return failure();
+    // Only fold when the closure is the callable's sole use, so the instantiate
+    // is removed and no second use of a captured value is introduced.
+    if (!instance->hasOneUse())
+      return failure();
+    auto closureData = instance.getClosureData();
+    if (closureData.size() != closure.getNumResults())
+      return failure();
+    for (auto [result, data] : llvm::zip(closure.getResults(), closureData))
+      if (result.getType() != data.getType())
+        return failure();
+    rewriter.replaceOp(closure, closureData);
+    return success();
+  }
+};
+} // namespace
+
+void cudaq::cc::CallableClosureOp::getCanonicalizationPatterns(
+    RewritePatternSet &patterns, MLIRContext *context) {
+  patterns.add<CallableClosureOpPattern>(context);
+}
+
+//===----------------------------------------------------------------------===//
 // CallCallableOp
 //===----------------------------------------------------------------------===//
 

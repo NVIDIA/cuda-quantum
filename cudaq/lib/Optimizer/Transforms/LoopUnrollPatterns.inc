@@ -16,17 +16,20 @@ inline std::pair<Block *, Block *> findCloneRange(Block *first, Block *last) {
   return {first->getNextNode(), last->getPrevNode()};
 }
 
-static std::size_t
+// Constant iteration count of a counted loop, or nullopt if the trip count is
+// not a compile-time constant (e.g. a loop-invariant but non-constant linear
+// induction). Such loops cannot be fully unrolled.
+static std::optional<std::size_t>
 unrollLoopByValue(cudaq::cc::LoopOp loop,
                   const cudaq::opt::LoopComponents &components) {
-  auto c = components.compareValue.getDefiningOp<arith::ConstantOp>();
-  if (loop->hasAttr(cudaq::opt::NormalizedLoopAttr))
-    return cast<IntegerAttr>(c.getValue()).getInt();
+  if (loop->hasAttr(cudaq::opt::NormalizedLoopAttr)) {
+    if (auto c = components.compareValue.getDefiningOp<arith::ConstantOp>())
+      return cast<IntegerAttr>(c.getValue()).getInt();
+    return std::nullopt;
+  }
   if (components.hasAlwaysFalseCondition())
     return 0;
-  auto resultOpt = components.getIterationsConstant();
-  assert(resultOpt.has_value() && "must be counted loop");
-  return *resultOpt;
+  return components.getIterationsConstant();
 }
 
 static bool exceedsThresholdValue(cudaq::cc::LoopOp loop,
@@ -38,7 +41,8 @@ static bool exceedsThresholdValue(cudaq::cc::LoopOp loop,
     return true;
   }
   auto upperBound = unrollLoopByValue(loop, *components);
-  return upperBound >= threshold;
+  // Non-constant trip count: report as over-threshold so we bail, not assert.
+  return !upperBound.has_value() || *upperBound >= threshold;
 }
 
 namespace {
@@ -90,7 +94,11 @@ struct UnrollCountedLoop : public OpRewritePattern<cudaq::cc::LoopOp> {
     // TODO: Allow the threading of other block arguments to the result.
     auto components = cudaq::opt::getLoopComponents(loop);
     assert(components && "counted loop must have components");
-    auto unrollBy = unrollLoopByValue(loop, *components);
+    auto unrollByOpt = unrollLoopByValue(loop, *components);
+    // Guaranteed by the exceedsThresholdValue check above.
+    assert(unrollByOpt.has_value() &&
+           "counted loop must have a constant trip count to unroll");
+    auto unrollBy = *unrollByOpt;
     Type inductionTy = loop.getOperands()[components->induction].getType();
     LLVM_DEBUG(llvm::dbgs()
                << "unrolling loop by " << unrollBy << " iterations\n");
