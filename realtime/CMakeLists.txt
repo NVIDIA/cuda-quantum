@@ -10,11 +10,7 @@ cmake_minimum_required(VERSION 3.22 FATAL_ERROR)
 
 include(FetchContent)
 
-if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-  set(CUDAQ_REALTIME_STANDALONE_BUILD TRUE)
-else()
-  set(CUDAQ_REALTIME_STANDALONE_BUILD FALSE)
-endif()
+string(COMPARE EQUAL "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}" CUDAQ_REALTIME_STANDALONE_BUILD)
 
 if(CUDAQ_REALTIME_STANDALONE_BUILD)
   # Set a default build type if none was specified. Must set this before
@@ -74,9 +70,12 @@ endif()
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64" AND
    CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12)
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 13)
     # nvcc cannot parse the GCC BF16 intrinsic headers exposed through
-    # <immintrin.h> on the CI toolchains.
+    # <immintrin.h> on the CI toolchains. This only applies from GCC 13:
+    # GCC 13 switched the AVX512BF16 intrinsics to the `__bf16` builtin type
+    # (GCC 12 still used the parseable `__bfloat16` typedef) and introduced
+    # <avxneconvertintrin.h>, which does not exist on GCC 12.
     list(APPEND _host_compiler_opts_list
       "-D_AVX512BF16INTRIN_H_INCLUDED"
       "-D_AVX512BF16VLINTRIN_H_INCLUDED"

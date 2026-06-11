@@ -9,6 +9,7 @@
 #include "cudaq_internal/device_call/DeviceCallError.h"
 #include "cudaq_internal/device_call/DeviceCallService.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
+#include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 #include <cuda_runtime.h>
 #include <gtest/gtest.h>
 
@@ -44,17 +45,10 @@ namespace {
 
 using namespace cudaq_internal::device_call;
 
-constexpr std::uint32_t fnv1aHash(const char *str) {
-  std::uint32_t hash = 2166136261u;
-  while (*str) {
-    hash ^= static_cast<std::uint32_t>(*str++);
-    hash *= 16777619u;
-  }
-  return hash;
-}
-
-constexpr std::uint32_t AddThemFunctionId = fnv1aHash("addThem");
-constexpr std::uint32_t GraphAddThemFunctionId = fnv1aHash("graphAddThem");
+constexpr std::uint32_t AddThemFunctionId =
+    cudaq::realtime::fnv1a_hash("addThem");
+constexpr std::uint32_t GraphAddThemFunctionId =
+    cudaq::realtime::fnv1a_hash("graphAddThem");
 constexpr std::int32_t DeviceCallSuccessStatus =
     toAbiStatus(DeviceCallStatus::Success);
 constexpr std::int32_t DeviceCallInvalidArgumentStatus =
@@ -64,15 +58,20 @@ constexpr std::int32_t DeviceCallNotInitializedStatus =
 constexpr std::int32_t DeviceCallResponseTooLargeStatus =
     toAbiStatus(DeviceCallStatus::ResponseTooLarge);
 
+// A payload buffer must be non-null whenever its declared length is nonzero;
+// a zero-length buffer is allowed to be null.
+constexpr bool isValidBuffer(const void *buffer, std::uint64_t length) {
+  return length == 0 || buffer != nullptr;
+}
+
 std::int32_t dispatchUsingFrameLease(std::uint32_t deviceId,
                                      std::uint32_t functionId,
                                      const void *request,
                                      std::uint64_t requestLen, void *response,
                                      std::uint64_t responseCapacity,
                                      std::uint64_t *responseLen) {
-  if ((requestLen > 0 && !request) || !responseLen)
-    return DeviceCallInvalidArgumentStatus;
-  if (responseCapacity > 0 && !response)
+  if (!isValidBuffer(request, requestLen) || !responseLen ||
+      !isValidBuffer(response, responseCapacity))
     return DeviceCallInvalidArgumentStatus;
 
   void *frame = nullptr;
@@ -83,8 +82,8 @@ std::int32_t dispatchUsingFrameLease(std::uint32_t deviceId,
       &requestPayload, &responsePayload);
   if (status != DeviceCallSuccessStatus)
     return status;
-  if ((requestLen > 0 && !requestPayload) ||
-      (responseCapacity > 0 && !responsePayload)) {
+  if (!isValidBuffer(requestPayload, requestLen) ||
+      !isValidBuffer(responsePayload, responseCapacity)) {
     __cudaq_device_call_safely_release_realtime_frame(frame);
     return DeviceCallInvalidArgumentStatus;
   }
