@@ -70,10 +70,13 @@ public:
   bool supports_task_distribution() const override { return true; }
 
   void beginExecution() override {
-    // Set the current CUDA device for this thread based on the QPU ID in the
-    // execution context.
+    // Only set the CUDA device when GPU-backed QPUs are in use. When a
+    // non-GPU platform (e.g. ORCA) replaces the default QPUs via
+    // setTargetBackend.
     auto qid = cudaq::getCurrentQpuId();
-    cudaq::setCudaDevice(qid);
+    int nDevices = cudaq::getCudaDeviceCount();
+    if (nDevices > 0)
+      cudaq::setCudaDevice(qid);
     // Base implementation of beginExecution will be called after this.
     cudaq::quantum_platform::beginExecution();
   }
