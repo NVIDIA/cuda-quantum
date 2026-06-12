@@ -38,7 +38,6 @@ COPY docs/sphinx/applications/python /tmp/applications/
 COPY docs/sphinx/targets/python /tmp/targets/
 COPY docs/sphinx/snippets/python /tmp/snippets/
 COPY python/tests /tmp/tests/
-COPY python/utils /tmp/utils/
 COPY python/README*.md /tmp/
 
 RUN if [ -n "$pip_install_flags" ]; then \
