@@ -159,3 +159,12 @@ struct ConditionalStoreUnbound {
     return b;
   }
 };
+
+struct RangeForUnboundVector {
+  void operator()() __qpu__ {
+    std::vector<cudaq::measure_handle> handles(2);
+    // expected-error@+1{{discriminating an unbound measure_handle}}
+    for (bool b : handles)
+      (void)b;
+  }
+};
