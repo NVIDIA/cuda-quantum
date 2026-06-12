@@ -37,18 +37,27 @@ public:
     if (!args.functionTable || args.functionCount == 0)
       throw DeviceCallError(DeviceCallStatus::InvalidArgument,
                             "device_call function table is empty");
-    // The host dispatcher requires a pinned, mapped mailbox.
-    if (!args.mailbox)
-      throw DeviceCallError(
-          DeviceCallStatus::InvalidArgument,
-          "host device_call channel requires a pinned, mapped mailbox "
-          "(cudaHostAlloc with cudaHostAllocMapped) sized for the "
-          "GRAPH_LAUNCH worker count");
     functionTable = args.functionTable;
     functionCount = args.functionCount;
     deviceId = args.deviceId;
     channelConfig = args.channelConfig;
     mailbox = args.mailbox;
+
+    if (!hasSupportedEntry())
+      throw DeviceCallError(
+          DeviceCallStatus::InvalidArgument,
+          "host device_call dispatch requires a HOST_CALL or graph-launch "
+          "table entry");
+
+    // Graph-launch workers require a pinned, mapped mailbox. HOST_CALL
+    // handlers execute inline on the host dispatcher thread and do not use it.
+    if (hasGraphLaunchEntry() && !mailbox)
+      throw DeviceCallError(
+          DeviceCallStatus::InvalidArgument,
+          "host device_call graph-launch entries require a pinned, mapped "
+          "mailbox "
+          "(cudaHostAlloc with cudaHostAllocMapped) sized for the "
+          "GRAPH_LAUNCH worker count");
   }
 
   void acquireFrame(std::uint32_t functionId, std::uint64_t requestBytes,
@@ -80,12 +89,12 @@ public:
       const auto *const entry = lookup(functionId);
       CUDAQ_DBG("[device-call] host channel lookup functionId={} found={}",
                 functionId, static_cast<bool>(entry));
-      if (!entry || entry->dispatch_mode != CUDAQ_DISPATCH_GRAPH_LAUNCH ||
-          !entry->handler.graph_exec)
+      if (!entry || !isSupportedEntry(*entry))
         throw DeviceCallError(
             DeviceCallStatus::InvalidArgument,
-            "host device_call dispatch requires a graph-launch table entry");
-      ensureGraphDispatcherStarted();
+            "host device_call dispatch requires a HOST_CALL or graph-launch "
+            "table entry");
+      ensureDispatcherStarted();
       if (requiredBytes > ringBuffer.slotSize())
         throw DeviceCallError(
             DeviceCallStatus::InvalidArgument,
@@ -167,7 +176,7 @@ public:
             err.status() == DeviceCallStatus::CudaError) {
           std::lock_guard<std::mutex> lock(mutex);
           frame.channelPrivate = nullptr;
-          stopGraphDispatcher();
+          stopDispatcher();
         }
         throw;
       }
@@ -199,12 +208,20 @@ public:
   void stop() noexcept override {
     std::lock_guard<std::mutex> lock(mutex);
     try {
-      stopGraphDispatcher();
+      stopDispatcher();
     } catch (...) {
     }
   }
 
 private:
+  static bool isSupportedEntry(const cudaq_function_entry_t &entry) {
+    if (entry.dispatch_mode == CUDAQ_DISPATCH_HOST_CALL)
+      return entry.handler.host_fn != nullptr;
+    if (entry.dispatch_mode == CUDAQ_DISPATCH_GRAPH_LAUNCH)
+      return entry.handler.graph_exec != nullptr;
+    return false;
+  }
+
   const cudaq_function_entry_t *lookup(std::uint32_t functionId) const {
     for (std::uint32_t i = 0; i < functionCount; ++i)
       if (functionTable[i].function_id == functionId)
@@ -212,15 +229,31 @@ private:
     return nullptr;
   }
 
-  void ensureGraphDispatcherStarted() {
-    if (graphDispatcherStarted)
+  bool hasGraphLaunchEntry() const {
+    for (std::uint32_t i = 0; i < functionCount; ++i)
+      if (functionTable[i].dispatch_mode == CUDAQ_DISPATCH_GRAPH_LAUNCH)
+        return true;
+    return false;
+  }
+
+  bool hasSupportedEntry() const {
+    for (std::uint32_t i = 0; i < functionCount; ++i)
+      if (isSupportedEntry(functionTable[i]))
+        return true;
+    return false;
+  }
+
+  void ensureDispatcherStarted() {
+    if (dispatcherStarted)
       return;
-    CUDAQ_DBG("[device-call] host channel start graph dispatcher");
+    CUDAQ_DBG("[device-call] host channel start dispatcher");
 
     try {
       ringBuffer.configure("host", deviceId, channelConfig);
 
-      CUDAQ_DBG("[device-call] host graph dispatcher starting device={} "
+      const bool usesGraphLaunch = hasGraphLaunchEntry();
+
+      CUDAQ_DBG("[device-call] host dispatcher starting device={} "
                 "slots={} slotSize={} functions={} hasMailbox={}",
                 deviceId, ringBuffer.numSlots(), ringBuffer.slotSize(),
                 functionCount, mailbox != nullptr);
@@ -231,7 +264,8 @@ private:
         result.num_slots = ringBuffer.numSlots();
         result.slot_size = static_cast<std::uint32_t>(ringBuffer.slotSize());
         result.kernel_type = CUDAQ_KERNEL_REGULAR;
-        result.dispatch_mode = CUDAQ_DISPATCH_GRAPH_LAUNCH;
+        result.dispatch_mode = usesGraphLaunch ? CUDAQ_DISPATCH_GRAPH_LAUNCH
+                                               : CUDAQ_DISPATCH_HOST_CALL;
         result.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
         return result;
       }();
@@ -256,28 +290,29 @@ private:
       stats = 0;
       CUDAQ_CHECK_DISPATCHER_STATUS(
           cudaq_dispatcher_set_control(graphDispatcher, &shutdownFlag, &stats));
-      CUDAQ_CHECK_DISPATCHER_STATUS(
-          cudaq_dispatcher_set_mailbox(graphDispatcher, mailbox));
+      if (mailbox)
+        CUDAQ_CHECK_DISPATCHER_STATUS(
+            cudaq_dispatcher_set_mailbox(graphDispatcher, mailbox));
       CUDAQ_CHECK_DISPATCHER_STATUS(cudaq_dispatcher_start(graphDispatcher));
 
-      graphDispatcherStarted = true;
-      CUDAQ_DBG("[device-call] host graph dispatcher started device={} "
+      dispatcherStarted = true;
+      CUDAQ_DBG("[device-call] host dispatcher started device={} "
                 "slots={} slotSize={}",
                 deviceId, ringBuffer.numSlots(), ringBuffer.slotSize());
     } catch (...) {
-      stopGraphDispatcher();
+      stopDispatcher();
       throw;
     }
   }
 
-  void stopGraphDispatcher() {
-    const bool hasResources = graphDispatcherStarted || graphDispatcher ||
+  void stopDispatcher() {
+    const bool hasResources = dispatcherStarted || graphDispatcher ||
                               dispatchManager || ringBuffer.configured();
     if (!hasResources)
       return;
-    CUDAQ_DBG("[device-call] host graph dispatcher stop started={}",
-              graphDispatcherStarted);
-    if (graphDispatcherStarted && graphDispatcher)
+    CUDAQ_DBG("[device-call] host dispatcher stop started={}",
+              dispatcherStarted);
+    if (dispatcherStarted && graphDispatcher)
       cudaq_dispatcher_stop(graphDispatcher);
     if (graphDispatcher) {
       cudaq_dispatcher_destroy(graphDispatcher);
@@ -289,8 +324,8 @@ private:
     }
 
     ringBuffer.reset();
-    graphDispatcherStarted = false;
-    CUDAQ_DBG("[device-call] host graph dispatcher stopped");
+    dispatcherStarted = false;
+    CUDAQ_DBG("[device-call] host dispatcher stopped");
   }
 
   cudaq_function_entry_t *functionTable = nullptr;
@@ -299,7 +334,7 @@ private:
   DeviceCallChannelConfig channelConfig;
   void **mailbox = nullptr;
   RingBufferWrapper ringBuffer;
-  bool graphDispatcherStarted = false;
+  bool dispatcherStarted = false;
   cudaq_dispatch_manager_t *dispatchManager = nullptr;
   cudaq_dispatcher_t *graphDispatcher = nullptr;
   volatile int shutdownFlag = 0;
