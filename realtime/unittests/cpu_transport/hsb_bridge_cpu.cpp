@@ -47,7 +47,7 @@ setup_rpc_increment_function_table_host(cudaq_function_entry_t *h_entries);
 // Provided by init_rpc_increment_function_table_host.cpp via internal
 // linkage; we need the same handler for unified mode's dispatch callback,
 // so re-declare its C ABI here.
-extern "C" void rpc_increment_handler_host(void *slot_host,
+extern "C" void rpc_increment_handler_host(const void *rx_slot, void *tx_slot,
                                            std::size_t slot_size);
 
 namespace {
@@ -132,9 +132,9 @@ void on_signal(int) { g_shutdown.store(1, std::memory_order_release); }
 
 // ============================================================================
 // Unified-mode dispatch callback.  Forwards directly to the host increment
-// handler.  The dispatcher copy that the three-thread path does in
-// handle_host_call is done explicitly here (rx_slot -> tx_slot) since the
-// unified loop hands us both sides.
+// handler.  The two-pointer handler reads the request from rx_slot and writes
+// the response into tx_slot, so no copy is needed here (the unified loop hands
+// us both sides, matching the handler's RX/TX-pointer ABI).
 // ============================================================================
 std::size_t unified_dispatch_cb(void * /*context*/, const void *rx_slot,
                                 void *tx_slot, std::size_t slot_size) {
@@ -143,8 +143,7 @@ std::size_t unified_dispatch_cb(void * /*context*/, const void *rx_slot,
   const auto *header = static_cast<const RPCHeader *>(rx_slot);
   if (header->magic != RPC_MAGIC_REQUEST)
     return 0; // drop without sending — silent for non-RPC noise
-  std::memcpy(tx_slot, rx_slot, slot_size);
-  rpc_increment_handler_host(tx_slot, slot_size);
+  rpc_increment_handler_host(rx_slot, tx_slot, slot_size);
   // Response length: response header + payload bytes (use full slot to
   // match the three-thread / FPGA TX framing, since the FPGA expects a
   // fixed-size payload per slot).
@@ -204,7 +203,7 @@ int main(int argc, char **argv) {
       cfg.device.c_str(), /*ib_port=*/1, cfg.remote_qp, frame_size,
       cfg.page_size, cfg.num_pages, cfg.peer_ip.c_str(), cfg.forward ? 1 : 0,
       rx_only, tx_only, cfg.unified ? 1 : 0,
-      /*tx_mode=*/CPU_ROCE_TX_MODE_SEND_FOR_FPGA,
+      /*tx_mode=*/CPU_ROCE_TX_MODE_RDMA_SEND,
       /*peer_rx_base_addr=*/0, /*peer_rx_rkey=*/0);
   if (!xcvr) {
     std::cerr << "ERROR: cpu_roce_create_transceiver failed" << std::endl;

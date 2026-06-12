@@ -11,9 +11,12 @@
 #
 # Builds cudaq-realtime-cpu-transport, a static library exporting the
 # CpuRoceTransceiver class plus its extern-C wrapper. Used by:
-#   - hsb_bridge_cpu (Phase 1, FPGA-facing test binary; tx_mode=kSendForFpga)
-#   - CpuRoceChannel and cpu_roce_test_daemon (Phase 2, both with
-#     tx_mode=kWriteWithImmForPeer)
+#   - hsb_bridge_cpu (Phase 1, FPGA-facing bridge; tx_mode=kRdmaSend -- the
+#     bridge Sends to the FPGA, which Writes its syndromes back)
+#   - CpuRoceChannel (Phase 2, device_call caller / FPGA stand-in;
+#     tx_mode=kRdmaWriteWithImm -- Writes requests like an FPGA)
+#   - cpu_roce_test_daemon (Phase 2, service / bridge stand-in;
+#     tx_mode=kRdmaSend -- Sends responses)
 #
 # Depends only on libibverbs + standard C++; deliberately no DOCA, no Hololink,
 # no Holoscan, no CUDA at link time so the library is buildable on hosts
@@ -30,6 +33,9 @@ add_library(cudaq-realtime-cpu-transport STATIC
   roce_transceiver.cpp  # class CpuRoceTransceiver: ibv setup, RX/TX threads, ring lifecycle
   roce_wrapper.cpp      # extern-C shim used by bridge tools and CpuRoceChannel
 )
+# Source-tree CUDA-Q integration uses the same cudaq:: target names
+# that installed exports provide.
+add_library(cudaq::cudaq-realtime-cpu-transport ALIAS cudaq-realtime-cpu-transport)
 
 target_include_directories(cudaq-realtime-cpu-transport
   PUBLIC

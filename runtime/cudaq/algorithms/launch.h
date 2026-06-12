@@ -14,6 +14,7 @@
 #include "cudaq/platform.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/qis/execution_manager.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <stdexcept>
 

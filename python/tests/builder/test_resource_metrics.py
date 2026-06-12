@@ -154,6 +154,6 @@ def test_num_qubits_and_used_qubits():
     kernel.cx(q[0], q[4])
 
     resources = cudaq.estimate_resources(kernel)
-    assert resources.num_qubits == 5
+    assert resources.num_qubits == 2
     assert resources.num_used_qubits <= 5
     assert resources.num_used_qubits > 0

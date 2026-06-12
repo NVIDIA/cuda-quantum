@@ -46,6 +46,16 @@ RUN set -euo pipefail; \
       rm -rf /var/lib/apt/lists/*; \
     fi
 
+# libibverbs is required by the realtime CPU RoCE transport
+# (cudaq-realtime-cpu-transport). Installing it here ensures the realtime build
+# below actually compiles that library, so the device_call `cpu_roce` channel
+# (runtime/internal/device_call/CpuRoceChannel.cpp) is exercised by this
+# build-only integration check instead of being silently skipped.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libibverbs-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
 
 ENV CUDA_INSTALL_PREFIX="/usr/local/cuda-${CUDA_VERSION}"
 ENV CUDA_HOME="$CUDA_INSTALL_PREFIX"
@@ -109,3 +119,35 @@ RUN set -euo pipefail; \
     echo "=== ccache stats ==="; \
     (ccache -s 2>/dev/null || true); \
     (ccache --print-stats 2>/dev/null || ccache -s 2>/dev/null) > /root/.ccache/_build_stats.txt
+
+# ---------------------------------------------------------------------------
+# Optional build-only compile of the cpu_roce device_call test harness.
+#
+# Opt-in via build-arg build_device_call_tests=true, used by a dedicated CI job
+# (see realtime_integration_ci.yml). Kept as a separate layer so the default
+# integration check above stays exactly as PR #4565 designed it: build-only,
+# with NO unit tests compiled. When enabled, this reuses the already-built
+# cudaq tree, reconfigures it with tests ON, and compiles ONLY the two cpu_roce
+# targets -- test_cpu_roce_device_call (the GoogleTest fixture) and
+# cpu_roce_test_daemon. It deliberately does NOT build the shared-memory
+# DeviceCallDispatchTester.cu (honoring #4565's intent that it not compile in
+# CI) and never runs anything (no RDMA NIC is available in CI).
+# ---------------------------------------------------------------------------
+ARG build_device_call_tests=false
+RUN set -euo pipefail; \
+    if [ "${build_device_call_tests}" != "true" ]; then \
+      echo "build_device_call_tests=false: skipping cpu_roce harness compile"; \
+      exit 0; \
+    fi; \
+    export CUDA_HOME="${CUDA_HOME:-${CUDA_INSTALL_PREFIX:-/usr/local/cuda-${cuda_version}}}"; \
+    export CUDACXX="${CUDACXX:-${CUDA_HOME}/bin/nvcc}"; \
+    build_root=/tmp/build-realtime-integration; \
+    echo "=== reconfiguring cudaq with tests ON (cpu_roce harness only) ==="; \
+    cmake "${build_root}/cudaq" -DCUDAQ_BUILD_TESTS=ON; \
+    echo "=== compiling cpu_roce harness (build-only, not run) ==="; \
+    cmake --build "${build_root}/cudaq" \
+      --target test_cpu_roce_device_call cpu_roce_test_daemon \
+      --parallel "$(nproc)"; \
+    test -f "${build_root}/cudaq/unittests/test_cpu_roce_device_call"; \
+    test -f "${build_root}/cudaq/unittests/cpu_roce_test_daemon"; \
+    echo "=== cpu_roce harness compiled successfully (not executed) ==="

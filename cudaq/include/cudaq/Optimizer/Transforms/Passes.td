@@ -281,6 +281,14 @@ def ConvertToDirectCalls : Pass<"indirect-to-direct-calls", "mlir::ModuleOp"> {
   let dependentDialects = ["cudaq::cc::CCDialect"];
 }
 
+def DeadQuantumElimination : Pass<"dqe"> {
+  let summary = "Dead quantum elimination (DQE).";
+  let description = [{
+    Eliminate any clearly dead quantum (`!quake.ref` or `!quake.wire`)
+    allocations from the IR. (quantum here means some flavor of qudit.)
+  }];
+}
+
 def DeadStoreRemoval : Pass<"dead-store-removal"> {
   let summary = "Dead store removal (DSR).";
   let description = [{

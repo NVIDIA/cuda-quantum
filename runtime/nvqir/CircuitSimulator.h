@@ -289,8 +289,7 @@ public:
   virtual void finalizeExecutionContext(const cudaq::other_policies &policy,
                                         cudaq::ExecutionContext &ctx) {}
   virtual cudaq::observe_result
-  finalizeExecutionContext(const cudaq::observe_policy &policy,
-                           cudaq::ExecutionContext &ctx) = 0;
+  finalizeExecutionContext(const cudaq::observe_policy &policy) = 0;
   virtual cudaq::sample_result
   finalizeExecutionContext(const cudaq::sample_policy &policy) = 0;
 
@@ -306,6 +305,14 @@ public:
   void configureExecutionContext(const cudaq::sample_policy &policy) {
     noiseModel = policy.noiseModel;
     currentCircuitName = policy.kernelName;
+    CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
+  }
+
+  /// @brief Set the execution context
+  void configureExecutionContext(const cudaq::observe_policy &policy) {
+    noiseModel = policy.noiseModel;
+    currentCircuitName = policy.kernelName;
+    policy.canHandleObserve = canHandleObserve();
     CUDAQ_INFO("Setting current circuit name to {}", currentCircuitName);
   }
 
@@ -872,6 +879,23 @@ protected:
                                  const std::vector<std::size_t> &controls,
                                  const std::vector<std::size_t> &targets,
                                  const std::vector<double> &params) {
+    // Do nothing if no execution context
+    if (!cudaq::getExecutionContext())
+      return;
+
+    // Do nothing if no noise model
+    auto noiseModel = getNoiseModel();
+    if (!noiseModel)
+      return;
+
+    // Get the Kraus channels specified for this gate and qubits
+    auto krausChannels = noiseModel->get_channels(std::string(gateName),
+                                                  targets, controls, params);
+
+    // If none, do nothing
+    if (krausChannels.empty())
+      return;
+
     CUDAQ_WARN("Applying noise is not supported on {} simulator.", name());
   }
 
@@ -1045,35 +1069,30 @@ protected:
   }
 
   cudaq::observe_result
-  finalizeExecutionContext(const cudaq::observe_policy &,
-                           cudaq::ExecutionContext &ctx) override {
+  finalizeExecutionContext(const cudaq::observe_policy &policy) override {
     finalizeExecutionContextImpl();
-    if (!ctx.spin.has_value())
-      throw std::runtime_error("[observe] ExecutionContext specified without a "
-                               "cudaq::spin_op.");
 
     std::vector<cudaq::ExecutionResult> results;
-    cudaq::spin_op &H = ctx.spin.value();
+    const cudaq::spin_op &H = policy.spin;
     assert(cudaq::spin_op::canonicalize(H) == H);
 
-    if (ctx.canHandleObserve) {
+    if (policy.canHandleObserve) {
       auto [exp, data] = measureSpinOp(H);
       return cudaq::observe_result(exp, H, data);
-    } else {
-      double sum = 0.0;
-      for (const auto &term : H) {
-        if (term.is_identity())
-          sum += term.evaluate_coefficient().real();
-        else {
-          auto [exp, data] = measureSpinOp(term);
-          results.emplace_back(data.to_map(), term.get_term_id(), exp);
-          sum += term.evaluate_coefficient().real() * exp;
-        }
-      }
-
-      auto data = cudaq::sample_result(sum, results);
-      return cudaq::observe_result(sum, H, data);
     }
+    double sum = 0.0;
+    for (const auto &term : H) {
+      if (term.is_identity())
+        sum += term.evaluate_coefficient().real();
+      else {
+        auto [exp, data] = measureSpinOp(term);
+        results.emplace_back(data.to_map(), term.get_term_id(), exp);
+        sum += term.evaluate_coefficient().real() * exp;
+      }
+    }
+
+    auto data = cudaq::sample_result(sum, results);
+    return cudaq::observe_result(sum, H, data);
   }
 
   cudaq::sample_result

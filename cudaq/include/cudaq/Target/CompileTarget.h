@@ -37,12 +37,22 @@ public:
     /// Optional pass pipeline to run after code generation.
     std::string postCodeGenPasses;
 
-    /// Backend data provides target pass pipeline fields.
-    bool hasConfiguredPassPipeline = false;
-    /// Standard `jit-finalize-pipeline` is part of `passPipeline`.
-    bool runsStandardFinalize = false;
+    /// Whether to skip the target lowering compilation pipeline.
+    ///
+    /// Local analysis contexts set this to true: they JIT the kernel directly
+    /// for an analysis simulator. The target lowering pipeline would otherwise
+    /// erase operations such as noise or QEC, or fail to legalize them during
+    /// code generation.
+    bool skipTargetLoweringPipeline = false;
+
     /// Whether to disable qubit mapping.
     bool disableQubitMapping = false;
+
+    /// Whether to run the replace-state-with-kernel pass.
+    ///
+    /// Allows targets that do not support get_state (e.g. remote QPUs)
+    /// to emulate its behavior by inserting the corresponding kernel calls.
+    bool replaceStateWithKernel = false;
 
     /// Whether to run the add-measurements pass.
     bool addMeasurements = false;
@@ -59,6 +69,9 @@ public:
 
   /// Whether branching on measurement results is supported.
   bool supportConditionalsOnMeasureResults = true;
+
+  /// Whether device calls are supported by the target.
+  bool supportDeviceCalls = false;
 
   /// Whether to retrieve mapping reorder indices from MLIR and store it as
   /// compiled metadata.
@@ -84,13 +97,11 @@ public:
   /// artifact and do not need a QIR/QASM payload for the remote backend.
   bool emitTargetCode = true;
 
-  /// Whether to run the target lowering pipeline before building artifacts.
-  ///
-  /// Local analysis contexts set this to false: they JIT the kernel directly
-  /// for an analysis simulator. The target lowering pipeline would otherwise
-  /// erase operations such as noise or QEC, or fail to legalize them during
-  /// code generation.
-  bool runTargetLoweringPipeline = true;
+  /// Whether to fully specialize the kernel.
+  bool fullySpecialize = true;
+
+  /// Set the `changeSemantics` flag for the argument synthesis pass.
+  bool argumentSynthChangeSemantics = true;
 
   /// When set, emit one lowered module per non-identity Pauli term of this
   /// observable. The resulting `CompiledModule` will contain a compilation
