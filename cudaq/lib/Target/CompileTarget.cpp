@@ -48,8 +48,10 @@ cudaq::CompileTarget::CompileTarget(
     config::TargetConfig targetConfig,
     std::map<std::string, std::string> runtimeConfig, bool emulate_)
     : emulate(emulate_) {
-  if (!targetConfig.BackendConfig.has_value())
+  if (!targetConfig.BackendConfig.has_value()) {
+    pipelineConfig.skipTargetLoweringPipeline = true;
     return;
+  }
 
   const auto &backendConfig = *targetConfig.BackendConfig;
   if (!backendConfig.hasPassPipeline()) {
