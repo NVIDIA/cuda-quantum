@@ -11,14 +11,6 @@
 #   cmake -DCUDAQ_EXTERNAL_PROJECTS="trace-qpu" \
 #         -DCUDAQ_EXTERNAL_TRACE_QPU_SOURCE_DIR=<path-to-this-dir> ...
 
-set(plugin_lib_dir ${CMAKE_CURRENT_BINARY_DIR}/lib)
-set(plugin_target_dir ${CMAKE_CURRENT_BINARY_DIR}/targets)
-
-file(MAKE_DIRECTORY ${plugin_lib_dir} ${plugin_target_dir})
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/targets/trace_qpu.yml.in
-               ${plugin_target_dir}/trace_qpu.yml
-               @ONLY)
-
 set_source_files_properties(TraceQPUSummaryPass.cpp
   PROPERTIES COMPILE_OPTIONS -fno-rtti)
 
@@ -44,3 +36,34 @@ target_include_directories(cudaq-example-qpu-trace_qpu
   PRIVATE ${PROJECT_SOURCE_DIR}/runtime)
 target_link_libraries(cudaq-example-qpu-trace_qpu
   PRIVATE cudaq cudaq-common cudaq-logger MLIRFuncDialect MLIRIR MLIRPass)
+
+if(NOT PYTHON_EXECUTABLE AND Python3_EXECUTABLE)
+  set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
+endif()
+
+if(LLVM_EXTERNAL_LIT)
+  set(cudaq_trace_qpu_lit ${LLVM_EXTERNAL_LIT})
+else()
+  set(cudaq_trace_qpu_lit ${LLVM_TOOLS_BINARY_DIR}/llvm-lit)
+endif()
+
+set(CUDAQ_PLUGIN_TEST_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../tests/lit.site.cfg.py.in
+               ${CMAKE_CURRENT_BINARY_DIR}/tests/lit.site.cfg.py
+               @ONLY)
+
+set(cudaq_trace_qpu_check_depends cudaq-example-qpu-trace_qpu)
+foreach(dep cudaq-quake cudaq-opt nvq++ cudaq-install-plugin FileCheck)
+  if(TARGET ${dep})
+    list(APPEND cudaq_trace_qpu_check_depends ${dep})
+  endif()
+endforeach()
+
+add_custom_target(check-trace-qpu
+  COMMAND ${CMAKE_COMMAND} -E env
+          "LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/lib:$ENV{LD_LIBRARY_PATH}"
+          "DYLD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/lib:$ENV{DYLD_LIBRARY_PATH}"
+          ${cudaq_trace_qpu_lit} ${LLVM_LIT_ARGS}
+          ${CMAKE_CURRENT_BINARY_DIR}/tests
+  DEPENDS ${cudaq_trace_qpu_check_depends}
+  USES_TERMINAL)

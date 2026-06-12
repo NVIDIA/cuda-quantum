@@ -27,3 +27,34 @@ target_include_directories(cudaq-example-serverhelper-mock_rest
   PRIVATE ${PROJECT_SOURCE_DIR}/runtime)
 target_link_libraries(cudaq-example-serverhelper-mock_rest
   PRIVATE cudaq-common cudaq-logger)
+
+if(NOT PYTHON_EXECUTABLE AND Python3_EXECUTABLE)
+  set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
+endif()
+
+if(LLVM_EXTERNAL_LIT)
+  set(cudaq_mock_rest_lit ${LLVM_EXTERNAL_LIT})
+else()
+  set(cudaq_mock_rest_lit ${LLVM_TOOLS_BINARY_DIR}/llvm-lit)
+endif()
+
+set(CUDAQ_PLUGIN_TEST_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/../tests/lit.site.cfg.py.in
+               ${CMAKE_CURRENT_BINARY_DIR}/tests/lit.site.cfg.py
+               @ONLY)
+
+set(cudaq_mock_rest_check_depends cudaq-example-serverhelper-mock_rest)
+foreach(dep nvq++ cudaq-install-plugin FileCheck)
+  if(TARGET ${dep})
+    list(APPEND cudaq_mock_rest_check_depends ${dep})
+  endif()
+endforeach()
+
+add_custom_target(check-mock-rest
+  COMMAND ${CMAKE_COMMAND} -E env
+          "LD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/lib:$ENV{LD_LIBRARY_PATH}"
+          "DYLD_LIBRARY_PATH=${CMAKE_BINARY_DIR}/lib:$ENV{DYLD_LIBRARY_PATH}"
+          ${cudaq_mock_rest_lit} ${LLVM_LIT_ARGS}
+          ${CMAKE_CURRENT_BINARY_DIR}/tests
+  DEPENDS ${cudaq_mock_rest_check_depends}
+  USES_TERMINAL)

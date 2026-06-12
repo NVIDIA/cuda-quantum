@@ -10,7 +10,8 @@ backends without modifying the core tree.
 
 ## Build
 
-Each plugin is a standalone CMake project added via `CUDAQ_EXTERNAL_PROJECTS`:
+Each plugin is a standalone CMake project. Add the examples explicitly with
+`CUDAQ_EXTERNAL_PROJECTS`; they are not part of the default CUDA-Q build.
 
 ```sh
 cmake -B build \
@@ -38,6 +39,9 @@ cudaq.set_target("trace_qpu")
 ```
 
 ## Test
+
+After configuring the plugins with `CUDAQ_EXTERNAL_PROJECTS`, run their explicit
+check targets:
 
 ```sh
 ninja -C build check-mock-rest check-trace-qpu
