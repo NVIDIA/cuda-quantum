@@ -112,7 +112,6 @@ if (NOT CUDAQ_DISABLE_CPP_FRONTEND)
     fixup-linkage
     nvq++
     ${test_cudaq_libraries}
-    cudaq-install-plugin
   )
 endif()
 

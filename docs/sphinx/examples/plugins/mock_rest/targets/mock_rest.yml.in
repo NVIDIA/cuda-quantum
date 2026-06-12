@@ -1,0 +1,24 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: mock_rest
+description: "Reference REST-style external QPU plugin."
+config:
+  platform-qpu: remote_rest
+  gen-target-backend: true
+  preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
+  link-libs: ["-lcudaq-rest-qpu"]
+  codegen-emission: qir-base
+  library-mode: false
+
+target-arguments:
+  - key: url
+    required: false
+    type: string
+    platform-arg: url
+    help-string: "Specify the mock REST service URL."
