@@ -15,11 +15,7 @@ import pytest
 from cudaq import spin
 from network_utils import check_server_connection
 
-try:
-    from utils.mock_qpu.qci import startServer
-except:
-    print("Mock qpu not available, skipping QCI tests.")
-    pytest.skip("Mock qpu not available.", allow_module_level=True)
+from utils.mock_qpu.qci import startServer
 
 # Define the port for the mock server
 port = 62449

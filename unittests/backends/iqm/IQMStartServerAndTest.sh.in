@@ -30,9 +30,9 @@ EOF
 
 # Create fake auth tokens file
 tmp_file=$(mktemp)
-@Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/mock_qpu/iqm/mock_iqm_cortex_cli.py $tmp_file
+PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_BINARY_DIR@/python/tests/utils/mock_qpu/iqm/mock_iqm_cortex_cli.py $tmp_file
 # Launch the fake server
-@Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/utils/start_mock_qpu.py iqm &
+PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_BINARY_DIR@/python/tests/utils/start_mock_qpu.py iqm &
 # we'll need the process id to kill it
 pid=$(echo "$!")
 n=0
