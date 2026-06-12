@@ -379,8 +379,10 @@ jobs:
               echo "+ $line"
               # Fail loudly on the failing command. Without this a failed
               # `conda install` is swallowed and only surfaces ~60 lines later
-              # as a misleading "mpirun: command not found".
-              if ! eval "$line"; then
+              # as a misleading "mpirun: command not found". Retry to tolerate
+              # transient network drops mid-download (e.g. a "Connection reset
+              # by peer" while fetching a multi-hundred-MB CUDA package).
+              if ! retry eval "$line"; then
                 echo "::error file=python_wheel.yml::conda install step failed: $line"
                 exit 1
               fi
@@ -388,7 +390,7 @@ jobs:
             ompi_script="$(awk '/(Begin ompi setup)/{flag=1;next}/(End ompi setup)/{flag=0}flag' $metadata | grep . | sed '/^```/d')"
             while IFS= read -r line; do
                 echo "+ $line"
-                if ! eval "$line"; then
+                if ! retry eval "$line"; then
                   echo "::error file=python_wheel.yml::ompi setup step failed: $line"
                   exit 1
                 fi
