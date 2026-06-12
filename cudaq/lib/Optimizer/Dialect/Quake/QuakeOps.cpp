@@ -1190,7 +1190,49 @@ LogicalResult cudaq::quake::CustomUnitaryCallOp::verify() {
 }
 
 void cudaq::quake::CustomUnitaryConstantOp::getOperatorMatrix(Matrix &matrix) {
-  // We could get the data from the global here.
+  matrix.clear();
+  // The unitary is held in a `cc.global` constant referenced by this op. Read
+  // it (row-major, as authored by `register_operation`) and return it in the
+  // column-major layout the `OperatorInterface` contract requires.
+  auto global = SymbolTable::lookupNearestSymbolFrom<cudaq::cc::GlobalOp>(
+      *this, getMatrix());
+  if (!global)
+    return;
+  auto attr = global.getValue();
+  if (!attr)
+    return;
+  auto elementsAttr = dyn_cast<mlir::ElementsAttr>(*attr);
+  if (!elementsAttr)
+    return;
+  SmallVector<std::complex<double>> rowMajor;
+  for (auto valAttr : elementsAttr.getValues<mlir::Attribute>()) {
+    if (auto fa = dyn_cast<FloatAttr>(valAttr)) {
+      rowMajor.emplace_back(fa.getValue().convertToDouble(), 0.0);
+    } else if (auto ia = dyn_cast<IntegerAttr>(valAttr)) {
+      rowMajor.emplace_back(static_cast<double>(ia.getInt()), 0.0);
+    } else if (auto arrayAttr = dyn_cast<mlir::ArrayAttr>(valAttr)) {
+      auto re = cast<FloatAttr>(arrayAttr[0]).getValue().convertToDouble();
+      auto im = cast<FloatAttr>(arrayAttr[1]).getValue().convertToDouble();
+      rowMajor.emplace_back(re, im);
+    } else {
+      // Unsupported element type; leave the matrix empty.
+      return;
+    }
+  }
+  auto dim = static_cast<size_t>(
+      std::llround(std::sqrt(static_cast<double>(rowMajor.size()))));
+  if (dim == 0 || dim * dim != rowMajor.size())
+    return;
+  const bool adj = getIsAdj();
+  matrix.resize(dim * dim);
+  for (size_t r = 0; r < dim; ++r)
+    for (size_t c = 0; c < dim; ++c) {
+      auto u = rowMajor[r * dim + c];
+      if (adj)
+        matrix[c + dim * r] = std::conj(u);
+      else
+        matrix[r + dim * c] = u;
+    }
 }
 
 LogicalResult cudaq::quake::CustomUnitaryConstantOp::verify() {

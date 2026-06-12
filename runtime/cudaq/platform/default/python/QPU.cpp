@@ -34,42 +34,6 @@
 
 using namespace mlir;
 
-static std::unique_ptr<cudaq::CompileTarget>
-getCompileTarget(cudaq::ExecutionContext *context) {
-  const bool enablePythonCodegenDump =
-      cudaq::getEnvBool("CUDAQ_PYTHON_CODEGEN_DUMP", false);
-  if (enablePythonCodegenDump) {
-    CUDAQ_WARN("CUDAQ_PYTHON_CODEGEN_DUMP is no longer supported and will be "
-               "ignored. Use CUDAQ_MLIR_PRINT_EACH_PASS instead.");
-  }
-  std::unique_ptr<cudaq::CompileTarget> ct;
-  auto *rt = cudaq::get_platform().get_runtime_target();
-  if (!rt) {
-    ct = std::make_unique<cudaq::CompileTarget>();
-    ct->pipelineConfig.skipTargetLoweringPipeline = true;
-  } else {
-    ct = std::make_unique<cudaq::CompileTarget>(rt->config, rt->runtimeConfig,
-                                                cudaq::is_emulated_platform());
-  }
-
-  if (context && context->name == "dem") {
-    ct->emitJit = true;
-    ct->emitTargetCode = false;
-    ct->pipelineConfig.skipTargetLoweringPipeline = true;
-  }
-
-  bool isLocalSimulator =
-      !(cudaq::is_remote_platform() || cudaq::is_emulated_platform());
-
-  ct->fullySpecialize = !isLocalSimulator;
-  ct->supportDeviceCalls = true;
-  ct->emitResourceCounts = context && context->name == "resource-count";
-  ct->argumentSynthChangeSemantics = false;
-  ct->pipelineConfig.codegenTranslation = "qir:";
-  ct->emitJit = true;
-  return ct;
-}
-
 /// Lowers \p module to LLVM code. The LLVM code will use "full QIR" as the
 /// transport layer. If \p kernelName and \p args are provided, they will
 /// specialize the selected entry-point kernel.
@@ -79,7 +43,8 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
                                              const std::string &format) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "getQIR", name);
 
-  auto target = getCompileTarget(cudaq::getExecutionContext());
+  auto target = getDefaultPythonCompileTarget(other_policies{},
+                                              cudaq::getExecutionContext());
   target->fullySpecialize = true;
   cudaq_internal::compiler::Compiler compiler(std::move(target));
 
@@ -122,7 +87,8 @@ std::string cudaq::detail::lower_to_openqasm(const std::string &name,
                                              OpaqueArguments &args) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "getASM", name);
 
-  auto target = getCompileTarget(cudaq::getExecutionContext());
+  auto target = getDefaultPythonCompileTarget(other_policies{},
+                                              cudaq::getExecutionContext());
   target->fullySpecialize = true;
   cudaq_internal::compiler::Compiler compiler(std::move(target));
 
@@ -155,56 +121,3 @@ std::string cudaq::detail::lower_to_openqasm(const std::string &name,
   os.flush();
   return result;
 }
-
-namespace {
-struct PythonLauncher : public cudaq::ModuleLauncher {
-  using cudaq::ModuleLauncher::getCompileTarget;
-  std::unique_ptr<cudaq::CompileTarget>
-  getCompileTarget(cudaq::ExecutionContext *context) override {
-    return ::getCompileTarget(context);
-  }
-
-  cudaq::CompiledModule compileModule(const cudaq::SourceModule &src,
-                                      cudaq::KernelArgs args,
-                                      bool isEntryPoint) override {
-
-    ScopedTraceWithContext(cudaq::TIMING_LAUNCH,
-                           "PythonLauncher::compileModule");
-    const auto &kernelName = src.getName();
-    auto modulePtr = src.getMlirOpaqueModulePtr();
-    assert(modulePtr &&
-           "PythonLauncher::compileModule requires an MLIR artifact");
-
-    cudaq_internal::compiler::Compiler compiler(
-        getCompileTarget(cudaq::getExecutionContext()));
-    return compiler.runPassPipeline(kernelName, modulePtr, args, isEntryPoint);
-  }
-};
-} // namespace
-
-// PythonLauncher registration. This TU only builds into the Python extension
-// (_quakeDialects.so), but `launchModule` / `specializeModule` live in
-// libcudaq.so. CUDA-Q Registry uses `static inline Head/Tail`, so each DSO
-// that instantiates the template gets its own copy — `CUDAQ_REGISTER_TYPE`
-// would add the node to the extension's (unseen-by-libcudaq) registry. We
-// instead call the `cudaq_add_module_launcher_node` bridge defined in
-// libcudaq.so so the registration lands in the registry that `launchModule`
-// actually reads. Mirrors the `cudaq_add_qpu_node` pattern used for QPUs.
-extern "C" void cudaq_add_module_launcher_node(void *node_ptr);
-
-namespace {
-struct PythonLauncherRegistration {
-  cudaq::RegistryEntry<cudaq::ModuleLauncher> entry;
-  cudaq::Registry<cudaq::ModuleLauncher>::node node;
-  PythonLauncherRegistration()
-      : entry("default", &PythonLauncherRegistration::ctorFn), node(entry) {
-    cudaq_add_module_launcher_node(&node);
-  }
-  static std::unique_ptr<cudaq::ModuleLauncher> ctorFn() {
-    return std::make_unique<PythonLauncher>();
-  }
-};
-static PythonLauncherRegistration s_pythonLauncherRegistration;
-} // namespace
-
-extern "C" void cudaq_ensure_default_launcher_linked(void) {}

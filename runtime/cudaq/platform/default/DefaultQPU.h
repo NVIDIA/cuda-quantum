@@ -39,6 +39,16 @@ public:
                                     const AnyModule &module,
                                     KernelArgs args) override;
 
+  std::unique_ptr<CompileTarget>
+  getCompileTarget(const sample_policy &policy) override;
+
+  std::unique_ptr<CompileTarget>
+  getCompileTarget(const observe_policy &policy) override;
+
+  std::unique_ptr<CompileTarget>
+  getCompileTarget(const other_policies &policy,
+                   ExecutionContext *context) override;
+
   void configureExecutionContext(ExecutionContext &context) const override;
   void beginExecution() override;
   void endExecution() override;
