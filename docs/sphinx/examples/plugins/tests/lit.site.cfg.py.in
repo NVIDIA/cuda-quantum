@@ -1,5 +1,3 @@
-@LIT_SITE_CFG_IN_HEADER@
-
 # ============================================================================ #
 # Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
@@ -11,9 +9,21 @@
 # Site config for example plugin tests.  Reuses the cudaq test infrastructure
 # (substitutions, features, paths) but points test_source_root at the plugin's
 # own test directory.
+#
+# NOTE: This file is processed by configure_file(@ONLY), NOT by
+# configure_lit_site_cfg, so @LIT_SITE_CFG_IN_HEADER@ is not available.
+# We provide the path() helper inline.
 
 import os
+import platform
 import sys
+
+def path(p):
+    if not p: return ''
+    if platform.system() == 'Windows':
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), p))
+    else:
+        return os.path.realpath(os.path.join(os.path.dirname(__file__), p))
 
 def cmake_boolvar_to_bool(s):
     return s == "1" or s.upper() == "TRUE" or s.upper() == "ON"
@@ -34,7 +44,6 @@ config.cudaq_shlib_prefix = "@CMAKE_SHARED_LIBRARY_PREFIX@"
 config.cudaq_shlib_ext = "@CMAKE_SHARED_LIBRARY_SUFFIX@"
 config.cudaq_target_dir = "@CMAKE_BINARY_DIR@/targets"
 config.cudaq_example_plugins_dir = "@CMAKE_BINARY_DIR@/external"
-config.cudaq_has_example_plugins = cmake_boolvar_to_bool("@CUDAQ_HAS_EXAMPLE_PLUGINS@")
 config.cudaq_plugin_ext = "@LLVM_PLUGIN_EXT@"
 config.python_executable = "@PYTHON_EXECUTABLE@"
 config.cc = "@CMAKE_C_COMPILER@"

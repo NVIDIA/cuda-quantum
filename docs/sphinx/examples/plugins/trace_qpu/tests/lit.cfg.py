@@ -26,9 +26,6 @@ config.substitutions.append(
     ('%cudaq_example_plugins_dir', config.cudaq_example_plugins_dir))
 config.substitutions.append(('%cudaq_plugin_ext', config.cudaq_plugin_ext))
 
-if config.cudaq_has_example_plugins:
-    config.available_features.add('example-plugins')
-
 llvm_config.use_default_substitutions()
 llvm_config.with_environment('PATH', config.cudaq_tools_dir, append_path=True)
 llvm_config.with_environment('PATH', config.llvm_tools_dir, append_path=True)
