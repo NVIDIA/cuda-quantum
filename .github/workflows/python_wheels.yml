@@ -305,7 +305,7 @@ jobs:
               echo "::error file=python_wheel.yml::Python tests failed with status $pytest_status."
               exit 1
             fi
-            retry python${{ inputs.python_version }} -m pip install --user fastapi uvicorn llvmlite
+            retry python${{ inputs.python_version }} -m pip install fastapi uvicorn llvmlite
             python${{ inputs.python_version }} -m pytest -v /tmp/tests/backends --rootdir /tmp/tests
             pytest_status=$?
             # Exit code 5 indicates that no tests were collected,
