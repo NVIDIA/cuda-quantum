@@ -8,7 +8,7 @@
 
 #include "LinkedLibraryHolder.h"
 #include "common/RuntimeTarget.h"
-#include "cudaq/Support/TargetConfigYaml.h"
+#include "cudaq/Target/TargetConfigYaml.h"
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
