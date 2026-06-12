@@ -405,6 +405,8 @@ class PyASTBridge(ast.NodeVisitor):
         self.walkingReturnNode = False
         self.controlNegations = []
         self.pushPointerValue = False
+        # Constant ``cudaq.qvector(N)`` sizes for compile-time checks.
+        self.staticVeqSizes = {}
         self.isSubscriptRoot = False
         self.verbose = verbose
         self.currentNode = None
@@ -424,6 +426,33 @@ class PyASTBridge(ast.NodeVisitor):
                 self.isCudaqName(inner.value.id)):
             return None
         return node.func.attr
+
+    def _staticQvectorSizeFromAst(self, node):
+        """Return a constant ``N`` from ``cudaq.qvector(N)`` if statically known."""
+        if not isinstance(node, ast.Call) or len(node.args) != 1:
+            return None
+        func = node.func
+        if not (isinstance(func, ast.Attribute) and func.attr == 'qvector' and
+                isinstance(func.value, ast.Name) and
+                self.isCudaqName(func.value.id)):
+            return None
+        size_node = node.args[0]
+        if (isinstance(size_node, ast.Constant) and
+                isinstance(size_node.value, int)):
+            return size_node.value
+        return None
+
+    def _recordStaticVeqSize(self, target, value_ast):
+        """Track ``var = cudaq.qvector(N)`` for later compile-time checks."""
+        if not isinstance(target, ast.Name):
+            return
+        q_size = self._staticQvectorSizeFromAst(value_ast)
+        if q_size is None and isinstance(value_ast, ast.Name):
+            q_size = self.staticVeqSizes.get(value_ast.id)
+        if q_size is not None:
+            self.staticVeqSizes[target.id] = q_size
+        else:
+            self.staticVeqSizes.pop(target.id, None)
 
     def debug_msg(self, msg, node=None):
         if self.verbose:
@@ -744,14 +773,6 @@ class PyASTBridge(ast.NodeVisitor):
                                  operand,
                                  sint=operand_width != 1,
                                  zint=operand_width == 1).result
-
-        # Match nvq++/kernel_builder: relax `veq<N>` to `veq<?>` when passing to
-        # a `callee` that expects an `unsized` `qview`/`qvector`.
-        if (quake.VeqType.isinstance(ty) and
-                quake.VeqType.isinstance(operand.type) and
-                not quake.VeqType.hasSpecifiedSize(ty) and
-                quake.VeqType.hasSpecifiedSize(operand.type)):
-            return quake.RelaxSizeOp(ty, operand).result
 
         self.emitFatalError(
             f'cannot convert value of type {operand.type} '
@@ -1721,10 +1742,11 @@ class PyASTBridge(ast.NodeVisitor):
                 "cudaq.contrib.angular_encode: angles must be a list[float]",
                 node)
 
-        if (quake.VeqType.hasSpecifiedSize(q.type) and
-                isinstance(node.args[1], ast.List)):
-            q_size = quake.VeqType.getSize(q.type)
-            if len(node.args[1].elts) != q_size:
+        if isinstance(node.args[1], ast.List):
+            q_size = self._staticQvectorSizeFromAst(node.args[0])
+            if q_size is None and isinstance(node.args[0], ast.Name):
+                q_size = self.staticVeqSizes.get(node.args[0].id)
+            if (q_size is not None and len(node.args[1].elts) != q_size):
                 self.emitFatalError(
                     "cudaq.contrib.angular_encode: number of angles must "
                     "match the number of qubits", node)
@@ -2404,6 +2426,7 @@ class PyASTBridge(ast.NodeVisitor):
             # tuple, but it may not be correct to do so.)
             self.emitFatalError(
                 "CUDA-Q does not allow multiple targets in assignment", node)
+        self._recordStaticVeqSize(node.targets[0], node.value)
         self.__deconstructAssignment(node.targets[0],
                                      node.value,
                                      process=process_assignment)
@@ -3660,17 +3683,8 @@ class PyASTBridge(ast.NodeVisitor):
 
                         if (IntegerType.isinstance(value.type)):
                             # handle `cudaq.qvector(n)`
-                            veq_size = None
-                            size_node = node.args[0]
-                            if (isinstance(size_node, ast.Constant) and
-                                    isinstance(size_node.value, int)):
-                                veq_size = size_node.value
-                            if veq_size is not None:
-                                qubits = quake.AllocaOp(
-                                    self.getVeqType(veq_size)).result
-                            else:
-                                qubits = quake.AllocaOp(self.getVeqType(),
-                                                        size=value).result
+                            ty = self.getVeqType()
+                            qubits = quake.AllocaOp(ty, size=value).result
                             self.pushValue(qubits)
                             return
 
