@@ -1876,6 +1876,19 @@ alt="../../_images/circuitsimulators.png" /></a>
 | ate}]{.pre} |             |                 |      |      |          |
 | \*          |             |                 |      |      |          |
 +-------------+-------------+-----------------+------+------+----------+
+| [`nvidia-le | State       | Legacy state    | Si   | si   | \< 33 /  |
+| gacy`{.code | Vector      | vector          | ngle | ngle | 32 (64   |
+| .docutils   |             | simulator that  | GPU  | (    | GB)      |
+| .literal    |             | does not        |      | defa |          |
+| .notransl   |             | support         |      | ult) |          |
+| ate}]{.pre} |             | multi-GPU, gate |      | /    |          |
+|             |             | fusion, or      |      | do   |          |
+|             |             | trajectory      |      | uble |          |
+|             |             | sampling. Can   |      |      |          |
+|             |             | perform better  |      |      |          |
+|             |             | at low qubit    |      |      |          |
+|             |             | counts.         |      |      |          |
++-------------+-------------+-----------------+------+------+----------+
 | [`tenso     | Tensor      | Shallow-depth   | m    | do   | T        |
 | rnet`{.code | Network     | (lo             | ulti | uble | housands |
 | .docutils   |             | w-entanglement) | -GPU | (    |          |
