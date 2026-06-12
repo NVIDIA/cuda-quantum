@@ -82,6 +82,13 @@ set_target_properties(cudaq::cudaq-nvidia-target PROPERTIES
   IMPORTED_SONAME "libnvqir-${__base_nvtarget_name}-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
   IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
 
+# NVIDIA Legacy Target
+add_library(cudaq::cudaq-nvidia-legacy-target SHARED IMPORTED)
+set_target_properties(cudaq::cudaq-nvidia-legacy-target PROPERTIES
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-custatevec-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-custatevec-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
+
 # NVIDIA FP64 Target
 add_library(cudaq::cudaq-nvidia-fp64-target SHARED IMPORTED)
 set_target_properties(cudaq::cudaq-nvidia-fp64-target PROPERTIES

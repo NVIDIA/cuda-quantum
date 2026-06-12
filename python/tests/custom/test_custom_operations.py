@@ -111,7 +111,7 @@ def test_three_qubit_op():
 
 # NOTE: Ref - https://github.com/NVIDIA/cuda-quantum/issues/1925
 @pytest.mark.parametrize("target", [
-    'density-matrix-cpu', 'nvidia', 'nvidia-fp64', 'nvidia-mqpu',
+    'density-matrix-cpu', 'nvidia', 'nvidia-legacy', 'nvidia-fp64', 'nvidia-mqpu',
     'nvidia-mqpu-fp64', 'qpp-cpu'
 ])
 def test_simulators(target):
