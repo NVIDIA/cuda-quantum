@@ -63,6 +63,7 @@ set(CUDAQ_TEST_DEPENDS
     FileCheck
     nvq++
     test_argument_conversion
+    test_compile_target
 )
 
 if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME AND NOT CUDAQ_DISABLE_CPP_FRONTEND AND

@@ -16,6 +16,7 @@
 #include "cudaq/platform.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
 #include "cudaq/schedule.h"
+#include <exception>
 
 namespace cudaq {
 class base_integrator;
@@ -108,13 +109,19 @@ evolve_async(state initial_state, QuantumKernel &&kernel,
       [p = std::move(promise), func = std::forward<QuantumKernel>(kernel),
        initial_state, observables, noise_model, shots_count,
        &platform]() mutable {
-        if (noise_model.has_value())
-          platform.set_noise(&noise_model.value());
-        with_platform_in_library_mode libraryMode(platform);
-        auto result = evolve(initial_state, func, observables, shots_count);
-        if (noise_model.has_value())
-          platform.set_noise(nullptr);
-        p.set_value(std::move(result));
+        try {
+          if (noise_model.has_value())
+            platform.set_noise(&noise_model.value());
+          with_platform_in_library_mode libraryMode(platform);
+          auto result = evolve(initial_state, func, observables, shots_count);
+          if (noise_model.has_value())
+            platform.set_noise(nullptr);
+          p.set_value(std::move(result));
+        } catch (...) {
+          if (noise_model.has_value())
+            platform.set_noise(nullptr);
+          p.set_exception(std::current_exception());
+        }
       });
 
   platform.enqueueAsyncTask(qpu_id, wrapped);
@@ -135,14 +142,20 @@ evolve_async(state initial_state, std::vector<QuantumKernel> kernels,
   QuantumTask wrapped = detail::make_copyable_function(
       [p = std::move(promise), kernels, initial_state, observables, noise_model,
        shots_count, &platform, save_intermediate_states]() mutable {
-        if (noise_model.has_value())
-          platform.set_noise(&noise_model.value());
-        with_platform_in_library_mode libraryMode(platform);
-        auto result = evolve(initial_state, kernels, observables, shots_count,
-                             save_intermediate_states);
-        if (noise_model.has_value())
-          platform.set_noise(nullptr);
-        p.set_value(std::move(result));
+        try {
+          if (noise_model.has_value())
+            platform.set_noise(&noise_model.value());
+          with_platform_in_library_mode libraryMode(platform);
+          auto result = evolve(initial_state, kernels, observables, shots_count,
+                               save_intermediate_states);
+          if (noise_model.has_value())
+            platform.set_noise(nullptr);
+          p.set_value(std::move(result));
+        } catch (...) {
+          if (noise_model.has_value())
+            platform.set_noise(nullptr);
+          p.set_exception(std::current_exception());
+        }
       });
 
   platform.enqueueAsyncTask(qpu_id, wrapped);
@@ -164,7 +177,11 @@ evolve_async(std::function<evolve_result()> evolveFunctor,
 
   QuantumTask wrapped = detail::make_copyable_function(
       [p = std::move(promise), evolveFunctor]() mutable {
-        p.set_value(evolveFunctor());
+        try {
+          p.set_value(evolveFunctor());
+        } catch (...) {
+          p.set_exception(std::current_exception());
+        }
       });
 
   platform.enqueueAsyncTask(qpu_id, wrapped);
