@@ -1,0 +1,59 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+import argparse
+import os
+import shutil
+from importlib.resources import files
+from pathlib import Path
+
+PACKAGE_NAME = "@plugin_python_package@"
+PLUGIN_NAME = "@plugin_python_install_name@"
+
+
+def _user_plugin_scope() -> Path:
+    if os.environ.get("CUDAQ_PLUGIN_ROOT"):
+        return Path(os.environ["CUDAQ_PLUGIN_ROOT"]).expanduser()
+    if os.environ.get("XDG_DATA_HOME"):
+        return Path(os.environ["XDG_DATA_HOME"]).expanduser() / "cudaq" / "plugins"
+    return Path.home() / ".local" / "share" / "cudaq" / "plugins"
+
+
+def _install_for_nvqpp(copy: bool) -> Path:
+    package_root = Path(str(files(PACKAGE_NAME))).resolve()
+    destination = _user_plugin_scope() / PLUGIN_NAME
+    if destination.exists() or destination.is_symlink():
+        raise SystemExit(f"destination already exists: {destination}")
+
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if copy:
+        shutil.copytree(package_root, destination, symlinks=True)
+    else:
+        destination.symlink_to(package_root, target_is_directory=True)
+    return destination
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Install this CUDA-Q example plugin for nvq++ discovery.")
+    parser.add_argument("--install-nvqpp", action="store_true",
+                        help="link this package into the user nvq++ plugin scope")
+    parser.add_argument("--copy", action="store_true",
+                        help="copy instead of symlinking when installing for nvq++")
+    args = parser.parse_args()
+
+    if not args.install_nvqpp:
+        parser.print_help()
+        return 1
+
+    print(_install_for_nvqpp(copy=args.copy))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

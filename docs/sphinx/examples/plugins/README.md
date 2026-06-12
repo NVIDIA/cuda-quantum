@@ -22,15 +22,33 @@ cmake -B build \
 ninja -C build cudaq-example-serverhelper-mock_rest cudaq-example-qpu-trace_qpu
 ```
 
-Outputs land in `build/external/<name>/{lib,targets}/`.
+Outputs land in `build/external/<name>/`. Each output directory contains the
+plugin `targets/`, `lib/`, and Python packaging metadata.
 
 ## Install
+
+For Python discovery, install the built plugin root as a Python package:
+
+```sh
+python3 -m pip install build/external/trace-qpu
+```
+
+After that, `import cudaq` loads the plugin's `cudaq.backends` entry point and
+`cudaq.set_target("trace_qpu")` works without an explicit registration call.
+
+To also make the same package visible to `nvq++`, use the package's helper:
+
+```sh
+python3 -m cudaq_example_trace_qpu --install-nvqpp
+```
+
+For C++-only workflows, install the plugin root directly:
 
 ```sh
 cudaq-install-plugin build/external/trace-qpu   # visible to nvq++
 ```
 
-Or from Python:
+During development, you can still register the build output directly:
 
 ```python
 import cudaq

@@ -13,6 +13,8 @@ become visible via `cudaq.get_targets()` / `cudaq.has_target()`.
 """
 
 import os
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -58,3 +60,48 @@ def test_register_backend_path_rejects_missing_targets_subdir(tmp_path):
     with pytest.raises(RuntimeError) as excinfo:
         cudaq.register_backend_path(str(pkg))
     assert str(pkg) in str(excinfo.value)
+
+
+def test_cudaq_backends_entry_point_can_register_during_import(tmp_path):
+    plugin = tmp_path / "fake_cudaq_backend"
+    (plugin / "targets").mkdir(parents=True)
+    (plugin / "lib").mkdir()
+    (plugin / "targets" / "entry-point-target.yml").write_text(
+        "name: entry-point-target\n"
+        'description: "Entry point registration test."\n'
+        "config:\n"
+        "  platform-qpu: remote_rest\n"
+        "  library-mode: false\n")
+    (plugin / "__init__.py").write_text(
+        "from importlib.resources import files\n\n"
+        "def register():\n"
+        "    import cudaq\n"
+        "    cudaq.register_backend_path(str(files(__name__)))\n")
+
+    dist_info = tmp_path / "fake_cudaq_backend-0.0.dist-info"
+    dist_info.mkdir()
+    (dist_info /
+     "METADATA").write_text("Name: fake-cudaq-backend\nVersion: 0.0\n")
+    (dist_info / "entry_points.txt").write_text(
+        "[cudaq.backends]\n"
+        "fake = fake_cudaq_backend:register\n")
+
+    env = os.environ.copy()
+    env["PYTHONPATH"] = os.pathsep.join([
+        str(tmp_path),
+        str(Path.cwd() / "build" / "python"),
+        env.get("PYTHONPATH", "")
+    ])
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import cudaq; assert cudaq.has_target('entry-point-target')",
+        ],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
