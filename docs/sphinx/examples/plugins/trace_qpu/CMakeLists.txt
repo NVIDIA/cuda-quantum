@@ -6,6 +6,19 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+# Standalone CMakeLists.txt for the trace_qpu reference plugin.
+# Can be built alongside CUDA-Q via:
+#   cmake -DCUDAQ_EXTERNAL_PROJECTS="trace-qpu" \
+#         -DCUDAQ_EXTERNAL_TRACE_QPU_SOURCE_DIR=<path-to-this-dir> ...
+
+set(plugin_lib_dir ${CMAKE_CURRENT_BINARY_DIR}/lib)
+set(plugin_target_dir ${CMAKE_CURRENT_BINARY_DIR}/targets)
+
+file(MAKE_DIRECTORY ${plugin_lib_dir} ${plugin_target_dir})
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/targets/trace_qpu.yml.in
+               ${plugin_target_dir}/trace_qpu.yml
+               @ONLY)
+
 set_source_files_properties(TraceQPUSummaryPass.cpp
   PROPERTIES COMPILE_OPTIONS -fno-rtti)
 
