@@ -8,7 +8,6 @@
 
 #include "CUDAQTestUtils.h"
 #include "cudaq/builder/kernels.h"
-#include <cudaq/algorithms/draw.h>
 #include <iostream>
 
 namespace cudaq {
@@ -227,10 +226,11 @@ CUDAQ_TEST(KernelsTester, checkAngularEncodeRy) {
   auto q = kernel.qalloc(3);
   const std::vector<double> angles{0.1, 0.2, 0.3};
   cudaq::contrib::angular_encode(kernel, q, angles);
-  const std::string code = cudaq::contrib::draw(kernel);
-  EXPECT_NE(code.find("ry(0.1)"), std::string::npos);
-  EXPECT_NE(code.find("ry(0.2)"), std::string::npos);
-  EXPECT_NE(code.find("ry(0.3)"), std::string::npos);
+  const std::string code = kernel.to_quake();
+  EXPECT_NE(code.find("quake.ry"), std::string::npos);
+  EXPECT_NE(code.find("0.1"), std::string::npos);
+  EXPECT_NE(code.find("0.2"), std::string::npos);
+  EXPECT_NE(code.find("0.3"), std::string::npos);
 }
 
 CUDAQ_TEST(KernelsTester, checkAngularEncodeRx) {
@@ -239,18 +239,19 @@ CUDAQ_TEST(KernelsTester, checkAngularEncodeRx) {
   const std::vector<double> angles{0.5, 1.0};
   cudaq::contrib::angular_encode(kernel, q, angles,
                                  cudaq::contrib::RotationAxis::X);
-  const std::string code = cudaq::contrib::draw(kernel);
-  EXPECT_NE(code.find("rx(0.5)"), std::string::npos);
-  EXPECT_TRUE(code.find("rx(1)") != std::string::npos ||
-              code.find("rx(1.0)") != std::string::npos);
+  const std::string code = kernel.to_quake();
+  EXPECT_NE(code.find("quake.rx"), std::string::npos);
+  EXPECT_NE(code.find("0.5"), std::string::npos);
+  EXPECT_TRUE(code.find("1.0") != std::string::npos ||
+              code.find("1.000000") != std::string::npos);
 }
 
 CUDAQ_TEST(KernelsTester, checkAngularEncodeParametric) {
   auto [kernel, angles] = cudaq::make_kernel<std::vector<double>>();
   auto q = kernel.qalloc(2);
   cudaq::contrib::angular_encode(kernel, q, angles);
-  const std::string code = cudaq::contrib::draw(kernel);
-  EXPECT_NE(code.find("ry"), std::string::npos);
+  const std::string code = kernel.to_quake();
+  EXPECT_NE(code.find("quake.ry"), std::string::npos);
 }
 
 CUDAQ_TEST(KernelsTester, checkAngularEncodeMismatch) {
