@@ -54,5 +54,6 @@ add_target_config(compiler-bench-ftqc-logical)
 
 if (cuStateVec_FOUND)
   add_target_config(nvidia)
+  add_target_config(nvidia-legacy)
   add_target_config(nvidia-fp64)
 endif()
