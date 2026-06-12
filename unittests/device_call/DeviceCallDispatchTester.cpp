@@ -155,7 +155,7 @@ std::int32_t dispatchUsingFrameLease(std::uint32_t deviceId,
 }
 
 enum class TestGpuTable { AddThem, AddThemOffset };
-enum class TestHostTable { GraphAddThem, HostAddThem };
+enum class TestHostTable { GraphAddThem, HostAddThem, MixedAddThem };
 
 TestGpuTable selectedGpuTable = TestGpuTable::AddThem;
 TestHostTable selectedHostTable = TestHostTable::GraphAddThem;
@@ -187,7 +187,7 @@ public:
     if (setupHostDispatch() != 0)
       return 1;
     table.entries = hostEntries.data();
-    table.count = static_cast<std::uint32_t>(hostEntries.size());
+    table.count = hostEntryCount;
     table.deviceId = 0;
     table.mailbox = h_mailbox;
     return 0;
@@ -203,6 +203,7 @@ private:
     if (selectedHostTable == TestHostTable::HostAddThem) {
       teardownHostDispatch();
       fillHostCallAddEntry(hostEntries[0]);
+      hostEntryCount = 1;
       return 0;
     }
 
@@ -224,6 +225,11 @@ private:
     }
 
     test::fillHostGraphAddEntry(hostEntries[0], graphExec);
+    hostEntryCount = 1;
+    if (selectedHostTable == TestHostTable::MixedAddThem) {
+      fillHostCallAddEntry(hostEntries[1]);
+      hostEntryCount = 2;
+    }
     return 0;
   }
 
@@ -240,13 +246,15 @@ private:
     h_mailbox = nullptr;
     d_mailbox = nullptr;
     hostEntries = {};
+    hostEntryCount = 0;
   }
 
   void **h_mailbox = nullptr;
   void **d_mailbox = nullptr;
   cudaGraph_t graph = nullptr;
   cudaGraphExec_t graphExec = nullptr;
-  std::array<cudaq_function_entry_t, 1> hostEntries{};
+  std::array<cudaq_function_entry_t, 2> hostEntries{};
+  std::uint32_t hostEntryCount = 0;
 };
 
 DeviceCallService *getTestRealtimeService() {
@@ -270,20 +278,16 @@ void initializeGpuRuntime(TestGpuTable table = TestGpuTable::AddThem) {
   cudaq_internal::device_call::initializeDeviceCallRuntime(1, argv);
 }
 
-void initializeHostRuntime() {
-  selectedHostTable = TestHostTable::GraphAddThem;
-  char program[] = "test_device_call_dispatch";
-  char option[] = "--cudaq-device-call=host-dispatch";
-  char *argv[] = {program, option};
-  cudaq_internal::device_call::initializeDeviceCallRuntime(2, argv);
-}
-
 void initializeHostRuntime(TestHostTable table) {
   selectedHostTable = table;
   char program[] = "test_device_call_dispatch";
   char option[] = "--cudaq-device-call=host-dispatch";
   char *argv[] = {program, option};
   cudaq_internal::device_call::initializeDeviceCallRuntime(2, argv);
+}
+
+void initializeHostRuntime() {
+  initializeHostRuntime(TestHostTable::GraphAddThem);
 }
 
 void finalizeRuntime() {
@@ -456,6 +460,39 @@ TEST_F(HostCallDispatchFrameTest, DispatchesHostCallThroughFrameLease) {
                                     &response, sizeof(response), &responseLen));
   EXPECT_EQ(sizeof(response), responseLen);
   EXPECT_EQ(42, response);
+}
+
+class HostMixedDispatchFrameTest : public ::testing::Test {
+protected:
+  void SetUp() override {
+    ASSERT_NO_THROW(initializeHostRuntime(TestHostTable::MixedAddThem));
+  }
+
+  void TearDown() override { ASSERT_NO_THROW(finalizeRuntime()); }
+};
+
+TEST_F(HostMixedDispatchFrameTest, DispatchesHostCallAndGraphLaunchEntries) {
+  std::array<std::int32_t, 2> request{19, 23};
+
+  std::int32_t hostResponse = 0;
+  std::uint64_t hostResponseLen = 0;
+  ASSERT_EQ(DeviceCallSuccessStatus,
+            dispatchUsingFrameLease(0, HostAddThemFunctionId, request.data(),
+                                    request.size() * sizeof(request[0]),
+                                    &hostResponse, sizeof(hostResponse),
+                                    &hostResponseLen));
+  EXPECT_EQ(sizeof(hostResponse), hostResponseLen);
+  EXPECT_EQ(42, hostResponse);
+
+  std::int32_t graphResponse = 0;
+  std::uint64_t graphResponseLen = 0;
+  ASSERT_EQ(DeviceCallSuccessStatus,
+            dispatchUsingFrameLease(0, GraphAddThemFunctionId, request.data(),
+                                    request.size() * sizeof(request[0]),
+                                    &graphResponse, sizeof(graphResponse),
+                                    &graphResponseLen));
+  EXPECT_EQ(sizeof(graphResponse), graphResponseLen);
+  EXPECT_EQ(42, graphResponse);
 }
 
 class DeviceCallServicePluginTest : public ::testing::Test {

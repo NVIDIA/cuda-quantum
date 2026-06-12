@@ -231,7 +231,8 @@ private:
 
   bool hasGraphLaunchEntry() const {
     for (std::uint32_t i = 0; i < functionCount; ++i)
-      if (functionTable[i].dispatch_mode == CUDAQ_DISPATCH_GRAPH_LAUNCH)
+      if (functionTable[i].dispatch_mode == CUDAQ_DISPATCH_GRAPH_LAUNCH &&
+          functionTable[i].handler.graph_exec)
         return true;
     return false;
   }
