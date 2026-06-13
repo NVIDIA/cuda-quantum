@@ -85,6 +85,8 @@ struct AssignWireIndicesPass
           if (callee->hasAttr(cudaq::kernelAttrName))
             hasQuantumCall = true;
       });
+      func.walk([&](cudaq::quake::CallByRefOp) { hasQuantumCall = true; });
+      func.walk([&](cudaq::quake::ApplyOp) { hasQuantumCall = true; });
       if (hasQuantumCall) {
         func.emitRemark(
             "AssignWireIndicesPass function has calls, pass will not be run.");
